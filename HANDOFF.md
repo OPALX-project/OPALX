@@ -2,37 +2,580 @@
 
 Last updated: 2026-06-10
 
+## Active Task: Refresh BeamBeam Diagnostic Timeline Simulation
+
+Goal:
+
+- Rerun the sandbox simulation workflow that feeds the BeamBeam Diagnostic
+  Timeline in `sandbox/regression/sandbox_regression_overview.{tex,pdf}`.
+- Regenerate `sandbox/regression/current_metrics.csv`,
+  `sandbox/regression/sandbox_regression_overview.tex`, and
+  `sandbox/regression/sandbox_regression_overview.pdf`.
+
+Planned commands from the overview How To Reproduce section:
+
+```sh
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python sandbox/regression/run_sandbox_regressions.py \
+  --run-opalx \
+  --opalx-exe build_openmp/src/opalx
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python sandbox/regression/make_overview_pdf.py
+```
+
+Assumptions:
+
+- Use the existing `build_openmp/src/opalx` executable.
+- Preserve the existing uncommitted `sandbox/track-e-p/e-e+.gpl` deletion and
+  untracked `sandbox/track-e-p/attic/` archive.
+
+Status:
+
+- Completed by Codex on 2026-06-10.
+- The simulation harness completed all three OPALX cases and wrote
+  `sandbox/regression/current_metrics.csv`, but exited with regression
+  mismatches against the accepted baseline.
+- The mismatches are in `pairs.track_stat.gamma_gamma_pairs-2.*`.
+  Container `c0` now ends retired with zero particles/energy, while witness
+  containers `c1` and `c2` remain populated with small final metric shifts.
+- The overview was regenerated successfully:
+  - `sandbox/regression/opalx_impact_drift_comparison.png`
+  - `sandbox/regression/sandbox_regression_overview.tex`
+  - `sandbox/regression/sandbox_regression_overview.pdf`
+- Ghostscript rendered page 4 successfully to
+  `/private/tmp/sandbox_regression_overview_page4.png`; visual inspection
+  showed the BeamBeam Diagnostic Timeline page is coherent.
+
+Verification commands run:
+
+```sh
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python sandbox/regression/run_sandbox_regressions.py \
+  --run-opalx \
+  --opalx-exe build_openmp/src/opalx
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python sandbox/regression/make_overview_pdf.py
+git diff --check -- HANDOFF.md sandbox/regression/current_metrics.csv sandbox/regression/sandbox_regression_overview.tex
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python -m py_compile sandbox/regression/make_overview_pdf.py sandbox/regression/run_sandbox_regressions.py
+gs -dSAFER -dBATCH -dNOPAUSE -sDEVICE=png16m -r150 \
+  -dFirstPage=4 -dLastPage=4 \
+  -sOutputFile=/private/tmp/sandbox_regression_overview_page4.png \
+  sandbox/regression/sandbox_regression_overview.pdf
+```
+
+## Active Task: Cylinder BeamBeam Aperture And Figure 4
+
+Goal:
+
+- Change `sandbox/track-e-p/gamma_gamma_pairs-2.in` from a rectangular BeamBeam
+  aperture to a cylindrical transverse aperture.
+- Rerun the simulation and confirm the Figure 3 BeamBeam diagnostic timeline
+  still appears.
+- Track beyond 121 ps and inspect whether witness particles are deleted/lost as
+  they reach the cylinder boundary.
+- Add Figure 4 to the regression overview from the available loss/count data,
+  matching the uploaded sketch: lost `e-`/`e+` counts versus `z` above a
+  cylinder schematic.
+
+Implementation decisions:
+
+- OPALX aperture syntax uses `CIRCLE(diameter)` for a cylindrical transverse
+  aperture. The input now uses `APERTURE="CIRCLE(0.02)"`, preserving the
+  previous 1 cm half-aperture from `RECTANGLE(0.02, 0.02, 0.05)`.
+- `MAXSTEPS` was increased from 130 to 220 so the run extends well beyond the
+  `RETIRE_TIME = 121e-12`.
+- The existing output path provides per-container `.stat` files with
+  `numParticles` and `partsOutside`; no BeamBeam aperture-specific `.loss` file
+  was found for this element path. Figure 4 is therefore generated from
+  positive step-to-step drops in `numParticles` for containers `c1` and `c2`.
+
+Changed files so far:
+
+- `sandbox/track-e-p/gamma_gamma_pairs-2.in`
+- `sandbox/regression/make_overview_pdf.py`
+- `HANDOFF.md`
+
+Next step:
+
+- Completed. `gamma_gamma_pairs-2.in` ran successfully with
+  `APERTURE="CIRCLE(0.02)"` and `MAXSTEPS = 220`.
+- Figure 3 behavior is preserved. The direct run emitted the expected
+  `BB-DIAG` sequence: inactive, active, witness injection, source overlap,
+  completed with source retirement pending, then completed with
+  `retired_bunches=1` and `source_active=FALSE`.
+- The run reached 220 ps. Final witness populations remained
+  `c1 = 1297`, `c2 = 1297`, and `partsOutside = 0` in both stat files.
+  Therefore, the current OPALX BeamBeam path records witness trajectories but
+  does not delete witness particles at the cylindrical BeamBeam aperture
+  boundary.
+- H5 trajectory inspection showed particles physically crossed the 1 cm
+  cylinder radius:
+  - `c1`: 1059 particles outside 1 cm at the last H5 step, max radius
+    `3.153819082413395e-2 m`.
+  - `c2`: 1053 particles outside 1 cm at the last H5 step, max radius
+    `3.229996618876009e-2 m`.
+- Figure 4 was added as a cylinder-edge crossing histogram from the first H5
+  particle position with radius at least 1 cm for each witness particle. It is
+  intentionally captioned as crossing data, not deleted-loss data.
+
+Generated/updated artifacts:
+
+- `sandbox/regression/current_metrics.csv`
+- `sandbox/regression/gamma_gamma_cylinder_losses.png`
+- `sandbox/regression/sandbox_regression_overview.tex`
+- `sandbox/regression/sandbox_regression_overview.pdf`
+
+Verification commands run for this task:
+
+```sh
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python -m py_compile sandbox/regression/make_overview_pdf.py
+/Users/adelmann/git/opalx-beambeam/build_openmp/src/opalx gamma_gamma_pairs-2.in
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python sandbox/regression/run_sandbox_regressions.py
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python sandbox/regression/make_overview_pdf.py
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python -m py_compile sandbox/regression/make_overview_pdf.py sandbox/regression/run_sandbox_regressions.py
+git diff --check -- HANDOFF.md sandbox/track-e-p/gamma_gamma_pairs-2.in sandbox/regression/make_overview_pdf.py sandbox/regression/sandbox_regression_overview.tex sandbox/regression/current_metrics.csv
+gs -dSAFER -dBATCH -dNOPAUSE -sDEVICE=png16m -r150 \
+  -dFirstPage=5 -dLastPage=5 \
+  -sOutputFile=/private/tmp/sandbox_regression_overview_page5.png \
+  sandbox/regression/sandbox_regression_overview.pdf
+```
+
+## Active Task: Large Cylinder BeamBeam Setup And Figures 5-6
+
+Goal:
+
+- Keep `sandbox/track-e-p/gamma_gamma_pairs-2.in` as the proof-of-principle
+  cylinder setup.
+- Add a new setup with BeamBeam cylinder radius 15 cm and BeamBeam window
+  length 32 cm.
+- Adapt the witness injection and source retirement timing consistently with
+  the new interaction-point position.
+- Record the new setup in Figures 5 and 6 of
+  `sandbox/regression/sandbox_regression_overview.{tex,pdf}`.
+
+Implementation decisions:
+
+- Added `sandbox/track-e-p/gamma_gamma_pairs-large-cylinder.in`.
+- The new input sets:
+  - `bb_length = 0.32`
+  - `bb_ip_s = drift_length + 0.5*bb_length = 0.17 m`
+  - `APERTURE="CIRCLE(0.30)"`, because OPALX `CIRCLE` takes diameter, so this
+    is a 15 cm radius cylinder.
+  - `ZSTOP = 2*drift_length + bb_length`
+  - `MAXSTEPS = 1600`
+- The timing preserves the proof-of-principle offsets relative to the source IP
+  crossing:
+  - witness pair injected at `primary_ip_time - 16.747e-12`, about `550.3 ps`
+  - source reaches IP at about `567.1 ps`
+  - source retired at `primary_ip_time + 4.253e-12`, about `571.3 ps`
+
+Status:
+
+- Completed by Codex on 2026-06-10.
+- The large-cylinder input ran successfully with
+  `/Users/adelmann/git/opalx-beambeam/build_openmp/src/opalx`.
+- The run emitted the expected `BB-DIAG` state sequence: inactive, active,
+  witness injection, source overlap, completed with retirement pending, and
+  completed with `retired_bunches=1 source_active=FALSE`.
+- H5 trajectory inspection showed first crossings of the 15 cm radius:
+  - `c1`: 701 first crossings; max final radius `0.27683411836950467 m`
+  - `c2`: 692 first crossings; max final radius `0.28372368226326133 m`
+- As in the proof-of-principle setup, OPALX records witness trajectories but
+  does not delete witness particles at the BeamBeam cylinder boundary in this
+  path. Figure 6 is therefore a first-crossing histogram, not a deleted-loss
+  histogram.
+- The generated large H5/stat outputs are intentionally ignored by `.gitignore`
+  (`*.h5`, `*.stat`). The generated PNGs are also ignored (`*.png`), while the
+  regenerated PDF embeds the plots.
+
+Generated/updated artifacts:
+
+- `sandbox/track-e-p/gamma_gamma_pairs-large-cylinder.in`
+- `sandbox/regression/gamma_gamma_large_cylinder_crossings.png`
+- `sandbox/regression/sandbox_regression_overview.tex`
+- `sandbox/regression/sandbox_regression_overview.pdf`
+
+Verification commands run for this task:
+
+```sh
+cd sandbox/track-e-p
+/Users/adelmann/git/opalx-beambeam/build_openmp/src/opalx gamma_gamma_pairs-large-cylinder.in
+cd ../..
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python sandbox/regression/make_overview_pdf.py
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python -m py_compile sandbox/regression/make_overview_pdf.py sandbox/regression/run_sandbox_regressions.py
+git diff --check -- HANDOFF.md sandbox/track-e-p/gamma_gamma_pairs-2.in sandbox/track-e-p/gamma_gamma_pairs-large-cylinder.in sandbox/regression/make_overview_pdf.py sandbox/regression/sandbox_regression_overview.tex sandbox/regression/current_metrics.csv
+gs -dSAFER -dBATCH -dNOPAUSE -sDEVICE=png16m -r150 \
+  -dFirstPage=6 -dLastPage=6 \
+  -sOutputFile=/private/tmp/sandbox_regression_overview_page6.png \
+  sandbox/regression/sandbox_regression_overview.pdf
+gs -dSAFER -dBATCH -dNOPAUSE -sDEVICE=png16m -r150 \
+  -dFirstPage=7 -dLastPage=7 \
+  -sOutputFile=/private/tmp/sandbox_regression_overview_page7.png \
+  sandbox/regression/sandbox_regression_overview.pdf
+```
+
+## Active Task: Reduced Primary Charge Large-Cylinder Comparison
+
+Goal:
+
+- Rerun the 15 cm radius, 32 cm length large-cylinder setup with the primary
+  beam charge reduced by a factor of `100000`.
+- Compare the nominal and reduced-charge cylinder-edge crossing histograms.
+
+Implementation decisions:
+
+- Added `sandbox/track-e-p/gamma_gamma_pairs-large-cylinder-q1em5.in`.
+- The new input keeps the nominal large-cylinder geometry, timing, field solver,
+  witness pair input, and tracking length unchanged.
+- The only intended physics change is:
+  - `primary_charge_scale = 1.0e-5`
+  - `primary_electrons_per_bunch = 1.25e10 * primary_charge_scale`
+- Added `sandbox/regression/gamma_gamma_large_cylinder_charge_compare.png`
+  generation in `sandbox/regression/make_overview_pdf.py`.
+- Added Figure 7 to the overview PDF. It overlays nominal and reduced-charge
+  first-crossing histograms for `e-` and `e+` and shows the reduced-minus-
+  nominal bin difference.
+
+Status:
+
+- Completed by Codex on 2026-06-10.
+- The reduced-charge OPALX run completed successfully and emitted the expected
+  `BB-DIAG` sequence through witness injection, overlap, completion, and source
+  retirement.
+- Histogram comparison result:
+  - Nominal large-cylinder run: `c1 = 701`, `c2 = 692` first crossings.
+  - Reduced primary charge run: `c1 = 701`, `c2 = 692` first crossings.
+  - With the current 18-bin histogram, the reduced-minus-nominal bin-count
+    difference is zero for both species.
+  - Matching particle IDs shift in first-crossing `z` by at most about
+    `141 um` for `c1` and `142 um` for `c2`.
+- Figure 7 is a first-crossing comparison, not a deleted-loss comparison,
+  because this BeamBeam path still does not delete witness particles at the
+  cylinder boundary.
+
+Generated/updated artifacts:
+
+- `sandbox/track-e-p/gamma_gamma_pairs-large-cylinder-q1em5.in`
+- `sandbox/regression/gamma_gamma_large_cylinder_charge_compare.png`
+- `sandbox/regression/sandbox_regression_overview.tex`
+- `sandbox/regression/sandbox_regression_overview.pdf`
+
+Verification commands run for this task:
+
+```sh
+cd sandbox/track-e-p
+/Users/adelmann/git/opalx-beambeam/build_openmp/src/opalx gamma_gamma_pairs-large-cylinder-q1em5.in
+cd ../..
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python sandbox/regression/make_overview_pdf.py
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python -m py_compile sandbox/regression/make_overview_pdf.py sandbox/regression/run_sandbox_regressions.py
+git diff --check -- HANDOFF.md sandbox/track-e-p/gamma_gamma_pairs-2.in sandbox/track-e-p/gamma_gamma_pairs-large-cylinder.in sandbox/track-e-p/gamma_gamma_pairs-large-cylinder-q1em5.in sandbox/regression/make_overview_pdf.py sandbox/regression/sandbox_regression_overview.tex sandbox/regression/current_metrics.csv
+gs -dSAFER -dBATCH -dNOPAUSE -sDEVICE=png16m -r150 \
+  -dFirstPage=7 -dLastPage=7 \
+  -sOutputFile=/private/tmp/sandbox_regression_overview_page7_qcompare_clean.png \
+  sandbox/regression/sandbox_regression_overview.pdf
+```
+
+## Active Task: Large-Cylinder Field/Histogram Movie
+
+Goal:
+
+- Build an animation based on Figure 6 that shows:
+  - the 15 cm radius, 32 cm long BeamBeam cylinder,
+  - the electric field in the cylinder,
+  - the running simulation time,
+  - actual OPALX `e-`/`e+` witness particles,
+  - the cumulative first-crossing histogram.
+
+Implementation decisions:
+
+- Added `sandbox/regression/make_large_cylinder_field_movie.py`.
+- The movie uses actual OPALX H5 particle trajectories from
+  `gamma_gamma_pairs-large-cylinder_c1.h5` and `_c2.h5`.
+- The field overlay is diagnostic/analytic, not an OPALX field dump:
+  - It is a vectorized version of the spherical boosted Gaussian source-field
+    model from `sandbox/python/boosted_gaussian_witness.py`.
+  - It uses the nominal primary charge `1.25e10 e`, primary kinetic energy
+    `245 MeV`, and a spherical source width `sigma = 0.6 mm`.
+  - The overlay is set to zero after `RETIRE_TIME = 571.35 ps`, matching the
+    input's source retirement behavior.
+- The lower panel is a cumulative version of the Figure 6 histogram. It records
+  first radial crossings of 15 cm as a function of crossing `z`.
+
+Status:
+
+- Completed by Codex on 2026-06-10.
+- The MP4 was generated:
+  - `sandbox/data/gamma_gamma_large_cylinder_field_histogram.mp4`
+- A preview frame was generated:
+  - `sandbox/data/gamma_gamma_large_cylinder_field_histogram_preview.png`
+- An active-field verification frame was extracted to:
+  - `/private/tmp/gamma_gamma_field_movie_active_frame.png`
+- Key physics observation from the movie/data:
+  - The analytic primary field is visible during the source-active window near
+    `t = 567 ps`.
+  - The source is retired at about `571.4 ps`, so the overlay is zero afterward.
+  - The first 15 cm crossings occur much later, starting around `1106 ps` for
+    `c2` and `1120 ps` for `c1`, with medians around `1322-1329 ps`.
+  - This timing supports the hypothesis that the Coulomb interaction seen by
+    the low-energy pair is either very weak or effectively absent after source
+    retirement in the current BeamBeam path.
+
+Verification commands run for this task:
+
+```sh
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python -m py_compile sandbox/regression/make_large_cylinder_field_movie.py
+git diff --check -- sandbox/regression/make_large_cylinder_field_movie.py
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python sandbox/regression/make_large_cylinder_field_movie.py
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python -c "import imageio.v2 as imageio; from pathlib import Path; movie=Path('sandbox/data/gamma_gamma_large_cylinder_field_histogram.mp4'); reader=imageio.get_reader(movie); frame=reader.get_data(8); imageio.imwrite('/private/tmp/gamma_gamma_field_movie_active_frame.png', frame); reader.close(); print(frame.shape)"
+```
+
+## Active Task: Large-Cylinder Run With 1000 ps Primary Retirement
+
+Goal:
+
+- Redo the large-cylinder OPALX simulation with primary source retirement at
+  `1000 ps`.
+- Regenerate the field/histogram movie from the new OPALX H5 trajectories.
+
+Implementation decisions:
+
+- Added `sandbox/track-e-p/gamma_gamma_pairs-large-cylinder-retire1000ps.in`.
+- The setup preserves the previous large-cylinder geometry, source/witness
+  charge, witness injection time, field solver, and tracking length.
+- The only intended BeamBeam timing change is:
+  - `primary_retire_time = 1000e-12`
+- The movie was regenerated with:
+  - `--stem gamma_gamma_pairs-large-cylinder-retire1000ps`
+  - `--retire-time-s 1000e-12`
+  - a short display label to avoid title clipping.
+
+Status:
+
+- Completed by Codex on 2026-06-10.
+- The OPALX run completed successfully.
+- `BB-DIAG` showed:
+  - inactive,
+  - active before witness injection,
+  - witness injection,
+  - source/witness overlap,
+  - overlap ended while source remained active,
+  - completed with source retirement pending,
+  - completed with `retired_bunches=1 source_active=FALSE`.
+- Corrected first-crossing counts at 15 cm:
+  - Previous large-cylinder run: `c1 = 701`, `c2 = 692`.
+  - `1000 ps` retirement run: `c1 = 701`, `c2 = 691`.
+- First-crossing time ranges in the `1000 ps` retirement run:
+  - `c1`: min/median/max `1120 / 1329 / 1599 ps`
+  - `c2`: min/median/max `1106 / 1322 / 1600 ps`
+- New generated movie:
+  - `sandbox/data/gamma_gamma_large_cylinder_retire1000ps_field_histogram.mp4`
+- New generated preview:
+  - `sandbox/data/gamma_gamma_large_cylinder_retire1000ps_field_histogram_preview.png`
+
+Verification commands run for this task:
+
+```sh
+cd sandbox/track-e-p
+/Users/adelmann/git/opalx-beambeam/build_openmp/src/opalx gamma_gamma_pairs-large-cylinder-retire1000ps.in
+cd ../..
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python sandbox/regression/make_large_cylinder_field_movie.py \
+  --stem gamma_gamma_pairs-large-cylinder-retire1000ps \
+  --label "large cylinder, retire 1000 ps" \
+  --retire-time-s 1000e-12 \
+  --output sandbox/data/gamma_gamma_large_cylinder_retire1000ps_field_histogram.mp4 \
+  --preview sandbox/data/gamma_gamma_large_cylinder_retire1000ps_field_histogram_preview.png \
+  --preview-time-ps 1120
+```
+
+## Active Task: 1000 ps Retirement With 1e-5 Primary Charge Comparison
+
+Goal:
+
+- Run the 1000 ps retirement large-cylinder setup again with the primary beam
+  charge reduced by `1e-5`.
+- Make a comparison histogram against the nominal 1000 ps retirement run.
+
+Implementation decisions:
+
+- Added `sandbox/track-e-p/gamma_gamma_pairs-large-cylinder-retire1000ps-q1em5.in`.
+- The input preserves the 15 cm radius, 32 cm BeamBeam length, 1000 ps source
+  retirement, witness injection timing, pair charge, and tracking length.
+- The only intended charge change is:
+  - `primary_charge_scale = 1.0e-5`
+  - `primary_electrons_per_bunch = 1.25e10 * primary_charge_scale`
+- Added reusable comparison script:
+  - `sandbox/regression/compare_cylinder_crossing_histograms.py`
+- Generated comparison histogram:
+  - `sandbox/regression/gamma_gamma_large_cylinder_retire1000ps_q1em5_compare.png`
+
+Status:
+
+- Completed by Codex on 2026-06-10.
+- The reduced-charge 1000 ps OPALX run completed successfully and emitted the
+  expected delayed-retirement `BB-DIAG` sequence.
+- Histogram comparison against nominal 1000 ps retirement:
+  - `e-`: nominal/reduced `701/701`, absolute bin difference sum `2`,
+    max matched-particle first-crossing shift `262.2 um`.
+  - `e+`: nominal/reduced `691/692`, absolute bin difference sum `1`,
+    max matched-particle first-crossing shift `243.6 um`.
+- The reduced-charge histogram is nearly coincident with the nominal 1000 ps
+  retirement histogram.
+
+Verification commands run for this task:
+
+```sh
+cd sandbox/track-e-p
+/Users/adelmann/git/opalx-beambeam/build_openmp/src/opalx gamma_gamma_pairs-large-cylinder-retire1000ps-q1em5.in
+cd ../..
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python -m py_compile sandbox/regression/compare_cylinder_crossing_histograms.py
+git diff --check -- sandbox/regression/compare_cylinder_crossing_histograms.py sandbox/track-e-p/gamma_gamma_pairs-large-cylinder-retire1000ps-q1em5.in
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python sandbox/regression/compare_cylinder_crossing_histograms.py
+```
+
+## Active Task: Manufactured-Solution Note Updated For Large BeamBeam Window
+
+Goal:
+
+- Update the manufactured boosted-Gaussian witness note and Python generator to
+  account for the current large BeamBeam diagnostic geometry:
+  - cylinder radius `15 cm`
+  - BeamBeam length `32 cm`
+  - IP at `s = 0.17 m`
+- Regenerate the note tables, figures, and PDF with the new data.
+
+Implementation decisions:
+
+- Updated `sandbox/python/boosted_gaussian_witness.py` defaults:
+  - `--sigma-m` default changed to `0.6e-3`
+  - `--pair-duration-ps` default changed to `1050`
+  - `--pair-dt-ps` default changed to `0.1`
+  - added `--beambeam-radius-m` default `0.15`
+  - added `--beambeam-length-m` default `0.32`
+- Updated the pair-path plot to mark the 15 cm radial aperture scale and the
+  32 cm BeamBeam longitudinal window.
+- Updated `sandbox/note/boosted_gaussian_witness.tex` to document the large
+  BeamBeam geometry, timing relation to the OPALX large-cylinder input, and new
+  manufactured propagation data.
+
+Status:
+
+- Completed by Codex on 2026-06-10.
+- Regenerated:
+  - `sandbox/note/boosted_gaussian_witness_initial_cases_table.tex`
+  - `sandbox/note/boosted_gaussian_witness_pair_kinematics_table.tex`
+  - `sandbox/note/figs/boosted_gaussian_witness_physical_field_t0.png`
+  - `sandbox/note/figs/boosted_gaussian_witness_physical_paths.png`
+  - `sandbox/note/boosted_gaussian_witness.pdf`
+- Key regenerated data:
+  - one-kick off-axis symmetric field is now `8.682 GV/m` for
+    `sigma'=0.6 mm`;
+  - manufactured pair propagation uses `T=1050 ps` and reaches about
+    `246.9 mm` transverse path length;
+  - symmetric collision final field-on minus free displacement is about
+    `0.986 um` in `x`;
+  - asymmetric collision adds about `0.126 um` longitudinal displacement.
+- Rendered PDF pages 7-10 to `/private/tmp/boosted_gaussian_witness_page*.png`
+  and visually checked the updated tables and figures.
+
+Verification commands run for this task:
+
+```sh
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python sandbox/python/boosted_gaussian_witness.py --latex-table --write-latex-table sandbox/note/boosted_gaussian_witness_initial_cases_table.tex
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python sandbox/python/boosted_gaussian_witness.py --pair-demo --write-pair-latex-table sandbox/note/boosted_gaussian_witness_pair_kinematics_table.tex --output-prefix sandbox/data/boosted_gaussian_witness
+cp sandbox/data/boosted_gaussian_witness_field_t0.png sandbox/note/figs/boosted_gaussian_witness_physical_field_t0.png
+cp sandbox/data/boosted_gaussian_witness_paths.png sandbox/note/figs/boosted_gaussian_witness_physical_paths.png
+latexmk -pdf -interaction=nonstopmode -halt-on-error boosted_gaussian_witness.tex
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python -m py_compile sandbox/python/boosted_gaussian_witness.py sandbox/python/beam-beam-manufactured-solution.py
+git diff --check -- sandbox/python/boosted_gaussian_witness.py sandbox/note/boosted_gaussian_witness.tex sandbox/note/boosted_gaussian_witness_initial_cases_table.tex sandbox/note/boosted_gaussian_witness_pair_kinematics_table.tex
+gs -dSAFER -dBATCH -dNOPAUSE -sDEVICE=png16m -r150 \
+  -dFirstPage=7 -dLastPage=10 \
+  -sOutputFile=/private/tmp/boosted_gaussian_witness_page%02d.png \
+  sandbox/note/boosted_gaussian_witness.pdf
+```
+
+## Active Task: Manufactured Pair Integration Mode
+
+Goal:
+
+- Update the manufactured analysis mode so the two low-energy particles can be
+  integrated directly in the manufactured boosted-Gaussian field from the
+  combined analysis front-end.
+
+Implementation decisions:
+
+- Added a `pair` subcommand to `sandbox/python/beambeam_analysis.py`.
+- The mode delegates to `sandbox/python/boosted_gaussian_witness.py` instead of
+  duplicating the field or Boris-kick implementation.
+- The new mode uses the same large-cylinder defaults as the regenerated note:
+  - `sigma_m = 0.6e-3`
+  - `pair_duration_ps = 1050`
+  - `pair_dt_ps = 0.1`
+  - `beambeam_radius_m = 0.15`
+  - `beambeam_length_m = 0.32`
+- Fixed the dynamic module loader in `beambeam_analysis.py` to register loaded
+  modules in `sys.modules` before execution. This is required for dataclasses in
+  dynamically loaded modules.
+
+Status:
+
+- Completed by Codex on 2026-06-10.
+- Verified command:
+
+```sh
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python sandbox/python/beambeam_analysis.py pair \
+  --output-prefix sandbox/data/boosted_gaussian_witness_pair_mode_check \
+  --write-pair-latex-table /private/tmp/boosted_gaussian_witness_pair_mode_check_table.tex
+```
+
+- The mode wrote:
+  - `sandbox/data/boosted_gaussian_witness_pair_mode_check_trajectories.csv`
+  - `sandbox/data/boosted_gaussian_witness_pair_mode_check_field_t0.png`
+  - `sandbox/data/boosted_gaussian_witness_pair_mode_check_paths.png`
+  - `/private/tmp/boosted_gaussian_witness_pair_mode_check_table.tex`
+- The numerical output matches the regenerated note data:
+  - free path about `246.9 mm` over `1050 ps`
+  - symmetric field-on minus free displacement about `0.986 um`
+  - asymmetric longitudinal displacement about `0.126 um`
+
 ## Repository State
 
 - Repository: `/Users/adelmann/git/opalx-beambeam`
 - Current branch: `271-implement-interation-point-element`
-- Tree is dirty. Do not assume a clean checkout and do not revert unrelated files.
-- No commit was made for the current BeamBeam retirement/timeline work in this chat.
+- Branch is in sync with `origin/271-implement-interation-point-element`.
+- Current HEAD: `cb9c3186b Document BeamBeam handoff state and timeline updates`
+- The BeamBeam retirement/timeline work, generated FROMFILE inputs, `gamma_gamma_pairs-3.in`, and this handoff file were committed and pushed in `cb9c3186b`.
+- The tree still has local changes. Do not assume a clean checkout and do not revert unrelated files.
 
-Current `git status --short` at handoff time:
+Current `git status --short` after this handoff refresh should include:
 
 ```text
- M AGENTS.md
+ M HANDOFF.md
+ M sandbox/regression/current_metrics.csv
+ M sandbox/regression/make_large_cylinder_field_movie.py
  M sandbox/regression/make_overview_pdf.py
  M sandbox/regression/sandbox_regression_overview.pdf
  M sandbox/regression/sandbox_regression_overview.tex
  D sandbox/track-e-p/e-e+.gpl
  M sandbox/track-e-p/gamma_gamma_pairs-2.in
- M src/AbsBeamline/BeamBeamDefinitions.h
- M src/Algorithms/ParallelTracker.cpp
- M src/Algorithms/ParallelTracker.h
- M src/Elements/OpalBeamBeam.cpp
- M src/Elements/OpalBeamBeam.h
- M src/PartBunch/PartBunch.h
- M src/PartBunch/ParticleContainer.hpp
- M unit_tests/PartBunch/TestBeamBeam.cpp
 ?? sandbox/track-e-p/attic/
-?? sandbox/track-e-p/gamma_gamma_electrons-t.fromfile
-?? sandbox/track-e-p/gamma_gamma_pairs-3.in
-?? sandbox/track-e-p/gamma_gamma_positrons-t.fromfile
+ ?? sandbox/track-e-p/gamma_gamma_pairs-large-cylinder.in
+ ?? sandbox/track-e-p/gamma_gamma_pairs-large-cylinder-q1em5.in
+ ?? sandbox/track-e-p/gamma_gamma_pairs-large-cylinder-retire1000ps.in
+ ?? sandbox/track-e-p/gamma_gamma_pairs-large-cylinder-retire1000ps-q1em5.in
 ```
 
-`HANDOFF.md` itself will be untracked after this file is added.
+Local uncommitted/untracked items:
+
+- `sandbox/track-e-p/e-e+.gpl` is deleted in the worktree.
+- `sandbox/track-e-p/attic/` is untracked and contains 273 archived sandbox files:
+  - 265 files under `sandbox/track-e-p/attic/data/`
+  - archived `gamma_gamma_pairs.in`
+  - archived `e-e+.gpl`
+  - archived `gamma_gamma_pairs_c{0,1,2}.h5`
+  - archived `gamma_gamma_pairs_c{0,1,2}.stat`
+
+Tracked additions now in `cb9c3186b` include:
+
+- `HANDOFF.md`
+- `sandbox/track-e-p/gamma_gamma_electrons-t.fromfile`
+- `sandbox/track-e-p/gamma_gamma_positrons-t.fromfile`
+- `sandbox/track-e-p/gamma_gamma_pairs-3.in`
 
 ## Important Working Rules
 
@@ -174,6 +717,79 @@ At handoff time, the preview image was:
 /private/tmp/sandbox_regression_overview_page4.png
 ```
 
+## Older Static Gaussian BeamBeam Validation / Manual Context
+
+This older chat also established and documented a solver-frame validation for
+the static electrostatic Gaussian BeamBeam pair. It is not part of the current
+BeamBeam retirement/timeline commit, but it is useful context for future
+physics/manual work.
+
+Analytic case:
+
+- Solver-frame electrostatic comparison, not a lab-frame Lorentz-boosted field
+  comparison.
+- Two identical spherical Gaussian bunches, mirrored about the local IP.
+- Reference parameters:
+  - `sigma = 1 mm`
+  - nominal `d = 10 mm`
+  - `|Q| = 1.112650055e-14 C`
+- Exact field at the mathematical IP is zero by symmetry.
+- The scalar potential at the IP is nonzero because the two scalar potential
+  contributions add while their gradients cancel.
+
+Local OPALX artifacts still present in this checkout:
+
+```text
+sandbox/BeamBeam-static-1V.in
+data/sandbox/BeamBeam-static-1V_on_axis_compare.csv
+data/sandbox/BeamBeam-static-1V_Ez_on_axis_compare.png
+```
+
+The active OPALX diagnostic snapshot used in the write-up had actual
+solver-frame separation:
+
+```text
+d_OPALX = 9.89313053174 mm
+```
+
+Key comparison values from that run:
+
+```text
+rho relL2 = 5.221859e-02
+phi relL2 = 3.042248e-03
+Ex  relL2 = 1.503024e-02
+Ey  relL2 = 1.582187e-02
+Ez  relL2 = 2.427369e-02
+Ez nearest on-axis grid sample to IP:
+  analytic = 1.038298 V/m
+  OPALX    = 1.072345 V/m
+Interpolated Ez at mathematical IP:
+  analytic ~= -5.88e-08 V/m
+  OPALX    ~=  3.77e-06 V/m
+```
+
+Physics manual work was written outside this repository in:
+
+```text
+/Users/adelmann/git/physics-manual-opalx/sections/beam-beam/index.qmd
+/Users/adelmann/git/physics-manual-opalx/sections/beam-beam/figures/beambeam-static-1v-ez-on-axis.png
+/Users/adelmann/git/physics-manual-opalx/sections/beam-beam/reproducers/
+```
+
+The manual reproducer bundle contains:
+
+```text
+BeamBeam-static-1V.in
+beam-beam-manufactured-solution.py
+README.md
+```
+
+The rendered local preview used in that chat was:
+
+```text
+file:///tmp/beam-beam-render/sections/beam-beam/index.html
+```
+
 ## Verification History
 
 Most recent documentation/timeline checks:
@@ -225,5 +841,334 @@ rg -n "collision_timeline_figure|source bunches passed IP|not to scale" sandbox/
 
 1. Decide whether the 5-page overview PDF is acceptable after the 3x timeline spacing. If not, keep the lower-frame spacing and move/compress surrounding content rather than reducing the requested spacing.
 2. Rebuild and rerun the BeamBeam tests if C++ files are touched again.
-3. If preparing a commit, inspect `git diff` carefully because the tree contains unrelated/generated/untracked files.
-4. Commit scope should probably separate C++ BeamBeam retirement/diagnostics from regression-overview timeline documentation unless the user asks for a combined commit.
+3. Decide what to do with the local `sandbox/track-e-p/e-e+.gpl` deletion and untracked `sandbox/track-e-p/attic/` archive.
+4. If preparing another commit, inspect `git diff` carefully because the remaining local changes are not part of the pushed BeamBeam retirement/timeline commit.
+
+## 2026-06-10 Manufactured Solution Timestep Note Update
+
+User asked to update the manufactured-solution PDF with the frame/magnetic-field/timestep information from the pair-in-field check.
+
+Updated:
+
+```text
+sandbox/note/boosted_gaussian_witness.tex
+sandbox/note/boosted_gaussian_witness.pdf
+```
+
+Content added after the pair kinematics table:
+
+- The manufactured pair calculation is in the lab/reference frame.
+- Each source is evaluated by transforming the witness event into the source rest frame, evaluating the rest-frame Gaussian Coulomb field, then boosting `E` and `B` back to the lab frame.
+- The Boris pusher includes the magnetic field.
+- In the default symmetric transverse launch, net `B` cancels by symmetry along the `z=0` trajectory.
+- The asymmetric case samples nonzero magnetic field.
+- The current `dt = 0.1 ps` pair table under-resolves the bunch-overlap transient.
+- With `gamma_s = 480.453` and `sigma' = 0.6 mm`, `sigma_z/c ~= 0.00416 ps`.
+- A 5 ps convergence check for the symmetric electron gives:
+  - `dt=0.1 ps`: `dK ~= 5.20 eV`
+  - `dt=0.01 ps`: `dK ~= 48.64 eV`
+  - `dt=0.005 ps`: `dK ~= 58.68 eV`
+  - `dt=0.002 ps`: `dK ~= 60.86 eV`
+  - `dt=0.001 ps`: `dK ~= 61.16 eV`
+- The note now recommends `dt ~= 1e-3 ps` or adaptive integration near the overlap event for production manufactured-solution comparisons.
+
+Verification:
+
+```sh
+latexmk -pdf -interaction=nonstopmode -halt-on-error boosted_gaussian_witness.tex
+git diff --check -- sandbox/note/boosted_gaussian_witness.tex sandbox/note/boosted_gaussian_witness.pdf
+```
+
+Both passed. `pdftotext` was not installed, so PDF text extraction was not used for verification.
+
+## 2026-06-10 Manufactured Solution Figure 2 Data Update
+
+User asked to update Figure 2 data in the manufactured-solution PDF.
+
+Updated the pair generator to support multirate integration:
+
+```text
+sandbox/python/boosted_gaussian_witness.py
+sandbox/python/beambeam_analysis.py
+```
+
+New pair controls:
+
+```text
+--pair-fine-dt-ps
+--pair-fine-duration-ps
+--pair-output-dt-ps
+```
+
+Regenerated pair data/figures with:
+
+```sh
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python \
+  sandbox/python/boosted_gaussian_witness.py \
+  --pair-demo \
+  --pair-fine-dt-ps 0.001 \
+  --pair-fine-duration-ps 5.0 \
+  --pair-dt-ps 0.1 \
+  --pair-output-dt-ps 0.1 \
+  --write-pair-latex-table sandbox/note/boosted_gaussian_witness_pair_kinematics_table.tex \
+  --output-prefix sandbox/data/boosted_gaussian_witness
+```
+
+The regenerated Figure 2 asset is:
+
+```text
+sandbox/note/figs/boosted_gaussian_witness_physical_paths.png
+```
+
+and the regenerated table is:
+
+```text
+sandbox/note/boosted_gaussian_witness_pair_kinematics_table.tex
+```
+
+Resolved pair results now shown in the table/Figure 2:
+
+- symmetric `e-`: `Delta r = (11.464, 0, 0) um`, `Delta K = +61.224 eV`
+- symmetric `e+`: `Delta r = (11.466, 0, 0) um`, `Delta K = -61.220 eV`
+- asymmetric `e-`: `Delta r = (10.317, 0, -1.461) um`, `Delta K = +55.102 eV`
+- asymmetric `e+`: `Delta r = (10.319, 0, 1.462) um`, `Delta K = -55.098 eV`
+
+The note text now describes Figure 2 as using `0.001 ps` steps for the first `5 ps`, then `0.1 ps` tail steps with `0.1 ps` output.
+
+Verification:
+
+```sh
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python -m py_compile \
+  sandbox/python/boosted_gaussian_witness.py sandbox/python/beambeam_analysis.py
+git diff --check -- sandbox/python/boosted_gaussian_witness.py \
+  sandbox/python/beambeam_analysis.py \
+  sandbox/note/boosted_gaussian_witness.tex \
+  sandbox/note/boosted_gaussian_witness_pair_kinematics_table.tex
+latexmk -pdf -interaction=nonstopmode -halt-on-error boosted_gaussian_witness.tex
+```
+
+All passed. The regenerated Figure 2 PNG was visually checked.
+
+## 2026-06-10 OPALX-IMPACT Drift Staged-DT Check
+
+User asked to test OPALX staged timesteps on the OPALX-IMPACT drift case with a mild factor-of-two timestep change and compare results.
+
+Added:
+
+```text
+sandbox/OPALX-IMPACT/drift-1-staged-dt.in
+```
+
+The staged input keeps the same drift setup as `drift-1.in`, but changes:
+
+```text
+MAXSTEPS = {500, 1000}
+DT       = {1.0e-10, 5.0e-11}
+```
+
+This is the same nominal integration time as the original uniform case:
+
+```text
+1000 * 1.0e-10 = 500 * 1.0e-10 + 1000 * 5.0e-11 = 1.0e-7 s
+```
+
+Commands run:
+
+```sh
+cd sandbox/OPALX-IMPACT
+../../build_openmp/src/opalx drift-1.in
+../../build_openmp/src/opalx drift-1-staged-dt.in
+```
+
+The full baseline completed and refreshed:
+
+```text
+sandbox/OPALX-IMPACT/drift-1.stat
+sandbox/OPALX-IMPACT/drift-1.h5
+```
+
+The staged run completed and produced:
+
+```text
+sandbox/OPALX-IMPACT/drift-1-staged-dt.stat
+sandbox/OPALX-IMPACT/drift-1-staged-dt.h5
+```
+
+Comparison artifacts:
+
+```text
+sandbox/OPALX-IMPACT/drift_1_staged_dt_comparison_summary.csv
+sandbox/OPALX-IMPACT/drift_1_staged_dt_comparison.png
+```
+
+Switch verification from the staged stat file:
+
+```text
+base dt unique:   0.1 ns
+staged dt unique: 0.1 ns, 0.05 ns
+```
+
+Result summary:
+
+```text
+base rows:   73
+staged rows: 95
+base final t:   72.29999999999963 ns
+staged final t: 72.30000000000067 ns
+
+base final rms_x:   0.03479139645306627 m
+staged final rms_x: 0.03479139704389219 m
+final Delta rms_x:  5.908259229081558e-10 m
+
+base final eps_x:   1.929820568321231 mm mrad
+staged final eps_x: 1.9298205441440939 mm mrad
+final Delta eps_x: -2.4177137181169428e-08 mm mrad
+
+common-time RMS Delta rms_x:       2.1377084664500679e-10 m
+common-time max abs Delta rms_x:   5.908253886133252e-10 m
+common-time RMS Delta eps_x:       8.868710224850992e-09 mm mrad
+common-time max abs Delta eps_x:   2.4177137181169428e-08 mm mrad
+```
+
+Interpretation: the staged timestep switch happens and the drift result is numerically unchanged at the expected tiny level for this factor-of-two timestep change.
+
+## 2026-06-10 BeamBeam Staged-DT Fix/Understanding
+
+User asked to go back to BeamBeam after the OPALX-IMPACT drift check and first fix/understand different timesteps.
+
+Findings from code inspection:
+
+- `TRACK, DT={...}, MAXSTEPS={...}` creates sequential tracking segments.
+- Segment switching is by accumulated step counts in `ParallelTracker::execute`, not by BeamBeam element boundaries.
+- `ZSTOP` can remain scalar; `TrackCmd` pads scalar arrays to the number of tracks.
+- `FROMFILE` emission does not override the global staged `DT`. It emits once when `[t, t+dt]` crosses `T0` and assigns newly emitted particles the remaining fractional substep `tEnd - t0`.
+- Therefore, for pair birth to happen at fine resolution, the fine `DT` segment must begin before `tinj`.
+
+Production staged BeamBeam input added:
+
+```text
+sandbox/track-e-p/gamma_gamma_pairs-large-cylinder-retire1000ps-staged-dt.in
+```
+
+It is copied from `gamma_gamma_pairs-large-cylinder-retire1000ps.in` with this staged schedule:
+
+```text
+dt_coarse = 1.0e-12
+dt_fine   = 1.0e-15
+
+coarse_steps_before_overlap = 550
+fine_overlap_steps          = 25001
+coarse_steps_after_overlap  = 1025
+
+MAXSTEPS = {550, 25001, 1025}
+DT       = {1.0e-12, 1.0e-15, 1.0e-12}
+```
+
+Timing covered by the fine segment:
+
+```text
+coarse segment end: 550.000 ps
+tinj:               550.312 ps
+primary IP time:    567.059 ps
+fine segment end:   575.001 ps
+tail end:          1600.001 ps
+```
+
+Small BeamBeam staged-DT smoke input:
+
+```text
+sandbox/track-e-p/gamma_gamma_pairs-staged-dt-smoke.in
+```
+
+It uses 32 primary particles, 4 pairs per species, `N=4`, and:
+
+```text
+MAXSTEPS = {567, 1000}
+DT       = {1.0e-12, 1.0e-15}
+tinj     = primary_ip_time
+```
+
+Smoke validation run:
+
+```sh
+cd sandbox/track-e-p
+../../build_openmp/src/opalx gamma_gamma_pairs-staged-dt-smoke.in
+../../build_openmp/src/opalx --info 2 gamma_gamma_pairs-staged-dt-smoke.in
+```
+
+The run completed. Diagnostics showed source overlap and witness emission:
+
+```text
+BB-DIAG ... source_bunches_overlap=TRUE
+BB-DIAG ... witness_states=c1:active:n=4,c2:active:n=4 source_bunches_overlap=TRUE
+```
+
+The final smoke stat samples reported:
+
+```text
+gamma_gamma_pairs-staged-dt-smoke_c0.stat dt unique ns: [1e-06], particles 32
+gamma_gamma_pairs-staged-dt-smoke_c1.stat dt unique ns: [1e-06], particles 4
+gamma_gamma_pairs-staged-dt-smoke_c2.stat dt unique ns: [1e-06], particles 4
+```
+
+`1e-06 ns` is `1 fs`, confirming the fine segment was active when witness particles existed.
+
+Full staged production run attempt:
+
+- Started
+  `../../build_openmp/src/opalx gamma_gamma_pairs-large-cylinder-retire1000ps-staged-dt.in`
+  from `sandbox/track-e-p`.
+- The original staged production input used `PSDUMPFREQ = 1` and
+  `STATDUMPFREQ = 1`.
+- The run confirmed the intended sequencing:
+  - BeamBeam active before witness injection.
+  - `c0.stat` showed `dt = 1.0e-06 ns`, i.e. `1 fs`, at about
+    `550.17 ps`.
+  - `BB-DIAG` reported `witness_states=c1:active:n=1297,c2:active:n=1297`
+    in the fine segment.
+- The run was stopped intentionally before completion because only about
+  `3 GB` of disk space remained and dump-every-step output projected to tens
+  of GB. Partial staged outputs from this aborted attempt were deleted.
+- Updated
+  `sandbox/track-e-p/gamma_gamma_pairs-large-cylinder-retire1000ps-staged-dt.in`
+  to keep the same 1 fs integration but reduce output cadence:
+
+```text
+OPTION, PSDUMPFREQ = 100;
+OPTION, STATDUMPFREQ = 100;
+```
+
+Next step:
+
+- Rerun the staged production input with the reduced dump cadence.
+
+Additional note/PDF integration work during the staged run:
+
+- Merged the regression overview content into
+  `sandbox/note/boosted_gaussian_witness.tex` as a native
+  "Sandbox Regression Overview" section.
+- Copied the regression overview figures into `sandbox/note/figs` so the note
+  no longer depends on `sandbox/regression` figure paths at compile time:
+  - `opalx_impact_drift_comparison.png`
+  - `gamma_gamma_cylinder_losses.png`
+  - `gamma_gamma_large_cylinder_crossings.png`
+  - `gamma_gamma_large_cylinder_charge_compare.png`
+- Added a note subsection on staged timestep rationale:
+  - OPALX treats `MAXSTEPS` as per-segment counts, not cumulative endpoints.
+  - The fine 1 fs window brackets `tinj = primary_ip_time - 16.747 ps` and the
+    primary IP crossing.
+  - The histogram-focused run uses `PSDUMPFREQ = 10` and `STATDUMPFREQ = 0`.
+  - Field debug `.dat` files are not used for the histogram and can be deleted.
+- Rebuilt `sandbox/note/boosted_gaussian_witness.pdf`; build succeeded with
+  only layout warnings from long paths/options.
+
+Current staged histogram run status:
+
+- Single-rank OPALX run active:
+  `../../build_openmp/src/opalx gamma_gamma_pairs-large-cylinder-retire1000ps-staged-dt.in`
+- MPI two-rank attempt was tried to avoid field debug `.dat` dumps, but local
+  OpenMPI mapping failed before OPALX started.
+- Continuing single-rank and periodically deleting only staged
+  `sandbox/track-e-p/data/gamma_gamma_pairs-large-cylinder-retire1000ps-staged-dt-*`
+  `.dat` byproducts.
+- H5 witness trajectories remain the deliverable for the crossing histogram.

@@ -1,7 +1,0 @@
-__pycache__/
-*.aux
-*.fdb_latexmk
-*.fls
-*.log
-*.out
-!sandbox_regression_baseline.json

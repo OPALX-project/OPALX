@@ -148,10 +148,14 @@ PY
   comparison helper.
 - `python/boosted_gaussian_witness.py`: Lorentz-transformed boosted-Gaussian
   manufactured witness calculation used by the LaTeX note.
-- `note/boosted_gaussian_witness.tex`: current physics note.
-- `regression/run_sandbox_regressions.py`: one-command regression checks for
+- `python/run_sandbox_regressions.py`: one-command regression checks for
   the BeamBeam field dumps, gamma-gamma e-/e+ pair tracking summaries,
   and the OPALX-IMPACT drift comparison.
+- `python/make_sandbox_regression_overview.py`: optional standalone overview
+  generator.  The main maintained documentation is the note.
+- `python/plot_cylinder_crossings.py`: first-cylinder-crossing histogram
+  generator for the large BeamBeam-window runs.
+- `note/boosted_gaussian_witness.tex`: current physics note.
 
 ## Regression Checks
 
@@ -159,16 +163,16 @@ Run all sandbox regression checks from the repository root:
 
 ```bash
 source .venv-h6/bin/activate
-python sandbox/regression/run_sandbox_regressions.py
+python sandbox/python/run_sandbox_regressions.py
 ```
 
 The checks compare compact numeric/file metrics with the accepted baseline in
-`sandbox/regression/sandbox_regression_baseline.json` and write the latest-run
-flattened metric table to `sandbox/regression/current_metrics.csv`.  To rerun
+`sandbox/note/sandbox_regression_baseline.json` and write the latest-run
+flattened metric table to `sandbox/note/current_metrics.csv`.  To rerun
 the sandbox OPALX inputs before checking, provide an OPALX executable:
 
 ```bash
-python sandbox/regression/run_sandbox_regressions.py \
+python sandbox/python/run_sandbox_regressions.py \
   --run-opalx \
   --opalx-exe /path/to/opalx
 ```
@@ -178,15 +182,20 @@ numerics change.  The baseline records the current git branch, commit, dirty
 flag, and `git status --short` output:
 
 ```bash
-python sandbox/regression/run_sandbox_regressions.py --update-baseline
+python sandbox/python/run_sandbox_regressions.py --update-baseline
 ```
 
-Build a formatted overview PDF of the comparisons, selected latest-run metrics,
-accepted-baseline provenance, and the OPALX-vs-IMPACT drift overlay:
+The regression overview has been merged into
+`sandbox/note/boosted_gaussian_witness.tex`.  Rebuild the note with:
 
 ```bash
-python sandbox/regression/make_overview_pdf.py
+cd sandbox/note
+latexmk -pdf boosted_gaussian_witness.tex
 ```
+
+For archival standalone output, `sandbox/python/make_sandbox_regression_overview.py`
+can still write `sandbox/note/sandbox_regression_overview.{tex,pdf}` and the
+corresponding note-local figures.
 
 ## Combined GUI
 

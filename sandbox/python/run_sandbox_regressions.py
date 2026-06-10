@@ -9,6 +9,15 @@ workflow:
 * the OPALX-vs-IMPACT drift comparison CSV/stat pair.
 
 Use ``--update-baseline`` only after intentionally accepting new physics output.
+The default baseline and current-metrics CSV live in ``sandbox/note`` so this
+script remains usable after removing the old ``sandbox/regression`` directory.
+
+Typical use from the repository root::
+
+    source .venv-h6/bin/activate
+    python sandbox/python/run_sandbox_regressions.py
+    python sandbox/python/run_sandbox_regressions.py --check fields
+    python sandbox/python/run_sandbox_regressions.py --run-opalx --opalx-exe build_openmp/src/opalx
 """
 
 from __future__ import annotations
@@ -28,8 +37,9 @@ import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_BASELINE = Path(__file__).resolve().with_name("sandbox_regression_baseline.json")
-DEFAULT_CSV = Path(__file__).resolve().with_name("current_metrics.csv")
+NOTE_DIR = ROOT / "sandbox/note"
+DEFAULT_BASELINE = NOTE_DIR / "sandbox_regression_baseline.json"
+DEFAULT_CSV = NOTE_DIR / "current_metrics.csv"
 
 
 def load_module(name: str, path: Path):

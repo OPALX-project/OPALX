@@ -4,8 +4,13 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{array}
+\usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{hyperref}
+\usepackage{tabularx}
+\usepackage{tikz}
+\usepackage[table]{xcolor}
+\usetikzlibrary{arrows.meta}
 
 \title{Boosted Gaussian Witness Kick  -- A Manufactured Solution}
 
@@ -529,6 +534,20 @@ in OPALX:
 
 The first Python prototype is
 \texttt{sandbox/python/boosted\_gaussian\_witness.py}.
+The current numerical examples use the large \(\gamma\gamma\) BeamBeam
+diagnostic geometry:
+\begin{equation}
+  L_{\mathrm{BB}} = 0.32~\mathrm{m},\qquad
+  R_{\mathrm{BB}} = 0.15~\mathrm{m},\qquad
+  s_{\mathrm{IP}} = 0.17~\mathrm{m}.
+\end{equation}
+The manufactured model is written in local time measured from pair creation at
+the IP.  In the corresponding OPALX large-cylinder input this event is placed
+at about \(550.3~\mathrm{ps}\), with the primary source crossing the IP at
+about \(567.1~\mathrm{ps}\).  The delayed-retirement diagnostic keeps the
+primary source active until \(1000~\mathrm{ps}\) in the OPALX clock, while the
+manufactured solution below isolates the continuum field model from the OPALX
+source-retirement bookkeeping.
 The table below was generated with
 \begin{equation}
 \begin{split}
@@ -536,7 +555,7 @@ The table below was generated with
   \gamma_s &= 480.453039976,\\
   \beta_s &= 0.999997833949,\\
   Q &= -2.002721~\mathrm{nC},\\
-  \sigma' &= 1~\mathrm{mm},\\
+  \sigma' &= 0.6~\mathrm{mm},\\
   \Delta t &= 1~\mathrm{ps},\\
   \Pmom_w^0 &= (0,0,0).
 \end{split}
@@ -604,9 +623,14 @@ column.
 
 For the physical-charge illustration
 \begin{equation}
+\begin{split}
   Q=-2.002721~\mathrm{nC},\qquad
-  \Delta t=0.005~\mathrm{ps},\qquad
-  T=50~\mathrm{ps},
+  \sigma'=0.6~\mathrm{mm},\\
+  \Delta t_{\mathrm{fine}}=0.001~\mathrm{ps}\quad(0\le t\le 5~\mathrm{ps}),
+  \qquad
+  \Delta t_{\mathrm{tail}}=0.1~\mathrm{ps},\\
+  T=1050~\mathrm{ps},
+\end{split}
 \end{equation}
 the exact creation point is a symmetry null:
 \begin{equation}
@@ -619,7 +643,11 @@ particles remain in the \(z=0\) symmetry plane, so the magnetic fields from the
 two equal and opposite source bunches cancel along the trajectory.  The
 asymmetric collision breaks this cancellation and samples a nonzero magnetic
 field even for the same initial pair direction.  The generated kinematic
-summary is:
+summary is evaluated at \(T=1050~\mathrm{ps}\).  At the default
+\(313~\mathrm{keV}\) kinetic energy the free transverse path length over this
+interval is about \(246.9~\mathrm{mm}\), so the manufactured trajectory crosses
+the \(R_{\mathrm{BB}}=150~\mathrm{mm}\) cylinder scale within the plotted time
+window:
 
 \begin{center}
 \small
@@ -627,6 +655,57 @@ summary is:
 \input{boosted_gaussian_witness_pair_kinematics_table.tex}
 }
 \end{center}
+
+The field evaluation and the particle push in this manufactured model are
+performed in the lab/reference frame.  Each source field is obtained by
+transforming the current witness event into the corresponding source rest
+frame, evaluating the spherical Gaussian Coulomb field there, and boosting the
+field back to the lab frame.  The magnetic field is included in the Boris
+rotation through
+\begin{equation}
+  \B_j = \frac{1}{c^2}\vect v_j\times\E_j .
+\end{equation}
+The vanishing magnetic contribution in the default symmetric pair run is
+therefore not an omission.  It is a symmetry result: the pair starts at the
+overlap event and is launched transversely in the \(z=0\) plane, where the
+magnetic fields of the two equal counter-propagating electron bunches cancel.
+The asymmetric case breaks this cancellation and gives a nonzero magnetic field.
+
+An earlier uniform \(\Delta t=0.1~\mathrm{ps}\) pair run was useful as a
+geometry check, but it under-resolved the force transient at bunch overlap.
+The table above and Figure~\ref{fig:manufactured-pair-paths} therefore use a
+multirate integration: \(0.001~\mathrm{ps}\) through the first
+\(5~\mathrm{ps}\), followed by \(0.1~\mathrm{ps}\) steps after the source
+overlap has passed.  Since the manufactured source has \(\gamma_s=480.453\) and
+\(\sigma'=0.6~\mathrm{mm}\), the lab-frame longitudinal source scale is
+\begin{equation}
+  \sigma_z = \frac{\sigma'}{\gamma_s}
+  \simeq 1.25~\mu\mathrm{m},
+  \qquad
+  \frac{\sigma_z}{c} \simeq 4.16~\mathrm{fs}
+  = 0.00416~\mathrm{ps}.
+\end{equation}
+Thus a timestep comparable to a few femtoseconds is required to resolve the
+initial kick.  A short \(5~\mathrm{ps}\) timestep check for the symmetric
+electron gives
+\begin{center}
+\small
+\begin{tabular}{lll}
+\hline
+\(\Delta t\) [ps] & \(\Delta x\) [\(\mu\mathrm{m}\)] & \(\Delta K\) [eV] \\
+\hline
+0.1   & 0.00434 & 5.20 \\
+0.01  & 0.04295 & 48.64 \\
+0.005 & 0.05191 & 58.68 \\
+0.002 & 0.05387 & 60.86 \\
+0.001 & 0.05415 & 61.16 \\
+\hline
+\end{tabular}
+\end{center}
+The coarse \(0.1~\mathrm{ps}\) run therefore underestimated the early energy
+kick by about a factor of twelve.  Production manufactured-solution comparisons
+should use a timestep near \(10^{-3}~\mathrm{ps}\) during overlap, or an
+equivalent adaptive integration around the source-overlap event.
 
 Figure~\ref{fig:manufactured-field-t0} shows the magnitude of the initial
 manufactured electric field for the symmetric and asymmetric source
@@ -637,7 +716,8 @@ pair trajectories and their deviation from free propagation.
   \centering
   \includegraphics[width=\textwidth]{./figs/boosted_gaussian_witness_physical_field_t0.png}
   \caption{Magnitude of the manufactured boosted-Gaussian electric field at
-  pair creation.  The white marker is the interaction point.}
+  pair creation for the updated \(\sigma'=0.6~\mathrm{mm}\) source bunch.  The
+  white marker is the interaction point.}
   \label{fig:manufactured-field-t0}
 \end{figure}
 
@@ -645,8 +725,12 @@ pair trajectories and their deviation from free propagation.
   \centering
   \includegraphics[width=\textwidth]{./figs/boosted_gaussian_witness_physical_paths.png}
   \caption{Back-to-back \(e^-/e^+\) propagation with and without the colliding
-  source fields.  The lower-right panel shows the field-on trajectory minus the
-  free trajectory.}
+  source fields over \(1050~\mathrm{ps}\).  The first \(5~\mathrm{ps}\) are
+  integrated with \(0.001~\mathrm{ps}\) steps to resolve the overlap kick; the
+  later drift uses \(0.1~\mathrm{ps}\) steps with \(0.1~\mathrm{ps}\) trajectory
+  output.  The x-z projection marks the \(R_{\mathrm{BB}}=15~\mathrm{cm}\)
+  cylinder scale and the 32 cm BeamBeam longitudinal window; the lower-right
+  panel shows the field-on trajectory minus the free trajectory.}
   \label{fig:manufactured-pair-paths}
 \end{figure}
 
@@ -664,5 +748,335 @@ The recommended implementation sequence is:
   \item Only after this single-particle manufactured test passes should the
         implementation be generalized to many witnesses and mesh interpolation.
 \end{enumerate}
+
+\clearpage
+\section{Sandbox Regression Overview}
+
+This section incorporates the BeamBeam sandbox regression overview into the
+manufactured-solution note.  The reusable regression and plotting scripts now
+live under \texttt{sandbox/python}; accepted metrics and figure copies used by
+this note live under \texttt{sandbox/note}.
+
+\subsection{Compared Cases}
+
+\begin{tabularx}{\textwidth}{@{}p{0.24\textwidth}p{0.31\textwidth}X@{}}
+\toprule
+Check & Input / source & Comparison target \\
+\midrule
+BeamBeam field dumps &
+{\footnotesize\path{sandbox/BeamBeam-static-1V.in}} &
+ASCII \(\rho\), \(\phi\), and \(\E\) dumps are compared against the analytic
+symmetric Gaussian manufactured solution. \\
+Gamma-gamma \(e^-/e^+\) tracking &
+{\footnotesize\path{sandbox/track-e-p/gamma_gamma_pairs-2.in}} &
+FROMFILE pair kinematics and final witness-container summaries are checked for
+the primary beam, electrons, and positrons. \\
+OPALX-IMPACT drift &
+{\footnotesize\path{sandbox/OPALX-IMPACT/drift-1.in}} &
+A simple proton drift with space charge is compared with digitized IMPACT
+reference data. \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Current Regression Metrics}
+
+\begin{tabularx}{\textwidth}{@{}p{0.30\textwidth}p{0.28\textwidth}X@{}}
+\toprule
+Metric & Meaning & Current value \\
+\midrule
+BeamBeam field snapshot & diagnostic kind & active beam-beam field diagnostics \\
+charge integral & deposited charge & \(-1.112650055\times10^{-14}\) \\
+\(\rho\) relative \(L_2\) & density error & \(5.2218586\times10^{-2}\) \\
+\(\phi\) relative \(L_2\) & potential error & \(3.0422484\times10^{-3}\) \\
+\(E_x\) relative \(L_2\) & electric field error & \(1.5030245\times10^{-2}\) \\
+\(E_y\) relative \(L_2\) & electric field error & \(1.5821869\times10^{-2}\) \\
+\(E_z\) relative \(L_2\) & electric field error & \(2.4273686\times10^{-2}\) \\
+\bottomrule
+\end{tabularx}
+
+\begin{tabularx}{\textwidth}{@{}p{0.30\textwidth}p{0.28\textwidth}X@{}}
+\toprule
+Metric & Meaning & Current value \\
+\midrule
+OPALX rows & stat samples & 73 \\
+IMPACT rows & digitized samples & 71 \\
+final \(x\) & OPALX final centroid & \(3.4785129\times10^{-2}\) \\
+final \(\epsilon_x\) & OPALX final emittance & 1.8927107 \\
+RMS \(x\) difference & OPALX - IMPACT & \(7.6561747\times10^{-4}\) \\
+max \(x\) difference & OPALX - IMPACT & \(2.2219403\times10^{-3}\) \\
+RMS \(\epsilon_x\) difference & OPALX - IMPACT & \(8.6413341\times10^{-2}\) \\
+max \(\epsilon_x\) difference & OPALX - IMPACT & \(1.3101915\times10^{-1}\) \\
+\bottomrule
+\end{tabularx}
+
+\begin{figure}[!htp]
+  \centering
+  \includegraphics[width=0.82\textwidth]{./figs/opalx_impact_drift_comparison.png}
+  \caption{Digitized IMPACT reference data overlaid with the current OPALX
+  drift result from \texttt{sandbox/OPALX-IMPACT/drift-1.stat}.}
+  \label{fig:regression-impact-drift}
+\end{figure}
+
+\begin{tabularx}{\textwidth}{@{}p{0.30\textwidth}p{0.28\textwidth}X@{}}
+\toprule
+Metric & Meaning & Current value \\
+\midrule
+electron count & FROMFILE particles & 1297 \\
+positron count & FROMFILE particles & 1297 \\
+electron mean \(K\) & input pair kinematics & 313.601 keV \\
+positron mean \(K\) & input pair kinematics & 313.615 keV \\
+median opening angle & pair summary & \(168.907^\circ\) \\
+opening \(>150^\circ\) & pair summary fraction & 0.754819 \\
+electron final energy & \texttt{gamma\_gamma\_pairs-2} c1 & 0.315272 MeV \\
+positron final energy & \texttt{gamma\_gamma\_pairs-2} c2 & 0.311939 MeV \\
+electron final rms \(x\) & \texttt{gamma\_gamma\_pairs-2} c1 & \(1.3766180\times10^{-2}\) m \\
+positron final rms \(x\) & \texttt{gamma\_gamma\_pairs-2} c2 & \(1.3706767\times10^{-2}\) m \\
+\bottomrule
+\end{tabularx}
+
+\subsection{BeamBeam Diagnostic Timeline}
+
+\begin{figure}[!htp]
+\centering
+\begin{tikzpicture}[
+    x=1cm,
+    y=-0.065cm,
+    >=Latex,
+    font=\footnotesize,
+    bunch/.style={draw=black, line width=0.45pt, minimum width=0.58cm, minimum height=0.22cm},
+    event/.style={anchor=west, align=left, text width=5.6cm},
+    window/.style={draw=black, line width=0.45pt, minimum width=2.5cm, minimum height=0.62cm},
+]
+\definecolor{sourcegreen}{HTML}{1B9E77}
+\definecolor{pairmagenta}{HTML}{D33682}
+\definecolor{paircyan}{HTML}{2AA6B8}
+
+\draw[->, line width=0.6pt] (0,15) -- (0,212);
+\node[anchor=south] at (0,12) {time [ps]};
+\foreach \t/\y in {22/22,45/45,100/100,111/136,116/169,121/202} {
+    \draw[line width=0.45pt] (-0.12,\y) -- (0.12,\y);
+    \node[left] at (-0.18,\y) {\t};
+}
+
+\node[event] at (8.2,22) {approach: source bunches still separated};
+\node[event] at (8.2,45) {\texttt{BB-active=TRUE}};
+\node[event] at (8.2,100) {witness pair born at IP: \texttt{c1,c2:n=1297}};
+\node[event] at (8.2,136) {\texttt{source\_bunches\_overlap=TRUE}};
+\node[event] at (8.2,169) {source bunches passed IP};
+\node[event] at (8.2,202) {\texttt{source\_bunches\_overlap=FALSE}\\
+\texttt{retired\_bunches=1, source\_active=FALSE}};
+
+\foreach \y/\xb/\xg in {22/3.55/6.45,45/4.35/5.65,100/4.78/5.22,136/5.00/5.00,169/5.35/4.65} {
+    \node[window] at (5,\y) {};
+    \draw[line width=0.45pt] (5,\y-6.0) -- (5,\y+6.0);
+    \node[bunch, fill=black] at (\xb,\y) {};
+    \node[bunch, draw=sourcegreen, fill=sourcegreen!18, line width=0.85pt] at (\xg,\y) {};
+}
+\node[window] at (5,202) {};
+\draw[line width=0.45pt] (5,196.0) -- (5,208.0);
+\node[bunch, draw=gray, dashed] (retiredPrimaryA) at (4.65,202) {};
+\node[bunch, draw=gray, dashed] (retiredPrimaryB) at (5.35,202) {};
+\foreach \nodeName in {retiredPrimaryA,retiredPrimaryB} {
+    \draw[gray, line width=0.55pt]
+        ([xshift=-5pt,yshift=-3pt]\nodeName.center) --
+        ([xshift=5pt,yshift=3pt]\nodeName.center);
+    \draw[gray, line width=0.55pt]
+        ([xshift=-5pt,yshift=3pt]\nodeName.center) --
+        ([xshift=5pt,yshift=-3pt]\nodeName.center);
+}
+
+\foreach \t/\h in {100/8,136/10,169/11,202/12} {
+    \path[draw=black, fill=paircyan!55, line width=0.45pt]
+        (5.00,\t) -- ([xshift=-4pt,yshift=-\h pt]5.00,\t)
+        -- ([xshift=4pt,yshift=-\h pt]5.00,\t) -- cycle;
+    \path[draw=black, fill=pairmagenta!65, line width=0.45pt]
+        (5.00,\t) -- ([xshift=-4pt,yshift=\h pt]5.00,\t)
+        -- ([xshift=4pt,yshift=\h pt]5.00,\t) -- cycle;
+}
+
+\node[anchor=south] at (5.0,11) {BeamBeam window};
+\node[anchor=north] at (5.24,16) {IP};
+\draw[->, line width=0.45pt] (3.45,16) -- (4.05,16);
+\draw[->, line width=0.45pt] (6.55,16) -- (5.95,16);
+\node[anchor=west, text width=8.2cm, font=\scriptsize] at (0.7,217)
+{Draft event timeline, not to scale. The rows track grepable
+\texttt{BB-DIAG} transitions from OPALX stdout; the final row shows the
+configured \texttt{RETIRE\_TIME} deleting the primary source while the witness
+pair remains active.};
+\end{tikzpicture}
+\caption{Timeline for copied BeamBeam source bunches and the injected
+low-energy witness pair.}
+\label{fig:regression-beambeam-timeline}
+\end{figure}
+
+\subsection{Cylinder Crossing Histograms}
+
+\begin{figure}[!htp]
+  \centering
+  \includegraphics[width=0.88\textwidth]{./figs/gamma_gamma_cylinder_losses.png}
+  \caption{Cylinder-edge crossing histogram for the low-energy witness pair
+  after source retirement.  Bars show the first recorded H5 particle position
+  with radius at least 1 cm for containers \texttt{c1} and \texttt{c2}.}
+  \label{fig:regression-small-cylinder-crossings}
+\end{figure}
+
+\begin{figure}[!htp]
+\centering
+\begin{tikzpicture}[x=1cm, y=1cm, font=\footnotesize]
+\definecolor{pairmagenta}{HTML}{D33682}
+\definecolor{paircyan}{HTML}{2AA6B8}
+\draw[line width=0.7pt] (0,0.55) -- (8.6,0.55);
+\draw[line width=0.7pt] (0,-0.55) -- (8.6,-0.55);
+\draw[line width=0.7pt] (0,0) ellipse (0.32 and 0.55);
+\draw[line width=0.7pt] (8.6,0) ellipse (0.32 and 0.55);
+\draw[line width=0.5pt] (4.3,-0.78) -- (4.3,0.78);
+\node[anchor=north] at (4.3,-0.82) {IP, $s=0.17$ m};
+\node[anchor=south] at (4.3,0.68) {BeamBeam cylinder: length 32 cm, radius 15 cm};
+\node[draw=black, fill=paircyan!55, minimum width=0.20cm, minimum height=0.40cm] at (4.18,0.0) {};
+\node[draw=black, fill=pairmagenta!65, minimum width=0.20cm, minimum height=0.40cm] at (4.42,0.0) {};
+\end{tikzpicture}
+
+\vspace{0.6em}
+\begin{tabularx}{0.86\textwidth}{@{}p{0.38\textwidth}p{0.18\textwidth}X@{}}
+\toprule
+Event & Time & Note \\
+\midrule
+BeamBeam window active & observed & \texttt{BB-active=TRUE} is emitted before witness injection. \\
+Witness pair injected & 550.3 ps & Preserves the 16.747 ps pre-IP offset from the proof-of-principle setup. \\
+Primary reaches IP & 567.1 ps & \(s_\mathrm{IP}=0.17~\mathrm{m}\) for the 32 cm BeamBeam window. \\
+Source retired & 571.3 ps & Preserves the 4.253 ps post-IP retirement offset. \\
+Tracking ends & 1600 ps & Long enough for the first 15 cm radial crossings. \\
+\bottomrule
+\end{tabularx}
+\caption{Timing and geometry summary for the large-cylinder setup.}
+\label{fig:regression-large-cylinder-setup}
+\end{figure}
+
+\begin{figure}[!htp]
+  \centering
+  \includegraphics[width=0.88\textwidth]{./figs/gamma_gamma_large_cylinder_crossings.png}
+  \caption{Cylinder-edge crossing histogram for the large setup with 15 cm
+  radius and 32 cm BeamBeam length.  Bars show first recorded H5 particle
+  positions with radius at least 15 cm for containers \texttt{c1} and
+  \texttt{c2}.}
+  \label{fig:regression-large-cylinder-crossings}
+\end{figure}
+
+\begin{figure}[!htp]
+  \centering
+  \includegraphics[width=0.88\textwidth]{./figs/gamma_gamma_large_cylinder_charge_compare.png}
+  \caption{Comparison of nominal large-cylinder crossing histograms with a
+  rerun where the primary bunch charge is scaled by \(10^{-5}\).  Solid curves
+  show the nominal primary charge, dashed curves show the reduced-charge run,
+  and grey bars show the reduced-minus-nominal bin difference.}
+  \label{fig:regression-large-cylinder-charge-compare}
+\end{figure}
+
+\subsection{Figure Generation and Output Paths}
+
+The figure files used by this note are stored under \texttt{sandbox/note/figs}
+so the note does not depend on the regression output directory at compile time.
+The regression plotting scripts have been relocated to \texttt{sandbox/python}
+and default to note-local outputs.  In particular,
+\texttt{make\_sandbox\_regression\_overview.py} writes overview figures under
+\texttt{sandbox/note/figs}, \texttt{plot\_cylinder\_crossings.py} writes the
+staged large-cylinder histogram there, and
+\texttt{compare\_cylinder\_crossing\_histograms.py} accepts \texttt{--output}
+for explicit figure placement.
+
+\subsection{Regression Workflow Notes}
+
+The lightweight regression checks are now driven from
+\texttt{sandbox/python/run\_sandbox\_regressions.py}.  They cover three compact
+checks: manufactured \texttt{BeamBeam} field dumps, gamma-gamma
+\(e^-/e^+\) FROMFILE pair tracking, and the OPALX--IMPACT drift comparison.
+The accepted baseline is the JSON file
+\texttt{sandbox/note/sandbox\_regression\_baseline.json}; the latest flattened
+metrics are written to \texttt{sandbox/note/current\_metrics.csv}.  The CSV is
+run output, while the JSON file is the comparison reference.
+
+The baseline should only be updated after an intentional physics or numerics
+change.  When accepting new results, record the expected impact on conservation,
+stability, floating-point reproducibility, and OpenMP/MPI execution order.  The
+baseline JSON records the git branch, commit, dirty flag, and
+\texttt{git status --short} output present when the baseline was accepted.
+
+The pair-input utilities remain in \texttt{sandbox/track-e-p}.  The standard
+six-column FROMFILE distributions are regenerated with
+\texttt{convert\_fort98\_to\_fromfile.py}.  Creation-time diagnostics use the
+\texttt{--add-time} option, which writes
+\texttt{x y z px py pz t bin\_number} with \(t=ct/c\) in seconds and
+\texttt{bin\_number=1}.  The analyzer
+\texttt{analyze\_pair\_momenta.py} reports the corresponding time summaries in
+picoseconds and can write the time histogram diagnostics.
+
+\subsection{Staged Timestep Rationale}
+
+OPALX interprets vector-valued \texttt{DT} and \texttt{MAXSTEPS} entries as
+per-segment tracking instructions.  The entries are not cumulative step
+numbers.  For example,
+\begin{verbatim}
+MAXSTEPS = {550, 25001, 1025}
+DT       = {1.0e-12, 1.0e-15, 1.0e-12}
+\end{verbatim}
+means 550 coarse 1 ps steps, followed by 25001 fine 1 fs steps, followed by
+1025 coarse 1 ps steps.  The total simulated time is therefore
+\begin{equation}
+  550~\mathrm{ps} + 25001~\mathrm{fs} + 1025~\mathrm{ps}
+  = 1600.001~\mathrm{ps}.
+\end{equation}
+
+The fine segment starts at \(550~\mathrm{ps}\).  This deliberately brackets the
+proof-of-principle witness injection time
+\begin{equation}
+  t_{\mathrm{inj}} =
+  t_{\mathrm{IP}} - 16.747~\mathrm{ps}
+  \simeq 550.312~\mathrm{ps},
+\end{equation}
+and continues through the primary bunch IP crossing at
+\begin{equation}
+  t_{\mathrm{IP}} = \frac{0.17~\mathrm{m}}{c}
+  \simeq 567.059~\mathrm{ps}.
+\end{equation}
+The reason is operational as well as numerical: the \texttt{FROMFILE} source is
+a one-shot delayed emitter.  It emits when the active time interval
+\([t,t+\Delta t)\) crosses \texttt{T0}; it does not itself request a smaller
+emission timestep.  Thus the global tracker timestep must already be fine
+before \(t_{\mathrm{inj}}\) if pair creation is to occur with femtosecond
+resolution.
+
+For the histogram-focused production run, only the witness trajectory samples
+are needed to find the first cylinder-edge crossing,
+\begin{equation}
+  \sqrt{x^2+y^2}\geq 0.15~\mathrm{m}.
+\end{equation}
+The integration still uses the 1 fs segment above, but dense diagnostic output
+is not required.  The staged input therefore uses
+\begin{verbatim}
+OPTION, PSDUMPFREQ = 10;
+OPTION, STATDUMPFREQ = 0;
+\end{verbatim}
+so H5 phase-space samples are written every ten integration steps and stat
+files are suppressed.  In the coarse tail this gives approximately 10 ps
+sampling, corresponding to about 3 mm of light-travel distance, which is small
+compared with the current histogram span.  The source-field ASCII
+\texttt{.dat} files produced by the debug-enabled field solver are not used for
+the histogram and can be deleted during or after the run.
+
+\subsection{Reproduction Commands}
+
+\begin{verbatim}
+source .venv-h6/bin/activate
+python sandbox/python/run_sandbox_regressions.py \
+  --run-opalx \
+  --opalx-exe build_openmp/src/opalx
+cd sandbox/track-e-p
+../../build_openmp/src/opalx gamma_gamma_pairs-large-cylinder.in
+../../build_openmp/src/opalx gamma_gamma_pairs-large-cylinder-q1em5.in
+cd ../..
+python sandbox/python/make_sandbox_regression_overview.py
+cd sandbox/note
+latexmk -pdf boosted_gaussian_witness.tex
+\end{verbatim}
 
 \end{document}

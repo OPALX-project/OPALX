@@ -23,6 +23,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 SCRIPT_DIR = Path(__file__).resolve().parent
 CHECK_COLLWIN_PATH = SCRIPT_DIR / "checkCollWin.py"
 MANUFACTURED_PATH = SCRIPT_DIR / "beam-beam-manufactured-solution.py"
+BOOSTED_WITNESS_PATH = SCRIPT_DIR / "boosted_gaussian_witness.py"
 READ_H5_PATH = SCRIPT_DIR / "read_beambeam_h5.py"
 GUI_STATE_PATH = SCRIPT_DIR / ".beambeam_analysis_state.json"
 
@@ -64,6 +65,7 @@ def load_module(module_name: str, path: Path):
     if spec is None or spec.loader is None:
         raise RuntimeError(f"cannot load module {module_name} from {path}")
     module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
     spec.loader.exec_module(module)
     return module
 
@@ -98,6 +100,10 @@ def load_check_collwin():
 
 def load_manufactured_solution():
     return load_module("beam_beam_manufactured_solution_module", MANUFACTURED_PATH)
+
+
+def load_boosted_witness():
+    return load_module("boosted_gaussian_witness_module", BOOSTED_WITNESS_PATH)
 
 
 def load_read_beambeam_h5():
@@ -326,6 +332,51 @@ def run_manufactured_analytic(
     analytic = manufactured.gaussian_pair_fields(np, x_grid, y_grid, z_grid, sigma, charge, centers)
     title = f"Manufactured solution | $Q$={charge:.2e} C, $\\sigma$={sigma:.2e} m"
     manufactured.plot_analytic_solution(plt, analytic, origin, spacing, title, output)
+
+
+def run_pair_in_fields(
+    *,
+    sigma_m: float,
+    charge_C: float,
+    source_kinetic_MeV: float,
+    half_separation_m: float,
+    pair_energy_keV: float,
+    pair_duration_ps: float,
+    pair_dt_ps: float,
+    pair_fine_dt_ps: float | None,
+    pair_fine_duration_ps: float,
+    pair_output_dt_ps: float,
+    pair_direction: tuple[float, float, float],
+    pair_origin_m: tuple[float, float, float],
+    field_span_mm: float,
+    field_grid: int,
+    beambeam_radius_m: float,
+    beambeam_length_m: float,
+    output_prefix: Path,
+    write_pair_latex_table: Path,
+) -> int:
+    boosted = load_boosted_witness()
+    args = SimpleNamespace(
+        sigma_m=sigma_m,
+        charge_C=charge_C,
+        source_kinetic_MeV=source_kinetic_MeV,
+        half_separation_m=half_separation_m,
+        pair_energy_keV=pair_energy_keV,
+        pair_duration_ps=pair_duration_ps,
+        pair_dt_ps=pair_dt_ps,
+        pair_fine_dt_ps=pair_fine_dt_ps,
+        pair_fine_duration_ps=pair_fine_duration_ps,
+        pair_output_dt_ps=pair_output_dt_ps,
+        pair_direction=pair_direction,
+        pair_origin_m=pair_origin_m,
+        field_span_mm=field_span_mm,
+        field_grid=field_grid,
+        beambeam_radius_m=beambeam_radius_m,
+        beambeam_length_m=beambeam_length_m,
+        output_prefix=output_prefix,
+        write_pair_latex_table=write_pair_latex_table,
+    )
+    return boosted.run_pair_demo(args)
 
 
 def run_manufactured_compare(
@@ -2084,6 +2135,45 @@ def parse_args() -> argparse.Namespace:
     analytic_parser.add_argument("--nz", type=int, default=64)
     analytic_parser.add_argument("--output", type=Path)
 
+    pair_parser = subparsers.add_parser(
+        "pair",
+        help="Integrate a back-to-back e-/e+ pair in the manufactured boosted-Gaussian fields.",
+    )
+    pair_parser.add_argument("--sigma-m", type=float, default=0.6e-3)
+    pair_parser.add_argument("--charge-C", type=float, default=-2.0027207925e-9)
+    pair_parser.add_argument("--source-kinetic-MeV", type=float, default=245.0)
+    pair_parser.add_argument("--half-separation-m", type=float, default=0.0)
+    pair_parser.add_argument("--pair-energy-keV", type=float, default=313.0)
+    pair_parser.add_argument("--pair-duration-ps", type=float, default=1050.0)
+    pair_parser.add_argument("--pair-dt-ps", type=float, default=0.1)
+    pair_parser.add_argument("--pair-fine-dt-ps", type=float, default=None)
+    pair_parser.add_argument("--pair-fine-duration-ps", type=float, default=5.0)
+    pair_parser.add_argument("--pair-output-dt-ps", type=float, default=0.1)
+    pair_parser.add_argument(
+        "--pair-direction",
+        type=float,
+        nargs=3,
+        default=(1.0, 0.0, 0.0),
+        metavar=("UX", "UY", "UZ"),
+    )
+    pair_parser.add_argument(
+        "--pair-origin-m",
+        type=float,
+        nargs=3,
+        default=(0.0, 0.0, 0.0),
+        metavar=("X", "Y", "Z"),
+    )
+    pair_parser.add_argument("--field-span-mm", type=float, default=4.0)
+    pair_parser.add_argument("--field-grid", type=int, default=121)
+    pair_parser.add_argument("--beambeam-radius-m", type=float, default=0.15)
+    pair_parser.add_argument("--beambeam-length-m", type=float, default=0.32)
+    pair_parser.add_argument("--output-prefix", type=Path, default=Path("sandbox/data/boosted_gaussian_witness"))
+    pair_parser.add_argument(
+        "--write-pair-latex-table",
+        type=Path,
+        default=Path("sandbox/note/boosted_gaussian_witness_pair_kinematics_table.tex"),
+    )
+
     compare_parser = subparsers.add_parser("compare", help="Run the manufactured-vs-OPALX compare view.")
     compare_parser.add_argument("h5_path", type=Path)
     compare_parser.add_argument("--step", type=int)
@@ -2132,6 +2222,29 @@ def main() -> int:
             ny=args.ny,
             nz=args.nz,
             output=args.output,
+        )
+        return 0
+
+    if args.command == "pair":
+        run_pair_in_fields(
+            sigma_m=args.sigma_m,
+            charge_C=args.charge_C,
+            source_kinetic_MeV=args.source_kinetic_MeV,
+            half_separation_m=args.half_separation_m,
+            pair_energy_keV=args.pair_energy_keV,
+            pair_duration_ps=args.pair_duration_ps,
+            pair_dt_ps=args.pair_dt_ps,
+            pair_fine_dt_ps=args.pair_fine_dt_ps,
+            pair_fine_duration_ps=args.pair_fine_duration_ps,
+            pair_output_dt_ps=args.pair_output_dt_ps,
+            pair_direction=tuple(args.pair_direction),
+            pair_origin_m=tuple(args.pair_origin_m),
+            field_span_mm=args.field_span_mm,
+            field_grid=args.field_grid,
+            beambeam_radius_m=args.beambeam_radius_m,
+            beambeam_length_m=args.beambeam_length_m,
+            output_prefix=args.output_prefix,
+            write_pair_latex_table=args.write_pair_latex_table,
         )
         return 0
 

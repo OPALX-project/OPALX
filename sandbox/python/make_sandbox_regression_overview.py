@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Build a compact PDF overview of the sandbox regression comparisons."""
+"""Build a compact PDF overview of the sandbox regression comparisons.
+
+Defaults write the standalone overview TeX/PDF, metrics, baseline, and figures
+under ``sandbox/note`` / ``sandbox/note/figs``.  This keeps the overview tooling
+usable after the old ``sandbox/regression`` directory is removed.
+"""
 
 from __future__ import annotations
 
@@ -16,10 +21,15 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
-DEFAULT_CSV = HERE / "current_metrics.csv"
-DEFAULT_TEX = HERE / "sandbox_regression_overview.tex"
-DEFAULT_BASELINE = HERE / "sandbox_regression_baseline.json"
-DEFAULT_IMPACT_PLOT = HERE / "opalx_impact_drift_comparison.png"
+NOTE_DIR = ROOT / "sandbox/note"
+NOTE_FIG_DIR = NOTE_DIR / "figs"
+DEFAULT_CSV = NOTE_DIR / "current_metrics.csv"
+DEFAULT_TEX = NOTE_DIR / "sandbox_regression_overview.tex"
+DEFAULT_BASELINE = NOTE_DIR / "sandbox_regression_baseline.json"
+DEFAULT_IMPACT_PLOT = NOTE_FIG_DIR / "opalx_impact_drift_comparison.png"
+DEFAULT_LOSS_PLOT = NOTE_FIG_DIR / "gamma_gamma_cylinder_losses.png"
+DEFAULT_LARGE_CYLINDER_PLOT = NOTE_FIG_DIR / "gamma_gamma_large_cylinder_crossings.png"
+DEFAULT_LARGE_CYLINDER_CHARGE_COMPARE_PLOT = NOTE_FIG_DIR / "gamma_gamma_large_cylinder_charge_compare.png"
 
 
 def latex_escape(value: object) -> str:
@@ -58,6 +68,43 @@ def baseline_metadata(path: Path) -> dict[str, object]:
     return metadata
 
 
+def read_sdds_stat(path: Path) -> tuple[pd.DataFrame, list[str]]:
+    if not path.exists():
+        raise FileNotFoundError(path)
+    lines = path.read_text(errors="replace").splitlines()
+
+    columns: list[str] = []
+    data_start: int | None = None
+    idx = 0
+    while idx < len(lines):
+        tag = lines[idx].strip()
+        if tag == "&column":
+            idx += 1
+            name: str | None = None
+            while idx < len(lines) and lines[idx].strip() != "&end":
+                stripped = lines[idx].strip().rstrip(",")
+                if stripped.startswith("name="):
+                    name = stripped.split("=", 1)[1].strip().strip('"')
+                idx += 1
+            if name is not None:
+                columns.append(name)
+        elif tag == "&data":
+            while idx < len(lines) and lines[idx].strip() != "&end":
+                idx += 1
+            data_start = idx + 1
+            break
+        idx += 1
+
+    if data_start is None:
+        raise ValueError(f"missing &data block in {path}")
+    if data_start + 3 > len(lines):
+        raise ValueError(f"missing SDDS parameter rows in {path}")
+
+    data_lines = [line for line in lines[data_start + 3:] if line.strip()]
+    rows = [[float(value) for value in line.split()] for line in data_lines]
+    return pd.DataFrame(rows, columns=columns), columns
+
+
 def make_impact_plot(output_path: Path) -> None:
     env = {
         **os.environ,
@@ -80,6 +127,227 @@ def make_impact_plot(output_path: Path) -> None:
         env=env,
         check=True,
     )
+
+
+def make_cylinder_crossing_plot(
+        output_path: Path,
+        stem: str,
+        aperture_radius_m: float,
+        cylinder_begin_m: float,
+        cylinder_end_m: float,
+        x_range_m: tuple[float, float],
+        bins: int,
+) -> None:
+    os.environ.setdefault("MPLBACKEND", "Agg")
+    os.environ.setdefault("MPLCONFIGDIR", str(ROOT / "sandbox/data/.plot-cache/matplotlib"))
+    os.environ.setdefault("XDG_CACHE_HOME", str(ROOT / "sandbox/data/.plot-cache/xdg"))
+
+    import h5py
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Ellipse
+    import numpy as np
+
+    track_dir = ROOT / "sandbox/track-e-p"
+
+    fig, (ax, cyl) = plt.subplots(
+        2,
+        1,
+        figsize=(6.6, 3.6),
+        height_ratios=(2.0, 0.72),
+        sharex=True,
+        constrained_layout=True,
+    )
+    species = [
+        (f"{stem}_c1.h5", r"$e^-$", "#2AA6B8"),
+        (f"{stem}_c2.h5", r"$e^+$", "#D33682"),
+    ]
+    max_crossings = 0.0
+    for filename, label, color in species:
+        first_crossing_z: dict[int, float] = {}
+        with h5py.File(track_dir / filename, "r") as h5:
+            steps = sorted(
+                    (key for key in h5.keys() if key.startswith("Step#")),
+                    key=lambda key: int(key.split("#", 1)[1]))
+            for step in steps:
+                group = h5[step]
+                ids = np.asarray(group["id"], dtype=int)
+                x = np.asarray(group["x"], dtype=float)
+                y = np.asarray(group["y"], dtype=float)
+                z = np.asarray(group["z"], dtype=float)
+                outside = np.hypot(x, y) >= aperture_radius_m
+                for particle_id, z_position in zip(ids[outside], z[outside], strict=True):
+                    first_crossing_z.setdefault(int(particle_id), float(z_position))
+
+        if first_crossing_z:
+            crossing_z = np.fromiter(first_crossing_z.values(), dtype=float)
+            edges = np.linspace(x_range_m[0], x_range_m[1], bins + 1)
+            counts, edges = np.histogram(crossing_z, bins=edges)
+            centers = 0.5 * (edges[:-1] + edges[1:])
+            width = 0.42 * (edges[1] - edges[0])
+            offset = -0.5 * width if label == r"$e^-$" else 0.5 * width
+            max_crossings = max(max_crossings, float(counts.max(initial=0)))
+        else:
+            centers = np.array([])
+            counts = np.array([])
+            width = 0.0016
+            offset = 0.0
+        ax.bar(
+            centers + offset,
+            counts,
+            width=width,
+            align="center",
+            alpha=0.78,
+            color=color,
+            edgecolor="black",
+            linewidth=0.35,
+            label=label,
+        )
+
+    ax.set_ylabel("first crossings")
+    ax.legend(loc="upper right", frameon=False, ncols=2)
+    ax.grid(axis="y", color="0.86", linewidth=0.6)
+    ax.spines[["top", "right"]].set_visible(False)
+    if max_crossings == 0.0:
+        ax.text(
+            0.5,
+            0.52,
+            "no cylinder-edge crossings recorded",
+            transform=ax.transAxes,
+            ha="center",
+            va="center",
+            color="0.35",
+        )
+        ax.set_ylim(0.0, 1.0)
+
+    z_min, z_max = cylinder_begin_m, cylinder_end_m
+    cyl.set_ylim(-1.0, 1.0)
+    cyl.set_yticks([])
+    cyl.set_xlabel("z [m]")
+    cyl.spines[["top", "right", "left"]].set_visible(False)
+    cyl.plot([z_min, z_max], [0.62, 0.62], color="black", linewidth=1.0)
+    cyl.plot([z_min, z_max], [-0.62, -0.62], color="black", linewidth=1.0)
+    left = Ellipse(
+            (z_min, 0.0), width=0.0045, height=1.24, fill=False, color="black",
+            linewidth=1.0)
+    right = Ellipse(
+            (z_max, 0.0), width=0.0045, height=1.24, fill=False, color="black",
+            linewidth=1.0)
+    cyl.add_patch(left)
+    cyl.add_patch(right)
+    ip = 0.5 * (cylinder_begin_m + cylinder_end_m)
+    cyl.axvline(ip, color="0.2", linewidth=0.8)
+    cyl.text(ip, -0.86, "IP", ha="center", va="top")
+    cyl.text(ip, 0.77, "cylindrical BeamBeam aperture", ha="center", va="bottom", fontsize=8)
+    ax.set_xlim(*x_range_m)
+    fig.savefig(output_path, dpi=220)
+    plt.close(fig)
+
+
+def first_crossing_positions(stem: str, container: str, aperture_radius_m: float) -> pd.Series:
+    import h5py
+    import numpy as np
+
+    path = ROOT / "sandbox/track-e-p" / f"{stem}_{container}.h5"
+    first_crossing_z: dict[int, float] = {}
+    with h5py.File(path, "r") as h5:
+        steps = sorted(
+                (key for key in h5.keys() if key.startswith("Step#")),
+                key=lambda key: int(key.split("#", 1)[1]))
+        for step in steps:
+            group = h5[step]
+            ids = np.asarray(group["id"], dtype=int)
+            x = np.asarray(group["x"], dtype=float)
+            y = np.asarray(group["y"], dtype=float)
+            z = np.asarray(group["z"], dtype=float)
+            outside = np.hypot(x, y) >= aperture_radius_m
+            for particle_id, z_position in zip(ids[outside], z[outside], strict=True):
+                first_crossing_z.setdefault(int(particle_id), float(z_position))
+    return pd.Series(first_crossing_z, dtype=float).sort_index()
+
+
+def make_cylinder_loss_plot(output_path: Path) -> None:
+    make_cylinder_crossing_plot(
+            output_path,
+            stem="gamma_gamma_pairs-2",
+            aperture_radius_m=0.01,
+            cylinder_begin_m=0.01,
+            cylinder_end_m=0.06,
+            x_range_m=(0.0, 0.07),
+            bins=14)
+
+
+def make_large_cylinder_crossing_plot(output_path: Path) -> None:
+    make_cylinder_crossing_plot(
+            output_path,
+            stem="gamma_gamma_pairs-large-cylinder",
+            aperture_radius_m=0.15,
+            cylinder_begin_m=0.01,
+            cylinder_end_m=0.33,
+            x_range_m=(-0.06, 0.47),
+            bins=18)
+
+
+def make_large_cylinder_charge_compare_plot(output_path: Path) -> None:
+    os.environ.setdefault("MPLBACKEND", "Agg")
+    os.environ.setdefault("MPLCONFIGDIR", str(ROOT / "sandbox/data/.plot-cache/matplotlib"))
+    os.environ.setdefault("XDG_CACHE_HOME", str(ROOT / "sandbox/data/.plot-cache/xdg"))
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    nominal_stem = "gamma_gamma_pairs-large-cylinder"
+    reduced_stem = "gamma_gamma_pairs-large-cylinder-q1em5"
+    edges = np.linspace(-0.06, 0.47, 19)
+    centers = 0.5 * (edges[:-1] + edges[1:])
+    width = edges[1] - edges[0]
+
+    fig, axes = plt.subplots(2, 1, figsize=(6.8, 4.5), sharex=True, constrained_layout=True)
+    summary_rows: list[tuple[str, int, int, int, float]] = []
+    for ax, container, label, color in [
+        (axes[0], "c1", r"$e^-$", "#2AA6B8"),
+        (axes[1], "c2", r"$e^+$", "#D33682"),
+    ]:
+        nominal = first_crossing_positions(nominal_stem, container, 0.15)
+        reduced = first_crossing_positions(reduced_stem, container, 0.15)
+        nominal_counts, _ = np.histogram(nominal.to_numpy(), bins=edges)
+        reduced_counts, _ = np.histogram(reduced.to_numpy(), bins=edges)
+        diff = reduced_counts - nominal_counts
+        shared_ids = nominal.index.intersection(reduced.index)
+        max_abs_shift_um = 0.0
+        if len(shared_ids) > 0:
+            max_abs_shift_um = float((reduced.loc[shared_ids] - nominal.loc[shared_ids]).abs().max() * 1.0e6)
+        summary_rows.append(
+                (container, int(nominal_counts.sum()), int(reduced_counts.sum()),
+                 int(np.abs(diff).sum()), max_abs_shift_um))
+
+        ax.step(centers, nominal_counts, where="mid", color=color, linewidth=1.8, label="nominal charge")
+        ax.step(
+                centers,
+                reduced_counts,
+                where="mid",
+                color="black",
+                linewidth=1.2,
+                linestyle="--",
+                label=r"$10^{-5}$ primary charge")
+        ax.bar(
+                centers,
+                diff,
+                width=0.58 * width,
+                color="0.72",
+                edgecolor="0.35",
+                linewidth=0.25,
+                alpha=0.75,
+                label="reduced - nominal")
+        ax.axhline(0.0, color="0.25", linewidth=0.6)
+        ax.set_ylabel(f"{label}\ncounts")
+        ax.grid(axis="y", color="0.88", linewidth=0.6)
+        ax.spines[["top", "right"]].set_visible(False)
+
+    axes[0].legend(loc="upper right", frameon=False, ncols=3, fontsize=8)
+    axes[1].set_xlabel("first cylinder-edge crossing z [m]")
+    fig.suptitle("15 cm cylinder crossing histogram comparison")
+    fig.savefig(output_path, dpi=220)
+    plt.close(fig)
 
 
 def fmt(metrics: dict[str, object], key: str, unit: str = "") -> str:
@@ -270,6 +538,42 @@ def collision_timeline_figure() -> str:
 """
 
 
+def large_cylinder_timeline_figure() -> str:
+    return r"""
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[x=1cm, y=1cm, font=\footnotesize]
+\definecolor{sourcegreen}{HTML}{1B9E77}
+\definecolor{pairmagenta}{HTML}{D33682}
+\definecolor{paircyan}{HTML}{2AA6B8}
+\draw[line width=0.7pt] (0,0.55) -- (8.6,0.55);
+\draw[line width=0.7pt] (0,-0.55) -- (8.6,-0.55);
+\draw[line width=0.7pt] (0,0) ellipse (0.32 and 0.55);
+\draw[line width=0.7pt] (8.6,0) ellipse (0.32 and 0.55);
+\draw[line width=0.5pt] (4.3,-0.78) -- (4.3,0.78);
+\node[anchor=north] at (4.3,-0.82) {IP, $s=0.17$ m};
+\node[anchor=south] at (4.3,0.68) {BeamBeam cylinder: length 32 cm, radius 15 cm};
+\node[draw=black, fill=paircyan!55, minimum width=0.20cm, minimum height=0.40cm] at (4.18,0.0) {};
+\node[draw=black, fill=pairmagenta!65, minimum width=0.20cm, minimum height=0.40cm] at (4.42,0.0) {};
+\end{tikzpicture}
+
+\vspace{0.6em}
+\begin{tabularx}{0.86\textwidth}{@{}p{0.38\textwidth}p{0.18\textwidth}X@{}}
+\toprule
+Event & Time & Note \\
+\midrule
+BeamBeam window active & observed & \texttt{BB-active=TRUE} is emitted before witness injection. \\
+Witness pair injected & 550.3 ps & Preserves the 16.747 ps pre-IP offset from the proof-of-principle setup. \\
+Primary reaches IP & 567.1 ps & $s_\mathrm{IP}=0.17$ m for the 32 cm BeamBeam window. \\
+Source retired & 571.3 ps & Preserves the 4.253 ps post-IP retirement offset. \\
+Tracking ends & 1600 ps & Long enough for the first 15 cm radial crossings. \\
+\bottomrule
+\end{tabularx}
+\caption{Timing and geometry summary for \texttt{gamma\_gamma\_pairs-large-cylinder.in}.}
+\end{figure}
+"""
+
+
 def baseline_provenance_block(metadata: dict[str, object]) -> str:
     git = metadata.get("git", {}) if isinstance(metadata, dict) else {}
     if not isinstance(git, dict) or not git:
@@ -303,6 +607,9 @@ def document(
         csv_path: Path,
         baseline_path: Path,
         metadata: dict[str, object],
+        loss_plot_path: Path,
+        large_cylinder_plot_path: Path,
+        large_cylinder_charge_compare_plot_path: Path,
 ) -> str:
     generated = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
     return rf"""\documentclass[10pt]{{article}}
@@ -366,13 +673,40 @@ The existing note \texttt{{sandbox/note/boosted\_gaussian\_witness.tex}} defines
 \section*{{BeamBeam Diagnostic Timeline}}
 {collision_timeline_figure()}
 
+\section*{{Cylinder Loss Timeline}}
+\begin{{figure}}[h]
+\centering
+\includegraphics[width=0.88\textwidth]{{{loss_plot_path.name}}}
+\caption{{Cylinder-edge crossing histogram for the low-energy witness pair after source retirement.  Bars show the first recorded H5 particle position with radius at least 1 cm for containers \texttt{{c1}} and \texttt{{c2}}; the lower panel sketches the cylindrical BeamBeam aperture.  In this run OPALX records the particle trajectories but does not delete the witness particles at the BeamBeam cylinder boundary.}}
+\end{{figure}}
+
+\clearpage
+\section*{{Large Cylinder Setup}}
+{large_cylinder_timeline_figure()}
+
+\begin{{figure}}[h]
+\centering
+\includegraphics[width=0.88\textwidth]{{{large_cylinder_plot_path.name}}}
+\caption{{Cylinder-edge crossing histogram for the large setup with 15 cm radius and 32 cm BeamBeam length.  Bars show first recorded H5 particle positions with radius at least 15 cm for containers \texttt{{c1}} and \texttt{{c2}}.  The lower panel marks the nominal 32 cm BeamBeam cylinder; crossings outside that longitudinal span are shown rather than clipped.}}
+\end{{figure}}
+
+\begin{{figure}}[h]
+\centering
+\includegraphics[width=0.88\textwidth]{{{large_cylinder_charge_compare_plot_path.name}}}
+\caption{{Comparison of the nominal large-cylinder crossing histograms with a rerun where the primary bunch charge is scaled by $10^{{-5}}$.  Solid colored curves show the nominal primary charge, dashed black curves show the reduced-charge run, and grey bars show the reduced-minus-nominal bin difference.  Both runs give 701 electron and 692 positron first crossings, with zero bin-count difference in this histogram; matching particle IDs shift by at most about 141--142 $\mu$m in first-crossing $z$.}}
+\end{{figure}}
+
 \section*{{How To Reproduce}}
 \begin{{verbatim}}
 source .venv-h6/bin/activate
-python sandbox/regression/run_sandbox_regressions.py \
+python sandbox/python/run_sandbox_regressions.py \
   --run-opalx \
   --opalx-exe build_openmp/src/opalx
-python sandbox/regression/make_overview_pdf.py
+cd sandbox/track-e-p
+../../build_openmp/src/opalx gamma_gamma_pairs-large-cylinder.in
+../../build_openmp/src/opalx gamma_gamma_pairs-large-cylinder-q1em5.in
+cd ../..
+python sandbox/python/make_sandbox_regression_overview.py
 \end{{verbatim}}
 
 \end{{document}}
@@ -384,9 +718,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--csv", type=Path, default=DEFAULT_CSV)
     parser.add_argument("--baseline", type=Path, default=DEFAULT_BASELINE)
     parser.add_argument("--impact-plot", type=Path, default=DEFAULT_IMPACT_PLOT)
+    parser.add_argument("--loss-plot", type=Path, default=DEFAULT_LOSS_PLOT)
+    parser.add_argument("--large-cylinder-plot", type=Path, default=DEFAULT_LARGE_CYLINDER_PLOT)
+    parser.add_argument("--large-cylinder-charge-compare-plot", type=Path, default=DEFAULT_LARGE_CYLINDER_CHARGE_COMPARE_PLOT)
     parser.add_argument("--tex", type=Path, default=DEFAULT_TEX)
     parser.add_argument("--no-pdf", action="store_true", help="Only write the LaTeX source.")
     parser.add_argument("--skip-impact-plot", action="store_true", help="Reuse the existing OPALX-IMPACT plot.")
+    parser.add_argument("--skip-loss-plot", action="store_true", help="Reuse the existing cylinder loss plot.")
+    parser.add_argument("--skip-large-cylinder-plot", action="store_true", help="Reuse the existing large-cylinder crossing plot.")
+    parser.add_argument("--skip-large-cylinder-charge-compare-plot", action="store_true", help="Reuse the existing large-cylinder charge-comparison plot.")
     return parser.parse_args()
 
 
@@ -396,7 +736,17 @@ def main() -> int:
     metadata = baseline_metadata(args.baseline)
     if not args.skip_impact_plot:
         make_impact_plot(args.impact_plot)
-    args.tex.write_text(document(metrics, args.csv, args.baseline, metadata), encoding="utf-8")
+    if not args.skip_loss_plot:
+        make_cylinder_loss_plot(args.loss_plot)
+    if not args.skip_large_cylinder_plot:
+        make_large_cylinder_crossing_plot(args.large_cylinder_plot)
+    if not args.skip_large_cylinder_charge_compare_plot:
+        make_large_cylinder_charge_compare_plot(args.large_cylinder_charge_compare_plot)
+    args.tex.write_text(
+            document(
+                    metrics, args.csv, args.baseline, metadata, args.loss_plot,
+                    args.large_cylinder_plot, args.large_cylinder_charge_compare_plot),
+            encoding="utf-8")
     print(f"wrote {args.tex}")
 
     if not args.no_pdf:
