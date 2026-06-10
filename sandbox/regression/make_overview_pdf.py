@@ -199,6 +199,77 @@ Metric & Meaning & Current value \\
     return template % (rows(field_items), rows(impact_items), rows(pair_items))
 
 
+def collision_timeline_figure() -> str:
+    return r"""
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    x=1cm,
+    y=-0.065cm,
+    >=Latex,
+    font=\footnotesize,
+    bunch/.style={draw=black, line width=0.45pt, minimum width=0.58cm, minimum height=0.22cm},
+    event/.style={anchor=west, align=left, text width=5.6cm},
+    window/.style={draw=black, line width=0.45pt, minimum width=2.5cm, minimum height=0.62cm},
+]
+\definecolor{sourcegreen}{HTML}{1B9E77}
+\definecolor{pairmagenta}{HTML}{D33682}
+\definecolor{paircyan}{HTML}{2AA6B8}
+
+\draw[->, line width=0.6pt] (0,15) -- (0,212);
+\node[anchor=south] at (0,12) {time [ps]};
+\foreach \t/\y in {22/22,45/45,100/100,111/136,116/169,121/202} {
+    \draw[line width=0.45pt] (-0.12,\y) -- (0.12,\y);
+    \node[left] at (-0.18,\y) {\t};
+}
+
+\node[event] at (8.2,22) {approach: source bunches still separated};
+\node[event] at (8.2,45) {\texttt{BB-active=TRUE}};
+\node[event] at (8.2,100) {witness pair born at IP: \texttt{c1,c2:n=1297}};
+\node[event] at (8.2,136) {\texttt{source\_bunches\_overlap=TRUE}};
+\node[event] at (8.2,169) {source bunches passed IP};
+\node[event] at (8.2,202) {\texttt{source\_bunches\_overlap=FALSE}\\
+\texttt{retired\_bunches=1, source\_active=FALSE}};
+
+\foreach \y/\xb/\xg in {22/3.55/6.45,45/4.35/5.65,100/4.78/5.22,136/5.00/5.00,169/5.35/4.65} {
+    \node[window] at (5,\y) {};
+    \draw[line width=0.45pt] (5,\y-6.0) -- (5,\y+6.0);
+    \node[bunch, fill=black] at (\xb,\y) {};
+    \node[bunch, draw=sourcegreen, fill=sourcegreen!18, line width=0.85pt] at (\xg,\y) {};
+}
+\node[window] at (5,202) {};
+\draw[line width=0.45pt] (5,196.0) -- (5,208.0);
+\node[bunch, draw=gray, dashed] (retiredPrimaryA) at (4.65,202) {};
+\node[bunch, draw=gray, dashed] (retiredPrimaryB) at (5.35,202) {};
+\foreach \nodeName in {retiredPrimaryA,retiredPrimaryB} {
+    \draw[gray, line width=0.55pt]
+        ([xshift=-5pt,yshift=-3pt]\nodeName.center) --
+        ([xshift=5pt,yshift=3pt]\nodeName.center);
+    \draw[gray, line width=0.55pt]
+        ([xshift=-5pt,yshift=3pt]\nodeName.center) --
+        ([xshift=5pt,yshift=-3pt]\nodeName.center);
+}
+
+\foreach \t/\h in {100/8,136/10,169/11,202/12} {
+    \path[draw=black, fill=paircyan!55, line width=0.45pt]
+        (5.00,\t) -- ([xshift=-4pt,yshift=-\h pt]5.00,\t)
+        -- ([xshift=4pt,yshift=-\h pt]5.00,\t) -- cycle;
+    \path[draw=black, fill=pairmagenta!65, line width=0.45pt]
+        (5.00,\t) -- ([xshift=-4pt,yshift=\h pt]5.00,\t)
+        -- ([xshift=4pt,yshift=\h pt]5.00,\t) -- cycle;
+}
+
+\node[anchor=south] at (5.0,11) {BeamBeam window};
+\node[anchor=north] at (5.24,16) {IP};
+\draw[->, line width=0.45pt] (3.45,16) -- (4.05,16);
+\draw[->, line width=0.45pt] (6.55,16) -- (5.95,16);
+\node[anchor=west, text width=8.2cm, font=\scriptsize] at (0.7,217) {Draft event timeline, not to scale. The rows are meant to track grepable \texttt{BB-DIAG} transitions from the OPALX stdout; the final row shows the configured \texttt{RETIRE\_TIME} deleting the primary source while the witness pair remains active.};
+\end{tikzpicture}
+\caption{Draft timeline for the copied BeamBeam source bunches and the injected low-energy witness pair.}
+\end{figure}
+"""
+
+
 def baseline_provenance_block(metadata: dict[str, object]) -> str:
     git = metadata.get("git", {}) if isinstance(metadata, dict) else {}
     if not isinstance(git, dict) or not git:
@@ -242,7 +313,9 @@ def document(
 \usepackage[colorlinks=true,linkcolor=black,urlcolor=blue]{{hyperref}}
 \usepackage{{longtable}}
 \usepackage{{tabularx}}
+\usepackage{{tikz}}
 \usepackage[table]{{xcolor}}
+\usetikzlibrary{{arrows.meta}}
 \definecolor{{opalxblue}}{{HTML}}{{214B78}}
 \definecolor{{opalxlight}}{{HTML}}{{EEF4FA}}
 \setlength{{\parindent}}{{0pt}}
@@ -289,6 +362,9 @@ The existing note \texttt{{sandbox/note/boosted\_gaussian\_witness.tex}} defines
 
 \section*{{Current Regression Metrics}}
 {selected_tables(metrics)}
+
+\section*{{BeamBeam Diagnostic Timeline}}
+{collision_timeline_figure()}
 
 \section*{{How To Reproduce}}
 \begin{{verbatim}}

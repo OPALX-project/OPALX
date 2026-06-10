@@ -324,6 +324,13 @@ public:
         }
     }
 
+    /// @brief Force container @p i inactive without marking it as stopped at the segment z-stop.
+    void setPcInactive(size_t i) {
+        if (i < pcActive_m.size()) {
+            pcActive_m[i] = false;
+        }
+    }
+
     /// @param i Container index.
     /// @return Whether container @p i is frozen at the current z-stop.
     bool pcAtZStop(size_t i) const { return i < pcAtZStop_m.size() && pcAtZStop_m[i]; }

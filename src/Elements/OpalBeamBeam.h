@@ -28,6 +28,7 @@ public:
         COPY,               // Enable mirrored-bunch copy model
         VISUALIZE,          // Enable ASCII beam-beam-window visualization
         WITNESS_CONTAINERS,  // Passive containers that gather source BeamBeam fields
+        RETIRE_TIME,        // Delete source particles at or after this simulation time [s]
         SIZE
     };
 

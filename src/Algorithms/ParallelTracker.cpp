@@ -394,6 +394,7 @@ void ParallelTracker::execute() {
             // Otherwise no interaction, can skip (and for some reason seg-fault...)
             computeSpaceChargeFields(step, oth);
             m << level4 << "Space charge field computation done at step " << step << "." << endl;
+            logBeamBeamDiagnostics();
             //}
 
             // Emission is placed BETWEEN space-charge and external-field evaluation
@@ -413,6 +414,7 @@ void ParallelTracker::execute() {
             m << level4 << "Emit particles from emission sources done at step " << step << "."
               << endl;
             gatherBeamBeamFieldsToWitnessContainers(m);
+            logBeamBeamDiagnostics();
             const size_t nSourceMarkedAfterEmission = markBackwardParticlesAtSourcePlane();
             if (nSourceMarkedAfterEmission > 0) {
                 deleteInvalidParticles(true, m, "backward source-plane particles after emission");
@@ -665,6 +667,13 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step, OrbitThr
                 "space charge effects, please use TYPE=NONE for the field solver.");
     }
 
+    const auto sourceContainer = itsBunch_m->getParticleContainer(0);
+    if (beamBeamState_m.sourceRetired
+        && (!sourceContainer || sourceContainer->getTotalNum() == 0)) {
+        beamBeamReferenceToBeamCSTrafo_m.reset();
+        return;
+    }
+
     itsBunch_m->calcBeamParameters();
     m << level4 << "Calculate beam parameters done." << endl;
 
@@ -709,6 +718,19 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step, OrbitThr
     // itsBunch_m->setGlobalMeanR(itsBunch_m->get_centroid());
 
     checkInBBRegion(oth);
+    if (!beamBeamState_m.sourceRetired && beamBeamState_m.geometry.has_value()
+        && BEAMBEAM::sourceRetireTimeReached(
+                itsBunch_m->getT(), beamBeamState_m.geometry->config.sourceRetireTime)) {
+        beamBeamState_m.sourceRetirementPending = true;
+    }
+    if (beamBeamState_m.sourceRetirementPending) {
+        beamBeamReferenceToBeamCSTrafo_m.reset();
+        if (beamBeamState_m.state == BEAMBEAM::WindowState::Active) {
+            leaveBeamBeamWindow(m);
+        }
+        retireBeamBeamSourceContainer(m);
+        return;
+    }
     if (beamBeamState_m.state == BEAMBEAM::WindowState::Active) {
         beamBeamReferenceToBeamCSTrafo_m = referenceToBeamCSTrafo;
         computeBeamBeamWindowSelfFields(referenceToBeamCSTrafo, beamToReferenceCSTrafo, m);
@@ -762,6 +784,7 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
     }
     if (!geometry.has_value()) {
         beamBeamDiagnostics_m.frameObserved = false;
+        beamBeamState_m.sourceBunchesOverlap = false;
         return;
     }
 
@@ -769,13 +792,17 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
     beamBeamDiagnostics_m.frameObserved = activeGeometry.config.visualize
                                           && (bunchExtent.head >= activeGeometry.beginS)
                                           && (bunchExtent.tail <= activeGeometry.endS);
+    beamBeamState_m.sourceBunchesOverlap =
+            activeGeometry.config.copyModel
+            && BEAMBEAM::copiedSourceBunchesOverlap(
+                    bunchExtent.tail, bunchExtent.head, activeGeometry);
     beamBeamState_m.geometry = activeGeometry;
 
     const double beamBeamCellHalfWidth =
             0.5 * activeGeometry.length / static_cast<double>(itsBunch_m->nr_m[2]);
 
     const bool leavingBeamBeamWindow = beamBeamState_m.state == BEAMBEAM::WindowState::Active
-                                       && (bunchExtent.head > activeGeometry.endS);
+                                       && bunchExtent.head > activeGeometry.endS;
 
     if (leavingBeamBeamWindow) {
         leaveBeamBeamWindow(m);
@@ -823,17 +850,23 @@ std::optional<BEAMBEAM::ActualGeometry> ParallelTracker::detectBeamBeamWindow(
         const double interactionPointS = 0.5 * (ipRange.begin + ipRange.end);
         std::optional<double> xAperture;
         std::optional<double> yAperture;
+        std::optional<double> sourceRetireTime;
         const auto aperture = element->getAperture();
         if (element->getAttribute("APERTURE_SET") != 0.0 && aperture.second.size() >= 2) {
             xAperture = std::abs(aperture.second[0]);
             yAperture = std::abs(aperture.second[1]);
+        }
+        const double retireTime = element->getAttribute("RETIRE_TIME");
+        if (retireTime > 0.0) {
+            sourceRetireTime = retireTime;
         }
         return BEAMBEAM::ActualGeometry{
                 interactionPointS, interactionPointS - 0.5 * beamBeamWindowLength,
                 interactionPointS + 0.5 * beamBeamWindowLength, beamBeamWindowLength,
                 BEAMBEAM::Config{
                         element->getAttribute("COPY") != 0.0,
-                        element->getAttribute("VISUALIZE") != 0.0, xAperture, yAperture,
+                        element->getAttribute("VISUALIZE") != 0.0, sourceRetireTime, xAperture,
+                        yAperture,
                         BEAMBEAM::decodeWitnessContainerMask(
                                 element->getAttribute("WITNESS_CONTAINERS_MASK"))}};
     }
@@ -873,8 +906,15 @@ void ParallelTracker::enterBeamBeamWindow(const BEAMBEAM::ActualGeometry& geomet
             }
             diagnostics << ")";
         }
+        diagnostics << ", retire_time=";
+        if (geometry.config.sourceRetireTime.has_value()) {
+            diagnostics << *geometry.config.sourceRetireTime << " s";
+        } else {
+            diagnostics << "NONE";
+        }
         *gmsg << level2 << diagnostics.str() << endl;
     }
+    logBeamBeamDiagnostics(true);
     m << level5 << "start beam-beam-window mode" << endl;
 }
 
@@ -948,7 +988,127 @@ void ParallelTracker::leaveBeamBeamWindow(Inform& m) {
     }
 
     itsBunch_m->clearBeamBeamWindowConfig();
+    logBeamBeamDiagnostics(true);
     m << level5 << "finished beam-beam-window mode" << endl;
+}
+
+void ParallelTracker::retireBeamBeamSourceContainer(Inform& m) {
+    if (!beamBeamState_m.sourceRetirementPending) {
+        return;
+    }
+
+    auto source = itsBunch_m->getParticleContainer(0);
+    if (!source) {
+        beamBeamState_m.sourceRetirementPending = false;
+        beamBeamState_m.sourceRetired           = true;
+        return;
+    }
+
+    const size_t marked  = source->markAllParticlesInvalid();
+    const size_t deleted = source->deleteInvalidParticles();
+    itsBunch_m->setPcInactive(0);
+    beamBeamState_m.sourceRetirementPending = false;
+    beamBeamState_m.sourceRetired           = true;
+
+    m << level2 << "Retired BeamBeam source container[0] at RETIRE_TIME: marked " << marked
+      << ", deleted " << deleted << ", remaining " << source->getTotalNum()
+      << ". Witness containers remain active." << endl;
+    logBeamBeamDiagnostics(true);
+}
+
+void ParallelTracker::logBeamBeamDiagnostics(bool force) {
+    if (ippl::Comm->rank() != 0) {
+        return;
+    }
+    if (!force && !beamBeamState_m.geometry.has_value() && !beamBeamState_m.sourceRetired) {
+        return;
+    }
+
+    const size_t nContainers = itsBunch_m->getNumParticleContainers();
+
+    size_t activeContainers = 0;
+    for (size_t ci = 0; ci < nContainers; ++ci) {
+        if (itsBunch_m->isPcActive(ci)) {
+            ++activeContainers;
+        }
+    }
+
+    auto source            = itsBunch_m->getParticleContainer(0);
+    const bool sourceActive = source && itsBunch_m->isPcActive(0);
+
+    const bool bbActive = beamBeamState_m.state == BEAMBEAM::WindowState::Active;
+    const char* bbState = "Inactive";
+    if (beamBeamState_m.state == BEAMBEAM::WindowState::Active) {
+        bbState = "Active";
+    } else if (beamBeamState_m.state == BEAMBEAM::WindowState::Completed) {
+        bbState = "Completed";
+    }
+
+    std::ostringstream witnessStates;
+    bool hasWitnessState = false;
+    if (beamBeamState_m.geometry.has_value()
+        && !beamBeamState_m.geometry->config.witnessContainers.empty()) {
+        for (const size_t ci : beamBeamState_m.geometry->config.witnessContainers) {
+            if (hasWitnessState) {
+                witnessStates << ",";
+            }
+            hasWitnessState = true;
+
+            if (ci >= nContainers) {
+                witnessStates << "c" << ci << ":missing";
+                continue;
+            }
+
+            auto pc            = itsBunch_m->getParticleContainer(ci);
+            const size_t total = pc ? pc->getTotalNum() : 0;
+            const bool active  = itsBunch_m->isPcActive(ci);
+            witnessStates << "c" << ci << ":" << (active ? "active" : "inactive")
+                          << ":n=" << total;
+        }
+    }
+
+    std::ostringstream signature;
+    signature << bbState << "|" << activeContainers << "|"
+              << (beamBeamState_m.sourceRetired ? 1 : 0) << "|"
+              << (hasWitnessState ? witnessStates.str() : "NONE") << "|" << bbActive << "|"
+              << sourceActive << "|" << beamBeamState_m.sourceRetirementPending << "|"
+              << beamBeamState_m.sourceBunchesOverlap;
+    if (!force && beamBeamLastDiagnosticSignature_m.has_value()
+        && *beamBeamLastDiagnosticSignature_m == signature.str()) {
+        return;
+    }
+    beamBeamLastDiagnosticSignature_m = signature.str();
+
+    std::ostringstream line;
+    line << std::fixed << std::setprecision(3) << "BB-DIAG BB-state=" << bbState
+         << " active_bunches=" << activeContainers
+         << " retired_bunches=" << (beamBeamState_m.sourceRetired ? 1 : 0)
+         << " witness_states=" << (hasWitnessState ? witnessStates.str() : "NONE");
+    const auto appendBoolIfChanged =
+            [&line](const char* key, bool value, std::optional<bool>& previous) {
+                if (!previous.has_value() || *previous != value) {
+                    line << " " << key << "=" << (value ? "TRUE" : "FALSE");
+                    previous = value;
+                }
+            };
+    const auto appendBoolIfChangedAfterInitialFalse =
+            [&line](const char* key, bool value, std::optional<bool>& previous) {
+                const bool shouldPrint =
+                        value || (previous.has_value() && *previous != value);
+                if (shouldPrint) {
+                    line << " " << key << "=" << (value ? "TRUE" : "FALSE");
+                }
+                previous = value;
+            };
+    appendBoolIfChanged("BB-active", bbActive, beamBeamLastDiagnosticActive_m);
+    appendBoolIfChanged("source_active", sourceActive, beamBeamLastDiagnosticSourceActive_m);
+    appendBoolIfChanged(
+            "source_retirement_pending", beamBeamState_m.sourceRetirementPending,
+            beamBeamLastDiagnosticSourceRetirementPending_m);
+    appendBoolIfChangedAfterInitialFalse(
+            "source_bunches_overlap", beamBeamState_m.sourceBunchesOverlap,
+            beamBeamLastDiagnosticSourceOverlap_m);
+    std::cout << line.str() << std::endl;
 }
 
 void ParallelTracker::renderBeamBeamWindowFrame(

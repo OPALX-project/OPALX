@@ -35,6 +35,7 @@ REAL pair_bunch_charge = n_pairs_per_species * elementary_charge;
 
 // time when e- and e+ are injected into the IP region
 REAL tinj = 100e-12;
+REAL primary_retire_time = 121e-12;
 
 // Interaction point and short tracking line.
 REAL ip_s = 0.0;
@@ -46,7 +47,7 @@ REAL bb_ip_s = drift_length + 0.5*bb_length;
 REAL N = 16;
 
 DR_UP: DRIFT,  L = drift_length, ELEMEDGE = 0.0;
-IP1: BEAMBEAM, L = bb_length,    ELEMEDGE = drift_length, VISUALIZE = FALSE, COPY = TRUE, WITNESS_CONTAINERS = "1,2", APERTURE="RECTANGLE(0.02, 0.02, 0.05)";
+IP1: BEAMBEAM, L = bb_length,    ELEMEDGE = drift_length, VISUALIZE = FALSE, COPY = TRUE, WITNESS_CONTAINERS = "1,2", RETIRE_TIME = primary_retire_time, APERTURE="RECTANGLE(0.02, 0.02, 0.05)";
 DR_DN: DRIFT,  L = drift_length, ELEMEDGE = drift_length + bb_length;
 
 pairLine: LINE = (DR_UP, IP1, DR_DN);

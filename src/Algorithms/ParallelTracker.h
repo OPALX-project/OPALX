@@ -99,6 +99,11 @@ private:
     BEAMBEAM::Runtime<PartBunch_t::SavedFieldDomainState> beamBeamState_m;
     BEAMBEAM::Diagnostics beamBeamDiagnostics_m;
     std::optional<CoordinateSystemTrafo> beamBeamReferenceToBeamCSTrafo_m;
+    std::optional<bool> beamBeamLastDiagnosticActive_m;
+    std::optional<bool> beamBeamLastDiagnosticSourceActive_m;
+    std::optional<bool> beamBeamLastDiagnosticSourceRetirementPending_m;
+    std::optional<bool> beamBeamLastDiagnosticSourceOverlap_m;
+    std::optional<std::string> beamBeamLastDiagnosticSignature_m;
     static constexpr int postBeamBeamWindowVisualizationSteps_m = 4;
     std::unique_ptr<BeamBeamWindowAnimation> beamBeamWindowAnimation_m;
 
@@ -316,6 +321,29 @@ private:
     void dumpBeamBeamTransitionSnapshot(const std::string& snapshotKind) const;
     void enterBeamBeamWindow(const BEAMBEAM::ActualGeometry& geometry, Inform& m);
     void leaveBeamBeamWindow(Inform& m);
+    /**
+     * @brief Delete source-container particles after the BeamBeam @c RETIRE_TIME is reached.
+     *
+     * The source container object and its reference state remain allocated, but all particles in
+     * container[0] are marked invalid and compacted once the configured retirement criterion
+     * @f$t \ge t_\mathrm{retire}@f$ is reached. Witness containers are not touched and remain
+     * active so they can continue with external fields and any previously gathered BeamBeam kick.
+     * This is an intentional non-conserving removal of source charge after the modeled high-energy
+     * collision has passed the chosen diagnostic time.
+     */
+    void retireBeamBeamSourceContainer(Inform& m);
+    /**
+     * @brief Emit grepable BeamBeam runtime diagnostics to stdout.
+     *
+     * Lines start with @c BB-DIAG and contain only BeamBeam state/count/witness information; the
+     * integration stage and step are intentionally omitted because the regular tracker output
+     * already carries step context. Routine diagnostics are suppressed while this state is
+     * unchanged. Boolean fields are printed only on their first diagnostic line or when their value
+     * changes.
+     *
+     * @param force If true, emit a line even if the state signature did not change.
+     */
+    void logBeamBeamDiagnostics(bool force = false);
     void renderBeamBeamWindowFrame(
             double bunchTailS, double bunchHeadS, const BEAMBEAM::ActualGeometry& geometry);
     bool usesFrozenBeamBeamWindowMesh() const;

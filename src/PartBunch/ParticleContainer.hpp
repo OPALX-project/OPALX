@@ -664,6 +664,40 @@ public:
     }
 
     /**
+     * @brief Mark every particle in this container as invalid.
+     *
+     * This helper is used for logical source retirement, where a complete particle population has
+     * left the modeled physics window but the container object and its reference trajectory must
+     * remain alive for the rest of the tracking segment. The operation only ORs into
+     * InvalidMask; the collective compaction step remains
+     * ParticleContainer::deleteInvalidParticles().
+     *
+     * @return Global number of newly marked particles across all MPI ranks.
+     */
+    size_type markAllParticlesInvalid() {
+        const size_type nLocal = this->getLocalNum();
+        auto invalid           = InvalidMask.getView();
+
+        size_type localMarkedNum = 0;
+        Kokkos::parallel_reduce(
+                "ParticleContainer::markAllParticlesInvalid", nLocal,
+                KOKKOS_LAMBDA(const size_type i, size_type& count) {
+                    const bool newlyMarked = !invalid(i);
+                    invalid(i)             = true;
+                    count += newlyMarked ? 1 : 0;
+                },
+                localMarkedNum);
+        Kokkos::fence();
+
+        size_type globalMarkedNum = 0;
+        ippl::Comm->allreduce(localMarkedNum, globalMarkedNum, 1, std::plus<size_type>());
+        if (globalMarkedNum > 0) {
+            markMomentsDirty();
+        }
+        return globalMarkedNum;
+    }
+
+    /**
      * @brief Create/allocate a specified number of particles.
      *
      * This function creates a given number of particles in the container. It's a wrapper around the
