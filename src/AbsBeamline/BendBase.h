@@ -294,12 +294,17 @@ public:
     std::vector<Vector_t<double, 3>> getDesignPath(std::size_t minSamples = 32) const;
 
     /**
-     * @brief Return one local point on the displayed bend reference path.
+     * @brief Return one local point on the exported bend reference path.
      *
-     * Coordinates inside the bend body follow the curved design path. Field
-     * support outside the hard-edge body is visualized by tangent
-     * extrapolation from the entry or exit frame, matching the conceptual
-     * support interval without changing the tracker field chart.
+     * @param z Longitudinal offset from the bend entrance, in metres, using
+     * the same local body parameter as getFieldExtend().
+     *
+     * For field-support points inside the hard-edge body, the returned point
+     * follows the curved design path. Field-support points outside the body
+     * are extrapolated along the entrance or exit tangent. The result is in
+     * the bend canonical local/body coordinates and is intended for lattice
+     * export and placement diagnostics only; it does not define the tracker
+     * field chart or alter field evaluation.
      */
     Vector_t<double, 3> getDesignPathPoint(double z) const;
 
