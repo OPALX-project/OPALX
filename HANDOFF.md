@@ -1113,7 +1113,7 @@ gamma_gamma_pairs-staged-dt-smoke_c2.stat dt unique ns: [1e-06], particles 4
 
 `1e-06 ns` is `1 fs`, confirming the fine segment was active when witness particles existed.
 
-Full staged production run attempt:
+Earlier full staged production run attempt:
 
 - Started
   `../../build_openmp/src/opalx gamma_gamma_pairs-large-cylinder-retire1000ps-staged-dt.in`
@@ -1138,10 +1138,6 @@ OPTION, PSDUMPFREQ = 100;
 OPTION, STATDUMPFREQ = 100;
 ```
 
-Next step:
-
-- Rerun the staged production input with the reduced dump cadence.
-
 Additional note/PDF integration work during the staged run:
 
 - Merged the regression overview content into
@@ -1161,14 +1157,280 @@ Additional note/PDF integration work during the staged run:
   - Field debug `.dat` files are not used for the histogram and can be deleted.
 - Rebuilt `sandbox/note/boosted_gaussian_witness.pdf`; build succeeded with
   only layout warnings from long paths/options.
+- Checked and updated `sandbox/README.md` after the regression scripts were
+  relocated.  The README now points to `sandbox/python/run_sandbox_regressions.py`,
+  `sandbox/python/make_sandbox_regression_overview.py`, note-local
+  `sandbox_regression_baseline.json`, note-local `current_metrics.csv`, and
+  the integrated `sandbox/note/boosted_gaussian_witness.tex` PDF workflow.
+- Rebuilt `sandbox/note/boosted_gaussian_witness.pdf` again after replacing
+  stale `sandbox/regression` reproduction commands with `sandbox/python`
+  commands.
+- Validation after relocation:
 
-Current staged histogram run status:
+```sh
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python -m py_compile \
+  sandbox/python/make_sandbox_regression_overview.py \
+  sandbox/python/run_sandbox_regressions.py \
+  sandbox/python/compare_cylinder_crossing_histograms.py \
+  sandbox/python/make_large_cylinder_field_movie.py \
+  sandbox/python/plot_cylinder_crossings.py
+git diff --check -- sandbox/README.md sandbox/note/boosted_gaussian_witness.tex \
+  sandbox/python/make_sandbox_regression_overview.py \
+  sandbox/python/run_sandbox_regressions.py \
+  sandbox/python/compare_cylinder_crossing_histograms.py \
+  sandbox/python/make_large_cylinder_field_movie.py \
+  sandbox/python/plot_cylinder_crossings.py
+cd sandbox/note
+latexmk -pdf -interaction=nonstopmode -halt-on-error boosted_gaussian_witness.tex
+```
 
-- Single-rank OPALX run active:
+All three checks passed.  The LaTeX build still reports only layout warnings
+from long paths/options.
+
+Completed staged histogram run:
+
+- Single-rank OPALX run completed:
   `../../build_openmp/src/opalx gamma_gamma_pairs-large-cylinder-retire1000ps-staged-dt.in`
+- Current histogram-focused input settings are:
+
+```text
+OPTION, PSDUMPFREQ = 10;
+OPTION, STATDUMPFREQ = 0;
+MAXSTEPS = {550, 25001, 1025}
+DT       = {1.0e-12, 1.0e-15, 1.0e-12}
+```
+
 - MPI two-rank attempt was tried to avoid field debug `.dat` dumps, but local
   OpenMPI mapping failed before OPALX started.
-- Continuing single-rank and periodically deleting only staged
+- During the run, periodically deleted only staged
   `sandbox/track-e-p/data/gamma_gamma_pairs-large-cylinder-retire1000ps-staged-dt-*`
   `.dat` byproducts.
 - H5 witness trajectories remain the deliverable for the crossing histogram.
+- OPALX reported completion and source retirement:
+
+```text
+BB-DIAG BB-state=Completed active_bunches=3 retired_bunches=0 witness_states=c1:active:n=1297,c2:active:n=1297 BB-active=FALSE source_retirement_pending=TRUE
+BB-DIAG BB-state=Completed active_bunches=2 retired_bunches=1 witness_states=c1:active:n=1297,c2:active:n=1297 source_active=FALSE source_retirement_pending=FALSE
+real 4850.86
+```
+
+- Final H5 summaries:
+
+```text
+c1 2572 samples, final time 1600.001 ps, final particle count 1297
+c2 2572 samples, final time 1600.001 ps, final particle count 1297
+```
+
+- Final crossing histogram and low-charge overlay:
+
+```sh
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python sandbox/python/plot_cylinder_crossings.py \
+  --compare-stem gamma_gamma_pairs-large-cylinder-retire1000ps-q1em5 \
+  --label "nominal staged" \
+  --compare-label "1e-5 charge" \
+  --title "1000 ps retirement: nominal staged vs 1e-5 charge" \
+  --output sandbox/note/figs/gamma_gamma_large_cylinder_staged_dt_crossings.png
+```
+
+Output:
+
+```text
+sandbox/note/figs/gamma_gamma_large_cylinder_staged_dt_crossings.png
+e-: N=701/701, |bin diff|=10, max |dz|=2026.5 um
+e+: N=692/692, |bin diff|=12, max |dz|=1847.3 um
+```
+
+- A partial preview was also generated before the run completed:
+  `sandbox/note/figs/gamma_gamma_large_cylinder_staged_dt_crossings_preview.png`;
+  at that time both counts were zero because no particles had yet reached the
+  15 cm cylinder radius.
+- Added the final staged-DT nominal histogram to
+  `sandbox/note/boosted_gaussian_witness.tex` and rebuilt
+  `sandbox/note/boosted_gaussian_witness.pdf` successfully.  The PDF is now
+  20 pages.  LaTeX still reports only layout warnings from long paths/options.
+- The overlaid low-charge curve uses the existing
+  `gamma_gamma_pairs-large-cylinder-retire1000ps-q1em5` H5 files, not a new
+  staged-DT rerun.  Those H5 files have 1050 stored samples per witness and
+  also end at 1600 ps.
+
+## BeamBeam mirrored E-field validation
+
+Goal: validate the current BeamBeam mirror model visually.  The model computes
+the self field from primary container/bunch 0 and mirrors that field/source
+around the interaction point.  For this validation we returned to the existing
+uniform coarse `DT = 1 ps` large-cylinder data rather than the staged-DT run.
+
+Input/data used:
+
+- Existing coarse debug dumps under `sandbox/track-e-p/data`:
+  `gamma_gamma_pairs-large-cylinder-EF_vector-beambeam_e-*.dat`
+- These dumps cover active BeamBeam snapshots from about `73 ps` to `571 ps`.
+- The corresponding input is the uniform coarse large-cylinder setup:
+  `sandbox/track-e-p/gamma_gamma_pairs-large-cylinder.in`
+  with `MAXSTEPS = 1600` and `DT = 1.0e-12`.
+
+Added reusable converter/visualizer:
+
+```text
+sandbox/python/convert_efield_dumps_to_h5.py
+```
+
+Command run:
+
+```sh
+/Users/adelmann/git/opalx-beambeam/.venv-h6/bin/python \
+  sandbox/python/convert_efield_dumps_to_h5.py --gallery-frames 12
+```
+
+Outputs:
+
+```text
+sandbox/data/gamma_gamma_large_cylinder_efield_debug.h5
+sandbox/note/figs/gamma_gamma_large_cylinder_efield_debug.png
+sandbox/note/figs/gamma_gamma_large_cylinder_efield_debug_ez.png
+sandbox/note/figs/gamma_gamma_large_cylinder_efield_debug_lab_timeline.png
+sandbox/note/figs/gamma_gamma_large_cylinder_efield_debug_z_profile.png
+```
+
+The H5 contains one group per EF dump with datasets `x`, `y`, `z`,
+`E/Ex`, `E/Ey`, `E/Ez`, and `E/Eabs`, plus the original dump metadata as H5
+attributes.  It also records explicit marker positions in both the
+BeamBeam-local frame (`primary_local_z_m`, `mirror_local_z_m`) and the
+lab/global frame (`primary_lab_z_m`, `mirror_lab_z_m`,
+`interaction_point_lab_z_m`).  The PNG galleries show a central-y `x-z` slice
+on the BeamBeam-local dump grid.  The vertical markers are:
+
+- white: local IP plane;
+- cyan: bunch[0] centroid from `particle_mean_r[2]`;
+- magenta dashed: inferred mirror centroid `2*interaction_point_local_z -
+  particle_mean_r[2]`.
+
+Important coordinate note: the field galleries use local dump coordinates, not
+lab coordinates.  In this local frame, `bunch[0]` remains close to the local
+origin while the IP plane sweeps through the mesh.  The lab-frame timeline
+confirms the physical motion: `bunch[0]` moves in increasing global `z/s`, and
+the mirrored source moves in decreasing global `z/s`, toward the fixed IP at
+`s = 0.169981955 m`.
+
+The `x-z` heatmaps of `Ez` or `|E|` can look like transverse `x` motion because
+the bunch field is dominated by off-axis transverse lobes in a central-y slice.
+The longitudinal profile plot integrates `|E|` over transverse `x-y`; it shows
+the two field peaks moving toward each other along local `z`.
+
+Representative metadata from the generated H5:
+
+```text
+step=75  time=73.000 ps  local: ip_z=0.148097 primary_z=-0.000120068 mirror_z=0.296314; lab: primary_z=0.0217647 mirror_z=0.318199
+step=324 time=322.000 ps local: ip_z=0.073449 primary_z=-0.00104215  mirror_z=0.14794;  lab: primary_z=0.0954908 mirror_z=0.244473
+step=573 time=571.000 ps local: ip_z=-0.00119917 primary_z=-0.00196425 mirror_z=-0.000434081; lab: primary_z=0.169217 mirror_z=0.170747
+```
+
+The current field dumps stop essentially at overlap, so they verify the
+incoming z-direction geometry but do not yet show a post-overlap left/right
+exchange.
+
+Follow-up 1000 ps retirement run:
+
+- Reran the uniform coarse `DT = 1 ps` input
+  `sandbox/track-e-p/gamma_gamma_pairs-large-cylinder-retire1000ps.in`.
+- This input keeps the primary source active until `RETIRE_TIME = 1000e-12`
+  while preserving the large-cylinder witness injection timing.
+- The run completed successfully.  OPALX reported the expected diagnostics:
+  active BeamBeam window, witness injection, source overlap becoming true, then
+  false again after overlap, completed with source-retirement pending, and final
+  source retirement.
+- The regenerated EF debug conversion read `927` dumps for stem
+  `gamma_gamma_pairs-large-cylinder-retire1000ps`, ending at about `999 ps`.
+- New debug products:
+  - `sandbox/data/gamma_gamma_large_cylinder_retire1000ps_efield_debug.h5`
+  - `sandbox/note/figs/gamma_gamma_large_cylinder_retire1000ps_efield_debug.png`
+  - `sandbox/note/figs/gamma_gamma_large_cylinder_retire1000ps_efield_debug_ez.png`
+  - `sandbox/note/figs/gamma_gamma_large_cylinder_retire1000ps_efield_debug_lab_timeline.png`
+  - `sandbox/note/figs/gamma_gamma_large_cylinder_retire1000ps_efield_debug_z_profile.png`
+- Representative metadata:
+  - `step=75`, `time=73 ps`: lab `primary_z=0.0217647`,
+    `mirror_z=0.318199`
+  - `step=538`, `time=536 ps`: lab `primary_z=0.158854`,
+    `mirror_z=0.18111`
+  - `step=1001`, `time=999 ps`: lab `primary_z=0.295943`,
+    `mirror_z=0.0440212`
+- The 1000 ps longitudinal profile plot shows the pass-through: after overlap,
+  the local marker ordering reverses, with `bunch[0]` on the downstream/right
+  side and the mirrored source on the upstream/left side.
+
+Input inventory/update:
+
+- Added `sandbox/track-e-p/INPUT_INVENTORY.md`, which documents each active and
+  legacy BeamBeam `.in` file and its purpose.
+- Updated the default nominal and reduced-charge large-cylinder inputs to match
+  the current field-debug configuration:
+  - `sandbox/track-e-p/gamma_gamma_pairs-large-cylinder.in`
+  - `sandbox/track-e-p/gamma_gamma_pairs-large-cylinder-q1em5.in`
+- These now use the same large-cylinder timing as the explicit
+  `retire1000ps` variants: `primary_retire_time = 1000e-12`, preserving
+  `tinj = primary_ip_time - 16.747e-12`.
+- Left `gamma_gamma_pairs-2.in` unchanged as the small proof-of-principle
+  cylinder case with `RETIRE_TIME = 121 ps`.
+- Left `gamma_gamma_pairs-3.in` and `attic/gamma_gamma_pairs.in` unchanged as
+  legacy/historical inputs.
+
+OpenMP 2-thread/4-thread stability and timing check:
+
+- Created benchmark input copies:
+  - `sandbox/track-e-p/gamma_gamma_pairs-large-cylinder-retire1000ps-omp2.in`
+  - `sandbox/track-e-p/gamma_gamma_pairs-large-cylinder-retire1000ps-omp4.in`
+- Both are content copies of the nominal `1000 ps` coarse input; the separate
+  filenames isolate OPALX output stems.
+- Commands:
+
+```sh
+/usr/bin/time -p env OMP_NUM_THREADS=2 OMP_PROC_BIND=spread OMP_PLACES=threads \
+  /Users/adelmann/git/opalx-beambeam/build_openmp/src/opalx \
+  gamma_gamma_pairs-large-cylinder-retire1000ps-omp2.in
+/usr/bin/time -p env OMP_NUM_THREADS=4 OMP_PROC_BIND=spread OMP_PLACES=threads \
+  /Users/adelmann/git/opalx-beambeam/build_openmp/src/opalx \
+  gamma_gamma_pairs-large-cylinder-retire1000ps-omp4.in
+```
+
+- Timings:
+  - 2 threads: `real 236.60 s`, `user 292.74 s`, `sys 24.38 s`
+  - 4 threads: `real 205.75 s`, `user 297.51 s`, `sys 38.03 s`
+  - 4-vs-2 thread wall-time speedup: about `1.15x`
+- Both runs completed with the expected BeamBeam diagnostics and final source
+  retirement.
+- Final stats were stable at the population level:
+  - c0 retired, `numParticles = 0`
+  - c1/c2 active, `numParticles = 1297`, `partsOutside = 0`
+- Final witness H5 states differ slightly between thread counts after sorting
+  by particle id:
+  - c1 max absolute differences `[x,y,z,px,py,pz]` =
+    `[4.02e-6 m, 4.24e-6 m, 2.40e-6 m, 3.07e-5, 3.54e-5, 2.20e-5]`
+  - c2 max absolute differences `[x,y,z,px,py,pz]` =
+    `[4.20e-6 m, 4.58e-6 m, 2.26e-6 m, 3.33e-5, 3.81e-5, 2.15e-5]`
+- Primary c0 particle-by-particle states are not stable across thread counts,
+  likely from OpenMP-sensitive source sampling/ordering; the primary is retired
+  by the final stat row, so this does not affect the final witness crossing
+  histogram directly.
+- Cylinder crossing histogram comparison:
+  - Output:
+    `sandbox/note/figs/gamma_gamma_large_cylinder_omp2_vs_omp4_crossings.png`
+  - e-: `N=701/701`, `|bin diff|=0`, max first-crossing `|dz|=180.3 um`
+  - e+: `N=691/691`, `|bin diff|=0`, max first-crossing `|dz|=195.5 um`
+
+Implementation inspection in `/Users/adelmann/git/opalx`:
+
+- `src/PartBunch/PartBunch.cpp` expands the mesh bounds using
+  `mirroredMinZ = 2.0 * planeZ - upper[2]` and
+  `mirroredMaxZ = 2.0 * planeZ - lower[2]`.
+- `src/PartBunch/ImageChargeScatterController.tpp` applies
+  `rView(i)[2] = 2.0 * planeZ - rView(i)[2]`.
+- The same image path then calls `flipChargeSignAll`, so the mirrored deposit
+  has opposite charge sign.
+
+Current interpretation: the geometry of the left/right mirror is consistent
+with `z' = 2*z_IP - z` and the visual debug confirms the mirror marker crosses
+the source marker around the IP.  However, the current implementation path is
+an image-charge path and flips the sign of the mirrored charge.  For two
+colliding electron primary beams, this sign flip is suspicious and should be
+checked against the intended BeamBeam physics model before trusting witness
+kicks.

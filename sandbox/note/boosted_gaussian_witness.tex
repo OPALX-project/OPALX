@@ -972,6 +972,25 @@ Tracking ends & 1600 ps & Long enough for the first 15 cm radial crossings. \\
   \label{fig:regression-large-cylinder-charge-compare}
 \end{figure}
 
+\begin{figure}[!htp]
+  \centering
+  \includegraphics[width=0.88\textwidth]{./figs/gamma_gamma_large_cylinder_staged_dt_crossings.png}
+  \caption{Final nominal staged-timestep run overlaid with the available
+  \(10^{-5}\) primary-charge run for the 15 cm radius, 32 cm-long BeamBeam
+  cylinder with 1000 ps source-retirement time.  The nominal run uses a 1 fs
+  timestep over the witness-injection and source-overlap interval, then returns
+  to 1 ps tracking for the post-overlap drift.  The reduced-charge comparison
+  uses the existing 1000 ps retirement H5 files.  Both spectra have the same
+  total first recorded cylinder-edge crossings: \(701\) electrons and
+  \(692\) positrons.}
+  \label{fig:regression-large-cylinder-staged-dt-crossings}
+\end{figure}
+
+The overlaid reduced-charge spectrum is not a staged-timestep rerun; it uses
+the previous \(10^{-5}\)-charge, 1000 ps-retirement output.  That run stores
+fewer H5 samples than the staged nominal run but reaches the same 1600 ps final
+time.
+
 \subsection{Figure Generation and Output Paths}
 
 The figure files used by this note are stored under \texttt{sandbox/note/figs}
