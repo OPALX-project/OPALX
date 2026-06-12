@@ -6,6 +6,37 @@
 #include <utility>
 #include <vector>
 
+namespace opalx::detail {
+// Keep these beam-beam mirror/restore kernels at namespace scope.  With CUDA,
+// KOKKOS_LAMBDA uses extended __host__ __device__ lambdas, and NVCC rejects
+// such lambdas when their enclosing member function has private or protected
+// access.  computeLegacySelfFields is intentionally private, so these helpers
+// provide a public enclosing scope without changing the solver's class API.
+template <typename PositionView>
+Kokkos::View<double*> mirrorBeamBeamZPositions(
+        PositionView rView, const size_t nLoc, const double interactionPointBeamZ) {
+    Kokkos::View<double*> originalZ("BinnedFieldSolver::BeamBeamOriginalZ", nLoc);
+
+    Kokkos::parallel_for(
+            "BinnedFieldSolver::BeamBeamMirror", nLoc, KOKKOS_LAMBDA(const size_t i) {
+                originalZ(i) = rView(i)[2];
+                rView(i)[2]  = 2.0 * interactionPointBeamZ - rView(i)[2];
+            });
+    Kokkos::fence();
+
+    return originalZ;
+}
+
+template <typename PositionView, typename OriginalZView>
+void restoreBeamBeamZPositions(
+        PositionView rView, const size_t nLoc, OriginalZView originalZ) {
+    Kokkos::parallel_for(
+            "BinnedFieldSolver::BeamBeamRestore", nLoc,
+            KOKKOS_LAMBDA(const size_t i) { rView(i)[2] = originalZ(i); });
+    Kokkos::fence();
+}
+}  // namespace opalx::detail
+
 template <typename T, unsigned Dim>
 BinnedFieldSolver<T, Dim>::BinnedFieldSolver(
         std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
@@ -569,23 +600,12 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
         auto scatterMirroredSameSign = [&]() {
             auto rView        = pc->R.getView();
             const size_t nLoc = pc->getLocalNum();
-            Kokkos::View<double*> originalZ(
-                    "BinnedFieldSolver::computeLegacySelfFields::BeamBeamOriginalZ", nLoc);
-
-            Kokkos::parallel_for(
-                    "BinnedFieldSolver::computeLegacySelfFields::BeamBeamMirror", nLoc,
-                    KOKKOS_LAMBDA(const size_t i) {
-                        originalZ(i) = rView(i)[2];
-                        rView(i)[2]  = 2.0 * interactionPointBeamZ - rView(i)[2];
-                    });
-            Kokkos::fence();
+            auto originalZ =
+                    opalx::detail::mirrorBeamBeamZPositions(rView, nLoc, interactionPointBeamZ);
 
             imageScatterController_m.scatterPrimaryOnly(pc, pc->R, rho);
 
-            Kokkos::parallel_for(
-                    "BinnedFieldSolver::computeLegacySelfFields::BeamBeamRestore", nLoc,
-                    KOKKOS_LAMBDA(const size_t i) { rView(i)[2] = originalZ(i); });
-            Kokkos::fence();
+            opalx::detail::restoreBeamBeamZPositions(rView, nLoc, originalZ);
         };
 
         if (ippl::Comm->size() > 1) {
