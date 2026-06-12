@@ -35,7 +35,6 @@
 
 #include "OPALTypes.h"
 
-class ParticleMatterInteractionHandler;
 class BoundaryGeometry;
 
 class OpalBeamline {
@@ -97,8 +96,6 @@ public:
             const double&, const double&, const double& kineticEnergy,
             const bool& nomonitors = false);
     void switchElementsOff();
-
-    ParticleMatterInteractionHandler* getParticleMatterInteractionHandler(const unsigned int&);
 
     BoundaryGeometry* getBoundaryGeometry(const unsigned int&);
 

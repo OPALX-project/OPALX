@@ -99,13 +99,6 @@ unsigned long OpalBeamline::getFieldAt(
         Bf += rotateFromLocalCS(*it, localB);
     }
 
-    //         if(section.hasWake()) {
-    //             rtv |= BEAMLINE_WAKE;
-    //         }
-    //         if(section.hasParticleMatterInteraction()) {
-    //             rtv |= BEAMLINE_PARTICLEMATTERINTERACTION;
-    //         }
-
     return rtv;
 }
 
