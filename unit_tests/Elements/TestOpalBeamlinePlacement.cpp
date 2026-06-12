@@ -42,6 +42,13 @@ namespace {
         EXPECT_NEAR(actual(2), expected(2), tol);
     }
 
+    void expectWrittenVectorNear(const Vector3& actual, const Vector3& expected) {
+        constexpr double writtenTol = 1.0e-10;
+        EXPECT_NEAR(actual(0), expected(0), writtenTol);
+        EXPECT_NEAR(actual(1), expected(1), writtenTol);
+        EXPECT_NEAR(actual(2), expected(2), writtenTol);
+    }
+
     Vector3 analyticSbendPointAtS(const double length, const double angle, const double s) {
         const double curvature = angle / length;
         if (std::abs(curvature) <= 1.0e-15) {
@@ -82,6 +89,27 @@ namespace {
 
     Vector3 analyticExitTangent(const double angle) {
         return Vector3(-std::sin(angle), 0.0, std::cos(angle));
+    }
+
+    Vector3 readElementPositionMarker(const std::string& content, const std::string& marker) {
+        std::istringstream lines(content);
+        std::string line;
+        while (std::getline(lines, line)) {
+            if (line.find("\"" + marker + "\"") == std::string::npos) {
+                continue;
+            }
+
+            const std::size_t closingQuote = line.find('"', 1);
+            double z                       = 0.0;
+            double x                       = 0.0;
+            double y                       = 0.0;
+            std::istringstream values(line.substr(closingQuote + 1));
+            values >> z >> x >> y;
+            return Vector3(x, y, z);
+        }
+
+        ADD_FAILURE() << "Marker not found: " << marker;
+        return Vector3(0.0);
     }
 
     std::filesystem::path outputPath(const std::string& suffix) {
@@ -427,7 +455,7 @@ TEST_F(OpalBeamlinePlacementTest, Save3DInputNormalizesExplicitBodyPoseAndAngles
     EXPECT_NE(rewritten.find("PSI = 315.0 * PI / 180"), std::string::npos);
 }
 
-TEST_F(OpalBeamlinePlacementTest, Save3DLatticeExportsFieldExtentMarkersWhenSupportDiffers) {
+TEST_F(OpalBeamlinePlacementTest, Save3DLatticeExportsBendFieldExtentMarkersOnCurvedPath) {
     auto bunch = makeBunch(0);
     DummyBeamline beamlineForVisitor;
     DefaultVisitor visitor(beamlineForVisitor, false, false);
@@ -457,6 +485,28 @@ TEST_F(OpalBeamlinePlacementTest, Save3DLatticeExportsFieldExtentMarkersWhenSupp
 
     EXPECT_NE(content.find("\"FIELD BEGIN: B2\""), std::string::npos);
     EXPECT_NE(content.find("\"FIELD END: B2\""), std::string::npos);
+
+    const auto component    = *beamline.getElements().begin();
+    const auto* bendElement = dynamic_cast<const BendBase*>(component.get());
+    ASSERT_NE(bendElement, nullptr);
+
+    double fieldBegin = 0.0;
+    double fieldEnd   = 0.0;
+    bendElement->getFieldExtend(fieldBegin, fieldEnd);
+
+    const CoordinateSystemTrafo bodyTrafo =
+            beamline.getPlacedElement(component).getNominalBodyTransform();
+    expectWrittenVectorNear(
+            readElementPositionMarker(content, "FIELD BEGIN: B2"),
+            bodyTrafo.transformFrom(bendElement->getDesignPathPoint(fieldBegin)));
+    expectWrittenVectorNear(
+            readElementPositionMarker(content, "FIELD END: B2"),
+            bodyTrafo.transformFrom(bendElement->getDesignPathPoint(fieldEnd)));
+
+    const Vector3 oldStraightFieldEnd =
+            beamline.getFieldCSTrafoLab2Local(component).transformFrom(Vector3(0.0, 0.0, fieldEnd));
+    const Vector3 curvedFieldEnd = readElementPositionMarker(content, "FIELD END: B2");
+    EXPECT_GT(std::abs(curvedFieldEnd(0) - oldStraightFieldEnd(0)), 1.0e-3);
 }
 
 TEST_F(OpalBeamlinePlacementTest, PrepareSectionsPlacesCompatibilitySBendByEntryEdge) {
