@@ -131,9 +131,19 @@ namespace opalx {
                 ippl::NDIndex<Dim> intersect = ldom_r.intersect(ldom_p_mirror);
 
                 // recv
+                ippl::Vector<bool, Dim> coordBool = false;
+                if constexpr (Dim > 0) {
+                    coordBool[0] = flipX;
+                }
+                if constexpr (Dim > 1) {
+                    coordBool[1] = flipY;
+                }
+                if constexpr (Dim > 2) {
+                    coordBool[2] = flipZ;
+                }
+
                 ippl::detail::solver_recv(
-                        base_tag, 0, p, intersect, ldom_r, nghost, dstView, fd_recv, flipX, flipY,
-                        flipZ);
+                        base_tag, 0, p, intersect, ldom_r, nghost, dstView, fd_recv, coordBool);
             }
 
             // Self overlap: r holds both src and dst cells that participate in its
