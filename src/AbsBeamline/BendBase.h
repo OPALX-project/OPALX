@@ -294,6 +294,16 @@ public:
     std::vector<Vector_t<double, 3>> getDesignPath(std::size_t minSamples = 32) const;
 
     /**
+     * @brief Return one local point on the displayed bend reference path.
+     *
+     * Coordinates inside the bend body follow the curved design path. Field
+     * support outside the hard-edge body is visualized by tangent
+     * extrapolation from the entry or exit frame, matching the conceptual
+     * support interval without changing the tracker field chart.
+     */
+    Vector_t<double, 3> getDesignPathPoint(double z) const;
+
+    /**
      * @brief Store the dipole design amplitudes used by the analytic field.
      *
      * The normal and skew dipole strengths are the leading coefficients of the

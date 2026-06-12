@@ -975,6 +975,38 @@ std::vector<Vector_t<double, 3>> BendBase::getDesignPath(std::size_t minSamples)
     return path;
 }
 
+Vector_t<double, 3> BendBase::getDesignPathPoint(const double z) const {
+    const double sBegin = getEntrance();
+    const double sEnd   = getExit();
+    const double s      = sBegin + z;
+
+    const auto pointFromPose = [](const Euclid3D& pose) {
+        return Vector_t<double, 3>(pose.getX(), pose.getY(), pose.getZ());
+    };
+
+    if (s < sBegin) {
+        const Euclid3D entryPose = getTransform(sBegin);
+        const Vector_t<double, 3> entry =
+                Vector_t<double, 3>(entryPose.getX(), entryPose.getY(), entryPose.getZ());
+        const Vector3D entryTangent = entryPose.getRotation() * Vector3D(0.0, 0.0, 1.0);
+        const Vector_t<double, 3> tangent =
+                Vector_t<double, 3>(entryTangent.getX(), entryTangent.getY(), entryTangent.getZ());
+        return entry + (s - sBegin) * tangent;
+    }
+
+    if (s > sEnd) {
+        const Euclid3D exitPose = getTransform(sEnd);
+        const Vector_t<double, 3> exit =
+                Vector_t<double, 3>(exitPose.getX(), exitPose.getY(), exitPose.getZ());
+        const Vector3D exitTangent = exitPose.getRotation() * Vector3D(0.0, 0.0, 1.0);
+        const Vector_t<double, 3> tangent =
+                Vector_t<double, 3>(exitTangent.getX(), exitTangent.getY(), exitTangent.getZ());
+        return exit + (s - sEnd) * tangent;
+    }
+
+    return pointFromPose(getTransform(s));
+}
+
 double BendBase::calcDesignRadius(double fieldAmplitude) const {
     const auto& reference  = *RefPartBunch_m->getParticleContainer()->getReference();
     const double mass      = reference.getM();
