@@ -25,9 +25,9 @@ Particles at exit: `10000`
 ## Checks
 
 - `all_particles_at_exit`: `True`
-- `r56_within_tolerance`: `True`
+- `r56_within_tolerance`: `False`
 - `z_rms_within_tolerance`: `True`
 - `z_max_within_tolerance`: `True`
-- `y_rms_within_tolerance`: `True`
+- `y_rms_within_tolerance`: `False`
 
-Overall: `PASS`
+Overall: `FAIL`

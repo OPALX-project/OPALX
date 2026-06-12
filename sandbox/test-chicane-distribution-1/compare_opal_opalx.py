@@ -14,6 +14,34 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 
+BEAM_COLUMNS = [
+    "energy",
+    "dE",
+    "rms_x",
+    "rms_y",
+    "rms_s",
+    "rms_px",
+    "rms_py",
+    "rms_ps",
+    "emit_x",
+    "emit_y",
+    "emit_s",
+]
+
+DIAGNOSTIC_COLUMNS = [
+    "mean_x",
+    "mean_y",
+    "mean_s",
+    "ref_x",
+    "ref_y",
+    "ref_z",
+    "ref_px",
+    "ref_py",
+    "ref_pz",
+    "By_ref",
+]
+
+
 def read_sdds_stat(path: Path) -> dict[str, np.ndarray]:
     lines = path.read_text(encoding="utf-8").splitlines()
     names: list[str] = []
@@ -460,6 +488,141 @@ def draw_by_difference_plot(
         plt.close(fig)
 
 
+def draw_reference_orbit_difference_plot(
+        path: Path,
+        opalx: dict[str, np.ndarray],
+        opal: dict[str, np.ndarray]) -> None:
+    mpl_config_dir = Path(os.environ.get("MPLCONFIGDIR", "/private/tmp/opalx-matplotlib"))
+    mpl_config_dir.mkdir(parents=True, exist_ok=True)
+    os.environ.setdefault("MPLCONFIGDIR", str(mpl_config_dir))
+
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
+
+    sx = np.asarray(opalx["s"], dtype=float)
+    so = np.asarray(opal["s"], dtype=float)
+    zx = np.asarray(opalx["ref_z"], dtype=float)
+    zo = np.asarray(opal["ref_z"], dtype=float)
+    xx = np.asarray(opalx["ref_x"], dtype=float)
+    xo = np.asarray(opal["ref_x"], dtype=float)
+
+    order_x = np.argsort(sx)
+    order_o = np.argsort(so)
+    sx, zx, xx = sx[order_x], zx[order_x], xx[order_x]
+    so, zo, xo = so[order_o], zo[order_o], xo[order_o]
+
+    lo = max(float(np.nanmin(sx)), float(np.nanmin(so)))
+    hi = min(float(np.nanmax(sx)), float(np.nanmax(so)))
+    mask = (sx >= lo) & (sx <= hi)
+    sx_common = sx[mask]
+    zx_common = zx[mask]
+    xx_common = xx[mask]
+    zo_interp = np.interp(sx_common, so, zo)
+    xo_interp = np.interp(sx_common, so, xo)
+    dx_mm = 1.0e3 * (xx_common - xo_interp)
+    dz_mm = 1.0e3 * (zx_common - zo_interp)
+
+    with plt.rc_context(
+            {
+                "font.family": "serif",
+                "mathtext.fontset": "stix",
+                "font.size": 10,
+                "axes.labelsize": 10,
+                "axes.titlesize": 11,
+                "axes.linewidth": 0.8,
+                "xtick.labelsize": 9,
+                "ytick.labelsize": 9,
+                "legend.fontsize": 8.5,
+                "pdf.fonttype": 42,
+                "ps.fonttype": 42,
+                "savefig.dpi": 300,
+            }):
+        fig, (ax_orbit, ax_diff) = plt.subplots(
+            2,
+            1,
+            figsize=(7.2, 5.25),
+            gridspec_kw={"height_ratios": [2.2, 1.0]},
+        )
+        fig.subplots_adjust(left=0.12, right=0.98, bottom=0.11, top=0.86, hspace=0.32)
+
+        orbit_color = "#0072B2"
+        dx_color = "#0072B2"
+        dz_color = "#D55E00"
+        ax_orbit.plot(
+            zx,
+            1.0e3 * xx,
+            color=orbit_color,
+            lw=1.8,
+            solid_capstyle="round",
+        )
+        ax_orbit.plot(
+            zo,
+            1.0e3 * xo,
+            color=orbit_color,
+            lw=1.35,
+            ls=(0, (4.0, 2.0)),
+            alpha=0.82,
+            dash_capstyle="round",
+        )
+
+        ax_diff.plot(sx_common, dx_mm, color=dx_color, lw=1.25, label=r"$\Delta x_{\mathrm{ref}}$")
+        ax_diff.plot(
+            sx_common,
+            dz_mm,
+            color=dz_color,
+            lw=1.15,
+            ls=(0, (4.0, 2.0)),
+            label=r"$\Delta z_{\mathrm{ref}}$",
+        )
+        ax_diff.axhline(0.0, color="#5f5f5f", lw=0.65, alpha=0.65, zorder=1)
+
+        ax_orbit.set_xlabel(r"$z_{\mathrm{ref}}$ [m]")
+        ax_orbit.set_ylabel(r"$x_{\mathrm{ref}}$ [mm]")
+        ax_diff.set_xlabel(r"$s$ [m]")
+        ax_diff.set_ylabel(r"OPALX $-$ OPAL [mm]")
+
+        for axis in (ax_orbit, ax_diff):
+            axis.grid(True, which="major", color="#d9d9d9", lw=0.6)
+            axis.grid(True, which="minor", color="#eeeeee", lw=0.4)
+            axis.minorticks_on()
+            axis.spines["top"].set_visible(False)
+            axis.ticklabel_format(axis="y", style="sci", scilimits=(-3, 3), useOffset=False, useMathText=True)
+
+        ax_diff.set_xlim(lo, hi)
+        ax_diff.set_ylim(*symmetric_limits(np.concatenate((dx_mm, dz_mm))))
+
+        handles = [
+            Line2D([0], [0], color=orbit_color, lw=1.8, label="OPALX"),
+            Line2D([0], [0], color=orbit_color, lw=1.35, ls=(0, (4.0, 2.0)), label="OPAL"),
+            Line2D([0], [0], color=dx_color, lw=1.25, label=r"$\Delta x_{\mathrm{ref}}$"),
+            Line2D(
+                [0],
+                [0],
+                color=dz_color,
+                lw=1.15,
+                ls=(0, (4.0, 2.0)),
+                label=r"$\Delta z_{\mathrm{ref}}$",
+            ),
+        ]
+        fig.legend(
+            handles=handles,
+            loc="upper center",
+            bbox_to_anchor=(0.5, 0.98),
+            ncol=4,
+            frameon=False,
+            columnspacing=1.35,
+            handlelength=2.2,
+        )
+
+        fig.savefig(path, bbox_inches="tight")
+        if path.suffix.lower() == ".png":
+            fig.savefig(path.with_suffix(".pdf"), bbox_inches="tight")
+        plt.close(fig)
+
+
 def draw_rms_relative_difference_plot(
         path: Path,
         opalx: dict[str, np.ndarray],
@@ -791,7 +954,8 @@ def write_plots(
         opalx: dict[str, np.ndarray],
         opal: dict[str, np.ndarray],
         out_dir: Path,
-        r56_lines: list[str] | None = None) -> None:
+        r56_lines: list[str] | None = None,
+        beam_only: bool = False) -> None:
     colors = {
         "x": (31, 119, 180),
         "y": (44, 160, 44),
@@ -855,16 +1019,24 @@ def write_plots(
         "OPALX vs OPAL stat energy",
         min_y_span=1.0e-3,
     )
-    if "ref_x" in opalx and "ref_z" in opalx and "ref_x" in opal and "ref_z" in opal:
+    if "dE" in opalx and "dE" in opal:
         draw_line_plot(
-            out_dir / "stat_reference_xz_opalx_opal.png",
+            out_dir / "stat_dE_opalx_opal.png",
             [
-                (opalx["ref_z"], opalx["ref_x"], "OPALX", colors["x"], False),
-                (opal["ref_z"], opal["ref_x"], "OPAL", colors["x"], True),
+                (opalx["s"], opalx["dE"], "OPALX dE", colors["energy"], False),
+                (opal["s"], opal["dE"], "OPAL dE", colors["energy"], True),
             ],
-            "ref_z [m]",
-            "ref_x [m]",
-            "Reference orbit x-z",
+            "s [m]",
+            "dE [MeV]",
+            "OPALX vs OPAL stat energy spread",
+        )
+    if beam_only:
+        return
+    if "ref_x" in opalx and "ref_z" in opalx and "ref_x" in opal and "ref_z" in opal:
+        draw_reference_orbit_difference_plot(
+            out_dir / "stat_reference_xz_opalx_opal.png",
+            opalx,
+            opal,
         )
     if "By_ref" in opalx and "By_ref" in opal:
         draw_by_difference_plot(out_dir / "stat_bfield_ref_opalx_opal.png", opalx, opal)
@@ -876,6 +1048,11 @@ def main() -> int:
     parser.add_argument("--opalx-stat", type=Path, default=script_dir / "test-chicane-distribution-1.stat")
     parser.add_argument("--opal-stat", type=Path, default=script_dir / "test-chicane-distribution-1_opal.stat")
     parser.add_argument("--out-dir", type=Path, default=script_dir / "comparison" / "opal_code_compare")
+    parser.add_argument(
+        "--beam-only",
+        action="store_true",
+        help="Compare only beam quantities from the stat file: energy, dE, RMS positions/momenta, and emittances.",
+    )
     parser.add_argument(
         "--r56-summary",
         action="append",
@@ -889,50 +1066,36 @@ def main() -> int:
     opalx = read_sdds_stat(args.opalx_stat)
     opal = read_sdds_stat(args.opal_stat)
 
-    rows = comparison_rows(
-        opalx,
-        opal,
-        [
-            "energy",
-            "rms_x",
-            "rms_y",
-            "rms_s",
-            "rms_px",
-            "rms_py",
-            "rms_ps",
-            "emit_x",
-            "emit_y",
-            "emit_s",
-            "mean_x",
-            "mean_y",
-            "mean_s",
-            "ref_x",
-            "ref_y",
-            "ref_z",
-            "ref_px",
-            "ref_py",
-            "ref_pz",
-            "By_ref",
-        ],
-    )
-    by_interval_rows = field_interval_rows(opalx, opal)
+    columns = BEAM_COLUMNS if args.beam_only else [*BEAM_COLUMNS, *DIAGNOSTIC_COLUMNS]
+    rows = comparison_rows(opalx, opal, columns)
+    by_interval_rows = [] if args.beam_only else field_interval_rows(opalx, opal)
     write_csv(args.out_dir / "stat_summary.csv", rows)
-    write_csv(args.out_dir / "by_field_intervals.csv", by_interval_rows)
-    r56_lines = r56_annotation_lines(args.r56_summary)
+    if not args.beam_only:
+        write_csv(args.out_dir / "by_field_intervals.csv", by_interval_rows)
+    r56_lines = [] if args.beam_only else r56_annotation_lines(args.r56_summary)
     if args.plots:
-        write_plots(opalx, opal, args.out_dir, r56_lines)
+        write_plots(opalx, opal, args.out_dir, r56_lines, beam_only=args.beam_only)
 
-    summary = "\n".join(
-        [
-            "# test-chicane-distribution-1 OPALX vs OPAL 2022.1",
-            "",
-            f"OPALX stat: `{args.opalx_stat}`",
-            f"OPAL stat: `{args.opal_stat}`",
-            "",
-            "Both files are compared on the shared `s` range by interpolating OPAL onto OPALX samples.",
-            "",
-            markdown_table(rows),
-            "",
+    summary_lines = [
+        "# test-chicane-distribution-1 OPALX vs OPAL 2022.1",
+        "",
+        f"OPALX stat: `{args.opalx_stat}`",
+        f"OPAL stat: `{args.opal_stat}`",
+        "",
+        "Both files are compared on the shared `s` range by interpolating OPAL onto OPALX samples.",
+        "",
+    ]
+    if args.beam_only:
+        summary_lines.extend(
+            [
+                "Comparison mode: stat beam quantities only. Temporal monitors, reference-particle fields, and R56 fits are not used.",
+                "",
+            ]
+        )
+    summary_lines.extend([markdown_table(rows), ""])
+    if not args.beam_only:
+        summary_lines.extend(
+            [
             "## By Field Intervals",
             "",
             (
@@ -942,22 +1105,37 @@ def main() -> int:
             "",
             markdown_table(by_interval_rows),
             "",
+            ]
+        )
+    plot_lines = [
+        "- `stat_rms_opalx_opal.png`",
+        "- `stat_rms_relative_opalx_opal.png`",
+        "- `stat_rms_relative_opalx_opal.pdf`",
+        "- `stat_rms_momentum_difference_opalx_opal.png`",
+        "- `stat_rms_momentum_difference_opalx_opal.pdf`",
+        "- `stat_emittance_difference_opalx_opal.png`",
+        "- `stat_emittance_difference_opalx_opal.pdf`",
+        "- `stat_energy_opalx_opal.png`",
+    ]
+    if "dE" in opalx and "dE" in opal:
+        plot_lines.append("- `stat_dE_opalx_opal.png`")
+    if not args.beam_only:
+        plot_lines.extend(
+            [
+                "- `stat_reference_xz_opalx_opal.png`",
+                "- `stat_bfield_ref_opalx_opal.png`",
+                "- `stat_bfield_ref_opalx_opal.pdf`",
+            ]
+        )
+    summary_lines.extend(
+        [
             "## Plots",
             "",
-            "- `stat_rms_opalx_opal.png`",
-            "- `stat_rms_relative_opalx_opal.png`",
-            "- `stat_rms_relative_opalx_opal.pdf`",
-            "- `stat_rms_momentum_difference_opalx_opal.png`",
-            "- `stat_rms_momentum_difference_opalx_opal.pdf`",
-            "- `stat_emittance_difference_opalx_opal.png`",
-            "- `stat_emittance_difference_opalx_opal.pdf`",
-            "- `stat_energy_opalx_opal.png`",
-            "- `stat_reference_xz_opalx_opal.png`",
-            "- `stat_bfield_ref_opalx_opal.png`",
-            "- `stat_bfield_ref_opalx_opal.pdf`",
+            *plot_lines,
             "",
         ]
     )
+    summary = "\n".join(summary_lines)
     if r56_lines:
         summary += "\n## R56 Fits\n\n" + "\n".join(f"- {line}" for line in r56_lines) + "\n"
     (args.out_dir / "summary.md").write_text(summary + "\n", encoding="utf-8")
