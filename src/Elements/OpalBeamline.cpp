@@ -604,11 +604,20 @@ void OpalBeamline::save3DLattice() {
         }
 
         if (fieldExtentDiffers) {
-            const CoordinateSystemTrafo fieldTrafo = getFieldCSTrafoLab2Local(element);
-            const Vector_t<double, 3> fieldBegin3D =
-                    fieldTrafo.transformFrom(Vector_t<double, 3>(0.0, 0.0, fieldBegin));
-            const Vector_t<double, 3> fieldEnd3D =
-                    fieldTrafo.transformFrom(Vector_t<double, 3>(0.0, 0.0, fieldEnd));
+            Vector_t<double, 3> fieldBegin3D;
+            Vector_t<double, 3> fieldEnd3D;
+            if (auto* bendElement = dynamic_cast<BendBase*>(element.get())) {
+                // Bend field-support markers are exported on the curved
+                // reference path; this is diagnostic output and does not
+                // change the tracker field coordinate chart.
+                const CoordinateSystemTrafo bodyTrafo = placedElement.getNominalBodyTransform();
+                fieldBegin3D = bodyTrafo.transformFrom(bendElement->getDesignPathPoint(fieldBegin));
+                fieldEnd3D   = bodyTrafo.transformFrom(bendElement->getDesignPathPoint(fieldEnd));
+            } else {
+                const CoordinateSystemTrafo fieldTrafo = getFieldCSTrafoLab2Local(element);
+                fieldBegin3D = fieldTrafo.transformFrom(Vector_t<double, 3>(0.0, 0.0, fieldBegin));
+                fieldEnd3D   = fieldTrafo.transformFrom(Vector_t<double, 3>(0.0, 0.0, fieldEnd));
+            }
 
             pos << std::setw(30) << std::left
                 << std::string("\"FIELD BEGIN: ") + element->getName() + std::string("\"")
