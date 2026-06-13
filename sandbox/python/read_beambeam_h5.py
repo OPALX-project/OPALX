@@ -87,6 +87,7 @@ def translate_snapshot(value) -> str:
         "normal_tracking": "normal tracking",
         "before_beambeam_mesh_enlarge": "normal tracking",
         "active_beambeam": "beambeam tracking",
+        "active_beambeam_field_diagnostics": "beambeam tracking",
     }
     return translated.get(value, value)
 
@@ -127,8 +128,11 @@ def collect_step_rows(h5file):
 def select_states(step_names, rows, state_raw):
     if state_raw is None:
         preferred_states = (
+            "active_beambeam_field_diagnostics",
             "active_beambeam",
             "normal_tracking",
+            "before_interaction_window_mesh_enlarge",
+            "after_interaction_window_mesh_restore",
         )
         selected_step_names = []
         selected_rows = []
@@ -228,14 +232,62 @@ def step_sort_key(name: str) -> tuple[int, str]:
     return (sys.maxsize, name)
 
 
-def get_step_rho(step, np):
-    rho_group = step["Block"]["rho"]
-    dataset_names = sorted(rho_group.keys(), key=step_sort_key)
+def block_field_names(step) -> list[str]:
+    block = step.get("Block")
+    if block is None:
+        return []
+    return sorted(block.keys())
+
+
+def resolve_block_field_name(step, requested: str, aliases: tuple[str, ...] = ()) -> str:
+    block = step.get("Block")
+    if block is None:
+        raise SystemExit("Block group missing in HDF5 step.")
+
+    candidates = (requested,) + aliases
+    for candidate in candidates:
+        if candidate in block:
+            return candidate
+
+    field_names = block_field_names(step)
+    if len(field_names) == 1:
+        return field_names[0]
+
+    available = ", ".join(field_names) if field_names else "<none>"
+    raise SystemExit(f"{requested} dataset missing in HDF5 step; available fields: {available}")
+
+
+def read_h5_scalar_field(np, step, name: str, aliases: tuple[str, ...] = ()):
+    field_name = resolve_block_field_name(step, name, aliases)
+    field_group = step["Block"][field_name]
+    dataset_names = sorted(field_group.keys(), key=step_sort_key)
     if not dataset_names:
-        raise SystemExit("rho dataset missing in HDF5 step.")
-    rho = np.asarray(rho_group[dataset_names[0]][()])
-    origin = np.asarray(rho_group.attrs["__Origin__"], dtype=float)
-    spacing = np.asarray(rho_group.attrs["__Spacing__"], dtype=float)
+        raise SystemExit(f"{field_name} dataset missing in HDF5 step.")
+    field = np.asarray(field_group[dataset_names[0]][()])
+    origin = np.asarray(field_group.attrs["__Origin__"], dtype=float)
+    spacing = np.asarray(field_group.attrs["__Spacing__"], dtype=float)
+    return field, origin, spacing
+
+
+def read_h5_vector_field(np, step, name: str, aliases: tuple[str, ...] = ()):
+    field_name = resolve_block_field_name(step, name, aliases)
+    field_group = step["Block"][field_name]
+    dataset_names = sorted(field_group.keys(), key=step_sort_key)
+    if len(dataset_names) < 3:
+        raise SystemExit(f"{field_name} vector dataset missing components in HDF5 step.")
+    components = [np.asarray(field_group[dataset_names[index]][()]) for index in range(3)]
+    origin = np.asarray(field_group.attrs["__Origin__"], dtype=float)
+    spacing = np.asarray(field_group.attrs["__Spacing__"], dtype=float)
+    return components, origin, spacing
+
+
+def get_step_rho(step, np):
+    rho, origin, spacing = read_h5_scalar_field(
+        np,
+        step,
+        "rho",
+        aliases=("beambeam_rho_pre", "collwin_vis", "RHO"),
+    )
     return rho, origin, spacing
 
 
@@ -667,10 +719,13 @@ def build_parser() -> argparse.ArgumentParser:
         choices=(
             "normal_tracking",
             "active_beambeam",
+            "active_beambeam_field_diagnostics",
             "before_beambeam_mesh_enlarge",
+            "before_interaction_window_mesh_enlarge",
+            "after_interaction_window_mesh_restore",
         ),
         default=None,
-        help="Select one stored BeamBeam diagnostic state. Default for plots is one entry per step, preferring active_beambeam.",
+        help="Select one stored BeamBeam diagnostic state. Default for plots is one entry per step, preferring active BeamBeam diagnostics.",
     )
     return parser
 

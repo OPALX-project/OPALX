@@ -210,7 +210,14 @@ def select_h5_step(h5file, step_number, state_raw):
             f"step {step_number} does not contain state {state_raw!r}; available: {available}"
         )
 
-    preferred = ("active_beambeam", "normal_tracking", "before_beambeam_mesh_enlarge")
+    preferred = (
+        "active_beambeam_field_diagnostics",
+        "active_beambeam",
+        "normal_tracking",
+        "before_beambeam_mesh_enlarge",
+        "before_interaction_window_mesh_enlarge",
+        "after_interaction_window_mesh_restore",
+    )
     for snapshot_kind in preferred:
         for candidate in candidates:
             if candidate[1] == snapshot_kind:
@@ -219,15 +226,76 @@ def select_h5_step(h5file, step_number, state_raw):
     return candidates[0]
 
 
-def read_h5_scalar_field(np, step, name):
-    field_group = step["Block"][name]
+def h5_block_field_names(step) -> list[str]:
+    block = step.get("Block")
+    if block is None:
+        return []
+    return sorted(block.keys())
+
+
+def resolve_h5_block_field_name(step, requested: str, aliases: tuple[str, ...] = ()) -> str:
+    block = step.get("Block")
+    if block is None:
+        raise SystemExit("Block group missing in HDF5 step.")
+
+    for candidate in (requested,) + aliases:
+        if candidate in block:
+            return candidate
+
+    field_names = h5_block_field_names(step)
+    if len(field_names) == 1:
+        return field_names[0]
+
+    available = ", ".join(field_names) if field_names else "<none>"
+    raise SystemExit(f"{requested} dataset missing in HDF5 step; available fields: {available}")
+
+
+def read_h5_scalar_field(np, step, name, aliases: tuple[str, ...] = ()):
+    field_name = resolve_h5_block_field_name(step, name, aliases)
+    field_group = step["Block"][field_name]
     dataset_names = sorted(field_group.keys(), key=step_sort_key)
     if not dataset_names:
-        raise SystemExit(f"{name} dataset missing in HDF5 step.")
+        raise SystemExit(f"{field_name} dataset missing in HDF5 step.")
     field = np.asarray(field_group[dataset_names[0]][()])
     origin = np.asarray(field_group.attrs["__Origin__"], dtype=float)
     spacing = np.asarray(field_group.attrs["__Spacing__"], dtype=float)
     return field, origin, spacing
+
+
+def read_h5_vector_field(np, step, name, aliases: tuple[str, ...] = ()):
+    field_name = resolve_h5_block_field_name(step, name, aliases)
+    field_group = step["Block"][field_name]
+    dataset_names = sorted(field_group.keys(), key=step_sort_key)
+    if len(dataset_names) < 3:
+        raise SystemExit(f"{field_name} vector dataset missing components in HDF5 step.")
+    components = [np.asarray(field_group[dataset_names[index]][()]) for index in range(3)]
+    origin = np.asarray(field_group.attrs["__Origin__"], dtype=float)
+    spacing = np.asarray(field_group.attrs["__Spacing__"], dtype=float)
+    return components, origin, spacing
+
+
+def related_quantity_h5_path(path: Path, quantity: str) -> Path:
+    replacements = {
+        "rho": "-RHO_scalar-beambeam_rho_pre.h5",
+        "phi": "-PHI_scalar-beambeam_phi.h5",
+        "ef": "-EF_vector-beambeam_e.h5",
+    }
+    for suffix in replacements.values():
+        if path.name.endswith(suffix):
+            prefix = path.name[: -len(suffix)]
+            return path.with_name(prefix + replacements[quantity])
+    return path
+
+
+def read_related_h5_step(h5py, path: Path, quantity: str, step_number: int, state_raw: str | None):
+    quantity_path = related_quantity_h5_path(path, quantity)
+    if not quantity_path.exists():
+        if quantity_path == path:
+            raise SystemExit(f"missing HDF5 file: {quantity_path}")
+        return None, None, None, None
+    h5file = h5py.File(quantity_path, "r")
+    step_name, snapshot_kind = select_h5_step(h5file, step_number, state_raw)
+    return h5file, h5file[step_name], step_name, snapshot_kind
 
 
 def parse_header_value(text):
@@ -357,16 +425,42 @@ def manufactured_setup_from_ascii(np, rho_path: Path, phi_path: Path, e_path: Pa
 
 def manufactured_setup_from_h5(np, h5_path: Path, step_number: int, state_raw: str | None):
     h5py = load_h5py()
-    with h5py.File(h5_path, "r") as h5file:
-        step_name, snapshot_kind = select_h5_step(h5file, step_number, state_raw)
-        step = h5file[step_name]
-        attrs = step.attrs
+    opened = []
+    try:
+        rho_h5, rho_step, step_name, snapshot_kind = read_related_h5_step(
+            h5py, h5_path, "rho", step_number, state_raw
+        )
+        if rho_h5 is None or rho_step is None:
+            raise SystemExit(f"missing rho HDF5 file for {h5_path}")
+        opened.append(rho_h5)
 
-        rho, origin, spacing = read_h5_scalar_field(np, step, "rho")
-        phi, _, _ = read_h5_scalar_field(np, step, "phi")
-        ex, _, _ = read_h5_scalar_field(np, step, "Ex")
-        ey, _, _ = read_h5_scalar_field(np, step, "Ey")
-        ez, _, _ = read_h5_scalar_field(np, step, "Ez")
+        phi_h5, phi_step, _, _ = read_related_h5_step(h5py, h5_path, "phi", step_number, state_raw)
+        if phi_h5 is not None:
+            opened.append(phi_h5)
+
+        ef_h5, ef_step, _, _ = read_related_h5_step(h5py, h5_path, "ef", step_number, state_raw)
+        if ef_h5 is not None:
+            opened.append(ef_h5)
+
+        attrs = rho_step.attrs
+
+        rho, origin, spacing = read_h5_scalar_field(
+            np, rho_step, "rho", aliases=("beambeam_rho_pre", "RHO")
+        )
+        if phi_step is None:
+            phi, _, _ = read_h5_scalar_field(np, rho_step, "phi")
+        else:
+            phi, _, _ = read_h5_scalar_field(
+                np, phi_step, "phi", aliases=("beambeam_phi", "PHI")
+            )
+        if ef_step is None:
+            ex, _, _ = read_h5_scalar_field(np, rho_step, "Ex")
+            ey, _, _ = read_h5_scalar_field(np, rho_step, "Ey")
+            ez, _, _ = read_h5_scalar_field(np, rho_step, "Ez")
+        else:
+            (ex, ey, ez), _, _ = read_h5_vector_field(
+                np, ef_step, "beambeam_e", aliases=("EF",)
+            )
 
         path_length_s = float(decode_value(attrs.get("path_length_s")))
         interaction_point_s = float(decode_value(attrs.get("interaction_point_s")))
@@ -382,8 +476,10 @@ def manufactured_setup_from_h5(np, h5_path: Path, step_number: int, state_raw: s
             float(particle_mean_r[2]),
         )
         centers = [primary_center]
-        if snapshot_kind == "active_beambeam":
-            interaction_point_beam_z = interaction_point_s - path_length_s
+        if snapshot_kind in ("active_beambeam", "active_beambeam_field_diagnostics"):
+            interaction_point_beam_z = float(
+                decode_value(attrs.get("interaction_point_local_z", interaction_point_s - path_length_s))
+            )
             centers.append(
                 (
                     primary_center[0],
@@ -410,6 +506,9 @@ def manufactured_setup_from_h5(np, h5_path: Path, step_number: int, state_raw: s
                 "Ez": ez,
             },
         }
+    finally:
+        for h5file in opened:
+            h5file.close()
 
 
 def compute_error_metrics(np, reference, candidate):

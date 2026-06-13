@@ -7,10 +7,49 @@
 #include <cmath>
 #include <filesystem>
 #include <limits>
+#include <set>
 
 namespace {
     constexpr char kWhere[] = "H5BeamBeamDiagnosticsWriter";
-}
+
+    std::set<std::string>& initializedQuantityFiles() {
+        static std::set<std::string> files;
+        return files;
+    }
+
+    h5_file_t openQuantityFile(const std::string& fileName, bool& isFirstWrite) {
+        auto& initialized = initializedQuantityFiles();
+        isFirstWrite      = initialized.find(fileName) == initialized.end();
+
+        if (ippl::Comm->rank() == 0) {
+            std::filesystem::path outputPath(fileName);
+            const std::filesystem::path parent = outputPath.parent_path();
+            if (!parent.empty()) {
+                std::filesystem::create_directories(parent);
+            }
+            if (isFirstWrite && std::filesystem::exists(outputPath)) {
+                std::filesystem::remove(outputPath);
+            }
+        }
+        ippl::Comm->barrier();
+
+        h5_prop_t props = H5CreateFileProp();
+        MPI_Comm comm   = ippl::Comm->getCommunicator();
+        h5_err_t h5err  = H5SetPropFileMPIOCollective(props, &comm);
+#if defined(NDEBUG)
+        (void)h5err;
+#endif
+        PAssert(h5err != H5_ERR);
+
+        const h5_int32_t flags = isFirstWrite ? H5_O_WRONLY : H5_O_APPENDONLY;
+        h5_file_t file         = H5OpenFile(fileName.c_str(), flags, props);
+        PAssert(file != (h5_file_t)H5_ERR);
+        H5CloseProp(props);
+
+        initialized.insert(fileName);
+        return file;
+    }
+}  // namespace
 
 H5BeamBeamDiagnosticsWriter::H5BeamBeamDiagnosticsWriter(const std::string& fileName)
     : file_m(0), fileName_m(fileName), stepCounter_m(0), headerWritten_m(false) {
@@ -46,6 +85,66 @@ double H5BeamBeamDiagnosticsWriter::normalizeParticleMeanS(const StepMetadata& m
     }
 
     return meta.particleMeanS;
+}
+
+std::string H5BeamBeamDiagnosticsWriter::makeOutputFileName(
+        const std::string& basename, const std::string& what, const std::string& type,
+        const std::string& tag) {
+    std::filesystem::path file("data");
+    std::string name = basename + "-" + what + "_" + type;
+    if (!tag.empty()) {
+        name += "-" + tag;
+    }
+    name += ".h5";
+    file /= name;
+    return file.string();
+}
+
+void H5BeamBeamDiagnosticsWriter::writeScalarQuantity(
+        const std::string& fileName, const std::string& fieldName, const StepMetadata& meta,
+        const Field_t<3>& field) {
+    bool isFirstWrite = false;
+    h5_file_t file    = openQuantityFile(fileName, isFirstWrite);
+
+    if (isFirstWrite) {
+        writeHeader(file);
+    }
+
+    const h5_ssize_t step = isFirstWrite ? 0 : H5GetNumSteps(file);
+    reportOnError(H5SetStep(file, step), "H5SetStep");
+    writeStepMetadata(file, meta);
+
+    const ippl::NDIndex<3> localIndex = field.getLayout().getLocalNDIndex();
+    const auto data                   = flattenScalarField(field, localIndex);
+    writeScalarField(file, fieldName, data, localIndex, meta.origin, meta.spacing);
+
+    ippl::Comm->barrier();
+    reportOnError(H5CloseFile(file), "close scalar quantity");
+}
+
+void H5BeamBeamDiagnosticsWriter::writeVectorQuantity(
+        const std::string& fileName, const std::string& fieldName, const StepMetadata& meta,
+        const VField_t<double, 3>& field) {
+    bool isFirstWrite = false;
+    h5_file_t file    = openQuantityFile(fileName, isFirstWrite);
+
+    if (isFirstWrite) {
+        writeHeader(file);
+    }
+
+    const h5_ssize_t step = isFirstWrite ? 0 : H5GetNumSteps(file);
+    reportOnError(H5SetStep(file, step), "H5SetStep");
+    writeStepMetadata(file, meta);
+
+    const ippl::NDIndex<3> localIndex = field.getLayout().getLocalNDIndex();
+    std::vector<h5_float64_t> x;
+    std::vector<h5_float64_t> y;
+    std::vector<h5_float64_t> z;
+    flattenVectorField(field, localIndex, x, y, z);
+    writeVectorField(file, fieldName, x, y, z, localIndex, meta.origin, meta.spacing);
+
+    ippl::Comm->barrier();
+    reportOnError(H5CloseFile(file), "close vector quantity");
 }
 
 void H5BeamBeamDiagnosticsWriter::beginStep(
@@ -213,78 +312,125 @@ void H5BeamBeamDiagnosticsWriter::open() {
 }
 
 void H5BeamBeamDiagnosticsWriter::writeHeader() {
-    reportOnError(H5WriteFileAttribString(file_m, "OPAL_flavour", "OPALX"), "OPAL_flavour");
-    reportOnError(
-            H5WriteFileAttribString(file_m, "diagnostics_kind", "beambeam_field_diagnostics"),
-            "diagnostics_kind");
+    writeHeader(file_m);
     headerWritten_m = true;
 }
 
-void H5BeamBeamDiagnosticsWriter::writeStepMetadata(const StepMetadata& meta) {
-    const h5_int64_t globalStep = static_cast<h5_int64_t>(meta.globalStep);
-    const h5_int64_t active     = meta.interactionWindowActive ? 1 : 0;
-    const double particleMeanS  = normalizeParticleMeanS(meta);
+void H5BeamBeamDiagnosticsWriter::writeHeader(h5_file_t file) {
+    reportOnError(H5WriteFileAttribString(file, "OPAL_flavour", "OPALX"), "OPAL_flavour");
+    reportOnError(
+            H5WriteFileAttribString(file, "diagnostics_kind", "beambeam_field_diagnostics"),
+            "diagnostics_kind");
+}
 
-    reportOnError(H5WriteStepAttribInt64(file_m, "global_step", &globalStep, 1), "global_step");
-    reportOnError(H5WriteStepAttribFloat64(file_m, "time", &meta.time, 1), "time");
+void H5BeamBeamDiagnosticsWriter::writeStepMetadata(const StepMetadata& meta) {
+    writeStepMetadata(file_m, meta);
+}
+
+void H5BeamBeamDiagnosticsWriter::writeStepMetadata(h5_file_t file, const StepMetadata& meta) {
+    const h5_int64_t globalStep       = static_cast<h5_int64_t>(meta.globalStep);
+    const h5_int64_t active           = meta.interactionWindowActive ? 1 : 0;
+    const h5_int64_t particleTotalNum = static_cast<h5_int64_t>(meta.particleTotalNum);
+    const double particleMeanS        = normalizeParticleMeanS(meta);
+
+    reportOnError(H5WriteStepAttribInt64(file, "global_step", &globalStep, 1), "global_step");
+    reportOnError(H5WriteStepAttribFloat64(file, "time", &meta.time, 1), "time");
     reportOnError(
-            H5WriteStepAttribFloat64(file_m, "path_length_s", &meta.pathLengthS, 1),
-            "path_length_s");
+            H5WriteStepAttribFloat64(file, "path_length_s", &meta.pathLengthS, 1), "path_length_s");
     reportOnError(
-            H5WriteStepAttribInt64(file_m, "shape", meta.shape.data(), meta.shape.size()), "shape");
+            H5WriteStepAttribInt64(file, "shape", meta.shape.data(), meta.shape.size()), "shape");
     reportOnError(
-            H5WriteStepAttribFloat64(file_m, "mesh_origin", meta.origin.data(), meta.origin.size()),
+            H5WriteStepAttribFloat64(file, "mesh_origin", meta.origin.data(), meta.origin.size()),
             "mesh_origin");
     reportOnError(
             H5WriteStepAttribFloat64(
-                    file_m, "mesh_spacing", meta.spacing.data(), meta.spacing.size()),
+                    file, "mesh_spacing", meta.spacing.data(), meta.spacing.size()),
             "mesh_spacing");
     reportOnError(
-            H5WriteStepAttribString(file_m, "coordinate_frame", meta.coordinateFrame.c_str()),
+            H5WriteStepAttribString(file, "coordinate_frame", meta.coordinateFrame.c_str()),
             "coordinate_frame");
     reportOnError(
-            H5WriteStepAttribString(file_m, "snapshot_kind", meta.snapshotKind.c_str()),
+            H5WriteStepAttribString(file, "snapshot_kind", meta.snapshotKind.c_str()),
             "snapshot_kind");
     reportOnError(
-            H5WriteStepAttribInt64(file_m, "interaction_window_active", &active, 1),
+            H5WriteStepAttribInt64(file, "interaction_window_active", &active, 1),
             "interaction_window_active");
     reportOnError(
-            H5WriteStepAttribFloat64(file_m, "interaction_point_s", &meta.interactionPointS, 1),
+            H5WriteStepAttribFloat64(file, "interaction_point_s", &meta.interactionPointS, 1),
             "interaction_point_s");
     reportOnError(
             H5WriteStepAttribFloat64(
-                    file_m, "ip_element_s_range", meta.beamBeamSRange.data(),
+                    file, "interaction_point_local_z", &meta.interactionPointLocalZ, 1),
+            "interaction_point_local_z");
+    reportOnError(
+            H5WriteStepAttribFloat64(
+                    file, "ip_element_s_range", meta.beamBeamSRange.data(),
                     meta.beamBeamSRange.size()),
             "ip_element_s_range");
     reportOnError(
-            H5WriteStepAttribFloat64(file_m, "particle_total_charge", &meta.particleTotalCharge, 1),
+            H5WriteStepAttribInt64(file, "particle_total_num", &particleTotalNum, 1),
+            "particle_total_num");
+    reportOnError(
+            H5WriteStepAttribFloat64(file, "particle_total_charge", &meta.particleTotalCharge, 1),
             "particle_total_charge");
     reportOnError(
             H5WriteStepAttribFloat64(
-                    file_m, "particle_mean_r", meta.particleMeanR.data(),
-                    meta.particleMeanR.size()),
+                    file, "particle_mean_r", meta.particleMeanR.data(), meta.particleMeanR.size()),
             "particle_mean_r");
     reportOnError(
-            H5WriteStepAttribFloat64(file_m, "particle_mean_s", &particleMeanS, 1),
+            H5WriteStepAttribFloat64(file, "particle_mean_s", &particleMeanS, 1),
             "particle_mean_s");
+    if (!meta.fieldStage.empty()) {
+        reportOnError(
+                H5WriteStepAttribString(file, "field_stage", meta.fieldStage.c_str()),
+                "field_stage");
+    }
 }
 
 void H5BeamBeamDiagnosticsWriter::writeScalarField(
         const std::string& name, const std::vector<h5_float64_t>& data,
         const ippl::NDIndex<3>& localIndex, const std::array<double, 3>& origin,
         const std::array<double, 3>& spacing) {
+    writeScalarField(file_m, name, data, localIndex, origin, spacing);
+}
+
+void H5BeamBeamDiagnosticsWriter::writeScalarField(
+        h5_file_t file, const std::string& name, const std::vector<h5_float64_t>& data,
+        const ippl::NDIndex<3>& localIndex, const std::array<double, 3>& origin,
+        const std::array<double, 3>& spacing) {
     reportOnError(
             H5Block3dSetView(
-                    file_m, localIndex[0].min(), localIndex[0].max(), localIndex[1].min(),
+                    file, localIndex[0].min(), localIndex[0].max(), localIndex[1].min(),
+                    localIndex[1].max(), localIndex[2].min(), localIndex[2].max()),
+            "H5Block3dSetView");
+
+    reportOnError(H5Block3dWriteScalarFieldFloat64(file, name.c_str(), data.data()), name.c_str());
+    reportOnError(
+            H5Block3dSetFieldOrigin(file, name.c_str(), origin[0], origin[1], origin[2]),
+            "H5Block3dSetFieldOrigin");
+    reportOnError(
+            H5Block3dSetFieldSpacing(file, name.c_str(), spacing[0], spacing[1], spacing[2]),
+            "H5Block3dSetFieldSpacing");
+}
+
+void H5BeamBeamDiagnosticsWriter::writeVectorField(
+        h5_file_t file, const std::string& name, const std::vector<h5_float64_t>& x,
+        const std::vector<h5_float64_t>& y, const std::vector<h5_float64_t>& z,
+        const ippl::NDIndex<3>& localIndex, const std::array<double, 3>& origin,
+        const std::array<double, 3>& spacing) {
+    reportOnError(
+            H5Block3dSetView(
+                    file, localIndex[0].min(), localIndex[0].max(), localIndex[1].min(),
                     localIndex[1].max(), localIndex[2].min(), localIndex[2].max()),
             "H5Block3dSetView");
 
     reportOnError(
-            H5Block3dWriteScalarFieldFloat64(file_m, name.c_str(), data.data()), name.c_str());
+            H5Block3dWriteVector3dFieldFloat64(file, name.c_str(), x.data(), y.data(), z.data()),
+            name.c_str());
     reportOnError(
-            H5Block3dSetFieldOrigin(file_m, name.c_str(), origin[0], origin[1], origin[2]),
+            H5Block3dSetFieldOrigin(file, name.c_str(), origin[0], origin[1], origin[2]),
             "H5Block3dSetFieldOrigin");
     reportOnError(
-            H5Block3dSetFieldSpacing(file_m, name.c_str(), spacing[0], spacing[1], spacing[2]),
+            H5Block3dSetFieldSpacing(file, name.c_str(), spacing[0], spacing[1], spacing[2]),
             "H5Block3dSetFieldSpacing");
 }

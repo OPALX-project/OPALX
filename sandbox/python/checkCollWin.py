@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import io
 import re
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -19,12 +20,52 @@ IP_DEF_RE = re.compile(
 ATTR_RE = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^,;]+)")
 
 
+def step_sort_key(name: str) -> tuple[int, str]:
+    if name.startswith("Step#"):
+        suffix = name.split("#", 1)[1]
+        try:
+            return (int(suffix), name)
+        except ValueError:
+            pass
+    return (sys.maxsize, name)
+
+
+def decode_h5_value(value):
+    if hasattr(value, "item"):
+        try:
+            return decode_h5_value(value.item())
+        except Exception:
+            pass
+    if hasattr(value, "shape"):
+        if value.shape == ():
+            return decode_h5_value(value[()])
+        return [decode_h5_value(item) for item in value]
+    if isinstance(value, bytes):
+        return value.decode("utf-8")
+    return value
+
+
+def format_h5_metadata_value(value) -> str:
+    value = decode_h5_value(value)
+    if isinstance(value, list):
+        return "(" + ",".join(format_h5_metadata_value(item) for item in value) + ")"
+    if isinstance(value, float):
+        return f"{value:.12g}"
+    return str(value)
+
+
 def parse_vector(text: str) -> tuple[float, ...]:
     parts = re.findall(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?", text)
     return tuple(float(part) for part in parts)
 
 
 def parse_dump(path: Path) -> dict:
+    if path.suffix.lower() in (".h5", ".hdf5"):
+        return parse_h5_dump(path)
+    return parse_ascii_dump(path)
+
+
+def parse_ascii_dump(path: Path) -> dict:
     metadata: dict[str, str] = {}
     rows: list[tuple[int, int, int, float, float, float, float]] = []
 
@@ -93,6 +134,68 @@ def parse_dump(path: Path) -> dict:
         "xs": xs,
         "ys": ys,
         "zs": zs,
+        "rho": rho,
+    }
+
+
+def parse_h5_dump(path: Path, step: int | None = None) -> dict:
+    try:
+        import h5py  # type: ignore
+    except ModuleNotFoundError as exc:
+        raise SystemExit(
+            "h5py is not installed. Activate the local OPALX Python environment first:\n"
+            "  source ~/.venv-h6/bin/activate"
+        ) from exc
+
+    with h5py.File(path, "r") as h5file:
+        step_names = sorted(h5file.keys(), key=step_sort_key)
+        if not step_names:
+            raise ValueError(f"no HDF5 steps found in {path}")
+
+        selected_name = step_names[0]
+        if step is not None:
+            for step_name in step_names:
+                global_step = decode_h5_value(h5file[step_name].attrs.get("global_step"))
+                if int(global_step) == step:
+                    selected_name = step_name
+                    break
+            else:
+                raise ValueError(f"global_step={step} not found in {path}")
+
+        step_group = h5file[selected_name]
+        block = step_group.get("Block")
+        if block is None:
+            raise ValueError(f"Block group missing in {path}:{selected_name}")
+        field_names = sorted(block.keys())
+        if not field_names:
+            raise ValueError(f"no H5Block fields found in {path}:{selected_name}")
+        field_group = block[field_names[0]]
+        dataset_names = sorted(field_group.keys(), key=step_sort_key)
+        if not dataset_names:
+            raise ValueError(f"no H5Block dataset found in {path}:{selected_name}/{field_names[0]}")
+
+        raw = np.asarray(field_group[dataset_names[0]][()], dtype=float)
+        origin = np.asarray(field_group.attrs["__Origin__"], dtype=float)
+        spacing = np.asarray(field_group.attrs["__Spacing__"], dtype=float)
+        rho = np.transpose(raw, (2, 1, 0))
+
+        nx, ny, nz = rho.shape
+        metadata = {
+            key: format_h5_metadata_value(value)
+            for key, value in step_group.attrs.items()
+        }
+        metadata.setdefault("mesh_origin", format_h5_metadata_value(origin.tolist()))
+        metadata.setdefault("mesh_spacing", format_h5_metadata_value(spacing.tolist()))
+
+    return {
+        "path": path,
+        "metadata": metadata,
+        "is": np.arange(nx),
+        "js": np.arange(ny),
+        "ks": np.arange(nz),
+        "xs": origin[0] + np.arange(nx) * spacing[0],
+        "ys": origin[1] + np.arange(ny) * spacing[1],
+        "zs": origin[2] + np.arange(nz) * spacing[2],
         "rho": rho,
     }
 

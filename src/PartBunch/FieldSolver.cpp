@@ -8,9 +8,143 @@
 
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
+#include "Structure/H5BeamBeamDiagnosticsWriter.h"
+#include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
 extern Inform* gmsg;
+
+namespace {
+    std::string trim(std::string value) {
+        const auto first = value.find_first_not_of(" \t");
+        if (first == std::string::npos) {
+            return "";
+        }
+        const auto last = value.find_last_not_of(" \t");
+        return value.substr(first, last - first + 1);
+    }
+
+    bool splitHeaderLine(const std::string& line, std::string& key, std::string& value) {
+        const auto equal = line.find('=');
+        if (equal == std::string::npos) {
+            return false;
+        }
+        key   = trim(line.substr(0, equal));
+        value = trim(line.substr(equal + 1));
+        return !key.empty();
+    }
+
+    double parseDouble(const std::string& value, double fallback) {
+        try {
+            return std::stod(value);
+        } catch (...) {
+            return fallback;
+        }
+    }
+
+    long long parseLongLong(const std::string& value, long long fallback) {
+        try {
+            return std::stoll(value);
+        } catch (...) {
+            return fallback;
+        }
+    }
+
+    bool parseBool(const std::string& value, bool fallback) {
+        if (value == "1" || value == "true" || value == "TRUE") {
+            return true;
+        }
+        if (value == "0" || value == "false" || value == "FALSE") {
+            return false;
+        }
+        return fallback;
+    }
+
+    template <std::size_t N>
+    std::array<double, N> parseDoubleArray(
+            std::string value, const std::array<double, N>& fallback) {
+        for (char& c : value) {
+            if (c == '(' || c == ')' || c == ',') {
+                c = ' ';
+            }
+        }
+
+        std::array<double, N> parsed = fallback;
+        std::istringstream in(value);
+        for (std::size_t i = 0; i < N; ++i) {
+            if (!(in >> parsed[i])) {
+                return fallback;
+            }
+        }
+        return parsed;
+    }
+
+    template <typename Field>
+    H5BeamBeamDiagnosticsWriter::StepMetadata makeH5Metadata(
+            const Field& field, const std::vector<std::string>& extraHeaderLines) {
+        H5BeamBeamDiagnosticsWriter::StepMetadata meta;
+
+        const ippl::NDIndex<3> domain = field.getLayout().getDomain();
+        const auto spacing            = field.get_mesh().getMeshSpacing();
+        const auto origin             = field.get_mesh().getOrigin();
+        for (std::size_t d = 0; d < 3; ++d) {
+            meta.shape[d]   = static_cast<h5_int64_t>(domain[d].length());
+            meta.origin[d]  = origin[d];
+            meta.spacing[d] = spacing[d];
+        }
+
+        for (const std::string& headerLine : extraHeaderLines) {
+            std::string key;
+            std::string value;
+            if (!splitHeaderLine(headerLine, key, value)) {
+                continue;
+            }
+
+            if (key == "coordinate_frame") {
+                meta.coordinateFrame = value;
+            } else if (key == "global_step") {
+                meta.globalStep = parseLongLong(value, meta.globalStep);
+            } else if (key == "time") {
+                meta.time = parseDouble(value, meta.time);
+            } else if (key == "path_length_s") {
+                meta.pathLengthS = parseDouble(value, meta.pathLengthS);
+            } else if (key == "snapshot_kind") {
+                meta.snapshotKind = value;
+            } else if (key == "interaction_window_active") {
+                meta.interactionWindowActive = parseBool(value, meta.interactionWindowActive);
+            } else if (key == "mesh_origin") {
+                meta.origin = parseDoubleArray<3>(value, meta.origin);
+            } else if (key == "mesh_spacing") {
+                meta.spacing = parseDoubleArray<3>(value, meta.spacing);
+            } else if (key == "interaction_point_s") {
+                meta.interactionPointS = parseDouble(value, meta.interactionPointS);
+            } else if (key == "interaction_point_local_z") {
+                meta.interactionPointLocalZ = parseDouble(value, meta.interactionPointLocalZ);
+            } else if (key == "ip_element_s_range") {
+                meta.beamBeamSRange = parseDoubleArray<2>(value, meta.beamBeamSRange);
+            } else if (key == "particle_total_num") {
+                meta.particleTotalNum = parseLongLong(value, meta.particleTotalNum);
+            } else if (key == "particle_total_charge") {
+                meta.particleTotalCharge = parseDouble(value, meta.particleTotalCharge);
+            } else if (key == "particle_mean_r") {
+                meta.particleMeanR = parseDoubleArray<3>(value, meta.particleMeanR);
+            } else if (key == "particle_mean_s") {
+                meta.particleMeanS = parseDouble(value, meta.particleMeanS);
+            } else if (key == "field_stage") {
+                meta.fieldStage = value;
+            }
+        }
+
+        return meta;
+    }
+
+    std::string h5FieldName(const std::string& what, const std::string& tag) {
+        if (!tag.empty()) {
+            return tag;
+        }
+        return Util::toUpper(what);
+    }
+}  // namespace
 
 template <>
 template <typename Solver>
@@ -94,6 +228,18 @@ void FieldSolver<double, 3>::dumpVectField(
     }
 
     VField_t<double, 3>* field = this->getE();
+
+    if (Options::enableHDF5 && !Options::asciidump) {
+        const std::string basename = OpalData::getInstance()->getInputBasename();
+        const std::string filename = H5BeamBeamDiagnosticsWriter::makeOutputFileName(
+                basename, Util::toUpper(what), type, tag);
+        const auto meta = makeH5Metadata(*field, extraHeaderLines);
+        H5BeamBeamDiagnosticsWriter::writeVectorQuantity(
+                filename, h5FieldName(what, tag), meta, *field);
+        m << level5 << "*** FINISHED DUMPING " + Util::toUpper(what) << " FIELD *** to " << filename
+          << endl;
+        return;
+    }
 
     auto localIdx = field->getOwned();
     auto mesh_mp  = &(field->get_mesh());
@@ -205,6 +351,18 @@ void FieldSolver<double, 3>::dumpScalField(
                                 ? this->getPhi()
                                 : this->getRho();  // both rho and phi are in the same variable (in
                                                    // place computation)
+
+    if (Options::enableHDF5 && !Options::asciidump) {
+        const std::string basename = OpalData::getInstance()->getInputBasename();
+        const std::string filename = H5BeamBeamDiagnosticsWriter::makeOutputFileName(
+                basename, Util::toUpper(what), type, tag);
+        const auto meta = makeH5Metadata(*field, extraHeaderLines);
+        H5BeamBeamDiagnosticsWriter::writeScalarQuantity(
+                filename, h5FieldName(what, tag), meta, *field);
+        m << level5 << "*** FINISHED DUMPING " + Util::toUpper(what) << " FIELD *** to " << filename
+          << endl;
+        return;
+    }
 
     // auto localIdx = field->getOwned();
     ippl::NDIndex<3> localIdx = field->getLayout().getLocalNDIndex();

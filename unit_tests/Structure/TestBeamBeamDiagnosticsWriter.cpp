@@ -36,3 +36,14 @@ TEST(BeamBeamDiagnosticsWriterTest, PreservesNonFiniteDiagnosticsForCallerVisibi
 
     EXPECT_TRUE(std::isnan(H5BeamBeamDiagnosticsWriter::normalizeParticleMeanS(meta)));
 }
+
+TEST(BeamBeamDiagnosticsWriterTest, BuildsOneFilePerDiagnosticQuantityName) {
+    EXPECT_EQ(
+            H5BeamBeamDiagnosticsWriter::makeOutputFileName(
+                    "gamma_gamma_pairs", "RHO", "scalar", "beambeam_rho_pre"),
+            "data/gamma_gamma_pairs-RHO_scalar-beambeam_rho_pre.h5");
+    EXPECT_EQ(
+            H5BeamBeamDiagnosticsWriter::makeOutputFileName(
+                    "gamma_gamma_pairs", "EF", "vector", "beambeam_e"),
+            "data/gamma_gamma_pairs-EF_vector-beambeam_e.h5");
+}

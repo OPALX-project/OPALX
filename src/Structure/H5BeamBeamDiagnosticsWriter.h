@@ -41,8 +41,10 @@ public:
 
         bool interactionWindowActive         = false;
         double interactionPointS             = 0.0;
+        double interactionPointLocalZ        = 0.0;
         std::array<double, 2> beamBeamSRange = {0.0, 0.0};
 
+        long long particleTotalNum = 0;
         double particleTotalCharge = 0.0;
         /**
          * @brief Bunch centroid in the diagnostic coordinate frame [m].
@@ -63,6 +65,8 @@ public:
          * consistent with this definition.
          */
         double particleMeanS = 0.0;
+
+        std::string fieldStage = "";
     };
 
     explicit H5BeamBeamDiagnosticsWriter(const std::string& fileName);
@@ -82,6 +86,18 @@ public:
      */
     static double normalizeParticleMeanS(const StepMetadata& meta);
 
+    static std::string makeOutputFileName(
+            const std::string& basename, const std::string& what, const std::string& type,
+            const std::string& tag);
+
+    static void writeScalarQuantity(
+            const std::string& fileName, const std::string& fieldName, const StepMetadata& meta,
+            const Field_t<3>& field);
+
+    static void writeVectorQuantity(
+            const std::string& fileName, const std::string& fieldName, const StepMetadata& meta,
+            const VField_t<double, 3>& field);
+
     void beginStep(const StepMetadata& meta, const Field_t<3>& rhoDensity);
     void endStep(const Field_t<3>& phiField, const VField_t<double, 3>& efield);
 
@@ -99,6 +115,18 @@ private:
             const VField_t<double, 3>& field, const ippl::NDIndex<3>& localIndex,
             std::vector<h5_float64_t>& x, std::vector<h5_float64_t>& y,
             std::vector<h5_float64_t>& z);
+
+    static void writeHeader(h5_file_t file);
+    static void writeStepMetadata(h5_file_t file, const StepMetadata& meta);
+    static void writeScalarField(
+            h5_file_t file, const std::string& name, const std::vector<h5_float64_t>& data,
+            const ippl::NDIndex<3>& localIndex, const std::array<double, 3>& origin,
+            const std::array<double, 3>& spacing);
+    static void writeVectorField(
+            h5_file_t file, const std::string& name, const std::vector<h5_float64_t>& x,
+            const std::vector<h5_float64_t>& y, const std::vector<h5_float64_t>& z,
+            const ippl::NDIndex<3>& localIndex, const std::array<double, 3>& origin,
+            const std::array<double, 3>& spacing);
 
     void open();
     void writeHeader();

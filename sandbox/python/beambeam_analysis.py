@@ -29,7 +29,7 @@ GUI_STATE_PATH = SCRIPT_DIR / ".beambeam_analysis_state.json"
 
 DEFAULT_GUI_STATE = {
     "collwin": {
-        "filename": "data/sandbox/BeamBeam-2-RHO_scalar-collwin_vis-000010.dat",
+        "filename": "data/sandbox/BeamBeam-2-RHO_scalar-collwin_vis.h5",
         "input": "sandbox/BeamBeam-2.in",
         "output": "",
         "start": "",
@@ -47,7 +47,7 @@ DEFAULT_GUI_STATE = {
         "output": "",
     },
     "compare": {
-        "h5_path": "data/sandbox/beambeam-1-beambeam_diagnostics.h5",
+        "h5_path": "data/sandbox/BeamBeam-2-RHO_scalar-beambeam_rho_pre.h5",
         "step": "24",
         "start": "",
         "end": "",
@@ -133,10 +133,14 @@ def normalize_compare_state(state: str | None) -> str | None:
         "all states": None,
         "all": None,
         "beambeam tracking": "active_beambeam",
+        "active beambeam diagnostics": "active_beambeam_field_diagnostics",
         "normal tracking": "normal_tracking",
         "active_beambeam": "active_beambeam",
+        "active_beambeam_field_diagnostics": "active_beambeam_field_diagnostics",
         "normal_tracking": "normal_tracking",
         "before_beambeam_mesh_enlarge": "before_beambeam_mesh_enlarge",
+        "before_interaction_window_mesh_enlarge": "before_interaction_window_mesh_enlarge",
+        "after_interaction_window_mesh_restore": "after_interaction_window_mesh_restore",
     }
     return mapping.get(normalized, normalized)
 
@@ -144,8 +148,11 @@ def normalize_compare_state(state: str | None) -> str | None:
 def display_compare_state(raw_state: str) -> str:
     mapping = {
         "active_beambeam": "beambeam tracking",
+        "active_beambeam_field_diagnostics": "beambeam tracking",
         "normal_tracking": "normal tracking",
         "before_beambeam_mesh_enlarge": "normal tracking",
+        "before_interaction_window_mesh_enlarge": "normal tracking",
+        "after_interaction_window_mesh_restore": "normal tracking",
     }
     return mapping.get(raw_state, raw_state)
 
@@ -548,18 +555,42 @@ def prepare_ez_along_bunch_data(
     np = manufactured.load_numpy()
     h5py = manufactured.load_h5py()
 
-    with h5py.File(h5_path, "r") as h5file:
-        step_name, _snapshot_kind = manufactured.select_h5_step(
-            h5file,
+    rho_h5 = None
+    ef_h5 = None
+    try:
+        rho_h5, rho_step, _step_name, _snapshot_kind = manufactured.read_related_h5_step(
+            h5py,
+            h5_path,
+            "rho",
             step,
             normalize_compare_state(state),
         )
-        step_group = h5file[step_name]
-        ez_field, origin, spacing = manufactured.read_h5_scalar_field(np, step_group, "Ez")
-        particle_mean_r = manufactured.decode_value(step_group.attrs.get("particle_mean_r"))
-        interaction_point_s = manufactured.decode_value(step_group.attrs.get("interaction_point_s"))
-        path_length_s = manufactured.decode_value(step_group.attrs.get("path_length_s"))
-        snapshot_kind = str(manufactured.decode_value(step_group.attrs.get("snapshot_kind", "")))
+        ef_h5, ef_step, _ef_step_name, _ = manufactured.read_related_h5_step(
+            h5py,
+            h5_path,
+            "ef",
+            step,
+            normalize_compare_state(state),
+        )
+        if rho_step is None:
+            raise SystemExit(f"missing rho HDF5 file for {h5_path}")
+        if ef_step is None:
+            ez_field, origin, spacing = manufactured.read_h5_scalar_field(np, rho_step, "Ez")
+        else:
+            (_ex, _ey, ez_field), origin, spacing = manufactured.read_h5_vector_field(
+                np,
+                ef_step,
+                "beambeam_e",
+                aliases=("EF",),
+            )
+        particle_mean_r = manufactured.decode_value(rho_step.attrs.get("particle_mean_r"))
+        interaction_point_s = manufactured.decode_value(rho_step.attrs.get("interaction_point_s"))
+        path_length_s = manufactured.decode_value(rho_step.attrs.get("path_length_s"))
+        snapshot_kind = str(manufactured.decode_value(rho_step.attrs.get("snapshot_kind", "")))
+    finally:
+        for h5file in (ef_h5, rho_h5):
+            if h5file is not None:
+                h5file.close()
 
     if not (isinstance(particle_mean_r, list) and len(particle_mean_r) >= 3):
         raise SystemExit("particle_mean_r missing or invalid in HDF5 step.")
