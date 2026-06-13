@@ -59,6 +59,7 @@ namespace {
             FieldLayout_t<3> fl(MPI_COMM_WORLD, domain, decomp, true);
             auto pc = std::make_shared<PC_t>(mesh, fl);
             pc->Sp  = static_cast<short>(species);
+            pc->setBunchStateHandler(std::make_shared<BunchStateHandler>());
             return pc;
         }
 
@@ -115,10 +116,12 @@ namespace {
             const size_t before = pc->getTotalNum();
 
             Options::seed = seed;
-            MuonDecay decay(tau0, containerIndex, Physics::m_mu);
-            const size_t destroyed = decay.apply(*pc, dt, 0, containerIndex);
+            MuonDecay decay(tau0, containerIndex, Physics::m_mu, -1);
+            const size_t marked    = decay.apply(*pc, dt, 0, containerIndex);
+            const size_t destroyed = pc->deleteInvalidParticles();
             const size_t after     = pc->getTotalNum();
 
+            EXPECT_EQ(marked, destroyed);
             EXPECT_EQ(before, after + destroyed);
             return {destroyed, after};
         }
@@ -137,7 +140,7 @@ namespace {
         createParticles(pc, 64, 0.0);
         const size_t before = pc->getTotalNum();
 
-        MuonDecay decay(1.0, 0, Physics::m_mu);
+        MuonDecay decay(1.0, 0, Physics::m_mu, -1);
         EXPECT_EQ(decay.apply(*pc, 0.0, 7, 2), 0u);
         EXPECT_EQ(decay.apply(*pc, -1.0, 7, 2), 0u);
         EXPECT_EQ(pc->getTotalNum(), before);
@@ -153,7 +156,7 @@ namespace {
             createParticles(pc, 32, 0.0);
             const size_t before = pc->getTotalNum();
 
-            MuonDecay decay(tau0, 1, Physics::m_mu);
+            MuonDecay decay(tau0, 1, Physics::m_mu, -1);
             EXPECT_EQ(decay.apply(*pc, 1.0, 0, 1), 0u);
             EXPECT_EQ(pc->getTotalNum(), before);
         }
@@ -163,7 +166,7 @@ namespace {
         auto pc = makeContainer();
         ASSERT_EQ(pc->getLocalNum(), 0u);
 
-        MuonDecay decay(1.0, 0, Physics::m_mu);
+        MuonDecay decay(1.0, 0, Physics::m_mu, -1);
         EXPECT_EQ(decay.apply(*pc, 1.0, 0, 0), 0u);
         EXPECT_EQ(pc->getTotalNum(), 0u);
     }
@@ -205,9 +208,11 @@ namespace {
         createParticles(muons, 128, 0.0);
 
         Options::seed = 42;
-        MuonDecay decay(1.0e-12, 0, Physics::m_mu);
+        MuonDecay decay(1.0e-12, 0, Physics::m_mu, -1);
         // No setDaughterContainer call.
-        const size_t destroyed = decay.apply(*muons, 1.0, 0, 0);
+        const size_t marked    = decay.apply(*muons, 1.0, 0, 0);
+        const size_t destroyed = muons->deleteInvalidParticles();
+        EXPECT_EQ(destroyed, marked);
         EXPECT_EQ(destroyed, 128u);
         EXPECT_EQ(muons->getTotalNum(), 0u);
     }
@@ -224,10 +229,12 @@ namespace {
         createParticles(muons, 256, 0.0);
 
         Options::seed = 1234;
-        MuonDecay decay(1.0e-12, 0, Physics::m_mu);
+        MuonDecay decay(1.0e-12, 0, Physics::m_mu, -1);
         decay.setDaughterContainer(electrons, Physics::m_e);
 
-        const size_t destroyed = decay.apply(*muons, 1.0, 0, 0);
+        const size_t marked    = decay.apply(*muons, 1.0, 0, 0);
+        const size_t destroyed = muons->deleteInvalidParticles();
+        EXPECT_EQ(destroyed, marked);
         EXPECT_EQ(destroyed, 256u);
         EXPECT_EQ(muons->getTotalNum(), 0u);
         EXPECT_EQ(electrons->getTotalNum(), 256u);
@@ -246,10 +253,12 @@ namespace {
         Kokkos::deep_copy(muR_host, muons->R.getView());
 
         Options::seed = 999;
-        MuonDecay decay(1.0e-12, 0, Physics::m_mu);
+        MuonDecay decay(1.0e-12, 0, Physics::m_mu, -1);
         decay.setDaughterContainer(electrons, Physics::m_e);
 
-        const size_t destroyed = decay.apply(*muons, 1.0, 0, 0);
+        const size_t marked    = decay.apply(*muons, 1.0, 0, 0);
+        const size_t destroyed = muons->deleteInvalidParticles();
+        EXPECT_EQ(destroyed, marked);
         ASSERT_EQ(destroyed, nPart);
         ASSERT_EQ(electrons->getLocalNum(), nPart);
 
@@ -272,10 +281,12 @@ namespace {
         createParticles(muons, nPart, 0.0);  // muons at rest
 
         Options::seed = 555;
-        MuonDecay decay(1.0e-12, 0, Physics::m_mu);
+        MuonDecay decay(1.0e-12, 0, Physics::m_mu, -1);
         decay.setDaughterContainer(electrons, Physics::m_e);
 
-        const size_t destroyed = decay.apply(*muons, 1.0, 0, 0);
+        const size_t marked    = decay.apply(*muons, 1.0, 0, 0);
+        const size_t destroyed = muons->deleteInvalidParticles();
+        EXPECT_EQ(destroyed, marked);
         ASSERT_EQ(destroyed, nPart);
         ASSERT_EQ(electrons->getLocalNum(), nPart);
 
@@ -310,10 +321,12 @@ namespace {
         createParticles(muons, nPart, 5.0);  // boosted muons (pz = 5 in beta*gamma)
 
         Options::seed = 777;
-        MuonDecay decay(1.0e-6, 0, Physics::m_mu);
+        MuonDecay decay(1.0e-6, 0, Physics::m_mu, -1);
         decay.setDaughterContainer(electrons, Physics::m_e);
 
-        const size_t destroyed = decay.apply(*muons, 10.0, 0, 0);
+        const size_t marked    = decay.apply(*muons, 10.0, 0, 0);
+        const size_t destroyed = muons->deleteInvalidParticles();
+        EXPECT_EQ(destroyed, marked);
         ASSERT_GT(destroyed, 0u);
         ASSERT_EQ(electrons->getLocalNum(), destroyed);
 
@@ -345,9 +358,10 @@ namespace {
             createParticles(muons, 256, 1.0);
 
             Options::seed = seed;
-            MuonDecay decay(1.0e-6, 0, Physics::m_mu);
+            MuonDecay decay(1.0e-6, 0, Physics::m_mu, -1);
             decay.setDaughterContainer(electrons, Physics::m_e);
             decay.apply(*muons, 1.0, 0, 0);
+            muons->deleteInvalidParticles();
 
             // Read back electron momenta.
             auto eP_host = electrons->P.getHostMirror();
@@ -380,14 +394,40 @@ namespace {
         createParticles(muons, nPart, 0.5);
 
         Options::seed = 303;
-        MuonDecay decay(2.0, 0, Physics::m_mu);  // long lifetime, moderate dt -> partial decay
+        MuonDecay decay(2.0, 0, Physics::m_mu, -1);  // long lifetime, moderate dt -> partial decay
         decay.setDaughterContainer(electrons, Physics::m_e);
 
-        const size_t destroyed = decay.apply(*muons, 0.5, 0, 0);
+        const size_t marked    = decay.apply(*muons, 0.5, 0, 0);
+        const size_t destroyed = muons->deleteInvalidParticles();
+        EXPECT_EQ(destroyed, marked);
         EXPECT_GT(destroyed, 0u);
         EXPECT_LT(destroyed, nPart);
         EXPECT_EQ(muons->getTotalNum(), nPart - destroyed);
         EXPECT_EQ(electrons->getTotalNum(), destroyed);
+    }
+
+    TEST_F(DecayTest, ApplyMarksInvalidMaskBeforeDeletion) {
+        constexpr size_t nPart = 16;
+        auto muons             = makeContainer();
+        muons->setM(Physics::m_mu);
+        createParticles(muons, nPart, 0.0);
+
+        Options::seed = 404;
+        MuonDecay decay(1.0e-12, 0, Physics::m_mu, -1);
+
+        const size_t marked = decay.apply(*muons, 1.0, 0, 0);
+        ASSERT_EQ(marked, nPart);
+        EXPECT_EQ(muons->getTotalNum(), nPart);
+
+        auto invalidHost = Kokkos::create_mirror_view_and_copy(
+                Kokkos::HostSpace(), muons->InvalidMask.getView());
+        for (size_t i = 0; i < nPart; ++i) {
+            EXPECT_TRUE(invalidHost(i));
+        }
+
+        const size_t destroyed = muons->deleteInvalidParticles();
+        EXPECT_EQ(destroyed, nPart);
+        EXPECT_EQ(muons->getTotalNum(), 0u);
     }
 
     // =====================================================================
@@ -402,10 +442,12 @@ namespace {
         createParticles(pions, 256, 0.0);
 
         Options::seed = 1234;
-        PionDecay decay(1.0e-12, 0, Physics::m_pi);  // very short lifetime
+        PionDecay decay(1.0e-12, 0, Physics::m_pi, +1);  // very short lifetime
         decay.setDaughterContainer(muons, Physics::m_mu);
 
-        const size_t destroyed = decay.apply(*pions, 1.0, 0, 0);
+        const size_t marked    = decay.apply(*pions, 1.0, 0, 0);
+        const size_t destroyed = pions->deleteInvalidParticles();
+        EXPECT_EQ(destroyed, marked);
         EXPECT_EQ(destroyed, 256u);
         EXPECT_EQ(pions->getTotalNum(), 0u);
         EXPECT_EQ(muons->getTotalNum(), 256u);
@@ -420,10 +462,12 @@ namespace {
         createParticles(pions, nPart, 0.0);  // pions at rest
 
         Options::seed = 888;
-        PionDecay decay(1.0e-12, 0, Physics::m_pi);
+        PionDecay decay(1.0e-12, 0, Physics::m_pi, +1);
         decay.setDaughterContainer(muons, Physics::m_mu);
 
-        const size_t destroyed = decay.apply(*pions, 1.0, 0, 0);
+        const size_t marked    = decay.apply(*pions, 1.0, 0, 0);
+        const size_t destroyed = pions->deleteInvalidParticles();
+        EXPECT_EQ(destroyed, marked);
         ASSERT_EQ(destroyed, nPart);
         ASSERT_EQ(muons->getLocalNum(), nPart);
 
@@ -466,10 +510,12 @@ namespace {
         createParticles(pions, nPart, 3.0);  // boosted pions
 
         Options::seed = 999;
-        PionDecay decay(1.0e-8, 0, Physics::m_pi);
+        PionDecay decay(1.0e-8, 0, Physics::m_pi, +1);
         decay.setDaughterContainer(muons, Physics::m_mu);
 
-        const size_t destroyed = decay.apply(*pions, 10.0, 0, 0);
+        const size_t marked    = decay.apply(*pions, 10.0, 0, 0);
+        const size_t destroyed = pions->deleteInvalidParticles();
+        EXPECT_EQ(destroyed, marked);
         ASSERT_GT(destroyed, 0u);
         ASSERT_EQ(muons->getLocalNum(), destroyed);
 
@@ -497,16 +543,16 @@ namespace {
 
     TEST_F(DecayTest, SetDaughterContainerAcceptsCorrectSpecies) {
         auto electrons = makeContainer(ParticleType::ELECTRON);
-        MuonDecay muonDecay(1.0e-6, 0, Physics::m_mu);
+        MuonDecay muonDecay(1.0e-6, 0, Physics::m_mu, -1);
         EXPECT_NO_THROW(muonDecay.setDaughterContainer(electrons, Physics::m_e));
 
         auto muons = makeContainer(ParticleType::MUON);
-        PionDecay pionDecay(1.0e-8, 0, Physics::m_pi);
+        PionDecay pionDecay(1.0e-8, 0, Physics::m_pi, +1);
         EXPECT_NO_THROW(pionDecay.setDaughterContainer(muons, Physics::m_mu));
     }
 
     TEST_F(DecayTest, SetDaughterContainerRejectsWrongSpecies) {
-        MuonDecay decay(1.0e-6, 0, Physics::m_mu);
+        MuonDecay decay(1.0e-6, 0, Physics::m_mu, -1);
 
         auto protonDaughter = makeContainer(ParticleType::PROTON);
         EXPECT_THROW(decay.setDaughterContainer(protonDaughter, Physics::m_p), OpalException);
@@ -522,13 +568,13 @@ namespace {
         // Default-constructed container has Sp = 0 (PHOTON) via makeContainer()
         // with UNNAMED->0 cast; use explicit UNNAMED here which is -1 (sentinel).
         auto unnamed = makeContainer(ParticleType::UNNAMED);
-        MuonDecay decay(1.0e-6, 0, Physics::m_mu);
+        MuonDecay decay(1.0e-6, 0, Physics::m_mu, -1);
         EXPECT_THROW(decay.setDaughterContainer(unnamed, Physics::m_e), OpalException);
     }
 
     TEST_F(DecayTest, PionDecayRejectsElectronDaughter) {
         auto electrons = makeContainer(ParticleType::ELECTRON);
-        PionDecay decay(1.0e-8, 0, Physics::m_pi);
+        PionDecay decay(1.0e-8, 0, Physics::m_pi, +1);
         // PionDecay's allowed daughter is MUON, not ELECTRON.
         EXPECT_THROW(decay.setDaughterContainer(electrons, Physics::m_e), OpalException);
     }
@@ -538,13 +584,15 @@ namespace {
         muons->setM(Physics::m_mu);
         createParticles(muons, 16, 0.0);
 
-        MuonDecay decay(1.0e-12, 0, Physics::m_mu);
+        MuonDecay decay(1.0e-12, 0, Physics::m_mu, -1);
         // Null daughter = destroy-only mode; must not throw regardless of species.
         EXPECT_NO_THROW(decay.setDaughterContainer(nullptr, 0.0));
 
         // Decay still runs in destroy-only mode.
         Options::seed          = 11;
-        const size_t destroyed = decay.apply(*muons, 1.0, 0, 0);
+        const size_t marked    = decay.apply(*muons, 1.0, 0, 0);
+        const size_t destroyed = muons->deleteInvalidParticles();
+        EXPECT_EQ(destroyed, marked);
         EXPECT_EQ(destroyed, 16u);
     }
 

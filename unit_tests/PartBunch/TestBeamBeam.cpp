@@ -176,6 +176,40 @@ namespace {
         EXPECT_NEAR(sourceFrameZ, 5.0e-3, 1.0e-15);
     }
 
+    TEST_F(BeamBeamPartBunchTest, SourceRetirementTimeUsesConfiguredThreshold) {
+        EXPECT_FALSE(BEAMBEAM::sourceRetireTimeReached(200.0e-12, std::nullopt));
+        const std::optional<double> retireTime = 100.0e-12;
+        EXPECT_FALSE(BEAMBEAM::sourceRetireTimeReached(99.0e-12, retireTime));
+        EXPECT_TRUE(BEAMBEAM::sourceRetireTimeReached(100.0e-12, retireTime));
+        EXPECT_TRUE(BEAMBEAM::sourceRetireTimeReached(101.0e-12, retireTime));
+    }
+
+    TEST_F(BeamBeamPartBunchTest, CopiedSourceOverlapUsesMirroredIntervalAtIp) {
+        BEAMBEAM::ActualGeometry geometry;
+        geometry.interactionPointS = 1.25;
+
+        EXPECT_FALSE(BEAMBEAM::copiedSourceBunchesOverlap(1.00, 1.20, geometry));
+        EXPECT_TRUE(BEAMBEAM::copiedSourceBunchesOverlap(1.00, 1.25, geometry));
+        EXPECT_TRUE(BEAMBEAM::copiedSourceBunchesOverlap(1.20, 1.30, geometry));
+        EXPECT_TRUE(BEAMBEAM::copiedSourceBunchesOverlap(1.25, 1.50, geometry));
+        EXPECT_FALSE(BEAMBEAM::copiedSourceBunchesOverlap(1.30, 1.50, geometry));
+    }
+
+    TEST_F(BeamBeamPartBunchTest, MarkAllParticlesInvalidRetiresAllParticles) {
+        auto bunch = makeBunch();
+        setParticlePositions(
+                bunch, {Vector3d(-1.0e-3, 0.0, 0.0), Vector3d(0.0, 1.0e-3, 2.0e-3),
+                        Vector3d(1.0e-3, 0.0, 4.0e-3)});
+
+        auto pc                  = bunch->getParticleContainer();
+        const size_t totalBefore = pc->getTotalNum();
+        ASSERT_GT(totalBefore, 0u);
+
+        EXPECT_EQ(pc->markAllParticlesInvalid(), totalBefore);
+        EXPECT_EQ(pc->deleteInvalidParticles(), totalBefore);
+        EXPECT_EQ(pc->getTotalNum(), 0u);
+    }
+
     // ----------------------------------------------------------------------------
     // enableBeamBeamWindowMesh
     // ----------------------------------------------------------------------------

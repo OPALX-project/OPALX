@@ -72,6 +72,15 @@ TEST(PredefinedStringTest, TestDistributionType) {
     }
 
     {
+        Token token("PredefinedStringTest.in", 1, Token::IS_STRING, "emittedfromfile");
+        Statement::TokenList tokenList({token});
+        SimpleStatement statement("PredefinedString", tokenList);
+
+        EXPECT_NO_THROW(typeAttribute->parse(*typeAttr, statement, true));
+        EXPECT_EQ(Attributes::getString(*typeAttr), "EMITTEDFROMFILE");
+    }
+
+    {
         Token token("PredefinedStringTest.in", 1, Token::IS_STRING, "guass");
         Statement::TokenList tokenList({token});
         SimpleStatement statement("PredefinedString", tokenList);

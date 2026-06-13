@@ -98,6 +98,7 @@ enum class ElementType : unsigned short {
     BEAMBEAM,
     LASER,
     MARKER,
+    MONITOR,
     MULTIPOLE,
     MULTIPOLET,
     RFCAVITY,

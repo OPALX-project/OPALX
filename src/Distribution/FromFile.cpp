@@ -342,6 +342,8 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     mALL << "Rank " << rank << ": " << nlocal << " local particles" << endl;
     ippl::Comm->barrier();
 
+    fillPolarization(nlocalCurrent, nlocal);
+
     pc_m->markMomentsDirty();
 }
 

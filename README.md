@@ -4,8 +4,6 @@
 
 [OPALX documentation](https://opalx-project.github.io/Manual/)
 
-Note that OPALX has a clang-format check (version 21.1.8) on every PR to master. See [IPPL's documentation](https://github.com/IPPL-framework/ippl/blob/master/doc/extras/CodeFormattingSetup.md) for instructions how to setup pre-commit hooks.
-
 ## Dependencies
 
 In order to compile OPALX, make sure you have the following dependencies installed on your system:
@@ -104,6 +102,14 @@ For the release mode, use `Release` instead of `Debug` as the argument for `-DBU
 | `OPALX_FIELD_DEBUG` | OFF | Disables FieldSolver field-dump debug code; emits field dumps during simulation when enabled. |
 | `OPALX_USE_KOKKOS_MATH_CONSTANTS` | ON | Sources `Physics.h` mathematical constants such as `pi`, `e`, and `log10e` from `Kokkos::numbers`; turn OFF to use literal fallback values. |
 
+Dependency version/ref options:
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `IPPL_GIT_TAG` | `master` | IPPL branch, tag, commit, or release version to fetch. Numeric release shorthand such as `3.2.0` is resolved to `IPPL-3.2.0`. |
+| `Kokkos_VERSION` | `5.1.1` | Kokkos version requested by IPPL. A plain version asks CMake to use an installed Kokkos of that version or newer; use `git.<tag>`, `git.<branch>`, or `git.<sha>` to request a source checkout ref. |
+| `Heffte_VERSION` | `2.4.0` | Heffte version requested by IPPL when FFT support is enabled. A plain version asks CMake to use an installed Heffte of that version or newer; use `git.<tag>`, `git.<branch>`, or `git.<sha>` to request a source checkout ref. |
+
 Enable flags with `-D<FLAG>=ON` during CMake configuration.
 
 ### Compilation
@@ -118,6 +124,39 @@ make -j 4
 ```
 using `4` threads for example.
 
+
+## Continuous Integration
+
+[![CPU Serial](https://github.com/OPALX-project/OPALX/actions/workflows/cpu-serial.yml/badge.svg)](https://github.com/OPALX-project/OPALX/actions/workflows/cpu-serial.yml)
+[![CPU OpenMP](https://github.com/OPALX-project/OPALX/actions/workflows/cpu-openmp.yml/badge.svg)](https://github.com/OPALX-project/OPALX/actions/workflows/cpu-openmp.yml)
+[![GPU CUDA](https://github.com/OPALX-project/OPALX/actions/workflows/gpu-cuda.yml/badge.svg)](https://github.com/OPALX-project/OPALX/actions/workflows/gpu-cuda.yml)
+[![GPU HIP](https://github.com/OPALX-project/OPALX/actions/workflows/gpu-hip.yml/badge.svg)](https://github.com/OPALX-project/OPALX/actions/workflows/gpu-hip.yml)
+[![GPU SYCL](https://github.com/OPALX-project/OPALX/actions/workflows/gpu-sycl.yml/badge.svg)](https://github.com/OPALX-project/OPALX/actions/workflows/gpu-sycl.yml)
+
+OPALX uses GitHub Actions for required and non-required pull request checks. The compile CI workflows run on non-draft pull requests to `master` when the `compile-ci` label is selected. Required checks have to pass before a PR can be merged; non-required checks provide additional feedback but are not part of the required branch protection status checks.
+
+### Formatting Checks
+
+- `Check clang-format`: checks the formatting of changed source and unit test files in the pull request using clang-format 21.1.8. This check is **not required**.
+
+See [IPPL's formatting documentation](https://github.com/IPPL-framework/ippl/blob/master/doc/extras/CodeFormattingSetup.md) for instructions on setting up pre-commit hooks.
+
+### Compilation
+
+- `CPU Serial`: compiles debug OPALX and the unit tests with `PLATFORMS=SERIAL`. This check is **required**.
+- `CPU OpenMP`: compiles debug OPALX and the unit tests with `PLATFORMS=OPENMP`. This check is **required**.
+- `GPU CUDA`: compiles debug OPALX and the unit tests with CUDA for NVIDIA `AMPERE80`. This check is **required**.
+- `GPU HIP`: compiles debug OPALX and the unit tests with HIP for AMD `AMD_GFX90A`. This check is **required**.
+- `GPU SYCL`: compiles release OPALX and the unit tests with SYCL for Intel `INTEL_PVC`. This check is **not required**, because the CI runner can compile this configuration but cannot test it.
+
+### Running Tests
+
+- Unit tests run with the `CPU Serial` build.
+- Unit tests run with the `CPU OpenMP` build.
+- A subset of fast regression tests from [OPALX-project/regression-tests-x](https://github.com/OPALX-project/regression-tests-x) runs with the `CPU Serial` binary and checks results against the tests' `.rt` metrics. The current regression subset is:
+  - `Drift-1-fromfile`
+  - `Drift-4-multi-emit-open`
+  - `FodoCell-fromfile`
 
 ## Job scripts
 To execute opalx on merlin's gpus (compile for PASCAL61), the job script should looks like

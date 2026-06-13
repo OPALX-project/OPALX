@@ -155,7 +155,7 @@ namespace ParticleBinning {
          * function is called frequently, it might create some overhead due to the .view_host()
          * call. However, since it is only called on the host (a maximum of nBins times per
          * iteration), the overhead should be minimal. For better efficiency, one can avoid the
-         * Kokkos::View "copying-action" by using dualView.h_view(binIndex).
+         * Kokkos::View "copying-action" by reusing the host view.
          *
          * @tparam UseDualView A boolean template parameter indicating whether DualView is used.
          * @param binIndex The index of the bin for which the number of particles is to be
@@ -164,7 +164,7 @@ namespace ParticleBinning {
          */
         size_type getNPartInBin(bin_index_type binIndex) {
             if constexpr (UseDualView) {
-                return histogram_m.h_view(binIndex);
+                return histogram_m.view_host()(binIndex);
             } else if (std::is_same<typename hview_type::memory_space, Kokkos::HostSpace>::value) {
                 return histogram_m(binIndex);
             } else {
@@ -307,7 +307,8 @@ namespace ParticleBinning {
                 const bin_index_type& binIndex1, const bin_index_type numBins = 1) {
             if constexpr (UseDualView) {
                 return Kokkos::RangePolicy<>(
-                        postSum_m.h_view(binIndex1), postSum_m.h_view(binIndex1 + numBins));
+                        postSum_m.view_host()(binIndex1),
+                        postSum_m.view_host()(binIndex1 + numBins));
             } else {
                 std::cerr << "Warning: Accessing BinHisto.getBinIterationPolicy without DualView "
                              "might be inefficient!"

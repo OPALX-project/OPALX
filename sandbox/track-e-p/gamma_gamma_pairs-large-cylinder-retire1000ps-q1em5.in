@@ -2,8 +2,9 @@ OPTION, PSDUMPFREQ = 1;
 OPTION, STATDUMPFREQ = 1;
 OPTION, BOUNDPDESTROY = 10;
 OPTION, VERSION = 10900;
+OPTION, SEED = 42;
 
-TITLE, STRING = "Gamma-gamma low-energy e-/e+ pair tracking from IP";
+TITLE, STRING = "Gamma-gamma low-energy e-/e+ pair tracking in large BeamBeam cylinder with 1000 ps retirement and reduced primary charge";
 
 // ---------------------------------------------------------------------------
 // Primary 245 MeV electron beam.
@@ -20,32 +21,37 @@ REAL primary_sigma_xyp = sqrt(primary_geometric_emittance / primary_beta_functio
 REAL primary_sigma_pxy = primary_beta_gamma * primary_sigma_xyp;
 REAL primary_sigma_z = 0.6e-3;              // m
 
-REAL primary_electrons_per_bunch = 1.25e10;
+REAL primary_charge_scale = 1.0e-5;
+REAL primary_electrons_per_bunch = 1.25e10 * primary_charge_scale;
 REAL primary_macroparticles = 10000; // 262144;
 REAL elementary_charge = 1.602176634e-19;
 REAL primary_bunch_charge = primary_electrons_per_bunch * elementary_charge;
 
 // ---------------------------------------------------------------------------
 // Pair data converted from fort98.txt.
-// FROMFILE momenta are beta*gamma = p/(m_e c); weight and creation time are
-// ignored in the current converter.
+// FROMFILE momenta are beta*gamma = p/(m_e c).  The converter can also
+// preserve fort98 creation times as t=ct/c in gamma_gamma_*-t.fromfile.
 REAL n_pairs_per_species = 1297;
 REAL pair_bunch_charge = n_pairs_per_species * elementary_charge;
 
-// time when e- and e+ are injected into the IP region
-REAL tinj = 100e-12;
-
-// Interaction point and short tracking line.
+// Interaction point and large BeamBeam tracking cylinder.
 REAL ip_s = 0.0;
 REAL drift_length = 0.01;
-REAL bb_length = 0.05;
+REAL bb_length = 0.32;
 REAL bb_ip_s = drift_length + 0.5*bb_length;
+
+// Preserve the large-cylinder witness injection timing, but keep the primary
+// source active until 1000 ps to test whether the witness pair sees the field.
+REAL light_speed = 299792458.0;
+REAL primary_ip_time = bb_ip_s / light_speed;
+REAL tinj = primary_ip_time - 16.747e-12;
+REAL primary_retire_time = 1000e-12;
 
 // Fieldsolver configuration
 REAL N = 16;
 
 DR_UP: DRIFT,  L = drift_length, ELEMEDGE = 0.0;
-IP1: BEAMBEAM, L = bb_length,    ELEMEDGE = drift_length, VISUALIZE = FALSE, COPY = TRUE, WITNESS_CONTAINERS = "NONE", APERTURE="RECTANGLE(0.02, 0.02, 0.05)";
+IP1: BEAMBEAM, L = bb_length,    ELEMEDGE = drift_length, VISUALIZE = FALSE, COPY = TRUE, WITNESS_CONTAINERS = "1,2", RETIRE_TIME = primary_retire_time, APERTURE="CIRCLE(0.30)";
 DR_DN: DRIFT,  L = drift_length, ELEMEDGE = drift_length + bb_length;
 
 pairLine: LINE = (DR_UP, IP1, DR_DN);
@@ -97,7 +103,7 @@ GammaGammaPositrons: BEAM,
 
 TRACK, LINE = pairLine,
     BEAMS = {PrimaryElectrons, GammaGammaElectrons, GammaGammaPositrons},
-    MAXSTEPS = 130,
+    MAXSTEPS = 1600,
     ZSTOP = 2*drift_length + bb_length,
     DT = 1.0e-12;
  RUN, METHOD = "PARALLEL", FIELDSOLVER = FS1;

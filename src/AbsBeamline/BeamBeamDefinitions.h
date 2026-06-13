@@ -26,6 +26,7 @@ namespace BEAMBEAM {
     struct Config {
         bool copyModel = false;
         bool visualize = false;
+        std::optional<double> sourceRetireTime;
         std::optional<double> xAperture;
         std::optional<double> yAperture;
         std::vector<std::size_t> witnessContainers;
@@ -93,6 +94,56 @@ namespace BEAMBEAM {
     };
 
     /**
+     * @brief Test whether the tracked source bunch overlaps its copied counter-propagating source.
+     *
+     * In the current copy model the second high-energy source bunch is represented by mirroring the
+     * tracked source about the interaction point @f$s_\mathrm{IP}@f$. A tracked absolute
+     * longitudinal interval
+     * @f[
+     *   [s_\mathrm{tail}, s_\mathrm{head}]
+     * @f]
+     * therefore has the copied-source interval
+     * @f[
+     *   [2s_\mathrm{IP}-s_\mathrm{head}, 2s_\mathrm{IP}-s_\mathrm{tail}].
+     * @f]
+     * The two finite bunches overlap if the two closed intervals intersect,
+     * @f[
+     *   s_\mathrm{tail} \le 2s_\mathrm{IP}-s_\mathrm{tail}
+     *   \quad\land\quad
+     *   2s_\mathrm{IP}-s_\mathrm{head} \le s_\mathrm{head}.
+     * @f]
+     *
+     * @param sourceTailS Trailing-edge path length of the tracked source bunch.
+     * @param sourceHeadS Leading-edge path length of the tracked source bunch.
+     * @param geometry Actual BeamBeam window geometry in path-length coordinates.
+     * @return True while the tracked source and its copied source overlap.
+     */
+    inline bool copiedSourceBunchesOverlap(
+            double sourceTailS, double sourceHeadS, const ActualGeometry& geometry) {
+        const double copiedTailS = 2.0 * geometry.interactionPointS - sourceHeadS;
+        const double copiedHeadS = 2.0 * geometry.interactionPointS - sourceTailS;
+        return sourceTailS <= copiedHeadS && copiedTailS <= sourceHeadS;
+    }
+
+    /**
+     * @brief Test whether source retirement should trigger from a configured time.
+     *
+     * A BeamBeam element may specify @c RETIRE_TIME in seconds. A missing value disables source
+     * retirement; otherwise the tracked source container is retired once
+     * @f[
+     *   t \ge t_\mathrm{retire}.
+     * @f]
+     *
+     * @param currentTime Current simulation time in seconds.
+     * @param sourceRetireTime Optional source-retirement time in seconds.
+     * @return True if source retirement may be applied before the next BeamBeam/default solve.
+     */
+    inline bool sourceRetireTimeReached(
+            double currentTime, const std::optional<double>& sourceRetireTime) {
+        return sourceRetireTime.has_value() && currentTime >= *sourceRetireTime;
+    }
+
+    /**
      * @brief Tracker-owned runtime state for the BeamBeam model.
      *
      * The tracker keeps the lifecycle, the currently active actual geometry, and
@@ -103,6 +154,9 @@ namespace BEAMBEAM {
         WindowState state = WindowState::Inactive;
         std::optional<ActualGeometry> geometry;
         std::optional<SavedFieldDomainState> savedFieldDomain;
+        bool sourceRetirementPending = false;
+        bool sourceRetired           = false;
+        bool sourceBunchesOverlap    = false;
     };
 
     /**

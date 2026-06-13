@@ -193,13 +193,6 @@ void Astra1DDynamic::readMap() {
                 "Maximum on-axis field is zero in fieldmap '" + Filename_m + "'");
     }
 
-    zRaw_m.resize(num_gridpz_m);
-    ezRaw_m.resize(num_gridpz_m);
-    for (int i = 0; i < num_gridpz_m; ++i) {
-        zRaw_m[i]  = zvals[i];
-        ezRaw_m[i] = RealValues[i];
-    }
-
     // Interpolate onto an equidistant grid and build a mirrored periodic array
     gsl_spline_init(Ez_interpolant, zvals, RealValues, num_gridpz_m);
 
@@ -313,6 +306,31 @@ void Astra1DDynamic::applyField(std::shared_ptr<ParticleContainer_t> pc, double)
             });
 }
 
+void Astra1DDynamic::applyRFField(
+        std::shared_ptr<ParticleContainer_t> pc, double electricScale, double magneticScale,
+        double startField, double endField) {
+    const double zbegin = zbegin_m;
+    const double zend   = zend_m;
+    const double length = length_m;
+    const double xlrep  = xlrep_m;
+    const int accuracy  = accuracy_m;
+
+    auto FourCoefs_device = FourCoefs_m.view_device();
+
+    auto Rview = pc->R.getView();
+    auto Eview = pc->E.getView();
+    auto Bview = pc->B.getView();
+
+    const size_t nLocal = pc->getLocalNum();
+
+    Kokkos::parallel_for(
+            "Astra1DDynamic::applyRFField", nLocal, KOKKOS_LAMBDA(const size_t i) {
+                computeRFField(
+                        Rview(i), Eview(i), Bview(i), FourCoefs_device, zbegin, zend, length, xlrep,
+                        accuracy, electricScale, magneticScale, startField, endField);
+            });
+}
+
 void Astra1DDynamic::applyTravelingWave(
         std::shared_ptr<ParticleContainer_t> pc, double entryElectricScale,
         double entryMagneticScale, double core1ElectricScale, double core1MagneticScale,
@@ -347,7 +365,7 @@ void Astra1DDynamic::applyTravelingWave(
 bool Astra1DDynamic::getFieldstrength(
         const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& B) const {
     if (isInside(R)) {
-        computeField(R, E, B, FourCoefs_m.h_view, zbegin_m, length_m, xlrep_m, accuracy_m);
+        computeField(R, E, B, FourCoefs_m.view_host(), zbegin_m, length_m, xlrep_m, accuracy_m);
 
         return false;
     } else {
@@ -369,7 +387,7 @@ bool Astra1DDynamic::getFieldDerivative(
     const double kz = Physics::two_pi * (R(2) - zbegin_m) / length_m + Physics::pi;
     double ezp      = 0.0;
 
-    auto FourCoefs = FourCoefs_m.h_view;
+    auto FourCoefs = FourCoefs_m.view_host();
 
     int n = 1;
     for (int l = 1; l < accuracy_m; ++l, n += 2) {

@@ -117,6 +117,11 @@ OpalBeamBeam::OpalBeamBeam()
             "WITNESS_CONTAINERS",
             "Passive particle-container indices that gather the source BeamBeam field, or NONE.",
             "NONE");
+    itsAttr[RETIRE_TIME] = Attributes::makeReal(
+            "RETIRE_TIME",
+            "Delete container[0] source particles once simulation time reaches this value [s]. "
+            "Use 0 to keep the source particles active.",
+            0.0);
 
     registerOwnership();
 
@@ -144,6 +149,12 @@ void OpalBeamBeam::update() {
     beamBeam->setAttribute(
             "WITNESS_CONTAINERS_MASK",
             parseWitnessContainerMask(Attributes::getString(itsAttr[WITNESS_CONTAINERS])));
+    const double retireTime = Attributes::getReal(itsAttr[RETIRE_TIME]);
+    if (retireTime < 0.0) {
+        throw OpalException(
+                "OpalBeamBeam::update", "RETIRE_TIME must be non-negative and is specified in s.");
+    }
+    beamBeam->setAttribute("RETIRE_TIME", retireTime);
     beamBeam->setAttribute("APERTURE_SET", itsAttr[APERT] ? 1.0 : 0.0);
 
     // Transmit "unknown" attributes.

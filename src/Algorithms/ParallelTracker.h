@@ -25,6 +25,7 @@
 #include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/Tracker.h"
 #include "Steppers/BorisPusher.h"
+#include "Steppers/SpinTBMTPusher.h"
 #include "Structure/DataSink.h"
 
 #include "BasicActions/Option.h"
@@ -42,6 +43,7 @@
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Laser.h"
 #include "AbsBeamline/Marker.h"
+#include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
 #include "AbsBeamline/RBend.h"
@@ -81,7 +83,7 @@ private:
     StepSizeConfig stepSizes_m;
 
     double dtCurrentTrack_m;          ///< Global @f$\Delta t@f$ for the current track segment.
-    unsigned long long repartFreq_m;  ///< Space-charge repartition period (steps); off on one rank.
+    unsigned long long repartFreq_m;  ///< Space-charge repartition period (steps); 0 disables it.
     std::vector<std::vector<std::shared_ptr<SamplingBase>>>
             emittingSamplers_m;  ///< Per-container emitters.
 
@@ -97,6 +99,11 @@ private:
     BEAMBEAM::Runtime<PartBunch_t::SavedFieldDomainState> beamBeamState_m;
     BEAMBEAM::Diagnostics beamBeamDiagnostics_m;
     std::optional<CoordinateSystemTrafo> beamBeamReferenceToBeamCSTrafo_m;
+    std::optional<bool> beamBeamLastDiagnosticActive_m;
+    std::optional<bool> beamBeamLastDiagnosticSourceActive_m;
+    std::optional<bool> beamBeamLastDiagnosticSourceRetirementPending_m;
+    std::optional<bool> beamBeamLastDiagnosticSourceOverlap_m;
+    std::optional<std::string> beamBeamLastDiagnosticSignature_m;
     static constexpr int postBeamBeamWindowVisualizationSteps_m = 4;
     std::unique_ptr<BeamBeamWindowAnimation> beamBeamWindowAnimation_m;
 
@@ -149,6 +156,9 @@ public:
     /// @brief Reject laser tracking until dedicated laser tracking is implemented.
     virtual void visitLaser(const Laser&);
 
+    /// @brief Apply the algorithm to a monitor.
+    virtual void visitMonitor(const Monitor&);
+
     /// @brief Apply the algorithm to a marker.
     virtual void visitMarker(const Marker&);
 
@@ -196,6 +206,12 @@ public:
     /// @brief Second half: kick then push all active containers.
     void timeIntegration2(BorisPusher& pusher);
 
+    /// @brief Thomas-BMT spin precession across all active containers that store Pol.
+    /// Must be called after external + space-charge fields have been accumulated and
+    /// before the momentum kick (so E, B at the particle are the lab-frame fields the
+    /// particle sees during this step).
+    void evolveSpinTBMT();
+
     /**
      * @brief Self-fields in beam frame (primary container); optional binary repartition.
      * @param step Global step index (used for repartition cadence).
@@ -211,8 +227,8 @@ public:
     /// @param dt Global time step (s).
     void emitFromEmissionSources(double t, double dt);
 
-    /// @brief Apply global processes
-    void applyGlobalProcesses(double dt);
+    /// @brief Apply global processes and return the global number of particles marked invalid.
+    size_t applyGlobalProcesses(double dt);
 
     /// @brief Zero E and B on all active particle containers.
     void resetFields();
@@ -267,6 +283,14 @@ private:
     /// @brief Trigger binary repartition for the field solver if configured.
     void doBinaryRepartition();
 
+    /// @brief Delete particles marked invalid by the central per-container mask.
+    size_t deleteInvalidParticles(bool activeOnly, Inform& m, const std::string& reason);
+
+public:
+    /// @brief Mark particles moving backward behind an active source/cathode plane.
+    size_t markBackwardParticlesAtSourcePlane();
+
+private:
     /// @brief Force-activate containers whose emitting samplers have not yet finished.
     void activateEmittingContainers(double t);
 
@@ -297,6 +321,29 @@ private:
     void dumpBeamBeamTransitionSnapshot(const std::string& snapshotKind) const;
     void enterBeamBeamWindow(const BEAMBEAM::ActualGeometry& geometry, Inform& m);
     void leaveBeamBeamWindow(Inform& m);
+    /**
+     * @brief Delete source-container particles after the BeamBeam @c RETIRE_TIME is reached.
+     *
+     * The source container object and its reference state remain allocated, but all particles in
+     * container[0] are marked invalid and compacted once the configured retirement criterion
+     * @f$t \ge t_\mathrm{retire}@f$ is reached. Witness containers are not touched and remain
+     * active so they can continue with external fields and any previously gathered BeamBeam kick.
+     * This is an intentional non-conserving removal of source charge after the modeled high-energy
+     * collision has passed the chosen diagnostic time.
+     */
+    void retireBeamBeamSourceContainer(Inform& m);
+    /**
+     * @brief Emit grepable BeamBeam runtime diagnostics to stdout.
+     *
+     * Lines start with @c BB-DIAG and contain only BeamBeam state/count/witness information; the
+     * integration stage and step are intentionally omitted because the regular tracker output
+     * already carries step context. Routine diagnostics are suppressed while this state is
+     * unchanged. Boolean fields are printed only on their first diagnostic line or when their value
+     * changes.
+     *
+     * @param force If true, emit a line even if the state signature did not change.
+     */
+    void logBeamBeamDiagnostics(bool force = false);
     void renderBeamBeamWindowFrame(
             double bunchTailS, double bunchHeadS, const BEAMBEAM::ActualGeometry& geometry);
     bool usesFrozenBeamBeamWindowMesh() const;
@@ -355,6 +402,10 @@ inline void ParallelTracker::visitDrift(const Drift& drift) {
 
 inline void ParallelTracker::visitBeamBeam(const BeamBeam& beamBeam) {
     itsOpalBeamline_m.visit(beamBeam, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitMonitor(const Monitor& monitor) {
+    itsOpalBeamline_m.visit(monitor, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitMarker(const Marker& marker) {

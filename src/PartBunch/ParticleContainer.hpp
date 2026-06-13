@@ -4,6 +4,8 @@
 
 // #include <functional>
 #include <cmath>
+#include <cstddef>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -93,6 +95,12 @@ public:
     /// View types of Q and M values
     using qm_view_type = typename ippl::ParticleAttrib<double>::view_type;
 
+    /// Per-particle polarization vector type: 3D vector in single precision, |Pol| in [0, 1].
+    /// Polarization observables are typically ~1% accurate, so `float` storage is sufficient and
+    /// halves the memory footprint versus the codebase's standard `double` attributes. Dynamics
+    /// kernels should still compute in `double` and cast back on store.
+    using spin_vector_type = ippl::Vector<float, 3>;
+
 public:
     /// Charge view in [Cb].
     /// In `SingleValue` mode this is a rank-1 view of length 1.
@@ -138,14 +146,27 @@ public:
     /// magnetic field at particle position
     typename Base::particle_position_type B;
 
-    ParticleContainer(Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL)
+    /// particle deletion mask (indicates which particles are deleted every timestep)
+    ippl::ParticleAttrib<bool> InvalidMask;
+
+    /// Per-particle polarization vector P (rest-frame Pauli expectation values along
+    /// lab-frame axes; |Pol| in [0, 1]). Registered only when spinEnabled_m is true.
+    /// Storage is float to halve memory; kernels should compute in double and cast.
+    ippl::ParticleAttrib<spin_vector_type> Pol;
+
+    /// Returns true when per-particle spin storage was enabled at construction
+    /// (enabled per beam when the BEAM has POLARIZATION set).
+    bool hasSpin() const { return spinEnabled_m; }
+
+    ParticleContainer(Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL, bool spinEnabled = false)
         : pl_m(FL, mesh),
           qmStorageMode_m(
                   Options::useQMAttributes ? QMStorageMode::Attributes
                                            : QMStorageMode::SingleValue),
           distMoments_m(),
           QView_m("ParticleContainer::QView_m", 1),
-          MView_m("ParticleContainer::MView_m", 1) {
+          MView_m("ParticleContainer::MView_m", 1),
+          spinEnabled_m(spinEnabled) {
         this->initialize(pl_m);
         registerAttributes();
         setupBCs();
@@ -163,10 +184,13 @@ public:
         this->addAttribute(P);
         this->addAttribute(E);
         this->addAttribute(B);
-
+        this->addAttribute(InvalidMask);
         if (qmStorageMode_m == QMStorageMode::Attributes) {
             this->addAttribute(QAttr);
             this->addAttribute(MAttr);
+        }
+        if (spinEnabled_m) {
+            this->addAttribute(Pol);
         }
     }
 
@@ -219,6 +243,10 @@ public:
         size_t Nlocal = this->getLocalNum();
 
         distMoments_m.computeMoments(this->R.getView(), this->P.getView(), getMView(), Np, Nlocal);
+
+        if (spinEnabled_m) {
+            distMoments_m.computePolarizationMoments(Pol.getView(), Np, Nlocal);
+        }
     }
 
     void setEnergyReferenceMass(double referenceMassGeV, bool rescaleToReference = true) {
@@ -234,6 +262,26 @@ public:
     Vector_t<double, 3> getRmsR() const { return distMoments_m.getStandardDeviationPosition(); }
 
     Vector_t<double, 3> getRmsRP() const { return distMoments_m.getStandardDeviationRP(); }
+
+    /// Mean polarization vector across the bunch: $\langle \vec P \rangle$.
+    /// Returns the zero vector when the container does not track spin (the
+    /// moments are then never computed and stay zeroed by reset()).
+    Vector_t<double, 3> getMeanPol() const { return distMoments_m.getMeanPolarization(); }
+
+    /// Per-component RMS of the polarization vector across the bunch.
+    /// Defined as $\sqrt{\langle P_i^2\rangle - \langle P_i\rangle^2}$. Returns
+    /// the zero vector when the container does not track spin.
+    Vector_t<double, 3> getRmsPol() const {
+        return distMoments_m.getStandardDeviationPolarization();
+    }
+
+    /// Magnitude of the mean polarization vector, $|\langle \vec P \rangle|$.
+    /// This is the standard depolarization observable — distinct from
+    /// $\langle |\vec P|\rangle$.
+    double getMeanPolMagnitude() const {
+        const Vector_t<double, 3> mean = getMeanPol();
+        return Kokkos::sqrt(mean[0] * mean[0] + mean[1] * mean[1] + mean[2] * mean[2]);
+    }
 
     void computeMinMaxR() {
         size_t Nlocal = this->getLocalNum();
@@ -562,18 +610,16 @@ public:
     }
 
     /**
-     * @brief Delete particles whose position is more than sigmasAway standard deviations
+     * @brief Mark particles whose position is more than sigmasAway standard deviations
      *        from the bunch mean in any spatial dimension.
      *
-     * Recomputes distribution moments, marks all particles outside the
-     * [mean - sigmasAway*sigma, mean + sigmasAway*sigma] hyper-rectangle as
-     * invalid, then calls the IPPL ParticleBase::destroy to compact the
-     * particle arrays.
+     * Recomputes distribution moments, then ORs the outlier decision into
+     * InvalidMask. Deletion is intentionally deferred to deleteInvalidParticles().
      *
      * @param sigmasAway Number of standard deviations defining the boundary.
-     * @return Global number of particles destroyed (across all MPI ranks).
+     * @return Global number of newly marked particles (across all MPI ranks).
      */
-    size_type deleteParticlesOutside(double sigmasAway) {
+    size_type markParticlesOutside(double sigmasAway) {
         size_type nLocal = this->getLocalNum();
 
         if (nLocal == 0 && this->getTotalNum() == 0) return 0;
@@ -595,34 +641,60 @@ public:
         double ub1 = meanR[1] + sigmasAway * rmsR[1];
         double ub2 = meanR[2] + sigmasAway * rmsR[2];
 
-        Kokkos::View<bool*> invalid("deleteParticlesOutside::invalid", nLocal);
-        auto Rview = this->R.getView();
+        auto invalid = InvalidMask.getView();
+        auto Rview   = this->R.getView();
 
-        size_type localDestroyNum = 0;
+        size_type localMarkedNum = 0;
         Kokkos::parallel_reduce(
-                "ParticleContainer::deleteParticlesOutside::mark", nLocal,
+                "ParticleContainer::markParticlesOutside", nLocal,
                 KOKKOS_LAMBDA(const size_type i, size_type& count) {
                     bool outside = (Rview(i)[0] < lb0 || Rview(i)[0] > ub0)
                                    || (Rview(i)[1] < lb1 || Rview(i)[1] > ub1)
                                    || (Rview(i)[2] < lb2 || Rview(i)[2] > ub2);
-                    invalid(i) = outside;
-                    count += outside ? 1 : 0;
+                    const bool newlyMarked = outside && !invalid(i);
+                    invalid(i)             = invalid(i) || outside;
+                    count += newlyMarked ? 1 : 0;
                 },
-                localDestroyNum);
+                localMarkedNum);
+        Kokkos::fence();  // not needed, but also doesn't hurt
+
+        size_type globalMarkedNum = 0;
+        ippl::Comm->allreduce(localMarkedNum, globalMarkedNum, 1, std::plus<size_type>());
+        return globalMarkedNum;
+    }
+
+    /**
+     * @brief Mark every particle in this container as invalid.
+     *
+     * This helper is used for logical source retirement, where a complete particle population has
+     * left the modeled physics window but the container object and its reference trajectory must
+     * remain alive for the rest of the tracking segment. The operation only ORs into
+     * InvalidMask; the collective compaction step remains
+     * ParticleContainer::deleteInvalidParticles().
+     *
+     * @return Global number of newly marked particles across all MPI ranks.
+     */
+    size_type markAllParticlesInvalid() {
+        const size_type nLocal = this->getLocalNum();
+        auto invalid           = InvalidMask.getView();
+
+        size_type localMarkedNum = 0;
+        Kokkos::parallel_reduce(
+                "ParticleContainer::markAllParticlesInvalid", nLocal,
+                KOKKOS_LAMBDA(const size_type i, size_type& count) {
+                    const bool newlyMarked = !invalid(i);
+                    invalid(i)             = true;
+                    count += newlyMarked ? 1 : 0;
+                },
+                localMarkedNum);
         Kokkos::fence();
 
-        size_type globalDestroyNum = 0;
-        ippl::Comm->allreduce(localDestroyNum, globalDestroyNum, 1, std::plus<size_type>());
-
-        if (globalDestroyNum == 0) return 0;
-
-        destroyParticles(invalid, localDestroyNum);
-
-        // Only called if globalDestroyNum > 0, i.e. if any particles were destroyed --> statistics
-        // changed --> moments are dirty
-        markMomentsDirty();
-
-        return globalDestroyNum;
+        size_type globalMarkedNum = 0;
+        ippl::Comm->allreduce(localMarkedNum, globalMarkedNum, 1, std::plus<size_type>());
+        if (globalMarkedNum > 0) {
+            markMomentsDirty();
+        }
+        return globalMarkedNum;
     }
 
     /**
@@ -643,16 +715,39 @@ public:
 
         // Total allocated capacity of the underlying view
         size_type oldCapacity = this->R.size();
+        size_type oldLocalNum = this->getLocalNum();
         this->create(numParticles, true);  // non_destructive = true
         size_type newCapacity = this->R.size();
+
+        // Initialize newly active slots.  Emitted particles are created after
+        // the per-step field reset, so E/B must be explicitly cleared here.
+        /// \todo: can probably be removed later, after my flattop debugging
+        auto invalid = InvalidMask.getView();
+        auto dtView  = dt.getView();
+        auto phiView = Phi.getView();
+        auto binView = Bin.getView();
+        auto eView   = E.getView();
+        auto bView   = B.getView();
+        Kokkos::parallel_for(
+                "ParticleContainer::createParticles::initializeNewSlots", numParticles,
+                KOKKOS_LAMBDA(const size_type i) {
+                    const size_type idx = oldLocalNum + i;
+                    invalid(idx)        = false;
+                    dtView(idx)         = 0.0;
+                    phiView(idx)        = 0.0;
+                    binView(idx)        = 0;
+                    eView(idx)          = Vector_t<double, Dim>(0.0);
+                    bView(idx)          = Vector_t<double, Dim>(0.0);
+                });
+        Kokkos::fence();
 
         // Pretty print numParticles, newCapacity and new totalNum + localNum after creation
         constexpr int labelWidth = 32;
         m << level4 << std::left << std::setw(labelWidth) << "Requested creation:" << numParticles
-          << " particles" << endl
-          << std::setw(labelWidth) << "New total number:" << this->getTotalNum()
-          << " (local: " << this->getLocalNum() << ")" << endl
-          << std::setw(labelWidth) << "Underlying view capacity:" << newCapacity << endl;
+          << " particles" << endl;
+        m << level4 << std::setw(labelWidth) << "New total number:" << this->getTotalNum()
+          << " (local: " << this->getLocalNum() << ")" << endl;
+        m << level4 << std::setw(labelWidth) << "Underlying view capacity:" << newCapacity << endl;
 
         if (newCapacity != oldCapacity) {
             m << level1
@@ -680,53 +775,63 @@ public:
         this->alloc(numParticles);  // alloc is always destructive
 
         m << level4 << std::left << std::setw(32) << "Requested allocation:" << numParticles
-          << " particles" << endl
-          << std::setw(32) << "Size of underlying view:" << this->R.size() << endl;
+          << " particles" << endl;
+        m << level4 << std::setw(32) << "Size of underlying view:" << this->R.size() << endl;
     }
 
     /**
-     * @brief Destroy the particles marked invalid in this container.
+     * @brief Delete particles currently marked in InvalidMask.
      *
-     * Wraps `ippl::ParticleBase::destroy` with input validation: throws if
-     * `localDestroyNum` exceeds the local particle count, or if the `invalid`
-     * mask is smaller than the local particle count. The underlying call is
-     * collective (allreduce of `localNum_m`) so all MPI ranks must call this
-     * function, even with `localDestroyNum == 0`.
+     * This is the only ParticleContainer function that is allowed to compact the
+     * IPPL particle arrays. All deletion producers must only update InvalidMask.
      *
-     * @note Does NOT mark moments dirty automatically. Callers that depend on
-     * moment freshness must call `markMomentsDirty()` themselves.
-     *
-     * @tparam Properties Kokkos view properties of the invalid mask.
-     * @param invalid Boolean mask of length >= getLocalNum(); true entries are removed.
-     * @param localDestroyNum Number of true entries in `invalid` on this rank.
+     * @return Global number of particles deleted (across all MPI ranks).
      */
-    template <typename... Properties>
-    void destroyParticles(
-            const Kokkos::View<bool*, Properties...>& invalid, size_type localDestroyNum) {
-        Inform m("ParticleContainer::destroyParticles");
+    size_type deleteInvalidParticles() {
+        Inform m("ParticleContainer::deleteInvalidParticles");
 
         const size_type nLocal = this->getLocalNum();
-        if (localDestroyNum > nLocal) {
-            throw OpalException(
-                    "ParticleContainer::destroyParticles",
-                    "localDestroyNum (" + std::to_string(localDestroyNum)
-                            + ") exceeds local particle count (" + std::to_string(nLocal) + ").");
-        }
+        auto invalid           = InvalidMask.getView();
         if (invalid.extent(0) < nLocal) {
             throw OpalException(
-                    "ParticleContainer::destroyParticles",
-                    "invalid mask extent (" + std::to_string(invalid.extent(0))
+                    "ParticleContainer::deleteInvalidParticles",
+                    "InvalidMask extent (" + std::to_string(invalid.extent(0))
                             + ") is smaller than local particle count (" + std::to_string(nLocal)
                             + ").");
         }
 
-        this->destroy(invalid, localDestroyNum);
+        size_type localDestroyNum = 0;
+        Kokkos::parallel_reduce(
+                "ParticleContainer::deleteInvalidParticles::count", nLocal,
+                KOKKOS_LAMBDA(const size_type i, size_type& count) { count += invalid(i) ? 1 : 0; },
+                localDestroyNum);
+        Kokkos::fence();
+
+        size_type globalDestroyNum = 0;
+        ippl::Comm->allreduce(localDestroyNum, globalDestroyNum, 1, std::plus<size_type>());
+
+        // This is a collective call! All ranks must execute it. Note that this is safe with the
+        // current IPPL implementation: ParticleBase::internalDestroy() first consumes the invalid
+        // view to build internal deleteIndex_m and keepIndex_m arrays. Meaning, the fact that
+        // destroy edits the InvalidMask while using it is not a problem.
+        Base::destroy(invalid, localDestroyNum);
+
+        // Mark moments dirty only if there were changes globally.
+        if (globalDestroyNum > 0) {
+            markMomentsDirty();
+        }
+
+        // Reset particle mask after deletion.
+        InvalidMask = false;
+        Kokkos::fence();
 
         constexpr int labelWidth = 32;
         m << level4 << std::left << std::setw(labelWidth)
           << "Requested destruction:" << localDestroyNum << " particles" << endl
           << std::setw(labelWidth) << "New total number:" << this->getTotalNum()
           << " (local: " << this->getLocalNum() << ")" << endl;
+
+        return globalDestroyNum;
     }
 
 private:
@@ -751,6 +856,9 @@ private:
     // Per-particle attributes mode
     ippl::ParticleAttrib<double> QAttr;
     ippl::ParticleAttrib<double> MAttr;
+
+    // Whether the spin attribute is registered on this container.
+    bool spinEnabled_m = false;
 
     // Reference particle information
     Vector_t<double, Dim> refPartR_m;

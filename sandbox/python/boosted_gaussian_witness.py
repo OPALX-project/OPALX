@@ -269,6 +269,89 @@ def integrate_witness_particle(
     return pd.DataFrame(rows)
 
 
+def trajectory_row(
+    particle_name: str,
+    step: int,
+    time_s: float,
+    t0_s: float,
+    position: np.ndarray,
+    momentum: np.ndarray,
+    sources: Iterable[Source],
+) -> dict[str, float | int | str]:
+    """Return one sampled trajectory row."""
+    e_field, b_field = total_lab_fields(position, time_s, sources)
+    gamma = gamma_from_momentum(momentum)
+    return {
+        "species": particle_name,
+        "step": step,
+        "t_ps": 1.0e12 * (time_s - t0_s),
+        "x_m": position[0],
+        "y_m": position[1],
+        "z_m": position[2],
+        "px": momentum[0],
+        "py": momentum[1],
+        "pz": momentum[2],
+        "gamma": gamma,
+        "kinetic_keV": (gamma - 1.0) * ELECTRON_REST_EV / 1.0e3,
+        "Ex_V_per_m": e_field[0],
+        "Ey_V_per_m": e_field[1],
+        "Ez_V_per_m": e_field[2],
+        "Bx_T": b_field[0],
+        "By_T": b_field[1],
+        "Bz_T": b_field[2],
+        "E_abs_V_per_m": float(np.linalg.norm(e_field)),
+        "B_abs_T": float(np.linalg.norm(b_field)),
+    }
+
+
+def integrate_witness_particle_multirate(
+    particle: WitnessParticle,
+    sources: tuple[Source, ...],
+    duration_s: float,
+    fine_duration_s: float,
+    fine_dt_s: float,
+    tail_dt_s: float,
+    output_dt_s: float,
+    t0_s: float = 0.0,
+) -> pd.DataFrame:
+    """Integrate one witness with fine overlap steps and sparse output rows."""
+    if duration_s <= 0.0:
+        raise ValueError("duration_s must be positive")
+    if fine_duration_s < 0.0:
+        raise ValueError("fine_duration_s must be non-negative")
+    if fine_dt_s <= 0.0 or tail_dt_s <= 0.0 or output_dt_s <= 0.0:
+        raise ValueError("all timesteps must be positive")
+
+    position = particle.position_m.astype(float).copy()
+    momentum = particle.momentum.astype(float).copy()
+    rows = []
+    step = 0
+    time_s = t0_s
+    next_output_s = t0_s
+    fine_end_s = t0_s + min(fine_duration_s, duration_s)
+    end_s = t0_s + duration_s
+    tolerance_s = 1.0e-18
+
+    rows.append(trajectory_row(particle.name, step, time_s, t0_s, position, momentum, sources))
+    next_output_s += output_dt_s
+
+    while time_s < end_s - tolerance_s:
+        dt_s = fine_dt_s if time_s < fine_end_s - tolerance_s else tail_dt_s
+        boundary_s = fine_end_s if time_s < fine_end_s - tolerance_s else end_s
+        this_dt = min(dt_s, boundary_s - time_s, end_s - time_s)
+        position, momentum, _e_field, _b_field = advance_witness_boris(
+            position, momentum, particle.charge_units, time_s, this_dt, sources
+        )
+        time_s += this_dt
+        step += 1
+        if time_s + tolerance_s >= next_output_s or time_s >= end_s - tolerance_s:
+            rows.append(trajectory_row(particle.name, step, time_s, t0_s, position, momentum, sources))
+            while next_output_s <= time_s + tolerance_s:
+                next_output_s += output_dt_s
+
+    return pd.DataFrame(rows)
+
+
 def make_default_sources(args: argparse.Namespace) -> tuple[Source, Source, Source]:
     """Build symmetric and weakened electron-bunch sources for the table."""
     beta = beta_from_kinetic_energy(args.source_kinetic_MeV)
@@ -719,7 +802,13 @@ def expand_flat_axis(ax, axis: str, values: np.ndarray, reference_span: float) -
         raise ValueError(f"unsupported axis {axis!r}")
 
 
-def plot_pair_paths(trajectories: pd.DataFrame, sources: tuple[Source, ...], output: Path) -> None:
+def plot_pair_paths(
+    trajectories: pd.DataFrame,
+    sources: tuple[Source, ...],
+    output: Path,
+    beambeam_radius_m: float,
+    beambeam_length_m: float,
+) -> None:
     """Plot pair trajectories and basic energy diagnostics."""
     configure_plot_environment(output)
     import matplotlib.pyplot as plt
@@ -819,6 +908,11 @@ def plot_pair_paths(trajectories: pd.DataFrame, sources: tuple[Source, ...], out
     axxz.set_xlabel("x [mm]")
     axxz.set_ylabel(r"z [$\mu$m]")
     axxz.grid(True, alpha=0.25)
+    radius_mm = 1.0e3 * beambeam_radius_m
+    half_length_um = 0.5e6 * beambeam_length_m
+    axxz.axvline(radius_mm, color="0.35", ls=":", lw=1.1, label="15 cm radius")
+    axxz.axvline(-radius_mm, color="0.35", ls=":", lw=1.1)
+    axxz.axhspan(-half_length_um, half_length_um, color="0.92", zorder=-4, label="32 cm window")
     all_x = np.concatenate(all_x_mm)
     all_z = np.concatenate(all_z_um)
     x_span = max(float(np.max(all_x) - np.min(all_x)), 1.0)
@@ -877,7 +971,10 @@ def plot_pair_paths(trajectories: pd.DataFrame, sources: tuple[Source, ...], out
     axdelta.set_ylabel(r"$\Delta x$ [$\mu$m]")
     axdelta.grid(True, alpha=0.25)
     axdelta.legend(frameon=False, fontsize=9)
-    fig.suptitle("Breit-Wheeler e-/e+ pair in boosted Gaussian source fields")
+    fig.suptitle(
+            "Breit-Wheeler e-/e+ pair in boosted Gaussian source fields "
+            f"(BeamBeam radius {beambeam_radius_m * 1.0e2:.0f} cm, "
+            f"length {beambeam_length_m * 1.0e2:.0f} cm)")
 
     output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output, bbox_inches="tight")
@@ -892,6 +989,9 @@ def run_pair_demo(args: argparse.Namespace) -> int:
     electron, positron = make_breit_wheeler_pair(args)
     duration_s = args.pair_duration_ps * 1.0e-12
     dt_s = args.pair_dt_ps * 1.0e-12
+    fine_dt_s = None if args.pair_fine_dt_ps is None else args.pair_fine_dt_ps * 1.0e-12
+    fine_duration_s = args.pair_fine_duration_ps * 1.0e-12
+    output_dt_s = args.pair_output_dt_ps * 1.0e-12
 
     trajectory_frames = []
     scenarios = (
@@ -901,7 +1001,18 @@ def run_pair_demo(args: argparse.Namespace) -> int:
     )
     for scenario, scenario_sources in scenarios:
         for particle in (electron, positron):
-            frame = integrate_witness_particle(particle, scenario_sources, duration_s, dt_s)
+            if fine_dt_s is None:
+                frame = integrate_witness_particle(particle, scenario_sources, duration_s, dt_s)
+            else:
+                frame = integrate_witness_particle_multirate(
+                    particle,
+                    scenario_sources,
+                    duration_s,
+                    fine_duration_s,
+                    fine_dt_s,
+                    dt_s,
+                    output_dt_s,
+                )
             frame.insert(0, "scenario", scenario)
             trajectory_frames.append(frame)
     trajectories = pd.concat(trajectory_frames, ignore_index=True)
@@ -923,14 +1034,21 @@ def run_pair_demo(args: argparse.Namespace) -> int:
         encoding="utf-8",
     )
     plot_field_magnitude_t0(field_scenarios, field_path, args.field_span_mm * 1.0e-3, args.field_grid)
-    plot_pair_paths(trajectories, symmetric_sources, path_path)
+    plot_pair_paths(trajectories, symmetric_sources, path_path, args.beambeam_radius_m, args.beambeam_length_m)
 
     p_abs = momentum_magnitude_from_kinetic_energy_keV(args.pair_energy_keV)
     beta_pair = p_abs / math.sqrt(1.0 + p_abs * p_abs)
     print("Breit-Wheeler pair demo")
     print(f"pair kinetic energy = {args.pair_energy_keV:.6g} keV")
     print(f"|P| = beta*gamma = {p_abs:.12g}, beta = {beta_pair:.12g}")
-    print(f"duration = {args.pair_duration_ps:.6g} ps, dt = {args.pair_dt_ps:.6g} ps")
+    if fine_dt_s is None:
+        print(f"duration = {args.pair_duration_ps:.6g} ps, dt = {args.pair_dt_ps:.6g} ps")
+    else:
+        print(
+            f"duration = {args.pair_duration_ps:.6g} ps, "
+            f"fine dt = {args.pair_fine_dt_ps:.6g} ps to {args.pair_fine_duration_ps:.6g} ps, "
+            f"tail dt = {args.pair_dt_ps:.6g} ps, output dt = {args.pair_output_dt_ps:.6g} ps"
+        )
     for scenario, _label, scenario_sources in field_scenarios:
         e0, b0 = total_lab_fields(np.asarray(args.pair_origin_m, dtype=float), 0.0, scenario_sources)
         print(f"{scenario:20s} E(t=0, origin) = {fmt_vec(e0)} V/m, |E|={np.linalg.norm(e0):.6e} V/m")
@@ -970,7 +1088,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Lorentz-transformed Gaussian manufactured witness-kick cases."
     )
-    parser.add_argument("--sigma-m", type=float, default=1.0e-3, help="rest-frame Gaussian sigma")
+    parser.add_argument("--sigma-m", type=float, default=0.6e-3, help="rest-frame Gaussian sigma")
     parser.add_argument(
         "--charge-C",
         type=float,
@@ -1019,8 +1137,26 @@ def parse_args() -> argparse.Namespace:
         help="write the pair-demo kinematics LaTeX table to a file",
     )
     parser.add_argument("--pair-energy-keV", type=float, default=313.0)
-    parser.add_argument("--pair-duration-ps", type=float, default=50.0)
-    parser.add_argument("--pair-dt-ps", type=float, default=0.005)
+    parser.add_argument("--pair-duration-ps", type=float, default=1050.0)
+    parser.add_argument("--pair-dt-ps", type=float, default=0.1)
+    parser.add_argument(
+        "--pair-fine-dt-ps",
+        type=float,
+        default=None,
+        help="optional fine timestep for the initial source-overlap interval",
+    )
+    parser.add_argument(
+        "--pair-fine-duration-ps",
+        type=float,
+        default=5.0,
+        help="duration integrated with --pair-fine-dt-ps before switching to --pair-dt-ps",
+    )
+    parser.add_argument(
+        "--pair-output-dt-ps",
+        type=float,
+        default=0.1,
+        help="trajectory output spacing used by the multirate pair integrator",
+    )
     parser.add_argument(
         "--pair-direction",
         type=float,
@@ -1038,6 +1174,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--field-span-mm", type=float, default=4.0)
     parser.add_argument("--field-grid", type=int, default=121)
+    parser.add_argument("--beambeam-radius-m", type=float, default=0.15)
+    parser.add_argument("--beambeam-length-m", type=float, default=0.32)
     parser.add_argument(
         "--output-prefix",
         type=Path,
