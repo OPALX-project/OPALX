@@ -598,7 +598,20 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
 
     // Scatter charge to mesh rho using dt-weighted deposition (master approach):
     // scale dt by Q, scatter dt, then restore dt.
-    imageScatterController_m.scatterPrimaryAndImage(pc, *R, rho);
+    const bool beamBeamActive = bunch.hasBeamBeamWindowConfig();
+    static IpplTimings::TimerRef beamBeamPrimaryScatterTimer =
+            IpplTimings::getTimer("BB primary scatter");
+    if (beamBeamActive) {
+        IpplTimings::startTimer(beamBeamPrimaryScatterTimer);
+    }
+    if (beamBeamActive) {
+        imageScatterController_m.scatterPrimaryOnly(pc, *R, rho);
+    } else {
+        imageScatterController_m.scatterPrimaryAndImage(pc, *R, rho);
+    }
+    if (beamBeamActive) {
+        IpplTimings::stopTimer(beamBeamPrimaryScatterTimer);
+    }
 
     if (bunch.hasBeamBeamWindowConfig() && bunch.getBeamBeamWindowConfig().copyModel) {
         static IpplTimings::TimerRef beamBeamCopyScatterTimer =
@@ -629,6 +642,10 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
         IpplTimings::stopTimer(beamBeamCopyScatterTimer);
     }
 
+    static IpplTimings::TimerRef beamBeamRhoPrepTimer = IpplTimings::getTimer("BB rho prep");
+    if (beamBeamActive) {
+        IpplTimings::startTimer(beamBeamRhoPrepTimer);
+    }
     bunch.setLastDepositedChargeBeforeBackground(rho.sum());
 
     //  apply mesh normalization, background subtraction, and rho scaling.
@@ -673,6 +690,9 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
 
     // Ensure deterministic output even for solver types that do not update `E`.
     setVectorField(*(this->getE()), Vector_t<T, Dim>(0.0));
+    if (beamBeamActive) {
+        IpplTimings::stopTimer(beamBeamRhoPrepTimer);
+    }
 
     // run the solver once and gather mesh E back to particles.
     m << level4 << "Legacy mode: runSolver() start" << endl;
@@ -695,7 +715,15 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
 
     // Gather solver output directly (legacy path does not use Etmp).
     if (gatherAttribute_m == GatherAttribute::ElectricFieldE) {
+        static IpplTimings::TimerRef beamBeamFieldGatherTimer =
+                IpplTimings::getTimer("BB field gather");
+        if (beamBeamActive) {
+            IpplTimings::startTimer(beamBeamFieldGatherTimer);
+        }
         gather(pc->E, *this->getE(), *R);
+        if (beamBeamActive) {
+            IpplTimings::stopTimer(beamBeamFieldGatherTimer);
+        }
     } else {
         throw OpalException(
                 "BinnedFieldSolver::computeLegacySelfFields",
