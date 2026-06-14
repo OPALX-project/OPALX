@@ -24,8 +24,8 @@ namespace BEAMBEAM {
      * @brief Static BeamBeam configuration derived from the element attributes.
      */
     struct Config {
-        bool copyModel = false;
         bool visualize = false;
+        std::optional<double> copyTime;
         std::optional<double> sourceRetireTime;
         std::optional<double> xAperture;
         std::optional<double> yAperture;
@@ -141,6 +141,23 @@ namespace BEAMBEAM {
     inline bool sourceRetireTimeReached(
             double currentTime, const std::optional<double>& sourceRetireTime) {
         return sourceRetireTime.has_value() && currentTime >= *sourceRetireTime;
+    }
+
+    /**
+     * @brief Test whether the mirrored-source copy model should be active.
+     *
+     * A BeamBeam element may specify @c COPY_TIME in seconds. A missing value disables copied
+     * fields; otherwise the copied-source contribution is included once
+     * @f[
+     *   t \ge t_\mathrm{copy}.
+     * @f]
+     *
+     * @param currentTime Current simulation time in seconds.
+     * @param copyTime Optional copied-source activation time in seconds.
+     * @return True if copied fields should be included in the active BeamBeam solve.
+     */
+    inline bool copyTimeReached(double currentTime, const std::optional<double>& copyTime) {
+        return copyTime.has_value() && currentTime >= *copyTime;
     }
 
     /**

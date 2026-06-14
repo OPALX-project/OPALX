@@ -27,7 +27,11 @@ def configure_plot_environment() -> None:
     os.environ.setdefault("XDG_CACHE_HOME", str(cache_dir / "xdg"))
 
 
-def first_crossing_positions(stem: str, container: str, aperture_radius_m: float) -> dict[int, float]:
+def first_crossing_positions(
+        stem: str,
+        container: str,
+        aperture_radius_m: float,
+        z_offset_m: float) -> dict[int, float]:
     path = TRACK_DIR / f"{stem}_{container}.h5"
     first_crossing_z: dict[int, float] = {}
     with h5py.File(path, "r") as h5:
@@ -42,7 +46,7 @@ def first_crossing_positions(stem: str, container: str, aperture_radius_m: float
             z = np.asarray(group["z"], dtype=float)
             outside = np.hypot(x, y) >= aperture_radius_m
             for particle_id, z_position in zip(ids[outside], z[outside], strict=True):
-                first_crossing_z.setdefault(int(particle_id), float(z_position))
+                first_crossing_z.setdefault(int(particle_id), float(z_position + z_offset_m))
     return first_crossing_z
 
 
@@ -60,8 +64,10 @@ def make_comparison_plot(args: argparse.Namespace) -> None:
         (axes[0], "c1", r"$e^-$", "#2AA6B8"),
         (axes[1], "c2", r"$e^+$", "#D33682"),
     ]:
-        nominal = first_crossing_positions(args.nominal_stem, container, args.aperture_radius_m)
-        reduced = first_crossing_positions(args.reduced_stem, container, args.aperture_radius_m)
+        nominal = first_crossing_positions(
+                args.nominal_stem, container, args.aperture_radius_m, args.z_offset_m)
+        reduced = first_crossing_positions(
+                args.reduced_stem, container, args.aperture_radius_m, args.z_offset_m)
         nominal_values = np.asarray(list(nominal.values()), dtype=float)
         reduced_values = np.asarray(list(reduced.values()), dtype=float)
         nominal_counts, _ = np.histogram(nominal_values, bins=edges)
@@ -124,6 +130,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--hist-min-m", type=float, default=-0.06)
     parser.add_argument("--hist-max-m", type=float, default=0.47)
     parser.add_argument("--hist-bins", type=int, default=18)
+    parser.add_argument(
+            "--z-offset-m",
+            type=float,
+            default=0.33,
+            help="Offset added to raw H5 z before histogramming; 0.33 m maps local "
+                 "BeamBeam coordinates to the sandbox note coordinate.")
     return parser.parse_args()
 
 

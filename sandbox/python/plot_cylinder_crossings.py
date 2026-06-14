@@ -24,7 +24,12 @@ def configure_plot_environment(output: Path) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
 
 
-def first_crossing_positions(stem: str, container: str, aperture_radius_m: float) -> dict[int, float]:
+def first_crossing_positions(
+    stem: str,
+    container: str,
+    aperture_radius_m: float,
+    z_offset_m: float,
+) -> dict[int, float]:
     path = TRACK_DIR / f"{stem}_{container}.h5"
     first_crossing_z: dict[int, float] = {}
     with h5py.File(path, "r") as h5:
@@ -40,7 +45,7 @@ def first_crossing_positions(stem: str, container: str, aperture_radius_m: float
             z = np.asarray(group["z"], dtype=float)
             outside = np.hypot(x, y) >= aperture_radius_m
             for particle_id, z_position in zip(ids[outside], z[outside], strict=True):
-                first_crossing_z.setdefault(int(particle_id), float(z_position))
+                first_crossing_z.setdefault(int(particle_id), float(z_position + z_offset_m))
     return first_crossing_z
 
 
@@ -58,13 +63,17 @@ def plot_histograms(args: argparse.Namespace) -> None:
     species = [("c1", r"$e^-$", "#2AA6B8"), ("c2", r"$e^+$", "#D33682")]
 
     for ax, (container, species_label, color) in zip(axes, species, strict=True):
-        nominal = first_crossing_positions(args.stem, container, args.aperture_radius_m)
+        nominal = first_crossing_positions(
+            args.stem, container, args.aperture_radius_m, args.z_offset_m
+        )
         nominal_values = np.asarray(list(nominal.values()), dtype=float)
         nominal_counts, _ = np.histogram(nominal_values, bins=edges)
         summary = f"{species_label}: N={int(nominal_counts.sum())}"
 
         if args.compare_stem:
-            compare = first_crossing_positions(args.compare_stem, container, args.aperture_radius_m)
+            compare = first_crossing_positions(
+                args.compare_stem, container, args.aperture_radius_m, args.z_offset_m
+            )
             compare_values = np.asarray(list(compare.values()), dtype=float)
             compare_counts, _ = np.histogram(compare_values, bins=edges)
             diff = compare_counts - nominal_counts
@@ -151,6 +160,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--hist-min-m", type=float, default=-0.06)
     parser.add_argument("--hist-max-m", type=float, default=0.47)
     parser.add_argument("--hist-bins", type=int, default=18)
+    parser.add_argument(
+        "--z-offset-m",
+        type=float,
+        default=0.33,
+        help=(
+            "Offset added to raw H5 z before histogramming; 0.33 m maps local "
+            "BeamBeam coordinates to the sandbox note coordinate."
+        ),
+    )
     return parser.parse_args()
 
 

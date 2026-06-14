@@ -792,8 +792,10 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
     beamBeamDiagnostics_m.frameObserved = activeGeometry.config.visualize
                                           && (bunchExtent.head >= activeGeometry.beginS)
                                           && (bunchExtent.tail <= activeGeometry.endS);
+    const bool copyModelActive =
+            BEAMBEAM::copyTimeReached(itsBunch_m->getT(), activeGeometry.config.copyTime);
     beamBeamState_m.sourceBunchesOverlap =
-            activeGeometry.config.copyModel
+            copyModelActive
             && BEAMBEAM::copiedSourceBunchesOverlap(
                     bunchExtent.tail, bunchExtent.head, activeGeometry);
     beamBeamState_m.geometry = activeGeometry;
@@ -860,13 +862,17 @@ std::optional<BEAMBEAM::ActualGeometry> ParallelTracker::detectBeamBeamWindow(
         if (retireTime > 0.0) {
             sourceRetireTime = retireTime;
         }
+        std::optional<double> copyTime;
+        const double copyTimeValue = element->getAttribute("COPY_TIME");
+        if (copyTimeValue > 0.0) {
+            copyTime = copyTimeValue;
+        }
         return BEAMBEAM::ActualGeometry{
                 interactionPointS, interactionPointS - 0.5 * beamBeamWindowLength,
                 interactionPointS + 0.5 * beamBeamWindowLength, beamBeamWindowLength,
                 BEAMBEAM::Config{
-                        element->getAttribute("COPY") != 0.0,
-                        element->getAttribute("VISUALIZE") != 0.0, sourceRetireTime, xAperture,
-                        yAperture,
+                        element->getAttribute("VISUALIZE") != 0.0, copyTime, sourceRetireTime,
+                        xAperture, yAperture,
                         BEAMBEAM::decodeWitnessContainerMask(
                                 element->getAttribute("WITNESS_CONTAINERS_MASK"))}};
     }
@@ -912,6 +918,12 @@ void ParallelTracker::enterBeamBeamWindow(const BEAMBEAM::ActualGeometry& geomet
         } else {
             diagnostics << "NONE";
         }
+        diagnostics << ", copy_time=";
+        if (geometry.config.copyTime.has_value()) {
+            diagnostics << *geometry.config.copyTime << " s";
+        } else {
+            diagnostics << "NONE";
+        }
         *gmsg << level2 << diagnostics.str() << endl;
     }
     logBeamBeamDiagnostics(true);
@@ -919,9 +931,11 @@ void ParallelTracker::enterBeamBeamWindow(const BEAMBEAM::ActualGeometry& geomet
 }
 
 void ParallelTracker::applyBeamBeamWindowConfig(const BEAMBEAM::ActualGeometry& geometry) {
+    const bool copyModel =
+            BEAMBEAM::copyTimeReached(itsBunch_m->getT(), geometry.config.copyTime);
     itsBunch_m->setBeamBeamWindowConfig(
             geometry.length, geometry.interactionPointS, geometry.beginS, geometry.endS,
-            geometry.config.copyModel, geometry.config.xAperture, geometry.config.yAperture);
+            copyModel, geometry.config.xAperture, geometry.config.yAperture);
 }
 
 std::optional<double> ParallelTracker::performBeamBeamWindowEntryTransition(
@@ -1037,6 +1051,10 @@ void ParallelTracker::logBeamBeamDiagnostics(bool force) {
     const bool sourceActive = source && itsBunch_m->isPcActive(0);
 
     const bool bbActive = beamBeamState_m.state == BEAMBEAM::WindowState::Active;
+    const bool copyActive =
+            beamBeamState_m.geometry.has_value()
+            && BEAMBEAM::copyTimeReached(
+                    itsBunch_m->getT(), beamBeamState_m.geometry->config.copyTime);
     const char* bbState = "Inactive";
     if (beamBeamState_m.state == BEAMBEAM::WindowState::Active) {
         bbState = "Active";
@@ -1070,7 +1088,8 @@ void ParallelTracker::logBeamBeamDiagnostics(bool force) {
     signature << bbState << "|" << activeContainers << "|"
               << (beamBeamState_m.sourceRetired ? 1 : 0) << "|"
               << (hasWitnessState ? witnessStates.str() : "NONE") << "|" << bbActive << "|"
-              << sourceActive << "|" << beamBeamState_m.sourceRetirementPending << "|"
+              << sourceActive << "|" << copyActive << "|"
+              << beamBeamState_m.sourceRetirementPending << "|"
               << beamBeamState_m.sourceBunchesOverlap;
     if (!force && beamBeamLastDiagnosticSignature_m.has_value()
         && *beamBeamLastDiagnosticSignature_m == signature.str()) {
@@ -1100,6 +1119,8 @@ void ParallelTracker::logBeamBeamDiagnostics(bool force) {
     };
     appendBoolIfChanged("BB-active", bbActive, beamBeamLastDiagnosticActive_m);
     appendBoolIfChanged("source_active", sourceActive, beamBeamLastDiagnosticSourceActive_m);
+    appendBoolIfChangedAfterInitialFalse(
+            "copy_active", copyActive, beamBeamLastDiagnosticCopyActive_m);
     appendBoolIfChanged(
             "source_retirement_pending", beamBeamState_m.sourceRetirementPending,
             beamBeamLastDiagnosticSourceRetirementPending_m);
@@ -1166,12 +1187,14 @@ void ParallelTracker::computeBeamBeamWindowSelfFields(
     }
     const std::optional<double> preEnlargePrimaryCharge =
             performBeamBeamWindowEntryTransition(geometry, physicalRMin, physicalRMax);
+    applyBeamBeamWindowConfig(geometry);
 
     itsBunch_m->enableBeamBeamWindowMesh(
             interactionPointBeamZ, geometry.length, geometry.config.xAperture,
             geometry.config.yAperture);
     itsBunch_m->computeSelfFields();
-    if (preEnlargePrimaryCharge.has_value() && geometry.config.copyModel) {
+    if (preEnlargePrimaryCharge.has_value()
+        && BEAMBEAM::copyTimeReached(itsBunch_m->getT(), geometry.config.copyTime)) {
         validateBeamBeamCopiedCharge(*preEnlargePrimaryCharge);
     }
     if (preEnlargePrimaryCharge.has_value()) {

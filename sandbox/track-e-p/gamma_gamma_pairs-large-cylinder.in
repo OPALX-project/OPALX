@@ -51,7 +51,7 @@ REAL primary_retire_time = 1000e-12;
 REAL N = 16;
 
 DR_UP: DRIFT,  L = drift_length, ELEMEDGE = 0.0;
-IP1: BEAMBEAM, L = bb_length,    ELEMEDGE = drift_length, VISUALIZE = FALSE, COPY = TRUE, WITNESS_CONTAINERS = "1,2", RETIRE_TIME = primary_retire_time, APERTURE="CIRCLE(0.30)";
+IP1: BEAMBEAM, L = bb_length,    ELEMEDGE = drift_length, VISUALIZE = FALSE, COPY_TIME = 50e-12, WITNESS_CONTAINERS = "1,2", RETIRE_TIME = primary_retire_time, APERTURE="CIRCLE(0.30)";
 DR_DN: DRIFT,  L = drift_length, ELEMEDGE = drift_length + bb_length;
 
 pairLine: LINE = (DR_UP, IP1, DR_DN);

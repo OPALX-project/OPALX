@@ -1434,3 +1434,66 @@ an image-charge path and flips the sign of the mirrored charge.  For two
 colliding electron primary beams, this sign flip is suspicious and should be
 checked against the intended BeamBeam physics model before trusting witness
 kicks.
+
+2026-06-14 COPY_TIME sandbox rerun status:
+
+- Working tree: `/Users/adelmann/git/opalx-beambeam`, branch
+  `271-implement-interation-point-element`.
+- BeamBeam `COPY` boolean has been replaced by `COPY_TIME`; current sandbox
+  inputs use `COPY_TIME = 100e-12`.
+- Built `build_openmp/src/opalx` after the `COPY_TIME` changes and verified the
+  smoke input accepts the new attribute.
+- Completed coarse nominal run:
+  `sandbox/track-e-p/gamma_gamma_pairs-large-cylinder.in`.
+- Completed coarse reduced-charge run:
+  `sandbox/track-e-p/gamma_gamma_pairs-large-cylinder-q1em5.in`.
+- Regenerated Figure 8 preview only, without copying into notes:
+  `/tmp/gamma_gamma_large_cylinder_charge_compare_preview.png`.
+  Result: e- and e+ crossing histograms are bin-identical between nominal and
+  reduced charge for this coarse rerun; max first-crossing shifts are about
+  340.4 um (e-) and 324.0 um (e+).
+- Active run at handoff time:
+  `sandbox/track-e-p/gamma_gamma_pairs-large-cylinder-retire1000ps-staged-dt.in`
+  writing `gamma_gamma_pairs-large-cylinder-retire1000ps-staged-dt_c*.h5`.
+- The staged-DT run completed cleanly, with BeamBeam diagnostics showing
+  `source_bunches_overlap=TRUE`, then `FALSE`, followed by primary retirement.
+- Regenerated Figure 9 preview only, without copying into notes:
+  `/tmp/gamma_gamma_large_cylinder_staged_dt_crossings_preview.png`.
+  Result: first cylinder-edge crossings count `N=172` for e- and `N=142` for e+.
+- Both Figure 8 and Figure 9 previews were shown from `/tmp`; no files were
+  copied to `sandbox/note/figs` yet.
+
+2026-06-14 COPY_TIME 50 ps rerun status:
+
+- Updated all active BeamBeam sandbox `.in` files under `sandbox/track-e-p` from
+  `COPY_TIME = 100e-12` to `COPY_TIME = 50e-12`.
+- Smoke run completed:
+  `sandbox/track-e-p/gamma_gamma_pairs-staged-dt-smoke.in`.
+- Completed coarse nominal run:
+  `sandbox/track-e-p/gamma_gamma_pairs-large-cylinder.in`.
+- Completed coarse reduced-charge run:
+  `sandbox/track-e-p/gamma_gamma_pairs-large-cylinder-q1em5.in`.
+- Regenerated Figure 8 preview only:
+  `/tmp/gamma_gamma_large_cylinder_charge_compare_copy50_preview.png`.
+  Result: e- and e+ crossing histograms remain bin-identical between nominal and
+  reduced charge; max first-crossing shifts are about 340.4 um (e-) and
+  324.0 um (e+).
+- Completed staged-DT run:
+  `sandbox/track-e-p/gamma_gamma_pairs-large-cylinder-retire1000ps-staged-dt.in`
+  with `COPY_TIME = 50e-12`, writing
+  `gamma_gamma_pairs-large-cylinder-retire1000ps-staged-dt_c*.h5`.
+- BeamBeam diagnostics showed `copy_active=TRUE` before BB activation,
+  `source_bunches_overlap=TRUE`, then `FALSE`, followed by primary retirement.
+- Regenerated Figure 9 preview only:
+  `/tmp/gamma_gamma_large_cylinder_staged_dt_crossings_copy50_preview.png`.
+  Result: first cylinder-edge crossings count `N=172` for e- and `N=142` for e+.
+- Both COPY_TIME 50 ps preview figures were shown from `/tmp`; no files were
+  copied to `sandbox/note/figs` yet.
+- Plotting correction after comparing with note figures: the H5 crossing `z`
+  values are local BeamBeam coordinates for this diagnostic.  The note figures
+  use the sandbox coordinate, so `sandbox/python/compare_cylinder_crossing_histograms.py`
+  and `sandbox/python/plot_cylinder_crossings.py` now add a default
+  `--z-offset-m 0.33`.  Regenerated previews:
+  - `/tmp/gamma_gamma_large_cylinder_charge_compare_copy50_preview.png`
+  - `/tmp/gamma_gamma_large_cylinder_staged_dt_crossings_copy50_preview.png`
+  Full counts are restored: e- `N=701`, e+ `N=692`.

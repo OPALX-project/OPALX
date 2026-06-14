@@ -184,6 +184,14 @@ namespace {
         EXPECT_TRUE(BEAMBEAM::sourceRetireTimeReached(101.0e-12, retireTime));
     }
 
+    TEST_F(BeamBeamPartBunchTest, CopyTimeUsesConfiguredThreshold) {
+        EXPECT_FALSE(BEAMBEAM::copyTimeReached(200.0e-12, std::nullopt));
+        const std::optional<double> copyTime = 100.0e-12;
+        EXPECT_FALSE(BEAMBEAM::copyTimeReached(99.0e-12, copyTime));
+        EXPECT_TRUE(BEAMBEAM::copyTimeReached(100.0e-12, copyTime));
+        EXPECT_TRUE(BEAMBEAM::copyTimeReached(101.0e-12, copyTime));
+    }
+
     TEST_F(BeamBeamPartBunchTest, CopiedSourceOverlapUsesMirroredIntervalAtIp) {
         BEAMBEAM::ActualGeometry geometry;
         geometry.interactionPointS = 1.25;

@@ -1,6 +1,7 @@
 # Python Environment
 
-This repository uses a local Tk-capable Python virtual environment for the BeamBeam analysis tools.
+This repository uses a shared Tk-capable Python virtual environment for the
+BeamBeam analysis tools.  The maintained setup recipe is in `INSTALL.md`.
 
 ## Prerequisites
 
@@ -21,15 +22,16 @@ sudo port install \
 From the repository root:
 
 ```bash
-cd /Users/adelmann/git/opalx
-/opt/local/bin/python3.11 -m venv --system-site-packages .venv-h6
+cd /Users/adelmann/git/opalx-beambeam
+/opt/local/bin/python3.11 -m venv --system-site-packages ~/.venv-h6
+source ~/.venv-h6/bin/activate
+python -m pip install -r ~/.venv-h6/requirements-h6.txt
 ```
 
 ## Activate
 
 ```bash
-cd /Users/adelmann/git/opalx
-source .venv-h6/bin/activate
+source ~/.venv-h6/bin/activate
 export MPLCONFIGDIR=/tmp/mpl
 ```
 

@@ -102,6 +102,7 @@ private:
     std::optional<bool> beamBeamLastDiagnosticActive_m;
     std::optional<bool> beamBeamLastDiagnosticSourceActive_m;
     std::optional<bool> beamBeamLastDiagnosticSourceRetirementPending_m;
+    std::optional<bool> beamBeamLastDiagnosticCopyActive_m;
     std::optional<bool> beamBeamLastDiagnosticSourceOverlap_m;
     std::optional<std::string> beamBeamLastDiagnosticSignature_m;
     static constexpr int postBeamBeamWindowVisualizationSteps_m = 4;

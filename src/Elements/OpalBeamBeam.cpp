@@ -106,10 +106,11 @@ OpalBeamBeam::OpalBeamBeam()
               "beams.") {
     itsAttr[GEOMETRY] =
             Attributes::makeString("GEOMETRY", "BoundaryGeometry for beam-beam elements");
-    itsAttr[COPY] = Attributes::makeBool(
-            "COPY",
-            "If true, enable the future mirrored-bunch copy model for the beam-beam window.",
-            false);
+    itsAttr[COPY_TIME] = Attributes::makeReal(
+            "COPY_TIME",
+            "Start the mirrored-bunch copy model once simulation time reaches this value [s]. "
+            "Use 0 to disable copied fields.",
+            0.0);
     itsAttr[VISUALIZE] = Attributes::makeBool(
             "VISUALIZE", "If true, emit the ASCII beam-beam-window visualization during tracking.",
             false);
@@ -144,7 +145,12 @@ void OpalBeamBeam::update() {
 
     BeamBeamRep* beamBeam = static_cast<BeamBeamRep*>(getElement());
     beamBeam->setElementLength(Attributes::getReal(itsAttr[LENGTH]));
-    beamBeam->setAttribute("COPY", Attributes::getBool(itsAttr[COPY]) ? 1.0 : 0.0);
+    const double copyTime = Attributes::getReal(itsAttr[COPY_TIME]);
+    if (copyTime < 0.0) {
+        throw OpalException(
+                "OpalBeamBeam::update", "COPY_TIME must be non-negative and is specified in s.");
+    }
+    beamBeam->setAttribute("COPY_TIME", copyTime);
     beamBeam->setAttribute("VISUALIZE", Attributes::getBool(itsAttr[VISUALIZE]) ? 1.0 : 0.0);
     beamBeam->setAttribute(
             "WITNESS_CONTAINERS_MASK",

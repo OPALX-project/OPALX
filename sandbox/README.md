@@ -13,15 +13,21 @@ data separate from source scripts and notes:
 
 ## Python Environment
 
-Assume Python 3.11.  The sandbox environment is the repository-local
-`.venv-h6` venv:
+Assume Python 3.11.  The sandbox environment is the shared home-level
+`~/.venv-h6` venv; see `../INSTALL.md` for the full recipe:
 
 ```bash
 cd /path/to/opalx-beambeam
-python3.11 -m venv --system-site-packages .venv-h6
-source .venv-h6/bin/activate
-python -m pip install -r sandbox/requirements-h6.txt
+python3.11 --version
+python3.11 -m venv --system-site-packages ~/.venv-h6
+source ~/.venv-h6/bin/activate
+python --version
+python -m pip install -r ~/.venv-h6/requirements-h6.txt
 ```
+
+If pip reports that the newest available NumPy is `1.19.5`, the venv was made
+with an old Python.  Load Python 3.11 on the cluster, remove `~/.venv-h6`, and
+recreate it.
 
 The scripts expect NumPy, pandas, matplotlib, Pillow, h5py, SciPy, PyVista/VTK,
 and imageio.  Tkinter is needed for the native GUI but is not installed by pip.
@@ -33,10 +39,10 @@ sudo port install \
   py311-tkinter
 ```
 
-Current `.venv-h6` snapshot on this checkout:
+Current `~/.venv-h6` snapshot used for this checkout:
 
 ```text
-Python executable: .venv-h6/bin/python
+Python executable: ~/.venv-h6/bin/python
 Python version:    3.11.15
 Tk/Tcl:            8.6 / 8.6
 
@@ -162,7 +168,7 @@ PY
 Run all sandbox regression checks from the repository root:
 
 ```bash
-source .venv-h6/bin/activate
+source ~/.venv-h6/bin/activate
 python sandbox/python/run_sandbox_regressions.py
 ```
 
@@ -201,12 +207,12 @@ corresponding note-local figures.
 
 ```bash
 cd /path/to/opalx-beambeam
-source .venv-h6/bin/activate
+source ~/.venv-h6/bin/activate
 python sandbox/python/beambeam_analysis.py gui
 ```
 
 If Tk is unavailable, the tool falls back to a local browser UI.  For the native
-Tk GUI, run from a normal terminal with the `.venv-h6` environment active.
+Tk GUI, run from a normal terminal with the `~/.venv-h6` environment active.
 
 The GUI stores its last inputs in:
 
@@ -225,7 +231,7 @@ root as `sandbox/BeamBeam-static-1V.in`, those files are under `data/sandbox/`:
 
 ```bash
 cd /path/to/opalx-beambeam
-source .venv-h6/bin/activate
+source ~/.venv-h6/bin/activate
 
 python sandbox/python/checkCollWin.py \
   data/sandbox/BeamBeam-static-1V-RHO_scalar-collwin_vis-000005.dat \
@@ -296,7 +302,7 @@ Example:
 
 ```bash
 cd /path/to/opalx-beambeam
-source .venv-h6/bin/activate
+source ~/.venv-h6/bin/activate
 
 python sandbox/python/beam-beam-manufactured-solution.py \
   --compare-rho-dump data/sandbox/BeamBeam-2-RHO_scalar-beambeam_rho_pre-000003.dat \
@@ -376,7 +382,7 @@ Regenerate the tables and figures used by the LaTeX note:
 
 ```bash
 cd /path/to/opalx-beambeam
-source .venv-h6/bin/activate
+source ~/.venv-h6/bin/activate
 
 python sandbox/python/boosted_gaussian_witness.py
 
@@ -422,7 +428,7 @@ Regenerate the FROMFILE distributions:
 
 ```bash
 cd sandbox/track-e-p
-source ../../.venv-h6/bin/activate
+source ~/.venv-h6/bin/activate
 
 python convert_fort98_to_fromfile.py fort98.txt
 ```
@@ -485,7 +491,7 @@ Interactive particle view with a step slider:
 
 ```bash
 cd sandbox/track-e-p
-source ../../.venv-h6/bin/activate
+source ~/.venv-h6/bin/activate
 
 python data/gamma_gamma_pairs-2_ElementPositions.py \
   --show \
@@ -540,7 +546,7 @@ Momentum diagnostics:
 
 ```bash
 cd sandbox/track-e-p
-source ../../.venv-h6/bin/activate
+source ~/.venv-h6/bin/activate
 
 python analyze_pair_momenta.py --plot
 ```

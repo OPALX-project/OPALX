@@ -25,7 +25,7 @@ public:
     enum {
         GEOMETRY = COMMON,  // geometry of boundary, one more enum member besides the common ones in
                             // OpalElement.
-        COPY,               // Enable mirrored-bunch copy model
+        COPY_TIME,          // Start mirrored-bunch copy model at or after this simulation time [s]
         VISUALIZE,          // Enable ASCII beam-beam-window visualization
         WITNESS_CONTAINERS,  // Passive containers that gather source BeamBeam fields
         RETIRE_TIME,         // Delete source particles at or after this simulation time [s]
