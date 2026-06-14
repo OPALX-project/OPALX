@@ -1,6 +1,7 @@
 #include "Structure/DataSink.h"
 
 #include "PartBunch/FieldMirror.hpp"
+#include "Utilities/Options.h"
 
 #include <cstring>
 #include <utility>
@@ -33,6 +34,13 @@ namespace opalx::detail {
                 "BinnedFieldSolver::BeamBeamRestore", nLoc,
                 KOKKOS_LAMBDA(const size_t i) { rView(i)[2] = originalZ(i); });
         Kokkos::fence();
+    }
+
+    inline bool shouldDumpBeamBeamFieldDiagnostics(const long long globalTrackStep) {
+        if (Options::psDumpFreq <= 0) {
+            return false;
+        }
+        return ((globalTrackStep % Options::psDumpFreq) + 1 == Options::psDumpFreq);
     }
 }  // namespace opalx::detail
 
@@ -640,7 +648,9 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
         shift               = -(totalQ / size) * this->getCouplingConstant();
     }
 
-    const bool dumpBeamBeamFieldDiagnostics = bunch.hasBeamBeamWindowConfig();
+    const bool dumpBeamBeamFieldDiagnostics =
+            bunch.hasBeamBeamWindowConfig()
+            && opalx::detail::shouldDumpBeamBeamFieldDiagnostics(bunch.getGlobalTrackStep());
     std::vector<std::string> beamBeamFieldHeaders;
     if (dumpBeamBeamFieldDiagnostics) {
         pc->updateMoments();
