@@ -601,6 +601,9 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
     imageScatterController_m.scatterPrimaryAndImage(pc, *R, rho);
 
     if (bunch.hasBeamBeamWindowConfig() && bunch.getBeamBeamWindowConfig().copyModel) {
+        static IpplTimings::TimerRef beamBeamCopyScatterTimer =
+                IpplTimings::getTimer("BB copy scatter");
+        IpplTimings::startTimer(beamBeamCopyScatterTimer);
         const double interactionPointBeamZ =
                 bunch.getBeamBeamWindowConfig().interactionPointS - pc->get_sPos();
 
@@ -623,6 +626,7 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
         } else {
             scatterMirroredSameSign();
         }
+        IpplTimings::stopTimer(beamBeamCopyScatterTimer);
     }
 
     bunch.setLastDepositedChargeBeforeBackground(rho.sum());
@@ -653,12 +657,16 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
             && opalx::detail::shouldDumpBeamBeamFieldDiagnostics(bunch.getGlobalTrackStep());
     std::vector<std::string> beamBeamFieldHeaders;
     if (dumpBeamBeamFieldDiagnostics) {
+        static IpplTimings::TimerRef beamBeamFieldDiagTimer =
+                IpplTimings::getTimer("BB field diag");
+        IpplTimings::startTimer(beamBeamFieldDiagTimer);
         pc->updateMoments();
         beamBeamFieldHeaders = bunch.buildScalarDumpHeaders("active_beambeam_field_diagnostics");
 
         std::vector<std::string> rhoHeaders = beamBeamFieldHeaders;
         rhoHeaders.emplace_back("field_stage=rho_before_coupling");
         this->dumpScalField("RHO", "beambeam_rho_pre", rhoHeaders);
+        IpplTimings::stopTimer(beamBeamFieldDiagTimer);
     }
 
     scaleAndShiftScalarField(rho, this->getCouplingConstant() / normalizer, shift);
@@ -670,6 +678,9 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
     m << level4 << "Legacy mode: runSolver() start" << endl;
     this->runSolver(dumpBeamBeamFieldDiagnostics);
     if (dumpBeamBeamFieldDiagnostics) {
+        static IpplTimings::TimerRef beamBeamFieldDiagTimer =
+                IpplTimings::getTimer("BB field diag");
+        IpplTimings::startTimer(beamBeamFieldDiagTimer);
         std::vector<std::string> phiHeaders = beamBeamFieldHeaders;
         phiHeaders.emplace_back("field_stage=phi_after_solve");
         this->dumpScalField("PHI", "beambeam_phi", phiHeaders);
@@ -677,6 +688,7 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
         std::vector<std::string> eHeaders = beamBeamFieldHeaders;
         eHeaders.emplace_back("field_stage=e_after_solve");
         this->dumpVectField("EF", "beambeam_e", eHeaders);
+        IpplTimings::stopTimer(beamBeamFieldDiagTimer);
     }
     dumpDirichletPlaneDiagnosticsIfRequested(bunch, "legacy");
     m << level4 << "Legacy mode: gather E->particles" << endl;

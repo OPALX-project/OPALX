@@ -95,6 +95,13 @@ private:
     IpplTimings::TimerRef PluginElemTimer_m;
     IpplTimings::TimerRef BinRepartTimer_m;
     IpplTimings::TimerRef OrbThreader_m;
+    IpplTimings::TimerRef beamBeamWindowTimer_m;
+    IpplTimings::TimerRef beamBeamEntryTransitionTimer_m;
+    IpplTimings::TimerRef beamBeamMeshSetupTimer_m;
+    IpplTimings::TimerRef beamBeamSelfFieldTimer_m;
+    IpplTimings::TimerRef beamBeamTransformBackTimer_m;
+    IpplTimings::TimerRef beamBeamWitnessGatherTimer_m;
+    IpplTimings::TimerRef beamBeamTransitionDumpTimer_m;
 
     BEAMBEAM::Runtime<PartBunch_t::SavedFieldDomainState> beamBeamState_m;
     BEAMBEAM::Diagnostics beamBeamDiagnostics_m;
@@ -319,7 +326,7 @@ private:
             const BEAMBEAM::ActualGeometry& geometry, const ippl::Vector<double, 3>& physicalRMin,
             const ippl::Vector<double, 3>& physicalRMax);
     void validateBeamBeamCopiedCharge(double referenceCharge) const;
-    void dumpBeamBeamTransitionSnapshot(const std::string& snapshotKind) const;
+    void dumpBeamBeamTransitionSnapshot(const std::string& snapshotKind);
     void enterBeamBeamWindow(const BEAMBEAM::ActualGeometry& geometry, Inform& m);
     void leaveBeamBeamWindow(Inform& m);
     /**

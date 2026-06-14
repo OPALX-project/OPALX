@@ -84,6 +84,13 @@ ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
       PluginElemTimer_m(IpplTimings::getTimer("PluginElements")),
       BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
       OrbThreader_m(IpplTimings::getTimer("OrbThreader")),
+      beamBeamWindowTimer_m(IpplTimings::getTimer("BB window total")),
+      beamBeamEntryTransitionTimer_m(IpplTimings::getTimer("BB entry trans")),
+      beamBeamMeshSetupTimer_m(IpplTimings::getTimer("BB mesh setup")),
+      beamBeamSelfFieldTimer_m(IpplTimings::getTimer("BB self fields")),
+      beamBeamTransformBackTimer_m(IpplTimings::getTimer("BB transform back")),
+      beamBeamWitnessGatherTimer_m(IpplTimings::getTimer("BB witness gather")),
+      beamBeamTransitionDumpTimer_m(IpplTimings::getTimer("BB transition dump")),
       beamBeamState_m(),
       beamBeamWindowAnimation_m(std::make_unique<BeamBeamWindowAnimation>()) {}
 
@@ -109,6 +116,13 @@ ParallelTracker::ParallelTracker(
       PluginElemTimer_m(IpplTimings::getTimer("PluginElements")),
       BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
       OrbThreader_m(IpplTimings::getTimer("OrbThreader")),
+      beamBeamWindowTimer_m(IpplTimings::getTimer("BB window total")),
+      beamBeamEntryTransitionTimer_m(IpplTimings::getTimer("BB entry trans")),
+      beamBeamMeshSetupTimer_m(IpplTimings::getTimer("BB mesh setup")),
+      beamBeamSelfFieldTimer_m(IpplTimings::getTimer("BB self fields")),
+      beamBeamTransformBackTimer_m(IpplTimings::getTimer("BB transform back")),
+      beamBeamWitnessGatherTimer_m(IpplTimings::getTimer("BB witness gather")),
+      beamBeamTransitionDumpTimer_m(IpplTimings::getTimer("BB transition dump")),
       beamBeamState_m(),
       beamBeamWindowAnimation_m(std::make_unique<BeamBeamWindowAnimation>()) {
     for (unsigned int i = 0; i < zstop.size(); ++i) {
@@ -945,9 +959,11 @@ std::optional<double> ParallelTracker::performBeamBeamWindowEntryTransition(
         return std::nullopt;
     }
 
+    IpplTimings::startTimer(beamBeamEntryTransitionTimer_m);
     itsBunch_m->clearBeamBeamWindowConfig();
     itsBunch_m->computeSelfFields();
     if (!itsBunch_m->hasLastDepositedChargeBeforeBackground()) {
+        IpplTimings::stopTimer(beamBeamEntryTransitionTimer_m);
         throw OpalException(
                 "ParallelTracker::performBeamBeamWindowEntryTransition",
                 "Missing deposited-charge diagnostics for the pre-enlarge BeamBeam solve.");
@@ -958,6 +974,7 @@ std::optional<double> ParallelTracker::performBeamBeamWindowEntryTransition(
     applyBeamBeamWindowConfig(geometry);
     itsBunch_m->setPhysicalBounds(physicalRMin, physicalRMax);
     beamBeamDiagnostics_m.entryRhoSnapshotDumped = true;
+    IpplTimings::stopTimer(beamBeamEntryTransitionTimer_m);
     return referenceCharge;
 }
 
@@ -979,9 +996,11 @@ void ParallelTracker::validateBeamBeamCopiedCharge(double referenceCharge) const
     }
 }
 
-void ParallelTracker::dumpBeamBeamTransitionSnapshot(const std::string& snapshotKind) const {
+void ParallelTracker::dumpBeamBeamTransitionSnapshot(const std::string& snapshotKind) {
+    IpplTimings::startTimer(beamBeamTransitionDumpTimer_m);
     auto headers = itsBunch_m->buildScalarDumpHeaders(snapshotKind);
     itsBunch_m->getFieldSolver()->dumpScalField("RHO", "collwin_vis", headers);
+    IpplTimings::stopTimer(beamBeamTransitionDumpTimer_m);
 }
 
 void ParallelTracker::leaveBeamBeamWindow(Inform& m) {
@@ -1154,18 +1173,22 @@ bool ParallelTracker::usesFrozenBeamBeamWindowMesh() const {
 void ParallelTracker::computeBeamBeamWindowSelfFields(
         const CoordinateSystemTrafo&, const CoordinateSystemTrafo& beamToReferenceCSTrafo,
         Inform& m) {
+    IpplTimings::startTimer(beamBeamWindowTimer_m);
     PAssert(beamBeamState_m.geometry.has_value());
     const auto& geometry = *beamBeamState_m.geometry;
 
     const double bunchS                = itsBunch_m->getParticleContainer()->get_sPos();
     const double interactionPointBeamZ = geometry.interactionPointS - bunchS;
 
+    IpplTimings::startTimer(beamBeamMeshSetupTimer_m);
     Vector_t<double, 3> physicalRMin(0.0), physicalRMax(0.0);
     itsBunch_m->calcBeamParameters();
     itsBunch_m->get_bounds(physicalRMin, physicalRMax);
     if (geometry.config.xAperture.has_value()
         && (physicalRMin[0] < -*geometry.config.xAperture
             || physicalRMax[0] > *geometry.config.xAperture)) {
+        IpplTimings::stopTimer(beamBeamMeshSetupTimer_m);
+        IpplTimings::stopTimer(beamBeamWindowTimer_m);
         std::ostringstream msg;
         msg << "BeamBeam APERTURE x half-width " << *geometry.config.xAperture
             << " m does not contain the bunch x extent [" << physicalRMin[0] << ", "
@@ -1177,6 +1200,8 @@ void ParallelTracker::computeBeamBeamWindowSelfFields(
     if (geometry.config.yAperture.has_value()
         && (physicalRMin[1] < -*geometry.config.yAperture
             || physicalRMax[1] > *geometry.config.yAperture)) {
+        IpplTimings::stopTimer(beamBeamMeshSetupTimer_m);
+        IpplTimings::stopTimer(beamBeamWindowTimer_m);
         std::ostringstream msg;
         msg << "BeamBeam APERTURE y half-width " << *geometry.config.yAperture
             << " m does not contain the bunch y extent [" << physicalRMin[1] << ", "
@@ -1185,14 +1210,19 @@ void ParallelTracker::computeBeamBeamWindowSelfFields(
                "transverse bunch extent before using the fixed BeamBeam mesh.";
         throw OpalException("ParallelTracker::computeBeamBeamWindowSelfFields", msg.str());
     }
+    IpplTimings::stopTimer(beamBeamMeshSetupTimer_m);
     const std::optional<double> preEnlargePrimaryCharge =
             performBeamBeamWindowEntryTransition(geometry, physicalRMin, physicalRMax);
     applyBeamBeamWindowConfig(geometry);
 
+    IpplTimings::startTimer(beamBeamMeshSetupTimer_m);
     itsBunch_m->enableBeamBeamWindowMesh(
             interactionPointBeamZ, geometry.length, geometry.config.xAperture,
             geometry.config.yAperture);
+    IpplTimings::stopTimer(beamBeamMeshSetupTimer_m);
+    IpplTimings::startTimer(beamBeamSelfFieldTimer_m);
     itsBunch_m->computeSelfFields();
+    IpplTimings::stopTimer(beamBeamSelfFieldTimer_m);
     if (preEnlargePrimaryCharge.has_value()
         && BEAMBEAM::copyTimeReached(itsBunch_m->getT(), geometry.config.copyTime)) {
         validateBeamBeamCopiedCharge(*preEnlargePrimaryCharge);
@@ -1202,22 +1232,29 @@ void ParallelTracker::computeBeamBeamWindowSelfFields(
     }
     itsBunch_m->setPhysicalBounds(physicalRMin, physicalRMax);
 
+    IpplTimings::startTimer(beamBeamTransformBackTimer_m);
     transformFieldsToReferenceFrame(beamToReferenceCSTrafo, m);
+    IpplTimings::stopTimer(beamBeamTransformBackTimer_m);
     m << level5 << "Compute self fields on beam-beam-window mesh done." << endl;
     itsBunch_m->calcBeamParameters();
+    IpplTimings::stopTimer(beamBeamWindowTimer_m);
 }
 
 void ParallelTracker::gatherBeamBeamFieldsToWitnessContainers(Inform& m) {
+    IpplTimings::startTimer(beamBeamWitnessGatherTimer_m);
     if (beamBeamState_m.state != BEAMBEAM::WindowState::Active
         || !beamBeamState_m.geometry.has_value()) {
+        IpplTimings::stopTimer(beamBeamWitnessGatherTimer_m);
         return;
     }
 
     const auto& witnessContainers = beamBeamState_m.geometry->config.witnessContainers;
     if (witnessContainers.empty()) {
+        IpplTimings::stopTimer(beamBeamWitnessGatherTimer_m);
         return;
     }
     if (!beamBeamReferenceToBeamCSTrafo_m.has_value()) {
+        IpplTimings::stopTimer(beamBeamWitnessGatherTimer_m);
         throw OpalException(
                 "ParallelTracker::gatherBeamBeamFieldsToWitnessContainers",
                 "BeamBeam witness containers are configured, but the source-frame transforms are "
@@ -1226,6 +1263,7 @@ void ParallelTracker::gatherBeamBeamFieldsToWitnessContainers(Inform& m) {
 
     auto* solver = itsBunch_m->getFieldSolver();
     if (solver == nullptr) {
+        IpplTimings::stopTimer(beamBeamWitnessGatherTimer_m);
         throw OpalException(
                 "ParallelTracker::gatherBeamBeamFieldsToWitnessContainers",
                 "BeamBeam witness containers require an active field solver.");
@@ -1235,11 +1273,13 @@ void ParallelTracker::gatherBeamBeamFieldsToWitnessContainers(Inform& m) {
     const double sourceS     = itsBunch_m->getParticleContainer()->get_sPos();
     for (const size_t ci : witnessContainers) {
         if (ci == 0) {
+            IpplTimings::stopTimer(beamBeamWitnessGatherTimer_m);
             throw OpalException(
                     "ParallelTracker::gatherBeamBeamFieldsToWitnessContainers",
                     "container[0] is the BeamBeam source and cannot be a witness container.");
         }
         if (ci >= nContainers) {
+            IpplTimings::stopTimer(beamBeamWitnessGatherTimer_m);
             throw OpalException(
                     "ParallelTracker::gatherBeamBeamFieldsToWitnessContainers",
                     "Configured BeamBeam witness container[" + std::to_string(ci)
@@ -1278,6 +1318,7 @@ void ParallelTracker::gatherBeamBeamFieldsToWitnessContainers(Inform& m) {
         m << level4 << "Gathered BeamBeam source fields to witness container[" << ci << "] ("
           << pc->getTotalNum() << " particles)." << endl;
     }
+    IpplTimings::stopTimer(beamBeamWitnessGatherTimer_m);
 }
 
 /**
