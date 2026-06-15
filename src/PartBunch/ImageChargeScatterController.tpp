@@ -5,12 +5,13 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtAll(
     const size_t nLocal = pc->getLocalNum();
     m << level5 << "scatter all local particles: localP=" << nLocal << endl;
 
-    pc->scaleDtByCharge();
-
     using view_type    = typename RhoField_t::view_type;
     view_type rhoView  = rho.getView();
     auto dtView        = pc->dt.getView();
+    auto qView         = pc->getQView();
     auto rView         = positions.getView();
+    const bool qIsAttribute =
+            pc->getQMStorageMode() == ParticleCtr_t::QMStorageMode::Attributes;
     const auto& mesh   = rho.get_mesh();
     const auto& dx     = mesh.getMeshSpacing();
     const auto& origin = mesh.getOrigin();
@@ -19,6 +20,11 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtAll(
     const auto& lDom   = layout.getLocalNDIndex();
     const int nghost   = rho.getNghost();
 
+    static IpplTimings::TimerRef beamBeamCicScatterTimer =
+            IpplTimings::getTimer("BB CIC scatter");
+    static IpplTimings::TimerRef beamBeamHaloAccumTimer =
+            IpplTimings::getTimer("BB halo accum");
+    IpplTimings::startTimer(beamBeamCicScatterTimer);
     Kokkos::parallel_for(
             "ImageChargeScatterController::scatterScaledDtAllCIC", nLocal,
             KOKKOS_LAMBDA(const size_t i) {
@@ -38,16 +44,19 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtAll(
                 }
                 if (inBounds) {
                     ippl::Vector<size_t, Dim> viewArgs = args;
+                    const T weight = dtView(i) * (qIsAttribute ? qView(i) : qView(0));
                     ippl::detail::scatterToField(
                             std::make_index_sequence<1 << Dim>{}, rhoView, wlo, whi, viewArgs,
-                            dtView(i));
+                            weight);
                 }
             });
     Kokkos::fence();
+    IpplTimings::stopTimer(beamBeamCicScatterTimer);
 
+    IpplTimings::startTimer(beamBeamHaloAccumTimer);
     accumulateScalarHaloHostStaged(rho);
+    IpplTimings::stopTimer(beamBeamHaloAccumTimer);
 
-    pc->unscaleDtByCharge();
 }
 
 template <typename T, unsigned Dim>
@@ -146,12 +155,13 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtSubset(
     m << level5 << "scatter subset: localP=" << nLocal << ", policy=[" << policy.begin() << ","
       << policy.end() << "), hashExtent=" << hash.extent(0) << endl;
 
-    pc->scaleDtByCharge();
-
     using view_type    = typename RhoField_t::view_type;
     view_type rhoView  = rho.getView();
     auto dtView        = pc->dt.getView();
+    auto qView         = pc->getQView();
     auto rView         = positions.getView();
+    const bool qIsAttribute =
+            pc->getQMStorageMode() == ParticleCtr_t::QMStorageMode::Attributes;
     const auto& mesh   = rho.get_mesh();
     const auto& dx     = mesh.getMeshSpacing();
     const auto& origin = mesh.getOrigin();
@@ -160,6 +170,11 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtSubset(
     const auto& lDom   = layout.getLocalNDIndex();
     const int nghost   = rho.getNghost();
 
+    static IpplTimings::TimerRef beamBeamCicScatterTimer =
+            IpplTimings::getTimer("BB CIC scatter");
+    static IpplTimings::TimerRef beamBeamHaloAccumTimer =
+            IpplTimings::getTimer("BB halo accum");
+    IpplTimings::startTimer(beamBeamCicScatterTimer);
     Kokkos::parallel_for(
             "ImageChargeScatterController::scatterScaledDtSubsetCIC", policy,
             KOKKOS_LAMBDA(const size_t i) {
@@ -184,16 +199,19 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtSubset(
                 }
                 if (inBounds) {
                     ippl::Vector<size_t, Dim> viewArgs = args;
+                    const T weight = dtView(idx) * (qIsAttribute ? qView(idx) : qView(0));
                     ippl::detail::scatterToField(
                             std::make_index_sequence<1 << Dim>{}, rhoView, wlo, whi, viewArgs,
-                            dtView(idx));
+                            weight);
                 }
             });
     Kokkos::fence();
+    IpplTimings::stopTimer(beamBeamCicScatterTimer);
 
+    IpplTimings::startTimer(beamBeamHaloAccumTimer);
     accumulateScalarHaloHostStaged(rho);
+    IpplTimings::stopTimer(beamBeamHaloAccumTimer);
 
-    pc->unscaleDtByCharge();
 }
 
 template <typename T, unsigned Dim>
