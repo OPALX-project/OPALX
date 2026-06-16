@@ -1,22 +1,18 @@
-## This file should be placed in the root directory of your project.
-## Then modify the CMakeLists.txt file in the root directory of your
-## project to incorporate the testing dashboard.
-##
-## # The following are required to submit to the CDash dashboard:
-##   ENABLE_TESTING()
-##   INCLUDE(CTest)
+# This file should be placed in the root directory of your project. Then modify the CMakeLists.txt
+# file in the root directory of your project to incorporate the testing dashboard.
+#
+# # The following are required to submit to the CDash dashboard: ENABLE_TESTING() INCLUDE(CTest)
 
-set(CTEST_PROJECT_NAME OpalX)
+set(CTEST_PROJECT_NAME OPALX)
 set(CTEST_NIGHTLY_START_TIME 00:00:00)
 
 if(CMAKE_VERSION VERSION_GREATER 3.14)
-  set(CTEST_SUBMIT_URL https://my.cdash.org/submit.php?project=OpalX)
+  set(CTEST_SUBMIT_URL https://my.cdash.org/submit.php?project=OPALX)
 else()
   set(CTEST_DROP_METHOD "https")
   set(CTEST_DROP_SITE "my.cdash.org")
-  set(CTEST_DROP_LOCATION "/submit.php?project=OpalX")
+  set(CTEST_DROP_LOCATION "/submit.php?project=OPALX")
 endif()
 
 set(CTEST_DROP_SITE_CDASH TRUE)
-
 
