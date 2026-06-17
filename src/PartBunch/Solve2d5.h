@@ -53,7 +53,8 @@ public:
     using VectorGridView3D_t = Field<Vector3D_t, 3>::view_type;
     using ScalarGridView2D_t = Field<T, 2>::view_type;
     using VectorGridView2D_t = Field<Vector2D_t, 2>::view_type;
-    using VField2D_t         = Field<Vector_t<T, 2>, 2>;
+
+    enum class LongitudinalFieldMode { Cylindrical, Plates, Open };
 
     struct Solver {
         std::shared_ptr<OpenSolver2D_t> solver_m{};
@@ -63,7 +64,8 @@ public:
 
     Solve2d5(
             std::string solver, Field_t<3>* rho, VField_t<T, 3>* E, Field_t<3>* phi,
-            std::shared_ptr<BCHandler_t> bcHandler);
+            std::shared_ptr<BCHandler_t> bcHandler, LongitudinalFieldMode longitudinalFieldMode,
+            T pipeRadius, T beamRadius, bool closedRing);
 
     void initSolver() override;
 
@@ -73,15 +75,26 @@ public:
     // Algorithm steps, public for testability
     class NullDiagnostic {
     public:
-        KOKKOS_FUNCTION void frenetSerret(
+        KOKKOS_FUNCTION void frenetSerretScatter(
                 const size_t, const Vector3D_t&, const Vector3D_t&, bool) const {}
         KOKKOS_FUNCTION void boostToBeam(
                 const size_t, const Vector3D_t&, const Vector3D_t&, bool) const {}
         KOKKOS_FUNCTION void scatterCharge(const ScalarGridView3D_t&) const {}
+        KOKKOS_FUNCTION void scatterChargeDensity(const ScalarGridView3D_t&) const {}
         KOKKOS_FUNCTION void eField(const VField_t<T, 3>::view_type&) const {}
         KOKKOS_FUNCTION void totalDensity(const LineDensityView_t&) const {}
         KOKKOS_FUNCTION void lineDensity(const LineDensityView_t&) const {}
         KOKKOS_FUNCTION void lineDensityGradient(const LineDensityView_t&) const {}
+        KOKKOS_FUNCTION void frenetSerretGather(
+                const size_t, const Vector3D_t&, const Vector3D_t&, bool) const {}
+        KOKKOS_FUNCTION void gatherEField(
+                const size_t, const Vector3D_t&, const Vector3D_t&, bool) const {}
+        KOKKOS_FUNCTION void deboostFromBeam(
+                const size_t, const Vector3D_t&, const Vector3D_t&, bool) const {}
+        KOKKOS_FUNCTION void longitudinalField(
+                const size_t, const Vector3D_t&, const Vector3D_t&, bool) const {}
+        KOKKOS_FUNCTION void labFrameFields(
+                const size_t, const Vector3D_t&, const Vector3D_t&, bool) const {}
     };
     void loadReferencePath();
     template <typename DiagnosticPolicy = NullDiagnostic>
@@ -112,17 +125,18 @@ private:
     template <typename DiagnosticPolicy = NullDiagnostic>
     KOKKOS_FUNCTION static void doGatherFromGrid(
             size_t n, const VectorView_t& r, const VectorView_t& p, const ReferenceView_t& ref,
-            T meanPs, const VectorView_t& e, const VectorView_t& b, const BooleanView_t& invalid,
-            Vector3D_t invDr, int nghost, ippl::NDIndex<3> lDom, VectorGridView3D_t eField,
-            Vector3D_t origin, DiagnosticPolicy diagnostic);
+            T beamGamma, T beamBeta, const VectorView_t& e, const VectorView_t& b,
+            const BooleanView_t& invalid, Vector3D_t invDr, int nghost, ippl::NDIndex<3> lDom,
+            VectorGridView3D_t eField, Vector3D_t origin, T gBy4PiEpsilon0,
+            LineDensityView_t lineDensityGradient, DiagnosticPolicy diagnostic);
     KOKKOS_FUNCTION static void gatherFromEField(
             size_t n, Vector3D_t fsR, const VectorView_t& e, Vector3D_t invDr, int nghost,
             const ippl::NDIndex<3>& lDom, VectorGridView3D_t eField, Vector3D_t origin);
     KOKKOS_FUNCTION static void unboostFromBeamFrame(
-            size_t n, T meanPs, VectorView_t& e, VectorView_t& b);
+            size_t n, T beamGamma, T beamBeta, const VectorView_t& e, const VectorView_t& b);
     KOKKOS_FUNCTION static void convertFromFrenetSerret(
-            size_t n, const Vector3D_t& bUnit, const Vector3D_t& nUnit,
-            const Vector3D_t& tUnit, VectorView_t& e, VectorView_t& b);
+            size_t n, const Vector3D_t& bUnit, const Vector3D_t& nUnit, const Vector3D_t& tUnit,
+            const VectorView_t& e, const VectorView_t& b);
 
 public:
     // Test case API
@@ -145,6 +159,13 @@ private:
     ReferenceView_t referencePath_m;
     LineDensityView_t lineDensity_m;
     LineDensityView_t lineDensityGradient_m;
+    T beamRadius_m{1};
+    T pipeRadius_m{10};
+    LongitudinalFieldMode longitudinalFieldMode_m{LongitudinalFieldMode::Open};
+    bool closedRing_m{false};
+    size_t numSlices_m{0};
+    static constexpr size_t LineDensityGhostCells = 2;
+    static constexpr size_t LineDensityFirstRealCell = 1;
 };
 
 #include "Solve2d5.tpp"

@@ -41,8 +41,7 @@ FieldSolverCmd::FieldSolverCmd()
               FIELDSOLVER::SIZE, "FIELDSOLVER",
               "The \"FIELDSOLVER\" statement defines data for a the field solver") {
     itsAttr[FIELDSOLVER::TYPE] = Attributes::makePredefinedString(
-            "TYPE", "Name of the attached field solver.",
-            {"NONE", "FFT", "OPEN", "CG", "OPEN2D5", "CIRCULAR2D5", "PLATES2D5"});
+            "TYPE", "Name of the attached field solver.", {"NONE", "FFT", "OPEN", "CG", "FFT2D5"});
     // removed, since not implemented: "P3M"
 
     itsAttr[FIELDSOLVER::BINS] = Attributes::makeString(
@@ -76,6 +75,17 @@ FieldSolverCmd::FieldSolverCmd()
 
     itsAttr[FIELDSOLVER::BBOXINCR] =
             Attributes::makeReal("BBOXINCR", "Increase of bounding box in % ", 2.0);
+
+    // Attributes for FFT2D5 mode
+    itsAttr[FIELDSOLVER::PIPEMODE] = Attributes::makePredefinedString(
+            "PIPEMODE", "Treatment of the beam pipe in [FFT2D5 only].",
+            {"OPEN", "CIRCULAR", "PLATES"}, "OPEN");
+    itsAttr[FIELDSOLVER::PIPER] =
+            Attributes::makeReal("PIPER", "Beam pipe radius in metres [FFT2D5 only]", 1.0);
+    itsAttr[FIELDSOLVER::BEAMR] =
+            Attributes::makeReal("BEAMR", "Beam radius in metres [FFT2D5 only]", 1.0);
+    itsAttr[FIELDSOLVER::CLOSEDRING] =
+            Attributes::makeBool("CLOSEDRING", "TRUE if the ring is closed [FFT2D5 only]", false);
 
     // \todo does not work   registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -155,15 +165,38 @@ void FieldSolverCmd::update() {
     }
 }
 
+std::string FieldSolverCmd::getPipeMode() const {
+    return Attributes::getString(itsAttr[FIELDSOLVER::PIPEMODE]);
+}
+double FieldSolverCmd::getPipeRadius() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::PIPER]);
+}
+double FieldSolverCmd::getBeamRadius() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::BEAMR]);
+}
+bool FieldSolverCmd::getClosedRing() const {
+    return Attributes::getBool(itsAttr[FIELDSOLVER::CLOSEDRING]);
+}
+void FieldSolverCmd::setPipeMode(const std::string& pipeMode) {
+    Attributes::setString(itsAttr[FIELDSOLVER::PIPEMODE], pipeMode);
+}
+void FieldSolverCmd::setPipeRadius(const double pipeRadius) {
+    Attributes::setReal(itsAttr[FIELDSOLVER::PIPER], pipeRadius);
+}
+void FieldSolverCmd::setBeamRadius(const double beamRadius) {
+    Attributes::setReal(itsAttr[FIELDSOLVER::BEAMR], beamRadius);
+}
+void FieldSolverCmd::setClosedRing(const bool closedRing) {
+    Attributes::setBool(itsAttr[FIELDSOLVER::CLOSEDRING], closedRing);
+}
+
 void FieldSolverCmd::setFieldSolverCmdType() {
     static const std::map<std::string, FieldSolverCmdType> stringType_s = {
             {"NONE", FieldSolverCmdType::NONE},
             {"FFT", FieldSolverCmdType::FFT},
             {"OPEN", FieldSolverCmdType::OPEN},
             {"CG", FieldSolverCmdType::CG},
-            {"OPEN2D5", FieldSolverCmdType::OPEN2D5},
-            {"CIRCULAR2D5", FieldSolverCmdType::CIRCULAR2D5},
-            {"PLATES2D5", FieldSolverCmdType::PLATES2D5},
+            {"FFT2D5", FieldSolverCmdType::FFT2D5},
     };
 
     fsName_m = getType();

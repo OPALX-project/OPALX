@@ -30,9 +30,7 @@
 
 #include "Ippl.h"
 
-enum class FieldSolverCmdType : short { NONE = -1, FFT = 0, OPEN = 1, CG = 2,
-    OPEN2D5 = 3, CIRCULAR2D5 = 4, PLATES2D5 = 5
-};
+enum class FieldSolverCmdType : short { NONE = -1, FFT = 0, OPEN = 1, CG = 2, FFT2D5 = 3 };
 
 // The attributes of class FieldSolverCmd.
 namespace FIELDSOLVER {
@@ -50,6 +48,10 @@ namespace FIELDSOLVER {
         BCFFTZ,    // boundary condition in z [FFT + AMR_MG only]
         GREENSF,   // holds greensfunction to be used [FFT + P3M only]
         BBOXINCR,  // how much the boundingbox is increased
+        PIPEMODE,  // One of OPEN, CIRCULAR, PLATES [FFT2D5 only]
+        PIPER,     // Beam pipe radius in metres [FFT2D5 only]
+        BEAMR,     // Beam radius in metres [FFT2D5 only]
+        CLOSEDRING,// TRUE if the ring is closed [FFT2D5 only]
         SIZE
     };
 }
@@ -107,6 +109,15 @@ public:
     ippl::Vector<bool, 3> getDomDec() const;
 
     Inform& printInfo(Inform& os) const;
+
+    std::string getPipeMode() const;
+    double getPipeRadius() const;
+    double getBeamRadius() const;
+    bool getClosedRing() const;
+    void setPipeMode(const std::string& pipeMode);
+    void setPipeRadius(double pipeRadius);
+    void setBeamRadius(double beamRadius);
+    void setClosedRing(bool closedRing);
 
 private:
     // Not implemented.

@@ -250,11 +250,20 @@ void PartBunch<T, Dim>::setSolver() {
     // Needs to happen before setting the field solver, since the field solver needs the bins.
     setBins();
 
-    if (Dim == 3
-        && (solver_m == "OPEN2D5" || solver_m == "CIRCULAR2D5" || solver_m == "PLATES2D5")) {
+    if (Dim == 3 && solver_m == "FFT2D5") {
+        typename Solve2d5<T>::LongitudinalFieldMode mode;
+        if (OPALFieldSolver_m->getPipeMode() == "OPEN") {
+            mode = Solve2d5<T>::LongitudinalFieldMode::Open;
+        } else if (OPALFieldSolver_m->getPipeMode() == "CIRCULAR") {
+            mode = Solve2d5<T>::LongitudinalFieldMode::Cylindrical;
+        } else if (OPALFieldSolver_m->getPipeMode() == "PLATES") {
+            mode = Solve2d5<T>::LongitudinalFieldMode::Plates;
+        }
         auto solver2d5 = std::make_shared<Solve2d5<T>>(
                 this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
-                &this->fcontainer_m->getPhi(), this->getBCHandler());
+                &this->fcontainer_m->getPhi(), this->getBCHandler(), mode,
+                OPALFieldSolver_m->getPipeRadius(), OPALFieldSolver_m->getBeamRadius(),
+                OPALFieldSolver_m->getClosedRing());
         this->setFieldSolver(solver2d5);
         m << level4 << "2.5D field solver set." << endl;
     } else {

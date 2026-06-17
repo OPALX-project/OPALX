@@ -33,14 +33,22 @@
 template <typename T>
 Solve2d5<T>::Solve2d5(
         std::string solver, Field_t<3>* rho, VField_t<T, 3>* E, Field_t<3>* phi,
-        std::shared_ptr<BCHandler_t> bcHandler)
-    : Base(solver, rho, E, phi, bcHandler, 0, true), phi_m(phi), rho_m(rho), E_m(E) {}
+        std::shared_ptr<BCHandler_t> bcHandler, const LongitudinalFieldMode longitudinalFieldMode,
+        const T pipeRadius, const T beamRadius, const bool closedRing)
+    : Base(solver, rho, E, phi, bcHandler, 0, true),
+      phi_m(phi),
+      rho_m(rho),
+      E_m(E),
+      beamRadius_m(beamRadius),
+      pipeRadius_m(pipeRadius),
+      longitudinalFieldMode_m(longitudinalFieldMode),
+      closedRing_m(closedRing) {}
 
 template <typename T>
 void Solve2d5<T>::initSolver() {
     // The grid dimensions
     ippl::NDIndex<2> ndIndex2d({rho_m->getDomain()[0], rho_m->getDomain()[1]});
-    auto numSlices = rho_m->getDomain()[2].length();
+    numSlices_m = rho_m->getDomain()[2].length();
     // The slice mesh
     const auto* mesh3d = &rho_m->get_mesh();
     Vector2D_t spacing({mesh3d->getMeshSpacing()[0], mesh3d->getMeshSpacing()[1]});
@@ -64,15 +72,15 @@ void Solve2d5<T>::initSolver() {
     // going to have to copy data into and out of them during the solve calls.
     // If instead the Field type would accept a Kokkos subview rather than always
     // creating its own Kokkos array, we could avoid the copy operations.
-    twoDSolvers_m.resize(numSlices);
-    for (size_t z = 0; z < numSlices; ++z) {
+    twoDSolvers_m.resize(numSlices_m);
+    for (size_t z = 0; z < numSlices_m; ++z) {
         twoDSolvers_m[z].E_m      = std::make_shared<VField_t<T, 2>>(*sliceMesh_m, *sliceLayout_m);
         twoDSolvers_m[z].rho_m    = std::make_shared<Field_t<2>>(*sliceMesh_m, *sliceLayout_m);
         twoDSolvers_m[z].solver_m = std::make_shared<OpenSolver2D_t>(
                 *twoDSolvers_m[z].E_m, *twoDSolvers_m[z].rho_m, params);
     }
-    lineDensity_m         = LineDensityView_t("lineDensity", numSlices);
-    lineDensityGradient_m = LineDensityView_t("lineDensityGradient", numSlices);
+    lineDensity_m         = LineDensityView_t("lineDensity", numSlices_m + LineDensityGhostCells);
+    lineDensityGradient_m = LineDensityView_t("lineDensityGradient", numSlices_m);
 }
 
 template <typename T>
@@ -133,24 +141,25 @@ template <typename T>
 template <typename DiagnosticPolicy>
 void Solve2d5<T>::scatterToGrid(const PartBunch_t& bunch, DiagnosticPolicy diagnostic) {
     if (referencePath_m.extent(0) > 1) {
+        const auto& ref    = referencePath_m;
+        const auto& mesh   = rho_m->get_mesh();
+        const auto& dr     = mesh.getMeshSpacing();
+        const auto invDr   = 1.0 / dr;
+        const int nghost   = rho_m->getNghost();
+        const auto& layout = rho_m->getLayout();
+        const auto& lDom   = layout.getLocalNDIndex();
+        const auto rhoView = rho_m->getView();
+        const auto& origin = mesh.getOrigin();
+        // Do the scattering for all the particles
+        Kokkos::deep_copy(rhoView, 0.0);
         for (auto& pcs = bunch.getParticleContainers(); const auto& pc : pcs) {
             pc->updateMoments();
             pc->scaleDtByCharge();  // Work out a way to include this in the parallel for
             const auto& r       = pc->R.getView();
             const auto& p       = pc->P.getView();
-            const auto& ref     = referencePath_m;
             const auto meanPs   = pc->getMeanP().data_m[2];
             const auto& dt      = pc->dt.getView();
             const auto& invalid = pc->InvalidMask.getView();
-            const auto& mesh    = rho_m->get_mesh();
-            const auto& dr      = mesh.getMeshSpacing();
-            const auto invDr    = 1.0 / dr;
-            const int nghost    = rho_m->getNghost();
-            const auto& layout  = rho_m->getLayout();
-            const auto& lDom    = layout.getLocalNDIndex();
-            const auto rhoView  = rho_m->getView();
-            const auto& origin  = mesh.getOrigin();
-            Kokkos::deep_copy(rhoView, 0.0);
             Kokkos::parallel_for(
                     "Solve2d5::scatterToGrid()", pc->getLocalNum(), KOKKOS_LAMBDA(const size_t n) {
                         doScatterToGrid(
@@ -161,6 +170,16 @@ void Solve2d5<T>::scatterToGrid(const PartBunch_t& bunch, DiagnosticPolicy diagn
             diagnostic.scatterCharge(rhoView);
             pc->unscaleDtByCharge();  // Work out a way to include this in the parallel for
         }
+        // Now scale by volume and time step to get the proper charge density
+        const auto cellVolume =
+                std::reduce(bunch.hr_m.begin(), bunch.hr_m.end(), 1.0, std::multiplies<double>());
+        auto scale = bunch.getdT() * cellVolume;
+        ippl::parallel_for(
+                "Solve2d5::scatterPostProcess", rho_m->getFieldRangePolicy(),
+                KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
+                    apply(rhoView, idx) = apply(rhoView, idx) / scale;
+                });
+        diagnostic.scatterChargeDensity(rhoView);
     }
 }
 
@@ -175,7 +194,7 @@ KOKKOS_FUNCTION void Solve2d5<T>::doScatterToGrid(
         // Into Frenet-Serret coordinates
         Vector3D_t fsR, fsP, bUnit, nUnit, tUnit;
         convertToFrenetSerret(n, r, p, ref, fsR, fsP, bUnit, nUnit, tUnit);
-        diagnostic.frenetSerret(n, fsR, fsP, invalid(n));
+        diagnostic.frenetSerretScatter(n, fsR, fsP, invalid(n));
         // Boost into the beam frame
         boostToBeamFrame(meanPs, fsP);
         diagnostic.boostToBeam(n, fsR, fsP, invalid(n));
@@ -266,19 +285,27 @@ KOKKOS_FUNCTION void Solve2d5<T>::scatterToRho(
 template <typename T>
 template <typename DiagnosticPolicy>
 void Solve2d5<T>::calculateLineDensity(DiagnosticPolicy diagnostic) {
-    using Policy2D   = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
+    using Policy2D_t = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
     const auto rho3d = rho_m->getView();
     auto lineDensity = Kokkos::create_mirror_view(lineDensity_m);
     // Calculate the total charge density for each z slice
-    for (size_t k = 0; k < rho3d.extent(2); ++k) {
+    for (size_t k = 0; k < numSlices_m; ++k) {
         T sum{};
         Kokkos::parallel_reduce(
-                Policy2D({0, 0}, {rho3d.extent(0), rho3d.extent(1)}),
+                Policy2D_t({0, 0}, {rho3d.extent(0), rho3d.extent(1)}),
                 KOKKOS_LAMBDA(const size_t i, const size_t j, T& localSum) {
                     localSum += rho3d(i, j, k);
                 },
                 sum);
-        lineDensity(k) = sum;
+        lineDensity(k + LineDensityFirstRealCell) = sum;
+    }
+    // Set the ghost cells to the boundary conditions
+    if (closedRing_m) {
+        lineDensity(0) = lineDensity(numSlices_m - 1 + LineDensityFirstRealCell);
+        lineDensity(numSlices_m + LineDensityFirstRealCell) = lineDensity(LineDensityFirstRealCell);
+    } else {
+        lineDensity(0)                                      = 0.0;
+        lineDensity(numSlices_m + LineDensityFirstRealCell) = 0.0;
     }
     Kokkos::deep_copy(lineDensity_m, lineDensity);
     diagnostic.totalDensity(lineDensity_m);
@@ -286,22 +313,18 @@ void Solve2d5<T>::calculateLineDensity(DiagnosticPolicy diagnostic) {
     auto dx = sliceMesh_m->getMeshSpacing().data_m[0];
     auto dy = sliceMesh_m->getMeshSpacing().data_m[1];
     Kokkos::parallel_for(
-            rho3d.extent(2), KOKKOS_LAMBDA(const size_t k) { lineDensity(k) *= dx * dy; });
+            numSlices_m + LineDensityGhostCells,
+            KOKKOS_LAMBDA(const size_t k) { lineDensity(k) *= dx * dy; });
     Kokkos::fence();
     diagnostic.lineDensity(lineDensity_m);
     // Find the gradient
     auto lineDensityGradient = lineDensityGradient_m;
-    const auto nz            = rho3d.extent(2);
     const auto dz            = rho_m->get_mesh().getMeshSpacing().data_m[2];
     Kokkos::parallel_for(
-            Kokkos::RangePolicy(0, nz), KOKKOS_LAMBDA(const size_t k) {
-                if (k == 0) {
-                    lineDensityGradient(k) = (lineDensity(1) - lineDensity(0)) / dz;
-                } else if (k == nz - 1) {
-                    lineDensityGradient(k) = (lineDensity(k) - lineDensity(k - 1)) / dz;
-                } else {
-                    lineDensityGradient(k) = (lineDensity(k + 1) - lineDensity(k - 1)) / (2.0 * dz);
-                }
+            Kokkos::RangePolicy(0, numSlices_m), KOKKOS_LAMBDA(const size_t k) {
+                lineDensityGradient(k) = (lineDensity(k + LineDensityFirstRealCell + 1)
+                                          - lineDensity(k + LineDensityFirstRealCell - 1))
+                                         / (2.0 * dz);
             });
     Kokkos::fence();
     diagnostic.lineDensityGradient(lineDensityGradient_m);
@@ -316,14 +339,20 @@ void Solve2d5<T>::solvePoissons(DiagnosticPolicy diagnostic) {
     // then copy the E field results into the 3D E field grid.
     for (size_t z = 0; z < twoDSolvers_m.size(); ++z) {
         auto& s = twoDSolvers_m[z];
-        // Do the 2D solve to get phi, Ex and Ey
+        // Do the 2D solve to get Ex and Ey
+        auto rho2d = s.rho_m->getView();
         Kokkos::deep_copy(
-                s.rho_m->getView(),
-                Kokkos::subview(rho_m->getView(), Kokkos::ALL(), Kokkos::ALL(), z));
-        s.solver_m->solve();  // 2D E is now filled in, the 2D rho array now contains 2D phi
+                rho2d, Kokkos::subview(rho_m->getView(), Kokkos::ALL(), Kokkos::ALL(), z));
+        // Scale by the coupling constant and solve
+        Kokkos::parallel_for(
+                "Solve2d5::couplingConstant", Policy({0, 0}, {rho2d.extent(0), rho2d.extent(1)}),
+                KOKKOS_LAMBDA(const size_t i, const size_t j) {
+                    rho2d(i, j) /= Physics::epsilon_0;
+                });
+        s.solver_m->solve();
         Kokkos::fence();
         auto e2d = s.E_m->getView();
-        // Copy into the 3D E field grid
+        // Copy the 2D E field into the 3D E field grid
         Kokkos::parallel_for(
                 "Zero Z", Policy({0, 0}, {e2d.extent(0), e2d.extent(1)}),
                 KOKKOS_LAMBDA(const size_t i, const size_t j) {
@@ -341,26 +370,43 @@ template <typename DiagnosticPolicy>
 void Solve2d5<T>::gatherFromGrid(const PartBunch_t& bunch, DiagnosticPolicy diagnostic) {
     if (referencePath_m.extent(0) > 1) {
         for (auto& pcs = bunch.getParticleContainers(); const auto& pc : pcs) {
-            const auto& r       = pc->R.getView();
-            const auto& p       = pc->P.getView();
-            const auto& ref     = referencePath_m;
-            const auto meanPs   = pc->getMeanP().data_m[2];
-            const auto& dt      = pc->dt.getView();
-            const auto& invalid = pc->InvalidMask.getView();
-            const auto& mesh    = rho_m->get_mesh();
-            const auto& dr      = mesh.getMeshSpacing();
-            const auto invDr    = 1.0 / dr;
-            const int nghost    = rho_m->getNghost();
-            const auto& layout  = rho_m->getLayout();
-            const auto& lDom    = layout.getLocalNDIndex();
-            const auto rhoView  = rho_m->getView();
-            const auto& origin  = mesh.getOrigin();
-            Kokkos::deep_copy(rhoView, 0.0);
+            const auto& r                  = pc->R.getView();
+            const auto& p                  = pc->P.getView();
+            const auto& ref                = referencePath_m;
+            const auto meanPs              = pc->getMeanP().data_m[2];
+            const auto& e                  = pc->E.getView();
+            const auto& b                  = pc->B.getView();
+            const auto& invalid            = pc->InvalidMask.getView();
+            const auto& mesh               = rho_m->get_mesh();
+            const auto& dr                 = mesh.getMeshSpacing();
+            const auto invDr               = 1.0 / dr;
+            const int nghost               = rho_m->getNghost();
+            const auto& layout             = rho_m->getLayout();
+            const auto& lDom               = layout.getLocalNDIndex();
+            const auto& origin             = mesh.getOrigin();
+            const auto gammaB              = Kokkos::sqrt(1.0 + meanPs * meanPs);
+            const auto betaB               = meanPs / gammaB;
+            const auto lineDensityGradient = lineDensityGradient_m;
+            const auto eField              = E_m->getView();
+            T gBy4PiEpsilon0;
+            switch (longitudinalFieldMode_m) {
+                case LongitudinalFieldMode::Cylindrical:
+                    gBy4PiEpsilon0 = 0.67 + 2 * Kokkos::log(pipeRadius_m / beamRadius_m);
+                    break;
+                case LongitudinalFieldMode::Plates:
+                    gBy4PiEpsilon0 =
+                            0.67 + 2 * Kokkos::log(4 * pipeRadius_m / Physics::pi / beamRadius_m);
+                    break;
+                case LongitudinalFieldMode::Open:
+                    gBy4PiEpsilon0 = 6.36;
+                    break;
+            }
+            gBy4PiEpsilon0 /= 4 * Physics::pi * Physics::epsilon_0;
             Kokkos::parallel_for(
                     "Solve2d5::gatherFromGrid()", pc->getLocalNum(), KOKKOS_LAMBDA(const size_t n) {
                         doGatherFromGrid(
-                                n, r, p, ref, meanPs, dt, invalid, invDr, nghost, lDom, rhoView,
-                                origin, diagnostic);
+                                n, r, p, ref, gammaB, betaB, e, b, invalid, invDr, nghost, lDom,
+                                eField, origin, gBy4PiEpsilon0, lineDensityGradient, diagnostic);
                     });
             Kokkos::fence();
         }
@@ -371,20 +417,29 @@ template <typename T>
 template <typename DiagnosticPolicy>
 KOKKOS_FUNCTION void Solve2d5<T>::doGatherFromGrid(
         const size_t n, const VectorView_t& r, const VectorView_t& p, const ReferenceView_t& ref,
-        const T meanPs, const VectorView_t& e, const VectorView_t& b, const BooleanView_t& invalid,
-        Vector3D_t invDr, const int nghost, const ippl::NDIndex<3> lDom, VectorGridView3D_t eField,
-        Vector3D_t origin, DiagnosticPolicy diagnostic) {
+        const T beamGamma, const T beamBeta, const VectorView_t& e, const VectorView_t& b,
+        const BooleanView_t& invalid, Vector3D_t invDr, const int nghost,
+        const ippl::NDIndex<3> lDom, VectorGridView3D_t eField, Vector3D_t origin, T gBy4PiEpsilon0,
+        LineDensityView_t lineDensityGradient, DiagnosticPolicy diagnostic) {
     if (!invalid(n)) {
         // Into Frenet-Serret coordinates
         Vector3D_t fsR, fsP, bUnit, nUnit, tUnit;
         convertToFrenetSerret(n, r, p, ref, fsR, fsP, bUnit, nUnit, tUnit);
-        diagnostic.frenetSerret(n, fsR, fsP, invalid(n));
+        diagnostic.frenetSerretGather(n, fsR, fsP, invalid(n));
         // CiC Gather the boosted E field
         gatherFromEField(n, fsR, e, invDr, nghost, lDom, eField, origin);
+        diagnostic.gatherEField(n, e(n), b(n), invalid(n));
         // Unboost from the beam frame
-        unBoostFromBeamFrame(n, meanPs, e, b);
+        unboostFromBeamFrame(n, beamGamma, beamBeta, e, b);
+        diagnostic.deboostFromBeam(n, e(n), b(n), invalid(n));
+        // Calculate the longitudinal E field in Frenet-Serret coordinates
+        const int index = (fsR.data_m[2] - origin.data_m[2]) * invDr.data_m[2] + 0.5;
+        const auto ldg  = lineDensityGradient(index);
+        e(n).data_m[2]  = gBy4PiEpsilon0 * ldg / beamGamma / beamGamma;
+        diagnostic.longitudinalField(n, e(n), b(n), invalid(n));
         // And finally back into lab coordinates
         convertFromFrenetSerret(n, bUnit, nUnit, tUnit, e, b);
+        diagnostic.labFrameFields(n, e(n), b(n), invalid(n));
     }
 }
 
@@ -413,25 +468,21 @@ KOKKOS_FUNCTION void Solve2d5<T>::gatherFromEField(
 
 template <typename T>
 KOKKOS_FUNCTION void Solve2d5<T>::unboostFromBeamFrame(
-        size_t n, T meanPs, VectorView_t& e, VectorView_t& b) {
+        size_t n, T beamGamma, T beamBeta, const VectorView_t& e, const VectorView_t& b) {
     // Transform the E field from the boosted beam frame into E and B fields
-    auto gammaB    = Kokkos::sqrt(1.0 + meanPs * meanPs);
-    auto betaB = meanPs / gammaB;
-    e(n).data_m[0] *= gammaB;
-    e(n).data_m[1] *= gammaB;
-    b(n).data_m[0] = betaB * e(n).data_m[1] / Physics::c;
-    b(n).data_m[1] = -betaB * e(n).data_m[0] / Physics::c;
+    e(n).data_m[0] *= beamGamma;
+    e(n).data_m[1] *= beamGamma;
+    b(n).data_m[0] = beamBeta * e(n).data_m[1] / Physics::c;
+    b(n).data_m[1] = -beamBeta * e(n).data_m[0] / Physics::c;
     b(n).data_m[2] = 0.0;
 }
 
 template <typename T>
 KOKKOS_FUNCTION void Solve2d5<T>::convertFromFrenetSerret(
-        size_t n, const Vector3D_t& bUnit, const Vector3D_t& nUnit,
-        const Vector3D_t& tUnit, VectorView_t& e, VectorView_t& b) {
-    e(n) = e(n).data_m[0] * nUnit + e(n).data_m[1] * bUnit + e(n).data_m[2] * tUnit;
-    b(n) = b(n).data_m[0] * nUnit + b(n).data_m[1] * bUnit + b(n).data_m[2] * tUnit;
+        size_t n, const Vector3D_t& bUnit, const Vector3D_t& nUnit, const Vector3D_t& tUnit,
+        const VectorView_t& e, const VectorView_t& b) {
+    e(n) = e(n).data_m[0] * bUnit + e(n).data_m[1] * nUnit + e(n).data_m[2] * tUnit;
+    b(n) = b(n).data_m[0] * bUnit + b(n).data_m[1] * nUnit + b(n).data_m[2] * tUnit;
 }
-
-READY FOR TESTING
 
 #endif
