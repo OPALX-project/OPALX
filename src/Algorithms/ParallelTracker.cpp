@@ -47,6 +47,7 @@
 #include "Physics/Units.h"
 
 #include "Processes/GlobalProcesses/GlobalProcess.h"
+#include "Processes/LocalProcesses/LocalProcess.h"
 
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/BoundingBox.h"
@@ -428,11 +429,13 @@ void ParallelTracker::execute() {
             itsBunch_m->bunchUpdate();
             m << level5 << "Bunch updated after timeIntegration2." << endl;
 
-            // Apply global processes (e.g. decay) and mark afftected particles for deletion
-            const size_t nProcessMarked = applyGlobalProcesses(itsBunch_m->getdT());
-            m << level5 << "Applied global processes at step " << step << "." << endl;
-            if (nProcessMarked > 0) {
-                deleteInvalidParticles(false, m, "global processes");
+            // Apply local (element-attached) and global (e.g. decay) physics processes
+            // and mark affected particles for deletion
+            const size_t nLocalMarked  = applyLocalProcesses(oth, itsBunch_m->getdT());
+            const size_t nGlobalMarked = applyGlobalProcesses(itsBunch_m->getdT());
+            m << level5 << "Applied physics processes at step " << step << "." << endl;
+            if (nLocalMarked + nGlobalMarked > 0) {
+                deleteInvalidParticles(false, m, "physics processes");
             }
 
             // Small sanity check
@@ -832,6 +835,64 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
         }
     }
     itsBunch_m->refreshPcActiveAfterEmit();
+}
+
+size_t ParallelTracker::applyLocalProcesses(OrbitThreader& oth, double dt) {
+    const size_t nContainers        = itsBunch_m->getNumParticleContainers();
+    const long long globalTrackStep = itsBunch_m->getGlobalTrackStep();
+    size_t nMarked                  = 0;
+
+    for (size_t ci = 0; ci < nContainers; ++ci) {
+        if (!itsBunch_m->isPcActive(ci)) {
+            continue;
+        }
+        auto pc = itsBunch_m->getParticleContainer(ci);
+        if (!pc) {
+            continue;
+        }
+
+        // Bunch bounds for this container (same logic as computeExternalFields).
+        Vector_t<double, 3> rmin(0.0), rmax(0.0);
+        if (pc->getTotalNum() > 0) {
+            pc->computeMinMaxR();
+            rmin = pc->getMinR();
+            rmax = pc->getMaxR();
+            if (!std::isfinite(rmin(2)) || !std::isfinite(rmax(2))) {
+                rmin = rmax = 0.0;
+            }
+        }
+
+        // Get elements at bunch position.
+        IndexMap::value_t elements;
+        try {
+            elements = oth.query(pc->get_sPos() + 0.5 * (rmax(2) + rmin(2)), rmax(2) - rmin(2));
+        } catch (IndexMap::OutOfBounds& e) {
+            // End-of-line was already handled by computeExternalFields in this step.
+            continue;
+        }
+
+        for (const auto& element : elements) {
+            if (!element->hasLocalProcesses()) {
+                continue;
+            }
+
+            const CoordinateSystemTrafo refToLocalCSTrafo =
+                    itsOpalBeamline_m.getMisalignment(element)
+                    * (itsOpalBeamline_m.getCSTrafoLab2Local(element) * pc->getToLabTrafo());
+
+            pc->transformBunch(refToLocalCSTrafo);
+
+            const LocalProcessContext context{dt, globalTrackStep, ci, refToLocalCSTrafo};
+            for (const auto& process : element->getLocalProcesses()) {
+                if (process) {
+                    nMarked += process->apply(*element, *pc, context);
+                }
+            }
+
+            pc->transformBunch(refToLocalCSTrafo.inverted());
+        }
+    }
+    return nMarked;
 }
 
 size_t ParallelTracker::applyGlobalProcesses(double dt) {

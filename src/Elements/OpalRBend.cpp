@@ -132,21 +132,10 @@ void OpalRBend::update() {
     else
         bend->setLength(0.0);
 
-    if (itsAttr[WAKEF]) {
-        throw OpalException(
-                "OpalRBend::update", "WAKEF is not supported yet for the OPALX-native RBEND port.");
-    }
-
     if (itsAttr[K1])
         bend->setK1(Attributes::getReal(itsAttr[K1]));
     else
         bend->setK1(0.0);
-
-    if (itsAttr[PARTICLEMATTERINTERACTION]) {
-        throw OpalException(
-                "OpalRBend::update",
-                "PARTICLEMATTERINTERACTION is not supported yet for the OPALX-native RBEND port.");
-    }
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(bend);

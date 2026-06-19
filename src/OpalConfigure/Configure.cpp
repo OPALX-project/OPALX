@@ -52,6 +52,8 @@
 #include "Structure/BinningCmd.h"
 #include "Structure/EmissionSource.h"
 #include "Structure/FieldSolverCmd.h"
+
+#include "Processes/LocalProcesses/OpalTestProcess.h"
 // #include "Tables/List.h"
 
 // Value definitions commands.
@@ -128,6 +130,8 @@ namespace {
         opal->create(new Distribution());
         opal->create(new EmissionSourceList());
         opal->create(new BinningCmd());
+
+        opal->create(new OpalTestProcess());
     }
 
     void makeElements() {

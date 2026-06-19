@@ -22,6 +22,8 @@
 #include "Attributes/Attributes.h"
 #include "OpalParser/Statement.h"
 #include "Physics/Physics.h"
+#include "Processes/LocalProcesses/LocalProcess.h"
+#include "Processes/LocalProcesses/OpalLocalProcess.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/ParseError.h"
 
@@ -45,10 +47,8 @@ OpalElement::OpalElement(int size, const char* name, const char* help)
 
     itsAttr[APERT] = Attributes::makeString("APERTURE", "The element aperture");
 
-    itsAttr[WAKEF] = Attributes::makeString("WAKEF", "Defines the wake function");
-
-    itsAttr[PARTICLEMATTERINTERACTION] = Attributes::makeString(
-            "PARTICLEMATTERINTERACTION", "Defines the particle mater interaction handler");
+    itsAttr[PROCESSES] = Attributes::makeUpperCaseStringArray(
+            "PROCESSES", "Local physics processes attached to this element");
 
     itsAttr[ORIGIN] = Attributes::makeRealArray("ORIGIN", "The location of the element");
 
@@ -278,19 +278,6 @@ double OpalElement::getLength() const { return Attributes::getReal(itsAttr[LENGT
 
 const std::string OpalElement::getTypeName() const {
     const Attribute* attr = findAttribute("TYPE");
-    return attr ? Attributes::getString(*attr) : std::string();
-}
-
-/**
-   Functions to get the wake field parametes
-*/
-const std::string OpalElement::getWakeF() const {
-    const Attribute* attr = findAttribute("WAKEF");
-    return attr ? Attributes::getString(*attr) : std::string();
-}
-
-const std::string OpalElement::getParticleMatterInteraction() const {
-    const Attribute* attr = findAttribute("PARTICLEMATTERINTERACTION");
     return attr ? Attributes::getString(*attr) : std::string();
 }
 
@@ -528,6 +515,14 @@ void OpalElement::update() {
     if (itsAttr[ELEMEDGE]) base->setElementPosition(Attributes::getReal(itsAttr[ELEMEDGE]));
 
     base->setFlagDeleteOnTransverseExit(Attributes::getBool(itsAttr[DELETEONTRANSVERSEEXIT]));
+
+    if (itsAttr[PROCESSES]) {
+        std::vector<std::shared_ptr<LocalProcess>> processes;
+        for (const std::string& name : Attributes::getStringArray(itsAttr[PROCESSES])) {
+            processes.push_back(OpalLocalProcess::find(name)->getProcess());
+        }
+        base->setLocalProcesses(processes);
+    }
 }
 
 void OpalElement::updateUnknown(ElementBase* base) {

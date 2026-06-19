@@ -36,8 +36,7 @@ public:
         APERT,                      // The aperture data.
         LENGTH,                     // The element length.
         ELEMEDGE,                   // The position of the element (in path length)
-        WAKEF,                      // The wake function to be used
-        PARTICLEMATTERINTERACTION,  // The particle mater interaction handler to be used
+        PROCESSES,                  // The local physics processes attached to the element
         ORIGIN,                     // The location of the element in floor coordinates
         ORIENTATION,                // The orientation of the element (Tait Bryan angles)
         X,       // The x-coordinate of the location of the element in floor coordinates
@@ -67,19 +66,6 @@ public:
 
     // return the element aperture vector
     std::pair<ApertureType, std::vector<double>> getApert() const;
-
-    /// Return the element's type name.
-    const std::string getWakeF() const;
-
-    const std::string getParticleMatterInteraction() const;
-
-    const std::string getWMaterial() const;
-
-    const std::string getWakeGeom() const;
-
-    std::vector<double> getWakeParam() const;
-
-    const std::string getWakeConductivity() const;
 
     /// Parse the element.
     //  This special version for elements handles unknown attributes by

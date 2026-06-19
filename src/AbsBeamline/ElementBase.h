@@ -88,8 +88,7 @@ class BeamlineVisitor;
 class BoundaryGeometry;
 class Channel;
 class ConstChannel;
-class ParticleMatterInteractionHandler;
-class WakeFunction;
+class LocalProcess;
 
 enum class ElementType : unsigned short {
     ANY,
@@ -307,19 +306,12 @@ public:
 
     virtual bool hasBoundaryGeometry() const;
 
-    /// attach a wake field to the element
-    virtual void setWake(WakeFunction* wf);
-
-    /// return the attached wake object if there is any
-    virtual WakeFunction* getWake() const;
-
-    virtual bool hasWake() const;
-
-    virtual void setParticleMatterInteraction(ParticleMatterInteractionHandler* spys);
-
-    virtual ParticleMatterInteractionHandler* getParticleMatterInteraction() const;
-
-    virtual bool hasParticleMatterInteraction() const;
+    ///@{ Local physics processes attached to this element
+    void setLocalProcesses(const std::vector<std::shared_ptr<LocalProcess>>& processes);
+    void addLocalProcess(const std::shared_ptr<LocalProcess>& process);
+    const std::vector<std::shared_ptr<LocalProcess>>& getLocalProcesses() const;
+    bool hasLocalProcesses() const;
+    ///@}
 
     void setCSTrafoGlobal2Local(const CoordinateSystemTrafo& ori);
     CoordinateSystemTrafo getCSTrafoGlobal2Local() const;
@@ -455,11 +447,10 @@ private:
     // The user-defined set of attributes.
     AttributeSet userAttribs;
 
-    WakeFunction* wake_m;
-
     BoundaryGeometry* bgeometry_m;
 
-    ParticleMatterInteractionHandler* parmatint_m;
+    /// Local physics processes attached to this element.
+    std::vector<std::shared_ptr<LocalProcess>> localProcesses_m;
 
     bool positionIsFixed;
     ///@{ ELEMEDGE attribute
@@ -506,19 +497,9 @@ inline Euclid3D ElementBase::getExitPatch() const { return getGeometry().getExit
 
 inline bool ElementBase::isSharable() const { return shareFlag; }
 
-inline WakeFunction* ElementBase::getWake() const { return wake_m; }
-
-inline bool ElementBase::hasWake() const { return wake_m != nullptr; }
-
 inline BoundaryGeometry* ElementBase::getBoundaryGeometry() const { return bgeometry_m; }
 
 inline bool ElementBase::hasBoundaryGeometry() const { return bgeometry_m != nullptr; }
-
-inline ParticleMatterInteractionHandler* ElementBase::getParticleMatterInteraction() const {
-    return parmatint_m;
-}
-
-inline bool ElementBase::hasParticleMatterInteraction() const { return parmatint_m != nullptr; }
 
 inline void ElementBase::setCSTrafoGlobal2Local(const CoordinateSystemTrafo& trafo) {
     if (positionIsFixed) return;

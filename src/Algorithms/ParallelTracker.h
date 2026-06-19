@@ -59,7 +59,6 @@
 #include <tuple>
 #include <vector>
 
-class ParticleMatterInteractionHandler;
 class PluginElement;
 
 /**
@@ -87,7 +86,6 @@ private:
     IpplTimings::TimerRef timeIntegrationTimer1_m;
     IpplTimings::TimerRef timeIntegrationTimer2_m;
     IpplTimings::TimerRef fieldEvaluationTimer_m;
-    IpplTimings::TimerRef WakeFieldTimer_m;
     IpplTimings::TimerRef PluginElemTimer_m;
     IpplTimings::TimerRef BinRepartTimer_m;
     IpplTimings::TimerRef OrbThreader_m;
@@ -211,6 +209,20 @@ public:
 
     /// @brief Apply global processes and return the global number of particles marked invalid.
     size_t applyGlobalProcesses(double dt);
+
+    /**
+     * @brief Apply element-attached local processes to all overlapping containers.
+     *
+     * For every active container, queries the orbit threader for the elements the bunch
+     * currently overlaps; for each element carrying local processes the container is
+     * transformed into the element-local frame, the processes are applied, and the
+     * container is transformed back.
+     *
+     * @param oth Orbit threader for element queries.
+     * @param dt  Time step of the completed integration step (s).
+     * @return Number of particles marked invalid by local processes on this rank.
+     */
+    size_t applyLocalProcesses(OrbitThreader& oth, double dt);
 
     /// @brief Zero E and B on all active particle containers.
     void resetFields();
