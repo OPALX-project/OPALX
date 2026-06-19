@@ -262,7 +262,7 @@ void PartBunch<T, Dim>::setSolver() {
             fieldSolverConfig_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
             &this->fcontainer_m->getPhi(), this->getBCHandler());
     this->setFieldSolver(binnedSolver);
-    m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
+    m << level4 << "Field solver set (monolithic or binned at runtime)." << endl;
 
     this->fsolver_m->initSolver();
     m << level4 << "Field solver initialized." << endl;

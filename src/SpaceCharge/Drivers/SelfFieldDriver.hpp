@@ -10,9 +10,9 @@ class BinnedFieldSolver;
 /**
  * @brief Strategy interface for self-field algorithm drivers.
  *
- * Drivers own the high-level compute path. The compatibility solver facade owns field storage,
- * backend access, and shared helpers, while the selected driver decides the monolithic or binned
- * algorithm body for the current bunch state.
+ * Drivers own the high-level compute path. The solver facade owns field storage, backend access,
+ * and shared helpers, while the selected driver decides the monolithic or binned algorithm body
+ * for the current bunch state.
  */
 template <typename T, unsigned Dim>
 class SelfFieldDriver {

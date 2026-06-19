@@ -4,7 +4,7 @@
 #include "SpaceCharge/Drivers/SelfFieldDriver.hpp"
 
 /**
- * @brief Legacy single-solve self-field driver.
+ * @brief Monolithic single-solve self-field driver.
  *
  * This driver keeps the non-binned path as one monolithic scatter, solve, and gather pass. It is
  * selected when the bunch has no adaptive binning object.

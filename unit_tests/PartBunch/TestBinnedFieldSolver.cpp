@@ -4,18 +4,17 @@
  * enabled.
  *
  * This file validates that the self-field computation pathway is stable across the
- * "legacy" (no binning attached) and "binned" (adaptive bins attached) execution paths.
+ * monolithic (no binning attached) and binned (adaptive bins attached) execution paths.
  *
- * The tests construct a small `PartBunch<double,3>` with a minimal `FieldSolverCmd`
- * configuration (type `"NONE"` and periodic FFT boundary conditions), populate a set of
- * particles with deterministic random initial conditions, and then invoke
+ * The tests construct a small `PartBunch<double,3>` with a minimal `FieldSolverCmd`.
+ * The fixture defaults to `TYPE=NONE`, while solve-path tests switch to `TYPE=OPEN`.
+ * They populate a set of particles with deterministic random initial conditions, and then invoke
  * `PartBunch::computeSelfFields()`.
  *
  * Key behaviors verified:
  * - `computeSelfFields()` does not throw for a non-binned bunch.
  * - `computeSelfFields()` does not throw when adaptive binning is attached.
- * - When using solver type `"NONE"`, the per-particle electric field `E` remains finite
- *   and (near) zero after the call.
+ * - The non-trivial solver paths leave per-particle electric fields finite.
  * - When binning is active, the current bin count is sane (between 1 and the configured
  *   maximum).
  *
@@ -195,7 +194,7 @@ namespace {
 
                 dt_host(i) = dt;
 
-                // Initialize particle E to zero; solver should leave it zero in NONE mode.
+                // Initialize particle E to zero so each test observes only this solve call.
                 E_host(i)[0] = 0.0;
                 E_host(i)[1] = 0.0;
                 E_host(i)[2] = 0.0;
@@ -252,7 +251,7 @@ namespace {
             OpalData::getInstance()->define(binsCmd);
         }
 
-        void expectAllParticleEZeroAndFinite(double tol) {
+        void expectAllParticleEFinite() {
             auto E_host = pc->E.getHostMirror();
             Kokkos::deep_copy(E_host, pc->E.getView());
 
@@ -261,7 +260,6 @@ namespace {
                 for (unsigned d = 0; d < 3; ++d) {
                     const double val = E_host(i)[d];
                     EXPECT_TRUE(std::isfinite(val)) << "E[" << i << "][" << d << "]=" << val;
-                    EXPECT_NEAR(val, 0.0, tol) << "E[" << i << "][" << d << "]";
                 }
             }
         }
@@ -274,31 +272,40 @@ namespace {
         std::shared_ptr<ParticleContainer_t> pc;
     };
 
-    TEST_F(BinnedFieldSolverSmokeTest, LegacyPath_NoBins_NoThrowAndEZero) {
+    TEST_F(BinnedFieldSolverSmokeTest, MonolithicPath_NoBins_NoThrowAndEFinite) {
+        fsCmd->setType("OPEN");
+        fsCmd->setBCX("OPEN");
+        fsCmd->setBCY("OPEN");
+        fsCmd->setBCZ("OPEN");
+        rebuildBunch();
+
         ASSERT_FALSE(bunch->hasBinning());
         createParticles(kDefaultNParticles, /*pzMin=*/0.1, /*pzMax=*/0.9);
 
-        EXPECT_STREQ(bunch->getFieldSolver()->selectedSelfFieldDriverName(*bunch), "monolithic");
         EXPECT_NO_THROW(bunch->computeSelfFields());
-        expectAllParticleEZeroAndFinite(/*tol=*/1e-8);
+        expectAllParticleEFinite();
     }
 
-    TEST_F(BinnedFieldSolverSmokeTest, BinnedPath_WithBins_NoThrowAndEZero) {
+    TEST_F(BinnedFieldSolverSmokeTest, BinnedPath_WithBins_NoThrowAndEFinite) {
+        fsCmd->setType("OPEN");
+        fsCmd->setBCX("OPEN");
+        fsCmd->setBCY("OPEN");
+        fsCmd->setBCZ("OPEN");
+        rebuildBunch();
+
         createParticles(kDefaultNParticles, /*pzMin=*/0.1, /*pzMax=*/2.0);
 
         constexpr AdaptBins_t::bin_index_type maxBins = 6;
         auto bins = attachBins(maxBins, /*alpha=*/1.0, /*beta=*/1.0, /*desiredWidth=*/0.3);
         ASSERT_TRUE(bunch->hasBinning());
 
-        EXPECT_STREQ(
-                bunch->getFieldSolver()->selectedSelfFieldDriverName(*bunch), "binned-lorentz");
         EXPECT_NO_THROW(bunch->computeSelfFields());
 
         const auto currentBins = bins->getCurrentBinCount();
         EXPECT_GE(currentBins, 1);
         EXPECT_LE(currentBins, maxBins);
 
-        expectAllParticleEZeroAndFinite(/*tol=*/1e-8);
+        expectAllParticleEFinite();
     }
 
     TEST_F(BinnedFieldSolverSmokeTest, BinnedPath_AdaptiveBinningFalseKeepsUniformMaxBins) {

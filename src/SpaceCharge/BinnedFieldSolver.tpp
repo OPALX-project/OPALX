@@ -13,14 +13,11 @@ BinnedFieldSolver<T, Dim>::BinnedFieldSolver(
     : FieldSolver<T, Dim>(config.solverType, rho, E, phi, bcHandler),
       config_m(config),
       monolithicDriver_m(std::make_unique<MonolithicSelfFieldDriver<T, Dim>>()),
-      binnedDriver_m(std::make_unique<BinnedLorentzSelfFieldDriver<T, Dim>>()) {
-    scatterAttribute_m = ScatterAttribute::ChargeQ;
-    gatherAttribute_m  = GatherAttribute::ElectricFieldE;
-}
+      binnedDriver_m(std::make_unique<BinnedLorentzSelfFieldDriver<T, Dim>>()) {}
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
-    // Validate inputs and decide between binned vs legacy solver.
+    // Validate inputs and decide between monolithic and binned self-field drivers.
     std::shared_ptr<ParticleCtr_t> pc = bunch.getParticleContainer();
     if (!pc) {
         throw OpalException(
@@ -68,7 +65,7 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
                           "charge is intended.");
     }
 
-    // decide which solver path to run (binned vs legacy).
+    // Decide which solver path to run.
     const bool hasBins = bunch.hasBinning();
 
     m << level4 << "Entry: rank=" << ippl::Comm->rank() << ", localParticles=" << pc->getLocalNum()
@@ -88,36 +85,18 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
     m << level4 << "Selected self-field driver: " << driver.name() << endl;
 
     if (!hasBins) {
-        // Legacy path has no separate correction pass: it scatters primary+image
+        // Monolithic path has no separate correction pass: it scatters primary+image
         // in one shot via ImageChargeScatterController::scatterPrimaryAndImage
         // and does one standard solve. The shifted Green's correction is only
         // implemented for the binned path, so warn once if the user requested it
         // without binning.
         if (activeCorrection && activeCorrection->kind() == BoundaryCorrectionKind::ShiftedGreens) {
             m << level3 << "SHIFTED_GREENS_FUNCTION is set but no binning is active; "
-              << "the legacy path does not apply the Dirichlet correction." << endl;
+              << "the monolithic path does not apply the Dirichlet correction." << endl;
         }
     }
 
     driver.compute(*this, bunch, activeCorrection);
-}
-
-template <typename T, unsigned Dim>
-const char* BinnedFieldSolver<T, Dim>::selectedSelfFieldDriverName(
-        const PartBunch_t& bunch) const {
-    return selectedSelfFieldDriver(bunch).name();
-}
-
-template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::setScatterAttribute(const ScatterAttribute attr) {
-    // store the scatter attribute selection.
-    scatterAttribute_m = attr;
-}
-
-template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::setGatherAttribute(const GatherAttribute attr) {
-    // store the gather attribute selection.
-    gatherAttribute_m = attr;
 }
 
 template <typename T, unsigned Dim>
@@ -269,13 +248,6 @@ SelfFieldDriver<T, Dim>& BinnedFieldSolver<T, Dim>::selectedSelfFieldDriver(
 }
 
 template <typename T, unsigned Dim>
-const SelfFieldDriver<T, Dim>& BinnedFieldSolver<T, Dim>::selectedSelfFieldDriver(
-        const PartBunch_t& bunch) const {
-    return bunch.hasBinning() ? static_cast<const SelfFieldDriver<T, Dim>&>(*binnedDriver_m)
-                              : static_cast<const SelfFieldDriver<T, Dim>&>(*monolithicDriver_m);
-}
-
-template <typename T, unsigned Dim>
 ImageScatterMode BinnedFieldSolver<T, Dim>::primaryScatterModeForStep(
         const BoundaryCorrection<T, Dim>* activeCorrection) const {
     if (activeCorrection) {
@@ -406,15 +378,9 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
     Field_t<Dim>& rho = *(this->getRho());
     opalx::fieldops::setScalarField(rho, 0.0);
 
-    // access particle views and validate scatter support.
+    // Access particle views for charge scatter.
     std::shared_ptr<ParticleCtr_t> pc                     = bunch.getParticleContainer();
     typename PartBunch_t::Base::particle_position_type* R = &pc->R;
-
-    if (scatterAttribute_m != ScatterAttribute::ChargeQ) {
-        throw OpalException(
-                "BinnedFieldSolver::prepareRhoForBin",
-                "Unsupported scatter attribute in binned solver.");
-    }
 
     // Scatter bin charge to rho (with bin iteration policy and hash indexing).
     // Master approach: scale dt by Q, scatter dt, then restore dt.
@@ -503,14 +469,7 @@ void BinnedFieldSolver<T, Dim>::gatherFromTempToParticles(PartBunch_t& bunch) {
 
     std::shared_ptr<ParticleCtr_t> pc = bunch.getParticleContainer();
 
-    // gather only the supported field attribute back to particles.
-    if (gatherAttribute_m == GatherAttribute::ElectricFieldE) {
-        fieldAccumulator_m.gatherToParticles(*pc);
-    } else {
-        throw OpalException(
-                "BinnedFieldSolver::gatherFromTempToParticles",
-                "Unsupported gather attribute in binned solver.");
-    }
+    fieldAccumulator_m.gatherToParticles(*pc);
 }
 
 #include "SpaceCharge/Drivers/BinnedLorentzSelfFieldDriver.tpp"

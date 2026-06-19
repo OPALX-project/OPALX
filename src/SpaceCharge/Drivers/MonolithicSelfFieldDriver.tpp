@@ -21,18 +21,12 @@ void MonolithicSelfFieldDriver<T, Dim>::compute(
     }
 
     Inform m("MonolithicSelfFieldDriver::compute");
-    m << level4 << "Legacy mode entry: localP=" << pc->getLocalNum()
+    m << level4 << "Monolithic mode entry: localP=" << pc->getLocalNum()
       << ", totalP=" << pc->getTotalNum() << ", stype=" << solver.getStype() << endl;
-
-    if (solver.scatterAttribute_m != Solver_t::ScatterAttribute::ChargeQ) {
-        throw OpalException(
-                "MonolithicSelfFieldDriver::compute",
-                "Unsupported scatter attribute in legacy solver.");
-    }
 
     typename Solver_t::particle_position_type* R = &pc->R;
 
-    // Legacy step 1: scatter the whole bunch to rho in one mesh solve.
+    // Step 1: scatter the whole bunch to rho in one mesh solve.
     Field_t<Dim>& rho = *(solver.getRho());
     opalx::fieldops::setScalarField(rho, 0.0);
 
@@ -42,7 +36,7 @@ void MonolithicSelfFieldDriver<T, Dim>::compute(
         solver.imageScatterController_m.scatterPrimaryOnly(pc, *R, rho);
     }
 
-    // Legacy step 2: apply the same rho normalization policy as the binned path.
+    // Step 2: apply the same rho normalization policy as the binned path.
     double normalizer = bunch.getdT();
     if (solver.config_m.normalizeRhoByCellVolume) {
         const double cellVolume =
@@ -64,23 +58,18 @@ void MonolithicSelfFieldDriver<T, Dim>::compute(
     opalx::fieldops::scaleAndShiftScalarField(
             rho, solver.getCouplingConstant() / normalizer, shift);
 
-    // Legacy step 3: run the Poisson backend once and gather E directly to particles.
+    // Step 3: run the Poisson backend once and gather E directly to particles.
     opalx::fieldops::setVectorField(*(solver.getE()), Vector_t<T, Dim>(0.0));
 
-    m << level4 << "Legacy mode: runSolver() start" << endl;
+    m << level4 << "Monolithic mode: runSolver() start" << endl;
     solver.runSolver();
     if (activeCorrection && activeCorrection->kind() == BoundaryCorrectionKind::ImageCharge) {
+        // Keep the historic solve tag because it is part of the diagnostics filename.
         solver.dumpDirichletPlaneDiagnosticsIfRequested(bunch, "legacy");
     }
-    m << level4 << "Legacy mode: gather E->particles" << endl;
+    m << level4 << "Monolithic mode: gather E->particles" << endl;
 
-    if (solver.gatherAttribute_m == Solver_t::GatherAttribute::ElectricFieldE) {
-        gather(pc->E, *solver.getE(), *R);
-    } else {
-        throw OpalException(
-                "MonolithicSelfFieldDriver::compute",
-                "Unsupported gather attribute in legacy solver.");
-    }
+    gather(pc->E, *solver.getE(), *R);
 }
 
 #endif  // OPALX_MONOLITHIC_SELF_FIELD_DRIVER_TPP

@@ -25,7 +25,7 @@
 #include "Utilities/OpalException.h"
 
 /**
- * @brief Field solver wrapper that implements the full binned self-field algorithm.
+ * @brief Field solver facade that dispatches monolithic and binned self-field algorithms.
  *
  * @tparam T   Particle numeric type (typically `double`).
  * @tparam Dim Spatial dimensionality (currently only `Dim == 3` is supported).
@@ -35,7 +35,7 @@
  * - Runtime selection:
  *   - If adaptive bins are available (`bunch.hasBinning()` / `bunch.getBins()`),
  *     the per-bin algorithm is executed.
- *   - Otherwise, the legacy monolithic scatter/solve/gather path is used.
+ *   - Otherwise, the monolithic scatter/solve/gather path is used.
  * - The solver currently supports only `ChargeQ -> rho` scattering and `ElectricFieldE`
  *   gathering, but gathers both E and B fields.
  * - Physics details:
@@ -45,7 +45,7 @@
  *     fields, this also produces the magnetic field contributions.
  *   - Finally, the accumulated fields are gathered back to the particles.
  *   - This procedure approximates full Maxwell's equations for the self-fields.
- *   - Without a bins object, it falls back to the legacy electrostatic approximation.
+ *   - Without a bins object, it uses the monolithic electrostatic approximation.
  */
 template <typename T, unsigned Dim>
 class BinnedFieldSolver : public FieldSolver<T, Dim> {
@@ -67,21 +67,7 @@ public:
     using particle_position_type = typename PartBunch_t::Base::particle_position_type;
 
     /**
-     * @brief Which particle attribute to scatter from to build the mesh charge density `rho`.
-     *
-     * Currently only `ChargeQ` is implemented.
-     */
-    enum class ScatterAttribute { ChargeQ };
-
-    /**
-     * @brief Which particle attribute to gather the accumulated electric field into.
-     *
-     * Currently only `ElectricFieldE` is implemented.
-     */
-    enum class GatherAttribute { ElectricFieldE };
-
-    /**
-     * @brief Construct a binned/legacy-compatible solver.
+     * @brief Construct a self-field solver facade.
      *
      * @param config     Normalized field-solver command and backend capability state.
      * @param rho        Pointer to the mesh charge-density field storage.
@@ -99,37 +85,19 @@ public:
      * If the bunch provides adaptive binning (`bunch.getBins()`), the solver executes
      * the per-bin algorithm:
      * `scatter rho corrections -> solve -> Lorentz scaling -> accumulate -> gather`.
-     * Otherwise, it executes the legacy monolithic algorithm:
+     * Otherwise, it executes the monolithic algorithm:
      * `scatter all particles -> solve once -> gather directly`.
      *
      * @param bunch Particle bunch to update. Ownership remains with the caller.
      *
-     * @throws OpalException If required internal data (particle container / temp E field)
-     *                        is missing, or if unsupported scatter/gather modes are selected.
+     * @throws OpalException If required particle, field, binning, or correction state is missing.
      */
     void computeSelfFields(PartBunch_t& bunch);
-
-    /**
-     * @brief Name of the self-field driver selected for the bunch state.
-     */
-    const char* selectedSelfFieldDriverName(const PartBunch_t& bunch) const;
 
     /**
      * @brief Normalized solver configuration used by the runtime.
      */
     const opalx::FieldSolverConfig<Dim>& getConfig() const { return config_m; }
-
-    /**
-     * @brief Set particle scatter attribute (extensible; default is `ChargeQ`).
-     * @param attr Attribute to scatter from.
-     */
-    void setScatterAttribute(const ScatterAttribute attr);
-
-    /**
-     * @brief Set particle gather attribute (extensible; default is `ElectricFieldE`).
-     * @param attr Attribute to gather into.
-     */
-    void setGatherAttribute(const GatherAttribute attr);
 
     /// @brief Configure optional image-charge scatter pass.
     void setImageChargeConfiguration(bool enabled, double zPlane);
@@ -165,8 +133,6 @@ public:
     };
 
 private:
-    ScatterAttribute scatterAttribute_m;
-    GatherAttribute gatherAttribute_m;
     opalx::FieldSolverConfig<Dim> config_m;
     int zeroFacePlaneDumpFrequency_m = 0;
     int zerofaceMaxSteps_m           = 0;
@@ -183,7 +149,7 @@ private:
      * @brief Row entry for the level-3 bin statistics table.
      */
     struct BinStatsRow {
-        long long binNumber;            //!< Merged bin index (or `-1` for legacy mode).
+        long long binNumber;            //!< Merged bin index (or `-1` for monolithic mode).
         unsigned long long nParticles;  //!< Number of particles in the (merged) bin.
         double gammaBin;                //!< Global average gamma for the (merged) bin.
     };
@@ -192,11 +158,11 @@ private:
      * @brief Print the bin statistics table at level 3.
      *
      * The output includes columns for bin index, particle count, and `gammaBin`.
-     * In binned mode, rows correspond to each merged bin. In legacy mode, a single
+     * In binned mode, rows correspond to each merged bin. In monolithic mode, a single
      * row with `binNumber = -1` is printed.
      *
      * @param tableName    Logical table name (used in the header).
-     * @param nBinsOrZero  Number of bins (for header metadata). Use `0` for legacy mode.
+     * @param nBinsOrZero  Number of bins (for header metadata). Use `0` for monolithic mode.
      * @param rows         Table rows to print.
      */
     void printBinStatsTable(
@@ -228,7 +194,6 @@ private:
     const BoundaryCorrection<T, Dim>* configuredBoundaryCorrection() const;
     const BoundaryCorrection<T, Dim>* activeBoundaryCorrectionForStep(size_t step) const;
     SelfFieldDriver<T, Dim>& selectedSelfFieldDriver(const PartBunch_t& bunch);
-    const SelfFieldDriver<T, Dim>& selectedSelfFieldDriver(const PartBunch_t& bunch) const;
     ImageScatterMode primaryScatterModeForStep(
             const BoundaryCorrection<T, Dim>* activeCorrection) const;
     void applyBoundaryCorrectionPass(
@@ -256,9 +221,9 @@ public:
             const size_type nPartGlobal) const;
 
     /**
-     * @brief Build mesh `rho` for a specific merged bin and apply all corrections.
+     * @brief Build mesh `rho` for a specific merged bin.
      *
-     * Steps mirror the legacy ordering from the existing OPAL-X code paths and include:
+     * Steps mirror the established OPALX self-field ordering and include:
      * - dt scaling for charge scattering,
      * - config-driven mesh normalization and optional background subtraction,
      * - Lorentz rest-frame scaling: `rho /= gammaBin`,

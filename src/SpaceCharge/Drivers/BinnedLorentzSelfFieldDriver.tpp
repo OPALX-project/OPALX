@@ -17,8 +17,9 @@ void BinnedLorentzSelfFieldDriver<T, Dim>::compute(
 
     std::shared_ptr<AdaptBins_t> bins = bunch.getBins();
     if (!bins) {
-        solver.monolithicDriver_m->compute(solver, bunch, activeCorrection);
-        return;
+        throw OpalException(
+                "BinnedLorentzSelfFieldDriver::compute",
+                "Binned self-field driver requires an adaptive binning object.");
     }
 
     // Step 1: rebuild the per-particle bin assignment for this self-field step.
