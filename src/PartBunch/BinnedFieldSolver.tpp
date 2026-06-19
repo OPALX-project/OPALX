@@ -29,7 +29,7 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
 
     Inform m("BinnedFieldSolver::computeSelfFields");
     // TYPE=NONE is a true no-op: skip all binning/scatter/solve/gather work.
-    if (this->getStype() == "NONE") {
+    if (this->getSolverCapabilities().isNoOp) {
         // Already called in ParallelTracker::resetFields()
         // pc->E = 0.0;
         // pc->B = 0.0;
@@ -222,7 +222,9 @@ void BinnedFieldSolver<T, Dim>::dumpDirichletPlaneDiagnosticsIfRequested(
         return;
     }
 
-    Field_t<Dim>* potentialField = (this->getStype() == "CG") ? this->getPhi() : this->getRho();
+    Field_t<Dim>* potentialField =
+            this->getSolverCapabilities().usesSeparatePotentialField ? this->getPhi()
+                                                                     : this->getRho();
     if (!potentialField) {
         return;
     }

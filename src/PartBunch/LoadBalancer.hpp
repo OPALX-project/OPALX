@@ -3,6 +3,7 @@
 
 #include <memory>
 
+#include "PartBunch/FieldSolver.hpp"
 #include "PartBunch/ParticleContainer.hpp"
 
 template <typename T, unsigned Dim>
@@ -65,7 +66,8 @@ public:
         (*E_m).updateLayout(*fl);
         (*rho_m).updateLayout(*fl);
 
-        if (fs_m->getStype() == "CG") {
+        auto opalxFieldSolver = std::dynamic_pointer_cast<FieldSolver<T, Dim>>(fs_m);
+        if (opalxFieldSolver && opalxFieldSolver->requiresPotentialFieldLayout()) {
             phi_m->updateLayout(*fl);
             phi_m->setFieldBC(phi_m->getFieldBC());
         }
@@ -102,17 +104,8 @@ public:
         }
         // Update
         this->updateLayout(fl, mesh, isFirstRepartition);
-        if constexpr (Dim == 2 || Dim == 3) {
-            if (fs_m->getStype() == "FFT") {
-                std::get<FFTSolver_t<T, Dim>>(fs_m->getSolver()).setRhs(*rho_m);
-            }
-            if constexpr (Dim == 3) {
-                if (fs_m->getStype() == "TG") {
-                    std::get<FFTTruncatedGreenSolver_t<T, Dim>>(fs_m->getSolver()).setRhs(*rho_m);
-                } else if (fs_m->getStype() == "OPEN") {
-                    std::get<OpenSolver_t<T, Dim>>(fs_m->getSolver()).setRhs(*rho_m);
-                }
-            }
+        if (auto opalxFieldSolver = std::dynamic_pointer_cast<FieldSolver<T, Dim>>(fs_m)) {
+            opalxFieldSolver->refreshBackendAfterLayoutChange();
         }
     }
 

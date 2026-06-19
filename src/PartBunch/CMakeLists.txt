@@ -26,3 +26,4 @@ install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/PartBunch")
 
 add_subdirectory (Binning)
 add_subdirectory (Diagnostics)
+add_subdirectory (Solvers)

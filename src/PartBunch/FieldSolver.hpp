@@ -6,6 +6,8 @@
 #include "Manager/BaseManager.h"
 #include "Manager/FieldSolverBase.h"
 #include "PartBunch/Diagnostics/FieldDiagnostics.hpp"
+#include "PartBunch/Solvers/PoissonBackend.hpp"
+#include "PartBunch/Solvers/PoissonBackendRegistry.hpp"
 
 // Define the FieldSolver class
 template <typename T, unsigned Dim>
@@ -19,6 +21,14 @@ private:
     std::shared_ptr<BCHandler_t> bcHandler_m;
 
     FieldDiagnostics<T, Dim> diagnostics_m;
+    std::unique_ptr<PoissonBackend<T, Dim>> backend_m;
+
+    SolverCapabilities currentCapabilities() const {
+        if (backend_m) {
+            return backend_m->capabilities();
+        }
+        return PoissonBackendRegistry<T, Dim>::capabilitiesFor(this->getStype());
+    }
 
 public:
     FieldSolver(
@@ -64,8 +74,6 @@ public:
      */
     T getCouplingConstant() const;
 
-    void initOpenSolver();
-
     void initSolver() override;
 
     /**
@@ -81,6 +89,10 @@ public:
     void setPotentialBCs();
 
     bool hasValidBCHandler() const { return (bcHandler_m != nullptr); }
+
+    SolverCapabilities getSolverCapabilities() const { return currentCapabilities(); }
+    bool requiresPotentialFieldLayout() const { return currentCapabilities().requiresPotentialBCs; }
+    void refreshBackendAfterLayoutChange();
 
     void runSolver() override {
         // The default runSolver should always count towards the call counter!
@@ -141,21 +153,6 @@ public:
      * @throws OpalException if the configured solver is not @c "OPEN".
      */
     void runShiftedOpenSolver(const ippl::Vector<double, Dim>& shift);
-
-    template <typename Solver>
-    void initSolverWithParams(const ippl::ParameterList& sp);
-
-    void initNullSolver();
-
-    void initFFTSolver();
-
-    void initCGSolver() {}
-
-    void initP3MSolver() {}
 };
-
-// Explicit specialization declaration
-template <>
-void FieldSolver<double, 3>::initNullSolver();
 
 #endif
