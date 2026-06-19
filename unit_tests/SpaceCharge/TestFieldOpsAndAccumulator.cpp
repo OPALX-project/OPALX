@@ -15,7 +15,7 @@
 namespace {
 
     class FieldOpsAndAccumulatorTest : public ::testing::Test {
-    protected:
+    public:
         static void SetUpTestSuite() {
             int argc    = 0;
             char** argv = nullptr;
