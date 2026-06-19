@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "PartBunch/FieldSolver.hpp"
+#include "PartBunch/FieldStorage.hpp"
 #include "PartBunch/ParticleContainer.hpp"
 
 template <typename T, unsigned Dim>
@@ -27,7 +28,7 @@ private:
 
 public:
     LoadBalancer(
-            double lbs, std::shared_ptr<FieldContainer<T, Dim>>& fc,
+            double lbs, std::shared_ptr<FieldStorage<T, Dim>>& fc,
             std::shared_ptr<ParticleContainer<T, Dim>>& pc, std::shared_ptr<FieldSolver_t>& fs)
         : loadbalancethreshold_m(lbs),
           rho_m(&fc->getRho()),

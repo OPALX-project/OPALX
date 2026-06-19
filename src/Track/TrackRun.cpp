@@ -46,6 +46,7 @@
 #include "Physics/Units.h"
 
 #include "Physics/ParticleProperties.h"
+#include "PartBunch/Solvers/PoissonBackendRegistry.hpp"
 #include "Processes/GlobalProcesses/GlobalProcess.h"
 #include "Processes/GlobalProcesses/MuonDecay.h"
 #include "Processes/GlobalProcesses/PionDecay.h"
@@ -871,19 +872,18 @@ void TrackRun::configureImageChargeFromSources(
                 "are mutually exclusive at the run level.");
     }
 
-    // SHIFTED_GREENS_FUNCTION requires the OPEN field solver. We inspect the
-    // FIELDSOLVER definition via the cached FieldSolverCmd (fs_m, set earlier
-    // in execute()) — the BinnedFieldSolver type is only forward-declared via
-    // PartBunch.h here so we cannot call bunch_m->getFieldSolver()->getStype()
-    // directly without pulling in the full template definition.
-    // The runtime guard inside FieldSolver::runShiftedOpenSolver will also throw,
-    // but catching the misconfiguration here gives the user a cleaner error.
+    // Validate shifted-Greens support against backend capabilities before the tracking loop.
+    // FieldSolver::runSolver(SolveRequest) enforces this again at solve time.
     if (enableShiftedGreens) {
         const std::string solverType = fs_m ? fs_m->getType() : std::string("(unknown)");
-        if (solverType != "OPEN") {
+        const bool supportsShiftedGreens =
+                fs_m && PoissonBackendRegistry<double, 3>::capabilitiesFor(solverType)
+                                .supportsShiftedGreens;
+        if (!supportsShiftedGreens) {
             throw OpalException(
                     "TrackRun::configureImageChargeFromSources",
-                    "SHIFTED_GREENS_FUNCTION=true requires FIELDSOLVER TYPE=OPEN (got '"
+                    "SHIFTED_GREENS_FUNCTION=true requires a FIELDSOLVER backend with shifted "
+                    "Green's-function support (got '"
                             + solverType + "').");
         }
     }

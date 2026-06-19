@@ -7,6 +7,7 @@
 #include "Ippl.h"
 #include "PartBunch/FieldAccumulator.hpp"
 #include "PartBunch/FieldContainer.hpp"
+#include "PartBunch/Solvers/PoissonBackendRegistry.hpp"
 #include "PartBunch/FieldOps.hpp"
 
 namespace {
@@ -36,7 +37,8 @@ namespace {
 
             auto fields = std::make_unique<FieldContainer<double, 3>>(
                     hr, rmin, rmax, decomp, domain, origin, true);
-            fields->initializeFields("OPEN");
+            fields->initializeFields(
+                    PoissonBackendRegistry<double, 3>::capabilitiesFor("OPEN"), "OPEN");
             return fields;
         }
 

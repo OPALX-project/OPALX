@@ -19,6 +19,7 @@
 #include "PartBunch/Drivers/MonolithicSelfFieldDriver.hpp"
 #include "PartBunch/Drivers/SelfFieldDriver.hpp"
 #include "PartBunch/FieldAccumulator.hpp"
+#include "PartBunch/FieldSolverConfig.hpp"
 #include "PartBunch/ImageChargeScatterController.h"
 #include "PartBunch/PartBunch.h"
 #include "Utilities/OpalException.h"
@@ -82,19 +83,15 @@ public:
     /**
      * @brief Construct a binned/legacy-compatible solver.
      *
-     * @param solver     Concrete solver name (e.g. `FFT`, `OPEN`, `CG`, `NONE`).
+     * @param config     Normalized field-solver command and backend capability state.
      * @param rho        Pointer to the mesh charge-density field storage.
      * @param E          Pointer to the mesh electric-field storage (solver output).
      * @param phi        Pointer to the potential-field storage (solver internal use).
      * @param bcHandler  Shared pointer to the boundary-condition handler.
-     * @param tablePrintFrequency Global timestep frequency of printing the bin stats table
-     *                             to console in binned mode. If `0`, printing is disabled.
-     * @param adaptiveBinning If true, merge uniform bins adaptively after rebinning. If false,
-     *                        keep the uniform MAXBINS histogram.
      */
     BinnedFieldSolver(
-            std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
-            std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency, bool adaptiveBinning);
+            const opalx::FieldSolverConfig<Dim>& config, Field_t<Dim>* rho,
+            VField_t<T, Dim>* E, Field_t<Dim>* phi, std::shared_ptr<BCHandler_t> bcHandler);
 
     /**
      * @brief Compute space-charge self-fields for the given particle bunch.
@@ -116,6 +113,11 @@ public:
      * @brief Name of the self-field driver selected for the bunch state.
      */
     const char* selectedSelfFieldDriverName(const PartBunch_t& bunch) const;
+
+    /**
+     * @brief Normalized solver configuration used by the runtime.
+     */
+    const opalx::FieldSolverConfig<Dim>& getConfig() const { return config_m; }
 
     /**
      * @brief Set particle scatter attribute (extensible; default is `ChargeQ`).
@@ -165,8 +167,7 @@ public:
 private:
     ScatterAttribute scatterAttribute_m;
     GatherAttribute gatherAttribute_m;
-    int tablePrintFrequency_m        = 0;
-    bool adaptiveBinning_m           = true;
+    opalx::FieldSolverConfig<Dim> config_m;
     int zeroFacePlaneDumpFrequency_m = 0;
     int zerofaceMaxSteps_m           = 0;
     ImageChargeScatterController<T, Dim> imageScatterController_m;
@@ -259,7 +260,7 @@ public:
      *
      * Steps mirror the legacy ordering from the existing OPAL-X code paths and include:
      * - dt scaling for charge scattering,
-     * - mesh normalization and background subtraction (non-OPEN),
+     * - config-driven mesh normalization and optional background subtraction,
      * - Lorentz rest-frame scaling: `rho /= gammaBin`,
      * - scaling by the solver coupling constant.
      *

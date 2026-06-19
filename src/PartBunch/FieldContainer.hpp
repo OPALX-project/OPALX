@@ -2,8 +2,11 @@
 #define OPAL_FIELD_CONTAINER_H
 
 #include <memory>
+#include <string>
 
 #include "Manager/BaseManager.h"
+#include "PartBunch/FieldSolverConfig.hpp"
+#include "PartBunch/Solvers/SolverCapabilities.hpp"
 
 template <unsigned Dim>
 using Mesh_t = ippl::UniformCartesian<double, Dim>;
@@ -29,7 +32,14 @@ using Vector_t = ippl::Vector<T, Dim>;
 template <typename T, unsigned Dim, class... ViewArgs>
 using VField_t = Field<Vector_t<T, Dim>, Dim, ViewArgs...>;
 
-// Define the FieldsContainer class
+/**
+ * @brief Owns mesh field storage shared by `PartBunch`, diagnostics, and Poisson backends.
+ *
+ * The container owns the charge-density field, electric-field output, optional potential field,
+ * mesh, layout, and current domain metadata. Storage allocation is driven by
+ * `FieldSolverConfig` capabilities so new backends can request the fields they need without
+ * adding solver-name checks here.
+ */
 template <typename T, unsigned Dim = 3>
 class FieldContainer {
 public:
@@ -85,7 +95,20 @@ public:
     FieldLayout_t<Dim>& getFL() { return fl_m; }
     void setFL(std::shared_ptr<FieldLayout_t<Dim>>& fl) { fl_m = fl; }
 
-    void initializeFields(std::string stype_m = "") {
+    /**
+     * @brief Allocate fields according to the normalized solver configuration.
+     *
+     * Always initializes rho and E. Initializes phi only when the backend capabilities require
+     * a separate potential field.
+     */
+    void initializeFields(const opalx::FieldSolverConfig<Dim>& config) {
+        initializeFields(config.capabilities, config.solverType);
+    }
+
+    /**
+     * @brief Allocate rho, E, and optional phi based on backend capabilities.
+     */
+    void initializeFields(const SolverCapabilities& capabilities, const std::string& solverName) {
         Inform m("FieldContainer::initializeFields");
         m << level3 << "Mesh spacing = " << mesh_m.getMeshSpacing() << endl;
         m << level3 << "Origin       = " << mesh_m.getOrigin() << endl;
@@ -94,9 +117,9 @@ public:
         E_m.initialize(mesh_m, fl_m);
         rho_m.initialize(mesh_m, fl_m);
         m << level3 << "E_m, rho_m field initialized." << endl;
-        if (stype_m == "CG") {
+        if (capabilities.usesSeparatePotentialField) {
             phi_m.initialize(mesh_m, fl_m);
-            m << level3 << "Phi field initialized for " << stype_m << endl;
+            m << level3 << "Phi field initialized for " << solverName << endl;
         }
     }
 };

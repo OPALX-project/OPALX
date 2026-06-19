@@ -39,7 +39,7 @@ namespace {
 
             auto fields = std::make_unique<FieldContainer<double, 3>>(
                     hr, rmin, rmax, decomp, domain, origin, true);
-            fields->initializeFields(solver);
+            fields->initializeFields(Registry::capabilitiesFor(solver), solver);
             return fields;
         }
     };
@@ -97,6 +97,8 @@ namespace {
 
         ASSERT_NE(backend, nullptr);
         EXPECT_EQ(backend->name(), "NONE");
+        EXPECT_EQ(backend->capabilities().isNoOp, Registry::capabilitiesFor("NONE").isNoOp);
+        EXPECT_DOUBLE_EQ(backend->couplingConstant(), Registry::couplingConstantFor("NONE"));
         EXPECT_FALSE(backend->capabilities().supportsShiftedGreens);
         EXPECT_NO_THROW(backend->solve(SolveRequest<double, 3>{}));
     }

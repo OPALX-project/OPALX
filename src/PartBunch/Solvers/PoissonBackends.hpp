@@ -8,6 +8,12 @@
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
 
+/**
+ * @brief Shared adapter base for concrete IPPL Poisson solver wrappers.
+ *
+ * The template parameter is the concrete IPPL solver type stored in the IPPL solver variant.
+ * This is the only layer that reaches into that variant with `std::get`.
+ */
 template <typename T, unsigned Dim, typename Solver>
 class IPPLPoissonBackendBase : public PoissonBackend<T, Dim> {
 protected:
@@ -51,6 +57,9 @@ public:
     void refreshAfterLayoutChange() override { solver().setRhs(*rho_m); }
 };
 
+/**
+ * @brief No-op Poisson backend for `FIELDSOLVER TYPE=NONE`.
+ */
 template <typename T, unsigned Dim>
 class NullPoissonBackend final
     : public IPPLPoissonBackendBase<T, Dim, NullSolver_t<T, Dim>> {
@@ -58,6 +67,14 @@ class NullPoissonBackend final
     using Base   = IPPLPoissonBackendBase<T, Dim, Solver>;
 
 public:
+    static const char* solverName() { return "NONE"; }
+
+    static SolverCapabilities backendCapabilities() { return {.isNoOp = true}; }
+
+    static T backendCouplingConstant() {
+        return 1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
+    }
+
     NullPoissonBackend(
             Solver_t<T, Dim>& solverVariant, Field_t<Dim>* rho, VField_t<T, Dim>* E,
             Field_t<Dim>* phi)
@@ -66,24 +83,42 @@ public:
         this->emplaceSolver(sp, "NullPoissonBackend");
     }
 
-    std::string name() const override { return "NONE"; }
+    std::string name() const override { return solverName(); }
 
-    SolverCapabilities capabilities() const override { return {.isNoOp = true}; }
+    SolverCapabilities capabilities() const override { return backendCapabilities(); }
 
     void solve(const SolveRequest<T, Dim>& request) override {
         this->rejectShiftedGreens(request, "NullPoissonBackend::solve");
         this->solver().solve();
     }
 
-    T couplingConstant() const override { return 1.0 / (4.0 * Physics::pi * Physics::epsilon_0); }
+    T couplingConstant() const override { return backendCouplingConstant(); }
 };
 
+/**
+ * @brief Periodic FFT Poisson backend.
+ */
 template <typename T, unsigned Dim>
 class FFTPoissonBackend final : public IPPLPoissonBackendBase<T, Dim, FFTSolver_t<T, Dim>> {
     using Solver = FFTSolver_t<T, Dim>;
     using Base   = IPPLPoissonBackendBase<T, Dim, Solver>;
 
 public:
+    static const char* solverName() { return "FFT"; }
+
+    static SolverCapabilities backendCapabilities() {
+        return {
+                .supportsShiftedGreens   = false,
+                .providesPotential       = false,
+                .providesGradient        = true,
+                .requiresPotentialBCs    = false,
+                .debugDumpRhoBeforeSolve = true,
+                .debugDumpScalarAfterSolve = true,
+                .debugDumpVectorAfterSolve = true};
+    }
+
+    static T backendCouplingConstant() { return 1.0 / Physics::epsilon_0; }
+
     FFTPoissonBackend(
             Solver_t<T, Dim>& solverVariant, Field_t<Dim>* rho, VField_t<T, Dim>* E,
             Field_t<Dim>* phi)
@@ -99,33 +134,43 @@ public:
         this->emplaceSolver(sp, "FFTPoissonBackend");
     }
 
-    std::string name() const override { return "FFT"; }
+    std::string name() const override { return solverName(); }
 
-    SolverCapabilities capabilities() const override {
-        return {
-                .supportsShiftedGreens   = false,
-                .providesPotential       = false,
-                .providesGradient        = true,
-                .requiresPotentialBCs    = false,
-                .debugDumpRhoBeforeSolve = true,
-                .debugDumpScalarAfterSolve = true,
-                .debugDumpVectorAfterSolve = true};
-    }
+    SolverCapabilities capabilities() const override { return backendCapabilities(); }
 
     void solve(const SolveRequest<T, Dim>& request) override {
         this->rejectShiftedGreens(request, "FFTPoissonBackend::solve");
         this->solver().solve();
     }
 
-    T couplingConstant() const override { return 1.0 / Physics::epsilon_0; }
+    T couplingConstant() const override { return backendCouplingConstant(); }
 };
 
+/**
+ * @brief Open-boundary FFT Poisson backend with optional shifted-Greens support.
+ */
 template <typename T, unsigned Dim>
 class OpenPoissonBackend final : public IPPLPoissonBackendBase<T, Dim, OpenSolver_t<T, Dim>> {
     using Solver = OpenSolver_t<T, Dim>;
     using Base   = IPPLPoissonBackendBase<T, Dim, Solver>;
 
 public:
+    static const char* solverName() { return "OPEN"; }
+
+    static SolverCapabilities backendCapabilities() {
+        return {
+                .supportsShiftedGreens   = true,
+                .providesPotential       = true,
+                .providesGradient        = true,
+                .requiresPotentialBCs    = false,
+                .subtractNeutralizingBackground = false,
+                .debugDumpRhoBeforeSolve = true,
+                .debugDumpScalarAfterSolve = true,
+                .debugDumpVectorAfterSolve = true};
+    }
+
+    static T backendCouplingConstant() { return 1.0 / Physics::epsilon_0; }
+
     OpenPoissonBackend(
             Solver_t<T, Dim>& solverVariant, Field_t<Dim>* rho, VField_t<T, Dim>* E,
             Field_t<Dim>* phi)
@@ -142,18 +187,9 @@ public:
         this->emplaceSolver(sp, "OpenPoissonBackend");
     }
 
-    std::string name() const override { return "OPEN"; }
+    std::string name() const override { return solverName(); }
 
-    SolverCapabilities capabilities() const override {
-        return {
-                .supportsShiftedGreens   = true,
-                .providesPotential       = true,
-                .providesGradient        = true,
-                .requiresPotentialBCs    = false,
-                .debugDumpRhoBeforeSolve = true,
-                .debugDumpScalarAfterSolve = true,
-                .debugDumpVectorAfterSolve = true};
-    }
+    SolverCapabilities capabilities() const override { return backendCapabilities(); }
 
     void solve(const SolveRequest<T, Dim>& request) override {
         if (request.greensShift.has_value()) {
@@ -166,15 +202,34 @@ public:
         this->solver().solve();
     }
 
-    T couplingConstant() const override { return 1.0 / Physics::epsilon_0; }
+    T couplingConstant() const override { return backendCouplingConstant(); }
 };
 
+/**
+ * @brief CG backend placeholder for the currently unsupported IPPL CG solver path.
+ */
 template <typename T, unsigned Dim>
 class CGPoissonBackend final : public IPPLPoissonBackendBase<T, Dim, CGSolver_t<T, Dim>> {
     using Solver = CGSolver_t<T, Dim>;
     using Base   = IPPLPoissonBackendBase<T, Dim, Solver>;
 
 public:
+    static const char* solverName() { return "CG"; }
+
+    static SolverCapabilities backendCapabilities() {
+        return {
+                .supportsShiftedGreens   = false,
+                .providesPotential       = true,
+                .providesGradient        = true,
+                .requiresPotentialBCs    = true,
+                .usesSeparatePotentialField = true,
+                .debugDumpRhoBeforeSolve = true,
+                .debugDumpScalarAfterSolve = true,
+                .debugDumpVectorAfterSolve = false};
+    }
+
+    static T backendCouplingConstant() { return 1.0 / Physics::epsilon_0; }
+
     CGPoissonBackend(
             Solver_t<T, Dim>& solverVariant, Field_t<Dim>* rho, VField_t<T, Dim>* E,
             Field_t<Dim>* phi)
@@ -194,26 +249,16 @@ public:
         throw OpalException("CGPoissonBackend", "Cannot use CGSolver yet, not fully implemented.");
     }
 
-    std::string name() const override { return "CG"; }
+    std::string name() const override { return solverName(); }
 
-    SolverCapabilities capabilities() const override {
-        return {
-                .supportsShiftedGreens   = false,
-                .providesPotential       = true,
-                .providesGradient        = true,
-                .requiresPotentialBCs    = true,
-                .usesSeparatePotentialField = true,
-                .debugDumpRhoBeforeSolve = true,
-                .debugDumpScalarAfterSolve = true,
-                .debugDumpVectorAfterSolve = false};
-    }
+    SolverCapabilities capabilities() const override { return backendCapabilities(); }
 
     void solve(const SolveRequest<T, Dim>& request) override {
         this->rejectShiftedGreens(request, "CGPoissonBackend::solve");
         this->solver().solve();
     }
 
-    T couplingConstant() const override { return 1.0 / Physics::epsilon_0; }
+    T couplingConstant() const override { return backendCouplingConstant(); }
 };
 
 #endif  // OPAL_POISSON_BACKENDS_H

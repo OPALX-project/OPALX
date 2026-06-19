@@ -32,6 +32,7 @@ void MonolithicSelfFieldDriver<T, Dim>::compute(
 
     typename Solver_t::particle_position_type* R = &pc->R;
 
+    // Legacy step 1: scatter the whole bunch to rho in one mesh solve.
     Field_t<Dim>& rho = *(solver.getRho());
     opalx::fieldops::setScalarField(rho, 0.0);
 
@@ -41,16 +42,16 @@ void MonolithicSelfFieldDriver<T, Dim>::compute(
         solver.imageScatterController_m.scatterPrimaryOnly(pc, *R, rho);
     }
 
-    const std::string stype = solver.getStype();
-    double normalizer       = bunch.getdT();
-    if (stype != "FEM" && stype != "FEM_PRECON") {
+    // Legacy step 2: apply the same rho normalization policy as the binned path.
+    double normalizer = bunch.getdT();
+    if (solver.config_m.normalizeRhoByCellVolume) {
         const double cellVolume =
                 std::reduce(bunch.hr_m.begin(), bunch.hr_m.end(), 1.0, std::multiplies<double>());
         normalizer *= cellVolume;
     }
 
     double shift = 0.0;
-    if (stype != "OPEN") {
+    if (solver.config_m.subtractNeutralizingBackground) {
         double size = 1.0;
         for (size_t d = 0; d < Dim; ++d) {
             size *= bunch.rmax_m[d] - bunch.rmin_m[d];
@@ -63,6 +64,7 @@ void MonolithicSelfFieldDriver<T, Dim>::compute(
     opalx::fieldops::scaleAndShiftScalarField(
             rho, solver.getCouplingConstant() / normalizer, shift);
 
+    // Legacy step 3: run the Poisson backend once and gather E directly to particles.
     opalx::fieldops::setVectorField(*(solver.getE()), Vector_t<T, Dim>(0.0));
 
     m << level4 << "Legacy mode: runSolver() start" << endl;

@@ -7,6 +7,8 @@
 #include <algorithm>
 #include "Algorithms/Matrix.h"
 #include "PartBunch/BinnedFieldSolver.h"
+#include "PartBunch/FieldSolverConfigBuilder.hpp"
+#include "PartBunch/Solvers/PoissonBackendRegistry.hpp"
 #include "Particle/ParticleAttrib.h"
 #include "Physics/ParticleProperties.h"
 #include "Structure/Beam.h"
@@ -24,7 +26,7 @@ PartBunch<T, Dim>::PartBunch(
         std::vector<size_t> totalParticlesPerBeam, double lbt, std::string integration_method,
         FieldSolverCmd* OPALFieldSolver, DataSink* dataSink)
     : ippl::PicManager<
-              T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
+              T, Dim, ParticleContainer<T, Dim>, FieldStorage<T, Dim>, LoadBalancer<T, Dim>>(),
       dt_m(0),
       it_m(0),
       integration_method_m(integration_method),
@@ -68,17 +70,18 @@ PartBunch<T, Dim>::PartBunch(
         }
     }
 
-    //  get the needed information from OPAL FieldSolver command
+    fieldSolverConfig_m = opalx::makeFieldSolverConfig<Dim>(
+            *OPALFieldSolver_m,
+            PoissonBackendRegistry<T, Dim>::capabilitiesFor(OPALFieldSolver_m->getType()));
 
-    nr_m = Vector_t<int, Dim>(
-            OPALFieldSolver_m->getNX(), OPALFieldSolver_m->getNY(), OPALFieldSolver_m->getNZ());
+    //  get the needed information from the normalized OPAL FieldSolver command
+
+    nr_m      = fieldSolverConfig_m.meshCells;
     nrZBase_m = nr_m[Dim - 1];
-
-    const Vector_t<bool, 3> domainDecomposition = OPALFieldSolver_m->getDomDec();
 
     for (unsigned i = 0; i < Dim; i++) {
         this->domain_m[i] = ippl::Index(nr_m[i]);
-        this->decomp_m[i] = domainDecomposition[i];
+        this->decomp_m[i] = fieldSolverConfig_m.domainDecomposition[i];
     }
 
     this->setBCHandler(std::make_shared<BCHandler_t>(OPALFieldSolver_m->constructBCHandler()));
@@ -240,23 +243,24 @@ void PartBunch<T, Dim>::gatherLoadBalanceStatistics() {
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::setSolver() {
     Inform m("PartBunch::setSolver");
-    m << level2 << "Initializing solver: " << OPALFieldSolver_m->getType() << endl;
+    fieldSolverConfig_m = opalx::makeFieldSolverConfig<Dim>(
+            *OPALFieldSolver_m,
+            PoissonBackendRegistry<T, Dim>::capabilitiesFor(OPALFieldSolver_m->getType()));
+
+    m << level2 << "Initializing solver: " << fieldSolverConfig_m.solverType << endl;
     if (this->solver_m != "")
         m << level1 << "Warning solver already initiated but overwrite ..." << endl;
 
-    this->solver_m = OPALFieldSolver_m->getType();
+    this->solver_m = fieldSolverConfig_m.solverType;
 
-    this->fcontainer_m->initializeFields(this->solver_m);
+    this->fcontainer_m->initializeFields(fieldSolverConfig_m);
 
     // Needs to happen before setting the field solver, since the field solver needs the bins.
     setBins();
 
-    BinningCmd* binningCmd = OPALFieldSolver_m->getBinningCmd();
-    auto binnedSolver      = std::make_shared<BinnedFieldSolver<T, Dim>>(
-            this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
-            &this->fcontainer_m->getPhi(), this->getBCHandler(),
-            binningCmd ? binningCmd->getTablePrintFrequency() : 0,
-            binningCmd ? binningCmd->getAdaptiveBinning() : true);
+    auto binnedSolver = std::make_shared<BinnedFieldSolver<T, Dim>>(
+            fieldSolverConfig_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
+            &this->fcontainer_m->getPhi(), this->getBCHandler());
     this->setFieldSolver(binnedSolver);
     m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
 
@@ -292,39 +296,36 @@ template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::setBins() {
     Inform m("PartBunch::setBins");
 
-    BinningCmd* binningCmd = OPALFieldSolver_m->getBinningCmd();
-
-    if (!OPALFieldSolver_m->hasBinningCmd()) {
-        m << level2 << "Solver " << OPALFieldSolver_m->getOpalName()
+    const opalx::BinningConfig& binning = fieldSolverConfig_m.binning;
+    if (!binning.enabled) {
+        m << level2 << "Solver " << fieldSolverConfig_m.commandName
           << " has no binning command attached, not using binning." << endl;
         return;
     }
 
-    m << level4 << "Using binning command: " << binningCmd->getOpalName() << endl;
+    m << level4 << "Using binning command: " << binning.commandName << endl;
 
-    switch (binningCmd->getParameterType()) {
-        case BinningParameter::VELOCITYZ:
+    switch (binning.parameter) {
+        case opalx::BinningParameterConfig::VelocityZ:
             this->setBins(
                     std::make_shared<
                             ParticleBinning::AdaptBins<ParticleContainer_t, CoordinateSelector_t>>(
                             *this->getParticleContainer(), CoordinateSelector_t(2),
-                            binningCmd->getMaxBins(), binningCmd->getBinningAlpha(),
-                            binningCmd->getBinningBeta(), binningCmd->getDesiredWidth(),
-                            binningCmd->getOpalName()));
+                            binning.maxBins, binning.alpha, binning.beta, binning.desiredWidth,
+                            binning.commandName));
             break;
-        case BinningParameter::GAMMAZ:
+        case opalx::BinningParameterConfig::GammaZ:
             this->setBins(
                     std::make_shared<
                             ParticleBinning::AdaptBins<ParticleContainer_t, GammaSelector_t>>(
-                            *this->getParticleContainer(), GammaSelector_t(2),
-                            binningCmd->getMaxBins(), binningCmd->getBinningAlpha(),
-                            binningCmd->getBinningBeta(), binningCmd->getDesiredWidth(),
-                            binningCmd->getOpalName()));
+                            *this->getParticleContainer(), GammaSelector_t(2), binning.maxBins,
+                            binning.alpha, binning.beta, binning.desiredWidth,
+                            binning.commandName));
             break;
         default:
             throw OpalException(
                     "PartBunch::setBins",
-                    "Binning parameter " + binningCmd->getParameter()
+                    "Binning parameter " + binning.parameterName
                             + " not supported yet! Only VELOCITYZ and GAMMAZ.");
     }
     m << level3 << "Bins set." << endl;
@@ -497,7 +498,8 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
            << "* Mean P          = " << pc->getMeanP() << " [beta gamma]\n"
            << "* MESH SPACING    = "
            << Util::getLengthString(this->fcontainer_m->getMesh().getMeshSpacing(), 5) << "\n"
-           << "* COMPDOM INCR    = " << this->OPALFieldSolver_m->getBoxIncr() << " (%) \n"
+           << "* COMPDOM INCR    = " << fieldSolverConfig_m.boundingBoxIncreasePercent
+           << " (%) \n"
            << "* FIELD LAYOUT    = " << this->fcontainer_m->getFL() << "\n"
            << "* Centroid : \n* ";
         for (unsigned int i = 0; i < 2 * Dim; i++) {
@@ -547,7 +549,7 @@ void PartBunch<T, Dim>::reinitializeGridZ(int nrZ) {
     auto& fl = this->fcontainer_m->getFL();
     this->fcontainer_m->getRho().updateLayout(fl);
     this->fcontainer_m->getE().updateLayout(fl);
-    if (solver_m == "CG") {
+    if (fieldSolverConfig_m.usesSeparatePotentialField()) {
         this->fcontainer_m->getPhi().updateLayout(fl);
     }
     this->getTempEField()->updateLayout(fl);
@@ -650,8 +652,8 @@ void PartBunch<T, Dim>::computeBoundsForFieldSolve(
         }
     }
 
-    lower = lower - span * this->OPALFieldSolver_m->getBoxIncr() / 100.0;
-    upper = upper + span * this->OPALFieldSolver_m->getBoxIncr() / 100.0;
+    lower = lower - span * fieldSolverConfig_m.boundingBoxIncreasePercent / 100.0;
+    upper = upper + span * fieldSolverConfig_m.boundingBoxIncreasePercent / 100.0;
 }
 
 template <typename T, unsigned Dim>
@@ -675,7 +677,8 @@ void PartBunch<T, Dim>::applyGridUpdate(
     m << level3 << "Field Container updated with new mesh boundaries and spacing:" << endl;
     m << level3 << "\t\t> Mesh origin:   " << mesh->getOrigin() << endl;
     m << level3 << "\t\t> Mesh spacing:  " << hr_m << endl;
-    m << level3 << "\t\t> Box increment: " << this->OPALFieldSolver_m->getBoxIncr() << "%" << endl;
+    m << level3 << "\t\t> Box increment: " << fieldSolverConfig_m.boundingBoxIncreasePercent
+      << "%" << endl;
 
     const auto& containers = this->getParticleContainers();
     for (size_t i = 0; i < containers.size(); ++i) {
@@ -735,19 +738,19 @@ void PartBunch<T, Dim>::dumpBinConfig(bool preMerge) {
 
     Inform m("PartBunch::dumpBinConfig");
 
-    BinningCmd* binningCmd = OPALFieldSolver_m->getBinningCmd();
-    if (!binningCmd) {
+    const opalx::BinningConfig& binning = fieldSolverConfig_m.binning;
+    if (!binning.enabled) {
         return;
     }
 
     // If BINNING is configured with DUMPBINSFILE="NONE", skip all file dumping.
     // (BinnedFieldSolver may still call dumpBinConfig() during rebin/merge steps.)
-    if (!binningCmd->dumpBinsToFile()) {
+    if (!binning.dumpToFile()) {
         return;
     }
 
     const long long step = getGlobalTrackStep();
-    const int dumpFreq   = binningCmd->getDumpBinsFrequency();
+    const int dumpFreq   = binning.dumpFrequency;
     if (dumpFreq <= 0 || (step % dumpFreq) != 0) {
         return;
     }
@@ -766,11 +769,11 @@ void PartBunch<T, Dim>::dumpBinConfig(bool preMerge) {
 
     m << level5 << "Dumping bin configuration (preMerge=" << (preMerge ? 1 : 0)
       << ") at globalTrackStep=" << step << " with nBins=" << counts.size() << " to file \""
-      << binningCmd->getDumpBinsFileName() << "\"." << endl;
+      << binning.dumpFileName << "\"." << endl;
 
     dataSink_m->dumpBinConfig(
             step, getT(), preMerge, counts, widths, static_cast<double>(xMin),
-            binningCmd->getDumpBinsFileName());
+            binning.dumpFileName);
 }
 
 /**
@@ -809,7 +812,7 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
     }
 
     // cannot use getFieldContainer, since this getter cannot be const!
-    const std::shared_ptr<FieldContainer<T, Dim>> fctr = this->fcontainer_m;
+    const std::shared_ptr<FieldStorage_t> fctr = this->fcontainer_m;
     if (!fctr) {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks",
@@ -853,7 +856,7 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks", "FieldSolver type string is empty.");
     }
-    if (stype != "FFT" && stype != "OPEN" && stype != "CG" && stype != "NONE") {
+    if (!PoissonBackendRegistry<T, Dim>::supports(stype)) {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks", "Unsupported FieldSolver type: " + stype);
     }
@@ -861,7 +864,8 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
 
     // Basic check that the E-field layout has non-zero extent
     auto Eview = fctr->getE().getView();
-    if (stype != "NONE" && (Eview.extent(0) == 0 || Eview.extent(1) == 0 || Eview.extent(2) == 0)) {
+    if (!fieldSolverConfig_m.isNoOp()
+        && (Eview.extent(0) == 0 || Eview.extent(1) == 0 || Eview.extent(2) == 0)) {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks",
                 "E-field layout not initialized (zero extent). ");

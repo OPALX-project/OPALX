@@ -103,7 +103,7 @@ void FieldDiagnostics<double, 3>::dumpVectorField(
 template <>
 void FieldDiagnostics<double, 3>::dumpScalarField(
         const std::string& what, const Field_t<3>* rho, const Field_t<3>* phi,
-        const std::string& solverType) const {
+        const SolverCapabilities& capabilities) const {
     /*
       what == phi | rho
      */
@@ -146,10 +146,9 @@ void FieldDiagnostics<double, 3>::dumpScalarField(
         unit = "V";
     }
 
-    const Field_t<3>* field = (solverType == "CG" && Util::toUpper(what) == "PHI")
-                                      ? phi
-                                      : rho;  // both rho and phi are in the same variable (in
-                                             // place computation)
+    // Potential may either live in a separate phi field or in rho for in-place backends.
+    const Field_t<3>* field =
+            (capabilities.usesSeparatePotentialField && Util::toUpper(what) == "PHI") ? phi : rho;
 
     // auto localIdx = field->getOwned();
     ippl::NDIndex<3> localIdx = field->getLayout().getLocalNDIndex();

@@ -21,6 +21,7 @@ void BinnedLorentzSelfFieldDriver<T, Dim>::compute(
         return;
     }
 
+    // Step 1: rebuild the per-particle bin assignment for this self-field step.
     solver.rebinAndPrepare(bunch, bins);
 
     std::shared_ptr<VField_t<T, Dim>> EtmpSP = bunch.getTempEField();
@@ -36,6 +37,7 @@ void BinnedLorentzSelfFieldDriver<T, Dim>::compute(
                 "Temporary B field (Btmp) is not initialized.");
     }
 
+    // Step 2: clear the temporary lab-frame E/B accumulators before per-bin solves.
     solver.fieldAccumulator_m.bind(EtmpSP, BtmpSP);
     solver.fieldAccumulator_m.clear();
 
@@ -95,6 +97,8 @@ void BinnedLorentzSelfFieldDriver<T, Dim>::compute(
                 && activeCorrection->kind() == BoundaryCorrectionKind::ShiftedGreens;
 
         {
+            // Step 3: solve the primary rest-frame field for this bin and accumulate it in lab
+            // coordinates.
             const ImageScatterMode scatterMode = solver.primaryScatterModeForStep(activeCorrection);
             solver.prepareRhoForBin(bunch, bins, context, scatterMode);
 
@@ -115,6 +119,7 @@ void BinnedLorentzSelfFieldDriver<T, Dim>::compute(
         }
 
         if (activeCorrection) {
+            // Step 4: run the optional Dirichlet correction pass for the same bin.
             const auto correctionPass = activeCorrection->makePass(
                     context, mesh.getOrigin(),
                     solver.getRho()->getLayout().getDomain()[Dim - 1].length());
@@ -125,11 +130,13 @@ void BinnedLorentzSelfFieldDriver<T, Dim>::compute(
         }
     }
 
+    // Step 5: gather the accumulated lab-frame fields back to particles.
     solver.gatherFromTempToParticles(bunch);
 
-    if (solver.tablePrintFrequency_m > 0) {
+    const int tablePrintFrequency = solver.config_m.binning.tablePrintFrequency;
+    if (tablePrintFrequency > 0) {
         const long long step = bunch.getGlobalTrackStep();
-        if (step >= 0 && (step % solver.tablePrintFrequency_m) == 0) {
+        if (step >= 0 && (step % tablePrintFrequency) == 0) {
             solver.printBinStatsTable(bins->getBinningCmdName(), binStats);
         }
     }

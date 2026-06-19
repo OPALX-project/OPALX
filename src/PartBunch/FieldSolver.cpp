@@ -11,7 +11,7 @@ void FieldSolver<double, 3>::dumpVectField(std::string what) {
 
 template <>
 void FieldSolver<double, 3>::dumpScalField(std::string what) {
-    diagnostics_m.dumpScalarField(what, this->getRho(), this->getPhi(), this->getStype());
+    diagnostics_m.dumpScalarField(what, this->getRho(), this->getPhi(), currentCapabilities());
 }
 
 template <>
@@ -89,16 +89,6 @@ void FieldSolver<double, 3>::runSolver(
 template <>
 void FieldSolver<double, 3>::runSolver(bool force_skip_field_dump) {
     runSolver(SolveRequest<double, 3>{}, force_skip_field_dump);
-}
-
-template <>
-void FieldSolver<double, 3>::runShiftedOpenSolver(const ippl::Vector<double, 3>& shift) {
-    Inform m("FieldSolver::runShiftedOpenSolver");
-    m << level4 << "Running shifted solver with shift = " << shift << endl;
-
-    SolveRequest<double, 3> request;
-    request.greensShift = shift;
-    runSolver(request, false);
 }
 
 template <>

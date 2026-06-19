@@ -19,8 +19,9 @@
 #include "Manager/PicManager.h"
 #include "PartBunch/Binning/AdaptBins.h"
 #include "PartBunch/BunchStateHandler.h"
-#include "PartBunch/FieldContainer.hpp"
+#include "PartBunch/FieldSolverConfig.hpp"
 #include "PartBunch/FieldSolver.hpp"
+#include "PartBunch/FieldStorage.hpp"
 #include "PartBunch/LoadBalancer.hpp"
 #include "PartBunch/ParticleContainer.hpp"
 #include "Physics/Physics.h"
@@ -51,10 +52,11 @@ class BinnedFieldSolver;
 template <typename T, unsigned Dim>
 class PartBunch
     : public ippl::PicManager<
-              T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>> {
+              T, Dim, ParticleContainer<T, Dim>, FieldStorage<T, Dim>, LoadBalancer<T, Dim>> {
 public:
     using ParticleContainer_t = ParticleContainer<T, Dim>;
-    using FieldContainer_t    = FieldContainer<T, Dim>;
+    using FieldContainer_t    = FieldStorage<T, Dim>;
+    using FieldStorage_t      = FieldStorage<T, Dim>;
     using BinnedFieldSolver_t = BinnedFieldSolver<T, Dim>;
     using LoadBalancer_t      = LoadBalancer<T, Dim>;
     using Base                = ippl::ParticleBase<
@@ -104,6 +106,8 @@ private:
     std::shared_ptr<BCHandler_t> bcHandler_m;  ///< Field boundary conditions.
     std::shared_ptr<AdaptBins_t> bins_m;       ///< Adaptive velocity/gamma binning (optional).
     FieldSolverCmd* OPALFieldSolver_m;         ///< Borrowed parsed FIELD_SOLVER command.
+    opalx::FieldSolverConfig<Dim>
+            fieldSolverConfig_m;  ///< Normalized solver configuration snapshot.
     DataSink* dataSink_m;                      ///< Borrowed diagnostics and dump output sink.
 
     double t_m;  ///< Current simulation time (s).
@@ -202,7 +206,7 @@ public:
      * @brief Set the shifted Green's function Dirichlet-correction configuration.
      *
      * Alternative to @c setImageChargeConfiguration. Mutually exclusive with it.
-     * Requires the OPEN field solver (checked at runtime in the correction pass).
+     * Requires a backend with @c SolverCapabilities::supportsShiftedGreens.
      *
      * @param enabled Enable the shifted-Green's-function correction when true.
      * @param zPlane  Dirichlet plane position in z [m].
@@ -235,6 +239,11 @@ public:
 
     /// @brief Build field solver and load balancer from @c OPALFieldSolver_m.
     void setSolver();
+
+    /// @brief Normalized field-solver configuration used by runtime code.
+    const opalx::FieldSolverConfig<Dim>& getFieldSolverConfig() const {
+        return fieldSolverConfig_m;
+    }
 
     /// @brief Create adaptive bins from the binning command (VELOCITYZ / GAMMAZ).
     void setBins();

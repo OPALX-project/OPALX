@@ -1,46 +1,57 @@
 #include "PartBunch/Solvers/PoissonBackendRegistry.hpp"
 
-#include <algorithm>
+#include <array>
 
 #include "PartBunch/Solvers/PoissonBackends.hpp"
-#include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
 
 namespace {
-    SolverCapabilities noneCapabilities() { return {.isNoOp = true}; }
+    using BackendFactory = std::unique_ptr<PoissonBackend<double, 3>> (*)(
+            Solver_t<double, 3>&, Field_t<3>*, VField_t<double, 3>*, Field_t<3>*);
 
-    SolverCapabilities fftCapabilities() {
-        return {
-                .supportsShiftedGreens   = false,
-                .providesPotential       = false,
-                .providesGradient        = true,
-                .requiresPotentialBCs    = false,
-                .debugDumpRhoBeforeSolve = true,
-                .debugDumpScalarAfterSolve = true,
-                .debugDumpVectorAfterSolve = true};
+    struct BackendSpec {
+        const char* name;
+        SolverCapabilities capabilities;
+        double couplingConstant;
+        BackendFactory create;
+    };
+
+    template <typename Backend>
+    std::unique_ptr<PoissonBackend<double, 3>> makeBackend(
+            Solver_t<double, 3>& solverVariant, Field_t<3>* rho, VField_t<double, 3>* E,
+            Field_t<3>* phi) {
+        return std::make_unique<Backend>(solverVariant, rho, E, phi);
     }
 
-    SolverCapabilities openCapabilities() {
-        return {
-                .supportsShiftedGreens   = true,
-                .providesPotential       = true,
-                .providesGradient        = true,
-                .requiresPotentialBCs    = false,
-                .debugDumpRhoBeforeSolve = true,
-                .debugDumpScalarAfterSolve = true,
-                .debugDumpVectorAfterSolve = true};
+    const std::array<BackendSpec, 4>& backendSpecs() {
+        static const std::array<BackendSpec, 4> specs = {{
+                {NullPoissonBackend<double, 3>::solverName(),
+                 NullPoissonBackend<double, 3>::backendCapabilities(),
+                 NullPoissonBackend<double, 3>::backendCouplingConstant(),
+                 &makeBackend<NullPoissonBackend<double, 3>>},
+                {FFTPoissonBackend<double, 3>::solverName(),
+                 FFTPoissonBackend<double, 3>::backendCapabilities(),
+                 FFTPoissonBackend<double, 3>::backendCouplingConstant(),
+                 &makeBackend<FFTPoissonBackend<double, 3>>},
+                {OpenPoissonBackend<double, 3>::solverName(),
+                 OpenPoissonBackend<double, 3>::backendCapabilities(),
+                 OpenPoissonBackend<double, 3>::backendCouplingConstant(),
+                 &makeBackend<OpenPoissonBackend<double, 3>>},
+                {CGPoissonBackend<double, 3>::solverName(),
+                 CGPoissonBackend<double, 3>::backendCapabilities(),
+                 CGPoissonBackend<double, 3>::backendCouplingConstant(),
+                 &makeBackend<CGPoissonBackend<double, 3>>},
+        }};
+        return specs;
     }
 
-    SolverCapabilities cgCapabilities() {
-        return {
-                .supportsShiftedGreens   = false,
-                .providesPotential       = true,
-                .providesGradient        = true,
-                .requiresPotentialBCs    = true,
-                .usesSeparatePotentialField = true,
-                .debugDumpRhoBeforeSolve = true,
-                .debugDumpScalarAfterSolve = true,
-                .debugDumpVectorAfterSolve = false};
+    const BackendSpec* findBackendSpec(const std::string& solverName) {
+        for (const BackendSpec& spec : backendSpecs()) {
+            if (solverName == spec.name) {
+                return &spec;
+            }
+        }
+        return nullptr;
     }
 
     [[noreturn]] void throwUnknownSolver(const std::string& context, const std::string& solverName) {
@@ -52,17 +63,8 @@ template <>
 std::unique_ptr<PoissonBackend<double, 3>> PoissonBackendRegistry<double, 3>::create(
         const std::string& solverName, Solver_t<double, 3>& solverVariant, Field_t<3>* rho,
         VField_t<double, 3>* E, Field_t<3>* phi) {
-    if (solverName == "NONE") {
-        return std::make_unique<NullPoissonBackend<double, 3>>(solverVariant, rho, E, phi);
-    }
-    if (solverName == "FFT") {
-        return std::make_unique<FFTPoissonBackend<double, 3>>(solverVariant, rho, E, phi);
-    }
-    if (solverName == "OPEN") {
-        return std::make_unique<OpenPoissonBackend<double, 3>>(solverVariant, rho, E, phi);
-    }
-    if (solverName == "CG") {
-        return std::make_unique<CGPoissonBackend<double, 3>>(solverVariant, rho, E, phi);
+    if (const BackendSpec* spec = findBackendSpec(solverName)) {
+        return spec->create(solverVariant, rho, E, phi);
     }
 
     throwUnknownSolver("PoissonBackendRegistry::create", solverName);
@@ -71,17 +73,8 @@ std::unique_ptr<PoissonBackend<double, 3>> PoissonBackendRegistry<double, 3>::cr
 template <>
 SolverCapabilities PoissonBackendRegistry<double, 3>::capabilitiesFor(
         const std::string& solverName) {
-    if (solverName == "NONE") {
-        return noneCapabilities();
-    }
-    if (solverName == "FFT") {
-        return fftCapabilities();
-    }
-    if (solverName == "OPEN") {
-        return openCapabilities();
-    }
-    if (solverName == "CG") {
-        return cgCapabilities();
+    if (const BackendSpec* spec = findBackendSpec(solverName)) {
+        return spec->capabilities;
     }
 
     throwUnknownSolver("PoissonBackendRegistry::capabilitiesFor", solverName);
@@ -89,11 +82,8 @@ SolverCapabilities PoissonBackendRegistry<double, 3>::capabilitiesFor(
 
 template <>
 double PoissonBackendRegistry<double, 3>::couplingConstantFor(const std::string& solverName) {
-    if (solverName == "OPEN" || solverName == "FFT" || solverName == "CG") {
-        return 1.0 / Physics::epsilon_0;
-    }
-    if (solverName == "NONE") {
-        return 1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
+    if (const BackendSpec* spec = findBackendSpec(solverName)) {
+        return spec->couplingConstant;
     }
 
     throwUnknownSolver("PoissonBackendRegistry::couplingConstantFor", solverName);
@@ -101,11 +91,15 @@ double PoissonBackendRegistry<double, 3>::couplingConstantFor(const std::string&
 
 template <>
 std::vector<std::string> PoissonBackendRegistry<double, 3>::solverNames() {
-    return {"NONE", "FFT", "OPEN", "CG"};
+    std::vector<std::string> names;
+    names.reserve(backendSpecs().size());
+    for (const BackendSpec& spec : backendSpecs()) {
+        names.emplace_back(spec.name);
+    }
+    return names;
 }
 
 template <>
 bool PoissonBackendRegistry<double, 3>::supports(const std::string& solverName) {
-    const auto names = solverNames();
-    return std::find(names.begin(), names.end(), solverName) != names.end();
+    return findBackendSpec(solverName) != nullptr;
 }

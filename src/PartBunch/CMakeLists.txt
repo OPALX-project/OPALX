@@ -13,8 +13,11 @@ set (HDRS
     FieldSolver.hpp
     FieldAccumulator.hpp
     FieldContainer.hpp
+    FieldSolverConfigBuilder.hpp
+    FieldSolverConfig.hpp
     FieldMirror.hpp
     FieldOps.hpp
+    FieldStorage.hpp
     LoadBalancer.hpp
     ParticleContainer.hpp
     BCHandler.hpp

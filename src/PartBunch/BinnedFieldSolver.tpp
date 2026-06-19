@@ -8,15 +8,14 @@
 
 template <typename T, unsigned Dim>
 BinnedFieldSolver<T, Dim>::BinnedFieldSolver(
-        std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
-        std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency, bool adaptiveBinning)
-    : FieldSolver<T, Dim>(solver, rho, E, phi, bcHandler),
+        const opalx::FieldSolverConfig<Dim>& config, Field_t<Dim>* rho, VField_t<T, Dim>* E,
+        Field_t<Dim>* phi, std::shared_ptr<BCHandler_t> bcHandler)
+    : FieldSolver<T, Dim>(config.solverType, rho, E, phi, bcHandler),
+      config_m(config),
       monolithicDriver_m(std::make_unique<MonolithicSelfFieldDriver<T, Dim>>()),
       binnedDriver_m(std::make_unique<BinnedLorentzSelfFieldDriver<T, Dim>>()) {
-    scatterAttribute_m    = ScatterAttribute::ChargeQ;
-    gatherAttribute_m     = GatherAttribute::ElectricFieldE;
-    tablePrintFrequency_m = tablePrintFrequency;
-    adaptiveBinning_m     = adaptiveBinning;
+    scatterAttribute_m = ScatterAttribute::ChargeQ;
+    gatherAttribute_m  = GatherAttribute::ElectricFieldE;
 }
 
 template <typename T, unsigned Dim>
@@ -332,10 +331,10 @@ void BinnedFieldSolver<T, Dim>::rebinAndPrepare(
         PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins) {
     Inform m("BinnedFieldSolver::rebinAndPrepare");
     m << level4 << "Rebin start: maxBins=" << static_cast<int>(bins->getMaxBinCount())
-      << ", adaptiveBinning=" << (adaptiveBinning_m ? 1 : 0) << endl;
+      << ", adaptiveBinning=" << (config_m.binning.adaptive ? 1 : 0) << endl;
     bins->doFullRebin(bins->getMaxBinCount());
     bunch.dumpBinConfig(true);
-    if (adaptiveBinning_m) {
+    if (config_m.binning.adaptive) {
         bins->genAdaptiveHistogram();
         bunch.dumpBinConfig(false);
     }
@@ -469,18 +468,17 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
     }
 
     // normalize rho for fractional time steps and mesh conventions.
-    const std::string stype = this->getStype();
-    double normalizer       = bunch.getdT();
-    if (stype != "FEM" && stype != "FEM_PRECON") {
+    double normalizer = bunch.getdT();
+    if (config_m.normalizeRhoByCellVolume) {
         const double cellVolume =
                 std::reduce(bunch.hr_m.begin(), bunch.hr_m.end(), 1.0, std::multiplies<double>());
         normalizer *= cellVolume;
     }
 
-    // subtract non-OPEN background and apply Lorentz rest-frame scaling.
-    // Background subtraction for non-OPEN solvers. Here we subtract only the bin's charge.
+    // Background subtraction is controlled by the normalized solver config. Here we subtract only
+    // the bin's charge.
     double shift = 0.0;
-    if (stype != "OPEN") {
+    if (config_m.subtractNeutralizingBackground) {
         double size = 1.0;
         for (size_t d = 0; d < Dim; ++d) {
             size *= bunch.rmax_m[d] - bunch.rmin_m[d];
