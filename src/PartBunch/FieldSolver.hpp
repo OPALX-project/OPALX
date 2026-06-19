@@ -5,6 +5,7 @@
 #include "BCHandler.hpp"
 #include "Manager/BaseManager.h"
 #include "Manager/FieldSolverBase.h"
+#include "PartBunch/Diagnostics/FieldDiagnostics.hpp"
 
 // Define the FieldSolver class
 template <typename T, unsigned Dim>
@@ -17,8 +18,7 @@ private:
     using BCHandler_t = BCHandler<Dim>;
     std::shared_ptr<BCHandler_t> bcHandler_m;
 
-    /// Counts number of times the solver has been called
-    size_t call_counter_m;
+    FieldDiagnostics<T, Dim> diagnostics_m;
 
 public:
     FieldSolver(
@@ -28,8 +28,7 @@ public:
           rho_m(rho),
           E_m(E),
           phi_m(phi),
-          bcHandler_m(bcHandler),
-          call_counter_m(0) {
+          bcHandler_m(bcHandler) {
         setPotentialBCs();
     }
 
@@ -91,16 +90,16 @@ public:
     /**
      * @brief Reset the solver call counter to zero.
      *
-     * Sets the internal call counter (`call_counter_m`) back to 0 so that
+     * Sets the internal call counter back to 0 so that
      * subsequent calls will be counted from a clean state.
      *
      * @note This function is necessary to exclude potential solver warm-up
      * calls from being counted towards output or logging that depends on the
      * number of solver executions.
      */
-    void resetCallCounter() { call_counter_m = 0; }
+    void resetCallCounter() { diagnostics_m.resetCallCounter(); }
 
-    size_t getCallCounter() { return call_counter_m; }
+    size_t getCallCounter() { return diagnostics_m.getCallCounter(); }
 
     /**
      * @brief Execute the field solver for the current simulation state.
