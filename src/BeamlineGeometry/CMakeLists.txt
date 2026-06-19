@@ -2,7 +2,6 @@ set (_SRCS
     Euclid3D.cpp
     Geometry.cpp
     Matrix3D.cpp
-    Euclid3DGeometry.cpp
     NullGeometry.cpp
     PlanarArcGeometry.cpp
     RBendGeometry.cpp
@@ -13,7 +12,6 @@ set (_SRCS
 
 set (HDRS
     ElementGeometry.h
-    Euclid3DGeometry.h
     Euclid3D.h
     Geometry.h
     Matrix3D.h
