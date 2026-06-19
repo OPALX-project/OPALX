@@ -7,8 +7,10 @@
 #include "Ippl.h"
 #include "SpaceCharge/FieldAccumulator.hpp"
 #include "PartBunch/FieldContainer.hpp"
+#include "Physics/Physics.h"
 #include "SpaceCharge/Solvers/PoissonBackendRegistry.hpp"
 #include "SpaceCharge/FieldOps.hpp"
+#include "Utilities/OpalException.h"
 
 namespace {
 
@@ -97,6 +99,21 @@ namespace {
         EXPECT_NEAR(maxScalarError(fields->getRho(), 5.0), 0.0, 1e-12);
     }
 
+    TEST_F(FieldOpsAndAccumulatorTest, AccumulatorRequiresBoundTemporaryFields) {
+        auto fields = makeFieldContainer();
+        auto eTmp   = makeVectorField(*fields);
+        auto bTmp   = makeVectorField(*fields);
+
+        FieldAccumulator<double, 3> accumulator;
+        EXPECT_THROW(accumulator.clear(), OpalException);
+        EXPECT_THROW(
+                accumulator.accumulate(
+                        fields->getE(), 1.0, Vector_t<double, 3>{0.0, 0.0, 0.0}),
+                OpalException);
+        EXPECT_THROW(accumulator.bind(nullptr, bTmp), OpalException);
+        EXPECT_THROW(accumulator.bind(eTmp, nullptr), OpalException);
+    }
+
     TEST_F(FieldOpsAndAccumulatorTest, AccumulatorClearsAndAccumulatesUnflippedField) {
         auto fields = makeFieldContainer();
         auto eTmp   = makeVectorField(*fields);
@@ -117,6 +134,26 @@ namespace {
         EXPECT_NEAR(maxVectorError(*bTmp, Vector_t<double, 3>{0.0, 0.0, 0.0}), 0.0, 1e-12);
     }
 
+    TEST_F(FieldOpsAndAccumulatorTest, AccumulatorComputesMagneticFieldFromBinVelocity) {
+        auto fields = makeFieldContainer();
+        auto eTmp   = makeVectorField(*fields);
+        auto bTmp   = makeVectorField(*fields);
+
+        opalx::fieldops::setVectorField(fields->getE(), Vector_t<double, 3>{1.0, 0.0, 0.0});
+
+        FieldAccumulator<double, 3> accumulator;
+        accumulator.bind(eTmp, bTmp);
+        accumulator.clear();
+        accumulator.accumulate(
+                fields->getE(), 2.0, Vector_t<double, 3>{0.0, 0.0, 2.0},
+                -1.0);
+
+        EXPECT_NEAR(maxVectorError(*eTmp, Vector_t<double, 3>{2.0, 0.0, 0.0}), 0.0, 1e-12);
+        EXPECT_NEAR(
+                maxVectorError(*bTmp, Vector_t<double, 3>{0.0, -2.0 / Physics::c, 0.0}),
+                0.0, 1e-16);
+    }
+
     TEST_F(FieldOpsAndAccumulatorTest, AccumulatorAppliesFlippedImageSignRule) {
         auto fields = makeFieldContainer();
         auto eTmp   = makeVectorField(*fields);
@@ -134,6 +171,24 @@ namespace {
         EXPECT_NEAR(
                 maxVectorError(*eTmp, Vector_t<double, 3>{-1.0, -2.0, 3.0}), 0.0, 1e-12);
         EXPECT_NEAR(maxVectorError(*bTmp, Vector_t<double, 3>{0.0, 0.0, 0.0}), 0.0, 1e-12);
+    }
+
+    TEST_F(FieldOpsAndAccumulatorTest, AccumulatorRejectsUnsupportedFlipAxis) {
+        auto fields = makeFieldContainer();
+        auto eTmp   = makeVectorField(*fields);
+        auto bTmp   = makeVectorField(*fields);
+
+        opalx::fieldops::setVectorField(fields->getE(), Vector_t<double, 3>{1.0, 2.0, 3.0});
+
+        FieldAccumulator<double, 3> accumulator;
+        accumulator.bind(eTmp, bTmp);
+        accumulator.clear();
+
+        EXPECT_THROW(
+                accumulator.accumulate(
+                        fields->getE(), 1.0, Vector_t<double, 3>{0.0, 0.0, 0.0},
+                        1.0, 0),
+                OpalException);
     }
 
 }  // namespace
