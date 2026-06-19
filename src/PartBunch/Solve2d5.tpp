@@ -32,17 +32,34 @@
 
 template <typename T>
 Solve2d5<T>::Solve2d5(
-        std::string solver, Field_t<3>* rho, VField_t<T, 3>* E, Field_t<3>* phi,
-        std::shared_ptr<BCHandler_t> bcHandler, const LongitudinalFieldMode longitudinalFieldMode,
-        const T pipeRadius, const T beamRadius, const bool closedRing)
+        PartBunch_t* partBunch, std::string solver, Field_t<3>* rho, VField_t<T, 3>* E,
+        Field_t<3>* phi, std::shared_ptr<BCHandler_t> bcHandler, const Vector<int, 3>& nR,
+        const LongitudinalFieldMode longitudinalFieldMode, const T pipeSizeX, const T pipeSizeY,
+        const T beamRadius, const bool closedRing)
     : Base(solver, rho, E, phi, bcHandler, 0, true),
-      phi_m(phi),
-      rho_m(rho),
-      E_m(E),
+      partBunch_m(partBunch),
       beamRadius_m(beamRadius),
-      pipeRadius_m(pipeRadius),
       longitudinalFieldMode_m(longitudinalFieldMode),
-      closedRing_m(closedRing) {}
+      closedRing_m(closedRing),
+      nR_m(nR) {
+    // Load the reference path to determine the Frenet-Serret domain dimensions
+    auto pathLength = loadReferencePath();
+    sizer_m         = {pipeSizeX, pipeSizeY, pathLength};
+    hr_m            = sizer_m / nR_m;
+    for (unsigned i = 0; i < Dim; i++) {
+        domain_m[i] = ippl::Index(nR_m[i]);
+    }
+    // Create the fields and field container (for now, no partitioning)
+    // Why are the first three parameters to the FieldContainer_t constructor references?
+    Vector3D_t rmin{0, 0, 0};
+    partBunch_m->setFieldContainer(
+            std::make_shared<FieldContainer_t>(
+                    hr_m, rmin, sizer_m, std::array{false, false, false}, domain_m,
+                    Vector3D_t{0, 0, 0}, true));
+    partBunch_m->getFieldContainer()->initializeFields(solver);
+    rho_m = &partBunch_m->getFieldContainer()->getRho();
+    E_m   = &partBunch_m->getFieldContainer()->getE();
+}
 
 template <typename T>
 void Solve2d5<T>::initSolver() {
@@ -102,7 +119,9 @@ void Solve2d5<T>::runSolver() {
 }
 
 template <typename T>
-void Solve2d5<T>::loadReferencePath() {
+T Solve2d5<T>::loadReferencePath() {
+    // Return the total length of the path
+    T length{};
     // The path name of the file created by the OrbitThreader
     auto opal            = OpalData::getInstance();
     std::string fileName = Util::combineFilePath(
@@ -124,9 +143,15 @@ void Solve2d5<T>::loadReferencePath() {
             throw OpalException("Solve2d5::loadReferencePath", "Failed to parse line: " + line);
         }
         referencePath.emplace_back();
-        referencePath.back().data_m[0] = rx;  // Ugh 'cos IPPL fails to implement
-        referencePath.back().data_m[1] = ry;  // the constructor that takes the
-        referencePath.back().data_m[2] = rz;  // std::array<>
+        referencePath.back().data_m[0] = rx;  // Because IPPL fails to implement
+        referencePath.back().data_m[1] = ry;  // an appropriate constructor
+        referencePath.back().data_m[2] = rz;  //
+        // Accumulate the segment lengths
+        if (referencePath.size() > 1) {
+            auto index       = referencePath.size() - 1;
+            Vector3D_t delta = referencePath[index] - referencePath[index - 1];
+            length += delta.Pnorm();
+        }
     }
     // Transfer into a device Kokkos view
     referencePath_m = ReferenceView_t("ref", referencePath.size());
@@ -135,6 +160,8 @@ void Solve2d5<T>::loadReferencePath() {
         hostView(i) = referencePath[i];
     }
     Kokkos::deep_copy(referencePath_m, hostView);
+    // Return the total length of the path
+    return length;
 }
 
 template <typename T>
@@ -389,13 +416,14 @@ void Solve2d5<T>::gatherFromGrid(const PartBunch_t& bunch, DiagnosticPolicy diag
             const auto lineDensityGradient = lineDensityGradient_m;
             const auto eField              = E_m->getView();
             T gBy4PiEpsilon0;
+            auto pipeRadius = std::min(sizer_m.data_m[0], sizer_m.data_m[1]);
             switch (longitudinalFieldMode_m) {
                 case LongitudinalFieldMode::Cylindrical:
-                    gBy4PiEpsilon0 = 0.67 + 2 * Kokkos::log(pipeRadius_m / beamRadius_m);
+                    gBy4PiEpsilon0 = 0.67 + 2 * Kokkos::log(pipeRadius / beamRadius_m);
                     break;
                 case LongitudinalFieldMode::Plates:
                     gBy4PiEpsilon0 =
-                            0.67 + 2 * Kokkos::log(4 * pipeRadius_m / Physics::pi / beamRadius_m);
+                            0.67 + 2 * Kokkos::log(4 * pipeRadius / Physics::pi / beamRadius_m);
                     break;
                 case LongitudinalFieldMode::Open:
                     gBy4PiEpsilon0 = 6.36;

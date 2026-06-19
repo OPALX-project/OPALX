@@ -49,9 +49,10 @@ namespace FIELDSOLVER {
         GREENSF,   // holds greensfunction to be used [FFT + P3M only]
         BBOXINCR,  // how much the boundingbox is increased
         PIPEMODE,  // One of OPEN, CIRCULAR, PLATES [FFT2D5 only]
-        PIPER,     // Beam pipe radius in metres [FFT2D5 only]
         BEAMR,     // Beam radius in metres [FFT2D5 only]
         CLOSEDRING,// TRUE if the ring is closed [FFT2D5 only]
+        PIPESIZEX, // Size of the pipe in meters in the transverse direction [FFT2D5 only]
+        PIPESIZEY, // Size of the pipe in meters in the vertical direction [FFT2D5 only]
         SIZE
     };
 }
@@ -111,13 +112,15 @@ public:
     Inform& printInfo(Inform& os) const;
 
     std::string getPipeMode() const;
-    double getPipeRadius() const;
     double getBeamRadius() const;
     bool getClosedRing() const;
+    double getPipeSizeX() const;
+    double getPipeSizeY() const;
     void setPipeMode(const std::string& pipeMode);
-    void setPipeRadius(double pipeRadius);
     void setBeamRadius(double beamRadius);
     void setClosedRing(bool closedRing);
+    void setPipeSizeX(double pipeSizeX);
+    void setPipeSizeY(double pipeSizeY);
 
 private:
     // Not implemented.

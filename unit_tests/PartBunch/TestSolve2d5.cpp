@@ -593,28 +593,9 @@ namespace {
         std::shared_ptr<ParticleContainer_t> pc;
     };
 
-    TEST_F(TestSolve2d5, SliceSolverSetup) {
-        fsCmd->setType("FFT2D5");
-        rebuildBunch();
-        const auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
-        EXPECT_EQ(solver->getNumSlices(), nz);
-        ASSERT_FALSE(solver->getSliceMesh() == nullptr);
-        EXPECT_EQ(solver->getSliceMesh()->getGridsize(0), 8);
-        EXPECT_EQ(solver->getSliceMesh()->getGridsize(1), 9);
-        EXPECT_EQ(solver->getSliceMesh()->getOrigin()[0], -3);
-        EXPECT_EQ(solver->getSliceMesh()->getOrigin()[1], -3);
-        EXPECT_DOUBLE_EQ(solver->getSliceMesh()->getMeshSpacing()[0], 0.75);
-        EXPECT_NEAR(solver->getSliceMesh()->getMeshSpacing()[1], 0.6666667, 1e-6);
-        ASSERT_FALSE(solver->getSliceLayout() == nullptr);
-        EXPECT_EQ(solver->getSliceLayout()->getDomain()[0], 8);
-        EXPECT_EQ(solver->getSliceLayout()->getDomain()[1], 9);
-    }
-
     TEST_F(TestSolve2d5, LoadReferencePath_Missing) {
         fsCmd->setType("FFT2D5");
-        rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
-        EXPECT_ANY_THROW(solver->loadReferencePath());
+        EXPECT_ANY_THROW(rebuildBunch());
     }
 
     TEST_F(TestSolve2d5, LoadReferencePath_ReadFail) {
@@ -622,18 +603,15 @@ namespace {
                 "data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}, {0, 0, 3}},
                 true);
         fsCmd->setType("FFT2D5");
-        rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
-        EXPECT_ANY_THROW(solver->loadReferencePath());
+        EXPECT_ANY_THROW(rebuildBunch());
     }
 
     TEST_F(TestSolve2d5, LoadReferencePath_Success) {
         makeReferencePathFile(
                 "data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}, {0, 0, 3}});
         fsCmd->setType("FFT2D5");
-        rebuildBunch();
+        ASSERT_NO_THROW(rebuildBunch());
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
-        ASSERT_NO_THROW(solver->loadReferencePath());
         EXPECT_EQ(solver->getReferencePath().size(), 4);
         EXPECT_EQ(solver->getReferencePath()[0].data_m[0], 0);
         EXPECT_EQ(solver->getReferencePath()[0].data_m[1], 0);
@@ -649,19 +627,37 @@ namespace {
         EXPECT_EQ(solver->getReferencePath()[3].data_m[2], 3);
     }
 
+    TEST_F(TestSolve2d5, SliceSolverSetup) {
+        makeReferencePathFile(
+                "data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}, {0, 0, 3}});
+        fsCmd->setType("FFT2D5");
+        ASSERT_NO_THROW(rebuildBunch());
+        const auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
+        EXPECT_EQ(solver->getNumSlices(), nz);
+        ASSERT_FALSE(solver->getSliceMesh() == nullptr);
+        EXPECT_EQ(solver->getSliceMesh()->getGridsize(0), 8);
+        EXPECT_EQ(solver->getSliceMesh()->getGridsize(1), 9);
+        EXPECT_EQ(solver->getSliceMesh()->getOrigin()[0], 0);
+        EXPECT_EQ(solver->getSliceMesh()->getOrigin()[1], 0);
+        EXPECT_DOUBLE_EQ(solver->getSliceMesh()->getMeshSpacing()[0], 0.125);
+        EXPECT_NEAR(solver->getSliceMesh()->getMeshSpacing()[1], 0.111111, 1e-6);
+        ASSERT_FALSE(solver->getSliceLayout() == nullptr);
+        EXPECT_EQ(solver->getSliceLayout()->getDomain()[0], 8);
+        EXPECT_EQ(solver->getSliceLayout()->getDomain()[1], 9);
+    }
+
     TEST_F(TestSolve2d5, ToFrenetSerret_NoParticles) {
         makeReferencePathFile(
                 "data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}, {0, 0, 3}});
         fsCmd->setType("FFT2D5");
-        rebuildBunch();
+        ASSERT_NO_THROW(rebuildBunch());
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
-        solver->loadReferencePath();
         EXPECT_NO_THROW(solver->scatterToGrid(*bunch));
     }
 
     TEST_F(TestSolve2d5, ToFrenetSerret_NoReferencePath) {
         fsCmd->setType("FFT2D5");
-        rebuildBunch();
+        ASSERT_NO_THROW(rebuildBunch());
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
         createParticles({{1, 2, 3}}, {{4, 5, 6}});
         const FrenetSerretScatterDiagnostic info(pc.get());
@@ -774,6 +770,31 @@ namespace {
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
         createParticles({{0, 0, 0}}, {{0, 0, 0}});
+        solver->loadReferencePath();
+        const ScatterChargeDiagnostic info(solver->getRho()->getView());
+        solver->scatterToGrid<ScatterChargeDiagnostic>(*bunch, info);
+        expectChargeDensity(
+                info.rhoView, {{6, 6, 6, 0.00520833},
+                               {6, 6, 7, 0.00520833},
+                               {6, 7, 6, 0.00520833},
+                               {6, 7, 7, 0.00520833},
+                               {7, 6, 6, 0.00520833},
+                               {7, 6, 7, 0.00520833},
+                               {7, 7, 6, 0.00520833},
+                               {7, 7, 7, 0.00520833},
+                               {8, 7, 7, 0.00000}});
+    }
+
+    TEST_F(TestSolve2d5, ScatterToGrid_ClosedRingCharge) {
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, -3}, {0, 0, 3}});
+        fsCmd->setType("FFT2D5");
+        fsCmd->setNX(12);
+        fsCmd->setNY(12);
+        fsCmd->setNZ(12);
+        fsCmd->setClosedRing(true);
+        rebuildBunch();
+        auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
+        createParticles({{0, 0, -2}}, {{0, 0, 0}});
         solver->loadReferencePath();
         const ScatterChargeDiagnostic info(solver->getRho()->getView());
         solver->scatterToGrid<ScatterChargeDiagnostic>(*bunch, info);

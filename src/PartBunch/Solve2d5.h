@@ -53,6 +53,7 @@ public:
     using VectorGridView3D_t = Field<Vector3D_t, 3>::view_type;
     using ScalarGridView2D_t = Field<T, 2>::view_type;
     using VectorGridView2D_t = Field<Vector2D_t, 2>::view_type;
+    using FieldContainer_t   = FieldContainer<T, 3>;
 
     enum class LongitudinalFieldMode { Cylindrical, Plates, Open };
 
@@ -63,9 +64,10 @@ public:
     };
 
     Solve2d5(
-            std::string solver, Field_t<3>* rho, VField_t<T, 3>* E, Field_t<3>* phi,
-            std::shared_ptr<BCHandler_t> bcHandler, LongitudinalFieldMode longitudinalFieldMode,
-            T pipeRadius, T beamRadius, bool closedRing);
+            PartBunch_t* partBunch, std::string solver, Field_t<3>* rho, VField_t<T, 3>* E,
+            Field_t<3>* phi, std::shared_ptr<BCHandler_t> bcHandler, const Vector<int, 3>& nR,
+            LongitudinalFieldMode longitudinalFieldMode, T pipeSizeX, T pipeSizeY, T beamRadius,
+            bool closedRing);
 
     void initSolver() override;
 
@@ -96,7 +98,7 @@ public:
         KOKKOS_FUNCTION void labFrameFields(
                 const size_t, const Vector3D_t&, const Vector3D_t&, bool) const {}
     };
-    void loadReferencePath();
+    T loadReferencePath();
     template <typename DiagnosticPolicy = NullDiagnostic>
     void scatterToGrid(const PartBunch_t& bunch, DiagnosticPolicy = {});
     template <typename DiagnosticPolicy = NullDiagnostic>
@@ -150,21 +152,28 @@ public:
     const LineDensityView_t& getLineDensityGradient() const { return lineDensityGradient_m; }
 
 private:
+    PartBunch_t* partBunch_m;
     std::vector<Solver> twoDSolvers_m;
-    Field_t<3>* phi_m;
-    Field_t<3>* rho_m;
-    VField_t<T, 3>* E_m;
+    Field_t<3>* rho_m{};
+    VField_t<T, 3>* E_m{};
     std::shared_ptr<Mesh2D_t> sliceMesh_m;
     std::shared_ptr<Layout2D_t> sliceLayout_m;
     ReferenceView_t referencePath_m;
     LineDensityView_t lineDensity_m;
     LineDensityView_t lineDensityGradient_m;
+    size_t numSlices_m{0};
+    Vector3D_t hr_m{1};
+    Vector3D_t sizer_m{};
+    ippl::NDIndex<3> domain_m;
+
+    // Configuration
     T beamRadius_m{1};
-    T pipeRadius_m{10};
     LongitudinalFieldMode longitudinalFieldMode_m{LongitudinalFieldMode::Open};
     bool closedRing_m{false};
-    size_t numSlices_m{0};
-    static constexpr size_t LineDensityGhostCells = 2;
+    Vector<int, 3> nR_m{10};
+
+    // Constants
+    static constexpr size_t LineDensityGhostCells    = 2;
     static constexpr size_t LineDensityFirstRealCell = 1;
 };
 
