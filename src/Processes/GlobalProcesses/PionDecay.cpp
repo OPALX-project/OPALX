@@ -7,12 +7,27 @@ void PionDecay::createDaughterParticles(
         std::size_t localDestroyNum, std::size_t oldDaughterLocal,
         const Kokkos::View<ippl::Vector<double, 3>*>& parentR,
         const Kokkos::View<ippl::Vector<double, 3>*>& parentP,
-        const Kokkos::View<double*>& parentDt) {
+        const Kokkos::View<double*>& parentDt,
+        const Kokkos::View<ippl::Vector<float, 3>*>& /*parentPol*/) {
     using pc_size_type = ippl::detail::size_type;
 
     auto dR  = daughterPC_m->R.getView();
     auto dP  = daughterPC_m->P.getView();
     auto dDt = daughterPC_m->dt.getView();
+
+    // Daughter muon polarization view (empty unallocated View when daughter has no Pol).
+    const bool daughterHasSpin = daughterPC_m->hasSpin();
+    using PolView_t            = Kokkos::View<ippl::Vector<float, 3>*>;
+    PolView_t dPol;
+    if (daughterHasSpin) {
+        dPol = daughterPC_m->Pol.getView();
+    }
+
+    // V-A: in the pion rest frame the muon is fully helicity-polarized.
+    //   pi-  ->  mu-  +  anti-nu_mu :  mu- spin parallel to its momentum  (h = +1)
+    //   pi+  ->  mu+  +  nu_mu      :  mu+ spin anti-parallel to momentum (h = -1)
+    // parentChargeSign_m is set in Decay::apply from the parent reference.
+    const double helicitySign = (parentChargeSign_m < 0) ? +1.0 : -1.0;
 
     const auto pool           = randPool_m;
     const double daughterMass = daughterMassGeV_m;
@@ -85,6 +100,17 @@ void PionDecay::createDaughterParticles(
                 dP(idx)[1]             = pyLab / daughterMass;
                 dP(idx)[2]             = pzLab / daughterMass;
                 dDt(idx)               = parentDt(j);
+
+                // Daughter muon polarization: full helicity along its rest-frame momentum.
+                // The boost from pion rest frame to lab is along the muon's rest-frame
+                // momentum, so the spin component along that axis is invariant — the
+                // rest-frame unit vector is the correct lab-frame polarization vector.
+                if (daughterHasSpin) {
+                    const double inv = helicitySign / pFixed;
+                    dPol(idx)[0]     = static_cast<float>(pxRF * inv);
+                    dPol(idx)[1]     = static_cast<float>(pyRF * inv);
+                    dPol(idx)[2]     = static_cast<float>(pzRF * inv);
+                }
 
                 pool.free_state(gen);
             });
