@@ -5,10 +5,10 @@
 #include <string>
 
 #include "Ippl.h"
-#include "PartBunch/FieldAccumulator.hpp"
+#include "SpaceCharge/FieldAccumulator.hpp"
 #include "PartBunch/FieldContainer.hpp"
-#include "PartBunch/Solvers/PoissonBackendRegistry.hpp"
-#include "PartBunch/FieldOps.hpp"
+#include "SpaceCharge/Solvers/PoissonBackendRegistry.hpp"
+#include "SpaceCharge/FieldOps.hpp"
 
 namespace {
 

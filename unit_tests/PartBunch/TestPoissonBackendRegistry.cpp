@@ -8,7 +8,7 @@
 
 #include "Ippl.h"
 #include "PartBunch/FieldContainer.hpp"
-#include "PartBunch/Solvers/PoissonBackendRegistry.hpp"
+#include "SpaceCharge/Solvers/PoissonBackendRegistry.hpp"
 #include "Utilities/OpalException.h"
 
 namespace {

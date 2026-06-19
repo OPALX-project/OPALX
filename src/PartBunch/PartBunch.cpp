@@ -6,9 +6,9 @@
 #include "PartBunch/PartBunch.h"
 #include <algorithm>
 #include "Algorithms/Matrix.h"
-#include "PartBunch/BinnedFieldSolver.h"
-#include "PartBunch/FieldSolverConfigBuilder.hpp"
-#include "PartBunch/Solvers/PoissonBackendRegistry.hpp"
+#include "SpaceCharge/BinnedFieldSolver.h"
+#include "SpaceCharge/FieldSolverConfigBuilder.hpp"
+#include "SpaceCharge/Solvers/PoissonBackendRegistry.hpp"
 #include "Particle/ParticleAttrib.h"
 #include "Physics/ParticleProperties.h"
 #include "Structure/Beam.h"

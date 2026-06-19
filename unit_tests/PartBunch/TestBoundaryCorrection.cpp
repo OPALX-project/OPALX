@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "PartBunch/Corrections/ImageChargeCorrection.hpp"
-#include "PartBunch/Corrections/ShiftedGreensCorrection.hpp"
+#include "SpaceCharge/Corrections/ImageChargeCorrection.hpp"
+#include "SpaceCharge/Corrections/ShiftedGreensCorrection.hpp"
 
 TEST(BoundaryCorrectionTest, StepBudgetIsOwnedByCorrection) {
     ImageChargeCorrection<double, 3> correction;

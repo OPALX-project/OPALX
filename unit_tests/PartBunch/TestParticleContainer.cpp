@@ -25,7 +25,7 @@
 
 #include "Ippl.h"
 #include "PartBunch/FieldContainer.hpp"
-#include "PartBunch/ImageChargeScatterController.h"
+#include "SpaceCharge/ImageChargeScatterController.h"
 #include "PartBunch/ParticleContainer.hpp"
 #include "Utilities/Options.h"
 

@@ -46,7 +46,7 @@
 #include "Physics/Units.h"
 
 #include "Physics/ParticleProperties.h"
-#include "PartBunch/Solvers/PoissonBackendRegistry.hpp"
+#include "SpaceCharge/Solvers/PoissonBackendRegistry.hpp"
 #include "Processes/GlobalProcesses/GlobalProcess.h"
 #include "Processes/GlobalProcesses/MuonDecay.h"
 #include "Processes/GlobalProcesses/PionDecay.h"

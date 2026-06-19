@@ -123,7 +123,7 @@ BCHandler<3> FieldSolverCmd::constructBCHandler() const {
      */
     if (!boundary_conditions.isAllEqual()) {
         throw OpalException(
-                "PartBunch::PartBunch",
+                "FieldSolverCmd::constructBCHandler",
                 "Currently only uniform boundary conditions in all "
                 "dimensions are supported! Please set all "
                 "dimensions to either OPEN or PERIODIC.");

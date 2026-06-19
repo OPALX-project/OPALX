@@ -5,8 +5,8 @@
 #include <string>
 
 #include "Manager/BaseManager.h"
-#include "PartBunch/FieldSolverConfig.hpp"
-#include "PartBunch/Solvers/SolverCapabilities.hpp"
+#include "SpaceCharge/FieldSolverConfig.hpp"
+#include "SpaceCharge/Solvers/SolverCapabilities.hpp"
 
 template <unsigned Dim>
 using Mesh_t = ippl::UniformCartesian<double, Dim>;

@@ -4,8 +4,8 @@
 
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
-#include "PartBunch/FieldSolverConfigBuilder.hpp"
-#include "PartBunch/Solvers/PoissonBackendRegistry.hpp"
+#include "SpaceCharge/FieldSolverConfigBuilder.hpp"
+#include "SpaceCharge/Solvers/PoissonBackendRegistry.hpp"
 #include "Structure/BinningCmd.h"
 #include "Structure/FieldSolverCmd.h"
 

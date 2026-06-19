@@ -35,7 +35,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "Ippl.h"
-#include "PartBunch/BinnedFieldSolver.h"
+#include "SpaceCharge/BinnedFieldSolver.h"
 #include "PartBunch/PartBunch.h"
 #include "Structure/Beam.h"
 #include "Structure/BinningCmd.h"

@@ -33,7 +33,7 @@
 #include "Manager/BaseManager.h"
 #include "Manager/PicManager.h"
 #include "PartBunch/FieldContainer.hpp"
-#include "PartBunch/FieldSolver.hpp"
+#include "SpaceCharge/FieldSolver.hpp"
 #include "PartBunch/LoadBalancer.hpp"
 #include "PartBunch/ParticleContainer.hpp"
 #include "Random/Distribution.h"

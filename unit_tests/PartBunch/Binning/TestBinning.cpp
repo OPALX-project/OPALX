@@ -37,10 +37,10 @@ using VField_t = Field<Vector_t<T, Dim>, Dim, ViewArgs...>;
 template <typename T, unsigned Dim>
 using Vector = ippl::Vector<T, Dim>;
 
-#include "PartBunch/Binning/AdaptBins.h"
-#include "PartBunch/Binning/BinHisto.h"
-#include "PartBunch/Binning/BinningTools.h"
-#include "PartBunch/Binning/ParallelReduceTools.h"
+#include "SpaceCharge/Binning/AdaptBins.h"
+#include "SpaceCharge/Binning/BinHisto.h"
+#include "SpaceCharge/Binning/BinningTools.h"
+#include "SpaceCharge/Binning/ParallelReduceTools.h"
 
 using size_type = ippl::detail::size_type;
 

@@ -43,7 +43,7 @@
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedBeamline.h"
 #include "Distribution/Distribution.h"
-#include "PartBunch/BinnedFieldSolver.h"
+#include "SpaceCharge/BinnedFieldSolver.h"
 #include "Physics/Units.h"
 
 #include "Processes/GlobalProcesses/GlobalProcess.h"

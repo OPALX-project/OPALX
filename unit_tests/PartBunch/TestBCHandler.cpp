@@ -4,7 +4,7 @@
 #include <sstream>
 
 #include "Ippl.h"
-#include "PartBunch/BCHandler.hpp"
+#include "SpaceCharge/BCHandler.hpp"
 
 class BCHandlerTest : public ::testing::Test {
 protected:

@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#include "PartBunch/FieldSolver.hpp"
+#include "SpaceCharge/FieldSolver.hpp"
 #include "PartBunch/FieldStorage.hpp"
 #include "PartBunch/ParticleContainer.hpp"
 

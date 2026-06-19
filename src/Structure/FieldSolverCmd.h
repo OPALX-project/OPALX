@@ -25,7 +25,7 @@
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
 #include "Attributes/Attributes.h"
-#include "PartBunch/BCHandler.hpp"
+#include "SpaceCharge/BCHandler.hpp"
 #include "Structure/BinningCmd.h"
 
 #include "Ippl.h"
