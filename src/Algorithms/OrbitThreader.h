@@ -91,7 +91,7 @@ private:
 
     /// final position in path length
     StepSizeConfig stepSizes_m;
-    const double zstop_m;
+    const double sStop_m;
     ValueRange<double> pathLengthRange_m;
 
     OpalBeamline& itsOpalBeamline_m;

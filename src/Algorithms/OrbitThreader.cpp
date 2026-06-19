@@ -52,7 +52,7 @@ OrbitThreader::OrbitThreader(
       time_m(t),
       dt_m(dt),
       stepSizes_m(stepSizes),
-      zstop_m(stepSizes.getFinalZStop() + std::copysign(1.0, dt) * 2 * maxDiffZBunch),
+      sStop_m(stepSizes.getFinalSStop() + std::copysign(1.0, dt) * 2 * maxDiffZBunch),
       itsOpalBeamline_m(bl),
       errorFlag_m(0),
       integrator_m{},
@@ -82,7 +82,7 @@ OrbitThreader::OrbitThreader(
     }
     pathLengthRange_m = stepSizes_m.getPathLengthRange();
     pathLengthRange_m.enlargeIfOutside(pathLength_m);
-    pathLengthRange_m.enlargeIfOutside(zstop_m);
+    pathLengthRange_m.enlargeIfOutside(sStop_m);
 
     stepRange_m.enlargeIfOutside(0);
     stepRange_m.enlargeIfOutside(stepSizes_m.getNumStepsFinestResolution());
@@ -91,7 +91,7 @@ OrbitThreader::OrbitThreader(
 }
 
 void OrbitThreader::checkElementLengths(const std::set<std::shared_ptr<Component>>& fields) {
-    while (!stepSizes_m.reachedEnd() && pathLength_m > stepSizes_m.getZStop()) {
+    while (!stepSizes_m.reachedEnd() && pathLength_m > stepSizes_m.getSStop()) {
         ++stepSizes_m;
     }
     if (stepSizes_m.reachedEnd()) {
@@ -190,7 +190,7 @@ void OrbitThreader::execute() {
              && !(pathLengthRange_m.isOutside(pathLength_m) && intersection.empty()
                   && !(elementSet.empty() || currentSet.empty())));
 
-    imap_m.tidyUp(zstop_m);
+    imap_m.tidyUp(sStop_m);
     *gmsg << level1 << "\n" << imap_m << endl;
     imap_m.saveSDDS(initialPathLength);
     processElementRegister();
@@ -228,7 +228,7 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
             Bf += itsOpalBeamline_m.rotateFromLocalCS(*it, localB);
         }
 
-        if (((pathLength_m > 0.0 && pathLength_m < zstop_m) || dt_m < 0.0)
+        if (((pathLength_m > 0.0 && pathLength_m < sStop_m) || dt_m < 0.0)
             && currentStep_m % loggingFrequency_m == 0 && ippl::Comm->rank() == 0
             && !OpalData::getInstance()->isOptimizerRun()) {
             const Vector<double, 3> d = r_m - oldR;
@@ -376,7 +376,10 @@ void OrbitThreader::registerElement(
 
         Vector_t<double, 3> initialR = itsOpalBeamline_m.transformToLocalCS(*it, R);
         Vector_t<double, 3> initialP = itsOpalBeamline_m.rotateToLocalCS(*it, P);
-        double elementEdge           = start - initialR(2) * euclidean_norm(initialP) / initialP(2);
+        // S-vs-local-Z seam: recover the legacy ELEMEDGE anchor by projecting the local-Z entry
+        // coordinate back to the element edge along the reference momentum. Assumes a straight
+        // reference path through the element (local z ~= ds); revisit for curved bends.
+        double elementEdge = start - initialR(2) * euclidean_norm(initialP) / initialP(2);
 
         elementPosition ep = {start, pathLength_m, elementEdge};
         elementRegistry_m.insert(std::make_pair(*it, ep));
