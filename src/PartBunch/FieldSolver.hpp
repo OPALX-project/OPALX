@@ -132,6 +132,15 @@ public:
     void runSolver(bool force_skip_field_dump);
 
     /**
+     * @brief Execute the field solver with an explicit backend request.
+     *
+     * The request carries optional backend features such as a shifted Green's
+     * function. Callers stay independent of concrete IPPL solver types; unsupported
+     * requests are rejected through backend capabilities.
+     */
+    void runSolver(const SolveRequest<T, Dim>& request, bool force_skip_field_dump);
+
+    /**
      * @brief Run an Open-solver solve with a shifted free-space Green's function.
      *
      * Installs a translated Green's kernel @f$G(r) = -1/(4\pi|r - \texttt{shift}|)@f$

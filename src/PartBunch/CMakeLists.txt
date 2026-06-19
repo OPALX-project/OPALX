@@ -19,6 +19,9 @@ set (HDRS
     ParticleContainer.hpp
     BCHandler.hpp
     BinnedFieldSolver.h
+    Corrections/BoundaryCorrection.hpp
+    Corrections/ImageChargeCorrection.hpp
+    Corrections/ShiftedGreensCorrection.hpp
 )
 
 target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

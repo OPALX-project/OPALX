@@ -48,7 +48,8 @@ void FieldSolver<double, 3>::initSolver() {
 }
 
 template <>
-void FieldSolver<double, 3>::runSolver(bool force_skip_field_dump) {
+void FieldSolver<double, 3>::runSolver(
+        const SolveRequest<double, 3>& request, bool force_skip_field_dump) {
     Inform m("FieldSolver::runSolver");
     m << level3 << "Running solver with type: " << this->getStype()
       << ". Force skip field dump: " << force_skip_field_dump << endl;
@@ -58,6 +59,12 @@ void FieldSolver<double, 3>::runSolver(bool force_skip_field_dump) {
     }
 
     [[maybe_unused]] const SolverCapabilities capabilities = backend_m->capabilities();
+    if (request.hasShiftedGreens() && !capabilities.supportsShiftedGreens) {
+        throw OpalException(
+                "FieldSolver::runSolver",
+                "SHIFTED_GREENS_FUNCTION requires a field solver backend with shifted "
+                "Green's-function support (got '" + this->getStype() + "').");
+    }
 
 #ifdef OPALX_FIELD_DEBUG
     if (!force_skip_field_dump && capabilities.debugDumpRhoBeforeSolve) {
@@ -65,7 +72,7 @@ void FieldSolver<double, 3>::runSolver(bool force_skip_field_dump) {
     }
 #endif
 
-    backend_m->solve(SolveRequest<double, 3>{});
+    backend_m->solve(request);
 
 #ifdef OPALX_FIELD_DEBUG
     if (!force_skip_field_dump && capabilities.debugDumpScalarAfterSolve) {
@@ -80,41 +87,18 @@ void FieldSolver<double, 3>::runSolver(bool force_skip_field_dump) {
 }
 
 template <>
+void FieldSolver<double, 3>::runSolver(bool force_skip_field_dump) {
+    runSolver(SolveRequest<double, 3>{}, force_skip_field_dump);
+}
+
+template <>
 void FieldSolver<double, 3>::runShiftedOpenSolver(const ippl::Vector<double, 3>& shift) {
-    if (!backend_m) {
-        initSolver();
-    }
-
-    const SolverCapabilities capabilities = backend_m->capabilities();
-    if (!capabilities.supportsShiftedGreens) {
-        throw OpalException(
-                "FieldSolver::runShiftedOpenSolver",
-                "SHIFTED_GREENS_FUNCTION requires FIELDSOLVER type OPEN (got '" + this->getStype()
-                        + "').");
-    }
-
     Inform m("FieldSolver::runShiftedOpenSolver");
     m << level4 << "Running shifted solver with shift = " << shift << endl;
 
     SolveRequest<double, 3> request;
     request.greensShift = shift;
-
-#ifdef OPALX_FIELD_DEBUG
-    this->dumpScalField("rho");
-#endif
-
-    backend_m->solve(request);
-
-#ifdef OPALX_FIELD_DEBUG
-    if (capabilities.debugDumpScalarAfterSolve) {
-        this->dumpScalField("phi");
-    }
-    if (capabilities.debugDumpVectorAfterSolve) {
-        this->dumpVectField("ef");
-    }
-#endif
-
-    diagnostics_m.incrementCallCounter();
+    runSolver(request, false);
 }
 
 template <>

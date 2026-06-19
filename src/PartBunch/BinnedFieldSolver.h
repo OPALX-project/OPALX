@@ -12,6 +12,9 @@
 
 #include "PartBunch/FieldSolver.hpp"
 #include "PartBunch/BinContext.hpp"
+#include "PartBunch/Corrections/BoundaryCorrection.hpp"
+#include "PartBunch/Corrections/ImageChargeCorrection.hpp"
+#include "PartBunch/Corrections/ShiftedGreensCorrection.hpp"
 #include "PartBunch/FieldAccumulator.hpp"
 #include "PartBunch/ImageChargeScatterController.h"
 #include "PartBunch/PartBunch.h"
@@ -60,15 +63,6 @@ public:
      * Currently only `ChargeQ` is implemented.
      */
     enum class ScatterAttribute { ChargeQ };
-
-    /**
-     * @brief Controls which charges are scattered during rho preparation.
-     *
-     * `PrimaryAndImage` scatters both (legacy combined behavior).
-     * `PrimaryOnly` scatters only the real bunch charges.
-     * `ImageOnly` scatters only the mirrored image charges.
-     */
-    enum class ImageScatterMode { PrimaryAndImage, PrimaryOnly, ImageOnly };
 
     /**
      * @brief Which particle attribute to gather the accumulated electric field into.
@@ -124,16 +118,15 @@ public:
 
     /// @brief Configure optional image-charge scatter pass.
     void setImageChargeConfiguration(bool enabled, double zPlane);
-    bool isImageChargeEnabled() const { return imageScatterController_m.isEnabled(); }
-    double getImageChargePlaneZ() const { return imageScatterController_m.getZPlane(); }
+    bool isImageChargeEnabled() const { return imageCorrection_m.isEnabled(); }
+    double getImageChargePlaneZ() const { return imageCorrection_m.planeZ(); }
 
     /// @brief Configure the shifted Green's function Dirichlet correction (alternative to
     /// image charges). Mutually exclusive with @c setImageChargeConfiguration(true, ...).
-    /// Requires the OPEN field solver; the solver-type check happens at runtime in
-    /// @c FieldSolver::runShiftedOpenSolver when the correction pass fires.
+    /// Requires a backend with shifted-Greens support.
     void setShiftedGreensConfiguration(bool enabled, double zPlane);
-    bool isShiftedGreensEnabled() const { return shiftedGreensEnabled_m; }
-    double getShiftedGreensPlaneZ() const { return shiftedGreensPlaneZ_m; }
+    bool isShiftedGreensEnabled() const { return shiftedGreensCorrection_m.isEnabled(); }
+    double getShiftedGreensPlaneZ() const { return shiftedGreensCorrection_m.planeZ(); }
 
     /// @brief Set the maximum number of timesteps for which image charges are active (0 =
     /// unlimited).
@@ -164,12 +157,9 @@ private:
     int zeroFacePlaneDumpFrequency_m = 0;
     int zerofaceMaxSteps_m           = 0;
     ImageChargeScatterController<T, Dim> imageScatterController_m;
+    ImageChargeCorrection<T, Dim> imageCorrection_m;
+    ShiftedGreensCorrection<T, Dim> shiftedGreensCorrection_m;
     bool warnedPlaneDumpParallelUnsupported_m = false;
-
-    // Shifted Green's function Dirichlet correction (alternative to image charges).
-    // Mutually exclusive with the image-charge path (enforced at config time).
-    bool shiftedGreensEnabled_m  = false;
-    double shiftedGreensPlaneZ_m = 0.0;
 
     FieldAccumulator<T, Dim> fieldAccumulator_m;
 
@@ -216,7 +206,8 @@ private:
      *
      * @param bunch Particle bunch for which to compute self-fields.
      */
-    void computeBinnedSelfFields(PartBunch_t& bunch);
+    void computeBinnedSelfFields(
+            PartBunch_t& bunch, const BoundaryCorrection<T, Dim>* activeCorrection);
 
     /**
      * @brief Compute self-fields using the legacy monolithic algorithm.
@@ -226,7 +217,8 @@ private:
      *
      * @param bunch Particle bunch for which to compute self-fields.
      */
-    void computeLegacySelfFields(PartBunch_t& bunch);
+    void computeLegacySelfFields(
+            PartBunch_t& bunch, const BoundaryCorrection<T, Dim>* activeCorrection);
 
     /**
      * @brief Build and prepare adaptive bins for the current step.
@@ -238,6 +230,15 @@ private:
      * @param bins  Adaptive bin structure owned/managed by the bunch.
      */
     void rebinAndPrepare(PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins);
+
+    const BoundaryCorrection<T, Dim>* configuredBoundaryCorrection() const;
+    const BoundaryCorrection<T, Dim>* activeBoundaryCorrectionForStep(size_t step) const;
+    ImageScatterMode primaryScatterModeForStep(
+            const BoundaryCorrection<T, Dim>* activeCorrection) const;
+    void applyBoundaryCorrectionPass(
+            PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins,
+            const BinContext<T, Dim>& context, const BoundaryCorrectionPass<T, Dim>& pass,
+            bool& dumpedDirichletPlaneThisStep);
 
 public:
     /**

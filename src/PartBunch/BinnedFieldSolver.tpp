@@ -74,52 +74,30 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
       << ", totalParticles=" << pc->getTotalNum() << ", hasBins=" << (hasBins ? 1 : 0)
       << ", stype=" << this->getStype() << endl;
 
-    // Temporarily disable image charges if the step limit has been reached.
-    // The controller's enabled flag gates the image scatter pass; by disabling it
-    // here both the legacy and binned paths automatically perform primary-only scatter.
-    const bool imageWasEnabled     = imageScatterController_m.isEnabled();
-    const bool imageActiveThisStep = isImageChargeActiveForStep(bunch.getGlobalTrackStep());
-    if (imageWasEnabled && !imageActiveThisStep) {
+    const size_t step = static_cast<size_t>(bunch.getGlobalTrackStep());
+    const BoundaryCorrection<T, Dim>* activeCorrection = activeBoundaryCorrectionForStep(step);
+    const BoundaryCorrection<T, Dim>* configuredCorrection = configuredBoundaryCorrection();
+    if (configuredCorrection && !activeCorrection) {
         m << level3 << "ZEROFACE_MAXSTEPS reached (step=" << bunch.getGlobalTrackStep()
-          << ", maxSteps=" << zerofaceMaxSteps_m << "); disabling image charges for this step."
-          << endl;
-        imageScatterController_m.configure(false, imageScatterController_m.getZPlane());
-    }
-
-    // Mirror the same step-budget toggling for the shifted Green's path.
-    const bool shiftedGreensWasEnabled = shiftedGreensEnabled_m;
-    const bool shiftedGreensActiveThisStep =
-            isShiftedGreensActiveForStep(bunch.getGlobalTrackStep());
-    if (shiftedGreensWasEnabled && !shiftedGreensActiveThisStep) {
-        m << level3 << "ZEROFACE_MAXSTEPS reached (step=" << bunch.getGlobalTrackStep()
-          << ", maxSteps=" << zerofaceMaxSteps_m
-          << "); disabling SHIFTED_GREENS_FUNCTION correction for this step." << endl;
-        shiftedGreensEnabled_m = false;
+          << ", maxSteps=" << zerofaceMaxSteps_m << "); " << configuredCorrection->name()
+          << " correction inactive for this step." << endl;
     }
 
     if (hasBins) {
         m << level4 << "Dispatching to computeBinnedSelfFields() (binned path)." << endl;
-        computeBinnedSelfFields(bunch);
+        computeBinnedSelfFields(bunch, activeCorrection);
     } else {
         // Legacy path has no separate correction pass: it scatters primary+image
         // in one shot via ImageChargeScatterController::scatterPrimaryAndImage
         // and does one standard solve. The shifted Green's correction is only
         // implemented for the binned path, so warn once if the user requested it
         // without binning.
-        if (shiftedGreensWasEnabled && shiftedGreensActiveThisStep) {
+        if (activeCorrection && activeCorrection->kind() == BoundaryCorrectionKind::ShiftedGreens) {
             m << level3 << "SHIFTED_GREENS_FUNCTION is set but no binning is active; "
               << "the legacy path does not apply the Dirichlet correction." << endl;
         }
         m << level4 << "Dispatching to computeLegacySelfFields() (legacy path)." << endl;
-        computeLegacySelfFields(bunch);
-    }
-
-    // Restore image-charge controller state if it was temporarily disabled.
-    if (imageWasEnabled && !imageActiveThisStep) {
-        imageScatterController_m.configure(true, imageScatterController_m.getZPlane());
-    }
-    if (shiftedGreensWasEnabled && !shiftedGreensActiveThisStep) {
-        shiftedGreensEnabled_m = true;
+        computeLegacySelfFields(bunch, activeCorrection);
     }
 }
 
@@ -137,25 +115,25 @@ void BinnedFieldSolver<T, Dim>::setGatherAttribute(const GatherAttribute attr) {
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::setImageChargeConfiguration(bool enabled, double zPlane) {
-    if (enabled && shiftedGreensEnabled_m) {
+    if (enabled && shiftedGreensCorrection_m.isEnabled()) {
         throw OpalException(
                 "BinnedFieldSolver::setImageChargeConfiguration",
                 "Cannot enable image charges while SHIFTED_GREENS_FUNCTION is active: "
                 "ZEROFACE_R0Z and SHIFTED_GREENS_FUNCTION are mutually exclusive.");
     }
+    imageCorrection_m.configure(enabled, zPlane);
     imageScatterController_m.configure(enabled, zPlane);
 }
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::setShiftedGreensConfiguration(bool enabled, double zPlane) {
-    if (enabled && imageScatterController_m.isEnabled()) {
+    if (enabled && imageCorrection_m.isEnabled()) {
         throw OpalException(
                 "BinnedFieldSolver::setShiftedGreensConfiguration",
                 "Cannot enable SHIFTED_GREENS_FUNCTION while image charges are active: "
                 "ZEROFACE_R0Z and SHIFTED_GREENS_FUNCTION are mutually exclusive.");
     }
-    shiftedGreensEnabled_m = enabled;
-    shiftedGreensPlaneZ_m  = zPlane;
+    shiftedGreensCorrection_m.configure(enabled, zPlane, this->getSolverCapabilities());
 }
 
 template <typename T, unsigned Dim>
@@ -169,24 +147,12 @@ void BinnedFieldSolver<T, Dim>::setZerofaceMaxSteps(int maxSteps) {
 
 template <typename T, unsigned Dim>
 bool BinnedFieldSolver<T, Dim>::isImageChargeActiveForStep(size_t step) const {
-    if (!imageScatterController_m.isEnabled()) {
-        return false;
-    }
-    if (zerofaceMaxSteps_m <= 0) {
-        return true;  // unlimited
-    }
-    return step < static_cast<size_t>(zerofaceMaxSteps_m);
+    return imageCorrection_m.isActiveForStep(step, zerofaceMaxSteps_m);
 }
 
 template <typename T, unsigned Dim>
 bool BinnedFieldSolver<T, Dim>::isShiftedGreensActiveForStep(size_t step) const {
-    if (!shiftedGreensEnabled_m) {
-        return false;
-    }
-    if (zerofaceMaxSteps_m <= 0) {
-        return true;  // unlimited
-    }
-    return step < static_cast<size_t>(zerofaceMaxSteps_m);
+    return shiftedGreensCorrection_m.isActiveForStep(step, zerofaceMaxSteps_m);
 }
 
 template <typename T, unsigned Dim>
@@ -202,7 +168,7 @@ void BinnedFieldSolver<T, Dim>::setZeroFacePlaneDumpFrequency(int frequency) {
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::dumpDirichletPlaneDiagnosticsIfRequested(
         PartBunch_t& bunch, const std::string& solveTag) {
-    if (!imageScatterController_m.isEnabled() || zeroFacePlaneDumpFrequency_m <= 0) {
+    if (!imageCorrection_m.isEnabled() || zeroFacePlaneDumpFrequency_m <= 0) {
         return;
     }
 
@@ -228,7 +194,7 @@ void BinnedFieldSolver<T, Dim>::dumpDirichletPlaneDiagnosticsIfRequested(
     if (!potentialField) {
         return;
     }
-    const double zPlane = imageScatterController_m.getZPlane();
+    const double zPlane = imageCorrection_m.planeZ();
 
     DataSink* dataSink = bunch.getDataSink();
     if (!dataSink) {
@@ -268,13 +234,86 @@ void BinnedFieldSolver<T, Dim>::printBinStatsTable(
 }
 
 template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
+const BoundaryCorrection<T, Dim>* BinnedFieldSolver<T, Dim>::configuredBoundaryCorrection() const {
+    if (imageCorrection_m.isEnabled()) {
+        return &imageCorrection_m;
+    }
+    if (shiftedGreensCorrection_m.isEnabled()) {
+        return &shiftedGreensCorrection_m;
+    }
+    return nullptr;
+}
+
+template <typename T, unsigned Dim>
+const BoundaryCorrection<T, Dim>* BinnedFieldSolver<T, Dim>::activeBoundaryCorrectionForStep(
+        size_t step) const {
+    const BoundaryCorrection<T, Dim>* correction = configuredBoundaryCorrection();
+    if (!correction || !correction->isActiveForStep(step, zerofaceMaxSteps_m)) {
+        return nullptr;
+    }
+    return correction;
+}
+
+template <typename T, unsigned Dim>
+ImageScatterMode BinnedFieldSolver<T, Dim>::primaryScatterModeForStep(
+        const BoundaryCorrection<T, Dim>* activeCorrection) const {
+    if (activeCorrection) {
+        return ImageScatterMode::PrimaryOnly;
+    }
+
+    // If explicit image charges are configured but outside the step budget, avoid
+    // scatterPrimaryAndImage because the controller itself remains configured.
+    if (imageCorrection_m.isEnabled()) {
+        return ImageScatterMode::PrimaryOnly;
+    }
+
+    return ImageScatterMode::PrimaryAndImage;
+}
+
+template <typename T, unsigned Dim>
+void BinnedFieldSolver<T, Dim>::applyBoundaryCorrectionPass(
+        PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins, const BinContext<T, Dim>& context,
+        const BoundaryCorrectionPass<T, Dim>& pass, bool& dumpedDirichletPlaneThisStep) {
+    Inform m("BinnedFieldSolver::applyBoundaryCorrectionPass");
+
+    auto& mesh = this->getRho()->get_mesh();
+    prepareRhoForBin(bunch, bins, context, pass.scatterMode);
+
+    opalx::fieldops::setVectorField(*(this->getE()), Vector_t<T, Dim>(0.0));
+    mesh.setMeshSpacing(context.solveSpacing);
+
+    m << level4 << "binIndex=" << context.binIndex << " correction runSolver start";
+    if (pass.solveRequest.hasShiftedGreens()) {
+        m << ", greensShift=" << *pass.solveRequest.greensShift;
+    }
+    m << endl;
+
+    this->runSolver(pass.solveRequest, pass.forceSkipFieldDump);
+
+    m << level4 << "binIndex=" << context.binIndex
+      << " correction runSolver done; accumulate->Etmp (B sign=" << pass.bFieldSign
+      << ", flipAxis=" << pass.flipAxis << ")" << endl;
+
+    fieldAccumulator_m.accumulate(
+            *(this->getE()), context.gamma, context.pmean, pass.bFieldSign, pass.flipAxis);
+
+    mesh.setMeshSpacing(context.meshSpacing);
+
+    if (pass.dumpDirichletPlane && !dumpedDirichletPlaneThisStep) {
+        dumpDirichletPlaneDiagnosticsIfRequested(bunch, "binned");
+        dumpedDirichletPlaneThisStep = true;
+    }
+}
+
+template <typename T, unsigned Dim>
+void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
+        PartBunch_t& bunch, const BoundaryCorrection<T, Dim>* activeCorrection) {
     // execute full binned self-field algorithm.
     // fetch the adaptive bin structure.
     std::shared_ptr<AdaptBins_t> bins = bunch.getBins();
     if (!bins) {
         // Defensive: runtime selection above should prevent this.
-        computeLegacySelfFields(bunch);
+        computeLegacySelfFields(bunch, activeCorrection);
         return;
     }
 
@@ -346,11 +385,6 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
         auto hrStretched  = hrOrig;
         hrStretched[Dim - 1] *= kinematics.gammaBin;
 
-        const bool imageActive         = imageScatterController_m.isEnabled();
-        const bool shiftedGreensActive = shiftedGreensEnabled_m;
-        // Mutual exclusion enforced at config time; defensive assert.
-        assert(!(imageActive && shiftedGreensActive));
-
         BinContext<T, Dim> context;
         context.binIndex                     = static_cast<long long>(binIndex);
         context.particleCountGlobal          = static_cast<std::uint64_t>(nPartGlobal);
@@ -358,14 +392,16 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
         context.pmean                        = kinematics.pmean;
         context.meshSpacing                  = hrOrig;
         context.solveSpacing                 = hrStretched;
-        context.imageCorrectionActive         = imageActive;
-        context.shiftedGreensCorrectionActive = shiftedGreensActive;
+        context.imageCorrectionActive =
+                activeCorrection
+                && activeCorrection->kind() == BoundaryCorrectionKind::ImageCharge;
+        context.shiftedGreensCorrectionActive =
+                activeCorrection
+                && activeCorrection->kind() == BoundaryCorrectionKind::ShiftedGreens;
 
         // --- Primary pass: scatter real charges, solve, accumulate with +B ---
         {
-            const ImageScatterMode scatterMode = context.hasCorrection()
-                                                         ? ImageScatterMode::PrimaryOnly
-                                                         : ImageScatterMode::PrimaryAndImage;
+            const ImageScatterMode scatterMode = primaryScatterModeForStep(activeCorrection);
             prepareRhoForBin(bunch, bins, context, scatterMode);
 
             opalx::fieldops::setVectorField(*(this->getE()), Vector_t<T, Dim>(0.0));
@@ -383,84 +419,14 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             mesh.setMeshSpacing(context.meshSpacing);
         }
 
-        // --- Dirichlet correction pass: one of two mutually-exclusive paths ---
-        //
-        // Path A (image charges): legacy path. Scatters mirrored particles onto
-        // the same mesh, then solves with the standard Green's function. Only
-        // correct while the mesh straddles the cathode plane; degrades silently
-        // once the bunch has drifted beyond ZEROFACE_MAXSTEPS.
-        //
-        // Path B (shifted Green's function): new path. Re-scatters the primary
-        // charges, then solves with a translated free-space kernel that encodes
-        // the image-charge contribution analytically. The component-wise z-flip
-        // + sign-flip on the solver output, baked into FieldAccumulator, produces
-        // the image-charge E field directly. Works at any bunch-to-plane distance
-        // and requires a backend with shifted-Greens support.
-        if (imageActive) {
-            prepareRhoForBin(bunch, bins, context, ImageScatterMode::ImageOnly);
-
-            opalx::fieldops::setVectorField(*(this->getE()), Vector_t<T, Dim>(0.0));
-            mesh.setMeshSpacing(context.solveSpacing);
-
-            m << level4 << "binIndex=" << static_cast<int>(binIndex)
-              << " image runSolver(true) start" << endl;
-            this->runSolver(true);
-            m << level4 << "binIndex=" << static_cast<int>(binIndex)
-              << " image runSolver(true) done; accumulate->Etmp (B negated)" << endl;
-
-            fieldAccumulator_m.accumulate(*(this->getE()), context.gamma, context.pmean, -1.0);
-            mesh.setMeshSpacing(context.meshSpacing);
-
-            // Dump phi ~= 0 check on the Dirichlet plane AFTER the correction
-            // lands on the mesh. Only safe for the explicit-image path: there
-            // the cathode plane always lies inside the computational domain.
-            // For the shifted path the domain may be far from z = R0Z, so the
-            // interpolated phi on the plane would be meaningless.
-            if (!dumpedDirichletPlaneThisStep) {
-                dumpDirichletPlaneDiagnosticsIfRequested(bunch, "binned");
-                dumpedDirichletPlaneThisStep = true;
+        if (activeCorrection) {
+            const auto correctionPass = activeCorrection->makePass(
+                    context, mesh.getOrigin(),
+                    this->getRho()->getLayout().getDomain()[Dim - 1].length());
+            if (correctionPass) {
+                applyBoundaryCorrectionPass(
+                        bunch, bins, context, *correctionPass, dumpedDirichletPlaneThisStep);
             }
-        } else if (shiftedGreensActive) {
-            // Shifted-Green's-function image correction. Multi-rank enabled: the
-            // axis-flip source read crosses ranks under PARFFTZ, but that is handled
-            // inside FieldAccumulator via a mirrored scratch field.
-            //
-            // Re-scatter the primary charges (solve() overwrote the RHS in the
-            // primary pass). This matches the ImageOnly path's pattern.
-            prepareRhoForBin(bunch, bins, context, ImageScatterMode::PrimaryOnly);
-
-            opalx::fieldops::setVectorField(*(this->getE()), Vector_t<T, Dim>(0.0));
-            mesh.setMeshSpacing(context.solveSpacing);
-
-            // Shift formula in stretched (rest-frame) coordinates:
-            //   shift_z = L + 2*origin_z - 2*R0Z = 2 * (z_center_rest - R0Z).
-            // Origin is in lab-frame z; hrStretched[Dim-1] is the rest-frame
-            // z-spacing. See the TestShiftedGreensFunction derivation.
-            const auto origin = mesh.getOrigin();
-            const int N_z =
-                    static_cast<int>(this->getRho()->getLayout().getDomain()[Dim - 1].length());
-            const double z_center_rest =
-                    origin[Dim - 1]
-                    + 0.5 * static_cast<double>(N_z) * context.solveSpacing[Dim - 1];
-            ippl::Vector<double, Dim> shift(0.0);
-            shift[Dim - 1] = 2.0 * (z_center_rest - shiftedGreensPlaneZ_m);
-
-            m << level4 << "binIndex=" << static_cast<int>(binIndex)
-              << " shifted-GF runSolver start, plane=" << shiftedGreensPlaneZ_m
-              << ", shift_z=" << shift[Dim - 1] << endl;
-            this->runShiftedOpenSolver(shift);
-            m << level4 << "binIndex=" << static_cast<int>(binIndex)
-              << " shifted-GF runSolver done; accumulate->Etmp (B negated, z-flip)" << endl;
-
-            // Keep the real charge sign for the shifted solve. The image-charge
-            // sign enters through the z-flip/component-sign rule in FieldAccumulator.
-            // Pre-negating rho here would invert the image field a second time and
-            // reinforce the near-cathode transverse field instead of cancelling it.
-            constexpr int zFlipAxis = static_cast<int>(Dim) - 1;
-            fieldAccumulator_m.accumulate(
-                    *(this->getE()), context.gamma, context.pmean, -1.0, zFlipAxis);
-
-            mesh.setMeshSpacing(context.meshSpacing);
         }
     }
 
@@ -477,7 +443,8 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
 }
 
 template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
+void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(
+        PartBunch_t& bunch, const BoundaryCorrection<T, Dim>* activeCorrection) {
     // This code is a direct move of the legacy implementation from
     // PartBunch::computeSelfFields (scatter/solve/gather for all particles).
 
@@ -507,7 +474,11 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
 
     // Scatter charge to mesh rho using dt-weighted deposition (master approach):
     // scale dt by Q, scatter dt, then restore dt.
-    imageScatterController_m.scatterPrimaryAndImage(pc, *R, rho);
+    if (activeCorrection && activeCorrection->kind() == BoundaryCorrectionKind::ImageCharge) {
+        imageScatterController_m.scatterPrimaryAndImage(pc, *R, rho);
+    } else {
+        imageScatterController_m.scatterPrimaryOnly(pc, *R, rho);
+    }
 
     //  apply mesh normalization, background subtraction, and rho scaling.
     const std::string stype = this->getStype();
@@ -539,7 +510,9 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
     // run the solver once and gather mesh E back to particles.
     m << level4 << "Legacy mode: runSolver() start" << endl;
     this->runSolver();
-    dumpDirichletPlaneDiagnosticsIfRequested(bunch, "legacy");
+    if (activeCorrection && activeCorrection->kind() == BoundaryCorrectionKind::ImageCharge) {
+        dumpDirichletPlaneDiagnosticsIfRequested(bunch, "legacy");
+    }
     m << level4 << "Legacy mode: gather E->particles" << endl;
 
     // Gather solver output directly (legacy path does not use Etmp).

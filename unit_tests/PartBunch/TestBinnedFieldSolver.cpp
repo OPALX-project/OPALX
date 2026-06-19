@@ -40,6 +40,7 @@
 #include "Structure/BinningCmd.h"
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utility/Inform.h"
 
@@ -336,6 +337,25 @@ namespace {
 
         EXPECT_LE(gridMin[2], std::min(minR[2], mirroredMinZ));
         EXPECT_GE(gridMax[2], std::max(maxR[2], mirroredMaxZ));
+    }
+
+    TEST_F(BinnedFieldSolverSmokeTest, RejectsMutuallyExclusiveBoundaryCorrections) {
+        fsCmd->setType("OPEN");
+        fsCmd->setBCX("OPEN");
+        fsCmd->setBCY("OPEN");
+        fsCmd->setBCZ("OPEN");
+        rebuildBunch();
+
+        EXPECT_NO_THROW(bunch->setImageChargeConfiguration(true, 0.0));
+        EXPECT_THROW(bunch->setShiftedGreensConfiguration(true, 0.0), OpalException);
+
+        rebuildBunch();
+        EXPECT_NO_THROW(bunch->setShiftedGreensConfiguration(true, 0.0));
+        EXPECT_THROW(bunch->setImageChargeConfiguration(true, 0.0), OpalException);
+    }
+
+    TEST_F(BinnedFieldSolverSmokeTest, RejectsShiftedGreensWithoutBackendCapability) {
+        EXPECT_THROW(bunch->setShiftedGreensConfiguration(true, 0.0), OpalException);
     }
 
 }  // namespace
