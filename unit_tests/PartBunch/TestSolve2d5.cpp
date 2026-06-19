@@ -637,8 +637,8 @@ namespace {
         ASSERT_FALSE(solver->getSliceMesh() == nullptr);
         EXPECT_EQ(solver->getSliceMesh()->getGridsize(0), 8);
         EXPECT_EQ(solver->getSliceMesh()->getGridsize(1), 9);
-        EXPECT_EQ(solver->getSliceMesh()->getOrigin()[0], 0);
-        EXPECT_EQ(solver->getSliceMesh()->getOrigin()[1], 0);
+        EXPECT_EQ(solver->getSliceMesh()->getOrigin()[0], -0.5);
+        EXPECT_EQ(solver->getSliceMesh()->getOrigin()[1], -0.5);
         EXPECT_DOUBLE_EQ(solver->getSliceMesh()->getMeshSpacing()[0], 0.125);
         EXPECT_NEAR(solver->getSliceMesh()->getMeshSpacing()[1], 0.111111, 1e-6);
         ASSERT_FALSE(solver->getSliceLayout() == nullptr);
@@ -655,26 +655,12 @@ namespace {
         EXPECT_NO_THROW(solver->scatterToGrid(*bunch));
     }
 
-    TEST_F(TestSolve2d5, ToFrenetSerret_NoReferencePath) {
-        fsCmd->setType("FFT2D5");
-        ASSERT_NO_THROW(rebuildBunch());
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
-        createParticles({{1, 2, 3}}, {{4, 5, 6}});
-        const FrenetSerretScatterDiagnostic info(pc.get());
-        solver->scatterToGrid<FrenetSerretScatterDiagnostic>(*bunch, info);
-        auto [r, p] = getParticles();
-        ASSERT_EQ(r.size(), 1);
-        ASSERT_EQ(p.size(), 1);
-        expectParticle(0, r, p, {1, 2, 3}, {4, 5, 6});
-    }
-
     TEST_F(TestSolve2d5, ToFrenetSerret_ShortReferencePath) {
         makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}});
         fsCmd->setType("FFT2D5");
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
         createParticles({{1, 2, 3}}, {{4, 5, 6}});
-        solver->loadReferencePath();
         const FrenetSerretScatterDiagnostic info(pc.get());
         solver->scatterToGrid<FrenetSerretScatterDiagnostic>(*bunch, info);
         auto [r, p] = getParticles();
@@ -689,7 +675,6 @@ namespace {
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
         createParticles({{0, 0, 0}, {0, 0, 0.5}, {0, 0, 1}}, {{0, 0, 1}, {0, 0, 1}, {0, 0, 1}});
-        solver->loadReferencePath();
         const FrenetSerretScatterDiagnostic info(pc.get());
         solver->scatterToGrid<FrenetSerretScatterDiagnostic>(*bunch, info);
         auto [r, p] = info.getParticles();
@@ -706,7 +691,6 @@ namespace {
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
         createParticles({{0, 0, 2}}, {{0, 0, 1}});
-        solver->loadReferencePath();
         const FrenetSerretScatterDiagnostic info(pc.get());
         solver->scatterToGrid<FrenetSerretScatterDiagnostic>(*bunch, info);
         auto [r, p] = info.getParticles();
@@ -722,7 +706,6 @@ namespace {
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
         createParticles({{2, 0, 2}}, {{0, 0, 1}});
-        solver->loadReferencePath();
         const FrenetSerretScatterDiagnostic info(pc.get());
         solver->scatterToGrid<FrenetSerretScatterDiagnostic>(*bunch, info);
         auto [r, p] = info.getParticles();
@@ -738,7 +721,6 @@ namespace {
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
         createParticles({{0, 0, 2}}, {{0, 0, 1}});
-        solver->loadReferencePath();
         const FrenetSerretScatterDiagnostic info(pc.get());
         solver->scatterToGrid<FrenetSerretScatterDiagnostic>(*bunch, info);
         auto [r, p] = info.getParticles();
@@ -753,7 +735,6 @@ namespace {
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
         createParticles({{0, 0.5, 2}}, {{0.001, 0.002, 0.577}});
-        solver->loadReferencePath();
         const BoostToBeamDiagnostic info(pc.get());
         solver->scatterToGrid<BoostToBeamDiagnostic>(*bunch, info);
         auto [r, p] = info.getParticles();
@@ -762,15 +743,16 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, ScatterToGrid_SimpleCharge) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 3}});
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
         fsCmd->setType("FFT2D5");
         fsCmd->setNX(12);
         fsCmd->setNY(12);
         fsCmd->setNZ(12);
+        fsCmd->setPipeSizeX(6);
+        fsCmd->setPipeSizeY(6);
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
-        createParticles({{0, 0, 0}}, {{0, 0, 0}});
-        solver->loadReferencePath();
+        createParticles({{0, 0, 3}}, {{0, 0, 0}});
         const ScatterChargeDiagnostic info(solver->getRho()->getView());
         solver->scatterToGrid<ScatterChargeDiagnostic>(*bunch, info);
         expectChargeDensity(
@@ -785,41 +767,69 @@ namespace {
                                {8, 7, 7, 0.00000}});
     }
 
-    TEST_F(TestSolve2d5, ScatterToGrid_ClosedRingCharge) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, -3}, {0, 0, 3}});
+    TEST_F(TestSolve2d5, ScatterToGrid_ClosedRingChargeLo) {
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
         fsCmd->setType("FFT2D5");
         fsCmd->setNX(12);
         fsCmd->setNY(12);
         fsCmd->setNZ(12);
+        fsCmd->setPipeSizeX(6);
+        fsCmd->setPipeSizeY(6);
         fsCmd->setClosedRing(true);
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
-        createParticles({{0, 0, -2}}, {{0, 0, 0}});
-        solver->loadReferencePath();
+        createParticles({{0, 0, 0}}, {{0, 0, 0}});
         const ScatterChargeDiagnostic info(solver->getRho()->getView());
         solver->scatterToGrid<ScatterChargeDiagnostic>(*bunch, info);
         expectChargeDensity(
-                info.rhoView, {{6, 6, 6, 0.00520833},
-                               {6, 6, 7, 0.00520833},
-                               {6, 7, 6, 0.00520833},
-                               {6, 7, 7, 0.00520833},
-                               {7, 6, 6, 0.00520833},
-                               {7, 6, 7, 0.00520833},
-                               {7, 7, 6, 0.00520833},
-                               {7, 7, 7, 0.00520833},
-                               {8, 7, 7, 0.00000}});
+                info.rhoView, {{6, 6, 0, 0.00520833},
+                               {6, 6, 1, 0.00520833},
+                               {6, 7, 0, 0.00520833},
+                               {6, 7, 1, 0.00520833},
+                               {7, 6, 0, 0.00520833},
+                               {7, 6, 1, 0.00520833},
+                               {7, 7, 0, 0.00520833},
+                               {7, 7, 1, 0.00520833},
+                               {8, 7, 1, 0.00000}});
     }
 
-    TEST_F(TestSolve2d5, ScatterToGrid_SimpleChargeDensity) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 3}});
+    TEST_F(TestSolve2d5, ScatterToGrid_ClosedRingChargeHi) {
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
         fsCmd->setType("FFT2D5");
         fsCmd->setNX(12);
         fsCmd->setNY(12);
         fsCmd->setNZ(12);
+        fsCmd->setPipeSizeX(6);
+        fsCmd->setPipeSizeY(6);
+        fsCmd->setClosedRing(true);
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
-        createParticles({{0, 0, 0}}, {{0, 0, 0}});
-        solver->loadReferencePath();
+        createParticles({{0, 0, 6}}, {{0, 0, 0}});
+        const ScatterChargeDiagnostic info(solver->getRho()->getView());
+        solver->scatterToGrid<ScatterChargeDiagnostic>(*bunch, info);
+        expectChargeDensity(
+                info.rhoView, {{6, 6, 12, 0.00520833},
+                               {6, 6, 13, 0.00520833},
+                               {6, 7, 12, 0.00520833},
+                               {6, 7, 13, 0.00520833},
+                               {7, 6, 12, 0.00520833},
+                               {7, 6, 13, 0.00520833},
+                               {7, 7, 12, 0.00520833},
+                               {7, 7, 13, 0.00520833},
+                               {8, 7, 13, 0.00000}});
+    }
+
+    TEST_F(TestSolve2d5, ScatterToGrid_SimpleChargeDensity) {
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        fsCmd->setType("FFT2D5");
+        fsCmd->setNX(12);
+        fsCmd->setNY(12);
+        fsCmd->setNZ(12);
+        fsCmd->setPipeSizeX(6);
+        fsCmd->setPipeSizeY(6);
+        rebuildBunch();
+        auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
+        createParticles({{0, 0, 3}}, {{0, 0, 0}});
         const ScatterChargeDensityDiagnostic info(solver->getRho()->getView());
         solver->scatterToGrid<ScatterChargeDensityDiagnostic>(*bunch, info);
         expectChargeDensity(
@@ -834,16 +844,69 @@ namespace {
                                {8, 7, 7, 0.00000}});
     }
 
-    TEST_F(TestSolve2d5, TotalDensity_Simple) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 3}});
+    TEST_F(TestSolve2d5, ScatterToGrid_ClosedRingChargeDensityLo) {
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
         fsCmd->setType("FFT2D5");
         fsCmd->setNX(12);
         fsCmd->setNY(12);
         fsCmd->setNZ(12);
+        fsCmd->setPipeSizeX(6);
+        fsCmd->setPipeSizeY(6);
+        fsCmd->setClosedRing(true);
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
         createParticles({{0, 0, 0}}, {{0, 0, 0}});
-        solver->loadReferencePath();
+        const ScatterChargeDensityDiagnostic info(solver->getRho()->getView());
+        solver->scatterToGrid<ScatterChargeDensityDiagnostic>(*bunch, info);
+        expectChargeDensity(
+                info.rhoView, {{6, 6, 12, 1.00000},
+                               {6, 6, 1, 1.00000},
+                               {6, 7, 12, 1.00000},
+                               {6, 7, 1, 1.00000},
+                               {7, 6, 12, 1.00000},
+                               {7, 6, 1, 1.00000},
+                               {7, 7, 12, 1.00000},
+                               {7, 7, 1, 1.00000},
+                               {8, 7, 1, 0.00000}});
+    }
+
+    TEST_F(TestSolve2d5, ScatterToGrid_ClosedRingChargeDensityHi) {
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        fsCmd->setType("FFT2D5");
+        fsCmd->setNX(12);
+        fsCmd->setNY(12);
+        fsCmd->setNZ(12);
+        fsCmd->setPipeSizeX(6);
+        fsCmd->setPipeSizeY(6);
+        fsCmd->setClosedRing(true);
+        rebuildBunch();
+        auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
+        createParticles({{0, 0, 6}}, {{0, 0, 0}});
+        const ScatterChargeDensityDiagnostic info(solver->getRho()->getView());
+        solver->scatterToGrid<ScatterChargeDensityDiagnostic>(*bunch, info);
+        expectChargeDensity(
+                info.rhoView, {{6, 6, 12, 1.00000},
+                               {6, 6, 1, 1.00000},
+                               {6, 7, 12, 1.00000},
+                               {6, 7, 1, 1.00000},
+                               {7, 6, 12, 1.00000},
+                               {7, 6, 1, 1.00000},
+                               {7, 7, 12, 1.00000},
+                               {7, 7, 1, 1.00000},
+                               {8, 7, 1, 0.00000}});
+    }
+
+    TEST_F(TestSolve2d5, TotalDensity_Simple) {
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        fsCmd->setType("FFT2D5");
+        fsCmd->setNX(12);
+        fsCmd->setNY(12);
+        fsCmd->setNZ(12);
+        fsCmd->setPipeSizeX(6);
+        fsCmd->setPipeSizeY(6);
+        rebuildBunch();
+        auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
+        createParticles({{0, 0, 3}}, {{0, 0, 0}});
         solver->scatterToGrid(*bunch);
         const TotalDensityDiagnostic totalInfo(solver->getLineDensity());
         solver->calculateLineDensity<TotalDensityDiagnostic>(totalInfo);
@@ -852,15 +915,16 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LineDensity_Simple) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 3}});
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
         fsCmd->setType("FFT2D5");
         fsCmd->setNX(12);
         fsCmd->setNY(12);
         fsCmd->setNZ(12);
+        fsCmd->setPipeSizeX(6);
+        fsCmd->setPipeSizeY(6);
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
-        createParticles({{0, 0, 0}}, {{0, 0, 0}});
-        solver->loadReferencePath();
+        createParticles({{0, 0, 3}}, {{0, 0, 0}});
         solver->scatterToGrid(*bunch);
         const LineDensityDiagnostic lineInfo(solver->getLineDensity());
         solver->calculateLineDensity<LineDensityDiagnostic>(lineInfo);
@@ -869,15 +933,16 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LineDensityGradient_Simple) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 3}});
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
         fsCmd->setType("FFT2D5");
         fsCmd->setNX(12);
         fsCmd->setNY(12);
         fsCmd->setNZ(12);
+        fsCmd->setPipeSizeX(6);
+        fsCmd->setPipeSizeY(6);
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
-        createParticles({{0, 0, 0}}, {{0, 0, 0}});
-        solver->loadReferencePath();
+        createParticles({{0, 0, 3}}, {{0, 0, 0}});
         solver->scatterToGrid(*bunch);
         const LineDensityGradientDiagnostic lineInfo(solver->getLineDensityGradient());
         solver->calculateLineDensity<LineDensityGradientDiagnostic>(lineInfo);
@@ -887,16 +952,17 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LineDensity_RingNotClosed) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 3}});
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
         fsCmd->setType("FFT2D5");
         fsCmd->setNX(12);
         fsCmd->setNY(12);
         fsCmd->setNZ(12);
+        fsCmd->setPipeSizeX(6);
+        fsCmd->setPipeSizeY(6);
         fsCmd->setClosedRing(false);
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
-        createParticles({{0, 0, 2}}, {{0, 0, 0}});
-        solver->loadReferencePath();
+        createParticles({{0, 0, 5}}, {{0, 0, 0}});
         solver->scatterToGrid(*bunch);
         const LineDensityDiagnostic lineInfo(solver->getLineDensity());
         solver->calculateLineDensity<LineDensityDiagnostic>(lineInfo);
@@ -905,16 +971,17 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LineDensity_RingClosed) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 3}});
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
         fsCmd->setType("FFT2D5");
         fsCmd->setNX(12);
         fsCmd->setNY(12);
         fsCmd->setNZ(12);
+        fsCmd->setPipeSizeX(6);
+        fsCmd->setPipeSizeY(6);
         fsCmd->setClosedRing(true);
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
-        createParticles({{0, 0, 2}}, {{0, 0, 0}});
-        solver->loadReferencePath();
+        createParticles({{0, 0, 5}}, {{0, 0, 0}});
         solver->scatterToGrid(*bunch);
         const LineDensityDiagnostic lineInfo(solver->getLineDensity());
         solver->calculateLineDensity<LineDensityDiagnostic>(lineInfo);
@@ -923,15 +990,16 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, SolvePoissons_Simple) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 3}});
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
         fsCmd->setType("FFT2D5");
         fsCmd->setNX(12);
         fsCmd->setNY(12);
         fsCmd->setNZ(12);
+        fsCmd->setPipeSizeX(6);
+        fsCmd->setPipeSizeY(6);
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
-        createParticles({{0, 0, 0}}, {{0, 0, 0}});
-        solver->loadReferencePath();
+        createParticles({{0, 0, 3}}, {{0, 0, 0}});
         solver->scatterToGrid(*bunch);
         const EFieldDiagnostic info(solver->getEField()->getView());
         solver->solvePoissons<EFieldDiagnostic>(info);
@@ -948,10 +1016,11 @@ namespace {
         fsCmd->setNX(12);
         fsCmd->setNY(12);
         fsCmd->setNZ(12);
+        fsCmd->setPipeSizeX(6);
+        fsCmd->setPipeSizeY(6);
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
         createParticles({{0, 0, 2}}, {{0, 0, 1}});
-        solver->loadReferencePath();
         solver->scatterToGrid(*bunch);
         solver->solvePoissons();
         const FrenetSerretGatherDiagnostic info(pc.get());
@@ -963,15 +1032,16 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, GatherEField_TwoParticles) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 3}});
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
         fsCmd->setType("FFT2D5");
         fsCmd->setNX(12);
         fsCmd->setNY(12);
         fsCmd->setNZ(12);
+        fsCmd->setPipeSizeX(6);
+        fsCmd->setPipeSizeY(6);
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
-        createParticles({{2, 0, 0}, {-2, 0, 0}}, {{0, 0, 0}, {0, 0, 0}});
-        solver->loadReferencePath();
+        createParticles({{2, 0, 3}, {-2, 0, 3}}, {{0, 0, 0}, {0, 0, 0}});
         solver->scatterToGrid(*bunch);
         solver->solvePoissons();
         const GatherEFieldDiagnostic gatherInfo(pc.get());
@@ -984,15 +1054,16 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, Deboost_TwoStationaryParticles) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 3}});
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
         fsCmd->setType("FFT2D5");
         fsCmd->setNX(12);
         fsCmd->setNY(12);
         fsCmd->setNZ(12);
+        fsCmd->setPipeSizeX(6);
+        fsCmd->setPipeSizeY(6);
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
-        createParticles({{2, 0, 0}, {-2, 0, 0}}, {{0, 0, 0}, {0, 0, 0}});
-        solver->loadReferencePath();
+        createParticles({{2, 0, 3}, {-2, 0, 3}}, {{0, 0, 0}, {0, 0, 0}});
         solver->scatterToGrid(*bunch);
         solver->solvePoissons();
         const DeboostedDiagnostic info(pc.get());
@@ -1005,15 +1076,16 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, Deboost_TwoRelativisticParticles) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 3}});
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
         fsCmd->setType("FFT2D5");
         fsCmd->setNX(12);
         fsCmd->setNY(12);
         fsCmd->setNZ(12);
+        fsCmd->setPipeSizeX(6);
+        fsCmd->setPipeSizeY(6);
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
-        createParticles({{2, 0, 0}, {-2, 0, 0}}, {{0, 0, 1}, {0, 0, 1}});
-        solver->loadReferencePath();
+        createParticles({{2, 0, 3}, {-2, 0, 3}}, {{0, 0, 1}, {0, 0, 1}});
         solver->scatterToGrid(*bunch);
         solver->solvePoissons();
         const DeboostedDiagnostic info(pc.get());
@@ -1026,15 +1098,16 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LongitudinalField_Simple) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 3}});
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
         fsCmd->setType("FFT2D5");
         fsCmd->setNX(12);
         fsCmd->setNY(12);
         fsCmd->setNZ(12);
+        fsCmd->setPipeSizeX(6);
+        fsCmd->setPipeSizeY(6);
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
-        createParticles({{2, 0, 0}, {-2, 0, 0}}, {{0, 0, 1}, {0, 0, 1}});
-        solver->loadReferencePath();
+        createParticles({{2, 0, 3}, {-2, 0, 3}}, {{0, 0, 1}, {0, 0, 1}});
         solver->scatterToGrid(*bunch);
         solver->solvePoissons();
         const LineDensityGradientDiagnostic lineInfo(solver->getLineDensityGradient());
@@ -1050,15 +1123,16 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_Simple) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 3}});
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
         fsCmd->setType("FFT2D5");
         fsCmd->setNX(12);
         fsCmd->setNY(12);
         fsCmd->setNZ(12);
+        fsCmd->setPipeSizeX(6);
+        fsCmd->setPipeSizeY(6);
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
-        createParticles({{2, 0, 0}, {-2, 0, 0}}, {{0, 0, 1}, {0, 0, 1}});
-        solver->loadReferencePath();
+        createParticles({{2, 0, 3}, {-2, 0, 3}}, {{0, 0, 1}, {0, 0, 1}});
         solver->scatterToGrid(*bunch);
         solver->solvePoissons();
         solver->calculateLineDensity();

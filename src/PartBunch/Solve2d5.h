@@ -161,16 +161,16 @@ private:
     ReferenceView_t referencePath_m;
     LineDensityView_t lineDensity_m;
     LineDensityView_t lineDensityGradient_m;
-    size_t numSlices_m{0};
     Vector3D_t hr_m{1};
     Vector3D_t sizer_m{};
+    Vector3D_t originr_m{};
     ippl::NDIndex<3> domain_m;
 
     // Configuration
     T beamRadius_m{1};
     LongitudinalFieldMode longitudinalFieldMode_m{LongitudinalFieldMode::Open};
     bool closedRing_m{false};
-    Vector<int, 3> nR_m{10};
+    Vector<unsigned int, 3> nR_m{10};
 
     // Constants
     static constexpr size_t LineDensityGhostCells    = 2;

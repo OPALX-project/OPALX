@@ -45,17 +45,18 @@ Solve2d5<T>::Solve2d5(
     // Load the reference path to determine the Frenet-Serret domain dimensions
     auto pathLength = loadReferencePath();
     sizer_m         = {pipeSizeX, pipeSizeY, pathLength};
+    originr_m       = {-pipeSizeX / 2, -pipeSizeY / 2, 0};
     hr_m            = sizer_m / nR_m;
     for (unsigned i = 0; i < Dim; i++) {
         domain_m[i] = ippl::Index(nR_m[i]);
     }
     // Create the fields and field container (for now, no partitioning)
     // Why are the first three parameters to the FieldContainer_t constructor references?
-    Vector3D_t rmin{0, 0, 0};
+    Vector3D_t rmax = originr_m + sizer_m;
     partBunch_m->setFieldContainer(
             std::make_shared<FieldContainer_t>(
-                    hr_m, rmin, sizer_m, std::array{false, false, false}, domain_m,
-                    Vector3D_t{0, 0, 0}, true));
+                    hr_m, originr_m, rmax, std::array{false, false, false}, domain_m, originr_m,
+                    true));
     partBunch_m->getFieldContainer()->initializeFields(solver);
     rho_m = &partBunch_m->getFieldContainer()->getRho();
     E_m   = &partBunch_m->getFieldContainer()->getE();
@@ -64,12 +65,11 @@ Solve2d5<T>::Solve2d5(
 template <typename T>
 void Solve2d5<T>::initSolver() {
     // The grid dimensions
-    ippl::NDIndex<2> ndIndex2d({rho_m->getDomain()[0], rho_m->getDomain()[1]});
-    numSlices_m = rho_m->getDomain()[2].length();
+    ippl::NDIndex ndIndex2d(Vector<unsigned, 2>{nR_m.data_m[0], nR_m.data_m[1]});
+    auto numSlices = nR_m.data_m[2];
     // The slice mesh
-    const auto* mesh3d = &rho_m->get_mesh();
-    Vector2D_t spacing({mesh3d->getMeshSpacing()[0], mesh3d->getMeshSpacing()[1]});
-    Vector2D_t origin({mesh3d->getOrigin()[0], mesh3d->getOrigin()[1]});
+    Vector2D_t spacing(hr_m.data_m[0], hr_m.data_m[1]);
+    Vector2D_t origin(originr_m.data_m[0], originr_m.data_m[1]);
     sliceMesh_m = std::make_shared<Mesh2D_t>(ndIndex2d, spacing, origin);
     // The slice layout
     auto* layout3d = &rho_m->getLayout();
@@ -89,15 +89,15 @@ void Solve2d5<T>::initSolver() {
     // going to have to copy data into and out of them during the solve calls.
     // If instead the Field type would accept a Kokkos subview rather than always
     // creating its own Kokkos array, we could avoid the copy operations.
-    twoDSolvers_m.resize(numSlices_m);
-    for (size_t z = 0; z < numSlices_m; ++z) {
+    twoDSolvers_m.resize(numSlices);
+    for (size_t z = 0; z < numSlices; ++z) {
         twoDSolvers_m[z].E_m      = std::make_shared<VField_t<T, 2>>(*sliceMesh_m, *sliceLayout_m);
         twoDSolvers_m[z].rho_m    = std::make_shared<Field_t<2>>(*sliceMesh_m, *sliceLayout_m);
         twoDSolvers_m[z].solver_m = std::make_shared<OpenSolver2D_t>(
                 *twoDSolvers_m[z].E_m, *twoDSolvers_m[z].rho_m, params);
     }
-    lineDensity_m         = LineDensityView_t("lineDensity", numSlices_m + LineDensityGhostCells);
-    lineDensityGradient_m = LineDensityView_t("lineDensityGradient", numSlices_m);
+    lineDensity_m         = LineDensityView_t("lineDensity", numSlices + LineDensityGhostCells);
+    lineDensityGradient_m = LineDensityView_t("lineDensityGradient", numSlices);
 }
 
 template <typename T>
@@ -197,15 +197,32 @@ void Solve2d5<T>::scatterToGrid(const PartBunch_t& bunch, DiagnosticPolicy diagn
             diagnostic.scatterCharge(rhoView);
             pc->unscaleDtByCharge();  // Work out a way to include this in the parallel for
         }
+        // Handle the closed ring periodic boundary condition
+        if (closedRing_m) {
+            using Policy2D_t          = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
+            constexpr auto firstRealZ = LineDensityFirstRealCell;
+            const auto lastRealZ      = nR_m.data_m[2] - 1 + LineDensityFirstRealCell;
+            Kokkos::parallel_for(
+                    "Solve2d5::ScatterClosedRing",
+                    Policy2D_t({0, 0}, {nR_m.data_m[0], nR_m.data_m[1]}),
+                    KOKKOS_LAMBDA(const size_t i, const size_t j) {
+                        rhoView(i, j, firstRealZ) += rhoView(i, j, lastRealZ + 1);
+                        rhoView(i, j, lastRealZ) += rhoView(i, j, firstRealZ - 1);
+                        rhoView(i, j, lastRealZ + 1)  = 0;
+                        rhoView(i, j, firstRealZ - 1) = 0;
+                    });
+            Kokkos::fence();
+        }
         // Now scale by volume and time step to get the proper charge density
         const auto cellVolume =
-                std::reduce(bunch.hr_m.begin(), bunch.hr_m.end(), 1.0, std::multiplies<double>());
-        auto scale = bunch.getdT() * cellVolume;
+                std::reduce(hr_m.begin(), hr_m.end(), 1.0, std::multiplies<double>());
+        const auto scale = bunch.getdT() * cellVolume;
         ippl::parallel_for(
                 "Solve2d5::scatterPostProcess", rho_m->getFieldRangePolicy(),
                 KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
                     apply(rhoView, idx) = apply(rhoView, idx) / scale;
                 });
+        Kokkos::fence();
         diagnostic.scatterChargeDensity(rhoView);
     }
 }
@@ -315,8 +332,9 @@ void Solve2d5<T>::calculateLineDensity(DiagnosticPolicy diagnostic) {
     using Policy2D_t = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
     const auto rho3d = rho_m->getView();
     auto lineDensity = Kokkos::create_mirror_view(lineDensity_m);
+    auto numSlices   = nR_m.data_m[2];
     // Calculate the total charge density for each z slice
-    for (size_t k = 0; k < numSlices_m; ++k) {
+    for (size_t k = 0; k < numSlices; ++k) {
         T sum{};
         Kokkos::parallel_reduce(
                 Policy2D_t({0, 0}, {rho3d.extent(0), rho3d.extent(1)}),
@@ -328,19 +346,19 @@ void Solve2d5<T>::calculateLineDensity(DiagnosticPolicy diagnostic) {
     }
     // Set the ghost cells to the boundary conditions
     if (closedRing_m) {
-        lineDensity(0) = lineDensity(numSlices_m - 1 + LineDensityFirstRealCell);
-        lineDensity(numSlices_m + LineDensityFirstRealCell) = lineDensity(LineDensityFirstRealCell);
+        lineDensity(0) = lineDensity(numSlices - 1 + LineDensityFirstRealCell);
+        lineDensity(numSlices + LineDensityFirstRealCell) = lineDensity(LineDensityFirstRealCell);
     } else {
-        lineDensity(0)                                      = 0.0;
-        lineDensity(numSlices_m + LineDensityFirstRealCell) = 0.0;
+        lineDensity(0)                                    = 0.0;
+        lineDensity(numSlices + LineDensityFirstRealCell) = 0.0;
     }
     Kokkos::deep_copy(lineDensity_m, lineDensity);
     diagnostic.totalDensity(lineDensity_m);
     // Convert this to line density
-    auto dx = sliceMesh_m->getMeshSpacing().data_m[0];
-    auto dy = sliceMesh_m->getMeshSpacing().data_m[1];
+    auto dx = hr_m[0];
+    auto dy = hr_m[1];
     Kokkos::parallel_for(
-            numSlices_m + LineDensityGhostCells,
+            numSlices + LineDensityGhostCells,
             KOKKOS_LAMBDA(const size_t k) { lineDensity(k) *= dx * dy; });
     Kokkos::fence();
     diagnostic.lineDensity(lineDensity_m);
@@ -348,7 +366,7 @@ void Solve2d5<T>::calculateLineDensity(DiagnosticPolicy diagnostic) {
     auto lineDensityGradient = lineDensityGradient_m;
     const auto dz            = rho_m->get_mesh().getMeshSpacing().data_m[2];
     Kokkos::parallel_for(
-            Kokkos::RangePolicy(0, numSlices_m), KOKKOS_LAMBDA(const size_t k) {
+            Kokkos::RangePolicy(0, numSlices), KOKKOS_LAMBDA(const size_t k) {
                 lineDensityGradient(k) = (lineDensity(k + LineDensityFirstRealCell + 1)
                                           - lineDensity(k + LineDensityFirstRealCell - 1))
                                          / (2.0 * dz);
