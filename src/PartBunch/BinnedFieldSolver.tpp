@@ -10,7 +10,9 @@ template <typename T, unsigned Dim>
 BinnedFieldSolver<T, Dim>::BinnedFieldSolver(
         std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
         std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency, bool adaptiveBinning)
-    : FieldSolver<T, Dim>(solver, rho, E, phi, bcHandler) {
+    : FieldSolver<T, Dim>(solver, rho, E, phi, bcHandler),
+      monolithicDriver_m(std::make_unique<MonolithicSelfFieldDriver<T, Dim>>()),
+      binnedDriver_m(std::make_unique<BinnedLorentzSelfFieldDriver<T, Dim>>()) {
     scatterAttribute_m    = ScatterAttribute::ChargeQ;
     gatherAttribute_m     = GatherAttribute::ElectricFieldE;
     tablePrintFrequency_m = tablePrintFrequency;
@@ -83,10 +85,10 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
           << " correction inactive for this step." << endl;
     }
 
-    if (hasBins) {
-        m << level4 << "Dispatching to computeBinnedSelfFields() (binned path)." << endl;
-        computeBinnedSelfFields(bunch, activeCorrection);
-    } else {
+    SelfFieldDriver<T, Dim>& driver = selectedSelfFieldDriver(bunch);
+    m << level4 << "Selected self-field driver: " << driver.name() << endl;
+
+    if (!hasBins) {
         // Legacy path has no separate correction pass: it scatters primary+image
         // in one shot via ImageChargeScatterController::scatterPrimaryAndImage
         // and does one standard solve. The shifted Green's correction is only
@@ -96,9 +98,15 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
             m << level3 << "SHIFTED_GREENS_FUNCTION is set but no binning is active; "
               << "the legacy path does not apply the Dirichlet correction." << endl;
         }
-        m << level4 << "Dispatching to computeLegacySelfFields() (legacy path)." << endl;
-        computeLegacySelfFields(bunch, activeCorrection);
     }
+
+    driver.compute(*this, bunch, activeCorrection);
+}
+
+template <typename T, unsigned Dim>
+const char* BinnedFieldSolver<T, Dim>::selectedSelfFieldDriverName(
+        const PartBunch_t& bunch) const {
+    return selectedSelfFieldDriver(bunch).name();
 }
 
 template <typename T, unsigned Dim>
@@ -255,6 +263,20 @@ const BoundaryCorrection<T, Dim>* BinnedFieldSolver<T, Dim>::activeBoundaryCorre
 }
 
 template <typename T, unsigned Dim>
+SelfFieldDriver<T, Dim>& BinnedFieldSolver<T, Dim>::selectedSelfFieldDriver(
+        const PartBunch_t& bunch) {
+    return bunch.hasBinning() ? static_cast<SelfFieldDriver<T, Dim>&>(*binnedDriver_m)
+                              : static_cast<SelfFieldDriver<T, Dim>&>(*monolithicDriver_m);
+}
+
+template <typename T, unsigned Dim>
+const SelfFieldDriver<T, Dim>& BinnedFieldSolver<T, Dim>::selectedSelfFieldDriver(
+        const PartBunch_t& bunch) const {
+    return bunch.hasBinning() ? static_cast<const SelfFieldDriver<T, Dim>&>(*binnedDriver_m)
+                              : static_cast<const SelfFieldDriver<T, Dim>&>(*monolithicDriver_m);
+}
+
+template <typename T, unsigned Dim>
 ImageScatterMode BinnedFieldSolver<T, Dim>::primaryScatterModeForStep(
         const BoundaryCorrection<T, Dim>* activeCorrection) const {
     if (activeCorrection) {
@@ -303,228 +325,6 @@ void BinnedFieldSolver<T, Dim>::applyBoundaryCorrectionPass(
         dumpDirichletPlaneDiagnosticsIfRequested(bunch, "binned");
         dumpedDirichletPlaneThisStep = true;
     }
-}
-
-template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
-        PartBunch_t& bunch, const BoundaryCorrection<T, Dim>* activeCorrection) {
-    // execute full binned self-field algorithm.
-    // fetch the adaptive bin structure.
-    std::shared_ptr<AdaptBins_t> bins = bunch.getBins();
-    if (!bins) {
-        // Defensive: runtime selection above should prevent this.
-        computeLegacySelfFields(bunch, activeCorrection);
-        return;
-    }
-
-    // build and merge adaptive bins for this step.
-    // build and merge adaptive bins for this step.
-    rebinAndPrepare(bunch, bins);
-
-    // obtain the temporary E buffer used to accumulate bin contributions.
-    std::shared_ptr<VField_t<T, Dim>> EtmpSP = bunch.getTempEField();
-    if (!EtmpSP) {
-        throw OpalException(
-                "BinnedFieldSolver::computeBinnedSelfFields",
-                "Temporary E field (Etmp) is not initialized.");
-    }
-    std::shared_ptr<VField_t<T, Dim>> BtmpSP = bunch.getTempBField();
-    if (!BtmpSP) {
-        throw OpalException(
-                "BinnedFieldSolver::computeBinnedSelfFields",
-                "Temporary B field (Btmp) is not initialized.");
-    }
-
-    fieldAccumulator_m.bind(EtmpSP, BtmpSP);
-    fieldAccumulator_m.clear();
-
-    // determine the number of bins used for this step.
-    const bin_index_type nBins = bins->getCurrentBinCount();
-
-    // Level-5 debug: per-step overview before entering the bin loop.
-    Inform m("BinnedFieldSolver::computeBinnedSelfFields");
-    m << level4 << "Binned mode: nBins=" << static_cast<int>(nBins)
-      << ", stype=" << this->getStype() << endl;
-
-    // Cache values for the level-3 per-call table.
-    std::vector<BinStatsRow> binStats;
-    binStats.reserve(static_cast<size_t>(nBins));
-
-    bool dumpedDirichletPlaneThisStep = false;
-
-    // iterate over merged bins and accumulate E contributions.
-    for (bin_index_type binIndex = 0; binIndex < nBins; ++binIndex) {
-        // process a single merged bin (gamma->rho->solve->accumulate).
-        const size_type nPartGlobal = bins->getNPartInBin(binIndex, true);
-        if (nPartGlobal == 0) {
-            continue;
-        }
-
-        m << level4 << "binIndex=" << static_cast<int>(binIndex)
-          << " nPartGlobal=" << static_cast<unsigned long long>(nPartGlobal) << endl;
-
-        // compute global average gamma for this bin.
-        const BinKinematics kinematics = computeGammaBinGlobal(bunch, bins, binIndex, nPartGlobal);
-        if (kinematics.gammaBin <= 0.0) {
-            throw OpalException(
-                    "BinnedFieldSolver::computeBinnedSelfFields",
-                    "Computed non-positive gamma for bin.");
-        }
-
-        m << level4 << "binIndex=" << static_cast<int>(binIndex)
-          << " gammaBin=" << std::setprecision(10) << kinematics.gammaBin << endl;
-
-        binStats.push_back(
-                BinStatsRow{
-                        static_cast<long long>(binIndex),
-                        static_cast<unsigned long long>(nPartGlobal), kinematics.gammaBin});
-
-        // Mesh references reused for both primary and correction passes.
-        auto& mesh        = this->getRho()->get_mesh();
-        const auto hrOrig = mesh.getMeshSpacing();
-        auto hrStretched  = hrOrig;
-        hrStretched[Dim - 1] *= kinematics.gammaBin;
-
-        BinContext<T, Dim> context;
-        context.binIndex                     = static_cast<long long>(binIndex);
-        context.particleCountGlobal          = static_cast<std::uint64_t>(nPartGlobal);
-        context.gamma                        = kinematics.gammaBin;
-        context.pmean                        = kinematics.pmean;
-        context.meshSpacing                  = hrOrig;
-        context.solveSpacing                 = hrStretched;
-        context.imageCorrectionActive =
-                activeCorrection
-                && activeCorrection->kind() == BoundaryCorrectionKind::ImageCharge;
-        context.shiftedGreensCorrectionActive =
-                activeCorrection
-                && activeCorrection->kind() == BoundaryCorrectionKind::ShiftedGreens;
-
-        // --- Primary pass: scatter real charges, solve, accumulate with +B ---
-        {
-            const ImageScatterMode scatterMode = primaryScatterModeForStep(activeCorrection);
-            prepareRhoForBin(bunch, bins, context, scatterMode);
-
-            opalx::fieldops::setVectorField(*(this->getE()), Vector_t<T, Dim>(0.0));
-            mesh.setMeshSpacing(context.solveSpacing);
-
-            m << level4 << "binIndex=" << static_cast<int>(binIndex)
-              << " primary runSolver(true) start"
-              << " (hr_z stretched by gamma=" << context.gamma << ")" << endl;
-            this->runSolver(true);
-            m << level4 << "binIndex=" << static_cast<int>(binIndex)
-              << " primary runSolver(true) done; accumulate->Etmp" << endl;
-
-            fieldAccumulator_m.accumulate(*(this->getE()), context.gamma, context.pmean, +1.0);
-
-            mesh.setMeshSpacing(context.meshSpacing);
-        }
-
-        if (activeCorrection) {
-            const auto correctionPass = activeCorrection->makePass(
-                    context, mesh.getOrigin(),
-                    this->getRho()->getLayout().getDomain()[Dim - 1].length());
-            if (correctionPass) {
-                applyBoundaryCorrectionPass(
-                        bunch, bins, context, *correctionPass, dumpedDirichletPlaneThisStep);
-            }
-        }
-    }
-
-    // after all bins, gather the accumulated lab-frame field back to particles.
-    gatherFromTempToParticles(bunch);
-
-    // per-call table: gammaBin / nParticles / binNumber.
-    if (tablePrintFrequency_m > 0) {
-        const long long step = bunch.getGlobalTrackStep();
-        if (step >= 0 && (step % tablePrintFrequency_m) == 0) {
-            printBinStatsTable(bins->getBinningCmdName(), binStats);
-        }
-    }
-}
-
-template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(
-        PartBunch_t& bunch, const BoundaryCorrection<T, Dim>* activeCorrection) {
-    // This code is a direct move of the legacy implementation from
-    // PartBunch::computeSelfFields (scatter/solve/gather for all particles).
-
-    //  access the particle container for scattering/gathering.
-    std::shared_ptr<ParticleCtr_t> pc = bunch.getParticleContainer();
-    if (!pc) {
-        throw OpalException(
-                "BinnedFieldSolver::computeLegacySelfFields",
-                "Bunch particle container is not available.");
-    }
-
-    // Level-5 debug: legacy mode entry.
-    Inform m("BinnedFieldSolver::computeLegacySelfFields");
-    m << level4 << "Legacy mode entry: localP=" << pc->getLocalNum()
-      << ", totalP=" << pc->getTotalNum() << ", stype=" << this->getStype() << endl;
-
-    if (scatterAttribute_m != ScatterAttribute::ChargeQ) {
-        throw OpalException(
-                "BinnedFieldSolver::computeLegacySelfFields",
-                "Unsupported scatter attribute in legacy solver.");
-    }
-
-    typename PartBunch_t::Base::particle_position_type* R = &pc->R;
-
-    Field_t<Dim>& rho = *(this->getRho());
-    opalx::fieldops::setScalarField(rho, 0.0);
-
-    // Scatter charge to mesh rho using dt-weighted deposition (master approach):
-    // scale dt by Q, scatter dt, then restore dt.
-    if (activeCorrection && activeCorrection->kind() == BoundaryCorrectionKind::ImageCharge) {
-        imageScatterController_m.scatterPrimaryAndImage(pc, *R, rho);
-    } else {
-        imageScatterController_m.scatterPrimaryOnly(pc, *R, rho);
-    }
-
-    //  apply mesh normalization, background subtraction, and rho scaling.
-    const std::string stype = this->getStype();
-    double normalizer       = bunch.getdT();
-    if (stype != "FEM" && stype != "FEM_PRECON") {
-        const double cellVolume =
-                std::reduce(bunch.hr_m.begin(), bunch.hr_m.end(), 1.0, std::multiplies<double>());
-        normalizer *= cellVolume;
-    }
-
-    // Alpine uses net-0 charge for non-OPEN solvers (periodic BCs).
-    double shift = 0.0;
-    if (stype != "OPEN") {
-        double size = 1.0;
-        for (size_t d = 0; d < Dim; ++d) {
-            size *= bunch.rmax_m[d] - bunch.rmin_m[d];
-        }
-
-        const double totalQ = bunch.getParticleContainer()->getTotalCharge();
-        shift               = -(totalQ / size) * this->getCouplingConstant();
-    }
-
-    opalx::fieldops::scaleAndShiftScalarField(
-            rho, this->getCouplingConstant() / normalizer, shift);
-
-    // Ensure deterministic output even for solver types that do not update `E`.
-    opalx::fieldops::setVectorField(*(this->getE()), Vector_t<T, Dim>(0.0));
-
-    // run the solver once and gather mesh E back to particles.
-    m << level4 << "Legacy mode: runSolver() start" << endl;
-    this->runSolver();
-    if (activeCorrection && activeCorrection->kind() == BoundaryCorrectionKind::ImageCharge) {
-        dumpDirichletPlaneDiagnosticsIfRequested(bunch, "legacy");
-    }
-    m << level4 << "Legacy mode: gather E->particles" << endl;
-
-    // Gather solver output directly (legacy path does not use Etmp).
-    if (gatherAttribute_m == GatherAttribute::ElectricFieldE) {
-        gather(pc->E, *this->getE(), *R);
-    } else {
-        throw OpalException(
-                "BinnedFieldSolver::computeLegacySelfFields",
-                "Unsupported gather attribute in legacy solver.");
-    }
-
-    // TABLEPRINTFREQ is binned-mode only; legacy mode intentionally prints nothing.
 }
 
 template <typename T, unsigned Dim>
@@ -714,3 +514,6 @@ void BinnedFieldSolver<T, Dim>::gatherFromTempToParticles(PartBunch_t& bunch) {
                 "Unsupported gather attribute in binned solver.");
     }
 }
+
+#include "PartBunch/Drivers/BinnedLorentzSelfFieldDriver.tpp"
+#include "PartBunch/Drivers/MonolithicSelfFieldDriver.tpp"

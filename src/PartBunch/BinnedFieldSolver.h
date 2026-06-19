@@ -15,6 +15,9 @@
 #include "PartBunch/Corrections/BoundaryCorrection.hpp"
 #include "PartBunch/Corrections/ImageChargeCorrection.hpp"
 #include "PartBunch/Corrections/ShiftedGreensCorrection.hpp"
+#include "PartBunch/Drivers/BinnedLorentzSelfFieldDriver.hpp"
+#include "PartBunch/Drivers/MonolithicSelfFieldDriver.hpp"
+#include "PartBunch/Drivers/SelfFieldDriver.hpp"
 #include "PartBunch/FieldAccumulator.hpp"
 #include "PartBunch/ImageChargeScatterController.h"
 #include "PartBunch/PartBunch.h"
@@ -46,6 +49,11 @@
 template <typename T, unsigned Dim>
 class BinnedFieldSolver : public FieldSolver<T, Dim> {
     static_assert(Dim == 3, "BinnedFieldSolver currently supports Dim == 3 only.");
+
+    template <typename, unsigned>
+    friend class BinnedLorentzSelfFieldDriver;
+    template <typename, unsigned>
+    friend class MonolithicSelfFieldDriver;
 
 public:
     using PartBunch_t    = PartBunch<T, Dim>;
@@ -105,6 +113,11 @@ public:
     void computeSelfFields(PartBunch_t& bunch);
 
     /**
+     * @brief Name of the self-field driver selected for the bunch state.
+     */
+    const char* selectedSelfFieldDriverName(const PartBunch_t& bunch) const;
+
+    /**
      * @brief Set particle scatter attribute (extensible; default is `ChargeQ`).
      * @param attr Attribute to scatter from.
      */
@@ -162,6 +175,8 @@ private:
     bool warnedPlaneDumpParallelUnsupported_m = false;
 
     FieldAccumulator<T, Dim> fieldAccumulator_m;
+    std::unique_ptr<MonolithicSelfFieldDriver<T, Dim>> monolithicDriver_m;
+    std::unique_ptr<BinnedLorentzSelfFieldDriver<T, Dim>> binnedDriver_m;
 
     /**
      * @brief Row entry for the level-3 bin statistics table.
@@ -199,28 +214,6 @@ private:
     void dumpDirichletPlaneDiagnosticsIfRequested(PartBunch_t& bunch, const std::string& solveTag);
 
     /**
-     * @brief Compute self-fields using the binned algorithm.
-     *
-     * Requires that the bunch has a valid bin structure and a temporary electric field
-     * buffer (`bunch.getTempEField()`).
-     *
-     * @param bunch Particle bunch for which to compute self-fields.
-     */
-    void computeBinnedSelfFields(
-            PartBunch_t& bunch, const BoundaryCorrection<T, Dim>* activeCorrection);
-
-    /**
-     * @brief Compute self-fields using the legacy monolithic algorithm.
-     *
-     * This is a direct adaptation of the legacy implementation:
-     * scatter (all particles) -> solve once -> gather electric field directly to particles.
-     *
-     * @param bunch Particle bunch for which to compute self-fields.
-     */
-    void computeLegacySelfFields(
-            PartBunch_t& bunch, const BoundaryCorrection<T, Dim>* activeCorrection);
-
-    /**
      * @brief Build and prepare adaptive bins for the current step.
      *
      * This performs a full rebin to the maximum bin count, sorts the particle container by bin,
@@ -233,6 +226,8 @@ private:
 
     const BoundaryCorrection<T, Dim>* configuredBoundaryCorrection() const;
     const BoundaryCorrection<T, Dim>* activeBoundaryCorrectionForStep(size_t step) const;
+    SelfFieldDriver<T, Dim>& selectedSelfFieldDriver(const PartBunch_t& bunch);
+    const SelfFieldDriver<T, Dim>& selectedSelfFieldDriver(const PartBunch_t& bunch) const;
     ImageScatterMode primaryScatterModeForStep(
             const BoundaryCorrection<T, Dim>* activeCorrection) const;
     void applyBoundaryCorrectionPass(

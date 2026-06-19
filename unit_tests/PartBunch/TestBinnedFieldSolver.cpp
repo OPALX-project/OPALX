@@ -35,6 +35,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "Ippl.h"
+#include "PartBunch/BinnedFieldSolver.h"
 #include "PartBunch/PartBunch.h"
 #include "Structure/Beam.h"
 #include "Structure/BinningCmd.h"
@@ -277,6 +278,7 @@ namespace {
         ASSERT_FALSE(bunch->hasBinning());
         createParticles(kDefaultNParticles, /*pzMin=*/0.1, /*pzMax=*/0.9);
 
+        EXPECT_STREQ(bunch->getFieldSolver()->selectedSelfFieldDriverName(*bunch), "monolithic");
         EXPECT_NO_THROW(bunch->computeSelfFields());
         expectAllParticleEZeroAndFinite(/*tol=*/1e-8);
     }
@@ -288,6 +290,8 @@ namespace {
         auto bins = attachBins(maxBins, /*alpha=*/1.0, /*beta=*/1.0, /*desiredWidth=*/0.3);
         ASSERT_TRUE(bunch->hasBinning());
 
+        EXPECT_STREQ(
+                bunch->getFieldSolver()->selectedSelfFieldDriverName(*bunch), "binned-lorentz");
         EXPECT_NO_THROW(bunch->computeSelfFields());
 
         const auto currentBins = bins->getCurrentBinCount();
