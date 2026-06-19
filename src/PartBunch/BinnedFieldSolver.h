@@ -11,6 +11,8 @@
 #include <vector>
 
 #include "PartBunch/FieldSolver.hpp"
+#include "PartBunch/BinContext.hpp"
+#include "PartBunch/FieldAccumulator.hpp"
 #include "PartBunch/ImageChargeScatterController.h"
 #include "PartBunch/PartBunch.h"
 #include "Utilities/OpalException.h"
@@ -169,12 +171,7 @@ private:
     bool shiftedGreensEnabled_m  = false;
     double shiftedGreensPlaneZ_m = 0.0;
 
-    // Scratch field holding the axis-flipped version of E' for the shifted-GF
-    // correction pass. Populated by buildFlippedZSlab (which delegates to
-    // opalx::detail::mirrorField) before accumulateFieldToTemp's flipped branch.
-    // Same layout/mesh/ghost count as *(this->getE()). Allocated lazily on first
-    // use; reused across bins and timesteps.
-    std::shared_ptr<VField_t<T, Dim>> flippedZSlabField_m;
+    FieldAccumulator<T, Dim> fieldAccumulator_m;
 
     /**
      * @brief Row entry for the level-3 bin statistics table.
@@ -198,22 +195,6 @@ private:
      */
     void printBinStatsTable(
             const std::string& binningCmdName, const std::vector<BinStatsRow>& rows);
-
-public:
-    /**
-     * @brief Set all scalar field entries, including ghosts, without IPPL expression templates.
-     */
-    static void setScalarField(Field_t<Dim>& field, double value);
-
-    /**
-     * @brief Apply @c field = field * scale + shift on owned cells without expression templates.
-     */
-    static void scaleAndShiftScalarField(Field_t<Dim>& field, double scale, double shift);
-
-    /**
-     * @brief Set all vector field entries, including ghosts, without IPPL expression templates.
-     */
-    static void setVectorField(VField_t<T, Dim>& field, const Vector_t<T, Dim>& value);
 
 private:
     /**
@@ -293,69 +274,14 @@ public:
      * @param gammaBin     Global average gamma for that merged bin.
      */
     void prepareRhoForBin(
-            PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins, const bin_index_type binIndex,
-            const size_type nPartGlobal, const double gammaBin,
+            PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins,
+            const BinContext<T, Dim>& context,
             ImageScatterMode mode = ImageScatterMode::PrimaryAndImage);
 
     /**
-     * @brief Accumulate Lorentz-transformed electric/magnetic fields into temporaries.
-     *
-     * The solver output field is interpreted as the bin-frame electric field `E'`
-     * with `B' = 0`, and transformed to the lab frame with:
-     * - `E_lab = gammaBin * E' + (gammaBin - 1) * (E' · w) * w`
-     * - `B_lab = (gammaBin / c^2) * (v x E')`
-     * where `v = c * pmean / gammaBin` and `w = v / |v|` (or `w = 0` if `|v| = 0`).
-     *
-     * When @p flipAxis is a valid axis index (0..Dim-1), the solver output is
-     * read at an axis-flipped source index @c N-1-k (in that axis only) and the
-     * transverse E components are negated before the Lorentz transform, yielding
-     * the image-charge contribution produced by a shifted-Green's-function solve:
-     * - `E_d -> -E_d` for `d != flipAxis`
-     * - `E_d -> +E_d` for `d == flipAxis` (the component parallel to the flip).
-     * This is derived from `phi_image(x) = -phi_shifted(R(x))` and `E = -grad(phi)`.
-     * The zero-copy read from the flipped source index is the reason this is
-     * baked into @c accumulateFieldToTemp instead of an out-of-place kernel.
-     *
-     * Currently single-rank only when @p flipAxis >= 0 (an axis-flip across MPI
-     * ranks would need extra communication). The caller is expected to guard
-     * against multi-rank use upstream.
-     *
-     * @param gammaBin  Global average gamma for the merged bin.
-     * @param pmean     Global average normalized momentum for the merged bin.
-     * @param EtmpSP    Temporary electric field buffer for accumulation.
-     * @param BtmpSP    Temporary magnetic field buffer for accumulation.
-     * @param bFieldSign +1 for forward-moving charges, -1 for image charges.
-     * @param flipAxis  Axis in which to flip the read index (use -1 for no flip).
-     */
-    void accumulateFieldToTemp(
-            const double gammaBin, const Vector_t<double, Dim>& pmean,
-            std::shared_ptr<VField_t<T, Dim>> EtmpSP, std::shared_ptr<VField_t<T, Dim>> BtmpSP,
-            double bFieldSign = 1.0, int flipAxis = -1);
-
-private:
-    /// @brief Populate @c flippedZSlab_m with the z-axis globally-flipped version of @p src.
-    ///
-    /// Under `PARFFTZ=true` the global flip `k -> N_z_global-1-k` generally crosses MPI ranks.
-    /// This helper does one pairwise-exchange pass over `ippl::Comm`: each rank packs the z-slabs
-    /// of @p src that peers need, posts `MPI_Isend`/`MPI_Irecv`, and unpacks the received slabs
-    /// into the correct local destination indices of @c flippedZSlab_m. After the call the
-    /// lambda in `accumulateFieldToTemp` reads @c flippedZSlab_m(i, j, k) directly without any
-    /// cross-rank access.
-    ///
-    /// @param src  Source vector field (typically `*(this->getE())` after the shifted-GF solve).
-    ///             Only the z axis is flipped; x and y stay local to the rank.
-    void buildFlippedZSlab(const VField_t<T, Dim>& src);
-
-    /**
      * @brief Gather the accumulated lab-frame fields from temporaries back to particles.
-     *
-     * @param bunch   Particle bunch to gather into.
-     * @param EtmpSP  Temporary electric field buffer holding the accumulated lab-frame field.
-     * @param BtmpSP  Temporary magnetic field buffer holding the accumulated lab-frame field.
      */
-    void gatherFromTempToParticles(
-            PartBunch_t& bunch, std::shared_ptr<VField_t<T, Dim>> EtmpSP,
-            std::shared_ptr<VField_t<T, Dim>> BtmpSP);
+    void gatherFromTempToParticles(PartBunch_t& bunch);
 };
 
 // Reduce compile-time churn: instantiate the only supported concrete solver in one TU.

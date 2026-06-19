@@ -8,10 +8,13 @@ set (_SRCS
 set (HDRS
     PartBunch.h
     PartBunchFwd.h
+    BinContext.hpp
     BunchStateHandler.h
     FieldSolver.hpp
+    FieldAccumulator.hpp
     FieldContainer.hpp
     FieldMirror.hpp
+    FieldOps.hpp
     LoadBalancer.hpp
     ParticleContainer.hpp
     BCHandler.hpp

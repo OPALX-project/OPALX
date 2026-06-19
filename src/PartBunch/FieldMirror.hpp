@@ -13,8 +13,8 @@
 // Intended use: after a shifted-Green's-function Poisson solve, mirror the
 // resulting potential / E-field across the cathode plane to obtain the image
 // contribution. Sign handling for the vector components is left to the caller
-// (e.g. BinnedFieldSolver::accumulateFieldToTemp flips the perpendicular E
-// components after the spatial reflection).
+// (e.g. FieldAccumulator flips the perpendicular E components after the
+// spatial reflection).
 //
 #ifndef OPALX_FIELD_MIRROR_HPP
 #define OPALX_FIELD_MIRROR_HPP
