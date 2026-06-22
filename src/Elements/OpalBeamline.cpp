@@ -29,12 +29,12 @@
 #include <regex>
 
 OpalBeamline::OpalBeamline()
-    : elements_m(), prepared_m(false), compatibilityPlacementCompiled_m(false) {}
+    : elements_m(), prepared_m(false), referencePathPlacementCompiled_m(false) {}
 
 OpalBeamline::OpalBeamline(const Vector_t<double, 3>& origin, const Quaternion& rotation)
     : elements_m(),
       prepared_m(false),
-      compatibilityPlacementCompiled_m(false),
+      referencePathPlacementCompiled_m(false),
       coordTransformationTo_m(origin, rotation) {}
 
 OpalBeamline::~OpalBeamline() { elements_m.clear(); }
@@ -131,7 +131,7 @@ void OpalBeamline::prepareSections() {
         return;
     }
     elements_m.sort(BeamlineFieldElement::SortAsc);
-    compileCompatibilityPlacement();
+    placeElementsAlongReferencePath();
     prepared_m = true;
 }
 
@@ -140,14 +140,14 @@ void OpalBeamline::print(Inform& /*msg*/) const {}
 void OpalBeamline::swap(OpalBeamline& rhs) {
     std::swap(elements_m, rhs.elements_m);
     std::swap(prepared_m, rhs.prepared_m);
-    std::swap(compatibilityPlacementCompiled_m, rhs.compatibilityPlacementCompiled_m);
+    std::swap(referencePathPlacementCompiled_m, rhs.referencePathPlacementCompiled_m);
     std::swap(coordTransformationTo_m, rhs.coordTransformationTo_m);
 }
 
 void OpalBeamline::merge(OpalBeamline& rhs) {
     elements_m.insert(elements_m.end(), rhs.elements_m.begin(), rhs.elements_m.end());
     prepared_m                       = false;
-    compatibilityPlacementCompiled_m = false;
+    referencePathPlacementCompiled_m = false;
 }
 
 FieldList OpalBeamline::getElementByType(ElementType type) {
@@ -182,8 +182,8 @@ void OpalBeamline::setNominalPlacement(
     element->setCSTrafoGlobal2Local(parentToBody);
 }
 
-void OpalBeamline::compileCompatibilityPlacement() {
-    if (compatibilityPlacementCompiled_m) {
+void OpalBeamline::placeElementsAlongReferencePath() {
+    if (referencePathPlacementCompiled_m) {
         return;
     }
 
@@ -341,10 +341,10 @@ void OpalBeamline::compileCompatibilityPlacement() {
         element->fixPosition();
     }
 
-    compatibilityPlacementCompiled_m = true;
+    referencePathPlacementCompiled_m = true;
 }
 
-void OpalBeamline::compute3DLattice() { compileCompatibilityPlacement(); }
+void OpalBeamline::compute3DLattice() { placeElementsAlongReferencePath(); }
 
 void OpalBeamline::save3DLattice() {
     if (ippl::Comm->rank() != 0 || OpalData::getInstance()->isOptimizerRun()) return;
