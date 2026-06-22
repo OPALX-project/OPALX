@@ -14,6 +14,43 @@
 
 namespace {
 
+    double maxScalarError(Field_t<3>& field, double expected) {
+        auto view     = field.getView();
+        double maxErr = 0.0;
+        ippl::parallel_reduce(
+                "TestFieldOpsAndAccumulator::maxScalarError", field.getFieldRangePolicy(),
+                KOKKOS_LAMBDA(
+                        const ippl::RangePolicy<3>::index_array_type& idx, double& local) {
+                    const double diff = apply(view, idx) - expected;
+                    const double err  = diff < 0.0 ? -diff : diff;
+                    if (err > local) {
+                        local = err;
+                    }
+                },
+                Kokkos::Max<double>(maxErr));
+        return maxErr;
+    }
+
+    double maxVectorError(VField_t<double, 3>& field, const Vector_t<double, 3>& expected) {
+        auto view     = field.getView();
+        double maxErr = 0.0;
+        ippl::parallel_reduce(
+                "TestFieldOpsAndAccumulator::maxVectorError", field.getFieldRangePolicy(),
+                KOKKOS_LAMBDA(
+                        const ippl::RangePolicy<3>::index_array_type& idx, double& local) {
+                    const Vector_t<double, 3> value = apply(view, idx);
+                    for (unsigned d = 0; d < 3; ++d) {
+                        const double diff = value[d] - expected[d];
+                        const double err  = diff < 0.0 ? -diff : diff;
+                        if (err > local) {
+                            local = err;
+                        }
+                    }
+                },
+                Kokkos::Max<double>(maxErr));
+        return maxErr;
+    }
+
     class FieldOpsAndAccumulatorTest : public ::testing::Test {
     public:
         static void SetUpTestSuite() {
@@ -49,44 +86,6 @@ namespace {
             auto field = std::make_shared<VField_t<double, 3>>();
             field->initialize(fields.getMesh(), fields.getFL());
             return field;
-        }
-
-        double maxScalarError(Field_t<3>& field, double expected) {
-            auto view     = field.getView();
-            double maxErr = 0.0;
-            ippl::parallel_reduce(
-                    "TestFieldOpsAndAccumulator::maxScalarError", field.getFieldRangePolicy(),
-                    KOKKOS_LAMBDA(
-                            const ippl::RangePolicy<3>::index_array_type& idx, double& local) {
-                        const double diff = apply(view, idx) - expected;
-                        const double err  = diff < 0.0 ? -diff : diff;
-                        if (err > local) {
-                            local = err;
-                        }
-                    },
-                    Kokkos::Max<double>(maxErr));
-            return maxErr;
-        }
-
-        double maxVectorError(
-                VField_t<double, 3>& field, const Vector_t<double, 3>& expected) {
-            auto view     = field.getView();
-            double maxErr = 0.0;
-            ippl::parallel_reduce(
-                    "TestFieldOpsAndAccumulator::maxVectorError", field.getFieldRangePolicy(),
-                    KOKKOS_LAMBDA(
-                            const ippl::RangePolicy<3>::index_array_type& idx, double& local) {
-                        const Vector_t<double, 3> value = apply(view, idx);
-                        for (unsigned d = 0; d < 3; ++d) {
-                            const double diff = value[d] - expected[d];
-                            const double err  = diff < 0.0 ? -diff : diff;
-                            if (err > local) {
-                                local = err;
-                            }
-                        }
-                    },
-                    Kokkos::Max<double>(maxErr));
-            return maxErr;
         }
     };
 
