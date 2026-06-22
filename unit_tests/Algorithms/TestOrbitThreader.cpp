@@ -6,7 +6,6 @@
 #include "Algorithms/PartData.h"
 #include "BeamlineCore/MultipoleRep.h"
 #include "BeamlineGeometry/NullGeometry.h"
-#include "BeamlineGeometry/PlacementPose.h"
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
 #include "Fields/NullField.h"
@@ -167,8 +166,8 @@ protected:
         auto quadrupole = std::make_shared<MultipoleRep>(name);
         quadrupole->setElementLength(length);
         quadrupole->setNormalComponent(1, normalComponent);
-        quadrupole->setPlacementPose(PlacementPose(
-                CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, entryPosition), Quaternion())));
+        quadrupole->setCSTrafoGlobal2Local(
+                CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, entryPosition), Quaternion()));
         quadrupole->fixPosition();
         return quadrupole;
     }
@@ -177,8 +176,8 @@ protected:
             const std::string& name, const double entryPosition, const double fieldLength) {
         auto component = std::make_shared<FieldSupportOnlyComponent>(name, 0.0, fieldLength);
         component->setElementLength(0.0);
-        component->setPlacementPose(PlacementPose(
-                CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, entryPosition), Quaternion())));
+        component->setCSTrafoGlobal2Local(
+                CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, entryPosition), Quaternion()));
         component->fixPosition();
         return component;
     }

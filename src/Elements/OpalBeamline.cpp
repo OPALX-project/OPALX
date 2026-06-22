@@ -30,13 +30,13 @@
 
 OpalBeamline::OpalBeamline()
     : elements_m(),
-      placementAssembly_m(),
+      nominalBodyTrafos_m(),
       prepared_m(false),
       compatibilityPlacementCompiled_m(false) {}
 
 OpalBeamline::OpalBeamline(const Vector_t<double, 3>& origin, const Quaternion& rotation)
     : elements_m(),
-      placementAssembly_m(),
+      nominalBodyTrafos_m(),
       prepared_m(false),
       compatibilityPlacementCompiled_m(false),
       coordTransformationTo_m(origin, rotation) {}
@@ -136,7 +136,7 @@ void OpalBeamline::prepareSections() {
     }
     elements_m.sort(BeamlineFieldElement::SortAsc);
     for (auto& fieldElement : elements_m) {
-        storePlacedElement(fieldElement.getElement());
+        cacheNominalTransform(fieldElement.getElement());
     }
     compileCompatibilityPlacement();
     prepared_m = true;
@@ -146,7 +146,7 @@ void OpalBeamline::print(Inform& /*msg*/) const {}
 
 void OpalBeamline::swap(OpalBeamline& rhs) {
     std::swap(elements_m, rhs.elements_m);
-    std::swap(placementAssembly_m, rhs.placementAssembly_m);
+    std::swap(nominalBodyTrafos_m, rhs.nominalBodyTrafos_m);
     std::swap(prepared_m, rhs.prepared_m);
     std::swap(compatibilityPlacementCompiled_m, rhs.compatibilityPlacementCompiled_m);
     std::swap(coordTransformationTo_m, rhs.coordTransformationTo_m);
@@ -154,7 +154,7 @@ void OpalBeamline::swap(OpalBeamline& rhs) {
 
 void OpalBeamline::merge(OpalBeamline& rhs) {
     elements_m.insert(elements_m.end(), rhs.elements_m.begin(), rhs.elements_m.end());
-    placementAssembly_m.clear();
+    nominalBodyTrafos_m.clear();
     prepared_m                       = false;
     compatibilityPlacementCompiled_m = false;
 }
@@ -179,7 +179,7 @@ void OpalBeamline::positionElementRelative(std::shared_ptr<ElementBase> element)
     }
 
     element->releasePosition();
-    CoordinateSystemTrafo toElement = element->getPlacedElement().getNominalBodyTransform();
+    CoordinateSystemTrafo toElement = element->getCSTrafoGlobal2Local();
     toElement *= coordTransformationTo_m;
 
     setNominalPlacement(element, toElement);
@@ -188,12 +188,12 @@ void OpalBeamline::positionElementRelative(std::shared_ptr<ElementBase> element)
 
 void OpalBeamline::setNominalPlacement(
         const std::shared_ptr<ElementBase>& element, const CoordinateSystemTrafo& parentToBody) {
-    element->setPlacementPose(PlacementPose(parentToBody));
-    storePlacedElement(element);
+    element->setCSTrafoGlobal2Local(parentToBody);
+    cacheNominalTransform(element);
 }
 
-void OpalBeamline::storePlacedElement(const std::shared_ptr<ElementBase>& element) {
-    placementAssembly_m.insert_or_assign(element.get(), element->getPlacedElement());
+void OpalBeamline::cacheNominalTransform(const std::shared_ptr<ElementBase>& element) {
+    nominalBodyTrafos_m.insert_or_assign(element.get(), element->getCSTrafoGlobal2Local());
 }
 
 void OpalBeamline::compileCompatibilityPlacement() {
@@ -398,7 +398,7 @@ void OpalBeamline::save3DLattice() {
 
     for (; it != end; ++it) {
         std::shared_ptr<Component> element = (*it).getElement();
-        PlacedElement placedElement        = getPlacedElement(element);
+        CoordinateSystemTrafo nominalBody  = getCSTrafoLab2Local(element);
         CoordinateSystemTrafo toBegin      = getNominalEntryTransform(element);
         CoordinateSystemTrafo toEnd        = getNominalExitTransform(element);
         Vector_t<double, 3> entry3D        = toBegin.getOrigin();
@@ -424,8 +424,7 @@ void OpalBeamline::save3DLattice() {
                 << std::setprecision(10) << entry3D(0) << std::setw(18) << std::setprecision(10)
                 << entry3D(1) << "\n";
 
-            Vector_t<double, 3> position =
-                    placedElement.getNominalBodyTransform().transformFrom(designPath.front());
+            Vector_t<double, 3> position = nominalBody.transformFrom(designPath.front());
             pos << std::setw(30) << std::left
                 << std::string("\"BEGIN: ") + element->getName() + std::string("\"")
                 << std::setw(18) << std::setprecision(10) << position(2) << std::setw(18)
@@ -433,7 +432,7 @@ void OpalBeamline::save3DLattice() {
                 << position(1) << std::endl;
 
             for (unsigned int i = frequency; i + 1 < size; i += frequency) {
-                position = placedElement.getNominalBodyTransform().transformFrom(designPath[i]);
+                position = nominalBody.transformFrom(designPath[i]);
                 pos << std::setw(30) << std::left
                     << std::string("\"MID: ") + element->getName() + std::string("\"")
                     << std::setw(18) << std::setprecision(10) << position(2) << std::setw(18)
@@ -441,7 +440,7 @@ void OpalBeamline::save3DLattice() {
                     << std::setprecision(10) << position(1) << std::endl;
             }
 
-            position = placedElement.getNominalBodyTransform().transformFrom(designPath.back());
+            position = nominalBody.transformFrom(designPath.back());
             pos << std::setw(30) << std::left
                 << std::string("\"END: ") + element->getName() + std::string("\"") << std::setw(18)
                 << std::setprecision(10) << position(2) << std::setw(18) << std::setprecision(10)
