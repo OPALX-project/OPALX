@@ -116,19 +116,21 @@ private:
             const std::shared_ptr<ElementBase>& element, const CoordinateSystemTrafo& parentToBody);
 
     /**
-     * @brief Compile legacy reference-order placement into explicit nominal poses.
+     * @brief Place ELEMEDGE-positioned elements along the reference path.
      *
-     * This setup-stage bridge consumes the compatibility placement encoded via
-     * `ELEMEDGE` and converts it once into nominal rigid placement transforms
-     * \f$T_i\f$ stored on the elements. Existing callers may still invoke
-     * `compute3DLattice()`, but new code should treat this as a setup
-     * conversion, not as a runtime geometry query.
+     * An element placed with `ELEMEDGE` is stored only as a path-length position
+     * `s` (plus an optional roll about the beam axis); its lab-frame pose is not
+     * known until the full lattice is sorted by `s`. This setup-stage pass walks
+     * the sorted elements once, accumulates the running reference-path transform
+     * (including bends), and writes each element's nominal rigid placement
+     * \f$T_i\f$. Elements already fixed in place by a 6D pose (X, Y, Z, THETA,
+     * PHI, PSI) are skipped.
      */
-    void compileCompatibilityPlacement();
+    void placeElementsAlongReferencePath();
 
     FieldList elements_m;
     bool prepared_m;
-    bool compatibilityPlacementCompiled_m;
+    bool referencePathPlacementCompiled_m;
 
     CoordinateSystemTrafo coordTransformationTo_m;
 };
@@ -147,7 +149,7 @@ inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t&
     elptr->initialise(&bunch, startField, endField);
     elements_m.push_back(BeamlineFieldElement(elptr, startField, endField));
     prepared_m                       = false;
-    compatibilityPlacementCompiled_m = false;
+    referencePathPlacementCompiled_m = false;
 }
 
 template <>
