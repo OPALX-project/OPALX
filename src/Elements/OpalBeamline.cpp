@@ -29,14 +29,10 @@
 #include <regex>
 
 OpalBeamline::OpalBeamline()
-    : elements_m(),
-      nominalBodyTrafos_m(),
-      prepared_m(false),
-      compatibilityPlacementCompiled_m(false) {}
+    : elements_m(), prepared_m(false), compatibilityPlacementCompiled_m(false) {}
 
 OpalBeamline::OpalBeamline(const Vector_t<double, 3>& origin, const Quaternion& rotation)
     : elements_m(),
-      nominalBodyTrafos_m(),
       prepared_m(false),
       compatibilityPlacementCompiled_m(false),
       coordTransformationTo_m(origin, rotation) {}
@@ -135,9 +131,6 @@ void OpalBeamline::prepareSections() {
         return;
     }
     elements_m.sort(BeamlineFieldElement::SortAsc);
-    for (auto& fieldElement : elements_m) {
-        cacheNominalTransform(fieldElement.getElement());
-    }
     compileCompatibilityPlacement();
     prepared_m = true;
 }
@@ -146,7 +139,6 @@ void OpalBeamline::print(Inform& /*msg*/) const {}
 
 void OpalBeamline::swap(OpalBeamline& rhs) {
     std::swap(elements_m, rhs.elements_m);
-    std::swap(nominalBodyTrafos_m, rhs.nominalBodyTrafos_m);
     std::swap(prepared_m, rhs.prepared_m);
     std::swap(compatibilityPlacementCompiled_m, rhs.compatibilityPlacementCompiled_m);
     std::swap(coordTransformationTo_m, rhs.coordTransformationTo_m);
@@ -154,7 +146,6 @@ void OpalBeamline::swap(OpalBeamline& rhs) {
 
 void OpalBeamline::merge(OpalBeamline& rhs) {
     elements_m.insert(elements_m.end(), rhs.elements_m.begin(), rhs.elements_m.end());
-    nominalBodyTrafos_m.clear();
     prepared_m                       = false;
     compatibilityPlacementCompiled_m = false;
 }
@@ -189,11 +180,6 @@ void OpalBeamline::positionElementRelative(std::shared_ptr<ElementBase> element)
 void OpalBeamline::setNominalPlacement(
         const std::shared_ptr<ElementBase>& element, const CoordinateSystemTrafo& parentToBody) {
     element->setCSTrafoGlobal2Local(parentToBody);
-    cacheNominalTransform(element);
-}
-
-void OpalBeamline::cacheNominalTransform(const std::shared_ptr<ElementBase>& element) {
-    nominalBodyTrafos_m.insert_or_assign(element.get(), element->getCSTrafoGlobal2Local());
 }
 
 void OpalBeamline::compileCompatibilityPlacement() {
