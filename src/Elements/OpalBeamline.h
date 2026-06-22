@@ -27,7 +27,6 @@
 #include "PartBunch/PartBunch.h"
 
 #include "AbsBeamline/Marker.h"
-#include "BeamlineGeometry/PlacedElement.h"
 #include "Beamlines/Beamline.h"
 #include "Utilities/BeamlineFieldElement.h"
 
@@ -67,23 +66,8 @@ public:
     Vector_t<double, 3> rotateFromLocalCS(
             const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
 
-    /**
-     * @brief Return the placed-element view used by the bridge stage.
-     *
-     * This is the beamline-facing access point to the geometric placement
-     * record. It keeps nominal placement, local correction, and port geometry
-     * together while the legacy runtime still stores them on ElementBase.
-     */
-    PlacedElement getPlacedElement(const std::shared_ptr<Component>& comp) const;
-
-    /**
-     * @brief Return the nominal rigid placement transform \f$T_i\f$.
-     *
-     * In the language of the placement note, this is the nominal rigid
-     * placement transform from the parent/reference base into the element body
-     * frame. During the bridge stage this remains identical to the legacy
-     * lab-to-local transform storage.
-     */
+    /// Return the element's nominal body transform (global→local): from the
+    /// beamline cache, else the element's own stored CoordinateSystemTrafo.
     CoordinateSystemTrafo getCSTrafoLab2Local(const std::shared_ptr<Component>& comp) const;
     CoordinateSystemTrafo getCSTrafoLab2Local() const;
     CoordinateSystemTrafo getMisalignment(const std::shared_ptr<Component>& comp) const;
@@ -128,28 +112,13 @@ public:
     void merge(OpalBeamline& rhs);
 
 private:
-    using PlacementAssembly = std::map<const ElementBase*, PlacedElement>;
-
-    /**
-     * @brief Update the nominal rigid placement transform of one element.
-     *
-     * This is the write-side bridge from the legacy beamline assembly code to
-     * the new placement vocabulary. The stored quantity is the nominal rigid
-     * placement transform \f$T_i\f$; local survey or misalignment corrections
-     * remain on the element and are not composed here.
-     */
+    /// Set one element's nominal body transform (its global→local
+    /// CoordinateSystemTrafo) and refresh the beamline-owned cache.
     void setNominalPlacement(
             const std::shared_ptr<ElementBase>& element, const CoordinateSystemTrafo& parentToBody);
 
-    /**
-     * @brief Refresh the beamline-owned placed-element assembly record.
-     *
-     * Beamline assembly owns a snapshot of the geometric placement records used
-     * by placement/export queries. This keeps the assembled placement model
-     * distinct from the legacy storage that still lives on ElementBase during
-     * the bridge stage.
-     */
-    void storePlacedElement(const std::shared_ptr<ElementBase>& element);
+    /// Refresh the cached nominal body transform for one element.
+    void cacheNominalTransform(const std::shared_ptr<ElementBase>& element);
 
     /**
      * @brief Compile legacy reference-order placement into explicit nominal poses.
@@ -163,7 +132,7 @@ private:
     void compileCompatibilityPlacement();
 
     FieldList elements_m;
-    PlacementAssembly placementAssembly_m;
+    std::map<const ElementBase*, CoordinateSystemTrafo> nominalBodyTrafos_m;
     bool prepared_m;
     bool compatibilityPlacementCompiled_m;
 
@@ -183,7 +152,7 @@ inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t&
 
     elptr->initialise(&bunch, startField, endField);
     elements_m.push_back(BeamlineFieldElement(elptr, startField, endField));
-    placementAssembly_m.insert_or_assign(elptr.get(), elptr->getPlacedElement());
+    nominalBodyTrafos_m.insert_or_assign(elptr.get(), elptr->getCSTrafoGlobal2Local());
     prepared_m                       = false;
     compatibilityPlacementCompiled_m = false;
 }
@@ -208,37 +177,33 @@ inline Vector_t<double, 3> OpalBeamline::rotateFrom(const Vector_t<double, 3>& r
     return coordTransformationTo_m.rotateFrom(r);
 }
 
+inline CoordinateSystemTrafo OpalBeamline::getCSTrafoLab2Local(
+        const std::shared_ptr<Component>& comp) const {
+    const auto found = nominalBodyTrafos_m.find(comp.get());
+    if (found != nominalBodyTrafos_m.end()) {
+        return found->second;
+    }
+    return comp->getCSTrafoGlobal2Local();
+}
+
 inline Vector_t<double, 3> OpalBeamline::transformToLocalCS(
         const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
-    return getPlacedElement(comp).getNominalBodyTransform().transformTo(r);
+    return getCSTrafoLab2Local(comp).transformTo(r);
 }
 
 inline Vector_t<double, 3> OpalBeamline::transformFromLocalCS(
         const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
-    return getPlacedElement(comp).getNominalBodyTransform().transformFrom(r);
+    return getCSTrafoLab2Local(comp).transformFrom(r);
 }
 
 inline Vector_t<double, 3> OpalBeamline::rotateToLocalCS(
         const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
-    return getPlacedElement(comp).getNominalBodyTransform().rotateTo(r);
+    return getCSTrafoLab2Local(comp).rotateTo(r);
 }
 
 inline Vector_t<double, 3> OpalBeamline::rotateFromLocalCS(
         const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
-    return getPlacedElement(comp).getNominalBodyTransform().rotateFrom(r);
-}
-
-inline PlacedElement OpalBeamline::getPlacedElement(const std::shared_ptr<Component>& comp) const {
-    const auto found = placementAssembly_m.find(comp.get());
-    if (found != placementAssembly_m.end()) {
-        return found->second;
-    }
-    return comp->getPlacedElement();
-}
-
-inline CoordinateSystemTrafo OpalBeamline::getCSTrafoLab2Local(
-        const std::shared_ptr<Component>& comp) const {
-    return getPlacedElement(comp).getNominalBodyTransform();
+    return getCSTrafoLab2Local(comp).rotateFrom(r);
 }
 
 inline CoordinateSystemTrafo OpalBeamline::getCSTrafoLab2Local() const {
@@ -247,17 +212,17 @@ inline CoordinateSystemTrafo OpalBeamline::getCSTrafoLab2Local() const {
 
 inline CoordinateSystemTrafo OpalBeamline::getMisalignment(
         const std::shared_ptr<Component>& comp) const {
-    return getPlacedElement(comp).getMisalignment().getNominalToActual();
+    return comp->getMisalignment();
 }
 
 inline CoordinateSystemTrafo OpalBeamline::getNominalEntryTransform(
         const std::shared_ptr<Component>& comp) const {
-    return getPlacedElement(comp).getNominalEntryTransform();
+    return comp->getEdgeToBegin() * getCSTrafoLab2Local(comp);
 }
 
 inline CoordinateSystemTrafo OpalBeamline::getNominalExitTransform(
         const std::shared_ptr<Component>& comp) const {
-    return getPlacedElement(comp).getNominalExitTransform();
+    return comp->getEdgeToEnd() * getCSTrafoLab2Local(comp);
 }
 
 #endif  // OPAL_BEAMLINE_H
