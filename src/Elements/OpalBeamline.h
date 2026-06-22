@@ -18,7 +18,6 @@
 #ifndef OPAL_BEAMLINE_H
 #define OPAL_BEAMLINE_H
 
-#include <map>
 #include <memory>
 #include <set>
 #include <string>
@@ -66,8 +65,7 @@ public:
     Vector_t<double, 3> rotateFromLocalCS(
             const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
 
-    /// Return the element's nominal body transform (global→local): from the
-    /// beamline cache, else the element's own stored CoordinateSystemTrafo.
+    /// Return the element's nominal body transform (global→local).
     CoordinateSystemTrafo getCSTrafoLab2Local(const std::shared_ptr<Component>& comp) const;
     CoordinateSystemTrafo getCSTrafoLab2Local() const;
     CoordinateSystemTrafo getMisalignment(const std::shared_ptr<Component>& comp) const;
@@ -113,12 +111,9 @@ public:
 
 private:
     /// Set one element's nominal body transform (its global→local
-    /// CoordinateSystemTrafo) and refresh the beamline-owned cache.
+    /// CoordinateSystemTrafo) during beamline assembly.
     void setNominalPlacement(
             const std::shared_ptr<ElementBase>& element, const CoordinateSystemTrafo& parentToBody);
-
-    /// Refresh the cached nominal body transform for one element.
-    void cacheNominalTransform(const std::shared_ptr<ElementBase>& element);
 
     /**
      * @brief Compile legacy reference-order placement into explicit nominal poses.
@@ -132,7 +127,6 @@ private:
     void compileCompatibilityPlacement();
 
     FieldList elements_m;
-    std::map<const ElementBase*, CoordinateSystemTrafo> nominalBodyTrafos_m;
     bool prepared_m;
     bool compatibilityPlacementCompiled_m;
 
@@ -152,7 +146,6 @@ inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t&
 
     elptr->initialise(&bunch, startField, endField);
     elements_m.push_back(BeamlineFieldElement(elptr, startField, endField));
-    nominalBodyTrafos_m.insert_or_assign(elptr.get(), elptr->getCSTrafoGlobal2Local());
     prepared_m                       = false;
     compatibilityPlacementCompiled_m = false;
 }
@@ -179,10 +172,6 @@ inline Vector_t<double, 3> OpalBeamline::rotateFrom(const Vector_t<double, 3>& r
 
 inline CoordinateSystemTrafo OpalBeamline::getCSTrafoLab2Local(
         const std::shared_ptr<Component>& comp) const {
-    const auto found = nominalBodyTrafos_m.find(comp.get());
-    if (found != nominalBodyTrafos_m.end()) {
-        return found->second;
-    }
     return comp->getCSTrafoGlobal2Local();
 }
 
