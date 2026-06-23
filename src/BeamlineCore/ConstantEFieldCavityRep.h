@@ -23,7 +23,6 @@ public:
     const StraightGeometry& getGeometry() const override;
 
     void setElementLength(double length) override;
-    void setEz(double ez) override;
 
 private:
     void operator=(const ConstantEFieldCavityRep&);

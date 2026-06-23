@@ -45,8 +45,3 @@ StraightGeometry& ConstantEFieldCavityRep::getGeometry() { return geometry; }
 const StraightGeometry& ConstantEFieldCavityRep::getGeometry() const { return geometry; }
 
 void ConstantEFieldCavityRep::setElementLength(double length) { geometry.setElementLength(length); }
-
-void ConstantEFieldCavityRep::setEz(double ez) {
-    ConstantEFieldCavity::setEz(ez);
-    field.setEz(ez);
-}
