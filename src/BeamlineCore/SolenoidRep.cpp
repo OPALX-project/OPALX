@@ -34,7 +34,7 @@ namespace {
 SolenoidRep::SolenoidRep() : Solenoid(), geometry(), field() {}
 
 SolenoidRep::SolenoidRep(const SolenoidRep& right)
-    : Solenoid(right), geometry(right.geometry), field(right.field) {}
+    : Solenoid(right), geometry(right.geometry), field(right.field), Bz_m(right.Bz_m) {}
 
 SolenoidRep::SolenoidRep(const std::string& name) : Solenoid(name), geometry(), field() {}
 
@@ -60,6 +60,6 @@ StraightGeometry& SolenoidRep::getGeometry() { return geometry; }
 
 const StraightGeometry& SolenoidRep::getGeometry() const { return geometry; }
 
-double SolenoidRep::getBz() const { return field.getBz(); }
+double SolenoidRep::getBz() const { return Bz_m; }
 
-void SolenoidRep::setBz(double Bz) { field.setBz(Bz); }
+void SolenoidRep::setBz(double Bz) { Bz_m = Bz; }
