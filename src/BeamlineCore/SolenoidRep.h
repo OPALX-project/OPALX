@@ -74,6 +74,9 @@ private:
 
     /// The solenoid field.
     ConstBzField field;
+
+    /// Nominal on-axis field Bz in Teslas (backs the "BZ" channel attribute).
+    double Bz_m = 0.0;
 };
 
 #endif  // OPALX_SolenoidRep_HH
