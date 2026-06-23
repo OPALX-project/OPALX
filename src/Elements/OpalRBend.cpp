@@ -67,10 +67,10 @@ void OpalRBend::update() {
 
     // Define field.
     double factor = OpalData::getInstance()->getP0() / Physics::c;
-    double k0  = itsAttr[K0] ? Attributes::getReal(itsAttr[K0])
-                 : length    ? 2 * sin(angle / 2) / length
-                             : angle;
-    double k0s = itsAttr[K0S] ? Attributes::getReal(itsAttr[K0S]) : 0.0;
+    double k0     = itsAttr[K0] ? Attributes::getReal(itsAttr[K0])
+                    : length    ? 2 * sin(angle / 2) / length
+                                : angle;
+    double k0s    = itsAttr[K0S] ? Attributes::getReal(itsAttr[K0S]) : 0.0;
     // JMJ 4/10/2000: above line replaced
     //     length ? angle / length : angle;
     //  to avoid closed orbit created by RBEND with defalt K0.
