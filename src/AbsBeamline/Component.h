@@ -48,36 +48,6 @@ public:
     //  The representation of the electro-magnetic field of the component
     //  (version for constant object).
     virtual const EMField& getField() const = 0;
-
-    /// Return the field in a point.
-    //  Return the value of the time-independent part of the electric
-    //  field at point [b]P[/b].
-    EVector Efield(const Point3D& P) const;
-
-    /// Return the field in a point.
-    //  Return the value of the time-independent part of the magnetic
-    //  field at point [b]P[/b].
-    BVector Bfield(const Point3D& P) const;
-
-    /// Return the field in a point.
-    //  Return the value of the time-dependent part of the electric
-    //  field at point [b]P[/b] for time [b]t[/b].
-    EVector Efield(const Point3D& P, double t) const;
-
-    /// Return the field in a point.
-    //  Return the value of the time-dependent part of the magnetic
-    //  field at point [b]P[/b] for time [b]t[/b].
-    BVector Bfield(const Point3D& P, double t) const;
-
-    /// Return the field in a point.
-    //  Return the value of the time-independent part of both electric
-    //  and magnetic fields at point [b]P[/b].
-    EBVectors EBfield(const Point3D& P) const;
-
-    /// Return the field in a point.
-    //  Return the value of the time-dependent part of both electric
-    //  and magnetic fields at point [b]P[/b] for time [b]t[/b].
-    EBVectors EBfield(const Point3D& P, double t) const;
     /* ========================================================================== */
     /* ============================== Apply Functions =========================== */
     /**
@@ -225,27 +195,6 @@ protected:
     PartBunch_t* RefPartBunch_m;
     bool online_m;
 };
-
-// Inline access functions to fields.
-// ------------------------------------------------------------------------
-
-inline EVector Component::Efield(const Point3D& P) const { return getField().Efield(P); }
-
-inline BVector Component::Bfield(const Point3D& P) const { return getField().Bfield(P); }
-
-inline EVector Component::Efield(const Point3D& P, double t) const {
-    return getField().Efield(P, t);
-}
-
-inline BVector Component::Bfield(const Point3D& P, double t) const {
-    return getField().Bfield(P, t);
-}
-
-inline EBVectors Component::EBfield(const Point3D& P) const { return getField().EBfield(P); }
-
-inline EBVectors Component::EBfield(const Point3D& P, double t) const {
-    return getField().EBfield(P, t);
-}
 
 inline void Component::setExitFaceSlope(const double& m) { exit_face_slope_m = m; }
 
