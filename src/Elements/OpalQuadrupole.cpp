@@ -24,7 +24,6 @@
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/MultipoleRep.h"
-#include "Fields/BMultipoleField.h"
 #include "Physics/Physics.h"
 
 OpalQuadrupole::OpalQuadrupole()

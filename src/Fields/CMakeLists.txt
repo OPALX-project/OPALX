@@ -1,12 +1,4 @@
 set (_SRCS
-    # Default Field Classes
-    BDipoleField.cpp
-    BMultipoleField.cpp
-    ConstBField.cpp
-    ConstEzField.cpp
-    EMField.cpp
-    StaticElectricField.cpp
-    StaticMagneticField.cpp
 
     # Fieldmaps
     Fieldmap.cpp
@@ -46,14 +38,6 @@ add_subdirectory (Interpolation)
 
 
 set (HDRS
-    # Default Field Classes
-    BDipoleField.h
-    BMultipoleField.h
-    ConstBField.h
-    ConstEzField.h
-    EMField.h
-    StaticElectricField.h
-    StaticMagneticField.h
     
     # Fieldmaps
     Fieldmap.h

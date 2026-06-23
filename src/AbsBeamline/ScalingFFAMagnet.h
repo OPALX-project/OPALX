@@ -28,7 +28,6 @@
 #include "AbsBeamline/Component.h"
 #include "AbsBeamline/EndFieldModel/EndFieldModel.h"
 #include "BeamlineGeometry/PlanarArcGeometry.h"
-#include "Fields/BMultipoleField.h"
 
 #ifndef ABSBEAMLINE_ScalingFFAMagnet_H
 #define ABSBEAMLINE_ScalingFFAMagnet_H

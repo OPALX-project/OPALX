@@ -2,7 +2,6 @@
 #define OPALX_BendBase_HH
 
 #include "AbsBeamline/Component.h"
-#include "Fields/BMultipoleField.h"
 
 #include <Kokkos_Core.hpp>
 
