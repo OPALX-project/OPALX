@@ -63,16 +63,16 @@ StraightGeometry& TravelingWaveRep::getGeometry() { return geometry; }
 
 const StraightGeometry& TravelingWaveRep::getGeometry() const { return geometry; }
 
-double TravelingWaveRep::getAmplitude() const { return ignoreCavities ? 0.0 : field.getEz(); }
+double TravelingWaveRep::getAmplitude() const { return ignoreCavities ? 0.0 : getAmplitudem(); }
 
-double TravelingWaveRep::getFrequency() const { return field.getFrequency(); }
+double TravelingWaveRep::getFrequency() const { return getFrequencym(); }
 
-double TravelingWaveRep::getPhase() const { return field.getPhase(); }
+double TravelingWaveRep::getPhase() const { return getPhasem(); }
 
-void TravelingWaveRep::setAmplitude(double amplitude) { field.setEz(amplitude); }
+void TravelingWaveRep::setAmplitude(double amplitude) { setAmplitudem(amplitude); }
 
-void TravelingWaveRep::setFrequency(double frequency) { field.setFrequency(frequency); }
+void TravelingWaveRep::setFrequency(double frequency) { setFrequencym(frequency); }
 
-void TravelingWaveRep::setPhase(double phase) { field.setPhase(phase); }
+void TravelingWaveRep::setPhase(double phase) { setPhasem(phase); }
 
 void TravelingWaveRep::setIgnore(bool ignore) { ignoreCavities = ignore; }
