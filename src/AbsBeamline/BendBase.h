@@ -4,6 +4,8 @@
 #include "AbsBeamline/Component.h"
 #include "Fields/BMultipoleField.h"
 
+#include <Kokkos_Core.hpp>
+
 #include <cstddef>
 #include <string>
 #include <vector>
@@ -114,6 +116,13 @@ public:
     void setFieldMapFN(std::string fileName);
     std::string getFieldMapFN() const;
 
+    /// Store the normal/skew multipole coefficients into the device views read
+    /// by apply()/computeFieldHost(). Values are taken as-is (already scaled by
+    /// the caller).
+    void setFieldComponents(const std::vector<double>& normal, const std::vector<double>& skew);
+
+    /// Dipole normal component (the "BY" channel attribute), backed by the
+    /// coefficient views.
     double getB() const;
     void setB(double B);
 
@@ -156,8 +165,13 @@ protected:
     double getStoredExitAngle() const;
 
 private:
-    static void computeFieldHost(
-            const Vector_t<double, 3>& R, const BMultipoleField& field, Vector_t<double, 3>& B);
+    void computeFieldHost(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const;
+
+    /// Normal/skew multipole coefficients on the device, read by tracking.
+    Kokkos::View<double*> normalComponents_m;
+    Kokkos::View<double*> skewComponents_m;
+    int maxNormal_m = 0;
+    int maxSkew_m   = 0;
 
     double startField_m;
     double endField_m;
@@ -221,10 +235,6 @@ inline double BendBase::getFieldAmplitude() const { return fieldAmplitude_m; }
 inline void BendBase::setFieldMapFN(std::string fileName) { fileName_m = std::move(fileName); }
 
 inline std::string BendBase::getFieldMapFN() const { return fileName_m; }
-
-inline double BendBase::getB() const { return getField().getNormalComponent(0); }
-
-inline void BendBase::setB(double B) { getField().setNormalComponent(0, B); }
 
 inline void BendBase::setEntryFaceRotation(double rotation) { entryFaceRotation_m = rotation; }
 

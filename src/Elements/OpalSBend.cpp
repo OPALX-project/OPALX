@@ -70,7 +70,6 @@ void OpalSBend::update() {
 
     // Define field.
     double factor = OpalData::getInstance()->getP0() / Physics::c;
-    BMultipoleField field;
     double k0  = itsAttr[K0] ? Attributes::getReal(itsAttr[K0])
                  : length    ? 2 * sin(angle / 2) / length
                              : angle;
@@ -78,15 +77,15 @@ void OpalSBend::update() {
     // JMJ 4/10/2000: above line replaced
     //     length ? angle / length : angle;
     //  to avoid closed orbit created by SBEND with defalt K0.
-    field.setNormalComponent(0, factor * k0);
-    field.setSkewComponent(0, factor * Attributes::getReal(itsAttr[K0S]));
-    field.setNormalComponent(1, factor * Attributes::getReal(itsAttr[K1]));
-    field.setSkewComponent(1, factor * Attributes::getReal(itsAttr[K1S]));
-    field.setNormalComponent(2, factor * Attributes::getReal(itsAttr[K2]) / 2.0);
-    field.setSkewComponent(2, factor * Attributes::getReal(itsAttr[K2S]) / 2.0);
-    field.setNormalComponent(3, factor * Attributes::getReal(itsAttr[K3]) / 6.0);
-    field.setSkewComponent(3, factor * Attributes::getReal(itsAttr[K3S]) / 6.0);
-    bend->setField(field);
+    const std::vector<double> normal = {
+            factor * k0, factor * Attributes::getReal(itsAttr[K1]),
+            factor * Attributes::getReal(itsAttr[K2]) / 2.0,
+            factor * Attributes::getReal(itsAttr[K3]) / 6.0};
+    const std::vector<double> skew = {
+            factor * Attributes::getReal(itsAttr[K0S]), factor * Attributes::getReal(itsAttr[K1S]),
+            factor * Attributes::getReal(itsAttr[K2S]) / 2.0,
+            factor * Attributes::getReal(itsAttr[K3S]) / 6.0};
+    bend->setFieldComponents(normal, skew);
 
     // Set field amplitude or bend angle.
     if (itsAttr[ANGLE]) {
