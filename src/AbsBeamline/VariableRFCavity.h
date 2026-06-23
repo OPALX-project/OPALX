@@ -212,11 +212,6 @@ public:
      */
     void initialiseTimeDependencies() const;
 
-    /// Not implemented
-    EMField& getField() override;
-    /// Not implemented
-    const EMField& getField() const override;
-
 protected:
     void initNull();
     mutable std::shared_ptr<AbstractTimeDependence> phaseTD_m;

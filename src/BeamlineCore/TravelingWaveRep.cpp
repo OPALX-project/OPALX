@@ -55,10 +55,6 @@ Channel* TravelingWaveRep::getChannel(const std::string& aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
-AcceleratingField& TravelingWaveRep::getField() { return field; }
-
-const AcceleratingField& TravelingWaveRep::getField() const { return field; }
-
 StraightGeometry& TravelingWaveRep::getGeometry() { return geometry; }
 
 const StraightGeometry& TravelingWaveRep::getGeometry() const { return geometry; }

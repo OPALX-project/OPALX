@@ -118,12 +118,6 @@ public:
     // @brief Apply visitor to Multipole.
     virtual void accept(BeamlineVisitor&) const override;
 
-    // @brief Get multipole field.
-    virtual BMultipoleField& getField() override = 0;
-
-    // @breif Get multipole field. Version for const object.
-    virtual const BMultipoleField& getField() const override = 0;
-
     // @returns Is the n-th component focusing?
     bool isFocusing(int n) const;
 
