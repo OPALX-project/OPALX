@@ -50,17 +50,7 @@
 #include "AbsBeamline/Monitor.h"
 #undef private
 
-#include "Fields/EMField.h"
-
 #include <memory>
-
-// ---------------------------------------------------------------------------
-// Dummy field
-// ---------------------------------------------------------------------------
-class DummyMonitorField : public EMField {
-public:
-    void scale(double) override {}
-};
 
 // ---------------------------------------------------------------------------
 // Minimal concrete Monitor
@@ -77,10 +67,6 @@ public:
 
     const StraightGeometry& getGeometry() const override { return geom_; }
 
-    EMField& getField() override { return field_; }
-
-    const EMField& getField() const override { return field_; }
-
     Plane getPlane() const override { return plane_; }
 
     void setPlane(Plane plane) { plane_ = plane; }
@@ -89,7 +75,6 @@ public:
 
 private:
     StraightGeometry geom_;
-    DummyMonitorField field_;
     Plane plane_ = OFF;
 };
 

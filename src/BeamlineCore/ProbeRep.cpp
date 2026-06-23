@@ -29,12 +29,11 @@ namespace {
             {"L", &ProbeRep::getElementLength, &ProbeRep::setElementLength}, {0, 0, 0}};
 }  // namespace
 
-ProbeRep::ProbeRep() : Probe(), field(), geometry(), active(true) {}
+ProbeRep::ProbeRep() : Probe(), geometry(), active(true) {}
 
-ProbeRep::ProbeRep(const ProbeRep& right)
-    : Probe(right), field(), geometry(right.geometry), active(true) {}
+ProbeRep::ProbeRep(const ProbeRep& right) : Probe(right), geometry(right.geometry), active(true) {}
 
-ProbeRep::ProbeRep(const std::string& name) : Probe(name), field(), geometry(), active(true) {}
+ProbeRep::ProbeRep(const std::string& name) : Probe(name), geometry(), active(true) {}
 
 ProbeRep::~ProbeRep() {}
 
@@ -49,10 +48,6 @@ Channel* ProbeRep::getChannel(const std::string& aKey, bool create) {
 
     return ElementBase::getChannel(aKey, create);
 }
-
-NullField& ProbeRep::getField() { return field; }
-
-const NullField& ProbeRep::getField() const { return field; }
 
 StraightGeometry& ProbeRep::getGeometry() { return geometry; }
 

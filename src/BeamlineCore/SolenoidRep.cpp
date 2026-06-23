@@ -31,12 +31,12 @@ namespace {
             {0, 0, 0}};
 }  // namespace
 
-SolenoidRep::SolenoidRep() : Solenoid(), geometry(), field() {}
+SolenoidRep::SolenoidRep() : Solenoid(), geometry() {}
 
 SolenoidRep::SolenoidRep(const SolenoidRep& right)
-    : Solenoid(right), geometry(right.geometry), field(right.field), Bz_m(right.Bz_m) {}
+    : Solenoid(right), geometry(right.geometry), Bz_m(right.Bz_m) {}
 
-SolenoidRep::SolenoidRep(const std::string& name) : Solenoid(name), geometry(), field() {}
+SolenoidRep::SolenoidRep(const std::string& name) : Solenoid(name), geometry() {}
 
 SolenoidRep::~SolenoidRep() {}
 
@@ -51,10 +51,6 @@ Channel* SolenoidRep::getChannel(const std::string& aKey, bool create) {
 
     return ElementBase::getChannel(aKey, create);
 }
-
-ConstBzField& SolenoidRep::getField() { return field; }
-
-const ConstBzField& SolenoidRep::getField() const { return field; }
 
 StraightGeometry& SolenoidRep::getGeometry() { return geometry; }
 

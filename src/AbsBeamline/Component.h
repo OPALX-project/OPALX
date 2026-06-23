@@ -38,17 +38,6 @@ public:
     Component(const Component& right);
     virtual ~Component();
     /* ========================================================================== */
-    /* ============================== Field Functions =========================== */
-    /// Return field.
-    //  The representation of the electro-magnetic field of the component
-    //  (version for non-constant object).
-    virtual EMField& getField() = 0;
-
-    /// Return field.
-    //  The representation of the electro-magnetic field of the component
-    //  (version for constant object).
-    virtual const EMField& getField() const = 0;
-    /* ========================================================================== */
     /* ============================== Apply Functions =========================== */
     /**
      * Apply functions apply the components electromagnetic field to the

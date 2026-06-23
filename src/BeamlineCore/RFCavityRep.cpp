@@ -55,10 +55,6 @@ Channel* RFCavityRep::getChannel(const std::string& aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
-AcceleratingField& RFCavityRep::getField() { return field; }
-
-const AcceleratingField& RFCavityRep::getField() const { return field; }
-
 StraightGeometry& RFCavityRep::getGeometry() { return geometry; }
 
 const StraightGeometry& RFCavityRep::getGeometry() const { return geometry; }

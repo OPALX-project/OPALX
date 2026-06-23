@@ -20,7 +20,6 @@
 
 #include "AbsBeamline/Solenoid.h"
 #include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/ConstBzField.h"
 
 class SolenoidRep : public Solenoid {
 public:
@@ -40,14 +39,6 @@ public:
     //  the attribute [b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns nullptr.
     virtual Channel* getChannel(const std::string& aKey, bool = false);
-
-    /// Get field.
-    //  Version for non-constant object.
-    virtual ConstBzField& getField();
-
-    /// Get field.
-    //  Version for constant object.
-    virtual const ConstBzField& getField() const;
 
     /// Get geometry.
     //  Version for non-constant object.
@@ -71,9 +62,6 @@ private:
 
     /// The solenoid geometry.
     StraightGeometry geometry;
-
-    /// The solenoid field.
-    ConstBzField field;
 
     /// Nominal on-axis field Bz in Teslas (backs the "BZ" channel attribute).
     double Bz_m = 0.0;

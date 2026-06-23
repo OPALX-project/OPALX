@@ -152,9 +152,6 @@ public:
 
     int getRequiredNumberOfTimeSteps() const override;
 
-    virtual BMultipoleField& getField() override             = 0;
-    virtual const BMultipoleField& getField() const override = 0;
-
 protected:
     double calcDesignRadius(double fieldAmplitude) const;
     double calcFieldAmplitude(double radius) const;

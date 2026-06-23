@@ -3,7 +3,6 @@
 
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/ConstEzField.h"
 
 class ConstantEFieldCavityRep : public ConstantEFieldCavity {
 public:
@@ -16,9 +15,6 @@ public:
 
     Channel* getChannel(const std::string& aKey, bool = false) override;
 
-    ConstEzField& getField() override;
-    const ConstEzField& getField() const override;
-
     StraightGeometry& getGeometry() override;
     const StraightGeometry& getGeometry() const override;
 
@@ -28,7 +24,6 @@ private:
     void operator=(const ConstantEFieldCavityRep&);
 
     StraightGeometry geometry;
-    ConstEzField field;
 };
 
 #endif  // OPALX_ConstantEFieldCavityRep_HH

@@ -109,12 +109,6 @@ public:
     /** Return the cell geometry */
     const BGeometryBase& getGeometry() const;
 
-    /** Return a dummy (0.) field value (what is this for?) */
-    EMField& getField();
-
-    /** Return a dummy (0.) field value (what is this for?) */
-    const EMField& getField() const;
-
     /** Accept a beamline visitor */
     void accept(BeamlineVisitor& visitor) const;
 
@@ -196,7 +190,6 @@ private:
 
     VerticalFFAMagnet& operator=(const VerticalFFAMagnet& rhs);
     StraightGeometry straightGeometry_m;
-    BMultipoleField dummy;
 
     size_t maxOrder_m   = 0;
     double k_m          = 0.;
