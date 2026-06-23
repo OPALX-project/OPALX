@@ -3,7 +3,6 @@
 
 #include "AbsBeamline/Component.h"
 #include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/BMultipoleField.h"
 
 class Fieldmap;
 constexpr int MAX_MP_ORDER = 5;

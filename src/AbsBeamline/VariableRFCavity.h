@@ -22,7 +22,6 @@
 #include "AbsBeamline/Component.h"
 #include "Algorithms/AbstractTimeDependence.h"
 #include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/EMField.h"
 #include "Physics/Physics.h"
 
 /** @class VariableRFCavity

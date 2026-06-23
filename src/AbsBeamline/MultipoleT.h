@@ -65,7 +65,6 @@
 #include <vector>
 #include "AbsBeamline/Component.h"
 #include "Algorithms/AbstractTimeDependence.h"
-#include "Fields/BMultipoleField.h"
 #include "MultipoleTBase.h"
 #include "MultipoleTConfig.h"
 

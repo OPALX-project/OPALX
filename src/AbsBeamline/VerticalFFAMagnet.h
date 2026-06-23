@@ -9,7 +9,6 @@
 
 #include "AbsBeamline/Component.h"
 #include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/BMultipoleField.h"
 #include "PartBunch/PartBunch.h"
 
 #ifndef ABSBEAMLINE_VerticalFFAMagnet_H

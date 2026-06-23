@@ -24,7 +24,6 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/Component.h"
 #include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/BDipoleField.h"
 
 // Class Corrector
 // ------------------------------------------------------------------------

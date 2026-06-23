@@ -20,7 +20,6 @@
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/RBendRep.h"
-#include "Fields/BMultipoleField.h"
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
 

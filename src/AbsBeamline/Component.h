@@ -13,7 +13,6 @@
 #define OPALX_Component_HH
 
 #include "AbsBeamline/ElementBase.h"
-#include "Fields/EMField.h"
 #include "OPALTypes.h"
 
 #include <memory>
