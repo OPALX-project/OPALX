@@ -366,10 +366,6 @@ void ParallelTracker::execute() {
             // First half of the time integration
             timeIntegration1(pusher);
             m << level4 << "timeIntegration1 done at step " << step << "." << endl;
-            const size_t nSourceMarkedAfterPush = markBackwardParticlesAtSourcePlane();
-            if (nSourceMarkedAfterPush > 0) {
-                deleteInvalidParticles(true, m, "backward source-plane particles after first push");
-            }
             itsBunch_m->bunchUpdate();
             m << level5 << "Bunch updated after timeIntegration1." << endl;
 
@@ -421,10 +417,6 @@ void ParallelTracker::execute() {
             // Second half of the time integration
             timeIntegration2(pusher);
             m << level4 << "timeIntegration2 done at step " << step << "." << endl;
-            const size_t nSourceMarkedAfterStep = markBackwardParticlesAtSourcePlane();
-            if (nSourceMarkedAfterStep > 0) {
-                deleteInvalidParticles(true, m, "backward source-plane particles");
-            }
             itsBunch_m->bunchUpdate();
             m << level5 << "Bunch updated after timeIntegration2." << endl;
 
@@ -650,6 +642,30 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
                 "space charge effects, please use TYPE=NONE for the field solver.");
     }
 
+    const size_t totalParticles = itsBunch_m->getTotalNumAllContainers();
+    if (totalParticles <= static_cast<size_t>(Options::minBinEmitted)) {
+        m << level4 << "Skipping space charge until more than MINBINEMITTED="
+          << Options::minBinEmitted << " particles are present (total=" << totalParticles << ")."
+          << endl;
+        return;
+    }
+
+    bool emissionMeshStretchActive = false;
+    double emittedFraction         = 1.0;
+    const double currentTime       = itsBunch_m->getT();
+    for (const auto& samplers : emittingSamplers_m) {
+        for (const auto& sampler : samplers) {
+            if (!sampler || sampler->isEmissionDone(currentTime)) {
+                continue;
+            }
+            const double samplerFraction = sampler->getEmittedFraction();
+            if (samplerFraction < 1.0) {
+                emissionMeshStretchActive = true;
+                emittedFraction           = std::min(emittedFraction, samplerFraction);
+            }
+        }
+    }
+
     itsBunch_m->calcBeamParameters();
     m << level4 << "Calculate beam parameters done." << endl;
 
@@ -678,7 +694,9 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
             itsBunch_m->getParticleContainer()->R.getView(),
             itsBunch_m->getParticleContainer()->getLocalNum());
     m << level4 << "Transform particle positions to beam coordinate system done." << endl;
+    itsBunch_m->setEmissionMeshProgress(emissionMeshStretchActive, emittedFraction);
     itsBunch_m->bunchUpdate();
+    itsBunch_m->setEmissionMeshProgress(false, 1.0);
     m << level5 << "Bunch updated for positions in beam coordinate system." << endl;
 
     // TODO: itsBunch_m->boundp() not implemented yet.
