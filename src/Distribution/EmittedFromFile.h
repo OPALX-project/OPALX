@@ -80,6 +80,20 @@ public:
     }
 
     /**
+     * @brief Returns the fraction of selected file records already emitted.
+     *
+     * @return Value in [0, 1], or 1 if there is no pending inventory.
+     */
+    double getEmittedFraction() const override {
+        if (!inventoryBuilt_m || records_m.empty()) {
+            return 1.0;
+        }
+        return std::min(
+                1.0,
+                static_cast<double>(nextGlobalIndex_m) / static_cast<double>(records_m.size()));
+    }
+
+    /**
      * @brief Reports whether an initial reference momentum is available.
      *
      * @return True after the file inventory has been built.

@@ -650,8 +650,32 @@ void PartBunch<T, Dim>::computeBoundsForFieldSolve(
         }
     }
 
-    lower = lower - span * this->OPALFieldSolver_m->getBoxIncr() / 100.0;
-    upper = upper + span * this->OPALFieldSolver_m->getBoxIncr() / 100.0;
+    const double boxFraction = this->OPALFieldSolver_m->getBoxIncr() / 100.0;
+    lower                   = lower - span * boxFraction;
+    upper                   = upper + span * boxFraction;
+
+    if constexpr (Dim >= 3) {
+        if (emissionMeshStretchActive_m) {
+            const int nzMinusOne     = std::max(1, nr_m[2] - 1);
+            const double minFraction = 1.0 / static_cast<double>(nzMinusOne);
+            const double percent =
+                    std::max(minFraction, std::clamp(emissionMeshFraction_m, 0.0, 1.0));
+            double length = std::abs(upper[2] - lower[2]) / (1.0 + 2.0 * boxFraction);
+
+            if (percent < 1.0 && percent > 0.0 && length > 0.0) {
+                upper[2] -= boxFraction * length;
+                lower[2] = upper[2] - length / percent;
+
+                length /= percent;
+
+                upper[2] += boxFraction * length;
+                lower[2] -= boxFraction * length;
+
+                m << level4 << "Applied emitted-beam z mesh stretch with fraction " << percent
+                  << "." << endl;
+            }
+        }
+    }
 }
 
 template <typename T, unsigned Dim>
@@ -700,6 +724,12 @@ void PartBunch<T, Dim>::setImageChargeConfiguration(bool enabled, double zPlane)
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::setShiftedGreensConfiguration(bool enabled, double zPlane) {
     this->getFieldSolver()->setShiftedGreensConfiguration(enabled, zPlane);
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::setEmissionMeshProgress(bool active, double emittedFraction) {
+    emissionMeshStretchActive_m = active;
+    emissionMeshFraction_m      = std::clamp(emittedFraction, 0.0, 1.0);
 }
 
 template <typename T, unsigned Dim>

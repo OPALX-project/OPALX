@@ -88,6 +88,9 @@ public:
         return hasEmittedOnce_m;
     }
 
+    /// @brief Fraction of the emission inventory that has already entered the simulation.
+    virtual double getEmittedFraction() const { return hasEmittedOnce_m ? 1.0 : 0.0; }
+
     /// @brief Optional tracker time shift needed before the first emitted particles are born.
     virtual double getGlobalTimeShift() const { return 0.0; }
 
