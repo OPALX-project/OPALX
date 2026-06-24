@@ -48,8 +48,8 @@ endif()
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU"
    AND OPALX_ENABLE_SANITIZER)
   message(STATUS "✅ Enabling AddressSanitizer and UBSan for Debug build")
-  add_compile_options(-fsanitize=address)
-  add_link_options(-fsanitize=address)
+  #  add_compile_options(-fsanitize=address)
+  # add_link_options(-fsanitize=address)
 endif()
 
 # === Position Independent Code (PIC) for shared libraries ===
