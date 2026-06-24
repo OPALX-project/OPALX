@@ -67,6 +67,7 @@
 #include "changes.h"
 
 #include "Utilities/BiMap.h"
+#include "Utilities/Util.h"
 
 #include <algorithm>
 #include <cmath>
@@ -750,10 +751,26 @@ void TrackRun::setupDistributionsAndSamplers(
         }
 
         // Per-source emission offsets, start time, and emission model.
-        const auto R0   = src->getR0();
-        const auto P0   = src->getP0();
-        const double t0 = src->getT0();
-        sampler->setEmissionOffsets(R0, P0, t0, src->getEmissionModel());
+        const auto R0                = src->getR0();
+        auto P0                      = src->getP0();
+        const double t0              = src->getT0();
+        const std::string emitModel  = src->getEmissionModel();
+        const bool generatedEmission = opalDist->emitting_m
+                                       && opalDist->getType() != DistributionType::FROMFILE
+                                       && opalDist->getType() != DistributionType::EMITTEDFROMFILE;
+        const double eKin = src->hasKineticEnergy() ? src->getKineticEnergy()
+                                                    : opalDist->getEmissionKineticEnergy();
+        if (generatedEmission && eKin > 0.0) {
+            const double thermalP = Util::getBetaGamma(eKin, beam->getMass() * Units::GeV2eV);
+            if (emitModel == "NONE") {
+                P0[2] += thermalP;
+            } else if (emitModel == "ASTRA") {
+                P0[0] = 0.0;
+                P0[1] = 0.0;
+                P0[2] = thermalP;
+            }
+        }
+        sampler->setEmissionOffsets(R0, P0, t0, emitModel);
 
         // Initial polarization from BEAM (ignored if container has no spin attribute).
         const std::vector<double> pol = beam->getPolarization();

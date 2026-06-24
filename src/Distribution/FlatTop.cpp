@@ -1,6 +1,5 @@
 #include "FlatTop.h"
 #include <cmath>
-#include <functional>
 #include <memory>
 #include "Distribution.h"
 #include "SamplingBase.hpp"
@@ -349,8 +348,7 @@ FlatTop::size_type FlatTop::countEnteringParticlesPerRank(double t0, double tf) 
 }
 
 void FlatTop::allocateParticles(size_t numberOfParticles) {
-    totalN_m        = numberOfParticles;
-    totalEmitted_m = 0;
+    totalN_m = numberOfParticles;
 
     // Initial allocation is now handled centrally in TrackRun / PartBunch via the
     // bunch's total particle count. Here we only record the desired total number
@@ -387,10 +385,6 @@ void FlatTop::emitParticles(double t, double dt) {
     generateUniformDisk(nlocal, nNew, dt);
 
     fillPolarization(nlocal, nNew);
-
-    size_type globalNew = 0;
-    ippl::Comm->allreduce(nNew, globalNew, 1, std::plus<size_type>());
-    totalEmitted_m += static_cast<size_t>(globalNew);
 
     pc_m->markMomentsDirty();
 

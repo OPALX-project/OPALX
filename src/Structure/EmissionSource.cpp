@@ -54,6 +54,13 @@ EmissionSource::EmissionSource()
             "ASTRA: 3D isotropic thermal emission on forward half-sphere.",
             {"NONE", "ASTRA"}, "NONE");
 
+    itsAttr[EKIN] = Attributes::makeReal(
+            "EKIN",
+            "Kinetic emission energy [eV]. For EMISSIONMODEL=NONE it is added as "
+            "longitudinal beta*gamma; for EMISSIONMODEL=ASTRA it sets the thermal "
+            "momentum magnitude.",
+            0.0);
+
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
@@ -130,3 +137,9 @@ int EmissionSource::getZerofaceMaxSteps() const {
 std::string EmissionSource::getEmissionModel() const {
     return Attributes::getString(itsAttr[EMISSIONMODEL]);
 }
+
+double EmissionSource::getKineticEnergy() const {
+    return std::abs(Attributes::getReal(itsAttr[EKIN]));
+}
+
+bool EmissionSource::hasKineticEnergy() const { return !itsAttr[EKIN].defaultUsed(); }

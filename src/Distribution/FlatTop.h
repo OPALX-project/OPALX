@@ -7,7 +7,6 @@
 #define IPPL_FLAT_TOP_H
 
 #include <Kokkos_Random.hpp>
-#include <algorithm>
 #include <cmath>
 #include <memory>
 #include "Distribution.h"
@@ -111,16 +110,6 @@ public:
     /// @copydoc SamplingBase::isEmissionDone
     bool isEmissionDone(double t) const override { return (t - t0_m) >= emissionTime_m; }
 
-    /// @copydoc SamplingBase::getEmittedFraction
-    double getEmittedFraction() const override {
-        if (totalN_m == 0) {
-            return 1.0;
-        }
-        return std::clamp(
-                static_cast<double>(totalEmitted_m) / static_cast<double>(totalN_m), 0.0,
-                1.0);
-    }
-
 private:
     using size_type = ippl::detail::size_type;
     GeneratorPool rand_pool_m;      ///< Random number generator pool.
@@ -134,7 +123,6 @@ private:
     double riseTime_m;              ///< Time duration for the rise phase.
     bool emitting_m;                ///< Flag for particle emission status.
     size_type totalN_m;             ///< Total number of particles.
-    size_t totalEmitted_m = 0;      ///< Total number of particles emitted so far.
     bool withDomainDecomp_m;        ///< Flag for domain decomposition.
     double emissionTime_m;          ///< Total emission time.
     Vector_t<double, 3> nr_m;       ///< Number of grid points per direction.
