@@ -167,10 +167,11 @@ void FM2DMagnetoStatic::readMap() {
             }
         }
 
-        FieldstrengthBz_m.modify<Kokkos::HostSpace>();
-        FieldstrengthBz_m.sync<Kokkos::DefaultExecutionSpace>();
-        FieldstrengthBr_m.modify<Kokkos::HostSpace>();
-        FieldstrengthBr_m.sync<Kokkos::DefaultExecutionSpace>();
+        FieldstrengthBz_m.modify<typename decltype(FieldstrengthBz_m)::host_mirror_space>();
+        FieldstrengthBz_m.sync<typename decltype(FieldstrengthBz_m)::t_dev::device_type>();
+
+        FieldstrengthBr_m.modify<typename decltype(FieldstrengthBr_m)::host_mirror_space>();
+        FieldstrengthBr_m.sync<typename decltype(FieldstrengthBr_m)::t_dev::device_type>();
 
         *ippl::Info << level3 << typeset_msg("read in fieldmap '" + Filename_m + "'", "info")
                     << endl;
