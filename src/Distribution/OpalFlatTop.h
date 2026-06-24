@@ -102,21 +102,6 @@ public:
     }
 
     /**
-     * @brief Returns the fraction of the birth-time inventory already emitted.
-     *
-     * @return Value in [0, 1], or 1 if there is no pending inventory.
-     */
-    double getEmittedFraction() const override {
-        if (!inventoryBuilt_m || birthTimes_m.empty()) {
-            return 1.0;
-        }
-        return std::min(
-                1.0,
-                static_cast<double>(nextGlobalIndex_m)
-                        / static_cast<double>(birthTimes_m.size()));
-    }
-
-    /**
      * @brief Returns the global time shift needed to center old-OPAL pulse times.
      *
      * @return Non-negative shift from source time to the midpoint of the emission window.

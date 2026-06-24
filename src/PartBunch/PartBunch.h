@@ -120,9 +120,6 @@ private:
 
     double rmsDensity_m;  ///< Legacy RMS density placeholder (may still appear in stats).
 
-    bool emissionMeshStretchActive_m = false;  ///< Apply old-OPAL emitted-beam z mesh stretch.
-    double emissionMeshFraction_m    = 1.0;    ///< Fraction of emission already completed.
-
 public:
     /**
      * @brief Construct a multi-beam bunch: mesh, solver, containers, and capacity.
@@ -211,18 +208,6 @@ public:
      * @param zPlane  Dirichlet plane position in z [m].
      */
     void setShiftedGreensConfiguration(bool enabled, double zPlane);
-
-    /**
-     * @brief Configure the old-OPAL emitted-beam longitudinal mesh stretch.
-     *
-     * The flag is intended for the beam-frame space-charge mesh while particles
-     * are still being emitted. It is cleared before ordinary reference-frame
-     * mesh updates.
-     *
-     * @param active          Enable the emitted-beam z stretch.
-     * @param emittedFraction Fraction of the emission inventory already emitted.
-     */
-    void setEmissionMeshProgress(bool active, double emittedFraction);
 
     /**
      * @brief Configure diagnostic dump frequency for the ZEROFACE plane potential.

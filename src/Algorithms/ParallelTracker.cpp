@@ -650,22 +650,6 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
         return;
     }
 
-    bool emissionMeshStretchActive = false;
-    double emittedFraction         = 1.0;
-    const double currentTime       = itsBunch_m->getT();
-    for (const auto& samplers : emittingSamplers_m) {
-        for (const auto& sampler : samplers) {
-            if (!sampler || sampler->isEmissionDone(currentTime)) {
-                continue;
-            }
-            const double samplerFraction = sampler->getEmittedFraction();
-            if (samplerFraction < 1.0) {
-                emissionMeshStretchActive = true;
-                emittedFraction           = std::min(emittedFraction, samplerFraction);
-            }
-        }
-    }
-
     itsBunch_m->calcBeamParameters();
     m << level4 << "Calculate beam parameters done." << endl;
 
@@ -694,9 +678,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
             itsBunch_m->getParticleContainer()->R.getView(),
             itsBunch_m->getParticleContainer()->getLocalNum());
     m << level4 << "Transform particle positions to beam coordinate system done." << endl;
-    itsBunch_m->setEmissionMeshProgress(emissionMeshStretchActive, emittedFraction);
     itsBunch_m->bunchUpdate();
-    itsBunch_m->setEmissionMeshProgress(false, 1.0);
     m << level5 << "Bunch updated for positions in beam coordinate system." << endl;
 
     // TODO: itsBunch_m->boundp() not implemented yet.
