@@ -205,6 +205,7 @@ public:
         trafo.rotateBunchTo(this->P.getView(), nLoc);
         trafo.rotateBunchTo(this->E.getView(), nLoc);
         trafo.rotateBunchTo(this->B.getView(), nLoc);
+        markMomentsDirty();
     }
     PLayout_t<T, Dim>& getPL() { return pl_m; }
 
