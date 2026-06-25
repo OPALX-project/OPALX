@@ -206,35 +206,59 @@ void ParallelTracker::execute() {
                     "Particle container has null PartData reference during lab-frame init.");
         }
         pc->setToLabTrafo(beamlineToLab);
-        pc->getRefPartR() = beamlineToLab.transformTo(Vector_t<double, 3>(0, 0, 0));
+
+        // Resolve the reference particle's pose in the beamline frame. Position and
+        // momentum follow the same 3-tier rule: the bunch mean when particles already
+        // exist; otherwise the input-specified emission offsets (R0, P0) reported by
+        // the sampler; otherwise the design pose (lattice origin, beta*gamma along +z).
+        Vector_t<double, 3> refR = 0.0;
+        Vector_t<double, 3> refP = 0.0;
         if (pc->getTotalNum() > 0) {
-            pc->getRefPartP() = beamlineToLab.rotateTo(pc->getMeanP());
+            refR = pc->getMeanR();
+            refP = pc->getMeanP();
         } else {
-            bool useSamplerReference        = false;
+            // Empty container (e.g. an emitted distribution before its first emission):
+            // the bunch mean is undefined, so take the emission offsets from the sampler.
+            bool useSamplerPosition         = false;
+            bool useSamplerMomentum         = false;
+            Vector_t<double, 3> samplerRefR = 0.0;
             Vector_t<double, 3> samplerRefP = 0.0;
             if (ci < emittingSamplers_m.size()) {
                 for (const auto& sampler : emittingSamplers_m[ci]) {
-                    if (sampler && sampler->hasInitialReferenceMomentum()) {
-                        samplerRefP         = sampler->getInitialReferenceMomentum();
-                        useSamplerReference = true;
-                        break;
+                    if (!sampler) {
+                        continue;
+                    }
+                    if (!useSamplerMomentum && sampler->hasInitialReferenceMomentum()) {
+                        samplerRefP        = sampler->getInitialReferenceMomentum();
+                        useSamplerMomentum = true;
+                    }
+                    if (!useSamplerPosition && sampler->hasInitialReferencePosition()) {
+                        samplerRefR        = sampler->getInitialReferencePosition();
+                        useSamplerPosition = true;
                     }
                 }
             }
 
-            if (useSamplerReference) {
+            // Position: emission offset R0, else the lattice origin.
+            refR = useSamplerPosition ? samplerRefR : Vector_t<double, 3>(0.0);
+
+            // Momentum: emission offset P0, else the design beta*gamma along +z.
+            if (useSamplerMomentum) {
                 if (dot(samplerRefP, samplerRefP) <= 0.0) {
                     throw OpalException(
                             "ParallelTracker::execute",
                             "Sampler-provided initial reference momentum is zero.");
                 }
-                pc->getRefPartP() = beamlineToLab.rotateTo(samplerRefP);
+                refP = samplerRefP;
             } else {
                 const PartData& pref = *pc->getReference();
                 const double P0      = pref.getP() / pref.getM();  // beta*gamma from BEAM pc
-                pc->getRefPartP()    = beamlineToLab.rotateTo(Vector_t<double, 3>(0.0, 0.0, P0));
+                refP                 = Vector_t<double, 3>(0.0, 0.0, P0);
             }
         }
+
+        pc->getRefPartR() = beamlineToLab.transformTo(refR);
+        pc->getRefPartP() = beamlineToLab.rotateTo(refP);
     }
 
     m << level4
