@@ -931,6 +931,8 @@ Inform& TrackRun::print(Inform& os) const {
     os << "* Phase space dump frequency    = " << Options::psDumpFreq << '\n'
        << "* Statistics dump frequency     = " << Options::statDumpFreq << " w.r.t. the time step."
        << '\n'
+       << "* Rank distribution print freq. = " << Options::printRankDistrFreq
+       << " w.r.t. the time step." << '\n'
        << "* DT                            = " << Track::block->dT.front() << " [s]\n"
        << "* MAXSTEPS                      = " << Track::block->localTimeSteps.front() << '\n';
 

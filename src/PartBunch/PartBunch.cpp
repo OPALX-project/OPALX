@@ -221,7 +221,7 @@ void PartBunch<T, Dim>::do_binaryRepart() {
     Inform m("PartBunch::do_binaryRepart");
     m << level2
       << "Binary load-balancer repartition is disabled while the ORB path is "
-         "not wired for the current multi-container bunch state; skipping."
+         "not wired for the current moving-mesh space-charge flow; skipping."
       << endl;
 }
 

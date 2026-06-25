@@ -61,6 +61,7 @@ namespace {
         PSDUMPFREQ,
         STATDUMPFREQ,
         STEPINFOFQ,
+        PRINTRANKDISTRFQ,
         PSDUMPEACHTURN,
         PSDUMPFRAME,
         SPTDUMPFREQ,
@@ -142,6 +143,12 @@ Option::Option()
             "The frequency to print per-step tracking status lines. "
             "A value of 0 disables these status lines; its default value is 1.",
             stepInfoFreq);
+
+    itsAttr[PRINTRANKDISTRFQ] = Attributes::makeReal(
+            "PRINTRANKDISTRFQ",
+            "The frequency to print per-rank particle distribution tables. "
+            "A value of 0 disables these tables; its default value is 0.",
+            printRankDistrFreq);
 
     itsAttr[PSDUMPEACHTURN] = Attributes::makeBool(
             "PSDUMPEACHTURN",
@@ -360,6 +367,7 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setReal(itsAttr[PSDUMPFREQ], psDumpFreq);
     Attributes::setReal(itsAttr[STATDUMPFREQ], statDumpFreq);
     Attributes::setReal(itsAttr[STEPINFOFQ], stepInfoFreq);
+    Attributes::setReal(itsAttr[PRINTRANKDISTRFQ], printRankDistrFreq);
     Attributes::setBool(itsAttr[PSDUMPEACHTURN], psDumpEachTurn);
     Attributes::setPredefinedString(itsAttr[PSDUMPFRAME], getDumpFrameString(psDumpFrame));
     Attributes::setReal(itsAttr[SPTDUMPFREQ], sptDumpFreq);
@@ -474,6 +482,11 @@ void Option::execute() {
     if (itsAttr[STEPINFOFQ]) {
         stepInfoFreq = int(Attributes::getReal(itsAttr[STEPINFOFQ]));
         if (stepInfoFreq < 0) stepInfoFreq = 0;
+    }
+
+    if (itsAttr[PRINTRANKDISTRFQ]) {
+        printRankDistrFreq = int(Attributes::getReal(itsAttr[PRINTRANKDISTRFQ]));
+        if (printRankDistrFreq < 0) printRankDistrFreq = 0;
     }
 
     if (itsAttr[SPTDUMPFREQ]) {
