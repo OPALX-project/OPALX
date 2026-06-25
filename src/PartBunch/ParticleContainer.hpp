@@ -748,7 +748,7 @@ public:
         m << level4 << std::setw(32) << "Size of underlying view:" << this->R.size() << endl;
     }
 
-    void printRankLoadInfo() const {
+    void printRankLoadInfo(const std::string& label = "") const {
         const int nranks = ippl::Comm->size();
         const int rank   = ippl::Comm->rank();
         const int root   = 0;
@@ -784,7 +784,11 @@ public:
         constexpr int labelWidth = 24;
         constexpr int colWidth   = 12;
 
-        m << level2 << "Particle load by rank" << endl;
+        m << level2 << "Particle load by rank";
+        if (!label.empty()) {
+            m << " (" << label << ")";
+        }
+        m << endl;
         m << level2 << std::left << std::setw(labelWidth) << "Metric";
         for (int r = 0; r < nranks; ++r) {
             m << " | " << std::right << std::setw(colWidth) << ("Rank " + std::to_string(r));
