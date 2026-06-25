@@ -123,6 +123,19 @@ public:
     Vector_t<double, 3> getInitialReferenceMomentum() const override;
 
     /**
+     * @brief Reports that this sampler provides an initial reference position.
+     */
+    bool hasInitialReferencePosition() const override { return true; }
+
+    /**
+     * @brief Returns the initial reference position used by the tracker.
+     *
+     * @return The emission-source position offset R0 (the emission point). Unlike
+     *         momentum, the emission model does not transform the position.
+     */
+    Vector_t<double, 3> getInitialReferencePosition() const override { return R0_m; }
+
+    /**
      * @brief Returns the preferred emission time step.
      *
      * @return emissionTime divided by the configured number of emission steps.
