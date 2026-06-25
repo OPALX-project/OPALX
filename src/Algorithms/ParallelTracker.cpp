@@ -350,11 +350,6 @@ void ParallelTracker::execute() {
                 break;
             }
 
-            if (step % 100 == 0) {
-                // print rank particle distribution information
-                itsBunch_m->getParticleContainer()->printRankLoadInfo();
-            }
-            
             // Particle R and mesh are in REFERENCE frame for the whole step except inside
             // computeSpaceChargeFields (beam frame only during computeSelfFields).
 
@@ -469,6 +464,19 @@ void ParallelTracker::execute() {
                     ((itsBunch_m->getGlobalTrackStep() % Options::statDumpFreq) + 1
                      == Options::statDumpFreq);
             dumpStats(step, psDump, statDump);
+
+            if (Options::printRankDistrFreq > 0
+                && (itsBunch_m->getGlobalTrackStep() % Options::printRankDistrFreq) + 1
+                           == Options::printRankDistrFreq) {
+                const auto& containers = itsBunch_m->getParticleContainers();
+                for (size_t i = 0; i < containers.size(); ++i) {
+                    const auto& pc = containers[i];
+                    if (!pc || !itsBunch_m->isPcActive(i)) {
+                        continue;
+                    }
+                    pc->printRankLoadInfo("container[" + std::to_string(i) + "]");
+                }
+            }
 
             // Increment the global track step counter at the end of the step
             itsBunch_m->incTrackSteps();
@@ -1177,7 +1185,7 @@ void ParallelTracker::doBinaryRepartition() {
     Inform m("ParallelTracker::doBinaryRepartition");
     m << level2
       << "Binary load-balancer repartition is disabled while the ORB path is "
-         "not wired for the current multi-container bunch state; skipping."
+         "not wired for the current moving-mesh space-charge flow; skipping."
       << endl;
 }
 
@@ -1492,25 +1500,11 @@ void ParallelTracker::setOptionalVariables() {
 
     repartFreq_m = 0;
 
-    // ORB repartitioning is a per-container operation, but PartBunch currently
-    // only passes the primary container to LoadBalancer. Until the load
-    // balancer handles every particle container, keep REPARTFREQ accepted for
-    // input compatibility but do not schedule the disabled repartition operation.
-    if (ippl::Comm->size() == 1) {
-        m << level3 << "Binary load-balancer repartition disabled on one rank." << endl;
+    if (Options::repartFreq > 0 && ippl::Comm->size() > 1) {
+        m << level2 << "REPARTFREQ = " << Options::repartFreq
+          << " requested, but binary load-balancer repartition is disabled." << endl;
     } else {
-        long long requestedRepartFreq = static_cast<long long>(Options::repartFreq) * 100;
-        RealVariable* rep =
-                dynamic_cast<RealVariable*>(OpalData::getInstance()->find("REPARTFREQ"));
-        if (rep) {
-            requestedRepartFreq = static_cast<long long>(rep->getReal());
-        }
-        if (requestedRepartFreq > 0) {
-            m << level2 << "REPARTFREQ = " << requestedRepartFreq
-              << " requested, but binary load-balancer repartition is disabled." << endl;
-        } else {
-            m << level3 << "Binary load-balancer repartition disabled." << endl;
-        }
+        m << level3 << "Binary load-balancer repartition disabled." << endl;
     }
 }
 
