@@ -196,7 +196,7 @@ TEST_F(OrbitThreaderTest, ExposesEmptyReferencePathModelBeforeExecution) {
     OpalBeamline beamline;
     OrbitThreader threader(
             reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
-            1.0e-12, stepSizes, beamline);
+            1.0e-12, stepSizes, beamline, /*isDesignBeam=*/true);
 
     EXPECT_TRUE(threader.getReferencePathModel().empty());
     EXPECT_TRUE(threader.getActionRangeRegistrationModel().empty());
@@ -222,7 +222,7 @@ TEST_F(OrbitThreaderTest, ExecutesOverlapAndBuildsTracedAndRegistrationModels) {
     PartData reference(1.0, 9.382720813e8, 1.0e6);
     OrbitThreader threader(
             reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
-            1.0e-11, stepSizes, beamline);
+            1.0e-11, stepSizes, beamline, /*isDesignBeam=*/true);
 
     threader.execute();
 
@@ -279,7 +279,7 @@ TEST_F(OrbitThreaderTest, UsesFieldSupportExtentForLengthCheck) {
     PartData reference(1.0, 9.382720813e8, 1.0e6);
     OrbitThreader threader(
             reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
-            1.0e-12, stepSizes, beamline);
+            1.0e-12, stepSizes, beamline, /*isDesignBeam=*/true);
 
     EXPECT_NO_THROW(threader.execute());
 }
