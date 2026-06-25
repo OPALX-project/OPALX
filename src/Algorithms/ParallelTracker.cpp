@@ -398,10 +398,10 @@ void ParallelTracker::execute() {
             emitFromEmissionSources(itsBunch_m->getT(), itsBunch_m->getdT());
             m << level4 << "Emit particles from emission sources done at step " << step << "."
               << endl;
-            const size_t nSourceMarkedAfterEmission = markBackwardParticlesAtSourcePlane();
-            if (nSourceMarkedAfterEmission > 0) {
-                deleteInvalidParticles(true, m, "backward source-plane particles after emission");
-            }
+            // Old OPAL reselects the global dt after emission. On the final emission step this
+            // switches getdT() back to the track step before external fields, reference update, and
+            // time increment, while per-particle fractional dt values remain untouched.
+            selectDT();
             itsBunch_m->bunchUpdate();
             m << level5 << "Bunch updated after emission." << endl;
 
@@ -444,30 +444,7 @@ void ParallelTracker::execute() {
                 m << level4 << "Updated reference particle at step " << step << "." << endl;
             }
 
-            // Mark particles outside boundpdestroy invalid for deletion for every container.
-            double sigmas                      = static_cast<double>(Options::boundpDestroy);
             const auto& particleContainersStep = itsBunch_m->getParticleContainers();
-            size_t nBoundpMarked               = 0;
-            for (size_t i = 0; i < particleContainersStep.size(); ++i) {
-                const auto& pc = particleContainersStep[i];
-                size_t nMarked = 0;
-                if (!pc || !itsBunch_m->isPcActive(i)) {
-                    continue;
-                }
-                nMarked = pc->markParticlesOutside(sigmas);
-                nBoundpMarked += nMarked;
-                if (nMarked > 0) {
-                    m << level2 << "Marked " << nMarked << " particles outside " << sigmas
-                      << "-sigma boundary for deletion (container " << i << ")." << endl;
-                }
-            }
-
-            // Then immediately delete all marked particles before they can interact with the fields
-            // or be counted in diagnostics.
-            if (nBoundpMarked > 0) {
-                deleteInvalidParticles(true, m, std::to_string(sigmas) + "-sigma boundary");
-            }
-
             for (size_t i = 0; i < particleContainersStep.size(); ++i) {
                 const auto& pc = particleContainersStep[i];
                 if (!pc || !itsBunch_m->isPcActive(i)) {
@@ -678,7 +655,25 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
             itsBunch_m->getParticleContainer()->R.getView(),
             itsBunch_m->getParticleContainer()->getLocalNum());
     m << level4 << "Transform particle positions to beam coordinate system done." << endl;
+
+    bool emissionMeshStretchActive = false;
+    double emittedFraction         = 1.0;
+    const double currentTime       = itsBunch_m->getT();
+    for (const auto& samplers : emittingSamplers_m) {
+        for (const auto& sampler : samplers) {
+            if (!sampler || sampler->isEmissionDone(currentTime)) {
+                continue;
+            }
+            const double samplerFraction = sampler->getEmittedFraction();
+            if (samplerFraction < 1.0) {
+                emissionMeshStretchActive = true;
+                emittedFraction           = std::min(emittedFraction, samplerFraction);
+            }
+        }
+    }
+    itsBunch_m->setEmissionMeshProgress(emissionMeshStretchActive, emittedFraction);
     itsBunch_m->bunchUpdate();
+    itsBunch_m->setEmissionMeshProgress(false, 1.0);
     m << level5 << "Bunch updated for positions in beam coordinate system." << endl;
 
     // TODO: itsBunch_m->boundp() not implemented yet.
@@ -717,6 +712,12 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
     IpplTimings::startTimer(fieldEvaluationTimer_m);
     Inform msg("ParallelTracker ", *gmsg);
+
+    const size_t nSourceMarked = markBackwardParticlesAtSourcePlane();
+    if (nSourceMarked > 0) {
+        deleteInvalidParticles(
+                true, msg, "backward source-plane particles during external-field evaluation");
+    }
 
     const size_t nContainers = itsBunch_m->getNumParticleContainers();
     for (size_t ci = 0; ci < nContainers; ++ci) {
@@ -792,9 +793,9 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
             continue;
         }
 
-        // Record the extent of the position array and the current local particle count
-        // before emission. If an internal resize (Kokkos::realloc) happens during
-        // emission, the extent of R will change and we can flag this as an error.
+        // Record the extent of the position array before emission. If an internal resize
+        // (Kokkos::realloc) happens during emission, the extent of R will change and we can
+        // flag this as an error.
         const size_t extentBeforeEmission = pc->R.size();
 
         CoordinateSystemTrafo refToGun =
@@ -884,7 +885,7 @@ size_t ParallelTracker::deleteInvalidParticles(
 
 size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
     /// \todo this function should probably be integrated as a GunSource element similar to old
-    /// OPAL!!!
+    /// OPAL.
     auto* bsolver = itsBunch_m->getFieldSolver();
     if (!bsolver) {
         return 0;
@@ -898,6 +899,11 @@ size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
 
     const double sourcePlaneZ = imageChargeConfigured ? bsolver->getImageChargePlaneZ()
                                                       : bsolver->getShiftedGreensPlaneZ();
+    // Legacy OPAL's SOURCE element is 5 cm long and is shifted upstream from ELEMEDGE.
+    // Source::apply deletes only once a particle crosses the element-local entrance plane
+    // (Rz <= 0), not when it crosses the cathode/image plane at ELEMEDGE.
+    constexpr double legacySourceLength = 0.05;
+    const double sourceLossPlaneZ       = sourcePlaneZ - legacySourceLength;
 
     size_type localTotalMarked = 0;
     const size_t nContainers   = itsBunch_m->getNumParticleContainers();
@@ -931,7 +937,8 @@ size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
                     }
                     const Vector_t<double, 3> localR = prod_vector(rotation, delta);
                     const Vector_t<double, 3> localP = prod_vector(rotation, Pview(i));
-                    const bool backwards             = localR[2] < sourcePlaneZ && localP[2] < 0.0;
+                    const bool backwards =
+                            localR[2] <= sourceLossPlaneZ && localP[2] < 0.0;
                     const bool newlyMarked           = backwards && !invalid(i);
                     invalid(i)                       = invalid(i) || backwards;
                     count += newlyMarked ? 1 : 0;

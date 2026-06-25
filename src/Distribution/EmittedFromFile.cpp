@@ -8,6 +8,7 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <sstream>
 
 #include <Kokkos_Core.hpp>
@@ -46,19 +47,58 @@ namespace {
                && lower.find("t") != std::string::npos && lower.find("pz") != std::string::npos;
     }
 
-    bool parseRecordValues(const std::string& line, std::array<double, 6>& record) {
+    double getConfiguredEmissionTime(const Distribution_t* opalDist) {
+        if (!opalDist || !opalDist->emitting_m) {
+            return 0.0;
+        }
+
+        const double sigmaTRise = opalDist->getSigmaTRise();
+        const double sigmaTFall = opalDist->getSigmaTFall();
+        const double pulseFwhm  = opalDist->getTPulseLengthFWHM();
+        const double cutoffLong = opalDist->getCutoffR()[2];
+        if (pulseFwhm <= 0.0 || cutoffLong <= 0.0 || (sigmaTRise <= 0.0 && sigmaTFall <= 0.0)) {
+            return 0.0;
+        }
+
+        double flattopTime =
+                pulseFwhm - std::sqrt(2.0 * std::log(2.0)) * (sigmaTRise + sigmaTFall);
+        if (flattopTime < 0.0) {
+            flattopTime = 0.0;
+        }
+        return cutoffLong * (sigmaTRise + sigmaTFall) + flattopTime;
+    }
+
+    struct ParsedRecordValues {
+        std::array<double, 6> coordinates;
+        size_t bin  = 0;
+        bool hasBin = false;
+    };
+
+    bool parseRecordValues(
+            const std::string& line, ParsedRecordValues& record, std::string& error) {
         std::istringstream stream(line);
         std::vector<double> values;
         double value = 0.0;
         while (stream >> value) {
             values.push_back(value);
         }
-        if (values.size() < 6) {
+        if (values.size() < record.coordinates.size()) {
             return false;
         }
 
-        for (size_t i = 0; i < record.size(); ++i) {
-            record[i] = values[i];
+        for (size_t i = 0; i < record.coordinates.size(); ++i) {
+            record.coordinates[i] = values[i];
+        }
+
+        if (values.size() >= 7) {
+            const double rawBin = values[6];
+            const double roundedBin = std::round(rawBin);
+            if (roundedBin <= 0.0 || std::fabs(rawBin - roundedBin) > 1.0e-9) {
+                error = "optional bin column must be a positive integer";
+                return false;
+            }
+            record.bin    = static_cast<size_t>(roundedBin);
+            record.hasBin = true;
         }
         return true;
     }
@@ -165,20 +205,25 @@ void EmittedFromFile::readFile(const std::string& filename) {
             continue;
         }
 
-        std::array<double, 6> values;
-        if (!parseRecordValues(stripped, values)) {
+        ParsedRecordValues values;
+        std::string parseError;
+        if (!parseRecordValues(stripped, values, parseError)) {
+            const std::string detail =
+                    parseError.empty() ? "has fewer than six numeric columns" : parseError;
             throw OpalException(
                     "EmittedFromFile::readFile", "Line " + std::to_string(lineNumber) + " in '"
                                                          + filename
-                                                         + "' has fewer than six numeric columns.");
+                                                         + "' " + detail + ".");
         }
         RawRecord record;
-        record.x        = values[0];
-        record.px       = values[1];
-        record.y        = values[2];
-        record.py       = values[3];
-        record.fileTime = values[4];
-        record.pz       = values[5];
+        record.x        = values.coordinates[0];
+        record.px       = values.coordinates[1];
+        record.y        = values.coordinates[2];
+        record.py       = values.coordinates[3];
+        record.fileTime = values.coordinates[4];
+        record.pz       = values.coordinates[5];
+        record.bin      = values.bin;
+        record.hasBin   = values.hasBin;
         rawRecords_m.push_back(record);
     }
 
@@ -241,13 +286,53 @@ void EmittedFromFile::buildInventory(size_t requested) {
 
     double minPulseTime = -rawRecords_m[0].fileTime;
     double maxPulseTime = minPulseTime;
+    bool allRecordsHaveBins = rawRecords_m[0].hasBin;
+    size_t maxBin           = rawRecords_m[0].bin;
     for (size_t i = 1; i < selected; ++i) {
         const double pulseTime = -rawRecords_m[i].fileTime;
         minPulseTime           = std::min(minPulseTime, pulseTime);
         maxPulseTime           = std::max(maxPulseTime, pulseTime);
+        allRecordsHaveBins     = allRecordsHaveBins && rawRecords_m[i].hasBin;
+        maxBin                 = std::max(maxBin, rawRecords_m[i].bin);
     }
-    emissionTime_m           = std::max(0.0, maxPulseTime - minPulseTime);
-    const double pulseCenter = 0.5 * (minPulseTime + maxPulseTime);
+
+    double pulseCenter = 0.5 * (minPulseTime + maxPulseTime);
+    if (allRecordsHaveBins && maxBin > 0) {
+        double lowerEmissionTime = 0.0;
+        double upperEmissionTime = std::numeric_limits<double>::infinity();
+        for (size_t i = 0; i < selected; ++i) {
+            const RawRecord& raw = rawRecords_m[i];
+            const double pulseTime = -raw.fileTime;
+            lowerEmissionTime =
+                    std::max(lowerEmissionTime, pulseTime * static_cast<double>(maxBin)
+                                                        / static_cast<double>(raw.bin));
+            if (raw.bin > 1) {
+                upperEmissionTime =
+                        std::min(upperEmissionTime, pulseTime * static_cast<double>(maxBin)
+                                                            / static_cast<double>(raw.bin - 1));
+            }
+        }
+
+        emissionTime_m =
+                std::isfinite(upperEmissionTime) && upperEmissionTime >= lowerEmissionTime
+                        ? 0.5 * (lowerEmissionTime + upperEmissionTime)
+                        : lowerEmissionTime;
+        pulseCenter = 0.5 * emissionTime_m;
+    } else {
+        emissionTime_m = std::max(0.0, maxPulseTime - minPulseTime);
+    }
+
+    const double configuredEmissionTime = getConfiguredEmissionTime(opalDist_m);
+    if (configuredEmissionTime > 0.0) {
+        const double tolerance = std::max(1.0e-18, configuredEmissionTime * 1.0e-12);
+        if (configuredEmissionTime + tolerance < maxPulseTime) {
+            throw OpalException(
+                    "EmittedFromFile::buildInventory",
+                    "Configured emission window is shorter than the latest emitted file time.");
+        }
+        emissionTime_m = configuredEmissionTime;
+        pulseCenter    = 0.5 * emissionTime_m;
+    }
     if (opalDist_m) {
         opalDist_m->setTEmission(emissionTime_m);
     }

@@ -106,6 +106,9 @@ private:
     FieldSolverCmd* OPALFieldSolver_m;         ///< Borrowed parsed FIELD_SOLVER command.
     DataSink* dataSink_m;                      ///< Borrowed diagnostics and dump output sink.
 
+    bool emissionMeshStretchActive_m = false;  ///< Apply old OPAL emitted-fraction z stretch.
+    double emissionMeshFraction_m    = 1.0;    ///< Fraction of source inventory already emitted.
+
     double t_m;  ///< Current simulation time (s).
 
     /** Scratch E field for binned accumulation (same layout as mesh E). */
@@ -177,6 +180,17 @@ public:
      * @param[in] upper The maximum coordinates for the domain in all dimensions.
      */
     void applyGridUpdate(const Vector_t<double, Dim>& lower, const Vector_t<double, Dim>& upper);
+
+    /**
+     * @brief Enable or disable old-OPAL emitting-beam longitudinal mesh stretching.
+     *
+     * The stretch is used only for the next @c bunchUpdate calls where @c active is true. It
+     * mirrors old OPAL's @c PartBunchBase::boundp() behavior during source emission.
+     *
+     * @param active Whether the emitting-beam mesh stretch is active.
+     * @param emittedFraction Fraction of the source inventory already emitted.
+     */
+    void setEmissionMeshProgress(bool active, double emittedFraction);
 
     /**
      * @brief Reinitialize the z dimension of the field grid to `nrZ` cells.

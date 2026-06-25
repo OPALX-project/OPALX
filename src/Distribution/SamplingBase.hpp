@@ -88,6 +88,9 @@ public:
         return hasEmittedOnce_m;
     }
 
+    /// @brief Fraction of this sampler's total inventory already emitted.
+    virtual double getEmittedFraction() const { return 1.0; }
+
     /// @brief Optional tracker time shift needed before the first emitted particles are born.
     virtual double getGlobalTimeShift() const { return 0.0; }
 

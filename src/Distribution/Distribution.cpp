@@ -537,8 +537,13 @@ void Distribution::setDist() {
             setDistParametersFlatTop();
             break;
         case DistributionType::FROMFILE:
-        case DistributionType::EMITTEDFROMFILE:
             // File-based distributions read their records in the sampler class.
+            break;
+        case DistributionType::EMITTEDFROMFILE:
+            // The file stores sampled particle birth times, but not necessarily the full old-OPAL
+            // emission window. Parse the flat-top timing attributes when present so the sampler can
+            // reconstruct the original phase shift.
+            setDistParametersFlatTop();
             break;
         default:
             throw OpalException("Distribution Param", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
