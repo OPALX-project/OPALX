@@ -98,6 +98,13 @@ public:
         return Vector_t<double, 3>(0.0);
     }
 
+    /// @brief Optional initial reference position in the source-local frame.
+    virtual bool hasInitialReferencePosition() const { return false; }
+
+    virtual Vector_t<double, 3> getInitialReferencePosition() const {
+        return Vector_t<double, 3>(0.0);
+    }
+
     /// @brief Optional OPAL-like tracker time step while this sampler is still emitting.
     virtual double getEmissionTimeStep() const { return 0.0; }
 
