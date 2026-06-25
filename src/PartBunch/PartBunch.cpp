@@ -5,6 +5,7 @@
 
 #include "PartBunch/PartBunch.h"
 #include <algorithm>
+#include <cmath>
 #include "Algorithms/Matrix.h"
 #include "PartBunch/BinnedFieldSolver.h"
 #include "Particle/ParticleAttrib.h"
@@ -590,6 +591,12 @@ void PartBunch<T, Dim>::bunchUpdate() {
 }
 
 template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::setEmissionMeshProgress(bool active, double emittedFraction) {
+    emissionMeshStretchActive_m = active;
+    emissionMeshFraction_m      = std::clamp(emittedFraction, 0.0, 1.0);
+}
+
+template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::computeBoundsForFieldSolve(
         Vector_t<double, Dim>& lower, Vector_t<double, Dim>& upper) {
     Inform m("PartBunch::computeBoundsForFieldSolve");
@@ -652,6 +659,24 @@ void PartBunch<T, Dim>::computeBoundsForFieldSolve(
 
     lower = lower - span * this->OPALFieldSolver_m->getBoxIncr() / 100.0;
     upper = upper + span * this->OPALFieldSolver_m->getBoxIncr() / 100.0;
+
+    if (emissionMeshStretchActive_m && Dim > 2 && this->nr_m[2] > 1) {
+        const double dh      = this->OPALFieldSolver_m->getBoxIncr() / 100.0;
+        double percent       = std::max(1.0 / static_cast<double>(this->nr_m[2] - 1),
+                                        emissionMeshFraction_m);
+        const double length0 = std::abs(upper[2] - lower[2]) / (1.0 + 2.0 * dh);
+
+        if (percent < 1.0 && percent > 0.0 && length0 > 0.0) {
+            upper[2] -= dh * length0;
+            lower[2] = upper[2] - length0 / percent;
+
+            const double stretchedLength = length0 / percent;
+            upper[2] += dh * stretchedLength;
+            lower[2] -= dh * stretchedLength;
+            m << level4 << "Applied emitting-beam z mesh stretch with emitted fraction "
+              << percent << "." << endl;
+        }
+    }
 }
 
 template <typename T, unsigned Dim>
@@ -663,10 +688,19 @@ void PartBunch<T, Dim>::applyGridUpdate(
     std::shared_ptr<ParticleContainer_t> pc = this->getParticleContainer();
 
     const Vector_t<double, Dim> span = upper - lower;
-    hr_m                             = span / this->nr_m;
+    Vector_t<double, Dim> meshOrigin = lower;
+    for (unsigned d = 0; d < Dim; ++d) {
+        const int nCells = this->nr_m[d];
+        if (nCells <= 1) {
+            hr_m[d] = span[d];
+        } else {
+            hr_m[d] = span[d] / static_cast<double>(nCells - 1);
+        }
+        meshOrigin[d] = lower[d] - 0.5 * hr_m[d];
+    }
 
     mesh->setMeshSpacing(hr_m);
-    mesh->setOrigin(lower);
+    mesh->setOrigin(meshOrigin);
 
     this->getFieldContainer()->setRMin(lower);
     this->getFieldContainer()->setRMax(upper);

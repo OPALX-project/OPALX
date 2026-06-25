@@ -1,4 +1,5 @@
 #include "FlatTop.h"
+#include <mpi.h>
 #include <cmath>
 #include <memory>
 #include "Distribution.h"
@@ -59,6 +60,7 @@ void FlatTop::setInternalVariables(
         bool emitting, double sigmaTFall, double sigmaTRise, Vector_t<double, 3> cutoff,
         double tPulseLengthFWHM, Vector_t<double, 3> sigmaR) {
     emitting_m = emitting;
+    totalEmitted_m = 0;
     // time span of fall is [0, riseTime, riseTime+flattopTime, fallTime+flattopTime+riseTime ]
     sigmaTFall_m = sigmaTFall;
     sigmaTRise_m = sigmaTRise;
@@ -219,6 +221,15 @@ double FlatTop::FlatTopProfile(double t) {
         return 0.;
 }
 
+double FlatTop::getEmittedFraction() const {
+    if (totalN_m == 0) {
+        return 1.0;
+    }
+
+    return std::clamp(
+            static_cast<double>(totalEmitted_m) / static_cast<double>(totalN_m), 0.0, 1.0);
+}
+
 size_t FlatTop::computeNlocalUniformly(size_t nglobal) {
     // Use ippl::Comm so we match the communicator used for allocation in TrackRun (maxLocalNum).
     const int nranks = ippl::Comm->size();
@@ -349,6 +360,7 @@ FlatTop::size_type FlatTop::countEnteringParticlesPerRank(double t0, double tf) 
 
 void FlatTop::allocateParticles(size_t numberOfParticles) {
     totalN_m = numberOfParticles;
+    totalEmitted_m = 0;
 
     // Initial allocation is now handled centrally in TrackRun / PartBunch via the
     // bunch's total particle count. Here we only record the desired total number
@@ -378,6 +390,12 @@ void FlatTop::emitParticles(double t, double dt) {
     // Note that createParticles can be safely called with nNew=0 (no-op), but it NEEDS to be
     // called, since other ranks might have != 0 leading to a MPI_Allreduce.
     pc_m->createParticles(nNew);
+    unsigned long localNew  = static_cast<unsigned long>(nNew);
+    unsigned long globalNew = 0;
+    MPI_Allreduce(
+            &localNew, &globalNew, 1, MPI_UNSIGNED_LONG, MPI_SUM,
+            ippl::Comm->getCommunicator());
+    totalEmitted_m += static_cast<size_t>(globalNew);
 
     // Generate new particles on uniform disc (sample into [nlocal, nlocal+nNew)).
     // Each particle receives a fractional per-particle dt for sub-timestep spreading.
