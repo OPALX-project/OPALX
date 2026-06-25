@@ -350,6 +350,11 @@ void ParallelTracker::execute() {
                 break;
             }
 
+            if (step % 100 == 0) {
+                // print rank particle distribution information
+                itsBunch_m->getParticleContainer()->printRankLoadInfo();
+            }
+            
             // Particle R and mesh are in REFERENCE frame for the whole step except inside
             // computeSpaceChargeFields (beam frame only during computeSelfFields).
 
