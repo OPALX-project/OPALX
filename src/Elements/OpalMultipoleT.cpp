@@ -56,19 +56,6 @@ OpalMultipoleT::OpalMultipoleT()
             "SCALING_MODEL",
             "The name of the time dependence model, which should give a scaling factor.");
 
-    // Misalignment attributes
-    itsAttr[MISALIGN_H] = Attributes::makeReal("MISALIGN_H", "Horizontal misalignment [m]", 0.0);
-    itsAttr[MISALIGN_V] = Attributes::makeReal("MISALIGN_V", "Vertical misalignment [m]", 0.0);
-    itsAttr[MISALIGN_S] = Attributes::makeReal("MISALIGN_S", "Longitudinal misalignment [m]", 0.0);
-    itsAttr[MISALIGN_ROLL] = Attributes::makeReal(
-            "MISALIGN_ROLL", "Roll misalignment [rad] about the longitudinal axis", 0.0);
-    itsAttr[MISALIGN_PITCH] = Attributes::makeReal(
-            "MISALIGN_PITCH", "Pitch misalignment [rad] about the horizontal axis", 0.0);
-    itsAttr[MISALIGN_YAW] = Attributes::makeReal(
-            "MISALIGN_YAW", "Yaw misalignment [rad] about the vertical axis", 0.0);
-    itsAttr[MISALIGN_AXISOFFSET] =
-            Attributes::makeReal("MISALIGN_AXISOFFSET", "Vertical offset of roll axis [m]", 0.0);
-
     registerOwnership();
     setElement(new MultipoleT("MULTIPOLET"));
 }

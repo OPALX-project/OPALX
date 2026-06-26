@@ -333,7 +333,8 @@ BendBase::BendBase(const BendBase& right)
       fieldAmplitudeX_m(right.fieldAmplitudeX_m),
       fieldAmplitudeY_m(right.fieldAmplitudeY_m),
       fieldAmplitude_m(right.fieldAmplitude_m),
-      normalizedField_m(right.normalizedField_m),
+      normalizedNormalComponents_m(right.normalizedNormalComponents_m),
+      normalizedSkewComponents_m(right.normalizedSkewComponents_m),
       hasNormalizedField_m(right.hasNormalizedField_m),
       fileName_m(right.fileName_m),
       entryFaceRotation_m(right.entryFaceRotation_m),
@@ -363,7 +364,8 @@ BendBase::BendBase(const std::string& name)
       fieldAmplitudeX_m(0.0),
       fieldAmplitudeY_m(0.0),
       fieldAmplitude_m(0.0),
-      normalizedField_m(),
+      normalizedNormalComponents_m(),
+      normalizedSkewComponents_m(),
       hasNormalizedField_m(false),
       fileName_m(),
       entryFaceRotation_m(0.0),
@@ -413,18 +415,9 @@ bool BendBase::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     auto Bview          = pc->B.getView();
     const size_t nLocal = pc->getLocalNum();
 
-    const BMultipoleField& field = getField();
-    const int order              = field.order();
-    Kokkos::View<double*> normal("BendBase::normal", order);
-    Kokkos::View<double*> skew("BendBase::skew", order);
-    auto normalHost = Kokkos::create_mirror_view(normal);
-    auto skewHost   = Kokkos::create_mirror_view(skew);
-    for (int i = 0; i < order; ++i) {
-        normalHost(i) = field.getNormalComponent(i);
-        skewHost(i)   = field.getSkewComponent(i);
-    }
-    Kokkos::deep_copy(normal, normalHost);
-    Kokkos::deep_copy(skew, skewHost);
+    // Capture the coefficient views by value for the kernel.
+    auto normal = normalComponents_m;
+    auto skew   = skewComponents_m;
 
     const double fieldBegin                   = fieldBegin_m;
     const double elemLength                   = getReferencePathLength();
@@ -721,18 +714,8 @@ bool BendBase::applySlice(
     auto Bview          = pc->B.getView();
     const size_t nLocal = pc->getLocalNum();
 
-    const BMultipoleField& field = getField();
-    const int order              = field.order();
-    Kokkos::View<double*> normal("BendBase::sliceNormal", order);
-    Kokkos::View<double*> skew("BendBase::sliceSkew", order);
-    auto normalHost = Kokkos::create_mirror_view(normal);
-    auto skewHost   = Kokkos::create_mirror_view(skew);
-    for (int i = 0; i < order; ++i) {
-        normalHost(i) = field.getNormalComponent(i);
-        skewHost(i)   = field.getSkewComponent(i);
-    }
-    Kokkos::deep_copy(normal, normalHost);
-    Kokkos::deep_copy(skew, skewHost);
+    auto normal = normalComponents_m;
+    auto skew   = skewComponents_m;
 
     const double bodyLength                   = getReferencePathLength();
     const double fieldBegin                   = -getEntryFringeSupportLength();
@@ -843,24 +826,7 @@ bool BendBase::apply(
         return getFlagDeleteOnTransverseExit();
     }
 
-    const FringeFieldScale fringe = evaluateFieldScale(
-            R(2), fieldBegin_m, getReferencePathLength(), fieldEnd_m,
-            resolveFringeProfileGap(gap_m, fringeHalfGap_m));
-    computeFieldHost(R, getField(), B);
-    B *= fringe.scale;
-    if (getField().order() > 0) {
-        const double dipole = getField().getNormalComponent(0);
-        B(1) += -0.5 * dipole * fringe.secondDerivative * R(1) * R(1);
-        B(2) += dipole * fringe.derivative * R(1);
-    }
-    const double entryFringe     = getEntryFringeSupportLength();
-    const double exitFringe      = getExitFringeSupportLength();
-    const double referenceLength = getReferencePathLength();
-    if (R(2) <= entryFringe && entryFringe > 0.0) {
-        B(0) += getEntryEdgeVerticalFieldCoefficient() * fringe.derivative * R(1);
-    } else if (R(2) >= referenceLength - exitFringe && exitFringe > 0.0) {
-        B(0) += -getExitEdgeVerticalFieldCoefficient() * fringe.derivative * R(1);
-    }
+    computeFieldHost(R, B);
     (void)E;
     return false;
 }
@@ -875,24 +841,7 @@ bool BendBase::apply(
         return getFlagDeleteOnTransverseExit();
     }
 
-    const FringeFieldScale fringe = evaluateFieldScale(
-            R(2), fieldBegin_m, getReferencePathLength(), fieldEnd_m,
-            resolveFringeProfileGap(gap_m, fringeHalfGap_m));
-    computeFieldHost(R, getField(), B);
-    B *= fringe.scale;
-    if (getField().order() > 0) {
-        const double dipole = getField().getNormalComponent(0);
-        B(1) += -0.5 * dipole * fringe.secondDerivative * R(1) * R(1);
-        B(2) += dipole * fringe.derivative * R(1);
-    }
-    const double entryFringe     = getEntryFringeSupportLength();
-    const double exitFringe      = getExitFringeSupportLength();
-    const double referenceLength = getReferencePathLength();
-    if (R(2) <= entryFringe && entryFringe > 0.0) {
-        B(0) += getEntryEdgeVerticalFieldCoefficient() * fringe.derivative * R(1);
-    } else if (R(2) >= referenceLength - exitFringe && exitFringe > 0.0) {
-        B(0) += -getExitEdgeVerticalFieldCoefficient() * fringe.derivative * R(1);
-    }
+    computeFieldHost(R, B);
     (void)E;
     return false;
 }
@@ -907,24 +856,7 @@ bool BendBase::applyToReferenceParticle(
         return true;
     }
 
-    const FringeFieldScale fringe = evaluateFieldScale(
-            R(2), fieldBegin_m, getReferencePathLength(), fieldEnd_m,
-            resolveFringeProfileGap(gap_m, fringeHalfGap_m));
-    computeFieldHost(R, getField(), B);
-    B *= fringe.scale;
-    if (getField().order() > 0) {
-        const double dipole = getField().getNormalComponent(0);
-        B(1) += -0.5 * dipole * fringe.secondDerivative * R(1) * R(1);
-        B(2) += dipole * fringe.derivative * R(1);
-    }
-    const double entryFringe     = getEntryFringeSupportLength();
-    const double exitFringe      = getExitFringeSupportLength();
-    const double referenceLength = getReferencePathLength();
-    if (R(2) <= entryFringe && entryFringe > 0.0) {
-        B(0) += getEntryEdgeVerticalFieldCoefficient() * fringe.derivative * R(1);
-    } else if (R(2) >= referenceLength - exitFringe && exitFringe > 0.0) {
-        B(0) += -getExitEdgeVerticalFieldCoefficient() * fringe.derivative * R(1);
-    }
+    computeFieldHost(R, B);
     (void)E;
     return false;
 }
@@ -1084,13 +1016,15 @@ void BendBase::updatePhysicalFieldFromMomentumEV(
     // reference-particle bend regression tests expressed in the entry/lab
     // geometry chart for positive and negative bend angles.
     const double factor = referenceMomentumEV / (charge * Physics::c);
-    BMultipoleField field;
-    const int order = normalizedField_m.order();
-    for (int i = 0; i < order; ++i) {
-        field.setNormalComponent(i, factor * normalizedField_m.getNormalComponent(i));
-        field.setSkewComponent(i, factor * normalizedField_m.getSkewComponent(i));
+    std::vector<double> normal(normalizedNormalComponents_m.size());
+    std::vector<double> skew(normalizedSkewComponents_m.size());
+    for (std::size_t i = 0; i < normal.size(); ++i) {
+        normal[i] = factor * normalizedNormalComponents_m[i];
     }
-    getField() = field;
+    for (std::size_t i = 0; i < skew.size(); ++i) {
+        skew[i] = factor * normalizedSkewComponents_m[i];
+    }
+    setFieldComponents(normal, skew);
 }
 
 void BendBase::updatePhysicalFieldFromReference() {
@@ -1166,7 +1100,7 @@ double BendBase::getEntryEdgeVerticalFieldCoefficient() const {
         return 0.0;
     }
 
-    const double rigidityScale = getField().getNormalComponent(0) / getSignedCurvature();
+    const double rigidityScale = getB() / getSignedCurvature();
     return rigidityScale * getEntryEdgeVerticalStrength() / fieldScaleSpan;
 }
 
@@ -1183,7 +1117,7 @@ double BendBase::getExitEdgeVerticalFieldCoefficient() const {
         return 0.0;
     }
 
-    const double rigidityScale = getField().getNormalComponent(0) / getSignedCurvature();
+    const double rigidityScale = getB() / getSignedCurvature();
     return rigidityScale * getExitEdgeVerticalStrength() / fieldScaleSpan;
 }
 
@@ -1203,17 +1137,87 @@ void BendBase::updateFieldSupportExtent() {
     }
 }
 
-void BendBase::computeFieldHost(
-        const Vector_t<double, 3>& R, const BMultipoleField& field, Vector_t<double, 3>& B) {
-    const int order = field.order();
-    if (order > 0) {
-        B(1) += field.getNormalComponent(0);
-        B(0) -= field.getSkewComponent(0);
+void BendBase::computeFieldHost(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const {
+    auto normalHost = Kokkos::create_mirror_view(normalComponents_m);
+    auto skewHost   = Kokkos::create_mirror_view(skewComponents_m);
+    Kokkos::deep_copy(normalHost, normalComponents_m);
+    Kokkos::deep_copy(skewHost, skewComponents_m);
+
+    const double bodyLength = getReferencePathLength();
+    const double fieldBegin = fieldBegin_m;
+    const double fieldEnd   = fieldEnd_m;
+    const double profileGap = resolveFringeProfileGap(gap_m, fringeHalfGap_m);
+    const FringeFieldScale fringe =
+            evaluateFieldScale(R(2), fieldBegin, bodyLength, fieldEnd, profileGap);
+    const double scale = fringe.scale;
+    Vector_t<double, 3> Bf(0.0);
+
+    if (maxNormal_m > 0) {
+        Bf(1) += normalHost(0) * (scale - 0.5 * fringe.secondDerivative * R(1) * R(1));
+        Bf(2) += normalHost(0) * fringe.derivative * R(1);
     }
-    if (order > 1) {
-        B(0) += field.getNormalComponent(1) * R(1);
-        B(1) += field.getNormalComponent(1) * R(0);
-        B(0) -= field.getSkewComponent(1) * R(0);
-        B(1) += field.getSkewComponent(1) * R(1);
+    if (maxSkew_m > 0) {
+        Bf(0) -= scale * skewHost(0);
     }
+    if (maxNormal_m > 1) {
+        Bf(0) += scale * normalHost(1) * R(1);
+        Bf(1) += scale * normalHost(1) * R(0);
+    }
+    if (maxSkew_m > 1) {
+        Bf(0) -= scale * skewHost(1) * R(0);
+        Bf(1) += scale * skewHost(1) * R(1);
+    }
+
+    const double entryFringe = getEntryFringeSupportLength();
+    const double exitFringe  = getExitFringeSupportLength();
+    double verticalGradient  = 0.0;
+    if (R(2) <= entryFringe && entryFringe > 0.0) {
+        verticalGradient = getEntryEdgeVerticalFieldCoefficient() * fringe.derivative;
+    } else if (R(2) >= bodyLength - exitFringe && exitFringe > 0.0) {
+        verticalGradient = -getExitEdgeVerticalFieldCoefficient() * fringe.derivative;
+    }
+    if (verticalGradient != 0.0) {
+        Bf(0) += verticalGradient * R(1);
+    }
+
+    for (unsigned d = 0; d < 3; ++d) {
+        B(d) += Bf(d);
+    }
+}
+
+void BendBase::setFieldComponents(
+        const std::vector<double>& normal, const std::vector<double>& skew) {
+    maxNormal_m = static_cast<int>(normal.size());
+    maxSkew_m   = static_cast<int>(skew.size());
+
+    normalComponents_m = Kokkos::View<double*>("BendBase::normal", maxNormal_m);
+    skewComponents_m   = Kokkos::View<double*>("BendBase::skew", maxSkew_m);
+
+    auto normalHost = Kokkos::create_mirror_view(normalComponents_m);
+    auto skewHost   = Kokkos::create_mirror_view(skewComponents_m);
+    for (int i = 0; i < maxNormal_m; ++i) {
+        normalHost(i) = normal[i];
+    }
+    for (int i = 0; i < maxSkew_m; ++i) {
+        skewHost(i) = skew[i];
+    }
+    Kokkos::deep_copy(normalComponents_m, normalHost);
+    Kokkos::deep_copy(skewComponents_m, skewHost);
+}
+
+double BendBase::getB() const {
+    if (maxNormal_m < 1) {
+        return 0.0;
+    }
+    double val;
+    Kokkos::deep_copy(val, Kokkos::subview(normalComponents_m, 0));
+    return val;
+}
+
+void BendBase::setB(double B) {
+    if (maxNormal_m < 1) {
+        maxNormal_m = 1;
+        Kokkos::resize(normalComponents_m, 1);
+    }
+    Kokkos::deep_copy(Kokkos::subview(normalComponents_m, 0), B);
 }
