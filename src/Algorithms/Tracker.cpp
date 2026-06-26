@@ -97,11 +97,11 @@ void Tracker::addToBunch(const OpalParticle& /*part*/) {
 //~ itsBunch_m = &bunch;
 //~ }
 
-void Tracker::visitComponent(const Component& comp) {
+void Tracker::visitElementBase(const ElementBase& comp) {
     if (itsBunch_m == nullptr || itsBunch_m->getParticleContainer() == nullptr
         || itsBunch_m->getParticleContainer()->getReference() == nullptr) {
         throw OpalException(
-                "Tracker::visitComponent",
+                "Tracker::visitElementBase",
                 "Missing particle reference data in active particle container.");
     }
     comp.trackBunch(
