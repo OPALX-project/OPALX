@@ -102,7 +102,7 @@ TEST_F(BunchStateHandlerTest, SlotLifetimeFollowsCallerOwnership) {
     // Keep a weak_ptr to observe when the slot dies.
     std::weak_ptr<BunchStateHandler::ContainerState> observer;
     {
-        auto s = h.registerContainer();
+        auto s   = h.registerContainer();
         observer = s;
         EXPECT_FALSE(observer.expired());
     }

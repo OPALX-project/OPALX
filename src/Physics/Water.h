@@ -2,7 +2,7 @@
 // Class Water
 //   Defines Water as a material for particle-matter interactions
 //
-//   Data taken from Standard Atomic Weight 2019 (https://www.qmul.ac.uk/sbcs/iupac/AtWt/), 
+//   Data taken from Standard Atomic Weight 2019 (https://www.qmul.ac.uk/sbcs/iupac/AtWt/),
 //   atomic properties from PDG database (https://pdg.lbl.gov/2020/AtomicNuclearProperties)
 //   and fit coefficients from ICRU Report 49.
 //
@@ -25,17 +25,13 @@
 #include "Physics/Material.h"
 
 namespace Physics {
-    class Water: public Material {
+    class Water : public Material {
     public:
-        Water():
-            Material(10,
-                     18.0152,
-                     1,
-                     36.08,
-                     75.0,
-                     {{4.015, 4.542, 3.955e3, 4.847e2, 7.904e-3,
-                       2.9590, 0.53255, 34.247, 60.655, 15.153}})
-        { }
+        Water()
+            : Material(
+                      10, 18.0152, 1, 36.08, 75.0,
+                      {{4.015, 4.542, 3.955e3, 4.847e2, 7.904e-3, 2.9590, 0.53255, 34.247, 60.655,
+                        15.153}}) {}
     };
-}
+}  // namespace Physics
 #endif

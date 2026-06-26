@@ -401,7 +401,7 @@ namespace ParticleBinning {
          * the function is called frequently, it might create some overhead due to the .view_host()
          * call. However, since it is only called on the host (a maximum of nBins times per
          * iteration), the overhead should be minimal. For better efficiency, one can avoid the
-         * Kokkos::View "copying-action" by using dualView.h_view(binIndex). Just be careful, since
+         * Kokkos::View "copying-action" by reusing the host view. Just be careful, since
          * this might change the underlying data structure of the BinHisto class.
          *
          * @param binIndex The index of the bin for which the number of particles is to be
@@ -522,10 +522,10 @@ namespace ParticleBinning {
 
 // Check number of CPU threads (OpenMP or other CPU execution spaces)
 #ifdef KOKKOS_ENABLE_OPENMP
-            int num_threads = Kokkos::OpenMP::concurrency();
+            int num_threads = Kokkos::OpenMP().concurrency();
             msg << level2 << "CPU Threads (OpenMP): " << num_threads << endl;
 #elif defined(KOKKOS_ENABLE_THREADS)
-            int num_threads = Kokkos::Threads::concurrency();
+            int num_threads = Kokkos::Threads().concurrency();
             msg << level2 << "CPU Threads (Kokkos::Threads): " << num_threads << endl;
 #else
             msg << level2 << "CPU Threads: No multi-threaded CPU execution space enabled." << endl;
@@ -553,7 +553,7 @@ namespace ParticleBinning {
 #endif
 
             // Additional information on concurrency in the default execution space
-            int default_concurrency = Kokkos::DefaultExecutionSpace::concurrency();
+            int default_concurrency = Kokkos::DefaultExecutionSpace().concurrency();
             msg << level2 << "Default Execution Space Concurrency: " << default_concurrency << endl;
             msg << level2 << "Binning cost function parameters: alpha = " << binningAlpha_m
                 << ", beta = " << binningBeta_m << ", desiredWidth = " << desiredWidth_m << endl;

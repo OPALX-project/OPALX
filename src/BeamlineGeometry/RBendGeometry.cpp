@@ -20,73 +20,49 @@
 // ------------------------------------------------------------------------
 
 #include "BeamlineGeometry/RBendGeometry.h"
-#include "BeamlineGeometry/Euclid3D.h"
 #include <cmath>
-
+#include "BeamlineGeometry/Euclid3D.h"
 
 // Class RBendGeometry.
 // ------------------------------------------------------------------------
 
-RBendGeometry::RBendGeometry(double length, double angle):
-    StraightGeometry(length), half_angle(angle / 2.0)
-{}
+RBendGeometry::RBendGeometry(double length, double angle)
+    : StraightGeometry(length), half_angle(angle / 2.0) {}
 
+RBendGeometry::RBendGeometry(const RBendGeometry& rhs)
+    : StraightGeometry(rhs), half_angle(rhs.half_angle) {}
 
-RBendGeometry::RBendGeometry(const RBendGeometry &rhs):
-    StraightGeometry(rhs), half_angle(rhs.half_angle)
-{}
-
-
-RBendGeometry::~RBendGeometry()
-{}
-
+RBendGeometry::~RBendGeometry() {}
 
 double RBendGeometry::getArcLength() const {
     double length = StraightGeometry::getElementLength();
     return (half_angle == 0.0) ? length : length * half_angle / sin(half_angle);
 }
 
+double RBendGeometry::getBendAngle() const { return 2.0 * half_angle; }
 
-double RBendGeometry::getBendAngle() const {
-    return 2.0 * half_angle;
-}
-
-
-void RBendGeometry::setBendAngle(double angle) {
-    half_angle = angle / 2.0;
-}
-
+void RBendGeometry::setBendAngle(double angle) { half_angle = angle / 2.0; }
 
 Euclid3D RBendGeometry::getTotalTransform() const {
-    Euclid3D patch = Euclid3D::YRotation(- half_angle);
+    Euclid3D patch = Euclid3D::YRotation(-half_angle);
     Euclid3D body  = StraightGeometry::getTotalTransform();
     return patch * body * patch;
 }
 
-
 Euclid3D RBendGeometry::getEntranceFrame() const {
-    return
-        StraightGeometry::getEntranceFrame() *
-        Euclid3D::YRotation(half_angle);
+    return StraightGeometry::getEntranceFrame() * Euclid3D::YRotation(half_angle);
 }
-
 
 Euclid3D RBendGeometry::getExitFrame() const {
-    return
-        StraightGeometry::getExitFrame() *
-        Euclid3D::YRotation(- half_angle);
+    return StraightGeometry::getExitFrame() * Euclid3D::YRotation(-half_angle);
 }
-
 
 Euclid3D RBendGeometry::getEntrancePatch() const {
     double d = getElementLength() / 4.0 * tan(half_angle / 2.0);
-    return
-        Euclid3D::YRotation(- half_angle) * Euclid3D::translation(d, 0.0, 0.0);
+    return Euclid3D::YRotation(-half_angle) * Euclid3D::translation(d, 0.0, 0.0);
 }
-
 
 Euclid3D RBendGeometry::getExitPatch() const {
     double d = getElementLength() / 4.0 * tan(half_angle / 2.0);
-    return
-        Euclid3D::translation(- d, 0.0, 0.0) * Euclid3D::YRotation(- half_angle);
+    return Euclid3D::translation(-d, 0.0, 0.0) * Euclid3D::YRotation(-half_angle);
 }

@@ -24,18 +24,15 @@
 
 class Beamline;
 
-
 // Class BeamlineGeometry
 // ------------------------------------------------------------------------
 /// Implements the composite geometry of a beam line.
 
-class BeamlineGeometry: public BGeometryBase {
-
+class BeamlineGeometry : public BGeometryBase {
 public:
-
     /// Constructor.
     //  The geometry is linked to th beamline [b]line[/b].
-    explicit BeamlineGeometry(const Beamline &line);
+    explicit BeamlineGeometry(const Beamline& line);
 
     virtual ~BeamlineGeometry();
 
@@ -92,14 +89,13 @@ public:
     virtual Euclid3D getExitFrame() const;
 
 private:
-
     // Not implemented.
     BeamlineGeometry();
-    BeamlineGeometry(const BeamlineGeometry &);
-    void operator=(const BeamlineGeometry &);
+    BeamlineGeometry(const BeamlineGeometry&);
+    void operator=(const BeamlineGeometry&);
 
     // The beamline whose geometry [b]this[/b] represents.
-    const Beamline &itsLine;
+    const Beamline& itsLine;
 };
 
-#endif // OPALX_BeamlineGeometry_HH
+#endif  // OPALX_BeamlineGeometry_HH

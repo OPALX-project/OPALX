@@ -23,7 +23,6 @@
 #include "Beamlines/FlaggedElmPtr.h"
 #include "Beamlines/TBeamline.h"
 
-
 // Typedef FlaggedBeamline
 // ------------------------------------------------------------------------
 /// A beam line with flagged elements.
@@ -33,4 +32,4 @@
 
 typedef TBeamline<FlaggedElmPtr> FlaggedBeamline;
 
-#endif // OPALX_FlaggedBeamline_HH
+#endif  // OPALX_FlaggedBeamline_HH

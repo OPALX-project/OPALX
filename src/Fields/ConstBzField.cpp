@@ -20,37 +20,19 @@
 
 #include "Fields/ConstBzField.h"
 
-
 // Class ConstBzField
 // ------------------------------------------------------------------------
 
-ConstBzField::ConstBzField()
-{}
+ConstBzField::ConstBzField() {}
 
+ConstBzField::~ConstBzField() {}
 
-ConstBzField::~ConstBzField()
-{}
+BVector ConstBzField::Bfield(const Point3D&) const { return BVector(0.0, 0.0, Bz); }
 
+BVector ConstBzField::Bfield(const Point3D& /*X*/, double) const { return BVector(0.0, 0.0, Bz); }
 
-BVector ConstBzField::Bfield(const Point3D &) const {
-    return BVector(0.0, 0.0, Bz);
-}
+double ConstBzField::getBz() const { return Bz; }
 
+void ConstBzField::setBz(double value) { Bz = value; }
 
-BVector ConstBzField::Bfield(const Point3D &/*X*/, double) const {
-    return BVector(0.0, 0.0, Bz);
-}
-
-
-double ConstBzField::getBz() const {
-    return Bz;
-}
-
-void ConstBzField::setBz(double value) {
-    Bz = value;
-}
-
-
-void ConstBzField::scale(double scalar) {
-    Bz *= scalar;
-}
+void ConstBzField::scale(double scalar) { Bz *= scalar; }

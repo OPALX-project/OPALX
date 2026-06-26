@@ -22,34 +22,30 @@
 
 class Sequence;
 
-
 // Class TrackEnd
 // ------------------------------------------------------------------------
 /// The ENDTRACK command.
 
-class TrackEnd: public Action {
-
+class TrackEnd : public Action {
 public:
-
     /// Exemplar constructor.
     TrackEnd();
 
     virtual ~TrackEnd();
 
     /// Make clone.
-    virtual TrackEnd *clone(const std::string &name);
+    virtual TrackEnd* clone(const std::string& name);
 
     /// Execute the command.
     virtual void execute();
 
 private:
-
     // Not implemented.
-    TrackEnd(const TrackEnd &);
-    void operator=(const TrackEnd &);
+    TrackEnd(const TrackEnd&);
+    void operator=(const TrackEnd&);
 
     // Clone constructor.
-    TrackEnd(const std::string &name, TrackEnd *parent);
+    TrackEnd(const std::string& name, TrackEnd* parent);
 };
 
-#endif // OPAL_TrackEnd_HH
+#endif  // OPAL_TrackEnd_HH

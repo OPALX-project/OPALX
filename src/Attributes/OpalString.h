@@ -21,37 +21,33 @@
 #include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/AttributeHandler.h"
 
-
 // Class String
 // ------------------------------------------------------------------------
 
 namespace Attributes {
 
     /// Parser for an attribute of type string.
-    class String: public AttributeHandler {
-
+    class String : public AttributeHandler {
     public:
-
         /// Constructor.
         //  Assign attribute name and help string.
-        String(const std::string &name, const std::string &help);
+        String(const std::string& name, const std::string& help);
 
         virtual ~String();
 
         /// Return attribute type string ``string''.
-        virtual const std::string &getType() const;
+        virtual const std::string& getType() const;
 
         /// Parse the attribute.
-        virtual void parse(Attribute &, Statement &, bool) const;
+        virtual void parse(Attribute&, Statement&, bool) const;
 
     private:
-
         // Not implemented.
         String();
-        String(const String &);
-        void operator=(const String &);
+        String(const String&);
+        void operator=(const String&);
     };
 
-};
+};  // namespace Attributes
 
-#endif // OPAL_String_HH
+#endif  // OPAL_String_HH

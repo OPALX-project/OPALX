@@ -29,25 +29,22 @@
 /// Zero divide error.
 //  This exception is thrown, when a division by zero occurs.
 
-class DivideError: public ArithmeticError {
-
+class DivideError : public ArithmeticError {
 public:
-
     /// The usual constructor.
     // Arguments:
     // [DL]
     // [DT][b]meth[/b]
     // [DD]the name of the method or function detecting the exception
     // [/DL]
-    explicit DivideError(const std::string &meth);
+    explicit DivideError(const std::string& meth);
 
-    DivideError(const DivideError &);
+    DivideError(const DivideError&);
     virtual ~DivideError();
 
 private:
-
     // Not implemented.
     DivideError();
 };
 
-#endif // OPAL_DivideError_HH
+#endif  // OPAL_DivideError_HH

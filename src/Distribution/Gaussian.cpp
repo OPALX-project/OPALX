@@ -177,6 +177,8 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
                 Pview(k) += P0;
             });
 
+    fillPolarization(nlocalCurrent, nlocal);
+
     pc_m->markMomentsDirty();
 
     IpplTimings::stopTimer(samperTimer_m);

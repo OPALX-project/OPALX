@@ -16,16 +16,15 @@
 //
 
 #include "SinusoidalTimeDependence.h"
+#include <cmath>
 #include "Physics/Physics.h"
 #include "PolynomialTimeDependence.h"
 #include "Utility/Inform.h"
-#include <cmath>
 
 SinusoidalTimeDependence::SinusoidalTimeDependence(
-    const std::vector<double>& f, const std::vector<double>& p, const std::vector<double>& a,
-    const std::vector<double>& o)
-    : f_m(f), p_m(p), a_m(a), o_m(o) {
-}
+        const std::vector<double>& f, const std::vector<double>& p, const std::vector<double>& a,
+        const std::vector<double>& o)
+    : f_m(f), p_m(p), a_m(a), o_m(o) {}
 
 double SinusoidalTimeDependence::getValue(const double time) {
     double result{};
@@ -65,9 +64,9 @@ double SinusoidalTimeDependence::getIntegral(const double time) {
         if (i < o_m.size()) {
             o = o_m[i];
         }
-        result +=
-            o * time
-            + a / Physics::two_pi / f * (std::cos(p) - std::cos(Physics::two_pi * f * time + p));
+        result += o * time
+                  + a / Physics::two_pi / f
+                            * (std::cos(p) - std::cos(Physics::two_pi * f * time + p));
     }
     return result;
 }

@@ -25,14 +25,13 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "AbsBeamline/ScalingFFAMagnet.h"
 #include <cmath>
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "AbsBeamline/ScalingFFAMagnet.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 ScalingFFAMagnet::ScalingFFAMagnet(const std::string& name)
-    : Component(name), planarArcGeometry_m(1., 1.), dummy(), endField_m(nullptr) {
-}
+    : Component(name), planarArcGeometry_m(1., 1.), dummy(), endField_m(nullptr) {}
 
 ScalingFFAMagnet::ScalingFFAMagnet(const ScalingFFAMagnet& right)
     : Component(right),
@@ -59,9 +58,7 @@ ScalingFFAMagnet::ScalingFFAMagnet(const ScalingFFAMagnet& right)
     r0_m           = right.r0_m;
 }
 
-ScalingFFAMagnet::~ScalingFFAMagnet() {
-    delete endField_m;
-}
+ScalingFFAMagnet::~ScalingFFAMagnet() { delete endField_m; }
 
 ScalingFFAMagnet* ScalingFFAMagnet::clone() const {
     ScalingFFAMagnet* magnet = new ScalingFFAMagnet(*this);
@@ -69,20 +66,14 @@ ScalingFFAMagnet* ScalingFFAMagnet::clone() const {
     return magnet;
 }
 
-EMField& ScalingFFAMagnet::getField() {
-    return dummy;
-}
+EMField& ScalingFFAMagnet::getField() { return dummy; }
 
-const EMField& ScalingFFAMagnet::getField() const {
-    return dummy;
-}
+const EMField& ScalingFFAMagnet::getField() const { return dummy; }
 
-bool ScalingFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {
-    return false;
-}
+bool ScalingFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) { return false; }
 
 bool ScalingFFAMagnet::apply(
-    const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
     auto Rview                              = pc->R.getView();
     auto Pview                              = pc->P.getView();
@@ -92,31 +83,21 @@ bool ScalingFFAMagnet::apply(
     return apply(R, P, t, E, B);
 }
 
-void ScalingFFAMagnet::initialise() {
-    calculateDfCoefficients();
-}
+void ScalingFFAMagnet::initialise() { calculateDfCoefficients(); }
 
 void ScalingFFAMagnet::initialise(
-    PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
+        PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
     RefPartBunch_m = bunch;
     initialise();
 }
 
-void ScalingFFAMagnet::finalise() {
-    RefPartBunch_m = nullptr;
-}
+void ScalingFFAMagnet::finalise() { RefPartBunch_m = nullptr; }
 
-bool ScalingFFAMagnet::bends() const {
-    return true;
-}
+bool ScalingFFAMagnet::bends() const { return true; }
 
-BGeometryBase& ScalingFFAMagnet::getGeometry() {
-    return planarArcGeometry_m;
-}
+BGeometryBase& ScalingFFAMagnet::getGeometry() { return planarArcGeometry_m; }
 
-const BGeometryBase& ScalingFFAMagnet::getGeometry() const {
-    return planarArcGeometry_m;
-}
+const BGeometryBase& ScalingFFAMagnet::getGeometry() const { return planarArcGeometry_m; }
 
 void ScalingFFAMagnet::accept(BeamlineVisitor& visitor) const {
     visitor.visitScalingFFAMagnet(*this);
@@ -126,7 +107,7 @@ bool ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<doub
     Vector_t<double, 3> pos = R - centre_m;
     double r                = std::sqrt(pos[0] * pos[0] + pos[2] * pos[2]);
     double phi              = std::atan2(
-        pos[2], pos[0]);  // angle between y-axis and position vector in anticlockwise direction
+            pos[2], pos[0]);  // angle between y-axis and position vector in anticlockwise direction
     Vector_t<double, 3> posCyl({r, pos[1], phi});
     Vector_t<double, 3> bCyl({0., 0., 0.});  // br bz bphi
     bool outOfBounds = getFieldValueCylindrical(posCyl, bCyl);
@@ -138,7 +119,7 @@ bool ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<doub
 }
 
 bool ScalingFFAMagnet::getFieldValueCylindrical(
-    const Vector_t<double, 3>& pos, Vector_t<double, 3>& B) const {
+        const Vector_t<double, 3>& pos, Vector_t<double, 3>& B) const {
     double r   = pos[0];
     double z   = pos[1];
     double phi = pos[2];
@@ -179,7 +160,7 @@ bool ScalingFFAMagnet::getFieldValueCylindrical(
             deltaB[0] = (f2n * (k_m - n) / (n + 1) - tanDelta_m * f2nplus1) * h
                         * std::pow(z / r, n + 1);  // Br
             deltaB[2] =
-                f2nplus1 * h * std::pow(z / r, n + 1);  // Bphi = sum(f_2n+1 * h * (z/r)^2n+1
+                    f2nplus1 * h * std::pow(z / r, n + 1);  // Bphi = sum(f_2n+1 * h * (z/r)^2n+1
         }
         B += deltaB;
     }
@@ -187,8 +168,8 @@ bool ScalingFFAMagnet::getFieldValueCylindrical(
 }
 
 bool ScalingFFAMagnet::apply(
-    const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
+        Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
     return getFieldValue(R, B);
 }
 
@@ -206,13 +187,13 @@ void ScalingFFAMagnet::calculateDfCoefficients() {
         dfCoefficients_m[n + 2] = std::vector<double>(dfCoefficients_m[n].size() + 2, 0);
         for (size_t i = 0; i < dfCoefficients_m[n].size(); ++i) {  // i indexes the derivative
             dfCoefficients_m[n + 2][i] =
-                -(k_m - n) * (k_m - n) / (n + 1) * dfCoefficients_m[n][i] / (n + 2);
+                    -(k_m - n) * (k_m - n) / (n + 1) * dfCoefficients_m[n][i] / (n + 2);
         }
         for (size_t i = 0; i < dfCoefficients_m[n + 1].size(); ++i) {  // i indexes the derivative
             dfCoefficients_m[n + 2][i] +=
-                2 * (k_m - n) * tanDelta_m * dfCoefficients_m[n + 1][i] / (n + 2);
+                    2 * (k_m - n) * tanDelta_m * dfCoefficients_m[n + 1][i] / (n + 2);
             dfCoefficients_m[n + 2][i + 1] -=
-                (1 + tanDelta_m * tanDelta_m) * dfCoefficients_m[n + 1][i] / (n + 2);
+                    (1 + tanDelta_m * tanDelta_m) * dfCoefficients_m[n + 1][i] / (n + 2);
         }
     }
 }
@@ -232,7 +213,7 @@ void ScalingFFAMagnet::setupEndField() {
         return;
     }
     std::shared_ptr<endfieldmodel::EndFieldModel> efm =
-        endfieldmodel::EndFieldModel::getEndFieldModel(endFieldName_m);
+            endfieldmodel::EndFieldModel::getEndFieldModel(endFieldName_m);
     endfieldmodel::EndFieldModel* newEFM = efm->clone();
     newEFM->rescale(Units::m2mm * 1.0 / getR0());
     setEndField(newEFM);

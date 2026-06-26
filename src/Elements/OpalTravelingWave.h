@@ -20,10 +20,8 @@
 
 #include "Elements/OpalElement.h"
 
-class OpalTravelingWave: public OpalElement {
-
+class OpalTravelingWave : public OpalElement {
 public:
-
     /// The attributes of class OpalTravelingWave.
     enum {
         VOLT = COMMON,  // The peak voltage.
@@ -46,20 +44,18 @@ public:
     virtual ~OpalTravelingWave();
 
     /// Make clone.
-    virtual OpalTravelingWave *clone(const std::string &name);
+    virtual OpalTravelingWave* clone(const std::string& name);
 
     /// Update the embedded OPALX cavity.
     virtual void update();
 
 private:
-
     // Not implemented.
-    OpalTravelingWave(const OpalTravelingWave &);
-    void operator=(const OpalTravelingWave &);
+    OpalTravelingWave(const OpalTravelingWave&);
+    void operator=(const OpalTravelingWave&);
 
     // Clone constructor.
-    OpalTravelingWave(const std::string &name, OpalTravelingWave *parent);
-
+    OpalTravelingWave(const std::string& name, OpalTravelingWave* parent);
 };
 
-#endif // OPAL_OpalTravelingWave_HH
+#endif  // OPAL_OpalTravelingWave_HH

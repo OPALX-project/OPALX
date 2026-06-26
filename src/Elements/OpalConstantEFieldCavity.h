@@ -5,12 +5,7 @@
 
 class OpalConstantEFieldCavity : public OpalElement {
 public:
-    enum {
-        EX = COMMON,
-        EY,
-        EZ,
-        SIZE
-    };
+    enum { EX = COMMON, EY, EZ, SIZE };
 
     OpalConstantEFieldCavity();
     virtual ~OpalConstantEFieldCavity();
@@ -27,4 +22,3 @@ private:
 };
 
 #endif  // OPAL_OpalConstantEFieldCavity_HH
-

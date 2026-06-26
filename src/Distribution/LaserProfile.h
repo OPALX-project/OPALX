@@ -14,16 +14,16 @@
 
 #include "OPALTypes.h"
 
+#include <string>
 #include "Utilities/GSLHistogram.h"
 #include "Utilities/Random.h"
-#include <string>
 #include "hdf5.h"
 
 class LaserProfile {
 public:
     LaserProfile(
-        const std::string& fileName, const std::string& imageName, double intensityCut,
-        short flags);
+            const std::string& fileName, const std::string& imageName, double intensityCut,
+            short flags);
 
     ~LaserProfile();
 

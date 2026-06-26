@@ -23,7 +23,6 @@
 // the random numbers are generated in batches of 55
 const int nr = 55;
 
-
 // the random integers are generated in the range [0, MAXRAN)
 static const int maxran = 1000000000;
 
@@ -34,9 +33,7 @@ static const int maxran = 1000000000;
 // [/center]
 
 class Random {
-
 public:
-
     /// Constructor with default seed.
     Random();
 
@@ -57,7 +54,7 @@ public:
     /// Gaussian distribution.
     //  Return two real Gaussian pseudo-random numbers with unit standard
     //  deviation.  The values are placed in the two arguments.
-    void gauss(double &gr1, double &gr2);
+    void gauss(double& gr1, double& gr2);
 
     /// Uniform distribution.
     //  Return an integer pseudo-random number in the range [0,1000000000).
@@ -67,7 +64,6 @@ public:
     void init55(int seed);
 
 private:
-
     // generate next batch of random numbers
     void irngen();
 
@@ -78,4 +74,4 @@ private:
     int next;
 };
 
-#endif // OPALX_ExpressionRandom_HH
+#endif  // OPALX_ExpressionRandom_HH

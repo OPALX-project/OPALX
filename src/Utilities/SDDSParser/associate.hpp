@@ -18,54 +18,43 @@
 #define ASSOCIATE_HPP_
 
 #include "ast.hpp"
-#include "skipper.hpp"
 #include "error_handler.hpp"
+#include "skipper.hpp"
 
 #include <list>
 
 namespace SDDS {
-    struct associate
-    {
-        enum attributes { NAME
-                        , FILENAME
-                        , PATH
-                        , DESCRIPTION
-                        , CONTENTS
-                        , SDDS
-                        , ASSOCIATE
-        };
+    struct associate {
+        enum attributes { NAME, FILENAME, PATH, DESCRIPTION, CONTENTS, SDDS, ASSOCIATE };
 
         template <attributes A>
-        struct complainUnsupported
-        {
-            static bool apply()
-            {
+        struct complainUnsupported {
+            static bool apply() {
                 std::string attributeString;
-                switch(A)
-                {
-                case NAME:
-                    attributeString = "name";
-                    break;
-                case FILENAME:
-                    attributeString = "filename";
-                    break;
-                case PATH:
-                    attributeString = "path";
-                    break;
-                case DESCRIPTION:
-                    attributeString = "description";
-                    break;
-                case CONTENTS:
-                    attributeString = "contents";
-                    break;
-                case SDDS:
-                    attributeString = "sdds";
-                    break;
-                case ASSOCIATE:
-                    attributeString = "associate";
-                    break;
-                default:
-                    return true;
+                switch (A) {
+                    case NAME:
+                        attributeString = "name";
+                        break;
+                    case FILENAME:
+                        attributeString = "filename";
+                        break;
+                    case PATH:
+                        attributeString = "path";
+                        break;
+                    case DESCRIPTION:
+                        attributeString = "description";
+                        break;
+                    case CONTENTS:
+                        attributeString = "contents";
+                        break;
+                    case SDDS:
+                        attributeString = "sdds";
+                        break;
+                    case ASSOCIATE:
+                        attributeString = "associate";
+                        break;
+                    default:
+                        return true;
                 }
                 std::cerr << attributeString << " not supported yet" << std::endl;
                 return false;
@@ -73,12 +62,10 @@ namespace SDDS {
         };
     };
 
-    struct associateList: std::list<associate> {};
+    struct associateList : std::list<associate> {};
 
-    inline std::ostream& operator<<(std::ostream& out, const associate& ) {
-        return out;
-    }
-}
+    inline std::ostream& operator<<(std::ostream& out, const associate&) { return out; }
+}  // namespace SDDS
 
 // Associate parsing is now handled by SimpleParser
 #endif /* ASSOCIATE_HPP_ */

@@ -21,11 +21,11 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 
-
 #include "Lines/SequenceTemplate.h"
 
 #include "Utility/PAssert.h"
 
+#include <vector>
 #include "AbstractObjects/OpalData.h"
 #include "Lines/Sequence.h"
 #include "Lines/SequenceParser.h"
@@ -33,60 +33,49 @@
 #include "OpalParser/OpalParser.h"
 #include "OpalParser/SimpleStatement.h"
 #include "Utilities/ParseError.h"
-#include <vector>
 
 // Class SequenceTemplate
 // ------------------------------------------------------------------------
 
-SequenceTemplate::SequenceTemplate():
-    Macro(0, "SEQUENCE",
-          "This object defines a beamsequence list with arguments.\n"
-          "\t<name>(<args>);"),
-    body("SEQUENCE")
-{}
+SequenceTemplate::SequenceTemplate()
+    : Macro(0, "SEQUENCE",
+            "This object defines a beamsequence list with arguments.\n"
+            "\t<name>(<args>);"),
+      body("SEQUENCE") {}
 
+SequenceTemplate::SequenceTemplate(const std::string& name, Object* parent)
+    : Macro(name, parent), body(name) {}
 
-SequenceTemplate::SequenceTemplate(const std::string &name, Object *parent):
-    Macro(name, parent), body(name)
-{}
+SequenceTemplate::~SequenceTemplate() {}
 
-
-SequenceTemplate::~SequenceTemplate()
-{}
-
-
-SequenceTemplate *SequenceTemplate::clone(const std::string &/*name*/) {
-    throw ParseError("SequenceTemplate::clone()",
-                     "You cannot use this object without attributes.");
+SequenceTemplate* SequenceTemplate::clone(const std::string& /*name*/) {
+    throw ParseError("SequenceTemplate::clone()", "You cannot use this object without attributes.");
 }
 
-
-Object *SequenceTemplate::makeInstance
-(const std::string &name, Statement &statement, const Parser *) {
-    MacroStream *expansion = 0;
-    Sequence *instance = 0;
+Object* SequenceTemplate::makeInstance(
+        const std::string& name, Statement& statement, const Parser*) {
+    MacroStream* expansion = 0;
+    Sequence* instance     = 0;
 
     try {
         // Parse actuals and check their number.
         parseActuals(statement);
-        if(formals.size() != actuals.size()) {
-            throw ParseError("MacroCmd::makeInstance()",
-                             "Inconsistent number of macro arguments.");
+        if (formals.size() != actuals.size()) {
+            throw ParseError("MacroCmd::makeInstance()", "Inconsistent number of macro arguments.");
         }
 
         // Expand the SEQUENCE macro in token form.
         body.start();
         Token token = body.readToken();
-        expansion = new MacroStream(getOpalName());
-        while(! token.isEOF()) {
+        expansion   = new MacroStream(getOpalName());
+        while (!token.isEOF()) {
             bool found = false;
-            if(token.isWord()) {
+            if (token.isWord()) {
                 std::string word = token.getWord();
-                for(std::vector<std::string>::size_type i = 0;
-                    i < formals.size(); i++) {
-                    if(word == formals[i]) {
+                for (std::vector<std::string>::size_type i = 0; i < formals.size(); i++) {
+                    if (word == formals[i]) {
                         std::vector<Token> act = actuals[i];
-                        for(Token t : act) {
+                        for (Token t : act) {
                             expansion->append(t);
                         }
                         found = true;
@@ -94,18 +83,18 @@ Object *SequenceTemplate::makeInstance
                     }
                 }
             }
-            if(! found) expansion->append(token);
+            if (!found) expansion->append(token);
             token = body.readToken();
         }
 
         // Make the instance and parse it.
-        Sequence *model = dynamic_cast<Sequence *>(OpalData::getInstance()->find("SEQUENCE"));
-        instance = model->clone(name);
+        Sequence* model = dynamic_cast<Sequence*>(OpalData::getInstance()->find("SEQUENCE"));
+        instance        = model->clone(name);
         instance->copyAttributes(*this);
         expansion->start();
         SequenceParser parser(instance);
         parser.run(&*expansion);
-    } catch(...) {
+    } catch (...) {
         delete expansion;
         delete instance;
         throw;
@@ -114,15 +103,12 @@ Object *SequenceTemplate::makeInstance
     return instance;
 }
 
-
-Object *SequenceTemplate::makeTemplate
-(const std::string &, TokenStream &, Statement &) {
+Object* SequenceTemplate::makeTemplate(const std::string&, TokenStream&, Statement&) {
     // Should not be called.
     return 0;
 }
 
-
-void SequenceTemplate::parseTemplate(TokenStream &is, Statement &statement) {
+void SequenceTemplate::parseTemplate(TokenStream& is, Statement& statement) {
     // Save the formals.
     parseFormals(statement);
     bool isSequence = statement.keyword("SEQUENCE");
@@ -135,14 +121,14 @@ void SequenceTemplate::parseTemplate(TokenStream &is, Statement &statement) {
     Token token = is.readToken();
 
     // Read through ENDSEQUENCE.
-    while(! token.isEOF()) {
+    while (!token.isEOF()) {
         body.append(token);
-        if(token.isKey("ENDSEQUENCE")) {
+        if (token.isKey("ENDSEQUENCE")) {
             // Read remainder up to ';'.
             token = is.readToken();
-            while(! token.isEOF()) {
+            while (!token.isEOF()) {
                 body.append(token);
-                if(token.isDel(';')) break;
+                if (token.isDel(';')) break;
                 token = is.readToken();
             }
             break;

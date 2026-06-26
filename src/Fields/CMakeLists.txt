@@ -13,6 +13,7 @@ set (_SRCS
     # Fieldmaps
     Fieldmap.cpp
     Astra1DDynamic.cpp
+    Astra1DMagnetoStatic.cpp
     FM2DMagnetoStatic.cpp
     FM2DDynamic.cpp
 
@@ -35,7 +36,6 @@ set (_SRCS
     #Astra1DElectroStatic_fast.cpp
     #FM1DMagnetoStatic.cpp
     #FM1DMagnetoStatic_fast.cpp
-    #Astra1DMagnetoStatic.cpp
     #Astra1DMagnetoStatic_fast.cpp
     #FM1DProfile1.cpp
     #FM1DProfile2.cpp
@@ -64,7 +64,10 @@ set (HDRS
     # Fieldmaps
     Fieldmap.h
     Fieldmap.hpp
+    Astra1DDynamic.h
+    Astra1DMagnetoStatic.h
     FM2DMagnetoStatic.h
+    FM2DDynamic.h
     
     # To be ported from OPAL
     #FM3DDynamic.h
@@ -78,12 +81,10 @@ set (HDRS
     #SectorField.h
     #SectorMagneticFieldMap.h
     #Astra1DDynamic_fast.h
-    #Astra1DDynamic.h
     #Astra1DElectroStatic_fast.h
     #Astra1DElectroStatic.h
     #Astra1D_fast.h
     #Astra1DMagnetoStatic_fast.h
-    #Astra1DMagnetoStatic.h
     #BSingleMultipoleField.h
     #FM1DDynamic_fast.h
     #FM1DDynamic.h
@@ -93,7 +94,6 @@ set (HDRS
     #FM1DMagnetoStatic.h
     #FM1DProfile1.h
     #FM1DProfile2.h
-    #FM2DDynamic.h
     #FM2DElectroStatic.h
     )
 

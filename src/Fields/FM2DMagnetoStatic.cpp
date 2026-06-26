@@ -110,7 +110,7 @@ FM2DMagnetoStatic::FM2DMagnetoStatic(std::string aFilename) : Fieldmap(aFilename
 FM2DMagnetoStatic::~FM2DMagnetoStatic() { freeMap(); }
 
 void FM2DMagnetoStatic::readMap() {
-    if (FieldstrengthBz_m.h_view.data() == nullptr) {
+    if (FieldstrengthBz_m.extent(0) == 0) {
         // declare variables and allocate memory
         std::ifstream in;
         std::string tmpString;
@@ -167,10 +167,11 @@ void FM2DMagnetoStatic::readMap() {
             }
         }
 
-        FieldstrengthBz_m.modify<Kokkos::HostSpace>();
-        FieldstrengthBz_m.sync<Kokkos::DefaultExecutionSpace>();
-        FieldstrengthBr_m.modify<Kokkos::HostSpace>();
-        FieldstrengthBr_m.sync<Kokkos::DefaultExecutionSpace>();
+        FieldstrengthBz_m.modify<typename decltype(FieldstrengthBz_m)::host_mirror_space>();
+        FieldstrengthBz_m.sync<typename decltype(FieldstrengthBz_m)::t_dev::device_type>();
+
+        FieldstrengthBr_m.modify<typename decltype(FieldstrengthBr_m)::host_mirror_space>();
+        FieldstrengthBr_m.sync<typename decltype(FieldstrengthBr_m)::t_dev::device_type>();
 
         *ippl::Info << level3 << typeset_msg("read in fieldmap '" + Filename_m + "'", "info")
                     << endl;
@@ -178,7 +179,7 @@ void FM2DMagnetoStatic::readMap() {
 }
 
 void FM2DMagnetoStatic::freeMap() {
-    if (FieldstrengthBz_m.h_view.data() != nullptr) {
+    if (FieldstrengthBz_m.extent(0) != 0) {
         FieldstrengthBz_m = Kokkos::DualView<double*>();
         FieldstrengthBr_m = Kokkos::DualView<double*>();
 
@@ -237,8 +238,8 @@ bool FM2DMagnetoStatic::getFieldstrength(
         const Vector_t<double, 3>& R, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) const {
     if (isInside(R)) {
         computeField(
-                R, B, FieldstrengthBz_m.h_view, FieldstrengthBr_m.h_view, hr_m, hz_m, zbegin_m,
-                num_gridpr_m, num_gridpz_m);
+                R, B, FieldstrengthBz_m.view_host(), FieldstrengthBr_m.view_host(), hr_m, hz_m,
+                zbegin_m, num_gridpr_m, num_gridpz_m);
         return false;
     } else {
         return true;

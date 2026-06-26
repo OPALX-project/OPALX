@@ -18,7 +18,6 @@
 //
 // ------------------------------------------------------------------------
 
-
 // Class SFunction
 // ------------------------------------------------------------------------
 /// Functions of arc length.
@@ -29,9 +28,7 @@
 //  and at the end of the current element respectively.
 
 class SFunction {
-
 public:
-
     /// Default constructor.
     //  This constructor resets the arc length and registers [b]this[/b]
     //  as the current arc length function.  Only one such function may
@@ -58,10 +55,9 @@ public:
     void update(double length);
 
 private:
-
     // Not implemented.
-    SFunction(const SFunction &);
-    void operator=(const SFunction &);
+    SFunction(const SFunction&);
+    void operator=(const SFunction&);
 
     // The function evaluating the arc length.
     double position(double flag) const;
@@ -74,7 +70,7 @@ private:
 
     // The currently active S-function.
     // Only one function may be active at any time.
-    static const SFunction *sfun;
+    static const SFunction* sfun;
 };
 
-#endif // OPAL_SFunction_HH
+#endif  // OPAL_SFunction_HH

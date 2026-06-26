@@ -25,6 +25,7 @@
 #include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/Tracker.h"
 #include "Steppers/BorisPusher.h"
+#include "Steppers/SpinTBMTPusher.h"
 #include "Structure/DataSink.h"
 
 #include "BasicActions/Option.h"
@@ -40,6 +41,7 @@
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Laser.h"
 #include "AbsBeamline/Marker.h"
+#include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
 #include "AbsBeamline/RBend.h"
@@ -77,7 +79,7 @@ private:
     StepSizeConfig stepSizes_m;
 
     double dtCurrentTrack_m;          ///< Global @f$\Delta t@f$ for the current track segment.
-    unsigned long long repartFreq_m;  ///< Space-charge repartition period (steps); off on one rank.
+    unsigned long long repartFreq_m;  ///< Space-charge repartition period (steps); 0 disables it.
     std::vector<std::vector<std::shared_ptr<SamplingBase>>>
             emittingSamplers_m;  ///< Per-container emitters.
 
@@ -136,6 +138,9 @@ public:
     /// @brief Reject laser tracking until dedicated laser tracking is implemented.
     virtual void visitLaser(const Laser&);
 
+    /// @brief Apply the algorithm to a monitor.
+    virtual void visitMonitor(const Monitor&);
+
     /// @brief Apply the algorithm to a marker.
     virtual void visitMarker(const Marker&);
 
@@ -183,6 +188,12 @@ public:
     /// @brief Second half: kick then push all active containers.
     void timeIntegration2(BorisPusher& pusher);
 
+    /// @brief Thomas-BMT spin precession across all active containers that store Pol.
+    /// Must be called after external + space-charge fields have been accumulated and
+    /// before the momentum kick (so E, B at the particle are the lab-frame fields the
+    /// particle sees during this step).
+    void evolveSpinTBMT();
+
     /**
      * @brief Self-fields in beam frame (primary container); optional binary repartition.
      * @param step Global step index (used for repartition cadence).
@@ -198,8 +209,8 @@ public:
     /// @param dt Global time step (s).
     void emitFromEmissionSources(double t, double dt);
 
-    /// @brief Apply global processes
-    void applyGlobalProcesses(double dt);
+    /// @brief Apply global processes and return the global number of particles marked invalid.
+    size_t applyGlobalProcesses(double dt);
 
     /// @brief Zero E and B on all active particle containers.
     void resetFields();
@@ -254,6 +265,14 @@ private:
     /// @brief Trigger binary repartition for the field solver if configured.
     void doBinaryRepartition();
 
+    /// @brief Delete particles marked invalid by the central per-container mask.
+    size_t deleteInvalidParticles(bool activeOnly, Inform& m, const std::string& reason);
+
+public:
+    /// @brief Mark particles moving backward behind an active source/cathode plane.
+    size_t markBackwardParticlesAtSourcePlane();
+
+private:
     /// @brief Force-activate containers whose emitting samplers have not yet finished.
     void activateEmittingContainers(double t);
 
@@ -299,6 +318,10 @@ inline void ParallelTracker::visitConstantEFieldCavity(const ConstantEFieldCavit
 
 inline void ParallelTracker::visitDrift(const Drift& drift) {
     itsOpalBeamline_m.visit(drift, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitMonitor(const Monitor& monitor) {
+    itsOpalBeamline_m.visit(monitor, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitMarker(const Marker& marker) {

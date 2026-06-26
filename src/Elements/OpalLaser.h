@@ -5,16 +5,7 @@
 
 class OpalLaser : public OpalElement {
 public:
-    enum {
-        WAVELENGTH = COMMON,
-        PULSEENERGY,
-        PULSELENGTH,
-        WAISTX,
-        WAISTY,
-        DIR,
-        STOKES,
-        SIZE
-    };
+    enum { WAVELENGTH = COMMON, PULSEENERGY, PULSELENGTH, WAISTX, WAISTY, DIR, STOKES, SIZE };
 
     OpalLaser();
     ~OpalLaser() override;

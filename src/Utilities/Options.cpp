@@ -40,6 +40,8 @@ namespace Options {
 
     int statDumpFreq = 10;
 
+    int stepInfoFreq = 1;
+
     bool psDumpEachTurn = false;
 
     DumpFrame psDumpFrame = DumpFrame::GLOBAL;

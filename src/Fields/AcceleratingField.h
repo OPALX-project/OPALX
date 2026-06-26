@@ -23,7 +23,6 @@
 #include "Fields/ConstEzField.h"
 #include "Fields/OscillatingField.h"
 
-
 // Typedef AcceleratingField
 // ------------------------------------------------------------------------
 /// The electromagnetic field of an RF cavity.
@@ -32,4 +31,4 @@
 
 typedef OscillatingField<ConstEzField> AcceleratingField;
 
-#endif // OPALX_AcceleratingField_HH
+#endif  // OPALX_AcceleratingField_HH

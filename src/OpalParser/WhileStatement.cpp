@@ -50,8 +50,7 @@ WhileStatement::WhileStatement(const Parser& parser, TokenStream& is)
                 level++;
             } else if (token.isDel(')')) {
                 level--;
-                if (level == 0)
-                    break;
+                if (level == 0) break;
             }
 
             token = is.readToken();
@@ -63,9 +62,7 @@ WhileStatement::WhileStatement(const Parser& parser, TokenStream& is)
     }
 }
 
-WhileStatement::~WhileStatement() {
-    delete while_block;
-}
+WhileStatement::~WhileStatement() { delete while_block; }
 
 #include "Utilities/OpalException.h"
 void WhileStatement::execute(const Parser& parser) {

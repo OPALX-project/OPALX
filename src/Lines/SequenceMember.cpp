@@ -19,29 +19,21 @@
 #include "Lines/SequenceMember.h"
 #include "AbsBeamline/ElementBase.h"
 
-
 // Class SequenceMember
 // ------------------------------------------------------------------------
 
-SequenceMember::SequenceMember():
-    FlaggedElmPtr(),
-    itsPosition(0.0), itsFlag(ABSOLUTE), itsType(UNKNOWN), OpalElement()
-{}
+SequenceMember::SequenceMember()
+    : FlaggedElmPtr(), itsPosition(0.0), itsFlag(ABSOLUTE), itsType(UNKNOWN), OpalElement() {}
 
+SequenceMember::SequenceMember(const SequenceMember& rhs)
+    : FlaggedElmPtr(rhs),
+      itsPosition(rhs.itsPosition),
+      itsFlag(rhs.itsFlag),
+      itsType(rhs.itsType),
+      OpalElement(rhs.OpalElement) {}
 
-SequenceMember::SequenceMember(const SequenceMember &rhs):
-    FlaggedElmPtr(rhs),
-    itsPosition(rhs.itsPosition),
-    itsFlag(rhs.itsFlag),
-    itsType(rhs.itsType),
-    OpalElement(rhs.OpalElement)
-{}
-
-
-SequenceMember::~SequenceMember()
-{}
-
+SequenceMember::~SequenceMember() {}
 
 void SequenceMember::setLength(double drift) {
-    if(itsType == GENERATED) getElement()->setElementLength(drift);
+    if (itsType == GENERATED) getElement()->setElementLength(drift);
 }

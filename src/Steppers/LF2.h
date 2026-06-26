@@ -18,30 +18,25 @@
 #ifndef LF2_H
 #define LF2_H
 
-#include "Stepper.h"
 #include "Physics/Physics.h"
+#include "Stepper.h"
 
 /// Leap-Frog 2nd order
-template <typename FieldFunction, typename ... Arguments>
+template <typename FieldFunction, typename... Arguments>
 class LF2 : public Stepper<FieldFunction, Arguments...> {
-    
 public:
-    
-    LF2(const FieldFunction& fieldfunc) : Stepper<FieldFunction, Arguments ...>(fieldfunc) { }
-    
+    LF2(const FieldFunction& fieldfunc) : Stepper<FieldFunction, Arguments...>(fieldfunc) {}
+
 private:
-    bool doAdvance_m(PartBunch_t* bunch,
-                     const size_t& i,
-                     const double& t,
-                     const double dt,
-                     Arguments& ... args) const;
-    
-    
+    bool doAdvance_m(
+            PartBunch_t* bunch, const size_t& i, const double& t, const double dt,
+            Arguments&... args) const;
+
     void push_m(Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& h) const;
-    
-    bool kick_m(PartBunch_t* bunch, const size_t& i,
-                const double& t, const double& h,
-                Arguments& ... args) const;
+
+    bool kick_m(
+            PartBunch_t* bunch, const size_t& i, const double& t, const double& h,
+            Arguments&... args) const;
 };
 
 #include "LF2.hpp"

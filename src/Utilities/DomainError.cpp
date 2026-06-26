@@ -20,20 +20,11 @@
 
 #include "Utilities/DomainError.h"
 
-
 // Class DomainError
 // ------------------------------------------------------------------------
 
+DomainError::DomainError(const std::string& meth) : ArithmeticError(meth, "Domain error.") {}
 
-DomainError::DomainError(const std::string &meth):
-    ArithmeticError(meth, "Domain error.")
-{}
+DomainError::DomainError(const DomainError& rhs) : ArithmeticError(rhs) {}
 
-
-DomainError::DomainError(const DomainError &rhs):
-    ArithmeticError(rhs)
-{}
-
-
-DomainError::~DomainError()
-{}
+DomainError::~DomainError() {}

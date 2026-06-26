@@ -25,19 +25,18 @@
 
 class PeakFinder;
 
-class Probe: public PluginElement {
-
+class Probe : public PluginElement {
 public:
     /// Constructor with given name.
-    explicit Probe(const std::string &name);
+    explicit Probe(const std::string& name);
 
     Probe();
-    Probe(const Probe &);
-    void operator=(const Probe &) = delete;
+    Probe(const Probe&);
+    void operator=(const Probe&) = delete;
     virtual ~Probe();
 
     /// Apply visitor to Probe.
-    virtual void accept(BeamlineVisitor &) const override;
+    virtual void accept(BeamlineVisitor&) const override;
 
     /// Set probe histogram bin width
     void setStep(double step);
@@ -48,16 +47,17 @@ public:
 
 private:
     /// Initialise peakfinder file
-    virtual void doInitialise(PartBunch_t *bunch) override;
+    virtual void doInitialise(PartBunch_t* bunch) override;
     /// Record probe hits when bunch particles pass
-    virtual bool doCheck(PartBunch_t *bunch, const int turnnumber, const double t, const double tstep) override;
+    virtual bool doCheck(
+            PartBunch_t* bunch, const int turnnumber, const double t, const double tstep) override;
     /// Hook for goOffline
     virtual void doGoOffline() override;
     /// Virtual hook for preCheck
     virtual bool doPreCheck(PartBunch_t*) override;
 
-    double step_m; ///< Step size of the probe (bin width in histogram file)
-    std::unique_ptr<PeakFinder> peakfinder_m; ///< Pointer to Peakfinder instance
+    double step_m;  ///< Step size of the probe (bin width in histogram file)
+    std::unique_ptr<PeakFinder> peakfinder_m;  ///< Pointer to Peakfinder instance
 };
 
-#endif // OPALX_Probe_HH
+#endif  // OPALX_Probe_HH

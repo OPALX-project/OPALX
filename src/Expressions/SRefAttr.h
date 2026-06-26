@@ -19,15 +19,14 @@
 // ------------------------------------------------------------------------
 
 #include "AbstractObjects/AttributeBase.h"
-#include "AbstractObjects/OpalData.h"
 #include "AbstractObjects/Object.h"
+#include "AbstractObjects/OpalData.h"
 #include "Expressions/ADeferred.h"
 #include "Expressions/SValue.h"
 #include "Utilities/ParseError.h"
-//#include "Utilities/Options.h"
-#include "Utilities/Options.h"
+// #include "Utilities/Options.h"
 #include <vector>
-
+#include "Utilities/Options.h"
 
 namespace Expressions {
 
@@ -45,20 +44,18 @@ namespace Expressions {
     //  that the next evaluation forces to search for a replacement object.
 
     template <class T>
-    class SRefAttr: public AttributeBase {
-
+    class SRefAttr : public AttributeBase {
     public:
-
         /// Constructor.
         //  Use object name [b]oName[/b] to identify the object containing
         //  the scalar, and [b]aName[/b] to identify the scalar itself.
-        SRefAttr(const std::string &oName, const std::string &aName, int index);
+        SRefAttr(const std::string& oName, const std::string& aName, int index);
 
-        SRefAttr(const SRefAttr &);
+        SRefAttr(const SRefAttr&);
         virtual ~SRefAttr();
 
         /// Make clone.
-        virtual SRefAttr<T> *clone() const;
+        virtual SRefAttr<T>* clone() const;
 
         /// Evaluate.
         //  Evaluate the reference and return the value.
@@ -73,17 +70,16 @@ namespace Expressions {
         virtual void invalidate();
 
         /// Print the reference.
-        virtual void print(std::ostream &) const;
+        virtual void print(std::ostream&) const;
 
         /// Store new value.
         //  Evaluate the reference and assign to the scalar referred to.
-        virtual void set(const T &) const;
+        virtual void set(const T&) const;
 
     private:
-
         // Not implemented.
         SRefAttr();
-        void operator=(const SRefAttr &);
+        void operator=(const SRefAttr&);
 
         // Fill in the reference.
         void fill() const;
@@ -97,73 +93,68 @@ namespace Expressions {
         const int itsIndex;
 
         // The object and attribute referred to.
-        mutable Object    *itsObject;
-        mutable Attribute *itsAttr;
+        mutable Object* itsObject;
+        mutable Attribute* itsAttr;
     };
 
-
     template <class T>
-    inline std::ostream &operator<<(std::ostream &os, const SRefAttr<T> &a) {
+    inline std::ostream& operator<<(std::ostream& os, const SRefAttr<T>& a) {
         a.print(os);
         return os;
     }
-
 
     // Implementation of class SRefAttr<T>.
     // ------------------------------------------------------------------------
 
     template <class T>
-    SRefAttr<T>::SRefAttr
-    (const std::string &oName, const std::string &aName, int index):
-        obj_name(oName), att_name(aName), itsIndex(index),
-        itsObject(0), itsAttr(0)
-    {}
+    SRefAttr<T>::SRefAttr(const std::string& oName, const std::string& aName, int index)
+        : obj_name(oName), att_name(aName), itsIndex(index), itsObject(0), itsAttr(0) {}
 
     template <class T>
-    SRefAttr<T>::SRefAttr(const SRefAttr &rhs):
-        AttributeBase(),
-        obj_name(rhs.obj_name), att_name(rhs.att_name), itsIndex(rhs.itsIndex),
-        itsObject(rhs.itsObject), itsAttr(rhs.itsAttr)
-    {}
-
+    SRefAttr<T>::SRefAttr(const SRefAttr& rhs)
+        : AttributeBase(),
+          obj_name(rhs.obj_name),
+          att_name(rhs.att_name),
+          itsIndex(rhs.itsIndex),
+          itsObject(rhs.itsObject),
+          itsAttr(rhs.itsAttr) {}
 
     template <class T>
     SRefAttr<T>::~SRefAttr() {
-        if(itsObject) itsObject->unregisterReference(this);
+        if (itsObject) itsObject->unregisterReference(this);
     }
-
-
 
     template <class T>
-    SRefAttr<T> *SRefAttr<T>::clone() const {
+    SRefAttr<T>* SRefAttr<T>::clone() const {
         return new SRefAttr<T>(*this);
     }
-
 
     template <class T>
     T SRefAttr<T>::evaluate() const {
         fill();
 
-        if(AttributeBase *base = &itsAttr->getBase()) {
-            if(itsIndex) {
-                if(ADeferred<T> *value = dynamic_cast<ADeferred<T>*>(base)) {
+        if (AttributeBase* base = &itsAttr->getBase()) {
+            if (itsIndex) {
+                if (ADeferred<T>* value = dynamic_cast<ADeferred<T>*>(base)) {
                     std::vector<T> array = value->evaluate();
-                    if(itsIndex > int(array.size())) {
-                        throw ParseError("SRefAttr::evaluate()", "Reference \"" +
-                                         getImage() + "\" has index out of range.");
+                    if (itsIndex > int(array.size())) {
+                        throw ParseError(
+                                "SRefAttr::evaluate()",
+                                "Reference \"" + getImage() + "\" has index out of range.");
                     } else {
                         return array[itsIndex - 1];
                     }
                 } else {
-                    throw ParseError("SRefAttr::evaluate()", "Reference \"" +
-                                     getImage() + "\" is not an array.");
+                    throw ParseError(
+                            "SRefAttr::evaluate()",
+                            "Reference \"" + getImage() + "\" is not an array.");
                 }
             } else {
-                if(SValue<T> *value = dynamic_cast<SValue<T> *>(base)) {
+                if (SValue<T>* value = dynamic_cast<SValue<T>*>(base)) {
                     return value->evaluate();
                 } else {
-                    throw ParseError("SRefAttr::evaluate()", getImage() +
-                                     "\" is of the wrong type.");
+                    throw ParseError(
+                            "SRefAttr::evaluate()", getImage() + "\" is of the wrong type.");
                 }
             }
         }
@@ -171,62 +162,56 @@ namespace Expressions {
         return T(0);
     }
 
-
     template <class T>
     double SRefAttr<T>::getReal() {
-        throw ParseError("SRefAttr<T>::getReal()",
-                         "Attribute is not of real type.");
+        throw ParseError("SRefAttr<T>::getReal()", "Attribute is not of real type.");
     }
 
-
-    template <> inline
-    double SRefAttr<double>::getReal() {
+    template <>
+    inline double SRefAttr<double>::getReal() {
         return evaluate();
     }
 
-
     template <class T>
-    void SRefAttr<T>::print(std::ostream &os) const {
+    void SRefAttr<T>::print(std::ostream& os) const {
         os << obj_name;
-        if(! att_name.empty()) os << "->" << att_name;
-        if(itsIndex != 0) os << '[' << itsIndex << ']';
+        if (!att_name.empty()) os << "->" << att_name;
+        if (itsIndex != 0) os << '[' << itsIndex << ']';
         return;
     }
-
 
     template <class T>
     void SRefAttr<T>::invalidate() {
         itsObject = 0;
-        itsAttr = 0;
+        itsAttr   = 0;
     }
 
-
     template <class T>
-    void SRefAttr<T>::set(const T &value) const {
+    void SRefAttr<T>::set(const T& value) const {
         fill();
 
-        if(AttributeBase *base = &itsAttr->getBase()) {
-            if(dynamic_cast<SValue<T> *>(base)) {
+        if (AttributeBase* base = &itsAttr->getBase()) {
+            if (dynamic_cast<SValue<T>*>(base)) {
                 return itsAttr->set(new SValue<T>(value));
             } else {
-                throw ParseError("Real::get()", "Attribute \"" +
-                                 itsAttr->getName() + "\" is of the wrong type.");
+                throw ParseError(
+                        "Real::get()",
+                        "Attribute \"" + itsAttr->getName() + "\" is of the wrong type.");
             }
         }
     }
 
-
     template <class T>
     void SRefAttr<T>::fill() const {
-        if(itsObject == 0) {
+        if (itsObject == 0) {
             itsObject = OpalData::getInstance()->find(obj_name);
-            if(itsObject == 0) {
-                if(att_name.empty()  &&  itsIndex <= 0) {
-                    throw ParseError("SRefAttr::fill()",
-                                     "\nThe <variable> \"" + obj_name + "\" is unknown.\n");
+            if (itsObject == 0) {
+                if (att_name.empty() && itsIndex <= 0) {
+                    throw ParseError(
+                            "SRefAttr::fill()",
+                            "\nThe <variable> \"" + obj_name + "\" is unknown.\n");
                 } else {
-                    throw ParseError("SRefAttr::fill()",
-                                     "Object \"" + obj_name + "\" is unknown.");
+                    throw ParseError("SRefAttr::fill()", "Object \"" + obj_name + "\" is unknown.");
                 }
             }
 
@@ -234,22 +219,24 @@ namespace Expressions {
             // when the object is deleted.
             itsObject->registerReference(const_cast<SRefAttr<T>*>(this));
 
-            if(att_name.empty()) {
+            if (att_name.empty()) {
                 itsAttr = itsObject->findAttribute("VALUE");
-                if(itsAttr == 0) {
-                    throw ParseError("SRefAttr::fill()", "Object \"" + obj_name +
-                                     "\" is not a variable, constant or vector.");
+                if (itsAttr == 0) {
+                    throw ParseError(
+                            "SRefAttr::fill()",
+                            "Object \"" + obj_name + "\" is not a variable, constant or vector.");
                 }
             } else {
                 itsAttr = itsObject->findAttribute(att_name);
-                if(itsAttr == 0) {
-                    throw ParseError("SRefAttr::fill()", "Attribute \"" + obj_name +
-                                     "->" + att_name + "\" is unknown.");
+                if (itsAttr == 0) {
+                    throw ParseError(
+                            "SRefAttr::fill()",
+                            "Attribute \"" + obj_name + "->" + att_name + "\" is unknown.");
                 }
             }
         }
     }
 
-}
+}  // namespace Expressions
 
-#endif // OPAL_SRefAttr_HH
+#endif  // OPAL_SRefAttr_HH

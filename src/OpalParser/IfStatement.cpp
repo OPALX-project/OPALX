@@ -49,8 +49,7 @@ IfStatement::IfStatement(const Parser& parser, TokenStream& is)
                 level++;
             } else if (token.isDel(')')) {
                 level--;
-                if (level == 0)
-                    break;
+                if (level == 0) break;
             }
 
             token = is.readToken();

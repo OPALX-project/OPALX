@@ -20,10 +20,8 @@
 
 #include "Elements/OpalElement.h"
 
-class OpalMonitor: public OpalElement {
-
+class OpalMonitor : public OpalElement {
 public:
-
     /// Exemplar constructor.
     OpalMonitor();
 
@@ -36,7 +34,6 @@ public:
     virtual void update();
 
 private:
-
     // Not implemented.
     OpalMonitor(const OpalMonitor&);
     void operator=(const OpalMonitor&);
@@ -45,4 +42,4 @@ private:
     OpalMonitor(const std::string& name, OpalMonitor* parent);
 };
 
-#endif // OPAL_OpalMonitor_HH
+#endif  // OPAL_OpalMonitor_HH

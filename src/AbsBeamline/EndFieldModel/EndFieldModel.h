@@ -29,151 +29,146 @@
 #define ENDFIELDMODEL_ENDFIELDMODEL_H_
 
 #include <iostream>
-#include <vector>
 #include <map>
 #include <memory>
+#include <vector>
 
 namespace endfieldmodel {
-  
-class EndFieldModel {
- public:
-  /** Destructor */
-  virtual ~EndFieldModel() {;}
 
-  /** Stream a human readable description of the end field model to out */
-  virtual std::ostream& print(std::ostream& out) const = 0;
+    class EndFieldModel {
+    public:
+        /** Destructor */
+        virtual ~EndFieldModel() { ; }
 
-  /** Return the value of the function or its n^th derivative 
-   * 
-   *  @param x: returns d^n f(x)/dx^n
-   *  @param n: the derivative
-   */
-  virtual double function(double x, int n) const = 0;
+        /** Stream a human readable description of the end field model to out */
+        virtual std::ostream& print(std::ostream& out) const = 0;
 
-  /** Return the nominal flat top length of the magnet
-   */
-  virtual double getCentreLength() const = 0;
+        /** Return the value of the function or its n^th derivative
+         *
+         *  @param x: returns d^n f(x)/dx^n
+         *  @param n: the derivative
+         */
+        virtual double function(double x, int n) const = 0;
 
-  /** Return the nominal end field length of the magnet
-   */
-  virtual double getEndLength() const = 0;
+        /** Return the nominal flat top length of the magnet
+         */
+        virtual double getCentreLength() const = 0;
 
-  /** Inheritable copy constructor - returns a deep copy of the EndFieldModel */
-  virtual EndFieldModel* clone() const = 0;
+        /** Return the nominal end field length of the magnet
+         */
+        virtual double getEndLength() const = 0;
 
-  /** Set the maximum derivative that will be required to be calculated
-   * 
-   *  Some end field models e.g. Enge use recursion relations to calculate
-   *  analytically derivatives at high order. By setting the maximum derivative
-   *  these models can set up the tables of recursion coefficients at set-up 
-   *  time which makes the derivative lookup faster.
-   */
-  virtual void setMaximumDerivative(size_t n) = 0;
+        /** Inheritable copy constructor - returns a deep copy of the EndFieldModel */
+        virtual EndFieldModel* clone() const = 0;
 
-  /** Rescale the end field lengths and offsets by a factor x0
-   * 
-   *  If before rescaling the endfieldmodel returns f(x), after rescaling the 
-   *  endfieldmodel should return f(x*scaleFactor)
-   */
-  virtual void rescale(double scaleFactor) = 0;
+        /** Set the maximum derivative that will be required to be calculated
+         *
+         *  Some end field models e.g. Enge use recursion relations to calculate
+         *  analytically derivatives at high order. By setting the maximum derivative
+         *  these models can set up the tables of recursion coefficients at set-up
+         *  time which makes the derivative lookup faster.
+         */
+        virtual void setMaximumDerivative(size_t n) = 0;
 
-  /** Look up the EndFieldModel that has a given name
-   *  
-   *  @param name: name of the EndFieldModel
-   * 
-   *  @returns shared_ptr to the appropriate EndFieldModel.
-   *  @throws GeneralOpalException if name is not recognised
-   */
-  static std::shared_ptr<EndFieldModel> getEndFieldModel(std::string name);
+        /** Rescale the end field lengths and offsets by a factor x0
+         *
+         *  If before rescaling the endfieldmodel returns f(x), after rescaling the
+         *  endfieldmodel should return f(x*scaleFactor)
+         */
+        virtual void rescale(double scaleFactor) = 0;
 
-  /** Add a value to the lookup table
-   *  
-   *  @param name: name of the EndFieldModel. If name already exists in the
-   *  map, it is overwritten with the new value.
-   *  @param efm: shared_ptr to the EndFieldModel.
-   */
-  static void setEndFieldModel(std::string name, std::shared_ptr<EndFieldModel> efm);
+        /** Look up the EndFieldModel that has a given name
+         *
+         *  @param name: name of the EndFieldModel
+         *
+         *  @returns shared_ptr to the appropriate EndFieldModel.
+         *  @throws GeneralOpalException if name is not recognised
+         */
+        static std::shared_ptr<EndFieldModel> getEndFieldModel(std::string name);
 
-  /** Get the name corresponding to a given EndFieldModel
-   *
-   *  @param efm: EndFieldModel to lookup
-   *
-   *  @returns name corresponding to the EndFieldModel. Note that this
-   *  just does a dumb loop over the stored map values; so O(N).
-   *  @throws GeneralOpalException if efm is not recognised
-   */
-  static std::string getName(std::shared_ptr<EndFieldModel> efm);
+        /** Add a value to the lookup table
+         *
+         *  @param name: name of the EndFieldModel. If name already exists in the
+         *  map, it is overwritten with the new value.
+         *  @param efm: shared_ptr to the EndFieldModel.
+         */
+        static void setEndFieldModel(std::string name, std::shared_ptr<EndFieldModel> efm);
 
-private:
-  static std::map<std::string, std::shared_ptr<EndFieldModel> > efm_map;
-};
+        /** Get the name corresponding to a given EndFieldModel
+         *
+         *  @param efm: EndFieldModel to lookup
+         *
+         *  @returns name corresponding to the EndFieldModel. Note that this
+         *  just does a dumb loop over the stored map values; so O(N).
+         *  @throws GeneralOpalException if efm is not recognised
+         */
+        static std::string getName(std::shared_ptr<EndFieldModel> efm);
 
-std::vector< std::vector<int> > CompactVector
-                            (std::vector< std::vector<int> > vec);
+    private:
+        static std::map<std::string, std::shared_ptr<EndFieldModel> > efm_map;
+    };
 
-/// CompactVector helper function, used for sorting
-bool GreaterThan(std::vector<int> v1, std::vector<int> v2);
+    std::vector<std::vector<int> > CompactVector(std::vector<std::vector<int> > vec);
 
-/** Return a == b if a and b are same size and a[i] == b[i] for all i.
- * 
- *  The following operations must be defined for TEMP_ITER it:
- *    - ++it prefix increment operator
- *    - (*it) (that is unary *, i.e. dereference operator)
- *    - it1 != it2 not equals operator
- *    - (*it1) != (*it2) not equals operator of dereferenced object
- * 
- *  Call like e.g. \n
- *      std::vector<int> a,b;\n
- *      bool test_equal = IterableEquality(a.begin(), a.end(), b.begin(),
- *                        b.end());\n
- * 
- *  Can give a segmentation fault if a.begin() is not between a.begin() and
- *  a.end() (inclusive)
- */
-template <class TEMP_ITER>
-bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end,
-                      TEMP_ITER b_begin, TEMP_ITER b_end);
+    /// CompactVector helper function, used for sorting
+    bool GreaterThan(std::vector<int> v1, std::vector<int> v2);
 
-/** Return a == b if a and b are same size and a[i] == b[i] for all i.
- * 
- *  The following operations must be defined for TEMP_ITER it:
- *    - ++it prefix increment operator
- *    - (*it) (that is unary *, i.e. dereference operator)
- *    - it1 != it2 not equals operator
- *    - (*it1) != (*it2) not equals operator of dereferenced object
- * 
- *  Call like e.g. \n
- *      std::vector<int> a,b;\n
- *      bool test_equal = IterableEquality(a.begin(), a.end(), b.begin(),
- *                        b.end());\n
- * 
- *  Can give a segmentation fault if a.begin() is not between a.begin() and
- *  a.end() (inclusive)
- */
-template <class TEMP_ITER>
-bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end,
-                      TEMP_ITER b_begin, TEMP_ITER b_end);
+    /** Return a == b if a and b are same size and a[i] == b[i] for all i.
+     *
+     *  The following operations must be defined for TEMP_ITER it:
+     *    - ++it prefix increment operator
+     *    - (*it) (that is unary *, i.e. dereference operator)
+     *    - it1 != it2 not equals operator
+     *    - (*it1) != (*it2) not equals operator of dereferenced object
+     *
+     *  Call like e.g. \n
+     *      std::vector<int> a,b;\n
+     *      bool test_equal = IterableEquality(a.begin(), a.end(), b.begin(),
+     *                        b.end());\n
+     *
+     *  Can give a segmentation fault if a.begin() is not between a.begin() and
+     *  a.end() (inclusive)
+     */
+    template <class TEMP_ITER>
+    bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end);
 
-template <class TEMP_CLASS>
-bool IterableEquality(const TEMP_CLASS& a, const TEMP_CLASS& b) {
-  return IterableEquality(a.begin(), a.end(), b.begin(), b.end());
-}
+    /** Return a == b if a and b are same size and a[i] == b[i] for all i.
+     *
+     *  The following operations must be defined for TEMP_ITER it:
+     *    - ++it prefix increment operator
+     *    - (*it) (that is unary *, i.e. dereference operator)
+     *    - it1 != it2 not equals operator
+     *    - (*it1) != (*it2) not equals operator of dereferenced object
+     *
+     *  Call like e.g. \n
+     *      std::vector<int> a,b;\n
+     *      bool test_equal = IterableEquality(a.begin(), a.end(), b.begin(),
+     *                        b.end());\n
+     *
+     *  Can give a segmentation fault if a.begin() is not between a.begin() and
+     *  a.end() (inclusive)
+     */
+    template <class TEMP_ITER>
+    bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end);
 
-template <class TEMP_ITER>
-bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin,
-                      TEMP_ITER b_end) {
-  TEMP_ITER a_it = a_begin;
-  TEMP_ITER b_it = b_begin;
-  while (a_it != a_end && b_it != b_end) {
-    if (*a_it != *b_it) return false;
-    ++a_it;
-    ++b_it;
-  }
-  if ( a_it != a_end || b_it != b_end ) return false;
-  return true;
-}
+    template <class TEMP_CLASS>
+    bool IterableEquality(const TEMP_CLASS& a, const TEMP_CLASS& b) {
+        return IterableEquality(a.begin(), a.end(), b.begin(), b.end());
+    }
 
-}
+    template <class TEMP_ITER>
+    bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end) {
+        TEMP_ITER a_it = a_begin;
+        TEMP_ITER b_it = b_begin;
+        while (a_it != a_end && b_it != b_end) {
+            if (*a_it != *b_it) return false;
+            ++a_it;
+            ++b_it;
+        }
+        if (a_it != a_end || b_it != b_end) return false;
+        return true;
+    }
+
+}  // namespace endfieldmodel
 
 #endif
-

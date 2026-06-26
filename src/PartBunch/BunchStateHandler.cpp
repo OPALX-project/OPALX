@@ -15,7 +15,7 @@ namespace {
         ippl::Comm->allreduce(v, out, 1, std::logical_or<bool>());
         return out;
     }
-}
+}  // namespace
 
 // -- BunchStateHandler::ContainerState -------------------------------------
 

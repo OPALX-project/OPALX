@@ -21,69 +21,52 @@
 #include "OpalParser/Statement.h"
 #include "Utilities/ParseError.h"
 
-
 // Class Macro
 // ------------------------------------------------------------------------
 
-Macro::Macro(int size, const char *name, const char *help):
-    Object(size, name, help), formals(), actuals()
-{}
+Macro::Macro(int size, const char* name, const char* help)
+    : Object(size, name, help), formals(), actuals() {}
 
+Macro::Macro(const std::string& name, Object* parent)
+    : Object(name, parent), formals(), actuals() {}
 
-Macro::Macro(const std::string &name, Object *parent):
-    Object(name, parent), formals(), actuals()
-{}
+Macro::~Macro() {}
 
-
-Macro::~Macro()
-{}
-
-
-Macro *Macro::clone(const std::string &) {
-    throw ParseError("Macro::clone()",
-                     "You cannot execute the command \"" + getOpalName() +
-                     "\" without parameters.");
+Macro* Macro::clone(const std::string&) {
+    throw ParseError(
+            "Macro::clone()",
+            "You cannot execute the command \"" + getOpalName() + "\" without parameters.");
 }
 
+const std::string Macro::getCategory() const { return "MACRO"; }
 
-const std::string Macro::getCategory() const {
-    return "MACRO";
-}
+bool Macro::shouldTrace() const { return false; }
 
+bool Macro::shouldUpdate() const { return false; }
 
-bool Macro::shouldTrace() const {
-    return false;
-}
-
-
-bool Macro::shouldUpdate() const {
-    return false;
-}
-
-
-void Macro::parseActuals(Statement &stat) {
+void Macro::parseActuals(Statement& stat) {
     // We start after the opening '('.
     actuals.clear();
 
-    if(! stat.delimiter(')')) {
+    if (!stat.delimiter(')')) {
         int level = 1;
         std::vector<Token> act;
 
-        while(true) {
+        while (true) {
             Token token = stat.getCurrent();
 
-            if(token.isDel(',')) {
+            if (token.isDel(',')) {
                 // Comma at level=1 terminates an actual argument.
-                if(level == 1) {
+                if (level == 1) {
                     actuals.push_back(act);
                     act.clear();
                     continue;
                 }
-            } else if(token.isDel('(')) {
+            } else if (token.isDel('(')) {
                 level++;
-            } else if(token.isDel(')')) {
+            } else if (token.isDel(')')) {
                 // Closing parenthesis at level=1 terminates the actuals list.
-                if(--level == 0) {
+                if (--level == 0) {
                     actuals.push_back(act);
                     act.clear();
                     break;
@@ -96,16 +79,14 @@ void Macro::parseActuals(Statement &stat) {
     }
 }
 
-
-void Macro::parseFormals(Statement &stat) {
+void Macro::parseFormals(Statement& stat) {
     // We start after the opening '('.
     formals.clear();
-    if(! stat.delimiter(')')) {
+    if (!stat.delimiter(')')) {
         do {
-            std::string form =
-                Expressions::parseString(stat, "Expected formal argument name.");
+            std::string form = Expressions::parseString(stat, "Expected formal argument name.");
             formals.push_back(form);
-        } while(stat.delimiter(','));
+        } while (stat.delimiter(','));
 
         Expressions::parseDelimiter(stat, ')');
     }

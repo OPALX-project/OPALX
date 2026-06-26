@@ -60,7 +60,7 @@ protected:
 };
 
 template <typename ViewType>
-void computeMean(ViewType& view, size_t nlocal, size_t total_nparticles, double meanR[3]) {
+void computeMean(ViewType view, size_t nlocal, size_t total_nparticles, double meanR[3]) {
     double sumR[3] = {0.0, 0.0, 0.0};
 
     Kokkos::parallel_reduce(
@@ -83,7 +83,7 @@ void computeMean(ViewType& view, size_t nlocal, size_t total_nparticles, double 
 
 template <typename ViewType>
 void computeStdDev(
-        ViewType& view, size_t nlocal, size_t total_nparticles, const double meanR[3],
+        ViewType view, size_t nlocal, size_t total_nparticles, const double meanR[3],
         double stddevR[3]) {
     double sumR2[3] = {0.0, 0.0, 0.0};
 
@@ -150,7 +150,7 @@ TEST_F(MultiVariateGaussianTest, meanR_varR) {
 
 template <typename ViewType>
 void computeMaxAbsR(
-        ViewType& view, size_t nlocal, double global_maxAbsR[3], double& global_maxRadius) {
+        ViewType view, size_t nlocal, double global_maxAbsR[3], double& global_maxRadius) {
     // Local maxima initialized
     double local_maxAbsR[3] = {0.0, 0.0, 0.0};
     double local_maxRadius  = 0.0;

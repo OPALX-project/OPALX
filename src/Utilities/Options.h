@@ -56,6 +56,9 @@ namespace Options {
     /// The frequency to dump statistical values, e.e. dump data when step%statDumpFreq==0
     extern int statDumpFreq;
 
+    /// The frequency to print per-step tracking status lines; 0 disables them.
+    extern int stepInfoFreq;
+
     /// phase space dump flag for OPAL-cycl
     //  if true, dump phase space after each turn
     extern bool psDumpEachTurn;
@@ -66,8 +69,9 @@ namespace Options {
     //  - REFERENCE, in Cartesian frame of the reference (0) particle
     extern DumpFrame psDumpFrame;
 
-    /// If true, store `Q`/`M` as per-particle attributes (accessible via `getQView()`/`getMView()`).
-    /// If false (default), use a single shared value per container to save memory.
+    /// If true, store `Q`/`M` as per-particle attributes (accessible via
+    /// `getQView()`/`getMView()`). If false (default), use a single shared value per container to
+    /// save memory.
     extern bool useQMAttributes;
 
     /// The frequency to dump single particle trajectory of particles with ID = 0 & 1

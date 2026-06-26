@@ -20,7 +20,6 @@
 
 #include <string>
 
-
 namespace Expressions {
 
     // Function find
@@ -30,15 +29,15 @@ namespace Expressions {
     //  entry.  The result is a pointer to one component of the array or nullptr.
     //  May be replaced by a map<> with suitable parameters.
 
-    template <class T> inline
-    const T *find(const T table[], const std::string &name) {
-        for(const T *x = table; x->name != 0; x++) {
-            if(x->name == name) return x;
+    template <class T>
+    inline const T* find(const T table[], const std::string& name) {
+        for (const T* x = table; x->name != 0; x++) {
+            if (x->name == name) return x;
         }
 
         return 0;
     }
 
-}
+}  // namespace Expressions
 
-#endif // OPAL_TFind_HH
+#endif  // OPAL_TFind_HH

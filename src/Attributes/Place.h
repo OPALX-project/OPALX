@@ -29,30 +29,27 @@ class Attribute;
 namespace Attributes {
 
     /// Parser for an attribute of type place reference.
-    class Place: public AttributeHandler {
-
+    class Place : public AttributeHandler {
     public:
-
         /// Constructor.
         //  Assign attribute name and help string.
-        Place(const std::string &name, const std::string &help);
+        Place(const std::string& name, const std::string& help);
 
         virtual ~Place();
 
         /// Return attribute type string ``place''.
-        virtual const std::string &getType() const;
+        virtual const std::string& getType() const;
 
         /// Parse the attribute.
-        virtual void parse(Attribute &, Statement &, bool) const;
+        virtual void parse(Attribute&, Statement&, bool) const;
 
     private:
-
         // Not implemented.
         Place();
-        Place(const Place &);
-        void operator=(const Place &);
+        Place(const Place&);
+        void operator=(const Place&);
     };
 
-};
+};  // namespace Attributes
 
-#endif // OPAL_Place_HH
+#endif  // OPAL_Place_HH

@@ -20,13 +20,9 @@
 
 #include "Fields/StaticMagneticField.h"
 
-
 // Class StaticMagneticField
 // ------------------------------------------------------------------------
 
-StaticMagneticField::StaticMagneticField()
-{}
+StaticMagneticField::StaticMagneticField() {}
 
-
-StaticMagneticField::~StaticMagneticField()
-{}
+StaticMagneticField::~StaticMagneticField() {}

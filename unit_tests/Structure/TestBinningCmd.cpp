@@ -27,8 +27,8 @@
 
 #include "Ippl.h"
 
-#include "Structure/BinningCmd.h"
 #include "Attributes/Attributes.h"
+#include "Structure/BinningCmd.h"
 #include "Utilities/OpalException.h"
 
 #include <memory>
@@ -49,8 +49,10 @@ public:
         Attributes::setReal(itsAttr[BINNING::BINNINGALPHA], value);
     }
 
-    void setBinningBeta(double value) {
-        Attributes::setReal(itsAttr[BINNING::BINNINGBETA], value);
+    void setBinningBeta(double value) { Attributes::setReal(itsAttr[BINNING::BINNINGBETA], value); }
+
+    void setAdaptiveBinning(bool value) {
+        Attributes::setBool(itsAttr[BINNING::ADAPTIVEBINNING], value);
     }
 
     void setParameterString(const std::string& value) {
@@ -74,14 +76,12 @@ public:
 class BinningCmdTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
-        int argc = 0;
+        int argc    = 0;
         char** argv = nullptr;
         ippl::initialize(argc, argv);
     }
 
-    static void TearDownTestSuite() {
-        ippl::finalize();
-    }
+    static void TearDownTestSuite() { ippl::finalize(); }
 };
 
 // UpdateAppendsJsonExtensionAndValidatesFreq:
@@ -145,6 +145,7 @@ TEST_F(BinningCmdTest, ConstructionDefaults) {
     EXPECT_DOUBLE_EQ(cmd.getDesiredWidth(), 0.1);
     EXPECT_DOUBLE_EQ(cmd.getBinningAlpha(), 1.0);
     EXPECT_DOUBLE_EQ(cmd.getBinningBeta(), 1.5);
+    EXPECT_TRUE(cmd.getAdaptiveBinning());
 
     EXPECT_EQ(cmd.getParameter(), "VELOCITYZ");
     EXPECT_EQ(cmd.getParameterType(), BinningParameter::VELOCITYZ);
@@ -161,6 +162,7 @@ TEST_F(BinningCmdTest, GettersReflectAttributes) {
     cmd.setDesiredWidth(0.25);
     cmd.setBinningAlpha(0.5);
     cmd.setBinningBeta(1.75);
+    cmd.setAdaptiveBinning(false);
     cmd.setParameterString("PZ");
     cmd.setTablePrintFrequency(3.0);
 
@@ -171,6 +173,7 @@ TEST_F(BinningCmdTest, GettersReflectAttributes) {
     EXPECT_DOUBLE_EQ(cmd.getDesiredWidth(), 0.25);
     EXPECT_DOUBLE_EQ(cmd.getBinningAlpha(), 0.5);
     EXPECT_DOUBLE_EQ(cmd.getBinningBeta(), 1.75);
+    EXPECT_FALSE(cmd.getAdaptiveBinning());
 
     EXPECT_EQ(cmd.getParameter(), "PZ");
 
@@ -184,11 +187,10 @@ TEST_F(BinningCmdTest, ExecuteMapsKnownParameters) {
         const char* name;
         BinningParameter expected;
     } cases[] = {
-        {"VELOCITYZ", BinningParameter::VELOCITYZ},
-        {"POSITIONZ", BinningParameter::POSITIONZ},
-        {"PZ",        BinningParameter::PZ},
-        {"GAMMAZ",    BinningParameter::GAMMAZ}
-    };
+            {"VELOCITYZ", BinningParameter::VELOCITYZ},
+            {"POSITIONZ", BinningParameter::POSITIONZ},
+            {"PZ", BinningParameter::PZ},
+            {"GAMMAZ", BinningParameter::GAMMAZ}};
 
     for (const auto& c : cases) {
         TestableBinningCmd cmd;
@@ -211,10 +213,7 @@ TEST_F(BinningCmdTest, ExecuteThrowsOnUnknownParameter) {
     // This value is not present in the BinningParameter mapping table.
     cmd.setParameterString("FOO");
 
-    EXPECT_THROW(
-        cmd.execute(),
-        OpalException
-    );
+    EXPECT_THROW(cmd.execute(), OpalException);
 }
 
 // CloneCopiesState:
@@ -225,9 +224,10 @@ TEST_F(BinningCmdTest, CloneCopiesState) {
     original.setDesiredWidth(0.3);
     original.setBinningAlpha(0.8);
     original.setBinningBeta(1.2);
+    original.setAdaptiveBinning(false);
     original.setParameterString("POSITIONZ");
 
-    original.execute(); // ensure parameterType_m is updated
+    original.execute();  // ensure parameterType_m is updated
 
     std::unique_ptr<BinningCmd> copy(original.clone("BINNING_COPY"));
 
@@ -238,6 +238,7 @@ TEST_F(BinningCmdTest, CloneCopiesState) {
     EXPECT_DOUBLE_EQ(copy->getDesiredWidth(), original.getDesiredWidth());
     EXPECT_DOUBLE_EQ(copy->getBinningAlpha(), original.getBinningAlpha());
     EXPECT_DOUBLE_EQ(copy->getBinningBeta(), original.getBinningBeta());
+    EXPECT_EQ(copy->getAdaptiveBinning(), original.getAdaptiveBinning());
 
     EXPECT_EQ(copy->getParameter(), original.getParameter());
     EXPECT_EQ(copy->getParameterType(), original.getParameterType());
@@ -252,8 +253,5 @@ TEST_F(BinningCmdTest, PrintInfoDoesNotThrow) {
     // to exercise the printing path.
     Inform os("BinningCmd::printInfo");
 
-    EXPECT_NO_THROW({
-        cmd.printInfo(os);
-    });
+    EXPECT_NO_THROW({ cmd.printInfo(os); });
 }
-

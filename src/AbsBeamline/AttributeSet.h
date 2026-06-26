@@ -22,9 +22,9 @@
 //
 // ------------------------------------------------------------------------
 
-//#include "Channels/Channel.h"
-#include <map>
+// #include "Channels/Channel.h"
 #include <functional>
+#include <map>
 #include <string>
 
 class Channel;
@@ -39,9 +39,7 @@ class ConstChannel;
 //  accelerator model for their working.
 
 class AttributeSet {
-
 public:
-
     /// A map of name versus value.
     typedef std::map<std::string, double, std::less<std::string> > NameMap;
 
@@ -52,9 +50,9 @@ public:
     //  Constructs an empty map.
     AttributeSet();
 
-    AttributeSet(const AttributeSet &);
+    AttributeSet(const AttributeSet&);
     virtual ~AttributeSet();
-    const AttributeSet &operator=(const AttributeSet &);
+    const AttributeSet& operator=(const AttributeSet&);
 
     /// Iterator accessing first member.
     const_iterator begin() const;
@@ -62,50 +60,44 @@ public:
     /// Iterator marking the end of the list.
     const_iterator end() const;
 
-
     /// Get attribute value.
     //  If the attribute does not exist, return zero.
-    double getAttribute(const std::string &aKey) const;
+    double getAttribute(const std::string& aKey) const;
 
     /// Test for presence of an attribute.
     //  If the attribute exists, return true, otherwise false.
-    bool hasAttribute(const std::string &aKey) const;
+    bool hasAttribute(const std::string& aKey) const;
 
     /// Remove an existing attribute.
     //  If the key [b]aKey[/b] exists, this method removes it.
-    void removeAttribute(const std::string &aKey);
+    void removeAttribute(const std::string& aKey);
 
     /// Set value of an attribute.
-    void setAttribute(const std::string &aKey, double val);
-
+    void setAttribute(const std::string& aKey, double val);
 
     /// Construct a read/write channel.
     //  This method constructs a Channel permitting read/write access to
     //  the attribute [b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns nullptr.
-    Channel *getChannel(const std::string &aKey, bool create = false);
+    Channel* getChannel(const std::string& aKey, bool create = false);
 
     /// Construct a read-only channel.
     //  This method constructs a Channel permitting read-only access to
     //  the attribute [b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns nullptr.
-    const ConstChannel *getConstChannel(const std::string &aKey) const;
+    const ConstChannel* getConstChannel(const std::string& aKey) const;
 
 protected:
-
     /// The attribute map.
 
     NameMap itsMap;
 };
 
-
 // Implementation.
 // ------------------------------------------------------------------------
 
-inline AttributeSet::const_iterator AttributeSet::begin() const
-{ return itsMap.begin(); }
+inline AttributeSet::const_iterator AttributeSet::begin() const { return itsMap.begin(); }
 
-inline AttributeSet::const_iterator AttributeSet::end() const
-{ return itsMap.end(); }
+inline AttributeSet::const_iterator AttributeSet::end() const { return itsMap.end(); }
 
-#endif // OPALX_AttributeSet_HH
+#endif  // OPALX_AttributeSet_HH

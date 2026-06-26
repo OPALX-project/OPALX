@@ -21,46 +21,32 @@
 #include "BeamlineCore/SolenoidRep.h"
 #include "Physics/Physics.h"
 
-
-OpalSolenoid::OpalSolenoid():
-    OpalElement(SIZE, "SOLENOID",
-                "The \"SOLENOID\" element defines a Solenoid.") {
-    itsAttr[KS] = Attributes::makeReal
-                  ("KS", "Normalised solenoid strength in m**(-1)");
-    itsAttr[DKS] = Attributes::makeReal
-                  ("DKS", "Normalised solenoid strength error in m**(-1)");
-    itsAttr[FMAPFN] = Attributes::makeString
-                      ("FMAPFN", "Solenoid field map filename ");
-    itsAttr[FAST] = Attributes::makeBool
-                    ("FAST", "Faster but less accurate", true);
+OpalSolenoid::OpalSolenoid()
+    : OpalElement(SIZE, "SOLENOID", "The \"SOLENOID\" element defines a Solenoid.") {
+    itsAttr[KS]     = Attributes::makeReal("KS", "Normalised solenoid strength in m**(-1)");
+    itsAttr[DKS]    = Attributes::makeReal("DKS", "Normalised solenoid strength error in m**(-1)");
+    itsAttr[FMAPFN] = Attributes::makeString("FMAPFN", "Solenoid field map filename ");
+    itsAttr[FAST]   = Attributes::makeBool("FAST", "Faster but less accurate", true);
 
     registerOwnership();
 
     setElement(new SolenoidRep("SOLENOID"));
 }
 
-
-OpalSolenoid::OpalSolenoid(const std::string &name, OpalSolenoid *parent):
-    OpalElement(name, parent) {
+OpalSolenoid::OpalSolenoid(const std::string& name, OpalSolenoid* parent)
+    : OpalElement(name, parent) {
     setElement(new SolenoidRep(name));
 }
 
+OpalSolenoid::~OpalSolenoid() {}
 
-OpalSolenoid::~OpalSolenoid()
-{}
-
-
-OpalSolenoid *OpalSolenoid::clone(const std::string &name) {
-    return new OpalSolenoid(name, this);
-}
-
+OpalSolenoid* OpalSolenoid::clone(const std::string& name) { return new OpalSolenoid(name, this); }
 
 void OpalSolenoid::update() {
     OpalElement::update();
 
-    SolenoidRep *sol =
-        dynamic_cast<SolenoidRep *>(getElement());
-    double length = Attributes::getReal(itsAttr[LENGTH]);
+    SolenoidRep* sol = dynamic_cast<SolenoidRep*>(getElement());
+    double length    = Attributes::getReal(itsAttr[LENGTH]);
     double Bz = Attributes::getReal(itsAttr[KS]) * OpalData::getInstance()->getP0() / Physics::c;
     bool fast = Attributes::getBool(itsAttr[FAST]);
 

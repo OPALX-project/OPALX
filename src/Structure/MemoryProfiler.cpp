@@ -62,43 +62,46 @@ void MemoryProfiler::header() {
 
     // peak virtual memory size
     columns_m.addColumn(
-        "VmPeak-Min", "double", unit_m[VirtualMemory::VMPEAK], "Minimum peak virtual memory size");
+            "VmPeak-Min", "double", unit_m[VirtualMemory::VMPEAK],
+            "Minimum peak virtual memory size");
 
     columns_m.addColumn(
-        "VmPeak-Max", "double", unit_m[VirtualMemory::VMPEAK], "Maximum peak virtual memory size");
+            "VmPeak-Max", "double", unit_m[VirtualMemory::VMPEAK],
+            "Maximum peak virtual memory size");
 
     columns_m.addColumn(
-        "VmPeak-Avg", "double", unit_m[VirtualMemory::VMPEAK], "Average peak virtual memory size");
+            "VmPeak-Avg", "double", unit_m[VirtualMemory::VMPEAK],
+            "Average peak virtual memory size");
 
     // virtual memory size
     columns_m.addColumn(
-        "VmSize-Min", "double", unit_m[VirtualMemory::VMSIZE], "Minimum virtual memory size");
+            "VmSize-Min", "double", unit_m[VirtualMemory::VMSIZE], "Minimum virtual memory size");
 
     columns_m.addColumn(
-        "VmSize-Max", "double", unit_m[VirtualMemory::VMSIZE], "Maximum virtual memory size");
+            "VmSize-Max", "double", unit_m[VirtualMemory::VMSIZE], "Maximum virtual memory size");
 
     columns_m.addColumn(
-        "VmSize-Avg", "double", unit_m[VirtualMemory::VMSIZE], "Average virtual memory size");
+            "VmSize-Avg", "double", unit_m[VirtualMemory::VMSIZE], "Average virtual memory size");
 
     // peak resident set size ("high water mark")
     columns_m.addColumn(
-        "VmHWM-Min", "double", unit_m[VirtualMemory::VMHWM], "Minimum peak resident set size");
+            "VmHWM-Min", "double", unit_m[VirtualMemory::VMHWM], "Minimum peak resident set size");
 
     columns_m.addColumn(
-        "VmHWM-Max", "double", unit_m[VirtualMemory::VMHWM], "Maximum peak resident set size");
+            "VmHWM-Max", "double", unit_m[VirtualMemory::VMHWM], "Maximum peak resident set size");
 
     columns_m.addColumn(
-        "VmHWM-Avg", "double", unit_m[VirtualMemory::VMHWM], "Average peak resident set size");
+            "VmHWM-Avg", "double", unit_m[VirtualMemory::VMHWM], "Average peak resident set size");
 
     // resident set size
     columns_m.addColumn(
-        "VmRSS-Min", "double", unit_m[VirtualMemory::VMRSS], "Minimum resident set size");
+            "VmRSS-Min", "double", unit_m[VirtualMemory::VMRSS], "Minimum resident set size");
 
     columns_m.addColumn(
-        "VmRSS-Max", "double", unit_m[VirtualMemory::VMRSS], "Maximum resident set size");
+            "VmRSS-Max", "double", unit_m[VirtualMemory::VMRSS], "Maximum resident set size");
 
     columns_m.addColumn(
-        "VmRSS-Avg", "double", unit_m[VirtualMemory::VMRSS], "Average resident set size");
+            "VmRSS-Avg", "double", unit_m[VirtualMemory::VMRSS], "Average resident set size");
 
     // stack size
     columns_m.addColumn("VmStk-Min", "double", unit_m[VirtualMemory::VMSTK], "Minimum stack size");
@@ -107,8 +110,7 @@ void MemoryProfiler::header() {
 
     columns_m.addColumn("VmStk-Avg", "double", unit_m[VirtualMemory::VMSTK], "Average stack size");
 
-    if (mode_m == std::ios::app)
-        return;
+    if (mode_m == std::ios::app) return;
 
     OPALTimer::Timer simtimer;
 
@@ -170,8 +172,8 @@ void MemoryProfiler::compute(vm_t& vmMin, vm_t& vmMax, vm_t& vmAvg) {
         vm *= inodes;
     }
 
-    //new_reduce(vmem_m.data(), vmMin.data(), vmem_m.size(), std::less<double>());
-    //new_reduce(vmem_m.data(), vmMax.data(), vmem_m.size(), std::greater<double>());
+    // new_reduce(vmem_m.data(), vmMin.data(), vmem_m.size(), std::less<double>());
+    // new_reduce(vmem_m.data(), vmMax.data(), vmem_m.size(), std::greater<double>());
     reduce(vmem_m.data(), vmMin.data(), vmem_m.size(), std::less<double>());
     reduce(vmem_m.data(), vmMax.data(), vmem_m.size(), std::greater<double>());
 }
@@ -198,7 +200,7 @@ void MemoryProfiler::write(const PartBunch_t& beam) {
     this->writeHeader();
 
     columns_m.addColumnValue("t", beam.getT() * Units::s2ns);  // 1
-    columns_m.addColumnValue("s", pathLength);                  // 2
+    columns_m.addColumnValue("s", pathLength);                 // 2
 
     // std::variant can't overload double and long double. By using a
     // string this shortcoming can be bypassed.

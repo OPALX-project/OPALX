@@ -49,8 +49,7 @@ namespace mslang {
         std::smatch what;
 
         std::string str(it, end);
-        if (!std::regex_match(str, what, functionCall))
-            return false;
+        if (!std::regex_match(str, what, functionCall)) return false;
 
         std::string identifier = what[1];
         std::string arguments  = what[2];
@@ -59,22 +58,19 @@ namespace mslang {
         if (identifier == "rectangle") {
             fun = new Rectangle;
             it += shift;
-            if (!Rectangle::parse_detail(it, end, fun))
-                return false;
+            if (!Rectangle::parse_detail(it, end, fun)) return false;
 
             return true;
         } else if (identifier == "ellipse") {
             fun = new Ellipse;
             it += shift;
-            if (!Ellipse::parse_detail(it, end, fun))
-                return false;
+            if (!Ellipse::parse_detail(it, end, fun)) return false;
 
             return true;
         } else if (identifier == "polygon") {
             fun = new Polygon;
             it += shift;
-            if (!Polygon::parse_detail(it, end, fun))
-                return false;
+            if (!Polygon::parse_detail(it, end, fun)) return false;
 
             return true;
         } else if (identifier == "mask") {
@@ -85,57 +81,49 @@ namespace mslang {
         } else if (identifier == "repeat") {
             fun = new Repeat;
             it += shift;
-            if (!Repeat::parse_detail(it, end, fun))
-                return false;
+            if (!Repeat::parse_detail(it, end, fun)) return false;
 
             return true;
         } else if (identifier == "rotate") {
             fun = new Rotation;
             it += shift;
-            if (!Rotation::parse_detail(it, end, fun))
-                return false;
+            if (!Rotation::parse_detail(it, end, fun)) return false;
 
             return true;
         } else if (identifier == "translate") {
             fun = new Translation;
             it += shift;
-            if (!Translation::parse_detail(it, end, fun))
-                return false;
+            if (!Translation::parse_detail(it, end, fun)) return false;
 
             return true;
         } else if (identifier == "shear") {
             fun = new Shear;
             it += shift;
-            if (!Shear::parse_detail(it, end, fun))
-                return false;
+            if (!Shear::parse_detail(it, end, fun)) return false;
 
             return true;
         } else if (identifier == "union") {
             fun = new Union;
             it += shift;
-            if (!Union::parse_detail(it, end, fun))
-                return false;
+            if (!Union::parse_detail(it, end, fun)) return false;
 
             return true;
         } else if (identifier == "difference") {
             fun = new Difference;
             it += shift;
-            if (!Difference::parse_detail(it, end, fun))
-                return false;
+            if (!Difference::parse_detail(it, end, fun)) return false;
 
             return true;
         } else if (identifier == "symmetric_difference") {
             fun = new SymmetricDifference;
             it += shift;
-            if (!SymmetricDifference::parse_detail(it, end, fun))
-                return false;
+            if (!SymmetricDifference::parse_detail(it, end, fun)) return false;
 
             return true;
         } else if (identifier == "intersection") {
             fun = new Intersection;
             it += shift;
-            if (!Intersection::parse_detail(it, end, fun))
-                return false;
+            if (!Intersection::parse_detail(it, end, fun)) return false;
 
             return true;
         }

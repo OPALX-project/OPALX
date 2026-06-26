@@ -22,19 +22,16 @@
 
 #include "OpalParser/TokenStream.h"
 
-
 // Class StringStream
 // ------------------------------------------------------------------------
 /// A stream of input tokens.
 //  The source of tokens is a C++ string.
 
-class StringStream: public TokenStream {
-
+class StringStream : public TokenStream {
 public:
-
     /// Constructor.
     //  Initialize stream to read from the named file.
-    StringStream(const std::string &s);
+    StringStream(const std::string& s);
 
     virtual ~StringStream();
 
@@ -42,11 +39,10 @@ public:
     virtual Token readToken();
 
 private:
-
     // Not implemented.
     StringStream();
-    StringStream(const StringStream &);
-    void operator=(const StringStream &);
+    StringStream(const StringStream&);
+    void operator=(const StringStream&);
 
     // Read double from current statement.
     Token readNumber();
@@ -62,4 +58,4 @@ private:
     std::string::size_type currentChar_m;
 };
 
-#endif // OPALX_StringStream_HH
+#endif  // OPALX_StringStream_HH

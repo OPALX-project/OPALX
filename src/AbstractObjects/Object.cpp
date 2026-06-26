@@ -19,8 +19,8 @@
 
 #include "AbstractObjects/Object.h"
 #include "AbstractObjects/Attribute.h"
-#include "AbstractObjects/Invalidator.h"
 #include "AbstractObjects/Expressions.h"
+#include "AbstractObjects/Invalidator.h"
 #include "OpalParser/Statement.h"
 #include "Utilities/Options.h"
 #include "Utilities/ParseError.h"
@@ -30,122 +30,110 @@
 #include <iostream>
 #include <vector>
 
-extern Inform *gmsg;
-
+extern Inform* gmsg;
 
 // Class Object
 // ------------------------------------------------------------------------
 
 Object::~Object() {
     // Invalidate all references to this object.
-    for(std::set<Invalidator *>::iterator i = references.begin();
-        i != references.end(); ++i) {
+    for (std::set<Invalidator*>::iterator i = references.begin(); i != references.end(); ++i) {
         (*i)->invalidate();
     }
 }
 
-
-bool Object::canReplaceBy(Object *) {
+bool Object::canReplaceBy(Object*) {
     // Default action: no replacement allowed.
     return false;
 }
 
-
-void Object::copyAttributes(const Object &source) {
-    itsAttr = source.itsAttr;
-}
-
+void Object::copyAttributes(const Object& source) { itsAttr = source.itsAttr; }
 
 void Object::execute() {
     // Default action: do nothing.
 }
 
-
-Attribute *Object::findAttribute(const std::string &name) {
-    for(std::vector<Attribute>::iterator i = itsAttr.begin(); i != itsAttr.end(); ++i) {
-        if(i->getName() == name) return &(*i);
+Attribute* Object::findAttribute(const std::string& name) {
+    for (std::vector<Attribute>::iterator i = itsAttr.begin(); i != itsAttr.end(); ++i) {
+        if (i->getName() == name) return &(*i);
     }
     return nullptr;
 }
 
-
-const Attribute *Object::findAttribute(const std::string &name) const {
-    for(std::vector<Attribute>::const_iterator i = itsAttr.begin();
-        i != itsAttr.end(); ++i) {
-        if(i->getName() == name) return &(*i);
+const Attribute* Object::findAttribute(const std::string& name) const {
+    for (std::vector<Attribute>::const_iterator i = itsAttr.begin(); i != itsAttr.end(); ++i) {
+        if (i->getName() == name) return &(*i);
     }
 
     return 0;
 }
 
-
-Object *Object::makeTemplate
-(const std::string &name, TokenStream &, Statement &) {
-    throw ParseError("Object::makeTemplate()", "Object \"" + name +
-                     "\" cannot be used to define a macro.");
+Object* Object::makeTemplate(const std::string& name, TokenStream&, Statement&) {
+    throw ParseError(
+            "Object::makeTemplate()", "Object \"" + name + "\" cannot be used to define a macro.");
 }
 
-
-Object *Object::makeInstance(const std::string &/*name*/, Statement &, const Parser *) {
-    throw ParseError("Object::makeInstance()", "Object \"" + getOpalName() +
-                     "\" cannot be called as a macro.");
+Object* Object::makeInstance(const std::string& /*name*/, Statement&, const Parser*) {
+    throw ParseError(
+            "Object::makeInstance()",
+            "Object \"" + getOpalName() + "\" cannot be called as a macro.");
 }
 
-
-void Object::parse(Statement &stat) {
-    while(stat.delimiter(',')) {
+void Object::parse(Statement& stat) {
+    while (stat.delimiter(',')) {
         std::string name = Expressions::parseString(stat, "Attribute name expected.");
 
-        if(Attribute *attr = findAttribute(name)) {
-            if(stat.delimiter('[')) {
+        if (Attribute* attr = findAttribute(name)) {
+            if (stat.delimiter('[')) {
                 int index = int(std::round(Expressions::parseRealConst(stat)));
                 Expressions::parseDelimiter(stat, ']');
 
-                if(stat.delimiter('=')) {
+                if (stat.delimiter('=')) {
                     attr->parseComponent(stat, true, index);
-                } else if(stat.delimiter(":=")) {
+                } else if (stat.delimiter(":=")) {
                     attr->parseComponent(stat, false, index);
                 } else {
-                    throw ParseError("Object::parse()",
-                                     "Delimiter \"=\" or \":=\" expected.");
+                    throw ParseError("Object::parse()", "Delimiter \"=\" or \":=\" expected.");
                 }
-            } else if(stat.delimiter('=')) {
+            } else if (stat.delimiter('=')) {
                 attr->parse(stat, true);
-            } else if(stat.delimiter(":=")) {
+            } else if (stat.delimiter(":=")) {
                 attr->parse(stat, false);
             } else {
                 attr->setDefault();
             }
         } else {
-            throw ParseError("Object::parse()", "Object \"" + getOpalName() +
-                             "\" has no attribute \"" + name + "\".");
+            throw ParseError(
+                    "Object::parse()",
+                    "Object \"" + getOpalName() + "\" has no attribute \"" + name + "\".");
         }
     }
 }
 
-
-void Object::parseShortcut(Statement &stat, bool eval) {
+void Object::parseShortcut(Statement& stat, bool eval) {
     // Only one attribute.
-    if(stat.delimiter(',')) {
+    if (stat.delimiter(',')) {
         stat.mark();
         std::string name;
 
-        if(stat.word(name)) {
-            if(stat.delimiter('=')) {
-                if(Attribute *attr = findAttribute(name)) {
+        if (stat.word(name)) {
+            if (stat.delimiter('=')) {
+                if (Attribute* attr = findAttribute(name)) {
                     attr->parse(stat, eval);
                     return;
                 } else {
-                    throw ParseError("Object::parseShortcut()", "Object \"" + getOpalName() +
-                                     "\" has no attribute \"" + name + "\".");
+                    throw ParseError(
+                            "Object::parseShortcut()",
+                            "Object \"" + getOpalName() + "\" has no attribute \"" + name + "\".");
                 }
-            } else if(stat.delimiter(":=")) {
-                if(Attribute *attr = findAttribute(name)) {
+            } else if (stat.delimiter(":=")) {
+                if (Attribute* attr = findAttribute(name)) {
                     attr->parse(stat, false);
                     return;
                 } else {
-                    throw ParseError("Object::parseShortcut()", "Object \"" + getOpalName() +
-                                     "\" has no attribute \"" + name + "\".");
+                    throw ParseError(
+                            "Object::parseShortcut()",
+                            "Object \"" + getOpalName() + "\" has no attribute \"" + name + "\".");
                 }
             }
         }
@@ -155,77 +143,69 @@ void Object::parseShortcut(Statement &stat, bool eval) {
     }
 }
 
-
-void Object::print(std::ostream & msg) const {
+void Object::print(std::ostream& msg) const {
     std::string head = getOpalName();
-    Object *parent = getParent();
-    if(parent != 0  &&  ! parent->getOpalName().empty()) {
-        if(! getOpalName().empty()) head += ':';
+    Object* parent   = getParent();
+    if (parent != 0 && !parent->getOpalName().empty()) {
+        if (!getOpalName().empty()) head += ':';
         head += parent->getOpalName();
     }
 
     msg << head;
     int pos = head.length();
 
-    for(std::vector<Attribute>::const_iterator i = itsAttr.begin();
-        i != itsAttr.end(); ++i) {
-        if(*i) i->print(pos);
+    for (std::vector<Attribute>::const_iterator i = itsAttr.begin(); i != itsAttr.end(); ++i) {
+        if (*i) i->print(pos);
     }
     msg << ';';
     msg << std::endl;
     return;
 }
 
+void Object::registerReference(Invalidator* ref) { references.insert(ref); }
 
-void Object::registerReference(Invalidator *ref) {
-    references.insert(ref);
-}
+void Object::unregisterReference(Invalidator* ref) { references.erase(ref); }
 
-
-void Object::unregisterReference(Invalidator *ref) {
-    references.erase(ref);
-}
-
-void Object::registerOwnership(const AttributeHandler::OwnerType &itsClass) const {
+void Object::registerOwnership(const AttributeHandler::OwnerType& itsClass) const {
     if (getParent() != 0) return;
 
     const unsigned int end = itsAttr.size();
     const std::string name = getOpalName();
-    for (unsigned int i = 0; i < end; ++ i) {
+    for (unsigned int i = 0; i < end; ++i) {
         AttributeHandler::addAttributeOwner(name, itsClass, itsAttr[i].getName());
     }
 }
 
-void Object::printHelp(std::ostream &/*os*/) const {
+void Object::printHelp(std::ostream& /*os*/) const {
     *gmsg << endl << itsHelp << endl;
 
-    if(!itsAttr.empty()) {
+    if (!itsAttr.empty()) {
         *gmsg << "Attributes:" << endl;
 
         size_t maxNameLength = 16;
         size_t maxTypeLength = 16;
         std::vector<Attribute>::const_iterator it;
-        for (it = itsAttr.begin(); it != itsAttr.end(); ++ it) {
+        for (it = itsAttr.begin(); it != itsAttr.end(); ++it) {
             std::string name = it->getName();
-            maxNameLength = std::max(maxNameLength, name.length() + 1);
+            maxNameLength    = std::max(maxNameLength, name.length() + 1);
             std::string type = it->getType();
-            maxTypeLength = std::max(maxTypeLength, type.length() + 1);
+            maxTypeLength    = std::max(maxTypeLength, type.length() + 1);
         }
 
-        for (it = itsAttr.begin(); it != itsAttr.end(); ++ it) {
+        for (it = itsAttr.begin(); it != itsAttr.end(); ++it) {
             std::string type = it->getType();
             std::string name = it->getName();
             std::istringstream help(it->getHelp());
             std::vector<std::string> words;
-            std::copy(std::istream_iterator<std::string>(help),
-                      std::istream_iterator<std::string>(),
-                      std::back_inserter(words));
+            std::copy(
+                    std::istream_iterator<std::string>(help), std::istream_iterator<std::string>(),
+                    std::back_inserter(words));
             unsigned int columnWidth = 40;
             if (maxNameLength + maxTypeLength < 40u) {
                 columnWidth = 80 - maxNameLength - maxTypeLength;
             }
 
-            auto wordsIt = words.begin();
+            auto wordsIt  = words.begin();
             auto wordsEnd = words.end();
             while (wordsIt != wordsEnd) {
                 *gmsg << '\t' << type << std::string(maxTypeLength - type.length(), ' ');
@@ -234,7 +214,7 @@ void Object::printHelp(std::ostream &/*os*/) const {
                 do {
                     totalLength += wordsIt->length();
                     *gmsg << *wordsIt << " ";
-                    ++ wordsIt;
+                    ++wordsIt;
                 } while (wordsIt != wordsEnd && totalLength + wordsIt->length() < columnWidth);
                 if (wordsIt != wordsEnd) {
                     *gmsg << endl;
@@ -244,7 +224,7 @@ void Object::printHelp(std::ostream &/*os*/) const {
                 name = "";
             }
 
-            if(it->isReadOnly()) *gmsg << " (read only)";
+            if (it->isReadOnly()) *gmsg << " (read only)";
             *gmsg << endl;
         }
     }
@@ -252,108 +232,64 @@ void Object::printHelp(std::ostream &/*os*/) const {
     *gmsg << endl;
 }
 
-
-void Object::replace(Object *, Object *) {
+void Object::replace(Object*, Object*) {
     // Default action: do nothing.
 }
-
 
 void Object::update() {
     // Default action: do nothing.
 }
 
+bool Object::isBuiltin() const { return builtin; }
 
-bool Object::isBuiltin() const {
-    return builtin;
-}
+bool Object::isShared() const { return sharedFlag; }
 
-
-bool Object::isShared() const {
-    return sharedFlag;
-}
-
-
-void Object::setShared(bool flag) {
-    sharedFlag = flag;
-}
-
+void Object::setShared(bool flag) { sharedFlag = flag; }
 
 void Object::setDirty(bool dirty) {
     // The object is now different from the data base.
     modified = dirty;
 }
 
+bool Object::isDirty() const { return modified; }
 
-bool Object::isDirty() const {
-    return modified;
-}
+void Object::setFlag(bool flag) { flagged = flag; }
 
+bool Object::isFlagged() const { return flagged; }
 
-void Object::setFlag(bool flag) {
-    flagged = flag;
-}
-
-
-bool Object::isFlagged() const {
-    return flagged;
-}
-
-const Object *Object::getBaseObject() const {
-    const Object *base = this;
-    while(base->itsParent != 0) base = base->itsParent;
+const Object* Object::getBaseObject() const {
+    const Object* base = this;
+    while (base->itsParent != 0)
+        base = base->itsParent;
     return base;
 }
 
+const std::string& Object::getOpalName() const { return itsName; }
 
-const std::string &Object::getOpalName() const {
-    return itsName;
-}
+Object* Object::getParent() const { return itsParent; }
 
+bool Object::isTreeMember(const Object* classObject) const {
+    const Object* object = this;
 
-Object *Object::getParent() const {
-    return itsParent;
-}
-
-
-bool Object::isTreeMember(const Object *classObject) const {
-    const Object *object = this;
-
-    while(object != 0  &&  object != classObject) {
+    while (object != 0 && object != classObject) {
         object = object->itsParent;
     }
 
     return object != 0;
 }
 
+void Object::setOpalName(const std::string& name) { itsName = name; }
 
-void Object::setOpalName(const std::string &name) {
-    itsName = name;
-}
+void Object::setParent(Object* parent) { itsParent = parent; }
 
+void Object::clear() { occurrence = 0; }
 
-void Object::setParent(Object *parent) {
-    itsParent = parent;
-}
+int Object::increment() { return ++occurrence; }
 
+int Object::occurrenceCount() { return occurrence; }
 
-void Object::clear() {
-    occurrence = 0;
-}
-
-
-int Object::increment() {
-    return ++occurrence;
-}
-
-
-int Object::occurrenceCount() {
-    return occurrence;
-}
-
-
-Object::Object(int size, const char *name, const char *help):
-    itsAttr(size), itsParent(0),
-    itsName(name), itsHelp(help), occurrence(0), sharedFlag(false) {
+Object::Object(int size, const char* name, const char* help)
+    : itsAttr(size), itsParent(0), itsName(name), itsHelp(help), occurrence(0), sharedFlag(false) {
     // NOTE: The derived classes must define the attribute handlers and
     //       any initial values for the attributes.
 
@@ -362,16 +298,19 @@ Object::Object(int size, const char *name, const char *help):
     flagged = modified = false;
 }
 
-
-Object::Object(const std::string &name, Object *parent):
-    itsAttr(parent->itsAttr), itsParent(parent),
-    itsName(name), itsHelp(parent->itsHelp), occurrence(0), sharedFlag(false) {
+Object::Object(const std::string& name, Object* parent)
+    : itsAttr(parent->itsAttr),
+      itsParent(parent),
+      itsName(name),
+      itsHelp(parent->itsHelp),
+      occurrence(0),
+      sharedFlag(false) {
     // The object is now different from the data base.
     builtin = flagged = false;
-    modified = true;
+    modified          = true;
 }
 
-std::ostream &operator<<(std::ostream &os, const Object &object) {
+std::ostream& operator<<(std::ostream& os, const Object& object) {
     object.print(os);
     return os;
 }

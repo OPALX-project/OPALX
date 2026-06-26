@@ -20,38 +20,21 @@
 
 #include "Fields/ConstBField.h"
 
-
 // Class ConstBField
 // ------------------------------------------------------------------------
 
-ConstBField::ConstBField()
-{}
+ConstBField::ConstBField() {}
 
+ConstBField::~ConstBField() {}
 
-ConstBField::~ConstBField()
-{}
+double ConstBField::getBx() const { return 0.0; }
 
+double ConstBField::getBy() const { return 0.0; }
 
-double ConstBField::getBx() const {
-    return 0.0;
-}
+double ConstBField::getBz() const { return 0.0; }
 
-double ConstBField::getBy() const {
-    return 0.0;
-}
+void ConstBField::setBx(double /*B*/) {}
 
-double ConstBField::getBz() const {
-    return 0.0;
-}
+void ConstBField::setBy(double /*B*/) {}
 
-
-void ConstBField::setBx(double /*B*/)
-{}
-
-
-void ConstBField::setBy(double /*B*/)
-{}
-
-
-void ConstBField::setBz(double /*B*/)
-{}
+void ConstBField::setBz(double /*B*/) {}

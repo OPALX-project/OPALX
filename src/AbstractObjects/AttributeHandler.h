@@ -18,17 +18,16 @@
 //
 // ------------------------------------------------------------------------
 
-#include "AbstractObjects/AttributeBase.h"
 #include <memory.h>
 #include <cstring>
 #include <map>
-#include <set>
 #include <memory>
+#include <set>
 #include <string>
+#include "AbstractObjects/AttributeBase.h"
 
 class Attribute;
 class Statement;
-
 
 // Class AttributeHandler
 // ------------------------------------------------------------------------
@@ -48,43 +47,40 @@ class Statement;
 //  cached.  It is re-evaluated only when any other definition has changed.
 
 class AttributeHandler {
-
 public:
-
     /// Constructor.
     //  Assigns the attribute name [b]name[/b] and the help text [b]help[/b],
     //  as well as a possible default value [b]def[/b]for the attribute.
-    AttributeHandler(const std::string &name, const std::string &help, AttributeBase *def);
+    AttributeHandler(const std::string& name, const std::string& help, AttributeBase* def);
 
     virtual ~AttributeHandler();
 
     /// Return default value.
     //  Return the default value stored in this parser.
-    virtual AttributeBase *getDefault() const;
+    virtual AttributeBase* getDefault() const;
 
     /// Return help string.
-    virtual const std::string &getHelp() const;
+    virtual const std::string& getHelp() const;
 
     /// Return attribute name.
-    virtual const std::string &getName() const;
+    virtual const std::string& getName() const;
 
     /// Return attribute type.
     //  Return a string describing the attribute type
     //  ("logical", "real", etc.).
-    virtual const std::string &getType() const = 0;
+    virtual const std::string& getType() const = 0;
 
     /// Parse new value.
     //  Parse value from the statement [b]s[/b] and assign it to the
     //  attribute [b]a[/b].
-    virtual void parse(Attribute &a, Statement &s, bool eval) const = 0;
+    virtual void parse(Attribute& a, Statement& s, bool eval) const = 0;
 
     /// Parse component value.
     //  Parse value from the statement [b]s[/b] and assign it to the
     //  attribute [b]a[/b], indexed by [b]i[/b].
     //  The default version assumes that the value is scalar,
     //  and it throws [b]OpalException[/b].
-    virtual void parseComponent
-    (Attribute &a, Statement &s, bool eval, int i) const;
+    virtual void parseComponent(Attribute& a, Statement& s, bool eval, int i) const;
 
     /// Return defer flag.
     //  True, if any expression evaluation is to be deferred.
@@ -110,17 +106,13 @@ public:
     /// Add predefined strings values to the help
     void setPredefinedValues(const std::set<std::string>&, const std::string&);
 
-    enum OwnerType {
-        ELEMENT,
-        COMMAND,
-        SUB_COMMAND,
-        STATEMENT,
-        NONE};
+    enum OwnerType { ELEMENT, COMMAND, SUB_COMMAND, STATEMENT, NONE };
 
-    static std::multimap<OwnerType, std::string> getOwner(const std::string &att);
-    static void addAttributeOwner(const std::string &owner, const OwnerType &type, const std::string &name);
+    static std::multimap<OwnerType, std::string> getOwner(const std::string& att);
+    static void addAttributeOwner(
+            const std::string& owner, const OwnerType& type, const std::string& name);
+
 protected:
-
     /// Attribute name.
     const std::string itsName;
 
@@ -137,13 +129,13 @@ protected:
     bool is_readonly;
 
 private:
-
     // Not implemented.
     AttributeHandler();
-    AttributeHandler(const AttributeHandler &);
-    void operator=(const AttributeHandler &);
+    AttributeHandler(const AttributeHandler&);
+    void operator=(const AttributeHandler&);
 
-    static std::multimap<std::string, std::pair<OwnerType, std::string> > attributeOwnerDictionary_s;
+    static std::multimap<std::string, std::pair<OwnerType, std::string> >
+            attributeOwnerDictionary_s;
 };
 
-#endif // OPAL_AttributeHandler_HH
+#endif  // OPAL_AttributeHandler_HH

@@ -72,6 +72,7 @@ public:
             hostR(i)  = curvilinearToGlobal(localR[i], elementEntry, elementLength);
         }
         Kokkos::deep_copy(pc->R.getView(), hostR);
+        Kokkos::deep_copy(pc->B.getView(), Vector_t<double, 3>{});
         pc->setQ(pc->getChargePerParticle());
         ippl::Comm->barrier();
         Kokkos::fence();
@@ -109,6 +110,7 @@ public:
             hostR(i)  = curvilinearToGlobal(localR[i], elementEntry, elementLength);
         }
         Kokkos::deep_copy(pc->R.getView(), hostR);
+        Kokkos::deep_copy(pc->B.getView(), Vector_t<double, 3>{});
         pc->setQ(pc->getChargePerParticle());
         ippl::Comm->barrier();
         Kokkos::fence();

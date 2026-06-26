@@ -6,17 +6,17 @@
 #ifndef IPPL_FLAT_TOP_H
 #define IPPL_FLAT_TOP_H
 
-#include "Distribution.h"
-#include "SamplingBase.hpp"
 #include <Kokkos_Random.hpp>
-#include "Ippl.h"
-#include "Utilities/Options.h"
-#include "OPALTypes.h"
-#include <memory>
 #include <cmath>
+#include <memory>
+#include "Distribution.h"
+#include "Ippl.h"
+#include "OPALTypes.h"
+#include "SamplingBase.hpp"
+#include "Utilities/Options.h"
 
 using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
-using Dist_t = ippl::random::NormalDistribution<double, 3>;
+using Dist_t        = ippl::random::NormalDistribution<double, 3>;
 
 /**
  * @class FlatTop
@@ -26,9 +26,9 @@ using Dist_t = ippl::random::NormalDistribution<double, 3>;
  *
  *        The FlatTop distribution is
  *        f(t)/Z = exp[ -((t-riseTime_m)/sigma)^2/2 ]                            t < riseTime
- *                 1.0                                                           riseTime < t < t<riseTime + flattopTime
- *                 exp[ -((t-(fallTime_m + flattopTime_m))/sigmaTFall_m)^2/2 ]   t>riseTime + flattopTime
- *         where Z is the normalizing factor.
+ *                 1.0                                                           riseTime < t <
+ * t<riseTime + flattopTime exp[ -((t-(fallTime_m + flattopTime_m))/sigmaTFall_m)^2/2 ]   t>riseTime
+ * + flattopTime where Z is the normalizing factor.
  */
 class FlatTop : public SamplingBase {
 public:
@@ -38,10 +38,9 @@ public:
      * @param fc Shared pointer to FieldContainer.
      * @param opalDist Borrowed Distribution.
      */
-    FlatTop(std::shared_ptr<ParticleContainer_t> pc,
-        std::shared_ptr<FieldContainer_t> fc,
-        Distribution_t* opalDist);
-    
+    FlatTop(std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
+            Distribution_t* opalDist);
+
     /**
      * @brief Constructor for FlatTop.
      *
@@ -54,15 +53,9 @@ public:
      * @param tPulseLengthFWHM Time length of the pulse in FWHM.
      * @param sigmaR Standard deviation for position distribution.
      */
-    FlatTop(std::shared_ptr<ParticleContainer_t> pc,
-        std::shared_ptr<FieldContainer_t> fc,
-        bool emitting, 
-        double sigmaTFall,
-        double sigmaTRise,
-        Vector_t<double, 3> cutoff,
-        double tPulseLengthFWHM,
-        Vector_t<double, 3> sigmaR
-    );
+    FlatTop(std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
+            bool emitting, double sigmaTFall, double sigmaTRise, Vector_t<double, 3> cutoff,
+            double tPulseLengthFWHM, Vector_t<double, 3> sigmaR);
 
     /**
      * @brief Constructor for FlatTop.
@@ -74,14 +67,9 @@ public:
      * @param tPulseLengthFWHM Time span of the flat-top profile.
      * @param sigmaR Standard deviation for position distribution R.
      */
-    FlatTop(std::shared_ptr<ParticleContainer_t> pc,
-        bool emitting, 
-        double sigmaTFall,
-        double sigmaTRise,
-        Vector_t<double, 3> cutoff,
-        double tPulseLengthFWHM,
-        Vector_t<double, 3> sigmaR
-    );
+    FlatTop(std::shared_ptr<ParticleContainer_t> pc, bool emitting, double sigmaTFall,
+            double sigmaTRise, Vector_t<double, 3> cutoff, double tPulseLengthFWHM,
+            Vector_t<double, 3> sigmaR);
 
     /**
      * @brief Tests the number of emitted particles over a given number of steps.
@@ -106,46 +94,39 @@ public:
     /**
      * @brief Sets the total area of the distribution.
      */
-    void setDistArea(double distArea){
-        distArea_m = distArea;
-    }
-    
+    void setDistArea(double distArea) { distArea_m = distArea; }
+
     /**
      * @brief Returns the total area of the distribution.
      *
      */
-    double getDistArea(){
-        return distArea_m;
-    }
+    double getDistArea() { return distArea_m; }
 
     /**
      * @brief Returns the total emission time.
      */
-    double getEmissionTime(){
-        return emissionTime_m;
-    }
+    double getEmissionTime() { return emissionTime_m; }
 
     /// @copydoc SamplingBase::isEmissionDone
-    bool isEmissionDone(double t) const override {
-        return (t - t0_m) >= emissionTime_m;
-    }
+    bool isEmissionDone(double t) const override { return (t - t0_m) >= emissionTime_m; }
+
 private:
     using size_type = ippl::detail::size_type;
-    GeneratorPool rand_pool_m;  ///< Random number generator pool.
-    double flattopTime_m;       ///< Time duration of when the time profile is flat.
-    double normalizedFlankArea_m; ///< Normalized area of the distribution flanks.
-    double distArea_m; ///< Total area of the flattop distribution.
-    double sigmaTFall_m; ///< Standard deviation for fall time profile.
-    double sigmaTRise_m; ///< Standard deviation for rise time profile.
-    Vector_t<double, 3> cutoffR_m; ///< Cutoff radius.
-    double fallTime_m; ///< Time duration for the fall phase.
-    double riseTime_m; ///< Time duration for the rise phase.
-    bool emitting_m; ///< Flag for particle emission status.
-    size_type totalN_m; ///< Total number of particles.
-    bool withDomainDecomp_m; ///< Flag for domain decomposition.
-    double emissionTime_m; ///< Total emission time.
-    Vector_t<double, 3> nr_m; ///< Number of grid points per direction.
-    Vector_t<double, 3> hr_m; ///< Grid spacing.
+    GeneratorPool rand_pool_m;      ///< Random number generator pool.
+    double flattopTime_m;           ///< Time duration of when the time profile is flat.
+    double normalizedFlankArea_m;   ///< Normalized area of the distribution flanks.
+    double distArea_m;              ///< Total area of the flattop distribution.
+    double sigmaTFall_m;            ///< Standard deviation for fall time profile.
+    double sigmaTRise_m;            ///< Standard deviation for rise time profile.
+    Vector_t<double, 3> cutoffR_m;  ///< Cutoff radius.
+    double fallTime_m;              ///< Time duration for the fall phase.
+    double riseTime_m;              ///< Time duration for the rise phase.
+    bool emitting_m;                ///< Flag for particle emission status.
+    size_type totalN_m;             ///< Total number of particles.
+    bool withDomainDecomp_m;        ///< Flag for domain decomposition.
+    double emissionTime_m;          ///< Total emission time.
+    Vector_t<double, 3> nr_m;       ///< Number of grid points per direction.
+    Vector_t<double, 3> hr_m;       ///< Grid spacing.
     Vector_t<double, 3> sigmaR_m;
 
     /**
@@ -239,13 +220,9 @@ public:
      */
     void emitParticles(double t, double dt) override;
 
-    void setInternalVariables(bool emitting, 
-        double sigmaTFall,
-        double sigmaTRise,
-        Vector_t<double, 3> cutoff,
-        double tPulseLengthFWHM,
-        Vector_t<double, 3> sigmaR
-    );
+    void setInternalVariables(
+            bool emitting, double sigmaTFall, double sigmaTRise, Vector_t<double, 3> cutoff,
+            double tPulseLengthFWHM, Vector_t<double, 3> sigmaR);
 };
 
-#endif // IPPL_FLAT_TOP_H
+#endif  // IPPL_FLAT_TOP_H

@@ -33,14 +33,13 @@
 
 class StraightGeometry : public BGeometryBase {
 public:
-
     /// Constructor.
     //  Using the [b]length[/b].
     StraightGeometry(double length = 0.0);
 
-    StraightGeometry(const StraightGeometry &right);
+    StraightGeometry(const StraightGeometry& right);
     virtual ~StraightGeometry();
-    const StraightGeometry &operator=(const StraightGeometry &right);
+    const StraightGeometry& operator=(const StraightGeometry& right);
 
     /// Get arc length.
     //  Return the arc length, identical to the straight design length.
@@ -96,27 +95,23 @@ public:
     //  Equivalent to getTransform(0.0, getExit()).
     //  Return the transform of the local coordinate system from the
     //  origin to the exit of the element.
-    Euclid3D getExitFrame()     const;
+    Euclid3D getExitFrame() const;
 
 private:
-
     // The design length.
     double len;
 };
 
 // inlined (trivial) member functions
 
-inline StraightGeometry::StraightGeometry(double l): len(l)
-{}
+inline StraightGeometry::StraightGeometry(double l) : len(l) {}
 
-inline StraightGeometry::StraightGeometry(const StraightGeometry &right):
-    BGeometryBase(right), len(right.len)
-{}
+inline StraightGeometry::StraightGeometry(const StraightGeometry& right)
+    : BGeometryBase(right), len(right.len) {}
 
-inline const StraightGeometry &StraightGeometry::operator=
-(const StraightGeometry &rhs) {
+inline const StraightGeometry& StraightGeometry::operator=(const StraightGeometry& rhs) {
     len = rhs.len;
     return *this;
 }
 
-#endif // OPALX_StraightGeometry_HH
+#endif  // OPALX_StraightGeometry_HH

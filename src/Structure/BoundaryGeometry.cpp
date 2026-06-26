@@ -30,15 +30,15 @@
 #include "H5hut.h"
 
 #include "AbstractObjects/OpalData.h"
-#include "PartBunch/PartBunch.h"
 #include "Elements/OpalBeamline.h"
 #include "Expressions/SRefExpr.h"
+#include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 
-#include <filesystem>
 #include <chrono>
+#include <filesystem>
 
 // gsl_sys.h not needed - was only used for gsl_rng_env_setup which is now a no-op
 
@@ -137,19 +137,17 @@ namespace cmp_diff {
       https://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
     */
     inline bool almost_eq(
-        double A, double B, double maxDiff = 1e-15, double maxRelDiff = DBL_EPSILON) {
+            double A, double B, double maxDiff = 1e-15, double maxRelDiff = DBL_EPSILON) {
         // Check if the numbers are really close -- needed
         // when comparing numbers near zero.
         const double diff = std::abs(A - B);
-        if (diff <= maxDiff)
-            return true;
+        if (diff <= maxDiff) return true;
 
         A                    = std::abs(A);
         B                    = std::abs(B);
         const double largest = (B > A) ? B : A;
 
-        if (diff <= largest * maxRelDiff)
-            return true;
+        if (diff <= largest * maxRelDiff) return true;
         return false;
     }
 
@@ -244,8 +242,7 @@ namespace cmp_ulp {
 
         // Check if the numbers are really close -- needed
         // when comparing numbers near zero.
-        if (std::abs(A - B) <= maxDiff)
-            return true;
+        if (std::abs(A - B) <= maxDiff) return true;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
@@ -255,8 +252,7 @@ namespace cmp_ulp {
 
         // Different signs means they do not match.
         // Note: a negative floating point number is also negative as integer.
-        if (std::signbit(aInt) != std::signbit(bInt))
-            return false;
+        if (std::signbit(aInt) != std::signbit(bInt)) return false;
 
         // Find the difference in ULPs.
         return (std::abs(aInt - bInt) <= maxUlps);
@@ -333,9 +329,9 @@ namespace {
       write legacy VTK file of voxel mesh
     */
     static void write_voxel_mesh(
-        std::string fname, const std::unordered_map<int, std::unordered_set<int>>& ids,
-        const Vector_t<double, 3>& hr_m, const Vector_t<int, 3>& nr,
-        const Vector_t<double, 3>& origin) {
+            std::string fname, const std::unordered_map<int, std::unordered_set<int>>& ids,
+            const Vector_t<double, 3>& hr_m, const Vector_t<int, 3>& nr,
+            const Vector_t<double, 3>& origin) {
         /*----------------------------------------------------------------------*/
         const size_t numpoints = 8 * ids.size();
         std::ofstream of;
@@ -419,34 +415,21 @@ namespace {
 
 class Triangle {
 public:
-    Triangle() {
-    }
+    Triangle() {}
     Triangle(
-        const Vector_t<double, 3>& v1, const Vector_t<double, 3>& v2,
-        const Vector_t<double, 3>& v3) {
+            const Vector_t<double, 3>& v1, const Vector_t<double, 3>& v2,
+            const Vector_t<double, 3>& v3) {
         pts[0] = v1;
         pts[1] = v2;
         pts[2] = v3;
     }
 
-    inline const Vector_t<double, 3>& v1() const {
-        return pts[0];
-    }
-    inline double v1(int i) const {
-        return pts[0][i];
-    }
-    inline const Vector_t<double, 3>& v2() const {
-        return pts[1];
-    }
-    inline double v2(int i) const {
-        return pts[1][i];
-    }
-    inline const Vector_t<double, 3>& v3() const {
-        return pts[2];
-    }
-    inline double v3(int i) const {
-        return pts[2][i];
-    }
+    inline const Vector_t<double, 3>& v1() const { return pts[0]; }
+    inline double v1(int i) const { return pts[0][i]; }
+    inline const Vector_t<double, 3>& v2() const { return pts[1]; }
+    inline double v2(int i) const { return pts[1][i]; }
+    inline const Vector_t<double, 3>& v3() const { return pts[2]; }
+    inline double v3(int i) const { return pts[2][i]; }
 
     inline void scale(const Vector_t<double, 3>& scaleby, const Vector_t<double, 3>& shiftby) {
         pts[0][0] *= scaleby[0];
@@ -473,18 +456,12 @@ public:
 static inline int face_plane(const Vector_t<double, 3>& p) {
     int outcode_fcmp = 0;
 
-    if (cmp::gt(p[0], 0.5))
-        outcode_fcmp |= 0x01;
-    if (cmp::lt(p[0], -0.5))
-        outcode_fcmp |= 0x02;
-    if (cmp::gt(p[1], 0.5))
-        outcode_fcmp |= 0x04;
-    if (cmp::lt(p[1], -0.5))
-        outcode_fcmp |= 0x08;
-    if (cmp::gt(p[2], 0.5))
-        outcode_fcmp |= 0x10;
-    if (cmp::lt(p[2], -0.5))
-        outcode_fcmp |= 0x20;
+    if (cmp::gt(p[0], 0.5)) outcode_fcmp |= 0x01;
+    if (cmp::lt(p[0], -0.5)) outcode_fcmp |= 0x02;
+    if (cmp::gt(p[1], 0.5)) outcode_fcmp |= 0x04;
+    if (cmp::lt(p[1], -0.5)) outcode_fcmp |= 0x08;
+    if (cmp::gt(p[2], 0.5)) outcode_fcmp |= 0x10;
+    if (cmp::lt(p[2], -0.5)) outcode_fcmp |= 0x20;
 
     return (outcode_fcmp);
 }
@@ -496,30 +473,18 @@ static inline int face_plane(const Vector_t<double, 3>& p) {
 static inline int bevel_2d(const Vector_t<double, 3>& p) {
     int outcode_fcmp = 0;
 
-    if (cmp::gt(p[0] + p[1], 1.0))
-        outcode_fcmp |= 0x001;
-    if (cmp::gt(p[0] - p[1], 1.0))
-        outcode_fcmp |= 0x002;
-    if (cmp::gt(-p[0] + p[1], 1.0))
-        outcode_fcmp |= 0x004;
-    if (cmp::gt(-p[0] - p[1], 1.0))
-        outcode_fcmp |= 0x008;
-    if (cmp::gt(p[0] + p[2], 1.0))
-        outcode_fcmp |= 0x010;
-    if (cmp::gt(p[0] - p[2], 1.0))
-        outcode_fcmp |= 0x020;
-    if (cmp::gt(-p[0] + p[2], 1.0))
-        outcode_fcmp |= 0x040;
-    if (cmp::gt(-p[0] - p[2], 1.0))
-        outcode_fcmp |= 0x080;
-    if (cmp::gt(p[1] + p[2], 1.0))
-        outcode_fcmp |= 0x100;
-    if (cmp::gt(p[1] - p[2], 1.0))
-        outcode_fcmp |= 0x200;
-    if (cmp::gt(-p[1] + p[2], 1.0))
-        outcode_fcmp |= 0x400;
-    if (cmp::gt(-p[1] - p[2], 1.0))
-        outcode_fcmp |= 0x800;
+    if (cmp::gt(p[0] + p[1], 1.0)) outcode_fcmp |= 0x001;
+    if (cmp::gt(p[0] - p[1], 1.0)) outcode_fcmp |= 0x002;
+    if (cmp::gt(-p[0] + p[1], 1.0)) outcode_fcmp |= 0x004;
+    if (cmp::gt(-p[0] - p[1], 1.0)) outcode_fcmp |= 0x008;
+    if (cmp::gt(p[0] + p[2], 1.0)) outcode_fcmp |= 0x010;
+    if (cmp::gt(p[0] - p[2], 1.0)) outcode_fcmp |= 0x020;
+    if (cmp::gt(-p[0] + p[2], 1.0)) outcode_fcmp |= 0x040;
+    if (cmp::gt(-p[0] - p[2], 1.0)) outcode_fcmp |= 0x080;
+    if (cmp::gt(p[1] + p[2], 1.0)) outcode_fcmp |= 0x100;
+    if (cmp::gt(p[1] - p[2], 1.0)) outcode_fcmp |= 0x200;
+    if (cmp::gt(-p[1] + p[2], 1.0)) outcode_fcmp |= 0x400;
+    if (cmp::gt(-p[1] - p[2], 1.0)) outcode_fcmp |= 0x800;
 
     return (outcode_fcmp);
 }
@@ -531,22 +496,14 @@ static inline int bevel_2d(const Vector_t<double, 3>& p) {
 static inline int bevel_3d(const Vector_t<double, 3>& p) {
     int outcode_fcmp = 0;
 
-    if (cmp::gt(p[0] + p[1] + p[2], 1.5))
-        outcode_fcmp |= 0x01;
-    if (cmp::gt(p[0] + p[1] - p[2], 1.5))
-        outcode_fcmp |= 0x02;
-    if (cmp::gt(p[0] - p[1] + p[2], 1.5))
-        outcode_fcmp |= 0x04;
-    if (cmp::gt(p[0] - p[1] - p[2], 1.5))
-        outcode_fcmp |= 0x08;
-    if (cmp::gt(-p[0] + p[1] + p[2], 1.5))
-        outcode_fcmp |= 0x10;
-    if (cmp::gt(-p[0] + p[1] - p[2], 1.5))
-        outcode_fcmp |= 0x20;
-    if (cmp::gt(-p[0] - p[1] + p[2], 1.5))
-        outcode_fcmp |= 0x40;
-    if (cmp::gt(-p[0] - p[1] - p[2], 1.5))
-        outcode_fcmp |= 0x80;
+    if (cmp::gt(p[0] + p[1] + p[2], 1.5)) outcode_fcmp |= 0x01;
+    if (cmp::gt(p[0] + p[1] - p[2], 1.5)) outcode_fcmp |= 0x02;
+    if (cmp::gt(p[0] - p[1] + p[2], 1.5)) outcode_fcmp |= 0x04;
+    if (cmp::gt(p[0] - p[1] - p[2], 1.5)) outcode_fcmp |= 0x08;
+    if (cmp::gt(-p[0] + p[1] + p[2], 1.5)) outcode_fcmp |= 0x10;
+    if (cmp::gt(-p[0] + p[1] - p[2], 1.5)) outcode_fcmp |= 0x20;
+    if (cmp::gt(-p[0] - p[1] + p[2], 1.5)) outcode_fcmp |= 0x40;
+    if (cmp::gt(-p[0] - p[1] - p[2], 1.5)) outcode_fcmp |= 0x80;
 
     return (outcode_fcmp);
 }
@@ -559,8 +516,8 @@ static inline int bevel_3d(const Vector_t<double, 3>& p) {
 */
 
 static inline int check_point(
-    const Vector_t<double, 3>& p1, const Vector_t<double, 3>& p2, const double alpha,
-    const int mask) {
+        const Vector_t<double, 3>& p1, const Vector_t<double, 3>& p2, const double alpha,
+        const int mask) {
     Vector_t<double, 3> plane_point;
 
 #define LERP(a, b, t) (a + t * (b - a))
@@ -580,25 +537,19 @@ static inline int check_point(
   Note: Zero bits in "outcode_diff" means face line is outside of
 */
 static inline int check_line(
-    const Vector_t<double, 3>& p1, const Vector_t<double, 3>& p2, const int outcode_diff) {
+        const Vector_t<double, 3>& p1, const Vector_t<double, 3>& p2, const int outcode_diff) {
     if ((0x01 & outcode_diff) != 0)
-        if (check_point(p1, p2, (.5 - p1[0]) / (p2[0] - p1[0]), 0x3e) == INSIDE)
-            return (INSIDE);
+        if (check_point(p1, p2, (.5 - p1[0]) / (p2[0] - p1[0]), 0x3e) == INSIDE) return (INSIDE);
     if ((0x02 & outcode_diff) != 0)
-        if (check_point(p1, p2, (-.5 - p1[0]) / (p2[0] - p1[0]), 0x3d) == INSIDE)
-            return (INSIDE);
+        if (check_point(p1, p2, (-.5 - p1[0]) / (p2[0] - p1[0]), 0x3d) == INSIDE) return (INSIDE);
     if ((0x04 & outcode_diff) != 0)
-        if (check_point(p1, p2, (.5 - p1[1]) / (p2[1] - p1[1]), 0x3b) == INSIDE)
-            return (INSIDE);
+        if (check_point(p1, p2, (.5 - p1[1]) / (p2[1] - p1[1]), 0x3b) == INSIDE) return (INSIDE);
     if ((0x08 & outcode_diff) != 0)
-        if (check_point(p1, p2, (-.5 - p1[1]) / (p2[1] - p1[1]), 0x37) == INSIDE)
-            return (INSIDE);
+        if (check_point(p1, p2, (-.5 - p1[1]) / (p2[1] - p1[1]), 0x37) == INSIDE) return (INSIDE);
     if ((0x10 & outcode_diff) != 0)
-        if (check_point(p1, p2, (.5 - p1[2]) / (p2[2] - p1[2]), 0x2f) == INSIDE)
-            return (INSIDE);
+        if (check_point(p1, p2, (.5 - p1[2]) / (p2[2] - p1[2]), 0x2f) == INSIDE) return (INSIDE);
     if ((0x20 & outcode_diff) != 0)
-        if (check_point(p1, p2, (-.5 - p1[2]) / (p2[2] - p1[2]), 0x1f) == INSIDE)
-            return (INSIDE);
+        if (check_point(p1, p2, (-.5 - p1[2]) / (p2[2] - p1[2]), 0x1f) == INSIDE) return (INSIDE);
     return (OUTSIDE);
 }
 
@@ -608,9 +559,8 @@ static inline int check_line(
 */
 constexpr double EPS = 10e-15;
 static inline int SIGN3(Vector_t<double, 3> A) {
-    return (
-        ((A[0] < EPS) ? 4 : 0) | ((A[0] > -EPS) ? 32 : 0) | ((A[1] < EPS) ? 2 : 0)
-        | ((A[1] > -EPS) ? 16 : 0) | ((A[2] < EPS) ? 1 : 0) | ((A[2] > -EPS) ? 8 : 0));
+    return (((A[0] < EPS) ? 4 : 0) | ((A[0] > -EPS) ? 32 : 0) | ((A[1] < EPS) ? 2 : 0)
+            | ((A[1] > -EPS) ? 16 : 0) | ((A[2] < EPS) ? 1 : 0) | ((A[2] > -EPS) ? 8 : 0));
 }
 
 static int point_triangle_intersection(const Vector_t<double, 3>& p, const Triangle& t) {
@@ -618,18 +568,12 @@ static int point_triangle_intersection(const Vector_t<double, 3>& p, const Trian
       First, a quick bounding-box test:
       If P is outside triangle bbox, there cannot be an intersection.
     */
-    if (cmp::gt(p[0], std::max({t.v1(0), t.v2(0), t.v3(0)})))
-        return (OUTSIDE);
-    if (cmp::gt(p[1], std::max({t.v1(1), t.v2(1), t.v3(1)})))
-        return (OUTSIDE);
-    if (cmp::gt(p[2], std::max({t.v1(2), t.v2(2), t.v3(2)})))
-        return (OUTSIDE);
-    if (cmp::lt(p[0], std::min({t.v1(0), t.v2(0), t.v3(0)})))
-        return (OUTSIDE);
-    if (cmp::lt(p[1], std::min({t.v1(1), t.v2(1), t.v3(1)})))
-        return (OUTSIDE);
-    if (cmp::lt(p[2], std::min({t.v1(2), t.v2(2), t.v3(2)})))
-        return (OUTSIDE);
+    if (cmp::gt(p[0], std::max({t.v1(0), t.v2(0), t.v3(0)}))) return (OUTSIDE);
+    if (cmp::gt(p[1], std::max({t.v1(1), t.v2(1), t.v3(1)}))) return (OUTSIDE);
+    if (cmp::gt(p[2], std::max({t.v1(2), t.v2(2), t.v3(2)}))) return (OUTSIDE);
+    if (cmp::lt(p[0], std::min({t.v1(0), t.v2(0), t.v3(0)}))) return (OUTSIDE);
+    if (cmp::lt(p[1], std::min({t.v1(1), t.v2(1), t.v3(1)}))) return (OUTSIDE);
+    if (cmp::lt(p[2], std::min({t.v1(2), t.v2(2), t.v3(2)}))) return (OUTSIDE);
 
     /*
       For each triangle side, make a vector out of it by subtracting vertexes;
@@ -678,19 +622,15 @@ static int triangle_intersects_cube(const Triangle& t) {
       First compare all three vertexes with all six face-planes
       If any vertex is inside the cube, return immediately!
     */
-    if ((v1_test = face_plane(t.v1())) == INSIDE)
-        return (INSIDE);
-    if ((v2_test = face_plane(t.v2())) == INSIDE)
-        return (INSIDE);
-    if ((v3_test = face_plane(t.v3())) == INSIDE)
-        return (INSIDE);
+    if ((v1_test = face_plane(t.v1())) == INSIDE) return (INSIDE);
+    if ((v2_test = face_plane(t.v2())) == INSIDE) return (INSIDE);
+    if ((v3_test = face_plane(t.v3())) == INSIDE) return (INSIDE);
 
     /*
       If all three vertexes were outside of one or more face-planes,
       return immediately with a trivial rejection!
     */
-    if ((v1_test & v2_test & v3_test) != 0)
-        return (OUTSIDE);
+    if ((v1_test & v2_test & v3_test) != 0) return (OUTSIDE);
 
     /*
       Now do the same trivial rejection test for the 12 edge planes
@@ -698,8 +638,7 @@ static int triangle_intersects_cube(const Triangle& t) {
     v1_test |= bevel_2d(t.v1()) << 8;
     v2_test |= bevel_2d(t.v2()) << 8;
     v3_test |= bevel_2d(t.v3()) << 8;
-    if ((v1_test & v2_test & v3_test) != 0)
-        return (OUTSIDE);
+    if ((v1_test & v2_test & v3_test) != 0) return (OUTSIDE);
 
     /*
       Now do the same trivial rejection test for the 8 corner planes
@@ -707,8 +646,7 @@ static int triangle_intersects_cube(const Triangle& t) {
     v1_test |= bevel_3d(t.v1()) << 24;
     v2_test |= bevel_3d(t.v2()) << 24;
     v3_test |= bevel_3d(t.v3()) << 24;
-    if ((v1_test & v2_test & v3_test) != 0)
-        return (OUTSIDE);
+    if ((v1_test & v2_test & v3_test) != 0) return (OUTSIDE);
 
     /*
       If vertex 1 and 2, as a pair, cannot be trivially rejected
@@ -719,14 +657,11 @@ static int triangle_intersects_cube(const Triangle& t) {
       each triangle edge need be tested.
     */
     if ((v1_test & v2_test) == 0)
-        if (check_line(t.v1(), t.v2(), v1_test | v2_test) == INSIDE)
-            return (INSIDE);
+        if (check_line(t.v1(), t.v2(), v1_test | v2_test) == INSIDE) return (INSIDE);
     if ((v1_test & v3_test) == 0)
-        if (check_line(t.v1(), t.v3(), v1_test | v3_test) == INSIDE)
-            return (INSIDE);
+        if (check_line(t.v1(), t.v3(), v1_test | v3_test) == INSIDE) return (INSIDE);
     if ((v2_test & v3_test) == 0)
-        if (check_line(t.v2(), t.v3(), v2_test | v3_test) == INSIDE)
-            return (INSIDE);
+        if (check_line(t.v2(), t.v3(), v2_test | v3_test) == INSIDE) return (INSIDE);
 
     /*
       By now, we know that the triangle is not off to any side,
@@ -766,32 +701,28 @@ static int triangle_intersects_cube(const Triangle& t) {
         /* skip parallel diagonals to the plane; division by 0 can occure */
         Vector_t<double, 3> hitpp = d / denom;
         if (cmp::le(std::abs(hitpp[0]), 0.5))
-            if (point_triangle_intersection(hitpp, t) == INSIDE)
-                return (INSIDE);
+            if (point_triangle_intersection(hitpp, t) == INSIDE) return (INSIDE);
     }
     denom = norm[0] + norm[1] - norm[2];
     if (cmp::eq_zero(std::abs(denom)) == false) {
         Vector_t<double, 3> hitpn;
         hitpn[2] = -(hitpn[0] = hitpn[1] = d / denom);
         if (cmp::le(std::abs(hitpn[0]), 0.5))
-            if (point_triangle_intersection(hitpn, t) == INSIDE)
-                return (INSIDE);
+            if (point_triangle_intersection(hitpn, t) == INSIDE) return (INSIDE);
     }
     denom = norm[0] - norm[1] + norm[2];
     if (cmp::eq_zero(std::abs(denom)) == false) {
         Vector_t<double, 3> hitnp;
         hitnp[1] = -(hitnp[0] = hitnp[2] = d / denom);
         if (cmp::le(std::abs(hitnp[0]), 0.5))
-            if (point_triangle_intersection(hitnp, t) == INSIDE)
-                return (INSIDE);
+            if (point_triangle_intersection(hitnp, t) == INSIDE) return (INSIDE);
     }
     denom = norm[0] - norm[1] - norm[2];
     if (cmp::eq_zero(std::abs(denom)) == false) {
         Vector_t<double, 3> hitnn;
         hitnn[1] = hitnn[2] = -(hitnn[0] = d / denom);
         if (cmp::le(std::abs(hitnn[0]), 0.5))
-            if (point_triangle_intersection(hitnn, t) == INSIDE)
-                return (INSIDE);
+            if (point_triangle_intersection(hitnn, t) == INSIDE) return (INSIDE);
     }
 
     /*
@@ -813,8 +744,7 @@ static int triangle_intersects_cube(const Triangle& t) {
 
 class Ray {
 public:
-    Ray() {
-    }
+    Ray() {}
     Ray(Vector_t<double, 3> o, Vector_t<double, 3> d) {
         origin        = o;
         direction     = d;
@@ -851,8 +781,7 @@ public:
 
 class Voxel {
 public:
-    Voxel() {
-    }
+    Voxel() {}
     Voxel(const Vector_t<double, 3>& min, const Vector_t<double, 3>& max) {
         pts[0] = min;
         pts[1] = max;
@@ -868,29 +797,23 @@ public:
 
     // (t0, t1) is the interval for valid hits
     bool intersect(
-        const Ray& r,
-        double& tmin,  // tmin and tmax are unchanged, if there is
-        double& tmax   // no intersection
+            const Ray& r,
+            double& tmin,  // tmin and tmax are unchanged, if there is
+            double& tmax   // no intersection
     ) const {
         double tmin_       = (pts[r.sign[0]][0] - r.origin[0]) * r.inv_direction[0];
         double tmax_       = (pts[1 - r.sign[0]][0] - r.origin[0]) * r.inv_direction[0];
         const double tymin = (pts[r.sign[1]][1] - r.origin[1]) * r.inv_direction[1];
         const double tymax = (pts[1 - r.sign[1]][1] - r.origin[1]) * r.inv_direction[1];
-        if (cmp::gt(tmin_, tymax) || cmp::gt(tymin, tmax_))
-            return 0;  // no intersection
-        if (cmp::gt(tymin, tmin_))
-            tmin_ = tymin;
-        if (cmp::lt(tymax, tmax_))
-            tmax_ = tymax;
+        if (cmp::gt(tmin_, tymax) || cmp::gt(tymin, tmax_)) return 0;  // no intersection
+        if (cmp::gt(tymin, tmin_)) tmin_ = tymin;
+        if (cmp::lt(tymax, tmax_)) tmax_ = tymax;
         const double tzmin = (pts[r.sign[2]][2] - r.origin[2]) * r.inv_direction[2];
         const double tzmax = (pts[1 - r.sign[2]][2] - r.origin[2]) * r.inv_direction[2];
-        if (cmp::gt(tmin_, tzmax) || cmp::gt(tzmin, tmax_))
-            return 0;  // no intersection
-        if (cmp::gt(tzmin, tmin_))
-            tmin_ = tzmin;
+        if (cmp::gt(tmin_, tzmax) || cmp::gt(tzmin, tmax_)) return 0;  // no intersection
+        if (cmp::gt(tzmin, tmin_)) tmin_ = tzmin;
         tmin = tmin_;
-        if (cmp::lt(tzmax, tmax_))
-            tmax_ = tzmax;
+        if (cmp::lt(tzmax, tmax_)) tmax_ = tzmax;
         tmax = tmax_;
         return cmp::ge_zero(tmax);
     }
@@ -910,21 +833,19 @@ public:
         return triangle_intersects_cube(t_);
     }
 
-    inline Vector_t<double, 3> extent() const {
-        return (pts[1] - pts[0]);
-    }
+    inline Vector_t<double, 3> extent() const { return (pts[1] - pts[0]); }
 
     inline bool isInside(const Vector_t<double, 3>& P) const {
-        return (
-            cmp::ge(P[0], pts[0][0]) && cmp::ge(P[1], pts[0][1]) && cmp::ge(P[2], pts[0][2])
-            && cmp::le(P[0], pts[1][0]) && cmp::le(P[1], pts[1][1]) && cmp::le(P[2], pts[1][2]));
+        return (cmp::ge(P[0], pts[0][0]) && cmp::ge(P[1], pts[0][1]) && cmp::ge(P[2], pts[0][2])
+                && cmp::le(P[0], pts[1][0]) && cmp::le(P[1], pts[1][1])
+                && cmp::le(P[2], pts[1][2]));
     }
 
     Vector_t<double, 3> pts[2];
 };
 
 static inline Vector_t<double, 3> normalVector(
-    const Vector_t<double, 3>& A, const Vector_t<double, 3>& B, const Vector_t<double, 3>& C) {
+        const Vector_t<double, 3>& A, const Vector_t<double, 3>& B, const Vector_t<double, 3>& C) {
     const Vector_t<double, 3> N = cross(B - A, C - A);
     const double magnitude      = std::sqrt(SQR(N(0)) + SQR(N(1)) + SQR(N(2)));
     PAssert(cmp::gt_zero(magnitude));  // in case we have degenerated triangles
@@ -933,7 +854,7 @@ static inline Vector_t<double, 3> normalVector(
 
 // Calculate the area of triangle given by id.
 static inline double computeArea(
-    const Vector_t<double, 3>& A, const Vector_t<double, 3>& B, const Vector_t<double, 3>& C) {
+        const Vector_t<double, 3>& A, const Vector_t<double, 3>& B, const Vector_t<double, 3>& C) {
     const Vector_t<double, 3> AB = A - B;
     const Vector_t<double, 3> AC = C - A;
     return (0.5 * std::sqrt(dot(AB, AB) * dot(AC, AC) - dot(AB, AC) * dot(AB, AC)));
@@ -953,41 +874,41 @@ BoundaryGeometry::BoundaryGeometry()
     itsAttr[FGEOM] = Attributes::makeString("FGEOM", "Specifies the geometry file [H5hut]", "");
 
     itsAttr[TOPO] = Attributes::makePredefinedString(
-        "TOPO", "If FGEOM is selected topo is over-written. ",
-        {"RECTANGULAR", "BOXCORNER", "ELLIPTIC"}, "ELLIPTIC");
+            "TOPO", "If FGEOM is selected topo is over-written. ",
+            {"RECTANGULAR", "BOXCORNER", "ELLIPTIC"}, "ELLIPTIC");
 
     itsAttr[LENGTH] = Attributes::makeReal(
-        "LENGTH", "Specifies the length of a tube shaped elliptic beam pipe [m]", 1.0);
+            "LENGTH", "Specifies the length of a tube shaped elliptic beam pipe [m]", 1.0);
 
     itsAttr[S] = Attributes::makeReal(
-        "S", "Specifies the start of a tube shaped elliptic beam pipe [m]", 0.0);
+            "S", "Specifies the start of a tube shaped elliptic beam pipe [m]", 0.0);
 
     itsAttr[A] = Attributes::makeReal(
-        "A", "Specifies the major semi-axis of a tube shaped elliptic beam pipe [m]", 0.025);
+            "A", "Specifies the major semi-axis of a tube shaped elliptic beam pipe [m]", 0.025);
 
     itsAttr[B] = Attributes::makeReal(
-        "B", "Specifies the major semi-axis of a tube shaped elliptic beam pipe [m]", 0.025);
+            "B", "Specifies the major semi-axis of a tube shaped elliptic beam pipe [m]", 0.025);
 
     itsAttr[L1] = Attributes::makeReal(
-        "L1", "In case of BOXCORNER Specifies first part with height == B [m]", 0.5);
+            "L1", "In case of BOXCORNER Specifies first part with height == B [m]", 0.5);
 
     itsAttr[L2] = Attributes::makeReal(
-        "L2", "In case of BOXCORNER Specifies first second with height == B-C [m]", 0.2);
+            "L2", "In case of BOXCORNER Specifies first second with height == B-C [m]", 0.2);
 
-    itsAttr[C] =
-        Attributes::makeReal("C", "In case of BOXCORNER Specifies height of corner C [m]", 0.01);
+    itsAttr[C] = Attributes::makeReal(
+            "C", "In case of BOXCORNER Specifies height of corner C [m]", 0.01);
 
     itsAttr[XYZSCALE] =
-        Attributes::makeReal("XYZSCALE", "Multiplicative scaling factor for coordinates ", 1.0);
+            Attributes::makeReal("XYZSCALE", "Multiplicative scaling factor for coordinates ", 1.0);
 
     itsAttr[XSCALE] =
-        Attributes::makeReal("XSCALE", "Multiplicative scaling factor for X coordinates ", 1.0);
+            Attributes::makeReal("XSCALE", "Multiplicative scaling factor for X coordinates ", 1.0);
 
     itsAttr[YSCALE] =
-        Attributes::makeReal("YSCALE", "Multiplicative scaling factor for Y coordinates ", 1.0);
+            Attributes::makeReal("YSCALE", "Multiplicative scaling factor for Y coordinates ", 1.0);
 
     itsAttr[ZSCALE] =
-        Attributes::makeReal("ZSCALE", "Multiplicative scaling factor for Z coordinates ", 1.0);
+            Attributes::makeReal("ZSCALE", "Multiplicative scaling factor for Z coordinates ", 1.0);
 
     itsAttr[ZSHIFT] = Attributes::makeReal("ZSHIFT", "Shift in z direction", 0.0);
 
@@ -1015,8 +936,7 @@ BoundaryGeometry::BoundaryGeometry()
     gsl_rng_env_setup();
     randGen_m = gsl_rng_alloc(gsl_rng_default);
 
-    if (!h5FileName_m.empty())
-        initialize();
+    if (!h5FileName_m.empty()) initialize();
 }
 
 BoundaryGeometry::BoundaryGeometry(const std::string& name, BoundaryGeometry* parent)
@@ -1031,13 +951,10 @@ BoundaryGeometry::BoundaryGeometry(const std::string& name, BoundaryGeometry* pa
     TPartInside_m   = IpplTimings::getTimer("Particle Inside");
 
     h5FileName_m = Attributes::getString(itsAttr[FGEOM]);
-    if (!h5FileName_m.empty())
-        initialize();
+    if (!h5FileName_m.empty()) initialize();
 }
 
-BoundaryGeometry::~BoundaryGeometry() {
-    gsl_rng_free(randGen_m);
-}
+BoundaryGeometry::~BoundaryGeometry() { gsl_rng_free(randGen_m); }
 
 bool BoundaryGeometry::canReplaceBy(Object* object) {
     // Can replace only by another GEOMETRY.
@@ -1049,8 +966,7 @@ BoundaryGeometry* BoundaryGeometry::clone(const std::string& name) {
 }
 
 void BoundaryGeometry::update() {
-    if (getOpalName().empty())
-        setOpalName("UNNAMED_GEOMETRY");
+    if (getOpalName().empty()) setOpalName("UNNAMED_GEOMETRY");
 }
 
 void BoundaryGeometry::execute() {
@@ -1070,17 +986,16 @@ BoundaryGeometry* BoundaryGeometry::find(const std::string& name) {
     return geom;
 }
 
-void BoundaryGeometry::updateElement(ElementBase* /*element*/) {
-}
+void BoundaryGeometry::updateElement(ElementBase* /*element*/) {}
 
 int BoundaryGeometry::intersectTriangleVoxel(
-    const int triangle_id, const int i, const int j, const int k) {
+        const int triangle_id, const int i, const int j, const int k) {
     const Triangle t(getPoint(triangle_id, 1), getPoint(triangle_id, 2), getPoint(triangle_id, 3));
 
     const Vector_t<double, 3> P(
-        i * voxelMesh_m.sizeOfVoxel[0] + voxelMesh_m.minExtent[0],
-        j * voxelMesh_m.sizeOfVoxel[1] + voxelMesh_m.minExtent[1],
-        k * voxelMesh_m.sizeOfVoxel[2] + voxelMesh_m.minExtent[2]);
+            i * voxelMesh_m.sizeOfVoxel[0] + voxelMesh_m.minExtent[0],
+            j * voxelMesh_m.sizeOfVoxel[1] + voxelMesh_m.minExtent[1],
+            k * voxelMesh_m.sizeOfVoxel[2] + voxelMesh_m.minExtent[2]);
 
     Voxel v(P, P + voxelMesh_m.sizeOfVoxel);
 
@@ -1127,8 +1042,8 @@ int BoundaryGeometry::intersectTriangleVoxel(
  */
 
 int BoundaryGeometry::intersectLineTriangle(
-    const enum INTERSECTION_TESTS kind, const Vector_t<double, 3>& P0,
-    const Vector_t<double, 3>& P1, const int triangle_id, Vector_t<double, 3>& I) {
+        const enum INTERSECTION_TESTS kind, const Vector_t<double, 3>& P0,
+        const Vector_t<double, 3>& P1, const int triangle_id, Vector_t<double, 3>& I) {
     const Vector_t<double, 3> V0 = getPoint(triangle_id, 1);
     const Vector_t<double, 3> V1 = getPoint(triangle_id, 2);
     const Vector_t<double, 3> V2 = getPoint(triangle_id, 3);
@@ -1199,11 +1114,10 @@ int BoundaryGeometry::intersectLineTriangle(
     }
 }
 
-static inline double magnitude(const Vector_t<double, 3>& v) {
-    return std::sqrt(dot(v, v));
-}
+static inline double magnitude(const Vector_t<double, 3>& v) { return std::sqrt(dot(v, v)); }
 
-bool BoundaryGeometry::isInside(const Vector_t<double, 3>& P  // [in] pt to test
+bool BoundaryGeometry::isInside(
+        const Vector_t<double, 3>& P  // [in] pt to test
 ) {
     /*
       select a "close" reference pt outside the bounding box
@@ -1313,9 +1227,9 @@ bool BoundaryGeometry::findInsidePoint(void) {
     */
     Vector_t<double, 3> Q{(maxExtent_m + minExtent_m) / 2};
     std::vector<Vector_t<double, 3>> P_outs{
-        {minExtent_m[0] - 0.01, Q[1], Q[2]}, {maxExtent_m[0] + 0.01, Q[1], Q[2]},
-        {Q[0], minExtent_m[1] - 0.01, Q[2]}, {Q[0], maxExtent_m[1] + 0.01, Q[2]},
-        {Q[0], Q[1], minExtent_m[2] - 0.01}, {Q[0], Q[1], maxExtent_m[2] + 0.01}};
+            {minExtent_m[0] - 0.01, Q[1], Q[2]}, {maxExtent_m[0] + 0.01, Q[1], Q[2]},
+            {Q[0], minExtent_m[1] - 0.01, Q[2]}, {Q[0], maxExtent_m[1] + 0.01, Q[2]},
+            {Q[0], Q[1], minExtent_m[2] - 0.01}, {Q[0], Q[1], maxExtent_m[2] + 0.01}};
     int n_i = 0;
     Vector_t<double, 3> P_out;
     for (const auto& P : P_outs) {
@@ -1364,12 +1278,11 @@ bool BoundaryGeometry::findInsidePoint(void) {
   N must be choosen carefully. It shouldn't be to large to avoid needless test.
  */
 int BoundaryGeometry::fastIsInside(
-    const Vector_t<double, 3>& reference_pt,  // [in] reference pt inside the boundary
-    const Vector_t<double, 3>& P              // [in] pt to test
+        const Vector_t<double, 3>& reference_pt,  // [in] reference pt inside the boundary
+        const Vector_t<double, 3>& P              // [in] pt to test
 ) {
     const Voxel c(minExtent_m, maxExtent_m);
-    if (!c.isInside(P))
-        return 1;
+    if (!c.isInside(P)) return 1;
     IpplTimings::startTimer(TfastIsInside_m);
 #ifdef ENABLE_DEBUG
     int saved_flags = debugFlags_m;
@@ -1381,9 +1294,10 @@ int BoundaryGeometry::fastIsInside(
 #endif
     const Vector_t<double, 3> v = reference_pt - P;
     const int N                 = std::ceil(
-        magnitude(v)
-        / std::min(
-            {voxelMesh_m.sizeOfVoxel[0], voxelMesh_m.sizeOfVoxel[1], voxelMesh_m.sizeOfVoxel[2]}));
+            magnitude(v)
+            / std::min(
+                    {voxelMesh_m.sizeOfVoxel[0], voxelMesh_m.sizeOfVoxel[1],
+                                     voxelMesh_m.sizeOfVoxel[2]}));
     const Vector_t<double, 3> v_ = v / N;
     Vector_t<double, 3> P0       = P;
     Vector_t<double, 3> P1       = P + v_;
@@ -1415,7 +1329,7 @@ int BoundaryGeometry::fastIsInside(
         ray direction
  */
 int BoundaryGeometry::intersectRayBoundary(
-    const Vector_t<double, 3>& P, const Vector_t<double, 3>& v, Vector_t<double, 3>& I) {
+        const Vector_t<double, 3>& P, const Vector_t<double, 3>& v, Vector_t<double, 3>& I) {
     IpplTimings::startTimer(TRayTrace_m);
 #ifdef ENABLE_DEBUG
     int saved_flags = debugFlags_m;
@@ -1430,10 +1344,10 @@ int BoundaryGeometry::intersectRayBoundary(
       set P1 to intersection of ray with bbox of voxel mesh
       run line segment boundary intersection test with P and P1
      */
-    Ray r   = Ray(P, v);
-    Voxel c = Voxel(
-        voxelMesh_m.minExtent + 0.25 * voxelMesh_m.sizeOfVoxel,
-        voxelMesh_m.maxExtent - 0.25 * voxelMesh_m.sizeOfVoxel);
+    Ray r = Ray(P, v);
+    Voxel c =
+            Voxel(voxelMesh_m.minExtent + 0.25 * voxelMesh_m.sizeOfVoxel,
+                  voxelMesh_m.maxExtent - 0.25 * voxelMesh_m.sizeOfVoxel);
     double tmin = 0.0;
     double tmax = 0.0;
     c.intersect(r, tmin, tmax);
@@ -1479,11 +1393,11 @@ inline int BoundaryGeometry::mapVoxelIndices2ID(const int i, const int j, const 
     }
 
 inline Vector_t<double, 3> BoundaryGeometry::mapIndices2Voxel(
-    const int i, const int j, const int k) {
+        const int i, const int j, const int k) {
     return Vector_t<double, 3>(
-        i * voxelMesh_m.sizeOfVoxel[0] + voxelMesh_m.minExtent[0],
-        j * voxelMesh_m.sizeOfVoxel[1] + voxelMesh_m.minExtent[1],
-        k * voxelMesh_m.sizeOfVoxel[2] + voxelMesh_m.minExtent[2]);
+            i * voxelMesh_m.sizeOfVoxel[0] + voxelMesh_m.minExtent[0],
+            j * voxelMesh_m.sizeOfVoxel[1] + voxelMesh_m.minExtent[1],
+            k * voxelMesh_m.sizeOfVoxel[2] + voxelMesh_m.minExtent[2]);
 }
 
 inline Vector_t<double, 3> BoundaryGeometry::mapPoint2Voxel(const Vector_t<double, 3>& pt) {
@@ -1500,11 +1414,11 @@ inline void BoundaryGeometry::computeMeshVoxelization(void) {
         Vector_t<double, 3> v2       = getPoint(triangle_id, 2);
         Vector_t<double, 3> v3       = getPoint(triangle_id, 3);
         Vector_t<double, 3> bbox_min = {
-            std::min({v1[0], v2[0], v3[0]}), std::min({v1[1], v2[1], v3[1]}),
-            std::min({v1[2], v2[2], v3[2]})};
+                std::min({v1[0], v2[0], v3[0]}), std::min({v1[1], v2[1], v3[1]}),
+                std::min({v1[2], v2[2], v3[2]})};
         Vector_t<double, 3> bbox_max = {
-            std::max({v1[0], v2[0], v3[0]}), std::max({v1[1], v2[1], v3[1]}),
-            std::max({v1[2], v2[2], v3[2]})};
+                std::max({v1[0], v2[0], v3[0]}), std::max({v1[1], v2[1], v3[1]}),
+                std::max({v1[2], v2[2], v3[2]})};
         int i_min, j_min, k_min;
         int i_max, j_max, k_max;
         mapPoint2VoxelIndices(bbox_min, i_min, j_min, k_min);
@@ -1527,7 +1441,7 @@ inline void BoundaryGeometry::computeMeshVoxelization(void) {
     // write voxel mesh into VTK file
     if (ippl::Comm->rank() == 0 && Options::enableVTK) {
         std::string vtkFileName = Util::combineFilePath(
-            {OpalData::getInstance()->getAuxiliaryOutputDirectory(), "testBBox.vtk"});
+                {OpalData::getInstance()->getAuxiliaryOutputDirectory(), "testBBox.vtk"});
         bool writeVTK = false;
 
         if (!std::filesystem::exists(vtkFileName)) {
@@ -1536,14 +1450,13 @@ inline void BoundaryGeometry::computeMeshVoxelization(void) {
             auto ft_geom = std::filesystem::last_write_time(h5FileName_m);
             auto ft_vtk  = std::filesystem::last_write_time(vtkFileName);
             // Compare file_time_type directly - if geometry file is newer, write VTK
-            if (ft_geom > ft_vtk)
-                writeVTK = true;
+            if (ft_geom > ft_vtk) writeVTK = true;
         }
 
         if (writeVTK) {
             write_voxel_mesh(
-                vtkFileName, voxelMesh_m.ids, voxelMesh_m.sizeOfVoxel, voxelMesh_m.nr_m,
-                voxelMesh_m.minExtent);
+                    vtkFileName, voxelMesh_m.ids, voxelMesh_m.sizeOfVoxel, voxelMesh_m.nr_m,
+                    voxelMesh_m.minExtent);
         }
     }
 }
@@ -1566,21 +1479,18 @@ void BoundaryGeometry::initialize() {
                 const Vector_t<double, 3> x2 = bg->getPoint(i, 2);
                 const Vector_t<double, 3> x3 = bg->getPoint(i, 3);
                 const double length_edge1 =
-                    std::sqrt(SQR(x1[0] - x2[0]) + SQR(x1[1] - x2[1]) + SQR(x1[2] - x2[2]));
+                        std::sqrt(SQR(x1[0] - x2[0]) + SQR(x1[1] - x2[1]) + SQR(x1[2] - x2[2]));
                 const double length_edge2 =
-                    std::sqrt(SQR(x3[0] - x2[0]) + SQR(x3[1] - x2[1]) + SQR(x3[2] - x2[2]));
+                        std::sqrt(SQR(x3[0] - x2[0]) + SQR(x3[1] - x2[1]) + SQR(x3[2] - x2[2]));
                 const double length_edge3 =
-                    std::sqrt(SQR(x3[0] - x1[0]) + SQR(x3[1] - x1[1]) + SQR(x3[2] - x1[2]));
+                        std::sqrt(SQR(x3[0] - x1[0]) + SQR(x3[1] - x1[1]) + SQR(x3[2] - x1[2]));
 
                 double max = length_edge1;
-                if (length_edge2 > max)
-                    max = length_edge2;
-                if (length_edge3 > max)
-                    max = length_edge3;
+                if (length_edge2 > max) max = length_edge2;
+                if (length_edge3 > max) max = length_edge3;
 
                 // save min and max of length of longest edge
-                if (longest_edge_max_m < max)
-                    longest_edge_max_m = max;
+                if (longest_edge_max_m < max) longest_edge_max_m = max;
             }
 
             /*
@@ -1738,7 +1648,7 @@ Change orientation if diff is:
         */
 
         static void computeTriangleNeighbors(
-            BoundaryGeometry* bg, std::vector<std::set<unsigned int>>& neighbors) {
+                BoundaryGeometry* bg, std::vector<std::set<unsigned int>>& neighbors) {
             std::vector<std::set<unsigned int>> adjacencies_to_pt(bg->Points_m.size());
 
             // for each triangles find adjacent triangles for each vertex
@@ -1759,14 +1669,14 @@ Change orientation if diff is:
 
                 std::set<unsigned int> intersect;
                 std::set_intersection(
-                    to_A.begin(), to_A.end(), to_B.begin(), to_B.end(),
-                    std::inserter(intersect, intersect.begin()));
+                        to_A.begin(), to_A.end(), to_B.begin(), to_B.end(),
+                        std::inserter(intersect, intersect.begin()));
                 std::set_intersection(
-                    to_B.begin(), to_B.end(), to_C.begin(), to_C.end(),
-                    std::inserter(intersect, intersect.begin()));
+                        to_B.begin(), to_B.end(), to_C.begin(), to_C.end(),
+                        std::inserter(intersect, intersect.begin()));
                 std::set_intersection(
-                    to_C.begin(), to_C.end(), to_A.begin(), to_A.end(),
-                    std::inserter(intersect, intersect.begin()));
+                        to_C.begin(), to_C.end(), to_A.begin(), to_A.end(),
+                        std::inserter(intersect, intersect.begin()));
                 intersect.erase(triangle_id);
 
                 neighbors[triangle_id] = intersect;
@@ -1797,9 +1707,9 @@ Change orientation if diff is:
             IpplTimings::startTimer(bg->TisInside_m);
 
             Vector_t<double, 3> y = Vector_t<double, 3>(
-                bg->maxExtent_m[0] * (1.1 + gsl_rng_uniform(bg->randGen_m)),
-                bg->maxExtent_m[1] * (1.1 + gsl_rng_uniform(bg->randGen_m)),
-                bg->maxExtent_m[2] * (1.1 + gsl_rng_uniform(bg->randGen_m)));
+                    bg->maxExtent_m[0] * (1.1 + gsl_rng_uniform(bg->randGen_m)),
+                    bg->maxExtent_m[1] * (1.1 + gsl_rng_uniform(bg->randGen_m)),
+                    bg->maxExtent_m[2] * (1.1 + gsl_rng_uniform(bg->randGen_m)));
 
             std::vector<Vector_t<double, 3>> intersection_points;
             // int num_intersections = 0;
@@ -1849,8 +1759,8 @@ Change orientation if diff is:
         // helper for function  makeTriangleNormalInwardPointing()
         static void orientTriangle(BoundaryGeometry* bg, int ref_id, int triangle_id) {
             // find pts of common edge
-	        int ic[2] = {0, 0};
-	        int id[2] = {0, 0};
+            int ic[2] = {0, 0};
+            int id[2] = {0, 0};
             int n     = 0;
             for (int i = 1; i <= 3; i++) {
                 for (int j = 1; j <= 3; j++) {
@@ -1858,8 +1768,7 @@ Change orientation if diff is:
                         id[n] = j;
                         ic[n] = i;
                         n++;
-                        if (n == 2)
-                            goto edge_found;
+                        if (n == 2) goto edge_found;
                     }
                 }
             }
@@ -1903,8 +1812,7 @@ edge_found:
                 triangles[queue_end++] = triangle_id;
                 do {
                     for (auto neighbor_id : neighbors[triangle_id]) {
-                        if (isOriented[neighbor_id])
-                            continue;
+                        if (isOriented[neighbor_id]) continue;
                         orientTriangle(bg, triangle_id, neighbor_id);
                         isOriented[neighbor_id] = true;
                         triangles[queue_end++]  = neighbor_id;
@@ -1929,8 +1837,8 @@ edge_found:
 
     if (!std::filesystem::exists(h5FileName_m)) {
         throw OpalException(
-            "BoundaryGeometry::initialize",
-            "Failed to open file '" + h5FileName_m + "', please check if it exists");
+                "BoundaryGeometry::initialize",
+                "Failed to open file '" + h5FileName_m + "', please check if it exists");
     }
 
     double xscale   = Attributes::getReal(itsAttr[XSCALE]);
@@ -1978,8 +1886,10 @@ edge_found:
     for (i = 0; i < num_points; i++) {
         h5_float64_t P[3];
         H5FedGetVertexCoordsByIndex(m, i, P);
-        Points_m.push_back(Vector_t<double, 3>(
-            P[0] * xyzscale * xscale, P[1] * xyzscale * yscale, P[2] * xyzscale * zscale + zshift));
+        Points_m.push_back(
+                Vector_t<double, 3>(
+                        P[0] * xyzscale * xscale, P[1] * xyzscale * yscale,
+                        P[2] * xyzscale * zscale + zshift));
     }
     H5FedCloseMesh(m);
     H5CloseFile(f);
@@ -1992,14 +1902,14 @@ edge_found:
     if (!pt.empty()) {
         if (pt.size() != 3) {
             throw OpalException(
-                "BoundaryGeometry::initialize()", "Dimension of INSIDEPOINT must be 3");
+                    "BoundaryGeometry::initialize()", "Dimension of INSIDEPOINT must be 3");
         }
         /* test whether this point is inside */
         insidePoint_m  = {pt[0], pt[1], pt[2]};
         bool is_inside = isInside(insidePoint_m);
         if (is_inside == false) {
             throw OpalException(
-                "BoundaryGeometry::initialize()", "INSIDEPOINT is not inside the geometry");
+                    "BoundaryGeometry::initialize()", "INSIDEPOINT is not inside the geometry");
         }
         haveInsidePoint_m = true;
     } else {
@@ -2046,10 +1956,10 @@ edge_found:
   the nearest intersection point with respect to P wil be returned.
  */
 int BoundaryGeometry::intersectTinyLineSegmentBoundary(
-    const Vector_t<double, 3>& P,       // [i] starting point of ray
-    const Vector_t<double, 3>& Q,       // [i] end point of ray
-    Vector_t<double, 3>& intersect_pt,  // [o] intersection with boundary
-    int& triangle_id                    // [o] intersected triangle
+        const Vector_t<double, 3>& P,       // [i] starting point of ray
+        const Vector_t<double, 3>& Q,       // [i] end point of ray
+        Vector_t<double, 3>& intersect_pt,  // [o] intersection with boundary
+        int& triangle_id                    // [o] intersected triangle
 ) {
 #ifdef ENABLE_DEBUG
     if (debugFlags_m & debug_intersectTinyLineSegmentBoundary) {
@@ -2060,9 +1970,9 @@ int BoundaryGeometry::intersectTinyLineSegmentBoundary(
     const Vector_t<double, 3> v_       = Q - P;
     const Ray r                        = Ray(P, v_);
     const Vector_t<double, 3> bbox_min = {
-        std::min(P[0], Q[0]), std::min(P[1], Q[1]), std::min(P[2], Q[2])};
+            std::min(P[0], Q[0]), std::min(P[1], Q[1]), std::min(P[2], Q[2])};
     const Vector_t<double, 3> bbox_max = {
-        std::max(P[0], Q[0]), std::max(P[1], Q[1]), std::max(P[2], Q[2])};
+            std::max(P[0], Q[0]), std::max(P[1], Q[1]), std::max(P[2], Q[2])};
     int i_min, i_max;
     int j_min, j_max;
     int k_min, k_max;
@@ -2113,8 +2023,8 @@ int BoundaryGeometry::intersectTinyLineSegmentBoundary(
                 const auto triangles_intersecting_voxel = voxelMesh_m.ids.find(voxel_id);
                 if (triangles_intersecting_voxel != voxelMesh_m.ids.end()) {
                     triangle_ids.insert(
-                        triangles_intersecting_voxel->second.begin(),
-                        triangles_intersecting_voxel->second.end());
+                            triangles_intersecting_voxel->second.begin(),
+                            triangles_intersecting_voxel->second.end());
                 }
             }
         }
@@ -2177,10 +2087,10 @@ int BoundaryGeometry::intersectTinyLineSegmentBoundary(
   The method returns with a value > 0 if an intersection was found.
  */
 int BoundaryGeometry::intersectLineSegmentBoundary(
-    const Vector_t<double, 3>& P0,      // [in] starting point of ray
-    const Vector_t<double, 3>& P1,      // [in] end point of ray
-    Vector_t<double, 3>& intersect_pt,  // [out] intersection with boundary
-    int& triangle_id                    // [out] triangle the line segment intersects with
+        const Vector_t<double, 3>& P0,      // [in] starting point of ray
+        const Vector_t<double, 3>& P1,      // [in] end point of ray
+        Vector_t<double, 3>& intersect_pt,  // [out] intersection with boundary
+        int& triangle_id                    // [out] triangle the line segment intersects with
 ) {
 #ifdef ENABLE_DEBUG
     int saved_flags = debugFlags_m;
@@ -2201,9 +2111,9 @@ int BoundaryGeometry::intersectLineSegmentBoundary(
         n++;
         Vector_t<double, 3> Q        = P0 + v / n;
         Vector_t<double, 3> bbox_min = {
-            std::min(P0[0], Q[0]), std::min(P0[1], Q[1]), std::min(P0[2], Q[2])};
+                std::min(P0[0], Q[0]), std::min(P0[1], Q[1]), std::min(P0[2], Q[2])};
         Vector_t<double, 3> bbox_max = {
-            std::max(P0[0], Q[0]), std::max(P0[1], Q[1]), std::max(P0[2], Q[2])};
+                std::max(P0[0], Q[0]), std::max(P0[1], Q[1]), std::max(P0[2], Q[2])};
         mapPoint2VoxelIndices(bbox_min, i_min, j_min, k_min);
         mapPoint2VoxelIndices(bbox_max, i_max, j_max, k_max);
     } while (((i_max - i_min + 1) * (j_max - j_min + 1) * (k_max - k_min + 1)) > 27);
@@ -2237,11 +2147,11 @@ int BoundaryGeometry::intersectLineSegmentBoundary(
         0   particle will collide with boundary in next time step
  */
 int BoundaryGeometry::partInside(
-    const Vector_t<double, 3>& r,       // [in] particle position
-    const Vector_t<double, 3>& v,       // [in] momentum
-    const double dt,                    // [in]
-    Vector_t<double, 3>& intersect_pt,  // [out] intersection with boundary
-    int& triangle_id                    // [out] intersected triangle
+        const Vector_t<double, 3>& r,       // [in] particle position
+        const Vector_t<double, 3>& v,       // [in] momentum
+        const double dt,                    // [in]
+        Vector_t<double, 3>& intersect_pt,  // [out] intersection with boundary
+        int& triangle_id                    // [out] intersected triangle
 ) {
 #ifdef ENABLE_DEBUG
     int saved_flags = debugFlags_m;

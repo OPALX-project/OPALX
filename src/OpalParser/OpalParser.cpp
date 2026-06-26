@@ -53,19 +53,17 @@ extern Inform* gmsg;
 
 std::vector<std::shared_ptr<TokenStream> > OpalParser::inputStack;
 
-OpalParser::OpalParser() : stopFlag(false) {
-}
+OpalParser::OpalParser() : stopFlag(false) {}
 
-OpalParser::~OpalParser() {
-}
+OpalParser::~OpalParser() {}
 
 void OpalParser::parse(Statement& stat) const {
     if (stat.keyword("SHARED")) {
         // "SHARED ...": Shared object definition.
         parseDefine(stat);
     } else if (
-        stat.keyword("CONSTANT") || stat.keyword("CONST") || stat.keyword("BOOL")
-        || stat.keyword("REAL") || stat.keyword("STRING") || stat.keyword("VECTOR")) {
+            stat.keyword("CONSTANT") || stat.keyword("CONST") || stat.keyword("BOOL")
+            || stat.keyword("REAL") || stat.keyword("STRING") || stat.keyword("VECTOR")) {
         // Keywords introducing variable definitions.
         parseAssign(stat);
     } else {
@@ -101,13 +99,15 @@ void OpalParser::parse(Statement& stat) const {
                 stat.print(statStr);
                 if (!hint.empty()) {
                     throw ParseError(
-                        "OpalParser::parse()",
-                        statStr.str() + positionIndicator
-                            + "Syntax error, either the keyword REAL is missing or\n" + hint);
+                            "OpalParser::parse()",
+                            statStr.str() + positionIndicator
+                                    + "Syntax error, either the keyword REAL is missing or\n"
+                                    + hint);
                 } else {
                     throw ParseError(
-                        "OpalParser::parse()", statStr.str() + positionIndicator
-                                                   + "Syntax error, the keyword REAL is missing\n");
+                            "OpalParser::parse()",
+                            statStr.str() + positionIndicator
+                                    + "Syntax error, the keyword REAL is missing\n");
                 }
             }
             parseAssign(stat);
@@ -220,10 +220,10 @@ void OpalParser::parseAssign(Statement& stat) const {
 
         if (code != 0) {
             throw ParseError(
-                "OpalParser::parseAssign()", "Invalid type specification for this value.");
+                    "OpalParser::parseAssign()", "Invalid type specification for this value.");
         } else if ((object = OpalData::getInstance()->find(objName)) == 0) {
             throw ParseError(
-                "OpalParser::parseAssign()", "The object \"" + objName + "\" is unknown.");
+                    "OpalParser::parseAssign()", "The object \"" + objName + "\" is unknown.");
         }
     } else {
         // Assignment to variable-like object.
@@ -264,8 +264,8 @@ void OpalParser::parseAssign(Statement& stat) const {
             }
         } else if (object->isTreeMember(realConstant)) {
             throw ParseError(
-                "OpalParser::parseAssign()",
-                "You cannot redefine the constant \"" + objName + "\".");
+                    "OpalParser::parseAssign()",
+                    "You cannot redefine the constant \"" + objName + "\".");
         }
 
         attrName = "VALUE";
@@ -300,8 +300,8 @@ void OpalParser::parseAssign(Statement& stat) const {
             }
         } else {
             throw ParseError(
-                "OpalParser::parseAssign()",
-                "Object \"" + objName + "\" has no attribute \"" + attrName + "\".");
+                    "OpalParser::parseAssign()",
+                    "Object \"" + objName + "\" has no attribute \"" + attrName + "\".");
         }
 
         parseEnd(stat);
@@ -321,11 +321,12 @@ void OpalParser::parseDefine(Statement& stat) const {
         if (classObject == 0) {
             if (clsName == "SURFACEPHYSICS")
                 throw ParseError(
-                    "OpalParser::parseDefine()",
-                    "The object \"" + clsName + "\" is changed to \"PARTICLEMATTERINTERACTION\".");
+                        "OpalParser::parseDefine()",
+                        "The object \"" + clsName
+                                + "\" is changed to \"PARTICLEMATTERINTERACTION\".");
             else
                 throw ParseError(
-                    "OpalParser::parseDefine()", "The object \"" + clsName + "\" is unknown.");
+                        "OpalParser::parseDefine()", "The object \"" + clsName + "\" is unknown.");
         }
 
         Object* copy = 0;
@@ -364,8 +365,9 @@ void OpalParser::parseEnd(Statement& stat) const {
         stat.print(statStr);
 
         throw ParseError(
-            "OpalParser::parseEnd()", statStr.str() + positionIndicator
-                                          + "Syntax error (maybe missing comma or semicolon ? )");
+                "OpalParser::parseEnd()",
+                statStr.str() + positionIndicator
+                        + "Syntax error (maybe missing comma or semicolon ? )");
     }
 }
 
@@ -379,8 +381,7 @@ void OpalParser::parseMacro(const std::string& macName, Statement& stat) const {
         if (stat.delimiter('(')) {
             ++par_level;
         } else if (stat.delimiter(')')) {
-            if (--par_level == 0)
-                break;
+            if (--par_level == 0) break;
         } else {
             stat.getCurrent();
         }
@@ -398,12 +399,12 @@ void OpalParser::parseMacro(const std::string& macName, Statement& stat) const {
                 OpalData::getInstance()->define(copy);
             } else {
                 throw ParseError(
-                    "OpalParser::parseMacro()",
-                    "Command \"" + macName + "\" cannot be defined with arguments.");
+                        "OpalParser::parseMacro()",
+                        "Command \"" + macName + "\" cannot be defined with arguments.");
             }
         } else {
             throw ParseError(
-                "OpalParser::parseMacro()", "Object \"" + className + "\" is unknown.");
+                    "OpalParser::parseMacro()", "Object \"" + className + "\" is unknown.");
         }
     } else {
         // Macro call.
@@ -459,8 +460,7 @@ void OpalParser::parseTokenList(Statement& stat) {
 
     while (!token.isEOF()) {
         // End of list if semicolon occurs outside of brackets.
-        if (token.isDel(';'))
-            break;
+        if (token.isDel(';')) break;
         stat.append(token);
 
         if (token.isDel('(')) {
@@ -528,8 +528,8 @@ Statement* OpalParser::readStatement(TokenStream* is) const {
                                     parseBracketList('}', *stat);
                                 } else {
                                     throw ParseError(
-                                        "OpalParser::readStatement()",
-                                        "MACRO definition lacks \"{...}\".");
+                                            "OpalParser::readStatement()",
+                                            "MACRO definition lacks \"{...}\".");
                                 }
                             } else {
                                 parseTokenList(*stat);
@@ -537,7 +537,8 @@ Statement* OpalParser::readStatement(TokenStream* is) const {
                         }
                     } else if (!token.isDel(';')) {
                         throw ParseError(
-                            "OpalParser::readStatement()", "MACRO call is not terminated by ';'.");
+                                "OpalParser::readStatement()",
+                                "MACRO call is not terminated by ';'.");
                     }
                 } else if (!token.isDel(';')) {
                     stat->append(token);
@@ -565,11 +566,11 @@ Statement* OpalParser::readStatement(TokenStream* is) const {
                      << "\"\n";
         /// \todo check this /stat->printWhere(*IpplInfo::Error, true);
 
-        std::string what = ex.what();
+        std::string what           = ex.what();
         std::string::size_type pos = 0;
         while ((pos = what.find("\n", pos)) != std::string::npos) {
             what.replace(pos, 1, "\n    ");
-            pos += 5; // length of "\n    "
+            pos += 5;  // length of "\n    "
         }
 
         *ippl::Error << "     " << *stat << "    a" << what << '\n' << endl;
@@ -605,8 +606,7 @@ void OpalParser::run() const {
         }
 
         delete stat;
-        if (stopFlag)
-            break;
+        if (stopFlag) break;
     }
 }
 
@@ -616,9 +616,7 @@ void OpalParser::run(TokenStream* is) const {
     inputStack.pop_back();
 }
 
-void OpalParser::stop() const {
-    stopFlag = true;
-}
+void OpalParser::stop() const { stopFlag = true; }
 
 std::string OpalParser::getHint(const std::string& name, const std::string& type) {
     auto owner = AttributeHandler::getOwner(name);

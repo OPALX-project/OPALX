@@ -20,8 +20,7 @@
 
 #include "Elements/OpalElement.h"
 
-class OpalVariableRFCavity: public OpalElement {
-
+class OpalVariableRFCavity : public OpalElement {
 public:
     /** enum maps string to integer value for UI definitions */
     enum {
@@ -30,7 +29,7 @@ public:
         FREQUENCY_MODEL,
         WIDTH,
         HEIGHT,
-        SIZE // size of the enum
+        SIZE  // size of the enum
     };
 
     /** Copy constructor **/
@@ -42,7 +41,7 @@ public:
     /** Inherited copy constructor
      *
      *  Call on a base class to instantiate an object of derived class's type
-    **/
+     **/
     OpalVariableRFCavity* clone();
 
     /** Inherited copy constructor
@@ -59,10 +58,10 @@ public:
 
     // Not implemented.
     OpalVariableRFCavity(const OpalVariableRFCavity&) = delete;
-    void operator=(const OpalVariableRFCavity&) = delete;
+    void operator=(const OpalVariableRFCavity&)       = delete;
 
 private:
     static const std::string doc_string;
 };
 
-#endif // OPAL_OPALVARIABLERFCAVITY_H
+#endif  // OPAL_OPALVARIABLERFCAVITY_H

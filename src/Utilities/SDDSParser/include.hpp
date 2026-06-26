@@ -18,34 +18,28 @@
 #define INCLUDE_HPP_
 
 #include "ast.hpp"
-#include "skipper.hpp"
 #include "error_handler.hpp"
+#include "skipper.hpp"
 
 #include <list>
 
 namespace SDDS {
-    struct include
-    {
-        enum attributes { FILENAME
-                        , INCLUDE
-        };
+    struct include {
+        enum attributes { FILENAME, INCLUDE };
 
         template <attributes A>
-        struct complainUnsupported
-        {
-            static bool apply()
-            {
+        struct complainUnsupported {
+            static bool apply() {
                 std::string attributeString;
-                switch(A)
-                {
-                case FILENAME:
-                    attributeString = "filename";
-                    break;
-                case INCLUDE:
-                    attributeString = "include";
-                    break;
-                default:
-                    return true;
+                switch (A) {
+                    case FILENAME:
+                        attributeString = "filename";
+                        break;
+                    case INCLUDE:
+                        attributeString = "include";
+                        break;
+                    default:
+                        return true;
                 }
                 std::cerr << attributeString << " not supported yet" << std::endl;
                 return false;
@@ -53,12 +47,10 @@ namespace SDDS {
         };
     };
 
-    struct includeList: std::list<include> {};
+    struct includeList : std::list<include> {};
 
-    inline std::ostream& operator<<(std::ostream& out, const include& ) {
-        return out;
-    }
-}
+    inline std::ostream& operator<<(std::ostream& out, const include&) { return out; }
+}  // namespace SDDS
 
 // Include parsing is now handled by SimpleParser
 #endif /* INCLUDE_HPP_ */

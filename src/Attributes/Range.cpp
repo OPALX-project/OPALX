@@ -24,29 +24,23 @@
 
 using namespace Expressions;
 
-
 // Class Range
 // ------------------------------------------------------------------------
 
 namespace Attributes {
 
-    Range::Range(const std::string &name, const std::string &help):
-        AttributeHandler(name, help, 0)
-    {}
+    Range::Range(const std::string& name, const std::string& help)
+        : AttributeHandler(name, help, 0) {}
 
+    Range::~Range() {}
 
-    Range::~Range()
-    {}
-
-
-    const std::string &Range::getType() const {
+    const std::string& Range::getType() const {
         static const std::string type("range");
         return type;
     }
 
-
-    void Range::parse(Attribute &attr, Statement &stat, bool) const {
+    void Range::parse(Attribute& attr, Statement& stat, bool) const {
         attr.set(new SValue<RangeRep>(parseRange(stat)));
     }
 
-};
+};  // namespace Attributes

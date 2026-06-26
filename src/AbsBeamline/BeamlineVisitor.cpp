@@ -33,9 +33,6 @@
 
 #include "AbsBeamline/BeamlineVisitor.h"
 
-BeamlineVisitor::BeamlineVisitor()
-{}
+BeamlineVisitor::BeamlineVisitor() {}
 
-
-BeamlineVisitor::~BeamlineVisitor()
-{}
+BeamlineVisitor::~BeamlineVisitor() {}

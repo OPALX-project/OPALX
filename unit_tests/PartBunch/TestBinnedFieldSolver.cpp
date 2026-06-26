@@ -37,6 +37,7 @@
 #include "Ippl.h"
 #include "PartBunch/PartBunch.h"
 #include "Structure/Beam.h"
+#include "Structure/BinningCmd.h"
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
 #include "Utilities/Options.h"
@@ -58,6 +59,29 @@ namespace {
         }
         void setBCZ(const std::string& bc) {
             Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::BCFFTZ], bc);
+        }
+
+        void setBinsName(const std::string& binsName) {
+            Attributes::setString(this->itsAttr[FIELDSOLVER::BINS], binsName);
+        }
+    };
+
+    class TestableBinningCmd : public BinningCmd {
+    public:
+        void setMaxBins(int value) {
+            Attributes::setReal(itsAttr[BINNING::MAXBINS], static_cast<double>(value));
+        }
+
+        void setAdaptiveBinning(bool value) {
+            Attributes::setBool(itsAttr[BINNING::ADAPTIVEBINNING], value);
+        }
+
+        void setTablePrintFrequency(double value) {
+            Attributes::setReal(itsAttr[BINNING::TABLEPRINTFREQ], value);
+        }
+
+        void setParameterString(const std::string& value) {
+            Attributes::setPredefinedString(itsAttr[BINNING::PARAMETER], value);
         }
     };
 
@@ -213,6 +237,19 @@ namespace {
             return bins;
         }
 
+        void defineBinningCommand(
+                const std::string& name, typename AdaptBins_t::bin_index_type maxBins,
+                bool adaptiveBinning) {
+            auto* binsCmd = new TestableBinningCmd();
+            binsCmd->setOpalName(name);
+            binsCmd->setMaxBins(maxBins);
+            binsCmd->setAdaptiveBinning(adaptiveBinning);
+            binsCmd->setTablePrintFrequency(0.0);
+            binsCmd->setParameterString("VELOCITYZ");
+            binsCmd->execute();
+            OpalData::getInstance()->define(binsCmd);
+        }
+
         void expectAllParticleEZeroAndFinite(double tol) {
             auto E_host = pc->E.getHostMirror();
             Kokkos::deep_copy(E_host, pc->E.getView());
@@ -257,6 +294,28 @@ namespace {
         EXPECT_LE(currentBins, maxBins);
 
         expectAllParticleEZeroAndFinite(/*tol=*/1e-8);
+    }
+
+    TEST_F(BinnedFieldSolverSmokeTest, BinnedPath_AdaptiveBinningFalseKeepsUniformMaxBins) {
+        constexpr AdaptBins_t::bin_index_type maxBins = 6;
+        const std::string binsName                    = "UNIT_TEST_UNIFORM_BINNING";
+        defineBinningCommand(binsName, maxBins, /*adaptiveBinning=*/false);
+
+        fsCmd->setType("OPEN");
+        fsCmd->setBinsName(binsName);
+        fsCmd->setBCX("OPEN");
+        fsCmd->setBCY("OPEN");
+        fsCmd->setBCZ("OPEN");
+        rebuildBunch();
+
+        createParticles(kDefaultNParticles, /*pzMin=*/0.1, /*pzMax=*/2.0);
+        ASSERT_TRUE(bunch->hasBinning());
+
+        EXPECT_NO_THROW(bunch->computeSelfFields());
+
+        auto bins = bunch->getBins();
+        ASSERT_NE(bins, nullptr);
+        EXPECT_EQ(bins->getCurrentBinCount(), maxBins);
     }
 
     TEST_F(BinnedFieldSolverSmokeTest, BunchUpdate_ImageChargeBoundsIncludeMirroredZ) {

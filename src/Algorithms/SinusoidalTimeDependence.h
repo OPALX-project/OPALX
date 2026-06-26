@@ -39,8 +39,8 @@ public:
      *  (user is responsible for issues like floating point precision).
      */
     SinusoidalTimeDependence(
-        const std::vector<double>& f, const std::vector<double>& p, const std::vector<double>& a,
-        const std::vector<double>& o);
+            const std::vector<double>& f, const std::vector<double>& p,
+            const std::vector<double>& a, const std::vector<double>& o);
 
     /** Default Constructor makes a 0 length polynomial */
     SinusoidalTimeDependence() = default;
@@ -82,8 +82,6 @@ private:
     std::vector<double> o_m;
 };
 
-inline Inform& operator<<(Inform& os, const SinusoidalTimeDependence& p) {
-    return p.print(os);
-}
+inline Inform& operator<<(Inform& os, const SinusoidalTimeDependence& p) { return p.print(os); }
 
 #endif  // OPAL_SINUSOIDALTIMEDEPENDENCE_H

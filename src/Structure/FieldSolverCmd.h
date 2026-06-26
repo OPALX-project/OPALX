@@ -118,18 +118,14 @@ private:
     FieldSolverCmdType fsType_m;
 };
 
-inline FieldSolverCmdType FieldSolverCmd::getFieldSolverCmdType() const {
-    return fsType_m;
-}
+inline FieldSolverCmdType FieldSolverCmd::getFieldSolverCmdType() const { return fsType_m; }
 inline ippl::Vector<bool, 3> FieldSolverCmd::getDomDec() const {
     return ippl::Vector<bool, 3>(
-        Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTX]),
-        Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTY]),
-        Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTZ]));
+            Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTX]),
+            Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTY]),
+            Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTZ]));
 }
 
-inline Inform& operator<<(Inform& os, const FieldSolverCmd& fs) {
-    return fs.printInfo(os);
-}
+inline Inform& operator<<(Inform& os, const FieldSolverCmd& fs) { return fs.printInfo(os); }
 
 #endif  // OPAL_FieldSolverCmd_HH

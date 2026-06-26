@@ -1,17 +1,17 @@
 #ifndef IPPL_GAUSSIAN_H
 #define IPPL_GAUSSIAN_H
 
-#include "Distribution.h"
-#include "SamplingBase.hpp"
 #include <Kokkos_Random.hpp>
-#include "Ippl.h"
-#include "Utilities/Options.h"
-#include "OPALTypes.h"
-#include <memory>
 #include <cmath>
+#include <memory>
+#include "Distribution.h"
+#include "Ippl.h"
+#include "OPALTypes.h"
+#include "SamplingBase.hpp"
+#include "Utilities/Options.h"
 
 using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
-using Dist_t = ippl::random::NormalDistribution<double, 3>;
+using Dist_t        = ippl::random::NormalDistribution<double, 3>;
 
 /**
  * @class Gaussian Distribution
@@ -44,14 +44,14 @@ public:
 
     /**
      * @brief Constructor for the Gaussian sampler.
-     * 
+     *
      * @param pc Shared pointer to the particle container.
      * @param fc Shared pointer to the field container.
      * @param opalDist Borrowed distribution object.
      */
-    Gaussian(std::shared_ptr<ParticleContainer_t> pc, 
-             std::shared_ptr<FieldContainer_t> fc, 
-             Distribution_t* opalDist);
+    Gaussian(
+            std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
+            Distribution_t* opalDist);
 
     /**
      * @brief Constructor for the Gaussian sampler without field container and distribution object.
@@ -62,10 +62,9 @@ public:
      * @param cutoffR Cutoff multiplier for position distribution.
      * @param fix_meanR Flag to exactly fix the mean position of particles after sampling.
      */
-    Gaussian(std::shared_ptr<ParticleContainer_t> pc,
-            const Vector_t<double, 3>& sigmaR,
-            const Vector_t<double, 3>& sigmaP,
-            double avrgpz, const Vector_t<double, 3>& cutoffR,
+    Gaussian(
+            std::shared_ptr<ParticleContainer_t> pc, const Vector_t<double, 3>& sigmaR,
+            const Vector_t<double, 3>& sigmaP, double avrgpz, const Vector_t<double, 3>& cutoffR,
             bool fix_meanR = true);
     /**
      * @brief Generates particles with a Gaussian distribution.
@@ -83,39 +82,26 @@ public:
      */
     void emitParticles(double t, double dt) override;
 
-    void setSigmaR(const Vector_t<double, 3>& sigmaR) {
-        sigmaR_m = sigmaR;
-    }
+    void setSigmaR(const Vector_t<double, 3>& sigmaR) { sigmaR_m = sigmaR; }
 
-    void setSigmaP(const Vector_t<double, 3>& sigmaP) {
-        sigmaP_m = sigmaP;
-    }
+    void setSigmaP(const Vector_t<double, 3>& sigmaP) { sigmaP_m = sigmaP; }
 
-    void setAvrgpz(double avrgpz) {
-        avrgpz_m = avrgpz;
-    }
+    void setAvrgpz(double avrgpz) { avrgpz_m = avrgpz; }
 
-    void setCutoffR(const Vector_t<double, 3>& cutoffR) {
-        cutoffR_m = cutoffR;
-    }
+    void setCutoffR(const Vector_t<double, 3>& cutoffR) { cutoffR_m = cutoffR; }
 
-    void getParameters(Vector_t<double, 3>& sigmaR,
-                       Vector_t<double, 3>& sigmaP,
-                       double& avrgpz,
-                       Vector_t<double, 3>& cutoffR) const {
-        sigmaR = sigmaR_m;
-        sigmaP = sigmaP_m;
-        avrgpz = avrgpz_m;
+    void getParameters(
+            Vector_t<double, 3>& sigmaR, Vector_t<double, 3>& sigmaP, double& avrgpz,
+            Vector_t<double, 3>& cutoffR) const {
+        sigmaR  = sigmaR_m;
+        sigmaP  = sigmaP_m;
+        avrgpz  = avrgpz_m;
         cutoffR = cutoffR_m;
     }
 
-    void setFixMeanR(bool fixMeanR) {
-        fixMeanR_m = fixMeanR;
-    }
+    void setFixMeanR(bool fixMeanR) { fixMeanR_m = fixMeanR; }
 
-    void getFixMeanR(bool& fixMeanR) const {
-        fixMeanR = fixMeanR_m;
-    }
+    void getFixMeanR(bool& fixMeanR) const { fixMeanR = fixMeanR_m; }
 
 private:
     /**
@@ -150,4 +136,4 @@ private:
     bool fixMeanR_m = true;
 };
 
-#endif // IPPL_GAUSSIAN_H
+#endif  // IPPL_GAUSSIAN_H

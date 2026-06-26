@@ -366,6 +366,8 @@ void MultiVariateGaussian::generateParticles(
                 Pview(k) += P0;
             });
 
+    fillPolarization(nlocalCurrent, nlocal);
+
     pc_m->markMomentsDirty();
 
     IpplTimings::stopTimer(samplerTimer_m);

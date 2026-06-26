@@ -12,35 +12,27 @@ namespace mslang {
         BoundingBox2D bb_m;
         std::vector<std::shared_ptr<QuadTree> > nodes_m;
 
-        QuadTree():
-            level_m(0),
-            bb_m(),
-            nodes_m()
-        { }
+        QuadTree() : level_m(0), bb_m(), nodes_m() {}
 
-        QuadTree(int l, const BoundingBox2D &b):
-            level_m(l),
-            bb_m(b),
-            nodes_m()
-        { }
+        QuadTree(int l, const BoundingBox2D& b) : level_m(l), bb_m(b), nodes_m() {}
 
-        QuadTree(const QuadTree &right);
+        QuadTree(const QuadTree& right);
 
         ~QuadTree();
 
         void reset();
 
-        void operator=(const QuadTree &right);
+        void operator=(const QuadTree& right);
 
-        void transferIfInside(std::list<std::shared_ptr<Base> > &objs);
+        void transferIfInside(std::list<std::shared_ptr<Base> >& objs);
         void buildUp();
 
-        void writeGnuplot(std::ostream &out) const;
+        void writeGnuplot(std::ostream& out) const;
 
-        bool isInside(const Vector_t<double, 3> &R) const;
+        bool isInside(const Vector_t<double, 3>& R) const;
 
-        void getDepth(unsigned int &d) const;
+        void getDepth(unsigned int& d) const;
     };
-}
+}  // namespace mslang
 
 #endif

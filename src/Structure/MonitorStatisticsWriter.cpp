@@ -22,18 +22,14 @@
 #include "Utility/IpplInfo.h"
 
 MonitorStatisticsWriter::MonitorStatisticsWriter(const std::string& fname, bool restart)
-    : SDDSWriter(fname, restart)
-{ }
-
+    : SDDSWriter(fname, restart) {}
 
 void MonitorStatisticsWriter::fillHeader() {
-
     if (this->hasColumns()) {
         return;
     }
 
-    this->addDescription("Statistics data of monitors",
-                          "stat parameters");
+    this->addDescription("Statistics data of monitors", "stat parameters");
     this->addDefaultParameters();
 
     columns_m.addColumn("name", "string", "", "Monitor name");
@@ -73,10 +69,8 @@ void MonitorStatisticsWriter::fillHeader() {
     this->addInfo("ascii", 1);
 }
 
-
 void MonitorStatisticsWriter::addRow(const SetStatistics& set) {
-
-    if ( ippl::Comm->rank() != 0 ) {
+    if (ippl::Comm->rank() != 0) {
         return;
     }
 

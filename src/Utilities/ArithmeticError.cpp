@@ -20,21 +20,12 @@
 
 #include "Utilities/ArithmeticError.h"
 
-
 // Class ArithmeticError
 // ------------------------------------------------------------------------
 
+ArithmeticError::ArithmeticError(const std::string& meth, const std::string& msg)
+    : OpalException(meth, msg) {}
 
-ArithmeticError::ArithmeticError
-(const std::string &meth, const std::string &msg):
-    OpalException(meth, msg)
-{}
+ArithmeticError::ArithmeticError(const ArithmeticError& rhs) : OpalException(rhs) {}
 
-
-ArithmeticError::ArithmeticError(const ArithmeticError &rhs):
-    OpalException(rhs)
-{}
-
-
-ArithmeticError::~ArithmeticError()
-{}
+ArithmeticError::~ArithmeticError() {}

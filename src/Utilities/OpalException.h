@@ -20,7 +20,6 @@
 
 #include <string>
 
-
 // Class OpalException
 // ------------------------------------------------------------------------
 /// The base class for all OPAL exceptions.
@@ -29,9 +28,7 @@
 /// OPAL error handler. Concrete subclasses should keep domain-specific type
 /// information and derive from this class directly or indirectly.
 class OpalException {
-
 public:
-
     /// The usual constructor.
     // Arguments:
     // [DL]
@@ -40,19 +37,18 @@ public:
     // [DT][b]msg [/b]
     // [DD]the message string identifying the exception
     // [/DL]
-    explicit OpalException(const std::string &meth, const std::string &msg);
+    explicit OpalException(const std::string& meth, const std::string& msg);
 
-    OpalException(const OpalException &);
+    OpalException(const OpalException&);
     virtual ~OpalException();
 
     /// Return the message string for the exception.
-    virtual const std::string &what() const;
+    virtual const std::string& what() const;
 
     /// Return the name of the method or function which detected the exception.
-    virtual const std::string &where() const;
+    virtual const std::string& where() const;
 
 private:
-
     // Not implemented.
     OpalException();
 
@@ -61,4 +57,4 @@ private:
     const std::string method;
 };
 
-#endif // OPAL_OpalException_HH
+#endif  // OPAL_OpalException_HH

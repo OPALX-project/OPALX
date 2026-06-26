@@ -22,7 +22,6 @@
 
 class Attribute;
 
-
 // Class Reference
 // ------------------------------------------------------------------------
 
@@ -30,29 +29,26 @@ namespace Attributes {
 
     /// Parser for an attribute of type attribute reference.
     //  The attribute referred to may be logical, real, or string.
-    class Reference: public AttributeHandler {
-
+    class Reference : public AttributeHandler {
     public:
-
         /// Constructor.
         //  Assign attribute name and help string.
-        Reference(const std::string &name, const std::string &help);
+        Reference(const std::string& name, const std::string& help);
 
         virtual ~Reference();
 
         /// Return attribute type string ``reference''.
-        virtual const std::string &getType() const;
+        virtual const std::string& getType() const;
 
         /// Parse the attribute.
-        virtual void parse(Attribute &, Statement &, bool) const;
+        virtual void parse(Attribute&, Statement&, bool) const;
 
     private:
-
         // Not implemented.
-        Reference(const Reference &);
-        void operator=(const Reference &);
+        Reference(const Reference&);
+        void operator=(const Reference&);
     };
 
-};
+};  // namespace Attributes
 
-#endif // OPAL_Reference_HH
+#endif  // OPAL_Reference_HH

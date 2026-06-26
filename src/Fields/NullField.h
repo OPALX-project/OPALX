@@ -22,19 +22,16 @@
 
 #include "Fields/EMField.h"
 
-
 // Class NullField
 // ------------------------------------------------------------------------
 /// A zero electromagnetic field.
 
-class NullField: public EMField {
-
+class NullField : public EMField {
 public:
-
     NullField();
-    NullField(const NullField &right);
+    NullField(const NullField& right);
     virtual ~NullField();
-    const NullField &operator=(const NullField &right);
+    const NullField& operator=(const NullField& right);
 
     /// Scale the field.
     //  Multiply the field by [b]scalar[/b].
@@ -42,4 +39,4 @@ public:
     virtual void scale(double scalar);
 };
 
-#endif // OPALX_NullField_HH
+#endif  // OPALX_NullField_HH

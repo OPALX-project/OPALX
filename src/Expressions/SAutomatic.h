@@ -18,10 +18,9 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Expressions/SDeferred.h"
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/OpalData.h"
-
+#include "Expressions/SDeferred.h"
 
 namespace Expressions {
 
@@ -35,19 +34,18 @@ namespace Expressions {
     //  are again marked as unknown.  This forces a new evaluation when an
     //  expression is used the next time.
 
-    template <class T> class SAutomatic: public SDeferred<T> {
-
+    template <class T>
+    class SAutomatic : public SDeferred<T> {
     public:
-
         /// Constructor.
         //  From scalar expression.
         explicit SAutomatic(PtrToScalar<T> expr);
 
-        SAutomatic(const SAutomatic<T> &);
+        SAutomatic(const SAutomatic<T>&);
         virtual ~SAutomatic();
 
         /// Make clone.
-        virtual SAutomatic<T> *clone() const;
+        virtual SAutomatic<T>* clone() const;
 
         /// Evaluate.
         //  The resulting value is cached.
@@ -58,32 +56,26 @@ namespace Expressions {
         virtual void invalidate();
 
     private:
-
         // Not implemented.
         SAutomatic();
-        void operator=(const SAutomatic<T> &);
+        void operator=(const SAutomatic<T>&);
 
         // Is the expression known ?
         mutable bool is_known;
     };
 
-
     // Implementation
     // ------------------------------------------------------------------------
 
     template <class T>
-    SAutomatic<T>::SAutomatic(const SAutomatic<T> &rhs):
-        SDeferred<T>(rhs), is_known(false) {
+    SAutomatic<T>::SAutomatic(const SAutomatic<T>& rhs) : SDeferred<T>(rhs), is_known(false) {
         OpalData::getInstance()->registerExpression(this);
     }
-
 
     template <class T>
-    SAutomatic<T>::SAutomatic(PtrToScalar<T> expr):
-        SDeferred<T>(expr), is_known(false) {
+    SAutomatic<T>::SAutomatic(PtrToScalar<T> expr) : SDeferred<T>(expr), is_known(false) {
         OpalData::getInstance()->registerExpression(this);
     }
-
 
     template <class T>
     SAutomatic<T>::~SAutomatic() {
@@ -91,16 +83,14 @@ namespace Expressions {
         OpalData::getInstance()->unregisterExpression(this);
     }
 
-
     template <class T>
-    SAutomatic<T> *SAutomatic<T>::clone() const {
+    SAutomatic<T>* SAutomatic<T>::clone() const {
         return new SAutomatic<T>(*this);
     }
 
-
     template <class T>
     T SAutomatic<T>::evaluate() {
-        if(! is_known) {
+        if (!is_known) {
             SDeferred<T>::evaluate();
             is_known = true;
         }
@@ -108,12 +98,11 @@ namespace Expressions {
         return this->value;
     }
 
-
     template <class T>
     void SAutomatic<T>::invalidate() {
         is_known = false;
     }
 
-}
+}  // namespace Expressions
 
-#endif // OPAL_SAutomatic_HH
+#endif  // OPAL_SAutomatic_HH

@@ -20,7 +20,6 @@
 
 class Object;
 
-
 // Class ObjectFunction
 // ------------------------------------------------------------------------
 /// Abstract base class for functor objects whose argument is an Object.
@@ -31,11 +30,10 @@ class Object;
 //  [tt]void operator()(Object *)[/tt] which performs that operation.
 
 struct ObjectFunction {
-
     virtual ~ObjectFunction();
 
     /// The function to be executed.
-    virtual void operator()(Object *) const = 0;
+    virtual void operator()(Object*) const = 0;
 };
 
-#endif // OPAL_ObjectFunction_HH
+#endif  // OPAL_ObjectFunction_HH

@@ -95,6 +95,14 @@ public:
     /// Return the name of the daughter beam (for decay products), or empty if not set.
     std::string getDaughterBeamName() const;
 
+    /// Return the initial polarization vector P (rest-frame, lab-frame axes). Default {0,0,0}.
+    /// Caller must check |Pol| in [0, 1]; validation is performed in execute().
+    std::vector<double> getPolarization() const;
+
+    /// True if POLARIZATION was explicitly set on this beam. Used both as the initial
+    /// polarization source and as the switch that enables per-particle spin tracking.
+    bool hasPolarization() const;
+
     /// True if PC, ENERGY, or GAMMA was explicitly provided by the user.
     bool hasExplicitEnergy() const;
 
@@ -110,6 +118,9 @@ private:
 
     // Clone constructor.
     Beam(const std::string& name, Beam* parent);
+
+    // Validate the POLARIZATION attribute (length, magnitude, muon-only).
+    void validatePolarization() const;
 
     // The particle reference data.
     PartData reference;

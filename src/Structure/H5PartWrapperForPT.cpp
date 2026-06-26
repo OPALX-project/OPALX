@@ -491,6 +491,24 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch, size_t particleContai
         i32buffer[i] = sp;
     WRITEDATA(Int32, file_m, "sp", i32buffer);
 
+    if (pc->hasSpin()) {
+        auto PolViewDevice = pc->Pol.getView();
+        auto PolView       = Kokkos::create_mirror_view(PolViewDevice);
+        Kokkos::deep_copy(PolView, PolViewDevice);
+
+        for (size_t i = 0; i < numLocalParticles; ++i)
+            f64buffer[i] = static_cast<h5_float64_t>(PolView(i)(0));
+        WRITEDATA(Float64, file_m, "polx", f64buffer);
+
+        for (size_t i = 0; i < numLocalParticles; ++i)
+            f64buffer[i] = static_cast<h5_float64_t>(PolView(i)(1));
+        WRITEDATA(Float64, file_m, "poly", f64buffer);
+
+        for (size_t i = 0; i < numLocalParticles; ++i)
+            f64buffer[i] = static_cast<h5_float64_t>(PolView(i)(2));
+        WRITEDATA(Float64, file_m, "polz", f64buffer);
+    }
+
     if (Options::ebDump) {
         auto EViewDevice = pc->E.getView();
         auto EView       = Kokkos::create_mirror_view(EViewDevice);

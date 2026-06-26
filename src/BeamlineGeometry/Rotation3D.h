@@ -23,7 +23,6 @@
 #include "BeamlineGeometry/Matrix3D.h"
 #include "BeamlineGeometry/Vector3D.h"
 
-
 // Class Rotation3D
 // -----------------------------------------------------------------------
 /// Rotation in 3-dimensional space.
@@ -44,9 +43,7 @@
 //  are not implemented.
 
 class Rotation3D {
-
 public:
-
     /// Default constructor.
     //  Constructs identity.
     Rotation3D();
@@ -55,18 +52,18 @@ public:
     //  Use axis vector (vx,vy,vz).
     Rotation3D(double vx, double vy, double vz);
 
-    bool operator==(const Rotation3D &) const;
-    bool operator!=(const Rotation3D &) const;
+    bool operator==(const Rotation3D&) const;
+    bool operator!=(const Rotation3D&) const;
 
     /// Multiply and assign.
-    Rotation3D &operator*=(const Rotation3D &rhs);
+    Rotation3D& operator*=(const Rotation3D& rhs);
 
     /// Multiply.
-    Rotation3D operator*(const Rotation3D &rhs) const;
+    Rotation3D operator*(const Rotation3D& rhs) const;
 
     /// Rotate.
     //  Return vector [b]rhs[/b] rotated by the rotation [b]this[/b].
-    Vector3D operator*(const Vector3D &rhs) const;
+    Vector3D operator*(const Vector3D& rhs) const;
 
     /// Get component.
     //  Return element (i,k) of the orthogonal matrix.
@@ -78,7 +75,7 @@ public:
 
     /// Get axis vector.
     //  Return the axis vector in (vx,vy,vz).
-    void getAxis(double &vx, double &vy, double &vz) const;
+    void getAxis(double& vx, double& vy, double& vz) const;
 
     /// Inversion.
     Rotation3D inverse() const;
@@ -114,51 +111,33 @@ public:
     static Rotation3D ZRotation(double angle);
 
 private:
-
     // Representation.
     Matrix3D R;
 };
 
-
 // Inline functions.
 // ------------------------------------------------------------------------
 
-inline Rotation3D::Rotation3D():
-    R()
-{}
+inline Rotation3D::Rotation3D() : R() {}
 
+inline bool Rotation3D::operator==(const Rotation3D& rhs) const { return (R == rhs.R); }
 
-inline bool Rotation3D::operator==(const Rotation3D &rhs) const
-{ return (R == rhs.R); }
+inline bool Rotation3D::operator!=(const Rotation3D& rhs) const { return (R != rhs.R); }
 
+inline double Rotation3D::operator()(int row, int col) const { return R(row, col); }
 
-inline bool Rotation3D::operator!=(const Rotation3D &rhs) const
-{ return (R != rhs.R); }
-
-
-inline double Rotation3D::operator()(int row, int col) const
-{ return R(row, col); }
-
-
-inline Rotation3D &Rotation3D::operator*=(const Rotation3D &rhs) {
+inline Rotation3D& Rotation3D::operator*=(const Rotation3D& rhs) {
     R *= rhs.R;
     return *this;
 }
 
-
-inline Rotation3D Rotation3D::operator*(const Rotation3D &rhs) const {
+inline Rotation3D Rotation3D::operator*(const Rotation3D& rhs) const {
     Rotation3D result(*this);
     return result *= rhs;
 }
 
+inline Vector3D Rotation3D::operator*(const Vector3D& rhs) const { return R * rhs; }
 
-inline Vector3D Rotation3D::operator*(const Vector3D &rhs) const {
-    return R * rhs;
-}
+inline bool Rotation3D::isIdentity() const { return R.isIdentity(); }
 
-
-inline bool Rotation3D::isIdentity() const {
-    return R.isIdentity();
-}
-
-#endif // OPALX_Rotation3D_HH
+#endif  // OPALX_Rotation3D_HH

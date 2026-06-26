@@ -74,86 +74,60 @@ public:
     void initialize();
 
     int partInside(
-        const Vector_t<double, 3>& r, const Vector_t<double, 3>& v, const double dt,
-        Vector_t<double, 3>& intecoords, int& triId);
+            const Vector_t<double, 3>& r, const Vector_t<double, 3>& v, const double dt,
+            Vector_t<double, 3>& intecoords, int& triId);
 
     Inform& printInfo(Inform& os) const;
 
     void writeGeomToVtk(std::string fn);
 
-    inline std::string getFilename() const {
-        return Attributes::getString(itsAttr[FGEOM]);
-    }
+    inline std::string getFilename() const { return Attributes::getString(itsAttr[FGEOM]); }
 
     inline Topology getTopology() const {
         static const std::unordered_map<std::string, Topology> stringTopology_s = {
-            {"RECTANGULAR", Topology::RECTANGULAR},
-            {"BOXCORNER", Topology::BOXCORNER},
-            {"ELLIPTIC", Topology::ELLIPTIC}};
+                {"RECTANGULAR", Topology::RECTANGULAR},
+                {"BOXCORNER", Topology::BOXCORNER},
+                {"ELLIPTIC", Topology::ELLIPTIC}};
         Topology topo = stringTopology_s.at(Attributes::getString(itsAttr[TOPO]));
         return topo;
     }
 
-    inline double getA() {
-        return (double)Attributes::getReal(itsAttr[A]);
-    }
+    inline double getA() { return (double)Attributes::getReal(itsAttr[A]); }
 
-    inline double getB() {
-        return (double)Attributes::getReal(itsAttr[B]);
-    }
+    inline double getB() { return (double)Attributes::getReal(itsAttr[B]); }
 
-    inline double getC() {
-        return (double)Attributes::getReal(itsAttr[C]);
-    }
+    inline double getC() { return (double)Attributes::getReal(itsAttr[C]); }
 
-    inline double getS() {
-        return (double)Attributes::getReal(itsAttr[S]);
-    }
+    inline double getS() { return (double)Attributes::getReal(itsAttr[S]); }
 
-    inline double getLength() {
-        return (double)Attributes::getReal(itsAttr[LENGTH]);
-    }
+    inline double getLength() { return (double)Attributes::getReal(itsAttr[LENGTH]); }
 
-    inline double getL1() {
-        return (double)Attributes::getReal(itsAttr[L1]);
-    }
+    inline double getL1() { return (double)Attributes::getReal(itsAttr[L1]); }
 
-    inline double getL2() {
-        return (double)Attributes::getReal(itsAttr[L2]);
-    }
+    inline double getL2() { return (double)Attributes::getReal(itsAttr[L2]); }
 
     /**
        Return number of boundary faces.
     */
-    inline size_t getNumBFaces() {
-        return Triangles_m.size();
-    }
+    inline size_t getNumBFaces() { return Triangles_m.size(); }
 
     /**
        Return the hr_m.
     */
-    inline Vector_t<double, 3> gethr() {
-        return voxelMesh_m.sizeOfVoxel;
-    }
+    inline Vector_t<double, 3> gethr() { return voxelMesh_m.sizeOfVoxel; }
     /**
        Return the nr_m.
      */
-    inline Vector_t<int, 3> getnr() {
-        return voxelMesh_m.nr_m;
-    }
+    inline Vector_t<int, 3> getnr() { return voxelMesh_m.nr_m; }
 
     /**
        Return the mincoords_m.
      */
-    inline Vector_t<double, 3> getmincoords() {
-        return minExtent_m;
-    }
+    inline Vector_t<double, 3> getmincoords() { return minExtent_m; }
     /**
        Return the maxcoords_m.
     */
-    inline Vector_t<double, 3> getmaxcoords() {
-        return maxExtent_m;
-    }
+    inline Vector_t<double, 3> getmaxcoords() { return maxExtent_m; }
 
     inline bool getInsidePoint(Vector_t<double, 3>& pt) {
         if (haveInsidePoint_m == false) {
@@ -166,11 +140,11 @@ public:
     bool findInsidePoint(void);
 
     int intersectRayBoundary(
-        const Vector_t<double, 3>& P, const Vector_t<double, 3>& v, Vector_t<double, 3>& I);
+            const Vector_t<double, 3>& P, const Vector_t<double, 3>& v, Vector_t<double, 3>& I);
 
     int fastIsInside(
-        const Vector_t<double, 3>& reference_pt,  // [in] a reference point
-        const Vector_t<double, 3>& P              // [in] point to test
+            const Vector_t<double, 3>& reference_pt,  // [in] a reference point
+            const Vector_t<double, 3>& P              // [in] point to test
     );
 
     enum DebugFlags {
@@ -182,33 +156,30 @@ public:
         debug_PartInside                       = 0x0020,
     };
 
-    inline void enableDebug(enum DebugFlags flags) {
-        debugFlags_m |= flags;
-    }
+    inline void enableDebug(enum DebugFlags flags) { debugFlags_m |= flags; }
 
-    inline void disableDebug(enum DebugFlags flags) {
-        debugFlags_m &= ~flags;
-    }
+    inline void disableDebug(enum DebugFlags flags) { debugFlags_m &= ~flags; }
 
 private:
-    bool isInside(const Vector_t<double, 3>& P  // [in] point to test
+    bool isInside(
+            const Vector_t<double, 3>& P  // [in] point to test
     );
 
     int intersectTriangleVoxel(const int triangle_id, const int i, const int j, const int k);
 
     int intersectTinyLineSegmentBoundary(
-        const Vector_t<double, 3>&, const Vector_t<double, 3>&, Vector_t<double, 3>&, int&);
+            const Vector_t<double, 3>&, const Vector_t<double, 3>&, Vector_t<double, 3>&, int&);
 
     int intersectLineSegmentBoundary(
-        const Vector_t<double, 3>& P0, const Vector_t<double, 3>& P1,
-        Vector_t<double, 3>& intersection_pt, int& triangle_id);
+            const Vector_t<double, 3>& P0, const Vector_t<double, 3>& P1,
+            Vector_t<double, 3>& intersection_pt, int& triangle_id);
 
     std::string h5FileName_m;  // H5hut filename
 
     std::vector<Vector_t<double, 3>> Points_m;  // geometry point coordinates
     std::vector<std::array<unsigned int, 4>>
-        Triangles_m;  // boundary faces defined via point IDs
-                      // please note: 4 is correct, historical reasons!
+            Triangles_m;  // boundary faces defined via point IDs
+                          // please note: 4 is correct, historical reasons!
 
     std::vector<Vector_t<double, 3>> TriNormals_m;  // oriented normal vector of triangles
     std::vector<double> TriAreas_m;                 // area of triangles
@@ -222,9 +193,9 @@ private:
         Vector_t<double, 3> sizeOfVoxel;
         Vector_t<int, 3> nr_m;  // number of intervals of geometry in X,Y,Z direction
         std::unordered_map<
-            int,  // map voxel IDs ->
-            std::unordered_set<int>>
-            ids;  // intersecting triangles
+                int,  // map voxel IDs ->
+                std::unordered_set<int>>
+                ids;  // intersecting triangles
 
     } voxelMesh_m;
 
@@ -255,8 +226,8 @@ private:
     enum INTERSECTION_TESTS { SEGMENT, RAY, LINE };
 
     int intersectLineTriangle(
-        const enum INTERSECTION_TESTS kind, const Vector_t<double, 3>& P0,
-        const Vector_t<double, 3>& P1, const int triangle_id, Vector_t<double, 3>& I);
+            const enum INTERSECTION_TESTS kind, const Vector_t<double, 3>& P0,
+            const Vector_t<double, 3>& P1, const int triangle_id, Vector_t<double, 3>& I);
 
     inline int mapVoxelIndices2ID(const int i, const int j, const int k);
     inline Vector_t<double, 3> mapIndices2Voxel(const int, const int, const int);
@@ -283,7 +254,5 @@ private:
     };
 };
 
-inline Inform& operator<<(Inform& os, const BoundaryGeometry& b) {
-    return b.printInfo(os);
-}
+inline Inform& operator<<(Inform& os, const BoundaryGeometry& b) { return b.printInfo(os); }
 #endif

@@ -22,17 +22,14 @@
 
 #include "Fields/EMField.h"
 
-
 // Class StaticMagneticField
 // ------------------------------------------------------------------------
 /// Abstract base class for static magnetic fields.
 
-class StaticMagneticField: public EMField {
-
+class StaticMagneticField : public EMField {
 public:
-
     StaticMagneticField();
     virtual ~StaticMagneticField();
 };
 
-#endif // OPALX_StaticMagneticField_HH
+#endif  // OPALX_StaticMagneticField_HH
