@@ -1,7 +1,7 @@
 #ifndef OPALX_BendBase_HH
 #define OPALX_BendBase_HH
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 
 #include <Kokkos_Core.hpp>
 

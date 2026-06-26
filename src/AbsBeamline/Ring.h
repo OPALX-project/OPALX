@@ -30,7 +30,7 @@
 
 #include <string>
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 
 #include "BeamlineGeometry/PlanarArcGeometry.h"
 

@@ -18,7 +18,7 @@
 #ifndef OPALX_Monitor_HH
 #define OPALX_Monitor_HH
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "PartBunch/PartBunch.h"
 #include "Structure/LossDataSink.h"

@@ -9,7 +9,7 @@
 
 #include <filesystem>
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Fields/Astra1DDynamic.h"
 #include "Fields/FM2DDynamic.h"
 #include "Fields/Fieldmap.h"

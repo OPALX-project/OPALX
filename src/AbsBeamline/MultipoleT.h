@@ -63,7 +63,7 @@
  * ---------------------------------------------------------------------
  */
 #include <vector>
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Algorithms/AbstractTimeDependence.h"
 #include "MultipoleTBase.h"
 #include "MultipoleTConfig.h"

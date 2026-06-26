@@ -1,7 +1,7 @@
 #ifndef OPALX_Multipole_HH
 #define OPALX_Multipole_HH
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 
 class Fieldmap;

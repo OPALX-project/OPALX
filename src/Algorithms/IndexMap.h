@@ -28,7 +28,7 @@
 #include <map>
 #include <ostream>
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Utilities/OpalException.h"
 
 #include <set>

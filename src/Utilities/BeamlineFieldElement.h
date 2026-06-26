@@ -3,7 +3,7 @@
 
 #include <list>
 #include <memory>
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Structure/BoundingBox.h"
 
 /**

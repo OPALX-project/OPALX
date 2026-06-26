@@ -7,7 +7,7 @@
 // OPAL is licensed under GNU GPL version 3.
 //
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "PartBunch/PartBunch.h"
 

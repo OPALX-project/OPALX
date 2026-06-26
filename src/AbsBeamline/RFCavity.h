@@ -18,7 +18,7 @@
 #ifndef OPALX_RFCavity_HH
 #define OPALX_RFCavity_HH
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Algorithms/AbstractTimeDependence.h"
 #include "Physics/Physics.h"
 
