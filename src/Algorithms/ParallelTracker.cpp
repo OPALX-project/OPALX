@@ -316,8 +316,8 @@ void ParallelTracker::execute() {
                 -rmin(2),            // Negative minimum z bound
                 itsBunch_m->getT(),  // Current bunch time
                 minTimeStep,
-                stepSizes_m,         // Step size configuration
-                itsOpalBeamline_m,   // OpalBeamline object
+                stepSizes_m,        // Step size configuration
+                itsOpalBeamline_m,  // OpalBeamline object
                 isDesignBeam);
         oths[ci]->execute();
     }
