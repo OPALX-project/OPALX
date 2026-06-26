@@ -34,7 +34,6 @@
 #include "Utility/Inform.h"  // ippl
 
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Fields/EMField.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
 #include "Structure/LossDataSink.h"
