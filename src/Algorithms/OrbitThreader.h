@@ -40,7 +40,7 @@ public:
     OrbitThreader(
             const PartData& ref, const Vector_t<double, 3>& r, const Vector_t<double, 3>& p,
             double s, double maxDiffZBunch, double t, double dT, StepSizeConfig stepSizes,
-            OpalBeamline& bl);
+            OpalBeamline& bl, bool isDesignBeam);
 
     void execute();
 
@@ -96,6 +96,12 @@ private:
 
     OpalBeamline& itsOpalBeamline_m;
     IndexMap imap_m;
+
+    /// True for the single design beam (container 0's species): only this threader may
+    /// autophase cavities, set per-element design energy, and write the geometry/design-path
+    /// outputs. Secondary species build their own IndexMap but reuse that shared element
+    /// state.
+    bool isDesignBeam_m;
 
     unsigned int errorFlag_m;
 

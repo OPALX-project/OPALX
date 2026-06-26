@@ -45,7 +45,8 @@ extern Inform* gmsg;
 
 OrbitThreader::OrbitThreader(
         const PartData& ref, const Vector_t<double, 3>& r, const Vector_t<double, 3>& p, double s,
-        double maxDiffZBunch, double t, double dt, StepSizeConfig stepSizes, OpalBeamline& bl)
+        double maxDiffZBunch, double t, double dt, StepSizeConfig stepSizes, OpalBeamline& bl,
+        bool isDesignBeam)
     : r_m(r),
       p_m(p),
       pathLength_m(s),
@@ -54,11 +55,14 @@ OrbitThreader::OrbitThreader(
       stepSizes_m(stepSizes),
       zstop_m(stepSizes.getFinalZStop() + std::copysign(1.0, dt) * 2 * maxDiffZBunch),
       itsOpalBeamline_m(bl),
+      isDesignBeam_m(isDesignBeam),
       errorFlag_m(0),
       integrator_m{},
       reference_m(ref) {
     auto opal = OpalData::getInstance();
-    if (ippl::Comm->rank() == 0 && !opal->isOptimizerRun()) {
+    // Only the design beam writes the _DesignPath.dat trajectory log; secondary species
+    // must not open (and truncate) it.
+    if (isDesignBeam_m && ippl::Comm->rank() == 0 && !opal->isOptimizerRun()) {
         std::string fileName = Util::combineFilePath(
                 {opal->getAuxiliaryOutputDirectory(),
                  opal->getInputBasename() + "_DesignPath.dat"});
@@ -132,7 +136,9 @@ void OrbitThreader::execute() {
     Vector_t<double, 3> nextR = r_m / (Physics::c * dt_m);
     integrator_m.push(nextR, p_m, dt_m);
     nextR = nextR * Physics::c * dt_m;
-    setDesignEnergy(allElements, visitedElements);
+    if (isDesignBeam_m) {
+        setDesignEnergy(allElements, visitedElements);
+    }
 
     auto elementSet = itsOpalBeamline_m.getElements(nextR);
     std::set<std::shared_ptr<Component>> intersection, currentSet;
@@ -142,7 +148,7 @@ void OrbitThreader::execute() {
 
     do {
         checkElementLengths(elementSet);
-        if (containsCavity(elementSet)) {
+        if (isDesignBeam_m && containsCavity(elementSet)) {
             autophaseCavities(elementSet, visitedElements);
         }
 
@@ -172,7 +178,9 @@ void OrbitThreader::execute() {
             visitedElements.insert((*it)->getName());
         }
 
-        setDesignEnergy(allElements, visitedElements);
+        if (isDesignBeam_m) {
+            setDesignEnergy(allElements, visitedElements);
+        }
 
         currentSet = elementSet;
         if (errorFlag_m == EVERYTHINGFINE) {
@@ -192,8 +200,12 @@ void OrbitThreader::execute() {
 
     imap_m.tidyUp(zstop_m);
     *gmsg << level1 << "\n" << imap_m << endl;
-    imap_m.saveSDDS(initialPathLength);
-    processElementRegister();
+    if (isDesignBeam_m) {
+        // Geometry SDDS dump and element action-range/ELEMEDGE anchoring are design-beam
+        // outputs that write shared element state; secondary species only build their map.
+        imap_m.saveSDDS(initialPathLength);
+        processElementRegister();
+    }
 }
 
 void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDrift*/) {
