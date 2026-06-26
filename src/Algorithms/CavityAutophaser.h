@@ -27,7 +27,7 @@
 
 class CavityAutophaser {
 public:
-    CavityAutophaser(const PartData& ref, std::shared_ptr<Component> cavity);
+    CavityAutophaser(const PartData& ref, std::shared_ptr<ElementBase> cavity);
 
     ~CavityAutophaser();
 
@@ -41,7 +41,7 @@ private:
     double track(double t, const double dt, const double phase, std::ofstream* out = nullptr) const;
 
     const PartData& itsReference_m;
-    std::shared_ptr<Component> itsCavity_m;
+    std::shared_ptr<ElementBase> itsCavity_m;
 
     Vector_t<double, 3> initialR_m;
     Vector_t<double, 3> initialP_m;

@@ -43,7 +43,7 @@
  *  placement.
  */
 
-class ScalingFFAMagnet : public Component {
+class ScalingFFAMagnet : public ElementBase {
 public:
     /** Construct a new ScalingFFAMagnet
      *

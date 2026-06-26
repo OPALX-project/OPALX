@@ -24,7 +24,7 @@
 #include "AbsBeamline/Component.h"
 
 class LossDataSink;
-class PluginElement : public Component {
+class PluginElement : public ElementBase {
 public:
     /// Constructor with given name.
     explicit PluginElement(const std::string& name);

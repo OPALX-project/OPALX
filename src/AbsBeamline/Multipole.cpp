@@ -55,7 +55,7 @@ Multipole::Multipole() : Multipole("") {}
  * @param right Multipole to copy
  */
 Multipole::Multipole(const Multipole& right)
-    : Component(right),
+    : ElementBase(right),
       NormalComponents("Multipole::Normal", right.NormalComponents.extent(0)),
       NormalComponentErrors("Multipole::NormalErr", right.NormalComponentErrors.extent(0)),
       SkewComponents("Multipole::Skew", right.SkewComponents.extent(0)),
@@ -77,7 +77,7 @@ Multipole::Multipole(const Multipole& right)
  * @param name Name of the Multipole element
  */
 Multipole::Multipole(const std::string& name)
-    : Component(name),
+    : ElementBase(name),
       NormalComponents("Multipole::Normal", 1),
       NormalComponentErrors("Multipole::NormalErr", 1),
       SkewComponents("Multipole::Skew", 1),

@@ -10,7 +10,7 @@
  * Homogeneous electrostatic field E = (Ex, Ey, Ez) over the element length.
  * GPU-compatible apply() via Kokkos parallel_for.
  */
-class ConstantEFieldCavity : public Component {
+class ConstantEFieldCavity : public ElementBase {
 public:
     explicit ConstantEFieldCavity(const std::string& name);
     ConstantEFieldCavity();

@@ -35,7 +35,7 @@
  *
  *  The time dependent quantities are
  */
-class VariableRFCavity : public Component {
+class VariableRFCavity : public ElementBase {
 public:
     /// Constructor with given name.
     explicit VariableRFCavity(const std::string& name);

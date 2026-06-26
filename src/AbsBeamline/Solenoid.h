@@ -30,7 +30,7 @@ class Fieldmap;
  * @class Solenoid
  * @brief Abstract class for a solenoid magnet.
  */
-class Solenoid : public Component {
+class Solenoid : public ElementBase {
 public:
     /* ============================== Constructors ============================== */
     explicit Solenoid(const std::string& name);

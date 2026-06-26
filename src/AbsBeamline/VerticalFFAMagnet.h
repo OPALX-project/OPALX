@@ -24,7 +24,7 @@ namespace endfieldmodel {
  *  that has a dependence like B0 exp(mz)
  */
 
-class VerticalFFAMagnet : public Component {
+class VerticalFFAMagnet : public ElementBase {
 public:
     /** Construct a new VerticalFFAMagnet
      *

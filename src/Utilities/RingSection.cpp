@@ -58,7 +58,7 @@ RingSection::~RingSection() {
 // Assignment operator
 RingSection& RingSection::operator=(const RingSection& rhs) {
     if (&rhs != this) {
-        component_m = dynamic_cast<Component*>(rhs.component_m->clone());
+        component_m = dynamic_cast<ElementBase*>(rhs.component_m->clone());
         if (component_m == nullptr)
             throw GeneralOpalException("RingSection::operator=", "Failed to copy RingSection");
         componentPosition_m    = rhs.componentPosition_m;
