@@ -118,14 +118,18 @@ endif()
 # Debug: This tells the compiler to replace occurrences of ${<DIR>} with <x> in
 # debug info and error messages.
 # ------------------------------------------------------------------------------
-# add_compile_options(
-# $<$<COMPILE_LANG_AND_ID:C,Clang,AppleClang,GNU>:-ffile-prefix-map=${CMAKE_SOURCE_DIR}=.>
-# $<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang,GNU>:-ffile-prefix-map=${CMAKE_SOURCE_DIR}=.>)
+if(NOT DEFINED KEEP_ABSOLUTE_PATHS_FOR_DEBUGGER)
+add_compile_options(
+  $<$<COMPILE_LANG_AND_ID:C,Clang,AppleClang,GNU>:-ffile-prefix-map=${CMAKE_SOURCE_DIR}=.>
+  $<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang,GNU>:-ffile-prefix-map=${CMAKE_SOURCE_DIR}=.>)
 
-# if(DEFINED FETCHCONTENT_BASE_DIR) add_compile_options(
-# $<$<COMPILE_LANG_AND_ID:C,Clang,AppleClang,GNU>:-ffile-prefix-map=${FETCHCONTENT_BASE_DIR}=.3p>
-# $<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang,GNU>:-ffile-prefix-map=${FETCHCONTENT_BASE_DIR}=.3p>
-# ) endif()
+if(DEFINED FETCHCONTENT_BASE_DIR)
+  add_compile_options(
+    $<$<COMPILE_LANG_AND_ID:C,Clang,AppleClang,GNU>:-ffile-prefix-map=${FETCHCONTENT_BASE_DIR}=.3p>
+    $<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang,GNU>:-ffile-prefix-map=${FETCHCONTENT_BASE_DIR}=.3p>
+  )
+endif()
+endif()
 
 # ------------------------------------------------------------------------------
 # Define sources for project

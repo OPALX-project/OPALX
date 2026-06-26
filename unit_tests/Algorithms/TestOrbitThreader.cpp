@@ -9,7 +9,6 @@
 #include "BeamlineGeometry/PlacementPose.h"
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
-#include "Fields/NullField.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
@@ -52,9 +51,6 @@ namespace {
         void accept(BeamlineVisitor&) const override {}
         ElementBase* clone() const override { return new FieldSupportOnlyComponent(*this); }
 
-        EMField& getField() override { return field_m; }
-        const EMField& getField() const override { return field_m; }
-
         bool apply(const std::shared_ptr<ParticleContainer_t>&) override { return false; }
 
         bool apply(
@@ -92,7 +88,6 @@ namespace {
         double fieldBegin_m;
         double fieldEnd_m;
         NullGeometry geometry_m;
-        NullField field_m;
     };
 }  // namespace
 
