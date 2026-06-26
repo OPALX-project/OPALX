@@ -95,6 +95,63 @@ TEST_F(FFTTest, RealFFT_Transform) {
     gsl_fft_real_workspace_free(workspace);
 }
 
+TEST_F(FFTTest, RealFFT_NonPowerOfTwoMatchesDFT) {
+    const size_t n = 802;
+    std::vector<double> input(n);
+    for (size_t i = 0; i < n; ++i) {
+        input[i] = std::sin(0.017 * static_cast<double>(i))
+                   + 0.25 * std::cos(0.071 * static_cast<double>(i));
+    }
+    std::vector<double> transformed = input;
+
+    gsl_fft_real_wavetable* wavetable = gsl_fft_real_wavetable_alloc(n);
+    gsl_fft_real_workspace* workspace = gsl_fft_real_workspace_alloc(n);
+    gsl_fft_real_transform(transformed.data(), 1, n, wavetable, workspace);
+
+    std::vector<std::complex<double>> expected(n / 2 + 1);
+    for (size_t k = 0; k <= n / 2; ++k) {
+        for (size_t j = 0; j < n; ++j) {
+            const double phase = -2.0 * M_PI * static_cast<double>(j * k)
+                                 / static_cast<double>(n);
+            expected[k] += input[j] * std::polar(1.0, phase);
+        }
+    }
+
+    EXPECT_NEAR(transformed[0], expected[0].real(), 1e-9);
+    for (size_t k = 1; k < n / 2; ++k) {
+        EXPECT_NEAR(transformed[2 * k - 1], expected[k].real(), 1e-9);
+        EXPECT_NEAR(transformed[2 * k], expected[k].imag(), 1e-9);
+    }
+    EXPECT_NEAR(transformed[n - 1], expected[n / 2].real(), 1e-9);
+
+    gsl_fft_real_wavetable_free(wavetable);
+    gsl_fft_real_workspace_free(workspace);
+}
+
+TEST_F(FFTTest, RealFFT_OddLengthRoundTrip) {
+    const size_t n = 7;
+    std::vector<double> original{0.2, -1.0, 2.5, 0.3, -0.7, 1.1, 0.4};
+    std::vector<double> transformed = original;
+
+    gsl_fft_real_wavetable* real_wavetable = gsl_fft_real_wavetable_alloc(n);
+    gsl_fft_real_workspace* real_workspace = gsl_fft_real_workspace_alloc(n);
+    gsl_fft_real_transform(transformed.data(), 1, n, real_wavetable, real_workspace);
+
+    gsl_fft_halfcomplex_wavetable* hc_wavetable = gsl_fft_halfcomplex_wavetable_alloc(n);
+    gsl_fft_halfcomplex_workspace* hc_workspace = gsl_fft_halfcomplex_workspace_alloc(n);
+    gsl_fft_halfcomplex_inverse(
+            transformed.data(), 1, n, hc_wavetable, hc_workspace);
+
+    for (size_t i = 0; i < n; ++i) {
+        EXPECT_NEAR(transformed[i], original[i] * static_cast<double>(n), 1e-10);
+    }
+
+    gsl_fft_real_wavetable_free(real_wavetable);
+    gsl_fft_real_workspace_free(real_workspace);
+    gsl_fft_halfcomplex_wavetable_free(hc_wavetable);
+    gsl_fft_halfcomplex_workspace_free(hc_workspace);
+}
+
 TEST_F(FFTTest, ComplexFFT_Forward) {
     const size_t n = 4;
     std::vector<double> data(2 * n);  // Complex data: [real0, imag0, real1, imag1, ...]

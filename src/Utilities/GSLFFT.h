@@ -27,10 +27,30 @@
 /// \see Implementation on https://www.gnu.org/software/gsl/
 // Helper functions for FFT
 namespace {
-    // Cooley-Tukey FFT
+    // Direct DFT fallback for odd transform lengths. This makes the recursive
+    // radix-2 decomposition correct for arbitrary sizes (for example, the
+    // 802-point transforms used by Astra1DDynamic split into 401-point blocks).
+    void dft(std::vector<std::complex<double>>& x) {
+        const size_t n = x.size();
+        std::vector<std::complex<double>> result(n);
+        for (size_t k = 0; k < n; ++k) {
+            for (size_t j = 0; j < n; ++j) {
+                const double phase = -2.0 * M_PI * static_cast<double>(j * k)
+                                     / static_cast<double>(n);
+                result[k] += x[j] * std::polar(1.0, phase);
+            }
+        }
+        x.swap(result);
+    }
+
+    // Cooley-Tukey FFT with a direct fallback for odd factors.
     void fft(std::vector<std::complex<double>>& x) {
         size_t n = x.size();
         if (n <= 1) return;
+        if (n % 2 != 0) {
+            dft(x);
+            return;
+        }
 
         // Divide
         std::vector<std::complex<double>> even(n / 2);
@@ -94,12 +114,14 @@ namespace FFT {
         // Perform FFT
         fft(complex_data);
 
-        // Convert back to real (packed format like GSL)
-        // GSL packs the result: [r0, r1, i1, r2, i2, ..., r(n/2), i(n/2)]
+        // Convert back to GSL's halfcomplex packed format. For even n the
+        // Nyquist component is real-only; for odd n the final positive
+        // frequency has both real and imaginary components.
         data[0] = complex_data[0].real();
         if (n > 1) {
             size_t half = n / 2;
-            for (size_t i = 1; i < half; ++i) {
+            const size_t last_complex = (n % 2 == 0) ? half - 1 : half;
+            for (size_t i = 1; i <= last_complex; ++i) {
                 data[2 * i - 1] = complex_data[i].real();
                 data[2 * i]     = complex_data[i].imag();
             }
@@ -209,7 +231,8 @@ inline void gsl_fft_halfcomplex_transform(
     complex_data[0] = std::complex<double>(data[0], 0.0);
 
     size_t half = n / 2;
-    for (size_t i = 1; i < half; ++i) {
+    const size_t last_complex = (n % 2 == 0) ? half - 1 : half;
+    for (size_t i = 1; i <= last_complex; ++i) {
         complex_data[i]     = std::complex<double>(data[2 * i - 1], data[2 * i]);
         complex_data[n - i] = std::conj(complex_data[i]);
     }
