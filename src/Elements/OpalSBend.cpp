@@ -19,9 +19,10 @@
 #include <cmath>
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/SBendRep.h"
-#include "Fields/BMultipoleField.h"
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
+
+#include <vector>
 
 namespace {
 
@@ -125,20 +126,17 @@ void OpalSBend::update() {
     bend->setSlices(Attributes::getReal(itsAttr[SLICES]));
     bend->setStepsize(Attributes::getReal(itsAttr[STEPSIZE]));
 
-    // Define field.
-    BMultipoleField field;
+    // Define normalized field. Physical Tesla coefficients are resolved later
+    // from DESIGNENERGY or the bunch reference momentum.
     double k0  = deriveAnalyticDipoleCoefficient(fieldNormalizationLength, angle);
     double k0s = itsAttr[K0S] ? Attributes::getReal(itsAttr[K0S]) : 0.0;
-
-    field.setNormalComponent(0, k0);
-    field.setSkewComponent(0, Attributes::getReal(itsAttr[K0S]));
-    field.setNormalComponent(1, Attributes::getReal(itsAttr[K1]));
-    field.setSkewComponent(1, Attributes::getReal(itsAttr[K1S]));
-    field.setNormalComponent(2, Attributes::getReal(itsAttr[K2]) / 2.0);
-    field.setSkewComponent(2, Attributes::getReal(itsAttr[K2S]) / 2.0);
-    field.setNormalComponent(3, Attributes::getReal(itsAttr[K3]) / 6.0);
-    field.setSkewComponent(3, Attributes::getReal(itsAttr[K3S]) / 6.0);
-    bend->setNormalizedField(field);
+    const std::vector<double> normal = {
+            k0, Attributes::getReal(itsAttr[K1]), Attributes::getReal(itsAttr[K2]) / 2.0,
+            Attributes::getReal(itsAttr[K3]) / 6.0};
+    const std::vector<double> skew = {
+            k0s, Attributes::getReal(itsAttr[K1S]), Attributes::getReal(itsAttr[K2S]) / 2.0,
+            Attributes::getReal(itsAttr[K3S]) / 6.0};
+    bend->setNormalizedFieldComponents(normal, skew);
 
     bend->setBendAngle(angle);
     bend->setFieldAmplitude(k0, k0s);
