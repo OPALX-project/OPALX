@@ -49,7 +49,7 @@ std::set<std::shared_ptr<ElementBase>> OpalBeamline::getElements(const Vector_t<
     const FieldList::iterator end = elements_m.end();
     for (; it != end; ++it) {
         std::shared_ptr<ElementBase> element = (*it).getElement();
-        Vector_t<double, 3> r              = getCSTrafoLab2Local(element).transformTo(x);
+        Vector_t<double, 3> r                = getCSTrafoLab2Local(element).transformTo(x);
 
         if (element->isInside(r)) {
             elementSet.insert(element);
@@ -398,11 +398,11 @@ void OpalBeamline::save3DLattice() {
 
     for (; it != end; ++it) {
         std::shared_ptr<ElementBase> element = (*it).getElement();
-        PlacedElement placedElement        = getPlacedElement(element);
-        CoordinateSystemTrafo toBegin      = getNominalEntryTransform(element);
-        CoordinateSystemTrafo toEnd        = getNominalExitTransform(element);
-        Vector_t<double, 3> entry3D        = toBegin.getOrigin();
-        Vector_t<double, 3> exit3D         = toEnd.getOrigin();
+        PlacedElement placedElement          = getPlacedElement(element);
+        CoordinateSystemTrafo toBegin        = getNominalEntryTransform(element);
+        CoordinateSystemTrafo toEnd          = getNominalExitTransform(element);
+        Vector_t<double, 3> entry3D          = toBegin.getOrigin();
+        Vector_t<double, 3> exit3D           = toEnd.getOrigin();
 
         mesh.add(*(element.get()));
 
@@ -561,7 +561,7 @@ void OpalBeamline::save3DInput() {
 
     for (; it != end; ++it) {
         std::shared_ptr<ElementBase> element = (*it).getElement();
-        std::string elementName            = element->getName();
+        std::string elementName              = element->getName();
         const std::regex replacePSI(
                 "(" + elementName + "\\s*:[^\\n]*)PSI\\s*=[^,;]*,?", std::regex::icase);
         input = std::regex_replace(input, replacePSI, "\\1\\2");
