@@ -296,27 +296,44 @@ void ParallelTracker::execute() {
     writePhaseSpace(0, psDump0, statDump0);
     m << level2 << "Dump initial phase space done." << endl;
 
-    // Create an OrbitThreader object to handle orbit threading and element queries
-    OrbitThreader oth(
-            *itsBunch_m->getParticleContainer(0)->getReference(),
-            itsBunch_m->getParticleContainer(0)->getRefPartR(),
-            itsBunch_m->getParticleContainer(0)->getRefPartP(),
-            itsBunch_m->getParticleContainer(0)->get_sPos(),
-            -rmin(2),            // Negative minimum z bound
-            itsBunch_m->getT(),  // Current bunch time
-            minTimeStep,
-            stepSizes_m,         // Step size configuration
-            itsOpalBeamline_m);  // OpalBeamline object
+    // Create one OrbitThreader per container, each threaded with its own reference orbit.
+    // The first container (container 0 in the normal case) is the design beam and runs
+    // the full pass (autophasing, design energy, geometry dumps); the rest build only
+    // their own map and reuse that shared element state, so the design beam threads first.
+    const size_t nContainers = itsBunch_m->getNumParticleContainers();
+    std::vector<std::shared_ptr<OrbitThreader>> oths(nContainers);
+    bool designBeamAssigned = false;
+    for (size_t ci = 0; ci < nContainers; ++ci) {
+        const auto& pc = itsBunch_m->getParticleContainer(ci);
+        if (!pc || !pc->getReference()) {
+            continue;
+        }
 
-    // Execute the orbit threading (queries elements and updates state)
-    oth.execute();
+        const bool isDesignBeam = !designBeamAssigned;
+        designBeamAssigned      = true;
+        oths[ci]                = std::make_shared<OrbitThreader>(
+                *pc->getReference(), pc->getRefPartR(), pc->getRefPartP(), pc->get_sPos(),
+                -rmin(2),            // Negative minimum z bound
+                itsBunch_m->getT(),  // Current bunch time
+                minTimeStep,
+                stepSizes_m,        // Step size configuration
+                itsOpalBeamline_m,  // OpalBeamline object
+                isDesignBeam);
+        oths[ci]->execute();
+    }
     m << level4 << "Orbit threader execution done." << endl;
 
     // Stop timing for the OrbitThreader section
     IpplTimings::stopTimer(OrbThreader_m);
 
-    // Get bounding box
-    BoundingBox globalBoundingBox = oth.getBoundingBox();
+    // Bounding box spanning every species' threaded orbit (duplicates re-add the same
+    // box, which is idempotent).
+    BoundingBox globalBoundingBox;
+    for (const auto& oth : oths) {
+        if (oth) {
+            globalBoundingBox.enlargeToContainBoundingBox(oth->getBoundingBox());
+        }
+    }
 
     // Set the time view of the particle bunch
     setTime();
@@ -434,7 +451,7 @@ void ParallelTracker::execute() {
             m << level5 << "Bunch updated after emission." << endl;
 
             // External field computation
-            computeExternalFields(oth);
+            computeExternalFields(oths);
             m << level4 << "External field computation done at step " << step << "." << endl;
 
             // Thomas-BMT spin precession using the lab-frame E, B at the particle.
@@ -738,7 +755,8 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 /**
  * @copybrief ParallelTracker::computeExternalFields
  */
-void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
+void ParallelTracker::computeExternalFields(
+        const std::vector<std::shared_ptr<OrbitThreader>>& oths) {
     IpplTimings::startTimer(fieldEvaluationTimer_m);
     Inform msg("ParallelTracker ", *gmsg);
 
@@ -749,6 +767,10 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
         }
         auto pc = itsBunch_m->getParticleContainer(ci);
         if (!pc) {
+            continue;
+        }
+        // Each container queries its own species' threaded orbit / IndexMap.
+        if (ci >= oths.size() || !oths[ci]) {
             continue;
         }
 
@@ -772,7 +794,8 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
         // Get elements at bunch position.
         IndexMap::value_t elements;
         try {
-            elements = oth.query(pc->get_sPos() + 0.5 * (rmax(2) + rmin(2)), rmax(2) - rmin(2));
+            elements =
+                    oths[ci]->query(pc->get_sPos() + 0.5 * (rmax(2) + rmin(2)), rmax(2) - rmin(2));
         } catch (IndexMap::OutOfBounds& e) {
             globalEOL_m = true;
             continue;
