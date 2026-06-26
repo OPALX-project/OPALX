@@ -149,8 +149,8 @@ private:
     static void checkInt(double value, const std::string& name, double tolerance = 1e-9);
     void writeHeader(std::ofstream& fout) const;
     void writeFieldLine(
-            const std::set<std::shared_ptr<ElementBase>>& elements, const Vector_t<double, 3>& point,
-            const double& time, std::ofstream& fout) const;
+            const std::set<std::shared_ptr<ElementBase>>& elements,
+            const Vector_t<double, 3>& point, const double& time, std::ofstream& fout) const;
 
     std::unique_ptr<interpolation::NDGrid> grid_m{};
     Vector_t<double, 3> cylindricalOrigin_m{};
