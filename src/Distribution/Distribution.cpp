@@ -322,7 +322,6 @@ void Distribution::setDistParametersMultiVariateGauss() {
     cutoffR_m = 3.;
     cutoffP_m = 3.;
 
-    // initialize the covariance matrix to identity
     for (unsigned int i = 0; i < 6; ++i) {
         for (unsigned int j = 0; j < 6; ++j) {
             if (i == j)
@@ -332,26 +331,20 @@ void Distribution::setDistParametersMultiVariateGauss() {
         }
     }
 
-    // set diagonal elements first
     setSigmaR_m();
     setSigmaP_m();
-
-    for (unsigned int i = 0; i < 3; ++i) {
-        correlationMatrix_m[2 * i][2 * i]         = sigmaR_m[i] * sigmaR_m[i];
-        correlationMatrix_m[2 * i + 1][2 * i + 1] = sigmaP_m[i] * sigmaP_m[i];
-    }
 
     std::vector<double> cr = Attributes::getRealArray(itsAttr[DISTRIBUTION::CORR]);
 
     if (!cr.empty()) {
-        // read off-diagonal correlation matrix from input file
+        // read off-diagonal correlation coefficients from input file
         if (cr.size() == 15) {
-            *gmsg << "* Use r to specify correlations" << endl;
+            *gmsg << "* Using CORR to specify off-diagonal correlation coefficients" << endl;
             unsigned int k = 0;
             for (unsigned int i = 0; i < 5; ++i) {
                 for (unsigned int j = i + 1; j < 6; ++j, ++k) {
-                    correlationMatrix_m[j][i] = cr.at(k) * cr.at(k);
-                    correlationMatrix_m[i][j] = correlationMatrix_m[j][i];  // impose symmetry
+                    correlationMatrix_m[j][i] = cr.at(k);
+                    correlationMatrix_m[i][j] = cr.at(k);  // impose symmetry
                 }
             }
         } else {
@@ -452,7 +445,7 @@ void Distribution::printDistMultiVariateGauss(Inform& os) const {
     os << "* SIGMAPY    = " << sigmaP_m[1] << " [Beta Gamma]" << endl;
     os << "* SIGMAPZ    = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
 
-    os << "* input cov matrix = ";
+    os << "* input correlation matrix = ";
     for (unsigned int i = 0; i < 6; ++i) {
         for (unsigned int j = 0; j < 6; ++j) {
             os << correlationMatrix_m[i][j] << " ";
