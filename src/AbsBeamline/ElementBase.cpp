@@ -314,9 +314,7 @@ void ElementBase::trackMap(FVps<double, 6>&, const PartData&, bool, bool) const 
     throw LogicalError("ElementBase::trackMap()", "Called for element \"" + getName() + "\".");
 }
 
-bool ElementBase::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {
-    return false;
-}
+bool ElementBase::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) { return false; }
 
 bool ElementBase::apply(
         const size_t& /*i*/, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&) {

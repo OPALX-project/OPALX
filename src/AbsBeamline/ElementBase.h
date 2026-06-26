@@ -73,9 +73,9 @@
 #include "BeamlineGeometry/PlacedElement.h"
 #include "BeamlineGeometry/PlacementPose.h"
 #include "BeamlineGeometry/SupportPlacement.h"
+#include "OPALTypes.h"
 #include "Structure/BoundingBox.h"
 #include "Utilities/GeneralOpalException.h"
-#include "OPALTypes.h"
 #include "VectorMath.h"
 
 #include <map>

@@ -228,7 +228,8 @@ inline Vector_t<double, 3> OpalBeamline::rotateFromLocalCS(
     return getPlacedElement(comp).getNominalBodyTransform().rotateFrom(r);
 }
 
-inline PlacedElement OpalBeamline::getPlacedElement(const std::shared_ptr<ElementBase>& comp) const {
+inline PlacedElement OpalBeamline::getPlacedElement(
+        const std::shared_ptr<ElementBase>& comp) const {
     const auto found = placementAssembly_m.find(comp.get());
     if (found != placementAssembly_m.end()) {
         return found->second;
