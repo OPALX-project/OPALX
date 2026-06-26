@@ -50,6 +50,15 @@ public:
     virtual Quaternion getInitialDirection() const;
     virtual bool getRelativeFlag() const;
 
+    // A beam line composite carries no field model; these satisfy the
+    // element interface formerly provided by Component.
+    bool bends() const override { return false; }
+    void initialise(PartBunch_t*, double&, double&) override {}
+    void finalise() override {}
+    void getFieldExtend(double& zBegin, double& zEnd) const override {
+        getElementDimensions(zBegin, zEnd);
+    }
+
 private:
     // Not implemented.
     void operator=(const Beamline&);
