@@ -1,16 +1,22 @@
-name: clang-format
+name: Check clang-format
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, ready_for_review]
     branches: ["master"]
 
+concurrency:
+  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number }}-${{ contains(github.event.pull_request.labels.*.name, 'compile-ci') && github.event.pull_request.draft == false && (github.event.action != 'labeled' || github.event.label.name == 'compile-ci') && 'ci' || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   clang-format:
+    name: Check
     runs-on: ubuntu-latest
     if: |
       contains(github.event.pull_request.labels.*.name, 'compile-ci') &&
-      github.event.pull_request.draft == false
+      github.event.pull_request.draft == false &&
+      (github.event.action != 'labeled' || github.event.label.name == 'compile-ci')
 
     steps:
       - name: Checkout repository
@@ -39,7 +45,7 @@ jobs:
           git fetch origin "$BASE_REF"
 
           FILES="$(
-            git diff --name-only -z "origin/${BASE_REF}...HEAD" \
+            git diff --name-only --diff-filter=ACMR -z "origin/${BASE_REF}...HEAD" \
               | tr '\0' '\n' \
               | grep -E '^(src|unit_tests)/.*\.(h|hpp|tpp|cpp)$' || true
           )"
@@ -61,4 +67,3 @@ jobs:
           done <<'EOF'
           ${{ steps.files.outputs.files }}
           EOF
-

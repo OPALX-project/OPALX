@@ -21,35 +21,17 @@
 #include "BeamlineGeometry/NullGeometry.h"
 #include "BeamlineGeometry/Euclid3D.h"
 
-
 // Class NullGeometry
 // ------------------------------------------------------------------------
 
-NullGeometry::~NullGeometry()
-{}
+NullGeometry::~NullGeometry() {}
 
+double NullGeometry::getArcLength() const { return 0.0; }
 
-double NullGeometry::getArcLength() const {
-    return 0.0;
-}
+double NullGeometry::getElementLength() const { return 0.0; }
 
+double NullGeometry::getOrigin() const { return 0.0; }
 
-double NullGeometry::getElementLength() const {
-    return 0.0;
-}
+Euclid3D NullGeometry::getTransform(double, double) const { return Euclid3D::identity(); }
 
-
-double NullGeometry::getOrigin() const {
-    return 0.0;
-}
-
-
-Euclid3D NullGeometry::getTransform(double, double) const {
-    return Euclid3D::identity();
-}
-
-
-Euclid3D NullGeometry::getTransform(double) const {
-    return Euclid3D::identity();
-}
-
+Euclid3D NullGeometry::getTransform(double) const { return Euclid3D::identity(); }

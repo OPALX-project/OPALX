@@ -30,6 +30,8 @@
 
 #include "Distribution/Distribution.h"
 
+#include "Distribution/EmittedFromFile.h"
+
 #include "Distribution/Gaussian.h"
 
 #include "Distribution/MultiVariateGaussian.h"
@@ -37,6 +39,8 @@
 #include "Distribution/FlatTop.h"
 
 #include "Distribution/FromFile.h"
+
+#include "Distribution/OpalFlatTop.h"
 
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
@@ -129,15 +133,26 @@ namespace {
                 const ParticleType pType       = ParticleProperties::getParticleType(particleName);
                 const double tau               = ParticleProperties::getParticleLifetime(pType);
                 const double mass              = ParticleProperties::getParticleMass(pType);
+                const double parentQ           = beam.getCharge();
+                const int parentSign           = (parentQ > 0.0) - (parentQ < 0.0);
 
                 requireUnitMacroWeight(beam, "parent");
 
                 switch (pType) {
                     case ParticleType::MUON:
-                        processes.push_back(std::make_unique<MuonDecay>(tau, containerIndex, mass));
+                        if (!beam.hasPolarization()) {
+                            throw OpalException(
+                                    "TrackRun::execute",
+                                    "Muon decay requires spin tracking: the differential decay "
+                                    "rate is polarization-dependent. Set POLARIZATION = "
+                                    "{Px, Py, Pz} on the muon BEAM (this enables spin tracking).");
+                        }
+                        processes.push_back(
+                                std::make_unique<MuonDecay>(tau, containerIndex, mass, parentSign));
                         break;
                     case ParticleType::PION:
-                        processes.push_back(std::make_unique<PionDecay>(tau, containerIndex, mass));
+                        processes.push_back(
+                                std::make_unique<PionDecay>(tau, containerIndex, mass, parentSign));
                         break;
                     default:
                         throw OpalException(
@@ -438,6 +453,7 @@ void TrackRun::execute() {
     // Setup all distributions and samplers, perform initial sampling (t0 == 0),
     // and prepare per-container emitting sampler lists for ParallelTracker.
     // Do this for each particle container
+    OpalData::getInstance()->setGlobalPhaseShift(0.0);
     std::vector<emittingSamplers_t> emittingSamplersList(particleContainers.size());
     for (size_t i = 0; i < particleContainers.size(); ++i) {
         setupDistributionsAndSamplers(
@@ -612,6 +628,18 @@ void TrackRun::wireDaughterContainers(const std::vector<Beam*>& beams) {
             auto* decayProc = dynamic_cast<Decay*>(proc.get());
             if (decayProc) {
                 requireUnitMacroWeight(*beams[daughterIdx], "daughter");
+                // A muon daughter (e.g. from pion decay) receives a per-particle
+                // polarization from the decay, so its container must have spin storage —
+                // which is enabled by setting POLARIZATION on the daughter muon BEAM.
+                const ParticleType daughterType =
+                        ParticleProperties::getParticleType(beams[daughterIdx]->getParticleName());
+                if (daughterType == ParticleType::MUON && !beams[daughterIdx]->hasPolarization()) {
+                    throw OpalException(
+                            "TrackRun::wireDaughterContainers",
+                            "Decay produces muons in daughter beam \"" + daughterName
+                                    + "\", whose polarization must be tracked. Set POLARIZATION "
+                                      "= {Px, Py, Pz} on that BEAM to enable spin tracking.");
+                }
                 decayProc->setDaughterContainer(containers[daughterIdx], daughterMass);
                 *gmsg << level2 << "* Wired decay on beam \"" << beamNames[i]
                       << "\" to daughter beam \"" << daughterName << "\" (container " << daughterIdx
@@ -671,15 +699,18 @@ void TrackRun::setupDistributionsAndSamplers(
         opalDist->setDist();
         opalDist->setAvrgPz(avrgpz);
 
-        // FROMFILE distributions carry absolute momenta — the BEAM's
+        // File-based distributions carry absolute momenta - the BEAM's
         // PC/ENERGY/GAMMA would be silently ignored, so forbid the combination.
-        if (opalDist->getType() == DistributionType::FROMFILE) {
+        const bool usesFileMomentum = opalDist->getType() == DistributionType::FROMFILE
+                                      || opalDist->getType() == DistributionType::EMITTEDFROMFILE;
+        if (usesFileMomentum) {
             if (beam->hasExplicitEnergy()) {
                 throw OpalException(
                     "TrackRun::setupDistributionsAndSamplers()",
-                    "FROMFILE distribution \"" + src->getDistributionName()
+                    opalDist->getTypeofDistribution() + " distribution \""
+                    + src->getDistributionName()
                     + "\" cannot be combined with PC/ENERGY/GAMMA on the BEAM. "
-                      "Remove the energy attribute from the BEAM command — "
+                      "Remove the energy attribute from the BEAM command - "
                       "particle momenta are read from the file.");
             }
         } else {
@@ -705,8 +736,14 @@ void TrackRun::setupDistributionsAndSamplers(
             case DistributionType::FLATTOP:
                 sampler = std::make_shared<FlatTop>(pc, fc, opalDist);
                 break;
+            case DistributionType::OPALFLATTOP:
+                sampler = std::make_shared<OpalFlatTop>(pc, fc, opalDist);
+                break;
             case DistributionType::FROMFILE:
                 sampler = std::make_shared<FromFile>(pc, fc, opalDist);
+                break;
+            case DistributionType::EMITTEDFROMFILE:
+                sampler = std::make_shared<EmittedFromFile>(pc, fc, opalDist);
                 break;
             default:
                 throw OpalException("Distribution::create", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
@@ -718,6 +755,10 @@ void TrackRun::setupDistributionsAndSamplers(
         const double t0 = src->getT0();
         sampler->setEmissionOffsets(R0, P0, t0, src->getEmissionModel());
 
+        // Initial polarization from BEAM (ignored if container has no spin attribute).
+        const std::vector<double> pol = beam->getPolarization();
+        sampler->setInitialPolarization({pol[0], pol[1], pol[2]});
+
         const size_t Ndist = opalDist->getNumParticles();
         size_t Nmutable    = Ndist;
 
@@ -726,10 +767,15 @@ void TrackRun::setupDistributionsAndSamplers(
         // emission structures irrespective of t0.
         sampler->generateParticles(Nmutable, nr);
 
+        const double globalShift = std::max(
+                OpalData::getInstance()->getGlobalPhaseShift(), sampler->getGlobalTimeShift());
+        OpalData::getInstance()->setGlobalPhaseShift(globalShift);
+
         // Time-dependent (emitted) distributions (e.g. FlatTop) and delayed
         // one-shot injectors (t0 > 0) participate in emitParticles(t, dt)
         // during tracking.
-        if (opalDist->emitting_m || src->getT0() > 0.0) {
+        if (opalDist->emitting_m || src->getT0() > 0.0
+            || opalDist->getType() == DistributionType::EMITTEDFROMFILE) {
             emittingSamplers.push_back(sampler);
             *gmsg << level2 << "* Configured emitting source of type "
                   << opalDist->getTypeofDistribution() << " with NPARTDIST = " << Ndist

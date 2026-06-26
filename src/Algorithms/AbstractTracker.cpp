@@ -21,7 +21,6 @@
 
 #include "Algorithms/AbstractTracker.h"
 
-
 //: Abstract tracker class.
 //  An abstract visitor class implementing the default behaviour for all
 //  visitors capable of tracking a particle bunch through a beam line.
@@ -31,12 +30,7 @@
 // Class AbstractTracker
 // ------------------------------------------------------------------------
 
+AbstractTracker::AbstractTracker(const Beamline& beamline, bool backBeam, bool backTrack)
+    : DefaultVisitor(beamline, backBeam, backTrack) {}
 
-AbstractTracker::AbstractTracker(const Beamline &beamline,
-                                 bool backBeam, bool backTrack):
-    DefaultVisitor(beamline, backBeam, backTrack)
-{}
-
-
-AbstractTracker::~AbstractTracker()
-{}
+AbstractTracker::~AbstractTracker() {}

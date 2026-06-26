@@ -25,63 +25,54 @@
 
 #include "Utility/PAssert.h"
 
+#include <vector>
 #include "AbstractObjects/OpalData.h"
 #include "OpalParser/OpalParser.h"
 #include "OpalParser/Statement.h"
 #include "Utilities/ParseError.h"
-#include <vector>
 
-MacroCmd::MacroCmd():
-    Macro(0u, "MACRO",
-          "A \"MACRO\" command defines a subroutine:\n"
-          "\t<name>(<arguments>):MACRO{<body>}"),
-    body(0)
-{}
+MacroCmd::MacroCmd()
+    : Macro(0u, "MACRO",
+            "A \"MACRO\" command defines a subroutine:\n"
+            "\t<name>(<arguments>):MACRO{<body>}"),
+      body(0) {}
 
-
-MacroCmd::MacroCmd(const std::string &name, MacroCmd *parent):
-    Macro(name, parent), body() {
+MacroCmd::MacroCmd(const std::string& name, MacroCmd* parent) : Macro(name, parent), body() {
     body = std::make_shared<MacroStream>(name);
 }
 
-
-MacroCmd::~MacroCmd()
-{}
-
+MacroCmd::~MacroCmd() {}
 
 void MacroCmd::execute() {
     body->start();
     itsParser->run(&*body);
 }
 
-
-Object *MacroCmd::makeInstance
-(const std::string &name, Statement &statement, const Parser *parser) {
+Object* MacroCmd::makeInstance(
+        const std::string& name, Statement& statement, const Parser* parser) {
     parseActuals(statement);
 
     // Check for consistency in argument number.
-    if(formals.size() != actuals.size()) {
-        throw ParseError("MacroCmd::makeInstance()",
-                         "Inconsistent number of macro arguments.");
+    if (formals.size() != actuals.size()) {
+        throw ParseError("MacroCmd::makeInstance()", "Inconsistent number of macro arguments.");
     }
 
     // Substitute the actual arguments.
-    MacroCmd *macro = new MacroCmd(name, this);
+    MacroCmd* macro  = new MacroCmd(name, this);
     macro->itsParser = parser;
     body->start();
     Token token = body->readToken();
 
-    while(! token.isEOF()) {
+    while (!token.isEOF()) {
         bool found = false;
 
-        if(token.isWord()) {
+        if (token.isWord()) {
             std::string word = token.getWord();
 
-            for(std::vector<std::string>::size_type i = 0;
-                i < formals.size(); i++) {
-                if(word == formals[i]) {
+            for (std::vector<std::string>::size_type i = 0; i < formals.size(); i++) {
+                if (word == formals[i]) {
                     std::vector<Token> act = actuals[i];
-                    for(Token t : act) {
+                    for (Token t : act) {
                         macro->body->append(t);
                     }
                     found = true;
@@ -90,17 +81,15 @@ Object *MacroCmd::makeInstance
             }
         }
 
-        if(! found) macro->body->append(token);
+        if (!found) macro->body->append(token);
         token = body->readToken();
     }
 
     return macro;
 }
 
-
-Object *MacroCmd::makeTemplate
-(const std::string &name, TokenStream &, Statement &statement) {
-    MacroCmd *macro = new MacroCmd(name, this);
+Object* MacroCmd::makeTemplate(const std::string& name, TokenStream&, Statement& statement) {
+    MacroCmd* macro = new MacroCmd(name, this);
     macro->parseFormals(statement);
 
     // Parse macro body->
@@ -108,27 +97,25 @@ Object *MacroCmd::makeTemplate
     PAssert(isMacro);
     Token token;
 
-    if(statement.delimiter('{')) {
+    if (statement.delimiter('{')) {
         int level = 1;
-        while(true) {
-            if(statement.atEnd()) {
-                throw ParseError("MacroCmd::makeTemplate()",
-                                 "MACRO body is not closed.");
+        while (true) {
+            if (statement.atEnd()) {
+                throw ParseError("MacroCmd::makeTemplate()", "MACRO body is not closed.");
             } else {
                 token = statement.getCurrent();
 
-                if(token.isDel('{')) {
+                if (token.isDel('{')) {
                     ++level;
-                } else if(token.isDel('}')) {
-                    if(--level == 0) break;
+                } else if (token.isDel('}')) {
+                    if (--level == 0) break;
                 }
 
                 macro->body->append(token);
             }
         }
     } else {
-        throw ParseError("MacroCmd::makeTemplate()",
-                         "Missing MACRO body, should be \"{...}\".");
+        throw ParseError("MacroCmd::makeTemplate()", "Missing MACRO body, should be \"{...}\".");
     }
 
     return macro;

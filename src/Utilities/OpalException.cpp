@@ -18,29 +18,16 @@
 
 #include "Utilities/OpalException.h"
 
-
 // Class OpalException
 // ------------------------------------------------------------------------
 
-OpalException::OpalException(const std::string &meth, const std::string &msg):
-    message(msg), method(meth)
-{}
+OpalException::OpalException(const std::string& meth, const std::string& msg)
+    : message(msg), method(meth) {}
 
+OpalException::OpalException(const OpalException& rhs) : message(rhs.message), method(rhs.method) {}
 
-OpalException::OpalException(const OpalException &rhs):
-    message(rhs.message), method(rhs.method)
-{}
+OpalException::~OpalException() {}
 
+const std::string& OpalException::what() const { return message; }
 
-OpalException::~OpalException()
-{}
-
-
-const std::string &OpalException::what() const {
-    return message;
-}
-
-
-const std::string &OpalException::where() const {
-    return method;
-}
+const std::string& OpalException::where() const { return method; }

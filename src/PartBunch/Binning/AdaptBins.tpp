@@ -245,7 +245,7 @@ namespace ParticleBinning {
                             [&](const size_type i) {
                                 bin_index_type ndx = binIndex(i);  // Get bin index for the particle
                                 if (ndx < binCount)
-                                    Kokkos::atomic_increment(
+                                    Kokkos::atomic_inc(
                                             &team_local_hist(ndx));  // Atomic within shared memory
                             });
                     teamMember.team_barrier();
