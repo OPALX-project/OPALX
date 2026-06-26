@@ -24,11 +24,6 @@ class PartData;
 template <class T, int N>
 class FVps;
 
-struct Point {
-    double x;
-    double y;
-};
-
 class Component : public ElementBase {
 public:
     /* ============================== Constructors ============================== */
