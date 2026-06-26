@@ -1677,3 +1677,40 @@ Proposed points to settle before the next run:
   killed deliberately and documented.
 - Do not draw physics conclusions from H5/stat files until their producer run
   has been verified as fresh and complete.
+
+## 2026-06-26: PR 454 merge reverted and regression checked
+
+User requested merging "Remove Legacy Fields #454", then reverting that merge
+after the chicane regression comparison.  The merge commit was reverted with an
+explicit revert commit:
+
+```text
+a836a4290 Revert "Merge branch 'codex/pr-454-remove-legacy-fields' into 391-placement-of-sbend-and-rbend-analytic-fields-including-fringe-fields"
+```
+
+Validation after the revert:
+
+- `cmake --build build --parallel 4` completed.
+- Bend-related CTest subset passed `10/10`, including restored legacy-field
+  tests `TestBendRep`, `TestOpalBend`, and `TestConstEzField`.
+- Fresh OPALX chicane decks all ran to completion with exit code `0`:
+  `test-chicane-1.in`, `test-chicane-distribution-1.in`, and
+  `test-chicane-distribution-2.in`.
+- The actual sandbox regression comparison was also run:
+
+```sh
+/Users/adelmann/.venv-h6/bin/python \
+  sandbox/regression/run_sandbox_regressions.py --check chicane
+```
+
+The regression comparison still reports one tight-tolerance mismatch:
+
+```text
+chicane.r56.R56_minus_expected_m:
+  actual   = -1.2954321852130801e-05
+  baseline = -1.2954320100490302e-05
+```
+
+The absolute difference is about `1.75e-12 m`; the regression tolerance is
+`rtol=1e-08, atol=1e-12`.  The survey and design-path chicane metrics matched
+the stored baseline.
