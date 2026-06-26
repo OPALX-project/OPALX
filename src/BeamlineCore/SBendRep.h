@@ -20,17 +20,11 @@ public:
     ElementBase* clone() const override;
     Channel* getChannel(const std::string& aKey, bool create = false) override;
 
-    BMultipoleField& getField() override;
-    const BMultipoleField& getField() const override;
-
     PlanarArcGeometry& getGeometry() override;
     const PlanarArcGeometry& getGeometry() const override;
 
-    void setField(const BMultipoleField& field);
-
 private:
     PlanarArcGeometry geometry_m;
-    BMultipoleField field_m;
 };
 
 #endif  // OPALX_SBendRep_HH
