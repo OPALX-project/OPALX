@@ -1,7 +1,7 @@
 #ifndef OPALX_ConstantEFieldCavity_HH
 #define OPALX_ConstantEFieldCavity_HH
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 
 /**
  * @class ConstantEFieldCavity

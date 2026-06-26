@@ -1,7 +1,7 @@
 #ifndef OPALX_ReferencePathSegment_HH
 #define OPALX_ReferencePathSegment_HH
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 
 #include <optional>
 #include <set>

@@ -21,7 +21,7 @@
 //
 // ------------------------------------------------------------------------
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
 
 class Fieldmap;

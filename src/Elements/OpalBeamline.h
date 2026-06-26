@@ -23,7 +23,7 @@
 #include <set>
 #include <string>
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "PartBunch/PartBunch.h"
 
 #include "AbsBeamline/Marker.h"

@@ -22,7 +22,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 
 // Class Corrector

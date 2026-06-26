@@ -30,7 +30,7 @@
 
 #include <vector>
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 
 /** \class[RingSection]
  *

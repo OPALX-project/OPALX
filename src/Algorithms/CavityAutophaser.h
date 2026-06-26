@@ -22,7 +22,7 @@
 #ifndef CAVITYAUTOPHASER
 #define CAVITYAUTOPHASER
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Algorithms/PartData.h"
 
 class CavityAutophaser {

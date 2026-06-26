@@ -19,7 +19,7 @@
 #ifndef ABSBEAMLINE_VARIABLERFCAVITY_HH
 #define ABSBEAMLINE_VARIABLERFCAVITY_HH
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Algorithms/AbstractTimeDependence.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Physics/Physics.h"

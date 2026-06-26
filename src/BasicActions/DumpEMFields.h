@@ -23,7 +23,7 @@
 #include <set>
 #include <string>
 #include <unordered_set>
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "AbstractObjects/Action.h"
 #include "Fields/Interpolation/NDGrid.h"
 

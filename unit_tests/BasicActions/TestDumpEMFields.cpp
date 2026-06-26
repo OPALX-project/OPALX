@@ -21,7 +21,7 @@
 #include <iostream>
 #include <set>
 #include <vector>
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "BasicActions/DumpEMFields.h"
