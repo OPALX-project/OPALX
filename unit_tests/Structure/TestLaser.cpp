@@ -36,9 +36,9 @@ namespace {
         void visitRBend(const RBend&) override { sawRBend = true; }
 
         bool sawElementBase = false;
-        bool sawLaser     = false;
-        bool sawSBend     = false;
-        bool sawRBend     = false;
+        bool sawLaser       = false;
+        bool sawSBend       = false;
+        bool sawRBend       = false;
     };
 }  // namespace
 
