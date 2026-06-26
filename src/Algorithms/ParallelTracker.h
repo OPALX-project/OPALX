@@ -201,8 +201,9 @@ public:
     void computeSpaceChargeFields(unsigned long long step);
 
     /// @brief Apply external fields from elements intersecting each active container.
-    /// @param oth Orbit threader for element queries.
-    void computeExternalFields(OrbitThreader& oth);
+    /// @param oths Per-container orbit threaders (one per distinct species; same-species
+    ///             containers share one) used for element queries.
+    void computeExternalFields(const std::vector<std::shared_ptr<OrbitThreader>>& oths);
 
     /// @brief Emit macroparticles from configured samplers per container.
     /// @param t  Bunch time (s).
