@@ -40,7 +40,15 @@ public:
         ENTRYOFFSET,  // Longitudinal offset from standard entrance point
         // Time dependence
         SCALING_MODEL,  // Name of a time dependence object
-        SIZE            // size of the enum
+        // Misalignments
+        MISALIGN_H,           // Horizontal misalignment [m]
+        MISALIGN_V,           // Vertical misalignment [m]
+        MISALIGN_S,           // Longitudinal misalignment [m]
+        MISALIGN_ROLL,        // Roll misalignment [rad] about the longitudinal axis
+        MISALIGN_PITCH,       // Pitch misalignment [rad] about the horizontal axis
+        MISALIGN_YAW,         // Yaw misalignment [rad] about the vertical axis
+        MISALIGN_AXISOFFSET,  // Vertical offset of rotation axes [m]
+        SIZE                  // size of the enum
     };
 
     /** Default constructor initialises UI parameters. */

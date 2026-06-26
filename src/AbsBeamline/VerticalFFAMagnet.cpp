@@ -20,6 +20,7 @@ VerticalFFAMagnet::VerticalFFAMagnet(const std::string& name)
 VerticalFFAMagnet::VerticalFFAMagnet(const VerticalFFAMagnet& right)
     : Component(right),
       straightGeometry_m(right.straightGeometry_m),
+      dummy(right.dummy),
       maxOrder_m(right.maxOrder_m),
       k_m(right.k_m),
       Bz_m(right.Bz_m),
@@ -39,6 +40,10 @@ ElementBase* VerticalFFAMagnet::clone() const {
     magnet->initialise();
     return magnet;
 }
+
+EMField& VerticalFFAMagnet::getField() { return dummy; }
+
+const EMField& VerticalFFAMagnet::getField() const { return dummy; }
 
 void VerticalFFAMagnet::initialise() {
     calculateDfCoefficients();

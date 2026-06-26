@@ -20,6 +20,7 @@
 
 #include "AbsBeamline/TravelingWave.h"
 #include "BeamlineGeometry/StraightGeometry.h"
+#include "Fields/AcceleratingField.h"
 
 class TravelingWaveRep : public TravelingWave {
 public:
@@ -39,6 +40,14 @@ public:
     //  the attribute [b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns nullptr.
     virtual Channel* getChannel(const std::string& aKey, bool = false);
+
+    /// Get field.
+    //  Version for non-constant object.
+    virtual AcceleratingField& getField();
+
+    /// Get field.
+    //  Version for constant object.
+    virtual const AcceleratingField& getField() const;
 
     /// Get geometry.
     //  Return the element geometry.
@@ -84,6 +93,9 @@ private:
 
     /// The cavity's geometry.
     StraightGeometry geometry;
+
+    /// The cavity's field.
+    AcceleratingField field;
 
     /// Cavities are ignored (amplitude = 0) when this switch is set.
     static bool ignoreCavities;

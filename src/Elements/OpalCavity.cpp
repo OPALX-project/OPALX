@@ -95,6 +95,10 @@ void OpalCavity::update() {
 
     rfc->setElementLength(length);
 
+    rfc->setAmplitude(Units::MVpm2Vpm * peak);
+    rfc->setFrequency(freq);
+    rfc->setPhase(phase);
+
     rfc->dropFieldmaps();
 
     rfc->setAmplitudem(peak);

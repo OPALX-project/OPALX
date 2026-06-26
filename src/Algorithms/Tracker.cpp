@@ -60,6 +60,7 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Algorithms/Tracker.h"
+#include "Fields/BMultipoleField.h"
 #include "Utilities/OpalException.h"
 
 // FIXME Remove headers and dynamic_cast in readOneBunchFromFile

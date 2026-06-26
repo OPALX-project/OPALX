@@ -76,6 +76,9 @@ void OpalTravelingWave::update() {
     double kineticEnergy = Attributes::getReal(itsAttr[DESIGNENERGY]);
 
     rfc->setElementLength(length);
+    rfc->setAmplitude(Units::MVpm2Vpm * vPeak);
+    rfc->setFrequency(freq);
+    rfc->setPhase(phase);
 
     rfc->setFieldMapFN(fmapfm);
     rfc->setFast(fast);

@@ -55,20 +55,24 @@ Channel* RFCavityRep::getChannel(const std::string& aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
+AcceleratingField& RFCavityRep::getField() { return field; }
+
+const AcceleratingField& RFCavityRep::getField() const { return field; }
+
 StraightGeometry& RFCavityRep::getGeometry() { return geometry; }
 
 const StraightGeometry& RFCavityRep::getGeometry() const { return geometry; }
 
-double RFCavityRep::getAmplitude() const { return ignoreCavities ? 0.0 : getAmplitudem(); }
+double RFCavityRep::getAmplitude() const { return ignoreCavities ? 0.0 : field.getEz(); }
 
-double RFCavityRep::getFrequency() const { return getFrequencym(); }
+double RFCavityRep::getFrequency() const { return field.getFrequency(); }
 
-double RFCavityRep::getPhase() const { return getPhasem(); }
+double RFCavityRep::getPhase() const { return field.getPhase(); }
 
-void RFCavityRep::setAmplitude(double amplitude) { setAmplitudem(amplitude); }
+void RFCavityRep::setAmplitude(double amplitude) { field.setEz(amplitude); }
 
-void RFCavityRep::setFrequency(double frequency) { setFrequencym(frequency); }
+void RFCavityRep::setFrequency(double frequency) { field.setFrequency(frequency); }
 
-void RFCavityRep::setPhase(double phase) { setPhasem(phase); }
+void RFCavityRep::setPhase(double phase) { field.setPhase(phase); }
 
 void RFCavityRep::setIgnore(bool ignore) { ignoreCavities = ignore; }
