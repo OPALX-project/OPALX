@@ -2,6 +2,7 @@
 #include "Fields/Fieldmap.hpp"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
+#include "Utilities/GSLFFT.h"
 #include "Utilities/GSLSpline.h"
 #include "Utilities/GeneralOpalException.h"
 #include "Utilities/Util.h"
@@ -138,6 +139,9 @@ void Astra1DMagnetoStatic::readMap() {
     gsl_spline* Bz_interpolant = gsl_spline_alloc(gsl_interp_cspline, num_gridpz_m);
     gsl_interp_accel* Bz_accel = gsl_interp_accel_alloc();
 
+    gsl_fft_real_wavetable* real = gsl_fft_real_wavetable_alloc(2 * num_gridpz_m);
+    gsl_fft_real_workspace* work = gsl_fft_real_workspace_alloc(2 * num_gridpz_m);
+
     const int size = 2 * accuracy_m - 1;
     FourCoefs_m    = Kokkos::DualView<double*>("FourCoefs", size);
     auto coefs     = FourCoefs_m.view_host();
@@ -171,6 +175,8 @@ void Astra1DMagnetoStatic::readMap() {
     if (accepted != num_gridpz_m) {
         gsl_spline_free(Bz_interpolant);
         gsl_interp_accel_free(Bz_accel);
+        gsl_fft_real_wavetable_free(real);
+        gsl_fft_real_workspace_free(work);
         delete[] zvals;
         delete[] RealValues;
 
@@ -183,6 +189,8 @@ void Astra1DMagnetoStatic::readMap() {
     if (Bz_max == 0.0) {
         gsl_spline_free(Bz_interpolant);
         gsl_interp_accel_free(Bz_accel);
+        gsl_fft_real_wavetable_free(real);
+        gsl_fft_real_workspace_free(work);
         delete[] zvals;
         delete[] RealValues;
 
@@ -209,36 +217,16 @@ void Astra1DMagnetoStatic::readMap() {
     // Disable normalization if requested
     const double norm = normalize_m ? Bz_max : 1.0;
 
-    // Compute Fourier coefficients explicitly from the mirrored periodic samples.
-    const int M = 2 * num_gridpz_m;
-
-    double a0 = 0.0;
-    for (int j = 0; j < M; ++j) {
-        a0 += RealValues[j];
-    }
-    coefs(0) = a0 / (norm * M);
-
-    for (int l = 1; l < accuracy_m; ++l) {
-        double a_l = 0.0;
-        double b_l = 0.0;
-
-        for (int j = 0; j < M; ++j) {
-            const double theta = Physics::two_pi * double(j) / double(M);
-            a_l += RealValues[j] * std::cos(l * theta);
-            b_l += RealValues[j] * std::sin(l * theta);
-        }
-
-        a_l *= 2.0 / double(M);
-        b_l *= 2.0 / double(M);
-
-        const int n = 2 * l - 1;
-
-        coefs(n)     = a_l / norm;
-        coefs(n + 1) = -b_l / norm;
+    gsl_fft_real_transform(RealValues, 1, 2 * num_gridpz_m, real, work);
+    coefs(0) = RealValues[0] / (norm * 2.0 * num_gridpz_m);
+    for (int i = 1; i < size; ++i) {
+        coefs(i) = RealValues[i] / (norm * num_gridpz_m);
     }
 
     gsl_spline_free(Bz_interpolant);
     gsl_interp_accel_free(Bz_accel);
+    gsl_fft_real_workspace_free(work);
+    gsl_fft_real_wavetable_free(real);
 
     delete[] zvals;
     delete[] RealValues;
