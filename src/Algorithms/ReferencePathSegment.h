@@ -18,7 +18,7 @@
  */
 class ReferencePathSegment {
 public:
-    using element_set_t = std::set<std::shared_ptr<Component>>;
+    using element_set_t = std::set<std::shared_ptr<ElementBase>>;
 
     ReferencePathSegment(
             double begin = 0.0, double end = 0.0, const element_set_t& activeElements = {},

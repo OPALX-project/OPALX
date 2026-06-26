@@ -31,7 +31,7 @@
 //  Class Corrector defines the abstract interface for closed orbit
 //  correctors.
 
-class Corrector : public Component {
+class Corrector : public ElementBase {
 public:
     /// Plane selection.
     enum Plane {

@@ -38,10 +38,10 @@ namespace {
      *  field lookup routines and placement routines and the like by generating a
      *  "fake" component.
      */
-    class MockComponent : public Component {
+    class MockComponent : public ElementBase {
     public:
-        MockComponent() : Component("MockComponent") {}
-        MockComponent(const MockComponent& /*rhs*/) : Component("MockComponent") {}
+        MockComponent() : ElementBase("MockComponent") {}
+        MockComponent(const MockComponent& /*rhs*/) : ElementBase("MockComponent") {}
         ~MockComponent() override = default;
         void accept(BeamlineVisitor&) const override {}
         ElementBase* clone() const override { return new MockComponent(*this); }
@@ -160,7 +160,7 @@ namespace {
         execute_throws(&dump1, "should throw due to nsteps < 1");
         setAttributesCart(&dump1, 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., "/dev/null");
         dump1.execute();  // should be okay (normal)
-        std::set<std::shared_ptr<Component>> elements;
+        std::set<std::shared_ptr<ElementBase>> elements;
         elements.insert(std::make_shared<MockComponent>());
         EXPECT_NO_THROW(DumpEMFields::writeFields(elements));
         setAttributesCart(
@@ -214,7 +214,7 @@ namespace {
         DumpEMFields dump4;
         setAttributesCart(&dump4, 0.1, 0.1, 3., -0.1, 0.2, 2., 0.2, 0.3, 2., 1., 1., 2., fname4);
         dump4.execute();
-        std::set<std::shared_ptr<Component>> elements;
+        std::set<std::shared_ptr<ElementBase>> elements;
         elements.insert(std::make_shared<MockComponent>());
         try {
             DumpEMFields::writeFields(elements);
@@ -279,7 +279,7 @@ namespace {
                 1., 1., 2., fnameCyl);
         dump.execute();
         // depending on execution order, this might write cartesian tests as well... never mind
-        std::set<std::shared_ptr<Component>> elements;
+        std::set<std::shared_ptr<ElementBase>> elements;
         elements.insert(std::make_shared<MockComponent>());
         try {
             DumpEMFields::writeFields(elements);
@@ -349,7 +349,7 @@ namespace {
         setOriginCyl(&dump2, 0.01, 0.02, 0.03);
         dump2.execute();
         // depending on execution order, this might write cartesian tests as well... never mind
-        std::set<std::shared_ptr<Component>> elements;
+        std::set<std::shared_ptr<ElementBase>> elements;
         elements.insert(std::make_shared<MockComponent>());
         try {
             DumpEMFields::writeFields(elements);
@@ -410,7 +410,7 @@ namespace {
                 1., 1., 2., fnameCyl);
         dump.execute();
         DumpEMFields::failGrid();
-        std::set<std::shared_ptr<Component>> elements;
+        std::set<std::shared_ptr<ElementBase>> elements;
         elements.insert(std::make_shared<MockComponent>());
         EXPECT_ANY_THROW(DumpEMFields::writeFields(elements));
         DumpEMFields::clearDumps();
@@ -426,7 +426,7 @@ namespace {
                 &dump, 0.1, 0.1, 3., 90. * Units::deg2rad, 45. * Units::deg2rad, 16, 0.2, 0.3, 2.,
                 1., 1., 2., fnameCyl);
         dump.execute();
-        std::set<std::shared_ptr<Component>> elements;
+        std::set<std::shared_ptr<ElementBase>> elements;
         elements.insert(std::make_shared<MockComponent>());
         EXPECT_ANY_THROW(DumpEMFields::writeFields(elements));
         DumpEMFields::clearDumps();
@@ -443,7 +443,7 @@ namespace {
                 1., 1., 2., fnameCyl);
         dump.execute();
         DumpEMFields::failWrite();
-        std::set<std::shared_ptr<Component>> elements;
+        std::set<std::shared_ptr<ElementBase>> elements;
         elements.insert(std::make_shared<MockComponent>());
         EXPECT_ANY_THROW(DumpEMFields::writeFields(elements));
         DumpEMFields::clearDumps();

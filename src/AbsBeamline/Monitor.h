@@ -30,7 +30,7 @@
 
 class BeamlineVisitor;
 
-class Monitor : public Component {
+class Monitor : public ElementBase {
 public:
     /// Plane selection.
     enum Plane {

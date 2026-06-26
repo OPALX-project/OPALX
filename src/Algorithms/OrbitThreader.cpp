@@ -90,7 +90,7 @@ OrbitThreader::OrbitThreader(
     computeBoundingBox();
 }
 
-void OrbitThreader::checkElementLengths(const std::set<std::shared_ptr<Component>>& fields) {
+void OrbitThreader::checkElementLengths(const std::set<std::shared_ptr<ElementBase>>& fields) {
     while (!stepSizes_m.reachedEnd() && pathLength_m > stepSizes_m.getZStop()) {
         ++stepSizes_m;
     }
@@ -99,7 +99,7 @@ void OrbitThreader::checkElementLengths(const std::set<std::shared_ptr<Component
     }
     double driftLength =
             Physics::c * std::abs(stepSizes_m.getdT()) * euclidean_norm(p_m) / Util::getGamma(p_m);
-    for (const std::shared_ptr<Component>& field : fields) {
+    for (const std::shared_ptr<ElementBase>& field : fields) {
         double fieldBegin = 0.0;
         double fieldEnd   = 0.0;
         field->getFieldExtend(fieldBegin, fieldEnd);
@@ -135,7 +135,7 @@ void OrbitThreader::execute() {
     setDesignEnergy(allElements, visitedElements);
 
     auto elementSet = itsOpalBeamline_m.getElements(nextR);
-    std::set<std::shared_ptr<Component>> intersection, currentSet;
+    std::set<std::shared_ptr<ElementBase>> intersection, currentSet;
     errorFlag_m = EVERYTHINGFINE;
 
     *gmsg << "* OrbitThreader dt_m= " << dt_m << endl;
@@ -384,7 +384,7 @@ void OrbitThreader::registerElement(
 }
 
 void OrbitThreader::processElementRegister() {
-    using registry_key_t = std::shared_ptr<Component>;
+    using registry_key_t = std::shared_ptr<ElementBase>;
     using registry_map_t = std::map<
             registry_key_t, std::set<elementPosition, elementPositionComp>,
             std::owner_less<registry_key_t>>;
@@ -444,7 +444,7 @@ void OrbitThreader::setDesignEnergy(
     FieldList::iterator it        = allElements.begin();
     const FieldList::iterator end = allElements.end();
     for (; it != end; ++it) {
-        std::shared_ptr<Component> element = (*it).getElement();
+        std::shared_ptr<ElementBase> element = (*it).getElement();
         if (visitedElements.find(element->getName()) == visitedElements.end()
             && !(element->getType() == ElementType::RFCAVITY
                  || element->getType() == ElementType::TRAVELINGWAVE)) {
@@ -477,7 +477,7 @@ void OrbitThreader::updateBoundingBoxWithCurrentPosition() {
 }
 
 double OrbitThreader::computeDriftLengthToBoundingBox(
-        const std::set<std::shared_ptr<Component>>& elements, const Vector_t<double, 3>& position,
+        const std::set<std::shared_ptr<ElementBase>>& elements, const Vector_t<double, 3>& position,
         const Vector_t<double, 3>& direction) const {
     if (elements.empty()
         || (elements.size() == 1 && (*elements.begin())->getType() == ElementType::DRIFT)) {

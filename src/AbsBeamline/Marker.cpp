@@ -24,11 +24,11 @@
 // Class Marker
 // ------------------------------------------------------------------------
 
-Marker::Marker() : Component() {}
+Marker::Marker() : ElementBase() {}
 
-Marker::Marker(const Marker& right) : Component(right) {}
+Marker::Marker(const Marker& right) : ElementBase(right) {}
 
-Marker::Marker(const std::string& name) : Component(name) {}
+Marker::Marker(const std::string& name) : ElementBase(name) {}
 
 Marker::~Marker() {}
 

@@ -3,7 +3,7 @@
 extern Inform* gmsg;
 
 BeamlineFieldElement::BeamlineFieldElement(
-        std::shared_ptr<Component> element, const double& start, const double& end)
+        std::shared_ptr<ElementBase> element, const double& start, const double& end)
     : element_m(element), start_m(start), end_m(end), is_on_m(false) {}
 
 BeamlineFieldElement::~BeamlineFieldElement() { element_m = nullptr; }

@@ -26,7 +26,7 @@ constexpr int MAX_MP_ORDER = 5;
  * Units for multipole strengths are Teslas / m^(n-1).
  */
 
-class Multipole : public Component {
+class Multipole : public ElementBase {
 public:
     /* ============================== Constructors ============================== */
     explicit Multipole(const std::string& name);

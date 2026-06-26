@@ -43,12 +43,12 @@ OpalBeamline::OpalBeamline(const Vector_t<double, 3>& origin, const Quaternion& 
 
 OpalBeamline::~OpalBeamline() { elements_m.clear(); }
 
-std::set<std::shared_ptr<Component>> OpalBeamline::getElements(const Vector_t<double, 3>& x) {
-    std::set<std::shared_ptr<Component>> elementSet;
+std::set<std::shared_ptr<ElementBase>> OpalBeamline::getElements(const Vector_t<double, 3>& x) {
+    std::set<std::shared_ptr<ElementBase>> elementSet;
     FieldList::iterator it        = elements_m.begin();
     const FieldList::iterator end = elements_m.end();
     for (; it != end; ++it) {
-        std::shared_ptr<Component> element = (*it).getElement();
+        std::shared_ptr<ElementBase> element = (*it).getElement();
         Vector_t<double, 3> r              = getCSTrafoLab2Local(element).transformTo(x);
 
         if (element->isInside(r)) {
@@ -59,8 +59,8 @@ std::set<std::shared_ptr<Component>> OpalBeamline::getElements(const Vector_t<do
     return elementSet;
 }
 
-std::set<std::shared_ptr<Component>> OpalBeamline::getElements() {
-    std::set<std::shared_ptr<Component>> elementSet;
+std::set<std::shared_ptr<ElementBase>> OpalBeamline::getElements() {
+    std::set<std::shared_ptr<ElementBase>> elementSet;
     for (auto& item : elements_m) {
         elementSet.insert(item.getElement());
     }
@@ -80,10 +80,10 @@ unsigned long OpalBeamline::getFieldAt(
         Vector_t<double, 3>& Ef, Vector_t<double, 3>& Bf) {
     unsigned long rtv = 0x00;
 
-    std::set<std::shared_ptr<Component>> elements = getElements(position);
+    std::set<std::shared_ptr<ElementBase>> elements = getElements(position);
 
-    std::set<std::shared_ptr<Component>>::const_iterator it        = elements.begin();
-    const std::set<std::shared_ptr<Component>>::const_iterator end = elements.end();
+    std::set<std::shared_ptr<ElementBase>>::const_iterator it        = elements.begin();
+    const std::set<std::shared_ptr<ElementBase>>::const_iterator end = elements.end();
 
     for (; it != end; ++it) {
         ElementType type = (*it)->getType();
@@ -211,7 +211,7 @@ void OpalBeamline::compileCompatibilityPlacement() {
 
         FieldList::iterator it = elements_m.begin();
         for (; it != end; ++it) {
-            std::shared_ptr<Component> element = (*it).getElement();
+            std::shared_ptr<ElementBase> element = (*it).getElement();
             if (element->isPositioned()) {
                 continue;
             }
@@ -283,7 +283,7 @@ void OpalBeamline::compileCompatibilityPlacement() {
 
     FieldList::iterator it = elements_m.begin();
     for (; it != end; ++it) {
-        std::shared_ptr<Component> element = (*it).getElement();
+        std::shared_ptr<ElementBase> element = (*it).getElement();
         if (element->isPositioned()) continue;
 
         (*it).order_m = order++;
@@ -383,7 +383,7 @@ void OpalBeamline::save3DLattice() {
 
     MeshGenerator mesh;
     for (auto scan = it; scan != end; ++scan) {
-        const std::shared_ptr<Component> scanElement = (*scan).getElement();
+        const std::shared_ptr<ElementBase> scanElement = (*scan).getElement();
         if (scanElement->getType() == ElementType::DRIFT) {
             continue;
         }
@@ -397,7 +397,7 @@ void OpalBeamline::save3DLattice() {
     }
 
     for (; it != end; ++it) {
-        std::shared_ptr<Component> element = (*it).getElement();
+        std::shared_ptr<ElementBase> element = (*it).getElement();
         PlacedElement placedElement        = getPlacedElement(element);
         CoordinateSystemTrafo toBegin      = getNominalEntryTransform(element);
         CoordinateSystemTrafo toEnd        = getNominalExitTransform(element);
@@ -560,7 +560,7 @@ void OpalBeamline::save3DInput() {
     std::ofstream pos(fname);
 
     for (; it != end; ++it) {
-        std::shared_ptr<Component> element = (*it).getElement();
+        std::shared_ptr<ElementBase> element = (*it).getElement();
         std::string elementName            = element->getName();
         const std::regex replacePSI(
                 "(" + elementName + "\\s*:[^\\n]*)PSI\\s*=[^,;]*,?", std::regex::icase);
@@ -612,7 +612,7 @@ void OpalBeamline::activateElements() {
     const auto end      = elements_m.end();
     double designEnergy = 0.0;
     for (; it != end; ++it) {
-        std::shared_ptr<Component> element = (*it).getElement();
+        std::shared_ptr<ElementBase> element = (*it).getElement();
         (*it).setOn(designEnergy);
         element->goOnline(designEnergy);
     }
