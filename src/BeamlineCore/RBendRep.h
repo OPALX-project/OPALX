@@ -20,11 +20,17 @@ public:
     ElementBase* clone() const override;
     Channel* getChannel(const std::string& aKey, bool create = false) override;
 
+    BMultipoleField& getField() override;
+    const BMultipoleField& getField() const override;
+
     RBendGeometry& getGeometry() override;
     const RBendGeometry& getGeometry() const override;
 
+    void setField(const BMultipoleField& field);
+
 private:
     RBendGeometry geometry_m;
+    BMultipoleField field_m;
 };
 
 #endif  // OPALX_RBendRep_HH

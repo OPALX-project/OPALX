@@ -2,8 +2,7 @@
 #define OPALX_BendBase_HH
 
 #include "AbsBeamline/Component.h"
-
-#include <Kokkos_Core.hpp>
+#include "Fields/BMultipoleField.h"
 
 #include <cmath>
 #include <cstddef>
@@ -328,8 +327,7 @@ public:
      * physical Tesla strengths from either the explicit design energy or the
      * runtime bunch reference momentum.
      */
-    void setNormalizedFieldComponents(
-            const std::vector<double>& normal, const std::vector<double>& skew);
+    void setNormalizedField(const BMultipoleField& field);
 
     /**
      * @brief Resolve the reference momentum used for runtime field scaling.
@@ -357,13 +355,6 @@ public:
     void setFieldMapFN(std::string fileName);
     std::string getFieldMapFN() const;
 
-    /// Store the normal/skew multipole coefficients into the device views read
-    /// by apply()/computeFieldHost(). Values are taken as-is (already scaled by
-    /// the caller).
-    void setFieldComponents(const std::vector<double>& normal, const std::vector<double>& skew);
-
-    /// Dipole normal component (the "BY" channel attribute), backed by the
-    /// coefficient views.
     double getB() const;
     void setB(double B);
 
@@ -611,6 +602,9 @@ public:
      */
     double getFieldScale(double z) const;
 
+    virtual BMultipoleField& getField() override             = 0;
+    virtual const BMultipoleField& getField() const override = 0;
+
 protected:
     double calcDesignRadius(double fieldAmplitude) const;
     double calcFieldAmplitude(double radius) const;
@@ -733,14 +727,9 @@ protected:
     virtual double getReferencePathLength() const;
 
 private:
-    void computeFieldHost(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const;
+    static void computeFieldHost(
+            const Vector_t<double, 3>& R, const BMultipoleField& field, Vector_t<double, 3>& B);
     double getReferenceMomentumEV() const;
-
-    /// Normal/skew multipole coefficients on the device, read by tracking.
-    Kokkos::View<double*> normalComponents_m;
-    Kokkos::View<double*> skewComponents_m;
-    int maxNormal_m = 0;
-    int maxSkew_m   = 0;
 
     double startField_m;
     double endField_m;
@@ -758,8 +747,7 @@ private:
     double fieldAmplitudeX_m;
     double fieldAmplitudeY_m;
     double fieldAmplitude_m;
-    std::vector<double> normalizedNormalComponents_m;
-    std::vector<double> normalizedSkewComponents_m;
+    BMultipoleField normalizedField_m;
     bool hasNormalizedField_m;
     std::string fileName_m;
     double entryFaceRotation_m;
@@ -838,11 +826,9 @@ inline void BendBase::setFieldAmplitude(double k0, double k0s) {
 
 inline double BendBase::getFieldAmplitude() const { return fieldAmplitude_m; }
 
-inline void BendBase::setNormalizedFieldComponents(
-        const std::vector<double>& normal, const std::vector<double>& skew) {
-    normalizedNormalComponents_m = normal;
-    normalizedSkewComponents_m   = skew;
-    hasNormalizedField_m         = true;
+inline void BendBase::setNormalizedField(const BMultipoleField& field) {
+    normalizedField_m    = field;
+    hasNormalizedField_m = true;
 }
 
 inline double BendBase::resolveReferenceMomentumEV(
@@ -861,6 +847,10 @@ inline void BendBase::setFieldMapFN(std::string fileName) {
 }
 
 inline std::string BendBase::getFieldMapFN() const { return fileName_m; }
+
+inline double BendBase::getB() const { return getField().getNormalComponent(0); }
+
+inline void BendBase::setB(double B) { getField().setNormalComponent(0, B); }
 
 inline void BendBase::setEntryFaceRotation(double rotation) { entryFaceRotation_m = rotation; }
 

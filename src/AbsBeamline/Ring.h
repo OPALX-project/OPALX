@@ -176,6 +176,16 @@ public:
      */
     void appendElement(const Component& element);
 
+    /** Not implemented, throws an exception */
+    virtual EMField& getField() override {
+        throw GeneralOpalException("Ring::getField", "Not implemented");
+    }
+
+    /** Not implemented, throws an exception */
+    virtual const EMField& getField() const override {
+        throw GeneralOpalException("Ring::getField", "Not implemented");
+    }
+
     /** Not implemented */
     virtual PlanarArcGeometry& getGeometry() override { return planarArcGeometry_m; }
 
