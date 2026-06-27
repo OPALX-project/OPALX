@@ -31,10 +31,10 @@
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 ScalingFFAMagnet::ScalingFFAMagnet(const std::string& name)
-    : Component(name), planarArcGeometry_m(1., 1.), endField_m(nullptr) {}
+    : ElementBase(name), planarArcGeometry_m(1., 1.), endField_m(nullptr) {}
 
 ScalingFFAMagnet::ScalingFFAMagnet(const ScalingFFAMagnet& right)
-    : Component(right),
+    : ElementBase(right),
       planarArcGeometry_m(right.planarArcGeometry_m),
       maxOrder_m(right.maxOrder_m),
       tanDelta_m(right.tanDelta_m),

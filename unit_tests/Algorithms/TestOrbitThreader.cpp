@@ -42,11 +42,11 @@ namespace {
      * This models the post-redesign case where placement/geometry uses the body
      * extent while tracking constraints must use the field-support interval.
      */
-    class FieldSupportOnlyComponent final : public Component {
+    class FieldSupportOnlyComponent final : public ElementBase {
     public:
         FieldSupportOnlyComponent(
                 const std::string& name, const double fieldBegin, const double fieldEnd)
-            : Component(name), fieldBegin_m(fieldBegin), fieldEnd_m(fieldEnd) {}
+            : ElementBase(name), fieldBegin_m(fieldBegin), fieldEnd_m(fieldEnd) {}
 
         void accept(BeamlineVisitor&) const override {}
         ElementBase* clone() const override { return new FieldSupportOnlyComponent(*this); }

@@ -15,10 +15,10 @@
 #include <cmath>
 
 VerticalFFAMagnet::VerticalFFAMagnet(const std::string& name)
-    : Component(name), straightGeometry_m(1.) {}
+    : ElementBase(name), straightGeometry_m(1.) {}
 
 VerticalFFAMagnet::VerticalFFAMagnet(const VerticalFFAMagnet& right)
-    : Component(right),
+    : ElementBase(right),
       straightGeometry_m(right.straightGeometry_m),
       maxOrder_m(right.maxOrder_m),
       k_m(right.k_m),

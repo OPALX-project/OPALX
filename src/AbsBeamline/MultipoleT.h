@@ -63,12 +63,12 @@
  * ---------------------------------------------------------------------
  */
 #include <vector>
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Algorithms/AbstractTimeDependence.h"
 #include "MultipoleTBase.h"
 #include "MultipoleTConfig.h"
 
-class MultipoleT : public Component {
+class MultipoleT : public ElementBase {
 public:
     /** Constructor
      *  \param name -> User-defined name
