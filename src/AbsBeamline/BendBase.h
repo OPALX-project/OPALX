@@ -1,7 +1,7 @@
 #ifndef OPALX_BendBase_HH
 #define OPALX_BendBase_HH
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 
 #include <Kokkos_Core.hpp>
 
@@ -30,7 +30,7 @@
  * extent identical. Fringe-field support will extend this model later without
  * changing the body-placement semantics.
  */
-class BendBase : public Component {
+class BendBase : public ElementBase {
 public:
     BendBase();
     explicit BendBase(const std::string& name);

@@ -25,7 +25,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/EndFieldModel/EndFieldModel.h"
 #include "BeamlineGeometry/PlanarArcGeometry.h"
 
@@ -43,7 +43,7 @@
  *  placement.
  */
 
-class ScalingFFAMagnet : public Component {
+class ScalingFFAMagnet : public ElementBase {
 public:
     /** Construct a new ScalingFFAMagnet
      *

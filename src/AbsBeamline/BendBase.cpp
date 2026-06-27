@@ -32,7 +32,7 @@ namespace {
 BendBase::BendBase() : BendBase("") {}
 
 BendBase::BendBase(const BendBase& right)
-    : Component(right),
+    : ElementBase(right),
       startField_m(right.startField_m),
       endField_m(right.endField_m),
       angle_m(right.angle_m),
@@ -55,7 +55,7 @@ BendBase::BendBase(const BendBase& right)
       k1_m(right.k1_m) {}
 
 BendBase::BendBase(const std::string& name)
-    : Component(name),
+    : ElementBase(name),
       startField_m(0.0),
       endField_m(0.0),
       angle_m(0.0),

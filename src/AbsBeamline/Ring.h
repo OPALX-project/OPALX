@@ -30,7 +30,7 @@
 
 #include <string>
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 
 #include "BeamlineGeometry/PlanarArcGeometry.h"
 
@@ -59,7 +59,7 @@ class FieldMap;
  *  Also aim to maintain backwards compatibility with Cyclotron (i.e. use
  *  ParallelCyclotronTracker)
  */
-class Ring : public Component {
+class Ring : public ElementBase {
 public:
     /** Constructor
      *
@@ -174,7 +174,7 @@ public:
      *  Ring applies a bounding box based on the element geometry, if there
      *  are field maps expanding outside this region they may get cut.
      */
-    void appendElement(const Component& element);
+    void appendElement(const ElementBase& element);
 
     /** Not implemented */
     virtual PlanarArcGeometry& getGeometry() override { return planarArcGeometry_m; }

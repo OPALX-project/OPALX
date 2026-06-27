@@ -21,10 +21,16 @@
 
 #include <memory>
 #include <string>
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 
 class LossDataSink;
-class PluginElement : public Component {
+
+struct Point {
+    double x;
+    double y;
+};
+
+class PluginElement : public ElementBase {
 public:
     /// Constructor with given name.
     explicit PluginElement(const std::string& name);
