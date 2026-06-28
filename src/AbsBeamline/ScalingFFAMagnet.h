@@ -25,7 +25,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/EndFieldModel/EndFieldModel.h"
 #include "BeamlineGeometry/PlanarArcGeometry.h"
 #include "Fields/BMultipoleField.h"
@@ -44,7 +44,7 @@
  *  placement.
  */
 
-class ScalingFFAMagnet : public Component {
+class ScalingFFAMagnet : public ElementBase {
 public:
     /** Construct a new ScalingFFAMagnet
      *
@@ -134,10 +134,10 @@ public:
     const BGeometryBase& getGeometry() const override;
 
     /** Return a dummy (0.) field value (what is this for?) */
-    EMField& getField() override;
+    EMField& getField();
 
     /** Return a dummy (0.) field value (what is this for?) */
-    const EMField& getField() const override;
+    const EMField& getField() const;
 
     /** Accept a beamline visitor */
     void accept(BeamlineVisitor& visitor) const override;

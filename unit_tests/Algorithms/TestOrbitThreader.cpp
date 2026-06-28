@@ -12,6 +12,7 @@
 #include "BeamlineGeometry/PlanarArcGeometry.h"
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
+#include "Fields/EMField.h"
 #include "Fields/NullField.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
@@ -143,17 +144,17 @@ namespace {
      * This models the case where placement uses the body extent while tracking
      * constraints use the field-support interval.
      */
-    class FieldSupportOnlyComponent final : public Component {
+    class FieldSupportOnlyComponent final : public ElementBase {
     public:
         FieldSupportOnlyComponent(
                 const std::string& name, const double fieldBegin, const double fieldEnd)
-            : Component(name), fieldBegin_m(fieldBegin), fieldEnd_m(fieldEnd) {}
+            : ElementBase(name), fieldBegin_m(fieldBegin), fieldEnd_m(fieldEnd) {}
 
         void accept(BeamlineVisitor&) const override {}
         ElementBase* clone() const override { return new FieldSupportOnlyComponent(*this); }
 
-        EMField& getField() override { return field_m; }
-        const EMField& getField() const override { return field_m; }
+        EMField& getField() { return field_m; }
+        const EMField& getField() const { return field_m; }
 
         bool apply(const std::shared_ptr<ParticleContainer_t>&) override { return false; }
 
@@ -323,7 +324,7 @@ TEST_F(OrbitThreaderTest, ExposesEmptyReferencePathModelBeforeExecution) {
     OpalBeamline beamline;
     OrbitThreader threader(
             reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
-            1.0e-12, stepSizes, beamline);
+            1.0e-12, stepSizes, beamline, /*isDesignBeam=*/true);
 
     EXPECT_TRUE(threader.getReferencePathModel().empty());
     EXPECT_TRUE(threader.getActionRangeRegistrationModel().empty());
@@ -349,7 +350,7 @@ TEST_F(OrbitThreaderTest, ExecutesOverlapAndBuildsTracedAndRegistrationModels) {
     PartData reference(1.0, 9.382720813e8, 1.0e6);
     OrbitThreader threader(
             reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
-            1.0e-11, stepSizes, beamline);
+            1.0e-11, stepSizes, beamline, /*isDesignBeam=*/true);
 
     threader.execute();
 
@@ -420,7 +421,7 @@ TEST_F(OrbitThreaderTest, PrintsOnlyFinalThreadingSummary) {
         ScopedInformRedirect redirect(output);
         OrbitThreader threader(
                 reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0,
-                0.0, 1.0e-11, stepSizes, beamline);
+                0.0, 1.0e-11, stepSizes, beamline, /*isDesignBeam=*/true);
         ASSERT_NO_THROW(threader.execute());
     }
 
@@ -454,7 +455,7 @@ TEST_F(OrbitThreaderTest, UsesFieldSupportExtentForLengthCheck) {
     PartData reference(1.0, 9.382720813e8, 1.0e6);
     OrbitThreader threader(
             reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
-            1.0e-9, stepSizes, beamline);
+            1.0e-9, stepSizes, beamline, /*isDesignBeam=*/true);
 
     EXPECT_THROW(threader.execute(), OpalException);
 }
@@ -490,7 +491,7 @@ TEST_F(OrbitThreaderTest, ThrowsDiagnosticForPlacedElementOutsideTracedReference
     PartData reference(1.0, 9.382720813e8, 1.0e6);
     TestableOrbitThreader threader(
             reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
-            1.0e-11, stepSizes, beamline);
+            1.0e-11, stepSizes, beamline, /*isDesignBeam=*/true);
 
     const FieldList allElements = beamline.getElementByType(ElementType::ANY);
     ASSERT_EQ(allElements.size(), 2u);
@@ -544,7 +545,7 @@ TEST_F(OrbitThreaderTest, DoesNotReportUnvisitedElementsBeyondTracedStepLimit) {
     PartData reference(1.0, 9.382720813e8, 1.0e6);
     TestableOrbitThreader threader(
             reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
-            1.0e-11, stepSizes, beamline);
+            1.0e-11, stepSizes, beamline, /*isDesignBeam=*/true);
 
     const FieldList allElements = beamline.getElementByType(ElementType::ANY);
     ASSERT_NO_THROW(
@@ -570,7 +571,7 @@ TEST_F(OrbitThreaderTest, RegistersSBendActionRangeFromFieldSupportExtent) {
     PartData reference(1.0, 9.382720813e8, 5.90e8);
     OrbitThreader threader(
             reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
-            5.0e-12, stepSizes, beamline);
+            5.0e-12, stepSizes, beamline, /*isDesignBeam=*/true);
 
     ASSERT_NO_THROW(threader.execute());
 
@@ -629,7 +630,7 @@ TEST_F(OrbitThreaderTest, RegistersExplicitPositionedSBendActionRangeWithoutElem
     PartData reference(1.0, 9.382720813e8, 5.90e8);
     OrbitThreader threader(
             reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
-            5.0e-12, stepSizes, beamline);
+            5.0e-12, stepSizes, beamline, /*isDesignBeam=*/true);
 
     ASSERT_NO_THROW(threader.execute());
 
@@ -658,7 +659,7 @@ TEST_F(OrbitThreaderTest, LogsPostStepDesignPathStateAtZStopForSimpleDrift) {
     {
         OrbitThreader threader(
                 reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0,
-                0.0, dt, stepSizes, beamline);
+                0.0, dt, stepSizes, beamline, /*isDesignBeam=*/true);
         threader.execute();
     }
 
@@ -695,7 +696,7 @@ TEST_F(OrbitThreaderTest, LogsInterpolatedTerminalPointWhenSimpleDriftOvershoots
     {
         OrbitThreader threader(
                 reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0,
-                0.0, dt, stepSizes, beamline);
+                0.0, dt, stepSizes, beamline, /*isDesignBeam=*/true);
         threader.execute();
     }
 

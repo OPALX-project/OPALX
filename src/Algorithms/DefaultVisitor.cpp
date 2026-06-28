@@ -56,7 +56,7 @@ void DefaultVisitor::execute() {
     itsLine.accept(*this);
 }
 
-void DefaultVisitor::visitComponent(const Component& comp) { applyDefault(comp); }
+void DefaultVisitor::visitElementBase(const ElementBase& comp) { applyDefault(comp); }
 
 void DefaultVisitor::visitConstantEFieldCavity(const ConstantEFieldCavity& cav) {
     applyDefault(cav);

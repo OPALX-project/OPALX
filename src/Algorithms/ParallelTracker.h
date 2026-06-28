@@ -126,8 +126,8 @@ public:
     /// DefaultVisitor.
     virtual void visitBeamline(const Beamline&);
 
-    /// @brief Visit a generic component using the base tracker behavior.
-    virtual void visitComponent(const Component&);
+    /// @brief Visit a generic element using the base tracker behavior.
+    virtual void visitElementBase(const ElementBase&);
 
     /// @brief Apply the algorithm to a constant E-field cavity.
     virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&);
@@ -201,8 +201,9 @@ public:
     void computeSpaceChargeFields(unsigned long long step);
 
     /// @brief Apply external fields from elements intersecting each active container.
-    /// @param oth Orbit threader for element queries.
-    void computeExternalFields(OrbitThreader& oth);
+    /// @param oths Per-container orbit threaders (one per distinct species; same-species
+    ///             containers share one) used for element queries.
+    void computeExternalFields(const std::vector<std::shared_ptr<OrbitThreader>>& oths);
 
     /// @brief Emit macroparticles from configured samplers per container.
     /// @param t  Bunch time (s).

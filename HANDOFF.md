@@ -1714,3 +1714,41 @@ chicane.r56.R56_minus_expected_m:
 The absolute difference is about `1.75e-12 m`; the regression tolerance is
 `rtol=1e-08, atol=1e-12`.  The survey and design-path chicane metrics matched
 the stored baseline.
+
+## 2026-06-28: origin/master merged and bend/chicane benchmarks rerun
+
+Merged current `origin/master` into
+`391-placement-of-sbend-and-rbend-analytic-fields-including-fringe-fields`.
+Conflict resolution follows master for the `Component` removal and keeps the
+branch bend placement/fringe/sliced-tracking behavior by dispatching
+`BendBase`-specific field-chart transforms where needed.
+
+Validation after the merge:
+
+- `cmake --build build --parallel 4` completed.
+- Bend-related CTest subset passed `10/10`:
+  `TestMultipoleT`, `TestMultipoleTStraight`,
+  `TestMultipoleTCurvedConstRadius`, `TestBendRep`, `TestConstEzField`,
+  `TestLaser`, `TestOrbitThreader`, `TestDumpEMFields`, `TestOpalBend`, and
+  `TestOpalBeamlinePlacement`.
+- Fresh OPALX chicane decks all ran to completion with exit code `0`:
+  `test-chicane-1.in`, `test-chicane-distribution-1.in`, and
+  `test-chicane-distribution-2.in`.
+- The actual sandbox regression comparison was rerun:
+
+```sh
+/Users/adelmann/.venv-h6/bin/python \
+  sandbox/regression/run_sandbox_regressions.py --check chicane
+```
+
+The regression comparison still reports one tight-tolerance mismatch:
+
+```text
+chicane.r56.R56_minus_expected_m:
+  actual   = -1.2954322583996758e-05
+  baseline = -1.2954320100490302e-05
+```
+
+The absolute difference is about `2.48e-12 m`; the regression tolerance is
+`rtol=1e-08, atol=1e-12`.  The survey and design-path chicane metrics matched
+the stored baseline.
