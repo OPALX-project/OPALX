@@ -32,6 +32,7 @@
 #include <string>
 #include <vector>
 
+#include "AbsBeamline/BendBase.h"
 #include "Algorithms/Matrix.h"
 #include "BasicActions/DumpEMFields.h"
 
@@ -118,15 +119,15 @@ ParallelTracker::~ParallelTracker() {}
 // --- Visit functions ---
 
 /**
- * @copybrief ParallelTracker::visitComponent
+ * @copybrief ParallelTracker::visitElementBase
  */
-void ParallelTracker::visitComponent(const Component& comp) {
+void ParallelTracker::visitElementBase(const ElementBase& comp) {
     if (comp.getType() == ElementType::LASER) {
         throw LogicalError(
-                "ParallelTracker::visitComponent()",
+                "ParallelTracker::visitElementBase()",
                 "Tracking of the \"LASER\" element is not implemented yet.");
     }
-    Tracker::visitComponent(comp);
+    Tracker::visitElementBase(comp);
 }
 
 void ParallelTracker::visitLaser(const Laser&) {
@@ -185,7 +186,7 @@ void ParallelTracker::execute() {
     double minTimeStep = stepSizes_m.getMinTimeStep();
     m << level3 << "Selected minimum time step from configuration: " << minTimeStep << endl;
 
-    // Activate all beamline elements (sets Component::online_m = true)
+    // Activate all beamline elements (sets ElementBase::online_m = true)
     itsOpalBeamline_m.activateElements();
     m << level3 << "Activated all beamline elements." << endl;
 
@@ -272,27 +273,44 @@ void ParallelTracker::execute() {
     writePhaseSpace(0, psDump0, statDump0);
     m << level2 << "Dump initial phase space done." << endl;
 
-    // Create an OrbitThreader object to handle orbit threading and element queries
-    OrbitThreader oth(
-            *itsBunch_m->getParticleContainer(0)->getReference(),
-            itsBunch_m->getParticleContainer(0)->getRefPartR(),
-            itsBunch_m->getParticleContainer(0)->getRefPartP(),
-            itsBunch_m->getParticleContainer(0)->get_sPos(),
-            -rmin(2),            // Negative minimum z bound
-            itsBunch_m->getT(),  // Current bunch time
-            minTimeStep,
-            stepSizes_m,         // Step size configuration
-            itsOpalBeamline_m);  // OpalBeamline object
+    // Create one OrbitThreader per container, each threaded with its own reference orbit.
+    // The first container (container 0 in the normal case) is the design beam and runs
+    // the full pass (autophasing, design energy, geometry dumps); the rest build only
+    // their own map and reuse that shared element state, so the design beam threads first.
+    const size_t nContainers = itsBunch_m->getNumParticleContainers();
+    std::vector<std::shared_ptr<OrbitThreader>> oths(nContainers);
+    bool designBeamAssigned = false;
+    for (size_t ci = 0; ci < nContainers; ++ci) {
+        const auto& pc = itsBunch_m->getParticleContainer(ci);
+        if (!pc || !pc->getReference()) {
+            continue;
+        }
 
-    // Execute the orbit threading (queries elements and updates state)
-    oth.execute();
+        const bool isDesignBeam = !designBeamAssigned;
+        designBeamAssigned      = true;
+        oths[ci]                = std::make_shared<OrbitThreader>(
+                *pc->getReference(), pc->getRefPartR(), pc->getRefPartP(), pc->get_sPos(),
+                -rmin(2),            // Negative minimum z bound
+                itsBunch_m->getT(),  // Current bunch time
+                minTimeStep,
+                stepSizes_m,        // Step size configuration
+                itsOpalBeamline_m,  // OpalBeamline object
+                isDesignBeam);
+        oths[ci]->execute();
+    }
     m << level4 << "Orbit threader execution done." << endl;
 
     // Stop timing for the OrbitThreader section
     IpplTimings::stopTimer(OrbThreader_m);
 
-    // Get bounding box
-    BoundingBox globalBoundingBox = oth.getBoundingBox();
+    // Bounding box spanning every species' threaded orbit (duplicates re-add the same
+    // box, which is idempotent).
+    BoundingBox globalBoundingBox;
+    for (const auto& oth : oths) {
+        if (oth) {
+            globalBoundingBox.enlargeToContainBoundingBox(oth->getBoundingBox());
+        }
+    }
 
     // Set the time view of the particle bunch
     setTime();
@@ -410,7 +428,7 @@ void ParallelTracker::execute() {
             m << level5 << "Bunch updated after emission." << endl;
 
             // External field computation
-            computeExternalFields(oth);
+            computeExternalFields(oths);
             m << level4 << "External field computation done at step " << step << "." << endl;
 
             // Thomas-BMT spin precession using the lab-frame E, B at the particle.
@@ -714,7 +732,8 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 /**
  * @copybrief ParallelTracker::computeExternalFields
  */
-void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
+void ParallelTracker::computeExternalFields(
+        const std::vector<std::shared_ptr<OrbitThreader>>& oths) {
     IpplTimings::startTimer(fieldEvaluationTimer_m);
     Inform msg("ParallelTracker ", *gmsg);
 
@@ -725,6 +744,10 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
         }
         auto pc = itsBunch_m->getParticleContainer(ci);
         if (!pc) {
+            continue;
+        }
+        // Each container queries its own species' threaded orbit / IndexMap.
+        if (ci >= oths.size() || !oths[ci]) {
             continue;
         }
 
@@ -751,12 +774,13 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
         IndexMap::value_t elements;
         bool indexMapOutOfBounds = false;
         try {
-            elements = oth.query(queryCenter, queryHalfWidth);
+            elements = oths[ci]->query(queryCenter, queryHalfWidth);
         } catch (IndexMap::OutOfBounds& e) {
             indexMapOutOfBounds = true;
         }
 
-        const auto actionRangeElements = oth.queryActionRangeElements(queryCenter, queryHalfWidth);
+        const auto actionRangeElements =
+                oths[ci]->queryActionRangeElements(queryCenter, queryHalfWidth);
         elements.insert(actionRangeElements.begin(), actionRangeElements.end());
 
         if (elements.empty()) {
@@ -771,10 +795,22 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
         const IndexMap::value_t::const_iterator end = elements.end();
         for (; it != end; ++it) {
             (*it)->setCurrentSCoordinate(pc->get_sPos() + rmin(2));
-            const CoordinateSystemTrafo refToFieldCSTrafo =
+            if (auto* bend = dynamic_cast<BendBase*>(it->get())) {
+                const CoordinateSystemTrafo refToFieldCSTrafo =
+                        (itsOpalBeamline_m.getMisalignment((*it))
+                         * (itsOpalBeamline_m.getFieldCSTrafoLab2Local((*it))
+                            * pc->getToLabTrafo()));
+                bend->applyToBunch(pc, refToFieldCSTrafo);
+                continue;
+            }
+
+            CoordinateSystemTrafo refToLocalCSTrafo =
                     (itsOpalBeamline_m.getMisalignment((*it))
-                     * (itsOpalBeamline_m.getFieldCSTrafoLab2Local((*it)) * pc->getToLabTrafo()));
-            (*it)->applyToBunch(pc, refToFieldCSTrafo);
+                     * (itsOpalBeamline_m.getCSTrafoLab2Local((*it)) * pc->getToLabTrafo()));
+            CoordinateSystemTrafo localToRefCSTrafo = refToLocalCSTrafo.inverted();
+            pc->transformBunch(refToLocalCSTrafo);
+            (*it)->apply(pc);
+            pc->transformBunch(localToRefCSTrafo);
         }
     }
 
@@ -1782,7 +1818,7 @@ void ParallelTracker::visitVerticalFFAMagnet(const VerticalFFAMagnet& mag) {
 }
 
 void ParallelTracker::buildupFieldList(
-    double BcParameter[], ElementType elementType, Component* elptr) {
+    double BcParameter[], ElementType elementType, ElementBase* elptr) {
     beamline_list::iterator sindex;
     type_pair* localpair = new type_pair();
     localpair->first     = elementType;

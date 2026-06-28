@@ -26,7 +26,7 @@
 #include <string>
 
 #include "AbsBeamline/BendBase.h"
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "PartBunch/PartBunch.h"
 
 #include "AbsBeamline/Marker.h"
@@ -49,7 +49,7 @@ public:
     ~OpalBeamline();
 
     void activateElements();
-    std::set<std::shared_ptr<Component>> getElements(const Vector_t<double, 3>& x);
+    std::set<std::shared_ptr<ElementBase>> getElements(const Vector_t<double, 3>& x);
     /**
      * @brief Return elements that act on the reference particle at the given lab position.
      *
@@ -57,13 +57,13 @@ public:
      * remain logically active as thin diagnostics even when their nominal body support is not used
      * as the sole activation mechanism.
      */
-    std::set<std::shared_ptr<Component>> getReferenceElements(const Vector_t<double, 3>& x);
+    std::set<std::shared_ptr<ElementBase>> getReferenceElements(const Vector_t<double, 3>& x);
 
     /**
      * Get all elements in the beamline, regardless of their position.
      * @return Set of shared pointers to all elements in the beamline.
      */
-    std::set<std::shared_ptr<Component>> getElements();
+    std::set<std::shared_ptr<ElementBase>> getElements();
 
     Vector_t<double, 3> transformTo(const Vector_t<double, 3>& r) const;
     Vector_t<double, 3> transformFrom(const Vector_t<double, 3>& r) const;
@@ -71,13 +71,13 @@ public:
     Vector_t<double, 3> rotateFrom(const Vector_t<double, 3>& r) const;
 
     Vector_t<double, 3> transformToLocalCS(
-            const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
     Vector_t<double, 3> transformFromLocalCS(
-            const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
     Vector_t<double, 3> rotateToLocalCS(
-            const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
     Vector_t<double, 3> rotateFromLocalCS(
-            const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
 
     /**
      * @brief Return the rigid runtime field-frame transform used for tracking queries.
@@ -95,7 +95,7 @@ public:
      * T_i^{\mathrm{field}}\,\mathbf r_{\mathrm{lab}} .
      * \f]
      */
-    CoordinateSystemTrafo getFieldCSTrafoLab2Local(const std::shared_ptr<Component>& comp) const;
+    CoordinateSystemTrafo getFieldCSTrafoLab2Local(const std::shared_ptr<ElementBase>& comp) const;
 
     /**
      * @brief Transform a lab-space position into the component's runtime field chart.
@@ -112,7 +112,7 @@ public:
      * where \f$\chi_i\f$ is the element-specific field-chart map.
      */
     Vector_t<double, 3> transformToFieldLocalCS(
-            const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
 
     /**
      * @brief Transform a rigid field-frame point back to lab coordinates.
@@ -122,7 +122,7 @@ public:
      * chart.
      */
     Vector_t<double, 3> transformFromFieldLocalCS(
-            const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
 
     /**
      * @brief Rotate a lab-space vector into the component field basis using the default chart
@@ -138,7 +138,7 @@ public:
      * \f]
      */
     Vector_t<double, 3> rotateToFieldLocalCS(
-            const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
 
     /**
      * @brief Rotate a lab-space vector into the component field basis at a given field-local point.
@@ -154,7 +154,7 @@ public:
      * with \f$\mathbf u_i\f$ given explicitly by `fieldLocalPosition`.
      */
     Vector_t<double, 3> rotateToFieldLocalCS(
-            const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& fieldLocalPosition,
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& fieldLocalPosition,
             const Vector_t<double, 3>& r) const;
 
     /**
@@ -171,7 +171,7 @@ public:
      * \f]
      */
     Vector_t<double, 3> rotateFromFieldLocalCS(
-            const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
 
     /**
      * @brief Rotate a field-basis vector back to lab space at a given field-local point.
@@ -187,7 +187,7 @@ public:
      * \f]
      */
     Vector_t<double, 3> rotateFromFieldLocalCS(
-            const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& fieldLocalPosition,
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& fieldLocalPosition,
             const Vector_t<double, 3>& r) const;
 
     /**
@@ -197,7 +197,7 @@ public:
      * record. It keeps nominal placement, local correction, and port geometry
      * together while the legacy runtime still stores them on ElementBase.
      */
-    PlacedElement getPlacedElement(const std::shared_ptr<Component>& comp) const;
+    PlacedElement getPlacedElement(const std::shared_ptr<ElementBase>& comp) const;
 
     /**
      * @brief Return the nominal rigid placement transform \f$T_i\f$.
@@ -207,11 +207,11 @@ public:
      * frame. During the bridge stage this remains identical to the legacy
      * lab-to-local transform storage.
      */
-    CoordinateSystemTrafo getCSTrafoLab2Local(const std::shared_ptr<Component>& comp) const;
+    CoordinateSystemTrafo getCSTrafoLab2Local(const std::shared_ptr<ElementBase>& comp) const;
     CoordinateSystemTrafo getCSTrafoLab2Local() const;
-    CoordinateSystemTrafo getMisalignment(const std::shared_ptr<Component>& comp) const;
-    CoordinateSystemTrafo getNominalEntryTransform(const std::shared_ptr<Component>& comp) const;
-    CoordinateSystemTrafo getNominalExitTransform(const std::shared_ptr<Component>& comp) const;
+    CoordinateSystemTrafo getMisalignment(const std::shared_ptr<ElementBase>& comp) const;
+    CoordinateSystemTrafo getNominalEntryTransform(const std::shared_ptr<ElementBase>& comp) const;
+    CoordinateSystemTrafo getNominalExitTransform(const std::shared_ptr<ElementBase>& comp) const;
 
     double getStart(const Vector_t<double, 3>&) const;
     double getEnd(const Vector_t<double, 3>&) const;
@@ -308,7 +308,7 @@ private:
     double resolveVisitStartField(const std::shared_ptr<ElementBase>& element) const;
 
     FieldList elements_m;
-    std::vector<std::shared_ptr<Component>> declaredOrder_m;
+    std::vector<std::shared_ptr<ElementBase>> declaredOrder_m;
     PlacementAssembly placementAssembly_m;
     bool prepared_m;
     bool compatibilityPlacementCompiled_m;
@@ -356,65 +356,79 @@ inline Vector_t<double, 3> OpalBeamline::rotateFrom(const Vector_t<double, 3>& r
 }
 
 inline Vector_t<double, 3> OpalBeamline::transformToLocalCS(
-        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
+        const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const {
     return getPlacedElement(comp).getNominalBodyTransform().transformTo(r);
 }
 
 inline Vector_t<double, 3> OpalBeamline::transformFromLocalCS(
-        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
+        const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const {
     return getPlacedElement(comp).getNominalBodyTransform().transformFrom(r);
 }
 
 inline Vector_t<double, 3> OpalBeamline::rotateToLocalCS(
-        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
+        const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const {
     return getPlacedElement(comp).getNominalBodyTransform().rotateTo(r);
 }
 
 inline Vector_t<double, 3> OpalBeamline::rotateFromLocalCS(
-        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
+        const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const {
     return getPlacedElement(comp).getNominalBodyTransform().rotateFrom(r);
 }
 
 inline CoordinateSystemTrafo OpalBeamline::getFieldCSTrafoLab2Local(
-        const std::shared_ptr<Component>& comp) const {
-    return comp->getFieldCSTrafoLab2Local(getPlacedElement(comp));
+        const std::shared_ptr<ElementBase>& element) const {
+    if (const auto* bend = dynamic_cast<const BendBase*>(element.get())) {
+        return bend->getFieldCSTrafoLab2Local(getPlacedElement(element));
+    }
+    return getCSTrafoLab2Local(element);
 }
 
 inline Vector_t<double, 3> OpalBeamline::transformToFieldLocalCS(
-        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
-    return comp->transformFieldFrameToLocal(getFieldCSTrafoLab2Local(comp).transformTo(r));
+        const std::shared_ptr<ElementBase>& element, const Vector_t<double, 3>& r) const {
+    const Vector_t<double, 3> fieldFrame = getFieldCSTrafoLab2Local(element).transformTo(r);
+    if (const auto* bend = dynamic_cast<const BendBase*>(element.get())) {
+        return bend->transformFieldFrameToLocal(fieldFrame);
+    }
+    return fieldFrame;
 }
 
 inline Vector_t<double, 3> OpalBeamline::transformFromFieldLocalCS(
-        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
-    return getFieldCSTrafoLab2Local(comp).transformFrom(r);
+        const std::shared_ptr<ElementBase>& element, const Vector_t<double, 3>& r) const {
+    return getFieldCSTrafoLab2Local(element).transformFrom(r);
 }
 
 inline Vector_t<double, 3> OpalBeamline::rotateToFieldLocalCS(
-        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
-    return rotateToFieldLocalCS(comp, Vector_t<double, 3>(0.0), r);
+        const std::shared_ptr<ElementBase>& element, const Vector_t<double, 3>& r) const {
+    return rotateToFieldLocalCS(element, Vector_t<double, 3>(0.0), r);
 }
 
 inline Vector_t<double, 3> OpalBeamline::rotateToFieldLocalCS(
-        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& fieldLocalPosition,
+        const std::shared_ptr<ElementBase>& element, const Vector_t<double, 3>& fieldLocalPosition,
         const Vector_t<double, 3>& r) const {
-    return comp->rotateFieldFrameToLocal(
-            getFieldCSTrafoLab2Local(comp).rotateTo(r), fieldLocalPosition);
+    const Vector_t<double, 3> fieldFrame = getFieldCSTrafoLab2Local(element).rotateTo(r);
+    if (const auto* bend = dynamic_cast<const BendBase*>(element.get())) {
+        return bend->rotateFieldFrameToLocal(fieldFrame, fieldLocalPosition);
+    }
+    return fieldFrame;
 }
 
 inline Vector_t<double, 3> OpalBeamline::rotateFromFieldLocalCS(
-        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
-    return rotateFromFieldLocalCS(comp, Vector_t<double, 3>(0.0), r);
+        const std::shared_ptr<ElementBase>& element, const Vector_t<double, 3>& r) const {
+    return rotateFromFieldLocalCS(element, Vector_t<double, 3>(0.0), r);
 }
 
 inline Vector_t<double, 3> OpalBeamline::rotateFromFieldLocalCS(
-        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& fieldLocalPosition,
+        const std::shared_ptr<ElementBase>& element, const Vector_t<double, 3>& fieldLocalPosition,
         const Vector_t<double, 3>& r) const {
-    return getFieldCSTrafoLab2Local(comp).rotateFrom(
-            comp->rotateFieldLocalToFieldFrame(r, fieldLocalPosition));
+    Vector_t<double, 3> fieldFrame = r;
+    if (const auto* bend = dynamic_cast<const BendBase*>(element.get())) {
+        fieldFrame = bend->rotateFieldLocalToFieldFrame(r, fieldLocalPosition);
+    }
+    return getFieldCSTrafoLab2Local(element).rotateFrom(fieldFrame);
 }
 
-inline PlacedElement OpalBeamline::getPlacedElement(const std::shared_ptr<Component>& comp) const {
+inline PlacedElement OpalBeamline::getPlacedElement(
+        const std::shared_ptr<ElementBase>& comp) const {
     const auto found = placementAssembly_m.find(comp.get());
     if (found != placementAssembly_m.end()) {
         return found->second;
@@ -423,7 +437,7 @@ inline PlacedElement OpalBeamline::getPlacedElement(const std::shared_ptr<Compon
 }
 
 inline CoordinateSystemTrafo OpalBeamline::getCSTrafoLab2Local(
-        const std::shared_ptr<Component>& comp) const {
+        const std::shared_ptr<ElementBase>& comp) const {
     return getPlacedElement(comp).getNominalBodyTransform();
 }
 
@@ -432,17 +446,17 @@ inline CoordinateSystemTrafo OpalBeamline::getCSTrafoLab2Local() const {
 }
 
 inline CoordinateSystemTrafo OpalBeamline::getMisalignment(
-        const std::shared_ptr<Component>& comp) const {
+        const std::shared_ptr<ElementBase>& comp) const {
     return getPlacedElement(comp).getMisalignment().getNominalToActual();
 }
 
 inline CoordinateSystemTrafo OpalBeamline::getNominalEntryTransform(
-        const std::shared_ptr<Component>& comp) const {
+        const std::shared_ptr<ElementBase>& comp) const {
     return getPlacedElement(comp).getNominalEntryTransform();
 }
 
 inline CoordinateSystemTrafo OpalBeamline::getNominalExitTransform(
-        const std::shared_ptr<Component>& comp) const {
+        const std::shared_ptr<ElementBase>& comp) const {
     return getPlacedElement(comp).getNominalExitTransform();
 }
 

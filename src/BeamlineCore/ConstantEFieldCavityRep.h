@@ -16,8 +16,8 @@ public:
 
     Channel* getChannel(const std::string& aKey, bool = false) override;
 
-    ConstEzField& getField() override;
-    const ConstEzField& getField() const override;
+    ConstEzField& getField();
+    const ConstEzField& getField() const;
 
     StraightGeometry& getGeometry() override;
     const StraightGeometry& getGeometry() const override;

@@ -1,7 +1,7 @@
 #ifndef OPALX_Laser_HH
 #define OPALX_Laser_HH
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 
 /**
  * @brief Passive OPALX laser element.
@@ -22,7 +22,7 @@
  * The Compton helpers operate on electron total energy in GeV and return photon
  * energies in GeV.
  */
-class Laser : public Component {
+class Laser : public ElementBase {
 public:
     /** @brief Construct an unnamed laser element. */
     Laser();

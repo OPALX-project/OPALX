@@ -144,6 +144,13 @@ namespace {
         const BGeometryBase& getGeometry() const override { return geometry_; }
         void accept(BeamlineVisitor&) const override {}
         ElementBase* clone() const override { return new EmptyRBend3D(*this); }
+        void initialise(PartBunch_t*, double&, double&) override {}
+        void finalise() override {}
+        bool bends() const override { return true; }
+        void getFieldExtend(double& begin, double& end) const override {
+            begin = 0.0;
+            end   = 0.0;
+        }
 
     private:
         NullGeometry geometry_;

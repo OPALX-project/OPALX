@@ -63,13 +63,13 @@
  * ---------------------------------------------------------------------
  */
 #include <vector>
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Algorithms/AbstractTimeDependence.h"
 #include "Fields/BMultipoleField.h"
 #include "MultipoleTBase.h"
 #include "MultipoleTConfig.h"
 
-class MultipoleT : public Component {
+class MultipoleT : public ElementBase {
 public:
     /** Constructor
      *  \param name -> User-defined name
@@ -88,9 +88,9 @@ public:
     /** Return the cell geometry */
     const BGeometryBase& getGeometry() const override;
     /** Return a dummy field value */
-    EMField& getField() override { return dummy; }
+    EMField& getField() { return dummy; }
     /** Return a dummy field value */
-    const EMField& getField() const override { return dummy; }
+    const EMField& getField() const { return dummy; }
     /** Calculate the field for all particles */
     bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
     /** Calculate the field at some arbitrary position \n

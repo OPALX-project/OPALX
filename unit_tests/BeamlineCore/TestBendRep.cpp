@@ -107,7 +107,7 @@ namespace {
     public:
         void execute() override {}
         void visitBeamline(const Beamline&) override {}
-        void visitComponent(const Component&) override { visitedComponent = true; }
+        void visitElementBase(const ElementBase&) override { visitedComponent = true; }
         void visitConstantEFieldCavity(const ConstantEFieldCavity&) override {}
         void visitDrift(const Drift&) override {}
         void visitFlaggedElmPtr(const FlaggedElmPtr&) override {}

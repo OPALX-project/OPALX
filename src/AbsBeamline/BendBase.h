@@ -1,7 +1,7 @@
 #ifndef OPALX_BendBase_HH
 #define OPALX_BendBase_HH
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Fields/BMultipoleField.h"
 
 #include <cmath>
@@ -110,7 +110,7 @@
  * directly. This avoids coupling bend tracking strength to the parser-global
  * variable \f$P_0\f$.
  */
-class BendBase : public Component {
+class BendBase : public ElementBase {
 public:
     BendBase();
     explicit BendBase(const std::string& name);
@@ -136,7 +136,7 @@ public:
      * \f]
      * and the subsequent field-chart map is built relative to this entry frame.
      */
-    CoordinateSystemTrafo getFieldCSTrafoLab2Local(const PlacedElement& placed) const override;
+    CoordinateSystemTrafo getFieldCSTrafoLab2Local(const PlacedElement& placed) const;
 
     /**
      * @brief Convert an entry-frame Cartesian point into the bend field chart.
@@ -153,7 +153,7 @@ public:
      * is piecewise: straight entry tangent, curved body, and straight exit tangent, with the
      * rectangular-bend exit fringe measured from the rotated exit face.
      */
-    Vector_t<double, 3> transformFieldFrameToLocal(const Vector_t<double, 3>& r) const override;
+    Vector_t<double, 3> transformFieldFrameToLocal(const Vector_t<double, 3>& r) const;
 
     /**
      * @brief Rotate an entry-frame vector into the local tangent basis of the bend field chart.
@@ -170,8 +170,7 @@ public:
      * body the map reduces to the appropriate straight tangent frame.
      */
     Vector_t<double, 3> rotateFieldFrameToLocal(
-            const Vector_t<double, 3>& v,
-            const Vector_t<double, 3>& fieldLocalPosition) const override;
+            const Vector_t<double, 3>& v, const Vector_t<double, 3>& fieldLocalPosition) const;
 
     /**
      * @brief Rotate a field-chart vector back into the rigid bend entry frame.
@@ -185,8 +184,7 @@ public:
      * \f]
      */
     Vector_t<double, 3> rotateFieldLocalToFieldFrame(
-            const Vector_t<double, 3>& v,
-            const Vector_t<double, 3>& fieldLocalPosition) const override;
+            const Vector_t<double, 3>& v, const Vector_t<double, 3>& fieldLocalPosition) const;
 
     bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
@@ -211,7 +209,7 @@ public:
      */
     bool applyToBunch(
             const std::shared_ptr<ParticleContainer_t>& pc,
-            const CoordinateSystemTrafo& refToFieldCSTrafo) override;
+            const CoordinateSystemTrafo& refToFieldCSTrafo);
     bool apply(const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B)
             override;
     bool apply(
@@ -602,8 +600,8 @@ public:
      */
     double getFieldScale(double z) const;
 
-    virtual BMultipoleField& getField() override             = 0;
-    virtual const BMultipoleField& getField() const override = 0;
+    virtual BMultipoleField& getField()             = 0;
+    virtual const BMultipoleField& getField() const = 0;
 
 protected:
     double calcDesignRadius(double fieldAmplitude) const;
