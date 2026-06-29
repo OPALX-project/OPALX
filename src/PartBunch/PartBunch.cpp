@@ -592,6 +592,9 @@ void PartBunch<T, Dim>::bunchUpdate() {
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::setEmissionMeshProgress(bool active, double emittedFraction) {
+    // This flag is intentionally transient. ParallelTracker enables it only around the
+    // beam-frame bunchUpdate used for the space-charge solve, then disables it before the
+    // reference-frame update so ordinary tracking bounds are not stretched.
     emissionMeshStretchActive_m = active;
     emissionMeshFraction_m      = std::clamp(emittedFraction, 0.0, 1.0);
 }
@@ -661,6 +664,9 @@ void PartBunch<T, Dim>::computeBoundsForFieldSolve(
     upper = upper + span * this->OPALFieldSolver_m->getBoxIncr() / 100.0;
 
     if (emissionMeshStretchActive_m && Dim > 2 && this->nr_m[2] > 1) {
+        // During emission the visible bunch length is only a fraction of the final cathode pulse.
+        // Old OPAL stretches the z mesh backward by 1 / emittedFraction so the self-field solve
+        // sees the full source window instead of a thin, over-focused emitted slice.
         const double dh      = this->OPALFieldSolver_m->getBoxIncr() / 100.0;
         double percent       = std::max(1.0 / static_cast<double>(this->nr_m[2] - 1),
                                         emissionMeshFraction_m);

@@ -184,8 +184,10 @@ public:
     /**
      * @brief Enable or disable old-OPAL emitting-beam longitudinal mesh stretching.
      *
-     * The stretch is used only for the next @c bunchUpdate calls where @c active is true. It
-     * mirrors old OPAL's @c PartBunchBase::boundp() behavior during source emission.
+     * The stretch is used only for @c bunchUpdate calls where @c active is true. It mirrors old
+     * OPAL's @c PartBunchBase::boundp() behavior during source emission: the already emitted
+     * particles occupy only the front fraction of the full pulse, but the field mesh should still
+     * cover the not-yet-emitted tail behind the cathode.
      *
      * @param active Whether the emitting-beam mesh stretch is active.
      * @param emittedFraction Fraction of the source inventory already emitted.
