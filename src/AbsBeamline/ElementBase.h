@@ -603,15 +603,11 @@ inline CoordinateSystemTrafo ElementBase::getCSTrafoGlobal2Local() const {
 }
 
 inline CoordinateSystemTrafo ElementBase::getEdgeToBegin() const {
-    CoordinateSystemTrafo ret(Vector_t<double, 3>({0, 0, 0}), Quaternion(1, 0, 0, 0));
-    return ret;
+    return getGeometry().getEdgeToBegin();
 }
 
 inline CoordinateSystemTrafo ElementBase::getEdgeToEnd() const {
-    CoordinateSystemTrafo ret(
-            Vector_t<double, 3>({0, 0, getElementLength()}), Quaternion(1, 0, 0, 0));
-
-    return ret;
+    return getGeometry().getEdgeToEnd();
 }
 
 inline void ElementBase::setAperture(const ApertureType& type, const std::vector<double>& args) {

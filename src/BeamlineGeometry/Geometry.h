@@ -127,6 +127,11 @@ public:
     //  This function should be overidden by derived concrete classes which
     //  model complex geometries.
     virtual Euclid3D getExitPatch() const;
+
+    /// Body-origin to entrance-edge transform. Default: identity.
+    virtual CoordinateSystemTrafo getEdgeToBegin() const;
+    /// Body-origin to exit-edge transform. Default: +z shift by the body length.
+    virtual CoordinateSystemTrafo getEdgeToEnd() const;
 };
 
 // inlined (trivial) member functions
@@ -212,9 +217,9 @@ public:
     /// @name Edge transforms (single source of truth for placement)
     ///@{
     /// Body-origin to entrance-edge transform.
-    CoordinateSystemTrafo getEdgeToBegin() const;
+    CoordinateSystemTrafo getEdgeToBegin() const override;
     /// Body-origin to exit-edge transform.
-    CoordinateSystemTrafo getEdgeToEnd() const;
+    CoordinateSystemTrafo getEdgeToEnd() const override;
     ///@}
 
     /// @name Legacy Euclid3D frame API (transitional, removed once bends are
