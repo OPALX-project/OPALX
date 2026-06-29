@@ -465,6 +465,9 @@ void ParallelTracker::execute() {
             const size_t nProcessMarked = applyGlobalProcesses(itsBunch_m->getdT());
             m << level5 << "Applied global processes at step " << step << "." << endl;
             if (nProcessMarked > 0) {
+                // Decay-like global processes may have created daughters and marked parents
+                // invalid. Delete the parents before time/reference updates so they do not
+                // contribute to post-step moments.
                 deleteInvalidParticles(false, m, "global processes");
             }
 
@@ -493,6 +496,24 @@ void ParallelTracker::execute() {
                 }
                 m << level4 << "Current path length (container " << i << ") is " << pc->get_sPos()
                   << "." << endl;
+            }
+            
+            const double sigmas = Options::boundpDestroy;
+            size_t nBoundpMarked = 0;
+            for (size_t i = 0; i < particleContainersStep.size(); ++i) {
+                const auto& pc = particleContainersStep[i];
+                if (!pc || !itsBunch_m->isPcActive(i)) {
+                    continue;
+                }
+                const size_t nMarked = pc->markParticlesOutside(sigmas);
+                nBoundpMarked += nMarked;
+                if (nMarked > 0) {
+                    m << level2 << "Marked " << nMarked << " particles outside " << sigmas
+                      << "-sigma boundary for deletion (container " << i << ")." << endl;
+                }
+            }
+            if (nBoundpMarked > 0) {
+                deleteInvalidParticles(true, m, std::to_string(sigmas) + "-sigma boundary");
             }
 
             // if (hasEndOfLineReached(globalBoundingBox)) break;
@@ -710,6 +731,10 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
             itsBunch_m->getParticleContainer()->getLocalNum());
     m << level4 << "Transform particle positions to beam coordinate system done." << endl;
 
+    // While a cathode source is still emitting, old OPAL lets the space-charge mesh extend
+    // backward over the not-yet-emitted part of the pulse. Without this temporary stretch the
+    // moving mesh includes only the already emitted slice, which makes the first self-field solves too
+    // compressed in z. The stretch is applied only to this beam-frame bunchUpdate.
     bool emissionMeshStretchActive = false;
     double emittedFraction         = 1.0;
     const double currentTime       = itsBunch_m->getT();
@@ -768,6 +793,9 @@ void ParallelTracker::computeExternalFields(
     IpplTimings::startTimer(fieldEvaluationTimer_m);
     Inform msg("ParallelTracker ", *gmsg);
 
+    // Source-plane loss has to be handled here, before external fields are evaluated. Deferring it
+    // to the post-step invalid-particle cleanup would let particles behind the cathode receive one
+    // more field kick.
     const size_t nSourceMarked = markBackwardParticlesAtSourcePlane();
     if (nSourceMarked > 0) {
         deleteInvalidParticles(
