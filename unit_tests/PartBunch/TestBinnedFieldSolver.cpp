@@ -35,6 +35,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "Ippl.h"
+#include "PartBunch/BinnedFieldSolver.h"
 #include "PartBunch/PartBunch.h"
 #include "Structure/Beam.h"
 #include "Structure/BinningCmd.h"
@@ -59,6 +60,10 @@ namespace {
         }
         void setBCZ(const std::string& bc) {
             Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::BCFFTZ], bc);
+        }
+
+        void setGreensFunction(const std::string& greensFunction) {
+            Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::GREENSF], greensFunction);
         }
 
         void setBinsName(const std::string& binsName) {
@@ -131,6 +136,7 @@ namespace {
             fsCmd->setBCX("PERIODIC");
             fsCmd->setBCY("PERIODIC");
             fsCmd->setBCZ("PERIODIC");
+            fsCmd->setGreensFunction("STANDARD");
 
             // Keep the concrete solver command alive; PartBunch borrows it.
             fsCmdBase = fsCmd;
@@ -221,6 +227,15 @@ namespace {
                     /*lbt=*/1.0,
                     /*integration_method=*/"LF2", fsCmdBase.get(), dataSink.get());
             pc = bunch->getParticleContainer();
+        }
+
+        void rebuildOpenBunchWithGreensFunction(const std::string& greensFunction) {
+            fsCmd->setType("OPEN");
+            fsCmd->setBCX("OPEN");
+            fsCmd->setBCY("OPEN");
+            fsCmd->setBCZ("OPEN");
+            fsCmd->setGreensFunction(greensFunction);
+            rebuildBunch();
         }
 
         std::shared_ptr<AdaptBins_t> attachBins(
@@ -316,6 +331,20 @@ namespace {
         auto bins = bunch->getBins();
         ASSERT_NE(bins, nullptr);
         EXPECT_EQ(bins->getCurrentBinCount(), maxBins);
+    }
+
+    TEST_F(BinnedFieldSolverSmokeTest, OpenSolver_UsesStandardGreensFunctionFromFieldSolverCmd) {
+        ASSERT_NO_THROW(rebuildOpenBunchWithGreensFunction("STANDARD"));
+
+        ASSERT_NE(bunch->getFieldSolver(), nullptr);
+        EXPECT_EQ(bunch->getFieldSolver()->getGreensFunction(), "STANDARD");
+    }
+
+    TEST_F(BinnedFieldSolverSmokeTest, OpenSolver_UsesIntegratedGreensFunctionFromFieldSolverCmd) {
+        ASSERT_NO_THROW(rebuildOpenBunchWithGreensFunction("INTEGRATED"));
+
+        ASSERT_NE(bunch->getFieldSolver(), nullptr);
+        EXPECT_EQ(bunch->getFieldSolver()->getGreensFunction(), "INTEGRATED");
     }
 
     TEST_F(BinnedFieldSolverSmokeTest, BunchUpdate_ImageChargeBoundsIncludeMirroredZ) {
