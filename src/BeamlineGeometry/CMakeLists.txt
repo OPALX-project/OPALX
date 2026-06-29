@@ -1,25 +1,9 @@
 set (_SRCS
-    Euclid3D.cpp
     Geometry.cpp
-    Matrix3D.cpp
-    NullGeometry.cpp
-    PlanarArcGeometry.cpp
-    RBendGeometry.cpp
-    Rotation3D.cpp
-    StraightGeometry.cpp
-    Vector3D.cpp
     )
 
 set (HDRS
-    Euclid3D.h
     Geometry.h
-    Matrix3D.h
-    NullGeometry.h
-    PlanarArcGeometry.h
-    RBendGeometry.h
-    Rotation3D.h
-    StraightGeometry.h
-    Vector3D.h
     )
 
 target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

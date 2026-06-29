@@ -66,7 +66,6 @@
 #include "AbsBeamline/AttributeSet.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/Quaternion.hpp"
-#include "BeamlineGeometry/Euclid3D.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "OPALTypes.h"
 #include "Structure/BoundingBox.h"
@@ -195,51 +194,6 @@ public:
     //  Return the arc length from the origin to the exit of the element
     //  (exit >= 0)
     virtual double getExit() const;
-
-    /// Get transform.
-    //  Return the transform of the local coordinate system from the
-    //  position [b]fromS[/b] to the position [b]toS[/b].
-    virtual Euclid3D getTransform(double fromS, double toS) const;
-
-    /// Get transform.
-    //  Equivalent to getTransform(0.0, s).
-    //  Return the transform of the local coordinate system from the
-    //  origin and [b]s[/b].
-    virtual Euclid3D getTransform(double s) const;
-
-    /// Get transform.
-    //  Equivalent to getTransform(getEntrance(), getExit()).
-    //  Return the transform of the local coordinate system from the
-    //  entrance to the exit of the element.
-    virtual Euclid3D getTotalTransform() const;
-
-    /// Get transform.
-    //  Equivalent to getTransform(0.0, getEntrance()).
-    //  Return the transform of the local coordinate system from the
-    //  origin to the entrance of the element.
-    virtual Euclid3D getEntranceFrame() const;
-
-    /// Get transform.
-    //  Equivalent to getTransform(0.0, getExit()).
-    //  Return the transform of the local coordinate system from the
-    //  origin to the exit of the element.
-    virtual Euclid3D getExitFrame() const;
-
-    /// Get patch.
-    //  Returns the entrance patch (transformation) which is used to transform
-    //  the global geometry to the local geometry for a misaligned element
-    //  at its entrance. The default behaviour returns identity transformation.
-    //  This function should be overridden by derived concrete classes which
-    //  model complex geometries.
-    virtual Euclid3D getEntrancePatch() const;
-
-    /// Get patch.
-    //  Returns the entrance patch (transformation) which is used to transform
-    //  the local geometry to the global geometry for a misaligned element
-    //  at its exit. The default behaviour returns identity transformation.
-    //  This function should be overridden by derived concrete classes which
-    //  model complex geometries.
-    virtual Euclid3D getExitPatch() const;
 
     /// Get attribute value.
     //  If the attribute does not exist, return zero.
@@ -569,22 +523,6 @@ inline double ElementBase::getOrigin() const { return getGeometry().getOrigin();
 inline double ElementBase::getEntrance() const { return getGeometry().getEntrance(); }
 
 inline double ElementBase::getExit() const { return getGeometry().getExit(); }
-
-inline Euclid3D ElementBase::getTransform(double fromS, double toS) const {
-    return getGeometry().getTransform(fromS, toS);
-}
-
-inline Euclid3D ElementBase::getTotalTransform() const { return getGeometry().getTotalTransform(); }
-
-inline Euclid3D ElementBase::getTransform(double s) const { return getGeometry().getTransform(s); }
-
-inline Euclid3D ElementBase::getEntranceFrame() const { return getGeometry().getEntranceFrame(); }
-
-inline Euclid3D ElementBase::getExitFrame() const { return getGeometry().getExitFrame(); }
-
-inline Euclid3D ElementBase::getEntrancePatch() const { return getGeometry().getEntrancePatch(); }
-
-inline Euclid3D ElementBase::getExitPatch() const { return getGeometry().getExitPatch(); }
 
 inline bool ElementBase::isSharable() const { return shareFlag; }
 

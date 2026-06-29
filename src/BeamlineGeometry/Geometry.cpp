@@ -1,100 +1,50 @@
-// ------------------------------------------------------------------------
-// $RCSfile: BGeometryBase.cpp,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
 //
-// Class: BGeometryBase
-//    Pure virtual base class for all Beamline Geometries
+// Class Geometry
+//   Single geometry class for all beamline elements.
 //
-// ------------------------------------------------------------------------
-// Class category: BeamlineBGeometryBase
-// ------------------------------------------------------------------------
+// Copyright (c) 200x - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
 //
-// $Date: 2000/03/27 09:32:34 $
-// $Author: fci $
+// This file is part of OPAL.
 //
-// ------------------------------------------------------------------------
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 
 #include "BeamlineGeometry/Geometry.h"
-#include "BeamlineGeometry/Euclid3D.h"
 
 #include "Algorithms/Quaternion.hpp"
 
 #include <algorithm>
 #include <cmath>
 
-// Class BGeometryBase.
-// ------------------------------------------------------------------------
-
-BGeometryBase::~BGeometryBase() {}
-
-void BGeometryBase::setElementLength(double) {}
-
-double BGeometryBase::getOrigin() const { return getArcLength() / 2.0; }
-
-double BGeometryBase::getEntrance() const { return -getOrigin(); }
-
-double BGeometryBase::getExit() const { return getArcLength() - getOrigin(); }
-
-Euclid3D BGeometryBase::getTotalTransform() const { return getTransform(getExit(), getEntrance()); }
-
-Euclid3D BGeometryBase::getTransform(double s) const { return getTransform(0.0, s); }
-
-Euclid3D BGeometryBase::getEntranceFrame() const { return getTransform(0.0, getEntrance()); }
-
-Euclid3D BGeometryBase::getExitFrame() const { return getTransform(0.0, getExit()); }
-
-Euclid3D BGeometryBase::getEntrancePatch() const { return Euclid3D::identity(); }
-
-Euclid3D BGeometryBase::getExitPatch() const { return Euclid3D::identity(); }
-
-CoordinateSystemTrafo BGeometryBase::getEdgeToBegin() const {
-    return CoordinateSystemTrafo(Vector_t<double, 3>({0.0, 0.0, 0.0}), Quaternion(1, 0, 0, 0));
-}
-
-CoordinateSystemTrafo BGeometryBase::getEdgeToEnd() const {
-    return CoordinateSystemTrafo(
-            Vector_t<double, 3>({0.0, 0.0, getElementLength()}), Quaternion(1, 0, 0, 0));
-}
-
-// Class Geometry.
-// ------------------------------------------------------------------------
-
 namespace {
-    /// General transformation along an arc of length l and curvature h (XZ plane).
-    /// Reproduces PlanarArcGeometry's ArcTransform.
-    Euclid3D arcTransform(double l, double h) {
-        Euclid3D t;
-        if (h) {
-            double phi = h * l;
-            t          = Euclid3D::YRotation(-phi);
-            t.setX((std::cos(phi) - 1.0) / h);
-            t.setZ(std::sin(phi) / h);
-        } else {
-            t.setZ(l);
-        }
-        return t;
+    /// Rotation matrix for a rotation by `angle` about the local y-axis. Matches
+    /// the convention of the former Rotation3D::YRotation used by the bend frames.
+    matrix3x3_t yRotationMatrix(double angle) {
+        const double c = std::cos(angle);
+        const double s = std::sin(angle);
+        matrix3x3_t m;
+        m(0, 0) = c;    m(0, 1) = 0.0; m(0, 2) = s;
+        m(1, 0) = 0.0;  m(1, 1) = 1.0; m(1, 2) = 0.0;
+        m(2, 0) = -s;   m(2, 1) = 0.0; m(2, 2) = c;
+        return m;
     }
 
-    /// Convert a legacy Euclid3D body frame into the modern CoordinateSystemTrafo
-    /// used for placement. (Formerly the file-static helper in BendBase.cpp.)
-    CoordinateSystemTrafo toCoordinateSystemTrafo(const Euclid3D& frame) {
-        matrix3x3_t rotation;
-        const Rotation3D& euclidRotation = frame.getRotation();
-        for (int row = 0; row < 3; ++row) {
-            for (int col = 0; col < 3; ++col) {
-                rotation(row, col) = euclidRotation(row, col);
-            }
-        }
+    /// CoordinateSystemTrafo for a body frame located at `position` and rotated by
+    /// `yAngle` about the y-axis. Equivalent to the former
+    /// toCoordinateSystemTrafo(Euclid3D{position, YRotation(yAngle)}).
+    CoordinateSystemTrafo frameTrafo(const Vector_t<double, 3>& position, double yAngle) {
+        return CoordinateSystemTrafo(position, Quaternion(yRotationMatrix(yAngle)).conjugate());
+    }
 
-        const Vector3D& displacement = frame.getVector();
-        const Vector_t<double, 3> origin(
-                displacement.getX(), displacement.getY(), displacement.getZ());
-
-        return CoordinateSystemTrafo(origin, Quaternion(rotation).conjugate());
+    CoordinateSystemTrafo identityTrafo(const Vector_t<double, 3>& position) {
+        return CoordinateSystemTrafo(position, Quaternion(1, 0, 0, 0));
     }
 }  // namespace
 
@@ -113,10 +63,10 @@ Geometry Geometry::makeStraight(double length) {
 
 Geometry Geometry::makeArc(double length, double curvature) {
     Geometry g;
-    g.kind_m   = GeometryKind::Arc;
-    g.len_m    = length;
-    g.h_m      = curvature;
-    g.angle_m  = curvature * length;
+    g.kind_m  = GeometryKind::Arc;
+    g.len_m   = length;
+    g.h_m     = curvature;
+    g.angle_m = curvature * length;
     return g;
 }
 
@@ -176,67 +126,17 @@ void Geometry::setCurvature(double curvature) {
     }
 }
 
-Euclid3D Geometry::getTransform(double s) const {
-    if (kind_m == GeometryKind::Arc) {
-        return arcTransform(s, h_m);
+Vector_t<double, 3> Geometry::framePosition(double s) const {
+    if (kind_m == GeometryKind::Arc && h_m != 0.0) {
+        const double phi = h_m * s;
+        return Vector_t<double, 3>({(std::cos(phi) - 1.0) / h_m, 0.0, std::sin(phi) / h_m});
     }
-    return Euclid3D::translation(0.0, 0.0, s);  // Straight, RBend body, Null
-}
-
-Euclid3D Geometry::getTransform(double fromS, double toS) const {
-    if (kind_m == GeometryKind::Arc) {
-        return arcTransform(toS - fromS, h_m);  // matches PlanarArcGeometry
-    }
-    return Euclid3D::translation(0.0, 0.0, fromS - toS);  // matches StraightGeometry
-}
-
-Euclid3D Geometry::getTotalTransform() const {
-    switch (kind_m) {
-        case GeometryKind::Arc:
-            return arcTransform(len_m, h_m);
-        case GeometryKind::RBend: {
-            const Euclid3D patch = Euclid3D::YRotation(-halfAngle());
-            const Euclid3D body  = Euclid3D::translation(0.0, 0.0, len_m);
-            return patch * body * patch;  // matches RBendGeometry
-        }
-        case GeometryKind::Null:
-            return Euclid3D::identity();
-        default:  // Straight
-            return Euclid3D::translation(0.0, 0.0, len_m);
-    }
-}
-
-Euclid3D Geometry::getEntranceFrame() const {
-    switch (kind_m) {
-        case GeometryKind::Arc:
-            return arcTransform(-len_m / 2.0, h_m);
-        case GeometryKind::RBend:
-            return Euclid3D::translation(0.0, 0.0, -len_m / 2.0) * Euclid3D::YRotation(halfAngle());
-        case GeometryKind::Null:
-            return Euclid3D::identity();
-        default:  // Straight
-            return Euclid3D::translation(0.0, 0.0, -len_m / 2.0);
-    }
-}
-
-Euclid3D Geometry::getExitFrame() const {
-    switch (kind_m) {
-        case GeometryKind::Arc:
-            return arcTransform(len_m / 2.0, h_m);
-        case GeometryKind::RBend:
-            return Euclid3D::translation(0.0, 0.0, len_m / 2.0) * Euclid3D::YRotation(-halfAngle());
-        case GeometryKind::Null:
-            return Euclid3D::identity();
-        default:  // Straight
-            return Euclid3D::translation(0.0, 0.0, len_m / 2.0);
-    }
+    return Vector_t<double, 3>({0.0, 0.0, s});  // straight / rbend body / null / arc(h=0)
 }
 
 double Geometry::getChordLength() const {
-    const Vector3D delta = getExitFrame().getVector() - getEntranceFrame().getVector();
-    return std::sqrt(
-            delta.getX() * delta.getX() + delta.getY() * delta.getY()
-            + delta.getZ() * delta.getZ());
+    const Vector_t<double, 3> delta = framePosition(getExit()) - framePosition(getEntrance());
+    return std::sqrt(delta(0) * delta(0) + delta(1) * delta(1) + delta(2) * delta(2));
 }
 
 std::vector<Vector_t<double, 3>> Geometry::getDesignPath(std::size_t minSamples) const {
@@ -251,9 +151,8 @@ std::vector<Vector_t<double, 3>> Geometry::getDesignPath(std::size_t minSamples)
     for (std::size_t i = 0; i < samples; ++i) {
         const double alpha =
                 (samples > 1) ? static_cast<double>(i) / static_cast<double>(samples - 1) : 0.0;
-        const double s      = sBegin + alpha * (sEnd - sBegin);
-        const Euclid3D pose = getTransform(s);
-        path.emplace_back(pose.getX(), pose.getY(), pose.getZ());
+        const double s = sBegin + alpha * (sEnd - sBegin);
+        path.emplace_back(framePosition(s));
     }
 
     return path;
@@ -262,21 +161,22 @@ std::vector<Vector_t<double, 3>> Geometry::getDesignPath(std::size_t minSamples)
 CoordinateSystemTrafo Geometry::getEdgeToBegin() const {
     switch (kind_m) {
         case GeometryKind::Arc:
+            // Frame rotation is YRotation(-phi) with phi = h * (-len/2) = -angle/2.
+            return frameTrafo(framePosition(getEntrance()), h_m * (len_m / 2.0));
         case GeometryKind::RBend:
-            return toCoordinateSystemTrafo(getEntranceFrame());
+            return frameTrafo(Vector_t<double, 3>({0.0, 0.0, -len_m / 2.0}), halfAngle());
         default:  // Straight, Null: identity at the entrance edge
-            return CoordinateSystemTrafo(
-                    Vector_t<double, 3>({0.0, 0.0, 0.0}), Quaternion(1, 0, 0, 0));
+            return identityTrafo(Vector_t<double, 3>({0.0, 0.0, 0.0}));
     }
 }
 
 CoordinateSystemTrafo Geometry::getEdgeToEnd() const {
     switch (kind_m) {
         case GeometryKind::Arc:
+            return frameTrafo(framePosition(getExit()), -h_m * (len_m / 2.0));
         case GeometryKind::RBend:
-            return toCoordinateSystemTrafo(getExitFrame());
+            return frameTrafo(Vector_t<double, 3>({0.0, 0.0, len_m / 2.0}), -halfAngle());
         default:  // Straight, Null: +z shift to the exit edge
-            return CoordinateSystemTrafo(
-                    Vector_t<double, 3>({0.0, 0.0, len_m}), Quaternion(1, 0, 0, 0));
+            return identityTrafo(Vector_t<double, 3>({0.0, 0.0, len_m}));
     }
 }
