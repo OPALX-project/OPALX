@@ -29,9 +29,9 @@ extern Inform* gmsg;
 
 BeamBeam::BeamBeam() : BeamBeam("") {}
 
-BeamBeam::BeamBeam(const BeamBeam& right) : Component(right), nSlices_m(right.nSlices_m) {}
+BeamBeam::BeamBeam(const BeamBeam& right) : ElementBase(right), nSlices_m(right.nSlices_m) {}
 
-BeamBeam::BeamBeam(const std::string& name) : Component(name), nSlices_m(1) {}
+BeamBeam::BeamBeam(const std::string& name) : ElementBase(name), nSlices_m(1) {}
 
 BeamBeam::~BeamBeam() {}
 

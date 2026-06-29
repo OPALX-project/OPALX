@@ -21,14 +21,14 @@
 //
 // ------------------------------------------------------------------------
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 
 // Class BeamBeam
 // ------------------------------------------------------------------------
 /// Interface for a beam-beam interaction element.
 //  Class BeamBeam defines the abstract interface for a beam-beam element.
 
-class BeamBeam : public Component {
+class BeamBeam : public ElementBase {
 public:
     /// Constructor with given name.
     explicit BeamBeam(const std::string& name);
