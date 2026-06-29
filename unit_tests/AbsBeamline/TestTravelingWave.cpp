@@ -55,7 +55,6 @@
 
 #define private public
 #include "AbsBeamline/TravelingWave.h"
-#include "Fields/EMField.h"
 #undef private
 
 #include "AbsBeamline/ElementBase.h"
@@ -140,14 +139,6 @@ private:
 };
 
 // ---------------------------------------------------------------------------
-// Dummy Field
-// ---------------------------------------------------------------------------
-class DummyFieldTW : public EMField {
-public:
-    void scale(double) override {}
-};
-
-// ---------------------------------------------------------------------------
 // Minimal concrete TravelingWave
 // ---------------------------------------------------------------------------
 class TestTravelingWave : public TravelingWave {
@@ -164,9 +155,6 @@ public:
 
     BGeometryBase& getGeometry() override { return geom_; }
     const BGeometryBase& getGeometry() const override { return geom_; }
-
-    EMField& getField() { return field_; }
-    const EMField& getField() const { return field_; }
 
     void setAmplitude(double v) { amplitude_ = v; }
     void setFrequency(double v) { frequency_ = v; }
@@ -191,7 +179,6 @@ private:
     double phase_     = 0.0;
 
     DummyGeometryTW geom_;
-    DummyFieldTW field_;
 };
 
 // ---------------------------------------------------------------------------

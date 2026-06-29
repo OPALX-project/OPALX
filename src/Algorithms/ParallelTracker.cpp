@@ -32,7 +32,6 @@
 #include <string>
 #include <vector>
 
-#include "AbsBeamline/BendBase.h"
 #include "Algorithms/Matrix.h"
 #include "BasicActions/DumpEMFields.h"
 
@@ -207,35 +206,59 @@ void ParallelTracker::execute() {
                     "Particle container has null PartData reference during lab-frame init.");
         }
         pc->setToLabTrafo(beamlineToLab);
-        pc->getRefPartR() = beamlineToLab.transformTo(Vector_t<double, 3>(0, 0, 0));
+
+        // Resolve the reference particle's pose in the beamline frame. Position and
+        // momentum follow the same 3-tier rule: the bunch mean when particles already
+        // exist; otherwise the input-specified emission offsets (R0, P0) reported by
+        // the sampler; otherwise the design pose (lattice origin, beta*gamma along +z).
+        Vector_t<double, 3> refR = 0.0;
+        Vector_t<double, 3> refP = 0.0;
         if (pc->getTotalNum() > 0) {
-            pc->getRefPartP() = beamlineToLab.rotateTo(pc->getMeanP());
+            refR = pc->getMeanR();
+            refP = pc->getMeanP();
         } else {
-            bool useSamplerReference        = false;
+            // Empty container (e.g. an emitted distribution before its first emission):
+            // the bunch mean is undefined, so take the emission offsets from the sampler.
+            bool useSamplerPosition         = false;
+            bool useSamplerMomentum         = false;
+            Vector_t<double, 3> samplerRefR = 0.0;
             Vector_t<double, 3> samplerRefP = 0.0;
             if (ci < emittingSamplers_m.size()) {
                 for (const auto& sampler : emittingSamplers_m[ci]) {
-                    if (sampler && sampler->hasInitialReferenceMomentum()) {
-                        samplerRefP         = sampler->getInitialReferenceMomentum();
-                        useSamplerReference = true;
-                        break;
+                    if (!sampler) {
+                        continue;
+                    }
+                    if (!useSamplerMomentum && sampler->hasInitialReferenceMomentum()) {
+                        samplerRefP        = sampler->getInitialReferenceMomentum();
+                        useSamplerMomentum = true;
+                    }
+                    if (!useSamplerPosition && sampler->hasInitialReferencePosition()) {
+                        samplerRefR        = sampler->getInitialReferencePosition();
+                        useSamplerPosition = true;
                     }
                 }
             }
 
-            if (useSamplerReference) {
+            // Position: emission offset R0, else the lattice origin.
+            refR = useSamplerPosition ? samplerRefR : Vector_t<double, 3>(0.0);
+
+            // Momentum: emission offset P0, else the design beta*gamma along +z.
+            if (useSamplerMomentum) {
                 if (dot(samplerRefP, samplerRefP) <= 0.0) {
                     throw OpalException(
                             "ParallelTracker::execute",
                             "Sampler-provided initial reference momentum is zero.");
                 }
-                pc->getRefPartP() = beamlineToLab.rotateTo(samplerRefP);
+                refP = samplerRefP;
             } else {
                 const PartData& pref = *pc->getReference();
                 const double P0      = pref.getP() / pref.getM();  // beta*gamma from BEAM pc
-                pc->getRefPartP()    = beamlineToLab.rotateTo(Vector_t<double, 3>(0.0, 0.0, P0));
+                refP                 = Vector_t<double, 3>(0.0, 0.0, P0);
             }
         }
+
+        pc->getRefPartR() = beamlineToLab.transformTo(refR);
+        pc->getRefPartP() = beamlineToLab.rotateTo(refP);
     }
 
     m << level4
@@ -768,25 +791,13 @@ void ParallelTracker::computeExternalFields(
             }
         }
 
-        const double queryCenter    = pc->get_sPos() + 0.5 * (rmax(2) + rmin(2));
-        const double queryHalfWidth = rmax(2) - rmin(2);
         // Get elements at bunch position.
         IndexMap::value_t elements;
-        bool indexMapOutOfBounds = false;
         try {
-            elements = oths[ci]->query(queryCenter, queryHalfWidth);
+            elements =
+                    oths[ci]->query(pc->get_sPos() + 0.5 * (rmax(2) + rmin(2)), rmax(2) - rmin(2));
         } catch (IndexMap::OutOfBounds& e) {
-            indexMapOutOfBounds = true;
-        }
-
-        const auto actionRangeElements =
-                oths[ci]->queryActionRangeElements(queryCenter, queryHalfWidth);
-        elements.insert(actionRangeElements.begin(), actionRangeElements.end());
-
-        if (elements.empty()) {
-            if (indexMapOutOfBounds) {
-                globalEOL_m = true;
-            }
+            globalEOL_m = true;
             continue;
         }
 
@@ -794,22 +805,19 @@ void ParallelTracker::computeExternalFields(
         IndexMap::value_t::const_iterator it        = elements.begin();
         const IndexMap::value_t::const_iterator end = elements.end();
         for (; it != end; ++it) {
-            (*it)->setCurrentSCoordinate(pc->get_sPos() + rmin(2));
-            if (auto* bend = dynamic_cast<BendBase*>(it->get())) {
-                const CoordinateSystemTrafo refToFieldCSTrafo =
-                        (itsOpalBeamline_m.getMisalignment((*it))
-                         * (itsOpalBeamline_m.getFieldCSTrafoLab2Local((*it))
-                            * pc->getToLabTrafo()));
-                bend->applyToBunch(pc, refToFieldCSTrafo);
-                continue;
-            }
-
             CoordinateSystemTrafo refToLocalCSTrafo =
                     (itsOpalBeamline_m.getMisalignment((*it))
                      * (itsOpalBeamline_m.getCSTrafoLab2Local((*it)) * pc->getToLabTrafo()));
+
             CoordinateSystemTrafo localToRefCSTrafo = refToLocalCSTrafo.inverted();
+
+            (*it)->setCurrentSCoordinate(pc->get_sPos() + rmin(2));
+
             pc->transformBunch(refToLocalCSTrafo);
+
+            // Apply element to this iteration's particle container.
             (*it)->apply(pc);
+
             pc->transformBunch(localToRefCSTrafo);
         }
     }
@@ -1312,15 +1320,16 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& pusher) {
         pusher.push(pc.getRefPartR(), pc.getRefPartP(), dt);
         pc.getRefPartR() *= scaleFactor;
 
-        IndexMap::value_t elements = itsOpalBeamline_m.getReferenceElements(pc.getRefPartR());
-        IndexMap::value_t::const_iterator it        = elements.begin();
+        IndexMap::value_t elements           = itsOpalBeamline_m.getElements(pc.getRefPartR());
+        IndexMap::value_t::const_iterator it = elements.begin();
         const IndexMap::value_t::const_iterator end = elements.end();
 
         for (; it != end; ++it) {
-            Vector_t<double, 3> localR =
-                    itsOpalBeamline_m.transformToFieldLocalCS((*it), pc.getRefPartR());
-            Vector_t<double, 3> localP =
-                    itsOpalBeamline_m.rotateToFieldLocalCS((*it), localR, pc.getRefPartP());
+            const CoordinateSystemTrafo& refToLocalCSTrafo =
+                    itsOpalBeamline_m.getCSTrafoLab2Local((*it));
+
+            Vector_t<double, 3> localR = refToLocalCSTrafo.transformTo(pc.getRefPartR());
+            Vector_t<double, 3> localP = refToLocalCSTrafo.rotateTo(pc.getRefPartP());
             Vector_t<double, 3> localE(0.0), localB(0.0);
 
             if ((*it)->applyToReferenceParticle(
@@ -1329,8 +1338,8 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& pusher) {
                 globalEOL_m = true;
             }
 
-            Ef += itsOpalBeamline_m.rotateFromFieldLocalCS((*it), localR, localE);
-            Bf += itsOpalBeamline_m.rotateFromFieldLocalCS((*it), localR, localB);
+            Ef += refToLocalCSTrafo.rotateFrom(localE);
+            Bf += refToLocalCSTrafo.rotateFrom(localB);
         }
 
         pusher.kick(pc.getRefPartR(), pc.getRefPartP(), Ef, Bf, dt, refKick.getM(), refKick.getQ());

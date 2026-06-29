@@ -150,20 +150,20 @@ public:
     /// @brief Apply the algorithm to a multipole (templated type).
     virtual void visitMultipoleT(const MultipoleT&);
 
+    /// @brief Apply the algorithm to a rectangular bend.
+    virtual void visitRBend(const RBend&);
+
     /// @brief Apply the algorithm to an RF cavity.
     virtual void visitRFCavity(const RFCavity&);
 
-    /// @brief Apply the algorithm to a rectangular bend.
-    virtual void visitRBend(const RBend&);
+    /// @brief Apply the algorithm to a sector bend.
+    virtual void visitSBend(const SBend&);
 
     /// @brief Apply the algorithm to a traveling wave cavity.
     virtual void visitTravelingWave(const TravelingWave&);
 
     /// @brief Apply the algorithm to a solenoid.
     virtual void visitSolenoid(const Solenoid&);
-
-    /// @brief Apply the algorithm to a sector bend.
-    virtual void visitSBend(const SBend&);
 
     /// @brief Run the main tracking loop until all step-size segments complete.
     virtual void execute();
@@ -303,6 +303,9 @@ private:
      */
     void updateRFElement(std::string elName, double maxPhi);
 
+    /// @brief Print RF phases (debug/diagnostic hook).
+    void printRFPhases();
+
     /// @brief Persist cavity phases to the data sink.
     void saveCavityPhases();
 
@@ -334,11 +337,15 @@ inline void ParallelTracker::visitMultipoleT(const MultipoleT& mult) {
     itsOpalBeamline_m.visit(mult, *this, *itsBunch_m);
 }
 
+inline void ParallelTracker::visitRBend(const RBend& bend) {
+    itsOpalBeamline_m.visit(bend, *this, *itsBunch_m);
+}
+
 inline void ParallelTracker::visitRFCavity(const RFCavity& as) {
     itsOpalBeamline_m.visit(as, *this, *itsBunch_m);
 }
 
-inline void ParallelTracker::visitRBend(const RBend& bend) {
+inline void ParallelTracker::visitSBend(const SBend& bend) {
     itsOpalBeamline_m.visit(bend, *this, *itsBunch_m);
 }
 
@@ -348,10 +355,6 @@ inline void ParallelTracker::visitTravelingWave(const TravelingWave& tw) {
 
 inline void ParallelTracker::visitSolenoid(const Solenoid& so) {
     itsOpalBeamline_m.visit(so, *this, *itsBunch_m);
-}
-
-inline void ParallelTracker::visitSBend(const SBend& bend) {
-    itsOpalBeamline_m.visit(bend, *this, *itsBunch_m);
 }
 
 #endif  // OPALX_ParallelTracker_HH

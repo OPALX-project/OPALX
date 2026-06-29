@@ -28,7 +28,6 @@
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/EndFieldModel/EndFieldModel.h"
 #include "BeamlineGeometry/PlanarArcGeometry.h"
-#include "Fields/BMultipoleField.h"
 
 #ifndef ABSBEAMLINE_ScalingFFAMagnet_H
 #define ABSBEAMLINE_ScalingFFAMagnet_H
@@ -132,12 +131,6 @@ public:
 
     /** Return the cell geometry */
     const BGeometryBase& getGeometry() const override;
-
-    /** Return a dummy (0.) field value (what is this for?) */
-    EMField& getField();
-
-    /** Return a dummy (0.) field value (what is this for?) */
-    const EMField& getField() const;
 
     /** Accept a beamline visitor */
     void accept(BeamlineVisitor& visitor) const override;
@@ -278,7 +271,6 @@ private:
 
     ScalingFFAMagnet& operator=(const ScalingFFAMagnet& rhs);
     PlanarArcGeometry planarArcGeometry_m;
-    BMultipoleField dummy;
 
     size_t maxOrder_m        = 0;
     double tanDelta_m        = 0.;
