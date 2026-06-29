@@ -108,10 +108,6 @@ void OpalSBend::update() {
     if (itsAttr[GREATERTHANPI])
         throw OpalException("OpalSBend::update", "GREATERTHANPI not supportet any more");
 
-    if (itsAttr[ROTATION])
-        throw OpalException(
-                "OpalSBend::update", "ROTATION not supportet any more; use PSI instead");
-
     if (itsAttr[FMAPFN])
         bend->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));
     else if (bend->getName() != "SBEND") {

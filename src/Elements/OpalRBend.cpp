@@ -103,10 +103,6 @@ void OpalRBend::update() {
     }
     bend->setEntranceAngle(e1);
 
-    if (itsAttr[ROTATION])
-        throw OpalException(
-                "OpalRBend::update", "ROTATION not supported any more; use PSI instead");
-
     if (itsAttr[FMAPFN])
         bend->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));
     else if (bend->getName() != "RBEND") {

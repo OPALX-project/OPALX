@@ -90,7 +90,7 @@ public:
 
 private:
     std::vector<bool> pcActive_m;   ///< Per-container: participate in this track segment.
-    std::vector<bool> pcAtZStop_m;  ///< Per-container: frozen at current z-stop until next segment.
+    std::vector<bool> pcAtSStop_m;  ///< Per-container: frozen at current s-stop until next segment.
     std::vector<std::string> particleNames_m;  ///< Per-container beam particle names.
 
     std::vector<double> qi_m;  ///< Charge per macroparticle [C], one entry per container.
@@ -263,13 +263,13 @@ public:
     }
 
     /// @param i Container index.
-    /// @return Whether container @p i is frozen at the current z-stop.
-    bool pcAtZStop(size_t i) const { return i < pcAtZStop_m.size() && pcAtZStop_m[i]; }
+    /// @return Whether container @p i is frozen at the current s-stop.
+    bool pcAtSStop(size_t i) const { return i < pcAtSStop_m.size() && pcAtSStop_m[i]; }
 
-    /// @brief Deactivate container @p i until the next step-size segment (z-stop reached).
-    void setPcAtZStop(size_t i);
+    /// @brief Deactivate container @p i until the next step-size segment (s-stop reached).
+    void setPcAtSStop(size_t i);
 
-    /// @brief After emission: reactivate non-empty containers not marked at z-stop.
+    /// @brief After emission: reactivate non-empty containers not marked at s-stop.
     void refreshPcActiveAfterEmit();
 
     /// @return True if any container is active.
