@@ -59,6 +59,7 @@
 
 #include "AbsBeamline/ElementBase.h"
 #include "BeamlineCore/RFCavityRep.h"
+#include "Fields/EMField.h"
 #include "Fields/Fieldmap.h"
 
 #include <cmath>
@@ -152,8 +153,8 @@ public:
     BGeometryBase& getGeometry() override { return geom_; }
     const BGeometryBase& getGeometry() const override { return geom_; }
 
-    EMField& getField() override { return field_; }
-    const EMField& getField() const override { return field_; }
+    EMField& getField() { return field_; }
+    const EMField& getField() const { return field_; }
 
     // ---- Simple setters for testing ----
     void setAmplitude(double v) { amplitude_ = v; }

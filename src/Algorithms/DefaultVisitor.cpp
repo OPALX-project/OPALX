@@ -57,7 +57,7 @@ void DefaultVisitor::execute() {
     itsLine.accept(*this);
 }
 
-void DefaultVisitor::visitComponent(const Component& comp) { applyDefault(comp); }
+void DefaultVisitor::visitElementBase(const ElementBase& comp) { applyDefault(comp); }
 
 void DefaultVisitor::visitConstantEFieldCavity(const ConstantEFieldCavity& cav) {
     applyDefault(cav);
@@ -77,15 +77,15 @@ void DefaultVisitor::visitMultipole(const Multipole& mult) { applyDefault(mult);
 
 void DefaultVisitor::visitMultipoleT(const MultipoleT& multT) { applyDefault(multT); }
 
-void DefaultVisitor::visitRBend(const RBend& bend) { applyDefault(bend); }
-
 void DefaultVisitor::visitRing(const Ring& ring) { applyDefault(ring); }
 
 void DefaultVisitor::visitRFCavity(const RFCavity& cav) { applyDefault(cav); }
 
-void DefaultVisitor::visitSBend(const SBend& bend) { applyDefault(bend); }
+void DefaultVisitor::visitRBend(const RBend& bend) { applyDefault(bend); }
 
 void DefaultVisitor::visitSolenoid(const Solenoid& so) { applyDefault(so); }
+
+void DefaultVisitor::visitSBend(const SBend& bend) { applyDefault(bend); }
 
 void DefaultVisitor::visitTravelingWave(const TravelingWave& trw) { applyDefault(trw); }
 

@@ -1,0 +1,262 @@
+OPAL>                ____  _____       ___ 
+OPAL>               / __ \|  __ \ /\   | | 
+OPAL>              | |  | | |__) /  \  | |
+OPAL>              | |  | |  ___/ /\ \ | |
+OPAL>              | |__| | |  / ____ \| |____
+OPAL>               \____/|_| /_/    \_\______|
+OPAL> 
+OPAL> This is OPAL (Object Oriented Parallel Accelerator Library) Version 2022.1.0
+OPAL>             git rev. a4e0e14466557289b4f7a843fb9eb72700ff1992
+OPAL> 
+OPAL> 
+OPAL>                      (c) PSI, http://amas.web.psi.ch
+OPAL> 
+OPAL> 
+OPAL> The optimiser (former opt-Pilot) is integrated 
+OPAL> 
+OPAL> Please send cookies, goodies or other motivations (wine and beer ... ) 
+OPAL> to the OPAL developers opal@lists.psi.ch
+OPAL> 
+OPAL> Time: 11:12:05 date: 12/06/2026
+OPAL> 
+OPAL> * Reading input stream 'test-chicane-distribution-1_opal.in'
+Ippl> No solver attached
+OPAL> 
+OPAL> * ************* T R A C K  R U N *************************************************** 
+OPAL> * Selected Tracking Method == PARALLEL-T, NEW TRACK
+OPAL> * ********************************************************************************** 
+OPAL> * Phase space dump frequency    = 50000
+OPAL> * Statistics dump frequency     = 10 w.r.t. the time step.
+OPAL> * DT                            = 5e-12 [s]
+OPAL> * MAXSTEPS                      = 20000
+OPAL> * Mass of simulation particle   = 318.94 [GeV/c^2]
+OPAL> * Charge of simulation particle = -1e-13 [C]
+OPAL> * ********************************************************************************** 
+Ippl> * Creating new file for data: 'test-chicane-distribution-1_opal.stat'
+Ippl> * Creating new file for data: 'test-chicane-distribution-1_opal.lbal'
+OPAL> 
+OPAL> * ************* D I S T R I B U T I O N ********************************************
+OPAL> * 
+OPAL> * Number of particles: 10000
+OPAL> * 
+OPAL> * Distribution input momentum units: [Beta Gamma]
+OPAL> * 
+OPAL> * Distribution type: FROMFILE
+OPAL> * 
+OPAL> * Input file: 'test-chicane-distribution-1_opal_distribution.txt'
+OPAL> * 
+OPAL> * Distribution is injected.
+OPAL> * 
+OPAL> * **********************************************************************************
+OPAL> 
+OPAL> * ************* B E A M ************************************************************ 
+OPAL> * BEAM        BEAM0
+OPAL> * PARTICLE    ELECTRON
+OPAL> * REST MASS   5.109990e-04 [GeV]
+OPAL> * CHARGE      -e * 1.000000e+00 
+OPAL> * MOMENTUM    1.000511e+09 [eV/c]
+OPAL> * CURRENT     7.000000e-01 [A]
+OPAL> * FREQUENCY   7.000000e+02 [MHz]
+OPAL> * NPART       1.000000e+04
+OPAL> * ********************************************************************************** 
+OPAL> 
+OPAL> * ************* F I E L D S O L V E R ********************************************** 
+OPAL> * FIELDSOLVER  FS0
+OPAL> * TYPE         NONE
+OPAL> * N-PROCESSORS 1
+OPAL> * MX           1.600000e+01
+OPAL> * MY           1.600000e+01
+OPAL> * MT           1.600000e+01
+OPAL> * BBOXINCR     1.000000e+00
+OPAL> * XDIM         serial  
+OPAL> * YDIM         serial  
+OPAL> * Z(T)DIM      parallel  
+OPAL> * ********************************************************************************** 
+OPAL> 
+OPAL> 
+OPAL> * Size of map 18 sections 
+OPAL> * Key: (0.000000 - 0.244331) number of overlapping elements 1
+OPAL> *                            DPRE
+OPAL> * Key: (0.244331 - 0.250327) number of overlapping elements 2
+OPAL> *                            DPRE
+OPAL> *                            B1
+OPAL> * Key: (0.250327 - 1.251633) number of overlapping elements 1
+OPAL> *                            B1
+OPAL> * Key: (1.251633 - 1.256130) number of overlapping elements 2
+OPAL> *                            D12
+OPAL> *                            B1
+OPAL> * Key: (1.256130 - 2.746099) number of overlapping elements 1
+OPAL> *                            D12
+OPAL> * Key: (2.746099 - 2.752094) number of overlapping elements 2
+OPAL> *                            D12
+OPAL> *                            B2
+OPAL> * Key: (2.752094 - 3.753401) number of overlapping elements 1
+OPAL> *                            B2
+OPAL> * Key: (3.753401 - 3.756399) number of overlapping elements 2
+OPAL> *                            D23
+OPAL> *                            B2
+OPAL> * Key: (3.756399 - 5.747021) number of overlapping elements 1
+OPAL> *                            D23
+OPAL> * Key: (5.747021 - 5.753017) number of overlapping elements 2
+OPAL> *                            D23
+OPAL> *                            B3
+OPAL> * Key: (5.753017 - 6.754323) number of overlapping elements 1
+OPAL> *                            B3
+OPAL> * Key: (6.754323 - 6.758820) number of overlapping elements 2
+OPAL> *                            D34
+OPAL> *                            B3
+OPAL> * Key: (6.758820 - 8.248788) number of overlapping elements 1
+OPAL> *                            D34
+OPAL> * Key: (8.248788 - 8.254784) number of overlapping elements 2
+OPAL> *                            D34
+OPAL> *                            B4
+OPAL> * Key: (8.254784 - 9.250095) number of overlapping elements 1
+OPAL> *                            B4
+OPAL> * Key: (9.250095 - 9.259089) number of overlapping elements 2
+OPAL> *                            MEXIT
+OPAL> *                            B4
+OPAL> * Key: (9.259089 - 9.260588) number of overlapping elements 1
+OPAL> *                            MEXIT
+OPAL> * Key: (9.260588 - 9.302000) number of overlapping elements 0
+OPAL> 
+Ippl> * Creating new file for data: 'data/test-chicane-distribution-1_opal_ElementPositions.sdds'
+OPAL> 
+OPAL> * ************** B U N C H ********************************************************* 
+OPAL> * NP              = 10000
+OPAL> * Qtot            =        1.000 [nC]         Qi    =      100.000 [fC]
+OPAL> * Ekin            =       1.000 [GeV]         dEkin =       1.277 [MeV]
+OPAL> * rmax            = (      0.10000 ,      0.08000 ,      1.00000 ) [mm]
+OPAL> * rmin            = (     -0.10000 ,     -0.08000 ,     -1.00000 ) [mm]
+OPAL> * rms beam size   = (     63.82847 ,     51.06278 ,    638.28474 ) [um]
+OPAL> * rms momenta     = (  0.00000e+00 ,  0.00000e+00 ,  2.49946e+00 ) [beta gamma]
+OPAL> * mean position   = (      0.00000 ,      0.00000 ,     -0.00000 ) [um]
+OPAL> * mean momenta    = (  0.00000e+00 ,  0.00000e+00 ,  1.95795e+03 ) [beta gamma]
+OPAL> * rms emittance   = (  0.00000e+00 ,  0.00000e+00 ,  8.14815e-07 ) (not normalized)
+OPAL> * rms correlation = (          nan ,          nan , -3.34649e-15 )
+OPAL> * hr              = (     13.33333 ,     10.66667 ,    133.33333 ) [um]
+OPAL> * dh              =   1.00000e-10 [%]
+OPAL> * t               =        0.000 [fs]         dT    =        5.000 [ps]
+OPAL> * spos            =        0.000 [um]
+OPAL> * ********************************************************************************** 
+OPAL> 
+OPAL> * Track start at: 11:12:05, t= 0.000 [fs]; zstart at: 0.000 [um]
+OPAL> * Executing ParallelTTracker
+OPAL> * Initial dt = 5.000 [ps]
+OPAL> * Max integration steps = 20000, next step = 0
+OPAL> 
+ParallelTTracker > 11:12:06 Step    999 at 1.499 [m], t= 5.000 [ns], E=1.000 [GeV]
+ParallelTTracker > 11:12:07 Step   1999 at 2.998 [m], t= 10.000 [ns], E=1.000 [GeV]
+ParallelTTracker > 11:12:08 Step   2999 at 4.497 [m], t= 15.000 [ns], E=1.000 [GeV]
+ParallelTTracker > 11:12:09 Step   3999 at 5.996 [m], t= 20.000 [ns], E=1.000 [GeV]
+ParallelTTracker > 11:12:10 Step   4999 at 7.495 [m], t= 25.000 [ns], E=1.000 [GeV]
+ParallelTTracker > 11:12:10 Step   5999 at 8.994 [m], t= 30.000 [ns], E=1.000 [GeV]
+OPAL > 
+OPAL > * ************** B U N C H ********************************************************* 
+OPAL > * NP              = 10000
+OPAL > * Qtot            =        1.000 [nC]         Qi    =      100.000 [fC]
+OPAL > * Ekin            =       1.000 [GeV]         dEkin =       1.277 [MeV]
+OPAL > * rmax            = (      0.19990 ,      0.08007 ,      1.09003 ) [mm]
+OPAL > * rmin            = (     -0.22371 ,     -0.08007 ,     -1.08523 ) [mm]
+OPAL > * rms beam size   = (     73.97851 ,     51.07186 ,    640.75922 ) [um]
+OPAL > * rms momenta     = (  1.65421e-02 ,  7.08089e-06 ,  2.49946e+00 ) [beta gamma]
+OPAL > * mean position   = (    -25.39850 ,     -0.00000 ,      3.17452 ) [um]
+OPAL > * mean momenta    = ( -4.00484e-03 , -2.71463e-18 ,  1.95795e+03 ) [beta gamma]
+OPAL > * rms emittance   = (  6.17467e-10 ,  1.56278e-13 ,  8.14756e-07 ) (not normalized)
+OPAL > * rms correlation = (  1.55002e-01 ,  5.33000e-01 ,  8.86149e-02 )
+OPAL > * hr              = (     13.33333 ,     10.66667 ,    133.33333 ) [um]
+OPAL > * dh              =   1.00000e-10 [%]
+OPAL > * t               =       31.020 [ns]         dT    =        5.000 [ps]
+OPAL > * spos            =         9.300 [m]
+OPAL > * ********************************************************************************** 
+OPAL > 
+OPAL> 
+OPAL> * Done executing ParallelTTracker at 11:12:11
+OPAL> 
+Ippl> * Creating new file for data: 'test-chicane-distribution-1_opal_Monitors.stat'
+OPAL> * End of input stream 'test-chicane-distribution-1_opal.in'
+Timings> -----------------------------------------------------------------
+Timings>      Timing results for 1 nodes:
+Timings> -----------------------------------------------------------------
+Timings> mainTimer........... Wall tot =    5.91704, CPU tot =       5.87
+Timings> 
+Timings> Binaryrepart........ Wall max =          0, CPU max =          0
+Timings>                      Wall avg =          0, CPU avg =          0
+Timings>                      Wall min =          0, CPU min =          0
+Timings> 
+Timings> Boundingbox......... Wall max = 0.00045075, CPU max =       0.01
+Timings>                      Wall avg = 0.00045075, CPU avg =       0.01
+Timings>                      Wall min = 0.00045075, CPU min =       0.01
+Timings> 
+Timings> Boundingbox-bounds.. Wall max = 2.5875e-05, CPU max =          0
+Timings>                      Wall avg = 2.5875e-05, CPU avg =          0
+Timings>                      Wall min = 2.5875e-05, CPU min =          0
+Timings> 
+Timings> Boundingbox-update.. Wall max = 4.2417e-05, CPU max =          0
+Timings>                      Wall avg = 4.2417e-05, CPU avg =          0
+Timings>                      Wall min = 4.2417e-05, CPU min =          0
+Timings> 
+Timings> Compute Statistics.. Wall max =   0.235848, CPU max =       0.23
+Timings>                      Wall avg =   0.235848, CPU avg =       0.23
+Timings>                      Wall min =   0.235848, CPU min =       0.23
+Timings> 
+Timings> Create Distr........ Wall max =  0.0271176, CPU max =       0.03
+Timings>                      Wall avg =  0.0271176, CPU avg =       0.03
+Timings>                      Wall min =  0.0271176, CPU min =       0.03
+Timings> 
+Timings> External field eval. Wall max =     2.0233, CPU max =       2.12
+Timings>                      Wall avg =     2.0233, CPU avg =       2.12
+Timings>                      Wall min =     2.0233, CPU min =       2.12
+Timings> 
+Timings> Fast inside test.... Wall max =          0, CPU max =          0
+Timings>                      Wall avg =          0, CPU avg =          0
+Timings>                      Wall min =          0, CPU min =          0
+Timings> 
+Timings> Histogram........... Wall max =          0, CPU max =          0
+Timings>                      Wall avg =          0, CPU avg =          0
+Timings>                      Wall min =          0, CPU min =          0
+Timings> 
+Timings> Initialize geometry. Wall max =          0, CPU max =          0
+Timings>                      Wall avg =          0, CPU avg =          0
+Timings>                      Wall min =          0, CPU min =          0
+Timings> 
+Timings> Inside test......... Wall max =          0, CPU max =          0
+Timings>                      Wall avg =          0, CPU avg =          0
+Timings>                      Wall min =          0, CPU min =          0
+Timings> 
+Timings> Load Distr.......... Wall max =          0, CPU max =          0
+Timings>                      Wall avg =          0, CPU avg =          0
+Timings>                      Wall min =          0, CPU min =          0
+Timings> 
+Timings> Particle Inside..... Wall max =          0, CPU max =          0
+Timings>                      Wall avg =          0, CPU avg =          0
+Timings>                      Wall min =          0, CPU min =          0
+Timings> 
+Timings> Ray tracing......... Wall max =          0, CPU max =          0
+Timings>                      Wall avg =          0, CPU avg =          0
+Timings>                      Wall min =          0, CPU min =          0
+Timings> 
+Timings> SelfField total..... Wall max =          0, CPU max =          0
+Timings>                      Wall avg =          0, CPU avg =          0
+Timings>                      Wall min =          0, CPU min =          0
+Timings> 
+Timings> TIntegration1....... Wall max =   0.375712, CPU max =       0.41
+Timings>                      Wall avg =   0.375712, CPU avg =       0.41
+Timings>                      Wall min =   0.375712, CPU min =       0.41
+Timings> 
+Timings> TIntegration2....... Wall max =    1.04925, CPU max =       0.96
+Timings>                      Wall avg =    1.04925, CPU avg =       0.96
+Timings>                      Wall min =    1.04925, CPU min =       0.96
+Timings> 
+Timings> WakeField........... Wall max =          0, CPU max =          0
+Timings>                      Wall avg =          0, CPU avg =          0
+Timings>                      Wall min =          0, CPU min =          0
+Timings> 
+Timings> Write H5-File....... Wall max =    0.00224, CPU max =          0
+Timings>                      Wall avg =    0.00224, CPU avg =          0
+Timings>                      Wall min =    0.00224, CPU min =          0
+Timings> 
+Timings> Write Stat.......... Wall max =   0.126533, CPU max =       0.19
+Timings>                      Wall avg =   0.126533, CPU avg =       0.19
+Timings>                      Wall min =   0.126533, CPU min =       0.19
+Timings> 
+Timings> -----------------------------------------------------------------

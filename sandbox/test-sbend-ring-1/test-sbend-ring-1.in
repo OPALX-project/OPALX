@@ -1,0 +1,302 @@
+OPTION, PSDUMPFREQ = 50000;
+OPTION, STATDUMPFREQ = 100;
+OPTION, BOUNDPDESTROY = 10;
+OPTION, VERSION = 10900;
+OPTION, ASCIIDUMP = TRUE;
+
+Title, string = "test-sbend-ring-1 ten analytic SBEND one-turn ring seed";
+
+// One-turn ten-SBEND ring placement seed.
+//
+// This input is based on sandbox/test-sbend-2:
+//   - one vertically offset electron,
+//   - explicit X/Y/Z/THETA/PHI/PSI placement,
+//   - no space charge,
+//   - OPAL FM1DProfile1-style fringe parameters.
+//
+// Ring geometry:
+//   N bends                 = 10
+//   chord length per bend   = 1.0 m
+//   drift between bends     = 0.25 m
+//   bend angle per cell     = 2*pi/N = 36 deg
+//
+// OPALX positive SBEND ANGLE bends toward negative global X for an initial
+// tangent along +Z.  The recurrence below places each bend from the current
+// entry point P_i and tangent angle A_i, then advances through a 25 cm drift.
+//
+// Beam:
+//   electron kinetic energy = 250 MeV
+//   beta*gamma              = 490.23677597553325
+// The beta*gamma value is supplied by the FROMFILE distribution.
+
+REAL N_BENDS      = 10.0;
+REAL DRIFT_LENGTH = 0.25;
+REAL BEND_LENGTH  = 1.0;
+REAL BEND_ANGLE   = 2 * PI / N_BENDS;
+REAL BEND_E1_DEG  = -49.99;
+REAL BEND_E1      = BEND_E1_DEG * PI / 180;
+REAL BEND_E2      = 0.0;
+REAL BEND_HGAP    = 0.02;
+REAL BEND_FINT    = 0.5;
+
+REAL BEND_RADIUS  = BEND_LENGTH / (2 * sin(BEND_ANGLE / 2));
+REAL HALF_DX      = BEND_RADIUS * (cos(BEND_ANGLE / 2) - 1);
+REAL HALF_DZ      = BEND_RADIUS * sin(BEND_ANGLE / 2);
+REAL FULL_DX      = BEND_RADIUS * (cos(BEND_ANGLE) - 1);
+REAL FULL_DZ      = BEND_RADIUS * sin(BEND_ANGLE);
+REAL TURN_LENGTH  = N_BENDS * (BEND_RADIUS * BEND_ANGLE + DRIFT_LENGTH);
+
+REAL P0_X = 0.0;
+REAL P0_Z = 0.0;
+REAL A0   = 0.0;
+
+REAL B1_X     = P0_X + cos(A0) * HALF_DX + sin(A0) * HALF_DZ;
+REAL B1_Z     = P0_Z - sin(A0) * HALF_DX + cos(A0) * HALF_DZ;
+REAL B1_THETA = A0 - BEND_ANGLE / 2;
+REAL Q1_X     = P0_X + cos(A0) * FULL_DX + sin(A0) * FULL_DZ;
+REAL Q1_Z     = P0_Z - sin(A0) * FULL_DX + cos(A0) * FULL_DZ;
+REAL A1       = A0 - BEND_ANGLE;
+REAL D1_X     = Q1_X;
+REAL D1_Z     = Q1_Z;
+REAL P1_X     = Q1_X + DRIFT_LENGTH * sin(A1);
+REAL P1_Z     = Q1_Z + DRIFT_LENGTH * cos(A1);
+
+REAL B2_X     = P1_X + cos(A1) * HALF_DX + sin(A1) * HALF_DZ;
+REAL B2_Z     = P1_Z - sin(A1) * HALF_DX + cos(A1) * HALF_DZ;
+REAL B2_THETA = A1 - BEND_ANGLE / 2;
+REAL Q2_X     = P1_X + cos(A1) * FULL_DX + sin(A1) * FULL_DZ;
+REAL Q2_Z     = P1_Z - sin(A1) * FULL_DX + cos(A1) * FULL_DZ;
+REAL A2       = A1 - BEND_ANGLE;
+REAL D2_X     = Q2_X;
+REAL D2_Z     = Q2_Z;
+REAL P2_X     = Q2_X + DRIFT_LENGTH * sin(A2);
+REAL P2_Z     = Q2_Z + DRIFT_LENGTH * cos(A2);
+
+REAL B3_X     = P2_X + cos(A2) * HALF_DX + sin(A2) * HALF_DZ;
+REAL B3_Z     = P2_Z - sin(A2) * HALF_DX + cos(A2) * HALF_DZ;
+REAL B3_THETA = A2 - BEND_ANGLE / 2;
+REAL Q3_X     = P2_X + cos(A2) * FULL_DX + sin(A2) * FULL_DZ;
+REAL Q3_Z     = P2_Z - sin(A2) * FULL_DX + cos(A2) * FULL_DZ;
+REAL A3       = A2 - BEND_ANGLE;
+REAL D3_X     = Q3_X;
+REAL D3_Z     = Q3_Z;
+REAL P3_X     = Q3_X + DRIFT_LENGTH * sin(A3);
+REAL P3_Z     = Q3_Z + DRIFT_LENGTH * cos(A3);
+
+REAL B4_X     = P3_X + cos(A3) * HALF_DX + sin(A3) * HALF_DZ;
+REAL B4_Z     = P3_Z - sin(A3) * HALF_DX + cos(A3) * HALF_DZ;
+REAL B4_THETA = A3 - BEND_ANGLE / 2;
+REAL Q4_X     = P3_X + cos(A3) * FULL_DX + sin(A3) * FULL_DZ;
+REAL Q4_Z     = P3_Z - sin(A3) * FULL_DX + cos(A3) * FULL_DZ;
+REAL A4       = A3 - BEND_ANGLE;
+REAL D4_X     = Q4_X;
+REAL D4_Z     = Q4_Z;
+REAL P4_X     = Q4_X + DRIFT_LENGTH * sin(A4);
+REAL P4_Z     = Q4_Z + DRIFT_LENGTH * cos(A4);
+
+REAL B5_X     = P4_X + cos(A4) * HALF_DX + sin(A4) * HALF_DZ;
+REAL B5_Z     = P4_Z - sin(A4) * HALF_DX + cos(A4) * HALF_DZ;
+REAL B5_THETA = A4 - BEND_ANGLE / 2;
+REAL Q5_X     = P4_X + cos(A4) * FULL_DX + sin(A4) * FULL_DZ;
+REAL Q5_Z     = P4_Z - sin(A4) * FULL_DX + cos(A4) * FULL_DZ;
+REAL A5       = A4 - BEND_ANGLE;
+REAL D5_X     = Q5_X;
+REAL D5_Z     = Q5_Z;
+REAL P5_X     = Q5_X + DRIFT_LENGTH * sin(A5);
+REAL P5_Z     = Q5_Z + DRIFT_LENGTH * cos(A5);
+
+REAL B6_X     = P5_X + cos(A5) * HALF_DX + sin(A5) * HALF_DZ;
+REAL B6_Z     = P5_Z - sin(A5) * HALF_DX + cos(A5) * HALF_DZ;
+REAL B6_THETA = A5 - BEND_ANGLE / 2;
+REAL Q6_X     = P5_X + cos(A5) * FULL_DX + sin(A5) * FULL_DZ;
+REAL Q6_Z     = P5_Z - sin(A5) * FULL_DX + cos(A5) * FULL_DZ;
+REAL A6       = A5 - BEND_ANGLE;
+REAL D6_X     = Q6_X;
+REAL D6_Z     = Q6_Z;
+REAL P6_X     = Q6_X + DRIFT_LENGTH * sin(A6);
+REAL P6_Z     = Q6_Z + DRIFT_LENGTH * cos(A6);
+
+REAL B7_X     = P6_X + cos(A6) * HALF_DX + sin(A6) * HALF_DZ;
+REAL B7_Z     = P6_Z - sin(A6) * HALF_DX + cos(A6) * HALF_DZ;
+REAL B7_THETA = A6 - BEND_ANGLE / 2;
+REAL Q7_X     = P6_X + cos(A6) * FULL_DX + sin(A6) * FULL_DZ;
+REAL Q7_Z     = P6_Z - sin(A6) * FULL_DX + cos(A6) * FULL_DZ;
+REAL A7       = A6 - BEND_ANGLE;
+REAL D7_X     = Q7_X;
+REAL D7_Z     = Q7_Z;
+REAL P7_X     = Q7_X + DRIFT_LENGTH * sin(A7);
+REAL P7_Z     = Q7_Z + DRIFT_LENGTH * cos(A7);
+
+REAL B8_X     = P7_X + cos(A7) * HALF_DX + sin(A7) * HALF_DZ;
+REAL B8_Z     = P7_Z - sin(A7) * HALF_DX + cos(A7) * HALF_DZ;
+REAL B8_THETA = A7 - BEND_ANGLE / 2;
+REAL Q8_X     = P7_X + cos(A7) * FULL_DX + sin(A7) * FULL_DZ;
+REAL Q8_Z     = P7_Z - sin(A7) * FULL_DX + cos(A7) * FULL_DZ;
+REAL A8       = A7 - BEND_ANGLE;
+REAL D8_X     = Q8_X;
+REAL D8_Z     = Q8_Z;
+REAL P8_X     = Q8_X + DRIFT_LENGTH * sin(A8);
+REAL P8_Z     = Q8_Z + DRIFT_LENGTH * cos(A8);
+
+REAL B9_X     = P8_X + cos(A8) * HALF_DX + sin(A8) * HALF_DZ;
+REAL B9_Z     = P8_Z - sin(A8) * HALF_DX + cos(A8) * HALF_DZ;
+REAL B9_THETA = A8 - BEND_ANGLE / 2;
+REAL Q9_X     = P8_X + cos(A8) * FULL_DX + sin(A8) * FULL_DZ;
+REAL Q9_Z     = P8_Z - sin(A8) * FULL_DX + cos(A8) * FULL_DZ;
+REAL A9       = A8 - BEND_ANGLE;
+REAL D9_X     = Q9_X;
+REAL D9_Z     = Q9_Z;
+REAL P9_X     = Q9_X + DRIFT_LENGTH * sin(A9);
+REAL P9_Z     = Q9_Z + DRIFT_LENGTH * cos(A9);
+
+REAL B10_X     = P9_X + cos(A9) * HALF_DX + sin(A9) * HALF_DZ;
+REAL B10_Z     = P9_Z - sin(A9) * HALF_DX + cos(A9) * HALF_DZ;
+REAL B10_THETA = A9 - BEND_ANGLE / 2;
+REAL Q10_X     = P9_X + cos(A9) * FULL_DX + sin(A9) * FULL_DZ;
+REAL Q10_Z     = P9_Z - sin(A9) * FULL_DX + cos(A9) * FULL_DZ;
+REAL A10       = A9 - BEND_ANGLE;
+REAL D10_X     = Q10_X;
+REAL D10_Z     = Q10_Z;
+REAL P10_X     = Q10_X + DRIFT_LENGTH * sin(A10);
+REAL P10_Z     = Q10_Z + DRIFT_LENGTH * cos(A10);
+
+MSTART: MONITOR,
+    L = 0.0,
+    X = P0_X,
+    Y = 0.0,
+    Z = P0_Z,
+    THETA = A0,
+    PHI = 0.0,
+    PSI = 0.0,
+    TYPE = TEMPORAL,
+    OUTFN = "test-sbend-ring-1_start";
+
+B1: SBEND, L = BEND_LENGTH, ANGLE = BEND_ANGLE, E1 = BEND_E1, E2 = BEND_E2,
+    HGAP = BEND_HGAP, FINT = BEND_FINT, X = B1_X, Y = 0.0, Z = B1_Z,
+    THETA = B1_THETA, PHI = 0.0, PSI = 0.0;
+D1: DRIFT, L = DRIFT_LENGTH, X = D1_X, Y = 0.0, Z = D1_Z,
+    THETA = A1, PHI = 0.0, PSI = 0.0;
+
+B2: SBEND, L = BEND_LENGTH, ANGLE = BEND_ANGLE, E1 = BEND_E1, E2 = BEND_E2,
+    HGAP = BEND_HGAP, FINT = BEND_FINT, X = B2_X, Y = 0.0, Z = B2_Z,
+    THETA = B2_THETA, PHI = 0.0, PSI = 0.0;
+D2: DRIFT, L = DRIFT_LENGTH, X = D2_X, Y = 0.0, Z = D2_Z,
+    THETA = A2, PHI = 0.0, PSI = 0.0;
+
+B3: SBEND, L = BEND_LENGTH, ANGLE = BEND_ANGLE, E1 = BEND_E1, E2 = BEND_E2,
+    HGAP = BEND_HGAP, FINT = BEND_FINT, X = B3_X, Y = 0.0, Z = B3_Z,
+    THETA = B3_THETA, PHI = 0.0, PSI = 0.0;
+D3: DRIFT, L = DRIFT_LENGTH, X = D3_X, Y = 0.0, Z = D3_Z,
+    THETA = A3, PHI = 0.0, PSI = 0.0;
+
+B4: SBEND, L = BEND_LENGTH, ANGLE = BEND_ANGLE, E1 = BEND_E1, E2 = BEND_E2,
+    HGAP = BEND_HGAP, FINT = BEND_FINT, X = B4_X, Y = 0.0, Z = B4_Z,
+    THETA = B4_THETA, PHI = 0.0, PSI = 0.0;
+D4: DRIFT, L = DRIFT_LENGTH, X = D4_X, Y = 0.0, Z = D4_Z,
+    THETA = A4, PHI = 0.0, PSI = 0.0;
+
+B5: SBEND, L = BEND_LENGTH, ANGLE = BEND_ANGLE, E1 = BEND_E1, E2 = BEND_E2,
+    HGAP = BEND_HGAP, FINT = BEND_FINT, X = B5_X, Y = 0.0, Z = B5_Z,
+    THETA = B5_THETA, PHI = 0.0, PSI = 0.0;
+D5: DRIFT, L = DRIFT_LENGTH, X = D5_X, Y = 0.0, Z = D5_Z,
+    THETA = A5, PHI = 0.0, PSI = 0.0;
+
+B6: SBEND, L = BEND_LENGTH, ANGLE = BEND_ANGLE, E1 = BEND_E1, E2 = BEND_E2,
+    HGAP = BEND_HGAP, FINT = BEND_FINT, X = B6_X, Y = 0.0, Z = B6_Z,
+    THETA = B6_THETA, PHI = 0.0, PSI = 0.0;
+D6: DRIFT, L = DRIFT_LENGTH, X = D6_X, Y = 0.0, Z = D6_Z,
+    THETA = A6, PHI = 0.0, PSI = 0.0;
+
+B7: SBEND, L = BEND_LENGTH, ANGLE = BEND_ANGLE, E1 = BEND_E1, E2 = BEND_E2,
+    HGAP = BEND_HGAP, FINT = BEND_FINT, X = B7_X, Y = 0.0, Z = B7_Z,
+    THETA = B7_THETA, PHI = 0.0, PSI = 0.0;
+D7: DRIFT, L = DRIFT_LENGTH, X = D7_X, Y = 0.0, Z = D7_Z,
+    THETA = A7, PHI = 0.0, PSI = 0.0;
+
+B8: SBEND, L = BEND_LENGTH, ANGLE = BEND_ANGLE, E1 = BEND_E1, E2 = BEND_E2,
+    HGAP = BEND_HGAP, FINT = BEND_FINT, X = B8_X, Y = 0.0, Z = B8_Z,
+    THETA = B8_THETA, PHI = 0.0, PSI = 0.0;
+D8: DRIFT, L = DRIFT_LENGTH, X = D8_X, Y = 0.0, Z = D8_Z,
+    THETA = A8, PHI = 0.0, PSI = 0.0;
+
+B9: SBEND, L = BEND_LENGTH, ANGLE = BEND_ANGLE, E1 = BEND_E1, E2 = BEND_E2,
+    HGAP = BEND_HGAP, FINT = BEND_FINT, X = B9_X, Y = 0.0, Z = B9_Z,
+    THETA = B9_THETA, PHI = 0.0, PSI = 0.0;
+D9: DRIFT, L = DRIFT_LENGTH, X = D9_X, Y = 0.0, Z = D9_Z,
+    THETA = A9, PHI = 0.0, PSI = 0.0;
+
+B10: SBEND, L = BEND_LENGTH, ANGLE = BEND_ANGLE, E1 = BEND_E1, E2 = BEND_E2,
+    HGAP = BEND_HGAP, FINT = BEND_FINT, X = B10_X, Y = 0.0, Z = B10_Z,
+    THETA = B10_THETA, PHI = 0.0, PSI = 0.0;
+D10: DRIFT, L = DRIFT_LENGTH, X = D10_X, Y = 0.0, Z = D10_Z,
+    THETA = A10, PHI = 0.0, PSI = 0.0;
+
+MCLOSE: MONITOR,
+    L = 0.0,
+    X = P10_X,
+    Y = 0.0,
+    Z = P10_Z,
+    THETA = A10,
+    PHI = 0.0,
+    PSI = 0.0,
+    TYPE = TEMPORAL,
+    OUTFN = "test-sbend-ring-1_close";
+
+Line1: LINE = (
+    MSTART,
+    B1, D1,
+    B2, D2,
+    B3, D3,
+    B4, D4,
+    B5, D5,
+    B6, D6,
+    B7, D7,
+    B8, D8,
+    B9, D9,
+    B10, D10,
+    MCLOSE
+);
+
+Dist0: DISTRIBUTION,
+    TYPE = FROMFILE,
+    FNAME = "test-sbend-ring-1_distribution.txt",
+    NPARTDIST = 1;
+
+ES0: EMISSIONSOURCE, DISTRIBUTION = Dist0;
+Sources0: EMISSIONSOURCELIST = (ES0);
+
+FS0: FIELDSOLVER,
+    TYPE = NONE,
+    NX = 16,
+    NY = 16,
+    NZ = 16,
+    PARFFTX = false,
+    PARFFTY = false,
+    PARFFTZ = true,
+    BCFFTX = open,
+    BCFFTY = open,
+    BCFFTZ = open,
+    BBOXINCR = 1,
+    GREENSF = INTEGRATED;
+
+BEAM0: BEAM,
+    PARTICLE = ELECTRON,
+    NALLOC = 1,
+    BCHARGE = 1.6021766339999998e-19,
+    SOURCES = Sources0,
+    CHARGE = -1;
+
+TRACK,
+    LINE = Line1,
+    BEAM = BEAM0,
+    MAXSTEPS = 50000,
+    DT = 1.0e-12,
+    ZSTOP = 1.0e6;
+
+RUN,
+    METHOD = "PARALLEL",
+    FIELDSOLVER = FS0;
+
+ENDTRACK;
+
+QUIT;

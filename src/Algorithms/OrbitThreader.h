@@ -40,11 +40,13 @@ public:
     OrbitThreader(
             const PartData& ref, const Vector_t<double, 3>& r, const Vector_t<double, 3>& p,
             double s, double maxDiffZBunch, double t, double dT, StepSizeConfig stepSizes,
-            OpalBeamline& bl);
+            OpalBeamline& bl, bool isDesignBeam);
 
     void execute();
 
     IndexMap::value_t query(IndexMap::key_t::first_type step, IndexMap::key_t::second_type length);
+    IndexMap::value_t queryActionRangeElements(
+            IndexMap::key_t::first_type step, IndexMap::key_t::second_type length) const;
 
     IndexMap::key_t getRange(const IndexMap::value_t::value_type& element, double position) const;
     IndexMap::value_t getTouchingElements(const IndexMap::key_t& range) const;
@@ -72,7 +74,7 @@ public:
      */
     const ReferencePathModel& getActionRangeRegistrationModel() const;
 
-private:
+protected:
     /// position of reference particle in lab coordinates
     Vector_t<double, 3> r_m;
     /// momentum of reference particle
@@ -97,6 +99,12 @@ private:
     OpalBeamline& itsOpalBeamline_m;
     IndexMap imap_m;
 
+    /// True for the single design beam (container 0's species): only this threader may
+    /// autophase cavities, set per-element design energy, and write the geometry/design-path
+    /// outputs. Secondary species build their own IndexMap but reuse that shared element
+    /// state.
+    bool isDesignBeam_m;
+
     unsigned int errorFlag_m;
 
     BorisPusher integrator_m;
@@ -120,8 +128,8 @@ private:
     };
 
     std::multimap<
-            std::shared_ptr<Component>, elementPosition,
-            std::owner_less<std::shared_ptr<Component>>>
+            std::shared_ptr<ElementBase>, elementPosition,
+            std::owner_less<std::shared_ptr<ElementBase>>>
             elementRegistry_m;
     ReferencePathModel actionRangeRegistrationModel_m;
 
@@ -137,18 +145,50 @@ private:
             const Vector_t<double, 3>& p);
     void processElementRegister();
     void setDesignEnergy(FieldList& allElements, const std::set<std::string>& visitedElements);
+    /**
+     * @brief Stop if a placed line element is never intersected by the traced path.
+     *
+     * Explicit placement can create geometrically disconnected input decks. The
+     * reference particle then never activates the affected element, even though
+     * it is listed in the line. This diagnostic checks all nontrivial placed
+     * elements within the tracked longitudinal window and raises a user-facing
+     * error that reports their nominal entry/body/exit placement.
+     */
+    void validateVisitedElements(
+            const FieldList& allElements, const std::set<std::string>& visitedElements,
+            double initialPathLength, double finalPathLength) const;
+
+private:
+    /**
+     * @brief Write one design-path sample to the auxiliary trajectory file.
+     *
+     * The sampled state is written exactly as supplied. This is used for the
+     * initial point, regular post-step states, and interpolated terminal
+     * points at \f$s = z_{\mathrm{stop}}\f$.
+     */
+    void logDesignPathRow(
+            double pathLength, const Vector_t<double, 3>& position,
+            const Vector_t<double, 3>& momentum, const Vector_t<double, 3>& electricField,
+            const Vector_t<double, 3>& magneticField, double time,
+            const std::string& activeElementNames);
+
     void computeBoundingBox();
     void updateBoundingBoxWithCurrentPosition();
     double computeDriftLengthToBoundingBox(
-            const std::set<std::shared_ptr<Component>>& elements,
+            const std::set<std::shared_ptr<ElementBase>>& elements,
             const Vector_t<double, 3>& position, const Vector_t<double, 3>& direction) const;
 
-    void checkElementLengths(const std::set<std::shared_ptr<Component>>& elements);
+    void checkElementLengths(const std::set<std::shared_ptr<ElementBase>>& elements);
 };
 
 inline IndexMap::value_t OrbitThreader::query(
         IndexMap::key_t::first_type pathLength, IndexMap::key_t::second_type length) {
     return imap_m.query(pathLength, length);
+}
+
+inline IndexMap::value_t OrbitThreader::queryActionRangeElements(
+        IndexMap::key_t::first_type pathLength, IndexMap::key_t::second_type length) const {
+    return actionRangeRegistrationModel_m.query(pathLength - length, pathLength + length);
 }
 
 inline IndexMap::key_t OrbitThreader::getRange(

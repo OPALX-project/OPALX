@@ -34,7 +34,7 @@
 #define OPALX_BeamlineVisitor_HH
 
 // Generic element classes interacting with a BeamlineVisitor.
-class Component;
+class ElementBase;
 class ConstantEFieldCavity;
 
 // Beam line structure classes.
@@ -72,8 +72,8 @@ public:
     /// Apply the algorithm to a beam line.
     virtual void visitBeamline(const Beamline&) = 0;
 
-    /// Apply the algorithm to an arbitrary component.
-    virtual void visitComponent(const Component&) = 0;
+    /// Apply the algorithm to an arbitrary element.
+    virtual void visitElementBase(const ElementBase&) = 0;
 
     /// Apply the algorithm to a constant E-field cavity element.
     virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&) = 0;

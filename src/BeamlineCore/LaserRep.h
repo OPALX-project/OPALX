@@ -15,8 +15,8 @@ public:
     ElementBase* clone() const override;
     Channel* getChannel(const std::string& aKey, bool create = false) override;
 
-    NullField& getField() override;
-    const NullField& getField() const override;
+    NullField& getField();
+    const NullField& getField() const;
 
     StraightGeometry& getGeometry() override;
     const StraightGeometry& getGeometry() const override;

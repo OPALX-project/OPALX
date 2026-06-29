@@ -21,21 +21,47 @@
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Units.h"
 #include "Structure/MeshGenerator.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <regex>
+#include <sstream>
+#include <vector>
+
+namespace {
+    double normalizeSignedRadians(double angle) {
+        const double pi    = 0.5 * Physics::two_pi;
+        const double twoPi = Physics::two_pi;
+        angle              = std::fmod(angle + pi, twoPi);
+        if (angle < 0.0) {
+            angle += twoPi;
+        }
+        return angle - pi;
+    }
+
+    double cleanAngleDegrees(double value) { return std::abs(value) < 5.0e-13 ? 0.0 : value; }
+    std::string fixedOneDecimal(double value) {
+        std::ostringstream out;
+        out << std::fixed << std::setprecision(1) << value;
+        return out.str();
+    }
+}  // namespace
 
 OpalBeamline::OpalBeamline()
     : elements_m(),
+      declaredOrder_m(),
       placementAssembly_m(),
       prepared_m(false),
       compatibilityPlacementCompiled_m(false) {}
 
 OpalBeamline::OpalBeamline(const Vector_t<double, 3>& origin, const Quaternion& rotation)
     : elements_m(),
+      declaredOrder_m(),
       placementAssembly_m(),
       prepared_m(false),
       compatibilityPlacementCompiled_m(false),
@@ -43,13 +69,13 @@ OpalBeamline::OpalBeamline(const Vector_t<double, 3>& origin, const Quaternion& 
 
 OpalBeamline::~OpalBeamline() { elements_m.clear(); }
 
-std::set<std::shared_ptr<Component>> OpalBeamline::getElements(const Vector_t<double, 3>& x) {
-    std::set<std::shared_ptr<Component>> elementSet;
+std::set<std::shared_ptr<ElementBase>> OpalBeamline::getElements(const Vector_t<double, 3>& x) {
+    std::set<std::shared_ptr<ElementBase>> elementSet;
     FieldList::iterator it        = elements_m.begin();
     const FieldList::iterator end = elements_m.end();
     for (; it != end; ++it) {
-        std::shared_ptr<Component> element = (*it).getElement();
-        Vector_t<double, 3> r              = getCSTrafoLab2Local(element).transformTo(x);
+        std::shared_ptr<ElementBase> element = (*it).getElement();
+        Vector_t<double, 3> r                = transformToFieldLocalCS(element, x);
 
         if (element->isInside(r)) {
             elementSet.insert(element);
@@ -59,8 +85,20 @@ std::set<std::shared_ptr<Component>> OpalBeamline::getElements(const Vector_t<do
     return elementSet;
 }
 
-std::set<std::shared_ptr<Component>> OpalBeamline::getElements() {
-    std::set<std::shared_ptr<Component>> elementSet;
+std::set<std::shared_ptr<ElementBase>> OpalBeamline::getReferenceElements(
+        const Vector_t<double, 3>& x) {
+    std::set<std::shared_ptr<ElementBase>> elementSet = getElements(x);
+    for (auto& item : elements_m) {
+        const std::shared_ptr<ElementBase>& element = item.getElement();
+        if (element->getType() == ElementType::MONITOR && element->Online()) {
+            elementSet.insert(element);
+        }
+    }
+    return elementSet;
+}
+
+std::set<std::shared_ptr<ElementBase>> OpalBeamline::getElements() {
+    std::set<std::shared_ptr<ElementBase>> elementSet;
     for (auto& item : elements_m) {
         elementSet.insert(item.getElement());
     }
@@ -80,23 +118,23 @@ unsigned long OpalBeamline::getFieldAt(
         Vector_t<double, 3>& Ef, Vector_t<double, 3>& Bf) {
     unsigned long rtv = 0x00;
 
-    std::set<std::shared_ptr<Component>> elements = getElements(position);
+    std::set<std::shared_ptr<ElementBase>> elements = getElements(position);
 
-    std::set<std::shared_ptr<Component>>::const_iterator it        = elements.begin();
-    const std::set<std::shared_ptr<Component>>::const_iterator end = elements.end();
+    std::set<std::shared_ptr<ElementBase>>::const_iterator it        = elements.begin();
+    const std::set<std::shared_ptr<ElementBase>>::const_iterator end = elements.end();
 
     for (; it != end; ++it) {
         ElementType type = (*it)->getType();
         if (type == ElementType::MARKER) continue;
 
-        Vector_t<double, 3> localR = transformToLocalCS(*it, position);
-        Vector_t<double, 3> localP = rotateToLocalCS(*it, momentum);
+        Vector_t<double, 3> localR = transformToFieldLocalCS(*it, position);
+        Vector_t<double, 3> localP = rotateToFieldLocalCS(*it, localR, momentum);
         Vector_t<double, 3> localE(0.0), localB(0.0);
 
         (*it)->applyToReferenceParticle(localR, localP, t, localE, localB);
 
-        Ef += rotateFromLocalCS(*it, localE);
-        Bf += rotateFromLocalCS(*it, localB);
+        Ef += rotateFromFieldLocalCS(*it, localR, localE);
+        Bf += rotateFromFieldLocalCS(*it, localR, localB);
     }
 
     //         if(section.hasWake()) {
@@ -144,8 +182,71 @@ void OpalBeamline::prepareSections() {
 
 void OpalBeamline::print(Inform& /*msg*/) const {}
 
+bool OpalBeamline::reportPortContinuityDiagnostics(std::ostream& out) const {
+    std::vector<std::shared_ptr<ElementBase>> orderedElements = declaredOrder_m;
+    if (orderedElements.empty()) {
+        for (const auto& fieldElement : elements_m) {
+            orderedElements.push_back(
+                    std::const_pointer_cast<ElementBase>(fieldElement.getElement()));
+        }
+    }
+
+    bool foundDiscontinuity                = false;
+    constexpr double gapTolerance          = 1.0e-9;
+    constexpr double angleToleranceDegrees = 1.0e-9;
+
+    for (std::size_t i = 1; i < orderedElements.size(); ++i) {
+        const std::shared_ptr<ElementBase>& previous = orderedElements[i - 1];
+        const std::shared_ptr<ElementBase>& current  = orderedElements[i];
+
+        const CoordinateSystemTrafo previousExit =
+                getPlacedElement(previous).getNominalExitTransform();
+        const CoordinateSystemTrafo currentEntry =
+                getPlacedElement(current).getNominalEntryTransform();
+
+        const Vector_t<double, 3> gap = currentEntry.getOrigin() - previousExit.getOrigin();
+        const double gapNorm          = euclidean_norm(gap);
+
+        Quaternion rotationDelta =
+                previousExit.getRotation().conjugate() * currentEntry.getRotation();
+        rotationDelta.normalize();
+        Vector_t<double, 3> angles = Util::getTaitBryantAngles(rotationDelta);
+        for (unsigned int d = 0; d < 3; ++d) {
+            angles(d) = cleanAngleDegrees(Units::rad2deg * angles(d));
+        }
+
+        const bool hasGap      = gapNorm > gapTolerance;
+        const bool hasRotation = std::abs(angles(0)) > angleToleranceDegrees
+                                 || std::abs(angles(1)) > angleToleranceDegrees
+                                 || std::abs(angles(2)) > angleToleranceDegrees;
+        if (!hasGap && !hasRotation) {
+            continue;
+        }
+
+        if (!foundDiscontinuity) {
+            out << "Adjacent element port discontinuities:\n";
+            foundDiscontinuity = true;
+        }
+
+        out << previous->getName() << " -> " << current->getName()
+            << ": |gap|=" << fixedOneDecimal(gapNorm) << ", dTHETA=" << fixedOneDecimal(angles(0))
+            << " deg"
+            << ", dPHI=" << fixedOneDecimal(angles(1)) << " deg"
+            << ", dPSI=" << fixedOneDecimal(angles(2)) << " deg\n";
+
+        const Vector_t<double, 3> bodyAdjustment = -gap;
+        out << "  adjust " << current->getName()
+            << " body pose by dX=" << fixedOneDecimal(bodyAdjustment(0))
+            << ", dY=" << fixedOneDecimal(bodyAdjustment(1))
+            << ", dZ=" << fixedOneDecimal(bodyAdjustment(2)) << "\n";
+    }
+
+    return foundDiscontinuity;
+}
+
 void OpalBeamline::swap(OpalBeamline& rhs) {
     std::swap(elements_m, rhs.elements_m);
+    std::swap(declaredOrder_m, rhs.declaredOrder_m);
     std::swap(placementAssembly_m, rhs.placementAssembly_m);
     std::swap(prepared_m, rhs.prepared_m);
     std::swap(compatibilityPlacementCompiled_m, rhs.compatibilityPlacementCompiled_m);
@@ -154,6 +255,8 @@ void OpalBeamline::swap(OpalBeamline& rhs) {
 
 void OpalBeamline::merge(OpalBeamline& rhs) {
     elements_m.insert(elements_m.end(), rhs.elements_m.begin(), rhs.elements_m.end());
+    declaredOrder_m.insert(
+            declaredOrder_m.end(), rhs.declaredOrder_m.begin(), rhs.declaredOrder_m.end());
     placementAssembly_m.clear();
     prepared_m                       = false;
     compatibilityPlacementCompiled_m = false;
@@ -196,6 +299,30 @@ void OpalBeamline::storePlacedElement(const std::shared_ptr<ElementBase>& elemen
     placementAssembly_m.insert_or_assign(element.get(), element->getPlacedElement());
 }
 
+bool OpalBeamline::requiresElementEdgeWithoutExplicitPosition(const ElementBase& element) {
+    const ElementType type = element.getType();
+    return type == ElementType::SBEND || type == ElementType::RBEND;
+}
+
+double OpalBeamline::resolveVisitStartField(const std::shared_ptr<ElementBase>& element) const {
+    if (element->isElementPositionSet()) {
+        return element->getElementPosition();
+    }
+
+    if (element->isPositioned()) {
+        return element->getPlacedElement().getNominalBodyTransform().getOrigin()(2);
+    }
+
+    if (requiresElementEdgeWithoutExplicitPosition(*element)) {
+        throw OpalException(
+                "OpalBeamline::visit",
+                "ELEMEDGE is required for analytic SBEND/RBEND element \"" + element->getName()
+                        + "\" unless the element has an explicit position from Z.");
+    }
+
+    return 0.0;
+}
+
 void OpalBeamline::compileCompatibilityPlacement() {
     if (compatibilityPlacementCompiled_m) {
         return;
@@ -211,7 +338,7 @@ void OpalBeamline::compileCompatibilityPlacement() {
 
         FieldList::iterator it = elements_m.begin();
         for (; it != end; ++it) {
-            std::shared_ptr<Component> element = (*it).getElement();
+            std::shared_ptr<ElementBase> element = (*it).getElement();
             if (element->isPositioned()) {
                 continue;
             }
@@ -246,7 +373,7 @@ void OpalBeamline::compileCompatibilityPlacement() {
             Quaternion_t entryFaceRotation(
                     cos(0.5 * entranceAngle), sin(0.5 * entranceAngle) * effectiveRotationAxis);
 
-            if (!Options::idealized) {
+            if (!Options::idealized && element->getType() == ElementType::SBEND) {
                 std::vector<Vector_t<double, 3>> truePath = bendElement->getDesignPath();
                 Quaternion_t directionExitHardEdge(
                         cos(0.5 * (0.5 * bendAngle - entranceAngle)),
@@ -269,8 +396,10 @@ void OpalBeamline::compileCompatibilityPlacement() {
             CoordinateSystemTrafo fromEndLastToBeginThis(
                     beginThis3D, (entryFaceRotation * rotationAboutZ).conjugate());
             CoordinateSystemTrafo fromEndLastToEndThis(endThis3D, rotationAboutAxis.conjugate());
-
-            setNominalPlacement(element, fromEndLastToBeginThis * currentCoordTrafo);
+            const CoordinateSystemTrafo desiredEntryPose =
+                    fromEndLastToBeginThis * currentCoordTrafo;
+            const CoordinateSystemTrafo bodyFromEntry = element->getEdgeToBegin().inverted();
+            setNominalPlacement(element, bodyFromEntry * desiredEntryPose);
 
             currentCoordTrafo = (fromEndLastToEndThis * currentCoordTrafo);
 
@@ -283,7 +412,7 @@ void OpalBeamline::compileCompatibilityPlacement() {
 
     FieldList::iterator it = elements_m.begin();
     for (; it != end; ++it) {
-        std::shared_ptr<Component> element = (*it).getElement();
+        std::shared_ptr<ElementBase> element = (*it).getElement();
         if (element->isPositioned()) continue;
 
         (*it).order_m = order++;
@@ -383,7 +512,7 @@ void OpalBeamline::save3DLattice() {
 
     MeshGenerator mesh;
     for (auto scan = it; scan != end; ++scan) {
-        const std::shared_ptr<Component> scanElement = (*scan).getElement();
+        const std::shared_ptr<ElementBase> scanElement = (*scan).getElement();
         if (scanElement->getType() == ElementType::DRIFT) {
             continue;
         }
@@ -397,12 +526,20 @@ void OpalBeamline::save3DLattice() {
     }
 
     for (; it != end; ++it) {
-        std::shared_ptr<Component> element = (*it).getElement();
-        PlacedElement placedElement        = getPlacedElement(element);
-        CoordinateSystemTrafo toBegin      = getNominalEntryTransform(element);
-        CoordinateSystemTrafo toEnd        = getNominalExitTransform(element);
-        Vector_t<double, 3> entry3D        = toBegin.getOrigin();
-        Vector_t<double, 3> exit3D         = toEnd.getOrigin();
+        std::shared_ptr<ElementBase> element = (*it).getElement();
+        PlacedElement placedElement          = getPlacedElement(element);
+        CoordinateSystemTrafo toBegin        = getNominalEntryTransform(element);
+        CoordinateSystemTrafo toEnd          = getNominalExitTransform(element);
+        Vector_t<double, 3> entry3D          = toBegin.getOrigin();
+        Vector_t<double, 3> exit3D           = toEnd.getOrigin();
+        double bodyBegin                     = 0.0;
+        double bodyEnd                       = 0.0;
+        double fieldBegin                    = 0.0;
+        double fieldEnd                      = 0.0;
+        element->getElementDimensions(bodyBegin, bodyEnd);
+        element->getFieldExtend(fieldBegin, fieldEnd);
+        const bool fieldExtentDiffers = std::abs(fieldBegin - bodyBegin) > 1.0e-12
+                                        || std::abs(fieldEnd - bodyEnd) > 1.0e-12;
 
         mesh.add(*(element.get()));
 
@@ -464,6 +601,34 @@ void OpalBeamline::save3DLattice() {
                 << std::string("\"END: ") + element->getName() + std::string("\"") << std::setw(18)
                 << std::setprecision(10) << exit3D(2) << std::setw(18) << std::setprecision(10)
                 << exit3D(0) << std::setw(18) << std::setprecision(10) << exit3D(1) << std::endl;
+        }
+
+        if (fieldExtentDiffers) {
+            Vector_t<double, 3> fieldBegin3D;
+            Vector_t<double, 3> fieldEnd3D;
+            if (auto* bendElement = dynamic_cast<BendBase*>(element.get())) {
+                // Bend field-support markers are exported on the curved
+                // reference path; this is diagnostic output and does not
+                // change the tracker field coordinate chart.
+                const CoordinateSystemTrafo bodyTrafo = placedElement.getNominalBodyTransform();
+                fieldBegin3D = bodyTrafo.transformFrom(bendElement->getDesignPathPoint(fieldBegin));
+                fieldEnd3D   = bodyTrafo.transformFrom(bendElement->getDesignPathPoint(fieldEnd));
+            } else {
+                const CoordinateSystemTrafo fieldTrafo = getFieldCSTrafoLab2Local(element);
+                fieldBegin3D = fieldTrafo.transformFrom(Vector_t<double, 3>(0.0, 0.0, fieldBegin));
+                fieldEnd3D   = fieldTrafo.transformFrom(Vector_t<double, 3>(0.0, 0.0, fieldEnd));
+            }
+
+            pos << std::setw(30) << std::left
+                << std::string("\"FIELD BEGIN: ") + element->getName() + std::string("\"")
+                << std::setw(18) << std::setprecision(10) << fieldBegin3D(2) << std::setw(18)
+                << std::setprecision(10) << fieldBegin3D(0) << std::setw(18)
+                << std::setprecision(10) << fieldBegin3D(1) << "\n";
+            pos << std::setw(30) << std::left
+                << std::string("\"FIELD END: ") + element->getName() + std::string("\"")
+                << std::setw(18) << std::setprecision(10) << fieldEnd3D(2) << std::setw(18)
+                << std::setprecision(10) << fieldEnd3D(0) << std::setw(18) << std::setprecision(10)
+                << fieldEnd3D(1) << std::endl;
         }
     }
     elements_m.sort(BeamlineFieldElement::SortAsc);
@@ -545,6 +710,39 @@ namespace {
 
         return std::string(buf);
     }
+
+    std::string stripPlacementAttributes(std::string declaration) {
+        for (const char* attribute : {"ELEMEDGE", "X", "Y", "Z", "THETA", "PHI", "PSI"}) {
+            const std::regex attributeExpr(
+                    std::string(",?\\s*") + attribute + "\\s*=\\s*[^,;]*", std::regex::icase);
+            declaration = std::regex_replace(declaration, attributeExpr, "");
+        }
+
+        declaration = std::regex_replace(
+                declaration, std::regex(",\\s*,"), ", ", std::regex_constants::format_default);
+        declaration = std::regex_replace(
+                declaration, std::regex("\\s+,"), ",", std::regex_constants::format_default);
+        declaration = std::regex_replace(
+                declaration, std::regex(",\\s*$"), "", std::regex_constants::format_default);
+
+        return declaration;
+    }
+
+    void replacePlacementSpecification(
+            std::string& input, const std::string& elementName, const std::string& coordTrafo) {
+        const std::regex elementExpr(elementName + "\\s*:[^;]*;", std::regex::icase);
+        std::smatch match;
+        if (!std::regex_search(input, match, elementExpr)) {
+            return;
+        }
+
+        std::string declaration = match.str();
+        declaration.pop_back();
+        declaration = stripPlacementAttributes(declaration);
+        declaration += ", " + coordTrafo + ";";
+
+        input.replace(static_cast<std::size_t>(match.position()), match.length(), declaration);
+    }
 }  // namespace
 
 void OpalBeamline::save3DInput() {
@@ -560,14 +758,15 @@ void OpalBeamline::save3DInput() {
     std::ofstream pos(fname);
 
     for (; it != end; ++it) {
-        std::shared_ptr<Component> element = (*it).getElement();
-        std::string elementName            = element->getName();
+        std::shared_ptr<ElementBase> element = (*it).getElement();
+        std::string elementName              = element->getName();
         const std::regex replacePSI(
                 "(" + elementName + "\\s*:[^\\n]*)PSI\\s*=[^,;]*,?", std::regex::icase);
-        input = std::regex_replace(input, replacePSI, "\\1\\2");
+        input = std::regex_replace(input, replacePSI, "$1");
 
         const std::regex replaceELEMEDGE(
                 "(" + elementName + "\\s*:[^\\n]*)ELEMEDGE\\s*=[^,;]*(.)", std::regex::icase);
+        input = std::regex_replace(input, replaceELEMEDGE, "$1$2");
 
         CoordinateSystemTrafo cst  = getCSTrafoLab2Local(element);
         Vector_t<double, 3> origin = cst.getOrigin();
@@ -576,28 +775,13 @@ void OpalBeamline::save3DInput() {
         for (unsigned int d = 0; d < 3; ++d)
             orient(d) *= Units::rad2deg;
 
-        std::string x =
-                (std::abs(origin(0)) > 1e-10 ? "X = " + round2string(origin(0), 10) + ", " : "");
-        std::string y =
-                (std::abs(origin(1)) > 1e-10 ? "Y = " + round2string(origin(1), 10) + ", " : "");
-        std::string z =
-                (std::abs(origin(2)) > 1e-10 ? "Z = " + round2string(origin(2), 10) + ", " : "");
+        const std::string coordTrafo =
+                "X = " + round2string(origin(0), 10) + ", Y = " + round2string(origin(1), 10)
+                + ", Z = " + round2string(origin(2), 10) + ", THETA = " + round2string(orient(0), 6)
+                + " * PI / 180, PHI = " + round2string(orient(1), 6)
+                + " * PI / 180, PSI = " + round2string(orient(2), 6) + " * PI / 180";
 
-        std::string theta =
-                (orient(0) > 1e-10 ? "THETA = " + round2string(orient(0), 6) + " * PI / 180, "
-                                   : "");
-        std::string phi =
-                (orient(1) > 1e-10 ? "PHI = " + round2string(orient(1), 6) + " * PI / 180, " : "");
-        std::string psi =
-                (orient(2) > 1e-10 ? "PSI = " + round2string(orient(2), 6) + " * PI / 180, " : "");
-        std::string coordTrafo = x + y + z + theta + phi + psi;
-        if (coordTrafo.length() > 2) {
-            coordTrafo = coordTrafo.substr(0, coordTrafo.length() - 2);  // remove last ', '
-        }
-
-        std::string position = ("\\1" + coordTrafo + "\\2");
-
-        input = std::regex_replace(input, replaceELEMEDGE, position);
+        replacePlacementSpecification(input, elementName, coordTrafo);
     }
 
     const std::regex empty("##EMPTY_LINE##");
@@ -612,7 +796,7 @@ void OpalBeamline::activateElements() {
     const auto end      = elements_m.end();
     double designEnergy = 0.0;
     for (; it != end; ++it) {
-        std::shared_ptr<Component> element = (*it).getElement();
+        std::shared_ptr<ElementBase> element = (*it).getElement();
         (*it).setOn(designEnergy);
         element->goOnline(designEnergy);
     }

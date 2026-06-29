@@ -9,7 +9,7 @@
 
 #include <filesystem>
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Fields/Astra1DDynamic.h"
 #include "Fields/FM2DDynamic.h"
 #include "Fields/Fieldmap.h"
@@ -39,7 +39,7 @@ const BiMap<CavityType, std::string> RFCavity::bmCavityTypeString_s = []() {
 RFCavity::RFCavity() : RFCavity("") {}
 
 RFCavity::RFCavity(const RFCavity& right)
-    : Component(right),
+    : ElementBase(right),
       phaseTD_m(right.phaseTD_m),
       phaseName_m(right.phaseName_m),
       amplitudeTD_m(right.amplitudeTD_m),
@@ -73,7 +73,7 @@ RFCavity::RFCavity(const RFCavity& right)
       num_points_m(right.num_points_m) {}
 
 RFCavity::RFCavity(const std::string& name)
-    : Component(name),
+    : ElementBase(name),
       phaseTD_m(nullptr),
       amplitudeTD_m(nullptr),
       frequencyTD_m(nullptr),

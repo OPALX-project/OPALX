@@ -7,7 +7,7 @@
 // OPAL is licensed under GNU GPL version 3.
 //
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Fields/BMultipoleField.h"
 #include "PartBunch/PartBunch.h"
@@ -25,7 +25,7 @@ namespace endfieldmodel {
  *  that has a dependence like B0 exp(mz)
  */
 
-class VerticalFFAMagnet : public Component {
+class VerticalFFAMagnet : public ElementBase {
 public:
     /** Construct a new VerticalFFAMagnet
      *

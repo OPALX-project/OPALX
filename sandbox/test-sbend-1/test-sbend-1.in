@@ -1,0 +1,137 @@
+OPTION, PSDUMPFREQ = 50000;
+OPTION, STATDUMPFREQ = 1;
+OPTION, BOUNDPDESTROY = 10;
+OPTION, VERSION = 10900;
+OPTION, ASCIIDUMP = TRUE;
+
+Title, string = "test-sbend-1 single analytic SBEND entrance-edge placement regression";
+
+// Single-SBEND regression seed with one entrance pole-face angle and a 30 cm
+// upstream drift before the bend.
+//
+// Analytic configuration:
+//   upstream drift = 0.3 m
+//   L       = 1.0 m
+//   ANGLE   = +45 deg
+//   E1      = +45 deg
+//   E2      = 0 deg
+//   HGAP    = 0.02 m
+//   FINT    = 0.5
+//
+// The drift starts at the input start and the SBEND entrance port is centered
+// at the drift exit:
+//   x_entry_edge_lab = 0.0 m
+//   z_entry_edge_lab = 0.3 m
+// and the single-particle distribution starts exactly at (0, 0, 0).
+//
+// Old-OPAL-compatible sector chart with the entrance tangent along +Z:
+//   R       = L / (2 sin(ANGLE/2))
+//   L_ref   = R * ANGLE
+//   r_body  = r_entry + (R(cos(ANGLE/2)-1), 0, R sin(ANGLE/2))
+//   r_exit  = r_entry + (R(cos(ANGLE)-1),   0, R sin(ANGLE))
+//   t_exit  = (-sin(ANGLE), 0, cos(ANGLE))
+//
+// Fringe support:
+//   OPAL FM1DProfile1 default with GAP = 2 * HGAP = 0.04 m
+//   Enge half width a = 5 * GAP = 0.2 m
+//   ell_entry = a / cos(E1) = 0.28284271247461900 m
+//   ell_exit  = a / cos(E2) = 0.20000000000000000 m
+//   L_eff     = integral(F_Enge ds) ~= 1.0261727 m
+
+REAL DRIFT_LENGTH = 0.3;
+REAL BEND_LENGTH  = 1.0;
+REAL BEND_ANGLE   = PI / 4;
+REAL BEND_E1      = PI / 4;
+REAL BEND_E2      = 0.0;
+REAL BEND_HGAP    = 0.02;
+REAL BEND_FINT    = 0.5;
+
+REAL ENTRY_X      = 0.0;
+REAL ENTRY_Z      = DRIFT_LENGTH;
+REAL BEND_RADIUS  = BEND_LENGTH / (2 * sin(BEND_ANGLE / 2));
+REAL BODY_X       = ENTRY_X + BEND_RADIUS * (cos(BEND_ANGLE / 2) - 1);
+REAL BODY_Z       = ENTRY_Z + BEND_RADIUS * sin(BEND_ANGLE / 2);
+REAL BODY_THETA   = -BEND_ANGLE / 2;
+REAL EXIT_X       = ENTRY_X + BEND_RADIUS * (cos(BEND_ANGLE) - 1);
+REAL EXIT_Z       = ENTRY_Z + BEND_RADIUS * sin(BEND_ANGLE);
+REAL EXIT_THETA   = -BEND_ANGLE;
+
+DPRE: DRIFT,
+    L = DRIFT_LENGTH,
+    X = 0.0,
+    Y = 0.0,
+    Z = DRIFT_LENGTH / 2,
+    THETA = 0.0,
+    PHI = 0.0,
+    PSI = 0.0;
+
+B1: SBEND,
+    L = BEND_LENGTH,
+    ANGLE = BEND_ANGLE,
+    E1 = BEND_E1,
+    E2 = BEND_E2,
+    HGAP = BEND_HGAP,
+    FINT = BEND_FINT,
+    X = BODY_X,
+    Y = 0.0,
+    Z = BODY_Z,
+    THETA = BODY_THETA,
+    PHI = 0.0,
+    PSI = 0.0;
+
+MEXIT: MONITOR,
+    L = 0.0,
+    X = EXIT_X,
+    Y = 0.0,
+    Z = EXIT_Z,
+    THETA = EXIT_THETA,
+    PHI = 0.0,
+    PSI = 0.0,
+    TYPE = TEMPORAL,
+    OUTFN = "test-sbend-1_exit_monitor";
+
+Line1: LINE = (DPRE, B1, MEXIT);
+
+Dist0: DISTRIBUTION,
+    TYPE = FROMFILE,
+    FNAME = "test-sbend-1_distribution.txt",
+    NPARTDIST = 1;
+
+ES0: EMISSIONSOURCE, DISTRIBUTION = Dist0;
+Sources0: EMISSIONSOURCELIST = (ES0);
+
+FS0: FIELDSOLVER,
+    TYPE = NONE,
+    NX = 16,
+    NY = 16,
+    NZ = 16,
+    PARFFTX = false,
+    PARFFTY = false,
+    PARFFTZ = true,
+    BCFFTX = open,
+    BCFFTY = open,
+    BCFFTZ = open,
+    BBOXINCR = 1,
+    GREENSF = INTEGRATED;
+
+BEAM0: BEAM,
+    PARTICLE = ELECTRON,
+    NALLOC = 1,
+    BCHARGE = 1.6021766339999998e-19,
+    SOURCES = Sources0,
+    CHARGE = -1;
+
+TRACK,
+    LINE = Line1,
+    BEAM = BEAM0,
+    MAXSTEPS = 20000,
+    DT = 1.0e-12,
+    ZSTOP = 1.5;
+
+RUN,
+    METHOD = "PARALLEL",
+    FIELDSOLVER = FS0;
+
+ENDTRACK;
+
+QUIT;
