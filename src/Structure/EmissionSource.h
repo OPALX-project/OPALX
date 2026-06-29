@@ -48,7 +48,6 @@ public:
     int getZerofaceMaxSteps() const;
     std::string getEmissionModel() const;
     double getKineticEnergy() const;
-    bool hasKineticEnergy() const;
 
 private:
     EmissionSource(const EmissionSource&);
