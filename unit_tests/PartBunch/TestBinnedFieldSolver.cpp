@@ -63,8 +63,7 @@ namespace {
         }
 
         void setGreensFunction(const std::string& greensFunction) {
-            Attributes::setPredefinedString(
-                    this->itsAttr[FIELDSOLVER::GREENSF], greensFunction);
+            Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::GREENSF], greensFunction);
         }
 
         void setBinsName(const std::string& binsName) {
