@@ -52,7 +52,6 @@ class RBend;
 class RFCavity;
 class VariableRFCavity;
 class TravelingWave;
-class Ring;
 class SBend;
 class Solenoid;
 class ScalingFFAMagnet;
@@ -108,9 +107,6 @@ public:
     virtual void visitVariableRFCavity(const VariableRFCavity&) = 0;
 
     virtual void visitScalingFFAMagnet(const ScalingFFAMagnet&) = 0;
-
-    /// Apply the algorithm to a Ring element.
-    virtual void visitRing(const Ring&) = 0;
 
     /// Apply the algorithm to a sector bend.
     virtual void visitSBend(const SBend&) = 0;

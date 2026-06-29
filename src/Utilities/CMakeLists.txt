@@ -35,7 +35,6 @@ set (_SRCS
     PortableBitmapReader.cpp
     PortableGraymapReader.cpp
     Util.cpp
-    RingSection.cpp
     SDDSParser.cpp
     OpalException.cpp
     OpalFilter.cpp
@@ -84,7 +83,6 @@ set (HDRS
     ParseError.h
     PortableBitmapReader.h
     PortableGraymapReader.h
-    RingSection.h  
     Util.h
     OpalException.h
     OpalFilter.h
