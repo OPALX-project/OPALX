@@ -15,20 +15,20 @@ extern Inform* gmsg;
 
 namespace {
 
-int mapOpenSolverGreensFunction(const std::string& greensFunction) {
-    const std::string value = Util::toUpper(greensFunction);
-    if (value == "STANDARD") {
-        return OpenSolver_t<double, 3>::STANDARD;
-    }
-    if (value == "INTEGRATED") {
-        return OpenSolver_t<double, 3>::INTEGRATED;
-    }
+    int mapOpenSolverGreensFunction(const std::string& greensFunction) {
+        const std::string value = Util::toUpper(greensFunction);
+        if (value == "STANDARD") {
+            return OpenSolver_t<double, 3>::STANDARD;
+        }
+        if (value == "INTEGRATED") {
+            return OpenSolver_t<double, 3>::INTEGRATED;
+        }
 
-    throw OpalException(
-            "FieldSolver::initOpenSolver",
-            "Unknown GREENSF value \"" + greensFunction
-                    + "\". Supported values are STANDARD and INTEGRATED.");
-}
+        throw OpalException(
+                "FieldSolver::initOpenSolver",
+                "Unknown GREENSF value \"" + greensFunction
+                        + "\". Supported values are STANDARD and INTEGRATED.");
+    }
 
 }  // namespace
 
