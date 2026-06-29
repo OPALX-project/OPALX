@@ -118,15 +118,15 @@ ParallelTracker::~ParallelTracker() {}
 // --- Visit functions ---
 
 /**
- * @copybrief ParallelTracker::visitComponent
+ * @copybrief ParallelTracker::visitElementBase
  */
-void ParallelTracker::visitComponent(const Component& comp) {
+void ParallelTracker::visitElementBase(const ElementBase& comp) {
     if (comp.getType() == ElementType::LASER) {
         throw LogicalError(
-                "ParallelTracker::visitComponent()",
+                "ParallelTracker::visitElementBase()",
                 "Tracking of the \"LASER\" element is not implemented yet.");
     }
-    Tracker::visitComponent(comp);
+    Tracker::visitElementBase(comp);
 }
 
 void ParallelTracker::visitLaser(const Laser&) {
@@ -185,7 +185,7 @@ void ParallelTracker::execute() {
     double minTimeStep = stepSizes_m.getMinTimeStep();
     m << level3 << "Selected minimum time step from configuration: " << minTimeStep << endl;
 
-    // Activate all beamline elements (sets Component::online_m = true)
+    // Activate all beamline elements (sets ElementBase::online_m = true)
     itsOpalBeamline_m.activateElements();
     m << level3 << "Activated all beamline elements." << endl;
 
@@ -1827,7 +1827,7 @@ void ParallelTracker::visitVerticalFFAMagnet(const VerticalFFAMagnet& mag) {
 }
 
 void ParallelTracker::buildupFieldList(
-    double BcParameter[], ElementType elementType, Component* elptr) {
+    double BcParameter[], ElementType elementType, ElementBase* elptr) {
     beamline_list::iterator sindex;
     type_pair* localpair = new type_pair();
     localpair->first     = elementType;

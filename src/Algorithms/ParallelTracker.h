@@ -126,8 +126,8 @@ public:
     /// DefaultVisitor.
     virtual void visitBeamline(const Beamline&);
 
-    /// @brief Visit a generic component using the base tracker behavior.
-    virtual void visitComponent(const Component&);
+    /// @brief Visit a generic element using the base tracker behavior.
+    virtual void visitElementBase(const ElementBase&);
 
     /// @brief Apply the algorithm to a constant E-field cavity.
     virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&);

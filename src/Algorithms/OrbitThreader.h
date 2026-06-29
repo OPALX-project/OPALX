@@ -126,8 +126,8 @@ private:
     };
 
     std::multimap<
-            std::shared_ptr<Component>, elementPosition,
-            std::owner_less<std::shared_ptr<Component>>>
+            std::shared_ptr<ElementBase>, elementPosition,
+            std::owner_less<std::shared_ptr<ElementBase>>>
             elementRegistry_m;
     ReferencePathModel actionRangeRegistrationModel_m;
 
@@ -146,10 +146,10 @@ private:
     void computeBoundingBox();
     void updateBoundingBoxWithCurrentPosition();
     double computeDriftLengthToBoundingBox(
-            const std::set<std::shared_ptr<Component>>& elements,
+            const std::set<std::shared_ptr<ElementBase>>& elements,
             const Vector_t<double, 3>& position, const Vector_t<double, 3>& direction) const;
 
-    void checkElementLengths(const std::set<std::shared_ptr<Component>>& elements);
+    void checkElementLengths(const std::set<std::shared_ptr<ElementBase>>& elements);
 };
 
 inline IndexMap::value_t OrbitThreader::query(
