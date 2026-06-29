@@ -79,7 +79,6 @@ namespace DISTRIBUTION {
         TFALL,
         FTOSCAMPLITUDE,
         FTOSCPERIODS,
-        EKIN,
         EMITTED,
         EMISSIONSTEPS,
         /// Optional per-distribution particle count (macroparticles).
@@ -171,12 +170,6 @@ Distribution::Distribution()
             "Number of oscillations superimposed on "
             "flat top portion of emitted GAUSS "
             "distribution",
-            0.0);
-
-    itsAttr[DISTRIBUTION::EKIN] = Attributes::makeReal(
-            "EKIN",
-            "Kinetic emission energy [eV]. Used by emitted OPALFLATTOP/FLATTOP sources "
-            "to reproduce legacy OPAL cathode-emission momentum.",
             0.0);
 
     itsAttr[DISTRIBUTION::EMITTED] = Attributes::makeBool(
@@ -285,10 +278,6 @@ void Distribution::setAvrgPz(double avrgpz) { avrgpz_m = avrgpz; }
 void Distribution::setTEmission(double tEmission) { tEmission_m = tEmission; }
 
 double Distribution::getTEmission() const { return tEmission_m; }
-
-double Distribution::getEmissionKineticEnergy() const {
-    return std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::EKIN]));
-}
 
 size_t Distribution::getEmissionSteps() const {
     const double raw = Attributes::getReal(itsAttr[DISTRIBUTION::EMISSIONSTEPS]);
