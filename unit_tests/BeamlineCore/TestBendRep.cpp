@@ -111,6 +111,7 @@ namespace {
         void visitConstantEFieldCavity(const ConstantEFieldCavity&) override {}
         void visitDrift(const Drift&) override {}
         void visitFlaggedElmPtr(const FlaggedElmPtr&) override {}
+        void visitBeamBeam(const BeamBeam&) override {}
         void visitLaser(const Laser&) override {}
         void visitMarker(const Marker&) override {}
         void visitMonitor(const Monitor&) override {}

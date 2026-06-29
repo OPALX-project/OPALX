@@ -333,6 +333,20 @@ void ParallelTracker::execute() {
             globalBoundingBox.enlargeToContainBoundingBox(oth->getBoundingBox());
         }
     }
+    OrbitThreader* sourceOth = oths.empty() ? nullptr : oths[0].get();
+    if (sourceOth == nullptr) {
+        for (const auto& oth : oths) {
+            if (oth) {
+                sourceOth = oth.get();
+                break;
+            }
+        }
+    }
+    if (sourceOth == nullptr) {
+        throw OpalException(
+                "ParallelTracker::execute",
+                "No OrbitThreader is available for space-charge field computation.");
+    }
 
     // Set the time view of the particle bunch
     setTime();
@@ -424,7 +438,7 @@ void ParallelTracker::execute() {
             // Space charge field computation
             // if (itsBunch_m->getLocalNum() > 1) {
             // Otherwise no interaction, can skip (and for some reason seg-fault...)
-            computeSpaceChargeFields(step, oth);
+            computeSpaceChargeFields(step, *sourceOth);
             m << level4 << "Space charge field computation done at step " << step << "." << endl;
             logBeamBeamDiagnostics();
             //}
