@@ -3,6 +3,7 @@
 #include "Ippl.h"
 #include "Utilities/Options.h"
 
+#include <algorithm>
 #include <functional>
 
 namespace {
@@ -13,6 +14,12 @@ namespace {
     inline bool syncOr(bool v) {
         bool out = v;
         ippl::Comm->allreduce(v, out, 1, std::logical_or<bool>());
+        return out;
+    }
+
+    inline double syncMin(double v) {
+        double out = v;
+        ippl::Comm->allreduce(v, out, 1, std::less<double>());
         return out;
     }
 }  // namespace
@@ -44,4 +51,16 @@ std::shared_ptr<BunchStateHandler::ContainerState> BunchStateHandler::registerCo
 
 void BunchStateHandler::setFirstRepartition(bool v) {
     firstRepartition_m = Options::aggressiveStateSync ? syncOr(v) : v;
+}
+
+void BunchStateHandler::setEmissionMeshProgress(bool active, double emittedFraction) {
+    const bool syncedActive = Options::aggressiveStateSync ? syncOr(active) : active;
+    double fraction         = active ? std::clamp(emittedFraction, 0.0, 1.0) : 1.0;
+
+    if (Options::aggressiveStateSync) {
+        fraction = syncMin(fraction);
+    }
+
+    emissionMeshStretchEnabled_m     = syncedActive;
+    emissionMeshProgressFraction_m   = syncedActive ? fraction : 1.0;
 }
