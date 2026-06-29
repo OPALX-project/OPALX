@@ -20,11 +20,11 @@ public:
     ElementBase* clone() const override;
     Channel* getChannel(const std::string& aKey, bool create = false) override;
 
-    PlanarArcGeometry& getGeometry() override;
-    const PlanarArcGeometry& getGeometry() const override;
+    BGeometryBase& getGeometry() override;
+    const BGeometryBase& getGeometry() const override;
 
 private:
-    PlanarArcGeometry geometry_m;
+    Geometry geometry_m{Geometry::makeArc(0.0, 0.0)};
 };
 
 #endif  // OPALX_SBendRep_HH

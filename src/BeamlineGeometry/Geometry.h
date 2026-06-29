@@ -161,7 +161,7 @@ enum class GeometryKind : unsigned char { Null, Straight, Arc, RBend };
  *       former ElementBase defaults. For bends they reproduce the planar-arc and
  *       rectangular-bend pole-face frames of the former geometry subclasses.
  */
-class Geometry {
+class Geometry : public BGeometryBase {
 public:
     Geometry() = default;
 
@@ -180,17 +180,17 @@ public:
     /// @name Lengths
     ///@{
     /// Length measured along the design arc.
-    double getArcLength() const;
+    double getArcLength() const override;
     /// Design / body length (straight body length for rectangular bends).
-    double getElementLength() const { return len_m; }
-    void setElementLength(double length);
+    double getElementLength() const override { return len_m; }
+    void setElementLength(double length) override;
     ///@}
 
     /// @name Reference points along the body chart (centred at the origin)
     ///@{
-    double getOrigin() const { return len_m / 2.0; }
-    double getEntrance() const { return -len_m / 2.0; }
-    double getExit() const { return len_m / 2.0; }
+    double getOrigin() const override { return len_m / 2.0; }
+    double getEntrance() const override { return -len_m / 2.0; }
+    double getExit() const override { return len_m / 2.0; }
     ///@}
 
     /// @name Bend parameters
@@ -217,15 +217,22 @@ public:
     CoordinateSystemTrafo getEdgeToEnd() const;
     ///@}
 
+    /// @name Legacy Euclid3D frame API (transitional, removed once bends are
+    /// folded; reproduces the former geometry subclasses for BendBase/TBeamline).
+    ///@{
+    Euclid3D getTransform(double fromS, double toS) const override;
+    Euclid3D getTransform(double s) const override;
+    Euclid3D getTotalTransform() const override;
+    Euclid3D getEntranceFrame() const override;
+    Euclid3D getExitFrame() const override;
+    ///@}
+
 private:
     double halfAngle() const { return angle_m / 2.0; }
-    // Internal body frames reproducing the legacy getEntranceFrame()/getExitFrame()
-    // and getTransform(s) of the former geometry subclasses.
-    Euclid3D entranceFrame() const;
-    Euclid3D exitFrame() const;
-    Euclid3D bodyFrame(double s) const;
 
-    GeometryKind kind_m = GeometryKind::Null;
+    // Default-constructed geometry is a zero-length straight body (the common
+    // case for newly created representations); markers use makeNull().
+    GeometryKind kind_m = GeometryKind::Straight;
     double len_m           = 0.0;  ///< design / body length
     double h_m             = 0.0;  ///< curvature (Arc)
     double angle_m         = 0.0;  ///< bend angle (Arc: h*len; RBend: full angle)

@@ -19,7 +19,7 @@
 #define OPALX_SolenoidRep_HH
 
 #include "AbsBeamline/Solenoid.h"
-#include "BeamlineGeometry/StraightGeometry.h"
+#include "BeamlineGeometry/Geometry.h"
 
 class SolenoidRep : public Solenoid {
 public:
@@ -42,11 +42,11 @@ public:
 
     /// Get geometry.
     //  Version for non-constant object.
-    virtual StraightGeometry& getGeometry();
+    virtual BGeometryBase& getGeometry();
 
     /// Get geometry.
     //  Version for constant object.
-    virtual const StraightGeometry& getGeometry() const;
+    virtual const BGeometryBase& getGeometry() const;
 
     /// Get field.
     //  Return the solenoid field in Teslas.
@@ -61,7 +61,7 @@ private:
     void operator=(const SolenoidRep&);
 
     /// The solenoid geometry.
-    StraightGeometry geometry;
+    Geometry geometry;
 
     /// Nominal on-axis field Bz in Teslas (backs the "BZ" channel attribute).
     double Bz_m = 0.0;

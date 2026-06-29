@@ -97,9 +97,9 @@ void VariableRFCavity::setFrequencyModel(
     frequencyTD_m = frequency_td;
 }
 
-StraightGeometry& VariableRFCavity::getGeometry() { return geometry; }
+BGeometryBase& VariableRFCavity::getGeometry() { return geometry; }
 
-const StraightGeometry& VariableRFCavity::getGeometry() const { return geometry; }
+const BGeometryBase& VariableRFCavity::getGeometry() const { return geometry; }
 
 bool VariableRFCavity::apply(
         const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {

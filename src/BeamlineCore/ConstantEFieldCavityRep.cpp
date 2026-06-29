@@ -36,8 +36,8 @@ Channel* ConstantEFieldCavityRep::getChannel(const std::string& aKey, bool creat
     return ElementBase::getChannel(aKey, create);
 }
 
-StraightGeometry& ConstantEFieldCavityRep::getGeometry() { return geometry; }
+BGeometryBase& ConstantEFieldCavityRep::getGeometry() { return geometry; }
 
-const StraightGeometry& ConstantEFieldCavityRep::getGeometry() const { return geometry; }
+const BGeometryBase& ConstantEFieldCavityRep::getGeometry() const { return geometry; }
 
 void ConstantEFieldCavityRep::setElementLength(double length) { geometry.setElementLength(length); }

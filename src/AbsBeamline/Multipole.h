@@ -2,7 +2,6 @@
 #define OPALX_Multipole_HH
 
 #include "AbsBeamline/ElementBase.h"
-#include "BeamlineGeometry/StraightGeometry.h"
 
 class Fieldmap;
 constexpr int MAX_MP_ORDER = 5;
@@ -139,13 +138,6 @@ public:
 
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
     /* ========================================================================== */
-    /* =========================== Unused Functions ============================= */
-    // @returns StraightGeometry
-    virtual StraightGeometry& getGeometry() override = 0;
-
-    // @returns StraightGeometry
-    virtual const StraightGeometry& getGeometry() const override = 0;
-
     // @brief Set number of slices for map tracking
     void setNSlices(const std::size_t& nSlices);
 

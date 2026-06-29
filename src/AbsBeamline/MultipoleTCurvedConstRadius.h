@@ -64,7 +64,7 @@
  */
 
 #include "AbsBeamline/MultipoleTBase.h"
-#include "BeamlineGeometry/PlanarArcGeometry.h"
+#include "BeamlineGeometry/Geometry.h"
 
 class MultipoleTCurvedConstRadius final : public MultipoleTBase {
 public:
@@ -85,7 +85,7 @@ public:
 
 private:
     /** Geometry */
-    PlanarArcGeometry planarArcGeometry_m;
+    Geometry planarArcGeometry_m{Geometry::makeArc(1.0, 1.0)};
 
     // Helpers
     KOKKOS_INLINE_FUNCTION static Vector_t<double, 3> toMagnetCoords(
