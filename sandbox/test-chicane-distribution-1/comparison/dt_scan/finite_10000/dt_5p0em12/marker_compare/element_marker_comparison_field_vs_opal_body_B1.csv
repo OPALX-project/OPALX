@@ -1,0 +1,3 @@
+marker,opalx_c0_m,opalx_c1_m,opalx_c2_m,opal_c0_m,opal_c1_m,opal_c2_m,diff_c0_mm,diff_c1_mm,diff_c2_mm,diff_norm_mm
+OPALX FIELD BEGIN: B1 vs OPAL BEGIN: B1,0.245,0.0,0.0,0.245,0.0,0.0,0.0,0.0,0.0,0.0
+OPALX FIELD END: B1 vs OPAL END: B1,1.255416788,0.0,0.0,1.255101141,0.05061357466,6.19837522e-18,0.3156470000000855,-50.61357466,-6.19837522e-15,50.61455890247393
