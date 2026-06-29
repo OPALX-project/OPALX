@@ -37,7 +37,7 @@ extern Inform* gmsg;
 
 const double IndexMap::oneMinusEpsilon_m = 1.0 - std::numeric_limits<double>::epsilon();
 namespace {
-    void insertFlags(std::vector<double>& flags, std::shared_ptr<Component> element);
+    void insertFlags(std::vector<double>& flags, std::shared_ptr<ElementBase> element);
 }
 
 IndexMap::IndexMap()
@@ -310,7 +310,7 @@ void IndexMap::saveSDDS(double initialPathLength) const {
 }
 
 namespace {
-    void insertFlags(std::vector<double>& flags, std::shared_ptr<Component> element) {
+    void insertFlags(std::vector<double>& flags, std::shared_ptr<ElementBase> element) {
         switch (element->getType()) {
             case ElementType::MULTIPOLE: {
                 const Multipole* mult = static_cast<const Multipole*>(element.get());

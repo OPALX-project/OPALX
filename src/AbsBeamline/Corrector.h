@@ -22,9 +22,8 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/BDipoleField.h"
 
 // Class Corrector
 // ------------------------------------------------------------------------
@@ -32,7 +31,7 @@
 //  Class Corrector defines the abstract interface for closed orbit
 //  correctors.
 
-class Corrector : public Component {
+class Corrector : public ElementBase {
 public:
     /// Plane selection.
     enum Plane {
@@ -55,14 +54,6 @@ public:
 
     /// Apply a visitor to Corrector.
     virtual void accept(BeamlineVisitor&) const;
-
-    /// Return the corrector field.
-    //  Version for non-constant object.
-    virtual BDipoleField& getField() = 0;
-
-    /// Return the corrector field.
-    //  Version for constant object.
-    virtual const BDipoleField& getField() const = 0;
 
     /// Return the corrector geometry.
     virtual StraightGeometry& getGeometry() = 0;

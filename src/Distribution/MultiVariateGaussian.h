@@ -21,8 +21,10 @@ using Matrix_t      = ippl::Vector<ippl::Vector<double, 6>, 6>;
  * This class generates particles following a multivariate Gaussian distribution
  * using Cholesky factorization and inverse transformation sampling.
  *
- * Given covariance matrix cov_m = [ Cov(R0,R0), Cov(R0,P0), Cov(R0,R1), Cov(R0,P1), ...]
- * whose values are read from opalDist_m->correlationMatrix_m.
+ * The covariance matrix cov_m = [ Cov(R0,R0), Cov(R0,P0), Cov(R0,R1), Cov(R0,P1), ...]
+ * is built from the dimensionless correlation matrix opalDist_m->correlationMatrix_m
+ * and the per-coordinate sigmas via Cov(i,j) = Corr(i,j) * sigma_i * sigma_j.
+ *
  * First, the Cholesky factorization is computed cov_m = L_m * L_m^T
  * Then, normally distribution particles R=P~N(0,I) are transformed to multivariate using L_m.
  */

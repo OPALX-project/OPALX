@@ -18,7 +18,7 @@
 #ifndef OPALX_RFCavity_HH
 #define OPALX_RFCavity_HH
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Algorithms/AbstractTimeDependence.h"
 #include "Physics/Physics.h"
 
@@ -31,7 +31,7 @@ class Fieldmap;
 
 enum class CavityType : unsigned short { SW, SGSW };
 
-class RFCavity : public Component {
+class RFCavity : public ElementBase {
 public:
     /// Constructor with given name.
     explicit RFCavity(const std::string& name);
