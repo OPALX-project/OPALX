@@ -243,8 +243,8 @@ void Astra1DMagnetoStatic::readMap() {
     delete[] zvals;
     delete[] RealValues;
 
-    FourCoefs_m.modify<Kokkos::HostSpace>();
-    FourCoefs_m.sync<Kokkos::DefaultExecutionSpace>();
+    FourCoefs_m.modify<typename decltype(FourCoefs_m)::host_mirror_space>();
+    FourCoefs_m.sync<typename decltype(FourCoefs_m)::t_dev::device_type>();
 
     Inform m("Astra1DMagnetoStatic::readMap");
     m << level3 << "Read in fieldmap '" << Filename_m << "'" << endl;

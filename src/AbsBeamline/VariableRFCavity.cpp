@@ -22,7 +22,7 @@
 #include "Physics/Units.h"
 #include "Utilities/GeneralOpalException.h"
 
-VariableRFCavity::VariableRFCavity(const std::string& name) : Component(name) {
+VariableRFCavity::VariableRFCavity(const std::string& name) : ElementBase(name) {
     initNull();  // initialise everything to nullptr
 }
 
@@ -30,7 +30,7 @@ VariableRFCavity::VariableRFCavity() {
     initNull();  // initialise everything to nullptr
 }
 
-VariableRFCavity::VariableRFCavity(const VariableRFCavity& var) : Component(var) {
+VariableRFCavity::VariableRFCavity(const VariableRFCavity& var) : ElementBase(var) {
     initNull();  // initialise everything to nullptr
     *this = var;
 }
@@ -100,15 +100,6 @@ void VariableRFCavity::setFrequencyModel(
 StraightGeometry& VariableRFCavity::getGeometry() { return geometry; }
 
 const StraightGeometry& VariableRFCavity::getGeometry() const { return geometry; }
-
-EMField& VariableRFCavity::getField() {
-    throw GeneralOpalException("VariableRFCavity", "No field defined for VariableRFCavity");
-}
-
-const EMField& VariableRFCavity::getField() const {
-    throw GeneralOpalException(
-            "VariableRFCavity::getField", "No field defined for VariableRFCavity");
-}
 
 bool VariableRFCavity::apply(
         const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {

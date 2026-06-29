@@ -52,7 +52,7 @@ public:
     // Overrides of BeamlineVisitor
     void execute() override {}
     void visitBeamline(const Beamline&) override {}
-    void visitComponent(const Component&) override {}
+    void visitElementBase(const ElementBase&) override {}
     void visitConstantEFieldCavity(const ConstantEFieldCavity&) override {}
     void visitDrift(const Drift&) override {}
     void visitFlaggedElmPtr(const FlaggedElmPtr&) override {}
@@ -423,9 +423,6 @@ TEST_F(TestVariableRFCavity, OddApis) {
     EXPECT_DOUBLE_EQ(cav2.getLength(), 0.0);
     EXPECT_NO_THROW(cav2 = cav2);
     EXPECT_DOUBLE_EQ(cav2.getLength(), 0.0);
-    // No implementation of field
-    EXPECT_ANY_THROW(cav1.getField());
-    EXPECT_ANY_THROW(cav2.getField());
 }
 
 TEST_F(TestVariableRFCavity, FieldSupportMatchesBodyLength) {

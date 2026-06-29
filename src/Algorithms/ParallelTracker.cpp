@@ -118,15 +118,15 @@ ParallelTracker::~ParallelTracker() {}
 // --- Visit functions ---
 
 /**
- * @copybrief ParallelTracker::visitComponent
+ * @copybrief ParallelTracker::visitElementBase
  */
-void ParallelTracker::visitComponent(const Component& comp) {
+void ParallelTracker::visitElementBase(const ElementBase& comp) {
     if (comp.getType() == ElementType::LASER) {
         throw LogicalError(
-                "ParallelTracker::visitComponent()",
+                "ParallelTracker::visitElementBase()",
                 "Tracking of the \"LASER\" element is not implemented yet.");
     }
-    Tracker::visitComponent(comp);
+    Tracker::visitElementBase(comp);
 }
 
 void ParallelTracker::visitLaser(const Laser&) {
@@ -185,7 +185,7 @@ void ParallelTracker::execute() {
     double minTimeStep = stepSizes_m.getMinTimeStep();
     m << level3 << "Selected minimum time step from configuration: " << minTimeStep << endl;
 
-    // Activate all beamline elements (sets Component::online_m = true)
+    // Activate all beamline elements (sets ElementBase::online_m = true)
     itsOpalBeamline_m.activateElements();
     m << level3 << "Activated all beamline elements." << endl;
 
@@ -206,35 +206,59 @@ void ParallelTracker::execute() {
                     "Particle container has null PartData reference during lab-frame init.");
         }
         pc->setToLabTrafo(beamlineToLab);
-        pc->getRefPartR() = beamlineToLab.transformTo(Vector_t<double, 3>(0, 0, 0));
+
+        // Resolve the reference particle's pose in the beamline frame. Position and
+        // momentum follow the same 3-tier rule: the bunch mean when particles already
+        // exist; otherwise the input-specified emission offsets (R0, P0) reported by
+        // the sampler; otherwise the design pose (lattice origin, beta*gamma along +z).
+        Vector_t<double, 3> refR = 0.0;
+        Vector_t<double, 3> refP = 0.0;
         if (pc->getTotalNum() > 0) {
-            pc->getRefPartP() = beamlineToLab.rotateTo(pc->getMeanP());
+            refR = pc->getMeanR();
+            refP = pc->getMeanP();
         } else {
-            bool useSamplerReference        = false;
+            // Empty container (e.g. an emitted distribution before its first emission):
+            // the bunch mean is undefined, so take the emission offsets from the sampler.
+            bool useSamplerPosition         = false;
+            bool useSamplerMomentum         = false;
+            Vector_t<double, 3> samplerRefR = 0.0;
             Vector_t<double, 3> samplerRefP = 0.0;
             if (ci < emittingSamplers_m.size()) {
                 for (const auto& sampler : emittingSamplers_m[ci]) {
-                    if (sampler && sampler->hasInitialReferenceMomentum()) {
-                        samplerRefP         = sampler->getInitialReferenceMomentum();
-                        useSamplerReference = true;
-                        break;
+                    if (!sampler) {
+                        continue;
+                    }
+                    if (!useSamplerMomentum && sampler->hasInitialReferenceMomentum()) {
+                        samplerRefP        = sampler->getInitialReferenceMomentum();
+                        useSamplerMomentum = true;
+                    }
+                    if (!useSamplerPosition && sampler->hasInitialReferencePosition()) {
+                        samplerRefR        = sampler->getInitialReferencePosition();
+                        useSamplerPosition = true;
                     }
                 }
             }
 
-            if (useSamplerReference) {
+            // Position: emission offset R0, else the lattice origin.
+            refR = useSamplerPosition ? samplerRefR : Vector_t<double, 3>(0.0);
+
+            // Momentum: emission offset P0, else the design beta*gamma along +z.
+            if (useSamplerMomentum) {
                 if (dot(samplerRefP, samplerRefP) <= 0.0) {
                     throw OpalException(
                             "ParallelTracker::execute",
                             "Sampler-provided initial reference momentum is zero.");
                 }
-                pc->getRefPartP() = beamlineToLab.rotateTo(samplerRefP);
+                refP = samplerRefP;
             } else {
                 const PartData& pref = *pc->getReference();
                 const double P0      = pref.getP() / pref.getM();  // beta*gamma from BEAM pc
-                pc->getRefPartP()    = beamlineToLab.rotateTo(Vector_t<double, 3>(0.0, 0.0, P0));
+                refP                 = Vector_t<double, 3>(0.0, 0.0, P0);
             }
         }
+
+        pc->getRefPartR() = beamlineToLab.transformTo(refR);
+        pc->getRefPartP() = beamlineToLab.rotateTo(refP);
     }
 
     m << level4
@@ -272,27 +296,44 @@ void ParallelTracker::execute() {
     writePhaseSpace(0, psDump0, statDump0);
     m << level2 << "Dump initial phase space done." << endl;
 
-    // Create an OrbitThreader object to handle orbit threading and element queries
-    OrbitThreader oth(
-            *itsBunch_m->getParticleContainer(0)->getReference(),
-            itsBunch_m->getParticleContainer(0)->getRefPartR(),
-            itsBunch_m->getParticleContainer(0)->getRefPartP(),
-            itsBunch_m->getParticleContainer(0)->get_sPos(),
-            -rmin(2),            // Negative minimum z bound
-            itsBunch_m->getT(),  // Current bunch time
-            minTimeStep,
-            stepSizes_m,         // Step size configuration
-            itsOpalBeamline_m);  // OpalBeamline object
+    // Create one OrbitThreader per container, each threaded with its own reference orbit.
+    // The first container (container 0 in the normal case) is the design beam and runs
+    // the full pass (autophasing, design energy, geometry dumps); the rest build only
+    // their own map and reuse that shared element state, so the design beam threads first.
+    const size_t nContainers = itsBunch_m->getNumParticleContainers();
+    std::vector<std::shared_ptr<OrbitThreader>> oths(nContainers);
+    bool designBeamAssigned = false;
+    for (size_t ci = 0; ci < nContainers; ++ci) {
+        const auto& pc = itsBunch_m->getParticleContainer(ci);
+        if (!pc || !pc->getReference()) {
+            continue;
+        }
 
-    // Execute the orbit threading (queries elements and updates state)
-    oth.execute();
+        const bool isDesignBeam = !designBeamAssigned;
+        designBeamAssigned      = true;
+        oths[ci]                = std::make_shared<OrbitThreader>(
+                *pc->getReference(), pc->getRefPartR(), pc->getRefPartP(), pc->get_sPos(),
+                -rmin(2),            // Negative minimum z bound
+                itsBunch_m->getT(),  // Current bunch time
+                minTimeStep,
+                stepSizes_m,        // Step size configuration
+                itsOpalBeamline_m,  // OpalBeamline object
+                isDesignBeam);
+        oths[ci]->execute();
+    }
     m << level4 << "Orbit threader execution done." << endl;
 
     // Stop timing for the OrbitThreader section
     IpplTimings::stopTimer(OrbThreader_m);
 
-    // Get bounding box
-    BoundingBox globalBoundingBox = oth.getBoundingBox();
+    // Bounding box spanning every species' threaded orbit (duplicates re-add the same
+    // box, which is idempotent).
+    BoundingBox globalBoundingBox;
+    for (const auto& oth : oths) {
+        if (oth) {
+            globalBoundingBox.enlargeToContainBoundingBox(oth->getBoundingBox());
+        }
+    }
 
     // Set the time view of the particle bunch
     setTime();
@@ -406,7 +447,7 @@ void ParallelTracker::execute() {
             m << level5 << "Bunch updated after emission." << endl;
 
             // External field computation
-            computeExternalFields(oth);
+            computeExternalFields(oths);
             m << level4 << "External field computation done at step " << step << "." << endl;
 
             // Thomas-BMT spin precession using the lab-frame E, B at the particle.
@@ -722,7 +763,8 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 /**
  * @copybrief ParallelTracker::computeExternalFields
  */
-void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
+void ParallelTracker::computeExternalFields(
+        const std::vector<std::shared_ptr<OrbitThreader>>& oths) {
     IpplTimings::startTimer(fieldEvaluationTimer_m);
     Inform msg("ParallelTracker ", *gmsg);
 
@@ -739,6 +781,10 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
         }
         auto pc = itsBunch_m->getParticleContainer(ci);
         if (!pc) {
+            continue;
+        }
+        // Each container queries its own species' threaded orbit / IndexMap.
+        if (ci >= oths.size() || !oths[ci]) {
             continue;
         }
 
@@ -762,7 +808,8 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
         // Get elements at bunch position.
         IndexMap::value_t elements;
         try {
-            elements = oth.query(pc->get_sPos() + 0.5 * (rmax(2) + rmin(2)), rmax(2) - rmin(2));
+            elements =
+                    oths[ci]->query(pc->get_sPos() + 0.5 * (rmax(2) + rmin(2)), rmax(2) - rmin(2));
         } catch (IndexMap::OutOfBounds& e) {
             globalEOL_m = true;
             continue;
@@ -1786,7 +1833,7 @@ void ParallelTracker::visitVerticalFFAMagnet(const VerticalFFAMagnet& mag) {
 }
 
 void ParallelTracker::buildupFieldList(
-    double BcParameter[], ElementType elementType, Component* elptr) {
+    double BcParameter[], ElementType elementType, ElementBase* elptr) {
     beamline_list::iterator sindex;
     type_pair* localpair = new type_pair();
     localpair->first     = elementType;

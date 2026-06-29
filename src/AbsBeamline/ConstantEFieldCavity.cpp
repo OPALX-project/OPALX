@@ -5,14 +5,14 @@
 ConstantEFieldCavity::ConstantEFieldCavity() : ConstantEFieldCavity("") {}
 
 ConstantEFieldCavity::ConstantEFieldCavity(const ConstantEFieldCavity& right)
-    : Component(right),
+    : ElementBase(right),
       Ex_m(right.Ex_m),
       Ey_m(right.Ey_m),
       Ez_m(right.Ez_m),
       startField_m(right.startField_m) {}
 
 ConstantEFieldCavity::ConstantEFieldCavity(const std::string& name)
-    : Component(name), Ex_m(0.0), Ey_m(0.0), Ez_m(0.0), startField_m(0.0) {}
+    : ElementBase(name), Ex_m(0.0), Ey_m(0.0), Ez_m(0.0), startField_m(0.0) {}
 
 ConstantEFieldCavity::~ConstantEFieldCavity() {}
 

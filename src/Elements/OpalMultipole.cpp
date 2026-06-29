@@ -72,9 +72,6 @@ void OpalMultipole::update() {
     double length      = getLength();
     mult->setElementLength(length);
 
-    // Multipole field for MultipoleRep
-    BMultipoleField field;
-
     // Get the vector with the multipole expansion components
     const std::vector<double> norm = Attributes::getRealArray(itsAttr[KN]);
     std::vector<double> normErrors = Attributes::getRealArray(itsAttr[DKN]);
@@ -87,23 +84,18 @@ void OpalMultipole::update() {
     normErrors.resize(normSize, 0.0);
     skewErrors.resize(skewSize, 0.0);
 
-    double factor    = OpalData::getInstance()->getP0() / Physics::c;
     unsigned int top = (normSize > skewSize) ? normSize : skewSize;
 
-    // Loop over components (0=Dipole, 1=Quadrupole, ...)
+    // Loop over components (0=Dipole, 1=Quadrupole, ...) populating the device
+    // coefficient views read by Multipole::apply().
     for (unsigned int comp = 0; comp < top; ++comp) {
-        factor /= double(comp + 1);
         if (comp < normSize) {
-            field.setNormalComponent(comp, norm[comp] * factor);
             mult->setNormalComponent(comp, norm[comp], normErrors[comp]);
         }
         if (comp < skewSize) {
-            field.setSkewComponent(comp, skew[comp] * factor);
             mult->setSkewComponent(comp, skew[comp], skewErrors[comp]);
         }
     }
-
-    mult->setField(field);
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(mult);

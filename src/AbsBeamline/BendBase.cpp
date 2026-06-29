@@ -32,7 +32,7 @@ namespace {
 BendBase::BendBase() : BendBase("") {}
 
 BendBase::BendBase(const BendBase& right)
-    : Component(right),
+    : ElementBase(right),
       startField_m(right.startField_m),
       endField_m(right.endField_m),
       angle_m(right.angle_m),
@@ -55,7 +55,7 @@ BendBase::BendBase(const BendBase& right)
       k1_m(right.k1_m) {}
 
 BendBase::BendBase(const std::string& name)
-    : Component(name),
+    : ElementBase(name),
       startField_m(0.0),
       endField_m(0.0),
       angle_m(0.0),
@@ -95,18 +95,9 @@ bool BendBase::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     auto Bview          = pc->B.getView();
     const size_t nLocal = pc->getLocalNum();
 
-    const BMultipoleField& field = getField();
-    const int order              = field.order();
-    Kokkos::View<double*> normal("BendBase::normal", order);
-    Kokkos::View<double*> skew("BendBase::skew", order);
-    auto normalHost = Kokkos::create_mirror_view(normal);
-    auto skewHost   = Kokkos::create_mirror_view(skew);
-    for (int i = 0; i < order; ++i) {
-        normalHost(i) = field.getNormalComponent(i);
-        skewHost(i)   = field.getSkewComponent(i);
-    }
-    Kokkos::deep_copy(normal, normalHost);
-    Kokkos::deep_copy(skew, skewHost);
+    // Capture the coefficient views by value for the kernel.
+    auto normal = normalComponents_m;
+    auto skew   = skewComponents_m;
 
     const double elemLength = getElementLength();
 
@@ -156,7 +147,7 @@ bool BendBase::apply(
         return getFlagDeleteOnTransverseExit();
     }
 
-    computeFieldHost(R, getField(), B);
+    computeFieldHost(R, B);
     (void)E;
     return false;
 }
@@ -171,7 +162,7 @@ bool BendBase::apply(
         return getFlagDeleteOnTransverseExit();
     }
 
-    computeFieldHost(R, getField(), B);
+    computeFieldHost(R, B);
     (void)E;
     return false;
 }
@@ -186,7 +177,7 @@ bool BendBase::applyToReferenceParticle(
         return true;
     }
 
-    computeFieldHost(R, getField(), B);
+    computeFieldHost(R, B);
     (void)E;
     return false;
 }
@@ -272,17 +263,61 @@ double BendBase::calcBetaGamma() const {
     return std::sqrt(gamma * gamma - 1.0);
 }
 
-void BendBase::computeFieldHost(
-        const Vector_t<double, 3>& R, const BMultipoleField& field, Vector_t<double, 3>& B) {
-    const int order = field.order();
-    if (order > 0) {
-        B(1) += field.getNormalComponent(0);
-        B(0) -= field.getSkewComponent(0);
+void BendBase::computeFieldHost(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const {
+    auto normalHost = Kokkos::create_mirror_view(normalComponents_m);
+    auto skewHost   = Kokkos::create_mirror_view(skewComponents_m);
+    Kokkos::deep_copy(normalHost, normalComponents_m);
+    Kokkos::deep_copy(skewHost, skewComponents_m);
+
+    if (maxNormal_m > 0) {
+        B(1) += normalHost(0);
     }
-    if (order > 1) {
-        B(0) += field.getNormalComponent(1) * R(1);
-        B(1) += field.getNormalComponent(1) * R(0);
-        B(0) -= field.getSkewComponent(1) * R(0);
-        B(1) += field.getSkewComponent(1) * R(1);
+    if (maxSkew_m > 0) {
+        B(0) -= skewHost(0);
     }
+    if (maxNormal_m > 1) {
+        B(0) += normalHost(1) * R(1);
+        B(1) += normalHost(1) * R(0);
+    }
+    if (maxSkew_m > 1) {
+        B(0) -= skewHost(1) * R(0);
+        B(1) += skewHost(1) * R(1);
+    }
+}
+
+void BendBase::setFieldComponents(
+        const std::vector<double>& normal, const std::vector<double>& skew) {
+    maxNormal_m = static_cast<int>(normal.size());
+    maxSkew_m   = static_cast<int>(skew.size());
+
+    normalComponents_m = Kokkos::View<double*>("BendBase::normal", maxNormal_m);
+    skewComponents_m   = Kokkos::View<double*>("BendBase::skew", maxSkew_m);
+
+    auto normalHost = Kokkos::create_mirror_view(normalComponents_m);
+    auto skewHost   = Kokkos::create_mirror_view(skewComponents_m);
+    for (int i = 0; i < maxNormal_m; ++i) {
+        normalHost(i) = normal[i];
+    }
+    for (int i = 0; i < maxSkew_m; ++i) {
+        skewHost(i) = skew[i];
+    }
+    Kokkos::deep_copy(normalComponents_m, normalHost);
+    Kokkos::deep_copy(skewComponents_m, skewHost);
+}
+
+double BendBase::getB() const {
+    if (maxNormal_m < 1) {
+        return 0.0;
+    }
+    double val;
+    Kokkos::deep_copy(val, Kokkos::subview(normalComponents_m, 0));
+    return val;
+}
+
+void BendBase::setB(double B) {
+    if (maxNormal_m < 1) {
+        maxNormal_m = 1;
+        Kokkos::resize(normalComponents_m, 1);
+    }
+    Kokkos::deep_copy(Kokkos::subview(normalComponents_m, 0), B);
 }
