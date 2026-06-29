@@ -454,17 +454,17 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             setVectorField(*(this->getE()), Vector_t<T, Dim>(0.0));
             mesh.setMeshSpacing(hrStretched);
 
-            // Shift formula in stretched (rest-frame) coordinates:
-            //   shift_z = L + 2*origin_z - 2*R0Z = 2 * (z_center_rest - R0Z).
-            // Origin is in lab-frame z; hrStretched[Dim-1] is the rest-frame
-            // z-spacing. See the TestShiftedGreensFunction derivation.
+            // Shift formula in the bin rest frame. Old OPAL computes the same
+            // distance as zshift = -2 * gamma * (z_center - z_plane); IPPL's
+            // shiftedGreensFunction uses the opposite sign convention because it
+            // evaluates G(r - shift). See TestShiftedGreensFunction.
             const auto origin = mesh.getOrigin();
             const int N_z =
                     static_cast<int>(this->getRho()->getLayout().getDomain()[Dim - 1].length());
-            const double z_center_rest =
-                    origin[Dim - 1] + 0.5 * static_cast<double>(N_z) * hrStretched[Dim - 1];
+            const double zCenter =
+                    origin[Dim - 1] + 0.5 * static_cast<double>(N_z) * hrOrig[Dim - 1];
             ippl::Vector<double, Dim> shift(0.0);
-            shift[Dim - 1] = 2.0 * (z_center_rest - shiftedGreensPlaneZ_m);
+            shift[Dim - 1] = 2.0 * gammaBin * (zCenter - shiftedGreensPlaneZ_m);
 
             m << level4 << "binIndex=" << static_cast<int>(binIndex)
               << " shifted-GF runSolver start, plane=" << shiftedGreensPlaneZ_m
