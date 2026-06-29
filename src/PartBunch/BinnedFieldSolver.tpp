@@ -9,8 +9,9 @@
 template <typename T, unsigned Dim>
 BinnedFieldSolver<T, Dim>::BinnedFieldSolver(
         std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
-        std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency, bool adaptiveBinning)
-    : FieldSolver<T, Dim>(solver, rho, E, phi, bcHandler) {
+        std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency, bool adaptiveBinning,
+        std::string greensFunction)
+    : FieldSolver<T, Dim>(solver, rho, E, phi, bcHandler, std::move(greensFunction)) {
     scatterAttribute_m    = ScatterAttribute::ChargeQ;
     gatherAttribute_m     = GatherAttribute::ElectricFieldE;
     tablePrintFrequency_m = tablePrintFrequency;
