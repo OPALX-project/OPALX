@@ -14,6 +14,8 @@
 #include <vector>
 
 #include "AbstractObjects/OpalData.h"
+#include "Algorithms/CoordinateSystemTrafo.h"
+#include "Algorithms/Quaternion.hpp"
 #include "Attributes/Attributes.h"
 #include "Ippl.h"
 #include "PartBunch/PartBunch.h"
@@ -342,6 +344,84 @@ namespace {
         std::remove((DataSink::diagnosticStemForContainer("unit_test", 2, 0) + ".stat").c_str());
         std::remove((DataSink::diagnosticStemForContainer("unit_test", 2, 1) + ".stat").c_str());
         std::remove((OpalData::getInstance()->getInputBasename() + ".lbal").c_str());
+
+        Options::enableHDF5 = savedH5;
+    }
+    TEST_F(MultiContainerPartBunchTest, DataSink_dumpH5_WritesToLabTransformMetadata) {
+        createParticlesInContainer(0, 4u, 0.1, 0.2);
+
+        auto pc0 = bunch->getParticleContainer(0);
+        ASSERT_NE(pc0, nullptr);
+        const Vector_t<double, 3> toLabOrigin(0.125, -0.25, 1.75);
+        Quaternion rotY(std::cos(0.15), 0.0, std::sin(0.15), 0.0);
+        Quaternion rotZ(std::cos(0.10), 0.0, 0.0, std::sin(0.10));
+        const Quaternion toLabRotation = (rotY * rotZ).normalize();
+        pc0->setToLabTrafo(CoordinateSystemTrafo(toLabOrigin, toLabRotation));
+        pc0->setRefPartR(Vector_t<double, 3>(0.3, -0.2, 1.1));
+        pc0->setRefPartP(Vector_t<double, 3>(0.05, 0.0, 1.2));
+
+        const bool savedH5  = Options::enableHDF5;
+        Options::enableHDF5 = true;
+
+        static int h5FileCounter = 0;
+        const int tag            = ++h5FileCounter;
+        const std::string f0     = std::string("test_mc_h5_meta_c0_") + std::to_string(tag) + ".h5";
+        const std::string f1     = std::string("test_mc_h5_meta_c1_") + std::to_string(tag) + ".h5";
+
+        std::vector<H5PartWrapper*> wrappers;
+        wrappers.push_back(new H5PartWrapperForPT(f0, H5_O_WRONLY));
+        wrappers.push_back(new H5PartWrapperForPT(f1, H5_O_WRONLY));
+
+        {
+            DataSink ds(wrappers, false, 2);
+            std::vector<std::array<Vector_t<double, 3>, 2>> fd(2);
+            fd[0] = zeroFdPair();
+            fd[1] = zeroFdPair();
+            ASSERT_NO_THROW(ds.dumpH5(*bunch, fd));
+        }
+
+        ippl::Comm->barrier();
+
+        h5_prop_t props = H5CreateFileProp();
+        MPI_Comm comm   = ippl::Comm->getCommunicator();
+        ASSERT_NE(H5SetPropFileMPIOCollective(props, &comm), H5_ERR);
+        h5_file_t file = H5OpenFile(f0.c_str(), H5_O_RDONLY, props);
+        ASSERT_NE(file, static_cast<h5_file_t>(H5_ERR));
+        ASSERT_NE(H5SetStep(file, 0), H5_ERR);
+
+        Vector_t<double, 3> dumpedOrigin;
+        Quaternion dumpedQuaternion;
+        ASSERT_NE(
+                H5ReadStepAttribFloat64(file, "ToLabOrigin", (h5_float64_t*)&dumpedOrigin), H5_ERR);
+        ASSERT_NE(
+                H5ReadStepAttribFloat64(file, "ToLabQuaternion", (h5_float64_t*)&dumpedQuaternion),
+                H5_ERR);
+
+        EXPECT_NEAR(dumpedOrigin(0), toLabOrigin(0), 1.0e-14);
+        EXPECT_NEAR(dumpedOrigin(1), toLabOrigin(1), 1.0e-14);
+        EXPECT_NEAR(dumpedOrigin(2), toLabOrigin(2), 1.0e-14);
+        EXPECT_NEAR(dumpedQuaternion(0), toLabRotation(0), 1.0e-14);
+        EXPECT_NEAR(dumpedQuaternion(1), toLabRotation(1), 1.0e-14);
+        EXPECT_NEAR(dumpedQuaternion(2), toLabRotation(2), 1.0e-14);
+        EXPECT_NEAR(dumpedQuaternion(3), toLabRotation(3), 1.0e-14);
+
+        ASSERT_NE(H5CloseFile(file), H5_ERR);
+        H5CloseProp(props);
+
+        for (H5PartWrapper* w : wrappers) {
+            delete w;
+        }
+
+        ippl::Comm->barrier();
+        if (ippl::Comm->rank() == 0) {
+            std::remove(f0.c_str());
+            std::remove(f1.c_str());
+            std::remove(
+                    (DataSink::diagnosticStemForContainer("unit_test", 2, 0) + ".stat").c_str());
+            std::remove(
+                    (DataSink::diagnosticStemForContainer("unit_test", 2, 1) + ".stat").c_str());
+            std::remove((OpalData::getInstance()->getInputBasename() + ".lbal").c_str());
+        }
 
         Options::enableHDF5 = savedH5;
     }

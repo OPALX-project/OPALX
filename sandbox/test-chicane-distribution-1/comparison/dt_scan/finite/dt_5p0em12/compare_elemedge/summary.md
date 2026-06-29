@@ -1,0 +1,60 @@
+# test-chicane-distribution-1 OPALX vs OPAL 2022.1
+
+OPALX stat: `/Users/adelmann/git/opalx/sandbox/test-chicane-distribution-1/comparison/dt_scan/finite/dt_5p0em12/opalx_elemedge/test-chicane-distribution-2.stat`
+OPAL stat: `/Users/adelmann/git/opalx/sandbox/test-chicane-distribution-1/comparison/dt_scan/finite/dt_5p0em12/opal_2022/test-chicane-distribution-1_opal.stat`
+
+Both files are compared on the shared `s` range by interpolating OPAL onto OPALX samples.
+
+| quantity | samples | max_abs_diff | rms_diff     | final_opalx   | final_opal    | final_diff    |
+| -------- | ------- | ------------ | ------------ | ------------- | ------------- | ------------- |
+| energy   | 6304    | 3.449259e-10 | 2.070157e-10 | 1.000000e+03  | 1.000000e+03  | -3.288960e-10 |
+| rms_x    | 6304    | 7.258152e-07 | 2.764380e-07 | 6.930478e-05  | 6.884071e-05  | 4.640679e-07  |
+| rms_y    | 6304    | 5.313809e-09 | 2.474402e-09 | 5.657385e-05  | 5.657916e-05  | -5.313809e-09 |
+| rms_s    | 6304    | 6.524041e-07 | 3.531604e-07 | 7.098854e-04  | 7.094040e-04  | 4.814756e-07  |
+| rms_px   | 6304    | 1.261870e-01 | 5.769319e-03 | 1.745175e-02  | 1.835032e-02  | -8.985770e-04 |
+| rms_py   | 6304    | 1.238922e-06 | 7.181355e-07 | 7.412839e-06  | 8.648435e-06  | -1.235596e-06 |
+| rms_ps   | 6304    | 7.466435e-06 | 1.310191e-06 | 2.768961e+00  | 2.768961e+00  | 2.655857e-08  |
+| emit_x   | 6304    | 4.386912e-05 | 2.048239e-06 | 1.194290e-06  | 1.253188e-06  | -5.889807e-08 |
+| emit_y   | 6304    | 8.134612e-11 | 1.529047e-11 | 3.998480e-10  | 4.241391e-10  | -2.429109e-11 |
+| emit_s   | 6304    | 1.821404e-06 | 9.904084e-07 | 1.957919e-03  | 1.956587e-03  | 1.331383e-06  |
+| mean_x   | 6304    | 1.308545e-05 | 8.397262e-06 | -2.873064e-05 | -1.817575e-05 | -1.055489e-05 |
+| mean_y   | 6304    | 1.575550e-12 | 1.005893e-12 | 7.234829e-12  | 6.861439e-12  | 3.733904e-13  |
+| mean_s   | 6304    | 1.762379e-06 | 1.152704e-06 | 4.511507e-06  | 3.045078e-06  | 1.466429e-06  |
+| ref_x    | 6304    | 4.371580e-04 | 2.277853e-04 | 2.195652e-05  | 1.349320e-05  | 8.463316e-06  |
+| ref_y    | 6304    | 1.146076e-16 | 5.950753e-17 | 0.000000e+00  | 1.146076e-16  | -1.146076e-16 |
+| ref_z    | 6304    | 1.704346e-05 | 6.832291e-06 | 9.427804e+00  | 9.427787e+00  | 1.704345e-05  |
+| ref_px   | 6304    | 8.487936e-01 | 3.407999e-01 | 8.967867e-03  | 2.745284e-03  | 6.222583e-03  |
+| ref_py   | 6304    | 4.788343e-14 | 2.512690e-14 | 0.000000e+00  | 4.788343e-14  | -4.788343e-14 |
+| ref_pz   | 6304    | 8.450848e-02 | 1.969400e-02 | 1.957951e+03  | 1.957951e+03  | -1.859712e-08 |
+| By_ref   | 6304    | 3.336817e-01 | 1.158390e-02 | 0.000000e+00  | 0.000000e+00  | 0.000000e+00  |
+
+## By Field Intervals
+
+Intervals where `abs(By_ref) > 1e-6 T`; differences are `OPALX - OPAL`. A one-step shift is about `2.99792458 mm` for `DT = 1e-11 s`.
+
+| interval | opalx_start_m | opal_start_m | start_diff_mm | opalx_end_m  | opal_end_m   | end_diff_mm   | opalx_samples | opal_samples |
+| -------- | ------------- | ------------ | ------------- | ------------ | ------------ | ------------- | ------------- | ------------ |
+| 1        | 2.488277e-01  | 2.488277e-01 | -2.803313e-12 | 1.251633e+00 | 1.251633e+00 | 5.195844e-11  | 670           | 670          |
+| 2        | 2.747598e+00  | 2.749096e+00 | -1.498962e+00 | 3.751902e+00 | 3.753401e+00 | -1.498962e+00 | 671           | 671          |
+| 3        | 5.748520e+00  | 5.751518e+00 | -2.997924e+00 | 6.752824e+00 | 6.754323e+00 | -1.498962e+00 | 671           | 670          |
+| 4        | 8.248788e+00  | 8.251786e+00 | -2.997924e+00 | 9.251594e+00 | 9.256091e+00 | -4.496886e+00 | 670           | 671          |
+
+## Plots
+
+- `stat_rms_opalx_opal.png`
+- `stat_rms_relative_opalx_opal.png`
+- `stat_rms_relative_opalx_opal.pdf`
+- `stat_rms_momentum_difference_opalx_opal.png`
+- `stat_rms_momentum_difference_opalx_opal.pdf`
+- `stat_emittance_difference_opalx_opal.png`
+- `stat_emittance_difference_opalx_opal.pdf`
+- `stat_energy_opalx_opal.png`
+- `stat_reference_xz_opalx_opal.png`
+- `stat_bfield_ref_opalx_opal.png`
+- `stat_bfield_ref_opalx_opal.pdf`
+
+## R56 Fits
+
+- OPALX: $R_{56}=-4.44581726e-02$ m, $\Delta R_{56}=-1.12e-03$ m
+- OPAL: $R_{56}=-4.44415648e-02$ m, $\Delta R_{56}=-1.11e-03$ m
+

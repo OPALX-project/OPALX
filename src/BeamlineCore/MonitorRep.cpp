@@ -30,12 +30,13 @@ namespace {
             {"L", &MonitorRep::getElementLength, &MonitorRep::setElementLength}, {0, 0, 0}};
 }  // namespace
 
-MonitorRep::MonitorRep() : Monitor(), geometry(), active(true) {}
+MonitorRep::MonitorRep() : Monitor(), field(), geometry(), active(true) {}
 
 MonitorRep::MonitorRep(const MonitorRep& right)
-    : Monitor(right), geometry(right.geometry), active(true) {}
+    : Monitor(right), field(), geometry(right.geometry), active(true) {}
 
-MonitorRep::MonitorRep(const std::string& name) : Monitor(name), geometry(), active(true) {}
+MonitorRep::MonitorRep(const std::string& name)
+    : Monitor(name), field(), geometry(), active(true) {}
 
 MonitorRep::~MonitorRep() {}
 
@@ -50,6 +51,10 @@ Channel* MonitorRep::getChannel(const std::string& aKey, bool create) {
 
     return ElementBase::getChannel(aKey, create);
 }
+
+NullField& MonitorRep::getField() { return field; }
+
+const NullField& MonitorRep::getField() const { return field; }
 
 StraightGeometry& MonitorRep::getGeometry() { return geometry; }
 

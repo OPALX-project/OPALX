@@ -38,8 +38,14 @@ doc/user_guide/opal_user_guide.toc
 init-test.sh
 init.el
 input-files/OPAL-X-STAT0.csv
-input-files/timing.dat
+timing.dat
 build_*
 *.json
 coverage_html/
 .idea
+*.loss
+*.stat
+*.out
+*.lbal
+attic
+__pycache__

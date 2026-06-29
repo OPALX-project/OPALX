@@ -59,6 +59,7 @@
 
 #include "AbsBeamline/ElementBase.h"
 #include "BeamlineCore/RFCavityRep.h"
+#include "Fields/EMField.h"
 #include "Fields/Fieldmap.h"
 
 #include <cmath>
@@ -128,6 +129,14 @@ private:
 };
 
 // ---------------------------------------------------------------------------
+// Dummy Field (fully concrete)
+// ---------------------------------------------------------------------------
+class DummyField : public EMField {
+public:
+    void scale(double) override {}
+};
+
+// ---------------------------------------------------------------------------
 // Minimal concrete RFCavity
 // ---------------------------------------------------------------------------
 class TestRFCavity : public RFCavity {
@@ -143,6 +152,9 @@ public:
 
     BGeometryBase& getGeometry() override { return geom_; }
     const BGeometryBase& getGeometry() const override { return geom_; }
+
+    EMField& getField() { return field_; }
+    const EMField& getField() const { return field_; }
 
     // ---- Simple setters for testing ----
     void setAmplitude(double v) { amplitude_ = v; }
@@ -163,6 +175,7 @@ private:
     double phase_     = 0.0;
 
     DummyGeometry geom_;
+    DummyField field_;
 };
 
 // ---------------------------------------------------------------------------

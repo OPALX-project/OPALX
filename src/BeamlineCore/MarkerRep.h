@@ -22,6 +22,7 @@
 
 #include "AbsBeamline/Marker.h"
 #include "BeamlineGeometry/NullGeometry.h"
+#include "Fields/NullField.h"
 
 // Class MarkerRep
 // ------------------------------------------------------------------------
@@ -39,6 +40,14 @@ public:
     /// Return clone.
     //  Return an identical deep copy of the element.
     virtual ElementBase* clone() const;
+
+    /// Get field.
+    //  Version for non-constant object.
+    virtual NullField& getField();
+
+    /// Get field.
+    //  Version for constant object.
+    virtual const NullField& getField() const;
 
     /// Get geometry.
     //  Return the element geometry.
@@ -59,6 +68,9 @@ public:
     virtual double getElementLength() const;
 
 private:
+    /// The zero magnetic field.
+    NullField field;
+
     /// The marker geometry.
     NullGeometry geometry;
 

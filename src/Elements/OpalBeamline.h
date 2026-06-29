@@ -18,16 +18,20 @@
 #ifndef OPAL_BEAMLINE_H
 #define OPAL_BEAMLINE_H
 
+#include <cmath>
 #include <map>
 #include <memory>
+#include <ostream>
 #include <set>
 #include <string>
 
+#include "AbsBeamline/BendBase.h"
 #include "AbsBeamline/ElementBase.h"
 #include "PartBunch/PartBunch.h"
 
 #include "AbsBeamline/Marker.h"
 #include "BeamlineGeometry/PlacedElement.h"
+#include "BeamlineGeometry/PlanarArcGeometry.h"
 #include "Beamlines/Beamline.h"
 #include "Utilities/BeamlineFieldElement.h"
 
@@ -46,6 +50,14 @@ public:
 
     void activateElements();
     std::set<std::shared_ptr<ElementBase>> getElements(const Vector_t<double, 3>& x);
+    /**
+     * @brief Return elements that act on the reference particle at the given lab position.
+     *
+     * This includes the usual geometric containment query and any online monitor elements, which
+     * remain logically active as thin diagnostics even when their nominal body support is not used
+     * as the sole activation mechanism.
+     */
+    std::set<std::shared_ptr<ElementBase>> getReferenceElements(const Vector_t<double, 3>& x);
 
     /**
      * Get all elements in the beamline, regardless of their position.
@@ -66,6 +78,117 @@ public:
             const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
     Vector_t<double, 3> rotateFromLocalCS(
             const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
+
+    /**
+     * @brief Return the rigid runtime field-frame transform used for tracking queries.
+     *
+     * The placement bridge distinguishes the nominal body frame used for
+     * geometry/export from the local field chart used by runtime field
+     * evaluation. Most straight elements use the body frame directly. Analytic
+     * bends use this rigid transform only as an auxiliary frame; the actual
+     * longitudinal coordinate used for runtime field queries may be
+     * curvilinear, as implemented in `transformToFieldLocalCS()`.
+     *
+     * In formulas, this method returns \f$T_i^{\mathrm{field}}\f$ such that
+     * \f[
+     * \mathbf r_{\mathrm{field\;frame}} =
+     * T_i^{\mathrm{field}}\,\mathbf r_{\mathrm{lab}} .
+     * \f]
+     */
+    CoordinateSystemTrafo getFieldCSTrafoLab2Local(const std::shared_ptr<ElementBase>& comp) const;
+
+    /**
+     * @brief Transform a lab-space position into the component's runtime field chart.
+     *
+     * This first applies the rigid field-frame transform returned by
+     * `getFieldCSTrafoLab2Local()` and then lets the component convert that rigid-frame point into
+     * its final field chart.
+     *
+     * Equivalently,
+     * \f[
+     * \mathbf u_i =
+     * \chi_i\!\left(T_i^{\mathrm{field}}\,\mathbf r_{\mathrm{lab}}\right),
+     * \f]
+     * where \f$\chi_i\f$ is the element-specific field-chart map.
+     */
+    Vector_t<double, 3> transformToFieldLocalCS(
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
+
+    /**
+     * @brief Transform a rigid field-frame point back to lab coordinates.
+     *
+     * This helper only inverts the rigid field-frame transform. For curvilinear components the
+     * caller must provide a point already expressed in the rigid frame, not in the final field
+     * chart.
+     */
+    Vector_t<double, 3> transformFromFieldLocalCS(
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
+
+    /**
+     * @brief Rotate a lab-space vector into the component field basis using the default chart
+     * origin.
+     *
+     * This convenience overload preserves the historical rigid behavior for callers that do not
+     * have a field-local position available.
+     *
+     * It evaluates the generic vector map at \f$\mathbf u_i=\mathbf 0\f$:
+     * \f[
+     * \mathbf v_i =
+     * \mathcal R_i(\mathbf 0)\,R_i^{\mathrm{field}}\,\mathbf v_{\mathrm{lab}}.
+     * \f]
+     */
+    Vector_t<double, 3> rotateToFieldLocalCS(
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
+
+    /**
+     * @brief Rotate a lab-space vector into the component field basis at a given field-local point.
+     *
+     * The supplied `fieldLocalPosition` is used by curvilinear elements to evaluate the local
+     * tangent basis.
+     *
+     * In the general case this computes
+     * \f[
+     * \mathbf v_i =
+     * \mathcal R_i(\mathbf u_i)\,R_i^{\mathrm{field}}\,\mathbf v_{\mathrm{lab}},
+     * \f]
+     * with \f$\mathbf u_i\f$ given explicitly by `fieldLocalPosition`.
+     */
+    Vector_t<double, 3> rotateToFieldLocalCS(
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& fieldLocalPosition,
+            const Vector_t<double, 3>& r) const;
+
+    /**
+     * @brief Rotate a field-basis vector back to lab space using the default chart origin.
+     *
+     * This convenience overload preserves the historical rigid behavior for callers that do not
+     * have a field-local position available.
+     *
+     * It applies the inverse map at \f$\mathbf u_i=\mathbf 0\f$:
+     * \f[
+     * \mathbf v_{\mathrm{lab}} =
+     * \left(R_i^{\mathrm{field}}\right)^{-1}
+     * \mathcal R_i(\mathbf 0)^{-1}\,\mathbf v_i.
+     * \f]
+     */
+    Vector_t<double, 3> rotateFromFieldLocalCS(
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
+
+    /**
+     * @brief Rotate a field-basis vector back to lab space at a given field-local point.
+     *
+     * The supplied `fieldLocalPosition` is used by curvilinear elements to evaluate the inverse
+     * tangent-basis rotation.
+     *
+     * In the general case this computes
+     * \f[
+     * \mathbf v_{\mathrm{lab}} =
+     * \left(R_i^{\mathrm{field}}\right)^{-1}
+     * \mathcal R_i(\mathbf u_i)^{-1}\,\mathbf v_i .
+     * \f]
+     */
+    Vector_t<double, 3> rotateFromFieldLocalCS(
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& fieldLocalPosition,
+            const Vector_t<double, 3>& r) const;
 
     /**
      * @brief Return the placed-element view used by the bridge stage.
@@ -117,6 +240,7 @@ public:
     void compute3DLattice();
     void save3DLattice();
     void save3DInput();
+    bool reportPortContinuityDiagnostics(std::ostream& out) const;
     void print(Inform&) const;
     void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
@@ -162,7 +286,29 @@ private:
      */
     void compileCompatibilityPlacement();
 
+    /**
+     * @brief Return true when an unplaced element still requires `ELEMEDGE`.
+     *
+     * Analytic `SBEND` and `RBEND` elements need either an explicit reference
+     * path coordinate from `ELEMEDGE` or an explicit body pose from `Z`. Without
+     * either one, the compatibility bridge has no longitudinal start coordinate
+     * for the bend field support.
+     */
+    static bool requiresElementEdgeWithoutExplicitPosition(const ElementBase& element);
+
+    /**
+     * @brief Resolve the longitudinal field interval start used during visit().
+     *
+     * If `ELEMEDGE` is set, this returns that value. Otherwise, explicitly
+     * positioned elements, including analytic bends, use the nominal body-origin
+     * coordinate \f$Z_\mathrm{body}\f$ as the start of their active interval.
+     * Unplaced `SBEND` and `RBEND` elements remain strict and throw without
+     * `ELEMEDGE`.
+     */
+    double resolveVisitStartField(const std::shared_ptr<ElementBase>& element) const;
+
     FieldList elements_m;
+    std::vector<std::shared_ptr<ElementBase>> declaredOrder_m;
     PlacementAssembly placementAssembly_m;
     bool prepared_m;
     bool compatibilityPlacementCompiled_m;
@@ -179,10 +325,11 @@ inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t&
 
     positionElementRelative(elptr);
 
-    if (elptr->isElementPositionSet()) startField = elptr->getElementPosition();
+    startField = resolveVisitStartField(elptr);
 
     elptr->initialise(&bunch, startField, endField);
     elements_m.push_back(BeamlineFieldElement(elptr, startField, endField));
+    declaredOrder_m.push_back(elptr);
     placementAssembly_m.insert_or_assign(elptr.get(), elptr->getPlacedElement());
     prepared_m                       = false;
     compatibilityPlacementCompiled_m = false;
@@ -226,6 +373,58 @@ inline Vector_t<double, 3> OpalBeamline::rotateToLocalCS(
 inline Vector_t<double, 3> OpalBeamline::rotateFromLocalCS(
         const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const {
     return getPlacedElement(comp).getNominalBodyTransform().rotateFrom(r);
+}
+
+inline CoordinateSystemTrafo OpalBeamline::getFieldCSTrafoLab2Local(
+        const std::shared_ptr<ElementBase>& element) const {
+    if (const auto* bend = dynamic_cast<const BendBase*>(element.get())) {
+        return bend->getFieldCSTrafoLab2Local(getPlacedElement(element));
+    }
+    return getCSTrafoLab2Local(element);
+}
+
+inline Vector_t<double, 3> OpalBeamline::transformToFieldLocalCS(
+        const std::shared_ptr<ElementBase>& element, const Vector_t<double, 3>& r) const {
+    const Vector_t<double, 3> fieldFrame = getFieldCSTrafoLab2Local(element).transformTo(r);
+    if (const auto* bend = dynamic_cast<const BendBase*>(element.get())) {
+        return bend->transformFieldFrameToLocal(fieldFrame);
+    }
+    return fieldFrame;
+}
+
+inline Vector_t<double, 3> OpalBeamline::transformFromFieldLocalCS(
+        const std::shared_ptr<ElementBase>& element, const Vector_t<double, 3>& r) const {
+    return getFieldCSTrafoLab2Local(element).transformFrom(r);
+}
+
+inline Vector_t<double, 3> OpalBeamline::rotateToFieldLocalCS(
+        const std::shared_ptr<ElementBase>& element, const Vector_t<double, 3>& r) const {
+    return rotateToFieldLocalCS(element, Vector_t<double, 3>(0.0), r);
+}
+
+inline Vector_t<double, 3> OpalBeamline::rotateToFieldLocalCS(
+        const std::shared_ptr<ElementBase>& element, const Vector_t<double, 3>& fieldLocalPosition,
+        const Vector_t<double, 3>& r) const {
+    const Vector_t<double, 3> fieldFrame = getFieldCSTrafoLab2Local(element).rotateTo(r);
+    if (const auto* bend = dynamic_cast<const BendBase*>(element.get())) {
+        return bend->rotateFieldFrameToLocal(fieldFrame, fieldLocalPosition);
+    }
+    return fieldFrame;
+}
+
+inline Vector_t<double, 3> OpalBeamline::rotateFromFieldLocalCS(
+        const std::shared_ptr<ElementBase>& element, const Vector_t<double, 3>& r) const {
+    return rotateFromFieldLocalCS(element, Vector_t<double, 3>(0.0), r);
+}
+
+inline Vector_t<double, 3> OpalBeamline::rotateFromFieldLocalCS(
+        const std::shared_ptr<ElementBase>& element, const Vector_t<double, 3>& fieldLocalPosition,
+        const Vector_t<double, 3>& r) const {
+    Vector_t<double, 3> fieldFrame = r;
+    if (const auto* bend = dynamic_cast<const BendBase*>(element.get())) {
+        fieldFrame = bend->rotateFieldLocalToFieldFrame(r, fieldLocalPosition);
+    }
+    return getFieldCSTrafoLab2Local(element).rotateFrom(fieldFrame);
 }
 
 inline PlacedElement OpalBeamline::getPlacedElement(

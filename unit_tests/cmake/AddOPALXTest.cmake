@@ -26,6 +26,31 @@
 # -----------------------------------------------------------------------------
 
 set(OPALX_DEFAULT_TEST_PROCS "1" CACHE STRING "Default MPI ranks per unit test")
+set(OPALX_TEST_MPI_PREFLAGS "" CACHE STRING "Extra MPI launcher flags for OPALX unit tests")
+
+if(NOT OPALX_TEST_MPI_PREFLAGS AND DEFINED MPIEXEC_EXECUTABLE)
+  set(_opalx_mpi_launcher_is_openmpi FALSE)
+  if(MPIEXEC_EXECUTABLE MATCHES "open-mpi|OpenMPI|openmpi")
+    set(_opalx_mpi_launcher_is_openmpi TRUE)
+  else()
+    execute_process(
+      COMMAND ${MPIEXEC_EXECUTABLE} --version
+      RESULT_VARIABLE _opalx_mpi_version_result
+      OUTPUT_VARIABLE _opalx_mpi_version_output
+      ERROR_VARIABLE _opalx_mpi_version_error
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      ERROR_STRIP_TRAILING_WHITESPACE)
+    if(_opalx_mpi_version_result EQUAL 0
+       AND "${_opalx_mpi_version_output};${_opalx_mpi_version_error}" MATCHES "Open MPI")
+      set(_opalx_mpi_launcher_is_openmpi TRUE)
+    endif()
+  endif()
+
+  if(_opalx_mpi_launcher_is_openmpi)
+    set(OPALX_TEST_MPI_PREFLAGS "--map-by;slot:OVERSUBSCRIBE"
+        CACHE STRING "Extra MPI launcher flags for OPALX unit tests" FORCE)
+  endif()
+endif()
 
 function(add_opalx_test TEST_NAME)
   set(options NO_MPI REQUIRE_MPI RUN_SERIAL USE_GTEST_MAIN)
@@ -95,8 +120,9 @@ function(add_opalx_test TEST_NAME)
     set(_final_cmd ${_launched_cmd})
   else()
     if(DEFINED MPIEXEC_EXECUTABLE)
-      set(_final_cmd ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${_procs} ${MPIEXEC_PREFLAGS}
-                     ${TEST_MPI_ARGS} ${_launched_cmd})
+      set(_final_cmd ${MPIEXEC_EXECUTABLE} ${OPALX_TEST_MPI_PREFLAGS}
+                     ${MPIEXEC_NUMPROC_FLAG} ${_procs} ${MPIEXEC_PREFLAGS} ${TEST_MPI_ARGS}
+                     ${_launched_cmd})
     elseif(TEST_REQUIRE_MPI)
       # Add a disabled test with a clear message
       add_test(NAME ${TEST_NAME} COMMAND ${_launched_cmd})
