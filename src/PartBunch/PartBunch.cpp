@@ -167,9 +167,9 @@ void PartBunch<T, Dim>::resetPcActive() {
     const auto& containers = this->getParticleContainers();
     const size_t n         = containers.size();
     pcActive_m.resize(n);
-    pcAtZStop_m.resize(n);
+    pcAtSStop_m.resize(n);
     for (size_t i = 0; i < n; ++i) {
-        pcAtZStop_m[i] = false;
+        pcAtSStop_m[i] = false;
         const auto& pc = containers[i];
         if (!pc || pc->getTotalNum() == 0) {
             pcActive_m[i] = false;
@@ -180,15 +180,15 @@ void PartBunch<T, Dim>::resetPcActive() {
 }
 
 /**
- * @copybrief PartBunch::setPcAtZStop
+ * @copybrief PartBunch::setPcAtSStop
  */
 template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::setPcAtZStop(size_t i) {
+void PartBunch<T, Dim>::setPcAtSStop(size_t i) {
     if (i >= pcActive_m.size()) {
         return;
     }
     pcActive_m[i]  = false;
-    pcAtZStop_m[i] = true;
+    pcAtSStop_m[i] = true;
 }
 
 /**
@@ -202,7 +202,7 @@ void PartBunch<T, Dim>::refreshPcActiveAfterEmit() {
         return;
     }
     for (size_t i = 0; i < n; ++i) {
-        if (pcAtZStop_m[i]) {
+        if (pcAtSStop_m[i]) {
             continue;
         }
         const auto& pc = containers[i];
