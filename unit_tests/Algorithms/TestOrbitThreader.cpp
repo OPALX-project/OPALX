@@ -5,7 +5,7 @@
 #include "Algorithms/OrbitThreader.h"
 #include "Algorithms/PartData.h"
 #include "BeamlineCore/MultipoleRep.h"
-#include "BeamlineGeometry/NullGeometry.h"
+#include "BeamlineGeometry/Geometry.h"
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
 #include "Structure/Beam.h"
@@ -32,7 +32,7 @@ namespace {
         void iterate(BeamlineVisitor&, bool) const override {}
 
     private:
-        NullGeometry geometry_;
+        Geometry geometry_{Geometry::makeNull()};
     };
 
     /**
@@ -86,7 +86,7 @@ namespace {
     private:
         double fieldBegin_m;
         double fieldEnd_m;
-        NullGeometry geometry_m;
+        Geometry geometry_m{Geometry::makeNull()};
     };
 }  // namespace
 
