@@ -128,7 +128,7 @@ public:
     /**
      * @brief Returns the initial reference momentum used by the tracker.
      *
-     * @return P0 for EMISSIONMODEL NONE, or the ASTRA half-sphere reference momentum.
+     * @return P0 for EMISSIONMODEL NONE, or P0 plus the average ASTRA half-sphere momentum.
      */
     Vector_t<double, 3> getInitialReferenceMomentum() const override;
 
