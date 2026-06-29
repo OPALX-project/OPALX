@@ -6,7 +6,7 @@
 Laser::Laser() : Laser("") {}
 
 Laser::Laser(const std::string& name)
-    : Component(name),
+    : ElementBase(name),
       startField_m(0.0),
       wavelength_m(0.0),
       pulseEnergy_m(0.0),
@@ -17,7 +17,7 @@ Laser::Laser(const std::string& name)
       stokes_m(0.0) {}
 
 Laser::Laser(const Laser& right)
-    : Component(right),
+    : ElementBase(right),
       startField_m(right.startField_m),
       wavelength_m(right.wavelength_m),
       pulseEnergy_m(right.pulseEnergy_m),

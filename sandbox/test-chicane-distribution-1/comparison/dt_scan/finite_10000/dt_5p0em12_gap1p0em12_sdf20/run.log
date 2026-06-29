@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "/Users/adelmann/git/opalx/sandbox/test-chicane-distribution-1/compare_opal_opalx.py", line 1017, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/Users/adelmann/git/opalx/sandbox/test-chicane-distribution-1/compare_opal_opalx.py", line 937, in main
+    opal = read_sdds_stat(args.opal_stat)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/adelmann/git/opalx/sandbox/test-chicane-distribution-1/compare_opal_opalx.py", line 46, in read_sdds_stat
+    lines = path.read_text(encoding="utf-8").splitlines()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/local/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/pathlib.py", line 1058, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/local/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/pathlib.py", line 1044, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/adelmann/git/opalx/sandbox/test-chicane-distribution-1/comparison/dt_scan/finite_10000/dt_5p0em12_gap1p0em12_sdf20/opal_2022/test-chicane-distribution-1_opal.stat'

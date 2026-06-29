@@ -1,0 +1,89 @@
+Option, ECHO=FALSE;
+Option, INFO=TRUE;
+Option, AUTOPHASE=0;
+Option, VERSION=10900;
+Option, PSDUMPFREQ=50000;
+Option, STATDUMPFREQ=1;
+
+Title, string="test-sbend-1 old OPAL SBEND comparison";
+
+REAL RF_FREQUENCY = 700.0e6;
+REAL BEAM_BUNCH_CHARGE = 0.0;
+REAL NUMBER_OF_PARTICLES = 10000;
+REAL TIME_STEP = 1.0e-12;
+
+REAL DRIFT_LENGTH = 0.3;
+REAL BEND_LENGTH = 1.0;
+REAL BEND_ANGLE = 45.0;
+REAL BEND_E1 = 45.0;
+REAL BEND_E2 = 0.0;
+REAL BEND_GAP = 0.04;
+REAL BEND_FINT = 0.5;
+// Old OPAL interprets DESIGNENERGY in MeV for this analytic bend field.
+// Keep it matched to the 1 GeV kinetic energy beam momentum below.
+REAL DESIGN_ENERGY_MEV = 1000.0;
+REAL S_OFFSET = 1.0;
+
+// Old OPAL-T places analytic bends with ELEMEDGE on the reference coordinate.
+// This deck intentionally uses the old syntax as a reference comparison for
+// the OPALX explicit-placement deck test-sbend-1.in.
+DPRE: DRIFT,
+    L = DRIFT_LENGTH,
+    ELEMEDGE = S_OFFSET;
+
+B1: SBEND,
+    L = BEND_LENGTH,
+    ANGLE = BEND_ANGLE * Pi / 180.0,
+    E1 = BEND_E1 * Pi / 180.0,
+    E2 = BEND_E2 * Pi / 180.0,
+    FMAPFN = "1DPROFILE1-DEFAULT",
+    ELEMEDGE = S_OFFSET + DRIFT_LENGTH,
+    DESIGNENERGY = DESIGN_ENERGY_MEV,
+    FINT = BEND_FINT,
+    GAP = BEND_GAP;
+
+Line1: LINE = (DPRE, B1);
+
+FS0: Fieldsolver,
+    FSTYPE = NONE,
+    MX = 8,
+    MY = 8,
+    MT = 8,
+    PARFFTX = false,
+    PARFFTY = false,
+    PARFFTT = true,
+    BCFFTX = open,
+    BCFFTY = open,
+    BCFFTT = open,
+    BBOXINCR = 2,
+    GREENSF = INTEGRATED;
+
+Dist0: DISTRIBUTION,
+    TYPE = FROMFILE,
+    FNAME = "test-sbend-1_opal_distribution.txt";
+
+BEAM0: BEAM,
+    PARTICLE = ELECTRON,
+    PC = 1957.9509281901853 * EMASS,
+    NPART = NUMBER_OF_PARTICLES,
+    BFREQ = RF_FREQUENCY * 1e-6,
+    BCURRENT = BEAM_BUNCH_CHARGE * RF_FREQUENCY;
+
+TRACK,
+    LINE = Line1,
+    BEAM = BEAM0,
+    MAXSTEPS = 20000,
+    DT = TIME_STEP,
+    ZSTART = S_OFFSET,
+    ZSTOP = S_OFFSET + DRIFT_LENGTH + 1.2;
+
+RUN,
+    METHOD = "PARALLEL-T",
+    BEAM = BEAM0,
+    FIELDSOLVER = FS0,
+    DISTRIBUTION = Dist0;
+
+ENDTRACK;
+
+Stop;
+Quit;

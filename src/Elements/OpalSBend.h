@@ -30,7 +30,20 @@ public:
     /// Make clone.
     virtual OpalSBend* clone(const std::string& name);
 
-    /// Update the embedded CLASSIC bend.
+    /**
+     * @brief Update the embedded CLASSIC sector bend.
+     *
+     * The OPALX-native `SBEND` follows historical OPAL normalization where
+     * the input `L` is interpreted as the chord used to compute the design
+     * radius:
+     * \f[
+     *   R = \frac{L}{2\sin(\theta/2)}, \qquad
+     *   L_\mathrm{ref} = R\theta, \qquad
+     *   k_0 = \frac{1}{R}.
+     * \f]
+     * This aligns the hard-edge body, Enge fringe support, and peak dipole
+     * field with old OPAL for identical `SBEND, L, ANGLE` input.
+     */
     virtual void update();
 
 private:

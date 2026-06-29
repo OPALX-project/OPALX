@@ -63,12 +63,18 @@
 #include "AbsBeamline/ElementBase.h"
 
 #include "Channels/Channel.h"
+#include "Utilities/LogicalError.h"
+#include "Utility/Inform.h"
 
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
 #include <iostream>
 #include <vector>
+
+extern Inform* gmsg;
+
+const std::vector<double> ElementBase::defaultAperture_m = std::vector<double>({1e6, 1e6, 1.0});
 
 const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
         {ElementType::ANY, "Any"},
@@ -101,6 +107,9 @@ ElementBase::ElementBase(const ElementBase& right)
       aperture_m(right.aperture_m),
       elementEdge_m(right.elementEdge_m),
       rotationZAxis_m(right.rotationZAxis_m),
+      exit_face_slope_m(right.exit_face_slope_m),
+      RefPartBunch_m(nullptr),
+      online_m(right.online_m),
       elementID(right.elementID),
       userAttribs(right.userAttribs),
       wake_m(right.wake_m),
@@ -118,6 +127,9 @@ ElementBase::ElementBase(const std::string& name)
       misalignment_m(),
       elementEdge_m(0),
       rotationZAxis_m(0.0),
+      exit_face_slope_m(0.0),
+      RefPartBunch_m(nullptr),
+      online_m(false),
       elementID(name),
       userAttribs(),
       wake_m(nullptr),
@@ -126,7 +138,9 @@ ElementBase::ElementBase(const std::string& name)
       positionIsFixed(false),
       elementPosition_m(0.0),
       elemedgeSet_m(false),
-      outputfn_m("") {}
+      outputfn_m("") {
+    setAperture(ApertureType::ELLIPTICAL, defaultAperture_m);
+}
 
 ElementBase::~ElementBase() {}
 
@@ -282,3 +296,49 @@ BoundingBox ElementBase::getBoundingBoxInLabCoords() const {
 
     return BoundingBox::getBoundingBox(corners);
 }
+
+/* ============================== Field / physics interface ================== */
+
+ElementType ElementBase::getType() const { return ElementType::ANY; }
+
+void ElementBase::goOnline(const double&) { online_m = true; }
+
+void ElementBase::goOffline() { online_m = false; }
+
+bool ElementBase::Online() { return online_m; }
+
+void ElementBase::trackBunch(PartBunch_t&, const PartData&, bool, bool) const {
+    throw LogicalError("ElementBase::trackBunch()", "Called for element \"" + getName() + "\".");
+}
+
+void ElementBase::trackMap(FVps<double, 6>&, const PartData&, bool, bool) const {
+    throw LogicalError("ElementBase::trackMap()", "Called for element \"" + getName() + "\".");
+}
+
+bool ElementBase::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) { return false; }
+
+bool ElementBase::apply(
+        const size_t& /*i*/, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&) {
+    *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+          << " function: " << __func__ << endl;
+    return false;
+}
+
+bool ElementBase::apply(
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
+        Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
+    if (R(2) >= 0.0 && R(2) < getElementLength()) {
+        if (!isInsideTransverse(R)) return true;
+    }
+    return false;
+}
+
+bool ElementBase::applyToReferenceParticle(
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
+        Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
+    if (R(2) >= 0.0 && R(2) < getElementLength()) {
+        if (!isInsideTransverse(R)) return true;
+    }
+    return false;
+}
+/* ========================================================================== */

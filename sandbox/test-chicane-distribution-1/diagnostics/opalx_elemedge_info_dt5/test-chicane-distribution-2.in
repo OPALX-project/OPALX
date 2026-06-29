@@ -1,0 +1,150 @@
+OPTION, PSDUMPFREQ = 50000;
+OPTION, STATDUMPFREQ = 10;
+OPTION, BOUNDPDESTROY = 10;
+OPTION, VERSION = 10900;
+OPTION, ASCIIDUMP = FALSE;
+OPTION, IDEALIZED = TRUE;
+
+Title, string = "test-chicane-distribution-2 OPAL-style ELEMEDGE chicane";
+
+// OPALX compatibility-placement control case for test-chicane-distribution-1.
+//
+// This deck deliberately mimics the old OPAL 2022.1 comparison input:
+//   - no explicit OPALX body poses X/Y/Z/THETA/PHI/PSI are used;
+//   - each element is anchored by reference-line ELEMEDGE;
+//   - the four SBEND signs, FMAPFN, DESIGNENERGY, FINT, GAP, and HAPERT match
+//     test-chicane-distribution-1_opal.in;
+//   - IDEALIZED=TRUE keeps OPALX's compatibility placement on the hard-edge
+//     reference-line lengths instead of applying profile-dependent path
+//     corrections while constructing the nominal lattice;
+//   - the same deterministic FROMFILE distribution is reused.
+//
+// The purpose is to separate OPALX body-pose placement differences from the
+// old OPAL reference-line/field-profile model.  If this file agrees more
+// closely with old OPAL than test-chicane-distribution-1.in does, the remaining
+// difference is primarily placement semantics rather than the distribution or
+// the comparison machinery.
+
+REAL LB      = 1.0;
+REAL TH      = 0.1;
+REAL D_CH    = 1.5;
+REAL C_CH    = 2.0;
+REAL D_PRE   = 0.25;
+REAL S_EXIT  = D_PRE + 4 * LB + 2 * D_CH + C_CH;
+
+DPRE: DRIFT,
+    L = D_PRE,
+    ELEMEDGE = 0.0;
+
+B1: SBEND,
+    L = LB,
+    ANGLE = -TH,
+    E1 = 0.0,
+    E2 = 0.0,
+    FMAPFN = "1DPROFILE1-DEFAULT",
+    ELEMEDGE = D_PRE,
+    DESIGNENERGY = 1000.0,
+    FINT = 0.0,
+    GAP = 1.0e-3,
+    HAPERT = 1.0;
+
+D12: DRIFT,
+    L = D_CH,
+    ELEMEDGE = D_PRE + LB;
+
+B2: SBEND,
+    L = LB,
+    ANGLE = TH,
+    E1 = 0.0,
+    E2 = 0.0,
+    FMAPFN = "1DPROFILE1-DEFAULT",
+    ELEMEDGE = D_PRE + LB + D_CH,
+    DESIGNENERGY = 1000.0,
+    FINT = 0.0,
+    GAP = 1.0e-3,
+    HAPERT = 1.0;
+
+D23: DRIFT,
+    L = C_CH,
+    ELEMEDGE = D_PRE + 2 * LB + D_CH;
+
+B3: SBEND,
+    L = LB,
+    ANGLE = TH,
+    E1 = 0.0,
+    E2 = 0.0,
+    FMAPFN = "1DPROFILE1-DEFAULT",
+    ELEMEDGE = D_PRE + 2 * LB + D_CH + C_CH,
+    DESIGNENERGY = 1000.0,
+    FINT = 0.0,
+    GAP = 1.0e-3,
+    HAPERT = 1.0;
+
+D34: DRIFT,
+    L = D_CH,
+    ELEMEDGE = D_PRE + 3 * LB + D_CH + C_CH;
+
+B4: SBEND,
+    L = LB,
+    ANGLE = -TH,
+    E1 = 0.0,
+    E2 = 0.0,
+    FMAPFN = "1DPROFILE1-DEFAULT",
+    ELEMEDGE = D_PRE + 3 * LB + 2 * D_CH + C_CH,
+    DESIGNENERGY = 1000.0,
+    FINT = 0.0,
+    GAP = 1.0e-3,
+    HAPERT = 1.0;
+
+MEXIT: MONITOR,
+    L = 0.01,
+    ELEMEDGE = S_EXIT,
+    TYPE = TEMPORAL,
+    OUTFN = "test-chicane-distribution-2_exit";
+
+Line1: LINE = (DPRE, B1, D12, B2, D23, B3, D34, B4, MEXIT);
+
+Dist0: DISTRIBUTION,
+    TYPE = FROMFILE,
+    FNAME = "test-chicane-distribution-1_distribution.txt",
+    NPARTDIST = 125;
+
+ES0: EMISSIONSOURCE, DISTRIBUTION = Dist0;
+Sources0: EMISSIONSOURCELIST = (ES0);
+
+FS0: FIELDSOLVER,
+    TYPE = NONE,
+    NX = 16,
+    NY = 16,
+    NZ = 16,
+    PARFFTX = false,
+    PARFFTY = false,
+    PARFFTZ = true,
+    BCFFTX = open,
+    BCFFTY = open,
+    BCFFTZ = open,
+    BBOXINCR = 1,
+    GREENSF = INTEGRATED;
+
+BEAM0: BEAM,
+    PARTICLE = ELECTRON,
+    NALLOC = 125,
+    BCHARGE = 1.0e-9,
+    SOURCES = Sources0,
+    CHARGE = -1;
+
+TRACK,
+    LINE = Line1,
+    BEAM = BEAM0,
+    MAXSTEPS = 20000,
+    DT = 5.0000000000000000e-12,
+    ZSTART = 0.0,
+    ZSTOP = S_EXIT + 0.2;
+
+RUN,
+    METHOD = "PARALLEL",
+    FIELDSOLVER = FS0;
+
+ENDTRACK;
+
+QUIT;

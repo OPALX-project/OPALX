@@ -32,6 +32,35 @@
 #include <set>
 #include <sstream>
 
+namespace {
+    /**
+     * @brief Return true when the current H5 step contains attribute @p name.
+     *
+     * This helper is used to keep restart handling backward compatible while allowing newer
+     * OPALX dumps to carry the full moving-frame rigid transform.
+     */
+    bool hasStepAttribute(h5_file_t file, const std::string& name) {
+        const h5_int64_t numStepAttributes  = H5GetNumStepAttribs(file);
+        const h5_size_t lengthAttributeName = 256;
+        char attributeName[lengthAttributeName];
+        h5_int64_t attributeType       = 0;
+        h5_size_t numAttributeElements = 0;
+
+        for (h5_int64_t i = 0; i < numStepAttributes; ++i) {
+            const h5_int64_t rc = H5GetStepAttribInfo(
+                    file, i, attributeName, lengthAttributeName, &attributeType,
+                    &numAttributeElements);
+            if (rc != H5_SUCCESS) {
+                return false;
+            }
+            if (name == attributeName) {
+                return true;
+            }
+        }
+        return false;
+    }
+}  // namespace
+
 H5PartWrapperForPT::H5PartWrapperForPT(const std::string& fileName, h5_int32_t flags)
     : H5PartWrapper(fileName, flags) {}
 
@@ -140,8 +169,17 @@ void H5PartWrapperForPT::readStepHeader(PartBunch_t* bunch) {
     Quaternion rotPhi(std::cos(0.5 * TaitBryant[1]), std::sin(0.5 * TaitBryant[1]), 0, 0);
     Quaternion rotPsi(std::cos(0.5 * TaitBryant[2]), 0, 0, std::sin(0.5 * TaitBryant[2]));
     Quaternion rotation = rotTheta * (rotPhi * rotPsi);
-    // ADA bunch->toLabTrafo_m = CoordinateSystemTrafo(-rotation.conjugate().rotate(RefPartR),
-    // rotation);
+
+    if (hasStepAttribute(file_m, "ToLabOrigin") && hasStepAttribute(file_m, "ToLabQuaternion")) {
+        Vector_t<double, 3> toLabOrigin;
+        Quaternion toLabRotation;
+        READSTEPATTRIB(Float64, file_m, "ToLabOrigin", (h5_float64_t*)&toLabOrigin);
+        READSTEPATTRIB(Float64, file_m, "ToLabQuaternion", (h5_float64_t*)&toLabRotation);
+        pc->setToLabTrafo(CoordinateSystemTrafo(toLabOrigin, toLabRotation));
+    } else {
+        // Legacy restart fallback for files that only stored Tait-Bryant angles.
+        pc->setToLabTrafo(CoordinateSystemTrafo(-rotation.conjugate().rotate(RefPartR), rotation));
+    }
 }
 
 void H5PartWrapperForPT::readStepData(
@@ -277,6 +315,8 @@ void H5PartWrapperForPT::writeHeader() {
 
     WRITESTRINGFILEATTRIB(file_m, "RefPartRUnit", "m");
     WRITESTRINGFILEATTRIB(file_m, "RefPartPUnit", "#beta#gamma");
+    WRITESTRINGFILEATTRIB(file_m, "ToLabOriginUnit", "m");
+    WRITESTRINGFILEATTRIB(file_m, "ToLabQuaternionUnit", "1");
     WRITESTRINGFILEATTRIB(file_m, "SteptoLastInjUnit", "1");
 
     WRITESTRINGFILEATTRIB(file_m, "dump frequencyUnit", "1")
@@ -317,14 +357,17 @@ void H5PartWrapperForPT::writeStepHeader(
     Vector_t<double, 3> maxP(0.0);
     Vector_t<double, 3> minP(0.0);
 
-    Vector_t<double, 3> xsigma     = pc->getRmsR();
-    Vector_t<double, 3> psigma     = pc->getRmsP();
-    Vector_t<double, 3> vareps     = pc->getNormEmit();
-    Vector_t<double, 3> geomvareps = pc->getGeometricEmit();
-    Vector_t<double, 3> RefPartR   = pc->getRefPartR();
-    Vector_t<double, 3> RefPartP   = pc->getRefPartP();
-    Vector_t<double, 3>
-            TaitBryant;  // ADA = Util::getTaitBryantAngles(bunch->toLabTrafo_m.getRotation());
+    Vector_t<double, 3> xsigma              = pc->getRmsR();
+    Vector_t<double, 3> psigma              = pc->getRmsP();
+    Vector_t<double, 3> vareps              = pc->getNormEmit();
+    Vector_t<double, 3> geomvareps          = pc->getGeometricEmit();
+    Vector_t<double, 3> RefPartR            = pc->getRefPartR();
+    Vector_t<double, 3> RefPartP            = pc->getRefPartP();
+    const CoordinateSystemTrafo& toLabTrafo = pc->getToLabTrafo();
+    const Vector_t<double, 3> toLabOrigin   = toLabTrafo.getOrigin();
+    const Quaternion toLabRotation          = toLabTrafo.getRotation();
+    Vector_t<double, 3> TaitBryant =
+            Util::getTaitBryantAngles(toLabRotation.conjugate(), "H5PartWrapperForPT");
     Vector_t<double, 3> pmean = pc->getMeanP();
 
     double meanEnergy   = pc->getMeanKineticEnergy();
@@ -361,6 +404,8 @@ void H5PartWrapperForPT::writeStepHeader(
     WRITESTEPATTRIB(Float64, file_m, "MEANP", (h5_float64_t*)&pmean, 3);
     WRITESTEPATTRIB(Float64, file_m, "RMSP", (h5_float64_t*)&psigma, 3);
     WRITESTEPATTRIB(Float64, file_m, "TaitBryantAngles", (h5_float64_t*)&TaitBryant, 3);
+    WRITESTEPATTRIB(Float64, file_m, "ToLabOrigin", (h5_float64_t*)&toLabOrigin, 3);
+    WRITESTEPATTRIB(Float64, file_m, "ToLabQuaternion", (h5_float64_t*)&toLabRotation, 4);
 
     WRITESTEPATTRIB(Float64, file_m, "#varepsilon", (h5_float64_t*)&vareps, 3);
     WRITESTEPATTRIB(Float64, file_m, "#varepsilon-geom", (h5_float64_t*)&geomvareps, 3);
