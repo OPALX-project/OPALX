@@ -21,7 +21,6 @@
 
 #include "AbsBeamline/Monitor.h"
 #include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/NullField.h"
 
 class MonitorRep : public Monitor {
 public:
@@ -41,14 +40,6 @@ public:
     //  the attribute [b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns nullptr.
     virtual Channel* getChannel(const std::string& aKey, bool = false);
-
-    /// Get field.
-    //  Version for non-constant object.
-    virtual NullField& getField();
-
-    /// Get field.
-    //  Version for constant object.
-    virtual const NullField& getField() const;
 
     /// Get geometry.
     //  Return the element geometry.
@@ -70,9 +61,6 @@ public:
     virtual void setActive(bool = true);
 
 protected:
-    /// The zero magnetic field.
-    NullField field;
-
     /// The monitor geometry.
     StraightGeometry geometry;
 

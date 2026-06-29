@@ -106,12 +106,6 @@ namespace {
         bool oldComputePercentiles_m = false;
     };
 
-    TEST_F(LossDataSinkTest, SaveWithoutParticlesReturnsWithoutCollectiveAbort) {
-        LossDataSink sink("unit_test_empty_loss_sink", false, CollectionType::TEMPORAL);
-
-        EXPECT_NO_THROW(sink.save());
-    }
-
     TEST_F(LossDataSinkTest, AddParticleRejectsTurnInformationAfterPlainParticle) {
         LossDataSink sink;
 

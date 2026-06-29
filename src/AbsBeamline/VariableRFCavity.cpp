@@ -101,15 +101,6 @@ StraightGeometry& VariableRFCavity::getGeometry() { return geometry; }
 
 const StraightGeometry& VariableRFCavity::getGeometry() const { return geometry; }
 
-EMField& VariableRFCavity::getField() {
-    throw GeneralOpalException("VariableRFCavity", "No field defined for VariableRFCavity");
-}
-
-const EMField& VariableRFCavity::getField() const {
-    throw GeneralOpalException(
-            "VariableRFCavity::getField", "No field defined for VariableRFCavity");
-}
-
 bool VariableRFCavity::apply(
         const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
     const auto pc = RefPartBunch_m->getParticleContainer();

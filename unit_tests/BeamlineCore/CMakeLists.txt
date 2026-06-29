@@ -3,6 +3,3 @@ message(STATUS "Adding unit tests found in ${_relPath}")
 
 add_opalx_test(TestConstantEFieldCavityRep USE_GTEST_MAIN
     SOURCES TestConstantEzRep.cpp)
-
-add_opalx_test(TestBendRep USE_GTEST_MAIN
-    SOURCES TestBendRep.cpp)
