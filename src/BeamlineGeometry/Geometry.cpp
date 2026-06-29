@@ -51,6 +51,15 @@ Euclid3D BGeometryBase::getEntrancePatch() const { return Euclid3D::identity(); 
 
 Euclid3D BGeometryBase::getExitPatch() const { return Euclid3D::identity(); }
 
+CoordinateSystemTrafo BGeometryBase::getEdgeToBegin() const {
+    return CoordinateSystemTrafo(Vector_t<double, 3>({0.0, 0.0, 0.0}), Quaternion(1, 0, 0, 0));
+}
+
+CoordinateSystemTrafo BGeometryBase::getEdgeToEnd() const {
+    return CoordinateSystemTrafo(
+            Vector_t<double, 3>({0.0, 0.0, getElementLength()}), Quaternion(1, 0, 0, 0));
+}
+
 // Class Geometry.
 // ------------------------------------------------------------------------
 
