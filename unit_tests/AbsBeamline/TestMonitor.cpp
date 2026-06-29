@@ -48,7 +48,7 @@
 
 #define private public
 #include "AbsBeamline/Monitor.h"
-#include "BeamlineGeometry/StraightGeometry.h"
+#include "BeamlineGeometry/Geometry.h"
 #undef private
 
 #include <memory>
@@ -64,9 +64,9 @@ public:
 
     ElementBase* clone() const override { return new TestMonitor(*this); }
 
-    StraightGeometry& getGeometry() override { return geom_; }
+    BGeometryBase& getGeometry() override { return geom_; }
 
-    const StraightGeometry& getGeometry() const override { return geom_; }
+    const BGeometryBase& getGeometry() const override { return geom_; }
 
     Plane getPlane() const override { return plane_; }
 
@@ -75,7 +75,7 @@ public:
     void setLength(double length) { geom_.setElementLength(length); }
 
 private:
-    StraightGeometry geom_;
+    Geometry geom_;
     Plane plane_ = OFF;
 };
 

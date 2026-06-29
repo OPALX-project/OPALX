@@ -3,7 +3,7 @@
 
 #include "AbstractObjects/OpalData.h"
 #include "BeamlineCore/DriftRep.h"
-#include "BeamlineGeometry/NullGeometry.h"
+#include "BeamlineGeometry/Geometry.h"
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
 #include "Structure/Beam.h"
@@ -43,7 +43,7 @@ namespace {
         void iterate(BeamlineVisitor&, bool) const override {}
 
     private:
-        NullGeometry geometry_;
+        Geometry geometry_{Geometry::makeNull()};
     };
 }  // namespace
 

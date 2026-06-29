@@ -7,7 +7,7 @@
 #include "BeamlineCore/RFCavityRep.h"
 #include "BeamlineCore/SolenoidRep.h"
 #include "BeamlineCore/TravelingWaveRep.h"
-#include "BeamlineGeometry/NullGeometry.h"
+#include "BeamlineGeometry/Geometry.h"
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
 #include "Fields/Fieldmap.h"
@@ -168,7 +168,7 @@ public:
     void iterate(BeamlineVisitor&, bool) const override {}
 
 private:
-    NullGeometry geometry_;
+    Geometry geometry_{Geometry::makeNull()};
 };
 
 TEST_F(SolenoidPlacementTest, FieldMapEdgesAndSupportEnvelopeFollowFieldMap) {

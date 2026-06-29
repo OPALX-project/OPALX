@@ -113,20 +113,6 @@ private:
 };
 
 // ---------------------------------------------------------------------------
-// Dummy Geometry (fully concrete)
-// ---------------------------------------------------------------------------
-class DummyGeometry : public BGeometryBase {
-public:
-    double getArcLength() const override { return 0.0; }
-    double getElementLength() const override { return length_m; }
-    void setElementLength(double length) override { length_m = length; }
-
-    Euclid3D getTransform(double, double) const override { return Euclid3D(); }
-
-private:
-    double length_m = 0.0;
-};
-
 // ---------------------------------------------------------------------------
 // Minimal concrete RFCavity
 // ---------------------------------------------------------------------------
@@ -162,7 +148,7 @@ private:
     double frequency_ = 0.0;
     double phase_     = 0.0;
 
-    DummyGeometry geom_;
+    Geometry geom_;
 };
 
 // ---------------------------------------------------------------------------
