@@ -200,13 +200,6 @@ TEST_F(TestMultipoleT, ConfigurationValidation) {
 
 // Tests for the few remaining API functions are collected here
 TEST_F(TestMultipoleT, OddApis) {
-    // The field object API which currently always returns a dummy object
-    MultipoleT* magnet = this;
-    auto* field        = &magnet->getField();
-    EXPECT_NE(field, nullptr);
-    auto* constField = &const_cast<const MultipoleT*>(magnet)->getField();
-    EXPECT_NE(constField, nullptr);
-    EXPECT_EQ(field, constField);
     // The field-support interval follows the body length.
     EXPECT_NO_THROW(finalise());
     setElementLength(4.0);

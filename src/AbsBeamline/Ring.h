@@ -33,7 +33,6 @@
 #include "AbsBeamline/ElementBase.h"
 
 #include "BeamlineGeometry/PlanarArcGeometry.h"
-#include "Fields/EMField.h"
 
 #include "Utilities/GeneralOpalException.h"
 #include "Utilities/RingSection.h"
@@ -176,14 +175,6 @@ public:
      *  are field maps expanding outside this region they may get cut.
      */
     void appendElement(const ElementBase& element);
-
-    /** Not implemented, throws an exception */
-    virtual EMField& getField() { throw GeneralOpalException("Ring::getField", "Not implemented"); }
-
-    /** Not implemented, throws an exception */
-    virtual const EMField& getField() const {
-        throw GeneralOpalException("Ring::getField", "Not implemented");
-    }
 
     /** Not implemented */
     virtual PlanarArcGeometry& getGeometry() override { return planarArcGeometry_m; }

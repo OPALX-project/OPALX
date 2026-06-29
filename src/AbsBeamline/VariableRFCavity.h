@@ -22,7 +22,6 @@
 #include "AbsBeamline/ElementBase.h"
 #include "Algorithms/AbstractTimeDependence.h"
 #include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/EMField.h"
 #include "Physics/Physics.h"
 
 /** @class VariableRFCavity
@@ -211,11 +210,6 @@ public:
      *  width or height is < 1 nm
      */
     void initialiseTimeDependencies() const;
-
-    /// Not implemented
-    EMField& getField();
-    /// Not implemented
-    const EMField& getField() const;
 
 protected:
     void initNull();
