@@ -106,9 +106,6 @@ private:
     FieldSolverCmd* OPALFieldSolver_m;         ///< Borrowed parsed FIELD_SOLVER command.
     DataSink* dataSink_m;                      ///< Borrowed diagnostics and dump output sink.
 
-    bool emissionMeshStretchActive_m = false;  ///< Apply old OPAL emitted-fraction z stretch.
-    double emissionMeshFraction_m    = 1.0;    ///< Fraction of source inventory already emitted.
-
     double t_m;  ///< Current simulation time (s).
 
     /** Scratch E field for binned accumulation (same layout as mesh E). */
@@ -184,10 +181,8 @@ public:
     /**
      * @brief Enable or disable old-OPAL emitting-beam longitudinal mesh stretching.
      *
-     * The stretch is used only for @c bunchUpdate calls where @c active is true. It mirrors old
-     * OPAL's @c PartBunchBase::boundp() behavior during source emission: the already emitted
-     * particles occupy only the front fraction of the full pulse, but the field mesh should still
-     * cover the not-yet-emitted tail behind the cathode.
+     * Thin wrapper around @c BunchStateHandler::setEmissionMeshProgress. The stretch is used only
+     * for @c bunchUpdate calls where @c active is true.
      *
      * @param active Whether the emitting-beam mesh stretch is active.
      * @param emittedFraction Fraction of the source inventory already emitted.

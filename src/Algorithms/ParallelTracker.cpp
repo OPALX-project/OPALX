@@ -731,10 +731,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
             itsBunch_m->getParticleContainer()->getLocalNum());
     m << level4 << "Transform particle positions to beam coordinate system done." << endl;
 
-    // While a cathode source is still emitting, old OPAL lets the space-charge mesh extend
-    // backward over the not-yet-emitted part of the pulse. Without this temporary stretch the
-    // moving mesh includes only the already emitted slice, which makes the first self-field solves too
-    // compressed in z. The stretch is applied only to this beam-frame bunchUpdate.
+    // Enable the transient old-OPAL emission mesh stretch only for this beam-frame bunchUpdate.
     bool emissionMeshStretchActive = false;
     double emittedFraction         = 1.0;
     const double currentTime       = itsBunch_m->getT();
