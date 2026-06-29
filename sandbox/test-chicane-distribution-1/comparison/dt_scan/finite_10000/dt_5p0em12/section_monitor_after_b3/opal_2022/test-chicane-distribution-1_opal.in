@@ -1,0 +1,149 @@
+Option, ECHO=FALSE;
+Option, INFO=TRUE;
+Option, AUTOPHASE=0;
+Option, VERSION=10900;
+Option, PSDUMPFREQ=50000;
+Option, STATDUMPFREQ=10;
+Option, ASCIIDUMP=FALSE;
+
+Title, string="test-chicane-distribution-1 old OPAL four-SBEND manufactured distribution";
+
+REAL RF_FREQUENCY = 700.0e6;
+REAL BEAM_BUNCH_CHARGE = 1.0e-9;
+REAL NUMBER_OF_PARTICLES = 10000;
+REAL TIME_STEP = 5.0000000000000000e-12;
+
+REAL LB      = 1.0;
+REAL TH      = 0.1;
+REAL D_CH    = 1.5;
+REAL C_CH    = 2.0;
+REAL D_PRE   = 0.25;
+REAL S_EXIT  = D_PRE + 4 * LB + 2 * D_CH + C_CH;
+
+// Old OPAL-T places analytic bends on the reference line using ELEMEDGE.
+// The signs are chosen to match the same positive-X physical survey as the
+// OPALX body-pose deck.  Old OPAL's SBEND sign convention is opposite to that
+// survey, so B1/B4 use -theta and B2/B3 use +theta.  FINT=0 suppresses edge
+// focusing/fringe effects; GAP and HAPERT are kept large enough that the
+// manufactured transverse distribution is not clipped by old OPAL apertures.
+DPRE: DRIFT,
+    L = D_PRE,
+    ELEMEDGE = 0.0;
+
+B1: SBEND,
+    L = LB,
+    ANGLE = -TH,
+    E1 = 0.0,
+    E2 = 0.0,
+    FMAPFN = "1DPROFILE1-DEFAULT",
+    ELEMEDGE = D_PRE,
+    DESIGNENERGY = 1000.0,
+    FINT = 0.0,
+    GAP = 1.0e-3,
+    HAPERT = 1.0;
+
+D12: DRIFT,
+    L = D_CH,
+    ELEMEDGE = D_PRE + LB;
+
+B2: SBEND,
+    L = LB,
+    ANGLE = TH,
+    E1 = 0.0,
+    E2 = 0.0,
+    FMAPFN = "1DPROFILE1-DEFAULT",
+    ELEMEDGE = D_PRE + LB + D_CH,
+    DESIGNENERGY = 1000.0,
+    FINT = 0.0,
+    GAP = 1.0e-3,
+    HAPERT = 1.0;
+
+D23: DRIFT,
+    L = C_CH,
+    ELEMEDGE = D_PRE + 2 * LB + D_CH;
+
+B3: SBEND,
+    L = LB,
+    ANGLE = TH,
+    E1 = 0.0,
+    E2 = 0.0,
+    FMAPFN = "1DPROFILE1-DEFAULT",
+    ELEMEDGE = D_PRE + 2 * LB + D_CH + C_CH,
+    DESIGNENERGY = 1000.0,
+    FINT = 0.0,
+    GAP = 1.0e-3,
+    HAPERT = 1.0;
+
+D34: DRIFT,
+    L = D_CH,
+    ELEMEDGE = D_PRE + 3 * LB + D_CH + C_CH;
+
+B4: SBEND,
+    L = LB,
+    ANGLE = -TH,
+    E1 = 0.0,
+    E2 = 0.0,
+    FMAPFN = "1DPROFILE1-DEFAULT",
+    ELEMEDGE = D_PRE + 3 * LB + 2 * D_CH + C_CH,
+    DESIGNENERGY = 1000.0,
+    FINT = 0.0,
+    GAP = 1.0e-3,
+    HAPERT = 1.0;
+
+MSEC: MONITOR,
+    L = 0.01,
+    ELEMEDGE = D_PRE + 3 * LB + D_CH + C_CH,
+    TYPE = TEMPORAL,
+    OUTFN = "test-chicane-distribution-1_opal_after_b3";
+
+MEXIT: MONITOR,
+    L = 0.01,
+    ELEMEDGE = S_EXIT,
+    TYPE = TEMPORAL,
+    OUTFN = "test-chicane-distribution-1_opal_exit";
+
+Line1: LINE = (DPRE, B1, D12, B2, D23, B3, MSEC);
+
+FS0: Fieldsolver,
+    FSTYPE = NONE,
+    MX = 16,
+    MY = 16,
+    MT = 16,
+    PARFFTX = false,
+    PARFFTY = false,
+    PARFFTT = true,
+    BCFFTX = open,
+    BCFFTY = open,
+    BCFFTT = open,
+    BBOXINCR = 1,
+    GREENSF = INTEGRATED;
+
+Dist0: DISTRIBUTION,
+    TYPE = FROMFILE,
+    FNAME = "test-chicane-distribution-1_opal_distribution.txt";
+
+BEAM0: BEAM,
+    PARTICLE = ELECTRON,
+    PC = 1957.950928190185 * EMASS,
+    NPART = NUMBER_OF_PARTICLES,
+    BFREQ = RF_FREQUENCY * 1e-6,
+    BCURRENT = BEAM_BUNCH_CHARGE * RF_FREQUENCY;
+
+TRACK,
+    LINE = Line1,
+    BEAM = BEAM0,
+    MAXSTEPS = 20000,
+    DT = TIME_STEP,
+    ZSTART = 0.0,
+    ZSTOP = D_PRE + 3 * LB + D_CH + C_CH + 0.2;
+
+RUN,
+    METHOD = "PARALLEL-T",
+    BEAM = BEAM0,
+    FIELDSOLVER = FS0,
+    DISTRIBUTION = Dist0;
+
+ENDTRACK;
+
+Stop;
+Quit;
