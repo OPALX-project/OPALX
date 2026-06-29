@@ -25,9 +25,9 @@
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "BasicActions/DumpEMFields.h"
+
 #include "BeamlineGeometry/NullGeometry.h"
 #include "Elements/OpalBeamline.h"
-#include "Fields/NullField.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
 #include "gtest/gtest.h"
@@ -45,8 +45,6 @@ namespace {
         ~MockComponent() override = default;
         void accept(BeamlineVisitor&) const override {}
         ElementBase* clone() const override { return new MockComponent(*this); }
-        EMField& getField() { return *field_m; }
-        EMField& getField() const { return *field_m; }
         bool apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) override { return false; }
         bool apply(
                 const size_t& /*i*/, const double& /*t*/, Vector_t<double, 3>& /*E*/,
@@ -82,7 +80,6 @@ namespace {
         const BGeometryBase& getGeometry() const override { return geometry_m; }
 
         NullGeometry geometry_m;
-        std::unique_ptr<NullField> field_m;
     };
 
     void setOneAttribute(DumpEMFields* dump, const std::string& name, const double value) {

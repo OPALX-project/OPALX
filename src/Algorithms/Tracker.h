@@ -69,7 +69,6 @@
 
 #include "Utilities/BeamlineFieldElement.h"
 
-class BMultipoleField;
 class Euclid3D;
 class OpalParticle;
 

@@ -20,7 +20,6 @@
 
 #include "AbsBeamline/Drift.h"
 #include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/NullField.h"
 
 class DriftRep : public Drift {
 public:
@@ -41,14 +40,6 @@ public:
     //  If the attribute does not exist, it returns nullptr.
     virtual Channel* getChannel(const std::string& aKey, bool = false);
 
-    /// Get field.
-    //  Version for non-constant object.
-    virtual NullField& getField();
-
-    /// Get field.
-    //  Version for constant object.
-    virtual const NullField& getField() const;
-
     /// Get geometry.
     //  Version for non-constant object.
     virtual StraightGeometry& getGeometry();
@@ -60,9 +51,6 @@ public:
 private:
     // Not implemented.
     void operator=(const DriftRep&);
-
-    /// The zero magnetic field.
-    NullField field;
 
     /// The geometry.
     StraightGeometry geometry;

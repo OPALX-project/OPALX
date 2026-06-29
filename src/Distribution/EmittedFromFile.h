@@ -92,6 +92,21 @@ public:
     Vector_t<double, 3> getInitialReferenceMomentum() const override { return initialRefP_m; }
 
     /**
+     * @brief Reports that this sampler provides an initial reference position.
+     *
+     * @return True after the file inventory has been built.
+     */
+    bool hasInitialReferencePosition() const override { return inventoryBuilt_m; }
+
+    /**
+     * @brief Returns the initial reference position used by the tracker.
+     *
+     * @return The emission-source position offset R0 (the emission point); particles
+     *         are born symmetric about it, so no per-record average is needed.
+     */
+    Vector_t<double, 3> getInitialReferencePosition() const override { return R0_m; }
+
+    /**
      * @brief Returns the global time shift needed to center old-OPAL file times.
      *
      * @return Non-negative shift from source time to the midpoint of the emission window.
