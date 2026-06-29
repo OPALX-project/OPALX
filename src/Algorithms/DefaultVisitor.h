@@ -75,9 +75,6 @@ public:
     /// Apply the algorithm to a rectangular bend.
     void visitRBend(const RBend&) override;
 
-    /// Apply the algorithm to a Ring.
-    void visitRing(const Ring&) override;
-
     /// Apply the algorithm to a sector bend.
     void visitSBend(const SBend&) override;
 

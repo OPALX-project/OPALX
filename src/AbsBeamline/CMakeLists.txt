@@ -20,7 +20,6 @@ set(_SRCS
     MultipoleTStraight.cpp
     MultipoleTCurvedConstRadius.cpp
     RFCavity.cpp
-    Ring.cpp
     ScalingFFAMagnet.cpp        
     Solenoid.cpp
     TravelingWave.cpp
@@ -50,7 +49,6 @@ set(_HDRS
     TravelingWave.h
     SpecificElementVisitor.h
     ScalingFFAMagnet.h
-    Ring.h
     Solenoid.h
     VerticalFFAMagnet.h
     Probe.h
