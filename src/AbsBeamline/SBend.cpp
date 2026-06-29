@@ -2,9 +2,6 @@
 
 #include "AbsBeamline/BeamlineVisitor.h"
 
-#include "BeamlineGeometry/Euclid3D.h"
-#include "BeamlineGeometry/Rotation3D.h"
-#include "BeamlineGeometry/Vector3D.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
 
@@ -176,33 +173,10 @@ bool SBend::isInside(const Vector_t<double, 3>& r) const {
     return r(2) >= 0.0 && r(2) < getElementLength() && isInsideTransverse(r);
 }
 
-double SBend::getChordLength() const {
-    const Euclid3D entrance = getEntranceFrame();
-    const Euclid3D exit     = getExitFrame();
-    const Vector3D delta    = exit.getVector() - entrance.getVector();
-    return std::sqrt(
-            delta.getX() * delta.getX() + delta.getY() * delta.getY()
-            + delta.getZ() * delta.getZ());
-}
+double SBend::getChordLength() const { return getGeometry().getChordLength(); }
 
 std::vector<Vector_t<double, 3>> SBend::getDesignPath(std::size_t minSamples) const {
-    const double sBegin = getEntrance();
-    const double sEnd   = getExit();
-    const double span   = std::abs(sEnd - sBegin);
-    const std::size_t samples =
-            std::max<std::size_t>(minSamples, static_cast<std::size_t>(std::ceil(span / 0.01)) + 1);
-
-    std::vector<Vector_t<double, 3>> path;
-    path.reserve(samples);
-    for (std::size_t i = 0; i < samples; ++i) {
-        const double alpha =
-                (samples > 1) ? static_cast<double>(i) / static_cast<double>(samples - 1) : 0.0;
-        const double s      = sBegin + alpha * (sEnd - sBegin);
-        const Euclid3D pose = getTransform(s);
-        path.emplace_back(pose.getX(), pose.getY(), pose.getZ());
-    }
-
-    return path;
+    return getGeometry().getDesignPath(minSamples);
 }
 
 double SBend::calcDesignRadius(double fieldAmplitude) const {
