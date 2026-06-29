@@ -2,7 +2,6 @@
 #define OPALX_RBend_HH
 
 #include "AbsBeamline/BendBase.h"
-#include "BeamlineGeometry/RBendGeometry.h"
 
 /**
  * @class RBend
@@ -23,8 +22,6 @@ public:
     void accept(BeamlineVisitor& visitor) const override;
     ElementType getType() const override;
 
-    RBendGeometry& getGeometry() override             = 0;
-    const RBendGeometry& getGeometry() const override = 0;
 
     double getExitAngle() const override;
 };

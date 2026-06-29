@@ -55,9 +55,9 @@ Channel* RFCavityRep::getChannel(const std::string& aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
-StraightGeometry& RFCavityRep::getGeometry() { return geometry; }
+BGeometryBase& RFCavityRep::getGeometry() { return geometry; }
 
-const StraightGeometry& RFCavityRep::getGeometry() const { return geometry; }
+const BGeometryBase& RFCavityRep::getGeometry() const { return geometry; }
 
 double RFCavityRep::getAmplitude() const { return ignoreCavities ? 0.0 : getAmplitudem(); }
 

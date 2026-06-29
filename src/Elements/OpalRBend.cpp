@@ -46,7 +46,7 @@ void OpalRBend::update() {
     double length           = Attributes::getReal(itsAttr[LENGTH]);
     double angle            = Attributes::getReal(itsAttr[ANGLE]);
     double e1               = Attributes::getReal(itsAttr[E1]);
-    RBendGeometry& geometry = bend->getGeometry();
+    Geometry& geometry = static_cast<Geometry&>(bend->getGeometry());
     geometry.setElementLength(length);
     if (angle < 0) {
     }

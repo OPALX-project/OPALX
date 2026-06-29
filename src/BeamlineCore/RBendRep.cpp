@@ -19,11 +19,11 @@ namespace {
             {nullptr, nullptr, nullptr}};
 }  // namespace
 
-RBendRep::RBendRep() : RBend(), geometry_m(0.0, 0.0) {}
+RBendRep::RBendRep() : RBend(), geometry_m(Geometry::makeRBend(0.0, 0.0)) {}
 
 RBendRep::RBendRep(const RBendRep& right) : RBend(right), geometry_m(right.geometry_m) {}
 
-RBendRep::RBendRep(const std::string& name) : RBend(name), geometry_m(0.0, 0.0) {}
+RBendRep::RBendRep(const std::string& name) : RBend(name), geometry_m(Geometry::makeRBend(0.0, 0.0)) {}
 
 RBendRep::~RBendRep() = default;
 
@@ -39,6 +39,6 @@ Channel* RBendRep::getChannel(const std::string& aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
-RBendGeometry& RBendRep::getGeometry() { return geometry_m; }
+BGeometryBase& RBendRep::getGeometry() { return geometry_m; }
 
-const RBendGeometry& RBendRep::getGeometry() const { return geometry_m; }
+const BGeometryBase& RBendRep::getGeometry() const { return geometry_m; }

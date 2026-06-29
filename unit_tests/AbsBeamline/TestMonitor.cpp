@@ -48,6 +48,7 @@
 
 #define private public
 #include "AbsBeamline/Monitor.h"
+#include "BeamlineGeometry/StraightGeometry.h"
 #undef private
 
 #include <memory>

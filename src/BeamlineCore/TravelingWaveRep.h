@@ -19,7 +19,7 @@
 #define OPALX_TravelingWaveRep_HH
 
 #include "AbsBeamline/TravelingWave.h"
-#include "BeamlineGeometry/StraightGeometry.h"
+#include "BeamlineGeometry/Geometry.h"
 
 class TravelingWaveRep : public TravelingWave {
 public:
@@ -43,12 +43,12 @@ public:
     /// Get geometry.
     //  Return the element geometry.
     //  Version for non-constant object.
-    virtual StraightGeometry& getGeometry();
+    virtual BGeometryBase& getGeometry();
 
     /// Get geometry.
     //  Return the element geometry
     //  Version for constant object.
-    virtual const StraightGeometry& getGeometry() const;
+    virtual const BGeometryBase& getGeometry() const;
 
     /// Get amplitude.
     //  Return the RF amplitude in Volts.
@@ -83,7 +83,7 @@ private:
     void operator=(const TravelingWaveRep&);
 
     /// The cavity's geometry.
-    StraightGeometry geometry;
+    Geometry geometry;
 
     /// Cavities are ignored (amplitude = 0) when this switch is set.
     static bool ignoreCavities;

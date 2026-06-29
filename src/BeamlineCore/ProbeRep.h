@@ -19,7 +19,7 @@
 #define OPALX_ProbeRep_HH
 
 #include "AbsBeamline/Probe.h"
-#include "BeamlineGeometry/StraightGeometry.h"
+#include "BeamlineGeometry/Geometry.h"
 
 class ProbeRep : public Probe {
 public:
@@ -46,19 +46,19 @@ public:
     /// Get geometry.
     //  Return the element geometry.
     //  Version for non-constant object.
-    virtual StraightGeometry& getGeometry();
+    virtual BGeometryBase& getGeometry();
 
     /// Get geometry.
     //  Return the element geometry
     //  Version for constant object.
-    virtual const StraightGeometry& getGeometry() const;
+    virtual const BGeometryBase& getGeometry() const;
 
     /// Set active flag.
     virtual void setActive(bool = true);
 
 protected:
     /// The probe's geometry.
-    StraightGeometry geometry;
+    Geometry geometry;
 
     /// The active/inactive flag.
     bool active;

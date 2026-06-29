@@ -15,7 +15,7 @@
 #include <cmath>
 
 VerticalFFAMagnet::VerticalFFAMagnet(const std::string& name)
-    : ElementBase(name), straightGeometry_m(1.) {}
+    : ElementBase(name), straightGeometry_m(Geometry::makeStraight(1.)) {}
 
 VerticalFFAMagnet::VerticalFFAMagnet(const VerticalFFAMagnet& right)
     : ElementBase(right),

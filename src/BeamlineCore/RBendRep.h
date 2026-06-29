@@ -20,11 +20,11 @@ public:
     ElementBase* clone() const override;
     Channel* getChannel(const std::string& aKey, bool create = false) override;
 
-    RBendGeometry& getGeometry() override;
-    const RBendGeometry& getGeometry() const override;
+    BGeometryBase& getGeometry() override;
+    const BGeometryBase& getGeometry() const override;
 
 private:
-    RBendGeometry geometry_m;
+    Geometry geometry_m{Geometry::makeRBend(0.0, 0.0)};
 };
 
 #endif  // OPALX_RBendRep_HH

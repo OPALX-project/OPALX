@@ -2,7 +2,6 @@
 #define OPALX_SBend_HH
 
 #include "AbsBeamline/BendBase.h"
-#include "BeamlineGeometry/PlanarArcGeometry.h"
 
 /**
  * @class SBend
@@ -21,9 +20,6 @@ public:
 
     void accept(BeamlineVisitor& visitor) const override;
     ElementType getType() const override;
-
-    PlanarArcGeometry& getGeometry() override             = 0;
-    const PlanarArcGeometry& getGeometry() const override = 0;
 
     void setExitAngle(double exitAngle) override;
     double getExitAngle() const override;

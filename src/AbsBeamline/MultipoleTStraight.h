@@ -65,7 +65,7 @@
 
 #include "AbsBeamline/MultipoleT.h"
 #include "AbsBeamline/MultipoleTConfig.h"
-#include "BeamlineGeometry/StraightGeometry.h"
+#include "BeamlineGeometry/Geometry.h"
 
 class MultipoleTStraight final : public MultipoleTBase {
 public:
@@ -86,7 +86,7 @@ public:
 
 private:
     /** Geometry */
-    StraightGeometry straightGeometry_m;
+    Geometry straightGeometry_m;
 
     // Helpers
     KOKKOS_INLINE_FUNCTION static Vector_t<double, 3> toMagnetCoords(

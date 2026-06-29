@@ -49,8 +49,8 @@ Channel* ProbeRep::getChannel(const std::string& aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
-StraightGeometry& ProbeRep::getGeometry() { return geometry; }
+BGeometryBase& ProbeRep::getGeometry() { return geometry; }
 
-const StraightGeometry& ProbeRep::getGeometry() const { return geometry; }
+const BGeometryBase& ProbeRep::getGeometry() const { return geometry; }
 
 void ProbeRep::setActive(bool flag) { active = flag; }

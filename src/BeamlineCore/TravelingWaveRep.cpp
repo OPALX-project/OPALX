@@ -55,9 +55,9 @@ Channel* TravelingWaveRep::getChannel(const std::string& aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
-StraightGeometry& TravelingWaveRep::getGeometry() { return geometry; }
+BGeometryBase& TravelingWaveRep::getGeometry() { return geometry; }
 
-const StraightGeometry& TravelingWaveRep::getGeometry() const { return geometry; }
+const BGeometryBase& TravelingWaveRep::getGeometry() const { return geometry; }
 
 double TravelingWaveRep::getAmplitude() const { return ignoreCavities ? 0.0 : getAmplitudem(); }
 

@@ -47,12 +47,13 @@ void OpalSBend::update() {
     double angle                = Attributes::getReal(itsAttr[ANGLE]);
     double e1                   = Attributes::getReal(itsAttr[E1]);
     double e2                   = Attributes::getReal(itsAttr[E2]);
-    PlanarArcGeometry& geometry = bend->getGeometry();
+    Geometry& geometry = static_cast<Geometry&>(bend->getGeometry());
 
     if (length) {
-        geometry = PlanarArcGeometry(length, angle / length);
+        geometry = Geometry::makeArc(length, angle / length);
     } else {
-        geometry = PlanarArcGeometry(angle);
+        geometry = Geometry::makeArc(0.0, 0.0);
+        geometry.setBendAngle(angle);
     }
     // Define number of slices for map tracking
     bend->setNSlices(Attributes::getReal(itsAttr[NSLICES]));

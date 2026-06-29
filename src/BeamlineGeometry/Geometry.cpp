@@ -167,14 +167,37 @@ void Geometry::setCurvature(double curvature) {
     }
 }
 
-Euclid3D Geometry::bodyFrame(double s) const {
+Euclid3D Geometry::getTransform(double s) const {
     if (kind_m == GeometryKind::Arc) {
         return arcTransform(s, h_m);
     }
     return Euclid3D::translation(0.0, 0.0, s);  // Straight, RBend body, Null
 }
 
-Euclid3D Geometry::entranceFrame() const {
+Euclid3D Geometry::getTransform(double fromS, double toS) const {
+    if (kind_m == GeometryKind::Arc) {
+        return arcTransform(toS - fromS, h_m);  // matches PlanarArcGeometry
+    }
+    return Euclid3D::translation(0.0, 0.0, fromS - toS);  // matches StraightGeometry
+}
+
+Euclid3D Geometry::getTotalTransform() const {
+    switch (kind_m) {
+        case GeometryKind::Arc:
+            return arcTransform(len_m, h_m);
+        case GeometryKind::RBend: {
+            const Euclid3D patch = Euclid3D::YRotation(-halfAngle());
+            const Euclid3D body  = Euclid3D::translation(0.0, 0.0, len_m);
+            return patch * body * patch;  // matches RBendGeometry
+        }
+        case GeometryKind::Null:
+            return Euclid3D::identity();
+        default:  // Straight
+            return Euclid3D::translation(0.0, 0.0, len_m);
+    }
+}
+
+Euclid3D Geometry::getEntranceFrame() const {
     switch (kind_m) {
         case GeometryKind::Arc:
             return arcTransform(-len_m / 2.0, h_m);
@@ -187,7 +210,7 @@ Euclid3D Geometry::entranceFrame() const {
     }
 }
 
-Euclid3D Geometry::exitFrame() const {
+Euclid3D Geometry::getExitFrame() const {
     switch (kind_m) {
         case GeometryKind::Arc:
             return arcTransform(len_m / 2.0, h_m);
@@ -201,7 +224,7 @@ Euclid3D Geometry::exitFrame() const {
 }
 
 double Geometry::getChordLength() const {
-    const Vector3D delta = exitFrame().getVector() - entranceFrame().getVector();
+    const Vector3D delta = getExitFrame().getVector() - getEntranceFrame().getVector();
     return std::sqrt(
             delta.getX() * delta.getX() + delta.getY() * delta.getY()
             + delta.getZ() * delta.getZ());
@@ -220,7 +243,7 @@ std::vector<Vector_t<double, 3>> Geometry::getDesignPath(std::size_t minSamples)
         const double alpha =
                 (samples > 1) ? static_cast<double>(i) / static_cast<double>(samples - 1) : 0.0;
         const double s      = sBegin + alpha * (sEnd - sBegin);
-        const Euclid3D pose = bodyFrame(s);
+        const Euclid3D pose = getTransform(s);
         path.emplace_back(pose.getX(), pose.getY(), pose.getZ());
     }
 
@@ -231,7 +254,7 @@ CoordinateSystemTrafo Geometry::getEdgeToBegin() const {
     switch (kind_m) {
         case GeometryKind::Arc:
         case GeometryKind::RBend:
-            return toCoordinateSystemTrafo(entranceFrame());
+            return toCoordinateSystemTrafo(getEntranceFrame());
         default:  // Straight, Null: identity at the entrance edge
             return CoordinateSystemTrafo(
                     Vector_t<double, 3>({0.0, 0.0, 0.0}), Quaternion(1, 0, 0, 0));
@@ -242,7 +265,7 @@ CoordinateSystemTrafo Geometry::getEdgeToEnd() const {
     switch (kind_m) {
         case GeometryKind::Arc:
         case GeometryKind::RBend:
-            return toCoordinateSystemTrafo(exitFrame());
+            return toCoordinateSystemTrafo(getExitFrame());
         default:  // Straight, Null: +z shift to the exit edge
             return CoordinateSystemTrafo(
                     Vector_t<double, 3>({0.0, 0.0, len_m}), Quaternion(1, 0, 0, 0));

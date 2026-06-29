@@ -19,7 +19,7 @@
 #define OPALX_DriftRep_HH
 
 #include "AbsBeamline/Drift.h"
-#include "BeamlineGeometry/StraightGeometry.h"
+#include "BeamlineGeometry/Geometry.h"
 
 class DriftRep : public Drift {
 public:
@@ -42,18 +42,18 @@ public:
 
     /// Get geometry.
     //  Version for non-constant object.
-    virtual StraightGeometry& getGeometry();
+    virtual BGeometryBase& getGeometry();
 
     /// Get geometry.
     //  Version for constant object.
-    virtual const StraightGeometry& getGeometry() const;
+    virtual const BGeometryBase& getGeometry() const;
 
 private:
     // Not implemented.
     void operator=(const DriftRep&);
 
     /// The geometry.
-    StraightGeometry geometry;
+    Geometry geometry;
 };
 
 #endif  // OPALX_DriftRep_HH

@@ -19,7 +19,7 @@
 #define OPALX_MultipoleRep_HH
 
 #include "AbsBeamline/Multipole.h"
-#include "BeamlineGeometry/StraightGeometry.h"
+#include "BeamlineGeometry/Geometry.h"
 
 class MultipoleRep : public Multipole {
 public:
@@ -43,16 +43,16 @@ public:
     /// Get geometry.
     //  Return the element geometry.
     //  Version for non-constant object.
-    virtual StraightGeometry& getGeometry();
+    virtual BGeometryBase& getGeometry();
 
     /// Get geometry.
     //  Return the element geometry
     //  Version for constant object.
-    virtual const StraightGeometry& getGeometry() const;
+    virtual const BGeometryBase& getGeometry() const;
 
 private:
     /// Multipole geometry.
-    StraightGeometry geometry;
+    Geometry geometry;
 
     // Not implemented.
     void operator=(const MultipoleRep&);
