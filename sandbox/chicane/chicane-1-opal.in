@@ -1,0 +1,137 @@
+Option, ECHO=FALSE;
+Option, INFO=TRUE;
+Option, AUTOPHASE=0;
+Option, VERSION=10900;
+Option, PSDUMPFREQ=50000;
+Option, STATDUMPFREQ=1;
+Option, ASCIIDUMP=FALSE;
+
+Title, string="chicane-1-opal old OPAL four-SBEND C-chicane R56 probe";
+
+REAL RF_FREQUENCY = 700.0e6;
+REAL BEAM_BUNCH_CHARGE = 0.0;
+REAL NUMBER_OF_PARTICLES = 5;
+REAL TIME_STEP = 1.0e-11;
+
+REAL LB      = 1.0;
+REAL TH      = 0.1;
+REAL D_CH    = 1.5;
+REAL C_CH    = 2.0;
+REAL S0      = 1.0;
+REAL S_EXIT  = S0 + 4 * LB + 2 * D_CH + C_CH;
+
+// Old OPAL-T places analytic bends by reference-line ELEMEDGE.  The chicane
+// signs follow the physical survey signs (+theta, -theta, -theta, +theta).
+// A very small GAP keeps the default 1DPROFILE fringe effectively hard-edge
+// for this R56 probe while leaving the old OPAL SBEND model intact.
+B1: SBEND,
+    L = LB,
+    ANGLE = TH,
+    E1 = 0.0,
+    E2 = 0.0,
+    FMAPFN = "1DPROFILE1-DEFAULT",
+    ELEMEDGE = S0,
+    DESIGNENERGY = 1000.0,
+    FINT = 0.0,
+    GAP = 1.0e-6,
+    HAPERT = 1.0;
+
+D12: DRIFT,
+    L = D_CH,
+    ELEMEDGE = S0 + LB;
+
+B2: SBEND,
+    L = LB,
+    ANGLE = -TH,
+    E1 = 0.0,
+    E2 = 0.0,
+    FMAPFN = "1DPROFILE1-DEFAULT",
+    ELEMEDGE = S0 + LB + D_CH,
+    DESIGNENERGY = 1000.0,
+    FINT = 0.0,
+    GAP = 1.0e-6,
+    HAPERT = 1.0;
+
+D23: DRIFT,
+    L = C_CH,
+    ELEMEDGE = S0 + 2 * LB + D_CH;
+
+B3: SBEND,
+    L = LB,
+    ANGLE = -TH,
+    E1 = 0.0,
+    E2 = 0.0,
+    FMAPFN = "1DPROFILE1-DEFAULT",
+    ELEMEDGE = S0 + 2 * LB + D_CH + C_CH,
+    DESIGNENERGY = 1000.0,
+    FINT = 0.0,
+    GAP = 1.0e-6,
+    HAPERT = 1.0;
+
+D34: DRIFT,
+    L = D_CH,
+    ELEMEDGE = S0 + 3 * LB + D_CH + C_CH;
+
+B4: SBEND,
+    L = LB,
+    ANGLE = TH,
+    E1 = 0.0,
+    E2 = 0.0,
+    FMAPFN = "1DPROFILE1-DEFAULT",
+    ELEMEDGE = S0 + 3 * LB + 2 * D_CH + C_CH,
+    DESIGNENERGY = 1000.0,
+    FINT = 0.0,
+    GAP = 1.0e-6,
+    HAPERT = 1.0;
+
+MEXIT: MONITOR,
+    L = 0.01,
+    ELEMEDGE = S_EXIT,
+    TYPE = TEMPORAL,
+    OUTFN = "chicane-1-opal_exit";
+
+Line1: LINE = (B1, D12, B2, D23, B3, D34, B4, MEXIT);
+
+FS0: Fieldsolver,
+    FSTYPE = NONE,
+    MX = 8,
+    MY = 8,
+    MT = 8,
+    PARFFTX = false,
+    PARFFTY = false,
+    PARFFTT = true,
+    BCFFTX = open,
+    BCFFTY = open,
+    BCFFTT = open,
+    BBOXINCR = 2,
+    GREENSF = INTEGRATED;
+
+Dist0: DISTRIBUTION,
+    TYPE = FROMFILE,
+    FNAME = "chicane-1-opal_distribution.txt";
+
+BEAM0: BEAM,
+    PARTICLE = ELECTRON,
+    PC = 1957.9509281901853 * EMASS,
+    NPART = NUMBER_OF_PARTICLES,
+    BFREQ = RF_FREQUENCY * 1e-6,
+    BCURRENT = BEAM_BUNCH_CHARGE * RF_FREQUENCY;
+
+TRACK,
+    LINE = Line1,
+    BEAM = BEAM0,
+    MAXSTEPS = 20000,
+    DT = TIME_STEP,
+    ZSTART = S0,
+    ZSTOP = S_EXIT + 0.05;
+
+RUN,
+    METHOD = "PARALLEL-T",
+    BEAM = BEAM0,
+    FIELDSOLVER = FS0,
+    DISTRIBUTION = Dist0;
+
+ENDTRACK;
+
+Stop;
+Quit;
