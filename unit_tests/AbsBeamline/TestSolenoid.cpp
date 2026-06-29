@@ -150,6 +150,21 @@ protected:
         return tokens;
     }
 
+    static int parseSingleVertexCount(const std::string& script) {
+        const std::string marker = "numVertices = [";
+        const auto start         = script.find(marker);
+        EXPECT_NE(start, std::string::npos);
+        if (start == std::string::npos) {
+            return -1;
+        }
+        const auto end = script.find(']', start + marker.size());
+        EXPECT_NE(end, std::string::npos);
+        if (end == std::string::npos) {
+            return -1;
+        }
+        return std::stoi(script.substr(start + marker.size(), end - (start + marker.size())));
+    }
+
     std::string testStem_;
     std::filesystem::path fieldmapFile_;
     std::shared_ptr<FieldSolverCmd> fsCmdBase_m;
@@ -364,7 +379,26 @@ TEST_F(SolenoidPlacementTest, QuadrupoleMeshesAsPoleBodyRatherThanGenericCylinde
     const std::string script(
             (std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
     EXPECT_NE(script.find("color = [2]"), std::string::npos);
-    EXPECT_NE(script.find("numVertices = [32]"), std::string::npos);
+    EXPECT_GT(parseSingleVertexCount(script), 232);
+}
+
+TEST_F(SolenoidPlacementTest, QuadrupoleMeshesAsPoleBodyForRectangularAperture) {
+    MultipoleRep quadrupole("Q2");
+    quadrupole.setElementLength(0.4);
+    quadrupole.setElementPosition(0.0);
+    quadrupole.setAperture(ApertureType::RECTANGULAR, std::vector<double>{0.02, 0.03, 1.0});
+    quadrupole.setNormalComponent(1, 1.0);
+
+    MeshGenerator mesh;
+    mesh.add(quadrupole);
+    mesh.write(testStem_);
+
+    std::ifstream py(outputPath("_ElementPositions.py"));
+    ASSERT_TRUE(py.is_open());
+    const std::string script(
+            (std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
+    EXPECT_NE(script.find("color = [2]"), std::string::npos);
+    EXPECT_GT(parseSingleVertexCount(script), 232);
 }
 
 TEST_F(SolenoidPlacementTest, RFCavityMeshesAsBulgedCellStructure) {
@@ -382,7 +416,13 @@ TEST_F(SolenoidPlacementTest, RFCavityMeshesAsBulgedCellStructure) {
     const std::string script(
             (std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
     EXPECT_NE(script.find("color = [6]"), std::string::npos);
-    EXPECT_NE(script.find("numVertices = [1008]"), std::string::npos);
+    EXPECT_GT(parseSingleVertexCount(script), 1008);
+    EXPECT_NE(
+            script.find("lookup_table.append([64.0 / 255.0, 224.0 / 255.0, 208.0 / 255.0, 1.0])"),
+            std::string::npos);
+    EXPECT_NE(
+            script.find("('RFCavity', (64.0 / 255.0, 224.0 / 255.0, 208.0 / 255.0))"),
+            std::string::npos);
 }
 
 TEST_F(SolenoidPlacementTest, TravelingWaveMeshesAsPeriodicStructure) {

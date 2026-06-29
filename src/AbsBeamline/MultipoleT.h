@@ -65,6 +65,7 @@
 #include <vector>
 #include "AbsBeamline/ElementBase.h"
 #include "Algorithms/AbstractTimeDependence.h"
+#include "Fields/BMultipoleField.h"
 #include "MultipoleTBase.h"
 #include "MultipoleTConfig.h"
 
@@ -86,6 +87,10 @@ public:
     BGeometryBase& getGeometry() override;
     /** Return the cell geometry */
     const BGeometryBase& getGeometry() const override;
+    /** Return a dummy field value */
+    EMField& getField() { return dummy; }
+    /** Return a dummy field value */
+    const EMField& getField() const { return dummy; }
     /** Calculate the field for all particles */
     bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
     /** Calculate the field at some arbitrary position \n
@@ -230,6 +235,9 @@ protected:
     void chooseImplementation();
     double getScaling(double t) const;
     void validateConfiguration() const;
+
+    /** Not implemented */
+    BMultipoleField dummy;
 
     // Time dependence
     std::string scalingName_m;

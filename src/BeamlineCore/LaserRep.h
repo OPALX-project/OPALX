@@ -3,6 +3,7 @@
 
 #include "AbsBeamline/Laser.h"
 #include "BeamlineGeometry/StraightGeometry.h"
+#include "Fields/NullField.h"
 
 class LaserRep : public Laser {
 public:
@@ -14,10 +15,14 @@ public:
     ElementBase* clone() const override;
     Channel* getChannel(const std::string& aKey, bool create = false) override;
 
+    NullField& getField();
+    const NullField& getField() const;
+
     StraightGeometry& getGeometry() override;
     const StraightGeometry& getGeometry() const override;
 
 private:
+    NullField field_m;
     StraightGeometry geometry_m;
 };
 

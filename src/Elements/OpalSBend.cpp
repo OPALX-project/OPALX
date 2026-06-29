@@ -17,11 +17,46 @@
 //
 #include "Elements/OpalSBend.h"
 #include <cmath>
-#include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/SBendRep.h"
+#include "Fields/BMultipoleField.h"
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
+
+namespace {
+
+    /**
+     * @brief Return the OPAL-compatible SBEND dipole normalization length.
+     *
+     * Historical OPAL interprets the `SBEND` `L` attribute as the magnet chord
+     * length when it derives the design radius:
+     * \f[
+     *   R = \frac{L}{2\sin(\theta/2)} .
+     * \f]
+     * The dipole coefficient is therefore normalized with the corresponding arc
+     * length
+     * \f[
+     *   L_\mathrm{norm} = R\theta
+     *                  = L\frac{\theta}{2\sin(\theta/2)},
+     *   \qquad k_0 = \frac{\theta}{L_\mathrm{norm}} .
+     * \f]
+     * The small-angle limit returns `L`, preserving the straight-element limit.
+     */
+    double getOpalChordToArcNormalizationLength(const double chordLength, const double angle) {
+        const double halfAngle = 0.5 * angle;
+        if (std::abs(halfAngle) <= 1.0e-12) {
+            return chordLength;
+        }
+
+        const double sine = std::sin(halfAngle);
+        if (std::abs(sine) <= 1.0e-15) {
+            return chordLength;
+        }
+
+        return chordLength * halfAngle / sine;
+    }
+
+}  // namespace
 
 OpalSBend::OpalSBend()
     : OpalBend("SBEND", "The \"SBEND\" element defines a sector bending magnet.") {
@@ -41,20 +76,43 @@ OpalSBend* OpalSBend::clone(const std::string& name) { return new OpalSBend(name
 void OpalSBend::update() {
     OpalElement::update();
 
-    // Define geometry.
-    SBendRep* bend              = dynamic_cast<SBendRep*>(getElement());
-    double length               = Attributes::getReal(itsAttr[LENGTH]);
-    double angle                = Attributes::getReal(itsAttr[ANGLE]);
-    double e1                   = Attributes::getReal(itsAttr[E1]);
-    double e2                   = Attributes::getReal(itsAttr[E2]);
-    PlanarArcGeometry& geometry = bend->getGeometry();
+    // OpalData updates all registered objects, including the exemplar
+    // "SBEND" definition. The exemplar carries parser metadata only and
+    // must not be forced to satisfy analytic bend input constraints.
+    if (getParent() == nullptr && getOpalName() == "SBEND") {
+        return;
+    }
+
+    SBendRep* bend       = dynamic_cast<SBendRep*>(getElement());
+    double length        = Attributes::getReal(itsAttr[LENGTH]);
+    double angle         = Attributes::getReal(itsAttr[ANGLE]);
+    double e1            = Attributes::getReal(itsAttr[E1]);
+    double e2            = Attributes::getReal(itsAttr[E2]);
+    const double fullGap = Attributes::getReal(itsAttr[GAP]);
+    const double halfGap =
+            itsAttr[HGAP] ? Attributes::getReal(itsAttr[HGAP]) : 0.5 * std::abs(fullGap);
+    const double fringeIntegral           = Attributes::getReal(itsAttr[FINT]);
+    const double fieldNormalizationLength = getOpalChordToArcNormalizationLength(length, angle);
+    PlanarArcGeometry& geometry           = bend->getGeometry();
 
     if (length) {
-        geometry = PlanarArcGeometry(length, angle / length);
+        geometry = PlanarArcGeometry(fieldNormalizationLength, angle / fieldNormalizationLength);
     } else {
         geometry = PlanarArcGeometry(angle);
     }
-    // Define number of slices for map tracking
+
+    bend->setBendAngle(angle);
+    bend->setEntranceAngle(e1);
+    bend->setExitAngle(e2);
+    bend->setFullGap(fullGap);
+    bend->setFringeHalfGap(halfGap);
+    bend->setFringeIntegral(fringeIntegral);
+
+    validateAnalyticBendDefinition(
+            "OpalSBend::update(" + getOpalName() + ")", !itsAttr[ANGLE].defaultUsed(),
+            !itsAttr[K0].defaultUsed(), fieldNormalizationLength, angle,
+            Attributes::getReal(itsAttr[K0]));
+
     bend->setNSlices(Attributes::getReal(itsAttr[NSLICES]));
 
     // Define pole face angles.
@@ -68,42 +126,22 @@ void OpalSBend::update() {
     bend->setStepsize(Attributes::getReal(itsAttr[STEPSIZE]));
 
     // Define field.
-    double factor = OpalData::getInstance()->getP0() / Physics::c;
-    double k0     = itsAttr[K0] ? Attributes::getReal(itsAttr[K0])
-                    : length    ? 2 * sin(angle / 2) / length
-                                : angle;
-    double k0s    = itsAttr[K0S] ? Attributes::getReal(itsAttr[K0S]) : 0.0;
-    // JMJ 4/10/2000: above line replaced
-    //     length ? angle / length : angle;
-    //  to avoid closed orbit created by SBEND with defalt K0.
-    const std::vector<double> normal = {
-            factor * k0, factor * Attributes::getReal(itsAttr[K1]),
-            factor * Attributes::getReal(itsAttr[K2]) / 2.0,
-            factor * Attributes::getReal(itsAttr[K3]) / 6.0};
-    const std::vector<double> skew = {
-            factor * Attributes::getReal(itsAttr[K0S]), factor * Attributes::getReal(itsAttr[K1S]),
-            factor * Attributes::getReal(itsAttr[K2S]) / 2.0,
-            factor * Attributes::getReal(itsAttr[K3S]) / 6.0};
-    bend->setFieldComponents(normal, skew);
+    BMultipoleField field;
+    double k0  = deriveAnalyticDipoleCoefficient(fieldNormalizationLength, angle);
+    double k0s = itsAttr[K0S] ? Attributes::getReal(itsAttr[K0S]) : 0.0;
 
-    // Set field amplitude or bend angle.
-    if (itsAttr[ANGLE]) {
-        if (bend->isPositioned() && angle < 0.0) {
-            e1    = -e1;
-            e2    = -e2;
-            angle = -angle;
+    field.setNormalComponent(0, k0);
+    field.setSkewComponent(0, Attributes::getReal(itsAttr[K0S]));
+    field.setNormalComponent(1, Attributes::getReal(itsAttr[K1]));
+    field.setSkewComponent(1, Attributes::getReal(itsAttr[K1S]));
+    field.setNormalComponent(2, Attributes::getReal(itsAttr[K2]) / 2.0);
+    field.setSkewComponent(2, Attributes::getReal(itsAttr[K2S]) / 2.0);
+    field.setNormalComponent(3, Attributes::getReal(itsAttr[K3]) / 6.0);
+    field.setSkewComponent(3, Attributes::getReal(itsAttr[K3S]) / 6.0);
+    bend->setNormalizedField(field);
 
-            Quaternion rotAboutZ(0, 0, 0, 1);
-            CoordinateSystemTrafo g2l = bend->getCSTrafoGlobal2Local();
-            bend->releasePosition();
-            bend->setCSTrafoGlobal2Local(
-                    CoordinateSystemTrafo(g2l.getOrigin(), rotAboutZ * g2l.getRotation()));
-            bend->fixPosition();
-        }
-        bend->setBendAngle(angle);
-    } else {
-        bend->setFieldAmplitude(k0, k0s);
-    }
+    bend->setBendAngle(angle);
+    bend->setFieldAmplitude(k0, k0s);
 
     if (itsAttr[GREATERTHANPI])
         throw OpalException("OpalSBend::update", "GREATERTHANPI not supportet any more");
@@ -126,21 +164,17 @@ void OpalSBend::update() {
         bend->setDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]), false);
     }
 
-    bend->setFullGap(Attributes::getReal(itsAttr[GAP]));
-
     if (itsAttr[APERT])
         throw OpalException(
                 "OpalSBend::update", "APERTURE in SBEND not supported; use GAP and HAPERT instead");
 
     if (itsAttr[HAPERT]) {
         double hapert = Attributes::getReal(itsAttr[HAPERT]);
-        bend->setAperture(ApertureType::RECTANGULAR, std::vector<double>({hapert, hapert, 1.0}));
+        if (hapert > 0.0) {
+            bend->setAperture(
+                    ApertureType::RECTANGULAR, std::vector<double>({hapert, hapert, 1.0}));
+        }
     }
-
-    if (itsAttr[LENGTH])
-        bend->setLength(Attributes::getReal(itsAttr[LENGTH]));
-    else
-        bend->setLength(0.0);
 
     if (itsAttr[WAKEF]) {
         throw OpalException(

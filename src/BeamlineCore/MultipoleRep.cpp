@@ -34,12 +34,12 @@ namespace {
             {"L", &MultipoleRep::getElementLength, &MultipoleRep::setElementLength}, {0, 0, 0}};
 }  // namespace
 
-MultipoleRep::MultipoleRep() : Multipole(), geometry() {}
+MultipoleRep::MultipoleRep() : Multipole(), geometry(), field() {}
 
 MultipoleRep::MultipoleRep(const MultipoleRep& multipole)
-    : Multipole(multipole), geometry(multipole.geometry) {}
+    : Multipole(multipole), geometry(multipole.geometry), field(multipole.field) {}
 
-MultipoleRep::MultipoleRep(const std::string& name) : Multipole(name), geometry() {}
+MultipoleRep::MultipoleRep(const std::string& name) : Multipole(name), geometry(), field() {}
 
 MultipoleRep::~MultipoleRep() {}
 
@@ -78,3 +78,9 @@ Channel* MultipoleRep::getChannel(const std::string& aKey, bool create) {
 StraightGeometry& MultipoleRep::getGeometry() { return geometry; }
 
 const StraightGeometry& MultipoleRep::getGeometry() const { return geometry; }
+
+BMultipoleField& MultipoleRep::getField() { return field; }
+
+const BMultipoleField& MultipoleRep::getField() const { return field; }
+
+void MultipoleRep::setField(const BMultipoleField& aField) { field = aField; }
