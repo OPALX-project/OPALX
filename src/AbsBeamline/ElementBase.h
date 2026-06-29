@@ -371,6 +371,16 @@ public:
     // Does the element bend?
     virtual bool bends() const = 0;
 
+    /// @name Bend queries
+    /// Overridden by SBend/RBend; straight-element defaults otherwise. Let callers
+    /// query bend geometry through an ElementBase pointer without downcasting.
+    ///@{
+    virtual double getBendAngle() const;
+    virtual double getEntranceAngle() const;
+    virtual double getChordLength() const;
+    virtual std::vector<Vector_t<double, 3>> getDesignPath(std::size_t minSamples = 32) const;
+    ///@}
+
     // Read & free fieldmaps
     virtual void goOnline(const double& kineticEnergy);
     virtual void goOffline();
@@ -668,6 +678,17 @@ inline void ElementBase::setFlagDeleteOnTransverseExit(bool flag) {
 }
 
 inline bool ElementBase::getFlagDeleteOnTransverseExit() const { return deleteOnTransverseExit_m; }
+
+inline double ElementBase::getBendAngle() const { return 0.0; }
+
+inline double ElementBase::getEntranceAngle() const { return 0.0; }
+
+inline double ElementBase::getChordLength() const { return getElementLength(); }
+
+inline std::vector<Vector_t<double, 3>> ElementBase::getDesignPath(std::size_t) const {
+    return {Vector_t<double, 3>({0.0, 0.0, 0.0}),
+            Vector_t<double, 3>({0.0, 0.0, getElementLength()})};
+}
 
 inline void ElementBase::setExitFaceSlope(const double& m) { exit_face_slope_m = m; }
 

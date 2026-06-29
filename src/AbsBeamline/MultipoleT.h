@@ -170,9 +170,9 @@ public:
     /** Set the bending angle of the magnet */
     void setBendAngle(double angle, bool variableRadius);
     /** Get the bending angle of the magnet */
-    double getBendAngle() const { return config_m.bendAngle_m; }
+    double getBendAngle() const override { return config_m.bendAngle_m; }
     /** Get the entrance angle */
-    double getEntranceAngle() const { return config_m.entranceAngle_m; }
+    double getEntranceAngle() const override { return config_m.entranceAngle_m; }
     /** Set the length of the magnet
      * If straight-> Actual length
      * If curved -> Arc length
