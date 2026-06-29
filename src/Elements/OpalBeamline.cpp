@@ -17,7 +17,6 @@
 //
 #include "Elements/OpalBeamline.h"
 
-#include "AbsBeamline/BendBase.h"
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Units.h"
 #include "Structure/MeshGenerator.h"
@@ -210,13 +209,12 @@ void OpalBeamline::placeElementsAlongReferencePath() {
 
             double beginThisPathLength = element->getElementPosition();
             Vector_t<double, 3> beginThis3D(0, 0, beginThisPathLength - endPriorPathLength);
-            BendBase* bendElement = dynamic_cast<BendBase*>(element.get());
-            double thisLength     = bendElement->getChordLength();
-            double bendAngle      = bendElement->getBendAngle();
-            double entranceAngle  = bendElement->getEntranceAngle();
+            double thisLength     = element->getChordLength();
+            double bendAngle      = element->getBendAngle();
+            double entranceAngle  = element->getEntranceAngle();
             double arcLength      = element->getArcLength();
 
-            double rotationAngleAboutZ = bendElement->getRotationAboutZ();
+            double rotationAngleAboutZ = element->getRotationAboutZ();
             Quaternion_t rotationAboutZ(
                     cos(0.5 * rotationAngleAboutZ),
                     sin(-0.5 * rotationAngleAboutZ) * Vector_t<double, 3>(0, 0, 1));
@@ -233,7 +231,7 @@ void OpalBeamline::placeElementsAlongReferencePath() {
                     cos(0.5 * entranceAngle), sin(0.5 * entranceAngle) * effectiveRotationAxis);
 
             if (!Options::idealized) {
-                std::vector<Vector_t<double, 3>> truePath = bendElement->getDesignPath();
+                std::vector<Vector_t<double, 3>> truePath = element->getDesignPath();
                 Quaternion_t directionExitHardEdge(
                         cos(0.5 * (0.5 * bendAngle - entranceAngle)),
                         sin(0.5 * (0.5 * bendAngle - entranceAngle)) * effectiveRotationAxis);
@@ -285,11 +283,10 @@ void OpalBeamline::placeElementsAlongReferencePath() {
         Vector_t<double, 3> endThis3D;
         if (element->getType() == ElementType::SBEND || element->getType() == ElementType::RBEND
             || element->getType() == ElementType::RBEND3D) {
-            BendBase* bendElement = dynamic_cast<BendBase*>(element.get());
-            thisLength            = bendElement->getChordLength();
-            double bendAngle      = bendElement->getBendAngle();
+            thisLength            = element->getChordLength();
+            double bendAngle      = element->getBendAngle();
 
-            double rotationAngleAboutZ = bendElement->getRotationAboutZ();
+            double rotationAngleAboutZ = element->getRotationAboutZ();
             Quaternion_t rotationAboutZ(
                     cos(0.5 * rotationAngleAboutZ),
                     sin(-0.5 * rotationAngleAboutZ) * Vector_t<double, 3>(0, 0, 1));
@@ -305,8 +302,8 @@ void OpalBeamline::placeElementsAlongReferencePath() {
 
             double arcLength = element->getArcLength();
             if (!Options::idealized) {
-                std::vector<Vector_t<double, 3>> truePath = bendElement->getDesignPath();
-                double entranceAngle                      = bendElement->getEntranceAngle();
+                std::vector<Vector_t<double, 3>> truePath = element->getDesignPath();
+                double entranceAngle                      = element->getEntranceAngle();
                 Quaternion_t directionExitHardEdge(
                         cos(0.5 * (0.5 * bendAngle - entranceAngle)),
                         sin(0.5 * (0.5 * bendAngle - entranceAngle)) * effectiveRotationAxis);
@@ -393,13 +390,12 @@ void OpalBeamline::save3DLattice() {
         mesh.add(*(element.get()));
 
         if (element->getType() == ElementType::SBEND || element->getType() == ElementType::RBEND) {
-            BendBase* bendElement                       = dynamic_cast<BendBase*>(element.get());
-            std::vector<Vector_t<double, 3>> designPath = bendElement->getDesignPath();
+            std::vector<Vector_t<double, 3>> designPath = element->getDesignPath();
             unsigned int size                           = designPath.size();
 
             unsigned int minNumSteps = std::max(
                     20u, static_cast<unsigned int>(std::ceil(
-                                 std::abs(bendElement->getBendAngle() * Units::rad2deg))));
+                                 std::abs(element->getBendAngle() * Units::rad2deg))));
 
             unsigned int frequency =
                     std::max(1u, static_cast<unsigned int>(std::floor((double)size / minNumSteps)));
