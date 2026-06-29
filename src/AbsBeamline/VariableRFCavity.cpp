@@ -22,7 +22,7 @@
 #include "Physics/Units.h"
 #include "Utilities/GeneralOpalException.h"
 
-VariableRFCavity::VariableRFCavity(const std::string& name) : Component(name) {
+VariableRFCavity::VariableRFCavity(const std::string& name) : ElementBase(name) {
     initNull();  // initialise everything to nullptr
 }
 
@@ -30,7 +30,7 @@ VariableRFCavity::VariableRFCavity() {
     initNull();  // initialise everything to nullptr
 }
 
-VariableRFCavity::VariableRFCavity(const VariableRFCavity& var) : Component(var) {
+VariableRFCavity::VariableRFCavity(const VariableRFCavity& var) : ElementBase(var) {
     initNull();  // initialise everything to nullptr
     *this = var;
 }

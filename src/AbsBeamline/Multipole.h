@@ -1,7 +1,7 @@
 #ifndef OPALX_Multipole_HH
 #define OPALX_Multipole_HH
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 
 class Fieldmap;
@@ -26,7 +26,7 @@ constexpr int MAX_MP_ORDER = 5;
  * Units for multipole strengths are Teslas / m^(n-1).
  */
 
-class Multipole : public Component {
+class Multipole : public ElementBase {
 public:
     /* ============================== Constructors ============================== */
     explicit Multipole(const std::string& name);
