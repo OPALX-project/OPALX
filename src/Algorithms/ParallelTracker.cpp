@@ -752,9 +752,6 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     itsBunch_m->setEmissionMeshProgress(false, 1.0);
     m << level5 << "Bunch updated for positions in beam coordinate system." << endl;
 
-    // TODO: itsBunch_m->boundp() not implemented yet.
-    // itsBunch_m->boundp();
-
     if (repartFreq_m > 0 && step % repartFreq_m + 1 == repartFreq_m) {
         doBinaryRepartition();
         m << level4 << "Binary repartition done." << endl;
@@ -793,6 +790,11 @@ void ParallelTracker::computeExternalFields(
     // Source-plane loss has to be handled here, before external fields are evaluated. Deferring it
     // to the post-step invalid-particle cleanup would let particles behind the cathode receive one
     // more field kick.
+    //
+    // "Source-plane" refers to the X/Y plane at z=R0Z defined through the emitting EMISSIONSOURCE,
+    // from where particles are emitted. It can happen that particles land behind the source plane
+    // because e.g. of self-field kicks. Particles with negative z momentum located behind R0Z (with
+    // a certain threshold) are then removed from the simulation.
     const size_t nSourceMarked = markBackwardParticlesAtSourcePlane();
     if (nSourceMarked > 0) {
         deleteInvalidParticles(
