@@ -30,9 +30,15 @@ namespace {
         const double c = std::cos(angle);
         const double s = std::sin(angle);
         matrix3x3_t m;
-        m(0, 0) = c;    m(0, 1) = 0.0; m(0, 2) = s;
-        m(1, 0) = 0.0;  m(1, 1) = 1.0; m(1, 2) = 0.0;
-        m(2, 0) = -s;   m(2, 1) = 0.0; m(2, 2) = c;
+        m(0, 0) = c;
+        m(0, 1) = 0.0;
+        m(0, 2) = s;
+        m(1, 0) = 0.0;
+        m(1, 1) = 1.0;
+        m(1, 2) = 0.0;
+        m(2, 0) = -s;
+        m(2, 1) = 0.0;
+        m(2, 2) = c;
         return m;
     }
 

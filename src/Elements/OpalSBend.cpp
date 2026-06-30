@@ -42,11 +42,11 @@ void OpalSBend::update() {
     OpalElement::update();
 
     // Define geometry.
-    SBendRep* bend              = dynamic_cast<SBendRep*>(getElement());
-    double length               = Attributes::getReal(itsAttr[LENGTH]);
-    double angle                = Attributes::getReal(itsAttr[ANGLE]);
-    double e1                   = Attributes::getReal(itsAttr[E1]);
-    double e2                   = Attributes::getReal(itsAttr[E2]);
+    SBendRep* bend     = dynamic_cast<SBendRep*>(getElement());
+    double length      = Attributes::getReal(itsAttr[LENGTH]);
+    double angle       = Attributes::getReal(itsAttr[ANGLE]);
+    double e1          = Attributes::getReal(itsAttr[E1]);
+    double e2          = Attributes::getReal(itsAttr[E2]);
     Geometry& geometry = static_cast<Geometry&>(bend->getGeometry());
 
     if (length) {

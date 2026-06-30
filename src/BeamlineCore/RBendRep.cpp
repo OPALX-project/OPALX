@@ -23,7 +23,8 @@ RBendRep::RBendRep() : RBend(), geometry_m(Geometry::makeRBend(0.0, 0.0)) {}
 
 RBendRep::RBendRep(const RBendRep& right) : RBend(right), geometry_m(right.geometry_m) {}
 
-RBendRep::RBendRep(const std::string& name) : RBend(name), geometry_m(Geometry::makeRBend(0.0, 0.0)) {}
+RBendRep::RBendRep(const std::string& name)
+    : RBend(name), geometry_m(Geometry::makeRBend(0.0, 0.0)) {}
 
 RBendRep::~RBendRep() = default;
 

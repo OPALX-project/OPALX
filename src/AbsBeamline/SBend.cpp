@@ -10,7 +10,6 @@
 #include <algorithm>
 #include <cmath>
 
-
 SBend::SBend() : SBend("") {}
 
 SBend::SBend(const SBend& right)
@@ -117,8 +116,7 @@ bool SBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     return false;
 }
 
-bool SBend::apply(
-        const size_t& i, const double&, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+bool SBend::apply(const size_t& i, const double&, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
     const Vector_t<double, 3> R             = pc->R.getView()(i);
 
@@ -236,8 +234,7 @@ void SBend::computeFieldHost(const Vector_t<double, 3>& R, Vector_t<double, 3>& 
     }
 }
 
-void SBend::setFieldComponents(
-        const std::vector<double>& normal, const std::vector<double>& skew) {
+void SBend::setFieldComponents(const std::vector<double>& normal, const std::vector<double>& skew) {
     maxNormal_m = static_cast<int>(normal.size());
     maxSkew_m   = static_cast<int>(skew.size());
 

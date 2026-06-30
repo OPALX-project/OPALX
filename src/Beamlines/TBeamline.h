@@ -266,7 +266,6 @@ double TBeamline<T>::getExit() const {
     return (getArcLength() / 2.0);
 }
 
-
 template <class T>
 inline ElementType TBeamline<T>::getType() const {
     return ElementType::BEAMLINE;
