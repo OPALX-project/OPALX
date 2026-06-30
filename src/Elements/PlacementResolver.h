@@ -20,7 +20,7 @@
 //
 
 #include "Algorithms/CoordinateSystemTrafo.h"
-#include "Utilities/BeamlineFieldElement.h"
+#include "Utilities/FieldList.h"
 
 /**
  * @class PlacementResolver

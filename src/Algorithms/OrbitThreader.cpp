@@ -459,7 +459,7 @@ void OrbitThreader::setDesignEnergy(
     FieldList::iterator it        = allElements.begin();
     const FieldList::iterator end = allElements.end();
     for (; it != end; ++it) {
-        std::shared_ptr<ElementBase> element = (*it).getElement();
+        std::shared_ptr<ElementBase> element = (*it);
         if (visitedElements.find(element->getName()) == visitedElements.end()
             && !(element->getType() == ElementType::RFCAVITY
                  || element->getType() == ElementType::TRAVELINGWAVE)) {
@@ -473,10 +473,10 @@ void OrbitThreader::computeBoundingBox() {
     FieldList::iterator it        = allElements.begin();
     const FieldList::iterator end = allElements.end();
     for (; it != end; ++it) {
-        if (it->getElement()->getType() == ElementType::MARKER) {
+        if ((*it)->getType() == ElementType::MARKER) {
             continue;
         }
-        BoundingBox other = it->getBoundingBoxInLabCoords();
+        BoundingBox other = (*it)->getBoundingBoxInLabCoords();
         globalBoundingBox_m.enlargeToContainBoundingBox(other);
     }
     updateBoundingBoxWithCurrentPosition();

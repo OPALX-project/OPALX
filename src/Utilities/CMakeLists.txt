@@ -1,7 +1,6 @@
 set (_SRCS
     ArithmeticError.cpp
     CLRangeError.cpp
-    BeamlineFieldElement.cpp
     ExpressionRandom.cpp
     ComplexErrorFun.cpp
     ConvergenceError.cpp
@@ -48,7 +47,7 @@ set (_SRCS
 set (HDRS
     ArithmeticError.h
     CLRangeError.h
-    BeamlineFieldElement.h
+    FieldList.h
     ExpressionRandom.h
     ComplexErrorFun.h
     ConvergenceError.h

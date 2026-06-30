@@ -27,7 +27,7 @@
 
 #include "AbsBeamline/Marker.h"
 #include "Beamlines/Beamline.h"
-#include "Utilities/BeamlineFieldElement.h"
+#include "Utilities/FieldList.h"
 
 #include "Algorithms/CoordinateSystemTrafo.h"
 
@@ -72,12 +72,6 @@ public:
     CoordinateSystemTrafo getNominalEntryTransform(const std::shared_ptr<ElementBase>& comp) const;
     CoordinateSystemTrafo getNominalExitTransform(const std::shared_ptr<ElementBase>& comp) const;
 
-    double getStart(const Vector_t<double, 3>&) const;
-    double getEnd(const Vector_t<double, 3>&) const;
-
-    void switchElements(
-            const double&, const double&, const double& kineticEnergy,
-            const bool& nomonitors = false);
     void switchElementsOff();
 
     ParticleMatterInteractionHandler* getParticleMatterInteractionHandler(const unsigned int&);
@@ -141,7 +135,7 @@ inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t&
     if (elptr->isElementPositionSet()) startField = elptr->getElementPosition();
 
     elptr->initialise(&bunch, startField, endField);
-    elements_m.push_back(BeamlineFieldElement(elptr, startField, endField));
+    elements_m.push_back(elptr);
     prepared_m                       = false;
     referencePathPlacementCompiled_m = false;
 }
