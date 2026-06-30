@@ -59,6 +59,9 @@ namespace Options {
     /// The frequency to print per-step tracking status lines; 0 disables them.
     extern int stepInfoFreq;
 
+    /// The frequency to print per-rank particle distribution tables; 0 disables them.
+    extern int printRankDistrFreq;
+
     /// phase space dump flag for OPAL-cycl
     //  if true, dump phase space after each turn
     extern bool psDumpEachTurn;

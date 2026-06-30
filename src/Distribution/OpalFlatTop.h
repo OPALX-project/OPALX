@@ -101,6 +101,16 @@ public:
         return inventoryBuilt_m && nextGlobalIndex_m >= birthTimes_m.size();
     }
 
+    /// @copydoc SamplingBase::getEmittedFraction
+    double getEmittedFraction() const override {
+        if (!inventoryBuilt_m || birthTimes_m.empty()) {
+            return 0.0;
+        }
+        return std::clamp(
+                static_cast<double>(nextGlobalIndex_m) / static_cast<double>(birthTimes_m.size()),
+                0.0, 1.0);
+    }
+
     /**
      * @brief Returns the global time shift needed to center old-OPAL pulse times.
      *
@@ -118,7 +128,7 @@ public:
     /**
      * @brief Returns the initial reference momentum used by the tracker.
      *
-     * @return P0 for EMISSIONMODEL NONE, or the ASTRA half-sphere reference momentum.
+     * @return P0 for EMISSIONMODEL NONE, or P0 plus the average ASTRA half-sphere momentum.
      */
     Vector_t<double, 3> getInitialReferenceMomentum() const override;
 
