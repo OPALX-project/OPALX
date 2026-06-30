@@ -19,6 +19,12 @@ BinnedFieldSolver<T, Dim>::BinnedFieldSolver(
 }
 
 template <typename T, unsigned Dim>
+void BinnedFieldSolver<T, Dim>::refreshAfterFieldLayoutChange() {
+    this->reinitializeSolverPreservingCallCounter();
+    flippedZSlabField_m.reset();
+}
+
+template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
     // Validate inputs and decide between binned vs legacy solver.
     std::shared_ptr<ParticleCtr_t> pc = bunch.getParticleContainer();

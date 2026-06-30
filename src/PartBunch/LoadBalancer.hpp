@@ -1,7 +1,9 @@
 #ifndef OPAL_LOAD_BALANCER_H
 #define OPAL_LOAD_BALANCER_H
 
+#include <cmath>
 #include <memory>
+#include <vector>
 
 #include "PartBunch/ParticleContainer.hpp"
 
@@ -21,7 +23,6 @@ private:
     Field<T, Dim>* phi_m;
     std::shared_ptr<ParticleContainer<T, Dim>> pc_m;
     std::shared_ptr<FieldSolver_t> fs_m;
-    unsigned int loadbalancefreq_m;
     ORB<T, Dim> orb;
 
 public:
@@ -57,7 +58,7 @@ public:
 
     void updateLayout(
             ippl::FieldLayout<Dim>* fl, ippl::UniformCartesian<T, Dim>* mesh,
-            bool& isFirstRepartition) {
+            const bool migrateParticles) {
         // Update local fields
 
         static IpplTimings::TimerRef tupdateLayout = IpplTimings::getTimer("updateLayout");
@@ -67,6 +68,7 @@ public:
 
         if (fs_m->getStype() == "CG") {
             phi_m->updateLayout(*fl);
+            (*phi_m) = 0.0;
             phi_m->setFieldBC(phi_m->getFieldBC());
         }
 
@@ -76,19 +78,21 @@ public:
         IpplTimings::stopTimer(tupdateLayout);
         static IpplTimings::TimerRef tupdatePLayout = IpplTimings::getTimer("updatePB");
         IpplTimings::startTimer(tupdatePLayout);
-        if (!isFirstRepartition) {
+        if (migrateParticles) {
             pc_m->update();
         }
+        pc_m->markMomentsDirty();
         IpplTimings::stopTimer(tupdatePLayout);
     }
 
     void initializeORB(ippl::FieldLayout<Dim>* fl, ippl::UniformCartesian<T, Dim>* mesh) {
+        orb = ORB<T, Dim>();
         orb.initialize(*fl, *mesh, *rho_m);
     }
 
-    void repartition(
+    bool repartition(
             ippl::FieldLayout<Dim>* fl, ippl::UniformCartesian<T, Dim>* mesh,
-            bool& isFirstRepartition) {
+            const bool isFirstRepartition) {
         // Repartition the domains
 
         using Base = ippl::ParticleBase<
@@ -98,25 +102,24 @@ public:
         bool res = orb.binaryRepartition(*R, *fl, isFirstRepartition);
         if (res != true) {
             std::cout << "Could not repartition!" << std::endl;
-            return;
+            return false;
         }
         // Update
-        this->updateLayout(fl, mesh, isFirstRepartition);
-        if constexpr (Dim == 2 || Dim == 3) {
-            if (fs_m->getStype() == "FFT") {
-                std::get<FFTSolver_t<T, Dim>>(fs_m->getSolver()).setRhs(*rho_m);
-            }
-            if constexpr (Dim == 3) {
-                if (fs_m->getStype() == "TG") {
-                    std::get<FFTTruncatedGreenSolver_t<T, Dim>>(fs_m->getSolver()).setRhs(*rho_m);
-                } else if (fs_m->getStype() == "OPEN") {
-                    std::get<OpenSolver_t<T, Dim>>(fs_m->getSolver()).setRhs(*rho_m);
-                }
-            }
-        }
+        this->updateLayout(fl, mesh, !isFirstRepartition);
+        return true;
+    }
+
+    bool repartitionFromCurrentParticles(
+            ippl::FieldLayout<Dim>* fl, ippl::UniformCartesian<T, Dim>* mesh) {
+        initializeORB(fl, mesh);
+        constexpr bool useAnalyticFirstDensity = false;
+        return repartition(fl, mesh, useAnalyticFirstDensity);
     }
 
     bool balance(size_type totalP) {
+        if (totalP == 0) {
+            return false;
+        }
         if (ippl::Comm->size() < 2) {
             return false;
         } else {
