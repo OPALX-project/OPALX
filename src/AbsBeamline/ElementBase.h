@@ -244,20 +244,20 @@ public:
     ///@{
     /// Angle between entrace and exit orbit in radians
     virtual double getBendAngle() const;
-    
+
     /// Tilt of the entrace face relative to the plane perpenticular to the orbit
     virtual double getEntranceAngle() const;
 
     /// Straight line distance between entrance and exit
-    /// Equal to element length for straight elements and the RBend 
+    /// Equal to element length for straight elements and the RBend
     /// Shorter than the element length for the SBend
     virtual double getChordLength() const;
 
-    /// Samples of the ideal path of the element 
+    /// Samples of the ideal path of the element
     virtual std::vector<Vector_t<double, 3>> getDesignPath(std::size_t minSamples = 32) const;
     ///@}
 
-    ///   
+    ///
     virtual bool isInside(const Vector_t<double, 3>& r) const;
 
     virtual BoundingBox getBoundingBoxInLabCoords() const;
@@ -288,7 +288,7 @@ public:
     /* =============================== Aperture ================================ */
 
     void setAperture(const ApertureType& type, const std::vector<double>& args);
-    std::pair<ApertureType, std::vector<double> > getAperture() const;
+    std::pair<ApertureType, std::vector<double>> getAperture() const;
 
     /* ===================== Field application & physics ======================= */
     /**
@@ -474,7 +474,7 @@ public:
 
     /* ============================= Miscellaneous ============================= */
 
-    void setActionRange(const std::queue<std::pair<double, double> >& range);
+    void setActionRange(const std::queue<std::pair<double, double>>& range);
     void setCurrentSCoordinate(double s);
 
     /// Set output filename
@@ -499,7 +499,7 @@ protected:
     double elementEdge_m;
 
     // --- Aperture ---
-    std::pair<ApertureType, std::vector<double> > aperture_m;
+    std::pair<ApertureType, std::vector<double>> aperture_m;
     // Default aperture - Needs to be changed to Kokkos::View
     static const std::vector<double> defaultAperture_m;
     double exit_face_slope_m;
@@ -534,7 +534,7 @@ private:
     ///@}
 
     // --- Miscellaneous ---
-    std::queue<std::pair<double, double> > actionRange_m;
+    std::queue<std::pair<double, double>> actionRange_m;
     std::string outputfn_m; /**< The name of the outputfile*/
     bool deleteOnTransverseExit_m = true;
 };
@@ -634,7 +634,7 @@ inline void ElementBase::setAperture(const ApertureType& type, const std::vector
     aperture_m.second = args;
 }
 
-inline std::pair<ApertureType, std::vector<double> > ElementBase::getAperture() const {
+inline std::pair<ApertureType, std::vector<double>> ElementBase::getAperture() const {
     return aperture_m;
 }
 
@@ -666,7 +666,7 @@ inline bool ElementBase::hasParticleMatterInteraction() const { return parmatint
 
 /* ============================= Miscellaneous ============================== */
 
-inline void ElementBase::setActionRange(const std::queue<std::pair<double, double> >& range) {
+inline void ElementBase::setActionRange(const std::queue<std::pair<double, double>>& range) {
     actionRange_m = range;
 
     if (!actionRange_m.empty()) elementEdge_m = actionRange_m.front().first;

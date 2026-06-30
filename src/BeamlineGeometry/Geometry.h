@@ -109,7 +109,7 @@ private:
     /// Position (x, 0, z) of the centred body chart at arc-position s.
     Vector_t<double, 3> framePosition(double s) const;
 
-    GeometryKind kind_m = GeometryKind::Straight;
+    GeometryKind kind_m    = GeometryKind::Straight;
     double len_m           = 0.0;  ///< design / body length
     double h_m             = 0.0;  ///< curvature (Arc)
     double angle_m         = 0.0;  ///< bend angle (Arc: h*len; RBend: full angle)

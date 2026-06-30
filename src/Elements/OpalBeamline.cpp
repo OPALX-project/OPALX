@@ -209,10 +209,10 @@ void OpalBeamline::placeElementsAlongReferencePath() {
 
             double beginThisPathLength = element->getElementPosition();
             Vector_t<double, 3> beginThis3D(0, 0, beginThisPathLength - endPriorPathLength);
-            double thisLength     = element->getChordLength();
-            double bendAngle      = element->getBendAngle();
-            double entranceAngle  = element->getEntranceAngle();
-            double arcLength      = element->getArcLength();
+            double thisLength    = element->getChordLength();
+            double bendAngle     = element->getBendAngle();
+            double entranceAngle = element->getEntranceAngle();
+            double arcLength     = element->getArcLength();
 
             double rotationAngleAboutZ = element->getRotationAboutZ();
             Quaternion_t rotationAboutZ(
@@ -283,8 +283,8 @@ void OpalBeamline::placeElementsAlongReferencePath() {
         Vector_t<double, 3> endThis3D;
         if (element->getType() == ElementType::SBEND || element->getType() == ElementType::RBEND
             || element->getType() == ElementType::RBEND3D) {
-            thisLength            = element->getChordLength();
-            double bendAngle      = element->getBendAngle();
+            thisLength       = element->getChordLength();
+            double bendAngle = element->getBendAngle();
 
             double rotationAngleAboutZ = element->getRotationAboutZ();
             Quaternion_t rotationAboutZ(
@@ -394,8 +394,8 @@ void OpalBeamline::save3DLattice() {
             unsigned int size                           = designPath.size();
 
             unsigned int minNumSteps = std::max(
-                    20u, static_cast<unsigned int>(std::ceil(
-                                 std::abs(element->getBendAngle() * Units::rad2deg))));
+                    20u, static_cast<unsigned int>(
+                                 std::ceil(std::abs(element->getBendAngle() * Units::rad2deg))));
 
             unsigned int frequency =
                     std::max(1u, static_cast<unsigned int>(std::floor((double)size / minNumSteps)));
