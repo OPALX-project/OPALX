@@ -42,6 +42,6 @@ void Marker::finalise() {}
 
 bool Marker::bends() const { return false; }
 
-void Marker::getFieldExtend(double& /*zBegin*/, double& /*zEnd*/) const {}
+void Marker::getFieldExtent(double& /*zBegin*/, double& /*zEnd*/) const {}
 
 ElementType Marker::getType() const { return ElementType::MARKER; }

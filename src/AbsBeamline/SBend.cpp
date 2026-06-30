@@ -162,7 +162,7 @@ bool SBend::applyToReferenceParticle(
     return false;
 }
 
-void SBend::getFieldExtend(double& zBegin, double& zEnd) const {
+void SBend::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = 0.0;
     zEnd   = getElementLength();
 }

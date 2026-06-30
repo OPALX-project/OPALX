@@ -124,7 +124,7 @@ public:
     inline bool bends() const override;
 
     /** Not implemented */
-    void getFieldExtend(double& /*zBegin*/, double& /*zEnd*/) const override {}
+    void getFieldExtent(double& /*zBegin*/, double& /*zEnd*/) const override {}
 
     /** Return the cell geometry */
     Geometry& getGeometry() override;

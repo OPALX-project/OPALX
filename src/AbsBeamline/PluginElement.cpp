@@ -199,7 +199,7 @@ bool PluginElement::check(
     return flag;
 }
 
-void PluginElement::getFieldExtend(double& zBegin, double& zEnd) const {
+void PluginElement::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = -0.005;
     zEnd   = 0.005;
 }

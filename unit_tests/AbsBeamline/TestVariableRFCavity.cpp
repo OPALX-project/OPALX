@@ -405,12 +405,12 @@ TEST_F(TestVariableRFCavity, OddApis) {
     const VariableRFCavity cav1;
     // The field-support interval follows the body length.
     double a{}, b{};
-    EXPECT_NO_THROW(cav1.getFieldExtend(a, b));
+    EXPECT_NO_THROW(cav1.getFieldExtent(a, b));
     EXPECT_DOUBLE_EQ(a, 0.0);
     EXPECT_DOUBLE_EQ(b, 0.0);
     VariableRFCavity cavWithLength;
     cavWithLength.setLength(3.0);
-    EXPECT_NO_THROW(cavWithLength.getFieldExtend(a, b));
+    EXPECT_NO_THROW(cavWithLength.getFieldExtent(a, b));
     EXPECT_DOUBLE_EQ(a, 0.0);
     EXPECT_DOUBLE_EQ(b, 3.0);
     // The cavity does not make a bend
@@ -438,7 +438,7 @@ TEST_F(TestVariableRFCavity, FieldSupportMatchesBodyLength) {
 
     double zBegin = -1.0;
     double zEnd   = -1.0;
-    getFieldExtend(zBegin, zEnd);
+    getFieldExtent(zBegin, zEnd);
     EXPECT_DOUBLE_EQ(zBegin, 0.0);
     EXPECT_DOUBLE_EQ(zEnd, 10.0);
 

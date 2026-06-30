@@ -73,7 +73,7 @@ namespace {
         void finalise() override {}
         bool bends() const override { return false; }
 
-        void getFieldExtend(double& zBegin, double& zEnd) const override {
+        void getFieldExtent(double& zBegin, double& zEnd) const override {
             zBegin = fieldBegin_m;
             zEnd   = fieldEnd_m;
         }

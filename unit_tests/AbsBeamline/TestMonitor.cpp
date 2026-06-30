@@ -15,7 +15,7 @@
  *    - getType()
  *    - bends()
  *    - getRequiredNumberOfTimeSteps()
- *    - getFieldExtend()
+ *    - getFieldExtent()
  *
  * 2. Collection type bookkeeping
  *    - default collection type is SPATIAL
@@ -120,7 +120,7 @@ TEST_F(MonitorTest, GetFieldExtendUsesMonitorHalfLength) {
     double zBegin = 0.0;
     double zEnd   = 0.0;
 
-    monitor.getFieldExtend(zBegin, zEnd);
+    monitor.getFieldExtent(zBegin, zEnd);
 
     EXPECT_DOUBLE_EQ(zBegin, -0.005);
     EXPECT_DOUBLE_EQ(zEnd, 0.005);

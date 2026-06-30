@@ -53,7 +53,7 @@ void Drift::finalise() {}
 
 bool Drift::bends() const { return false; }
 
-void Drift::getFieldExtend(double& zBegin, double& zEnd) const {
+void Drift::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = startField_m;
     zEnd   = startField_m + getElementLength();
 }

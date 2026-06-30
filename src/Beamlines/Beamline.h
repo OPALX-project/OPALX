@@ -55,7 +55,7 @@ public:
     bool bends() const override { return false; }
     void initialise(PartBunch_t*, double&, double&) override {}
     void finalise() override {}
-    void getFieldExtend(double& zBegin, double& zEnd) const override {
+    void getFieldExtent(double& zBegin, double& zEnd) const override {
         getElementDimensions(zBegin, zEnd);
     }
 

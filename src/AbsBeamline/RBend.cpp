@@ -162,7 +162,7 @@ bool RBend::applyToReferenceParticle(
     return false;
 }
 
-void RBend::getFieldExtend(double& zBegin, double& zEnd) const {
+void RBend::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = 0.0;
     zEnd   = getElementLength();
 }

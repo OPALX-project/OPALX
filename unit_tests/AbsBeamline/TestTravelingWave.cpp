@@ -16,7 +16,7 @@
  *    - amplitude / frequency / phase setters and getters
  *
  * 2. Geometry
- *    - getFieldExtend()
+ *    - getFieldExtent()
  *    - getElementDimensions()
  *    - getEdgeToBegin()
  *    - getEdgeToEnd()
@@ -233,7 +233,7 @@ TEST_F(TravelingWaveTest, GetSetAmplitudeFrequencyPhase) {
 // ---------------------------------------------------------------------------
 TEST_F(TravelingWaveTest, GetDimensions) {
     double zBegin = 0.0, zEnd = 0.0;
-    tw_->getFieldExtend(zBegin, zEnd);
+    tw_->getFieldExtent(zBegin, zEnd);
 
     EXPECT_DOUBLE_EQ(zBegin, -1.0);  // -0.5 * periodLength
     EXPECT_DOUBLE_EQ(zEnd, 3.0);     // zBegin + elementLength

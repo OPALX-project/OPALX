@@ -221,7 +221,7 @@ bool Solenoid::getFast() const { return fast_m; }
 /// @brief Get the dimensions of the solenoid
 /// @param zBegin Start position
 /// @param zEnd End position
-void Solenoid::getFieldExtend(double& zBegin, double& zEnd) const {
+void Solenoid::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = startField_m;
     zEnd   = endField_m;
 }

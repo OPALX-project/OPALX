@@ -41,7 +41,7 @@ void Laser::finalise() {}
 
 bool Laser::bends() const { return false; }
 
-void Laser::getFieldExtend(double& zBegin, double& zEnd) const {
+void Laser::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = startField_m;
     zEnd   = startField_m + getElementLength();
 }

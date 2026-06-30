@@ -166,7 +166,7 @@ public:
      * differ from the nominal body extent returned by
      * `getElementDimensions()`.
      */
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
 
@@ -187,7 +187,7 @@ public:
      *
      * The body length is the placed hardware extent configured on the cavity
      * geometry. It is independent of the field-support extent returned by
-     * `getFieldExtend()`.
+     * `getFieldExtent()`.
      */
     virtual double getElementLength() const override;
     virtual void getElementDimensions(double& begin, double& end) const override;

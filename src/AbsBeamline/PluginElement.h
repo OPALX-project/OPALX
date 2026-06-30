@@ -47,7 +47,7 @@ public:
     virtual void finalise() final;        // final since virtual hook doFinalise
     virtual void goOffline() final;       // final since virtual hook doGoOffline
     virtual bool bends() const override;
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
     ///@}
     ///@{ Virtual implementation of Component
     virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;

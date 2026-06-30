@@ -106,7 +106,7 @@ void OrbitThreader::checkElementLengths(const std::set<std::shared_ptr<ElementBa
     for (const std::shared_ptr<ElementBase>& field : fields) {
         double fieldBegin = 0.0;
         double fieldEnd   = 0.0;
-        field->getFieldExtend(fieldBegin, fieldEnd);
+        field->getFieldExtent(fieldBegin, fieldEnd);
 
         const double length = std::abs(fieldEnd - fieldBegin);
         const int numSteps  = field->getRequiredNumberOfTimeSteps();
