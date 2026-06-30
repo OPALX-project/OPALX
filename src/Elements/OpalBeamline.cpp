@@ -17,6 +17,8 @@
 //
 #include "Elements/OpalBeamline.h"
 
+#include "Elements/PlacementResolver.h"
+
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Units.h"
 #include "Structure/MeshGenerator.h"
@@ -163,181 +165,13 @@ FieldList OpalBeamline::getElementByType(ElementType type) {
     return elements_of_requested_type;
 }
 
-void OpalBeamline::positionElementRelative(std::shared_ptr<ElementBase> element) {
-    if (!element->isPositioned()) {
-        return;
-    }
-
-    element->releasePosition();
-    CoordinateSystemTrafo toElement = element->getCSTrafoGlobal2Local();
-    toElement *= coordTransformationTo_m;
-
-    setNominalPlacement(element, toElement);
-    element->fixPosition();
-}
-
-void OpalBeamline::setNominalPlacement(
-        const std::shared_ptr<ElementBase>& element, const CoordinateSystemTrafo& parentToBody) {
-    element->setCSTrafoGlobal2Local(parentToBody);
-}
-
 void OpalBeamline::placeElementsAlongReferencePath() {
     if (referencePathPlacementCompiled_m) {
         return;
     }
-
-    static unsigned int order     = 0;
-    const FieldList::iterator end = elements_m.end();
-
-    unsigned int minOrder = order;
-    {
-        double endPriorPathLength               = 0.0;
-        CoordinateSystemTrafo currentCoordTrafo = coordTransformationTo_m;
-
-        FieldList::iterator it = elements_m.begin();
-        for (; it != end; ++it) {
-            std::shared_ptr<ElementBase> element = (*it).getElement();
-            if (element->isPositioned()) {
-                continue;
-            }
-            (*it).order_m = minOrder;
-
-            if (element->getType() != ElementType::SBEND && element->getType() != ElementType::RBEND
-                && element->getType() != ElementType::RBEND3D) {
-                continue;
-            }
-
-            double beginThisPathLength = element->getElementPosition();
-            Vector_t<double, 3> beginThis3D(0, 0, beginThisPathLength - endPriorPathLength);
-            double thisLength    = element->getChordLength();
-            double bendAngle     = element->getBendAngle();
-            double entranceAngle = element->getEntranceAngle();
-            double arcLength     = element->getArcLength();
-
-            double rotationAngleAboutZ = element->getRotationAboutZ();
-            Quaternion_t rotationAboutZ(
-                    cos(0.5 * rotationAngleAboutZ),
-                    sin(-0.5 * rotationAngleAboutZ) * Vector_t<double, 3>(0, 0, 1));
-
-            Vector_t<double, 3> effectiveRotationAxis =
-                    rotationAboutZ.rotate(Vector_t<double, 3>(0, -1, 0));
-            effectiveRotationAxis = effectiveRotationAxis / euclidean_norm(effectiveRotationAxis);
-
-            Quaternion_t rotationAboutAxis(
-                    cos(0.5 * bendAngle), sin(0.5 * bendAngle) * effectiveRotationAxis);
-            Quaternion_t halfRotationAboutAxis(
-                    cos(0.25 * bendAngle), sin(0.25 * bendAngle) * effectiveRotationAxis);
-            Quaternion_t entryFaceRotation(
-                    cos(0.5 * entranceAngle), sin(0.5 * entranceAngle) * effectiveRotationAxis);
-
-            if (!Options::idealized) {
-                std::vector<Vector_t<double, 3>> truePath = element->getDesignPath();
-                Quaternion_t directionExitHardEdge(
-                        cos(0.5 * (0.5 * bendAngle - entranceAngle)),
-                        sin(0.5 * (0.5 * bendAngle - entranceAngle)) * effectiveRotationAxis);
-                Vector_t<double, 3> exitHardEdge =
-                        thisLength * directionExitHardEdge.rotate(Vector_t<double, 3>(0, 0, 1));
-                double distanceEntryHETruePath = euclidean_norm(truePath.front());
-                Vector_t<double, 3> exitDelta =
-                        rotationAboutZ.rotate(truePath.back()) - exitHardEdge;
-                double distanceExitHETruePath = euclidean_norm(exitDelta);
-                double pathLengthTruePath     = (*it).getEnd() - (*it).getStart();
-                arcLength = pathLengthTruePath - distanceEntryHETruePath - distanceExitHETruePath;
-            }
-
-            Vector_t<double, 3> chord =
-                    thisLength * halfRotationAboutAxis.rotate(Vector_t<double, 3>(0, 0, 1));
-            Vector_t<double, 3> endThis3D = beginThis3D + chord;
-            double endThisPathLength      = beginThisPathLength + arcLength;
-
-            CoordinateSystemTrafo fromEndLastToBeginThis(
-                    beginThis3D, (entryFaceRotation * rotationAboutZ).conjugate());
-            CoordinateSystemTrafo fromEndLastToEndThis(endThis3D, rotationAboutAxis.conjugate());
-
-            setNominalPlacement(element, fromEndLastToBeginThis * currentCoordTrafo);
-
-            currentCoordTrafo = (fromEndLastToEndThis * currentCoordTrafo);
-
-            endPriorPathLength = endThisPathLength;
-        }
-    }
-
-    double endPriorPathLength               = 0.0;
-    CoordinateSystemTrafo currentCoordTrafo = coordTransformationTo_m;
-
-    FieldList::iterator it = elements_m.begin();
-    for (; it != end; ++it) {
-        std::shared_ptr<ElementBase> element = (*it).getElement();
-        if (element->isPositioned()) continue;
-
-        (*it).order_m = order++;
-
-        double beginThisPathLength = element->getElementPosition();
-        double thisLength          = element->getElementLength();
-        Vector_t<double, 3> beginThis3D(0, 0, beginThisPathLength - endPriorPathLength);
-
-        if (element->getType() == ElementType::SOURCE) {
-            beginThis3D(2) -= thisLength;
-        }
-
-        Vector_t<double, 3> endThis3D;
-        if (element->getType() == ElementType::SBEND || element->getType() == ElementType::RBEND
-            || element->getType() == ElementType::RBEND3D) {
-            thisLength       = element->getChordLength();
-            double bendAngle = element->getBendAngle();
-
-            double rotationAngleAboutZ = element->getRotationAboutZ();
-            Quaternion_t rotationAboutZ(
-                    cos(0.5 * rotationAngleAboutZ),
-                    sin(-0.5 * rotationAngleAboutZ) * Vector_t<double, 3>(0, 0, 1));
-
-            Vector_t<double, 3> effectiveRotationAxis =
-                    rotationAboutZ.rotate(Vector_t<double, 3>(0, -1, 0));
-            effectiveRotationAxis = effectiveRotationAxis / euclidean_norm(effectiveRotationAxis);
-
-            Quaternion_t rotationAboutAxis(
-                    cos(0.5 * bendAngle), sin(0.5 * bendAngle) * effectiveRotationAxis);
-            Quaternion halfRotationAboutAxis(
-                    cos(0.25 * bendAngle), sin(0.25 * bendAngle) * effectiveRotationAxis);
-
-            double arcLength = element->getArcLength();
-            if (!Options::idealized) {
-                std::vector<Vector_t<double, 3>> truePath = element->getDesignPath();
-                double entranceAngle                      = element->getEntranceAngle();
-                Quaternion_t directionExitHardEdge(
-                        cos(0.5 * (0.5 * bendAngle - entranceAngle)),
-                        sin(0.5 * (0.5 * bendAngle - entranceAngle)) * effectiveRotationAxis);
-                Vector_t<double, 3> exitHardEdge =
-                        thisLength * directionExitHardEdge.rotate(Vector_t<double, 3>(0, 0, 1));
-                double distanceEntryHETruePath = euclidean_norm(truePath.front());
-                Vector_t<double, 3> exitDelta =
-                        rotationAboutZ.rotate(truePath.back()) - exitHardEdge;
-                double distanceExitHETruePath = euclidean_norm(exitDelta);
-                double pathLengthTruePath     = (*it).getEnd() - (*it).getStart();
-                arcLength = pathLengthTruePath - distanceEntryHETruePath - distanceExitHETruePath;
-            }
-
-            endThis3D =
-                    (beginThis3D
-                     + halfRotationAboutAxis.rotate(Vector_t<double, 3>(0, 0, thisLength)));
-            CoordinateSystemTrafo fromEndLastToEndThis(endThis3D, rotationAboutAxis.conjugate());
-            currentCoordTrafo = fromEndLastToEndThis * currentCoordTrafo;
-
-            endPriorPathLength = beginThisPathLength + arcLength;
-        } else {
-            double rotationAngleAboutZ = (*it).getElement()->getRotationAboutZ();
-            Quaternion_t rotationAboutZ(
-                    cos(0.5 * rotationAngleAboutZ),
-                    sin(-0.5 * rotationAngleAboutZ) * Vector_t<double, 3>(0, 0, 1));
-
-            CoordinateSystemTrafo fromLastToThis(beginThis3D, rotationAboutZ);
-
-            setNominalPlacement(element, fromLastToThis * currentCoordTrafo);
-        }
-
-        element->fixPosition();
-    }
-
+    // Single PLACE stage: resolve every element's global-to-local transform (6D pose +
+    // ELEMEDGE) in one place.
+    PlacementResolver::resolve(elements_m, coordTransformationTo_m);
     referencePathPlacementCompiled_m = true;
 }
 

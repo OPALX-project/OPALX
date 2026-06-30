@@ -95,7 +95,6 @@ public:
     void visit(const T&, BeamlineVisitor&, PartBunch_t&);
 
     void prepareSections();
-    void positionElementRelative(std::shared_ptr<ElementBase>);
     void compute3DLattice();
     void save3DLattice();
     void save3DInput();
@@ -110,11 +109,6 @@ public:
     void merge(OpalBeamline& rhs);
 
 private:
-    /// Set one element's nominal body transform (its global→local
-    /// CoordinateSystemTrafo) during beamline assembly.
-    void setNominalPlacement(
-            const std::shared_ptr<ElementBase>& element, const CoordinateSystemTrafo& parentToBody);
-
     /**
      * @brief Place ELEMEDGE-positioned elements along the reference path.
      *
@@ -142,8 +136,8 @@ inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t&
     double endField   = 0.0;
     std::shared_ptr<T> elptr(dynamic_cast<T*>(element.clone()));
 
-    positionElementRelative(elptr);
-
+    // Placement (both 6D-pose and ELEMEDGE) is resolved later, in one pass, by
+    // placeElementsAlongReferencePath() during prepareSections().
     if (elptr->isElementPositionSet()) startField = elptr->getElementPosition();
 
     elptr->initialise(&bunch, startField, endField);
