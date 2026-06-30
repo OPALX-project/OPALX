@@ -139,19 +139,26 @@ TEST_F(OpalBeamlinePlacementTest, BridgeReturnsPlacedElementViewAndPreservesNomi
     expectVectorNear(beamline.getMisalignment(drift).getOrigin(), Vector3(0.25, 0.0, 0.0));
 }
 
-TEST_F(OpalBeamlinePlacementTest, PositionElementRelativeUsesPlacementPoseBridge) {
+TEST_F(OpalBeamlinePlacementTest, PrepareSectionsComposes6DPoseWithLabFrame) {
+    // Mode A (6D pose): the element records its global-to-local pose but stays unpositioned;
+    // prepareSections() composes it with the lab frame in one place (no ELEMEDGE set).
     OpalBeamline beamline(Vector3(0.0, 0.0, 5.0), Quaternion());
-    auto drift = std::make_shared<DriftRep>("D3");
-    drift->setCSTrafoGlobal2Local(
+    DriftRep drift("D3");
+    drift.setElementLength(0.4);
+    drift.setCSTrafoGlobal2Local(
             CoordinateSystemTrafo(Vector3(1.0, 2.0, 3.0), rotationAroundY(M_PI / 10.0)));
-    drift->fixPosition();
 
-    CoordinateSystemTrafo expected = drift->getCSTrafoGlobal2Local();
+    CoordinateSystemTrafo expected = drift.getCSTrafoGlobal2Local();
     expected *= beamline.getCSTrafoLab2Local();
 
-    beamline.positionElementRelative(drift);
+    auto bunch = makeBunch(0);
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+    beamline.visit(drift, visitor, *bunch);
+    beamline.prepareSections();
 
-    expectVectorNear(beamline.getCSTrafoLab2Local(drift).getOrigin(), expected.getOrigin());
+    const auto component = *beamline.getElements().begin();
+    expectVectorNear(beamline.getCSTrafoLab2Local(component).getOrigin(), expected.getOrigin());
 }
 
 TEST_F(OpalBeamlinePlacementTest, PrepareSectionsCompilesElementPositionIntoNominalPlacement) {
