@@ -93,7 +93,7 @@ public:
      * including the half-period fringe offsets. It is distinct from the
      * nominal body extent used for placement and visualization.
      */
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
 

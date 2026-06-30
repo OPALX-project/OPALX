@@ -16,7 +16,7 @@
  *    - amplitude / frequency / phase setters and getters
  *
  * 2. Geometry
- *    - getFieldExtend()
+ *    - getFieldExtent()
  *
  * 3. Spatial behavior
  *    - apply() inside the element
@@ -198,7 +198,7 @@ TEST_F(RFCavityTest, GetSetAmplitudeFrequencyPhase) {
 TEST_F(RFCavityTest, GetDimensions) {
     double zBegin = -1.0, zEnd = -1.0;
 
-    cav_->getFieldExtend(zBegin, zEnd);
+    cav_->getFieldExtent(zBegin, zEnd);
 
     EXPECT_EQ(zBegin, 0.0);
     EXPECT_EQ(zEnd, 1.0);
@@ -239,7 +239,7 @@ TEST_F(RFCavityTest, ZeroBodyLengthDoesNotFallBackToFieldmapLength) {
     EXPECT_DOUBLE_EQ(bodyEnd, 0.0);
 
     double fieldBegin = -1.0, fieldEnd = -1.0;
-    cav_->getFieldExtend(fieldBegin, fieldEnd);
+    cav_->getFieldExtent(fieldBegin, fieldEnd);
     EXPECT_DOUBLE_EQ(fieldBegin, 0.0);
     EXPECT_DOUBLE_EQ(fieldEnd, 1.0);
 }

@@ -54,7 +54,7 @@ public:
     bool bends() const override;
 
     /** @brief Get the longitudinal element extent in the current lattice traversal. */
-    void getFieldExtend(double& zBegin, double& zEnd) const override;
+    void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     /** @brief Return the OPALX element type identifier. */
     ElementType getType() const override;

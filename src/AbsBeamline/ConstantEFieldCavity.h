@@ -23,7 +23,7 @@ public:
     virtual void finalise() override;
     virtual bool bends() const override;
     virtual ElementType getType() const override;
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
     virtual bool apply(

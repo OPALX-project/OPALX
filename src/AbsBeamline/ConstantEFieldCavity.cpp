@@ -32,7 +32,7 @@ bool ConstantEFieldCavity::bends() const { return false; }
 
 ElementType ConstantEFieldCavity::getType() const { return ElementType::CONSTANTEFIELDCAVITY; }
 
-void ConstantEFieldCavity::getFieldExtend(double& zBegin, double& zEnd) const {
+void ConstantEFieldCavity::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = startField_m;
     zEnd   = startField_m + getElementLength();
 }

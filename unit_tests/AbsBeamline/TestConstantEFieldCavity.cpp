@@ -3,7 +3,7 @@
  * \brief Unit tests for ConstantEFieldCavity component (base layer).
  *
  * Tests the ConstantEFieldCavity API and apply logic via ConstantEFieldCavityRep (concrete type).
- * Covers: getType, bends, getEx/Ey/Ez and setters, getFieldExtend,
+ * Covers: getType, bends, getEx/Ey/Ez and setters, getFieldExtent,
  * apply(R,P,t,E,B) for various z-positions, full-vector application,
  * and applyToReferenceParticle (inside/outside).
  */
@@ -59,14 +59,14 @@ namespace {
         EXPECT_DOUBLE_EQ(endField, 1.0);
 
         double zBegin = 0.0, zEnd = 0.0;
-        rep_->getFieldExtend(zBegin, zEnd);
+        rep_->getFieldExtent(zBegin, zEnd);
         EXPECT_DOUBLE_EQ(zBegin, 0.0);
         EXPECT_DOUBLE_EQ(zEnd, 1.0);
 
         startField = 2.5;
         endField   = 0.0;
         rep_->initialise(nullptr, startField, endField);
-        rep_->getFieldExtend(zBegin, zEnd);
+        rep_->getFieldExtent(zBegin, zEnd);
         EXPECT_DOUBLE_EQ(zBegin, 2.5);
         EXPECT_DOUBLE_EQ(zEnd, 3.5);
     }

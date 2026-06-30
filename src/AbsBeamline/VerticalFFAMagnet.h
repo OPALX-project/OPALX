@@ -100,7 +100,7 @@ public:
     inline bool bends() const { return false; }
 
     /** Not implemented */
-    void getFieldExtend(double& /*zBegin*/, double& /*zEnd*/) const {}
+    void getFieldExtent(double& /*zBegin*/, double& /*zEnd*/) const {}
 
     /** Return the cell geometry */
     Geometry& getGeometry();

@@ -203,7 +203,7 @@ TEST_F(TestMultipoleT, OddApis) {
     EXPECT_NO_THROW(finalise());
     setElementLength(4.0);
     double a = -1.0, b = -1.0;
-    EXPECT_NO_THROW(getFieldExtend(a, b));
+    EXPECT_NO_THROW(getFieldExtent(a, b));
     EXPECT_DOUBLE_EQ(a, 0.0);
     EXPECT_DOUBLE_EQ(b, 4.0);
 }

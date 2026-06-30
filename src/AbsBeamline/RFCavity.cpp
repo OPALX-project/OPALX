@@ -473,7 +473,7 @@ double RFCavity::spline(double z, double* za) {
     return splint;
 }
 
-void RFCavity::getFieldExtend(double& zBegin, double& zEnd) const {
+void RFCavity::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = startField_m;
     zEnd   = endField_m;
 }

@@ -48,7 +48,7 @@ public:
 
     virtual ElementType getType() const override;
 
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     virtual int getRequiredNumberOfTimeSteps() const override;
 

@@ -190,7 +190,7 @@ TEST_F(SolenoidPlacementTest, FieldMapEdgesAndSupportEnvelopeFollowFieldMap) {
     }
 
     double fieldBegin = 0.0, fieldEnd = 0.0;
-    solenoid.getFieldExtend(fieldBegin, fieldEnd);
+    solenoid.getFieldExtent(fieldBegin, fieldEnd);
 
     double bodyBegin = 0.0, bodyEnd = 0.0;
     solenoid.getElementDimensions(bodyBegin, bodyEnd);

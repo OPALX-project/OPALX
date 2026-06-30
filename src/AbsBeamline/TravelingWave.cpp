@@ -296,7 +296,7 @@ void TravelingWave::goOnline(const double&) {
 
 void TravelingWave::goOffline() { Fieldmap::freeMap(filename_m); }
 
-void TravelingWave::getFieldExtend(double& zBegin, double& zEnd) const {
+void TravelingWave::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = startField_m;
     zEnd   = endField_m;
 }

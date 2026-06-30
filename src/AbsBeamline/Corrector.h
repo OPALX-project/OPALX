@@ -74,7 +74,7 @@ public:
 
     virtual ElementType getType() const;
 
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const;
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const;
 
     void setKickX(double k);
 

@@ -125,7 +125,7 @@ public:
      *  body extent, i.e. the interval
      *  latexmath:[z \in [0, L)] in the local element frame.
      */
-    void getFieldExtend(double& zBegin, double& zEnd) const override {
+    void getFieldExtent(double& zBegin, double& zEnd) const override {
         zBegin = 0.0;
         zEnd   = getElementLength();
     }

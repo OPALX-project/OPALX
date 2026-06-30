@@ -141,7 +141,7 @@ public:
      * It may differ from the nominal body extent and therefore also from the
      * entry/exit ports used for placement and visualization.
      */
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     /**
      * @brief Return the nominal body extent of the solenoid.

@@ -394,7 +394,7 @@ public:
      * fields extend beyond the hardware body or when a field map occupies only
      * part of the body.
      */
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const = 0;
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const = 0;
 
     virtual int getRequiredNumberOfTimeSteps() const;
 
