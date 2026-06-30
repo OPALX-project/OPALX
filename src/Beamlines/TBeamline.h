@@ -64,8 +64,8 @@ public:
     /// Get geometry.
     //  A placeholder geometry that exists only to satisfy the ElementBase
     //  interface; the beamline's lengths are computed by summing its elements.
-    virtual BGeometryBase& getGeometry();
-    virtual const BGeometryBase& getGeometry() const;
+    virtual Geometry& getGeometry();
+    virtual const Geometry& getGeometry() const;
 
     /// Get arc length.
     //  Return the length of the geometry, measured along the design orbit.
@@ -220,12 +220,12 @@ inline void TBeamline<T>::makeSharable() {
 }
 
 template <class T>
-inline BGeometryBase& TBeamline<T>::getGeometry() {
+inline Geometry& TBeamline<T>::getGeometry() {
     return itsGeometry_m;
 }
 
 template <class T>
-inline const BGeometryBase& TBeamline<T>::getGeometry() const {
+inline const Geometry& TBeamline<T>::getGeometry() const {
     return itsGeometry_m;
 }
 

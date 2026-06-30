@@ -103,10 +103,10 @@ public:
     void getFieldExtend(double& /*zBegin*/, double& /*zEnd*/) const {}
 
     /** Return the cell geometry */
-    BGeometryBase& getGeometry();
+    Geometry& getGeometry();
 
     /** Return the cell geometry */
-    const BGeometryBase& getGeometry() const;
+    const Geometry& getGeometry() const;
 
     /** Accept a beamline visitor */
     void accept(BeamlineVisitor& visitor) const;

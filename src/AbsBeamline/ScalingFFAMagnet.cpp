@@ -90,9 +90,9 @@ void ScalingFFAMagnet::finalise() { RefPartBunch_m = nullptr; }
 
 bool ScalingFFAMagnet::bends() const { return true; }
 
-BGeometryBase& ScalingFFAMagnet::getGeometry() { return planarArcGeometry_m; }
+Geometry& ScalingFFAMagnet::getGeometry() { return planarArcGeometry_m; }
 
-const BGeometryBase& ScalingFFAMagnet::getGeometry() const { return planarArcGeometry_m; }
+const Geometry& ScalingFFAMagnet::getGeometry() const { return planarArcGeometry_m; }
 
 void ScalingFFAMagnet::accept(BeamlineVisitor& visitor) const {
     visitor.visitScalingFFAMagnet(*this);

@@ -36,8 +36,8 @@ namespace {
         DummyBeamline() : Beamline("dummy") {}
 
         ElementType getType() const override { return ElementType::BEAMLINE; }
-        BGeometryBase& getGeometry() override { return geometry_; }
-        const BGeometryBase& getGeometry() const override { return geometry_; }
+        Geometry& getGeometry() override { return geometry_; }
+        const Geometry& getGeometry() const override { return geometry_; }
         void accept(BeamlineVisitor& visitor) const override { visitor.visitBeamline(*this); }
         ElementBase* clone() const override { return new DummyBeamline(*this); }
         void iterate(BeamlineVisitor&, bool) const override {}

@@ -64,9 +64,9 @@ public:
 
     ElementBase* clone() const override { return new TestMonitor(*this); }
 
-    BGeometryBase& getGeometry() override { return geom_; }
+    Geometry& getGeometry() override { return geom_; }
 
-    const BGeometryBase& getGeometry() const override { return geom_; }
+    const Geometry& getGeometry() const override { return geom_; }
 
     Plane getPlane() const override { return plane_; }
 

@@ -86,7 +86,7 @@ public:
     /** Initialise the element */
     virtual void initialise() = 0;
     /** Return the cell geometry */
-    virtual BGeometryBase* getGeometry() = 0;
+    virtual Geometry* getGeometry() = 0;
     /** Return the field for an array of points */
     virtual void getField(
             Kokkos::View<Vector_t<double, 3>*> /*R*/, Kokkos::View<Vector_t<double, 3>*> /*E*/,

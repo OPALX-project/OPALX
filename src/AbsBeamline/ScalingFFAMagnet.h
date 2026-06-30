@@ -127,10 +127,10 @@ public:
     void getFieldExtend(double& /*zBegin*/, double& /*zEnd*/) const override {}
 
     /** Return the cell geometry */
-    BGeometryBase& getGeometry() override;
+    Geometry& getGeometry() override;
 
     /** Return the cell geometry */
-    const BGeometryBase& getGeometry() const override;
+    const Geometry& getGeometry() const override;
 
     /** Accept a beamline visitor */
     void accept(BeamlineVisitor& visitor) const override;

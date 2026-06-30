@@ -4,7 +4,7 @@
 //
 // Class Geometry
 //   Single geometry class for all beamline elements. Replaces the former
-//   BGeometryBase class tree (StraightGeometry, PlanarArcGeometry, RBendGeometry,
+//   geometry class hierarchy (StraightGeometry, PlanarArcGeometry, RBendGeometry,
 //   NullGeometry).
 //
 // Copyright (c) 200x - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
@@ -116,9 +116,5 @@ private:
     double entranceAngle_m = 0.0;  ///< entrance pole-face angle
     double exitAngle_m     = 0.0;  ///< exit pole-face angle
 };
-
-/// Transitional alias: the former abstract geometry base is now the single
-/// concrete Geometry class.
-using BGeometryBase = Geometry;
 
 #endif  // OPALX_Geometry_HH

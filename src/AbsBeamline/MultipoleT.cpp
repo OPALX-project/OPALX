@@ -184,9 +184,9 @@ void MultipoleT::initialiseTimeDependencies() const {
     }
 }
 
-BGeometryBase& MultipoleT::getGeometry() { return *implementation_->getGeometry(); }
+Geometry& MultipoleT::getGeometry() { return *implementation_->getGeometry(); }
 
-const BGeometryBase& MultipoleT::getGeometry() const { return *implementation_->getGeometry(); }
+const Geometry& MultipoleT::getGeometry() const { return *implementation_->getGeometry(); }
 
 void MultipoleT::validateConfiguration() const {
     if (2 * config_m.maxFOrder_m + 1 > MultipoleTBase::MaxDerivatives) {

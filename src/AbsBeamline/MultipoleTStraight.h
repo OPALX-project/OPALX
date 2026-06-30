@@ -74,7 +74,7 @@ public:
     /** Initialise the element */
     void initialise() override;
     /** Return the cell geometry */
-    BGeometryBase* getGeometry() override { return &straightGeometry_m; }
+    Geometry* getGeometry() override { return &straightGeometry_m; }
     /** Return the field for an array of points */
     // Container-agnostic: R/E/B views come from the caller's particle container.
     void getField(

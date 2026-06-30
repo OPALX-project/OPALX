@@ -83,9 +83,9 @@ public:
     /** Accept a beamline visitor */
     void accept(BeamlineVisitor& visitor) const override;
     /** Return the cell geometry */
-    BGeometryBase& getGeometry() override;
+    Geometry& getGeometry() override;
     /** Return the cell geometry */
-    const BGeometryBase& getGeometry() const override;
+    const Geometry& getGeometry() const override;
     /** Calculate the field for all particles */
     bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
     /** Calculate the field at some arbitrary position \n

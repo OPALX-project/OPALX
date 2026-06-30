@@ -20,8 +20,8 @@ public:
     ElementBase* clone() const override;
     Channel* getChannel(const std::string& aKey, bool create = false) override;
 
-    BGeometryBase& getGeometry() override;
-    const BGeometryBase& getGeometry() const override;
+    Geometry& getGeometry() override;
+    const Geometry& getGeometry() const override;
 
 private:
     Geometry geometry_m{Geometry::makeArc(0.0, 0.0)};

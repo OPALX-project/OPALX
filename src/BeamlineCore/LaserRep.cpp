@@ -34,6 +34,6 @@ Channel* LaserRep::getChannel(const std::string& aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
-BGeometryBase& LaserRep::getGeometry() { return geometry_m; }
+Geometry& LaserRep::getGeometry() { return geometry_m; }
 
-const BGeometryBase& LaserRep::getGeometry() const { return geometry_m; }
+const Geometry& LaserRep::getGeometry() const { return geometry_m; }
