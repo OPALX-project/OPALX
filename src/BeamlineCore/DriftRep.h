@@ -42,11 +42,11 @@ public:
 
     /// Get geometry.
     //  Version for non-constant object.
-    virtual BGeometryBase& getGeometry();
+    virtual Geometry& getGeometry();
 
     /// Get geometry.
     //  Version for constant object.
-    virtual const BGeometryBase& getGeometry() const;
+    virtual const Geometry& getGeometry() const;
 
 private:
     // Not implemented.

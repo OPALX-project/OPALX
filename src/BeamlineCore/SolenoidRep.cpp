@@ -52,9 +52,9 @@ Channel* SolenoidRep::getChannel(const std::string& aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
-BGeometryBase& SolenoidRep::getGeometry() { return geometry; }
+Geometry& SolenoidRep::getGeometry() { return geometry; }
 
-const BGeometryBase& SolenoidRep::getGeometry() const { return geometry; }
+const Geometry& SolenoidRep::getGeometry() const { return geometry; }
 
 double SolenoidRep::getBz() const { return Bz_m; }
 

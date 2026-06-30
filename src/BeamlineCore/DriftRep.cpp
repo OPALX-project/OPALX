@@ -49,6 +49,6 @@ Channel* DriftRep::getChannel(const std::string& aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
-BGeometryBase& DriftRep::getGeometry() { return geometry; }
+Geometry& DriftRep::getGeometry() { return geometry; }
 
-const BGeometryBase& DriftRep::getGeometry() const { return geometry; }
+const Geometry& DriftRep::getGeometry() const { return geometry; }

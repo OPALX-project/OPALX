@@ -15,8 +15,8 @@ public:
 
     Channel* getChannel(const std::string& aKey, bool = false) override;
 
-    BGeometryBase& getGeometry() override;
-    const BGeometryBase& getGeometry() const override;
+    Geometry& getGeometry() override;
+    const Geometry& getGeometry() const override;
 
     void setElementLength(double length) override;
 

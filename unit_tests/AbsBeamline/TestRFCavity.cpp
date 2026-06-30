@@ -127,8 +127,8 @@ public:
 
     ElementBase* clone() const override { return new TestRFCavity(*this); }
 
-    BGeometryBase& getGeometry() override { return geom_; }
-    const BGeometryBase& getGeometry() const override { return geom_; }
+    Geometry& getGeometry() override { return geom_; }
+    const Geometry& getGeometry() const override { return geom_; }
 
     // ---- Simple setters for testing ----
     void setAmplitude(double v) { amplitude_ = v; }

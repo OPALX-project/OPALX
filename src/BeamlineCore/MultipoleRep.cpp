@@ -75,6 +75,6 @@ Channel* MultipoleRep::getChannel(const std::string& aKey, bool create) {
     }
 }
 
-BGeometryBase& MultipoleRep::getGeometry() { return geometry; }
+Geometry& MultipoleRep::getGeometry() { return geometry; }
 
-const BGeometryBase& MultipoleRep::getGeometry() const { return geometry; }
+const Geometry& MultipoleRep::getGeometry() const { return geometry; }

@@ -39,6 +39,6 @@ Channel* RBendRep::getChannel(const std::string& aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
-BGeometryBase& RBendRep::getGeometry() { return geometry_m; }
+Geometry& RBendRep::getGeometry() { return geometry_m; }
 
-const BGeometryBase& RBendRep::getGeometry() const { return geometry_m; }
+const Geometry& RBendRep::getGeometry() const { return geometry_m; }

@@ -139,8 +139,8 @@ public:
 
     void setTestElementLength(double v) { geom_.setElementLength(v); }
 
-    BGeometryBase& getGeometry() override { return geom_; }
-    const BGeometryBase& getGeometry() const override { return geom_; }
+    Geometry& getGeometry() override { return geom_; }
+    const Geometry& getGeometry() const override { return geom_; }
 
     void setAmplitude(double v) { amplitude_ = v; }
     void setFrequency(double v) { frequency_ = v; }

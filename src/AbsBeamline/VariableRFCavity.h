@@ -200,9 +200,9 @@ public:
     virtual void setFrequencyName(const std::string& frequency) { frequencyName_m = frequency; }
 
     /** Set the cavity geometry */
-    BGeometryBase& getGeometry() override;
+    Geometry& getGeometry() override;
     /** @returns the cavity geometry */
-    const BGeometryBase& getGeometry() const override;
+    const Geometry& getGeometry() const override;
 
     /** Lookup the time dependencies and update.
      *

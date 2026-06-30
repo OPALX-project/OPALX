@@ -44,12 +44,12 @@ public:
     /// Get geometry.
     //  Return the element geometry.
     //  Version for non-constant object.
-    virtual BGeometryBase& getGeometry();
+    virtual Geometry& getGeometry();
 
     /// Get geometry.
     //  Return the element geometry.
     //  Version for constant object.
-    virtual const BGeometryBase& getGeometry() const;
+    virtual const Geometry& getGeometry() const;
 
     /// Get planes.
     //  Return the plane(s) observed by this monitor.

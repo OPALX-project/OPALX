@@ -76,8 +76,8 @@ namespace {
         bool bends() const override { return true; }
         void getFieldExtend(double&, double&) const override {}
 
-        BGeometryBase& getGeometry() override { return geometry_m; }
-        const BGeometryBase& getGeometry() const override { return geometry_m; }
+        Geometry& getGeometry() override { return geometry_m; }
+        const Geometry& getGeometry() const override { return geometry_m; }
 
         Geometry geometry_m{Geometry::makeNull()};
     };
