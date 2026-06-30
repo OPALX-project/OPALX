@@ -68,6 +68,7 @@ public:
     std::string getType();
     std::string getBinsName() const;
     BinningCmd* getBinningCmd() const;
+    std::string getGreensFunction() const;
 
     /// Returns solver boundary conditions handler object.
     BCHandler<3> constructBCHandler() const;

@@ -8,9 +8,29 @@
 
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
 
 extern Inform* gmsg;
+
+namespace {
+
+    int mapOpenSolverGreensFunction(const std::string& greensFunction) {
+        const std::string value = Util::toUpper(greensFunction);
+        if (value == "STANDARD") {
+            return OpenSolver_t<double, 3>::STANDARD;
+        }
+        if (value == "INTEGRATED") {
+            return OpenSolver_t<double, 3>::INTEGRATED;
+        }
+
+        throw OpalException(
+                "FieldSolver::initOpenSolver",
+                "Unknown GREENSF value \"" + greensFunction
+                        + "\". Supported values are STANDARD and INTEGRATED.");
+    }
+
+}  // namespace
 
 template <>
 template <typename Solver>
@@ -279,6 +299,7 @@ void FieldSolver<double, 3>::initOpenSolver() {
     sp.add("comm", ippl::p2p_pl);
     sp.add("r2c_direction", 0);
     sp.add("algorithm", OpenSolver_t<double, 3>::HOCKNEY);
+    sp.add("greens_function", mapOpenSolverGreensFunction(greensFunction_m));
     initSolverWithParams<OpenSolver_t<double, 3>>(sp);
 }
 

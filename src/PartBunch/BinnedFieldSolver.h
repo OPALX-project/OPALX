@@ -87,10 +87,13 @@ public:
      *                             to console in binned mode. If `0`, printing is disabled.
      * @param adaptiveBinning If true, merge uniform bins adaptively after rebinning. If false,
      *                        keep the uniform MAXBINS histogram.
+     * @param greensFunction  OPAL `GREENSF` selection (`STANDARD` or `INTEGRATED`) forwarded to
+     *                        IPPL's open-boundary FFT solver.
      */
     BinnedFieldSolver(
             std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
-            std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency, bool adaptiveBinning);
+            std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency, bool adaptiveBinning,
+            std::string greensFunction = "STANDARD");
 
     /**
      * @brief Compute space-charge self-fields for the given particle bunch.

@@ -108,6 +108,10 @@ std::string FieldSolverCmd::getBinsName() const {
     return Attributes::getString(itsAttr[FIELDSOLVER::BINS]);
 }
 
+std::string FieldSolverCmd::getGreensFunction() const {
+    return Attributes::getString(itsAttr[FIELDSOLVER::GREENSF]);
+}
+
 BCHandler<3> FieldSolverCmd::constructBCHandler() const {
     using BCH_t = BCHandler<3>;
 
