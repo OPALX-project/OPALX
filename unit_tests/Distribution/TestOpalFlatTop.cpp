@@ -208,15 +208,23 @@ TEST_F(OpalFlatTopTest, ProvidesOldOpalInitialReferenceMomentum) {
             /*tPulseLengthFWHM=*/4.0e-12, sigmaR);
 
     const Vector_t<double, 3> P0 = {0.01, 0.02, 0.1};
+
+    // The following corresponds to: R0=0, P0=P0, t0=0, emissionModel="NONE",
+    // emissionMomentumMagnitude=0.0
     sampler.setEmissionOffsets(0.0, P0, 0.0, "NONE");
+
+    // Basic check for P0 existence
     EXPECT_TRUE(sampler.hasInitialReferenceMomentum());
     EXPECT_DOUBLE_EQ(sampler.getInitialReferenceMomentum()[0], P0[0]);
     EXPECT_DOUBLE_EQ(sampler.getInitialReferenceMomentum()[1], P0[1]);
     EXPECT_DOUBLE_EQ(sampler.getInitialReferenceMomentum()[2], P0[2]);
 
+    // Now check for ASTRA
     sampler.setEmissionOffsets(0.0, P0, 0.0, "ASTRA");
+
+    // Since ASTRA is only scaled by emissionMomentumMagnitude, P0 still needs to be additive
     const Vector_t<double, 3> refP = sampler.getInitialReferenceMomentum();
-    EXPECT_DOUBLE_EQ(refP[0], 0.0);
-    EXPECT_DOUBLE_EQ(refP[1], 0.0);
-    EXPECT_DOUBLE_EQ(refP[2], 0.5 * std::sqrt(dot(P0, P0)));
+    EXPECT_DOUBLE_EQ(refP[0], P0[0]);
+    EXPECT_DOUBLE_EQ(refP[1], P0[1]);
+    EXPECT_DOUBLE_EQ(refP[2], P0[2]);  // 0.5 * std::sqrt(dot(P0, P0)));
 }
