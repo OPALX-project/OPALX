@@ -219,10 +219,75 @@ void PartBunch<T, Dim>::refreshPcActiveAfterEmit() {
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::do_binaryRepart() {
     Inform m("PartBunch::do_binaryRepart");
-    m << level2
-      << "Binary load-balancer repartition is disabled while the ORB path is "
-         "not wired for the current moving-mesh space-charge flow; skipping."
-      << endl;
+
+    if (ippl::Comm->size() < 2) {
+        m << level5 << "Skipping ORB load balancing on a single MPI rank." << endl;
+        return;
+    }
+
+    const int ranks = ippl::Comm->size();
+    if ((ranks & (ranks - 1)) != 0) {
+        m << level1 << "Skipping ORB load balancing because ORB requires a power-of-two MPI "
+          << "rank count; current rank count is " << ranks << "." << endl;
+        return;
+    }
+
+    if (!this->loadbalancer_m) {
+        m << level2 << "Skipping ORB load balancing because no load balancer is configured."
+          << endl;
+        return;
+    }
+
+    std::shared_ptr<ParticleContainer_t> primary = this->getParticleContainer();
+    if (!primary || primary->getTotalNum() == 0) {
+        m << level5 << "Skipping ORB load balancing because the primary container is empty."
+          << endl;
+        return;
+    }
+
+    const auto& containers = this->getParticleContainers();
+    for (size_t i = 1; i < containers.size(); ++i) {
+        const auto& pc = containers[i];
+        const bool active =
+                (i < pcActive_m.size() && pcActive_m[i]) || (pc && pc->getTotalNum() > 0);
+        if (active) {
+            m << level2
+              << "Skipping ORB load balancing because non-primary particle container " << i
+              << " is active or non-empty; the current load-balancer path is primary-only."
+              << endl;
+            return;
+        }
+    }
+
+    auto* mesh = &this->fcontainer_m->getMesh();
+    auto* fl   = &this->fcontainer_m->getFL();
+
+    const size_t localBefore = primary->getLocalNum();
+    const size_t total       = primary->getTotalNum();
+    m << level3 << "Starting ORB load balancing from current primary particles: local="
+      << localBefore << ", total=" << total << "." << endl;
+
+    const bool repartitioned = this->loadbalancer_m->repartitionFromCurrentParticles(fl, mesh);
+    if (!repartitioned) {
+        m << level2 << "ORB load balancing failed; keeping previous layout." << endl;
+        return;
+    }
+
+    if (this->getTempEField()) {
+        this->getTempEField()->updateLayout(*fl);
+    }
+    if (this->getTempBField()) {
+        this->getTempBField()->updateLayout(*fl);
+    }
+
+    this->getFieldSolver()->refreshAfterFieldLayoutChange();
+
+    isFirstRepartition_m                         = false;
+    this->bunchState_m->isFirstRepartitionRef() = false;
+    gatherLoadBalanceStatistics();
+
+    m << level3 << "ORB load balancing done: local " << localBefore << " -> "
+      << primary->getLocalNum() << " primary particles." << endl;
 }
 
 /**
@@ -561,7 +626,7 @@ void PartBunch<T, Dim>::reinitializeGridZ(int nrZ) {
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::bunchUpdate() {
     Inform m("PartBunch::bunchUpdate");
-    m << level4 << "Updating bunch and doing repartitioning if needed." << endl;
+    m << level4 << "Updating bunch grid and particle layouts." << endl;
 
     // Double the longitudinal grid resolution while image charges are active.
     // computeBoundsForFieldSolve already extends the z domain to include mirrored
@@ -576,8 +641,7 @@ void PartBunch<T, Dim>::bunchUpdate() {
     computeBoundsForFieldSolve(lower, upper);
     applyGridUpdate(lower, upper);
 
-    isFirstRepartition_m = true;
-    m << level5 << "Bunch grid update done without load-balancer repartitioning." << endl;
+    m << level5 << "Bunch grid update done; tracker cadence controls load balancing." << endl;
 
     // Always request moments update; DistributionMoments decides whether it
     // actually needs to recompute based on the dirty flag.

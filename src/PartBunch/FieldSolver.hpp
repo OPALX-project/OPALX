@@ -124,6 +124,20 @@ public:
     size_t getCallCounter() { return call_counter_m; }
 
     /**
+     * @brief Rebuild the concrete solver backend without resetting diagnostic counters.
+     *
+     * Layout-changing operations such as ORB repartitioning can leave FFT/Open
+     * solver scratch fields tied to the old field layout. `initSolver()` creates
+     * a fresh concrete backend but resets the call counter as part of normal
+     * startup; this helper preserves that diagnostic state for runtime rebuilds.
+     */
+    void reinitializeSolverPreservingCallCounter() {
+        const size_t callCounter = call_counter_m;
+        initSolver();
+        call_counter_m = callCounter;
+    }
+
+    /**
      * @brief Execute the field solver for the current simulation state.
      *
      * Performs a single solve cycle using the solver's current configuration,
