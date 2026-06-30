@@ -17,9 +17,12 @@ EmissionSource::EmissionSource()
     itsAttr[R0Y] = Attributes::makeReal("R0Y", "Position offset y added after sampling [m].", 0.0);
     itsAttr[R0Z] = Attributes::makeReal("R0Z", "Position offset z added after sampling [m].", 0.0);
 
-    itsAttr[P0X] = Attributes::makeReal("P0X", "Momentum offset x added after sampling [beta*gamma].", 0.0);
-    itsAttr[P0Y] = Attributes::makeReal("P0Y", "Momentum offset y added after sampling [beta*gamma].", 0.0);
-    itsAttr[P0Z] = Attributes::makeReal("P0Z", "Momentum offset z added after sampling [beta*gamma].", 0.0);
+    itsAttr[P0X] = Attributes::makeReal(
+            "P0X", "Momentum offset x added after sampling [beta*gamma].", 0.0);
+    itsAttr[P0Y] = Attributes::makeReal(
+            "P0Y", "Momentum offset y added after sampling [beta*gamma].", 0.0);
+    itsAttr[P0Z] = Attributes::makeReal(
+            "P0Z", "Momentum offset z added after sampling [beta*gamma].", 0.0);
 
     itsAttr[T0] = Attributes::makeReal("T0", "Start time when sampling begins [s].", 0.0);
 

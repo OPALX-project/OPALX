@@ -752,14 +752,14 @@ void TrackRun::setupDistributionsAndSamplers(
 
         // Per-source emission state. The distribution remains a shape sampler; source physics is
         // folded into the sampler setup here before particles are generated.
-        const auto R0               = src->getR0();
-        auto P0                     = src->getP0();
-        const double t0             = src->getT0();
-        const std::string emitModel = src->getEmissionModel();
+        const auto R0                = src->getR0();
+        auto P0                      = src->getP0();
+        const double t0              = src->getT0();
+        const std::string emitModel  = src->getEmissionModel();
         const bool generatedEmission = opalDist->emitting_m
                                        && opalDist->getType() != DistributionType::FROMFILE
                                        && opalDist->getType() != DistributionType::EMITTEDFROMFILE;
-        const double eKin = src->getKineticEnergy();
+        const double eKin                = src->getKineticEnergy();
         double emissionMomentumMagnitude = 0.0;
         if (generatedEmission && eKin > 0.0) {
             // EKIN is source-side kinetic energy in eV. Convert it to normalized momentum. For

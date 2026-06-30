@@ -666,9 +666,9 @@ void PartBunch<T, Dim>::computeBoundsForFieldSolve(
         // During emission the visible bunch length is only a fraction of the final cathode pulse.
         // Old OPAL stretches the z mesh backward by 1 / emittedFraction so the self-field solve
         // sees the full source window instead of a thin, over-focused emitted slice.
-        const double dh      = this->OPALFieldSolver_m->getBoxIncr() / 100.0;
-        double percent       = std::max(1.0 / static_cast<double>(this->nr_m[2] - 1),
-                                        emissionMeshFraction);
+        const double dh = this->OPALFieldSolver_m->getBoxIncr() / 100.0;
+        double percent =
+                std::max(1.0 / static_cast<double>(this->nr_m[2] - 1), emissionMeshFraction);
         const double length0 = std::abs(upper[2] - lower[2]) / (1.0 + 2.0 * dh);
 
         if (percent < 1.0 && percent > 0.0 && length0 > 0.0) {
@@ -678,8 +678,8 @@ void PartBunch<T, Dim>::computeBoundsForFieldSolve(
             const double stretchedLength = length0 / percent;
             upper[2] += dh * stretchedLength;
             lower[2] -= dh * stretchedLength;
-            m << level4 << "Applied emitting-beam z mesh stretch with emitted fraction "
-              << percent << "." << endl;
+            m << level4 << "Applied emitting-beam z mesh stretch with emitted fraction " << percent
+              << "." << endl;
         }
     }
 }

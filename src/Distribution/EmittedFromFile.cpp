@@ -60,8 +60,7 @@ namespace {
             return 0.0;
         }
 
-        double flattopTime =
-                pulseFwhm - std::sqrt(2.0 * std::log(2.0)) * (sigmaTRise + sigmaTFall);
+        double flattopTime = pulseFwhm - std::sqrt(2.0 * std::log(2.0)) * (sigmaTRise + sigmaTFall);
         if (flattopTime < 0.0) {
             flattopTime = 0.0;
         }
@@ -91,7 +90,7 @@ namespace {
         }
 
         if (values.size() >= 7) {
-            const double rawBin = values[6];
+            const double rawBin     = values[6];
             const double roundedBin = std::round(rawBin);
             if (roundedBin <= 0.0 || std::fabs(rawBin - roundedBin) > 1.0e-9) {
                 error = "optional bin column must be a positive integer";
@@ -212,8 +211,7 @@ void EmittedFromFile::readFile(const std::string& filename) {
                     parseError.empty() ? "has fewer than six numeric columns" : parseError;
             throw OpalException(
                     "EmittedFromFile::readFile", "Line " + std::to_string(lineNumber) + " in '"
-                                                         + filename
-                                                         + "' " + detail + ".");
+                                                         + filename + "' " + detail + ".");
         }
         RawRecord record;
         record.x        = values.coordinates[0];
@@ -284,8 +282,8 @@ void EmittedFromFile::buildInventory(size_t requested) {
         return;
     }
 
-    double minPulseTime = -rawRecords_m[0].fileTime;
-    double maxPulseTime = minPulseTime;
+    double minPulseTime     = -rawRecords_m[0].fileTime;
+    double maxPulseTime     = minPulseTime;
     bool allRecordsHaveBins = rawRecords_m[0].hasBin;
     size_t maxBin           = rawRecords_m[0].bin;
     for (size_t i = 1; i < selected; ++i) {
@@ -301,23 +299,22 @@ void EmittedFromFile::buildInventory(size_t requested) {
         double lowerEmissionTime = 0.0;
         double upperEmissionTime = std::numeric_limits<double>::infinity();
         for (size_t i = 0; i < selected; ++i) {
-            const RawRecord& raw = rawRecords_m[i];
+            const RawRecord& raw   = rawRecords_m[i];
             const double pulseTime = -raw.fileTime;
-            lowerEmissionTime =
-                    std::max(lowerEmissionTime, pulseTime * static_cast<double>(maxBin)
-                                                        / static_cast<double>(raw.bin));
+            lowerEmissionTime      = std::max(
+                    lowerEmissionTime,
+                    pulseTime * static_cast<double>(maxBin) / static_cast<double>(raw.bin));
             if (raw.bin > 1) {
-                upperEmissionTime =
-                        std::min(upperEmissionTime, pulseTime * static_cast<double>(maxBin)
-                                                            / static_cast<double>(raw.bin - 1));
+                upperEmissionTime = std::min(
+                        upperEmissionTime,
+                        pulseTime * static_cast<double>(maxBin) / static_cast<double>(raw.bin - 1));
             }
         }
 
-        emissionTime_m =
-                std::isfinite(upperEmissionTime) && upperEmissionTime >= lowerEmissionTime
-                        ? 0.5 * (lowerEmissionTime + upperEmissionTime)
-                        : lowerEmissionTime;
-        pulseCenter = 0.5 * emissionTime_m;
+        emissionTime_m = std::isfinite(upperEmissionTime) && upperEmissionTime >= lowerEmissionTime
+                                 ? 0.5 * (lowerEmissionTime + upperEmissionTime)
+                                 : lowerEmissionTime;
+        pulseCenter    = 0.5 * emissionTime_m;
     } else {
         emissionTime_m = std::max(0.0, maxPulseTime - minPulseTime);
     }
