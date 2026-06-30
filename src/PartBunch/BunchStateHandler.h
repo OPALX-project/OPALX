@@ -13,8 +13,8 @@
  *
  * Two classes of state live here:
  *
- * - **Bunch-wide flags** (`firstRepartition`, future `emittingNow`) apply to the
- *   bunch as a whole and are stored as plain members.
+ * - **Bunch-wide flags** (`firstRepartition`, emission mesh progress, future
+ *   `emittingNow`) apply to the bunch as a whole and are stored as plain members.
  *
  * - **Per-container flags** (`momentsDirty`, `unitlessPositions`) live in the
  *   nested `ContainerState` struct. Each `ParticleContainer` registers itself
@@ -42,6 +42,11 @@
  *
  * - **firstRepartition**: true until the first ORB-style repartition has run
  *   for the bunch. Bunch-wide because the load balancer is shared.
+ *
+ * - **emissionMeshProgress**: true only around the beam-frame bunchUpdate used by the
+ *   space-charge solve while a cathode source is still emitting. Old OPAL stretches the
+ *   z mesh backward by 1 / emittedFraction so the self-field solve covers the full
+ *   source window instead of only the already emitted front slice.
  *
  * ### MPI consistency
  *
@@ -100,6 +105,10 @@ public:
     bool& isFirstRepartitionRef() { return firstRepartition_m; }
     void setFirstRepartition(bool v);
 
+    bool isEmissionMeshStretchActive() const { return emissionMeshStretchEnabled_m; }
+    double getEmissionMeshFraction() const { return emissionMeshProgressFraction_m; }
+    void setEmissionMeshProgress(bool active, double emittedFraction);
+
     // -- emission liveness -------------------------------------------------
     // TBD: not wired up yet. Re-introduce a bunch-wide bool (plus impl in .cpp
     // and a unit test) once an emitting distribution actually needs it.
@@ -112,7 +121,9 @@ private:
     // lazily on iteration. Never exposed to callers.
     std::vector<std::weak_ptr<ContainerState>> registered_m;
 
-    bool firstRepartition_m = true;
+    bool firstRepartition_m               = true;
+    bool emissionMeshStretchEnabled_m     = false;
+    double emissionMeshProgressFraction_m = 1.0;
 };
 
 #endif

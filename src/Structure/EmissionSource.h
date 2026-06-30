@@ -23,6 +23,7 @@ public:
         ZEROFACEPLANEDUMP,
         ZEROFACE_MAXSTEPS,
         EMISSIONMODEL,
+        EKIN,
         SIZE
     };
 
@@ -46,6 +47,7 @@ public:
     int getZeroFacePlaneDumpFrequency() const;
     int getZerofaceMaxSteps() const;
     std::string getEmissionModel() const;
+    double getKineticEnergy() const;
 
 private:
     EmissionSource(const EmissionSource&);

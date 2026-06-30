@@ -79,6 +79,16 @@ public:
         return inventoryBuilt_m && nextGlobalIndex_m >= records_m.size();
     }
 
+    /// @copydoc SamplingBase::getEmittedFraction
+    double getEmittedFraction() const override {
+        if (!inventoryBuilt_m || records_m.empty()) {
+            return 0.0;
+        }
+        return std::clamp(
+                static_cast<double>(nextGlobalIndex_m) / static_cast<double>(records_m.size()), 0.0,
+                1.0);
+    }
+
     /**
      * @brief Reports whether an initial reference momentum is available.
      *
@@ -152,12 +162,14 @@ private:
      * @brief Raw row parsed from an old-OPAL emitted distribution dump.
      */
     struct RawRecord {
-        double x        = 0.0;  ///< Horizontal position from the file.
-        double px       = 0.0;  ///< Horizontal momentum offset from the file.
-        double y        = 0.0;  ///< Vertical position from the file.
-        double py       = 0.0;  ///< Vertical momentum offset from the file.
-        double fileTime = 0.0;  ///< Old-OPAL pre-emission time column.
-        double pz       = 0.0;  ///< Longitudinal momentum offset from the file.
+        double x        = 0.0;    ///< Horizontal position from the file.
+        double px       = 0.0;    ///< Horizontal momentum offset from the file.
+        double y        = 0.0;    ///< Vertical position from the file.
+        double py       = 0.0;    ///< Vertical momentum offset from the file.
+        double fileTime = 0.0;    ///< Old-OPAL pre-emission time column.
+        double pz       = 0.0;    ///< Longitudinal momentum offset from the file.
+        size_t bin      = 0;      ///< Optional old-OPAL emission bin number.
+        bool hasBin     = false;  ///< True if the optional bin number was present.
     };
 
     /**

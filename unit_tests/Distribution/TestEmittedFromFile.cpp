@@ -78,6 +78,15 @@ protected:
         out << "3.0e-3 4.0e-1 4.0e-3 5.0e-1 -1.0e-12 6.0e-1 1\n";
     }
 
+    void writeMultiBinOldOpalDump() {
+        std::ofstream out(tempFilename);
+        ASSERT_TRUE(out.is_open());
+        out << "# x px y py t pz Bin Number\n";
+        out << "0.0 0.0 0.0 0.0 -0.5e-12 0.1 1\n";
+        out << "0.0 0.0 0.0 0.0 -1.0e-12 0.2 2\n";
+        out << "0.0 0.0 0.0 0.0 -3.0e-12 0.3 3\n";
+    }
+
     void writeCountHeaderDump() {
         std::ofstream out(tempFilename);
         ASSERT_TRUE(out.is_open());
@@ -115,9 +124,26 @@ TEST_F(EmittedFromFileTest, ParsesOldOpalDumpAndProvidesReferenceMomentum) {
     EXPECT_DOUBLE_EQ(refP[0], 0.25 + 0.01);
     EXPECT_DOUBLE_EQ(refP[1], 0.35 + 0.02);
     EXPECT_DOUBLE_EQ(refP[2], 0.45 + 0.03);
-    EXPECT_DOUBLE_EQ(sampler.getEmissionTime(), 1.0e-12);
-    EXPECT_DOUBLE_EQ(sampler.getGlobalTimeShift(), 0.5e-12);
-    EXPECT_DOUBLE_EQ(sampler.getEmissionTimeStep(), 1.0e-14);
+    EXPECT_DOUBLE_EQ(sampler.getEmissionTime(), 2.0e-12);
+    EXPECT_DOUBLE_EQ(sampler.getGlobalTimeShift(), 1.0e-12);
+    EXPECT_DOUBLE_EQ(sampler.getEmissionTimeStep(), 2.0e-14);
+}
+
+TEST_F(EmittedFromFileTest, ReconstructsOldOpalEmissionWindowFromBins) {
+    writeMultiBinOldOpalDump();
+    allocate(4);
+
+    auto fc = std::shared_ptr<FieldContainer_t>();
+    EmittedFromFile sampler(pc, fc, tempFilename);
+    sampler.setEmissionOffsets(Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0), 0.0, "NONE");
+
+    size_t requested = 0;
+    sampler.generateParticles(requested, nr);
+
+    EXPECT_EQ(requested, static_cast<size_t>(3));
+    EXPECT_DOUBLE_EQ(sampler.getEmissionTime(), 3.0e-12);
+    EXPECT_DOUBLE_EQ(sampler.getGlobalTimeShift(), 1.5e-12);
+    EXPECT_DOUBLE_EQ(sampler.getEmissionTimeStep(), 3.0e-14);
 }
 
 TEST_F(EmittedFromFileTest, EmitsSortedRecordsWithFractionalDtAndHalfStepDrift) {

@@ -5,6 +5,7 @@
 
 #include "PartBunch/PartBunch.h"
 #include <algorithm>
+#include <cmath>
 #include "Algorithms/Matrix.h"
 #include "PartBunch/BinnedFieldSolver.h"
 #include "Particle/ParticleAttrib.h"
@@ -220,7 +221,7 @@ void PartBunch<T, Dim>::do_binaryRepart() {
     Inform m("PartBunch::do_binaryRepart");
     m << level2
       << "Binary load-balancer repartition is disabled while the ORB path is "
-         "not wired for the current multi-container bunch state; skipping."
+         "not wired for the current moving-mesh space-charge flow; skipping."
       << endl;
 }
 
@@ -591,6 +592,11 @@ void PartBunch<T, Dim>::bunchUpdate() {
 }
 
 template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::setEmissionMeshProgress(bool active, double emittedFraction) {
+    this->bunchState_m->setEmissionMeshProgress(active, emittedFraction);
+}
+
+template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::computeBoundsForFieldSolve(
         Vector_t<double, Dim>& lower, Vector_t<double, Dim>& upper) {
     Inform m("PartBunch::computeBoundsForFieldSolve");
@@ -653,6 +659,29 @@ void PartBunch<T, Dim>::computeBoundsForFieldSolve(
 
     lower = lower - span * this->OPALFieldSolver_m->getBoxIncr() / 100.0;
     upper = upper + span * this->OPALFieldSolver_m->getBoxIncr() / 100.0;
+
+    const bool emissionMeshStretchActive = this->bunchState_m->isEmissionMeshStretchActive();
+    const double emissionMeshFraction    = this->bunchState_m->getEmissionMeshFraction();
+    if (emissionMeshStretchActive && Dim > 2 && this->nr_m[2] > 1) {
+        // During emission the visible bunch length is only a fraction of the final cathode pulse.
+        // Old OPAL stretches the z mesh backward by 1 / emittedFraction so the self-field solve
+        // sees the full source window instead of a thin, over-focused emitted slice.
+        const double dh = this->OPALFieldSolver_m->getBoxIncr() / 100.0;
+        double percent =
+                std::max(1.0 / static_cast<double>(this->nr_m[2] - 1), emissionMeshFraction);
+        const double length0 = std::abs(upper[2] - lower[2]) / (1.0 + 2.0 * dh);
+
+        if (percent < 1.0 && percent > 0.0 && length0 > 0.0) {
+            upper[2] -= dh * length0;
+            lower[2] = upper[2] - length0 / percent;
+
+            const double stretchedLength = length0 / percent;
+            upper[2] += dh * stretchedLength;
+            lower[2] -= dh * stretchedLength;
+            m << level4 << "Applied emitting-beam z mesh stretch with emitted fraction " << percent
+              << "." << endl;
+        }
+    }
 }
 
 template <typename T, unsigned Dim>
@@ -664,10 +693,19 @@ void PartBunch<T, Dim>::applyGridUpdate(
     std::shared_ptr<ParticleContainer_t> pc = this->getParticleContainer();
 
     const Vector_t<double, Dim> span = upper - lower;
-    hr_m                             = span / this->nr_m;
+    Vector_t<double, Dim> meshOrigin = lower;
+    for (unsigned d = 0; d < Dim; ++d) {
+        const int nCells = this->nr_m[d];
+        if (nCells <= 1) {
+            hr_m[d] = span[d];
+        } else {
+            hr_m[d] = span[d] / static_cast<double>(nCells - 1);
+        }
+        meshOrigin[d] = lower[d] - 0.5 * hr_m[d];
+    }
 
     mesh->setMeshSpacing(hr_m);
-    mesh->setOrigin(lower);
+    mesh->setOrigin(meshOrigin);
 
     this->getFieldContainer()->setRMin(lower);
     this->getFieldContainer()->setRMax(upper);
