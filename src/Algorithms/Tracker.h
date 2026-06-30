@@ -67,7 +67,8 @@
 
 #include <memory>
 
-#include "Utilities/BeamlineFieldElement.h"
+#include "AbsBeamline/ElementBase.h"
+#include "Utilities/FieldList.h"
 
 class OpalParticle;
 

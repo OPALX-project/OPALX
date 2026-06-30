@@ -29,6 +29,22 @@
 #include <fstream>
 #include <regex>
 
+namespace {
+    /// Order the element list by ascending field-start position (path length s), ties broken by
+    /// name. The field start is the ELEMEDGE for path-length-placed (Mode B) elements and 0 for
+    /// 6D-pose (Mode A) ones — getElementPosition() throws when ELEMEDGE is unset, so it is only
+    /// read for Mode B. This reproduces the former BeamlineFieldElement::SortAsc.
+    double fieldStart(const std::shared_ptr<ElementBase>& e) {
+        return e->isElementPositionSet() ? e->getElementPosition() : 0.0;
+    }
+
+    bool byFieldStart(
+            const std::shared_ptr<ElementBase>& a, const std::shared_ptr<ElementBase>& b) {
+        return fieldStart(a) < fieldStart(b)
+               || (fieldStart(a) == fieldStart(b) && a->getName() < b->getName());
+    }
+}  // namespace
+
 OpalBeamline::OpalBeamline()
     : elements_m(), prepared_m(false), referencePathPlacementCompiled_m(false) {}
 
@@ -45,7 +61,7 @@ std::set<std::shared_ptr<ElementBase>> OpalBeamline::getElements(const Vector_t<
     FieldList::iterator it        = elements_m.begin();
     const FieldList::iterator end = elements_m.end();
     for (; it != end; ++it) {
-        std::shared_ptr<ElementBase> element = (*it).getElement();
+        std::shared_ptr<ElementBase> element = (*it);
         Vector_t<double, 3> r                = getCSTrafoLab2Local(element).transformTo(x);
 
         if (element->isInside(r)) {
@@ -59,7 +75,7 @@ std::set<std::shared_ptr<ElementBase>> OpalBeamline::getElements(const Vector_t<
 std::set<std::shared_ptr<ElementBase>> OpalBeamline::getElements() {
     std::set<std::shared_ptr<ElementBase>> elementSet;
     for (auto& item : elements_m) {
-        elementSet.insert(item.getElement());
+        elementSet.insert(item);
     }
     return elementSet;
 }
@@ -106,24 +122,9 @@ unsigned long OpalBeamline::getFieldAt(
     return rtv;
 }
 
-void OpalBeamline::switchElements(
-        const double& min, const double& max, const double& kineticEnergy,
-        const bool& /*nomonitors*/) {
-    FieldList::iterator fprev;
-    for (FieldList::iterator flit = elements_m.begin(); flit != elements_m.end(); ++flit) {
-        // don't set online monitors if the centroid of the bunch is allready inside monitor
-        // or if explicitly not desired (eg during auto phasing)
-        if (!(*flit).isOn() && max > (*flit).getStart() && min < (*flit).getEnd()) {
-            (*flit).setOn(kineticEnergy);
-        }
-
-        fprev = flit;
-    }
-}
-
 void OpalBeamline::switchElementsOff() {
     for (FieldList::iterator flit = elements_m.begin(); flit != elements_m.end(); ++flit)
-        (*flit).setOff();
+        (*flit)->goOffline();
 }
 
 void OpalBeamline::prepareSections() {
@@ -131,7 +132,7 @@ void OpalBeamline::prepareSections() {
         prepared_m = true;
         return;
     }
-    elements_m.sort(BeamlineFieldElement::SortAsc);
+    elements_m.sort(byFieldStart);
     placeElementsAlongReferencePath();
     prepared_m = true;
 }
@@ -158,7 +159,7 @@ FieldList OpalBeamline::getElementByType(ElementType type) {
 
     FieldList elements_of_requested_type;
     for (FieldList::iterator fit = elements_m.begin(); fit != elements_m.end(); ++fit) {
-        if ((*fit).getElement()->getType() == type) {
+        if ((*fit)->getType() == type) {
             elements_of_requested_type.push_back((*fit));
         }
     }
@@ -180,9 +181,9 @@ void OpalBeamline::compute3DLattice() { placeElementsAlongReferencePath(); }
 void OpalBeamline::save3DLattice() {
     if (ippl::Comm->rank() != 0 || OpalData::getInstance()->isOptimizerRun()) return;
 
-    elements_m.sort([](const BeamlineFieldElement& a, const BeamlineFieldElement& b) {
-        return a.order_m < b.order_m;
-    });
+    // Write elements in s-sorted order (the order prepareSections established). This is stable
+    // for 6D-posed elements too, unlike the former application-order sort.
+    elements_m.sort(byFieldStart);
 
     FieldList::iterator it  = elements_m.begin();
     FieldList::iterator end = elements_m.end();
@@ -200,7 +201,7 @@ void OpalBeamline::save3DLattice() {
 
     MeshGenerator mesh;
     for (auto scan = it; scan != end; ++scan) {
-        const std::shared_ptr<ElementBase> scanElement = (*scan).getElement();
+        const std::shared_ptr<ElementBase> scanElement = (*scan);
         if (scanElement->getType() == ElementType::DRIFT) {
             continue;
         }
@@ -214,7 +215,7 @@ void OpalBeamline::save3DLattice() {
     }
 
     for (; it != end; ++it) {
-        std::shared_ptr<ElementBase> element = (*it).getElement();
+        std::shared_ptr<ElementBase> element = (*it);
         CoordinateSystemTrafo nominalBody    = getCSTrafoLab2Local(element);
         CoordinateSystemTrafo toBegin        = getNominalEntryTransform(element);
         CoordinateSystemTrafo toEnd          = getNominalExitTransform(element);
@@ -281,7 +282,7 @@ void OpalBeamline::save3DLattice() {
                 << exit3D(0) << std::setw(18) << std::setprecision(10) << exit3D(1) << std::endl;
         }
     }
-    elements_m.sort(BeamlineFieldElement::SortAsc);
+    elements_m.sort(byFieldStart);
     mesh.write(OpalData::getInstance()->getInputBasename());
 }
 
@@ -375,7 +376,7 @@ void OpalBeamline::save3DInput() {
     std::ofstream pos(fname);
 
     for (; it != end; ++it) {
-        std::shared_ptr<ElementBase> element = (*it).getElement();
+        std::shared_ptr<ElementBase> element = (*it);
         std::string elementName              = element->getName();
         const std::regex replacePSI(
                 "(" + elementName + "\\s*:[^\\n]*)PSI\\s*=[^,;]*,?", std::regex::icase);
@@ -423,12 +424,8 @@ void OpalBeamline::save3DInput() {
 }
 
 void OpalBeamline::activateElements() {
-    auto it             = elements_m.begin();
-    const auto end      = elements_m.end();
-    double designEnergy = 0.0;
-    for (; it != end; ++it) {
-        std::shared_ptr<ElementBase> element = (*it).getElement();
-        (*it).setOn(designEnergy);
-        element->goOnline(designEnergy);
+    const double designEnergy = 0.0;
+    for (auto it = elements_m.begin(); it != elements_m.end(); ++it) {
+        (*it)->goOnline(designEnergy);
     }
 }

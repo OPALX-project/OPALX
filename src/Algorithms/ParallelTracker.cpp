@@ -1746,8 +1746,8 @@ void ParallelTracker::updateRFElement(std::string elName, double maxPhase) {
     m << level5 << "Got cavities and traveling waves." << endl;
 
     for (FieldList::iterator fit = cavities.begin(); fit != cavities.end(); ++fit) {
-        if ((*fit).getElement()->getName() == elName) {
-            RFCavity* element = static_cast<RFCavity*>((*fit).getElement().get());
+        if ((*fit)->getName() == elName) {
+            RFCavity* element = static_cast<RFCavity*>((*fit).get());
 
             element->setPhasem(maxPhase);
             element->setAutophaseVeto();

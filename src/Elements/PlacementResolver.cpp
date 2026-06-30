@@ -26,14 +26,13 @@
 #include <vector>
 
 void PlacementResolver::resolve(FieldList& elements, const CoordinateSystemTrafo& labFrame) {
-    static unsigned int order     = 0;
     const FieldList::iterator end = elements.end();
 
     // Phase 1 — 6D-pose (Mode A) elements: compose the recorded global-to-local pose with the
     // lab frame and fix them in place. The reference-path walk below (Mode B / ELEMEDGE) then
     // skips them via isPositioned(). Both modes are resolved here, in one pass.
     for (FieldList::iterator it = elements.begin(); it != end; ++it) {
-        const std::shared_ptr<ElementBase> element = (*it).getElement();
+        const std::shared_ptr<ElementBase> element = (*it);
         if (element->isElementPositionSet()) {
             continue;  // Mode B (ELEMEDGE): placed by the reference-path walk below
         }
@@ -43,18 +42,16 @@ void PlacementResolver::resolve(FieldList& elements, const CoordinateSystemTrafo
         element->fixPosition();
     }
 
-    unsigned int minOrder = order;
     {
         double endPriorPathLength               = 0.0;
         CoordinateSystemTrafo currentCoordTrafo = labFrame;
 
         FieldList::iterator it = elements.begin();
         for (; it != end; ++it) {
-            std::shared_ptr<ElementBase> element = (*it).getElement();
+            std::shared_ptr<ElementBase> element = (*it);
             if (element->isPositioned()) {
                 continue;
             }
-            (*it).order_m = minOrder;
 
             if (element->getType() != ElementType::SBEND && element->getType() != ElementType::RBEND
                 && element->getType() != ElementType::RBEND3D) {
@@ -123,10 +120,8 @@ void PlacementResolver::resolve(FieldList& elements, const CoordinateSystemTrafo
 
     FieldList::iterator it = elements.begin();
     for (; it != end; ++it) {
-        std::shared_ptr<ElementBase> element = (*it).getElement();
+        std::shared_ptr<ElementBase> element = (*it);
         if (element->isPositioned()) continue;
-
-        (*it).order_m = order++;
 
         double beginThisPathLength = element->getElementPosition();
         double thisLength          = element->getElementLength();
@@ -183,7 +178,7 @@ void PlacementResolver::resolve(FieldList& elements, const CoordinateSystemTrafo
 
             endPriorPathLength = beginThisPathLength + arcLength;
         } else {
-            double rotationAngleAboutZ = (*it).getElement()->getRotationAboutZ();
+            double rotationAngleAboutZ = (*it)->getRotationAboutZ();
             Quaternion_t rotationAboutZ(
                     cos(0.5 * rotationAngleAboutZ),
                     sin(-0.5 * rotationAngleAboutZ) * Vector_t<double, 3>(0, 0, 1));
