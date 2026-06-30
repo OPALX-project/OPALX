@@ -183,13 +183,14 @@ public:
     /// Get geometry. Version for constant object.
     virtual const Geometry& getGeometry() const = 0;
 
-    /// Get arc length.
-    //  Return the entire arc length measured along the design orbit
+    /// Get the length of the design orbit for this element.
+    /// Used to calculate the s-coordinate/ total path length along the lattice.
+    /// For many elements this is equal to the element length.
     virtual double getArcLength() const;
 
     /// Get design length.
-    //  Return the design length defined by the geometry.
-    //  This may be the arc length or the straight length.
+    /// Get the geometrical length of the element used to check if a particle is
+    /// inside the element.
     virtual double getElementLength() const;
 
     /// Set design length.
@@ -241,12 +242,22 @@ public:
     /// Overridden by SBend/RBend; straight-element defaults otherwise. Let callers
     /// query bend geometry through an ElementBase pointer without downcasting.
     ///@{
+    /// Angle between entrace and exit orbit in radians
     virtual double getBendAngle() const;
+    
+    /// Tilt of the entrace face relative to the plane perpenticular to the orbit
     virtual double getEntranceAngle() const;
+
+    /// Straight line distance between entrance and exit
+    /// Equal to element length for straight elements and the RBend 
+    /// Shorter than the element length for the SBend
     virtual double getChordLength() const;
+
+    /// Samples of the ideal path of the element 
     virtual std::vector<Vector_t<double, 3>> getDesignPath(std::size_t minSamples = 32) const;
     ///@}
 
+    ///   
     virtual bool isInside(const Vector_t<double, 3>& r) const;
 
     virtual BoundingBox getBoundingBoxInLabCoords() const;
