@@ -388,10 +388,10 @@ void OrbitThreader::registerElement(
 
         Vector_t<double, 3> initialR = itsOpalBeamline_m.transformToLocalCS(*it, R);
         Vector_t<double, 3> initialP = itsOpalBeamline_m.rotateToLocalCS(*it, P);
-        // S-vs-local-Z seam: recover the legacy ELEMEDGE anchor by projecting the local-Z entry
-        // coordinate back to the element edge along the reference momentum. Assumes a straight
-        // reference path through the element (local z ~= ds); revisit for curved bends.
-        double elementEdge = start - initialR(2) * euclidean_norm(initialP) / initialP(2);
+        // S-vs-local-Z seam (single home: ReferencePathModel): recover the legacy ELEMEDGE anchor
+        // by projecting the local-Z entry coordinate back to the element edge along the momentum.
+        double elementEdge = ReferencePathModel::elementEdgeFromLocalEntry(
+                start, initialR(2), euclidean_norm(initialP), initialP(2));
 
         elementPosition ep = {start, pathLength_m, elementEdge};
         elementRegistry_m.insert(std::make_pair(*it, ep));
