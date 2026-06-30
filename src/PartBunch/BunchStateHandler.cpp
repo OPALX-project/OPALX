@@ -61,6 +61,6 @@ void BunchStateHandler::setEmissionMeshProgress(bool active, double emittedFract
         fraction = syncMin(fraction);
     }
 
-    emissionMeshStretchEnabled_m     = syncedActive;
-    emissionMeshProgressFraction_m   = syncedActive ? fraction : 1.0;
+    emissionMeshStretchEnabled_m   = syncedActive;
+    emissionMeshProgressFraction_m = syncedActive ? fraction : 1.0;
 }

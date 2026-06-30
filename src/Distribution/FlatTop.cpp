@@ -59,7 +59,7 @@ void FlatTop::setParameters(Distribution_t* opalDist) {
 void FlatTop::setInternalVariables(
         bool emitting, double sigmaTFall, double sigmaTRise, Vector_t<double, 3> cutoff,
         double tPulseLengthFWHM, Vector_t<double, 3> sigmaR) {
-    emitting_m = emitting;
+    emitting_m     = emitting;
     totalEmitted_m = 0;
     // time span of fall is [0, riseTime, riseTime+flattopTime, fallTime+flattopTime+riseTime ]
     sigmaTFall_m = sigmaTFall;
@@ -97,10 +97,10 @@ void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew, double dt) {
     view_type Pview         = pc_m->P.getView();
     auto dtView             = pc_m->dt.getView();
 
-    double pi                  = Physics::pi;
-    Vector_t<double, 3> sigmaR = sigmaR_m;
-    Vector_t<double, 3> R0     = R0_m;
-    Vector_t<double, 3> P0     = P0_m;
+    double pi                              = Physics::pi;
+    Vector_t<double, 3> sigmaR             = sigmaR_m;
+    Vector_t<double, 3> R0                 = R0_m;
+    Vector_t<double, 3> P0                 = P0_m;
     const double emissionMomentumMagnitude = emissionMomentumMagnitude_m;
 
     auto range = Kokkos::RangePolicy<>(nlocal, nlocal + nNew);
@@ -359,7 +359,7 @@ FlatTop::size_type FlatTop::countEnteringParticlesPerRank(double t0, double tf) 
 }
 
 void FlatTop::allocateParticles(size_t numberOfParticles) {
-    totalN_m = numberOfParticles;
+    totalN_m       = numberOfParticles;
     totalEmitted_m = 0;
 
     // Initial allocation is now handled centrally in TrackRun / PartBunch via the
@@ -393,8 +393,7 @@ void FlatTop::emitParticles(double t, double dt) {
     unsigned long localNew  = static_cast<unsigned long>(nNew);
     unsigned long globalNew = 0;
     MPI_Allreduce(
-            &localNew, &globalNew, 1, MPI_UNSIGNED_LONG, MPI_SUM,
-            ippl::Comm->getCommunicator());
+            &localNew, &globalNew, 1, MPI_UNSIGNED_LONG, MPI_SUM, ippl::Comm->getCommunicator());
     // The emitting mesh stretch uses the global emitted fraction. Emission is partitioned across
     // ranks, so using only nNew would make each rank report a different source progress and would
     // make the space-charge mesh rank-dependent.

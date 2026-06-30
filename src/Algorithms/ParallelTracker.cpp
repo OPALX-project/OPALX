@@ -497,8 +497,8 @@ void ParallelTracker::execute() {
                 m << level4 << "Current path length (container " << i << ") is " << pc->get_sPos()
                   << "." << endl;
             }
-            
-            const double sigmas = Options::boundpDestroy;
+
+            const double sigmas  = Options::boundpDestroy;
             size_t nBoundpMarked = 0;
             for (size_t i = 0; i < particleContainersStep.size(); ++i) {
                 const auto& pc = particleContainersStep[i];
@@ -696,9 +696,9 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 
     const size_t totalParticles = itsBunch_m->getTotalNumAllContainers();
     if (totalParticles <= static_cast<size_t>(Options::minBinEmitted)) {
-        m << level4 << "Skipping space charge until more than MINBINEMITTED="
-          << Options::minBinEmitted << " particles are present (total=" << totalParticles << ")."
-          << endl;
+        m << level4
+          << "Skipping space charge until more than MINBINEMITTED=" << Options::minBinEmitted
+          << " particles are present (total=" << totalParticles << ")." << endl;
         return;
     }
 
@@ -1022,10 +1022,9 @@ size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
                     }
                     const Vector_t<double, 3> localR = prod_vector(rotation, delta);
                     const Vector_t<double, 3> localP = prod_vector(rotation, Pview(i));
-                    const bool backwards =
-                            localR[2] <= sourceLossPlaneZ && localP[2] < 0.0;
-                    const bool newlyMarked           = backwards && !invalid(i);
-                    invalid(i)                       = invalid(i) || backwards;
+                    const bool backwards   = localR[2] <= sourceLossPlaneZ && localP[2] < 0.0;
+                    const bool newlyMarked = backwards && !invalid(i);
+                    invalid(i)             = invalid(i) || backwards;
                     count += newlyMarked ? 1 : 0;
                 },
                 localMarked);

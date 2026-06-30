@@ -121,7 +121,7 @@ private:
     // lazily on iteration. Never exposed to callers.
     std::vector<std::weak_ptr<ContainerState>> registered_m;
 
-    bool firstRepartition_m = true;
+    bool firstRepartition_m               = true;
     bool emissionMeshStretchEnabled_m     = false;
     double emissionMeshProgressFraction_m = 1.0;
 };
