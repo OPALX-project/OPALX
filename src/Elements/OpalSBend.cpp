@@ -42,17 +42,18 @@ void OpalSBend::update() {
     OpalElement::update();
 
     // Define geometry.
-    SBendRep* bend              = dynamic_cast<SBendRep*>(getElement());
-    double length               = Attributes::getReal(itsAttr[LENGTH]);
-    double angle                = Attributes::getReal(itsAttr[ANGLE]);
-    double e1                   = Attributes::getReal(itsAttr[E1]);
-    double e2                   = Attributes::getReal(itsAttr[E2]);
-    PlanarArcGeometry& geometry = bend->getGeometry();
+    SBendRep* bend     = dynamic_cast<SBendRep*>(getElement());
+    double length      = Attributes::getReal(itsAttr[LENGTH]);
+    double angle       = Attributes::getReal(itsAttr[ANGLE]);
+    double e1          = Attributes::getReal(itsAttr[E1]);
+    double e2          = Attributes::getReal(itsAttr[E2]);
+    Geometry& geometry = static_cast<Geometry&>(bend->getGeometry());
 
     if (length) {
-        geometry = PlanarArcGeometry(length, angle / length);
+        geometry = Geometry::makeSBend(length, angle / length);
     } else {
-        geometry = PlanarArcGeometry(angle);
+        geometry = Geometry::makeSBend(0.0, 0.0);
+        geometry.setBendAngle(angle);
     }
     // Define number of slices for map tracking
     bend->setNSlices(Attributes::getReal(itsAttr[NSLICES]));
@@ -107,10 +108,6 @@ void OpalSBend::update() {
 
     if (itsAttr[GREATERTHANPI])
         throw OpalException("OpalSBend::update", "GREATERTHANPI not supportet any more");
-
-    if (itsAttr[ROTATION])
-        throw OpalException(
-                "OpalSBend::update", "ROTATION not supportet any more; use PSI instead");
 
     if (itsAttr[FMAPFN])
         bend->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));

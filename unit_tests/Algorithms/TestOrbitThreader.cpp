@@ -5,8 +5,7 @@
 #include "Algorithms/OrbitThreader.h"
 #include "Algorithms/PartData.h"
 #include "BeamlineCore/MultipoleRep.h"
-#include "BeamlineGeometry/NullGeometry.h"
-#include "BeamlineGeometry/PlacementPose.h"
+#include "BeamlineGeometry/Geometry.h"
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
 #include "Structure/Beam.h"
@@ -26,14 +25,14 @@ namespace {
         DummyBeamline() : Beamline("dummy") {}
 
         ElementType getType() const override { return ElementType::BEAMLINE; }
-        BGeometryBase& getGeometry() override { return geometry_; }
-        const BGeometryBase& getGeometry() const override { return geometry_; }
+        Geometry& getGeometry() override { return geometry_; }
+        const Geometry& getGeometry() const override { return geometry_; }
         void accept(BeamlineVisitor& visitor) const override { visitor.visitBeamline(*this); }
         ElementBase* clone() const override { return new DummyBeamline(*this); }
         void iterate(BeamlineVisitor&, bool) const override {}
 
     private:
-        NullGeometry geometry_;
+        Geometry geometry_{Geometry::makeNull()};
     };
 
     /**
@@ -81,13 +80,13 @@ namespace {
 
         ElementType getType() const override { return ElementType::ANY; }
 
-        BGeometryBase& getGeometry() override { return geometry_m; }
-        const BGeometryBase& getGeometry() const override { return geometry_m; }
+        Geometry& getGeometry() override { return geometry_m; }
+        const Geometry& getGeometry() const override { return geometry_m; }
 
     private:
         double fieldBegin_m;
         double fieldEnd_m;
-        NullGeometry geometry_m;
+        Geometry geometry_m{Geometry::makeNull()};
     };
 }  // namespace
 
@@ -162,8 +161,8 @@ protected:
         auto quadrupole = std::make_shared<MultipoleRep>(name);
         quadrupole->setElementLength(length);
         quadrupole->setNormalComponent(1, normalComponent);
-        quadrupole->setPlacementPose(PlacementPose(
-                CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, entryPosition), Quaternion())));
+        quadrupole->setCSTrafoGlobal2Local(
+                CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, entryPosition), Quaternion()));
         quadrupole->fixPosition();
         return quadrupole;
     }
@@ -172,8 +171,8 @@ protected:
             const std::string& name, const double entryPosition, const double fieldLength) {
         auto component = std::make_shared<FieldSupportOnlyComponent>(name, 0.0, fieldLength);
         component->setElementLength(0.0);
-        component->setPlacementPose(PlacementPose(
-                CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, entryPosition), Quaternion())));
+        component->setCSTrafoGlobal2Local(
+                CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, entryPosition), Quaternion()));
         component->fixPosition();
         return component;
     }

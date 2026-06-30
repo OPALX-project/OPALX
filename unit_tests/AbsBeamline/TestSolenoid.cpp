@@ -7,7 +7,7 @@
 #include "BeamlineCore/RFCavityRep.h"
 #include "BeamlineCore/SolenoidRep.h"
 #include "BeamlineCore/TravelingWaveRep.h"
-#include "BeamlineGeometry/NullGeometry.h"
+#include "BeamlineGeometry/Geometry.h"
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
 #include "Fields/Fieldmap.h"
@@ -161,14 +161,14 @@ public:
     DummyBeamline() : Beamline("dummy") {}
 
     ElementType getType() const override { return ElementType::BEAMLINE; }
-    BGeometryBase& getGeometry() override { return geometry_; }
-    const BGeometryBase& getGeometry() const override { return geometry_; }
+    Geometry& getGeometry() override { return geometry_; }
+    const Geometry& getGeometry() const override { return geometry_; }
     void accept(BeamlineVisitor& visitor) const override { visitor.visitBeamline(*this); }
     ElementBase* clone() const override { return new DummyBeamline(*this); }
     void iterate(BeamlineVisitor&, bool) const override {}
 
 private:
-    NullGeometry geometry_;
+    Geometry geometry_{Geometry::makeNull()};
 };
 
 TEST_F(SolenoidPlacementTest, FieldMapEdgesAndSupportEnvelopeFollowFieldMap) {
@@ -242,9 +242,8 @@ TEST_F(SolenoidPlacementTest, LatticeExportsUseFieldMapEdgesAndSolenoidMeshType)
     const auto elements = beamline.getElements();
     ASSERT_EQ(elements.size(), 1u);
     const auto& placedComponent = *elements.begin();
-    const PlacedElement placed  = beamline.getPlacedElement(placedComponent);
-    EXPECT_NEAR(placed.getNominalEntryTransform().getOrigin()(2), 1.0, 1e-12);
-    EXPECT_NEAR(placed.getNominalExitTransform().getOrigin()(2), 2.0, 1e-12);
+    EXPECT_NEAR(beamline.getNominalEntryTransform(placedComponent).getOrigin()(2), 1.0, 1e-12);
+    EXPECT_NEAR(beamline.getNominalExitTransform(placedComponent).getOrigin()(2), 2.0, 1e-12);
     EXPECT_EQ(beamline.getElements(Vector_t<double, 3>(0.0, 0.0, 1.10)).size(), 1u);
     EXPECT_TRUE(beamline.getElements(Vector_t<double, 3>(0.0, 0.0, 1.30)).empty());
 
@@ -259,14 +258,14 @@ TEST_F(SolenoidPlacementTest, LatticeExportsUseFieldMapEdgesAndSolenoidMeshType)
     while (std::getline(txt, textLine)) {
         if (textLine.find("\"BEGIN: SOL1\"") != std::string::npos) {
             const auto [z, x, y] = parsePositionLine(textLine);
-            const auto entry     = placed.getNominalEntryTransform().getOrigin();
+            const auto entry     = beamline.getNominalEntryTransform(placedComponent).getOrigin();
             EXPECT_NEAR(z, entry(2), 1e-12);
             EXPECT_NEAR(x, entry(0), 1e-12);
             EXPECT_NEAR(y, entry(1), 1e-12);
             foundBegin = true;
         } else if (textLine.find("\"END: SOL1\"") != std::string::npos) {
             const auto [z, x, y] = parsePositionLine(textLine);
-            const auto exit      = placed.getNominalExitTransform().getOrigin();
+            const auto exit      = beamline.getNominalExitTransform(placedComponent).getOrigin();
             EXPECT_NEAR(z, exit(2), 1e-12);
             EXPECT_NEAR(x, exit(0), 1e-12);
             EXPECT_NEAR(y, exit(1), 1e-12);

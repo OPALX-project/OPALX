@@ -19,7 +19,6 @@
 #define OPALX_Monitor_HH
 
 #include "AbsBeamline/ElementBase.h"
-#include "BeamlineGeometry/StraightGeometry.h"
 #include "PartBunch/PartBunch.h"
 #include "Structure/LossDataSink.h"
 
@@ -53,12 +52,6 @@ public:
 
     /// Apply visitor to Monitor.
     void accept(BeamlineVisitor&) const override;
-
-    /// Get geometry.
-    virtual StraightGeometry& getGeometry() override = 0;
-
-    /// Get geometry. Version for const object.
-    virtual const StraightGeometry& getGeometry() const override = 0;
 
     /// Get plane on which monitor observes.
     virtual Plane getPlane() const = 0;

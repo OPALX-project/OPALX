@@ -51,9 +51,9 @@ Channel* MonitorRep::getChannel(const std::string& aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
-StraightGeometry& MonitorRep::getGeometry() { return geometry; }
+Geometry& MonitorRep::getGeometry() { return geometry; }
 
-const StraightGeometry& MonitorRep::getGeometry() const { return geometry; }
+const Geometry& MonitorRep::getGeometry() const { return geometry; }
 
 Monitor::Plane MonitorRep::getPlane() const { return active ? XY : OFF; }
 
