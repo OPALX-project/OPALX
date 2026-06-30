@@ -210,6 +210,9 @@ public:
     /// @param dt Global time step (s).
     void emitFromEmissionSources(double t, double dt);
 
+    /// @brief Mark particles moving backward behind an active source/cathode plane.
+    size_t markBackwardParticlesAtSourcePlane();
+
     /// @brief Apply global processes and return the global number of particles marked invalid.
     size_t applyGlobalProcesses(double dt);
 
@@ -269,11 +272,6 @@ private:
     /// @brief Delete particles marked invalid by the central per-container mask.
     size_t deleteInvalidParticles(bool activeOnly, Inform& m, const std::string& reason);
 
-public:
-    /// @brief Mark particles moving backward behind an active source/cathode plane.
-    size_t markBackwardParticlesAtSourcePlane();
-
-private:
     /// @brief Force-activate containers whose emitting samplers have not yet finished.
     void activateEmittingContainers(double t);
 

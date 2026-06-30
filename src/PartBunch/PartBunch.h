@@ -179,6 +179,17 @@ public:
     void applyGridUpdate(const Vector_t<double, Dim>& lower, const Vector_t<double, Dim>& upper);
 
     /**
+     * @brief Enable or disable old-OPAL emitting-beam longitudinal mesh stretching.
+     *
+     * Thin wrapper around @c BunchStateHandler::setEmissionMeshProgress. The stretch is used only
+     * for @c bunchUpdate calls where @c active is true.
+     *
+     * @param active Whether the emitting-beam mesh stretch is active.
+     * @param emittedFraction Fraction of the source inventory already emitted.
+     */
+    void setEmissionMeshProgress(bool active, double emittedFraction);
+
+    /**
      * @brief Reinitialize the z dimension of the field grid to `nrZ` cells.
      *
      * Rebuilds the FieldLayout, all field arrays, the accumulation buffers, and the
