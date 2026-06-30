@@ -136,7 +136,6 @@ public:
 
     virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
-    virtual bool isInside(const Vector_t<double, 3>& r) const override;
     /* ========================================================================== */
     // @brief Set number of slices for map tracking
     void setNSlices(const std::size_t& nSlices);

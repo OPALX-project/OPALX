@@ -48,6 +48,9 @@ public:
     virtual void goOffline() final;       // final since virtual hook doGoOffline
     virtual bool bends() const override;
     virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
+    /// Plugin elements select over their body; their narrow getFieldExtent() window is for the
+    /// orbit-threader time-step check only, so isInside() is overridden to not use it.
+    virtual bool isInside(const Vector_t<double, 3>& r) const override;
     ///@}
     ///@{ Virtual implementation of Component
     virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;

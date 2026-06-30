@@ -42,8 +42,9 @@ void Laser::finalise() {}
 bool Laser::bends() const { return false; }
 
 void Laser::getFieldExtent(double& zBegin, double& zEnd) const {
-    zBegin = startField_m;
-    zEnd   = startField_m + getElementLength();
+    // Local-chart field-support interval.
+    zBegin = 0.0;
+    zEnd   = getElementLength();
 }
 
 ElementType Laser::getType() const { return ElementType::LASER; }

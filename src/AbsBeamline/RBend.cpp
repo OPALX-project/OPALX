@@ -80,11 +80,15 @@ bool RBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     auto normal = normalComponents_m;
     auto skew   = skewComponents_m;
 
-    const double elemLength = getElementLength();
+    // Field-support extent (single source, shared with isInside selection), captured on the
+    // host before the kernel launch (getFieldExtent is not device-callable).
+    double zBegin = 0.0;
+    double zEnd   = 0.0;
+    getFieldExtent(zBegin, zEnd);
 
     Kokkos::parallel_for(
             "RBend::apply", nLocal, KOKKOS_LAMBDA(const size_t i) {
-                if (Rview(i)(2) < 0.0 || Rview(i)(2) > elemLength) {
+                if (Rview(i)(2) < zBegin || Rview(i)(2) > zEnd) {
                     return;
                 }
 
@@ -167,9 +171,7 @@ void RBend::getFieldExtent(double& zBegin, double& zEnd) const {
     zEnd   = getElementLength();
 }
 
-bool RBend::isInside(const Vector_t<double, 3>& r) const {
-    return r(2) >= 0.0 && r(2) < getElementLength() && isInsideTransverse(r);
-}
+// isInside() is inherited from ElementBase (field extent [0, L] + transverse aperture).
 
 double RBend::getChordLength() const { return getGeometry().getChordLength(); }
 

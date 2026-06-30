@@ -66,9 +66,12 @@ namespace {
         startField = 2.5;
         endField   = 0.0;
         rep_->initialise(nullptr, startField, endField);
+        // getFieldExtent() is the local-chart field-support interval [0, L] (same frame as
+        // isInside's r), independent of where the element sits along the reference path; the
+        // s-position is carried by the placement transform, not by the field extent.
         rep_->getFieldExtent(zBegin, zEnd);
-        EXPECT_DOUBLE_EQ(zBegin, 2.5);
-        EXPECT_DOUBLE_EQ(zEnd, 3.5);
+        EXPECT_DOUBLE_EQ(zBegin, 0.0);
+        EXPECT_DOUBLE_EQ(zEnd, 1.0);
     }
 
     // ---------------------------------------------------------------------------
