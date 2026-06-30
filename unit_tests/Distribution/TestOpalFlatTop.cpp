@@ -227,4 +227,34 @@ TEST_F(OpalFlatTopTest, ProvidesOldOpalInitialReferenceMomentum) {
     EXPECT_DOUBLE_EQ(refP[0], P0[0]);
     EXPECT_DOUBLE_EQ(refP[1], P0[1]);
     EXPECT_DOUBLE_EQ(refP[2], P0[2]);  // 0.5 * std::sqrt(dot(P0, P0)));
+
+    const double emissionMomentumMagnitude = 0.035;
+    sampler.setEmissionOffsets(0.0, P0, 0.0, "ASTRA", emissionMomentumMagnitude);
+
+    const Vector_t<double, 3> astraRefP = sampler.getInitialReferenceMomentum();
+    EXPECT_DOUBLE_EQ(astraRefP[0], P0[0]);
+    EXPECT_DOUBLE_EQ(astraRefP[1], P0[1]);
+    EXPECT_DOUBLE_EQ(astraRefP[2], P0[2] + 0.5 * emissionMomentumMagnitude);
+
+    const size_t nranks         = static_cast<size_t>(std::max(1, ippl::Comm->size()));
+    const size_t totalParticles = 4 * nranks;
+    pc->allocateParticles(totalParticles / nranks + 2 * nranks + 16);
+    sampler.setBirthTimesForTest(std::vector<double>(totalParticles, 0.0));
+
+    sampler.emitParticles(0.0, 1.0e-12);
+
+    EXPECT_EQ(globalLocalNum(), totalParticles);
+
+    auto PviewDevice = pc->P.getView();
+    auto Pview       = Kokkos::create_mirror_view(PviewDevice);
+    Kokkos::deep_copy(Pview, PviewDevice);
+
+    ASSERT_EQ(pc->getLocalNum(), totalParticles / nranks);
+    for (size_t i = 0; i < pc->getLocalNum(); ++i) {
+        const Vector_t<double, 3> astraKick = Pview(i) - P0;
+        const double kickMagnitude          = std::sqrt(dot(astraKick, astraKick));
+
+        EXPECT_NEAR(kickMagnitude, emissionMomentumMagnitude, 1.0e-14);
+        EXPECT_GE(astraKick[2], -1.0e-15);
+    }
 }
