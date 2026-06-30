@@ -648,13 +648,7 @@ void Multipole::getFieldExtent(double& zBegin, double& zEnd) const {
 
 ElementType Multipole::getType() const { return ElementType::MULTIPOLE; }
 
-bool Multipole::isInside(const Vector_t<double, 3>& r) const {
-    if (r(2) >= 0.0 && r(2) < getElementLength()) {
-        return isInsideTransverse(r);
-    }
-
-    return false;
-}
+// isInside() is inherited from ElementBase (field extent [0, L] + transverse aperture).
 
 bool Multipole::isFocusing(int component) const {
     if (component < 0)

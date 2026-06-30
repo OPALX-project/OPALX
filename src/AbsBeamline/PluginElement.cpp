@@ -204,6 +204,10 @@ void PluginElement::getFieldExtent(double& zBegin, double& zEnd) const {
     zEnd   = 0.005;
 }
 
+bool PluginElement::isInside(const Vector_t<double, 3>& r) const {
+    return r(2) >= 0.0 && r(2) < getElementLength() && isInsideTransverse(r);
+}
+
 int PluginElement::checkPoint(const double& x, const double& y) const {
     int cn = 0;
     for (int i = 0; i < 4; i++) {

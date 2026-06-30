@@ -582,8 +582,14 @@ inline std::vector<Vector_t<double, 3>> ElementBase::getDesignPath(std::size_t) 
 }
 
 inline bool ElementBase::isInside(const Vector_t<double, 3>& r) const {
-    const double length = getElementLength();
-    return r(2) >= 0.0 && r(2) < length && isInsideTransverse(r);
+    // Selection uses the field-support extent (the longitudinal interval where the element's
+    // field model is non-zero), not the body length, so a particle in a fringe region beyond
+    // the body is still attributed to the element. getFieldExtent() is the single source for
+    // that interval, in the same local chart as r.
+    double zBegin = 0.0;
+    double zEnd   = 0.0;
+    getFieldExtent(zBegin, zEnd);
+    return r(2) >= zBegin && r(2) < zEnd && isInsideTransverse(r);
 }
 
 /* ===================== Coordinate system & placement ====================== */

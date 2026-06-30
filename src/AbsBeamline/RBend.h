@@ -56,7 +56,6 @@ public:
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     void getFieldExtent(double& zBegin, double& zEnd) const override;
-    bool isInside(const Vector_t<double, 3>& r) const override;
 
     /**
      * @brief Set the nominal body length.

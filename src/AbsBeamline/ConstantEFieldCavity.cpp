@@ -33,8 +33,9 @@ bool ConstantEFieldCavity::bends() const { return false; }
 ElementType ConstantEFieldCavity::getType() const { return ElementType::CONSTANTEFIELDCAVITY; }
 
 void ConstantEFieldCavity::getFieldExtent(double& zBegin, double& zEnd) const {
-    zBegin = startField_m;
-    zEnd   = startField_m + getElementLength();
+    // Local-chart field-support interval.
+    zBegin = 0.0;
+    zEnd   = getElementLength();
 }
 
 double ConstantEFieldCavity::getEx() const { return Ex_m; }

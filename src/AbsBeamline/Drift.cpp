@@ -54,8 +54,9 @@ void Drift::finalise() {}
 bool Drift::bends() const { return false; }
 
 void Drift::getFieldExtent(double& zBegin, double& zEnd) const {
-    zBegin = startField_m;
-    zEnd   = startField_m + getElementLength();
+    // Local-chart field-support interval (a drift carries no field; report the body span).
+    zBegin = 0.0;
+    zEnd   = getElementLength();
 }
 
 ElementType Drift::getType() const { return ElementType::DRIFT; }
