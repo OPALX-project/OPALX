@@ -731,7 +731,13 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
             itsBunch_m->getParticleContainer()->getLocalNum());
     m << level4 << "Transform particle positions to beam coordinate system done." << endl;
 
-    // Enable the transient old-OPAL emission mesh stretch only for this beam-frame bunchUpdate.
+    // While emission is still running, build this beam-frame mesh over the full source
+    // pulse length, matching old OPAL. Reset the flag immediately after this bunchUpdate so other
+    // updates use the actual particle bounds. Basically if only 5% of particles in the pulse are
+    // emitted, stretch the mesh in z direction by a factor of 100/5=20. The result is a mesh that
+    // is not too small in z (otherwise it would compresses the charge in the field solve and makes
+    // the early self-fields too strong. This is could produce excessive kicks, including backward
+    // kicks near the source.).
     bool emissionMeshStretchActive = false;
     double emittedFraction         = 1.0;
     const double currentTime       = itsBunch_m->getT();
