@@ -68,7 +68,7 @@ TEST(GeometryTest, NullIsZeroExtentIdentity) {
 TEST(GeometryTest, SectorArc) {
     const double L     = 1.2;
     const double angle = 0.35;
-    Geometry g         = Geometry::makeArc(L, angle / L);
+    Geometry g         = Geometry::makeSBend(L, angle / L);
 
     EXPECT_DOUBLE_EQ(g.getElementLength(), L);
     EXPECT_DOUBLE_EQ(g.getArcLength(), L);
@@ -107,7 +107,7 @@ TEST(GeometryTest, RectangularBend) {
 }
 
 TEST(GeometryTest, SetElementLengthRecomputesArcAngle) {
-    Geometry g = Geometry::makeArc(1.0, 0.2);  // angle = 0.2
+    Geometry g = Geometry::makeSBend(1.0, 0.2);  // angle = 0.2
     EXPECT_DOUBLE_EQ(g.getBendAngle(), 0.2);
     g.setElementLength(2.0);  // angle = h * len = 0.2 * 2.0
     EXPECT_DOUBLE_EQ(g.getBendAngle(), 0.4);
@@ -115,7 +115,7 @@ TEST(GeometryTest, SetElementLengthRecomputesArcAngle) {
 }
 
 TEST(GeometryTest, DesignPathIsCentredAndOnTheArc) {
-    Geometry g = Geometry::makeArc(1.2, 0.35 / 1.2);
+    Geometry g = Geometry::makeSBend(1.2, 0.35 / 1.2);
 
     auto path = g.getDesignPath(32);
     ASSERT_GE(path.size(), 32u);

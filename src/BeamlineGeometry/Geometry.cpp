@@ -67,9 +67,9 @@ Geometry Geometry::makeStraight(double length) {
     return g;
 }
 
-Geometry Geometry::makeArc(double length, double curvature) {
+Geometry Geometry::makeSBend(double length, double curvature) {
     Geometry g;
-    g.kind_m  = GeometryKind::Arc;
+    g.kind_m  = GeometryKind::SBend;
     g.len_m   = length;
     g.h_m     = curvature;
     g.angle_m = curvature * length;
@@ -92,13 +92,13 @@ double Geometry::getArcLength() const {
             const double ha = halfAngle();
             return (ha == 0.0) ? len_m : len_m * ha / std::sin(ha);
         }
-        default:  // Straight, Arc
+        default:  // Straight, SBend
             return len_m;
     }
 }
 
 void Geometry::setElementLength(double length) {
-    if (kind_m == GeometryKind::Arc) {
+    if (kind_m == GeometryKind::SBend) {
         len_m = length;
         if (len_m != 0.0) {
             angle_m = h_m * len_m;
@@ -110,7 +110,7 @@ void Geometry::setElementLength(double length) {
 
 double Geometry::getBendAngle() const {
     switch (kind_m) {
-        case GeometryKind::Arc:
+        case GeometryKind::SBend:
         case GeometryKind::RBend:
             return angle_m;
         default:
@@ -120,24 +120,24 @@ double Geometry::getBendAngle() const {
 
 void Geometry::setBendAngle(double angle) {
     angle_m = angle;
-    if (kind_m == GeometryKind::Arc && len_m != 0.0) {
+    if (kind_m == GeometryKind::SBend && len_m != 0.0) {
         h_m = angle_m / len_m;
     }
 }
 
 void Geometry::setCurvature(double curvature) {
-    if (kind_m == GeometryKind::Arc && len_m != 0.0) {
+    if (kind_m == GeometryKind::SBend && len_m != 0.0) {
         h_m     = curvature;
         angle_m = h_m * len_m;
     }
 }
 
 Vector_t<double, 3> Geometry::framePosition(double s) const {
-    if (kind_m == GeometryKind::Arc && h_m != 0.0) {
+    if (kind_m == GeometryKind::SBend && h_m != 0.0) {
         const double phi = h_m * s;
         return Vector_t<double, 3>({(std::cos(phi) - 1.0) / h_m, 0.0, std::sin(phi) / h_m});
     }
-    return Vector_t<double, 3>({0.0, 0.0, s});  // straight / rbend body / null / arc(h=0)
+    return Vector_t<double, 3>({0.0, 0.0, s});  // straight / rbend body / null / sbend(h=0)
 }
 
 double Geometry::getChordLength() const {
@@ -166,7 +166,7 @@ std::vector<Vector_t<double, 3>> Geometry::getDesignPath(std::size_t minSamples)
 
 CoordinateSystemTrafo Geometry::getEdgeToBegin() const {
     switch (kind_m) {
-        case GeometryKind::Arc:
+        case GeometryKind::SBend:
             // Frame rotation is YRotation(-phi) with phi = h * (-len/2) = -angle/2.
             return frameTrafo(framePosition(getEntrance()), h_m * (len_m / 2.0));
         case GeometryKind::RBend:
@@ -178,7 +178,7 @@ CoordinateSystemTrafo Geometry::getEdgeToBegin() const {
 
 CoordinateSystemTrafo Geometry::getEdgeToEnd() const {
     switch (kind_m) {
-        case GeometryKind::Arc:
+        case GeometryKind::SBend:
             return frameTrafo(framePosition(getExit()), -h_m * (len_m / 2.0));
         case GeometryKind::RBend:
             return frameTrafo(Vector_t<double, 3>({0.0, 0.0, len_m / 2.0}), -halfAngle());

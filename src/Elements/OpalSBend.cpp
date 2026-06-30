@@ -50,9 +50,9 @@ void OpalSBend::update() {
     Geometry& geometry = static_cast<Geometry&>(bend->getGeometry());
 
     if (length) {
-        geometry = Geometry::makeArc(length, angle / length);
+        geometry = Geometry::makeSBend(length, angle / length);
     } else {
-        geometry = Geometry::makeArc(0.0, 0.0);
+        geometry = Geometry::makeSBend(0.0, 0.0);
         geometry.setBendAngle(angle);
     }
     // Define number of slices for map tracking

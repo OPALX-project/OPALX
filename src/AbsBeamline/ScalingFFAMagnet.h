@@ -270,7 +270,7 @@ private:
     ScalingFFAMagnet(const ScalingFFAMagnet& right);
 
     ScalingFFAMagnet& operator=(const ScalingFFAMagnet& rhs);
-    Geometry planarArcGeometry_m{Geometry::makeArc(1., 1.)};
+    Geometry planarArcGeometry_m{Geometry::makeSBend(1., 1.)};
 
     size_t maxOrder_m        = 0;
     double tanDelta_m        = 0.;

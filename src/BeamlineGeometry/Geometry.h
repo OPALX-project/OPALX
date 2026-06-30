@@ -28,7 +28,7 @@
 #include <vector>
 
 /// The kind of body geometry represented by a Geometry object.
-enum class GeometryKind : unsigned char { Null, Straight, Arc, RBend };
+enum class GeometryKind : unsigned char { Null, Straight, SBend, RBend };
 
 /**
  * @class Geometry
@@ -57,7 +57,7 @@ public:
     static Geometry makeNull();
     static Geometry makeStraight(double length);
     /// Sector-bend (planar-arc) geometry of arc length and curvature h.
-    static Geometry makeArc(double length, double curvature);
+    static Geometry makeSBend(double length, double curvature);
     /// Rectangular-bend geometry of straight body length and full bend angle.
     static Geometry makeRBend(double bodyLength, double angle);
     ///@}
@@ -84,7 +84,7 @@ public:
     ///@{
     double getBendAngle() const;
     void setBendAngle(double angle);
-    double getCurvature() const { return (kind_m == GeometryKind::Arc) ? h_m : 0.0; }
+    double getCurvature() const { return (kind_m == GeometryKind::SBend) ? h_m : 0.0; }
     void setCurvature(double curvature);
     /// Straight-line distance between the entrance and exit frames.
     double getChordLength() const;
@@ -111,8 +111,8 @@ private:
 
     GeometryKind kind_m    = GeometryKind::Straight;
     double len_m           = 0.0;  ///< design / body length
-    double h_m             = 0.0;  ///< curvature (Arc)
-    double angle_m         = 0.0;  ///< bend angle (Arc: h*len; RBend: full angle)
+    double h_m             = 0.0;  ///< curvature (SBend)
+    double angle_m         = 0.0;  ///< bend angle (SBend: h*len; RBend: full angle)
     double entranceAngle_m = 0.0;  ///< entrance pole-face angle
     double exitAngle_m     = 0.0;  ///< exit pole-face angle
 };

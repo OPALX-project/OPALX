@@ -85,7 +85,7 @@ public:
 
 private:
     /** Geometry */
-    Geometry planarArcGeometry_m{Geometry::makeArc(1.0, 1.0)};
+    Geometry planarArcGeometry_m{Geometry::makeSBend(1.0, 1.0)};
 
     // Helpers
     KOKKOS_INLINE_FUNCTION static Vector_t<double, 3> toMagnetCoords(

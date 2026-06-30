@@ -24,7 +24,7 @@ public:
     const Geometry& getGeometry() const override;
 
 private:
-    Geometry geometry_m{Geometry::makeArc(0.0, 0.0)};
+    Geometry geometry_m{Geometry::makeSBend(0.0, 0.0)};
 };
 
 #endif  // OPALX_SBendRep_HH
