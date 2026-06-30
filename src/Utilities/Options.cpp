@@ -42,6 +42,8 @@ namespace Options {
 
     int stepInfoFreq = 1;
 
+    int printRankDistrFreq = 0;
+
     bool psDumpEachTurn = false;
 
     DumpFrame psDumpFrame = DumpFrame::GLOBAL;
