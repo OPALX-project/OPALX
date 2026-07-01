@@ -355,7 +355,7 @@ Option::Option()
     itsAttr[AGGRESSIVE_STATE_SYNC] = Attributes::makeBool(
             "AGGRESSIVE_STATE_SYNC",
             "If true, every mutation of the shared BunchStateHandler flags "
-            "(moments-dirty, unitless-positions, emitting-now, first-repartition) "
+            "(moments-dirty, unitless-positions, emitting-now) "
             "performs an MPI allreduce so that all ranks converge to the same "
             "value. Guards against rank-local divergence at the cost of an extra "
             "collective on every state change. Default: false.",
