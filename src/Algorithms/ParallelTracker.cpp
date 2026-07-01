@@ -839,13 +839,13 @@ void ParallelTracker::computeExternalFields(
         }
 
         // Get elements at bunch position. The bunch's local-Z bounds are mapped to a path-length
-        // centre + half-width for the s-keyed IndexMap query through the short-bunch seam (single
-        // home: ReferencePathModel; exact only for a straight reference path).
+        // centre + half-width for the s-keyed IndexMap query. Short-bunch / straight-reference-path
+        // approximation: local-Z adds linearly to the path length s (exact only for a straight
+        // reference path).
         IndexMap::value_t elements;
         try {
-            const double centre = ReferencePathModel::pathLengthFromLocalZ(
-                    pc->get_sPos(), 0.5 * (rmax(2) + rmin(2)));
-            elements = oths[ci]->query(centre, rmax(2) - rmin(2));
+            const double centre = pc->get_sPos() + 0.5 * (rmax(2) + rmin(2));
+            elements            = oths[ci]->query(centre, rmax(2) - rmin(2));
         } catch (IndexMap::OutOfBounds& e) {
             globalEOL_m = true;
             continue;
@@ -860,11 +860,6 @@ void ParallelTracker::computeExternalFields(
                      * (itsOpalBeamline_m.getCSTrafoLab2Local((*it)) * pc->getToLabTrafo()));
 
             CoordinateSystemTrafo localToRefCSTrafo = refToLocalCSTrafo.inverted();
-
-            // Short-bunch seam (single home: ReferencePathModel): local-Z bunch min mapped to a
-            // path-length offset. Exact only on a straight reference path.
-            (*it)->setCurrentSCoordinate(
-                    ReferencePathModel::pathLengthFromLocalZ(pc->get_sPos(), rmin(2)));
 
             pc->transformBunch(refToLocalCSTrafo);
 

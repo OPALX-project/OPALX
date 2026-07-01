@@ -23,7 +23,6 @@
 #define OPAL_ORBITTHREADER_H
 
 #include "Algorithms/IndexMap.h"
-#include "Algorithms/ReferencePathModel.h"
 #include "Algorithms/StepSizeConfig.h"
 
 #include <fstream>
@@ -46,31 +45,9 @@ public:
 
     IndexMap::value_t query(IndexMap::key_t::first_type step, IndexMap::key_t::second_type length);
 
-    IndexMap::key_t getRange(const IndexMap::value_t::value_type& element, double position) const;
-    IndexMap::value_t getTouchingElements(const IndexMap::key_t& range) const;
+    IndexMap::key_t getRange(const IndexMap::value_t::value_type& element) const;
 
     BoundingBox getBoundingBox() const;
-
-    /**
-     * @brief Return the threader-owned reference-path model.
-     *
-     * This model stores the ordered active-element sets on the reporting
-     * coordinate \f$s\f$ that are traced by the reference particle through the
-     * summed fields. In other words, it is the occupancy model derived from
-     * the reference-particle integration, not a privileged-element ownership
-     * model. The returned reference remains owned by the `OrbitThreader`.
-     */
-    const ReferencePathModel& getReferencePathModel() const;
-
-    /**
-     * @brief Return the action-range registration model.
-     *
-     * This model is distinct from the traced reference-path occupancy model.
-     * It records the element passages that are later converted into
-     * backward-compatible action ranges and legacy `ELEMEDGE`-anchored
-     * intervals on the elements.
-     */
-    const ReferencePathModel& getActionRangeRegistrationModel() const;
 
 private:
     /// position of reference particle in lab coordinates
@@ -113,24 +90,6 @@ private:
 
     BoundingBox globalBoundingBox_m;
 
-    struct elementPosition {
-        double startField_m;
-        double endField_m;
-        double elementEdge_m;
-    };
-
-    struct elementPositionComp {
-        bool operator()(const elementPosition& a, const elementPosition& b) const {
-            return a.elementEdge_m < b.elementEdge_m;
-        }
-    };
-
-    std::multimap<
-            std::shared_ptr<ElementBase>, elementPosition,
-            std::owner_less<std::shared_ptr<ElementBase>>>
-            elementRegistry_m;
-    ReferencePathModel actionRangeRegistrationModel_m;
-
     void trackBack();
     void integrate(const IndexMap::value_t& activeSet, double maxDrift = 10.0);
     bool containsCavity(const IndexMap::value_t& activeSet);
@@ -138,10 +97,6 @@ private:
             const IndexMap::value_t& activeSet, const std::set<std::string>& visitedElements);
     double getMaxDesignEnergy(const IndexMap::value_t& elementSet) const;
 
-    void registerElement(
-            const IndexMap::value_t& elementSet, double, const Vector_t<double, 3>& r,
-            const Vector_t<double, 3>& p);
-    void processElementRegister();
     void setDesignEnergy(FieldList& allElements, const std::set<std::string>& visitedElements);
     void computeBoundingBox();
     void updateBoundingBoxWithCurrentPosition();
@@ -157,22 +112,9 @@ inline IndexMap::value_t OrbitThreader::query(
     return imap_m.query(pathLength, length);
 }
 
-inline IndexMap::key_t OrbitThreader::getRange(
-        const IndexMap::value_t::value_type& element, double position) const {
-    return imap_m.getRange(element, position);
-}
-
-inline IndexMap::value_t OrbitThreader::getTouchingElements(const IndexMap::key_t& range) const {
-    return imap_m.getTouchingElements(range);
+inline IndexMap::key_t OrbitThreader::getRange(const IndexMap::value_t::value_type& element) const {
+    return imap_m.getRange(element);
 }
 
 inline BoundingBox OrbitThreader::getBoundingBox() const { return globalBoundingBox_m; }
-
-inline const ReferencePathModel& OrbitThreader::getReferencePathModel() const {
-    return imap_m.getReferencePathModel();
-}
-
-inline const ReferencePathModel& OrbitThreader::getActionRangeRegistrationModel() const {
-    return actionRangeRegistrationModel_m;
-}
 #endif
