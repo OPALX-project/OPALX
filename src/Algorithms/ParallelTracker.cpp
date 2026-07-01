@@ -604,6 +604,11 @@ void ParallelTracker::execute() {
         m << level2 << "Total FieldSolver calls: " << itsBunch_m->getFieldSolver()->getCallCounter()
           << endl;
     }
+    if (ippl::Comm->size() > 1) {
+        m << level2
+          << "Total binary repartitions: " << itsBunch_m->getLoadBalancer()->getNumBalances()
+          << endl;
+    }
 
     OPALTimer::Timer myt3;
     *gmsg << level1 << endl
