@@ -40,7 +40,7 @@ public:
     /// Apply visitor to Drift.
     virtual void accept(BeamlineVisitor&) const override;
 
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    virtual void initialise(PartBunch_t* bunch) override;
 
     virtual void finalise() override;
 
@@ -59,7 +59,6 @@ public:
     virtual int getRequiredNumberOfTimeSteps() const override;
 
 private:
-    double startField_m;
     std::size_t nSlices_m;
 
     // Not implemented.

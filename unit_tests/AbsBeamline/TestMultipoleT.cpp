@@ -229,9 +229,7 @@ TEST_F(TestMultipoleT, ApplySingleParticleThrowsForMultiContainerBunch) {
     ASSERT_EQ(bunch->getNumParticleContainers(), 2u);
 
     // Register bunch and verify per-particle apply() rejects ambiguous container context.
-    double startField = 0.0;
-    double endField   = 0.0;
-    initialise(bunch.get(), startField, endField);
+    initialise(bunch.get());
     Vector_t<double, 3> E{}, B{};
     EXPECT_THROW(apply(0, 0.0, E, B), OpalException);
 }

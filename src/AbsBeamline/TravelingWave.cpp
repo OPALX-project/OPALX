@@ -237,18 +237,15 @@ bool TravelingWave::applyToReferenceParticle(
     return false;
 }
 
-void TravelingWave::initialise(PartBunch_t* bunch, double& startField, double& endField) {
+void TravelingWave::initialise(PartBunch_t* bunch) {
     if (bunch == nullptr) {
         return;
     }
 
     Inform msg("TravelingWave ", *gmsg);
 
-    RefPartBunch_m    = bunch;
-    double bodyBegin  = startField;
-    double dummyStart = 0.0;
-    double dummyEnd   = 0.0;
-    RFCavity::initialise(bunch, dummyStart, dummyEnd);
+    RefPartBunch_m = bunch;
+    RFCavity::initialise(bunch);
     if (std::abs(startField_m) > 0.0) {
         throw GeneralOpalException(
                 "TravelingWave::initialise",
@@ -264,9 +261,6 @@ void TravelingWave::initialise(PartBunch_t* bunch, double& startField, double& e
     mappedStartExitField_m = startExitField_m - 3.0 * periodLength_m / 2.0;
 
     endField_m = startExitField_m + periodLength_m / 2.0;
-
-    startField = bodyBegin + startField_m;
-    endField   = bodyBegin + endField_m;
 
     scaleCore_m      = scale_m / std::sin(Physics::two_pi * mode_m);
     scaleCoreError_m = scaleError_m / std::sin(Physics::two_pi * mode_m);

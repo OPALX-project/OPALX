@@ -108,7 +108,7 @@ public:
      *  \param startField not used
      *  \param endField not used
      */
-    void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    void initialise(PartBunch_t* bunch) override;
 
     /** Initialise the ScalingFFAMagnet
      *

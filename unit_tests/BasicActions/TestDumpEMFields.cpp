@@ -71,7 +71,7 @@ namespace {
                 Vector_t<double, 3>& /*B*/) override {
             return false;
         }
-        void initialise(PartBunch_t*, double&, double&) override {}
+        void initialise(PartBunch_t*) override {}
         void finalise() override {}
         bool bends() const override { return true; }
         void getFieldExtent(double&, double&) const override {}

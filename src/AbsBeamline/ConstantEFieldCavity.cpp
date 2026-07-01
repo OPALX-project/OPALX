@@ -5,14 +5,10 @@
 ConstantEFieldCavity::ConstantEFieldCavity() : ConstantEFieldCavity("") {}
 
 ConstantEFieldCavity::ConstantEFieldCavity(const ConstantEFieldCavity& right)
-    : ElementBase(right),
-      Ex_m(right.Ex_m),
-      Ey_m(right.Ey_m),
-      Ez_m(right.Ez_m),
-      startField_m(right.startField_m) {}
+    : ElementBase(right), Ex_m(right.Ex_m), Ey_m(right.Ey_m), Ez_m(right.Ez_m) {}
 
 ConstantEFieldCavity::ConstantEFieldCavity(const std::string& name)
-    : ElementBase(name), Ex_m(0.0), Ey_m(0.0), Ez_m(0.0), startField_m(0.0) {}
+    : ElementBase(name), Ex_m(0.0), Ey_m(0.0), Ez_m(0.0) {}
 
 ConstantEFieldCavity::~ConstantEFieldCavity() {}
 
@@ -20,11 +16,7 @@ void ConstantEFieldCavity::accept(BeamlineVisitor& visitor) const {
     visitor.visitConstantEFieldCavity(*this);
 }
 
-void ConstantEFieldCavity::initialise(PartBunch_t* bunch, double& startField, double& endField) {
-    RefPartBunch_m = bunch;
-    startField_m   = startField;
-    endField       = startField + getElementLength();
-}
+void ConstantEFieldCavity::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
 
 void ConstantEFieldCavity::finalise() {}
 

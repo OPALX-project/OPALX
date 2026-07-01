@@ -69,7 +69,7 @@ namespace {
             return false;
         }
 
-        void initialise(PartBunch_t*, double&, double&) override {}
+        void initialise(PartBunch_t*) override {}
         void finalise() override {}
         bool bends() const override { return false; }
 

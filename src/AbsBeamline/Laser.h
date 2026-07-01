@@ -45,7 +45,7 @@ public:
      * @param startField Element entrance position in the current lattice traversal.
      * @param endField Filled with the element exit position.
      */
-    void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    void initialise(PartBunch_t* bunch) override;
 
     /** @brief Finalize the element after a tracking pass. */
     void finalise() override;
@@ -144,7 +144,6 @@ public:
             double electronTotalEnergyGeV, const Vector_t<double, 3>& beamDirection) const;
 
 private:
-    double startField_m;
     double wavelength_m;
     double pulseEnergy_m;
     double pulseLength_m;

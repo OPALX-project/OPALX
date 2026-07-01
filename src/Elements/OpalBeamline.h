@@ -125,16 +125,11 @@ private:
 
 template <class T>
 inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t& bunch) {
-    Inform msg("OPAL ");
-    double startField = 0.0;
-    double endField   = 0.0;
     std::shared_ptr<T> elptr(dynamic_cast<T*>(element.clone()));
 
     // Placement (both 6D-pose and ELEMEDGE) is resolved later, in one pass, by
     // placeElementsAlongReferencePath() during prepareSections().
-    if (elptr->isElementPositionSet()) startField = elptr->getElementPosition();
-
-    elptr->initialise(&bunch, startField, endField);
+    elptr->initialise(&bunch);
     elements_m.push_back(elptr);
     prepared_m                       = false;
     referencePathPlacementCompiled_m = false;

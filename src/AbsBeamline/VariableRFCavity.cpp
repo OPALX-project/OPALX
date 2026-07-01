@@ -150,10 +150,7 @@ bool VariableRFCavity::applyToReferenceParticle(
     return apply(R, P, t, E, B);
 }
 
-void VariableRFCavity::initialise(
-        PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
-    RefPartBunch_m = bunch;
-}
+void VariableRFCavity::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
 
 void VariableRFCavity::finalise() { RefPartBunch_m = nullptr; }
 

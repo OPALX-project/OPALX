@@ -83,10 +83,7 @@ bool Corrector::apply(
     return false;
 }
 
-void Corrector::initialise(PartBunch_t* bunch, double& startField, double& endField) {
-    endField       = startField + getElementLength();
-    RefPartBunch_m = bunch;
-}
+void Corrector::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
 
 void Corrector::finalise() {}
 

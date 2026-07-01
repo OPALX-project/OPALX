@@ -42,7 +42,7 @@ public:
 
     bool bends() const override;
 
-    void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    void initialise(PartBunch_t* bunch) override;
     void finalise() override;
 
     bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
@@ -168,8 +168,6 @@ private:
     int maxNormal_m = 0;
     int maxSkew_m   = 0;
 
-    double startField_m;
-    double endField_m;
     double angle_m;
     double entranceAngle_m;
     double exitAngle_m;

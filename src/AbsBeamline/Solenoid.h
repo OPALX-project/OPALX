@@ -110,7 +110,7 @@ public:
      * @param startField Starting position of the field
      * @param endField Ending position of the field
      */
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    virtual void initialise(PartBunch_t* bunch) override;
 
     /// @note not implemented
     virtual void finalise() override;

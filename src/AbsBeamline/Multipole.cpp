@@ -628,12 +628,9 @@ void Multipole::computeFieldHost(
  * @brief Setup, multipole goes online
  *
  * @param bunch The reference bunch
- * @param startField Where the fields start along the path
- * @param endFied Where the fields end along the path
  */
-void Multipole::initialise(PartBunch_t* bunch, double& startField, double& endField) {
+void Multipole::initialise(PartBunch_t* bunch) {
     RefPartBunch_m = bunch;
-    endField       = startField + getElementLength();
     online_m       = true;
 }
 

@@ -14,8 +14,6 @@ RBend::RBend() : RBend("") {}
 
 RBend::RBend(const RBend& right)
     : ElementBase(right),
-      startField_m(right.startField_m),
-      endField_m(right.endField_m),
       angle_m(right.angle_m),
       entranceAngle_m(right.entranceAngle_m),
       exitAngle_m(right.exitAngle_m),
@@ -37,8 +35,6 @@ RBend::RBend(const RBend& right)
 
 RBend::RBend(const std::string& name)
     : ElementBase(name),
-      startField_m(0.0),
-      endField_m(0.0),
       angle_m(0.0),
       entranceAngle_m(0.0),
       exitAngle_m(0.0),
@@ -60,11 +56,8 @@ RBend::RBend(const std::string& name)
 
 RBend::~RBend() = default;
 
-void RBend::initialise(PartBunch_t* bunch, double& startField, double& endField) {
+void RBend::initialise(PartBunch_t* bunch) {
     RefPartBunch_m = bunch;
-    startField_m   = startField;
-    endField_m     = startField + getElementLength();
-    endField       = endField_m;
     online_m       = true;
 }
 
