@@ -2,6 +2,7 @@
 #define OPAL_FIELD_CONTAINER_H
 
 #include <memory>
+#include <string>
 
 #include "Manager/BaseManager.h"
 
@@ -54,6 +55,9 @@ private:
     VField_t<T, Dim> E_m;
     Field_t<Dim> rho_m;
     Field<T, Dim> phi_m;
+    std::shared_ptr<VField_t<T, Dim>> Etmp_m;
+    std::shared_ptr<VField_t<T, Dim>> Btmp_m;
+    std::shared_ptr<VField_t<T, Dim>> flippedZSlabField_m;
     Mesh_t<Dim> mesh_m;
     FieldLayout_t<Dim> fl_m;
 
@@ -85,7 +89,74 @@ public:
     FieldLayout_t<Dim>& getFL() { return fl_m; }
     void setFL(std::shared_ptr<FieldLayout_t<Dim>>& fl) { fl_m = fl; }
 
-    void initializeFields(std::string stype_m = "") {
+    std::shared_ptr<VField_t<T, Dim>> getTempEField() { return Etmp_m; }
+    void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) { Etmp_m = Etmp; }
+
+    std::shared_ptr<VField_t<T, Dim>> getTempBField() { return Btmp_m; }
+    void setTempBField(std::shared_ptr<VField_t<T, Dim>> Btmp) { Btmp_m = Btmp; }
+
+    std::shared_ptr<VField_t<T, Dim>> getFlippedZSlabField() { return flippedZSlabField_m; }
+    void resetFlippedZSlabField() { flippedZSlabField_m.reset(); }
+
+    void initializeTemporaryFields() {
+        if (!Etmp_m) {
+            Etmp_m = std::make_shared<VField_t<T, Dim>>();
+        }
+        Etmp_m->initialize(mesh_m, fl_m);
+
+        if (!Btmp_m) {
+            Btmp_m = std::make_shared<VField_t<T, Dim>>();
+        }
+        Btmp_m->initialize(mesh_m, fl_m);
+    }
+
+    void updateFieldLayoutsAfterLayoutChange(const std::string& stype_m = "") {
+        E_m.updateLayout(fl_m);
+        rho_m.updateLayout(fl_m);
+
+        if (stype_m == "CG") {
+            phi_m.updateLayout(fl_m);
+            phi_m = 0.0;
+            phi_m.setFieldBC(phi_m.getFieldBC());
+        }
+
+        if (Etmp_m) {
+            Etmp_m->updateLayout(fl_m);
+        } else {
+            Etmp_m = std::make_shared<VField_t<T, Dim>>();
+            Etmp_m->initialize(mesh_m, fl_m);
+        }
+
+        if (Btmp_m) {
+            Btmp_m->updateLayout(fl_m);
+        } else {
+            Btmp_m = std::make_shared<VField_t<T, Dim>>();
+            Btmp_m->initialize(mesh_m, fl_m);
+        }
+
+        resetFlippedZSlabField();
+    }
+
+    std::shared_ptr<VField_t<T, Dim>> getOrCreateFlippedZSlabField(
+            const VField_t<T, Dim>& src) {
+        auto& layout        = src.getLayout();
+        auto& mesh          = src.get_mesh();
+        const int srcNghost = src.getNghost();
+
+        const bool needsInit = !flippedZSlabField_m
+                               || &flippedZSlabField_m->getLayout() != &layout
+                               || flippedZSlabField_m->getNghost() != srcNghost;
+        if (!flippedZSlabField_m) {
+            flippedZSlabField_m = std::make_shared<VField_t<T, Dim>>();
+        }
+        if (needsInit) {
+            flippedZSlabField_m->initialize(mesh, layout, srcNghost);
+        }
+
+        return flippedZSlabField_m;
+    }
+
+    void initializeFields(const std::string& stype_m = "") {
         Inform m("FieldContainer::initializeFields");
         m << level3 << "Mesh spacing = " << mesh_m.getMeshSpacing() << endl;
         m << level3 << "Origin       = " << mesh_m.getOrigin() << endl;
@@ -98,6 +169,8 @@ public:
             phi_m.initialize(mesh_m, fl_m);
             m << level3 << "Phi field initialized for " << stype_m << endl;
         }
+        initializeTemporaryFields();
+        resetFlippedZSlabField();
     }
 };
 

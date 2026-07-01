@@ -142,14 +142,6 @@ PartBunch<T, Dim>::PartBunch(
 
     setSolver();
 
-    // Build temporary accumulation fields after solver/field initialization so they
-    // match the current mesh/layout and backing storage configuration.
-    this->setTempEField(std::make_shared<VField_t<T, Dim>>());
-    this->getTempEField()->initialize(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL());
-    this->setTempBField(std::make_shared<VField_t<T, Dim>>());
-    this->getTempBField()->initialize(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL());
-    // -----------------------------------------------
-
     pre_run();
     this->setT(0.0);
 
@@ -274,13 +266,6 @@ void PartBunch<T, Dim>::do_binaryRepart() {
     }
 
     m << level4 << "Field layout after ORB load balancing: " << *fl << endl;
-
-    if (this->getTempEField()) {
-        this->getTempEField()->updateLayout(*fl);
-    }
-    if (this->getTempBField()) {
-        this->getTempBField()->updateLayout(*fl);
-    }
 
     this->getFieldSolver()->refreshAfterFieldLayoutChange();
 
@@ -613,15 +598,9 @@ void PartBunch<T, Dim>::reinitializeGridZ(int nrZ) {
     this->fcontainer_m->getFL().initialize(domain_m, decomp, isAllPeriodic);
 
     // BareField::initialize() is a no-op on already-initialized fields, so use
-    // updateLayout() to resize the underlying Kokkos views to the new domain.
-    auto& fl = this->fcontainer_m->getFL();
-    this->fcontainer_m->getRho().updateLayout(fl);
-    this->fcontainer_m->getE().updateLayout(fl);
-    if (solver_m == "CG") {
-        this->fcontainer_m->getPhi().updateLayout(fl);
-    }
-    this->getTempEField()->updateLayout(fl);
-    this->getTempBField()->updateLayout(fl);
+    // FieldContainer's centralized layout refresh to resize all OPALX-owned fields.
+    this->fcontainer_m->updateFieldLayoutsAfterLayoutChange(solver_m);
+    this->getFieldSolver()->refreshAfterFieldLayoutChange();
 
     m << level3 << "Grid z reinit complete (nrZ=" << nrZ << ")." << endl;
 }
@@ -975,13 +954,15 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
     ms << level4 << "E-field layout initialized." << endl;
 
     // Temporary E/B accumulation fields (binned solver path)
-    if (!this->Etmp_m || !this->Btmp_m) {
+    auto Etmp = fctr->getTempEField();
+    auto Btmp = fctr->getTempBField();
+    if (!Etmp || !Btmp) {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks",
                 "Temporary E field (Etmp) and/or B field (Btmp) not initialized.");
     }
-    auto EtmpView = this->Etmp_m->getView();
-    auto BtmpView = this->Btmp_m->getView();
+    auto EtmpView = Etmp->getView();
+    auto BtmpView = Btmp->getView();
     if (EtmpView.extent(0) == 0 || EtmpView.extent(1) == 0 || EtmpView.extent(2) == 0) {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks",
@@ -992,8 +973,7 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
                 "PartBunch::performBunchSanityChecks",
                 "Btmp field layout not initialized (zero extent). ");
     }
-    if (&this->Etmp_m->get_mesh() != &fctr->getMesh()
-        || &this->Btmp_m->get_mesh() != &fctr->getMesh()) {
+    if (&Etmp->get_mesh() != &fctr->getMesh() || &Btmp->get_mesh() != &fctr->getMesh()) {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks",
                 "Etmp/Btmp fields do not use the FieldContainer mesh.");

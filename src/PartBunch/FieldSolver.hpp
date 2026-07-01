@@ -124,18 +124,15 @@ public:
     size_t getCallCounter() { return call_counter_m; }
 
     /**
-     * @brief Rebuild the concrete solver backend without resetting diagnostic counters.
+     * @brief Refresh layout-dependent solver state without reconstructing the solver wrapper.
      *
-     * Layout-changing operations such as ORB repartitioning can leave FFT/Open
-     * solver scratch fields tied to the old field layout. `initSolver()` creates
-     * a fresh concrete backend but resets the call counter as part of normal
-     * startup; this helper preserves that diagnostic state for runtime rebuilds.
+     * Layout-changing operations such as ORB repartitioning resize OPALX-owned fields in place.
+     * The concrete IPPL solver keeps pointers to those fields, but some backends also own
+     * FFT/scratch fields derived from the RHS layout. This hook rebinds the existing backend to
+     * the current fields so those internal buffers are recreated without resetting diagnostics.
+     * This is the same as IPPL's alpine solver update during `repartition`.
      */
-    void reinitializeSolverPreservingCallCounter() {
-        const size_t callCounter = call_counter_m;
-        initSolver();
-        call_counter_m = callCounter;
-    }
+    void refreshAfterFieldLayoutChange();
 
     /**
      * @brief Execute the field solver for the current simulation state.
