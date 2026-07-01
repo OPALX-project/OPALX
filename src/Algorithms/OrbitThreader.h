@@ -97,7 +97,7 @@ private:
             const IndexMap::value_t& activeSet, const std::set<std::string>& visitedElements);
     double getMaxDesignEnergy(const IndexMap::value_t& elementSet) const;
 
-    void setDesignEnergy(FieldList& allElements, const std::set<std::string>& visitedElements);
+    void setDesignEnergy(ElementList& allElements, const std::set<std::string>& visitedElements);
     void computeBoundingBox();
     void updateBoundingBoxWithCurrentPosition();
     double computeDriftLengthToBoundingBox(

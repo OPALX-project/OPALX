@@ -1,8 +1,8 @@
-#ifndef OPALX_FieldList_HH
-#define OPALX_FieldList_HH
+#ifndef OPALX_ElementList_HH
+#define OPALX_ElementList_HH
 
 //
-// FieldList
+// ElementList
 //   The beamline's list of placed elements: a plain list of element pointers.
 //
 // Copyright (c) 2024, Paul Scherrer Institut, Villigen PSI, Switzerland
@@ -27,6 +27,6 @@ class ElementBase;
 /// The tracking-side list of placed beamline elements. Membership order is the s-sorted
 /// order established by OpalBeamline::prepareSections(); the active s-range of each element
 /// lives in the derived IndexMap, not here.
-using FieldList = std::list<std::shared_ptr<ElementBase>>;
+using ElementList = std::list<std::shared_ptr<ElementBase>>;
 
-#endif  // OPALX_FieldList_HH
+#endif  // OPALX_ElementList_HH

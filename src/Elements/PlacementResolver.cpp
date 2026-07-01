@@ -25,13 +25,13 @@
 #include <cmath>
 #include <vector>
 
-void PlacementResolver::resolve(FieldList& elements, const CoordinateSystemTrafo& labFrame) {
-    const FieldList::iterator end = elements.end();
+void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTrafo& labFrame) {
+    const ElementList::iterator end = elements.end();
 
     // Phase 1 — 6D-pose (Mode A) elements: compose the recorded global-to-local pose with the
     // lab frame and fix them in place. The reference-path walk below (Mode B / ELEMEDGE) then
     // skips them via isPositioned(). Both modes are resolved here, in one pass.
-    for (FieldList::iterator it = elements.begin(); it != end; ++it) {
+    for (ElementList::iterator it = elements.begin(); it != end; ++it) {
         const std::shared_ptr<ElementBase> element = (*it);
         if (element->isElementPositionSet()) {
             continue;  // Mode B (ELEMEDGE): placed by the reference-path walk below
@@ -46,7 +46,7 @@ void PlacementResolver::resolve(FieldList& elements, const CoordinateSystemTrafo
         double endPriorPathLength               = 0.0;
         CoordinateSystemTrafo currentCoordTrafo = labFrame;
 
-        FieldList::iterator it = elements.begin();
+        ElementList::iterator it = elements.begin();
         for (; it != end; ++it) {
             std::shared_ptr<ElementBase> element = (*it);
             if (element->isPositioned()) {
@@ -118,7 +118,7 @@ void PlacementResolver::resolve(FieldList& elements, const CoordinateSystemTrafo
     double endPriorPathLength               = 0.0;
     CoordinateSystemTrafo currentCoordTrafo = labFrame;
 
-    FieldList::iterator it = elements.begin();
+    ElementList::iterator it = elements.begin();
     for (; it != end; ++it) {
         std::shared_ptr<ElementBase> element = (*it);
         if (element->isPositioned()) continue;

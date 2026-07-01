@@ -20,7 +20,7 @@
 //
 
 #include "Algorithms/CoordinateSystemTrafo.h"
-#include "Utilities/FieldList.h"
+#include "Utilities/ElementList.h"
 
 /**
  * @class PlacementResolver
@@ -41,7 +41,7 @@ public:
      * @param elements the beamline element list, sorted by ascending field-start position
      * @param labFrame  the beamline lab-to-entry transform (OpalBeamline::coordTransformationTo_m)
      */
-    static void resolve(FieldList& elements, const CoordinateSystemTrafo& labFrame);
+    static void resolve(ElementList& elements, const CoordinateSystemTrafo& labFrame);
 };
 
 #endif  // OPALX_PlacementResolver_HH

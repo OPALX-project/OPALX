@@ -1186,7 +1186,7 @@ void ParallelTracker::prepareSections() {
     // FlaggedElemPtr::accept() -> DefaultVisitor::visitFlaggedElmPtr() ->
     // ElementBase::accept() -> ParallelTracker::visit[ElemName]() ->
     // OpalBeamline::visit([ElemName], bunch):
-    // This initialises the FieldList elements_m object of OpalBeamline
+    // This initialises the ElementList elements_m object of OpalBeamline
     // with clones of all the elements
     itsBeamline_m.accept(*this);
 
@@ -1734,12 +1734,12 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
  */
 void ParallelTracker::updateRFElement(std::string elName, double maxPhase) {
     Inform m("ParallelTracker::updateRFElement");
-    FieldList cavities       = itsOpalBeamline_m.getElementByType(ElementType::RFCAVITY);
-    FieldList travelingwaves = itsOpalBeamline_m.getElementByType(ElementType::TRAVELINGWAVE);
+    ElementList cavities       = itsOpalBeamline_m.getElementByType(ElementType::RFCAVITY);
+    ElementList travelingwaves = itsOpalBeamline_m.getElementByType(ElementType::TRAVELINGWAVE);
     cavities.insert(cavities.end(), travelingwaves.begin(), travelingwaves.end());
     m << level5 << "Got cavities and traveling waves." << endl;
 
-    for (FieldList::iterator fit = cavities.begin(); fit != cavities.end(); ++fit) {
+    for (ElementList::iterator fit = cavities.begin(); fit != cavities.end(); ++fit) {
         if ((*fit)->getName() == elName) {
             RFCavity* element = static_cast<RFCavity*>((*fit).get());
 
