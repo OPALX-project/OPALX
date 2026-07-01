@@ -3,7 +3,7 @@
 
 #include "AbstractObjects/OpalData.h"
 #include "BeamlineCore/DriftRep.h"
-#include "BeamlineGeometry/NullGeometry.h"
+#include "BeamlineGeometry/Geometry.h"
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
 #include "Structure/Beam.h"
@@ -36,14 +36,14 @@ namespace {
         DummyBeamline() : Beamline("dummy") {}
 
         ElementType getType() const override { return ElementType::BEAMLINE; }
-        BGeometryBase& getGeometry() override { return geometry_; }
-        const BGeometryBase& getGeometry() const override { return geometry_; }
+        Geometry& getGeometry() override { return geometry_; }
+        const Geometry& getGeometry() const override { return geometry_; }
         void accept(BeamlineVisitor& visitor) const override { visitor.visitBeamline(*this); }
         ElementBase* clone() const override { return new DummyBeamline(*this); }
         void iterate(BeamlineVisitor&, bool) const override {}
 
     private:
-        NullGeometry geometry_;
+        Geometry geometry_{Geometry::makeNull()};
     };
 }  // namespace
 
@@ -123,50 +123,35 @@ TEST_F(OpalBeamlinePlacementTest, BridgeReturnsPlacedElementViewAndPreservesNomi
             CoordinateSystemTrafo(Vector3(0.5, -1.0, 4.0), rotationAroundY(M_PI / 8.0)));
     drift->setMisalignment(CoordinateSystemTrafo(Vector3(0.25, 0.0, 0.0), Quaternion()));
 
-    const PlacedElement placed = beamline.getPlacedElement(drift);
+    const CoordinateSystemTrafo nominal = drift->getCSTrafoGlobal2Local();
     const Vector3 point(1.0, 2.0, 3.0);
 
-    expectVectorNear(
-            beamline.transformToLocalCS(drift, point),
-            placed.getNominalBodyTransform().transformTo(point));
-    expectVectorNear(
-            beamline.transformFromLocalCS(drift, point),
-            placed.getNominalBodyTransform().transformFrom(point));
-    expectVectorNear(
-            beamline.rotateToLocalCS(drift, point),
-            placed.getNominalBodyTransform().rotateTo(point));
-    expectVectorNear(
-            beamline.rotateFromLocalCS(drift, point),
-            placed.getNominalBodyTransform().rotateFrom(point));
-    expectVectorNear(
-            beamline.getCSTrafoLab2Local(drift).getOrigin(),
-            placed.getNominalBodyTransform().getOrigin());
-    expectVectorNear(
-            beamline.getNominalEntryTransform(drift).getOrigin(),
-            placed.getNominalEntryTransform().getOrigin());
+    expectVectorNear(beamline.transformToLocalCS(drift, point), nominal.transformTo(point));
+    expectVectorNear(beamline.transformFromLocalCS(drift, point), nominal.transformFrom(point));
+    expectVectorNear(beamline.rotateToLocalCS(drift, point), nominal.rotateTo(point));
+    expectVectorNear(beamline.rotateFromLocalCS(drift, point), nominal.rotateFrom(point));
+    expectVectorNear(beamline.getCSTrafoLab2Local(drift).getOrigin(), nominal.getOrigin());
+    // entry edge is identity for a straight element ⇒ entry origin equals nominal origin
+    expectVectorNear(beamline.getNominalEntryTransform(drift).getOrigin(), nominal.getOrigin());
     expectVectorNear(
             beamline.getNominalExitTransform(drift).getOrigin(),
-            placed.getNominalExitTransform().getOrigin());
-    expectVectorNear(
-            beamline.getMisalignment(drift).getOrigin(),
-            placed.getMisalignment().getNominalToActual().getOrigin());
+            (drift->getEdgeToEnd() * nominal).getOrigin());
+    expectVectorNear(beamline.getMisalignment(drift).getOrigin(), Vector3(0.25, 0.0, 0.0));
 }
 
 TEST_F(OpalBeamlinePlacementTest, PositionElementRelativeUsesPlacementPoseBridge) {
     OpalBeamline beamline(Vector3(0.0, 0.0, 5.0), Quaternion());
     auto drift = std::make_shared<DriftRep>("D3");
-    drift->setPlacementPose(PlacementPose(
-            CoordinateSystemTrafo(Vector3(1.0, 2.0, 3.0), rotationAroundY(M_PI / 10.0))));
+    drift->setCSTrafoGlobal2Local(
+            CoordinateSystemTrafo(Vector3(1.0, 2.0, 3.0), rotationAroundY(M_PI / 10.0)));
     drift->fixPosition();
 
-    CoordinateSystemTrafo expected = drift->getPlacementPose().getParentToNominal();
+    CoordinateSystemTrafo expected = drift->getCSTrafoGlobal2Local();
     expected *= beamline.getCSTrafoLab2Local();
 
     beamline.positionElementRelative(drift);
 
-    expectVectorNear(
-            beamline.getPlacedElement(drift).getNominalBodyTransform().getOrigin(),
-            expected.getOrigin());
+    expectVectorNear(beamline.getCSTrafoLab2Local(drift).getOrigin(), expected.getOrigin());
 }
 
 TEST_F(OpalBeamlinePlacementTest, PrepareSectionsCompilesElementPositionIntoNominalPlacement) {
@@ -184,11 +169,13 @@ TEST_F(OpalBeamlinePlacementTest, PrepareSectionsCompilesElementPositionIntoNomi
 
     const auto elements = beamline.getElements();
     ASSERT_EQ(elements.size(), 1u);
-    const auto placed = beamline.getPlacedElement(*elements.begin());
+    const auto component = *elements.begin();
 
-    expectVectorNear(placed.getNominalBodyTransform().getOrigin(), Vector3(0.0, 0.0, 1.25));
-    expectVectorNear(placed.getNominalEntryTransform().getOrigin(), Vector3(0.0, 0.0, 1.25));
-    expectVectorNear(placed.getNominalExitTransform().getOrigin(), Vector3(0.0, 0.0, 1.65));
+    expectVectorNear(beamline.getCSTrafoLab2Local(component).getOrigin(), Vector3(0.0, 0.0, 1.25));
+    expectVectorNear(
+            beamline.getNominalEntryTransform(component).getOrigin(), Vector3(0.0, 0.0, 1.25));
+    expectVectorNear(
+            beamline.getNominalExitTransform(component).getOrigin(), Vector3(0.0, 0.0, 1.65));
 }
 
 TEST_F(OpalBeamlinePlacementTest, BeamlineOwnsPlacedElementAssemblySnapshot) {
@@ -207,14 +194,10 @@ TEST_F(OpalBeamlinePlacementTest, BeamlineOwnsPlacedElementAssemblySnapshot) {
     ASSERT_EQ(elements.size(), 1u);
     const auto component = *elements.begin();
 
-    const Vector3 assembledOrigin =
-            beamline.getPlacedElement(component).getNominalBodyTransform().getOrigin();
+    const Vector3 assembledOrigin = beamline.getCSTrafoLab2Local(component).getOrigin();
     expectVectorNear(assembledOrigin, Vector3(0.0, 0.0, 0.75));
 
-    component->setPlacementPose(
-            PlacementPose(CoordinateSystemTrafo(Vector3(9.0, 8.0, 7.0), Quaternion())));
+    component->setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector3(9.0, 8.0, 7.0), Quaternion()));
 
-    expectVectorNear(
-            beamline.getPlacedElement(component).getNominalBodyTransform().getOrigin(),
-            assembledOrigin);
+    expectVectorNear(beamline.getCSTrafoLab2Local(component).getOrigin(), assembledOrigin);
 }

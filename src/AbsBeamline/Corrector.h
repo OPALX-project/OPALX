@@ -23,7 +23,6 @@
 
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/ElementBase.h"
-#include "BeamlineGeometry/StraightGeometry.h"
 
 // Class Corrector
 // ------------------------------------------------------------------------
@@ -54,12 +53,6 @@ public:
 
     /// Apply a visitor to Corrector.
     virtual void accept(BeamlineVisitor&) const;
-
-    /// Return the corrector geometry.
-    virtual StraightGeometry& getGeometry() = 0;
-
-    /// Return the corrector geometry. Version for const object.
-    virtual const StraightGeometry& getGeometry() const = 0;
 
     /// Return the plane on which the corrector acts.
     virtual Plane getPlane() const = 0;

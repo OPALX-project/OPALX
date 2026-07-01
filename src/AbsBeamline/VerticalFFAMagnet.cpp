@@ -15,7 +15,7 @@
 #include <cmath>
 
 VerticalFFAMagnet::VerticalFFAMagnet(const std::string& name)
-    : ElementBase(name), straightGeometry_m(1.) {}
+    : ElementBase(name), straightGeometry_m(Geometry::makeStraight(1.)) {}
 
 VerticalFFAMagnet::VerticalFFAMagnet(const VerticalFFAMagnet& right)
     : ElementBase(right),
@@ -53,9 +53,9 @@ void VerticalFFAMagnet::initialise(
 
 void VerticalFFAMagnet::finalise() { RefPartBunch_m = nullptr; }
 
-BGeometryBase& VerticalFFAMagnet::getGeometry() { return straightGeometry_m; }
+Geometry& VerticalFFAMagnet::getGeometry() { return straightGeometry_m; }
 
-const BGeometryBase& VerticalFFAMagnet::getGeometry() const { return straightGeometry_m; }
+const Geometry& VerticalFFAMagnet::getGeometry() const { return straightGeometry_m; }
 
 void VerticalFFAMagnet::accept(BeamlineVisitor& visitor) const {
     visitor.visitVerticalFFAMagnet(*this);

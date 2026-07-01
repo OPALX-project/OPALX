@@ -21,7 +21,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/Marker.h"
-#include "BeamlineGeometry/NullGeometry.h"
+#include "BeamlineGeometry/Geometry.h"
 
 // Class MarkerRep
 // ------------------------------------------------------------------------
@@ -43,12 +43,12 @@ public:
     /// Get geometry.
     //  Return the element geometry.
     //  Version for non-constant object.
-    virtual NullGeometry& getGeometry();
+    virtual Geometry& getGeometry();
 
     /// Get geometry.
     //  Return the element geometry
     //  Version for constant object.
-    virtual const NullGeometry& getGeometry() const;
+    virtual const Geometry& getGeometry() const;
 
     /// Get arc length.
     //  Always return zero.      :return always zero
@@ -60,7 +60,7 @@ public:
 
 private:
     /// The marker geometry.
-    NullGeometry geometry;
+    Geometry geometry{Geometry::makeNull()};
 
     // Not implemented.
     void operator=(const MarkerRep&);

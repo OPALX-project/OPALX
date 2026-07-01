@@ -31,7 +31,7 @@ public:
 
     // Overrides of MultipoleTBase
     void initialise() override {}
-    BGeometryBase* getGeometry() override { return nullptr; }
+    Geometry* getGeometry() override { return nullptr; }
     void getField(
             const Kokkos::View<Vector_t<double, 3>*> /*R*/,
             Kokkos::View<Vector_t<double, 3>*> /*E*/, Kokkos::View<Vector_t<double, 3>*> /*B*/,

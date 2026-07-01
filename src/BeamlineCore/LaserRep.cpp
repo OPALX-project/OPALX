@@ -14,11 +14,11 @@ namespace {
             {nullptr, nullptr, nullptr}};
 }  // namespace
 
-LaserRep::LaserRep() : Laser(), geometry_m(0.0) {}
+LaserRep::LaserRep() : Laser(), geometry_m() {}
 
 LaserRep::LaserRep(const LaserRep& right) : Laser(right), geometry_m(right.geometry_m) {}
 
-LaserRep::LaserRep(const std::string& name) : Laser(name), geometry_m(0.0) {}
+LaserRep::LaserRep(const std::string& name) : Laser(name), geometry_m() {}
 
 LaserRep::~LaserRep() {}
 
@@ -34,6 +34,6 @@ Channel* LaserRep::getChannel(const std::string& aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
-StraightGeometry& LaserRep::getGeometry() { return geometry_m; }
+Geometry& LaserRep::getGeometry() { return geometry_m; }
 
-const StraightGeometry& LaserRep::getGeometry() const { return geometry_m; }
+const Geometry& LaserRep::getGeometry() const { return geometry_m; }

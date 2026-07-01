@@ -21,7 +21,7 @@
 
 #include "AbsBeamline/ElementBase.h"
 #include "Algorithms/AbstractTimeDependence.h"
-#include "BeamlineGeometry/StraightGeometry.h"
+#include "BeamlineGeometry/Geometry.h"
 #include "Physics/Physics.h"
 
 /** @class VariableRFCavity
@@ -200,9 +200,9 @@ public:
     virtual void setFrequencyName(const std::string& frequency) { frequencyName_m = frequency; }
 
     /** Set the cavity geometry */
-    StraightGeometry& getGeometry() override;
+    Geometry& getGeometry() override;
     /** @returns the cavity geometry */
-    const StraightGeometry& getGeometry() const override;
+    const Geometry& getGeometry() const override;
 
     /** Lookup the time dependencies and update.
      *
@@ -224,7 +224,7 @@ protected:
     double length_m;
 
     /// The cavity's geometry.
-    StraightGeometry geometry;
+    Geometry geometry;
 
     /* The host/device compute function */
     static KOKKOS_INLINE_FUNCTION bool computeField(

@@ -69,7 +69,6 @@
 
 #include "Utilities/BeamlineFieldElement.h"
 
-class Euclid3D;
 class OpalParticle;
 
 class Tracker : public AbstractTracker {

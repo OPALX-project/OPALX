@@ -17,7 +17,6 @@
 //
 #include "Elements/OpalBeamline.h"
 
-#include "AbsBeamline/BendBase.h"
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Units.h"
 #include "Structure/MeshGenerator.h"
@@ -29,16 +28,12 @@
 #include <regex>
 
 OpalBeamline::OpalBeamline()
-    : elements_m(),
-      placementAssembly_m(),
-      prepared_m(false),
-      compatibilityPlacementCompiled_m(false) {}
+    : elements_m(), prepared_m(false), referencePathPlacementCompiled_m(false) {}
 
 OpalBeamline::OpalBeamline(const Vector_t<double, 3>& origin, const Quaternion& rotation)
     : elements_m(),
-      placementAssembly_m(),
       prepared_m(false),
-      compatibilityPlacementCompiled_m(false),
+      referencePathPlacementCompiled_m(false),
       coordTransformationTo_m(origin, rotation) {}
 
 OpalBeamline::~OpalBeamline() { elements_m.clear(); }
@@ -135,10 +130,7 @@ void OpalBeamline::prepareSections() {
         return;
     }
     elements_m.sort(BeamlineFieldElement::SortAsc);
-    for (auto& fieldElement : elements_m) {
-        storePlacedElement(fieldElement.getElement());
-    }
-    compileCompatibilityPlacement();
+    placeElementsAlongReferencePath();
     prepared_m = true;
 }
 
@@ -146,17 +138,15 @@ void OpalBeamline::print(Inform& /*msg*/) const {}
 
 void OpalBeamline::swap(OpalBeamline& rhs) {
     std::swap(elements_m, rhs.elements_m);
-    std::swap(placementAssembly_m, rhs.placementAssembly_m);
     std::swap(prepared_m, rhs.prepared_m);
-    std::swap(compatibilityPlacementCompiled_m, rhs.compatibilityPlacementCompiled_m);
+    std::swap(referencePathPlacementCompiled_m, rhs.referencePathPlacementCompiled_m);
     std::swap(coordTransformationTo_m, rhs.coordTransformationTo_m);
 }
 
 void OpalBeamline::merge(OpalBeamline& rhs) {
     elements_m.insert(elements_m.end(), rhs.elements_m.begin(), rhs.elements_m.end());
-    placementAssembly_m.clear();
     prepared_m                       = false;
-    compatibilityPlacementCompiled_m = false;
+    referencePathPlacementCompiled_m = false;
 }
 
 FieldList OpalBeamline::getElementByType(ElementType type) {
@@ -179,7 +169,7 @@ void OpalBeamline::positionElementRelative(std::shared_ptr<ElementBase> element)
     }
 
     element->releasePosition();
-    CoordinateSystemTrafo toElement = element->getPlacedElement().getNominalBodyTransform();
+    CoordinateSystemTrafo toElement = element->getCSTrafoGlobal2Local();
     toElement *= coordTransformationTo_m;
 
     setNominalPlacement(element, toElement);
@@ -188,16 +178,11 @@ void OpalBeamline::positionElementRelative(std::shared_ptr<ElementBase> element)
 
 void OpalBeamline::setNominalPlacement(
         const std::shared_ptr<ElementBase>& element, const CoordinateSystemTrafo& parentToBody) {
-    element->setPlacementPose(PlacementPose(parentToBody));
-    storePlacedElement(element);
+    element->setCSTrafoGlobal2Local(parentToBody);
 }
 
-void OpalBeamline::storePlacedElement(const std::shared_ptr<ElementBase>& element) {
-    placementAssembly_m.insert_or_assign(element.get(), element->getPlacedElement());
-}
-
-void OpalBeamline::compileCompatibilityPlacement() {
-    if (compatibilityPlacementCompiled_m) {
+void OpalBeamline::placeElementsAlongReferencePath() {
+    if (referencePathPlacementCompiled_m) {
         return;
     }
 
@@ -224,13 +209,12 @@ void OpalBeamline::compileCompatibilityPlacement() {
 
             double beginThisPathLength = element->getElementPosition();
             Vector_t<double, 3> beginThis3D(0, 0, beginThisPathLength - endPriorPathLength);
-            BendBase* bendElement = dynamic_cast<BendBase*>(element.get());
-            double thisLength     = bendElement->getChordLength();
-            double bendAngle      = bendElement->getBendAngle();
-            double entranceAngle  = bendElement->getEntranceAngle();
-            double arcLength      = element->getArcLength();
+            double thisLength    = element->getChordLength();
+            double bendAngle     = element->getBendAngle();
+            double entranceAngle = element->getEntranceAngle();
+            double arcLength     = element->getArcLength();
 
-            double rotationAngleAboutZ = bendElement->getRotationAboutZ();
+            double rotationAngleAboutZ = element->getRotationAboutZ();
             Quaternion_t rotationAboutZ(
                     cos(0.5 * rotationAngleAboutZ),
                     sin(-0.5 * rotationAngleAboutZ) * Vector_t<double, 3>(0, 0, 1));
@@ -247,7 +231,7 @@ void OpalBeamline::compileCompatibilityPlacement() {
                     cos(0.5 * entranceAngle), sin(0.5 * entranceAngle) * effectiveRotationAxis);
 
             if (!Options::idealized) {
-                std::vector<Vector_t<double, 3>> truePath = bendElement->getDesignPath();
+                std::vector<Vector_t<double, 3>> truePath = element->getDesignPath();
                 Quaternion_t directionExitHardEdge(
                         cos(0.5 * (0.5 * bendAngle - entranceAngle)),
                         sin(0.5 * (0.5 * bendAngle - entranceAngle)) * effectiveRotationAxis);
@@ -299,11 +283,10 @@ void OpalBeamline::compileCompatibilityPlacement() {
         Vector_t<double, 3> endThis3D;
         if (element->getType() == ElementType::SBEND || element->getType() == ElementType::RBEND
             || element->getType() == ElementType::RBEND3D) {
-            BendBase* bendElement = dynamic_cast<BendBase*>(element.get());
-            thisLength            = bendElement->getChordLength();
-            double bendAngle      = bendElement->getBendAngle();
+            thisLength       = element->getChordLength();
+            double bendAngle = element->getBendAngle();
 
-            double rotationAngleAboutZ = bendElement->getRotationAboutZ();
+            double rotationAngleAboutZ = element->getRotationAboutZ();
             Quaternion_t rotationAboutZ(
                     cos(0.5 * rotationAngleAboutZ),
                     sin(-0.5 * rotationAngleAboutZ) * Vector_t<double, 3>(0, 0, 1));
@@ -319,8 +302,8 @@ void OpalBeamline::compileCompatibilityPlacement() {
 
             double arcLength = element->getArcLength();
             if (!Options::idealized) {
-                std::vector<Vector_t<double, 3>> truePath = bendElement->getDesignPath();
-                double entranceAngle                      = bendElement->getEntranceAngle();
+                std::vector<Vector_t<double, 3>> truePath = element->getDesignPath();
+                double entranceAngle                      = element->getEntranceAngle();
                 Quaternion_t directionExitHardEdge(
                         cos(0.5 * (0.5 * bendAngle - entranceAngle)),
                         sin(0.5 * (0.5 * bendAngle - entranceAngle)) * effectiveRotationAxis);
@@ -355,10 +338,10 @@ void OpalBeamline::compileCompatibilityPlacement() {
         element->fixPosition();
     }
 
-    compatibilityPlacementCompiled_m = true;
+    referencePathPlacementCompiled_m = true;
 }
 
-void OpalBeamline::compute3DLattice() { compileCompatibilityPlacement(); }
+void OpalBeamline::compute3DLattice() { placeElementsAlongReferencePath(); }
 
 void OpalBeamline::save3DLattice() {
     if (ippl::Comm->rank() != 0 || OpalData::getInstance()->isOptimizerRun()) return;
@@ -398,7 +381,7 @@ void OpalBeamline::save3DLattice() {
 
     for (; it != end; ++it) {
         std::shared_ptr<ElementBase> element = (*it).getElement();
-        PlacedElement placedElement          = getPlacedElement(element);
+        CoordinateSystemTrafo nominalBody    = getCSTrafoLab2Local(element);
         CoordinateSystemTrafo toBegin        = getNominalEntryTransform(element);
         CoordinateSystemTrafo toEnd          = getNominalExitTransform(element);
         Vector_t<double, 3> entry3D          = toBegin.getOrigin();
@@ -407,13 +390,12 @@ void OpalBeamline::save3DLattice() {
         mesh.add(*(element.get()));
 
         if (element->getType() == ElementType::SBEND || element->getType() == ElementType::RBEND) {
-            BendBase* bendElement                       = dynamic_cast<BendBase*>(element.get());
-            std::vector<Vector_t<double, 3>> designPath = bendElement->getDesignPath();
+            std::vector<Vector_t<double, 3>> designPath = element->getDesignPath();
             unsigned int size                           = designPath.size();
 
             unsigned int minNumSteps = std::max(
-                    20u, static_cast<unsigned int>(std::ceil(
-                                 std::abs(bendElement->getBendAngle() * Units::rad2deg))));
+                    20u, static_cast<unsigned int>(
+                                 std::ceil(std::abs(element->getBendAngle() * Units::rad2deg))));
 
             unsigned int frequency =
                     std::max(1u, static_cast<unsigned int>(std::floor((double)size / minNumSteps)));
@@ -424,8 +406,7 @@ void OpalBeamline::save3DLattice() {
                 << std::setprecision(10) << entry3D(0) << std::setw(18) << std::setprecision(10)
                 << entry3D(1) << "\n";
 
-            Vector_t<double, 3> position =
-                    placedElement.getNominalBodyTransform().transformFrom(designPath.front());
+            Vector_t<double, 3> position = nominalBody.transformFrom(designPath.front());
             pos << std::setw(30) << std::left
                 << std::string("\"BEGIN: ") + element->getName() + std::string("\"")
                 << std::setw(18) << std::setprecision(10) << position(2) << std::setw(18)
@@ -433,7 +414,7 @@ void OpalBeamline::save3DLattice() {
                 << position(1) << std::endl;
 
             for (unsigned int i = frequency; i + 1 < size; i += frequency) {
-                position = placedElement.getNominalBodyTransform().transformFrom(designPath[i]);
+                position = nominalBody.transformFrom(designPath[i]);
                 pos << std::setw(30) << std::left
                     << std::string("\"MID: ") + element->getName() + std::string("\"")
                     << std::setw(18) << std::setprecision(10) << position(2) << std::setw(18)
@@ -441,7 +422,7 @@ void OpalBeamline::save3DLattice() {
                     << std::setprecision(10) << position(1) << std::endl;
             }
 
-            position = placedElement.getNominalBodyTransform().transformFrom(designPath.back());
+            position = nominalBody.transformFrom(designPath.back());
             pos << std::setw(30) << std::left
                 << std::string("\"END: ") + element->getName() + std::string("\"") << std::setw(18)
                 << std::setprecision(10) << position(2) << std::setw(18) << std::setprecision(10)
