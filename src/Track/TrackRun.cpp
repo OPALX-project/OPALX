@@ -398,14 +398,14 @@ void TrackRun::execute() {
 
     // Create PartBunch (PIC Manager) with multiple particle containers
     bunch_m = std::make_unique<bunch_type>(
-            macrocharges,           // Macro charge [C]
-            macromasses,            // Macro Mass [GeV]
-            beams,                  // Beam objects per container
-            totalParticlesPerBeam,  // Per-beam particle counts for allocation
-            1.0,                    // lbt
-            "LF2",                  // Integrator
-            fs_m,                   // Fieldsolver
-            ds_m);                  // Data sink
+            macrocharges,                     // Macro charge [C]
+            macromasses,                      // Macro Mass [GeV]
+            beams,                            // Beam objects per container
+            totalParticlesPerBeam,            // Per-beam particle counts for allocation
+            Options::loadBalancingThreshold,  // Load balancing threshold
+            "LF2",                            // Integrator
+            fs_m,                             // Fieldsolver
+            ds_m);                            // Data sink
 
     // Validate container setup produced by constructor
     const auto& particleContainers = bunch_m->getParticleContainers();
@@ -936,6 +936,8 @@ Inform& TrackRun::print(Inform& os) const {
        << '\n'
        << "* Rank distribution print freq. = " << Options::printRankDistrFreq
        << " w.r.t. the time step." << '\n'
+       << "* Rank H5 dump                  = " << std::boolalpha << Options::rankDump
+       << std::noboolalpha << '\n'
        << "* DT                            = " << Track::block->dT.front() << " [s]\n"
        << "* MAXSTEPS                      = " << Track::block->localTimeSteps.front() << '\n';
 

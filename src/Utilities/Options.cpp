@@ -114,4 +114,6 @@ namespace Options {
 
     bool aggressiveStateSync = false;
 
+    double loadBalancingThreshold = 0.05;  // Default threshold for triggering load balancing
+
 }  // namespace Options

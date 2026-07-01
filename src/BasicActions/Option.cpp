@@ -97,6 +97,7 @@ namespace {
         COMPUTEPERCENTILES,
         QM_MODE,
         AGGRESSIVE_STATE_SYNC,
+        LOADBALANCINGTHRESHOLD,
         SIZE
     };
 }  // namespace
@@ -360,6 +361,13 @@ Option::Option()
             "collective on every state change. Default: false.",
             aggressiveStateSync);
 
+    itsAttr[LOADBALANCINGTHRESHOLD] = Attributes::makeReal(
+            "LOADBALANCINGTHRESHOLD",
+            "The threshold for triggering load balancing. If the ratio difference of particles in "
+            "a rank exceeds this threshold, load balancing will be triggered. Default is 0.05 "
+            "(5%). This threshold is only tested every `repartFreq` steps.",
+            loadBalancingThreshold);
+
     registerOwnership(AttributeHandler::STATEMENT);
 
     FileStream::setEcho(echo);
@@ -411,6 +419,7 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setString(
             itsAttr[QM_MODE], useQMAttributes ? std::string("ATTRIBUTES") : std::string("SINGLE"));
     Attributes::setBool(itsAttr[AGGRESSIVE_STATE_SYNC], aggressiveStateSync);
+    Attributes::setReal(itsAttr[LOADBALANCINGTHRESHOLD], loadBalancingThreshold);
 }
 
 Option::~Option() {}
@@ -452,6 +461,15 @@ void Option::execute() {
     }
 
     aggressiveStateSync = Attributes::getBool(itsAttr[AGGRESSIVE_STATE_SYNC]);
+
+    // Set threshold and check if in the valid range [0, 1]
+    loadBalancingThreshold = Attributes::getReal(itsAttr[LOADBALANCINGTHRESHOLD]);
+    if (loadBalancingThreshold < 0.0 || loadBalancingThreshold > 1.0) {
+        throw OpalException(
+                "Option::execute",
+                "LOADBALANCINGTHRESHOLD must be in the range [0, 1]. Current value: "
+                        + std::to_string(loadBalancingThreshold));
+    }
 
     /// note: rangen is used only for the random number generator in the OPAL language
     ///       not for the distributions
