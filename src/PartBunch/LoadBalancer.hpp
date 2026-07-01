@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 
+#include "PartBunch/FieldContainer.hpp"
 #include "PartBunch/ParticleContainer.hpp"
 
 template <typename T, unsigned Dim>
@@ -18,37 +19,34 @@ class LoadBalancer {
 
 private:
     double loadbalancethreshold_m;
-    Field_t<Dim>* rho_m;
-    VField_t<T, Dim>* E_m;
-    Field<T, Dim>* phi_m;
+    std::shared_ptr<FieldContainer<T, Dim>> fc_m;
     std::shared_ptr<ParticleContainer<T, Dim>> pc_m;
     std::shared_ptr<FieldSolver_t> fs_m;
     ORB<T, Dim> orb;
+    size_type numBalances;
 
 public:
     LoadBalancer(
             double lbs, std::shared_ptr<FieldContainer<T, Dim>>& fc,
             std::shared_ptr<ParticleContainer<T, Dim>>& pc, std::shared_ptr<FieldSolver_t>& fs)
         : loadbalancethreshold_m(lbs),
-          rho_m(&fc->getRho()),
-          E_m(&fc->getE()),
-          phi_m(&fc->getPhi()),
+          fc_m(fc),
           pc_m(pc),
-          fs_m(fs) {}
+          fs_m(fs),
+          numBalances(0) {}
 
     ~LoadBalancer() {}
 
     double getLoadBalanceThreshold() const { return loadbalancethreshold_m; }
     void setLoadBalanceThreshold(double threshold) { loadbalancethreshold_m = threshold; }
 
-    Field_t<Dim>* getRho() const { return rho_m; }
-    void setRho(Field_t<Dim>* rho) { rho_m = rho; }
+    size_type getNumBalances() const { return numBalances; }
 
-    VField_t<T, Dim>* getE() const { return E_m; }
-    void setE(VField_t<T, Dim>* E) { E_m = E; }
+    Field_t<Dim>* getRho() const { return fc_m ? &fc_m->getRho() : nullptr; }
 
-    Field<T, Dim>* getPhi() { return phi_m; }
-    void setPhi(Field<T, Dim>* phi) { phi_m = phi; }
+    VField_t<T, Dim>* getE() const { return fc_m ? &fc_m->getE() : nullptr; }
+
+    Field<T, Dim>* getPhi() { return fc_m ? &fc_m->getPhi() : nullptr; }
 
     std::shared_ptr<ParticleContainer<T, Dim>> getParticleContainer() const { return pc_m; }
     void setParticleContainer(std::shared_ptr<ParticleContainer<T, Dim>> pc) { pc_m = pc; }
@@ -56,21 +54,12 @@ public:
     std::shared_ptr<FieldSolver_t> getFieldSolver() const { return fs_m; }
     void setFieldSolver(std::shared_ptr<FieldSolver_t> fs) { fs_m = fs; }
 
-    void updateLayout(
-            ippl::FieldLayout<Dim>* fl, ippl::UniformCartesian<T, Dim>* mesh,
-            const bool migrateParticles) {
+    void updateLayout(ippl::FieldLayout<Dim>* fl, ippl::UniformCartesian<T, Dim>* mesh) {
         // Update local fields
 
         static IpplTimings::TimerRef tupdateLayout = IpplTimings::getTimer("updateLayout");
         IpplTimings::startTimer(tupdateLayout);
-        (*E_m).updateLayout(*fl);
-        (*rho_m).updateLayout(*fl);
-
-        if (fs_m->getStype() == "CG") {
-            phi_m->updateLayout(*fl);
-            (*phi_m) = 0.0;
-            phi_m->setFieldBC(phi_m->getFieldBC());
-        }
+        fc_m->updateFieldLayoutsAfterLayoutChange(fs_m ? fs_m->getStype() : "");
 
         // Update layout with new FieldLayout
         PLayout_t<T, Dim>* layout = &pc_m->getLayout();
@@ -78,42 +67,40 @@ public:
         IpplTimings::stopTimer(tupdateLayout);
         static IpplTimings::TimerRef tupdatePLayout = IpplTimings::getTimer("updatePB");
         IpplTimings::startTimer(tupdatePLayout);
-        if (migrateParticles) {
-            pc_m->update();
-        }
+        pc_m->update();
         pc_m->markMomentsDirty();
         IpplTimings::stopTimer(tupdatePLayout);
     }
 
     void initializeORB(ippl::FieldLayout<Dim>* fl, ippl::UniformCartesian<T, Dim>* mesh) {
         orb = ORB<T, Dim>();
-        orb.initialize(*fl, *mesh, *rho_m);
+        orb.initialize(*fl, *mesh, fc_m->getRho());
     }
 
-    bool repartition(
-            ippl::FieldLayout<Dim>* fl, ippl::UniformCartesian<T, Dim>* mesh,
-            const bool isFirstRepartition) {
+    bool repartition(ippl::FieldLayout<Dim>* fl, ippl::UniformCartesian<T, Dim>* mesh) {
         // Repartition the domains
 
         using Base = ippl::ParticleBase<
                 ippl::ParticleSpatialLayout<T, Dim>, Kokkos::DefaultExecutionSpace::memory_space>;
         typename Base::particle_position_type* R;
         R        = &pc_m->R;
-        bool res = orb.binaryRepartition(*R, *fl, isFirstRepartition);
+        bool res = orb.binaryRepartition(*R, *fl, false, fl->isParallel());
         if (res != true) {
-            std::cout << "Could not repartition!" << std::endl;
+            if (ippl::Comm->rank() == 0) {
+                std::cout << "Could not repartition!" << std::endl;
+            }
             return false;
         }
         // Update
-        this->updateLayout(fl, mesh, !isFirstRepartition);
+        this->updateLayout(fl, mesh);
+        numBalances++; // increment only when repartition was actually performed
         return true;
     }
 
     bool repartitionFromCurrentParticles(
             ippl::FieldLayout<Dim>* fl, ippl::UniformCartesian<T, Dim>* mesh) {
         initializeORB(fl, mesh);
-        constexpr bool useAnalyticFirstDensity = false;
-        return repartition(fl, mesh, useAnalyticFirstDensity);
+        return repartition(fl, mesh);
     }
 
     bool balance(size_type totalP) {
