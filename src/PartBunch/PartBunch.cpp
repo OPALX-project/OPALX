@@ -273,8 +273,8 @@ void PartBunch<T, Dim>::do_binaryRepart() {
     this->bunchState_m->isFirstRepartitionRef() = false;
     gatherLoadBalanceStatistics();
 
-    m << level3 << "ORB load balancing done: local " << localBefore << " -> "
-      << primary->getLocalNum() << " primary particles." << endl;
+    m << level2 << "ORB load balancing done. Rank 0: " << localBefore << " -> "
+      << primary->getLocalNum() << " particles in primary container." << endl;
 }
 
 /**
