@@ -72,6 +72,7 @@ namespace {
         REMOTEPARTDEL,
         RHODUMP,
         EBDUMP,
+        RANKDUMP,
         CSRDUMP,
         AUTOPHASE,
         NUMBLOCKS,
@@ -231,6 +232,12 @@ Option::Option()
             "E and B field at each particle is also dumped into the H5 file)",
             ebDump);
 
+    itsAttr[RANKDUMP] = Attributes::makeBool(
+            "RANKDUMP",
+            "If true, the current MPI rank for each particle is dumped into the H5 file. "
+            "Default: false.",
+            rankDump);
+
     itsAttr[CSRDUMP] = Attributes::makeBool(
             "CSRDUMP",
             "If true, the csr E field, line density "
@@ -380,6 +387,7 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setReal(itsAttr[REBINFREQ], rebinFreq);
     Attributes::setBool(itsAttr[RHODUMP], rhoDump);
     Attributes::setBool(itsAttr[EBDUMP], ebDump);
+    Attributes::setBool(itsAttr[RANKDUMP], rankDump);
     Attributes::setBool(itsAttr[CSRDUMP], csrDump);
     Attributes::setReal(itsAttr[AUTOPHASE], autoPhase);
     Attributes::setBool(itsAttr[CZERO], cZero);
@@ -419,6 +427,7 @@ void Option::execute() {
     remotePartDel         = Attributes::getReal(itsAttr[REMOTEPARTDEL]);
     rhoDump               = Attributes::getBool(itsAttr[RHODUMP]);
     ebDump                = Attributes::getBool(itsAttr[EBDUMP]);
+    rankDump              = Attributes::getBool(itsAttr[RANKDUMP]);
     csrDump               = Attributes::getBool(itsAttr[CSRDUMP]);
     enableHDF5            = Attributes::getBool(itsAttr[ENABLEHDF5]);
     enableVTK             = Attributes::getBool(itsAttr[ENABLEVTK]);
