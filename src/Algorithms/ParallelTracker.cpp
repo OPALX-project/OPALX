@@ -763,7 +763,14 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     itsBunch_m->setEmissionMeshProgress(false, 1.0);
     m << level5 << "Bunch updated for positions in beam coordinate system." << endl;
 
-    if (repartFreq_m > 0 && step % repartFreq_m + 1 == repartFreq_m) {
+    // For now we only solve on the primary particle container, so we also only repartition on the
+    // primary one. TODO: needs to be changed once we generalize the solver to multiple containers.
+    //
+    // Note that balance() is only called if it's triggered by the step counter. Otherwise the check
+    // is short circuited.
+    size_type totalParticlesPrimary = itsBunch_m->getParticleContainer()->getTotalNum();
+    if (repartFreq_m > 0 && step % repartFreq_m + 1 == repartFreq_m
+        && itsBunch_m->getLoadBalancer()->balance(totalParticlesPrimary)) {
         doBinaryRepartition();
         m << level4 << "Binary repartition done." << endl;
     }
