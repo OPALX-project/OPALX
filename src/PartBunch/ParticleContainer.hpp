@@ -780,9 +780,9 @@ public:
                              : 0.0;
         };
         auto localRatioPercent = [](size_type numerator, size_type denominator) {
-            return denominator > 0
-                         ? 100.0 * static_cast<double>(numerator) / static_cast<double>(denominator)
-                         : 0.0;
+            return denominator > 0 ? 100.0 * static_cast<double>(numerator)
+                                             / static_cast<double>(denominator)
+                                   : 0.0;
         };
 
         Inform m("ParticleContainer::printRankLoadInfo", root);
