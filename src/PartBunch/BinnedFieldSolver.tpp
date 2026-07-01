@@ -315,8 +315,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
     auto fieldContainer = bunch.getFieldContainer();
     if (!fieldContainer) {
         throw OpalException(
-                "BinnedFieldSolver::computeBinnedSelfFields",
-                "FieldContainer is not initialized.");
+                "BinnedFieldSolver::computeBinnedSelfFields", "FieldContainer is not initialized.");
     }
 
     std::shared_ptr<VField_t<T, Dim>> EtmpSP = fieldContainer->getTempEField();
@@ -495,8 +494,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             // transverse field instead of cancelling it.
             constexpr int zFlipAxis = static_cast<int>(Dim) - 1;
             accumulateFieldToTemp(
-                    *fieldContainer, gammaBin, kinematics.pmean, EtmpSP, BtmpSP, -1.0,
-                    zFlipAxis);
+                    *fieldContainer, gammaBin, kinematics.pmean, EtmpSP, BtmpSP, -1.0, zFlipAxis);
 
             mesh.setMeshSpacing(hrOrig);
         }
@@ -761,9 +759,9 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
-        FieldContainer_t& fieldContainer, const double gammaBin,
-        const Vector_t<double, Dim>& pmean, std::shared_ptr<VField_t<T, Dim>> EtmpSP,
-        std::shared_ptr<VField_t<T, Dim>> BtmpSP, double bFieldSign, int flipAxis) {
+        FieldContainer_t& fieldContainer, const double gammaBin, const Vector_t<double, Dim>& pmean,
+        std::shared_ptr<VField_t<T, Dim>> EtmpSP, std::shared_ptr<VField_t<T, Dim>> BtmpSP,
+        double bFieldSign, int flipAxis) {
     // transform rest-frame fields to lab-frame fields and accumulate.
     Inform m("BinnedFieldSolver::accumulateFieldToTemp");
     m << level4 << "accumulate: gammaBin=" << std::setprecision(10) << gammaBin

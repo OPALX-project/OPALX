@@ -368,8 +368,8 @@ void FieldSolver<double, 3>::initSolver() {
 template <>
 void FieldSolver<double, 3>::refreshAfterFieldLayoutChange() {
     Inform m("FieldSolver::refreshAfterFieldLayoutChange");
-    m << level4 << "Refreshing existing solver backend for field layout change: "
-      << this->getStype() << endl;
+    m << level4
+      << "Refreshing existing solver backend for field layout change: " << this->getStype() << endl;
 
     if (!rho_m || !E_m) {
         throw OpalException(

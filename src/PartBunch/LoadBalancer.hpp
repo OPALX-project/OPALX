@@ -29,11 +29,7 @@ public:
     LoadBalancer(
             double lbs, std::shared_ptr<FieldContainer<T, Dim>>& fc,
             std::shared_ptr<ParticleContainer<T, Dim>>& pc, std::shared_ptr<FieldSolver_t>& fs)
-        : loadbalancethreshold_m(lbs),
-          fc_m(fc),
-          pc_m(pc),
-          fs_m(fs),
-          numBalances(0) {}
+        : loadbalancethreshold_m(lbs), fc_m(fc), pc_m(pc), fs_m(fs), numBalances(0) {}
 
     ~LoadBalancer() {}
 
@@ -93,7 +89,7 @@ public:
         }
         // Update
         this->updateLayout(fl, mesh);
-        numBalances++; // increment only when repartition was actually performed
+        numBalances++;  // increment only when repartition was actually performed
         return true;
     }
 
