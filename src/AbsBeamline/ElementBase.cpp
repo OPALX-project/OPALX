@@ -104,7 +104,6 @@ ElementBase::ElementBase(const ElementBase& right)
       csTrafoGlobal2Local_m(right.csTrafoGlobal2Local_m),
       misalignment_m(right.misalignment_m),
       rotationZAxis_m(right.rotationZAxis_m),
-      elementEdge_m(right.elementEdge_m),
       aperture_m(right.aperture_m),
       exit_face_slope_m(right.exit_face_slope_m),
       RefPartBunch_m(nullptr),
@@ -125,7 +124,6 @@ ElementBase::ElementBase(const std::string& name)
       csTrafoGlobal2Local_m(),
       misalignment_m(),
       rotationZAxis_m(0.0),
-      elementEdge_m(0),
       exit_face_slope_m(0.0),
       RefPartBunch_m(nullptr),
       online_m(false),
@@ -233,15 +231,6 @@ void ElementBase::setBoundaryGeometry(BoundaryGeometry* geo) {
 
 void ElementBase::setParticleMatterInteraction(ParticleMatterInteractionHandler* parmatint) {
     parmatint_m = parmatint;
-}
-
-void ElementBase::setCurrentSCoordinate(double s) {
-    if (!actionRange_m.empty() && actionRange_m.front().second < s) {
-        actionRange_m.pop();
-        if (!actionRange_m.empty()) {
-            elementEdge_m = actionRange_m.front().first;
-        }
-    }
 }
 
 bool ElementBase::isInsideTransverse(const Vector_t<double, 3>& r) const {

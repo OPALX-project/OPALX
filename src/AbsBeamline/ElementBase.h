@@ -74,7 +74,6 @@
 
 #include <map>
 #include <memory>
-#include <queue>
 #include <string>
 #include <utility>
 #include <vector>
@@ -474,9 +473,6 @@ public:
 
     /* ============================= Miscellaneous ============================= */
 
-    void setActionRange(const std::queue<std::pair<double, double>>& range);
-    void setCurrentSCoordinate(double s);
-
     /// Set output filename
     void setOutputFN(std::string fn);
     /// Get output filename
@@ -496,7 +492,6 @@ protected:
     CoordinateSystemTrafo csTrafoGlobal2Local_m;
     CoordinateSystemTrafo misalignment_m;
     double rotationZAxis_m;
-    double elementEdge_m;
 
     // --- Aperture ---
     std::pair<ApertureType, std::vector<double>> aperture_m;
@@ -534,7 +529,6 @@ private:
     ///@}
 
     // --- Miscellaneous ---
-    std::queue<std::pair<double, double>> actionRange_m;
     std::string outputfn_m; /**< The name of the outputfile*/
     bool deleteOnTransverseExit_m = true;
 };
@@ -670,13 +664,6 @@ inline ParticleMatterInteractionHandler* ElementBase::getParticleMatterInteracti
 
 inline bool ElementBase::hasParticleMatterInteraction() const { return parmatint_m != nullptr; }
 
-/* ============================= Miscellaneous ============================== */
-
-inline void ElementBase::setActionRange(const std::queue<std::pair<double, double>>& range) {
-    actionRange_m = range;
-
-    if (!actionRange_m.empty()) elementEdge_m = actionRange_m.front().first;
-}
 
 inline void ElementBase::setFlagDeleteOnTransverseExit(bool flag) {
     deleteOnTransverseExit_m = flag;
