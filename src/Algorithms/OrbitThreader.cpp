@@ -361,11 +361,11 @@ void OrbitThreader::trackBack() {
 }
 
 void OrbitThreader::setDesignEnergy(
-        FieldList& allElements, const std::set<std::string>& visitedElements) {
+        ElementList& allElements, const std::set<std::string>& visitedElements) {
     double kineticEnergyeV = reference_m.getM() * (sqrt(dot(p_m, p_m) + 1.0) - 1.0);
 
-    FieldList::iterator it        = allElements.begin();
-    const FieldList::iterator end = allElements.end();
+    ElementList::iterator it        = allElements.begin();
+    const ElementList::iterator end = allElements.end();
     for (; it != end; ++it) {
         std::shared_ptr<ElementBase> element = (*it);
         if (visitedElements.find(element->getName()) == visitedElements.end()
@@ -377,9 +377,9 @@ void OrbitThreader::setDesignEnergy(
 }
 
 void OrbitThreader::computeBoundingBox() {
-    FieldList allElements         = itsOpalBeamline_m.getElementByType(ElementType::ANY);
-    FieldList::iterator it        = allElements.begin();
-    const FieldList::iterator end = allElements.end();
+    ElementList allElements         = itsOpalBeamline_m.getElementByType(ElementType::ANY);
+    ElementList::iterator it        = allElements.begin();
+    const ElementList::iterator end = allElements.end();
     for (; it != end; ++it) {
         if ((*it)->getType() == ElementType::MARKER) {
             continue;

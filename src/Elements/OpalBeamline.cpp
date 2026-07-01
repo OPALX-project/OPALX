@@ -58,8 +58,8 @@ OpalBeamline::~OpalBeamline() { elements_m.clear(); }
 
 std::set<std::shared_ptr<ElementBase>> OpalBeamline::getElements(const Vector_t<double, 3>& x) {
     std::set<std::shared_ptr<ElementBase>> elementSet;
-    FieldList::iterator it        = elements_m.begin();
-    const FieldList::iterator end = elements_m.end();
+    ElementList::iterator it        = elements_m.begin();
+    const ElementList::iterator end = elements_m.end();
     for (; it != end; ++it) {
         std::shared_ptr<ElementBase> element = (*it);
         Vector_t<double, 3> r                = getCSTrafoLab2Local(element).transformTo(x);
@@ -123,7 +123,7 @@ unsigned long OpalBeamline::getFieldAt(
 }
 
 void OpalBeamline::switchElementsOff() {
-    for (FieldList::iterator flit = elements_m.begin(); flit != elements_m.end(); ++flit)
+    for (ElementList::iterator flit = elements_m.begin(); flit != elements_m.end(); ++flit)
         (*flit)->goOffline();
 }
 
@@ -152,13 +152,13 @@ void OpalBeamline::merge(OpalBeamline& rhs) {
     referencePathPlacementCompiled_m = false;
 }
 
-FieldList OpalBeamline::getElementByType(ElementType type) {
+ElementList OpalBeamline::getElementByType(ElementType type) {
     if (type == ElementType::ANY) {
         return elements_m;
     }
 
-    FieldList elements_of_requested_type;
-    for (FieldList::iterator fit = elements_m.begin(); fit != elements_m.end(); ++fit) {
+    ElementList elements_of_requested_type;
+    for (ElementList::iterator fit = elements_m.begin(); fit != elements_m.end(); ++fit) {
         if ((*fit)->getType() == type) {
             elements_of_requested_type.push_back((*fit));
         }
@@ -185,8 +185,8 @@ void OpalBeamline::save3DLattice() {
     // for 6D-posed elements too, unlike the former application-order sort.
     elements_m.sort(byFieldStart);
 
-    FieldList::iterator it  = elements_m.begin();
-    FieldList::iterator end = elements_m.end();
+    ElementList::iterator it  = elements_m.begin();
+    ElementList::iterator end = elements_m.end();
 
     std::ofstream pos;
     std::string fileName = Util::combineFilePath(
@@ -366,8 +366,8 @@ namespace {
 void OpalBeamline::save3DInput() {
     if (ippl::Comm->rank() != 0 || OpalData::getInstance()->isOptimizerRun()) return;
 
-    FieldList::iterator it  = elements_m.begin();
-    FieldList::iterator end = elements_m.end();
+    ElementList::iterator it  = elements_m.begin();
+    ElementList::iterator end = elements_m.end();
 
     std::string input = parseInput();
     std::string fname = Util::combineFilePath(

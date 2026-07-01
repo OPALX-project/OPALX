@@ -27,7 +27,7 @@
 
 #include "AbsBeamline/Marker.h"
 #include "Beamlines/Beamline.h"
-#include "Utilities/FieldList.h"
+#include "Utilities/ElementList.h"
 
 #include "Algorithms/CoordinateSystemTrafo.h"
 
@@ -97,7 +97,7 @@ public:
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
-    FieldList getElementByType(ElementType);
+    ElementList getElementByType(ElementType);
 
     void swap(OpalBeamline& rhs);
     void merge(OpalBeamline& rhs);
@@ -116,7 +116,7 @@ private:
      */
     void placeElementsAlongReferencePath();
 
-    FieldList elements_m;
+    ElementList elements_m;
     bool prepared_m;
     bool referencePathPlacementCompiled_m;
 
