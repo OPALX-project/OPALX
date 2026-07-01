@@ -273,6 +273,8 @@ void PartBunch<T, Dim>::do_binaryRepart() {
         return;
     }
 
+    m << level4 << "Field layout after ORB load balancing: " << *fl << endl;
+
     if (this->getTempEField()) {
         this->getTempEField()->updateLayout(*fl);
     }
@@ -282,7 +284,7 @@ void PartBunch<T, Dim>::do_binaryRepart() {
 
     this->getFieldSolver()->refreshAfterFieldLayoutChange();
 
-    isFirstRepartition_m                         = false;
+    isFirstRepartition_m                        = false;
     this->bunchState_m->isFirstRepartitionRef() = false;
     gatherLoadBalanceStatistics();
 
@@ -556,6 +558,7 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
            << "* <EKIN>          = " << Util::getEnergyString(ek) << "\n"
            << "* <dEKIN>         = " << Util::getEnergyString(dek) << "\n"
            << "* INTEGRATOR      = " << integration_method_m << "\n"
+           << "* LB Threshold    = " << lbt_m << "\n"
            << "* MIN R (origin)  = " << Util::getLengthString(pc->getMinR(), 5) << "\n"
            << "* MAX R (max ext) = " << Util::getLengthString(pc->getMaxR(), 5) << "\n"
            << "* RMS R           = " << Util::getLengthString(pc->getRmsR(), 5) << "\n"
