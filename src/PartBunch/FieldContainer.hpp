@@ -137,14 +137,12 @@ public:
         resetFlippedZSlabField();
     }
 
-    std::shared_ptr<VField_t<T, Dim>> getOrCreateFlippedZSlabField(
-            const VField_t<T, Dim>& src) {
+    std::shared_ptr<VField_t<T, Dim>> getOrCreateFlippedZSlabField(const VField_t<T, Dim>& src) {
         auto& layout        = src.getLayout();
         auto& mesh          = src.get_mesh();
         const int srcNghost = src.getNghost();
 
-        const bool needsInit = !flippedZSlabField_m
-                               || &flippedZSlabField_m->getLayout() != &layout
+        const bool needsInit = !flippedZSlabField_m || &flippedZSlabField_m->getLayout() != &layout
                                || flippedZSlabField_m->getNghost() != srcNghost;
         if (!flippedZSlabField_m) {
             flippedZSlabField_m = std::make_shared<VField_t<T, Dim>>();

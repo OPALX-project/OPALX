@@ -242,9 +242,8 @@ void PartBunch<T, Dim>::do_binaryRepart() {
         const bool active =
                 (i < pcActive_m.size() && pcActive_m[i]) || (pc && pc->getTotalNum() > 0);
         if (active) {
-            m << level2
-              << "Skipping ORB load balancing because non-primary particle container " << i
-              << " is active or non-empty; the current load-balancer path is primary-only."
+            m << level2 << "Skipping ORB load balancing because non-primary particle container "
+              << i << " is active or non-empty; the current load-balancer path is primary-only."
               << endl;
             return;
         }
@@ -255,8 +254,9 @@ void PartBunch<T, Dim>::do_binaryRepart() {
 
     const size_t localBefore = primary->getLocalNum();
     const size_t total       = primary->getTotalNum();
-    m << level3 << "Starting ORB load balancing from current primary particles: local="
-      << localBefore << ", total=" << total << "." << endl;
+    m << level3
+      << "Starting ORB load balancing from current primary particles: local=" << localBefore
+      << ", total=" << total << "." << endl;
 
     const bool repartitioned = this->loadbalancer_m->repartitionFromCurrentParticles(fl, mesh);
     if (!repartitioned) {

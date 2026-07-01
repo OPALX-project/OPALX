@@ -43,13 +43,13 @@ class BinnedFieldSolver : public FieldSolver<T, Dim> {
     static_assert(Dim == 3, "BinnedFieldSolver currently supports Dim == 3 only.");
 
 public:
-    using PartBunch_t    = PartBunch<T, Dim>;
-    using ParticleCtr_t  = typename PartBunch_t::ParticleContainer_t;
+    using PartBunch_t      = PartBunch<T, Dim>;
+    using ParticleCtr_t    = typename PartBunch_t::ParticleContainer_t;
     using FieldContainer_t = typename PartBunch_t::FieldContainer_t;
-    using AdaptBins_t    = typename PartBunch_t::AdaptBins_t;
-    using BCHandler_t    = BCHandler<Dim>;
-    using bin_index_type = typename AdaptBins_t::bin_index_type;
-    using size_type      = typename AdaptBins_t::size_type;
+    using AdaptBins_t      = typename PartBunch_t::AdaptBins_t;
+    using BCHandler_t      = BCHandler<Dim>;
+    using bin_index_type   = typename AdaptBins_t::bin_index_type;
+    using size_type        = typename AdaptBins_t::size_type;
 
     using particle_position_type = typename PartBunch_t::Base::particle_position_type;
 
@@ -336,8 +336,7 @@ public:
     void accumulateFieldToTemp(
             FieldContainer_t& fieldContainer, const double gammaBin,
             const Vector_t<double, Dim>& pmean, std::shared_ptr<VField_t<T, Dim>> EtmpSP,
-            std::shared_ptr<VField_t<T, Dim>> BtmpSP, double bFieldSign = 1.0,
-            int flipAxis = -1);
+            std::shared_ptr<VField_t<T, Dim>> BtmpSP, double bFieldSign = 1.0, int flipAxis = -1);
 
 private:
     /// @brief Populate FieldContainer's flipped z-slab scratch with the flipped version of @p src.
