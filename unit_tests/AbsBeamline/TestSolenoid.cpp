@@ -179,10 +179,8 @@ TEST_F(SolenoidPlacementTest, FieldMapEdgesAndSupportEnvelopeFollowFieldMap) {
     solenoid.setFieldMapFN(mapFile.string());
     solenoid.setElementPosition(1.0);
 
-    double startField = 1.0;
-    double endField   = 0.0;
     try {
-        solenoid.initialise(nullptr, startField, endField);
+        solenoid.initialise(nullptr);
     } catch (const OpalException& ex) {
         FAIL() << ex.where() << ": " << ex.what();
     } catch (...) {
@@ -195,8 +193,6 @@ TEST_F(SolenoidPlacementTest, FieldMapEdgesAndSupportEnvelopeFollowFieldMap) {
     double bodyBegin = 0.0, bodyEnd = 0.0;
     solenoid.getElementDimensions(bodyBegin, bodyEnd);
 
-    EXPECT_NEAR(startField, 0.95, 1e-12);
-    EXPECT_NEAR(endField, 1.15, 1e-12);
     EXPECT_NEAR(solenoid.getElementLength(), 1.0, 1e-12);
     EXPECT_NEAR(fieldBegin, -0.05, 1e-12);
     EXPECT_NEAR(fieldEnd, 0.15, 1e-12);

@@ -41,11 +41,9 @@ public:
     virtual ~PluginElement();
 
     ///@{ Pure virtual implementation of Component
-    virtual void initialise(
-            PartBunch_t* bunch, double& startField, double& endField) override;  // not used?
-    void initialise(PartBunch_t* bunch);  // replacement for virtual initialise
-    virtual void finalise() final;        // final since virtual hook doFinalise
-    virtual void goOffline() final;       // final since virtual hook doGoOffline
+    virtual void initialise(PartBunch_t* bunch) override;
+    virtual void finalise() final;   // final since virtual hook doFinalise
+    virtual void goOffline() final;  // final since virtual hook doGoOffline
     virtual bool bends() const override;
     virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
     /// Plugin elements select over their body; their narrow getFieldExtent() window is for the

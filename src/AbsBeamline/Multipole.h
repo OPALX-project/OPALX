@@ -126,7 +126,7 @@ public:
      * @param startField Where the fields start along the path
      * @param endFied Where the fields end along the path
      */
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    virtual void initialise(PartBunch_t* bunch) override;
 
     virtual void finalise() override;
 

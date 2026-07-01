@@ -107,7 +107,7 @@ public:
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    virtual void initialise(PartBunch_t* bunch) override;
 
     virtual void initialise(
             PartBunch_t* bunch, std::shared_ptr<AbstractTimeDependence> freq_atd,

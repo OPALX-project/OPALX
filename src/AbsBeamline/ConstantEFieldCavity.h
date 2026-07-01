@@ -19,7 +19,7 @@ public:
 
     virtual void accept(BeamlineVisitor& visitor) const override;
 
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    virtual void initialise(PartBunch_t* bunch) override;
     virtual void finalise() override;
     virtual bool bends() const override;
     virtual ElementType getType() const override;
@@ -48,7 +48,6 @@ protected:
     double Ex_m;
     double Ey_m;
     double Ez_m;
-    double startField_m;
 
 private:
     void operator=(const ConstantEFieldCavity&);

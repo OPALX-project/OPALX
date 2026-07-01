@@ -163,10 +163,8 @@ void Solenoid::setDKS(double ks) { scaleError_m = ks; }
  * fieldmap, saving the start and endpoints of the fieldmaps.
  *
  * @param bunch Particle bunch
- * @param startField Starting position of the field
- * @param endField Ending position of the field
  */
-void Solenoid::initialise(PartBunch_t* bunch, double& startField, double& endField) {
+void Solenoid::initialise(PartBunch_t* bunch) {
     Inform msg("Solenoid ", *gmsg);
 
     RefPartBunch_m = bunch;
@@ -182,14 +180,9 @@ void Solenoid::initialise(PartBunch_t* bunch, double& startField, double& endFie
 
         startField_m = zBegin;
         endField_m   = zEnd;
-
-        const double bodyBegin = startField;
-        startField             = bodyBegin + startField_m;
-        endField               = bodyBegin + endField_m;
     } else {
         startField_m = 0.0;
         endField_m   = 0.0;
-        endField     = startField;
     }
 }
 

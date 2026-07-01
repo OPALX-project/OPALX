@@ -80,8 +80,7 @@ bool ScalingFFAMagnet::apply(
 
 void ScalingFFAMagnet::initialise() { calculateDfCoefficients(); }
 
-void ScalingFFAMagnet::initialise(
-        PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
+void ScalingFFAMagnet::initialise(PartBunch_t* bunch) {
     RefPartBunch_m = bunch;
     initialise();
 }

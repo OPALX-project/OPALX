@@ -371,7 +371,7 @@ public:
     virtual void setDesignEnergy(const double& energy, bool changeable = true);
 
     // Setup
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) = 0;
+    virtual void initialise(PartBunch_t* bunch) = 0;
 
     // Clean-up
     virtual void finalise() = 0;

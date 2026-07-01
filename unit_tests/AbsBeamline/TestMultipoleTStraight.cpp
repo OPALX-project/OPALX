@@ -78,8 +78,7 @@ public:
         Kokkos::fence();
         // Register the bunch with the element
         bunch->setT(0.0);
-        double startField, endField;
-        initialise(bunch.get(), startField, endField);
+        initialise(bunch.get());
         // Get the fields
         apply(pc);
         // Return the fields
@@ -116,8 +115,7 @@ public:
         Kokkos::fence();
         // Register the bunch with the element
         bunch->setT(0.0);
-        double startField, endField;
-        initialise(bunch.get(), startField, endField);
+        initialise(bunch.get());
         // Get the fields
         apply(pc);
         // Return the fields
@@ -573,8 +571,7 @@ TEST_F(TestMultipoleTStraight, FieldAtSingleParticlePosition) {
     Kokkos::fence();
     // Register the bunch with the element
     bunch->setT(0.0);
-    double startField, endField;
-    initialise(bunch.get(), startField, endField);
+    initialise(bunch.get());
     // Get the fields
     Vector_t<double, 3> E{}, B{};
     apply(0, 0.0, E, B);

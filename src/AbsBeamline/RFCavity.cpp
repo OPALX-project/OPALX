@@ -192,7 +192,7 @@ bool RFCavity::applyToReferenceParticle(
     return false;
 }
 
-void RFCavity::initialise(PartBunch_t* bunch, double& startField, double& endField) {
+void RFCavity::initialise(PartBunch_t* bunch) {
     startField_m = endField_m = 0.0;
     if (bunch == nullptr) {
         return;
@@ -226,9 +226,6 @@ void RFCavity::initialise(PartBunch_t* bunch, double& startField, double& endFie
         }
         frequency_m = fieldmap_m->getFrequency();
     }
-    const double bodyBegin = startField;
-    startField             = bodyBegin + startField_m;
-    endField               = bodyBegin + endField_m;
 }
 
 // In current version ,this function reads in the cavity voltage profile data from file.

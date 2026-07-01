@@ -40,8 +40,6 @@ PluginElement::~PluginElement() {
     if (online_m) goOffline();
 }
 
-void PluginElement::initialise(PartBunch_t* bunch, double&, double&) { initialise(bunch); }
-
 void PluginElement::initialise(PartBunch_t* bunch) {
     RefPartBunch_m = bunch;
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getOutputFN(), !Options::asciidump));

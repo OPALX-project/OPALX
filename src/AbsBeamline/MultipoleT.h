@@ -118,7 +118,7 @@ public:
      *  \param startField -> Not used
      *  \param endField -> Not used
      */
-    void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    void initialise(PartBunch_t* bunch) override;
     /** Finalise the MultipoleT - sets bunch to nullptr */
     void finalise() override;
     /** Return true if dipole component not zero */

@@ -34,9 +34,7 @@ Marker::~Marker() {}
 
 void Marker::accept(BeamlineVisitor& visitor) const { visitor.visitMarker(*this); }
 
-void Marker::initialise(PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
-    RefPartBunch_m = bunch;
-}
+void Marker::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
 
 void Marker::finalise() {}
 

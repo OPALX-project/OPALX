@@ -37,11 +37,7 @@ Drift::~Drift() {}
 
 void Drift::accept(BeamlineVisitor& visitor) const { visitor.visitDrift(*this); }
 
-void Drift::initialise(PartBunch_t* bunch, double& startField, double& endField) {
-    endField       = startField + getElementLength();
-    RefPartBunch_m = bunch;
-    startField_m   = startField;
-}
+void Drift::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
 
 // set the number of slices for map tracking
 void Drift::setNSlices(const std::size_t& nSlices) { nSlices_m = nSlices; }

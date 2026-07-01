@@ -80,7 +80,7 @@ public:
      *  \param startField not used
      *  \param endField not used
      */
-    void initialise(PartBunch_t* bunch, double& startField, double& endField);
+    void initialise(PartBunch_t* bunch);
 
     /** Initialise the VerticalFFAMagnet
      *

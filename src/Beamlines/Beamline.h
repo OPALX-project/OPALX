@@ -53,7 +53,7 @@ public:
     // A beam line composite carries no field model; these satisfy the
     // element interface formerly provided by Component.
     bool bends() const override { return false; }
-    void initialise(PartBunch_t*, double&, double&) override {}
+    void initialise(PartBunch_t*) override {}
     void finalise() override {}
     void getFieldExtent(double& zBegin, double& zEnd) const override {
         getElementDimensions(zBegin, zEnd);

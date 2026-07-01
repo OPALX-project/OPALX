@@ -108,7 +108,7 @@ public:
      *
      *  Just sets RefPartBunch_m
      */
-    void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    void initialise(PartBunch_t* bunch) override;
 
     /** Finalise following tracking
      *

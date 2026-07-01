@@ -359,13 +359,15 @@ bool Monitor::applyToReferenceParticle(
     return false;
 }
 
-void Monitor::initialise(PartBunch_t* bunch, double& startField, double& endField) {
+void Monitor::initialise(PartBunch_t* bunch) {
     RefPartBunch_m = bunch;
 
-    endField = startField + halfLength_s;
-    startField -= halfLength_s;
+    // The monitor's path-length position (its ELEMEDGE, or 0 for a 6D-posed monitor); the
+    // monitor plane straddles it by +-halfLength_s.
+    const double elemEdge     = isElementPositionSet() ? getElementPosition() : 0.0;
+    const double monitorStart = elemEdge - halfLength_s;
 
-    double currentPosition = endField;
+    double currentPosition = elemEdge + halfLength_s;
     if (bunch != nullptr) {
         const std::shared_ptr<ParticleContainer_t> pc = bunch->getParticleContainer();
         if (pc) {
@@ -376,7 +378,7 @@ void Monitor::initialise(PartBunch_t* bunch, double& startField, double& endFiel
     filename_m = getOutputFN();
 
     if (OpalData::getInstance()->getOpenMode() == OpalData::OpenMode::WRITE
-        || currentPosition < startField) {
+        || currentPosition < monitorStart) {
         namespace fs = std::filesystem;
 
         const fs::path lossFileName(filename_m + ".h5");
