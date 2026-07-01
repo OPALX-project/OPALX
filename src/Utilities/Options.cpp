@@ -68,6 +68,8 @@ namespace Options {
 
     bool ebDump = false;
 
+    bool rankDump = false;
+
     bool csrDump = false;
 
     int autoPhase = 6;

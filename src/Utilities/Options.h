@@ -108,6 +108,8 @@ namespace Options {
 
     extern bool ebDump;
 
+    extern bool rankDump;
+
     extern bool csrDump;
 
     // the number of refinements of the search range for the phase with maximum energy

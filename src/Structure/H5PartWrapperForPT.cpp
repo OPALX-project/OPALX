@@ -215,7 +215,9 @@ void H5PartWrapperForPT::writeHeader() {
     WRITESTRINGFILEATTRIB(file_m, "OPAL_version", OPAL_version.str().c_str());
 
     WRITESTRINGFILEATTRIB(file_m, "idUnit", "1");
-    WRITESTRINGFILEATTRIB(file_m, "RankUnit", "1");
+    if (Options::rankDump) {
+        WRITESTRINGFILEATTRIB(file_m, "rankUnit", "1");
+    }
     WRITESTRINGFILEATTRIB(file_m, "xUnit", "m");
     WRITESTRINGFILEATTRIB(file_m, "yUnit", "m");
     WRITESTRINGFILEATTRIB(file_m, "zUnit", "m");
@@ -479,10 +481,12 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch, size_t particleContai
         i64buffer[i] = idView(i);
     WRITEDATA(Int64, file_m, "id", i64buffer);
 
-    const h5_int32_t rank = static_cast<h5_int32_t>(ippl::Comm->rank());
-    for (size_t i = 0; i < numLocalParticles; ++i)
-        i32buffer[i] = rank;
-    WRITEDATA(Int32, file_m, "Rank", i32buffer);
+    if (Options::rankDump) {
+        const h5_int32_t rank = static_cast<h5_int32_t>(ippl::Comm->rank());
+        for (size_t i = 0; i < numLocalParticles; ++i)
+            i32buffer[i] = rank;
+        WRITEDATA(Int32, file_m, "rank", i32buffer);
+    }
 
     auto binViewDevice = pc->Bin.getView();
     auto binView       = Kokkos::create_mirror_view(binViewDevice);
