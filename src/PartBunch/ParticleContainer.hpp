@@ -779,6 +779,11 @@ public:
             return total > 0 ? 100.0 * static_cast<double>(value) / static_cast<double>(total)
                              : 0.0;
         };
+        auto localRatioPercent = [](size_type numerator, size_type denominator) {
+            return denominator > 0
+                         ? 100.0 * static_cast<double>(numerator) / static_cast<double>(denominator)
+                         : 0.0;
+        };
 
         Inform m("ParticleContainer::printRankLoadInfo", root);
         constexpr int labelWidth = 24;
@@ -808,6 +813,15 @@ public:
         for (int r = 0; r < nranks; ++r) {
             m << " | " << std::right << std::setw(colWidth)
               << percent(rankCapacity[static_cast<size_t>(r)], totalCapacity);
+        }
+        m << endl;
+
+        m << level2 << std::left << std::setw(labelWidth) << "Overallocation [%]" << std::fixed
+          << std::setprecision(2);
+        for (int r = 0; r < nranks; ++r) {
+            const auto i = static_cast<size_t>(r);
+            m << " | " << std::right << std::setw(colWidth)
+              << localRatioPercent(rankCapacity[i], rankParticles[i]);
         }
         m << endl;
     }
