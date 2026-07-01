@@ -42,11 +42,11 @@ void OpalRBend::update() {
     OpalElement::update();
 
     // Define geometry.
-    RBendRep* bend          = dynamic_cast<RBendRep*>(getElement());
-    double length           = Attributes::getReal(itsAttr[LENGTH]);
-    double angle            = Attributes::getReal(itsAttr[ANGLE]);
-    double e1               = Attributes::getReal(itsAttr[E1]);
-    RBendGeometry& geometry = bend->getGeometry();
+    RBendRep* bend     = dynamic_cast<RBendRep*>(getElement());
+    double length      = Attributes::getReal(itsAttr[LENGTH]);
+    double angle       = Attributes::getReal(itsAttr[ANGLE]);
+    double e1          = Attributes::getReal(itsAttr[E1]);
+    Geometry& geometry = static_cast<Geometry&>(bend->getGeometry());
     geometry.setElementLength(length);
     if (angle < 0) {
     }
@@ -102,10 +102,6 @@ void OpalRBend::update() {
         bend->setFieldAmplitude(k0, k0s);
     }
     bend->setEntranceAngle(e1);
-
-    if (itsAttr[ROTATION])
-        throw OpalException(
-                "OpalRBend::update", "ROTATION not supported any more; use PSI instead");
 
     if (itsAttr[FMAPFN])
         bend->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));

@@ -119,6 +119,8 @@ TEST_F(TestOpalMultipoleT, UserInterfaceClone) {
     Attributes::setBool(ui.itsAttr[OpalMultipoleT::VARRADIUS], false);
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ENTRYOFFSET], 0.0);
     Attributes::setUpperCaseString(ui.itsAttr[OpalMultipoleT::SCALING_MODEL], "Scaling");
+    // A non-builtin (cloned) element must be placed, otherwise update() rejects it.
+    Attributes::setReal(*ui.findAttribute("ELEMEDGE"), 0.0);
     // Make the clone
     std::unique_ptr<OpalMultipoleT> uiClone{ui.clone("Clone")};
     // Update the magnet

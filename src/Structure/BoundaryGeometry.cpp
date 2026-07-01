@@ -958,7 +958,7 @@ BoundaryGeometry::~BoundaryGeometry() { gsl_rng_free(randGen_m); }
 
 bool BoundaryGeometry::canReplaceBy(Object* object) {
     // Can replace only by another GEOMETRY.
-    return dynamic_cast<BGeometryBase*>(object) != 0;
+    return dynamic_cast<Geometry*>(object) != 0;
 }
 
 BoundaryGeometry* BoundaryGeometry::clone(const std::string& name) {

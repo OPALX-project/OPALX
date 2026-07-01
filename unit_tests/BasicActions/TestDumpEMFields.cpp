@@ -26,7 +26,7 @@
 #include "Attributes/Attributes.h"
 #include "BasicActions/DumpEMFields.h"
 
-#include "BeamlineGeometry/NullGeometry.h"
+#include "BeamlineGeometry/Geometry.h"
 #include "Elements/OpalBeamline.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
@@ -76,10 +76,10 @@ namespace {
         bool bends() const override { return true; }
         void getFieldExtend(double&, double&) const override {}
 
-        BGeometryBase& getGeometry() override { return geometry_m; }
-        const BGeometryBase& getGeometry() const override { return geometry_m; }
+        Geometry& getGeometry() override { return geometry_m; }
+        const Geometry& getGeometry() const override { return geometry_m; }
 
-        NullGeometry geometry_m;
+        Geometry geometry_m{Geometry::makeNull()};
     };
 
     void setOneAttribute(DumpEMFields* dump, const std::string& name, const double value) {

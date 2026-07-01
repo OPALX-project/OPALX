@@ -7,7 +7,6 @@ add_subdirectory(EndFieldModel)
 set(_SRCS
     AttributeSet.cpp
     BeamlineVisitor.cpp
-    BendBase.cpp
     ConstantEFieldCavity.cpp
     Drift.cpp
     ElementBase.cpp
@@ -20,7 +19,6 @@ set(_SRCS
     MultipoleTStraight.cpp
     MultipoleTCurvedConstRadius.cpp
     RFCavity.cpp
-    Ring.cpp
     ScalingFFAMagnet.cpp        
     Solenoid.cpp
     TravelingWave.cpp
@@ -35,7 +33,6 @@ set(_SRCS
 set(_HDRS
     AttributeSet.h
     BeamlineVisitor.h
-    BendBase.h
     ConstantEFieldCavity.h
     Drift.h
     ElementBase.h
@@ -50,7 +47,6 @@ set(_HDRS
     TravelingWave.h
     SpecificElementVisitor.h
     ScalingFFAMagnet.h
-    Ring.h
     Solenoid.h
     VerticalFFAMagnet.h
     Probe.h

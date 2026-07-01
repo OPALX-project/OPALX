@@ -19,11 +19,12 @@ namespace {
             {nullptr, nullptr, nullptr}};
 }  // namespace
 
-SBendRep::SBendRep() : SBend(), geometry_m(0.0, 0.0) {}
+SBendRep::SBendRep() : SBend(), geometry_m(Geometry::makeSBend(0.0, 0.0)) {}
 
 SBendRep::SBendRep(const SBendRep& right) : SBend(right), geometry_m(right.geometry_m) {}
 
-SBendRep::SBendRep(const std::string& name) : SBend(name), geometry_m(0.0, 0.0) {}
+SBendRep::SBendRep(const std::string& name)
+    : SBend(name), geometry_m(Geometry::makeSBend(0.0, 0.0)) {}
 
 SBendRep::~SBendRep() = default;
 
@@ -39,6 +40,6 @@ Channel* SBendRep::getChannel(const std::string& aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
-PlanarArcGeometry& SBendRep::getGeometry() { return geometry_m; }
+Geometry& SBendRep::getGeometry() { return geometry_m; }
 
-const PlanarArcGeometry& SBendRep::getGeometry() const { return geometry_m; }
+const Geometry& SBendRep::getGeometry() const { return geometry_m; }
