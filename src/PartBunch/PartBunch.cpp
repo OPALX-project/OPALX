@@ -31,7 +31,6 @@ PartBunch<T, Dim>::PartBunch(
       integration_method_m(integration_method),
       solver_m(""),
       lbt_m(lbt),
-      isFirstRepartition_m(true),
       OPALFieldSolver_m(OPALFieldSolver),
       dataSink_m(dataSink),
       globalTrackStep_m(0),
@@ -269,8 +268,6 @@ void PartBunch<T, Dim>::do_binaryRepart() {
 
     this->getFieldSolver()->refreshAfterFieldLayoutChange();
 
-    isFirstRepartition_m                        = false;
-    this->bunchState_m->isFirstRepartitionRef() = false;
     gatherLoadBalanceStatistics();
 
     m << level2 << "ORB load balancing done. Rank 0: " << localBefore << " -> "

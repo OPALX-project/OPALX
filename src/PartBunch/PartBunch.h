@@ -84,7 +84,6 @@ public:
     Vector_t<double, Dim> hr_m;  ///< Mesh spacing (m).
 
     double lbt_m;                    ///< Load-balancer timescale parameter.
-    bool isFirstRepartition_m;       ///< True until the first ORB-style repartition completes.
     ippl::NDIndex<Dim> domain_m;     ///< Global mesh index extent per dimension.
     std::array<bool, Dim> decomp_m;  ///< Domain decomposition flags (per axis).
 
