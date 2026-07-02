@@ -2,57 +2,35 @@
 
 #include "AbsBeamline/BeamlineVisitor.h"
 
+#include "BeamlineGeometry/Geometry.h"
+
 #include "PartBunch/PartBunch.h"
-#include "Physics/Physics.h"
 
 #include <Kokkos_Core.hpp>
 
-#include <algorithm>
 #include <cmath>
 
 RBend::RBend() : RBend("") {}
 
 RBend::RBend(const RBend& right)
     : ElementBase(right),
-      angle_m(right.angle_m),
-      entranceAngle_m(right.entranceAngle_m),
-      exitAngle_m(right.exitAngle_m),
+      normalComponents_m(right.normalComponents_m),
+      skewComponents_m(right.skewComponents_m),
+      maxNormal_m(right.maxNormal_m),
+      maxSkew_m(right.maxSkew_m),
       gap_m(right.gap_m),
+      fringeHalfGap_m(right.fringeHalfGap_m),
+      fringeIntegral_m(right.fringeIntegral_m),
       designEnergy_m(right.designEnergy_m),
-      designEnergyChangeable_m(true),
-      fieldAmplitudeX_m(right.fieldAmplitudeX_m),
-      fieldAmplitudeY_m(right.fieldAmplitudeY_m),
-      fieldAmplitude_m(right.fieldAmplitude_m),
-      fileName_m(right.fileName_m),
-      entryFaceRotation_m(right.entryFaceRotation_m),
-      exitFaceRotation_m(right.exitFaceRotation_m),
-      entryFaceCurvature_m(right.entryFaceCurvature_m),
-      exitFaceCurvature_m(right.exitFaceCurvature_m),
-      slices_m(right.slices_m),
-      stepSize_m(right.stepSize_m),
-      nSlices_m(right.nSlices_m),
-      k1_m(right.k1_m) {}
+      designEnergyChangeable_m(true) {}
 
 RBend::RBend(const std::string& name)
     : ElementBase(name),
-      angle_m(0.0),
-      entranceAngle_m(0.0),
-      exitAngle_m(0.0),
       gap_m(0.0),
+      fringeHalfGap_m(0.0),
+      fringeIntegral_m(0.5),
       designEnergy_m(0.0),
-      designEnergyChangeable_m(true),
-      fieldAmplitudeX_m(0.0),
-      fieldAmplitudeY_m(0.0),
-      fieldAmplitude_m(0.0),
-      fileName_m(),
-      entryFaceRotation_m(0.0),
-      exitFaceRotation_m(0.0),
-      entryFaceCurvature_m(0.0),
-      exitFaceCurvature_m(0.0),
-      slices_m(1.0),
-      stepSize_m(0.0),
-      nSlices_m(1),
-      k1_m(0.0) {}
+      designEnergyChangeable_m(true) {}
 
 RBend::~RBend() = default;
 
@@ -65,13 +43,8 @@ void RBend::finalise() { online_m = false; }
 
 bool RBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     auto Rview          = pc->R.getView();
-    auto Eview          = pc->E.getView();
     auto Bview          = pc->B.getView();
     const size_t nLocal = pc->getLocalNum();
-
-    // Capture the coefficient views by value for the kernel.
-    auto normal = normalComponents_m;
-    auto skew   = skewComponents_m;
 
     // Field-support extent (single source, shared with isInside selection), captured on the
     // host before the kernel launch (getFieldExtent is not device-callable).
@@ -79,33 +52,20 @@ bool RBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     double zEnd   = 0.0;
     getFieldExtent(zBegin, zEnd);
 
+    // Coefficients, fringe geometry and edge-focusing built once on the host and captured by value.
+    const BendFieldModel::FieldInputs inputs = makeFieldInputs();
+
     Kokkos::parallel_for(
             "RBend::apply", nLocal, KOKKOS_LAMBDA(const size_t i) {
-                if (Rview(i)(2) < zBegin || Rview(i)(2) > zEnd) {
+                // The local frame is the straight box (+z along the box axis), so the field
+                // is a uniform vertical dipole with an Enge ramp in the box z — gate on the
+                // box z, no arc conversion. The pusher curves the orbit through it.
+                const Vector_t<double, 3>& box = Rview(i);
+                if (box(2) < zBegin || box(2) > zEnd) {
                     return;
                 }
-
-                Vector_t<double, 3> Bf(0.0);
-                const double x = Rview(i)(0);
-                const double y = Rview(i)(1);
-
-                if (normal.extent(0) > 0) {
-                    Bf(1) += normal(0);
-                }
-                if (skew.extent(0) > 0) {
-                    Bf(0) -= skew(0);
-                }
-                if (normal.extent(0) > 1) {
-                    Bf(0) += normal(1) * y;
-                    Bf(1) += normal(1) * x;
-                }
-                if (skew.extent(0) > 1) {
-                    Bf(0) -= skew(1) * x;
-                    Bf(1) += skew(1) * y;
-                }
-
+                const Vector_t<double, 3> Bf = BendFieldModel::bendField(box, inputs);
                 for (unsigned d = 0; d < 3; ++d) {
-                    Eview(i)(d) += 0.0;
                     Bview(i)(d) += Bf(d);
                 }
             });
@@ -113,26 +73,12 @@ bool RBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     return false;
 }
 
-bool RBend::apply(const size_t& i, const double&, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
-    const Vector_t<double, 3> R             = pc->R.getView()(i);
-
-    if (!isInside(R)) {
-        return false;
-    }
-    if (!isInsideTransverse(R)) {
-        return getFlagDeleteOnTransverseExit();
-    }
-
-    computeFieldHost(R, B);
-    (void)E;
-    return false;
-}
-
 bool RBend::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    if (!isInside(R)) {
+    double zBegin = 0.0, zEnd = 0.0;
+    getFieldExtent(zBegin, zEnd);
+    if (R(2) < zBegin || R(2) >= zEnd) {
         return false;
     }
     if (!isInsideTransverse(R)) {
@@ -147,7 +93,9 @@ bool RBend::apply(
 bool RBend::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    if (!isInside(R)) {
+    double zBegin = 0.0, zEnd = 0.0;
+    getFieldExtent(zBegin, zEnd);
+    if (R(2) < zBegin || R(2) >= zEnd) {
         return false;
     }
     if (!isInsideTransverse(R)) {
@@ -160,73 +108,107 @@ bool RBend::applyToReferenceParticle(
 }
 
 void RBend::getFieldExtent(double& zBegin, double& zEnd) const {
-    zBegin = 0.0;
-    zEnd   = getElementLength();
-}
-
-// isInside() is inherited from ElementBase (field extent [0, L] + transverse aperture).
-
-double RBend::getChordLength() const { return getGeometry().getChordLength(); }
-
-std::vector<Vector_t<double, 3>> RBend::getDesignPath(std::size_t minSamples) const {
-    return getGeometry().getDesignPath(minSamples);
-}
-
-double RBend::calcDesignRadius(double fieldAmplitude) const {
-    const auto& reference  = *RefPartBunch_m->getParticleContainer()->getReference();
-    const double mass      = reference.getM();
-    const double betaGamma = calcBetaGamma();
-    const double charge    = reference.getQ();
-    return std::abs(betaGamma * mass / (Physics::c * fieldAmplitude * charge));
-}
-
-double RBend::calcFieldAmplitude(double radius) const {
-    const auto& reference  = *RefPartBunch_m->getParticleContainer()->getReference();
-    const double mass      = reference.getM();
-    const double betaGamma = calcBetaGamma();
-    const double charge    = reference.getQ();
-    return betaGamma * mass / (Physics::c * radius * charge);
-}
-
-double RBend::calcBendAngle(double chordLength, double radius) const {
-    return 2.0 * std::asin(chordLength / (2.0 * radius));
-}
-
-double RBend::calcDesignRadius(double chordLength, double angle) const {
-    return chordLength / (2.0 * std::sin(angle / 2.0));
-}
-
-double RBend::calcGamma() const {
-    const auto& reference = *RefPartBunch_m->getParticleContainer()->getReference();
-    const double mass     = reference.getM();
-    return designEnergy_m / mass + 1.0;
-}
-
-double RBend::calcBetaGamma() const {
-    const double gamma = calcGamma();
-    return std::sqrt(gamma * gamma - 1.0);
+    // Element length plus one Enge fringe half width past each pole face
+    const double half = BendFieldModel::fringeHalfWidth(
+            BendFieldModel::profileGap(gap_m, fringeHalfGap_m));
+    zBegin = -half;
+    zEnd   = getGeometry().getElementLength() + half;
 }
 
 void RBend::computeFieldHost(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const {
+    // R is already in the straight box frame: a uniform vertical dipole with an Enge ramp
+    // in the box z, no arc conversion (mirrors the device kernel in apply(pc)).
+    const BendFieldModel::FieldInputs inputs = makeFieldInputs();
+    const Vector_t<double, 3> Bf             = BendFieldModel::bendField(R, inputs);
+    for (unsigned d = 0; d < 3; ++d) {
+        B(d) += Bf(d);
+    }
+}
+
+double RBend::referenceCurvature() const {
+    // Design-orbit curvature 1/rho = angle / arc length = 2 sin(angle/2) / L. Used only to
+    // scale the pole-face edge-focusing kick; the field itself is uniform in the box.
+    const double arc = getGeometry().getArcLength();
+    return (arc > 1.0e-12) ? getGeometry().getBendAngle() / arc : 0.0;
+}
+
+double RBend::edgeAngleEntrance() const {
+    // Angle between the design orbit and the entrance pole face, for the edge focusing:
+    // the orbit meets the box face at half the bend angle, plus any explicit rotation E1.
+    return 0.5 * getGeometry().getBendAngle() + getGeometry().getEntranceAngle();
+}
+
+double RBend::edgeAngleExit() const {
+    return 0.5 * getGeometry().getBendAngle() + getGeometry().getExitAngle();
+}
+
+bool RBend::isInside(const Vector_t<double, 3>& r) const {
+    // Straight box: gate on the box z and the box transverse aperture directly.
+    double zBegin = 0.0;
+    double zEnd   = 0.0;
+    getFieldExtent(zBegin, zEnd);
+    return r(2) >= zBegin && r(2) < zEnd && isInsideTransverse(r);
+}
+
+BendFieldModel::FieldInputs RBend::makeFieldInputs() const {
+    BendFieldModel::FieldInputs in{};
+
+    // Multipole coefficients (dipole + quadrupole), read once from the device views.
+    // Divide by the reference charge so the physical field is B = (p/q)·k (see SBend);
+    // the species is only known once a bunch is attached. Defaults to q = 1 (unit tests).
+    double charge = 1.0;
+    if (RefPartBunch_m != nullptr) {
+        const double q = RefPartBunch_m->getParticleContainer()->getReference()->getQ();
+        if (std::abs(q) > 1.0e-15) {
+            charge = q;
+        }
+    }
     auto normalHost = Kokkos::create_mirror_view(normalComponents_m);
     auto skewHost   = Kokkos::create_mirror_view(skewComponents_m);
     Kokkos::deep_copy(normalHost, normalComponents_m);
     Kokkos::deep_copy(skewHost, skewComponents_m);
+    in.dipoleNormal = ((maxNormal_m > 0) ? normalHost(0) : 0.0) / charge;
+    in.quadNormal   = ((maxNormal_m > 1) ? normalHost(1) : 0.0) / charge;
+    in.dipoleSkew   = ((maxSkew_m > 0) ? skewHost(0) : 0.0) / charge;
+    in.quadSkew     = ((maxSkew_m > 1) ? skewHost(1) : 0.0) / charge;
 
-    if (maxNormal_m > 0) {
-        B(1) += normalHost(0);
+    // Straight box frame: the field is a uniform vertical dipole gated on the box z, so no
+    // curvature or frame de-tilt is applied (curvature/faceAngle stay 0). The fringe runs
+    // over the box length with the faces perpendicular to the box axis (unit projections);
+    // pole-face angles enter only the edge-focusing kick below.
+    in.bodyLength  = getGeometry().getElementLength();
+    in.curvature   = 0.0;
+    in.faceAngle   = 0.0;
+    in.profileGap  = BendFieldModel::profileGap(gap_m, fringeHalfGap_m);
+    in.cosEntrance = 1.0;
+    in.cosExit     = 1.0;
+
+    // Distributed pole-face vertical edge focusing, active only with a fringe. The kick
+    // coefficient is spread over the Enge ramp so its integral matches the hard-edge kick.
+    in.entryEdgeCoefficient = 0.0;
+    in.exitEdgeCoefficient  = 0.0;
+    if (in.profileGap > 0.0) {
+        const double h    = referenceCurvature();
+        const double half = BendFieldModel::fringeHalfWidth(in.profileGap);
+        const double span = std::abs(
+                BendFieldModel::engeProfile(-half, in.profileGap).value
+                - BendFieldModel::engeProfile(half, in.profileGap).value);
+        if (std::abs(h) > 1.0e-15 && span > 1.0e-15) {
+            const double rigidity = in.dipoleNormal / h;
+            in.entryEdgeCoefficient =
+                    rigidity
+                    * BendFieldModel::edgeVerticalKickCoefficient(
+                            h, fringeHalfGap_m, fringeIntegral_m, edgeAngleEntrance())
+                    / span;
+            in.exitEdgeCoefficient =
+                    rigidity
+                    * BendFieldModel::edgeVerticalKickCoefficient(
+                            h, fringeHalfGap_m, fringeIntegral_m, edgeAngleExit())
+                    / span;
+        }
     }
-    if (maxSkew_m > 0) {
-        B(0) -= skewHost(0);
-    }
-    if (maxNormal_m > 1) {
-        B(0) += normalHost(1) * R(1);
-        B(1) += normalHost(1) * R(0);
-    }
-    if (maxSkew_m > 1) {
-        B(0) -= skewHost(1) * R(0);
-        B(1) += skewHost(1) * R(1);
-    }
+
+    return in;
 }
 
 void RBend::setFieldComponents(const std::vector<double>& normal, const std::vector<double>& skew) {
@@ -268,5 +250,3 @@ void RBend::setB(double B) {
 void RBend::accept(BeamlineVisitor& visitor) const { visitor.visitRBend(*this); }
 
 ElementType RBend::getType() const { return ElementType::RBEND; }
-
-double RBend::getExitAngle() const { return getBendAngle() - getEntranceAngle(); }

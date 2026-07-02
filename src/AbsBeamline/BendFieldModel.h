@@ -6,9 +6,10 @@
 //   Stateless field-shape math shared by the analytic SBEND and RBEND fringe
 //   fields: the OPAL default Enge longitudinal profile (amplitude and its first
 //   two derivatives), the combined amplitude from the two pole-face distances,
-//   and the pole-face vertical edge-focusing coefficient. All functions are
-//   device-callable and hold no state; the bends supply their own geometry
-//   (pole-face distances, gap, curvature) and coefficients.
+//   the pole-face vertical edge-focusing coefficient, and the field evaluation
+//   itself. All functions are device-callable and hold no state; the bends supply
+//   their own geometry scalars (gap, curvature, face angles) and coefficients.
+//   Coordinate conversions live in GeometryHelper (BeamlineGeometry/Geometry.h).
 //
 // Copyright (c) 2026, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
@@ -23,6 +24,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
+
+#include "VectorMath.h"
 
 #include <Kokkos_Core.hpp>
 
@@ -113,12 +116,6 @@ namespace BendFieldModel {
         return 5.0 * profileGap;
     }
 
-    /// |cos(angle)| floored to a small positive value, for pole-face projection.
-    KOKKOS_INLINE_FUNCTION double safeAbsCos(const double angle) {
-        const double c = Kokkos::abs(Kokkos::cos(angle));
-        return (c > 1.0e-6) ? c : 1.0e-6;
-    }
-
     /// Combined fringe amplitude, with the derivatives of the limiting face.
     struct FringeAmplitude {
         double value;             ///< F in [0, 1]
@@ -166,6 +163,74 @@ namespace BendFieldModel {
         const double psi =
                 curvature * halfGap * fringeIntegral * (1.0 + sinE * sinE) / safeCos;
         return -curvature * Kokkos::tan(edgeAngle - psi);
+    }
+
+    /**
+     * @brief Pure-value inputs for one bend field evaluation.
+     *
+     * This is not element state: the bend fills it once (coefficients fixed at
+     * parse time, geometry from its Geometry, edge coefficients precomputed on the
+     * host) and passes it to bendField() on both the device and host field paths.
+     * Absent multipole coefficients are simply zero.
+     */
+    struct FieldInputs {
+        double dipoleNormal;          ///< normal dipole B0 (normal[0])
+        double dipoleSkew;            ///< skew dipole (skew[0])
+        double quadNormal;            ///< normal quadrupole (normal[1])
+        double quadSkew;              ///< skew quadrupole (skew[1])
+        double bodyLength;            ///< magnet body length (arc length)
+        double curvature;             ///< reference-path curvature h (0 for a straight body)
+        double faceAngle;             ///< entrance pole-face angle E1 (frame tilt vs design orbit)
+        double profileGap;            ///< Enge gap (GAP or 2*HGAP); 0 => hard edge
+        double cosEntrance;           ///< |cos E1|, pole-face projection
+        double cosExit;               ///< |cos E2|
+        double entryEdgeCoefficient;  ///< distributed vertical edge-focusing (entry)
+        double exitEdgeCoefficient;   ///< distributed vertical edge-focusing (exit)
+    };
+
+    /**
+     * @brief Analytic bend magnetic field at a point in bend coordinates.
+     *
+     * @p arc is (radial offset x, vertical y, arc-length s) from toBendArcCoords();
+     * s is the longitudinal coordinate (entrance at 0, exit at @p bodyLength). The
+     * dipole and multipoles are scaled by the Enge amplitude F, the source-free
+     * fringe corrections @f$-\tfrac12 B_0 F'' y^2@f$ and @f$B_0 F' y@f$ are added,
+     * and the vertical edge focusing is distributed over the fringe as
+     * @f$B_x \mathrel{+}= c\,F'\,y@f$. With @c profileGap = 0 this reduces to the
+     * hard-edge field (F = 1 inside, edge terms 0).
+     */
+    KOKKOS_INLINE_FUNCTION Vector_t<double, 3> bendField(
+            const Vector_t<double, 3>& arc, const FieldInputs& in) {
+        const double x = arc(0);
+        const double y = arc(1);
+        const double z = arc(2);
+
+        const FringeAmplitude fringe = fringeAmplitude(
+                -z * in.cosEntrance, (z - in.bodyLength) * in.cosExit, in.profileGap);
+        const double scale = fringe.value;
+
+        // Chain rule from the active face's distance coordinate to z.
+        const double projection = (fringe.activeFace == 0) ? -in.cosEntrance : in.cosExit;
+        const double dScale     = projection * fringe.firstDerivative;
+        const double d2Scale    = projection * projection * fringe.secondDerivative;
+
+        Vector_t<double, 3> B(0.0);
+        // Dipole with the source-free fringe correction.
+        B(1) += in.dipoleNormal * (scale - 0.5 * d2Scale * y * y);
+        B(2) += in.dipoleNormal * dScale * y;
+        B(0) -= scale * in.dipoleSkew;
+        // Upright / skew quadrupole scaled by the fringe.
+        B(0) += scale * in.quadNormal * y;
+        B(1) += scale * in.quadNormal * x;
+        B(0) -= scale * in.quadSkew * x;
+        B(1) += scale * in.quadSkew * y;
+
+        // Vertical edge focusing distributed over the fringe ramp.
+        const double edgeCoefficient =
+                (fringe.activeFace == 0) ? in.entryEdgeCoefficient : -in.exitEdgeCoefficient;
+        B(0) += edgeCoefficient * dScale * y;
+
+        return B;
     }
 
 }  // namespace BendFieldModel

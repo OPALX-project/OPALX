@@ -10,12 +10,7 @@ namespace {
     };
 
     const Entry entries[] = {
-            {"L", &RBendRep::getElementLength, &RBendRep::setElementLength},
             {"BY", &RBendRep::getB, &RBendRep::setB},
-            {"E1", &RBendRep::getEntryFaceRotation, &RBendRep::setEntryFaceRotation},
-            {"E2", &RBendRep::getExitFaceRotation, &RBendRep::setExitFaceRotation},
-            {"H1", &RBendRep::getEntryFaceCurvature, &RBendRep::setEntryFaceCurvature},
-            {"H2", &RBendRep::getExitFaceCurvature, &RBendRep::setExitFaceCurvature},
             {nullptr, nullptr, nullptr}};
 }  // namespace
 

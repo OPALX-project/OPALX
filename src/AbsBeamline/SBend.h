@@ -1,6 +1,7 @@
 #ifndef OPALX_SBend_HH
 #define OPALX_SBend_HH
 
+#include "AbsBeamline/BendFieldModel.h"
 #include "AbsBeamline/ElementBase.h"
 
 #include <Kokkos_Core.hpp>
@@ -11,24 +12,12 @@
 
 /**
  * @class SBend
- * @brief Common OPALX interface for analytic horizontal bending magnets.
+ * @brief Analytic sector bending magnet.
  *
- * This class provides the shared bookkeeping for sector and rectangular bends
- * in the first OPALX-native bend port. The placed hardware body is represented
- * by the element geometry, while the magnetic field is described by a local
- * multipole expansion evaluated in the element chart.
- *
- * For the analytic field model the dominant dipole contribution satisfies the
- * Lorentz-force design relation
- * \f[
- * \rho = \frac{\beta \gamma m}{|q| c |B|}
- * \f]
- * with design radius \f$\rho\f$, rest mass \f$m\f$, charge \f$q\f$, and
- * reference relativistic factor \f$\beta \gamma\f$.
- *
- * The first implementation keeps the nominal body extent and the field-support
- * extent identical. Fringe-field support will extend this model later without
- * changing the body-placement semantics.
+ * The body is a circular arc (curvature and arc length from the Geometry); the
+ * field is a vertical dipole with an Enge fringe, evaluated in arc coordinates
+ * (radial offset, vertical, arc length) so the field support follows the curved
+ * design orbit at any bend angle.
  */
 class SBend : public ElementBase {
 public:
@@ -40,14 +29,10 @@ public:
     void accept(BeamlineVisitor& visitor) const override;
     ElementType getType() const override;
 
-    bool bends() const override;
-
     void initialise(PartBunch_t* bunch) override;
     void finalise() override;
 
     bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
-    bool apply(const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B)
-            override;
     bool apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
@@ -55,64 +40,26 @@ public:
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
+    /// @brief Calculate the SBend field extent in the element's coordinatesystem
+    /// @param zBegin Where the field begins (negative for fringe fields)
+    /// @param zEnd Where the field ends (larger than element length for fringe fields)
     void getFieldExtent(double& zBegin, double& zEnd) const override;
 
-    /**
-     * @brief Set the nominal body length.
-     *
-     * The bend body length is the placed hardware length and therefore drives
-     * ports and visualization. The geometry itself remains the source of truth
-     * for the placed body extent.
-     */
-    void setLength(double length);
-    double getLength() const;
+    /// Containment in arc-length coordinates (so the bend stays selected as the
+    /// reference orbit curves through it), not the straight-frame z.
+    bool isInside(const Vector_t<double, 3>& r) const override;
 
-    /**
-     * @brief Return the geometric chord between entrance and exit frames.
-     *
-     * For sector bends this is shorter than the arc length, while for
-     * rectangular bends it equals the straight body length.
-     */
-    double getChordLength() const override;
-
-    virtual void setBendAngle(double angle);
-    double getBendAngle() const override;
-
-    virtual void setEntranceAngle(double entranceAngle);
-    double getEntranceAngle() const override;
-
-    virtual void setExitAngle(double exitAngle);
-    virtual double getExitAngle() const;
-
+    /// Full vertical pole gap (GAP), scaling the Enge fringe profile.
     void setFullGap(double gap);
-    double getFullGap() const;
+
+    /// Half gap (HGAP) used by the Enge fringe profile and pole-face focusing.
+    void setFringeHalfGap(double halfGap);
+
+    /// Pole-face field integral (FINT) used by the vertical edge focusing.
+    void setFringeIntegral(double fringeIntegral);
 
     void setDesignEnergy(const double& energy, bool changeable = true) override;
     double getDesignEnergy() const override;
-
-    /**
-     * @brief Sample the local curved reference path of the bend body.
-     *
-     * The returned points lie in the canonical local chart and can be mapped to
-     * lab space via the placed body transform. The sampling is uniform in the
-     * body parameter \f$s\f$ between the entrance and exit frames.
-     */
-    std::vector<Vector_t<double, 3>> getDesignPath(std::size_t minSamples = 32) const override;
-
-    /**
-     * @brief Store the dipole design amplitudes used by the analytic field.
-     *
-     * The normal and skew dipole strengths are the leading coefficients of the
-     * local multipole expansion
-     * \f[
-     * B_y + i B_x = \sum_{n=0}^{N} (B_n + i A_n) (x + i y)^n .
-     * \f]
-     */
-    void setFieldAmplitude(double k0, double k0s);
-    double getFieldAmplitude() const;
-
-    void setFieldMapFN(std::string fileName);
-    std::string getFieldMapFN() const;
 
     /// Store the normal/skew multipole coefficients into the device views read
     /// by apply()/computeFieldHost(). Values are taken as-is (already scaled by
@@ -124,43 +71,18 @@ public:
     double getB() const;
     void setB(double B);
 
-    void setEntryFaceRotation(double rotation);
-    double getEntryFaceRotation() const;
-
-    void setExitFaceRotation(double rotation);
-    double getExitFaceRotation() const;
-
-    void setEntryFaceCurvature(double curvature);
-    double getEntryFaceCurvature() const;
-
-    void setExitFaceCurvature(double curvature);
-    double getExitFaceCurvature() const;
-
-    void setSlices(double slices);
-    double getSlices() const;
-
-    void setStepsize(double stepSize);
-    double getStepsize() const;
-
-    void setNSlices(const std::size_t& nSlices);
-    std::size_t getNSlices() const;
-
-    void setK1(double k1);
-    double getK1() const;
-
-    int getRequiredNumberOfTimeSteps() const override;
-
-protected:
-    double calcDesignRadius(double fieldAmplitude) const;
-    double calcFieldAmplitude(double radius) const;
-    double calcBendAngle(double chordLength, double radius) const;
-    double calcDesignRadius(double chordLength, double angle) const;
-    double calcGamma() const;
-    double calcBetaGamma() const;
-    double getStoredExitAngle() const;
-
 private:
     void computeFieldHost(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const;
+
+    /// Build the pure-value field inputs (coefficients, gap, pole-face projections,
+    /// edge-focusing coefficients) shared by the device and host field paths.
+    BendFieldModel::FieldInputs makeFieldInputs() const;
+
+    /// Convert a local point to bend coordinates (radial x, y, arc-length s).
+    Vector_t<double, 3> bendCoords(const Vector_t<double, 3>& r) const;
+
+    /// Longitudinal containment: arc-length s within the field extent.
+    bool isInsideArc(const Vector_t<double, 3>& arc) const;
 
     /// Normal/skew multipole coefficients on the device, read by tracking.
     Kokkos::View<double*> normalComponents_m;
@@ -168,45 +90,20 @@ private:
     int maxNormal_m = 0;
     int maxSkew_m   = 0;
 
-    double angle_m;
-    double entranceAngle_m;
-    double exitAngle_m;
     double gap_m;
+    double fringeHalfGap_m;
+    double fringeIntegral_m;
     double designEnergy_m;
     bool designEnergyChangeable_m;
-    double fieldAmplitudeX_m;
-    double fieldAmplitudeY_m;
-    double fieldAmplitude_m;
-    std::string fileName_m;
-    double entryFaceRotation_m;
-    double exitFaceRotation_m;
-    double entryFaceCurvature_m;
-    double exitFaceCurvature_m;
-    double slices_m;
-    double stepSize_m;
-    std::size_t nSlices_m;
-    double k1_m;
 };
-
-inline bool SBend::bends() const { return true; }
-
-inline void SBend::setLength(double length) { setElementLength(std::abs(length)); }
-
-inline double SBend::getLength() const { return getElementLength(); }
-
-inline void SBend::setBendAngle(double angle) { angle_m = angle; }
-
-inline double SBend::getBendAngle() const { return angle_m; }
-
-inline void SBend::setEntranceAngle(double entranceAngle) { entranceAngle_m = entranceAngle; }
-
-inline double SBend::getEntranceAngle() const { return entranceAngle_m; }
-
-inline void SBend::setExitAngle(double exitAngle) { exitAngle_m = exitAngle; }
 
 inline void SBend::setFullGap(double gap) { gap_m = std::abs(gap); }
 
-inline double SBend::getFullGap() const { return gap_m; }
+inline void SBend::setFringeHalfGap(double halfGap) { fringeHalfGap_m = std::abs(halfGap); }
+
+inline void SBend::setFringeIntegral(double fringeIntegral) {
+    fringeIntegral_m = std::abs(fringeIntegral);
+}
 
 inline void SBend::setDesignEnergy(const double& energy, bool changeable) {
     if (designEnergyChangeable_m) {
@@ -216,53 +113,5 @@ inline void SBend::setDesignEnergy(const double& energy, bool changeable) {
 }
 
 inline double SBend::getDesignEnergy() const { return designEnergy_m; }
-
-inline void SBend::setFieldAmplitude(double k0, double k0s) {
-    fieldAmplitudeY_m = k0;
-    fieldAmplitudeX_m = k0s;
-    fieldAmplitude_m  = std::hypot(k0, k0s);
-}
-
-inline double SBend::getFieldAmplitude() const { return fieldAmplitude_m; }
-
-inline void SBend::setFieldMapFN(std::string fileName) { fileName_m = std::move(fileName); }
-
-inline std::string SBend::getFieldMapFN() const { return fileName_m; }
-
-inline void SBend::setEntryFaceRotation(double rotation) { entryFaceRotation_m = rotation; }
-
-inline double SBend::getEntryFaceRotation() const { return entryFaceRotation_m; }
-
-inline void SBend::setExitFaceRotation(double rotation) { exitFaceRotation_m = rotation; }
-
-inline double SBend::getExitFaceRotation() const { return exitFaceRotation_m; }
-
-inline void SBend::setEntryFaceCurvature(double curvature) { entryFaceCurvature_m = curvature; }
-
-inline double SBend::getEntryFaceCurvature() const { return entryFaceCurvature_m; }
-
-inline void SBend::setExitFaceCurvature(double curvature) { exitFaceCurvature_m = curvature; }
-
-inline double SBend::getExitFaceCurvature() const { return exitFaceCurvature_m; }
-
-inline void SBend::setSlices(double slices) { slices_m = slices; }
-
-inline double SBend::getSlices() const { return slices_m; }
-
-inline void SBend::setStepsize(double stepSize) { stepSize_m = stepSize; }
-
-inline double SBend::getStepsize() const { return stepSize_m; }
-
-inline void SBend::setNSlices(const std::size_t& nSlices) { nSlices_m = nSlices; }
-
-inline std::size_t SBend::getNSlices() const { return nSlices_m; }
-
-inline void SBend::setK1(double k1) { k1_m = k1; }
-
-inline double SBend::getK1() const { return k1_m; }
-
-inline int SBend::getRequiredNumberOfTimeSteps() const { return 10; }
-
-inline double SBend::getStoredExitAngle() const { return exitAngle_m; }
 
 #endif  // OPALX_SBend_HH
