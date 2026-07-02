@@ -124,6 +124,17 @@ public:
     size_t getCallCounter() { return call_counter_m; }
 
     /**
+     * @brief Refresh layout-dependent solver state without reconstructing the solver wrapper.
+     *
+     * Layout-changing operations such as ORB repartitioning resize OPALX-owned fields in place.
+     * The concrete IPPL solver keeps pointers to those fields, but some backends also own
+     * FFT/scratch fields derived from the RHS layout. This hook rebinds the existing backend to
+     * the current fields so those internal buffers are recreated without resetting diagnostics.
+     * This is the same as IPPL's alpine solver update during `repartition`.
+     */
+    void refreshAfterFieldLayoutChange();
+
+    /**
      * @brief Execute the field solver for the current simulation state.
      *
      * Performs a single solve cycle using the solver's current configuration,
