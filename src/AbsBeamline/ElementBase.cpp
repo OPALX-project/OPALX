@@ -276,13 +276,6 @@ void ElementBase::goOffline() { online_m = false; }
 bool ElementBase::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) { return false; }
 
 bool ElementBase::apply(
-        const size_t& /*i*/, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&) {
-    *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
-          << " function: " << __func__ << endl;
-    return false;
-}
-
-bool ElementBase::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
     if (R(2) >= 0.0 && R(2) < getGeometry().getElementLength()) {

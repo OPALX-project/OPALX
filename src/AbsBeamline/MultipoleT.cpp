@@ -61,30 +61,6 @@ bool MultipoleT::apply(
     return implementation_->getField(R, E, B, getScaling(t));
 }
 
-bool MultipoleT::apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    validateConfiguration();
-    if (RefPartBunch_m == nullptr) {
-        throw OpalException("MultipoleT::apply", "Element is not initialised with a bunch");
-    }
-    if (RefPartBunch_m->getNumParticleContainers() != 1) {
-        throw OpalException(
-                "MultipoleT::apply",
-                "apply(i, t, E, B) is ambiguous for multi-container bunches; "
-                "use apply(pc) from the container loop instead");
-    }
-    const auto pc = RefPartBunch_m->getParticleContainer(0);
-    if (i >= pc->getLocalNum()) {
-        throw OpalException("MultipoleT::apply", "Particle index is out of local bounds");
-    }
-    Vector_t<double, 3> R{};
-    Kokkos::deep_copy(
-            Kokkos::View<Vector_t<double, 3>, Kokkos::HostSpace>(&R),
-            Kokkos::subview(pc->R.getView(), i));
-    Kokkos::fence();
-    return implementation_->getField(R, E, B, getScaling(t));
-}
-
 void MultipoleT::setFringeField(
         const double& s0, const double& lambda_left, const double& lambda_right) {
     config_m.fringeS0_m          = s0;

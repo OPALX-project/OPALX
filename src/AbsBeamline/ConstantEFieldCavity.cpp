@@ -62,21 +62,6 @@ bool ConstantEFieldCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc)
 }
 
 bool ConstantEFieldCavity::apply(
-        const size_t& i, const double& /*t*/, Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
-    std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
-    auto Rview                              = pc->R.getView();
-    const Vector_t<double, 3> R             = Rview(i);
-
-    if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return false;
-    if (!isInsideTransverse(R)) return getFlagDeleteOnTransverseExit();
-
-    E(0) += Ex_m;
-    E(1) += Ey_m;
-    E(2) += Ez_m;
-    return false;
-}
-
-bool ConstantEFieldCavity::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
     if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return false;

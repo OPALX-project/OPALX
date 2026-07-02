@@ -53,11 +53,6 @@ namespace {
         bool apply(const std::shared_ptr<ParticleContainer_t>&) override { return false; }
 
         bool apply(
-                const size_t&, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&) override {
-            return false;
-        }
-
-        bool apply(
                 const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&,
                 Vector_t<double, 3>&, Vector_t<double, 3>&) override {
             return false;

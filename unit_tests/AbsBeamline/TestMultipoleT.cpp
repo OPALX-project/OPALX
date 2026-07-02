@@ -220,8 +220,7 @@ TEST_F(TestMultipoleT, ApplySingleParticleThrowsForMultiContainerBunch) {
             fsCmd.get(), dataSink.get());
     ASSERT_EQ(bunch->getNumParticleContainers(), 2u);
 
-    // Register bunch and verify per-particle apply() rejects ambiguous container context.
+    // Register bunch; the per-particle-index apply() was removed, so only check that
+    // a multi-container bunch can be registered.
     initialise(bunch.get());
-    Vector_t<double, 3> E{}, B{};
-    EXPECT_THROW(apply(0, 0.0, E, B), OpalException);
 }

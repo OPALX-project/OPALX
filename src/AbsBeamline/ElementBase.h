@@ -191,19 +191,6 @@ public:
     virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc);
 
     /**
-     * @brief Apply to particle i
-     *
-     * @param i Particle index
-     * @param t Time
-     * @param E Electric Field
-     * @param B Magnetic Field
-     *
-     * @returns true if particle is out-of-bounds (lost), false otherwise
-     */
-    virtual bool apply(
-            const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B);
-
-    /**
      * @brief Apply to particle with position R and momentum P
      *
      * @param R Position

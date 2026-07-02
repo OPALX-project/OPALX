@@ -372,9 +372,11 @@ TEST_F(TestVariableRFCavity, BunchFields) {
     for (size_t i = 0; i < line.size(); ++i) {
         EXPECT_DOUBLE_EQ(line[i], 1.0 * Units::MVpm2Vpm);
     }
-    // Get the field for one of the particles
+    // Get the field at one particle's position via the position overload
     Vector_t<double, 3> singleE{}, singleB{};
-    EXPECT_FALSE(apply(0, 0.0, singleE, singleB));
+    const auto hostR0 = Kokkos::create_mirror_view(pc->R.getView());
+    Kokkos::deep_copy(hostR0, pc->R.getView());
+    EXPECT_FALSE(apply(hostR0(0), Vector_t<double, 3>{}, 0.0, singleE, singleB));
     EXPECT_DOUBLE_EQ(singleE[2], 1.0 * Units::MVpm2Vpm);
     // Done
     finalise();

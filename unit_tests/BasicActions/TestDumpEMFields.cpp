@@ -47,11 +47,6 @@ namespace {
         ElementBase* clone() const override { return new MockComponent(*this); }
         bool apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) override { return false; }
         bool apply(
-                const size_t& /*i*/, const double& /*t*/, Vector_t<double, 3>& /*E*/,
-                Vector_t<double, 3>& /*B*/) override {
-            return false;
-        }
-        bool apply(
                 const Vector_t<double, 3>& r, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
                 Vector_t<double, 3>& E, Vector_t<double, 3>& B) override {
             if (r(0) < 0. || r(0) > 1. || r(1) < -1. || r(1) > 0. || r(2) < 0. || r(2) > 1.) {

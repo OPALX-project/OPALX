@@ -102,20 +102,6 @@ Geometry& VariableRFCavity::getGeometry() { return geometry; }
 const Geometry& VariableRFCavity::getGeometry() const { return geometry; }
 
 bool VariableRFCavity::apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
-    const auto pc = RefPartBunch_m->getParticleContainer();
-    Vector_t<double, 3> R{};
-    Kokkos::deep_copy(
-            Kokkos::View<Vector_t<double, 3>, Kokkos::HostSpace>(&R),
-            Kokkos::subview(pc->R.getView(), i));
-    Kokkos::fence();
-    const double E0        = amplitudeTD_m->getValue(t) * Units::MVpm2Vpm;
-    const double integralF = frequencyTD_m->getIntegral(t) * Units::MHz2Hz;
-    const double phi       = phaseTD_m->getValue(t);
-    return computeField(R, E, E0, integralF, phi, halfWidth_m, halfHeight_m, getGeometry().getElementLength());
-}
-
-bool VariableRFCavity::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
     const double E0        = amplitudeTD_m->getValue(t) * Units::MVpm2Vpm;

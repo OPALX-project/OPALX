@@ -39,42 +39,27 @@ class VariableRFCavity : public ElementBase {
 public:
     /// Constructor with given name.
     explicit VariableRFCavity(const std::string& name);
-    /** Copy Constructor; performs deepcopy on time-dependence models */
-    VariableRFCavity(const VariableRFCavity&);
+
     /** Default constructor */
     VariableRFCavity();
-    /** Assignment operator; performs deepcopy on time-dependence models*/
-    VariableRFCavity& operator=(const VariableRFCavity&);
-    /** Destructor does nothing
-     *
-     * The shared_ptrs will self-destruct when reference count goes to 0
-     */
-    ~VariableRFCavity() override = default;
 
-    /** Apply visitor to RFCavity.
-     *
-     *  The RF cavity finds the "time dependence" models by doing a string
-     *  lookup against a list held by AbstractTimeDependence at accept time.
-     */
-    void accept(BeamlineVisitor&) const override;
+    /** Copy constructor; deep copies the time-dependence models */
+    VariableRFCavity(const VariableRFCavity& var);
 
-    /** Inheritable deepcopy method */
+    /** Assignment; deep copies the time-dependence models */
+    VariableRFCavity& operator=(const VariableRFCavity& rhs);
+
+    /** Destructor */
+    virtual ~VariableRFCavity() = default;
+
+    /** Return a deep copy */
     ElementBase* clone() const override;
 
-    /** Calculate the field for all particles */
-    bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    /** Visitor dispatch */
+    void accept(BeamlineVisitor& visitor) const override;
 
-    /** Calculate the field at the position of the i^th particle
-     *
-     *  @param i indexes the particle whose field we need
-     *  @param t the time at which the field is calculated
-     *  @param E return value with electric field strength
-     *  @param B return value with magnetic field strength
-     *
-     *  @returns True if particle is outside the boundaries; else False
-     */
-    bool apply(const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B)
-            override;
+    /** Apply the field to all particles in the container */
+    bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     /** Calculate the field at a given position
      *
