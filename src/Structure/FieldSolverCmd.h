@@ -103,6 +103,9 @@ public:
     void setFieldSolverCmdType();
     FieldSolverCmdType getFieldSolverCmdType() const;
 
+    void setDomainDecomposition();
+    ippl::Vector<bool, 3> getDomainDecomposition() const { return domainDecomposition_m; }
+
     ippl::Vector<bool, 3> getDomDec() const;
 
     Inform& printInfo(Inform& os) const;
@@ -117,15 +120,10 @@ private:
 
     std::string fsName_m;
     FieldSolverCmdType fsType_m;
+    ippl::Vector<bool, 3> domainDecomposition_m;
 };
 
 inline FieldSolverCmdType FieldSolverCmd::getFieldSolverCmdType() const { return fsType_m; }
-inline ippl::Vector<bool, 3> FieldSolverCmd::getDomDec() const {
-    return ippl::Vector<bool, 3>(
-            Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTX]),
-            Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTY]),
-            Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTZ]));
-}
 
 inline Inform& operator<<(Inform& os, const FieldSolverCmd& fs) { return fs.printInfo(os); }
 

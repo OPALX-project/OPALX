@@ -74,7 +74,7 @@ PartBunch<T, Dim>::PartBunch(
             OPALFieldSolver_m->getNX(), OPALFieldSolver_m->getNY(), OPALFieldSolver_m->getNZ());
     nrZBase_m = nr_m[Dim - 1];
 
-    const Vector_t<bool, 3> domainDecomposition = OPALFieldSolver_m->getDomDec();
+    const Vector_t<bool, 3> domainDecomposition = OPALFieldSolver_m->getDomainDecomposition();
 
     for (unsigned i = 0; i < Dim; i++) {
         this->domain_m[i] = ippl::Index(nr_m[i]);
