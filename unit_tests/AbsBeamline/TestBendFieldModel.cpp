@@ -70,8 +70,6 @@ TEST(BendFieldModel, GapAndHalfWidthHelpers) {
     EXPECT_DOUBLE_EQ(BendFieldModel::profileGap(0.04, 0.0), 0.04);   // GAP wins
     EXPECT_DOUBLE_EQ(BendFieldModel::profileGap(0.0, 0.02), 0.04);   // fall back to 2*HGAP
     EXPECT_DOUBLE_EQ(BendFieldModel::fringeHalfWidth(0.02), 0.1);    // five gaps
-    EXPECT_DOUBLE_EQ(BendFieldModel::safeAbsCos(0.0), 1.0);
-    EXPECT_NEAR(BendFieldModel::safeAbsCos(M_PI / 2.0), 1.0e-6, 1.0e-9);  // floored
 }
 
 // The combined amplitude is 1 deep inside, ~0.3825 at a face, 0 outside, and

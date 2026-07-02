@@ -55,28 +55,15 @@ void OpalSBend::update() {
         geometry = Geometry::makeSBend(0.0, 0.0);
         geometry.setBendAngle(angle);
     }
-    // Define number of slices for map tracking
-    bend->setNSlices(Attributes::getReal(itsAttr[NSLICES]));
-
-    // Define pole face angles.
-    bend->setEntryFaceRotation(Attributes::getReal(itsAttr[E1]));
-    bend->setExitFaceRotation(Attributes::getReal(itsAttr[E2]));
-    bend->setEntryFaceCurvature(Attributes::getReal(itsAttr[H1]));
-    bend->setExitFaceCurvature(Attributes::getReal(itsAttr[H2]));
-
-    // Define integration parameters.
-    bend->setSlices(Attributes::getReal(itsAttr[SLICES]));
-    bend->setStepsize(Attributes::getReal(itsAttr[STEPSIZE]));
-
-    // Define field.
+    // Define field. MAD length convention: L is the design-orbit arc length, so the
+    // default dipole strength is the arc curvature k0 = angle / L = 1 / rho. This matches
+    // the geometry above (makeSBend treats L as the arc), so the field bends the orbit on
+    // exactly the placed arc at any angle. (The legacy chord form 2 sin(angle/2) / L
+    // belonged to the OPAL convention where L was the chord.)
     double factor = OpalData::getInstance()->getP0() / Physics::c;
     double k0     = itsAttr[K0] ? Attributes::getReal(itsAttr[K0])
-                    : length    ? 2 * sin(angle / 2) / length
+                    : length    ? angle / length
                                 : angle;
-    double k0s    = itsAttr[K0S] ? Attributes::getReal(itsAttr[K0S]) : 0.0;
-    // JMJ 4/10/2000: above line replaced
-    //     length ? angle / length : angle;
-    //  to avoid closed orbit created by SBEND with defalt K0.
     const std::vector<double> normal = {
             factor * k0, factor * Attributes::getReal(itsAttr[K1]),
             factor * Attributes::getReal(itsAttr[K2]) / 2.0,
@@ -101,22 +88,14 @@ void OpalSBend::update() {
                     CoordinateSystemTrafo(g2l.getOrigin(), rotAboutZ * g2l.getRotation()));
             bend->fixPosition();
         }
-        bend->setBendAngle(angle);
-    } else {
-        bend->setFieldAmplitude(k0, k0s);
+        geometry.setBendAngle(angle);
     }
 
     if (itsAttr[GREATERTHANPI])
         throw OpalException("OpalSBend::update", "GREATERTHANPI not supportet any more");
 
-    if (itsAttr[FMAPFN])
-        bend->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));
-    else if (bend->getName() != "SBEND") {
-        bend->setFieldMapFN("1DPROFILE1-DEFAULT");
-    }
-
-    bend->setEntranceAngle(e1);
-    bend->setExitAngle(e2);
+    geometry.setEntranceAngle(e1);
+    geometry.setExitAngle(e2);
 
     // Units are eV.
     if (itsAttr[DESIGNENERGY]) {
@@ -135,19 +114,14 @@ void OpalSBend::update() {
     }
 
     if (itsAttr[LENGTH])
-        bend->setLength(Attributes::getReal(itsAttr[LENGTH]));
+        bend->getGeometry().setElementLength(Attributes::getReal(itsAttr[LENGTH]));
     else
-        bend->setLength(0.0);
+        bend->getGeometry().setElementLength(0.0);
 
     if (itsAttr[WAKEF]) {
         throw OpalException(
                 "OpalSBend::update", "WAKEF is not supported yet for the OPALX-native SBEND port.");
     }
-
-    if (itsAttr[K1])
-        bend->setK1(Attributes::getReal(itsAttr[K1]));
-    else
-        bend->setK1(0.0);
 
     if (itsAttr[PARTICLEMATTERINTERACTION]) {
         throw OpalException(
