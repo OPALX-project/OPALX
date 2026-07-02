@@ -79,8 +79,22 @@ public:
         using Base = ippl::ParticleBase<
                 ippl::ParticleSpatialLayout<T, Dim>, Kokkos::DefaultExecutionSpace::memory_space>;
         typename Base::particle_position_type* R;
-        R        = &pc_m->R;
-        bool res = orb.binaryRepartition(*R, *fl, false, fl->isParallel());
+        R = &pc_m->R;
+
+        /*
+        Currently, only a all parallel decomposition is supported by IPPL. This might change with
+        https://github.com/IPPL-framework/ippl/pull/560 - but until then, we enforce that all
+        dimensions are parallel. A similar check is implemented in
+        FieldSolverCmd::setDomainDecomposition() to ensure consistency with the user input.
+
+        Another note: "isFirstRepartition" could be set to true (skips the scatter step inside ORB)
+        if the rho field is reused from the previous scatter. However, should we use binning, then
+        this rho field only contains partial particle information and cannot be used. That's why -
+        for now - it's way easier to just keep it at false. This might be a possible optimization in
+        the future.
+        */
+        // bool res = orb.binaryRepartition(*R, *fl, false, fl->isParallel());
+        bool res = orb.binaryRepartition(*R, *fl, false);
         if (res != true) {
             if (ippl::Comm->rank() == 0) {
                 std::cout << "Could not repartition!" << std::endl;
