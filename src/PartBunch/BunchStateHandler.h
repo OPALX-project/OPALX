@@ -13,8 +13,8 @@
  *
  * Two classes of state live here:
  *
- * - **Bunch-wide flags** (`firstRepartition`, emission mesh progress, future
- *   `emittingNow`) apply to the bunch as a whole and are stored as plain members.
+ * - **Bunch-wide flags** (emission mesh progress, future `emittingNow`) apply
+ *   to the bunch as a whole and are stored as plain members.
  *
  * - **Per-container flags** (`momentsDirty`, `unitlessPositions`) live in the
  *   nested `ContainerState` struct. Each `ParticleContainer` registers itself
@@ -39,9 +39,6 @@
  *   container's particle positions (R) or momenta (P) -- push, kick,
  *   emission, particle deletion. Cleared by DistributionMoments::computeMoments
  *   once the moments cache is consistent with the particle state.
- *
- * - **firstRepartition**: true until the first ORB-style repartition has run
- *   for the bunch. Bunch-wide because the load balancer is shared.
  *
  * - **emissionMeshProgress**: true only around the beam-frame bunchUpdate used by the
  *   space-charge solve while a cathode source is still emitting. Old OPAL stretches the
@@ -94,17 +91,6 @@ public:
 
     // -- bunch-wide flags --------------------------------------------------
 
-    bool isFirstRepartition() const { return firstRepartition_m; }
-    /**
-     * @brief Non-const reference escape hatch used by LoadBalancer::repartition.
-     *
-     * Bypasses the aggressive-sync setter path. The load balancer is the single
-     * well-defined caller that flips this flag from true to false on all ranks
-     * after the first repartition.
-     */
-    bool& isFirstRepartitionRef() { return firstRepartition_m; }
-    void setFirstRepartition(bool v);
-
     bool isEmissionMeshStretchActive() const { return emissionMeshStretchEnabled_m; }
     double getEmissionMeshFraction() const { return emissionMeshProgressFraction_m; }
     void setEmissionMeshProgress(bool active, double emittedFraction);
@@ -121,7 +107,6 @@ private:
     // lazily on iteration. Never exposed to callers.
     std::vector<std::weak_ptr<ContainerState>> registered_m;
 
-    bool firstRepartition_m               = true;
     bool emissionMeshStretchEnabled_m     = false;
     double emissionMeshProgressFraction_m = 1.0;
 };

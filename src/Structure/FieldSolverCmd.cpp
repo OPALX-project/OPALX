@@ -90,6 +90,7 @@ FieldSolverCmd* FieldSolverCmd::clone(const std::string& name) {
 
 void FieldSolverCmd::execute() {
     setFieldSolverCmdType();
+    setDomainDecomposition();
     update();
 }
 
@@ -173,6 +174,22 @@ void FieldSolverCmd::setFieldSolverCmdType() {
                 "The attribute \"TYPE\" isn't set for \"FIELDSOLVER\"!");
     } else {
         fsType_m = stringType_s.at(fsName_m);
+    }
+}
+
+void FieldSolverCmd::setDomainDecomposition() {
+    domainDecomposition_m[0] = Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTX]);
+    domainDecomposition_m[1] = Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTY]);
+    domainDecomposition_m[2] = Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTZ]);
+
+    /// \todo At the moment, only 3D domain decomposition is supported. This should be extended to
+    /// support 1D and 2D domain decomposition in the future, once the changes in the IPPL ORB are
+    /// merged. Having parallel in all dimensions is what's currently supported best.
+    if (!(domainDecomposition_m[0] && domainDecomposition_m[1] && domainDecomposition_m[2])) {
+        throw OpalException(
+                "FieldSolverCmd::setDomainDecomposition",
+                "Currently only 3D domain decomposition is supported. Please set PARFFTX, PARFFTY "
+                "and PARFFTZ to TRUE. Other decompositions will come soon.");
     }
 }
 
