@@ -55,8 +55,33 @@ private:
     VField_t<T, Dim> E_m;
     Field_t<Dim> rho_m;
     Field<T, Dim> phi_m;
+
+    /**
+     * @brief Scratch electric field for accumulated binned-solver results.
+     *
+     * Each merged-bin solve contributes its Lorentz-transformed lab-frame electric field here.
+     * The field stays live through the binning loop and is gathered back to particles after all
+     * primary and image-charge contributions have been accumulated.
+     */
     std::shared_ptr<VField_t<T, Dim>> Etmp_m;
+
+    /**
+     * @brief Scratch magnetic field for accumulated binned-solver results.
+     *
+     * The binned solver derives the lab-frame magnetic field from each bin-frame electric solve
+     * and accumulates it here alongside @c Etmp_m before the final gather to particles.
+     */
     std::shared_ptr<VField_t<T, Dim>> Btmp_m;
+
+    /**
+     * @brief Scratch field for the shifted-Green z-mirror operation.
+     *
+     * The shifted-Green solve produces an electric field that must be mirrored in z after the
+     * solve and before accumulation into @c Etmp_m and @c Btmp_m. The global mirror can require
+     * MPI communication, so the mirrored rank writes into this out-of-place field instead of
+     * attempting an in-place swap. The other vector fields cannot be reused for this staging
+     * because they are already active during bin accumulation.
+     */
     std::shared_ptr<VField_t<T, Dim>> flippedZSlabField_m;
     Mesh_t<Dim> mesh_m;
     FieldLayout_t<Dim> fl_m;
