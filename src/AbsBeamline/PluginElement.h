@@ -53,10 +53,6 @@ public:
     virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     virtual bool apply(
-            const size_t& i, const double& t, Vector_t<double, 3>& E,
-            Vector_t<double, 3>& B) override;
-
-    virtual bool apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 

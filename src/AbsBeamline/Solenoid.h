@@ -55,10 +55,6 @@ public:
      * @param B Magnetic Field
      *
      * @returns true if particle is lost, false otherwise
-     */
-    virtual bool apply(
-            const size_t& i, const double& t, Vector_t<double, 3>& E,
-            Vector_t<double, 3>& B) override;
 
     /**
      * @brief Apply to particle with position R and momentum P

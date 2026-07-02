@@ -83,17 +83,6 @@ bool Solenoid::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
  *
  * @returns true if particle is lost, false otherwise
  */
-bool Solenoid::apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
-    auto Rview                              = pc->R.getView();
-    auto Pview                              = pc->P.getView();
-
-    const Vector_t<double, 3> R = Rview(i);
-    const Vector_t<double, 3> P = Pview(i);
-    return apply(R, P, t, E, B);
-}
-
 /**
  * @brief Apply to particle with position R and momentum P
  *

@@ -287,30 +287,6 @@ bool Multipole::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
  * @param B Magnetic field reference
  * @returns true if particle is out-of-bounds (lost), false otherwise
  */
-bool Multipole::apply(
-        const size_t& i, const double&, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    // Get container
-    std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
-    auto Rview                              = pc->R.getView();
-    const Vector_t<double, 3> R             = Rview(i);
-
-    // Check bounds
-    if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return false;
-    if (!isInsideTransverse(R)) return getFlagDeleteOnTransverseExit();
-
-    // Compute fields
-    Vector_t<double, 3> Ef(0.0), Bf(0.0);
-    computeFieldHost(R, Ef, Bf);
-
-    // Apply fields
-    for (unsigned int d = 0; d < 3; ++d) {
-        E[d] += Ef(d);
-        B[d] += Bf(d);
-    }
-
-    return false;
-}
-
 /**
  * @brief Applies the multipole field at position R to E and B
  *
