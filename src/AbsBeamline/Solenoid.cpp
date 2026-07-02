@@ -188,8 +188,6 @@ void Solenoid::initialise(PartBunch_t* bunch) {
 
 void Solenoid::finalise() {}
 
-bool Solenoid::bends() const { return false; }
-
 /// @brief Read field map and go online
 void Solenoid::goOnline(const double&) {
     Fieldmap::readMap(filename_m);
@@ -233,11 +231,6 @@ bool Solenoid::isInside(const Vector_t<double, 3>& r) const {
 /// @brief Get the dimensions of the solenoid
 /// @param begin Start position
 /// @param end End position
-void Solenoid::getElementDimensions(double& begin, double& end) const {
-    begin = 0.0;
-    end   = getElementLength();
-}
-
 bool Solenoid::getSupportEnvelope(double& horizontalRadius, double& verticalRadius) const {
     const auto aperture = getAperture();
     if (aperture.second.size() >= 2 && std::abs(aperture.second[0]) < 1e5

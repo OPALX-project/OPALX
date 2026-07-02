@@ -251,7 +251,7 @@ bool Multipole::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     const size_t nLocal = pc->getLocalNum();
 
     // Local variables that are copied into the kernel
-    double elemLength = getElementLength();
+    double elemLength = getGeometry().getElementLength();
 
     // Capture member variables by value for the kernel
     auto normalComponents = NormalComponents;
@@ -295,7 +295,7 @@ bool Multipole::apply(
     const Vector_t<double, 3> R             = Rview(i);
 
     // Check bounds
-    if (R(2) < 0.0 || R(2) > getElementLength()) return false;
+    if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return false;
     if (!isInsideTransverse(R)) return getFlagDeleteOnTransverseExit();
 
     // Compute fields
@@ -326,7 +326,7 @@ bool Multipole::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     // Check bounds
-    if (R(2) < 0.0 || R(2) > getElementLength()) return false;
+    if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return false;
     if (!isInsideTransverse(R)) return getFlagDeleteOnTransverseExit();
 
     // Compute field
@@ -350,7 +350,7 @@ bool Multipole::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     // Check bounds
-    if (R(2) < 0.0 || R(2) > getElementLength()) return false;
+    if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return false;
     if (!isInsideTransverse(R)) return true;
 
     /*
@@ -636,11 +636,9 @@ void Multipole::initialise(PartBunch_t* bunch) {
 
 void Multipole::finalise() { online_m = false; }
 
-bool Multipole::bends() const { return false; }
-
 void Multipole::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = 0.0;
-    zEnd   = getElementLength();
+    zEnd   = getGeometry().getElementLength();
 }
 
 ElementType Multipole::getType() const { return ElementType::MULTIPOLE; }

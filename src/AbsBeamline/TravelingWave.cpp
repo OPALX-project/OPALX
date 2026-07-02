@@ -281,8 +281,6 @@ void TravelingWave::initialise(
 
 void TravelingWave::finalise() {}
 
-bool TravelingWave::bends() const { return false; }
-
 void TravelingWave::goOnline(const double&) {
     Fieldmap::readMap(filename_m);
     online_m = true;
@@ -293,11 +291,6 @@ void TravelingWave::goOffline() { Fieldmap::freeMap(filename_m); }
 void TravelingWave::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = startField_m;
     zEnd   = endField_m;
-}
-
-void TravelingWave::getElementDimensions(double& begin, double& end) const {
-    begin = 0.0;
-    end   = getElementLength();
 }
 
 ElementType TravelingWave::getType() const { return ElementType::TRAVELINGWAVE; }

@@ -78,8 +78,6 @@ public:
 
     virtual void finalise() override;
 
-    virtual bool bends() const override;
-
     virtual void goOnline(const double& kineticEnergy) override;
 
     virtual void goOffline() override;
@@ -97,10 +95,6 @@ public:
 
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
 
-    virtual void getElementDimensions(double& begin, double& end) const override;
-
-    virtual CoordinateSystemTrafo getEdgeToBegin() const override;
-    virtual CoordinateSystemTrafo getEdgeToEnd() const override;
 
 private:
     double scaleCore_m;
@@ -216,16 +210,5 @@ inline void TravelingWave::setPhasem(double phase) {
 inline void TravelingWave::setNumCells(int NumCells) { numCells_m = NumCells; }
 
 inline void TravelingWave::setMode(double mode) { mode_m = mode; }
-
-inline CoordinateSystemTrafo TravelingWave::getEdgeToBegin() const {
-    CoordinateSystemTrafo ret(Vector_t<double, 3>({0, 0, 0}), Quaternion(1, 0, 0, 0));
-    return ret;
-}
-
-inline CoordinateSystemTrafo TravelingWave::getEdgeToEnd() const {
-    CoordinateSystemTrafo ret(
-            Vector_t<double, 3>({0, 0, getElementLength()}), Quaternion(1, 0, 0, 0));
-    return ret;
-}
 
 #endif  // OPALX_TravelingWave_HH

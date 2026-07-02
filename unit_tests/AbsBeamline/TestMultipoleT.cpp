@@ -176,14 +176,6 @@ TEST_F(TestMultipoleT, TimeDependency) {
     EXPECT_NEAR(fieldAtT({0.0, 0.0, 2.0}, 2.0), 1.0, 1e-6);
 }
 
-// Does the bends API return the correct value
-TEST_F(TestMultipoleT, Bends) {
-    setBendAngle(0, false);
-    EXPECT_FALSE(bends());
-    setBendAngle(1, false);
-    EXPECT_TRUE(bends());
-}
-
 // Check that an exception if thrown for configuration that is not supported.
 TEST_F(TestMultipoleT, ConfigurationValidation) {
     // Set up the magnet

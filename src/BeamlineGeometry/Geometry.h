@@ -24,6 +24,8 @@
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "OPALTypes.h"
 
+#include <Kokkos_Core.hpp>
+
 #include <cstddef>
 #include <vector>
 
@@ -116,5 +118,99 @@ private:
     double entranceAngle_m = 0.0;  ///< entrance pole-face angle
     double exitAngle_m     = 0.0;  ///< exit pole-face angle
 };
+
+/**
+ * @namespace GeometryHelper
+ * @brief Stateless, device-callable geometry functions.
+ *
+ * A Geometry object cannot be used inside a Kokkos lambda, so the coordinate
+ * conversions needed by the field kernels live here as pure functions of plain
+ * scalars (curvature, body length) that the caller reads from its Geometry on the
+ * host and captures by value. The Geometry class stays the single stateful source
+ * of those scalars.
+ */
+namespace GeometryHelper {
+
+    /// |cos(angle)| floored to a small positive value, for pole-face projections.
+    KOKKOS_INLINE_FUNCTION double safeAbsCos(const double angle) {
+        const double c = Kokkos::abs(Kokkos::cos(angle));
+        return (c > 1.0e-6) ? c : 1.0e-6;
+    }
+
+    /// Rotate a vector by @p angle about the y-axis (the bend plane is x-z).
+    KOKKOS_INLINE_FUNCTION Vector_t<double, 3> rotateAboutY(
+            const Vector_t<double, 3>& v, const double angle) {
+        const double c = Kokkos::cos(angle);
+        const double s = Kokkos::sin(angle);
+        return Vector_t<double, 3>(c * v(0) + s * v(2), v(1), -s * v(0) + c * v(2));
+    }
+
+    /// Signed design-arc phase of an entrance-frame point on a sector arc of the
+    /// given curvature. Kept branch-consistent for negative curvature.
+    KOKKOS_INLINE_FUNCTION double referencePhase(
+            const Vector_t<double, 3>& entry, const double curvature) {
+        const double radius = 1.0 / curvature;
+        const double sign   = (radius >= 0.0) ? 1.0 : -1.0;
+        return Kokkos::atan2(sign * entry(2), sign * (entry(0) + radius));
+    }
+
+    /**
+     * @brief Map an entrance-frame Cartesian point to arc coordinates.
+     *
+     * Returns (radial offset x, vertical y, arc length s measured from the
+     * entrance) for the sector design arc of the given curvature and body length —
+     * the inverse of the design-arc map anchored at the entrance frame. Upstream
+     * of the entrance and downstream of the exit the reference path continues as
+     * the straight entrance/exit tangent, so s continues linearly there. Zero
+     * curvature (a straight body) returns the point unchanged.
+     */
+    KOKKOS_INLINE_FUNCTION Vector_t<double, 3> toBendArcCoords(
+            const Vector_t<double, 3>& entry, const double curvature, const double bodyLength) {
+        if (Kokkos::abs(curvature) <= 1.0e-15 || entry(2) <= 0.0) {
+            return entry;  // straight body, or upstream entrance tangent (s = z)
+        }
+
+        // Past the exit face: continue along the straight exit tangent.
+        const double exitPhi    = curvature * bodyLength;
+        const double cosExit    = Kokkos::cos(exitPhi);
+        const double sinExit    = Kokkos::sin(exitPhi);
+        const double dx         = entry(0) - (cosExit - 1.0) / curvature;
+        const double dz         = entry(2) - sinExit / curvature;
+        const double exitLocalX = cosExit * dx + sinExit * dz;
+        const double exitLocalZ = -sinExit * dx + cosExit * dz;
+        if (exitLocalZ >= 0.0) {
+            return Vector_t<double, 3>(exitLocalX, entry(1), bodyLength + exitLocalZ);
+        }
+
+        // Inside the curved body: radial offset and arc length from the phase.
+        const double radius = 1.0 / curvature;
+        const double s      = referencePhase(entry, curvature) / curvature;
+        const double radial = Kokkos::hypot(entry(0) + radius, entry(2)) - Kokkos::abs(radius);
+        return Vector_t<double, 3>(radial, entry(1), s);
+    }
+
+    /**
+     * @brief Rotate a vector from the local tangent basis at arc length s into the
+     * entrance frame.
+     *
+     * A field evaluated in the basis tangent to the design arc at s (where x is
+     * radial) must be rotated by R_y(curvature*s) to be accumulated in the element
+     * entrance frame — the tangent has turned by that angle relative to the
+     * entrance. Upstream of the entrance no rotation; downstream of the exit the
+     * angle is frozen at the exit. The vertical component is invariant.
+     */
+    KOKKOS_INLINE_FUNCTION Vector_t<double, 3> rotateArcFieldToEntry(
+            const Vector_t<double, 3>& B, const double s, const double curvature,
+            const double bodyLength) {
+        if (Kokkos::abs(curvature) <= 1.0e-15 || s <= 0.0) {
+            return B;
+        }
+        const double phi = curvature * ((s >= bodyLength) ? bodyLength : s);
+        const double c   = Kokkos::cos(phi);
+        const double sn  = Kokkos::sin(phi);
+        return Vector_t<double, 3>(c * B(0) - sn * B(2), B(1), sn * B(0) + c * B(2));
+    }
+
+}  // namespace GeometryHelper
 
 #endif  // OPALX_Geometry_HH

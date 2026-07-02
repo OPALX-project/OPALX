@@ -20,14 +20,12 @@ void ConstantEFieldCavity::initialise(PartBunch_t* bunch) { RefPartBunch_m = bun
 
 void ConstantEFieldCavity::finalise() {}
 
-bool ConstantEFieldCavity::bends() const { return false; }
-
 ElementType ConstantEFieldCavity::getType() const { return ElementType::CONSTANTEFIELDCAVITY; }
 
 void ConstantEFieldCavity::getFieldExtent(double& zBegin, double& zEnd) const {
     // Local-chart field-support interval.
     zBegin = 0.0;
-    zEnd   = getElementLength();
+    zEnd   = getGeometry().getElementLength();
 }
 
 double ConstantEFieldCavity::getEx() const { return Ex_m; }
@@ -47,7 +45,7 @@ bool ConstantEFieldCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc)
     auto Eview          = pc->E.getView();
     const size_t nLocal = pc->getLocalNum();
 
-    const double elemLength = getElementLength();
+    const double elemLength = getGeometry().getElementLength();
     const double Ex         = Ex_m;
     const double Ey         = Ey_m;
     const double Ez         = Ez_m;
@@ -69,7 +67,7 @@ bool ConstantEFieldCavity::apply(
     auto Rview                              = pc->R.getView();
     const Vector_t<double, 3> R             = Rview(i);
 
-    if (R(2) < 0.0 || R(2) > getElementLength()) return false;
+    if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return false;
     if (!isInsideTransverse(R)) return getFlagDeleteOnTransverseExit();
 
     E(0) += Ex_m;
@@ -81,7 +79,7 @@ bool ConstantEFieldCavity::apply(
 bool ConstantEFieldCavity::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
-    if (R(2) < 0.0 || R(2) > getElementLength()) return false;
+    if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return false;
     if (!isInsideTransverse(R)) return getFlagDeleteOnTransverseExit();
 
     E(0) += Ex_m;
@@ -93,7 +91,7 @@ bool ConstantEFieldCavity::apply(
 bool ConstantEFieldCavity::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
-    if (R(2) < 0.0 || R(2) > getElementLength()) return false;
+    if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return false;
     if (!isInsideTransverse(R)) return true;
 
     E(0) += Ex_m;

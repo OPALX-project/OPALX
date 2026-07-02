@@ -112,7 +112,7 @@ bool VariableRFCavity::apply(
     const double E0        = amplitudeTD_m->getValue(t) * Units::MVpm2Vpm;
     const double integralF = frequencyTD_m->getIntegral(t) * Units::MHz2Hz;
     const double phi       = phaseTD_m->getValue(t);
-    return computeField(R, E, E0, integralF, phi, halfWidth_m, halfHeight_m, getElementLength());
+    return computeField(R, E, E0, integralF, phi, halfWidth_m, halfHeight_m, getGeometry().getElementLength());
 }
 
 bool VariableRFCavity::apply(
@@ -121,7 +121,7 @@ bool VariableRFCavity::apply(
     const double E0        = amplitudeTD_m->getValue(t) * Units::MVpm2Vpm;
     const double integralF = frequencyTD_m->getIntegral(t) * Units::MHz2Hz;
     const double phi       = phaseTD_m->getValue(t);
-    return computeField(R, E, E0, integralF, phi, halfWidth_m, halfHeight_m, getElementLength());
+    return computeField(R, E, E0, integralF, phi, halfWidth_m, halfHeight_m, getGeometry().getElementLength());
 }
 
 bool VariableRFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
@@ -134,7 +134,7 @@ bool VariableRFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     const auto count       = pc->getLocalNum();
     const auto halfWidth   = halfWidth_m;
     const auto halfHeight  = halfHeight_m;
-    const auto length      = getElementLength();
+    const auto length      = getGeometry().getElementLength();
     // Kernel launch over all particles
     Kokkos::parallel_for(
             "VariableRFCavity::computeField()", count, KOKKOS_LAMBDA(const size_t i) {

@@ -71,7 +71,6 @@ namespace {
 
         void initialise(PartBunch_t*) override {}
         void finalise() override {}
-        bool bends() const override { return false; }
 
         void getFieldExtent(double& zBegin, double& zEnd) const override {
             zBegin = fieldBegin_m;
@@ -159,7 +158,7 @@ protected:
             const std::string& name, const double length, const double entryPosition,
             const double normalComponent) {
         auto quadrupole = std::make_shared<MultipoleRep>(name);
-        quadrupole->setElementLength(length);
+        quadrupole->getGeometry().setElementLength(length);
         quadrupole->setNormalComponent(1, normalComponent);
         quadrupole->setCSTrafoGlobal2Local(
                 CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, entryPosition), Quaternion()));
@@ -170,7 +169,7 @@ protected:
     std::shared_ptr<FieldSupportOnlyComponent> makePlacedFieldSupportOnlyComponent(
             const std::string& name, const double entryPosition, const double fieldLength) {
         auto component = std::make_shared<FieldSupportOnlyComponent>(name, 0.0, fieldLength);
-        component->setElementLength(0.0);
+        component->getGeometry().setElementLength(0.0);
         component->setCSTrafoGlobal2Local(
                 CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, entryPosition), Quaternion()));
         component->fixPosition();

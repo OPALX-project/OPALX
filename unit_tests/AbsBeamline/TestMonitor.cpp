@@ -13,7 +13,6 @@
  *
  * 1. Basic API
  *    - getType()
- *    - bends()
  *    - getRequiredNumberOfTimeSteps()
  *    - getFieldExtent()
  *
@@ -100,12 +99,6 @@ TEST_F(MonitorTest, GetType) {
     TestMonitor monitor;
 
     EXPECT_EQ(monitor.getType(), ElementType::MONITOR);
-}
-
-TEST_F(MonitorTest, Bends) {
-    TestMonitor monitor;
-
-    EXPECT_FALSE(monitor.bends());
 }
 
 TEST_F(MonitorTest, RequiredNumberOfTimeStepsIsOne) {

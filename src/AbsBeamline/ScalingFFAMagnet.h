@@ -120,8 +120,6 @@ public:
     /** Finalise the ScalingFFAMagnet - sets bunch to nullptr */
     void finalise() override;
 
-    /** Return true - ScalingFFAMagnet always bends the reference particle */
-    inline bool bends() const override;
 
     /** Not implemented */
     void getFieldExtent(double& /*zBegin*/, double& /*zEnd*/) const override {}

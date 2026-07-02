@@ -65,7 +65,7 @@ void OpalQuadrupole::update() {
 
     MultipoleRep* mult = dynamic_cast<MultipoleRep*>(getElement());
     double length      = getLength();
-    mult->setElementLength(length);
+    mult->getGeometry().setElementLength(length);
 
     // The KN vector convention is: index 0 = dipole, index 1 = quadrupole, ...
     // Populate the device coefficient views read by Multipole::apply().

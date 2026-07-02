@@ -97,8 +97,8 @@ void MeshGenerator::add(const ElementBase& element) {
         // mesh = dipole->getSurfaceMesh();
         mesh.type_m = DIPOLE;
     } else if (element.getType() == ElementType::SOLENOID) {
-        double end = 0.0;
-        element.getElementDimensions(start, end);
+        start      = 0.0;
+        double end = element.getGeometry().getElementLength();
         mesh = getCylinder(end - start, driftMinor_m, driftMajor_m, 1.0);
         {
             double minor = 0.0;
@@ -112,8 +112,8 @@ void MeshGenerator::add(const ElementBase& element) {
         if (!hasDriftReference_m) {
             return;
         }
-        double end = 0.0;
-        element.getElementDimensions(start, end);
+        start      = 0.0;
+        double end = element.getGeometry().getElementLength();
         mesh = getTube(
                 end - start, 0.7 * driftMinor_m, 0.7 * driftMajor_m, driftMinor_m, driftMajor_m);
         mesh.type_m = DRIFT;
@@ -122,9 +122,10 @@ void MeshGenerator::add(const ElementBase& element) {
         if (element.getType() == ElementType::RFCAVITY
             || element.getType() == ElementType::TRAVELINGWAVE) {
             start = 0.0;
-            end   = element.getElementLength();
+            end   = element.getGeometry().getElementLength();
         } else {
-            element.getElementDimensions(start, end);
+            start = 0.0;
+            end   = element.getGeometry().getElementLength();
         }
         length     = end - start;
         auto apert = element.getAperture();

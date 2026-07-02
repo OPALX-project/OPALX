@@ -51,7 +51,6 @@ public:
     void finalise() override;
 
     /** @brief Return false because the element has straight reference geometry. */
-    bool bends() const override;
 
     /** @brief Get the longitudinal element extent in the current lattice traversal. */
     void getFieldExtent(double& zBegin, double& zEnd) const override;

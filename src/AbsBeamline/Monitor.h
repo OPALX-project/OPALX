@@ -74,8 +74,6 @@ public:
 
     virtual void finalise() override;
 
-    virtual bool bends() const override;
-
     virtual void goOnline(const double& kineticEnergy) override;
 
     virtual void goOffline() override;
@@ -113,7 +111,7 @@ inline void Monitor::setCollectionType(CollectionType type) { type_m = type; }
 inline int Monitor::getRequiredNumberOfTimeSteps() const { return 1; }
 
 inline bool Monitor::isInside(const Vector_t<double, 3>& r) const {
-    const double length = getElementLength();
+    const double length = getGeometry().getElementLength();
     return std::abs(r(2)) <= 0.5 * length && isInsideTransverse(r);
 }
 

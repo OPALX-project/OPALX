@@ -33,7 +33,6 @@
 
 #include "OPALTypes.h"
 
-class ParticleMatterInteractionHandler;
 class BoundaryGeometry;
 
 class OpalBeamline {
@@ -74,7 +73,6 @@ public:
 
     void switchElementsOff();
 
-    ParticleMatterInteractionHandler* getParticleMatterInteractionHandler(const unsigned int&);
 
     BoundaryGeometry* getBoundaryGeometry(const unsigned int&);
 
@@ -191,12 +189,12 @@ inline CoordinateSystemTrafo OpalBeamline::getMisalignment(
 
 inline CoordinateSystemTrafo OpalBeamline::getNominalEntryTransform(
         const std::shared_ptr<ElementBase>& comp) const {
-    return comp->getEdgeToBegin() * getCSTrafoLab2Local(comp);
+    return comp->getGeometry().getEdgeToBegin() * getCSTrafoLab2Local(comp);
 }
 
 inline CoordinateSystemTrafo OpalBeamline::getNominalExitTransform(
         const std::shared_ptr<ElementBase>& comp) const {
-    return comp->getEdgeToEnd() * getCSTrafoLab2Local(comp);
+    return comp->getGeometry().getEdgeToEnd() * getCSTrafoLab2Local(comp);
 }
 
 #endif  // OPAL_BEAMLINE_H

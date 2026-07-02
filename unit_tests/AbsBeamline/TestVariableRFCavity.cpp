@@ -413,7 +413,6 @@ TEST_F(TestVariableRFCavity, OddApis) {
     EXPECT_DOUBLE_EQ(a, 0.0);
     EXPECT_DOUBLE_EQ(b, 3.0);
     // The cavity does not make a bend
-    EXPECT_FALSE(cav1.bends());
     // Self assignment
     VariableRFCavity cav2;
     cav2.setLength(3.0);

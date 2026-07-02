@@ -59,7 +59,6 @@
 #include <tuple>
 #include <vector>
 
-class ParticleMatterInteractionHandler;
 class PluginElement;
 
 /**

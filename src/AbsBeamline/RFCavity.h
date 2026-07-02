@@ -116,8 +116,6 @@ public:
 
     virtual void finalise() override;
 
-    virtual bool bends() const override;
-
     virtual void goOnline(const double& kineticEnergy) override;
 
     virtual void goOffline() override;
@@ -164,7 +162,7 @@ public:
      * \f$[z_\mathrm{field}^{\mathrm{begin}}, z_\mathrm{field}^{\mathrm{end}}]\f$
      * on which the RF field map is defined. In the placement redesign this may
      * differ from the nominal body extent returned by
-     * `getElementDimensions()`.
+     * the geometry body interval [0, L].
      */
     virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
@@ -189,11 +187,7 @@ public:
      * geometry. It is independent of the field-support extent returned by
      * `getFieldExtent()`.
      */
-    virtual double getElementLength() const override;
-    virtual void getElementDimensions(double& begin, double& end) const override;
 
-    virtual CoordinateSystemTrafo getEdgeToBegin() const override;
-    virtual CoordinateSystemTrafo getEdgeToEnd() const override;
 
 protected:
     std::shared_ptr<AbstractTimeDependence> phaseTD_m;
@@ -383,16 +377,5 @@ inline void RFCavity::setFrequencyModel(std::shared_ptr<AbstractTimeDependence> 
 inline void RFCavity::setFrequencyModelName(std::string name) { frequencyName_m = name; }
 
 inline std::string RFCavity::getFrequencyModelName() { return frequencyName_m; }
-
-inline CoordinateSystemTrafo RFCavity::getEdgeToBegin() const {
-    CoordinateSystemTrafo ret(Vector_t<double, 3>({0, 0, 0}), Quaternion(1, 0, 0, 0));
-    return ret;
-}
-
-inline CoordinateSystemTrafo RFCavity::getEdgeToEnd() const {
-    CoordinateSystemTrafo ret(
-            Vector_t<double, 3>({0, 0, getElementLength()}), Quaternion(1, 0, 0, 0));
-    return ret;
-}
 
 #endif  // OPALX_RFCavity_HH

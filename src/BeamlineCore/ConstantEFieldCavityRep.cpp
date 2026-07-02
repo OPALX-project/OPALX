@@ -9,9 +9,7 @@ namespace {
     };
 
     const Entry entries[] = {
-            {"L", &ConstantEFieldCavityRep::getElementLength,
-             &ConstantEFieldCavityRep::setElementLength},
-            {"EZ", &ConstantEFieldCavityRep::getEz, &ConstantEFieldCavityRep::setEz},
+                        {"EZ", &ConstantEFieldCavityRep::getEz, &ConstantEFieldCavityRep::setEz},
             {0, 0, 0}};
 }  // namespace
 
@@ -40,4 +38,3 @@ Geometry& ConstantEFieldCavityRep::getGeometry() { return geometry; }
 
 const Geometry& ConstantEFieldCavityRep::getGeometry() const { return geometry; }
 
-void ConstantEFieldCavityRep::setElementLength(double length) { geometry.setElementLength(length); }

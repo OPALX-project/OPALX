@@ -60,8 +60,6 @@ void PluginElement::goOffline() {
     online_m = false;
 }
 
-bool PluginElement::bends() const { return false; }
-
 bool PluginElement::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) { return false; }
 
 bool PluginElement::apply(
@@ -203,7 +201,7 @@ void PluginElement::getFieldExtent(double& zBegin, double& zEnd) const {
 }
 
 bool PluginElement::isInside(const Vector_t<double, 3>& r) const {
-    return r(2) >= 0.0 && r(2) < getElementLength() && isInsideTransverse(r);
+    return r(2) >= 0.0 && r(2) < getGeometry().getElementLength() && isInsideTransverse(r);
 }
 
 int PluginElement::checkPoint(const double& x, const double& y) const {

@@ -118,7 +118,7 @@ protected:
 TEST_F(OpalBeamlinePlacementTest, BridgeReturnsPlacedElementViewAndPreservesNominalQueries) {
     OpalBeamline beamline;
     auto drift = std::make_shared<DriftRep>("D2");
-    drift->setElementLength(2.0);
+    drift->getGeometry().setElementLength(2.0);
     drift->setCSTrafoGlobal2Local(
             CoordinateSystemTrafo(Vector3(0.5, -1.0, 4.0), rotationAroundY(M_PI / 8.0)));
     drift->setMisalignment(CoordinateSystemTrafo(Vector3(0.25, 0.0, 0.0), Quaternion()));
@@ -135,7 +135,7 @@ TEST_F(OpalBeamlinePlacementTest, BridgeReturnsPlacedElementViewAndPreservesNomi
     expectVectorNear(beamline.getNominalEntryTransform(drift).getOrigin(), nominal.getOrigin());
     expectVectorNear(
             beamline.getNominalExitTransform(drift).getOrigin(),
-            (drift->getEdgeToEnd() * nominal).getOrigin());
+            (drift->getGeometry().getEdgeToEnd() * nominal).getOrigin());
     expectVectorNear(beamline.getMisalignment(drift).getOrigin(), Vector3(0.25, 0.0, 0.0));
 }
 
@@ -144,7 +144,7 @@ TEST_F(OpalBeamlinePlacementTest, PrepareSectionsComposes6DPoseWithLabFrame) {
     // prepareSections() composes it with the lab frame in one place (no ELEMEDGE set).
     OpalBeamline beamline(Vector3(0.0, 0.0, 5.0), Quaternion());
     DriftRep drift("D3");
-    drift.setElementLength(0.4);
+    drift.getGeometry().setElementLength(0.4);
     drift.setCSTrafoGlobal2Local(
             CoordinateSystemTrafo(Vector3(1.0, 2.0, 3.0), rotationAroundY(M_PI / 10.0)));
 
@@ -163,7 +163,7 @@ TEST_F(OpalBeamlinePlacementTest, PrepareSectionsComposes6DPoseWithLabFrame) {
 
 TEST_F(OpalBeamlinePlacementTest, PrepareSectionsCompilesElementPositionIntoNominalPlacement) {
     DriftRep drift("D4");
-    drift.setElementLength(0.4);
+    drift.getGeometry().setElementLength(0.4);
     drift.setElementPosition(1.25);
 
     auto bunch = makeBunch(0);
@@ -187,7 +187,7 @@ TEST_F(OpalBeamlinePlacementTest, PrepareSectionsCompilesElementPositionIntoNomi
 
 TEST_F(OpalBeamlinePlacementTest, BeamlineOwnsPlacedElementAssemblySnapshot) {
     DriftRep drift("D5");
-    drift.setElementLength(0.3);
+    drift.getGeometry().setElementLength(0.3);
     drift.setElementPosition(0.75);
 
     auto bunch = makeBunch(0);

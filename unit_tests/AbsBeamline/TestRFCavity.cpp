@@ -12,7 +12,6 @@
  *
  * 1. Basic API
  *    - getType()
- *    - bends()
  *    - amplitude / frequency / phase setters and getters
  *
  * 2. Geometry
@@ -164,7 +163,7 @@ protected:
         cav_->setFieldmap(fmap_.get());
         cav_->setStartField(0.0);
         cav_->setEndField(1.0);
-        cav_->setElementLength(1.0);
+        cav_->getGeometry().setElementLength(1.0);
 
         // --- RF defaults ---
         cav_->setScale(1.0);
@@ -179,8 +178,6 @@ protected:
 // Basic API
 // ---------------------------------------------------------------------------
 TEST_F(RFCavityTest, GetType) { EXPECT_EQ(cav_->getType(), ElementType::RFCAVITY); }
-
-TEST_F(RFCavityTest, Bends) { EXPECT_FALSE(cav_->bends()); }
 
 TEST_F(RFCavityTest, GetSetAmplitudeFrequencyPhase) {
     cav_->setAmplitude(5.0);
@@ -207,15 +204,16 @@ TEST_F(RFCavityTest, GetDimensions) {
 TEST_F(RFCavityTest, BodyExtentCanDifferFromFieldSupport) {
     cav_->setStartField(0.2);
     cav_->setEndField(0.8);
-    cav_->setElementLength(1.0);
+    cav_->getGeometry().setElementLength(1.0);
 
     double bodyBegin = -1.0, bodyEnd = -1.0;
-    cav_->getElementDimensions(bodyBegin, bodyEnd);
+    bodyBegin = 0.0;
+    bodyEnd = cav_->getGeometry().getElementLength();
     EXPECT_EQ(bodyBegin, 0.0);
     EXPECT_EQ(bodyEnd, 1.0);
 
-    const auto entry = cav_->getEdgeToBegin();
-    const auto exit  = cav_->getEdgeToEnd();
+    const auto entry = cav_->getGeometry().getEdgeToBegin();
+    const auto exit  = cav_->getGeometry().getEdgeToEnd();
     EXPECT_EQ(entry.getOrigin()(2), 0.0);
     EXPECT_EQ(exit.getOrigin()(2), 1.0);
 
@@ -229,12 +227,13 @@ TEST_F(RFCavityTest, BodyExtentCanDifferFromFieldSupport) {
 }
 
 TEST_F(RFCavityTest, ZeroBodyLengthDoesNotFallBackToFieldmapLength) {
-    cav_->setElementLength(0.0);
+    cav_->getGeometry().setElementLength(0.0);
 
-    EXPECT_DOUBLE_EQ(cav_->getElementLength(), 0.0);
+    EXPECT_DOUBLE_EQ(cav_->getGeometry().getElementLength(), 0.0);
 
     double bodyBegin = -1.0, bodyEnd = -1.0;
-    cav_->getElementDimensions(bodyBegin, bodyEnd);
+    bodyBegin = 0.0;
+    bodyEnd = cav_->getGeometry().getElementLength();
     EXPECT_DOUBLE_EQ(bodyBegin, 0.0);
     EXPECT_DOUBLE_EQ(bodyEnd, 0.0);
 

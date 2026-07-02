@@ -117,7 +117,6 @@ public:
     void finalise() override;
 
     /** @returns false (cavity does not bend the trajectory) */
-    bool bends() const override { return false; }
 
     /** Return the longitudinal field-support extent.
      *
@@ -127,7 +126,7 @@ public:
      */
     void getFieldExtent(double& zBegin, double& zEnd) const override {
         zBegin = 0.0;
-        zEnd   = getElementLength();
+        zEnd   = getGeometry().getElementLength();
     }
 
     /** Get the amplitude at a given time

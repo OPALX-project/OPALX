@@ -60,10 +60,10 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
 
             double beginThisPathLength = element->getElementPosition();
             Vector_t<double, 3> beginThis3D(0, 0, beginThisPathLength - endPriorPathLength);
-            double thisLength    = element->getChordLength();
-            double bendAngle     = element->getBendAngle();
-            double entranceAngle = element->getEntranceAngle();
-            double arcLength     = element->getArcLength();
+            double thisLength    = element->getGeometry().getChordLength();
+            double bendAngle     = element->getGeometry().getBendAngle();
+            double entranceAngle = element->getGeometry().getEntranceAngle();
+            double arcLength     = element->getGeometry().getArcLength();
 
             double rotationAngleAboutZ = element->getRotationAboutZ();
             Quaternion_t rotationAboutZ(
@@ -82,7 +82,7 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
                     cos(0.5 * entranceAngle), sin(0.5 * entranceAngle) * effectiveRotationAxis);
 
             if (!Options::idealized) {
-                std::vector<Vector_t<double, 3>> truePath = element->getDesignPath();
+                std::vector<Vector_t<double, 3>> truePath = element->getGeometry().getDesignPath();
                 Quaternion_t directionExitHardEdge(
                         cos(0.5 * (0.5 * bendAngle - entranceAngle)),
                         sin(0.5 * (0.5 * bendAngle - entranceAngle)) * effectiveRotationAxis);
@@ -94,7 +94,7 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
                 double distanceExitHETruePath = euclidean_norm(exitDelta);
                 // Bend path length = body length (end-start of the field interval, which the
                 // BeamlineFieldElement stored as startField + getElementLength()).
-                double pathLengthTruePath = element->getElementLength();
+                double pathLengthTruePath = element->getGeometry().getElementLength();
                 arcLength = pathLengthTruePath - distanceEntryHETruePath - distanceExitHETruePath;
             }
 
@@ -103,8 +103,20 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
             Vector_t<double, 3> endThis3D = beginThis3D + chord;
             double endThisPathLength      = beginThisPathLength + arcLength;
 
+            // The SBEND body is a real arc, so its local frame is the entrance tangent
+            // (rotated by the pole-face angle E1). The RBEND body is a straight box with a
+            // uniform vertical field, so its local frame is the box itself: +z along the
+            // chord (half the bend angle from the entrance tangent). apply() can then gate
+            // on the box z and add a uniform dipole, no arc conversion. Only this element's
+            // own frame changes; the running frame handed to the next element
+            // (currentCoordTrafo, below) is untouched, so the chaining is unaffected.
+            const bool isRectangular = element->getType() == ElementType::RBEND
+                                       || element->getType() == ElementType::RBEND3D;
+            const Quaternion_t entryFrameRotation =
+                    isRectangular ? halfRotationAboutAxis : entryFaceRotation;
+
             CoordinateSystemTrafo fromEndLastToBeginThis(
-                    beginThis3D, (entryFaceRotation * rotationAboutZ).conjugate());
+                    beginThis3D, (entryFrameRotation * rotationAboutZ).conjugate());
             CoordinateSystemTrafo fromEndLastToEndThis(endThis3D, rotationAboutAxis.conjugate());
 
             element->setCSTrafoGlobal2Local(fromEndLastToBeginThis * currentCoordTrafo);
@@ -124,7 +136,7 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
         if (element->isPositioned()) continue;
 
         double beginThisPathLength = element->getElementPosition();
-        double thisLength          = element->getElementLength();
+        double thisLength          = element->getGeometry().getElementLength();
         Vector_t<double, 3> beginThis3D(0, 0, beginThisPathLength - endPriorPathLength);
 
         if (element->getType() == ElementType::SOURCE) {
@@ -134,8 +146,8 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
         Vector_t<double, 3> endThis3D;
         if (element->getType() == ElementType::SBEND || element->getType() == ElementType::RBEND
             || element->getType() == ElementType::RBEND3D) {
-            thisLength       = element->getChordLength();
-            double bendAngle = element->getBendAngle();
+            thisLength       = element->getGeometry().getChordLength();
+            double bendAngle = element->getGeometry().getBendAngle();
 
             double rotationAngleAboutZ = element->getRotationAboutZ();
             Quaternion_t rotationAboutZ(
@@ -151,10 +163,10 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
             Quaternion halfRotationAboutAxis(
                     cos(0.25 * bendAngle), sin(0.25 * bendAngle) * effectiveRotationAxis);
 
-            double arcLength = element->getArcLength();
+            double arcLength = element->getGeometry().getArcLength();
             if (!Options::idealized) {
-                std::vector<Vector_t<double, 3>> truePath = element->getDesignPath();
-                double entranceAngle                      = element->getEntranceAngle();
+                std::vector<Vector_t<double, 3>> truePath = element->getGeometry().getDesignPath();
+                double entranceAngle                      = element->getGeometry().getEntranceAngle();
                 Quaternion_t directionExitHardEdge(
                         cos(0.5 * (0.5 * bendAngle - entranceAngle)),
                         sin(0.5 * (0.5 * bendAngle - entranceAngle)) * effectiveRotationAxis);
@@ -166,7 +178,7 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
                 double distanceExitHETruePath = euclidean_norm(exitDelta);
                 // Bend path length = body length (end-start of the field interval, which the
                 // BeamlineFieldElement stored as startField + getElementLength()).
-                double pathLengthTruePath = element->getElementLength();
+                double pathLengthTruePath = element->getGeometry().getElementLength();
                 arcLength = pathLengthTruePath - distanceEntryHETruePath - distanceExitHETruePath;
             }
 

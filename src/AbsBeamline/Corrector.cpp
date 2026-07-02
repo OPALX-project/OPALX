@@ -128,8 +128,6 @@ void Corrector::setDesignEnergy(const double& ekin, bool changeable) {
     }
 }
 
-bool Corrector::bends() const { return false; }
-
 void Corrector::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = 0.0;
     zEnd   = getElementLength();
