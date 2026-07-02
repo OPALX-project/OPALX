@@ -419,22 +419,32 @@ namespace {
 
         const auto& localDomain = layout.getLocalNDIndex();
         const int nghost        = src.getNghost();
-        auto srcView            = src.getView();
+        auto srcHost            = Kokkos::create_mirror_view(src.getView());
+        for (size_t i = 0; i < srcHost.extent(0); ++i) {
+            for (size_t j = 0; j < srcHost.extent(1); ++j) {
+                for (size_t k = 0; k < srcHost.extent(2); ++k) {
+                    srcHost(i, j, k) = Vector_t<double, Dim>(0.0);
+                }
+            }
+        }
 
-        ippl::parallel_for(
-                "MirrorFieldZHandlesNonSlab3DDecomposition::fill", src.getFieldRangePolicy(),
-                KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
-                    const int gx = static_cast<int>(idx[0]) - nghost + localDomain[0].first();
-                    const int gy = static_cast<int>(idx[1]) - nghost + localDomain[1].first();
-                    const int gz = static_cast<int>(idx[2]) - nghost + localDomain[2].first();
+        for (int i = localDomain[0].first(); i <= localDomain[0].last(); ++i) {
+            for (int j = localDomain[1].first(); j <= localDomain[1].last(); ++j) {
+                for (int k = localDomain[2].first(); k <= localDomain[2].last(); ++k) {
+                    const int localI  = i - localDomain[0].first() + nghost;
+                    const int localJ  = j - localDomain[1].first() + nghost;
+                    const int localK  = k - localDomain[2].first() + nghost;
+                    const double base = static_cast<double>(i + 10 * j + 100 * k);
 
                     Vector_t<double, Dim> value;
-                    value[0]            = static_cast<double>(gx + 10 * gy + 100 * gz);
-                    value[1]            = static_cast<double>(1000 + gx + 10 * gy + 100 * gz);
-                    value[2]            = static_cast<double>(2000 + gx + 10 * gy + 100 * gz);
-                    apply(srcView, idx) = value;
-                });
-        Kokkos::fence();
+                    value[0]                        = base;
+                    value[1]                        = 1000.0 + base;
+                    value[2]                        = 2000.0 + base;
+                    srcHost(localI, localJ, localK) = value;
+                }
+            }
+        }
+        Kokkos::deep_copy(src.getView(), srcHost);
 
         opalx::detail::mirrorField(src, dst, Dim - 1);
 
