@@ -152,7 +152,7 @@ double CavityAutophaser::getPhaseAtMaxEnergy(
 
         newPhase = std::fmod(newPhase + basePhase, Physics::two_pi);
 
-        if (!opal->isOptimizerRun()) {
+        if (!opal->isOptimizerRun() && ippl::Comm->rank() == 0) {
             std::string fname = Util::combineFilePath(
                     {opal->getAuxiliaryOutputDirectory(), itsCavity_m->getName() + "_AP.dat"});
             std::ofstream out(fname);
