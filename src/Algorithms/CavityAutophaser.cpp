@@ -106,7 +106,7 @@ double CavityAutophaser::getPhaseAtMaxEnergy(
         }
 
         if (designEnergy > 0.0) {
-            const double length = itsCavity_m->getElementLength();
+            const double length = itsCavity_m->getGeometry().getElementLength();
             if (length <= 0.0) {
                 throw OpalException(
                         "CavityAutophaser::getPhaseAtMaxEnergy()",

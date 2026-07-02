@@ -44,7 +44,6 @@ public:
     virtual void initialise(PartBunch_t* bunch) override;
     virtual void finalise() final;   // final since virtual hook doFinalise
     virtual void goOffline() final;  // final since virtual hook doGoOffline
-    virtual bool bends() const override;
     virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
     /// Plugin elements select over their body; their narrow getFieldExtent() window is for the
     /// orbit-threader time-step check only, so isInside() is overridden to not use it.

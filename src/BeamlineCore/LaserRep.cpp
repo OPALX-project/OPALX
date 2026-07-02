@@ -10,7 +10,6 @@ namespace {
     };
 
     const Entry entries[] = {
-            {"L", &LaserRep::getElementLength, &LaserRep::setElementLength},
             {nullptr, nullptr, nullptr}};
 }  // namespace
 

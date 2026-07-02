@@ -87,8 +87,6 @@ void ScalingFFAMagnet::initialise(PartBunch_t* bunch) {
 
 void ScalingFFAMagnet::finalise() { RefPartBunch_m = nullptr; }
 
-bool ScalingFFAMagnet::bends() const { return true; }
-
 Geometry& ScalingFFAMagnet::getGeometry() { return planarArcGeometry_m; }
 
 const Geometry& ScalingFFAMagnet::getGeometry() const { return planarArcGeometry_m; }

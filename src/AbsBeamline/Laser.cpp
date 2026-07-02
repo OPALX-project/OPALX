@@ -33,12 +33,10 @@ void Laser::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
 
 void Laser::finalise() {}
 
-bool Laser::bends() const { return false; }
-
 void Laser::getFieldExtent(double& zBegin, double& zEnd) const {
     // Local-chart field-support interval.
     zBegin = 0.0;
-    zEnd   = getElementLength();
+    zEnd   = getGeometry().getElementLength();
 }
 
 ElementType Laser::getType() const { return ElementType::LASER; }

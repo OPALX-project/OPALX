@@ -97,7 +97,6 @@ public:
      *  Nb: the VerticalFFAMagnet geometry is straight even though trajectories
      *      are not
      */
-    inline bool bends() const { return false; }
 
     /** Not implemented */
     void getFieldExtent(double& /*zBegin*/, double& /*zEnd*/) const {}

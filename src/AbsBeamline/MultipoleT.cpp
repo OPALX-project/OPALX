@@ -100,9 +100,7 @@ std::tuple<double, double, double> MultipoleT::getFringeField() const {
 void MultipoleT::finalise() { RefPartBunch_m = nullptr; }
 
 void MultipoleT::setElementLength(const double length) {
-    // Base class first
-    ElementBase::setElementLength(length);
-    // Then me
+    // Only the config is authoritative; initialise() pushes it into the geometry.
     config_m.length_m = length;
     implementation_->initialise();
 }
@@ -161,8 +159,6 @@ void MultipoleT::setEntranceAngle(const double entranceAngle) {
 }
 
 void MultipoleT::setEntryOffset(const double offset) { config_m.entryOffset_m = offset; }
-
-bool MultipoleT::bends() const { return config_m.bendAngle_m != 0.0; }
 
 void MultipoleT::initialise(PartBunch_t* bunch) {
     RefPartBunch_m = bunch;

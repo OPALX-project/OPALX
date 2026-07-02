@@ -27,7 +27,7 @@ namespace {
     };
 
     const Entry entries[] = {
-            {"L", &MonitorRep::getElementLength, &MonitorRep::setElementLength}, {0, 0, 0}};
+            {0, 0, 0}};
 }  // namespace
 
 MonitorRep::MonitorRep() : Monitor(), geometry(), active(true) {}

@@ -26,7 +26,7 @@ namespace {
     };
 
     const Entry entries[] = {
-            {"L", &DriftRep::getElementLength, &DriftRep::setElementLength}, {0, 0, 0}};
+            {0, 0, 0}};
 }  // namespace
 
 DriftRep::DriftRep() : Drift(), geometry() {}

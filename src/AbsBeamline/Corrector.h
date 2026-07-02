@@ -70,8 +70,6 @@ public:
 
     virtual void finalise();
 
-    virtual bool bends() const;
-
     virtual ElementType getType() const;
 
     virtual void getFieldExtent(double& zBegin, double& zEnd) const;

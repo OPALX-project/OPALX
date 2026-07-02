@@ -225,12 +225,12 @@ void OpalBeamline::save3DLattice() {
         mesh.add(*(element.get()));
 
         if (element->getType() == ElementType::SBEND || element->getType() == ElementType::RBEND) {
-            std::vector<Vector_t<double, 3>> designPath = element->getDesignPath();
+            std::vector<Vector_t<double, 3>> designPath = element->getGeometry().getDesignPath();
             unsigned int size                           = designPath.size();
 
             unsigned int minNumSteps = std::max(
                     20u, static_cast<unsigned int>(
-                                 std::ceil(std::abs(element->getBendAngle() * Units::rad2deg))));
+                                 std::ceil(std::abs(element->getGeometry().getBendAngle() * Units::rad2deg))));
 
             unsigned int frequency =
                     std::max(1u, static_cast<unsigned int>(std::floor((double)size / minNumSteps)));

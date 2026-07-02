@@ -122,7 +122,6 @@ public:
     /** Finalise the MultipoleT - sets bunch to nullptr */
     void finalise() override;
     /** Return true if dipole component not zero */
-    bool bends() const override;
     /** Get the number of terms used in calculation of field components */
     size_t getMaxFOrder() const { return config_m.maxFOrder_m; }
     size_t getMaxXOrder() const { return config_m.maxXOrder_m; }
@@ -170,14 +169,14 @@ public:
     /** Set the bending angle of the magnet */
     void setBendAngle(double angle, bool variableRadius);
     /** Get the bending angle of the magnet */
-    double getBendAngle() const override { return config_m.bendAngle_m; }
+    double getBendAngle() const { return config_m.bendAngle_m; }
     /** Get the entrance angle */
-    double getEntranceAngle() const override { return config_m.entranceAngle_m; }
+    double getEntranceAngle() const { return config_m.entranceAngle_m; }
     /** Set the length of the magnet
      * If straight-> Actual length
      * If curved -> Arc length
      */
-    void setElementLength(double length) override;
+    void setElementLength(double length);
     /** Get the length of the magnet */
     double getLength() const { return config_m.length_m; }
     /** Set the aperture dimensions \n
@@ -214,7 +213,7 @@ public:
      */
     void getFieldExtent(double& zBegin, double& zEnd) const override {
         zBegin = 0.0;
-        zEnd   = getElementLength();
+        zEnd   = getGeometry().getElementLength();
     }
 
     void setScalingName(const std::string& name);

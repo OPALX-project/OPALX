@@ -105,14 +105,10 @@ ElementBase::ElementBase(const ElementBase& right)
       misalignment_m(right.misalignment_m),
       rotationZAxis_m(right.rotationZAxis_m),
       aperture_m(right.aperture_m),
-      exit_face_slope_m(right.exit_face_slope_m),
       RefPartBunch_m(nullptr),
       online_m(right.online_m),
       elementID(right.elementID),
       userAttribs(right.userAttribs),
-      wake_m(right.wake_m),
-      bgeometry_m(right.bgeometry_m),
-      parmatint_m(right.parmatint_m),
       positionIsFixed(right.positionIsFixed),
       elementPosition_m(right.elementPosition_m),
       elemedgeSet_m(right.elemedgeSet_m),
@@ -124,14 +120,10 @@ ElementBase::ElementBase(const std::string& name)
       csTrafoGlobal2Local_m(),
       misalignment_m(),
       rotationZAxis_m(0.0),
-      exit_face_slope_m(0.0),
       RefPartBunch_m(nullptr),
       online_m(false),
       elementID(name),
       userAttribs(),
-      wake_m(nullptr),
-      bgeometry_m(nullptr),
-      parmatint_m(nullptr),
       positionIsFixed(false),
       elementPosition_m(0.0),
       elemedgeSet_m(false),
@@ -221,27 +213,15 @@ bool ElementBase::update(const AttributeSet& set) {
     return true;
 }
 
-void ElementBase::setWake(WakeFunction* wk) {
-    wake_m = wk;  //->clone(getName() + std::string("_wake")); }
-}
-
-void ElementBase::setBoundaryGeometry(BoundaryGeometry* geo) {
-    bgeometry_m = geo;  //->clone(getName() + std::string("_wake")); }
-}
-
-void ElementBase::setParticleMatterInteraction(ParticleMatterInteractionHandler* parmatint) {
-    parmatint_m = parmatint;
-}
-
 bool ElementBase::isInsideTransverse(const Vector_t<double, 3>& r) const {
     const double& xLimit = aperture_m.second[0];
     const double& yLimit = aperture_m.second[1];
     double factor        = 1.0;
     if (aperture_m.first == ApertureType::CONIC_RECTANGULAR
         || aperture_m.first == ApertureType::CONIC_ELLIPTICAL) {
-        const double length = getElementLength();
+        const double length = getGeometry().getElementLength();
         if (length > 0.0) {
-            Vector_t<double, 3> rRelativeToBegin = getEdgeToBegin().transformTo(r);
+            Vector_t<double, 3> rRelativeToBegin = getGeometry().getEdgeToBegin().transformTo(r);
             double fractionLength                = rRelativeToBegin(2) / length;
             fractionLength                       = std::clamp(fractionLength, 0.0, 1.0);
             // Interpolate aperture scaling from begin (1.0) to end (aperture_m.second[2]).
@@ -265,8 +245,8 @@ bool ElementBase::isInsideTransverse(const Vector_t<double, 3>& r) const {
 }
 
 BoundingBox ElementBase::getBoundingBoxInLabCoords() const {
-    CoordinateSystemTrafo toBegin = getEdgeToBegin() * csTrafoGlobal2Local_m;
-    CoordinateSystemTrafo toEnd   = getEdgeToEnd() * csTrafoGlobal2Local_m;
+    CoordinateSystemTrafo toBegin = getGeometry().getEdgeToBegin() * csTrafoGlobal2Local_m;
+    CoordinateSystemTrafo toEnd   = getGeometry().getEdgeToEnd() * csTrafoGlobal2Local_m;
 
     const double& x = aperture_m.second[0];
     const double& y = aperture_m.second[1];
@@ -293,16 +273,6 @@ void ElementBase::goOnline(const double&) { online_m = true; }
 
 void ElementBase::goOffline() { online_m = false; }
 
-bool ElementBase::Online() { return online_m; }
-
-void ElementBase::trackBunch(PartBunch_t&, const PartData&, bool, bool) const {
-    throw LogicalError("ElementBase::trackBunch()", "Called for element \"" + getName() + "\".");
-}
-
-void ElementBase::trackMap(FVps<double, 6>&, const PartData&, bool, bool) const {
-    throw LogicalError("ElementBase::trackMap()", "Called for element \"" + getName() + "\".");
-}
-
 bool ElementBase::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) { return false; }
 
 bool ElementBase::apply(
@@ -315,7 +285,7 @@ bool ElementBase::apply(
 bool ElementBase::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
-    if (R(2) >= 0.0 && R(2) < getElementLength()) {
+    if (R(2) >= 0.0 && R(2) < getGeometry().getElementLength()) {
         if (!isInsideTransverse(R)) return true;
     }
     return false;
@@ -324,7 +294,7 @@ bool ElementBase::apply(
 bool ElementBase::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
-    if (R(2) >= 0.0 && R(2) < getElementLength()) {
+    if (R(2) >= 0.0 && R(2) < getGeometry().getElementLength()) {
         if (!isInsideTransverse(R)) return true;
     }
     return false;

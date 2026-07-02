@@ -18,6 +18,7 @@
 #include "gtest/gtest.h"
 
 #include <array>
+#include <cmath>
 
 namespace {
     // Compare a CoordinateSystemTrafo against an expected origin (x,y,z) and an
@@ -125,4 +126,98 @@ TEST(GeometryTest, DesignPathIsCentredAndOnTheArc) {
     EXPECT_NEAR(path.front()(2), -0.59694218603518612, 1e-12);
     EXPECT_NEAR(path.back()(0), -0.052366152325942467, 1e-12);
     EXPECT_NEAR(path.back()(2), 0.59694218603518612, 1e-12);
+}
+
+/* ===================== GeometryHelper (device-callable functions) =============== */
+
+TEST(GeometryHelperTest, SafeAbsCosFloorsNearPerpendicular) {
+    EXPECT_DOUBLE_EQ(GeometryHelper::safeAbsCos(0.0), 1.0);
+    EXPECT_NEAR(GeometryHelper::safeAbsCos(M_PI / 2.0), 1.0e-6, 1.0e-9);  // floored
+    EXPECT_NEAR(GeometryHelper::safeAbsCos(M_PI), 1.0, 1.0e-12);          // |cos|
+}
+
+TEST(GeometryHelperTest, RotateAboutYRoundTripAndKnownValue) {
+    const Vector_t<double, 3> v(0.3, -0.2, 0.9);
+    const Vector_t<double, 3> back =
+            GeometryHelper::rotateAboutY(GeometryHelper::rotateAboutY(v, 0.4), -0.4);
+    for (unsigned d = 0; d < 3; ++d) {
+        EXPECT_NEAR(back(d), v(d), 1e-14);
+    }
+    // +z rotates towards +x for a positive angle; y is untouched.
+    const Vector_t<double, 3> r = GeometryHelper::rotateAboutY(Vector_t<double, 3>(0, 1, 1), 0.5);
+    EXPECT_NEAR(r(0), std::sin(0.5), 1e-14);
+    EXPECT_DOUBLE_EQ(r(1), 1.0);
+    EXPECT_NEAR(r(2), std::cos(0.5), 1e-14);
+}
+
+// toBendArcCoords inverts the entrance-anchored design arc: points on the arc map
+// to (0, y, s); the straight tangents continue s linearly outside the body.
+TEST(GeometryHelperTest, ToBendArcCoordsInvertsTheDesignArc) {
+    const double h = 0.7;   // curvature
+    const double L = 1.1;   // body (arc) length
+
+    // On-arc point at arc length s.
+    auto onArc = [&](double s) {
+        return Vector_t<double, 3>((std::cos(h * s) - 1.0) / h, 0.25, std::sin(h * s) / h);
+    };
+    for (const double s : {0.15, 0.5 * L, 0.97 * L}) {
+        const Vector_t<double, 3> arc = GeometryHelper::toBendArcCoords(onArc(s), h, L);
+        EXPECT_NEAR(arc(0), 0.0, 1e-12);
+        EXPECT_DOUBLE_EQ(arc(1), 0.25);
+        EXPECT_NEAR(arc(2), s, 1e-12);
+    }
+
+    // A radially displaced point keeps its offset and arc length.
+    const double s0 = 0.6, dx = 0.02;
+    const Vector_t<double, 3> displaced(
+            (1.0 / h + dx) * std::cos(h * s0) - 1.0 / h, 0.0, (1.0 / h + dx) * std::sin(h * s0));
+    const Vector_t<double, 3> arcDisplaced = GeometryHelper::toBendArcCoords(displaced, h, L);
+    EXPECT_NEAR(arcDisplaced(0), dx, 1e-12);
+    EXPECT_NEAR(arcDisplaced(2), s0, 1e-12);
+
+    // Upstream of the entrance: straight tangent, s = z.
+    const Vector_t<double, 3> upstream =
+            GeometryHelper::toBendArcCoords(Vector_t<double, 3>(0.0, 0.0, -0.3), h, L);
+    EXPECT_NEAR(upstream(2), -0.3, 1e-15);
+
+    // Past the exit: s continues along the straight exit tangent.
+    const double t = 0.2;
+    const Vector_t<double, 3> pastExit =
+            onArc(L) + t * Vector_t<double, 3>(-std::sin(h * L), 0.0, std::cos(h * L));
+    const Vector_t<double, 3> arcPast = GeometryHelper::toBendArcCoords(pastExit, h, L);
+    EXPECT_NEAR(arcPast(0), 0.0, 1e-12);
+    EXPECT_NEAR(arcPast(2), L + t, 1e-12);
+
+    // Zero curvature: identity (straight body).
+    const Vector_t<double, 3> p(0.1, 0.2, 0.3);
+    const Vector_t<double, 3> straight = GeometryHelper::toBendArcCoords(p, 0.0, L);
+    for (unsigned d = 0; d < 3; ++d) {
+        EXPECT_DOUBLE_EQ(straight(d), p(d));
+    }
+}
+
+TEST(GeometryHelperTest, RotateArcFieldToEntryRotatesInPlaneOnly) {
+    const double h = 0.7, L = 1.1, s = 0.6;
+
+    // Vertical component is invariant.
+    const Vector_t<double, 3> vertical =
+            GeometryHelper::rotateArcFieldToEntry(Vector_t<double, 3>(0, 1, 0), s, h, L);
+    EXPECT_DOUBLE_EQ(vertical(0), 0.0);
+    EXPECT_DOUBLE_EQ(vertical(1), 1.0);
+    EXPECT_DOUBLE_EQ(vertical(2), 0.0);
+
+    // A radial unit vector rotates by the tangent angle h*s.
+    const Vector_t<double, 3> radial =
+            GeometryHelper::rotateArcFieldToEntry(Vector_t<double, 3>(1, 0, 0), s, h, L);
+    EXPECT_NEAR(radial(0), std::cos(h * s), 1e-14);
+    EXPECT_NEAR(radial(2), std::sin(h * s), 1e-14);
+
+    // Upstream: no rotation. Past the exit: frozen at the exit angle.
+    const Vector_t<double, 3> upstream =
+            GeometryHelper::rotateArcFieldToEntry(Vector_t<double, 3>(1, 0, 0), -0.1, h, L);
+    EXPECT_DOUBLE_EQ(upstream(0), 1.0);
+    const Vector_t<double, 3> past =
+            GeometryHelper::rotateArcFieldToEntry(Vector_t<double, 3>(1, 0, 0), L + 5.0, h, L);
+    EXPECT_NEAR(past(0), std::cos(h * L), 1e-14);
+    EXPECT_NEAR(past(2), std::sin(h * L), 1e-14);
 }

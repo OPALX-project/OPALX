@@ -21,7 +21,6 @@ public:
 
     virtual void initialise(PartBunch_t* bunch) override;
     virtual void finalise() override;
-    virtual bool bends() const override;
     virtual ElementType getType() const override;
     virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 

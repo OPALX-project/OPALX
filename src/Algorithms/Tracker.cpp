@@ -104,7 +104,8 @@ void Tracker::visitElementBase(const ElementBase& comp) {
                 "Tracker::visitElementBase",
                 "Missing particle reference data in active particle container.");
     }
-    comp.trackBunch(
-            *itsBunch_m, *itsBunch_m->getParticleContainer()->getReference(), back_beam,
-            back_track);
+    // No element type reaches this catch-all: every concrete element is handled by a
+    // dedicated visit method. An element landing here has no tracking model.
+    throw OpalException(
+            "Tracker::visitElementBase", "No tracking model for element \"" + comp.getName() + "\".");
 }

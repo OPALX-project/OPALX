@@ -271,8 +271,6 @@ void RFCavity::initialise(
 
 void RFCavity::finalise() {}
 
-bool RFCavity::bends() const { return false; }
-
 void RFCavity::goOnline(const double&) {
     Fieldmap::readMap(filename_m);
 
@@ -710,9 +708,3 @@ bool RFCavity::isInside(const Vector_t<double, 3>& r) const {
     return false;
 }
 
-double RFCavity::getElementLength() const { return ElementBase::getElementLength(); }
-
-void RFCavity::getElementDimensions(double& begin, double& end) const {
-    begin = 0.0;
-    end   = getElementLength();
-}

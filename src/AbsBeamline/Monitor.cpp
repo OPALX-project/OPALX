@@ -413,8 +413,6 @@ void Monitor::goOffline() {
     }
 }
 
-bool Monitor::bends() const { return false; }
-
 void Monitor::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = -halfLength_s;
     zEnd   = halfLength_s;

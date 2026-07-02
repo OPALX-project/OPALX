@@ -26,7 +26,7 @@ namespace {
     };
 
     static const Entry entries[] = {
-            {"L", &ProbeRep::getElementLength, &ProbeRep::setElementLength}, {0, 0, 0}};
+            {0, 0, 0}};
 }  // namespace
 
 ProbeRep::ProbeRep() : Probe(), geometry(), active(true) {}

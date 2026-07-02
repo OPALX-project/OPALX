@@ -47,12 +47,10 @@ std::size_t Drift::getNSlices() const { return nSlices_m; }
 
 void Drift::finalise() {}
 
-bool Drift::bends() const { return false; }
-
 void Drift::getFieldExtent(double& zBegin, double& zEnd) const {
     // Local-chart field-support interval (a drift carries no field; report the body span).
     zBegin = 0.0;
-    zEnd   = getElementLength();
+    zEnd   = getGeometry().getElementLength();
 }
 
 ElementType Drift::getType() const { return ElementType::DRIFT; }

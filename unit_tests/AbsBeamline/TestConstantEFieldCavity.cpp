@@ -3,7 +3,7 @@
  * \brief Unit tests for ConstantEFieldCavity component (base layer).
  *
  * Tests the ConstantEFieldCavity API and apply logic via ConstantEFieldCavityRep (concrete type).
- * Covers: getType, bends, getEx/Ey/Ez and setters, getFieldExtent,
+ * Covers: getType, getEx/Ey/Ez and setters, getFieldExtent,
  * apply(R,P,t,E,B) for various z-positions, full-vector application,
  * and applyToReferenceParticle (inside/outside).
  */
@@ -22,7 +22,7 @@ namespace {
     protected:
         void SetUp() override {
             rep_ = std::make_unique<ConstantEFieldCavityRep>("TestConstantEFieldCavity");
-            rep_->setElementLength(1.0);
+            rep_->getGeometry().setElementLength(1.0);
             rep_->setEz(10.0);
         }
 
@@ -35,8 +35,6 @@ namespace {
     TEST_F(ConstantEFieldCavityTest, GetType) {
         EXPECT_EQ(rep_->getType(), ElementType::CONSTANTEFIELDCAVITY);
     }
-
-    TEST_F(ConstantEFieldCavityTest, Bends) { EXPECT_FALSE(rep_->bends()); }
 
     TEST_F(ConstantEFieldCavityTest, GetExEyEzSetters) {
         EXPECT_DOUBLE_EQ(rep_->getEx(), 0.0);
