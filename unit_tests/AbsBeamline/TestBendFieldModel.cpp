@@ -67,8 +67,6 @@ TEST(BendFieldModel, EngeProfileDerivativesMatchFiniteDifferences) {
 
 // Gap selection and the fringe half width.
 TEST(BendFieldModel, GapAndHalfWidthHelpers) {
-    EXPECT_DOUBLE_EQ(BendFieldModel::profileGap(0.04, 0.0), 0.04);   // GAP wins
-    EXPECT_DOUBLE_EQ(BendFieldModel::profileGap(0.0, 0.02), 0.04);   // fall back to 2*HGAP
     EXPECT_DOUBLE_EQ(BendFieldModel::fringeHalfWidth(0.02), 0.1);    // five gaps
 }
 

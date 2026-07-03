@@ -105,11 +105,6 @@ namespace BendFieldModel {
         return EngeValue{f, firstDerivative, secondDerivative};
     }
 
-    /// Full gap used to scale the Enge profile: GAP if set, otherwise 2*HGAP.
-    KOKKOS_INLINE_FUNCTION double profileGap(const double fullGap, const double halfGap) {
-        return (fullGap > 0.0) ? fullGap : 2.0 * halfGap;
-    }
-
     /// Half width of one fringe. OPAL's default map places its profile points at
     /// 0.1 m for a 0.02 m gap, i.e. five gaps.
     KOKKOS_INLINE_FUNCTION double fringeHalfWidth(const double profileGap) {
@@ -149,7 +144,7 @@ namespace BendFieldModel {
      *
      * @f[
      *   k_y = -h \tan(E - \psi), \qquad
-     *   \psi = h\,\mathrm{HGAP}\,\mathrm{FINT}\,\frac{1 + \sin^2 E}{\cos E},
+     *   \psi = h\,\tfrac{g}{2}\,\mathrm{FINT}\,\frac{1 + \sin^2 E}{\cos E},
      * @f]
      * with signed curvature @f$h@f$. The caller distributes it over the fringe as
      * @f$B_x \mathrel{+}= (B_0/h)\,k_y\,F'\,y@f$.
@@ -181,7 +176,7 @@ namespace BendFieldModel {
         double bodyLength;            ///< magnet body length (arc length)
         double curvature;             ///< reference-path curvature h (0 for a straight body)
         double faceAngle;             ///< entrance pole-face angle E1 (frame tilt vs design orbit)
-        double profileGap;            ///< Enge gap (GAP or 2*HGAP); 0 => hard edge
+        double profileGap;            ///< Enge full gap (GAP); 0 => hard edge
         double cosEntrance;           ///< |cos E1|, pole-face projection
         double cosExit;               ///< |cos E2|
         double entryEdgeCoefficient;  ///< distributed vertical edge-focusing (entry)

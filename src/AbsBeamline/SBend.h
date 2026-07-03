@@ -52,9 +52,6 @@ public:
     /// Full vertical pole gap (GAP), scaling the Enge fringe profile.
     void setFullGap(double gap);
 
-    /// Half gap (HGAP) used by the Enge fringe profile and pole-face focusing.
-    void setFringeHalfGap(double halfGap);
-
     /// Pole-face field integral (FINT) used by the vertical edge focusing.
     void setFringeIntegral(double fringeIntegral);
 
@@ -91,7 +88,6 @@ private:
     int maxSkew_m   = 0;
 
     double gap_m;
-    double fringeHalfGap_m;
     double fringeIntegral_m;
     double designEnergy_m;
     bool designEnergyChangeable_m;
@@ -99,7 +95,6 @@ private:
 
 inline void SBend::setFullGap(double gap) { gap_m = std::abs(gap); }
 
-inline void SBend::setFringeHalfGap(double halfGap) { fringeHalfGap_m = std::abs(halfGap); }
 
 inline void SBend::setFringeIntegral(double fringeIntegral) {
     fringeIntegral_m = std::abs(fringeIntegral);

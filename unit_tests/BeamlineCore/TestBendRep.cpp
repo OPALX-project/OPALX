@@ -57,7 +57,7 @@ TEST_F(BendRepTest, SBendFringeSupportProducesExpectedOpalEngeProfile) {
     bend.getGeometry() = Geometry::makeSBend(bodyLength, curvature);
     bend.getGeometry().setElementLength(bodyLength);
     bend.getGeometry().setBendAngle(angle);
-    bend.setFringeHalfGap(halfGap);
+    bend.setFullGap(2.0 * halfGap);
     bend.setFringeIntegral(0.5);
     bend.setB(-1.0);
 
@@ -170,7 +170,7 @@ TEST_F(BendRepTest, RBendFringeSupportProjectsExitByFaceAngle) {
     bend.getGeometry() = Geometry::makeRBend(bodyLength, angle);
     bend.getGeometry().setElementLength(bodyLength);
     bend.getGeometry().setBendAngle(angle);
-    bend.setFringeHalfGap(halfGap);
+    bend.setFullGap(2.0 * halfGap);
     bend.setFringeIntegral(0.5);
     bend.setB(-1.0);
 
@@ -208,7 +208,7 @@ TEST_F(BendRepTest, SBendEntryFringeAddsHorizontalEdgeField) {
     bend.getGeometry().setBendAngle(angle);
     bend.getGeometry().setEntranceAngle(entryAngle);
     bend.getGeometry().setExitAngle(0.0);
-    bend.setFringeHalfGap(halfGap);
+    bend.setFullGap(2.0 * halfGap);
     bend.setFringeIntegral(0.5);
     bend.setB(-1.0);
 
@@ -225,7 +225,7 @@ TEST_F(BendRepTest, SBendEntryFringeAddsHorizontalEdgeField) {
     straight.getGeometry().setBendAngle(angle);
     straight.getGeometry().setEntranceAngle(0.0);
     straight.getGeometry().setExitAngle(0.0);
-    straight.setFringeHalfGap(halfGap);
+    straight.setFullGap(2.0 * halfGap);
     straight.setFringeIntegral(0.0);
     straight.setB(-1.0);
 

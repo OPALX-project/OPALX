@@ -21,7 +21,6 @@ SBend::SBend(const SBend& right)
       maxNormal_m(right.maxNormal_m),
       maxSkew_m(right.maxSkew_m),
       gap_m(right.gap_m),
-      fringeHalfGap_m(right.fringeHalfGap_m),
       fringeIntegral_m(right.fringeIntegral_m),
       designEnergy_m(right.designEnergy_m),
       designEnergyChangeable_m(true) {}
@@ -29,7 +28,6 @@ SBend::SBend(const SBend& right)
 SBend::SBend(const std::string& name)
     : ElementBase(name),
       gap_m(0.0),
-      fringeHalfGap_m(0.0),
       fringeIntegral_m(0.5),
       designEnergy_m(0.0),
       designEnergyChangeable_m(true) {}
@@ -117,7 +115,7 @@ void SBend::getFieldExtent(double& zBegin, double& zEnd) const {
     // half width past each pole face, projected by the face angle. With no gap the
     // half width is zero, so this is the plain body extent [0, L].
     const double half = BendFieldModel::fringeHalfWidth(
-            BendFieldModel::profileGap(gap_m, fringeHalfGap_m));
+            gap_m);
     zBegin = -half / GeometryHelper::safeAbsCos(getGeometry().getEntranceAngle());
     zEnd   = getGeometry().getElementLength() + half / GeometryHelper::safeAbsCos(getGeometry().getExitAngle());
 }
@@ -187,7 +185,7 @@ BendFieldModel::FieldInputs SBend::makeFieldInputs() const {
     in.bodyLength  = getGeometry().getElementLength();
     in.curvature   = getGeometry().getCurvature();
     in.faceAngle   = getGeometry().getEntranceAngle();
-    in.profileGap  = BendFieldModel::profileGap(gap_m, fringeHalfGap_m);
+    in.profileGap  = gap_m;
     in.cosEntrance = GeometryHelper::safeAbsCos(getGeometry().getEntranceAngle());
     in.cosExit     = GeometryHelper::safeAbsCos(getGeometry().getExitAngle());
 
@@ -207,12 +205,12 @@ BendFieldModel::FieldInputs SBend::makeFieldInputs() const {
             in.entryEdgeCoefficient =
                     rigidity
                     * BendFieldModel::edgeVerticalKickCoefficient(
-                            h, fringeHalfGap_m, fringeIntegral_m, getGeometry().getEntranceAngle())
+                            h, 0.5 * gap_m, fringeIntegral_m, getGeometry().getEntranceAngle())
                     / span;
             in.exitEdgeCoefficient =
                     rigidity
                     * BendFieldModel::edgeVerticalKickCoefficient(
-                            h, fringeHalfGap_m, fringeIntegral_m, getGeometry().getExitAngle())
+                            h, 0.5 * gap_m, fringeIntegral_m, getGeometry().getExitAngle())
                     / span;
         }
     }
