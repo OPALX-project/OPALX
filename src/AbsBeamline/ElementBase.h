@@ -73,7 +73,6 @@
 #include "BeamlineGeometry/PlacedElement.h"
 #include "BeamlineGeometry/PlacementPose.h"
 #include "BeamlineGeometry/SupportPlacement.h"
-#include "OPALTypes.h"
 #include "Structure/BoundingBox.h"
 #include "Utilities/GeneralOpalException.h"
 #include "VectorMath.h"
@@ -91,10 +90,6 @@ class Channel;
 class ConstChannel;
 class ParticleMatterInteractionHandler;
 class WakeFunction;
-class PartData;
-
-template <class T, int N>
-class FVps;
 
 enum class ElementType : unsigned short {
     ANY,
@@ -142,8 +137,7 @@ public:
     virtual void setName(const std::string& name);
 
     /// Get element type std::string.
-    //  Default returns ElementType::ANY; concrete elements override.
-    virtual ElementType getType() const;
+    virtual ElementType getType() const = 0;
 
     std::string getTypeString() const;
     static std::string getTypeString(ElementType type);
@@ -287,133 +281,6 @@ public:
     //  Return a fresh copy of any beam line structure is made,
     //  but sharable elements remain shared.
     virtual ElementBase* copyStructure();
-
-    /* ============================== Apply Functions =========================== */
-    /**
-     * Apply functions apply the element's electromagnetic field to the
-     * particles. They are called inside ParallelTracker::computeExternalFields().
-     */
-
-    /**
-     * @brief Apply to all particles. Kernel launch moved inside the function.
-     *
-     * @returns true if particle is out-of-bounds (lost), false otherwise
-     */
-    virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc);
-
-    /**
-     * @brief Apply to particle i
-     *
-     * @param i Particle index
-     * @param t Time
-     * @param E Electric Field
-     * @param B Magnetic Field
-     *
-     * @returns true if particle is out-of-bounds (lost), false otherwise
-     */
-    virtual bool apply(
-            const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B);
-
-    /**
-     * @brief Apply to particle with position R and momentum P
-     *
-     * @param R Position
-     * @param P Momentum
-     * @param t Time
-     * @param E Electric Field
-     * @param B Magnetic Field
-     *
-     * @returns true if particle is out-of-bounds (lost), false otherwise
-     */
-    virtual bool apply(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B);
-
-    /**
-     * @brief Apply to reference particle with position R and momemtum P
-     *
-     * @param R Position
-     * @param P Momentum
-     * @param t Time
-     * @param E Electric Field
-     * @param B Magnetic Field
-     *
-     * @returns true if particle is out-of-bounds (lost), false otherwise
-     */
-    virtual bool applyToReferenceParticle(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B);
-
-    /**
-     * @brief Calculate the four-potential at some position relative to the
-     * element
-     *
-     * @param R position in the local coordinate system of the element
-     * @param t time
-     * @param A filled with the calculated magnetic vector potential
-     * @param phi filled with the calculated electric potential
-     * Note that any existing values in A and phi may be overwritten by this
-     * method.
-     *
-     * @returns true if particle is outside the field map, else false
-     * Default is to return false and make no change to A and phi
-     */
-    virtual bool getPotential(
-            const Vector_t<double, 3>& /*R*/, const double& /*t*/, Vector_t<double, 3>& /*A*/,
-            double& /*phi*/) {
-        return false;
-    }
-
-    // Design energy for elements such as RF-cavities
-    virtual double getDesignEnergy() const;
-    virtual void setDesignEnergy(const double& energy, bool changeable = true);
-
-    // Setup
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) = 0;
-
-    // Clean-up
-    virtual void finalise() = 0;
-
-    // Does the element bend?
-    virtual bool bends() const = 0;
-
-    // Read & free fieldmaps
-    virtual void goOnline(const double& kineticEnergy);
-    virtual void goOffline();
-
-    // Is the element online (been initialised)?
-    virtual bool Online();
-
-    /**
-     * @brief Return the field-support extent of the element.
-     *
-     * This is the longitudinal interval
-     * \f$[z_\mathrm{field}^{\mathrm{begin}}, z_\mathrm{field}^{\mathrm{end}}]\f$
-     * on which the external field model is evaluated in the element-local
-     * chart. In the first extent model this may differ from the nominal body
-     * extent returned by `getElementDimensions()`, for example when fringe
-     * fields extend beyond the hardware body or when a field map occupies only
-     * part of the body.
-     */
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const = 0;
-
-    /**
-     * @brief Track a borrowed particle bunch through a non-standard element.
-     *
-     * The default implementation throws a LogicalError.
-     *
-     * @param bunch Particle bunch to track. The element does not take ownership.
-     */
-    virtual void trackBunch(PartBunch_t& bunch, const PartData&, bool revBeam, bool revTrack) const;
-
-    /// Track a map.
-    //  This catch-all method implements a hook for tracking a transfer
-    //  map through a non-standard element.
-    //  The default version throws a LogicalError.
-    virtual void trackMap(FVps<double, 6>& map, const PartData&, bool revBeam, bool revTrack) const;
-
-    void setExitFaceSlope(const double&);
-    /* ========================================================================== */
 
     /// Test if the element can be shared.
     bool isSharable() const;
@@ -576,14 +443,6 @@ protected:
     double elementEdge_m;
 
     double rotationZAxis_m;
-
-    // Default aperture - Needs to be changed to Kokkos::View
-    static const std::vector<double> defaultAperture_m;
-    double exit_face_slope_m;
-
-    // The reference bunch (not owned)
-    PartBunch_t* RefPartBunch_m;
-    bool online_m;
 
 private:
     // Not implemented.
@@ -774,11 +633,5 @@ inline void ElementBase::setFlagDeleteOnTransverseExit(bool flag) {
 }
 
 inline bool ElementBase::getFlagDeleteOnTransverseExit() const { return deleteOnTransverseExit_m; }
-
-inline void ElementBase::setExitFaceSlope(const double& m) { exit_face_slope_m = m; }
-
-inline void ElementBase::setDesignEnergy(const double& /*energy*/, bool /*changeable*/) { return; }
-
-inline double ElementBase::getDesignEnergy() const { return -1.0; }
 
 #endif  // OPALX_ElementBase_HH

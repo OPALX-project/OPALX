@@ -98,24 +98,6 @@ private:
             double outerMajor, const unsigned int numSegments = 36);
 
     /**
-     * @brief Build a curved bend body by sweeping an elliptical ring along a centerline.
-     *
-     * The generated surface follows the sampled bend design path and keeps a
-     * constant transverse support ellipse. This is the first visualization mesh
-     * for analytic bends and therefore models the bend body as a smooth curved
-     * tube without end caps.
-     *
-     * @param centerline Sampled bend centerline in the local body chart.
-     * @param minor Outer semi-axis in the local y-direction.
-     * @param major Outer semi-axis in the local x-direction.
-     * @param numSegments Number of azimuthal segments per ring.
-     * @return Triangulated curved bend body mesh.
-     */
-    static MeshData getBendTube(
-            const std::vector<Vector_t<double, 3>>& centerline, double minor, double major,
-            const unsigned int numSegments = 24);
-
-    /**
      * @brief Build a quadrupole-like body from four longitudinal pole blocks.
      *
      * The pole blocks are scaled from the element aperture and extruded along
@@ -129,47 +111,6 @@ private:
      * @return Triangulated quadrupole body mesh.
      */
     static MeshData getQuadrupole(double length, double minor, double major, double formFactor);
-
-    /**
-     * @brief Build a rounded prism from a superellipse cross-section.
-     *
-     * This is used for visual bodies that should read as machined pole pieces
-     * rather than sharp-edged boxes. The cross-section is
-     * @f[
-     *   \left|\frac{x}{a}\right|^n + \left|\frac{y}{b}\right|^n = 1
-     * @f]
-     * with @f$n > 2@f$ so that the shape has flat-ish faces and rounded edges.
-     *
-     * @param length Body length along the local z-axis.
-     * @param halfWidth Cross-section half-width in the local x-direction.
-     * @param halfHeight Cross-section half-height in the local y-direction.
-     * @param formFactor Exit scaling factor used for conic apertures.
-     * @param exponent Superellipse exponent.
-     * @param numSegments Number of azimuthal segments.
-     * @return Triangulated rounded prism mesh.
-     */
-    static MeshData getSuperellipsePrism(
-            double length, double halfWidth, double halfHeight, double formFactor,
-            double exponent = 4.0, unsigned int numSegments = 28);
-
-    /**
-     * @brief Build a pointed quadrupole pole tip with a rounded nose.
-     *
-     * The tip is an extruded 2D profile that narrows toward the beam aperture.
-     * A short rounded nose is added by collapsing the final profile width to a
-     * finite tip radius instead of a sharp point.
-     *
-     * @param length Body length along the local z-axis.
-     * @param baseHalfWidth Half-width of the pole root.
-     * @param baseHalfHeight Half-height of the pole root.
-     * @param tipReach Longitudinal reach of the inward-facing nose.
-     * @param tipRadius Half-width of the rounded nose.
-     * @param formFactor Exit scaling factor used for conic apertures.
-     * @return Triangulated pole-tip prism mesh.
-     */
-    static MeshData getPoleTipPrism(
-            double length, double baseHalfWidth, double baseHalfHeight, double tipReach,
-            double tipRadius, double formFactor);
 
     /**
      * @brief Build a solenoid body as a hollow tube with short end collars.
@@ -198,24 +139,6 @@ private:
      * @return Triangulated standing-wave cavity mesh.
      */
     static MeshData getRFCavity(double length, double minor, double major);
-
-    /**
-     * @brief Build a hollow tube with a smoothly varying outer profile.
-     *
-     * The inner bore stays constant while the outer support follows a sequence
-     * of longitudinal stations @f$(z_i, s_i)@f$ with linearly interpolated
-     * scale factors @f$s_i@f$.
-     *
-     * @param length Body length along the local z-axis.
-     * @param innerMinor Inner semi-axis in the local y-direction.
-     * @param innerMajor Inner semi-axis in the local x-direction.
-     * @param profile Ordered list of normalized longitudinal stations and outer-radius scales.
-     * @param numSegments Number of azimuthal segments per ring.
-     * @return Triangulated profiled tube mesh.
-     */
-    static MeshData getProfiledTube(
-            double length, double innerMinor, double innerMajor,
-            const std::vector<std::pair<double, double>>& profile, unsigned int numSegments = 36);
 
     /**
      * @brief Build a traveling-wave structure with repeated shallow corrugations.

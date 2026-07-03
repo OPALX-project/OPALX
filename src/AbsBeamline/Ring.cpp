@@ -45,7 +45,7 @@ const double Ring::lengthTolerance_m = 1e-2;
 const double Ring::angleTolerance_m  = 1e-2;
 
 Ring::Ring(std::string ring)
-    : ElementBase(ring),
+    : Component(ring),
       planarArcGeometry_m(1, 1),
       refPartBunch_m(nullptr),
       lossDS_m(nullptr),
@@ -69,7 +69,7 @@ Ring::Ring(std::string ring)
 void Ring::accept(BeamlineVisitor& visitor) const { visitor.visitRing(*this); }
 
 Ring::Ring(const Ring& ring)
-    : ElementBase(ring.getName()),
+    : Component(ring.getName()),
       planarArcGeometry_m(ring.planarArcGeometry_m),
       lossDS_m(nullptr),
       beamRInit_m(ring.beamRInit_m),
@@ -195,7 +195,7 @@ void Ring::finalise() {
 }
 
 void Ring::setRefPartBunch(PartBunch_t* bunch) {
-    RefPartBunch_m = bunch;  // inherited from ElementBase
+    RefPartBunch_m = bunch;  // inherited from Component
     refPartBunch_m = bunch;  // private data (obeys style guide)
 }
 
@@ -250,7 +250,7 @@ Vector_t<double, 3> Ring::getNextNormal() const {
              -std::sin(latticePhiInit_m + latticeThetaInit_m), 0.});
 }
 
-void Ring::appendElement(const ElementBase& element) {
+void Ring::appendElement(const Component& element) {
     if (isLocked_m) {
         throw GeneralOpalException(
                 "Ring::appendElement",
@@ -267,7 +267,7 @@ void Ring::appendElement(const ElementBase& element) {
     Vector_t<double, 3> startPos  = getNextPosition();
     Vector_t<double, 3> startNorm = getNextNormal();
 
-    section->setComponent(dynamic_cast<ElementBase*>(element.clone()));
+    section->setComponent(dynamic_cast<Component*>(element.clone()));
     section->setStartPosition(startPos);
     section->setStartNormal(startNorm);
 

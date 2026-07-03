@@ -30,7 +30,7 @@
 
 #include <vector>
 
-#include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/Component.h"
 
 /** \class[RingSection]
  *
@@ -129,15 +129,15 @@ public:
 
     /** Set the component wrapped by RingSection
      *
-     *  This borrows the ElementBase* pointer (caller is responsible for cleanup)
+     *  This borrows the Component* pointer (caller is responsible for cleanup)
      */
-    inline void setComponent(ElementBase* component) { component_m = component; }
+    inline void setComponent(Component* component) { component_m = component; }
 
     /** Get the component wrapped by RingSection
      *
-     *  ElementBase* is not owned by caller or RingSection
+     *  Component* is not owned by caller or RingSection
      */
-    inline ElementBase* getComponent() const { return component_m; }
+    inline Component* getComponent() const { return component_m; }
 
     /** Set a position on the plane of the section start */
     inline void setStartPosition(Vector_t<double, 3> pos) { startPosition_m = pos; }
@@ -184,7 +184,7 @@ private:
     inline void rotateToTCoordinates(Vector_t<double, 3>& vec) const;
     inline void rotateToCyclCoordinates(Vector_t<double, 3>& vec) const;
 
-    ElementBase* component_m;
+    Component* component_m;
 
     Vector_t<double, 3> componentPosition_m;
     Vector_t<double, 3> componentOrientation_m;

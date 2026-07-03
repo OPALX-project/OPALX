@@ -22,7 +22,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/Component.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Fields/BDipoleField.h"
 
@@ -32,7 +32,7 @@
 //  Class Corrector defines the abstract interface for closed orbit
 //  correctors.
 
-class Corrector : public ElementBase {
+class Corrector : public Component {
 public:
     /// Plane selection.
     enum Plane {

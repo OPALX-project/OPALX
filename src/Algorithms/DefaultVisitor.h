@@ -43,7 +43,7 @@ public:
     /// Apply the algorithm to the top-level beamline.
     void execute() override;
 
-    void visitElementBase(const ElementBase&) override;
+    void visitComponent(const Component&) override;
 
     /// Apply the algorithm to a beam line.
     void visitBeamline(const Beamline&) override;

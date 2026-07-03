@@ -20,10 +20,10 @@
 #include "MultipoleTCurvedConstRadius.h"
 #include "MultipoleTStraight.h"
 
-MultipoleT::MultipoleT(const std::string& name) : ElementBase(name) { chooseImplementation(); }
+MultipoleT::MultipoleT(const std::string& name) : Component(name) { chooseImplementation(); }
 
 MultipoleT::MultipoleT(const MultipoleT& right)
-    : ElementBase(right),
+    : Component(right),
       config_m(right.config_m),
       scalingName_m(right.scalingName_m),
       scalingTD_m(right.scalingTD_m) {
@@ -101,7 +101,7 @@ void MultipoleT::finalise() { RefPartBunch_m = nullptr; }
 
 void MultipoleT::setElementLength(const double length) {
     // Base class first
-    ElementBase::setElementLength(length);
+    Component::setElementLength(length);
     // Then me
     config_m.length_m = length;
     implementation_->initialise();

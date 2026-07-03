@@ -8,6 +8,7 @@ set(_SRCS
     AttributeSet.cpp
     BeamlineVisitor.cpp
     BendBase.cpp
+    Component.cpp
     ConstantEFieldCavity.cpp
     Drift.cpp
     ElementBase.cpp
@@ -37,6 +38,7 @@ set(_HDRS
     AttributeSet.h
     BeamlineVisitor.h
     BendBase.h
+    Component.h
     ConstantEFieldCavity.h
     Drift.h
     ElementBase.h

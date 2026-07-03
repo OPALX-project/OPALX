@@ -52,7 +52,7 @@ public:
     // Overrides of BeamlineVisitor
     void execute() override {}
     void visitBeamline(const Beamline&) override {}
-    void visitElementBase(const ElementBase&) override {}
+    void visitComponent(const Component&) override {}
     void visitConstantEFieldCavity(const ConstantEFieldCavity&) override {}
     void visitDrift(const Drift&) override {}
     void visitFlaggedElmPtr(const FlaggedElmPtr&) override {}

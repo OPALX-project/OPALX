@@ -38,14 +38,14 @@ const double Monitor::halfLength_s = 0.005;
 Monitor::Monitor() : Monitor("") {}
 
 Monitor::Monitor(const Monitor& right)
-    : ElementBase(right),
+    : Component(right),
       filename_m(right.filename_m),
       plane_m(right.plane_m),
       type_m(right.type_m),
       numPassages_m(0) {}
 
 Monitor::Monitor(const std::string& name)
-    : ElementBase(name),
+    : Component(name),
       filename_m(""),
       plane_m(OFF),
       type_m(CollectionType::SPATIAL),

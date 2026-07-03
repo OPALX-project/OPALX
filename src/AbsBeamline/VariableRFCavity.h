@@ -19,7 +19,7 @@
 #ifndef ABSBEAMLINE_VARIABLERFCAVITY_HH
 #define ABSBEAMLINE_VARIABLERFCAVITY_HH
 
-#include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/Component.h"
 #include "Algorithms/AbstractTimeDependence.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Fields/EMField.h"
@@ -36,7 +36,7 @@
  *
  *  The time dependent quantities are
  */
-class VariableRFCavity : public ElementBase {
+class VariableRFCavity : public Component {
 public:
     /// Constructor with given name.
     explicit VariableRFCavity(const std::string& name);
@@ -213,9 +213,9 @@ public:
     void initialiseTimeDependencies() const;
 
     /// Not implemented
-    EMField& getField();
+    EMField& getField() override;
     /// Not implemented
-    const EMField& getField() const;
+    const EMField& getField() const override;
 
 protected:
     void initNull();

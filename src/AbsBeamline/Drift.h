@@ -21,14 +21,14 @@
 //
 // ------------------------------------------------------------------------
 
-#include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/Component.h"
 
 // Class Drift
 // ------------------------------------------------------------------------
 /// Interface for drift space.
 //  Class Drift defines the abstract interface for a drift space.
 
-class Drift : public ElementBase {
+class Drift : public Component {
 public:
     /// Constructor with given name.
     explicit Drift(const std::string& name);
