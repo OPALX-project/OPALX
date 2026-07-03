@@ -875,7 +875,11 @@ void BinnedFieldSolver<T, Dim>::buildFlippedZSlab(
     // excludes ghost cells; mirrorField zero-initialises ghosts, which is safe.
 
     auto flippedZSlabField = fieldContainer.getOrCreateFlippedZSlabField(src);
+    
+    IpplTimings::TimerRef mirrorFieldTimer = IpplTimings::getTimer("mirrorField");
+    IpplTimings::startTimer(mirrorFieldTimer);
     opalx::detail::mirrorField(src, *flippedZSlabField, Dim - 1);
+    IpplTimings::stopTimer(mirrorFieldTimer);
 }
 
 template <typename T, unsigned Dim>
