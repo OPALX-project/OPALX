@@ -15,7 +15,6 @@ set (_SRCS
     OpalSBend.cpp
     OpalSolenoid.cpp
     OpalBeamline.cpp
-    OpalRingDefinition.cpp      
     OpalVerticalFFAMagnet.cpp
     OpalProbe.cpp
     OpalPolynomialTimeDependence.cpp
@@ -41,7 +40,6 @@ set (HDRS
     OpalSource.h
     OpalSolenoid.h
     OpalTravelingWave.h
-    OpalRingDefinition.h
     OpalLaser.h
     OpalVerticalFFAMagnet.h
     OpalProbe.h

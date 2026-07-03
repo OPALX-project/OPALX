@@ -113,28 +113,6 @@ private:
 };
 
 // ---------------------------------------------------------------------------
-// Dummy Geometry (fully concrete)
-// ---------------------------------------------------------------------------
-class DummyGeometry : public BGeometryBase {
-public:
-    double getArcLength() const override { return 0.0; }
-    double getElementLength() const override { return length_m; }
-    void setElementLength(double length) override { length_m = length; }
-
-    Euclid3D getTransform(double, double) const override { return Euclid3D(); }
-
-private:
-    double length_m = 0.0;
-};
-
-// ---------------------------------------------------------------------------
-// Dummy Field (fully concrete)
-// ---------------------------------------------------------------------------
-class DummyField : public EMField {
-public:
-    void scale(double) override {}
-};
-
 // ---------------------------------------------------------------------------
 // Minimal concrete RFCavity
 // ---------------------------------------------------------------------------
@@ -149,11 +127,8 @@ public:
 
     ElementBase* clone() const override { return new TestRFCavity(*this); }
 
-    BGeometryBase& getGeometry() override { return geom_; }
-    const BGeometryBase& getGeometry() const override { return geom_; }
-
-    EMField& getField() override { return field_; }
-    const EMField& getField() const override { return field_; }
+    Geometry& getGeometry() override { return geom_; }
+    const Geometry& getGeometry() const override { return geom_; }
 
     // ---- Simple setters for testing ----
     void setAmplitude(double v) { amplitude_ = v; }
@@ -173,8 +148,7 @@ private:
     double frequency_ = 0.0;
     double phase_     = 0.0;
 
-    DummyGeometry geom_;
-    DummyField field_;
+    Geometry geom_;
 };
 
 // ---------------------------------------------------------------------------

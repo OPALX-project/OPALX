@@ -68,6 +68,9 @@ public:
             ippl::ParticleAttrib<double>::view_type Mview, size_t Np, size_t Nlocal);
     void computeMinMaxPosition(
             ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Rview, size_t Nlcoal);
+    void computePolarizationMoments(
+            ippl::ParticleAttrib<ippl::Vector<float, 3>>::view_type Polview, size_t Np,
+            size_t Nlocal);
     void computeMeanKineticEnergy();
     void computeDebyeLength(
             ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Pview, size_t Np, size_t Nlocal,
@@ -78,6 +81,8 @@ public:
     Vector_t<double, 3> getStandardDeviationPosition() const;
     Vector_t<double, 3> getMeanMomentum() const;
     Vector_t<double, 3> getStandardDeviationMomentum() const;
+    Vector_t<double, 3> getMeanPolarization() const;
+    Vector_t<double, 3> getStandardDeviationPolarization() const;
     Vector_t<double, 3> getNormalizedEmittance() const;
     Vector_t<double, 3> getGeometricEmittance() const;
     Vector_t<double, 3> getStandardDeviationRP() const;
@@ -149,6 +154,8 @@ private:
     Vector_t<double, 3> meanP_m;
     Vector_t<double, 3> stdR_m;
     Vector_t<double, 3> stdP_m;
+    Vector_t<double, 3> meanPol_m;
+    Vector_t<double, 3> stdPol_m;
     Vector_t<double, 3> stdRP_m;
     Vector_t<double, 3> normalizedEps_m;
     Vector_t<double, 3> geometricEps_m;
@@ -203,6 +210,12 @@ inline Vector_t<double, 3> DistributionMoments::getMeanMomentum() const { return
 
 inline Vector_t<double, 3> DistributionMoments::getStandardDeviationMomentum() const {
     return stdP_m;
+}
+
+inline Vector_t<double, 3> DistributionMoments::getMeanPolarization() const { return meanPol_m; }
+
+inline Vector_t<double, 3> DistributionMoments::getStandardDeviationPolarization() const {
+    return stdPol_m;
 }
 
 inline Vector_t<double, 3> DistributionMoments::getNormalizedEmittance() const {

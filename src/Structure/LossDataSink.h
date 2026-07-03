@@ -183,6 +183,10 @@ private:
     std::vector<size_t> bunchNumber_m;
     std::vector<size_t> turnNumber_m;
 
+    /// True once any particle added through addParticle() carried a polarization
+    /// vector. Controls whether polx/poly/polz columns appear in the lossfile.
+    bool hasPolData_m = false;
+
     std::vector<Vector_t<double, 3>> RefPartR_m;
     std::vector<Vector_t<double, 3>> RefPartP_m;
     std::vector<h5_int64_t> globalTrackStep_m;

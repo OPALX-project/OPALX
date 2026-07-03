@@ -35,9 +35,9 @@ public:
 
     void operator=(const StepSizeConfig&) = delete;
 
-    void push_back(double dt, double zstop, unsigned long numSteps);
+    void push_back(double dt, double sStop, unsigned long numSteps);
 
-    void sortAscendingZStop();
+    void sortAscendingSStop();
 
     void resetIterator();
 
@@ -55,11 +55,11 @@ public:
 
     StepSizeConfig& operator--();
 
-    void shiftZStopRight(double front);
+    void shiftSStopRight(double front);
 
     double getdT() const;
 
-    double getZStop() const;
+    double getSStop() const;
 
     unsigned long getNumSteps() const;
 
@@ -69,7 +69,7 @@ public:
 
     double getMinTimeStep() const;
 
-    double getFinalZStop() const;
+    double getFinalSStop() const;
 
     Inform& print(Inform& out) const;
     void printDirect(Inform& out) const;
@@ -93,8 +93,8 @@ inline StepSizeConfig::StepSizeConfig() : configurations_m(), it_m(configuration
 inline StepSizeConfig::StepSizeConfig(const StepSizeConfig& right)
     : configurations_m(right.configurations_m), it_m(configurations_m.begin()) {}
 
-inline void StepSizeConfig::push_back(double dt, double zstop, unsigned long numSteps) {
-    configurations_m.push_back(std::make_tuple(dt, zstop, numSteps));
+inline void StepSizeConfig::push_back(double dt, double sStop, unsigned long numSteps) {
+    configurations_m.push_back(std::make_tuple(dt, sStop, numSteps));
 }
 
 inline void StepSizeConfig::resetIterator() { it_m = configurations_m.begin(); }

@@ -73,9 +73,9 @@ private:
     DataSink* itsDataSink_m;         ///< Borrowed beam statistics and phase-space output sink.
     OpalBeamline itsOpalBeamline_m;  ///< Cloned field elements and coordinate transforms.
     bool globalEOL_m;                ///< End-of-line flag (e.g. orbit threader out of bounds).
-    double zstart_m;                 ///< Path-length start position for the track (m).
+    double sStart_m;                 ///< Path-length start position for the track (m).
 
-    /** Step-size segments: z-stop, dt, and steps per segment. */
+    /** Step-size segments: s-stop, dt, and steps per segment. */
     StepSizeConfig stepSizes_m;
 
     double dtCurrentTrack_m;          ///< Global @f$\Delta t@f$ for the current track segment.
@@ -107,16 +107,16 @@ public:
      * @param bunch             Borrowed particle bunch (multi-container).
      * @param ds                Borrowed data sink for statistics and dumps.
      * @param revBeam           Reversed beam flag (see single-argument constructor).
-     * @param maxSTEPS          Max integration steps per z-segment (parallel to zstop/dt).
-     * @param zstart            Starting path length (m).
-     * @param zstop             Stop path length per segment (m).
+     * @param maxSTEPS          Max integration steps per s-segment (parallel to sStop/dt).
+     * @param sStart            Starting path length (m).
+     * @param sStop             Stop path length per segment (m).
      * @param dt                Time step per segment (s).
      * @param emittingSamplers  Optional per-container samplers for emitParticles(t, dt).
      */
     explicit ParallelTracker(
             const Beamline& bl, PartBunch_t& bunch, DataSink* ds, bool revBeam,
-            const std::vector<unsigned long long>& maxSTEPS, double zstart,
-            const std::vector<double>& zstop, const std::vector<double>& dt,
+            const std::vector<unsigned long long>& maxSTEPS, double sStart,
+            const std::vector<double>& sStop, const std::vector<double>& dt,
             const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers = {});
 
     /// @brief Destructor; releases tracker resources.
@@ -126,8 +126,8 @@ public:
     /// DefaultVisitor.
     virtual void visitBeamline(const Beamline&);
 
-    /// @brief Visit a generic component using the base tracker behavior.
-    virtual void visitComponent(const Component&);
+    /// @brief Visit a generic element using the base tracker behavior.
+    virtual void visitElementBase(const ElementBase&);
 
     /// @brief Apply the algorithm to a constant E-field cavity.
     virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&);
@@ -201,13 +201,17 @@ public:
     void computeSpaceChargeFields(unsigned long long step);
 
     /// @brief Apply external fields from elements intersecting each active container.
-    /// @param oth Orbit threader for element queries.
-    void computeExternalFields(OrbitThreader& oth);
+    /// @param oths Per-container orbit threaders (one per distinct species; same-species
+    ///             containers share one) used for element queries.
+    void computeExternalFields(const std::vector<std::shared_ptr<OrbitThreader>>& oths);
 
     /// @brief Emit macroparticles from configured samplers per container.
     /// @param t  Bunch time (s).
     /// @param dt Global time step (s).
     void emitFromEmissionSources(double t, double dt);
+
+    /// @brief Mark particles moving backward behind an active source/cathode plane.
+    size_t markBackwardParticlesAtSourcePlane();
 
     /// @brief Apply global processes and return the global number of particles marked invalid.
     size_t applyGlobalProcesses(double dt);
@@ -268,11 +272,6 @@ private:
     /// @brief Delete particles marked invalid by the central per-container mask.
     size_t deleteInvalidParticles(bool activeOnly, Inform& m, const std::string& reason);
 
-public:
-    /// @brief Mark particles moving backward behind an active source/cathode plane.
-    size_t markBackwardParticlesAtSourcePlane();
-
-private:
     /// @brief Force-activate containers whose emitting samplers have not yet finished.
     void activateEmittingContainers(double t);
 
@@ -289,7 +288,7 @@ private:
      */
     void printInitialContainerRefs(Inform& m) const;
 
-    /// @brief Integrate references in time until path length reaches zstart_m.
+    /// @brief Integrate references in time until path length reaches sStart_m.
     void findStartPositions(const BorisPusher& pusher);
 
     /// @brief Autophase TRAVELINGWAVE and RFCAVITY elements along the reference orbit.

@@ -50,7 +50,9 @@ public:
             size_t particleContainerIndex = 0);
 
 private:
-    void fillHeader(const losses_t& losses = losses_t(), const std::string& species = "");
+    void fillHeader(
+            const losses_t& losses = losses_t(), const std::string& species = "",
+            bool hasSpin = false);
 };
 
 #endif

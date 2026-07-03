@@ -45,7 +45,7 @@ jobs:
           git fetch origin "$BASE_REF"
 
           FILES="$(
-            git diff --name-only -z "origin/${BASE_REF}...HEAD" \
+            git diff --name-only --diff-filter=ACMR -z "origin/${BASE_REF}...HEAD" \
               | tr '\0' '\n' \
               | grep -E '^(src|unit_tests)/.*\.(h|hpp|tpp|cpp)$' || true
           )"

@@ -29,7 +29,7 @@ namespace {
             {"L", &DriftRep::getElementLength, &DriftRep::setElementLength}, {0, 0, 0}};
 }  // namespace
 
-DriftRep::DriftRep() : Drift(), geometry(0.0) {}
+DriftRep::DriftRep() : Drift(), geometry() {}
 
 DriftRep::DriftRep(const DriftRep& right) : Drift(right), geometry(right.geometry) {}
 
@@ -49,10 +49,6 @@ Channel* DriftRep::getChannel(const std::string& aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
-NullField& DriftRep::getField() { return field; }
+Geometry& DriftRep::getGeometry() { return geometry; }
 
-const NullField& DriftRep::getField() const { return field; }
-
-StraightGeometry& DriftRep::getGeometry() { return geometry; }
-
-const StraightGeometry& DriftRep::getGeometry() const { return geometry; }
+const Geometry& DriftRep::getGeometry() const { return geometry; }

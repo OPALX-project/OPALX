@@ -143,6 +143,7 @@ namespace ParticleBinning {
         if (bunch_m.getLocalNum() <= 1) {
             msg << level4 << "Too few bins, assigning all bins to index 0." << endl;
             Kokkos::deep_copy(binIndex, 0);
+            IpplTimings::stopTimer(bAssignUniformBinsT);
             return;
         }
 

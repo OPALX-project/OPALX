@@ -69,8 +69,6 @@
 
 #include "Utilities/BeamlineFieldElement.h"
 
-class BMultipoleField;
-class Euclid3D;
 class OpalParticle;
 
 class Tracker : public AbstractTracker {
@@ -99,9 +97,9 @@ public:
     /// Store the bunch.
     //~ void setBunch(const PartBunch &);
 
-    /// Apply the algorithm to an arbitrary component.
-    //  This override calls the component to track the bunch.
-    virtual void visitComponent(const Component&);
+    /// Apply the algorithm to an arbitrary element.
+    //  This override calls the element to track the bunch.
+    virtual void visitElementBase(const ElementBase&);
 
     /// set total number of tracked bunches
     virtual void setNumBunch(short) {};

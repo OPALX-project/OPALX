@@ -25,10 +25,9 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/EndFieldModel/EndFieldModel.h"
-#include "BeamlineGeometry/PlanarArcGeometry.h"
-#include "Fields/BMultipoleField.h"
+#include "BeamlineGeometry/Geometry.h"
 
 #ifndef ABSBEAMLINE_ScalingFFAMagnet_H
 #define ABSBEAMLINE_ScalingFFAMagnet_H
@@ -44,7 +43,7 @@
  *  placement.
  */
 
-class ScalingFFAMagnet : public Component {
+class ScalingFFAMagnet : public ElementBase {
 public:
     /** Construct a new ScalingFFAMagnet
      *
@@ -128,16 +127,10 @@ public:
     void getFieldExtend(double& /*zBegin*/, double& /*zEnd*/) const override {}
 
     /** Return the cell geometry */
-    BGeometryBase& getGeometry() override;
+    Geometry& getGeometry() override;
 
     /** Return the cell geometry */
-    const BGeometryBase& getGeometry() const override;
-
-    /** Return a dummy (0.) field value (what is this for?) */
-    EMField& getField() override;
-
-    /** Return a dummy (0.) field value (what is this for?) */
-    const EMField& getField() const override;
+    const Geometry& getGeometry() const override;
 
     /** Accept a beamline visitor */
     void accept(BeamlineVisitor& visitor) const override;
@@ -277,8 +270,7 @@ private:
     ScalingFFAMagnet(const ScalingFFAMagnet& right);
 
     ScalingFFAMagnet& operator=(const ScalingFFAMagnet& rhs);
-    PlanarArcGeometry planarArcGeometry_m;
-    BMultipoleField dummy;
+    Geometry planarArcGeometry_m{Geometry::makeSBend(1., 1.)};
 
     size_t maxOrder_m        = 0;
     double tanDelta_m        = 0.;

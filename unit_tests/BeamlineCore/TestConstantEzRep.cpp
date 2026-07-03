@@ -37,9 +37,8 @@ namespace {
     }
 
     TEST_F(ConstantEFieldCavityRepTest, FieldEz) {
-        EXPECT_DOUBLE_EQ(rep_->getField().getEz(), 5.0);
+        EXPECT_DOUBLE_EQ(rep_->getEz(), 5.0);
         rep_->setEz(-1.5);
-        EXPECT_DOUBLE_EQ(rep_->getField().getEz(), -1.5);
         EXPECT_DOUBLE_EQ(rep_->getEz(), -1.5);
     }
 
@@ -54,10 +53,9 @@ namespace {
         EXPECT_DOUBLE_EQ(rep_->getEy(), -2.0);
     }
 
-    TEST_F(ConstantEFieldCavityRepTest, SetEzSyncsBaseAndField) {
+    TEST_F(ConstantEFieldCavityRepTest, SetEzUpdatesEz) {
         rep_->setEz(100.0);
         EXPECT_DOUBLE_EQ(rep_->getEz(), 100.0);
-        EXPECT_DOUBLE_EQ(rep_->getField().getEz(), 100.0);
     }
 
     // ---------------------------------------------------------------------------
@@ -70,7 +68,6 @@ namespace {
         ASSERT_NE(repCopy, nullptr);
         EXPECT_DOUBLE_EQ(repCopy->getElementLength(), 2.0);
         EXPECT_DOUBLE_EQ(repCopy->getEz(), 5.0);
-        EXPECT_DOUBLE_EQ(repCopy->getField().getEz(), 5.0);
     }
 
     // ---------------------------------------------------------------------------
@@ -93,7 +90,6 @@ namespace {
         ASSERT_NE(ch, nullptr);
         EXPECT_TRUE(ch->set(7.0));
         EXPECT_DOUBLE_EQ(rep_->getEz(), 7.0);
-        EXPECT_DOUBLE_EQ(rep_->getField().getEz(), 7.0);
         double val = 0.0;
         EXPECT_TRUE(ch->get(val));
         EXPECT_DOUBLE_EQ(val, 7.0);

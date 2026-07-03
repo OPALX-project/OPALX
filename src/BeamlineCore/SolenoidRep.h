@@ -19,8 +19,7 @@
 #define OPALX_SolenoidRep_HH
 
 #include "AbsBeamline/Solenoid.h"
-#include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/ConstBzField.h"
+#include "BeamlineGeometry/Geometry.h"
 
 class SolenoidRep : public Solenoid {
 public:
@@ -41,21 +40,13 @@ public:
     //  If the attribute does not exist, it returns nullptr.
     virtual Channel* getChannel(const std::string& aKey, bool = false);
 
-    /// Get field.
-    //  Version for non-constant object.
-    virtual ConstBzField& getField();
-
-    /// Get field.
-    //  Version for constant object.
-    virtual const ConstBzField& getField() const;
-
     /// Get geometry.
     //  Version for non-constant object.
-    virtual StraightGeometry& getGeometry();
+    virtual Geometry& getGeometry();
 
     /// Get geometry.
     //  Version for constant object.
-    virtual const StraightGeometry& getGeometry() const;
+    virtual const Geometry& getGeometry() const;
 
     /// Get field.
     //  Return the solenoid field in Teslas.
@@ -70,10 +61,10 @@ private:
     void operator=(const SolenoidRep&);
 
     /// The solenoid geometry.
-    StraightGeometry geometry;
+    Geometry geometry;
 
-    /// The solenoid field.
-    ConstBzField field;
+    /// Nominal on-axis field Bz in Teslas (backs the "BZ" channel attribute).
+    double Bz_m = 0.0;
 };
 
 #endif  // OPALX_SolenoidRep_HH
