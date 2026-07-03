@@ -21,14 +21,14 @@
 //
 // ------------------------------------------------------------------------
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 
 // Class Marker
 // ------------------------------------------------------------------------
 /// Interface for a marker.
 //  Class Marker defines the abstract interface for a marker element.
 
-class Marker : public Component {
+class Marker : public ElementBase {
 public:
     /// Constructor with given name.
     explicit Marker(const std::string& name);

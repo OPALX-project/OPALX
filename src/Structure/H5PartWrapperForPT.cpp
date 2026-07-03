@@ -215,6 +215,9 @@ void H5PartWrapperForPT::writeHeader() {
     WRITESTRINGFILEATTRIB(file_m, "OPAL_version", OPAL_version.str().c_str());
 
     WRITESTRINGFILEATTRIB(file_m, "idUnit", "1");
+    if (Options::rankDump) {
+        WRITESTRINGFILEATTRIB(file_m, "rankUnit", "1");
+    }
     WRITESTRINGFILEATTRIB(file_m, "xUnit", "m");
     WRITESTRINGFILEATTRIB(file_m, "yUnit", "m");
     WRITESTRINGFILEATTRIB(file_m, "zUnit", "m");
@@ -478,6 +481,13 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch, size_t particleContai
         i64buffer[i] = idView(i);
     WRITEDATA(Int64, file_m, "id", i64buffer);
 
+    if (Options::rankDump) {
+        const h5_int32_t rank = static_cast<h5_int32_t>(ippl::Comm->rank());
+        for (size_t i = 0; i < numLocalParticles; ++i)
+            i32buffer[i] = rank;
+        WRITEDATA(Int32, file_m, "rank", i32buffer);
+    }
+
     auto binViewDevice = pc->Bin.getView();
     auto binView       = Kokkos::create_mirror_view(binViewDevice);
     Kokkos::deep_copy(binView, binViewDevice);
@@ -490,6 +500,24 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch, size_t particleContai
     for (size_t i = 0; i < numLocalParticles; ++i)
         i32buffer[i] = sp;
     WRITEDATA(Int32, file_m, "sp", i32buffer);
+
+    if (pc->hasSpin()) {
+        auto PolViewDevice = pc->Pol.getView();
+        auto PolView       = Kokkos::create_mirror_view(PolViewDevice);
+        Kokkos::deep_copy(PolView, PolViewDevice);
+
+        for (size_t i = 0; i < numLocalParticles; ++i)
+            f64buffer[i] = static_cast<h5_float64_t>(PolView(i)(0));
+        WRITEDATA(Float64, file_m, "polx", f64buffer);
+
+        for (size_t i = 0; i < numLocalParticles; ++i)
+            f64buffer[i] = static_cast<h5_float64_t>(PolView(i)(1));
+        WRITEDATA(Float64, file_m, "poly", f64buffer);
+
+        for (size_t i = 0; i < numLocalParticles; ++i)
+            f64buffer[i] = static_cast<h5_float64_t>(PolView(i)(2));
+        WRITEDATA(Float64, file_m, "polz", f64buffer);
+    }
 
     if (Options::ebDump) {
         auto EViewDevice = pc->E.getView();

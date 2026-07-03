@@ -63,13 +63,12 @@
  * ---------------------------------------------------------------------
  */
 #include <vector>
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Algorithms/AbstractTimeDependence.h"
-#include "Fields/BMultipoleField.h"
 #include "MultipoleTBase.h"
 #include "MultipoleTConfig.h"
 
-class MultipoleT : public Component {
+class MultipoleT : public ElementBase {
 public:
     /** Constructor
      *  \param name -> User-defined name
@@ -84,13 +83,9 @@ public:
     /** Accept a beamline visitor */
     void accept(BeamlineVisitor& visitor) const override;
     /** Return the cell geometry */
-    BGeometryBase& getGeometry() override;
+    Geometry& getGeometry() override;
     /** Return the cell geometry */
-    const BGeometryBase& getGeometry() const override;
-    /** Return a dummy field value */
-    EMField& getField() override { return dummy; }
-    /** Return a dummy field value */
-    const EMField& getField() const override { return dummy; }
+    const Geometry& getGeometry() const override;
     /** Calculate the field for all particles */
     bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
     /** Calculate the field at some arbitrary position \n
@@ -175,9 +170,9 @@ public:
     /** Set the bending angle of the magnet */
     void setBendAngle(double angle, bool variableRadius);
     /** Get the bending angle of the magnet */
-    double getBendAngle() const { return config_m.bendAngle_m; }
+    double getBendAngle() const override { return config_m.bendAngle_m; }
     /** Get the entrance angle */
-    double getEntranceAngle() const { return config_m.entranceAngle_m; }
+    double getEntranceAngle() const override { return config_m.entranceAngle_m; }
     /** Set the length of the magnet
      * If straight-> Actual length
      * If curved -> Arc length
@@ -235,9 +230,6 @@ protected:
     void chooseImplementation();
     double getScaling(double t) const;
     void validateConfiguration() const;
-
-    /** Not implemented */
-    BMultipoleField dummy;
 
     // Time dependence
     std::string scalingName_m;

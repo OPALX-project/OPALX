@@ -589,7 +589,11 @@ void LossDataSink::writeHeaderASCII() {
         if (hasTurn) {
             os_m << ",  turn ( ), bunchNumber ( )";
         }
-        os_m << ", time (s)" << std::endl;
+        os_m << ", time (s)";
+        if (hasPolData_m) {
+            os_m << ",  polx ( ),  poly ( ),  polz ( )";
+        }
+        os_m << std::endl;
     }
 }
 
@@ -625,6 +629,9 @@ void LossDataSink::addParticle(
     }
 
     particles_m.push_back(particle);
+    if (particle.hasPol()) {
+        hasPolData_m = true;
+    }
 }
 
 void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
@@ -634,6 +641,16 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
     if (openMode == OpalData::OpenMode::UNDEFINED) {
         openMode = OpalData::getInstance()->getOpenMode();
     }
+
+    // hasPolData_m is set per-rank by addParticle(). A rank with no Pol-carrying
+    // particles in this batch must still emit the Pol columns if any other rank
+    // does, so the file format stays consistent across writers. Use a plus-reduction
+    // on the {0,1} flag (IPPL's allreduce supports std::plus); the result is the
+    // count of ranks that saw Pol, which is positive iff any did.
+    int localHas  = hasPolData_m ? 1 : 0;
+    int globalHas = 0;
+    ippl::Comm->allreduce(localHas, globalHas, 1, std::plus<int>());
+    hasPolData_m = (globalHas > 0);
 
     namespace fs = std::filesystem;
     if (h5hut_mode_m) {
@@ -890,6 +907,23 @@ void LossDataSink::saveH5(unsigned int setIdx) {
     });
     writeDataFloat64("time", f64buffer);
 
+    if (hasPolData_m) {
+        ::f64transform(particles_m, startIdx, nLoc, f64buffer, [](const OpalParticle& particle) {
+            return particle.hasPol() ? particle.getPol()(0) : 0.0;
+        });
+        writeDataFloat64("polx", f64buffer);
+
+        ::f64transform(particles_m, startIdx, nLoc, f64buffer, [](const OpalParticle& particle) {
+            return particle.hasPol() ? particle.getPol()(1) : 0.0;
+        });
+        writeDataFloat64("poly", f64buffer);
+
+        ::f64transform(particles_m, startIdx, nLoc, f64buffer, [](const OpalParticle& particle) {
+            return particle.hasPol() ? particle.getPol()(2) : 0.0;
+        });
+        writeDataFloat64("polz", f64buffer);
+    }
+
     ++H5call_m;
 }
 
@@ -916,20 +950,29 @@ void LossDataSink::saveASCII() {
 
     const std::size_t nLoc        = particles_m.size();
     const std::size_t nIntColumns = hasTurn ? 3 : 1;
+    // Per-particle double column count: x, y, z, px, py, pz, time (+ polx, poly, polz)
+    const std::size_t nDblColumns = hasPolData_m ? 10 : 7;
 
     auto packDoubleData = [&]() {
-        std::vector<double> data(7 * nLoc);
+        std::vector<double> data(nDblColumns * nLoc);
 
         for (std::size_t i = 0; i < nLoc; ++i) {
             const OpalParticle& particle = particles_m[i];
 
-            data[7 * i + 0] = particle.getX();
-            data[7 * i + 1] = particle.getY();
-            data[7 * i + 2] = particle.getZ();
-            data[7 * i + 3] = particle.getPx();
-            data[7 * i + 4] = particle.getPy();
-            data[7 * i + 5] = particle.getPz();
-            data[7 * i + 6] = particle.getTime();
+            data[nDblColumns * i + 0] = particle.getX();
+            data[nDblColumns * i + 1] = particle.getY();
+            data[nDblColumns * i + 2] = particle.getZ();
+            data[nDblColumns * i + 3] = particle.getPx();
+            data[nDblColumns * i + 4] = particle.getPy();
+            data[nDblColumns * i + 5] = particle.getPz();
+            data[nDblColumns * i + 6] = particle.getTime();
+            if (hasPolData_m) {
+                const bool has               = particle.hasPol();
+                const Vector_t<double, 3>& p = particle.getPol();
+                data[nDblColumns * i + 7]    = has ? p(0) : 0.0;
+                data[nDblColumns * i + 8]    = has ? p(1) : 0.0;
+                data[nDblColumns * i + 9]    = has ? p(2) : 0.0;
+            }
         }
 
         return data;
@@ -956,12 +999,12 @@ void LossDataSink::saveASCII() {
     auto writeRecords = [&](const std::vector<double>& doubleData,
                             const std::vector<long long>& integerData, std::size_t count) {
         for (std::size_t i = 0; i < count; ++i) {
-            os_m << doubleData[7 * i + 0] << "   ";
-            os_m << doubleData[7 * i + 1] << "   ";
-            os_m << doubleData[7 * i + 2] << "   ";
-            os_m << doubleData[7 * i + 3] << "   ";
-            os_m << doubleData[7 * i + 4] << "   ";
-            os_m << doubleData[7 * i + 5] << "   ";
+            os_m << doubleData[nDblColumns * i + 0] << "   ";
+            os_m << doubleData[nDblColumns * i + 1] << "   ";
+            os_m << doubleData[nDblColumns * i + 2] << "   ";
+            os_m << doubleData[nDblColumns * i + 3] << "   ";
+            os_m << doubleData[nDblColumns * i + 4] << "   ";
+            os_m << doubleData[nDblColumns * i + 5] << "   ";
             os_m << integerData[nIntColumns * i + 0] << "   ";
 
             if (hasTurn) {
@@ -969,7 +1012,13 @@ void LossDataSink::saveASCII() {
                 os_m << integerData[nIntColumns * i + 2] << "   ";
             }
 
-            os_m << doubleData[7 * i + 6] << std::endl;
+            os_m << doubleData[nDblColumns * i + 6];
+            if (hasPolData_m) {
+                os_m << "   " << doubleData[nDblColumns * i + 7];
+                os_m << "   " << doubleData[nDblColumns * i + 8];
+                os_m << "   " << doubleData[nDblColumns * i + 9];
+            }
+            os_m << std::endl;
         }
     };
 
@@ -986,7 +1035,7 @@ void LossDataSink::saveASCII() {
                     &remoteCount, 1, MPI_UNSIGNED_LONG_LONG, src, tagCount, comm,
                     MPI_STATUS_IGNORE);
 
-            std::vector<double> remoteDoubleData(7 * remoteCount);
+            std::vector<double> remoteDoubleData(nDblColumns * remoteCount);
             std::vector<long long> remoteIntegerData(nIntColumns * remoteCount);
 
             if (remoteCount > 0) {

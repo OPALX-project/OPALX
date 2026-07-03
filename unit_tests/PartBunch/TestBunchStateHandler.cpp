@@ -27,11 +27,6 @@ TEST_F(BunchStateHandlerTest, RegisterContainerReturnsFreshSlot) {
     EXPECT_TRUE(s->momentsDirty);  // default is dirty so first compute runs
 }
 
-TEST_F(BunchStateHandlerTest, BunchWideFirstRepartitionDefault) {
-    BunchStateHandler h;
-    EXPECT_TRUE(h.isFirstRepartition());
-}
-
 TEST_F(BunchStateHandlerTest, UnitlessPositionsToggle) {
     BunchStateHandler h;
     auto s = h.registerContainer();
@@ -62,17 +57,6 @@ TEST_F(BunchStateHandlerTest, MomentsDirtyLifecycle) {
     s->markMomentsDirty();
     s->markMomentsDirty();
     EXPECT_TRUE(s->momentsDirty);
-}
-
-TEST_F(BunchStateHandlerTest, FirstRepartition) {
-    BunchStateHandler h;
-    EXPECT_TRUE(h.isFirstRepartition());
-
-    h.setFirstRepartition(false);
-    EXPECT_FALSE(h.isFirstRepartition());
-
-    h.setFirstRepartition(true);
-    EXPECT_TRUE(h.isFirstRepartition());
 }
 
 TEST_F(BunchStateHandlerTest, PerContainerSlotsAreIndependent) {
@@ -173,23 +157,6 @@ TEST_F(BunchStateHandlerTest, AggressiveSync_UnitlessPositionsConverge) {
     const bool isLast = (ippl::Comm->rank() == ippl::Comm->size() - 1);
     s->setUnitlessPositions(isLast);
     EXPECT_TRUE(s->unitlessPositions);
-}
-
-TEST_F(BunchStateHandlerTest, AggressiveSync_FirstRepartitionConverge) {
-    if (ippl::Comm->size() < 2) {
-        GTEST_SKIP() << "Requires at least 2 MPI ranks to exercise divergent setter calls.";
-    }
-
-    Options::aggressiveStateSync = true;
-    BunchStateHandler h;
-    ASSERT_TRUE(h.isFirstRepartition());
-
-    // Every rank except rank 0 tries to mark first-repartition done; rank 0
-    // still reports true. OR wins => first-repartition remains true everywhere
-    // (the conservative choice: do not skip first-time init until all ranks
-    // agree it is done).
-    h.setFirstRepartition(ippl::Comm->rank() != 0 ? false : true);
-    EXPECT_TRUE(h.isFirstRepartition());
 }
 
 TEST_F(BunchStateHandlerTest, AggressiveSync_OffDoesNotSynchronize) {

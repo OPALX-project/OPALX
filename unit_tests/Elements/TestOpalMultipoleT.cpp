@@ -55,12 +55,6 @@ TEST_F(TestOpalMultipoleT, UserInterface) {
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::MAXXORDER], 7.0);
     Attributes::setBool(ui.itsAttr[OpalMultipoleT::VARRADIUS], false);
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ENTRYOFFSET], 0.0);
-    Attributes::setReal(ui.itsAttr[OpalMultipoleT::MISALIGN_H], 1.3);
-    Attributes::setReal(ui.itsAttr[OpalMultipoleT::MISALIGN_V], 1.4);
-    Attributes::setReal(ui.itsAttr[OpalMultipoleT::MISALIGN_S], 1.5);
-    Attributes::setReal(ui.itsAttr[OpalMultipoleT::MISALIGN_ROLL], 1.6);
-    Attributes::setReal(ui.itsAttr[OpalMultipoleT::MISALIGN_YAW], 1.7);
-    Attributes::setReal(ui.itsAttr[OpalMultipoleT::MISALIGN_PITCH], 1.8);
     // Update the magnet
     EXPECT_NO_THROW(ui.update());
     // Check the values
@@ -125,6 +119,8 @@ TEST_F(TestOpalMultipoleT, UserInterfaceClone) {
     Attributes::setBool(ui.itsAttr[OpalMultipoleT::VARRADIUS], false);
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ENTRYOFFSET], 0.0);
     Attributes::setUpperCaseString(ui.itsAttr[OpalMultipoleT::SCALING_MODEL], "Scaling");
+    // A non-builtin (cloned) element must be placed, otherwise update() rejects it.
+    Attributes::setReal(*ui.findAttribute("ELEMEDGE"), 0.0);
     // Make the clone
     std::unique_ptr<OpalMultipoleT> uiClone{ui.clone("Clone")};
     // Update the magnet

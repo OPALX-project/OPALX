@@ -35,6 +35,8 @@
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "Ippl.h"
+#include "PartBunch/BinnedFieldSolver.h"
+#include "PartBunch/FieldMirror.hpp"
 #include "PartBunch/PartBunch.h"
 #include "Structure/Beam.h"
 #include "Structure/BinningCmd.h"
@@ -59,6 +61,10 @@ namespace {
         }
         void setBCZ(const std::string& bc) {
             Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::BCFFTZ], bc);
+        }
+
+        void setGreensFunction(const std::string& greensFunction) {
+            Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::GREENSF], greensFunction);
         }
 
         void setBinsName(const std::string& binsName) {
@@ -118,6 +124,12 @@ namespace {
         }
 
         void SetUp() override {
+            const auto* testInfo = ::testing::UnitTest::GetInstance()->current_test_info();
+            if (testInfo != nullptr
+                && std::string(testInfo->name()) == "MirrorFieldZHandlesNonSlab3DDecomposition") {
+                return;
+            }
+
             // Keep mesh small so scatter/solve/gather are quick.
             constexpr double nx = 8;
             constexpr double ny = 8;
@@ -131,6 +143,7 @@ namespace {
             fsCmd->setBCX("PERIODIC");
             fsCmd->setBCY("PERIODIC");
             fsCmd->setBCZ("PERIODIC");
+            fsCmd->setGreensFunction("STANDARD");
 
             // Keep the concrete solver command alive; PartBunch borrows it.
             fsCmdBase = fsCmd;
@@ -221,6 +234,15 @@ namespace {
                     /*lbt=*/1.0,
                     /*integration_method=*/"LF2", fsCmdBase.get(), dataSink.get());
             pc = bunch->getParticleContainer();
+        }
+
+        void rebuildOpenBunchWithGreensFunction(const std::string& greensFunction) {
+            fsCmd->setType("OPEN");
+            fsCmd->setBCX("OPEN");
+            fsCmd->setBCY("OPEN");
+            fsCmd->setBCZ("OPEN");
+            fsCmd->setGreensFunction(greensFunction);
+            rebuildBunch();
         }
 
         std::shared_ptr<AdaptBins_t> attachBins(
@@ -318,6 +340,20 @@ namespace {
         EXPECT_EQ(bins->getCurrentBinCount(), maxBins);
     }
 
+    TEST_F(BinnedFieldSolverSmokeTest, OpenSolver_UsesStandardGreensFunctionFromFieldSolverCmd) {
+        ASSERT_NO_THROW(rebuildOpenBunchWithGreensFunction("STANDARD"));
+
+        ASSERT_NE(bunch->getFieldSolver(), nullptr);
+        EXPECT_EQ(bunch->getFieldSolver()->getGreensFunction(), "STANDARD");
+    }
+
+    TEST_F(BinnedFieldSolverSmokeTest, OpenSolver_UsesIntegratedGreensFunctionFromFieldSolverCmd) {
+        ASSERT_NO_THROW(rebuildOpenBunchWithGreensFunction("INTEGRATED"));
+
+        ASSERT_NE(bunch->getFieldSolver(), nullptr);
+        EXPECT_EQ(bunch->getFieldSolver()->getGreensFunction(), "INTEGRATED");
+    }
+
     TEST_F(BinnedFieldSolverSmokeTest, BunchUpdate_ImageChargeBoundsIncludeMirroredZ) {
         constexpr double zPlane = 0.0;
         bunch->setImageChargeConfiguration(true, zPlane);
@@ -336,6 +372,101 @@ namespace {
 
         EXPECT_LE(gridMin[2], std::min(minR[2], mirroredMinZ));
         EXPECT_GE(gridMax[2], std::max(maxR[2], mirroredMaxZ));
+    }
+
+    TEST_F(BinnedFieldSolverSmokeTest, MirrorFieldZHandlesNonSlab3DDecomposition) {
+        if (ippl::Comm->size() != 4) {
+            GTEST_SKIP() << "This mirror-field decomposition check is defined for 4 MPI ranks.";
+        }
+
+        constexpr unsigned Dim = 3;
+        ippl::NDIndex<Dim> domain;
+        domain[0] = ippl::Index(8);
+        domain[1] = ippl::Index(8);
+        domain[2] = ippl::Index(8);
+
+        std::array<bool, Dim> decomp;
+        decomp.fill(true);
+
+        Vector_t<double, Dim> hx(1.0);
+        Vector_t<double, Dim> origin(0.0);
+        FieldLayout_t<Dim> layout(MPI_COMM_WORLD, domain, decomp, false);
+        Mesh_t<Dim> mesh(domain, hx, origin);
+
+        std::vector<ippl::NDIndex<Dim>> domains(4);
+        domains[0][0] = ippl::Index(0, 3);
+        domains[0][1] = ippl::Index(0, 7);
+        domains[0][2] = ippl::Index(0, 3);
+
+        domains[1][0] = ippl::Index(4, 7);
+        domains[1][1] = ippl::Index(0, 7);
+        domains[1][2] = ippl::Index(0, 3);
+
+        domains[2][0] = ippl::Index(0, 7);
+        domains[2][1] = ippl::Index(0, 3);
+        domains[2][2] = ippl::Index(4, 7);
+
+        domains[3][0] = ippl::Index(0, 7);
+        domains[3][1] = ippl::Index(4, 7);
+        domains[3][2] = ippl::Index(4, 7);
+
+        layout.updateLayout(domains);
+
+        VField_t<double, Dim> src;
+        VField_t<double, Dim> dst;
+        src.initialize(mesh, layout);
+        dst.initialize(mesh, layout);
+
+        const auto& localDomain = layout.getLocalNDIndex();
+        const int nghost        = src.getNghost();
+        auto srcHost            = Kokkos::create_mirror_view(src.getView());
+        for (size_t i = 0; i < srcHost.extent(0); ++i) {
+            for (size_t j = 0; j < srcHost.extent(1); ++j) {
+                for (size_t k = 0; k < srcHost.extent(2); ++k) {
+                    srcHost(i, j, k) = Vector_t<double, Dim>(0.0);
+                }
+            }
+        }
+
+        for (int i = localDomain[0].first(); i <= localDomain[0].last(); ++i) {
+            for (int j = localDomain[1].first(); j <= localDomain[1].last(); ++j) {
+                for (int k = localDomain[2].first(); k <= localDomain[2].last(); ++k) {
+                    const int localI  = i - localDomain[0].first() + nghost;
+                    const int localJ  = j - localDomain[1].first() + nghost;
+                    const int localK  = k - localDomain[2].first() + nghost;
+                    const double base = static_cast<double>(i + 10 * j + 100 * k);
+
+                    Vector_t<double, Dim> value;
+                    value[0]                        = base;
+                    value[1]                        = 1000.0 + base;
+                    value[2]                        = 2000.0 + base;
+                    srcHost(localI, localJ, localK) = value;
+                }
+            }
+        }
+        Kokkos::deep_copy(src.getView(), srcHost);
+
+        opalx::detail::mirrorField(src, dst, Dim - 1);
+
+        auto dstHost = Kokkos::create_mirror_view(dst.getView());
+        Kokkos::deep_copy(dstHost, dst.getView());
+
+        const int globalLastZ = domain[2].last();
+        for (int i = localDomain[0].first(); i <= localDomain[0].last(); ++i) {
+            for (int j = localDomain[1].first(); j <= localDomain[1].last(); ++j) {
+                for (int k = localDomain[2].first(); k <= localDomain[2].last(); ++k) {
+                    const int localI    = i - localDomain[0].first() + nghost;
+                    const int localJ    = j - localDomain[1].first() + nghost;
+                    const int localK    = k - localDomain[2].first() + nghost;
+                    const int mirroredK = globalLastZ - k;
+                    const double base   = static_cast<double>(i + 10 * j + 100 * mirroredK);
+
+                    EXPECT_DOUBLE_EQ(dstHost(localI, localJ, localK)[0], base);
+                    EXPECT_DOUBLE_EQ(dstHost(localI, localJ, localK)[1], 1000.0 + base);
+                    EXPECT_DOUBLE_EQ(dstHost(localI, localJ, localK)[2], 2000.0 + base);
+                }
+            }
+        }
     }
 
 }  // namespace

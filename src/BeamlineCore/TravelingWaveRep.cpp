@@ -55,24 +55,20 @@ Channel* TravelingWaveRep::getChannel(const std::string& aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
-AcceleratingField& TravelingWaveRep::getField() { return field; }
+Geometry& TravelingWaveRep::getGeometry() { return geometry; }
 
-const AcceleratingField& TravelingWaveRep::getField() const { return field; }
+const Geometry& TravelingWaveRep::getGeometry() const { return geometry; }
 
-StraightGeometry& TravelingWaveRep::getGeometry() { return geometry; }
+double TravelingWaveRep::getAmplitude() const { return ignoreCavities ? 0.0 : getAmplitudem(); }
 
-const StraightGeometry& TravelingWaveRep::getGeometry() const { return geometry; }
+double TravelingWaveRep::getFrequency() const { return getFrequencym(); }
 
-double TravelingWaveRep::getAmplitude() const { return ignoreCavities ? 0.0 : field.getEz(); }
+double TravelingWaveRep::getPhase() const { return getPhasem(); }
 
-double TravelingWaveRep::getFrequency() const { return field.getFrequency(); }
+void TravelingWaveRep::setAmplitude(double amplitude) { setAmplitudem(amplitude); }
 
-double TravelingWaveRep::getPhase() const { return field.getPhase(); }
+void TravelingWaveRep::setFrequency(double frequency) { setFrequencym(frequency); }
 
-void TravelingWaveRep::setAmplitude(double amplitude) { field.setEz(amplitude); }
-
-void TravelingWaveRep::setFrequency(double frequency) { field.setFrequency(frequency); }
-
-void TravelingWaveRep::setPhase(double phase) { field.setPhase(phase); }
+void TravelingWaveRep::setPhase(double phase) { setPhasem(phase); }
 
 void TravelingWaveRep::setIgnore(bool ignore) { ignoreCavities = ignore; }

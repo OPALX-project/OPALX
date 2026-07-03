@@ -174,14 +174,14 @@ void FM2DDynamic::readMap() {
             Bt(i) *= scaleB;
         }
 
-        FieldstrengthEz_m.modify<Kokkos::HostSpace>();
-        FieldstrengthEz_m.sync<Kokkos::DefaultExecutionSpace>();
+        FieldstrengthEz_m.modify<typename decltype(FieldstrengthEz_m)::host_mirror_space>();
+        FieldstrengthEz_m.sync<typename decltype(FieldstrengthEz_m)::t_dev::device_type>();
 
-        FieldstrengthEr_m.modify<Kokkos::HostSpace>();
-        FieldstrengthEr_m.sync<Kokkos::DefaultExecutionSpace>();
+        FieldstrengthEr_m.modify<typename decltype(FieldstrengthEr_m)::host_mirror_space>();
+        FieldstrengthEr_m.sync<typename decltype(FieldstrengthEr_m)::t_dev::device_type>();
 
-        FieldstrengthBt_m.modify<Kokkos::HostSpace>();
-        FieldstrengthBt_m.sync<Kokkos::DefaultExecutionSpace>();
+        FieldstrengthBt_m.modify<typename decltype(FieldstrengthBt_m)::host_mirror_space>();
+        FieldstrengthBt_m.sync<typename decltype(FieldstrengthBt_m)::t_dev::device_type>();
 
         Inform m("FM2DDynamic::readMap");
         m << level3 << "Read in fieldmap '" << Filename_m << "'" << endl;

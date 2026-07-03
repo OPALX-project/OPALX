@@ -2,6 +2,8 @@
 #define OPAL_FIELD_SOLVER_H
 
 #include <memory>
+#include <string>
+#include <utility>
 #include "BCHandler.hpp"
 #include "Manager/BaseManager.h"
 #include "Manager/FieldSolverBase.h"
@@ -13,6 +15,7 @@ private:
     Field_t<Dim>* rho_m;
     VField_t<T, Dim>* E_m;
     Field_t<Dim>* phi_m;
+    std::string greensFunction_m;
 
     using BCHandler_t = BCHandler<Dim>;
     std::shared_ptr<BCHandler_t> bcHandler_m;
@@ -23,11 +26,12 @@ private:
 public:
     FieldSolver(
             std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
-            std::shared_ptr<BCHandler_t> bcHandler)
+            std::shared_ptr<BCHandler_t> bcHandler, std::string greensFunction = "STANDARD")
         : ippl::FieldSolverBase<T, Dim>(solver),
           rho_m(rho),
           E_m(E),
           phi_m(phi),
+          greensFunction_m(std::move(greensFunction)),
           bcHandler_m(bcHandler),
           call_counter_m(0) {
         setPotentialBCs();
@@ -51,6 +55,23 @@ public:
     void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) {
         bcHandler_m = bcHandler;
         setPotentialBCs();
+    }
+
+    /**
+     * @brief Return the OPAL `GREENSF` selection used for open-boundary FFT solves.
+     *
+     * The value follows OPAL input syntax (`STANDARD` or `INTEGRATED`). It is
+     * mapped to IPPL's `greens_function` parameter when `TYPE=OPEN` initializes
+     * the `FFTOpenPoissonSolver`.
+     */
+    std::string getGreensFunction() const { return greensFunction_m; }
+
+    /**
+     * @brief Set the OPAL `GREENSF` selection.
+     * @param greensFunction OPAL input value, currently `STANDARD` or `INTEGRATED`.
+     */
+    void setGreensFunction(std::string greensFunction) {
+        greensFunction_m = std::move(greensFunction);
     }
 
     /**
@@ -101,6 +122,17 @@ public:
     void resetCallCounter() { call_counter_m = 0; }
 
     size_t getCallCounter() { return call_counter_m; }
+
+    /**
+     * @brief Refresh layout-dependent solver state without reconstructing the solver wrapper.
+     *
+     * Layout-changing operations such as ORB repartitioning resize OPALX-owned fields in place.
+     * The concrete IPPL solver keeps pointers to those fields, but some backends also own
+     * FFT/scratch fields derived from the RHS layout. This hook rebinds the existing backend to
+     * the current fields so those internal buffers are recreated without resetting diagnostics.
+     * This is the same as IPPL's alpine solver update during `repartition`.
+     */
+    void refreshAfterFieldLayoutChange();
 
     /**
      * @brief Execute the field solver for the current simulation state.

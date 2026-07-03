@@ -18,8 +18,7 @@
 #ifndef OPALX_Monitor_HH
 #define OPALX_Monitor_HH
 
-#include "AbsBeamline/Component.h"
-#include "BeamlineGeometry/StraightGeometry.h"
+#include "AbsBeamline/ElementBase.h"
 #include "PartBunch/PartBunch.h"
 #include "Structure/LossDataSink.h"
 
@@ -30,7 +29,7 @@
 
 class BeamlineVisitor;
 
-class Monitor : public Component {
+class Monitor : public ElementBase {
 public:
     /// Plane selection.
     enum Plane {
@@ -53,12 +52,6 @@ public:
 
     /// Apply visitor to Monitor.
     void accept(BeamlineVisitor&) const override;
-
-    /// Get geometry.
-    virtual StraightGeometry& getGeometry() override = 0;
-
-    /// Get geometry. Version for const object.
-    virtual const StraightGeometry& getGeometry() const override = 0;
 
     /// Get plane on which monitor observes.
     virtual Plane getPlane() const = 0;

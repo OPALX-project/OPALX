@@ -43,7 +43,7 @@ public:
     /// Apply the algorithm to the top-level beamline.
     void execute() override;
 
-    void visitComponent(const Component&) override;
+    void visitElementBase(const ElementBase&) override;
 
     /// Apply the algorithm to a beam line.
     void visitBeamline(const Beamline&) override;
@@ -74,9 +74,6 @@ public:
 
     /// Apply the algorithm to a rectangular bend.
     void visitRBend(const RBend&) override;
-
-    /// Apply the algorithm to a Ring.
-    void visitRing(const Ring&) override;
 
     /// Apply the algorithm to a sector bend.
     void visitSBend(const SBend&) override;

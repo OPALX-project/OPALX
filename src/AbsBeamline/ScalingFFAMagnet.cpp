@@ -31,12 +31,11 @@
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 ScalingFFAMagnet::ScalingFFAMagnet(const std::string& name)
-    : Component(name), planarArcGeometry_m(1., 1.), dummy(), endField_m(nullptr) {}
+    : ElementBase(name), planarArcGeometry_m(Geometry::makeSBend(1., 1.)), endField_m(nullptr) {}
 
 ScalingFFAMagnet::ScalingFFAMagnet(const ScalingFFAMagnet& right)
-    : Component(right),
+    : ElementBase(right),
       planarArcGeometry_m(right.planarArcGeometry_m),
-      dummy(),
       maxOrder_m(right.maxOrder_m),
       tanDelta_m(right.tanDelta_m),
       k_m(right.k_m),
@@ -66,10 +65,6 @@ ScalingFFAMagnet* ScalingFFAMagnet::clone() const {
     return magnet;
 }
 
-EMField& ScalingFFAMagnet::getField() { return dummy; }
-
-const EMField& ScalingFFAMagnet::getField() const { return dummy; }
-
 bool ScalingFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) { return false; }
 
 bool ScalingFFAMagnet::apply(
@@ -95,9 +90,9 @@ void ScalingFFAMagnet::finalise() { RefPartBunch_m = nullptr; }
 
 bool ScalingFFAMagnet::bends() const { return true; }
 
-BGeometryBase& ScalingFFAMagnet::getGeometry() { return planarArcGeometry_m; }
+Geometry& ScalingFFAMagnet::getGeometry() { return planarArcGeometry_m; }
 
-const BGeometryBase& ScalingFFAMagnet::getGeometry() const { return planarArcGeometry_m; }
+const Geometry& ScalingFFAMagnet::getGeometry() const { return planarArcGeometry_m; }
 
 void ScalingFFAMagnet::accept(BeamlineVisitor& visitor) const {
     visitor.visitScalingFFAMagnet(*this);

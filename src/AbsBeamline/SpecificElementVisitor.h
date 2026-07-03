@@ -40,7 +40,6 @@
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/RFCavity.h"
-#include "AbsBeamline/Ring.h"
 #include "AbsBeamline/SBend.h"
 #include "AbsBeamline/SBend3D.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
@@ -90,8 +89,8 @@ public:
     /// Apply the algorithm to a collimator.
     virtual void visitCCollimator(const CCollimator&);
 
-    /// Apply the algorithm to an arbitrary component.
-    virtual void visitComponent(const Component&);
+    /// Apply the algorithm to an arbitrary element.
+    virtual void visitElementBase(const ElementBase&);
 
     /// Apply the algorithm to a closed orbit corrector.
     virtual void visitCorrector(const Corrector&);
@@ -149,9 +148,6 @@ public:
 
     /// Apply the algorithm to a RF cavity.
     virtual void visitRFCavity(const RFCavity&);
-
-    /// Apply the algorithm to a ring.
-    virtual void visitRing(const Ring&);
 
     /// Apply the algorithm to a sector bend.
     virtual void visitSBend(const SBend&);
@@ -236,8 +232,8 @@ void SpecificElementVisitor<ELEM>::visitCCollimator(const CCollimator& element) 
 }
 
 template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitComponent(const Component& element) {
-    CastsTrait<ELEM, Component>::apply(allElementsOfTypeE, element);
+void SpecificElementVisitor<ELEM>::visitElementBase(const ElementBase& element) {
+    CastsTrait<ELEM, ElementBase>::apply(allElementsOfTypeE, element);
 }
 
 template <class ELEM>
@@ -336,11 +332,6 @@ void SpecificElementVisitor<ELEM>::visitRBend3D(const RBend3D& element) {
 template <class ELEM>
 void SpecificElementVisitor<ELEM>::visitRFCavity(const RFCavity& element) {
     CastsTrait<ELEM, RFCavity>::apply(allElementsOfTypeE, element);
-}
-
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitRing(const Ring& element) {
-    CastsTrait<ELEM, Ring>::apply(allElementsOfTypeE, element);
 }
 
 template <class ELEM>
