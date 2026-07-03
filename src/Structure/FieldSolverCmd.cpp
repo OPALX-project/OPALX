@@ -183,7 +183,7 @@ double FieldSolverCmd::getPipeSizeY() const {
     return Attributes::getReal(itsAttr[FIELDSOLVER::PIPESIZEY]);
 }
 void FieldSolverCmd::setPipeMode(const std::string& pipeMode) {
-    Attributes::setString(itsAttr[FIELDSOLVER::PIPEMODE], pipeMode);
+    Attributes::setPredefinedString(itsAttr[FIELDSOLVER::PIPEMODE], pipeMode);
 }
 void FieldSolverCmd::setBeamRadius(const double beamRadius) {
     Attributes::setReal(itsAttr[FIELDSOLVER::BEAMR], beamRadius);

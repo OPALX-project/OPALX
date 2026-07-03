@@ -70,9 +70,8 @@ public:
             bool closedRing);
 
     void initSolver() override;
-
-    void runSolver() override;
-    void runSolver(bool /*force_skip_field_dump*/) override { Solve2d5::runSolver(); }
+    void runSolver() override { doRunSolver(); }
+    void runSolver(bool /*force_skip_field_dump*/) override { doRunSolver(); }
 
     // Algorithm steps, public for testability
     class NullDiagnostic {
@@ -97,19 +96,28 @@ public:
                 const size_t, const Vector3D_t&, const Vector3D_t&, bool) const {}
         KOKKOS_FUNCTION void labFrameFields(
                 const size_t, const Vector3D_t&, const Vector3D_t&, bool) const {}
+        void initialise(
+                const PartBunch_t& /*partBunch*/, const Field_t<3>& /*rho*/,
+                const LineDensityView_t& /*lineDensity*/,
+                const LineDensityView_t& /*lineDensityGradient*/,
+                const VField_t<T, 3>& /*eField*/) {}
     };
-    T loadReferencePath();
     template <typename DiagnosticPolicy = NullDiagnostic>
-    void scatterToGrid(const PartBunch_t& bunch, DiagnosticPolicy = {});
+    void doRunSolver(DiagnosticPolicy diagnostic = {});
     template <typename DiagnosticPolicy = NullDiagnostic>
-    void solvePoissons(DiagnosticPolicy = {});
+    void scatterToGrid(const PartBunch_t& bunch, DiagnosticPolicy diagnostic = {});
     template <typename DiagnosticPolicy = NullDiagnostic>
-    void calculateLineDensity(DiagnosticPolicy = {});
+    void solvePoissons(DiagnosticPolicy diagnostic = {});
     template <typename DiagnosticPolicy = NullDiagnostic>
-    void gatherFromGrid(const PartBunch_t& bunch, DiagnosticPolicy = {});
+    void calculateLineDensity(DiagnosticPolicy diagnostic = {});
+    template <typename DiagnosticPolicy = NullDiagnostic>
+    void gatherFromGrid(const PartBunch_t& bunch, DiagnosticPolicy diagnostic = {});
+    template <typename DiagnosticPolicy>
+    std::unique_ptr<DiagnosticPolicy> createDiagnostic();
 
 private:
     // Helper functions
+    T loadReferencePath();
     template <typename DiagnosticPolicy = NullDiagnostic>
     KOKKOS_FUNCTION static void doScatterToGrid(
             size_t n, const VectorView_t& r, const VectorView_t& p, const ReferenceView_t& ref,
