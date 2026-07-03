@@ -19,7 +19,6 @@ RBend::RBend(const RBend& right)
       maxNormal_m(right.maxNormal_m),
       maxSkew_m(right.maxSkew_m),
       gap_m(right.gap_m),
-      fringeHalfGap_m(right.fringeHalfGap_m),
       fringeIntegral_m(right.fringeIntegral_m),
       designEnergy_m(right.designEnergy_m),
       designEnergyChangeable_m(true) {}
@@ -27,7 +26,6 @@ RBend::RBend(const RBend& right)
 RBend::RBend(const std::string& name)
     : ElementBase(name),
       gap_m(0.0),
-      fringeHalfGap_m(0.0),
       fringeIntegral_m(0.5),
       designEnergy_m(0.0),
       designEnergyChangeable_m(true) {}
@@ -110,7 +108,7 @@ bool RBend::applyToReferenceParticle(
 void RBend::getFieldExtent(double& zBegin, double& zEnd) const {
     // Element length plus one Enge fringe half width past each pole face
     const double half = BendFieldModel::fringeHalfWidth(
-            BendFieldModel::profileGap(gap_m, fringeHalfGap_m));
+            gap_m);
     zBegin = -half;
     zEnd   = getGeometry().getElementLength() + half;
 }
@@ -179,7 +177,7 @@ BendFieldModel::FieldInputs RBend::makeFieldInputs() const {
     in.bodyLength  = getGeometry().getElementLength();
     in.curvature   = 0.0;
     in.faceAngle   = 0.0;
-    in.profileGap  = BendFieldModel::profileGap(gap_m, fringeHalfGap_m);
+    in.profileGap  = gap_m;
     in.cosEntrance = 1.0;
     in.cosExit     = 1.0;
 
@@ -198,12 +196,12 @@ BendFieldModel::FieldInputs RBend::makeFieldInputs() const {
             in.entryEdgeCoefficient =
                     rigidity
                     * BendFieldModel::edgeVerticalKickCoefficient(
-                            h, fringeHalfGap_m, fringeIntegral_m, edgeAngleEntrance())
+                            h, 0.5 * gap_m, fringeIntegral_m, edgeAngleEntrance())
                     / span;
             in.exitEdgeCoefficient =
                     rigidity
                     * BendFieldModel::edgeVerticalKickCoefficient(
-                            h, fringeHalfGap_m, fringeIntegral_m, edgeAngleExit())
+                            h, 0.5 * gap_m, fringeIntegral_m, edgeAngleExit())
                     / span;
         }
     }
