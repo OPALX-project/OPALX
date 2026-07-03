@@ -76,6 +76,11 @@ public:
     // Algorithm steps, public for testability
     class NullDiagnostic {
     public:
+        enum class Kind {
+            FrenetSerretScatter, BoostToBeam, ScatterCharge, ScatterChargeDensity,
+            TotalDensity, LineDensity, LineDensityGradient, EField, FrenetSerretGather,
+            GatherEField, Deboosted, LongitudinalField, LabFrameFields
+        };
         KOKKOS_FUNCTION void frenetSerretScatter(
                 const size_t, const Vector3D_t&, const Vector3D_t&, bool) const {}
         KOKKOS_FUNCTION void boostToBeam(
@@ -113,7 +118,7 @@ public:
     template <typename DiagnosticPolicy = NullDiagnostic>
     void gatherFromGrid(const PartBunch_t& bunch, DiagnosticPolicy diagnostic = {});
     template <typename DiagnosticPolicy>
-    std::unique_ptr<DiagnosticPolicy> createDiagnostic();
+    std::unique_ptr<DiagnosticPolicy> createDiagnostic(NullDiagnostic::Kind kind);
 
 private:
     // Helper functions

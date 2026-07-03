@@ -108,8 +108,8 @@ void Solve2d5<T>::doRunSolver(DiagnosticPolicy /*diagnostic*/) {
 
 template <typename T>
 template <typename DiagnosticPolicy>
-std::unique_ptr<DiagnosticPolicy> Solve2d5<T>::createDiagnostic() {
-    auto result = std::make_unique<DiagnosticPolicy>();
+std::unique_ptr<DiagnosticPolicy> Solve2d5<T>::createDiagnostic(NullDiagnostic::Kind kind) {
+    auto result = std::make_unique<DiagnosticPolicy>(kind);
     result->initialise(*partBunch_m, *rho_m, lineDensity_m,
         lineDensityGradient_m, *E_m);
     return result;
