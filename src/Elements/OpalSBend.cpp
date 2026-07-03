@@ -112,7 +112,11 @@ void OpalSBend::update() {
         throw OpalException(
                 "OpalSBend::update", "APERTURE in SBEND not supported; use GAP and HAPERT instead");
 
-    if (itsAttr[HAPERT]) {
+    // Only override the aperture when a positive HAPERT is actually given. HAPERT has a
+    // default of 0.0, and itsAttr[HAPERT] reads as "set" even when the deck omits it, so
+    // gating on presence would install a zero-width rectangular aperture that makes
+    // isInsideTransverse always false and silently drops the bend from the beamline.
+    if (Attributes::getReal(itsAttr[HAPERT]) > 0.0) {
         double hapert = Attributes::getReal(itsAttr[HAPERT]);
         bend->setAperture(ApertureType::RECTANGULAR, std::vector<double>({hapert, hapert, 1.0}));
     }
