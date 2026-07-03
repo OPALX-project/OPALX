@@ -29,9 +29,9 @@ extern Inform* gmsg;
 
 Drift::Drift() : Drift("") {}
 
-Drift::Drift(const Drift& right) : ElementBase(right), nSlices_m(right.nSlices_m) {}
+Drift::Drift(const Drift& right) : Component(right), nSlices_m(right.nSlices_m) {}
 
-Drift::Drift(const std::string& name) : ElementBase(name), nSlices_m(1) {}
+Drift::Drift(const std::string& name) : Component(name), nSlices_m(1) {}
 
 Drift::~Drift() {}
 

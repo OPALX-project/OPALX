@@ -91,8 +91,8 @@ public:
     /// Apply the algorithm to a collimator.
     virtual void visitCCollimator(const CCollimator&);
 
-    /// Apply the algorithm to an arbitrary element.
-    virtual void visitElementBase(const ElementBase&);
+    /// Apply the algorithm to an arbitrary component.
+    virtual void visitComponent(const Component&);
 
     /// Apply the algorithm to a closed orbit corrector.
     virtual void visitCorrector(const Corrector&);
@@ -240,8 +240,8 @@ void SpecificElementVisitor<ELEM>::visitCCollimator(const CCollimator& element) 
 }
 
 template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitElementBase(const ElementBase& element) {
-    CastsTrait<ELEM, ElementBase>::apply(allElementsOfTypeE, element);
+void SpecificElementVisitor<ELEM>::visitComponent(const Component& element) {
+    CastsTrait<ELEM, Component>::apply(allElementsOfTypeE, element);
 }
 
 template <class ELEM>

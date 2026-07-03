@@ -132,9 +132,6 @@ using `4` threads for example.
 [![GPU CUDA](https://github.com/OPALX-project/OPALX/actions/workflows/gpu-cuda.yml/badge.svg)](https://github.com/OPALX-project/OPALX/actions/workflows/gpu-cuda.yml)
 [![GPU HIP](https://github.com/OPALX-project/OPALX/actions/workflows/gpu-hip.yml/badge.svg)](https://github.com/OPALX-project/OPALX/actions/workflows/gpu-hip.yml)
 [![GPU SYCL](https://github.com/OPALX-project/OPALX/actions/workflows/gpu-sycl.yml/badge.svg)](https://github.com/OPALX-project/OPALX/actions/workflows/gpu-sycl.yml)
-<a href="https://my.cdash.org/index.php?project=OPALX">
-    <img alt="CI/CD CSCS" height="20" src="https://my.cdash.org/img/cdash.svg">
-</a>
 
 OPALX uses GitHub Actions for required and non-required pull request checks. The compile CI workflows run on non-draft pull requests to `master` when the `compile-ci` label is selected. Required checks have to pass before a PR can be merged; non-required checks provide additional feedback but are not part of the required branch protection status checks.
 
@@ -142,12 +139,7 @@ OPALX uses GitHub Actions for required and non-required pull request checks. The
 
 - `Check clang-format`: checks the formatting of changed source and unit test files in the pull request using clang-format 21.1.8. This check is **not required**.
 
-The repository hook path is `hooks/`.  The `post-index-change` hook runs after
-`git add` and applies `clang-format` to staged C++ files under `src/` and
-`unit_tests/`, then stages the formatted result.  The hook uses
-`CLANG_FORMAT` when set, otherwise it looks for the Homebrew LLVM 21 formatter
-and then `clang-format` in `PATH`.  Files with partially staged edits are
-skipped to avoid replacing a selected hunk with the whole formatted file.
+See [IPPL's formatting documentation](https://github.com/IPPL-framework/ippl/blob/master/doc/extras/CodeFormattingSetup.md) for instructions on setting up pre-commit hooks.
 
 ### Compilation
 

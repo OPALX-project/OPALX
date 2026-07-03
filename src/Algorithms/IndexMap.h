@@ -28,7 +28,7 @@
 #include <map>
 #include <ostream>
 
-#include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/Component.h"
 #include "Utilities/OpalException.h"
 
 #include <set>
@@ -43,7 +43,7 @@ public:
         second_type end;
     };
     typedef Range key_t;
-    typedef std::set<std::shared_ptr<ElementBase> > value_t;
+    typedef std::set<std::shared_ptr<Component> > value_t;
 
     IndexMap();
 

@@ -52,14 +52,18 @@ Preserve physical correctness, numerical accuracy, and reproducibility over styl
 - Run the relevant test subset after changes.
 - No need to ask permission before running `ctest` or OPALX examples.
 
+
 ## External dependencies
 - IPPL and Kokkos are external dependencies.
 - Prefer changing OPALX adapter or wrapper code over patching upstream dependencies.
 - Do not modify upstream dependency code unless explicitly requested.
 - If dependency behavior is relevant, document the assumption and the interface boundary.
 
-## Recommended workflow
+
+## Recommended workflow:
 
 cmake -S . -B build_openmp
 cmake --build build_openmp -j
 ctest --test-dir build_openmp --output-on-failure
+
+

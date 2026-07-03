@@ -34,7 +34,7 @@ extern Inform* gmsg;
 Solenoid::Solenoid() : Solenoid("") {}
 
 Solenoid::Solenoid(const Solenoid& right)
-    : ElementBase(right),
+    : Component(right),
       filename_m(right.filename_m),
       fieldmap_m(right.fieldmap_m),
       scale_m(right.scale_m),
@@ -44,7 +44,7 @@ Solenoid::Solenoid(const Solenoid& right)
       fast_m(right.fast_m) {}
 
 Solenoid::Solenoid(const std::string& name)
-    : ElementBase(name),
+    : Component(name),
       filename_m(""),
       fieldmap_m(nullptr),
       scale_m(1.0),

@@ -28,11 +28,11 @@
 
 PluginElement::PluginElement() : PluginElement("") {}
 
-PluginElement::PluginElement(const std::string& name) : ElementBase(name) {
+PluginElement::PluginElement(const std::string& name) : Component(name) {
     setDimensions(0.0, 0.0, 0.0, 0.0);
 }
 
-PluginElement::PluginElement(const PluginElement& right) : ElementBase(right) {
+PluginElement::PluginElement(const PluginElement& right) : Component(right) {
     setDimensions(right.xstart_m, right.xend_m, right.ystart_m, right.yend_m);
 }
 

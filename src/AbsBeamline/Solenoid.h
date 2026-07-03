@@ -21,7 +21,7 @@
 //
 // ------------------------------------------------------------------------
 
-#include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/Component.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
 
 class Fieldmap;
@@ -30,7 +30,7 @@ class Fieldmap;
  * @class Solenoid
  * @brief Abstract class for a solenoid magnet.
  */
-class Solenoid : public ElementBase {
+class Solenoid : public Component {
 public:
     /* ============================== Constructors ============================== */
     explicit Solenoid(const std::string& name);

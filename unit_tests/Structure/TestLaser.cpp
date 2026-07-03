@@ -30,15 +30,15 @@ namespace {
         explicit DispatchRecordingVisitor(const Beamline& beamline)
             : DefaultVisitor(beamline, false, false) {}
 
-        void visitElementBase(const ElementBase&) override { sawElementBase = true; }
+        void visitComponent(const Component&) override { sawComponent = true; }
         void visitLaser(const Laser&) override { sawLaser = true; }
         void visitSBend(const SBend&) override { sawSBend = true; }
         void visitRBend(const RBend&) override { sawRBend = true; }
 
-        bool sawElementBase = false;
-        bool sawLaser       = false;
-        bool sawSBend       = false;
-        bool sawRBend       = false;
+        bool sawComponent = false;
+        bool sawLaser     = false;
+        bool sawSBend     = false;
+        bool sawRBend     = false;
     };
 }  // namespace
 
@@ -207,7 +207,7 @@ TEST(TestLaser, BeamlineVisitorDispatchesLaserAndBendsToSpecificHooks) {
         EXPECT_TRUE(visitor.sawLaser);
         EXPECT_FALSE(visitor.sawSBend);
         EXPECT_FALSE(visitor.sawRBend);
-        EXPECT_FALSE(visitor.sawElementBase);
+        EXPECT_FALSE(visitor.sawComponent);
     }
 
     {
@@ -217,7 +217,7 @@ TEST(TestLaser, BeamlineVisitorDispatchesLaserAndBendsToSpecificHooks) {
         EXPECT_FALSE(visitor.sawLaser);
         EXPECT_TRUE(visitor.sawSBend);
         EXPECT_FALSE(visitor.sawRBend);
-        EXPECT_FALSE(visitor.sawElementBase);
+        EXPECT_FALSE(visitor.sawComponent);
     }
 
     {
@@ -227,6 +227,6 @@ TEST(TestLaser, BeamlineVisitorDispatchesLaserAndBendsToSpecificHooks) {
         EXPECT_FALSE(visitor.sawLaser);
         EXPECT_FALSE(visitor.sawSBend);
         EXPECT_TRUE(visitor.sawRBend);
-        EXPECT_FALSE(visitor.sawElementBase);
+        EXPECT_FALSE(visitor.sawComponent);
     }
 }

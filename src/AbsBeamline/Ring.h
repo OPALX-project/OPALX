@@ -30,10 +30,9 @@
 
 #include <string>
 
-#include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/Component.h"
 
 #include "BeamlineGeometry/PlanarArcGeometry.h"
-#include "Fields/EMField.h"
 
 #include "Utilities/GeneralOpalException.h"
 #include "Utilities/RingSection.h"
@@ -60,7 +59,7 @@ class FieldMap;
  *  Also aim to maintain backwards compatibility with Cyclotron (i.e. use
  *  ParallelCyclotronTracker)
  */
-class Ring : public ElementBase {
+class Ring : public Component {
 public:
     /** Constructor
      *
@@ -175,13 +174,15 @@ public:
      *  Ring applies a bounding box based on the element geometry, if there
      *  are field maps expanding outside this region they may get cut.
      */
-    void appendElement(const ElementBase& element);
+    void appendElement(const Component& element);
 
     /** Not implemented, throws an exception */
-    virtual EMField& getField() { throw GeneralOpalException("Ring::getField", "Not implemented"); }
+    virtual EMField& getField() override {
+        throw GeneralOpalException("Ring::getField", "Not implemented");
+    }
 
     /** Not implemented, throws an exception */
-    virtual const EMField& getField() const {
+    virtual const EMField& getField() const override {
         throw GeneralOpalException("Ring::getField", "Not implemented");
     }
 

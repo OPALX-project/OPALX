@@ -1,7 +1,7 @@
 #ifndef OPALX_ConstantEFieldCavity_HH
 #define OPALX_ConstantEFieldCavity_HH
 
-#include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/Component.h"
 
 /**
  * @class ConstantEFieldCavity
@@ -10,7 +10,7 @@
  * Homogeneous electrostatic field E = (Ex, Ey, Ez) over the element length.
  * GPU-compatible apply() via Kokkos parallel_for.
  */
-class ConstantEFieldCavity : public ElementBase {
+class ConstantEFieldCavity : public Component {
 public:
     explicit ConstantEFieldCavity(const std::string& name);
     ConstantEFieldCavity();

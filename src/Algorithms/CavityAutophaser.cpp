@@ -38,7 +38,7 @@
 
 extern Inform* gmsg;
 
-CavityAutophaser::CavityAutophaser(const PartData& ref, std::shared_ptr<ElementBase> cavity)
+CavityAutophaser::CavityAutophaser(const PartData& ref, std::shared_ptr<Component> cavity)
     : itsReference_m(ref), itsCavity_m(cavity) {
     double zbegin = 0.0, zend = 0.0;
     cavity->getFieldExtend(zbegin, zend);

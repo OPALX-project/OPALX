@@ -77,9 +77,9 @@ public:
 
     const StraightGeometry& getGeometry() const override { return geom_; }
 
-    EMField& getField() { return field_; }
+    EMField& getField() override { return field_; }
 
-    const EMField& getField() const { return field_; }
+    const EMField& getField() const override { return field_; }
 
     Plane getPlane() const override { return plane_; }
 
