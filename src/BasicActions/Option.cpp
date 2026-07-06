@@ -72,6 +72,7 @@ namespace {
         REMOTEPARTDEL,
         RHODUMP,
         EBDUMP,
+        RANKDUMP,
         CSRDUMP,
         AUTOPHASE,
         NUMBLOCKS,
@@ -96,6 +97,7 @@ namespace {
         COMPUTEPERCENTILES,
         QM_MODE,
         AGGRESSIVE_STATE_SYNC,
+        LOADBALANCINGTHRESHOLD,
         SIZE
     };
 }  // namespace
@@ -231,6 +233,12 @@ Option::Option()
             "E and B field at each particle is also dumped into the H5 file)",
             ebDump);
 
+    itsAttr[RANKDUMP] = Attributes::makeBool(
+            "RANKDUMP",
+            "If true, the current MPI rank for each particle is dumped into the H5 file. "
+            "Default: false.",
+            rankDump);
+
     itsAttr[CSRDUMP] = Attributes::makeBool(
             "CSRDUMP",
             "If true, the csr E field, line density "
@@ -347,11 +355,18 @@ Option::Option()
     itsAttr[AGGRESSIVE_STATE_SYNC] = Attributes::makeBool(
             "AGGRESSIVE_STATE_SYNC",
             "If true, every mutation of the shared BunchStateHandler flags "
-            "(moments-dirty, unitless-positions, emitting-now, first-repartition) "
+            "(moments-dirty, unitless-positions, emitting-now) "
             "performs an MPI allreduce so that all ranks converge to the same "
             "value. Guards against rank-local divergence at the cost of an extra "
             "collective on every state change. Default: false.",
             aggressiveStateSync);
+
+    itsAttr[LOADBALANCINGTHRESHOLD] = Attributes::makeReal(
+            "LOADBALANCINGTHRESHOLD",
+            "The threshold for triggering load balancing. If the ratio difference of particles in "
+            "a rank exceeds this threshold, load balancing will be triggered. Default is 0.05 "
+            "(5%). This threshold is only tested every `repartFreq` steps.",
+            loadBalancingThreshold);
 
     registerOwnership(AttributeHandler::STATEMENT);
 
@@ -380,6 +395,7 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setReal(itsAttr[REBINFREQ], rebinFreq);
     Attributes::setBool(itsAttr[RHODUMP], rhoDump);
     Attributes::setBool(itsAttr[EBDUMP], ebDump);
+    Attributes::setBool(itsAttr[RANKDUMP], rankDump);
     Attributes::setBool(itsAttr[CSRDUMP], csrDump);
     Attributes::setReal(itsAttr[AUTOPHASE], autoPhase);
     Attributes::setBool(itsAttr[CZERO], cZero);
@@ -403,6 +419,7 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setString(
             itsAttr[QM_MODE], useQMAttributes ? std::string("ATTRIBUTES") : std::string("SINGLE"));
     Attributes::setBool(itsAttr[AGGRESSIVE_STATE_SYNC], aggressiveStateSync);
+    Attributes::setReal(itsAttr[LOADBALANCINGTHRESHOLD], loadBalancingThreshold);
 }
 
 Option::~Option() {}
@@ -419,6 +436,7 @@ void Option::execute() {
     remotePartDel         = Attributes::getReal(itsAttr[REMOTEPARTDEL]);
     rhoDump               = Attributes::getBool(itsAttr[RHODUMP]);
     ebDump                = Attributes::getBool(itsAttr[EBDUMP]);
+    rankDump              = Attributes::getBool(itsAttr[RANKDUMP]);
     csrDump               = Attributes::getBool(itsAttr[CSRDUMP]);
     enableHDF5            = Attributes::getBool(itsAttr[ENABLEHDF5]);
     enableVTK             = Attributes::getBool(itsAttr[ENABLEVTK]);
@@ -443,6 +461,15 @@ void Option::execute() {
     }
 
     aggressiveStateSync = Attributes::getBool(itsAttr[AGGRESSIVE_STATE_SYNC]);
+
+    // Set threshold and check if in the valid range [0, 1]
+    loadBalancingThreshold = Attributes::getReal(itsAttr[LOADBALANCINGTHRESHOLD]);
+    if (loadBalancingThreshold < 0.0 || loadBalancingThreshold > 1.0) {
+        throw OpalException(
+                "Option::execute",
+                "LOADBALANCINGTHRESHOLD must be in the range [0, 1]. Current value: "
+                        + std::to_string(loadBalancingThreshold));
+    }
 
     /// note: rangen is used only for the random number generator in the OPAL language
     ///       not for the distributions

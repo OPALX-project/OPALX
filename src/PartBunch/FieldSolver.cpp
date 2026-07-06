@@ -365,6 +365,51 @@ void FieldSolver<double, 3>::initSolver() {
     }
 }
 
+template <>
+void FieldSolver<double, 3>::refreshAfterFieldLayoutChange() {
+    Inform m("FieldSolver::refreshAfterFieldLayoutChange");
+    m << level4
+      << "Refreshing existing solver backend for field layout change: " << this->getStype() << endl;
+
+    if (!rho_m || !E_m) {
+        throw OpalException(
+                "FieldSolver::refreshAfterFieldLayoutChange",
+                "rho/E field pointers must be assigned before refreshing the solver.");
+    }
+
+    if (this->getStype() == "CG") {
+        if (!phi_m) {
+            throw OpalException(
+                    "FieldSolver::refreshAfterFieldLayoutChange",
+                    "phi field pointer must be assigned before refreshing the CG solver.");
+        }
+        auto& solver = std::get<CGSolver_t<double, 3>>(this->getSolver());
+        solver.setRhs(*rho_m);
+        solver.setLhs(*phi_m);
+        solver.setGradient(*E_m);
+    } else if (this->getStype() == "FFT") {
+        auto& solver = std::get<FFTSolver_t<double, 3>>(this->getSolver());
+        solver.setRhs(*rho_m);
+        solver.setLhs(*E_m);
+    } else if (this->getStype() == "P3M") {
+        auto& solver = std::get<FFTTruncatedGreenSolver_t<double, 3>>(this->getSolver());
+        solver.setRhs(*rho_m);
+        solver.setLhs(*E_m);
+    } else if (this->getStype() == "OPEN") {
+        auto& solver = std::get<OpenSolver_t<double, 3>>(this->getSolver());
+        solver.setRhs(*rho_m);
+        solver.setLhs(*E_m);
+    } else if (this->getStype() == "NONE") {
+        auto& solver = std::get<NullSolver_t<double, 3>>(this->getSolver());
+        solver.setRhs(*rho_m);
+        solver.setLhs(*E_m);
+    } else {
+        throw OpalException(
+                "FieldSolver::refreshAfterFieldLayoutChange",
+                "No known solver matches the argument: " + this->getStype());
+    }
+}
+
 /*template <>
 void FieldSolver<double,3>::setPotentialBCs() {
         // CG requires explicit periodic boundary conditions while the periodic Poisson solver

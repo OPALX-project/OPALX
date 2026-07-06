@@ -108,6 +108,8 @@ namespace Options {
 
     extern bool ebDump;
 
+    extern bool rankDump;
+
     extern bool csrDump;
 
     // the number of refinements of the search range for the phase with maximum energy
@@ -169,6 +171,11 @@ namespace Options {
     /// collective on every state change has a noticeable cost in tight loops; enable
     /// it only for debugging or in contexts where rank-local divergence is possible.
     extern bool aggressiveStateSync;
+
+    /// The threshold for triggering load balancing. If the ratio difference of particles in a rank
+    /// exceeds this threshold, load balancing will be triggered. Default is 0.05 (5%). This
+    /// threshold is only tested every `repartFreq` steps.
+    extern double loadBalancingThreshold;
 }  // namespace Options
 
 #endif  // OPAL_Options_HH
