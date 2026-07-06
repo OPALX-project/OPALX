@@ -16,6 +16,8 @@ RBend::RBend(const RBend& right)
     : ElementBase(right),
       normalComponents_m(right.normalComponents_m),
       skewComponents_m(right.skewComponents_m),
+      normalComponentsHost_m(right.normalComponentsHost_m),
+      skewComponentsHost_m(right.skewComponentsHost_m),
       maxNormal_m(right.maxNormal_m),
       maxSkew_m(right.maxSkew_m),
       gap_m(right.gap_m),
@@ -161,14 +163,11 @@ BendFieldModel::FieldInputs RBend::makeFieldInputs() const {
             charge = q;
         }
     }
-    auto normalHost = Kokkos::create_mirror_view(normalComponents_m);
-    auto skewHost   = Kokkos::create_mirror_view(skewComponents_m);
-    Kokkos::deep_copy(normalHost, normalComponents_m);
-    Kokkos::deep_copy(skewHost, skewComponents_m);
-    in.dipoleNormal = ((maxNormal_m > 0) ? normalHost(0) : 0.0) / charge;
-    in.quadNormal   = ((maxNormal_m > 1) ? normalHost(1) : 0.0) / charge;
-    in.dipoleSkew   = ((maxSkew_m > 0) ? skewHost(0) : 0.0) / charge;
-    in.quadSkew     = ((maxSkew_m > 1) ? skewHost(1) : 0.0) / charge;
+    // Read the pre-built host mirrors directly; no per-apply device->host copy.
+    in.dipoleNormal = ((maxNormal_m > 0) ? normalComponentsHost_m(0) : 0.0) / charge;
+    in.quadNormal   = ((maxNormal_m > 1) ? normalComponentsHost_m(1) : 0.0) / charge;
+    in.dipoleSkew   = ((maxSkew_m > 0) ? skewComponentsHost_m(0) : 0.0) / charge;
+    in.quadSkew     = ((maxSkew_m > 1) ? skewComponentsHost_m(1) : 0.0) / charge;
 
     // Straight box frame: the field is a uniform vertical dipole gated on the box z, so no
     // curvature is applied (curvature stays 0). The fringe runs over the box length with the
@@ -213,32 +212,32 @@ void RBend::setFieldComponents(const std::vector<double>& normal, const std::vec
     normalComponents_m = Kokkos::View<double*>("RBend::normal", maxNormal_m);
     skewComponents_m   = Kokkos::View<double*>("RBend::skew", maxSkew_m);
 
-    auto normalHost = Kokkos::create_mirror_view(normalComponents_m);
-    auto skewHost   = Kokkos::create_mirror_view(skewComponents_m);
+    normalComponentsHost_m = Kokkos::create_mirror_view(normalComponents_m);
+    skewComponentsHost_m   = Kokkos::create_mirror_view(skewComponents_m);
     for (int i = 0; i < maxNormal_m; ++i) {
-        normalHost(i) = normal[i];
+        normalComponentsHost_m(i) = normal[i];
     }
     for (int i = 0; i < maxSkew_m; ++i) {
-        skewHost(i) = skew[i];
+        skewComponentsHost_m(i) = skew[i];
     }
-    Kokkos::deep_copy(normalComponents_m, normalHost);
-    Kokkos::deep_copy(skewComponents_m, skewHost);
+    Kokkos::deep_copy(normalComponents_m, normalComponentsHost_m);
+    Kokkos::deep_copy(skewComponents_m, skewComponentsHost_m);
 }
 
 double RBend::getB() const {
     if (maxNormal_m < 1) {
         return 0.0;
     }
-    double val;
-    Kokkos::deep_copy(val, Kokkos::subview(normalComponents_m, 0));
-    return val;
+    return normalComponentsHost_m(0);
 }
 
 void RBend::setB(double B) {
     if (maxNormal_m < 1) {
-        maxNormal_m = 1;
-        Kokkos::resize(normalComponents_m, 1);
+        maxNormal_m            = 1;
+        normalComponents_m     = Kokkos::View<double*>("RBend::normal", 1);
+        normalComponentsHost_m = Kokkos::create_mirror_view(normalComponents_m);
     }
+    normalComponentsHost_m(0) = B;
     Kokkos::deep_copy(Kokkos::subview(normalComponents_m, 0), B);
 }
 
