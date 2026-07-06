@@ -86,6 +86,10 @@ private:
     /// Normal/skew multipole coefficients on the device, read by tracking.
     Kokkos::View<double*> normalComponents_m;
     Kokkos::View<double*> skewComponents_m;
+    /// Host mirrors of the coefficient views, filled once in setFieldComponents so the
+    /// per-apply makeFieldInputs() reads them without a device->host copy.
+    Kokkos::View<double*>::host_mirror_type normalComponentsHost_m;
+    Kokkos::View<double*>::host_mirror_type skewComponentsHost_m;
     int maxNormal_m = 0;
     int maxSkew_m   = 0;
 
