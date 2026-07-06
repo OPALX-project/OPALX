@@ -1,0 +1,118 @@
+OPTION, PSDUMPFREQ = 1000;
+OPTION, STATDUMPFREQ = 1000;
+OPTION, BOUNDPDESTROY = 10;
+OPTION, VERSION = 10900;
+OPTION, SEED = 20260629;
+
+TITLE, STRING = "6 mm immediate 1 fs copied-source OPALX BeamBeam binned kick smoke diagnostic";
+
+// Immediate 1 fs diagnostic with a wider BeamBeam window:
+// The source and witnesses are placed around the BeamBeam IP at t=0, avoiding
+// staged drift and delayed emission.  This tests the same 1 fs timestep used by
+// the manufactured tracker.  The 6 mm BeamBeam window is long enough to contain
+// the sampled Gaussian source tail for reproducible single-rank/MPI activation.
+REAL primary_kinetic_energy = 0.245;
+REAL primary_gamma = (primary_kinetic_energy + EMASS) / EMASS;
+REAL primary_beta = sqrt(1.0 - 1.0 / (primary_gamma^2));
+REAL primary_p0 = primary_gamma * primary_beta * EMASS;
+REAL primary_beta_gamma = primary_p0 / EMASS;
+
+REAL primary_sigma_xy = 1.944325075701e-6;
+REAL primary_sigma_z = 0.6e-3;
+REAL primary_sigma_xyp = 1.0e-12;
+REAL primary_sigma_pxy = primary_beta_gamma * primary_sigma_xyp;
+
+REAL primary_electrons_per_bunch = 1.25e10;
+REAL primary_macroparticles = 100;
+REAL elementary_charge = 1.602176634e-19;
+REAL primary_bunch_charge = primary_electrons_per_bunch * elementary_charge;
+
+REAL n_witness_per_species = 6;
+REAL witness_bunch_charge = n_witness_per_species * elementary_charge;
+REAL witness_p0 = sqrt(3.0) * EMASS;
+
+REAL bb_length = 0.006;
+REAL bb_ip_s = 0.5*bb_length;
+REAL dt_track = 1.0e-15;
+REAL n_steps = 3;
+REAL NXY = 8;
+REAL NZ = 24;
+
+IP1: BEAMBEAM, L = bb_length, ELEMEDGE = 0.0,
+    VISUALIZE = FALSE,
+    COPY_TIME = 1.0e-18,
+    WITNESS_CONTAINERS = "1,2",
+    RETIRE_TIME = 1000.0e-12,
+    APERTURE = "CIRCLE(0.001)";
+
+track12Line: LINE = (IP1);
+
+SOURCEBINNING: BINNING,
+    MAXBINS = 1,
+    DESIREDWIDTH = 0.1,
+    BINNINGALPHA = 1.0,
+    BINNINGBETA = 1.0,
+    PARAMETER = "VELOCITYZ",
+    ADAPTIVEBINNING = FALSE,
+    DUMPBINSFILE = "NONE",
+    TABLEPRINTFREQ = 0;
+
+FS1: FIELDSOLVER, TYPE = OPEN,
+    BINS = "SOURCEBINNING",
+    NX = NXY, NY = NXY, NZ = NZ,
+    PARFFTX = FALSE, PARFFTY = FALSE, PARFFTZ = TRUE,
+    BCFFTX = OPEN, BCFFTY = OPEN, BCFFTZ = OPEN,
+    BBOXINCR = 1,
+    GREENSF = STANDARD;
+
+DistPrimaryElectrons: DISTRIBUTION, TYPE = GAUSS,
+    SIGMAX = primary_sigma_xy, SIGMAY = primary_sigma_xy, SIGMAZ = primary_sigma_z,
+    SIGMAPX = primary_sigma_pxy, SIGMAPY = primary_sigma_pxy, SIGMAPZ = 1.0e-12,
+    NPARTDIST = primary_macroparticles;
+
+DistWitnessElectrons: DISTRIBUTION, TYPE = FROMFILE,
+    FNAME = "track12_electrons.fromfile",
+    NPARTDIST = n_witness_per_species;
+
+DistWitnessPositrons: DISTRIBUTION, TYPE = FROMFILE,
+    FNAME = "track12_positrons.fromfile",
+    NPARTDIST = n_witness_per_species;
+
+SourcePrimaryElectrons: EMISSIONSOURCE, DISTRIBUTION = DistPrimaryElectrons, R0Z = bb_ip_s;
+SourceWitnessElectrons: EMISSIONSOURCE, DISTRIBUTION = DistWitnessElectrons, R0Z = bb_ip_s;
+SourceWitnessPositrons: EMISSIONSOURCE, DISTRIBUTION = DistWitnessPositrons, R0Z = bb_ip_s;
+
+PrimaryElectronSources: EMISSIONSOURCELIST = (SourcePrimaryElectrons);
+WitnessElectronSources: EMISSIONSOURCELIST = (SourceWitnessElectrons);
+WitnessPositronSources: EMISSIONSOURCELIST = (SourceWitnessPositrons);
+
+PrimaryElectrons: BEAM,
+    PARTICLE = ELECTRON,
+    PC = primary_p0,
+    NALLOC = primary_macroparticles,
+    BCHARGE = primary_bunch_charge,
+    SOURCES = PrimaryElectronSources;
+
+WitnessElectrons: BEAM,
+    PARTICLE = ELECTRON,
+    PC = witness_p0,
+    NALLOC = n_witness_per_species,
+    BCHARGE = witness_bunch_charge,
+    SOURCES = WitnessElectronSources;
+
+WitnessPositrons: BEAM,
+    PARTICLE = POSITRON,
+    PC = witness_p0,
+    NALLOC = n_witness_per_species,
+    BCHARGE = witness_bunch_charge,
+    SOURCES = WitnessPositronSources;
+
+TRACK, LINE = track12Line,
+    BEAMS = {PrimaryElectrons, WitnessElectrons, WitnessPositrons},
+    MAXSTEPS = n_steps,
+    ZSTOP = bb_length,
+    DT = dt_track;
+ RUN, METHOD = "PARALLEL", FIELDSOLVER = FS1;
+ENDTRACK;
+
+QUIT;

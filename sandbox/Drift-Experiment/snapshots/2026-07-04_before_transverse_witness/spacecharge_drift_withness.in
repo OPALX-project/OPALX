@@ -1,0 +1,177 @@
+OPTION, PSDUMPFREQ = 20;
+OPTION, STATDUMPFREQ = 20;
+OPTION, BOUNDPDESTROY = 10;
+OPTION, VERSION = 10900;
+OPTION, ASCIIDUMP = FALSE;
+OPTION, EBDUMP = TRUE;
+OPTION, IDEALIZED = TRUE;
+OPTION, SEED = 20260629;
+
+TITLE, STRING = "1 mm drift into BeamBeam with slide-timed pair-4 witnesses";
+
+// Timing convention from TestParticleOrbitSimulation.pptx:
+//   sigma_z = 0.6 mm and the six witness pairs have ct/sigma_z =
+//   -1.5, -1.0, -0.5, 0.0, 0.5, 1.0.
+// This first smoke deck uses pair 4 (ct = 0), so both witness containers are
+// emitted when the primary c0 centroid reaches the BeamBeam IP.  For pair-wise
+// slide timing with nonzero ct, use:
+//   witness_t0 = (bb_ip_s - witness_ct_m) / (primary_beta * CLIGHT)
+// with witness coordinates read around witness_r0z = bb_ip_s.
+
+REAL primary_kinetic_energy = 0.245;
+REAL primary_gamma = (primary_kinetic_energy + EMASS) / EMASS;
+REAL primary_beta = sqrt(1.0 - 1.0 / (primary_gamma^2));
+REAL primary_p0 = primary_gamma * primary_beta * EMASS;
+REAL primary_beta_gamma = primary_p0 / EMASS;
+
+REAL primary_sigma_xy = 1.944325075701e-6;
+REAL primary_sigma_z = 0.6e-3;
+REAL primary_sigma_xyp = 1.0e-12;
+REAL primary_sigma_pxy = primary_beta_gamma * primary_sigma_xyp;
+
+// Reduced charge keeps the low-particle timing smoke test from blowing up c0
+// before BeamBeam entry.  Restore 1.0 once the timing/mesh mechanics are fixed.
+REAL primary_charge_scale = 1.0e-5;
+REAL primary_electrons_per_bunch = 1.25e10 * primary_charge_scale;
+REAL primary_macroparticles = 100;
+REAL elementary_charge = 1.602176634e-19;
+REAL primary_bunch_charge = primary_electrons_per_bunch * elementary_charge;
+
+REAL n_witness_per_species = 1;
+REAL witness_bunch_charge = n_witness_per_species * elementary_charge;
+REAL witness_p0 = sqrt(3.0) * EMASS;
+
+REAL drift_length = 1.0e-3;
+REAL bb_length = 6.0e-3;
+REAL bb_ip_s = drift_length + 0.5 * bb_length;
+REAL witness_ct_m = 0.0;
+REAL witness_t0 = (bb_ip_s - witness_ct_m) / (primary_beta * CLIGHT);
+REAL witness_r0z = bb_ip_s;
+REAL primary_retire_time = 1000.0e-12;
+
+REAL fine_start_s = bb_ip_s - 5.0e-5;
+REAL fine_stop_s = bb_ip_s + 1.0e-4;
+REAL coarse_dt = 1.0e-13;
+REAL fine_dt = 1.0e-15;
+// fine_start_s / (primary_beta * CLIGHT * coarse_dt) = 131.76 for this deck.
+// Keep MAXSTEPS aligned with the first ZSTOP; otherwise OPALX advances time
+// after the bunch has reached the staged stop, delaying the fine 1 fs window.
+REAL coarse_steps = 132;
+// (fine_stop_s - fine_start_s) / (primary_beta * CLIGHT * fine_dt) = 500.35.
+REAL fine_steps = 520;
+
+REAL NXY = 16;
+REAL NZ = 32;
+REAL transverse_window = 2.0e-4;
+
+DR_UP: DRIFT,
+    L = drift_length,
+    ELEMEDGE = 0.0;
+
+IP1: BEAMBEAM,
+    L = bb_length,
+    ELEMEDGE = drift_length,
+    VISUALIZE = FALSE,
+    COPY_TIME = 0.0,
+    WITNESS_CONTAINERS = "1,2",
+    RETIRE_TIME = primary_retire_time,
+    APERTURE = "CIRCLE(0.0002)";
+
+LINE1: LINE = (DR_UP, IP1);
+
+SOURCEBINNING: BINNING,
+    MAXBINS = 1,
+    DESIREDWIDTH = 0.1,
+    BINNINGALPHA = 1.0,
+    BINNINGBETA = 1.0,
+    PARAMETER = "VELOCITYZ",
+    ADAPTIVEBINNING = FALSE,
+    DUMPBINSFILE = "NONE",
+    TABLEPRINTFREQ = 0;
+
+FS0: FIELDSOLVER,
+    TYPE = OPEN,
+    BINS = "SOURCEBINNING",
+    NX = NXY,
+    NY = NXY,
+    NZ = NZ,
+    PARFFTX = FALSE,
+    PARFFTY = FALSE,
+    PARFFTZ = TRUE,
+    BCFFTX = OPEN,
+    BCFFTY = OPEN,
+    BCFFTZ = OPEN,
+    BBOXINCR = 1,
+    GREENSF = STANDARD;
+
+DIST_PRIMARY_ELECTRONS: DISTRIBUTION,
+    TYPE = GAUSS,
+    SIGMAX = primary_sigma_xy,
+    SIGMAY = primary_sigma_xy,
+    SIGMAZ = primary_sigma_z,
+    SIGMAPX = primary_sigma_pxy,
+    SIGMAPY = primary_sigma_pxy,
+    SIGMAPZ = 1.0e-12,
+    NPARTDIST = primary_macroparticles;
+
+DIST_WITNESS_ELECTRONS: DISTRIBUTION,
+    TYPE = FROMFILE,
+    FNAME = "track12_pair4_electron.fromfile",
+    NPARTDIST = n_witness_per_species;
+
+DIST_WITNESS_POSITRONS: DISTRIBUTION,
+    TYPE = FROMFILE,
+    FNAME = "track12_pair4_positron.fromfile",
+    NPARTDIST = n_witness_per_species;
+
+SOURCE_PRIMARY_ELECTRONS: EMISSIONSOURCE,
+    DISTRIBUTION = DIST_PRIMARY_ELECTRONS;
+
+SOURCE_WITNESS_ELECTRONS: EMISSIONSOURCE,
+    DISTRIBUTION = DIST_WITNESS_ELECTRONS,
+    T0 = witness_t0,
+    R0Z = witness_r0z;
+
+SOURCE_WITNESS_POSITRONS: EMISSIONSOURCE,
+    DISTRIBUTION = DIST_WITNESS_POSITRONS,
+    T0 = witness_t0,
+    R0Z = witness_r0z;
+
+PRIMARY_ELECTRON_SOURCES: EMISSIONSOURCELIST = (SOURCE_PRIMARY_ELECTRONS);
+WITNESS_ELECTRON_SOURCES: EMISSIONSOURCELIST = (SOURCE_WITNESS_ELECTRONS);
+WITNESS_POSITRON_SOURCES: EMISSIONSOURCELIST = (SOURCE_WITNESS_POSITRONS);
+
+PRIMARY_ELECTRONS: BEAM,
+    PARTICLE = ELECTRON,
+    PC = primary_p0,
+    NALLOC = primary_macroparticles,
+    BCHARGE = primary_bunch_charge,
+    SOURCES = PRIMARY_ELECTRON_SOURCES;
+
+WITNESS_ELECTRONS: BEAM,
+    PARTICLE = ELECTRON,
+    NALLOC = n_witness_per_species,
+    BCHARGE = witness_bunch_charge,
+    SOURCES = WITNESS_ELECTRON_SOURCES;
+
+WITNESS_POSITRONS: BEAM,
+    PARTICLE = POSITRON,
+    NALLOC = n_witness_per_species,
+    BCHARGE = witness_bunch_charge,
+    SOURCES = WITNESS_POSITRON_SOURCES;
+
+TRACK,
+    LINE = LINE1,
+    BEAMS = {PRIMARY_ELECTRONS, WITNESS_ELECTRONS, WITNESS_POSITRONS},
+    MAXSTEPS = {coarse_steps, fine_steps},
+    DT = {coarse_dt, fine_dt},
+    ZSTART = 0.0,
+    ZSTOP = {fine_start_s, fine_stop_s};
+
+RUN,
+    METHOD = "PARALLEL",
+    FIELDSOLVER = FS0;
+
+ENDTRACK;
+
+QUIT;

@@ -59,6 +59,7 @@ namespace {
         SEED,
         TELL,
         PSDUMPFREQ,
+        C0PSDUMPFREQ,
         STATDUMPFREQ,
         STEPINFOFQ,
         PSDUMPEACHTURN,
@@ -129,6 +130,14 @@ Option::Option()
             "The frequency to dump the phase space, "
             "i.e.dump data when step%psDumpFreq==0, its default value is 10.",
             psDumpFreq);
+
+    itsAttr[C0PSDUMPFREQ] = Attributes::makeReal(
+            "C0PSDUMPFREQ",
+            "Optional phase-space dump frequency for particle container 0. "
+            "A negative value follows PSDUMPFREQ; zero disables c0 HDF5 dumps. "
+            "Positive values are checked on global PSDUMPFREQ dump steps, so use a "
+            "multiple of PSDUMPFREQ when thinning c0 output.",
+            c0PsDumpFreq);
 
     itsAttr[STATDUMPFREQ] = Attributes::makeReal(
             "STATDUMPFREQ",
@@ -358,6 +367,7 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setBool(itsAttr[WARN], warn);
     Attributes::setReal(itsAttr[SEED], seed);
     Attributes::setReal(itsAttr[PSDUMPFREQ], psDumpFreq);
+    Attributes::setReal(itsAttr[C0PSDUMPFREQ], c0PsDumpFreq);
     Attributes::setReal(itsAttr[STATDUMPFREQ], statDumpFreq);
     Attributes::setReal(itsAttr[STEPINFOFQ], stepInfoFreq);
     Attributes::setBool(itsAttr[PSDUMPEACHTURN], psDumpEachTurn);
@@ -464,6 +474,11 @@ void Option::execute() {
     if (itsAttr[PSDUMPFREQ]) {
         psDumpFreq = int(Attributes::getReal(itsAttr[PSDUMPFREQ]));
         if (psDumpFreq == 0) psDumpFreq = std::numeric_limits<int>::max();
+    }
+
+    if (itsAttr[C0PSDUMPFREQ]) {
+        c0PsDumpFreq = int(Attributes::getReal(itsAttr[C0PSDUMPFREQ]));
+        if (c0PsDumpFreq < -1) c0PsDumpFreq = -1;
     }
 
     if (itsAttr[STATDUMPFREQ]) {

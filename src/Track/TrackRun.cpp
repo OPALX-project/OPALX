@@ -912,6 +912,8 @@ Inform& TrackRun::print(Inform& os) const {
            << '\n';
     }
     os << "* Phase space dump frequency    = " << Options::psDumpFreq << '\n'
+       << "* c0 phase space dump frequency = " << Options::c0PsDumpFreq
+       << " (-1 follows PSDUMPFREQ, 0 disables c0 HDF5)" << '\n'
        << "* Statistics dump frequency     = " << Options::statDumpFreq << " w.r.t. the time step."
        << '\n'
        << "* DT                            = " << Track::block->dT.front() << " [s]\n"

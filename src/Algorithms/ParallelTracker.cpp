@@ -23,6 +23,7 @@
 #include <array>
 #include <cfloat>
 #include <cmath>
+#include <cstdlib>
 #include <fstream>
 #include <functional>
 #include <iomanip>
@@ -64,6 +65,24 @@
 #include "AbsBeamline/VerticalFFAMagnet.h"
 
 extern Inform* gmsg;
+
+namespace {
+
+bool shouldDumpSpaceChargeFieldH5(long long step) {
+    const char* value = std::getenv("OPALX_SC_FIELD_H5_STEPS");
+    if (value == nullptr || value[0] == '\0') {
+        return false;
+    }
+
+    try {
+        const long long maxStep = std::stoll(value);
+        return step <= maxStep;
+    } catch (...) {
+        return true;
+    }
+}
+
+}  // namespace
 
 // --- Constructors ---
 
@@ -773,8 +792,28 @@ void ParallelTracker::computeDefaultSelfFields(
     itsBunch_m->computeSelfFields();
     m << level3 << "Compute self fields done." << endl;
     transformFieldsToReferenceFrame(beamToReferenceCSTrafo, m);
+    dumpSpaceChargePrimaryFieldH5();
     itsBunch_m->bunchUpdate();
     m << level5 << "Bunch updated for positions in reference coordinate system." << endl;
+}
+
+void ParallelTracker::dumpSpaceChargePrimaryFieldH5() const {
+    if (!itsDataSink_m || !itsBunch_m) {
+        return;
+    }
+
+    const long long step = itsBunch_m->getGlobalTrackStep();
+    if (!shouldDumpSpaceChargeFieldH5(step)) {
+        return;
+    }
+
+    const size_t nContainers = itsBunch_m->getNumParticleContainers();
+    std::vector<std::array<Vector_t<double, 3>, 2>> fdByContainer(nContainers);
+    for (auto& fields : fdByContainer) {
+        fields[0] = Vector_t<double, 3>(0.0);
+        fields[1] = Vector_t<double, 3>(0.0);
+    }
+    itsDataSink_m->dumpH5(*itsBunch_m, fdByContainer);
 }
 
 void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
@@ -862,8 +901,11 @@ std::optional<BEAMBEAM::ActualGeometry> ParallelTracker::detectBeamBeamWindow(
             return std::nullopt;
         }
 
-        const IndexMap::key_t ipRange  = oth.getRange(element, bunchS);
-        const double interactionPointS = 0.5 * (ipRange.begin + ipRange.end);
+        const IndexMap::key_t ipRange = oth.getRange(element, bunchS);
+        const double configuredInteractionPointS = element->getAttribute("IP_S");
+        const double interactionPointS           = configuredInteractionPointS > 0.0
+                                                           ? configuredInteractionPointS
+                                                           : 0.5 * (ipRange.begin + ipRange.end);
         std::optional<double> xAperture;
         std::optional<double> yAperture;
         std::optional<double> sourceRetireTime;
@@ -882,8 +924,7 @@ std::optional<BEAMBEAM::ActualGeometry> ParallelTracker::detectBeamBeamWindow(
             copyTime = copyTimeValue;
         }
         return BEAMBEAM::ActualGeometry{
-                interactionPointS, interactionPointS - 0.5 * beamBeamWindowLength,
-                interactionPointS + 0.5 * beamBeamWindowLength, beamBeamWindowLength,
+                interactionPointS, ipRange.begin, ipRange.end, beamBeamWindowLength,
                 BEAMBEAM::Config{
                         element->getAttribute("VISUALIZE") != 0.0, copyTime, sourceRetireTime,
                         xAperture, yAperture,
@@ -956,6 +997,10 @@ std::optional<double> ParallelTracker::performBeamBeamWindowEntryTransition(
         const BEAMBEAM::ActualGeometry& geometry, const ippl::Vector<double, 3>& physicalRMin,
         const ippl::Vector<double, 3>& physicalRMax) {
     if (beamBeamDiagnostics_m.entryRhoSnapshotDumped) {
+        return std::nullopt;
+    }
+    if (!BEAMBEAM::copyTimeReached(itsBunch_m->getT(), geometry.config.copyTime)) {
+        beamBeamDiagnostics_m.entryRhoSnapshotDumped = true;
         return std::nullopt;
     }
 
