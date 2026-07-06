@@ -180,7 +180,7 @@ void DumpEMFields::buildGrid() {
     cylindricalOrigin_m[2] = Attributes::getReal(itsAttr[CYL_ORIGIN_Z]);
 }
 
-void DumpEMFields::writeFields(const std::set<std::shared_ptr<Component>>& elements) {
+void DumpEMFields::writeFields(const std::set<std::shared_ptr<ElementBase>>& elements) {
     for (auto& item : dumpsSet_m) {
         item->writeFieldThis(elements);
     }
@@ -228,7 +228,7 @@ void DumpEMFields::writeHeader(std::ofstream& fout) const {
 }
 
 void DumpEMFields::writeFieldLine(
-        const std::set<std::shared_ptr<Component>>& elements, const Vector_t<double, 3>& point,
+        const std::set<std::shared_ptr<ElementBase>>& elements, const Vector_t<double, 3>& point,
         const double& time, std::ofstream& fout) const {
     // Translate the coordinate if necessary
     Vector_t<double, 3> E{};
@@ -274,7 +274,7 @@ void DumpEMFields::writeFieldLine(
          << Eout[2] * Units::Vpm2MVpm << "\n";
 }
 
-void DumpEMFields::writeFieldThis(const std::set<std::shared_ptr<Component>>& elements) {
+void DumpEMFields::writeFieldThis(const std::set<std::shared_ptr<ElementBase>>& elements) {
     if (grid_m == nullptr) {
         throw OpalException(
                 "DumpEMFields::writeFieldThis",

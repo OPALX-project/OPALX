@@ -19,7 +19,7 @@
 #define OPALX_MultipoleRep_HH
 
 #include "AbsBeamline/Multipole.h"
-#include "BeamlineGeometry/StraightGeometry.h"
+#include "BeamlineGeometry/Geometry.h"
 
 class MultipoleRep : public Multipole {
 public:
@@ -40,33 +40,19 @@ public:
     //  If the attribute does not exist, it returns nullptr.
     virtual Channel* getChannel(const std::string& aKey, bool = false);
 
-    /// Get field.
-    //  Version for non-constant object.
-    virtual BMultipoleField& getField();
-
-    /// Get field.
-    //  Version for constant object.
-    virtual const BMultipoleField& getField() const;
-
     /// Get geometry.
     //  Return the element geometry.
     //  Version for non-constant object.
-    virtual StraightGeometry& getGeometry();
+    virtual Geometry& getGeometry();
 
     /// Get geometry.
     //  Return the element geometry
     //  Version for constant object.
-    virtual const StraightGeometry& getGeometry() const;
-
-    /// Set mulitpole field.
-    virtual void setField(const BMultipoleField& field);
+    virtual const Geometry& getGeometry() const;
 
 private:
     /// Multipole geometry.
-    StraightGeometry geometry;
-
-    /// Multipole field.
-    BMultipoleField field;
+    Geometry geometry;
 
     // Not implemented.
     void operator=(const MultipoleRep&);

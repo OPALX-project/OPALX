@@ -37,7 +37,7 @@ extern Inform* gmsg;
 
 const double IndexMap::oneMinusEpsilon_m = 1.0 - std::numeric_limits<double>::epsilon();
 namespace {
-    void insertFlags(std::vector<double>& flags, std::shared_ptr<Component> element);
+    void insertFlags(std::vector<double>& flags, std::shared_ptr<ElementBase> element);
 }
 
 IndexMap::IndexMap()
@@ -144,11 +144,11 @@ void IndexMap::add(key_t::first_type initialS, key_t::second_type finalS, const 
     }
 }
 
-void IndexMap::tidyUp(double zstop) {
+void IndexMap::tidyUp(double sStop) {
     map_t::reverse_iterator rit = mapRange2Element_m.rbegin();
 
-    if (rit != mapRange2Element_m.rend() && (*rit).second.empty() && zstop > (*rit).first.begin) {
-        key_t key{(*rit).first.begin, zstop};
+    if (rit != mapRange2Element_m.rend() && (*rit).second.empty() && sStop > (*rit).first.begin) {
+        key_t key{(*rit).first.begin, sStop};
         value_t val;
 
         mapRange2Element_m.erase(std::next(rit).base());
@@ -310,7 +310,7 @@ void IndexMap::saveSDDS(double initialPathLength) const {
 }
 
 namespace {
-    void insertFlags(std::vector<double>& flags, std::shared_ptr<Component> element) {
+    void insertFlags(std::vector<double>& flags, std::shared_ptr<ElementBase> element) {
         switch (element->getType()) {
             case ElementType::MULTIPOLE: {
                 const Multipole* mult = static_cast<const Multipole*>(element.get());

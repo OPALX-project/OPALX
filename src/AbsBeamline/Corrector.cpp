@@ -31,7 +31,7 @@
 Corrector::Corrector() : Corrector("") {}
 
 Corrector::Corrector(const Corrector& right)
-    : Component(right),
+    : ElementBase(right),
       kickX_m(right.kickX_m),
       kickY_m(right.kickY_m),
       designEnergy_m(right.designEnergy_m),
@@ -40,7 +40,7 @@ Corrector::Corrector(const Corrector& right)
       kickField_m(right.kickField_m) {}
 
 Corrector::Corrector(const std::string& name)
-    : Component(name),
+    : ElementBase(name),
       kickX_m(0.0),
       kickY_m(0.0),
       designEnergy_m(0.0),

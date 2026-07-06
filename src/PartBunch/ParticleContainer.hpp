@@ -6,7 +6,9 @@
 #include <cmath>
 #include <cstddef>
 #include <functional>
+#include <iomanip>
 #include <memory>
+#include <numeric>
 #include <string>
 #include <vector>
 
@@ -203,6 +205,7 @@ public:
         trafo.rotateBunchTo(this->P.getView(), nLoc);
         trafo.rotateBunchTo(this->E.getView(), nLoc);
         trafo.rotateBunchTo(this->B.getView(), nLoc);
+        markMomentsDirty();
     }
     PLayout_t<T, Dim>& getPL() { return pl_m; }
 
@@ -743,6 +746,84 @@ public:
         m << level4 << std::left << std::setw(32) << "Requested allocation:" << numParticles
           << " particles" << endl;
         m << level4 << std::setw(32) << "Size of underlying view:" << this->R.size() << endl;
+    }
+
+    void printRankLoadInfo(const std::string& label = "") const {
+        const int nranks = ippl::Comm->size();
+        const int rank   = ippl::Comm->rank();
+        const int root   = 0;
+
+        std::vector<size_type> localParticles(static_cast<size_t>(nranks), 0);
+        std::vector<size_type> localCapacity(static_cast<size_t>(nranks), 0);
+        std::vector<size_type> rankParticles(static_cast<size_t>(nranks), 0);
+        std::vector<size_type> rankCapacity(static_cast<size_t>(nranks), 0);
+
+        localParticles[static_cast<size_t>(rank)] = this->getLocalNum();
+        localCapacity[static_cast<size_t>(rank)]  = this->R.size();
+
+        ippl::Comm->reduce(
+                localParticles.data(), rankParticles.data(), nranks, std::plus<size_type>(), root);
+        ippl::Comm->reduce(
+                localCapacity.data(), rankCapacity.data(), nranks, std::plus<size_type>(), root);
+
+        if (rank != root) {
+            return;
+        }
+
+        const size_type totalParticles =
+                std::accumulate(rankParticles.begin(), rankParticles.end(), size_type{0});
+        const size_type totalCapacity =
+                std::accumulate(rankCapacity.begin(), rankCapacity.end(), size_type{0});
+
+        auto percent = [](size_type value, size_type total) {
+            return total > 0 ? 100.0 * static_cast<double>(value) / static_cast<double>(total)
+                             : 0.0;
+        };
+        auto localRatioPercent = [](size_type numerator, size_type denominator) {
+            return denominator > 0 ? 100.0 * static_cast<double>(numerator)
+                                             / static_cast<double>(denominator)
+                                   : 0.0;
+        };
+
+        Inform m("ParticleContainer::printRankLoadInfo", root);
+        constexpr int labelWidth = 24;
+        constexpr int colWidth   = 12;
+
+        m << level2 << "Particle load by rank";
+        if (!label.empty()) {
+            m << " (" << label << ")";
+        }
+        m << endl;
+        m << level2 << std::left << std::setw(labelWidth) << "Metric";
+        for (int r = 0; r < nranks; ++r) {
+            m << " | " << std::right << std::setw(colWidth) << ("Rank " + std::to_string(r));
+        }
+        m << endl;
+
+        m << level2 << std::left << std::setw(labelWidth) << "Particles [%]" << std::fixed
+          << std::setprecision(2);
+        for (int r = 0; r < nranks; ++r) {
+            m << " | " << std::right << std::setw(colWidth)
+              << percent(rankParticles[static_cast<size_t>(r)], totalParticles);
+        }
+        m << endl;
+
+        m << level2 << std::left << std::setw(labelWidth) << "Allocated memory [%]" << std::fixed
+          << std::setprecision(2);
+        for (int r = 0; r < nranks; ++r) {
+            m << " | " << std::right << std::setw(colWidth)
+              << percent(rankCapacity[static_cast<size_t>(r)], totalCapacity);
+        }
+        m << endl;
+
+        m << level2 << std::left << std::setw(labelWidth) << "Overallocation [%]" << std::fixed
+          << std::setprecision(2);
+        for (int r = 0; r < nranks; ++r) {
+            const auto i = static_cast<size_t>(r);
+            m << " | " << std::right << std::setw(colWidth)
+              << localRatioPercent(rankCapacity[i], rankParticles[i]);
+        }
+        m << endl;
     }
 
     /**

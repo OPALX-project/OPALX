@@ -8,9 +8,29 @@
 
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
 
 extern Inform* gmsg;
+
+namespace {
+
+    int mapOpenSolverGreensFunction(const std::string& greensFunction) {
+        const std::string value = Util::toUpper(greensFunction);
+        if (value == "STANDARD") {
+            return OpenSolver_t<double, 3>::STANDARD;
+        }
+        if (value == "INTEGRATED") {
+            return OpenSolver_t<double, 3>::INTEGRATED;
+        }
+
+        throw OpalException(
+                "FieldSolver::initOpenSolver",
+                "Unknown GREENSF value \"" + greensFunction
+                        + "\". Supported values are STANDARD and INTEGRATED.");
+    }
+
+}  // namespace
 
 template <>
 template <typename Solver>
@@ -279,6 +299,7 @@ void FieldSolver<double, 3>::initOpenSolver() {
     sp.add("comm", ippl::p2p_pl);
     sp.add("r2c_direction", 0);
     sp.add("algorithm", OpenSolver_t<double, 3>::HOCKNEY);
+    sp.add("greens_function", mapOpenSolverGreensFunction(greensFunction_m));
     initSolverWithParams<OpenSolver_t<double, 3>>(sp);
 }
 
@@ -340,6 +361,51 @@ void FieldSolver<double, 3>::initSolver() {
     } else {
         throw OpalException(
                 "FieldSolver::initSolver",
+                "No known solver matches the argument: " + this->getStype());
+    }
+}
+
+template <>
+void FieldSolver<double, 3>::refreshAfterFieldLayoutChange() {
+    Inform m("FieldSolver::refreshAfterFieldLayoutChange");
+    m << level4
+      << "Refreshing existing solver backend for field layout change: " << this->getStype() << endl;
+
+    if (!rho_m || !E_m) {
+        throw OpalException(
+                "FieldSolver::refreshAfterFieldLayoutChange",
+                "rho/E field pointers must be assigned before refreshing the solver.");
+    }
+
+    if (this->getStype() == "CG") {
+        if (!phi_m) {
+            throw OpalException(
+                    "FieldSolver::refreshAfterFieldLayoutChange",
+                    "phi field pointer must be assigned before refreshing the CG solver.");
+        }
+        auto& solver = std::get<CGSolver_t<double, 3>>(this->getSolver());
+        solver.setRhs(*rho_m);
+        solver.setLhs(*phi_m);
+        solver.setGradient(*E_m);
+    } else if (this->getStype() == "FFT") {
+        auto& solver = std::get<FFTSolver_t<double, 3>>(this->getSolver());
+        solver.setRhs(*rho_m);
+        solver.setLhs(*E_m);
+    } else if (this->getStype() == "P3M") {
+        auto& solver = std::get<FFTTruncatedGreenSolver_t<double, 3>>(this->getSolver());
+        solver.setRhs(*rho_m);
+        solver.setLhs(*E_m);
+    } else if (this->getStype() == "OPEN") {
+        auto& solver = std::get<OpenSolver_t<double, 3>>(this->getSolver());
+        solver.setRhs(*rho_m);
+        solver.setLhs(*E_m);
+    } else if (this->getStype() == "NONE") {
+        auto& solver = std::get<NullSolver_t<double, 3>>(this->getSolver());
+        solver.setRhs(*rho_m);
+        solver.setLhs(*E_m);
+    } else {
+        throw OpalException(
+                "FieldSolver::refreshAfterFieldLayoutChange",
                 "No known solver matches the argument: " + this->getStype());
     }
 }

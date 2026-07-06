@@ -13,13 +13,16 @@ EmissionSource::EmissionSource()
     itsAttr[DISTRIBUTION] =
             Attributes::makeString("DISTRIBUTION", "Name of the Distribution to sample from.");
 
-    itsAttr[R0X] = Attributes::makeReal("R0X", "Initial position x [m].", 0.0);
-    itsAttr[R0Y] = Attributes::makeReal("R0Y", "Initial position y [m].", 0.0);
-    itsAttr[R0Z] = Attributes::makeReal("R0Z", "Initial position z [m].", 0.0);
+    itsAttr[R0X] = Attributes::makeReal("R0X", "Position offset x added after sampling [m].", 0.0);
+    itsAttr[R0Y] = Attributes::makeReal("R0Y", "Position offset y added after sampling [m].", 0.0);
+    itsAttr[R0Z] = Attributes::makeReal("R0Z", "Position offset z added after sampling [m].", 0.0);
 
-    itsAttr[P0X] = Attributes::makeReal("P0X", "Initial momentum x [beta*gamma].", 0.0);
-    itsAttr[P0Y] = Attributes::makeReal("P0Y", "Initial momentum y [beta*gamma].", 0.0);
-    itsAttr[P0Z] = Attributes::makeReal("P0Z", "Initial momentum z [beta*gamma].", 0.0);
+    itsAttr[P0X] = Attributes::makeReal(
+            "P0X", "Momentum offset x added after sampling [beta*gamma].", 0.0);
+    itsAttr[P0Y] = Attributes::makeReal(
+            "P0Y", "Momentum offset y added after sampling [beta*gamma].", 0.0);
+    itsAttr[P0Z] = Attributes::makeReal(
+            "P0Z", "Momentum offset z added after sampling [beta*gamma].", 0.0);
 
     itsAttr[T0] = Attributes::makeReal("T0", "Start time when sampling begins [s].", 0.0);
 
@@ -53,6 +56,14 @@ EmissionSource::EmissionSource()
             "NONE: thermal momentum applied in z only. "
             "ASTRA: 3D isotropic thermal emission on forward half-sphere.",
             {"NONE", "ASTRA"}, "NONE");
+
+    itsAttr[EKIN] = Attributes::makeReal(
+            "EKIN",
+            "Kinetic emission energy [eV]. The normalized source samples are stretched to "
+            "this beta*gamma magnitude before P0 is applied. For EMISSIONMODEL=NONE this "
+            "is a longitudinal momentum increment; for EMISSIONMODEL=ASTRA this is the "
+            "thermal momentum magnitude used to sample the forward half-sphere.",
+            0.0);
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -129,4 +140,8 @@ int EmissionSource::getZerofaceMaxSteps() const {
 
 std::string EmissionSource::getEmissionModel() const {
     return Attributes::getString(itsAttr[EMISSIONMODEL]);
+}
+
+double EmissionSource::getKineticEnergy() const {
+    return std::abs(Attributes::getReal(itsAttr[EKIN]));
 }

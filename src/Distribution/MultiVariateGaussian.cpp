@@ -14,15 +14,19 @@ MultiVariateGaussian::MultiVariateGaussian(
         std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
         Distribution_t* opalDist)
     : SamplingBase(pc, fc, opalDist) {
-    // Initialize covariance matrix from the distribution.
-    for (unsigned int i = 0; i < 6; i++) {
-        for (unsigned int j = 0; j < 6; j++) {
-            cov_m[i][j] = opalDist_m->correlationMatrix_m[i][j];
-        }
-    }
-
     setSigmaR(opalDist_m->getSigmaR());
     setSigmaP(opalDist_m->getSigmaP());
+
+    Vector_t<double, 6> sigma;
+    for (unsigned int i = 0; i < 3; i++) {
+        sigma[2 * i]     = sigmaR_m[i];
+        sigma[2 * i + 1] = sigmaP_m[i];
+    }
+    for (unsigned int i = 0; i < 6; i++) {
+        for (unsigned int j = 0; j < 6; j++) {
+            cov_m[i][j] = opalDist_m->correlationMatrix_m[i][j] * sigma[i] * sigma[j];
+        }
+    }
     setCutoffR(opalDist_m->getCutoffR());
     setCutoffP(opalDist_m->getCutoffP());
 

@@ -19,7 +19,7 @@
 #include "MultipoleT.h"
 
 MultipoleTCurvedConstRadius::MultipoleTCurvedConstRadius(MultipoleT* element)
-    : MultipoleTBase(element), planarArcGeometry_m(1.0, 1.0) {}
+    : MultipoleTBase(element), planarArcGeometry_m(Geometry::makeSBend(1.0, 1.0)) {}
 
 void MultipoleTCurvedConstRadius::initialise() {
     planarArcGeometry_m.setElementLength(element_m->getLength());
