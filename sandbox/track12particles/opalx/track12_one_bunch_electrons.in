@@ -1,0 +1,52 @@
+OPTION, PSDUMPFREQ = 1;
+OPTION, STATDUMPFREQ = 1;
+OPTION, BOUNDPDESTROY = 10;
+OPTION, VERSION = 10900;
+OPTION, SEED = 20260629;
+
+TITLE, STRING = "Track one CAIN electron test-particle bunch in OPALX";
+
+// First OPALX validation step: read and track only one bunch.
+// No BeamBeam element, no copied source, no witness containers.
+REAL n_particles = 6;
+REAL electron_charge = 1.602176634e-19;
+REAL bunch_charge = n_particles * electron_charge;
+REAL witness_p0 = sqrt(3.0) * EMASS;
+
+REAL drift_length = 0.006;
+REAL dt_track = 1.0e-15;
+REAL n_steps = 3000;
+
+DR1: DRIFT, L = drift_length, ELEMEDGE = 0.0;
+track12Line: LINE = (DR1);
+
+FS1: FIELDSOLVER, TYPE = OPEN,
+    NX = 8, NY = 8, NZ = 8,
+    PARFFTX = FALSE, PARFFTY = FALSE, PARFFTZ = TRUE,
+    BCFFTX = OPEN, BCFFTY = OPEN, BCFFTZ = OPEN,
+    BBOXINCR = 1,
+    GREENSF = STANDARD;
+
+DistElectrons: DISTRIBUTION, TYPE = FROMFILE,
+    FNAME = "track12_electrons.fromfile",
+    NPARTDIST = n_particles;
+
+SourceElectrons: EMISSIONSOURCE, DISTRIBUTION = DistElectrons;
+ElectronSources: EMISSIONSOURCELIST = (SourceElectrons);
+
+Track12Electrons: BEAM,
+    PARTICLE = ELECTRON,
+    PC = witness_p0,
+    NALLOC = n_particles,
+    BCHARGE = bunch_charge,
+    SOURCES = ElectronSources;
+
+TRACK, LINE = track12Line,
+    BEAM = Track12Electrons,
+    MAXSTEPS = n_steps,
+    ZSTOP = drift_length,
+    DT = dt_track;
+ RUN, METHOD = "PARALLEL", FIELDSOLVER = FS1;
+ENDTRACK;
+
+QUIT;

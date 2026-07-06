@@ -1,6 +1,844 @@
 # OPALX BeamBeam Handoff
 
-Last updated: 2026-06-10
+Last updated: 2026-07-05
+
+## Current Active Task: `spacecharge_drift_withness.in` Timing And Mesh
+
+Goal:
+
+- Continue with `sandbox/Drift-Experiment/spacecharge_drift_withness.in`.
+- Establish the timing for witness-beam injection relative to the primary c0
+  bunch, following `TestParticleOrbitSimulation.pptx`.
+- Determine how the BeamBeam mesh must be configured to sample c0 fields at the
+  witness position.
+
+2026-07-05 edge-at-witness timing update:
+
+- User observed that the previous `T0 = 4 ps` setup placed the witnesses in a
+  strong c0 field immediately.  That was expected from the old deck formula:
+  `primary_source_r0z = bb_ip_s - beta*c*T0`, which placed the c0 centroid at
+  the IP at witness injection.
+- Updated the active deck
+  `sandbox/Drift-Experiment/spacecharge_drift_withness.in` so the c0
+  `+3 sigma_z` leading edge reaches the first track12 witness at `T0`:
+  - `primary_edge_sigma = 3.0`
+  - `track12_first_ct_m = -1.5 * primary_sigma_z`
+  - `track12_edge_reference_s = bb_ip_s + track12_first_ct_m`
+  - `primary_centroid_at_witness_t0 =
+    track12_edge_reference_s - primary_edge_sigma * primary_sigma_z`
+  - `primary_source_r0z =
+    primary_centroid_at_witness_t0 - primary_beta * CLIGHT * witness_t0`
+- Important geometry point:
+  - With the old `bb_ip_s = 4 mm` and BeamBeam range `1..7 mm`, this edge
+    alignment put the c0 centroid at `1.3 mm` and its `-3 sigma_z` tail at
+    about `-0.5 mm` at `T0`.
+  - OPALX therefore kept BeamBeam `Inactive`, because the activation condition
+    requires the source bunch tail to be inside the BeamBeam window:
+    `bunchExtent.tail >= beginS + half longitudinal cell`.
+  - Diagnostic directory for this failed activation test:
+    `sandbox/Drift-Experiment/one_c0_track12_edge_t0_smoke`.
+- Corrected active setup:
+  - Kept the upstream drift at `1 mm`.
+  - Increased `bb_length` to `10 mm`, so
+    `bb_ip_s = drift_length + 0.5 * bb_length = 6 mm` and the BeamBeam range is
+    `1..11 mm`.
+  - At `T0 = 4 ps`, c0 centroid is `3.3 mm`, c0 `+3 sigma_z` edge is
+    `5.1 mm`, and the first track12 witness is also at `5.1 mm`.
+  - The c0 tail is then about `1.5 mm`, inside the `1..11 mm` BeamBeam window,
+    so BeamBeam activates before witness injection.
+- Corrected diagnostic run:
+  - Directory:
+    `sandbox/Drift-Experiment/one_c0_track12_edge_t0_ip6mm_smoke`
+  - Run-copy-only output change: `C0PSDUMPFREQ = 20`, to save c0 near `T0`.
+  - Command:
+    `OMP_NUM_THREADS=8 OMP_PROC_BIND=spread OMP_PLACES=threads /usr/bin/time -p ../../../build_openmp/src/opalx --info 2 spacecharge_drift_withness.in > spacecharge_drift_withness.out 2> spacecharge_drift_withness.err`
+  - Completed normally in `real 32.98 s`, `user 27.42 s`, `sys 22.32 s`.
+  - BeamBeam diagnostics:
+    - initially inactive before the source tail enters the window;
+    - entered BeamBeam with
+      `interaction_point_s=0.006 m, s_range=(0.001, 0.011) m,
+      length=0.010 m, copy_time=NONE`;
+    - c1/c2 each loaded 6 track12 particles and remained active;
+    - c0 retired at `RETIRE_TIME` while witness containers stayed active.
+- H5 timing summary from the corrected run:
+  - first witness H5 dump: `4.02 ps`, `20 fs` after `T0`;
+  - `primary_source_r0z = 2.100833 mm`;
+  - `track12_edge_reference_s = 5.1 mm`;
+  - c0 centroid at `T0`: `3.3 mm`;
+  - c0 `+3 sigma_z` edge at `T0`: `5.1 mm`;
+  - nearest saved c0 to the first witness dump is synchronized at global step
+    `59`, because this diagnostic used `C0PSDUMPFREQ = 20`.
+- Plotting updates:
+  - `sandbox/Drift-Experiment/analyze_withness_timing.py` now uses Matplotlib
+    `Agg`;
+  - the timing plot includes c0 centroid, c0 `+3 sigma_z` edge, BeamBeam IP,
+    and first track12 witness lines;
+  - the default witness kinetic energy remains the raw track12
+    `gamma = 2` value.
+- Corrected-run plots:
+  - `witness_timing_overview.png`
+  - `near_ip_field_cutoff.png`
+  - `c0_injection_mesh_xy.png`
+  - `witness_transverse_motion.png`
+  - `track12_figure1_opalx_h5.png`
+  - `track12_figure1_opalx_h5_t.png`
+- Current caveat:
+  - This fixes the initial c0-edge timing for the current one-source `+z`
+    plumbing model.
+  - It still does not make the model equivalent to CAIN if CAIN used a
+    truly oncoming c0 bunch moving in `-z`.
+
+2026-07-05 one-c0 track12 smoke setup:
+
+- User clarified the immediate model:
+  - use only one physical c0 bunch;
+  - use the raw `track12_electrons.fromfile` and
+    `track12_positrons.fromfile` witnesses;
+  - no mirrored/copy field source for now;
+  - c0 may be modeled as coming from the left in the current OPALX `+z`
+    convention.
+- Updated the active deck
+  `sandbox/Drift-Experiment/spacecharge_drift_withness.in` accordingly:
+  - title/comment block now describes the one-c0/track12 model;
+  - `OPTION, C0PSDUMPFREQ = 600`;
+  - `primary_charge_scale = 1.0`;
+  - `primary_macroparticles = 100` for the low-resolution smoke run;
+  - `n_witness_per_species = 6`;
+  - witness distributions use `track12_electrons.fromfile` and
+    `track12_positrons.fromfile`;
+  - `COPY_TIME = 0.0`, so `copy_time=NONE` and only container 0 deposits the
+    BeamBeam source field;
+  - `IP_S = bb_ip_s` pins the interaction point explicitly;
+  - c0 source is shifted so the c0 centroid reaches `bb_ip_s = 4 mm` at the
+    common witness `T0 = 4 ps`.
+- Copied the full track12 FROMFILEs into `sandbox/Drift-Experiment/` for the
+  base deck.
+- Updated `sandbox/Drift-Experiment/analyze_withness_timing.py`:
+  - forces Matplotlib `Agg` backend for batch/non-GUI runs;
+  - default witness kinetic energy is now `EMASS_GEV`, matching the raw
+    track12 `gamma = 2` (`Ps/(m_e c) = sqrt(3)`) setup.
+- Smoke run directory:
+  `sandbox/Drift-Experiment/one_c0_track12_smoke`
+- Run command:
+  `OMP_NUM_THREADS=8 OMP_PROC_BIND=spread OMP_PLACES=threads /usr/bin/time -p ../../../build_openmp/src/opalx --info 2 spacecharge_drift_withness.in > spacecharge_drift_withness.out 2> spacecharge_drift_withness.err`
+- Run result:
+  - completed normally in `real 31.12 s`, `user 25.43 s`, `sys 20.63 s`;
+  - BeamBeam entered with
+    `interaction_point_s=0.004 m, s_range=(0.001, 0.007) m,
+    length=0.006 m, copy_time=NONE`;
+  - `FromFile` loaded 6 electrons and 6 positrons;
+  - c1/c2 became active at the common `T0 = 4 ps`;
+  - c0 was retired at `RETIRE_TIME` with `marked 100, deleted 100,
+    remaining 0`; witness containers remained active;
+  - OPALX reports the witness kinetic energy around `511 keV`, as expected for
+    the raw track12 `gamma = 2` file, not the older `313 keV` transverse-pair
+    model.
+- Analysis output in the smoke directory:
+  - `timing_mesh_summary.csv`
+  - `witness_kinematics_summary.csv`
+  - `witness_field_samples.csv`
+  - `witness_timing_overview.png`
+  - `c0_injection_mesh_xy.png`
+  - `witness_transverse_motion.png`
+  - `near_ip_field_cutoff.png`
+  - `track12_figure1_opalx_h5.png`
+  - `track12_figure1_opalx_h5_t.png`
+- Timing details from the H5/stat analysis:
+  - first witness H5 dump is at `4.02 ps`, i.e. `20 fs` after witness `T0`;
+  - because `C0PSDUMPFREQ = 600`, the nearest saved c0 H5 dump to the first
+    witness dump is at `4.56 ps`, with c0 centroid about `167.9 um` beyond the
+    IP in the shifted absolute convention;
+  - to inspect c0 exactly at `T0`, reduce `C0PSDUMPFREQ` for the next short
+    diagnostic run.
+- Current physics caveat:
+  - This smoke run injects all six track12 witnesses simultaneously and
+    represents the PPTX timing values as initial `z` offsets.  It is not yet
+    the exact pair-wise CAIN timing model.
+  - With raw `Ps -> pz > 0` and c0 also moving in `+z`, this is a
+    co-propagating one-source plumbing test.  The OPALX trajectories therefore
+    should not yet be expected to reproduce the CAIN/head-on figure
+    quantitatively.
+
+2026-07-05 staged coarse-to-fine rerun:
+
+- New run directory:
+  `sandbox/Drift-Experiment/withness_t0_4ps_coarse_to_12p5ps_fine_to_30ps`
+- Copied the completed centered-IP long-run input and changed only the staged
+  timing:
+  - `coarse_to_time = 12.5e-12`
+  - `final_time = 30.0e-12`
+  - `post_retire_observation_time = final_time - primary_retire_time`
+  - `fine_start_s = primary_source_r0z + primary_beta * CLIGHT * coarse_to_time`
+  - `fine_stop_s = primary_source_r0z + primary_beta * CLIGHT * final_time`
+  - `coarse_steps = 125` with `coarse_dt = 100 fs`
+  - `fine_steps = 17500` with `fine_dt = 1 fs`
+- c0 source retirement is unchanged at `primary_retire_time = 20 ps`.
+- BeamBeam geometry is unchanged:
+  `IP_S = 4 mm`, active range `1 mm` to `17 mm`.
+- Started OPALX with:
+  `env OMP_NUM_THREADS=8 OMP_PROC_BIND=spread OMP_PLACES=threads ../../../build_openmp/src/opalx --info 2 spacecharge_drift_withness.in > spacecharge_drift_withness.out 2> spacecharge_drift_withness.err`
+- Run result:
+  - Completed normally.
+  - `/usr/bin/time` reported `real 2036.46 s`, `user 10587.46 s`,
+    `sys 180.24 s`.
+  - Final stderr contains only the timing line.
+  - BeamBeam entered with `interaction_point_s=0.004 m,
+    s_range=(0.001, 0.017) m, length=0.016 m`.
+  - Witnesses reached active state `c1:active:n=6,c2:active:n=6`.
+  - At `t=12.53 ps`, the run is in the intended `1 fs` fine segment.
+  - Retirement diagnostic:
+    `Retired BeamBeam source container[0] at RETIRE_TIME: marked 524288,
+    deleted 524288, remaining 0. Witness containers remain active.`
+  - Final BeamBeam state after retirement:
+    `source_active=FALSE source_retirement_pending=FALSE`.
+- H5 output:
+  - c0 H5 has 12 saved dumps, from global step `599` at `t=12.975 ps`
+    through step `7199` at `t=19.575 ps`.
+  - The last saved c0 position is `s=5.8684 mm` in OPALX local SPOS, or
+    `s=8.6693 mm` in the shifted absolute convention.
+  - c1/c2 H5 have 880 saved dumps, from `t=6.0 ps` to `t=30.0 ps`.
+  - c1/c2 post-retirement field samples are zero:
+    `max_post_retire_E = 0.0`.
+  - Because the first segment uses `100 fs` steps with `PSDUMPFREQ=20`, the
+    first witness H5 dump is at `t=6.0 ps`, not immediately after the
+    `4.0 ps` witness T0.
+  - Because `C0PSDUMPFREQ=600`, the exact c0 state at witness injection and at
+    the `12.5 ps` coarse/fine transition is not saved; the first c0 mesh
+    snapshot is at `t=12.975 ps`, `s=6.6906 mm` in the shifted absolute
+    convention.
+- Witness extent by the final `30 ps` H5 dump:
+  - c1 all-particle maxima: `max |x| = 110.0 um`,
+    `max |y| = 676.6 um`, `max |z| = 9.3305 mm`.
+  - c2 all-particle maxima: `max |x| = 1572.9 um`,
+    `max |y| = 1025.5 um`, `max |z| = 9.2888 mm`.
+  - Some witness particles are outside the compact `500 um` c0-source aperture
+    during the post-retirement ballistic segment, as expected for this longer
+    observation.
+- Plots produced in the run directory:
+  - `witness_timing_overview.png`
+  - `c0_injection_mesh_xy.png`
+  - `witness_transverse_motion.png`
+  - `near_ip_field_cutoff.png`
+  - `track12_figure1_opalx_h5.png`
+  - `track12_figure1_opalx_h5_t.png`
+- Plot observations:
+  - The timing plot shows zero witness fields after c0 retirement at `20 ps`.
+  - The sampled OPALX relative field before retirement still does not follow
+    the simple line-Gaussian decay estimate.
+  - The Figure 1 comparison remains qualitatively different from the
+    `TestParticleOrbit.dat`/CAIN reference, especially for the blue trajectories
+    after roughly `16 ps`.
+
+2026-07-05 PPTX timing/retirement re-check:
+
+- Extracted `sandbox/TestParticleOrbitSimulation.pptx` slide text and checked it
+  against `sandbox/TestParticleOrbit.dat`.
+- PPTX facts:
+  - c0/source bunch: `sigma_z = 0.6 mm`, Gaussian longitudinal distribution cut
+    at `3 sigma_z`.
+  - Test particles are right-going and inserted at
+    `ct/sigma_z = -1.5, -1.0, -0.5, 0, 0.5, 1.0`.
+  - `ct/sigma_z = -1.5` is described as the moment the test particle touches
+    the on-coming bunch edge.
+- `TestParticleOrbit.dat` matches this:
+  - initial `ct` values are approximately `-0.9, -0.5994, -0.3006, 0,
+    +0.3006, +0.5994 mm`;
+  - trajectories run to `ct = +1.8 mm = +3 sigma_z`.
+- Current combined OPALX deck is not the same timing model:
+  - it injects all 12 witnesses at one absolute `T0 = 4 ps`;
+  - it encodes the six PPTX timings as initial witness `z` offsets;
+  - the completed staged run used `track12_electrons.fromfile` and
+    `track12_positrons.fromfile`, where `Ps/(m_e c) = sqrt(3)` was mapped into
+    OPALX `pz`.  This is intentional if the goal is to reproduce the
+    PPTX/CAIN track12 reference, because the PPTX says the particles are
+    artificial right-going test particles and the file columns are
+    `Px, Py, Ps`.
+- Separate transverse BW-pair estimate:
+  - If instead we switch back to the separate low-energy BW-pair model, the
+    witness momentum should be transverse to the c0 `beta_z c` direction,
+    i.e. `pz ~= 0` for the witness in the c0-z frame.
+  - Under that transverse-witness interpretation, a co-propagating
+    `beta_c0 - beta_w` estimate is not the right retirement criterion.
+  - With transverse witnesses, the longitudinal separation from c0 grows as
+    `beta_c0 c dt`.  At `dt = 16 ps` after pair-4 insertion, c0 has moved
+    `4.797 mm` in z; relative to the initially leading `ct = +0.5994 mm`
+    offset this is still `4.197 mm`, greater than `3 sigma_z = 1.8 mm`.
+- Retirement implication:
+  - If the intended physics is PPTX/oncoming, `RETIRE_TIME = 20 ps` is not too
+    early; a `3 sigma_z` source cutoff passes a pair-4 witness in about
+    `3.22 ps` after pair-4 insertion, and the CAIN output itself ends at
+    `6.00 ps` after pair-4 insertion.
+  - If the track12/PPTX right-going witness and c0 are both modeled in OPALX as
+    moving in `+z`, `RETIRE_TIME = 20 ps` is early for the co-propagating
+    longitudinal-support estimate.  With `gamma_w = 2`,
+    `beta_w = 0.8660254`; with c0 at `245 MeV`, `beta_c0 = 0.9999978`.  The
+    relative speed is only `(beta_c0 - beta_w)c`, so after `16 ps` c0 is only
+    `0.643 mm` ahead of the `ct=0` witness and only `0.043 mm` ahead of the
+    initially leading `ct=+0.5994 mm` pair-6 witness.
+- Practical conclusion:
+  - Do not rotate `TestParticleOrbit.dat` `Ps` into a transverse OPALX momentum
+    if the goal is to reproduce the PPTX/CAIN track12 reference.  The PPTX says
+    the test particles are artificial, right-going particles, and the file
+    format names the momentum components `Px, Py, Ps`; for the OPALX local
+    beamline frame this means `Ps -> pz`.
+  - The earlier transverse-witness assumption belongs to the separate
+    low-energy Breit-Wheeler pair model in `sandbox/note`, where the pair has
+    about `313 keV` kinetic energy and is launched transversely in the `z=0`
+    plane.  That is a different witness model from the raw
+    `TestParticleOrbit.dat` reference, whose first row has
+    `E ~= 1.022 MeV`, `Px = Py = 0`, and
+    `Ps/(m_e c) = 1.73205118`.
+  - Therefore the next decision is model selection:
+    reproduce the track12/PPTX artificial right-going reference with
+    `Ps -> pz`, or switch back to the separate transverse BW-pair model and use
+    a different/generated FROMFILE.
+  - The existing pair-wise generator
+    `sandbox/track12particles/opalx/generate_timing_pair_inputs.py` already
+    documents the timing-correct interpretation: the PPTX `ct` values are
+    insertion times, not one simultaneous spatial snapshot.
+- Agreed source-geometry decision:
+  - Current simplification from user: use only one physical c0 bunch and the
+    `track12_electrons.fromfile` / `track12_positrons.fromfile` witnesses.
+    Do not add a mirrored/copy-only source mode for this stage.
+  - Keep `COPY_TIME = 0` / copy disabled so the field source is only container
+    0.  The earlier `COPY_ONLY` idea is deferred and should not be implemented
+    for this immediate run.
+  - Use OPALX's cleanly supported direction first: c0 moves in increasing `z`
+    through the BeamBeam window.  This can be described as "from left to right"
+    in the current local coordinate convention.
+  - If the track12 witnesses also keep their raw `Ps -> pz > 0` momenta, this
+    one-source OPALX run is co-propagating.  c0 catches them only with relative
+    speed `(beta_c0 - beta_w)c`; this is acceptable as a plumbing/timing test,
+    but it is not the same timescale as a head-on CAIN/oncoming-source model.
+  - If we later need true CAIN head-on timing/force signs, revisit either a
+    negative-direction source representation or a one-source mirrored-deposit
+    implementation.  For now, prioritize the one physical c0 setup.
+
+2026-07-04 long-run setup and result:
+
+- User requested `C0PSDUMPFREQ = 600`, a simulation about `10x` longer, and
+  all plots after the full run.
+- C++ output-thinning change added:
+  - New option `OPTION, C0PSDUMPFREQ = value;`
+  - `-1` follows global `PSDUMPFREQ`, `0` disables c0 H5, positive values thin
+    container-0 H5 on global phase-space dump steps.
+  - Witness containers c1/c2 still use global `PSDUMPFREQ`.
+- C++ BeamBeam geometry change added:
+  - New optional `BEAMBEAM` attribute `IP_S`.
+  - `IP_S = 0` preserves the old center-derived interaction point.
+  - Positive `IP_S` pins the interaction point in path-length coordinates while
+    the placed element range still defines the active BeamBeam window.
+- Verification before the long run:
+  - `cmake --build build_openmp -j 8` passed.
+  - `ctest --test-dir build_openmp -R BeamBeam --output-on-failure` passed.
+  - `~/.venv-h6/bin/python -m py_compile` passed for
+    `sandbox/Drift-Experiment/analyze_withness_timing.py` and
+    `sandbox/track12particles/note/plot_figure1_from_h5.py`.
+- Current full-run directory:
+  `sandbox/Drift-Experiment/withness_t0_4ps_active_16ps_centered_ip_release_shifted_c0`
+- Input copied from the previous shifted-c0 1.6 ps run, then changed to:
+  - `OPTION, PSDUMPFREQ = 20`
+  - `OPTION, C0PSDUMPFREQ = 600`
+  - `near_ip_active_time = 1.6e-11 s`
+  - `post_retire_observation_time = 1.75e-12 s`
+  - `fine_steps = 17800`
+  - `bb_length = 1.6e-2 m`
+  - `bb_ip_s = 4.0e-3 m`
+  - `bb_elemedge = drift_length = 1.0e-3 m`
+  - `IP_S = bb_ip_s`
+- Geometry check:
+  - `spacecharge_drift_withness_ips_smoke.in` completed after the C++ rebuild.
+  - OPALX reported:
+    `interaction_point_s=0.004 m, s_range=(0.001, 0.017) m, length=0.016 m`.
+  - The full run therefore keeps the BeamBeam entry at `1 mm`, pins the IP at
+    `4 mm`, and extends the active window to `17 mm`.
+  - This avoids the failed negative-ELEMEDGE attempt, where the tracker entered
+    BeamBeam immediately and the index-map split selected the wrong IP.
+- Run command:
+  `env OMP_NUM_THREADS=8 OMP_PROC_BIND=spread OMP_PLACES=threads ../../../build_openmp/src/opalx --info 2 spacecharge_drift_withness.in > spacecharge_drift_withness.out 2> spacecharge_drift_withness.err`
+- Run result:
+  - Completed normally.
+  - `/usr/bin/time` reported `real 4172.50 s`, `user 22434.58 s`,
+    `sys 274.21 s`.
+  - Final `spacecharge_drift_withness.err` contains only the timing line.
+  - Early log confirmed `interaction_point_s=0.004 m,
+    s_range=(0.001, 0.017) m, length=0.016 m`.
+  - BeamBeam reached the intended sequence:
+    inactive, active before witnesses, active with `c1:active:n=6,c2:active:n=6`,
+    completed with `source_retirement_pending=TRUE`, then c0 retired.
+  - Retirement diagnostic:
+    `Retired BeamBeam source container[0] at RETIRE_TIME: marked 524288,
+    deleted 524288, remaining 0. Witness containers remain active.`
+  - c0 H5 thinning worked: final files were about `1.5 GB` for c0 and
+    `9.2 MB` each for c1/c2.
+  - c0 H5 has 26 saved dumps; the last saved c0 dump is at `t=19.56 ps`,
+    before retirement, because `C0PSDUMPFREQ=600`.
+  - Stdout shows c0 at `s=5.987 mm` at `t=19.969 ps`; it therefore reaches
+    about `6 mm` at the configured `20 ps` retirement.
+  - c1/c2 H5 continue to `t=21.80 ps`, global step `17839`.
+  - H5 post-retirement c1/c2 field samples are zero:
+    `max_post_retire_E = 0.0`.
+- H5 analyzer summary:
+  - First witness H5 dump: `t=4.02 ps`, `20 fs` after witness T0.
+  - Because c0 is saved only every 600 global steps, the nearest saved c0 dump
+    to witness injection is global step `599`, `540 fs` after the first
+    witness dump; the exact c0-at-T0 state is not in c0 H5.
+  - The sparse nearest c0 dump used for the mesh snapshot is at `t=4.56 ps`,
+    `s=4.1679 mm` in the shifted absolute convention.
+  - Final witness first-particle positions:
+    c1 `(x,y,z) = (43.4, -225.1, -8154.7) um`,
+    c2 `(x,y,z) = (-108.1, 191.6, -8052.3) um`.
+  - Across all six particles, c1/c2 remain inside the compact transverse
+    source mesh: max `|y|` is about `284 um` for c1 and `192 um` for c2
+    versus the intended `500 um` radius.
+- Plots after completion:
+  - `witness_timing_overview.png`
+  - `c0_injection_mesh_xy.png` (nearest saved c0 mesh snapshot; sparse c0 H5 may
+    not contain the exact witness injection step)
+  - `witness_transverse_motion.png`
+  - `near_ip_field_cutoff.png`
+  - `track12_figure1_opalx_h5.png`
+  - `track12_figure1_opalx_h5_t.png`
+- Plot observations:
+  - The timing plot shows a large late sampled field spike before c0 retirement.
+  - The near-IP cutoff plot confirms zero fields after retirement but is not
+    consistent with the simple line-Gaussian decay estimate before retirement.
+  - The H5 Figure 1 trajectory panel is qualitatively far from the
+    `TestParticleOrbit.dat`/CAIN reference.  This is the next physics/debugging
+    item; the current run verifies timing/output plumbing, not final model
+    agreement.
+
+2026-07-04 snapshot and step-1/2 status:
+
+- Snapshot before changing witness kinematics:
+  `sandbox/Drift-Experiment/snapshots/2026-07-04_before_transverse_witness`
+  - Preserves the old staged pair-4 deck and longitudinal witness FROMFILEs.
+  - Old witness files had `px = 0`, `py = 0`, `pz = 1.7320511804180809`
+    (`gamma = 2`, about `511 keV` kinetic energy).
+- Step 1 is now implemented in the working deck:
+  - `sandbox/Drift-Experiment/make_transverse_witness_fromfiles.py` generates
+    the c1/c2 FROMFILEs.
+  - Current case uses `313 keV` transverse kinetic energy:
+    `gamma = 1.612525720454`, `beta = 0.784487091427`,
+    `p/(mc) = 1.265005612290`.
+  - c1/e- starts with `py > 0`, c2/e+ starts with `py < 0`, and both have
+    `px = pz = 0` in the input files.
+- Step 2 is documented in the deck:
+  - `APERTURE = "CIRCLE(0.0002)"` remains the compact c0-source mesh
+    (100 um radius, not the 30 cm witness observation domain).
+  - `c0_source_mesh_diameter = 2.0e-4` and
+    `witness_observation_radius = 0.30` make this convention explicit.
+  - The intended implementation direction is source-to-witness field gathering
+    from the compact c0 field, not enlarging the field solve mesh to 30 cm.
+- Quick verification run:
+  - run directory:
+    `sandbox/Drift-Experiment/withness_transverse_pair4_step1_2`
+  - OPALX command:
+    `env OMP_NUM_THREADS=8 ../../../build_openmp/src/opalx spacecharge_drift_withness.in > run.log 2>&1`
+  - Analyzer command:
+    `env MPLBACKEND=Agg MPLCONFIGDIR=/Users/adelmann/git/opalx-beambeam/sandbox/Drift-Experiment/.matplotlib XDG_CACHE_HOME=/Users/adelmann/git/opalx-beambeam/sandbox/Drift-Experiment/.cache ~/.venv-h6/bin/python sandbox/Drift-Experiment/analyze_withness_timing.py --run-dir sandbox/Drift-Experiment/withness_transverse_pair4_step1_2`
+  - `~/.venv-h6/bin/python -m py_compile` passed for
+    `make_transverse_witness_fromfiles.py` and `analyze_withness_timing.py`.
+- Transverse smoke result:
+  - OPALX completed and wrote c0/c1/c2 H5/stat files.
+  - `BB-DIAG` reached active BeamBeam with `c1:n=1,c2:n=1`.
+  - First synchronized c0/witness H5 dump remains global step `279`,
+    `t = 13.348 ps`, i.e. `5.407 fs` after the analytic pair-4 `T0`.
+  - c0 is at `s = 4.001621 mm`, only `+1.621 um` past the IP.
+  - H5 witness momenta at first dump:
+    - c1: `py = +1.264995`, `pz = -8e-6`
+    - c2: `py = -1.264987`, `pz = -1.5e-5`
+  - Final written positions in this smoke window are about
+    `y = +88.7 um` for c1 and `y = -88.7 um` for c2, still inside the
+    current 100 um compact source aperture.
+- New analyzer outputs for this run:
+  - `timing_mesh_summary.csv`
+  - `witness_field_samples.csv`
+  - `witness_kinematics_summary.csv`
+  - `witness_timing_overview.png`
+  - `c0_injection_mesh_xy.png`
+  - `witness_transverse_motion.png`
+
+### Order of Magnitude time and space estimates around IP
+
+- Ballistic time for c1/c2 to reach a 30 cm transverse aperture:
+  - witness kinetic energy: `313 keV`
+  - witness `beta = 0.784487`
+  - aperture radius: `0.30 m`
+  - `t_hit = 0.30 / (beta_witness * c) = 1.276 ns`
+  - with the current `1 fs` fine step this is about `1.28e6` steps
+    (`1.28e4` steps with a `100 fs` step)
+  - in that time c0 moves downstream by
+    `beta_c0 * c * t_hit = 0.382 m = 38.2 cm`
+  - total c0-to-witness separation at the 30 cm aperture is roughly
+    `sqrt((30 cm)^2 + (38.2 cm)^2) = 48.6 cm`
+- Point-charge 1% field scale relative to the injection field:
+  - use the initial transverse offset
+    `b = sigma_x = 1.944325075701 um`
+  - for an inverse-square point-charge estimate,
+    `E / E0 = (b / r)^2`
+  - `E / E0 = 0.01` gives `r = 10 b = 19.44 um`
+  - with ballistic c0/witness motion this occurs after about `50.8 fs`,
+    or about `51` steps at `1 fs`
+  - at that time c0 is about `15.2 um` downstream of the IP and c1/c2 are
+    about `+/-11.9 um` transversely from their injection positions
+  - by the time c1/c2 reach the 30 cm aperture, the point-charge field is only
+    about `(1.944 um / 48.6 cm)^2 = 1.6e-11` of the injection field
+- Consequence for the next implementation step:
+  - the physically relevant near-IP interaction is on the scale of tens of
+    femtoseconds and tens of microns for this point-charge estimate
+  - a full 30 cm ballistic witness flight at `1 fs` is not a practical or
+    useful first validation target for the c0 field influence
+
+### Agreed near-IP active-field then ballistic model
+
+- The `51` fine-step cutoff is only a point-charge centroid estimate.
+  It is useful as a sanity check, but it is not the right cutoff for the
+  present c0 bunch because the deck uses `sigma_z = 0.6 mm`.
+- A more relevant first estimate treats c0 near the IP as a long Gaussian
+  bunch/line source.  With initial witness offset
+  `b = sigma_x = 1.944325075701 um`, a simple estimate is
+  `E(t) / E(0) ~= b / sqrt(b^2 + (beta_w c t)^2)
+  * exp(-(beta_c0 c t)^2 / (2 sigma_z^2))`.
+- For the current `313 keV` transverse witnesses this gives the following
+  approximate field-retention times:
+  - `10%`: `82 fs`, c0 `24.6 um` downstream, c1/c2 `19.3 um` transverse
+  - `5%`: `165 fs`, c0 `49.3 um` downstream, c1/c2 `38.7 um` transverse
+  - `2%`: `405 fs`, c0 `121 um` downstream, c1/c2 `95.2 um` transverse
+  - `1%`: `768 fs`, c0 `230 um` downstream, c1/c2 `181 um` transverse
+- Agreed model for the next implementation:
+  - After c1/c2 are injected, c0 remains the only bunch that deposits charge.
+  - c1/c2 are passive witness particles: they sample/gather the c0 space-charge
+    field but do not contribute to the space-charge deposition.
+  - During this near-IP active-field phase, the c0 field mesh must cover the
+    c1/c2 witness positions so the field can be sampled at their coordinates.
+  - For the first real-bunch cutoff test, use a cutoff around the `1%` estimate,
+    i.e. about `0.8 ps` or `800` fine steps at `1 fs`, not the `51` step
+    point-charge cutoff.
+  - The transverse source-field aperture should therefore cover at least about
+    `181 um` witness displacement plus margin; a first low-resolution test can
+    use roughly a `250 um` radius compact source/witness-sampling mesh.
+  - Once the cutoff is reached, c0 can be ignored for the witness dynamics and
+    c1/c2 should be propagated ballistically unless another element acts.
+- Validation expectations:
+  - Plot OPALX sampled fields at c1/c2 versus the analytic/estimated c0 field
+    through the near-IP active window.
+  - Plot `E/E0` and mark the cutoff time.
+  - Confirm c1/c2 stay inside the field mesh until the cutoff.
+  - Confirm c1/c2 do not affect c0 or each other through space-charge
+    deposition.
+
+### 2026-07-04 near-IP active-field/ballistic smoke result
+
+- Existing code inspection before the run:
+  - BeamBeam self-field deposition uses the source container,
+    `bunch.getParticleContainer()`, i.e. c0/container 0.
+  - `WITNESS_CONTAINERS = "1,2"` are gathered passively by
+    `gatherBeamBeamFieldsToWitnessContainers()`.
+  - The passive gather temporarily maps c1/c2 into the c0 source frame, samples
+    the current source field, and restores the witness frame.
+  - The witnesses do not deposit charge onto the BeamBeam mesh in this path.
+- Current deck changes:
+  - `near_ip_active_time = 8.0e-13 s`
+  - `primary_retire_time = witness_t0 + near_ip_active_time`
+  - `fine_stop_s = bb_ip_s + 2.5e-4`
+  - `fine_steps = 1020`
+  - `c0_source_mesh_diameter = 5.0e-4`
+  - `APERTURE = "CIRCLE(0.0005)"`, i.e. about `250 um` radius
+- Verification run:
+  - run directory:
+    `sandbox/Drift-Experiment/withness_near_ip_active_1pct`
+  - OPALX command:
+    `env OMP_NUM_THREADS=8 ../../../build_openmp/src/opalx spacecharge_drift_withness.in > run.log 2>&1`
+  - Analyzer command:
+    `env MPLBACKEND=Agg MPLCONFIGDIR=/Users/adelmann/git/opalx-beambeam/sandbox/Drift-Experiment/.matplotlib XDG_CACHE_HOME=/Users/adelmann/git/opalx-beambeam/sandbox/Drift-Experiment/.cache ~/.venv-h6/bin/python sandbox/Drift-Experiment/analyze_withness_timing.py --run-dir sandbox/Drift-Experiment/withness_near_ip_active_1pct --aperture-radius-m 2.5e-4 --near-ip-active-time-s 8.0e-13`
+  - `~/.venv-h6/bin/python -m py_compile` passed for
+    `sandbox/Drift-Experiment/analyze_withness_timing.py`.
+- Run result:
+  - OPALX completed cleanly.
+  - `BB-DIAG` sequence:
+    - inactive, witnesses empty
+    - active, witnesses empty
+    - active, c1/c2 each have one particle
+    - completed with `source_retirement_pending=TRUE`
+    - completed with `retired_bunches=1`, `source_active=FALSE`, c1/c2 active
+  - First synchronized c0/witness H5 dump remains:
+    - global step `279`
+    - `t = 13.348 ps`
+    - `t - witness_t0 = 5.407 fs`
+    - c0 `s = 4.001621 mm`, `+1.621 um` past IP
+  - Configured c0 retirement:
+    - `retire_time = 14.142592708656 ps`
+    - `retire_time - witness_t0 = 800 fs`
+  - Final written witness H5 sample:
+    - `t = 14.220 ps`
+    - c1 `y = +206.3 um`
+    - c2 `y = -206.3 um`
+    - both remain within the `250 um` source/witness-sampling aperture
+  - `near_ip_field_cutoff.csv` shows the first post-retirement H5 field samples
+    at `14.148 ps` have `E_abs = 0`, consistent with ballistic continuation
+    after c0 retirement.
+- Generated plots:
+  - `witness_timing_overview.png`
+  - `c0_injection_mesh_xy.png`
+  - `witness_transverse_motion.png`
+  - `near_ip_field_cutoff.png`
+- Current caveat:
+  - With `NXY = 16` and a `250 um` radius, the transverse cell size is
+    `31.25 um`, much larger than `sigma_xy = 1.944 um`.
+  - This run verifies timing, retirement, passive witness behavior, and mesh
+    containment.  It is not yet a quantitative field-accuracy validation.
+
+Current implementation:
+
+- The deck now models a 1 mm upstream drift followed by a 6 mm BeamBeam element:
+  - `drift_length = 1.0e-3 m`
+  - `bb_length = 6.0e-3 m`
+  - `bb_ip_s = 4.0e-3 m`
+  - BeamBeam window spans `1.0 mm` to `7.0 mm`
+- Uses the PPTX/track12 pair-4 timing first:
+  - `witness_ct_m = 0`
+  - `witness_t0 = bb_ip_s / (primary_beta * CLIGHT)`
+  - numeric value from the analyzer: `13.342592708656 ps`
+- Uses no mirrored source:
+  - `COPY_TIME = 0.0`, interpreted by OPALX as `copy_time=NONE`
+  - `WITNESS_CONTAINERS = "1,2"`
+- The smoke deck is intentionally cheap:
+  - `primary_macroparticles = 100`
+  - `primary_charge_scale = 1.0e-5`
+  - `NXY = 16`, `NZ = 32`
+  - `APERTURE = "CIRCLE(0.0005)"` gives a 250 um transverse half-width
+  - `RETIRE_TIME = witness_t0 + 0.8 ps` retires c0 at the near-IP cutoff
+- The witness FROMFILEs now use the 313 keV transverse pair-4 setup described
+  above, generated by `make_transverse_witness_fromfiles.py`.
+
+Important fix in the input:
+
+- The first staged attempt used `coarse_steps = 200` with
+  `fine_start_s = 3.95 mm`.  OPALX reached the first `ZSTOP` near `13.2 ps`
+  but continued advancing time to `20 ps` before starting the fine segment.
+  That caused the witnesses to emit while c0 was effectively parked upstream of
+  the IP.
+- The deck now uses:
+  - `coarse_steps = 132`, because
+    `fine_start_s / (primary_beta * CLIGHT * coarse_dt) = 131.76`
+  - `fine_steps = 520`, enough for c0 to cross from `3.95 mm` to `4.10 mm`
+    with `fine_dt = 1 fs`
+
+C++ diagnostic/transition fix used for this run:
+
+- `ParallelTracker::performBeamBeamWindowEntryTransition()` now skips the
+  copied-source charge-conservation pre-solve when
+  `BEAMBEAM::copyTimeReached(...)` is false.
+- Rationale: with `COPY_TIME = 0.0`, OPALX intentionally has no copied source,
+  so requiring copied-source deposited-charge diagnostics aborts the no-copy
+  BeamBeam timing case before witness injection.
+
+Completed smoke run:
+
+```sh
+cmake --build build_openmp -j 8 --target opalx_exe
+mkdir -p sandbox/Drift-Experiment/withness_timing_pair4_staged_fixed
+cp sandbox/Drift-Experiment/spacecharge_drift_withness.in \
+  sandbox/Drift-Experiment/withness_timing_pair4_staged_fixed/
+cp sandbox/Drift-Experiment/track12_pair4_*.fromfile \
+  sandbox/Drift-Experiment/withness_timing_pair4_staged_fixed/
+env OMP_NUM_THREADS=8 \
+  ../../../build_openmp/src/opalx spacecharge_drift_withness.in > run.log 2>&1
+env MPLBACKEND=Agg \
+  MPLCONFIGDIR=/Users/adelmann/git/opalx-beambeam/sandbox/Drift-Experiment/.matplotlib \
+  XDG_CACHE_HOME=/Users/adelmann/git/opalx-beambeam/sandbox/Drift-Experiment/.cache \
+  ~/.venv-h6/bin/python sandbox/Drift-Experiment/analyze_withness_timing.py
+```
+
+Run output:
+
+- `sandbox/Drift-Experiment/withness_timing_pair4_staged_fixed`
+- `timing_mesh_summary.csv`
+- `witness_field_samples.csv`
+- `witness_timing_overview.png`
+- `c0_injection_mesh_xy.png`
+- c0/c1/c2 H5 and stat files
+
+Timing result:
+
+- `BB-DIAG` sequence:
+  - inactive, witnesses empty
+  - active, witnesses empty
+  - active, c1/c2 each have one particle
+  - active with source inactive after c0 leaves the source-active interval
+- First synchronized c0/witness H5 dump:
+  - global step `279`
+  - `t = 13.348 ps`
+  - `t - witness_t0 = 5.407 fs`
+  - c0 `s = 4.001621 mm`
+  - c0 is only `+1.621 um` past the IP
+- This establishes the timing convention for pair 4:
+  `witness_t0 = (bb_ip_s - witness_ct_m) / (primary_beta * CLIGHT)`.
+
+Mesh result:
+
+- Longitudinal containment is fine for this setup:
+  - at first witness dump, c0 center is `4.001621 mm`
+  - c0 longitudinal half-extent from H5 is about `1.633 mm`
+  - occupied c0 span is approximately `2.37 mm` to `5.63 mm`
+  - BeamBeam window is `1.0 mm` to `7.0 mm`
+- Transverse containment is safe but field sampling is very coarse:
+  - aperture half-width = `100 um`
+  - `NXY = 16` gives transverse cell size `12.5 um`
+  - c0 rms sizes at injection are `2.125 um` and `1.841 um`
+  - c0 max transverse particle extents are about `4.87 um` and `5.55 um`
+  - the bunch is well inside the aperture but mostly inside one central cell
+- Prior notes in `sandbox/track12particles/opalx/beambeam_window_scan/README.md`
+  show aperture/cell-size tuning alone can produce large sign and magnitude
+  pathologies.  The next quantitative field comparison should therefore scan
+  mesh resolution deliberately rather than simply shrinking the aperture.
+
+Changed/added files for this task:
+
+- `sandbox/Drift-Experiment/spacecharge_drift_withness.in`
+- `sandbox/Drift-Experiment/analyze_withness_timing.py`
+- `sandbox/Drift-Experiment/make_transverse_witness_fromfiles.py`
+- `sandbox/Drift-Experiment/track12_pair4_electron.fromfile`
+- `sandbox/Drift-Experiment/track12_pair4_positron.fromfile`
+- `src/Algorithms/ParallelTracker.cpp`
+- `src/Algorithms/ParallelTracker.h`
+- `HANDOFF.md`
+- `sandbox/Drift-Experiment/TASK_STATE.md`
+
+Next steps:
+
+- Use the fixed staged deck as the baseline for the next BeamBeam field checks.
+- Add a small mesh scan around the witness location.  The safe starting point is
+  to keep the 6 mm longitudinal BeamBeam window, but increase transverse
+  resolution and/or reduce aperture with care.  The current low-resolution
+  `100 um / 16` case has `12.5 um` cells, much larger than `sigma_x`.
+- Once the timing/mesh mechanics are stable, increase particles/charge toward
+  the track12 settings and compare the c0 field sampled at c1/c2 against the
+  smooth analytic/manufactured reference.
+
+## Recent Task: Drift Space-Charge 30 cm Redo
+
+Goal:
+
+- Re-establish the `sandbox/Drift-Experiment/spacecharge_drift_30cm.in`
+  validation after reverting the last `origin/master` merge.
+- Use only H5 particle/field output for the OPALX diagnostic path.
+- Redo the full grid and particles-per-cell matrix:
+  - `N_GRID = 16, 32, 64`
+  - `NPPG = 5, 8, 14`
+  - `N_PARTICLES = N_GRID * N_GRID * N_GRID * NPPG`
+- Produce the same radial field comparison plots used in the later H5 drift
+  checks.
+
+Current repository state:
+
+- Branch: `271-implement-interation-point-element`
+- The branch is ahead of `origin/271-implement-interation-point-element`.
+- The previous `origin/master` merge was reverted in commit `1177cfa4a`
+  (`Revert origin/master merge`).
+- The local IPPL checkout in `build_openmp/_deps/ippl-src` was reset to
+  `27d11d0b58bc5db6a582f8132c3d6c88285b26bd` so this branch builds against the
+  expected `solver_recv` API.
+- A saved local patch from before aborting/reverting the merge remains at
+  `/tmp/opalx-beambeam-local-before-merge-abort.patch`.
+
+Changed files for the current task:
+
+- `src/Algorithms/ParallelTracker.cpp`
+- `src/Algorithms/ParallelTracker.h`
+- `sandbox/Drift-Experiment/spacecharge_drift_30cm.in`
+- `sandbox/Drift-Experiment/run_spacecharge_convergence.py`
+- `sandbox/Drift-Experiment/TASK_STATE.md`
+- `HANDOFF.md`
+
+Implementation decisions:
+
+- Kept the reverted branch's 30 cm drift field-solver settings, including
+  `PARFFTZ = FALSE`.
+- Enabled `OPTION, EBDUMP = TRUE` in
+  `sandbox/Drift-Experiment/spacecharge_drift_30cm.in`.
+- Restored an opt-in H5 diagnostic in `ParallelTracker`:
+  - Environment variable: `OPALX_SC_FIELD_H5_STEPS`
+  - Current runner uses `OPALX_SC_FIELD_H5_STEPS=0`.
+  - The diagnostic writes the primary bunch after self-field computation and
+    transformation back to the reference frame, before `bunchUpdate()`.
+- `run_spacecharge_convergence.py` now:
+  - reads OPALX H5 particle dumps directly,
+  - computes the analytic isotropic Gaussian field at the same dumped particle
+    coordinates,
+  - writes metrics, sampled particle comparisons, per-case radial profiles, and
+    PNG plots,
+  - deletes large raw H5 dumps after each successful case unless `--keep-raw`
+    is passed.
+- The comparator helper `sandbox/compare-e-fields/compare_gaussian_pic_fields.py`
+  was not present after the merge revert and is not tracked by Git. The
+  convergence runner now contains a local fallback implementation of the
+  Gaussian field and metric routines, preserving the previous metrics schema.
+
+Commands run for the current task:
+
+```sh
+~/.venv-h6/bin/python -m py_compile sandbox/Drift-Experiment/run_spacecharge_convergence.py
+cmake --build build_openmp -j 8 --target opalx_exe
+~/.venv-h6/bin/python sandbox/Drift-Experiment/run_spacecharge_convergence.py \
+  --output-dir sandbox/Drift-Experiment/redone_full_grid_seed42 \
+  --n-grid-values 16,32,64 \
+  --nppg-values 5,8,14 \
+  --seeds 42 \
+  --threads 8 \
+  --force \
+  --sample-particles 50000
+```
+
+Run status:
+
+- Completed the 3x3 grid/NPPG matrix for seed 42.
+- This turn did not rerun the earlier three-seed/27-run ensemble; disk space was
+  about 1.6 GiB free, and the user requested the grid and particle-number grid.
+- Raw H5 dumps were deleted after extraction. No `.h5` files remain in the new
+  output directory.
+- Output directory:
+  `sandbox/Drift-Experiment/redone_full_grid_seed42`
+
+Relative vector L2 vs analytic for the redone seed-42 matrix:
+
+| N_GRID | NPPG | N_PARTICLES | relative vector L2 |
+| ---: | ---: | ---: | ---: |
+| 16 | 5 | 20480 | 0.107615 |
+| 16 | 8 | 32768 | 0.102523 |
+| 16 | 14 | 57344 | 0.106806 |
+| 32 | 5 | 163840 | 0.026637 |
+| 32 | 8 | 262144 | 0.022694 |
+| 32 | 14 | 458752 | 0.023855 |
+| 64 | 5 | 1310720 | 0.006748 |
+| 64 | 8 | 2097152 | 0.005086 |
+| 64 | 14 | 3670016 | 0.004180 |
+
+Generated plots:
+
+- `sandbox/Drift-Experiment/redone_full_grid_seed42/relative_l2_vs_grid.png`
+- `sandbox/Drift-Experiment/redone_full_grid_seed42/relative_l2_vs_nppg.png`
+- `sandbox/Drift-Experiment/redone_full_grid_seed42/relative_l2_vs_particles.png`
+- `sandbox/Drift-Experiment/redone_full_grid_seed42/radial_field_vs_analytic_all_cases.png`
+- `sandbox/Drift-Experiment/redone_full_grid_seed42/signed_radial_field_vs_analytic_all_cases.png`
+- `sandbox/Drift-Experiment/redone_full_grid_seed42/radial_field_relative_error_all_cases.png`
+- Each per-case directory also contains:
+  - `metrics.csv`
+  - `radial_profile.csv`
+  - `particle_field_comparison_sample.csv`
+  - `radial_field_vs_analytic.png`
+  - `signed_radial_field_vs_analytic.png`
+  - `radial_field_relative_error.png`
+
+Remaining risks / next steps:
+
+- The redo was single-rank/OpenMP only. Repeat at MPI multi-rank if this
+  diagnostic becomes an acceptance test.
+- If the user wants the earlier statistical ensemble again, rerun with
+  `--seeds 42,43,44`, but watch disk space closely.
+- The H5 diagnostic hook is opt-in and intended for validation; it should not
+  affect normal runs unless `OPALX_SC_FIELD_H5_STEPS` is set.
 
 ## Active Task: Refresh BeamBeam Diagnostic Timeline Simulation
 
@@ -1497,3 +2335,276 @@ kicks.
   - `/tmp/gamma_gamma_large_cylinder_charge_compare_copy50_preview.png`
   - `/tmp/gamma_gamma_large_cylinder_staged_dt_crossings_copy50_preview.png`
   Full counts are restored: e- `N=701`, e+ `N=692`.
+
+## 2026-07-04 Release witness T0=4 ps / 1600 fs active window
+
+Goal:
+
+- Rebuild OPALX in Release mode.
+- Start the pair-4 witness beams at absolute `T0 = 4 ps`.
+- Keep the c0 BeamBeam source active for `1600 fs` after witness `T0`.
+
+Build:
+
+- Reconfigured with both build-type knobs because
+  `cmake/OPALXOptions.cmake` derives `CMAKE_BUILD_TYPE` from `BUILD_TYPE`:
+  `cmake -S . -B build_openmp -DBUILD_TYPE=Release -DCMAKE_BUILD_TYPE=Release`
+- Verified cache:
+  - `BUILD_TYPE:STRING=Release`
+  - `CMAKE_BUILD_TYPE:STRING=Release`
+  - `CMAKE_CXX_FLAGS_RELEASE:STRING=-O3 -DNDEBUG`
+- Rebuilt target:
+  `cmake --build build_openmp -j 8 --target opalx_exe`
+
+Input/deck changes:
+
+- Updated `sandbox/Drift-Experiment/spacecharge_drift_withness.in`:
+  - `witness_t0 = 4.0e-12`
+  - `near_ip_active_time = 1.6e-12`
+  - `primary_retire_time = witness_t0 + near_ip_active_time`
+  - `APERTURE = "CIRCLE(0.0010)"`, i.e. 500 um radius
+  - `coarse_steps = 40`
+  - `fine_steps = 1780`
+- Added shifted primary source timing:
+  - `primary_source_r0z = bb_ip_s - primary_beta * CLIGHT * witness_t0 - witness_ct_m`
+  - `SOURCE_PRIMARY_ELECTRONS` now uses `R0Z = primary_source_r0z`
+  - `fine_start_s`/`fine_stop_s` are absolute lattice positions computed from
+    the shifted c0 source.
+- Reason: the first T0=4 ps attempt left c0 launched at `R0Z=0`; c0 had not
+  entered the BeamBeam source-active window when witnesses were injected, so
+  `BB-DIAG` never reached the intended active-with-witness state.
+
+Post-processing changes:
+
+- Updated `sandbox/Drift-Experiment/analyze_withness_timing.py` to infer the
+  shifted `primary_source_r0z` and plot/report absolute c0 lattice position as
+  `absolute_spos_m`.
+- The H5 `SPOS` remains the traveled path length; for shifted-source decks the
+  absolute c0 position is `SPOS + primary_source_r0z`.
+
+Corrected run:
+
+- Directory:
+  `sandbox/Drift-Experiment/withness_t0_4ps_active_1600fs_release_shifted_c0`
+- Command:
+  `env OMP_NUM_THREADS=8 ../../../build_openmp/src/opalx spacecharge_drift_withness.in > run.log 2>&1`
+- Wall-clock by file timestamps: about 1 minute.
+- BeamBeam diagnostics:
+  - active before witnesses are populated
+  - active with `c1:active:n=1,c2:active:n=1`
+  - completed with source retirement pending
+  - completed with c0 source retired
+
+Timing summary:
+
+- `witness_t0 = 4.0 ps`
+- first witness H5 dump: `4.020 ps`, `20.0 fs` after T0
+- configured c0 retire time: `5.600 ps`, `1600 fs` after T0
+- inferred `primary_source_r0z = 2.800833 mm`
+- nearest c0/IP H5 dump: `t = 4.000 ps`, `s = 4.000 mm`
+- at first witness H5 dump, c0 absolute `s = 4.005996 mm`, i.e.
+  `+5.996 um` downstream of the IP
+- c1/c2 final H5 dump: `5.780 ps`
+- sampled witness fields are zero from `5.620 ps` onward, after c0 retirement.
+
+Plots/results:
+
+- `witness_timing_overview.png`
+- `c0_injection_mesh_xy.png`
+- `witness_transverse_motion.png`
+- `near_ip_field_cutoff.png`
+- CSV summaries:
+  - `timing_mesh_summary.csv`
+  - `witness_kinematics_summary.csv`
+  - `witness_field_samples.csv`
+  - `near_ip_field_cutoff.csv`
+
+Remaining caveats:
+
+- This is still a low-resolution timing smoke case:
+  `NXY=16`, `NZ=32`, `primary_macroparticles=100`,
+  `primary_charge_scale=1e-5`.
+- The near-IP field samples are noisy and should not be interpreted as a
+  quantitative physics validation until the source charge/macroparticle count
+  and mesh scan are restored.
+
+## 2026-07-05 one-c0 track12 400k long active-window run
+
+Goal:
+
+- Run a 400k c0-source case for a physically sensible active time, keeping c0
+  alive long enough for the track12 witnesses to sample the late source field.
+- Use one physical c0 source with `COPY_TIME = 0`, raw
+  `track12_electrons.fromfile` / `track12_positrons.fromfile`, and H5-only
+  post-processing.
+
+Input/deck changes:
+
+- Updated `sandbox/Drift-Experiment/spacecharge_drift_withness.in` so BeamBeam
+  geometry no longer forces premature completion:
+  - `bb_start_s = 1.0e-3`
+  - `bb_ip_s = 6.0e-3`
+  - `bb_length = 1.9e-2`, i.e. BeamBeam range is about `1..20 mm`
+  - `IP_S` remains fixed at `6 mm`; it is no longer tied to the element
+    midpoint.
+- Set `OPTION, BOUNDPDESTROY = 1.0e9` for this diagnostic.  With the default
+  value `10`, OPALX started deleting c0 source macroparticles around `40 ps`,
+  which changes the source charge before the requested `RETIRE_TIME`.
+
+Aborted diagnostics:
+
+- `one_c0_track12_edge_t0_ip6mm_400k_50ps_dt5fs`
+  - Had `near_ip_active_time = 50 ps`, but BeamBeam range was still `1..11 mm`.
+  - BeamBeam completed before the requested retire time, so the run was stopped.
+- `one_c0_track12_edge_t0_ip6mm_400k_50ps_dt5fs_extended_bb`
+  - Fixed the range to `1..20 mm`.
+  - Still had `BOUNDPDESTROY = 10`; OPALX started deleting c0 particles around
+    `40 ps`, so the run was stopped.
+
+Completed clean run:
+
+- Directory:
+  `sandbox/Drift-Experiment/one_c0_track12_edge_t0_ip6mm_400k_50ps_dt5fs_extended_bb_nobound`
+- Command:
+  `OMP_NUM_THREADS=8 OMP_PROC_BIND=spread OMP_PLACES=threads /usr/bin/time -p ../../../build_openmp/src/opalx --info 2 spacecharge_drift_withness.in > spacecharge_drift_withness.out 2> spacecharge_drift_withness.err`
+- Key settings:
+  - `primary_macroparticles = 400000`
+  - `near_ip_active_time = 5.0e-11`
+  - `post_retire_observation_time = 1.0e-12`
+  - `fine_dt = 5.0e-15`
+  - `fine_steps = 10210`
+  - `C0PSDUMPFREQ = 600`
+- Runtime from `/usr/bin/time`: `real 1589.40 s` (`26.49 min`),
+  `user 10382.11 s`, `sys 159.80 s`.
+- Output sizes:
+  - `spacecharge_drift_withness_c0.h5`: `733 MB`
+  - `spacecharge_drift_withness_c1.h5`: `5.3 MB`
+  - `spacecharge_drift_withness_c2.h5`: `5.3 MB`
+  - `spacecharge_drift_withness.out`: `2.7 MB`
+- `spacecharge_drift_withness.err` contains only the `/usr/bin/time` output.
+
+Run diagnostics:
+
+- BeamBeam range printed at startup:
+  `s_range=(0.001, 0.020) m`, `interaction_point_s=0.006 m`.
+- No `Marked` / `Deleted` boundary-clipping messages appeared before retirement.
+- At `t = 54.000 ps`, c0 was still present at `s = 16.189 mm`.
+- At `t = 54.005 ps`, BeamBeam completed with
+  `source_retirement_pending=TRUE`, then retired all 400000 c0 source
+  particles.  c1/c2 remained active through the post-retire observation.
+- Final H5 dump time: `55.05 ps`.
+
+Plots/results:
+
+- `witness_timing_overview.png`
+- `c0_injection_mesh_xy.png`
+- `witness_transverse_motion.png`
+- `near_ip_field_cutoff.png`
+- `track12_figure1_opalx_h5.png`
+- `track12_figure1_opalx_h5_t.png`
+- CSV summaries:
+  - `timing_mesh_summary.csv`
+  - `witness_kinematics_summary.csv`
+  - `witness_field_samples.csv`
+  - `near_ip_field_cutoff.csv`
+
+Remaining caveats:
+
+- The run now verifies timing, source retention, and time-based retirement, but
+  it does not reproduce the CAIN track12 Figure 1 qualitatively.
+- The sampled near-IP field stays large until c0 retirement instead of following
+  the simple line-Gaussian falloff estimate.
+- The witness trajectories reach the compact `500 um` source-sampling aperture
+  (`max_abs_y_over_aperture` is about `0.996` for c1 and `1.0002` for c2), so
+  aperture/mesh extent is now an active modeling parameter, not just a
+  numerical detail.
+
+## 2026-07-05 analytic Gaussian witness model sandbox
+
+Goal:
+
+- Switch back to the analytic boosted-Gaussian witness model, but keep the same
+  timing and witness setup as the completed OPALX run above.
+- Use the same six raw `track12_electrons.fromfile` and
+  `track12_positrons.fromfile` witnesses, same c0 charge/size, same witness
+  bunch charge magnitude, same IP, same c0 edge-at-first-witness timing, and
+  same c0 retirement time.
+
+New sandbox:
+
+- Directory: `sandbox/analytic-model`
+- Copied provenance/input files:
+  - `spacecharge_drift_withness.opalx-reference.in`
+  - `track12_electrons.fromfile`
+  - `track12_positrons.fromfile`
+- Added reproducible driver:
+  - `sandbox/analytic-model/run_analytic_witness.py`
+  - Uses the triaxial rigid boosted Gaussian evaluator and Boris pusher from
+    `sandbox/track12particles/track12particles.py`.
+  - Advances the witnesses with `dt = 5 fs`, samples exactly at the OPALX H5
+    witness dump times, and compares against the clean OPALX c1/c2 H5 files.
+- Added documentation:
+  - `sandbox/analytic-model/README.md`
+
+Default analytic setup:
+
+- c0 is a physical electron bunch with charge `-1.25e10 e =
+  -2.0027207925e-09 C`.
+- c0 kinetic energy is `245 MeV`, `beta = 0.999997833949`.
+- c0 Gaussian sigmas:
+  - `sigma_x = sigma_y = 1.944325075701 um`
+  - `sigma_z = 0.6 mm`
+- Witnesses:
+  - 6 electrons and 6 positrons from the OPALX FROMFILEs.
+  - `pz = sqrt(3)`, `px = py = 0`, matching the raw track12/PPTX convention.
+  - bunch charge magnitude per witness species is `6 e =
+    9.613059804e-19 C`.
+- Timing/geometry:
+  - witness `T0 = 4 ps`
+  - BeamBeam/IP plane `S_IP = 6 mm`
+  - first witness is at `S = 5.1 mm`
+  - c0 centroid at `T0` is `3.3 mm`
+  - c0 `+3 sigma_z` edge at `T0` is `5.1 mm`
+  - c0 field is active until `54 ps`, then zeroed to mimic c0 retirement.
+
+Generated default outputs:
+
+- `setup_summary.json`
+- `witness_initial_conditions.csv`
+- `analytic_witness_trajectory.csv`
+- `opalx_witness_trajectory_sampled.csv`
+- `analytic_vs_opalx_samples.csv`
+- `analytic_vs_opalx_summary.csv`
+- `analytic_vs_opalx_side_by_side_x_vs_s.png`
+- `analytic_vs_opalx_side_by_side_x_vs_t.png`
+- `analytic_vs_opalx_overlay_x_vs_s.png`
+- `analytic_vs_opalx_overlay_x_vs_t.png`
+- `analytic_field_timing.png`
+- `analytic_minus_opalx_differences.png`
+
+First diagnostic observations:
+
+- The default physical negative-c0 analytic field has the expected sign at the
+  first saved witness sample.  For electron pair 1 at `t = 4.1 ps`:
+  - analytic `Ex = -5.4949567e7 V/m`
+  - OPALX H5 `Ex = +8.8042964e7 V/m`
+- OPALX c1 then kicks in the direction implied by the positive H5 field, not by
+  the physical negative-electron source field.
+- A sign-flipped diagnostic was also run in
+  `sandbox/analytic-model/effective-positive-c0` using
+  `--source-charge-scale -1`.
+  - This changes the first-sample analytic `Ex` sign, but does not remove the
+    order-one trajectory/field differences.
+  - Therefore the current OPALX-vs-analytic discrepancy is not explained by a
+    single global source-charge sign flip alone.
+- Default comparison summary highlights:
+  - `relative_l2_difference(x_um) = 1.4705`
+  - `relative_l2_difference(s_minus_ip_mm) = 1.6526`
+  - `relative_l2_difference(E_abs_V_per_m) = 0.9934`
+
+Run commands:
+
+- Physical c0:
+  `/Users/adelmann/.venv-h6/bin/python sandbox/analytic-model/run_analytic_witness.py`
+- Sign diagnostic:
+  `/Users/adelmann/.venv-h6/bin/python sandbox/analytic-model/run_analytic_witness.py --output-dir sandbox/analytic-model/effective-positive-c0 --source-charge-scale -1`

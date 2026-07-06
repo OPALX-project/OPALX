@@ -123,6 +123,11 @@ OpalBeamBeam::OpalBeamBeam()
             "Delete container[0] source particles once simulation time reaches this value [s]. "
             "Use 0 to keep the source particles active.",
             0.0);
+    itsAttr[IP_S] = Attributes::makeReal(
+            "IP_S",
+            "Optional beam-beam interaction-point path length [m]. "
+            "Use 0 to derive the interaction point from the placed element center.",
+            0.0);
 
     registerOwnership();
 
@@ -161,6 +166,12 @@ void OpalBeamBeam::update() {
                 "OpalBeamBeam::update", "RETIRE_TIME must be non-negative and is specified in s.");
     }
     beamBeam->setAttribute("RETIRE_TIME", retireTime);
+    const double interactionPointS = Attributes::getReal(itsAttr[IP_S]);
+    if (interactionPointS < 0.0) {
+        throw OpalException(
+                "OpalBeamBeam::update", "IP_S must be non-negative and is specified in m.");
+    }
+    beamBeam->setAttribute("IP_S", interactionPointS);
     beamBeam->setAttribute("APERTURE_SET", itsAttr[APERT] ? 1.0 : 0.0);
 
     // Transmit "unknown" attributes.

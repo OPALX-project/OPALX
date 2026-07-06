@@ -48,6 +48,21 @@ std::string DataSink::diagnosticStemForContainer(
     return inputBasename + "_c" + std::to_string(index);
 }
 
+namespace {
+    bool shouldDumpH5Container(PartBunch_t& beam, size_t containerIndex) {
+        if (containerIndex != 0 || Options::c0PsDumpFreq < 0) {
+            return true;
+        }
+
+        if (Options::c0PsDumpFreq == 0) {
+            return false;
+        }
+
+        const long long globalStep = beam.getGlobalTrackStep();
+        return ((globalStep % Options::c0PsDumpFreq) + 1 == Options::c0PsDumpFreq);
+    }
+}  // namespace
+
 DataSink::DataSink() { this->init(false, {}, 1); }
 
 DataSink::DataSink(
@@ -99,6 +114,9 @@ void DataSink::dumpH5(
         }
         auto pc = beam.getParticleContainer(i);
         if (!pc || pc->getTotalNum() == 0) {
+            continue;
+        }
+        if (!shouldDumpH5Container(beam, i)) {
             continue;
         }
         Vector_t<double, 3> fd[2] = {fdextPerContainer[i][0], fdextPerContainer[i][1]};

@@ -29,6 +29,7 @@ public:
         VISUALIZE,          // Enable ASCII beam-beam-window visualization
         WITNESS_CONTAINERS,  // Passive containers that gather source BeamBeam fields
         RETIRE_TIME,         // Delete source particles at or after this simulation time [s]
+        IP_S,                // Optional interaction-point path length override [m]
         SIZE
     };
 

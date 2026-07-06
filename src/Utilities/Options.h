@@ -53,6 +53,9 @@ namespace Options {
     /// The frequency to dump the phase space, i.e.dump data when step%psDumpFreq==0
     extern int psDumpFreq;
 
+    /// Optional phase-space dump frequency for particle container 0; -1 follows psDumpFreq.
+    extern int c0PsDumpFreq;
+
     /// The frequency to dump statistical values, e.e. dump data when step%statDumpFreq==0
     extern int statDumpFreq;
 

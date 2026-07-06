@@ -38,6 +38,8 @@ namespace Options {
 
     int psDumpFreq = 10;
 
+    int c0PsDumpFreq = -1;
+
     int statDumpFreq = 10;
 
     int stepInfoFreq = 1;

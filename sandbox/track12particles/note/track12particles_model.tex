@@ -1,0 +1,608 @@
+\documentclass[11pt]{article}
+
+\usepackage[a4paper,margin=25mm]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{siunitx}
+\usepackage{xurl}
+
+\title{Rigid Anisotropic Gaussian Model for the 12 CAIN Test Particles}
+\author{OPALX Beam--Beam Sandbox}
+\date{\today}
+
+\newcommand{\vect}[1]{\boldsymbol{#1}}
+\newcommand{\E}{\vect{E}}
+\newcommand{\B}{\vect{B}}
+\newcommand{\Pmom}{\vect{P}}
+\newcommand{\betav}{\boldsymbol{\beta}}
+
+\begin{document}
+\maketitle
+
+\section{Purpose}
+
+This note documents the manufactured tracking model implemented in the
+\texttt{track12particles.py} sandbox script.  The goal is to compare the
+uploaded CAIN test-particle trajectories against a reproducible continuum model
+for the beam--beam force.  The model is deliberately simple: the source bunch
+is a rigid anisotropic Gaussian moving at constant velocity, with an optional
+finite-macroparticle centroid fluctuation.  It is not a PIC model and does not
+include bunch disruption, higher-order macro-particle noise, or
+self-consistent source evolution.
+
+The CAIN reference file contains twelve right-going test particles:
+six electron--positron pairs injected at
+\[
+  ct/\sigma_z = -1.5,\,-1.0,\,-0.5,\,0,\,0.5,\,1.0,
+  \qquad \sigma_z = \SI{0.6}{mm}.
+\]
+The plotted comparison uses \(s\) in millimetres and \(x\) in micrometres.
+Spin columns are parsed but are not part of the present comparison.
+
+\section{Source Selection Convention}
+
+The script supports three source selections:
+\begin{itemize}
+  \item \texttt{oncoming}: only the electron bunch moving opposite to the
+        right-going test particles is included;
+  \item \texttt{copropagating}: only the electron bunch moving in the same
+        direction as the test particles is included;
+  \item \texttt{both}: two equal electron bunches colliding head-on are
+        included.
+\end{itemize}
+The current default for the 12-particle comparison is \texttt{oncoming}.  This
+does not mean that both bunches collide head-on.  The head-on two-bunch model is
+\texttt{both}.  The \texttt{oncoming} choice is useful because the dominant
+force on a right-going ultra-relativistic witness comes from the opposite-going
+source; for a co-propagating ultra-relativistic source, the electric and
+magnetic parts nearly cancel in the Lorentz force.
+
+\section{Rigid Anisotropic Gaussian Source}
+
+The source is specified by lab-frame beam sizes
+\[
+  \sigma_x = \sigma_y = \SI{1.944325075701}{\micro m},
+  \qquad
+  \sigma_z = \SI{0.6}{mm},
+\]
+and by a source kinetic energy \(K_s=\SI{245}{MeV}\).  The source speed is
+\[
+  \gamma_s = 1 + \frac{K_s}{m_e c^2},
+  \qquad
+  \beta_s = \sqrt{1-\gamma_s^{-2}}.
+\]
+For a source moving along \(\pm z\), the bunch centre is
+\[
+  \vect r_c(t) = \vect r_c(t_0) + \betav_s c (t-t_0),
+  \qquad
+  \betav_s = (0,0,\pm\beta_s).
+\]
+The transverse sizes are unchanged by the boost.  The rest-frame longitudinal
+size is dilated:
+\[
+  \sigma'_x=\sigma_x,\qquad
+  \sigma'_y=\sigma_y,\qquad
+  \sigma'_z=\gamma_s\sigma_z.
+\]
+
+In the source rest frame the charge density is
+\[
+  \rho'(\vect r')
+  =
+  \frac{Q}{(2\pi)^{3/2}\sigma'_x\sigma'_y\sigma'_z}
+  \exp\left[
+    -\frac{1}{2}\left(
+      \frac{x'^2}{\sigma_x'^2}
+      +\frac{y'^2}{\sigma_y'^2}
+      +\frac{z'^2}{\sigma_z'^2}
+    \right)
+  \right],
+\]
+with \(Q=-N_e e\), \(N_e=1.25\times 10^{10}\).
+
+\section{Rest-Frame Field Integral}
+
+At a lab event \((t,\vect r)\), the displacement from the moving source centre
+is split into transverse and longitudinal components.  For the present
+straight-line geometry this is simply
+\[
+  x'=x-x_c(t),\qquad
+  y'=y-y_c(t),\qquad
+  z'=\gamma_s\,[z-z_c(t)].
+\]
+The rest-frame electric field of the triaxial Gaussian is evaluated with the
+one-dimensional ellipsoidal integral
+\[
+  E_i'(\vect r')
+  =
+  \frac{Q\,x_i'}{4\pi\epsilon_0\sqrt{2\pi}}
+  \int_0^\infty
+  \frac{
+    \exp\left[
+      -\frac{1}{2}\sum_j
+      \frac{x_j'^2}{\sigma_j'^2+u}
+    \right]
+  }{
+    (\sigma_i'^2+u)
+    \sqrt{(\sigma_x'^2+u)(\sigma_y'^2+u)(\sigma_z'^2+u)}
+  }\,du .
+\]
+The script evaluates this integral by trapezoidal quadrature in
+\(\log u\).  This is important for the present aspect ratio:
+\(\sigma_z'/\sigma_x'\) is large, so a linear quadrature can miss the transverse
+variance scale and underestimate the field by orders of magnitude.
+
+\section{Boost to Lab Frame}
+
+The rest-frame magnetic field is zero.  For a boost along \(z\), the lab fields
+are
+\[
+  E_x = \gamma_s E_x',\qquad
+  E_y = \gamma_s E_y',\qquad
+  E_z = E_z',
+\]
+and
+\[
+  \B = \frac{1}{c^2}\,\vect v_s \times \E .
+\]
+The magnetic field is retained in the particle pusher.  In the present
+comparison typical peak fields are in the \(\mathrm{GV/m}\) range and
+\(\B\) is of order \(10\)--\(20\,\mathrm{T}\) near overlap.
+
+\section{Witness Push}
+
+The witness momentum is represented in OPALX-normalized units
+\[
+  \Pmom = \gamma_w \betav_w.
+\]
+At each substep the script applies the same Boris kick convention used in the
+existing manufactured witness prototype:
+\begin{align}
+  \Pmom^- &=
+    \Pmom^n
+    + \frac{1}{2}\Delta t\,
+      \frac{q c}{m_e c^2}\E^n, \\
+  \vect t &=
+    \frac{1}{2}\Delta t\,
+    \frac{q c^2}{\gamma^- m_e c^2}\B^n,
+  \qquad
+  \vect s =
+    \frac{2\vect t}{1+\vect t\cdot\vect t}, \\
+  \Pmom' &= \Pmom^- + \Pmom^- \times \vect t, \\
+  \Pmom^+ &= \Pmom^- + \Pmom' \times \vect s, \\
+  \Pmom^{n+1} &=
+    \Pmom^+
+    + \frac{1}{2}\Delta t\,
+      \frac{q c}{m_e c^2}\E^n .
+\end{align}
+The position is advanced with a trapezoidal drift using the velocities before
+and after the kick:
+\[
+  \vect r^{n+1}
+  =
+  \vect r^n
+  +
+  \frac{1}{2}
+  \left[
+    \vect v(\Pmom^n) + \vect v(\Pmom^{n+1})
+  \right]\Delta t .
+\]
+
+\section{Timestep Handling}
+
+The CAIN file provides output samples on a grid in \(ct\).  The manufactured
+tracker uses the same output grid for comparison, but internally substeps each
+output interval.  The default maximum substep is
+\[
+  \Delta t_{\max} = \SI{1}{fs}.
+\]
+This is intentionally small compared with the overlap transient, and it avoids
+confusing output cadence with integration cadence.  The maximum substep can be
+changed with the \texttt{max-substep-s} option.
+
+\section{Finite-Macroparticle Centroid Model}
+
+CAIN represents each bunch by a finite random macroparticle sample.  The
+manufactured model includes a simple leading-order surrogate for this effect:
+the rigid Gaussian source centroid is displaced by a reproducible random offset
+with rms
+\[
+  \sigma_{\bar x_i} = \frac{\sigma_i}{\sqrt{N_{\mathrm{MC}}}},
+\]
+where \(N_{\mathrm{MC}}\) is the number of source macroparticles.  The default
+used here is
+\[
+  N_{\mathrm{MC}} = 400000.
+\]
+For the transverse beam size this gives an rms centroid fluctuation of about
+\[
+  \frac{\SI{1.944}{\micro m}}{\sqrt{400000}}
+  \simeq \SI{3.1}{nm}.
+\]
+The random offset is generated from a fixed seed, so the manufactured trajectory
+is reproducible.  This breaks the exact \(y=0\) symmetry and produces a
+nonzero vertical field, but it is only a centroid-noise model.  It does not
+represent full PIC shot noise, local density fluctuations, or self-consistent
+beam disruption.
+
+\section{Current Comparison and Interpretation}
+
+The default command is
+\begin{verbatim}
+python sandbox/track12particles/track12particles.py \
+  --input /Users/adelmann/Desktop/TestParticleOrbit.dat
+\end{verbatim}
+and writes the CAIN/reference plot, the manufactured-only plot, and the
+side-by-side comparison under \texttt{sandbox/track12particles/outputs}.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{../outputs/track12_cain_vs_manufactured.png}
+  \caption{CAIN reference trajectories compared with the rigid anisotropic
+  Gaussian manufactured model for \(x(s)\), using the default
+  \texttt{oncoming} source selection.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{../outputs/track12_cain_vs_manufactured_y.png}
+  \caption{CAIN reference trajectories compared with the rigid anisotropic
+  Gaussian manufactured model for \(y(s)\), using the default
+  \texttt{oncoming} source selection and the \(1/\sqrt{N_{\mathrm{MC}}}\)
+  centroid fluctuation.  The induced manufactured \(y\) motion is much smaller
+  than the largest CAIN out-of-plane excursions for the seed used here.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{../outputs/track12_cain_vs_manufactured_z.png}
+  \caption{CAIN reference trajectories compared with the rigid anisotropic
+  Gaussian manufactured model for longitudinal motion, plotted as \(z=S\)
+  versus \(ct\), using the default \texttt{oncoming} source selection.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{../outputs/head_on/track12_cain_vs_manufactured_head_on.png}
+  \caption{CAIN reference trajectories compared with the same rigid
+  anisotropic Gaussian model for \(x(s)\), using
+  \texttt{--source-selection both}, i.e. two equal head-on electron bunches.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{../outputs/head_on/track12_cain_vs_manufactured_y.png}
+  \caption{CAIN reference trajectories compared with the rigid anisotropic
+  Gaussian manufactured model for \(y(s)\), using
+  \texttt{--source-selection both} and the same finite-macroparticle centroid
+  fluctuation model.}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{../outputs/head_on/track12_cain_vs_manufactured_z.png}
+  \caption{CAIN reference trajectories compared with the rigid anisotropic
+  Gaussian manufactured model for longitudinal motion, plotted as \(z=S\)
+  versus \(ct\), using \texttt{--source-selection both}.}
+\end{figure}
+
+\section{OPALX--Manufactured Initial Conditions}
+
+\subsection{Timing Convention from the Source Slides}
+
+The PowerPoint file \texttt{TestParticleOrbitSimulation.pptx} defines the test
+particles as artificial insertions during the simulation, not as Breit--Wheeler
+outputs.  The relevant timing statement is:
+\[
+  ct/\sigma_z = -1.5,\,-1.0,\,-0.5,\,0,\,0.5,\,1.0,
+\]
+with the explicit interpretation that \(ct/\sigma_z=-1.5\) is the moment when
+the test particle touches the oncoming bunch edge.  The same slide states that
+the test particles are right-going.  Together with the source-slide statement
+that the bunch longitudinal Gaussian is cut at \(3\sigma_z\), this fixes the
+natural source timing convention.
+
+If the oncoming primary electron bunch centre is at the IP at \(ct=0\), then
+for a rigid oncoming source moving toward decreasing \(s\),
+\[
+  s_c(ct) = -ct .
+\]
+The initial test-particle coordinates satisfy \(s_i=ct_i\).  Therefore, at the
+first timing point \(ct_i=-1.5\sigma_z\), the source centre is at
+\(+1.5\sigma_z\), and the test particle is separated from it by
+\(-3\sigma_z\), exactly the stated bunch edge.  Thus the primary bunch should
+be sampled or evaluated at the test-particle insertion time \(t_i=ct_i/c\), not
+at one common \(t=0\) event for all twelve witnesses.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{rrrrr}
+    \hline
+    Pair & \(ct_i/\sigma_z\) & \(ct_i\) [\si{mm}]
+    & oncoming \(s_c(ct_i)\) [\si{mm}]
+    & \((s_i-s_c)/\sigma_z\) \\
+    \hline
+    1 & -1.500 & -0.9000 &  0.9000 & -3.000 \\
+    2 & -0.999 & -0.5994 &  0.5994 & -1.998 \\
+    3 & -0.501 & -0.3006 &  0.3006 & -1.002 \\
+    4 &  0.000 &  0.0000 &  0.0000 &  0.000 \\
+    5 &  0.501 &  0.3006 & -0.3006 &  1.002 \\
+    6 &  0.999 &  0.5994 & -0.5994 &  1.998 \\
+    \hline
+  \end{tabular}
+  \caption{Timing implied by the PowerPoint convention for the six
+  right-going test-particle insertion events, using
+  \(\sigma_z=\SI{0.6}{mm}\).  The source centre column assumes an oncoming
+  primary electron bunch centred at the IP at \(ct=0\).}
+  \label{tab:pptx-timing-convention}
+\end{table}
+
+This is an important distinction for OPALX comparisons.  A deck that places all
+twelve witnesses at their different longitudinal positions at a single OPALX
+time \(t=0\), with the primary bunch also centred at the IP at \(t=0\), is a
+simultaneous spatial snapshot.  It does not reproduce the PowerPoint insertion
+timing for all witnesses except the \(ct=0\) pair.
+
+\subsection{Slide-Timed OPALX Pair Decks}
+
+OPALX has one simulation clock per run.  To reproduce the slide insertion
+timing without changing the numerical witness coordinates, the comparison now
+uses one electron--positron witness pair per OPALX input deck.  For pair \(i\),
+the witness \texttt{FROMFILE} rows retain the TestParticleOrbit values
+\[
+  (x,y,z,p_x,p_y,p_z)_{\mathrm{OPALX}}
+  =
+  (x_i,y_i,s_i,P_{x,i}/m_ec,P_{y,i}/m_ec,P_{s,i}/m_ec),
+\]
+while only the primary source offset is changed:
+\[
+  R_{0z,\mathrm{source}} = s_{\mathrm{IP}} - ct_i,
+  \qquad
+  R_{0z,\mathrm{witness}} = s_{\mathrm{IP}}.
+\]
+Thus at the first OPALX field evaluation,
+\[
+  s_i - s_c = 2ct_i,
+\]
+which is the timing convention in Table~\ref{tab:pptx-timing-convention}.
+The generated decks are under the OPALX sandbox
+\texttt{timing\_pairs/} directory; the generator is
+\texttt{generate\_timing\_pair\_inputs.py}.  These decks deliberately fix only
+the primary-bunch sampling time.  They do not tune the field normalization,
+species mapping, source species, source direction, or pusher details.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{rrrrrr}
+    \hline
+    Pair & \(ct_i/\sigma_z\)
+    & \(R_{0z,\mathrm{source}}\) [\si{mm}]
+    & \(R_{0z,\mathrm{witness}}\) [\si{mm}]
+    & \(s_i-s_c\) [\si{mm}]
+    & \((s_i-s_c)/\sigma_z\) \\
+    \hline
+    1 & -1.500 & 3.9000 & 3.0000 & -1.8000 & -3.000 \\
+    2 & -0.999 & 3.5994 & 3.0000 & -1.1988 & -1.998 \\
+    3 & -0.501 & 3.3006 & 3.0000 & -0.6012 & -1.002 \\
+    4 &  0.000 & 3.0000 & 3.0000 &  0.0000 &  0.000 \\
+    5 &  0.501 & 2.6994 & 3.0000 &  0.6012 &  1.002 \\
+    6 &  0.999 & 2.4006 & 3.0000 &  1.1988 &  1.998 \\
+    \hline
+  \end{tabular}
+  \caption{Generated OPALX source and witness offsets for the slide-timed
+  pair decks.  The metadata check gives
+  \(\max |(s_i-s_c)/\sigma_z - 2ct_i/\sigma_z|=0\) to the printed precision.}
+  \label{tab:opalx-slide-timed-generated-offsets}
+\end{table}
+
+All six slide-timed decks were run with
+\(\Delta t=\SI{1}{fs}\), \(N_{\mathrm{source}}=400000\), a
+\(32\times 32\times 64\) field mesh, and ten OPALX steps.  The runs used
+\texttt{COPY\_TIME=0}, so the witnesses see only the tracked primary source
+container.  Every run reached the active BeamBeam state with three active
+containers, one source container and one witness in each witness container.
+Each run wrote one final H5 group at
+\[
+  t = \SI{1.0e-14}{s}.
+\]
+The first-kick CSV diagnostic was enabled with
+\texttt{OPALX\_BB\_WITNESS\_KICK\_STEPS=1}.  Each pair CSV contains four data
+rows: steps 0 and 1 for the electron and positron witness containers.
+The exact OPALX run command used for the six-pair serial validation was:
+\begin{footnotesize}
+\begin{verbatim}
+for pair in 1 2 3 4 5 6; do
+  dir="/Users/adelmann/git/opalx-beambeam/sandbox/track12particles/opalx/timing_pairs/pair${pair}"
+  stem="track12_pair${pair}_slide_timed_one_source_1fs_400k_10steps"
+  echo "running pair ${pair}"
+  (cd "$dir" && env OMP_NUM_THREADS=8 \
+    OPALX_BB_WITNESS_KICK_CSV="${stem}_kicks.csv" \
+    OPALX_BB_WITNESS_KICK_STEPS=1 \
+    /Users/adelmann/git/opalx-beambeam/build_openmp/src/opalx "${stem}.in")
+done
+\end{verbatim}
+\end{footnotesize}
+
+\subsection{First-Kick Field Comparison}
+
+Table~\ref{tab:slide-timed-first-kick-fields-oncoming} compares the OPALX
+first-kick field magnitudes with the manufactured anisotropic Gaussian at the
+same witness positions and at the same slide-timed source offsets.  The table
+uses the oncoming manufactured source convention implied by the PowerPoint
+timing sketch.
+
+\begin{table}[htbp]
+  \centering
+  \sisetup{scientific-notation=true, round-mode=figures, round-precision=4}
+  \resizebox{\textwidth}{!}{%
+  \begin{tabular}{rrrrrr}
+    \hline
+    Pair & \(s-s_{\mathrm{IP}}\) [\si{mm}]
+    & \(|E|_{\mathrm{OPALX}}\) [\si{V/m}]
+    & \(|E|_{\mathrm{manuf.}}\) [\si{V/m}]
+    & \(|E|_{\mathrm{OPALX}}/|E|_{\mathrm{manuf.}}\)
+    & \(|B|_{\mathrm{OPALX}}/|B|_{\mathrm{manuf.}}\) \\
+    \hline
+    1 & -0.899887 & 3.8787e7 & 5.3768e7 & 0.721 & 0.721 \\
+    2 & -0.599287 & 8.4742e8 & 6.5785e8 & 1.288 & 1.288 \\
+    3 & -0.300487 & 3.8295e9 & 2.9315e9 & 1.306 & 1.306 \\
+    4 &  0.000113 & 6.2682e9 & 4.8444e9 & 1.294 & 1.294 \\
+    5 &  0.300713 & 3.8666e9 & 2.9333e9 & 1.318 & 1.318 \\
+    6 &  0.599513 & 8.3881e8 & 6.5864e8 & 1.274 & 1.274 \\
+    \hline
+  \end{tabular}
+  }
+  \caption{First-kick field magnitudes for the slide-timed pair decks,
+  compared with the oncoming manufactured source.  Electron and positron rows
+  have the same field magnitudes for each pair, so the table lists the pair
+  mean.  \underline{Key result:} the field magnitude disagreement is now at
+  the \(0.72\)--\(1.32\) level, not orders of magnitude.}
+  \label{tab:slide-timed-first-kick-fields-oncoming}
+\end{table}
+
+Repeating the same first-kick field evaluation with a copropagating
+manufactured source gives nearly the same field-magnitude ratios:
+\[
+  0.724 \le
+  |E|_{\mathrm{OPALX}}/|E|_{\mathrm{manuf.}}
+  \le 1.316,
+  \qquad
+  0.724 \le
+  |B|_{\mathrm{OPALX}}/|B|_{\mathrm{manuf.}}
+  \le 1.316.
+\]
+The equality of the electric and magnetic ratios reflects that both models have
+\(|B|\simeq |E|/c\) for this boosted-source geometry.
+
+\subsection{Ten-Step Final-State Comparison}
+
+The final ten-step phase-space comparison is summarized in
+Tables~\ref{tab:slide-timed-final-oncoming} and
+\ref{tab:slide-timed-final-copropagating}.  Both tables use the H5 charge
+assignment for the OPALX witness containers: container 1 is the electron
+witness and container 2 is the positron witness.  The reported values are the
+maximum absolute OPALX-minus-manufactured differences over the two witness
+species for each pair.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{rrrr}
+    \hline
+    Pair & \(\max|\Delta x|\) [\si{\micro m}]
+    & \(\max|\Delta p_x|\)
+    & \(\max|\Delta s|\) [\si{\micro m}] \\
+    \hline
+    1 & 0.000467 (0,0\%) & 0.000626 (105,1\%) & 0.000000051 (0,0\%) \\
+    2 & 0.005925 (0,3\%) & 0.007929 (109,2\%) & 0.000006665 (0,0\%) \\
+    3 & 0.026389 (1,3\%) & 0.035290 (109,3\%) & 0.000131402 (0,0\%) \\
+    4 & 0.043494 (2,2\%) & 0.058121 (109,3\%) & 0.000357354 (0,0\%) \\
+    5 & 0.026306 (1,3\%) & 0.035082 (109,5\%) & 0.000130204 (0,0\%) \\
+    6 & 0.005873 (0,3\%) & 0.007815 (109,2\%) & 0.000006535 (0,0\%) \\
+    \hline
+  \end{tabular}
+  \caption{Ten-step final-state differences for the slide-timed OPALX pair
+  decks compared with an oncoming manufactured source.  Percentages in
+  parentheses are relative to the corresponding manufactured value and are
+  rounded to one digit after the decimal comma.  The largest differences
+  are \(\max|\Delta x|=\SI{0.04349}{\micro m}\),
+  \(\max|\Delta p_x|=0.05812\), and
+  \(\max|\Delta s|=\SI{3.57e-4}{\micro m}\).}
+  \label{tab:slide-timed-final-oncoming}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{rrrr}
+    \hline
+    Pair & \(\max|\Delta x|\) [\si{\micro m}]
+    & \(\max|\Delta p_x|\)
+    & \(\max|\Delta s|\) [\si{\micro m}] \\
+    \hline
+    1 & 0.000054 & 0.000072 & 0.000000006 \\
+    2 & 0.000885 & 0.001181 & 0.000000049 \\
+    3 & 0.003981 & 0.005311 & 0.000000528 \\
+    4 & 0.006549 & 0.008740 & 0.000001231 \\
+    5 & 0.004011 & 0.005352 & 0.000000544 \\
+    6 & 0.000884 & 0.001179 & 0.000000045 \\
+    \hline
+  \end{tabular}
+  \caption{Ten-step final-state differences for the same slide-timed OPALX
+  pair decks compared with a copropagating manufactured source.  The largest
+  differences are \(\max|\Delta x|=\SI{0.00655}{\micro m}\),
+  \(\max|\Delta p_x|=0.00874\), and
+  \(\max|\Delta s|=\SI{1.23e-6}{\micro m}\).}
+  \label{tab:slide-timed-final-copropagating}
+\end{table}
+
+\noindent\underline{Numerical conclusion:} after fixing the slide timing, the
+current OPALX one-source decks agree much more closely with a copropagating
+manufactured source than with an oncoming manufactured source.  This is a
+convention result, not a field or pusher tuning result.  The
+slide-timed OPALX decks still use the existing tracked primary source momentum
+with positive \(p_z\).  Therefore the next physics decision is to explicitly
+choose the OPALX primary-source direction convention for the intended oncoming
+comparison before changing field normalization, species mapping, or Boris
+pusher details.
+
+For the OPALX comparison, CAIN is no longer used as an active reference model.
+The same twelve numerical witness-particle initial conditions are read into
+OPALX through the two \texttt{FROMFILE} distributions and into the manufactured
+Python model.  Table~\ref{tab:opalx-manufactured-initial-conditions} compares
+the OPALX input files against the manufactured-script initial state.  The
+reported deltas are OPALX minus manufactured.  The agreement is exact for all
+listed coordinates and momenta.
+
+\begin{table}[htbp]
+  \centering
+  \sisetup{
+    round-mode=places,
+    round-precision=4,
+    table-number-alignment=center
+  }
+  \resizebox{\textwidth}{!}{%
+  \begin{tabular}{llrrrrrrrrrrrr}
+    \hline
+    Species & Pair
+    & \(x\) [\si{\micro m}]
+    & \(y\) [\si{\micro m}]
+    & \(s\) [\si{mm}]
+    & \(p_x\)
+    & \(p_y\)
+    & \(p_z\)
+    & \(\Delta x\) [\si{\micro m}]
+    & \(\Delta y\) [\si{\micro m}]
+    & \(\Delta s\) [\si{\micro m}]
+    & \(\Delta p_x\)
+    & \(\Delta p_y\)
+    & \(\Delta p_z\) \\
+    \hline
+    electron & 1 & 1.9443250757 & 0 & -0.9000 & 0 & 0 & 1.7320511804 & 0 & 0 & 0 & 0 & 0 & 0 \\
+    electron & 2 & 1.9443250757 & 0 & -0.5994 & 0 & 0 & 1.7320511804 & 0 & 0 & 0 & 0 & 0 & 0 \\
+    electron & 3 & 1.9443250757 & 0 & -0.3006 & 0 & 0 & 1.7320511804 & 0 & 0 & 0 & 0 & 0 & 0 \\
+    electron & 4 & 1.9443250757 & 0 &  0.0000 & 0 & 0 & 1.7320511804 & 0 & 0 & 0 & 0 & 0 & 0 \\
+    electron & 5 & 1.9443250757 & 0 &  0.3006 & 0 & 0 & 1.7320511804 & 0 & 0 & 0 & 0 & 0 & 0 \\
+    electron & 6 & 1.9443250757 & 0 &  0.5994 & 0 & 0 & 1.7320511804 & 0 & 0 & 0 & 0 & 0 & 0 \\
+    positron & 1 & 1.9443250757 & 0 & -0.9000 & 0 & 0 & 1.7320511804 & 0 & 0 & 0 & 0 & 0 & 0 \\
+    positron & 2 & 1.9443250757 & 0 & -0.5994 & 0 & 0 & 1.7320511804 & 0 & 0 & 0 & 0 & 0 & 0 \\
+    positron & 3 & 1.9443250757 & 0 & -0.3006 & 0 & 0 & 1.7320511804 & 0 & 0 & 0 & 0 & 0 & 0 \\
+    positron & 4 & 1.9443250757 & 0 &  0.0000 & 0 & 0 & 1.7320511804 & 0 & 0 & 0 & 0 & 0 & 0 \\
+    positron & 5 & 1.9443250757 & 0 &  0.3006 & 0 & 0 & 1.7320511804 & 0 & 0 & 0 & 0 & 0 & 0 \\
+    positron & 6 & 1.9443250757 & 0 &  0.5994 & 0 & 0 & 1.7320511804 & 0 & 0 & 0 & 0 & 0 & 0 \\
+    \hline
+  \end{tabular}%
+  }
+  \caption{Initial witness-particle phase space used by both OPALX and the
+  manufactured Python model.  The momenta are normalized OPALX momenta
+  \(p_i=\beta_i\gamma\).  All deltas are OPALX minus manufactured.}
+  \label{tab:opalx-manufactured-initial-conditions}
+\end{table}
+
+The agreement is qualitative, not exact.  This is expected: CAIN is a PIC code,
+while the manufactured model is a rigid continuum source.  Differences can come
+from source disruption, finite macro-particle representation, exact timing and
+coordinate conventions, and from the fact that the manufactured model does not
+self-consistently evolve either colliding electron bunch.
+
+\end{document}

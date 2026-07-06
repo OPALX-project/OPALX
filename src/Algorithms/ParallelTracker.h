@@ -368,6 +368,7 @@ private:
      */
     void gatherBeamBeamFieldsToWitnessContainers(Inform& m);
     void computeDefaultSelfFields(const CoordinateSystemTrafo& beamToReferenceCSTrafo, Inform& m);
+    void dumpSpaceChargePrimaryFieldH5() const;
     void transformFieldsToReferenceFrame(
             const CoordinateSystemTrafo& beamToReferenceCSTrafo, Inform& m);
 
