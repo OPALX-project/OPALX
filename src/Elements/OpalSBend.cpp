@@ -105,10 +105,11 @@ void OpalSBend::update() {
         bend->setDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]), false);
     }
 
-    if (itsAttr[HGAP])
+    if (itsAttr[GAP])
         throw OpalException(
-                "OpalSBend::update", "HGAP is not supported; specify the full GAP instead.");
-    bend->setFullGap(Attributes::getReal(itsAttr[GAP]));
+                "OpalSBend::update", "GAP is not supported; specify HGAP (the half gap) instead.");
+    // gap_m stores the full gap; HGAP is the half gap, so double it.
+    bend->setFullGap(2.0 * Attributes::getReal(itsAttr[HGAP]));
     bend->setFringeIntegral(Attributes::getReal(itsAttr[FINT]));
 
     if (itsAttr[APERT])
