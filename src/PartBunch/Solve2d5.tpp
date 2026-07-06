@@ -65,14 +65,14 @@ void Solve2d5<T>::initSolver() {
     std::array isParallel{layout3d->isParallel()[0], layout3d->isParallel()[1]};
     sliceLayout_m = std::make_shared<Layout2D_t>(layout3d->comm, ndIndex2d, isParallel);
     // Solver parameters
-    ippl::ParameterList params;
-    params.add("use_heffte_defaults", false);
-    params.add("use_pencils", true);
-    params.add("use_gpu_aware", true);
-    params.add("comm", ippl::a2av);
-    params.add("r2c_direction", 0);
-    params.add("algorithm", OpenSolver2D_t::HOCKNEY);
-    params.add("output_type", OpenSolver2D_t::SOL_AND_GRAD);
+    solverParams_m = std::make_unique<ippl::ParameterList>();
+    solverParams_m->add("use_heffte_defaults", false);
+    solverParams_m->add("use_pencils", true);
+    solverParams_m->add("use_gpu_aware", true);
+    solverParams_m->add("comm", ippl::a2av);
+    solverParams_m->add("r2c_direction", 0);
+    solverParams_m->add("algorithm", OpenSolver2D_t::HOCKNEY);
+    solverParams_m->add("output_type", OpenSolver2D_t::SOL_AND_GRAD);
     // Create the slices and their solvers
     // Note that here we create new Kokkos arrays for the slices so we are
     // going to have to copy data into and out of them during the solve calls.
@@ -83,7 +83,7 @@ void Solve2d5<T>::initSolver() {
         twoDSolvers_m[z].E_m      = std::make_shared<VField_t<T, 2>>(*sliceMesh_m, *sliceLayout_m);
         twoDSolvers_m[z].rho_m    = std::make_shared<Field_t<2>>(*sliceMesh_m, *sliceLayout_m);
         twoDSolvers_m[z].solver_m = std::make_shared<OpenSolver2D_t>(
-                *twoDSolvers_m[z].E_m, *twoDSolvers_m[z].rho_m, params);
+                *twoDSolvers_m[z].E_m, *twoDSolvers_m[z].rho_m, *solverParams_m);
     }
     lineDensity_m         = LineDensityView_t("lineDensity", numSlices + LineDensityGhostCells);
     lineDensityGradient_m = LineDensityView_t("lineDensityGradient", numSlices);
@@ -91,16 +91,19 @@ void Solve2d5<T>::initSolver() {
 
 template <typename T>
 template <typename DiagnosticPolicy>
-void Solve2d5<T>::doRunSolver(DiagnosticPolicy /*diagnostic*/) {
-
+void Solve2d5<T>::doRunSolver(DiagnosticPolicy diagnostic) {
+    scatterToGrid<DiagnosticPolicy>(*partBunch_m, diagnostic);
+    solvePoissons<DiagnosticPolicy>(diagnostic);
+    calculateLineDensity<DiagnosticPolicy>(diagnostic);
+    gatherFromGrid<DiagnosticPolicy>(*partBunch_m, diagnostic);
 }
 
 template <typename T>
 template <typename DiagnosticPolicy>
-std::unique_ptr<DiagnosticPolicy> Solve2d5<T>::createDiagnostic(NullDiagnostic::Kind kind) {
+std::unique_ptr<DiagnosticPolicy> Solve2d5<T>::createDiagnostic(
+        typename NullDiagnostic::Kind kind) {
     auto result = std::make_unique<DiagnosticPolicy>(kind);
-    result->initialise(*partBunch_m, *rho_m, lineDensity_m,
-        lineDensityGradient_m, *E_m);
+    result->initialise(*partBunch_m, *rho_m, lineDensity_m, lineDensityGradient_m, *E_m);
     return result;
 }
 
