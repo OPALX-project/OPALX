@@ -75,13 +75,6 @@ public:
     void setElementLength(double length);
     ///@}
 
-    /// @name Reference points along the body chart (centred at the origin)
-    ///@{
-    double getOrigin() const { return len_m / 2.0; }
-    double getEntrance() const { return -len_m / 2.0; }
-    double getExit() const { return len_m / 2.0; }
-    ///@}
-
     /// @name Bend parameters
     ///@{
     double getBendAngle() const;
@@ -100,9 +93,12 @@ public:
 
     /// @name Edge transforms (single source of truth for placement)
     ///@{
-    /// Body-origin to entrance-edge transform.
+    /// Entrance-frame to entrance-edge transform. The stored frame IS the entrance face for
+    /// every kind, so this is always the identity.
     CoordinateSystemTrafo getEdgeToBegin() const;
-    /// Body-origin to exit-edge transform.
+    /// Entrance-frame to exit-edge transform: a pure +z shift for a straight body (straight
+    /// element, rectangular-bend box, null); the arc-end frame turned by the full bend angle
+    /// for a sector bend.
     CoordinateSystemTrafo getEdgeToEnd() const;
     ///@}
 

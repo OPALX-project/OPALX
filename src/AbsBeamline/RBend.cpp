@@ -131,13 +131,13 @@ double RBend::referenceCurvature() const {
 }
 
 double RBend::edgeAngleEntrance() const {
-    // Angle between the design orbit and the entrance pole face, for the edge focusing:
-    // the orbit meets the box face at half the bend angle, plus any explicit rotation E1.
-    return 0.5 * getGeometry().getBendAngle() + getGeometry().getEntranceAngle();
+    // Geometric edge angle: the design orbit meets the perpendicular box face at half the bend
+    // angle. (Explicit pole-face rotations E1/E2 are not implemented yet.)
+    return 0.5 * getGeometry().getBendAngle();
 }
 
 double RBend::edgeAngleExit() const {
-    return 0.5 * getGeometry().getBendAngle() + getGeometry().getExitAngle();
+    return 0.5 * getGeometry().getBendAngle();
 }
 
 bool RBend::isInside(const Vector_t<double, 3>& r) const {
@@ -171,18 +171,15 @@ BendFieldModel::FieldInputs RBend::makeFieldInputs() const {
     in.quadSkew     = ((maxSkew_m > 1) ? skewHost(1) : 0.0) / charge;
 
     // Straight box frame: the field is a uniform vertical dipole gated on the box z, so no
-    // curvature or frame de-tilt is applied (curvature/faceAngle stay 0). The fringe runs
-    // over the box length with the faces perpendicular to the box axis (unit projections);
-    // pole-face angles enter only the edge-focusing kick below.
-    in.bodyLength  = getGeometry().getElementLength();
-    in.curvature   = 0.0;
-    in.faceAngle   = 0.0;
-    in.profileGap  = gap_m;
-    in.cosEntrance = 1.0;
-    in.cosExit     = 1.0;
+    // curvature is applied (curvature stays 0). The fringe runs over the box length with the
+    // faces perpendicular to the box axis. The vertical edge focusing below uses the geometric
+    // edge angle (the orbit meets the box face at half the bend angle).
+    in.bodyLength = getGeometry().getElementLength();
+    in.curvature  = 0.0;
+    in.profileGap = gap_m;
 
-    // Distributed pole-face vertical edge focusing, active only with a fringe. The kick
-    // coefficient is spread over the Enge ramp so its integral matches the hard-edge kick.
+    // Distributed vertical edge focusing, active only with a fringe. The kick coefficient is
+    // spread over the Enge ramp so its integral matches the hard-edge kick.
     in.entryEdgeCoefficient = 0.0;
     in.exitEdgeCoefficient  = 0.0;
     if (in.profileGap > 0.0) {

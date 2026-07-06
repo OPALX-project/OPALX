@@ -20,10 +20,9 @@
 
 #include "AbsBeamline/ElementBase.h"
 #include "Algorithms/Quaternion.hpp"
-#include "Utilities/Options.h"
+#include "BeamlineGeometry/Geometry.h"
 
 #include <cmath>
-#include <vector>
 
 void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTrafo& labFrame) {
     const ElementList::iterator end = elements.end();
@@ -36,6 +35,9 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
         if (element->isElementPositionSet()) {
             continue;  // Mode B (ELEMEDGE): placed by the reference-path walk below
         }
+        // Mode-A X/Y/Z/PHI/PSI/THETA IS the element's geometrical ENTRANCE frame (the frame the
+        // tracker and field kernels use), exactly like ELEMEDGE placement. Just compose it with
+        // the lab frame; no body-centre-to-entrance correction is needed.
         CoordinateSystemTrafo toElement = element->getCSTrafoGlobal2Local();
         toElement *= labFrame;
         element->setCSTrafoGlobal2Local(toElement);
@@ -81,22 +83,8 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
             Quaternion_t entryFaceRotation(
                     cos(0.5 * entranceAngle), sin(0.5 * entranceAngle) * effectiveRotationAxis);
 
-            if (!Options::idealized) {
-                std::vector<Vector_t<double, 3>> truePath = element->getGeometry().getDesignPath();
-                Quaternion_t directionExitHardEdge(
-                        cos(0.5 * (0.5 * bendAngle - entranceAngle)),
-                        sin(0.5 * (0.5 * bendAngle - entranceAngle)) * effectiveRotationAxis);
-                Vector_t<double, 3> exitHardEdge =
-                        thisLength * directionExitHardEdge.rotate(Vector_t<double, 3>(0, 0, 1));
-                double distanceEntryHETruePath = euclidean_norm(truePath.front());
-                Vector_t<double, 3> exitDelta =
-                        rotationAboutZ.rotate(truePath.back()) - exitHardEdge;
-                double distanceExitHETruePath = euclidean_norm(exitDelta);
-                // Bend path length = body length (end-start of the field interval, which the
-                // BeamlineFieldElement stored as startField + getElementLength()).
-                double pathLengthTruePath = element->getGeometry().getElementLength();
-                arcLength = pathLengthTruePath - distanceEntryHETruePath - distanceExitHETruePath;
-            }
+            // arcLength is the bend's design-arc contribution to the running path length,
+            // so a following element placed by ELEMEDGE sits flush against the bend exit.
 
             Vector_t<double, 3> chord =
                     thisLength * halfRotationAboutAxis.rotate(Vector_t<double, 3>(0, 0, 1));
@@ -163,24 +151,7 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
             Quaternion halfRotationAboutAxis(
                     cos(0.25 * bendAngle), sin(0.25 * bendAngle) * effectiveRotationAxis);
 
-            double arcLength = element->getGeometry().getArcLength();
-            if (!Options::idealized) {
-                std::vector<Vector_t<double, 3>> truePath = element->getGeometry().getDesignPath();
-                double entranceAngle                      = element->getGeometry().getEntranceAngle();
-                Quaternion_t directionExitHardEdge(
-                        cos(0.5 * (0.5 * bendAngle - entranceAngle)),
-                        sin(0.5 * (0.5 * bendAngle - entranceAngle)) * effectiveRotationAxis);
-                Vector_t<double, 3> exitHardEdge =
-                        thisLength * directionExitHardEdge.rotate(Vector_t<double, 3>(0, 0, 1));
-                double distanceEntryHETruePath = euclidean_norm(truePath.front());
-                Vector_t<double, 3> exitDelta =
-                        rotationAboutZ.rotate(truePath.back()) - exitHardEdge;
-                double distanceExitHETruePath = euclidean_norm(exitDelta);
-                // Bend path length = body length (end-start of the field interval, which the
-                // BeamlineFieldElement stored as startField + getElementLength()).
-                double pathLengthTruePath = element->getGeometry().getElementLength();
-                arcLength = pathLengthTruePath - distanceEntryHETruePath - distanceExitHETruePath;
-            }
+            const double arcLength = element->getGeometry().getArcLength();
 
             endThis3D =
                     (beginThis3D
