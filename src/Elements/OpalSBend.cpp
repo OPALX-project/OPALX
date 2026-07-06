@@ -20,7 +20,6 @@
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/SBendRep.h"
-#include "Fields/BMultipoleField.h"
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
 
@@ -43,17 +42,18 @@ void OpalSBend::update() {
     OpalElement::update();
 
     // Define geometry.
-    SBendRep* bend              = dynamic_cast<SBendRep*>(getElement());
-    double length               = Attributes::getReal(itsAttr[LENGTH]);
-    double angle                = Attributes::getReal(itsAttr[ANGLE]);
-    double e1                   = Attributes::getReal(itsAttr[E1]);
-    double e2                   = Attributes::getReal(itsAttr[E2]);
-    PlanarArcGeometry& geometry = bend->getGeometry();
+    SBendRep* bend     = dynamic_cast<SBendRep*>(getElement());
+    double length      = Attributes::getReal(itsAttr[LENGTH]);
+    double angle       = Attributes::getReal(itsAttr[ANGLE]);
+    double e1          = Attributes::getReal(itsAttr[E1]);
+    double e2          = Attributes::getReal(itsAttr[E2]);
+    Geometry& geometry = static_cast<Geometry&>(bend->getGeometry());
 
     if (length) {
-        geometry = PlanarArcGeometry(length, angle / length);
+        geometry = Geometry::makeSBend(length, angle / length);
     } else {
-        geometry = PlanarArcGeometry(angle);
+        geometry = Geometry::makeSBend(0.0, 0.0);
+        geometry.setBendAngle(angle);
     }
     // Define number of slices for map tracking
     bend->setNSlices(Attributes::getReal(itsAttr[NSLICES]));
@@ -70,23 +70,22 @@ void OpalSBend::update() {
 
     // Define field.
     double factor = OpalData::getInstance()->getP0() / Physics::c;
-    BMultipoleField field;
-    double k0  = itsAttr[K0] ? Attributes::getReal(itsAttr[K0])
-                 : length    ? 2 * sin(angle / 2) / length
-                             : angle;
-    double k0s = itsAttr[K0S] ? Attributes::getReal(itsAttr[K0S]) : 0.0;
+    double k0     = itsAttr[K0] ? Attributes::getReal(itsAttr[K0])
+                    : length    ? 2 * sin(angle / 2) / length
+                                : angle;
+    double k0s    = itsAttr[K0S] ? Attributes::getReal(itsAttr[K0S]) : 0.0;
     // JMJ 4/10/2000: above line replaced
     //     length ? angle / length : angle;
     //  to avoid closed orbit created by SBEND with defalt K0.
-    field.setNormalComponent(0, factor * k0);
-    field.setSkewComponent(0, factor * Attributes::getReal(itsAttr[K0S]));
-    field.setNormalComponent(1, factor * Attributes::getReal(itsAttr[K1]));
-    field.setSkewComponent(1, factor * Attributes::getReal(itsAttr[K1S]));
-    field.setNormalComponent(2, factor * Attributes::getReal(itsAttr[K2]) / 2.0);
-    field.setSkewComponent(2, factor * Attributes::getReal(itsAttr[K2S]) / 2.0);
-    field.setNormalComponent(3, factor * Attributes::getReal(itsAttr[K3]) / 6.0);
-    field.setSkewComponent(3, factor * Attributes::getReal(itsAttr[K3S]) / 6.0);
-    bend->setField(field);
+    const std::vector<double> normal = {
+            factor * k0, factor * Attributes::getReal(itsAttr[K1]),
+            factor * Attributes::getReal(itsAttr[K2]) / 2.0,
+            factor * Attributes::getReal(itsAttr[K3]) / 6.0};
+    const std::vector<double> skew = {
+            factor * Attributes::getReal(itsAttr[K0S]), factor * Attributes::getReal(itsAttr[K1S]),
+            factor * Attributes::getReal(itsAttr[K2S]) / 2.0,
+            factor * Attributes::getReal(itsAttr[K3S]) / 6.0};
+    bend->setFieldComponents(normal, skew);
 
     // Set field amplitude or bend angle.
     if (itsAttr[ANGLE]) {
@@ -109,10 +108,6 @@ void OpalSBend::update() {
 
     if (itsAttr[GREATERTHANPI])
         throw OpalException("OpalSBend::update", "GREATERTHANPI not supportet any more");
-
-    if (itsAttr[ROTATION])
-        throw OpalException(
-                "OpalSBend::update", "ROTATION not supportet any more; use PSI instead");
 
     if (itsAttr[FMAPFN])
         bend->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));

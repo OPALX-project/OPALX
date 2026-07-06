@@ -129,6 +129,20 @@ set(_opalx_fetchcontent_updates_disconnected "${FETCHCONTENT_UPDATES_DISCONNECTE
 if(NOT _opalx_ippl_git_shallow)
     set(FETCHCONTENT_UPDATES_DISCONNECTED OFF)
 endif()
+
+
+# Kokkos 5 removed this toggle: DualView modify checks are always enabled.
+# A stale cache entry or old site preset that sets it to OFF makes Kokkos fail
+# during option validation, so remove it before IPPL adds Kokkos.
+
+if(DEFINED Kokkos_ENABLE_DEBUG_DUALVIEW_MODIFY_CHECK)
+    unset(Kokkos_ENABLE_DEBUG_DUALVIEW_MODIFY_CHECK)
+    unset(Kokkos_ENABLE_DEBUG_DUALVIEW_MODIFY_CHECK CACHE)
+endif()
+
+
+
+
 FetchContent_MakeAvailable(IPPL)
 set(FETCHCONTENT_UPDATES_DISCONNECTED "${_opalx_fetchcontent_updates_disconnected}")
 message(STATUS "IPPL fetched ref: ${_opalx_ippl_fetch_ref}")

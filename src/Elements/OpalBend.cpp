@@ -47,8 +47,6 @@ OpalBend::OpalBend(const char* name, const char* help) : OpalElement(SIZE, name,
     itsAttr[FMAPFN]   = Attributes::makeString("FMAPFN", "Filename for the fieldmap");
     itsAttr[GAP]      = Attributes::makeReal("GAP", "Full gap height of the magnet (m)", 0.0);
     itsAttr[HAPERT]   = Attributes::makeReal("HAPERT", "Bend plane magnet aperture (m)", 0.0);
-    itsAttr[ROTATION] =
-            Attributes::makeReal("ROTATION", "-- not supported any more; use PSI instead --");
     itsAttr[DESIGNENERGY] =
             Attributes::makeReal("DESIGNENERGY", "the mean energy of the particles in MeV");
     itsAttr[GREATERTHANPI] = Attributes::makeBool("GREATERTHANPI", "-- not supported any more --");

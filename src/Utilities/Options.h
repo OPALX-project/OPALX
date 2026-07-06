@@ -59,6 +59,9 @@ namespace Options {
     /// The frequency to print per-step tracking status lines; 0 disables them.
     extern int stepInfoFreq;
 
+    /// The frequency to print per-rank particle distribution tables; 0 disables them.
+    extern int printRankDistrFreq;
+
     /// phase space dump flag for OPAL-cycl
     //  if true, dump phase space after each turn
     extern bool psDumpEachTurn;
@@ -104,6 +107,8 @@ namespace Options {
     extern bool rhoDump;
 
     extern bool ebDump;
+
+    extern bool rankDump;
 
     extern bool csrDump;
 
@@ -166,6 +171,11 @@ namespace Options {
     /// collective on every state change has a noticeable cost in tight loops; enable
     /// it only for debugging or in contexts where rank-local divergence is possible.
     extern bool aggressiveStateSync;
+
+    /// The threshold for triggering load balancing. If the ratio difference of particles in a rank
+    /// exceeds this threshold, load balancing will be triggered. Default is 0.05 (5%). This
+    /// threshold is only tested every `repartFreq` steps.
+    extern double loadBalancingThreshold;
 }  // namespace Options
 
 #endif  // OPAL_Options_HH

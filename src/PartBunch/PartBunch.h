@@ -84,13 +84,12 @@ public:
     Vector_t<double, Dim> hr_m;  ///< Mesh spacing (m).
 
     double lbt_m;                    ///< Load-balancer timescale parameter.
-    bool isFirstRepartition_m;       ///< True until the first ORB-style repartition completes.
     ippl::NDIndex<Dim> domain_m;     ///< Global mesh index extent per dimension.
     std::array<bool, Dim> decomp_m;  ///< Domain decomposition flags (per axis).
 
 private:
     std::vector<bool> pcActive_m;   ///< Per-container: participate in this track segment.
-    std::vector<bool> pcAtZStop_m;  ///< Per-container: frozen at current z-stop until next segment.
+    std::vector<bool> pcAtSStop_m;  ///< Per-container: frozen at current s-stop until next segment.
     std::vector<std::string> particleNames_m;  ///< Per-container beam particle names.
 
     std::vector<double> qi_m;  ///< Charge per macroparticle [C], one entry per container.
@@ -107,11 +106,6 @@ private:
     DataSink* dataSink_m;                      ///< Borrowed diagnostics and dump output sink.
 
     double t_m;  ///< Current simulation time (s).
-
-    /** Scratch E field for binned accumulation (same layout as mesh E). */
-    std::shared_ptr<VField_t<T, Dim>> Etmp_m;
-    /** Scratch B field for binned accumulation (same layout as mesh B). */
-    std::shared_ptr<VField_t<T, Dim>> Btmp_m;
 
     long long globalTrackStep_m;  ///< Global integration step counter.
 
@@ -179,12 +173,23 @@ public:
     void applyGridUpdate(const Vector_t<double, Dim>& lower, const Vector_t<double, Dim>& upper);
 
     /**
+     * @brief Enable or disable old-OPAL emitting-beam longitudinal mesh stretching.
+     *
+     * Thin wrapper around @c BunchStateHandler::setEmissionMeshProgress. The stretch is used only
+     * for @c bunchUpdate calls where @c active is true.
+     *
+     * @param active Whether the emitting-beam mesh stretch is active.
+     * @param emittedFraction Fraction of the source inventory already emitted.
+     */
+    void setEmissionMeshProgress(bool active, double emittedFraction);
+
+    /**
      * @brief Reinitialize the z dimension of the field grid to `nrZ` cells.
      *
-     * Rebuilds the FieldLayout, all field arrays, the accumulation buffers, and the
-     * IPPL Poisson solver to match the new z extent. A no-op if `nrZ` equals the
-     * current z cell count. Called from `bunchUpdate` to double the z resolution
-     * while image charges are active.
+     * Rebuilds the FieldLayout, refreshes all OPALX-owned fields and accumulation buffers, and
+     * refreshes layout-dependent IPPL solver scratch to match the new z extent. A no-op if `nrZ`
+     * equals the current z cell count. Called from `bunchUpdate` to double the z resolution while
+     * image charges are active.
      *
      * @param nrZ Target number of z grid cells.
      */
@@ -263,13 +268,13 @@ public:
     }
 
     /// @param i Container index.
-    /// @return Whether container @p i is frozen at the current z-stop.
-    bool pcAtZStop(size_t i) const { return i < pcAtZStop_m.size() && pcAtZStop_m[i]; }
+    /// @return Whether container @p i is frozen at the current s-stop.
+    bool pcAtSStop(size_t i) const { return i < pcAtSStop_m.size() && pcAtSStop_m[i]; }
 
-    /// @brief Deactivate container @p i until the next step-size segment (z-stop reached).
-    void setPcAtZStop(size_t i);
+    /// @brief Deactivate container @p i until the next step-size segment (s-stop reached).
+    void setPcAtSStop(size_t i);
 
-    /// @brief After emission: reactivate non-empty containers not marked at z-stop.
+    /// @brief After emission: reactivate non-empty containers not marked at s-stop.
     void refreshPcActiveAfterEmit();
 
     /// @return True if any container is active.
@@ -304,16 +309,30 @@ public:
     }
 
     /// @brief Scratch E field used by the binned solver path.
-    std::shared_ptr<VField_t<T, Dim>> getTempEField() { return this->Etmp_m; }
+    std::shared_ptr<VField_t<T, Dim>> getTempEField() {
+        return this->fcontainer_m ? this->fcontainer_m->getTempEField() : nullptr;
+    }
 
     /// @param Etmp Scratch E field matching the mesh layout.
-    void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) { this->Etmp_m = Etmp; }
+    void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) {
+        if (!this->fcontainer_m) {
+            throw OpalException("PartBunch::setTempEField", "FieldContainer is not initialized.");
+        }
+        this->fcontainer_m->setTempEField(Etmp);
+    }
 
     /// @brief Scratch B field used by the binned solver path.
-    std::shared_ptr<VField_t<T, Dim>> getTempBField() { return this->Btmp_m; }
+    std::shared_ptr<VField_t<T, Dim>> getTempBField() {
+        return this->fcontainer_m ? this->fcontainer_m->getTempBField() : nullptr;
+    }
 
     /// @param Btmp Scratch B field matching the mesh layout.
-    void setTempBField(std::shared_ptr<VField_t<T, Dim>> Btmp) { this->Btmp_m = Btmp; }
+    void setTempBField(std::shared_ptr<VField_t<T, Dim>> Btmp) {
+        if (!this->fcontainer_m) {
+            throw OpalException("PartBunch::setTempBField", "FieldContainer is not initialized.");
+        }
+        this->fcontainer_m->setTempBField(Btmp);
+    }
 
     /// @brief Non-const access to adaptive binning state.
     std::shared_ptr<AdaptBins_t> getBins() { return bins_m; }

@@ -15,13 +15,13 @@ namespace {
             {0, 0, 0}};
 }  // namespace
 
-ConstantEFieldCavityRep::ConstantEFieldCavityRep() : ConstantEFieldCavity(), geometry(), field() {}
+ConstantEFieldCavityRep::ConstantEFieldCavityRep() : ConstantEFieldCavity(), geometry() {}
 
 ConstantEFieldCavityRep::ConstantEFieldCavityRep(const ConstantEFieldCavityRep& right)
-    : ConstantEFieldCavity(right), geometry(right.geometry), field(right.field) {}
+    : ConstantEFieldCavity(right), geometry(right.geometry) {}
 
 ConstantEFieldCavityRep::ConstantEFieldCavityRep(const std::string& name)
-    : ConstantEFieldCavity(name), geometry(), field() {}
+    : ConstantEFieldCavity(name), geometry() {}
 
 ConstantEFieldCavityRep::~ConstantEFieldCavityRep() {}
 
@@ -36,17 +36,8 @@ Channel* ConstantEFieldCavityRep::getChannel(const std::string& aKey, bool creat
     return ElementBase::getChannel(aKey, create);
 }
 
-ConstEzField& ConstantEFieldCavityRep::getField() { return field; }
+Geometry& ConstantEFieldCavityRep::getGeometry() { return geometry; }
 
-const ConstEzField& ConstantEFieldCavityRep::getField() const { return field; }
-
-StraightGeometry& ConstantEFieldCavityRep::getGeometry() { return geometry; }
-
-const StraightGeometry& ConstantEFieldCavityRep::getGeometry() const { return geometry; }
+const Geometry& ConstantEFieldCavityRep::getGeometry() const { return geometry; }
 
 void ConstantEFieldCavityRep::setElementLength(double length) { geometry.setElementLength(length); }
-
-void ConstantEFieldCavityRep::setEz(double ez) {
-    ConstantEFieldCavity::setEz(ez);
-    field.setEz(ez);
-}

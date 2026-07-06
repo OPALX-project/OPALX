@@ -7,9 +7,8 @@
 // OPAL is licensed under GNU GPL version 3.
 //
 
-#include "AbsBeamline/Component.h"
-#include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/BMultipoleField.h"
+#include "AbsBeamline/ElementBase.h"
+#include "BeamlineGeometry/Geometry.h"
 #include "PartBunch/PartBunch.h"
 
 #ifndef ABSBEAMLINE_VerticalFFAMagnet_H
@@ -25,7 +24,7 @@ namespace endfieldmodel {
  *  that has a dependence like B0 exp(mz)
  */
 
-class VerticalFFAMagnet : public Component {
+class VerticalFFAMagnet : public ElementBase {
 public:
     /** Construct a new VerticalFFAMagnet
      *
@@ -104,16 +103,10 @@ public:
     void getFieldExtend(double& /*zBegin*/, double& /*zEnd*/) const {}
 
     /** Return the cell geometry */
-    BGeometryBase& getGeometry();
+    Geometry& getGeometry();
 
     /** Return the cell geometry */
-    const BGeometryBase& getGeometry() const;
-
-    /** Return a dummy (0.) field value (what is this for?) */
-    EMField& getField();
-
-    /** Return a dummy (0.) field value (what is this for?) */
-    const EMField& getField() const;
+    const Geometry& getGeometry() const;
 
     /** Accept a beamline visitor */
     void accept(BeamlineVisitor& visitor) const;
@@ -195,8 +188,7 @@ private:
     VerticalFFAMagnet(const VerticalFFAMagnet& right);
 
     VerticalFFAMagnet& operator=(const VerticalFFAMagnet& rhs);
-    StraightGeometry straightGeometry_m;
-    BMultipoleField dummy;
+    Geometry straightGeometry_m{Geometry::makeStraight(1.)};
 
     size_t maxOrder_m   = 0;
     double k_m          = 0.;

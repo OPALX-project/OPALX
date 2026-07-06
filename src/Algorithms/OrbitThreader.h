@@ -40,7 +40,7 @@ public:
     OrbitThreader(
             const PartData& ref, const Vector_t<double, 3>& r, const Vector_t<double, 3>& p,
             double s, double maxDiffZBunch, double t, double dT, StepSizeConfig stepSizes,
-            OpalBeamline& bl);
+            OpalBeamline& bl, bool isDesignBeam);
 
     void execute();
 
@@ -91,11 +91,17 @@ private:
 
     /// final position in path length
     StepSizeConfig stepSizes_m;
-    const double zstop_m;
+    const double sStop_m;
     ValueRange<double> pathLengthRange_m;
 
     OpalBeamline& itsOpalBeamline_m;
     IndexMap imap_m;
+
+    /// True for the single design beam (container 0's species): only this threader may
+    /// autophase cavities, set per-element design energy, and write the geometry/design-path
+    /// outputs. Secondary species build their own IndexMap but reuse that shared element
+    /// state.
+    bool isDesignBeam_m;
 
     unsigned int errorFlag_m;
 
@@ -120,8 +126,8 @@ private:
     };
 
     std::multimap<
-            std::shared_ptr<Component>, elementPosition,
-            std::owner_less<std::shared_ptr<Component>>>
+            std::shared_ptr<ElementBase>, elementPosition,
+            std::owner_less<std::shared_ptr<ElementBase>>>
             elementRegistry_m;
     ReferencePathModel actionRangeRegistrationModel_m;
 
@@ -140,10 +146,10 @@ private:
     void computeBoundingBox();
     void updateBoundingBoxWithCurrentPosition();
     double computeDriftLengthToBoundingBox(
-            const std::set<std::shared_ptr<Component>>& elements,
+            const std::set<std::shared_ptr<ElementBase>>& elements,
             const Vector_t<double, 3>& position, const Vector_t<double, 3>& direction) const;
 
-    void checkElementLengths(const std::set<std::shared_ptr<Component>>& elements);
+    void checkElementLengths(const std::set<std::shared_ptr<ElementBase>>& elements);
 };
 
 inline IndexMap::value_t OrbitThreader::query(

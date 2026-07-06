@@ -74,7 +74,6 @@
 #include "Elements/OpalProbe.h"
 #include "Elements/OpalQuadrupole.h"
 #include "Elements/OpalRBend.h"
-#include "Elements/OpalRingDefinition.h"
 #include "Elements/OpalSBend.h"
 #include "Elements/OpalSinusoidalTimeDependence.h"
 #include "Elements/OpalSolenoid.h"
@@ -145,7 +144,6 @@ namespace {
         opal->create(new OpalRBend());
         opal->create(new OpalSBend());
         opal->create(new OpalSolenoid());
-        opal->create(new OpalRingDefinition());
         opal->create(new Line());
         opal->create(new OpalVerticalFFAMagnet());
         opal->create(new OpalPolynomialTimeDependence());

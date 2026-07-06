@@ -1,9 +1,7 @@
 #ifndef OPALX_Multipole_HH
 #define OPALX_Multipole_HH
 
-#include "AbsBeamline/Component.h"
-#include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/BMultipoleField.h"
+#include "AbsBeamline/ElementBase.h"
 
 class Fieldmap;
 constexpr int MAX_MP_ORDER = 5;
@@ -27,7 +25,7 @@ constexpr int MAX_MP_ORDER = 5;
  * Units for multipole strengths are Teslas / m^(n-1).
  */
 
-class Multipole : public Component {
+class Multipole : public ElementBase {
 public:
     /* ============================== Constructors ============================== */
     explicit Multipole(const std::string& name);
@@ -118,12 +116,6 @@ public:
     // @brief Apply visitor to Multipole.
     virtual void accept(BeamlineVisitor&) const override;
 
-    // @brief Get multipole field.
-    virtual BMultipoleField& getField() override = 0;
-
-    // @breif Get multipole field. Version for const object.
-    virtual const BMultipoleField& getField() const override = 0;
-
     // @returns Is the n-th component focusing?
     bool isFocusing(int n) const;
 
@@ -146,13 +138,6 @@ public:
 
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
     /* ========================================================================== */
-    /* =========================== Unused Functions ============================= */
-    // @returns StraightGeometry
-    virtual StraightGeometry& getGeometry() override = 0;
-
-    // @returns StraightGeometry
-    virtual const StraightGeometry& getGeometry() const override = 0;
-
     // @brief Set number of slices for map tracking
     void setNSlices(const std::size_t& nSlices);
 

@@ -79,6 +79,16 @@ public:
         return inventoryBuilt_m && nextGlobalIndex_m >= records_m.size();
     }
 
+    /// @copydoc SamplingBase::getEmittedFraction
+    double getEmittedFraction() const override {
+        if (!inventoryBuilt_m || records_m.empty()) {
+            return 0.0;
+        }
+        return std::clamp(
+                static_cast<double>(nextGlobalIndex_m) / static_cast<double>(records_m.size()), 0.0,
+                1.0);
+    }
+
     /**
      * @brief Reports whether an initial reference momentum is available.
      *
@@ -90,6 +100,21 @@ public:
      * @brief Returns the average initial reference momentum from selected records.
      */
     Vector_t<double, 3> getInitialReferenceMomentum() const override { return initialRefP_m; }
+
+    /**
+     * @brief Reports that this sampler provides an initial reference position.
+     *
+     * @return True after the file inventory has been built.
+     */
+    bool hasInitialReferencePosition() const override { return inventoryBuilt_m; }
+
+    /**
+     * @brief Returns the initial reference position used by the tracker.
+     *
+     * @return The emission-source position offset R0 (the emission point); particles
+     *         are born symmetric about it, so no per-record average is needed.
+     */
+    Vector_t<double, 3> getInitialReferencePosition() const override { return R0_m; }
 
     /**
      * @brief Returns the global time shift needed to center old-OPAL file times.
@@ -137,12 +162,14 @@ private:
      * @brief Raw row parsed from an old-OPAL emitted distribution dump.
      */
     struct RawRecord {
-        double x        = 0.0;  ///< Horizontal position from the file.
-        double px       = 0.0;  ///< Horizontal momentum offset from the file.
-        double y        = 0.0;  ///< Vertical position from the file.
-        double py       = 0.0;  ///< Vertical momentum offset from the file.
-        double fileTime = 0.0;  ///< Old-OPAL pre-emission time column.
-        double pz       = 0.0;  ///< Longitudinal momentum offset from the file.
+        double x        = 0.0;    ///< Horizontal position from the file.
+        double px       = 0.0;    ///< Horizontal momentum offset from the file.
+        double y        = 0.0;    ///< Vertical position from the file.
+        double py       = 0.0;    ///< Vertical momentum offset from the file.
+        double fileTime = 0.0;    ///< Old-OPAL pre-emission time column.
+        double pz       = 0.0;    ///< Longitudinal momentum offset from the file.
+        size_t bin      = 0;      ///< Optional old-OPAL emission bin number.
+        bool hasBin     = false;  ///< True if the optional bin number was present.
     };
 
     /**

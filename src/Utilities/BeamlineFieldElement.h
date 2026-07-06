@@ -3,7 +3,7 @@
 
 #include <list>
 #include <memory>
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Structure/BoundingBox.h"
 
 /**
@@ -15,10 +15,10 @@
  */
 class BeamlineFieldElement {
 public:
-    BeamlineFieldElement(std::shared_ptr<Component>, const double&, const double&);
+    BeamlineFieldElement(std::shared_ptr<ElementBase>, const double&, const double&);
     ~BeamlineFieldElement();
-    std::shared_ptr<Component> getElement();
-    std::shared_ptr<const Component> getElement() const;
+    std::shared_ptr<ElementBase> getElement();
+    std::shared_ptr<const ElementBase> getElement() const;
     double getLength() const;
     const double& getStart() const;
     const double& getEnd() const;
@@ -41,7 +41,7 @@ public:
     unsigned int order_m;
 
 private:
-    std::shared_ptr<Component> element_m;
+    std::shared_ptr<ElementBase> element_m;
     double start_m;
     double end_m;
     bool is_on_m;
@@ -49,9 +49,9 @@ private:
 
 using FieldList = std::list<BeamlineFieldElement>;
 
-inline std::shared_ptr<Component> BeamlineFieldElement::getElement() { return element_m; }
+inline std::shared_ptr<ElementBase> BeamlineFieldElement::getElement() { return element_m; }
 
-inline std::shared_ptr<const Component> BeamlineFieldElement::getElement() const {
+inline std::shared_ptr<const ElementBase> BeamlineFieldElement::getElement() const {
     return element_m;
 }
 

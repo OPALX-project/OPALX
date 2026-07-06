@@ -5,11 +5,9 @@
 #include "Algorithms/OrbitThreader.h"
 #include "Algorithms/PartData.h"
 #include "BeamlineCore/MultipoleRep.h"
-#include "BeamlineGeometry/NullGeometry.h"
-#include "BeamlineGeometry/PlacementPose.h"
+#include "BeamlineGeometry/Geometry.h"
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
-#include "Fields/NullField.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
@@ -27,14 +25,14 @@ namespace {
         DummyBeamline() : Beamline("dummy") {}
 
         ElementType getType() const override { return ElementType::BEAMLINE; }
-        BGeometryBase& getGeometry() override { return geometry_; }
-        const BGeometryBase& getGeometry() const override { return geometry_; }
+        Geometry& getGeometry() override { return geometry_; }
+        const Geometry& getGeometry() const override { return geometry_; }
         void accept(BeamlineVisitor& visitor) const override { visitor.visitBeamline(*this); }
         ElementBase* clone() const override { return new DummyBeamline(*this); }
         void iterate(BeamlineVisitor&, bool) const override {}
 
     private:
-        NullGeometry geometry_;
+        Geometry geometry_{Geometry::makeNull()};
     };
 
     /**
@@ -43,17 +41,14 @@ namespace {
      * This models the post-redesign case where placement/geometry uses the body
      * extent while tracking constraints must use the field-support interval.
      */
-    class FieldSupportOnlyComponent final : public Component {
+    class FieldSupportOnlyComponent final : public ElementBase {
     public:
         FieldSupportOnlyComponent(
                 const std::string& name, const double fieldBegin, const double fieldEnd)
-            : Component(name), fieldBegin_m(fieldBegin), fieldEnd_m(fieldEnd) {}
+            : ElementBase(name), fieldBegin_m(fieldBegin), fieldEnd_m(fieldEnd) {}
 
         void accept(BeamlineVisitor&) const override {}
         ElementBase* clone() const override { return new FieldSupportOnlyComponent(*this); }
-
-        EMField& getField() override { return field_m; }
-        const EMField& getField() const override { return field_m; }
 
         bool apply(const std::shared_ptr<ParticleContainer_t>&) override { return false; }
 
@@ -85,14 +80,13 @@ namespace {
 
         ElementType getType() const override { return ElementType::ANY; }
 
-        BGeometryBase& getGeometry() override { return geometry_m; }
-        const BGeometryBase& getGeometry() const override { return geometry_m; }
+        Geometry& getGeometry() override { return geometry_m; }
+        const Geometry& getGeometry() const override { return geometry_m; }
 
     private:
         double fieldBegin_m;
         double fieldEnd_m;
-        NullGeometry geometry_m;
-        NullField field_m;
+        Geometry geometry_m{Geometry::makeNull()};
     };
 }  // namespace
 
@@ -167,8 +161,8 @@ protected:
         auto quadrupole = std::make_shared<MultipoleRep>(name);
         quadrupole->setElementLength(length);
         quadrupole->setNormalComponent(1, normalComponent);
-        quadrupole->setPlacementPose(PlacementPose(
-                CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, entryPosition), Quaternion())));
+        quadrupole->setCSTrafoGlobal2Local(
+                CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, entryPosition), Quaternion()));
         quadrupole->fixPosition();
         return quadrupole;
     }
@@ -177,8 +171,8 @@ protected:
             const std::string& name, const double entryPosition, const double fieldLength) {
         auto component = std::make_shared<FieldSupportOnlyComponent>(name, 0.0, fieldLength);
         component->setElementLength(0.0);
-        component->setPlacementPose(PlacementPose(
-                CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, entryPosition), Quaternion())));
+        component->setCSTrafoGlobal2Local(
+                CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, entryPosition), Quaternion()));
         component->fixPosition();
         return component;
     }
@@ -196,7 +190,7 @@ TEST_F(OrbitThreaderTest, ExposesEmptyReferencePathModelBeforeExecution) {
     OpalBeamline beamline;
     OrbitThreader threader(
             reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
-            1.0e-12, stepSizes, beamline);
+            1.0e-12, stepSizes, beamline, /*isDesignBeam=*/true);
 
     EXPECT_TRUE(threader.getReferencePathModel().empty());
     EXPECT_TRUE(threader.getActionRangeRegistrationModel().empty());
@@ -222,7 +216,7 @@ TEST_F(OrbitThreaderTest, ExecutesOverlapAndBuildsTracedAndRegistrationModels) {
     PartData reference(1.0, 9.382720813e8, 1.0e6);
     OrbitThreader threader(
             reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
-            1.0e-11, stepSizes, beamline);
+            1.0e-11, stepSizes, beamline, /*isDesignBeam=*/true);
 
     threader.execute();
 
@@ -279,7 +273,7 @@ TEST_F(OrbitThreaderTest, UsesFieldSupportExtentForLengthCheck) {
     PartData reference(1.0, 9.382720813e8, 1.0e6);
     OrbitThreader threader(
             reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
-            1.0e-12, stepSizes, beamline);
+            1.0e-12, stepSizes, beamline, /*isDesignBeam=*/true);
 
     EXPECT_NO_THROW(threader.execute());
 }
