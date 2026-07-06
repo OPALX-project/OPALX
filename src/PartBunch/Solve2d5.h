@@ -59,16 +59,30 @@ public:
             bool closedRing);
 
     void initSolver() override;
-    void runSolver() override { doRunSolver(); }
-    void runSolver(bool /*force_skip_field_dump*/) override { doRunSolver(); }
+    void runSolver() override { runSolver(false); }
+    void runSolver(const bool force_skip_field_dump) override {
+        if (!force_skip_field_dump) {
+            doRunSolver();
+        }
+    }
 
     // Algorithm steps, public for testability
     class NullDiagnostic {
     public:
         enum class Kind {
-            FrenetSerretScatter, BoostToBeam, ScatterCharge, ScatterChargeDensity,
-            TotalDensity, LineDensity, LineDensityGradient, EField, FrenetSerretGather,
-            GatherEField, Deboosted, LongitudinalField, LabFrameFields
+            FrenetSerretScatter,
+            BoostToBeam,
+            ScatterCharge,
+            ScatterChargeDensity,
+            TotalDensity,
+            LineDensity,
+            LineDensityGradient,
+            EField,
+            FrenetSerretGather,
+            GatherEField,
+            Deboosted,
+            LongitudinalField,
+            LabFrameFields
         };
         KOKKOS_FUNCTION void frenetSerretScatter(
                 const size_t, const Vector3D_t&, const Vector3D_t&, bool) const {}
@@ -167,6 +181,7 @@ private:
     Vector3D_t sizer_m{};
     Vector3D_t originr_m{};
     ippl::NDIndex<3> domain_m;
+    std::unique_ptr<ippl::ParameterList> solverParams_m;
 
     // Configuration
     T beamRadius_m{1};

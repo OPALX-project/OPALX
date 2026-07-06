@@ -1377,4 +1377,43 @@ namespace {
         ASSERT_EQ(b.size(), 0);
     }
 
+    TEST_F(TestSolve2d5, LabFrameFields_MainApi) {
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        fsCmd->setType("FFT2D5");
+        fsCmd->setNX(12);
+        fsCmd->setNY(12);
+        fsCmd->setNZ(12);
+        fsCmd->setPipeSizeX(6);
+        fsCmd->setPipeSizeY(6);
+        fsCmd->setClosedRing(true);
+        rebuildBunch();
+        auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
+        createParticles({{2, 0, 5}, {-2, 0, 5}, {0, 0, 0}}, {{0, 0, 1}, {0, 0, 1}, {0, 0, 1}});
+        solver->runSolver();
+        // Check the fields through the original particle bunch object
+        auto& pc = *bunch->getParticleContainers().front();
+        const auto eHost = pc.E.getHostMirror();
+        const auto bHost = pc.B.getHostMirror();
+        Kokkos::deep_copy(eHost, pc.E.getView());
+        Kokkos::deep_copy(bHost, pc.B.getView());
+        EXPECT_NEAR(eHost(0).data_m[0], 6.355346880e9, 1e6);
+        EXPECT_NEAR(eHost(0).data_m[1], 0, 1e6);
+        EXPECT_NEAR(eHost(0).data_m[2], -28.580515699e9, 1e6);
+        EXPECT_NEAR(eHost(1).data_m[0], -6.355346880e9, 1e6);
+        EXPECT_NEAR(eHost(1).data_m[1], 0, 1e6);
+        EXPECT_NEAR(eHost(1).data_m[2], -28.580515699e9, 1e6);
+        EXPECT_NEAR(eHost(2).data_m[0], 0, 1e6);
+        EXPECT_NEAR(eHost(2).data_m[1], 0, 1e6);
+        EXPECT_NEAR(eHost(2).data_m[2], -28.580515699e9, 1e6);
+        EXPECT_NEAR(bHost(0).data_m[0], 0, 1e-4);
+        EXPECT_NEAR(bHost(0).data_m[1], -14.9900, 1e-4);
+        EXPECT_NEAR(bHost(0).data_m[2], 0, 1e-4);
+        EXPECT_NEAR(bHost(1).data_m[0], 0, 1e-4);
+        EXPECT_NEAR(bHost(1).data_m[1], 14.9900, 1e-4);
+        EXPECT_NEAR(bHost(1).data_m[2], 0, 1e-4);
+        EXPECT_NEAR(bHost(2).data_m[0], 0, 1e-4);
+        EXPECT_NEAR(bHost(2).data_m[1], 0, 1e-4);
+        EXPECT_NEAR(bHost(2).data_m[2], 0, 1e-4);
+    }
+
 }  // namespace
