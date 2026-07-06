@@ -84,93 +84,139 @@ class ElementBase : public std::enable_shared_from_this<ElementBase> {
 public:
     /* ========================= Construction & lifecycle ====================== */
 
-    /// Constructor with given name.
+    /// @brief Constructor with given name.
+    /// @param name The element name.
     explicit ElementBase(const std::string& name);
 
-    /// Default Constructor
+    /// @brief Default constructor.
     ElementBase();
 
-    /// Copy Constructor
+    /// @brief Copy constructor.
     ElementBase(const ElementBase&);
 
-    /// Destructor
+    /// @brief Destructor.
     virtual ~ElementBase();
 
-    /// Return clone.
-    //  Return an identical deep copy of the element.
+    /// @brief Return an identical deep copy of the element.
+    /// @return The cloned element.
     virtual ElementBase* clone() const = 0;
 
-    /// Make a structural copy.
-    //  Return a fresh copy of any beam line structure is made,
-    //  but sharable elements remain shared.
+    /// @brief Make a structural copy.
+    /// @note A fresh copy of the beam line structure is made, but sharable
+    ///       elements remain shared.
+    /// @return The copied structure.
     virtual ElementBase* copyStructure();
 
-    /// Test if the element can be shared.
+    /// @brief Test if the element can be shared.
+    /// @return True if the element is sharable.
     bool isSharable() const;
 
-    /// Set sharable flag.
-    //  The whole structure depending on [b]this[/b] is marked as sharable.
-    //  After this call a [b]copyStructure()[/b] call reuses the element.
+    /// @brief Set the sharable flag.
+    /// @note The whole structure depending on this is marked as sharable.
+    ///       After this call a copyStructure() call reuses the element.
     virtual void makeSharable();
 
     /* =============================== Identity ================================ */
 
-    /// Get element name.
+    /// @brief Get the element name.
+    /// @return The element name.
     virtual const std::string& getName() const;
 
-    /// Set element name.
+    /// @brief Set the element name.
+    /// @param name The element name.
     virtual void setName(const std::string& name);
 
-    /// Get element type std::string.
-    //  Default returns ElementType::ANY; concrete elements override.
+    /// @brief Get the element type.
+    /// @note Default returns ElementType::ANY; concrete elements override.
+    /// @return The element type.
     virtual ElementType getType() const;
 
+    /// @brief Get the element type as a string.
+    /// @return The element type string.
     std::string getTypeString() const;
+
+    /// @brief Get the string for a given element type.
+    /// @param type The element type.
+    /// @return The element type string.
     static std::string getTypeString(ElementType type);
 
-    /// Apply visitor.
-    //  This method must be overridden by derived classes. It should call the
-    //  method of the visitor corresponding to the element class.
-    //  If any error occurs, this method throws an exception.
+    /// @brief Apply a visitor.
+    /// @note This method must be overridden by derived classes. It should call
+    ///       the method of the visitor corresponding to the element class. If
+    ///       any error occurs, this method throws an exception.
+    /// @param visitor The visitor to apply.
     virtual void accept(BeamlineVisitor& visitor) const = 0;
 
     /* =============================== Geometry ================================ */
 
-    /// Get geometry.
-    //  Return the element geometry, supplied by the representation layer.
-    //  Version for non-constant object.
+    /// @brief Get the geometry. Version for non-constant object.
+    /// @note Supplied by the representation layer.
+    /// @return The element geometry.
     virtual Geometry& getGeometry() = 0;
 
-    /// Get geometry. Version for constant object.
+    /// @brief Get the geometry. Version for constant object.
+    /// @return The element geometry.
     virtual const Geometry& getGeometry() const = 0;
 
-    ///
+    /// @brief Check if the point r is inside the S interval with a field.
+    /// @param r The point to test.
+    /// @return True if r is inside the field interval.
     virtual bool isInside(const Vector_t<double, 3>& r) const;
 
+    /// @brief Get the bounding box.
+    /// @return The bounding box in lab coordinates.
     virtual BoundingBox getBoundingBoxInLabCoords() const;
 
     /* ===================== Coordinate system & placement ===================== */
 
+    /// @brief Set the lab -> element entrance frame trafo.
+    /// @param ori The trafo.
     void setCSTrafoGlobal2Local(const CoordinateSystemTrafo& ori);
+
+    /// @brief Get the lab->element entrance frame trafo.
+    /// @return The trafo.
     CoordinateSystemTrafo getCSTrafoGlobal2Local() const;
 
+    /// @brief Set the misaligment.
+    /// @param cst The misalignment.
     void setMisalignment(const CoordinateSystemTrafo& cst);
-    void getMisalignment(double& x, double& y, double& s) const;
-    CoordinateSystemTrafo getMisalignment() const;
 
+    /// Not implemented.
+    void getMisalignment(double& x, double& y, double& s) const;
+
+    /// @brief Get the misalignment.
+    /// @return The misalignment.
+    CoordinateSystemTrafo getMisalignment() const;
+    
+    /// @brief Unlock the position so the global -> local transform can change.
     void releasePosition();
+
+    /// @brief Lock the position so the global -> local transform cannot change.
     void fixPosition();
+
+    /// @brief Test if the position is locked.
+    /// @return True if the position is fixed.
     bool isPositioned() const;
 
-    /// Set rotation about z axis in bend frame.
+    /// @brief Set the rotation about the z axis in the bend frame.
+    /// @param rotation The rotation angle.
     void setRotationAboutZ(double rotation);
+
+    /// @brief Get the rotation about the z axis in the bend frame.
+    /// @return The rotation angle.
     double getRotationAboutZ() const;
 
-    ///@{ Access to ELEMEDGE attribute
+    /// @brief Set the ELEMEDGE position of the element.
+    /// @param elemedge The element edge position.
     void setElementPosition(double elemedge);
+
+    /// @brief Get the ELEMEDGE position of the element.
+    /// @return The element edge position.
     double getElementPosition() const;
+
+    /// @brief Test if the ELEMEDGE position has been set.
+    /// @return True if ELEMEDGE has been set.
     bool isElementPositionSet() const;
-    ///@}
 
     /* =============================== Aperture ================================ */
 
@@ -328,10 +374,8 @@ private:
 
     // --- Placement ---
     bool positionIsFixed;
-    ///@{ ELEMEDGE attribute
-    double elementPosition_m;
+    double elementPosition_m; // S position of the element entrance
     bool elemedgeSet_m;
-    ///@}
 
     // --- Miscellaneous ---
     std::string outputfn_m; /**< The name of the outputfile*/

@@ -59,20 +59,23 @@ bool SBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
 
     Kokkos::parallel_for(
             "SBend::apply", nLocal, KOKKOS_LAMBDA(const size_t i) {
-                // Convert to bend coordinates (radial x, y, arc-length s) so the fringe and gate
-                // act on the arc length, exact at any bend angle. The stored frame is the
-                // design-orbit entrance tangent, so no pole-face de-tilt is applied.
+                // Convert (x,y,z) -> (x,y,arc s) in the element's frame.
                 const Vector_t<double, 3> arc = GeometryHelper::toBendArcCoords(
                         Rview(i), inputs.curvature, inputs.bodyLength);
+
                 if (arc(2) < zBegin || arc(2) > zEnd) {
-                    return;
+                    return; // return this particle's lambda 
                 }
+
+                // Rotate the element's field to the entrance frame.
                 const Vector_t<double, 3> Bf = GeometryHelper::rotateArcFieldToEntry(
                         BendFieldModel::bendField(arc, inputs), arc(2), inputs.curvature,
                         inputs.bodyLength);
-                for (unsigned d = 0; d < 3; ++d) {
-                    Bview(i)(d) += Bf(d);
-                }
+
+                // Apply field.
+                Bview(i)(0) += Bf(0);
+                Bview(i)(1) += Bf(1);
+                Bview(i)(2) += Bf(2);
             });
 
     return false;

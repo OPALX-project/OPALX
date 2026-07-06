@@ -1,10 +1,6 @@
 #ifndef OPALX_PlacementResolver_HH
 #define OPALX_PlacementResolver_HH
 
-//
-// Class PlacementResolver
-//   The single PLACE stage of the input -> computeExternalFields() pipeline.
-//
 // Copyright (c) 2024, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //

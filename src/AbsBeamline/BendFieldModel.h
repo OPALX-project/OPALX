@@ -1,40 +1,28 @@
-#ifndef OPALX_BendFieldModel_HH
-#define OPALX_BendFieldModel_HH
-
-//
-// BendFieldModel
-//   Stateless field-shape math shared by the analytic SBEND and RBEND fringe
-//   fields: the OPAL default Enge longitudinal profile (amplitude and its first
-//   two derivatives), the combined amplitude from the two face distances, the
-//   vertical edge-focusing coefficient, and the field evaluation itself. All
-//   functions are device-callable and hold no state; the bends supply their own
-//   geometry scalars (gap, curvature) and coefficients.
-//   Coordinate conversions live in GeometryHelper (BeamlineGeometry/Geometry.h).
-//
 // Copyright (c) 2026, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
-// This file is part of OPAL.
+// This file is part of OPALX.
 //
-// OPAL is free software: you can redistribute it and/or modify
+// OPALX is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
 // You should have received a copy of the GNU General Public License
-// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+// along with OPALX. If not, see <https://www.gnu.org/licenses/>.
 //
+#ifndef OPALX_BendFieldModel_HH
+#define OPALX_BendFieldModel_HH
 
 #include "VectorMath.h"
-
 #include <Kokkos_Core.hpp>
 
 /**
  * @namespace BendFieldModel
- * @brief Stateless field-shape math for the analytic bend fringe model.
+ * @brief Stateless field-shape math for the analytic bend fringe model inside 
+ * Kokkos kernels.
  *
- * The longitudinal field envelope is the OPAL default `FM1DPROFILE1` Enge
- * function
+ * The longitudinal field envelope is the OPAL Enge function
  * @f[
  *   F(u) = \frac{1}{1 + \exp\!\left(\sum_{i=0}^{5} c_i u^i\right)}, \qquad
  *   u = \frac{d}{g},
@@ -45,8 +33,7 @@
  */
 namespace BendFieldModel {
 
-    /// Enge amplitude together with its first and second derivatives with respect
-    /// to the distance coordinate passed to engeProfile().
+    /// @brief Enge function values and derivatives
     struct EngeValue {
         double value;             ///< F
         double firstDerivative;   ///< dF/dd
@@ -54,7 +41,7 @@ namespace BendFieldModel {
     };
 
     /**
-     * @brief OPAL default Enge longitudinal profile and its derivatives.
+     * @brief Enge longitudinal profile and its derivatives.
      *
      * @param coordinate Distance from the pole face in metres (negative inside the
      *        body, zero at the face, positive outside).
@@ -161,12 +148,7 @@ namespace BendFieldModel {
     }
 
     /**
-     * @brief Pure-value inputs for one bend field evaluation.
-     *
-     * This is not element state: the bend fills it once (coefficients fixed at
-     * parse time, geometry from its Geometry, edge coefficients precomputed on the
-     * host) and passes it to bendField() on both the device and host field paths.
-     * Absent multipole coefficients are simply zero.
+     * @brief Pure-value inputs for one bend field evaluation inside Kokkos kernel.
      */
     struct FieldInputs {
         double dipoleNormal;          ///< normal dipole B0 (normal[0])
