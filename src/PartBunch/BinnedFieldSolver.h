@@ -43,12 +43,13 @@ class BinnedFieldSolver : public FieldSolver<T, Dim> {
     static_assert(Dim == 3, "BinnedFieldSolver currently supports Dim == 3 only.");
 
 public:
-    using PartBunch_t    = PartBunch<T, Dim>;
-    using ParticleCtr_t  = typename PartBunch_t::ParticleContainer_t;
-    using AdaptBins_t    = typename PartBunch_t::AdaptBins_t;
-    using BCHandler_t    = BCHandler<Dim>;
-    using bin_index_type = typename AdaptBins_t::bin_index_type;
-    using size_type      = typename AdaptBins_t::size_type;
+    using PartBunch_t      = PartBunch<T, Dim>;
+    using ParticleCtr_t    = typename PartBunch_t::ParticleContainer_t;
+    using FieldContainer_t = typename PartBunch_t::FieldContainer_t;
+    using AdaptBins_t      = typename PartBunch_t::AdaptBins_t;
+    using BCHandler_t      = BCHandler<Dim>;
+    using bin_index_type   = typename AdaptBins_t::bin_index_type;
+    using size_type        = typename AdaptBins_t::size_type;
 
     using particle_position_type = typename PartBunch_t::Base::particle_position_type;
 
@@ -148,6 +149,15 @@ public:
     /// timestep. Reuses the same step budget (@c zerofaceMaxSteps_m) as the image-charge path.
     bool isShiftedGreensActiveForStep(size_t step) const;
 
+    /**
+     * @brief Refresh solver-owned state after the field layout has changed.
+     *
+     * ORB repartitioning changes the domain decomposition underneath the shared
+     * mesh fields. Rebind the existing concrete Poisson solver to the updated
+     * FieldContainer fields without reconstructing the solver wrapper.
+     */
+    void refreshAfterFieldLayoutChange();
+
     /// @brief Configure dump frequency for dirichlet-plane diagnostics (`0` disables dumps).
     void setZeroFacePlaneDumpFrequency(int frequency);
     int getZeroFacePlaneDumpFrequency() const { return zeroFacePlaneDumpFrequency_m; }
@@ -171,13 +181,6 @@ private:
     // Mutually exclusive with the image-charge path (enforced at config time).
     bool shiftedGreensEnabled_m  = false;
     double shiftedGreensPlaneZ_m = 0.0;
-
-    // Scratch field holding the axis-flipped version of E' for the shifted-GF
-    // correction pass. Populated by buildFlippedZSlab (which delegates to
-    // opalx::detail::mirrorField) before accumulateFieldToTemp's flipped branch.
-    // Same layout/mesh/ghost count as *(this->getE()). Allocated lazily on first
-    // use; reused across bins and timesteps.
-    std::shared_ptr<VField_t<T, Dim>> flippedZSlabField_m;
 
     /**
      * @brief Row entry for the level-3 bin statistics table.
@@ -234,7 +237,7 @@ private:
      * @brief Compute self-fields using the binned algorithm.
      *
      * Requires that the bunch has a valid bin structure and a temporary electric field
-     * buffer (`bunch.getTempEField()`).
+     * buffer (`bunch.getFieldContainer()->getTempEField()`).
      *
      * @param bunch Particle bunch for which to compute self-fields.
      */
@@ -331,23 +334,22 @@ public:
      * @param flipAxis  Axis in which to flip the read index (use -1 for no flip).
      */
     void accumulateFieldToTemp(
-            const double gammaBin, const Vector_t<double, Dim>& pmean,
-            std::shared_ptr<VField_t<T, Dim>> EtmpSP, std::shared_ptr<VField_t<T, Dim>> BtmpSP,
-            double bFieldSign = 1.0, int flipAxis = -1);
+            FieldContainer_t& fieldContainer, const double gammaBin,
+            const Vector_t<double, Dim>& pmean, std::shared_ptr<VField_t<T, Dim>> EtmpSP,
+            std::shared_ptr<VField_t<T, Dim>> BtmpSP, double bFieldSign = 1.0, int flipAxis = -1);
 
 private:
-    /// @brief Populate @c flippedZSlab_m with the z-axis globally-flipped version of @p src.
+    /// @brief Populate FieldContainer's flipped z-slab scratch with the flipped version of @p src.
     ///
     /// Under `PARFFTZ=true` the global flip `k -> N_z_global-1-k` generally crosses MPI ranks.
     /// This helper does one pairwise-exchange pass over `ippl::Comm`: each rank packs the z-slabs
     /// of @p src that peers need, posts `MPI_Isend`/`MPI_Irecv`, and unpacks the received slabs
-    /// into the correct local destination indices of @c flippedZSlab_m. After the call the
-    /// lambda in `accumulateFieldToTemp` reads @c flippedZSlab_m(i, j, k) directly without any
-    /// cross-rank access.
+    /// into the correct local destination indices of the scratch field. After the call the lambda
+    /// in `accumulateFieldToTemp` reads the scratch field directly without any cross-rank access.
     ///
     /// @param src  Source vector field (typically `*(this->getE())` after the shifted-GF solve).
     ///             Only the z axis is flipped; x and y stay local to the rank.
-    void buildFlippedZSlab(const VField_t<T, Dim>& src);
+    void buildFlippedZSlab(FieldContainer_t& fieldContainer, const VField_t<T, Dim>& src);
 
     /**
      * @brief Gather the accumulated lab-frame fields from temporaries back to particles.

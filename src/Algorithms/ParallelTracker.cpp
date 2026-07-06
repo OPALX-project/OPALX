@@ -604,6 +604,11 @@ void ParallelTracker::execute() {
         m << level2 << "Total FieldSolver calls: " << itsBunch_m->getFieldSolver()->getCallCounter()
           << endl;
     }
+    if (ippl::Comm->size() > 1) {
+        m << level2
+          << "Total binary repartitions: " << itsBunch_m->getLoadBalancer()->getNumBalances()
+          << endl;
+    }
 
     OPALTimer::Timer myt3;
     *gmsg << level1 << endl
@@ -758,7 +763,14 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     itsBunch_m->setEmissionMeshProgress(false, 1.0);
     m << level5 << "Bunch updated for positions in beam coordinate system." << endl;
 
-    if (repartFreq_m > 0 && step % repartFreq_m + 1 == repartFreq_m) {
+    // For now we only solve on the primary particle container, so we also only repartition on the
+    // primary one. TODO: needs to be changed once we generalize the solver to multiple containers.
+    //
+    // Note that balance() is only called if it's triggered by the step counter. Otherwise the check
+    // is short circuited.
+    size_type totalParticlesPrimary = itsBunch_m->getParticleContainer()->getTotalNum();
+    if (repartFreq_m > 0 && step % repartFreq_m + 1 == repartFreq_m
+        && itsBunch_m->getLoadBalancer()->balance(totalParticlesPrimary)) {
         doBinaryRepartition();
         m << level4 << "Binary repartition done." << endl;
     }
@@ -1263,10 +1275,19 @@ void ParallelTracker::activateEmittingContainers(double t) {
  */
 void ParallelTracker::doBinaryRepartition() {
     Inform m("ParallelTracker::doBinaryRepartition");
-    m << level2
-      << "Binary load-balancer repartition is disabled while the ORB path is "
-         "not wired for the current moving-mesh space-charge flow; skipping."
-      << endl;
+    if (!itsBunch_m || !itsBunch_m->getParticleContainer()
+        || itsBunch_m->getParticleContainer()->getTotalNum() == 0) {
+        m << level5 << "Skipping binary repartition because the primary container is empty."
+          << endl;
+        return;
+    }
+
+    m << level3 << "Starting binary repartition because of REPARTFREQ." << endl;
+    IpplTimings::startTimer(BinRepartTimer_m);
+    itsBunch_m->do_binaryRepart();
+    ippl::Comm->barrier();
+    IpplTimings::stopTimer(BinRepartTimer_m);
+    m << level3 << "Binary repartition step done." << endl;
 }
 
 /**
@@ -1580,12 +1601,26 @@ void ParallelTracker::setOptionalVariables() {
 
     repartFreq_m = 0;
 
-    if (Options::repartFreq > 0 && ippl::Comm->size() > 1) {
-        m << level2 << "REPARTFREQ = " << Options::repartFreq
-          << " requested, but binary load-balancer repartition is disabled." << endl;
-    } else {
+    if (Options::repartFreq <= 0) {
         m << level3 << "Binary load-balancer repartition disabled." << endl;
+        return;
     }
+
+    const int ranks = ippl::Comm->size();
+    if (ranks < 2) {
+        m << level3 << "Binary load-balancer repartition disabled on one MPI rank." << endl;
+        return;
+    }
+
+    if ((ranks & (ranks - 1)) != 0) {
+        m << level2 << "REPARTFREQ = " << Options::repartFreq
+          << " requested, but ORB load balancing requires a power-of-two MPI rank count; "
+          << "current rank count is " << ranks << "." << endl;
+        return;
+    }
+
+    repartFreq_m = static_cast<unsigned long long>(Options::repartFreq);
+    m << level2 << "REPARTFREQ " << repartFreq_m << endl;
 }
 
 /**

@@ -31,7 +31,6 @@ PartBunch<T, Dim>::PartBunch(
       integration_method_m(integration_method),
       solver_m(""),
       lbt_m(lbt),
-      isFirstRepartition_m(true),
       OPALFieldSolver_m(OPALFieldSolver),
       dataSink_m(dataSink),
       globalTrackStep_m(0),
@@ -75,7 +74,7 @@ PartBunch<T, Dim>::PartBunch(
             OPALFieldSolver_m->getNX(), OPALFieldSolver_m->getNY(), OPALFieldSolver_m->getNZ());
     nrZBase_m = nr_m[Dim - 1];
 
-    const Vector_t<bool, 3> domainDecomposition = OPALFieldSolver_m->getDomDec();
+    const Vector_t<bool, 3> domainDecomposition = OPALFieldSolver_m->getDomainDecomposition();
 
     for (unsigned i = 0; i < Dim; i++) {
         this->domain_m[i] = ippl::Index(nr_m[i]);
@@ -141,14 +140,6 @@ PartBunch<T, Dim>::PartBunch(
     }
 
     setSolver();
-
-    // Build temporary accumulation fields after solver/field initialization so they
-    // match the current mesh/layout and backing storage configuration.
-    this->setTempEField(std::make_shared<VField_t<T, Dim>>());
-    this->getTempEField()->initialize(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL());
-    this->setTempBField(std::make_shared<VField_t<T, Dim>>());
-    this->getTempBField()->initialize(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL());
-    // -----------------------------------------------
 
     pre_run();
     this->setT(0.0);
@@ -219,10 +210,68 @@ void PartBunch<T, Dim>::refreshPcActiveAfterEmit() {
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::do_binaryRepart() {
     Inform m("PartBunch::do_binaryRepart");
-    m << level2
-      << "Binary load-balancer repartition is disabled while the ORB path is "
-         "not wired for the current moving-mesh space-charge flow; skipping."
-      << endl;
+
+    if (ippl::Comm->size() < 2) {
+        m << level5 << "Skipping ORB load balancing on a single MPI rank." << endl;
+        return;
+    }
+
+    const int ranks = ippl::Comm->size();
+    if ((ranks & (ranks - 1)) != 0) {
+        m << level1 << "Skipping ORB load balancing because ORB requires a power-of-two MPI "
+          << "rank count; current rank count is " << ranks << "." << endl;
+        return;
+    }
+
+    if (!this->loadbalancer_m) {
+        m << level2 << "Skipping ORB load balancing because no load balancer is configured."
+          << endl;
+        return;
+    }
+
+    std::shared_ptr<ParticleContainer_t> primary = this->getParticleContainer();
+    if (!primary || primary->getTotalNum() == 0) {
+        m << level5 << "Skipping ORB load balancing because the primary container is empty."
+          << endl;
+        return;
+    }
+
+    const auto& containers = this->getParticleContainers();
+    for (size_t i = 1; i < containers.size(); ++i) {
+        const auto& pc = containers[i];
+        const bool active =
+                (i < pcActive_m.size() && pcActive_m[i]) || (pc && pc->getTotalNum() > 0);
+        if (active) {
+            m << level2 << "Skipping ORB load balancing because non-primary particle container "
+              << i << " is active or non-empty; the current load-balancer path is primary-only."
+              << endl;
+            return;
+        }
+    }
+
+    auto* mesh = &this->fcontainer_m->getMesh();
+    auto* fl   = &this->fcontainer_m->getFL();
+
+    const size_t localBefore = primary->getLocalNum();
+    const size_t total       = primary->getTotalNum();
+    m << level3
+      << "Starting ORB load balancing from current primary particles: local=" << localBefore
+      << ", total=" << total << "." << endl;
+
+    const bool repartitioned = this->loadbalancer_m->repartitionFromCurrentParticles(fl, mesh);
+    if (!repartitioned) {
+        m << level2 << "ORB load balancing failed; keeping previous layout." << endl;
+        return;
+    }
+
+    m << level4 << "Field layout after ORB load balancing: " << *fl << endl;
+
+    this->getFieldSolver()->refreshAfterFieldLayoutChange();
+
+    gatherLoadBalanceStatistics();
+
+    m << level2 << "ORB load balancing done. Rank 0: " << localBefore << " -> "
+      << primary->getLocalNum() << " particles in primary container." << endl;
 }
 
 /**
@@ -491,6 +540,7 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
            << "* <EKIN>          = " << Util::getEnergyString(ek) << "\n"
            << "* <dEKIN>         = " << Util::getEnergyString(dek) << "\n"
            << "* INTEGRATOR      = " << integration_method_m << "\n"
+           << "* LB Threshold    = " << lbt_m << "\n"
            << "* MIN R (origin)  = " << Util::getLengthString(pc->getMinR(), 5) << "\n"
            << "* MAX R (max ext) = " << Util::getLengthString(pc->getMaxR(), 5) << "\n"
            << "* RMS R           = " << Util::getLengthString(pc->getRmsR(), 5) << "\n"
@@ -545,15 +595,9 @@ void PartBunch<T, Dim>::reinitializeGridZ(int nrZ) {
     this->fcontainer_m->getFL().initialize(domain_m, decomp, isAllPeriodic);
 
     // BareField::initialize() is a no-op on already-initialized fields, so use
-    // updateLayout() to resize the underlying Kokkos views to the new domain.
-    auto& fl = this->fcontainer_m->getFL();
-    this->fcontainer_m->getRho().updateLayout(fl);
-    this->fcontainer_m->getE().updateLayout(fl);
-    if (solver_m == "CG") {
-        this->fcontainer_m->getPhi().updateLayout(fl);
-    }
-    this->getTempEField()->updateLayout(fl);
-    this->getTempBField()->updateLayout(fl);
+    // FieldContainer's centralized layout refresh to resize all OPALX-owned fields.
+    this->fcontainer_m->updateFieldLayoutsAfterLayoutChange(solver_m);
+    this->getFieldSolver()->refreshAfterFieldLayoutChange();
 
     m << level3 << "Grid z reinit complete (nrZ=" << nrZ << ")." << endl;
 }
@@ -561,7 +605,7 @@ void PartBunch<T, Dim>::reinitializeGridZ(int nrZ) {
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::bunchUpdate() {
     Inform m("PartBunch::bunchUpdate");
-    m << level4 << "Updating bunch and doing repartitioning if needed." << endl;
+    m << level4 << "Updating bunch grid and particle layouts." << endl;
 
     // Double the longitudinal grid resolution while image charges are active.
     // computeBoundsForFieldSolve already extends the z domain to include mirrored
@@ -576,8 +620,7 @@ void PartBunch<T, Dim>::bunchUpdate() {
     computeBoundsForFieldSolve(lower, upper);
     applyGridUpdate(lower, upper);
 
-    isFirstRepartition_m = true;
-    m << level5 << "Bunch grid update done without load-balancer repartitioning." << endl;
+    m << level5 << "Bunch grid update done; tracker cadence controls load balancing." << endl;
 
     // Always request moments update; DistributionMoments decides whether it
     // actually needs to recompute based on the dirty flag.
@@ -908,13 +951,15 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
     ms << level4 << "E-field layout initialized." << endl;
 
     // Temporary E/B accumulation fields (binned solver path)
-    if (!this->Etmp_m || !this->Btmp_m) {
+    auto Etmp = fctr->getTempEField();
+    auto Btmp = fctr->getTempBField();
+    if (!Etmp || !Btmp) {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks",
                 "Temporary E field (Etmp) and/or B field (Btmp) not initialized.");
     }
-    auto EtmpView = this->Etmp_m->getView();
-    auto BtmpView = this->Btmp_m->getView();
+    auto EtmpView = Etmp->getView();
+    auto BtmpView = Btmp->getView();
     if (EtmpView.extent(0) == 0 || EtmpView.extent(1) == 0 || EtmpView.extent(2) == 0) {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks",
@@ -925,8 +970,7 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
                 "PartBunch::performBunchSanityChecks",
                 "Btmp field layout not initialized (zero extent). ");
     }
-    if (&this->Etmp_m->get_mesh() != &fctr->getMesh()
-        || &this->Btmp_m->get_mesh() != &fctr->getMesh()) {
+    if (&Etmp->get_mesh() != &fctr->getMesh() || &Btmp->get_mesh() != &fctr->getMesh()) {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks",
                 "Etmp/Btmp fields do not use the FieldContainer mesh.");
