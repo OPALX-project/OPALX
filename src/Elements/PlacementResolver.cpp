@@ -1,7 +1,3 @@
-//
-// Class PlacementResolver
-//   The single PLACE stage of the input -> computeExternalFields() pipeline.
-//
 // Copyright (c) 2024, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
@@ -24,6 +20,20 @@
 
 #include <cmath>
 
+/**
+ * @brief Give every element its global -> local (lab -> entrance) transform.
+ *
+ * Two placement modes are resolved here:
+ *   - Mode A (explicit 6D pose): X/Y/Z/PHI/PSI/THETA already are the entrance
+ *     frame, so just compose them with the lab frame (Phase 1).
+ *   - Mode B (ELEMEDGE): the element sits at a path length along the reference
+ *     orbit; its frame comes from walking that orbit (Phases 2 and 3).
+ *
+ * The walk only changes orientation at bends; a straight element keeps the
+ * previous orientation and its spacing is carried by the ELEMEDGE path lengths.
+ * Phase 2 sets each bend's entrance frame; Phase 3 places every remaining
+ * element and fixes all positions.
+ */
 void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTrafo& labFrame) {
     const ElementList::iterator end = elements.end();
 
@@ -44,7 +54,9 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
         element->fixPosition();
     }
 
+    // Phase 2 — set the entrance frame of each ELEMEDGE bend by walking the reference orbit.
     {
+        // Running path length and frame at the exit of the previous bend.
         double endPriorPathLength               = 0.0;
         CoordinateSystemTrafo currentCoordTrafo = labFrame;
 
@@ -52,81 +64,97 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
         for (; it != end; ++it) {
             std::shared_ptr<ElementBase> element = (*it);
             if (element->isPositioned()) {
-                continue;
+                continue;  // already placed by Phase 1 (Mode A)
             }
 
+            // This pass only frames bends; every other element is placed in Phase 3.
             if (element->getType() != ElementType::SBEND && element->getType() != ElementType::RBEND
                 && element->getType() != ElementType::RBEND3D) {
                 continue;
             }
 
+            // Entrance offset from the previous bend's exit, along the straight run between them.
             double beginThisPathLength = element->getElementPosition();
             Vector_t<double, 3> beginThis3D(0, 0, beginThisPathLength - endPriorPathLength);
-            double thisLength    = element->getGeometry().getChordLength();
-            double bendAngle     = element->getGeometry().getBendAngle();
-            double entranceAngle = element->getGeometry().getEntranceAngle();
-            double arcLength     = element->getGeometry().getArcLength();
+            double thisLength = element->getGeometry().getChordLength();
+            double bendAngle  = element->getGeometry().getBendAngle();
+            double arcLength  = element->getGeometry().getArcLength();
 
+            // Roll about z: tilts the bend plane (e.g. a vertical bend rolls the axis out of x-z).
             double rotationAngleAboutZ = element->getRotationAboutZ();
             Quaternion_t rotationAboutZ(
                     cos(0.5 * rotationAngleAboutZ),
                     sin(-0.5 * rotationAngleAboutZ) * Vector_t<double, 3>(0, 0, 1));
 
+            // Bend axis: the nominal -y axis, rolled about z. The orbit turns about this axis.
             Vector_t<double, 3> effectiveRotationAxis =
                     rotationAboutZ.rotate(Vector_t<double, 3>(0, -1, 0));
             effectiveRotationAxis = effectiveRotationAxis / euclidean_norm(effectiveRotationAxis);
 
+            // Turn by the full bend angle (entrance -> exit tangent) and by half of it
+            // (entrance tangent -> chord).
             Quaternion_t rotationAboutAxis(
                     cos(0.5 * bendAngle), sin(0.5 * bendAngle) * effectiveRotationAxis);
             Quaternion_t halfRotationAboutAxis(
                     cos(0.25 * bendAngle), sin(0.25 * bendAngle) * effectiveRotationAxis);
-            Quaternion_t entryFaceRotation(
-                    cos(0.5 * entranceAngle), sin(0.5 * entranceAngle) * effectiveRotationAxis);
 
-            // arcLength is the bend's design-arc contribution to the running path length,
-            // so a following element placed by ELEMEDGE sits flush against the bend exit.
-
+            // Exit point = entrance + chord. The chord has the chord length and points half the
+            // bend angle off the entrance tangent.
             Vector_t<double, 3> chord =
                     thisLength * halfRotationAboutAxis.rotate(Vector_t<double, 3>(0, 0, 1));
             Vector_t<double, 3> endThis3D = beginThis3D + chord;
-            double endThisPathLength      = beginThisPathLength + arcLength;
+            // Advance the running path length by the ARC (not the chord), so a following ELEMEDGE
+            // element sits flush against the bend's arc exit.
+            double endThisPathLength = beginThisPathLength + arcLength;
 
-            // The SBEND body is a real arc, so its local frame is the entrance tangent
-            // (rotated by the pole-face angle E1). The RBEND body is a straight box with a
-            // uniform vertical field, so its local frame is the box itself: +z along the
-            // chord (half the bend angle from the entrance tangent). apply() can then gate
-            // on the box z and add a uniform dipole, no arc conversion. Only this element's
-            // own frame changes; the running frame handed to the next element
-            // (currentCoordTrafo, below) is untouched, so the chaining is unaffected.
+            // This element's own frame is its GEOMETRICAL ENTRANCE frame (lab -> entrance face),
+            // the same frame the field kernel evaluates in:
+            //  - SBEND: a curved body, so its entrance face frame coincides with the design-orbit
+            //    entrance tangent (identity rotation relative to the incoming orbit here).
+            //    SBend::apply measures arc length from it directly, no pole-face de-tilt.
+            //  - RBEND/RBEND3D: a straight box, so its entrance face frame is the box frame — +z
+            //    along the chord, half the bend angle off the incoming orbit tangent. It does NOT
+            //    coincide with the orbit tangent. RBend::apply gates on the box z, uniform dipole.
+            // E1/E2 pole-face rotations are rejected at parse time, so there is no face tilt to add.
+            // Only this element's own frame is set here; the running frame handed to the next
+            // element (currentCoordTrafo) is advanced separately below.
             const bool isRectangular = element->getType() == ElementType::RBEND
                                        || element->getType() == ElementType::RBEND3D;
             const Quaternion_t entryFrameRotation =
-                    isRectangular ? halfRotationAboutAxis : entryFaceRotation;
+                    isRectangular ? halfRotationAboutAxis
+                                  : Quaternion_t(1.0, Vector_t<double, 3>(0, 0, 0));
 
+            // Map prev-exit -> this entrance frame, and prev-exit -> this exit frame.
             CoordinateSystemTrafo fromEndLastToBeginThis(
                     beginThis3D, (entryFrameRotation * rotationAboutZ).conjugate());
             CoordinateSystemTrafo fromEndLastToEndThis(endThis3D, rotationAboutAxis.conjugate());
 
+            // Global->local for this bend = (running lab frame) then (prev exit -> this entrance).
             element->setCSTrafoGlobal2Local(fromEndLastToBeginThis * currentCoordTrafo);
 
+            // Advance the running frame and path length to this bend's exit.
             currentCoordTrafo = (fromEndLastToEndThis * currentCoordTrafo);
 
             endPriorPathLength = endThisPathLength;
         }
     }
 
+    // Phase 3 — place every remaining (non-bend) element and fix all positions. Re-walk from the
+    // lab frame; the running frame again only turns at bends (their own frames were set in Phase 2).
     double endPriorPathLength               = 0.0;
     CoordinateSystemTrafo currentCoordTrafo = labFrame;
 
     ElementList::iterator it = elements.begin();
     for (; it != end; ++it) {
         std::shared_ptr<ElementBase> element = (*it);
-        if (element->isPositioned()) continue;
+        if (element->isPositioned()) continue;  // already placed by Phase 1 (Mode A)
 
+        // Entrance offset from the previous element along the straight run.
         double beginThisPathLength = element->getElementPosition();
         double thisLength          = element->getGeometry().getElementLength();
         Vector_t<double, 3> beginThis3D(0, 0, beginThisPathLength - endPriorPathLength);
 
+        // A SOURCE is anchored by its downstream face, so step its entrance back by its length.
         if (element->getType() == ElementType::SOURCE) {
             beginThis3D(2) -= thisLength;
         }
@@ -134,6 +162,8 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
         Vector_t<double, 3> endThis3D;
         if (element->getType() == ElementType::SBEND || element->getType() == ElementType::RBEND
             || element->getType() == ElementType::RBEND3D) {
+            // Bend: its own frame is already set (Phase 2); here we only advance the running frame
+            // across it so the following elements are placed correctly.
             thisLength       = element->getGeometry().getChordLength();
             double bendAngle = element->getGeometry().getBendAngle();
 
@@ -153,6 +183,7 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
 
             const double arcLength = element->getGeometry().getArcLength();
 
+            // Exit point via the chord, then advance the running frame and path length (by arc).
             endThis3D =
                     (beginThis3D
                      + halfRotationAboutAxis.rotate(Vector_t<double, 3>(0, 0, thisLength)));
@@ -161,6 +192,7 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
 
             endPriorPathLength = beginThisPathLength + arcLength;
         } else {
+            // Straight element: entrance offset plus roll about z, composed with the running frame.
             double rotationAngleAboutZ = (*it)->getRotationAboutZ();
             Quaternion_t rotationAboutZ(
                     cos(0.5 * rotationAngleAboutZ),

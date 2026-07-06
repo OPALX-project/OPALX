@@ -1,13 +1,8 @@
 #include "AbsBeamline/RBend.h"
-
 #include "AbsBeamline/BeamlineVisitor.h"
-
 #include "BeamlineGeometry/Geometry.h"
-
 #include "PartBunch/PartBunch.h"
-
 #include <Kokkos_Core.hpp>
-
 #include <cmath>
 
 RBend::RBend() : RBend("") {}
@@ -46,28 +41,26 @@ bool RBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     auto Bview          = pc->B.getView();
     const size_t nLocal = pc->getLocalNum();
 
-    // Field-support extent (single source, shared with isInside selection), captured on the
-    // host before the kernel launch (getFieldExtent is not device-callable).
+    // Calc. field extent.
     double zBegin = 0.0;
     double zEnd   = 0.0;
     getFieldExtent(zBegin, zEnd);
 
-    // Coefficients, fringe geometry and edge-focusing built once on the host and captured by value.
+    // Field info capture by value for kernel.
     const BendFieldModel::FieldInputs inputs = makeFieldInputs();
 
     Kokkos::parallel_for(
             "RBend::apply", nLocal, KOKKOS_LAMBDA(const size_t i) {
-                // The local frame is the straight box (+z along the box axis), so the field
-                // is a uniform vertical dipole with an Enge ramp in the box z — gate on the
-                // box z, no arc conversion. The pusher curves the orbit through it.
-                const Vector_t<double, 3>& box = Rview(i);
-                if (box(2) < zBegin || box(2) > zEnd) {
-                    return;
+                const Vector_t<double, 3>& point = Rview(i);
+                if (point(2) < zBegin || point(2) > zEnd) {
+                    return; // exits the lambda for current particle
                 }
-                const Vector_t<double, 3> Bf = BendFieldModel::bendField(box, inputs);
-                for (unsigned d = 0; d < 3; ++d) {
-                    Bview(i)(d) += Bf(d);
-                }
+
+                const Vector_t<double, 3> Bf = BendFieldModel::bendField(point, inputs);
+                
+                Bview(i)(0) += Bf(0);
+                Bview(i)(1) += Bf(1);
+                Bview(i)(2) += Bf(2);
             });
 
     return false;
@@ -116,8 +109,6 @@ void RBend::getFieldExtent(double& zBegin, double& zEnd) const {
 }
 
 void RBend::computeFieldHost(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const {
-    // R is already in the straight box frame: a uniform vertical dipole with an Enge ramp
-    // in the box z, no arc conversion (mirrors the device kernel in apply(pc)).
     const BendFieldModel::FieldInputs inputs = makeFieldInputs();
     const Vector_t<double, 3> Bf             = BendFieldModel::bendField(R, inputs);
     for (unsigned d = 0; d < 3; ++d) {
@@ -133,8 +124,6 @@ double RBend::referenceCurvature() const {
 }
 
 double RBend::edgeAngleEntrance() const {
-    // Geometric edge angle: the design orbit meets the perpendicular box face at half the bend
-    // angle. (Explicit pole-face rotations E1/E2 are not implemented yet.)
     return 0.5 * getGeometry().getBendAngle();
 }
 
@@ -143,7 +132,6 @@ double RBend::edgeAngleExit() const {
 }
 
 bool RBend::isInside(const Vector_t<double, 3>& r) const {
-    // Straight box: gate on the box z and the box transverse aperture directly.
     double zBegin = 0.0;
     double zEnd   = 0.0;
     getFieldExtent(zBegin, zEnd);
@@ -169,16 +157,12 @@ BendFieldModel::FieldInputs RBend::makeFieldInputs() const {
     in.dipoleSkew   = ((maxSkew_m > 0) ? skewComponentsHost_m(0) : 0.0) / charge;
     in.quadSkew     = ((maxSkew_m > 1) ? skewComponentsHost_m(1) : 0.0) / charge;
 
-    // Straight box frame: the field is a uniform vertical dipole gated on the box z, so no
-    // curvature is applied (curvature stays 0). The fringe runs over the box length with the
-    // faces perpendicular to the box axis. The vertical edge focusing below uses the geometric
-    // edge angle (the orbit meets the box face at half the bend angle).
+    // RBend geometry
     in.bodyLength = getGeometry().getElementLength();
     in.curvature  = 0.0;
     in.profileGap = gap_m;
 
-    // Distributed vertical edge focusing, active only with a fringe. The kick coefficient is
-    // spread over the Enge ramp so its integral matches the hard-edge kick.
+    // Compute Enge ramp kick coefficient. 
     in.entryEdgeCoefficient = 0.0;
     in.exitEdgeCoefficient  = 0.0;
     if (in.profileGap > 0.0) {
