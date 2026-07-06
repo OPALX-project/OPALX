@@ -88,6 +88,8 @@ FieldSolverCmd::FieldSolverCmd()
             "PIPESIZEX", "Beam pipe horizontal size in metres [FFT2D5 only]", 1.0);
     itsAttr[FIELDSOLVER::PIPESIZEY] = Attributes::makeReal(
             "PIPESIZEY", "Beam pipe vertical size in metres [FFT2D5 only]", 1.0);
+    itsAttr[FIELDSOLVER::REFPATHFNAME] = Attributes::makeString(
+            "REFPATHNAME", "Reference path file name [FFT2D5 only]", "");
 
     // \todo does not work   registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -182,6 +184,9 @@ double FieldSolverCmd::getPipeSizeX() const {
 double FieldSolverCmd::getPipeSizeY() const {
     return Attributes::getReal(itsAttr[FIELDSOLVER::PIPESIZEY]);
 }
+std::string FieldSolverCmd::getRefPathFileName() const {
+    return Attributes::getString(itsAttr[FIELDSOLVER::REFPATHFNAME]);
+}
 void FieldSolverCmd::setPipeMode(const std::string& pipeMode) {
     Attributes::setPredefinedString(itsAttr[FIELDSOLVER::PIPEMODE], pipeMode);
 }
@@ -196,6 +201,9 @@ void FieldSolverCmd::setPipeSizeX(const double pipeSizeX) {
 }
 void FieldSolverCmd::setPipeSizeY(const double pipeSizeY) {
     Attributes::setReal(itsAttr[FIELDSOLVER::PIPESIZEY], pipeSizeY);
+}
+void FieldSolverCmd::setRefPathFileName(const std::string& refPathFileName) {
+    Attributes::setString(itsAttr[FIELDSOLVER::REFPATHFNAME], refPathFileName);
 }
 
 void FieldSolverCmd::setFieldSolverCmdType() {

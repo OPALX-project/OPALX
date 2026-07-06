@@ -56,7 +56,7 @@ public:
             PartBunch_t* partBunch, std::string solver, Field_t<3>* rho, VField_t<T, 3>* E,
             Field_t<3>* phi, std::shared_ptr<BCHandler_t> bcHandler, const Vector<int, 3>& nR,
             LongitudinalFieldMode longitudinalFieldMode, T pipeSizeX, T pipeSizeY, T beamRadius,
-            bool closedRing);
+            bool closedRing, const std::string& refPathFileName);
 
     void initSolver() override;
     void runSolver() override { runSolver(false); }
@@ -188,12 +188,13 @@ private:
     LongitudinalFieldMode longitudinalFieldMode_m{LongitudinalFieldMode::Open};
     bool closedRing_m{false};
     Vector<unsigned int, 3> nR_m{10};
+    std::string referencePathFileName_m{};
 
     // Constants
     static constexpr size_t LineDensityGhostCells    = 2;
     static constexpr size_t LineDensityFirstRealCell = 1;
 };
 
-#include "Solve2d5.tpp"
+#include "Solve2d5.hpp"
 
 #endif  // OPALX_SOLVE2D5_H

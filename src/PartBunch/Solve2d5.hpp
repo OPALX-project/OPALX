@@ -24,13 +24,14 @@ Solve2d5<T>::Solve2d5(
         PartBunch_t* partBunch, std::string solver, Field_t<3>* rho, VField_t<T, 3>* E,
         Field_t<3>* phi, std::shared_ptr<BCHandler_t> bcHandler, const Vector<int, 3>& nR,
         const LongitudinalFieldMode longitudinalFieldMode, const T pipeSizeX, const T pipeSizeY,
-        const T beamRadius, const bool closedRing)
+        const T beamRadius, const bool closedRing, const std::string& refPathFileName)
     : Base(solver, rho, E, phi, bcHandler, 0, true),
       partBunch_m(partBunch),
       beamRadius_m(beamRadius),
       longitudinalFieldMode_m(longitudinalFieldMode),
       closedRing_m(closedRing),
-      nR_m(nR) {
+      nR_m(nR),
+      referencePathFileName_m(refPathFileName) {
     // Load the reference path to determine the Frenet-Serret domain dimensions
     auto pathLength = loadReferencePath();
     sizer_m         = {pipeSizeX, pipeSizeY, pathLength};
@@ -113,8 +114,12 @@ T Solve2d5<T>::loadReferencePath() {
     T length{};
     // The path name of the file created by the OrbitThreader
     auto opal            = OpalData::getInstance();
-    std::string fileName = Util::combineFilePath(
-            {opal->getAuxiliaryOutputDirectory(), opal->getInputBasename() + "_DesignPath.dat"});
+    std::string fileName = referencePathFileName_m;
+    if (fileName.empty()) {
+        fileName = Util::combineFilePath(
+                {opal->getAuxiliaryOutputDirectory(),
+                 opal->getInputBasename() + "_DesignPath.dat"});
+    }
     // Open the file
     if (!std::filesystem::exists(fileName)) {
         throw OpalException("Solve2d5::loadReferencePath", "File does not exist: " + fileName);
