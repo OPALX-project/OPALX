@@ -46,9 +46,6 @@ TEST(GeometryTest, Straight) {
 
     EXPECT_DOUBLE_EQ(g.getElementLength(), L);
     EXPECT_DOUBLE_EQ(g.getArcLength(), L);
-    EXPECT_DOUBLE_EQ(g.getOrigin(), L / 2.0);
-    EXPECT_DOUBLE_EQ(g.getEntrance(), -L / 2.0);
-    EXPECT_DOUBLE_EQ(g.getExit(), L / 2.0);
     EXPECT_DOUBLE_EQ(g.getBendAngle(), 0.0);
     EXPECT_DOUBLE_EQ(g.getChordLength(), L);
 
@@ -77,14 +74,13 @@ TEST(GeometryTest, SectorArc) {
     EXPECT_DOUBLE_EQ(g.getCurvature(), angle / L);
     EXPECT_NEAR(g.getChordLength(), 1.1938843720703722, 1e-12);
 
+    // Entrance-anchored: the entrance edge is the stored frame (identity); the exit edge sits
+    // at framePosition(len) with the tangent turned by the full bend angle.
+    expectTrafo(g.getEdgeToBegin(), {0.0, 0.0, 0.0}, kIdentity);
     expectTrafo(
-            g.getEdgeToBegin(), {-0.052366152325942467, 0.0, -0.59694218603518612},
-            {0.98472653890493334, 0, -0.17410813759359647, 0, 1, 0, 0.17410813759359647, 0,
-             0.98472653890493334});
-    expectTrafo(
-            g.getEdgeToEnd(), {-0.052366152325942467, 0.0, 0.59694218603518612},
-            {0.98472653890493334, 0, 0.17410813759359647, 0, 1, 0, -0.17410813759359647, 0,
-             0.98472653890493334});
+            g.getEdgeToEnd(), {-0.20786498452327237, 0.0, 1.1756496255615476},
+            {0.9393727128473789, 0, 0.3428978074554514, 0, 1, 0, -0.3428978074554514, 0,
+             0.9393727128473789});
 }
 
 TEST(GeometryTest, RectangularBend) {
@@ -97,14 +93,12 @@ TEST(GeometryTest, RectangularBend) {
     EXPECT_DOUBLE_EQ(g.getBendAngle(), angle);
     EXPECT_DOUBLE_EQ(g.getChordLength(), L);
 
-    expectTrafo(
-            g.getEdgeToBegin(), {0.0, 0.0, -0.45},
-            {0.98006657784124163, 0, -0.19866933079506133, 0, 1, 0, 0.19866933079506133, 0,
-             0.98006657784124163});
-    expectTrafo(
-            g.getEdgeToEnd(), {0.0, 0.0, 0.45},
-            {0.98006657784124163, 0, 0.19866933079506133, 0, 1, 0, -0.19866933079506133, 0,
-             0.98006657784124163});
+    // Entrance-anchored: a rectangular bend is a straight box with parallel faces, so both edge
+    // transforms are face-parallel — begin is the identity and end is a pure +z shift by the box
+    // length. (The reference orbit meets the faces at half the bend angle, but that orbit tangent
+    // is not part of the body edge geometry.)
+    expectTrafo(g.getEdgeToBegin(), {0.0, 0.0, 0.0}, kIdentity);
+    expectTrafo(g.getEdgeToEnd(), {0.0, 0.0, L}, kIdentity);
 }
 
 TEST(GeometryTest, SetElementLengthRecomputesArcAngle) {
@@ -115,17 +109,17 @@ TEST(GeometryTest, SetElementLengthRecomputesArcAngle) {
     EXPECT_DOUBLE_EQ(g.getCurvature(), 0.2);
 }
 
-TEST(GeometryTest, DesignPathIsCentredAndOnTheArc) {
+TEST(GeometryTest, DesignPathIsEntranceAnchoredAndOnTheArc) {
     Geometry g = Geometry::makeSBend(1.2, 0.35 / 1.2);
 
     auto path = g.getDesignPath(32);
     ASSERT_GE(path.size(), 32u);
 
-    // Endpoints sit on the centred arc (z runs from -chord/2 to +chord/2).
-    EXPECT_NEAR(path.front()(0), -0.052366152325942467, 1e-12);
-    EXPECT_NEAR(path.front()(2), -0.59694218603518612, 1e-12);
-    EXPECT_NEAR(path.back()(0), -0.052366152325942467, 1e-12);
-    EXPECT_NEAR(path.back()(2), 0.59694218603518612, 1e-12);
+    // Entrance-anchored: the path starts at the entrance origin and ends at the exit.
+    EXPECT_NEAR(path.front()(0), 0.0, 1e-12);
+    EXPECT_NEAR(path.front()(2), 0.0, 1e-12);
+    EXPECT_NEAR(path.back()(0), -0.20786498452327237, 1e-12);
+    EXPECT_NEAR(path.back()(2), 1.1756496255615476, 1e-12);
 }
 
 /* ===================== GeometryHelper (device-callable functions) =============== */

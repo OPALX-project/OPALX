@@ -5,10 +5,10 @@
 // BendFieldModel
 //   Stateless field-shape math shared by the analytic SBEND and RBEND fringe
 //   fields: the OPAL default Enge longitudinal profile (amplitude and its first
-//   two derivatives), the combined amplitude from the two pole-face distances,
-//   the pole-face vertical edge-focusing coefficient, and the field evaluation
-//   itself. All functions are device-callable and hold no state; the bends supply
-//   their own geometry scalars (gap, curvature, face angles) and coefficients.
+//   two derivatives), the combined amplitude from the two face distances, the
+//   vertical edge-focusing coefficient, and the field evaluation itself. All
+//   functions are device-callable and hold no state; the bends supply their own
+//   geometry scalars (gap, curvature) and coefficients.
 //   Coordinate conversions live in GeometryHelper (BeamlineGeometry/Geometry.h).
 //
 // Copyright (c) 2026, Paul Scherrer Institut, Villigen PSI, Switzerland
@@ -175,10 +175,7 @@ namespace BendFieldModel {
         double quadSkew;              ///< skew quadrupole (skew[1])
         double bodyLength;            ///< magnet body length (arc length)
         double curvature;             ///< reference-path curvature h (0 for a straight body)
-        double faceAngle;             ///< entrance pole-face angle E1 (frame tilt vs design orbit)
         double profileGap;            ///< Enge full gap (GAP); 0 => hard edge
-        double cosEntrance;           ///< |cos E1|, pole-face projection
-        double cosExit;               ///< |cos E2|
         double entryEdgeCoefficient;  ///< distributed vertical edge-focusing (entry)
         double exitEdgeCoefficient;   ///< distributed vertical edge-focusing (exit)
     };
@@ -200,12 +197,13 @@ namespace BendFieldModel {
         const double y = arc(1);
         const double z = arc(2);
 
-        const FringeAmplitude fringe = fringeAmplitude(
-                -z * in.cosEntrance, (z - in.bodyLength) * in.cosExit, in.profileGap);
+        const FringeAmplitude fringe =
+                fringeAmplitude(-z, z - in.bodyLength, in.profileGap);
         const double scale = fringe.value;
 
-        // Chain rule from the active face's distance coordinate to z.
-        const double projection = (fringe.activeFace == 0) ? -in.cosEntrance : in.cosExit;
+        // Chain rule from the active face's distance coordinate to z. The faces are perpendicular
+        // to the arc, so the projection is just the sign.
+        const double projection = (fringe.activeFace == 0) ? -1.0 : 1.0;
         const double dScale     = projection * fringe.firstDerivative;
         const double d2Scale    = projection * projection * fringe.secondDerivative;
 

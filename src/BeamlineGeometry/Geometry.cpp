@@ -141,13 +141,13 @@ Vector_t<double, 3> Geometry::framePosition(double s) const {
 }
 
 double Geometry::getChordLength() const {
-    const Vector_t<double, 3> delta = framePosition(getExit()) - framePosition(getEntrance());
+    const Vector_t<double, 3> delta = framePosition(len_m) - framePosition(0.0);
     return std::sqrt(delta(0) * delta(0) + delta(1) * delta(1) + delta(2) * delta(2));
 }
 
 std::vector<Vector_t<double, 3>> Geometry::getDesignPath(std::size_t minSamples) const {
-    const double sBegin = getEntrance();
-    const double sEnd   = getExit();
+    const double sBegin = 0.0;      // entrance edge (chart anchored at the entrance)
+    const double sEnd   = len_m;    // exit edge
     const double span   = std::abs(sEnd - sBegin);
     const std::size_t samples =
             std::max<std::size_t>(minSamples, static_cast<std::size_t>(std::ceil(span / 0.01)) + 1);
@@ -165,24 +165,23 @@ std::vector<Vector_t<double, 3>> Geometry::getDesignPath(std::size_t minSamples)
 }
 
 CoordinateSystemTrafo Geometry::getEdgeToBegin() const {
-    switch (kind_m) {
-        case GeometryKind::SBend:
-            // Frame rotation is YRotation(-phi) with phi = h * (-len/2) = -angle/2.
-            return frameTrafo(framePosition(getEntrance()), h_m * (len_m / 2.0));
-        case GeometryKind::RBend:
-            return frameTrafo(Vector_t<double, 3>({0.0, 0.0, -len_m / 2.0}), halfAngle());
-        default:  // Straight, Null: identity at the entrance edge
-            return identityTrafo(Vector_t<double, 3>({0.0, 0.0, 0.0}));
-    }
+    // The stored (global-to-local) frame IS the element's geometrical entrance face for every
+    // kind (sector bend: entrance tangent; rectangular bend: box/chord face; straight body:
+    // entrance edge), so the entrance-edge transform is always the identity.
+    return identityTrafo(Vector_t<double, 3>({0.0, 0.0, 0.0}));
 }
 
 CoordinateSystemTrafo Geometry::getEdgeToEnd() const {
+    // Transform from the entrance face (the stored frame) to the exit face of the body. A
+    // straight body — straight element, rectangular-bend box, or null — has parallel faces, so
+    // this is a pure +z shift by the body length. A sector bend's body curves, so its exit face
+    // sits at the arc end (framePosition(len)) with the tangent turned by the full bend angle.
+    // (The reference orbit meets an RBend's faces at half the bend angle, but that orbit tangent
+    // is not part of the body edge geometry.)
     switch (kind_m) {
         case GeometryKind::SBend:
-            return frameTrafo(framePosition(getExit()), -h_m * (len_m / 2.0));
-        case GeometryKind::RBend:
-            return frameTrafo(Vector_t<double, 3>({0.0, 0.0, len_m / 2.0}), -halfAngle());
-        default:  // Straight, Null: +z shift to the exit edge
+            return frameTrafo(framePosition(len_m), -h_m * len_m);
+        default:  // Straight, RBend, Null: exit face parallel to the entrance face
             return identityTrafo(Vector_t<double, 3>({0.0, 0.0, len_m}));
     }
 }

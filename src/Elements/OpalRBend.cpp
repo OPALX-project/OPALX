@@ -41,18 +41,24 @@ OpalRBend* OpalRBend::clone(const std::string& name) { return new OpalRBend(name
 void OpalRBend::update() {
     OpalElement::update();
 
+    // E1/E2 pole-face rotations are not wired into the OPALX-native bend geometry/field yet, so
+    // reject them explicitly rather than silently ignoring them.
+    if (!itsAttr[E1].defaultUsed() || !itsAttr[E2].defaultUsed()) {
+        throw OpalException(
+                "OpalRBend::update",
+                getOpalName()
+                        + ": pole-face rotations (E1, E2) are not yet implemented in the "
+                          "OPALX-native bend port. Remove E1/E2 from the element definition.");
+    }
+
     // Define geometry. L is the straight body (box) length — the placed hardware, and the
     // chord of the design orbit. The orbit arc through the box is longer,
     // arc = L (angle/2) / sin(angle/2), reported by Geometry::getArcLength().
     RBendRep* bend     = dynamic_cast<RBendRep*>(getElement());
     double length      = Attributes::getReal(itsAttr[LENGTH]);
     double angle       = Attributes::getReal(itsAttr[ANGLE]);
-    double e1          = Attributes::getReal(itsAttr[E1]);
-    double e2          = Attributes::getReal(itsAttr[E2]);
     Geometry& geometry = static_cast<Geometry&>(bend->getGeometry());
     geometry.setElementLength(length);
-    if (angle < 0) {
-    }
     geometry.setBendAngle(angle);
 
     // Define field. With L the box (chord) length, the design radius is
@@ -72,11 +78,9 @@ void OpalRBend::update() {
             factor * Attributes::getReal(itsAttr[K3S]) / 6.0};
     bend->setFieldComponents(normal, skew);
 
-    // Set the bend angle and pole-face rotations.
+    // Set the bend angle.
     if (itsAttr[ANGLE]) {
         if (bend->isPositioned() && angle < 0.0) {
-            e1    = -e1;
-            e2    = -e2;
             angle = -angle;
 
             Quaternion rotAboutZ(0, 0, 0, 1);
@@ -88,8 +92,6 @@ void OpalRBend::update() {
         }
         geometry.setBendAngle(angle);
     }
-    geometry.setEntranceAngle(e1);
-    geometry.setExitAngle(e2);
 
     // Energy in eV.
     if (itsAttr[DESIGNENERGY]) {

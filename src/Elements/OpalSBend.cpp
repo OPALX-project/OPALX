@@ -41,12 +41,20 @@ OpalSBend* OpalSBend::clone(const std::string& name) { return new OpalSBend(name
 void OpalSBend::update() {
     OpalElement::update();
 
+    // E1/E2 pole-face rotations are not wired into the OPALX-native bend geometry/field yet, so
+    // reject them explicitly rather than silently ignoring them.
+    if (!itsAttr[E1].defaultUsed() || !itsAttr[E2].defaultUsed()) {
+        throw OpalException(
+                "OpalSBend::update",
+                getOpalName()
+                        + ": pole-face rotations (E1, E2) are not yet implemented in the "
+                          "OPALX-native bend port. Remove E1/E2 from the element definition.");
+    }
+
     // Define geometry.
     SBendRep* bend     = dynamic_cast<SBendRep*>(getElement());
     double length      = Attributes::getReal(itsAttr[LENGTH]);
     double angle       = Attributes::getReal(itsAttr[ANGLE]);
-    double e1          = Attributes::getReal(itsAttr[E1]);
-    double e2          = Attributes::getReal(itsAttr[E2]);
     Geometry& geometry = static_cast<Geometry&>(bend->getGeometry());
 
     if (length) {
@@ -77,8 +85,6 @@ void OpalSBend::update() {
     // Set field amplitude or bend angle.
     if (itsAttr[ANGLE]) {
         if (bend->isPositioned() && angle < 0.0) {
-            e1    = -e1;
-            e2    = -e2;
             angle = -angle;
 
             Quaternion rotAboutZ(0, 0, 0, 1);
@@ -93,9 +99,6 @@ void OpalSBend::update() {
 
     if (itsAttr[GREATERTHANPI])
         throw OpalException("OpalSBend::update", "GREATERTHANPI not supportet any more");
-
-    geometry.setEntranceAngle(e1);
-    geometry.setExitAngle(e2);
 
     // Units are eV.
     if (itsAttr[DESIGNENERGY]) {

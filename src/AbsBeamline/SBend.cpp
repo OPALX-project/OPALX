@@ -57,19 +57,17 @@ bool SBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
 
     Kokkos::parallel_for(
             "SBend::apply", nLocal, KOKKOS_LAMBDA(const size_t i) {
-                // Convert to bend coordinates (radial x, y, arc-length s) so the fringe and
-                // gate act on the arc length, exact at any bend angle.
-                const Vector_t<double, 3> aligned =
-                        GeometryHelper::rotateAboutY(Rview(i), -inputs.faceAngle);
-                const Vector_t<double, 3> arc =
-                        GeometryHelper::toBendArcCoords(aligned, inputs.curvature, inputs.bodyLength);
+                // Convert to bend coordinates (radial x, y, arc-length s) so the fringe and gate
+                // act on the arc length, exact at any bend angle. The stored frame is the
+                // design-orbit entrance tangent, so no pole-face de-tilt is applied.
+                const Vector_t<double, 3> arc = GeometryHelper::toBendArcCoords(
+                        Rview(i), inputs.curvature, inputs.bodyLength);
                 if (arc(2) < zBegin || arc(2) > zEnd) {
                     return;
                 }
-                Vector_t<double, 3> Bf = GeometryHelper::rotateArcFieldToEntry(
+                const Vector_t<double, 3> Bf = GeometryHelper::rotateArcFieldToEntry(
                         BendFieldModel::bendField(arc, inputs), arc(2), inputs.curvature,
                         inputs.bodyLength);
-                Bf = GeometryHelper::rotateAboutY(Bf, inputs.faceAngle);
                 for (unsigned d = 0; d < 3; ++d) {
                     Bview(i)(d) += Bf(d);
                 }
@@ -111,35 +109,31 @@ bool SBend::applyToReferenceParticle(
 }
 
 void SBend::getFieldExtent(double& zBegin, double& zEnd) const {
-    // Single source of the longitudinal field extent: the body plus one Enge fringe
-    // half width past each pole face, projected by the face angle. With no gap the
-    // half width is zero, so this is the plain body extent [0, L].
-    const double half = BendFieldModel::fringeHalfWidth(
-            gap_m);
-    zBegin = -half / GeometryHelper::safeAbsCos(getGeometry().getEntranceAngle());
-    zEnd   = getGeometry().getElementLength() + half / GeometryHelper::safeAbsCos(getGeometry().getExitAngle());
+    // Single source of the longitudinal field extent: the body plus one Enge fringe half width
+    // past each face. With no gap the half width is zero, so this is the plain body extent [0, L].
+    const double half = BendFieldModel::fringeHalfWidth(gap_m);
+    zBegin            = -half;
+    zEnd              = getGeometry().getElementLength() + half;
 }
 
 // isInside() is inherited from ElementBase (field extent + transverse aperture).
 
 void SBend::computeFieldHost(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const {
     const BendFieldModel::FieldInputs inputs = makeFieldInputs();
-    const Vector_t<double, 3> aligned = GeometryHelper::rotateAboutY(R, -inputs.faceAngle);
     const Vector_t<double, 3> arc =
-            GeometryHelper::toBendArcCoords(aligned, inputs.curvature, inputs.bodyLength);
-    Vector_t<double, 3> Bf = GeometryHelper::rotateArcFieldToEntry(
+            GeometryHelper::toBendArcCoords(R, inputs.curvature, inputs.bodyLength);
+    const Vector_t<double, 3> Bf = GeometryHelper::rotateArcFieldToEntry(
             BendFieldModel::bendField(arc, inputs), arc(2), inputs.curvature, inputs.bodyLength);
-    Bf = GeometryHelper::rotateAboutY(Bf, inputs.faceAngle);
     for (unsigned d = 0; d < 3; ++d) {
         B(d) += Bf(d);
     }
 }
 
 Vector_t<double, 3> SBend::bendCoords(const Vector_t<double, 3>& r) const {
-    // Remove the entrance pole-face tilt so the arc coordinate is measured relative to the
-    // design orbit (the placed frame is face-aligned, tilted by E1).
-    const Vector_t<double, 3> aligned = GeometryHelper::rotateAboutY(r, -getGeometry().getEntranceAngle());
-    return GeometryHelper::toBendArcCoords(aligned, getGeometry().getCurvature(), getGeometry().getElementLength());
+    // The stored frame is the design-orbit entrance tangent, so the arc coordinate is measured
+    // directly (no pole-face de-tilt).
+    return GeometryHelper::toBendArcCoords(
+            r, getGeometry().getCurvature(), getGeometry().getElementLength());
 }
 
 bool SBend::isInsideArc(const Vector_t<double, 3>& arc) const {
@@ -182,15 +176,13 @@ BendFieldModel::FieldInputs SBend::makeFieldInputs() const {
     in.dipoleSkew   = ((maxSkew_m > 0) ? skewHost(0) : 0.0) / charge;
     in.quadSkew     = ((maxSkew_m > 1) ? skewHost(1) : 0.0) / charge;
 
-    in.bodyLength  = getGeometry().getElementLength();
-    in.curvature   = getGeometry().getCurvature();
-    in.faceAngle   = getGeometry().getEntranceAngle();
-    in.profileGap  = gap_m;
-    in.cosEntrance = GeometryHelper::safeAbsCos(getGeometry().getEntranceAngle());
-    in.cosExit     = GeometryHelper::safeAbsCos(getGeometry().getExitAngle());
+    in.bodyLength = getGeometry().getElementLength();
+    in.curvature  = getGeometry().getCurvature();
+    in.profileGap = gap_m;
 
-    // Distributed pole-face vertical edge focusing, active only with a fringe. The kick
-    // coefficient is spread over the Enge ramp so its integral matches the hard-edge kick.
+    // Vertical edge focusing, active only with a fringe. A sector bend's faces are perpendicular
+    // to the design orbit (edge angle 0), so only the fringe-field (FINT) term remains; the kick
+    // is spread over the Enge ramp so its integral matches the hard-edge kick.
     in.entryEdgeCoefficient = 0.0;
     in.exitEdgeCoefficient  = 0.0;
     if (in.profileGap > 0.0) {
@@ -201,17 +193,13 @@ BendFieldModel::FieldInputs SBend::makeFieldInputs() const {
                 BendFieldModel::engeProfile(-half, in.profileGap).value
                 - BendFieldModel::engeProfile(half, in.profileGap).value);
         if (std::abs(h) > 1.0e-15 && span > 1.0e-15) {
-            const double rigidity = in.dipoleNormal / h;
-            in.entryEdgeCoefficient =
-                    rigidity
-                    * BendFieldModel::edgeVerticalKickCoefficient(
-                            h, 0.5 * gap_m, fringeIntegral_m, getGeometry().getEntranceAngle())
-                    / span;
-            in.exitEdgeCoefficient =
-                    rigidity
-                    * BendFieldModel::edgeVerticalKickCoefficient(
-                            h, 0.5 * gap_m, fringeIntegral_m, getGeometry().getExitAngle())
-                    / span;
+            const double rigidity    = in.dipoleNormal / h;
+            const double coefficient = rigidity
+                                       * BendFieldModel::edgeVerticalKickCoefficient(
+                                               h, 0.5 * gap_m, fringeIntegral_m, 0.0)
+                                       / span;
+            in.entryEdgeCoefficient = coefficient;
+            in.exitEdgeCoefficient  = coefficient;
         }
     }
 
