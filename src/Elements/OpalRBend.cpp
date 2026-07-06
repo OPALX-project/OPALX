@@ -98,10 +98,11 @@ void OpalRBend::update() {
         bend->setDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]), false);
     }
 
-    if (itsAttr[HGAP])
+    if (itsAttr[GAP])
         throw OpalException(
-                "OpalRBend::update", "HGAP is not supported; specify the full GAP instead.");
-    bend->setFullGap(Attributes::getReal(itsAttr[GAP]));
+                "OpalRBend::update", "GAP is not supported; specify HGAP (the half gap) instead.");
+    // gap_m stores the full gap; HGAP is the half gap, so double it.
+    bend->setFullGap(2.0 * Attributes::getReal(itsAttr[HGAP]));
     bend->setFringeIntegral(Attributes::getReal(itsAttr[FINT]));
 
     // Only override the aperture when a positive HAPERT is actually given. HAPERT has a
