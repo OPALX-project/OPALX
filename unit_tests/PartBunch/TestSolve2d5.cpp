@@ -377,7 +377,10 @@ namespace {
             // Emulates the file created by OrbitThreader.  Use noTimeColumn = true to create
             // an invalid file.
             // Make the directory path exist
-            std::filesystem::create_directories(fileName.parent_path());
+            auto parentPath = fileName.parent_path();
+            if (!parentPath.empty()) {
+                std::filesystem::create_directories(parentPath);
+            }
             // Create the file
             std::ofstream file(fileName);
             if (!file.is_open()) {
@@ -538,6 +541,28 @@ namespace {
         makeReferencePathFile(
                 "data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}, {0, 0, 3}});
         fsCmd->setType("FFT2D5");
+        ASSERT_NO_THROW(rebuildBunch());
+        auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
+        EXPECT_EQ(solver->getReferencePath().size(), 4);
+        EXPECT_EQ(solver->getReferencePath()[0].data_m[0], 0);
+        EXPECT_EQ(solver->getReferencePath()[0].data_m[1], 0);
+        EXPECT_EQ(solver->getReferencePath()[0].data_m[2], 0);
+        EXPECT_EQ(solver->getReferencePath()[1].data_m[0], 0);
+        EXPECT_EQ(solver->getReferencePath()[1].data_m[1], 0);
+        EXPECT_EQ(solver->getReferencePath()[1].data_m[2], 1);
+        EXPECT_EQ(solver->getReferencePath()[2].data_m[0], 1);
+        EXPECT_EQ(solver->getReferencePath()[2].data_m[1], 0);
+        EXPECT_EQ(solver->getReferencePath()[2].data_m[2], 2);
+        EXPECT_EQ(solver->getReferencePath()[3].data_m[0], 0);
+        EXPECT_EQ(solver->getReferencePath()[3].data_m[1], 0);
+        EXPECT_EQ(solver->getReferencePath()[3].data_m[2], 3);
+    }
+
+    TEST_F(TestSolve2d5, LoadReferencePath_SpecifiedFile) {
+        makeReferencePathFile(
+                "Specified_DesignPath.dat", {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}, {0, 0, 3}});
+        fsCmd->setType("FFT2D5");
+        fsCmd->setRefPathFileName("Specified_DesignPath.dat");
         ASSERT_NO_THROW(rebuildBunch());
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
         EXPECT_EQ(solver->getReferencePath().size(), 4);

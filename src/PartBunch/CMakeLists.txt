@@ -17,7 +17,7 @@ set (HDRS
     BCHandler.hpp
     BinnedFieldSolver.h
     Solve2d5.h
-    Solve2d5.tpp
+    Solve2d5.hpp
 )
 
 target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
