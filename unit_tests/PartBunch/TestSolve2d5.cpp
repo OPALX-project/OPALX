@@ -316,10 +316,10 @@ namespace {
             const double dt         = bunch->getdT();
             const double qi         = pc->getChargePerParticle();
             for (size_t i = 0; i < r.size(); ++i) {
-                R_host(i)       = r[i];
-                P_host(i)       = p[i];
-                dt_host(i)      = dt;
-                E_host(i)       = {0.0, 0.0, 0.0};
+                R_host(i)  = r[i];
+                P_host(i)  = p[i];
+                dt_host(i) = dt;
+                E_host(i)  = {0.0, 0.0, 0.0};
                 if (i < invalid.size()) {
                     invalid_host(i) = invalid[i];
                 } else {
@@ -541,7 +541,7 @@ namespace {
                 "data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}, {0, 0, 3}});
         fsCmd->setType("FFT2D5");
         ASSERT_NO_THROW(rebuildBunch());
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
+        auto* solver     = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
         auto hostRefPath = Kokkos::create_mirror_view(solver->getReferencePath());
         Kokkos::deep_copy(hostRefPath, solver->getReferencePath());
         EXPECT_EQ(hostRefPath.size(), 4);
@@ -565,7 +565,7 @@ namespace {
         fsCmd->setType("FFT2D5");
         fsCmd->setRefPathFileName("Specified_DesignPath.dat");
         ASSERT_NO_THROW(rebuildBunch());
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
+        auto* solver     = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
         auto hostRefPath = Kokkos::create_mirror_view(solver->getReferencePath());
         Kokkos::deep_copy(hostRefPath, solver->getReferencePath());
         EXPECT_EQ(hostRefPath.size(), 4);
@@ -703,8 +703,9 @@ namespace {
         fsCmd->setType("FFT2D5");
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
-        createParticles({{0, 0.5, 2}, {0, 0, 2}}, {{0.001, 0.002, 0.577}, {0.001, 0.002, 0.577}},
-            {false, true});
+        createParticles(
+                {{0, 0.5, 2}, {0, 0, 2}}, {{0.001, 0.002, 0.577}, {0.001, 0.002, 0.577}},
+                {false, true});
         const auto info = solver->createDiagnostic<Info>(Info::Kind::BoostToBeam);
         solver->scatterToGrid<Info>(*bunch, *info);
         auto [r, p] = info->getParticles();
@@ -1125,8 +1126,9 @@ namespace {
         fsCmd->setPipeSizeY(6);
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
-        createParticles({{2, 0, 3}, {-2, 0, 3}, {-2, 0, 3}}, {{0, 0, 1}, {0, 0, 1}, {0, 0, 1}},
-            {false, false, true});
+        createParticles(
+                {{2, 0, 3}, {-2, 0, 3}, {-2, 0, 3}}, {{0, 0, 1}, {0, 0, 1}, {0, 0, 1}},
+                {false, false, true});
         solver->scatterToGrid(*bunch);
         solver->solvePoissons();
         solver->calculateLineDensity();
@@ -1139,8 +1141,7 @@ namespace {
                 0, e, b, {6.355346880e9, 0, -57.160829398e9}, {0, -14.9900, 0}, 1e3, 1e-4);
         expectParticleFields(
                 1, e, b, {-6.355346880e9, 0, -57.160829398e9}, {0, 14.9900, 0}, 1e3, 1e-4);
-        expectParticleFields(
-                2, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
+        expectParticleFields(2, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_SimpleOutOfBoundsX) {
@@ -1162,10 +1163,8 @@ namespace {
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
-        expectParticleFields(
-                0, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
-        expectParticleFields(
-                1, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
+        expectParticleFields(0, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
+        expectParticleFields(1, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_SimpleOutOfBoundsY) {
@@ -1187,10 +1186,8 @@ namespace {
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
-        expectParticleFields(
-                0, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
-        expectParticleFields(
-                1, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
+        expectParticleFields(0, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
+        expectParticleFields(1, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_SimpleOutOfBoundsZ) {
@@ -1212,10 +1209,8 @@ namespace {
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
-        expectParticleFields(
-                0, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
-        expectParticleFields(
-                1, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
+        expectParticleFields(0, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
+        expectParticleFields(1, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_ClosedRing) {
@@ -1419,7 +1414,7 @@ namespace {
         createParticles({{2, 0, 5}, {-2, 0, 5}, {0, 0, 0}}, {{0, 0, 1}, {0, 0, 1}, {0, 0, 1}});
         solver->runSolver();
         // Check the fields through the original particle bunch object
-        auto& pc = *bunch->getParticleContainers().front();
+        auto& pc         = *bunch->getParticleContainers().front();
         const auto eHost = pc.E.getHostMirror();
         const auto bHost = pc.B.getHostMirror();
         Kokkos::deep_copy(eHost, pc.E.getView());

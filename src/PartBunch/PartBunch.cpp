@@ -325,8 +325,8 @@ void PartBunch<T, Dim>::setSolver() {
                 this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
                 &this->fcontainer_m->getPhi(), this->getBCHandler(),
                 binningCmd ? binningCmd->getTablePrintFrequency() : 0,
-            binningCmd ? binningCmd->getAdaptiveBinning() : true,
-            OPALFieldSolver_m->getGreensFunction());
+                binningCmd ? binningCmd->getAdaptiveBinning() : true,
+                OPALFieldSolver_m->getGreensFunction());
         this->setFieldSolver(binnedSolver);
         m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
     }
