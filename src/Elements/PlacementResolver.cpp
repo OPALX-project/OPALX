@@ -17,6 +17,7 @@
 #include "AbsBeamline/ElementBase.h"
 #include "Algorithms/Quaternion.hpp"
 #include "BeamlineGeometry/Geometry.h"
+#include "Utilities/OpalException.h"
 
 #include <cmath>
 
@@ -36,6 +37,34 @@
  */
 void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTrafo& labFrame) {
     const ElementList::iterator end = elements.end();
+
+    // Guard: the whole beamline must use ONE placement convention. Either every element is placed
+    // by ELEMEDGE (Mode B) or every element by a 6D lab-frame pose (Mode A). Mixing them is
+    // rejected because a 6D-posed bend does not deflect the reference orbit that the ELEMEDGE walk
+    // (Phases 2 and 3) follows, so every ELEMEDGE element downstream of a positioned bend would be
+    // silently misplaced. The two modes are otherwise resolved independently below.
+    {
+        std::shared_ptr<ElementBase> elemEdgeCheck;  // an element placed by ELEMEDGE (Mode B)
+        std::shared_ptr<ElementBase> poseCheck;      // an element placed by 6D pose (Mode A)
+        for (ElementList::iterator it = elements.begin(); it != end; ++it) {
+            if ((*it)->isElementPositionSet()) {
+                if (!elemEdgeCheck) {
+                    elemEdgeCheck = *it;
+                }
+            } else if (!poseCheck) {
+                poseCheck = *it;
+            }
+        }
+        if (elemEdgeCheck && poseCheck) {
+            throw OpalException(
+                    "PlacementResolver::resolve",
+                    "beamline mixes placement conventions: \"" + elemEdgeCheck->getName()
+                            + "\" is placed by ELEMEDGE while \"" + poseCheck->getName()
+                            + "\" is placed by a 6D lab-frame pose (X/Y/Z/PHI/PSI/THETA). Use one "
+                              "convention for the whole beamline: ELEMEDGE for every element or a "
+                              "6D pose for every element.");
+        }
+    }
 
     // Phase 1 — 6D-pose (Mode A) elements: compose the recorded global-to-local pose with the
     // lab frame and fix them in place. The reference-path walk below (Mode B / ELEMEDGE) then
@@ -151,21 +180,15 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
 
         // Entrance offset from the previous element along the straight run.
         double beginThisPathLength = element->getElementPosition();
-        double thisLength          = element->getGeometry().getElementLength();
         Vector_t<double, 3> beginThis3D(0, 0, beginThisPathLength - endPriorPathLength);
-
-        // A SOURCE is anchored by its downstream face, so step its entrance back by its length.
-        if (element->getType() == ElementType::SOURCE) {
-            beginThis3D(2) -= thisLength;
-        }
 
         Vector_t<double, 3> endThis3D;
         if (element->getType() == ElementType::SBEND || element->getType() == ElementType::RBEND
             || element->getType() == ElementType::RBEND3D) {
             // Bend: its own frame is already set (Phase 2); here we only advance the running frame
             // across it so the following elements are placed correctly.
-            thisLength       = element->getGeometry().getChordLength();
-            double bendAngle = element->getGeometry().getBendAngle();
+            double thisLength = element->getGeometry().getChordLength();
+            double bendAngle  = element->getGeometry().getBendAngle();
 
             double rotationAngleAboutZ = element->getRotationAboutZ();
             Quaternion_t rotationAboutZ(
