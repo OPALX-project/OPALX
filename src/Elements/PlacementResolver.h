@@ -22,13 +22,16 @@
  * @class PlacementResolver
  * @brief Resolves every beamline element's global-to-local transform in one place.
  *
- * There are two ways to place an element, and both are resolved here so placement has a single
- * owner:
- *   - 6D pose (Mode A): the element recorded an absolute global-to-local pose; it is composed
- *     with the lab frame and fixed.
- *   - ELEMEDGE (Mode B): the element is positioned by walking the reference path in s-order.
+ *  There are two ways to place elements in OPALX
+ *   - 6D positioning (Mode A): The global X/Y/Z/PHI/PSI/THETA coordinates of the
+ *     elements.  
+ *   - ELEMEDGE (Mode B): The elements are placed by their position along the 
+ *     reference path S. 
+ *  
  *
- * @note The caller owns the "already resolved" guard; resolve() does the work unconditionally.
+ * @note These conventions cannot be mixed.  
+ * @note The the global-to-local transforms always transform to the elements'
+ * geometrical entrance frame. 
  */
 class PlacementResolver {
 public:

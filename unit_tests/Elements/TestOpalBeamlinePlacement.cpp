@@ -387,3 +387,48 @@ TEST_F(OpalBeamlinePlacementTest, RBendRejectsPoleFaceAngleE2) {
     Attributes::setReal(*rbend.findAttribute("E2"), 0.05);
     EXPECT_THROW(rbend.update(), OpalException);
 }
+
+TEST_F(OpalBeamlinePlacementTest, RejectsMixedPlacementConventions) {
+    // A beamline must use ONE placement convention. A 6D-posed (Mode A) bend does not deflect
+    // the reference orbit that ELEMEDGE (Mode B) elements are walked along, so mixing the two
+    // silently misplaces every ELEMEDGE element downstream of the posed bend. resolve() must
+    // reject the mix instead of producing a geometrically inconsistent lattice.
+    auto poseBend           = std::make_shared<SBendRep>("MIX_BEND_A");
+    poseBend->getGeometry() = Geometry::makeSBend(0.5, 0.3 / 0.5);
+    poseBend->setCSTrafoGlobal2Local(
+            CoordinateSystemTrafo(Vector3(0.0, 0.0, 1.0), Quaternion()));  // Mode A: 6D pose
+
+    auto edgeDrift = std::make_shared<DriftRep>("MIX_DRIFT_B");
+    edgeDrift->getGeometry().setElementLength(0.4);
+    edgeDrift->setElementPosition(2.0);  // Mode B: ELEMEDGE
+
+    auto bunch = makeBunch(0);
+    DummyBeamline db;
+    DefaultVisitor visitor(db, false, false);
+    OpalBeamline beamline;
+    beamline.visit(*poseBend, visitor, *bunch);
+    beamline.visit(*edgeDrift, visitor, *bunch);
+
+    EXPECT_THROW(beamline.prepareSections(), OpalException);
+}
+
+TEST_F(OpalBeamlinePlacementTest, AcceptsUniform6DPoseAcrossMultipleElements) {
+    // The mixed-convention guard must NOT fire when every element uses the same convention:
+    // two Mode-A (6D pose) elements are a valid, uniform beamline.
+    auto d1 = std::make_shared<DriftRep>("POSE_D1");
+    d1->getGeometry().setElementLength(0.4);
+    d1->setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector3(0.0, 0.0, 1.0), Quaternion()));
+
+    auto d2 = std::make_shared<DriftRep>("POSE_D2");
+    d2->getGeometry().setElementLength(0.4);
+    d2->setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector3(0.0, 0.0, 2.0), Quaternion()));
+
+    auto bunch = makeBunch(0);
+    DummyBeamline db;
+    DefaultVisitor visitor(db, false, false);
+    OpalBeamline beamline;
+    beamline.visit(*d1, visitor, *bunch);
+    beamline.visit(*d2, visitor, *bunch);
+
+    EXPECT_NO_THROW(beamline.prepareSections());
+}
