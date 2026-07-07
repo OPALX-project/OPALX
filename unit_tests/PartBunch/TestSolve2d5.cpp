@@ -26,7 +26,6 @@
 #include "Lines/Line.h"
 #include "PartBunch/PartBunch.h"
 #include "PartBunch/Solve2d5.h"
-#include "PartBunch/SubField.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
