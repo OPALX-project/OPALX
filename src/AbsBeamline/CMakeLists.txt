@@ -28,7 +28,6 @@ set(_SRCS
     RBend.cpp
     VariableRFCavity.cpp
     SBend.cpp
-
 )
 
 set(_HDRS
