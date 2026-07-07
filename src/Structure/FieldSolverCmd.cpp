@@ -88,8 +88,8 @@ FieldSolverCmd::FieldSolverCmd()
             "PIPESIZEX", "Beam pipe horizontal size in metres [FFT2D5 only]", 1.0);
     itsAttr[FIELDSOLVER::PIPESIZEY] = Attributes::makeReal(
             "PIPESIZEY", "Beam pipe vertical size in metres [FFT2D5 only]", 1.0);
-    itsAttr[FIELDSOLVER::REFPATHFNAME] = Attributes::makeString(
-            "REFPATHNAME", "Reference path file name [FFT2D5 only]", "");
+    itsAttr[FIELDSOLVER::REFPATHFNAME] =
+            Attributes::makeString("REFPATHNAME", "Reference path file name [FFT2D5 only]", "");
 
     // \todo does not work   registerOwnership(AttributeHandler::STATEMENT);
 }

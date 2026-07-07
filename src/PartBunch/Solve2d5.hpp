@@ -345,7 +345,8 @@ void Solve2d5<T>::calculateLineDensity(DiagnosticPolicy diagnostic) {
     // Set the ghost cells to the boundary conditions
     if (closedRing_m) {
         hostLineDensity(0) = hostLineDensity(numSlices + LineDensityGhostCells - 2);
-        hostLineDensity(numSlices + LineDensityGhostCells - 1) = hostLineDensity(LineDensityFirstRealCell);
+        hostLineDensity(numSlices + LineDensityGhostCells - 1) =
+                hostLineDensity(LineDensityFirstRealCell);
     } else {
         hostLineDensity(0)                                     = 0.0;
         hostLineDensity(numSlices + LineDensityGhostCells - 1) = 0.0;
