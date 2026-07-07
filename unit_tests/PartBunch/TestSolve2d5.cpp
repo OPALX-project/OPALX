@@ -406,7 +406,7 @@ namespace {
                 size_t index, const std::vector<Vector_t<double, 3>>& rs,
                 const std::vector<Vector_t<double, 3>>& ps, const Vector_t<double, 3>& r,
                 const Vector_t<double, 3>& p, const double tolerance = 1e-6) {
-            SCOPED_TRACE(std::format("Index = {}", index));
+            SCOPED_TRACE("Index = " + std::to_string(index));
             EXPECT_NEAR(r[0], rs[index].data_m[0], tolerance);
             EXPECT_NEAR(r[1], rs[index].data_m[1], tolerance);
             EXPECT_NEAR(r[2], rs[index].data_m[2], tolerance);
@@ -420,7 +420,7 @@ namespace {
                 const std::vector<Vector_t<double, 3>>& bs, const Vector_t<double, 3>& e,
                 const Vector_t<double, 3>& b, const double eTolerance = 1e-6,
                 const double bTolerance = 1e-16) {
-            SCOPED_TRACE(std::format("Index = {}", index));
+            SCOPED_TRACE("Index = " + std::to_string(index));
             EXPECT_NEAR(e[0], es[index].data_m[0], eTolerance);
             EXPECT_NEAR(e[1], es[index].data_m[1], eTolerance);
             EXPECT_NEAR(e[2], es[index].data_m[2], eTolerance);
@@ -454,7 +454,9 @@ namespace {
             }
             // Check values
             for (const auto& e : expected) {
-                SCOPED_TRACE(std::format("Index: {},{},{}", e.i, e.j, e.k));
+                SCOPED_TRACE(
+                        "Index: " + std::to_string(e.i) + "," + std::to_string(e.j) + ","
+                        + std::to_string(e.k));
                 EXPECT_NEAR(hostView(e.i, e.j, e.k), e.value, 1e-6);
             }
         }
@@ -476,7 +478,7 @@ namespace {
             if (!expected.empty()) {
                 ASSERT_EQ(hostView.extent(0), expected.size());
                 for (size_t i = 0; i < expected.size(); ++i) {
-                    SCOPED_TRACE(std::format("Index: {}", i));
+                    SCOPED_TRACE("Index: " + std::to_string(i));
                     EXPECT_NEAR(hostView(i), expected[i], 1e-6);
                 }
             }
@@ -509,7 +511,9 @@ namespace {
             }
             // Check values
             for (const auto& e : expected) {
-                SCOPED_TRACE(std::format("Index: {},{},{}", e.i, e.j, e.k));
+                SCOPED_TRACE(
+                        "Index: " + std::to_string(e.i) + "," + std::to_string(e.j) + ","
+                        + std::to_string(e.k));
                 EXPECT_NEAR(hostView(e.i, e.j, e.k)[0], e.valueX, 1e3);
                 EXPECT_NEAR(hostView(e.i, e.j, e.k)[1], e.valueY, 1e3);
                 EXPECT_NEAR(hostView(e.i, e.j, e.k)[2], e.valueZ, 1e3);
