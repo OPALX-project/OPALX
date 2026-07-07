@@ -15,6 +15,8 @@
 //
 #ifndef OPALX_SOLVE2D5_HPP_
 #define OPALX_SOLVE2D5_HPP_
+#include <Kokkos_NumericTraits.hpp>
+#include <filesystem>
 #include "AbstractObjects/OpalData.h"
 #include "Fields/Interpolation/MMatrix.h"
 #include "Utilities/Util.h"
@@ -247,7 +249,7 @@ KOKKOS_FUNCTION void Solve2d5<T>::convertToFrenetSerret(
         const size_t n, const VectorView_t& r, const VectorView_t& p, const ReferenceView_t& ref,
         Vector3D_t& fsR, Vector3D_t& fsP, Vector3D_t& bUnit, Vector3D_t& nUnit, Vector3D_t& tUnit) {
     // Find the segment with the shortest normal to the point
-    T bestDist2 = std::numeric_limits<T>::max();
+    T bestDist2 = Kokkos::Experimental::finite_max_v<T>;
     size_t bestI{};
     T bestU{};
     Vector3D_t bestDi{};
@@ -324,10 +326,11 @@ KOKKOS_FUNCTION void Solve2d5<T>::scatterToRho(
 template <typename T>
 template <typename DiagnosticPolicy>
 void Solve2d5<T>::calculateLineDensity(DiagnosticPolicy diagnostic) {
-    using Policy2D_t     = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
-    const auto rho3d     = rho_m->getView();
-    auto lineDensity     = Kokkos::create_mirror_view(lineDensity_m);
-    const auto numSlices = nR_m.data_m[2];
+    using Policy2D_t       = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
+    const auto rho3d       = rho_m->getView();
+    auto deviceLineDensity = lineDensity_m;
+    auto hostLineDensity   = Kokkos::create_mirror_view(lineDensity_m);
+    const auto numSlices   = nR_m.data_m[2];
     // Calculate the total charge density for each z slice
     for (size_t k = 0; k < numSlices + LineDensityGhostCells; ++k) {
         T sum{};
@@ -337,24 +340,24 @@ void Solve2d5<T>::calculateLineDensity(DiagnosticPolicy diagnostic) {
                     localSum += rho3d(i, j, k);
                 },
                 sum);
-        lineDensity(k) = sum;
+        hostLineDensity(k) = sum;
     }
     // Set the ghost cells to the boundary conditions
     if (closedRing_m) {
-        lineDensity(0) = lineDensity(numSlices + LineDensityGhostCells - 2);
-        lineDensity(numSlices + LineDensityGhostCells - 1) = lineDensity(LineDensityFirstRealCell);
+        hostLineDensity(0) = hostLineDensity(numSlices + LineDensityGhostCells - 2);
+        hostLineDensity(numSlices + LineDensityGhostCells - 1) = hostLineDensity(LineDensityFirstRealCell);
     } else {
-        lineDensity(0)                                     = 0.0;
-        lineDensity(numSlices + LineDensityGhostCells - 1) = 0.0;
+        hostLineDensity(0)                                     = 0.0;
+        hostLineDensity(numSlices + LineDensityGhostCells - 1) = 0.0;
     }
-    Kokkos::deep_copy(lineDensity_m, lineDensity);
+    Kokkos::deep_copy(deviceLineDensity, hostLineDensity);
     diagnostic.totalDensity(lineDensity_m);
     // Convert this to line density
     auto dx = hr_m[0];
     auto dy = hr_m[1];
     Kokkos::parallel_for(
             "Solve2d5::calculateLineDensity::convert", numSlices + LineDensityGhostCells,
-            KOKKOS_LAMBDA(const size_t k) { lineDensity(k) *= dx * dy; });
+            KOKKOS_LAMBDA(const size_t k) { deviceLineDensity(k) *= dx * dy; });
     Kokkos::fence();
     diagnostic.lineDensity(lineDensity_m);
     // Find the gradient
@@ -362,8 +365,8 @@ void Solve2d5<T>::calculateLineDensity(DiagnosticPolicy diagnostic) {
     const auto dz            = rho_m->get_mesh().getMeshSpacing().data_m[2];
     Kokkos::parallel_for(
             "Solve2d5::calculateLineDensity::gradient", numSlices, KOKKOS_LAMBDA(const size_t k) {
-                lineDensityGradient(k) = (lineDensity(k + LineDensityFirstRealCell + 1)
-                                          - lineDensity(k + LineDensityFirstRealCell - 1))
+                lineDensityGradient(k) = (deviceLineDensity(k + LineDensityFirstRealCell + 1)
+                                          - deviceLineDensity(k + LineDensityFirstRealCell - 1))
                                          / (2.0 * dz);
             });
     Kokkos::fence();
