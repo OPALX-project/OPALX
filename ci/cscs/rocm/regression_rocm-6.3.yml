@@ -1,0 +1,96 @@
+include:
+  - local: "ci/cscs/common.yml"
+
+variables:
+  ROCM6_3_UENV: "prgenv-gnu/25.07-6.3.3:v12"
+  WITH_UENV_VIEW: "default"
+  SCRATCH: "/capstor/scratch/cscs/biddisco"
+  BUILD_ARCH: "gpu-rocm-mi300"
+  CTEST_SITE: "Beverin mi300 ROCm 6.3.3"
+
+# ---------------------------------------------------------
+# Common settings for OPALX regression tests (ROCm / MI300)
+# ---------------------------------------------------------
+.opalx-regression-rocm-common:
+  stage: opalx_regression
+  extends: [.baremetal-runner-beverin-mi300]
+  variables:
+    SLURM_JOB_NUM_NODES: 1
+    SLURM_NTASKS: 1
+    SLURM_CPUS_PER_TASK: 8
+    SLURM_TIMELIMIT: "0:30:00"
+  before_script:
+    - !reference [.pr-number-extractor, before_script]
+    - echo "=== OPALX regression job (ROCm / MI300) starting ==="
+    - pwd
+    - date
+    - export BUILD_PATH=$(pwd)/$BUILD_DIR
+    - echo "BUILD_PATH=$BUILD_PATH"
+    - export SRUN_ARGS="--uenv=${ROCM6_3_UENV} --view=${WITH_UENV_VIEW} --repo=${SCRATCH}/.uenv-images-ci-beverin --gpus-per-task=1"
+    - echo "SRUN_ARGS=$SRUN_ARGS"
+  script:
+    - echo "=== Verify release build artifact ==="
+    - ls -l $BUILD_PATH/bin/opalx
+    - export LD_LIBRARY_PATH=$BUILD_PATH/lib:$LD_LIBRARY_PATH
+    - export HSA_XNACK=1
+    - echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+    - echo "HSA_XNACK=$HSA_XNACK"
+
+    - echo "=== Clone NightlyBuildX (main) ==="
+    - git clone --depth 1 --branch main https://github.com/OPALX-project/NightlyBuildX.git nightlybuildx
+    - ls nightlybuildx/scripts
+
+    - echo "=== Clone regression tests (master) ==="
+    - git clone --depth 1 --branch master https://github.com/OPALX-project/regression-tests-x.git regression-tests
+    - ls regression-tests/RegressionTests
+
+    - echo "=== Install mpirun -> srun wrapper ==="
+    - mkdir -p ci-bin
+    - cp $CI_PROJECT_DIR/ci/cscs/regression-test-mpirun-wrapper ci-bin/mpirun
+    - chmod +x ci-bin/mpirun
+    - export PATH=$(pwd)/ci-bin:$PATH
+    - which mpirun
+
+    - echo "=== Patch run-reg-tests.py to fail CI on test failures ==="
+    - |
+      python3 - <<'PY'
+      from pathlib import Path
+      p = Path("nightlybuildx/scripts/run-reg-tests.py")
+      s = p.read_text()
+      old = "    rt.run()\n"
+      new = "    rt.run()\n    if rt.totalNrPassed != rt.totalNrTests:\n        sys.exit(1)\n"
+      if old not in s:
+          raise SystemExit("ERROR: could not find rt.run() in run-reg-tests.py")
+      p.write_text(s.replace(old, new, 1))
+      print("Patched run-reg-tests.py to exit non-zero on test failures")
+      PY
+
+    - echo "=== Run regression tests ==="
+    - >-
+        python3 nightlybuildx/scripts/run-reg-tests.py
+        --base-dir=$(pwd)/regression-tests/RegressionTests
+        --opalx-exe-path=$BUILD_PATH/bin
+        --publish-dir=$CI_PROJECT_DIR/regression-results-$BUILD_ARCH
+        --timestamp=$CI_COMMIT_SHORT_SHA
+
+    - echo "=== Regression tests finished ==="
+    - ls -R $CI_PROJECT_DIR/regression-results-$BUILD_ARCH
+
+    - echo "=== Push stub (not implemented until Gitea access is granted) ==="
+    - 'echo "Target repo: git@gitea.psi.ch:AMAS/opal-live-doc.git"'
+    - 'echo "Would push:  regression-results-$BUILD_ARCH/*"'
+    - echo "Skipping push."
+  artifacts:
+    paths:
+      - regression-results-$BUILD_ARCH
+    expire_in: 1 week
+
+# ---------------------------------------------------------
+# rocm mi300 regression release
+# ---------------------------------------------------------
+opalx-regression-rocm6_3-mi300-release:
+  extends: .opalx-regression-rocm-common
+  needs: ["opalx-build-rocm6_3-release"]
+  variables:
+    BUILD_DIR: "build-$CI_COMMIT_SHORT_SHA-release"
+    BUILD_TYPE: Release
