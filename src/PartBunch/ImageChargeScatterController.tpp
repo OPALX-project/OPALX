@@ -22,52 +22,6 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtSubset(
 
     pc->scaleDtByCharge();
     scatter(pc->dt, rho, positions, policy, hash);
-
-    /*using view_type    = typename RhoField_t::view_type;
-    view_type rhoView  = rho.getView();
-    auto dtView        = pc->dt.getView();
-    auto rView         = positions.getView();
-    const auto& mesh   = rho.get_mesh();
-    const auto& dx     = mesh.getMeshSpacing();
-    const auto& origin = mesh.getOrigin();
-    const auto invdx   = 1.0 / dx;
-    const auto& layout = rho.getLayout();
-    const auto& lDom   = layout.getLocalNDIndex();
-    const int nghost   = rho.getNghost();
-
-    Kokkos::parallel_for(
-            "ImageChargeScatterController::scatterScaledDtSubsetCIC", policy,
-            KOKKOS_LAMBDA(const size_t i) {
-                const size_t idx = hash(i);
-                if (idx >= nLocal) {
-                    return;
-                }
-
-                const auto l                 = (rView(idx) - origin) * invdx + 0.5;
-                ippl::Vector<int, Dim> index = l;
-                ippl::Vector<T, Dim> whi     = l - index;
-                ippl::Vector<T, Dim> wlo     = 1.0 - whi;
-
-                ippl::Vector<int, Dim> args = index - lDom.first() + nghost;
-                bool inBounds               = true;
-                for (unsigned d = 0; d < Dim; ++d) {
-                    // CIC touches args[d] and args[d] - 1, so valid args are
-                    // [1, extent - 1]. Anything outside would underflow or
-                    // overrun the field view on device.
-                    inBounds = inBounds && args[d] > 0
-                               && args[d] < static_cast<int>(rhoView.extent(d));
-                }
-                if (inBounds) {
-                    ippl::Vector<size_t, Dim> viewArgs = args;
-                    ippl::detail::scatterToField(
-                            std::make_index_sequence<1 << Dim>{}, rhoView, wlo, whi, viewArgs,
-                            dtView(idx));
-                }
-            });
-    Kokkos::fence();
-
-    accumulateScalarHaloHostStaged(rho);*/
-
     pc->unscaleDtByCharge();
 }
 
