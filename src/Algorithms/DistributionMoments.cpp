@@ -201,6 +201,7 @@ void DistributionMoments::computeMoments(
             },
             Kokkos::Sum<SumMatrix6x6>(loc_cent), Kokkos::Sum<SumMatrix6x6>(loc_ncent),
             Kokkos::Sum<double>(loc_std_ekin));
+    Kokkos::fence();
 
     SumMatrix6x6 glob_cent, glob_ncent;
     ippl::Comm->allreduce(&loc_cent.data[0][0], &glob_cent.data[0][0], 36, std::plus<double>());
