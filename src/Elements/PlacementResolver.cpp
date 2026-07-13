@@ -144,8 +144,8 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
             //  - RBEND/RBEND3D: a straight box, so its entrance face frame is the box frame — +z
             //    along the chord, half the bend angle off the incoming orbit tangent. It does NOT
             //    coincide with the orbit tangent. RBend::apply gates on the box z, uniform dipole.
-            // E1/E2 pole-face rotations are rejected at parse time, so there is no face tilt to add.
-            // Only this element's own frame is set here; the running frame handed to the next
+            // E1/E2 pole-face rotations are rejected at parse time, so there is no face tilt to
+            // add. Only this element's own frame is set here; the running frame handed to the next
             // element (currentCoordTrafo) is advanced separately below.
             const bool isRectangular = element->getType() == ElementType::RBEND
                                        || element->getType() == ElementType::RBEND3D;
@@ -169,7 +169,8 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
     }
 
     // Phase 3 — place every remaining (non-bend) element and fix all positions. Re-walk from the
-    // lab frame; the running frame again only turns at bends (their own frames were set in Phase 2).
+    // lab frame; the running frame again only turns at bends (their own frames were set in Phase
+    // 2).
     double endPriorPathLength               = 0.0;
     CoordinateSystemTrafo currentCoordTrafo = labFrame;
 

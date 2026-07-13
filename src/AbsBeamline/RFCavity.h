@@ -93,7 +93,6 @@ public:
             const double& p0, const double& t0, const double& dt, const double& q,
             const double& mass, std::ofstream* out = nullptr);
 
-
     virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     virtual bool apply(
@@ -184,7 +183,6 @@ public:
      * geometry. It is independent of the field-support extent returned by
      * `getFieldExtent()`.
      */
-
 
 protected:
     std::shared_ptr<AbstractTimeDependence> phaseTD_m;

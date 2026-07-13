@@ -152,8 +152,8 @@ void OrbitThreader::execute() {
             autophaseCavities(elementSet, visitedElements);
         }
 
-        double initialS = pathLength_m;
-        double maxDistance           = computeDriftLengthToBoundingBox(elementSet, r_m, p_m);
+        double initialS    = pathLength_m;
+        double maxDistance = computeDriftLengthToBoundingBox(elementSet, r_m, p_m);
 
         integrate(elementSet, maxDistance);
 

@@ -25,8 +25,7 @@ namespace {
         void (ProbeRep::*set)(double);
     };
 
-    static const Entry entries[] = {
-            {0, 0, 0}};
+    static const Entry entries[] = {{0, 0, 0}};
 }  // namespace
 
 ProbeRep::ProbeRep() : Probe(), geometry(), active(true) {}

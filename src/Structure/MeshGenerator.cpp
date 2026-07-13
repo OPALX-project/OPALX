@@ -99,7 +99,7 @@ void MeshGenerator::add(const ElementBase& element) {
     } else if (element.getType() == ElementType::SOLENOID) {
         start      = 0.0;
         double end = element.getGeometry().getElementLength();
-        mesh = getCylinder(end - start, driftMinor_m, driftMajor_m, 1.0);
+        mesh       = getCylinder(end - start, driftMinor_m, driftMajor_m, 1.0);
         {
             double minor = 0.0;
             double major = 0.0;
@@ -114,7 +114,7 @@ void MeshGenerator::add(const ElementBase& element) {
         }
         start      = 0.0;
         double end = element.getGeometry().getElementLength();
-        mesh = getTube(
+        mesh       = getTube(
                 end - start, 0.7 * driftMinor_m, 0.7 * driftMajor_m, driftMinor_m, driftMajor_m);
         mesh.type_m = DRIFT;
     } else {

@@ -18,7 +18,6 @@ public:
     Geometry& getGeometry() override;
     const Geometry& getGeometry() const override;
 
-
 private:
     void operator=(const ConstantEFieldCavityRep&);
 

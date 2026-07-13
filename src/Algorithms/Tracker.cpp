@@ -107,5 +107,6 @@ void Tracker::visitElementBase(const ElementBase& comp) {
     // No element type reaches this catch-all: every concrete element is handled by a
     // dedicated visit method. An element landing here has no tracking model.
     throw OpalException(
-            "Tracker::visitElementBase", "No tracking model for element \"" + comp.getName() + "\".");
+            "Tracker::visitElementBase",
+            "No tracking model for element \"" + comp.getName() + "\".");
 }

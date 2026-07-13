@@ -229,8 +229,9 @@ void OpalBeamline::save3DLattice() {
             unsigned int size                           = designPath.size();
 
             unsigned int minNumSteps = std::max(
-                    20u, static_cast<unsigned int>(
-                                 std::ceil(std::abs(element->getGeometry().getBendAngle() * Units::rad2deg))));
+                    20u,
+                    static_cast<unsigned int>(std::ceil(
+                            std::abs(element->getGeometry().getBendAngle() * Units::rad2deg))));
 
             unsigned int frequency =
                     std::max(1u, static_cast<unsigned int>(std::floor((double)size / minNumSteps)));

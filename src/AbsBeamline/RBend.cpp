@@ -1,9 +1,9 @@
 #include "AbsBeamline/RBend.h"
+#include <Kokkos_Core.hpp>
+#include <cmath>
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "PartBunch/PartBunch.h"
-#include <Kokkos_Core.hpp>
-#include <cmath>
 
 RBend::RBend() : RBend("") {}
 
@@ -53,11 +53,11 @@ bool RBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
             "RBend::apply", nLocal, KOKKOS_LAMBDA(const size_t i) {
                 const Vector_t<double, 3>& point = Rview(i);
                 if (point(2) < zBegin || point(2) > zEnd) {
-                    return; // exits the lambda for current particle
+                    return;  // exits the lambda for current particle
                 }
 
                 const Vector_t<double, 3> Bf = BendFieldModel::bendField(point, inputs);
-                
+
                 Bview(i)(0) += Bf(0);
                 Bview(i)(1) += Bf(1);
                 Bview(i)(2) += Bf(2);
@@ -102,10 +102,9 @@ bool RBend::applyToReferenceParticle(
 
 void RBend::getFieldExtent(double& zBegin, double& zEnd) const {
     // Element length plus one Enge fringe half width past each pole face
-    const double half = BendFieldModel::fringeHalfWidth(
-            gap_m);
-    zBegin = -half;
-    zEnd   = getGeometry().getElementLength() + half;
+    const double half = BendFieldModel::fringeHalfWidth(gap_m);
+    zBegin            = -half;
+    zEnd              = getGeometry().getElementLength() + half;
 }
 
 void RBend::computeFieldHost(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const {
@@ -123,13 +122,9 @@ double RBend::referenceCurvature() const {
     return (arc > 1.0e-12) ? getGeometry().getBendAngle() / arc : 0.0;
 }
 
-double RBend::edgeAngleEntrance() const {
-    return 0.5 * getGeometry().getBendAngle();
-}
+double RBend::edgeAngleEntrance() const { return 0.5 * getGeometry().getBendAngle(); }
 
-double RBend::edgeAngleExit() const {
-    return 0.5 * getGeometry().getBendAngle();
-}
+double RBend::edgeAngleExit() const { return 0.5 * getGeometry().getBendAngle(); }
 
 bool RBend::isInside(const Vector_t<double, 3>& r) const {
     double zBegin = 0.0;
@@ -162,7 +157,7 @@ BendFieldModel::FieldInputs RBend::makeFieldInputs() const {
     in.curvature  = 0.0;
     in.profileGap = gap_m;
 
-    // Compute Enge ramp kick coefficient. 
+    // Compute Enge ramp kick coefficient.
     in.entryEdgeCoefficient = 0.0;
     in.exitEdgeCoefficient  = 0.0;
     if (in.profileGap > 0.0) {
@@ -172,17 +167,15 @@ BendFieldModel::FieldInputs RBend::makeFieldInputs() const {
                 BendFieldModel::engeProfile(-half, in.profileGap).value
                 - BendFieldModel::engeProfile(half, in.profileGap).value);
         if (std::abs(h) > 1.0e-15 && span > 1.0e-15) {
-            const double rigidity = in.dipoleNormal / h;
-            in.entryEdgeCoefficient =
-                    rigidity
-                    * BendFieldModel::edgeVerticalKickCoefficient(
-                            h, 0.5 * gap_m, fringeIntegral_m, edgeAngleEntrance())
-                    / span;
-            in.exitEdgeCoefficient =
-                    rigidity
-                    * BendFieldModel::edgeVerticalKickCoefficient(
-                            h, 0.5 * gap_m, fringeIntegral_m, edgeAngleExit())
-                    / span;
+            const double rigidity   = in.dipoleNormal / h;
+            in.entryEdgeCoefficient = rigidity
+                                      * BendFieldModel::edgeVerticalKickCoefficient(
+                                              h, 0.5 * gap_m, fringeIntegral_m, edgeAngleEntrance())
+                                      / span;
+            in.exitEdgeCoefficient = rigidity
+                                     * BendFieldModel::edgeVerticalKickCoefficient(
+                                             h, 0.5 * gap_m, fringeIntegral_m, edgeAngleExit())
+                                     / span;
         }
     }
 

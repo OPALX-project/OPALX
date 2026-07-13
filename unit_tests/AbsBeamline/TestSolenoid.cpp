@@ -192,7 +192,7 @@ TEST_F(SolenoidPlacementTest, FieldMapEdgesAndSupportEnvelopeFollowFieldMap) {
 
     double bodyBegin = 0.0, bodyEnd = 0.0;
     bodyBegin = 0.0;
-    bodyEnd = solenoid.getGeometry().getElementLength();
+    bodyEnd   = solenoid.getGeometry().getElementLength();
 
     EXPECT_NEAR(solenoid.getGeometry().getElementLength(), 1.0, 1e-12);
     EXPECT_NEAR(fieldBegin, -0.05, 1e-12);

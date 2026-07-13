@@ -208,7 +208,7 @@ TEST_F(RFCavityTest, BodyExtentCanDifferFromFieldSupport) {
 
     double bodyBegin = -1.0, bodyEnd = -1.0;
     bodyBegin = 0.0;
-    bodyEnd = cav_->getGeometry().getElementLength();
+    bodyEnd   = cav_->getGeometry().getElementLength();
     EXPECT_EQ(bodyBegin, 0.0);
     EXPECT_EQ(bodyEnd, 1.0);
 
@@ -233,7 +233,7 @@ TEST_F(RFCavityTest, ZeroBodyLengthDoesNotFallBackToFieldmapLength) {
 
     double bodyBegin = -1.0, bodyEnd = -1.0;
     bodyBegin = 0.0;
-    bodyEnd = cav_->getGeometry().getElementLength();
+    bodyEnd   = cav_->getGeometry().getElementLength();
     EXPECT_DOUBLE_EQ(bodyBegin, 0.0);
     EXPECT_DOUBLE_EQ(bodyEnd, 0.0);
 

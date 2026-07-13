@@ -64,10 +64,10 @@ void OpalRBend::update() {
     // Define field. With L the box (chord) length, the design radius is
     // rho = L / (2 sin(angle/2)), so the default dipole strength is
     // k0 = 1 / rho = 2 sin(angle/2) / L (= angle / arc length).
-    double factor = OpalData::getInstance()->getP0() / Physics::c;
-    double k0     = itsAttr[K0] ? Attributes::getReal(itsAttr[K0])
-                    : length    ? 2 * sin(angle / 2) / length
-                                : angle;
+    double factor                    = OpalData::getInstance()->getP0() / Physics::c;
+    double k0                        = itsAttr[K0] ? Attributes::getReal(itsAttr[K0])
+                                       : length    ? 2 * sin(angle / 2) / length
+                                                   : angle;
     const std::vector<double> normal = {
             factor * k0, factor * Attributes::getReal(itsAttr[K1]),
             factor * Attributes::getReal(itsAttr[K2]) / 2.0,

@@ -25,9 +25,7 @@ namespace {
         void (SolenoidRep::*set)(double);
     };
 
-    const Entry entries[] = {
-            {"BZ", &SolenoidRep::getBz, &SolenoidRep::setBz},
-            {0, 0, 0}};
+    const Entry entries[] = {{"BZ", &SolenoidRep::getBz, &SolenoidRep::setBz}, {0, 0, 0}};
 }  // namespace
 
 SolenoidRep::SolenoidRep() : Solenoid(), geometry() {}

@@ -14,12 +14,12 @@
 #ifndef OPALX_BendFieldModel_HH
 #define OPALX_BendFieldModel_HH
 
-#include "VectorMath.h"
 #include <Kokkos_Core.hpp>
+#include "VectorMath.h"
 
 /**
  * @namespace BendFieldModel
- * @brief Stateless field-shape math for the analytic bend fringe model inside 
+ * @brief Stateless field-shape math for the analytic bend fringe model inside
  * Kokkos kernels.
  *
  * The longitudinal field envelope is the OPAL Enge function
@@ -75,7 +75,7 @@ namespace BendFieldModel {
             return EngeValue{1.0, 0.0, 0.0};
         }
 
-        const double invGap    = 1.0 / profileGap;
+        const double invGap     = 1.0 / profileGap;
         const double polyPrime  = c1 + 2.0 * c2 * u + 3.0 * c3 * u2 + 4.0 * c4 * u3 + 5.0 * c5 * u4;
         const double polySecond = 2.0 * c2 + 6.0 * c3 * u + 12.0 * c4 * u2 + 20.0 * c5 * u3;
         const double expPrime   = polyPrime * invGap;
@@ -123,7 +123,8 @@ namespace BendFieldModel {
         if (exit.value < entrance.value) {
             return FringeAmplitude{exit.value, exit.firstDerivative, exit.secondDerivative, 1};
         }
-        return FringeAmplitude{entrance.value, entrance.firstDerivative, entrance.secondDerivative, 0};
+        return FringeAmplitude{
+                entrance.value, entrance.firstDerivative, entrance.secondDerivative, 0};
     }
 
     /**
@@ -142,8 +143,7 @@ namespace BendFieldModel {
         const double cosE    = Kokkos::cos(edgeAngle);
         const double safeCos = (Kokkos::abs(cosE) > 1.0e-6) ? cosE : Kokkos::copysign(1.0e-6, cosE);
         const double sinE    = Kokkos::sin(edgeAngle);
-        const double psi =
-                curvature * halfGap * fringeIntegral * (1.0 + sinE * sinE) / safeCos;
+        const double psi     = curvature * halfGap * fringeIntegral * (1.0 + sinE * sinE) / safeCos;
         return -curvature * Kokkos::tan(edgeAngle - psi);
     }
 
@@ -179,9 +179,8 @@ namespace BendFieldModel {
         const double y = arc(1);
         const double z = arc(2);
 
-        const FringeAmplitude fringe =
-                fringeAmplitude(-z, z - in.bodyLength, in.profileGap);
-        const double scale = fringe.value;
+        const FringeAmplitude fringe = fringeAmplitude(-z, z - in.bodyLength, in.profileGap);
+        const double scale           = fringe.value;
 
         // Chain rule from the active face's distance coordinate to z. The faces are perpendicular
         // to the arc, so the projection is just the sign.

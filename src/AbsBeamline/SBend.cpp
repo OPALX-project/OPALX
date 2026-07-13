@@ -64,7 +64,7 @@ bool SBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
                         Rview(i), inputs.curvature, inputs.bodyLength);
 
                 if (arc(2) < zBegin || arc(2) > zEnd) {
-                    return; // return this particle's lambda 
+                    return;  // return this particle's lambda
                 }
 
                 // Rotate the element's field to the entrance frame.
@@ -247,4 +247,3 @@ void SBend::setB(double B) {
 void SBend::accept(BeamlineVisitor& visitor) const { visitor.visitSBend(*this); }
 
 ElementType SBend::getType() const { return ElementType::SBEND; }
-

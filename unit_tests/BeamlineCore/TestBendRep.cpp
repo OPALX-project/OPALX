@@ -81,7 +81,7 @@ TEST_F(BendRepTest, SBendFringeSupportProducesExpectedOpalEngeProfile) {
     double fieldBegin = 0.0;
     double fieldEnd   = 0.0;
     bend.getFieldExtent(fieldBegin, fieldEnd);
-    EXPECT_NEAR(fieldBegin, -10.0 * halfGap, 1.0e-12);              // -5 * (2*halfGap)
+    EXPECT_NEAR(fieldBegin, -10.0 * halfGap, 1.0e-12);  // -5 * (2*halfGap)
     EXPECT_NEAR(fieldEnd, bodyLength + 10.0 * halfGap, 1.0e-12);
 
     Vector3 E(0.0);
@@ -150,7 +150,8 @@ TEST_F(BendRepTest, SBendWithoutGapIsHardEdge) {
 
     // Exit edge (arc length = bodyLength) is exclusive: not selected, no field.
     const double phiExit = curvature * bodyLength;
-    const Vector3 exitFace((std::cos(phiExit) - 1.0) / curvature, 0.0, std::sin(phiExit) / curvature);
+    const Vector3 exitFace(
+            (std::cos(phiExit) - 1.0) / curvature, 0.0, std::sin(phiExit) / curvature);
     B = Vector3(0.0);
     EXPECT_FALSE(bend.applyToReferenceParticle(exitFace, Vector3(0.0), 0.0, E, B));
     EXPECT_NEAR(B(1), 0.0, 1.0e-15);
@@ -175,13 +176,13 @@ TEST_F(BendRepTest, RBendFringeSupportProjectsExitByFaceAngle) {
     bend.setB(-1.0);
 
     const double profileGap = 2.0 * halfGap;
-    const double halfWidth   = 5.0 * profileGap;
+    const double halfWidth  = 5.0 * profileGap;
 
     double fieldBegin = 0.0;
     double fieldEnd   = 0.0;
     bend.getFieldExtent(fieldBegin, fieldEnd);
-    EXPECT_NEAR(fieldBegin, -halfWidth, 1.0e-12);              // entrance face is perpendicular
-    EXPECT_NEAR(fieldEnd, bodyLength + halfWidth, 1.0e-12);    // box length, exit perpendicular
+    EXPECT_NEAR(fieldBegin, -halfWidth, 1.0e-12);            // entrance face is perpendicular
+    EXPECT_NEAR(fieldEnd, bodyLength + halfWidth, 1.0e-12);  // box length, exit perpendicular
 
     Vector3 E(0.0);
     Vector3 B(0.0);

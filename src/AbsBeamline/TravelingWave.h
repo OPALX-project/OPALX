@@ -91,7 +91,6 @@ public:
 
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
 
-
 private:
     double scaleCore_m;
     double scaleCoreError_m;

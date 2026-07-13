@@ -77,7 +77,7 @@ public:
      * @param B Magnetic Field
      *
      * @returns true if particle is out-of-bounds (lost), false otherwise
-     */ 
+     */
     /**
      * @brief Apply to particle with position R and momentum P
      *

@@ -170,7 +170,6 @@ private:
 
 inline void SBend::setFullGap(double gap) { gap_m = std::abs(gap); }
 
-
 inline void SBend::setFringeIntegral(double fringeIntegral) {
     fringeIntegral_m = std::abs(fringeIntegral);
 }

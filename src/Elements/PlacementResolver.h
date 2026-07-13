@@ -24,14 +24,14 @@
  *
  *  There are two ways to place elements in OPALX
  *   - 6D positioning (Mode A): The global X/Y/Z/PHI/PSI/THETA coordinates of the
- *     elements.  
- *   - ELEMEDGE (Mode B): The elements are placed by their position along the 
- *     reference path S. 
- *  
+ *     elements.
+ *   - ELEMEDGE (Mode B): The elements are placed by their position along the
+ *     reference path S.
  *
- * @note These conventions cannot be mixed.  
+ *
+ * @note These conventions cannot be mixed.
  * @note The the global-to-local transforms always transform to the elements'
- * geometrical entrance frame. 
+ * geometrical entrance frame.
  */
 class PlacementResolver {
 public:

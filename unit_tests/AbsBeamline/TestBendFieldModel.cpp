@@ -49,16 +49,14 @@ TEST(BendFieldModel, EngeProfileDerivativesMatchFiniteDifferences) {
     for (const double d : {-0.03, -0.01, 0.0, 0.01, 0.03}) {
         const BendFieldModel::EngeValue f = BendFieldModel::engeProfile(d, gap);
 
-        const double h  = 1.0e-6;
-        const double fp = 1.0e-4;
-        const double fdFirst =
-                (BendFieldModel::engeProfile(d + h, gap).value
-                 - BendFieldModel::engeProfile(d - h, gap).value)
-                / (2.0 * h);
-        const double fdSecond =
-                (BendFieldModel::engeProfile(d + fp, gap).value
-                 - 2.0 * f.value + BendFieldModel::engeProfile(d - fp, gap).value)
-                / (fp * fp);
+        const double h       = 1.0e-6;
+        const double fp      = 1.0e-4;
+        const double fdFirst = (BendFieldModel::engeProfile(d + h, gap).value
+                                - BendFieldModel::engeProfile(d - h, gap).value)
+                               / (2.0 * h);
+        const double fdSecond = (BendFieldModel::engeProfile(d + fp, gap).value - 2.0 * f.value
+                                 + BendFieldModel::engeProfile(d - fp, gap).value)
+                                / (fp * fp);
 
         EXPECT_NEAR(f.firstDerivative, fdFirst, 1.0e-3 * (1.0 + std::abs(f.firstDerivative)));
         EXPECT_NEAR(f.secondDerivative, fdSecond, 1.0e-2 * (1.0 + std::abs(f.secondDerivative)));
@@ -67,7 +65,7 @@ TEST(BendFieldModel, EngeProfileDerivativesMatchFiniteDifferences) {
 
 // Gap selection and the fringe half width.
 TEST(BendFieldModel, GapAndHalfWidthHelpers) {
-    EXPECT_DOUBLE_EQ(BendFieldModel::fringeHalfWidth(0.02), 0.1);    // five gaps
+    EXPECT_DOUBLE_EQ(BendFieldModel::fringeHalfWidth(0.02), 0.1);  // five gaps
 }
 
 // The combined amplitude is 1 deep inside, ~0.3825 at a face, 0 outside, and
@@ -96,11 +94,12 @@ TEST(BendFieldModel, FringeAmplitudeCombinesTwoFaces) {
 TEST(BendFieldModel, EdgeKickReducesToTanWithoutFint) {
     const double h = 0.5, E = 0.2;
     EXPECT_NEAR(
-            BendFieldModel::edgeVerticalKickCoefficient(h, 0.02, 0.0, E), -h * std::tan(E), 1.0e-12);
+            BendFieldModel::edgeVerticalKickCoefficient(h, 0.02, 0.0, E), -h * std::tan(E),
+            1.0e-12);
 
     // A finite FINT shifts the effective edge angle by psi = h*HGAP*FINT*(1+sin^2E)/cosE.
     const double hgap = 0.02, fint = 0.5;
-    const double psi  = h * hgap * fint * (1.0 + std::sin(E) * std::sin(E)) / std::cos(E);
+    const double psi = h * hgap * fint * (1.0 + std::sin(E) * std::sin(E)) / std::cos(E);
     EXPECT_NEAR(
             BendFieldModel::edgeVerticalKickCoefficient(h, hgap, fint, E), -h * std::tan(E - psi),
             1.0e-12);

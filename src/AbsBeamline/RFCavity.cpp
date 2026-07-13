@@ -695,4 +695,3 @@ bool RFCavity::isInside(const Vector_t<double, 3>& r) const {
 
     return false;
 }
-

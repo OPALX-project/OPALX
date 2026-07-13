@@ -107,7 +107,8 @@ bool VariableRFCavity::apply(
     const double E0        = amplitudeTD_m->getValue(t) * Units::MVpm2Vpm;
     const double integralF = frequencyTD_m->getIntegral(t) * Units::MHz2Hz;
     const double phi       = phaseTD_m->getValue(t);
-    return computeField(R, E, E0, integralF, phi, halfWidth_m, halfHeight_m, getGeometry().getElementLength());
+    return computeField(
+            R, E, E0, integralF, phi, halfWidth_m, halfHeight_m, getGeometry().getElementLength());
 }
 
 bool VariableRFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
