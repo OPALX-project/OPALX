@@ -67,23 +67,23 @@ variables:
         echo "MAMBA_ROOT_PREFIX=$MAMBA_ROOT_PREFIX"
         if [ ! -x "$GNUPLOT_ENV/bin/gnuplot" ]; then
           echo "Installing micromamba and gnuplot"
-          mkdir -p "$SCRATCH/micromamba-bin"
+          mkdir -p "$SCRATCH/micromamba-bin-$(uname -m)"
           case "$(uname -m)" in
             x86_64)  MAMBA_ARCH="linux-64" ;;
             aarch64) MAMBA_ARCH="linux-aarch64" ;;
             *)       echo "Unsupported arch $(uname -m), will skip plot generation"; MAMBA_ARCH="" ;;
           esac
-          if [ -n "$MAMBA_ARCH" ] && [ ! -x "$SCRATCH/micromamba-bin/micromamba" ]; then
+          if [ -n "$MAMBA_ARCH" ] && [ ! -x "$SCRATCH/micromamba-bin-$(uname -m)/micromamba" ]; then
             echo "Downloading micromamba for $MAMBA_ARCH"
-            if ! curl -fsSL "https://micro.mamba.pm/api/micromamba/${MAMBA_ARCH}/latest" | tar -xvj -C "$SCRATCH/micromamba-bin" --strip-components=1 bin/micromamba; then
+            if ! curl -fsSL "https://micro.mamba.pm/api/micromamba/${MAMBA_ARCH}/latest" | tar -xvj -C "$SCRATCH/micromamba-bin-$(uname -m)" --strip-components=1 bin/micromamba; then
               echo "ERROR: failed to download/extract micromamba"
             fi
           fi
-          if [ -x "$SCRATCH/micromamba-bin/micromamba" ]; then
+          if [ -x "$SCRATCH/micromamba-bin-$(uname -m)/micromamba" ]; then
             echo "micromamba version:"
-            "$SCRATCH/micromamba-bin/micromamba" --version
+            "$SCRATCH/micromamba-bin-$(uname -m)/micromamba" --version
             echo "Creating gnuplot environment (this may take a while on first run)"
-            if ! "$SCRATCH/micromamba-bin/micromamba" create -y -p "$GNUPLOT_ENV" -c conda-forge gnuplot > /tmp/micromamba-gnuplot.log 2>&1; then
+            if ! "$SCRATCH/micromamba-bin-$(uname -m)/micromamba" create -y -p "$GNUPLOT_ENV" -c conda-forge gnuplot > /tmp/micromamba-gnuplot.log 2>&1; then
               echo "ERROR: micromamba create failed, log follows:"
               cat /tmp/micromamba-gnuplot.log
             else
