@@ -144,6 +144,12 @@ foreach(a HOPPER90 AMPERE80 AMPERE86 AMPERE87 VOLTA70 VOLTA72 PASCAL61 PASCAL60 
     set(Kokkos_ARCH_${a} OFF CACHE BOOL "" FORCE)
 endforeach()
 
+# Honour Kokkos_ARCH_FLAG if ARCH was not set (e.g. via CI -D)
+if(NOT ARCH AND Kokkos_ARCH_FLAG)
+    string(REGEX REPLACE "^Kokkos_ARCH_" "" ARCH "${Kokkos_ARCH_FLAG}")
+    set(ARCH "${ARCH}" CACHE STRING "" FORCE)
+endif()
+
 # Enable selected arch (if provided)
 if(ARCH)
     set(Kokkos_ARCH_${ARCH} ON CACHE BOOL "" FORCE)
