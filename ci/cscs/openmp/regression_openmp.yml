@@ -44,6 +44,41 @@ variables:
     - git clone --depth 1 --branch master https://github.com/OPALX-project/regression-tests-x.git regression-tests
     - ls regression-tests/RegressionTests
 
+    - echo "=== Setup gnuplot ==="
+    - |
+      if command -v gnuplot &> /dev/null; then
+        echo "gnuplot found at $(command -v gnuplot)"
+      else
+        echo "gnuplot not found, trying cached conda-forge environment"
+        GNUPLOT_ENV="$SCRATCH/gnuplot-env-$(uname -m)"
+        if [ ! -d "$GNUPLOT_ENV/bin" ]; then
+          echo "Installing micromamba and gnuplot"
+          mkdir -p "$SCRATCH/micromamba-bin"
+          case "$(uname -m)" in
+            x86_64)  MAMBA_ARCH="linux-64" ;;
+            aarch64) MAMBA_ARCH="linux-aarch64" ;;
+            *)       echo "Unsupported arch $(uname -m), will skip plot generation"; MAMBA_ARCH="" ;;
+          esac
+          if [ -n "$MAMBA_ARCH" ] && [ ! -f "$SCRATCH/micromamba-bin/micromamba" ]; then
+            curl -fsSL "https://micro.mamba.pm/api/micromamba/${MAMBA_ARCH}/latest" | tar -xvj -C "$SCRATCH/micromamba-bin" bin/micromamba || true
+          fi
+          if [ -f "$SCRATCH/micromamba-bin/micromamba" ]; then
+            "$SCRATCH/micromamba-bin/micromamba" create -y -p "$GNUPLOT_ENV" -c conda-forge gnuplot || true
+          fi
+        fi
+        if [ -d "$GNUPLOT_ENV/bin" ]; then
+          export PATH="$GNUPLOT_ENV/bin:$PATH"
+        fi
+        if command -v gnuplot &> /dev/null; then
+          echo "gnuplot now available at $(command -v gnuplot)"
+        else
+          echo "WARNING: gnuplot could not be installed, regression plots will be skipped"
+        fi
+      fi
+
+    - echo "=== Patch stattest.py to tolerate missing gnuplot ==="
+    - python3 $CI_PROJECT_DIR/ci/cscs/patch-stattest.py nightlybuildx/scripts/OpalRegressionTests/stattest.py
+
     - echo "=== Install mpirun -> srun wrapper ==="
     - mkdir -p ci-bin
     - cp $CI_PROJECT_DIR/ci/cscs/regression-test-mpirun-wrapper ci-bin/mpirun
