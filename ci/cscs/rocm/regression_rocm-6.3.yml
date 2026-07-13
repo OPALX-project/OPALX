@@ -76,7 +76,7 @@ variables:
           esac
           if [ -n "$MAMBA_ARCH" ] && [ ! -x "$SCRATCH/micromamba-bin/micromamba" ]; then
             echo "Downloading micromamba for $MAMBA_ARCH"
-            if ! curl -fsSL "https://micro.mamba.pm/api/micromamba/${MAMBA_ARCH}/latest" | tar -xvj -C "$SCRATCH/micromamba-bin" bin/micromamba; then
+            if ! curl -fsSL "https://micro.mamba.pm/api/micromamba/${MAMBA_ARCH}/latest" | tar -xvj -C "$SCRATCH/micromamba-bin" --strip-components=1 bin/micromamba; then
               echo "ERROR: failed to download/extract micromamba"
             fi
           fi
