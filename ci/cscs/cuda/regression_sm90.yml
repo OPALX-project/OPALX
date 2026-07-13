@@ -181,36 +181,40 @@ variables:
       else
         mkdir -p ~/.ssh
         KEY_FILE=~/.ssh/opal_live_doc_key
-        echo "PSI_GIT_SSHKEY length: ${#PSI_GIT_SSHKEY}"
-        echo "PSI_GIT_SSHKEY first 80 chars: ${PSI_GIT_SSHKEY:0:80}"
-        echo "PSI_GIT_SSHKEY last 40 chars: ${PSI_GIT_SSHKEY: -40}"
-        # CI variables often store multiline secrets with literal \n.
-        # Use %b so escaped newlines become real newlines.
-        printf '%b\n' "$PSI_GIT_SSHKEY" > "$KEY_FILE"
+        # Reformat the key into a proper PEM file. CI variables sometimes
+        # arrive as a single line with spaces inserted in the base64 body,
+        # which ssh rejects with "error in libcrypto".
+        python3 - "$PSI_GIT_SSHKEY" > "$KEY_FILE" <<'PY'
+      import re, sys
+      raw = sys.argv[1]
+      # Strip all whitespace, then recognise PEM markers if present.
+      clean = re.sub(r'\s+', '', raw)
+      m = re.search(r'-----BEGIN([A-Z\s]+)PRIVATEKEY-----(.+?)-----END\1PRIVATEKEY-----', clean)
+      if m:
+          key_type = m.group(1).strip()
+          b64 = m.group(2)
+      else:
+          # No markers: assume it is bare base64 of an OpenSSH key.
+          key_type = "OPENSSH"
+          b64 = clean
+      pem = f"-----BEGIN {key_type} PRIVATE KEY-----\n"
+      pem += "\n".join(b64[i:i+64] for i in range(0, len(b64), 64))
+      pem += f"\n-----END {key_type} PRIVATE KEY-----\n"
+      print(pem)
+      PY
         chmod 600 "$KEY_FILE"
-        # Remove any Windows line endings that may have crept in.
-        sed -i 's/\r$//' "$KEY_FILE"
-        # If the file does not look like a private key, try base64 decoding.
-        if ! grep -q '^-----BEGIN .* PRIVATE KEY-----' "$KEY_FILE"; then
-          echo "Key not in PEM format, trying base64 decode"
-          printf '%s\n' "$PSI_GIT_SSHKEY" | base64 -d > "$KEY_FILE" 2>/dev/null
-          chmod 600 "$KEY_FILE"
-          sed -i 's/\r$//' "$KEY_FILE"
-          if ! grep -q '^-----BEGIN .* PRIVATE KEY-----' "$KEY_FILE"; then
-            echo "ERROR: PSI_GIT_SSHKEY does not contain a valid SSH private key"
-            exit 1
-          fi
-        fi
         echo "Key file header:"
         head -n 1 "$KEY_FILE"
-        echo "ssh version:"
-        ssh -V 2>&1
-        echo "openssl version:"
-        openssl version
         echo "Validating key with ssh-keygen:"
-        ssh-keygen -y -f "$KEY_FILE" < /dev/null > /dev/null 2>&1 && echo "OK" || echo "FAILED"
+        if ssh-keygen -y -f "$KEY_FILE" < /dev/null > /dev/null 2>&1; then
+          echo "OK"
+        else
+          echo "FAILED"
+          echo "ERROR: Could not validate SSH private key"
+          exit 1
+        fi
         ssh-keyscan -t rsa,ecdsa,ed25519 gitea.psi.ch >> ~/.ssh/known_hosts 2>/dev/null
-        export GIT_SSH_COMMAND="ssh -vvv -i $KEY_FILE -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes -o BatchMode=yes"
+        export GIT_SSH_COMMAND="ssh -i $KEY_FILE -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes -o BatchMode=yes"
         git config --global user.email "opalx-ci@cscs.ch"
         git config --global user.name "OPALX CI"
         if git clone --depth 1 git@gitea.psi.ch:AMAS/opal-live-doc.git opal-live-doc; then
