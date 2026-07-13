@@ -174,19 +174,38 @@ variables:
         echo "WARNING: No regression results found at $CI_PROJECT_DIR/regression-results-$BUILD_ARCH, skipping push"
       else
         mkdir -p ~/.ssh
-        printf '%s\n' "$PSI_GIT_SSHKEY" > ~/.ssh/opal_live_doc_key
-        chmod 600 ~/.ssh/opal_live_doc_key
+        KEY_FILE=~/.ssh/opal_live_doc_key
+        # CI variables often store multiline secrets with literal \n.
+        # Use %b so escaped newlines become real newlines.
+        printf '%b\n' "$PSI_GIT_SSHKEY" > "$KEY_FILE"
+        chmod 600 "$KEY_FILE"
+        # If the file does not look like a private key, try base64 decoding.
+        if ! grep -q '^-----BEGIN .* PRIVATE KEY-----' "$KEY_FILE"; then
+          echo "Key not in PEM format, trying base64 decode"
+          printf '%s\n' "$PSI_GIT_SSHKEY" | base64 -d > "$KEY_FILE" 2>/dev/null
+          chmod 600 "$KEY_FILE"
+          if ! grep -q '^-----BEGIN .* PRIVATE KEY-----' "$KEY_FILE"; then
+            echo "ERROR: PSI_GIT_SSHKEY does not contain a valid SSH private key"
+            echo "Key length: ${#PSI_GIT_SSHKEY}"
+            echo "First 80 chars: ${PSI_GIT_SSHKEY:0:80}"
+            echo "Last 40 chars: ${PSI_GIT_SSHKEY: -40}"
+            exit 1
+          fi
+        fi
         ssh-keyscan -t rsa,ecdsa,ed25519 gitea.psi.ch >> ~/.ssh/known_hosts 2>/dev/null
-        export GIT_SSH_COMMAND="ssh -i ~/.ssh/opal_live_doc_key -o StrictHostKeyChecking=accept-new"
+        export GIT_SSH_COMMAND="ssh -i $KEY_FILE -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes"
         git config --global user.email "opalx-ci@cscs.ch"
         git config --global user.name "OPALX CI"
-        git clone --depth 1 git@gitea.psi.ch:AMAS/opal-live-doc.git opal-live-doc
-        mkdir -p opal-live-doc/$BUILD_ARCH
-        cp -r $CI_PROJECT_DIR/regression-results-$BUILD_ARCH/. opal-live-doc/$BUILD_ARCH/
-        cd opal-live-doc
-        git add -A
-        git commit -m "Update $BUILD_ARCH regression results for $CI_COMMIT_SHORT_SHA" || echo "Nothing to commit"
-        git push origin HEAD:main
+        if git clone --depth 1 git@gitea.psi.ch:AMAS/opal-live-doc.git opal-live-doc; then
+          mkdir -p opal-live-doc/$BUILD_ARCH
+          cp -r $CI_PROJECT_DIR/regression-results-$BUILD_ARCH/. opal-live-doc/$BUILD_ARCH/
+          cd opal-live-doc
+          git add -A
+          git commit -m "Update $BUILD_ARCH regression results for $CI_COMMIT_SHORT_SHA" || echo "Nothing to commit"
+          git push origin HEAD:main || echo "WARNING: push failed"
+        else
+          echo "WARNING: clone failed, cannot push regression results"
+        fi
       fi
   artifacts:
     paths:
