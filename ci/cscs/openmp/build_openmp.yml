@@ -39,7 +39,7 @@ variables:
       -DIPPL_GIT_TAG=master
       -DKokkos_ENABLE_DEBUG_BOUNDS_CHECK=OFF
       -DKokkos_ENABLE_DEBUG_DUALVIEW_MODIFY_CHECK=OFF
-      -DKokkos_VERSION=git.5.1.1
+      -DKokkos_VERSION=git.4.7.02
       -DMPIEXEC_EXECUTABLE=/usr/bin/srun
       -DMPIEXEC_PREFLAGS="$SRUN_FLAGS"
       -DMPIEXEC_MAX_NUMPROCS=4
