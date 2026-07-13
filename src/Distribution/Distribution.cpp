@@ -31,8 +31,8 @@
 #include "Utilities/Util.h"
 #include "Utility/IpplTimings.h"
 
-#include "Utilities/Random.h"
 #include "Utilities/GSLCompat.h"
+#include "Utilities/Random.h"
 
 #include <filesystem>
 #include <regex>
@@ -49,8 +49,6 @@
 extern Inform* gmsg;
 
 using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
-
-using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
 
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, Dim>, 1>::view_type;
 
@@ -82,6 +80,7 @@ namespace DISTRIBUTION {
         FTOSCAMPLITUDE,
         FTOSCPERIODS,
         EMITTED,
+        EMISSIONSTEPS,
         /// Optional per-distribution particle count (macroparticles).
         /// If <= 0, this distribution does not specify its own N and
         /// TrackRun/BEAM logic is used instead.
@@ -104,16 +103,18 @@ namespace {
 
 Distribution::Distribution()
     : Definition(
-        DISTRIBUTION::SIZE, "DISTRIBUTION",
-        "The DISTRIBUTION statement defines data for the 6D particle distribution."),
+              DISTRIBUTION::SIZE, "DISTRIBUTION",
+              "The DISTRIBUTION statement defines data for the 6D particle distribution."),
       totalNumberParticles_m(0),
       distrTypeT_m(DistributionType::NODIST),
       avrgpz_m(0.0) {
-    itsAttr[DISTRIBUTION::TYPE] =
-        Attributes::makePredefinedString("TYPE", "Distribution type.", {"GAUSS", "MULTIVARIATEGAUSS", "FLATTOP", "FROMFILE"});
+    itsAttr[DISTRIBUTION::TYPE] = Attributes::makePredefinedString(
+            "TYPE", "Distribution type.",
+            {"GAUSS", "MULTIVARIATEGAUSS", "FLATTOP", "OPALFLATTOP", "FROMFILE",
+             "EMITTEDFROMFILE"});
 
     itsAttr[DISTRIBUTION::FNAME] =
-        Attributes::makeString("FNAME", "File for reading in 6D particle coordinates.", "");
+            Attributes::makeString("FNAME", "File for reading in 6D particle coordinates.", "");
 
     // Parameters for defining an initial distribution.
     itsAttr[DISTRIBUTION::SIGMAX]  = Attributes::makeReal("SIGMAX", "SIGMAx (m)", 0.0);
@@ -125,56 +126,77 @@ Distribution::Distribution()
 
     itsAttr[DISTRIBUTION::CORR] = Attributes::makeRealArray("CORR", "r correlation");
 
-    itsAttr[DISTRIBUTION::CUTOFFPX] = Attributes::makeReal("CUTOFFPX", "Distribution cutoff px dimension in units of sigma.", 3.0);
-    itsAttr[DISTRIBUTION::CUTOFFPY] = Attributes::makeReal("CUTOFFPY", "Distribution cutoff py dimension in units of sigma.", 3.0);
-    itsAttr[DISTRIBUTION::CUTOFFPZ] = Attributes::makeReal("CUTOFFPZ", "Distribution cutoff pz dimension in units of sigma.", 3.0);
+    itsAttr[DISTRIBUTION::CUTOFFPX] = Attributes::makeReal(
+            "CUTOFFPX", "Distribution cutoff px dimension in units of sigma.", 3.0);
+    itsAttr[DISTRIBUTION::CUTOFFPY] = Attributes::makeReal(
+            "CUTOFFPY", "Distribution cutoff py dimension in units of sigma.", 3.0);
+    itsAttr[DISTRIBUTION::CUTOFFPZ] = Attributes::makeReal(
+            "CUTOFFPZ", "Distribution cutoff pz dimension in units of sigma.", 3.0);
 
-    itsAttr[DISTRIBUTION::CUTOFFX] = Attributes::makeReal("CUTOFFX", "Distribution cutoff x direction in units of sigma.", 3.0);
-    itsAttr[DISTRIBUTION::CUTOFFY] = Attributes::makeReal("CUTOFFY", "Distribution cutoff r direction in units of sigma.", 3.0);
-    itsAttr[DISTRIBUTION::CUTOFFLONG] = Attributes::makeReal("CUTOFFLONG", "Distribution cutoff z or t direction in units of sigma.", 3.0);
+    itsAttr[DISTRIBUTION::CUTOFFX] = Attributes::makeReal(
+            "CUTOFFX", "Distribution cutoff x direction in units of sigma.", 3.0);
+    itsAttr[DISTRIBUTION::CUTOFFY] = Attributes::makeReal(
+            "CUTOFFY", "Distribution cutoff r direction in units of sigma.", 3.0);
+    itsAttr[DISTRIBUTION::CUTOFFLONG] = Attributes::makeReal(
+            "CUTOFFLONG", "Distribution cutoff z or t direction in units of sigma.", 3.0);
 
-    itsAttr[DISTRIBUTION::CORRX] = Attributes::makeReal("CORRX", "x/px correlation, (R12 in transport notation).", 0.0);
-    itsAttr[DISTRIBUTION::CORRY] = Attributes::makeReal("CORRY", "y/py correlation, (R34 in transport notation).", 0.0);
-    itsAttr[DISTRIBUTION::CORRZ] = Attributes::makeReal("CORRZ", "z/pz correlation, (R56 in transport notation).", 0.0);
-    itsAttr[DISTRIBUTION::CORRT] = Attributes::makeReal("CORRT", "t/pt correlation, (R56 in transport notation).", 0.0);
+    itsAttr[DISTRIBUTION::CORRX] =
+            Attributes::makeReal("CORRX", "x/px correlation, (R12 in transport notation).", 0.0);
+    itsAttr[DISTRIBUTION::CORRY] =
+            Attributes::makeReal("CORRY", "y/py correlation, (R34 in transport notation).", 0.0);
+    itsAttr[DISTRIBUTION::CORRZ] =
+            Attributes::makeReal("CORRZ", "z/pz correlation, (R56 in transport notation).", 0.0);
+    itsAttr[DISTRIBUTION::CORRT] =
+            Attributes::makeReal("CORRT", "t/pt correlation, (R56 in transport notation).", 0.0);
 
     itsAttr[DISTRIBUTION::SIGMAT] = Attributes::makeReal("SIGMAT", "SIGMAt (m)", 0.0);
-    itsAttr[DISTRIBUTION::TPULSEFWHM] = Attributes::makeReal("TPULSEFWHM", "Pulse FWHM for emitted distribution.", 0.0);
-    itsAttr[DISTRIBUTION::TRISE] = Attributes::makeReal("TRISE", "Rise time for emitted distribution.", 0.0);
-    itsAttr[DISTRIBUTION::TFALL] = Attributes::makeReal("TFALL", "Fall time for emitted distribution.", 0.0);
+    itsAttr[DISTRIBUTION::TPULSEFWHM] =
+            Attributes::makeReal("TPULSEFWHM", "Pulse FWHM for emitted distribution.", 0.0);
+    itsAttr[DISTRIBUTION::TRISE] =
+            Attributes::makeReal("TRISE", "Rise time for emitted distribution.", 0.0);
+    itsAttr[DISTRIBUTION::TFALL] =
+            Attributes::makeReal("TFALL", "Fall time for emitted distribution.", 0.0);
 
-    itsAttr[DISTRIBUTION::FTOSCAMPLITUDE]
-        = Attributes::makeReal("FTOSCAMPLITUDE", "Amplitude of oscillations superimposed "
-                               "on flat top portion of emitted GAUSS "
-                               "distribtuion (in percent of flat top "
-                               "amplitude)",0.0);
+    itsAttr[DISTRIBUTION::FTOSCAMPLITUDE] = Attributes::makeReal(
+            "FTOSCAMPLITUDE",
+            "Amplitude of oscillations superimposed "
+            "on flat top portion of emitted GAUSS "
+            "distribtuion (in percent of flat top "
+            "amplitude)",
+            0.0);
 
-    itsAttr[DISTRIBUTION::FTOSCPERIODS]
-        = Attributes::makeReal("FTOSCPERIODS", "Number of oscillations superimposed on "
-                               "flat top portion of emitted GAUSS "
-                               "distribution", 0.0);
+    itsAttr[DISTRIBUTION::FTOSCPERIODS] = Attributes::makeReal(
+            "FTOSCPERIODS",
+            "Number of oscillations superimposed on "
+            "flat top portion of emitted GAUSS "
+            "distribution",
+            0.0);
 
-    itsAttr[DISTRIBUTION::EMITTED] =
-        Attributes::makeBool("EMITTED",
-                             "Emitted beam, from cathode, as opposed to "
-                             "an injected beam.",
-                             false);
+    itsAttr[DISTRIBUTION::EMITTED] = Attributes::makeBool(
+            "EMITTED",
+            "Emitted beam, from cathode, as opposed to "
+            "an injected beam.",
+            false);
+
+    itsAttr[DISTRIBUTION::EMISSIONSTEPS] = Attributes::makeReal(
+            "EMISSIONSTEPS",
+            "Number of OPAL-like time steps to use during OPALFLATTOP or EMITTEDFROMFILE "
+            "emission.",
+            100.0);
 
     itsAttr[DISTRIBUTION::NPARTDIST] = Attributes::makeReal(
-        "NPARTDIST",
-        "Number of macroparticles for this DISTRIBUTION. "
-        "If 0 or negative, this distribution does not specify its own count.",
-        0.0);
+            "NPARTDIST",
+            "Number of macroparticles for this DISTRIBUTION. "
+            "If 0 or negative, this distribution does not specify its own count.",
+            0.0);
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
 Distribution::Distribution(const std::string& name, Distribution* parent)
-    : Definition(name, parent) {
-}
+    : Definition(name, parent) {}
 
-Distribution::~Distribution() {
-}
+Distribution::~Distribution() {}
 
 /**
  * Calculate the local number of particles evenly and adjust node 0
@@ -190,20 +212,15 @@ size_t Distribution::getNumOfLocalParticlesToCreate(size_t n) {
     // make sure the total number is exact
     size_t remainder = n % ippl::Comm->size();
     size_t myNode    = ippl::Comm->rank();
-    if (myNode < remainder)
-        ++locNumber;
+    if (myNode < remainder) ++locNumber;
 
     return locNumber;
 }
 
 /// Distribution can only be replaced by another distribution.
-bool Distribution::canReplaceBy(Object* object) {
-    return dynamic_cast<Distribution*>(object) != 0;
-}
+bool Distribution::canReplaceBy(Object* object) { return dynamic_cast<Distribution*>(object) != 0; }
 
-Distribution* Distribution::clone(const std::string& name) {
-    return new Distribution(name, this);
-}
+Distribution* Distribution::clone(const std::string& name) { return new Distribution(name, this); }
 
 void Distribution::execute() {
     setAttributes();
@@ -236,14 +253,16 @@ Inform& Distribution::printInfo(Inform& os) const {
                 printDistMultiVariateGauss(os);
                 break;
             case DistributionType::FLATTOP:
+            case DistributionType::OPALFLATTOP:
                 printDistFlatTop(os);
                 break;
             case DistributionType::FROMFILE:
+            case DistributionType::EMITTEDFROMFILE:
                 printDistFromFile(os);
                 break;
             default:
                 throw OpalException("Distribution Param", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
-         }
+        }
         os << "* " << endl;
         os << "* Distribution is injected." << endl;
     }
@@ -254,16 +273,18 @@ Inform& Distribution::printInfo(Inform& os) const {
     return os;
 }
 
-void Distribution::setAvrgPz(double avrgpz){
-    avrgpz_m = avrgpz;
-}
+void Distribution::setAvrgPz(double avrgpz) { avrgpz_m = avrgpz; }
 
-void Distribution::setTEmission(double tEmission) {
-        tEmission_m = tEmission;
-}
+void Distribution::setTEmission(double tEmission) { tEmission_m = tEmission; }
 
-double Distribution::getTEmission() const {
-        return tEmission_m;
+double Distribution::getTEmission() const { return tEmission_m; }
+
+size_t Distribution::getEmissionSteps() const {
+    const double raw = Attributes::getReal(itsAttr[DISTRIBUTION::EMISSIONSTEPS]);
+    if (raw <= 0.0) {
+        return 100;
+    }
+    return static_cast<size_t>(std::ceil(raw));
 }
 
 void Distribution::setDistParametersGauss() {
@@ -286,10 +307,10 @@ void Distribution::setDistParametersGauss() {
                          Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFLONG]));
     */
 
-    //if (std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAR])) > 0.0) {
-    //    cutoffR_m[0] = Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFR]);
-    //    cutoffR_m[1] = Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFR]);
-    //}
+    // if (std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAR])) > 0.0) {
+    //     cutoffR_m[0] = Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFR]);
+    //     cutoffR_m[1] = Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFR]);
+    // }
 
     setSigmaR_m();
     setSigmaP_m();
@@ -298,47 +319,39 @@ void Distribution::setDistParametersGauss() {
 }
 
 void Distribution::setDistParametersMultiVariateGauss() {
-
     cutoffR_m = 3.;
     cutoffP_m = 3.;
 
-    // initialize the covariance matrix to identity
-    for (unsigned int i = 0; i < 6; ++ i) {
-        for (unsigned int j = 0; j < 6; ++ j) {
-            if (i==j)
-               correlationMatrix_m[i][j] = 1.0;
+    for (unsigned int i = 0; i < 6; ++i) {
+        for (unsigned int j = 0; j < 6; ++j) {
+            if (i == j)
+                correlationMatrix_m[i][j] = 1.0;
             else
-               correlationMatrix_m[i][j] = 0.0;
+                correlationMatrix_m[i][j] = 0.0;
         }
     }
 
-    // set diagonal elements first
     setSigmaR_m();
     setSigmaP_m();
-
-    for (unsigned int i = 0; i < 3; ++ i){
-        correlationMatrix_m[2*i  ][2*i  ] = sigmaR_m[i]*sigmaR_m[i];
-        correlationMatrix_m[2*i+1][2*i+1] = sigmaP_m[i]*sigmaP_m[i];
-    }
 
     std::vector<double> cr = Attributes::getRealArray(itsAttr[DISTRIBUTION::CORR]);
 
     if (!cr.empty()) {
-            // read off-diagonal correlation matrix from input file
-            if (cr.size() == 15) {
-                *gmsg << "* Use r to specify correlations" << endl;
-                unsigned int k = 0;
-                for (unsigned int i = 0; i < 5; ++ i) {
-                    for (unsigned int j = i + 1; j < 6; ++ j, ++ k) {
-                        correlationMatrix_m[j][i] = cr.at(k)*cr.at(k);
-                        correlationMatrix_m[i][j] = correlationMatrix_m[j][i]; // impose symmetry
-                    }
+        // read off-diagonal correlation coefficients from input file
+        if (cr.size() == 15) {
+            *gmsg << "* Using CORR to specify off-diagonal correlation coefficients" << endl;
+            unsigned int k = 0;
+            for (unsigned int i = 0; i < 5; ++i) {
+                for (unsigned int j = i + 1; j < 6; ++j, ++k) {
+                    correlationMatrix_m[j][i] = cr.at(k);
+                    correlationMatrix_m[i][j] = cr.at(k);  // impose symmetry
                 }
             }
-            else {
-                throw OpalException("Distribution::SetDistParametersGauss",
-                                    "Inconsistent set of correlations specified, check manual");
-            }
+        } else {
+            throw OpalException(
+                    "Distribution::SetDistParametersGauss",
+                    "Inconsistent set of correlations specified, check manual");
+        }
     }
 
     avrgpz_m = 0.0;
@@ -356,19 +369,19 @@ void Distribution::setDistParametersFlatTop() {
     setSigmaP_m();
 
     // initialize the covariance matrix to identity
-    for (unsigned int i = 0; i < 6; ++ i) {
-        for (unsigned int j = 0; j < 6; ++ j) {
-            if (i==j)
-               correlationMatrix_m[i][j] = 1.0;
+    for (unsigned int i = 0; i < 6; ++i) {
+        for (unsigned int j = 0; j < 6; ++j) {
+            if (i == j)
+                correlationMatrix_m[i][j] = 1.0;
             else
-               correlationMatrix_m[i][j] = 0.0;
+                correlationMatrix_m[i][j] = 0.0;
         }
     }
 
     cutoffR_m = ippl::Vector<double, 3>(
-        std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFX])),
-        std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFY])),
-        std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFLONG])));
+            std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFX])),
+            std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFY])),
+            std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFLONG])));
 
     correlationMatrix_m[1][0] = Attributes::getReal(itsAttr[DISTRIBUTION::CORRX]);
     correlationMatrix_m[3][2] = Attributes::getReal(itsAttr[DISTRIBUTION::CORRY]);
@@ -382,33 +395,32 @@ void Distribution::setDistParametersFlatTop() {
     if (emitting_m) {
         sigmaR_m[2] = 0.0;
 
-        sigmaTRise_m = std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAT]));
-        sigmaTFall_m = std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAT]));
+        sigmaTRise_m       = std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAT]));
+        sigmaTFall_m       = std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAT]));
         tPulseLengthFWHM_m = std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::TPULSEFWHM]));
 
         FTOSCAmplitude_m = std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::FTOSCAMPLITUDE]));
-        FTOSCPeriods_m = std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::FTOSCPERIODS]));
+        FTOSCPeriods_m   = std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::FTOSCPERIODS]));
 
         // If TRISE and TFALL are defined > 0.0 then these attributes
         // override SIGMAT.
         //
         if (std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::TRISE])) > 0.0
             || std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::TFALL])) > 0.0) {
-
-            double timeRatio = std::sqrt(2.0 * std::log(10.0)) - std::sqrt(2.0 * std::log(10.0 / 9.0));
+            double timeRatio =
+                    std::sqrt(2.0 * std::log(10.0)) - std::sqrt(2.0 * std::log(10.0 / 9.0));
 
             if (std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::TRISE])) > 0.0)
-                sigmaTRise_m = std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::TRISE]))
-                    / timeRatio;
+                sigmaTRise_m =
+                        std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::TRISE])) / timeRatio;
 
             if (std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::TFALL])) > 0.0)
-                sigmaTFall_m = std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::TFALL]))
-                    / timeRatio;
+                sigmaTFall_m =
+                        std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::TFALL])) / timeRatio;
         }
 
         // For an emitted beam, the longitudinal cutoff >= 0.
         cutoffR_m[2] = std::abs(cutoffR_m[2]);
-
     }
 }
 
@@ -423,7 +435,7 @@ void Distribution::printDistGauss(Inform& os) const {
     os << "* SIGMAPZ    = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
 }
 
-void Distribution::printDistMultiVariateGauss(Inform& os)  const {
+void Distribution::printDistMultiVariateGauss(Inform& os) const {
     os << "* Distribution type: MULTIVARIATEGAUSS" << endl;
     os << "* " << endl;
     os << "* SIGMAX     = " << sigmaR_m[0] << " [m]" << endl;
@@ -433,44 +445,40 @@ void Distribution::printDistMultiVariateGauss(Inform& os)  const {
     os << "* SIGMAPY    = " << sigmaP_m[1] << " [Beta Gamma]" << endl;
     os << "* SIGMAPZ    = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
 
-    os << "* input cov matrix = ";
-    for (unsigned int i = 0; i < 6; ++ i) {
-        for (unsigned int j = 0; j < 6; ++ j) {
+    os << "* input correlation matrix = ";
+    for (unsigned int i = 0; i < 6; ++i) {
+        for (unsigned int j = 0; j < 6; ++j) {
             os << correlationMatrix_m[i][j] << " ";
         }
         os << endl << "                     ";
     }
 }
 
-void Distribution::printDistFlatTop(Inform& os)  const {
-    os << "* Distribution type: FLATTOP" << endl;
+void Distribution::printDistFlatTop(Inform& os) const {
+    os << "* Distribution type: " << distT_m << endl;
     os << "* " << endl;
     os << "* SIGMAX     = " << sigmaR_m[0] << " [m]" << endl;
     os << "* SIGMAY     = " << sigmaR_m[1] << " [m]" << endl;
 
     if (emitting_m) {
-            os << "* Sigma Time Rise               = " << sigmaTRise_m
-               << " [sec]" << endl;
-            os << "* TPULSEFWHM                    = " << tPulseLengthFWHM_m
-               << " [sec]" << endl;
-            os << "* Sigma Time Fall               = " << sigmaTFall_m
-               << " [sec]" << endl;
-            os << "* Longitudinal cutoff           = " << cutoffR_m[2]
-               << " [units of Sigma Time]" << endl;
-            //os << "* Flat top modulation amplitude = "
-            //   << Attributes::getReal(itsAttr[DISTRIBUTION::FTOSCAMPLITUDE])
-            //   << " [Percent of distribution amplitude]" << endl;
-            //os << "* Flat top modulation periods   = "
-            //   << std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::FTOSCPERIODS]))
-            //   << endl;
-    }
-    else{
+        os << "* Sigma Time Rise               = " << sigmaTRise_m << " [sec]" << endl;
+        os << "* TPULSEFWHM                    = " << tPulseLengthFWHM_m << " [sec]" << endl;
+        os << "* Sigma Time Fall               = " << sigmaTFall_m << " [sec]" << endl;
+        os << "* Longitudinal cutoff           = " << cutoffR_m[2] << " [units of Sigma Time]"
+           << endl;
+        // os << "* Flat top modulation amplitude = "
+        //    << Attributes::getReal(itsAttr[DISTRIBUTION::FTOSCAMPLITUDE])
+        //    << " [Percent of distribution amplitude]" << endl;
+        // os << "* Flat top modulation periods   = "
+        //    << std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::FTOSCPERIODS]))
+        //    << endl;
+    } else {
         os << "* SIGMAZ                        = " << sigmaR_m[2] << " [m]" << endl;
     }
 }
 
 void Distribution::printDistFromFile(Inform& os) const {
-    os << "* Distribution type: FROMFILE" << endl;
+    os << "* Distribution type: " << distT_m << endl;
     os << "* " << endl;
     std::string fname = getFilename();
     if (!fname.empty()) {
@@ -491,9 +499,8 @@ void Distribution::setAttributes() {
     // Cache per-distribution particle count, if provided.
     // A value <= 0 means \"unspecified\" and will be handled by TrackRun/BEAM.
     const double npartDist = Attributes::getReal(itsAttr[DISTRIBUTION::NPARTDIST]);
-    totalNumberParticles_m = npartDist > 0.0
-                                 ? static_cast<size_t>(npartDist)
-                                 : static_cast<size_t>(0);
+    totalNumberParticles_m =
+            npartDist > 0.0 ? static_cast<size_t>(npartDist) : static_cast<size_t>(0);
 }
 
 void Distribution::setDist() {
@@ -508,11 +515,17 @@ void Distribution::setDist() {
             setDistParametersMultiVariateGauss();
             break;
         case DistributionType::FLATTOP:
+        case DistributionType::OPALFLATTOP:
             setDistParametersFlatTop();
             break;
         case DistributionType::FROMFILE:
-            // FROMFILE doesn't need special parameter setting
-            // File will be read by FromFile class
+            // File-based distributions read their records in the sampler class.
+            break;
+        case DistributionType::EMITTEDFROMFILE:
+            // The file stores sampled particle birth times, but not necessarily the full old-OPAL
+            // emission window. Parse the flat-top timing attributes when present so the sampler can
+            // reconstruct the original phase shift.
+            setDistParametersFlatTop();
             break;
         default:
             throw OpalException("Distribution Param", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
@@ -521,19 +534,20 @@ void Distribution::setDist() {
 
 void Distribution::setDistType() {
     static const std::map<std::string, DistributionType> typeStringToDistType_s = {
-        {"NODIST", DistributionType::NODIST},
-        {"GAUSS", DistributionType::GAUSS},
-        {"MULTIVARIATEGAUSS", DistributionType::MULTIVARIATEGAUSS},
-        {"FLATTOP", DistributionType::FLATTOP},
-        {"FROMFILE", DistributionType::FROMFILE}
-    };
+            {"NODIST", DistributionType::NODIST},
+            {"GAUSS", DistributionType::GAUSS},
+            {"MULTIVARIATEGAUSS", DistributionType::MULTIVARIATEGAUSS},
+            {"FLATTOP", DistributionType::FLATTOP},
+            {"OPALFLATTOP", DistributionType::OPALFLATTOP},
+            {"FROMFILE", DistributionType::FROMFILE},
+            {"EMITTEDFROMFILE", DistributionType::EMITTEDFROMFILE}};
 
     distT_m = Attributes::getString(itsAttr[DISTRIBUTION::TYPE]);
 
     if (distT_m.empty()) {
         throw OpalException(
-            "Distribution::setDistType",
-            "The attribute \"TYPE\" isn't set for the \"DISTRIBUTION\"!");
+                "Distribution::setDistType",
+                "The attribute \"TYPE\" isn't set for the \"DISTRIBUTION\"!");
     } else {
         distrTypeT_m = typeStringToDistType_s.at(distT_m);
     }
@@ -541,15 +555,14 @@ void Distribution::setDistType() {
 
 void Distribution::setSigmaR_m() {
     sigmaR_m = ippl::Vector<double, 3>(
-        std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAX])),
-        std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAY])),
-        std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAZ])));
+            std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAX])),
+            std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAY])),
+            std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAZ])));
 }
 
 void Distribution::setSigmaP_m() {
     sigmaP_m = ippl::Vector<double, 3>(
-        std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAPX])),
-        std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAPY])),
-        std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAPZ])));
+            std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAPX])),
+            std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAPY])),
+            std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::SIGMAPZ])));
 }
-

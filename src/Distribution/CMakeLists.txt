@@ -1,20 +1,24 @@
 set (_SRCS
     Distribution.cpp
+    EmittedFromFile.cpp
     FlatTop.cpp
     FromFile.cpp
     Gaussian.cpp
     LaserProfile.cpp
     MultiVariateGaussian.cpp
+    OpalFlatTop.cpp
     SamplingBase.cpp
     )
 
 set (HDRS
     Distribution.h
+    EmittedFromFile.h
     FlatTop.h
     FromFile.h
     Gaussian.h
     LaserProfile.h
     MultiVariateGaussian.h
+    OpalFlatTop.h
     SamplingBase.hpp
     )
 

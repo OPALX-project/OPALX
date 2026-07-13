@@ -1,18 +1,18 @@
 #ifndef IPPL_MULTI_VARIATE_GAUSSIAN_H
 #define IPPL_MULTI_VARIATE_GAUSSIAN_H
 
-#include "Distribution.h"
-#include "SamplingBase.hpp"
 #include <Kokkos_Random.hpp>
-#include "Ippl.h"
-#include "Utilities/Options.h"
-#include "OPALTypes.h"
-#include <memory>
 #include <cmath>
+#include <memory>
+#include "Distribution.h"
+#include "Ippl.h"
+#include "OPALTypes.h"
+#include "SamplingBase.hpp"
+#include "Utilities/Options.h"
 
 using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
-using Dist_t = ippl::random::NormalDistribution<double, 3>;
-using Matrix_t = ippl::Vector<ippl::Vector<double, 6>, 6>;
+using Dist_t        = ippl::random::NormalDistribution<double, 3>;
+using Matrix_t      = ippl::Vector<ippl::Vector<double, 6>, 6>;
 
 /**
  * @class MultiVariateGaussian
@@ -21,8 +21,10 @@ using Matrix_t = ippl::Vector<ippl::Vector<double, 6>, 6>;
  * This class generates particles following a multivariate Gaussian distribution
  * using Cholesky factorization and inverse transformation sampling.
  *
- * Given covariance matrix cov_m = [ Cov(R0,R0), Cov(R0,P0), Cov(R0,R1), Cov(R0,P1), ...]
- * whose values are read from opalDist_m->correlationMatrix_m.
+ * The covariance matrix cov_m = [ Cov(R0,R0), Cov(R0,P0), Cov(R0,R1), Cov(R0,P1), ...]
+ * is built from the dimensionless correlation matrix opalDist_m->correlationMatrix_m
+ * and the per-coordinate sigmas via Cov(i,j) = Corr(i,j) * sigma_i * sigma_j.
+ *
  * First, the Cholesky factorization is computed cov_m = L_m * L_m^T
  * Then, normally distribution particles R=P~N(0,I) are transformed to multivariate using L_m.
  */
@@ -30,14 +32,14 @@ class MultiVariateGaussian : public SamplingBase {
 public:
     /**
      * @brief Constructor for MultiVariateGaussian.
-     * 
+     *
      * @param pc Shared pointer to the particle container.
      * @param fc Shared pointer to the field container.
-     * @param opalDist Shared pointer to the distribution.
+     * @param opalDist Borrowed distribution.
      */
-    MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> pc, 
-                         std::shared_ptr<FieldContainer_t> fc, 
-                         std::shared_ptr<Distribution_t> opalDist);
+    MultiVariateGaussian(
+            std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
+            Distribution_t* opalDist);
 
     /**
      * @brief Constructor for MultiVariateGaussian with specified parameters.
@@ -50,15 +52,11 @@ public:
      * @param fixMeanR Boolean flag to fix mean position.
      * @param fixMeanP Boolean flag to fix mean momentum.
      */
-    MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> pc,
-                   const Vector_t<double, 3>& meanR,
-                   const Vector_t<double, 3>& meanP,
-                   const Vector_t<double, 3>& sigmaR,
-                   const Vector_t<double, 3>& sigmaP,
-                   const Vector_t<double, 3>& cutoffR,
-                   const Vector_t<double, 3>& cutoffP,
-                   bool fixMeanR=true,
-                   bool fixMeanP=true);
+    MultiVariateGaussian(
+            std::shared_ptr<ParticleContainer_t> pc, const Vector_t<double, 3>& meanR,
+            const Vector_t<double, 3>& meanP, const Vector_t<double, 3>& sigmaR,
+            const Vector_t<double, 3>& sigmaP, const Vector_t<double, 3>& cutoffR,
+            const Vector_t<double, 3>& cutoffP, bool fixMeanR = true, bool fixMeanP = true);
 
     /**
      * @brief Constructs the MultiVariateGaussian class.
@@ -71,14 +69,11 @@ public:
      * @param fixMeanR Boolean flag to fix mean position.
      * @param fixMeanP Boolean flag to fix mean momentum.
      */
-    MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> pc,
-                   const Vector_t<double, 3>& meanR,
-                   const Vector_t<double, 3>& meanP,
-                   const Matrix_t &cov,
-                   const Vector_t<double, 3>& cutoffR,
-                   const Vector_t<double, 3>& cutoffP,
-                   bool fixMeanR=true,
-                   bool fixMeanP=true);
+    MultiVariateGaussian(
+            std::shared_ptr<ParticleContainer_t> pc, const Vector_t<double, 3>& meanR,
+            const Vector_t<double, 3>& meanP, const Matrix_t& cov,
+            const Vector_t<double, 3>& cutoffR, const Vector_t<double, 3>& cutoffP,
+            bool fixMeanR = true, bool fixMeanP = true);
     /**
      * @brief Computes the Cholesky factorization of the covariance matrix.
      */
@@ -91,11 +86,11 @@ public:
 
     /**
      * @brief Generates particles based on the defined Gaussian distribution.
-     * 
+     *
      * @param numberOfParticles Number of particles to generate.
      * @param nr Vector specifying additional sampling parameters.
      */
-    void generateParticles(size_t &numberOfParticles, Vector_t<double, 3> nr) override;
+    void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) override;
 
     /**
      * @brief Time-stepped emission hook for one-shot delayed injection.
@@ -111,69 +106,49 @@ public:
      */
     IpplTimings::TimerRef samplerTimer_m;
 
-    void setMeanR(const Vector_t<double, 3>& meanR) {
-        meanR_m = meanR;
-    }
+    void setMeanR(const Vector_t<double, 3>& meanR) { meanR_m = meanR; }
 
-    void setMeanP(const Vector_t<double, 3>& meanP) {
-        meanP_m = meanP;
-    }
+    void setMeanP(const Vector_t<double, 3>& meanP) { meanP_m = meanP; }
 
-    void setCutoffR(const Vector_t<double, 3>& cutoffR) {
-        cutoffR_m = cutoffR;
-    }
+    void setCutoffR(const Vector_t<double, 3>& cutoffR) { cutoffR_m = cutoffR; }
 
-    void setCutoffP(const Vector_t<double, 3>& cutoffP) {
-        cutoffP_m = cutoffP;
-    }
+    void setCutoffP(const Vector_t<double, 3>& cutoffP) { cutoffP_m = cutoffP; }
 
-    void setFixMeanR(bool fixMeanR) {
-        fixMeanR_m = fixMeanR;
-    }
+    void setFixMeanR(bool fixMeanR) { fixMeanR_m = fixMeanR; }
 
-    void setFixMeanP(bool fixMeanP) {
-        fixMeanP_m = fixMeanP;
-    }
+    void setFixMeanP(bool fixMeanP) { fixMeanP_m = fixMeanP; }
 
-    void setSigmaR(const Vector_t<double, 3>& sigmaR) {
-        sigmaR_m = sigmaR;
-    }
-    void setSigmaP(const Vector_t<double, 3>& sigmaP) {
-        sigmaP_m = sigmaP;
-    }
+    void setSigmaR(const Vector_t<double, 3>& sigmaR) { sigmaR_m = sigmaR; }
+    void setSigmaP(const Vector_t<double, 3>& sigmaP) { sigmaP_m = sigmaP; }
 
-    void setCovarianceMatrix(const Matrix_t &cov) {
-        cov_m = cov;
-    }
+    void setCovarianceMatrix(const Matrix_t& cov) { cov_m = cov; }
 
-    void setL(const Matrix_t &L) {
-        L_m = L;
-    }
+    void setL(const Matrix_t& L) { L_m = L; }
 
 private:
     /*
-    * @brief Mean vectors for position and momentum.
-    */
+     * @brief Mean vectors for position and momentum.
+     */
     Vector_t<double, 3> meanR_m, meanP_m;
 
     /*
-    * @brief Covariance matrix for the Gaussian distribution.
-    */
+     * @brief Covariance matrix for the Gaussian distribution.
+     */
     Matrix_t cov_m;
 
     /*
-    * @brief Cholesky cov=LT*L factorized matrix for the Gaussian distribution.
-    */
+     * @brief Cholesky cov=LT*L factorized matrix for the Gaussian distribution.
+     */
     Matrix_t L_m;
 
     /*
-    * @brief Sampling bounds for the particle distribution.
-    */
+     * @brief Sampling bounds for the particle distribution.
+     */
     Vector_t<double, 3> rmin_m, rmax_m, pmin_m, pmax_m;
 
     /*
-    * @brief Normalized sampling bounds for the particle distribution.
-    */
+     * @brief Normalized sampling bounds for the particle distribution.
+     */
     Vector_t<double, 3> normRmin_m, normRmax_m, normPmin_m, normPmax_m;
 
     /**
@@ -210,5 +185,4 @@ private:
     bool fixMeanP_m;
 };
 
-#endif // IPPL_MULTI_VARIATE_GAUSSIAN_H
-
+#endif  // IPPL_MULTI_VARIATE_GAUSSIAN_H

@@ -1,5 +1,5 @@
-#ifndef CLASSIC_Drift_HH
-#define CLASSIC_Drift_HH
+#ifndef OPALX_Drift_HH
+#define OPALX_Drift_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: Drift.h,v $
@@ -21,14 +21,14 @@
 //
 // ------------------------------------------------------------------------
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 
 // Class Drift
 // ------------------------------------------------------------------------
 /// Interface for drift space.
 //  Class Drift defines the abstract interface for a drift space.
 
-class Drift : public Component {
+class Drift : public ElementBase {
 public:
     /// Constructor with given name.
     explicit Drift(const std::string& name);
@@ -40,15 +40,13 @@ public:
     /// Apply visitor to Drift.
     virtual void accept(BeamlineVisitor&) const override;
 
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    virtual void initialise(PartBunch_t* bunch) override;
 
     virtual void finalise() override;
 
-    virtual bool bends() const override;
-
     virtual ElementType getType() const override;
 
-    virtual void getDimensions(double& zBegin, double& zEnd) const override;
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     // set number of slices for map tracking
     void setNSlices(const std::size_t& nSlices);  // Philippe was here
@@ -59,15 +57,12 @@ public:
     virtual int getRequiredNumberOfTimeSteps() const override;
 
 private:
-    double startField_m;
     std::size_t nSlices_m;
 
     // Not implemented.
     void operator=(const Drift&);
 };
 
-inline int Drift::getRequiredNumberOfTimeSteps() const {
-    return 1;
-}
+inline int Drift::getRequiredNumberOfTimeSteps() const { return 1; }
 
-#endif  // CLASSIC_Drift_HH
+#endif  // OPALX_Drift_HH

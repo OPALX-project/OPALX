@@ -8,9 +8,10 @@
 using namespace Expressions;
 
 EmissionSourceList::EmissionSourceList()
-    : Definition(0, "EMISSIONSOURCELIST",
-                 "The EMISSIONSOURCELIST statement defines a list of emission sources.\n"
-                 "\t<name> : EMISSIONSOURCELIST = (ES1, ES2, ...)") {
+    : Definition(
+              0, "EMISSIONSOURCELIST",
+              "The EMISSIONSOURCELIST statement defines a list of emission sources.\n"
+              "\t<name> : EMISSIONSOURCELIST = (ES1, ES2, ...)") {
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
@@ -31,10 +32,10 @@ void EmissionSourceList::execute() {}
 
 EmissionSourceList* EmissionSourceList::find(const std::string& name) {
     Object* obj = OpalData::getInstance()->find(name);
-    auto* esl  = dynamic_cast<EmissionSourceList*>(obj);
+    auto* esl   = dynamic_cast<EmissionSourceList*>(obj);
     if (esl == nullptr) {
-        throw OpalException("EmissionSourceList::find()",
-                            "EmissionSourceList \"" + name + "\" not found.");
+        throw OpalException(
+                "EmissionSourceList::find()", "EmissionSourceList \"" + name + "\" not found.");
     }
     return esl;
 }
@@ -52,13 +53,15 @@ void EmissionSourceList::parseList(Statement& stat) {
         std::string name = parseString(stat, "EmissionSource name expected.");
         Object* obj      = OpalData::getInstance()->find(name);
         if (obj == nullptr) {
-            throw ParseError("EmissionSourceList::parseList()",
-                             "EmissionSource \"" + name + "\" is undefined.");
+            throw ParseError(
+                    "EmissionSourceList::parseList()",
+                    "EmissionSource \"" + name + "\" is undefined.");
         }
         auto* es = dynamic_cast<EmissionSource*>(obj);
         if (es == nullptr) {
-            throw ParseError("EmissionSourceList::parseList()",
-                             "Object \"" + name + "\" is not an EmissionSource.");
+            throw ParseError(
+                    "EmissionSourceList::parseList()",
+                    "Object \"" + name + "\" is not an EmissionSource.");
         }
         sources_m.push_back(es);
     } while (stat.delimiter(','));

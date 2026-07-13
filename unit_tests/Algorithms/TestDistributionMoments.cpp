@@ -5,6 +5,7 @@
 
 #include "Algorithms/DistributionMoments.h"
 #include "Ippl.h"
+#include "PartBunch/BunchStateHandler.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
@@ -84,7 +85,8 @@ namespace {
                 ncent[a][b] /= static_cast<double>(N);
             }
         }
-        e.stdEkinMeV_likeImplementation = std::sqrt(e.stdEkinMeV_likeImplementation / static_cast<double>(N));
+        e.stdEkinMeV_likeImplementation =
+                std::sqrt(e.stdEkinMeV_likeImplementation / static_cast<double>(N));
 
         // stdR/stdP from central cov
         for (int d = 0; d < 3; ++d) {
@@ -120,9 +122,13 @@ protected:
         ippl::initialize(argc, argv);
     }
 
-    static void TearDownTestSuite() {
-        ippl::finalize();
-    }
+    static void TearDownTestSuite() { ippl::finalize(); }
+
+    void SetUp() override { bunchStateHandler = std::make_shared<BunchStateHandler>(); }
+
+    std::shared_ptr<BunchStateHandler> bunchStateHandler;
+
+    void TearDown() override { bunchStateHandler.reset(); }
 };
 
 TEST_F(DistributionMomentsTest, ComputeMoments_MeanStdEmittanceEnergyDispersion) {
@@ -159,6 +165,8 @@ TEST_F(DistributionMomentsTest, ComputeMoments_MeanStdEmittanceEnergyDispersion)
     Kokkos::deep_copy(Mview_d, Mview_h);
 
     DistributionMoments dm;
+    auto containerState = bunchStateHandler->registerContainer();
+    dm.setContainerState(containerState);
     dm.computeMoments(Rview_d, Pview_d, Mview_d, /*Np=*/N, /*Nlocal=*/N);
 
     const auto exp = computeExpected(R, P, Physics::m_e);

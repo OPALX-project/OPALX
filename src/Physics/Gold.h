@@ -2,7 +2,7 @@
 // Class Gold
 //   Defines Gold as a material for particle-matter interactions
 //
-//   Data taken from Standard Atomic Weight 2019 (https://www.qmul.ac.uk/sbcs/iupac/AtWt/), 
+//   Data taken from Standard Atomic Weight 2019 (https://www.qmul.ac.uk/sbcs/iupac/AtWt/),
 //   atomic properties from PDG database (https://pdg.lbl.gov/2020/AtomicNuclearProperties)
 //   and fit coefficients from ICRU Report 49.
 //
@@ -27,17 +27,13 @@
 #include <cmath>
 
 namespace Physics {
-    class Gold: public Material {
+    class Gold : public Material {
     public:
-        Gold():
-            Material(79,
-                     196.966570,
-                     19.32,
-                     6.46,
-                     790.0,
-                     {{4.844, 5.458, 7.852e3, 9.758e2, 2.077e-2,
-                       3.223, 0.5883, 232.7, 2.954, 1.05}})
-        { }
+        Gold()
+            : Material(
+                      79, 196.966570, 19.32, 6.46, 790.0,
+                      {{4.844, 5.458, 7.852e3, 9.758e2, 2.077e-2, 3.223, 0.5883, 232.7, 2.954,
+                        1.05}}) {}
     };
-}
+}  // namespace Physics
 #endif

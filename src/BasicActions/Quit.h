@@ -20,11 +20,8 @@
 
 #include "AbstractObjects/Action.h"
 
-
-class Quit: public Action {
-
+class Quit : public Action {
 public:
-
     /// Exemplar constructor.
     Quit();
 
@@ -37,7 +34,6 @@ public:
     virtual void execute();
 
 private:
-
     // Not implemented.
     Quit(const Quit&);
     void operator=(const Quit&);
@@ -46,4 +42,4 @@ private:
     Quit(const std::string& name, Quit* parent);
 };
 
-#endif // OPAL_Quit_HH
+#endif  // OPAL_Quit_HH

@@ -15,52 +15,40 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_TravelingWaveRep_HH
-#define CLASSIC_TravelingWaveRep_HH
+#ifndef OPALX_TravelingWaveRep_HH
+#define OPALX_TravelingWaveRep_HH
 
 #include "AbsBeamline/TravelingWave.h"
-#include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/AcceleratingField.h"
+#include "BeamlineGeometry/Geometry.h"
 
-
-class TravelingWaveRep: public TravelingWave {
-
+class TravelingWaveRep : public TravelingWave {
 public:
-
     /// Constructor with given name.
-    explicit TravelingWaveRep(const std::string &name);
+    explicit TravelingWaveRep(const std::string& name);
 
     TravelingWaveRep();
-    TravelingWaveRep(const TravelingWaveRep &);
+    TravelingWaveRep(const TravelingWaveRep&);
     virtual ~TravelingWaveRep();
 
     /// Return clone.
     //  Return an identical deep copy of the element.
-    virtual ElementBase *clone() const;
+    virtual ElementBase* clone() const;
 
     /// Construct a read/write channel.
     //  This method constructs a Channel permitting read/write access to
     //  the attribute [b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns nullptr.
-    virtual Channel *getChannel(const std::string &aKey, bool = false);
-
-    /// Get field.
-    //  Version for non-constant object.
-    virtual AcceleratingField &getField();
-
-    /// Get field.
-    //  Version for constant object.
-    virtual const AcceleratingField &getField() const;
+    virtual Channel* getChannel(const std::string& aKey, bool = false);
 
     /// Get geometry.
     //  Return the element geometry.
     //  Version for non-constant object.
-    virtual StraightGeometry &getGeometry();
+    virtual Geometry& getGeometry();
 
     /// Get geometry.
     //  Return the element geometry
     //  Version for constant object.
-    virtual const StraightGeometry &getGeometry() const;
+    virtual const Geometry& getGeometry() const;
 
     /// Get amplitude.
     //  Return the RF amplitude in Volts.
@@ -91,18 +79,14 @@ public:
     static void setIgnore(bool ignore = false);
 
 private:
-
     // Not implemented.
-    void operator=(const TravelingWaveRep &);
+    void operator=(const TravelingWaveRep&);
 
     /// The cavity's geometry.
-    StraightGeometry geometry;
-
-    /// The cavity's field.
-    AcceleratingField field;
+    Geometry geometry;
 
     /// Cavities are ignored (amplitude = 0) when this switch is set.
     static bool ignoreCavities;
 };
 
-#endif // CLASSIC_TravelingWaveRep_HH
+#endif  // OPALX_TravelingWaveRep_HH

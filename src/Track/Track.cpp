@@ -34,12 +34,11 @@ otherwise a new bunch is allocated in the dictionary.
 */
 
 Track::Track(
-    BeamSequence* u, const PartData& ref, const std::vector<double>& dt,
-    const std::vector<unsigned long long>& maxtsteps, int stepsperturn, double zStart,
-    const std::vector<double>& zStop, Steppers::TimeIntegrator timeintegrator, double t0,
-    double dtScInit, double deltaTau,
-    EmissionSourceList* emissionSourcesList,
-    const std::vector<std::string>& beamNames)
+        BeamSequence* u, const PartData& ref, const std::vector<double>& dt,
+        const std::vector<unsigned long long>& maxtsteps, int stepsperturn, double zStart,
+        const std::vector<double>& zStop, Steppers::TimeIntegrator timeintegrator, double t0,
+        double dtScInit, double deltaTau, EmissionSourceList* emissionSourcesList,
+        const std::vector<std::string>& beamNames)
     : bunch(nullptr),
       reference(ref),
       use(u),
@@ -64,5 +63,4 @@ Track::Track(
     // bunch = OpalData::getInstance()->getPartBunch();
 }
 
-Track::~Track() {
-}
+Track::~Track() {}

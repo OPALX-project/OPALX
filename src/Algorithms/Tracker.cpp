@@ -60,7 +60,6 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Algorithms/Tracker.h"
-#include "Fields/BMultipoleField.h"
 #include "Utilities/OpalException.h"
 
 // FIXME Remove headers and dynamic_cast in readOneBunchFromFile
@@ -73,26 +72,21 @@
 // Class Tracker
 // ------------------------------------------------------------------------
 
-Tracker::Tracker(
-    const Beamline& beamline, 
-    bool backBeam, 
-    bool backTrack): 
-    Tracker(beamline, std::shared_ptr<PartBunch_t>(), backBeam, backTrack){}
-
-Tracker::Tracker(
-    const Beamline& beamline, 
-    std::shared_ptr<PartBunch_t> bunch, 
-    bool backBeam,
-    bool backTrack)
+Tracker::Tracker(const Beamline& beamline, bool backBeam, bool backTrack)
     : AbstractTracker(beamline, backBeam, backTrack),
       itsBeamline_m(beamline),
-      itsBunch_m(bunch) {}
+      itsBunch_m(nullptr) {}
 
-Tracker::~Tracker() {
-}
+Tracker::Tracker(const Beamline& beamline, PartBunch_t& bunch, bool backBeam, bool backTrack)
+    : AbstractTracker(beamline, backBeam, backTrack), itsBeamline_m(beamline), itsBunch_m(&bunch) {}
 
-const std::shared_ptr<PartBunch_t>& Tracker::getBunch() const {
-    return itsBunch_m;
+Tracker::~Tracker() {}
+
+PartBunch_t& Tracker::getBunch() const {
+    if (itsBunch_m == nullptr) {
+        throw OpalException("Tracker::getBunch", "No particle bunch is attached to this tracker.");
+    }
+    return *itsBunch_m;
 }
 
 void Tracker::addToBunch(const OpalParticle& /*part*/) {
@@ -103,12 +97,16 @@ void Tracker::addToBunch(const OpalParticle& /*part*/) {
 //~ itsBunch_m = &bunch;
 //~ }
 
-void Tracker::visitComponent(const Component& comp) {
+void Tracker::visitElementBase(const ElementBase& comp) {
     if (itsBunch_m == nullptr || itsBunch_m->getParticleContainer() == nullptr
         || itsBunch_m->getParticleContainer()->getReference() == nullptr) {
-        throw OpalException("Tracker::visitComponent",
-                            "Missing particle reference data in active particle container.");
+        throw OpalException(
+                "Tracker::visitElementBase",
+                "Missing particle reference data in active particle container.");
     }
-    comp.trackBunch(
-        itsBunch_m, *itsBunch_m->getParticleContainer()->getReference(), back_beam, back_track);
+    // No element type reaches this catch-all: every concrete element is handled by a
+    // dedicated visit method. An element landing here has no tracking model.
+    throw OpalException(
+            "Tracker::visitElementBase",
+            "No tracking model for element \"" + comp.getName() + "\".");
 }

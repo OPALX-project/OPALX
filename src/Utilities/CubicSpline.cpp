@@ -40,9 +40,9 @@ double CubicSpline::eval(const double x, Accelerator& accel) const {
     } else if (x >= x_.back()) {
         result = extrapolateRight(x);
     } else {
-        const size_t i = findInterval(x, accel.last_index_);
+        const size_t i  = findInterval(x, accel.last_index_);
         const double dx = x - x_[i];
-        result = y_[i] + b_[i] * dx + c_[i] * dx * dx + d_[i] * dx * dx * dx;
+        result          = y_[i] + b_[i] * dx + c_[i] * dx * dx + d_[i] * dx * dx * dx;
     }
     return result;
 }
@@ -57,7 +57,7 @@ double CubicSpline::evalIntegral(double xa, double xb, Accelerator& accel) const
     }
     // Linear extrapolation below the defined intervals
     if (xa < x_.front()) {
-        const auto y = extrapolateLeft(xa);
+        const auto y  = extrapolateLeft(xa);
         const auto dx = x_.front() - xa;
         const auto dy = y_.front() - y;
         result += dx * y_.front() - dx * dy / 2.0;
@@ -65,7 +65,7 @@ double CubicSpline::evalIntegral(double xa, double xb, Accelerator& accel) const
     }
     // Linear extrapolation above the defined intervals
     if (xb > x_.back()) {
-        const auto y = extrapolateRight(xb);
+        const auto y  = extrapolateRight(xb);
         const auto dx = xb - x_.back();
         const auto dy = y - y_.back();
         result += dx * y_.back() + dx * dy / 2.0;
@@ -96,8 +96,8 @@ void CubicSpline::computeCoefficients() {
     std::vector<double> alpha(n - 1);
     for (size_t i = 0; i < n - 1; ++i) {
         h[i] = x_[i + 1] - x_[i];
-        alpha[i] = 3.0 * ((y_[i + 1] - y_[i]) / h[i] -
-                (i > 0 ? (y_[i] - y_[i - 1]) / h[i - 1] : 0.0));
+        alpha[i] =
+                3.0 * ((y_[i + 1] - y_[i]) / h[i] - (i > 0 ? (y_[i] - y_[i - 1]) / h[i - 1] : 0.0));
     }
     // Natural spline: second derivatives at endpoints are zero
     std::vector l(n, 1.0);
@@ -105,9 +105,9 @@ void CubicSpline::computeCoefficients() {
     std::vector z(n, 0.0);
     // Forward elimination
     for (size_t i = 1; i < n - 1; ++i) {
-        l[i] = 2.0 * (x_[i + 1] - x_[i - 1]) - h[i - 1] * mu[i - 1];
+        l[i]  = 2.0 * (x_[i + 1] - x_[i - 1]) - h[i - 1] * mu[i - 1];
         mu[i] = h[i] / l[i];
-        z[i] = (alpha[i] - h[i - 1] * z[i - 1]) / l[i];
+        z[i]  = (alpha[i] - h[i - 1] * z[i - 1]) / l[i];
     }
     // Back substitution
     c_[n - 1] = 0.0;  // Natural spline
@@ -129,10 +129,8 @@ void CubicSpline::computeIntegrals() {
 }
 
 double CubicSpline::integral(const size_t i, const double dx) const {
-    return y_[i] * dx
-            + b_[i] * dx * dx / 2.0
-            + c_[i] * dx * dx * dx / 3.0
-            + d_[i] * dx * dx * dx * dx / 4.0;
+    return y_[i] * dx + b_[i] * dx * dx / 2.0 + c_[i] * dx * dx * dx / 3.0
+           + d_[i] * dx * dx * dx * dx / 4.0;
 }
 
 double CubicSpline::extrapolateLeft(double x) const {
@@ -141,7 +139,7 @@ double CubicSpline::extrapolateLeft(double x) const {
 }
 
 double CubicSpline::extrapolateRight(double x) const {
-    size_t n = x_.size();
+    size_t n  = x_.size();
     double dx = x - x_[n - 1];
     return y_[n - 1] + b_[n - 2] * dx;
 }

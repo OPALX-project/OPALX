@@ -42,7 +42,7 @@ double LinearSpline::eval(const double x, Accelerator& accel) const {
         result = extrapolateRight(x);
     } else {
         const size_t i = findInterval(x, accel.last_index_);
-        result = m_[i] * x + c_[i];
+        result         = m_[i] * x + c_[i];
     }
     return result;
 }
@@ -107,10 +107,6 @@ double LinearSpline::integral(const size_t i, const double dx) const {
     return m_[i] * (x2 * x2 - x_[i] * x_[i]) / 2.0 + c_[i] * (x2 - x_[i]);
 }
 
-double LinearSpline::extrapolateLeft(const double x) const {
-    return m_.front() * x + c_.front();
-}
+double LinearSpline::extrapolateLeft(const double x) const { return m_.front() * x + c_.front(); }
 
-double LinearSpline::extrapolateRight(const double x) const {
-    return m_.back() * x + c_.back();
-}
+double LinearSpline::extrapolateRight(const double x) const { return m_.back() * x + c_.back(); }

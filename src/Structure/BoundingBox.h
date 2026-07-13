@@ -39,8 +39,7 @@ public:
     void enlargeToContainBoundingBox(const BoundingBox& boundingBox);
 
     std::optional<Vector_t<double, 3>> getIntersectionPoint(
-        const Vector_t<double, 3>& position,
-        const Vector_t<double, 3>& direction) const;
+            const Vector_t<double, 3>& position, const Vector_t<double, 3>& direction) const;
 
     bool isInside(const Vector_t<double, 3>& position) const;
     bool isOutside(const Vector_t<double, 3>& position) const;

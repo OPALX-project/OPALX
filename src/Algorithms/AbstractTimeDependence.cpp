@@ -16,7 +16,7 @@
 #include "Algorithms/AbstractTimeDependence.h"
 #include <sstream>
 #include <utility>
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 
 std::map<std::string, std::shared_ptr<AbstractTimeDependence> > AbstractTimeDependence::td_map =
         std::map<std::string, std::shared_ptr<AbstractTimeDependence> >();
@@ -25,7 +25,7 @@ std::shared_ptr<AbstractTimeDependence> AbstractTimeDependence::getTimeDependenc
         const std::string& name) {
     const auto pos = td_map.find(name);
     if (pos == td_map.end()) {
-        throw GeneralClassicException(
+        throw GeneralOpalException(
                 "AbstractTimeDependence::getTimeDependence",
                 "Could not find TimeDependence called " + name);
     }
@@ -46,7 +46,7 @@ std::string AbstractTimeDependence::getName(
     }
     std::stringstream ss;
     ss << time_dep;
-    throw GeneralClassicException(
+    throw GeneralOpalException(
             "AbstractTimeDependence::getTimeDependence",
             "Could not find TimeDependence with address " + ss.str());
 }

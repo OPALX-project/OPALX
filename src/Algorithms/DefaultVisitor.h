@@ -20,8 +20,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_DefaultVisitor_HH
-#define CLASSIC_DefaultVisitor_HH
+#ifndef OPALX_DefaultVisitor_HH
+#define OPALX_DefaultVisitor_HH
 
 #include "AbsBeamline/BeamlineVisitor.h"
 
@@ -43,7 +43,7 @@ public:
     /// Apply the algorithm to the top-level beamline.
     void execute() override;
 
-    void visitComponent(const Component&) override;
+    void visitElementBase(const ElementBase&) override;
 
     /// Apply the algorithm to a beam line.
     void visitBeamline(const Beamline&) override;
@@ -53,6 +53,9 @@ public:
 
     /// Apply the algorithm to a drift space.
     void visitDrift(const Drift&) override;
+
+    /// Apply the algorithm to a laser.
+    void visitLaser(const Laser&) override;
 
     /// Apply the algorithm to a FlaggedElmPtr.
     void visitFlaggedElmPtr(const FlaggedElmPtr&) override;
@@ -69,8 +72,11 @@ public:
     /// Apply the algorithm to an arbitrary multipole.
     void visitMultipoleT(const MultipoleT&) override;
 
-    /// Apply the algorithm to a Ring.
-    void visitRing(const Ring&) override;
+    /// Apply the algorithm to a rectangular bend.
+    void visitRBend(const RBend&) override;
+
+    /// Apply the algorithm to a sector bend.
+    void visitSBend(const SBend&) override;
 
     /// Apply the algorithm to a RF cavity.
     void visitRFCavity(const RFCavity&) override;
@@ -109,7 +115,7 @@ protected:
 
 private:
     // Not implemented.
-    DefaultVisitor() = delete;
+    DefaultVisitor()                      = delete;
     DefaultVisitor(const DefaultVisitor&) = delete;
     void operator=(const DefaultVisitor&) = delete;
 
@@ -121,4 +127,4 @@ private:
     bool local_flip;
 };
 
-#endif  // CLASSIC_DefaultVisitor_HH
+#endif  // OPALX_DefaultVisitor_HH

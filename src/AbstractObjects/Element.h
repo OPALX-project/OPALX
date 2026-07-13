@@ -4,7 +4,7 @@
 //   It implements the common behaviour of elements, it can also be used via
 //   dynamic casting to determine whether an object represents an element.
 //
-//   Each Element object contains a pointer to a CLASSIC beam line element,
+//   Each Element object contains a pointer to an OPALX beam line element,
 //   known as the ``ideal'' element.
 //
 //   If sharable flag is set, all occurrences of the element are supposed to
@@ -30,36 +30,33 @@
 #ifndef OPAL_Element_HH
 #define OPAL_Element_HH
 
-#include "AbstractObjects/Object.h"
 #include "AbsBeamline/ElementBase.h"
+#include "AbstractObjects/Object.h"
 
 #include <memory>
 #include <utility>
 
-
-class Element: public Object {
-
+class Element : public Object {
 public:
-
     /// Reference for element positioning.
     //  Used in the SEQUENCE command.
     enum ReferenceType {
-        IS_ENTRY,         // Reference point is at element entrance.
-        IS_CENTRE,        // Reference point is at element centre
-        IS_EXIT           // Reference point is at element exit.
+        IS_ENTRY,   // Reference point is at element entrance.
+        IS_CENTRE,  // Reference point is at element centre
+        IS_EXIT     // Reference point is at element exit.
     };
 
     virtual ~Element();
 
     /// Test if replacement is allowed.
     //  Return true, if the replacement is also an Element.
-    virtual bool canReplaceBy(Object *object);
+    virtual bool canReplaceBy(Object* object);
 
     /// Find named Element.
     //  If an element with the name [b]name[/b] exists,
     //  return a pointer to that element.
     //  If no such element exists, throw [b]OpalException[/b].
-    static Element *find(const std::string &name);
+    static Element* find(const std::string& name);
 
     /// Return the object category as a string.
     //  Return the string "ELEMENT".
@@ -75,7 +72,6 @@ public:
     //  Always false for elements.
     virtual bool shouldUpdate() const;
 
-
     /// Return element length.
     virtual double getLength() const = 0;
 
@@ -89,60 +85,50 @@ public:
     //  If true, all references to this name are to the same object.
     virtual void setShared(bool);
 
-    /// Return the embedded CLASSIC element.
-    //  Return a pointer to the embedded CLASSIC ElementBase
-    inline ElementBase *getElement() const;
+    /// Return the embedded OPALX element.
+    //  Return a pointer to the embedded OPALX ElementBase
+    inline ElementBase* getElement() const;
 
-    /// Return the embedded CLASSIC element as shared_ptr.
+    /// Return the embedded OPALX element as shared_ptr.
     inline std::shared_ptr<ElementBase> getElementPtr() const;
 
-    /// Assign new CLASSIC element.
-    inline void setElement(ElementBase *);
+    /// Assign new OPALX element.
+    inline void setElement(ElementBase*);
     inline void setElement(std::shared_ptr<ElementBase> base);
 
 protected:
-
     /// Constructor for exemplars.
-    Element(int size, const char *name, const char *help);
+    Element(int size, const char* name, const char* help);
 
     /// Constructor for clones.
-    Element(const std::string &name, Element *parent);
+    Element(const std::string& name, Element* parent);
 
 private:
-
     // Not implemented.
     Element();
-    Element(const Element &);
-    void operator=(const Element &);
+    Element(const Element&);
+    void operator=(const Element&);
 
-    // The embedded CLASSIC element.
-    std::shared_ptr<ElementBase> itsClassicElement;
+    // The embedded OPALX element.
+    std::shared_ptr<ElementBase> itsOPALXElement;
 };
-
 
 // Inline functions.
 // ------------------------------------------------------------------------
 
-inline ElementBase *Element::getElement() const {
-    return &*itsClassicElement;
-}
+inline ElementBase* Element::getElement() const { return &*itsOPALXElement; }
 
+inline std::shared_ptr<ElementBase> Element::getElementPtr() const { return itsOPALXElement; }
 
-inline std::shared_ptr<ElementBase> Element::getElementPtr() const {
-    return itsClassicElement;
-}
-
-
-inline void Element::setElement(ElementBase *base) {
-    if (base == itsClassicElement.get()) {
+inline void Element::setElement(ElementBase* base) {
+    if (base == itsOPALXElement.get()) {
         return;
     }
-    itsClassicElement.reset(base);
+    itsOPALXElement.reset(base);
 }
-
 
 inline void Element::setElement(std::shared_ptr<ElementBase> base) {
-    itsClassicElement = std::move(base);
+    itsOPALXElement = std::move(base);
 }
 
-#endif // OPAL_Element_HH
+#endif  // OPAL_Element_HH

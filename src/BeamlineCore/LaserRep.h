@@ -1,9 +1,8 @@
-#ifndef CLASSIC_LaserRep_HH
-#define CLASSIC_LaserRep_HH
+#ifndef OPALX_LaserRep_HH
+#define OPALX_LaserRep_HH
 
 #include "AbsBeamline/Laser.h"
-#include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/NullField.h"
+#include "BeamlineGeometry/Geometry.h"
 
 class LaserRep : public Laser {
 public:
@@ -15,15 +14,11 @@ public:
     ElementBase* clone() const override;
     Channel* getChannel(const std::string& aKey, bool create = false) override;
 
-    NullField& getField() override;
-    const NullField& getField() const override;
-
-    StraightGeometry& getGeometry() override;
-    const StraightGeometry& getGeometry() const override;
+    Geometry& getGeometry() override;
+    const Geometry& getGeometry() const override;
 
 private:
-    NullField field_m;
-    StraightGeometry geometry_m;
+    Geometry geometry_m;
 };
 
-#endif  // CLASSIC_LaserRep_HH
+#endif  // OPALX_LaserRep_HH

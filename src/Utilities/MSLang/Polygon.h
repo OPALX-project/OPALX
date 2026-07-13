@@ -5,14 +5,14 @@
 #include "Utilities/MSLang/Triangle.h"
 
 namespace mslang {
-    struct Polygon: public Function {
+    struct Polygon : public Function {
         std::vector<Triangle> triangles_m;
 
-        void triangulize(std::vector<Vector_t<double, 3>> &nodes);
-        static bool parse_detail(iterator &it, const iterator &end, Function* &fun);
+        void triangulize(std::vector<Vector_t<double, 3>>& nodes);
+        static bool parse_detail(iterator& it, const iterator& end, Function*& fun);
         virtual void print(int ident);
-        virtual void apply(std::vector<std::shared_ptr<Base> > &bfuncs);
+        virtual void apply(std::vector<std::shared_ptr<Base>>& bfuncs);
     };
-}
+}  // namespace mslang
 
 #endif

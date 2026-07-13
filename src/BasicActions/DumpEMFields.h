@@ -23,14 +23,14 @@
 #include <set>
 #include <string>
 #include <unordered_set>
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "AbstractObjects/Action.h"
 #include "Fields/Interpolation/NDGrid.h"
 
 namespace interpolation {
     class NDGrid;
 }
-class Component;
+class ElementBase;
 
 /** DumpEMFields dumps the dynamically changing fields of a Ring in a user-
  *  defined grid.
@@ -120,7 +120,7 @@ public:
      *  0
      *  <field map data>
      */
-    static void writeFields(const std::set<std::shared_ptr<Component>>& elements);
+    static void writeFields(const std::set<std::shared_ptr<ElementBase>>& elements);
 
     /** Print the attributes of DumpEMFields to standard out */
     void print(std::ostream& os) const override;
@@ -138,21 +138,19 @@ public:
         }
     }
     /* For use only by unit tests, clear the set of dump objects */
-    static void clearDumps() {
-        dumpsSet_m.clear();
-    }
+    static void clearDumps() { dumpsSet_m.clear(); }
 
 private:
     enum class CoordinateSystem : unsigned short { CARTESIAN, CYLINDRICAL };
 
-    virtual void writeFieldThis(const std::set<std::shared_ptr<Component>>& elements);
+    virtual void writeFieldThis(const std::set<std::shared_ptr<ElementBase>>& elements);
     virtual void buildGrid();
     void parseCoordinateSystem();
     static void checkInt(double value, const std::string& name, double tolerance = 1e-9);
     void writeHeader(std::ofstream& fout) const;
     void writeFieldLine(
-            const std::set<std::shared_ptr<Component>>& elements, const Vector_t<double, 3>& point,
-            const double& time, std::ofstream& fout) const;
+            const std::set<std::shared_ptr<ElementBase>>& elements,
+            const Vector_t<double, 3>& point, const double& time, std::ofstream& fout) const;
 
     std::unique_ptr<interpolation::NDGrid> grid_m{};
     Vector_t<double, 3> cylindricalOrigin_m{};

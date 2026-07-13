@@ -9,30 +9,20 @@ namespace {
     };
 
     const Entry entries[] = {
-        {"L", &ConstantEFieldCavityRep::getElementLength, &ConstantEFieldCavityRep::setElementLength},
-        {"EZ", &ConstantEFieldCavityRep::getEz, &ConstantEFieldCavityRep::setEz},
-        {0, 0, 0}
-    };
-}
+            {"EZ", &ConstantEFieldCavityRep::getEz, &ConstantEFieldCavityRep::setEz}, {0, 0, 0}};
+}  // namespace
 
-ConstantEFieldCavityRep::ConstantEFieldCavityRep()
-    : ConstantEFieldCavity(), geometry(), field() {}
+ConstantEFieldCavityRep::ConstantEFieldCavityRep() : ConstantEFieldCavity(), geometry() {}
 
 ConstantEFieldCavityRep::ConstantEFieldCavityRep(const ConstantEFieldCavityRep& right)
-    : ConstantEFieldCavity(right),
-      geometry(right.geometry),
-      field(right.field) {}
+    : ConstantEFieldCavity(right), geometry(right.geometry) {}
 
 ConstantEFieldCavityRep::ConstantEFieldCavityRep(const std::string& name)
-    : ConstantEFieldCavity(name),
-      geometry(),
-      field() {}
+    : ConstantEFieldCavity(name), geometry() {}
 
 ConstantEFieldCavityRep::~ConstantEFieldCavityRep() {}
 
-ElementBase* ConstantEFieldCavityRep::clone() const {
-    return new ConstantEFieldCavityRep(*this);
-}
+ElementBase* ConstantEFieldCavityRep::clone() const { return new ConstantEFieldCavityRep(*this); }
 
 Channel* ConstantEFieldCavityRep::getChannel(const std::string& aKey, bool create) {
     for (const Entry* entry = entries; entry->name != 0; ++entry) {
@@ -43,28 +33,6 @@ Channel* ConstantEFieldCavityRep::getChannel(const std::string& aKey, bool creat
     return ElementBase::getChannel(aKey, create);
 }
 
-ConstEzField& ConstantEFieldCavityRep::getField() {
-    return field;
-}
+Geometry& ConstantEFieldCavityRep::getGeometry() { return geometry; }
 
-const ConstEzField& ConstantEFieldCavityRep::getField() const {
-    return field;
-}
-
-StraightGeometry& ConstantEFieldCavityRep::getGeometry() {
-    return geometry;
-}
-
-const StraightGeometry& ConstantEFieldCavityRep::getGeometry() const {
-    return geometry;
-}
-
-void ConstantEFieldCavityRep::setElementLength(double length) {
-    geometry.setElementLength(length);
-}
-
-void ConstantEFieldCavityRep::setEz(double ez) {
-    ConstantEFieldCavity::setEz(ez);
-    field.setEz(ez);
-}
-
+const Geometry& ConstantEFieldCavityRep::getGeometry() const { return geometry; }

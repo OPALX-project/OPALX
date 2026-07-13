@@ -17,14 +17,12 @@
 class BinConfigWriterTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
-        int argc = 0;
+        int argc    = 0;
         char** argv = nullptr;
         ippl::initialize(argc, argv);
     }
 
-    static void TearDownTestSuite() {
-        ippl::finalize();
-    }
+    static void TearDownTestSuite() { ippl::finalize(); }
 
     // Helper to read entire file into string.
     static std::string readFile(const std::string& path) {
@@ -38,11 +36,13 @@ protected:
     static bool looksLikeJsonArray(const std::string& s) {
         if (s.empty()) return false;
         size_t i = 0;
-        while (i < s.size() && (s[i] == ' ' || s[i] == '\n')) ++i;
+        while (i < s.size() && (s[i] == ' ' || s[i] == '\n'))
+            ++i;
         if (i >= s.size() || s[i] != '[') return false;
         size_t depth = 0;
         for (; i < s.size(); ++i) {
-            if (s[i] == '[') ++depth;
+            if (s[i] == '[')
+                ++depth;
             else if (s[i] == ']') {
                 if (depth == 0) return false;
                 --depth;
@@ -60,7 +60,8 @@ TEST_F(BinConfigWriterTest, ConstructionOpensFileAndWritesOpeningBracket) {
         BinConfigWriter w(path);
     }
     std::string content = readFile(path);
-    EXPECT_TRUE(content.find("[\n") == 0) << "Expected file to start with '[\\n', got: " << content.substr(0, 20);
+    EXPECT_TRUE(content.find("[\n") == 0)
+            << "Expected file to start with '[\\n', got: " << content.substr(0, 20);
 }
 
 // SingleEntryProducesValidJson:
@@ -70,11 +71,12 @@ TEST_F(BinConfigWriterTest, SingleEntryProducesValidJson) {
     {
         BinConfigWriter w(path);
         std::vector<std::size_t> counts = {10, 20, 30};
-        std::vector<double> widths = {0.1, 0.2, 0.3};
+        std::vector<double> widths      = {0.1, 0.2, 0.3};
         w.writeEntry(0, 1.0e-10, true, counts, widths, 0.5);
     }
     std::string content = readFile(path);
-    EXPECT_TRUE(looksLikeJsonArray(content)) << "Output is not valid JSON array: " << content.substr(0, 200);
+    EXPECT_TRUE(looksLikeJsonArray(content))
+            << "Output is not valid JSON array: " << content.substr(0, 200);
     EXPECT_NE(content.find("\"step\": 0"), std::string::npos);
     EXPECT_NE(content.find("\"time\":"), std::string::npos);
     EXPECT_NE(content.find("\"preMerge\": true"), std::string::npos);
@@ -91,11 +93,11 @@ TEST_F(BinConfigWriterTest, MultipleEntriesProduceValidJsonArray) {
     {
         BinConfigWriter w(path);
         std::vector<std::size_t> counts1 = {100};
-        std::vector<double> widths1 = {1.0};
+        std::vector<double> widths1      = {1.0};
         w.writeEntry(0, 0.0, true, counts1, widths1, 0.0);
 
         std::vector<std::size_t> counts2 = {50, 50};
-        std::vector<double> widths2 = {0.5, 0.5};
+        std::vector<double> widths2      = {0.5, 0.5};
         w.writeEntry(1, 1.0e-10, false, counts2, widths2, 0.25);
     }
     std::string content = readFile(path);
@@ -132,7 +134,7 @@ TEST_F(BinConfigWriterTest, FileClosedAfterEachEntry) {
     {
         BinConfigWriter w(path);
         std::vector<std::size_t> counts = {1};
-        std::vector<double> widths = {1.0};
+        std::vector<double> widths      = {1.0};
         w.writeEntry(0, 0.0, true, counts, widths, 0.0);
         // File should already be valid and closed; read without destroying writer.
     }

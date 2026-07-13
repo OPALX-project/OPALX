@@ -30,10 +30,8 @@
 //  This class redefines all visitXXX() methods for elements as pure
 //  to force their implementation in derived classes.
 
-class AbstractTracker: public DefaultVisitor {
-
+class AbstractTracker : public DefaultVisitor {
 public:
-
     // Particle coordinate numbers.
     enum { X, PX, Y, PY, T, PT };
 
@@ -41,16 +39,15 @@ public:
     //  The beam line to be tracked is [b]bl[/b].
     //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]revTrack[/b] is true, we track against the beam.
-    AbstractTracker(const Beamline &, bool backBeam, bool backTrack);
+    AbstractTracker(const Beamline&, bool backBeam, bool backTrack);
 
     virtual ~AbstractTracker();
 
 private:
-
     // Not implemented.
     AbstractTracker();
-    AbstractTracker(const AbstractTracker &);
-    void operator=(const AbstractTracker &);
+    AbstractTracker(const AbstractTracker&);
+    void operator=(const AbstractTracker&);
 };
 
-#endif // OPALX_AbstractTracker_HH
+#endif  // OPALX_AbstractTracker_HH

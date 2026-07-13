@@ -17,55 +17,47 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Attributes/UpperCaseStringArray.h"
-#include "Attributes/Attributes.h"
+#include <vector>
 #include "AbstractObjects/Expressions.h"
+#include "Attributes/Attributes.h"
 #include "Expressions/AValue.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/ParseError.h"
 #include "Utilities/Util.h"
-#include <vector>
 
 using namespace Expressions;
 
-
 namespace Attributes {
 
-    UpperCaseStringArray::UpperCaseStringArray(const std::string &name, const std::string &help):
-        AttributeHandler(name, help, 0)
-    {}
+    UpperCaseStringArray::UpperCaseStringArray(const std::string& name, const std::string& help)
+        : AttributeHandler(name, help, 0) {}
 
+    UpperCaseStringArray::~UpperCaseStringArray() {}
 
-    UpperCaseStringArray::~UpperCaseStringArray()
-    {}
-
-
-    const std::string &UpperCaseStringArray::getType() const {
+    const std::string& UpperCaseStringArray::getType() const {
         static std::string type = "string array";
         return type;
     }
 
-
-    void UpperCaseStringArray::parse(Attribute &attr, Statement &stat, bool) const {
+    void UpperCaseStringArray::parse(Attribute& attr, Statement& stat, bool) const {
         std::vector<std::string> array = Expressions::parseStringArray(stat);
         Attributes::setUpperCaseStringArray(attr, array);
     }
 
-
-    void UpperCaseStringArray::parseComponent
-    (Attribute &attr, Statement &statement, bool, int index) const {
+    void UpperCaseStringArray::parseComponent(
+            Attribute& attr, Statement& statement, bool, int index) const {
         std::vector<std::string> array = Attributes::getStringArray(attr);
 
-        if(AttributeBase *base = &attr.getBase()) {
+        if (AttributeBase* base = &attr.getBase()) {
             array = dynamic_cast<AValue<std::string>*>(base)->evaluate();
         }
 
-        while(int(array.size()) < index) {
+        while (int(array.size()) < index) {
             array.push_back(std::string());
         }
 
-        array[index - 1] =
-            Expressions::parseStringValue(statement, "String value expected.");
+        array[index - 1] = Expressions::parseStringValue(statement, "String value expected.");
         Attributes::setUpperCaseStringArray(attr, array);
     }
 
-};
+};  // namespace Attributes

@@ -9,6 +9,7 @@ set (HDRS
     LinearCompton.h
     LinearBreitWheeler.h
     Material.h
+    MuonDecay.h
     ParticleProperties.h
     Physics.h
     )

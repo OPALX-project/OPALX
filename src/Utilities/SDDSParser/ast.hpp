@@ -17,61 +17,48 @@
 #ifndef AST_HPP_
 #define AST_HPP_
 
-#include <variant>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace SDDS {
     namespace ast {
-        enum datatype { FLOAT
-                      , DOUBLE
-                      , SHORT
-                      , LONG
-                      , CHARACTER
-                      , STRING };
+        enum datatype { FLOAT, DOUBLE, SHORT, LONG, CHARACTER, STRING };
 
-        enum datamode { ASCII
-                      , BINARY};
+        enum datamode { ASCII, BINARY };
 
-        enum endianess { BIGENDIAN
-                       , LITTLEENDIAN};
+        enum endianess { BIGENDIAN, LITTLEENDIAN };
 
         struct nil {};
 
-        typedef std::variant<float,
-                               double,
-                               short,
-                               long,
-                               char,
-                               std::string> variant_t;
+        typedef std::variant<float, double, short, long, char, std::string> variant_t;
 
         typedef std::vector<variant_t> columnData_t;
 
-        inline
-        std::string getDataTypeString(datatype type) {
-            switch(type) {
-            case FLOAT:
-                return "float";
-            case DOUBLE:
-                return "double";
-            case SHORT:
-                return "short";
-            case LONG:
-                return "long";
-            case CHARACTER:
-                return "char";
-            case STRING:
-                return "string";
-            default:
-                return "unknown";
+        inline std::string getDataTypeString(datatype type) {
+            switch (type) {
+                case FLOAT:
+                    return "float";
+                case DOUBLE:
+                    return "double";
+                case SHORT:
+                    return "short";
+                case LONG:
+                    return "long";
+                case CHARACTER:
+                    return "char";
+                case STRING:
+                    return "string";
+                default:
+                    return "unknown";
             }
         }
 
-    }
+    }  // namespace ast
 
     namespace parser {
         // String parsing is now handled by ValueParser
-}
-}
+    }
+}  // namespace SDDS
 
-#endif // AST_HPP_
+#endif  // AST_HPP_

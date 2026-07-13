@@ -27,8 +27,8 @@ class H5PartWrapperForPT : public H5PartWrapper {
 public:
     H5PartWrapperForPT(const std::string& fileName, h5_int32_t flags = H5_O_WRONLY);
     H5PartWrapperForPT(
-        const std::string& fileName, int restartStep, std::string sourceFile,
-        h5_int32_t flags = H5_O_RDWR);
+            const std::string& fileName, int restartStep, std::string sourceFile,
+            h5_int32_t flags = H5_O_RDWR);
     virtual ~H5PartWrapperForPT();
 
     virtual void readHeader();
@@ -36,8 +36,8 @@ public:
 
     virtual void writeHeader();
     virtual void writeStep(
-        PartBunch_t*, const std::map<std::string, double>& additionalStepAttributes,
-        size_t particleContainerIndex = 0);
+            PartBunch_t*, const std::map<std::string, double>& additionalStepAttributes,
+            size_t particleContainerIndex = 0);
 
     virtual bool predecessorIsSameFlavour() const;
 
@@ -46,7 +46,7 @@ private:
     void readStepData(PartBunch_t*, h5_ssize_t, h5_ssize_t);
 
     void writeStepHeader(
-        PartBunch_t*, const std::map<std::string, double>&, size_t particleContainerIndex);
+            PartBunch_t*, const std::map<std::string, double>&, size_t particleContainerIndex);
     void writeStepData(PartBunch_t*, size_t particleContainerIndex);
 };
 

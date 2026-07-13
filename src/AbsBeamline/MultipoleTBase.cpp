@@ -26,7 +26,7 @@ void MultipoleTBase::generateTanhCoefficients(const unsigned int numDerivatives)
     tanhCoefficientsHost_m = Kokkos::create_mirror_view(tanhCoefficientsGpu_m);
     // Zero initialize
     for (unsigned int n = 0; n <= numDerivatives; ++n) {
-        for (unsigned int k = 0; k < numDerivatives; ++k) {
+        for (unsigned int k = 0; k < numCoefficients; ++k) {
             tanhCoefficientsHost_m(n, k) = 0.0;
         }
     }

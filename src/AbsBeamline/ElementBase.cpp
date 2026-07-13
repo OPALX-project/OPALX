@@ -1,52 +1,3 @@
-//
-// Class ElementBase
-//   The very base class for beam line representation objects. A beam line
-//   is modelled as a composite structure having a single root object
-//   (the top level beam line), which contains both ``single'' leaf-type
-//   elements (Components), as well as sub-lines (composites).
-//
-//   Interface for basic beam line object.
-//   This class defines the abstract interface for all objects which can be
-//   contained in a beam line. ElementBase forms the base class for two distinct
-//   but related hierarchies of objects:
-//   [OL]
-//   [LI]
-//   A set of concrete accelerator element classes, which compose the standard
-//   accelerator component library (SACL).
-//   [LI]
-//   [/OL]
-//   Instances of the concrete classes for single elements are by default
-//   sharable. Instances of beam lines and integrators are by
-//   default non-sharable, but they may be made sharable by a call to
-//   [b]makeSharable()[/b].
-//   [p]
-//   An ElementBase object can return two lengths, which may be different:
-//   [OL]
-//   [LI]
-//   The arc length along the geometry.
-//   [LI]
-//   The design length, often measured along a straight line.
-//   [/OL]
-//   Class ElementBase contains a map of name versus value for user-defined
-//   attributes (see file AbsBeamline/AttributeSet.hh). The map is primarily
-//   intended for processes that require algorithm-specific data in the
-//   accelerator model.
-//   [P]
-//   The class ElementBase is a base class.
-//   Virtual derivation is used to make multiple inheritance possible for
-//   derived concrete classes. ElementBase implements three copy modes:
-//   [OL]
-//   [LI]
-//   Copy by reference: Use std::shared_ptr to share ownership.
-//   [LI]
-//   Copy structure: use ElementBase::copyStructure().
-//   During copying of the structure, all sharable items are re-used, while
-//   all non-sharable ones are cloned.
-//   [LI]
-//   Copy by cloning: use ElementBase::clone().
-//   This returns a full deep copy.
-//   [/OL]
-//
 // Copyright (c) 200x - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
@@ -63,84 +14,81 @@
 #include "AbsBeamline/ElementBase.h"
 
 #include "Channels/Channel.h"
+#include "Utilities/LogicalError.h"
+#include "Utility/Inform.h"
 
+#include <algorithm>
+#include <cmath>
 #include <filesystem>
+#include <iostream>
+#include <vector>
+
+extern Inform* gmsg;
+
+const std::vector<double> ElementBase::defaultAperture_m = std::vector<double>({1e6, 1e6, 1.0});
 
 const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
-    {ElementType::ANY, "Any"},
-    {ElementType::BEAMLINE, "Beamline"},
-    {ElementType::DRIFT, "Drift"},
-    {ElementType::LASER, "Laser"},
-    {ElementType::MARKER, "Marker"},
-    {ElementType::MULTIPOLE, "Multipole"},
-    {ElementType::RFCAVITY, "RFCavity"},
-    {ElementType::TRAVELINGWAVE, "TravelingWave"},
-    {ElementType::SBEND, "SBEND"},
-    {ElementType::RBEND, "RBEND"},
-    {ElementType::RBEND3D, "RBEND3D"},
-    {ElementType::RING, "Ring"},
-    {ElementType::SOURCE, "SOURCE"},
-    {ElementType::SOLENOID, "SOLENOID"},
-    {ElementType::PROBE, "Probe"},
-    {ElementType::VACUUM, "Vacuum"},
-    {ElementType::CONSTANTEFIELDCAVITY, "ConstantEFieldCavity"}};
+        {ElementType::ANY, "Any"},
+        {ElementType::BEAMLINE, "Beamline"},
+        {ElementType::DRIFT, "Drift"},
+        {ElementType::LASER, "Laser"},
+        {ElementType::MARKER, "Marker"},
+        {ElementType::MONITOR, "Monitor"},
+        {ElementType::MULTIPOLE, "Multipole"},
+        {ElementType::RFCAVITY, "RFCavity"},
+        {ElementType::TRAVELINGWAVE, "TravelingWave"},
+        {ElementType::SBEND, "SBEND"},
+        {ElementType::RBEND, "RBEND"},
+        {ElementType::RBEND3D, "RBEND3D"},
+        {ElementType::RING, "Ring"},
+        {ElementType::SOURCE, "SOURCE"},
+        {ElementType::SOLENOID, "SOLENOID"},
+        {ElementType::PROBE, "Probe"},
+        {ElementType::VACUUM, "Vacuum"},
+        {ElementType::CONSTANTEFIELDCAVITY, "ConstantEFieldCavity"}};
 
-ElementBase::ElementBase() : ElementBase("") {
-}
+ElementBase::ElementBase() : ElementBase("") {}
 
 ElementBase::ElementBase(const ElementBase& right)
-        : std::enable_shared_from_this<ElementBase>(),
-            shareFlag(true),
-            csTrafoGlobal2Local_m(right.csTrafoGlobal2Local_m),
-            misalignment_m(right.misalignment_m),
-            aperture_m(right.aperture_m),
-            elementEdge_m(right.elementEdge_m),
+    : std::enable_shared_from_this<ElementBase>(),
+      shareFlag(true),
+      csTrafoGlobal2Local_m(right.csTrafoGlobal2Local_m),
+      misalignment_m(right.misalignment_m),
       rotationZAxis_m(right.rotationZAxis_m),
+      aperture_m(right.aperture_m),
+      RefPartBunch_m(nullptr),
+      online_m(right.online_m),
       elementID(right.elementID),
       userAttribs(right.userAttribs),
-      wake_m(right.wake_m),
-      bgeometry_m(right.bgeometry_m),
-      parmatint_m(right.parmatint_m),
       positionIsFixed(right.positionIsFixed),
       elementPosition_m(right.elementPosition_m),
       elemedgeSet_m(right.elemedgeSet_m),
       outputfn_m(right.outputfn_m),
-      deleteOnTransverseExit_m(right.deleteOnTransverseExit_m) {
-}
+      deleteOnTransverseExit_m(right.deleteOnTransverseExit_m) {}
 
 ElementBase::ElementBase(const std::string& name)
     : shareFlag(true),
       csTrafoGlobal2Local_m(),
       misalignment_m(),
-      elementEdge_m(0),
       rotationZAxis_m(0.0),
+      RefPartBunch_m(nullptr),
+      online_m(false),
       elementID(name),
       userAttribs(),
-      wake_m(nullptr),
-      bgeometry_m(nullptr),
-      parmatint_m(nullptr),
       positionIsFixed(false),
       elementPosition_m(0.0),
       elemedgeSet_m(false),
       outputfn_m("") {
+    setAperture(ApertureType::ELLIPTICAL, defaultAperture_m);
 }
 
-ElementBase::~ElementBase()
+ElementBase::~ElementBase() {}
 
-{
-}
+const std::string& ElementBase::getName() const { return elementID; }
 
-const std::string& ElementBase::getName() const {
-    return elementID;
-}
+void ElementBase::setName(const std::string& name) { elementID = name; }
 
-void ElementBase::setName(const std::string& name) {
-    elementID = name;
-}
-
-void ElementBase::setOutputFN(const std::string fn) {
-    outputfn_m = fn;
-}
+void ElementBase::setOutputFN(const std::string fn) { outputfn_m = fn; }
 
 std::string ElementBase::getOutputFN() const {
     if (outputfn_m.empty()) {
@@ -174,9 +122,7 @@ bool ElementBase::hasAttribute(const std::string& aKey) const {
     }
 }
 
-void ElementBase::removeAttribute(const std::string& aKey) {
-    userAttribs.removeAttribute(aKey);
-}
+void ElementBase::removeAttribute(const std::string& aKey) { userAttribs.removeAttribute(aKey); }
 
 void ElementBase::setAttribute(const std::string& aKey, double val) {
     Channel* aChannel = getChannel(aKey, true);
@@ -198,9 +144,7 @@ const ConstChannel* ElementBase::getConstChannel(const std::string& aKey) const 
     return const_cast<ElementBase*>(this)->getChannel(aKey);
 }
 
-std::string ElementBase::getTypeString(ElementType type) {
-    return elementTypeToString_s.at(type);
-}
+std::string ElementBase::getTypeString(ElementType type) { return elementTypeToString_s.at(type); }
 
 ElementBase* ElementBase::copyStructure() {
     if (isSharable()) {
@@ -210,9 +154,7 @@ ElementBase* ElementBase::copyStructure() {
     }
 }
 
-void ElementBase::makeSharable() {
-    shareFlag = true;
-}
+void ElementBase::makeSharable() { shareFlag = true; }
 
 bool ElementBase::update(const AttributeSet& set) {
     for (AttributeSet::const_iterator i = set.begin(); i != set.end(); ++i) {
@@ -222,36 +164,20 @@ bool ElementBase::update(const AttributeSet& set) {
     return true;
 }
 
-void ElementBase::setWake(WakeFunction* wk) {
-    wake_m = wk;  //->clone(getName() + std::string("_wake")); }
-}
-
-void ElementBase::setBoundaryGeometry(BoundaryGeometry* geo) {
-    bgeometry_m = geo;  //->clone(getName() + std::string("_wake")); }
-}
-
-void ElementBase::setParticleMatterInteraction(ParticleMatterInteractionHandler* parmatint) {
-    parmatint_m = parmatint;
-}
-
-void ElementBase::setCurrentSCoordinate(double s) {
-    if (!actionRange_m.empty() && actionRange_m.front().second < s) {
-        actionRange_m.pop();
-        if (!actionRange_m.empty()) {
-            elementEdge_m = actionRange_m.front().first;
-        }
-    }
-}
-
 bool ElementBase::isInsideTransverse(const Vector_t<double, 3>& r) const {
     const double& xLimit = aperture_m.second[0];
     const double& yLimit = aperture_m.second[1];
     double factor        = 1.0;
     if (aperture_m.first == ApertureType::CONIC_RECTANGULAR
         || aperture_m.first == ApertureType::CONIC_ELLIPTICAL) {
-        Vector_t<double, 3> rRelativeToBegin = getEdgeToBegin().transformTo(r);
-        double fractionLength                = rRelativeToBegin(2) / getElementLength();
-        factor                               = fractionLength * aperture_m.second[2];
+        const double length = getGeometry().getElementLength();
+        if (length > 0.0) {
+            Vector_t<double, 3> rRelativeToBegin = getGeometry().getEdgeToBegin().transformTo(r);
+            double fractionLength                = rRelativeToBegin(2) / length;
+            fractionLength                       = std::clamp(fractionLength, 0.0, 1.0);
+            // Interpolate aperture scaling from begin (1.0) to end (aperture_m.second[2]).
+            factor = 1.0 + fractionLength * (aperture_m.second[2] - 1.0);
+        }
     }
 
     switch (aperture_m.first) {
@@ -262,17 +188,16 @@ bool ElementBase::isInsideTransverse(const Vector_t<double, 3>& r) const {
         case ApertureType::CONIC_RECTANGULAR:
             return (std::abs(r[0]) < factor * xLimit && std::abs(r[1]) < factor * yLimit);
         case ApertureType::CONIC_ELLIPTICAL:
-            return (
-                std::pow(r[0] / (factor * xLimit), 2) + std::pow(r[1] / (factor * yLimit), 2)
-                < 1.0);
+            return (std::pow(r[0] / (factor * xLimit), 2) + std::pow(r[1] / (factor * yLimit), 2)
+                    < 1.0);
         default:
             return false;
     }
 }
 
 BoundingBox ElementBase::getBoundingBoxInLabCoords() const {
-    CoordinateSystemTrafo toBegin = getEdgeToBegin() * csTrafoGlobal2Local_m;
-    CoordinateSystemTrafo toEnd   = getEdgeToEnd() * csTrafoGlobal2Local_m;
+    CoordinateSystemTrafo toBegin = getGeometry().getEdgeToBegin() * csTrafoGlobal2Local_m;
+    CoordinateSystemTrafo toEnd   = getGeometry().getEdgeToEnd() * csTrafoGlobal2Local_m;
 
     const double& x = aperture_m.second[0];
     const double& y = aperture_m.second[1];
@@ -284,9 +209,38 @@ BoundingBox ElementBase::getBoundingBoxInLabCoords() const {
             unsigned int idx = (i + 1) / 2 + (j + 1);
             corners[idx]     = toBegin.transformFrom(Vector_t<double, 3>({i * x, j * y, 0.0}));
             corners[idx + 4] =
-                toEnd.transformFrom(Vector_t<double, 3>({i * f * x, j * f * y, 0.0}));
+                    toEnd.transformFrom(Vector_t<double, 3>({i * f * x, j * f * y, 0.0}));
         }
     }
 
     return BoundingBox::getBoundingBox(corners);
 }
+
+/* ============================== Field / physics interface ================== */
+
+ElementType ElementBase::getType() const { return ElementType::ANY; }
+
+void ElementBase::goOnline(const double&) { online_m = true; }
+
+void ElementBase::goOffline() { online_m = false; }
+
+bool ElementBase::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) { return false; }
+
+bool ElementBase::apply(
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
+        Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
+    if (R(2) >= 0.0 && R(2) < getGeometry().getElementLength()) {
+        if (!isInsideTransverse(R)) return true;
+    }
+    return false;
+}
+
+bool ElementBase::applyToReferenceParticle(
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
+        Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
+    if (R(2) >= 0.0 && R(2) < getGeometry().getElementLength()) {
+        if (!isInsideTransverse(R)) return true;
+    }
+    return false;
+}
+/* ========================================================================== */

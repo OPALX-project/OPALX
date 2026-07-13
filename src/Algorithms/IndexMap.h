@@ -23,54 +23,49 @@
 #ifndef OPAL_INDEXMAP_H
 #define OPAL_INDEXMAP_H
 
-#include <ostream>
 #include <map>
+#include <ostream>
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Utilities/OpalException.h"
 
 #include <set>
 #include <utility>
 
-
-class IndexMap
-{
+class IndexMap {
 public:
-    struct Range
-    {
+    struct Range {
         typedef double first_type;
         typedef double second_type;
         first_type begin;
         second_type end;
     };
     typedef Range key_t;
-    typedef std::set<std::shared_ptr<Component> > value_t;
+    typedef std::set<std::shared_ptr<ElementBase>> value_t;
 
     IndexMap();
 
-    void add(key_t::first_type initialStep, key_t::second_type finalStep, const value_t &val);
+    void add(key_t::first_type initialStep, key_t::second_type finalStep, const value_t& val);
 
     value_t query(key_t::first_type s, key_t::second_type ds);
 
-    void tidyUp(double zstop);
+    void tidyUp(double sStop);
 
     void print(std::ostream&) const;
     void saveSDDS(double startS) const;
     size_t size() const;
 
-    size_t numElements() const;
-    key_t getRange(const IndexMap::value_t::value_type &element, double position) const;
-    value_t getTouchingElements(const key_t &range) const;
+    /// Reverse lookup: the path-length range over which @p element is active. Single-pass
+    /// (linac) assumption: each element is entered exactly once, so it owns exactly one range.
+    key_t getRange(const IndexMap::value_t::value_type& element) const;
 
-    class OutOfBounds: public OpalException {
+    class OutOfBounds : public OpalException {
     public:
-        OutOfBounds(const std::string &meth, const std::string &msg):
-            OpalException(meth, msg) { }
+        OutOfBounds(const std::string& meth, const std::string& msg) : OpalException(meth, msg) {}
 
-        OutOfBounds(const OutOfBounds &rhs):
-            OpalException(rhs) { }
+        OutOfBounds(const OutOfBounds& rhs) : OpalException(rhs) {}
 
-        virtual ~OutOfBounds() { }
+        virtual ~OutOfBounds() {}
 
     private:
         OutOfBounds();
@@ -79,8 +74,7 @@ public:
 private:
     class myCompare {
     public:
-        bool operator()(const key_t x , const key_t y) const
-        {
+        bool operator()(const key_t x, const key_t y) const {
             if (x.begin < y.begin) return true;
 
             if (x.begin == y.begin) {
@@ -92,7 +86,9 @@ private:
     };
 
     typedef std::map<key_t, value_t, myCompare> map_t;
-    typedef std::multimap<value_t::value_type, key_t> invertedMap_t;
+    // Reverse map: one range per element (single-pass linac invariant).
+    typedef std::map<value_t::value_type, key_t, std::owner_less<value_t::value_type>>
+            invertedMap_t;
     map_t mapRange2Element_m;
     invertedMap_t mapElement2Range_m;
 
@@ -102,20 +98,14 @@ private:
     static const double oneMinusEpsilon_m;
 };
 
-inline
-size_t IndexMap::size() const {
-    return mapRange2Element_m.size();
-}
+inline size_t IndexMap::size() const { return mapRange2Element_m.size(); }
 
-inline
-std::ostream& operator<< (std::ostream &out, const IndexMap &im)
-{
+inline std::ostream& operator<<(std::ostream& out, const IndexMap& im) {
     im.print(out);
     return out;
 }
 
-inline
-Inform& operator<< (Inform &out, const IndexMap &im) {
+inline Inform& operator<<(Inform& out, const IndexMap& im) {
     im.print(out.getStream());
     return out;
 }

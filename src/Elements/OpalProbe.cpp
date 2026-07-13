@@ -39,12 +39,9 @@ OpalProbe::OpalProbe(const std::string& name, OpalProbe* parent) : OpalElement(n
     setElement(new ProbeRep(name));
 }
 
-OpalProbe::~OpalProbe() {
-}
+OpalProbe::~OpalProbe() {}
 
-OpalProbe* OpalProbe::clone(const std::string& name) {
-    return new OpalProbe(name, this);
-}
+OpalProbe* OpalProbe::clone(const std::string& name) { return new OpalProbe(name, this); }
 
 void OpalProbe::update() {
     OpalElement::update();
@@ -59,7 +56,7 @@ void OpalProbe::update() {
 
     double length = Attributes::getReal(itsAttr[LENGTH]);
 
-    prob->setElementLength(length);  // is this needed here?
+    prob->getGeometry().setElementLength(length);  // is this needed here?
     prob->setDimensions(xstart, xend, ystart, yend);
     prob->setStep(step);
     prob->setOutputFN(Attributes::getString(itsAttr[OUTFN]));

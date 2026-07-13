@@ -20,43 +20,39 @@
 
 #include "AbstractObjects/ValueDefinition.h"
 
-
-class RealConstant: public ValueDefinition {
-
+class RealConstant : public ValueDefinition {
 public:
-
     /// Exemplar constructor.
     RealConstant();
 
     /// Constructor for built-in constants.
-    RealConstant(const std::string &name, RealConstant *parent, double value);
+    RealConstant(const std::string& name, RealConstant* parent, double value);
 
     virtual ~RealConstant();
 
     /// Test if object can be replaced.
     //  Always false for constants.
-    virtual bool canReplaceBy(Object *object);
+    virtual bool canReplaceBy(Object* object);
 
     /// Make clone.
-    virtual RealConstant *clone(const std::string &name);
+    virtual RealConstant* clone(const std::string& name);
 
     /// Print the constant.
-    virtual void print(std::ostream &) const;
+    virtual void print(std::ostream&) const;
 
     /// Print its value
-    virtual void printValue(std::ostream &os) const;
+    virtual void printValue(std::ostream& os) const;
 
     /// Return value.
     virtual double getReal() const;
 
 private:
-
     // Not implemented.
-    RealConstant(const RealConstant &);
-    void operator=(const RealConstant &);
+    RealConstant(const RealConstant&);
+    void operator=(const RealConstant&);
 
     // Clone constructor.
-    RealConstant(const std::string &name, RealConstant *parent);
+    RealConstant(const std::string& name, RealConstant* parent);
 };
 
-#endif // OPAL_RealConstant_HH
+#endif  // OPAL_RealConstant_HH

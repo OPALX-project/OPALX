@@ -18,7 +18,6 @@
 //
 // ------------------------------------------------------------------------
 
-
 namespace Expressions {
 
     // Class TFunction1
@@ -28,10 +27,10 @@ namespace Expressions {
     //  namely its name, its precedence, and a pointer to the function to
     //  evaluate it.
 
-    template <class T, class U> struct TFunction1 {
-
+    template <class T, class U>
+    struct TFunction1 {
         /// The function name or operator representation.
-        const char *name;
+        const char* name;
 
         /// The operator precedence.
         //  May be one of the following:
@@ -42,9 +41,9 @@ namespace Expressions {
         int precedence;
 
         /// The actual operation.
-        T(*function)(U);
+        T (*function)(U);
     };
 
-}
+}  // namespace Expressions
 
-#endif // OPAL_TFunction1_HH
+#endif  // OPAL_TFunction1_HH

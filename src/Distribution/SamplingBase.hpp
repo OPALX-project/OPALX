@@ -1,59 +1,85 @@
-#ifndef IPPL_SAMPLING_BASE_H
-#define IPPL_SAMPLING_BASE_H
+#ifndef OPALX_SAMPLING_BASE_H
+#define OPALX_SAMPLING_BASE_H
 
+#include <memory>
 #include "Distribution.h"
 #include "Ippl.h"
-#include <memory>
+#include "PartBunch/BunchStateHandler.h"
 
 using ParticleContainer_t = ParticleContainer<double, 3>;
-using FieldContainer_t = FieldContainer<double, 3>;
-using Distribution_t = Distribution;
+using FieldContainer_t    = FieldContainer<double, 3>;
+using Distribution_t      = Distribution;
 
 using view_type = typename ippl::detail::ViewType<Vector_t<double, 3>, 1>::view_type;
 
-class SamplingBase{
+class SamplingBase {
 protected:
     std::shared_ptr<ParticleContainer_t> pc_m;
     std::shared_ptr<FieldContainer_t> fc_m;
-    std::shared_ptr<Distribution_t> opalDist_m;
+    Distribution_t* opalDist_m = nullptr;
     std::string samplingMethod_m;
-    /// Emission source offset: position R0, momentum P0, start time t0 (applied in sample step).
-    Vector_t<double, 3> R0_m = 0.0;
-    Vector_t<double, 3> P0_m = 0.0;
-    double t0_m              = 0.0;
+    /// Emission-source state passed in by TrackRun. R0 and P0 are final offsets:
+    /// samplers generate their mathematical shape first, then add these offsets during sampling.
+    Vector_t<double, 3> R0_m    = 0.0;
+    Vector_t<double, 3> P0_m    = 0.0;
+    double t0_m                 = 0.0;
     std::string emissionModel_m = "NONE";
+    /// Source EKIN converted to beta*gamma; used as the ASTRA half-sphere radius.
+    double emissionMomentumMagnitude_m = 0.0;
+
+    /// Initial polarization vector P applied to every particle this sampler creates.
+    /// Rest-frame Pauli expectations along lab-frame axes; |Pol| in [0, 1].
+    /// Ignored when the container does not have a spin attribute (hasSpin() == false).
+    Vector_t<double, 3> initialPol_m = 0.0;
 
     /// For one-shot emitters (e.g. Gaussian at delayed t0): guard to avoid double sampling.
     bool hasEmittedOnce_m = false;
 
 public:
-    
-    SamplingBase(std::shared_ptr<ParticleContainer_t> pc,
-        std::shared_ptr<FieldContainer_t> fc,
-        std::shared_ptr<Distribution_t> dist
-    )
-        : pc_m(pc), fc_m(fc), opalDist_m(dist) {
-    }
+    SamplingBase(
+            std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
+            Distribution_t* dist)
+        : pc_m(pc), fc_m(fc), opalDist_m(dist) {}
 
-    SamplingBase(std::shared_ptr<ParticleContainer_t> pc,
-        std::shared_ptr<FieldContainer_t> fc
-    )
-        : pc_m(pc), fc_m(fc) {
-    }
+    SamplingBase(std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc)
+        : pc_m(pc), fc_m(fc) {}
 
-    SamplingBase(std::shared_ptr<ParticleContainer_t> pc)
-        : pc_m(pc) {
-    }
-    
+    SamplingBase(std::shared_ptr<ParticleContainer_t> pc) : pc_m(pc) {}
+
     virtual ~SamplingBase() {}
 
-    void setEmissionOffsets(ippl::Vector<double, 3> R0, ippl::Vector<double, 3> P0, double t0,
-                            const std::string& emissionModel = "NONE") {
-        R0_m = R0;
-        P0_m = P0;
-        t0_m = t0;
-        emissionModel_m = emissionModel;
+    void setEmissionOffsets(
+            ippl::Vector<double, 3> R0, ippl::Vector<double, 3> P0, double t0,
+            const std::string& emissionModel = "NONE", double emissionMomentumMagnitude = 0.0) {
+        R0_m                        = R0;
+        P0_m                        = P0;
+        t0_m                        = t0;
+        emissionModel_m             = emissionModel;
+        emissionMomentumMagnitude_m = emissionMomentumMagnitude;
     }
+
+    void setInitialPolarization(const ippl::Vector<double, 3>& pol) { initialPol_m = pol; }
+
+    /// Fill the Pol particle attribute with initialPol_m on the half-open range
+    /// [startIdx, startIdx + count). No-op when the container does not store spin.
+    /// Must be called *after* the particles have been created and before they are
+    /// pushed downstream.
+    void fillPolarization(size_t startIdx, size_t count) {
+        if (count == 0 || !pc_m->hasSpin()) {
+            return;
+        }
+        auto Polview  = pc_m->Pol.getView();
+        using spin_t  = typename ParticleContainer_t::spin_vector_type;
+        const auto px = static_cast<float>(initialPol_m[0]);
+        const auto py = static_cast<float>(initialPol_m[1]);
+        const auto pz = static_cast<float>(initialPol_m[2]);
+        Kokkos::parallel_for(
+                "SamplingBase::fillPolarization", count,
+                KOKKOS_LAMBDA(const size_t k) { Polview(startIdx + k) = spin_t{px, py, pz}; });
+        Kokkos::fence();
+    }
+
+    Vector_t<double, 3> getEmissionR0() const { return R0_m; }
 
     virtual void generateParticles(size_t& /*numberOfParticles*/, Vector_t<double, 3> /*nr*/) {}
 
@@ -65,6 +91,29 @@ public:
         (void)t;
         return hasEmittedOnce_m;
     }
+
+    /// @brief Fraction of this sampler's total inventory already emitted.
+    virtual double getEmittedFraction() const { return 1.0; }
+
+    /// @brief Optional tracker time shift needed before the first emitted particles are born.
+    virtual double getGlobalTimeShift() const { return 0.0; }
+
+    /// @brief Optional initial reference momentum in the source-local frame.
+    virtual bool hasInitialReferenceMomentum() const { return false; }
+
+    virtual Vector_t<double, 3> getInitialReferenceMomentum() const {
+        return Vector_t<double, 3>(0.0);
+    }
+
+    /// @brief Optional initial reference position in the source-local frame.
+    virtual bool hasInitialReferencePosition() const { return false; }
+
+    virtual Vector_t<double, 3> getInitialReferencePosition() const {
+        return Vector_t<double, 3>(0.0);
+    }
+
+    /// @brief Optional OPAL-like tracker time step while this sampler is still emitting.
+    virtual double getEmissionTimeStep() const { return 0.0; }
 
     // testNumEmitParticles is purely made for testing and should be removed
     virtual void testNumEmitParticles(size_t /*nsteps*/, double /*dt*/) {}
@@ -84,5 +133,4 @@ public:
      */
     size_t computeLocalEmitCount(size_t totalToSample) const;
 };
-#endif
-
+#endif  // OPALX_SAMPLING_BASE_H

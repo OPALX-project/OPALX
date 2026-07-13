@@ -1,17 +1,9 @@
 set (_SRCS
-    # Default Field Classes - DO NOT REMOVE
-    BDipoleField.cpp
-    BMultipoleField.cpp
-    ConstBField.cpp
-    ConstBzField.cpp
-    ConstEzField.cpp
-    EMField.cpp
-    NullField.cpp
-    StaticElectricField.cpp
-    StaticMagneticField.cpp
 
     # Fieldmaps
     Fieldmap.cpp
+    Astra1DDynamic.cpp
+    Astra1DMagnetoStatic.cpp
     FM2DMagnetoStatic.cpp
     FM2DDynamic.cpp
 
@@ -27,7 +19,6 @@ set (_SRCS
     #FM1DDynamic.cpp
     #FM1DDynamic_fast.cpp
     #Astra1D_fast.cpp
-    #Astra1DDynamic.cpp
     #Astra1DDynamic_fast.cpp
     #FM1DElectroStatic.cpp
     #FM1DElectroStatic_fast.cpp
@@ -35,7 +26,6 @@ set (_SRCS
     #Astra1DElectroStatic_fast.cpp
     #FM1DMagnetoStatic.cpp
     #FM1DMagnetoStatic_fast.cpp
-    #Astra1DMagnetoStatic.cpp
     #Astra1DMagnetoStatic_fast.cpp
     #FM1DProfile1.cpp
     #FM1DProfile2.cpp
@@ -48,23 +38,14 @@ add_subdirectory (Interpolation)
 
 
 set (HDRS
-    # Default Field Classes - DO NOT REMOVE
-    BDipoleField.h
-    BMultipoleField.h
-    ConstBField.h
-    ConstBzField.h
-    ConstEzField.h
-    EMField.h
-    StaticElectricField.h
-    StaticMagneticField.h
-    NullField.h
-    AcceleratingField.h
-    OscillatingField.h
     
     # Fieldmaps
     Fieldmap.h
     Fieldmap.hpp
+    Astra1DDynamic.h
+    Astra1DMagnetoStatic.h
     FM2DMagnetoStatic.h
+    FM2DDynamic.h
     
     # To be ported from OPAL
     #FM3DDynamic.h
@@ -78,12 +59,10 @@ set (HDRS
     #SectorField.h
     #SectorMagneticFieldMap.h
     #Astra1DDynamic_fast.h
-    #Astra1DDynamic.h
     #Astra1DElectroStatic_fast.h
     #Astra1DElectroStatic.h
     #Astra1D_fast.h
     #Astra1DMagnetoStatic_fast.h
-    #Astra1DMagnetoStatic.h
     #BSingleMultipoleField.h
     #FM1DDynamic_fast.h
     #FM1DDynamic.h
@@ -93,7 +72,6 @@ set (HDRS
     #FM1DMagnetoStatic.h
     #FM1DProfile1.h
     #FM1DProfile2.h
-    #FM2DDynamic.h
     #FM2DElectroStatic.h
     )
 

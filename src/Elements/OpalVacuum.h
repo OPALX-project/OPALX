@@ -26,18 +26,16 @@
 
 class ParticleMatterInteraction;
 
-class OpalVacuum: public OpalElement {
-
+class OpalVacuum : public OpalElement {
 public:
-
     /// The attributes of class OpalVacuum.
     enum {
-        GAS = COMMON, // Type of gas for residual vacuum
-        PRESSURE,     // Pressure in mbar
-        TEMPERATURE,  // Temperature of residual gas
-        PMAPFN,       // The filename of the mid-plane pressure map
-        PSCALE,       // A scalar to scale the P-field
-        STOP,         // whether the secondary particles are tracked
+        GAS = COMMON,  // Type of gas for residual vacuum
+        PRESSURE,      // Pressure in mbar
+        TEMPERATURE,   // Temperature of residual gas
+        PMAPFN,        // The filename of the mid-plane pressure map
+        PSCALE,        // A scalar to scale the P-field
+        STOP,          // whether the secondary particles are tracked
         SIZE
     };
 
@@ -49,11 +47,10 @@ public:
     /// Make clone.
     virtual OpalVacuum* clone(const std::string& name);
 
-    /// Update the embedded CLASSIC vacuum.
+    /// Update the embedded OPALX vacuum.
     virtual void update();
 
 private:
-
     // Not implemented.
     OpalVacuum(const OpalVacuum&);
     void operator=(const OpalVacuum&);
@@ -64,4 +61,4 @@ private:
     ParticleMatterInteraction* parmatint_m;
 };
 
-#endif // OPAL_OpalVacuum_HH
+#endif  // OPAL_OpalVacuum_HH

@@ -40,7 +40,7 @@ public:
     /// Make clone.
     virtual OpalProbe* clone(const std::string& name);
 
-    /// Update the embedded CLASSIC probe.
+    /// Update the embedded OPALX probe.
     virtual void update();
 
 private:

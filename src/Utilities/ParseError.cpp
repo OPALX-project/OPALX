@@ -7,7 +7,7 @@
 // ------------------------------------------------------------------------
 //
 // Class: ParseError
-//   Parse error in classic parser.
+//   Parse error in the OPALX parser.
 //
 // ------------------------------------------------------------------------
 // Class category: Utilities
@@ -20,20 +20,12 @@
 
 #include "Utilities/ParseError.h"
 
-
 // Class ParseError
 // ------------------------------------------------------------------------
 
+ParseError::ParseError(const std::string& meth, const std::string& msg)
+    : OpalException(meth, msg) {}
 
-ParseError::ParseError(const std::string &meth, const std::string &msg):
-    ClassicException(meth, msg) {
-}
+ParseError::ParseError(const ParseError& rhs) : OpalException(rhs) {}
 
-
-ParseError::ParseError(const ParseError &rhs):
-    ClassicException(rhs)
-{}
-
-
-ParseError::~ParseError()
-{}
+ParseError::~ParseError() {}

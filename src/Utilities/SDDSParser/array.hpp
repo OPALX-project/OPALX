@@ -18,66 +18,63 @@
 #define ARRAY_HPP_
 
 #include "ast.hpp"
-#include "skipper.hpp"
 #include "error_handler.hpp"
+#include "skipper.hpp"
 
 #include <list>
 
 namespace SDDS {
-    struct array
-    {
-        enum attributes { NAME
-                         , SYMBOL
-                         , UNITS
-                         , DESCRIPTION
-                         , FORMAT_STRING
-                         , GROUP_NAME
-                         , TYPE
-                         , FIELD_LENGTH
-                         , DIMENSIONS
-                         , ARRAY
-         };
+    struct array {
+        enum attributes {
+            NAME,
+            SYMBOL,
+            UNITS,
+            DESCRIPTION,
+            FORMAT_STRING,
+            GROUP_NAME,
+            TYPE,
+            FIELD_LENGTH,
+            DIMENSIONS,
+            ARRAY
+        };
 
         template <attributes A>
-        struct complainUnsupported
-        {
-            static bool apply()
-            {
+        struct complainUnsupported {
+            static bool apply() {
                 std::string attributeString;
-                switch(A)
-                {
-                case NAME:
-                    attributeString = "name";
-                    break;
-                case SYMBOL:
-                    attributeString = "symbol";
-                    break;
-                case UNITS:
-                    attributeString = "units";
-                    break;
-                case DESCRIPTION:
-                    attributeString = "description";
-                    break;
-                case FORMAT_STRING:
-                    attributeString = "format_string";
-                    break;
-                case GROUP_NAME:
-                    attributeString = "group_name";
-                    break;
-                case TYPE:
-                    attributeString = "type";
-                    break;
-                case FIELD_LENGTH:
-                    attributeString = "field_length";
-                    break;
-                case DIMENSIONS:
-                    attributeString = "dimensions";
-                    break;
-                case ARRAY:
-                    attributeString = "array";
-                    break;
-                default:
-                    return true;
+                switch (A) {
+                    case NAME:
+                        attributeString = "name";
+                        break;
+                    case SYMBOL:
+                        attributeString = "symbol";
+                        break;
+                    case UNITS:
+                        attributeString = "units";
+                        break;
+                    case DESCRIPTION:
+                        attributeString = "description";
+                        break;
+                    case FORMAT_STRING:
+                        attributeString = "format_string";
+                        break;
+                    case GROUP_NAME:
+                        attributeString = "group_name";
+                        break;
+                    case TYPE:
+                        attributeString = "type";
+                        break;
+                    case FIELD_LENGTH:
+                        attributeString = "field_length";
+                        break;
+                    case DIMENSIONS:
+                        attributeString = "dimensions";
+                        break;
+                    case ARRAY:
+                        attributeString = "array";
+                        break;
+                    default:
+                        return true;
                 }
                 std::cerr << attributeString << " not supported yet" << std::endl;
                 return false;
@@ -85,12 +82,10 @@ namespace SDDS {
         };
     };
 
-    struct arrayList: std::list<array> {};
+    struct arrayList : std::list<array> {};
 
-    inline std::ostream& operator<<(std::ostream& out, const array& ) {
-        return out;
-    }
-}
+    inline std::ostream& operator<<(std::ostream& out, const array&) { return out; }
+}  // namespace SDDS
 
 // Array parsing is now handled by SimpleParser
 #endif /* ARRAY_HPP_ */

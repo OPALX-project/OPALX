@@ -7,7 +7,6 @@ add_definitions (-DNOCTAssert)
 
 include_directories (
     ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/src/Classic
     ${CMAKE_SOURCE_DIR}/ippl/src
     ${GSL_INCLUDE_DIR}
 )

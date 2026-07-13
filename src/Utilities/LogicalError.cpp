@@ -7,7 +7,7 @@
 // ------------------------------------------------------------------------
 //
 // Class: LogicalError
-//   The class for all CLASSIC exceptions related to object Logicals.
+//   The class for all OPAL exceptions related to object Logicals.
 //
 // ------------------------------------------------------------------------
 // Class category: Utilities
@@ -20,20 +20,12 @@
 
 #include "Utilities/LogicalError.h"
 
-
 // Class LogicalError
 // ------------------------------------------------------------------------
 
+LogicalError::LogicalError(const std::string& meth, const std::string& msg)
+    : OpalException(meth, msg) {}
 
-LogicalError::LogicalError(const std::string &meth, const std::string &msg):
-    ClassicException(meth, msg)
-{}
+LogicalError::LogicalError(const LogicalError& rhs) : OpalException(rhs) {}
 
-
-LogicalError::LogicalError(const LogicalError &rhs):
-    ClassicException(rhs)
-{}
-
-
-LogicalError::~LogicalError()
-{}
+LogicalError::~LogicalError() {}

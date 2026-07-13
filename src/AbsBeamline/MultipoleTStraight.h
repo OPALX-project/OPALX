@@ -65,7 +65,7 @@
 
 #include "AbsBeamline/MultipoleT.h"
 #include "AbsBeamline/MultipoleTConfig.h"
-#include "BeamlineGeometry/StraightGeometry.h"
+#include "BeamlineGeometry/Geometry.h"
 
 class MultipoleTStraight final : public MultipoleTBase {
 public:
@@ -74,7 +74,7 @@ public:
     /** Initialise the element */
     void initialise() override;
     /** Return the cell geometry */
-    BGeometryBase* getGeometry() override { return &straightGeometry_m; }
+    Geometry* getGeometry() override { return &straightGeometry_m; }
     /** Return the field for an array of points */
     // Container-agnostic: R/E/B views come from the caller's particle container.
     void getField(
@@ -86,7 +86,7 @@ public:
 
 private:
     /** Geometry */
-    StraightGeometry straightGeometry_m;
+    Geometry straightGeometry_m;
 
     // Helpers
     KOKKOS_INLINE_FUNCTION static Vector_t<double, 3> toMagnetCoords(
@@ -120,7 +120,7 @@ KOKKOS_INLINE_FUNCTION bool MultipoleTStraight::computeBField(
         Kokkos::Array<double, MaxDerivatives> dt;
         Kokkos::Array<double, MaxDerivatives> ds;
         calcTransverseDerivatives(
-                config.transverseProfile_m, config.maxFOrder_m * 2 + 1, RPrime[0], dt);
+                config.transverseProfile_m, config.maxFOrder_m * 2 + 2, RPrime[0], dt);
         calcFringeDerivatives(
                 config.fringeS0_m, config.fringeLambdaLeft_m, config.fringeLambdaRight_m, RPrime[2],
                 tanhCoefficients, ds);

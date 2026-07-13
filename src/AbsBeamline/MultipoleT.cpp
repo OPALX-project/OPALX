@@ -20,10 +20,10 @@
 #include "MultipoleTCurvedConstRadius.h"
 #include "MultipoleTStraight.h"
 
-MultipoleT::MultipoleT(const std::string& name) : Component(name) { chooseImplementation(); }
+MultipoleT::MultipoleT(const std::string& name) : ElementBase(name) { chooseImplementation(); }
 
 MultipoleT::MultipoleT(const MultipoleT& right)
-    : Component(right),
+    : ElementBase(right),
       config_m(right.config_m),
       scalingName_m(right.scalingName_m),
       scalingTD_m(right.scalingTD_m) {
@@ -61,30 +61,6 @@ bool MultipoleT::apply(
     return implementation_->getField(R, E, B, getScaling(t));
 }
 
-bool MultipoleT::apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    validateConfiguration();
-    if (RefPartBunch_m == nullptr) {
-        throw OpalException("MultipoleT::apply", "Element is not initialised with a bunch");
-    }
-    if (RefPartBunch_m->getNumParticleContainers() != 1) {
-        throw OpalException(
-                "MultipoleT::apply",
-                "apply(i, t, E, B) is ambiguous for multi-container bunches; "
-                "use apply(pc) from the container loop instead");
-    }
-    const auto pc = RefPartBunch_m->getParticleContainer(0);
-    if (i >= pc->getLocalNum()) {
-        throw OpalException("MultipoleT::apply", "Particle index is out of local bounds");
-    }
-    Vector_t<double, 3> R{};
-    Kokkos::deep_copy(
-            Kokkos::View<Vector_t<double, 3>, Kokkos::HostSpace>(&R),
-            Kokkos::subview(pc->R.getView(), i));
-    Kokkos::fence();
-    return implementation_->getField(R, E, B, getScaling(t));
-}
-
 void MultipoleT::setFringeField(
         const double& s0, const double& lambda_left, const double& lambda_right) {
     config_m.fringeS0_m          = s0;
@@ -100,9 +76,7 @@ std::tuple<double, double, double> MultipoleT::getFringeField() const {
 void MultipoleT::finalise() { RefPartBunch_m = nullptr; }
 
 void MultipoleT::setElementLength(const double length) {
-    // Base class first
-    Component::setElementLength(length);
-    // Then me
+    // Only the config is authoritative; initialise() pushes it into the geometry.
     config_m.length_m = length;
     implementation_->initialise();
 }
@@ -162,11 +136,7 @@ void MultipoleT::setEntranceAngle(const double entranceAngle) {
 
 void MultipoleT::setEntryOffset(const double offset) { config_m.entryOffset_m = offset; }
 
-bool MultipoleT::bends() const {
-    return config_m.bendAngle_m != 0.0;
-}
-
-void MultipoleT::initialise(PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
+void MultipoleT::initialise(PartBunch_t* bunch) {
     RefPartBunch_m = bunch;
     implementation_->initialise();
 }
@@ -186,9 +156,9 @@ void MultipoleT::initialiseTimeDependencies() const {
     }
 }
 
-BGeometryBase& MultipoleT::getGeometry() { return *implementation_->getGeometry(); }
+Geometry& MultipoleT::getGeometry() { return *implementation_->getGeometry(); }
 
-const BGeometryBase& MultipoleT::getGeometry() const { return *implementation_->getGeometry(); }
+const Geometry& MultipoleT::getGeometry() const { return *implementation_->getGeometry(); }
 
 void MultipoleT::validateConfiguration() const {
     if (2 * config_m.maxFOrder_m + 1 > MultipoleTBase::MaxDerivatives) {

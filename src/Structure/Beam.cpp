@@ -28,6 +28,7 @@
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/Options.h"
 
 #include <cmath>
 #include <iterator>
@@ -39,31 +40,34 @@ namespace {
     constexpr const char* photonParticleName = "PHOTON";
 
     enum {
-        PARTICLE,  // The particle name
-        MASS,      // The particle rest mass in GeV
-        CHARGE,    // The particle charge in proton charges
-        ENERGY,    // The particle energy in GeV
-        PC,        // The particle momentum in GeV/c
-        GAMMA,     // ENERGY / MASS
-        BCURRENT,  // Legacy, unused in OPALX (holdover from OPALCycl)
-        BFREQ,     // Legacy, unused in OPALX (holdover from OPALCycl)
-        BCHARGE,   // Bunch charge in C
-        NALLOC,    // Allocation size (macroparticles) for this beam
-        SOURCES,   // Name of EMISSIONSOURCELIST
+        PARTICLE,         // The particle name
+        MASS,             // The particle rest mass in GeV
+        CHARGE,           // The particle charge in proton charges
+        ENERGY,           // The particle energy in GeV
+        PC,               // The particle momentum in GeV/c
+        GAMMA,            // ENERGY / MASS
+        BCURRENT,         // Legacy, unused in OPALX (holdover from OPALCycl)
+        BFREQ,            // Legacy, unused in OPALX (holdover from OPALCycl)
+        BCHARGE,          // Bunch charge in C
+        NALLOC,           // Allocation size (macroparticles) for this beam
+        SOURCES,          // Name of EMISSIONSOURCELIST
+        GLOBALPROCESSES,  // Global physics processes active for this beam
+        DAUGHTERBEAM,     // Name of the beam that receives decay daughter particles
+        POLARIZATION,     // Initial polarization vector P (rest-frame, lab-frame axes)
         SIZE
     };
-}
+}  // namespace
 
 Beam::Beam()
     : Definition(
-        SIZE, "BEAM",
-        "The \"BEAM\" statement defines data for the particles "
-        "in a beam."),
+              SIZE, "BEAM",
+              "The \"BEAM\" statement defines data for the particles "
+              "in a beam."),
       reference(1.0, Physics::m_p * Units::GeV2eV, 1.0 * Units::GeV2eV) {
     itsAttr[PARTICLE] = Attributes::makePredefinedString(
-        "PARTICLE", "Name of particle to be used",
-        {"PHOTON", "ELECTRON", "POSITRON", "MUON", "PROTON", "ANTIPROTON", "DEUTERON", "HMINUS", "H2P",
-         "ALPHA", "CARBON", "XENON", "URANIUM"});
+            "PARTICLE", "Name of particle to be used",
+            {"PHOTON", "ELECTRON", "POSITRON", "MUON", "PION", "PROTON", "ANTIPROTON", "DEUTERON",
+             "HMINUS", "H2P", "ALPHA", "CARBON", "XENON", "URANIUM"});
 
     itsAttr[MASS] = Attributes::makeReal("MASS", "Particle rest mass [GeV]");
 
@@ -75,18 +79,36 @@ Beam::Beam()
 
     itsAttr[GAMMA] = Attributes::makeReal("GAMMA", "ENERGY / MASS");
 
-    itsAttr[BCURRENT] = Attributes::makeReal(
-        "BCURRENT", "Legacy, unused in OPALX. Use BCHARGE instead.");
+    itsAttr[BCURRENT] =
+            Attributes::makeReal("BCURRENT", "Legacy, unused in OPALX. Use BCHARGE instead.");
 
-    itsAttr[BFREQ] = Attributes::makeReal(
-        "BFREQ", "Legacy, unused in OPALX. Use BCHARGE instead.");
+    itsAttr[BFREQ] = Attributes::makeReal("BFREQ", "Legacy, unused in OPALX. Use BCHARGE instead.");
 
     itsAttr[BCHARGE] = Attributes::makeReal("BCHARGE", "Bunch charge [C]");
 
-    itsAttr[NALLOC] = Attributes::makeReal("NALLOC", "Allocation size (macroparticles) for this beam");
+    itsAttr[NALLOC] =
+            Attributes::makeReal("NALLOC", "Allocation size (macroparticles) for this beam");
 
-    itsAttr[SOURCES] =
-        Attributes::makeString("SOURCES", "Name of the emission sources list (EMISSIONSOURCELIST).");
+    itsAttr[SOURCES] = Attributes::makeString(
+            "SOURCES", "Name of the emission sources list (EMISSIONSOURCELIST).");
+
+    itsAttr[GLOBALPROCESSES] = Attributes::makeUpperCaseStringArray(
+            "GLOBALPROCESSES", "Global physics processes active for this beam.");
+
+    itsAttr[DAUGHTERBEAM] = Attributes::makeString(
+            "DAUGHTERBEAM", "Name of the BEAM that receives decay daughter particles.");
+
+    itsAttr[POLARIZATION] = Attributes::makeRealArray(
+            "POLARIZATION",
+            "Initial polarization vector P = {Px, Py, Pz} for this beam "
+            "(rest-frame Pauli expectation values along lab-frame axes). "
+            "Must be length-3 with |P| in [0, 1]. Only valid for PARTICLE=MUON; "
+            "setting POLARIZATION on any other species is rejected. Setting "
+            "POLARIZATION (even {0,0,0}) enables per-particle spin tracking for this "
+            "beam (Thomas-BMT integration); leaving it unset disables spin tracking. "
+            "For muons produced by an upstream decay (e.g. PionDecay) the per-particle "
+            "value is overwritten by the decay, but POLARIZATION must still be set to "
+            "enable the spin storage that receives it.");
 
     // Set up default beam.
     Beam* defBeam    = clone("UNNAMED_BEAM");
@@ -103,65 +125,63 @@ Beam::Beam()
 }
 
 Beam::Beam(const std::string& name, Beam* parent)
-    : Definition(name, parent), reference(parent->reference) {
-}
+    : Definition(name, parent), reference(parent->reference) {}
 
-Beam::~Beam() {
-}
+Beam::~Beam() {}
 
 bool Beam::canReplaceBy(Object* object) {
     // Can replace only by another BEAM.
     return dynamic_cast<Beam*>(object) != 0;
 }
 
-Beam* Beam::clone(const std::string& name) {
-    return new Beam(name, this);
-}
+Beam* Beam::clone(const std::string& name) { return new Beam(name, this); }
 
 void Beam::execute() {
     const bool photon = itsAttr[PARTICLE] && getParticleName() == photonParticleName;
 
     if (photon) {
         if (!itsAttr[ENERGY]) {
-            throw OpalException("Beam::execute()",
-                                "\"ENERGY\" must be set for PARTICLE=PHOTON.");
+            throw OpalException("Beam::execute()", "\"ENERGY\" must be set for PARTICLE=PHOTON.");
         }
         if (itsAttr[MASS]) {
-            throw OpalException("Beam::execute()",
-                                "\"MASS\" is not allowed for PARTICLE=PHOTON. Use \"ENERGY\".");
+            throw OpalException(
+                    "Beam::execute()",
+                    "\"MASS\" is not allowed for PARTICLE=PHOTON. Use \"ENERGY\".");
         }
         if (itsAttr[CHARGE]) {
-            throw OpalException("Beam::execute()",
-                                "\"CHARGE\" is not allowed for PARTICLE=PHOTON.");
+            throw OpalException(
+                    "Beam::execute()", "\"CHARGE\" is not allowed for PARTICLE=PHOTON.");
         }
         if (itsAttr[PC]) {
-            throw OpalException("Beam::execute()",
-                                "\"PC\" is not allowed for PARTICLE=PHOTON. Use \"ENERGY\".");
+            throw OpalException(
+                    "Beam::execute()",
+                    "\"PC\" is not allowed for PARTICLE=PHOTON. Use \"ENERGY\".");
         }
         if (itsAttr[GAMMA]) {
-            throw OpalException("Beam::execute()",
-                                "\"GAMMA\" is not allowed for PARTICLE=PHOTON. Use \"ENERGY\".");
+            throw OpalException(
+                    "Beam::execute()",
+                    "\"GAMMA\" is not allowed for PARTICLE=PHOTON. Use \"ENERGY\".");
         }
         if (itsAttr[SOURCES]) {
-            throw OpalException("Beam::execute()",
-                                "\"SOURCES\" is not allowed for PARTICLE=PHOTON.");
+            throw OpalException(
+                    "Beam::execute()", "\"SOURCES\" is not allowed for PARTICLE=PHOTON.");
         }
     }
 
     if (itsAttr[BCURRENT] || itsAttr[BFREQ]) {
         throw OpalException(
-            "Beam::execute()",
-            "\"BCURRENT\" and \"BFREQ\" are no longer used in OPALX. "
-            "Use \"BCHARGE\" [C] to specify the bunch charge directly.");
+                "Beam::execute()",
+                "\"BCURRENT\" and \"BFREQ\" are no longer used in OPALX. "
+                "Use \"BCHARGE\" [C] to specify the bunch charge directly.");
     }
 
     update();
 
     if (!(itsAttr[PARTICLE]) && (!itsAttr[MASS] || !(itsAttr[CHARGE]))) {
         throw OpalException(
-            "Beam::execute()",
-            "The beam particle hasn't been set. "
-            "Set either \"PARTICLE\" or \"MASS\" and \"CHARGE\".");
+                "Beam::execute()",
+                "The beam particle hasn't been set. "
+                "Set either \"PARTICLE\" or \"MASS\" and \"CHARGE\".");
     }
 
     if (!(itsAttr[NALLOC])) {
@@ -171,30 +191,100 @@ void Beam::execute() {
     if (photon) {
         const double energy = Attributes::getReal(itsAttr[ENERGY]);
         if (energy <= 0.0) {
-            throw OpalException("Beam::execute()",
-                                "\"ENERGY\" should be greater than 0 for PARTICLE=PHOTON.");
+            throw OpalException(
+                    "Beam::execute()", "\"ENERGY\" should be greater than 0 for PARTICLE=PHOTON.");
         }
         return;
     }
 
     // Beam-only validation: each non-photon beam must specify its EMISSIONSOURCELIST.
     (void)getEmissionSourceListName();
+
+    // Currently supported global process names (extend as new processes are implemented).
+    for (const std::string& name : getGlobalProcessNames()) {
+        if (name != "DECAY") {
+            throw OpalException(
+                    "Beam::execute()", "Unsupported entry in \"GLOBALPROCESSES\": \"" + name
+                                               + "\". Supported values: DECAY.");
+        }
+    }
+
+    validatePolarization();
+}
+
+void Beam::validatePolarization() const {
+    if (!itsAttr[POLARIZATION]) {
+        return;
+    }
+    const std::vector<double> pol = Attributes::getRealArray(itsAttr[POLARIZATION]);
+    if (pol.empty()) {
+        // Attribute exists in the registry but the user did not specify a value;
+        // treat as "not set" and skip all polarization-specific validation.
+        return;
+    }
+    if (pol.size() != 3) {
+        throw OpalException(
+                "Beam::execute()", "\"POLARIZATION\" must be a length-3 vector {Px, Py, Pz}.");
+    }
+    // Only muons are currently spin-tracked. Reject POLARIZATION on any other
+    // species regardless of magnitude — setting it (even to zero) is meaningless
+    // for spin-0 particles and for species whose g-factor isn't wired into T-BMT.
+    if (!itsAttr[PARTICLE]) {
+        throw OpalException(
+                "Beam::execute()",
+                "\"POLARIZATION\" can only be set when \"PARTICLE\" is also set.");
+    }
+    const ParticleType pType = ParticleProperties::getParticleType(getParticleName());
+    if (pType != ParticleType::MUON) {
+        throw OpalException(
+                "Beam::execute()",
+                "\"POLARIZATION\" is only supported for PARTICLE=MUON; got \""
+                        + getParticleName()
+                        + "\". For muons produced by PionDecay, leave POLARIZATION unset — "
+                          "the daughter polarization is determined by the pion decay.");
+    }
+    const double pMag2 = pol[0] * pol[0] + pol[1] * pol[1] + pol[2] * pol[2];
+    if (pMag2 > 1.0 + 1.0e-12) {
+        throw OpalException(
+                "Beam::execute()", "\"POLARIZATION\" magnitude must be in [0, 1]; got |P| = "
+                                           + std::to_string(std::sqrt(pMag2)) + ".");
+    }
 }
 
 std::string Beam::getEmissionSourceListName() const {
     if (!itsAttr[SOURCES]) {
         throw OpalException(
-            "Beam::getEmissionSourceListName()",
-            "\"SOURCES\" must be set for a beam (name of EMISSIONSOURCELIST).");
+                "Beam::getEmissionSourceListName()",
+                "\"SOURCES\" must be set for a beam (name of EMISSIONSOURCELIST).");
     }
 
     const std::string name = Attributes::getString(itsAttr[SOURCES]);
     if (name.empty()) {
         throw OpalException(
-            "Beam::getEmissionSourceListName()",
-            "\"SOURCES\" must not be empty for a beam (name of EMISSIONSOURCELIST).");
+                "Beam::getEmissionSourceListName()",
+                "\"SOURCES\" must not be empty for a beam (name of EMISSIONSOURCELIST).");
     }
     return name;
+}
+
+std::vector<std::string> Beam::getGlobalProcessNames() const {
+    return Attributes::getStringArray(itsAttr[GLOBALPROCESSES]);
+}
+
+std::string Beam::getDaughterBeamName() const {
+    return Attributes::getString(itsAttr[DAUGHTERBEAM]);
+}
+
+std::vector<double> Beam::getPolarization() const {
+    std::vector<double> pol = Attributes::getRealArray(itsAttr[POLARIZATION]);
+    if (pol.empty()) {
+        return {0.0, 0.0, 0.0};
+    }
+    return pol;
+}
+
+bool Beam::hasPolarization() const {
+    return !Attributes::getRealArray(itsAttr[POLARIZATION]).empty();
 }
 
 Beam* Beam::find(const std::string& name) {
@@ -212,8 +302,8 @@ size_t Beam::getNumAlloc() const {
         return (size_t)Attributes::getReal(itsAttr[NALLOC]);
     } else {
         throw OpalException(
-            "Beam::getNumAlloc()",
-            "Wrong allocation size for beam! \"NALLOC\" must be positive");
+                "Beam::getNumAlloc()",
+                "Wrong allocation size for beam! \"NALLOC\" must be positive");
     }
 }
 
@@ -223,41 +313,23 @@ const PartData& Beam::getReference() const {
     return reference;
 }
 
-double Beam::getCurrent() const {
-    return Attributes::getReal(itsAttr[BCURRENT]);
-}
+double Beam::getCurrent() const { return Attributes::getReal(itsAttr[BCURRENT]); }
 
-double Beam::getBunchCharge() const {
-    return Attributes::getReal(itsAttr[BCHARGE]);
-}
+double Beam::getBunchCharge() const { return Attributes::getReal(itsAttr[BCHARGE]); }
 
-double Beam::getCharge() const {
-    return Attributes::getReal(itsAttr[CHARGE]);
-}
+double Beam::getCharge() const { return Attributes::getReal(itsAttr[CHARGE]); }
 
-double Beam::getMass() const {
-    return Attributes::getReal(itsAttr[MASS]);
-}
+double Beam::getMass() const { return Attributes::getReal(itsAttr[MASS]); }
 
-double Beam::getMomentum() const {
-    return reference.getP()/1.e9;
-}
+double Beam::getMomentum() const { return reference.getP() / 1.e9; }
 
-std::string Beam::getParticleName() const {
-    return Attributes::getString(itsAttr[PARTICLE]);
-}
+std::string Beam::getParticleName() const { return Attributes::getString(itsAttr[PARTICLE]); }
 
-bool Beam::isPhoton() const {
-    return itsAttr[PARTICLE] && getParticleName() == photonParticleName;
-}
+bool Beam::isPhoton() const { return itsAttr[PARTICLE] && getParticleName() == photonParticleName; }
 
-double Beam::getFrequency() const {
-    return Attributes::getReal(itsAttr[BFREQ]);
-}
+double Beam::getFrequency() const { return Attributes::getReal(itsAttr[BFREQ]); }
 
-bool Beam::hasExplicitEnergy() const {
-    return itsAttr[GAMMA] || itsAttr[ENERGY] || itsAttr[PC];
-}
+bool Beam::hasExplicitEnergy() const { return itsAttr[GAMMA] || itsAttr[ENERGY] || itsAttr[PC]; }
 
 double Beam::getChargePerParticle() const {
     return std::copysign(1.0, getCharge()) * getBunchCharge() / getNumAlloc();
@@ -286,11 +358,17 @@ void Beam::update() {
         return;
     }
 
-    // Set up particle reference; convert all to eV for CLASSIC.
+    // Set up particle reference; convert all to eV for OPALX.
     double mass   = (itsAttr[MASS] ? getMass() : Physics::m_p) * Units::GeV2eV;
     double charge = itsAttr[CHARGE] ? getCharge() : 1.0;
 
     reference = PartData(charge, mass, 1.0);
+
+    // Magnetic moment anomaly G = (g-2)/2 for the species (used by T-BMT).
+    if (itsAttr[PARTICLE]) {
+        const ParticleType pType = ParticleProperties::getParticleType(getParticleName());
+        reference.setAnomaly(ParticleProperties::getParticleAnomaly(pType));
+    }
 
     if (itsAttr[GAMMA]) {
         double gamma = Attributes::getReal(itsAttr[GAMMA]);
@@ -316,8 +394,7 @@ void Beam::update() {
     }
 
     // Set default name.
-    if (getOpalName().empty())
-        setOpalName("UNNAMED_BEAM");
+    if (getOpalName().empty()) setOpalName("UNNAMED_BEAM");
 }
 
 void Beam::print(std::ostream& os) const {

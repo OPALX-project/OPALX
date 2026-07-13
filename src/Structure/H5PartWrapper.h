@@ -45,10 +45,10 @@ public:
     virtual void readHeader()                                                              = 0;
     virtual void readStep(PartBunch_t*, h5_ssize_t firstParticle, h5_ssize_t lastParticle) = 0;
 
-    virtual void writeHeader()                                                 = 0;
+    virtual void writeHeader() = 0;
     virtual void writeStep(
-        PartBunch_t*, const std::map<std::string, double>&, size_t particleContainerIndex = 0)
-        = 0;
+            PartBunch_t*, const std::map<std::string, double>&,
+            size_t particleContainerIndex = 0) = 0;
 
     virtual bool predecessorIsSameFlavour() const = 0;
 
@@ -59,8 +59,8 @@ public:
 protected:
     H5PartWrapper(const std::string& fileName, h5_int32_t flags = H5_O_WRONLY);
     H5PartWrapper(
-        const std::string& fileName, int restartStep, std::string sourceFile,
-        h5_int32_t flags = H5_O_RDWR);
+            const std::string& fileName, int restartStep, std::string sourceFile,
+            h5_int32_t flags = H5_O_RDWR);
 
     void open(h5_int32_t flags);
 
@@ -90,8 +90,7 @@ inline void H5PartWrapper::reportOnError(h5_int64_t rc, const char* file, int li
 }
 
 inline double H5PartWrapper::getLastPosition() {
-    if (!file_m)
-        open(H5_O_RDONLY);
+    if (!file_m) open(H5_O_RDONLY);
 
     h5_ssize_t numStepsInSource = H5GetNumSteps(file_m);
     h5_ssize_t readStep         = numStepsInSource - 1;

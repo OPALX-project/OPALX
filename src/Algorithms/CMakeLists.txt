@@ -7,7 +7,6 @@ set (_SRCS
     Flagger.cpp
     IndexMap.cpp
     OrbitThreader.cpp
-    OpalParticle.cpp
     ParallelTracker.cpp
     PartData.cpp
     PolynomialTimeDependence.cpp
@@ -28,7 +27,6 @@ set (HDRS
     Flagger.h
     IndexMap.h
     OrbitThreader.h
-    OpalParticle.h
     ParallelTracker.h
     PartData.h
     PolynomialTimeDependence.h

@@ -1,13 +1,11 @@
 set (_SRCS
     Beamline.cpp
-    BeamlineGeometry.cpp
     ElmPtr.cpp
     FlaggedBeamline.cpp
     FlaggedElmPtr.cpp
     )
 
 set (HDRS
-    BeamlineGeometry.h
     Beamline.h
     ElmPtr.h
     FlaggedBeamline.h

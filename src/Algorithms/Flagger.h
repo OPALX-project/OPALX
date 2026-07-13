@@ -1,5 +1,5 @@
-#ifndef MAD_Flagger_HH
-#define MAD_Flagger_HH
+#ifndef OPALX_Flagger_HH
+#define OPALX_Flagger_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: Flagger.h,v $
@@ -22,34 +22,30 @@
 
 class Beamline;
 
-
 // Class Flagger
 // ------------------------------------------------------------------------
 /// Set/reset all selection flags in a beam line built from FlaggedElmPtr
 //  objects.
 
-class Flagger: public DefaultVisitor {
-
+class Flagger : public DefaultVisitor {
 public:
-
     /// Constructor.
     //  Attach this visitor to [b]bl[/b], remember the [b]set[/b] flag.
-    Flagger(const Beamline &bl, bool set);
+    Flagger(const Beamline& bl, bool set);
 
     virtual ~Flagger();
 
     /// Set selection flag in the given FlaggedElmPtr.
-    virtual void visitFlaggedElmPtr(const FlaggedElmPtr &);
+    virtual void visitFlaggedElmPtr(const FlaggedElmPtr&);
 
 private:
-
     // Not implemented.
     Flagger();
-    Flagger(const Flagger &);
-    void operator=(const Flagger &);
+    Flagger(const Flagger&);
+    void operator=(const Flagger&);
 
     // The flag value to be applied.
     bool flag;
 };
 
-#endif // MAD_Flagger_HH
+#endif  // OPALX_Flagger_HH

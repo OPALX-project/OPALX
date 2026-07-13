@@ -52,17 +52,19 @@ public:
     // Overrides of BeamlineVisitor
     void execute() override {}
     void visitBeamline(const Beamline&) override {}
-    void visitComponent(const Component&) override {}
+    void visitElementBase(const ElementBase&) override {}
     void visitConstantEFieldCavity(const ConstantEFieldCavity&) override {}
     void visitDrift(const Drift&) override {}
     void visitFlaggedElmPtr(const FlaggedElmPtr&) override {}
+    void visitLaser(const Laser&) override {}
     void visitMarker(const Marker&) override {}
     void visitMonitor(const Monitor&) override {}
     void visitMultipole(const Multipole&) override {}
     void visitMultipoleT(const MultipoleT&) override {}
+    void visitRBend(const RBend&) override {}
     void visitRFCavity(const RFCavity&) override {}
     void visitScalingFFAMagnet(const ScalingFFAMagnet&) override {}
-    void visitRing(const Ring&) override {}
+    void visitSBend(const SBend&) override {}
     void visitSolenoid(const Solenoid&) override {}
     void visitTravelingWave(const TravelingWave&) override {}
     void visitVerticalFFAMagnet(const VerticalFFAMagnet&) override {}
@@ -89,9 +91,10 @@ public:
     };
 
     std::shared_ptr<FieldSolverCmd> fsCmdBase_m;
+    std::shared_ptr<DataSink> dataSink_m;
 
     std::shared_ptr<PartBunch_t> makeBunch(const size_t numParticles) {
-        auto dataSink    = std::make_shared<DataSink>();
+        dataSink_m       = std::make_shared<DataSink>();
         const auto fsCmd = std::make_shared<TestableFieldSolverCmd>();
         fsCmdBase_m      = fsCmd;
         fsCmd->setType("NONE");
@@ -107,8 +110,8 @@ public:
                 /*qi=*/std::vector{1.0}, /*mi=*/std::vector{1.0},
                 /*beams=*/std::vector<Beam*>{opBeam},
                 /*totalParticlesPerBeam=*/std::vector<size_t>{numParticles},
-                /*lbt=*/1.0, /*integration_method=*/"LF2", fsCmdBase_m, dataSink);
-        bunch->getParticleContainer()->create(numParticles);
+                /*lbt=*/1.0, /*integration_method=*/"LF2", fsCmdBase_m.get(), dataSink_m.get());
+        bunch->getParticleContainer()->createParticles(numParticles);
         return bunch;
     }
 
@@ -348,7 +351,7 @@ TEST_F(TestVariableRFCavity, BunchFields) {
     const double stepSize = width / static_cast<double>(line.size() - 1);
     for (size_t i = 0; i < line.size(); ++i) {
         localR[i] = {static_cast<double>(i) * stepSize - width / 2.0, 0.0, length / 2.0};
-        hostR(i)  = {localR[i][0], localR[i][1], localR[i][2] + length / 2.0};
+        hostR(i)  = localR[i];
     }
     Kokkos::deep_copy(pc->R.getView(), hostR);
     pc->setQ(pc->getChargePerParticle());
@@ -356,8 +359,7 @@ TEST_F(TestVariableRFCavity, BunchFields) {
     Kokkos::fence();
     // Register the bunch with the element
     bunch->setT(0.0);
-    double startField, endField;
-    initialise(bunch.get(), startField, endField);
+    initialise(bunch.get());
     EXPECT_NE(RefPartBunch_m, nullptr);
     // Get the fields for all particles
     apply(pc);
@@ -370,9 +372,11 @@ TEST_F(TestVariableRFCavity, BunchFields) {
     for (size_t i = 0; i < line.size(); ++i) {
         EXPECT_DOUBLE_EQ(line[i], 1.0 * Units::MVpm2Vpm);
     }
-    // Get the field for one of the particles
+    // Get the field at one particle's position via the position overload
     Vector_t<double, 3> singleE{}, singleB{};
-    EXPECT_FALSE(apply(0, 0.0, singleE, singleB));
+    const auto hostR0 = Kokkos::create_mirror_view(pc->R.getView());
+    Kokkos::deep_copy(hostR0, pc->R.getView());
+    EXPECT_FALSE(apply(hostR0(0), Vector_t<double, 3>{}, 0.0, singleE, singleB));
     EXPECT_DOUBLE_EQ(singleE[2], 1.0 * Units::MVpm2Vpm);
     // Done
     finalise();
@@ -400,11 +404,17 @@ TEST_F(TestVariableRFCavity, ReferenceParticle) {
 
 TEST_F(TestVariableRFCavity, OddApis) {
     const VariableRFCavity cav1;
-    // Dimensions dummy override
+    // The field-support interval follows the body length.
     double a{}, b{};
-    EXPECT_NO_THROW(cav1.getDimensions(a, b));
+    EXPECT_NO_THROW(cav1.getFieldExtent(a, b));
+    EXPECT_DOUBLE_EQ(a, 0.0);
+    EXPECT_DOUBLE_EQ(b, 0.0);
+    VariableRFCavity cavWithLength;
+    cavWithLength.setLength(3.0);
+    EXPECT_NO_THROW(cavWithLength.getFieldExtent(a, b));
+    EXPECT_DOUBLE_EQ(a, 0.0);
+    EXPECT_DOUBLE_EQ(b, 3.0);
     // The cavity does not make a bend
-    EXPECT_FALSE(cav1.bends());
     // Self assignment
     VariableRFCavity cav2;
     cav2.setLength(3.0);
@@ -412,7 +422,29 @@ TEST_F(TestVariableRFCavity, OddApis) {
     EXPECT_DOUBLE_EQ(cav2.getLength(), 0.0);
     EXPECT_NO_THROW(cav2 = cav2);
     EXPECT_DOUBLE_EQ(cav2.getLength(), 0.0);
-    // No implementation of field
-    EXPECT_ANY_THROW(cav1.getField());
-    EXPECT_ANY_THROW(cav2.getField());
+}
+
+TEST_F(TestVariableRFCavity, FieldSupportMatchesBodyLength) {
+    const auto amplPoly = std::make_shared<PolynomialTimeDependence>(std::vector{1.0});
+    const auto freqPoly = std::make_shared<PolynomialTimeDependence>(std::vector{1.0});
+    const auto phasePoly =
+            std::make_shared<PolynomialTimeDependence>(std::vector{Physics::pi / 2.0});
+    setAmplitudeModel(amplPoly);
+    setFrequencyModel(freqPoly);
+    setPhaseModel(phasePoly);
+    setLength(10.0);
+    setHeight(2.0);
+    setWidth(2.0);
+
+    double zBegin = -1.0;
+    double zEnd   = -1.0;
+    getFieldExtent(zBegin, zEnd);
+    EXPECT_DOUBLE_EQ(zBegin, 0.0);
+    EXPECT_DOUBLE_EQ(zEnd, 10.0);
+
+    Vector_t<double, 3> E{}, B{};
+    EXPECT_FALSE(apply({0.0, 0.0, -0.1}, {}, 0.0, E, B));
+    EXPECT_DOUBLE_EQ(E[2], 0.0);
+    EXPECT_FALSE(apply({0.0, 0.0, 5.0}, {}, 0.0, E, B));
+    EXPECT_DOUBLE_EQ(E[2], 1.0 * Units::MVpm2Vpm);
 }
