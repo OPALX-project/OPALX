@@ -30,8 +30,14 @@ variables:
     - export SRUN_ARGS="--uenv=${CUDA12_9_UENV} --view=${WITH_UENV_VIEW} --repo=${SCRATCH}/.uenv-images-ci-daint --gpus-per-task=1 ${WRAPPER}"
     - echo "SRUN_ARGS=$SRUN_ARGS"
   script:
+    - echo "=== Diagnostics ==="
+    - echo "CI_PROJECT_DIR=$CI_PROJECT_DIR"
+    - ls -la $(pwd)
+    - 'ls -la $BUILD_PATH 2>/dev/null || echo "BUILD_PATH missing: $BUILD_PATH"'
+    - find $(pwd) -maxdepth 3 -name "opalx*" 2>/dev/null || true
     - echo "=== Verify release build artifact ==="
-    - ls -l $BUILD_PATH/bin/opalx
+    - ls -l $BUILD_PATH/bin/
+    # - ls -l $BUILD_PATH/bin/opalx
     - export LD_LIBRARY_PATH=$BUILD_PATH/lib:$LD_LIBRARY_PATH
     - echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
 
@@ -66,19 +72,37 @@ variables:
 
     - echo "=== Run regression tests ==="
     - >-
-        python3 nightlybuildx/scripts/run-reg-tests.py
-        --base-dir=$(pwd)/regression-tests/RegressionTests
-        --opalx-exe-path=$BUILD_PATH/bin
-        --publish-dir=$CI_PROJECT_DIR/regression-results-$BUILD_ARCH
-        --timestamp=$CI_COMMIT_SHORT_SHA
+      python3 nightlybuildx/scripts/run-reg-tests.py
+      --base-dir=$(pwd)/regression-tests/RegressionTests
+      --opalx-exe-path=$BUILD_PATH/bin
+      --publish-dir=$CI_PROJECT_DIR/regression-results-$BUILD_ARCH
+      --timestamp=$CI_COMMIT_SHORT_SHA
 
     - echo "=== Regression tests finished ==="
     - ls -R $CI_PROJECT_DIR/regression-results-$BUILD_ARCH
 
-    - echo "=== Push stub (not implemented until Gitea access is granted) ==="
-    - 'echo "Target repo: git@gitea.psi.ch:AMAS/opal-live-doc.git"'
-    - 'echo "Would push:  regression-results-$BUILD_ARCH/*"'
-    - echo "Skipping push."
+    - echo "=== Push regression results to opal-live-doc ==="
+    - |
+      if [ -z "$PSI_GIT_SSHKEY" ]; then
+        echo "WARNING: PSI_GIT_SSHKEY not set, skipping push"
+      elif [ ! -d "$CI_PROJECT_DIR/regression-results-$BUILD_ARCH" ]; then
+        echo "WARNING: No regression results found at $CI_PROJECT_DIR/regression-results-$BUILD_ARCH, skipping push"
+      else
+        mkdir -p ~/.ssh
+        printf '%s\n' "$PSI_GIT_SSHKEY" > ~/.ssh/opal_live_doc_key
+        chmod 600 ~/.ssh/opal_live_doc_key
+        ssh-keyscan -t rsa,ecdsa,ed25519 gitea.psi.ch >> ~/.ssh/known_hosts 2>/dev/null
+        export GIT_SSH_COMMAND="ssh -i ~/.ssh/opal_live_doc_key -o StrictHostKeyChecking=accept-new"
+        git config --global user.email "opalx-ci@cscs.ch"
+        git config --global user.name "OPALX CI"
+        git clone --depth 1 git@gitea.psi.ch:AMAS/opal-live-doc.git opal-live-doc
+        mkdir -p opal-live-doc/$BUILD_ARCH
+        cp -r $CI_PROJECT_DIR/regression-results-$BUILD_ARCH/. opal-live-doc/$BUILD_ARCH/
+        cd opal-live-doc
+        git add -A
+        git commit -m "Update $BUILD_ARCH regression results for $CI_COMMIT_SHORT_SHA" || echo "Nothing to commit"
+        git push origin HEAD:main
+      fi
   artifacts:
     paths:
       - regression-results-$BUILD_ARCH
