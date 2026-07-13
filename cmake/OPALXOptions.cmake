@@ -34,6 +34,10 @@ set(PLATFORMS "" CACHE STRING
 set_property(CACHE PLATFORMS PROPERTY STRINGS SERIAL OPENMP CUDA HIP SYCL)
 
 # Only set default if user didn't specify anything
+# Honour OPALX_PLATFORMS if it was already set (e.g. via preset or -D)
+if(NOT PLATFORMS AND OPALX_PLATFORMS)
+    set(PLATFORMS "${OPALX_PLATFORMS}" CACHE STRING "" FORCE)
+endif()
 if(NOT PLATFORMS)
     set(PLATFORMS "SERIAL" CACHE STRING "" FORCE)
 endif()
