@@ -142,65 +142,6 @@ bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
 }
 
 bool Monitor::apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
-    if (!online_m || lossDs_m == nullptr || RefPartBunch_m == nullptr) {
-        return false;
-    }
-
-    if (type_m != CollectionType::SPATIAL) {
-        return false;
-    }
-
-    const std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
-    if (!pc) {
-        return false;
-    }
-
-    auto Rview  = pc->R.getView();
-    auto Pview  = pc->P.getView();
-    auto dtview = pc->dt.getView();
-    auto IDview = pc->ID.getView();
-    auto Qview  = pc->getQView();
-    auto Mview  = pc->getMView();
-
-    const Vector_t<double, 3> R = Rview(i);
-    const Vector_t<double, 3> P = Pview(i);
-    const double dt             = dtview(i);
-
-    const Vector_t<double, 3> singleStep = Physics::c * dt * Util::getBeta(P);
-
-    if (singleStep(2) == 0.0) {
-        return false;
-    }
-
-    if (dt * R(2) < 0.0 && dt * (R(2) + singleStep(2)) > 0.0) {
-        const double frac                   = -R(2) / singleStep(2);
-        const Vector_t<double, 3> crossingR = R + frac * singleStep;
-        const double crossingTime           = t + frac * dt;
-
-        const bool qmAreAttributes =
-                (pc->getQMStorageMode() == ParticleContainer_t::QMStorageMode::Attributes);
-
-        const std::size_t id = static_cast<std::size_t>(IDview(i));
-        const double q       = qmAreAttributes ? Qview(i) : Qview(0);
-        const double m       = qmAreAttributes ? Mview(i) : Mview(0);
-
-        if (pc->hasSpin()) {
-            auto Polview      = pc->Pol.getView();
-            const auto polRaw = Polview(i);
-            const Vector_t<double, 3> pol(
-                    static_cast<double>(polRaw[0]), static_cast<double>(polRaw[1]),
-                    static_cast<double>(polRaw[2]));
-            lossDs_m->addParticle(OpalParticle(id, crossingR, P, crossingTime, q, m, pol));
-        } else {
-            lossDs_m->addParticle(OpalParticle(id, crossingR, P, crossingTime, q, m));
-        }
-    }
-
-    return false;
-}
-
-bool Monitor::apply(
         const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
     // Monitor is field-free.
@@ -359,13 +300,15 @@ bool Monitor::applyToReferenceParticle(
     return false;
 }
 
-void Monitor::initialise(PartBunch_t* bunch, double& startField, double& endField) {
+void Monitor::initialise(PartBunch_t* bunch) {
     RefPartBunch_m = bunch;
 
-    endField = startField + halfLength_s;
-    startField -= halfLength_s;
+    // The monitor's path-length position (its ELEMEDGE, or 0 for a 6D-posed monitor); the
+    // monitor plane straddles it by +-halfLength_s.
+    const double elemEdge     = isElementPositionSet() ? getElementPosition() : 0.0;
+    const double monitorStart = elemEdge - halfLength_s;
 
-    double currentPosition = endField;
+    double currentPosition = elemEdge + halfLength_s;
     if (bunch != nullptr) {
         const std::shared_ptr<ParticleContainer_t> pc = bunch->getParticleContainer();
         if (pc) {
@@ -376,7 +319,7 @@ void Monitor::initialise(PartBunch_t* bunch, double& startField, double& endFiel
     filename_m = getOutputFN();
 
     if (OpalData::getInstance()->getOpenMode() == OpalData::OpenMode::WRITE
-        || currentPosition < startField) {
+        || currentPosition < monitorStart) {
         namespace fs = std::filesystem;
 
         const fs::path lossFileName(filename_m + ".h5");
@@ -411,9 +354,7 @@ void Monitor::goOffline() {
     }
 }
 
-bool Monitor::bends() const { return false; }
-
-void Monitor::getFieldExtend(double& zBegin, double& zEnd) const {
+void Monitor::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = -halfLength_s;
     zEnd   = halfLength_s;
 }

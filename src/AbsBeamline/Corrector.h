@@ -64,17 +64,15 @@ public:
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField);
+    virtual void initialise(PartBunch_t* bunch);
 
     virtual void goOnline(const double& kineticEnergy);
 
     virtual void finalise();
 
-    virtual bool bends() const;
-
     virtual ElementType getType() const;
 
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const;
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const;
 
     void setKickX(double k);
 

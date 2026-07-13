@@ -83,10 +83,7 @@ bool Corrector::apply(
     return false;
 }
 
-void Corrector::initialise(PartBunch_t* bunch, double& startField, double& endField) {
-    endField       = startField + getElementLength();
-    RefPartBunch_m = bunch;
-}
+void Corrector::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
 
 void Corrector::finalise() {}
 
@@ -131,9 +128,7 @@ void Corrector::setDesignEnergy(const double& ekin, bool changeable) {
     }
 }
 
-bool Corrector::bends() const { return false; }
-
-void Corrector::getFieldExtend(double& zBegin, double& zEnd) const {
+void Corrector::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = 0.0;
     zEnd   = getElementLength();
 }

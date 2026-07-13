@@ -52,7 +52,7 @@ TEST(TestLaser, UpdateStoresValidatedParameters) {
 
     auto* rep = dynamic_cast<LaserRep*>(laser.getElement());
     ASSERT_NE(rep, nullptr);
-    EXPECT_DOUBLE_EQ(rep->getElementLength(), 0.01);
+    EXPECT_DOUBLE_EQ(rep->getGeometry().getElementLength(), 0.01);
     EXPECT_DOUBLE_EQ(rep->getWavelength(), 1.03e-6);
     EXPECT_DOUBLE_EQ(rep->getPulseEnergy(), 1.0);
     EXPECT_DOUBLE_EQ(rep->getPulseLength(), 2.0e-12);

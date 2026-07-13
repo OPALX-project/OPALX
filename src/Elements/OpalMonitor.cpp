@@ -42,7 +42,7 @@ void OpalMonitor::update() {
     MonitorRep* mon = dynamic_cast<MonitorRep*>(getElement());
 
     double length = std::max(0.01, Attributes::getReal(itsAttr[LENGTH]));
-    mon->setElementLength(length);
+    mon->getGeometry().setElementLength(length);
     mon->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
 
     if (Attributes::getString(itsAttr[TYPE]) == "TEMPORAL") {

@@ -70,7 +70,7 @@ void OpalMultipole::update() {
     // Get pointer to MultipoleRep object to set length
     MultipoleRep* mult = dynamic_cast<MultipoleRep*>(getElement());
     double length      = getLength();
-    mult->setElementLength(length);
+    mult->getGeometry().setElementLength(length);
 
     // Get the vector with the multipole expansion components
     const std::vector<double> norm = Attributes::getRealArray(itsAttr[KN]);

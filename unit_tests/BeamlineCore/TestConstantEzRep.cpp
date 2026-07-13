@@ -19,7 +19,7 @@ namespace {
     protected:
         void SetUp() override {
             rep_ = std::make_unique<ConstantEFieldCavityRep>("TestRep");
-            rep_->setElementLength(2.0);
+            rep_->getGeometry().setElementLength(2.0);
             rep_->setEz(5.0);
         }
 
@@ -31,9 +31,9 @@ namespace {
     // ---------------------------------------------------------------------------
     TEST_F(ConstantEFieldCavityRepTest, GeometryLength) {
         EXPECT_DOUBLE_EQ(rep_->getGeometry().getElementLength(), 2.0);
-        rep_->setElementLength(3.5);
+        rep_->getGeometry().setElementLength(3.5);
         EXPECT_DOUBLE_EQ(rep_->getGeometry().getElementLength(), 3.5);
-        EXPECT_DOUBLE_EQ(rep_->getElementLength(), 3.5);
+        EXPECT_DOUBLE_EQ(rep_->getGeometry().getElementLength(), 3.5);
     }
 
     TEST_F(ConstantEFieldCavityRepTest, FieldEz) {
@@ -66,7 +66,7 @@ namespace {
         ASSERT_NE(copy.get(), nullptr);
         ConstantEFieldCavityRep* repCopy = dynamic_cast<ConstantEFieldCavityRep*>(copy.get());
         ASSERT_NE(repCopy, nullptr);
-        EXPECT_DOUBLE_EQ(repCopy->getElementLength(), 2.0);
+        EXPECT_DOUBLE_EQ(repCopy->getGeometry().getElementLength(), 2.0);
         EXPECT_DOUBLE_EQ(repCopy->getEz(), 5.0);
     }
 
@@ -74,15 +74,12 @@ namespace {
     // Channels L and EZ
     // ---------------------------------------------------------------------------
     TEST_F(ConstantEFieldCavityRepTest, ChannelL) {
+        // The element length is geometry state, set through getGeometry() only; the
+        // legacy "L" channel was removed with the element-level length accessors.
         Channel* ch = rep_->getChannel("L", false);
-        ASSERT_NE(ch, nullptr);
-        EXPECT_TRUE(ch->set(1.5));
-        EXPECT_DOUBLE_EQ(rep_->getElementLength(), 1.5);
+        EXPECT_EQ(ch, nullptr);
+        rep_->getGeometry().setElementLength(1.5);
         EXPECT_DOUBLE_EQ(rep_->getGeometry().getElementLength(), 1.5);
-        double val = 0.0;
-        EXPECT_TRUE(ch->get(val));
-        EXPECT_DOUBLE_EQ(val, 1.5);
-        delete ch;
     }
 
     TEST_F(ConstantEFieldCavityRepTest, ChannelEZ) {
