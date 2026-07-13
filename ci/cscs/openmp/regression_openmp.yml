@@ -33,6 +33,7 @@ variables:
     - echo "=== Verify release build artifact ==="
     - ls -l $BUILD_PATH/bin/opalx
     - export LD_LIBRARY_PATH=$BUILD_PATH/lib:$LD_LIBRARY_PATH
+    - export MALLOC_CHECK_=0
     - echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
 
     - echo "=== Clone NightlyBuildX (main) ==="

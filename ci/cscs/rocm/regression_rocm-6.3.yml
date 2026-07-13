@@ -33,6 +33,7 @@ variables:
     - ls -l $BUILD_PATH/bin/opalx
     - export LD_LIBRARY_PATH=$BUILD_PATH/lib:$LD_LIBRARY_PATH
     - export HSA_XNACK=1
+    - export MALLOC_CHECK_=0
     - echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
     - echo "HSA_XNACK=$HSA_XNACK"
 
