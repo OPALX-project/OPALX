@@ -58,10 +58,6 @@ public:
     virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     virtual bool apply(
-            const size_t& i, const double& t, Vector_t<double, 3>& E,
-            Vector_t<double, 3>& B) override;
-
-    virtual bool apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
@@ -69,7 +65,7 @@ public:
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    virtual void initialise(PartBunch_t* bunch) override;
 
     virtual void initialise(
             PartBunch_t* bunch, std::shared_ptr<AbstractTimeDependence> freq_atd,
@@ -77,8 +73,6 @@ public:
             std::shared_ptr<AbstractTimeDependence> phase_atd) override;
 
     virtual void finalise() override;
-
-    virtual bool bends() const override;
 
     virtual void goOnline(const double& kineticEnergy) override;
 
@@ -93,14 +87,9 @@ public:
      * including the half-period fringe offsets. It is distinct from the
      * nominal body extent used for placement and visualization.
      */
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
-
-    virtual void getElementDimensions(double& begin, double& end) const override;
-
-    virtual CoordinateSystemTrafo getEdgeToBegin() const override;
-    virtual CoordinateSystemTrafo getEdgeToEnd() const override;
 
 private:
     double scaleCore_m;
@@ -216,16 +205,5 @@ inline void TravelingWave::setPhasem(double phase) {
 inline void TravelingWave::setNumCells(int NumCells) { numCells_m = NumCells; }
 
 inline void TravelingWave::setMode(double mode) { mode_m = mode; }
-
-inline CoordinateSystemTrafo TravelingWave::getEdgeToBegin() const {
-    CoordinateSystemTrafo ret(Vector_t<double, 3>({0, 0, 0}), Quaternion(1, 0, 0, 0));
-    return ret;
-}
-
-inline CoordinateSystemTrafo TravelingWave::getEdgeToEnd() const {
-    CoordinateSystemTrafo ret(
-            Vector_t<double, 3>({0, 0, getElementLength()}), Quaternion(1, 0, 0, 0));
-    return ret;
-}
 
 #endif  // OPALX_TravelingWave_HH

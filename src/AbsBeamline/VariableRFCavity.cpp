@@ -102,26 +102,13 @@ Geometry& VariableRFCavity::getGeometry() { return geometry; }
 const Geometry& VariableRFCavity::getGeometry() const { return geometry; }
 
 bool VariableRFCavity::apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
-    const auto pc = RefPartBunch_m->getParticleContainer();
-    Vector_t<double, 3> R{};
-    Kokkos::deep_copy(
-            Kokkos::View<Vector_t<double, 3>, Kokkos::HostSpace>(&R),
-            Kokkos::subview(pc->R.getView(), i));
-    Kokkos::fence();
-    const double E0        = amplitudeTD_m->getValue(t) * Units::MVpm2Vpm;
-    const double integralF = frequencyTD_m->getIntegral(t) * Units::MHz2Hz;
-    const double phi       = phaseTD_m->getValue(t);
-    return computeField(R, E, E0, integralF, phi, halfWidth_m, halfHeight_m, getElementLength());
-}
-
-bool VariableRFCavity::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
     const double E0        = amplitudeTD_m->getValue(t) * Units::MVpm2Vpm;
     const double integralF = frequencyTD_m->getIntegral(t) * Units::MHz2Hz;
     const double phi       = phaseTD_m->getValue(t);
-    return computeField(R, E, E0, integralF, phi, halfWidth_m, halfHeight_m, getElementLength());
+    return computeField(
+            R, E, E0, integralF, phi, halfWidth_m, halfHeight_m, getGeometry().getElementLength());
 }
 
 bool VariableRFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
@@ -134,7 +121,7 @@ bool VariableRFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     const auto count       = pc->getLocalNum();
     const auto halfWidth   = halfWidth_m;
     const auto halfHeight  = halfHeight_m;
-    const auto length      = getElementLength();
+    const auto length      = getGeometry().getElementLength();
     // Kernel launch over all particles
     Kokkos::parallel_for(
             "VariableRFCavity::computeField()", count, KOKKOS_LAMBDA(const size_t i) {
@@ -150,10 +137,7 @@ bool VariableRFCavity::applyToReferenceParticle(
     return apply(R, P, t, E, B);
 }
 
-void VariableRFCavity::initialise(
-        PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
-    RefPartBunch_m = bunch;
-}
+void VariableRFCavity::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
 
 void VariableRFCavity::finalise() { RefPartBunch_m = nullptr; }
 

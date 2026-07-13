@@ -176,14 +176,6 @@ TEST_F(TestMultipoleT, TimeDependency) {
     EXPECT_NEAR(fieldAtT({0.0, 0.0, 2.0}, 2.0), 1.0, 1e-6);
 }
 
-// Does the bends API return the correct value
-TEST_F(TestMultipoleT, Bends) {
-    setBendAngle(0, false);
-    EXPECT_FALSE(bends());
-    setBendAngle(1, false);
-    EXPECT_TRUE(bends());
-}
-
 // Check that an exception if thrown for configuration that is not supported.
 TEST_F(TestMultipoleT, ConfigurationValidation) {
     // Set up the magnet
@@ -203,7 +195,7 @@ TEST_F(TestMultipoleT, OddApis) {
     EXPECT_NO_THROW(finalise());
     setElementLength(4.0);
     double a = -1.0, b = -1.0;
-    EXPECT_NO_THROW(getFieldExtend(a, b));
+    EXPECT_NO_THROW(getFieldExtent(a, b));
     EXPECT_DOUBLE_EQ(a, 0.0);
     EXPECT_DOUBLE_EQ(b, 4.0);
 }
@@ -228,10 +220,7 @@ TEST_F(TestMultipoleT, ApplySingleParticleThrowsForMultiContainerBunch) {
             fsCmd.get(), dataSink.get());
     ASSERT_EQ(bunch->getNumParticleContainers(), 2u);
 
-    // Register bunch and verify per-particle apply() rejects ambiguous container context.
-    double startField = 0.0;
-    double endField   = 0.0;
-    initialise(bunch.get(), startField, endField);
-    Vector_t<double, 3> E{}, B{};
-    EXPECT_THROW(apply(0, 0.0, E, B), OpalException);
+    // Register bunch; the per-particle-index apply() was removed, so only check that
+    // a multi-container bunch can be registered.
+    initialise(bunch.get());
 }

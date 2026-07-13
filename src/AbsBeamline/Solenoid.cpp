@@ -83,17 +83,6 @@ bool Solenoid::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
  *
  * @returns true if particle is lost, false otherwise
  */
-bool Solenoid::apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
-    auto Rview                              = pc->R.getView();
-    auto Pview                              = pc->P.getView();
-
-    const Vector_t<double, 3> R = Rview(i);
-    const Vector_t<double, 3> P = Pview(i);
-    return apply(R, P, t, E, B);
-}
-
 /**
  * @brief Apply to particle with position R and momentum P
  *
@@ -163,10 +152,8 @@ void Solenoid::setDKS(double ks) { scaleError_m = ks; }
  * fieldmap, saving the start and endpoints of the fieldmaps.
  *
  * @param bunch Particle bunch
- * @param startField Starting position of the field
- * @param endField Ending position of the field
  */
-void Solenoid::initialise(PartBunch_t* bunch, double& startField, double& endField) {
+void Solenoid::initialise(PartBunch_t* bunch) {
     Inform msg("Solenoid ", *gmsg);
 
     RefPartBunch_m = bunch;
@@ -182,20 +169,13 @@ void Solenoid::initialise(PartBunch_t* bunch, double& startField, double& endFie
 
         startField_m = zBegin;
         endField_m   = zEnd;
-
-        const double bodyBegin = startField;
-        startField             = bodyBegin + startField_m;
-        endField               = bodyBegin + endField_m;
     } else {
         startField_m = 0.0;
         endField_m   = 0.0;
-        endField     = startField;
     }
 }
 
 void Solenoid::finalise() {}
-
-bool Solenoid::bends() const { return false; }
 
 /// @brief Read field map and go online
 void Solenoid::goOnline(const double&) {
@@ -221,7 +201,7 @@ bool Solenoid::getFast() const { return fast_m; }
 /// @brief Get the dimensions of the solenoid
 /// @param zBegin Start position
 /// @param zEnd End position
-void Solenoid::getFieldExtend(double& zBegin, double& zEnd) const {
+void Solenoid::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = startField_m;
     zEnd   = endField_m;
 }
@@ -240,11 +220,6 @@ bool Solenoid::isInside(const Vector_t<double, 3>& r) const {
 /// @brief Get the dimensions of the solenoid
 /// @param begin Start position
 /// @param end End position
-void Solenoid::getElementDimensions(double& begin, double& end) const {
-    begin = 0.0;
-    end   = getElementLength();
-}
-
 bool Solenoid::getSupportEnvelope(double& horizontalRadius, double& verticalRadius) const {
     const auto aperture = getAperture();
     if (aperture.second.size() >= 2 && std::abs(aperture.second[0]) < 1e5

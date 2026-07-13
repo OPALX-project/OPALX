@@ -40,8 +40,6 @@ PluginElement::~PluginElement() {
     if (online_m) goOffline();
 }
 
-void PluginElement::initialise(PartBunch_t* bunch, double&, double&) { initialise(bunch); }
-
 void PluginElement::initialise(PartBunch_t* bunch) {
     RefPartBunch_m = bunch;
     lossDs_m = std::unique_ptr<LossDataSink>(new LossDataSink(getOutputFN(), !Options::asciidump));
@@ -62,14 +60,7 @@ void PluginElement::goOffline() {
     online_m = false;
 }
 
-bool PluginElement::bends() const { return false; }
-
 bool PluginElement::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) { return false; }
-
-bool PluginElement::apply(
-        const size_t& /*i*/, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&) {
-    return false;
-}
 
 bool PluginElement::apply(
         const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
@@ -199,9 +190,13 @@ bool PluginElement::check(
     return flag;
 }
 
-void PluginElement::getFieldExtend(double& zBegin, double& zEnd) const {
+void PluginElement::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = -0.005;
     zEnd   = 0.005;
+}
+
+bool PluginElement::isInside(const Vector_t<double, 3>& r) const {
+    return r(2) >= 0.0 && r(2) < getGeometry().getElementLength() && isInsideTransverse(r);
 }
 
 int PluginElement::checkPoint(const double& x, const double& y) const {

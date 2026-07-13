@@ -28,7 +28,6 @@ namespace {
     };
 
     static const Entry entries[] = {
-            {"L", &RFCavityRep::getElementLength, &RFCavityRep::setElementLength},
             {"AMPLITUDE", &RFCavityRep::getAmplitude, &RFCavityRep::setAmplitude},
             {"FREQUENCY", &RFCavityRep::getFrequency, &RFCavityRep::setFrequency},
             {"PHASE", &RFCavityRep::getPhase, &RFCavityRep::setPhase},

@@ -132,7 +132,7 @@ void OpalLaser::update() {
         throw OpalException(where, "\"L\" must be greater than or equal to 0.");
     }
 
-    laser->setElementLength(length);
+    laser->getGeometry().setElementLength(length);
     laser->setWavelength(wavelength);
     laser->setPulseEnergy(pulseEnergy);
     laser->setPulseLength(pulseLength);

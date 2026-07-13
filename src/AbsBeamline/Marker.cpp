@@ -34,14 +34,10 @@ Marker::~Marker() {}
 
 void Marker::accept(BeamlineVisitor& visitor) const { visitor.visitMarker(*this); }
 
-void Marker::initialise(PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
-    RefPartBunch_m = bunch;
-}
+void Marker::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
 
 void Marker::finalise() {}
 
-bool Marker::bends() const { return false; }
-
-void Marker::getFieldExtend(double& /*zBegin*/, double& /*zEnd*/) const {}
+void Marker::getFieldExtent(double& /*zBegin*/, double& /*zEnd*/) const {}
 
 ElementType Marker::getType() const { return ElementType::MARKER; }

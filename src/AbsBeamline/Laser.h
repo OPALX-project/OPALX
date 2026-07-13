@@ -45,16 +45,15 @@ public:
      * @param startField Element entrance position in the current lattice traversal.
      * @param endField Filled with the element exit position.
      */
-    void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    void initialise(PartBunch_t* bunch) override;
 
     /** @brief Finalize the element after a tracking pass. */
     void finalise() override;
 
     /** @brief Return false because the element has straight reference geometry. */
-    bool bends() const override;
 
     /** @brief Get the longitudinal element extent in the current lattice traversal. */
-    void getFieldExtend(double& zBegin, double& zEnd) const override;
+    void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     /** @brief Return the OPALX element type identifier. */
     ElementType getType() const override;
@@ -144,7 +143,6 @@ public:
             double electronTotalEnergyGeV, const Vector_t<double, 3>& beamDirection) const;
 
 private:
-    double startField_m;
     double wavelength_m;
     double pulseEnergy_m;
     double pulseLength_m;

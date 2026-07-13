@@ -19,16 +19,13 @@ public:
 
     virtual void accept(BeamlineVisitor& visitor) const override;
 
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    virtual void initialise(PartBunch_t* bunch) override;
     virtual void finalise() override;
-    virtual bool bends() const override;
     virtual ElementType getType() const override;
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
-    virtual bool apply(
-            const size_t& i, const double& t, Vector_t<double, 3>& E,
-            Vector_t<double, 3>& B) override;
+
     virtual bool apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
@@ -48,7 +45,6 @@ protected:
     double Ex_m;
     double Ey_m;
     double Ez_m;
-    double startField_m;
 
 private:
     void operator=(const ConstantEFieldCavity&);

@@ -359,8 +359,7 @@ TEST_F(TestVariableRFCavity, BunchFields) {
     Kokkos::fence();
     // Register the bunch with the element
     bunch->setT(0.0);
-    double startField, endField;
-    initialise(bunch.get(), startField, endField);
+    initialise(bunch.get());
     EXPECT_NE(RefPartBunch_m, nullptr);
     // Get the fields for all particles
     apply(pc);
@@ -373,9 +372,11 @@ TEST_F(TestVariableRFCavity, BunchFields) {
     for (size_t i = 0; i < line.size(); ++i) {
         EXPECT_DOUBLE_EQ(line[i], 1.0 * Units::MVpm2Vpm);
     }
-    // Get the field for one of the particles
+    // Get the field at one particle's position via the position overload
     Vector_t<double, 3> singleE{}, singleB{};
-    EXPECT_FALSE(apply(0, 0.0, singleE, singleB));
+    const auto hostR0 = Kokkos::create_mirror_view(pc->R.getView());
+    Kokkos::deep_copy(hostR0, pc->R.getView());
+    EXPECT_FALSE(apply(hostR0(0), Vector_t<double, 3>{}, 0.0, singleE, singleB));
     EXPECT_DOUBLE_EQ(singleE[2], 1.0 * Units::MVpm2Vpm);
     // Done
     finalise();
@@ -405,16 +406,15 @@ TEST_F(TestVariableRFCavity, OddApis) {
     const VariableRFCavity cav1;
     // The field-support interval follows the body length.
     double a{}, b{};
-    EXPECT_NO_THROW(cav1.getFieldExtend(a, b));
+    EXPECT_NO_THROW(cav1.getFieldExtent(a, b));
     EXPECT_DOUBLE_EQ(a, 0.0);
     EXPECT_DOUBLE_EQ(b, 0.0);
     VariableRFCavity cavWithLength;
     cavWithLength.setLength(3.0);
-    EXPECT_NO_THROW(cavWithLength.getFieldExtend(a, b));
+    EXPECT_NO_THROW(cavWithLength.getFieldExtent(a, b));
     EXPECT_DOUBLE_EQ(a, 0.0);
     EXPECT_DOUBLE_EQ(b, 3.0);
     // The cavity does not make a bend
-    EXPECT_FALSE(cav1.bends());
     // Self assignment
     VariableRFCavity cav2;
     cav2.setLength(3.0);
@@ -438,7 +438,7 @@ TEST_F(TestVariableRFCavity, FieldSupportMatchesBodyLength) {
 
     double zBegin = -1.0;
     double zEnd   = -1.0;
-    getFieldExtend(zBegin, zEnd);
+    getFieldExtent(zBegin, zEnd);
     EXPECT_DOUBLE_EQ(zBegin, 0.0);
     EXPECT_DOUBLE_EQ(zEnd, 10.0);
 

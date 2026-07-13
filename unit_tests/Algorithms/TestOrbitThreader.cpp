@@ -53,11 +53,6 @@ namespace {
         bool apply(const std::shared_ptr<ParticleContainer_t>&) override { return false; }
 
         bool apply(
-                const size_t&, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&) override {
-            return false;
-        }
-
-        bool apply(
                 const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&,
                 Vector_t<double, 3>&, Vector_t<double, 3>&) override {
             return false;
@@ -69,11 +64,10 @@ namespace {
             return false;
         }
 
-        void initialise(PartBunch_t*, double&, double&) override {}
+        void initialise(PartBunch_t*) override {}
         void finalise() override {}
-        bool bends() const override { return false; }
 
-        void getFieldExtend(double& zBegin, double& zEnd) const override {
+        void getFieldExtent(double& zBegin, double& zEnd) const override {
             zBegin = fieldBegin_m;
             zEnd   = fieldEnd_m;
         }
@@ -159,7 +153,7 @@ protected:
             const std::string& name, const double length, const double entryPosition,
             const double normalComponent) {
         auto quadrupole = std::make_shared<MultipoleRep>(name);
-        quadrupole->setElementLength(length);
+        quadrupole->getGeometry().setElementLength(length);
         quadrupole->setNormalComponent(1, normalComponent);
         quadrupole->setCSTrafoGlobal2Local(
                 CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, entryPosition), Quaternion()));
@@ -170,7 +164,7 @@ protected:
     std::shared_ptr<FieldSupportOnlyComponent> makePlacedFieldSupportOnlyComponent(
             const std::string& name, const double entryPosition, const double fieldLength) {
         auto component = std::make_shared<FieldSupportOnlyComponent>(name, 0.0, fieldLength);
-        component->setElementLength(0.0);
+        component->getGeometry().setElementLength(0.0);
         component->setCSTrafoGlobal2Local(
                 CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, entryPosition), Quaternion()));
         component->fixPosition();
@@ -181,22 +175,7 @@ protected:
     std::shared_ptr<DataSink> dataSink_m;
 };
 
-TEST_F(OrbitThreaderTest, ExposesEmptyReferencePathModelBeforeExecution) {
-    StepSizeConfig stepSizes;
-    stepSizes.push_back(1.0e-12, 1.0, 8);
-    stepSizes.resetIterator();
-
-    PartData reference(1.0, 9.382720813e8, 1.0e6);
-    OpalBeamline beamline;
-    OrbitThreader threader(
-            reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
-            1.0e-12, stepSizes, beamline, /*isDesignBeam=*/true);
-
-    EXPECT_TRUE(threader.getReferencePathModel().empty());
-    EXPECT_TRUE(threader.getActionRangeRegistrationModel().empty());
-}
-
-TEST_F(OrbitThreaderTest, ExecutesOverlapAndBuildsTracedAndRegistrationModels) {
+TEST_F(OrbitThreaderTest, ExecutesOverlapAndRecordsBothElements) {
     auto bunch = makeBunch(0);
 
     DummyBeamline beamlineForVisitor;
@@ -220,39 +199,13 @@ TEST_F(OrbitThreaderTest, ExecutesOverlapAndBuildsTracedAndRegistrationModels) {
 
     threader.execute();
 
-    const ReferencePathModel& tracedModel = threader.getReferencePathModel();
-    ASSERT_FALSE(tracedModel.empty());
-
-    bool foundOverlap = false;
-    for (const auto& segment : tracedModel.getSegments()) {
-        if (segment.getActiveElements().size() != 2u) {
-            continue;
-        }
-
-        std::set<std::string> activeNames;
-        for (const auto& element : segment.getActiveElements()) {
-            activeNames.insert(element->getName());
-        }
-
-        if (activeNames == std::set<std::string>{"Q_LONG", "Q_SHORT"}) {
-            foundOverlap = true;
-            EXPECT_NEAR(segment.getBegin(), 0.45, 0.02);
-            EXPECT_NEAR(segment.getEnd(), 0.5, 0.02);
-            break;
-        }
+    // The two quadrupoles overlap on s in [0.45, 0.5]; a query centred there returns both.
+    IndexMap::value_t elements = threader.query(0.475, 0.01);
+    std::set<std::string> activeNames;
+    for (const auto& element : elements) {
+        activeNames.insert(element->getName());
     }
-    EXPECT_TRUE(foundOverlap);
-
-    const ReferencePathModel& registrationModel = threader.getActionRangeRegistrationModel();
-    ASSERT_EQ(registrationModel.size(), 2u);
-
-    std::set<std::string> registeredNames;
-    for (const auto& segment : registrationModel.getSegments()) {
-        ASSERT_EQ(segment.getActiveElements().size(), 1u);
-        EXPECT_TRUE(segment.hasLegacyElementEdge());
-        registeredNames.insert((*segment.getActiveElements().begin())->getName());
-    }
-    EXPECT_EQ(registeredNames, (std::set<std::string>{"Q_LONG", "Q_SHORT"}));
+    EXPECT_EQ(activeNames, (std::set<std::string>{"Q_LONG", "Q_SHORT"}));
 }
 
 TEST_F(OrbitThreaderTest, UsesFieldSupportExtentForLengthCheck) {

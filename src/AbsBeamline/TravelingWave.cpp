@@ -112,17 +112,6 @@ bool TravelingWave::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
 }
 
 bool TravelingWave::apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
-    auto Rview                              = pc->R.getView();
-    auto Pview                              = pc->P.getView();
-    const Vector_t<double, 3> R             = Rview(i);
-    const Vector_t<double, 3> P             = Pview(i);
-
-    return apply(R, P, t, E, B);
-}
-
-bool TravelingWave::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     const double omega_t = frequency_m * t;
@@ -237,18 +226,15 @@ bool TravelingWave::applyToReferenceParticle(
     return false;
 }
 
-void TravelingWave::initialise(PartBunch_t* bunch, double& startField, double& endField) {
+void TravelingWave::initialise(PartBunch_t* bunch) {
     if (bunch == nullptr) {
         return;
     }
 
     Inform msg("TravelingWave ", *gmsg);
 
-    RefPartBunch_m    = bunch;
-    double bodyBegin  = startField;
-    double dummyStart = 0.0;
-    double dummyEnd   = 0.0;
-    RFCavity::initialise(bunch, dummyStart, dummyEnd);
+    RefPartBunch_m = bunch;
+    RFCavity::initialise(bunch);
     if (std::abs(startField_m) > 0.0) {
         throw GeneralOpalException(
                 "TravelingWave::initialise",
@@ -264,9 +250,6 @@ void TravelingWave::initialise(PartBunch_t* bunch, double& startField, double& e
     mappedStartExitField_m = startExitField_m - 3.0 * periodLength_m / 2.0;
 
     endField_m = startExitField_m + periodLength_m / 2.0;
-
-    startField = bodyBegin + startField_m;
-    endField   = bodyBegin + endField_m;
 
     scaleCore_m      = scale_m / std::sin(Physics::two_pi * mode_m);
     scaleCoreError_m = scaleError_m / std::sin(Physics::two_pi * mode_m);
@@ -287,8 +270,6 @@ void TravelingWave::initialise(
 
 void TravelingWave::finalise() {}
 
-bool TravelingWave::bends() const { return false; }
-
 void TravelingWave::goOnline(const double&) {
     Fieldmap::readMap(filename_m);
     online_m = true;
@@ -296,14 +277,9 @@ void TravelingWave::goOnline(const double&) {
 
 void TravelingWave::goOffline() { Fieldmap::freeMap(filename_m); }
 
-void TravelingWave::getFieldExtend(double& zBegin, double& zEnd) const {
+void TravelingWave::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = startField_m;
     zEnd   = endField_m;
-}
-
-void TravelingWave::getElementDimensions(double& begin, double& end) const {
-    begin = 0.0;
-    end   = getElementLength();
 }
 
 ElementType TravelingWave::getType() const { return ElementType::TRAVELINGWAVE; }

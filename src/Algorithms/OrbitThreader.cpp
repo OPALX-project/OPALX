@@ -106,7 +106,7 @@ void OrbitThreader::checkElementLengths(const std::set<std::shared_ptr<ElementBa
     for (const std::shared_ptr<ElementBase>& field : fields) {
         double fieldBegin = 0.0;
         double fieldEnd   = 0.0;
-        field->getFieldExtend(fieldBegin, fieldEnd);
+        field->getFieldExtent(fieldBegin, fieldEnd);
 
         const double length = std::abs(fieldEnd - fieldBegin);
         const int numSteps  = field->getRequiredNumberOfTimeSteps();
@@ -152,17 +152,13 @@ void OrbitThreader::execute() {
             autophaseCavities(elementSet, visitedElements);
         }
 
-        double initialS              = pathLength_m;
-        Vector_t<double, 3> initialR = r_m;
-        Vector_t<double, 3> initialP = p_m;
-        double maxDistance           = computeDriftLengthToBoundingBox(elementSet, r_m, p_m);
+        double initialS    = pathLength_m;
+        double maxDistance = computeDriftLengthToBoundingBox(elementSet, r_m, p_m);
 
         integrate(elementSet, maxDistance);
 
         *gmsg << "* OrbitThreader maxDistance= " << maxDistance << endl;
         *gmsg << "* OrbitThreader #elements  = " << elementSet.size() << endl;
-
-        registerElement(elementSet, initialS, initialR, initialP);
 
         if (errorFlag_m == HITMATERIAL) {
             // Shouldn't be reached because reference particle
@@ -201,10 +197,8 @@ void OrbitThreader::execute() {
     imap_m.tidyUp(sStop_m);
     *gmsg << level1 << "\n" << imap_m << endl;
     if (isDesignBeam_m) {
-        // Geometry SDDS dump and element action-range/ELEMEDGE anchoring are design-beam
-        // outputs that write shared element state; secondary species only build their map.
+        // Geometry SDDS dump is a design-beam output; secondary species only build their map.
         imap_m.saveSDDS(initialPathLength);
-        processElementRegister();
     }
 }
 
@@ -366,100 +360,14 @@ void OrbitThreader::trackBack() {
     stepRange_m.enlargeIfOutside(currentStep_m);
 }
 
-void OrbitThreader::registerElement(
-        const IndexMap::value_t& elementSet, double start, const Vector_t<double, 3>& R,
-        const Vector_t<double, 3>& P) {
-    IndexMap::value_t::const_iterator it        = elementSet.begin();
-    const IndexMap::value_t::const_iterator end = elementSet.end();
-
-    for (; it != end; ++it) {
-        bool found = false;
-        auto prior = elementRegistry_m.equal_range(*it);
-
-        for (auto pit = prior.first; pit != prior.second; ++pit) {
-            if (std::abs((*pit).second.endField_m - start) < 1e-10) {
-                found                    = true;
-                (*pit).second.endField_m = pathLength_m;
-                break;
-            }
-        }
-
-        if (found) continue;
-
-        Vector_t<double, 3> initialR = itsOpalBeamline_m.transformToLocalCS(*it, R);
-        Vector_t<double, 3> initialP = itsOpalBeamline_m.rotateToLocalCS(*it, P);
-        // S-vs-local-Z seam: recover the legacy ELEMEDGE anchor by projecting the local-Z entry
-        // coordinate back to the element edge along the reference momentum. Assumes a straight
-        // reference path through the element (local z ~= ds); revisit for curved bends.
-        double elementEdge = start - initialR(2) * euclidean_norm(initialP) / initialP(2);
-
-        elementPosition ep = {start, pathLength_m, elementEdge};
-        elementRegistry_m.insert(std::make_pair(*it, ep));
-    }
-}
-
-void OrbitThreader::processElementRegister() {
-    using registry_key_t = std::shared_ptr<ElementBase>;
-    using registry_map_t = std::map<
-            registry_key_t, std::set<elementPosition, elementPositionComp>,
-            std::owner_less<registry_key_t>>;
-    registry_map_t tmpRegistry;
-
-    for (auto it = elementRegistry_m.begin(); it != elementRegistry_m.end(); ++it) {
-        const registry_key_t& element = (*it).first;
-        elementPosition& ep           = (*it).second;
-
-        auto prior = tmpRegistry.find(element);
-        if (prior == tmpRegistry.end()) {
-            std::set<elementPosition, elementPositionComp> tmpSet;
-            tmpSet.insert(ep);
-            tmpRegistry.insert(std::make_pair(element, tmpSet));
-            continue;
-        }
-
-        std::set<elementPosition, elementPositionComp>& set = (*prior).second;
-        set.insert(ep);
-    }
-
-    actionRangeRegistrationModel_m.clear();
-    std::vector<ReferencePathSegment> registeredSegments;
-    for (auto& [element, set] : tmpRegistry) {
-        std::queue<std::pair<double, double>> range;
-
-        for (auto sit = set.begin(); sit != set.end(); ++sit) {
-            range.push(std::make_pair((*sit).elementEdge_m, (*sit).endField_m));
-            registeredSegments.push_back(ReferencePathSegment(
-                    (*sit).startField_m, (*sit).endField_m,
-                    ReferencePathSegment::element_set_t{element}, (*sit).elementEdge_m));
-        }
-        element->setActionRange(range);
-    }
-
-    std::sort(
-            registeredSegments.begin(), registeredSegments.end(),
-            [](const ReferencePathSegment& lhs, const ReferencePathSegment& rhs) {
-                if (lhs.getBegin() < rhs.getBegin()) {
-                    return true;
-                }
-                if (lhs.getBegin() > rhs.getBegin()) {
-                    return false;
-                }
-                return lhs.getEnd() < rhs.getEnd();
-            });
-
-    for (const auto& segment : registeredSegments) {
-        actionRangeRegistrationModel_m.addSegment(segment);
-    }
-}
-
 void OrbitThreader::setDesignEnergy(
-        FieldList& allElements, const std::set<std::string>& visitedElements) {
+        ElementList& allElements, const std::set<std::string>& visitedElements) {
     double kineticEnergyeV = reference_m.getM() * (sqrt(dot(p_m, p_m) + 1.0) - 1.0);
 
-    FieldList::iterator it        = allElements.begin();
-    const FieldList::iterator end = allElements.end();
+    ElementList::iterator it        = allElements.begin();
+    const ElementList::iterator end = allElements.end();
     for (; it != end; ++it) {
-        std::shared_ptr<ElementBase> element = (*it).getElement();
+        std::shared_ptr<ElementBase> element = (*it);
         if (visitedElements.find(element->getName()) == visitedElements.end()
             && !(element->getType() == ElementType::RFCAVITY
                  || element->getType() == ElementType::TRAVELINGWAVE)) {
@@ -469,14 +377,14 @@ void OrbitThreader::setDesignEnergy(
 }
 
 void OrbitThreader::computeBoundingBox() {
-    FieldList allElements         = itsOpalBeamline_m.getElementByType(ElementType::ANY);
-    FieldList::iterator it        = allElements.begin();
-    const FieldList::iterator end = allElements.end();
+    ElementList allElements         = itsOpalBeamline_m.getElementByType(ElementType::ANY);
+    ElementList::iterator it        = allElements.begin();
+    const ElementList::iterator end = allElements.end();
     for (; it != end; ++it) {
-        if (it->getElement()->getType() == ElementType::MARKER) {
+        if ((*it)->getType() == ElementType::MARKER) {
             continue;
         }
-        BoundingBox other = it->getBoundingBoxInLabCoords();
+        BoundingBox other = (*it)->getBoundingBoxInLabCoords();
         globalBoundingBox_m.enlargeToContainBoundingBox(other);
     }
     updateBoundingBoxWithCurrentPosition();

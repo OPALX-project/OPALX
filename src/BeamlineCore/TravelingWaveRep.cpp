@@ -28,7 +28,6 @@ namespace {
     };
 
     static const Entry entries[] = {
-            {"L", &TravelingWaveRep::getElementLength, &TravelingWaveRep::setElementLength},
             {"AMPLITUDE", &TravelingWaveRep::getAmplitude, &TravelingWaveRep::setAmplitude},
             {"FREQUENCY", &TravelingWaveRep::getFrequency, &TravelingWaveRep::setFrequency},
             {"PHASE", &TravelingWaveRep::getPhase, &TravelingWaveRep::setPhase},
