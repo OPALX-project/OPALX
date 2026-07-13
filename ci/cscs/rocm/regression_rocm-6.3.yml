@@ -51,8 +51,22 @@ variables:
         echo "gnuplot found at $(command -v gnuplot)"
       else
         echo "gnuplot not found, trying cached conda-forge environment"
+        echo "SCRATCH=$SCRATCH"
+        echo "PWD=$(pwd)"
+        echo "UID=$(id -u)"
+        # verify scratch is writable
+        if ! touch "$SCRATCH/.ci_write_test_$$" 2>/dev/null; then
+          echo "ERROR: $SCRATCH is not writable"
+        else
+          rm -f "$SCRATCH/.ci_write_test_$$"
+          echo "OK: $SCRATCH is writable"
+        fi
         GNUPLOT_ENV="$SCRATCH/gnuplot-env-$(uname -m)"
-        if [ ! -d "$GNUPLOT_ENV/bin" ]; then
+        MAMBA_ROOT_PREFIX="$SCRATCH/micromamba-root-$(uname -m)"
+        export MAMBA_ROOT_PREFIX
+        echo "GNUPLOT_ENV=$GNUPLOT_ENV"
+        echo "MAMBA_ROOT_PREFIX=$MAMBA_ROOT_PREFIX"
+        if [ ! -x "$GNUPLOT_ENV/bin/gnuplot" ]; then
           echo "Installing micromamba and gnuplot"
           mkdir -p "$SCRATCH/micromamba-bin"
           case "$(uname -m)" in
@@ -60,18 +74,37 @@ variables:
             aarch64) MAMBA_ARCH="linux-aarch64" ;;
             *)       echo "Unsupported arch $(uname -m), will skip plot generation"; MAMBA_ARCH="" ;;
           esac
-          if [ -n "$MAMBA_ARCH" ] && [ ! -f "$SCRATCH/micromamba-bin/micromamba" ]; then
-            curl -fsSL "https://micro.mamba.pm/api/micromamba/${MAMBA_ARCH}/latest" | tar -xvj -C "$SCRATCH/micromamba-bin" bin/micromamba || true
+          if [ -n "$MAMBA_ARCH" ] && [ ! -x "$SCRATCH/micromamba-bin/micromamba" ]; then
+            echo "Downloading micromamba for $MAMBA_ARCH"
+            if ! curl -fsSL "https://micro.mamba.pm/api/micromamba/${MAMBA_ARCH}/latest" | tar -xvj -C "$SCRATCH/micromamba-bin" bin/micromamba; then
+              echo "ERROR: failed to download/extract micromamba"
+            fi
           fi
-          if [ -f "$SCRATCH/micromamba-bin/micromamba" ]; then
-            "$SCRATCH/micromamba-bin/micromamba" create -y -p "$GNUPLOT_ENV" -c conda-forge gnuplot || true
+          if [ -x "$SCRATCH/micromamba-bin/micromamba" ]; then
+            echo "micromamba version:"
+            "$SCRATCH/micromamba-bin/micromamba" --version
+            echo "Creating gnuplot environment (this may take a while on first run)"
+            if ! "$SCRATCH/micromamba-bin/micromamba" create -y -p "$GNUPLOT_ENV" -c conda-forge gnuplot > /tmp/micromamba-gnuplot.log 2>&1; then
+              echo "ERROR: micromamba create failed, log follows:"
+              cat /tmp/micromamba-gnuplot.log
+            else
+              echo "micromamba create completed"
+            fi
+          else
+            echo "ERROR: micromamba binary not found or not executable"
           fi
         fi
-        if [ -d "$GNUPLOT_ENV/bin" ]; then
+        echo "Environment contents:"
+        ls -la "$GNUPLOT_ENV/bin" 2>/dev/null || echo "  (directory does not exist or is empty)"
+        if [ -x "$GNUPLOT_ENV/bin/gnuplot" ]; then
           export PATH="$GNUPLOT_ENV/bin:$PATH"
+          echo "gnuplot installed at $GNUPLOT_ENV/bin/gnuplot"
+        else
+          echo "WARNING: gnuplot binary not present after install attempt"
         fi
         if command -v gnuplot &> /dev/null; then
           echo "gnuplot now available at $(command -v gnuplot)"
+          gnuplot --version
         else
           echo "WARNING: gnuplot could not be installed, regression plots will be skipped"
         fi
