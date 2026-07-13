@@ -169,10 +169,13 @@ variables:
         export GIT_SSH_COMMAND="ssh -i $KEY_FILE -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes -o BatchMode=yes"
         git config --global user.email "opalx-ci@cscs.ch"
         git config --global user.name "OPALX CI"
-        if git clone --depth 1 git@gitea.psi.ch:AMAS/opal-live-doc.git opal-live-doc; then
-          mkdir -p opal-live-doc/$BUILD_ARCH
-          cp -r $CI_PROJECT_DIR/regression-results-$BUILD_ARCH/. opal-live-doc/$BUILD_ARCH/
+        if git clone --depth 1 --filter=blob:none --no-checkout git@gitea.psi.ch:AMAS/opal-live-doc.git opal-live-doc; then
           cd opal-live-doc
+          git sparse-checkout init --cone
+          git sparse-checkout set $BUILD_ARCH
+          git checkout
+          mkdir -p $BUILD_ARCH
+          cp -r $CI_PROJECT_DIR/regression-results-$BUILD_ARCH/. $BUILD_ARCH/
           git add -A
           git commit -m "Update $BUILD_ARCH regression results for $CI_COMMIT_SHORT_SHA" || echo "Nothing to commit"
           git push origin HEAD:main || echo "WARNING: push failed"
