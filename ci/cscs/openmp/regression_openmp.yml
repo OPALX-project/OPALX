@@ -27,7 +27,7 @@ variables:
     - date
     - export BUILD_PATH=$(pwd)/$BUILD_DIR
     - echo "BUILD_PATH=$BUILD_PATH"
-    - export SRUN_ARGS="--uenv=${EIGER_UENV} --view=${WITH_UENV_VIEW} --repo=${SCRATCH}/.uenv-images-ci-eiger ${WRAPPER}"
+    - export SRUN_ARGS="--uenv=${EIGER_UENV} --view=${WITH_UENV_VIEW} --repo=${SCRATCH}/.uenv-images-ci-eiger"
     - echo "SRUN_ARGS=$SRUN_ARGS"
   script:
     - echo "=== Verify release build artifact ==="
