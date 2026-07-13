@@ -49,24 +49,11 @@ variables:
       if command -v gnuplot &> /dev/null; then
         echo "gnuplot found at $(command -v gnuplot)"
       else
-        echo "gnuplot not found, trying cached conda-forge environment"
-        echo "SCRATCH=$SCRATCH"
-        echo "PWD=$(pwd)"
-        echo "UID=$(id -u)"
-        # verify scratch is writable
-        if ! touch "$SCRATCH/.ci_write_test_$$" 2>/dev/null; then
-          echo "ERROR: $SCRATCH is not writable"
-        else
-          rm -f "$SCRATCH/.ci_write_test_$$"
-          echo "OK: $SCRATCH is writable"
-        fi
+        echo "gnuplot not found, installing via micromamba"
         GNUPLOT_ENV="$SCRATCH/gnuplot-env-$(uname -m)"
         MAMBA_ROOT_PREFIX="$SCRATCH/micromamba-root-$(uname -m)"
         export MAMBA_ROOT_PREFIX
-        echo "GNUPLOT_ENV=$GNUPLOT_ENV"
-        echo "MAMBA_ROOT_PREFIX=$MAMBA_ROOT_PREFIX"
         if [ ! -x "$GNUPLOT_ENV/bin/gnuplot" ]; then
-          echo "Installing micromamba and gnuplot"
           MAMBA_DIR="$SCRATCH/micromamba-bin-$(uname -m)"
           mkdir -p "$MAMBA_DIR"
           case "$(uname -m)" in
@@ -84,48 +71,28 @@ variables:
               if [ ! -x "$MAMBA_DIR/micromamba" ]; then
                 echo "Downloading micromamba for $MAMBA_ARCH"
                 rm -f "$MAMBA_DIR/micromamba"
-                if ! curl -fsSL "https://micro.mamba.pm/api/micromamba/${MAMBA_ARCH}/latest" | tar -xvj -C "$MAMBA_DIR" --strip-components=1 bin/micromamba; then
-                  echo "ERROR: failed to download/extract micromamba"
-                fi
+                curl -fsSL "https://micro.mamba.pm/api/micromamba/${MAMBA_ARCH}/latest" | tar -xvj -C "$MAMBA_DIR" --strip-components=1 bin/micromamba
                 chmod +x "$MAMBA_DIR/micromamba" 2>/dev/null || true
               fi
             ) 200>"$LOCK_FILE"
           fi
-          # Copy to the job directory before executing. Shared scratch can
-          # raise "Text file busy" if the cached binary is open for writing
-          # (concurrent job) or on certain parallel filesystems.
+          # Copy to the job directory before executing to avoid shared-fs races
           if [ -x "$MAMBA_DIR/micromamba" ]; then
             cp "$MAMBA_DIR/micromamba" ./micromamba
             chmod +x ./micromamba
-            LOCAL_MAMBA="./micromamba"
-          else
-            LOCAL_MAMBA=""
-          fi
-          if [ -n "$LOCAL_MAMBA" ] && [ -x "$LOCAL_MAMBA" ]; then
-            echo "micromamba version:"
-            "$LOCAL_MAMBA" --version
-            echo "Creating gnuplot environment (this may take a while on first run)"
-            if ! "$LOCAL_MAMBA" create -y -p "$GNUPLOT_ENV" -c conda-forge gnuplot > /tmp/micromamba-gnuplot.log 2>&1; then
+            echo "Installing gnuplot into $GNUPLOT_ENV (first run may be slow)"
+            if ! ./micromamba create -y -p "$GNUPLOT_ENV" -c conda-forge gnuplot > /tmp/micromamba-gnuplot.log 2>&1; then
               echo "ERROR: micromamba create failed, log follows:"
               cat /tmp/micromamba-gnuplot.log
-            else
-              echo "micromamba create completed"
             fi
           else
-            echo "ERROR: micromamba binary not found or not executable"
+            echo "ERROR: micromamba binary not available"
           fi
         fi
-        echo "Environment contents:"
-        ls -la "$GNUPLOT_ENV/bin" 2>/dev/null || echo "  (directory does not exist or is empty)"
         if [ -x "$GNUPLOT_ENV/bin/gnuplot" ]; then
           export PATH="$GNUPLOT_ENV/bin:$PATH"
-          echo "gnuplot installed at $GNUPLOT_ENV/bin/gnuplot"
-        else
-          echo "WARNING: gnuplot binary not present after install attempt"
-        fi
-        if command -v gnuplot &> /dev/null; then
-          echo "gnuplot now available at $(command -v gnuplot)"
-          gnuplot --version
+          export LD_LIBRARY_PATH="$GNUPLOT_ENV/lib:$LD_LIBRARY_PATH"
+          echo "gnuplot now available at $GNUPLOT_ENV/bin/gnuplot"
         else
           echo "WARNING: gnuplot could not be installed, regression plots will be skipped"
         fi
@@ -176,19 +143,16 @@ variables:
         mkdir -p ~/.ssh
         KEY_FILE=~/.ssh/opal_live_doc_key
         # Reformat the key into a proper PEM file. CI variables sometimes
-        # arrive as a single line with spaces inserted in the base64 body,
-        # which ssh rejects with "error in libcrypto".
+        # arrive as a single line with spaces inserted in the base64 body.
         python3 - "$PSI_GIT_SSHKEY" > "$KEY_FILE" <<'PY'
       import re, sys
       raw = sys.argv[1]
-      # Strip all whitespace, then recognise PEM markers if present.
       clean = re.sub(r'\s+', '', raw)
       m = re.search(r'-----BEGIN([A-Z\s]+)PRIVATEKEY-----(.+?)-----END\1PRIVATEKEY-----', clean)
       if m:
           key_type = m.group(1).strip()
           b64 = m.group(2)
       else:
-          # No markers: assume it is bare base64 of an OpenSSH key.
           key_type = "OPENSSH"
           b64 = clean
       pem = f"-----BEGIN {key_type} PRIVATE KEY-----\n"
@@ -197,13 +161,7 @@ variables:
       print(pem)
       PY
         chmod 600 "$KEY_FILE"
-        echo "Key file header:"
-        head -n 1 "$KEY_FILE"
-        echo "Validating key with ssh-keygen:"
-        if ssh-keygen -y -f "$KEY_FILE" < /dev/null > /dev/null 2>&1; then
-          echo "OK"
-        else
-          echo "FAILED"
+        if ! ssh-keygen -y -f "$KEY_FILE" < /dev/null > /dev/null 2>&1; then
           echo "ERROR: Could not validate SSH private key"
           exit 1
         fi
