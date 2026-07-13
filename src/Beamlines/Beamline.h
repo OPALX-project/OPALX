@@ -1,5 +1,5 @@
-#ifndef CLASSIC_Beamline_HH
-#define CLASSIC_Beamline_HH
+#ifndef OPALX_Beamline_HH
+#define OPALX_Beamline_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: Beamline.h,v $
@@ -50,9 +50,18 @@ public:
     virtual Quaternion getInitialDirection() const;
     virtual bool getRelativeFlag() const;
 
+    // A beam line composite carries no field model; these satisfy the
+    // element interface formerly provided by Component.
+    void initialise(PartBunch_t*) override {}
+    void finalise() override {}
+    void getFieldExtent(double& zBegin, double& zEnd) const override {
+        zBegin = 0.0;
+        zEnd   = getGeometry().getElementLength();
+    }
+
 private:
     // Not implemented.
     void operator=(const Beamline&);
 };
 
-#endif  // CLASSIC_Beamline_HH
+#endif  // OPALX_Beamline_HH

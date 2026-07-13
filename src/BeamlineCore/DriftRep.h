@@ -15,61 +15,45 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_DriftRep_HH
-#define CLASSIC_DriftRep_HH
+#ifndef OPALX_DriftRep_HH
+#define OPALX_DriftRep_HH
 
 #include "AbsBeamline/Drift.h"
-#include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/NullField.h"
+#include "BeamlineGeometry/Geometry.h"
 
-
-class DriftRep: public Drift {
-
+class DriftRep : public Drift {
 public:
-
     /// Constructor with given name.
-    explicit DriftRep(const std::string &name);
+    explicit DriftRep(const std::string& name);
 
     DriftRep();
-    DriftRep(const DriftRep &);
+    DriftRep(const DriftRep&);
     virtual ~DriftRep();
 
     /// Return clone.
     //  Return an identical deep copy of the element.
-    virtual ElementBase *clone() const;
+    virtual ElementBase* clone() const;
 
     /// Construct a read/write channel.
     //  This method constructs a Channel permitting read/write access to
     //  the attribute [b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns nullptr.
-    virtual Channel *getChannel(const std::string &aKey, bool = false);
-
-    /// Get field.
-    //  Version for non-constant object.
-    virtual NullField &getField();
-
-    /// Get field.
-    //  Version for constant object.
-    virtual const NullField &getField() const;
+    virtual Channel* getChannel(const std::string& aKey, bool = false);
 
     /// Get geometry.
     //  Version for non-constant object.
-    virtual StraightGeometry &getGeometry();
+    virtual Geometry& getGeometry();
 
     /// Get geometry.
     //  Version for constant object.
-    virtual const StraightGeometry &getGeometry() const;
+    virtual const Geometry& getGeometry() const;
 
 private:
-
     // Not implemented.
-    void operator=(const DriftRep &);
-
-    /// The zero magnetic field.
-    NullField field;
+    void operator=(const DriftRep&);
 
     /// The geometry.
-    StraightGeometry geometry;
+    Geometry geometry;
 };
 
-#endif // CLASSIC_DriftRep_HH
+#endif  // OPALX_DriftRep_HH

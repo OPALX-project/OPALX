@@ -30,11 +30,11 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_BeamlineVisitor_HH
-#define CLASSIC_BeamlineVisitor_HH
+#ifndef OPALX_BeamlineVisitor_HH
+#define OPALX_BeamlineVisitor_HH
 
 // Generic element classes interacting with a BeamlineVisitor.
-class Component;
+class ElementBase;
 class ConstantEFieldCavity;
 
 // Beam line structure classes.
@@ -43,14 +43,16 @@ class FlaggedElmPtr;
 
 // Specific element classes interacting with a BeamlineVisitor
 class Drift;
+class Laser;
 class Marker;
 class Monitor;
 class Multipole;
 class MultipoleT;
+class RBend;
 class RFCavity;
 class VariableRFCavity;
 class TravelingWave;
-class Ring;
+class SBend;
 class Solenoid;
 class ScalingFFAMagnet;
 class Offset;
@@ -68,14 +70,17 @@ public:
     /// Apply the algorithm to a beam line.
     virtual void visitBeamline(const Beamline&) = 0;
 
-    /// Apply the algorithm to an arbitrary component.
-    virtual void visitComponent(const Component&) = 0;
+    /// Apply the algorithm to an arbitrary element.
+    virtual void visitElementBase(const ElementBase&) = 0;
 
     /// Apply the algorithm to a constant E-field cavity element.
     virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&) = 0;
 
     /// Apply the algorithm to a drift space.
     virtual void visitDrift(const Drift&) = 0;
+
+    /// Apply the algorithm to a laser element.
+    virtual void visitLaser(const Laser&) = 0;
 
     /// Apply the algorithm to a FlaggedElmPtr.
     virtual void visitFlaggedElmPtr(const FlaggedElmPtr&) = 0;
@@ -92,6 +97,9 @@ public:
     /// Apply the algorithm to an arbitrary multipole.
     virtual void visitMultipoleT(const MultipoleT&) = 0;
 
+    /// Apply the algorithm to a rectangular bend.
+    virtual void visitRBend(const RBend&) = 0;
+
     /// Apply the algorithm to a RF cavity.
     virtual void visitRFCavity(const RFCavity&) = 0;
 
@@ -100,8 +108,8 @@ public:
 
     virtual void visitScalingFFAMagnet(const ScalingFFAMagnet&) = 0;
 
-    /// Apply the algorithm to a Ring element.
-    virtual void visitRing(const Ring&) = 0;
+    /// Apply the algorithm to a sector bend.
+    virtual void visitSBend(const SBend&) = 0;
 
     /// Apply the algorithm to a Solenoid element.
     virtual void visitSolenoid(const Solenoid&) = 0;
@@ -121,4 +129,4 @@ private:
     void operator=(const BeamlineVisitor&);
 };
 
-#endif  // CLASSIC_BeamlineVisitor_HH
+#endif  // OPALX_BeamlineVisitor_HH

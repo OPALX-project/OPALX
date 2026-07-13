@@ -1,5 +1,5 @@
-#ifndef CLASSIC_DomainError_HH
-#define CLASSIC_DomainError_HH
+#ifndef OPAL_DomainError_HH
+#define OPAL_DomainError_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: DomainError.h,v $
@@ -29,25 +29,22 @@
 /// Domain error exception.
 //  This exception is thrown, when a domain error is detected in a function.
 
-class DomainError: public ArithmeticError {
-
+class DomainError : public ArithmeticError {
 public:
-
     /// The usual constructor.
     // Arguments:
     // [DL]
     // [DT][b]meth[/b]
     // [DD]the name of the method or function detecting the exception
     // [/DL]
-    DomainError(const std::string &meth);
+    DomainError(const std::string& meth);
 
-    DomainError(const DomainError &);
+    DomainError(const DomainError&);
     virtual ~DomainError();
 
 private:
-
     // Not implemented.
     DomainError();
 };
 
-#endif // CLASSIC_DomainError_HH
+#endif  // OPAL_DomainError_HH

@@ -15,52 +15,40 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_RFCavityRep_HH
-#define CLASSIC_RFCavityRep_HH
+#ifndef OPALX_RFCavityRep_HH
+#define OPALX_RFCavityRep_HH
 
 #include "AbsBeamline/RFCavity.h"
-#include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/AcceleratingField.h"
+#include "BeamlineGeometry/Geometry.h"
 
-
-class RFCavityRep: public RFCavity {
-
+class RFCavityRep : public RFCavity {
 public:
-
     /// Constructor with given name.
-    explicit RFCavityRep(const std::string &name);
+    explicit RFCavityRep(const std::string& name);
 
     RFCavityRep();
-    RFCavityRep(const RFCavityRep &);
+    RFCavityRep(const RFCavityRep&);
     virtual ~RFCavityRep();
 
     /// Return clone.
     //  Return an identical deep copy of the element.
-    virtual ElementBase *clone() const;
+    virtual ElementBase* clone() const;
 
     /// Construct a read/write channel.
     //  This method constructs a Channel permitting read/write access to
     //  the attribute [b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns nullptr.
-    virtual Channel *getChannel(const std::string &aKey, bool = false);
-
-    /// Get field.
-    //  Version for non-constant object.
-    virtual AcceleratingField &getField();
-
-    /// Get field.
-    //  Version for constant object.
-    virtual const AcceleratingField &getField() const;
+    virtual Channel* getChannel(const std::string& aKey, bool = false);
 
     /// Get geometry.
     //  Return the element geometry.
     //  Version for non-constant object.
-    virtual StraightGeometry &getGeometry();
+    virtual Geometry& getGeometry();
 
     /// Get geometry.
     //  Return the element geometry
     //  Version for constant object.
-    virtual const StraightGeometry &getGeometry() const;
+    virtual const Geometry& getGeometry() const;
 
     /// Get amplitude.
     //  Return the RF amplitude in Volts.
@@ -91,18 +79,14 @@ public:
     static void setIgnore(bool ignore = false);
 
 private:
-
     // Not implemented.
-    void operator=(const RFCavityRep &);
+    void operator=(const RFCavityRep&);
 
     /// The cavity's geometry.
-    StraightGeometry geometry;
-
-    /// The cavity's field.
-    AcceleratingField field;
+    Geometry geometry;
 
     /// Cavities are ignored (amplitude = 0) when this switch is set.
     static bool ignoreCavities;
 };
 
-#endif // CLASSIC_RFCavityRep_HH
+#endif  // OPALX_RFCavityRep_HH

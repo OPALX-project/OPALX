@@ -67,10 +67,9 @@
 
 #include <memory>
 
-#include "Utilities/ClassicField.h"
+#include "AbsBeamline/ElementBase.h"
+#include "Utilities/ElementList.h"
 
-class BMultipoleField;
-class Euclid3D;
 class OpalParticle;
 
 class Tracker : public AbstractTracker {
@@ -82,17 +81,16 @@ public:
     //  If [b]backTrack[/b] is true, we track against the beam.
     Tracker(const Beamline&, bool backBeam, bool backTrack);
 
-    /// Constructor.
-    //  The beam line to be tracked is [b]bl[/b].
-    //  The particle bunch is taken from [b]bunch[/b].
-    //  If [b]backBeam[/b] is true, the beam runs from s = C to s = 0.
-    //  If [b]backTrack[/b] is true, we track against the beam.
-    Tracker(const Beamline&, std::shared_ptr<PartBunch_t> bunch, bool backBeam, bool backTrack);
+    /**
+     * @brief Construct a tracker that borrows an existing particle bunch.
+     * @param bunch Particle bunch to track. Ownership remains with the caller.
+     */
+    Tracker(const Beamline&, PartBunch_t& bunch, bool backBeam, bool backTrack);
 
     virtual ~Tracker();
 
-    /// Return the current bunch.
-    const std::shared_ptr<PartBunch_t>& getBunch() const;
+    /// Return the currently attached borrowed bunch.
+    PartBunch_t& getBunch() const;
 
     /// Add particle to bunch.
     void addToBunch(const OpalParticle&);
@@ -100,26 +98,24 @@ public:
     /// Store the bunch.
     //~ void setBunch(const PartBunch &);
 
-    /// Apply the algorithm to an arbitrary component.
-    //  This override calls the component to track the bunch.
-    virtual void visitComponent(const Component&);
+    /// Apply the algorithm to an arbitrary element.
+    //  This override calls the element to track the bunch.
+    virtual void visitElementBase(const ElementBase&);
 
     /// set total number of tracked bunches
-    virtual void setNumBunch(short){};
+    virtual void setNumBunch(short) {};
 
     /// get total number of tracked bunches
-    virtual short getNumBunch() {
-        return 0;
-    }
+    virtual short getNumBunch() { return 0; }
 
     // standing wave structures
-    FieldList cavities_m;
+    ElementList cavities_m;
 
     const Beamline& itsBeamline_m;
 
 protected:
-    /// The bunch of particles to be tracked.
-    std::shared_ptr<PartBunch_t> itsBunch_m;
+    /// The bunch of particles to be tracked. Borrowed; lifetime is managed by TrackRun.
+    PartBunch_t* itsBunch_m;
     //  typedef PartBunch::iterator iterator;
 
 private:

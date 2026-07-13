@@ -19,38 +19,26 @@
 // ------------------------------------------------------------------------
 
 #include "OpalParser/TokenStream.h"
-#include "Utilities/LogicalError.h"
 #include <cctype>
-
+#include "Utilities/LogicalError.h"
 
 // Class TokenStream
 // ------------------------------------------------------------------------
 
-TokenStream::TokenStream(const std::string &name):
-    stream_name(name), curr_line(0), put_back_flag(false), put_back()
-{}
+TokenStream::TokenStream(const std::string& name)
+    : stream_name(name), curr_line(0), put_back_flag(false), put_back() {}
 
+TokenStream::~TokenStream() {}
 
-TokenStream::~TokenStream()
-{}
-
-
-void TokenStream::putBack(const Token &token) {
-    if(put_back_flag) {
-        throw LogicalError("TokenStream::pushBack()",
-                           "Cannot push back two tokens.");
+void TokenStream::putBack(const Token& token) {
+    if (put_back_flag) {
+        throw LogicalError("TokenStream::pushBack()", "Cannot push back two tokens.");
     }
 
-    put_back = token;
+    put_back      = token;
     put_back_flag = true;
 }
 
+int TokenStream::getLine() const { return curr_line; }
 
-int TokenStream::getLine() const {
-    return curr_line;
-}
-
-
-const std::string &TokenStream::getName() const {
-    return stream_name;
-}
+const std::string& TokenStream::getName() const { return stream_name; }

@@ -4,7 +4,7 @@
 #include "Algorithms/Matrix.h"
 #include "OPALTypes.h"
 #include "Physics/Physics.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 
 namespace {
     ippl::Vector<double, 3> normalize(const ippl::Vector<double, 3>& vec) {
@@ -12,7 +12,7 @@ namespace {
 
 #ifndef NOPAssert
         if (length < 1e-12)
-            throw GeneralClassicException("normalize()", "length of vector less than 1e-12");
+            throw GeneralOpalException("normalize()", "length of vector less than 1e-12");
 #endif
 
         return vec / length;
@@ -25,11 +25,11 @@ Quaternion::Quaternion(const matrix3x3_t& M) : ippl::Vector<double, 4>(0.0) {
     (*this)(2) = std::sqrt(std::max(0.0, 1 - M(0, 0) + M(1, 1) - M(2, 2))) / 2;
     (*this)(3) = std::sqrt(std::max(0.0, 1 - M(0, 0) - M(1, 1) + M(2, 2))) / 2;
     (*this)(1) =
-        std::abs(M(2, 1) - M(1, 2)) > 0 ? std::copysign((*this)(1), M(2, 1) - M(1, 2)) : 0.0;
+            std::abs(M(2, 1) - M(1, 2)) > 0 ? std::copysign((*this)(1), M(2, 1) - M(1, 2)) : 0.0;
     (*this)(2) =
-        std::abs(M(0, 2) - M(2, 0)) > 0 ? std::copysign((*this)(2), M(0, 2) - M(2, 0)) : 0.0;
+            std::abs(M(0, 2) - M(2, 0)) > 0 ? std::copysign((*this)(2), M(0, 2) - M(2, 0)) : 0.0;
     (*this)(3) =
-        std::abs(M(1, 0) - M(0, 1)) > 0 ? std::copysign((*this)(3), M(1, 0) - M(0, 1)) : 0.0;
+            std::abs(M(1, 0) - M(0, 1)) > 0 ? std::copysign((*this)(3), M(1, 0) - M(0, 1)) : 0.0;
 }
 
 Quaternion getQuaternion(ippl::Vector<double, 3> u, ippl::Vector<double, 3> ref) {
@@ -86,8 +86,8 @@ Quaternion& Quaternion::operator*=(const Quaternion& other) {
     double res = imagThis.dot(imagOther);
 
     *this = Quaternion(
-        (*this)(0) * other(0) - res,
-        (*this)(0) * imagOther + other(0) * imagThis + cross(imagThis, imagOther));
+            (*this)(0) * other(0) - res,
+            (*this)(0) * imagOther + other(0) * imagThis + cross(imagThis, imagOther));
     return *this;
 }
 
@@ -100,8 +100,8 @@ Quaternion Quaternion::operator/(const double& d) const {
 Quaternion& Quaternion::normalize() {
 #ifndef NOPAssert
     if (this->Norm() < 1e-12)
-        throw GeneralClassicException(
-            "Quaternion::normalize()", "length of quaternion less than 1e-12");
+        throw GeneralOpalException(
+                "Quaternion::normalize()", "length of quaternion less than 1e-12");
 #endif
 
     (*this) /= this->length();
@@ -112,11 +112,10 @@ Quaternion& Quaternion::normalize() {
 Quaternion Quaternion::inverse() const {
     Quaternion returnValue = conjugate();
 
-    #ifndef NOPAssert
+#ifndef NOPAssert
     if (this->Norm() < 1e-12)
-        throw GeneralClassicException(
-            "Quaternion::inverse()", "length of quaternion less than 1e-12");
-    #endif
+        throw GeneralOpalException("Quaternion::inverse()", "length of quaternion less than 1e-12");
+#endif
 
     returnValue /= returnValue.Norm();
 
@@ -126,9 +125,9 @@ Quaternion Quaternion::inverse() const {
 ippl::Vector<double, 3> Quaternion::rotate(const ippl::Vector<double, 3>& vec) const {
 #ifndef NOPAssert
     if (!this->isUnit())
-        throw GeneralClassicException(
-            "Quaternion::rotate()",
-            "quaternion isn't unit quaternion. Norm: " + std::to_string(this->Norm()));
+        throw GeneralOpalException(
+                "Quaternion::rotate()",
+                "quaternion isn't unit quaternion. Norm: " + std::to_string(this->Norm()));
 #endif
 
     Quaternion quat(vec);

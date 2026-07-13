@@ -16,7 +16,12 @@ target_compile_definitions(TestLinearComptonSpectrum PRIVATE
 
 add_opalx_test(TestLinearBreitWheeler USE_GTEST_MAIN)
 
-add_opalx_test(TestLinearBreitWheelerSpectrum USE_GTEST_MAIN NO_MPI)
+add_opalx_test(TestMuonDecay USE_GTEST_MAIN)
+
+add_opalx_test(TestMuonDecaySpectrum USE_GTEST_MAIN)
+add_opalx_test(TestPionDecaySpectrum USE_GTEST_MAIN)
+
+#add_opalx_test(TestLinearBreitWheelerSpectrum USE_GTEST_MAIN NO_MPI)
 
 add_executable(LinearBreitWheelerBenchmark LinearBreitWheelerBenchmark.cpp)
 target_link_libraries(LinearBreitWheelerBenchmark PRIVATE opalx)

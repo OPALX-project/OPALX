@@ -20,11 +20,8 @@
 
 #include "AbstractObjects/Action.h"
 
-
-class PSystem: public Action {
-
+class PSystem : public Action {
 public:
-
     /// Exemplar constructor.
     PSystem();
 
@@ -40,7 +37,6 @@ public:
     virtual void parse(Statement&);
 
 private:
-
     // Not implemented.
     PSystem(const PSystem&);
     void operator=(const PSystem&);
@@ -49,4 +45,4 @@ private:
     PSystem(const std::string& name, PSystem* parent);
 };
 
-#endif // OPAL_PSystem_HH
+#endif  // OPAL_PSystem_HH

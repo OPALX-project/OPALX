@@ -60,7 +60,7 @@ public:
      *  @param name name of the time dependence
      *
      *  @returns shared_ptr to the appropriate time dependence.
-     *  @throws GeneralClassicException if name is not recognised
+     *  @throws GeneralOpalException if name is not recognised
      */
     static std::shared_ptr<AbstractTimeDependence> getTimeDependence(const std::string& name);
 
@@ -79,7 +79,7 @@ public:
      *
      *  @returns name corresponding to the time dependence. Note that this
      *  just does a dumb loop over the stored map values; so O(N).
-     *  @throws GeneralClassicException if time_dep is not recognised
+     *  @throws GeneralOpalException if time_dep is not recognised
      */
     static std::string getName(const std::shared_ptr<AbstractTimeDependence>& time_dep);
 

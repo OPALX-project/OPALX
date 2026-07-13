@@ -1,7 +1,8 @@
 //
 // Class StepSizeConfig
 //
-// This class stores tuples of time step sizes, path length range limits and limit of number of step sizes.
+// This class stores tuples of time step sizes, path length range limits and limit of number of step
+// sizes.
 //
 // Copyright (c) 2019 - 2021, Christof Metzger-Kraus
 //
@@ -30,15 +31,13 @@ class StepSizeConfig {
 public:
     StepSizeConfig();
 
-    StepSizeConfig(const StepSizeConfig &right);
+    StepSizeConfig(const StepSizeConfig& right);
 
-    void operator=(const StepSizeConfig &) = delete;
+    void operator=(const StepSizeConfig&) = delete;
 
-    void push_back(double dt,
-                   double zstop,
-                   unsigned long numSteps);
+    void push_back(double dt, double sStop, unsigned long numSteps);
 
-    void sortAscendingZStop();
+    void sortAscendingSStop();
 
     void resetIterator();
 
@@ -56,11 +55,11 @@ public:
 
     StepSizeConfig& operator--();
 
-    void shiftZStopRight(double front);
+    void shiftSStopRight(double front);
 
     double getdT() const;
 
-    double getZStop() const;
+    double getSStop() const;
 
     unsigned long getNumSteps() const;
 
@@ -70,10 +69,10 @@ public:
 
     double getMinTimeStep() const;
 
-    double getFinalZStop() const;
+    double getFinalSStop() const;
 
-    Inform& print(Inform &out) const;
-    void printDirect(Inform &out) const;
+    Inform& print(Inform& out) const;
+    void printDirect(Inform& out) const;
 
     ValueRange<double> getPathLengthRange() const;
 
@@ -85,47 +84,26 @@ private:
     container_t::iterator it_m;
 };
 
-//Inform& operator<<(Inform& os, StepSizeConfig& s) {
-//    return s.print(os);
-//}
+// Inform& operator<<(Inform& os, StepSizeConfig& s) {
+//     return s.print(os);
+// }
 
+inline StepSizeConfig::StepSizeConfig() : configurations_m(), it_m(configurations_m.begin()) {}
 
-inline
-StepSizeConfig::StepSizeConfig():
-    configurations_m(),
-    it_m(configurations_m.begin())
-{ }
+inline StepSizeConfig::StepSizeConfig(const StepSizeConfig& right)
+    : configurations_m(right.configurations_m), it_m(configurations_m.begin()) {}
 
-inline
-StepSizeConfig::StepSizeConfig(const StepSizeConfig &right):
-    configurations_m(right.configurations_m),
-    it_m(configurations_m.begin())
-{ }
-
-inline
-void StepSizeConfig::push_back(double dt,
-                               double zstop,
-                               unsigned long numSteps) {
-    configurations_m.push_back(std::make_tuple(dt, zstop, numSteps));
+inline void StepSizeConfig::push_back(double dt, double sStop, unsigned long numSteps) {
+    configurations_m.push_back(std::make_tuple(dt, sStop, numSteps));
 }
 
-inline
-void StepSizeConfig::resetIterator() {
-    it_m = configurations_m.begin();
-}
+inline void StepSizeConfig::resetIterator() { it_m = configurations_m.begin(); }
 
-inline
-bool StepSizeConfig::reachedStart() const {
-    return (it_m == configurations_m.begin());
-}
+inline bool StepSizeConfig::reachedStart() const { return (it_m == configurations_m.begin()); }
 
-inline
-bool StepSizeConfig::reachedEnd() const {
-    return (it_m == configurations_m.end());
-}
+inline bool StepSizeConfig::reachedEnd() const { return (it_m == configurations_m.end()); }
 
-inline
-void StepSizeConfig::clear() {
+inline void StepSizeConfig::clear() {
     configurations_m.clear();
     it_m = configurations_m.begin();
 }

@@ -48,9 +48,7 @@ namespace Util {
         return std::sqrt(dotP + 1.0);
     }
 
-    inline ippl::Vector<double, 3> getBeta(ippl::Vector<double, 3> p) {
-        return p / getGamma(p);
-    }
+    inline ippl::Vector<double, 3> getBeta(ippl::Vector<double, 3> p) { return p / getGamma(p); }
 
     inline double getKineticEnergy(ippl::Vector<double, 3> p, double mass) {
         return (getGamma(p) - 1.0) * mass;
@@ -58,14 +56,11 @@ namespace Util {
 
     inline double getBetaGamma(double Ekin, double mass) {
         double value = std::sqrt(std::pow(Ekin / mass + 1.0, 2) - 1.0);
-        if (value < std::numeric_limits<double>::epsilon())
-            value = std::sqrt(2 * Ekin / mass);
+        if (value < std::numeric_limits<double>::epsilon()) value = std::sqrt(2 * Ekin / mass);
         return value;
     }
 
-    inline double convertMomentumEVoverCToBetaGamma(double p, double mass) {
-        return p / mass;
-    }
+    inline double convertMomentumEVoverCToBetaGamma(double p, double mass) { return p / mass; }
 
     inline std::string getTimeString(double time, unsigned int precision = 3) {
         std::string timeUnit(" [ps]");
@@ -188,7 +183,7 @@ namespace Util {
     }
 
     ippl::Vector<double, 3> getTaitBryantAngles(
-        Quaternion rotation, const std::string& elementName = "");
+            Quaternion rotation, const std::string& elementName = "");
 
     std::string toUpper(const std::string& str);
 
@@ -215,10 +210,10 @@ namespace Util {
     };
 
     unsigned int rewindLinesSDDS(
-        const std::string& fileName, double maxSPos, bool checkForTime = true);
+            const std::string& fileName, double maxSPos, bool checkForTime = true);
 
     std::string base64_encode(
-        const std::string& string_to_encode);  // unsigned char const* , unsigned int len);
+            const std::string& string_to_encode);  // unsigned char const* , unsigned int len);
     std::string base64_decode(std::string const& s);
 
     template <typename T, typename A>
@@ -235,10 +230,10 @@ namespace Util {
 template <typename T>
 std::string Util::toStringWithThousandSep(T value, char sep) {
     static_assert(
-        std::is_integral<T>::value, "Util::toStringWithThousandSep: T must be of integer type");
+            std::is_integral<T>::value, "Util::toStringWithThousandSep: T must be of integer type");
 
     unsigned int powers =
-        std::floor(std::max(0.0, std::log(std::abs((double)value)) / std::log(10.0)));
+            std::floor(std::max(0.0, std::log(std::abs((double)value)) / std::log(10.0)));
     powers -= powers % 3u;
 
     std::ostringstream ret;

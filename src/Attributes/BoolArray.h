@@ -22,41 +22,37 @@
 #include "AbstractObjects/AttributeHandler.h"
 #include "AbstractObjects/Expressions.h"
 
-
 // Class BoolArray
 // ------------------------------------------------------------------------
 
 namespace Attributes {
 
     /// Parser for an attribute of type logical array.
-    class BoolArray: public AttributeHandler {
-
+    class BoolArray : public AttributeHandler {
     public:
-
         /// Constructor.
         //  Assign attribute name and help string.
-        BoolArray(const std::string &name, const std::string &help);
+        BoolArray(const std::string& name, const std::string& help);
 
         virtual ~BoolArray();
 
         /// Return attribute type string ``logical array''.
-        virtual const std::string &getType() const;
+        virtual const std::string& getType() const;
 
         /// Parse the attribute.
-        virtual void parse(Attribute &, Statement &, bool) const;
+        virtual void parse(Attribute&, Statement&, bool) const;
 
         /// Parse a component of the array.
         //  Identified by its index.
-        virtual void parseComponent(Attribute &, Statement &, bool, int) const;
+        virtual void parseComponent(Attribute&, Statement&, bool, int) const;
 
     private:
-
         // Not implemented.
         BoolArray();
-        BoolArray(const BoolArray &);
-        void operator=(const BoolArray &);
+        BoolArray(const BoolArray&);
+        void operator=(const BoolArray&);
     };
 
-};
+};  // namespace Attributes
 
-#endif // OPAL_BoolArray_HH
+#endif  // OPAL_BoolArray_HH

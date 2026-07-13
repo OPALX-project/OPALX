@@ -22,65 +22,31 @@ bool TravelingWaveRep::ignoreCavities = false;
 
 namespace {
     struct Entry {
-        const char *name;
-        double(TravelingWaveRep::*get)() const;
+        const char* name;
+        double (TravelingWaveRep::*get)() const;
         void (TravelingWaveRep::*set)(double);
     };
 
     static const Entry entries[] = {
-        {
-            "L",
-            &TravelingWaveRep::getElementLength,
-            &TravelingWaveRep::setElementLength
-        },
-        {
-            "AMPLITUDE",
-            &TravelingWaveRep::getAmplitude,
-            &TravelingWaveRep::setAmplitude
-        },
-        {
-            "FREQUENCY",
-            &TravelingWaveRep::getFrequency,
-            &TravelingWaveRep::setFrequency
-        },
-        {
-            "PHASE",
-            &TravelingWaveRep::getPhase,
-            &TravelingWaveRep::setPhase
-        },
-        { 0, 0, 0 }
-    };
-}
+            {"AMPLITUDE", &TravelingWaveRep::getAmplitude, &TravelingWaveRep::setAmplitude},
+            {"FREQUENCY", &TravelingWaveRep::getFrequency, &TravelingWaveRep::setFrequency},
+            {"PHASE", &TravelingWaveRep::getPhase, &TravelingWaveRep::setPhase},
+            {0, 0, 0}};
+}  // namespace
 
+TravelingWaveRep::TravelingWaveRep() : TravelingWave() {}
 
-TravelingWaveRep::TravelingWaveRep():
-    TravelingWave()
-{}
+TravelingWaveRep::TravelingWaveRep(const TravelingWaveRep& right) : TravelingWave(right) {}
 
+TravelingWaveRep::TravelingWaveRep(const std::string& name) : TravelingWave(name) {}
 
-TravelingWaveRep::TravelingWaveRep(const TravelingWaveRep &right):
-    TravelingWave(right)
-{}
+TravelingWaveRep::~TravelingWaveRep() {}
 
+ElementBase* TravelingWaveRep::clone() const { return new TravelingWaveRep(*this); }
 
-TravelingWaveRep::TravelingWaveRep(const std::string &name):
-    TravelingWave(name)
-{}
-
-
-TravelingWaveRep::~TravelingWaveRep()
-{}
-
-
-ElementBase *TravelingWaveRep::clone() const {
-    return new TravelingWaveRep(*this);
-}
-
-
-Channel *TravelingWaveRep::getChannel(const std::string &aKey, bool create) {
-    for(const Entry *entry = entries; entry->name != 0; ++entry) {
-        if(aKey == entry->name) {
-
+Channel* TravelingWaveRep::getChannel(const std::string& aKey, bool create) {
+    for (const Entry* entry = entries; entry->name != 0; ++entry) {
+        if (aKey == entry->name) {
             return new IndirectChannel<TravelingWaveRep>(*this, entry->get, entry->set);
         }
     }
@@ -88,54 +54,20 @@ Channel *TravelingWaveRep::getChannel(const std::string &aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
+Geometry& TravelingWaveRep::getGeometry() { return geometry; }
 
-AcceleratingField &TravelingWaveRep::getField() {
-    return field;
-}
+const Geometry& TravelingWaveRep::getGeometry() const { return geometry; }
 
-const AcceleratingField &TravelingWaveRep::getField() const {
-    return field;
-}
+double TravelingWaveRep::getAmplitude() const { return ignoreCavities ? 0.0 : getAmplitudem(); }
 
+double TravelingWaveRep::getFrequency() const { return getFrequencym(); }
 
-StraightGeometry &TravelingWaveRep::getGeometry() {
-    return geometry;
-}
+double TravelingWaveRep::getPhase() const { return getPhasem(); }
 
-const StraightGeometry &TravelingWaveRep::getGeometry() const {
-    return geometry;
-}
+void TravelingWaveRep::setAmplitude(double amplitude) { setAmplitudem(amplitude); }
 
+void TravelingWaveRep::setFrequency(double frequency) { setFrequencym(frequency); }
 
-double TravelingWaveRep::getAmplitude() const {
-    return ignoreCavities ? 0.0 : field.getEz();
-}
+void TravelingWaveRep::setPhase(double phase) { setPhasem(phase); }
 
-
-double TravelingWaveRep::getFrequency() const {
-    return field.getFrequency();
-}
-
-
-double TravelingWaveRep::getPhase() const {
-    return field.getPhase();
-}
-
-
-void TravelingWaveRep::setAmplitude(double amplitude) {
-    field.setEz(amplitude);
-}
-
-
-void TravelingWaveRep::setFrequency(double frequency) {
-    field.setFrequency(frequency);
-}
-
-
-void TravelingWaveRep::setPhase(double phase) {
-    field.setPhase(phase);
-}
-
-void TravelingWaveRep::setIgnore(bool ignore) {
-    ignoreCavities = ignore;
-}
+void TravelingWaveRep::setIgnore(bool ignore) { ignoreCavities = ignore; }

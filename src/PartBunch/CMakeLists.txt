@@ -2,13 +2,16 @@ set (_SRCS
     PartBunch.cpp
     FieldSolver.cpp
     BinnedFieldSolver.cpp
+    BunchStateHandler.cpp
 )
 
 set (HDRS
     PartBunch.h
     PartBunchFwd.h
+    BunchStateHandler.h
     FieldSolver.hpp
     FieldContainer.hpp
+    FieldMirror.hpp
     LoadBalancer.hpp
     ParticleContainer.hpp
     BCHandler.hpp

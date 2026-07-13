@@ -19,61 +19,36 @@
 #include "AbstractObjects/Directory.h"
 #include "AbstractObjects/Object.h"
 
-
 // Class Directory
 // ------------------------------------------------------------------------
 
-Directory::Directory():
-    dir()
-{}
+Directory::Directory() : dir() {}
 
+Directory::~Directory() { erase(); }
 
-Directory::~Directory() {
-    erase();
-}
+ObjectDir::iterator Directory::begin() { return dir.begin(); }
 
+ObjectDir::const_iterator Directory::begin() const { return dir.begin(); }
 
-ObjectDir::iterator Directory::begin() {
-    return dir.begin();
-}
+ObjectDir::iterator Directory::end() { return dir.end(); }
 
+ObjectDir::const_iterator Directory::end() const { return dir.end(); }
 
-ObjectDir::const_iterator Directory::begin() const {
-    return dir.begin();
-}
+void Directory::erase() { dir.erase(dir.begin(), dir.end()); }
 
+void Directory::erase(const std::string& name) { dir.erase(name); }
 
-ObjectDir::iterator Directory::end() {
-    return dir.end();
-}
-
-
-ObjectDir::const_iterator Directory::end() const {
-    return dir.end();
-}
-
-
-void Directory::erase() {
-    dir.erase(dir.begin(), dir.end());
-}
-
-
-void Directory::erase(const std::string &name) {
-    dir.erase(name);
-}
-
-
-Object *Directory::find(const std::string &name) const {
+Object* Directory::find(const std::string& name) const {
     ObjectDir::const_iterator it = dir.find(name);
 
-    if(it == dir.end()) {
+    if (it == dir.end()) {
         return nullptr;
     } else {
         return &*it->second;
     }
 }
 
-void Directory::insert(const std::string &name, Object *newObject) {
+void Directory::insert(const std::string& name, Object* newObject) {
     ObjectDir::value_type p(name, std::shared_ptr<Object>(newObject));
     dir.insert(p);
 }

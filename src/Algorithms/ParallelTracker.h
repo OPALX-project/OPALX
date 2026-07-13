@@ -2,7 +2,8 @@
  * @file ParallelTracker.h
  * @brief Visitor-based parallel tracker with time as the independent variable.
  *
- * @copyright Copyright (c) 200x - 2014, Christof Kraus, Paul Scherrer Institut, Villigen PSI, Switzerland
+ * @copyright Copyright (c) 200x - 2014, Christof Kraus, Paul Scherrer Institut, Villigen PSI,
+ * Switzerland
  * @copyright 2015 - 2016, Christof Metzger-Kraus, Helmholtz-Zentrum Berlin, Germany
  * @copyright 2017 - 2020, Christof Metzger-Kraus
  * @copyright 2025 - present, Ryan Ammann, Paul Scherrer Institut, Villigen PSI, Switzerland
@@ -24,6 +25,7 @@
 #include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/Tracker.h"
 #include "Steppers/BorisPusher.h"
+#include "Steppers/SpinTBMTPusher.h"
 #include "Structure/DataSink.h"
 
 #include "BasicActions/Option.h"
@@ -37,10 +39,14 @@
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/Laser.h"
 #include "AbsBeamline/Marker.h"
+#include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
+#include "AbsBeamline/RBend.h"
 #include "AbsBeamline/RFCavity.h"
+#include "AbsBeamline/SBend.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/TravelingWave.h"
@@ -53,7 +59,6 @@
 #include <tuple>
 #include <vector>
 
-class ParticleMatterInteractionHandler;
 class PluginElement;
 
 /**
@@ -64,18 +69,18 @@ class PluginElement;
  */
 class ParallelTracker : public Tracker {
 private:
+    DataSink* itsDataSink_m;         ///< Borrowed beam statistics and phase-space output sink.
+    OpalBeamline itsOpalBeamline_m;  ///< Cloned field elements and coordinate transforms.
+    bool globalEOL_m;                ///< End-of-line flag (e.g. orbit threader out of bounds).
+    double sStart_m;                 ///< Path-length start position for the track (m).
 
-    std::shared_ptr<DataSink> itsDataSink_m; ///< Beam statistics and phase-space output.
-    OpalBeamline itsOpalBeamline_m;          ///< Cloned field elements and coordinate transforms.
-    bool globalEOL_m;                       ///< End-of-line flag (e.g. orbit threader out of bounds).
-    double zstart_m;                        ///< Path-length start position for the track (m).
-
-    /** Step-size segments: z-stop, dt, and steps per segment. */
+    /** Step-size segments: s-stop, dt, and steps per segment. */
     StepSizeConfig stepSizes_m;
 
-    double dtCurrentTrack_m;                ///< Global @f$\Delta t@f$ for the current track segment.
-    unsigned long long repartFreq_m;       ///< Space-charge repartition period (steps); off on one rank.
-    std::vector<std::vector<std::shared_ptr<SamplingBase>>> emittingSamplers_m; ///< Per-container emitters.
+    double dtCurrentTrack_m;          ///< Global @f$\Delta t@f$ for the current track segment.
+    unsigned long long repartFreq_m;  ///< Space-charge repartition period (steps); 0 disables it.
+    std::vector<std::vector<std::shared_ptr<SamplingBase>>>
+            emittingSamplers_m;  ///< Per-container emitters.
 
     // --- Timers ---
     IpplTimings::TimerRef timeIntegrationTimer1_m;
@@ -98,36 +103,42 @@ public:
     /**
      * @brief Construct tracker with bunch, output sink, and step-size schedule.
      * @param bl                Beamline definition.
-     * @param bunch             Particle bunch (multi-container).
-     * @param ds                Data sink for statistics and dumps.
+     * @param bunch             Borrowed particle bunch (multi-container).
+     * @param ds                Borrowed data sink for statistics and dumps.
      * @param revBeam           Reversed beam flag (see single-argument constructor).
-     * @param maxSTEPS          Max integration steps per z-segment (parallel to zstop/dt).
-     * @param zstart            Starting path length (m).
-     * @param zstop             Stop path length per segment (m).
+     * @param maxSTEPS          Max integration steps per s-segment (parallel to sStop/dt).
+     * @param sStart            Starting path length (m).
+     * @param sStop             Stop path length per segment (m).
      * @param dt                Time step per segment (s).
      * @param emittingSamplers  Optional per-container samplers for emitParticles(t, dt).
      */
-    explicit ParallelTracker(const Beamline& bl, std::shared_ptr<PartBunch_t> bunch,
-        const std::shared_ptr<DataSink>& ds, bool revBeam,
-        const std::vector<unsigned long long>& maxSTEPS, 
-        double zstart, const std::vector<double>& zstop, 
-        const std::vector<double>& dt,
-        const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers = {});
+    explicit ParallelTracker(
+            const Beamline& bl, PartBunch_t& bunch, DataSink* ds, bool revBeam,
+            const std::vector<unsigned long long>& maxSTEPS, double sStart,
+            const std::vector<double>& sStop, const std::vector<double>& dt,
+            const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers = {});
 
     /// @brief Destructor; releases tracker resources.
     virtual ~ParallelTracker();
 
-    /// @brief Visit the full beamline (iterates elements into OpalBeamline). Overrides DefaultVisitor.
+    /// @brief Visit the full beamline (iterates elements into OpalBeamline). Overrides
+    /// DefaultVisitor.
     virtual void visitBeamline(const Beamline&);
 
-    /// @brief Visit a generic component; rejects LASER (not implemented).
-    virtual void visitComponent(const Component&);
+    /// @brief Visit a generic element using the base tracker behavior.
+    virtual void visitElementBase(const ElementBase&);
 
     /// @brief Apply the algorithm to a constant E-field cavity.
     virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&);
 
     /// @brief Apply the algorithm to a drift.
     virtual void visitDrift(const Drift&);
+
+    /// @brief Reject laser tracking until dedicated laser tracking is implemented.
+    virtual void visitLaser(const Laser&);
+
+    /// @brief Apply the algorithm to a monitor.
+    virtual void visitMonitor(const Monitor&);
 
     /// @brief Apply the algorithm to a marker.
     virtual void visitMarker(const Marker&);
@@ -138,8 +149,17 @@ public:
     /// @brief Apply the algorithm to a multipole (templated type).
     virtual void visitMultipoleT(const MultipoleT&);
 
+    /// @brief Apply the algorithm to a rectangular bend.
+    virtual void visitRBend(const RBend&);
+
     /// @brief Apply the algorithm to an RF cavity.
     virtual void visitRFCavity(const RFCavity&);
+
+    /// @brief Apply the algorithm to a sector bend.
+    virtual void visitSBend(const SBend&);
+
+    /// @brief Apply the algorithm to a traveling wave cavity.
+    virtual void visitTravelingWave(const TravelingWave&);
 
     /// @brief Apply the algorithm to a solenoid.
     virtual void visitSolenoid(const Solenoid&);
@@ -150,24 +170,28 @@ public:
     /**
      * @brief Boris half-kick using E, B and per-particle dt on one container.
      * @param pusher Boris pusher instance.
-     * @param pc     Particle container.
+     * @param pc     Non-null particle container.
      */
-    void kickParticles(const BorisPusher& pusher,
-                       const std::shared_ptr<PartBunch_t::ParticleContainer_t>& pc);
-                       
+    void kickParticles(const BorisPusher& pusher, PartBunch_t::ParticleContainer_t& pc);
+
     /**
      * @brief Boris position push (unitless positions) on one container.
      * @param pusher Boris pusher instance.
-     * @param pc     Particle container.
+     * @param pc     Non-null particle container.
      */
-    void pushParticles(const BorisPusher& pusher,
-                       const std::shared_ptr<PartBunch_t::ParticleContainer_t>& pc);
+    void pushParticles(const BorisPusher& pusher, PartBunch_t::ParticleContainer_t& pc);
 
     /// @brief First half of the leapfrog step: push all active containers.
     void timeIntegration1(BorisPusher& pusher);
 
     /// @brief Second half: kick then push all active containers.
     void timeIntegration2(BorisPusher& pusher);
+
+    /// @brief Thomas-BMT spin precession across all active containers that store Pol.
+    /// Must be called after external + space-charge fields have been accumulated and
+    /// before the momentum kick (so E, B at the particle are the lab-frame fields the
+    /// particle sees during this step).
+    void evolveSpinTBMT();
 
     /**
      * @brief Self-fields in beam frame (primary container); optional binary repartition.
@@ -176,13 +200,20 @@ public:
     void computeSpaceChargeFields(unsigned long long step);
 
     /// @brief Apply external fields from elements intersecting each active container.
-    /// @param oth Orbit threader for element queries.
-    void computeExternalFields(OrbitThreader& oth);
+    /// @param oths Per-container orbit threaders (one per distinct species; same-species
+    ///             containers share one) used for element queries.
+    void computeExternalFields(const std::vector<std::shared_ptr<OrbitThreader>>& oths);
 
     /// @brief Emit macroparticles from configured samplers per container.
     /// @param t  Bunch time (s).
     /// @param dt Global time step (s).
     void emitFromEmissionSources(double t, double dt);
+
+    /// @brief Mark particles moving backward behind an active source/cathode plane.
+    size_t markBackwardParticlesAtSourcePlane();
+
+    /// @brief Apply global processes and return the global number of particles marked invalid.
+    size_t applyGlobalProcesses(double dt);
 
     /// @brief Zero E and B on all active particle containers.
     void resetFields();
@@ -194,7 +225,6 @@ public:
     void setTime();
 
 private:
-
     /// @brief Update reference trajectories and lab/reference coordinate transforms.
     void updateReference(const BorisPusher& pusher);
 
@@ -238,6 +268,9 @@ private:
     /// @brief Trigger binary repartition for the field solver if configured.
     void doBinaryRepartition();
 
+    /// @brief Delete particles marked invalid by the central per-container mask.
+    size_t deleteInvalidParticles(bool activeOnly, Inform& m, const std::string& reason);
+
     /// @brief Force-activate containers whose emitting samplers have not yet finished.
     void activateEmittingContainers(double t);
 
@@ -254,7 +287,7 @@ private:
      */
     void printInitialContainerRefs(Inform& m) const;
 
-    /// @brief Integrate references in time until path length reaches zstart_m.
+    /// @brief Integrate references in time until path length reaches sStart_m.
     void findStartPositions(const BorisPusher& pusher);
 
     /// @brief Autophase TRAVELINGWAVE and RFCAVITY elements along the reference orbit.
@@ -278,31 +311,47 @@ private:
 };
 
 inline void ParallelTracker::visitConstantEFieldCavity(const ConstantEFieldCavity& cav) {
-    itsOpalBeamline_m.visit(cav, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(cav, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitDrift(const Drift& drift) {
-    itsOpalBeamline_m.visit(drift, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(drift, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitMonitor(const Monitor& monitor) {
+    itsOpalBeamline_m.visit(monitor, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitMarker(const Marker& marker) {
-    itsOpalBeamline_m.visit(marker, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(marker, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitMultipole(const Multipole& mult) {
-    itsOpalBeamline_m.visit(mult, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(mult, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitMultipoleT(const MultipoleT& mult) {
-    itsOpalBeamline_m.visit(mult, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(mult, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitRBend(const RBend& bend) {
+    itsOpalBeamline_m.visit(bend, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitRFCavity(const RFCavity& as) {
-    itsOpalBeamline_m.visit(as, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(as, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitSBend(const SBend& bend) {
+    itsOpalBeamline_m.visit(bend, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitTravelingWave(const TravelingWave& tw) {
+    itsOpalBeamline_m.visit(tw, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitSolenoid(const Solenoid& so) {
-    itsOpalBeamline_m.visit(so, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(so, *this, *itsBunch_m);
 }
 
 #endif  // OPALX_ParallelTracker_HH

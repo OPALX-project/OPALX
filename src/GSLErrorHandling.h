@@ -18,10 +18,7 @@
 
 #include "Utilities/OpalException.h"
 
-inline void handleGSLErrors(const char *reason,
-                            const char *file,
-                            int /*line*/,
-                            int /*gsl_errno*/) {
+inline void handleGSLErrors(const char* reason, const char* file, int /*line*/, int /*gsl_errno*/) {
     throw OpalException(file, reason);
 }
 

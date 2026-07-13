@@ -22,38 +22,29 @@
 #ifndef CAVITYAUTOPHASER
 #define CAVITYAUTOPHASER
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Algorithms/PartData.h"
 
 class CavityAutophaser {
 public:
-    CavityAutophaser(const PartData &ref,
-                     std::shared_ptr<Component> cavity);
+    CavityAutophaser(const PartData& ref, std::shared_ptr<ElementBase> cavity);
 
     ~CavityAutophaser();
 
-    double getPhaseAtMaxEnergy(const Vector_t<double, 3> &R,
-                               const Vector_t<double, 3> &P,
-                               double t,
-                               double dt);
+    double getPhaseAtMaxEnergy(
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, double t, double dt);
 
 private:
     double guessCavityPhase(double t);
-    std::pair<double, double> optimizeCavityPhase(double initialGuess,
-                                                  double t,
-                                                  double dt);
+    std::pair<double, double> optimizeCavityPhase(double initialGuess, double t, double dt);
 
-    double track(double t,
-                 const double dt,
-                 const double phase,
-                 std::ofstream *out = nullptr) const;
+    double track(double t, const double dt, const double phase, std::ofstream* out = nullptr) const;
 
-    const PartData &itsReference_m;
-    std::shared_ptr<Component> itsCavity_m;
+    const PartData& itsReference_m;
+    std::shared_ptr<ElementBase> itsCavity_m;
 
     Vector_t<double, 3> initialR_m;
     Vector_t<double, 3> initialP_m;
-
 };
 
 #endif

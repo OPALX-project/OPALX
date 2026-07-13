@@ -24,44 +24,37 @@
 #include "OpalParser/SimpleStatement.h"
 #include "OpalParser/StringStream.h"
 #include "OpalParser/Token.h"
-#include "Utilities/ClassicException.h"
 #include "Utilities/ParseError.h"
 
 using namespace Expressions;
 using std::cerr;
 using std::endl;
 
-
 // Class Real
 // ------------------------------------------------------------------------
 
 namespace Attributes {
 
-    Real::Real(const std::string &name, const std::string &help):
-        AttributeHandler(name, help, 0)
-    {}
+    Real::Real(const std::string& name, const std::string& help)
+        : AttributeHandler(name, help, 0) {}
 
+    Real::~Real() {}
 
-    Real::~Real()
-    {}
-
-
-    const std::string &Real::getType() const {
+    const std::string& Real::getType() const {
         static const std::string type("real");
         return type;
     }
 
-
-    void Real::parse(Attribute &attr, Statement &statement, bool eval) const {
+    void Real::parse(Attribute& attr, Statement& statement, bool eval) const {
         PtrToScalar<double> expr = parseReal(statement);
 
-        if(eval || expr->isConstant()) {
+        if (eval || expr->isConstant()) {
             attr.set(new SValue<double>(expr->evaluate()));
-        } else if(isDeferred()) {
+        } else if (isDeferred()) {
             attr.set(new SDeferred<double>(expr));
         } else {
             attr.set(new SAutomatic<double>(expr));
         }
     }
 
-};
+};  // namespace Attributes

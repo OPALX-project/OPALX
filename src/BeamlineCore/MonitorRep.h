@@ -16,51 +16,40 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_MonitorRep_HH
-#define CLASSIC_MonitorRep_HH
+#ifndef OPALX_MonitorRep_HH
+#define OPALX_MonitorRep_HH
 
 #include "AbsBeamline/Monitor.h"
-#include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/NullField.h"
+#include "BeamlineGeometry/Geometry.h"
 
-class MonitorRep: public Monitor {
-
+class MonitorRep : public Monitor {
 public:
-
     /// Constructor with given name.
-    explicit MonitorRep(const std::string &name);
+    explicit MonitorRep(const std::string& name);
 
     MonitorRep();
-    MonitorRep(const MonitorRep &);
+    MonitorRep(const MonitorRep&);
     virtual ~MonitorRep();
 
     /// Return clone.
     //  Return an identical deep copy of the element.
-    virtual ElementBase *clone() const;
+    virtual ElementBase* clone() const;
 
     /// Construct a read/write channel.
     //  This method constructs a Channel permitting read/write access to
     //  the attribute [b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns nullptr.
-    virtual Channel *getChannel(const std::string &aKey, bool = false);
-
-    /// Get field.
-    //  Version for non-constant object.
-    virtual NullField &getField();
-
-    /// Get field.
-    //  Version for constant object.
-    virtual const NullField &getField() const;
+    virtual Channel* getChannel(const std::string& aKey, bool = false);
 
     /// Get geometry.
     //  Return the element geometry.
     //  Version for non-constant object.
-    virtual StraightGeometry &getGeometry();
+    virtual Geometry& getGeometry();
 
     /// Get geometry.
     //  Return the element geometry.
     //  Version for constant object.
-    virtual const StraightGeometry &getGeometry() const;
+    virtual const Geometry& getGeometry() const;
 
     /// Get planes.
     //  Return the plane(s) observed by this monitor.
@@ -72,20 +61,15 @@ public:
     virtual void setActive(bool = true);
 
 protected:
-
-    /// The zero magnetic field.
-    NullField field;
-
     /// The monitor geometry.
-    StraightGeometry geometry;
+    Geometry geometry;
 
     /// The active/inactive flag.
     bool active;
 
 private:
-
     // Not implemented.
-    void operator=(const MonitorRep &);
+    void operator=(const MonitorRep&);
 };
 
-#endif // CLASSIC_MonitorRep_HH
+#endif  // OPALX_MonitorRep_HH

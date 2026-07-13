@@ -119,7 +119,31 @@ void DistributionMoments::computeMoments(
         ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Rview,
         ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Pview,
         ippl::ParticleAttrib<double>::view_type Mview, size_t Np, size_t Nlocal) {
-    Np = (Np == 0) ? 1 : Np;
+    // Lock the per-container slot. Null = never bound; expired = owning
+    // ParticleContainer was destroyed before this call (a bug either way).
+    auto slot = containerState_m.lock();
+    if (!slot) {
+        throw OpalException(
+                "DistributionMoments::computeMoments",
+                "ContainerState not available (expired or never bound). "
+                "Did you forget setContainerState(), or did the owning "
+                "ParticleContainer outlive its slot?");
+    }
+
+    // Short-circuit: nothing has mutated R or P since the last compute.
+    // Every caller that mutates particle state is required to call
+    // markMomentsDirty(), including PartBunch::bunchUpdate(), which calls
+    // pc->markMomentsDirty() immediately after IPPL's pc->update() so that
+    // domain-decomposition / particle migration is also covered.
+    if (!slot->momentsDirty) {
+        return;
+    }
+
+    Np = (Np == 0) ? 1 : Np;  // Explanation: see DistributionMoments::computeMeans
+                              // implementation
+
+    IpplTimings::TimerRef momentsTimer = IpplTimings::getTimer("computeMoments");
+    IpplTimings::startTimer(momentsTimer);
 
     reset();
     computeMeans(Rview, Pview, Mview, Np, Nlocal);
@@ -177,6 +201,7 @@ void DistributionMoments::computeMoments(
             },
             Kokkos::Sum<SumMatrix6x6>(loc_cent), Kokkos::Sum<SumMatrix6x6>(loc_ncent),
             Kokkos::Sum<double>(loc_std_ekin));
+    Kokkos::fence();
 
     SumMatrix6x6 glob_cent, glob_ncent;
     ippl::Comm->allreduce(&loc_cent.data[0][0], &glob_cent.data[0][0], 36, std::plus<double>());
@@ -222,6 +247,9 @@ void DistributionMoments::computeMoments(
 
     double betaGamma = std::sqrt(std::pow(meanGamma_m, 2) - 1.0);
     geometricEps_m   = normalizedEps_m / Vector_t<double, 3>(betaGamma);
+
+    slot->markMomentsClean();
+    IpplTimings::stopTimer(momentsTimer);
 }
 
 // ---------------------------------------------------------------------------
@@ -267,6 +295,46 @@ void DistributionMoments::computeMinMaxPosition(
         maxR_m(i) = rmax[i];
     }
     m << level5 << "Min/max computation done." << endl;
+}
+
+// ---------------------------------------------------------------------------
+// computePolarizationMoments -- per-component mean + RMS of the spin vector
+// ---------------------------------------------------------------------------
+void DistributionMoments::computePolarizationMoments(
+        ippl::ParticleAttrib<ippl::Vector<float, 3>>::view_type Polview, size_t Np, size_t Nlocal) {
+    // Pol is stored as float to save memory; reduce in double and cast on read.
+    // Np is the global particle count (>= 1, guarded by the caller); it normalizes
+    // both sums and sums-of-squares so the result matches R/P moment conventions.
+    Np = (Np == 0) ? 1 : Np;
+
+    // Reduce 6 quantities: [0..2] sums (x, y, z), [3..5] sums-of-squares.
+    SumArray<6> loc;
+    Kokkos::parallel_reduce(
+            "computePolarizationMoments", Nlocal,
+            KOKKOS_LAMBDA(const size_t k, SumArray<6>& upd) {
+                const double px = static_cast<double>(Polview(k)[0]);
+                const double py = static_cast<double>(Polview(k)[1]);
+                const double pz = static_cast<double>(Polview(k)[2]);
+                upd.data[0] += px;
+                upd.data[1] += py;
+                upd.data[2] += pz;
+                upd.data[3] += px * px;
+                upd.data[4] += py * py;
+                upd.data[5] += pz * pz;
+            },
+            Kokkos::Sum<SumArray<6>>(loc));
+    Kokkos::fence();
+
+    double glob[6];
+    ippl::Comm->allreduce(&loc.data[0], &glob[0], 6, std::plus<double>());
+
+    for (size_t i = 0; i < Dim; ++i) {
+        const double mean  = glob[i] / Np;
+        const double mean2 = glob[i + Dim] / Np;
+        const double var   = mean2 - mean * mean;
+        meanPol_m(i)       = mean;
+        stdPol_m(i)        = var > 0.0 ? std::sqrt(var) : 0.0;
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -582,6 +650,8 @@ void DistributionMoments::reset() {
     meanP_m         = 0.0;
     stdR_m          = 0.0;
     stdP_m          = 0.0;
+    meanPol_m       = 0.0;
+    stdPol_m        = 0.0;
     stdRP_m         = 0.0;
     normalizedEps_m = 0.0;
     geometricEps_m  = 0.0;

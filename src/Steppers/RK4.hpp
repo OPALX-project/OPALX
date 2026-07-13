@@ -18,8 +18,8 @@
 
 template <typename FieldFunction, typename... Arguments>
 bool RK4<FieldFunction, Arguments...>::doAdvance_m(
-    PartBunch_t* bunch, const size_t& i, const double& t, const double dt,
-    Arguments&... args) const {
+        PartBunch_t* bunch, const size_t& i, const double& t, const double dt,
+        Arguments&... args) const {
     // Fourth order Runge-Kutta integrator
     // arguments:
     //   x          Current value of dependent variable
@@ -40,8 +40,7 @@ bool RK4<FieldFunction, Arguments...>::doAdvance_m(
     // Evaluate f1 = f(x,t).
 
     bool outOfBound = derivate_m(bunch, x, t, deriv1, i, args...);
-    if (outOfBound)
-        return false;
+    if (outOfBound) return false;
 
     // Evaluate f2 = f( x+dt*f1/2, t+dt/2 ).
     const double half_dt = 0.5 * dt;
@@ -51,16 +50,14 @@ bool RK4<FieldFunction, Arguments...>::doAdvance_m(
         xtemp[j] = x[j] + half_dt * deriv1[j];
 
     outOfBound = derivate_m(bunch, xtemp, t_half, deriv2, i, args...);
-    if (outOfBound)
-        return false;
+    if (outOfBound) return false;
 
     // Evaluate f3 = f( x+dt*f2/2, t+dt/2 ).
     for (int j = 0; j < 6; ++j)
         xtemp[j] = x[j] + half_dt * deriv2[j];
 
     outOfBound = derivate_m(bunch, xtemp, t_half, deriv3, i, args...);
-    if (outOfBound)
-        return false;
+    if (outOfBound) return false;
 
     // Evaluate f4 = f( x+dt*f3, t+dt ).
     double t_full = t + dt;
@@ -68,8 +65,7 @@ bool RK4<FieldFunction, Arguments...>::doAdvance_m(
         xtemp[j] = x[j] + dt * deriv3[j];
 
     outOfBound = derivate_m(bunch, xtemp, t_full, deriv4, i, args...);
-    if (outOfBound)
-        return false;
+    if (outOfBound) return false;
 
     // Return x(t+dt) computed from fourth-order R-K.
     for (int j = 0; j < 6; ++j)
@@ -82,8 +78,8 @@ bool RK4<FieldFunction, Arguments...>::doAdvance_m(
 
 template <typename FieldFunction, typename... Arguments>
 bool RK4<FieldFunction, Arguments...>::derivate_m(
-    PartBunch_t* bunch [[maybe_unused]], double* y, const double& t,
-    double* yp, const size_t& i, Arguments&... args) const {
+        PartBunch_t* bunch [[maybe_unused]], double* y, const double& t, double* yp,
+        const size_t& i, Arguments&... args) const {
     // New for OPAL 2.0: Changing variables to m, T, s
     // Currently: m, ns, kG
 
@@ -125,7 +121,7 @@ bool RK4<FieldFunction, Arguments...>::derivate_m(
 
 template <typename FieldFunction, typename... Arguments>
 void RK4<FieldFunction, Arguments...>::copyTo(
-    const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, double* x) const {
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, double* x) const {
     for (int j = 0; j < 3; j++) {
         x[j]     = R(j);  // [x,y,z] (mm)
         x[j + 3] = P(j);  // [px,py,pz] (beta*gamma)
@@ -134,7 +130,7 @@ void RK4<FieldFunction, Arguments...>::copyTo(
 
 template <typename FieldFunction, typename... Arguments>
 void RK4<FieldFunction, Arguments...>::copyFrom(
-    Vector_t<double, 3>& R, Vector_t<double, 3>& P, double* x) const {
+        Vector_t<double, 3>& R, Vector_t<double, 3>& P, double* x) const {
     for (int j = 0; j < 3; j++) {
         R(j) = x[j];      // [x,y,z] (mm)
         P(j) = x[j + 3];  // [px,py,pz] (beta*gamma)

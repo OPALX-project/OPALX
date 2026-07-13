@@ -22,7 +22,7 @@
 #include <mpi.h>
 
 extern "C" {
-  #include "H5hut.h"
+#include "H5hut.h"
 }
 
 #include "AbstractObjects/OpalData.h"
@@ -36,8 +36,6 @@ extern "C" {
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
-
-#include "Utilities/SDDSParser/SDDSParserException.h"
 
 #include "BuildInfo.h"
 
@@ -68,8 +66,8 @@ namespace OPALXMAIN {
         std::string mySpace("            ");
 
         *gmsg << mySpace << "  ____  _____        _       __   __" << endl;
-*gmsg << "\033[1;32m";
-*gmsg << R"(
+        *gmsg << "\033[1;32m";
+        *gmsg << R"(
 
   ██████  ██████   █████  ██      ██   ██
  ██    ██ ██   ██ ██   ██ ██       ██ ██
@@ -79,7 +77,8 @@ namespace OPALXMAIN {
 
          This is OPALX (Object Oriented Parallel Accelerator Library for Exascale)
 
-)" << "\033[0m" << endl;
+)" << "\033[0m"
+              << endl;
 
         std::string gitRevision = "git rev. " + Util::getGitRevision();
         std::string copyRight   = "(c) PSI, https://github.com/OPALX-project/OPALX";
@@ -100,7 +99,8 @@ namespace OPALXMAIN {
         // Check which host device is being used
         *gmsg << "* Host:   " << Kokkos::HostSpace::execution_space::name() << endl;
 
-    // Check which device is being used (this works for CUDA, HIP, or any device-enabled execution space)
+        // Check which device is being used (this works for CUDA, HIP, or any device-enabled
+        // execution space)
 #ifdef KOKKOS_ENABLE_CUDA
         *gmsg << "* Device: " << Kokkos::Cuda::name() << endl << endl;
 #elif defined(KOKKOS_ENABLE_HIP)
@@ -130,14 +130,14 @@ namespace OPALXMAIN {
         *ippl::Info << "   --help                   : Display this command-line summary.\n";
         *ippl::Info << endl;
     }
-}  // namespace
+}  // namespace OPALXMAIN
 
 int main(int argc, char* argv[]) {
     ippl::initialize(argc, argv);
     {
         gmsg         = new Inform("OPAL-X");
         namespace fs = std::filesystem;
-        
+
         H5SetVerbosityLevel(1);  // 65535);
 
         gsl_set_error_handler(&handleGSLErrors);
@@ -145,8 +145,7 @@ int main(int argc, char* argv[]) {
         static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("mainTimer");
         IpplTimings::startTimer(mainTimer);
 
-        if (ippl::Comm->rank() == 0)
-            remove("errormsg.txt");
+        if (ippl::Comm->rank() == 0) remove("errormsg.txt");
 
         const OpalParser parser;
 
@@ -180,7 +179,7 @@ int main(int argc, char* argv[]) {
             // Read startup file.
             FileStream::setEcho(Options::echo);
 
-            char* startup             = getenv("HOME");
+            char* startup           = getenv("HOME");
             std::filesystem::path p = strncat(startup, "/init.opal", 20);
             if (startup != nullptr && fs::is_regular_file(p)) {
                 FileStream::setEcho(false);
@@ -196,8 +195,7 @@ int main(int argc, char* argv[]) {
 
                 if (is) {
                     *gmsg << "Reading startup file '" << startup << "'" << endl;
-                    parser.
-                        run(is);
+                    parser.run(is);
                     *gmsg << "Finished reading startup file." << endl;
                 }
                 FileStream::setEcho(Options::echo);
@@ -249,8 +247,8 @@ int main(int argc, char* argv[]) {
                                 << Util::getGitRevision() << endl;
                     IpplInfo::printVersion();
                     std::string options =
-                        (IpplInfo::compileOptions() + std::string(" ")
-                         + std::string(buildinfo::compile_options) + std::string(" "));
+                            (IpplInfo::compileOptions() + std::string(" ")
+                             + std::string(buildinfo::compile_options) + std::string(" "));
                     std::set<std::string> uniqOptions;
                     while (options.length() > 0) {
                         size_t n = options.find_first_of(' ');
@@ -287,12 +285,13 @@ int main(int argc, char* argv[]) {
                     inputFileArgument = ii;
                     continue;
                 } else if (
-                    argStr == std::string("-restart") || argStr == std::string("--restart")) {
+                        argStr == std::string("-restart") || argStr == std::string("--restart")) {
                     opal->setRestartRun();
                     opal->setRestartStep(atoi(argv[++ii]));
                     continue;
                 } else if (
-                    argStr == std::string("-restartfn") || argStr == std::string("--restartfn")) {
+                        argStr == std::string("-restartfn")
+                        || argStr == std::string("--restartfn")) {
                     restartFileName = std::string(argv[++ii]);
                     continue;
                 } else if (argStr == std::string("--info")) {
@@ -360,22 +359,25 @@ int main(int argc, char* argv[]) {
                 if (errormsg.good()) {
                     char buffer[256];
                     std::string closure(
-                        "                                                                          "
-                        "    "
-                        "   *\n");
+                            "                                                                      "
+                            "    "
+                            "    "
+                            "   *\n");
                     *ippl::Error
-                        << "\n"
-                        << "* "
-                           "***********************************************************************"
-                           "****"
-                           "*******\n"
-                        << "* ************** W A R N I N G / E R R O R * * M E S S A G E S "
-                           "*********************\n"
-                        << "* "
-                           "***********************************************************************"
-                           "****"
-                           "*******"
-                        << endl;
+                            << "\n"
+                            << "* "
+                               "*******************************************************************"
+                               "****"
+                               "****"
+                               "*******\n"
+                            << "* ************** W A R N I N G / E R R O R * * M E S S A G E S "
+                               "*********************\n"
+                            << "* "
+                               "*******************************************************************"
+                               "****"
+                               "****"
+                               "*******"
+                            << endl;
                     errormsg.getline(buffer, 256);
                     while (errormsg.good()) {
                         *ippl::Error << "* ";
@@ -388,52 +390,24 @@ int main(int argc, char* argv[]) {
                         }
                         errormsg.getline(buffer, 256);
                     }
-                    *ippl::Error
-                        << "* " << closure
-                        << "* "
-                           "**********************************************************************"
-                           "************\n"
-                        << "* "
-                           "**********************************************************************"
-                           "************"
-                        << endl;
+                    *ippl::Error << "* " << closure
+                                 << "* "
+                                    "**************************************************************"
+                                    "********"
+                                    "************\n"
+                                 << "* "
+                                    "**************************************************************"
+                                    "********"
+                                    "************"
+                                 << endl;
                 }
                 errormsg.close();
             }
 
-        } 
-        catch (OpalException& ex) {
+        } catch (OpalException& ex) {
             Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
             errorMsg << "\n*** User error detected by function \"" << ex.where() << "\"\n";
             // stat->printWhere(errorMsg, true);
-            std::string what = ex.what();
-            size_t pos       = what.find_first_of('\n');
-            do {
-                errorMsg << "    " << what.substr(0, pos) << endl;
-                what = what.substr(pos + 1, std::string::npos);
-                pos  = what.find_first_of('\n');
-            } while (pos != std::string::npos);
-            errorMsg << "    " << what << endl;
-
-            MPI_Abort(MPI_COMM_WORLD, -100);
-        } catch (ClassicException& ex) {
-            Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
-            errorMsg << "\n*** User error detected by function \"" << ex.where() << "\"\n";
-            // stat->printWhere(errorMsg, true);
-            std::string what = ex.what();
-            size_t pos       = what.find_first_of('\n');
-            do {
-                errorMsg << "    " << what.substr(0, pos) << endl;
-                what = what.substr(pos + 1, std::string::npos);
-                pos  = what.find_first_of('\n');
-            } while (pos != std::string::npos);
-            errorMsg << "    " << what << endl;
-
-            MPI_Abort(MPI_COMM_WORLD, -100);
-        } catch (SDDSParserException& ex) {
-            Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
-
-            errorMsg << "\n*** Error detected by function \"" << ex.where() << "\"\n";
             std::string what = ex.what();
             size_t pos       = what.find_first_of('\n');
             do {
@@ -510,9 +484,9 @@ int main(int argc, char* argv[]) {
         IpplTimings::print();
 
         IpplTimings::print(
-            std::string("timing.dat"), OpalData::getInstance()->getProblemCharacteristicValues());
+                std::string("timing.dat"),
+                OpalData::getInstance()->getProblemCharacteristicValues());
 
-        
         ippl::Comm->barrier();
         Fieldmap::clearDictionary();
 

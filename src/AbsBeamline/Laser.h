@@ -1,7 +1,7 @@
-#ifndef CLASSIC_Laser_HH
-#define CLASSIC_Laser_HH
+#ifndef OPALX_Laser_HH
+#define OPALX_Laser_HH
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 
 /**
  * @brief Passive OPALX laser element.
@@ -22,7 +22,7 @@
  * The Compton helpers operate on electron total energy in GeV and return photon
  * energies in GeV.
  */
-class Laser : public Component {
+class Laser : public ElementBase {
 public:
     /** @brief Construct an unnamed laser element. */
     Laser();
@@ -36,7 +36,7 @@ public:
     /** @brief Destroy the laser element. */
     ~Laser() override;
 
-    /** @brief Accept a beamline visitor through the generic component interface. */
+    /** @brief Accept a beamline visitor through the laser-specific interface. */
     void accept(BeamlineVisitor&) const override;
 
     /**
@@ -45,16 +45,15 @@ public:
      * @param startField Element entrance position in the current lattice traversal.
      * @param endField Filled with the element exit position.
      */
-    void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    void initialise(PartBunch_t* bunch) override;
 
     /** @brief Finalize the element after a tracking pass. */
     void finalise() override;
 
     /** @brief Return false because the element has straight reference geometry. */
-    bool bends() const override;
 
     /** @brief Get the longitudinal element extent in the current lattice traversal. */
-    void getDimensions(double& zBegin, double& zEnd) const override;
+    void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     /** @brief Return the OPALX element type identifier. */
     ElementType getType() const override;
@@ -124,8 +123,8 @@ public:
      * @throws OpalException If the electron energy is below rest energy or if either
      *         direction vector is zero.
      */
-    double getLinearComptonInvariantX(double electronTotalEnergyGeV,
-                                      const Vector_t<double, 3>& beamDirection) const;
+    double getLinearComptonInvariantX(
+            double electronTotalEnergyGeV, const Vector_t<double, 3>& beamDirection) const;
 
     /**
      * @brief Compute the forward scattered photon energy for linear Compton scattering.
@@ -141,11 +140,9 @@ public:
      *         direction vector is zero.
      */
     double getLinearComptonForwardPhotonEnergyGeV(
-        double electronTotalEnergyGeV,
-        const Vector_t<double, 3>& beamDirection) const;
+            double electronTotalEnergyGeV, const Vector_t<double, 3>& beamDirection) const;
 
 private:
-    double startField_m;
     double wavelength_m;
     double pulseEnergy_m;
     double pulseLength_m;
@@ -155,8 +152,6 @@ private:
     Vector_t<double, 3> stokes_m;
 };
 
-inline int Laser::getRequiredNumberOfTimeSteps() const {
-    return 1;
-}
+inline int Laser::getRequiredNumberOfTimeSteps() const { return 1; }
 
-#endif  // CLASSIC_Laser_HH
+#endif  // OPALX_Laser_HH

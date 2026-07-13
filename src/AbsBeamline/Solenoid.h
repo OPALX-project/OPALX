@@ -1,5 +1,5 @@
-#ifndef CLASSIC_Solenoid_HH
-#define CLASSIC_Solenoid_HH
+#ifndef OPALX_Solenoid_HH
+#define OPALX_Solenoid_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: Solenoid.h,v $
@@ -21,7 +21,7 @@
 //
 // ------------------------------------------------------------------------
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
 
 class Fieldmap;
@@ -30,75 +30,63 @@ class Fieldmap;
  * @class Solenoid
  * @brief Abstract class for a solenoid magnet.
  */
-class Solenoid : public Component {
+class Solenoid : public ElementBase {
 public:
-/* ============================== Constructors ============================== */
+    /* ============================== Constructors ============================== */
     explicit Solenoid(const std::string& name);
     Solenoid();
     Solenoid(const Solenoid&);
     virtual ~Solenoid();
-/* ========================================================================== */
-/* ============================== Apply Functions =========================== */
+    /* ========================================================================== */
+    /* ============================== Apply Functions =========================== */
     /**
      * @brief apply the solenoid field to all particles in the bunch
-     * 
+     *
      * @returns true if at least one particle is lost, false otherwise
      */
     virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     /**
      * @brief apply the solenoid field to particle i
-     * 
+     *
      * @param i Particle index
      * @param t Time
      * @param E Electric Field
      * @param B Magnetic Field
-     * 
+     *
      * @returns true if particle is lost, false otherwise
      */
-    virtual bool apply(
-        const size_t& i, 
-        const double& t, 
-        Vector_t<double, 3>& E, 
-        Vector_t<double, 3>& B) override;
-
     /**
      * @brief Apply to particle with position R and momentum P
-     * 
+     *
      * @param R Position
      * @param P Momentum
      * @param t Time
      * @param E Electric Field
      * @param B Magnetic Field
-     * 
+     *
      * @returns true if particle is lost, false otherwise
      */
     virtual bool apply(
-        const Vector_t<double, 3>& R, 
-        const Vector_t<double, 3>& P, 
-        const double& t,
-        Vector_t<double, 3>& E, 
-        Vector_t<double, 3>& B) override;
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     /**
      * @brief Apply to reference particle with position R and momemtum P
-     * 
+     *
      * @param R Position
      * @param P Momentum
      * @param t Time
      * @param E Electric Field
      * @param B Magnetic Field
-     * 
+     *
      * @returns true if particle is lost, false otherwise
      */
     virtual bool applyToReferenceParticle(
-        const Vector_t<double, 3>& R, 
-        const Vector_t<double, 3>& P, 
-        const double& t,
-        Vector_t<double, 3>& E, 
-        Vector_t<double, 3>& B) override;
-/* ========================================================================== */
-/* ============================== Functions ================================= */
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+    /* ========================================================================== */
+    /* ============================== Functions ================================= */
     /// @brief Apply visitor to Solenoid
     virtual void accept(BeamlineVisitor&) const override;
 
@@ -113,20 +101,15 @@ public:
 
     /**
      * @brief initialise the solenoid element
-     * 
+     *
      * @param bunch Particle bunch
-     * @param startField Starting position of the field 
+     * @param startField Starting position of the field
      * @param endField Ending position of the field
      */
-    virtual void initialise(
-        PartBunch_t* bunch, 
-        double& startField, 
-        double& endField) override;
+    virtual void initialise(PartBunch_t* bunch) override;
 
     /// @note not implemented
     virtual void finalise() override;
-
-    virtual bool bends() const override;
 
     /// @brief Load field map and go online
     virtual void goOnline(const double& kineticEnergy) override;
@@ -143,68 +126,81 @@ public:
 
     virtual ElementType getType() const override;
 
-    /// @brief Get the begin and end positions of the element 
-    virtual void getDimensions(double& zBegin, double& zEnd) const override;
-    
-    /// @brief Get the begin and end positions of the element
-    virtual void getElementDimensions(double& zBegin, double& zEnd) const override;
+    /**
+     * @brief Return the local field-support interval of the solenoid.
+     *
+     * For the extent split used in the element-placement redesign, this method
+     * returns the interval on which the solenoid field map is defined,
+     * \f$[z_\mathrm{field}^{\mathrm{begin}}, z_\mathrm{field}^{\mathrm{end}}]\f$.
+     * It may differ from the nominal body extent and therefore also from the
+     * entry/exit ports used for placement and visualization.
+     */
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
+
+    /**
+     * @brief Return the nominal body extent of the solenoid.
+     *
+     * The nominal body extent is the hardware interval
+     * \f$[0, L_\mathrm{body}]\f$ in the canonical local chart. It is driven by
+     * the configured solenoid length and is intentionally kept separate from
+     * the field-support interval so that body placement and fringe-field
+     * support can differ.
+     */
+
+    /**
+     * @brief Get a finite transverse support envelope for placement/export.
+     *
+     * The tracking aperture of generic components defaults to a very large
+     * ellipse. For solenoids, placement/export code instead needs a physically
+     * meaningful support radius. This method first prefers a finite configured
+     * aperture and otherwise falls back to the loaded field-map bounding box.
+     *
+     * @param horizontalRadius Output half-width in x [m].
+     * @param verticalRadius Output half-width in y [m].
+     * @return true if a finite support envelope is available.
+     */
+    bool getSupportEnvelope(double& horizontalRadius, double& verticalRadius) const;
 
     /// @brief Check if position r is inside the field map
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
 
-    /// @brief Get the coordinate transformation to the begin of the element
-    virtual CoordinateSystemTrafo getEdgeToBegin() const override;
-
-    /// @brief Get the coordinate transformation to the end of the element
-    virtual CoordinateSystemTrafo getEdgeToEnd() const override;
-
 private:
-/* ========================================================================== */
-/* ============================== Variables ================================= */
-    
+    /* ========================================================================== */
+    /* ============================== Variables ================================= */
+
     /// Name of the field map file
-    std::string filename_m; 
+    std::string filename_m;
 
     /// Fieldmap pointer
     Fieldmap* fieldmap_m;
 
     /// Scale multiplier
-    double scale_m; 
-    
+    double scale_m;
+
     /// Scale error multiplier
     double scaleError_m;
 
     /// Starting point of the field
-    double startField_m; 
+    double startField_m;
+
+    /// End point of the field support in the local chart
+    double endField_m;
 
     /// Fast tracking flag @note currently not implemented
     bool fast_m;
 
-    /// @note not implemente 
+    /// @note not implemente
     void operator=(const Solenoid&);
 };
 
 /**
  * @brief Get the coordinate transformation to the start of the element
- * 
+ *
  * @returns CoordinateSystemTrafo to the begin of the element
  */
-inline CoordinateSystemTrafo Solenoid::getEdgeToBegin() const {
-    CoordinateSystemTrafo ret(
-        Vector_t<double, 3>(0, 0, startField_m), 
-        Quaternion(1, 0, 0, 0));
-    return ret;
-}
-
 /**
  * @brief Get the coordinate transformation to the end of the element
- * 
+ *
  * @returns CoordinateSystemTrafo to the end of the element
  */
-inline CoordinateSystemTrafo Solenoid::getEdgeToEnd() const {
-    CoordinateSystemTrafo ret(
-        Vector_t<double, 3>(0, 0, startField_m + getElementLength()), 
-        Quaternion(1, 0, 0, 0));
-    return ret;
-}
-#endif  // CLASSIC_Solenoid_HH
+#endif  // OPALX_Solenoid_HH

@@ -8,6 +8,7 @@ add_opalx_test(TestLinearSpline USE_GTEST_MAIN)
 add_opalx_test(TestFFT USE_GTEST_MAIN)
 add_opalx_test(TestRandom USE_GTEST_MAIN)
 add_opalx_test(TestHistogram USE_GTEST_MAIN)
+add_opalx_test(TestOpalException USE_GTEST_MAIN)
 add_opalx_test(TestQuasiRandom USE_GTEST_MAIN)
 add_opalx_test(TestGSLCompat USE_GTEST_MAIN)
 add_opalx_test(TestGSLComplex USE_GTEST_MAIN)
@@ -19,4 +20,3 @@ add_opalx_test(TestGSLIntegration USE_GTEST_MAIN)
 
 # Attribute parsing coverage (OPAL parser interface)
 add_opalx_test(TestPredefinedString USE_GTEST_MAIN)
-

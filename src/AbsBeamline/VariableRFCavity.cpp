@@ -20,9 +20,9 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "PartBunch.h"
 #include "Physics/Units.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 
-VariableRFCavity::VariableRFCavity(const std::string& name) : Component(name) {
+VariableRFCavity::VariableRFCavity(const std::string& name) : ElementBase(name) {
     initNull();  // initialise everything to nullptr
 }
 
@@ -30,7 +30,7 @@ VariableRFCavity::VariableRFCavity() {
     initNull();  // initialise everything to nullptr
 }
 
-VariableRFCavity::VariableRFCavity(const VariableRFCavity& var) : Component(var) {
+VariableRFCavity::VariableRFCavity(const VariableRFCavity& var) : ElementBase(var) {
     initNull();  // initialise everything to nullptr
     *this = var;
 }
@@ -97,32 +97,9 @@ void VariableRFCavity::setFrequencyModel(
     frequencyTD_m = frequency_td;
 }
 
-StraightGeometry& VariableRFCavity::getGeometry() { return geometry; }
+Geometry& VariableRFCavity::getGeometry() { return geometry; }
 
-const StraightGeometry& VariableRFCavity::getGeometry() const { return geometry; }
-
-EMField& VariableRFCavity::getField() {
-    throw GeneralClassicException("VariableRFCavity", "No field defined for VariableRFCavity");
-}
-
-const EMField& VariableRFCavity::getField() const {
-    throw GeneralClassicException(
-            "VariableRFCavity::getField", "No field defined for VariableRFCavity");
-}
-
-bool VariableRFCavity::apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
-    const auto pc = RefPartBunch_m->getParticleContainer();
-    Vector_t<double, 3> R{};
-    Kokkos::deep_copy(
-            Kokkos::View<Vector_t<double, 3>, Kokkos::HostSpace>(&R),
-            Kokkos::subview(pc->R.getView(), i));
-    Kokkos::fence();
-    const double E0        = amplitudeTD_m->getValue(t) * Units::MVpm2Vpm;
-    const double integralF = frequencyTD_m->getIntegral(t) * Units::MHz2Hz;
-    const double phi       = phaseTD_m->getValue(t);
-    return computeField(R, E, E0, integralF, phi, halfWidth_m, halfHeight_m);
-}
+const Geometry& VariableRFCavity::getGeometry() const { return geometry; }
 
 bool VariableRFCavity::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
@@ -130,10 +107,11 @@ bool VariableRFCavity::apply(
     const double E0        = amplitudeTD_m->getValue(t) * Units::MVpm2Vpm;
     const double integralF = frequencyTD_m->getIntegral(t) * Units::MHz2Hz;
     const double phi       = phaseTD_m->getValue(t);
-    return computeField(R, E, E0, integralF, phi, halfWidth_m, halfHeight_m);
+    return computeField(
+            R, E, E0, integralF, phi, halfWidth_m, halfHeight_m, getGeometry().getElementLength());
 }
 
-bool VariableRFCavity::apply(const std::shared_ptr<ParticleContainer_t> &pc) {
+bool VariableRFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     const auto R           = pc->R.getView();
     const auto E           = pc->E.getView();
     const auto t           = RefPartBunch_m->getT();
@@ -143,10 +121,11 @@ bool VariableRFCavity::apply(const std::shared_ptr<ParticleContainer_t> &pc) {
     const auto count       = pc->getLocalNum();
     const auto halfWidth   = halfWidth_m;
     const auto halfHeight  = halfHeight_m;
+    const auto length      = getGeometry().getElementLength();
     // Kernel launch over all particles
     Kokkos::parallel_for(
             "VariableRFCavity::computeField()", count, KOKKOS_LAMBDA(const size_t i) {
-                computeField(R(i), E(i), E0, integralF, phi, halfWidth, halfHeight);
+                computeField(R(i), E(i), E0, integralF, phi, halfWidth, halfHeight, length);
             });
 
     return false;
@@ -158,10 +137,7 @@ bool VariableRFCavity::applyToReferenceParticle(
     return apply(R, P, t, E, B);
 }
 
-void VariableRFCavity::initialise(
-        PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
-    RefPartBunch_m = bunch;
-}
+void VariableRFCavity::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
 
 void VariableRFCavity::finalise() { RefPartBunch_m = nullptr; }
 
@@ -184,7 +160,7 @@ void VariableRFCavity::initialiseTimeDependencies() const {
     amplitudeTD_m = std::shared_ptr<AbstractTimeDependence>(amplitudeTD->clone());
 
     if (halfHeight_m < 1e-9 || halfWidth_m < 1e-9)
-        throw GeneralClassicException(
+        throw GeneralOpalException(
                 "VariableRFCavity::initialise", "Height or width was not set on VariableRFCavity");
 }
 

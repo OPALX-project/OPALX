@@ -1,5 +1,5 @@
-#ifndef CLASSIC_AbsFileStream_HH
-#define CLASSIC_AbsFileStream_HH
+#ifndef OPALX_AbsFileStream_HH
+#define OPALX_AbsFileStream_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: AbsFileStream.h,v $
@@ -22,19 +22,16 @@
 
 #include "OpalParser/TokenStream.h"
 
-
 // Class AbsFileStream
 // ------------------------------------------------------------------------
 /// A stream of input tokens.
 //  The source of tokens is an abstract file stream.
 
-class AbsFileStream: public TokenStream {
-
+class AbsFileStream : public TokenStream {
 public:
-
     /// Constructor.
     //  Store stream name.
-    explicit AbsFileStream(const std::string &name);
+    explicit AbsFileStream(const std::string& name);
 
     virtual ~AbsFileStream();
 
@@ -46,7 +43,6 @@ public:
     virtual Token readToken();
 
 protected:
-
     // Read double from current statement.
     Token readNumber();
 
@@ -64,11 +60,10 @@ protected:
     int curr_char;
 
 private:
-
     // Not implemented.
     AbsFileStream();
-    AbsFileStream(const AbsFileStream &);
-    void operator=(const AbsFileStream &);
+    AbsFileStream(const AbsFileStream&);
+    void operator=(const AbsFileStream&);
 };
 
-#endif // CLASSIC_AbsFileStream_HH
+#endif  // OPALX_AbsFileStream_HH
