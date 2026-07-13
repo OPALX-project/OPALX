@@ -25,8 +25,7 @@ namespace {
         void (DriftRep::*set)(double);
     };
 
-    const Entry entries[] = {
-            {0, 0, 0}};
+    const Entry entries[] = {{0, 0, 0}};
 }  // namespace
 
 DriftRep::DriftRep() : Drift(), geometry() {}

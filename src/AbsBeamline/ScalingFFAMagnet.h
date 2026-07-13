@@ -117,7 +117,6 @@ public:
     /** Finalise the ScalingFFAMagnet - sets bunch to nullptr */
     void finalise() override;
 
-
     /** Not implemented */
     void getFieldExtent(double& /*zBegin*/, double& /*zEnd*/) const override {}
 

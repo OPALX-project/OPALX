@@ -26,8 +26,7 @@ namespace {
         void (MonitorRep::*set)(double);
     };
 
-    const Entry entries[] = {
-            {0, 0, 0}};
+    const Entry entries[] = {{0, 0, 0}};
 }  // namespace
 
 MonitorRep::MonitorRep() : Monitor(), geometry(), active(true) {}

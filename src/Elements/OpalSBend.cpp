@@ -69,9 +69,7 @@ void OpalSBend::update() {
     // exactly the placed arc at any angle. (The legacy chord form 2 sin(angle/2) / L
     // belonged to the OPAL convention where L was the chord.)
     double factor = OpalData::getInstance()->getP0() / Physics::c;
-    double k0     = itsAttr[K0] ? Attributes::getReal(itsAttr[K0])
-                    : length    ? angle / length
-                                : angle;
+    double k0 = itsAttr[K0] ? Attributes::getReal(itsAttr[K0]) : length ? angle / length : angle;
     const std::vector<double> normal = {
             factor * k0, factor * Attributes::getReal(itsAttr[K1]),
             factor * Attributes::getReal(itsAttr[K2]) / 2.0,

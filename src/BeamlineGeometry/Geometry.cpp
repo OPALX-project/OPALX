@@ -146,8 +146,8 @@ double Geometry::getChordLength() const {
 }
 
 std::vector<Vector_t<double, 3>> Geometry::getDesignPath(std::size_t minSamples) const {
-    const double sBegin = 0.0;      // entrance edge (chart anchored at the entrance)
-    const double sEnd   = len_m;    // exit edge
+    const double sBegin = 0.0;    // entrance edge (chart anchored at the entrance)
+    const double sEnd   = len_m;  // exit edge
     const double span   = std::abs(sEnd - sBegin);
     const std::size_t samples =
             std::max<std::size_t>(minSamples, static_cast<std::size_t>(std::ceil(span / 0.01)) + 1);

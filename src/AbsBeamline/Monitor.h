@@ -56,7 +56,6 @@ public:
     /// Get plane on which monitor observes.
     virtual Plane getPlane() const = 0;
 
-
     virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     virtual bool apply(

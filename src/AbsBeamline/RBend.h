@@ -123,7 +123,7 @@ private:
     /// @param B Magnetic field (output).
     void computeFieldHost(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const;
 
-    /// @brief Build the pure-value field inputs for the kernel launch. 
+    /// @brief Build the pure-value field inputs for the kernel launch.
     /// @note Includes coefficients, gap, pole-face projections and edge-focusing coefficients.
     /// @return The field inputs.
     BendFieldModel::FieldInputs makeFieldInputs() const;
@@ -171,7 +171,6 @@ private:
 };
 
 inline void RBend::setFullGap(double gap) { gap_m = std::abs(gap); }
-
 
 inline void RBend::setFringeIntegral(double fringeIntegral) {
     fringeIntegral_m = std::abs(fringeIntegral);

@@ -9,9 +9,7 @@ namespace {
         void (SBendRep::*set)(double);
     };
 
-    const Entry entries[] = {
-            {"BY", &SBendRep::getB, &SBendRep::setB},
-            {nullptr, nullptr, nullptr}};
+    const Entry entries[] = {{"BY", &SBendRep::getB, &SBendRep::setB}, {nullptr, nullptr, nullptr}};
 }  // namespace
 
 SBendRep::SBendRep() : SBend(), geometry_m(Geometry::makeSBend(0.0, 0.0)) {}

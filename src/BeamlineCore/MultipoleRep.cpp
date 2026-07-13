@@ -30,8 +30,7 @@ namespace {
         void (MultipoleRep::*set)(double);
     };
 
-    const Entry entries[] = {
-            {0, 0, 0}};
+    const Entry entries[] = {{0, 0, 0}};
 }  // namespace
 
 MultipoleRep::MultipoleRep() : Multipole(), geometry() {}

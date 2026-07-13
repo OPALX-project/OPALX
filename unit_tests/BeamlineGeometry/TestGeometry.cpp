@@ -147,8 +147,8 @@ TEST(GeometryHelperTest, RotateAboutYRoundTripAndKnownValue) {
 // toBendArcCoords inverts the entrance-anchored design arc: points on the arc map
 // to (0, y, s); the straight tangents continue s linearly outside the body.
 TEST(GeometryHelperTest, ToBendArcCoordsInvertsTheDesignArc) {
-    const double h = 0.7;   // curvature
-    const double L = 1.1;   // body (arc) length
+    const double h = 0.7;  // curvature
+    const double L = 1.1;  // body (arc) length
 
     // On-arc point at arc length s.
     auto onArc = [&](double s) {

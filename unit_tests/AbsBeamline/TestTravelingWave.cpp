@@ -238,7 +238,7 @@ TEST_F(TravelingWaveTest, GetDimensions) {
 TEST_F(TravelingWaveTest, GetElementDimensions) {
     double begin = 0.0, end = 0.0;
     begin = 0.0;
-    end = tw_->getGeometry().getElementLength();
+    end   = tw_->getGeometry().getElementLength();
 
     EXPECT_DOUBLE_EQ(begin, 0.0);
     EXPECT_DOUBLE_EQ(end, 4.0);

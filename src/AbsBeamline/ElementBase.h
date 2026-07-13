@@ -187,7 +187,7 @@ public:
     /// @brief Get the misalignment.
     /// @return The misalignment.
     CoordinateSystemTrafo getMisalignment() const;
-    
+
     /// @brief Unlock the position so the global -> local transform can change.
     void releasePosition();
 
@@ -374,7 +374,7 @@ private:
 
     // --- Placement ---
     bool positionIsFixed;
-    double elementPosition_m; // S position of the element entrance
+    double elementPosition_m;  // S position of the element entrance
     bool elemedgeSet_m;
 
     // --- Miscellaneous ---
@@ -463,7 +463,6 @@ inline void ElementBase::setDesignEnergy(const double& /*energy*/, bool /*change
 inline double ElementBase::getDesignEnergy() const { return -1.0; }
 
 inline int ElementBase::getRequiredNumberOfTimeSteps() const { return 10; }
-
 
 inline void ElementBase::setFlagDeleteOnTransverseExit(bool flag) {
     deleteOnTransverseExit_m = flag;

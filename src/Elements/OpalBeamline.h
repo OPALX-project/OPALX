@@ -73,7 +73,6 @@ public:
 
     void switchElementsOff();
 
-
     BoundaryGeometry* getBoundaryGeometry(const unsigned int&);
 
     unsigned long getFieldAt(
