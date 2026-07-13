@@ -27,7 +27,7 @@ variables:
     - date
     - export BUILD_PATH=$(pwd)/$BUILD_DIR
     - echo "BUILD_PATH=$BUILD_PATH"
-    - export SRUN_ARGS="--uenv=${CUDA12_9_UENV} --view=${WITH_UENV_VIEW} --repo=${SCRATCH}/.uenv-images-ci-daint --gpus-per-task=1 ${WRAPPER}"
+    - export SRUN_ARGS="--uenv=${CUDA12_9_UENV} --view=${WITH_UENV_VIEW} --repo=${SCRATCH}/.uenv-images-ci-daint --gpus-per-task=1"
     - echo "SRUN_ARGS=$SRUN_ARGS"
   script:
     - echo "=== Diagnostics ==="

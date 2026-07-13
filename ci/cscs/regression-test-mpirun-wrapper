@@ -14,5 +14,5 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-echo "[mpirun-wrapper] translated mpirun -np ${np} -> srun ${SRUN_ARGS} -n ${np} $*"
-exec srun ${SRUN_ARGS} -n "${np}" "$@"
+echo "[mpirun-wrapper] translated mpirun -np ${np} -> srun ${SRUN_ARGS} -n ${np} ${WRAPPER} $*"
+exec srun ${SRUN_ARGS} -n "${np}" ${WRAPPER} "$@"
