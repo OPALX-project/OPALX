@@ -14,5 +14,5 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-echo "[mpirun-wrapper] translated mpirun -np ${np} -> srun ${SRUN_ARGS} -n ${np} ${WRAPPER} env MALLOC_CHECK_=0 $*"
-exec srun ${SRUN_ARGS} -n "${np}" ${WRAPPER} env MALLOC_CHECK_=0 "$@"
+echo "[mpirun-wrapper] translated mpirun -np ${np} -> srun ${SRUN_ARGS} -n ${np} ${WRAPPER} env MALLOC_CHECK_=0 GLIBC_TUNABLES=glibc.malloc.tcache_count=0 $*"
+exec srun ${SRUN_ARGS} -n "${np}" ${WRAPPER} env MALLOC_CHECK_=0 GLIBC_TUNABLES=glibc.malloc.tcache_count=0 "$@"
