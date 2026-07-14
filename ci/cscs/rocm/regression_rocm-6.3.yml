@@ -173,7 +173,7 @@ variables:
         if git clone --depth 1 --filter=blob:none --no-checkout --branch main git@gitea.psi.ch:AMAS/opal-live-doc.git opal-live-doc; then
           cd opal-live-doc
           git sparse-checkout init --cone
-          git sparse-checkout set $BUILD_ARCH
+          git sparse-checkout set $BUILD_ARCH overview/
           git checkout
           mkdir -p $BUILD_ARCH
           cp -r $CI_PROJECT_DIR/regression-results-$BUILD_ARCH/. $BUILD_ARCH/
