@@ -90,8 +90,7 @@ target_include_directories(
   PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 
-target_sources(opalx PUBLIC changes.cpp)
-#
+# Subdirectories
 add_subdirectory (AbsBeamline)
 add_subdirectory (AbstractObjects)
 add_subdirectory (Algorithms)
