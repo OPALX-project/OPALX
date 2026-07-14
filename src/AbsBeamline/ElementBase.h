@@ -1,52 +1,4 @@
 //
-// Class ElementBase
-//   The very base class for beam line representation objects. A beam line
-//   is modelled as a composite structure having a single root object
-//   (the top level beam line), which contains both ``single'' leaf-type
-//   elements (Components), as well as sub-lines (composites).
-//
-//   Interface for basic beam line object.
-//   This class defines the abstract interface for all objects which can be
-//   contained in a beam line. ElementBase forms the base class for two distinct
-//   but related hierarchies of objects:
-//   [OL]
-//   [LI]
-//   A set of concrete accelerator element classes, which compose the standard
-//   accelerator component library (SACL).
-//   [LI]
-//   [/OL]
-//   Instances of the concrete classes for single elements are by default
-//   sharable. Instances of beam lines and integrators are by
-//   default non-sharable, but they may be made sharable by a call to
-//   [b]makeSharable()[/b].
-//   [p]
-//   An ElementBase object can return two lengths, which may be different:
-//   [OL]
-//   [LI]
-//   The arc length along the geometry.
-//   [LI]
-//   The design length, often measured along a straight line.
-//   [/OL]
-//   Class ElementBase contains a map of name versus value for user-defined
-//   attributes (see file AbsBeamline/AttributeSet.hh). The map is primarily
-//   intended for processes that require algorithm-specific data in the
-//   accelerator model.
-//   [P]
-//   The class ElementBase is a base class.
-//   Virtual derivation is used to make multiple inheritance possible for
-//   derived concrete classes. ElementBase implements three copy modes:
-//   [OL]
-//   [LI]
-//   Copy by reference: Use std::shared_ptr to share ownership.
-//   [LI]
-//   Copy structure: use ElementBase::copyStructure().
-//   During copying of the structure, all sharable items are re-used, while
-//   all non-sharable ones are cloned.
-//   [LI]
-//   Copy by cloning: use ElementBase::clone().
-//   This returns a full deep copy.
-//   [/OL]
-//
 // Copyright (c) 200x - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
@@ -74,21 +26,13 @@
 
 #include <map>
 #include <memory>
-#include <queue>
 #include <string>
 #include <utility>
 #include <vector>
 
 class BeamlineVisitor;
-class BoundaryGeometry;
 class Channel;
 class ConstChannel;
-class ParticleMatterInteractionHandler;
-class WakeFunction;
-class PartData;
-
-template <class T, int N>
-class FVps;
 
 enum class ElementType : unsigned short {
     ANY,
@@ -119,171 +63,160 @@ enum class ApertureType : unsigned short {
     CONIC_ELLIPTICAL
 };
 
+/**
+ * @class ElementBase
+ * @brief Base class for all beam line elements.
+ *
+ * An element owns its identity (name, type), its placement (global-to-local
+ * coordinate transform, ELEMEDGE position, misalignment), its transverse
+ * aperture, and its field model (the apply() family, called by the tracker
+ * every time step, and getFieldExtent(), the field-support interval used for
+ * element selection). All geometric state — lengths, bend angle, pole-face
+ * rotations, edge transforms — lives in the element's Geometry, accessed
+ * through getGeometry().
+ *
+ * The parser builds lattices by cloning registered prototypes: clone() makes
+ * a deep copy, copyStructure() copies a structure while reusing elements
+ * marked sharable (makeSharable()). Algorithms dispatch on the concrete
+ * element type through accept(BeamlineVisitor&).
+ */
 class ElementBase : public std::enable_shared_from_this<ElementBase> {
 public:
     /* ========================= Construction & lifecycle ====================== */
 
-    /// Constructor with given name.
+    /// @brief Constructor with given name.
+    /// @param name The element name.
     explicit ElementBase(const std::string& name);
 
-    /// Default Constructor
+    /// @brief Default constructor.
     ElementBase();
 
-    /// Copy Constructor
+    /// @brief Copy constructor.
     ElementBase(const ElementBase&);
 
-    /// Destructor
+    /// @brief Destructor.
     virtual ~ElementBase();
 
-    /// Return clone.
-    //  Return an identical deep copy of the element.
+    /// @brief Return an identical deep copy of the element.
+    /// @return The cloned element.
     virtual ElementBase* clone() const = 0;
 
-    /// Make a structural copy.
-    //  Return a fresh copy of any beam line structure is made,
-    //  but sharable elements remain shared.
+    /// @brief Make a structural copy.
+    /// @note A fresh copy of the beam line structure is made, but sharable
+    ///       elements remain shared.
+    /// @return The copied structure.
     virtual ElementBase* copyStructure();
 
-    /// Test if the element can be shared.
+    /// @brief Test if the element can be shared.
+    /// @return True if the element is sharable.
     bool isSharable() const;
 
-    /// Set sharable flag.
-    //  The whole structure depending on [b]this[/b] is marked as sharable.
-    //  After this call a [b]copyStructure()[/b] call reuses the element.
+    /// @brief Set the sharable flag.
+    /// @note The whole structure depending on this is marked as sharable.
+    ///       After this call a copyStructure() call reuses the element.
     virtual void makeSharable();
 
     /* =============================== Identity ================================ */
 
-    /// Get element name.
+    /// @brief Get the element name.
+    /// @return The element name.
     virtual const std::string& getName() const;
 
-    /// Set element name.
+    /// @brief Set the element name.
+    /// @param name The element name.
     virtual void setName(const std::string& name);
 
-    /// Get element type std::string.
-    //  Default returns ElementType::ANY; concrete elements override.
+    /// @brief Get the element type.
+    /// @note Default returns ElementType::ANY; concrete elements override.
+    /// @return The element type.
     virtual ElementType getType() const;
 
+    /// @brief Get the element type as a string.
+    /// @return The element type string.
     std::string getTypeString() const;
+
+    /// @brief Get the string for a given element type.
+    /// @param type The element type.
+    /// @return The element type string.
     static std::string getTypeString(ElementType type);
 
-    /// Apply visitor.
-    //  This method must be overridden by derived classes. It should call the
-    //  method of the visitor corresponding to the element class.
-    //  If any error occurs, this method throws an exception.
+    /// @brief Apply a visitor.
+    /// @note This method must be overridden by derived classes. It should call
+    ///       the method of the visitor corresponding to the element class. If
+    ///       any error occurs, this method throws an exception.
+    /// @param visitor The visitor to apply.
     virtual void accept(BeamlineVisitor& visitor) const = 0;
 
     /* =============================== Geometry ================================ */
 
-    /// Get geometry.
-    //  Return the element geometry, supplied by the representation layer.
-    //  Version for non-constant object.
+    /// @brief Get the geometry. Version for non-constant object.
+    /// @note Supplied by the representation layer.
+    /// @return The element geometry.
     virtual Geometry& getGeometry() = 0;
 
-    /// Get geometry. Version for constant object.
+    /// @brief Get the geometry. Version for constant object.
+    /// @return The element geometry.
     virtual const Geometry& getGeometry() const = 0;
 
-    /// Get the length of the design orbit for this element.
-    /// Used to calculate the s-coordinate/ total path length along the lattice.
-    /// For many elements this is equal to the element length.
-    virtual double getArcLength() const;
-
-    /// Get design length.
-    /// Get the geometrical length of the element used to check if a particle is
-    /// inside the element.
-    virtual double getElementLength() const;
-
-    /// Set design length.
-    //  Set the design length defined by the geometry.
-    //  This may be the arc length or the straight length.
-    virtual void setElementLength(double length);
-
-    /**
-     * @brief Return the nominal body extent of the element.
-     *
-     * The first placement redesign stage distinguishes between the nominal body
-     * extent and the field-support extent. The body extent is the canonical
-     * longitudinal interval of the placed hardware,
-     * \f$[z_\mathrm{body}^{\mathrm{begin}}, z_\mathrm{body}^{\mathrm{end}}]\f$,
-     * and therefore drives ports, placement, and visualization. By default it
-     * coincides with the geometry length \f$[0, L]\f$ in the local chart.
-     */
-    virtual void getElementDimensions(double& begin, double& end) const {
-        begin = 0.0;
-        end   = getElementLength();
-    }
-
-    /// Get origin position.
-    //  Return the arc length from the entrance to the origin of the element
-    //  (origin >= 0)
-    virtual double getOrigin() const;
-
-    /// Get entrance position.
-    //  Return the arc length from the origin to the entrance of the element
-    //  (entrance <= 0)
-    virtual double getEntrance() const;
-
-    /// Get exit position.
-    //  Return the arc length from the origin to the exit of the element
-    //  (exit >= 0)
-    virtual double getExit() const;
-
-    /// Body→entrance-edge transform of the element's local chart (identity for
-    /// straight elements; overridden by bends).
-    virtual CoordinateSystemTrafo getEdgeToBegin() const;
-    /// Body→exit-edge transform of the element's local chart (a +length shift in
-    /// local z for straight elements; overridden by bends).
-    virtual CoordinateSystemTrafo getEdgeToEnd() const;
-
-    // Does the element bend?
-    virtual bool bends() const = 0;
-
-    /// @name Bend queries
-    /// Overridden by SBend/RBend; straight-element defaults otherwise. Let callers
-    /// query bend geometry through an ElementBase pointer without downcasting.
-    ///@{
-    /// Angle between entrace and exit orbit in radians
-    virtual double getBendAngle() const;
-
-    /// Tilt of the entrace face relative to the plane perpenticular to the orbit
-    virtual double getEntranceAngle() const;
-
-    /// Straight line distance between entrance and exit
-    /// Equal to element length for straight elements and the RBend
-    /// Shorter than the element length for the SBend
-    virtual double getChordLength() const;
-
-    /// Samples of the ideal path of the element
-    virtual std::vector<Vector_t<double, 3>> getDesignPath(std::size_t minSamples = 32) const;
-    ///@}
-
-    ///
+    /// @brief Check if the point r is inside the S interval with a field.
+    /// @param r The point to test.
+    /// @return True if r is inside the field interval.
     virtual bool isInside(const Vector_t<double, 3>& r) const;
 
+    /// @brief Get the bounding box.
+    /// @return The bounding box in lab coordinates.
     virtual BoundingBox getBoundingBoxInLabCoords() const;
 
     /* ===================== Coordinate system & placement ===================== */
 
+    /// @brief Set the lab -> element entrance frame trafo.
+    /// @param ori The trafo.
     void setCSTrafoGlobal2Local(const CoordinateSystemTrafo& ori);
+
+    /// @brief Get the lab->element entrance frame trafo.
+    /// @return The trafo.
     CoordinateSystemTrafo getCSTrafoGlobal2Local() const;
 
+    /// @brief Set the misaligment.
+    /// @param cst The misalignment.
     void setMisalignment(const CoordinateSystemTrafo& cst);
+
+    /// Not implemented.
     void getMisalignment(double& x, double& y, double& s) const;
+
+    /// @brief Get the misalignment.
+    /// @return The misalignment.
     CoordinateSystemTrafo getMisalignment() const;
 
+    /// @brief Unlock the position so the global -> local transform can change.
     void releasePosition();
+
+    /// @brief Lock the position so the global -> local transform cannot change.
     void fixPosition();
+
+    /// @brief Test if the position is locked.
+    /// @return True if the position is fixed.
     bool isPositioned() const;
 
-    /// Set rotation about z axis in bend frame.
+    /// @brief Set the rotation about the z axis in the bend frame.
+    /// @param rotation The rotation angle.
     void setRotationAboutZ(double rotation);
+
+    /// @brief Get the rotation about the z axis in the bend frame.
+    /// @return The rotation angle.
     double getRotationAboutZ() const;
 
-    ///@{ Access to ELEMEDGE attribute
+    /// @brief Set the ELEMEDGE position of the element.
+    /// @param elemedge The element edge position.
     void setElementPosition(double elemedge);
+
+    /// @brief Get the ELEMEDGE position of the element.
+    /// @return The element edge position.
     double getElementPosition() const;
+
+    /// @brief Test if the ELEMEDGE position has been set.
+    /// @return True if ELEMEDGE has been set.
     bool isElementPositionSet() const;
-    ///@}
 
     /* =============================== Aperture ================================ */
 
@@ -302,19 +235,6 @@ public:
      * @returns true if particle is out-of-bounds (lost), false otherwise
      */
     virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc);
-
-    /**
-     * @brief Apply to particle i
-     *
-     * @param i Particle index
-     * @param t Time
-     * @param E Electric Field
-     * @param B Magnetic Field
-     *
-     * @returns true if particle is out-of-bounds (lost), false otherwise
-     */
-    virtual bool apply(
-            const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
     /**
      * @brief Apply to particle with position R and momentum P
@@ -346,42 +266,20 @@ public:
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
-    /**
-     * @brief Calculate the four-potential at some position relative to the
-     * element
-     *
-     * @param R position in the local coordinate system of the element
-     * @param t time
-     * @param A filled with the calculated magnetic vector potential
-     * @param phi filled with the calculated electric potential
-     * Note that any existing values in A and phi may be overwritten by this
-     * method.
-     *
-     * @returns true if particle is outside the field map, else false
-     * Default is to return false and make no change to A and phi
-     */
-    virtual bool getPotential(
-            const Vector_t<double, 3>& /*R*/, const double& /*t*/, Vector_t<double, 3>& /*A*/,
-            double& /*phi*/) {
-        return false;
-    }
-
     // Design energy for elements such as RF-cavities
     virtual double getDesignEnergy() const;
     virtual void setDesignEnergy(const double& energy, bool changeable = true);
 
     // Setup
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) = 0;
+    virtual void initialise(PartBunch_t* bunch) = 0;
 
     // Clean-up
     virtual void finalise() = 0;
 
-    // Read & free fieldmaps
+    /// Prepare runtime resources for tracking (e.g. load a field map); sets online_m.
     virtual void goOnline(const double& kineticEnergy);
+    /// Release runtime resources / flush element output (e.g. loss data); clears online_m.
     virtual void goOffline();
-
-    // Is the element online (been initialised)?
-    virtual bool Online();
 
     /**
      * @brief Return the field-support extent of the element.
@@ -389,31 +287,13 @@ public:
      * This is the longitudinal interval
      * \f$[z_\mathrm{field}^{\mathrm{begin}}, z_\mathrm{field}^{\mathrm{end}}]\f$
      * on which the external field model is evaluated in the element-local
-     * chart. In the first extent model this may differ from the nominal body
-     * extent returned by `getElementDimensions()`, for example when fringe
-     * fields extend beyond the hardware body or when a field map occupies only
-     * part of the body.
+     * chart. It may extend past the body interval [0, L] of the geometry, for
+     * example when fringe fields extend beyond the hardware body or when a
+     * field map occupies only part of the body.
      */
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const = 0;
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const = 0;
 
     virtual int getRequiredNumberOfTimeSteps() const;
-
-    void setExitFaceSlope(const double&);
-
-    /**
-     * @brief Track a borrowed particle bunch through a non-standard element.
-     *
-     * The default implementation throws a LogicalError.
-     *
-     * @param bunch Particle bunch to track. The element does not take ownership.
-     */
-    virtual void trackBunch(PartBunch_t& bunch, const PartData&, bool revBeam, bool revTrack) const;
-
-    /// Track a map.
-    //  This catch-all method implements a hook for tracking a transfer
-    //  map through a non-standard element.
-    //  The default version throws a LogicalError.
-    virtual void trackMap(FVps<double, 6>& map, const PartData&, bool revBeam, bool revTrack) const;
 
     /* ========================= User-defined attributes ======================= */
 
@@ -448,34 +328,7 @@ public:
     //  "*this".  The return value [b]true[/b] indicates success.
     bool update(const AttributeSet&);
 
-    /* ======================= Attached field objects ========================== */
-
-    /// attach a boundary geometry field to the element
-    virtual void setBoundaryGeometry(BoundaryGeometry* geo);
-
-    /// return the attached boundary geometrt object if there is any
-    virtual BoundaryGeometry* getBoundaryGeometry() const;
-
-    virtual bool hasBoundaryGeometry() const;
-
-    /// attach a wake field to the element
-    virtual void setWake(WakeFunction* wf);
-
-    /// return the attached wake object if there is any
-    virtual WakeFunction* getWake() const;
-
-    virtual bool hasWake() const;
-
-    virtual void setParticleMatterInteraction(ParticleMatterInteractionHandler* spys);
-
-    virtual ParticleMatterInteractionHandler* getParticleMatterInteraction() const;
-
-    virtual bool hasParticleMatterInteraction() const;
-
     /* ============================= Miscellaneous ============================= */
-
-    void setActionRange(const std::queue<std::pair<double, double>>& range);
-    void setCurrentSCoordinate(double s);
 
     /// Set output filename
     void setOutputFN(std::string fn);
@@ -496,13 +349,11 @@ protected:
     CoordinateSystemTrafo csTrafoGlobal2Local_m;
     CoordinateSystemTrafo misalignment_m;
     double rotationZAxis_m;
-    double elementEdge_m;
 
     // --- Aperture ---
     std::pair<ApertureType, std::vector<double>> aperture_m;
     // Default aperture - Needs to be changed to Kokkos::View
     static const std::vector<double> defaultAperture_m;
-    double exit_face_slope_m;
 
     // --- Field / physics ---
     // The reference bunch (not owned)
@@ -521,20 +372,12 @@ private:
     // --- User-defined attributes ---
     AttributeSet userAttribs;
 
-    // --- Attached field objects ---
-    WakeFunction* wake_m;
-    BoundaryGeometry* bgeometry_m;
-    ParticleMatterInteractionHandler* parmatint_m;
-
     // --- Placement ---
     bool positionIsFixed;
-    ///@{ ELEMEDGE attribute
-    double elementPosition_m;
+    double elementPosition_m;  // S position of the element entrance
     bool elemedgeSet_m;
-    ///@}
 
     // --- Miscellaneous ---
-    std::queue<std::pair<double, double>> actionRange_m;
     std::string outputfn_m; /**< The name of the outputfile*/
     bool deleteOnTransverseExit_m = true;
 };
@@ -550,40 +393,15 @@ inline std::string ElementBase::getTypeString() const { return getTypeString(get
 
 /* ================================ Geometry ================================= */
 
-inline double ElementBase::getArcLength() const { return getGeometry().getArcLength(); }
-
-inline double ElementBase::getElementLength() const { return getGeometry().getElementLength(); }
-
-inline void ElementBase::setElementLength(double length) { getGeometry().setElementLength(length); }
-
-inline double ElementBase::getOrigin() const { return getGeometry().getOrigin(); }
-
-inline double ElementBase::getEntrance() const { return getGeometry().getEntrance(); }
-
-inline double ElementBase::getExit() const { return getGeometry().getExit(); }
-
-inline CoordinateSystemTrafo ElementBase::getEdgeToBegin() const {
-    return getGeometry().getEdgeToBegin();
-}
-
-inline CoordinateSystemTrafo ElementBase::getEdgeToEnd() const {
-    return getGeometry().getEdgeToEnd();
-}
-
-inline double ElementBase::getBendAngle() const { return 0.0; }
-
-inline double ElementBase::getEntranceAngle() const { return 0.0; }
-
-inline double ElementBase::getChordLength() const { return getElementLength(); }
-
-inline std::vector<Vector_t<double, 3>> ElementBase::getDesignPath(std::size_t) const {
-    return {Vector_t<double, 3>({0.0, 0.0, 0.0}),
-            Vector_t<double, 3>({0.0, 0.0, getElementLength()})};
-}
-
 inline bool ElementBase::isInside(const Vector_t<double, 3>& r) const {
-    const double length = getElementLength();
-    return r(2) >= 0.0 && r(2) < length && isInsideTransverse(r);
+    // Selection uses the field-support extent (the longitudinal interval where the element's
+    // field model is non-zero), not the body length, so a particle in a fringe region beyond
+    // the body is still attributed to the element. getFieldExtent() is the single source for
+    // that interval, in the same local chart as r.
+    double zBegin = 0.0;
+    double zEnd   = 0.0;
+    getFieldExtent(zBegin, zEnd);
+    return r(2) >= zBegin && r(2) < zEnd && isInsideTransverse(r);
 }
 
 /* ===================== Coordinate system & placement ====================== */
@@ -645,32 +463,6 @@ inline void ElementBase::setDesignEnergy(const double& /*energy*/, bool /*change
 inline double ElementBase::getDesignEnergy() const { return -1.0; }
 
 inline int ElementBase::getRequiredNumberOfTimeSteps() const { return 10; }
-
-inline void ElementBase::setExitFaceSlope(const double& m) { exit_face_slope_m = m; }
-
-/* ======================= Attached field objects ========================== */
-
-inline WakeFunction* ElementBase::getWake() const { return wake_m; }
-
-inline bool ElementBase::hasWake() const { return wake_m != nullptr; }
-
-inline BoundaryGeometry* ElementBase::getBoundaryGeometry() const { return bgeometry_m; }
-
-inline bool ElementBase::hasBoundaryGeometry() const { return bgeometry_m != nullptr; }
-
-inline ParticleMatterInteractionHandler* ElementBase::getParticleMatterInteraction() const {
-    return parmatint_m;
-}
-
-inline bool ElementBase::hasParticleMatterInteraction() const { return parmatint_m != nullptr; }
-
-/* ============================= Miscellaneous ============================== */
-
-inline void ElementBase::setActionRange(const std::queue<std::pair<double, double>>& range) {
-    actionRange_m = range;
-
-    if (!actionRange_m.empty()) elementEdge_m = actionRange_m.front().first;
-}
 
 inline void ElementBase::setFlagDeleteOnTransverseExit(bool flag) {
     deleteOnTransverseExit_m = flag;

@@ -9,9 +9,7 @@ namespace {
         void (LaserRep::*set)(double);
     };
 
-    const Entry entries[] = {
-            {"L", &LaserRep::getElementLength, &LaserRep::setElementLength},
-            {nullptr, nullptr, nullptr}};
+    const Entry entries[] = {{nullptr, nullptr, nullptr}};
 }  // namespace
 
 LaserRep::LaserRep() : Laser(), geometry_m() {}

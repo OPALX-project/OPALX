@@ -1,6 +1,7 @@
 #ifndef OPALX_RBend_HH
 #define OPALX_RBend_HH
 
+#include "AbsBeamline/BendFieldModel.h"
 #include "AbsBeamline/ElementBase.h"
 
 #include <Kokkos_Core.hpp>
@@ -13,203 +14,167 @@
  * @class RBend
  * @brief Common OPALX interface for analytic horizontal bending magnets.
  *
- * This class provides the shared bookkeeping for sector and rectangular bends
- * in the first OPALX-native bend port. The placed hardware body is represented
- * by the element geometry, while the magnetic field is described by a local
- * multipole expansion evaluated in the element chart.
- *
- * For the analytic field model the dominant dipole contribution satisfies the
- * Lorentz-force design relation
- * \f[
- * \rho = \frac{\beta \gamma m}{|q| c |B|}
- * \f]
- * with design radius \f$\rho\f$, rest mass \f$m\f$, charge \f$q\f$, and
- * reference relativistic factor \f$\beta \gamma\f$.
- *
- * The first implementation keeps the nominal body extent and the field-support
- * extent identical. Fringe-field support will extend this model later without
- * changing the body-placement semantics.
+ * This class implements a rectangular element with a dipole field.
  */
 class RBend : public ElementBase {
 public:
+    /// @brief Default constructor.
     RBend();
+
+    /// @brief Constructor with given name.
+    /// @param name The element name.
     explicit RBend(const std::string& name);
+
+    /// @brief Copy constructor.
     RBend(const RBend&);
+
+    /// @brief Destructor.
     ~RBend() override;
 
+    /// @brief Apply a visitor.
+    /// @param visitor The visitor to apply.
     void accept(BeamlineVisitor& visitor) const override;
+
+    /// @brief Get the element type.
+    /// @return The element type (ElementType::RBEND).
     ElementType getType() const override;
 
-    bool bends() const override;
+    /// @brief Set up the element for tracking.
+    /// @param bunch The reference particle bunch.
+    void initialise(PartBunch_t* bunch) override;
 
-    void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    /// @brief Clean up after tracking.
     void finalise() override;
 
+    /// @brief Apply the field to all particles.
+    /// @param pc The particle container.
+    /// @return True if a particle is out-of-bounds (lost), false otherwise.
     bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
-    bool apply(const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B)
-            override;
+
+    /// @brief Apply the field to a particle with position R and momentum P.
+    /// @param R Position.
+    /// @param P Momentum.
+    /// @param t Time.
+    /// @param E Electric field.
+    /// @param B Magnetic field.
+    /// @return True if the particle is out-of-bounds (lost), false otherwise.
     bool apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+
+    /// @brief Apply the field to the reference particle with position R and momentum P.
+    /// @param R Position.
+    /// @param P Momentum.
+    /// @param t Time.
+    /// @param E Electric field.
+    /// @param B Magnetic field.
+    /// @return True if the particle is out-of-bounds (lost), false otherwise.
     bool applyToReferenceParticle(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
-    void getFieldExtend(double& zBegin, double& zEnd) const override;
+    /// @brief Calculate the RBend field extent in the element's coordinatesystem
+    /// @param zBegin Where the field begins (negative for fringe fields)
+    /// @param zEnd Where the field ends (larger than element length for fringe fields)
+    void getFieldExtent(double& zBegin, double& zEnd) const override;
+
+    /// @brief Containment in the straight box frame.
+    /// @note Box z within the field extent and inside the transverse aperture.
+    /// @param r The point to test.
+    /// @return True if r is inside.
     bool isInside(const Vector_t<double, 3>& r) const override;
 
-    /**
-     * @brief Set the nominal body length.
-     *
-     * The bend body length is the placed hardware length and therefore drives
-     * ports and visualization. The geometry itself remains the source of truth
-     * for the placed body extent.
-     */
-    void setLength(double length);
-    double getLength() const;
-
-    /**
-     * @brief Return the geometric chord between entrance and exit frames.
-     *
-     * For sector bends this is shorter than the arc length, while for
-     * rectangular bends it equals the straight body length.
-     */
-    double getChordLength() const override;
-
-    virtual void setBendAngle(double angle);
-    double getBendAngle() const override;
-
-    virtual void setEntranceAngle(double entranceAngle);
-    double getEntranceAngle() const override;
-
-    virtual void setExitAngle(double exitAngle);
-    virtual double getExitAngle() const;
-
+    /// @brief Set the full vertical pole gap (GAP), scaling the Enge fringe profile.
+    /// @param gap The full vertical pole gap.
     void setFullGap(double gap);
-    double getFullGap() const;
 
+    /// @brief Set the pole-face field integral (FINT) used by the vertical edge focusing.
+    /// @param fringeIntegral The pole-face field integral.
+    void setFringeIntegral(double fringeIntegral);
+
+    /// @brief Set the design energy.
+    /// @param energy The design energy.
+    /// @param changeable Whether the design energy can be changed later.
     void setDesignEnergy(const double& energy, bool changeable = true) override;
+
+    /// @brief Get the design energy.
+    /// @return The design energy.
     double getDesignEnergy() const override;
 
-    /**
-     * @brief Sample the local curved reference path of the bend body.
-     *
-     * The returned points lie in the canonical local chart and can be mapped to
-     * lab space via the placed body transform. The sampling is uniform in the
-     * body parameter \f$s\f$ between the entrance and exit frames.
-     */
-    std::vector<Vector_t<double, 3>> getDesignPath(std::size_t minSamples = 32) const override;
-
-    /**
-     * @brief Store the dipole design amplitudes used by the analytic field.
-     *
-     * The normal and skew dipole strengths are the leading coefficients of the
-     * local multipole expansion
-     * \f[
-     * B_y + i B_x = \sum_{n=0}^{N} (B_n + i A_n) (x + i y)^n .
-     * \f]
-     */
-    void setFieldAmplitude(double k0, double k0s);
-    double getFieldAmplitude() const;
-
-    void setFieldMapFN(std::string fileName);
-    std::string getFieldMapFN() const;
-
-    /// Store the normal/skew multipole coefficients into the device views read
-    /// by apply()/computeFieldHost(). Values are taken as-is (already scaled by
-    /// the caller).
+    /// @brief Store the normal/skew multipole coefficients into the device views
+    ///        read by apply()/computeFieldHost().
+    /// @note Values are taken as-is (already scaled by the caller).
+    /// @param normal The normal multipole coefficients.
+    /// @param skew The skew multipole coefficients.
     void setFieldComponents(const std::vector<double>& normal, const std::vector<double>& skew);
 
-    /// Dipole normal component (the "BY" channel attribute), backed by the
-    /// coefficient views.
+    /// @brief Get the dipole normal component (the "BY" channel attribute).
+    /// @note Backed by the coefficient views.
+    /// @return The dipole normal component.
     double getB() const;
+
+    /// @brief Set the dipole normal component (the "BY" channel attribute).
+    /// @param B The dipole normal component.
     void setB(double B);
 
-    void setEntryFaceRotation(double rotation);
-    double getEntryFaceRotation() const;
-
-    void setExitFaceRotation(double rotation);
-    double getExitFaceRotation() const;
-
-    void setEntryFaceCurvature(double curvature);
-    double getEntryFaceCurvature() const;
-
-    void setExitFaceCurvature(double curvature);
-    double getExitFaceCurvature() const;
-
-    void setSlices(double slices);
-    double getSlices() const;
-
-    void setStepsize(double stepSize);
-    double getStepsize() const;
-
-    void setNSlices(const std::size_t& nSlices);
-    std::size_t getNSlices() const;
-
-    void setK1(double k1);
-    double getK1() const;
-
-    int getRequiredNumberOfTimeSteps() const override;
-
-protected:
-    double calcDesignRadius(double fieldAmplitude) const;
-    double calcFieldAmplitude(double radius) const;
-    double calcBendAngle(double chordLength, double radius) const;
-    double calcDesignRadius(double chordLength, double angle) const;
-    double calcGamma() const;
-    double calcBetaGamma() const;
-    double getStoredExitAngle() const;
-
 private:
+    /// @brief Compute the field on the host at position R.
+    /// @param R Position.
+    /// @param B Magnetic field (output).
     void computeFieldHost(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const;
+
+    /// @brief Build the pure-value field inputs for the kernel launch.
+    /// @note Includes coefficients, gap, pole-face projections and edge-focusing coefficients.
+    /// @return The field inputs.
+    BendFieldModel::FieldInputs makeFieldInputs() const;
+
+    /// @brief Design-orbit curvature 1/rho = angle / arc length = 2 sin(angle/2) / L.
+    /// @note Used only to scale the pole-face edge-focusing kick; the box field itself
+    ///       is uniform.
+    /// @return The design-orbit curvature.
+    double referenceCurvature() const;
+
+    /// @brief Angle between the design orbit and the entrance pole face (angle/2 + E1),
+    ///        for the edge focusing.
+    /// @note The box faces are perpendicular to the box axis, so the orbit meets them at
+    ///       half the bend angle plus any explicit pole-face rotation.
+    /// @return The entrance edge angle.
+    double edgeAngleEntrance() const;
+
+    /// @brief Angle between the design orbit and the exit pole face (angle/2 + E2).
+    /// @return The exit edge angle.
+    double edgeAngleExit() const;
 
     /// Normal/skew multipole coefficients on the device, read by tracking.
     Kokkos::View<double*> normalComponents_m;
     Kokkos::View<double*> skewComponents_m;
+
+    /// Host mirrors of the coefficient views. Required for kernel launch.
+    Kokkos::View<double*>::host_mirror_type normalComponentsHost_m;
+    Kokkos::View<double*>::host_mirror_type skewComponentsHost_m;
+
+    /// Number of stored normal/skew coefficients (sizes of the views above).
     int maxNormal_m = 0;
     int maxSkew_m   = 0;
 
-    double startField_m;
-    double endField_m;
-    double angle_m;
-    double entranceAngle_m;
-    double exitAngle_m;
+    /// Full vertical pole gap (GAP).
     double gap_m;
+
+    /// Pole-face field integral (FINT).
+    double fringeIntegral_m;
+
+    /// Design energy [eV].
     double designEnergy_m;
+
+    /// Whether the design energy may still be changed.
     bool designEnergyChangeable_m;
-    double fieldAmplitudeX_m;
-    double fieldAmplitudeY_m;
-    double fieldAmplitude_m;
-    std::string fileName_m;
-    double entryFaceRotation_m;
-    double exitFaceRotation_m;
-    double entryFaceCurvature_m;
-    double exitFaceCurvature_m;
-    double slices_m;
-    double stepSize_m;
-    std::size_t nSlices_m;
-    double k1_m;
 };
-
-inline bool RBend::bends() const { return true; }
-
-inline void RBend::setLength(double length) { setElementLength(std::abs(length)); }
-
-inline double RBend::getLength() const { return getElementLength(); }
-
-inline void RBend::setBendAngle(double angle) { angle_m = angle; }
-
-inline double RBend::getBendAngle() const { return angle_m; }
-
-inline void RBend::setEntranceAngle(double entranceAngle) { entranceAngle_m = entranceAngle; }
-
-inline double RBend::getEntranceAngle() const { return entranceAngle_m; }
-
-inline void RBend::setExitAngle(double exitAngle) { exitAngle_m = exitAngle; }
 
 inline void RBend::setFullGap(double gap) { gap_m = std::abs(gap); }
 
-inline double RBend::getFullGap() const { return gap_m; }
+inline void RBend::setFringeIntegral(double fringeIntegral) {
+    fringeIntegral_m = std::abs(fringeIntegral);
+}
 
 inline void RBend::setDesignEnergy(const double& energy, bool changeable) {
     if (designEnergyChangeable_m) {
@@ -219,53 +184,5 @@ inline void RBend::setDesignEnergy(const double& energy, bool changeable) {
 }
 
 inline double RBend::getDesignEnergy() const { return designEnergy_m; }
-
-inline void RBend::setFieldAmplitude(double k0, double k0s) {
-    fieldAmplitudeY_m = k0;
-    fieldAmplitudeX_m = k0s;
-    fieldAmplitude_m  = std::hypot(k0, k0s);
-}
-
-inline double RBend::getFieldAmplitude() const { return fieldAmplitude_m; }
-
-inline void RBend::setFieldMapFN(std::string fileName) { fileName_m = std::move(fileName); }
-
-inline std::string RBend::getFieldMapFN() const { return fileName_m; }
-
-inline void RBend::setEntryFaceRotation(double rotation) { entryFaceRotation_m = rotation; }
-
-inline double RBend::getEntryFaceRotation() const { return entryFaceRotation_m; }
-
-inline void RBend::setExitFaceRotation(double rotation) { exitFaceRotation_m = rotation; }
-
-inline double RBend::getExitFaceRotation() const { return exitFaceRotation_m; }
-
-inline void RBend::setEntryFaceCurvature(double curvature) { entryFaceCurvature_m = curvature; }
-
-inline double RBend::getEntryFaceCurvature() const { return entryFaceCurvature_m; }
-
-inline void RBend::setExitFaceCurvature(double curvature) { exitFaceCurvature_m = curvature; }
-
-inline double RBend::getExitFaceCurvature() const { return exitFaceCurvature_m; }
-
-inline void RBend::setSlices(double slices) { slices_m = slices; }
-
-inline double RBend::getSlices() const { return slices_m; }
-
-inline void RBend::setStepsize(double stepSize) { stepSize_m = stepSize; }
-
-inline double RBend::getStepsize() const { return stepSize_m; }
-
-inline void RBend::setNSlices(const std::size_t& nSlices) { nSlices_m = nSlices; }
-
-inline std::size_t RBend::getNSlices() const { return nSlices_m; }
-
-inline void RBend::setK1(double k1) { k1_m = k1; }
-
-inline double RBend::getK1() const { return k1_m; }
-
-inline int RBend::getRequiredNumberOfTimeSteps() const { return 10; }
-
-inline double RBend::getStoredExitAngle() const { return exitAngle_m; }
 
 #endif  // OPALX_RBend_HH

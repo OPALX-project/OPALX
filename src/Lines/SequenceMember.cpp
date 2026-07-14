@@ -35,5 +35,5 @@ SequenceMember::SequenceMember(const SequenceMember& rhs)
 SequenceMember::~SequenceMember() {}
 
 void SequenceMember::setLength(double drift) {
-    if (itsType == GENERATED) getElement()->setElementLength(drift);
+    if (itsType == GENERATED) getElement()->getGeometry().setElementLength(drift);
 }

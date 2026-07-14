@@ -251,7 +251,7 @@ bool Multipole::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     const size_t nLocal = pc->getLocalNum();
 
     // Local variables that are copied into the kernel
-    double elemLength = getElementLength();
+    double elemLength = getGeometry().getElementLength();
 
     // Capture member variables by value for the kernel
     auto normalComponents = NormalComponents;
@@ -287,30 +287,6 @@ bool Multipole::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
  * @param B Magnetic field reference
  * @returns true if particle is out-of-bounds (lost), false otherwise
  */
-bool Multipole::apply(
-        const size_t& i, const double&, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    // Get container
-    std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
-    auto Rview                              = pc->R.getView();
-    const Vector_t<double, 3> R             = Rview(i);
-
-    // Check bounds
-    if (R(2) < 0.0 || R(2) > getElementLength()) return false;
-    if (!isInsideTransverse(R)) return getFlagDeleteOnTransverseExit();
-
-    // Compute fields
-    Vector_t<double, 3> Ef(0.0), Bf(0.0);
-    computeFieldHost(R, Ef, Bf);
-
-    // Apply fields
-    for (unsigned int d = 0; d < 3; ++d) {
-        E[d] += Ef(d);
-        B[d] += Bf(d);
-    }
-
-    return false;
-}
-
 /**
  * @brief Applies the multipole field at position R to E and B
  *
@@ -326,7 +302,7 @@ bool Multipole::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     // Check bounds
-    if (R(2) < 0.0 || R(2) > getElementLength()) return false;
+    if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return false;
     if (!isInsideTransverse(R)) return getFlagDeleteOnTransverseExit();
 
     // Compute field
@@ -350,7 +326,7 @@ bool Multipole::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     // Check bounds
-    if (R(2) < 0.0 || R(2) > getElementLength()) return false;
+    if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return false;
     if (!isInsideTransverse(R)) return true;
 
     /*
@@ -628,33 +604,22 @@ void Multipole::computeFieldHost(
  * @brief Setup, multipole goes online
  *
  * @param bunch The reference bunch
- * @param startField Where the fields start along the path
- * @param endFied Where the fields end along the path
  */
-void Multipole::initialise(PartBunch_t* bunch, double& startField, double& endField) {
+void Multipole::initialise(PartBunch_t* bunch) {
     RefPartBunch_m = bunch;
-    endField       = startField + getElementLength();
     online_m       = true;
 }
 
 void Multipole::finalise() { online_m = false; }
 
-bool Multipole::bends() const { return false; }
-
-void Multipole::getFieldExtend(double& zBegin, double& zEnd) const {
+void Multipole::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = 0.0;
-    zEnd   = getElementLength();
+    zEnd   = getGeometry().getElementLength();
 }
 
 ElementType Multipole::getType() const { return ElementType::MULTIPOLE; }
 
-bool Multipole::isInside(const Vector_t<double, 3>& r) const {
-    if (r(2) >= 0.0 && r(2) < getElementLength()) {
-        return isInsideTransverse(r);
-    }
-
-    return false;
-}
+// isInside() is inherited from ElementBase (field extent [0, L] + transverse aperture).
 
 bool Multipole::isFocusing(int component) const {
     if (component < 0)

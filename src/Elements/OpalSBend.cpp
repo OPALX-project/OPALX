@@ -41,12 +41,20 @@ OpalSBend* OpalSBend::clone(const std::string& name) { return new OpalSBend(name
 void OpalSBend::update() {
     OpalElement::update();
 
+    // E1/E2 pole-face rotations are not wired into the OPALX-native bend geometry/field yet, so
+    // reject them explicitly rather than silently ignoring them.
+    if (!itsAttr[E1].defaultUsed() || !itsAttr[E2].defaultUsed()) {
+        throw OpalException(
+                "OpalSBend::update",
+                getOpalName()
+                        + ": pole-face rotations (E1, E2) are not yet implemented in the "
+                          "OPALX-native bend port. Remove E1/E2 from the element definition.");
+    }
+
     // Define geometry.
     SBendRep* bend     = dynamic_cast<SBendRep*>(getElement());
     double length      = Attributes::getReal(itsAttr[LENGTH]);
     double angle       = Attributes::getReal(itsAttr[ANGLE]);
-    double e1          = Attributes::getReal(itsAttr[E1]);
-    double e2          = Attributes::getReal(itsAttr[E2]);
     Geometry& geometry = static_cast<Geometry&>(bend->getGeometry());
 
     if (length) {
@@ -55,28 +63,13 @@ void OpalSBend::update() {
         geometry = Geometry::makeSBend(0.0, 0.0);
         geometry.setBendAngle(angle);
     }
-    // Define number of slices for map tracking
-    bend->setNSlices(Attributes::getReal(itsAttr[NSLICES]));
-
-    // Define pole face angles.
-    bend->setEntryFaceRotation(Attributes::getReal(itsAttr[E1]));
-    bend->setExitFaceRotation(Attributes::getReal(itsAttr[E2]));
-    bend->setEntryFaceCurvature(Attributes::getReal(itsAttr[H1]));
-    bend->setExitFaceCurvature(Attributes::getReal(itsAttr[H2]));
-
-    // Define integration parameters.
-    bend->setSlices(Attributes::getReal(itsAttr[SLICES]));
-    bend->setStepsize(Attributes::getReal(itsAttr[STEPSIZE]));
-
-    // Define field.
+    // Define field. MAD length convention: L is the design-orbit arc length, so the
+    // default dipole strength is the arc curvature k0 = angle / L = 1 / rho. This matches
+    // the geometry above (makeSBend treats L as the arc), so the field bends the orbit on
+    // exactly the placed arc at any angle. (The legacy chord form 2 sin(angle/2) / L
+    // belonged to the OPAL convention where L was the chord.)
     double factor = OpalData::getInstance()->getP0() / Physics::c;
-    double k0     = itsAttr[K0] ? Attributes::getReal(itsAttr[K0])
-                    : length    ? 2 * sin(angle / 2) / length
-                                : angle;
-    double k0s    = itsAttr[K0S] ? Attributes::getReal(itsAttr[K0S]) : 0.0;
-    // JMJ 4/10/2000: above line replaced
-    //     length ? angle / length : angle;
-    //  to avoid closed orbit created by SBEND with defalt K0.
+    double k0 = itsAttr[K0] ? Attributes::getReal(itsAttr[K0]) : length ? angle / length : angle;
     const std::vector<double> normal = {
             factor * k0, factor * Attributes::getReal(itsAttr[K1]),
             factor * Attributes::getReal(itsAttr[K2]) / 2.0,
@@ -90,8 +83,6 @@ void OpalSBend::update() {
     // Set field amplitude or bend angle.
     if (itsAttr[ANGLE]) {
         if (bend->isPositioned() && angle < 0.0) {
-            e1    = -e1;
-            e2    = -e2;
             angle = -angle;
 
             Quaternion rotAboutZ(0, 0, 0, 1);
@@ -101,53 +92,46 @@ void OpalSBend::update() {
                     CoordinateSystemTrafo(g2l.getOrigin(), rotAboutZ * g2l.getRotation()));
             bend->fixPosition();
         }
-        bend->setBendAngle(angle);
-    } else {
-        bend->setFieldAmplitude(k0, k0s);
+        geometry.setBendAngle(angle);
     }
 
     if (itsAttr[GREATERTHANPI])
         throw OpalException("OpalSBend::update", "GREATERTHANPI not supportet any more");
-
-    if (itsAttr[FMAPFN])
-        bend->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));
-    else if (bend->getName() != "SBEND") {
-        bend->setFieldMapFN("1DPROFILE1-DEFAULT");
-    }
-
-    bend->setEntranceAngle(e1);
-    bend->setExitAngle(e2);
 
     // Units are eV.
     if (itsAttr[DESIGNENERGY]) {
         bend->setDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]), false);
     }
 
-    bend->setFullGap(Attributes::getReal(itsAttr[GAP]));
+    if (itsAttr[GAP])
+        throw OpalException(
+                "OpalSBend::update", "GAP is not supported; specify HGAP (the half gap) instead.");
+    // gap_m stores the full gap; HGAP is the half gap, so double it.
+    bend->setFullGap(2.0 * Attributes::getReal(itsAttr[HGAP]));
+    bend->setFringeIntegral(Attributes::getReal(itsAttr[FINT]));
 
     if (itsAttr[APERT])
         throw OpalException(
                 "OpalSBend::update", "APERTURE in SBEND not supported; use GAP and HAPERT instead");
 
-    if (itsAttr[HAPERT]) {
+    // Only override the aperture when a positive HAPERT is actually given. HAPERT has a
+    // default of 0.0, and itsAttr[HAPERT] reads as "set" even when the deck omits it, so
+    // gating on presence would install a zero-width rectangular aperture that makes
+    // isInsideTransverse always false and silently drops the bend from the beamline.
+    if (Attributes::getReal(itsAttr[HAPERT]) > 0.0) {
         double hapert = Attributes::getReal(itsAttr[HAPERT]);
         bend->setAperture(ApertureType::RECTANGULAR, std::vector<double>({hapert, hapert, 1.0}));
     }
 
     if (itsAttr[LENGTH])
-        bend->setLength(Attributes::getReal(itsAttr[LENGTH]));
+        bend->getGeometry().setElementLength(Attributes::getReal(itsAttr[LENGTH]));
     else
-        bend->setLength(0.0);
+        bend->getGeometry().setElementLength(0.0);
 
     if (itsAttr[WAKEF]) {
         throw OpalException(
                 "OpalSBend::update", "WAKEF is not supported yet for the OPALX-native SBEND port.");
     }
-
-    if (itsAttr[K1])
-        bend->setK1(Attributes::getReal(itsAttr[K1]));
-    else
-        bend->setK1(0.0);
 
     if (itsAttr[PARTICLEMATTERINTERACTION]) {
         throw OpalException(

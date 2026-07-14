@@ -175,14 +175,12 @@ TEST_F(SolenoidPlacementTest, FieldMapEdgesAndSupportEnvelopeFollowFieldMap) {
     const auto mapFile = writeXZFieldmap("solenoid_edges.map", -5.0, 15.0, 4, 0.0, 3.0, 3);
 
     SolenoidRep solenoid("SOL1");
-    solenoid.setElementLength(1.0);
+    solenoid.getGeometry().setElementLength(1.0);
     solenoid.setFieldMapFN(mapFile.string());
     solenoid.setElementPosition(1.0);
 
-    double startField = 1.0;
-    double endField   = 0.0;
     try {
-        solenoid.initialise(nullptr, startField, endField);
+        solenoid.initialise(nullptr);
     } catch (const OpalException& ex) {
         FAIL() << ex.where() << ": " << ex.what();
     } catch (...) {
@@ -190,20 +188,19 @@ TEST_F(SolenoidPlacementTest, FieldMapEdgesAndSupportEnvelopeFollowFieldMap) {
     }
 
     double fieldBegin = 0.0, fieldEnd = 0.0;
-    solenoid.getFieldExtend(fieldBegin, fieldEnd);
+    solenoid.getFieldExtent(fieldBegin, fieldEnd);
 
     double bodyBegin = 0.0, bodyEnd = 0.0;
-    solenoid.getElementDimensions(bodyBegin, bodyEnd);
+    bodyBegin = 0.0;
+    bodyEnd   = solenoid.getGeometry().getElementLength();
 
-    EXPECT_NEAR(startField, 0.95, 1e-12);
-    EXPECT_NEAR(endField, 1.15, 1e-12);
-    EXPECT_NEAR(solenoid.getElementLength(), 1.0, 1e-12);
+    EXPECT_NEAR(solenoid.getGeometry().getElementLength(), 1.0, 1e-12);
     EXPECT_NEAR(fieldBegin, -0.05, 1e-12);
     EXPECT_NEAR(fieldEnd, 0.15, 1e-12);
     EXPECT_NEAR(bodyBegin, 0.0, 1e-12);
     EXPECT_NEAR(bodyEnd, 1.0, 1e-12);
-    EXPECT_NEAR(solenoid.getEdgeToBegin().getOrigin()(2), 0.0, 1e-12);
-    EXPECT_NEAR(solenoid.getEdgeToEnd().getOrigin()(2), 1.0, 1e-12);
+    EXPECT_NEAR(solenoid.getGeometry().getEdgeToBegin().getOrigin()(2), 0.0, 1e-12);
+    EXPECT_NEAR(solenoid.getGeometry().getEdgeToEnd().getOrigin()(2), 1.0, 1e-12);
     EXPECT_TRUE(solenoid.isInside({0.0, 0.0, 0.00}));
     EXPECT_TRUE(solenoid.isInside({0.0, 0.0, 0.14}));
     EXPECT_FALSE(solenoid.isInside({0.0, 0.0, 0.20}));
@@ -222,7 +219,7 @@ TEST_F(SolenoidPlacementTest, LatticeExportsUseFieldMapEdgesAndSolenoidMeshType)
     const auto mapFile = writeXZFieldmap("solenoid_lattice.map", -5.0, 15.0, 4, 0.0, 3.0, 3);
 
     SolenoidRep solenoid("SOL1");
-    solenoid.setElementLength(1.0);
+    solenoid.getGeometry().setElementLength(1.0);
     solenoid.setFieldMapFN(mapFile.string());
     solenoid.setElementPosition(1.0);
 
@@ -318,11 +315,11 @@ TEST_F(SolenoidPlacementTest, DriftMeshesAsBlueCylinderUsingFirstNonDriftReferen
     const auto mapFile = writeXZFieldmap("solenoid_drift_mesh.map", -5.0, 15.0, 4, 0.0, 3.0, 3);
 
     DriftRep drift("DR1");
-    drift.setElementLength(0.5);
+    drift.getGeometry().setElementLength(0.5);
     drift.setElementPosition(0.0);
 
     SolenoidRep solenoid("SOL1");
-    solenoid.setElementLength(1.0);
+    solenoid.getGeometry().setElementLength(1.0);
     solenoid.setFieldMapFN(mapFile.string());
     solenoid.setElementPosition(0.5);
 
@@ -345,7 +342,7 @@ TEST_F(SolenoidPlacementTest, DriftMeshesAsBlueCylinderUsingFirstNonDriftReferen
 
 TEST_F(SolenoidPlacementTest, QuadrupoleMeshesAsPoleBodyRatherThanGenericCylinder) {
     MultipoleRep quadrupole("Q1");
-    quadrupole.setElementLength(0.4);
+    quadrupole.getGeometry().setElementLength(0.4);
     quadrupole.setElementPosition(0.0);
     quadrupole.setAperture(ApertureType::ELLIPTICAL, std::vector<double>{0.02, 0.03, 1.0});
     quadrupole.setNormalComponent(1, 1.0);
@@ -368,7 +365,7 @@ TEST_F(SolenoidPlacementTest, QuadrupoleMeshesAsPoleBodyRatherThanGenericCylinde
 
 TEST_F(SolenoidPlacementTest, RFCavityMeshesAsBulgedCellStructure) {
     RFCavityRep cavity("RFC1");
-    cavity.setElementLength(0.7);
+    cavity.getGeometry().setElementLength(0.7);
     cavity.setElementPosition(0.0);
     cavity.setAperture(ApertureType::ELLIPTICAL, std::vector<double>{0.02, 0.03, 1.0});
 
@@ -386,7 +383,7 @@ TEST_F(SolenoidPlacementTest, RFCavityMeshesAsBulgedCellStructure) {
 
 TEST_F(SolenoidPlacementTest, TravelingWaveMeshesAsPeriodicStructure) {
     TravelingWaveRep travelingWave("TW1");
-    travelingWave.setElementLength(0.8);
+    travelingWave.getGeometry().setElementLength(0.8);
     travelingWave.setElementPosition(0.0);
     travelingWave.setAperture(ApertureType::ELLIPTICAL, std::vector<double>{0.02, 0.03, 1.0});
 

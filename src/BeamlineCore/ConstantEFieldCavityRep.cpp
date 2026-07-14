@@ -9,10 +9,7 @@ namespace {
     };
 
     const Entry entries[] = {
-            {"L", &ConstantEFieldCavityRep::getElementLength,
-             &ConstantEFieldCavityRep::setElementLength},
-            {"EZ", &ConstantEFieldCavityRep::getEz, &ConstantEFieldCavityRep::setEz},
-            {0, 0, 0}};
+            {"EZ", &ConstantEFieldCavityRep::getEz, &ConstantEFieldCavityRep::setEz}, {0, 0, 0}};
 }  // namespace
 
 ConstantEFieldCavityRep::ConstantEFieldCavityRep() : ConstantEFieldCavity(), geometry() {}
@@ -39,5 +36,3 @@ Channel* ConstantEFieldCavityRep::getChannel(const std::string& aKey, bool creat
 Geometry& ConstantEFieldCavityRep::getGeometry() { return geometry; }
 
 const Geometry& ConstantEFieldCavityRep::getGeometry() const { return geometry; }
-
-void ConstantEFieldCavityRep::setElementLength(double length) { geometry.setElementLength(length); }

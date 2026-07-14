@@ -493,7 +493,9 @@ void OpalElement::update() {
             base->setRotationAboutZ(Attributes::getReal(itsAttr[PSI]));
         }
     } else {
-        // Mode A: build the global-to-local transform and fix the element here.
+        // Mode A: record the global-to-local pose. The element stays unpositioned; the single
+        // PlacementResolver (OpalBeamline) composes it with the lab frame and fixes it once the
+        // whole lattice is known, so both placement modes resolve in one place.
         const Vector_t<double, 3> origin(
                 Attributes::getReal(itsAttr[X]), Attributes::getReal(itsAttr[Y]),
                 Attributes::getReal(itsAttr[Z]));
@@ -509,7 +511,6 @@ void OpalElement::update() {
 
         CoordinateSystemTrafo global2local(origin, rotation.conjugate());
         base->setCSTrafoGlobal2Local(global2local);
-        base->fixPosition();
         base->setRotationAboutZ(psi);
     }
 

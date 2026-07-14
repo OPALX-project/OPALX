@@ -15,6 +15,7 @@ set (_SRCS
     OpalSBend.cpp
     OpalSolenoid.cpp
     OpalBeamline.cpp
+    PlacementResolver.cpp
     OpalVerticalFFAMagnet.cpp
     OpalProbe.cpp
     OpalPolynomialTimeDependence.cpp
@@ -25,6 +26,7 @@ set (_SRCS
 
 set (HDRS
     OpalBeamline.h
+    PlacementResolver.h
     OpalBend.h
     OpalCavity.h
     OpalConstantEFieldCavity.h

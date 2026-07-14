@@ -40,15 +40,13 @@ public:
     /// Apply visitor to Drift.
     virtual void accept(BeamlineVisitor&) const override;
 
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    virtual void initialise(PartBunch_t* bunch) override;
 
     virtual void finalise() override;
 
-    virtual bool bends() const override;
-
     virtual ElementType getType() const override;
 
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     // set number of slices for map tracking
     void setNSlices(const std::size_t& nSlices);  // Philippe was here
@@ -59,7 +57,6 @@ public:
     virtual int getRequiredNumberOfTimeSteps() const override;
 
 private:
-    double startField_m;
     std::size_t nSlices_m;
 
     // Not implemented.

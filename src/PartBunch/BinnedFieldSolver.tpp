@@ -272,31 +272,6 @@ void BinnedFieldSolver<T, Dim>::printBinStatsTable(
 }
 
 template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::setScalarField(Field_t<Dim>& field, double value) {
-    auto view = field.getView();
-    Kokkos::deep_copy(view, value);
-}
-
-template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::scaleAndShiftScalarField(
-        Field_t<Dim>& field, double scale, double shift) {
-    auto view = field.getView();
-
-    ippl::parallel_for(
-            "BinnedFieldSolver::scaleAndShiftScalarField", field.getFieldRangePolicy(),
-            KOKKOS_LAMBDA(const typename ippl::RangePolicy<Dim>::index_array_type& idx) {
-                apply(view, idx) = apply(view, idx) * scale + shift;
-            });
-}
-
-template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::setVectorField(
-        VField_t<T, Dim>& field, const Vector_t<T, Dim>& value) {
-    auto view = field.getView();
-    Kokkos::deep_copy(view, value);
-}
-
-template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
     // execute full binned self-field algorithm.
     // fetch the adaptive bin structure.
@@ -334,8 +309,8 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
     VField_t<T, Dim>& Etmp = *EtmpSP;
     VField_t<T, Dim>& Btmp = *BtmpSP;
     // clear the accumulation buffer.
-    setVectorField(Etmp, Vector_t<T, Dim>(0.0));
-    setVectorField(Btmp, Vector_t<T, Dim>(0.0));
+    Etmp = 0.0;
+    Btmp = 0.0;
 
     // determine the number of bins used for this step.
     const bin_index_type nBins = bins->getCurrentBinCount();
@@ -398,7 +373,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
                                                          : ImageScatterMode::PrimaryAndImage;
             prepareRhoForBin(bunch, bins, binIndex, nPartGlobal, gammaBin, scatterMode);
 
-            setVectorField(*(this->getE()), Vector_t<T, Dim>(0.0));
+            *(this->getE()) = 0.0;
             mesh.setMeshSpacing(hrStretched);
 
             m << level4 << "binIndex=" << static_cast<int>(binIndex)
@@ -432,7 +407,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             prepareRhoForBin(
                     bunch, bins, binIndex, nPartGlobal, gammaBin, ImageScatterMode::ImageOnly);
 
-            setVectorField(*(this->getE()), Vector_t<T, Dim>(0.0));
+            *(this->getE()) = 0.0;
             mesh.setMeshSpacing(hrStretched);
 
             m << level4 << "binIndex=" << static_cast<int>(binIndex)
@@ -465,7 +440,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             prepareRhoForBin(
                     bunch, bins, binIndex, nPartGlobal, gammaBin, ImageScatterMode::PrimaryOnly);
 
-            setVectorField(*(this->getE()), Vector_t<T, Dim>(0.0));
+            *(this->getE()) = 0.0;
             mesh.setMeshSpacing(hrStretched);
 
             // Shift formula in the bin rest frame. Old OPAL computes the same
@@ -539,7 +514,7 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
     typename PartBunch_t::Base::particle_position_type* R = &pc->R;
 
     Field_t<Dim>& rho = *(this->getRho());
-    setScalarField(rho, 0.0);
+    rho               = 0.0;
 
     // Scatter charge to mesh rho using dt-weighted deposition (master approach):
     // scale dt by Q, scatter dt, then restore dt.
@@ -566,10 +541,10 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
         shift               = -(totalQ / size) * this->getCouplingConstant();
     }
 
-    scaleAndShiftScalarField(rho, this->getCouplingConstant() / normalizer, shift);
+    rho = rho * (this->getCouplingConstant() / normalizer) + shift;
 
     // Ensure deterministic output even for solver types that do not update `E`.
-    setVectorField(*(this->getE()), Vector_t<T, Dim>(0.0));
+    *(this->getE()) = 0.0;
 
     // run the solver once and gather mesh E back to particles.
     m << level4 << "Legacy mode: runSolver() start" << endl;
@@ -667,7 +642,7 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
       << ", gammaBin=" << std::setprecision(10) << gammaBin << endl;
 
     Field_t<Dim>& rho = *(this->getRho());
-    setScalarField(rho, 0.0);
+    rho               = 0.0;
 
     // access particle views and validate scatter support.
     std::shared_ptr<ParticleCtr_t> pc                     = bunch.getParticleContainer();
@@ -754,7 +729,7 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
 
     // Lorentz transform of charge density to the bin rest frame (thesis Eq. step 7).
     normalizer *= gammaBin;
-    scaleAndShiftScalarField(rho, this->getCouplingConstant() / normalizer, shift);
+    rho = rho * (this->getCouplingConstant() / normalizer) + shift;
 }
 
 template <typename T, unsigned Dim>
@@ -872,7 +847,11 @@ void BinnedFieldSolver<T, Dim>::buildFlippedZSlab(
     // excludes ghost cells; mirrorField zero-initialises ghosts, which is safe.
 
     auto flippedZSlabField = fieldContainer.getOrCreateFlippedZSlabField(src);
+
+    IpplTimings::TimerRef mirrorFieldTimer = IpplTimings::getTimer("mirrorField");
+    IpplTimings::startTimer(mirrorFieldTimer);
     opalx::detail::mirrorField(src, *flippedZSlabField, Dim - 1);
+    IpplTimings::stopTimer(mirrorFieldTimer);
 }
 
 template <typename T, unsigned Dim>

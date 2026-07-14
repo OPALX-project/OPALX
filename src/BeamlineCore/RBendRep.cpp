@@ -9,14 +9,7 @@ namespace {
         void (RBendRep::*set)(double);
     };
 
-    const Entry entries[] = {
-            {"L", &RBendRep::getElementLength, &RBendRep::setElementLength},
-            {"BY", &RBendRep::getB, &RBendRep::setB},
-            {"E1", &RBendRep::getEntryFaceRotation, &RBendRep::setEntryFaceRotation},
-            {"E2", &RBendRep::getExitFaceRotation, &RBendRep::setExitFaceRotation},
-            {"H1", &RBendRep::getEntryFaceCurvature, &RBendRep::setEntryFaceCurvature},
-            {"H2", &RBendRep::getExitFaceCurvature, &RBendRep::setExitFaceCurvature},
-            {nullptr, nullptr, nullptr}};
+    const Entry entries[] = {{"BY", &RBendRep::getB, &RBendRep::setB}, {nullptr, nullptr, nullptr}};
 }  // namespace
 
 RBendRep::RBendRep() : RBend(), geometry_m(Geometry::makeRBend(0.0, 0.0)) {}

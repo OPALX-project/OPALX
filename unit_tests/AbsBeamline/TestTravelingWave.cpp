@@ -12,14 +12,12 @@
  *
  * 1. Basic API
  *    - getType()
- *    - bends()
  *    - amplitude / frequency / phase setters and getters
  *
  * 2. Geometry
- *    - getFieldExtend()
- *    - getElementDimensions()
- *    - getEdgeToBegin()
- *    - getEdgeToEnd()
+ *    - getFieldExtent()
+ *    - getGeometry().getEdgeToBegin()
+ *    - getGeometry().getEdgeToEnd()
  *
  * 3. Spatial behavior
  *    - apply() in entry region
@@ -216,8 +214,6 @@ protected:
 // ---------------------------------------------------------------------------
 TEST_F(TravelingWaveTest, GetType) { EXPECT_EQ(tw_->getType(), ElementType::TRAVELINGWAVE); }
 
-TEST_F(TravelingWaveTest, Bends) { EXPECT_FALSE(tw_->bends()); }
-
 TEST_F(TravelingWaveTest, GetSetAmplitudeFrequencyPhase) {
     tw_->setAmplitude(5.0);
     tw_->setFrequency(2.0);
@@ -233,7 +229,7 @@ TEST_F(TravelingWaveTest, GetSetAmplitudeFrequencyPhase) {
 // ---------------------------------------------------------------------------
 TEST_F(TravelingWaveTest, GetDimensions) {
     double zBegin = 0.0, zEnd = 0.0;
-    tw_->getFieldExtend(zBegin, zEnd);
+    tw_->getFieldExtent(zBegin, zEnd);
 
     EXPECT_DOUBLE_EQ(zBegin, -1.0);  // -0.5 * periodLength
     EXPECT_DOUBLE_EQ(zEnd, 3.0);     // zBegin + elementLength
@@ -241,15 +237,16 @@ TEST_F(TravelingWaveTest, GetDimensions) {
 
 TEST_F(TravelingWaveTest, GetElementDimensions) {
     double begin = 0.0, end = 0.0;
-    tw_->getElementDimensions(begin, end);
+    begin = 0.0;
+    end   = tw_->getGeometry().getElementLength();
 
     EXPECT_DOUBLE_EQ(begin, 0.0);
     EXPECT_DOUBLE_EQ(end, 4.0);
 }
 
 TEST_F(TravelingWaveTest, EdgeTransforms) {
-    auto beg = tw_->getEdgeToBegin();
-    auto end = tw_->getEdgeToEnd();
+    auto beg = tw_->getGeometry().getEdgeToBegin();
+    auto end = tw_->getGeometry().getEdgeToEnd();
 
     EXPECT_DOUBLE_EQ(beg.getOrigin()(2), 0.0);
     EXPECT_DOUBLE_EQ(end.getOrigin()(2), 4.0);
