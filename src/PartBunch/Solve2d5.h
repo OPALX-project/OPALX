@@ -21,40 +21,40 @@
 
 // This class provides a 2D5 solver for electromagnetic field simulations.
 template <typename T>
-class Solve2d5 : public BinnedFieldSolver<T, 3> {
+class Solve2d5 : public BinnedFieldSolver<T, 3U> {
 public:
-    using BCHandler_t        = BinnedFieldSolver<T, 3>::BCHandler_t;
-    using Base               = BinnedFieldSolver<T, 3>;
-    using OpenSolver2D_t     = ippl::FFTOpenPoissonSolver<VField_t<T, 2>, Field_t<2>>;
-    using Mesh3D_t           = ippl::UniformCartesian<T, 3>;
-    using Mesh2D_t           = ippl::UniformCartesian<T, 2>;
+    using BCHandler_t        = BinnedFieldSolver<T, 3U>::BCHandler_t;
+    using Base               = BinnedFieldSolver<T, 3U>;
+    using OpenSolver2D_t     = ippl::FFTOpenPoissonSolver<VField_t<T, 2U>, Field_t<2U>>;
+    using Mesh3D_t           = ippl::UniformCartesian<T, 3U>;
+    using Mesh2D_t           = ippl::UniformCartesian<T, 2U>;
     using Vector2D_t         = Mesh2D_t::vector_type;
     using Vector3D_t         = Mesh3D_t::vector_type;
-    using Layout2D_t         = ippl::FieldLayout<2>;
-    using Point_t            = ippl::Vector<double, 3>;
+    using Layout2D_t         = ippl::FieldLayout<2U>;
+    using Point_t            = ippl::Vector<double, 3U>;
     using VectorView_t       = ParticleAttrib<Vector3D_t>::view_type;
     using ScalarView_t       = ParticleAttrib<T>::view_type;
     using BooleanView_t      = ParticleAttrib<bool>::view_type;
-    using PartBunch_t        = PartBunch<double, 3>;
+    using PartBunch_t        = PartBunch<double, 3U>;
     using ReferenceView_t    = Kokkos::View<Vector3D_t*>;
     using LineDensityView_t  = Kokkos::View<T*>;
-    using ScalarGridView3D_t = Field<T, 3>::view_type;
-    using VectorGridView3D_t = Field<Vector3D_t, 3>::view_type;
-    using ScalarGridView2D_t = Field<T, 2>::view_type;
-    using VectorGridView2D_t = Field<Vector2D_t, 2>::view_type;
-    using FieldContainer_t   = FieldContainer<T, 3>;
+    using ScalarGridView3D_t = Field<T, 3U>::view_type;
+    using VectorGridView3D_t = Field<Vector3D_t, 3U>::view_type;
+    using ScalarGridView2D_t = Field<T, 2U>::view_type;
+    using VectorGridView2D_t = Field<Vector2D_t, 2U>::view_type;
+    using FieldContainer_t   = FieldContainer<T, 3U>;
 
     enum class LongitudinalFieldMode { Cylindrical, Plates, Open };
 
     struct Solver {
         std::shared_ptr<OpenSolver2D_t> solver_m{};
-        std::shared_ptr<Field_t<2>> rho_m{};
-        std::shared_ptr<VField_t<T, 2>> E_m{};
+        std::shared_ptr<Field_t<2U>> rho_m{};
+        std::shared_ptr<VField_t<T, 2U>> E_m{};
     };
 
     Solve2d5(
-            PartBunch_t* partBunch, std::string solver, Field_t<3>* rho, VField_t<T, 3>* E,
-            Field_t<3>* phi, std::shared_ptr<BCHandler_t> bcHandler, const Vector<int, 3>& nR,
+            PartBunch_t* partBunch, std::string solver, Field_t<3U>* rho, VField_t<T, 3U>* E,
+            Field_t<3U>* phi, std::shared_ptr<BCHandler_t> bcHandler, const Vector<int, 3U>& nR,
             LongitudinalFieldMode longitudinalFieldMode, T pipeSizeX, T pipeSizeY, T beamRadius,
             bool closedRing, const std::string& refPathFileName);
 
@@ -65,6 +65,7 @@ public:
             doRunSolver();
         }
     }
+    void orbitThreadersReady() override;
 
     // Algorithm steps, public for testability
     class NullDiagnostic {
@@ -90,7 +91,7 @@ public:
                 const size_t, const Vector3D_t&, const Vector3D_t&, bool) const {}
         KOKKOS_FUNCTION void scatterCharge(const ScalarGridView3D_t&) const {}
         KOKKOS_FUNCTION void scatterChargeDensity(const ScalarGridView3D_t&) const {}
-        KOKKOS_FUNCTION void eField(const VField_t<T, 3>::view_type&) const {}
+        KOKKOS_FUNCTION void eField(const VField_t<T, 3U>::view_type&) const {}
         KOKKOS_FUNCTION void totalDensity(const LineDensityView_t&) const {}
         KOKKOS_FUNCTION void lineDensity(const LineDensityView_t&) const {}
         KOKKOS_FUNCTION void lineDensityGradient(const LineDensityView_t&) const {}
@@ -105,10 +106,10 @@ public:
         KOKKOS_FUNCTION void labFrameFields(
                 const size_t, const Vector3D_t&, const Vector3D_t&, bool) const {}
         void initialise(
-                const PartBunch_t& /*partBunch*/, const Field_t<3>& /*rho*/,
+                const PartBunch_t& /*partBunch*/, const Field_t<3U>& /*rho*/,
                 const LineDensityView_t& /*lineDensity*/,
                 const LineDensityView_t& /*lineDensityGradient*/,
-                const VField_t<T, 3>& /*eField*/) {}
+                const VField_t<T, 3U>& /*eField*/) {}
     };
     template <typename DiagnosticPolicy = NullDiagnostic>
     void doRunSolver(DiagnosticPolicy diagnostic = {});
@@ -130,7 +131,7 @@ private:
     KOKKOS_FUNCTION static void doScatterToGrid(
             size_t n, const VectorView_t& r, const VectorView_t& p, const ReferenceView_t& ref,
             T meanPs, const ScalarView_t& dt, const BooleanView_t& invalid, Vector3D_t invDr,
-            int nghost, ippl::NDIndex<3> lDom, ScalarGridView3D_t rho, Vector3D_t origin,
+            int nghost, ippl::NDIndex<3U> lDom, ScalarGridView3D_t rho, Vector3D_t origin,
             DiagnosticPolicy diagnostic);
     KOKKOS_FUNCTION static void convertToFrenetSerret(
             size_t n, const VectorView_t& r, const VectorView_t& p, const ReferenceView_t& ref,
@@ -139,17 +140,17 @@ private:
     KOKKOS_FUNCTION static void boostToBeamFrame(T meanPs, Vector3D_t& fsP);
     KOKKOS_FUNCTION static void scatterToRho(
             size_t n, Vector3D_t fsR, const ScalarView_t& dt, Vector3D_t invDr, int nghost,
-            const ippl::NDIndex<3>& lDom, ScalarGridView3D_t rho, Vector3D_t origin);
+            const ippl::NDIndex<3U>& lDom, ScalarGridView3D_t rho, Vector3D_t origin);
     template <typename DiagnosticPolicy = NullDiagnostic>
     KOKKOS_FUNCTION static void doGatherFromGrid(
             size_t n, const VectorView_t& r, const VectorView_t& p, const ReferenceView_t& ref,
             T beamGamma, T beamBeta, const VectorView_t& e, const VectorView_t& b,
-            const BooleanView_t& invalid, Vector3D_t invDr, int nghost, ippl::NDIndex<3> lDom,
+            const BooleanView_t& invalid, Vector3D_t invDr, int nghost, ippl::NDIndex<3U> lDom,
             VectorGridView3D_t eField, Vector3D_t origin, T gBy4PiEpsilon0,
             LineDensityView_t lineDensityGradient, DiagnosticPolicy diagnostic);
     KOKKOS_FUNCTION static void gatherFromEField(
             size_t n, Vector3D_t fsR, const VectorView_t& e, Vector3D_t invDr, int nghost,
-            const ippl::NDIndex<3>& lDom, VectorGridView3D_t eField, Vector3D_t origin);
+            const ippl::NDIndex<3U>& lDom, VectorGridView3D_t eField, Vector3D_t origin);
     KOKKOS_FUNCTION static void unboostFromBeamFrame(
             size_t n, T beamGamma, T beamBeta, const VectorView_t& e, const VectorView_t& b);
     KOKKOS_FUNCTION static void convertFromFrenetSerret(
@@ -162,16 +163,16 @@ public:
     Mesh2D_t* getSliceMesh() const { return sliceMesh_m.get(); }
     Layout2D_t* getSliceLayout() const { return sliceLayout_m.get(); }
     const ReferenceView_t& getReferencePath() const { return referencePath_m; }
-    Field_t<3>* getRho() const { return rho_m; }
-    VField_t<T, 3>* getEField() const { return E_m; }
+    Field_t<3U>* getRho() const { return rho_m; }
+    VField_t<T, 3U>* getEField() const { return E_m; }
     const LineDensityView_t& getLineDensity() const { return lineDensity_m; }
     const LineDensityView_t& getLineDensityGradient() const { return lineDensityGradient_m; }
 
 private:
     PartBunch_t* partBunch_m;
     std::vector<Solver> twoDSolvers_m;
-    Field_t<3>* rho_m{};
-    VField_t<T, 3>* E_m{};
+    Field_t<3U>* rho_m{};
+    VField_t<T, 3U>* E_m{};
     std::shared_ptr<Mesh2D_t> sliceMesh_m;
     std::shared_ptr<Layout2D_t> sliceLayout_m;
     ReferenceView_t referencePath_m;
@@ -180,15 +181,18 @@ private:
     Vector3D_t hr_m{1};
     Vector3D_t sizer_m{};
     Vector3D_t originr_m{};
-    ippl::NDIndex<3> domain_m;
+    ippl::NDIndex<3U> domain_m;
     std::unique_ptr<ippl::ParameterList> solverParams_m;
 
     // Configuration
     T beamRadius_m{1};
     LongitudinalFieldMode longitudinalFieldMode_m{LongitudinalFieldMode::Open};
     bool closedRing_m{false};
-    Vector<unsigned int, 3> nR_m{10};
+    Vector<unsigned int, 3U> nR_m{10};
     std::string referencePathFileName_m{};
+    std::string solver_m;
+    T pipeSizeX_m;
+    T pipeSizeY_m;
 
     // Constants
     static constexpr size_t LineDensityGhostCells    = 2;

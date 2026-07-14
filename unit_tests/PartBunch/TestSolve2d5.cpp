@@ -368,6 +368,7 @@ namespace {
                     /*lbt=*/1.0,
                     /*integration_method=*/"LF2", fsCmd.get(), dataSink.get());
             pc = bunch->getParticleContainer();
+            bunch->getFieldSolver()->orbitThreadersReady();
         }
 
         void makeReferencePathFile(

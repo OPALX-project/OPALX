@@ -23,8 +23,8 @@
 
 template <typename T>
 Solve2d5<T>::Solve2d5(
-        PartBunch_t* partBunch, std::string solver, Field_t<3>* rho, VField_t<T, 3>* E,
-        Field_t<3>* phi, std::shared_ptr<BCHandler_t> bcHandler, const Vector<int, 3>& nR,
+        PartBunch_t* partBunch, std::string solver, Field_t<3U>* rho, VField_t<T, 3U>* E,
+        Field_t<3U>* phi, std::shared_ptr<BCHandler_t> bcHandler, const Vector<int, 3U>& nR,
         const LongitudinalFieldMode longitudinalFieldMode, const T pipeSizeX, const T pipeSizeY,
         const T beamRadius, const bool closedRing, const std::string& refPathFileName)
     : Base(solver, rho, E, phi, bcHandler, 0, true),
@@ -33,11 +33,22 @@ Solve2d5<T>::Solve2d5(
       longitudinalFieldMode_m(longitudinalFieldMode),
       closedRing_m(closedRing),
       nR_m(nR),
-      referencePathFileName_m(refPathFileName) {
+      referencePathFileName_m(refPathFileName),
+      solver_m(solver),
+      pipeSizeX_m(pipeSizeX),
+      pipeSizeY_m(pipeSizeY) {
+}
+
+template <typename T>
+void Solve2d5<T>::initSolver() {
+}
+
+template <typename T>
+void Solve2d5<T>::orbitThreadersReady() {
     // Load the reference path to determine the Frenet-Serret domain dimensions
     auto pathLength = loadReferencePath();
-    sizer_m         = {pipeSizeX, pipeSizeY, pathLength};
-    originr_m       = {-pipeSizeX / 2, -pipeSizeY / 2, 0};
+    sizer_m         = {pipeSizeX_m, pipeSizeY_m, pathLength};
+    originr_m       = {-pipeSizeX_m / 2, -pipeSizeY_m / 2, 0};
     hr_m            = sizer_m / nR_m;
     for (unsigned i = 0; i < Dim; i++) {
         domain_m[i] = ippl::Index(nR_m[i]);
@@ -49,15 +60,15 @@ Solve2d5<T>::Solve2d5(
             std::make_shared<FieldContainer_t>(
                     hr_m, originr_m, rmax, std::array{false, false, false}, domain_m, originr_m,
                     true));
-    partBunch_m->getFieldContainer()->initializeFields(solver);
+    partBunch_m->getFieldContainer()->initializeFields(solver_m);
     rho_m = &partBunch_m->getFieldContainer()->getRho();
     E_m   = &partBunch_m->getFieldContainer()->getE();
-}
-
-template <typename T>
-void Solve2d5<T>::initSolver() {
+    // Set the field solver base class members to reflect changes to the field container
+    FieldSolver<T,3U>::setRho(rho_m);
+    FieldSolver<T,3U>::setE(E_m);
+    FieldSolver<T,3U>::setPhi(&partBunch_m->getFieldContainer()->getPhi());
     // The grid dimensions
-    ippl::NDIndex ndIndex2d(Vector<unsigned, 2>{nR_m.data_m[0], nR_m.data_m[1]});
+    ippl::NDIndex ndIndex2d(Vector<unsigned, 2U>{nR_m.data_m[0], nR_m.data_m[1]});
     auto numSlices = nR_m.data_m[2];
     // The slice mesh
     Vector2D_t spacing(hr_m.data_m[0], hr_m.data_m[1]);
@@ -83,13 +94,14 @@ void Solve2d5<T>::initSolver() {
     // creating its own Kokkos array, we could avoid the copy operations.
     twoDSolvers_m.resize(numSlices);
     for (size_t z = 0; z < numSlices; ++z) {
-        twoDSolvers_m[z].E_m      = std::make_shared<VField_t<T, 2>>(*sliceMesh_m, *sliceLayout_m);
-        twoDSolvers_m[z].rho_m    = std::make_shared<Field_t<2>>(*sliceMesh_m, *sliceLayout_m);
+        twoDSolvers_m[z].E_m      = std::make_shared<VField_t<T, 2U>>(*sliceMesh_m, *sliceLayout_m);
+        twoDSolvers_m[z].rho_m    = std::make_shared<Field_t<2U>>(*sliceMesh_m, *sliceLayout_m);
         twoDSolvers_m[z].solver_m = std::make_shared<OpenSolver2D_t>(
                 *twoDSolvers_m[z].E_m, *twoDSolvers_m[z].rho_m, *solverParams_m);
     }
     lineDensity_m         = LineDensityView_t("lineDensity", numSlices + LineDensityGhostCells);
     lineDensityGradient_m = LineDensityView_t("lineDensityGradient", numSlices);
+
 }
 
 template <typename T>
@@ -229,7 +241,7 @@ template <typename DiagnosticPolicy>
 KOKKOS_FUNCTION void Solve2d5<T>::doScatterToGrid(
         const size_t n, const VectorView_t& r, const VectorView_t& p, const ReferenceView_t& ref,
         const T meanPs, const ScalarView_t& dt, const BooleanView_t& invalid, Vector3D_t invDr,
-        const int nghost, const ippl::NDIndex<3> lDom, ScalarGridView3D_t rho, Vector3D_t origin,
+        const int nghost, const ippl::NDIndex<3U> lDom, ScalarGridView3D_t rho, Vector3D_t origin,
         DiagnosticPolicy diagnostic) {
     if (!invalid(n)) {
         // Into Frenet-Serret coordinates
@@ -302,7 +314,7 @@ KOKKOS_FUNCTION void Solve2d5<T>::boostToBeamFrame(const T meanPs, Vector3D_t& f
 template <typename T>
 KOKKOS_FUNCTION void Solve2d5<T>::scatterToRho(
         const size_t n, Vector3D_t fsR, const ScalarView_t& dt, Vector3D_t invDr, const int nghost,
-        const ippl::NDIndex<3>& lDom, ScalarGridView3D_t rho, Vector3D_t origin) {
+        const ippl::NDIndex<3U>& lDom, ScalarGridView3D_t rho, Vector3D_t origin) {
     // CiC scatter the charge to the 3D rho grid
     const auto l                 = (fsR - origin) * invDr + 0.5;
     ippl::Vector<int, Dim> index = l;
@@ -492,7 +504,7 @@ KOKKOS_FUNCTION void Solve2d5<T>::doGatherFromGrid(
         const size_t n, const VectorView_t& r, const VectorView_t& p, const ReferenceView_t& ref,
         const T beamGamma, const T beamBeta, const VectorView_t& e, const VectorView_t& b,
         const BooleanView_t& invalid, Vector3D_t invDr, const int nghost,
-        const ippl::NDIndex<3> lDom, VectorGridView3D_t eField, Vector3D_t origin, T gBy4PiEpsilon0,
+        const ippl::NDIndex<3U> lDom, VectorGridView3D_t eField, Vector3D_t origin, T gBy4PiEpsilon0,
         LineDensityView_t lineDensityGradient, DiagnosticPolicy diagnostic) {
     if (!invalid(n)) {
         // Into Frenet-Serret coordinates
@@ -519,7 +531,7 @@ KOKKOS_FUNCTION void Solve2d5<T>::doGatherFromGrid(
 template <typename T>
 KOKKOS_FUNCTION void Solve2d5<T>::gatherFromEField(
         const size_t n, Vector3D_t fsR, const VectorView_t& e, Vector3D_t invDr, const int nghost,
-        const ippl::NDIndex<3>& lDom, VectorGridView3D_t eField, Vector3D_t origin) {
+        const ippl::NDIndex<3U>& lDom, VectorGridView3D_t eField, Vector3D_t origin) {
     // CiC gather the boosted E field to the 3D E field grid
     const auto l                 = (fsR - origin) * invDr + 0.5;
     ippl::Vector<int, Dim> index = l;
