@@ -113,6 +113,7 @@
       --config=$CI_PROJECT_DIR/ci/cscs/config/$REGTEST_CONFIG
       --opalx-exe-path=$BUILD_PATH/bin
       --opalx-build-dir=$BUILD_PATH
+      --opalx-branch=$CI_COMMIT_REF_NAME
       --reg-tests
       --unit-tests
       --no-gpl
@@ -176,6 +177,7 @@
             bash $CI_PROJECT_DIR/nightlybuildx/scripts/run_tests \
               --do-not-compile-run \
               --publish-dir=$(pwd)/docs/opalx-regression-test \
+              --opalx-branch=$CI_COMMIT_REF_NAME \
               --config=$CI_PROJECT_DIR/ci/cscs/config/$REGTEST_CONFIG
             git add -A
             if ! git diff --cached --quiet; then
