@@ -5,6 +5,7 @@ include:
 variables:
   CUDA12_9_UENV: "/capstor/store/cscs/cscs/public/uenvs/opal-x-gh200-mpich-gcc-2025-12-19-cuda-12.9.1.squashfs"
   BUILD_ARCH: "gpu-cuda-gh200"
+  REGTEST_CONFIG: "cuda.conf"
   CTEST_SITE: "Daint gh200 CUDA 12.9.1"
   SRUN_ARGS: "--uenv=${CUDA12_9_UENV} --view=${WITH_UENV_VIEW} --repo=${SCRATCH}/.uenv-images-ci-daint --gpus-per-task=1"
   WRAPPER: "/user-environment/wrapper-mpi.sh"

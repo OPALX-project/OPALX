@@ -1,15 +1,11 @@
 # Common OPALX regression test job template.
 #
-# Arch-specific files should define the variables listed below and a concrete
-# job that extends this template plus the appropriate bare-metal runner.
-#
-# Expected per-arch variables:
-#   BUILD_ARCH          - architecture identifier used for published results
-#   CTEST_SITE          - site name passed to cdash / used for diagnostics
-#   SRUN_ARGS           - arguments passed to srun by the mpirun wrapper
-#   UENV (optional)     - uenv image used to build the SRUN_ARGS (convenience)
-#   WRAPPER (optional)  - extra wrapper binary inserted by regression-test-mpirun-wrapper
-#   HSA_XNACK (optional)- ROCm-specific setting exported by GitLab CI
+# Arch-specific files should define:
+#   BUILD_ARCH   - architecture identifier (must match the config's architecture)
+#   REGTEST_CONFIG - filename under ci/cscs/config/ passed to NightlyBuildX run_tests
+#   CTEST_SITE   - site name for diagnostics
+#   SRUN_ARGS    - srun arguments used by the mpirun wrapper
+#   WRAPPER      - optional extra wrapper binary (empty/unset if none)
 
 .opalx-regression-common:
   stage: opalx_regression
@@ -17,7 +13,6 @@
     SLURM_JOB_NUM_NODES: 1
     SLURM_NTASKS: 1
     SLURM_TIMELIMIT: "0:30:00"
-    WITH_UENV_VIEW: "default"
     SCRATCH: "/capstor/scratch/cscs/biddisco"
   before_script:
     - !reference [.pr-number-extractor, before_script]
@@ -28,84 +23,82 @@
     - echo "BUILD_PATH=$BUILD_PATH"
     - echo "SRUN_ARGS=$SRUN_ARGS"
   script:
-    - echo "=== Diagnostics ==="
-    - echo "CI_PROJECT_DIR=$CI_PROJECT_DIR"
-    - ls -la $(pwd)
-    - 'ls -la $BUILD_PATH 2>/dev/null || echo "BUILD_PATH missing: $BUILD_PATH"'
-    - find $(pwd) -maxdepth 3 -name "opalx*" 2>/dev/null || true
-
     - echo "=== Verify release build artifact ==="
     - ls -l $BUILD_PATH/bin/
     - export LD_LIBRARY_PATH=$BUILD_PATH/lib:$LD_LIBRARY_PATH
     - export MALLOC_CHECK_=0
     - echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
-    - echo "HSA_XNACK=$HSA_XNACK"
-    - echo "WRAPPER=$WRAPPER"
 
-    - echo "=== Clone NightlyBuildX (main) ==="
-    - git clone --depth 1 --branch main https://github.com/OPALX-project/NightlyBuildX.git nightlybuildx
-    - ls nightlybuildx/scripts
-
-    - echo "=== Clone regression tests (master) ==="
-    - git clone --depth 1 --branch master https://github.com/OPALX-project/regression-tests-x.git regression-tests
-    - ls regression-tests/RegressionTests
-
-    - echo "=== Setup gnuplot ==="
+    - echo "=== Install NightlyBuildX tools (matplotlib, pandoc, xsltproc, perl) ==="
     - |
-      if command -v gnuplot &> /dev/null; then
-        echo "gnuplot found at $(command -v gnuplot)"
-      else
-        echo "gnuplot not found, installing via micromamba"
-        GNUPLOT_ENV="$SCRATCH/gnuplot-env-$(uname -m)"
-        MAMBA_ROOT_PREFIX="$SCRATCH/micromamba-root-$(uname -m)"
-        export MAMBA_ROOT_PREFIX
-        if [ ! -x "$GNUPLOT_ENV/bin/gnuplot" ]; then
-          MAMBA_DIR="$SCRATCH/micromamba-bin-$(uname -m)"
-          mkdir -p "$MAMBA_DIR"
-          case "$(uname -m)" in
-            x86_64)  MAMBA_ARCH="linux-64" ;;
-            aarch64) MAMBA_ARCH="linux-aarch64" ;;
-            *)       echo "Unsupported arch $(uname -m), will skip plot generation"; MAMBA_ARCH="" ;;
-          esac
-          if [ -n "$MAMBA_ARCH" ]; then
-            # Serialize downloads for the same architecture on the shared FS
-            LOCK_FILE="$MAMBA_DIR.lock"
-            (
-              if command -v flock &> /dev/null; then
-                flock -x 200
-              fi
-              if [ ! -x "$MAMBA_DIR/micromamba" ]; then
-                echo "Downloading micromamba for $MAMBA_ARCH"
-                rm -f "$MAMBA_DIR/micromamba"
-                curl -fsSL "https://micro.mamba.pm/api/micromamba/${MAMBA_ARCH}/latest" | tar -xvj -C "$MAMBA_DIR" --strip-components=1 bin/micromamba
-                chmod +x "$MAMBA_DIR/micromamba" 2>/dev/null || true
-              fi
-            ) 200>"$LOCK_FILE"
-          fi
-          # Copy to the job directory before executing to avoid shared-fs races
-          if [ -x "$MAMBA_DIR/micromamba" ]; then
-            cp "$MAMBA_DIR/micromamba" ./micromamba
-            chmod +x ./micromamba
-            echo "Installing gnuplot into $GNUPLOT_ENV (first run may be slow)"
-            if ! ./micromamba create -y -p "$GNUPLOT_ENV" -c conda-forge gnuplot > /tmp/micromamba-gnuplot.log 2>&1; then
-              echo "ERROR: micromamba create failed, log follows:"
-              cat /tmp/micromamba-gnuplot.log
+      TOOLS_ENV="$SCRATCH/nightlybuildx-tools-$(uname -m)"
+      MAMBA_ROOT_PREFIX="$SCRATCH/micromamba-root-$(uname -m)"
+      export MAMBA_ROOT_PREFIX
+      if [ ! -x "$TOOLS_ENV/bin/python3" ] || [ ! -x "$TOOLS_ENV/bin/pandoc" ] || [ ! -x "$TOOLS_ENV/bin/xsltproc" ]; then
+        MAMBA_DIR="$SCRATCH/micromamba-bin-$(uname -m)"
+        mkdir -p "$MAMBA_DIR"
+        case "$(uname -m)" in
+          x86_64)  MAMBA_ARCH="linux-64" ;;
+          aarch64) MAMBA_ARCH="linux-aarch64" ;;
+          *)       echo "Unsupported arch $(uname -m)"; MAMBA_ARCH="" ;;
+        esac
+        if [ -n "$MAMBA_ARCH" ]; then
+          LOCK_FILE="$MAMBA_DIR.lock"
+          (
+            if command -v flock &> /dev/null; then
+              flock -x 200
             fi
-          else
-            echo "ERROR: micromamba binary not available"
-          fi
+            if [ ! -x "$MAMBA_DIR/micromamba" ]; then
+              echo "Downloading micromamba for $MAMBA_ARCH"
+              rm -f "$MAMBA_DIR/micromamba"
+              curl -fsSL "https://micro.mamba.pm/api/micromamba/${MAMBA_ARCH}/latest" | tar -xvj -C "$MAMBA_DIR" --strip-components=1 bin/micromamba
+              chmod +x "$MAMBA_DIR/micromamba" 2>/dev/null || true
+            fi
+          ) 200>"$LOCK_FILE"
         fi
-        if [ -x "$GNUPLOT_ENV/bin/gnuplot" ]; then
-          export PATH="$GNUPLOT_ENV/bin:$PATH"
-          export LD_LIBRARY_PATH="$GNUPLOT_ENV/lib:$LD_LIBRARY_PATH"
-          echo "gnuplot now available at $GNUPLOT_ENV/bin/gnuplot"
+        if [ -x "$MAMBA_DIR/micromamba" ]; then
+          cp "$MAMBA_DIR/micromamba" ./micromamba
+          chmod +x ./micromamba
+          echo "Installing NightlyBuildX tools into $TOOLS_ENV"
+          if ! ./micromamba create -y -p "$TOOLS_ENV" -c conda-forge python matplotlib pandoc libxslt perl > /tmp/micromamba-tools.log 2>&1; then
+            echo "ERROR: micromamba create failed, log follows:"
+            cat /tmp/micromamba-tools.log
+            exit 1
+          fi
         else
-          echo "WARNING: gnuplot could not be installed, regression plots will be skipped"
+          echo "ERROR: micromamba binary not available"
+          exit 1
         fi
       fi
+      export PATH="$TOOLS_ENV/bin:$PATH"
+      export LD_LIBRARY_PATH="$TOOLS_ENV/lib:$LD_LIBRARY_PATH"
+      python3 -c "import matplotlib; print('matplotlib', matplotlib.__version__)"
+      pandoc --version | head -1
+      xsltproc --version | head -1
+      perl --version | head -2
 
-    - echo "=== Patch stattest.py to tolerate missing gnuplot ==="
-    - python3 $CI_PROJECT_DIR/ci/cscs/patch-stattest.py nightlybuildx/scripts/OpalRegressionTests/stattest.py
+    - echo "=== Clone NightlyBuildX (local-summary-nogpl) ==="
+    - git clone --depth 1 --branch local-summary-nogpl https://github.com/OPALX-project/NightlyBuildX.git nightlybuildx
+    - ls nightlybuildx/scripts
+
+    - echo "=== Patch run_tests to skip salloc (not available inside CSCS CI allocations) ==="
+    - |
+      sed -i 's|if command -v salloc >/dev/null 2>&1 && sinfo >/dev/null 2>&1; then|if false; then|' nightlybuildx/scripts/run_tests
+      grep -n "if false; then" nightlybuildx/scripts/run_tests
+
+    - echo "=== Patch run-reg-tests.py to fail CI on test failures ==="
+    - |
+      python3 - <<'PY'
+      from pathlib import Path
+      p = Path("nightlybuildx/scripts/run-reg-tests.py")
+      s = p.read_text()
+      old = "    rt.run(compare_only=args.run_local_now)\n"
+      new = "    rt.run(compare_only=args.run_local_now)\n    if rt.totalNrPassed != rt.totalNrTests:\n        sys.exit(1)\n"
+      if old not in s:
+          raise SystemExit("ERROR: could not find rt.run() in run-reg-tests.py")
+      p.write_text(s.replace(old, new, 1))
+      print("Patched run-reg-tests.py to exit non-zero on test failures")
+      PY
 
     - echo "=== Install mpirun -> srun wrapper ==="
     - mkdir -p ci-bin
@@ -114,31 +107,19 @@
     - export PATH=$(pwd)/ci-bin:$PATH
     - which mpirun
 
-    - echo "=== Patch run-reg-tests.py to fail CI on test failures ==="
-    - |
-      python3 - <<'PY'
-      from pathlib import Path
-      import sys
-      p = Path("nightlybuildx/scripts/run-reg-tests.py")
-      s = p.read_text()
-      old = "    rt.run()\n"
-      new = "    rt.run()\n    if rt.totalNrPassed != rt.totalNrTests:\n        sys.exit(1)\n"
-      if old not in s:
-          raise SystemExit("ERROR: could not find rt.run() in run-reg-tests.py")
-      p.write_text(s.replace(old, new, 1))
-      print("Patched run-reg-tests.py to exit non-zero on test failures")
-      PY
-
-    - echo "=== Run regression tests ==="
+    - echo "=== Run regression and unit tests via NightlyBuildX ==="
     - >-
-      python3 nightlybuildx/scripts/run-reg-tests.py
-      --base-dir=$(pwd)/regression-tests/RegressionTests
+      bash nightlybuildx/scripts/run_tests
+      --config=$CI_PROJECT_DIR/ci/cscs/config/$REGTEST_CONFIG
       --opalx-exe-path=$BUILD_PATH/bin
+      --opalx-build-dir=$BUILD_PATH
+      --reg-tests
+      --unit-tests
+      --no-gpl
       --publish-dir=$CI_PROJECT_DIR/regression-results-$BUILD_ARCH
-      --timestamp=$(date +%Y-%m-%d_%H-%M)
 
     - echo "=== Regression tests finished ==="
-    - ls -R $CI_PROJECT_DIR/regression-results-$BUILD_ARCH
+    - find $CI_PROJECT_DIR/regression-results-$BUILD_ARCH -type f | sort
 
     - echo "=== Push regression results to opal-live-doc ==="
     - |
@@ -149,8 +130,6 @@
       else
         mkdir -p ~/.ssh
         KEY_FILE=~/.ssh/opal_live_doc_key
-        # Reformat the key into a proper PEM file. CI variables sometimes
-        # arrive as a single line with spaces inserted in the base64 body.
         python3 - "$PSI_GIT_SSHKEY" > "$KEY_FILE" <<'PY'
       import re, sys
       raw = sys.argv[1]
@@ -181,10 +160,19 @@
           git sparse-checkout init --cone
           git sparse-checkout set docs/opalx-regression-test/
           git checkout
-          python3 $CI_PROJECT_DIR/ci/cscs/publish-results.py --source-dir=$CI_PROJECT_DIR/regression-results-$BUILD_ARCH --branch=master --arch=$BUILD_ARCH --commit-sha=$CI_COMMIT_SHORT_SHA
+          # Merge this architecture's results into the published docs tree
+          mkdir -p docs/opalx-regression-test
+          cp -r $CI_PROJECT_DIR/regression-results-$BUILD_ARCH/* docs/opalx-regression-test/
+          # Re-render HTML from XML/org and rebuild the master landing page
+          TOOLS_ENV="$SCRATCH/nightlybuildx-tools-$(uname -m)"
+          export PATH="$TOOLS_ENV/bin:$PATH"
+          export LD_LIBRARY_PATH="$TOOLS_ENV/lib:$LD_LIBRARY_PATH"
+          bash $CI_PROJECT_DIR/nightlybuildx/scripts/run_tests \
+            --do-not-compile-run \
+            --publish-dir=$(pwd)/docs/opalx-regression-test \
+            --config=$CI_PROJECT_DIR/ci/cscs/config/$REGTEST_CONFIG
           git add -A
           git commit -m "Update $BUILD_ARCH regression results for $CI_COMMIT_SHORT_SHA" || echo "Nothing to commit"
-          # Rebase in case another architecture pushed while we were cloning/committing
           if git pull --rebase origin master; then
             git push origin master || echo "WARNING: push failed"
           else
