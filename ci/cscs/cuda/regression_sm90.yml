@@ -182,6 +182,7 @@ variables:
           git checkout
           mkdir -p $BUILD_ARCH
           cp -r $CI_PROJECT_DIR/regression-results-$BUILD_ARCH/. $BUILD_ARCH/
+          python3 $CI_PROJECT_DIR/ci/cscs/generate-overview.py master
           git add -A
           git commit -m "Update $BUILD_ARCH regression results for $CI_COMMIT_SHORT_SHA" || echo "Nothing to commit"
           # Rebase in case another architecture pushed while we were cloning/committing
