@@ -67,7 +67,8 @@
 
 #include <memory>
 
-#include "Utilities/BeamlineFieldElement.h"
+#include "AbsBeamline/ElementBase.h"
+#include "Utilities/ElementList.h"
 
 class OpalParticle;
 
@@ -108,7 +109,7 @@ public:
     virtual short getNumBunch() { return 0; }
 
     // standing wave structures
-    FieldList cavities_m;
+    ElementList cavities_m;
 
     const Beamline& itsBeamline_m;
 

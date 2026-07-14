@@ -78,10 +78,6 @@ public:
      *
      * @returns true if particle is out-of-bounds (lost), false otherwise
      */
-    virtual bool apply(
-            const size_t& i, const double& t, Vector_t<double, 3>& E,
-            Vector_t<double, 3>& B) override;
-
     /**
      * @brief Apply to particle with position R and momentum P
      *
@@ -126,17 +122,14 @@ public:
      * @param startField Where the fields start along the path
      * @param endFied Where the fields end along the path
      */
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    virtual void initialise(PartBunch_t* bunch) override;
 
     virtual void finalise() override;
 
-    virtual bool bends() const override;
-
     virtual ElementType getType() const override;
 
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
-    virtual bool isInside(const Vector_t<double, 3>& r) const override;
     /* ========================================================================== */
     // @brief Set number of slices for map tracking
     void setNSlices(const std::size_t& nSlices);

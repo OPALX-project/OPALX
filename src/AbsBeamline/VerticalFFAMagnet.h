@@ -80,7 +80,7 @@ public:
      *  \param startField not used
      *  \param endField not used
      */
-    void initialise(PartBunch_t* bunch, double& startField, double& endField);
+    void initialise(PartBunch_t* bunch);
 
     /** Initialise the VerticalFFAMagnet
      *
@@ -97,10 +97,9 @@ public:
      *  Nb: the VerticalFFAMagnet geometry is straight even though trajectories
      *      are not
      */
-    inline bool bends() const { return false; }
 
     /** Not implemented */
-    void getFieldExtend(double& /*zBegin*/, double& /*zEnd*/) const {}
+    void getFieldExtent(double& /*zBegin*/, double& /*zEnd*/) const {}
 
     /** Return the cell geometry */
     Geometry& getGeometry();

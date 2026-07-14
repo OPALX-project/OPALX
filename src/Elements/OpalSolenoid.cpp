@@ -50,7 +50,7 @@ void OpalSolenoid::update() {
     double Bz = Attributes::getReal(itsAttr[KS]) * OpalData::getInstance()->getP0() / Physics::c;
     bool fast = Attributes::getBool(itsAttr[FAST]);
 
-    sol->setElementLength(length);
+    sol->getGeometry().setElementLength(length);
     sol->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));
     sol->setFast(fast);
     sol->setBz(Bz);

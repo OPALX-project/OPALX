@@ -234,7 +234,7 @@ double TBeamline<T>::getArcLength() const {
     double length = 0.0;
 
     for (typename std::list<T>::const_iterator iter = this->begin(); iter != this->end(); ++iter) {
-        length += iter->getElement()->getArcLength();
+        length += iter->getElement()->getGeometry().getArcLength();
     }
 
     return length;
@@ -245,7 +245,7 @@ double TBeamline<T>::getElementLength() const {
     double length = 0.0;
 
     for (typename std::list<T>::const_iterator iter = this->begin(); iter != this->end(); ++iter) {
-        length += iter->getElement()->getElementLength();
+        length += iter->getElement()->getGeometry().getElementLength();
     }
 
     return length;

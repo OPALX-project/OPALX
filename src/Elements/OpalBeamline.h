@@ -27,13 +27,12 @@
 
 #include "AbsBeamline/Marker.h"
 #include "Beamlines/Beamline.h"
-#include "Utilities/BeamlineFieldElement.h"
+#include "Utilities/ElementList.h"
 
 #include "Algorithms/CoordinateSystemTrafo.h"
 
 #include "OPALTypes.h"
 
-class ParticleMatterInteractionHandler;
 class BoundaryGeometry;
 
 class OpalBeamline {
@@ -72,15 +71,7 @@ public:
     CoordinateSystemTrafo getNominalEntryTransform(const std::shared_ptr<ElementBase>& comp) const;
     CoordinateSystemTrafo getNominalExitTransform(const std::shared_ptr<ElementBase>& comp) const;
 
-    double getStart(const Vector_t<double, 3>&) const;
-    double getEnd(const Vector_t<double, 3>&) const;
-
-    void switchElements(
-            const double&, const double&, const double& kineticEnergy,
-            const bool& nomonitors = false);
     void switchElementsOff();
-
-    ParticleMatterInteractionHandler* getParticleMatterInteractionHandler(const unsigned int&);
 
     BoundaryGeometry* getBoundaryGeometry(const unsigned int&);
 
@@ -95,7 +86,6 @@ public:
     void visit(const T&, BeamlineVisitor&, PartBunch_t&);
 
     void prepareSections();
-    void positionElementRelative(std::shared_ptr<ElementBase>);
     void compute3DLattice();
     void save3DLattice();
     void save3DInput();
@@ -104,17 +94,12 @@ public:
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
-    FieldList getElementByType(ElementType);
+    ElementList getElementByType(ElementType);
 
     void swap(OpalBeamline& rhs);
     void merge(OpalBeamline& rhs);
 
 private:
-    /// Set one element's nominal body transform (its global→local
-    /// CoordinateSystemTrafo) during beamline assembly.
-    void setNominalPlacement(
-            const std::shared_ptr<ElementBase>& element, const CoordinateSystemTrafo& parentToBody);
-
     /**
      * @brief Place ELEMEDGE-positioned elements along the reference path.
      *
@@ -128,7 +113,7 @@ private:
      */
     void placeElementsAlongReferencePath();
 
-    FieldList elements_m;
+    ElementList elements_m;
     bool prepared_m;
     bool referencePathPlacementCompiled_m;
 
@@ -137,17 +122,12 @@ private:
 
 template <class T>
 inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t& bunch) {
-    Inform msg("OPAL ");
-    double startField = 0.0;
-    double endField   = 0.0;
     std::shared_ptr<T> elptr(dynamic_cast<T*>(element.clone()));
 
-    positionElementRelative(elptr);
-
-    if (elptr->isElementPositionSet()) startField = elptr->getElementPosition();
-
-    elptr->initialise(&bunch, startField, endField);
-    elements_m.push_back(BeamlineFieldElement(elptr, startField, endField));
+    // Placement (both 6D-pose and ELEMEDGE) is resolved later, in one pass, by
+    // placeElementsAlongReferencePath() during prepareSections().
+    elptr->initialise(&bunch);
+    elements_m.push_back(elptr);
     prepared_m                       = false;
     referencePathPlacementCompiled_m = false;
 }
@@ -208,12 +188,12 @@ inline CoordinateSystemTrafo OpalBeamline::getMisalignment(
 
 inline CoordinateSystemTrafo OpalBeamline::getNominalEntryTransform(
         const std::shared_ptr<ElementBase>& comp) const {
-    return comp->getEdgeToBegin() * getCSTrafoLab2Local(comp);
+    return comp->getGeometry().getEdgeToBegin() * getCSTrafoLab2Local(comp);
 }
 
 inline CoordinateSystemTrafo OpalBeamline::getNominalExitTransform(
         const std::shared_ptr<ElementBase>& comp) const {
-    return comp->getEdgeToEnd() * getCSTrafoLab2Local(comp);
+    return comp->getGeometry().getEdgeToEnd() * getCSTrafoLab2Local(comp);
 }
 
 #endif  // OPAL_BEAMLINE_H

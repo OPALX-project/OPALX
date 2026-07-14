@@ -3,7 +3,7 @@
  * \brief Unit tests for ConstantEFieldCavity component (base layer).
  *
  * Tests the ConstantEFieldCavity API and apply logic via ConstantEFieldCavityRep (concrete type).
- * Covers: getType, bends, getEx/Ey/Ez and setters, getFieldExtend,
+ * Covers: getType, getEx/Ey/Ez and setters, getFieldExtent,
  * apply(R,P,t,E,B) for various z-positions, full-vector application,
  * and applyToReferenceParticle (inside/outside).
  */
@@ -22,7 +22,7 @@ namespace {
     protected:
         void SetUp() override {
             rep_ = std::make_unique<ConstantEFieldCavityRep>("TestConstantEFieldCavity");
-            rep_->setElementLength(1.0);
+            rep_->getGeometry().setElementLength(1.0);
             rep_->setEz(10.0);
         }
 
@@ -35,8 +35,6 @@ namespace {
     TEST_F(ConstantEFieldCavityTest, GetType) {
         EXPECT_EQ(rep_->getType(), ElementType::CONSTANTEFIELDCAVITY);
     }
-
-    TEST_F(ConstantEFieldCavityTest, Bends) { EXPECT_FALSE(rep_->bends()); }
 
     TEST_F(ConstantEFieldCavityTest, GetExEyEzSetters) {
         EXPECT_DOUBLE_EQ(rep_->getEx(), 0.0);
@@ -53,22 +51,15 @@ namespace {
     }
 
     TEST_F(ConstantEFieldCavityTest, GetDimensions) {
-        double startField = 0.0;
-        double endField   = 0.0;
-        rep_->initialise(nullptr, startField, endField);
-        EXPECT_DOUBLE_EQ(endField, 1.0);
+        rep_->initialise(nullptr);
 
+        // getFieldExtent() is the local-chart field-support interval [0, L] (same frame as
+        // isInside's r), independent of where the element sits along the reference path; the
+        // s-position is carried by the placement transform, not by the field extent.
         double zBegin = 0.0, zEnd = 0.0;
-        rep_->getFieldExtend(zBegin, zEnd);
+        rep_->getFieldExtent(zBegin, zEnd);
         EXPECT_DOUBLE_EQ(zBegin, 0.0);
         EXPECT_DOUBLE_EQ(zEnd, 1.0);
-
-        startField = 2.5;
-        endField   = 0.0;
-        rep_->initialise(nullptr, startField, endField);
-        rep_->getFieldExtend(zBegin, zEnd);
-        EXPECT_DOUBLE_EQ(zBegin, 2.5);
-        EXPECT_DOUBLE_EQ(zEnd, 3.5);
     }
 
     // ---------------------------------------------------------------------------

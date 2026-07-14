@@ -9,14 +9,7 @@ namespace {
         void (SBendRep::*set)(double);
     };
 
-    const Entry entries[] = {
-            {"L", &SBendRep::getElementLength, &SBendRep::setElementLength},
-            {"BY", &SBendRep::getB, &SBendRep::setB},
-            {"E1", &SBendRep::getEntryFaceRotation, &SBendRep::setEntryFaceRotation},
-            {"E2", &SBendRep::getExitFaceRotation, &SBendRep::setExitFaceRotation},
-            {"H1", &SBendRep::getEntryFaceCurvature, &SBendRep::setEntryFaceCurvature},
-            {"H2", &SBendRep::getExitFaceCurvature, &SBendRep::setExitFaceCurvature},
-            {nullptr, nullptr, nullptr}};
+    const Entry entries[] = {{"BY", &SBendRep::getB, &SBendRep::setB}, {nullptr, nullptr, nullptr}};
 }  // namespace
 
 SBendRep::SBendRep() : SBend(), geometry_m(Geometry::makeSBend(0.0, 0.0)) {}

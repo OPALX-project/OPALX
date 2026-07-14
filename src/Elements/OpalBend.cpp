@@ -40,13 +40,14 @@ OpalBend::OpalBend(const char* name, const char* help) : OpalElement(SIZE, name,
     itsAttr[E2]       = Attributes::makeReal("E2", "Exit pole face angle in rad", 0.0);
     itsAttr[H1]       = Attributes::makeReal("H1", "Entry pole face curvature in m^(-1)");
     itsAttr[H2]       = Attributes::makeReal("H2", "Exit pole face curvature in m^(-1)");
-    itsAttr[HGAP]     = Attributes::makeReal("HGAP", "Half gap width m");
+    itsAttr[HGAP]     = Attributes::makeReal("HGAP", "Half gap height of the magnet (m)", 0.0);
     itsAttr[FINT]     = Attributes::makeReal("FINT", "Field integral (no dimension)", 0.5);
     itsAttr[SLICES]   = Attributes::makeReal("SLICES", "Number of slices to use", 1.0);
     itsAttr[STEPSIZE] = Attributes::makeReal("STEPSIZE", "Step-size to use for integration");
     itsAttr[FMAPFN]   = Attributes::makeString("FMAPFN", "Filename for the fieldmap");
-    itsAttr[GAP]      = Attributes::makeReal("GAP", "Full gap height of the magnet (m)", 0.0);
-    itsAttr[HAPERT]   = Attributes::makeReal("HAPERT", "Bend plane magnet aperture (m)", 0.0);
+    itsAttr[GAP] =
+            Attributes::makeReal("GAP", "Not supported; specify HGAP (the half gap) instead");
+    itsAttr[HAPERT] = Attributes::makeReal("HAPERT", "Bend plane magnet aperture (m)", 0.0);
     itsAttr[DESIGNENERGY] =
             Attributes::makeReal("DESIGNENERGY", "the mean energy of the particles in MeV");
     itsAttr[GREATERTHANPI] = Attributes::makeBool("GREATERTHANPI", "-- not supported any more --");

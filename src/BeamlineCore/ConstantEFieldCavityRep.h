@@ -18,8 +18,6 @@ public:
     Geometry& getGeometry() override;
     const Geometry& getGeometry() const override;
 
-    void setElementLength(double length) override;
-
 private:
     void operator=(const ConstantEFieldCavityRep&);
 

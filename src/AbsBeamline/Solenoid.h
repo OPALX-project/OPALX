@@ -56,10 +56,6 @@ public:
      *
      * @returns true if particle is lost, false otherwise
      */
-    virtual bool apply(
-            const size_t& i, const double& t, Vector_t<double, 3>& E,
-            Vector_t<double, 3>& B) override;
-
     /**
      * @brief Apply to particle with position R and momentum P
      *
@@ -110,12 +106,10 @@ public:
      * @param startField Starting position of the field
      * @param endField Ending position of the field
      */
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    virtual void initialise(PartBunch_t* bunch) override;
 
     /// @note not implemented
     virtual void finalise() override;
-
-    virtual bool bends() const override;
 
     /// @brief Load field map and go online
     virtual void goOnline(const double& kineticEnergy) override;
@@ -141,7 +135,7 @@ public:
      * It may differ from the nominal body extent and therefore also from the
      * entry/exit ports used for placement and visualization.
      */
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     /**
      * @brief Return the nominal body extent of the solenoid.
@@ -152,7 +146,6 @@ public:
      * the field-support interval so that body placement and fringe-field
      * support can differ.
      */
-    virtual void getElementDimensions(double& zBegin, double& zEnd) const override;
 
     /**
      * @brief Get a finite transverse support envelope for placement/export.
@@ -170,12 +163,6 @@ public:
 
     /// @brief Check if position r is inside the field map
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
-
-    /// @brief Get the coordinate transformation to the begin of the element
-    virtual CoordinateSystemTrafo getEdgeToBegin() const override;
-
-    /// @brief Get the coordinate transformation to the end of the element
-    virtual CoordinateSystemTrafo getEdgeToEnd() const override;
 
 private:
     /* ========================================================================== */
@@ -211,19 +198,9 @@ private:
  *
  * @returns CoordinateSystemTrafo to the begin of the element
  */
-inline CoordinateSystemTrafo Solenoid::getEdgeToBegin() const {
-    CoordinateSystemTrafo ret(Vector_t<double, 3>(0, 0, 0), Quaternion(1, 0, 0, 0));
-    return ret;
-}
-
 /**
  * @brief Get the coordinate transformation to the end of the element
  *
  * @returns CoordinateSystemTrafo to the end of the element
  */
-inline CoordinateSystemTrafo Solenoid::getEdgeToEnd() const {
-    CoordinateSystemTrafo ret(
-            Vector_t<double, 3>(0, 0, getElementLength()), Quaternion(1, 0, 0, 0));
-    return ret;
-}
 #endif  // OPALX_Solenoid_HH

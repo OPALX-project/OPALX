@@ -851,16 +851,14 @@ void ParallelTracker::computeExternalFields(
             }
         }
 
-        // Get elements at bunch position.
-        // S-vs-local-Z seam: the bunch's longitudinal extent is taken from its local-Z
-        // bounds (rmin(2)/rmax(2)) and used directly as a path-length centre offset and
-        // half-width into the S-keyed IndexMap. This is the short-bunch approximation
-        // local z ~= ds about the centroid, exact only for a straight reference path.
-        // Revisit for curved beamlines (placement/bend steps).
+        // Get elements at bunch position. The bunch's local-Z bounds are mapped to a path-length
+        // centre + half-width for the s-keyed IndexMap query. Short-bunch / straight-reference-path
+        // approximation: local-Z adds linearly to the path length s (exact only for a straight
+        // reference path).
         IndexMap::value_t elements;
         try {
-            elements =
-                    oths[ci]->query(pc->get_sPos() + 0.5 * (rmax(2) + rmin(2)), rmax(2) - rmin(2));
+            const double centre = pc->get_sPos() + 0.5 * (rmax(2) + rmin(2));
+            elements            = oths[ci]->query(centre, rmax(2) - rmin(2));
         } catch (IndexMap::OutOfBounds& e) {
             globalEOL_m = true;
             continue;
@@ -875,10 +873,6 @@ void ParallelTracker::computeExternalFields(
                      * (itsOpalBeamline_m.getCSTrafoLab2Local((*it)) * pc->getToLabTrafo()));
 
             CoordinateSystemTrafo localToRefCSTrafo = refToLocalCSTrafo.inverted();
-
-            // S-vs-local-Z seam: local-Z bunch min added to sPos as a path-length offset
-            // (short-bunch approximation; exact only on a straight reference path).
-            (*it)->setCurrentSCoordinate(pc->get_sPos() + rmin(2));
 
             pc->transformBunch(refToLocalCSTrafo);
 
@@ -1205,7 +1199,7 @@ void ParallelTracker::prepareSections() {
     // FlaggedElemPtr::accept() -> DefaultVisitor::visitFlaggedElmPtr() ->
     // ElementBase::accept() -> ParallelTracker::visit[ElemName]() ->
     // OpalBeamline::visit([ElemName], bunch):
-    // This initialises the FieldList elements_m object of OpalBeamline
+    // This initialises the ElementList elements_m object of OpalBeamline
     // with clones of all the elements
     itsBeamline_m.accept(*this);
 
@@ -1776,14 +1770,14 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
  */
 void ParallelTracker::updateRFElement(std::string elName, double maxPhase) {
     Inform m("ParallelTracker::updateRFElement");
-    FieldList cavities       = itsOpalBeamline_m.getElementByType(ElementType::RFCAVITY);
-    FieldList travelingwaves = itsOpalBeamline_m.getElementByType(ElementType::TRAVELINGWAVE);
+    ElementList cavities       = itsOpalBeamline_m.getElementByType(ElementType::RFCAVITY);
+    ElementList travelingwaves = itsOpalBeamline_m.getElementByType(ElementType::TRAVELINGWAVE);
     cavities.insert(cavities.end(), travelingwaves.begin(), travelingwaves.end());
     m << level5 << "Got cavities and traveling waves." << endl;
 
-    for (FieldList::iterator fit = cavities.begin(); fit != cavities.end(); ++fit) {
-        if ((*fit).getElement()->getName() == elName) {
-            RFCavity* element = static_cast<RFCavity*>((*fit).getElement().get());
+    for (ElementList::iterator fit = cavities.begin(); fit != cavities.end(); ++fit) {
+        if ((*fit)->getName() == elName) {
+            RFCavity* element = static_cast<RFCavity*>((*fit).get());
 
             element->setPhasem(maxPhase);
             element->setAutophaseVeto();
