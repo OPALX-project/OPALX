@@ -128,7 +128,7 @@ variables:
         --base-dir=$(pwd)/regression-tests/RegressionTests
         --opalx-exe-path=$BUILD_PATH/bin
         --publish-dir=$CI_PROJECT_DIR/regression-results-$BUILD_ARCH
-        --timestamp=$CI_COMMIT_SHORT_SHA
+        --timestamp=$(date +%Y-%m-%d_%H-%M)
 
     - echo "=== Regression tests finished ==="
     - ls -R $CI_PROJECT_DIR/regression-results-$BUILD_ARCH
@@ -172,11 +172,9 @@ variables:
         if git clone --depth 1 --filter=blob:none --no-checkout --branch main git@gitea.psi.ch:AMAS/opal-live-doc.git opal-live-doc; then
           cd opal-live-doc
           git sparse-checkout init --cone
-          git sparse-checkout set $BUILD_ARCH overview/
+          git sparse-checkout set docs/opalx-regression-test/
           git checkout
-          mkdir -p $BUILD_ARCH
-          cp -r $CI_PROJECT_DIR/regression-results-$BUILD_ARCH/. $BUILD_ARCH/
-          python3 $CI_PROJECT_DIR/ci/cscs/generate-overview.py master
+          python3 $CI_PROJECT_DIR/ci/cscs/publish-results.py --source-dir=$CI_PROJECT_DIR/regression-results-$BUILD_ARCH --branch=master --arch=$BUILD_ARCH --commit-sha=$CI_COMMIT_SHORT_SHA
           git add -A
           git commit -m "Update $BUILD_ARCH regression results for $CI_COMMIT_SHORT_SHA" || echo "Nothing to commit"
           # Rebase in case another architecture pushed while we were cloning/committing
