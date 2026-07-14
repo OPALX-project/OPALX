@@ -22,6 +22,18 @@
     - export BUILD_PATH=$(pwd)/$BUILD_DIR
     - echo "BUILD_PATH=$BUILD_PATH"
     - echo "SRUN_ARGS=$SRUN_ARGS"
+    - |
+      # Normalize the published branch name. CSCS CI creates a separate merge
+      # pipeline with a ref like __CSCSCI__pr486; publish those as pr-486 so
+      # they do not collide with the source branch pipeline.
+      if [[ "$CI_COMMIT_REF_NAME" =~ __CSCSCI__pr([0-9]+) ]]; then
+        export OPALX_PUBLISH_BRANCH="pr-${BASH_REMATCH[1]}"
+      elif [ "$CI_COMMIT_REF_NAME" = "master" ]; then
+        export OPALX_PUBLISH_BRANCH="master"
+      else
+        export OPALX_PUBLISH_BRANCH=""
+      fi
+      echo "OPALX_PUBLISH_BRANCH=$OPALX_PUBLISH_BRANCH"
   script:
     - echo "=== Verify release build artifact ==="
     - ls -l $BUILD_PATH/bin/
@@ -113,7 +125,7 @@
       --config=$CI_PROJECT_DIR/ci/cscs/config/$REGTEST_CONFIG
       --opalx-exe-path=$BUILD_PATH/bin
       --opalx-build-dir=$BUILD_PATH
-      --opalx-branch=$CI_COMMIT_REF_NAME
+      --opalx-branch=${OPALX_PUBLISH_BRANCH:-$CI_COMMIT_REF_NAME}
       --reg-tests
       --unit-tests
       --no-gpl
@@ -128,6 +140,8 @@
         echo "WARNING: PSI_GIT_SSHKEY not set, skipping push"
       elif [ ! -d "$CI_PROJECT_DIR/regression-results-$BUILD_ARCH" ]; then
         echo "WARNING: No regression results found at $CI_PROJECT_DIR/regression-results-$BUILD_ARCH, skipping push"
+      elif [ -z "$OPALX_PUBLISH_BRANCH" ]; then
+        echo "Skipping opal-live-doc push for feature branch $CI_COMMIT_REF_NAME"
       else
         mkdir -p ~/.ssh
         KEY_FILE=~/.ssh/opal_live_doc_key
@@ -177,7 +191,7 @@
             bash $CI_PROJECT_DIR/nightlybuildx/scripts/run_tests \
               --do-not-compile-run \
               --publish-dir=$(pwd)/docs/opalx-regression-test \
-              --opalx-branch=$CI_COMMIT_REF_NAME \
+              --opalx-branch=$OPALX_PUBLISH_BRANCH \
               --config=$CI_PROJECT_DIR/ci/cscs/config/$REGTEST_CONFIG
             git add -A
             if ! git diff --cached --quiet; then
