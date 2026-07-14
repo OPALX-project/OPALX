@@ -97,6 +97,11 @@ public:
             std::string greensFunction = "STANDARD");
 
     /**
+     * @brief Override to receive notification that the orbit threaders are ready.
+     */
+    virtual void orbitThreadersReady() {}
+
+    /**
      * @brief Compute space-charge self-fields for the given particle bunch.
      *
      * If the bunch provides adaptive binning (`bunch.getBins()`), the solver executes

@@ -206,6 +206,7 @@ void OrbitThreader::execute() {
         imap_m.saveSDDS(initialPathLength);
         processElementRegister();
     }
+    logger_m.close();
 }
 
 void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDrift*/) {
