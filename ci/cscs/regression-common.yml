@@ -160,11 +160,14 @@
           git sparse-checkout init --cone
           git sparse-checkout set docs/opalx-regression-test/
           git checkout
-          # Helper to regenerate the published docs tree on top of the
-          # currently checked-out origin/master.  Called fresh on the first
-          # attempt and again after any failed push caused by a concurrent
-          # arch pushing at the same time.
+           # Helper that (re)creates the commit for this architecture on top of
+          # the currently checked-out origin/master.  It is invoked at the start
+          # of the loop and again after every failed push so that we never
+          # leave an abandoned commit behind and the master overview page is
+          # always rebuilt from the latest state of all architectures.
           regenerate_and_commit() {
+            git fetch origin master
+            git reset --hard origin/master
             mkdir -p docs/opalx-regression-test
             cp -r $CI_PROJECT_DIR/regression-results-$BUILD_ARCH/* docs/opalx-regression-test/
             TOOLS_ENV="$SCRATCH/nightlybuildx-tools-$(uname -m)"
@@ -182,18 +185,18 @@
             fi
           }
 
-          regenerate_and_commit
-
           for attempt in 1 2 3 4 5; do
+            regenerate_and_commit
             if git push origin master; then
               echo "Push succeeded on attempt $attempt"
               break
             fi
+            if [ "$attempt" -eq 5 ]; then
+              echo "ERROR: push failed after $attempt attempts"
+              exit 1
+            fi
             echo "WARNING: push failed on attempt $attempt (likely concurrent update), retrying..."
             sleep $((attempt * 5))
-            git fetch origin master
-            git reset --hard origin/master
-            regenerate_and_commit
           done
         else
           echo "WARNING: clone failed, cannot push regression results"
