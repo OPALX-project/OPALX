@@ -160,25 +160,41 @@
           git sparse-checkout init --cone
           git sparse-checkout set docs/opalx-regression-test/
           git checkout
-          # Merge this architecture's results into the published docs tree
-          mkdir -p docs/opalx-regression-test
-          cp -r $CI_PROJECT_DIR/regression-results-$BUILD_ARCH/* docs/opalx-regression-test/
-          # Re-render HTML from XML/org and rebuild the master landing page
-          TOOLS_ENV="$SCRATCH/nightlybuildx-tools-$(uname -m)"
-          export PATH="$TOOLS_ENV/bin:$PATH"
-          export LD_LIBRARY_PATH="$TOOLS_ENV/lib:$LD_LIBRARY_PATH"
-          bash $CI_PROJECT_DIR/nightlybuildx/scripts/run_tests \
-            --do-not-compile-run \
-            --publish-dir=$(pwd)/docs/opalx-regression-test \
-            --config=$CI_PROJECT_DIR/ci/cscs/config/$REGTEST_CONFIG
-          git add -A
-          git commit -m "Update $BUILD_ARCH regression results for $CI_COMMIT_SHORT_SHA" || echo "Nothing to commit"
-          if git pull --rebase origin master; then
-            git push origin master || echo "WARNING: push failed"
-          else
-            echo "WARNING: could not rebase onto origin/master, push may fail"
-            git push origin master || echo "WARNING: push failed"
-          fi
+          # Helper to regenerate the published docs tree on top of the
+          # currently checked-out origin/master.  Called fresh on the first
+          # attempt and again after any failed push caused by a concurrent
+          # arch pushing at the same time.
+          regenerate_and_commit() {
+            mkdir -p docs/opalx-regression-test
+            cp -r $CI_PROJECT_DIR/regression-results-$BUILD_ARCH/* docs/opalx-regression-test/
+            TOOLS_ENV="$SCRATCH/nightlybuildx-tools-$(uname -m)"
+            export PATH="$TOOLS_ENV/bin:$PATH"
+            export LD_LIBRARY_PATH="$TOOLS_ENV/lib:$LD_LIBRARY_PATH"
+            bash $CI_PROJECT_DIR/nightlybuildx/scripts/run_tests \
+              --do-not-compile-run \
+              --publish-dir=$(pwd)/docs/opalx-regression-test \
+              --config=$CI_PROJECT_DIR/ci/cscs/config/$REGTEST_CONFIG
+            git add -A
+            if ! git diff --cached --quiet; then
+              git commit -m "Update $BUILD_ARCH regression results for $CI_COMMIT_SHORT_SHA"
+            else
+              echo "No changes to commit after regenerating"
+            fi
+          }
+
+          regenerate_and_commit
+
+          for attempt in 1 2 3 4 5; do
+            if git push origin master; then
+              echo "Push succeeded on attempt $attempt"
+              break
+            fi
+            echo "WARNING: push failed on attempt $attempt (likely concurrent update), retrying..."
+            sleep $((attempt * 5))
+            git fetch origin master
+            git reset --hard origin/master
+            regenerate_and_commit
+          done
         else
           echo "WARNING: clone failed, cannot push regression results"
         fi
