@@ -175,7 +175,7 @@ variables:
         export GIT_SSH_COMMAND="ssh -i $KEY_FILE -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes -o BatchMode=yes"
         git config --global user.email "opalx-ci@cscs.ch"
         git config --global user.name "OPALX CI"
-        if git clone --depth 1 --filter=blob:none --no-checkout git@gitea.psi.ch:AMAS/opal-live-doc.git opal-live-doc; then
+        if git clone --depth 1 --filter=blob:none --no-checkout --branch main git@gitea.psi.ch:AMAS/opal-live-doc.git opal-live-doc; then
           cd opal-live-doc
           git sparse-checkout init --cone
           git sparse-checkout set $BUILD_ARCH
@@ -184,7 +184,13 @@ variables:
           cp -r $CI_PROJECT_DIR/regression-results-$BUILD_ARCH/. $BUILD_ARCH/
           git add -A
           git commit -m "Update $BUILD_ARCH regression results for $CI_COMMIT_SHORT_SHA" || echo "Nothing to commit"
-          git push origin HEAD:main || echo "WARNING: push failed"
+          # Rebase in case another architecture pushed while we were cloning/committing
+          if git pull --rebase origin main; then
+            git push origin main || echo "WARNING: push failed"
+          else
+            echo "WARNING: could not rebase onto origin/main, push may fail"
+            git push origin main || echo "WARNING: push failed"
+          fi
         else
           echo "WARNING: clone failed, cannot push regression results"
         fi
