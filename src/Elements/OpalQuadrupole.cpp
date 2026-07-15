@@ -69,10 +69,13 @@ void OpalQuadrupole::update() {
 
     // The KN vector convention is: index 0 = dipole, index 1 = quadrupole, ...
     // Populate the device coefficient views read by Multipole::apply().
-    double k1   = Attributes::getReal(itsAttr[K1]);
-    double dk1  = Attributes::getReal(itsAttr[DK1]);
-    double k1s  = Attributes::getReal(itsAttr[K1S]);
-    double dk1s = Attributes::getReal(itsAttr[DK1S]);
+    // K1 is a NORMALISED strength [m^-2]; the field component stored/applied by
+    // Multipole is a physical gradient [T/m]. 
+    double factor = OpalData::getInstance()->getP0() / Physics::c;
+    double k1   = Attributes::getReal(itsAttr[K1]) * factor;
+    double dk1  = Attributes::getReal(itsAttr[DK1]) * factor;
+    double k1s  = Attributes::getReal(itsAttr[K1S]) * factor;
+    double dk1s = Attributes::getReal(itsAttr[DK1S]) * factor;
 
     // comp 0 (dipole): strength = 0
     mult->setNormalComponent(0, 0.0, 0.0);
