@@ -63,7 +63,7 @@ using size_type = ippl::detail::size_type;
 template <typename T, unsigned Dim = 3>
 class ParticleContainer
     : public ippl::ParticleBase<
-              ippl::ParticleSpatialLayout<T, Dim>, Kokkos::DefaultExecutionSpace::memory_space> {
+              ippl::ParticleSpatialLayout<T, Dim,ippl::UniformCartesian<T,Dim>>, Kokkos::DefaultExecutionSpace::memory_space> {
     /**
      * @brief Alias for the `ippl::ParticleBase` specialization this container inherits from.
      *
@@ -76,7 +76,7 @@ class ParticleContainer
      * `Base::create()`.
      */
     using Base = ippl::ParticleBase<
-            ippl::ParticleSpatialLayout<T, Dim>, Kokkos::DefaultExecutionSpace::memory_space>;
+            ippl::ParticleSpatialLayout<T, Dim,ippl::UniformCartesian<T,Dim>>, Kokkos::DefaultExecutionSpace::memory_space>;
 
 private:
     /**
