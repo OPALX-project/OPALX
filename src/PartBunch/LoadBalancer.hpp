@@ -14,7 +14,8 @@ using ORB = ippl::OrthogonalRecursiveBisection<Field<double, Dim>, T>;
 template <typename T, unsigned Dim>
 class LoadBalancer {
     using Base = ippl::ParticleBase<
-            ippl::ParticleSpatialLayout<T, Dim>, Kokkos::DefaultExecutionSpace::memory_space>;
+            ippl::ParticleSpatialLayout<T, Dim, ippl::UniformCartesian<T, Dim>>,
+            Kokkos::DefaultExecutionSpace::memory_space>;
     using FieldSolver_t = ippl::FieldSolverBase<T, Dim>;
 
 private:
@@ -77,7 +78,8 @@ public:
         // Repartition the domains
 
         using Base = ippl::ParticleBase<
-                ippl::ParticleSpatialLayout<T, Dim>, Kokkos::DefaultExecutionSpace::memory_space>;
+                ippl::ParticleSpatialLayout<T, Dim, ippl::UniformCartesian<T, Dim>>,
+                Kokkos::DefaultExecutionSpace::memory_space>;
         typename Base::particle_position_type* R;
         R = &pc_m->R;
 
