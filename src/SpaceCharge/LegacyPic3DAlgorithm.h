@@ -7,12 +7,15 @@
 #define OPALX_SPACE_CHARGE_LEGACY_PIC3D_ALGORITHM_H
 
 #include "PartBunch/PartBunchFwd.h"
+#include "SpaceCharge/Pic/IterationPlan.h"
 #include "SpaceCharge/Pic/PicDomainManager.h"
 #include "SpaceCharge/Pic/PicParticleDomainAdapter.h"
 #include "SpaceCharge/Pic/PicWorkspace.h"
 #include "SpaceCharge/SelfFieldAlgorithm.h"
+#include "SpaceCharge/SelfFieldConfig.h"
 
 #include <memory>
+#include <optional>
 
 namespace opalx::spacecharge {
 
@@ -24,6 +27,8 @@ namespace opalx::spacecharge {
      */
     class LegacyPic3DAlgorithm final : public SelfFieldAlgorithm {
     public:
+        using IterationPlan_t = IterationPlan<double, 3>;
+
         LegacyPic3DAlgorithm(
                 PartBunch_t& bunch, Pic3DConfig config,
                 std::shared_ptr<PicWorkspace<double, 3>> workspace);
@@ -33,6 +38,8 @@ namespace opalx::spacecharge {
 
     private:
         std::shared_ptr<PicWorkspace<double, 3>> workspace_m;
+        std::optional<BinningConfig> binningConfig_m;
+        std::unique_ptr<IterationPlan_t> iterationPlan_m;
         PicParticleDomainAdapter particleDomain_m;
         PicDomainManager domainManager_m;
         PartBunch_t* bunch_m = nullptr;

@@ -7,6 +7,7 @@
 #ifndef PARTBUNCH_H
 #define PARTBUNCH_H
 
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -17,7 +18,6 @@
 #include "BCHandler.hpp"
 #include "Manager/BaseManager.h"
 #include "Manager/PicManager.h"
-#include "PartBunch/Binning/AdaptBins.h"
 #include "PartBunch/BunchStateHandler.h"
 #include "PartBunch/FieldContainer.hpp"
 #include "PartBunch/FieldSolver.hpp"
@@ -31,13 +31,15 @@
 #include "Structure/FieldSolverCmd.h"
 #include "Utilities/OpalException.h"
 
-class DataSink;  ///< Forward declaration; full definition only required in the .cpp translation
-                 ///< unit.
+class DataSink;
 class Beam;
 
 namespace opalx::spacecharge {
+    class BinConfigurationObserver;
+    template <typename T, unsigned Dim>
+    class IterationPlan;
     class SelfFieldDiagnostics;
-}
+}  // namespace opalx::spacecharge
 
 extern Inform* gmsg;
 
@@ -65,11 +67,6 @@ public:
     using Base                = ippl::ParticleBase<
                            ippl::ParticleSpatialLayout<T, Dim, ippl::UniformCartesian<T, Dim>>,
                            Kokkos::DefaultExecutionSpace::memory_space>;
-
-    using CoordinateSelector_t = typename ParticleBinning::CoordinateSelector<ParticleContainer_t>;
-    using GammaSelector_t      = typename ParticleBinning::GammaSelector<ParticleContainer_t>;
-    using AdaptBins_t          = typename ParticleBinning::AdaptBinsBase<ParticleContainer_t>;
-    using binIndex_t           = typename ParticleContainer_t::bin_index_type;
 
     using BCHandler_t = BCHandler<Dim>;
 
@@ -106,7 +103,6 @@ private:
             bunchState_m;  ///< Shared per-container coordinate and moment state.
 
     std::shared_ptr<BCHandler_t> bcHandler_m;  ///< Field boundary conditions.
-    std::shared_ptr<AdaptBins_t> bins_m;       ///< Adaptive velocity/gamma binning (optional).
     FieldSolverCmd* OPALFieldSolver_m;         ///< Borrowed parsed FIELD_SOLVER command.
     DataSink* dataSink_m;                      ///< Borrowed diagnostics and dump output sink.
 
@@ -192,9 +188,6 @@ public:
     /// @brief Build field solver and load balancer from @c OPALFieldSolver_m.
     void setSolver();
 
-    /// @brief Create adaptive bins from the binning command (VELOCITYZ / GAMMAZ).
-    void setBins();
-
     /// @brief Warm-up: zero rho and run the field solver once (skip full dumps).
     void pre_run() override;
 
@@ -268,15 +261,6 @@ public:
     std::shared_ptr<VField_t<T, Dim>> getTempBField() {
         return this->fcontainer_m ? this->fcontainer_m->getTempBField() : nullptr;
     }
-
-    /// @brief Non-const access to adaptive binning state.
-    std::shared_ptr<AdaptBins_t> getBins() { return bins_m; }
-
-    /// @brief Const access to adaptive binning state.
-    std::shared_ptr<AdaptBins_t> getBins() const { return bins_m; }
-
-    /// @param bins Adaptive binning object (or nullptr to clear).
-    void setBins(std::shared_ptr<AdaptBins_t> bins) { bins_m = bins; }
 
     /// @param bcHandler Boundary-condition handler for the mesh.
     void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) { bcHandler_m = bcHandler; }
@@ -499,14 +483,17 @@ public:
      * The actual implementation lives in the solver object (see `BinnedFieldSolver`).
      * `ParallelTracker` only orchestrates reference/beam-frame transforms and calls
      * this delegator once per step.
+     *
+     * @param iterationPlan Solver-owned bin and pass plan for the current field evaluation.
+     * @param particleGeneration Generation of the current particle population.
+     * @param binConfigurationObserver Optional sink for bin configuration snapshots.
+     * @param diagnostics Self-field timing and event diagnostics.
      */
-    void computeSelfFields(opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
-
-    /**
-     * @brief Write bin edges/counts to the data sink when configured.
-     * @param preMerge True if called before a bin-merge step.
-     */
-    void dumpBinConfig(bool preMerge);
+    void computeSelfFields(
+            opalx::spacecharge::IterationPlan<T, Dim>& iterationPlan,
+            std::uint64_t particleGeneration,
+            opalx::spacecharge::BinConfigurationObserver* binConfigurationObserver,
+            opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
 
     /// @brief Human-readable dump of each container to @p os.
     /// @param os Output stream wrapper.
@@ -528,32 +515,10 @@ public:
     /// @brief Backend type string (e.g. FFT, OPEN, CG, NONE).
     std::string getFieldSolverType();
 
-    /// @return True if adaptive binning is configured.
-    bool hasBinning() const { return this->bins_m != nullptr; }
-
     /**
-     * @brief Effective bin count for diagnostics (1 if binning inactive or still at max bins).
+     * @brief Effective bin count reported by the field solver for legacy diagnostics.
      */
-    int getCurrentNBins() const {
-        if (!hasBinning()) {
-            return 1;
-        }
-
-        int ret_bins = static_cast<int>(bins_m->getCurrentBinCount());
-        // If the number of bins is the same as the maximum number of bins, we haven't merged bins
-        // yet (likely because the simulation is too empty)
-        if (ret_bins == this->getBins()->getMaxBinCount()) {
-            Inform m("PartBunch::getCurrentNBins");
-            m << level4
-              << "WARNING: Number of bins is the same as the maximum number of bins, we haven't "
-                 "merged bins yet (likely because the simulation is too empty). Returning 1. If "
-                 "that is not the case, check e.g. binning parameters."
-              << endl;
-            return 1;
-        } else {
-            return ret_bins;
-        }
-    }
+    int getCurrentNBins() const;
 
     /// @brief Compatibility stub; logs and returns 0.
     double calcMeanPhi() {

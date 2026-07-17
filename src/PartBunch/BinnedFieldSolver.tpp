@@ -7,18 +7,52 @@
 template <typename T, unsigned Dim>
 BinnedFieldSolver<T, Dim>::BinnedFieldSolver(
         std::string solver, std::shared_ptr<Workspace_t> workspace,
-        std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency, bool adaptiveBinning,
-        std::string greensFunction)
+        std::shared_ptr<BCHandler_t> bcHandler, std::string greensFunction)
     : FieldSolver<T, Dim>(solver, std::move(workspace), bcHandler, std::move(greensFunction)) {
     scatterAttribute_m = ScatterAttribute::ChargeQ;
     gatherAttribute_m  = GatherAttribute::ElectricFieldE;
-    adaptiveBinning_m  = adaptiveBinning;
-    static_cast<void>(tablePrintFrequency);
+}
+
+template <typename T, unsigned Dim>
+void BinnedFieldSolver<T, Dim>::configureIterationMetadata(
+        bool binningConfigured, std::size_t maximumBinCount) {
+    if (binningConfigured && maximumBinCount == 0) {
+        throw OpalException(
+                "BinnedFieldSolver::configureIterationMetadata",
+                "Configured binning requires a positive maximum bin count.");
+    }
+
+    binningConfigured_m = binningConfigured;
+    maximumBinCount_m   = binningConfigured ? maximumBinCount : 0;
+    currentBinCount_m   = binningConfigured ? maximumBinCount : 1;
+    if (binningConfigured) {
+        binStats_m.reserve(maximumBinCount);
+    }
+}
+
+template <typename T, unsigned Dim>
+int BinnedFieldSolver<T, Dim>::legacyReportedBinCount() const {
+    if (!binningConfigured_m) {
+        return 1;
+    }
+
+    if (currentBinCount_m == maximumBinCount_m) {
+        Inform m("PartBunch::getCurrentNBins");
+        m << level4
+          << "WARNING: Number of bins is the same as the maximum number of bins, we haven't "
+             "merged bins yet (likely because the simulation is too empty). Returning 1. If "
+             "that is not the case, check e.g. binning parameters."
+          << endl;
+        return 1;
+    }
+    return static_cast<int>(currentBinCount_m);
 }
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::computeSelfFields(
-        PartBunch_t& bunch, opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
+        PartBunch_t& bunch, IterationPlan_t& iterationPlan, std::uint64_t particleGeneration,
+        opalx::spacecharge::BinConfigurationObserver* binObserver,
+        opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
     // Validate inputs and decide between binned vs legacy solver.
     std::shared_ptr<ParticleCtr_t> pc = bunch.getParticleContainer();
     if (!pc) {
@@ -47,7 +81,7 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(
         return;
     }
 
-    // Fail fast on a zero per-particle charge. prepareRhoForBin scatters
+    // Fail fast on a zero per-particle charge. prepareRhoForUnit scatters
     // dt*Q via scaleDtByCharge / unscaleDtByCharge, which computes 0 / 0
     // when Q == 0 and silently poisons the per-particle dt attribute with
     // NaN. The first scatter then returns rho = 0 but leaves dt = NaN,
@@ -67,8 +101,7 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(
                           "charge is intended.");
     }
 
-    // decide which solver path to run (binned vs legacy).
-    const bool hasBins = bunch.hasBinning();
+    const bool hasBins = iterationPlan.kind() == opalx::spacecharge::IterationKind::Binning;
 
     m << level4 << "Entry: rank=" << ippl::Comm->rank() << ", localParticles=" << pc->getLocalNum()
       << ", totalParticles=" << pc->getTotalNum() << ", hasBins=" << (hasBins ? 1 : 0)
@@ -108,10 +141,27 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(
             shiftedGreensEnabled_m = false;
         }
 
+        const PreparedIteration_t prepared = iterationPlan.prepare(particleGeneration, binObserver);
+        if (prepared.kind != iterationPlan.kind()) {
+            throw OpalException(
+                    "BinnedFieldSolver::computeSelfFields",
+                    "The prepared iteration kind does not match its plan.");
+        }
+        diagnostics.recordBinCount(prepared.mergedBinCount);
+
         if (hasBins) {
-            m << level4 << "Dispatching to computeBinnedSelfFields() (binned path)." << endl;
-            computeBinnedSelfFields(bunch, diagnostics);
+            if (!binningConfigured_m || iterationPlan.maximumBinCount() != maximumBinCount_m) {
+                throw OpalException(
+                        "BinnedFieldSolver::computeSelfFields",
+                        "Binning-plan metadata does not match the configured solver facade.");
+            }
+            currentBinCount_m = prepared.mergedBinCount;
         } else {
+            if (binningConfigured_m || iterationPlan.maximumBinCount() != 0) {
+                throw OpalException(
+                        "BinnedFieldSolver::computeSelfFields",
+                        "Whole-bunch plan metadata does not match the configured solver facade.");
+            }
             // Legacy path has no separate correction pass: PicScatterGather deposits
             // primary and image charge together before one standard solve. The shifted Green's
             // correction is only
@@ -121,9 +171,10 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(
                 m << level3 << "SHIFTED_GREENS_FUNCTION is set but no binning is active; "
                   << "the legacy path does not apply the Dirichlet correction." << endl;
             }
-            m << level4 << "Dispatching to computeLegacySelfFields() (legacy path)." << endl;
-            computeLegacySelfFields(bunch, diagnostics);
         }
+
+        m << level4 << "Dispatching prepared iteration plan." << endl;
+        executeIterationPlan(bunch, iterationPlan, prepared, particleGeneration, diagnostics);
     } catch (...) {
         try {
             restoreCorrectionState();
@@ -280,67 +331,82 @@ void BinnedFieldSolver<T, Dim>::printBinStatsTable(
 }
 
 template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
-        PartBunch_t& bunch, opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
-    // execute full binned self-field algorithm.
-    // fetch the adaptive bin structure.
-    std::shared_ptr<AdaptBins_t> bins = bunch.getBins();
-    if (!bins) {
-        // Defensive: runtime selection above should prevent this.
-        computeLegacySelfFields(bunch, diagnostics);
-        return;
-    }
-
-    // build and merge adaptive bins for this step.
-    rebinAndPrepare(bunch, bins);
-
-    // obtain the temporary buffers used to accumulate bin contributions.
+void BinnedFieldSolver<T, Dim>::executeIterationPlan(
+        PartBunch_t& bunch, IterationPlan_t& iterationPlan, const PreparedIteration_t& prepared,
+        std::uint64_t particleGeneration, opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
     Workspace_t& workspace = this->getWorkspace();
 
-    fieldComposer_m.clearAccumulation(workspace);
+    const bool binned = prepared.kind == opalx::spacecharge::IterationKind::Binning;
+    if (binned) {
+        fieldComposer_m.clearAccumulation(workspace);
+    }
 
-    // determine the number of bins used for this step.
-    const bin_index_type nBins = bins->getCurrentBinCount();
-    diagnostics.recordBinCount(static_cast<std::size_t>(nBins));
+    const std::size_t nBins = prepared.mergedBinCount;
+    Inform m("BinnedFieldSolver::executeIterationPlan");
+    m << level4 << "Iteration mode=" << (binned ? "binned" : "whole-bunch")
+      << ", nBins=" << static_cast<int>(nBins) << ", stype=" << this->getStype() << endl;
 
-    // Level-5 debug: per-step overview before entering the bin loop.
-    Inform m("BinnedFieldSolver::computeBinnedSelfFields");
-    m << level4 << "Binned mode: nBins=" << static_cast<int>(nBins)
-      << ", stype=" << this->getStype() << endl;
-
-    // Cache values for the level-3 per-call table.
-    std::vector<BinStatsRow> binStats;
-    binStats.reserve(static_cast<size_t>(nBins));
+    binStats_m.clear();
 
     bool dumpedDirichletPlaneThisStep = false;
+    std::size_t emittedUnitCount      = 0;
 
-    // iterate over merged bins and accumulate E contributions.
-    for (bin_index_type binIndex = 0; binIndex < nBins; ++binIndex) {
-        // process a single merged bin (gamma->rho->solve->accumulate).
-        const size_type nPartGlobal = bins->getNPartInBin(binIndex, true);
-        if (nPartGlobal == 0) {
+    while (iterationPlan.hasNext(prepared, particleGeneration)) {
+        auto solveUnitEvent = diagnostics.scopedEvent(
+                opalx::spacecharge::SelfFieldEventKind::SolveUnit, binned ? "bin" : "whole-bunch");
+        const std::optional<SolveUnit_t> nextUnit =
+                iterationPlan.next(prepared, particleGeneration);
+        if (!nextUnit.has_value()) {
+            throw OpalException(
+                    "BinnedFieldSolver::executeIterationPlan",
+                    "An iteration plan reported a solve unit but did not emit it.");
+        }
+        const SolveUnit_t& unit = *nextUnit;
+        ++emittedUnitCount;
+
+        if (unit.kind != prepared.kind) {
+            throw OpalException(
+                    "BinnedFieldSolver::executeIterationPlan",
+                    "The solve-unit kind does not match its prepared iteration.");
+        }
+        if (unit.fieldMode == opalx::spacecharge::SolveUnitFieldMode::Direct) {
+            if (binned || emittedUnitCount != 1) {
+                throw OpalException(
+                        "BinnedFieldSolver::executeIterationPlan",
+                        "A direct solve unit is invalid for this prepared iteration.");
+            }
+            computeLegacySelfFields(bunch, unit, diagnostics);
             continue;
         }
+        if (!binned
+            || unit.fieldMode != opalx::spacecharge::SolveUnitFieldMode::LorentzTransformed) {
+            throw OpalException(
+                    "BinnedFieldSolver::executeIterationPlan",
+                    "A Lorentz-transformed solve unit requires a binning plan.");
+        }
+        if (unit.ordinal >= nBins) {
+            throw OpalException(
+                    "BinnedFieldSolver::executeIterationPlan",
+                    "A binning plan emitted a solve-unit ordinal outside its prepared range.");
+        }
 
-        auto solveUnitEvent =
-                diagnostics.scopedEvent(opalx::spacecharge::SelfFieldEventKind::SolveUnit, "bin");
+        const std::size_t binIndex    = unit.ordinal;
+        const std::size_t nPartGlobal = unit.globalParticleCount;
 
         m << level4 << "binIndex=" << static_cast<int>(binIndex)
           << " nPartGlobal=" << static_cast<unsigned long long>(nPartGlobal) << endl;
 
-        // compute global average gamma for this bin.
-        const BinKinematics kinematics = computeGammaBinGlobal(bunch, bins, binIndex, nPartGlobal);
-        const double gammaBin          = kinematics.gammaBin;
+        const double gammaBin = unit.gamma;
         if (gammaBin <= 0.0) {
             throw OpalException(
-                    "BinnedFieldSolver::computeBinnedSelfFields",
+                    "BinnedFieldSolver::executeIterationPlan",
                     "Computed non-positive gamma for bin.");
         }
 
         m << level4 << "binIndex=" << static_cast<int>(binIndex)
           << " gammaBin=" << std::setprecision(10) << gammaBin << endl;
 
-        binStats.push_back(
+        binStats_m.push_back(
                 BinStatsRow{
                         static_cast<long long>(binIndex),
                         static_cast<unsigned long long>(nPartGlobal), gammaBin});
@@ -364,7 +430,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
             const ImageScatterMode scatterMode = correctionActive
                                                          ? ImageScatterMode::PrimaryOnly
                                                          : ImageScatterMode::PrimaryAndImage;
-            prepareRhoForBin(bunch, bins, binIndex, nPartGlobal, gammaBin, scatterMode);
+            prepareRhoForUnit(bunch, unit, scatterMode);
 
             *(this->getE()) = 0.0;
             mesh.setMeshSpacing(hrStretched);
@@ -382,7 +448,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
                         "primary-accumulation");
                 typename FieldComposer_t::Policy compositionPolicy;
                 for (unsigned d = 0; d < Dim; ++d) {
-                    compositionPolicy.meanMomentum[d] = kinematics.pmean[d];
+                    compositionPolicy.meanMomentum[d] = unit.meanMomentum[d];
                 }
                 compositionPolicy.gamma        = gammaBin;
                 compositionPolicy.magneticSign = +1.0;
@@ -410,8 +476,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
         if (imageActive) {
             auto solvePassEvent = diagnostics.scopedEvent(
                     opalx::spacecharge::SelfFieldEventKind::SolvePass, "image");
-            prepareRhoForBin(
-                    bunch, bins, binIndex, nPartGlobal, gammaBin, ImageScatterMode::ImageOnly);
+            prepareRhoForUnit(bunch, unit, ImageScatterMode::ImageOnly);
 
             *(this->getE()) = 0.0;
             mesh.setMeshSpacing(hrStretched);
@@ -428,7 +493,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
                         "image-accumulation");
                 typename FieldComposer_t::Policy compositionPolicy;
                 for (unsigned d = 0; d < Dim; ++d) {
-                    compositionPolicy.meanMomentum[d] = kinematics.pmean[d];
+                    compositionPolicy.meanMomentum[d] = unit.meanMomentum[d];
                 }
                 compositionPolicy.gamma        = gammaBin;
                 compositionPolicy.magneticSign = -1.0;
@@ -456,8 +521,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
             //
             // Re-scatter the primary charges (solve() overwrote the RHS in the
             // primary pass). This matches the ImageOnly path's pattern.
-            prepareRhoForBin(
-                    bunch, bins, binIndex, nPartGlobal, gammaBin, ImageScatterMode::PrimaryOnly);
+            prepareRhoForUnit(bunch, unit, ImageScatterMode::PrimaryOnly);
 
             *(this->getE()) = 0.0;
             mesh.setMeshSpacing(hrStretched);
@@ -492,7 +556,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
                         "shifted-green-accumulation");
                 typename FieldComposer_t::Policy compositionPolicy;
                 for (unsigned d = 0; d < Dim; ++d) {
-                    compositionPolicy.meanMomentum[d] = kinematics.pmean[d];
+                    compositionPolicy.meanMomentum[d] = unit.meanMomentum[d];
                 }
                 compositionPolicy.gamma        = gammaBin;
                 compositionPolicy.magneticSign = -1.0;
@@ -505,13 +569,22 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
         }
     }
 
+    if (!binned) {
+        if (emittedUnitCount != 1) {
+            throw OpalException(
+                    "BinnedFieldSolver::executeIterationPlan",
+                    "A whole-bunch iteration must emit exactly one direct solve unit.");
+        }
+        return;
+    }
+
     // after all bins, gather the accumulated lab-frame field back to particles.
     {
         auto compositionEvent = diagnostics.scopedEvent(
                 opalx::spacecharge::SelfFieldEventKind::FieldComposition, "final-gather");
         if (gatherAttribute_m != GatherAttribute::ElectricFieldE) {
             throw OpalException(
-                    "BinnedFieldSolver::computeBinnedSelfFields",
+                    "BinnedFieldSolver::executeIterationPlan",
                     "Unsupported gather attribute in binned solver.");
         }
 
@@ -521,16 +594,21 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
 
     // per-call table: gammaBin / nParticles / binNumber.
     if (diagnostics.shouldPrintBinTable(bunch.getGlobalTrackStep())) {
-        printBinStatsTable(bins->getBinningCmdName(), binStats);
+        printBinStatsTable(iterationPlan.diagnosticName(), binStats_m);
     }
 }
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(
-        PartBunch_t& bunch, opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
-    diagnostics.recordBinCount(0);
-    auto solveUnitEvent = diagnostics.scopedEvent(
-            opalx::spacecharge::SelfFieldEventKind::SolveUnit, "whole-bunch");
+        PartBunch_t& bunch, const SolveUnit_t& unit,
+        opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
+    if (unit.kind != opalx::spacecharge::IterationKind::WholeBunch
+        || unit.fieldMode != opalx::spacecharge::SolveUnitFieldMode::Direct) {
+        throw OpalException(
+                "BinnedFieldSolver::computeLegacySelfFields",
+                "A whole-bunch plan emitted an incompatible solve unit.");
+    }
+
     auto solvePassEvent = diagnostics.scopedEvent(
             opalx::spacecharge::SelfFieldEventKind::SolvePass, "primary-and-image");
     // This code is a direct move of the legacy implementation from
@@ -557,12 +635,10 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(
 
     Workspace_t& workspace          = this->getWorkspace();
     const auto& backendCapabilities = this->getBackendCapabilities();
-    using Selection                 = typename ScatterGather_t::Selection;
-    const auto selection            = Selection::direct(
-            0, static_cast<typename ScatterGather_t::size_type>(pc->getLocalNum()));
-    const auto depositKind = imageScatterController_m.isEnabled()
-                                     ? ScatterGather_t::DepositKind::PrimaryAndImage
-                                     : ScatterGather_t::DepositKind::Primary;
+    const auto selection            = unit.depositSelection();
+    const auto depositKind          = imageScatterController_m.isEnabled()
+                                              ? ScatterGather_t::DepositKind::PrimaryAndImage
+                                              : ScatterGather_t::DepositKind::Primary;
 
     typename ScatterGather_t::ChargeNormalization normalization;
     normalization.timeStep              = bunch.getdT();
@@ -604,75 +680,13 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(
 }
 
 template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::rebinAndPrepare(
-        PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins) {
-    Inform m("BinnedFieldSolver::rebinAndPrepare");
-    m << level4 << "Rebin start: maxBins=" << static_cast<int>(bins->getMaxBinCount())
-      << ", adaptiveBinning=" << (adaptiveBinning_m ? 1 : 0) << endl;
-    bins->doFullRebin(bins->getMaxBinCount());
-    bunch.dumpBinConfig(true);
-    if (adaptiveBinning_m) {
-        bins->genAdaptiveHistogram();
-        bunch.dumpBinConfig(false);
-    }
-    bins->sortContainerByBin();
-    m << level4 << "Rebin done: currentBins=" << static_cast<int>(bins->getCurrentBinCount())
-      << endl;
-}
-
-template <typename T, unsigned Dim>
-typename BinnedFieldSolver<T, Dim>::BinKinematics BinnedFieldSolver<T, Dim>::computeGammaBinGlobal(
-        PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins, const bin_index_type binIndex,
-        const size_type nPartGlobal) const {
-    // compute global mean momentum and gamma for the merged bin.
-    Inform m("BinnedFieldSolver::computeGammaBinGlobal");
-    m << level4 << "gammaBinGlobal: binIndex=" << static_cast<int>(binIndex)
-      << ", nPartGlobal=" << static_cast<unsigned long long>(nPartGlobal) << endl;
-
-    typename particle_position_type::view_type pView = bunch.getParticleContainer()->P.getView();
-    typename AdaptBins_t::hash_type indices          = bins->getHashArray();
-
-    // compute local momentum and gamma sums over particles in this bin.
-    Vector_t<double, Dim> localPsum(0.0);
-    Kokkos::parallel_reduce(
-            "BinnedFieldSolver::pmeanPerBin", bins->getBinIterationPolicy(binIndex),
-            KOKKOS_LAMBDA(const size_type i, Vector_t<double, Dim>& sum) {
-                sum += pView(indices(i));
-            },
-            localPsum);
-
-    double localGammaSum = 0.0;
-    Kokkos::parallel_reduce(
-            "BinnedFieldSolver::gammaMeanPerBin", bins->getBinIterationPolicy(binIndex),
-            KOKKOS_LAMBDA(const size_type i, double& sum) {
-                const Vector_t<double, Dim> p = pView(indices(i));
-                sum += Kokkos::sqrt(1.0 + p.dot(p));
-            },
-            localGammaSum);
-
-    // reduce momentum sums across MPI ranks and normalize by `nPartGlobal`.
-    Vector_t<double, Dim> globalPsum(0.0);
-    ippl::Comm->allreduce(localPsum, 1, std::plus<Vector_t<double, Dim>>());
-    globalPsum = localPsum;
-
-    ippl::Comm->allreduce(localGammaSum, 1, std::plus<double>());
-
-    BinKinematics kinematics;
-    if (nPartGlobal == 0) {
-        return kinematics;
-    }
-
-    kinematics.pmean    = globalPsum / static_cast<double>(nPartGlobal);
-    kinematics.gammaBin = localGammaSum / static_cast<double>(nPartGlobal);
-    return kinematics;
-}
-
-template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
-        PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins, const bin_index_type binIndex,
-        const size_type nPartGlobal, const double gammaBin, ImageScatterMode mode) {
+void BinnedFieldSolver<T, Dim>::prepareRhoForUnit(
+        PartBunch_t& bunch, const SolveUnit_t& unit, ImageScatterMode mode) {
     // Scatter bin charge to rho using the dt*Q deposition workflow.
-    Inform m("BinnedFieldSolver::prepareRhoForBin");
+    Inform m("BinnedFieldSolver::prepareRhoForUnit");
+    const std::size_t binIndex    = unit.ordinal;
+    const std::size_t nPartGlobal = unit.globalParticleCount;
+    const double gammaBin         = unit.gamma;
     m << level4 << "prepareRho: binIndex=" << static_cast<int>(binIndex)
       << ", nPartGlobal=" << static_cast<unsigned long long>(nPartGlobal)
       << ", gammaBin=" << std::setprecision(10) << gammaBin << endl;
@@ -682,18 +696,17 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
 
     if (scatterAttribute_m != ScatterAttribute::ChargeQ) {
         throw OpalException(
-                "BinnedFieldSolver::prepareRhoForBin",
+                "BinnedFieldSolver::prepareRhoForUnit",
                 "Unsupported scatter attribute in binned solver.");
     }
 
-    // Scatter bin charge to rho (with bin iteration policy and hash indexing).
-    // Master approach: scale dt by Q, scatter dt, then restore dt.
-    const auto policy       = bins->getBinIterationPolicy(binIndex);
-    const auto hash         = bins->getHashArray();
-    const size_type pBegin  = static_cast<size_type>(policy.begin());
-    const size_type pEnd    = static_cast<size_type>(policy.end());
-    const size_type hExtent = static_cast<size_type>(hash.extent(0));
-    const size_type nLocal  = pc->getLocalNum();
+    const auto& indexedSelection = unit.indexedSelection;
+    const auto& policy           = indexedSelection.policy();
+    const auto& hash             = indexedSelection.hash();
+    const std::size_t pBegin     = static_cast<std::size_t>(policy.begin());
+    const std::size_t pEnd       = static_cast<std::size_t>(policy.end());
+    const std::size_t hExtent    = static_cast<std::size_t>(hash.extent(0));
+    const std::size_t nLocal     = pc->getLocalNum();
     const char* modeName =
             mode == ImageScatterMode::PrimaryOnly
                     ? "PrimaryOnly"
@@ -701,7 +714,7 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
 
     if (pEnd > hExtent) {
         throw OpalException(
-                "BinnedFieldSolver::prepareRhoForBin",
+                "BinnedFieldSolver::prepareRhoForUnit",
                 "Bin scatter policy exceeds hash extent: policyEnd=" + std::to_string(pEnd)
                         + ", hashExtent=" + std::to_string(hExtent) + ".");
     }
@@ -710,15 +723,18 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
     // equivalent to the all-local scatter. Prefer the all-local path here: it avoids
     // dereferencing the bin hash view in the hot scatter kernel and is the common
     // AWAGun early-emission case after 128 bins merge down to one bin.
-    const bool scatterAllLocal = (pBegin == 0 && pEnd == nLocal);
+    const bool scatterAllLocal = unit.coversAllLocalParticles;
+    if (scatterAllLocal != (pBegin == 0 && pEnd == nLocal)) {
+        throw OpalException(
+                "BinnedFieldSolver::prepareRhoForUnit",
+                "The solve-unit all-local flag does not match its indexed selection.");
+    }
     m << level5 << "prepareRho: scatter mode=" << modeName
       << ", path=" << (scatterAllLocal ? "all-local" : "subset")
       << ", localP=" << static_cast<unsigned long long>(nLocal) << ", policy=[" << pBegin << ","
       << pEnd << "), hashExtent=" << static_cast<unsigned long long>(hExtent) << endl;
 
-    using Selection = typename ScatterGather_t::Selection;
-    const Selection selection =
-            scatterAllLocal ? Selection::direct(0, nLocal) : Selection::indexed(policy, hash);
+    const auto selection = unit.depositSelection();
 
     typename ScatterGather_t::DepositKind depositKind =
             ScatterGather_t::DepositKind::PrimaryAndImage;
