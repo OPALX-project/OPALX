@@ -72,20 +72,6 @@ public:
     [[nodiscard]] Field_t<Dim>& getRho() { return requireWorkspace().chargeDensity(); }
     [[nodiscard]] Field<T, Dim>& getPhi() { return requireWorkspace().potential(); }
 
-    [[nodiscard]] Vector_t<double, Dim>& getHr() { return requireWorkspace().spacing(); }
-    void setHr(const Vector_t<double, Dim>& spacing) { requireWorkspace().spacing() = spacing; }
-    [[nodiscard]] Vector_t<double, Dim>& getRMin() { return requireWorkspace().lower(); }
-    void setRMin(const Vector_t<double, Dim>& lower) { requireWorkspace().lower() = lower; }
-    [[nodiscard]] Vector_t<double, Dim>& getRMax() { return requireWorkspace().upper(); }
-    void setRMax(const Vector_t<double, Dim>& upper) { requireWorkspace().upper() = upper; }
-
-    [[nodiscard]] std::array<bool, Dim> getDecomp() const {
-        return requireWorkspace().effectiveDecomposition();
-    }
-    void setDecomp(std::array<bool, Dim> decomposition) {
-        requireWorkspace().setEffectiveDecomposition(decomposition);
-    }
-
     [[nodiscard]] Mesh_t<Dim>& getMesh() { return requireWorkspace().mesh(); }
     [[nodiscard]] FieldLayout_t<Dim>& getFL() { return requireWorkspace().layout(); }
 
@@ -105,9 +91,6 @@ public:
 
     void initializeFields(const std::string& solverType = "") {
         requireWorkspace().initializeFields(solverType);
-    }
-    void updateFieldLayoutsAfterLayoutChange(const std::string& = "") {
-        requireWorkspace().updateFieldLayoutsAfterLayoutChange();
     }
 
 private:

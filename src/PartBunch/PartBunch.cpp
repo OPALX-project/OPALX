@@ -72,7 +72,6 @@ PartBunch<T, Dim>::PartBunch(
 
     nr_m = Vector_t<int, Dim>(
             OPALFieldSolver_m->getNX(), OPALFieldSolver_m->getNY(), OPALFieldSolver_m->getNZ());
-    nrZBase_m = nr_m[Dim - 1];
 
     const Vector_t<bool, 3> domainDecomposition = OPALFieldSolver_m->getDomainDecomposition();
 
@@ -205,76 +204,6 @@ void PartBunch<T, Dim>::refreshPcActiveAfterEmit() {
 }
 
 /**
- * @copybrief PartBunch::do_binaryRepart
- */
-template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::do_binaryRepart() {
-    Inform m("PartBunch::do_binaryRepart");
-
-    if (ippl::Comm->size() < 2) {
-        m << level5 << "Skipping ORB load balancing on a single MPI rank." << endl;
-        return;
-    }
-
-    const int ranks = ippl::Comm->size();
-    if ((ranks & (ranks - 1)) != 0) {
-        m << level1 << "Skipping ORB load balancing because ORB requires a power-of-two MPI "
-          << "rank count; current rank count is " << ranks << "." << endl;
-        return;
-    }
-
-    if (!this->loadbalancer_m) {
-        m << level2 << "Skipping ORB load balancing because no load balancer is configured."
-          << endl;
-        return;
-    }
-
-    std::shared_ptr<ParticleContainer_t> primary = this->getParticleContainer();
-    if (!primary || primary->getTotalNum() == 0) {
-        m << level5 << "Skipping ORB load balancing because the primary container is empty."
-          << endl;
-        return;
-    }
-
-    const auto& containers = this->getParticleContainers();
-    for (size_t i = 1; i < containers.size(); ++i) {
-        const auto& pc = containers[i];
-        const bool active =
-                (i < pcActive_m.size() && pcActive_m[i]) || (pc && pc->getTotalNum() > 0);
-        if (active) {
-            m << level2 << "Skipping ORB load balancing because non-primary particle container "
-              << i << " is active or non-empty; the current load-balancer path is primary-only."
-              << endl;
-            return;
-        }
-    }
-
-    auto* mesh = &this->fcontainer_m->getMesh();
-    auto* fl   = &this->fcontainer_m->getFL();
-
-    const size_t localBefore = primary->getLocalNum();
-    const size_t total       = primary->getTotalNum();
-    m << level3
-      << "Starting ORB load balancing from current primary particles: local=" << localBefore
-      << ", total=" << total << "." << endl;
-
-    const bool repartitioned = this->loadbalancer_m->repartitionFromCurrentParticles(fl, mesh);
-    if (!repartitioned) {
-        m << level2 << "ORB load balancing failed; keeping previous layout." << endl;
-        return;
-    }
-
-    m << level4 << "Field layout after ORB load balancing: " << *fl << endl;
-
-    this->getFieldSolver()->refreshAfterFieldLayoutChange();
-
-    gatherLoadBalanceStatistics();
-
-    m << level2 << "ORB load balancing done. Rank 0: " << localBefore << " -> "
-      << primary->getLocalNum() << " particles in primary container." << endl;
-}
-
-/**
  * @copybrief PartBunch::gatherLoadBalanceStatistics
  */
 template <typename T, unsigned Dim>
@@ -313,10 +242,7 @@ void PartBunch<T, Dim>::setSolver() {
     this->fsolver_m->initSolver();
     m << level4 << "Field solver initialized." << endl;
 
-    // TODO: allow constructing a load balancer when no field solver is present.
-    this->setLoadBalancer(
-            std::make_shared<LoadBalancer_t>(
-                    this->lbt_m, this->fcontainer_m, this->pcontainer_m, this->fsolver_m));
+    this->setLoadBalancer(std::make_shared<LoadBalancer_t>(this->lbt_m));
     m << level3 << "Solver and Load Balancer set." << endl;
 }
 
@@ -571,204 +497,14 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
     return os;
 }
 
-/**
- * @copybrief PartBunch::bunchUpdate
- */
 template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::reinitializeGridZ(int nrZ) {
-    if (nr_m[Dim - 1] == nrZ) {
-        return;
-    }
-
-    Inform m("PartBunch::reinitializeGridZ");
-    m << level3 << "Resizing z grid: " << nr_m[Dim - 1] << " -> " << nrZ << " cells." << endl;
-
-    nr_m[Dim - 1]     = nrZ;
-    domain_m[Dim - 1] = ippl::Index(nrZ);
-
-    const bool isAllPeriodic = this->getBCHandler()->isAll(BCHandler_t::PERIODIC);
-    const auto decomp        = this->fcontainer_m->getDecomp();
-
-    // Rebuild the field layout with the new z extent.
-    this->fcontainer_m->getFL().initialize(domain_m, decomp, isAllPeriodic);
-
-    // BareField::initialize() is a no-op on already-initialized fields, so use
-    // FieldContainer's centralized layout refresh to resize all OPALX-owned fields.
-    this->fcontainer_m->updateFieldLayoutsAfterLayoutChange(solver_m);
-    this->getFieldSolver()->refreshAfterFieldLayoutChange();
-
-    m << level3 << "Grid z reinit complete (nrZ=" << nrZ << ")." << endl;
-}
-
-template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::bunchUpdate() {
-    Inform m("PartBunch::bunchUpdate");
-    m << level4 << "Updating bunch grid and particle layouts." << endl;
-
-    // Double the longitudinal grid resolution while image charges are active.
-    // computeBoundsForFieldSolve already extends the z domain to include mirrored
-    // particles, so without this the z cell size would be twice as large as normal.
-    const BinnedFieldSolver_t* bsolver = this->getFieldSolver();
-    const bool imageActive =
-            bsolver && bsolver->isImageChargeActiveForStep(this->getGlobalTrackStep());
-    reinitializeGridZ(imageActive ? nrZBase_m * 2 : nrZBase_m);
-
-    Vector_t<double, Dim> lower(0.0);
-    Vector_t<double, Dim> upper(0.0);
-    computeBoundsForFieldSolve(lower, upper);
-    applyGridUpdate(lower, upper);
-
-    m << level5 << "Bunch grid update done; tracker cadence controls load balancing." << endl;
-
-    // Always request moments update; DistributionMoments decides whether it
-    // actually needs to recompute based on the dirty flag.
+void PartBunch<T, Dim>::updateAllParticleMoments() {
     const auto& containers = this->getParticleContainers();
     for (size_t i = 0; i < containers.size(); ++i) {
         if (!containers[i]) {
             continue;
         }
         this->getParticleContainer(i)->updateMoments();
-    }
-    m << level5 << "Moments updated for all particle containers." << endl;
-}
-
-template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::setEmissionMeshProgress(bool active, double emittedFraction) {
-    this->bunchState_m->setEmissionMeshProgress(active, emittedFraction);
-}
-
-template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::computeBoundsForFieldSolve(
-        Vector_t<double, Dim>& lower, Vector_t<double, Dim>& upper) {
-    Inform m("PartBunch::computeBoundsForFieldSolve");
-
-    const auto& containers = this->getParticleContainers();
-
-    bool hasNonEmptyContainer = false;
-    for (const auto& pc : containers) {
-        if (!pc || pc->getTotalNum() == 0) {
-            continue;
-        }
-
-        pc->computeMinMaxR();
-        const ippl::Vector<double, 3> minR = pc->getMinR();
-        const ippl::Vector<double, 3> maxR = pc->getMaxR();
-
-        if (!hasNonEmptyContainer) {
-            lower                = minR;
-            upper                = maxR;
-            hasNonEmptyContainer = true;
-        } else {
-            for (int i = 0; i < 3; ++i) {
-                lower[i] = std::min(lower[i], minR[i]);
-                upper[i] = std::max(upper[i], maxR[i]);
-            }
-        }
-    }
-
-    if (!hasNonEmptyContainer) {
-        if (containers.empty() || !containers[0]) {
-            throw OpalException(
-                    "PartBunch::bunchUpdate",
-                    "No valid particle container available for bunch update.");
-        }
-        containers[0]->computeMinMaxR();
-        lower = containers[0]->getMinR();
-        upper = containers[0]->getMaxR();
-    }
-
-    const BinnedFieldSolver_t* bsolver = this->getFieldSolver();
-
-    // Include mirrored particles in the domain envelope when image-charge mode is active for this
-    // step.
-    if (bsolver && bsolver->isImageChargeActiveForStep(this->getGlobalTrackStep())) {
-        const double planeZ       = bsolver->getImageChargePlaneZ();
-        const double mirroredMinZ = 2.0 * planeZ - upper[2];
-        const double mirroredMaxZ = 2.0 * planeZ - lower[2];
-        lower[2]                  = std::min(lower[2], mirroredMinZ);
-        upper[2]                  = std::max(upper[2], mirroredMaxZ);
-        m << level4 << "Image-charge bounds enabled at zPlane=" << planeZ << endl;
-    }
-
-    Vector_t<double, Dim> span = upper - lower;
-    for (unsigned i = 0; i < Dim; ++i) {
-        if (span[i] < 1e-6) {
-            span[i] = 1e-6;
-            m << level3 << "Mesh spacing in dimension " << i << " too small. Set to 1e-6." << endl;
-        }
-    }
-
-    lower = lower - span * this->OPALFieldSolver_m->getBoxIncr() / 100.0;
-    upper = upper + span * this->OPALFieldSolver_m->getBoxIncr() / 100.0;
-
-    const bool emissionMeshStretchActive = this->bunchState_m->isEmissionMeshStretchActive();
-    const double emissionMeshFraction    = this->bunchState_m->getEmissionMeshFraction();
-    if (emissionMeshStretchActive && Dim > 2 && this->nr_m[2] > 1) {
-        // During emission the visible bunch length is only a fraction of the final cathode pulse.
-        // Old OPAL stretches the z mesh backward by 1 / emittedFraction so the self-field solve
-        // sees the full source window instead of a thin, over-focused emitted slice.
-        const double dh = this->OPALFieldSolver_m->getBoxIncr() / 100.0;
-        double percent =
-                std::max(1.0 / static_cast<double>(this->nr_m[2] - 1), emissionMeshFraction);
-        const double length0 = std::abs(upper[2] - lower[2]) / (1.0 + 2.0 * dh);
-
-        if (percent < 1.0 && percent > 0.0 && length0 > 0.0) {
-            upper[2] -= dh * length0;
-            lower[2] = upper[2] - length0 / percent;
-
-            const double stretchedLength = length0 / percent;
-            upper[2] += dh * stretchedLength;
-            lower[2] -= dh * stretchedLength;
-            m << level4 << "Applied emitting-beam z mesh stretch with emitted fraction " << percent
-              << "." << endl;
-        }
-    }
-}
-
-template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::applyGridUpdate(
-        const Vector_t<double, Dim>& lower, const Vector_t<double, Dim>& upper) {
-    Inform m("PartBunch::applyGridUpdate");
-    auto* mesh                              = &this->fcontainer_m->getMesh();
-    auto* FL                                = &this->fcontainer_m->getFL();
-    std::shared_ptr<ParticleContainer_t> pc = this->getParticleContainer();
-
-    const Vector_t<double, Dim> span = upper - lower;
-    Vector_t<double, Dim> meshOrigin = lower;
-    for (unsigned d = 0; d < Dim; ++d) {
-        const int nCells = this->nr_m[d];
-        if (nCells <= 1) {
-            hr_m[d] = span[d];
-        } else {
-            hr_m[d] = span[d] / static_cast<double>(nCells - 1);
-        }
-        meshOrigin[d] = lower[d] - 0.5 * hr_m[d];
-    }
-
-    mesh->setMeshSpacing(hr_m);
-    mesh->setOrigin(meshOrigin);
-
-    this->getFieldContainer()->setRMin(lower);
-    this->getFieldContainer()->setRMax(upper);
-    this->getFieldContainer()->setHr(hr_m);
-
-    m << level3 << "Field Container updated with new mesh boundaries and spacing:" << endl;
-    m << level3 << "\t\t> Mesh origin:   " << mesh->getOrigin() << endl;
-    m << level3 << "\t\t> Mesh spacing:  " << hr_m << endl;
-    m << level3 << "\t\t> Box increment: " << this->OPALFieldSolver_m->getBoxIncr() << "%" << endl;
-
-    const auto& containers = this->getParticleContainers();
-    for (size_t i = 0; i < containers.size(); ++i) {
-        const auto& pc = containers[i];
-        if (!pc) {
-            continue;
-        }
-        pc->getLayout().updateLayout(*FL, *mesh);
-        pc->update();
-        pc->markMomentsDirty();  // IPPL migration may have re-indexed R across ranks
-                                 /// \todo there might be a case where we can keep the moments clean
-                                 /// if we know more about what exactly was changed due to update().
-        m << level5 << "Particle container " << i << " updated with new layout." << endl;
     }
 }
 

@@ -8,6 +8,8 @@
 
 #include "Utilities/OpalException.h"
 
+#include <limits>
+
 namespace opalx::spacecharge {
 
     template <typename T, unsigned Dim>
@@ -24,6 +26,52 @@ namespace opalx::spacecharge {
           accumulatedElectricField_m(std::make_shared<VectorField>()),
           accumulatedMagneticField_m(std::make_shared<VectorField>()),
           flippedZSlabField_m(std::make_shared<VectorField>()) {}
+
+    template <typename T, unsigned Dim>
+    typename PicWorkspace<T, Dim>::Extents PicWorkspace<T, Dim>::layoutExtents() const {
+        Extents extents{};
+        const auto& domain = layout_m.getDomain();
+        for (unsigned d = 0; d < Dim; ++d) {
+            extents[d] = static_cast<std::size_t>(domain[d].length());
+        }
+        return extents;
+    }
+
+    template <typename T, unsigned Dim>
+    bool PicWorkspace<T, Dim>::rebuildGlobalLayoutInPlace(
+            const Extents& extents, const std::array<bool, Dim>& decomposition) {
+        // Keep the resize policy even when the current extents already match. A later correction
+        // transition may rebuild the layout with this stored decomposition.
+        decomposition_m = decomposition;
+        if (layoutExtents() == extents) {
+            return false;
+        }
+
+        ippl::NDIndex<Dim> domain;
+        for (unsigned d = 0; d < Dim; ++d) {
+            if (extents[d] == 0
+                || extents[d] > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+                throw OpalException(
+                        "PicWorkspace::rebuildGlobalLayoutInPlace",
+                        "Every PIC layout extent must fit in a positive IPPL Index.");
+            }
+            domain[d] = ippl::Index(static_cast<int>(extents[d]));
+        }
+
+        layout_m.initialize(domain, decomposition_m, allPeriodic_m);
+        updateFieldLayoutsAfterLayoutChange();
+        return true;
+    }
+
+    template <typename T, unsigned Dim>
+    void PicWorkspace<T, Dim>::setGeometry(
+            Vector lower, Vector upper, Vector spacing, Vector origin) {
+        lower_m   = lower;
+        upper_m   = upper;
+        spacing_m = spacing;
+        mesh_m.setMeshSpacing(spacing_m);
+        mesh_m.setOrigin(origin);
+    }
 
     template <typename T, unsigned Dim>
     void PicWorkspace<T, Dim>::initializeFields(std::string_view solverType) {

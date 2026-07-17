@@ -74,8 +74,8 @@ namespace opalx::spacecharge {
      * prescribe a Cartesian or Frenet representation.
      */
     struct FrameState {
-        std::optional<BorrowedHostObject> labToReference;
-        std::optional<BorrowedHostObject> referenceToLab;
+        std::optional<BorrowedHostObject> trackerToSolve;
+        std::optional<BorrowedHostObject> solveToTracker;
     };
 
     /** @brief Tracker state captured for one self-field solve. */
@@ -88,6 +88,7 @@ namespace opalx::spacecharge {
         CommunicatorView communicator;
         ReferenceState reference;
         FrameState frames;
+        double emittedFraction = 1.0;
     };
 
     /** @brief Step-dependent correction data, already resolved from source configuration. */

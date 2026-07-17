@@ -59,6 +59,14 @@ public:
     const Field<T, Dim>* getPhi() const { return &workspace_m->potential(); }
     [[nodiscard]] Workspace_t& getWorkspace() { return *workspace_m; }
     [[nodiscard]] const Workspace_t& getWorkspace() const { return *workspace_m; }
+    [[nodiscard]] opalx::spacecharge::IpplPoissonAdapter& getBackendAdapter() {
+        if (backend_m == nullptr) {
+            throw OpalException(
+                    "FieldSolver::getBackendAdapter",
+                    "The IPPL backend must be initialized before it is borrowed.");
+        }
+        return *backend_m;
+    }
 
     std::shared_ptr<BCHandler_t> getBCHandler() const { return bcHandler_m; }
     void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) {
@@ -106,17 +114,6 @@ public:
     bool hasValidBCHandler() const { return (bcHandler_m != nullptr); }
 
     void runSolver() override { runSolver(false); }
-
-    /**
-     * @brief Refresh layout-dependent solver state without reconstructing the solver wrapper.
-     *
-     * Layout-changing operations such as ORB repartitioning resize OPALX-owned fields in place.
-     * The concrete IPPL solver keeps pointers to those fields, but some backends also own
-     * FFT/scratch fields derived from the RHS layout. This hook rebinds the existing backend to
-     * the current fields so those internal buffers are recreated without resetting diagnostics.
-     * This is the same as IPPL's alpine solver update during `repartition`.
-     */
-    void refreshAfterFieldLayoutChange();
 
     /**
      * @brief Execute the field solver for the current simulation state.

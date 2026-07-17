@@ -93,8 +93,9 @@ namespace opalx::spacecharge {
     void SelfFieldDiagnostics::reset() {
         completedEvents_m.fill(0);
         totalDurations_m.fill(std::chrono::nanoseconds::zero());
-        backendSolveCount_m = 0;
-        currentBinCount_m   = 0;
+        backendSolveCount_m   = 0;
+        redistributionCount_m = 0;
+        currentBinCount_m     = 0;
     }
 
     void SelfFieldDiagnostics::eventStarted(

@@ -150,15 +150,6 @@ public:
     /// timestep. Reuses the same step budget (@c zerofaceMaxSteps_m) as the image-charge path.
     bool isShiftedGreensActiveForStep(size_t step) const;
 
-    /**
-     * @brief Refresh solver-owned state after the field layout has changed.
-     *
-     * ORB repartitioning changes the domain decomposition underneath the shared
-     * mesh fields. Rebind the existing concrete Poisson solver to the updated
-     * FieldContainer fields without reconstructing the solver wrapper.
-     */
-    void refreshAfterFieldLayoutChange();
-
     /// @brief Configure dump frequency for dirichlet-plane diagnostics (`0` disables dumps).
     void setZeroFacePlaneDumpFrequency(int frequency);
 

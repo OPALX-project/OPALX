@@ -93,6 +93,12 @@ namespace opalx::spacecharge {
         /** @brief Record a successful backend solve after all backend state has been restored. */
         void completeBackendSolve() noexcept { ++backendSolveCount_m; }
 
+        /** @brief Number of successful particle redistributions chosen by the algorithm. */
+        [[nodiscard]] std::size_t redistributionCount() const { return redistributionCount_m; }
+
+        /** @brief Record a successful particle redistribution after migration completes. */
+        void completeRedistribution() noexcept { ++redistributionCount_m; }
+
         /** @brief Record the current merged-bin count without changing the legacy stat source. */
         void recordBinCount(std::size_t count) noexcept { currentBinCount_m = count; }
 
@@ -128,8 +134,9 @@ namespace opalx::spacecharge {
                 completedEvents_m{};
         std::array<std::chrono::nanoseconds, static_cast<std::size_t>(SelfFieldEventKind::Count)>
                 totalDurations_m{};
-        std::size_t backendSolveCount_m = 0;
-        std::size_t currentBinCount_m   = 0;
+        std::size_t backendSolveCount_m   = 0;
+        std::size_t redistributionCount_m = 0;
+        std::size_t currentBinCount_m     = 0;
     };
 
 }  // namespace opalx::spacecharge

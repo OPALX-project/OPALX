@@ -630,9 +630,9 @@ public:
         if (nLocal == 0 && this->getTotalNum() == 0) return 0;
         if (sigmasAway <= 0.0) return 0;
 
-        // Force fresh moments: cached values from bunchUpdate may not reflect the exact
-        // particle state at this point (emission/migration ordering can shift R between
-        // the last bunchUpdate and this call). Safety-critical deletion always recomputes.
+        // Force fresh moments: cached values may not reflect the exact particle state at this
+        // point because emission or migration can shift R between statistics updates.
+        // Safety-critical deletion always recomputes.
         markMomentsDirty();
         updateMoments();
 

@@ -57,24 +57,19 @@ void OpalFlatTop::setParameters(Distribution_t* opalDist) {
 
     emissionSteps_m = opalDist->getEmissionSteps();
     opalDist->setTEmission(emissionTime_m);
-
-    if (fc_m) {
-        fc_m->setDecomp({false, false, true});
-    }
 }
 
 void OpalFlatTop::setInternalVariables(
         bool emitting, double sigmaTFall, double sigmaTRise, Vector_t<double, 3> cutoff,
         double tPulseLengthFWHM, Vector_t<double, 3> sigmaR, double ftOscAmplitude,
         double ftOscPeriods) {
-    emitting_m         = emitting;
-    sigmaTFall_m       = sigmaTFall;
-    sigmaTRise_m       = sigmaTRise;
-    cutoffR_m          = cutoff;
-    sigmaR_m           = sigmaR;
-    ftOscAmplitude_m   = ftOscAmplitude;
-    ftOscPeriods_m     = ftOscPeriods;
-    withDomainDecomp_m = false;
+    emitting_m       = emitting;
+    sigmaTFall_m     = sigmaTFall;
+    sigmaTRise_m     = sigmaTRise;
+    cutoffR_m        = cutoff;
+    sigmaR_m         = sigmaR;
+    ftOscAmplitude_m = ftOscAmplitude;
+    ftOscPeriods_m   = ftOscPeriods;
 
     fallTime_m = sigmaTFall_m * cutoffR_m[2];
     flattopTime_m =
@@ -91,7 +86,7 @@ void OpalFlatTop::setInternalVariables(
 }
 
 void OpalFlatTop::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) {
-    nr_m = nr;
+    static_cast<void>(nr);
 
     if (!emitting_m) {
         throw OpalException(
@@ -378,34 +373,6 @@ void OpalFlatTop::generateLocalParticles(
             });
     Kokkos::fence();
     pc_m->markMomentsDirty();
-}
-
-void OpalFlatTop::initDomainDecomp(double BoxIncr) {
-    if (!fc_m) {
-        return;
-    }
-
-    auto* mesh = &fc_m->getMesh();
-    auto* FL   = &fc_m->getFL();
-    ippl::Vector<double, 3> o;
-    ippl::Vector<double, 3> e;
-    const double tol = 1e-15;
-    o[0]             = -sigmaR_m[0] - tol;
-    e[0]             = sigmaR_m[0] + tol;
-    o[1]             = -sigmaR_m[1] - tol;
-    e[1]             = sigmaR_m[1] + tol;
-    o[2]             = 0.0 - tol;
-    e[2]             = Physics::c * emissionTime_m + tol;
-
-    const ippl::Vector<double, 3> l = e - o;
-    hr_m                            = (1.0 + BoxIncr / 100.0) * (l / nr_m);
-    mesh->setMeshSpacing(hr_m);
-    mesh->setOrigin(o - 0.5 * hr_m * BoxIncr / 100.0);
-    pc_m->getLayout().updateLayout(*FL, *mesh);
-}
-
-void OpalFlatTop::setWithDomainDecomp(bool withDomainDecomp) {
-    withDomainDecomp_m = withDomainDecomp;
 }
 
 void OpalFlatTop::setBirthTimesForTest(std::vector<double> birthTimes) {

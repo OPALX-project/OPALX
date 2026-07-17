@@ -7,6 +7,7 @@
 #define OPALX_SPACE_CHARGE_PIC_WORKSPACE_H
 
 #include <array>
+#include <cstddef>
 #include <memory>
 #include <string_view>
 
@@ -27,6 +28,7 @@ namespace opalx::spacecharge {
         using Mesh        = ippl::UniformCartesian<T, Dim>;
         using Layout      = ippl::FieldLayout<Dim>;
         using Vector      = ippl::Vector<T, Dim>;
+        using Extents     = std::array<std::size_t, Dim>;
         using ScalarField = ippl::Field<T, Dim, Mesh, typename Mesh::DefaultCentering>;
         using VectorField =
                 ippl::Field<ippl::Vector<T, Dim>, Dim, Mesh, typename Mesh::DefaultCentering>;
@@ -58,18 +60,30 @@ namespace opalx::spacecharge {
         [[nodiscard]] Vector& upper() { return upper_m; }
         [[nodiscard]] const Vector& upper() const { return upper_m; }
 
-        [[nodiscard]] const std::array<bool, Dim>& effectiveDecomposition() const {
-            return decomposition_m;
-        }
-        void setEffectiveDecomposition(std::array<bool, Dim> decomposition) {
-            decomposition_m = decomposition;
-        }
-
         [[nodiscard]] Mesh& mesh() { return mesh_m; }
         [[nodiscard]] const Mesh& mesh() const { return mesh_m; }
         [[nodiscard]] Layout& layout() { return layout_m; }
         [[nodiscard]] const Layout& layout() const { return layout_m; }
         [[nodiscard]] bool isAllPeriodic() const { return allPeriodic_m; }
+
+        /** @brief Return the global extent represented by the mutable field layout. */
+        [[nodiscard]] Extents layoutExtents() const;
+
+        /**
+         * @brief Rebuild the global field layout without replacing the borrowed layout object.
+         *
+         * The Cartesian mesh keeps its construction-time index domain. Only the global field
+         * layout and persistent field allocations change here, matching the legacy longitudinal
+         * image-domain resize behavior while keeping mesh/layout addresses stable.
+         *
+         * @param decomposition Parallel dimensions to apply on the next extent change.
+         * @return true when the extent changed and the fields were refreshed.
+         */
+        bool rebuildGlobalLayoutInPlace(
+                const Extents& extents, const std::array<bool, Dim>& decomposition);
+
+        /** @brief Update the active physical bounds and mesh geometry in place. */
+        void setGeometry(Vector lower, Vector upper, Vector spacing, Vector origin);
 
         /** @brief Per-unit electric accumulation in mesh axes after Lorentz conversion. */
         [[nodiscard]] VectorField& accumulatedElectricField() {

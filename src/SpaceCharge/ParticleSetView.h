@@ -121,15 +121,21 @@ namespace opalx::spacecharge {
      * @brief Borrowed metadata and stable attribute handles for one particle container.
      *
      * This class owns no particle storage. The caller guarantees that all native attribute
-     * objects and the container name outlive the SolveContext that contains this view.
+     * objects and the container name outlive the SolveContext that contains this view. Solve
+     * selection is independent of whether tracking currently considers the container active.
      */
     class ParticleContainerView {
     public:
         ParticleContainerView(
-                std::string_view name, ParticleContainerAttributes attributes, bool active = true);
+                std::string_view name, ParticleContainerAttributes attributes,
+                bool selectedForSolve = true, bool trackingActive = true);
 
         [[nodiscard]] std::string_view name() const { return name_m; }
-        [[nodiscard]] bool active() const { return active_m; }
+        /** @brief Compatibility name for selectedForSolve(). */
+        [[nodiscard]] bool active() const { return selectedForSolve_m; }
+        [[nodiscard]] bool selectedForSolve() const { return selectedForSolve_m; }
+        [[nodiscard]] bool trackingActive() const { return trackingActive_m; }
+        void setTrackingActive(bool active) { trackingActive_m = active; }
         [[nodiscard]] const ParticleContainerAttributes& attributes() const { return attributes_m; }
         [[nodiscard]] const ParticleAttributeHandle* find(ParticleAttribute attribute) const {
             return attributes_m.find(attribute);
@@ -145,7 +151,8 @@ namespace opalx::spacecharge {
     private:
         std::string_view name_m;
         ParticleContainerAttributes attributes_m;
-        bool active_m = true;
+        bool selectedForSolve_m = true;
+        bool trackingActive_m   = true;
     };
 
     /**
@@ -156,7 +163,8 @@ namespace opalx::spacecharge {
      * Kokkos views recovered through attribute handles belong to that generation and must not be
      * retained across storage reallocation, compaction, or migration. Recover the native
      * attribute object again and ask it for a fresh view after such an operation. Rebuild this
-     * ParticleSetView if container membership, active selection, or the primary container changes.
+     * ParticleSetView if container membership or the primary container changes. Update the
+     * generation after storage changes and update container flags before each solve.
      */
     class ParticleSetView {
     public:
@@ -172,6 +180,8 @@ namespace opalx::spacecharge {
         }
         [[nodiscard]] std::size_t primaryIndex() const { return primaryIndex_m; }
         [[nodiscard]] generation_type generation() const { return generation_m; }
+        /** @brief Record a host-side particle storage change after all native views are invalid. */
+        void updateGeneration(generation_type generation) { generation_m = generation; }
         [[nodiscard]] std::size_t activeContainerCount() const;
 
         [[nodiscard]] bool activeContainersProvide(ParticleAttributeSet required) const;
