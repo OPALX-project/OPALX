@@ -36,7 +36,7 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(
 
     Inform m("BinnedFieldSolver::computeSelfFields");
     // TYPE=NONE is a true no-op: skip all binning/scatter/solve/gather work.
-    if (this->getStype() == "NONE") {
+    if (this->getBackendCapabilities().isNoOp) {
         // Already called in ParallelTracker::resetFields()
         // pc->E = 0.0;
         // pc->B = 0.0;
@@ -229,7 +229,9 @@ void BinnedFieldSolver<T, Dim>::dumpDirichletPlaneDiagnosticsIfRequested(
         return;
     }
 
-    Field_t<Dim>* potentialField = (this->getStype() == "CG") ? this->getPhi() : this->getRho();
+    Field_t<Dim>* potentialField = this->getBackendCapabilities().usesSeparatePotentialField
+                                           ? this->getPhi()
+                                           : this->getRho();
     if (!potentialField) {
         return;
     }
@@ -556,9 +558,9 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(
     imageScatterController_m.scatterPrimaryAndImage(pc, *R, rho);
 
     //  apply mesh normalization, background subtraction, and rho scaling.
-    const std::string stype = this->getStype();
-    double normalizer       = bunch.getdT();
-    if (stype != "FEM" && stype != "FEM_PRECON") {
+    double normalizer               = bunch.getdT();
+    const auto& backendCapabilities = this->getBackendCapabilities();
+    if (backendCapabilities.normalizeChargeByCellVolume) {
         const double cellVolume =
                 std::reduce(bunch.hr_m.begin(), bunch.hr_m.end(), 1.0, std::multiplies<double>());
         normalizer *= cellVolume;
@@ -566,7 +568,7 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(
 
     // Alpine uses net-0 charge for non-OPEN solvers (periodic BCs).
     double shift = 0.0;
-    if (stype != "OPEN") {
+    if (backendCapabilities.subtractNeutralizingBackground) {
         double size = 1.0;
         for (size_t d = 0; d < Dim; ++d) {
             size *= bunch.rmax_m[d] - bunch.rmin_m[d];
@@ -742,9 +744,9 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
     }
 
     // normalize rho for fractional time steps and mesh conventions.
-    const std::string stype = this->getStype();
-    double normalizer       = bunch.getdT();
-    if (stype != "FEM" && stype != "FEM_PRECON") {
+    double normalizer               = bunch.getdT();
+    const auto& backendCapabilities = this->getBackendCapabilities();
+    if (backendCapabilities.normalizeChargeByCellVolume) {
         const double cellVolume =
                 std::reduce(bunch.hr_m.begin(), bunch.hr_m.end(), 1.0, std::multiplies<double>());
         normalizer *= cellVolume;
@@ -753,7 +755,7 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
     // subtract non-OPEN background and apply Lorentz rest-frame scaling.
     // Background subtraction for non-OPEN solvers. Here we subtract only the bin's charge.
     double shift = 0.0;
-    if (stype != "OPEN") {
+    if (backendCapabilities.subtractNeutralizingBackground) {
         double size = 1.0;
         for (size_t d = 0; d < Dim; ++d) {
             size *= bunch.rmax_m[d] - bunch.rmin_m[d];
