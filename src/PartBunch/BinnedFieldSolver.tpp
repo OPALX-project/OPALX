@@ -19,11 +19,6 @@ BinnedFieldSolver<T, Dim>::BinnedFieldSolver(
 }
 
 template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::refreshAfterFieldLayoutChange() {
-    FieldSolver<T, Dim>::refreshAfterFieldLayoutChange();
-}
-
-template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::computeSelfFields(
         PartBunch_t& bunch, opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
     // Validate inputs and decide between binned vs legacy solver.
@@ -86,48 +81,60 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(
     // here both the legacy and binned paths automatically perform primary-only scatter.
     const bool imageWasEnabled     = imageScatterController_m.isEnabled();
     const bool imageActiveThisStep = isImageChargeActiveForStep(bunch.getGlobalTrackStep());
-    if (imageWasEnabled && !imageActiveThisStep) {
-        m << level3 << "ZEROFACE_MAXSTEPS reached (step=" << bunch.getGlobalTrackStep()
-          << ", maxSteps=" << zerofaceMaxSteps_m << "); disabling image charges for this step."
-          << endl;
-        imageScatterController_m.configure(false, imageScatterController_m.getZPlane());
-    }
 
     // Mirror the same step-budget toggling for the shifted Green's path.
     const bool shiftedGreensWasEnabled = shiftedGreensEnabled_m;
     const bool shiftedGreensActiveThisStep =
             isShiftedGreensActiveForStep(bunch.getGlobalTrackStep());
-    if (shiftedGreensWasEnabled && !shiftedGreensActiveThisStep) {
-        m << level3 << "ZEROFACE_MAXSTEPS reached (step=" << bunch.getGlobalTrackStep()
-          << ", maxSteps=" << zerofaceMaxSteps_m
-          << "); disabling SHIFTED_GREENS_FUNCTION correction for this step." << endl;
-        shiftedGreensEnabled_m = false;
-    }
 
-    if (hasBins) {
-        m << level4 << "Dispatching to computeBinnedSelfFields() (binned path)." << endl;
-        computeBinnedSelfFields(bunch, diagnostics);
-    } else {
-        // Legacy path has no separate correction pass: it scatters primary+image
-        // in one shot via ImageChargeScatterController::scatterPrimaryAndImage
-        // and does one standard solve. The shifted Green's correction is only
-        // implemented for the binned path, so warn once if the user requested it
-        // without binning.
-        if (shiftedGreensWasEnabled && shiftedGreensActiveThisStep) {
-            m << level3 << "SHIFTED_GREENS_FUNCTION is set but no binning is active; "
-              << "the legacy path does not apply the Dirichlet correction." << endl;
+    const auto restoreCorrectionState = [&]() {
+        if (imageWasEnabled && !imageActiveThisStep) {
+            imageScatterController_m.configure(true, imageScatterController_m.getZPlane());
         }
-        m << level4 << "Dispatching to computeLegacySelfFields() (legacy path)." << endl;
-        computeLegacySelfFields(bunch, diagnostics);
+        if (shiftedGreensWasEnabled && !shiftedGreensActiveThisStep) {
+            shiftedGreensEnabled_m = true;
+        }
+    };
+
+    try {
+        if (imageWasEnabled && !imageActiveThisStep) {
+            m << level3 << "ZEROFACE_MAXSTEPS reached (step=" << bunch.getGlobalTrackStep()
+              << ", maxSteps=" << zerofaceMaxSteps_m << "); disabling image charges for this step."
+              << endl;
+            imageScatterController_m.configure(false, imageScatterController_m.getZPlane());
+        }
+        if (shiftedGreensWasEnabled && !shiftedGreensActiveThisStep) {
+            m << level3 << "ZEROFACE_MAXSTEPS reached (step=" << bunch.getGlobalTrackStep()
+              << ", maxSteps=" << zerofaceMaxSteps_m
+              << "); disabling SHIFTED_GREENS_FUNCTION correction for this step." << endl;
+            shiftedGreensEnabled_m = false;
+        }
+
+        if (hasBins) {
+            m << level4 << "Dispatching to computeBinnedSelfFields() (binned path)." << endl;
+            computeBinnedSelfFields(bunch, diagnostics);
+        } else {
+            // Legacy path has no separate correction pass: it scatters primary+image
+            // in one shot via ImageChargeScatterController::scatterPrimaryAndImage
+            // and does one standard solve. The shifted Green's correction is only
+            // implemented for the binned path, so warn once if the user requested it
+            // without binning.
+            if (shiftedGreensWasEnabled && shiftedGreensActiveThisStep) {
+                m << level3 << "SHIFTED_GREENS_FUNCTION is set but no binning is active; "
+                  << "the legacy path does not apply the Dirichlet correction." << endl;
+            }
+            m << level4 << "Dispatching to computeLegacySelfFields() (legacy path)." << endl;
+            computeLegacySelfFields(bunch, diagnostics);
+        }
+    } catch (...) {
+        try {
+            restoreCorrectionState();
+        } catch (...) {
+        }
+        throw;
     }
 
-    // Restore image-charge controller state if it was temporarily disabled.
-    if (imageWasEnabled && !imageActiveThisStep) {
-        imageScatterController_m.configure(true, imageScatterController_m.getZPlane());
-    }
-    if (shiftedGreensWasEnabled && !shiftedGreensActiveThisStep) {
-        shiftedGreensEnabled_m = true;
-    }
+    restoreCorrectionState();
 }
 
 template <typename T, unsigned Dim>
@@ -540,17 +547,20 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(
     double normalizer               = bunch.getdT();
     const auto& backendCapabilities = this->getBackendCapabilities();
     if (backendCapabilities.normalizeChargeByCellVolume) {
+        const auto& spacing = this->getWorkspace().spacing();
         const double cellVolume =
-                std::reduce(bunch.hr_m.begin(), bunch.hr_m.end(), 1.0, std::multiplies<double>());
+                std::reduce(spacing.begin(), spacing.end(), 1.0, std::multiplies<double>());
         normalizer *= cellVolume;
     }
 
     // Alpine uses net-0 charge for non-OPEN solvers (periodic BCs).
     double shift = 0.0;
     if (backendCapabilities.subtractNeutralizingBackground) {
-        double size = 1.0;
+        const auto& lower = this->getWorkspace().lower();
+        const auto& upper = this->getWorkspace().upper();
+        double size       = 1.0;
         for (size_t d = 0; d < Dim; ++d) {
-            size *= bunch.rmax_m[d] - bunch.rmin_m[d];
+            size *= upper[d] - lower[d];
         }
 
         const double totalQ = bunch.getParticleContainer()->getTotalCharge();
@@ -726,8 +736,9 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
     double normalizer               = bunch.getdT();
     const auto& backendCapabilities = this->getBackendCapabilities();
     if (backendCapabilities.normalizeChargeByCellVolume) {
+        const auto& spacing = this->getWorkspace().spacing();
         const double cellVolume =
-                std::reduce(bunch.hr_m.begin(), bunch.hr_m.end(), 1.0, std::multiplies<double>());
+                std::reduce(spacing.begin(), spacing.end(), 1.0, std::multiplies<double>());
         normalizer *= cellVolume;
     }
 
@@ -735,9 +746,11 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
     // Background subtraction for non-OPEN solvers. Here we subtract only the bin's charge.
     double shift = 0.0;
     if (backendCapabilities.subtractNeutralizingBackground) {
-        double size = 1.0;
+        const auto& lower = this->getWorkspace().lower();
+        const auto& upper = this->getWorkspace().upper();
+        double size       = 1.0;
         for (size_t d = 0; d < Dim; ++d) {
-            size *= bunch.rmax_m[d] - bunch.rmin_m[d];
+            size *= upper[d] - lower[d];
         }
 
         const double totalQBin = bunch.getParticleContainer()->getChargePerParticle()

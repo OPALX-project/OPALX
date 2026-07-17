@@ -81,8 +81,7 @@ public:
     std::string integration_method_m;  ///< Integrator name (e.g. leapfrog).
     std::string solver_m;              ///< Field solver type string from input.
     Vector_t<int, Dim> nr_m;           ///< Mesh cell count per dimension.
-    int nrZBase_m = 0;  ///< Base z grid count before any image-charge doubling; used to reset nr_m.
-    Vector_t<double, Dim> origin_m;  ///< Mesh origin (lab coordinates).
+    Vector_t<double, Dim> origin_m;    ///< Mesh origin (lab coordinates).
     Vector_t<double, Dim> rmin_m;  ///< Current bunch spatial minimum (from primary container stats;
                                    ///< see calcBeamParameters).
     Vector_t<double, Dim>
@@ -104,7 +103,7 @@ private:
     const PartData* reference_m = nullptr;  ///< Reference particle data (set by TrackRun::execute).
 
     std::shared_ptr<BunchStateHandler>
-            bunchState_m;  ///< Bunch state: unitless flag, repartition flag, etc.
+            bunchState_m;  ///< Shared per-container coordinate and moment state.
 
     std::shared_ptr<BCHandler_t> bcHandler_m;  ///< Field boundary conditions.
     std::shared_ptr<AdaptBins_t> bins_m;       ///< Adaptive velocity/gamma binning (optional).
@@ -139,67 +138,13 @@ public:
             FieldSolverCmd* OPALFieldSolver, DataSink* dataSink);
 
     /**
-     * @brief Refresh mesh from particle extents, update layouts, and recompute moments.
+     * @brief Recompute moments for every particle container without changing the PIC domain.
      *
-     * @par Typical call sites
-     * - @c Track/TrackRun.cpp (initial layout)\n
-     * - @c PartBunch.cpp (space-charge path; review if still appropriate)\n
-     * - @c ParallelTracker.cpp (after position push / frame changes)
+     * Mesh geometry, field layout, particle migration, and backend refresh belong exclusively to
+     * the concrete self-field algorithm. Tracking calls this after particle mutations when only
+     * current statistics are required.
      */
-    void bunchUpdate();
-
-    /**
-     * @brief Computes the spatial bounds for the field solver based on the current particle
-     * distribution.
-     *
-     * Determines the minimum and maximum coordinates (`lower`, `upper`) in each dimension that
-     * encompass all particles in the current container. Adjusts these bounds if image-charge
-     * boundary conditions are enabled to ensure the domain includes both the real and mirrored
-     * charge distributions. Guarantees a minimal span (e.g., 1e-6) in each dimension for validity
-     * and applies an additional extension based on the field solver's box increment percentage.
-     *
-     * @param[out] lower The lowest coordinate per dimension after considering all particles and any
-     *                   boundary extensions.
-     * @param[out] upper The highest coordinate per dimension after considering all particles and
-     * any boundary extensions.
-     */
-    void computeBoundsForFieldSolve(Vector_t<double, Dim>& lower, Vector_t<double, Dim>& upper);
-
-    /**
-     * @brief Updates the mesh/grid and internal data structures to match the given spatial bounds.
-     *
-     * Sets the mesh spacing and origin for the field container based on the difference between
-     * `lower` and `upper`, updates references to domain boundaries, and applies these updates to
-     * the underlying mesh and field layout. Triggers a reevaluation of particle container layouts
-     * to ensure the grid matches the computed domain.
-     *
-     * @param[in] lower The minimum coordinates (origin) for the domain in all dimensions.
-     * @param[in] upper The maximum coordinates for the domain in all dimensions.
-     */
-    void applyGridUpdate(const Vector_t<double, Dim>& lower, const Vector_t<double, Dim>& upper);
-
-    /**
-     * @brief Enable or disable old-OPAL emitting-beam longitudinal mesh stretching.
-     *
-     * Thin wrapper around @c BunchStateHandler::setEmissionMeshProgress. The stretch is used only
-     * for @c bunchUpdate calls where @c active is true.
-     *
-     * @param active Whether the emitting-beam mesh stretch is active.
-     * @param emittedFraction Fraction of the source inventory already emitted.
-     */
-    void setEmissionMeshProgress(bool active, double emittedFraction);
-
-    /**
-     * @brief Reinitialize the z dimension of the field grid to `nrZ` cells.
-     *
-     * Rebuilds the FieldLayout, refreshes all OPALX-owned fields and accumulation buffers, and
-     * refreshes layout-dependent IPPL solver scratch to match the new z extent. A no-op if `nrZ`
-     * equals the current z cell count. Called from `bunchUpdate` to double the z resolution while
-     * image charges are active.
-     *
-     * @param nrZ Target number of z grid cells.
-     */
-    void reinitializeGridZ(int nrZ);
+    void updateAllParticleMoments();
 
     /**
      * @brief Set the image-charge configuration for the field solver.
@@ -692,9 +637,6 @@ public:
 
     /// @brief Increment @c globalTrackStep_m by one.
     void incTrackSteps() { globalTrackStep_m++; }
-
-    /// @brief ORB/binary repartition when the load balancer requests it (primary container).
-    void do_binaryRepart();
 
     /// @brief Legacy RMS density field (may be unused).
     double get_rmsDensity() const { return rmsDensity_m; }

@@ -78,8 +78,12 @@ namespace opalx::spacecharge {
     }
 
     ParticleContainerView::ParticleContainerView(
-            std::string_view name, ParticleContainerAttributes attributes, bool active)
-        : name_m(name), attributes_m(std::move(attributes)), active_m(active) {
+            std::string_view name, ParticleContainerAttributes attributes, bool selectedForSolve,
+            bool trackingActive)
+        : name_m(name),
+          attributes_m(std::move(attributes)),
+          selectedForSolve_m(selectedForSolve),
+          trackingActive_m(trackingActive) {
         for (const ParticleAttribute attribute : particleAttributes) {
             const ParticleAttributeHandle* handle = find(attribute);
             if (handle != nullptr && handle->attribute() != attribute) {

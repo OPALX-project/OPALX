@@ -478,12 +478,11 @@ void TrackRun::execute() {
     selfFieldSystem_m =
             opalx::spacecharge::SelfFieldFactory::create(std::move(selfFieldConfig), *bunch_m);
 
-    // Reset the field solver with correct hr_m based on the distribution.
+    // Refresh the initial particle statistics after distribution setup.
     bunch_m->setCharge();
     bunch_m->setMass();
 
-    // Calculate extents and update moments for each container
-    bunch_m->bunchUpdate();
+    bunch_m->updateAllParticleMoments();
     bunch_m->print(*gmsg);
 
     // Set ZStart, ZStop, and dT

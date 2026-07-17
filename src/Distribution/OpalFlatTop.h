@@ -155,20 +155,6 @@ public:
     }
 
     /**
-     * @brief Initializes a domain decomposition large enough for the emitted bunch.
-     *
-     * @param BoxIncr Percentage by which to enlarge the computed mesh box.
-     */
-    void initDomainDecomp(double BoxIncr) override;
-
-    /**
-     * @brief Sets whether to use domain decomposition during emission.
-     *
-     * @param withDomainDecomp Boolean flag for domain decomposition.
-     */
-    void setWithDomainDecomp(bool withDomainDecomp) override;
-
-    /**
      * @brief Returns the total emission time.
      */
     double getEmissionTime() const { return emissionTime_m; }
@@ -212,14 +198,11 @@ private:
     double sigmaTFall_m          = 0.0;  ///< Standard deviation of the falling flank.
     double sigmaTRise_m          = 0.0;  ///< Standard deviation of the rising flank.
     Vector_t<double, 3> cutoffR_m;       ///< Cutoff multipliers for distribution support.
-    double fallTime_m       = 0.0;       ///< Duration represented by the falling flank.
-    double riseTime_m       = 0.0;       ///< Duration represented by the rising flank.
-    bool emitting_m         = false;     ///< Flag for particle emission status.
-    size_t totalN_m         = 0;         ///< Total number of particles in the inventory.
-    bool withDomainDecomp_m = false;     ///< Flag for domain decomposition.
-    double emissionTime_m   = 0.0;       ///< Total emission time.
-    Vector_t<double, 3> nr_m;            ///< Number of grid points per direction.
-    Vector_t<double, 3> hr_m;            ///< Grid spacing.
+    double fallTime_m     = 0.0;         ///< Duration represented by the falling flank.
+    double riseTime_m     = 0.0;         ///< Duration represented by the rising flank.
+    bool emitting_m       = false;       ///< Flag for particle emission status.
+    size_t totalN_m       = 0;           ///< Total number of particles in the inventory.
+    double emissionTime_m = 0.0;         ///< Total emission time.
     Vector_t<double, 3> sigmaR_m;        ///< Semi-axis lengths of the transverse disk.
     double ftOscAmplitude_m = 0.0;       ///< Flat-top oscillation amplitude in percent.
     double ftOscPeriods_m   = 0.0;       ///< Number of oscillation periods across the flat top.

@@ -106,6 +106,7 @@ namespace opalx::spacecharge {
         PoissonBackendKind backend = PoissonBackendKind::None;
         std::array<std::size_t, 3> meshSize{8, 8, 8};
         std::array<bool, 3> parallelDimensions{true, true, true};
+        std::optional<std::array<bool, 3>> layoutRebuildParallelDimensions;
         std::array<BoundaryConditionKind, 3> boundaryConditions{
                 BoundaryConditionKind::Open, BoundaryConditionKind::Open,
                 BoundaryConditionKind::Open};
@@ -113,6 +114,7 @@ namespace opalx::spacecharge {
         double boundingBoxIncreasePercent = 2.0;
         std::optional<BinningConfig> binning;
         std::size_t repartitionFrequency = 0;
+        double loadBalancingThreshold    = 0.05;
         CorrectionConfig correction;
     };
 
@@ -133,6 +135,17 @@ namespace opalx::spacecharge {
         [[nodiscard]] const std::array<bool, 3>& parallelDimensions() const {
             return values_m.parallelDimensions;
         }
+        /**
+         * @brief Decomposition used when a correction changes the global mesh extent.
+         *
+         * Emitted FlatTop beams preserve their legacy longitudinal-only decomposition during
+         * image-domain resize without allowing the sampler to mutate the live workspace.
+         */
+        [[nodiscard]] const std::array<bool, 3>& layoutRebuildParallelDimensions() const {
+            return values_m.layoutRebuildParallelDimensions.has_value()
+                           ? *values_m.layoutRebuildParallelDimensions
+                           : values_m.parallelDimensions;
+        }
         [[nodiscard]] const std::array<BoundaryConditionKind, 3>& boundaryConditions() const {
             return values_m.boundaryConditions;
         }
@@ -145,6 +158,9 @@ namespace opalx::spacecharge {
         }
         [[nodiscard]] std::size_t repartitionFrequency() const {
             return values_m.repartitionFrequency;
+        }
+        [[nodiscard]] double loadBalancingThreshold() const {
+            return values_m.loadBalancingThreshold;
         }
         [[nodiscard]] const CorrectionConfig& correction() const { return values_m.correction; }
 

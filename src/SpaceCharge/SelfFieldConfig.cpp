@@ -45,6 +45,11 @@ namespace opalx::spacecharge {
             throw OpalException(
                     "Pic3DConfig::Pic3DConfig", "The bounding-box increase must not be negative.");
         }
+        if (!(values_m.loadBalancingThreshold >= 0.0)) {
+            throw OpalException(
+                    "Pic3DConfig::Pic3DConfig",
+                    "The load-balancing threshold must not be negative.");
+        }
     }
 
     SelfFieldConfig::SelfFieldConfig(SelfFieldAlgorithmConfig algorithmConfig)

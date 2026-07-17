@@ -11,12 +11,7 @@
  * Single instance per PartBunch, shared with every component that needs
  * access (ParticleContainer, DistributionMoments, ...).
  *
- * Two classes of state live here:
- *
- * - **Bunch-wide flags** (emission mesh progress, future `emittingNow`) apply
- *   to the bunch as a whole and are stored as plain members.
- *
- * - **Per-container flags** (`momentsDirty`, `unitlessPositions`) live in the
+ * Per-container flags (`momentsDirty`, `unitlessPositions`) live in the
  *   nested `ContainerState` struct. Each `ParticleContainer` registers itself
  *   via `registerContainer()` at `setBunchStateHandler` time and receives a
  *   `std::shared_ptr<ContainerState>` slot. The container holds the only strong
@@ -39,11 +34,6 @@
  *   container's particle positions (R) or momenta (P) -- push, kick,
  *   emission, particle deletion. Cleared by DistributionMoments::computeMoments
  *   once the moments cache is consistent with the particle state.
- *
- * - **emissionMeshProgress**: true only around the beam-frame bunchUpdate used by the
- *   space-charge solve while a cathode source is still emitting. Old OPAL stretches the
- *   z mesh backward by 1 / emittedFraction so the self-field solve covers the full
- *   source window instead of only the already emitted front slice.
  *
  * ### MPI consistency
  *
@@ -89,26 +79,11 @@ public:
      */
     std::shared_ptr<ContainerState> registerContainer();
 
-    // -- bunch-wide flags --------------------------------------------------
-
-    bool isEmissionMeshStretchActive() const { return emissionMeshStretchEnabled_m; }
-    double getEmissionMeshFraction() const { return emissionMeshProgressFraction_m; }
-    void setEmissionMeshProgress(bool active, double emittedFraction);
-
-    // -- emission liveness -------------------------------------------------
-    // TBD: not wired up yet. Re-introduce a bunch-wide bool (plus impl in .cpp
-    // and a unit test) once an emitting distribution actually needs it.
-    // bool isEmittingNow() const;
-    // void setEmittingNow(bool v);
-
 private:
     // Weak refs to every slot handed out by registerContainer(). Used only by
     // handler-internal operations that iterate over all containers; pruned
     // lazily on iteration. Never exposed to callers.
     std::vector<std::weak_ptr<ContainerState>> registered_m;
-
-    bool emissionMeshStretchEnabled_m     = false;
-    double emissionMeshProgressFraction_m = 1.0;
 };
 
 #endif

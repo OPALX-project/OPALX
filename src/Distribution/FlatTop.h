@@ -87,12 +87,6 @@ public:
     void testEmitParticles(size_type nsteps, double dt) override;
 
     /**
-     * @brief Sets whether to use domain decomposition.
-     * @param withDomainDecomp Boolean flag for domain decomposition.
-     */
-    void setWithDomainDecomp(bool withDomainDecomp) override;
-
-    /**
      * @brief Sets the total area of the distribution.
      */
     void setDistArea(double distArea) { distArea_m = distArea; }
@@ -128,10 +122,7 @@ private:
     bool emitting_m;                ///< Flag for particle emission status.
     size_type totalN_m;             ///< Total number of particles.
     size_t totalEmitted_m = 0;      ///< Cumulative number of particles emitted globally.
-    bool withDomainDecomp_m;        ///< Flag for domain decomposition.
     double emissionTime_m;          ///< Total emission time.
-    Vector_t<double, 3> nr_m;       ///< Number of grid points per direction.
-    Vector_t<double, 3> hr_m;       ///< Grid spacing.
     Vector_t<double, 3> sigmaR_m;
 
     /**
@@ -160,12 +151,6 @@ public:
      * @param dt Global timestep; used to sample fractional per-particle dt.
      */
     void generateUniformDisk(size_type nlocal, size_t nNew, double dt);
-
-    /**
-     * @brief Sets the number of grid points per direction.
-     * @param nr Vector specifying the number of grid points.
-     */
-    void setNr(Vector_t<double, 3> nr);
 
     /**
      * @brief Generates particles with a given number and grid configuration.
@@ -197,12 +182,6 @@ public:
      * @return Integrated result.
      */
     double integrateTrapezoidal(double x1, double x2, double y1, double y2);
-
-    /**
-     * @brief Initializes the domain decomposition.
-     * @param BoxIncr Box increment factor.
-     */
-    void initDomainDecomp(double BoxIncr) override;
 
     /**
      * @brief Counts the number of particles entering per rank in a given time interval.

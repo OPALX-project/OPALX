@@ -31,8 +31,6 @@ FlatTop::FlatTop(
     setInternalVariables(emitting, sigmaTFall, sigmaTRise, cutoff, tPulseLengthFWHM, sigmaR);
 }
 
-void FlatTop::setWithDomainDecomp(bool withDomainDecomp) { withDomainDecomp_m = withDomainDecomp; }
-
 size_t FlatTop::determineRandInit() {
     extern Inform* gmsg;
     size_t randInit;
@@ -51,9 +49,6 @@ void FlatTop::setParameters(Distribution_t* opalDist) {
             opalDist_m->getCutoffR(), opalDist->getTPulseLengthFWHM(), opalDist_m->getSigmaR());
 
     opalDist_m->setTEmission(emissionTime_m);
-
-    // make sure only z direction is decomposed
-    fc_m->setDecomp({false, false, true});
 }
 
 void FlatTop::setInternalVariables(
@@ -180,10 +175,8 @@ void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew, double dt) {
     Kokkos::fence();
 }
 
-void FlatTop::setNr(Vector_t<double, 3> nr) { nr_m = nr; }
-
 void FlatTop::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) {
-    setNr(nr);
+    static_cast<void>(nr);
 
     // initial allocation is similar for both emitting and non-emitting cases
     allocateParticles(numberOfParticles);
@@ -248,27 +241,6 @@ size_t FlatTop::computeNlocalUniformly(size_t nglobal) {
 
 double FlatTop::integrateTrapezoidal(double x1, double x2, double y1, double y2) {
     return 0.5 * (y1 + y2) * fabs(x2 - x1);
-}
-
-void FlatTop::initDomainDecomp(double BoxIncr) {
-    auto* mesh                 = &fc_m->getMesh();
-    auto* FL                   = &fc_m->getFL();
-    Vector_t<double, 3> sigmaR = sigmaR_m;
-    ippl::Vector<double, 3> o;
-    ippl::Vector<double, 3> e;
-    double tol = 1e-15;  // enlarge grid by tol to avoid missing particles on boundaries
-    o[0]       = -sigmaR[0] - tol;
-    e[0]       = sigmaR[0] + tol;
-    o[1]       = -sigmaR[1] - tol;
-    e[1]       = sigmaR[1] + tol;
-    o[2]       = 0.0 - tol;
-    e[2]       = Physics::c * emissionTime_m + tol;
-
-    ippl::Vector<double, 3> l = e - o;
-    hr_m                      = (1.0 + BoxIncr / 100.) * (l / nr_m);
-    mesh->setMeshSpacing(hr_m);
-    mesh->setOrigin(o - 0.5 * hr_m * BoxIncr / 100.);
-    pc_m->getLayout().updateLayout(*FL, *mesh);
 }
 
 FlatTop::size_type FlatTop::countEnteringParticlesPerRank(double t0, double tf) {

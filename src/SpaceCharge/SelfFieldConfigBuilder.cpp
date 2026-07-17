@@ -5,6 +5,7 @@
 
 #include "SpaceCharge/SelfFieldConfigBuilder.h"
 
+#include "Distribution/Distribution.h"
 #include "PartBunch/BCHandler.hpp"
 #include "Structure/BinningCmd.h"
 #include "Structure/EmissionSource.h"
@@ -98,6 +99,24 @@ namespace opalx::spacecharge {
                         std::string("FIELDSOLVER ") + attribute + " must be positive.");
             }
             return static_cast<std::size_t>(value);
+        }
+
+        bool usesLongitudinalResizeDecomposition(
+                const std::vector<std::vector<EmissionSource*>>& emissionSources) {
+            for (const auto& sourceList : emissionSources) {
+                for (const EmissionSource* source : sourceList) {
+                    if (source == nullptr) {
+                        continue;
+                    }
+                    const DistributionType type =
+                            Distribution::find(source->getDistributionName())->getType();
+                    if (type == DistributionType::FLATTOP
+                        || type == DistributionType::OPALFLATTOP) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         std::optional<BinningConfig> buildBinningConfig(const BinningCmd* command) {
@@ -247,13 +266,18 @@ namespace opalx::spacecharge {
                 convertMeshSize(fieldSolver.getNY(), "NY"),
                 convertMeshSize(fieldSolver.getNZ(), "NZ")};
         values.parallelDimensions = {decomposition[0], decomposition[1], decomposition[2]};
+        values.layoutRebuildParallelDimensions =
+                usesLongitudinalResizeDecomposition(emissionSources)
+                        ? std::array<bool, 3>{false, false, true}
+                        : values.parallelDimensions;
         values.boundaryConditions = convertBoundaryConditions(fieldSolver.constructBCHandler());
         values.greenFunction      = convertGreenFunction(fieldSolver.getGreensFunction());
         values.boundingBoxIncreasePercent = fieldSolver.getBoxIncr();
         values.binning                    = buildBinningConfig(fieldSolver.getBinningCmd());
         values.repartitionFrequency =
                 Options::repartFreq > 0 ? static_cast<std::size_t>(Options::repartFreq) : 0;
-        values.correction = buildCorrectionConfig(emissionSources, solverType);
+        values.loadBalancingThreshold = Options::loadBalancingThreshold;
+        values.correction             = buildCorrectionConfig(emissionSources, solverType);
 
         return SelfFieldConfig(Pic3DConfig(std::move(values)));
     }

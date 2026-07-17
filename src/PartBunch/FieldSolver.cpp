@@ -290,20 +290,6 @@ void FieldSolver<double, 3>::initSolver() {
 }
 
 template <>
-void FieldSolver<double, 3>::refreshAfterFieldLayoutChange() {
-    Inform m("FieldSolver::refreshAfterFieldLayoutChange");
-    m << level4
-      << "Refreshing existing solver backend for field layout change: " << this->getStype() << endl;
-
-    if (backend_m == nullptr) {
-        throw OpalException(
-                "FieldSolver::refreshAfterFieldLayoutChange",
-                "The IPPL backend must be initialized before it is refreshed.");
-    }
-    backend_m->refresh(fields());
-}
-
-template <>
 void FieldSolver<double, 3>::runSolverImpl(
         const opalx::spacecharge::IpplPoissonSolveRequest& request, bool force_skip_field_dump,
         opalx::spacecharge::SelfFieldDiagnostics* diagnostics);

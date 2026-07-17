@@ -22,6 +22,9 @@ namespace opalx::spacecharge {
         if (stepState_m.communicator.size < 1) {
             throw std::invalid_argument("SolveContext communicator size must be positive");
         }
+        if (!(stepState_m.emittedFraction >= 0.0 && stepState_m.emittedFraction <= 1.0)) {
+            throw std::invalid_argument("SolveContext emitted fraction must be in [0, 1]");
+        }
     }
 
 }  // namespace opalx::spacecharge

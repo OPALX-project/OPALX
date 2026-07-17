@@ -87,8 +87,7 @@ private:
     /** Step-size segments: s-stop, dt, and steps per segment. */
     StepSizeConfig stepSizes_m;
 
-    double dtCurrentTrack_m;          ///< Global @f$\Delta t@f$ for the current track segment.
-    unsigned long long repartFreq_m;  ///< Space-charge repartition period (steps); 0 disables it.
+    double dtCurrentTrack_m;  ///< Global @f$\Delta t@f$ for the current track segment.
     std::vector<std::vector<std::shared_ptr<SamplingBase>>>
             emittingSamplers_m;  ///< Per-container emitters.
 
@@ -98,7 +97,6 @@ private:
     IpplTimings::TimerRef fieldEvaluationTimer_m;
     IpplTimings::TimerRef WakeFieldTimer_m;
     IpplTimings::TimerRef PluginElemTimer_m;
-    IpplTimings::TimerRef BinRepartTimer_m;
     IpplTimings::TimerRef OrbThreader_m;
 
 public:
@@ -271,17 +269,11 @@ private:
     /// @brief Set global bunch dt to dtCurrentTrack_m.
     void selectDT();
 
-    /// @brief Load REPARTFREQ and related options from input.
-    void setOptionalVariables();
-
     /**
      * @brief Whether tracking should stop at end-of-line (global reduction).
      * @param globalBoundingBox Spatial bounds from the orbit threader.
      */
     bool hasEndOfLineReached(const BoundingBox& globalBoundingBox);
-
-    /// @brief Trigger binary repartition for the field solver if configured.
-    void doBinaryRepartition();
 
     /// @brief Delete particles marked invalid by the central per-container mask.
     size_t deleteInvalidParticles(bool activeOnly, Inform& m, const std::string& reason);
