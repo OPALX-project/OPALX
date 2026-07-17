@@ -86,14 +86,19 @@ void OpalMultipole::update() {
 
     unsigned int top = (normSize > skewSize) ? normSize : skewSize;
 
+    // KN/KS are NORMALISED strengths [m^-(n+1)]; the components stored/applied by
+    // Multipole are physical field coefficients [T/m^n]. Convert with Brho = P0/c,
+    // one factor for every order, exactly as OpalSBend does (OpalSBend.cpp:71-76).
+    double factor = OpalData::getInstance()->getP0() / Physics::c;
+
     // Loop over components (0=Dipole, 1=Quadrupole, ...) populating the device
     // coefficient views read by Multipole::apply().
     for (unsigned int comp = 0; comp < top; ++comp) {
         if (comp < normSize) {
-            mult->setNormalComponent(comp, norm[comp], normErrors[comp]);
+            mult->setNormalComponent(comp, factor * norm[comp], factor * normErrors[comp]);
         }
         if (comp < skewSize) {
-            mult->setSkewComponent(comp, skew[comp], skewErrors[comp]);
+            mult->setSkewComponent(comp, factor * skew[comp], factor * skewErrors[comp]);
         }
     }
 
