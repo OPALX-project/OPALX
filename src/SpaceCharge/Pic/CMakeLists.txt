@@ -1,6 +1,8 @@
 set (_SRCS
+    FieldComposer.cpp
     PicDomainManager.cpp
     PicParticleDomainAdapter.cpp
+    PicScatterGather.cpp
     PicWorkspace.cpp
     )
 
@@ -10,6 +12,10 @@ set (_PRIVATE_HDRS
     )
 
 set (HDRS
+    FieldComposer.h
+    FieldComposer.tpp
+    PicScatterGather.h
+    PicScatterGather.tpp
     PicWorkspace.h
     PicWorkspace.tpp
     )

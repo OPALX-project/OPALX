@@ -13,6 +13,8 @@
 #include "PartBunch/FieldSolver.hpp"
 #include "PartBunch/ImageChargeScatterController.h"
 #include "PartBunch/PartBunch.h"
+#include "SpaceCharge/Pic/FieldComposer.h"
+#include "SpaceCharge/Pic/PicScatterGather.h"
 #include "SpaceCharge/Pic/PicWorkspace.h"
 #include "SpaceCharge/SelfFieldDiagnostics.h"
 #include "Utilities/OpalException.h"
@@ -45,13 +47,15 @@ class BinnedFieldSolver : public FieldSolver<T, Dim> {
     static_assert(Dim == 3, "BinnedFieldSolver currently supports Dim == 3 only.");
 
 public:
-    using PartBunch_t    = PartBunch<T, Dim>;
-    using ParticleCtr_t  = typename PartBunch_t::ParticleContainer_t;
-    using Workspace_t    = opalx::spacecharge::PicWorkspace<T, Dim>;
-    using AdaptBins_t    = typename PartBunch_t::AdaptBins_t;
-    using BCHandler_t    = BCHandler<Dim>;
-    using bin_index_type = typename AdaptBins_t::bin_index_type;
-    using size_type      = typename AdaptBins_t::size_type;
+    using PartBunch_t     = PartBunch<T, Dim>;
+    using ParticleCtr_t   = typename PartBunch_t::ParticleContainer_t;
+    using Workspace_t     = opalx::spacecharge::PicWorkspace<T, Dim>;
+    using ScatterGather_t = opalx::spacecharge::PicScatterGather<T, Dim>;
+    using FieldComposer_t = opalx::spacecharge::FieldComposer<T, Dim>;
+    using AdaptBins_t     = typename PartBunch_t::AdaptBins_t;
+    using BCHandler_t     = BCHandler<Dim>;
+    using bin_index_type  = typename AdaptBins_t::bin_index_type;
+    using size_type       = typename AdaptBins_t::size_type;
 
     using particle_position_type = typename PartBunch_t::Base::particle_position_type;
 
@@ -164,6 +168,8 @@ private:
     bool adaptiveBinning_m = true;
     int zerofaceMaxSteps_m = 0;
     ImageChargeScatterController<T, Dim> imageScatterController_m;
+    ScatterGather_t scatterGather_m;
+    FieldComposer_t fieldComposer_m;
     bool warnedPlaneDumpParallelUnsupported_m = false;
 
     // Shifted Green's function Dirichlet correction (alternative to image charges).
@@ -279,59 +285,6 @@ public:
             PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins, const bin_index_type binIndex,
             const size_type nPartGlobal, const double gammaBin,
             ImageScatterMode mode = ImageScatterMode::PrimaryAndImage);
-
-    /**
-     * @brief Accumulate Lorentz-transformed electric/magnetic fields into temporaries.
-     *
-     * The solver output field is interpreted as the bin-frame electric field `E'`
-     * with `B' = 0`, and transformed to the lab frame with:
-     * - `E_lab = gammaBin * E' - (gammaBin - 1) * (E' · w) * w`
-     * - `B_lab = (gammaBin / c^2) * (v x E')`
-     * where `v = c * pmean / gammaBin` and `w = v / |v|` (or `w = 0` if `|v| = 0`).
-     *
-     * When @p flipAxis is a valid axis index (0..Dim-1), the solver output is
-     * read at an axis-flipped source index @c N-1-k (in that axis only) and the
-     * transverse E components are negated before the Lorentz transform, yielding
-     * the image-charge contribution produced by a shifted-Green's-function solve:
-     * - `E_d -> -E_d` for `d != flipAxis`
-     * - `E_d -> +E_d` for `d == flipAxis` (the component parallel to the flip).
-     * This is derived from `phi_image(x) = -phi_shifted(R(x))` and `E = -grad(phi)`.
-     * The zero-copy read from the flipped source index is the reason this is
-     * baked into @c accumulateFieldToTemp instead of an out-of-place kernel.
-     *
-     * For the supported z flip, the persistent mirror scratch is populated through the existing
-     * device-resident MPI mirror path before the accumulation kernel reads it.
-     *
-     * @param gammaBin  Global average gamma for the merged bin.
-     * @param pmean     Global average normalized momentum for the merged bin.
-     * @param workspace Workspace containing the persistent accumulation fields.
-     * @param bFieldSign +1 for forward-moving charges, -1 for image charges.
-     * @param flipAxis  Axis in which to flip the read index (use -1 for no flip).
-     */
-    void accumulateFieldToTemp(
-            Workspace_t& workspace, const double gammaBin, const Vector_t<double, Dim>& pmean,
-            double bFieldSign = 1.0, int flipAxis = -1);
-
-private:
-    /// @brief Populate FieldContainer's flipped z-slab scratch with the flipped version of @p src.
-    ///
-    /// Under `PARFFTZ=true` the global flip `k -> N_z_global-1-k` generally crosses MPI ranks.
-    /// This helper does one pairwise-exchange pass over `ippl::Comm`: each rank packs the z-slabs
-    /// of @p src that peers need, posts `MPI_Isend`/`MPI_Irecv`, and unpacks the received slabs
-    /// into the correct local destination indices of the scratch field. After the call the lambda
-    /// in `accumulateFieldToTemp` reads the scratch field directly without any cross-rank access.
-    ///
-    /// @param src  Source vector field (typically `*(this->getE())` after the shifted-GF solve).
-    ///             Only the z axis is flipped; x and y stay local to the rank.
-    void buildFlippedZSlab(Workspace_t& workspace, const VField_t<T, Dim>& src);
-
-    /**
-     * @brief Gather the accumulated lab-frame fields from temporaries back to particles.
-     *
-     * @param bunch   Particle bunch to gather into.
-     * @param workspace Workspace holding the accumulated mesh fields.
-     */
-    void gatherFromTempToParticles(PartBunch_t& bunch, Workspace_t& workspace);
 };
 
 // Reduce compile-time churn: instantiate the only supported concrete solver in one TU.

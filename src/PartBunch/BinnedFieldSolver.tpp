@@ -1,7 +1,5 @@
 #include "Structure/DataSink.h"
 
-#include "PartBunch/FieldMirror.hpp"
-
 #include <cstring>
 #include <utility>
 #include <vector>
@@ -114,9 +112,9 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(
             m << level4 << "Dispatching to computeBinnedSelfFields() (binned path)." << endl;
             computeBinnedSelfFields(bunch, diagnostics);
         } else {
-            // Legacy path has no separate correction pass: it scatters primary+image
-            // in one shot via ImageChargeScatterController::scatterPrimaryAndImage
-            // and does one standard solve. The shifted Green's correction is only
+            // Legacy path has no separate correction pass: PicScatterGather deposits
+            // primary and image charge together before one standard solve. The shifted Green's
+            // correction is only
             // implemented for the binned path, so warn once if the user requested it
             // without binning.
             if (shiftedGreensWasEnabled && shiftedGreensActiveThisStep) {
@@ -294,17 +292,12 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
     }
 
     // build and merge adaptive bins for this step.
-    // build and merge adaptive bins for this step.
     rebinAndPrepare(bunch, bins);
 
     // obtain the temporary buffers used to accumulate bin contributions.
     Workspace_t& workspace = this->getWorkspace();
 
-    VField_t<T, Dim>& Etmp = workspace.accumulatedElectricField();
-    VField_t<T, Dim>& Btmp = workspace.accumulatedMagneticField();
-    // clear the accumulation buffer.
-    Etmp = 0.0;
-    Btmp = 0.0;
+    fieldComposer_m.clearAccumulation(workspace);
 
     // determine the number of bins used for this step.
     const bin_index_type nBins = bins->getCurrentBinCount();
@@ -387,7 +380,14 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
                 auto compositionEvent = diagnostics.scopedEvent(
                         opalx::spacecharge::SelfFieldEventKind::FieldComposition,
                         "primary-accumulation");
-                accumulateFieldToTemp(workspace, gammaBin, kinematics.pmean, +1.0);
+                typename FieldComposer_t::Policy compositionPolicy;
+                for (unsigned d = 0; d < Dim; ++d) {
+                    compositionPolicy.meanMomentum[d] = kinematics.pmean[d];
+                }
+                compositionPolicy.gamma        = gammaBin;
+                compositionPolicy.magneticSign = +1.0;
+                compositionPolicy.sourceRule   = opalx::spacecharge::FieldSourceRule::Direct;
+                fieldComposer_m.accumulate(workspace, compositionPolicy);
             }
 
             mesh.setMeshSpacing(hrOrig);
@@ -403,7 +403,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
         // Path B (shifted Green's function): new path. Re-scatters the primary
         // charges, then solves with a translated free-space kernel that encodes
         // the image-charge contribution analytically. The component-wise z-flip
-        // + sign-flip on the solver output, baked into accumulateFieldToTemp,
+        // + sign-flip on the solver output, applied by FieldComposer,
         // produces the image-charge E field directly. Works at any bunch-to-
         // plane distance and requires the OPEN solver (checked in
         // FieldSolver::runShiftedOpenSolver).
@@ -426,7 +426,14 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
                 auto compositionEvent = diagnostics.scopedEvent(
                         opalx::spacecharge::SelfFieldEventKind::FieldComposition,
                         "image-accumulation");
-                accumulateFieldToTemp(workspace, gammaBin, kinematics.pmean, -1.0);
+                typename FieldComposer_t::Policy compositionPolicy;
+                for (unsigned d = 0; d < Dim; ++d) {
+                    compositionPolicy.meanMomentum[d] = kinematics.pmean[d];
+                }
+                compositionPolicy.gamma        = gammaBin;
+                compositionPolicy.magneticSign = -1.0;
+                compositionPolicy.sourceRule   = opalx::spacecharge::FieldSourceRule::Direct;
+                fieldComposer_m.accumulate(workspace, compositionPolicy);
             }
             mesh.setMeshSpacing(hrOrig);
 
@@ -444,7 +451,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
                     opalx::spacecharge::SelfFieldEventKind::SolvePass, "shifted-green");
             // Shifted-Green's-function image correction. Multi-rank enabled: the
             // axis-flip source read crosses ranks under PARFFTZ, but that is handled
-            // inside accumulateFieldToTemp (it calls buildFlippedZSlab to stage a
+            // inside FieldComposer (it stages a globally mirrored field in a
             // local view populated via peer-rank MPI exchange).
             //
             // Re-scatter the primary charges (solve() overwrote the RHS in the
@@ -476,15 +483,22 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
 
             // Keep the real charge sign for the shifted solve. The image-charge
             // sign enters through the z-flip/component-sign rule in
-            // accumulateFieldToTemp. Pre-negating rho here would invert the
+            // FieldComposer. Pre-negating rho here would invert the
             // image field a second time and reinforce the near-cathode
             // transverse field instead of cancelling it.
-            constexpr int zFlipAxis = static_cast<int>(Dim) - 1;
             {
                 auto compositionEvent = diagnostics.scopedEvent(
                         opalx::spacecharge::SelfFieldEventKind::FieldComposition,
                         "shifted-green-accumulation");
-                accumulateFieldToTemp(workspace, gammaBin, kinematics.pmean, -1.0, zFlipAxis);
+                typename FieldComposer_t::Policy compositionPolicy;
+                for (unsigned d = 0; d < Dim; ++d) {
+                    compositionPolicy.meanMomentum[d] = kinematics.pmean[d];
+                }
+                compositionPolicy.gamma        = gammaBin;
+                compositionPolicy.magneticSign = -1.0;
+                compositionPolicy.sourceRule =
+                        opalx::spacecharge::FieldSourceRule::ShiftedGreenImageZ;
+                fieldComposer_m.accumulate(workspace, compositionPolicy);
             }
 
             mesh.setMeshSpacing(hrOrig);
@@ -495,7 +509,14 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
     {
         auto compositionEvent = diagnostics.scopedEvent(
                 opalx::spacecharge::SelfFieldEventKind::FieldComposition, "final-gather");
-        gatherFromTempToParticles(bunch, workspace);
+        if (gatherAttribute_m != GatherAttribute::ElectricFieldE) {
+            throw OpalException(
+                    "BinnedFieldSolver::computeBinnedSelfFields",
+                    "Unsupported gather attribute in binned solver.");
+        }
+
+        std::shared_ptr<ParticleCtr_t> pc = bunch.getParticleContainer();
+        fieldComposer_m.gatherAccumulated(scatterGather_m, pc->E, pc->B, pc->R, workspace);
     }
 
     // per-call table: gammaBin / nParticles / binNumber.
@@ -534,40 +555,30 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(
                 "Unsupported scatter attribute in legacy solver.");
     }
 
-    typename PartBunch_t::Base::particle_position_type* R = &pc->R;
-
-    Field_t<Dim>& rho = *(this->getRho());
-    rho               = 0.0;
-
-    // Scatter charge to mesh rho using dt-weighted deposition (master approach):
-    // scale dt by Q, scatter dt, then restore dt.
-    imageScatterController_m.scatterPrimaryAndImage(pc, *R, rho);
-
-    //  apply mesh normalization, background subtraction, and rho scaling.
-    double normalizer               = bunch.getdT();
+    Workspace_t& workspace          = this->getWorkspace();
     const auto& backendCapabilities = this->getBackendCapabilities();
-    if (backendCapabilities.normalizeChargeByCellVolume) {
-        const auto& spacing = this->getWorkspace().spacing();
-        const double cellVolume =
-                std::reduce(spacing.begin(), spacing.end(), 1.0, std::multiplies<double>());
-        normalizer *= cellVolume;
-    }
+    using Selection                 = typename ScatterGather_t::Selection;
+    const auto selection            = Selection::direct(
+            0, static_cast<typename ScatterGather_t::size_type>(pc->getLocalNum()));
+    const auto depositKind = imageScatterController_m.isEnabled()
+                                     ? ScatterGather_t::DepositKind::PrimaryAndImage
+                                     : ScatterGather_t::DepositKind::Primary;
 
-    // Alpine uses net-0 charge for non-OPEN solvers (periodic BCs).
-    double shift = 0.0;
-    if (backendCapabilities.subtractNeutralizingBackground) {
-        const auto& lower = this->getWorkspace().lower();
-        const auto& upper = this->getWorkspace().upper();
-        double size       = 1.0;
-        for (size_t d = 0; d < Dim; ++d) {
-            size *= upper[d] - lower[d];
-        }
+    typename ScatterGather_t::ChargeNormalization normalization;
+    normalization.timeStep              = bunch.getdT();
+    normalization.gamma                 = 1.0;
+    normalization.selectedCharge        = pc->getTotalCharge();
+    normalization.couplingConstant      = this->getCouplingConstant();
+    normalization.normalizeByCellVolume = backendCapabilities.normalizeChargeByCellVolume;
+    normalization.subtractNeutralizingBackground =
+            backendCapabilities.subtractNeutralizingBackground;
 
-        const double totalQ = bunch.getParticleContainer()->getTotalCharge();
-        shift               = -(totalQ / size) * this->getCouplingConstant();
-    }
+    typename ScatterGather_t::ImagePolicy imagePolicy;
+    imagePolicy.enabled = imageScatterController_m.isEnabled();
+    imagePolicy.planeZ  = imageScatterController_m.getZPlane();
 
-    rho = rho * (this->getCouplingConstant() / normalizer) + shift;
+    scatterGather_m.depositCharge(
+            *pc, workspace, depositKind, selection, normalization, imagePolicy);
 
     // Ensure deterministic output even for solver types that do not update `E`.
     *(this->getE()) = 0.0;
@@ -582,7 +593,7 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(
     if (gatherAttribute_m == GatherAttribute::ElectricFieldE) {
         auto compositionEvent = diagnostics.scopedEvent(
                 opalx::spacecharge::SelfFieldEventKind::FieldComposition, "legacy-gather");
-        gather(pc->E, *this->getE(), *R);
+        fieldComposer_m.gatherElectrostatic(scatterGather_m, pc->E, pc->R, workspace);
     } else {
         throw OpalException(
                 "BinnedFieldSolver::computeLegacySelfFields",
@@ -660,21 +671,14 @@ template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
         PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins, const bin_index_type binIndex,
         const size_type nPartGlobal, const double gammaBin, ImageScatterMode mode) {
-    // Scatter bin charge to rho using dt-weighted deposition.
-    // If the ParticleContainer supports scaleDtByCharge(), use the master approach:
-    // scale dt by charge, scatter dt, then unscale.
-    // Otherwise, fall back to temporarily scaling/scattering Q by dt.
+    // Scatter bin charge to rho using the dt*Q deposition workflow.
     Inform m("BinnedFieldSolver::prepareRhoForBin");
     m << level4 << "prepareRho: binIndex=" << static_cast<int>(binIndex)
       << ", nPartGlobal=" << static_cast<unsigned long long>(nPartGlobal)
       << ", gammaBin=" << std::setprecision(10) << gammaBin << endl;
 
-    Field_t<Dim>& rho = *(this->getRho());
-    rho               = 0.0;
-
     // access particle views and validate scatter support.
-    std::shared_ptr<ParticleCtr_t> pc                     = bunch.getParticleContainer();
-    typename PartBunch_t::Base::particle_position_type* R = &pc->R;
+    std::shared_ptr<ParticleCtr_t> pc = bunch.getParticleContainer();
 
     if (scatterAttribute_m != ScatterAttribute::ChargeQ) {
         throw OpalException(
@@ -712,190 +716,33 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
       << ", localP=" << static_cast<unsigned long long>(nLocal) << ", policy=[" << pBegin << ","
       << pEnd << "), hashExtent=" << static_cast<unsigned long long>(hExtent) << endl;
 
+    using Selection = typename ScatterGather_t::Selection;
+    const Selection selection =
+            scatterAllLocal ? Selection::direct(0, nLocal) : Selection::indexed(policy, hash);
+
+    typename ScatterGather_t::DepositKind depositKind =
+            ScatterGather_t::DepositKind::PrimaryAndImage;
     if (mode == ImageScatterMode::PrimaryOnly) {
-        if (scatterAllLocal) {
-            imageScatterController_m.scatterPrimaryOnly(pc, *R, rho);
-        } else {
-            imageScatterController_m.scatterPrimaryOnly(pc, *R, rho, policy, hash);
-        }
+        depositKind = ScatterGather_t::DepositKind::Primary;
     } else if (mode == ImageScatterMode::ImageOnly) {
-        if (scatterAllLocal) {
-            imageScatterController_m.scatterImageOnly(pc, *R, rho);
-        } else {
-            imageScatterController_m.scatterImageOnly(pc, *R, rho, policy, hash);
-        }
-    } else {
-        if (scatterAllLocal) {
-            imageScatterController_m.scatterPrimaryAndImage(pc, *R, rho);
-        } else {
-            imageScatterController_m.scatterPrimaryAndImage(pc, *R, rho, policy, hash);
-        }
+        depositKind = ScatterGather_t::DepositKind::Image;
     }
 
-    // normalize rho for fractional time steps and mesh conventions.
-    double normalizer               = bunch.getdT();
     const auto& backendCapabilities = this->getBackendCapabilities();
-    if (backendCapabilities.normalizeChargeByCellVolume) {
-        const auto& spacing = this->getWorkspace().spacing();
-        const double cellVolume =
-                std::reduce(spacing.begin(), spacing.end(), 1.0, std::multiplies<double>());
-        normalizer *= cellVolume;
-    }
 
-    // subtract non-OPEN background and apply Lorentz rest-frame scaling.
-    // Background subtraction for non-OPEN solvers. Here we subtract only the bin's charge.
-    double shift = 0.0;
-    if (backendCapabilities.subtractNeutralizingBackground) {
-        const auto& lower = this->getWorkspace().lower();
-        const auto& upper = this->getWorkspace().upper();
-        double size       = 1.0;
-        for (size_t d = 0; d < Dim; ++d) {
-            size *= upper[d] - lower[d];
-        }
+    typename ScatterGather_t::ChargeNormalization normalization;
+    normalization.timeStep         = bunch.getdT();
+    normalization.gamma            = gammaBin;
+    normalization.selectedCharge   = pc->getChargePerParticle() * static_cast<double>(nPartGlobal);
+    normalization.couplingConstant = this->getCouplingConstant();
+    normalization.normalizeByCellVolume = backendCapabilities.normalizeChargeByCellVolume;
+    normalization.subtractNeutralizingBackground =
+            backendCapabilities.subtractNeutralizingBackground;
 
-        const double totalQBin = bunch.getParticleContainer()->getChargePerParticle()
-                                 * static_cast<double>(nPartGlobal);
-        shift = -(totalQBin / size) * this->getCouplingConstant() / gammaBin;
-    }
+    typename ScatterGather_t::ImagePolicy imagePolicy;
+    imagePolicy.enabled = imageScatterController_m.isEnabled();
+    imagePolicy.planeZ  = imageScatterController_m.getZPlane();
 
-    // Lorentz transform of charge density to the bin rest frame (thesis Eq. step 7).
-    normalizer *= gammaBin;
-    rho = rho * (this->getCouplingConstant() / normalizer) + shift;
-}
-
-template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
-        Workspace_t& workspace, const double gammaBin, const Vector_t<double, Dim>& pmean,
-        double bFieldSign, int flipAxis) {
-    // transform rest-frame fields to lab-frame fields and accumulate.
-    Inform m("BinnedFieldSolver::accumulateFieldToTemp");
-    m << level4 << "accumulate: gammaBin=" << std::setprecision(10) << gammaBin
-      << ", flipAxis=" << flipAxis << endl;
-
-    const double invGamma         = (gammaBin > 0.0) ? (1.0 / gammaBin) : 0.0;
-    const Vector_t<double, Dim> v = Physics::c * pmean * invGamma;
-    const double vNorm            = Kokkos::sqrt(v.dot(v));
-    const Vector_t<double, Dim> w = (vNorm > 0.0) ? (v / vNorm) : Vector_t<double, Dim>(0.0);
-    const double gammaMinusOne    = gammaBin - 1.0;
-    const double gammaOverCSq     = gammaBin / (Physics::c * Physics::c);
-
-    const VField_t<T, Dim>& Eprime = *(this->getE());
-    VField_t<T, Dim>& Etmp         = workspace.accumulatedElectricField();
-    VField_t<T, Dim>& Btmp         = workspace.accumulatedMagneticField();
-    auto ePrimeView                = Eprime.getView();
-    auto eTmpView                  = Etmp.getView();
-    auto bTmpView                  = Btmp.getView();
-
-    const int nghost = Eprime.getNghost();
-    // Axis-flip geometry: for physical index k_phys in [0, N), the mirrored
-    // physical index is N-1-k_phys. In view (ghost-padded) coordinates that is
-    //   k_view_flipped = (N - 1 - k_phys) + nghost = 2*nghost + N - 1 - k_view.
-    // view.extent(d) equals N + 2*nghost, so (view.extent(d) - 1 - idx) gives
-    // the flipped view index directly.
-    const int capturedFlipAxis = flipAxis;
-
-    // parallel element-wise transformation and accumulation into temporaries.
-    if (capturedFlipAxis < 0) {
-        // Fast path: no flip, original behavior.
-        ippl::parallel_for(
-                "BinnedFieldSolver::accumulateFieldToTemp", Eprime.getFieldRangePolicy(),
-                KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
-                    Vector_t<T, Dim> ePrime = apply(ePrimeView, idx);
-                    const T ePrimeDotW      = ePrime.dot(w);
-                    Vector_t<T, Dim> eLab   = gammaBin * ePrime - gammaMinusOne * ePrimeDotW * w;
-                    Vector_t<T, Dim> bLab   = bFieldSign * gammaOverCSq * cross(v, ePrime);
-                    Vector_t<T, Dim> eTotal = apply(eTmpView, idx);
-                    Vector_t<T, Dim> bTotal = apply(bTmpView, idx);
-                    eTotal += eLab;
-                    bTotal += bLab;
-                    apply(eTmpView, idx) = eTotal;
-                    apply(bTmpView, idx) = bTotal;
-                });
-    } else {
-        // Axis-flipped path: read E' at the GLOBALLY-flipped source index and apply
-        // the component-wise image-charge sign rule (flip all components except the
-        // one parallel to the flip axis) BEFORE the Lorentz transform.
-        //
-        // Under PARFFTZ=true the flipped z-index generally lives on a peer rank, so
-        // we first populate flippedZSlab_m via a peer-rank MPI exchange. After the
-        // call, flippedZSlab_m(i, j, k) == ePrimeView(i, j, flipped_k_viewindex)
-        // for each local (i, j, k) — no cross-rank read required in the lambda.
-        const int flipAxisCap = capturedFlipAxis;
-        if (flipAxisCap != static_cast<int>(Dim) - 1) {
-            throw OpalException(
-                    "BinnedFieldSolver::accumulateFieldToTemp",
-                    "flipAxis != Dim-1 not supported (only z-axis flip implemented).");
-        }
-        (void)nghost;
-
-        this->buildFlippedZSlab(workspace, Eprime);
-        auto flippedView = workspace.flippedZSlabField().getView();
-
-        ippl::parallel_for(
-                "BinnedFieldSolver::accumulateFieldToTemp[flipped]", Eprime.getFieldRangePolicy(),
-                KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
-                    // Read pre-flipped E' at the local (i, j, k).
-                    Vector_t<T, Dim> ePrime = flippedView(idx[0], idx[1], idx[2]);
-
-                    // Component-wise sign rule (derivation: phi_image(r) = -phi_shifted(R(r))
-                    // so E_image_i = -E_shifted_i(R(r)) for i != flipAxis and
-                    // E_image_i = +E_shifted_i(R(r)) for i == flipAxis).
-                    for (unsigned d = 0; d < Dim; ++d) {
-                        if (static_cast<int>(d) != flipAxisCap) {
-                            ePrime[d] = -ePrime[d];
-                        }
-                    }
-
-                    const T ePrimeDotW      = ePrime.dot(w);
-                    Vector_t<T, Dim> eLab   = gammaBin * ePrime - gammaMinusOne * ePrimeDotW * w;
-                    Vector_t<T, Dim> bLab   = bFieldSign * gammaOverCSq * cross(v, ePrime);
-                    Vector_t<T, Dim> eTotal = apply(eTmpView, idx);
-                    Vector_t<T, Dim> bTotal = apply(bTmpView, idx);
-                    eTotal += eLab;
-                    bTotal += bLab;
-                    apply(eTmpView, idx) = eTotal;
-                    apply(bTmpView, idx) = bTotal;
-                });
-    }
-}
-
-template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::buildFlippedZSlab(
-        Workspace_t& workspace, const VField_t<T, Dim>& src) {
-    // Populate FieldContainer's flipped z-slab scratch with src mirrored along the z axis:
-    //   flippedZSlab(i, j, k) == src(i, j, flipped_k)
-    // where the flip is the GLOBAL reflection k_glob -> N_z_global - 1 - k_glob,
-    // realised via opalx::detail::mirrorField (device-resident, CUDA-aware-MPI).
-    //
-    // The accumulate lambda downstream iterates src.getFieldRangePolicy() which
-    // excludes ghost cells; mirrorField zero-initialises ghosts, which is safe.
-
-    auto& flippedZSlabField = workspace.mirrorScratchFor(src);
-
-    IpplTimings::TimerRef mirrorFieldTimer = IpplTimings::getTimer("mirrorField");
-    IpplTimings::startTimer(mirrorFieldTimer);
-    opalx::detail::mirrorField(src, flippedZSlabField, Dim - 1);
-    IpplTimings::stopTimer(mirrorFieldTimer);
-}
-
-template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::gatherFromTempToParticles(
-        PartBunch_t& bunch, Workspace_t& workspace) {
-    // gather accumulated lab-frame E and B from mesh back to particles.
-    Inform m("BinnedFieldSolver::gatherFromTempToParticles");
-    m << level4 << "gather Etmp/Btmp->particles" << endl;
-
-    VField_t<T, Dim>& Etmp            = workspace.accumulatedElectricField();
-    VField_t<T, Dim>& Btmp            = workspace.accumulatedMagneticField();
-    std::shared_ptr<ParticleCtr_t> pc = bunch.getParticleContainer();
-
-    // gather only the supported field attribute back to particles.
-    if (gatherAttribute_m == GatherAttribute::ElectricFieldE) {
-        gather(pc->E, Etmp, pc->R);
-        gather(pc->B, Btmp, pc->R);
-    } else {
-        throw OpalException(
-                "BinnedFieldSolver::gatherFromTempToParticles",
-                "Unsupported gather attribute in binned solver.");
-    }
+    scatterGather_m.depositCharge(
+            *pc, this->getWorkspace(), depositKind, selection, normalization, imagePolicy);
 }
