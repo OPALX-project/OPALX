@@ -29,7 +29,7 @@ class ImageChargeScatterController {
 public:
     using ParticleCtr_t  = ParticleContainer<T, Dim>;
     using PositionAttr_t = typename ippl::ParticleBase<
-            ippl::ParticleSpatialLayout<T, Dim,ippl::UniformCartesian<T,Dim>>,
+            ippl::ParticleSpatialLayout<T, Dim, ippl::UniformCartesian<T,Dim>>,
             Kokkos::DefaultExecutionSpace::memory_space>::particle_position_type;
     using RhoField_t  = Field_t<Dim>;
     using BinPolicy_t = Kokkos::RangePolicy<>;
