@@ -13,6 +13,7 @@
 #include "PartBunch/FieldSolver.hpp"
 #include "PartBunch/ImageChargeScatterController.h"
 #include "PartBunch/PartBunch.h"
+#include "SpaceCharge/SelfFieldDiagnostics.h"
 #include "Utilities/OpalException.h"
 
 /**
@@ -110,7 +111,8 @@ public:
      * @throws OpalException If required internal data (particle container / temp E field)
      *                        is missing, or if unsupported scatter/gather modes are selected.
      */
-    void computeSelfFields(PartBunch_t& bunch);
+    void computeSelfFields(
+            PartBunch_t& bunch, opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
 
     /**
      * @brief Set particle scatter attribute (extensible; default is `ChargeQ`).
@@ -160,7 +162,6 @@ public:
 
     /// @brief Configure dump frequency for dirichlet-plane diagnostics (`0` disables dumps).
     void setZeroFacePlaneDumpFrequency(int frequency);
-    int getZeroFacePlaneDumpFrequency() const { return zeroFacePlaneDumpFrequency_m; }
 
     struct BinKinematics {
         Vector_t<double, Dim> pmean = Vector_t<double, Dim>(0.0);
@@ -170,10 +171,8 @@ public:
 private:
     ScatterAttribute scatterAttribute_m;
     GatherAttribute gatherAttribute_m;
-    int tablePrintFrequency_m        = 0;
-    bool adaptiveBinning_m           = true;
-    int zeroFacePlaneDumpFrequency_m = 0;
-    int zerofaceMaxSteps_m           = 0;
+    bool adaptiveBinning_m = true;
+    int zerofaceMaxSteps_m = 0;
     ImageChargeScatterController<T, Dim> imageScatterController_m;
     bool warnedPlaneDumpParallelUnsupported_m = false;
 
@@ -215,7 +214,9 @@ private:
      * @param bunch   Particle bunch context for time/step and DataSink access.
      * @param solveTag Label used in output file naming (`legacy`, `binned`, ...).
      */
-    void dumpDirichletPlaneDiagnosticsIfRequested(PartBunch_t& bunch, const std::string& solveTag);
+    void dumpDirichletPlaneDiagnosticsIfRequested(
+            PartBunch_t& bunch, const std::string& solveTag,
+            opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
 
     /**
      * @brief Compute self-fields using the binned algorithm.
@@ -225,7 +226,8 @@ private:
      *
      * @param bunch Particle bunch for which to compute self-fields.
      */
-    void computeBinnedSelfFields(PartBunch_t& bunch);
+    void computeBinnedSelfFields(
+            PartBunch_t& bunch, opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
 
     /**
      * @brief Compute self-fields using the legacy monolithic algorithm.
@@ -235,7 +237,8 @@ private:
      *
      * @param bunch Particle bunch for which to compute self-fields.
      */
-    void computeLegacySelfFields(PartBunch_t& bunch);
+    void computeLegacySelfFields(
+            PartBunch_t& bunch, opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
 
     /**
      * @brief Build and prepare adaptive bins for the current step.

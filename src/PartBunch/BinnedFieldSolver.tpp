@@ -12,10 +12,10 @@ BinnedFieldSolver<T, Dim>::BinnedFieldSolver(
         std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency, bool adaptiveBinning,
         std::string greensFunction)
     : FieldSolver<T, Dim>(solver, rho, E, phi, bcHandler, std::move(greensFunction)) {
-    scatterAttribute_m    = ScatterAttribute::ChargeQ;
-    gatherAttribute_m     = GatherAttribute::ElectricFieldE;
-    tablePrintFrequency_m = tablePrintFrequency;
-    adaptiveBinning_m     = adaptiveBinning;
+    scatterAttribute_m = ScatterAttribute::ChargeQ;
+    gatherAttribute_m  = GatherAttribute::ElectricFieldE;
+    adaptiveBinning_m  = adaptiveBinning;
+    static_cast<void>(tablePrintFrequency);
 }
 
 template <typename T, unsigned Dim>
@@ -24,7 +24,8 @@ void BinnedFieldSolver<T, Dim>::refreshAfterFieldLayoutChange() {
 }
 
 template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
+void BinnedFieldSolver<T, Dim>::computeSelfFields(
+        PartBunch_t& bunch, opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
     // Validate inputs and decide between binned vs legacy solver.
     std::shared_ptr<ParticleCtr_t> pc = bunch.getParticleContainer();
     if (!pc) {
@@ -105,7 +106,7 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
 
     if (hasBins) {
         m << level4 << "Dispatching to computeBinnedSelfFields() (binned path)." << endl;
-        computeBinnedSelfFields(bunch);
+        computeBinnedSelfFields(bunch, diagnostics);
     } else {
         // Legacy path has no separate correction pass: it scatters primary+image
         // in one shot via ImageChargeScatterController::scatterPrimaryAndImage
@@ -117,7 +118,7 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
               << "the legacy path does not apply the Dirichlet correction." << endl;
         }
         m << level4 << "Dispatching to computeLegacySelfFields() (legacy path)." << endl;
-        computeLegacySelfFields(bunch);
+        computeLegacySelfFields(bunch, diagnostics);
     }
 
     // Restore image-charge controller state if it was temporarily disabled.
@@ -202,18 +203,18 @@ void BinnedFieldSolver<T, Dim>::setZeroFacePlaneDumpFrequency(int frequency) {
                 "BinnedFieldSolver::setZeroFacePlaneDumpFrequency",
                 "ZEROFACEPLANEDUMP frequency must be >= 0.");
     }
-    zeroFacePlaneDumpFrequency_m = frequency;
 }
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::dumpDirichletPlaneDiagnosticsIfRequested(
-        PartBunch_t& bunch, const std::string& solveTag) {
-    if (!imageScatterController_m.isEnabled() || zeroFacePlaneDumpFrequency_m <= 0) {
+        PartBunch_t& bunch, const std::string& solveTag,
+        opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
+    if (!imageScatterController_m.isEnabled()) {
         return;
     }
 
     const long long step = bunch.getGlobalTrackStep();
-    if (step < 0 || (step % zeroFacePlaneDumpFrequency_m) != 0) {
+    if (!diagnostics.shouldDumpPlane(step)) {
         return;
     }
 
@@ -239,15 +240,15 @@ void BinnedFieldSolver<T, Dim>::dumpDirichletPlaneDiagnosticsIfRequested(
         return;
     }
 
-    const auto diagnostics =
+    const auto planeDiagnostics =
             dataSink->dumpDirichletPlane(step, bunch.getT(), zPlane, *potentialField, solveTag);
-    if (diagnostics.sampleCount == 0) {
+    if (planeDiagnostics.sampleCount == 0) {
         return;
     }
 
     m << level2 << "Dirichlet-plane potential diagnostics (" << solveTag << ") at step " << step
-      << ": z=" << zPlane << " m, mean(phi)=" << diagnostics.mean
-      << " V, var(phi)=" << diagnostics.variance << " V^2" << endl;
+      << ": z=" << zPlane << " m, mean(phi)=" << planeDiagnostics.mean
+      << " V, var(phi)=" << planeDiagnostics.variance << " V^2" << endl;
 }
 
 template <typename T, unsigned Dim>
@@ -272,13 +273,14 @@ void BinnedFieldSolver<T, Dim>::printBinStatsTable(
 }
 
 template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
+void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
+        PartBunch_t& bunch, opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
     // execute full binned self-field algorithm.
     // fetch the adaptive bin structure.
     std::shared_ptr<AdaptBins_t> bins = bunch.getBins();
     if (!bins) {
         // Defensive: runtime selection above should prevent this.
-        computeLegacySelfFields(bunch);
+        computeLegacySelfFields(bunch, diagnostics);
         return;
     }
 
@@ -314,6 +316,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
 
     // determine the number of bins used for this step.
     const bin_index_type nBins = bins->getCurrentBinCount();
+    diagnostics.recordBinCount(static_cast<std::size_t>(nBins));
 
     // Level-5 debug: per-step overview before entering the bin loop.
     Inform m("BinnedFieldSolver::computeBinnedSelfFields");
@@ -333,6 +336,9 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
         if (nPartGlobal == 0) {
             continue;
         }
+
+        auto solveUnitEvent =
+                diagnostics.scopedEvent(opalx::spacecharge::SelfFieldEventKind::SolveUnit, "bin");
 
         m << level4 << "binIndex=" << static_cast<int>(binIndex)
           << " nPartGlobal=" << static_cast<unsigned long long>(nPartGlobal) << endl;
@@ -368,6 +374,8 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
 
         // --- Primary pass: scatter real charges, solve, accumulate with +B ---
         {
+            auto solvePassEvent = diagnostics.scopedEvent(
+                    opalx::spacecharge::SelfFieldEventKind::SolvePass, "primary");
             const ImageScatterMode scatterMode = correctionActive
                                                          ? ImageScatterMode::PrimaryOnly
                                                          : ImageScatterMode::PrimaryAndImage;
@@ -379,12 +387,17 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             m << level4 << "binIndex=" << static_cast<int>(binIndex)
               << " primary runSolver(true) start"
               << " (hr_z stretched by gamma=" << gammaBin << ")" << endl;
-            this->runSolver(true);
+            this->runSolver(true, diagnostics);
             m << level4 << "binIndex=" << static_cast<int>(binIndex)
               << " primary runSolver(true) done; accumulate->Etmp" << endl;
 
-            accumulateFieldToTemp(
-                    *fieldContainer, gammaBin, kinematics.pmean, EtmpSP, BtmpSP, +1.0);
+            {
+                auto compositionEvent = diagnostics.scopedEvent(
+                        opalx::spacecharge::SelfFieldEventKind::FieldComposition,
+                        "primary-accumulation");
+                accumulateFieldToTemp(
+                        *fieldContainer, gammaBin, kinematics.pmean, EtmpSP, BtmpSP, +1.0);
+            }
 
             mesh.setMeshSpacing(hrOrig);
         }
@@ -404,6 +417,8 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
         // plane distance and requires the OPEN solver (checked in
         // FieldSolver::runShiftedOpenSolver).
         if (imageActive) {
+            auto solvePassEvent = diagnostics.scopedEvent(
+                    opalx::spacecharge::SelfFieldEventKind::SolvePass, "image");
             prepareRhoForBin(
                     bunch, bins, binIndex, nPartGlobal, gammaBin, ImageScatterMode::ImageOnly);
 
@@ -412,12 +427,17 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
 
             m << level4 << "binIndex=" << static_cast<int>(binIndex)
               << " image runSolver(true) start" << endl;
-            this->runSolver(true);
+            this->runSolver(true, diagnostics);
             m << level4 << "binIndex=" << static_cast<int>(binIndex)
               << " image runSolver(true) done; accumulate->Etmp (B negated)" << endl;
 
-            accumulateFieldToTemp(
-                    *fieldContainer, gammaBin, kinematics.pmean, EtmpSP, BtmpSP, -1.0);
+            {
+                auto compositionEvent = diagnostics.scopedEvent(
+                        opalx::spacecharge::SelfFieldEventKind::FieldComposition,
+                        "image-accumulation");
+                accumulateFieldToTemp(
+                        *fieldContainer, gammaBin, kinematics.pmean, EtmpSP, BtmpSP, -1.0);
+            }
             mesh.setMeshSpacing(hrOrig);
 
             // Dump phi ~= 0 check on the Dirichlet plane AFTER the correction
@@ -426,10 +446,12 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             // For the shifted path the domain may be far from z = R0Z, so the
             // interpolated phi on the plane would be meaningless.
             if (!dumpedDirichletPlaneThisStep) {
-                dumpDirichletPlaneDiagnosticsIfRequested(bunch, "binned");
+                dumpDirichletPlaneDiagnosticsIfRequested(bunch, "binned", diagnostics);
                 dumpedDirichletPlaneThisStep = true;
             }
         } else if (shiftedGreensActive) {
+            auto solvePassEvent = diagnostics.scopedEvent(
+                    opalx::spacecharge::SelfFieldEventKind::SolvePass, "shifted-green");
             // Shifted-Green's-function image correction. Multi-rank enabled: the
             // axis-flip source read crosses ranks under PARFFTZ, but that is handled
             // inside accumulateFieldToTemp (it calls buildFlippedZSlab to stage a
@@ -458,7 +480,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             m << level4 << "binIndex=" << static_cast<int>(binIndex)
               << " shifted-GF runSolver start, plane=" << shiftedGreensPlaneZ_m
               << ", shift_z=" << shift[Dim - 1] << endl;
-            this->runShiftedOpenSolver(shift);
+            this->runShiftedOpenSolver(shift, diagnostics);
             m << level4 << "binIndex=" << static_cast<int>(binIndex)
               << " shifted-GF runSolver done; accumulate->Etmp (B negated, z-flip)" << endl;
 
@@ -468,27 +490,40 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             // image field a second time and reinforce the near-cathode
             // transverse field instead of cancelling it.
             constexpr int zFlipAxis = static_cast<int>(Dim) - 1;
-            accumulateFieldToTemp(
-                    *fieldContainer, gammaBin, kinematics.pmean, EtmpSP, BtmpSP, -1.0, zFlipAxis);
+            {
+                auto compositionEvent = diagnostics.scopedEvent(
+                        opalx::spacecharge::SelfFieldEventKind::FieldComposition,
+                        "shifted-green-accumulation");
+                accumulateFieldToTemp(
+                        *fieldContainer, gammaBin, kinematics.pmean, EtmpSP, BtmpSP, -1.0,
+                        zFlipAxis);
+            }
 
             mesh.setMeshSpacing(hrOrig);
         }
     }
 
     // after all bins, gather the accumulated lab-frame field back to particles.
-    gatherFromTempToParticles(bunch, EtmpSP, BtmpSP);
+    {
+        auto compositionEvent = diagnostics.scopedEvent(
+                opalx::spacecharge::SelfFieldEventKind::FieldComposition, "final-gather");
+        gatherFromTempToParticles(bunch, EtmpSP, BtmpSP);
+    }
 
     // per-call table: gammaBin / nParticles / binNumber.
-    if (tablePrintFrequency_m > 0) {
-        const long long step = bunch.getGlobalTrackStep();
-        if (step >= 0 && (step % tablePrintFrequency_m) == 0) {
-            printBinStatsTable(bins->getBinningCmdName(), binStats);
-        }
+    if (diagnostics.shouldPrintBinTable(bunch.getGlobalTrackStep())) {
+        printBinStatsTable(bins->getBinningCmdName(), binStats);
     }
 }
 
 template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
+void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(
+        PartBunch_t& bunch, opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
+    diagnostics.recordBinCount(0);
+    auto solveUnitEvent = diagnostics.scopedEvent(
+            opalx::spacecharge::SelfFieldEventKind::SolveUnit, "whole-bunch");
+    auto solvePassEvent = diagnostics.scopedEvent(
+            opalx::spacecharge::SelfFieldEventKind::SolvePass, "primary-and-image");
     // This code is a direct move of the legacy implementation from
     // PartBunch::computeSelfFields (scatter/solve/gather for all particles).
 
@@ -548,12 +583,14 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
 
     // run the solver once and gather mesh E back to particles.
     m << level4 << "Legacy mode: runSolver() start" << endl;
-    this->runSolver();
-    dumpDirichletPlaneDiagnosticsIfRequested(bunch, "legacy");
+    this->runSolver(false, diagnostics);
+    dumpDirichletPlaneDiagnosticsIfRequested(bunch, "legacy", diagnostics);
     m << level4 << "Legacy mode: gather E->particles" << endl;
 
     // Gather solver output directly (legacy path does not use Etmp).
     if (gatherAttribute_m == GatherAttribute::ElectricFieldE) {
+        auto compositionEvent = diagnostics.scopedEvent(
+                opalx::spacecharge::SelfFieldEventKind::FieldComposition, "legacy-gather");
         gather(pc->E, *this->getE(), *R);
     } else {
         throw OpalException(

@@ -500,8 +500,7 @@ void PartBunch<T, Dim>::pre_run() {
      */
     this->getFieldSolver()->runSolver(true);
     m << level4 << "Field solver ran during pre_run." << endl;
-    this->getFieldSolver()->resetCallCounter();
-    m << level4 << "Call counter reset. pre_run done." << endl;
+    m << level4 << "Warm-up solve excluded from runtime diagnostics. pre_run done." << endl;
 }
 
 /**
@@ -798,10 +797,10 @@ void PartBunch<T, Dim>::setZerofaceMaxSteps(int maxSteps) {
  * @copybrief PartBunch::computeSelfFields
  */
 template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::computeSelfFields() {
+void PartBunch<T, Dim>::computeSelfFields(opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
     BinnedFieldSolver_t* bsolver = this->getFieldSolver();
 
-    bsolver->computeSelfFields(*this);
+    bsolver->computeSelfFields(*this, diagnostics);
 }
 
 /**
