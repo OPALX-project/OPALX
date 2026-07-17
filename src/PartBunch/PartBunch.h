@@ -58,7 +58,8 @@ public:
     using BinnedFieldSolver_t = BinnedFieldSolver<T, Dim>;
     using LoadBalancer_t      = LoadBalancer<T, Dim>;
     using Base                = ippl::ParticleBase<
-                           ippl::ParticleSpatialLayout<T, Dim>, Kokkos::DefaultExecutionSpace::memory_space>;
+            ippl::ParticleSpatialLayout<T, Dim, ippl::UniformCartesian<T, Dim>>,
+            Kokkos::DefaultExecutionSpace::memory_space>;
 
     using CoordinateSelector_t = typename ParticleBinning::CoordinateSelector<ParticleContainer_t>;
     using GammaSelector_t      = typename ParticleBinning::GammaSelector<ParticleContainer_t>;
