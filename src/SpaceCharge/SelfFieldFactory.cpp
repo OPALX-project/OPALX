@@ -5,6 +5,7 @@
 
 #include "SpaceCharge/SelfFieldFactory.h"
 
+#include "PartBunch/PartBunch.h"
 #include "SpaceCharge/LegacyPic3DAlgorithm.h"
 #include "Utilities/OpalException.h"
 
@@ -18,7 +19,8 @@ namespace opalx::spacecharge {
         std::unique_ptr<SelfFieldAlgorithm> algorithm;
         switch (config.algorithmKind()) {
             case SelfFieldAlgorithmKind::Pic3D:
-                algorithm = std::make_unique<LegacyPic3DAlgorithm>(bunch);
+                algorithm =
+                        std::make_unique<LegacyPic3DAlgorithm>(bunch, bunch.sharedPicWorkspace());
                 break;
         }
 

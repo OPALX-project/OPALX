@@ -8,10 +8,10 @@
 
 template <typename T, unsigned Dim>
 BinnedFieldSolver<T, Dim>::BinnedFieldSolver(
-        std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
+        std::string solver, std::shared_ptr<Workspace_t> workspace,
         std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency, bool adaptiveBinning,
         std::string greensFunction)
-    : FieldSolver<T, Dim>(solver, rho, E, phi, bcHandler, std::move(greensFunction)) {
+    : FieldSolver<T, Dim>(solver, std::move(workspace), bcHandler, std::move(greensFunction)) {
     scatterAttribute_m = ScatterAttribute::ChargeQ;
     gatherAttribute_m  = GatherAttribute::ElectricFieldE;
     adaptiveBinning_m  = adaptiveBinning;
@@ -291,27 +291,10 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
     rebinAndPrepare(bunch, bins);
 
     // obtain the temporary buffers used to accumulate bin contributions.
-    auto fieldContainer = bunch.getFieldContainer();
-    if (!fieldContainer) {
-        throw OpalException(
-                "BinnedFieldSolver::computeBinnedSelfFields", "FieldContainer is not initialized.");
-    }
+    Workspace_t& workspace = this->getWorkspace();
 
-    std::shared_ptr<VField_t<T, Dim>> EtmpSP = fieldContainer->getTempEField();
-    if (!EtmpSP) {
-        throw OpalException(
-                "BinnedFieldSolver::computeBinnedSelfFields",
-                "Temporary E field (Etmp) is not initialized.");
-    }
-    std::shared_ptr<VField_t<T, Dim>> BtmpSP = fieldContainer->getTempBField();
-    if (!BtmpSP) {
-        throw OpalException(
-                "BinnedFieldSolver::computeBinnedSelfFields",
-                "Temporary B field (Btmp) is not initialized.");
-    }
-
-    VField_t<T, Dim>& Etmp = *EtmpSP;
-    VField_t<T, Dim>& Btmp = *BtmpSP;
+    VField_t<T, Dim>& Etmp = workspace.accumulatedElectricField();
+    VField_t<T, Dim>& Btmp = workspace.accumulatedMagneticField();
     // clear the accumulation buffer.
     Etmp = 0.0;
     Btmp = 0.0;
@@ -397,8 +380,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
                 auto compositionEvent = diagnostics.scopedEvent(
                         opalx::spacecharge::SelfFieldEventKind::FieldComposition,
                         "primary-accumulation");
-                accumulateFieldToTemp(
-                        *fieldContainer, gammaBin, kinematics.pmean, EtmpSP, BtmpSP, +1.0);
+                accumulateFieldToTemp(workspace, gammaBin, kinematics.pmean, +1.0);
             }
 
             mesh.setMeshSpacing(hrOrig);
@@ -437,8 +419,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
                 auto compositionEvent = diagnostics.scopedEvent(
                         opalx::spacecharge::SelfFieldEventKind::FieldComposition,
                         "image-accumulation");
-                accumulateFieldToTemp(
-                        *fieldContainer, gammaBin, kinematics.pmean, EtmpSP, BtmpSP, -1.0);
+                accumulateFieldToTemp(workspace, gammaBin, kinematics.pmean, -1.0);
             }
             mesh.setMeshSpacing(hrOrig);
 
@@ -496,9 +477,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
                 auto compositionEvent = diagnostics.scopedEvent(
                         opalx::spacecharge::SelfFieldEventKind::FieldComposition,
                         "shifted-green-accumulation");
-                accumulateFieldToTemp(
-                        *fieldContainer, gammaBin, kinematics.pmean, EtmpSP, BtmpSP, -1.0,
-                        zFlipAxis);
+                accumulateFieldToTemp(workspace, gammaBin, kinematics.pmean, -1.0, zFlipAxis);
             }
 
             mesh.setMeshSpacing(hrOrig);
@@ -509,7 +488,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
     {
         auto compositionEvent = diagnostics.scopedEvent(
                 opalx::spacecharge::SelfFieldEventKind::FieldComposition, "final-gather");
-        gatherFromTempToParticles(bunch, EtmpSP, BtmpSP);
+        gatherFromTempToParticles(bunch, workspace);
     }
 
     // per-call table: gammaBin / nParticles / binNumber.
@@ -773,8 +752,7 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
-        FieldContainer_t& fieldContainer, const double gammaBin, const Vector_t<double, Dim>& pmean,
-        std::shared_ptr<VField_t<T, Dim>> EtmpSP, std::shared_ptr<VField_t<T, Dim>> BtmpSP,
+        Workspace_t& workspace, const double gammaBin, const Vector_t<double, Dim>& pmean,
         double bFieldSign, int flipAxis) {
     // transform rest-frame fields to lab-frame fields and accumulate.
     Inform m("BinnedFieldSolver::accumulateFieldToTemp");
@@ -789,8 +767,8 @@ void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
     const double gammaOverCSq     = gammaBin / (Physics::c * Physics::c);
 
     const VField_t<T, Dim>& Eprime = *(this->getE());
-    VField_t<T, Dim>& Etmp         = *EtmpSP;
-    VField_t<T, Dim>& Btmp         = *BtmpSP;
+    VField_t<T, Dim>& Etmp         = workspace.accumulatedElectricField();
+    VField_t<T, Dim>& Btmp         = workspace.accumulatedMagneticField();
     auto ePrimeView                = Eprime.getView();
     auto eTmpView                  = Etmp.getView();
     auto bTmpView                  = Btmp.getView();
@@ -837,14 +815,8 @@ void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
         }
         (void)nghost;
 
-        this->buildFlippedZSlab(fieldContainer, Eprime);
-        auto flippedZSlabField = fieldContainer.getFlippedZSlabField();
-        if (!flippedZSlabField) {
-            throw OpalException(
-                    "BinnedFieldSolver::accumulateFieldToTemp",
-                    "Shifted-Green scratch field is not initialized.");
-        }
-        auto flippedView = flippedZSlabField->getView();
+        this->buildFlippedZSlab(workspace, Eprime);
+        auto flippedView = workspace.flippedZSlabField().getView();
 
         ippl::parallel_for(
                 "BinnedFieldSolver::accumulateFieldToTemp[flipped]", Eprime.getFieldRangePolicy(),
@@ -876,7 +848,7 @@ void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::buildFlippedZSlab(
-        FieldContainer_t& fieldContainer, const VField_t<T, Dim>& src) {
+        Workspace_t& workspace, const VField_t<T, Dim>& src) {
     // Populate FieldContainer's flipped z-slab scratch with src mirrored along the z axis:
     //   flippedZSlab(i, j, k) == src(i, j, flipped_k)
     // where the flip is the GLOBAL reflection k_glob -> N_z_global - 1 - k_glob,
@@ -885,24 +857,23 @@ void BinnedFieldSolver<T, Dim>::buildFlippedZSlab(
     // The accumulate lambda downstream iterates src.getFieldRangePolicy() which
     // excludes ghost cells; mirrorField zero-initialises ghosts, which is safe.
 
-    auto flippedZSlabField = fieldContainer.getOrCreateFlippedZSlabField(src);
+    auto& flippedZSlabField = workspace.mirrorScratchFor(src);
 
     IpplTimings::TimerRef mirrorFieldTimer = IpplTimings::getTimer("mirrorField");
     IpplTimings::startTimer(mirrorFieldTimer);
-    opalx::detail::mirrorField(src, *flippedZSlabField, Dim - 1);
+    opalx::detail::mirrorField(src, flippedZSlabField, Dim - 1);
     IpplTimings::stopTimer(mirrorFieldTimer);
 }
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::gatherFromTempToParticles(
-        PartBunch_t& bunch, std::shared_ptr<VField_t<T, Dim>> EtmpSP,
-        std::shared_ptr<VField_t<T, Dim>> BtmpSP) {
+        PartBunch_t& bunch, Workspace_t& workspace) {
     // gather accumulated lab-frame E and B from mesh back to particles.
     Inform m("BinnedFieldSolver::gatherFromTempToParticles");
     m << level4 << "gather Etmp/Btmp->particles" << endl;
 
-    VField_t<T, Dim>& Etmp            = *EtmpSP;
-    VField_t<T, Dim>& Btmp            = *BtmpSP;
+    VField_t<T, Dim>& Etmp            = workspace.accumulatedElectricField();
+    VField_t<T, Dim>& Btmp            = workspace.accumulatedMagneticField();
     std::shared_ptr<ParticleCtr_t> pc = bunch.getParticleContainer();
 
     // gather only the supported field attribute back to particles.
