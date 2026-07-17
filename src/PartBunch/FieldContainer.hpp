@@ -1,10 +1,17 @@
+/**
+ * @file FieldContainer.hpp
+ * @brief Temporary compatibility facade over the solver-owned PIC workspace.
+ */
+
 #ifndef OPAL_FIELD_CONTAINER_H
 #define OPAL_FIELD_CONTAINER_H
 
+#include <array>
 #include <memory>
 #include <string>
 
-#include "Manager/BaseManager.h"
+#include "SpaceCharge/Pic/PicWorkspace.h"
+#include "Utilities/OpalException.h"
 
 template <unsigned Dim>
 using Mesh_t = ippl::UniformCartesian<double, Dim>;
@@ -30,171 +37,95 @@ using Vector_t = ippl::Vector<T, Dim>;
 template <typename T, unsigned Dim, class... ViewArgs>
 using VField_t = Field<Vector_t<T, Dim>, Dim, ViewArgs...>;
 
-// Define the FieldsContainer class
+/**
+ * @brief Forwards legacy callers to one stable @c PicWorkspace object.
+ *
+ * The facade and transitional solver bridge share ownership so existing samplers, particle
+ * layouts, and the temporary IPPL PicManager surface continue to see the same mesh, layout, and
+ * field addresses. The compatibility share is removed with the legacy manager path.
+ */
 template <typename T, unsigned Dim = 3>
-class FieldContainer {
+class FieldContainer final {
 public:
-    FieldContainer(
-            Vector_t<T, Dim>& hr, Vector_t<T, Dim>& rmin, Vector_t<T, Dim>& rmax,
-            std::array<bool, Dim> decomp, ippl::NDIndex<Dim> domain, Vector_t<T, Dim> origin,
-            bool isAllPeriodic)
-        : hr_m(hr),
-          rmin_m(rmin),
-          rmax_m(rmax),
-          decomp_m(decomp),
-          mesh_m(domain, hr, origin),
-          fl_m(MPI_COMM_WORLD, domain, decomp, isAllPeriodic) {}
+    using Workspace = opalx::spacecharge::PicWorkspace<T, Dim>;
 
-    ~FieldContainer() {}
+    FieldContainer(
+            Vector_t<T, Dim>& spacing, Vector_t<T, Dim>& lower, Vector_t<T, Dim>& upper,
+            std::array<bool, Dim> decomposition, ippl::NDIndex<Dim> domain, Vector_t<T, Dim> origin,
+            bool allPeriodic)
+        : workspace_m(
+                  std::make_shared<Workspace>(
+                          spacing, lower, upper, decomposition, domain, origin, allPeriodic)) {}
+
+    FieldContainer(const FieldContainer&)            = delete;
+    FieldContainer& operator=(const FieldContainer&) = delete;
+
+    [[nodiscard]] Workspace& workspace() { return requireWorkspace(); }
+    [[nodiscard]] const Workspace& workspace() const { return requireWorkspace(); }
+
+    [[nodiscard]] std::shared_ptr<Workspace> sharedWorkspace() {
+        static_cast<void>(requireWorkspace());
+        return workspace_m;
+    }
+
+    [[nodiscard]] VField_t<T, Dim>& getE() { return requireWorkspace().electricField(); }
+    [[nodiscard]] Field_t<Dim>& getRho() { return requireWorkspace().chargeDensity(); }
+    [[nodiscard]] Field<T, Dim>& getPhi() { return requireWorkspace().potential(); }
+
+    [[nodiscard]] Vector_t<double, Dim>& getHr() { return requireWorkspace().spacing(); }
+    void setHr(const Vector_t<double, Dim>& spacing) { requireWorkspace().spacing() = spacing; }
+    [[nodiscard]] Vector_t<double, Dim>& getRMin() { return requireWorkspace().lower(); }
+    void setRMin(const Vector_t<double, Dim>& lower) { requireWorkspace().lower() = lower; }
+    [[nodiscard]] Vector_t<double, Dim>& getRMax() { return requireWorkspace().upper(); }
+    void setRMax(const Vector_t<double, Dim>& upper) { requireWorkspace().upper() = upper; }
+
+    [[nodiscard]] std::array<bool, Dim> getDecomp() const {
+        return requireWorkspace().effectiveDecomposition();
+    }
+    void setDecomp(std::array<bool, Dim> decomposition) {
+        requireWorkspace().setEffectiveDecomposition(decomposition);
+    }
+
+    [[nodiscard]] Mesh_t<Dim>& getMesh() { return requireWorkspace().mesh(); }
+    [[nodiscard]] FieldLayout_t<Dim>& getFL() { return requireWorkspace().layout(); }
+
+    [[nodiscard]] std::shared_ptr<VField_t<T, Dim>> getTempEField() {
+        return {workspace_m, &requireWorkspace().accumulatedElectricField()};
+    }
+    [[nodiscard]] std::shared_ptr<VField_t<T, Dim>> getTempBField() {
+        return {workspace_m, &requireWorkspace().accumulatedMagneticField()};
+    }
+    [[nodiscard]] std::shared_ptr<VField_t<T, Dim>> getFlippedZSlabField() {
+        return {workspace_m, &requireWorkspace().flippedZSlabField()};
+    }
+    [[nodiscard]] std::shared_ptr<VField_t<T, Dim>> getOrCreateFlippedZSlabField(
+            const VField_t<T, Dim>& source) {
+        return {workspace_m, &requireWorkspace().mirrorScratchFor(source)};
+    }
+
+    void initializeFields(const std::string& solverType = "") {
+        requireWorkspace().initializeFields(solverType);
+    }
+    void updateFieldLayoutsAfterLayoutChange(const std::string& = "") {
+        requireWorkspace().updateFieldLayoutsAfterLayoutChange();
+    }
 
 private:
-    Vector_t<double, Dim> hr_m;
-    Vector_t<double, Dim> rmin_m;
-    Vector_t<double, Dim> rmax_m;
-    std::array<bool, Dim> decomp_m;
-    VField_t<T, Dim> E_m;
-    Field_t<Dim> rho_m;
-    Field<T, Dim> phi_m;
-
-    /**
-     * @brief Scratch electric field for accumulated binned-solver results.
-     *
-     * Each merged-bin solve contributes its Lorentz-transformed lab-frame electric field here.
-     * The field stays live through the binning loop and is gathered back to particles after all
-     * primary and image-charge contributions have been accumulated.
-     */
-    std::shared_ptr<VField_t<T, Dim>> Etmp_m;
-
-    /**
-     * @brief Scratch magnetic field for accumulated binned-solver results.
-     *
-     * The binned solver derives the lab-frame magnetic field from each bin-frame electric solve
-     * and accumulates it here alongside @c Etmp_m before the final gather to particles.
-     */
-    std::shared_ptr<VField_t<T, Dim>> Btmp_m;
-
-    /**
-     * @brief Scratch field for the shifted-Green z-mirror operation.
-     *
-     * The shifted-Green solve produces an electric field that must be mirrored in z after the
-     * solve and before accumulation into @c Etmp_m and @c Btmp_m. The global mirror can require
-     * MPI communication, so the mirrored rank writes into this out-of-place field instead of
-     * attempting an in-place swap. The other vector fields cannot be reused for this staging
-     * because they are already active during bin accumulation.
-     */
-    std::shared_ptr<VField_t<T, Dim>> flippedZSlabField_m;
-    Mesh_t<Dim> mesh_m;
-    FieldLayout_t<Dim> fl_m;
-
-public:
-    VField_t<T, Dim>& getE() { return E_m; }
-    void setE(VField_t<T, Dim>& E) { E_m = E; }
-
-    Field_t<Dim>& getRho() { return rho_m; }
-    void setRho(Field_t<Dim>& rho) { rho_m = rho; }
-
-    Field<T, Dim>& getPhi() { return phi_m; }
-    void setPhi(Field<T, Dim>& phi) { phi_m = phi; }
-
-    Vector_t<double, Dim>& getHr() { return hr_m; }
-    void setHr(const Vector_t<double, Dim>& hr) { hr_m = hr; }
-
-    Vector_t<double, Dim>& getRMin() { return rmin_m; }
-    void setRMin(const Vector_t<double, Dim>& rmin) { rmin_m = rmin; }
-
-    Vector_t<double, Dim>& getRMax() { return rmax_m; }
-    void setRMax(const Vector_t<double, Dim>& rmax) { rmax_m = rmax; }
-
-    std::array<bool, Dim> getDecomp() { return decomp_m; }
-    void setDecomp(std::array<bool, Dim> decomp) { decomp_m = decomp; }
-
-    Mesh_t<Dim>& getMesh() { return mesh_m; }
-    void setMesh(Mesh_t<Dim>& mesh) { mesh_m = mesh; }
-
-    FieldLayout_t<Dim>& getFL() { return fl_m; }
-    void setFL(std::shared_ptr<FieldLayout_t<Dim>>& fl) { fl_m = fl; }
-
-    std::shared_ptr<VField_t<T, Dim>> getTempEField() { return Etmp_m; }
-    void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) { Etmp_m = Etmp; }
-
-    std::shared_ptr<VField_t<T, Dim>> getTempBField() { return Btmp_m; }
-    void setTempBField(std::shared_ptr<VField_t<T, Dim>> Btmp) { Btmp_m = Btmp; }
-
-    std::shared_ptr<VField_t<T, Dim>> getFlippedZSlabField() { return flippedZSlabField_m; }
-    void resetFlippedZSlabField() { flippedZSlabField_m.reset(); }
-
-    void initializeTemporaryFields() {
-        if (!Etmp_m) {
-            Etmp_m = std::make_shared<VField_t<T, Dim>>();
+    [[nodiscard]] Workspace& requireWorkspace() {
+        if (!workspace_m) {
+            throw OpalException("FieldContainer", "PIC workspace is not available.");
         }
-        Etmp_m->initialize(mesh_m, fl_m);
-
-        if (!Btmp_m) {
-            Btmp_m = std::make_shared<VField_t<T, Dim>>();
-        }
-        Btmp_m->initialize(mesh_m, fl_m);
+        return *workspace_m;
     }
 
-    void updateFieldLayoutsAfterLayoutChange(const std::string& stype_m = "") {
-        E_m.updateLayout(fl_m);
-        rho_m.updateLayout(fl_m);
-
-        if (stype_m == "CG") {
-            phi_m.updateLayout(fl_m);
-            phi_m = 0.0;
-            phi_m.setFieldBC(phi_m.getFieldBC());
+    [[nodiscard]] const Workspace& requireWorkspace() const {
+        if (!workspace_m) {
+            throw OpalException("FieldContainer", "PIC workspace is not available.");
         }
-
-        if (Etmp_m) {
-            Etmp_m->updateLayout(fl_m);
-        } else {
-            Etmp_m = std::make_shared<VField_t<T, Dim>>();
-            Etmp_m->initialize(mesh_m, fl_m);
-        }
-
-        if (Btmp_m) {
-            Btmp_m->updateLayout(fl_m);
-        } else {
-            Btmp_m = std::make_shared<VField_t<T, Dim>>();
-            Btmp_m->initialize(mesh_m, fl_m);
-        }
-
-        resetFlippedZSlabField();
+        return *workspace_m;
     }
 
-    std::shared_ptr<VField_t<T, Dim>> getOrCreateFlippedZSlabField(const VField_t<T, Dim>& src) {
-        auto& layout        = src.getLayout();
-        auto& mesh          = src.get_mesh();
-        const int srcNghost = src.getNghost();
-
-        const bool needsInit = !flippedZSlabField_m || &flippedZSlabField_m->getLayout() != &layout
-                               || flippedZSlabField_m->getNghost() != srcNghost;
-        if (!flippedZSlabField_m) {
-            flippedZSlabField_m = std::make_shared<VField_t<T, Dim>>();
-        }
-        if (needsInit) {
-            flippedZSlabField_m->initialize(mesh, layout, srcNghost);
-        }
-
-        return flippedZSlabField_m;
-    }
-
-    void initializeFields(const std::string& stype_m = "") {
-        Inform m("FieldContainer::initializeFields");
-        m << level3 << "Mesh spacing = " << mesh_m.getMeshSpacing() << endl;
-        m << level3 << "Origin       = " << mesh_m.getOrigin() << endl;
-        m << level3 << "FL           = " << fl_m << endl;
-
-        E_m.initialize(mesh_m, fl_m);
-        rho_m.initialize(mesh_m, fl_m);
-        m << level3 << "E_m, rho_m field initialized." << endl;
-        if (stype_m == "CG") {
-            phi_m.initialize(mesh_m, fl_m);
-            m << level3 << "Phi field initialized for " << stype_m << endl;
-        }
-        initializeTemporaryFields();
-        resetFlippedZSlabField();
-    }
+    std::shared_ptr<Workspace> workspace_m;
 };
 
-#endif
+#endif  // OPAL_FIELD_CONTAINER_H

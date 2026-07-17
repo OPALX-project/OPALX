@@ -303,8 +303,7 @@ void PartBunch<T, Dim>::setSolver() {
 
     BinningCmd* binningCmd = OPALFieldSolver_m->getBinningCmd();
     auto binnedSolver      = std::make_shared<BinnedFieldSolver<T, Dim>>(
-            this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
-            &this->fcontainer_m->getPhi(), this->getBCHandler(),
+            this->solver_m, this->fcontainer_m->sharedWorkspace(), this->getBCHandler(),
             binningCmd ? binningCmd->getTablePrintFrequency() : 0,
             binningCmd ? binningCmd->getAdaptiveBinning() : true,
             OPALFieldSolver_m->getGreensFunction());
@@ -897,6 +896,13 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
                 "FieldContainer isn't initialized correctly.");
     }
 
+    if (&fs->getWorkspace() != &fctr->workspace()) {
+        throw OpalException(
+                "PartBunch::performBunchSanityChecks",
+                "FieldSolver and FieldContainer do not share the same PIC workspace.");
+    }
+    ms << level4 << "FieldSolver and FieldContainer share one PIC workspace." << endl;
+
     // Check internal field pointers are set
     if (fs->getRho() == nullptr || fs->getE() == nullptr || fs->getPhi() == nullptr) {
         throw OpalException(
@@ -974,7 +980,14 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
                 "PartBunch::performBunchSanityChecks",
                 "Etmp/Btmp fields do not use the FieldContainer mesh.");
     }
-    ms << level4 << "Etmp and Btmp fields initialized on the FieldContainer mesh." << endl;
+    auto mirrorScratch = fctr->getFlippedZSlabField();
+    if (!mirrorScratch || &mirrorScratch->get_mesh() != &fctr->getMesh()
+        || &mirrorScratch->getLayout() != &fctr->getFL()) {
+        throw OpalException(
+                "PartBunch::performBunchSanityChecks",
+                "Persistent mirror scratch does not use the PIC workspace mesh and layout.");
+    }
+    ms << level4 << "Persistent scratch fields use the PIC workspace mesh and layout." << endl;
 
     if (!this->pcontainer_m) {
         throw OpalException(

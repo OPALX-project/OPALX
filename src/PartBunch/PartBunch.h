@@ -59,6 +59,7 @@ class PartBunch
 public:
     using ParticleContainer_t = ParticleContainer<T, Dim>;
     using FieldContainer_t    = FieldContainer<T, Dim>;
+    using PicWorkspace_t      = opalx::spacecharge::PicWorkspace<T, Dim>;
     using BinnedFieldSolver_t = BinnedFieldSolver<T, Dim>;
     using LoadBalancer_t      = LoadBalancer<T, Dim>;
     using Base                = ippl::ParticleBase<
@@ -318,25 +319,9 @@ public:
         return this->fcontainer_m ? this->fcontainer_m->getTempEField() : nullptr;
     }
 
-    /// @param Etmp Scratch E field matching the mesh layout.
-    void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) {
-        if (!this->fcontainer_m) {
-            throw OpalException("PartBunch::setTempEField", "FieldContainer is not initialized.");
-        }
-        this->fcontainer_m->setTempEField(Etmp);
-    }
-
     /// @brief Scratch B field used by the binned solver path.
     std::shared_ptr<VField_t<T, Dim>> getTempBField() {
         return this->fcontainer_m ? this->fcontainer_m->getTempBField() : nullptr;
-    }
-
-    /// @param Btmp Scratch B field matching the mesh layout.
-    void setTempBField(std::shared_ptr<VField_t<T, Dim>> Btmp) {
-        if (!this->fcontainer_m) {
-            throw OpalException("PartBunch::setTempBField", "FieldContainer is not initialized.");
-        }
-        this->fcontainer_m->setTempBField(Btmp);
     }
 
     /// @brief Non-const access to adaptive binning state.
@@ -358,6 +343,15 @@ public:
 
     std::shared_ptr<BunchStateHandler> getBunchStateHandler() { return bunchState_m; }
     std::shared_ptr<const BunchStateHandler> getBunchStateHandler() const { return bunchState_m; }
+
+    /** @brief Share the stable PIC workspace with the configured self-field algorithm. */
+    [[nodiscard]] std::shared_ptr<PicWorkspace_t> sharedPicWorkspace() {
+        if (!this->fcontainer_m) {
+            throw OpalException(
+                    "PartBunch::sharedPicWorkspace", "FieldContainer is not initialized.");
+        }
+        return this->fcontainer_m->sharedWorkspace();
+    }
 
     void updateMoments() { this->pcontainer_m->updateMoments(); }
 

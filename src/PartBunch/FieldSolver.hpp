@@ -8,6 +8,8 @@
 #include "Manager/BaseManager.h"
 #include "Manager/FieldSolverBase.h"
 #include "SpaceCharge/Ippl/IpplPoissonAdapter.h"
+#include "SpaceCharge/Pic/PicWorkspace.h"
+#include "Utilities/OpalException.h"
 
 namespace opalx::spacecharge {
     class SelfFieldDiagnostics;
@@ -17,9 +19,9 @@ namespace opalx::spacecharge {
 template <typename T, unsigned Dim>
 class FieldSolver : public ippl::FieldSolverBase<T, Dim> {
 private:
-    Field_t<Dim>* rho_m;
-    VField_t<T, Dim>* E_m;
-    Field_t<Dim>* phi_m;
+    using Workspace_t = opalx::spacecharge::PicWorkspace<T, Dim>;
+
+    std::shared_ptr<Workspace_t> workspace_m;
     std::string greensFunction_m;
     opalx::spacecharge::PoissonBackendKind backendKind_m;
     opalx::spacecharge::GreenFunctionKind greenFunctionKind_m;
@@ -30,16 +32,17 @@ private:
 
 public:
     FieldSolver(
-            std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
+            std::string solver, std::shared_ptr<Workspace_t> workspace,
             std::shared_ptr<BCHandler_t> bcHandler, std::string greensFunction = "STANDARD")
         : ippl::FieldSolverBase<T, Dim>(solver),
-          rho_m(rho),
-          E_m(E),
-          phi_m(phi),
+          workspace_m(std::move(workspace)),
           greensFunction_m(std::move(greensFunction)),
           backendKind_m(backendKindFromName(solver)),
           greenFunctionKind_m(greenFunctionKindFromName(greensFunction_m)),
           bcHandler_m(bcHandler) {
+        if (!workspace_m) {
+            throw OpalException("FieldSolver::FieldSolver", "PIC workspace is null.");
+        }
         setPotentialBCs();
     }
 
@@ -48,14 +51,14 @@ public:
     void dumpScalField(std::string what, std::size_t solveIndex);
     void dumpVectField(std::string what, std::size_t solveIndex);
 
-    Field_t<Dim>* getRho() { return rho_m; }
-    void setRho(Field_t<Dim>* rho) { rho_m = rho; }
-
-    VField_t<T, Dim>* getE() const { return E_m; }
-    void setE(VField_t<T, Dim>* E) { E_m = E; }
-
-    Field<T, Dim>* getPhi() const { return phi_m; }
-    void setPhi(Field<T, Dim>* phi) { phi_m = phi; }
+    Field_t<Dim>* getRho() { return &workspace_m->chargeDensity(); }
+    const Field_t<Dim>* getRho() const { return &workspace_m->chargeDensity(); }
+    VField_t<T, Dim>* getE() { return &workspace_m->electricField(); }
+    const VField_t<T, Dim>* getE() const { return &workspace_m->electricField(); }
+    Field<T, Dim>* getPhi() { return &workspace_m->potential(); }
+    const Field<T, Dim>* getPhi() const { return &workspace_m->potential(); }
+    [[nodiscard]] Workspace_t& getWorkspace() { return *workspace_m; }
+    [[nodiscard]] const Workspace_t& getWorkspace() const { return *workspace_m; }
 
     std::shared_ptr<BCHandler_t> getBCHandler() const { return bcHandler_m; }
     void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) {
@@ -167,7 +170,7 @@ private:
     static opalx::spacecharge::GreenFunctionKind greenFunctionKindFromName(
             const std::string& greenFunction);
 
-    [[nodiscard]] opalx::spacecharge::IpplPoissonFields fields() const;
+    [[nodiscard]] opalx::spacecharge::IpplPoissonFields fields();
 
     void runSolverImpl(
             const opalx::spacecharge::IpplPoissonSolveRequest& request, bool force_skip_field_dump,

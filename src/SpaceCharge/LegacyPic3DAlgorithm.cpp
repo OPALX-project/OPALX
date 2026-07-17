@@ -7,9 +7,18 @@
 
 #include "PartBunch/PartBunch.h"
 
+#include <utility>
+
 namespace opalx::spacecharge {
 
-    LegacyPic3DAlgorithm::LegacyPic3DAlgorithm(PartBunch_t& bunch) : bunch_m(&bunch) {}
+    LegacyPic3DAlgorithm::LegacyPic3DAlgorithm(
+            PartBunch_t& bunch, std::shared_ptr<PicWorkspace<double, 3>> workspace)
+        : workspace_m(std::move(workspace)), bunch_m(&bunch) {
+        if (workspace_m == nullptr) {
+            throw OpalException(
+                    "LegacyPic3DAlgorithm::LegacyPic3DAlgorithm", "PIC workspace is null.");
+        }
+    }
 
     SolverCapabilities LegacyPic3DAlgorithm::capabilities() const {
         SolverCapabilities result;

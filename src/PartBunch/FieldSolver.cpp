@@ -59,8 +59,9 @@ opalx::spacecharge::GreenFunctionKind FieldSolver<double, 3>::greenFunctionKindF
 }
 
 template <>
-opalx::spacecharge::IpplPoissonFields FieldSolver<double, 3>::fields() const {
-    return {rho_m, E_m, phi_m};
+opalx::spacecharge::IpplPoissonFields FieldSolver<double, 3>::fields() {
+    return {&workspace_m->chargeDensity(), &workspace_m->electricField(),
+            &workspace_m->potential()};
 }
 
 template <>
@@ -410,15 +411,10 @@ void FieldSolver<double, 3>::setPotentialBCs() {
         return;
     }
 
-    if (phi_m == nullptr) {
-        throw OpalException(
-                "FieldSolver::setPotentialBCs", "The selected backend requires a potential field.");
-    }
-
     // Need to do it like that, because for some reason IPPL wants a reference,
     // therefore cannot simply say "setFieldBC(...toIPPLBConds())".
     typedef ippl::BConds<Field_t<Dim>, Dim> bc_type;
     bc_type bc_container = getBCHandler()->toIPPLBConds<Field_t<Dim>>();
-    phi_m->setFieldBC(bc_container);
+    getPhi()->setFieldBC(bc_container);
     m << level4 << "Potential BCs in FieldSolver updated using BCHandler." << endl;
 }

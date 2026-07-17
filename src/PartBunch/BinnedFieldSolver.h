@@ -13,6 +13,7 @@
 #include "PartBunch/FieldSolver.hpp"
 #include "PartBunch/ImageChargeScatterController.h"
 #include "PartBunch/PartBunch.h"
+#include "SpaceCharge/Pic/PicWorkspace.h"
 #include "SpaceCharge/SelfFieldDiagnostics.h"
 #include "Utilities/OpalException.h"
 
@@ -44,13 +45,13 @@ class BinnedFieldSolver : public FieldSolver<T, Dim> {
     static_assert(Dim == 3, "BinnedFieldSolver currently supports Dim == 3 only.");
 
 public:
-    using PartBunch_t      = PartBunch<T, Dim>;
-    using ParticleCtr_t    = typename PartBunch_t::ParticleContainer_t;
-    using FieldContainer_t = typename PartBunch_t::FieldContainer_t;
-    using AdaptBins_t      = typename PartBunch_t::AdaptBins_t;
-    using BCHandler_t      = BCHandler<Dim>;
-    using bin_index_type   = typename AdaptBins_t::bin_index_type;
-    using size_type        = typename AdaptBins_t::size_type;
+    using PartBunch_t    = PartBunch<T, Dim>;
+    using ParticleCtr_t  = typename PartBunch_t::ParticleContainer_t;
+    using Workspace_t    = opalx::spacecharge::PicWorkspace<T, Dim>;
+    using AdaptBins_t    = typename PartBunch_t::AdaptBins_t;
+    using BCHandler_t    = BCHandler<Dim>;
+    using bin_index_type = typename AdaptBins_t::bin_index_type;
+    using size_type      = typename AdaptBins_t::size_type;
 
     using particle_position_type = typename PartBunch_t::Base::particle_position_type;
 
@@ -81,9 +82,7 @@ public:
      * @brief Construct a binned/legacy-compatible solver.
      *
      * @param solver     Concrete solver name (e.g. `FFT`, `OPEN`, `CG`, `NONE`).
-     * @param rho        Pointer to the mesh charge-density field storage.
-     * @param E          Pointer to the mesh electric-field storage (solver output).
-     * @param phi        Pointer to the potential-field storage (solver internal use).
+     * @param workspace  Shared persistent mesh, field, and scratch storage.
      * @param bcHandler  Shared pointer to the boundary-condition handler.
      * @param tablePrintFrequency Global timestep frequency of printing the bin stats table
      *                             to console in binned mode. If `0`, printing is disabled.
@@ -93,7 +92,7 @@ public:
      *                        IPPL's open-boundary FFT solver.
      */
     BinnedFieldSolver(
-            std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
+            std::string solver, std::shared_ptr<Workspace_t> workspace,
             std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency, bool adaptiveBinning,
             std::string greensFunction = "STANDARD");
 
@@ -221,8 +220,8 @@ private:
     /**
      * @brief Compute self-fields using the binned algorithm.
      *
-     * Requires that the bunch has a valid bin structure and a temporary electric field
-     * buffer (`bunch.getFieldContainer()->getTempEField()`).
+     * Requires that the bunch has a valid bin structure and that the borrowed PIC workspace has
+     * initialized accumulation fields.
      *
      * @param bunch Particle bunch for which to compute self-fields.
      */
@@ -295,7 +294,7 @@ public:
      *
      * The solver output field is interpreted as the bin-frame electric field `E'`
      * with `B' = 0`, and transformed to the lab frame with:
-     * - `E_lab = gammaBin * E' + (gammaBin - 1) * (E' · w) * w`
+     * - `E_lab = gammaBin * E' - (gammaBin - 1) * (E' · w) * w`
      * - `B_lab = (gammaBin / c^2) * (v x E')`
      * where `v = c * pmean / gammaBin` and `w = v / |v|` (or `w = 0` if `|v| = 0`).
      *
@@ -309,21 +308,18 @@ public:
      * The zero-copy read from the flipped source index is the reason this is
      * baked into @c accumulateFieldToTemp instead of an out-of-place kernel.
      *
-     * Currently single-rank only when @p flipAxis >= 0 (an axis-flip across MPI
-     * ranks would need extra communication). The caller is expected to guard
-     * against multi-rank use upstream.
+     * For the supported z flip, the persistent mirror scratch is populated through the existing
+     * device-resident MPI mirror path before the accumulation kernel reads it.
      *
      * @param gammaBin  Global average gamma for the merged bin.
      * @param pmean     Global average normalized momentum for the merged bin.
-     * @param EtmpSP    Temporary electric field buffer for accumulation.
-     * @param BtmpSP    Temporary magnetic field buffer for accumulation.
+     * @param workspace Workspace containing the persistent accumulation fields.
      * @param bFieldSign +1 for forward-moving charges, -1 for image charges.
      * @param flipAxis  Axis in which to flip the read index (use -1 for no flip).
      */
     void accumulateFieldToTemp(
-            FieldContainer_t& fieldContainer, const double gammaBin,
-            const Vector_t<double, Dim>& pmean, std::shared_ptr<VField_t<T, Dim>> EtmpSP,
-            std::shared_ptr<VField_t<T, Dim>> BtmpSP, double bFieldSign = 1.0, int flipAxis = -1);
+            Workspace_t& workspace, const double gammaBin, const Vector_t<double, Dim>& pmean,
+            double bFieldSign = 1.0, int flipAxis = -1);
 
 private:
     /// @brief Populate FieldContainer's flipped z-slab scratch with the flipped version of @p src.
@@ -336,18 +332,15 @@ private:
     ///
     /// @param src  Source vector field (typically `*(this->getE())` after the shifted-GF solve).
     ///             Only the z axis is flipped; x and y stay local to the rank.
-    void buildFlippedZSlab(FieldContainer_t& fieldContainer, const VField_t<T, Dim>& src);
+    void buildFlippedZSlab(Workspace_t& workspace, const VField_t<T, Dim>& src);
 
     /**
      * @brief Gather the accumulated lab-frame fields from temporaries back to particles.
      *
      * @param bunch   Particle bunch to gather into.
-     * @param EtmpSP  Temporary electric field buffer holding the accumulated lab-frame field.
-     * @param BtmpSP  Temporary magnetic field buffer holding the accumulated lab-frame field.
+     * @param workspace Workspace holding the accumulated mesh fields.
      */
-    void gatherFromTempToParticles(
-            PartBunch_t& bunch, std::shared_ptr<VField_t<T, Dim>> EtmpSP,
-            std::shared_ptr<VField_t<T, Dim>> BtmpSP);
+    void gatherFromTempToParticles(PartBunch_t& bunch, Workspace_t& workspace);
 };
 
 // Reduce compile-time churn: instantiate the only supported concrete solver in one TU.
