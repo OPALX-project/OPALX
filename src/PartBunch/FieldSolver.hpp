@@ -7,6 +7,7 @@
 #include "BCHandler.hpp"
 #include "Manager/BaseManager.h"
 #include "Manager/FieldSolverBase.h"
+#include "SpaceCharge/Ippl/IpplPoissonAdapter.h"
 
 namespace opalx::spacecharge {
     class SelfFieldDiagnostics;
@@ -20,6 +21,9 @@ private:
     VField_t<T, Dim>* E_m;
     Field_t<Dim>* phi_m;
     std::string greensFunction_m;
+    opalx::spacecharge::PoissonBackendKind backendKind_m;
+    opalx::spacecharge::GreenFunctionKind greenFunctionKind_m;
+    std::unique_ptr<opalx::spacecharge::IpplPoissonAdapter> backend_m;
 
     using BCHandler_t = BCHandler<Dim>;
     std::shared_ptr<BCHandler_t> bcHandler_m;
@@ -33,6 +37,8 @@ public:
           E_m(E),
           phi_m(phi),
           greensFunction_m(std::move(greensFunction)),
+          backendKind_m(backendKindFromName(solver)),
+          greenFunctionKind_m(greenFunctionKindFromName(greensFunction_m)),
           bcHandler_m(bcHandler) {
         setPotentialBCs();
     }
@@ -67,14 +73,6 @@ public:
     std::string getGreensFunction() const { return greensFunction_m; }
 
     /**
-     * @brief Set the OPAL `GREENSF` selection.
-     * @param greensFunction OPAL input value, currently `STANDARD` or `INTEGRATED`.
-     */
-    void setGreensFunction(std::string greensFunction) {
-        greensFunction_m = std::move(greensFunction);
-    }
-
-    /**
      * @brief Get the solver's coupling constant.
      *
      * Returns the scalar coupling constant used by the field solver to scale
@@ -86,7 +84,7 @@ public:
      */
     T getCouplingConstant() const;
 
-    void initOpenSolver();
+    [[nodiscard]] const opalx::spacecharge::IpplPoissonCapabilities& getBackendCapabilities() const;
 
     void initSolver() override;
 
@@ -164,24 +162,16 @@ public:
             const ippl::Vector<double, Dim>& shift,
             opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
 
-    template <typename Solver>
-    void initSolverWithParams(const ippl::ParameterList& sp);
-
-    void initNullSolver();
-
-    void initFFTSolver();
-
-    void initCGSolver() {}
-
-    void initP3MSolver() {}
-
 private:
-    void runSolverImpl(
-            bool force_skip_field_dump, opalx::spacecharge::SelfFieldDiagnostics* diagnostics);
-};
+    static opalx::spacecharge::PoissonBackendKind backendKindFromName(const std::string& solver);
+    static opalx::spacecharge::GreenFunctionKind greenFunctionKindFromName(
+            const std::string& greenFunction);
 
-// Explicit specialization declaration
-template <>
-void FieldSolver<double, 3>::initNullSolver();
+    [[nodiscard]] opalx::spacecharge::IpplPoissonFields fields() const;
+
+    void runSolverImpl(
+            const opalx::spacecharge::IpplPoissonSolveRequest& request, bool force_skip_field_dump,
+            opalx::spacecharge::SelfFieldDiagnostics* diagnostics);
+};
 
 #endif
