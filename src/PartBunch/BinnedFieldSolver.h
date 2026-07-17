@@ -1,12 +1,10 @@
 #ifndef OPALX_BINNED_FIELD_SOLVER_H
 #define OPALX_BINNED_FIELD_SOLVER_H
 
-#include <algorithm>
-#include <cmath>
-#include <functional>
+#include <cstdint>
 #include <iomanip>
 #include <memory>
-#include <numeric>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -14,6 +12,7 @@
 #include "PartBunch/ImageChargeScatterController.h"
 #include "PartBunch/PartBunch.h"
 #include "SpaceCharge/Pic/FieldComposer.h"
+#include "SpaceCharge/Pic/IterationPlan.h"
 #include "SpaceCharge/Pic/PicScatterGather.h"
 #include "SpaceCharge/Pic/PicWorkspace.h"
 #include "SpaceCharge/SelfFieldDiagnostics.h"
@@ -27,10 +26,8 @@
  *
  * Design overview:
  * - The solver owns no particle data; it borrows a `PartBunch` by reference.
- * - Runtime selection:
- *   - If adaptive bins are available (`bunch.hasBinning()` / `bunch.getBins()`),
- *     the per-bin algorithm is executed.
- *   - Otherwise, the legacy monolithic scatter/solve/gather path is used.
+ * - Runtime selection comes from a solver-owned IterationPlan. BinningPlan emits one unit at a
+ *   time; WholeBunchPlan emits a single monolithic unit.
  * - The solver currently supports only `ChargeQ -> rho` scattering and `ElectricFieldE`
  *   gathering, but gathers both E and B fields.
  * - Physics details:
@@ -40,24 +37,22 @@
  *     fields, this also produces the magnetic field contributions.
  *   - Finally, the accumulated fields are gathered back to the particles.
  *   - This procedure approximates full Maxwell's equations for the self-fields.
- *   - Without a bins object, it falls back to the legacy electrostatic approximation.
+ *   - A whole-bunch unit uses the legacy electrostatic approximation.
  */
 template <typename T, unsigned Dim>
 class BinnedFieldSolver : public FieldSolver<T, Dim> {
     static_assert(Dim == 3, "BinnedFieldSolver currently supports Dim == 3 only.");
 
 public:
-    using PartBunch_t     = PartBunch<T, Dim>;
-    using ParticleCtr_t   = typename PartBunch_t::ParticleContainer_t;
-    using Workspace_t     = opalx::spacecharge::PicWorkspace<T, Dim>;
-    using ScatterGather_t = opalx::spacecharge::PicScatterGather<T, Dim>;
-    using FieldComposer_t = opalx::spacecharge::FieldComposer<T, Dim>;
-    using AdaptBins_t     = typename PartBunch_t::AdaptBins_t;
-    using BCHandler_t     = BCHandler<Dim>;
-    using bin_index_type  = typename AdaptBins_t::bin_index_type;
-    using size_type       = typename AdaptBins_t::size_type;
-
-    using particle_position_type = typename PartBunch_t::Base::particle_position_type;
+    using PartBunch_t         = PartBunch<T, Dim>;
+    using ParticleCtr_t       = typename PartBunch_t::ParticleContainer_t;
+    using Workspace_t         = opalx::spacecharge::PicWorkspace<T, Dim>;
+    using ScatterGather_t     = opalx::spacecharge::PicScatterGather<T, Dim>;
+    using FieldComposer_t     = opalx::spacecharge::FieldComposer<T, Dim>;
+    using BCHandler_t         = BCHandler<Dim>;
+    using IterationPlan_t     = opalx::spacecharge::IterationPlan<T, Dim>;
+    using PreparedIteration_t = opalx::spacecharge::PreparedIteration;
+    using SolveUnit_t         = opalx::spacecharge::SolveUnit<T, Dim>;
 
     /**
      * @brief Which particle attribute to scatter from to build the mesh charge density `rho`.
@@ -88,23 +83,17 @@ public:
      * @param solver     Concrete solver name (e.g. `FFT`, `OPEN`, `CG`, `NONE`).
      * @param workspace  Shared persistent mesh, field, and scratch storage.
      * @param bcHandler  Shared pointer to the boundary-condition handler.
-     * @param tablePrintFrequency Global timestep frequency of printing the bin stats table
-     *                             to console in binned mode. If `0`, printing is disabled.
-     * @param adaptiveBinning If true, merge uniform bins adaptively after rebinning. If false,
-     *                        keep the uniform MAXBINS histogram.
      * @param greensFunction  OPAL `GREENSF` selection (`STANDARD` or `INTEGRATED`) forwarded to
      *                        IPPL's open-boundary FFT solver.
      */
     BinnedFieldSolver(
             std::string solver, std::shared_ptr<Workspace_t> workspace,
-            std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency, bool adaptiveBinning,
-            std::string greensFunction = "STANDARD");
+            std::shared_ptr<BCHandler_t> bcHandler, std::string greensFunction = "STANDARD");
 
     /**
      * @brief Compute space-charge self-fields for the given particle bunch.
      *
-     * If the bunch provides adaptive binning (`bunch.getBins()`), the solver executes
-     * the per-bin algorithm:
+     * If @p iterationPlan is a BinningPlan, the solver executes the per-bin algorithm:
      * `scatter rho corrections -> solve -> Lorentz scaling -> accumulate -> gather`.
      * Otherwise, it executes the legacy monolithic algorithm:
      * `scatter all particles -> solve once -> gather directly`.
@@ -115,7 +104,15 @@ public:
      *                        is missing, or if unsupported scatter/gather modes are selected.
      */
     void computeSelfFields(
-            PartBunch_t& bunch, opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
+            PartBunch_t& bunch, IterationPlan_t& iterationPlan, std::uint64_t particleGeneration,
+            opalx::spacecharge::BinConfigurationObserver* binObserver,
+            opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
+
+    /** @brief Initialize the temporary `.stat` bin-count compatibility cache. */
+    void configureIterationMetadata(bool binningConfigured, std::size_t maximumBinCount);
+
+    /** @brief Preserve the legacy StatWriter rule for the reported `nBins` value. */
+    [[nodiscard]] int legacyReportedBinCount() const;
 
     /**
      * @brief Set particle scatter attribute (extensible; default is `ChargeQ`).
@@ -157,15 +154,9 @@ public:
     /// @brief Configure dump frequency for dirichlet-plane diagnostics (`0` disables dumps).
     void setZeroFacePlaneDumpFrequency(int frequency);
 
-    struct BinKinematics {
-        Vector_t<double, Dim> pmean = Vector_t<double, Dim>(0.0);
-        double gammaBin             = 1.0;
-    };
-
 private:
     ScatterAttribute scatterAttribute_m;
     GatherAttribute gatherAttribute_m;
-    bool adaptiveBinning_m = true;
     int zerofaceMaxSteps_m = 0;
     ImageChargeScatterController<T, Dim> imageScatterController_m;
     ScatterGather_t scatterGather_m;
@@ -177,6 +168,10 @@ private:
     bool shiftedGreensEnabled_m  = false;
     double shiftedGreensPlaneZ_m = 0.0;
 
+    bool binningConfigured_m      = false;
+    std::size_t currentBinCount_m = 1;
+    std::size_t maximumBinCount_m = 0;
+
     /**
      * @brief Row entry for the level-3 bin statistics table.
      */
@@ -186,6 +181,8 @@ private:
         double gammaBin;                //!< Global average gamma for the (merged) bin.
     };
 
+    std::vector<BinStatsRow> binStats_m;
+
     /**
      * @brief Print the bin statistics table at level 3.
      *
@@ -193,9 +190,8 @@ private:
      * In binned mode, rows correspond to each merged bin. In legacy mode, a single
      * row with `binNumber = -1` is printed.
      *
-     * @param tableName    Logical table name (used in the header).
-     * @param nBinsOrZero  Number of bins (for header metadata). Use `0` for legacy mode.
-     * @param rows         Table rows to print.
+     * @param binningCmdName Logical binning-command name used in the Inform label.
+     * @param rows           Table rows to print.
      */
     void printBinStatsTable(
             const std::string& binningCmdName, const std::vector<BinStatsRow>& rows);
@@ -215,15 +211,15 @@ private:
             opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
 
     /**
-     * @brief Compute self-fields using the binned algorithm.
+     * @brief Execute every solve unit emitted by one prepared iteration.
      *
-     * Requires that the bunch has a valid bin structure and that the borrowed PIC workspace has
-     * initialized accumulation fields.
-     *
-     * @param bunch Particle bunch for which to compute self-fields.
+     * Whole-bunch and binned plans share this host loop. Unit field mode selects the
+     * monolithic electrostatic path or the per-bin Lorentz-transformed path.
      */
-    void computeBinnedSelfFields(
-            PartBunch_t& bunch, opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
+    void executeIterationPlan(
+            PartBunch_t& bunch, IterationPlan_t& iterationPlan, const PreparedIteration_t& prepared,
+            std::uint64_t particleGeneration,
+            opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
 
     /**
      * @brief Compute self-fields using the legacy monolithic algorithm.
@@ -234,37 +230,8 @@ private:
      * @param bunch Particle bunch for which to compute self-fields.
      */
     void computeLegacySelfFields(
-            PartBunch_t& bunch, opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
-
-    /**
-     * @brief Build and prepare adaptive bins for the current step.
-     *
-     * This performs a full rebin to the maximum bin count, sorts the particle container by bin,
-     * generates the adaptive histogram (merging), and restores bin configuration.
-     *
-     * @param bunch Bunch whose bins are updated.
-     * @param bins  Adaptive bin structure owned/managed by the bunch.
-     */
-    void rebinAndPrepare(PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins);
-
-public:
-    /**
-     * @brief Compute per-bin global mean momentum and gamma.
-     *
-     * The function computes the global mean momentum vector `pmean` across all
-     * particles in the merged bin and derives:
-     * `gammaBin = mean(sqrt(1 + dot(p_i, p_i)))`.
-     *
-     * @param bunch        Bunch providing particle data.
-     * @param bins         Bins providing the merged-bin iteration policy and indexing.
-     * @param binIndex     Bin index in the merged-bin space.
-     * @param nPartGlobal  Global particle count for this merged bin.
-     *
-     * @return Per-bin kinematics bundle (`pmean`, `gammaBin`).
-     */
-    BinKinematics computeGammaBinGlobal(
-            PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins, const bin_index_type binIndex,
-            const size_type nPartGlobal) const;
+            PartBunch_t& bunch, const SolveUnit_t& unit,
+            opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
 
     /**
      * @brief Build mesh `rho` for a specific merged bin and apply all corrections.
@@ -276,14 +243,10 @@ public:
      * - scaling by the solver coupling constant.
      *
      * @param bunch        Bunch providing geometry and charge data.
-     * @param bins         Adaptive bins providing bin iteration and hash indexing.
-     * @param binIndex     Merged bin index.
-     * @param nPartGlobal  Global number of particles in that merged bin.
-     * @param gammaBin     Global average gamma for that merged bin.
+     * @param unit         Prepared particle selection and kinematics for one solve unit.
      */
-    void prepareRhoForBin(
-            PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins, const bin_index_type binIndex,
-            const size_type nPartGlobal, const double gammaBin,
+    void prepareRhoForUnit(
+            PartBunch_t& bunch, const SolveUnit_t& unit,
             ImageScatterMode mode = ImageScatterMode::PrimaryAndImage);
 };
 

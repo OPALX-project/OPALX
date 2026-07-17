@@ -11,7 +11,6 @@
 #include "Particle/ParticleAttrib.h"
 #include "Physics/ParticleProperties.h"
 #include "Structure/Beam.h"
-#include "Structure/DataSink.h"
 #include "Utilities/Util.h"
 
 #undef doDEBUG
@@ -227,14 +226,8 @@ void PartBunch<T, Dim>::setSolver() {
 
     this->fcontainer_m->initializeFields(this->solver_m);
 
-    // Needs to happen before setting the field solver, since the field solver needs the bins.
-    setBins();
-
-    BinningCmd* binningCmd = OPALFieldSolver_m->getBinningCmd();
-    auto binnedSolver      = std::make_shared<BinnedFieldSolver<T, Dim>>(
+    auto binnedSolver = std::make_shared<BinnedFieldSolver<T, Dim>>(
             this->solver_m, this->fcontainer_m->sharedWorkspace(), this->getBCHandler(),
-            binningCmd ? binningCmd->getTablePrintFrequency() : 0,
-            binningCmd ? binningCmd->getAdaptiveBinning() : true,
             OPALFieldSolver_m->getGreensFunction());
     this->setFieldSolver(binnedSolver);
     m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
@@ -246,9 +239,6 @@ void PartBunch<T, Dim>::setSolver() {
     m << level3 << "Solver and Load Balancer set." << endl;
 }
 
-/**
- * @copybrief PartBunch::setBins
- */
 template <typename T, unsigned Dim>
 typename PartBunch<T, Dim>::BinnedFieldSolver_t* PartBunch<T, Dim>::getFieldSolver() {
     return static_cast<BinnedFieldSolver_t*>(this->fsolver_m.get());
@@ -262,49 +252,6 @@ const typename PartBunch<T, Dim>::BinnedFieldSolver_t* PartBunch<T, Dim>::getFie
 template <typename T, unsigned Dim>
 std::string PartBunch<T, Dim>::getFieldSolverType() {
     return this->getFieldSolver()->getStype();
-}
-
-template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::setBins() {
-    Inform m("PartBunch::setBins");
-
-    BinningCmd* binningCmd = OPALFieldSolver_m->getBinningCmd();
-
-    if (!OPALFieldSolver_m->hasBinningCmd()) {
-        m << level2 << "Solver " << OPALFieldSolver_m->getOpalName()
-          << " has no binning command attached, not using binning." << endl;
-        return;
-    }
-
-    m << level4 << "Using binning command: " << binningCmd->getOpalName() << endl;
-
-    switch (binningCmd->getParameterType()) {
-        case BinningParameter::VELOCITYZ:
-            this->setBins(
-                    std::make_shared<
-                            ParticleBinning::AdaptBins<ParticleContainer_t, CoordinateSelector_t>>(
-                            *this->getParticleContainer(), CoordinateSelector_t(2),
-                            binningCmd->getMaxBins(), binningCmd->getBinningAlpha(),
-                            binningCmd->getBinningBeta(), binningCmd->getDesiredWidth(),
-                            binningCmd->getOpalName()));
-            break;
-        case BinningParameter::GAMMAZ:
-            this->setBins(
-                    std::make_shared<
-                            ParticleBinning::AdaptBins<ParticleContainer_t, GammaSelector_t>>(
-                            *this->getParticleContainer(), GammaSelector_t(2),
-                            binningCmd->getMaxBins(), binningCmd->getBinningAlpha(),
-                            binningCmd->getBinningBeta(), binningCmd->getDesiredWidth(),
-                            binningCmd->getOpalName()));
-            break;
-        default:
-            throw OpalException(
-                    "PartBunch::setBins",
-                    "Binning parameter " + binningCmd->getParameter()
-                            + " not supported yet! Only VELOCITYZ and GAMMAZ.");
-    }
-    m << level3 << "Bins set." << endl;
-    this->getBins()->debug();
 }
 
 /**
@@ -532,61 +479,19 @@ void PartBunch<T, Dim>::setZerofaceMaxSteps(int maxSteps) {
  * @copybrief PartBunch::computeSelfFields
  */
 template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::computeSelfFields(opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
+void PartBunch<T, Dim>::computeSelfFields(
+        opalx::spacecharge::IterationPlan<T, Dim>& iterationPlan, std::uint64_t particleGeneration,
+        opalx::spacecharge::BinConfigurationObserver* binConfigurationObserver,
+        opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
     BinnedFieldSolver_t* bsolver = this->getFieldSolver();
 
-    bsolver->computeSelfFields(*this, diagnostics);
+    bsolver->computeSelfFields(
+            *this, iterationPlan, particleGeneration, binConfigurationObserver, diagnostics);
 }
 
-/**
- * @copybrief PartBunch::dumpBinConfig
- */
 template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::dumpBinConfig(bool preMerge) {
-    if (!hasBinning() || !dataSink_m) {
-        throw OpalException(
-                "PartBunch::dumpBinConfig",
-                "No binning or data sink set, but dumpBinConfig() was called.");
-    }
-
-    Inform m("PartBunch::dumpBinConfig");
-
-    BinningCmd* binningCmd = OPALFieldSolver_m->getBinningCmd();
-    if (!binningCmd) {
-        return;
-    }
-
-    // If BINNING is configured with DUMPBINSFILE="NONE", skip all file dumping.
-    // (BinnedFieldSolver may still call dumpBinConfig() during rebin/merge steps.)
-    if (!binningCmd->dumpBinsToFile()) {
-        return;
-    }
-
-    const long long step = getGlobalTrackStep();
-    const int dumpFreq   = binningCmd->getDumpBinsFrequency();
-    if (dumpFreq <= 0 || (step % dumpFreq) != 0) {
-        return;
-    }
-
-    std::shared_ptr<AdaptBins_t> bins = getBins();
-    if (!bins) {
-        return;
-    }
-
-    std::vector<typename AdaptBins_t::size_type> countsHost;
-    std::vector<typename AdaptBins_t::value_type> widthsHost;
-    const auto xMin = bins->getBinConfigHost(countsHost, widthsHost);
-
-    std::vector<std::size_t> counts(countsHost.begin(), countsHost.end());
-    std::vector<double> widths(widthsHost.begin(), widthsHost.end());
-
-    m << level5 << "Dumping bin configuration (preMerge=" << (preMerge ? 1 : 0)
-      << ") at globalTrackStep=" << step << " with nBins=" << counts.size() << " to file \""
-      << binningCmd->getDumpBinsFileName() << "\"." << endl;
-
-    dataSink_m->dumpBinConfig(
-            step, getT(), preMerge, counts, widths, static_cast<double>(xMin),
-            binningCmd->getDumpBinsFileName());
+int PartBunch<T, Dim>::getCurrentNBins() const {
+    return this->getFieldSolver()->legacyReportedBinCount();
 }
 
 /**

@@ -8,16 +8,73 @@
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "PartBunch/BinnedFieldSolver.h"
 #include "PartBunch/PartBunch.h"
+#include "SpaceCharge/Pic/IterationPlanFactory.h"
+#include "Structure/DataSink.h"
 
 #include <exception>
+#include <optional>
 #include <utility>
+#include <vector>
 
 namespace opalx::spacecharge {
+
+    namespace {
+
+        using ParticleContainer = ::ParticleContainer<double, 3>;
+
+        ParticleContainer& requirePrimaryParticles(PartBunch_t& bunch) {
+            const std::shared_ptr<ParticleContainer> primary = bunch.getParticleContainer();
+            if (primary == nullptr) {
+                throw OpalException(
+                        "LegacyPic3DAlgorithm::LegacyPic3DAlgorithm",
+                        "The primary particle container is null.");
+            }
+            return *primary;
+        }
+
+        /** @brief Synchronously forwards requested host bin snapshots to the run DataSink. */
+        class DataSinkBinConfigurationObserver final : public BinConfigurationObserver {
+        public:
+            DataSinkBinConfigurationObserver(
+                    DataSink* dataSink, long long step, double time, const BinningConfig& config)
+                : dataSink_m(dataSink), step_m(step), time_m(time), config_m(config) {}
+
+            [[nodiscard]] bool wants(BinConfigurationPoint) const override {
+                return dataSink_m != nullptr && !config_m.dumpFile().empty()
+                       && config_m.dumpFrequency() > 0
+                       && step_m % static_cast<long long>(config_m.dumpFrequency()) == 0;
+            }
+
+            void record(BinConfigurationPoint point, const BinConfigurationSnapshot& snapshot)
+                    override {
+                if (!wants(point)) {
+                    return;
+                }
+
+                const std::vector<std::size_t> particleCounts(
+                        snapshot.particleCounts.begin(), snapshot.particleCounts.end());
+                dataSink_m->dumpBinConfig(
+                        step_m, time_m, point == BinConfigurationPoint::BeforeMerge, particleCounts,
+                        snapshot.widths, snapshot.lowerBound, config_m.dumpFile());
+            }
+
+        private:
+            DataSink* dataSink_m = nullptr;
+            long long step_m     = 0;
+            double time_m        = 0.0;
+            const BinningConfig& config_m;
+        };
+
+    }  // namespace
 
     LegacyPic3DAlgorithm::LegacyPic3DAlgorithm(
             PartBunch_t& bunch, Pic3DConfig config,
             std::shared_ptr<PicWorkspace<double, 3>> workspace)
         : workspace_m(std::move(workspace)),
+          binningConfig_m(config.binning()),
+          iterationPlan_m(
+                  IterationPlanFactory<double, 3>::create(
+                          binningConfig_m, requirePrimaryParticles(bunch))),
           particleDomain_m(bunch.getParticleContainers()),
           domainManager_m(std::move(config)),
           bunch_m(&bunch) {
@@ -25,6 +82,15 @@ namespace opalx::spacecharge {
             throw OpalException(
                     "LegacyPic3DAlgorithm::LegacyPic3DAlgorithm", "PIC workspace is null.");
         }
+
+        BinnedFieldSolver<double, 3>* fieldSolver = bunch_m->getFieldSolver();
+        if (fieldSolver == nullptr) {
+            throw OpalException(
+                    "LegacyPic3DAlgorithm::LegacyPic3DAlgorithm", "The PIC field solver is null.");
+        }
+        fieldSolver->configureIterationMetadata(
+                iterationPlan_m->kind() == IterationKind::Binning,
+                iterationPlan_m->maximumBinCount());
     }
 
     SolverCapabilities LegacyPic3DAlgorithm::capabilities() const {
@@ -75,9 +141,18 @@ namespace opalx::spacecharge {
 
             // Domain migration may replace particle storage. The legacy solver reacquires every
             // native Kokkos view internally after this point.
+            std::optional<DataSinkBinConfigurationObserver> binObserver;
+            if (binningConfig_m.has_value()) {
+                binObserver.emplace(
+                        bunch_m->getDataSink(), bunch_m->getGlobalTrackStep(), bunch_m->getT(),
+                        *binningConfig_m);
+            }
+
             electricInBeam = true;
             magneticInBeam = true;
-            bunch_m->computeSelfFields(diagnostics);
+            bunch_m->computeSelfFields(
+                    *iterationPlan_m, context.particles().generation(),
+                    binObserver.has_value() ? &*binObserver : nullptr, diagnostics);
 
             const std::size_t localCount = primary->getLocalNum();
             beamToReference.transformBunchTo(primary->R.getView(), localCount);
