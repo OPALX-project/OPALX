@@ -48,6 +48,10 @@
 
 #include "Processes/GlobalProcesses/GlobalProcess.h"
 
+#include "SpaceCharge/ParticleSetView.h"
+#include "SpaceCharge/SelfFieldSystem.h"
+#include "SpaceCharge/SolveContext.h"
+
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/BoundingBox.h"
 #include "Utilities/LogicalError.h"
@@ -70,6 +74,8 @@ extern Inform* gmsg;
 ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
     : Tracker(beamline, revBeam, false),
       itsDataSink_m(),
+      selfFieldSystem_m(nullptr),
+      selfFieldParticleViews_m(),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
       globalEOL_m(false),
       sStart_m(0.0),
@@ -86,12 +92,15 @@ ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
  * @brief Construct tracker with bunch, data sink, z-segments, and optional emitters.
  */
 ParallelTracker::ParallelTracker(
-        const Beamline& beamline, PartBunch_t& bunch, DataSink* ds, bool revBeam,
+        const Beamline& beamline, PartBunch_t& bunch,
+        opalx::spacecharge::SelfFieldSystem& selfFieldSystem, DataSink* ds, bool revBeam,
         const std::vector<unsigned long long>& maxSteps, double sStart,
         const std::vector<double>& sStop, const std::vector<double>& dt,
         const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers)
     : Tracker(beamline, bunch, revBeam, false),
       itsDataSink_m(ds),
+      selfFieldSystem_m(&selfFieldSystem),
+      selfFieldParticleViews_m(),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
       globalEOL_m(false),
       sStart_m(sStart),
@@ -109,12 +118,55 @@ ParallelTracker::ParallelTracker(
 
     stepSizes_m.sortAscendingSStop();
     stepSizes_m.resetIterator();
+    initializeSelfFieldParticleViews();
 }
 
 /**
  * @copybrief ParallelTracker::~ParallelTracker
  */
 ParallelTracker::~ParallelTracker() {}
+
+void ParallelTracker::initializeSelfFieldParticleViews() {
+    using namespace opalx::spacecharge;
+
+    const auto& particleContainers = itsBunch_m->getParticleContainers();
+    selfFieldParticleViews_m.clear();
+    selfFieldParticleViews_m.reserve(particleContainers.size());
+    for (size_t containerIndex = 0; containerIndex < particleContainers.size(); ++containerIndex) {
+        const auto& container = particleContainers[containerIndex];
+        if (!container) {
+            throw OpalException(
+                    "ParallelTracker::initializeSelfFieldParticleViews",
+                    "Cannot build a self-field context for a null particle container.");
+        }
+
+        ParticleContainerAttributes attributes;
+        attributes.position =
+                ParticleAttributeHandle::writable(ParticleAttribute::Position, container->R);
+        attributes.momentum =
+                ParticleAttributeHandle::readable(ParticleAttribute::Momentum, container->P);
+        // Q and M may use either shared single-value storage or private particle attributes.
+        // Borrow the stable container object; a concrete adapter reacquires getQView/getMView.
+        attributes.charge =
+                ParticleAttributeHandle::readable(ParticleAttribute::Charge, *container);
+        attributes.mass = ParticleAttributeHandle::readable(ParticleAttribute::Mass, *container);
+        attributes.timeStep =
+                ParticleAttributeHandle::writable(ParticleAttribute::TimeStep, container->dt);
+        attributes.electricField =
+                ParticleAttributeHandle::writable(ParticleAttribute::ElectricField, container->E);
+        attributes.magneticField =
+                ParticleAttributeHandle::writable(ParticleAttribute::MagneticField, container->B);
+        attributes.invalidMask = ParticleAttributeHandle::readable(
+                ParticleAttribute::InvalidMask, container->InvalidMask);
+        attributes.bin = ParticleAttributeHandle::writable(ParticleAttribute::Bin, container->Bin);
+
+        // Stage 2 preserves the existing primary-container-only solve while making collection
+        // membership explicit for future multi-container algorithms.
+        const bool active = containerIndex == 0;
+        selfFieldParticleViews_m.emplace_back(
+                active ? "primary" : "inactive", std::move(attributes), active);
+    }
+}
 // --- Visit functions ---
 
 /**
@@ -777,7 +829,41 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 
     // itsBunch_m->setGlobalMeanR(itsBunch_m->get_centroid());
 
-    itsBunch_m->computeSelfFields();
+    if (selfFieldSystem_m == nullptr) {
+        throw OpalException(
+                "ParallelTracker::computeSpaceChargeFields",
+                "No self-field system is attached to this tracker.");
+    }
+
+    // Build a fresh collection-shaped view for this call. Its persistent handles borrow stable
+    // particle attribute objects, not Kokkos views, so the concrete solver must reacquire device
+    // views after any particle migration or storage reallocation.
+    using namespace opalx::spacecharge;
+    ParticleSetView particles(selfFieldParticleViews_m, 0, 0);
+    const auto primaryContainer = itsBunch_m->getParticleContainer();
+    const auto& referenceR      = primaryContainer->getRefPartR();
+    const auto& referenceP      = primaryContainer->getRefPartP();
+
+    ReferenceState referenceState{
+            {referenceR(0), referenceR(1), referenceR(2)},
+            {referenceP(0), referenceP(1), referenceP(2)},
+            primaryContainer->get_sPos()};
+    FrameState frameState;
+    frameState.labToReference = BorrowedHostObject::reference(referenceToBeamCSTrafo);
+    frameState.referenceToLab = BorrowedHostObject::reference(beamToReferenceCSTrafo);
+    CommunicatorView communicator{
+            BorrowedHostObject::reference(*ippl::Comm), ippl::Comm->rank(), ippl::Comm->size()};
+    StepState stepState{
+            static_cast<std::size_t>(step),
+            itsBunch_m->getT(),
+            itsBunch_m->getdT(),
+            0,
+            emissionMeshStretchActive,
+            std::move(communicator),
+            std::move(referenceState),
+            std::move(frameState)};
+    SolveContext context(std::move(particles), std::move(stepState), RequestedPhysics{});
+    selfFieldSystem_m->solve(context);
     m << level3 << "Compute self fields done." << endl;
 
     // Transform positions back to the reference frame.

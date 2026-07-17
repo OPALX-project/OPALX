@@ -42,6 +42,11 @@ class H5PartWrapper;
 class Inform;
 class Tracker;
 
+namespace opalx::spacecharge {
+    class SelfFieldConfig;
+    class SelfFieldSystem;
+}  // namespace opalx::spacecharge
+
 class TrackRun : public Action {
     using emittingSamplers_t = std::vector<std::shared_ptr<SamplingBase>>;
 
@@ -97,28 +102,20 @@ private:
             const std::vector<EmissionSource*>& sources, Beam* beam,
             emittingSamplers_t& emittingSamplers, size_t index = 0);
 
-    /**
-     * @brief Configure image-charge mode from all configured emission sources.
-     *
-     * Scans all sources across all selected beams for `ZEROFACE_R0Z=true`.
-     * If exactly one source requests zero-face handling, image-charge mode is enabled
-     * and the mirror plane is set to that source's `R0Z`.
-     * The same source also provides `ZEROFACEPLANEDUMP`, which controls
-     * diagnostic potential-plane dumping frequency (`0` disables dumping).
-     * If none request it, image-charge mode is disabled.
-     *
-     * @param emissionSourcesLists Per-beam source lists assembled during `RUN` setup.
-     *
-     * @throws OpalException If more than one source requests `ZEROFACE_R0Z=true`.
-     */
-    void configureImageChargeFromSources(
-            const std::vector<std::vector<EmissionSource*>>& emissionSourcesLists);
+    /// @brief Apply the immutable correction snapshot to the temporary legacy solver bridge.
+    void applyLegacySelfFieldConfig(const opalx::spacecharge::SelfFieldConfig& config);
 
     /// Compute total number of macroparticles for the bunch from BEAM::NALLOC and
     /// optional per-distribution NPARTDIST values on the emission sources.
     size_t computeTotalAllocationForBunch(
             Beam* beam, const std::vector<EmissionSource*>& sources) const;
 
+    using bunch_type = PartBunch_t;
+
+    // Declaration order is the lifetime contract: tracker is destroyed first, then the
+    // self-field system, and finally the particle bunch borrowed by the system.
+    std::unique_ptr<bunch_type> bunch_m;
+    std::unique_ptr<opalx::spacecharge::SelfFieldSystem> selfFieldSystem_m;
     std::unique_ptr<Tracker> itsTracker_m;
 
     /// Distributions referenced by all emission sources (non-owning raw pointers).
@@ -134,14 +131,6 @@ private:
     std::vector<std::unique_ptr<H5PartWrapper>> phaseSpaceSinks_m;
 
     OpalData* opal_m;
-
-    /*
-
-      this is the ippl bunch
-    */
-
-    using bunch_type = PartBunch_t;
-    std::unique_ptr<bunch_type> bunch_m;
 
     bool isFollowupTrack_m;
 
