@@ -12,9 +12,25 @@
 
 namespace opalx::spacecharge {
 
+    namespace {
+
+        SelfFieldDiagnosticSchedule makeDiagnosticSchedule(const SelfFieldConfig& config) {
+            const Pic3DConfig& picConfig = config.get<Pic3DConfig>();
+            SelfFieldDiagnosticSchedule schedule;
+            schedule.planeDumpFrequency = picConfig.correction().planeDumpFrequency();
+            if (picConfig.binning().has_value()) {
+                schedule.binTableFrequency = picConfig.binning()->tablePrintFrequency();
+            }
+            return schedule;
+        }
+
+    }  // namespace
+
     SelfFieldSystem::SelfFieldSystem(
             SelfFieldConfig config, std::unique_ptr<SelfFieldAlgorithm> algorithm)
-        : config_m(std::move(config)), algorithm_m(std::move(algorithm)) {
+        : config_m(std::move(config)),
+          algorithm_m(std::move(algorithm)),
+          diagnostics_m(makeDiagnosticSchedule(config_m)) {
         if (algorithm_m == nullptr) {
             throw OpalException(
                     "SelfFieldSystem::SelfFieldSystem", "The self-field algorithm is null.");

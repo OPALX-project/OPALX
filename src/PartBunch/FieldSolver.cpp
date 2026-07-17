@@ -2,12 +2,14 @@
 
 #include <fstream>
 #include <iomanip>
+#include <optional>
 #include <sstream>
 
 #include <filesystem>
 
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
+#include "SpaceCharge/SelfFieldDiagnostics.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
 
@@ -68,11 +70,10 @@ void FieldSolver<double, 3>::initSolverWithParams(const ippl::ParameterList& sp)
     }
 
     m << level4 << "Set solver RHS+LHS." << endl;
-    call_counter_m = 0;
 }
 
 template <>
-void FieldSolver<double, 3>::dumpVectField(std::string what) {
+void FieldSolver<double, 3>::dumpVectField(std::string what, std::size_t solveIndex) {
     /*
       what == ef
      */
@@ -81,7 +82,7 @@ void FieldSolver<double, 3>::dumpVectField(std::string what) {
 
     //    std::variant<Field_t<3>*, VField_t<double, 3>* > field;
 
-    if (ippl::Comm->size() > 1 || call_counter_m < 2) {
+    if (ippl::Comm->size() > 1 || solveIndex < 2) {
         m << level5 << "Skipping vector field dump for multiple ranks or first call." << endl;
         return;
     }
@@ -98,7 +99,7 @@ void FieldSolver<double, 3>::dumpVectField(std::string what) {
      * with
      *   'basename': OPAL input file name (*.in)
      *   'name':     field name (input argument of function)
-     *   '******':   call_counter_m padded with zeros to 6 digits
+     *   '******':   solveIndex padded with zeros to 6 digits
      */
 
     std::string dirname = "data/";
@@ -127,7 +128,7 @@ void FieldSolver<double, 3>::dumpVectField(std::string what) {
     std::string basename = OpalData::getInstance()->getInputBasename();
     std::ostringstream oss;
     oss << basename << "-" << (what + std::string("_") + type) << "-" << std::setfill('0')
-        << std::setw(6) << call_counter_m << ".dat";
+        << std::setw(6) << solveIndex << ".dat";
     std::string filename = oss.str();
     file /= filename;
     std::ofstream fout(file.string(), std::ios::out);
@@ -165,7 +166,7 @@ void FieldSolver<double, 3>::dumpVectField(std::string what) {
 }
 
 template <>
-void FieldSolver<double, 3>::dumpScalField(std::string what) {
+void FieldSolver<double, 3>::dumpScalField(std::string what, std::size_t solveIndex) {
     /*
       what == phi | rho
      */
@@ -173,7 +174,7 @@ void FieldSolver<double, 3>::dumpScalField(std::string what) {
     Inform m("FS::dumpScalField() ");
     m << level5 << "Dumping scalar field: " << what << endl;
 
-    if (ippl::Comm->size() > 1 /*|| call_counter_m<2*/) {
+    if (ippl::Comm->size() > 1) {
         m << level5 << "Skipping scalar field dump for multiple ranks or first call." << endl;
         return;
     }
@@ -190,7 +191,7 @@ void FieldSolver<double, 3>::dumpScalField(std::string what) {
      * with
      *   'basename': OPAL input file name (*.in)
      *   'name':     field name (input argument of function)
-     *   '******':   call_counter_m padded with zeros to 6 digits
+     *   '******':   solveIndex padded with zeros to 6 digits
      */
 
     // Needs to be empty...?
@@ -229,7 +230,7 @@ void FieldSolver<double, 3>::dumpScalField(std::string what) {
     std::string basename = OpalData::getInstance()->getInputBasename();
     std::ostringstream oss;
     oss << basename << "-" << (what + std::string("_") + type) << "-" << std::setfill('0')
-        << std::setw(6) << call_counter_m << ".dat";
+        << std::setw(6) << solveIndex << ".dat";
     std::string filename = oss.str();
     file /= filename;
     std::ofstream fout(file.string(), std::ios::out);
@@ -425,7 +426,23 @@ void FieldSolver<double,3>::setPotentialBCs() {
     }*/
 
 template <>
+void FieldSolver<double, 3>::runSolverImpl(
+        bool force_skip_field_dump, opalx::spacecharge::SelfFieldDiagnostics* diagnostics);
+
+template <>
 void FieldSolver<double, 3>::runSolver(bool force_skip_field_dump) {
+    runSolverImpl(force_skip_field_dump, nullptr);
+}
+
+template <>
+void FieldSolver<double, 3>::runSolver(
+        bool force_skip_field_dump, opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
+    runSolverImpl(force_skip_field_dump, &diagnostics);
+}
+
+template <>
+void FieldSolver<double, 3>::runSolverImpl(
+        bool force_skip_field_dump, opalx::spacecharge::SelfFieldDiagnostics* diagnostics) {
     constexpr int Dim = 3;
     Inform m("FieldSolver::runSolver");
     /*
@@ -436,15 +453,23 @@ void FieldSolver<double, 3>::runSolver(bool force_skip_field_dump) {
     m << level3 << "Running solver with type: " << this->getStype()
       << ". Force skip field dump: " << force_skip_field_dump << endl;
 
+    const std::size_t solveIndex = diagnostics != nullptr ? diagnostics->backendSolveCount() : 0;
+    static_cast<void>(solveIndex);
+    std::optional<opalx::spacecharge::SelfFieldDiagnostics::ScopedEvent> backendEvent;
+    if (diagnostics != nullptr) {
+        backendEvent.emplace(
+                *diagnostics, opalx::spacecharge::SelfFieldEventKind::BackendSolve, "backend");
+    }
+
     if (this->getStype() == "CG") {
         CGSolver_t<double, 3>& solver = std::get<CGSolver_t<double, 3>>(this->getSolver());
 #ifdef OPALX_FIELD_DEBUG
-        if (!force_skip_field_dump) this->dumpScalField("rho");
+        if (!force_skip_field_dump) this->dumpScalField("rho", solveIndex);
 #endif
         // std::get<CGSolver_t<double, 3>>(this->getSolver()).solve();
         solver.solve();
 #ifdef OPALX_FIELD_DEBUG
-        if (!force_skip_field_dump) this->dumpScalField("phi");
+        if (!force_skip_field_dump) this->dumpScalField("phi", solveIndex);
 #endif
         /*
         if (ippl::Comm->rank() == 0) {
@@ -472,14 +497,14 @@ void FieldSolver<double, 3>::runSolver(bool force_skip_field_dump) {
     } else if (this->getStype() == "FFT") {
         if constexpr (Dim == 2 || Dim == 3) {
 #ifdef OPALX_FIELD_DEBUG
-            if (!force_skip_field_dump) this->dumpScalField("rho");
+            if (!force_skip_field_dump) this->dumpScalField("rho", solveIndex);
 #endif
 
             std::get<FFTSolver_t<double, 3>>(this->getSolver()).solve();
 #ifdef OPALX_FIELD_DEBUG
             /// \todo do to not print phi/E depenging on output_type!
-            if (!force_skip_field_dump) this->dumpScalField("phi");
-            if (!force_skip_field_dump) this->dumpVectField("ef");
+            if (!force_skip_field_dump) this->dumpScalField("phi", solveIndex);
+            if (!force_skip_field_dump) this->dumpVectField("ef", solveIndex);
 #endif
         }
     } else if (this->getStype() == "P3M") {
@@ -489,12 +514,12 @@ void FieldSolver<double, 3>::runSolver(bool force_skip_field_dump) {
     } else if (this->getStype() == "OPEN") {
         if constexpr (Dim == 3) {
 #ifdef OPALX_FIELD_DEBUG
-            if (!force_skip_field_dump) this->dumpScalField("rho");
+            if (!force_skip_field_dump) this->dumpScalField("rho", solveIndex);
 #endif
             std::get<OpenSolver_t<double, 3>>(this->getSolver()).solve();
 #ifdef OPALX_FIELD_DEBUG
-            if (!force_skip_field_dump) this->dumpScalField("phi");
-            if (!force_skip_field_dump) this->dumpVectField("ef");
+            if (!force_skip_field_dump) this->dumpScalField("phi", solveIndex);
+            if (!force_skip_field_dump) this->dumpVectField("ef", solveIndex);
 #endif
         }
     } else if (this->getStype() == "NONE") {
@@ -505,11 +530,15 @@ void FieldSolver<double, 3>::runSolver(bool force_skip_field_dump) {
                 "No known solver matches the argument: " + this->getStype());
     }
 
-    call_counter_m++;
+    if (diagnostics != nullptr) {
+        diagnostics->completeBackendSolve();
+    }
 }
 
 template <>
-void FieldSolver<double, 3>::runShiftedOpenSolver(const ippl::Vector<double, 3>& shift) {
+void FieldSolver<double, 3>::runShiftedOpenSolver(
+        const ippl::Vector<double, 3>& shift,
+        opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
     if (this->getStype() != "OPEN") {
         throw OpalException(
                 "FieldSolver::runShiftedOpenSolver",
@@ -520,20 +549,24 @@ void FieldSolver<double, 3>::runShiftedOpenSolver(const ippl::Vector<double, 3>&
     Inform m("FieldSolver::runShiftedOpenSolver");
     m << level4 << "Running shifted open solver with shift = " << shift << endl;
 
-    auto& openSolver = std::get<OpenSolver_t<double, 3>>(this->getSolver());
+    auto& openSolver             = std::get<OpenSolver_t<double, 3>>(this->getSolver());
+    const std::size_t solveIndex = diagnostics.backendSolveCount();
+    static_cast<void>(solveIndex);
+    auto backendEvent = diagnostics.scopedEvent(
+            opalx::spacecharge::SelfFieldEventKind::BackendSolve, "OPEN-shifted");
 
     // Install the translated kernel (overwrites grntr_m inside IPPL).
     openSolver.shiftedGreensFunction(shift);
 
 #ifdef OPALX_FIELD_DEBUG
-    this->dumpScalField("rho");
+    this->dumpScalField("rho", solveIndex);
 #endif
 
     openSolver.solve();
 
 #ifdef OPALX_FIELD_DEBUG
-    this->dumpScalField("phi");
-    this->dumpVectField("ef");
+    this->dumpScalField("phi", solveIndex);
+    this->dumpVectField("ef", solveIndex);
 #endif
 
     // Restore the standard Green's function so subsequent primary solves in
@@ -541,7 +574,7 @@ void FieldSolver<double, 3>::runShiftedOpenSolver(const ippl::Vector<double, 3>&
     // doc for the defensive-guard rationale.
     openSolver.greensFunction();
 
-    call_counter_m++;
+    diagnostics.completeBackendSolve();
 }
 
 // Implement getCouplingConstant

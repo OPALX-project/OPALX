@@ -14,6 +14,12 @@
 
 namespace opalx::spacecharge {
 
+    /** @brief Immutable run-level scheduling values for compatibility diagnostics. */
+    struct SelfFieldDiagnosticSchedule {
+        std::size_t binTableFrequency  = 0;
+        std::size_t planeDumpFrequency = 0;
+    };
+
     /** @brief Stable lifecycle boundaries visible to self-field diagnostics. */
     enum class SelfFieldEventKind : std::uint8_t {
         Solve,
@@ -69,13 +75,34 @@ namespace opalx::spacecharge {
             clock_type::time_point start_m;
         };
 
-        explicit SelfFieldDiagnostics(SelfFieldDiagnosticSink* sink = nullptr);
+        explicit SelfFieldDiagnostics(
+                SelfFieldDiagnosticSchedule schedule = {}, SelfFieldDiagnosticSink* sink = nullptr);
 
         /** @brief Start a lifecycle event and return its exception-safe scope. */
         [[nodiscard]] ScopedEvent scopedEvent(SelfFieldEventKind kind, std::string_view label = {});
 
         /** @brief Number of successfully closed events of one kind. */
         [[nodiscard]] std::size_t completedEventCount(SelfFieldEventKind kind) const;
+
+        /** @brief Accumulated host time for all closed events of one kind. */
+        [[nodiscard]] std::chrono::nanoseconds totalEventDuration(SelfFieldEventKind kind) const;
+
+        /** @brief Number of completed runtime backend solves; construction warm-up is excluded. */
+        [[nodiscard]] std::size_t backendSolveCount() const { return backendSolveCount_m; }
+
+        /** @brief Record a successful backend solve after all backend state has been restored. */
+        void completeBackendSolve() noexcept { ++backendSolveCount_m; }
+
+        /** @brief Record the current merged-bin count without changing the legacy stat source. */
+        void recordBinCount(std::size_t count) noexcept { currentBinCount_m = count; }
+
+        [[nodiscard]] std::size_t currentBinCount() const { return currentBinCount_m; }
+
+        /** @brief Apply the configured legacy bin-table cadence to one global step. */
+        [[nodiscard]] bool shouldPrintBinTable(long long step) const noexcept;
+
+        /** @brief Apply the configured source-plane dump cadence to one global step. */
+        [[nodiscard]] bool shouldDumpPlane(long long step) const noexcept;
 
         /** @brief Reset lifecycle counters, for example after construction warm-up solves. */
         void reset();
@@ -96,8 +123,13 @@ namespace opalx::spacecharge {
                 std::chrono::nanoseconds duration) noexcept;
 
         SelfFieldDiagnosticSink* sink_m = nullptr;
+        SelfFieldDiagnosticSchedule schedule_m;
         std::array<std::size_t, static_cast<std::size_t>(SelfFieldEventKind::Count)>
                 completedEvents_m{};
+        std::array<std::chrono::nanoseconds, static_cast<std::size_t>(SelfFieldEventKind::Count)>
+                totalDurations_m{};
+        std::size_t backendSolveCount_m = 0;
+        std::size_t currentBinCount_m   = 0;
     };
 
 }  // namespace opalx::spacecharge

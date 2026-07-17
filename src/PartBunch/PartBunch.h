@@ -35,6 +35,10 @@ class DataSink;  ///< Forward declaration; full definition only required in the 
                  ///< unit.
 class Beam;
 
+namespace opalx::spacecharge {
+    class SelfFieldDiagnostics;
+}
+
 extern Inform* gmsg;
 
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
@@ -58,8 +62,8 @@ public:
     using BinnedFieldSolver_t = BinnedFieldSolver<T, Dim>;
     using LoadBalancer_t      = LoadBalancer<T, Dim>;
     using Base                = ippl::ParticleBase<
-            ippl::ParticleSpatialLayout<T, Dim, ippl::UniformCartesian<T, Dim>>,
-            Kokkos::DefaultExecutionSpace::memory_space>;
+                           ippl::ParticleSpatialLayout<T, Dim, ippl::UniformCartesian<T, Dim>>,
+                           Kokkos::DefaultExecutionSpace::memory_space>;
 
     using CoordinateSelector_t = typename ParticleBinning::CoordinateSelector<ParticleContainer_t>;
     using GammaSelector_t      = typename ParticleBinning::GammaSelector<ParticleContainer_t>;
@@ -557,7 +561,7 @@ public:
      * `ParallelTracker` only orchestrates reference/beam-frame transforms and calls
      * this delegator once per step.
      */
-    void computeSelfFields();
+    void computeSelfFields(opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
 
     /**
      * @brief Write bin edges/counts to the data sink when configured.

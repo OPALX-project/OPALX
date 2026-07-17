@@ -33,8 +33,8 @@ namespace opalx::spacecharge {
     }
 
     void LegacyPic3DAlgorithm::execute(
-            SolveContext& /*context*/, SelfFieldDiagnostics& /*diagnostics*/) {
-        bunch_m->computeSelfFields();
+            SolveContext& /*context*/, SelfFieldDiagnostics& diagnostics) {
+        bunch_m->computeSelfFields(diagnostics);
     }
 
 }  // namespace opalx::spacecharge

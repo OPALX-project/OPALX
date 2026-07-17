@@ -8,6 +8,10 @@
 #include "Manager/BaseManager.h"
 #include "Manager/FieldSolverBase.h"
 
+namespace opalx::spacecharge {
+    class SelfFieldDiagnostics;
+}
+
 // Define the FieldSolver class
 template <typename T, unsigned Dim>
 class FieldSolver : public ippl::FieldSolverBase<T, Dim> {
@@ -20,9 +24,6 @@ private:
     using BCHandler_t = BCHandler<Dim>;
     std::shared_ptr<BCHandler_t> bcHandler_m;
 
-    /// Counts number of times the solver has been called
-    size_t call_counter_m;
-
 public:
     FieldSolver(
             std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
@@ -32,15 +33,14 @@ public:
           E_m(E),
           phi_m(phi),
           greensFunction_m(std::move(greensFunction)),
-          bcHandler_m(bcHandler),
-          call_counter_m(0) {
+          bcHandler_m(bcHandler) {
         setPotentialBCs();
     }
 
     ~FieldSolver() override = default;
 
-    void dumpScalField(std::string what);
-    void dumpVectField(std::string what);
+    void dumpScalField(std::string what, std::size_t solveIndex);
+    void dumpVectField(std::string what, std::size_t solveIndex);
 
     Field_t<Dim>* getRho() { return rho_m; }
     void setRho(Field_t<Dim>* rho) { rho_m = rho; }
@@ -104,24 +104,7 @@ public:
 
     bool hasValidBCHandler() const { return (bcHandler_m != nullptr); }
 
-    void runSolver() override {
-        // The default runSolver should always count towards the call counter!
-        runSolver(false);
-    }
-
-    /**
-     * @brief Reset the solver call counter to zero.
-     *
-     * Sets the internal call counter (`call_counter_m`) back to 0 so that
-     * subsequent calls will be counted from a clean state.
-     *
-     * @note This function is necessary to exclude potential solver warm-up
-     * calls from being counted towards output or logging that depends on the
-     * number of solver executions.
-     */
-    void resetCallCounter() { call_counter_m = 0; }
-
-    size_t getCallCounter() { return call_counter_m; }
+    void runSolver() override { runSolver(false); }
 
     /**
      * @brief Refresh layout-dependent solver state without reconstructing the solver wrapper.
@@ -152,6 +135,10 @@ public:
      */
     void runSolver(bool force_skip_field_dump);
 
+    /** @brief Execute and diagnose one runtime backend solve. */
+    void runSolver(
+            bool force_skip_field_dump, opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
+
     /**
      * @brief Run an Open-solver solve with a shifted free-space Green's function.
      *
@@ -173,7 +160,9 @@ public:
      *
      * @throws OpalException if the configured solver is not @c "OPEN".
      */
-    void runShiftedOpenSolver(const ippl::Vector<double, Dim>& shift);
+    void runShiftedOpenSolver(
+            const ippl::Vector<double, Dim>& shift,
+            opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
 
     template <typename Solver>
     void initSolverWithParams(const ippl::ParameterList& sp);
@@ -185,6 +174,10 @@ public:
     void initCGSolver() {}
 
     void initP3MSolver() {}
+
+private:
+    void runSolverImpl(
+            bool force_skip_field_dump, opalx::spacecharge::SelfFieldDiagnostics* diagnostics);
 };
 
 // Explicit specialization declaration

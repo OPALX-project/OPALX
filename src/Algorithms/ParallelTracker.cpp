@@ -652,8 +652,9 @@ void ParallelTracker::execute() {
     // Ensure all Kokkos operations are complete
     Kokkos::fence();
 
-    if (itsBunch_m->hasFieldSolver()) {
-        m << level2 << "Total FieldSolver calls: " << itsBunch_m->getFieldSolver()->getCallCounter()
+    if (selfFieldSystem_m != nullptr) {
+        m << level2
+          << "Total FieldSolver calls: " << selfFieldSystem_m->diagnostics().backendSolveCount()
           << endl;
     }
     if (ippl::Comm->size() > 1) {
@@ -759,6 +760,12 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
         return;
     }
 
+    if (selfFieldSystem_m == nullptr) {
+        throw OpalException(
+                "ParallelTracker::computeSpaceChargeFields",
+                "No self-field system is attached to this tracker.");
+    }
+
     itsBunch_m->calcBeamParameters();
     m << level4 << "Calculate beam parameters done." << endl;
 
@@ -811,7 +818,11 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
         }
     }
     itsBunch_m->setEmissionMeshProgress(emissionMeshStretchActive, emittedFraction);
-    itsBunch_m->bunchUpdate();
+    {
+        auto domainEvent = selfFieldSystem_m->diagnostics().scopedEvent(
+                opalx::spacecharge::SelfFieldEventKind::DomainUpdate, "beam-frame-mesh");
+        itsBunch_m->bunchUpdate();
+    }
     itsBunch_m->setEmissionMeshProgress(false, 1.0);
     m << level5 << "Bunch updated for positions in beam coordinate system." << endl;
 
@@ -823,17 +834,13 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     size_type totalParticlesPrimary = itsBunch_m->getParticleContainer()->getTotalNum();
     if (repartFreq_m > 0 && step % repartFreq_m + 1 == repartFreq_m
         && itsBunch_m->getLoadBalancer()->balance(totalParticlesPrimary)) {
+        auto domainEvent = selfFieldSystem_m->diagnostics().scopedEvent(
+                opalx::spacecharge::SelfFieldEventKind::DomainUpdate, "redistribution");
         doBinaryRepartition();
         m << level4 << "Binary repartition done." << endl;
     }
 
     // itsBunch_m->setGlobalMeanR(itsBunch_m->get_centroid());
-
-    if (selfFieldSystem_m == nullptr) {
-        throw OpalException(
-                "ParallelTracker::computeSpaceChargeFields",
-                "No self-field system is attached to this tracker.");
-    }
 
     // Build a fresh collection-shaped view for this call. Its persistent handles borrow stable
     // particle attribute objects, not Kokkos views, so the concrete solver must reacquire device
@@ -879,7 +886,11 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
       << "Rotate B fields back to reference coordinate system done. ComputeSelfFields done."
       << endl;
     // Rebuild mesh from reference-frame R (computeSelfFields used beam-frame bunchUpdate).
-    itsBunch_m->bunchUpdate();
+    {
+        auto domainEvent = selfFieldSystem_m->diagnostics().scopedEvent(
+                opalx::spacecharge::SelfFieldEventKind::DomainUpdate, "reference-frame-mesh");
+        itsBunch_m->bunchUpdate();
+    }
     m << level5 << "Bunch updated for positions in reference coordinate system." << endl;
 }
 

@@ -5,8 +5,8 @@
 
 #include "SpaceCharge/SelfFieldDiagnostics.h"
 
-#include <algorithm>
-#include <stdexcept>
+#include "Utilities/OpalException.h"
+
 #include <utility>
 
 namespace opalx::spacecharge {
@@ -47,24 +47,55 @@ namespace opalx::spacecharge {
         diagnostics_m = nullptr;
     }
 
-    SelfFieldDiagnostics::SelfFieldDiagnostics(SelfFieldDiagnosticSink* sink) : sink_m(sink) {}
+    SelfFieldDiagnostics::SelfFieldDiagnostics(
+            SelfFieldDiagnosticSchedule schedule, SelfFieldDiagnosticSink* sink)
+        : sink_m(sink), schedule_m(schedule) {}
 
     SelfFieldDiagnostics::ScopedEvent SelfFieldDiagnostics::scopedEvent(
             SelfFieldEventKind kind, std::string_view label) {
         if (kind == SelfFieldEventKind::Count) {
-            throw std::invalid_argument("SelfFieldEventKind::Count is not a lifecycle event");
+            throw OpalException(
+                    "SelfFieldDiagnostics::scopedEvent",
+                    "SelfFieldEventKind::Count is not a lifecycle event.");
         }
         return ScopedEvent(*this, kind, label);
     }
 
     std::size_t SelfFieldDiagnostics::completedEventCount(SelfFieldEventKind kind) const {
         if (kind == SelfFieldEventKind::Count) {
-            throw std::invalid_argument("SelfFieldEventKind::Count is not a lifecycle event");
+            throw OpalException(
+                    "SelfFieldDiagnostics::completedEventCount",
+                    "SelfFieldEventKind::Count is not a lifecycle event.");
         }
         return completedEvents_m[index(kind)];
     }
 
-    void SelfFieldDiagnostics::reset() { completedEvents_m.fill(0); }
+    std::chrono::nanoseconds SelfFieldDiagnostics::totalEventDuration(
+            SelfFieldEventKind kind) const {
+        if (kind == SelfFieldEventKind::Count) {
+            throw OpalException(
+                    "SelfFieldDiagnostics::totalEventDuration",
+                    "SelfFieldEventKind::Count is not a lifecycle event.");
+        }
+        return totalDurations_m[index(kind)];
+    }
+
+    bool SelfFieldDiagnostics::shouldPrintBinTable(long long step) const noexcept {
+        return step >= 0 && schedule_m.binTableFrequency > 0
+               && static_cast<std::size_t>(step) % schedule_m.binTableFrequency == 0;
+    }
+
+    bool SelfFieldDiagnostics::shouldDumpPlane(long long step) const noexcept {
+        return step >= 0 && schedule_m.planeDumpFrequency > 0
+               && static_cast<std::size_t>(step) % schedule_m.planeDumpFrequency == 0;
+    }
+
+    void SelfFieldDiagnostics::reset() {
+        completedEvents_m.fill(0);
+        totalDurations_m.fill(std::chrono::nanoseconds::zero());
+        backendSolveCount_m = 0;
+        currentBinCount_m   = 0;
+    }
 
     void SelfFieldDiagnostics::eventStarted(
             SelfFieldEventKind kind, std::string_view label) noexcept {
@@ -77,6 +108,7 @@ namespace opalx::spacecharge {
             SelfFieldEventKind kind, std::string_view label,
             std::chrono::nanoseconds duration) noexcept {
         ++completedEvents_m[index(kind)];
+        totalDurations_m[index(kind)] += duration;
         if (sink_m != nullptr) {
             sink_m->eventFinished(kind, label, duration);
         }
