@@ -28,6 +28,8 @@
 #include "Steppers/SpinTBMTPusher.h"
 #include "Structure/DataSink.h"
 
+#include "SpaceCharge/ParticleSetView.h"
+
 #include "BasicActions/Option.h"
 #include "Utilities/Options.h"
 
@@ -61,6 +63,10 @@
 
 class PluginElement;
 
+namespace opalx::spacecharge {
+    class SelfFieldSystem;
+}  // namespace opalx::spacecharge
+
 /**
  * @brief Implements the main time-based simulation loop for parallel tracking.
  *
@@ -69,10 +75,14 @@ class PluginElement;
  */
 class ParallelTracker : public Tracker {
 private:
-    DataSink* itsDataSink_m;         ///< Borrowed beam statistics and phase-space output sink.
-    OpalBeamline itsOpalBeamline_m;  ///< Cloned field elements and coordinate transforms.
-    bool globalEOL_m;                ///< End-of-line flag (e.g. orbit threader out of bounds).
-    double sStart_m;                 ///< Path-length start position for the track (m).
+    DataSink* itsDataSink_m;  ///< Borrowed beam statistics and phase-space output sink.
+    opalx::spacecharge::SelfFieldSystem*
+            selfFieldSystem_m;  ///< Borrowed run-lifetime self-field dispatcher.
+    std::vector<opalx::spacecharge::ParticleContainerView>
+            selfFieldParticleViews_m;  ///< Stable handles; no per-step view-list allocation.
+    OpalBeamline itsOpalBeamline_m;    ///< Cloned field elements and coordinate transforms.
+    bool globalEOL_m;                  ///< End-of-line flag (e.g. orbit threader out of bounds).
+    double sStart_m;                   ///< Path-length start position for the track (m).
 
     /** Step-size segments: s-stop, dt, and steps per segment. */
     StepSizeConfig stepSizes_m;
@@ -104,6 +114,7 @@ public:
      * @brief Construct tracker with bunch, output sink, and step-size schedule.
      * @param bl                Beamline definition.
      * @param bunch             Borrowed particle bunch (multi-container).
+     * @param selfFieldSystem   Borrowed dispatcher owned by TrackRun.
      * @param ds                Borrowed data sink for statistics and dumps.
      * @param revBeam           Reversed beam flag (see single-argument constructor).
      * @param maxSTEPS          Max integration steps per s-segment (parallel to sStop/dt).
@@ -113,7 +124,8 @@ public:
      * @param emittingSamplers  Optional per-container samplers for emitParticles(t, dt).
      */
     explicit ParallelTracker(
-            const Beamline& bl, PartBunch_t& bunch, DataSink* ds, bool revBeam,
+            const Beamline& bl, PartBunch_t& bunch,
+            opalx::spacecharge::SelfFieldSystem& selfFieldSystem, DataSink* ds, bool revBeam,
             const std::vector<unsigned long long>& maxSTEPS, double sStart,
             const std::vector<double>& sStop, const std::vector<double>& dt,
             const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers = {});
@@ -225,6 +237,9 @@ public:
     void setTime();
 
 private:
+    /// @brief Build stable particle-attribute handles once; device views remain per-call.
+    void initializeSelfFieldParticleViews();
+
     /// @brief Update reference trajectories and lab/reference coordinate transforms.
     void updateReference(const BorisPusher& pusher);
 

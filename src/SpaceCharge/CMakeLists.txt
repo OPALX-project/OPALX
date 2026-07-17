@@ -1,16 +1,22 @@
 set (_SRCS
+    LegacyPic3DAlgorithm.cpp
     ParticleSetView.cpp
     SelfFieldConfig.cpp
     SelfFieldConfigBuilder.cpp
     SelfFieldDiagnostics.cpp
+    SelfFieldFactory.cpp
+    SelfFieldSystem.cpp
     SolveContext.cpp
     )
 
 set (HDRS
     ParticleSetView.h
+    SelfFieldAlgorithm.h
     SelfFieldConfig.h
     SelfFieldConfigBuilder.h
     SelfFieldDiagnostics.h
+    SelfFieldFactory.h
+    SelfFieldSystem.h
     SolveContext.h
     SolverCapabilities.h
     )

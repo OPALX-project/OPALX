@@ -62,6 +62,11 @@
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPT.h"
 
+#include "SpaceCharge/SelfFieldConfig.h"
+#include "SpaceCharge/SelfFieldConfigBuilder.h"
+#include "SpaceCharge/SelfFieldFactory.h"
+#include "SpaceCharge/SelfFieldSystem.h"
+
 #include "BuildInfo.h"
 #include "Utility/Inform.h"
 #include "changes.h"
@@ -196,6 +201,8 @@ TrackRun::TrackRun()
     : Action(TRACKRUN::SIZE, "RUN",
              "The \"RUN\" sub-command tracks the defined particles through "
              "the given lattice."),
+      bunch_m(nullptr),
+      selfFieldSystem_m(nullptr),
       itsTracker_m(nullptr),
       fs_m(nullptr),
       ds_m(nullptr),
@@ -226,6 +233,8 @@ TrackRun::TrackRun()
 
 TrackRun::TrackRun(const std::string& name, TrackRun* parent)
     : Action(name, parent),
+      bunch_m(nullptr),
+      selfFieldSystem_m(nullptr),
       itsTracker_m(nullptr),
       fs_m(nullptr),
       ds_m(nullptr),
@@ -379,6 +388,11 @@ void TrackRun::execute() {
         globalProcessesLists[i] = makeGlobalProcessesForBeam(*b, i);
     }
 
+    // Parser-owned commands are consumed once. Runtime solver objects retain only this
+    // immutable snapshot and never borrow FieldSolverCmd or EmissionSource objects.
+    auto selfFieldConfig =
+            opalx::spacecharge::SelfFieldConfigBuilder::build(*fs_m, emissionSourcesLists);
+
     /*
     Need the following units for mass and charge:
     - Charge per macro particle in [C], this should be macrocharge_m or q_m in the bunch.
@@ -460,7 +474,9 @@ void TrackRun::execute() {
         setupDistributionsAndSamplers(
                 emissionSourcesLists[i], beams[i], emittingSamplersList[i], i);
     }
-    configureImageChargeFromSources(emissionSourcesLists);
+    applyLegacySelfFieldConfig(selfFieldConfig);
+    selfFieldSystem_m =
+            opalx::spacecharge::SelfFieldFactory::create(std::move(selfFieldConfig), *bunch_m);
 
     // Reset the field solver with correct hr_m based on the distribution.
     bunch_m->setCharge();
@@ -494,8 +510,9 @@ void TrackRun::execute() {
 
     */
     itsTracker_m = std::make_unique<ParallelTracker>(
-            *Track::block->use->fetchLine(), *bunch_m, ds_m, false, Track::block->localTimeSteps,
-            Track::block->zstart, Track::block->zstop, Track::block->dT, emittingSamplersList);
+            *Track::block->use->fetchLine(), *bunch_m, *selfFieldSystem_m, ds_m, false,
+            Track::block->localTimeSteps, Track::block->zstart, Track::block->zstop,
+            Track::block->dT, emittingSamplersList);
     itsTracker_m->execute();
 
     /*
@@ -807,113 +824,20 @@ void TrackRun::setupDistributionsAndSamplers(
     IpplTimings::stopTimer(samplingTime);
 }
 
-void TrackRun::configureImageChargeFromSources(
-        const std::vector<std::vector<EmissionSource*>>& emissionSourcesLists) {
-    bool enableImageCharge   = false;
-    bool enableShiftedGreens = false;
-    double zPlane            = 0.0;
-    int dumpFrequency        = 0;
-    int maxSteps             = 0;
-    size_t numZeroFaceR0Z    = 0;
-    size_t numShiftedGreens  = 0;
+void TrackRun::applyLegacySelfFieldConfig(const opalx::spacecharge::SelfFieldConfig& config) {
+    using opalx::spacecharge::CorrectionKind;
+    using opalx::spacecharge::Pic3DConfig;
 
-    for (const auto& sourceList : emissionSourcesLists) {
-        for (const auto* src : sourceList) {
-            if (!src) {
-                continue;
-            }
+    const auto& correction  = config.get<Pic3DConfig>().correction();
+    const bool imageCharge  = correction.kind() == CorrectionKind::ImageCharge;
+    const bool shiftedGreen = correction.kind() == CorrectionKind::ShiftedGreen;
 
-            const bool srcZeroFace        = src->getZeroFaceR0Z();
-            const bool srcShifted         = src->getShiftedGreensFunction();
-            const int sourceDumpFrequency = src->getZeroFacePlaneDumpFrequency();
-
-            // Mutual exclusion within a single EMISSIONSOURCE.
-            if (srcZeroFace && srcShifted) {
-                throw OpalException(
-                        "TrackRun::configureImageChargeFromSources",
-                        "ZEROFACE_R0Z and SHIFTED_GREENS_FUNCTION are mutually exclusive on "
-                        "the same EMISSIONSOURCE. Enable exactly one.");
-            }
-
-            if (!srcZeroFace && !srcShifted) {
-                if (sourceDumpFrequency > 0) {
-                    throw OpalException(
-                            "TrackRun::configureImageChargeFromSources",
-                            "ZEROFACEPLANEDUMP > 0 requires ZEROFACE_R0Z=true on the same "
-                            "EMISSIONSOURCE. (Dumping is not supported for "
-                            "SHIFTED_GREENS_FUNCTION since the computational domain may be "
-                            "far from R0Z.)");
-                }
-                continue;
-            }
-
-            if (srcZeroFace) {
-                ++numZeroFaceR0Z;
-                enableImageCharge = true;
-                zPlane            = src->getR0()[2];
-                dumpFrequency     = sourceDumpFrequency;
-                maxSteps          = src->getZerofaceMaxSteps();
-            } else {
-                // srcShifted
-                ++numShiftedGreens;
-                enableShiftedGreens = true;
-                zPlane              = src->getR0()[2];
-                // Dumping is unsupported for the shifted path (see comment above).
-                if (sourceDumpFrequency > 0) {
-                    throw OpalException(
-                            "TrackRun::configureImageChargeFromSources",
-                            "ZEROFACEPLANEDUMP > 0 is not supported with "
-                            "SHIFTED_GREENS_FUNCTION=true (the computational domain may be "
-                            "far from R0Z, making the interpolated plane dump meaningless).");
-                }
-                maxSteps = src->getZerofaceMaxSteps();
-            }
-        }
-    }
-
-    if (numZeroFaceR0Z > 1) {
-        throw OpalException(
-                "TrackRun::configureImageChargeFromSources",
-                "Cannot have more than one emission source with ZEROFACE_R0Z=true, since image "
-                "charge computation is only implemented for one plane.");
-    }
-    if (numShiftedGreens > 1) {
-        throw OpalException(
-                "TrackRun::configureImageChargeFromSources",
-                "Cannot have more than one emission source with SHIFTED_GREENS_FUNCTION=true, "
-                "since the shifted Green's function correction is only implemented for one plane.");
-    }
-    if (enableImageCharge && enableShiftedGreens) {
-        throw OpalException(
-                "TrackRun::configureImageChargeFromSources",
-                "Cannot have ZEROFACE_R0Z=true on one EMISSIONSOURCE and "
-                "SHIFTED_GREENS_FUNCTION=true on another; the two Dirichlet-correction paths "
-                "are mutually exclusive at the run level.");
-    }
-
-    // SHIFTED_GREENS_FUNCTION requires the OPEN field solver. We inspect the
-    // FIELDSOLVER definition via the cached FieldSolverCmd (fs_m, set earlier
-    // in execute()) — the BinnedFieldSolver type is only forward-declared via
-    // PartBunch.h here so we cannot call bunch_m->getFieldSolver()->getStype()
-    // directly without pulling in the full template definition.
-    // The runtime guard inside FieldSolver::runShiftedOpenSolver will also throw,
-    // but catching the misconfiguration here gives the user a cleaner error.
-    if (enableShiftedGreens) {
-        const std::string solverType = fs_m ? fs_m->getType() : std::string("(unknown)");
-        if (solverType != "OPEN") {
-            throw OpalException(
-                    "TrackRun::configureImageChargeFromSources",
-                    "SHIFTED_GREENS_FUNCTION=true requires FIELDSOLVER TYPE=OPEN (got '"
-                            + solverType + "').");
-        }
-    }
-
-    bunch_m->setImageChargeConfiguration(enableImageCharge, zPlane);
-    bunch_m->setShiftedGreensConfiguration(enableShiftedGreens, zPlane);
-    bunch_m->setZeroFacePlaneDumpFrequency(enableImageCharge ? dumpFrequency : 0);
-    // Both Dirichlet paths share the ZEROFACE_MAXSTEPS step budget.
-    const bool anyDirichletActive = enableImageCharge || enableShiftedGreens;
-    bunch_m->setZerofaceMaxSteps(anyDirichletActive ? maxSteps : 0);
+    bunch_m->setImageChargeConfiguration(imageCharge, correction.planeZ());
+    bunch_m->setShiftedGreensConfiguration(shiftedGreen, correction.planeZ());
+    bunch_m->setZeroFacePlaneDumpFrequency(
+            imageCharge ? static_cast<int>(correction.planeDumpFrequency()) : 0);
+    bunch_m->setZerofaceMaxSteps(
+            correction.enabled() ? static_cast<int>(correction.maximumSteps()) : 0);
 }
 
 Inform& TrackRun::print(Inform& os) const {
