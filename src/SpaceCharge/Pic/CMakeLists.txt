@@ -1,8 +1,10 @@
 set (_SRCS
     BinningPlan.cpp
     CorrectionPlan.cpp
+    FieldFramePolicy.cpp
     FieldComposer.cpp
     IterationPlanFactory.cpp
+    Pic3DSolver.cpp
     PicDomainManager.cpp
     PicParticleDomainAdapter.cpp
     PicScatterGather.cpp
@@ -13,7 +15,9 @@ set (_SRCS
 set (_PRIVATE_HDRS
     BinningPlan.h
     BinningPlan.tpp
+    FieldFramePolicy.h
     IterationPlanFactory.h
+    Pic3DSolver.h
     PicDomainManager.h
     PicParticleDomainAdapter.h
     WholeBunchPlan.h

@@ -104,7 +104,7 @@ public:
     void dumpSDDS(
             PartBunch_t& beam,
             const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
-            const double& azimuth) const;
+            int reportedBinCount, const double& azimuth) const;
 
     /**
      * @brief Write SDDS statistics and losses with per-container external fields.
@@ -113,7 +113,7 @@ public:
     void dumpSDDS(
             PartBunch_t& beam,
             const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
-            const losses_t& losses, const double& azimuth) const;
+            int reportedBinCount, const losses_t& losses, const double& azimuth) const;
 
     /** \brief Write cavity information from  H5 file
      */

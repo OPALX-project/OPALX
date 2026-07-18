@@ -96,6 +96,7 @@ namespace opalx::spacecharge {
         backendSolveCount_m   = 0;
         redistributionCount_m = 0;
         currentBinCount_m     = 0;
+        hasCurrentBinCount_m  = false;
     }
 
     void SelfFieldDiagnostics::eventStarted(

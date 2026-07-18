@@ -121,13 +121,13 @@ int DataSink::dumpH5(
 
 void DataSink::dumpSDDS(
         PartBunch_t& beam, const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
-        const double& azimuth) const {
-    dumpSDDS(beam, fdextPerContainer, losses_t(), azimuth);
+        int reportedBinCount, const double& azimuth) const {
+    dumpSDDS(beam, fdextPerContainer, reportedBinCount, losses_t(), azimuth);
 }
 
 void DataSink::dumpSDDS(
         PartBunch_t& beam, const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
-        const losses_t& losses, const double& azimuth) const {
+        int reportedBinCount, const losses_t& losses, const double& azimuth) const {
     const size_t n = beam.getNumParticleContainers();
     if (fdextPerContainer.size() < n) {
         throw OpalException(
@@ -157,7 +157,7 @@ void DataSink::dumpSDDS(
         }
 
         Vector_t<double, 3> fd[2] = {fdextPerContainer[i][0], fdextPerContainer[i][1]};
-        statWriters_m[i]->write(beam, fd, losses, azimuth, npOutside, i);
+        statWriters_m[i]->write(beam, fd, reportedBinCount, losses, azimuth, npOutside, i);
     }
 
     beam.gatherLoadBalanceStatistics();

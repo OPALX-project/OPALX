@@ -99,9 +99,16 @@ namespace opalx::spacecharge {
         /** @brief Record a successful particle redistribution after migration completes. */
         void completeRedistribution() noexcept { ++redistributionCount_m; }
 
-        /** @brief Record the current merged-bin count without changing the legacy stat source. */
-        void recordBinCount(std::size_t count) noexcept { currentBinCount_m = count; }
+        /** @brief Record the current merged-bin count after preparing an iteration plan. */
+        void recordBinCount(std::size_t count) noexcept {
+            currentBinCount_m    = count;
+            hasCurrentBinCount_m = true;
+        }
 
+        /** @brief Whether an iteration plan has supplied a merged-bin count. */
+        [[nodiscard]] bool hasCurrentBinCount() const { return hasCurrentBinCount_m; }
+
+        /** @brief Most recently recorded merged-bin count. */
         [[nodiscard]] std::size_t currentBinCount() const { return currentBinCount_m; }
 
         /** @brief Apply the configured legacy bin-table cadence to one global step. */
@@ -137,6 +144,7 @@ namespace opalx::spacecharge {
         std::size_t backendSolveCount_m   = 0;
         std::size_t redistributionCount_m = 0;
         std::size_t currentBinCount_m     = 0;
+        bool hasCurrentBinCount_m         = false;
     };
 
 }  // namespace opalx::spacecharge

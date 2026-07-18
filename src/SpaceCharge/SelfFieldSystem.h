@@ -33,6 +33,9 @@ namespace opalx::spacecharge {
         /** @brief Return the configured correction independent of its per-step activity. */
         [[nodiscard]] CorrectionRequest configuredCorrection() const;
 
+        /** @brief Return the legacy-compatible bin count for statistics output. */
+        [[nodiscard]] int reportedBinCount() const;
+
         [[nodiscard]] const SelfFieldConfig& config() const { return config_m; }
         [[nodiscard]] const SolverCapabilities& capabilities() const { return capabilities_m; }
         [[nodiscard]] SelfFieldDiagnostics& diagnostics() { return diagnostics_m; }
