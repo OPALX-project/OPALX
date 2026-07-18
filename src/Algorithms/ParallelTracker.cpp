@@ -47,9 +47,7 @@
 
 #include "Processes/GlobalProcesses/GlobalProcess.h"
 
-#include "SpaceCharge/ParticleSetView.h"
 #include "SpaceCharge/SelfFieldSystem.h"
-#include "SpaceCharge/SolveContext.h"
 
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/BoundingBox.h"
@@ -408,9 +406,6 @@ void ParallelTracker::execute() {
 
     stepSizes_m.printDirect(*gmsg);
 
-    // Before the tracker loop: bunch sanity checks.
-    this->itsBunch_m->performBunchSanityChecks();
-
     // Handle any dump field requests
     DumpEMFields::writeFields(itsOpalBeamline_m.getElements());
 
@@ -436,7 +431,7 @@ void ParallelTracker::execute() {
             }
 
             // Particle R and mesh are in REFERENCE frame for the whole step except inside
-            // computeSpaceChargeFields (beam frame only during computeSelfFields).
+            // computeSpaceChargeFields (beam frame only inside Pic3DSolver).
 
             // Reset EOL flag each step: transient OutOfBounds (e.g. from invalid mesh
             // bounds immediately after first emission) must not persist across steps.
@@ -723,24 +718,18 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
  * @par Frame of reference
  * - Entry: @f$R@f$, @f$E@f$, @f$B@f$ in the reference (lab) frame.
  * - After transform to beam: @f$R@f$ in the beam frame (origin at reference, z along momentum).
- * - Inside computeSelfFields: the PIC domain follows @f$R@f$ in the beam frame.
+ * - Inside Pic3DSolver: the PIC domain follows @f$R@f$ in the beam frame.
  * - After transform back: @f$R@f$, @f$E@f$, @f$B@f$ in the reference frame again.
  */
 void ParallelTracker::computeSpaceChargeFields() {
     Inform m("ParallelTracker::computeSpaceChargeFields");
     // Current limitation: space-charge transform/scatter/gather is applied via the primary
     // container path only. Keep this behavior until the dedicated multi-container SC refactor.
-    if (!itsBunch_m->hasFieldSolver()) {
-        /*
-        This should not happen, so when we do not have a field solve, we can
-        throw an exception. If we have "no solver" and want to run it, we would
-        choose the null solver.
-        */
-        *gmsg << level1 << "no solver available!" << endl;
+    if (selfFieldSystem_m == nullptr) {
         throw OpalException(
                 "ParallelTracker::computeSpaceChargeFields",
-                "Bunch has no field solver assigned! If you want to run without "
-                "space charge effects, please use TYPE=NONE for the field solver.");
+                "No self-field system is available. Use TYPE=NONE for a configured no-op "
+                "solver.");
     }
 
     const size_t totalParticles = itsBunch_m->getTotalNumAllContainers();
@@ -749,12 +738,6 @@ void ParallelTracker::computeSpaceChargeFields() {
           << "Skipping space charge until more than MINBINEMITTED=" << Options::minBinEmitted
           << " particles are present (total=" << totalParticles << ")." << endl;
         return;
-    }
-
-    if (selfFieldSystem_m == nullptr) {
-        throw OpalException(
-                "ParallelTracker::computeSpaceChargeFields",
-                "No self-field system is attached to this tracker.");
     }
 
     itsBunch_m->calcBeamParameters();

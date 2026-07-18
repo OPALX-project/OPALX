@@ -261,7 +261,12 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
     }
 }
 
-TrackRun::~TrackRun() {}
+TrackRun::~TrackRun() {
+    // Solvers borrow particle containers and must be destroyed before their owner.
+    itsTracker_m.reset();
+    selfFieldSystem_m.reset();
+    bunch_m.reset();
+}
 
 TrackRun* TrackRun::clone(const std::string& name) { return new TrackRun(name, this); }
 
@@ -410,7 +415,7 @@ void TrackRun::execute() {
         totalParticlesPerBeam[i] = computeTotalAllocationForBunch(b, emissionSourcesLists[i]);
     }
 
-    // Create PartBunch (PIC Manager) with multiple particle containers
+    // Create PartBunch with multiple particle containers.
     bunch_m = std::make_unique<bunch_type>(
             macrocharges,                     // Macro charge [C]
             macromasses,                      // Macro Mass [GeV]
@@ -418,8 +423,7 @@ void TrackRun::execute() {
             totalParticlesPerBeam,            // Per-beam particle counts for allocation
             Options::loadBalancingThreshold,  // Load balancing threshold
             "LF2",                            // Integrator
-            fs_m,                             // Fieldsolver
-            ds_m);                            // Data sink
+            fs_m);                            // Field solver setup
 
     // Validate container setup produced by constructor
     const auto& particleContainers = bunch_m->getParticleContainers();
@@ -433,7 +437,7 @@ void TrackRun::execute() {
     wireDaughterContainers(beams);
 
     // BC handler
-    *gmsg << level2 << *(bunch_m->getBCHandler()) << endl;
+    *gmsg << level2 << fs_m->constructBCHandler() << endl;
 
     setupBoundaryGeometry();
 
@@ -474,8 +478,8 @@ void TrackRun::execute() {
         setupDistributionsAndSamplers(
                 emissionSourcesLists[i], beams[i], emittingSamplersList[i], i);
     }
-    selfFieldSystem_m =
-            opalx::spacecharge::SelfFieldFactory::create(std::move(selfFieldConfig), *bunch_m);
+    selfFieldSystem_m = opalx::spacecharge::SelfFieldFactory::create(
+            std::move(selfFieldConfig), *bunch_m, ds_m);
 
     // Refresh the initial particle statistics after distribution setup.
     bunch_m->setCharge();
@@ -699,7 +703,6 @@ void TrackRun::setupDistributionsAndSamplers(
 
     // Common containers / parameters used by all samplers.
     auto pc               = bunch_m->getParticleContainer(index);
-    auto fc               = bunch_m->getFieldContainer();
     Vector_t<int, Dim> nr = bunch_m->nr_m;
     const double avrgpz   = beam->getMomentum() / beam->getMass();
 
@@ -744,22 +747,22 @@ void TrackRun::setupDistributionsAndSamplers(
         std::shared_ptr<SamplingBase> sampler;
         switch (opalDist->getType()) {
             case DistributionType::GAUSS:
-                sampler = std::make_shared<Gaussian>(pc, fc, opalDist);
+                sampler = std::make_shared<Gaussian>(pc, opalDist);
                 break;
             case DistributionType::MULTIVARIATEGAUSS:
-                sampler = std::make_shared<MultiVariateGaussian>(pc, fc, opalDist);
+                sampler = std::make_shared<MultiVariateGaussian>(pc, opalDist);
                 break;
             case DistributionType::FLATTOP:
-                sampler = std::make_shared<FlatTop>(pc, fc, opalDist);
+                sampler = std::make_shared<FlatTop>(pc, opalDist);
                 break;
             case DistributionType::OPALFLATTOP:
-                sampler = std::make_shared<OpalFlatTop>(pc, fc, opalDist);
+                sampler = std::make_shared<OpalFlatTop>(pc, opalDist);
                 break;
             case DistributionType::FROMFILE:
-                sampler = std::make_shared<FromFile>(pc, fc, opalDist);
+                sampler = std::make_shared<FromFile>(pc, opalDist);
                 break;
             case DistributionType::EMITTEDFROMFILE:
-                sampler = std::make_shared<EmittedFromFile>(pc, fc, opalDist);
+                sampler = std::make_shared<EmittedFromFile>(pc, opalDist);
                 break;
             default:
                 throw OpalException("Distribution::create", "Unknown \"TYPE\" of \"DISTRIBUTION\"");

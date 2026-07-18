@@ -1,7 +1,6 @@
 /**
  * @file PartBunch.h
- * @brief Template PIC bunch: IPPL PicManager, shared field mesh/solver, and multiple particle
- * containers.
+ * @brief Particle bunch state and multiple particle containers.
  */
 
 #ifndef PARTBUNCH_H
@@ -9,19 +8,14 @@
 
 #include <cstdint>
 #include <memory>
+#include <stdexcept>
 #include <vector>
 
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/Matrix.h"
 #include "Algorithms/PartData.h"
 #include "Attributes/Attributes.h"
-#include "BCHandler.hpp"
-#include "Manager/BaseManager.h"
-#include "Manager/PicManager.h"
 #include "PartBunch/BunchStateHandler.h"
-#include "PartBunch/FieldContainer.hpp"
-#include "PartBunch/FieldSolver.hpp"
-#include "PartBunch/LoadBalancer.hpp"
 #include "PartBunch/ParticleContainer.hpp"
 #include "Physics/Physics.h"
 #include "Random/Distribution.h"
@@ -31,16 +25,11 @@
 #include "Structure/FieldSolverCmd.h"
 #include "Utilities/OpalException.h"
 
-class DataSink;
 class Beam;
 
 namespace opalx::spacecharge {
-    class BinConfigurationObserver;
     template <typename T, unsigned Dim>
-    class IterationPlan;
-    template <typename T, unsigned Dim>
-    struct PreparedCorrection;
-    class SelfFieldDiagnostics;
+    class PicWorkspace;
 }  // namespace opalx::spacecharge
 
 extern Inform* gmsg;
@@ -48,29 +37,19 @@ extern Inform* gmsg;
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
 
 /**
- * @brief OPAL particle bunch: field container, solver, load balancer, and one or more beams.
+ * @brief OPAL particle bunch with one or more particle containers.
  *
  * @tparam T   Floating-point type for positions/fields (typically double).
  * @tparam Dim Spatial dimension (3 for OPALX).
  */
 template <typename T, unsigned Dim>
-class BinnedFieldSolver;
-
-template <typename T, unsigned Dim>
-class PartBunch
-    : public ippl::PicManager<
-              T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>> {
+class PartBunch {
 public:
     using ParticleContainer_t = ParticleContainer<T, Dim>;
-    using FieldContainer_t    = FieldContainer<T, Dim>;
     using PicWorkspace_t      = opalx::spacecharge::PicWorkspace<T, Dim>;
-    using BinnedFieldSolver_t = BinnedFieldSolver<T, Dim>;
-    using LoadBalancer_t      = LoadBalancer<T, Dim>;
     using Base                = ippl::ParticleBase<
                            ippl::ParticleSpatialLayout<T, Dim, ippl::UniformCartesian<T, Dim>>,
                            Kokkos::DefaultExecutionSpace::memory_space>;
-
-    using BCHandler_t = BCHandler<Dim>;
 
 public:
     // --- Shared state (all containers / mesh) ---
@@ -78,7 +57,6 @@ public:
     double dt_m;                       ///< Global time step @f$\Delta t@f$ (s).
     int it_m;                          ///< Iteration counter (legacy / diagnostics).
     std::string integration_method_m;  ///< Integrator name (e.g. leapfrog).
-    std::string solver_m;              ///< Field solver type string from input.
     Vector_t<int, Dim> nr_m;           ///< Mesh cell count per dimension.
     Vector_t<double, Dim> origin_m;    ///< Mesh origin (lab coordinates).
     Vector_t<double, Dim> rmin_m;  ///< Current bunch spatial minimum (from primary container stats;
@@ -104,9 +82,12 @@ private:
     std::shared_ptr<BunchStateHandler>
             bunchState_m;  ///< Shared per-container coordinate and moment state.
 
-    std::shared_ptr<BCHandler_t> bcHandler_m;  ///< Field boundary conditions.
-    FieldSolverCmd* OPALFieldSolver_m;         ///< Borrowed parsed FIELD_SOLVER command.
-    DataSink* dataSink_m;                      ///< Borrowed diagnostics and dump output sink.
+    std::shared_ptr<PicWorkspace_t> picWorkspace_m;
+    std::shared_ptr<ParticleContainer_t> pcontainer_m;
+    std::vector<std::shared_ptr<ParticleContainer_t>> pcontainers_m;
+
+    double boundingBoxIncreasePercent_m;
+    std::string initialFieldLayout_m;
 
     double t_m;  ///< Current simulation time (s).
 
@@ -119,7 +100,7 @@ private:
 
 public:
     /**
-     * @brief Construct a multi-beam bunch: mesh, solver, containers, and capacity.
+     * @brief Construct a multi-beam bunch and its initial Cartesian particle layout.
      *
      * @param qi                     Macrocharge per container (C).
      * @param mi                     Macromass per container (GeV/c²).
@@ -128,12 +109,11 @@ public:
      * @param lbt                    Load-balancer timescale.
      * @param integration_method     Integrator label (e.g. leapfrog).
      * @param OPALFieldSolver        Borrowed field solver command (mesh, BCs, optional binning).
-     * @param dataSink               Borrowed non-null diagnostics output sink.
      */
     PartBunch(
             std::vector<double> qi, std::vector<double> mi, const std::vector<Beam*>& beams,
             std::vector<size_t> totalParticlesPerBeam, double lbt, std::string integration_method,
-            FieldSolverCmd* OPALFieldSolver, DataSink* dataSink);
+            FieldSolverCmd* OPALFieldSolver);
 
     /**
      * @brief Recompute moments for every particle container without changing the PIC domain.
@@ -156,18 +136,6 @@ public:
         }
         return total;
     }
-
-    /// @brief Build field solver and load balancer from @c OPALFieldSolver_m.
-    void setSolver();
-
-    /// @brief Warm-up: zero rho and run the field solver once (skip full dumps).
-    void pre_run() override;
-
-    /**
-     * @brief Validate BC handler, solver wiring, field pointers, and layout extents.
-     * @throw OpalException if initialization is inconsistent.
-     */
-    void performBunchSanityChecks() const;
 
     /// @brief At segment start: active if container is non-empty; inactive if empty.
     void resetPcActive();
@@ -203,56 +171,29 @@ public:
         return false;
     }
 
-    /// @brief PicManager hook; throws (tracking does not use this path).
-    void advance() override {
-        throw OpalException(
-                "PartBunch::advance",
-                "Not used: just exists because ippl::PicManager wants it that way.");
-    }
-
-    /// @brief PicManager hook; throws (scatter handled elsewhere).
-    void par2grid() override {
-        throw OpalException(
-                "PartBunch::par2grid",
-                "Not used: just exists because ippl::PicManager wants it that way.");
-    }
-
-    /// @brief PicManager hook; throws (gather handled elsewhere).
-    void grid2par() override {
-        throw OpalException(
-                "PartBunch::grid2par",
-                "Not used: just exists because ippl::PicManager wants it that way.");
-    }
-
-    /// @brief Scratch E field used by the binned solver path.
-    std::shared_ptr<VField_t<T, Dim>> getTempEField() {
-        return this->fcontainer_m ? this->fcontainer_m->getTempEField() : nullptr;
-    }
-
-    /// @brief Scratch B field used by the binned solver path.
-    std::shared_ptr<VField_t<T, Dim>> getTempBField() {
-        return this->fcontainer_m ? this->fcontainer_m->getTempBField() : nullptr;
-    }
-
-    /// @param bcHandler Boundary-condition handler for the mesh.
-    void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) { bcHandler_m = bcHandler; }
-
-    /// @brief Current boundary-condition handler.
-    std::shared_ptr<BCHandler_t> getBCHandler() const { return bcHandler_m; }
-
-    DataSink* getDataSink() const { return dataSink_m; }
-
     std::shared_ptr<BunchStateHandler> getBunchStateHandler() { return bunchState_m; }
     std::shared_ptr<const BunchStateHandler> getBunchStateHandler() const { return bunchState_m; }
 
-    /** @brief Share the stable PIC workspace with the configured self-field algorithm. */
-    [[nodiscard]] std::shared_ptr<PicWorkspace_t> sharedPicWorkspace() {
-        if (!this->fcontainer_m) {
-            throw OpalException(
-                    "PartBunch::sharedPicWorkspace", "FieldContainer is not initialized.");
-        }
-        return this->fcontainer_m->sharedWorkspace();
+    /** @brief Transfer the setup-time Cartesian workspace to the selected self-field algorithm. */
+    [[nodiscard]] std::shared_ptr<PicWorkspace_t> takePicWorkspace();
+
+    [[nodiscard]] std::shared_ptr<ParticleContainer_t> getParticleContainer() const {
+        return pcontainer_m;
     }
+
+    [[nodiscard]] std::shared_ptr<ParticleContainer_t> getParticleContainer(size_t index) const {
+        if (index >= pcontainers_m.size()) {
+            throw std::out_of_range("PartBunch::getParticleContainer: index out of range");
+        }
+        return pcontainers_m[index];
+    }
+
+    [[nodiscard]] const std::vector<std::shared_ptr<ParticleContainer_t>>& getParticleContainers()
+            const {
+        return pcontainers_m;
+    }
+
+    [[nodiscard]] size_t getNumParticleContainers() const { return pcontainers_m.size(); }
 
     void updateMoments() { this->pcontainer_m->updateMoments(); }
 
@@ -449,49 +390,10 @@ public:
         return Vector_t<double, Dim>(0);
     }
 
-    /**
-     * @brief Compute the bunch self-fields (binned when available).
-     *
-     * The actual implementation lives in the solver object (see `BinnedFieldSolver`).
-     * `ParallelTracker` only orchestrates reference/beam-frame transforms and calls
-     * this delegator once per step.
-     *
-     * @param iterationPlan Solver-owned bin and pass plan for the current field evaluation.
-     * @param particleGeneration Generation of the current particle population.
-     * @param binConfigurationObserver Optional sink for bin configuration snapshots.
-     * @param diagnostics Self-field timing and event diagnostics.
-     */
-    void computeSelfFields(
-            opalx::spacecharge::IterationPlan<T, Dim>& iterationPlan,
-            std::uint64_t particleGeneration,
-            const opalx::spacecharge::PreparedCorrection<T, Dim>& correction,
-            opalx::spacecharge::BinConfigurationObserver* binConfigurationObserver,
-            opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
-
     /// @brief Human-readable dump of each container to @p os.
     /// @param os Output stream wrapper.
     /// @return Reference to @p os.
     Inform& print(Inform& os);
-
-    /// @return True if a field solver instance is installed.
-    bool hasFieldSolver() const { return this->fsolver_m != nullptr; }
-
-    /**
-     * @brief Non-const pointer to the concrete BinnedFieldSolver.
-     * @note Definition in PartBunch.cpp; requires complete BinnedFieldSolver type.
-     */
-    BinnedFieldSolver_t* getFieldSolver();
-
-    /// @brief Const overload of getFieldSolver().
-    const BinnedFieldSolver_t* getFieldSolver() const;
-
-    /// @brief Backend type string (e.g. FFT, OPEN, CG, NONE).
-    std::string getFieldSolverType();
-
-    /**
-     * @brief Effective bin count reported by the field solver for legacy diagnostics.
-     */
-    int getCurrentNBins() const;
 
     /// @brief Compatibility stub; logs and returns 0.
     double calcMeanPhi() {

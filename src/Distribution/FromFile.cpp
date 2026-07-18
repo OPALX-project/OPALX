@@ -12,10 +12,8 @@
 #include "Utilities/OpalException.h"
 #include "Utility/Inform.h"
 
-FromFile::FromFile(
-        std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-        Distribution_t* opalDist)
-    : SamplingBase(pc, fc, opalDist), numParticles_m(0) {
+FromFile::FromFile(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist)
+    : SamplingBase(pc, opalDist), numParticles_m(0) {
     // Get filename from distribution
     filename_m = opalDist->getFilename();
 
@@ -43,10 +41,8 @@ FromFile::FromFile(
     readFile(filename_m);
 }
 
-FromFile::FromFile(
-        std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-        const std::string& filename)
-    : SamplingBase(pc, fc), numParticles_m(0) {
+FromFile::FromFile(std::shared_ptr<ParticleContainer_t> pc, const std::string& filename)
+    : SamplingBase(pc), numParticles_m(0) {
     filename_m = filename;
 
     if (filename_m.empty()) {

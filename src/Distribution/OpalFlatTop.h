@@ -46,12 +46,9 @@ public:
      * @brief Constructor for OpalFlatTop.
      *
      * @param pc Shared pointer to ParticleContainer.
-     * @param fc Shared pointer to FieldContainer.
      * @param opalDist Borrowed Distribution.
      */
-    OpalFlatTop(
-            std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-            Distribution_t* opalDist);
+    OpalFlatTop(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist);
 
     /**
      * @brief Constructor for OpalFlatTop with parameters passed directly.
@@ -60,7 +57,6 @@ public:
      * Distribution object.
      *
      * @param pc Shared pointer to ParticleContainer.
-     * @param fc Shared pointer to FieldContainer.
      * @param emitting Flag indicating whether the distribution is emitting.
      * @param sigmaTFall Standard deviation of the falling flank in the time profile.
      * @param sigmaTRise Standard deviation of the rising flank in the time profile.
@@ -71,10 +67,9 @@ public:
      * @param ftOscPeriods Optional number of oscillation periods across the flat top.
      */
     OpalFlatTop(
-            std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-            bool emitting, double sigmaTFall, double sigmaTRise, Vector_t<double, 3> cutoff,
-            double tPulseLengthFWHM, Vector_t<double, 3> sigmaR, double ftOscAmplitude = 0.0,
-            double ftOscPeriods = 0.0);
+            std::shared_ptr<ParticleContainer_t> pc, bool emitting, double sigmaTFall,
+            double sigmaTRise, Vector_t<double, 3> cutoff, double tPulseLengthFWHM,
+            Vector_t<double, 3> sigmaR, double ftOscAmplitude = 0.0, double ftOscPeriods = 0.0);
 
     /**
      * @brief Builds the global birth-time inventory for the requested particles.
