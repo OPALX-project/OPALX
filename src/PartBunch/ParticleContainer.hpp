@@ -14,7 +14,7 @@
 
 #include "Manager/BaseManager.h"
 
-#include "PartBunch/FieldContainer.hpp"
+#include "PartBunch/ParticleContainerTypes.h"
 
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/DistributionMoments.h"

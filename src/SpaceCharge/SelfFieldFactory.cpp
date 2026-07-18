@@ -5,9 +5,8 @@
 
 #include "SpaceCharge/SelfFieldFactory.h"
 
-#include "PartBunch/BinnedFieldSolver.h"
 #include "PartBunch/PartBunch.h"
-#include "SpaceCharge/Pic/Pic3DSolver.h"
+#include "SpaceCharge/Pic3D/Pic3DSolver.h"
 #include "Utilities/OpalException.h"
 
 #include <memory>
@@ -16,18 +15,13 @@
 namespace opalx::spacecharge {
 
     std::unique_ptr<SelfFieldSystem> SelfFieldFactory::create(
-            SelfFieldConfig config, PartBunch_t& bunch) {
+            SelfFieldConfig config, PartBunch_t& bunch, DataSink* dataSink) {
         std::unique_ptr<SelfFieldAlgorithm> algorithm;
         switch (config.algorithmKind()) {
             case SelfFieldAlgorithmKind::Pic3D:
-                if (bunch.getFieldSolver() == nullptr) {
-                    throw OpalException(
-                            "SelfFieldFactory::create",
-                            "The temporary PIC backend facade is not initialized.");
-                }
                 algorithm = std::make_unique<Pic3DSolver>(
                         config.get<Pic3DConfig>(), bunch.getParticleContainers(),
-                        bunch.sharedPicWorkspace(), *bunch.getFieldSolver(), bunch.getDataSink());
+                        bunch.takePicWorkspace(), dataSink);
                 break;
         }
 

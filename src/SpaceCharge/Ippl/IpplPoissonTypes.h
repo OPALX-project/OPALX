@@ -14,6 +14,8 @@
 
 namespace opalx::spacecharge {
 
+    class SelfFieldDiagnostics;
+
     /** @brief Borrowed field bindings required by one IPPL Poisson backend. */
     struct IpplPoissonFields {
         Field_t<3>* chargeDensity          = nullptr;
@@ -28,6 +30,12 @@ namespace opalx::spacecharge {
         [[nodiscard]] bool hasShiftedGreenFunction() const {
             return greenFunctionShift.has_value();
         }
+    };
+
+    /** @brief Host-side lifecycle options for one backend invocation. */
+    struct IpplPoissonSolveOptions {
+        bool suppressFieldDump            = false;
+        SelfFieldDiagnostics* diagnostics = nullptr;
     };
 
     /** @brief Backend storage and normalization policies consumed by 3D PIC orchestration. */

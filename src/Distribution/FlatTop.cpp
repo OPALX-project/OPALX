@@ -8,19 +8,9 @@
 using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
 using Dist_t        = ippl::random::NormalDistribution<double, 3>;
 
-FlatTop::FlatTop(
-        std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-        Distribution_t* opalDist)
-    : SamplingBase(pc, fc, opalDist), rand_pool_m(determineRandInit()) {
+FlatTop::FlatTop(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist)
+    : SamplingBase(pc, opalDist), rand_pool_m(determineRandInit()) {
     setParameters(opalDist);
-}
-
-FlatTop::FlatTop(
-        std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-        bool emitting, double sigmaTFall, double sigmaTRise, Vector_t<double, 3> cutoff,
-        double tPulseLengthFWHM, Vector_t<double, 3> sigmaR)
-    : SamplingBase(pc, fc), rand_pool_m(determineRandInit()) {
-    setInternalVariables(emitting, sigmaTFall, sigmaTRise, cutoff, tPulseLengthFWHM, sigmaR);
 }
 
 FlatTop::FlatTop(

@@ -109,8 +109,8 @@ private:
 
     using bunch_type = PartBunch_t;
 
-    // Declaration order is the lifetime contract: tracker is destroyed first, then the
-    // self-field system, and finally the particle bunch borrowed by the system.
+    // The destructor preserves the borrowed-particle lifetime contract: tracker, self-field
+    // system, then the particle bunch. Algorithm destructors never observe dangling particles.
     std::unique_ptr<bunch_type> bunch_m;
     std::unique_ptr<opalx::spacecharge::SelfFieldSystem> selfFieldSystem_m;
     std::unique_ptr<Tracker> itsTracker_m;

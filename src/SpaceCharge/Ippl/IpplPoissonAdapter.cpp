@@ -5,9 +5,17 @@
 
 #include "SpaceCharge/Ippl/IpplPoissonAdapter.h"
 
+#include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
+#include "SpaceCharge/SelfFieldDiagnostics.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/Util.h"
 
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
+#include <optional>
+#include <sstream>
 #include <utility>
 
 namespace opalx::spacecharge {
@@ -68,6 +76,26 @@ namespace opalx::spacecharge {
             parameters.add("r2c_direction", 0);
             return parameters;
         }
+
+        const char* backendName(PoissonBackendKind kind) {
+            switch (kind) {
+                case PoissonBackendKind::None:
+                    return "NONE";
+                case PoissonBackendKind::FftPeriodic:
+                    return "FFT";
+                case PoissonBackendKind::Open:
+                    return "OPEN";
+                case PoissonBackendKind::ConjugateGradient:
+                    return "CG";
+            }
+            throw OpalException(
+                    "IpplPoissonAdapter::backendName",
+                    "No IPPL backend matches the configuration.");
+        }
+
+        std::unique_ptr<detail::IpplPoissonBackend> makeBackend(
+                PoissonBackendKind kind, GreenFunctionKind greenFunction,
+                Solver_t<double, 3>& solverStorage, IpplPoissonFields fields);
 
     }  // namespace
 
@@ -256,30 +284,160 @@ namespace opalx::spacecharge {
 
     }  // namespace detail
 
+    namespace {
+
+        std::unique_ptr<detail::IpplPoissonBackend> makeBackend(
+                PoissonBackendKind kind, GreenFunctionKind greenFunction,
+                Solver_t<double, 3>& solverStorage, IpplPoissonFields fields) {
+            std::unique_ptr<detail::IpplPoissonBackend> backend;
+            switch (kind) {
+                case PoissonBackendKind::None:
+                    backend =
+                            std::make_unique<detail::NullIpplPoissonBackend>(solverStorage, fields);
+                    break;
+                case PoissonBackendKind::FftPeriodic:
+                    backend =
+                            std::make_unique<detail::FftIpplPoissonBackend>(solverStorage, fields);
+                    break;
+                case PoissonBackendKind::Open:
+                    backend = std::make_unique<detail::OpenIpplPoissonBackend>(
+                            greenFunction, solverStorage, fields);
+                    break;
+                case PoissonBackendKind::ConjugateGradient:
+                    backend = std::make_unique<detail::CgIpplPoissonBackend>(solverStorage, fields);
+                    break;
+            }
+            if (backend == nullptr) {
+                throw OpalException(
+                        "IpplPoissonAdapter::create", "No IPPL backend matches the configuration.");
+            }
+            return backend;
+        }
+
+#ifdef OPALX_FIELD_DEBUG
+        void dumpVectorField(VField_t<double, 3>& field, std::string what, std::size_t solveIndex) {
+            Inform m("IpplPoissonAdapter::dumpVectorField");
+            if (ippl::Comm->size() > 1 || solveIndex < 2) {
+                m << level5 << "Skipping vector field dump for multiple ranks or first call."
+                  << endl;
+                return;
+            }
+
+            std::string type;
+            std::string unit;
+            if (Util::toUpper(what) == "EF") {
+                type = "vector";
+            }
+
+            auto localIdx  = field.getOwned();
+            auto* mesh     = &field.get_mesh();
+            auto spacing   = mesh->getMeshSpacing();
+            auto origin    = mesh->getOrigin();
+            const int halo = field.getNghost();
+            auto view      = field.getView();
+            auto hostView  = field.getHostMirror();
+            Kokkos::deep_copy(hostView, view);
+
+            std::filesystem::path file("data/");
+            std::ostringstream name;
+            name << OpalData::getInstance()->getInputBasename() << "-" << what << "_" << type << "-"
+                 << std::setfill('0') << std::setw(6) << solveIndex << ".dat";
+            file /= name.str();
+            std::ofstream output(file.string(), std::ios::out);
+            output << std::setprecision(9);
+            output << "# " << Util::toUpper(what) << " " << type << " data on grid" << std::endl
+                   << "# origin= " << std::fixed << origin << " h= " << std::fixed << spacing
+                   << std::endl
+                   << "#" << std::setw(4) << "i" << std::setw(5) << "j" << std::setw(5) << "k"
+                   << std::setw(17) << "x [m]" << std::setw(17) << "y [m]" << std::setw(17)
+                   << "z [m]" << std::setw(10) << what << "x [" << unit << "]" << std::setw(10)
+                   << what << "y [" << unit << "]" << std::setw(10) << what << "z [" << unit << "]"
+                   << std::endl;
+
+            for (int i = localIdx[0].first() + halo; i <= localIdx[0].last() + halo; ++i) {
+                for (int j = localIdx[1].first() + halo; j <= localIdx[1].last() + halo; ++j) {
+                    for (int k = localIdx[2].first() + halo; k <= localIdx[2].last() + halo; ++k) {
+                        const double x = (i - halo) * spacing[0] + origin[0];
+                        const double y = (j - halo) * spacing[1] + origin[1];
+                        const double z = (k - halo) * spacing[2] + origin[2];
+                        output << std::setw(5) << i << std::setw(5) << j << std::setw(5) << k
+                               << std::setw(17) << x << std::setw(17) << y << std::setw(17) << z
+                               << std::scientific << "\t" << hostView(i, j, k)[0] << "\t"
+                               << hostView(i, j, k)[1] << "\t" << hostView(i, j, k)[2] << std::endl;
+                    }
+                }
+            }
+            output.close();
+            m << level5 << "*** FINISHED DUMPING " + Util::toUpper(what) + " FIELD *** to "
+              << file.string() << endl;
+        }
+
+        void dumpScalarField(Field_t<3>& field, std::string what, std::size_t solveIndex) {
+            Inform m("IpplPoissonAdapter::dumpScalarField");
+            m << level5 << "Dumping scalar field: " << what << endl;
+            if (ippl::Comm->size() > 1) {
+                m << level5 << "Skipping scalar field dump for multiple ranks or first call."
+                  << endl;
+                return;
+            }
+
+            std::string type;
+            std::string unit;
+            if (Util::toUpper(what) == "RHO") {
+                type = "scalar";
+                unit = "Cb/m^3";
+            } else if (Util::toUpper(what) == "PHI") {
+                type = "scalar";
+                unit = "V";
+            }
+
+            const ippl::NDIndex<3> localIdx = field.getLayout().getLocalNDIndex();
+            const int halo                  = field.getNghost();
+            auto* mesh                      = &field.get_mesh();
+            auto spacing                    = mesh->getMeshSpacing();
+            auto origin                     = mesh->getOrigin();
+            auto view                       = field.getView();
+            auto hostView                   = field.getHostMirror();
+            Kokkos::deep_copy(hostView, view);
+
+            std::filesystem::path file("data/");
+            std::ostringstream name;
+            name << OpalData::getInstance()->getInputBasename() << "-" << what << "_" << type << "-"
+                 << std::setfill('0') << std::setw(6) << solveIndex << ".dat";
+            file /= name.str();
+            std::ofstream output(file.string(), std::ios::out);
+            output << std::setprecision(9);
+            output << "# " << Util::toUpper(what) << " " << type << " data on grid" << std::endl
+                   << "# origin= " << std::fixed << origin << " h= " << std::fixed << spacing
+                   << " nghosts=" << halo << std::endl
+                   << "#" << std::setw(4) << "i" << std::setw(5) << "j" << std::setw(5) << "k"
+                   << std::setw(17) << "x [m]" << std::setw(17) << "y [m]" << std::setw(17)
+                   << "z [m]" << std::setw(13) << what << " [" << unit << "]" << std::endl;
+
+            for (int i = localIdx[0].first() + halo; i <= localIdx[0].last() + halo; ++i) {
+                for (int j = localIdx[1].first() + halo; j <= localIdx[1].last() + halo; ++j) {
+                    for (int k = localIdx[2].first() + halo; k <= localIdx[2].last() + halo; ++k) {
+                        const double x = (i - halo) * spacing[0] + origin[0];
+                        const double y = (j - halo) * spacing[1] + origin[1];
+                        const double z = (k - halo) * spacing[2] + origin[2];
+                        output << std::setw(5) << i << std::setw(5) << j << std::setw(5) << k
+                               << std::setw(17) << x << std::setw(17) << y << std::setw(17) << z
+                               << std::scientific << "\t" << hostView(i, j, k) << std::endl;
+                    }
+                }
+            }
+            output.close();
+            m << level5 << "*** FINISHED DUMPING " + Util::toUpper(what) + " FIELD *** to "
+              << file.string() << endl;
+        }
+#endif
+
+    }  // namespace
+
     std::unique_ptr<IpplPoissonAdapter> IpplPoissonAdapter::create(
-            PoissonBackendKind kind, GreenFunctionKind greenFunction,
-            Solver_t<double, 3>& solverStorage, IpplPoissonFields fields) {
-        std::unique_ptr<detail::IpplPoissonBackend> backend;
-        switch (kind) {
-            case PoissonBackendKind::None:
-                backend = std::make_unique<detail::NullIpplPoissonBackend>(solverStorage, fields);
-                break;
-            case PoissonBackendKind::FftPeriodic:
-                backend = std::make_unique<detail::FftIpplPoissonBackend>(solverStorage, fields);
-                break;
-            case PoissonBackendKind::Open:
-                backend = std::make_unique<detail::OpenIpplPoissonBackend>(
-                        greenFunction, solverStorage, fields);
-                break;
-            case PoissonBackendKind::ConjugateGradient:
-                backend = std::make_unique<detail::CgIpplPoissonBackend>(solverStorage, fields);
-                break;
-        }
-        if (backend == nullptr) {
-            throw OpalException(
-                    "IpplPoissonAdapter::create", "No IPPL backend matches the configuration.");
-        }
-        return std::unique_ptr<IpplPoissonAdapter>(new IpplPoissonAdapter(std::move(backend)));
+            PoissonBackendKind kind, GreenFunctionKind greenFunction, IpplPoissonFields fields) {
+        return std::unique_ptr<IpplPoissonAdapter>(
+                new IpplPoissonAdapter(kind, greenFunction, fields));
     }
 
     const IpplPoissonCapabilities& IpplPoissonAdapter::capabilitiesFor(PoissonBackendKind kind) {
@@ -312,22 +470,106 @@ namespace opalx::spacecharge {
                 "No IPPL backend matches the configuration.");
     }
 
-    IpplPoissonAdapter::IpplPoissonAdapter(std::unique_ptr<detail::IpplPoissonBackend> backend)
-        : backend_m(std::move(backend)) {}
+    IpplPoissonAdapter::IpplPoissonAdapter(
+            PoissonBackendKind kind, GreenFunctionKind greenFunction, IpplPoissonFields fields)
+        : backend_m(makeBackend(kind, greenFunction, solverStorage_m, fields)),
+          fields_m(fields),
+          kind_m(kind) {}
 
     IpplPoissonAdapter::~IpplPoissonAdapter() = default;
 
-    void IpplPoissonAdapter::solve(const IpplPoissonSolveRequest& request) {
+    void IpplPoissonAdapter::solve(
+            const IpplPoissonSolveRequest& request, const IpplPoissonSolveOptions& options) {
+        Inform m("IpplPoissonAdapter::solve");
+        m << level3 << "Running solver with type: " << backendName(kind_m)
+          << ". Force skip field dump: " << options.suppressFieldDump << endl;
+
         if (request.hasShiftedGreenFunction()
             && !backend_m->capabilities().supportsShiftedGreenFunction) {
             throw OpalException(
                     "IpplPoissonAdapter::solve",
                     "The selected backend does not support shifted Green functions.");
         }
+
+        std::optional<SelfFieldDiagnostics::ScopedEvent> backendEvent;
+        if (options.diagnostics != nullptr) {
+            backendEvent.emplace(
+                    *options.diagnostics, SelfFieldEventKind::BackendSolve,
+                    request.hasShiftedGreenFunction() ? "OPEN-shifted" : "backend");
+        }
+
+        [[maybe_unused]] const std::size_t solveIndex =
+                options.diagnostics != nullptr ? options.diagnostics->backendSolveCount() : 0;
+        [[maybe_unused]] const IpplPoissonCapabilities& backendCapabilities = capabilities();
+#ifdef OPALX_FIELD_DEBUG
+        if (!options.suppressFieldDump && backendCapabilities.debugDumpChargeBeforeSolve) {
+            dumpScalarField(*fields_m.chargeDensity, "rho", solveIndex);
+        }
+#endif
+
         backend_m->solve(request);
+
+#ifdef OPALX_FIELD_DEBUG
+        if (!options.suppressFieldDump && backendCapabilities.debugDumpScalarAfterSolve) {
+            Field_t<3>& scalarOutput = backendCapabilities.usesSeparatePotentialField
+                                               ? *fields_m.potential
+                                               : *fields_m.chargeDensity;
+            dumpScalarField(scalarOutput, "phi", solveIndex);
+        }
+        if (!options.suppressFieldDump && backendCapabilities.debugDumpVectorAfterSolve) {
+            dumpVectorField(*fields_m.electricField, "ef", solveIndex);
+        }
+#endif
+
+        if (options.diagnostics != nullptr) {
+            options.diagnostics->completeBackendSolve();
+        }
     }
 
-    void IpplPoissonAdapter::refresh(IpplPoissonFields fields) { backend_m->refresh(fields); }
+    void IpplPoissonAdapter::warmup() {
+        Kokkos::deep_copy(fields_m.chargeDensity->getView(), 0.0);
+        solve({}, {.suppressFieldDump = true});
+    }
+
+    void IpplPoissonAdapter::setPotentialBoundaryConditions(
+            const std::array<BoundaryConditionKind, 3>& boundaryConditions) {
+        if (!capabilities().requiresPotentialBoundaryConditions) {
+            return;
+        }
+        ippl::BConds<Field_t<3>, 3> translated;
+        for (unsigned face = 0; face < 6; ++face) {
+            switch (boundaryConditions[face / 2]) {
+                case BoundaryConditionKind::Open:
+                    translated[face] = std::make_shared<ippl::NoBcFace<Field_t<3>>>(face);
+                    break;
+                case BoundaryConditionKind::Dirichlet:
+                    translated[face] = std::make_shared<ippl::ZeroFace<Field_t<3>>>(face);
+                    break;
+                case BoundaryConditionKind::Periodic:
+                    translated[face] = std::make_shared<ippl::PeriodicFace<Field_t<3>>>(face);
+                    break;
+            }
+        }
+        setPotentialBoundaryConditions(std::move(translated));
+    }
+
+    void IpplPoissonAdapter::setPotentialBoundaryConditions(
+            ippl::BConds<Field_t<3>, 3> boundaryConditions) {
+        if (!capabilities().requiresPotentialBoundaryConditions) {
+            return;
+        }
+        if (fields_m.potential == nullptr) {
+            throw OpalException(
+                    "IpplPoissonAdapter::setPotentialBoundaryConditions",
+                    "The selected backend requires a potential field.");
+        }
+        fields_m.potential->setFieldBC(boundaryConditions);
+    }
+
+    void IpplPoissonAdapter::refresh(IpplPoissonFields fields) {
+        backend_m->refresh(fields);
+        fields_m = fields;
+    }
 
     const IpplPoissonCapabilities& IpplPoissonAdapter::capabilities() const {
         return backend_m->capabilities();

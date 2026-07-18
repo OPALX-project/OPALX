@@ -10,21 +10,18 @@
 #include "SamplingBase.hpp"
 #include "Utilities/OpalException.h"
 
-OpalFlatTop::OpalFlatTop(
-        std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-        Distribution_t* opalDist)
-    : SamplingBase(pc, fc, opalDist),
+OpalFlatTop::OpalFlatTop(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist)
+    : SamplingBase(pc, opalDist),
       rand_pool_m(determineRandInit()),
       host_rng_m(determineHostSeed()) {
     setParameters(opalDist);
 }
 
 OpalFlatTop::OpalFlatTop(
-        std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-        bool emitting, double sigmaTFall, double sigmaTRise, Vector_t<double, 3> cutoff,
-        double tPulseLengthFWHM, Vector_t<double, 3> sigmaR, double ftOscAmplitude,
-        double ftOscPeriods)
-    : SamplingBase(pc, fc), rand_pool_m(determineRandInit()), host_rng_m(determineHostSeed()) {
+        std::shared_ptr<ParticleContainer_t> pc, bool emitting, double sigmaTFall,
+        double sigmaTRise, Vector_t<double, 3> cutoff, double tPulseLengthFWHM,
+        Vector_t<double, 3> sigmaR, double ftOscAmplitude, double ftOscPeriods)
+    : SamplingBase(pc), rand_pool_m(determineRandInit()), host_rng_m(determineHostSeed()) {
     setInternalVariables(
             emitting, sigmaTFall, sigmaTRise, cutoff, tPulseLengthFWHM, sigmaR, ftOscAmplitude,
             ftOscPeriods);

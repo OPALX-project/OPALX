@@ -28,7 +28,7 @@
 #include "Steppers/SpinTBMTPusher.h"
 #include "Structure/DataSink.h"
 
-#include "SpaceCharge/ParticleSetView.h"
+#include "SpaceCharge/SolveContext.h"
 
 #include "BasicActions/Option.h"
 #include "Utilities/Options.h"

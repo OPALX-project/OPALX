@@ -31,10 +31,6 @@
 #include "Attributes/Attributes.h"
 #include "Distribution/Distribution.h"
 #include "Manager/BaseManager.h"
-#include "Manager/PicManager.h"
-#include "PartBunch/FieldContainer.hpp"
-#include "PartBunch/FieldSolver.hpp"
-#include "PartBunch/LoadBalancer.hpp"
 #include "PartBunch/ParticleContainer.hpp"
 #include "Random/Distribution.h"
 #include "Random/InverseTransformSampling.h"
@@ -64,7 +60,6 @@ enum class DistributionType : short {
 };
 
 using ParticleContainer_t = ParticleContainer<double, 3>;
-using FieldContainer_t    = FieldContainer<double, 3>;
 
 class Distribution : public Definition {
 public:

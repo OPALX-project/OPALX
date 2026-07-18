@@ -237,7 +237,7 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
         if (((pathLength_m > 0.0 && pathLength_m < sStop_m) || dt_m < 0.0)
             && currentStep_m % loggingFrequency_m == 0 && ippl::Comm->rank() == 0
             && !OpalData::getInstance()->isOptimizerRun()) {
-            const Vector<double, 3> d = r_m - oldR;
+            const Vector_t<double, 3> d = r_m - oldR;
 
             logger_m << std::setw(18) << std::setprecision(8)
                      << pathLength_m + std::copysign(euclidean_norm(d), dt_m) << std::setw(18)
@@ -260,7 +260,7 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
         integrator_m.push(r_m, p_m, dt_m);
         r_m = r_m * Physics::c * dt_m;
 
-        const Vector<double, 3> d = r_m - oldR;
+        const Vector_t<double, 3> d = r_m - oldR;
 
         pathLength_m += std::copysign(euclidean_norm(d), dt_m);
 

@@ -7,7 +7,6 @@
 #include "PartBunch/BunchStateHandler.h"
 
 using ParticleContainer_t = ParticleContainer<double, 3>;
-using FieldContainer_t    = FieldContainer<double, 3>;
 using Distribution_t      = Distribution;
 
 using view_type = typename ippl::detail::ViewType<Vector_t<double, 3>, 1>::view_type;
@@ -15,7 +14,6 @@ using view_type = typename ippl::detail::ViewType<Vector_t<double, 3>, 1>::view_
 class SamplingBase {
 protected:
     std::shared_ptr<ParticleContainer_t> pc_m;
-    std::shared_ptr<FieldContainer_t> fc_m;
     Distribution_t* opalDist_m = nullptr;
     std::string samplingMethod_m;
     /// Emission-source state passed in by TrackRun. R0 and P0 are final offsets:
@@ -36,13 +34,8 @@ protected:
     bool hasEmittedOnce_m = false;
 
 public:
-    SamplingBase(
-            std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-            Distribution_t* dist)
-        : pc_m(pc), fc_m(fc), opalDist_m(dist) {}
-
-    SamplingBase(std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc)
-        : pc_m(pc), fc_m(fc) {}
+    SamplingBase(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* dist)
+        : pc_m(pc), opalDist_m(dist) {}
 
     SamplingBase(std::shared_ptr<ParticleContainer_t> pc) : pc_m(pc) {}
 

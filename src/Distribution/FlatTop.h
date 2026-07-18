@@ -36,27 +36,9 @@ public:
     /**
      * @brief Constructor for FlatTop.
      * @param pc Shared pointer to ParticleContainer.
-     * @param fc Shared pointer to FieldContainer.
      * @param opalDist Borrowed Distribution.
      */
-    FlatTop(std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-            Distribution_t* opalDist);
-
-    /**
-     * @brief Constructor for FlatTop.
-     *
-     * @param pc Shared pointer to ParticleContainer.
-     * @param fc Shared pointer to FieldContainer.
-     * @param emitting Flag indicating whether the distribution is emitting.
-     * @param sigmaTFall Standard deviation of fall in flat-top profile.
-     * @param sigmaTRise Standard deviation of rise in flat-top profile.
-     * @param cutoff Cutoff multiplier for position distribution R.
-     * @param tPulseLengthFWHM Time length of the pulse in FWHM.
-     * @param sigmaR Standard deviation for position distribution.
-     */
-    FlatTop(std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-            bool emitting, double sigmaTFall, double sigmaTRise, Vector_t<double, 3> cutoff,
-            double tPulseLengthFWHM, Vector_t<double, 3> sigmaR);
+    FlatTop(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist);
 
     /**
      * @brief Constructor for FlatTop.

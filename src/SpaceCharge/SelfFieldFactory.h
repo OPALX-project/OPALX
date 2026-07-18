@@ -12,13 +12,15 @@
 
 #include <memory>
 
+class DataSink;
+
 namespace opalx::spacecharge {
 
     /** @brief Construction-time selection point for concrete self-field algorithms. */
     class SelfFieldFactory {
     public:
         [[nodiscard]] static std::unique_ptr<SelfFieldSystem> create(
-                SelfFieldConfig config, PartBunch_t& bunch);
+                SelfFieldConfig config, PartBunch_t& bunch, DataSink* dataSink);
     };
 
 }  // namespace opalx::spacecharge

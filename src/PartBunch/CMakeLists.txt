@@ -1,7 +1,5 @@
 set (_SRCS
     PartBunch.cpp
-    FieldSolver.cpp
-    BinnedFieldSolver.cpp
     BunchStateHandler.cpp
 )
 
@@ -9,13 +7,9 @@ set (HDRS
     PartBunch.h
     PartBunchFwd.h
     BunchStateHandler.h
-    FieldSolver.hpp
-    FieldContainer.hpp
-    FieldMirror.hpp
-    LoadBalancer.hpp
+    ParticleContainerTypes.h
     ParticleContainer.hpp
     BCHandler.hpp
-    BinnedFieldSolver.h
 )
 
 target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
