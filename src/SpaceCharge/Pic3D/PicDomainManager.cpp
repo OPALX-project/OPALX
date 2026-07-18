@@ -40,8 +40,19 @@ namespace opalx::spacecharge {
 
         const std::size_t step              = context.stepState().step;
         const CorrectionRequest& correction = context.requestedPhysics().correction;
-        bool refreshBackend                 = workspace.rebuildGlobalLayoutInPlace(
-                targetExtents(correction), config_m.layoutRebuildParallelDimensions());
+        const Workspace::Extents extents    = targetExtents(correction);
+        const bool repeatFieldLayoutRefresh = backendRefreshRequired_m;
+        if (workspace.layoutExtents() != extents) {
+            // Mark the backend dirty before mutating layout-owned fields. If a later migration
+            // throws, the recovery update must still rebind the solver after layouts agree.
+            backendRefreshRequired_m = true;
+        }
+        workspace.rebuildGlobalLayoutInPlace(extents, config_m.layoutRebuildParallelDimensions());
+        if (repeatFieldLayoutRefresh) {
+            // A previous update may have stopped partway through an extent or ORB layout change.
+            // Repeating every field refresh is safe and repairs the workspace before migration.
+            workspace.updateFieldLayoutsAfterLayoutChange();
+        }
 
         PicDomainBounds bounds = particles.computeBounds();
         extendImageBounds(bounds, correction);
@@ -59,14 +70,14 @@ namespace opalx::spacecharge {
         bool redistributed = false;
         if (beamFrame && redistributionDue(step)
             && particles.loadIsImbalanced(config_m.loadBalancingThreshold(), rankFlags_m)) {
-            redistributed  = redistribute(context, workspace, particles, diagnostics);
-            refreshBackend = refreshBackend || redistributed;
+            redistributed = redistribute(context, workspace, particles, diagnostics);
         }
 
         // Layout-owned fields and particle layouts now agree. Rebind backend RHS before LHS only
         // after the last possible layout change; IpplPoissonAdapter owns that exact ordering.
-        if (refreshBackend) {
+        if (backendRefreshRequired_m) {
             backend.refresh(backendFields(workspace));
+            backendRefreshRequired_m = false;
         }
 
         if (redistributed) {
@@ -182,6 +193,9 @@ namespace opalx::spacecharge {
         const std::size_t localBefore = particles.primaryLocalCount();
         orb_m                         = Orb();
         orb_m.initialize(workspace.layout(), workspace.mesh(), workspace.chargeDensity());
+        // ORB may mutate the layout before returning or throwing. Keep the backend dirty so a
+        // later update repeats every field refresh before migration and backend rebinding.
+        backendRefreshRequired_m = true;
         const bool succeeded =
                 orb_m.binaryRepartition(particles.primaryPositions(), workspace.layout(), false);
         if (!succeeded) {

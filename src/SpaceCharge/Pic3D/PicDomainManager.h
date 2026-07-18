@@ -68,6 +68,8 @@ namespace opalx::spacecharge {
         Pic3DConfig config_m;
         Orb orb_m;
         std::vector<int> rankFlags_m;
+        /** Remains set across failed updates until the backend is rebound successfully. */
+        bool backendRefreshRequired_m = false;
     };
 
 }  // namespace opalx::spacecharge

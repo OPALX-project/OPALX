@@ -437,12 +437,6 @@ void ParallelTracker::execute() {
             // bounds immediately after first emission) must not persist across steps.
             globalEOL_m = false;
 
-            // Get the bunch spatial bounds across all containers.
-            Vector_t<double, 3> rmin(0.0), rmax(0.0);
-            if (itsBunch_m->getTotalNumAllContainers() > 0) {
-                computeInitialBounds(rmin, rmax);
-            }
-
             // First half of the time integration
             timeIntegration1(pusher);
             m << level4 << "timeIntegration1 done at step " << step << "." << endl;
