@@ -1,5 +1,4 @@
 set (_SRCS
-    LegacyPic3DAlgorithm.cpp
     ParticleSetView.cpp
     SelfFieldConfig.cpp
     SelfFieldConfigBuilder.cpp

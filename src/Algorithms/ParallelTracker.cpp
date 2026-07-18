@@ -1679,7 +1679,9 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
     }
 
     if (statDump) {
-        itsDataSink_m->dumpSDDS(*itsBunch_m, fdByContainer, -1.0);
+        const int reportedBinCount =
+                selfFieldSystem_m == nullptr ? 1 : selfFieldSystem_m->reportedBinCount();
+        itsDataSink_m->dumpSDDS(*itsBunch_m, fdByContainer, reportedBinCount, -1.0);
         *gmsg << level3 << "* Wrote beam statistics." << endl;
     }
 

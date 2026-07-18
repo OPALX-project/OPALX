@@ -67,6 +67,15 @@ namespace opalx::spacecharge {
         return {correction.kind(), correction.planeZ()};
     }
 
+    int SelfFieldSystem::reportedBinCount() const {
+        const auto& binning = config_m.get<Pic3DConfig>().binning();
+        if (!binning.has_value() || !diagnostics_m.hasCurrentBinCount()
+            || diagnostics_m.currentBinCount() == binning->maximumBins()) {
+            return 1;
+        }
+        return static_cast<int>(diagnostics_m.currentBinCount());
+    }
+
     void SelfFieldSystem::validateConfiguration() const {
         if (capabilities_m.algorithm != config_m.algorithmKind()) {
             throw OpalException(
