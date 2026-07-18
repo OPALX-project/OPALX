@@ -1,6 +1,5 @@
 #include "Structure/DataSink.h"
 
-#include <cstring>
 #include <utility>
 #include <vector>
 
@@ -51,6 +50,7 @@ int BinnedFieldSolver<T, Dim>::legacyReportedBinCount() const {
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::computeSelfFields(
         PartBunch_t& bunch, IterationPlan_t& iterationPlan, std::uint64_t particleGeneration,
+        const PreparedCorrection_t& correction,
         opalx::spacecharge::BinConfigurationObserver* binObserver,
         opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
     // Validate inputs and decide between binned vs legacy solver.
@@ -107,83 +107,52 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(
       << ", totalParticles=" << pc->getTotalNum() << ", hasBins=" << (hasBins ? 1 : 0)
       << ", stype=" << this->getStype() << endl;
 
-    // Temporarily disable image charges if the step limit has been reached.
-    // The controller's enabled flag gates the image scatter pass; by disabling it
-    // here both the legacy and binned paths automatically perform primary-only scatter.
-    const bool imageWasEnabled     = imageScatterController_m.isEnabled();
-    const bool imageActiveThisStep = isImageChargeActiveForStep(bunch.getGlobalTrackStep());
-
-    // Mirror the same step-budget toggling for the shifted Green's path.
-    const bool shiftedGreensWasEnabled = shiftedGreensEnabled_m;
-    const bool shiftedGreensActiveThisStep =
-            isShiftedGreensActiveForStep(bunch.getGlobalTrackStep());
-
-    const auto restoreCorrectionState = [&]() {
-        if (imageWasEnabled && !imageActiveThisStep) {
-            imageScatterController_m.configure(true, imageScatterController_m.getZPlane());
-        }
-        if (shiftedGreensWasEnabled && !shiftedGreensActiveThisStep) {
-            shiftedGreensEnabled_m = true;
-        }
-    };
-
-    try {
-        if (imageWasEnabled && !imageActiveThisStep) {
-            m << level3 << "ZEROFACE_MAXSTEPS reached (step=" << bunch.getGlobalTrackStep()
-              << ", maxSteps=" << zerofaceMaxSteps_m << "); disabling image charges for this step."
-              << endl;
-            imageScatterController_m.configure(false, imageScatterController_m.getZPlane());
-        }
-        if (shiftedGreensWasEnabled && !shiftedGreensActiveThisStep) {
-            m << level3 << "ZEROFACE_MAXSTEPS reached (step=" << bunch.getGlobalTrackStep()
-              << ", maxSteps=" << zerofaceMaxSteps_m
-              << "); disabling SHIFTED_GREENS_FUNCTION correction for this step." << endl;
-            shiftedGreensEnabled_m = false;
-        }
-
-        const PreparedIteration_t prepared = iterationPlan.prepare(particleGeneration, binObserver);
-        if (prepared.kind != iterationPlan.kind()) {
-            throw OpalException(
-                    "BinnedFieldSolver::computeSelfFields",
-                    "The prepared iteration kind does not match its plan.");
-        }
-        diagnostics.recordBinCount(prepared.mergedBinCount);
-
-        if (hasBins) {
-            if (!binningConfigured_m || iterationPlan.maximumBinCount() != maximumBinCount_m) {
-                throw OpalException(
-                        "BinnedFieldSolver::computeSelfFields",
-                        "Binning-plan metadata does not match the configured solver facade.");
-            }
-            currentBinCount_m = prepared.mergedBinCount;
+    if (correction.passCount == 0) {
+        throw OpalException(
+                "BinnedFieldSolver::computeSelfFields",
+                "The prepared correction contains no primary solve pass.");
+    }
+    if (correction.correctionExpired) {
+        m << level3 << "ZEROFACE_MAXSTEPS reached (step=" << bunch.getGlobalTrackStep()
+          << ", maxSteps=" << correction.maximumSteps << "); disabling ";
+        if (correction.configuredCorrection.kind
+            == opalx::spacecharge::CorrectionKind::ShiftedGreen) {
+            m << "SHIFTED_GREENS_FUNCTION correction for this step." << endl;
         } else {
-            if (binningConfigured_m || iterationPlan.maximumBinCount() != 0) {
-                throw OpalException(
-                        "BinnedFieldSolver::computeSelfFields",
-                        "Whole-bunch plan metadata does not match the configured solver facade.");
-            }
-            // Legacy path has no separate correction pass: PicScatterGather deposits
-            // primary and image charge together before one standard solve. The shifted Green's
-            // correction is only
-            // implemented for the binned path, so warn once if the user requested it
-            // without binning.
-            if (shiftedGreensWasEnabled && shiftedGreensActiveThisStep) {
-                m << level3 << "SHIFTED_GREENS_FUNCTION is set but no binning is active; "
-                  << "the legacy path does not apply the Dirichlet correction." << endl;
-            }
+            m << "image charges for this step." << endl;
         }
-
-        m << level4 << "Dispatching prepared iteration plan." << endl;
-        executeIterationPlan(bunch, iterationPlan, prepared, particleGeneration, diagnostics);
-    } catch (...) {
-        try {
-            restoreCorrectionState();
-        } catch (...) {
-        }
-        throw;
     }
 
-    restoreCorrectionState();
+    const PreparedIteration_t prepared = iterationPlan.prepare(particleGeneration, binObserver);
+    if (prepared.kind != iterationPlan.kind()) {
+        throw OpalException(
+                "BinnedFieldSolver::computeSelfFields",
+                "The prepared iteration kind does not match its plan.");
+    }
+    diagnostics.recordBinCount(prepared.mergedBinCount);
+
+    if (hasBins) {
+        if (!binningConfigured_m || iterationPlan.maximumBinCount() != maximumBinCount_m) {
+            throw OpalException(
+                    "BinnedFieldSolver::computeSelfFields",
+                    "Binning-plan metadata does not match the configured solver facade.");
+        }
+        currentBinCount_m = prepared.mergedBinCount;
+    } else {
+        if (binningConfigured_m || iterationPlan.maximumBinCount() != 0) {
+            throw OpalException(
+                    "BinnedFieldSolver::computeSelfFields",
+                    "Whole-bunch plan metadata does not match the configured solver facade.");
+        }
+        if (correction.shiftedIgnored) {
+            m << level3 << "SHIFTED_GREENS_FUNCTION is set but no binning is active; "
+              << "the legacy path does not apply the Dirichlet correction." << endl;
+        }
+    }
+
+    m << level4 << "Dispatching prepared iteration plan." << endl;
+    executeIterationPlan(
+            bunch, iterationPlan, prepared, particleGeneration, correction, diagnostics);
 }
 
 template <typename T, unsigned Dim>
@@ -199,76 +168,9 @@ void BinnedFieldSolver<T, Dim>::setGatherAttribute(const GatherAttribute attr) {
 }
 
 template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::setImageChargeConfiguration(bool enabled, double zPlane) {
-    if (enabled && shiftedGreensEnabled_m) {
-        throw OpalException(
-                "BinnedFieldSolver::setImageChargeConfiguration",
-                "Cannot enable image charges while SHIFTED_GREENS_FUNCTION is active: "
-                "ZEROFACE_R0Z and SHIFTED_GREENS_FUNCTION are mutually exclusive.");
-    }
-    imageScatterController_m.configure(enabled, zPlane);
-}
-
-template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::setShiftedGreensConfiguration(bool enabled, double zPlane) {
-    if (enabled && imageScatterController_m.isEnabled()) {
-        throw OpalException(
-                "BinnedFieldSolver::setShiftedGreensConfiguration",
-                "Cannot enable SHIFTED_GREENS_FUNCTION while image charges are active: "
-                "ZEROFACE_R0Z and SHIFTED_GREENS_FUNCTION are mutually exclusive.");
-    }
-    shiftedGreensEnabled_m = enabled;
-    shiftedGreensPlaneZ_m  = zPlane;
-}
-
-template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::setZerofaceMaxSteps(int maxSteps) {
-    if (maxSteps < 0) {
-        throw OpalException(
-                "BinnedFieldSolver::setZerofaceMaxSteps", "ZEROFACE_MAXSTEPS must be >= 0.");
-    }
-    zerofaceMaxSteps_m = maxSteps;
-}
-
-template <typename T, unsigned Dim>
-bool BinnedFieldSolver<T, Dim>::isImageChargeActiveForStep(size_t step) const {
-    if (!imageScatterController_m.isEnabled()) {
-        return false;
-    }
-    if (zerofaceMaxSteps_m <= 0) {
-        return true;  // unlimited
-    }
-    return step < static_cast<size_t>(zerofaceMaxSteps_m);
-}
-
-template <typename T, unsigned Dim>
-bool BinnedFieldSolver<T, Dim>::isShiftedGreensActiveForStep(size_t step) const {
-    if (!shiftedGreensEnabled_m) {
-        return false;
-    }
-    if (zerofaceMaxSteps_m <= 0) {
-        return true;  // unlimited
-    }
-    return step < static_cast<size_t>(zerofaceMaxSteps_m);
-}
-
-template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::setZeroFacePlaneDumpFrequency(int frequency) {
-    if (frequency < 0) {
-        throw OpalException(
-                "BinnedFieldSolver::setZeroFacePlaneDumpFrequency",
-                "ZEROFACEPLANEDUMP frequency must be >= 0.");
-    }
-}
-
-template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::dumpDirichletPlaneDiagnosticsIfRequested(
-        PartBunch_t& bunch, const std::string& solveTag,
+        PartBunch_t& bunch, const std::string& solveTag, double planeZ,
         opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
-    if (!imageScatterController_m.isEnabled()) {
-        return;
-    }
-
     const long long step = bunch.getGlobalTrackStep();
     if (!diagnostics.shouldDumpPlane(step)) {
         return;
@@ -291,21 +193,19 @@ void BinnedFieldSolver<T, Dim>::dumpDirichletPlaneDiagnosticsIfRequested(
     if (!potentialField) {
         return;
     }
-    const double zPlane = imageScatterController_m.getZPlane();
-
     DataSink* dataSink = bunch.getDataSink();
     if (!dataSink) {
         return;
     }
 
     const auto planeDiagnostics =
-            dataSink->dumpDirichletPlane(step, bunch.getT(), zPlane, *potentialField, solveTag);
+            dataSink->dumpDirichletPlane(step, bunch.getT(), planeZ, *potentialField, solveTag);
     if (planeDiagnostics.sampleCount == 0) {
         return;
     }
 
     m << level2 << "Dirichlet-plane potential diagnostics (" << solveTag << ") at step " << step
-      << ": z=" << zPlane << " m, mean(phi)=" << planeDiagnostics.mean
+      << ": z=" << planeZ << " m, mean(phi)=" << planeDiagnostics.mean
       << " V, var(phi)=" << planeDiagnostics.variance << " V^2" << endl;
 }
 
@@ -333,7 +233,8 @@ void BinnedFieldSolver<T, Dim>::printBinStatsTable(
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::executeIterationPlan(
         PartBunch_t& bunch, IterationPlan_t& iterationPlan, const PreparedIteration_t& prepared,
-        std::uint64_t particleGeneration, opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
+        std::uint64_t particleGeneration, const PreparedCorrection_t& correction,
+        opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
     Workspace_t& workspace = this->getWorkspace();
 
     const bool binned = prepared.kind == opalx::spacecharge::IterationKind::Binning;
@@ -375,197 +276,35 @@ void BinnedFieldSolver<T, Dim>::executeIterationPlan(
                         "BinnedFieldSolver::executeIterationPlan",
                         "A direct solve unit is invalid for this prepared iteration.");
             }
-            computeLegacySelfFields(bunch, unit, diagnostics);
-            continue;
-        }
-        if (!binned
-            || unit.fieldMode != opalx::spacecharge::SolveUnitFieldMode::LorentzTransformed) {
+        } else if (
+                !binned
+                || unit.fieldMode != opalx::spacecharge::SolveUnitFieldMode::LorentzTransformed) {
             throw OpalException(
                     "BinnedFieldSolver::executeIterationPlan",
                     "A Lorentz-transformed solve unit requires a binning plan.");
-        }
-        if (unit.ordinal >= nBins) {
+        } else if (unit.ordinal >= nBins) {
             throw OpalException(
                     "BinnedFieldSolver::executeIterationPlan",
                     "A binning plan emitted a solve-unit ordinal outside its prepared range.");
         }
 
-        const std::size_t binIndex    = unit.ordinal;
-        const std::size_t nPartGlobal = unit.globalParticleCount;
-
-        m << level4 << "binIndex=" << static_cast<int>(binIndex)
-          << " nPartGlobal=" << static_cast<unsigned long long>(nPartGlobal) << endl;
-
-        const double gammaBin = unit.gamma;
-        if (gammaBin <= 0.0) {
-            throw OpalException(
-                    "BinnedFieldSolver::executeIterationPlan",
-                    "Computed non-positive gamma for bin.");
+        if (binned) {
+            if (unit.gamma <= 0.0) {
+                throw OpalException(
+                        "BinnedFieldSolver::executeIterationPlan",
+                        "Computed non-positive gamma for bin.");
+            }
+            m << level4 << "binIndex=" << static_cast<int>(unit.ordinal)
+              << " nPartGlobal=" << static_cast<unsigned long long>(unit.globalParticleCount)
+              << " gammaBin=" << std::setprecision(10) << unit.gamma << endl;
+            binStats_m.push_back(
+                    BinStatsRow{
+                            static_cast<long long>(unit.ordinal),
+                            static_cast<unsigned long long>(unit.globalParticleCount), unit.gamma});
         }
 
-        m << level4 << "binIndex=" << static_cast<int>(binIndex)
-          << " gammaBin=" << std::setprecision(10) << gammaBin << endl;
-
-        binStats_m.push_back(
-                BinStatsRow{
-                        static_cast<long long>(binIndex),
-                        static_cast<unsigned long long>(nPartGlobal), gammaBin});
-
-        // Mesh references reused for both primary and correction passes.
-        auto& mesh        = this->getRho()->get_mesh();
-        const auto hrOrig = mesh.getMeshSpacing();
-        auto hrStretched  = hrOrig;
-        hrStretched[Dim - 1] *= gammaBin;
-
-        const bool imageActive         = imageScatterController_m.isEnabled();
-        const bool shiftedGreensActive = shiftedGreensEnabled_m;
-        // Mutual exclusion enforced at config time; defensive assert.
-        assert(!(imageActive && shiftedGreensActive));
-        const bool correctionActive = imageActive || shiftedGreensActive;
-
-        // --- Primary pass: scatter real charges, solve, accumulate with +B ---
-        {
-            auto solvePassEvent = diagnostics.scopedEvent(
-                    opalx::spacecharge::SelfFieldEventKind::SolvePass, "primary");
-            const ImageScatterMode scatterMode = correctionActive
-                                                         ? ImageScatterMode::PrimaryOnly
-                                                         : ImageScatterMode::PrimaryAndImage;
-            prepareRhoForUnit(bunch, unit, scatterMode);
-
-            *(this->getE()) = 0.0;
-            mesh.setMeshSpacing(hrStretched);
-
-            m << level4 << "binIndex=" << static_cast<int>(binIndex)
-              << " primary runSolver(true) start"
-              << " (hr_z stretched by gamma=" << gammaBin << ")" << endl;
-            this->runSolver(true, diagnostics);
-            m << level4 << "binIndex=" << static_cast<int>(binIndex)
-              << " primary runSolver(true) done; accumulate->Etmp" << endl;
-
-            {
-                auto compositionEvent = diagnostics.scopedEvent(
-                        opalx::spacecharge::SelfFieldEventKind::FieldComposition,
-                        "primary-accumulation");
-                typename FieldComposer_t::Policy compositionPolicy;
-                for (unsigned d = 0; d < Dim; ++d) {
-                    compositionPolicy.meanMomentum[d] = unit.meanMomentum[d];
-                }
-                compositionPolicy.gamma        = gammaBin;
-                compositionPolicy.magneticSign = +1.0;
-                compositionPolicy.sourceRule   = opalx::spacecharge::FieldSourceRule::Direct;
-                fieldComposer_m.accumulate(workspace, compositionPolicy);
-            }
-
-            mesh.setMeshSpacing(hrOrig);
-        }
-
-        // --- Dirichlet correction pass: one of two mutually-exclusive paths ---
-        //
-        // Path A (image charges): legacy path. Scatters mirrored particles onto
-        // the same mesh, then solves with the standard Green's function. Only
-        // correct while the mesh straddles the cathode plane; degrades silently
-        // once the bunch has drifted beyond ZEROFACE_MAXSTEPS.
-        //
-        // Path B (shifted Green's function): new path. Re-scatters the primary
-        // charges, then solves with a translated free-space kernel that encodes
-        // the image-charge contribution analytically. The component-wise z-flip
-        // + sign-flip on the solver output, applied by FieldComposer,
-        // produces the image-charge E field directly. Works at any bunch-to-
-        // plane distance and requires the OPEN solver (checked in
-        // FieldSolver::runShiftedOpenSolver).
-        if (imageActive) {
-            auto solvePassEvent = diagnostics.scopedEvent(
-                    opalx::spacecharge::SelfFieldEventKind::SolvePass, "image");
-            prepareRhoForUnit(bunch, unit, ImageScatterMode::ImageOnly);
-
-            *(this->getE()) = 0.0;
-            mesh.setMeshSpacing(hrStretched);
-
-            m << level4 << "binIndex=" << static_cast<int>(binIndex)
-              << " image runSolver(true) start" << endl;
-            this->runSolver(true, diagnostics);
-            m << level4 << "binIndex=" << static_cast<int>(binIndex)
-              << " image runSolver(true) done; accumulate->Etmp (B negated)" << endl;
-
-            {
-                auto compositionEvent = diagnostics.scopedEvent(
-                        opalx::spacecharge::SelfFieldEventKind::FieldComposition,
-                        "image-accumulation");
-                typename FieldComposer_t::Policy compositionPolicy;
-                for (unsigned d = 0; d < Dim; ++d) {
-                    compositionPolicy.meanMomentum[d] = unit.meanMomentum[d];
-                }
-                compositionPolicy.gamma        = gammaBin;
-                compositionPolicy.magneticSign = -1.0;
-                compositionPolicy.sourceRule   = opalx::spacecharge::FieldSourceRule::Direct;
-                fieldComposer_m.accumulate(workspace, compositionPolicy);
-            }
-            mesh.setMeshSpacing(hrOrig);
-
-            // Dump phi ~= 0 check on the Dirichlet plane AFTER the correction
-            // lands on the mesh. Only safe for the explicit-image path: there
-            // the cathode plane always lies inside the computational domain.
-            // For the shifted path the domain may be far from z = R0Z, so the
-            // interpolated phi on the plane would be meaningless.
-            if (!dumpedDirichletPlaneThisStep) {
-                dumpDirichletPlaneDiagnosticsIfRequested(bunch, "binned", diagnostics);
-                dumpedDirichletPlaneThisStep = true;
-            }
-        } else if (shiftedGreensActive) {
-            auto solvePassEvent = diagnostics.scopedEvent(
-                    opalx::spacecharge::SelfFieldEventKind::SolvePass, "shifted-green");
-            // Shifted-Green's-function image correction. Multi-rank enabled: the
-            // axis-flip source read crosses ranks under PARFFTZ, but that is handled
-            // inside FieldComposer (it stages a globally mirrored field in a
-            // local view populated via peer-rank MPI exchange).
-            //
-            // Re-scatter the primary charges (solve() overwrote the RHS in the
-            // primary pass). This matches the ImageOnly path's pattern.
-            prepareRhoForUnit(bunch, unit, ImageScatterMode::PrimaryOnly);
-
-            *(this->getE()) = 0.0;
-            mesh.setMeshSpacing(hrStretched);
-
-            // Shift formula in the bin rest frame. Old OPAL computes the same
-            // distance as zshift = -2 * gamma * (z_center - z_plane); IPPL's
-            // shiftedGreensFunction uses the opposite sign convention because it
-            // evaluates G(r - shift). See TestShiftedGreensFunction.
-            const auto origin = mesh.getOrigin();
-            const int N_z =
-                    static_cast<int>(this->getRho()->getLayout().getDomain()[Dim - 1].length());
-            const double zCenter =
-                    origin[Dim - 1] + 0.5 * static_cast<double>(N_z) * hrOrig[Dim - 1];
-            ippl::Vector<double, Dim> shift(0.0);
-            shift[Dim - 1] = 2.0 * gammaBin * (zCenter - shiftedGreensPlaneZ_m);
-
-            m << level4 << "binIndex=" << static_cast<int>(binIndex)
-              << " shifted-GF runSolver start, plane=" << shiftedGreensPlaneZ_m
-              << ", shift_z=" << shift[Dim - 1] << endl;
-            this->runShiftedOpenSolver(shift, diagnostics);
-            m << level4 << "binIndex=" << static_cast<int>(binIndex)
-              << " shifted-GF runSolver done; accumulate->Etmp (B negated, z-flip)" << endl;
-
-            // Keep the real charge sign for the shifted solve. The image-charge
-            // sign enters through the z-flip/component-sign rule in
-            // FieldComposer. Pre-negating rho here would invert the
-            // image field a second time and reinforce the near-cathode
-            // transverse field instead of cancelling it.
-            {
-                auto compositionEvent = diagnostics.scopedEvent(
-                        opalx::spacecharge::SelfFieldEventKind::FieldComposition,
-                        "shifted-green-accumulation");
-                typename FieldComposer_t::Policy compositionPolicy;
-                for (unsigned d = 0; d < Dim; ++d) {
-                    compositionPolicy.meanMomentum[d] = unit.meanMomentum[d];
-                }
-                compositionPolicy.gamma        = gammaBin;
-                compositionPolicy.magneticSign = -1.0;
-                compositionPolicy.sourceRule =
-                        opalx::spacecharge::FieldSourceRule::ShiftedGreenImageZ;
-                fieldComposer_m.accumulate(workspace, compositionPolicy);
-            }
-
-            mesh.setMeshSpacing(hrOrig);
+        for (const SolvePass_t& pass : correction) {
+            executeSolvePass(bunch, unit, pass, dumpedDirichletPlaneThisStep, diagnostics);
         }
     }
 
@@ -599,89 +338,143 @@ void BinnedFieldSolver<T, Dim>::executeIterationPlan(
 }
 
 template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(
-        PartBunch_t& bunch, const SolveUnit_t& unit,
-        opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
-    if (unit.kind != opalx::spacecharge::IterationKind::WholeBunch
-        || unit.fieldMode != opalx::spacecharge::SolveUnitFieldMode::Direct) {
+void BinnedFieldSolver<T, Dim>::executeSolvePass(
+        PartBunch_t& bunch, const SolveUnit_t& unit, const SolvePass_t& pass,
+        bool& dumpedDirichletPlaneThisStep, opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
+    const bool binned =
+            unit.fieldMode == opalx::spacecharge::SolveUnitFieldMode::LorentzTransformed;
+    const bool direct = unit.fieldMode == opalx::spacecharge::SolveUnitFieldMode::Direct;
+    if ((direct && pass.outputRule != opalx::spacecharge::FieldOutputRule::DirectGather)
+        || (binned && pass.outputRule != opalx::spacecharge::FieldOutputRule::LorentzAccumulation)
+        || (!direct && !binned)) {
         throw OpalException(
-                "BinnedFieldSolver::computeLegacySelfFields",
-                "A whole-bunch plan emitted an incompatible solve unit.");
+                "BinnedFieldSolver::executeSolvePass",
+                "The solve-pass output rule does not match its solve unit.");
     }
 
     auto solvePassEvent = diagnostics.scopedEvent(
-            opalx::spacecharge::SelfFieldEventKind::SolvePass, "primary-and-image");
-    // This code is a direct move of the legacy implementation from
-    // PartBunch::computeSelfFields (scatter/solve/gather for all particles).
+            opalx::spacecharge::SelfFieldEventKind::SolvePass, pass.solveLabel());
 
-    //  access the particle container for scattering/gathering.
     std::shared_ptr<ParticleCtr_t> pc = bunch.getParticleContainer();
     if (!pc) {
         throw OpalException(
-                "BinnedFieldSolver::computeLegacySelfFields",
+                "BinnedFieldSolver::executeSolvePass",
                 "Bunch particle container is not available.");
     }
-
-    // Level-5 debug: legacy mode entry.
-    Inform m("BinnedFieldSolver::computeLegacySelfFields");
-    m << level4 << "Legacy mode entry: localP=" << pc->getLocalNum()
-      << ", totalP=" << pc->getTotalNum() << ", stype=" << this->getStype() << endl;
-
     if (scatterAttribute_m != ScatterAttribute::ChargeQ) {
         throw OpalException(
-                "BinnedFieldSolver::computeLegacySelfFields",
-                "Unsupported scatter attribute in legacy solver.");
+                "BinnedFieldSolver::executeSolvePass",
+                "Unsupported scatter attribute in PIC solver.");
     }
 
     Workspace_t& workspace          = this->getWorkspace();
     const auto& backendCapabilities = this->getBackendCapabilities();
-    const auto selection            = unit.depositSelection();
-    const auto depositKind          = imageScatterController_m.isEnabled()
-                                              ? ScatterGather_t::DepositKind::PrimaryAndImage
-                                              : ScatterGather_t::DepositKind::Primary;
-
-    typename ScatterGather_t::ChargeNormalization normalization;
-    normalization.timeStep              = bunch.getdT();
-    normalization.gamma                 = 1.0;
-    normalization.selectedCharge        = pc->getTotalCharge();
-    normalization.couplingConstant      = this->getCouplingConstant();
-    normalization.normalizeByCellVolume = backendCapabilities.normalizeChargeByCellVolume;
-    normalization.subtractNeutralizingBackground =
-            backendCapabilities.subtractNeutralizingBackground;
-
-    typename ScatterGather_t::ImagePolicy imagePolicy;
-    imagePolicy.enabled = imageScatterController_m.isEnabled();
-    imagePolicy.planeZ  = imageScatterController_m.getZPlane();
-
-    scatterGather_m.depositCharge(
-            *pc, workspace, depositKind, selection, normalization, imagePolicy);
+    if (direct) {
+        typename ScatterGather_t::ChargeNormalization normalization;
+        normalization.timeStep              = bunch.getdT();
+        normalization.gamma                 = 1.0;
+        normalization.selectedCharge        = pc->getTotalCharge();
+        normalization.couplingConstant      = this->getCouplingConstant();
+        normalization.normalizeByCellVolume = backendCapabilities.normalizeChargeByCellVolume;
+        normalization.subtractNeutralizingBackground =
+                backendCapabilities.subtractNeutralizingBackground;
+        scatterGather_m.depositCharge(
+                *pc, workspace, pass.depositKind, unit.depositSelection(), normalization,
+                pass.imagePolicy);
+    } else {
+        prepareRhoForUnit(bunch, unit, pass);
+    }
 
     // Ensure deterministic output even for solver types that do not update `E`.
     *(this->getE()) = 0.0;
 
-    // run the solver once and gather mesh E back to particles.
-    m << level4 << "Legacy mode: runSolver() start" << endl;
-    this->runSolver(false, diagnostics);
-    dumpDirichletPlaneDiagnosticsIfRequested(bunch, "legacy", diagnostics);
-    m << level4 << "Legacy mode: gather E->particles" << endl;
+    auto& mesh        = this->getRho()->get_mesh();
+    const auto hrOrig = mesh.getMeshSpacing();
+    auto hrStretched  = hrOrig;
+    hrStretched[Dim - 1] *= unit.gamma;
 
-    // Gather solver output directly (legacy path does not use Etmp).
-    if (gatherAttribute_m == GatherAttribute::ElectricFieldE) {
-        auto compositionEvent = diagnostics.scopedEvent(
-                opalx::spacecharge::SelfFieldEventKind::FieldComposition, "legacy-gather");
-        fieldComposer_m.gatherElectrostatic(scatterGather_m, pc->E, pc->R, workspace);
-    } else {
-        throw OpalException(
-                "BinnedFieldSolver::computeLegacySelfFields",
-                "Unsupported gather attribute in legacy solver.");
+    opalx::spacecharge::IpplPoissonSolveRequest backendRequest;
+    if (pass.backendRule == opalx::spacecharge::BackendSolveRule::ShiftedGreen) {
+        if (!binned) {
+            throw OpalException(
+                    "BinnedFieldSolver::executeSolvePass",
+                    "A shifted Green solve requires a binned solve unit.");
+        }
+        const auto origin = mesh.getOrigin();
+        const int longitudinalExtent =
+                static_cast<int>(this->getRho()->getLayout().getDomain()[Dim - 1].length());
+        const double zCenter =
+                origin[Dim - 1] + 0.5 * static_cast<double>(longitudinalExtent) * hrOrig[Dim - 1];
+        ippl::Vector<double, Dim> shift(0.0);
+        shift[Dim - 1]                    = 2.0 * unit.gamma * (zCenter - pass.planeZ);
+        backendRequest.greenFunctionShift = shift;
     }
 
-    // TABLEPRINTFREQ is binned-mode only; legacy mode intentionally prints nothing.
+    bool spacingStretched = false;
+    try {
+        if (binned) {
+            mesh.setMeshSpacing(hrStretched);
+            spacingStretched = true;
+        }
+
+        Inform m("BinnedFieldSolver::executeSolvePass");
+        m << level4 << "pass=" << pass.solveLabel()
+          << ", binIndex=" << static_cast<int>(unit.ordinal)
+          << ", suppressFieldDump=" << (pass.suppressFieldDump ? 1 : 0);
+        if (backendRequest.hasShiftedGreenFunction()) {
+            m << ", plane=" << pass.planeZ
+              << ", shift_z=" << (*backendRequest.greenFunctionShift)[Dim - 1];
+        }
+        m << endl;
+
+        this->runSolver(backendRequest, pass.suppressFieldDump, diagnostics);
+
+        if (direct && pass.dumpDirichletPlaneAfter) {
+            dumpDirichletPlaneDiagnosticsIfRequested(bunch, "legacy", pass.planeZ, diagnostics);
+            dumpedDirichletPlaneThisStep = true;
+        }
+
+        {
+            auto compositionEvent = diagnostics.scopedEvent(
+                    opalx::spacecharge::SelfFieldEventKind::FieldComposition,
+                    pass.compositionLabel());
+            if (direct) {
+                if (gatherAttribute_m != GatherAttribute::ElectricFieldE) {
+                    throw OpalException(
+                            "BinnedFieldSolver::executeSolvePass",
+                            "Unsupported gather attribute in whole-bunch solver.");
+                }
+                fieldComposer_m.gatherElectrostatic(scatterGather_m, pc->E, pc->R, workspace);
+            } else {
+                typename FieldComposer_t::Policy compositionPolicy;
+                compositionPolicy.meanMomentum = unit.meanMomentum;
+                compositionPolicy.gamma        = unit.gamma;
+                compositionPolicy.magneticSign = pass.magneticSign;
+                compositionPolicy.sourceRule   = pass.sourceRule;
+                fieldComposer_m.accumulate(workspace, compositionPolicy);
+            }
+        }
+
+        if (spacingStretched) {
+            mesh.setMeshSpacing(hrOrig);
+            spacingStretched = false;
+        }
+    } catch (...) {
+        if (spacingStretched) {
+            mesh.setMeshSpacing(hrOrig);
+        }
+        throw;
+    }
+
+    if (binned && pass.dumpDirichletPlaneAfter && !dumpedDirichletPlaneThisStep) {
+        dumpDirichletPlaneDiagnosticsIfRequested(bunch, "binned", pass.planeZ, diagnostics);
+        dumpedDirichletPlaneThisStep = true;
+    }
 }
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::prepareRhoForUnit(
-        PartBunch_t& bunch, const SolveUnit_t& unit, ImageScatterMode mode) {
+        PartBunch_t& bunch, const SolveUnit_t& unit, const SolvePass_t& pass) {
     // Scatter bin charge to rho using the dt*Q deposition workflow.
     Inform m("BinnedFieldSolver::prepareRhoForUnit");
     const std::size_t binIndex    = unit.ordinal;
@@ -707,10 +500,12 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForUnit(
     const std::size_t pEnd       = static_cast<std::size_t>(policy.end());
     const std::size_t hExtent    = static_cast<std::size_t>(hash.extent(0));
     const std::size_t nLocal     = pc->getLocalNum();
-    const char* modeName =
-            mode == ImageScatterMode::PrimaryOnly
-                    ? "PrimaryOnly"
-                    : (mode == ImageScatterMode::ImageOnly ? "ImageOnly" : "PrimaryAndImage");
+    const char* modeName         = "PrimaryAndImage";
+    if (pass.depositKind == ScatterGather_t::DepositKind::Primary) {
+        modeName = "PrimaryOnly";
+    } else if (pass.depositKind == ScatterGather_t::DepositKind::Image) {
+        modeName = "ImageOnly";
+    }
 
     if (pEnd > hExtent) {
         throw OpalException(
@@ -736,14 +531,6 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForUnit(
 
     const auto selection = unit.depositSelection();
 
-    typename ScatterGather_t::DepositKind depositKind =
-            ScatterGather_t::DepositKind::PrimaryAndImage;
-    if (mode == ImageScatterMode::PrimaryOnly) {
-        depositKind = ScatterGather_t::DepositKind::Primary;
-    } else if (mode == ImageScatterMode::ImageOnly) {
-        depositKind = ScatterGather_t::DepositKind::Image;
-    }
-
     const auto& backendCapabilities = this->getBackendCapabilities();
 
     typename ScatterGather_t::ChargeNormalization normalization;
@@ -755,10 +542,7 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForUnit(
     normalization.subtractNeutralizingBackground =
             backendCapabilities.subtractNeutralizingBackground;
 
-    typename ScatterGather_t::ImagePolicy imagePolicy;
-    imagePolicy.enabled = imageScatterController_m.isEnabled();
-    imagePolicy.planeZ  = imageScatterController_m.getZPlane();
-
     scatterGather_m.depositCharge(
-            *pc, this->getWorkspace(), depositKind, selection, normalization, imagePolicy);
+            *pc, this->getWorkspace(), pass.depositKind, selection, normalization,
+            pass.imagePolicy);
 }

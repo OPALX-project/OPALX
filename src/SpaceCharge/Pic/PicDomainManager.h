@@ -52,9 +52,9 @@ namespace opalx::spacecharge {
                 SelfFieldDiagnostics& diagnostics);
 
     private:
-        [[nodiscard]] bool imageChargeActive(std::size_t step) const;
-        [[nodiscard]] PicWorkspace<double, 3>::Extents targetExtents(std::size_t step) const;
-        void extendImageBounds(PicDomainBounds& bounds, std::size_t step) const;
+        [[nodiscard]] PicWorkspace<double, 3>::Extents targetExtents(
+                const CorrectionRequest& correction) const;
+        void extendImageBounds(PicDomainBounds& bounds, const CorrectionRequest& correction) const;
         void expandBounds(
                 PicDomainBounds& bounds, bool applyEmissionStretch, double emittedFraction,
                 std::size_t longitudinalExtent) const;

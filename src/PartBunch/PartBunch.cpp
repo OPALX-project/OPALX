@@ -455,38 +455,20 @@ void PartBunch<T, Dim>::updateAllParticleMoments() {
     }
 }
 
-template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::setImageChargeConfiguration(bool enabled, double zPlane) {
-    this->getFieldSolver()->setImageChargeConfiguration(enabled, zPlane);
-}
-
-template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::setShiftedGreensConfiguration(bool enabled, double zPlane) {
-    this->getFieldSolver()->setShiftedGreensConfiguration(enabled, zPlane);
-}
-
-template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::setZeroFacePlaneDumpFrequency(int frequency) {
-    this->getFieldSolver()->setZeroFacePlaneDumpFrequency(frequency);
-}
-
-template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::setZerofaceMaxSteps(int maxSteps) {
-    this->getFieldSolver()->setZerofaceMaxSteps(maxSteps);
-}
-
 /**
  * @copybrief PartBunch::computeSelfFields
  */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::computeSelfFields(
         opalx::spacecharge::IterationPlan<T, Dim>& iterationPlan, std::uint64_t particleGeneration,
+        const opalx::spacecharge::PreparedCorrection<T, Dim>& correction,
         opalx::spacecharge::BinConfigurationObserver* binConfigurationObserver,
         opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
     BinnedFieldSolver_t* bsolver = this->getFieldSolver();
 
     bsolver->computeSelfFields(
-            *this, iterationPlan, particleGeneration, binConfigurationObserver, diagnostics);
+            *this, iterationPlan, particleGeneration, correction, binConfigurationObserver,
+            diagnostics);
 }
 
 template <typename T, unsigned Dim>

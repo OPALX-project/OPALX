@@ -306,6 +306,13 @@ void FieldSolver<double, 3>::runSolver(
 }
 
 template <>
+void FieldSolver<double, 3>::runSolver(
+        const opalx::spacecharge::IpplPoissonSolveRequest& request, bool force_skip_field_dump,
+        opalx::spacecharge::SelfFieldDiagnostics& diagnostics) {
+    runSolverImpl(request, force_skip_field_dump, &diagnostics);
+}
+
+template <>
 void FieldSolver<double, 3>::runSolverImpl(
         const opalx::spacecharge::IpplPoissonSolveRequest& request, bool force_skip_field_dump,
         opalx::spacecharge::SelfFieldDiagnostics* diagnostics) {

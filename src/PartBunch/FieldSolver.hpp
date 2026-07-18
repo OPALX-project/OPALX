@@ -138,6 +138,16 @@ public:
             bool force_skip_field_dump, opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
 
     /**
+     * @brief Execute one typed backend request and retain common diagnostics and dump handling.
+     *
+     * Correction plans use this host-only entry point to select the standard or shifted Green
+     * function without bypassing the shared backend solve counters, timers, or debug dumps.
+     */
+    void runSolver(
+            const opalx::spacecharge::IpplPoissonSolveRequest& request, bool force_skip_field_dump,
+            opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
+
+    /**
      * @brief Run an Open-solver solve with a shifted free-space Green's function.
      *
      * Installs a translated Green's kernel @f$G(r) = -1/(4\pi|r - \texttt{shift}|)@f$

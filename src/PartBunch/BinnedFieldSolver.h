@@ -9,8 +9,8 @@
 #include <vector>
 
 #include "PartBunch/FieldSolver.hpp"
-#include "PartBunch/ImageChargeScatterController.h"
 #include "PartBunch/PartBunch.h"
+#include "SpaceCharge/Pic/CorrectionPlan.h"
 #include "SpaceCharge/Pic/FieldComposer.h"
 #include "SpaceCharge/Pic/IterationPlan.h"
 #include "SpaceCharge/Pic/PicScatterGather.h"
@@ -44,15 +44,17 @@ class BinnedFieldSolver : public FieldSolver<T, Dim> {
     static_assert(Dim == 3, "BinnedFieldSolver currently supports Dim == 3 only.");
 
 public:
-    using PartBunch_t         = PartBunch<T, Dim>;
-    using ParticleCtr_t       = typename PartBunch_t::ParticleContainer_t;
-    using Workspace_t         = opalx::spacecharge::PicWorkspace<T, Dim>;
-    using ScatterGather_t     = opalx::spacecharge::PicScatterGather<T, Dim>;
-    using FieldComposer_t     = opalx::spacecharge::FieldComposer<T, Dim>;
-    using BCHandler_t         = BCHandler<Dim>;
-    using IterationPlan_t     = opalx::spacecharge::IterationPlan<T, Dim>;
-    using PreparedIteration_t = opalx::spacecharge::PreparedIteration;
-    using SolveUnit_t         = opalx::spacecharge::SolveUnit<T, Dim>;
+    using PartBunch_t          = PartBunch<T, Dim>;
+    using ParticleCtr_t        = typename PartBunch_t::ParticleContainer_t;
+    using Workspace_t          = opalx::spacecharge::PicWorkspace<T, Dim>;
+    using ScatterGather_t      = opalx::spacecharge::PicScatterGather<T, Dim>;
+    using FieldComposer_t      = opalx::spacecharge::FieldComposer<T, Dim>;
+    using BCHandler_t          = BCHandler<Dim>;
+    using IterationPlan_t      = opalx::spacecharge::IterationPlan<T, Dim>;
+    using PreparedIteration_t  = opalx::spacecharge::PreparedIteration;
+    using PreparedCorrection_t = opalx::spacecharge::PreparedCorrection<T, Dim>;
+    using SolveUnit_t          = opalx::spacecharge::SolveUnit<T, Dim>;
+    using SolvePass_t          = opalx::spacecharge::SolvePass<T, Dim>;
 
     /**
      * @brief Which particle attribute to scatter from to build the mesh charge density `rho`.
@@ -60,15 +62,6 @@ public:
      * Currently only `ChargeQ` is implemented.
      */
     enum class ScatterAttribute { ChargeQ };
-
-    /**
-     * @brief Controls which charges are scattered during rho preparation.
-     *
-     * `PrimaryAndImage` scatters both (legacy combined behavior).
-     * `PrimaryOnly` scatters only the real bunch charges.
-     * `ImageOnly` scatters only the mirrored image charges.
-     */
-    enum class ImageScatterMode { PrimaryAndImage, PrimaryOnly, ImageOnly };
 
     /**
      * @brief Which particle attribute to gather the accumulated electric field into.
@@ -105,6 +98,7 @@ public:
      */
     void computeSelfFields(
             PartBunch_t& bunch, IterationPlan_t& iterationPlan, std::uint64_t particleGeneration,
+            const PreparedCorrection_t& correction,
             opalx::spacecharge::BinConfigurationObserver* binObserver,
             opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
 
@@ -126,47 +120,12 @@ public:
      */
     void setGatherAttribute(const GatherAttribute attr);
 
-    /// @brief Configure optional image-charge scatter pass.
-    void setImageChargeConfiguration(bool enabled, double zPlane);
-    bool isImageChargeEnabled() const { return imageScatterController_m.isEnabled(); }
-    double getImageChargePlaneZ() const { return imageScatterController_m.getZPlane(); }
-
-    /// @brief Configure the shifted Green's function Dirichlet correction (alternative to
-    /// image charges). Mutually exclusive with @c setImageChargeConfiguration(true, ...).
-    /// Requires the OPEN field solver; the solver-type check happens at runtime in
-    /// @c FieldSolver::runShiftedOpenSolver when the correction pass fires.
-    void setShiftedGreensConfiguration(bool enabled, double zPlane);
-    bool isShiftedGreensEnabled() const { return shiftedGreensEnabled_m; }
-    double getShiftedGreensPlaneZ() const { return shiftedGreensPlaneZ_m; }
-
-    /// @brief Set the maximum number of timesteps for which image charges are active (0 =
-    /// unlimited).
-    void setZerofaceMaxSteps(int maxSteps);
-    int getZerofaceMaxSteps() const { return zerofaceMaxSteps_m; }
-
-    /// @brief Check whether the explicit image-charge pass should run for a given timestep.
-    bool isImageChargeActiveForStep(size_t step) const;
-
-    /// @brief Check whether the shifted Green's function correction should run for a given
-    /// timestep. Reuses the same step budget (@c zerofaceMaxSteps_m) as the image-charge path.
-    bool isShiftedGreensActiveForStep(size_t step) const;
-
-    /// @brief Configure dump frequency for dirichlet-plane diagnostics (`0` disables dumps).
-    void setZeroFacePlaneDumpFrequency(int frequency);
-
 private:
     ScatterAttribute scatterAttribute_m;
     GatherAttribute gatherAttribute_m;
-    int zerofaceMaxSteps_m = 0;
-    ImageChargeScatterController<T, Dim> imageScatterController_m;
     ScatterGather_t scatterGather_m;
     FieldComposer_t fieldComposer_m;
     bool warnedPlaneDumpParallelUnsupported_m = false;
-
-    // Shifted Green's function Dirichlet correction (alternative to image charges).
-    // Mutually exclusive with the image-charge path (enforced at config time).
-    bool shiftedGreensEnabled_m  = false;
-    double shiftedGreensPlaneZ_m = 0.0;
 
     bool binningConfigured_m      = false;
     std::size_t currentBinCount_m = 1;
@@ -207,7 +166,7 @@ private:
      * @param solveTag Label used in output file naming (`legacy`, `binned`, ...).
      */
     void dumpDirichletPlaneDiagnosticsIfRequested(
-            PartBunch_t& bunch, const std::string& solveTag,
+            PartBunch_t& bunch, const std::string& solveTag, double planeZ,
             opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
 
     /**
@@ -218,19 +177,15 @@ private:
      */
     void executeIterationPlan(
             PartBunch_t& bunch, IterationPlan_t& iterationPlan, const PreparedIteration_t& prepared,
-            std::uint64_t particleGeneration,
+            std::uint64_t particleGeneration, const PreparedCorrection_t& correction,
             opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
 
     /**
-     * @brief Compute self-fields using the legacy monolithic algorithm.
-     *
-     * This is a direct adaptation of the legacy implementation:
-     * scatter (all particles) -> solve once -> gather electric field directly to particles.
-     *
-     * @param bunch Particle bunch for which to compute self-fields.
+     * @brief Execute one prepared pass for one whole-bunch or binned solve unit.
      */
-    void computeLegacySelfFields(
-            PartBunch_t& bunch, const SolveUnit_t& unit,
+    void executeSolvePass(
+            PartBunch_t& bunch, const SolveUnit_t& unit, const SolvePass_t& pass,
+            bool& dumpedDirichletPlaneThisStep,
             opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
 
     /**
@@ -245,9 +200,7 @@ private:
      * @param bunch        Bunch providing geometry and charge data.
      * @param unit         Prepared particle selection and kinematics for one solve unit.
      */
-    void prepareRhoForUnit(
-            PartBunch_t& bunch, const SolveUnit_t& unit,
-            ImageScatterMode mode = ImageScatterMode::PrimaryAndImage);
+    void prepareRhoForUnit(PartBunch_t& bunch, const SolveUnit_t& unit, const SolvePass_t& pass);
 };
 
 // Reduce compile-time churn: instantiate the only supported concrete solver in one TU.

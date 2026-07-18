@@ -38,12 +38,13 @@ namespace opalx::spacecharge {
                 SelfFieldEventKind::DomainUpdate,
                 beamFrame ? "beam-frame-mesh" : "reference-frame-mesh");
 
-        const std::size_t step = context.stepState().step;
-        bool refreshBackend    = workspace.rebuildGlobalLayoutInPlace(
-                targetExtents(step), config_m.layoutRebuildParallelDimensions());
+        const std::size_t step              = context.stepState().step;
+        const CorrectionRequest& correction = context.requestedPhysics().correction;
+        bool refreshBackend                 = workspace.rebuildGlobalLayoutInPlace(
+                targetExtents(correction), config_m.layoutRebuildParallelDimensions());
 
         PicDomainBounds bounds = particles.computeBounds();
-        extendImageBounds(bounds, step);
+        extendImageBounds(bounds, correction);
         expandBounds(
                 bounds, beamFrame && context.stepState().emissionActive,
                 context.stepState().emittedFraction, workspace.layoutExtents()[2]);
@@ -74,15 +75,9 @@ namespace opalx::spacecharge {
         }
     }
 
-    bool PicDomainManager::imageChargeActive(std::size_t step) const {
-        const CorrectionConfig& correction = config_m.correction();
-        return correction.kind() == CorrectionKind::ImageCharge
-               && (correction.maximumSteps() == 0 || step < correction.maximumSteps());
-    }
-
-    Workspace::Extents PicDomainManager::targetExtents(std::size_t step) const {
+    Workspace::Extents PicDomainManager::targetExtents(const CorrectionRequest& correction) const {
         Workspace::Extents extents = config_m.meshSize();
-        if (imageChargeActive(step)) {
+        if (correction.kind == CorrectionKind::ImageCharge) {
             if (extents[2] > std::numeric_limits<std::size_t>::max() / 2) {
                 throw OpalException(
                         "PicDomainManager::targetExtents",
@@ -93,12 +88,13 @@ namespace opalx::spacecharge {
         return extents;
     }
 
-    void PicDomainManager::extendImageBounds(PicDomainBounds& bounds, std::size_t step) const {
-        if (!imageChargeActive(step)) {
+    void PicDomainManager::extendImageBounds(
+            PicDomainBounds& bounds, const CorrectionRequest& correction) const {
+        if (correction.kind != CorrectionKind::ImageCharge) {
             return;
         }
 
-        const double planeZ       = config_m.correction().planeZ();
+        const double planeZ       = correction.planeZ;
         const double mirroredMinZ = 2.0 * planeZ - bounds.upper[2];
         const double mirroredMaxZ = 2.0 * planeZ - bounds.lower[2];
         bounds.lower[2]           = std::min(bounds.lower[2], mirroredMinZ);

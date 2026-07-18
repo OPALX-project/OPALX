@@ -474,7 +474,6 @@ void TrackRun::execute() {
         setupDistributionsAndSamplers(
                 emissionSourcesLists[i], beams[i], emittingSamplersList[i], i);
     }
-    applyLegacySelfFieldConfig(selfFieldConfig);
     selfFieldSystem_m =
             opalx::spacecharge::SelfFieldFactory::create(std::move(selfFieldConfig), *bunch_m);
 
@@ -821,22 +820,6 @@ void TrackRun::setupDistributionsAndSamplers(
 
     *gmsg << level2 << "* Particle sampling / sampler setup for all emission sources done." << endl;
     IpplTimings::stopTimer(samplingTime);
-}
-
-void TrackRun::applyLegacySelfFieldConfig(const opalx::spacecharge::SelfFieldConfig& config) {
-    using opalx::spacecharge::CorrectionKind;
-    using opalx::spacecharge::Pic3DConfig;
-
-    const auto& correction  = config.get<Pic3DConfig>().correction();
-    const bool imageCharge  = correction.kind() == CorrectionKind::ImageCharge;
-    const bool shiftedGreen = correction.kind() == CorrectionKind::ShiftedGreen;
-
-    bunch_m->setImageChargeConfiguration(imageCharge, correction.planeZ());
-    bunch_m->setShiftedGreensConfiguration(shiftedGreen, correction.planeZ());
-    bunch_m->setZeroFacePlaneDumpFrequency(
-            imageCharge ? static_cast<int>(correction.planeDumpFrequency()) : 0);
-    bunch_m->setZerofaceMaxSteps(
-            correction.enabled() ? static_cast<int>(correction.maximumSteps()) : 0);
 }
 
 Inform& TrackRun::print(Inform& os) const {

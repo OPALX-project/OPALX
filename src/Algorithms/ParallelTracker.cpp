@@ -43,7 +43,6 @@
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedBeamline.h"
 #include "Distribution/Distribution.h"
-#include "PartBunch/BinnedFieldSolver.h"
 #include "Physics/Units.h"
 
 #include "Processes/GlobalProcesses/GlobalProcess.h"
@@ -464,7 +463,7 @@ void ParallelTracker::execute() {
             // Space charge field computation
             // if (itsBunch_m->getLocalNum() > 1) {
             // Otherwise no interaction, can skip (and for some reason seg-fault...)
-            computeSpaceChargeFields(step);
+            computeSpaceChargeFields();
             m << level4 << "Space charge field computation done at step " << step << "." << endl;
             //}
 
@@ -727,7 +726,7 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
  * - Inside computeSelfFields: the PIC domain follows @f$R@f$ in the beam frame.
  * - After transform back: @f$R@f$, @f$E@f$, @f$B@f$ in the reference frame again.
  */
-void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
+void ParallelTracker::computeSpaceChargeFields() {
     Inform m("ParallelTracker::computeSpaceChargeFields");
     // Current limitation: space-charge transform/scatter/gather is applied via the primary
     // container path only. Keep this behavior until the dedicated multi-container SC refactor.
@@ -840,8 +839,9 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     frameState.solveToTracker = BorrowedHostObject::reference(beamToReferenceCSTrafo);
     CommunicatorView communicator{
             BorrowedHostObject::reference(*ippl::Comm), ippl::Comm->rank(), ippl::Comm->size()};
+    const std::size_t globalTrackStep = static_cast<std::size_t>(itsBunch_m->getGlobalTrackStep());
     StepState stepState{
-            static_cast<std::size_t>(step),
+            globalTrackStep,
             itsBunch_m->getT(),
             itsBunch_m->getdT(),
             0,
@@ -850,7 +850,8 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
             std::move(referenceState),
             std::move(frameState),
             emittedFraction};
-    SolveContext context(std::move(particles), std::move(stepState), RequestedPhysics{});
+    RequestedPhysics requestedPhysics = selfFieldSystem_m->requestedPhysicsForStep(globalTrackStep);
+    SolveContext context(std::move(particles), std::move(stepState), std::move(requestedPhysics));
     selfFieldSystem_m->solve(context);
     m << level3 << "Compute self fields done." << endl;
 }
@@ -1047,19 +1048,17 @@ size_t ParallelTracker::deleteInvalidParticles(
 size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
     /// \todo this function should probably be integrated as a GunSource element similar to old
     /// OPAL.
-    auto* bsolver = itsBunch_m->getFieldSolver();
-    if (!bsolver) {
+    if (selfFieldSystem_m == nullptr) {
         return 0;
     }
 
-    const bool imageChargeConfigured   = bsolver->isImageChargeEnabled();
-    const bool shiftedGreensConfigured = bsolver->isShiftedGreensEnabled();
-    if (!imageChargeConfigured && !shiftedGreensConfigured) {
+    using namespace opalx::spacecharge;
+    const CorrectionRequest correction = selfFieldSystem_m->configuredCorrection();
+    if (correction.kind == CorrectionKind::None) {
         return 0;
     }
 
-    const double sourcePlaneZ = imageChargeConfigured ? bsolver->getImageChargePlaneZ()
-                                                      : bsolver->getShiftedGreensPlaneZ();
+    const double sourcePlaneZ = correction.planeZ;
     // Legacy OPAL's SOURCE element is 5 cm long and is shifted upstream from ELEMEDGE.
     // Source::apply deletes only once a particle crosses the element-local entrance plane
     // (Rz <= 0), not when it crosses the cathode/image plane at ELEMEDGE.

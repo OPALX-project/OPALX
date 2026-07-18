@@ -102,9 +102,6 @@ private:
             const std::vector<EmissionSource*>& sources, Beam* beam,
             emittingSamplers_t& emittingSamplers, size_t index = 0);
 
-    /// @brief Apply the immutable correction snapshot to the temporary legacy solver bridge.
-    void applyLegacySelfFieldConfig(const opalx::spacecharge::SelfFieldConfig& config);
-
     /// Compute total number of macroparticles for the bunch from BEAM::NALLOC and
     /// optional per-distribution NPARTDIST values on the emission sources.
     size_t computeTotalAllocationForBunch(
