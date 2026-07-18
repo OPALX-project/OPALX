@@ -9,6 +9,7 @@
 #include "SpaceCharge/SelfFieldAlgorithm.h"
 #include "SpaceCharge/SelfFieldConfig.h"
 
+#include <cstddef>
 #include <memory>
 
 namespace opalx::spacecharge {
@@ -25,6 +26,12 @@ namespace opalx::spacecharge {
 
         /** @brief Validate and dispatch one borrowed solve context. */
         void solve(SolveContext& context);
+
+        /** @brief Resolve the immutable run configuration for one tracker step. */
+        [[nodiscard]] RequestedPhysics requestedPhysicsForStep(std::size_t step) const;
+
+        /** @brief Return the configured correction independent of its per-step activity. */
+        [[nodiscard]] CorrectionRequest configuredCorrection() const;
 
         [[nodiscard]] const SelfFieldConfig& config() const { return config_m; }
         [[nodiscard]] const SolverCapabilities& capabilities() const { return capabilities_m; }

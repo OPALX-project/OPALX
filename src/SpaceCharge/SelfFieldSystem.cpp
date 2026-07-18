@@ -45,6 +45,28 @@ namespace opalx::spacecharge {
         algorithm_m->execute(context, diagnostics_m);
     }
 
+    RequestedPhysics SelfFieldSystem::requestedPhysicsForStep(std::size_t step) const {
+        const Pic3DConfig& picConfig       = config_m.get<Pic3DConfig>();
+        const CorrectionConfig& correction = picConfig.correction();
+        const bool correctionActive =
+                correction.enabled()
+                && (correction.maximumSteps() == 0 || step < correction.maximumSteps());
+
+        RequestedPhysics requested;
+        requested.useBinning = picConfig.binning().has_value();
+        if (correctionActive) {
+            requested.correction     = {correction.kind(), correction.planeZ()};
+            requested.writePotential = correction.kind() == CorrectionKind::ImageCharge
+                                       && correction.planeDumpFrequency() != 0;
+        }
+        return requested;
+    }
+
+    CorrectionRequest SelfFieldSystem::configuredCorrection() const {
+        const CorrectionConfig& correction = config_m.get<Pic3DConfig>().correction();
+        return {correction.kind(), correction.planeZ()};
+    }
+
     void SelfFieldSystem::validateConfiguration() const {
         if (capabilities_m.algorithm != config_m.algorithmKind()) {
             throw OpalException(

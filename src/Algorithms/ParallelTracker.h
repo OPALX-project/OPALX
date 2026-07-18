@@ -203,11 +203,8 @@ public:
     /// particle sees during this step).
     void evolveSpinTBMT();
 
-    /**
-     * @brief Self-fields in beam frame (primary container); optional binary repartition.
-     * @param step Global step index (used for repartition cadence).
-     */
-    void computeSpaceChargeFields(unsigned long long step);
+    /** @brief Build the current tracker-frame context and dispatch the configured self field. */
+    void computeSpaceChargeFields();
 
     /// @brief Apply external fields from elements intersecting each active container.
     /// @param oths Per-container orbit threaders (one per distinct species; same-species

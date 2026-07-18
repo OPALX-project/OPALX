@@ -75,6 +75,7 @@ namespace opalx::spacecharge {
           iterationPlan_m(
                   IterationPlanFactory<double, 3>::create(
                           binningConfig_m, requirePrimaryParticles(bunch))),
+          correctionPlan_m(config.correction(), config.backend(), iterationPlan_m->kind()),
           particleDomain_m(bunch.getParticleContainers()),
           domainManager_m(std::move(config)),
           bunch_m(&bunch) {
@@ -115,6 +116,9 @@ namespace opalx::spacecharge {
     }
 
     void LegacyPic3DAlgorithm::execute(SolveContext& context, SelfFieldDiagnostics& diagnostics) {
+        const PreparedCorrection<double, 3> correction =
+                correctionPlan_m.prepare(context.requestedPhysics(), context.stepState().step);
+
         const FrameState& frames = context.stepState().frames;
         if (!frames.trackerToSolve.has_value() || !frames.solveToTracker.has_value()) {
             throw OpalException(
@@ -151,7 +155,7 @@ namespace opalx::spacecharge {
             electricInBeam = true;
             magneticInBeam = true;
             bunch_m->computeSelfFields(
-                    *iterationPlan_m, context.particles().generation(),
+                    *iterationPlan_m, context.particles().generation(), correction,
                     binObserver.has_value() ? &*binObserver : nullptr, diagnostics);
 
             const std::size_t localCount = primary->getLocalNum();

@@ -38,6 +38,8 @@ namespace opalx::spacecharge {
     class BinConfigurationObserver;
     template <typename T, unsigned Dim>
     class IterationPlan;
+    template <typename T, unsigned Dim>
+    struct PreparedCorrection;
     class SelfFieldDiagnostics;
 }  // namespace opalx::spacecharge
 
@@ -141,36 +143,6 @@ public:
      * current statistics are required.
      */
     void updateAllParticleMoments();
-
-    /**
-     * @brief Set the image-charge configuration for the field solver.
-     *
-     * @param enabled Enable image-charge scatter mirror when true.
-     * @param zPlane Mirror plane position in z [m].
-     */
-    void setImageChargeConfiguration(bool enabled, double zPlane);
-
-    /**
-     * @brief Set the shifted Green's function Dirichlet-correction configuration.
-     *
-     * Alternative to @c setImageChargeConfiguration. Mutually exclusive with it.
-     * Requires the OPEN field solver (checked at runtime in the correction pass).
-     *
-     * @param enabled Enable the shifted-Green's-function correction when true.
-     * @param zPlane  Dirichlet plane position in z [m].
-     */
-    void setShiftedGreensConfiguration(bool enabled, double zPlane);
-
-    /**
-     * @brief Configure diagnostic dump frequency for the ZEROFACE plane potential.
-     *
-     * @param frequency Dump every n-th global timestep. `0` disables dumping.
-     */
-    void setZeroFacePlaneDumpFrequency(int frequency);
-
-    /// @brief Set the maximum number of timesteps for which image charges are active (0 =
-    /// unlimited).
-    void setZerofaceMaxSteps(int maxSteps);
 
     /**
      * @brief Sum of @c getTotalNum() over all particle containers.
@@ -492,6 +464,7 @@ public:
     void computeSelfFields(
             opalx::spacecharge::IterationPlan<T, Dim>& iterationPlan,
             std::uint64_t particleGeneration,
+            const opalx::spacecharge::PreparedCorrection<T, Dim>& correction,
             opalx::spacecharge::BinConfigurationObserver* binConfigurationObserver,
             opalx::spacecharge::SelfFieldDiagnostics& diagnostics);
 

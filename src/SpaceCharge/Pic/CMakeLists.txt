@@ -1,5 +1,6 @@
 set (_SRCS
     BinningPlan.cpp
+    CorrectionPlan.cpp
     FieldComposer.cpp
     IterationPlanFactory.cpp
     PicDomainManager.cpp
@@ -19,6 +20,8 @@ set (_PRIVATE_HDRS
     )
 
 set (HDRS
+    CorrectionPlan.h
+    CorrectionPlan.tpp
     FieldComposer.h
     FieldComposer.tpp
     IterationPlan.h
@@ -26,6 +29,7 @@ set (HDRS
     PicScatterGather.tpp
     PicWorkspace.h
     PicWorkspace.tpp
+    SolvePass.h
     )
 
 target_sources(opalx PRIVATE ${_SRCS} ${_PRIVATE_HDRS})
