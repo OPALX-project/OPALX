@@ -36,12 +36,10 @@ Solve2d5<T>::Solve2d5(
       referencePathFileName_m(refPathFileName),
       solver_m(solver),
       pipeSizeX_m(pipeSizeX),
-      pipeSizeY_m(pipeSizeY) {
-}
+      pipeSizeY_m(pipeSizeY) {}
 
 template <typename T>
-void Solve2d5<T>::initSolver() {
-}
+void Solve2d5<T>::initSolver() {}
 
 template <typename T>
 void Solve2d5<T>::orbitThreadersReady() {
@@ -64,9 +62,9 @@ void Solve2d5<T>::orbitThreadersReady() {
     rho_m = &partBunch_m->getFieldContainer()->getRho();
     E_m   = &partBunch_m->getFieldContainer()->getE();
     // Set the field solver base class members to reflect changes to the field container
-    FieldSolver<T,3U>::setRho(rho_m);
-    FieldSolver<T,3U>::setE(E_m);
-    FieldSolver<T,3U>::setPhi(&partBunch_m->getFieldContainer()->getPhi());
+    FieldSolver<T, 3U>::setRho(rho_m);
+    FieldSolver<T, 3U>::setE(E_m);
+    FieldSolver<T, 3U>::setPhi(&partBunch_m->getFieldContainer()->getPhi());
     // The grid dimensions
     ippl::NDIndex ndIndex2d(Vector<unsigned, 2U>{nR_m.data_m[0], nR_m.data_m[1]});
     auto numSlices = nR_m.data_m[2];
@@ -101,7 +99,6 @@ void Solve2d5<T>::orbitThreadersReady() {
     }
     lineDensity_m         = LineDensityView_t("lineDensity", numSlices + LineDensityGhostCells);
     lineDensityGradient_m = LineDensityView_t("lineDensityGradient", numSlices);
-
 }
 
 template <typename T>
@@ -177,14 +174,12 @@ template <typename DiagnosticPolicy>
 void Solve2d5<T>::scatterToGrid(const PartBunch_t& bunch, DiagnosticPolicy diagnostic) {
     if (referencePath_m.extent(0) > 1) {
         const auto& ref    = referencePath_m;
-        const auto& mesh   = rho_m->get_mesh();
-        const auto& dr     = mesh.getMeshSpacing();
-        const auto invDr   = 1.0 / dr;
+        const auto invDr   = 1.0 / hr_m;
         const int nghost   = rho_m->getNghost();
         const auto& layout = rho_m->getLayout();
         const auto& lDom   = layout.getLocalNDIndex();
         const auto rhoView = rho_m->getView();
-        const auto& origin = mesh.getOrigin();
+        const auto& origin = originr_m;
         // Do the scattering for all the particles
         Kokkos::deep_copy(rhoView, 0.0);
         for (auto& pcs = bunch.getParticleContainers(); const auto& pc : pcs) {
@@ -204,7 +199,7 @@ void Solve2d5<T>::scatterToGrid(const PartBunch_t& bunch, DiagnosticPolicy diagn
                     });
             Kokkos::fence();
             diagnostic.scatterCharge(rhoView);
-            pc->unscaleDtByCharge();  // Work out a way to include this in the parallel for
+            pc->unscaleDtByCharge();
         }
         // Handle the closed ring periodic boundary condition
         if (closedRing_m) {
@@ -266,13 +261,17 @@ KOKKOS_FUNCTION void Solve2d5<T>::convertToFrenetSerret(
     T bestU{};
     Vector3D_t bestDi{};
     Vector3D_t bestRc{};
-    for (size_t i = 0; i < ref.size() - 1; ++i) {
-        Vector3D_t di = ref(i + 1) - ref(i);
+    auto rn       = r(n);
+    auto segments = ref.extent(0);
+    for (size_t i = 0; i < segments - 1; ++i) {
+        auto refi     = ref(i);
+        auto refip1   = ref(i + 1);
+        Vector3D_t di = refip1 - refi;
         const T di2   = di.dot(di);
         if (di2 > 0.0) {
-            const T u       = Kokkos::clamp(di.dot(r(n) - ref(i)) / di2, 0.0, 1.0);
-            Vector3D_t rc   = ref(i) + u * di;
-            Vector3D_t diff = r(n) - rc;
+            const T u       = Kokkos::clamp(di.dot(rn - refi) / di2, 0.0, 1.0);
+            Vector3D_t rc   = refi + u * di;
+            Vector3D_t diff = rn - rc;
             const T dist2   = diff.dot(diff);
             if (dist2 < bestDist2) {
                 bestI     = i;
@@ -400,12 +399,13 @@ void Solve2d5<T>::solvePoissons(DiagnosticPolicy diagnostic) {
         auto rho2d = s.rho_m->getView();
         Kokkos::deep_copy(
                 rho2d, Kokkos::subview(rho_m->getView(), Kokkos::ALL(), Kokkos::ALL(), z + nghost));
-        // Scale by the coupling constant and solve
+        // Convert to charge area density and scale by the coupling constant then solve
+        auto dz = hr_m[2];
         Kokkos::parallel_for(
                 "Solve2d5::solvePoissons::coupling",
                 Policy({0, 0}, {rho2d.extent(0), rho2d.extent(1)}),
                 KOKKOS_LAMBDA(const size_t i, const size_t j) {
-                    rho2d(i, j) /= Physics::epsilon_0;
+                    rho2d(i, j) *= dz / Physics::epsilon_0;
                 });
         s.solver_m->solve();
         Kokkos::fence();
@@ -465,13 +465,12 @@ void Solve2d5<T>::gatherFromGrid(const PartBunch_t& bunch, DiagnosticPolicy diag
             const auto& e                  = pc->E.getView();
             const auto& b                  = pc->B.getView();
             const auto& invalid            = pc->InvalidMask.getView();
-            const auto& mesh               = rho_m->get_mesh();
-            const auto& dr                 = mesh.getMeshSpacing();
+            const auto& dr                 = hr_m;
             const auto invDr               = 1.0 / dr;
             const int nghost               = rho_m->getNghost();
             const auto& layout             = rho_m->getLayout();
             const auto& lDom               = layout.getLocalNDIndex();
-            const auto& origin             = mesh.getOrigin();
+            const auto& origin             = originr_m;
             const auto gammaB              = Kokkos::sqrt(1.0 + meanPs * meanPs);
             const auto betaB               = meanPs / gammaB;
             const auto lineDensityGradient = lineDensityGradient_m;
@@ -504,8 +503,8 @@ KOKKOS_FUNCTION void Solve2d5<T>::doGatherFromGrid(
         const size_t n, const VectorView_t& r, const VectorView_t& p, const ReferenceView_t& ref,
         const T beamGamma, const T beamBeta, const VectorView_t& e, const VectorView_t& b,
         const BooleanView_t& invalid, Vector3D_t invDr, const int nghost,
-        const ippl::NDIndex<3U> lDom, VectorGridView3D_t eField, Vector3D_t origin, T gBy4PiEpsilon0,
-        LineDensityView_t lineDensityGradient, DiagnosticPolicy diagnostic) {
+        const ippl::NDIndex<3U> lDom, VectorGridView3D_t eField, Vector3D_t origin,
+        T gBy4PiEpsilon0, LineDensityView_t lineDensityGradient, DiagnosticPolicy diagnostic) {
     if (!invalid(n)) {
         // Into Frenet-Serret coordinates
         Vector3D_t fsR, fsP, bUnit, nUnit, tUnit;

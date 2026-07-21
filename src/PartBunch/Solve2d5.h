@@ -59,15 +59,16 @@ public:
             bool closedRing, const std::string& refPathFileName);
 
     void initSolver() override;
-    void runSolver() override { runSolver(false); }
+    void runSolver() override { doRunSolver(); }
     void runSolver(const bool force_skip_field_dump) override {
         if (!force_skip_field_dump) {
             doRunSolver();
         }
     }
     void orbitThreadersReady() override;
+    void computeSelfFields(PartBunch_t& /*bunch*/) override { doRunSolver(); }
 
-    // Algorithm steps, public for testability
+    // Algorithm steps, public for testability-qqqqqqqqqq
     class NullDiagnostic {
     public:
         enum class Kind {

@@ -115,7 +115,7 @@ public:
      * @throws OpalException If required internal data (particle container / temp E field)
      *                        is missing, or if unsupported scatter/gather modes are selected.
      */
-    void computeSelfFields(PartBunch_t& bunch);
+    virtual void computeSelfFields(PartBunch_t& bunch);
 
     /**
      * @brief Set particle scatter attribute (extensible; default is `ChargeQ`).
