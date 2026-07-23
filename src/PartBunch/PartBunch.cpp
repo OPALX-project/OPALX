@@ -316,6 +316,7 @@ void PartBunch<T, Dim>::setSolver() {
                 &this->fcontainer_m->getPhi(), this->getBCHandler(), nr_m, mode,
                 OPALFieldSolver_m->getPipeSizeX(), OPALFieldSolver_m->getPipeSizeY(),
                 OPALFieldSolver_m->getBeamRadius(), OPALFieldSolver_m->getClosedRing(),
+                OPALFieldSolver_m->getCalcLongitudinalFields(),
                 OPALFieldSolver_m->getRefPathFileName());
         this->setFieldSolver(solver2d5);
         m << level4 << "2.5D field solver set." << endl;

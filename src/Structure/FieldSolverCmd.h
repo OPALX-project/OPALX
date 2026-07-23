@@ -54,6 +54,7 @@ namespace FIELDSOLVER {
         PIPESIZEX,     // Size of the pipe in meters in the transverse direction [FFT2D5 only]
         PIPESIZEY,     // Size of the pipe in meters in the vertical direction [FFT2D5 only]
         REFPATHFNAME,  // Reference path file name [FFT2D5 only]
+        CALCLONGITUDINALFIELDS,  // Calculate longitudinal fields [FFT2D5 only]
         SIZE
     };
 }
@@ -119,12 +120,14 @@ public:
     std::string getPipeMode() const;
     double getBeamRadius() const;
     bool getClosedRing() const;
+    bool getCalcLongitudinalFields() const;
     double getPipeSizeX() const;
     double getPipeSizeY() const;
     std::string getRefPathFileName() const;
     void setPipeMode(const std::string& pipeMode);
     void setBeamRadius(double beamRadius);
     void setClosedRing(bool closedRing);
+    void setCalcLongitudinalFields(bool val);
     void setPipeSizeX(double pipeSizeX);
     void setPipeSizeY(double pipeSizeY);
     void setRefPathFileName(const std::string& refPathFileName);

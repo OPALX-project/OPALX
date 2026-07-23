@@ -56,7 +56,7 @@ public:
             PartBunch_t* partBunch, std::string solver, Field_t<3U>* rho, VField_t<T, 3U>* E,
             Field_t<3U>* phi, std::shared_ptr<BCHandler_t> bcHandler, const Vector<int, 3U>& nR,
             LongitudinalFieldMode longitudinalFieldMode, T pipeSizeX, T pipeSizeY, T beamRadius,
-            bool closedRing, const std::string& refPathFileName);
+            bool closedRing, bool calcLongitudinalFields, const std::string& refPathFileName);
 
     void initSolver() override;
     void runSolver() override { doRunSolver(); }
@@ -157,6 +157,8 @@ private:
     KOKKOS_FUNCTION static void convertFromFrenetSerret(
             size_t n, const Vector3D_t& bUnit, const Vector3D_t& nUnit, const Vector3D_t& tUnit,
             const VectorView_t& e, const VectorView_t& b);
+    KOKKOS_FUNCTION static Vector3D_t gather2D(
+            VectorGridView3D_t eField, T wlox, T wloy, T whix, T whiy, int x, int y, int z);
 
 public:
     // Test case API
@@ -189,6 +191,7 @@ private:
     T beamRadius_m{1};
     LongitudinalFieldMode longitudinalFieldMode_m{LongitudinalFieldMode::Open};
     bool closedRing_m{false};
+    bool calcLongitudinalFields_{true};
     Vector<unsigned int, 3U> nR_m{10};
     std::string referencePathFileName_m{};
     std::string solver_m;

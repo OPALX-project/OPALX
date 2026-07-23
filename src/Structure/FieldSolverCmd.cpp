@@ -84,6 +84,9 @@ FieldSolverCmd::FieldSolverCmd()
             Attributes::makeReal("BEAMR", "Beam radius in metres [FFT2D5 only]", 1.0);
     itsAttr[FIELDSOLVER::CLOSEDRING] =
             Attributes::makeBool("CLOSEDRING", "TRUE if the ring is closed [FFT2D5 only]", false);
+    itsAttr[FIELDSOLVER::CALCLONGITUDINALFIELDS] = Attributes::makeBool(
+            "CALCLONGITUDINALFIELDS", "TRUE to calculate the longitudinal fields [FFT2D5 only]",
+            true);
     itsAttr[FIELDSOLVER::PIPESIZEX] = Attributes::makeReal(
             "PIPESIZEX", "Beam pipe horizontal size in metres [FFT2D5 only]", 1.0);
     itsAttr[FIELDSOLVER::PIPESIZEY] = Attributes::makeReal(
@@ -183,6 +186,9 @@ double FieldSolverCmd::getBeamRadius() const {
 bool FieldSolverCmd::getClosedRing() const {
     return Attributes::getBool(itsAttr[FIELDSOLVER::CLOSEDRING]);
 }
+bool FieldSolverCmd::getCalcLongitudinalFields() const {
+    return Attributes::getBool(itsAttr[FIELDSOLVER::CALCLONGITUDINALFIELDS]);
+}
 double FieldSolverCmd::getPipeSizeX() const {
     return Attributes::getReal(itsAttr[FIELDSOLVER::PIPESIZEX]);
 }
@@ -200,6 +206,9 @@ void FieldSolverCmd::setBeamRadius(const double beamRadius) {
 }
 void FieldSolverCmd::setClosedRing(const bool closedRing) {
     Attributes::setBool(itsAttr[FIELDSOLVER::CLOSEDRING], closedRing);
+}
+void FieldSolverCmd::setCalcLongitudinalFields(const bool val) {
+    Attributes::setBool(itsAttr[FIELDSOLVER::CALCLONGITUDINALFIELDS], val);
 }
 void FieldSolverCmd::setPipeSizeX(const double pipeSizeX) {
     Attributes::setReal(itsAttr[FIELDSOLVER::PIPESIZEX], pipeSizeX);

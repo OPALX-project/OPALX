@@ -26,12 +26,14 @@ Solve2d5<T>::Solve2d5(
         PartBunch_t* partBunch, std::string solver, Field_t<3U>* rho, VField_t<T, 3U>* E,
         Field_t<3U>* phi, std::shared_ptr<BCHandler_t> bcHandler, const Vector<int, 3U>& nR,
         const LongitudinalFieldMode longitudinalFieldMode, const T pipeSizeX, const T pipeSizeY,
-        const T beamRadius, const bool closedRing, const std::string& refPathFileName)
+        const T beamRadius, const bool closedRing, bool calcLongitudinalFields,
+        const std::string& refPathFileName)
     : Base(solver, rho, E, phi, bcHandler, 0, true),
       partBunch_m(partBunch),
       beamRadius_m(beamRadius),
       longitudinalFieldMode_m(longitudinalFieldMode),
       closedRing_m(closedRing),
+      calcLongitudinalFields_(calcLongitudinalFields),
       nR_m(nR),
       referencePathFileName_m(refPathFileName),
       solver_m(solver),
@@ -337,52 +339,61 @@ KOKKOS_FUNCTION void Solve2d5<T>::scatterToRho(
 template <typename T>
 template <typename DiagnosticPolicy>
 void Solve2d5<T>::calculateLineDensity(DiagnosticPolicy diagnostic) {
-    using Policy2D_t       = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
-    const auto rho3d       = rho_m->getView();
-    auto deviceLineDensity = lineDensity_m;
-    auto hostLineDensity   = Kokkos::create_mirror_view(lineDensity_m);
-    const auto numSlices   = nR_m.data_m[2];
-    // Calculate the total charge density for each z slice
-    for (size_t k = 0; k < numSlices + LineDensityGhostCells; ++k) {
-        T sum{};
-        Kokkos::parallel_reduce(
-                Policy2D_t({0, 0}, {rho3d.extent(0), rho3d.extent(1)}),
-                KOKKOS_LAMBDA(const size_t i, const size_t j, T& localSum) {
-                    localSum += rho3d(i, j, k);
-                },
-                sum);
-        hostLineDensity(k) = sum;
-    }
-    // Set the ghost cells to the boundary conditions
-    if (closedRing_m) {
-        hostLineDensity(0) = hostLineDensity(numSlices + LineDensityGhostCells - 2);
-        hostLineDensity(numSlices + LineDensityGhostCells - 1) =
-                hostLineDensity(LineDensityFirstRealCell);
+    if (calcLongitudinalFields_) {
+        using Policy2D_t       = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
+        const auto rho3d       = rho_m->getView();
+        auto deviceLineDensity = lineDensity_m;
+        auto hostLineDensity   = Kokkos::create_mirror_view(lineDensity_m);
+        const auto numSlices   = nR_m.data_m[2];
+        // Calculate the total charge density for each z slice
+        for (size_t k = 0; k < numSlices + LineDensityGhostCells; ++k) {
+            T sum{};
+            Kokkos::parallel_reduce(
+                    Policy2D_t({0, 0}, {rho3d.extent(0), rho3d.extent(1)}),
+                    KOKKOS_LAMBDA(const size_t i, const size_t j, T& localSum) {
+                        localSum += rho3d(i, j, k);
+                    },
+                    sum);
+            hostLineDensity(k) = sum;
+        }
+        // Set the ghost cells to the boundary conditions
+        if (closedRing_m) {
+            hostLineDensity(0) = hostLineDensity(numSlices + LineDensityGhostCells - 2);
+            hostLineDensity(numSlices + LineDensityGhostCells - 1) =
+                    hostLineDensity(LineDensityFirstRealCell);
+        } else {
+            hostLineDensity(0)                                     = 0.0;
+            hostLineDensity(numSlices + LineDensityGhostCells - 1) = 0.0;
+        }
+        Kokkos::deep_copy(deviceLineDensity, hostLineDensity);
+        diagnostic.totalDensity(lineDensity_m);
+        // Convert this to line density
+        auto dx = hr_m[0];
+        auto dy = hr_m[1];
+        Kokkos::parallel_for(
+                "Solve2d5::calculateLineDensity::convert", numSlices + LineDensityGhostCells,
+                KOKKOS_LAMBDA(const size_t k) { deviceLineDensity(k) *= dx * dy; });
+        Kokkos::fence();
+        diagnostic.lineDensity(lineDensity_m);
+        // Find the gradient
+        auto lineDensityGradient = lineDensityGradient_m;
+        const auto dz            = rho_m->get_mesh().getMeshSpacing().data_m[2];
+        Kokkos::parallel_for(
+                "Solve2d5::calculateLineDensity::gradient", numSlices,
+                KOKKOS_LAMBDA(const size_t k) {
+                    lineDensityGradient(k) = (deviceLineDensity(k + LineDensityFirstRealCell + 1)
+                                              - deviceLineDensity(k + LineDensityFirstRealCell - 1))
+                                             / (2.0 * dz);
+                });
+        Kokkos::fence();
+        diagnostic.lineDensityGradient(lineDensityGradient_m);
     } else {
-        hostLineDensity(0)                                     = 0.0;
-        hostLineDensity(numSlices + LineDensityGhostCells - 1) = 0.0;
+        Kokkos::deep_copy(lineDensity_m, 0);
+        diagnostic.totalDensity(lineDensity_m);
+        diagnostic.lineDensity(lineDensity_m);
+        Kokkos::deep_copy(lineDensityGradient_m, 0);
+        diagnostic.lineDensityGradient(lineDensityGradient_m);
     }
-    Kokkos::deep_copy(deviceLineDensity, hostLineDensity);
-    diagnostic.totalDensity(lineDensity_m);
-    // Convert this to line density
-    auto dx = hr_m[0];
-    auto dy = hr_m[1];
-    Kokkos::parallel_for(
-            "Solve2d5::calculateLineDensity::convert", numSlices + LineDensityGhostCells,
-            KOKKOS_LAMBDA(const size_t k) { deviceLineDensity(k) *= dx * dy; });
-    Kokkos::fence();
-    diagnostic.lineDensity(lineDensity_m);
-    // Find the gradient
-    auto lineDensityGradient = lineDensityGradient_m;
-    const auto dz            = rho_m->get_mesh().getMeshSpacing().data_m[2];
-    Kokkos::parallel_for(
-            "Solve2d5::calculateLineDensity::gradient", numSlices, KOKKOS_LAMBDA(const size_t k) {
-                lineDensityGradient(k) = (deviceLineDensity(k + LineDensityFirstRealCell + 1)
-                                          - deviceLineDensity(k + LineDensityFirstRealCell - 1))
-                                         / (2.0 * dz);
-            });
-    Kokkos::fence();
-    diagnostic.lineDensityGradient(lineDensityGradient_m);
 }
 
 template <typename T>
@@ -399,13 +410,13 @@ void Solve2d5<T>::solvePoissons(DiagnosticPolicy diagnostic) {
         auto rho2d = s.rho_m->getView();
         Kokkos::deep_copy(
                 rho2d, Kokkos::subview(rho_m->getView(), Kokkos::ALL(), Kokkos::ALL(), z + nghost));
-        // Convert to charge area density and scale by the coupling constant then solve
+        // Scale by the coupling constant then solve
         auto dz = hr_m[2];
         Kokkos::parallel_for(
                 "Solve2d5::solvePoissons::coupling",
                 Policy({0, 0}, {rho2d.extent(0), rho2d.extent(1)}),
                 KOKKOS_LAMBDA(const size_t i, const size_t j) {
-                    rho2d(i, j) *= dz / Physics::epsilon_0;
+                    rho2d(i, j) *= 1 / Physics::epsilon_0;
                 });
         s.solver_m->solve();
         Kokkos::fence();
@@ -545,9 +556,24 @@ KOKKOS_FUNCTION void Solve2d5<T>::gatherFromEField(
         inBounds = inBounds && args[d] > 0 && args[d] < static_cast<int>(eField.extent(d));
     }
     if (inBounds) {
-        e(n) = ippl::detail::gatherFromField(
-                std::make_index_sequence<1 << Dim>{}, eField, wlo, whi, args);
+        e(n) = gather2D(
+                       eField, wlo.data_m[0], wlo.data_m[1], whi.data_m[0], whi.data_m[1],
+                       args.data_m[0], args.data_m[1], args.data_m[2] - 1)
+               + gather2D(
+                       eField, wlo.data_m[0], wlo.data_m[1], whi.data_m[0], whi.data_m[1],
+                       args.data_m[0], args.data_m[1], args.data_m[2]);
     }
+}
+
+template <typename T>
+KOKKOS_FUNCTION Solve2d5<T>::Vector3D_t Solve2d5<T>::gather2D(
+        VectorGridView3D_t eField, T wlox, T wloy, T whix, T whiy, int x, int y, int z) {
+    Vector3D_t result;
+    result = wlox * wloy * eField(x - 1, y - 1, z);
+    result += whix * wloy * eField(x, y - 1, z);
+    result += wlox * whiy * eField(x - 1, y, z);
+    result += whix * whiy * eField(x, y, z);
+    return result;
 }
 
 template <typename T>
