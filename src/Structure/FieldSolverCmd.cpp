@@ -86,8 +86,7 @@ FieldSolverCmd::FieldSolverCmd()
             Attributes::makeBool("CLOSEDRING", "TRUE if the ring is closed [FFT2D5 only]", false);
     itsAttr[FIELDSOLVER::SCATTERLONGITUDINALLY] = Attributes::makeBool(
             "SCATTERLONGITUDINALLY",
-            "TRUE to scatter charge longitudinally across slices [FFT2D5 only]",
-            true);
+            "TRUE to scatter charge longitudinally across slices [FFT2D5 only]", true);
     itsAttr[FIELDSOLVER::PIPESIZEX] = Attributes::makeReal(
             "PIPESIZEX", "Beam pipe horizontal size in metres [FFT2D5 only]", 1.0);
     itsAttr[FIELDSOLVER::PIPESIZEY] = Attributes::makeReal(
