@@ -44,7 +44,7 @@ public:
     using VectorGridView2D_t = Field<Vector2D_t, 2U>::view_type;
     using FieldContainer_t   = FieldContainer<T, 3U>;
 
-    enum class LongitudinalFieldMode { Cylindrical, Plates, Open };
+    enum class LongitudinalFieldMode { Cylindrical, Plates, Open, None };
 
     struct Solver {
         std::shared_ptr<OpenSolver2D_t> solver_m{};
@@ -56,7 +56,7 @@ public:
             PartBunch_t* partBunch, std::string solver, Field_t<3U>* rho, VField_t<T, 3U>* E,
             Field_t<3U>* phi, std::shared_ptr<BCHandler_t> bcHandler, const Vector<int, 3U>& nR,
             LongitudinalFieldMode longitudinalFieldMode, T pipeSizeX, T pipeSizeY, T beamRadius,
-            bool closedRing, bool calcLongitudinalFields, const std::string& refPathFileName);
+            bool closedRing, bool scatterChargeLongitudinally, const std::string& refPathFileName);
 
     void initSolver() override;
     void runSolver() override { doRunSolver(); }
@@ -68,7 +68,7 @@ public:
     void orbitThreadersReady() override;
     void computeSelfFields(PartBunch_t& /*bunch*/) override { doRunSolver(); }
 
-    // Algorithm steps, public for testability-qqqqqqqqqq
+    // Algorithm steps, public for testability
     class NullDiagnostic {
     public:
         enum class Kind {
@@ -128,7 +128,7 @@ public:
 private:
     // Helper functions
     T loadReferencePath();
-    template <typename DiagnosticPolicy = NullDiagnostic>
+    template <bool ScatterLongitudinally, typename DiagnosticPolicy = NullDiagnostic>
     KOKKOS_FUNCTION static void doScatterToGrid(
             size_t n, const VectorView_t& r, const VectorView_t& p, const ReferenceView_t& ref,
             T meanPs, const ScalarView_t& dt, const BooleanView_t& invalid, Vector3D_t invDr,
@@ -139,6 +139,7 @@ private:
             Vector3D_t& fsR, Vector3D_t& fsP, Vector3D_t& bUnit, Vector3D_t& nUnit,
             Vector3D_t& tUnit);
     KOKKOS_FUNCTION static void boostToBeamFrame(T meanPs, Vector3D_t& fsP);
+    template <bool ScatterLongitudinally>
     KOKKOS_FUNCTION static void scatterToRho(
             size_t n, Vector3D_t fsR, const ScalarView_t& dt, Vector3D_t invDr, int nghost,
             const ippl::NDIndex<3U>& lDom, ScalarGridView3D_t rho, Vector3D_t origin);
@@ -158,7 +159,19 @@ private:
             size_t n, const Vector3D_t& bUnit, const Vector3D_t& nUnit, const Vector3D_t& tUnit,
             const VectorView_t& e, const VectorView_t& b);
     KOKKOS_FUNCTION static Vector3D_t gather2D(
-            VectorGridView3D_t eField, T wlox, T wloy, T whix, T whiy, int x, int y, int z);
+            VectorGridView3D_t eField, const ippl::Vector<T, 3U>& wlo,
+            const ippl::Vector<T, 3U>& whi, int x, int y, int z);
+    KOKKOS_FUNCTION static void scatter2D(
+            ScalarGridView3D_t rho, const ippl::Vector<T, 3U>& wlo, const ippl::Vector<T, 3U>& whi,
+            int x, int y, int z, T charge);
+    KOKKOS_FUNCTION static void scatter3D(
+            ScalarGridView3D_t rho, const ippl::Vector<T, 3U>& wlo, const ippl::Vector<T, 3U>& whi,
+            int x, int y, int z, T charge);
+    template <typename ViewType>
+    KOKKOS_FUNCTION static bool makeWeights(
+            Vector3D_t fsR, Vector3D_t origin, Vector3D_t invDr, int nghost,
+            const ippl::NDIndex<3U>& lDom, const ViewType& view, ippl::Vector<T, 3U>& whi,
+            ippl::Vector<T, 3U>& wlo, ippl::Vector<int, 3U>& args);
 
 public:
     // Test case API
@@ -191,7 +204,7 @@ private:
     T beamRadius_m{1};
     LongitudinalFieldMode longitudinalFieldMode_m{LongitudinalFieldMode::Open};
     bool closedRing_m{false};
-    bool calcLongitudinalFields_{true};
+    bool scatterChargeLongitudinally_m{true};
     Vector<unsigned int, 3U> nR_m{10};
     std::string referencePathFileName_m{};
     std::string solver_m;

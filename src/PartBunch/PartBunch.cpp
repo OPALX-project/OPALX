@@ -310,13 +310,15 @@ void PartBunch<T, Dim>::setSolver() {
             mode = Solve2d5<T>::LongitudinalFieldMode::Cylindrical;
         } else if (OPALFieldSolver_m->getPipeMode() == "PLATES") {
             mode = Solve2d5<T>::LongitudinalFieldMode::Plates;
+        } else if (OPALFieldSolver_m->getPipeMode() == "NONE") {
+            mode = Solve2d5<T>::LongitudinalFieldMode::None;
         }
         auto solver2d5 = std::make_shared<Solve2d5<T>>(
                 this, this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
                 &this->fcontainer_m->getPhi(), this->getBCHandler(), nr_m, mode,
                 OPALFieldSolver_m->getPipeSizeX(), OPALFieldSolver_m->getPipeSizeY(),
                 OPALFieldSolver_m->getBeamRadius(), OPALFieldSolver_m->getClosedRing(),
-                OPALFieldSolver_m->getCalcLongitudinalFields(),
+                OPALFieldSolver_m->getScatterLongitudinally(),
                 OPALFieldSolver_m->getRefPathFileName());
         this->setFieldSolver(solver2d5);
         m << level4 << "2.5D field solver set." << endl;

@@ -26,14 +26,14 @@ Solve2d5<T>::Solve2d5(
         PartBunch_t* partBunch, std::string solver, Field_t<3U>* rho, VField_t<T, 3U>* E,
         Field_t<3U>* phi, std::shared_ptr<BCHandler_t> bcHandler, const Vector<int, 3U>& nR,
         const LongitudinalFieldMode longitudinalFieldMode, const T pipeSizeX, const T pipeSizeY,
-        const T beamRadius, const bool closedRing, bool calcLongitudinalFields,
+        const T beamRadius, const bool closedRing, bool scatterChargeLongitudinally,
         const std::string& refPathFileName)
     : Base(solver, rho, E, phi, bcHandler, 0, true),
       partBunch_m(partBunch),
       beamRadius_m(beamRadius),
       longitudinalFieldMode_m(longitudinalFieldMode),
       closedRing_m(closedRing),
-      calcLongitudinalFields_(calcLongitudinalFields),
+      scatterChargeLongitudinally_m(scatterChargeLongitudinally),
       nR_m(nR),
       referencePathFileName_m(refPathFileName),
       solver_m(solver),
@@ -192,13 +192,23 @@ void Solve2d5<T>::scatterToGrid(const PartBunch_t& bunch, DiagnosticPolicy diagn
             const auto meanPs   = pc->getMeanP().data_m[2];
             const auto& dt      = pc->dt.getView();
             const auto& invalid = pc->InvalidMask.getView();
-            Kokkos::parallel_for(
-                    "Solve2d5::scatterToGrid::scatter", pc->getLocalNum(),
-                    KOKKOS_LAMBDA(const size_t n) {
-                        doScatterToGrid(
-                                n, r, p, ref, meanPs, dt, invalid, invDr, nghost, lDom, rhoView,
-                                origin, diagnostic);
-                    });
+            if (scatterChargeLongitudinally_m) {
+                Kokkos::parallel_for(
+                        "Solve2d5::scatterToGrid::scatter", pc->getLocalNum(),
+                        KOKKOS_LAMBDA(const size_t n) {
+                            doScatterToGrid<true>(
+                                    n, r, p, ref, meanPs, dt, invalid, invDr, nghost, lDom, rhoView,
+                                    origin, diagnostic);
+                        });
+            } else {
+                Kokkos::parallel_for(
+                        "Solve2d5::scatterToGrid::scatter", pc->getLocalNum(),
+                        KOKKOS_LAMBDA(const size_t n) {
+                            doScatterToGrid<false>(
+                                    n, r, p, ref, meanPs, dt, invalid, invDr, nghost, lDom, rhoView,
+                                    origin, diagnostic);
+                        });
+            }
             Kokkos::fence();
             diagnostic.scatterCharge(rhoView);
             pc->unscaleDtByCharge();
@@ -234,7 +244,7 @@ void Solve2d5<T>::scatterToGrid(const PartBunch_t& bunch, DiagnosticPolicy diagn
 }
 
 template <typename T>
-template <typename DiagnosticPolicy>
+template <bool ScatterLongitudinally, typename DiagnosticPolicy>
 KOKKOS_FUNCTION void Solve2d5<T>::doScatterToGrid(
         const size_t n, const VectorView_t& r, const VectorView_t& p, const ReferenceView_t& ref,
         const T meanPs, const ScalarView_t& dt, const BooleanView_t& invalid, Vector3D_t invDr,
@@ -249,7 +259,7 @@ KOKKOS_FUNCTION void Solve2d5<T>::doScatterToGrid(
         boostToBeamFrame(meanPs, fsP);
         diagnostic.boostToBeam(n, fsR, fsP, invalid(n));
         // CiC scatter the charge to the 3D rho grid
-        scatterToRho(n, fsR, dt, invDr, nghost, lDom, rho, origin);
+        scatterToRho<ScatterLongitudinally>(n, fsR, dt, invDr, nghost, lDom, rho, origin);
     }
 }
 
@@ -313,33 +323,46 @@ KOKKOS_FUNCTION void Solve2d5<T>::boostToBeamFrame(const T meanPs, Vector3D_t& f
 }
 
 template <typename T>
+template <typename ViewType>
+KOKKOS_FUNCTION bool Solve2d5<T>::makeWeights(
+        Vector3D_t fsR, Vector3D_t origin, Vector3D_t invDr, int nghost,
+        const ippl::NDIndex<3U>& lDom, const ViewType& view, ippl::Vector<T, 3U>& whi,
+        ippl::Vector<T, 3U>& wlo, ippl::Vector<int, 3U>& args) {
+    const auto l                = (fsR - origin) * invDr + 0.5;
+    ippl::Vector<int, 3U> index = l;
+    whi                         = l - index;
+    wlo                         = 1.0 - whi;
+    args                        = index - lDom.first() + nghost;
+    // CIC touches args[d] and args[d] - 1, so valid args are
+    // [1, extent - 1]. Anything outside would underflow or
+    // overrun the field view on the device.
+    bool inBounds = args[0] > 0 && args[0] < static_cast<int>(view.extent(0));
+    inBounds      = inBounds && args[1] > 0 && args[1] < static_cast<int>(view.extent(1));
+    inBounds      = inBounds && args[2] > 0 && args[2] < static_cast<int>(view.extent(2));
+    return inBounds;
+}
+
+template <typename T>
+template <bool ScatterLongitudinally>
 KOKKOS_FUNCTION void Solve2d5<T>::scatterToRho(
         const size_t n, Vector3D_t fsR, const ScalarView_t& dt, Vector3D_t invDr, const int nghost,
         const ippl::NDIndex<3U>& lDom, ScalarGridView3D_t rho, Vector3D_t origin) {
     // CiC scatter the charge to the 3D rho grid
-    const auto l                 = (fsR - origin) * invDr + 0.5;
-    ippl::Vector<int, Dim> index = l;
-    ippl::Vector<T, Dim> whi     = l - index;
-    ippl::Vector<T, Dim> wlo     = 1.0 - whi;
-    ippl::Vector<int, Dim> args  = index - lDom.first() + nghost;
-    bool inBounds                = true;
-    for (unsigned d = 0; d < Dim; ++d) {
-        // CIC touches args[d] and args[d] - 1, so valid args are
-        // [1, extent - 1]. Anything outside would underflow or
-        // overrun the field view on the device.
-        inBounds = inBounds && args[d] > 0 && args[d] < static_cast<int>(rho.extent(d));
-    }
-    if (inBounds) {
-        ippl::Vector<size_t, Dim> viewArgs = args;
-        ippl::detail::scatterToField(
-                std::make_index_sequence<1 << Dim>{}, rho, wlo, whi, viewArgs, dt(n));
+    ippl::Vector<T, Dim> whi, wlo;
+    ippl::Vector<int, Dim> args;
+    if (makeWeights(fsR, origin, invDr, nghost, lDom, rho, whi, wlo, args)) {
+        if constexpr (ScatterLongitudinally) {
+            scatter3D(rho, wlo, whi, args[0], args[1], args[2], dt(n));
+        } else {
+            scatter2D(rho, wlo, whi, args[0], args[1], args[2], dt(n));
+        }
     }
 }
 
 template <typename T>
 template <typename DiagnosticPolicy>
 void Solve2d5<T>::calculateLineDensity(DiagnosticPolicy diagnostic) {
-    if (calcLongitudinalFields_) {
+    if (longitudinalFieldMode_m != LongitudinalFieldMode::None) {
         using Policy2D_t       = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
         const auto rho3d       = rho_m->getView();
         auto deviceLineDensity = lineDensity_m;
@@ -411,7 +434,6 @@ void Solve2d5<T>::solvePoissons(DiagnosticPolicy diagnostic) {
         Kokkos::deep_copy(
                 rho2d, Kokkos::subview(rho_m->getView(), Kokkos::ALL(), Kokkos::ALL(), z + nghost));
         // Scale by the coupling constant then solve
-        auto dz = hr_m[2];
         Kokkos::parallel_for(
                 "Solve2d5::solvePoissons::coupling",
                 Policy({0, 0}, {rho2d.extent(0), rho2d.extent(1)}),
@@ -543,37 +565,48 @@ KOKKOS_FUNCTION void Solve2d5<T>::gatherFromEField(
         const size_t n, Vector3D_t fsR, const VectorView_t& e, Vector3D_t invDr, const int nghost,
         const ippl::NDIndex<3U>& lDom, VectorGridView3D_t eField, Vector3D_t origin) {
     // CiC gather the boosted E field to the 3D E field grid
-    const auto l                 = (fsR - origin) * invDr + 0.5;
-    ippl::Vector<int, Dim> index = l;
-    ippl::Vector<T, Dim> whi     = l - index;
-    ippl::Vector<T, Dim> wlo     = 1.0 - whi;
-    ippl::Vector<int, Dim> args  = index - lDom.first() + nghost;
-    bool inBounds                = true;
-    for (unsigned d = 0; d < Dim; ++d) {
-        // CIC touches args[d] and args[d] - 1, so valid args are
-        // [1, extent - 1]. Anything outside would underflow or
-        // overrun the field view on the device.
-        inBounds = inBounds && args[d] > 0 && args[d] < static_cast<int>(eField.extent(d));
-    }
-    if (inBounds) {
-        e(n) = gather2D(
-                       eField, wlo.data_m[0], wlo.data_m[1], whi.data_m[0], whi.data_m[1],
-                       args.data_m[0], args.data_m[1], args.data_m[2] - 1)
-               + gather2D(
-                       eField, wlo.data_m[0], wlo.data_m[1], whi.data_m[0], whi.data_m[1],
-                       args.data_m[0], args.data_m[1], args.data_m[2]);
+    ippl::Vector<T, Dim> whi, wlo;
+    ippl::Vector<int, Dim> args;
+    if (makeWeights(fsR, origin, invDr, nghost, lDom, eField, whi, wlo, args)) {
+        e(n) = gather2D(eField, wlo, whi, args[0], args[1], args[2] - 1)
+               + gather2D(eField, wlo, whi, args[0], args[1], args[2]);
     }
 }
 
 template <typename T>
 KOKKOS_FUNCTION Solve2d5<T>::Vector3D_t Solve2d5<T>::gather2D(
-        VectorGridView3D_t eField, T wlox, T wloy, T whix, T whiy, int x, int y, int z) {
+        VectorGridView3D_t eField, const ippl::Vector<T, 3U>& wlo, const ippl::Vector<T, 3U>& whi,
+        int x, int y, int z) {
     Vector3D_t result;
-    result = wlox * wloy * eField(x - 1, y - 1, z);
-    result += whix * wloy * eField(x, y - 1, z);
-    result += wlox * whiy * eField(x - 1, y, z);
-    result += whix * whiy * eField(x, y, z);
+    result = wlo[0] * wlo[1] * eField(x - 1, y - 1, z);
+    result += whi[0] * wlo[1] * eField(x, y - 1, z);
+    result += wlo[0] * whi[1] * eField(x - 1, y, z);
+    result += whi[0] * whi[1] * eField(x, y, z);
     return result;
+}
+
+template <typename T>
+KOKKOS_FUNCTION void Solve2d5<T>::scatter3D(
+        ScalarGridView3D_t rho, const ippl::Vector<T, 3U>& wlo, const ippl::Vector<T, 3U>& whi,
+        int x, int y, int z, T charge) {
+    rho(x - 1, y - 1, z - 1) = wlo[0] * wlo[1] * wlo[2] * charge;
+    rho(x, y - 1, z - 1)     = whi[0] * wlo[1] * wlo[2] * charge;
+    rho(x - 1, y, z - 1)     = wlo[0] * whi[1] * wlo[2] * charge;
+    rho(x, y, z - 1)         = whi[0] * whi[1] * wlo[2] * charge;
+    rho(x - 1, y - 1, z)     = wlo[0] * wlo[1] * whi[2] * charge;
+    rho(x, y - 1, z)         = whi[0] * wlo[1] * whi[2] * charge;
+    rho(x - 1, y, z)         = wlo[0] * whi[1] * whi[2] * charge;
+    rho(x, y, z)             = whi[0] * whi[1] * whi[2] * charge;
+}
+
+template <typename T>
+KOKKOS_FUNCTION void Solve2d5<T>::scatter2D(
+        ScalarGridView3D_t rho, const ippl::Vector<T, 3U>& wlo, const ippl::Vector<T, 3U>& whi,
+        int x, int y, int z, T charge) {
+    rho(x - 1, y - 1, z) = wlo[0] * wlo[1] * charge;
+    rho(x, y - 1, z)     = whi[0] * wlo[1] * charge;
+    rho(x - 1, y, z)     = wlo[0] * whi[1] * charge;
+    rho(x, y, z)         = whi[0] * whi[1] * charge;
 }
 
 template <typename T>
