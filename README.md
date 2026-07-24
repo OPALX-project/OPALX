@@ -17,7 +17,7 @@ OPALX uses GitHub Actions for required and non-required pull request checks. The
 
 - `Check clang-format`: checks the formatting of changed source and unit test files in the pull request using clang-format 21.1.8. This check is **not required**.
 
-See [IPPL's formatting documentation](https://github.com/IPPL-framework/ippl/blob/master/doc/extras/CodeFormattingSetup.md) for instructions on setting up pre-commit hooks.
+See [IPPL's formatting documentation](https://ippl-framework.github.io/Manual/sections/for-developers/workflow/index.html#automatic-code-formatting) for instructions on setting up pre-commit hooks.
 
 ### Compilation
 
@@ -39,7 +39,7 @@ See [IPPL's formatting documentation](https://github.com/IPPL-framework/ippl/blo
 
 ## Manual and Documentation
 
-[OPALX documentation](https://opalx-project.github.io/Manual/)
+[OPALX documentation](https://opalx-project.github.io/opalx-manual)
 
 ## Dependencies
 
