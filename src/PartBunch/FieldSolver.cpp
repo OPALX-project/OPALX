@@ -343,6 +343,7 @@ void FieldSolver<double, 3>::initP3MSolver() {
     sp.add("alpha", getP3MAlpha());
     // rho already carries 1/epsilon_0; the sign matches OPALX's gathered electric field.
     sp.add("force_constant", -1.0 / (4.0 * Physics::pi));
+    sp.add("regularization_cutoff", 1.0e-9); // standard PP regularization length
     initSolverWithParams<FFTTruncatedGreenSolver_t<double, 3>>(sp);
 }
 
