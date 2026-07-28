@@ -41,9 +41,6 @@ Solve2d5<T>::Solve2d5(
       pipeSizeY_m(pipeSizeY) {}
 
 template <typename T>
-void Solve2d5<T>::initSolver() {}
-
-template <typename T>
 void Solve2d5<T>::orbitThreadersReady() {
     // Load the reference path to determine the Frenet-Serret domain dimensions
     auto pathLength = loadReferencePath();
@@ -53,7 +50,7 @@ void Solve2d5<T>::orbitThreadersReady() {
     for (unsigned i = 0; i < Dim; i++) {
         domain_m[i] = ippl::Index(nR_m[i]);
     }
-    // Create the fields and field container (for now, no partitioning)
+    // Create the 3D fields and field container
     // Why are the first three parameters to the FieldContainer_t constructor references?
     Vector3D_t rmax = originr_m + sizer_m;
     partBunch_m->setFieldContainer(
@@ -171,6 +168,11 @@ T Solve2d5<T>::loadReferencePath() {
     return length;
 }
 
+// Place the charge from all the particles into the charge density grid.
+// Multiple particle containers in the bunch are supported.
+// The particle container array dt is temporarily used to contain the charge to deposit.
+// The real work is handled by the doScatterToGrid Kokkos kernel.
+// The periodic boundary conditions are handled when the ring is marked as closed.
 template <typename T>
 template <typename DiagnosticPolicy>
 void Solve2d5<T>::scatterToGrid(const PartBunch_t& bunch, DiagnosticPolicy diagnostic) {
@@ -182,11 +184,11 @@ void Solve2d5<T>::scatterToGrid(const PartBunch_t& bunch, DiagnosticPolicy diagn
         const auto& lDom   = layout.getLocalNDIndex();
         const auto rhoView = rho_m->getView();
         const auto& origin = originr_m;
-        // Do the scattering for all the particles
+        // Do the scattering for all the particle containers
         Kokkos::deep_copy(rhoView, 0.0);
         for (auto& pcs = bunch.getParticleContainers(); const auto& pc : pcs) {
             pc->updateMoments();
-            pc->scaleDtByCharge();  // Work out a way to include this in the parallel for
+            pc->scaleDtByCharge();
             const auto& r       = pc->R.getView();
             const auto& p       = pc->P.getView();
             const auto meanPs   = pc->getMeanP().data_m[2];
@@ -243,6 +245,13 @@ void Solve2d5<T>::scatterToGrid(const PartBunch_t& bunch, DiagnosticPolicy diagn
     }
 }
 
+// This is a Kokkos kernel that deposits the charge for a single particle into the
+// charge density grid.  The particle's coordinates are first translated into
+// the Frenet-Serret coordinate system using the previously loaded reference path.
+// The particle is then boosted into the beam's reference frame before the charge
+// is scattered using one of two CiC algorithms depending on the ScatterLongitudinally
+// template parameter.   When true, trilinear CiC is used.  When false, the particle
+// is assigned to a single z slice and bilinear CiC is used in that slice.
 template <typename T>
 template <bool ScatterLongitudinally, typename DiagnosticPolicy>
 KOKKOS_FUNCTION void Solve2d5<T>::doScatterToGrid(
