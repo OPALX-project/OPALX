@@ -500,16 +500,14 @@ void Option::execute() {
     if (itsAttr[PSDUMPFREQ]) {
         psDumpFreq = int(Attributes::getReal(itsAttr[PSDUMPFREQ]));
         if (psDumpFreq < 0) {
-            throw OpalException("Option::update",
-                                "PSDUMPFREQ must be non-negative.");
+            throw OpalException("Option::execute", "PSDUMPFREQ must be non-negative.");
         }
     }
 
     if (itsAttr[STATDUMPFREQ]) {
         statDumpFreq = int(Attributes::getReal(itsAttr[STATDUMPFREQ]));
         if (statDumpFreq < 0) {
-            throw OpalException("Option::update",
-                                "STATDUMPFREQ must be non-negative.");
+            throw OpalException("Option::execute", "STATDUMPFREQ must be non-negative.");
         }
     }
 

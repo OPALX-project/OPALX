@@ -597,7 +597,9 @@ void ParallelTracker::execute() {
 
     writePhaseSpace((step + 1), psDump, statDump);
 
-    *gmsg << level2 << "* Dump phase space of last step" << endl;
+    if (psDump) {
+        *gmsg << level2 << "* Dump phase space of last step" << endl;
+    }
 
     itsOpalBeamline_m.switchElementsOff();
 
