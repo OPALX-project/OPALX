@@ -74,6 +74,11 @@ PartBunch<T, Dim>::PartBunch(
             OPALFieldSolver_m->getNX(), OPALFieldSolver_m->getNY(), OPALFieldSolver_m->getNZ());
     nrZBase_m = nr_m[Dim - 1];
 
+    const bool useP3M     = OPALFieldSolver_m->getFieldSolverCmdType() == FieldSolverCmdType::P3M;
+    const auto layoutType = useP3M ? ParticleContainer_t::LayoutType::SpatialOverlap
+                                   : ParticleContainer_t::LayoutType::Spatial;
+    const T p3mCutoff     = useP3M ? static_cast<T>(OPALFieldSolver_m->getP3MCutoff()) : T(0);
+
     const Vector_t<bool, 3> domainDecomposition = OPALFieldSolver_m->getDomainDecomposition();
 
     for (unsigned i = 0; i < Dim; i++) {
@@ -92,8 +97,14 @@ PartBunch<T, Dim>::PartBunch(
     //      domain is set
 
     Vector_t<double, Dim> length(6.0);
+    if (useP3M) {
+        // Keep the temporary overlap cell grid proportional to the requested cutoff.
+        for (unsigned d = 0; d < Dim; ++d) {
+            length[d] = static_cast<double>(nr_m[d]) * p3mCutoff;
+        }
+    }
     this->hr_m     = length / this->nr_m;
-    this->origin_m = -3.0;
+    this->origin_m = useP3M ? -0.5 * length : Vector_t<double, Dim>(-3.0);
     this->dt_m     = 0.5 / this->nr_m[2];
 
     rmin_m = origin_m;
@@ -106,14 +117,14 @@ PartBunch<T, Dim>::PartBunch(
     this->setParticleContainer(
             std::make_shared<ParticleContainer_t>(
                     this->fcontainer_m->getMesh(), this->fcontainer_m->getFL(),
-                    beams[0]->hasPolarization()));
+                    beams[0]->hasPolarization(), layoutType, p3mCutoff));
     this->pcontainer_m->setBunchStateHandler(bunchState_m);
     /// \todo if we want, we could also have a separate BunchStateHandler for each container later?
     /// But I think it could also make sense to only have one global handler.
     for (size_t i = 1; i < num_containers; ++i) {
         auto pc = std::make_shared<ParticleContainer_t>(
                 this->fcontainer_m->getMesh(), this->fcontainer_m->getFL(),
-                beams[i]->hasPolarization());
+                beams[i]->hasPolarization(), layoutType, p3mCutoff);
         pc->setBunchStateHandler(bunchState_m);
         this->addParticleContainer(pc);
     }
@@ -307,7 +318,7 @@ void PartBunch<T, Dim>::setSolver() {
             &this->fcontainer_m->getPhi(), this->getBCHandler(),
             binningCmd ? binningCmd->getTablePrintFrequency() : 0,
             binningCmd ? binningCmd->getAdaptiveBinning() : true,
-            OPALFieldSolver_m->getGreensFunction());
+            OPALFieldSolver_m->getGreensFunction(), OPALFieldSolver_m->getP3MCutoff());
     this->setFieldSolver(binnedSolver);
     m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
 
@@ -765,7 +776,7 @@ void PartBunch<T, Dim>::applyGridUpdate(
         if (!pc) {
             continue;
         }
-        pc->getLayout().updateLayout(*FL, *mesh);
+        pc->updateLayout(*FL, *mesh);
         pc->update();
         pc->markMomentsDirty();  // IPPL migration may have re-indexed R across ranks
                                  /// \todo there might be a case where we can keep the moments clean
@@ -935,7 +946,7 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks", "FieldSolver type string is empty.");
     }
-    if (stype != "FFT" && stype != "OPEN" && stype != "CG" && stype != "NONE") {
+    if (stype != "FFT" && stype != "P3M" && stype != "OPEN" && stype != "CG" && stype != "NONE") {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks", "Unsupported FieldSolver type: " + stype);
     }
