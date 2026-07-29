@@ -41,8 +41,7 @@ FieldSolverCmd::FieldSolverCmd()
               FIELDSOLVER::SIZE, "FIELDSOLVER",
               "The \"FIELDSOLVER\" statement defines data for a the field solver") {
     itsAttr[FIELDSOLVER::TYPE] = Attributes::makePredefinedString(
-            "TYPE", "Name of the attached field solver.",
-            {"NONE", "FFT", "OPEN", "CG"});  // removed, since not implemented: "P3M"
+            "TYPE", "Name of the attached field solver.", {"NONE", "FFT", "P3M", "OPEN", "CG"});
 
     itsAttr[FIELDSOLVER::BINS] = Attributes::makeString(
             "BINS", "Name of BINNING definition to be used, or NONE for no binning.", "NONE");
@@ -73,6 +72,9 @@ FieldSolverCmd::FieldSolverCmd()
             "GREENSF", "Which Greensfunction to be used.", {"STANDARD", "INTEGRATED"},
             "INTEGRATED");
 
+    itsAttr[FIELDSOLVER::P3MRCUT] = Attributes::makeReal(
+            "RCUT", "P3M particle-particle cutoff radius in m (ALPHA is derived as 2/RCUT).", 0.0);
+
     itsAttr[FIELDSOLVER::BBOXINCR] =
             Attributes::makeReal("BBOXINCR", "Increase of bounding box in % ", 2.0);
 
@@ -90,6 +92,7 @@ FieldSolverCmd* FieldSolverCmd::clone(const std::string& name) {
 
 void FieldSolverCmd::execute() {
     setFieldSolverCmdType();
+    validateP3MConfiguration();
     setDomainDecomposition();
     update();
 }
@@ -113,6 +116,10 @@ std::string FieldSolverCmd::getGreensFunction() const {
     return Attributes::getString(itsAttr[FIELDSOLVER::GREENSF]);
 }
 
+double FieldSolverCmd::getP3MCutoff() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::P3MRCUT]);
+}
+
 BCHandler<3> FieldSolverCmd::constructBCHandler() const {
     using BCH_t = BCHandler<3>;
 
@@ -132,6 +139,13 @@ BCHandler<3> FieldSolverCmd::constructBCHandler() const {
                 "Currently only uniform boundary conditions in all "
                 "dimensions are supported! Please set all "
                 "dimensions to either OPEN or PERIODIC.");
+    }
+
+    if (Attributes::getString(itsAttr[FIELDSOLVER::TYPE]) == "P3M"
+        && !boundary_conditions.isAll(BCH_t::PERIODIC)) {
+        throw OpalException(
+                "FieldSolverCmd::constructBCHandler",
+                "TYPE=P3M requires PERIODIC boundary conditions in all dimensions.");
     }
 
     return boundary_conditions;
@@ -163,6 +177,7 @@ void FieldSolverCmd::setFieldSolverCmdType() {
     static const std::map<std::string, FieldSolverCmdType> stringType_s = {
             {"NONE", FieldSolverCmdType::NONE},
             {"FFT", FieldSolverCmdType::FFT},
+            {"P3M", FieldSolverCmdType::P3M},
             {"OPEN", FieldSolverCmdType::OPEN},
             {"CG", FieldSolverCmdType::CG}};
 
@@ -174,6 +189,25 @@ void FieldSolverCmd::setFieldSolverCmdType() {
                 "The attribute \"TYPE\" isn't set for \"FIELDSOLVER\"!");
     } else {
         fsType_m = stringType_s.at(fsName_m);
+    }
+}
+
+void FieldSolverCmd::validateP3MConfiguration() const {
+    if (fsType_m != FieldSolverCmdType::P3M) {
+        return;
+    }
+
+    if (getP3MCutoff() <= 0.0) {
+        throw OpalException(
+                "FieldSolverCmd::validateP3MConfiguration",
+                "TYPE=P3M requires RCUT to be greater than zero.");
+    }
+
+    const std::string binsName = getBinsName();
+    if (!binsName.empty() && binsName != "NONE") {
+        throw OpalException(
+                "FieldSolverCmd::validateP3MConfiguration",
+                "TYPE=P3M does not support BINS. Remove BINS from the FIELDSOLVER definition.");
     }
 }
 
@@ -215,6 +249,12 @@ Inform& FieldSolverCmd::printInfo(Inform& os) const {
        << "* NZ           " << Attributes::getReal(itsAttr[FIELDSOLVER::NZ]) << '\n'
        << "* BBOXINCR     " << Attributes::getReal(itsAttr[FIELDSOLVER::BBOXINCR]) << '\n'
        << "* GREENSF      " << Attributes::getString(itsAttr[FIELDSOLVER::GREENSF]) << endl;
+
+    if (fsName_m == "P3M") {
+        const double cutoff = getP3MCutoff();
+        os << "* RCUT         " << cutoff << " [m]" << '\n'
+           << "* ALPHA        " << 2.0 / cutoff << " [1/m]" << endl;
+    }
 
     if (Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTX])) {
         os << "* XDIM         parallel  " << endl;

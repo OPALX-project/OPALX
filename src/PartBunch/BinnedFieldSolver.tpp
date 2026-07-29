@@ -10,8 +10,8 @@ template <typename T, unsigned Dim>
 BinnedFieldSolver<T, Dim>::BinnedFieldSolver(
         std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
         std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency, bool adaptiveBinning,
-        std::string greensFunction)
-    : FieldSolver<T, Dim>(solver, rho, E, phi, bcHandler, std::move(greensFunction)) {
+        std::string greensFunction, T p3mCutoff)
+    : FieldSolver<T, Dim>(solver, rho, E, phi, bcHandler, std::move(greensFunction), p3mCutoff) {
     scatterAttribute_m    = ScatterAttribute::ChargeQ;
     gatherAttribute_m     = GatherAttribute::ElectricFieldE;
     tablePrintFrequency_m = tablePrintFrequency;
@@ -75,6 +75,11 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
 
     // decide which solver path to run (binned vs legacy).
     const bool hasBins = bunch.hasBinning();
+    if (this->getStype() == "P3M" && hasBins) {
+        throw OpalException(
+                "BinnedFieldSolver::computeSelfFields",
+                "TYPE=P3M does not support BINS. Remove BINS from the FIELDSOLVER definition.");
+    }
 
     m << level4 << "Entry: rank=" << ippl::Comm->rank() << ", localParticles=" << pc->getLocalNum()
       << ", totalParticles=" << pc->getTotalNum() << ", hasBins=" << (hasBins ? 1 : 0)
@@ -531,7 +536,7 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
 
     // Alpine uses net-0 charge for non-OPEN solvers (periodic BCs).
     double shift = 0.0;
-    if (stype != "OPEN") {
+    if (stype != "OPEN" && stype != "P3M") {
         double size = 1.0;
         for (size_t d = 0; d < Dim; ++d) {
             size *= bunch.rmax_m[d] - bunch.rmin_m[d];
@@ -561,7 +566,38 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
                 "Unsupported gather attribute in legacy solver.");
     }
 
+    if (stype == "P3M") {
+        applyP3MShortRangeInteraction(*pc);
+    }
+
     // TABLEPRINTFREQ is binned-mode only; legacy mode intentionally prints nothing.
+}
+
+template <typename T, unsigned Dim>
+void BinnedFieldSolver<T, Dim>::applyP3MShortRangeInteraction(ParticleCtr_t& pc) {
+    if (!pc.hasP3MLayout()) {
+        throw OpalException(
+                "BinnedFieldSolver::applyP3MShortRangeInteraction",
+                "TYPE=P3M requires ParticleSpatialOverlapLayout.");
+    }
+
+    using ContainerView = p3m_detail::ContainerView<ParticleCtr_t>;
+    using ChargeView    = p3m_detail::ChargeView<typename ParticleCtr_t::qm_view_type>;
+    using Interaction   = ippl::TruncatedGreenParticleInteraction<
+              ContainerView, particle_position_type, ChargeView>;
+
+    ContainerView container(pc);
+    ChargeView charge(
+            pc.getQView(), pc.getQMStorageMode() == ParticleCtr_t::QMStorageMode::Attributes);
+
+    ippl::ParameterList params;
+    params.add("rcut", this->getP3MCutoff());
+    params.add("alpha", this->getP3MAlpha());
+    // Raw particle charge is used here, so include epsilon_0 in the short-range coefficient.
+    params.add("force_constant", -1.0 / (4.0 * Physics::pi * Physics::epsilon_0));
+
+    Interaction interaction(container, pc.E, pc.R, charge, params);
+    interaction.solve();
 }
 
 template <typename T, unsigned Dim>

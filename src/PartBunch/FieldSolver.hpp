@@ -16,6 +16,7 @@ private:
     VField_t<T, Dim>* E_m;
     Field_t<Dim>* phi_m;
     std::string greensFunction_m;
+    T p3mCutoff_m;
 
     using BCHandler_t = BCHandler<Dim>;
     std::shared_ptr<BCHandler_t> bcHandler_m;
@@ -26,12 +27,14 @@ private:
 public:
     FieldSolver(
             std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
-            std::shared_ptr<BCHandler_t> bcHandler, std::string greensFunction = "STANDARD")
+            std::shared_ptr<BCHandler_t> bcHandler, std::string greensFunction = "STANDARD",
+            T p3mCutoff = T(0))
         : ippl::FieldSolverBase<T, Dim>(solver),
           rho_m(rho),
           E_m(E),
           phi_m(phi),
           greensFunction_m(std::move(greensFunction)),
+          p3mCutoff_m(p3mCutoff),
           bcHandler_m(bcHandler),
           call_counter_m(0) {
         setPotentialBCs();
@@ -73,6 +76,10 @@ public:
     void setGreensFunction(std::string greensFunction) {
         greensFunction_m = std::move(greensFunction);
     }
+
+    T getP3MCutoff() const { return p3mCutoff_m; }
+
+    T getP3MAlpha() const { return T(2) / p3mCutoff_m; }
 
     /**
      * @brief Get the solver's coupling constant.
@@ -184,7 +191,7 @@ public:
 
     void initCGSolver() {}
 
-    void initP3MSolver() {}
+    void initP3MSolver();
 };
 
 // Explicit specialization declaration

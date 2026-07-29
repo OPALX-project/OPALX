@@ -401,7 +401,7 @@ void OpalFlatTop::initDomainDecomp(double BoxIncr) {
     hr_m                            = (1.0 + BoxIncr / 100.0) * (l / nr_m);
     mesh->setMeshSpacing(hr_m);
     mesh->setOrigin(o - 0.5 * hr_m * BoxIncr / 100.0);
-    pc_m->getLayout().updateLayout(*FL, *mesh);
+    pc_m->updateLayout(*FL, *mesh);
 }
 
 void OpalFlatTop::setWithDomainDecomp(bool withDomainDecomp) {
