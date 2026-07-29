@@ -59,8 +59,7 @@ public:
         fc_m->updateFieldLayoutsAfterLayoutChange(fs_m ? fs_m->getStype() : "");
 
         // Update layout with new FieldLayout
-        PLayout_t<T, Dim>* layout = &pc_m->getLayout();
-        (*layout).updateLayout(*fl, *mesh);
+        pc_m->updateLayout(*fl, *mesh);
         IpplTimings::stopTimer(tupdateLayout);
         static IpplTimings::TimerRef tupdatePLayout = IpplTimings::getTimer("updatePB");
         IpplTimings::startTimer(tupdatePLayout);

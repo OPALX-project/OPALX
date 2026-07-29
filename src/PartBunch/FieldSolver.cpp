@@ -326,6 +326,28 @@ void FieldSolver<double, 3>::initFFTSolver() {
 }
 
 template <>
+void FieldSolver<double, 3>::initP3MSolver() {
+    if (p3mCutoff_m <= 0.0) {
+        throw OpalException(
+                "FieldSolver::initP3MSolver", "The P3M cutoff radius must be greater than zero.");
+    }
+
+    ippl::ParameterList sp;
+    sp.add("output_type", FFTTruncatedGreenSolver_t<double, 3>::GRAD);
+    sp.add("use_heffte_defaults", false);
+    sp.add("use_pencils", true);
+    sp.add("use_reorder", false);
+    sp.add("use_gpu_aware", true);
+    sp.add("comm", ippl::p2p_pl);
+    sp.add("r2c_direction", 0);
+    sp.add("alpha", getP3MAlpha());
+    // rho already carries 1/epsilon_0; the sign matches OPALX's gathered electric field.
+    sp.add("force_constant", -1.0 / (4.0 * Physics::pi));
+    sp.add("regularization_cutoff", 1.0e-9);  // standard PP regularization length
+    initSolverWithParams<FFTTruncatedGreenSolver_t<double, 3>>(sp);
+}
+
+template <>
 void FieldSolver<double, 3>::initCGSolver() {
     ippl::ParameterList sp;
     sp.add("output_type", CGSolver_t<double, 3>::GRAD);
@@ -352,6 +374,8 @@ void FieldSolver<double, 3>::initSolver() {
     Inform m;
     if (this->getStype() == "FFT") {
         initFFTSolver();
+    } else if (this->getStype() == "P3M") {
+        initP3MSolver();
     } else if (this->getStype() == "OPEN") {
         initOpenSolver();
     } else if (this->getStype() == "CG") {
@@ -559,7 +583,7 @@ double FieldSolver<double, 3>::getCouplingConstant() const {
 
     /// \todo Verify this before activating a new solver!
     const std::string stype = this->getStype();
-    if (stype == "OPEN") {
+    if (stype == "OPEN" || stype == "P3M") {
         return 1.0 / Physics::epsilon_0;
     } else if (stype == "FFT") {
         return 1.0 / Physics::epsilon_0;
@@ -593,25 +617,3 @@ void FieldSolver<double, 3>::setPotentialBCs() {
     // rho_m->setFieldBC(bc_container);
     m << level4 << "Potential BCs in FieldSolver updated using BCHandler." << endl;
 }
-
-/*
-/// \todo to be implemented...
-template<>
-void FieldSolver<double,3>::initP3MSolver() {
-    //        if constexpr (Dim == 3) {
-    ippl::ParameterList sp;
-    sp.add("output_type", P3MSolver_t<double, 3>::GRAD);
-    sp.add("use_heffte_defaults", false);
-    sp.add("use_pencils", true);
-    sp.add("use_reorder", false);
-    sp.add("use_gpu_aware", true);
-    sp.add("comm", ippl::p2p_pl);
-    sp.add("r2c_direction", 0);
-
-    initSolverWithParams<P3MSolver_t<double, 3>>(sp);
-    //  } else {
-    // throw std::runtime_error("Unsupported dimensionality for P3M solver");
-    // }
-}
-
-*/

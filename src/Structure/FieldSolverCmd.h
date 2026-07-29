@@ -30,7 +30,7 @@
 
 #include "Ippl.h"
 
-enum class FieldSolverCmdType : short { NONE = -1, FFT = 0, OPEN = 1, CG = 2 };
+enum class FieldSolverCmdType : short { NONE = -1, FFT = 0, OPEN = 1, CG = 2, P3M = 3 };
 
 // The attributes of class FieldSolverCmd.
 namespace FIELDSOLVER {
@@ -47,6 +47,7 @@ namespace FIELDSOLVER {
         BCFFTY,    // boundary condition in y [FFT + AMR_MG only]
         BCFFTZ,    // boundary condition in z [FFT + AMR_MG only]
         GREENSF,   // holds greensfunction to be used [FFT + P3M only]
+        P3MRCUT,   // P3M particle-particle cutoff radius [m]
         BBOXINCR,  // how much the boundingbox is increased
         SIZE
     };
@@ -69,6 +70,7 @@ public:
     std::string getBinsName() const;
     BinningCmd* getBinningCmd() const;
     std::string getGreensFunction() const;
+    double getP3MCutoff() const;
 
     /// Returns solver boundary conditions handler object.
     BCHandler<3> constructBCHandler() const;
@@ -117,6 +119,8 @@ private:
 
     // Clone constructor.
     FieldSolverCmd(const std::string& name, FieldSolverCmd* parent);
+
+    void validateP3MConfiguration() const;
 
     std::string fsName_m;
     FieldSolverCmdType fsType_m;
