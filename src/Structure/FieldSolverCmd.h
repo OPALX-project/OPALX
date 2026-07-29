@@ -47,6 +47,7 @@ namespace FIELDSOLVER {
         BCFFTY,        // boundary condition in y [FFT + AMR_MG only]
         BCFFTZ,        // boundary condition in z [FFT + AMR_MG only]
         GREENSF,       // holds greensfunction to be used [FFT + P3M only]
+        P3MRCUT,       // P3M particle-particle cutoff radius [m]
         BBOXINCR,      // how much the boundingbox is increased
         PIPEMODE,      // One of OPEN, CIRCULAR, PLATES, NONE [FFT2D5 only]
         BEAMR,         // Beam radius in metres [FFT2D5 only]
