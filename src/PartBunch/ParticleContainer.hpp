@@ -27,6 +27,19 @@
 
 #include "Physics/Physics.h"
 
+// ParticleSpatialOverlapLayout.hpp currently includes IPPL's Alpine example ParticleContainer,
+// whose global class name collides with OPALX's container. The layout itself does not depend on
+// that example type, so suppress only that application header while including the IPPL layout.
+#ifndef IPPL_PARTICLE_CONTAINER_H
+#define OPALX_SUPPRESS_IPPL_ALPINE_PARTICLE_CONTAINER
+#define IPPL_PARTICLE_CONTAINER_H
+#endif
+#include "Particle/ParticleSpatialOverlapLayout.h"
+#ifdef OPALX_SUPPRESS_IPPL_ALPINE_PARTICLE_CONTAINER
+#undef IPPL_PARTICLE_CONTAINER_H
+#undef OPALX_SUPPRESS_IPPL_ALPINE_PARTICLE_CONTAINER
+#endif
+
 // #include <Kokkos_Core.hpp>
 
 template <typename T>
@@ -63,7 +76,8 @@ using size_type = ippl::detail::size_type;
 template <typename T, unsigned Dim = 3>
 class ParticleContainer
     : public ippl::ParticleBase<
-              ippl::ParticleSpatialLayout<T, Dim>, Kokkos::DefaultExecutionSpace::memory_space> {
+              ippl::ParticleSpatialLayout<T, Dim, ippl::UniformCartesian<T, Dim>>,
+              Kokkos::DefaultExecutionSpace::memory_space> {
     /**
      * @brief Alias for the `ippl::ParticleBase` specialization this container inherits from.
      *
@@ -76,7 +90,8 @@ class ParticleContainer
      * `Base::create()`.
      */
     using Base = ippl::ParticleBase<
-            ippl::ParticleSpatialLayout<T, Dim>, Kokkos::DefaultExecutionSpace::memory_space>;
+            ippl::ParticleSpatialLayout<T, Dim, ippl::UniformCartesian<T, Dim>>,
+            Kokkos::DefaultExecutionSpace::memory_space>;
 
 private:
     /**
@@ -89,6 +104,11 @@ private:
     using Base::destroy;
 
 public:
+    using SpatialLayout_t = ippl::ParticleSpatialLayout<T, Dim, ippl::UniformCartesian<T, Dim>>;
+    using P3MLayout_t = ippl::ParticleSpatialOverlapLayout<T, Dim, ippl::UniformCartesian<T, Dim>>;
+
+    enum class LayoutType { Spatial, SpatialOverlap };
+
     enum class QMStorageMode { SingleValue, Attributes };
 
     /// Defines which type to use as a particle bin.
@@ -160,8 +180,16 @@ public:
     /// (enabled per beam when the BEAM has POLARIZATION set).
     bool hasSpin() const { return spinEnabled_m; }
 
-    ParticleContainer(Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL, bool spinEnabled = false)
-        : pl_m(FL, mesh),
+    ParticleContainer(
+            Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL, bool spinEnabled = false,
+            LayoutType layoutType = LayoutType::Spatial, T overlapCutoff = 0.0)
+        : spatialLayout_m(
+                  layoutType == LayoutType::Spatial ? std::make_unique<SpatialLayout_t>(FL, mesh)
+                                                    : nullptr),
+          overlapLayout_m(
+                  layoutType == LayoutType::SpatialOverlap
+                          ? std::make_unique<P3MLayout_t>(FL, mesh, overlapCutoff)
+                          : nullptr),
           qmStorageMode_m(
                   Options::useQMAttributes ? QMStorageMode::Attributes
                                            : QMStorageMode::SingleValue),
@@ -169,7 +197,7 @@ public:
           QView_m("ParticleContainer::QView_m", 1),
           MView_m("ParticleContainer::MView_m", 1),
           spinEnabled_m(spinEnabled) {
-        this->initialize(pl_m);
+        this->initialize(getPL());
         registerAttributes();
         setupBCs();
         Kokkos::deep_copy(QView_m, 0.0);
@@ -196,7 +224,7 @@ public:
         }
     }
 
-    void setupBCs() { setBCAllPeriodic(); }
+    void setupBCs() { this->setParticleBC(ippl::BC::PERIODIC); }
 
     /// Apply coordinate transform to local particles: translate R, rotate P, E, B.
     void transformBunch(const CoordinateSystemTrafo& trafo) {
@@ -207,7 +235,50 @@ public:
         trafo.rotateBunchTo(this->B.getView(), nLoc);
         markMomentsDirty();
     }
-    PLayout_t<T, Dim>& getPL() { return pl_m; }
+    SpatialLayout_t& getPL() {
+        return overlapLayout_m ? static_cast<SpatialLayout_t&>(*overlapLayout_m) : *spatialLayout_m;
+    }
+
+    const SpatialLayout_t& getPL() const {
+        return overlapLayout_m ? static_cast<const SpatialLayout_t&>(*overlapLayout_m)
+                               : *spatialLayout_m;
+    }
+
+    bool hasP3MLayout() const { return overlapLayout_m != nullptr; }
+
+    P3MLayout_t& getP3MLayout() {
+        if (!overlapLayout_m) {
+            throw OpalException(
+                    "ParticleContainer::getP3MLayout",
+                    "The particle container does not use ParticleSpatialOverlapLayout.");
+        }
+        return *overlapLayout_m;
+    }
+
+    const P3MLayout_t& getP3MLayout() const {
+        if (!overlapLayout_m) {
+            throw OpalException(
+                    "ParticleContainer::getP3MLayout",
+                    "The particle container does not use ParticleSpatialOverlapLayout.");
+        }
+        return *overlapLayout_m;
+    }
+
+    void updateLayout(FieldLayout_t<Dim>& FL, Mesh_t<Dim>& mesh) {
+        if (overlapLayout_m) {
+            overlapLayout_m->updateLayout(FL, mesh);
+        } else {
+            spatialLayout_m->updateLayout(FL, mesh);
+        }
+    }
+
+    void update() {
+        if (overlapLayout_m) {
+            overlapLayout_m->update(*this);
+        } else {
+            spatialLayout_m->update(*this);
+        }
+    }
 
     void setBunchStateHandler(std::shared_ptr<BunchStateHandler> handler) {
         // We only keep the slot: per-container flags own their own sync, so
@@ -882,9 +953,8 @@ public:
     }
 
 private:
-    void setBCAllPeriodic() { this->setParticleBC(ippl::BC::PERIODIC); }
-
-    PLayout_t<T, Dim> pl_m;
+    std::unique_ptr<SpatialLayout_t> spatialLayout_m;
+    std::unique_ptr<P3MLayout_t> overlapLayout_m;
 
     QMStorageMode qmStorageMode_m = QMStorageMode::SingleValue;
 

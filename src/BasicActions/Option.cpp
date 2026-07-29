@@ -130,14 +130,15 @@ Option::Option()
     itsAttr[PSDUMPFREQ] = Attributes::makeReal(
             "PSDUMPFREQ",
             "The frequency to dump the phase space, "
-            "i.e.dump data when step%psDumpFreq==0, its default value is 10.",
+            "i.e. dump data when step%psDumpFreq==0; 0 disables phase space dumps. "
+            "Its default value is 10.",
             psDumpFreq);
 
     itsAttr[STATDUMPFREQ] = Attributes::makeReal(
             "STATDUMPFREQ",
             "The frequency to dump statistical data "
             "(e.g. RMS beam quantities), i.e. dump data when step%statDumpFreq == 0, "
-            "its default value is 10.",
+            "0 disables statistical dumps. Its default value is 10.",
             statDumpFreq);
 
     itsAttr[STEPINFOFQ] = Attributes::makeReal(
@@ -498,12 +499,16 @@ void Option::execute() {
 
     if (itsAttr[PSDUMPFREQ]) {
         psDumpFreq = int(Attributes::getReal(itsAttr[PSDUMPFREQ]));
-        if (psDumpFreq == 0) psDumpFreq = std::numeric_limits<int>::max();
+        if (psDumpFreq < 0) {
+            throw OpalException("Option::execute", "PSDUMPFREQ must be non-negative.");
+        }
     }
 
     if (itsAttr[STATDUMPFREQ]) {
         statDumpFreq = int(Attributes::getReal(itsAttr[STATDUMPFREQ]));
-        if (statDumpFreq == 0) statDumpFreq = std::numeric_limits<int>::max();
+        if (statDumpFreq < 0) {
+            throw OpalException("Option::execute", "STATDUMPFREQ must be non-negative.");
+        }
     }
 
     if (itsAttr[STEPINFOFQ]) {

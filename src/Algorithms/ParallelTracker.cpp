@@ -520,12 +520,12 @@ void ParallelTracker::execute() {
             // if (hasEndOfLineReached(globalBoundingBox)) break;
 
             // Dump phase space and statistics at configured intervals
-            bool const psDump =
-                    ((itsBunch_m->getGlobalTrackStep() % Options::psDumpFreq) + 1
-                     == Options::psDumpFreq);
-            bool const statDump =
-                    ((itsBunch_m->getGlobalTrackStep() % Options::statDumpFreq) + 1
-                     == Options::statDumpFreq);
+            bool const psDump = Options::psDumpFreq > 0
+                                && ((itsBunch_m->getGlobalTrackStep() % Options::psDumpFreq) + 1
+                                    == Options::psDumpFreq);
+            bool const statDump = Options::statDumpFreq > 0
+                                  && ((itsBunch_m->getGlobalTrackStep() % Options::statDumpFreq) + 1
+                                      == Options::statDumpFreq);
             dumpStats(step, psDump, statDump);
 
             if (Options::printRankDistrFreq > 0
@@ -585,16 +585,18 @@ void ParallelTracker::execute() {
         if (globalEOL_m) break;
         ++stepSizes_m;
     }
-    bool const psDump =
-            (((itsBunch_m->getGlobalTrackStep() - 1) % Options::psDumpFreq) + 1
-             != Options::psDumpFreq);
-    bool const statDump =
-            (((itsBunch_m->getGlobalTrackStep() - 1) % Options::statDumpFreq) + 1
-             != Options::statDumpFreq);
+    bool const psDump = Options::psDumpFreq > 0
+                        && (((itsBunch_m->getGlobalTrackStep() - 1) % Options::psDumpFreq) + 1
+                            != Options::psDumpFreq);
+    bool const statDump = Options::statDumpFreq > 0
+                          && (((itsBunch_m->getGlobalTrackStep() - 1) % Options::statDumpFreq) + 1
+                              != Options::statDumpFreq);
 
     writePhaseSpace((step + 1), psDump, statDump);
 
-    *gmsg << level2 << "* Dump phase space of last step" << endl;
+    if (psDump) {
+        *gmsg << level2 << "* Dump phase space of last step" << endl;
+    }
 
     itsOpalBeamline_m.switchElementsOff();
 

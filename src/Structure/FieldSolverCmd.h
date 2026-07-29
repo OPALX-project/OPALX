@@ -30,7 +30,7 @@
 
 #include "Ippl.h"
 
-enum class FieldSolverCmdType : short { NONE = -1, FFT = 0, OPEN = 1, CG = 2, FFT2D5 = 3 };
+enum class FieldSolverCmdType : short { NONE = -1, FFT = 0, OPEN = 1, CG = 2, P3M = 3, FFT2D5 = 4 };
 
 // The attributes of class FieldSolverCmd.
 namespace FIELDSOLVER {
@@ -76,6 +76,7 @@ public:
     std::string getBinsName() const;
     BinningCmd* getBinningCmd() const;
     std::string getGreensFunction() const;
+    double getP3MCutoff() const;
 
     /// Returns solver boundary conditions handler object.
     BCHandler<3> constructBCHandler() const;
@@ -139,6 +140,8 @@ private:
 
     // Clone constructor.
     FieldSolverCmd(const std::string& name, FieldSolverCmd* parent);
+
+    void validateP3MConfiguration() const;
 
     std::string fsName_m;
     FieldSolverCmdType fsType_m;
