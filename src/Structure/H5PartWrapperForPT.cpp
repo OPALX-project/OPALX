@@ -33,11 +33,19 @@
 #include <sstream>
 
 H5PartWrapperForPT::H5PartWrapperForPT(const std::string& fileName, h5_int32_t flags)
-    : H5PartWrapper(fileName, flags) {}
+    : H5PartWrapper(fileName, flags),
+      h5TotalStepTimer_m(IpplTimings::getTimer("H5 total step")),
+      h5StepHeaderTimer_m(IpplTimings::getTimer("H5 step header")),
+      h5DeviceHostCopyTimer_m(IpplTimings::getTimer("H5 device host copy")),
+      h5DatasetWriteTimer_m(IpplTimings::getTimer("H5 dataset write")) {}
 
 H5PartWrapperForPT::H5PartWrapperForPT(
         const std::string& fileName, int restartStep, std::string sourceFile, h5_int32_t flags)
-    : H5PartWrapper(fileName, restartStep, sourceFile, flags) {
+    : H5PartWrapper(fileName, restartStep, sourceFile, flags),
+      h5TotalStepTimer_m(IpplTimings::getTimer("H5 total step")),
+      h5StepHeaderTimer_m(IpplTimings::getTimer("H5 step header")),
+      h5DeviceHostCopyTimer_m(IpplTimings::getTimer("H5 device host copy")),
+      h5DatasetWriteTimer_m(IpplTimings::getTimer("H5 dataset write")) {
     if (restartStep == -1) {
         restartStep = H5GetNumSteps(file_m) - 1;
         OpalData::getInstance()->setRestartStep(restartStep);
@@ -300,16 +308,19 @@ void H5PartWrapperForPT::writeStep(
     auto pc = bunch->getParticleContainer(particleContainerIndex);
     if (!pc || pc->getTotalNum() == 0) return;
 
+    IpplTimings::startTimer(h5TotalStepTimer_m);
     open(H5_O_APPENDONLY);
     pc->updateMoments();
     writeStepHeader(bunch, additionalStepAttributes, particleContainerIndex);
     writeStepData(bunch, particleContainerIndex);
     close();
+    IpplTimings::stopTimer(h5TotalStepTimer_m);
 }
 
 void H5PartWrapperForPT::writeStepHeader(
         PartBunch_t* bunch, const std::map<std::string, double>& additionalStepAttributes,
         size_t particleContainerIndex) {
+    IpplTimings::startTimer(h5StepHeaderTimer_m);
     auto pc                      = bunch->getParticleContainer(particleContainerIndex);
     double actPos                = pc->get_sPos();
     double t                     = bunch->getT();
@@ -412,17 +423,33 @@ void H5PartWrapperForPT::writeStepHeader(
     }
 
     ++numSteps_m;
+    IpplTimings::stopTimer(h5StepHeaderTimer_m);
 }
 
 void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch, size_t particleContainerIndex) {
     auto pc                  = bunch->getParticleContainer(particleContainerIndex);
     size_t numLocalParticles = pc->getLocalNum();
+    auto copyToHost = [this](auto& hostView, const auto& deviceView) {
+        Kokkos::fence();
+        IpplTimings::startTimer(h5DeviceHostCopyTimer_m);
+        Kokkos::deep_copy(hostView, deviceView);
+        Kokkos::fence();
+        IpplTimings::stopTimer(h5DeviceHostCopyTimer_m);
+    };
+#define WRITE_TIMED_DATA(type, file, name, value)                 \
+    do {                                                          \
+        IpplTimings::startTimer(h5DatasetWriteTimer_m);           \
+        WRITEDATA(type, file, name, value);                       \
+        IpplTimings::stopTimer(h5DatasetWriteTimer_m);            \
+    } while (false)
 
     auto rViewDevice = pc->R.getView();
     auto rView       = Kokkos::create_mirror_view(rViewDevice);
-    Kokkos::deep_copy(rView, rViewDevice);
+    copyToHost(rView, rViewDevice);
 
+    IpplTimings::startTimer(h5DatasetWriteTimer_m);
     REPORTONERROR(H5PartSetNumParticles(file_m, (h5_size_t)numLocalParticles));
+    IpplTimings::stopTimer(h5DatasetWriteTimer_m);
     std::vector<char> buffer(numLocalParticles * sizeof(h5_float64_t));
     char* buffer_ptr        = Util::c_data(buffer);
     h5_float64_t* f64buffer = reinterpret_cast<h5_float64_t*>(buffer_ptr);
@@ -431,35 +458,35 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch, size_t particleContai
 
     for (size_t i = 0; i < numLocalParticles; ++i)
         f64buffer[i] = rView(i)(0);
-    WRITEDATA(Float64, file_m, "x", f64buffer);
+    WRITE_TIMED_DATA(Float64, file_m, "x", f64buffer);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
         f64buffer[i] = rView(i)(1);
-    WRITEDATA(Float64, file_m, "y", f64buffer);
+    WRITE_TIMED_DATA(Float64, file_m, "y", f64buffer);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
         f64buffer[i] = rView(i)(2);
-    WRITEDATA(Float64, file_m, "z", f64buffer);
+    WRITE_TIMED_DATA(Float64, file_m, "z", f64buffer);
 
     auto pViewDevice = pc->P.getView();
     auto pView       = Kokkos::create_mirror_view(pViewDevice);
-    Kokkos::deep_copy(pView, pViewDevice);
+    copyToHost(pView, pViewDevice);
 
     for (long unsigned i = 0; i < numLocalParticles; i++)
         f64buffer[i] = pView(i)(0);
-    WRITEDATA(Float64, file_m, "px", f64buffer);
+    WRITE_TIMED_DATA(Float64, file_m, "px", f64buffer);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
         f64buffer[i] = pView(i)(1);
-    WRITEDATA(Float64, file_m, "py", f64buffer);
+    WRITE_TIMED_DATA(Float64, file_m, "py", f64buffer);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
         f64buffer[i] = pView(i)(2);
-    WRITEDATA(Float64, file_m, "pz", f64buffer);
+    WRITE_TIMED_DATA(Float64, file_m, "pz", f64buffer);
 
     auto qViewDevice = pc->getQView();
     auto qViewHost   = Kokkos::create_mirror_view(qViewDevice);
-    Kokkos::deep_copy(qViewHost, qViewDevice);
+    copyToHost(qViewHost, qViewDevice);
 
     const auto qmMode = pc->getQMStorageMode();
     if (qmMode == decltype(qmMode)::Attributes) {
@@ -471,87 +498,88 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch, size_t particleContai
             f64buffer[i] = qViewHost(0);
         }
     }
-    WRITEDATA(Float64, file_m, "q", f64buffer);
+    WRITE_TIMED_DATA(Float64, file_m, "q", f64buffer);
 
     auto idViewDevice = bunch->getParticleContainer()->ID.getView();
     auto idView       = Kokkos::create_mirror_view(idViewDevice);
-    Kokkos::deep_copy(idView, idViewDevice);
+    copyToHost(idView, idViewDevice);
 
     for (long unsigned i = 0; i < numLocalParticles; i++)
         i64buffer[i] = idView(i);
-    WRITEDATA(Int64, file_m, "id", i64buffer);
+    WRITE_TIMED_DATA(Int64, file_m, "id", i64buffer);
 
     if (Options::rankDump) {
         const h5_int32_t rank = static_cast<h5_int32_t>(ippl::Comm->rank());
         for (size_t i = 0; i < numLocalParticles; ++i)
             i32buffer[i] = rank;
-        WRITEDATA(Int32, file_m, "rank", i32buffer);
+        WRITE_TIMED_DATA(Int32, file_m, "rank", i32buffer);
     }
 
     auto binViewDevice = pc->Bin.getView();
     auto binView       = Kokkos::create_mirror_view(binViewDevice);
-    Kokkos::deep_copy(binView, binViewDevice);
+    copyToHost(binView, binViewDevice);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
         i32buffer[i] = binView(i);
-    WRITEDATA(Int32, file_m, "bin", i32buffer);
+    WRITE_TIMED_DATA(Int32, file_m, "bin", i32buffer);
 
     const int sp = pc->Sp;
     for (size_t i = 0; i < numLocalParticles; ++i)
         i32buffer[i] = sp;
-    WRITEDATA(Int32, file_m, "sp", i32buffer);
+    WRITE_TIMED_DATA(Int32, file_m, "sp", i32buffer);
 
     if (pc->hasSpin()) {
         auto PolViewDevice = pc->Pol.getView();
         auto PolView       = Kokkos::create_mirror_view(PolViewDevice);
-        Kokkos::deep_copy(PolView, PolViewDevice);
+        copyToHost(PolView, PolViewDevice);
 
         for (size_t i = 0; i < numLocalParticles; ++i)
             f64buffer[i] = static_cast<h5_float64_t>(PolView(i)(0));
-        WRITEDATA(Float64, file_m, "polx", f64buffer);
+        WRITE_TIMED_DATA(Float64, file_m, "polx", f64buffer);
 
         for (size_t i = 0; i < numLocalParticles; ++i)
             f64buffer[i] = static_cast<h5_float64_t>(PolView(i)(1));
-        WRITEDATA(Float64, file_m, "poly", f64buffer);
+        WRITE_TIMED_DATA(Float64, file_m, "poly", f64buffer);
 
         for (size_t i = 0; i < numLocalParticles; ++i)
             f64buffer[i] = static_cast<h5_float64_t>(PolView(i)(2));
-        WRITEDATA(Float64, file_m, "polz", f64buffer);
+        WRITE_TIMED_DATA(Float64, file_m, "polz", f64buffer);
     }
 
     if (Options::ebDump) {
         auto EViewDevice = pc->E.getView();
         auto EView       = Kokkos::create_mirror_view(EViewDevice);
-        Kokkos::deep_copy(EView, EViewDevice);
+        copyToHost(EView, EViewDevice);
 
         for (size_t i = 0; i < numLocalParticles; ++i)
             f64buffer[i] = EView(i)(0);
-        WRITEDATA(Float64, file_m, "Ex", f64buffer);
+        WRITE_TIMED_DATA(Float64, file_m, "Ex", f64buffer);
 
         for (size_t i = 0; i < numLocalParticles; ++i)
             f64buffer[i] = EView(i)(1);
-        WRITEDATA(Float64, file_m, "Ey", f64buffer);
+        WRITE_TIMED_DATA(Float64, file_m, "Ey", f64buffer);
 
         for (size_t i = 0; i < numLocalParticles; ++i)
             f64buffer[i] = EView(i)(2);
-        WRITEDATA(Float64, file_m, "Ez", f64buffer);
+        WRITE_TIMED_DATA(Float64, file_m, "Ez", f64buffer);
 
         auto BViewDevice = pc->B.getView();
         auto BView       = Kokkos::create_mirror_view(BViewDevice);
-        Kokkos::deep_copy(BView, BViewDevice);
+        copyToHost(BView, BViewDevice);
 
         for (size_t i = 0; i < numLocalParticles; ++i)
             f64buffer[i] = BView(i)(0);
-        WRITEDATA(Float64, file_m, "Bx", f64buffer);
+        WRITE_TIMED_DATA(Float64, file_m, "Bx", f64buffer);
 
         for (size_t i = 0; i < numLocalParticles; ++i)
             f64buffer[i] = BView(i)(1);
-        WRITEDATA(Float64, file_m, "By", f64buffer);
+        WRITE_TIMED_DATA(Float64, file_m, "By", f64buffer);
 
         for (size_t i = 0; i < numLocalParticles; ++i)
             f64buffer[i] = BView(i)(2);
-        WRITEDATA(Float64, file_m, "Bz", f64buffer);
+        WRITE_TIMED_DATA(Float64, file_m, "Bz", f64buffer);
     }
+#undef WRITE_TIMED_DATA
 
     /*
     /// Write space charge field map if asked for.
