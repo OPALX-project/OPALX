@@ -188,6 +188,7 @@ else()
     set(HDF5_BUILD_TOOLS OFF CACHE BOOL “” FORCE) # Disable tools
     set(HDF5_ENABLE_THREADSAFE OFF CACHE BOOL “” FORCE)
     set(HDF5_TEST_PARALLEL OFF)
+<<<<<<< Updated upstream
     set(HDF5_VERSION "1.14.6")
     set(HDF5_VERSION_MAJOR "1.14")
 
@@ -197,6 +198,31 @@ else()
         HDF5
         URL https://github.com/HDFGroup/hdf5/releases/download/hdf5_${HDF5_VERSION}/hdf5-${HDF5_VERSION}.tar.gz
         URL_HASH "SHA256=e4defbac30f50d64e1556374aa49e574417c9e72c6b1de7a4ff88c4b1bea6e9b"
+=======
+    set(HDF5_VERSION "2.2.0")
+
+    if(HDF5_VERSION VERSION_LESS "2.0.0")
+        set(HDF5_RELEASE_TAG "hdf5_${HDF5_VERSION}")
+    else()
+        set(HDF5_RELEASE_TAG "${HDF5_VERSION}")
+    endif()
+
+    if(HDF5_VERSION STREQUAL "1.14.6")
+        set(HDF5_URL_HASH "SHA256=e4defbac30f50d64e1556374aa49e574417c9e72c6b1de7a4ff88c4b1bea6e9b")
+    elseif(HDF5_VERSION STREQUAL "2.2.0")
+        set(HDF5_URL_HASH "SHA256=1a1ab8209b35586fbc1aa279ba76d102130b95badcb20ca329587219112d8c16")
+    else()
+        message(FATAL_ERROR
+            "No SHA256 hash is configured for HDF5 ${HDF5_VERSION}. "
+            "Add the release tarball hash to cmake/Dependencies.cmake.")
+    endif()
+
+    set(HDF5_ENABLE_FLOAT16 OFF CACHE BOOL "Disable half-precision floats" FORCE)
+    FetchContent_Declare(
+        HDF5
+        URL https://github.com/HDFGroup/hdf5/releases/download/${HDF5_RELEASE_TAG}/hdf5-${HDF5_VERSION}.tar.gz
+        URL_HASH ${HDF5_URL_HASH}
+>>>>>>> Stashed changes
     )
 
     # Now FetchContent_MakeAvailable will see the option
