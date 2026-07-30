@@ -188,17 +188,6 @@ else()
     set(HDF5_BUILD_TOOLS OFF CACHE BOOL “” FORCE) # Disable tools
     set(HDF5_ENABLE_THREADSAFE OFF CACHE BOOL “” FORCE)
     set(HDF5_TEST_PARALLEL OFF)
-<<<<<<< Updated upstream
-    set(HDF5_VERSION "1.14.6")
-    set(HDF5_VERSION_MAJOR "1.14")
-
-    set(HDF5_VERSION "1.14.6")
-    set(HDF5_ENABLE_FLOAT16 OFF CACHE BOOL "Disable half-precision floats" FORCE)
-    FetchContent_Declare(
-        HDF5
-        URL https://github.com/HDFGroup/hdf5/releases/download/hdf5_${HDF5_VERSION}/hdf5-${HDF5_VERSION}.tar.gz
-        URL_HASH "SHA256=e4defbac30f50d64e1556374aa49e574417c9e72c6b1de7a4ff88c4b1bea6e9b"
-=======
     set(HDF5_VERSION "2.2.0")
 
     if(HDF5_VERSION VERSION_LESS "2.0.0")
@@ -222,7 +211,6 @@ else()
         HDF5
         URL https://github.com/HDFGroup/hdf5/releases/download/${HDF5_RELEASE_TAG}/hdf5-${HDF5_VERSION}.tar.gz
         URL_HASH ${HDF5_URL_HASH}
->>>>>>> Stashed changes
     )
 
     # Now FetchContent_MakeAvailable will see the option
@@ -230,10 +218,8 @@ else()
     set(HDF5_FOUND TRUE)
 
     if (TARGET hdf5-shared)
-        install(TARGETS hdf5-shared EXPORT ipplTargets DESTINATION lib)
         add_library(hdf5::hdf5 ALIAS hdf5-shared)
     elseif(TARGET hdf5-static)
-        install(TARGETS hdf5-static EXPORT ipplTargets DESTINATION lib)
         add_library(hdf5::hdf5 ALIAS hdf5-static)
     endif()
 
@@ -286,7 +272,11 @@ else()
 
     # Invoke cmake fetch/find
     FetchContent_Declare(H5hut ${fetch_string})
+    set(OPALX_PREVIOUS_CMAKE_SKIP_INSTALL_RULES ${CMAKE_SKIP_INSTALL_RULES})
+    set(CMAKE_SKIP_INSTALL_RULES TRUE)
     FetchContent_MakeAvailable(H5hut)
+    set(CMAKE_SKIP_INSTALL_RULES ${OPALX_PREVIOUS_CMAKE_SKIP_INSTALL_RULES})
+    unset(OPALX_PREVIOUS_CMAKE_SKIP_INSTALL_RULES)
 
     # Check that kokkos actually has the platform backends that we need
     if (H5hut_FOUND)
