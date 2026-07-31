@@ -132,7 +132,8 @@ public:
             bool closedRing, bool scatterChargeLongitudinally, const std::string& refPathFileName);
 
     /**
-     * @brief Initialise the solver override, currently does nothing
+     * @brief Initialise the solver, currently does nothing but must be present to override
+     * the base class function.
      * @see orbitThreadersReady()
      */
     void initSolver() override {}
@@ -656,6 +657,13 @@ private:
     // Constants
     static constexpr size_t LineDensityGhostCells    = 2;
     static constexpr size_t LineDensityFirstRealCell = 1;
+
+    // Longitudinal field constants from
+    // Space charge modules for PyHEADTAIL, A Oeftiger, SE Hegglin, 2016
+    // https://proceedings.jacow.org/hb2016/papers/mopr025.pdf
+    static constexpr T CircularPipeG0   = 0.67;
+    static constexpr T ParallelPlatesG0 = 0.67;
+    static constexpr T OpenG0           = 6.36;
 };
 
 #include "Solve2d5.hpp"
