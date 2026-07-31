@@ -18,7 +18,7 @@
 #include "H5Writer.h"
 
 H5Writer::H5Writer(H5PartWrapper* h5wrapper, bool restart)
-    : H5PartTimer_m(IpplTimings::getTimer("Write H5-File")), h5wrapper_m(h5wrapper), H5call_m(0) {
+    : h5wrapper_m(h5wrapper), H5call_m(0) {
     if (!restart) {
         h5wrapper->writeHeader();
     }
@@ -27,14 +27,12 @@ H5Writer::H5Writer(H5PartWrapper* h5wrapper, bool restart)
 
 void H5Writer::writePhaseSpace(
         PartBunch_t& beam, Vector_t<double, 3> FDext[], size_t particleContainerIndex) {
-    IpplTimings::startTimer(H5PartTimer_m);
     std::map<std::string, double> additionalAttributes = {
             std::make_pair("B-ref_x", FDext[0](0)), std::make_pair("B-ref_z", FDext[0](1)),
             std::make_pair("B-ref_y", FDext[0](2)), std::make_pair("E-ref_x", FDext[1](0)),
             std::make_pair("E-ref_z", FDext[1](1)), std::make_pair("E-ref_y", FDext[1](2))};
 
     h5wrapper_m->writeStep(&beam, additionalAttributes, particleContainerIndex);
-    IpplTimings::stopTimer(H5PartTimer_m);
 }
 
 int H5Writer::writePhaseSpace(
@@ -44,7 +42,6 @@ int H5Writer::writePhaseSpace(
     auto pc = beam.getParticleContainer(particleContainerIndex);
     if (!pc || pc->getTotalNum() < 3) return -1;  // single-particle / tune modes
 
-    IpplTimings::startTimer(H5PartTimer_m);
     std::map<std::string, double> additionalAttributes = {
             std::make_pair("REFPR", refPr),          std::make_pair("REFPT", refPt),
             std::make_pair("REFPZ", refPz),          std::make_pair("REFR", refR),
@@ -61,7 +58,6 @@ int H5Writer::writePhaseSpace(
             std::make_pair("E-tail_z", FDext[5](1)), std::make_pair("E-tail_y", FDext[5](2))};
 
     h5wrapper_m->writeStep(&beam, additionalAttributes, particleContainerIndex);
-    IpplTimings::stopTimer(H5PartTimer_m);
 
     ++H5call_m;
     return H5call_m - 1;
