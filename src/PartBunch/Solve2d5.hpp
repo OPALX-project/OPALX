@@ -231,14 +231,16 @@ void Solve2d5<T>::scatterToGrid(const PartBunch_t& bunch, DiagnosticPolicy diagn
                     });
             Kokkos::fence();
         }
-        // Now scale by volume and time step to get the proper charge density
+        // Now scale by volume and time step to get the proper charge density.
+        // ippl::apply is a function that accesses a view using indices in an array like structure
+        // and is from IpplOperations.h
         const auto cellVolume =
                 std::reduce(hr_m.begin(), hr_m.end(), 1.0, std::multiplies<double>());
         const auto scale = bunch.getdT() * cellVolume;
         ippl::parallel_for(
                 "Solve2d5::scatterToGrid::scale", rho_m->getFieldRangePolicy(),
                 KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
-                    apply(rhoView, idx) = apply(rhoView, idx) / scale;
+                    ippl::apply(rhoView, idx) = ippl::apply(rhoView, idx) / scale;
                 });
         Kokkos::fence();
         diagnostic.scatterChargeDensity(rhoView);
@@ -520,12 +522,12 @@ void Solve2d5<T>::gatherFromGrid(const PartBunch_t& bunch, DiagnosticPolicy diag
             const auto pipeRadius          = std::min(sizer_m.data_m[0], sizer_m.data_m[1]);
             T gBy4PiEpsilon0;
             if (longitudinalFieldMode_m == LongitudinalFieldMode::Cylindrical) {
-                gBy4PiEpsilon0 = 0.67 + 2 * Kokkos::log(pipeRadius / beamRadius_m);
+                gBy4PiEpsilon0 = CircularPipeG0 + 2 * Kokkos::log(pipeRadius / beamRadius_m);
             } else if (longitudinalFieldMode_m == LongitudinalFieldMode::Plates) {
-                gBy4PiEpsilon0 =
-                        0.67 + 2 * Kokkos::log(4 * pipeRadius / Physics::pi / beamRadius_m);
+                gBy4PiEpsilon0 = ParallelPlatesG0
+                                 + 2 * Kokkos::log(4 * pipeRadius / Physics::pi / beamRadius_m);
             } else {
-                gBy4PiEpsilon0 = 6.36;
+                gBy4PiEpsilon0 = OpenG0;
             }
             gBy4PiEpsilon0 /= 4 * Physics::pi * Physics::epsilon_0;
             Kokkos::parallel_for(
