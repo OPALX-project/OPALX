@@ -429,18 +429,18 @@ void H5PartWrapperForPT::writeStepHeader(
 void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch, size_t particleContainerIndex) {
     auto pc                  = bunch->getParticleContainer(particleContainerIndex);
     size_t numLocalParticles = pc->getLocalNum();
-    auto copyToHost = [this](auto& hostView, const auto& deviceView) {
+    auto copyToHost          = [this](auto& hostView, const auto& deviceView) {
         Kokkos::fence();
         IpplTimings::startTimer(h5DeviceHostCopyTimer_m);
         Kokkos::deep_copy(hostView, deviceView);
         Kokkos::fence();
         IpplTimings::stopTimer(h5DeviceHostCopyTimer_m);
     };
-#define WRITE_TIMED_DATA(type, file, name, value)                 \
-    do {                                                          \
-        IpplTimings::startTimer(h5DatasetWriteTimer_m);           \
-        WRITEDATA(type, file, name, value);                       \
-        IpplTimings::stopTimer(h5DatasetWriteTimer_m);            \
+#define WRITE_TIMED_DATA(type, file, name, value)       \
+    do {                                                \
+        IpplTimings::startTimer(h5DatasetWriteTimer_m); \
+        WRITEDATA(type, file, name, value);             \
+        IpplTimings::stopTimer(h5DatasetWriteTimer_m);  \
     } while (false)
 
     auto rViewDevice = pc->R.getView();
