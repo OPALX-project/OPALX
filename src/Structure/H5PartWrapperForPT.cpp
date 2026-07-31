@@ -352,7 +352,7 @@ void H5PartWrapperForPT::writeStepHeader(
     // h5_int64_t localTrackStep  = (h5_int64_t)bunch->getLocalTrackStep();
     h5_int64_t globalTrackStep = (h5_int64_t)bunch->getGlobalTrackStep();
 
-    double mass   = Units::eV2GeV * pc->getTotalMass();
+    double mass   = pc->getTotalMass();
     double charge = pc->getTotalCharge();
 
     h5_int64_t numBunch      = 1;
