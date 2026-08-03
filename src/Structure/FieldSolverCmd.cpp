@@ -41,7 +41,8 @@ FieldSolverCmd::FieldSolverCmd()
               FIELDSOLVER::SIZE, "FIELDSOLVER",
               "The \"FIELDSOLVER\" statement defines data for a the field solver") {
     itsAttr[FIELDSOLVER::TYPE] = Attributes::makePredefinedString(
-            "TYPE", "Name of the attached field solver.", {"NONE", "FFT", "P3M", "OPEN", "CG"});
+            "TYPE", "Name of the attached field solver.", {"NONE", "FFT", "OPEN", "CG", "FFT2D5"});
+    // removed, since not implemented: "P3M"
 
     itsAttr[FIELDSOLVER::BINS] = Attributes::makeString(
             "BINS", "Name of BINNING definition to be used, or NONE for no binning.", "NONE");
@@ -77,6 +78,24 @@ FieldSolverCmd::FieldSolverCmd()
 
     itsAttr[FIELDSOLVER::BBOXINCR] =
             Attributes::makeReal("BBOXINCR", "Increase of bounding box in % ", 2.0);
+
+    // Attributes for FFT2D5 mode
+    itsAttr[FIELDSOLVER::PIPEMODE] = Attributes::makePredefinedString(
+            "PIPEMODE", "Treatment of the beam pipe in [FFT2D5 only].",
+            {"OPEN", "CIRCULAR", "PLATES", "NONE"}, "OPEN");
+    itsAttr[FIELDSOLVER::BEAMR] =
+            Attributes::makeReal("BEAMR", "Beam radius in metres [FFT2D5 only]", 1.0);
+    itsAttr[FIELDSOLVER::CLOSEDRING] =
+            Attributes::makeBool("CLOSEDRING", "TRUE if the ring is closed [FFT2D5 only]", false);
+    itsAttr[FIELDSOLVER::SCATTERLONGITUDINALLY] = Attributes::makeBool(
+            "SCATTERLONGITUDINALLY",
+            "TRUE to scatter charge longitudinally across slices [FFT2D5 only]", true);
+    itsAttr[FIELDSOLVER::PIPESIZEX] = Attributes::makeReal(
+            "PIPESIZEX", "Beam pipe horizontal size in metres [FFT2D5 only]", 1.0);
+    itsAttr[FIELDSOLVER::PIPESIZEY] = Attributes::makeReal(
+            "PIPESIZEY", "Beam pipe vertical size in metres [FFT2D5 only]", 1.0);
+    itsAttr[FIELDSOLVER::REFPATHFNAME] =
+            Attributes::makeString("REFPATHFNAME", "Reference path file name [FFT2D5 only]", "");
 
     // \todo does not work   registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -173,13 +192,55 @@ void FieldSolverCmd::update() {
     }
 }
 
+std::string FieldSolverCmd::getPipeMode() const {
+    return Attributes::getString(itsAttr[FIELDSOLVER::PIPEMODE]);
+}
+double FieldSolverCmd::getBeamRadius() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::BEAMR]);
+}
+bool FieldSolverCmd::getClosedRing() const {
+    return Attributes::getBool(itsAttr[FIELDSOLVER::CLOSEDRING]);
+}
+bool FieldSolverCmd::getScatterLongitudinally() const {
+    return Attributes::getBool(itsAttr[FIELDSOLVER::SCATTERLONGITUDINALLY]);
+}
+double FieldSolverCmd::getPipeSizeX() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::PIPESIZEX]);
+}
+double FieldSolverCmd::getPipeSizeY() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::PIPESIZEY]);
+}
+std::string FieldSolverCmd::getRefPathFileName() const {
+    return Attributes::getString(itsAttr[FIELDSOLVER::REFPATHFNAME]);
+}
+void FieldSolverCmd::setPipeMode(const std::string& pipeMode) {
+    Attributes::setPredefinedString(itsAttr[FIELDSOLVER::PIPEMODE], pipeMode);
+}
+void FieldSolverCmd::setBeamRadius(const double beamRadius) {
+    Attributes::setReal(itsAttr[FIELDSOLVER::BEAMR], beamRadius);
+}
+void FieldSolverCmd::setClosedRing(const bool closedRing) {
+    Attributes::setBool(itsAttr[FIELDSOLVER::CLOSEDRING], closedRing);
+}
+void FieldSolverCmd::setScatterLongitudinally(const bool val) {
+    Attributes::setBool(itsAttr[FIELDSOLVER::SCATTERLONGITUDINALLY], val);
+}
+void FieldSolverCmd::setPipeSizeX(const double pipeSizeX) {
+    Attributes::setReal(itsAttr[FIELDSOLVER::PIPESIZEX], pipeSizeX);
+}
+void FieldSolverCmd::setPipeSizeY(const double pipeSizeY) {
+    Attributes::setReal(itsAttr[FIELDSOLVER::PIPESIZEY], pipeSizeY);
+}
+void FieldSolverCmd::setRefPathFileName(const std::string& refPathFileName) {
+    Attributes::setString(itsAttr[FIELDSOLVER::REFPATHFNAME], refPathFileName);
+}
+
 void FieldSolverCmd::setFieldSolverCmdType() {
     static const std::map<std::string, FieldSolverCmdType> stringType_s = {
-            {"NONE", FieldSolverCmdType::NONE},
-            {"FFT", FieldSolverCmdType::FFT},
-            {"P3M", FieldSolverCmdType::P3M},
-            {"OPEN", FieldSolverCmdType::OPEN},
-            {"CG", FieldSolverCmdType::CG}};
+            {"NONE", FieldSolverCmdType::NONE},     {"FFT", FieldSolverCmdType::FFT},
+            {"OPEN", FieldSolverCmdType::OPEN},     {"CG", FieldSolverCmdType::CG},
+            {"FFT2D5", FieldSolverCmdType::FFT2D5},
+    };
 
     fsName_m = getType();
 
