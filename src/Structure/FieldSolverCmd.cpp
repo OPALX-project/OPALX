@@ -41,8 +41,8 @@ FieldSolverCmd::FieldSolverCmd()
               FIELDSOLVER::SIZE, "FIELDSOLVER",
               "The \"FIELDSOLVER\" statement defines data for a the field solver") {
     itsAttr[FIELDSOLVER::TYPE] = Attributes::makePredefinedString(
-            "TYPE", "Name of the attached field solver.", {"NONE", "FFT", "OPEN", "CG", "FFT2D5"});
-    // removed, since not implemented: "P3M"
+            "TYPE", "Name of the attached field solver.",
+            {"NONE", "FFT", "P3M", "OPEN", "CG", "FFT2D5"});
 
     itsAttr[FIELDSOLVER::BINS] = Attributes::makeString(
             "BINS", "Name of BINNING definition to be used, or NONE for no binning.", "NONE");
@@ -238,7 +238,8 @@ void FieldSolverCmd::setRefPathFileName(const std::string& refPathFileName) {
 void FieldSolverCmd::setFieldSolverCmdType() {
     static const std::map<std::string, FieldSolverCmdType> stringType_s = {
             {"NONE", FieldSolverCmdType::NONE},     {"FFT", FieldSolverCmdType::FFT},
-            {"OPEN", FieldSolverCmdType::OPEN},     {"CG", FieldSolverCmdType::CG},
+            {"P3M", FieldSolverCmdType::P3M},       {"OPEN", FieldSolverCmdType::OPEN},
+            {"CG", FieldSolverCmdType::CG},
             {"FFT2D5", FieldSolverCmdType::FFT2D5},
     };
 
