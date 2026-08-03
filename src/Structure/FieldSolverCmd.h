@@ -30,25 +30,32 @@
 
 #include "Ippl.h"
 
-enum class FieldSolverCmdType : short { NONE = -1, FFT = 0, OPEN = 1, CG = 2, P3M = 3 };
+enum class FieldSolverCmdType : short { NONE = -1, FFT = 0, OPEN = 1, CG = 2, P3M = 3, FFT2D5 = 4 };
 
 // The attributes of class FieldSolverCmd.
 namespace FIELDSOLVER {
     enum {
-        TYPE,      // The field solver name
-        BINS,      // Name of BINNING definition or NONE
-        NX,        // mesh size in x
-        NY,        // mesh size in y
-        NZ,        // mesh size in z
-        PARFFTX,   // parallelized grid in x
-        PARFFTY,   // parallelized grid in y
-        PARFFTZ,   // parallelized grid in z
-        BCFFTX,    // boundary condition in x [FFT + AMR_MG only]
-        BCFFTY,    // boundary condition in y [FFT + AMR_MG only]
-        BCFFTZ,    // boundary condition in z [FFT + AMR_MG only]
-        GREENSF,   // holds greensfunction to be used [FFT + P3M only]
-        P3MRCUT,   // P3M particle-particle cutoff radius [m]
-        BBOXINCR,  // how much the boundingbox is increased
+        TYPE,          // The field solver name
+        BINS,          // Name of BINNING definition or NONE
+        NX,            // mesh size in x
+        NY,            // mesh size in y
+        NZ,            // mesh size in z
+        PARFFTX,       // parallelized grid in x
+        PARFFTY,       // parallelized grid in y
+        PARFFTZ,       // parallelized grid in z
+        BCFFTX,        // boundary condition in x [FFT + AMR_MG only]
+        BCFFTY,        // boundary condition in y [FFT + AMR_MG only]
+        BCFFTZ,        // boundary condition in z [FFT + AMR_MG only]
+        GREENSF,       // holds greensfunction to be used [FFT + P3M only]
+        P3MRCUT,       // P3M particle-particle cutoff radius [m]
+        BBOXINCR,      // how much the boundingbox is increased
+        PIPEMODE,      // One of OPEN, CIRCULAR, PLATES, NONE [FFT2D5 only]
+        BEAMR,         // Beam radius in metres [FFT2D5 only]
+        CLOSEDRING,    // TRUE if the ring is closed [FFT2D5 only]
+        PIPESIZEX,     // Size of the pipe in meters in the transverse direction [FFT2D5 only]
+        PIPESIZEY,     // Size of the pipe in meters in the vertical direction [FFT2D5 only]
+        REFPATHFNAME,  // Reference path file name [FFT2D5 only]
+        SCATTERLONGITUDINALLY,  // Scatter charge between longitudinal slices [FFT2D5 only]
         SIZE
     };
 }
@@ -111,6 +118,21 @@ public:
     ippl::Vector<bool, 3> getDomDec() const;
 
     Inform& printInfo(Inform& os) const;
+
+    std::string getPipeMode() const;
+    double getBeamRadius() const;
+    bool getClosedRing() const;
+    bool getScatterLongitudinally() const;
+    double getPipeSizeX() const;
+    double getPipeSizeY() const;
+    std::string getRefPathFileName() const;
+    void setPipeMode(const std::string& pipeMode);
+    void setBeamRadius(double beamRadius);
+    void setClosedRing(bool closedRing);
+    void setScatterLongitudinally(bool val);
+    void setPipeSizeX(double pipeSizeX);
+    void setPipeSizeY(double pipeSizeY);
+    void setRefPathFileName(const std::string& refPathFileName);
 
 private:
     // Not implemented.

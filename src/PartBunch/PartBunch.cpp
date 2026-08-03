@@ -10,6 +10,7 @@
 #include "PartBunch/BinnedFieldSolver.h"
 #include "Particle/ParticleAttrib.h"
 #include "Physics/ParticleProperties.h"
+#include "Solve2d5.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "Utilities/Util.h"
@@ -312,15 +313,37 @@ void PartBunch<T, Dim>::setSolver() {
     // Needs to happen before setting the field solver, since the field solver needs the bins.
     setBins();
 
-    BinningCmd* binningCmd = OPALFieldSolver_m->getBinningCmd();
-    auto binnedSolver      = std::make_shared<BinnedFieldSolver<T, Dim>>(
-            this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
-            &this->fcontainer_m->getPhi(), this->getBCHandler(),
-            binningCmd ? binningCmd->getTablePrintFrequency() : 0,
-            binningCmd ? binningCmd->getAdaptiveBinning() : true,
-            OPALFieldSolver_m->getGreensFunction(), OPALFieldSolver_m->getP3MCutoff());
-    this->setFieldSolver(binnedSolver);
-    m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
+    if (Dim == 3 && solver_m == "FFT2D5") {
+        typename Solve2d5<T>::LongitudinalFieldMode mode;
+        if (OPALFieldSolver_m->getPipeMode() == "OPEN") {
+            mode = Solve2d5<T>::LongitudinalFieldMode::Open;
+        } else if (OPALFieldSolver_m->getPipeMode() == "CIRCULAR") {
+            mode = Solve2d5<T>::LongitudinalFieldMode::Cylindrical;
+        } else if (OPALFieldSolver_m->getPipeMode() == "PLATES") {
+            mode = Solve2d5<T>::LongitudinalFieldMode::Plates;
+        } else if (OPALFieldSolver_m->getPipeMode() == "NONE") {
+            mode = Solve2d5<T>::LongitudinalFieldMode::None;
+        }
+        auto solver2d5 = std::make_shared<Solve2d5<T>>(
+                this, this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
+                &this->fcontainer_m->getPhi(), this->getBCHandler(), nr_m, mode,
+                OPALFieldSolver_m->getPipeSizeX(), OPALFieldSolver_m->getPipeSizeY(),
+                OPALFieldSolver_m->getBeamRadius(), OPALFieldSolver_m->getClosedRing(),
+                OPALFieldSolver_m->getScatterLongitudinally(),
+                OPALFieldSolver_m->getRefPathFileName());
+        this->setFieldSolver(solver2d5);
+        m << level4 << "2.5D field solver set." << endl;
+    } else {
+        BinningCmd* binningCmd = OPALFieldSolver_m->getBinningCmd();
+        auto binnedSolver      = std::make_shared<BinnedFieldSolver<T, Dim>>(
+                this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
+                &this->fcontainer_m->getPhi(), this->getBCHandler(),
+                binningCmd ? binningCmd->getTablePrintFrequency() : 0,
+                binningCmd ? binningCmd->getAdaptiveBinning() : true,
+                OPALFieldSolver_m->getGreensFunction());
+        this->setFieldSolver(binnedSolver);
+        m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
+    }
 
     this->fsolver_m->initSolver();
     m << level4 << "Field solver initialized." << endl;
@@ -946,7 +969,8 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks", "FieldSolver type string is empty.");
     }
-    if (stype != "FFT" && stype != "P3M" && stype != "OPEN" && stype != "CG" && stype != "NONE") {
+    if (stype != "FFT" && stype != "OPEN" && stype != "CG" && stype != "NONE"
+        && stype != "FFT2D5") {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks", "Unsupported FieldSolver type: " + stype);
     }
