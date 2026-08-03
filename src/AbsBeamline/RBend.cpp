@@ -36,7 +36,7 @@ void RBend::initialise(PartBunch_t* bunch) {
 
 void RBend::finalise() { online_m = false; }
 
-bool RBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void RBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     auto Rview          = pc->R.getView();
     auto Bview          = pc->B.getView();
     const size_t nLocal = pc->getLocalNum();
@@ -62,25 +62,22 @@ bool RBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
                 Bview(i)(1) += Bf(1);
                 Bview(i)(2) += Bf(2);
             });
-
-    return false;
 }
 
-bool RBend::apply(
+void RBend::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     double zBegin = 0.0, zEnd = 0.0;
     getFieldExtent(zBegin, zEnd);
     if (R(2) < zBegin || R(2) >= zEnd) {
-        return false;
+        return;
     }
     if (!isInsideTransverse(R)) {
-        return getFlagDeleteOnTransverseExit();
+        return;
     }
 
     computeFieldHost(R, B);
     (void)E;
-    return false;
 }
 
 bool RBend::applyToReferenceParticle(

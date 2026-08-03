@@ -55,13 +55,13 @@ Monitor::~Monitor() {}
 
 void Monitor::accept(BeamlineVisitor& visitor) const { visitor.visitMonitor(*this); }
 
-bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     if (!online_m || lossDs_m == nullptr || pc == nullptr || RefPartBunch_m == nullptr) {
-        return false;
+        return;
     }
 
     if (type_m != CollectionType::SPATIAL) {
-        return false;
+        return;
     }
 
     const long long globalStep = RefPartBunch_m->getGlobalTrackStep();
@@ -71,12 +71,12 @@ bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
         Inform msg("Monitor::apply(pc)");
         msg << level5 << "Ignoring pre-tracking spatial particle crossing"
             << " globalStep=" << globalStep << " pc_spos=" << sPos << endl;
-        return false;
+        return;
     }
 
     const auto nLoc = pc->getLocalNum();
     if (nLoc == 0) {
-        return false;
+        return;
     }
 
     auto Rview  = pc->R.getView();
@@ -138,16 +138,14 @@ bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
         }
     }
 
-    return false;
 }
 
-bool Monitor::apply(
+void Monitor::apply(
         const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
     // Monitor is field-free.
     // This overload does not provide particle ID and may not provide the correct
     // per-particle dt/q/m information, so it cannot safely save monitor hits.
-    return false;
 }
 
 void Monitor::driftToCorrectPositionAndSave(

@@ -64,9 +64,8 @@ public:
      *  \param t time at which the field is to be calculated
      *  \param E calculated electric field - always 0 (no E-field)
      *  \param B calculated magnetic field
-     *  \returns true if particle is outside the field map
      */
-    bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     /** Calculate the field at some arbitrary position
      *
@@ -75,9 +74,8 @@ public:
      *  \param t not used
      *  \param E not used
      *  \param B calculated magnetic field
-     *  \returns true if particle is outside the field map, else false
      */
-    bool apply(
+    void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 

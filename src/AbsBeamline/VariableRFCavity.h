@@ -59,7 +59,7 @@ public:
     void accept(BeamlineVisitor& visitor) const override;
 
     /** Apply the field to all particles in the container */
-    bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     /** Calculate the field at a given position
      *
@@ -68,10 +68,8 @@ public:
      *  @param t the time at which the field is calculated
      *  @param E return value; filled with electric field strength
      *  @param B return value; filled with magnetic field strength
-     *
-     *  @returns True if particle is outside the boundaries; else False
      */
-    bool apply(
+    void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 

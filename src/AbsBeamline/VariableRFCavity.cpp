@@ -101,17 +101,17 @@ Geometry& VariableRFCavity::getGeometry() { return geometry; }
 
 const Geometry& VariableRFCavity::getGeometry() const { return geometry; }
 
-bool VariableRFCavity::apply(
+void VariableRFCavity::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
     const double E0        = amplitudeTD_m->getValue(t) * Units::MVpm2Vpm;
     const double integralF = frequencyTD_m->getIntegral(t) * Units::MHz2Hz;
     const double phi       = phaseTD_m->getValue(t);
-    return computeField(
+    computeField(
             R, E, E0, integralF, phi, halfWidth_m, halfHeight_m, getGeometry().getElementLength());
 }
 
-bool VariableRFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void VariableRFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     const auto R           = pc->R.getView();
     const auto E           = pc->E.getView();
     const auto t           = RefPartBunch_m->getT();
@@ -127,14 +127,16 @@ bool VariableRFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
             "VariableRFCavity::computeField()", count, KOKKOS_LAMBDA(const size_t i) {
                 computeField(R(i), E(i), E0, integralF, phi, halfWidth, halfHeight, length);
             });
-
-    return false;
 }
 
 bool VariableRFCavity::applyToReferenceParticle(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    return apply(R, P, t, E, B);
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
+        Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
+    const double E0        = amplitudeTD_m->getValue(t) * Units::MVpm2Vpm;
+    const double integralF = frequencyTD_m->getIntegral(t) * Units::MHz2Hz;
+    const double phi       = phaseTD_m->getValue(t);
+    return computeField(
+            R, E, E0, integralF, phi, halfWidth_m, halfHeight_m, getGeometry().getElementLength());
 }
 
 void VariableRFCavity::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }

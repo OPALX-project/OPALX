@@ -52,19 +52,21 @@ Corrector::~Corrector() {}
 
 void Corrector::accept(BeamlineVisitor& visitor) const { visitor.visitCorrector(*this); }
 
-bool Corrector::apply(
+void Corrector::apply(
         const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     Vector_t<double, 3>& R = RefPartBunch_m->R[i];
     Vector_t<double, 3>& P = RefPartBunch_m->P[i];
 
-    return apply(R, P, t, E, B);
+    apply(R, P, t, E, B);
 }
 
-bool Corrector::apply(
+void Corrector::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
     if (R(2) >= 0.0 && R(2) < getElementLength()) {
-        if (!isInsideTransverse(R)) return getFlagDeleteOnTransverseExit();
+        if (!isInsideTransverse(R)) {
+            return;
+        }
 
         double tau            = 1.0;
         const double& dt      = RefPartBunch_m->getdT();
@@ -79,8 +81,6 @@ bool Corrector::apply(
 
         B += kickField_m * tau;
     }
-
-    return false;
 }
 
 void Corrector::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
