@@ -43,7 +43,7 @@ void SBend::initialise(PartBunch_t* bunch) {
 
 void SBend::finalise() { online_m = false; }
 
-bool SBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void SBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     auto Rview          = pc->R.getView();
     auto Bview          = pc->B.getView();
     const size_t nLocal = pc->getLocalNum();
@@ -77,24 +77,21 @@ bool SBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
                 Bview(i)(1) += Bf(1);
                 Bview(i)(2) += Bf(2);
             });
-
-    return false;
 }
 
-bool SBend::apply(
+void SBend::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     const Vector_t<double, 3> arc = bendCoords(R);
     if (!isInsideArc(arc)) {
-        return false;
+        return;
     }
     if (!isInsideTransverse(arc)) {
-        return getFlagDeleteOnTransverseExit();
+        return;
     }
 
     computeFieldHost(R, B);
     (void)E;
-    return false;
 }
 
 bool SBend::applyToReferenceParticle(

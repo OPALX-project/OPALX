@@ -63,21 +63,9 @@ public:
     /* ============================== Apply Functions =========================== */
     /**
      * @brief Apply to all particles. Kernel launch moved inside the function.
-     *
-     * @returns true if particle is out-of-bounds (lost), false otherwise
      */
-    virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
-    /**
-     * @brief Apply to particle i
-     *
-     * @param i Particle index
-     * @param t Time
-     * @param E Electric Field
-     * @param B Magnetic Field
-     *
-     * @returns true if particle is out-of-bounds (lost), false otherwise
-     */
     /**
      * @brief Apply to particle with position R and momentum P
      *
@@ -86,10 +74,8 @@ public:
      * @param t Time
      * @param E Electric Field
      * @param B Magnetic Field
-     *
-     * @returns true if particle is out-of-bounds (lost), false otherwise
      */
-    virtual bool apply(
+    virtual void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
