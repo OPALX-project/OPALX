@@ -322,6 +322,7 @@ void ParallelTracker::execute() {
         oths[ci]->execute();
     }
     m << level4 << "Orbit threader execution done." << endl;
+    itsBunch_m->getFieldSolver()->orbitThreadersReady();
 
     // Stop timing for the OrbitThreader section
     IpplTimings::stopTimer(OrbThreader_m);

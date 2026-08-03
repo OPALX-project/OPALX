@@ -6,6 +6,7 @@ add_opalx_test(TestBinnedFieldSolver USE_GTEST_MAIN)
 add_opalx_test(TestBunchStateHandler USE_GTEST_MAIN)
 add_opalx_test(TestMultiContainerPartBunch USE_GTEST_MAIN)
 add_opalx_test(TestParticleContainer USE_GTEST_MAIN)
+add_opalx_test(TestSolve2d5 USE_GTEST_MAIN)
 
 add_subdirectory(Binning)
 
