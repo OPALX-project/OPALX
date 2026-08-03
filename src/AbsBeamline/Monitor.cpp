@@ -137,7 +137,6 @@ void Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
             }
         }
     }
-
 }
 
 void Monitor::apply(
