@@ -136,6 +136,11 @@ public:
             std::string greensFunction = "STANDARD", T p3mCutoff = T(0));
 
     /**
+     * @brief Override to receive notification that the orbit threaders are ready.
+     */
+    virtual void orbitThreadersReady() {}
+
+    /**
      * @brief Compute space-charge self-fields for the given particle bunch.
      *
      * If the bunch provides adaptive binning (`bunch.getBins()`), the solver executes
@@ -149,7 +154,7 @@ public:
      * @throws OpalException If required internal data (particle container / temp E field)
      *                        is missing, or if unsupported scatter/gather modes are selected.
      */
-    void computeSelfFields(PartBunch_t& bunch);
+    virtual void computeSelfFields(PartBunch_t& bunch);
 
     /**
      * @brief Set particle scatter attribute (extensible; default is `ChargeQ`).
