@@ -340,7 +340,7 @@ void PartBunch<T, Dim>::setSolver() {
                 &this->fcontainer_m->getPhi(), this->getBCHandler(),
                 binningCmd ? binningCmd->getTablePrintFrequency() : 0,
                 binningCmd ? binningCmd->getAdaptiveBinning() : true,
-                OPALFieldSolver_m->getGreensFunction());
+                OPALFieldSolver_m->getGreensFunction(), OPALFieldSolver_m->getP3MCutoff());
         this->setFieldSolver(binnedSolver);
         m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
     }
@@ -969,8 +969,8 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks", "FieldSolver type string is empty.");
     }
-    if (stype != "FFT" && stype != "OPEN" && stype != "CG" && stype != "NONE"
-        && stype != "FFT2D5") {
+    if (stype != "FFT" && stype != "P3M" && stype != "OPEN" && stype != "CG"
+        && stype != "NONE" && stype != "FFT2D5") {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks", "Unsupported FieldSolver type: " + stype);
     }
