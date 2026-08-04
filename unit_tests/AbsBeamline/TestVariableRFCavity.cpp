@@ -276,7 +276,7 @@ TEST_F(TestVariableRFCavity, TestApplyField) {
         const double integralF = poly2->getIntegral(t) * Units::MHz2Hz;
         const double e_test =
                 amplitude * sin(Physics::two_pi * integralF + phase) * Units::MVpm2Vpm;
-        EXPECT_FALSE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+        EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
         EXPECT_NEAR(0., E[0], 1.e-6);
         EXPECT_NEAR(0., E[1], 1.e-6);
         EXPECT_NEAR(e_test, E[2], 1.e-6);
@@ -301,28 +301,28 @@ TEST_F(TestVariableRFCavity, TestApplyBoundingBox) {
     Vector_t<double, 3> B({0., 0., 0.});
     Vector_t<double, 3> E({0., 0., 0.});
     double t = 0;
-    EXPECT_FALSE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+    EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
     R[2] = 2. - 1e-9;
-    EXPECT_FALSE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+    EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
     R[2] = 1.e-9;
-    EXPECT_FALSE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+    EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
     R[2] = -1.e-9;
-    EXPECT_FALSE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+    EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
     R[2] = 2. + 1.e-9;
-    EXPECT_FALSE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+    EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
     R[2] = 1.;
     R[1] = -1.5 - 1e-9;
-    EXPECT_TRUE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+    EXPECT_TRUE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
     R[1] = +1.5 + 1e-9;
-    EXPECT_TRUE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+    EXPECT_TRUE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
     R[1] = 0.;
-    EXPECT_FALSE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+    EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
     R[0] = -2. - 1e-9;
-    EXPECT_TRUE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+    EXPECT_TRUE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
     R[0] = +2. + 1e-9;
-    EXPECT_TRUE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+    EXPECT_TRUE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
     R[0] = 0.;
-    EXPECT_FALSE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+    EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
 }
 
 TEST_F(TestVariableRFCavity, BunchFields) {
@@ -376,7 +376,7 @@ TEST_F(TestVariableRFCavity, BunchFields) {
     Vector_t<double, 3> singleE{}, singleB{};
     const auto hostR0 = Kokkos::create_mirror_view(pc->R.getView());
     Kokkos::deep_copy(hostR0, pc->R.getView());
-    EXPECT_FALSE(apply(hostR0(0), Vector_t<double, 3>{}, 0.0, singleE, singleB));
+    EXPECT_FALSE(applyToReferenceParticle(hostR0(0), Vector_t<double, 3>{}, 0.0, singleE, singleB));
     EXPECT_DOUBLE_EQ(singleE[2], 1.0 * Units::MVpm2Vpm);
     // Done
     finalise();
@@ -443,8 +443,8 @@ TEST_F(TestVariableRFCavity, FieldSupportMatchesBodyLength) {
     EXPECT_DOUBLE_EQ(zEnd, 10.0);
 
     Vector_t<double, 3> E{}, B{};
-    EXPECT_FALSE(apply({0.0, 0.0, -0.1}, {}, 0.0, E, B));
+    EXPECT_FALSE(applyToReferenceParticle({0.0, 0.0, -0.1}, {}, 0.0, E, B));
     EXPECT_DOUBLE_EQ(E[2], 0.0);
-    EXPECT_FALSE(apply({0.0, 0.0, 5.0}, {}, 0.0, E, B));
+    EXPECT_FALSE(applyToReferenceParticle({0.0, 0.0, 5.0}, {}, 0.0, E, B));
     EXPECT_DOUBLE_EQ(E[2], 1.0 * Units::MVpm2Vpm);
 }

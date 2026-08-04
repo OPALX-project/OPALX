@@ -36,7 +36,7 @@ public:
     ~VerticalFFAMagnet();
 
     /** Inheritable copy constructor */
-    ElementBase* clone() const;
+    ElementBase* clone() const override;
 
     /** Calculate the field at the position of the ith particle
      *
@@ -45,11 +45,10 @@ public:
      *  \param t time at which the field is to be calculated
      *  \param E calculated electric field - always 0 (no E-field)
      *  \param B calculated magnetic field
-     *  \returns true if particle is outside the field map
      */
-    inline bool apply(const std::shared_ptr<ParticleContainer_t>& pc);
+    inline void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
-    inline bool apply(
+    inline void apply(
             const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
     /** Calculate the field at some arbitrary position
@@ -59,11 +58,10 @@ public:
      *  \param t not used
      *  \param E not used
      *  \param B calculated magnetic field
-     *  \returns true if particle is outside the field map, else false
      */
-    inline bool apply(
+    inline void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B);
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     /** Calculate the field at some arbitrary position in cartesian coordinates
      *
@@ -80,7 +78,7 @@ public:
      *  \param startField not used
      *  \param endField not used
      */
-    void initialise(PartBunch_t* bunch);
+    void initialise(PartBunch_t* bunch) override;
 
     /** Initialise the VerticalFFAMagnet
      *
@@ -90,7 +88,7 @@ public:
     void initialise();
 
     /** Finalise the VerticalFFAMagnet - sets bunch to nullptr */
-    void finalise();
+    void finalise() override;
 
     /** Return false - VerticalFFAMagnet is a straight magnet
      *
@@ -99,16 +97,16 @@ public:
      */
 
     /** Not implemented */
-    void getFieldExtent(double& /*zBegin*/, double& /*zEnd*/) const {}
+    void getFieldExtent(double& /*zBegin*/, double& /*zEnd*/) const override {}
 
     /** Return the cell geometry */
-    Geometry& getGeometry();
+    Geometry& getGeometry() override;
 
     /** Return the cell geometry */
-    const Geometry& getGeometry() const;
+    const Geometry& getGeometry() const override;
 
     /** Accept a beamline visitor */
-    void accept(BeamlineVisitor& visitor) const;
+    void accept(BeamlineVisitor& visitor) const override;
 
     /** Get the fringe field
      *
@@ -211,22 +209,22 @@ void VerticalFFAMagnet::setPositiveVerticalExtent(double positiveExtent) {
     zPosExtent_m = positiveExtent * mm;
 }
 
-bool VerticalFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) { return false; }
+void VerticalFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {}
 
-bool VerticalFFAMagnet::apply(
+void VerticalFFAMagnet::apply(
         const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
     auto Rview                              = pc->R.getView();
     auto Pview                              = pc->P.getView();
     const Vector_t<double, 3> R             = Rview(i);
     const Vector_t<double, 3> P             = Pview(i);
-    return apply(R, P, t, E, B);
+    apply(R, P, t, E, B);
 }
 
-bool VerticalFFAMagnet::apply(
+void VerticalFFAMagnet::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double&,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
-    return getFieldValue(R, B);
+    getFieldValue(R, B);
 }
 
 std::vector<std::vector<double> > VerticalFFAMagnet::getDfCoefficients() const {

@@ -40,7 +40,7 @@ void ConstantEFieldCavity::setEy(double ey) { Ey_m = ey; }
 
 void ConstantEFieldCavity::setEz(double ez) { Ez_m = ez; }
 
-bool ConstantEFieldCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void ConstantEFieldCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     auto Rview          = pc->R.getView();
     auto Eview          = pc->E.getView();
     const size_t nLocal = pc->getLocalNum();
@@ -58,26 +58,28 @@ bool ConstantEFieldCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc)
                     Eview(i)[2] += Ez;
                 }
             });
-    return false;
 }
 
-bool ConstantEFieldCavity::apply(
+void ConstantEFieldCavity::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
-    if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return false;
-    if (!isInsideTransverse(R)) return getFlagDeleteOnTransverseExit();
+    if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return;
+    if (!isInsideTransverse(R)) {
+        return;
+    }
 
     E(0) += Ex_m;
     E(1) += Ey_m;
     E(2) += Ez_m;
-    return false;
 }
 
 bool ConstantEFieldCavity::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
     if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return false;
-    if (!isInsideTransverse(R)) return true;
+    if (!isInsideTransverse(R)) {
+        return true;
+    }
 
     E(0) += Ex_m;
     E(1) += Ey_m;

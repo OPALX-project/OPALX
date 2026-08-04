@@ -45,12 +45,12 @@ namespace {
         ~MockComponent() override = default;
         void accept(BeamlineVisitor&) const override {}
         ElementBase* clone() const override { return new MockComponent(*this); }
-        bool apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) override { return false; }
-        bool apply(
+        void apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) override {}
+        void apply(
                 const Vector_t<double, 3>& r, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
                 Vector_t<double, 3>& E, Vector_t<double, 3>& B) override {
             if (r(0) < 0. || r(0) > 1. || r(1) < -1. || r(1) > 0. || r(2) < 0. || r(2) > 1.) {
-                return true;  // isOutOfBounds
+                return;  // out of bounds: no field
             }
             B(0) = r(0);
             B(1) = r(1);
@@ -58,7 +58,6 @@ namespace {
             E(0) = -r(0);
             E(1) = -r(1);
             E(2) = -r(2);
-            return false;  // NOT isOutOfBounds
         }
         bool applyToReferenceParticle(
                 const Vector_t<double, 3>& /*r*/, const Vector_t<double, 3>& /*P*/,
