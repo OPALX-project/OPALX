@@ -70,8 +70,8 @@ FieldSolverCmd::FieldSolverCmd()
             "BCFFTZ", "Boundary conditions in z.", {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN");
 
     itsAttr[FIELDSOLVER::GREENSF] = Attributes::makePredefinedString(
-            "GREENSF", "Which Greensfunction to be used.", {"STANDARD", "INTEGRATED"},
-            "INTEGRATED");
+            "GREENSF", "Green function for TYPE=OPEN; TYPE=P3M selects its kernel internally.",
+            {"STANDARD", "INTEGRATED"}, "INTEGRATED");
 
     itsAttr[FIELDSOLVER::P3MRCUT] = Attributes::makeReal(
             "RCUT", "P3M particle-particle cutoff radius in m (ALPHA is derived as 2/RCUT).", 0.0);
@@ -162,10 +162,10 @@ BCHandler<3> FieldSolverCmd::constructBCHandler() const {
     }
 
     if (Attributes::getString(itsAttr[FIELDSOLVER::TYPE]) == "P3M"
-        && !boundary_conditions.isAll(BCH_t::PERIODIC)) {
+        && !boundary_conditions.isAll(BCH_t::PERIODIC) && !boundary_conditions.isAll(BCH_t::OPEN)) {
         throw OpalException(
                 "FieldSolverCmd::constructBCHandler",
-                "TYPE=P3M requires PERIODIC boundary conditions in all dimensions.");
+                "TYPE=P3M requires uniform OPEN or PERIODIC boundary conditions.");
     }
 
     return boundary_conditions;
@@ -258,6 +258,8 @@ void FieldSolverCmd::validateP3MConfiguration() const {
     if (fsType_m != FieldSolverCmdType::P3M) {
         return;
     }
+
+    (void)constructBCHandler();
 
     if (getP3MCutoff() <= 0.0) {
         throw OpalException(

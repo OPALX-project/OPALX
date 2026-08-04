@@ -98,6 +98,7 @@ PartBunch<T, Dim>::PartBunch(
     // TODO: support mixed periodic/open per axis; currently all periodic or all open.
     bool isAllPeriodic = this->getBCHandler()->isAll(BCHandler_t::PERIODIC);
     m << level5 << "* FieldContainer set to isAllPeriodic = " << isAllPeriodic << endl;
+    const ippl::BC particleBC = (useP3M && !isAllPeriodic) ? ippl::BC::NO : ippl::BC::PERIODIC;
 
     //      set stuff for pre_run i.e. warmup
     //      this will be reset when the correct computational
@@ -124,14 +125,14 @@ PartBunch<T, Dim>::PartBunch(
     this->setParticleContainer(
             std::make_shared<ParticleContainer_t>(
                     this->fcontainer_m->getMesh(), this->fcontainer_m->getFL(),
-                    beams[0]->hasPolarization(), layoutType, p3mCutoff));
+                    beams[0]->hasPolarization(), layoutType, p3mCutoff, particleBC));
     this->pcontainer_m->setBunchStateHandler(bunchState_m);
     /// \todo if we want, we could also have a separate BunchStateHandler for each container later?
     /// But I think it could also make sense to only have one global handler.
     for (size_t i = 1; i < num_containers; ++i) {
         auto pc = std::make_shared<ParticleContainer_t>(
                 this->fcontainer_m->getMesh(), this->fcontainer_m->getFL(),
-                beams[i]->hasPolarization(), layoutType, p3mCutoff);
+                beams[i]->hasPolarization(), layoutType, p3mCutoff, particleBC);
         pc->setBunchStateHandler(bunchState_m);
         this->addParticleContainer(pc);
     }

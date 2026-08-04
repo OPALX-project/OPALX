@@ -344,6 +344,17 @@ void FieldSolver<double, 3>::initP3MSolver() {
     // rho already carries 1/epsilon_0; the sign matches OPALX's gathered electric field.
     sp.add("force_constant", -1.0 / (4.0 * Physics::pi));
     sp.add("regularization_cutoff", 1.0e-9);  // standard PP regularization length
+
+    using P3MSolver_t = FFTTruncatedGreenSolver_t<double, 3>;
+    if (bcHandler_m->isAll(BCHandler_t::PERIODIC)) {
+        sp.add("boundary_type", P3MSolver_t::PERIODIC);
+    } else if (bcHandler_m->isAll(BCHandler_t::OPEN)) {
+        sp.add("boundary_type", P3MSolver_t::OPEN);
+    } else {
+        throw OpalException(
+                "FieldSolver::initP3MSolver",
+                "P3M requires uniform OPEN or PERIODIC boundary conditions.");
+    }
     initSolverWithParams<FFTTruncatedGreenSolver_t<double, 3>>(sp);
 }
 
