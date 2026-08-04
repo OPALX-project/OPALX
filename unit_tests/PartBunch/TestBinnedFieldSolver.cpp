@@ -31,6 +31,8 @@
 #include <memory>
 #include <random>
 #include <string>
+#include <utility>
+#include <variant>
 
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
@@ -42,6 +44,7 @@
 #include "Structure/BinningCmd.h"
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utility/Inform.h"
 
@@ -69,6 +72,16 @@ namespace {
 
         void setBinsName(const std::string& binsName) {
             Attributes::setString(this->itsAttr[FIELDSOLVER::BINS], binsName);
+        }
+
+        void setP3MCutoff(double cutoff) {
+            Attributes::setReal(this->itsAttr[FIELDSOLVER::P3MRCUT], cutoff);
+        }
+
+        void setParallelDecomposition(bool value) {
+            Attributes::setBool(this->itsAttr[FIELDSOLVER::PARFFTX], value);
+            Attributes::setBool(this->itsAttr[FIELDSOLVER::PARFFTY], value);
+            Attributes::setBool(this->itsAttr[FIELDSOLVER::PARFFTZ], value);
         }
     };
 
@@ -144,6 +157,8 @@ namespace {
             fsCmd->setBCY("PERIODIC");
             fsCmd->setBCZ("PERIODIC");
             fsCmd->setGreensFunction("STANDARD");
+            fsCmd->setParallelDecomposition(true);
+            fsCmd->execute();
 
             // Keep the concrete solver command alive; PartBunch borrows it.
             fsCmdBase = fsCmd;
@@ -242,6 +257,17 @@ namespace {
             fsCmd->setBCY("OPEN");
             fsCmd->setBCZ("OPEN");
             fsCmd->setGreensFunction(greensFunction);
+            rebuildBunch();
+        }
+
+        void rebuildP3MBunch(const std::string& boundary) {
+            fsCmd->setType("P3M");
+            fsCmd->setP3MCutoff(0.25);
+            fsCmd->setBCX(boundary);
+            fsCmd->setBCY(boundary);
+            fsCmd->setBCZ(boundary);
+            fsCmd->setParallelDecomposition(true);
+            fsCmd->execute();
             rebuildBunch();
         }
 
@@ -352,6 +378,41 @@ namespace {
 
         ASSERT_NE(bunch->getFieldSolver(), nullptr);
         EXPECT_EQ(bunch->getFieldSolver()->getGreensFunction(), "INTEGRATED");
+    }
+
+    TEST_F(BinnedFieldSolverSmokeTest, P3MOpenAndPeriodicUseSameSolverWrapperAndSelectedLayoutBC) {
+        for (const auto& [boundary, expectedParticleBC] :
+             {std::pair{"PERIODIC", ippl::BC::PERIODIC}, std::pair{"OPEN", ippl::BC::NO}}) {
+            ASSERT_NO_THROW(rebuildP3MBunch(boundary));
+            ASSERT_NE(bunch->getFieldSolver(), nullptr);
+            EXPECT_EQ(bunch->getFieldSolver()->getStype(), "P3M");
+            EXPECT_TRUE((std::holds_alternative<FFTTruncatedGreenSolver_t<double, 3>>(
+                    bunch->getFieldSolver()->getSolver())));
+            EXPECT_DOUBLE_EQ(bunch->getFieldSolver()->getP3MCutoff(), 0.25);
+            ASSERT_TRUE(pc->hasP3MLayout());
+            for (const auto bc : pc->getP3MLayout().getParticleBC()) {
+                EXPECT_EQ(bc, expectedParticleBC);
+            }
+
+            createParticles(2, /*pzMin=*/0.1, /*pzMax=*/0.2);
+            EXPECT_NO_THROW(bunch->computeSelfFields());
+        }
+    }
+
+    TEST_F(BinnedFieldSolverSmokeTest, P3MRejectsMixedAndDirichletBoundaries) {
+        fsCmd->setType("P3M");
+        fsCmd->setP3MCutoff(0.25);
+        fsCmd->setParallelDecomposition(true);
+
+        fsCmd->setBCX("OPEN");
+        fsCmd->setBCY("OPEN");
+        fsCmd->setBCZ("PERIODIC");
+        EXPECT_THROW(fsCmd->execute(), OpalException);
+
+        fsCmd->setBCX("DIRICHLET");
+        fsCmd->setBCY("DIRICHLET");
+        fsCmd->setBCZ("DIRICHLET");
+        EXPECT_THROW(fsCmd->execute(), OpalException);
     }
 
     TEST_F(BinnedFieldSolverSmokeTest, BunchUpdate_ImageChargeBoundsIncludeMirroredZ) {
