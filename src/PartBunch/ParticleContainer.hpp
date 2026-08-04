@@ -182,7 +182,8 @@ public:
 
     ParticleContainer(
             Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL, bool spinEnabled = false,
-            LayoutType layoutType = LayoutType::Spatial, T overlapCutoff = 0.0)
+            LayoutType layoutType = LayoutType::Spatial, T overlapCutoff = 0.0,
+            ippl::BC particleBC = ippl::BC::PERIODIC)
         : spatialLayout_m(
                   layoutType == LayoutType::Spatial ? std::make_unique<SpatialLayout_t>(FL, mesh)
                                                     : nullptr),
@@ -199,7 +200,7 @@ public:
           spinEnabled_m(spinEnabled) {
         this->initialize(getPL());
         registerAttributes();
-        setupBCs();
+        setupBCs(particleBC);
         Kokkos::deep_copy(QView_m, 0.0);
         Kokkos::deep_copy(MView_m, 0.0);
     }
@@ -224,7 +225,7 @@ public:
         }
     }
 
-    void setupBCs() { this->setParticleBC(ippl::BC::PERIODIC); }
+    void setupBCs(ippl::BC particleBC) { this->setParticleBC(particleBC); }
 
     /// Apply coordinate transform to local particles: translate R, rotate P, E, B.
     void transformBunch(const CoordinateSystemTrafo& trafo) {
