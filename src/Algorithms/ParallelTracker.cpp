@@ -499,22 +499,32 @@ void ParallelTracker::execute() {
                   << "." << endl;
             }
 
-            const double sigmas  = Options::boundpDestroy;
-            size_t nBoundpMarked = 0;
+            // Enforce the transverse aperture of every nearby element (collective call).
+            size_t nStepMarked = applyElementApertures(oths);
+            if (nStepMarked > 0) {
+                m << level2 << "Marked " << nStepMarked
+                  << " particles outside a transverse aperture for deletion." << endl;
+            }
+
+            const double sigmas = Options::boundpDestroy;
             for (size_t i = 0; i < particleContainersStep.size(); ++i) {
                 const auto& pc = particleContainersStep[i];
                 if (!pc || !itsBunch_m->isPcActive(i)) {
                     continue;
                 }
                 const size_t nMarked = pc->markParticlesOutside(sigmas);
-                nBoundpMarked += nMarked;
+                nStepMarked += nMarked;
                 if (nMarked > 0) {
                     m << level2 << "Marked " << nMarked << " particles outside " << sigmas
                       << "-sigma boundary for deletion (container " << i << ")." << endl;
                 }
             }
-            if (nBoundpMarked > 0) {
-                deleteInvalidParticles(true, m, std::to_string(sigmas) + "-sigma boundary");
+
+            // Single flush of all marks accumulated this step.
+            if (nStepMarked > 0) {
+                deleteInvalidParticles(
+                        true, m,
+                        "transverse aperture / " + std::to_string(sigmas) + "-sigma boundary");
             }
 
             // if (hasEndOfLineReached(globalBoundingBox)) break;
@@ -822,6 +832,24 @@ void ParallelTracker::computeExternalFields(
                 true, msg, "backward source-plane particles during external-field evaluation");
     }
 
+    forEachElementInBunchFrame(
+            oths, [](const std::shared_ptr<ElementBase>& element,
+                     const std::shared_ptr<ParticleContainer_t>& pc) {
+                // Apply element to this iteration's particle container.
+                element->apply(pc);
+            });
+
+    IpplTimings::stopTimer(fieldEvaluationTimer_m);
+}
+
+/**
+ * @copybrief ParallelTracker::forEachElementInBunchFrame
+ */
+void ParallelTracker::forEachElementInBunchFrame(
+        const std::vector<std::shared_ptr<OrbitThreader>>& oths,
+        const std::function<void(
+                const std::shared_ptr<ElementBase>&, const std::shared_ptr<ParticleContainer_t>&)>&
+                func) {
     const size_t nContainers = itsBunch_m->getNumParticleContainers();
     for (size_t ci = 0; ci < nContainers; ++ci) {
         if (!itsBunch_m->isPcActive(ci)) {
@@ -878,14 +906,30 @@ void ParallelTracker::computeExternalFields(
 
             pc->transformBunch(refToLocalCSTrafo);
 
-            // Apply element to this iteration's particle container.
-            (*it)->apply(pc);
+            func(*it, pc);
 
             pc->transformBunch(localToRefCSTrafo);
         }
     }
+}
 
-    IpplTimings::stopTimer(fieldEvaluationTimer_m);
+/**
+ * @copybrief ParallelTracker::applyElementApertures
+ */
+size_t ParallelTracker::applyElementApertures(
+        const std::vector<std::shared_ptr<OrbitThreader>>& oths) {
+    size_t localMarked = 0;
+    forEachElementInBunchFrame(
+            oths, [&localMarked](
+                          const std::shared_ptr<ElementBase>& element,
+                          const std::shared_ptr<ParticleContainer_t>& pc) {
+                // Marks are flushed by the single end-of-step deletion in execute().
+                localMarked += element->markOutsideAperture(pc);
+            });
+
+    size_t globalMarked = 0;
+    ippl::Comm->allreduce(localMarked, globalMarked, 1, std::plus<size_t>());
+    return globalMarked;
 }
 
 /**

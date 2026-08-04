@@ -44,17 +44,14 @@ namespace {
 }  // namespace
 
 TEST_F(TestOpalDrift, CircleDefaultsMatchDefaultApertureBehaviour) {
-    auto noAperture  = makeDrift(std::nullopt);
-    auto circle      = makeDrift("CIRCLE(1)");
-    auto conicCircle = makeDrift("CIRCLE(1,1)");
+    auto noAperture = makeDrift(std::nullopt);
+    auto circle     = makeDrift("CIRCLE(1)");
 
-    ElementBase* noApertureElement  = noAperture->getElement();
-    ElementBase* circleElement      = circle->getElement();
-    ElementBase* conicCircleElement = conicCircle->getElement();
+    ElementBase* noApertureElement = noAperture->getElement();
+    ElementBase* circleElement     = circle->getElement();
 
     ASSERT_NE(noApertureElement, nullptr);
     ASSERT_NE(circleElement, nullptr);
-    ASSERT_NE(conicCircleElement, nullptr);
 
     const std::vector<Vector_t<double, 3>> probes = {
             {0.00, 0.00, 0.20}, {0.20, 0.10, 1.00},  {0.49, 0.00, 0.20}, {0.49, 0.00, 1.00},
@@ -66,25 +63,18 @@ TEST_F(TestOpalDrift, CircleDefaultsMatchDefaultApertureBehaviour) {
                 ::testing::Message()
                 << "Probe point (" << r[0] << ", " << r[1] << ", " << r[2] << ")");
         EXPECT_EQ(noApertureElement->isInside(r), circleElement->isInside(r));
-        EXPECT_EQ(noApertureElement->isInside(r), conicCircleElement->isInside(r));
     }
 }
 
 TEST_F(TestOpalDrift, SquareAndRectangleEquivalentBehaviour) {
-    auto rectangle      = makeDrift("RECTANGLE(1,1)");
-    auto conicRectangle = makeDrift("RECTANGLE(1,1,1)");
-    auto square         = makeDrift("SQUARE(1)");
-    auto conicSquare    = makeDrift("SQUARE(1,1)");
+    auto rectangle = makeDrift("RECTANGLE(1,1)");
+    auto square    = makeDrift("SQUARE(1)");
 
-    ElementBase* rectangleElement      = rectangle->getElement();
-    ElementBase* conicRectangleElement = conicRectangle->getElement();
-    ElementBase* squareElement         = square->getElement();
-    ElementBase* conicSquareElement    = conicSquare->getElement();
+    ElementBase* rectangleElement = rectangle->getElement();
+    ElementBase* squareElement    = square->getElement();
 
     ASSERT_NE(rectangleElement, nullptr);
-    ASSERT_NE(conicRectangleElement, nullptr);
     ASSERT_NE(squareElement, nullptr);
-    ASSERT_NE(conicSquareElement, nullptr);
 
     const std::vector<Vector_t<double, 3>> probes = {
             {0.00, 0.00, 0.20},  {0.49, 0.49, 1.00}, {0.49, 0.10, 1.80}, {0.10, 0.49, 0.20},
@@ -95,44 +85,8 @@ TEST_F(TestOpalDrift, SquareAndRectangleEquivalentBehaviour) {
         SCOPED_TRACE(
                 ::testing::Message()
                 << "Probe point (" << r[0] << ", " << r[1] << ", " << r[2] << ")");
-        const bool expected = rectangleElement->isInside(r);
-        EXPECT_EQ(expected, conicRectangleElement->isInside(r));
-        EXPECT_EQ(expected, squareElement->isInside(r));
-        EXPECT_EQ(expected, conicSquareElement->isInside(r));
+        EXPECT_EQ(rectangleElement->isInside(r), squareElement->isInside(r));
     }
-}
-
-TEST_F(TestOpalDrift, ConicCircleOpeningBehaviour) {
-    auto conicCircle                = makeDrift("CIRCLE(1,2)");
-    ElementBase* conicCircleElement = conicCircle->getElement();
-
-    ASSERT_NE(conicCircleElement, nullptr);
-
-    const Vector_t<double, 3> centerline = {0.00, 0.00, 1.00};
-    EXPECT_TRUE(conicCircleElement->isInside(centerline));
-
-    const Vector_t<double, 3> startProbe  = {0.75, 0.00, 0.10};
-    const Vector_t<double, 3> middleProbe = {0.75, 0.00, 1.00};
-    const Vector_t<double, 3> endProbe    = {0.75, 0.00, 1.90};
-
-    EXPECT_FALSE(conicCircleElement->isInside(startProbe));
-    EXPECT_FALSE(conicCircleElement->isInside(middleProbe));
-    EXPECT_TRUE(conicCircleElement->isInside(endProbe));
-}
-
-TEST_F(TestOpalDrift, ConicCircleClosingBehaviour) {
-    auto conicCircle                = makeDrift("CIRCLE(1,0.5)");
-    ElementBase* conicCircleElement = conicCircle->getElement();
-
-    ASSERT_NE(conicCircleElement, nullptr);
-
-    const Vector_t<double, 3> startProbe  = {0.40, 0.00, 0.10};
-    const Vector_t<double, 3> middleProbe = {0.40, 0.00, 1.00};
-    const Vector_t<double, 3> endProbe    = {0.40, 0.00, 1.90};
-
-    EXPECT_TRUE(conicCircleElement->isInside(startProbe));
-    EXPECT_FALSE(conicCircleElement->isInside(middleProbe));
-    EXPECT_FALSE(conicCircleElement->isInside(endProbe));
 }
 
 TEST_F(TestOpalDrift, CircleConstantAlongLengthAndLongitudinalBounds) {
@@ -157,9 +111,13 @@ TEST_F(TestOpalDrift, CircleConstantAlongLengthAndLongitudinalBounds) {
     EXPECT_FALSE(circleElement->isInside(Vector_t<double, 3>({0.00, 0.00, 2.00})));
 }
 
-TEST_F(TestOpalDrift, InvalidConicScaleThrowsOpalException) {
+TEST_F(TestOpalDrift, ConicApertureStringsThrow) {
+    // Conic (tapered) apertures are disabled: any extra scale argument is rejected.
+    EXPECT_THROW(makeDrift("CIRCLE(1,0.5)"), OpalException);
+    EXPECT_THROW(makeDrift("CIRCLE(1,2)"), OpalException);
+    EXPECT_THROW(makeDrift("SQUARE(1,1)"), OpalException);
+    EXPECT_THROW(makeDrift("ELLIPSE(2,1,2)"), OpalException);
     EXPECT_THROW(makeDrift("RECTANGLE(1,1,-1)"), OpalException);
-    EXPECT_THROW(makeDrift("CIRCLE(1,0)"), OpalException);
     EXPECT_THROW(makeDrift("ELLIPSE(1,1,nan)"), OpalException);
 }
 
@@ -168,17 +126,43 @@ TEST_F(TestOpalDrift, MalformedRectangleArgumentsThrow) {
     EXPECT_THROW(makeDrift("RECTANGLE(,1)"), OpalException);
 }
 
-TEST_F(TestOpalDrift, ConicEllipseOpeningBehaviour) {
-    auto conicEllipse                = makeDrift("ELLIPSE(1,1,2)");
-    ElementBase* conicEllipseElement = conicEllipse->getElement();
+namespace {
 
-    ASSERT_NE(conicEllipseElement, nullptr);
+    void expectAperture(
+            const std::unique_ptr<OpalDrift>& drift, ApertureType type,
+            const std::vector<double>& args) {
+        ElementBase* element = drift->getElement();
+        ASSERT_NE(element, nullptr);
+        const auto aperture = element->getAperture();
+        EXPECT_EQ(aperture.first, type);
+        ASSERT_EQ(aperture.second.size(), args.size());
+        for (size_t i = 0; i < args.size(); ++i) {
+            EXPECT_DOUBLE_EQ(aperture.second[i], args[i]) << "aperture arg " << i;
+        }
+    }
 
-    const Vector_t<double, 3> startProbe  = {0.75, 0.00, 0.10};
-    const Vector_t<double, 3> middleProbe = {0.75, 0.00, 1.00};
-    const Vector_t<double, 3> endProbe    = {0.75, 0.00, 1.90};
+}  // namespace
 
-    EXPECT_FALSE(conicEllipseElement->isInside(startProbe));
-    EXPECT_FALSE(conicEllipseElement->isInside(middleProbe));
-    EXPECT_TRUE(conicEllipseElement->isInside(endProbe));
+TEST_F(TestOpalDrift, GetApertureStoresHalfWidths) {
+    // The APERTURE grammar takes full widths/diameters; the element stores
+    // half-apertures (factor 0.5).
+    expectAperture(makeDrift("CIRCLE(1)"), ApertureType::ELLIPTICAL, {0.5, 0.5});
+    expectAperture(makeDrift("ELLIPSE(2,1)"), ApertureType::ELLIPTICAL, {1.0, 0.5});
+    expectAperture(makeDrift("RECTANGLE(2,4)"), ApertureType::RECTANGULAR, {1.0, 2.0});
+    expectAperture(makeDrift("SQUARE(3)"), ApertureType::RECTANGULAR, {1.5, 1.5});
+}
+
+TEST_F(TestOpalDrift, ApertureKeywordIsCaseInsensitive) {
+    expectAperture(makeDrift("circle(1)"), ApertureType::ELLIPTICAL, {0.5, 0.5});
+    expectAperture(makeDrift("Circle (1)"), ApertureType::ELLIPTICAL, {0.5, 0.5});
+    expectAperture(makeDrift("rectangle(2,4)"), ApertureType::RECTANGULAR, {1.0, 2.0});
+}
+
+TEST_F(TestOpalDrift, UnknownApertureStringThrows) {
+    EXPECT_THROW(makeDrift("TRIANGLE(1)"), OpalException);
+    EXPECT_THROW(makeDrift("CIRCLE"), OpalException);
+}
+
+TEST_F(TestOpalDrift, NoApertureDefaultsToHalfMeterEllipse) {
+    expectAperture(makeDrift(std::nullopt), ApertureType::ELLIPTICAL, {0.5, 0.5});
 }
