@@ -115,7 +115,7 @@ void RFCavity::accept(BeamlineVisitor& visitor) const { visitor.visitRFCavity(*t
  * @note TODO: Check if getFieldstrength(R, tmpE, tmpB) returns 0 outside of RF cavity to skip if
  * statement
  */
-bool RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     // RF parameters (copied to device)
     double freq  = frequency_m;
     double scale = scale_m + scaleError_m;
@@ -146,23 +146,20 @@ bool RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
                 "RFCavity particle application currently requires an FM2DDynamic or Astra1DDynamic "
                 "field map.");
     }
-
-    return false;
 }
 
-bool RFCavity::apply(
+void RFCavity::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     if (R(2) >= startField_m && R(2) < endField_m) {
         Vector_t<double, 3> tmpE({0.0, 0.0, 0.0}), tmpB({0.0, 0.0, 0.0});
 
         bool outOfBounds = fieldmap_m->getFieldstrength(R, tmpE, tmpB);
-        if (outOfBounds) return getFlagDeleteOnTransverseExit();
+        if (outOfBounds) return;
 
         E += (scale_m + scaleError_m) * std::cos(frequency_m * t + phase_m + phaseError_m) * tmpE;
         B -= (scale_m + scaleError_m) * std::sin(frequency_m * t + phase_m + phaseError_m) * tmpB;
     }
-    return false;
 }
 
 bool RFCavity::applyToReferenceParticle(

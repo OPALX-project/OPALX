@@ -48,8 +48,7 @@ public:
 
     /// @brief Apply the field to all particles.
     /// @param pc The particle container.
-    /// @return True if a particle is out-of-bounds (lost), false otherwise.
-    bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     /// @brief Apply the field to a particle with position R and momentum P.
     /// @param R Position.
@@ -57,8 +56,7 @@ public:
     /// @param t Time.
     /// @param E Electric field.
     /// @param B Magnetic field.
-    /// @return True if the particle is out-of-bounds (lost), false otherwise.
-    bool apply(
+    void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 

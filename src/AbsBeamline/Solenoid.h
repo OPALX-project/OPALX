@@ -42,9 +42,8 @@ public:
     /**
      * @brief apply the solenoid field to all particles in the bunch
      *
-     * @returns true if at least one particle is lost, false otherwise
      */
-    virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     /**
      * @brief apply the solenoid field to particle i
@@ -65,9 +64,8 @@ public:
      * @param E Electric Field
      * @param B Magnetic Field
      *
-     * @returns true if particle is lost, false otherwise
      */
-    virtual bool apply(
+    virtual void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 

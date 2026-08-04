@@ -237,12 +237,8 @@ void Multipole::setSkewComponent(int n, double v, double vError) {
  * @brief Applies the multipole field to all particles inside the magnet bounds
  *
  * @note The kernel launch is moved inside this functions for GPU compatibility
- *
- * @note TODO: Out-of-bounds check
- *
- * @returns true if particle is out-of-bounds (lost), false otherwise
  */
-bool Multipole::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void Multipole::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     *gmsg << level3 << "Multipole::apply() called" << endl;
     // Get the views
     auto Rview          = pc->R.getView();
@@ -274,19 +270,8 @@ bool Multipole::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
                     }
                 }
             });
-    return false;
 }
 
-/**
- * @brief Applies the multipole field at particle i's position to E and B
- *
- * @note Cannot be inside a kernel -> GPU incompatible
- *
- * @param i Particle index
- * @param E Electric field reference
- * @param B Magnetic field reference
- * @returns true if particle is out-of-bounds (lost), false otherwise
- */
 /**
  * @brief Applies the multipole field at position R to E and B
  *
@@ -295,20 +280,18 @@ bool Multipole::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
  * @param R Position
  * @param E Electric field reference
  * @param B Magnetic field reference
- * @returns true if particle is out-of-bounds (lost), false otherwise
  */
-
-bool Multipole::apply(
+void Multipole::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     // Check bounds
-    if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return false;
-    if (!isInsideTransverse(R)) return getFlagDeleteOnTransverseExit();
+    if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return;
+    if (!isInsideTransverse(R)) {
+        return;
+    }
 
     // Compute field
     computeFieldHost(R, E, B);
-
-    return false;
 }
 
 /**
@@ -327,7 +310,9 @@ bool Multipole::applyToReferenceParticle(
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     // Check bounds
     if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return false;
-    if (!isInsideTransverse(R)) return true;
+    if (!isInsideTransverse(R)) {
+        return true;
+    }
 
     /*
     for (int i = 0; i < max_NormalComponent_m; ++i) {
