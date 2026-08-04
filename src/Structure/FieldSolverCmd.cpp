@@ -112,6 +112,7 @@ FieldSolverCmd* FieldSolverCmd::clone(const std::string& name) {
 void FieldSolverCmd::execute() {
     setFieldSolverCmdType();
     validateP3MConfiguration();
+    validateFFT2D5Configuration();
     setDomainDecomposition();
     update();
 }
@@ -273,10 +274,40 @@ void FieldSolverCmd::validateP3MConfiguration() const {
     }
 }
 
+void FieldSolverCmd::validateFFT2D5Configuration() const {
+    if (fsType_m != FieldSolverCmdType::FFT2D5) {
+        return;
+    }
+
+    if (ippl::Comm->size() != 1) {
+        throw OpalException(
+                "FieldSolverCmd::validateFFT2D5Configuration",
+                "TYPE=FFT2D5 currently supports only one MPI rank. Distributed fields and "
+                "ORB load balancing are not implemented for this solver.");
+    }
+
+    const std::string binsName = getBinsName();
+    if (!binsName.empty() && binsName != "NONE") {
+        throw OpalException(
+                "FieldSolverCmd::validateFFT2D5Configuration",
+                "TYPE=FFT2D5 does not support BINS. Remove BINS from the FIELDSOLVER definition.");
+    }
+}
+
 void FieldSolverCmd::setDomainDecomposition() {
     domainDecomposition_m[0] = Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTX]);
     domainDecomposition_m[1] = Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTY]);
     domainDecomposition_m[2] = Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTZ]);
+
+    if (fsType_m == FieldSolverCmdType::FFT2D5) {
+        if (domainDecomposition_m[0] || domainDecomposition_m[1] || domainDecomposition_m[2]) {
+            throw OpalException(
+                    "FieldSolverCmd::setDomainDecomposition",
+                    "TYPE=FFT2D5 uses a serial field layout. Set PARFFTX, PARFFTY and PARFFTZ "
+                    "to FALSE.");
+        }
+        return;
+    }
 
     /// \todo At the moment, only 3D domain decomposition is supported. This should be extended to
     /// support 1D and 2D domain decomposition in the future, once the changes in the IPPL ORB are

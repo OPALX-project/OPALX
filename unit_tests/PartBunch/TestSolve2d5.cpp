@@ -41,6 +41,16 @@ namespace {
         void setType(const std::string& t) {
             Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::TYPE], t);
         }
+
+        void setBinsName(const std::string& name) {
+            Attributes::setString(this->itsAttr[FIELDSOLVER::BINS], name);
+        }
+
+        void setParallelDimensions(bool parallelX, bool parallelY, bool parallelZ) {
+            Attributes::setBool(this->itsAttr[FIELDSOLVER::PARFFTX], parallelX);
+            Attributes::setBool(this->itsAttr[FIELDSOLVER::PARFFTY], parallelY);
+            Attributes::setBool(this->itsAttr[FIELDSOLVER::PARFFTZ], parallelZ);
+        }
     };
 
     using PartBunch_t         = PartBunch<double, 3>;
@@ -274,6 +284,9 @@ namespace {
             fsCmd->setNX(nx);
             fsCmd->setNY(ny);
             fsCmd->setNZ(nz);
+            fsCmd->setParallelDimensions(true, true, true);
+            fsCmd->setFieldSolverCmdType();
+            fsCmd->setDomainDecomposition();
 
             dataSink       = std::make_shared<DataSink>();
             beam           = std::make_shared<Beam>();
@@ -531,6 +544,56 @@ namespace {
     TEST_F(TestSolve2d5, LoadReferencePath_Missing) {
         fsCmd->setType("FFT2D5");
         EXPECT_ANY_THROW(rebuildBunch());
+    }
+
+    TEST_F(TestSolve2d5, Configuration_SerialLayoutAccepted) {
+        fsCmd->setType("FFT2D5");
+        fsCmd->setParallelDimensions(false, false, false);
+
+        ASSERT_NO_THROW(fsCmd->execute());
+        const auto decomposition = fsCmd->getDomainDecomposition();
+        EXPECT_FALSE(decomposition[0]);
+        EXPECT_FALSE(decomposition[1]);
+        EXPECT_FALSE(decomposition[2]);
+    }
+
+    TEST_F(TestSolve2d5, Configuration_ParallelLayoutRejected) {
+        fsCmd->setType("FFT2D5");
+        fsCmd->setParallelDimensions(false, false, true);
+
+        EXPECT_THROW(fsCmd->execute(), OpalException);
+    }
+
+    TEST_F(TestSolve2d5, Configuration_BinningRejected) {
+        fsCmd->setType("FFT2D5");
+        fsCmd->setBinsName("UNUSED_BINNING");
+        fsCmd->setParallelDimensions(false, false, false);
+
+        EXPECT_THROW(fsCmd->execute(), OpalException);
+    }
+
+    TEST_F(TestSolve2d5, Configuration_MultipleRanksRejected) {
+        if (ippl::Comm->size() == 1) {
+            GTEST_SKIP() << "This validation requires multiple MPI ranks.";
+        }
+
+        fsCmd->setType("FFT2D5");
+        fsCmd->setParallelDimensions(false, false, false);
+        try {
+            fsCmd->execute();
+            FAIL() << "Expected FFT2D5 input validation to reject multiple MPI ranks.";
+        } catch (const OpalException& exception) {
+            const std::string message = exception.what();
+            EXPECT_NE(message.find("exactly one MPI rank"), std::string::npos);
+        }
+
+        try {
+            rebuildBunch();
+            FAIL() << "Expected FFT2D5 construction to reject multiple MPI ranks.";
+        } catch (const OpalException& exception) {
+            const std::string message = exception.what();
+            EXPECT_NE(message.find("exactly one MPI rank"), std::string::npos);
+        }
     }
 
     TEST_F(TestSolve2d5, LoadReferencePath_ReadFail) {
