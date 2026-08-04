@@ -198,7 +198,8 @@ ElementType Solenoid::getType() const { return ElementType::SOLENOID; }
 /// @param r Position
 /// @returns true if inside, false otherwise
 bool Solenoid::isInside(const Vector_t<double, 3>& r) const {
-    return fieldmap_m != nullptr && isInsideTransverse(r) && fieldmap_m->isInside(r);
+    return fieldmap_m != nullptr && ApertureHelper::isInsideAperture(r, aperture_m)
+           && fieldmap_m->isInside(r);
 }
 
 /// @brief Get the dimensions of the solenoid

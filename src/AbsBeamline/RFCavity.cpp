@@ -686,7 +686,7 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(
 }
 
 bool RFCavity::isInside(const Vector_t<double, 3>& r) const {
-    if (fieldmap_m != nullptr && isInsideTransverse(r)) {
+    if (fieldmap_m != nullptr && ApertureHelper::isInsideAperture(r, aperture_m)) {
         return fieldmap_m->isInside(r);
     }
 
