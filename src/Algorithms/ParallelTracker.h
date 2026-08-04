@@ -54,6 +54,7 @@
 #include "Distribution/SamplingBase.hpp"
 #include "Elements/OpalBeamline.h"
 
+#include <functional>
 #include <list>
 #include <memory>
 #include <tuple>
@@ -203,6 +204,21 @@ public:
     /// @param oths Per-container orbit threaders (one per distinct species; same-species
     ///             containers share one) used for element queries.
     void computeExternalFields(const std::vector<std::shared_ptr<OrbitThreader>>& oths);
+
+    /// @brief Call func for each element intersecting each active container, with the
+    ///        container transformed into the element-local frame.
+    /// @param oths Per-container orbit threaders used for element queries.
+    /// @param func Called per (element, container) pair in the element-local frame.
+    void forEachElementInBunchFrame(
+            const std::vector<std::shared_ptr<OrbitThreader>>& oths,
+            const std::function<void(
+                    const std::shared_ptr<ElementBase>&,
+                    const std::shared_ptr<ParticleContainer_t>&)>& func);
+
+    /// @brief Mark particles outside the transverse aperture of each nearby element.
+    /// @param oths Per-container orbit threaders used for element queries.
+    /// @return global number of newly marked particles (allreduced) — collective call.
+    size_t applyElementApertures(const std::vector<std::shared_ptr<OrbitThreader>>& oths);
 
     /// @brief Emit macroparticles from configured samplers per container.
     /// @param t  Bunch time (s).
