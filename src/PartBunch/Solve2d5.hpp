@@ -563,7 +563,7 @@ KOKKOS_FUNCTION void Solve2d5<T>::doGatherFromGrid(
         // Calculate the longitudinal E field in Frenet-Serret coordinates
         const int index = (fsR.data_m[2] - origin.data_m[2]) * invDr.data_m[2] + 0.5;
         const auto ldg  = lineDensityGradient(index);
-        e(n).data_m[2]  = gBy4PiEpsilon0 * ldg / beamGamma / beamGamma;
+        e(n).data_m[2]  = -gBy4PiEpsilon0 * ldg / beamGamma / beamGamma;
         diagnostic.longitudinalField(n, e(n), b(n), invalid(n));
         // And finally back into lab coordinates
         convertFromFrenetSerret(n, bUnit, nUnit, tUnit, e, b);

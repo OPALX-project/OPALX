@@ -1091,9 +1091,9 @@ namespace {
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
         expectParticleFields(
-                0, e, b, {12.710693760e9, 0, -57.160829398e9}, {0, -29.9801, 0}, 1e3, 1e-4);
+                0, e, b, {12.710693760e9, 0, 57.160829398e9}, {0, -29.9801, 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-12.710693760e9, 0, -57.160829398e9}, {0, 29.9801, 0}, 1e3, 1e-4);
+                1, e, b, {-12.710693760e9, 0, 57.160829398e9}, {0, 29.9801, 0}, 1e3, 1e-4);
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_Simple) {
@@ -1116,9 +1116,9 @@ namespace {
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
         expectParticleFields(
-                0, e, b, {12.710693760e9, 0, -57.160829398e9}, {0, -29.9801, 0}, 1e3, 1e-4);
+                0, e, b, {12.710693760e9, 0, 57.160829398e9}, {0, -29.9801, 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-12.710693760e9, 0, -57.160829398e9}, {0, 29.9801, 0}, 1e3, 1e-4);
+                1, e, b, {-12.710693760e9, 0, 57.160829398e9}, {0, 29.9801, 0}, 1e3, 1e-4);
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_SimpleInvalid) {
@@ -1143,9 +1143,9 @@ namespace {
         ASSERT_EQ(e.size(), 3);
         ASSERT_EQ(b.size(), 3);
         expectParticleFields(
-                0, e, b, {12.710693760e9, 0, -57.160829398e9}, {0, -29.9801, 0}, 1e3, 1e-4);
+                0, e, b, {12.710693760e9, 0, 57.160829398e9}, {0, -29.9801, 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-12.710693760e9, 0, -57.160829398e9}, {0, 29.9801, 0}, 1e3, 1e-4);
+                1, e, b, {-12.710693760e9, 0, 57.160829398e9}, {0, 29.9801, 0}, 1e3, 1e-4);
         expectParticleFields(2, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
     }
 
@@ -1243,10 +1243,10 @@ namespace {
         ASSERT_EQ(e.size(), 3);
         ASSERT_EQ(b.size(), 3);
         expectParticleFields(
-                0, e, b, {12.710693760e9, 0, -28.580515699e9}, {0, -29.9801, 0}, 1e6, 1e-4);
+                0, e, b, {12.710693760e9, 0, 28.580515699e9}, {0, -29.9801, 0}, 1e6, 1e-4);
         expectParticleFields(
-                1, e, b, {-12.710693760e9, 0, -28.580515699e9}, {0, 29.9801, 0}, 1e6, 1e-4);
-        expectParticleFields(2, e, b, {0, 0, -28.580515699e9}, {0, 0, 0}, 1e6, 1e-4);
+                1, e, b, {-12.710693760e9, 0, 28.580515699e9}, {0, 29.9801, 0}, 1e6, 1e-4);
+        expectParticleFields(2, e, b, {0, 0, 28.580515699e9}, {0, 0, 0}, 1e6, 1e-4);
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_OpenRing) {
@@ -1274,9 +1274,9 @@ namespace {
         ASSERT_EQ(e.size(), 3);
         ASSERT_EQ(b.size(), 3);
         expectParticleFields(
-                0, e, b, {12.710693760e9, 0, -57.160829398e9}, {0, -29.9801, 0}, 1e6, 1e-4);
+                0, e, b, {12.710693760e9, 0, 57.160829398e9}, {0, -29.9801, 0}, 1e6, 1e-4);
         expectParticleFields(
-                1, e, b, {-12.710693760e9, 0, -57.160829398e9}, {0, 29.9801, 0}, 1e6, 1e-4);
+                1, e, b, {-12.710693760e9, 0, 57.160829398e9}, {0, 29.9801, 0}, 1e6, 1e-4);
         expectParticleFields(2, e, b, {0, 0, 0}, {0, 0, 0}, 1e6, 1e-4);
     }
 
@@ -1302,9 +1302,9 @@ namespace {
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
         expectParticleFields(
-                0, e, b, {12.710693760e9, 0, -50.688114128e9}, {0, -29.9801, 0}, 1e3, 1e-4);
+                0, e, b, {12.710693760e9, 0, 50.688114128e9}, {0, -29.9801, 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-12.710693760e9, 0, -50.688114128e9}, {0, 29.9801, 0}, 1e3, 1e-4);
+                1, e, b, {-12.710693760e9, 0, 50.688114128e9}, {0, 29.9801, 0}, 1e3, 1e-4);
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_Plates) {
@@ -1329,9 +1329,9 @@ namespace {
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
         expectParticleFields(
-                0, e, b, {12.710693760e9, 0, -55.030260593e9}, {0, -29.9801, 0}, 1e3, 1e-4);
+                0, e, b, {12.710693760e9, 0, 55.030260593e9}, {0, -29.9801, 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-12.710693760e9, 0, -55.030260593e9}, {0, 29.9801, 0}, 1e3, 1e-4);
+                1, e, b, {-12.710693760e9, 0, 55.030260593e9}, {0, 29.9801, 0}, 1e3, 1e-4);
     }
 
     TEST_F(TestSolve2d5, LoadReferencePath_Empty) {
@@ -1426,13 +1426,13 @@ namespace {
         Kokkos::deep_copy(bHost, pc.B.getView());
         EXPECT_NEAR(eHost(0).data_m[0], 12.710693760e9, 1e6);
         EXPECT_NEAR(eHost(0).data_m[1], 0, 1e6);
-        EXPECT_NEAR(eHost(0).data_m[2], -28.580515699e9, 1e6);
+        EXPECT_NEAR(eHost(0).data_m[2], 28.580515699e9, 1e6);
         EXPECT_NEAR(eHost(1).data_m[0], -12.710693760e9, 1e6);
         EXPECT_NEAR(eHost(1).data_m[1], 0, 1e6);
-        EXPECT_NEAR(eHost(1).data_m[2], -28.580515699e9, 1e6);
+        EXPECT_NEAR(eHost(1).data_m[2], 28.580515699e9, 1e6);
         EXPECT_NEAR(eHost(2).data_m[0], 0, 1e6);
         EXPECT_NEAR(eHost(2).data_m[1], 0, 1e6);
-        EXPECT_NEAR(eHost(2).data_m[2], -28.580515699e9, 1e6);
+        EXPECT_NEAR(eHost(2).data_m[2], 28.580515699e9, 1e6);
         EXPECT_NEAR(bHost(0).data_m[0], 0, 1e-4);
         EXPECT_NEAR(bHost(0).data_m[1], -29.9801, 1e-4);
         EXPECT_NEAR(bHost(0).data_m[2], 0, 1e-4);
