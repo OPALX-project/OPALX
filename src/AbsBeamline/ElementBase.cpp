@@ -224,15 +224,13 @@ void ElementBase::goOnline(const double&) { online_m = true; }
 
 void ElementBase::goOffline() { online_m = false; }
 
-bool ElementBase::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) { return false; }
+void ElementBase::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {}
 
-bool ElementBase::apply(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
+void ElementBase::apply(
+        const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
-    if (R(2) >= 0.0 && R(2) < getGeometry().getElementLength()) {
-        if (!isInsideTransverse(R)) return true;
-    }
-    return false;
+    // A bare element carries no field. The bounds/aperture test the previous
+    // bool overload performed here only produced the (unused) return value.
 }
 
 bool ElementBase::applyToReferenceParticle(

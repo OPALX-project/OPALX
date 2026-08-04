@@ -57,12 +57,12 @@ public:
     /// Return the plane on which the corrector acts.
     virtual Plane getPlane() const = 0;
 
-    virtual bool apply(
+    virtual void apply(
             const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
-    virtual bool apply(
+    virtual void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B);
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     virtual void initialise(PartBunch_t* bunch);
 

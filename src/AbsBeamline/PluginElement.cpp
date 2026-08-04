@@ -60,13 +60,12 @@ void PluginElement::goOffline() {
     online_m = false;
 }
 
-bool PluginElement::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) { return false; }
+void PluginElement::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {}
 
-bool PluginElement::apply(
+void PluginElement::apply(
         const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
     *gmsg << "passed R, P, t, E, B arguments not used in PluginElement::apply" << endl;
-    return false;
 }
 
 bool PluginElement::applyToReferenceParticle(
