@@ -86,7 +86,7 @@ void SBend::apply(
     if (!isInsideArc(arc)) {
         return;
     }
-    if (!isInsideTransverse(arc)) {
+    if (!ApertureHelper::isInsideAperture(arc, aperture_m)) {
         return;
     }
 
@@ -101,13 +101,58 @@ bool SBend::applyToReferenceParticle(
     if (!isInsideArc(arc)) {
         return false;
     }
-    if (!isInsideTransverse(arc)) {
+    if (!ApertureHelper::isInsideAperture(arc, aperture_m)) {
         return true;
     }
 
     computeFieldHost(R, B);
     (void)E;
     return false;
+}
+
+size_t SBend::markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) {
+    if (!pc || !getFlagDeleteOnTransverseExit()) {
+        return 0;
+    }
+    const size_t nLocal = pc->getLocalNum();
+    if (nLocal == 0) {
+        return 0;
+    }
+
+    double zBegin = 0.0, zEnd = 0.0;
+    getFieldExtent(zBegin, zEnd);
+
+    // Members copied to locals; the device kernel must not capture `this`.
+    const ApertureType type = aperture_m.first;
+    const double xLimit     = aperture_m.second[0];
+    const double yLimit     = aperture_m.second[1];
+    const double curvature  = getGeometry().getCurvature();
+    const double bodyLength = getGeometry().getElementLength();
+
+    auto Rview   = pc->R.getView();
+    auto invalid = pc->InvalidMask.getView();
+
+    size_t localMarked = 0;
+    Kokkos::parallel_reduce(
+            "SBend::markOutsideAperture", nLocal,
+            KOKKOS_LAMBDA(const size_t i, size_t& count) {
+                // Convert (x,y,z) -> (x,y,arc s): the z-window and the aperture
+                // are measured relative to the design orbit, matching isInside.
+                const Vector_t<double, 3> arc =
+                        GeometryHelper::toBendArcCoords(Rview(i), curvature, bodyLength);
+
+                const bool inZ = arc(2) >= zBegin && arc(2) < zEnd;
+                const bool hit = inZ
+                                 && !ApertureHelper::isInsideAperture(
+                                         arc(0), arc(1), type, xLimit, yLimit);
+                const bool newlyMarked = hit && !invalid(i);
+                invalid(i)             = invalid(i) || hit;
+                count += newlyMarked ? 1 : 0;
+            },
+            localMarked);
+    Kokkos::fence();
+
+    return localMarked;
 }
 
 void SBend::getFieldExtent(double& zBegin, double& zEnd) const {
@@ -150,7 +195,7 @@ bool SBend::isInside(const Vector_t<double, 3>& r) const {
     // straight-frame z/x), so the bend stays selected as the orbit curves through it
     // and the aperture is measured relative to the design orbit, not the entry frame.
     const Vector_t<double, 3> arc = bendCoords(r);
-    return isInsideArc(arc) && isInsideTransverse(arc);
+    return isInsideArc(arc) && ApertureHelper::isInsideAperture(arc, aperture_m);
 }
 
 BendFieldModel::FieldInputs SBend::makeFieldInputs() const {

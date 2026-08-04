@@ -74,6 +74,11 @@ public:
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
+    /// @brief Mark particles outside the transverse aperture in pc->InvalidMask.
+    /// @note Overrides the base version to measure the z-window and the aperture
+    ///       in arc-length coordinates, matching isInside().
+    size_t markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) override;
+
     /// @brief Calculate the SBend field extent in the element's coordinatesystem
     /// @param zBegin Where the field begins (negative for fringe fields)
     /// @param zEnd Where the field ends (larger than element length for fringe fields)
