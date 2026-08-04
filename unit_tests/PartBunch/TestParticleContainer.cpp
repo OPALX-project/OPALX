@@ -45,7 +45,9 @@ namespace {
 
         /// Build a minimal ParticleContainer on an 8^3 periodic mesh over [-4, 4]^3.
         /// Reads `Options::useQMAttributes` at construction time.
-        std::shared_ptr<PC_t> makeContainer() {
+        std::shared_ptr<PC_t> makeContainer(
+                PC_t::LayoutType layoutType = PC_t::LayoutType::Spatial,
+                ippl::BC particleBC         = ippl::BC::PERIODIC) {
             ippl::Vector<int, 3> nr        = 8;
             ippl::Vector<double, 3> rmin   = -4.0;
             ippl::Vector<double, 3> rmax   = 4.0;
@@ -61,7 +63,9 @@ namespace {
             Mesh_t<3> mesh(domain, hr, origin);
             FieldLayout_t<3> fl(MPI_COMM_WORLD, domain, decomp, true);
 
-            std::shared_ptr<PC_t> pc = std::make_shared<PC_t>(mesh, fl);
+            constexpr double overlapCutoff = 1.0;
+            std::shared_ptr<PC_t> pc =
+                    std::make_shared<PC_t>(mesh, fl, false, layoutType, overlapCutoff, particleBC);
             pc->setBunchStateHandler(std::make_shared<BunchStateHandler>());
             return pc;
         }
@@ -95,6 +99,21 @@ namespace {
             Kokkos::fence();
         }
     };
+
+    TEST_F(ParticleContainerTest, P3MLayoutUsesSelectedParticleBoundaryCondition) {
+        auto periodic = makeContainer(PC_t::LayoutType::SpatialOverlap, ippl::BC::PERIODIC);
+        auto open     = makeContainer(PC_t::LayoutType::SpatialOverlap, ippl::BC::NO);
+
+        ASSERT_TRUE(periodic->hasP3MLayout());
+        ASSERT_TRUE(open->hasP3MLayout());
+
+        for (const auto bc : periodic->getP3MLayout().getParticleBC()) {
+            EXPECT_EQ(bc, ippl::BC::PERIODIC);
+        }
+        for (const auto bc : open->getP3MLayout().getParticleBC()) {
+            EXPECT_EQ(bc, ippl::BC::NO);
+        }
+    }
 
     // ================================================================
     // Charge / Mass – SingleValue mode
