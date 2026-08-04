@@ -975,8 +975,8 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks", "FieldSolver type string is empty.");
     }
-    if (stype != "FFT" && stype != "P3M" && stype != "OPEN" && stype != "CG"
-        && stype != "NONE" && stype != "FFT2D5") {
+    if (stype != "FFT" && stype != "P3M" && stype != "OPEN" && stype != "CG" && stype != "NONE"
+        && stype != "FFT2D5") {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks", "Unsupported FieldSolver type: " + stype);
     }

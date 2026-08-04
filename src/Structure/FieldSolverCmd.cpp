@@ -238,10 +238,9 @@ void FieldSolverCmd::setRefPathFileName(const std::string& refPathFileName) {
 
 void FieldSolverCmd::setFieldSolverCmdType() {
     static const std::map<std::string, FieldSolverCmdType> stringType_s = {
-            {"NONE", FieldSolverCmdType::NONE},     {"FFT", FieldSolverCmdType::FFT},
-            {"P3M", FieldSolverCmdType::P3M},       {"OPEN", FieldSolverCmdType::OPEN},
-            {"CG", FieldSolverCmdType::CG},
-            {"FFT2D5", FieldSolverCmdType::FFT2D5},
+            {"NONE", FieldSolverCmdType::NONE}, {"FFT", FieldSolverCmdType::FFT},
+            {"P3M", FieldSolverCmdType::P3M},   {"OPEN", FieldSolverCmdType::OPEN},
+            {"CG", FieldSolverCmdType::CG},     {"FFT2D5", FieldSolverCmdType::FFT2D5},
     };
 
     fsName_m = getType();
