@@ -10,10 +10,48 @@
 #include <string>
 #include <vector>
 
+// The IPPL interaction header relies on declarations provided by Ippl.h.
+// clang-format off
+#include "Ippl.h"
+#include "Interaction/TruncatedGreenParticleInteraction.h"
+// clang-format on
 #include "PartBunch/FieldSolver.hpp"
 #include "PartBunch/ImageChargeScatterController.h"
 #include "PartBunch/PartBunch.h"
+#include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
+
+namespace p3m_detail {
+    template <typename ParticleContainer>
+    class ContainerView {
+    public:
+        explicit ContainerView(const ParticleContainer& pc) : pc_m(pc) {}
+
+        const typename ParticleContainer::P3MLayout_t& getLayout() const {
+            return pc_m.getP3MLayout();
+        }
+
+    private:
+        const ParticleContainer& pc_m;
+    };
+
+    template <typename View>
+    class ChargeView {
+    public:
+        using value_type      = typename View::value_type;
+        using execution_space = typename View::execution_space;
+
+        ChargeView(View charge, bool perParticle) : charge_m(charge), perParticle_m(perParticle) {}
+
+        KOKKOS_INLINE_FUNCTION value_type operator()(size_t i) const {
+            return charge_m(perParticle_m ? i : 0);
+        }
+
+    private:
+        View charge_m;
+        bool perParticle_m;
+    };
+}  // namespace p3m_detail
 
 /**
  * @brief Field solver wrapper that implements the full binned self-field algorithm.
@@ -79,7 +117,7 @@ public:
     /**
      * @brief Construct a binned/legacy-compatible solver.
      *
-     * @param solver     Concrete solver name (e.g. `FFT`, `OPEN`, `CG`, `NONE`).
+     * @param solver     Concrete solver name (e.g. `FFT`, `P3M`, `OPEN`, `CG`, `NONE`).
      * @param rho        Pointer to the mesh charge-density field storage.
      * @param E          Pointer to the mesh electric-field storage (solver output).
      * @param phi        Pointer to the potential-field storage (solver internal use).
@@ -90,11 +128,17 @@ public:
      *                        keep the uniform MAXBINS histogram.
      * @param greensFunction  OPAL `GREENSF` selection (`STANDARD` or `INTEGRATED`) forwarded to
      *                        IPPL's open-boundary FFT solver.
+     * @param p3mCutoff       P3M particle-particle cutoff radius in metres.
      */
     BinnedFieldSolver(
             std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
             std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency, bool adaptiveBinning,
-            std::string greensFunction = "STANDARD");
+            std::string greensFunction = "STANDARD", T p3mCutoff = T(0));
+
+    /**
+     * @brief Override to receive notification that the orbit threaders are ready.
+     */
+    virtual void orbitThreadersReady() {}
 
     /**
      * @brief Compute space-charge self-fields for the given particle bunch.
@@ -110,7 +154,7 @@ public:
      * @throws OpalException If required internal data (particle container / temp E field)
      *                        is missing, or if unsupported scatter/gather modes are selected.
      */
-    void computeSelfFields(PartBunch_t& bunch);
+    virtual void computeSelfFields(PartBunch_t& bunch);
 
     /**
      * @brief Set particle scatter attribute (extensible; default is `ChargeQ`).
@@ -236,6 +280,9 @@ private:
      * @param bunch Particle bunch for which to compute self-fields.
      */
     void computeLegacySelfFields(PartBunch_t& bunch);
+
+    /// Add IPPL's short-range P3M interaction to the gathered particle electric field.
+    void applyP3MShortRangeInteraction(ParticleCtr_t& pc);
 
     /**
      * @brief Build and prepare adaptive bins for the current step.

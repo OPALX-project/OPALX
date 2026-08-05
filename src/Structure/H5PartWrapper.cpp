@@ -31,7 +31,8 @@ H5PartWrapper::H5PartWrapper(const std::string& fileName, h5_int32_t flags)
       fileName_m(fileName),
       predecessorOPALFlavour_m("NOT SET"),
       numSteps_m(0),
-      startedFromExistingFile_m(false) {
+      startedFromExistingFile_m(false),
+      h5OpenCloseTimer_m(IpplTimings::getTimer("H5 open close")) {
     open(flags);
 }
 
@@ -41,7 +42,8 @@ H5PartWrapper::H5PartWrapper(
       fileName_m(fileName),
       predecessorOPALFlavour_m("NOT SET"),
       numSteps_m(0),
-      startedFromExistingFile_m(true) {
+      startedFromExistingFile_m(true),
+      h5OpenCloseTimer_m(IpplTimings::getTimer("H5 open close")) {
     if (sourceFile.empty()) {
         sourceFile = fileName_m;
     }
@@ -55,15 +57,18 @@ H5PartWrapper::~H5PartWrapper() { close(); }
 
 void H5PartWrapper::close() {
     if (file_m) {
+        IpplTimings::startTimer(h5OpenCloseTimer_m);
         ippl::Comm->barrier();
 
         REPORTONERROR(H5CloseFile(file_m));
 
         file_m = 0;
+        IpplTimings::stopTimer(h5OpenCloseTimer_m);
     }
 }
 
 void H5PartWrapper::open(h5_int32_t flags) {
+    IpplTimings::startTimer(h5OpenCloseTimer_m);
     h5_prop_t props = H5CreateFileProp();
     MPI_Comm comm   = ippl::Comm->getCommunicator();
     h5_err_t h5err  = H5SetPropFileMPIOCollective(props, &comm);
@@ -74,6 +79,7 @@ void H5PartWrapper::open(h5_int32_t flags) {
     file_m = H5OpenFile(fileName_m.c_str(), flags, props);
     PAssert(file_m != (h5_file_t)H5_ERR);
     H5CloseProp(props);
+    IpplTimings::stopTimer(h5OpenCloseTimer_m);
 }
 
 void H5PartWrapper::storeCavityInformation() {

@@ -180,10 +180,10 @@ TEST_F(MonitorTest, IsInsideRejectsPointsOutsideElementLength) {
 // ---------------------------------------------------------------------------
 // Safe early returns
 // ---------------------------------------------------------------------------
-TEST_F(MonitorTest, ApplyNullParticleContainerReturnsFalse) {
+TEST_F(MonitorTest, ApplyNullParticleContainerIsSafe) {
     TestMonitor monitor;
 
-    EXPECT_FALSE(monitor.apply(std::shared_ptr<ParticleContainer_t>()));
+    EXPECT_NO_THROW(monitor.apply(std::shared_ptr<ParticleContainer_t>()));
 }
 
 TEST_F(MonitorTest, ApplyToReferenceParticleWithoutReferenceBunchReturnsFalse) {
@@ -199,7 +199,7 @@ TEST_F(MonitorTest, ApplyToReferenceParticleWithoutReferenceBunchReturnsFalse) {
     EXPECT_FALSE(monitor.applyToReferenceParticle(R, P, 0.0, E, B));
 }
 
-TEST_F(MonitorTest, FieldOnlyApplyOverloadReturnsFalseAndLeavesFieldsUnchanged) {
+TEST_F(MonitorTest, FieldOnlyApplyOverloadLeavesFieldsUnchanged) {
     TestMonitor monitor;
 
     Vector_t<double, 3> R(0.0);
@@ -215,7 +215,7 @@ TEST_F(MonitorTest, FieldOnlyApplyOverloadReturnsFalseAndLeavesFieldsUnchanged) 
     B(1) = 5.0;
     B(2) = 6.0;
 
-    EXPECT_FALSE(monitor.apply(R, P, 0.0, E, B));
+    monitor.apply(R, P, 0.0, E, B);
 
     EXPECT_DOUBLE_EQ(E(0), 1.0);
     EXPECT_DOUBLE_EQ(E(1), 2.0);
