@@ -119,15 +119,16 @@ size_t SBend::markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc
         return 0;
     }
 
-    double zBegin = 0.0, zEnd = 0.0;
-    getFieldExtent(zBegin, zEnd);
-
     // Members copied to locals; the device kernel must not capture `this`.
     const ApertureType type = aperture_m.first;
     const double xLimit     = aperture_m.second[0];
     const double yLimit     = aperture_m.second[1];
     const double curvature  = getGeometry().getCurvature();
     const double bodyLength = getGeometry().getElementLength();
+
+    // Geometric body window [0, arc length)
+    const double zBegin = 0.0;
+    const double zEnd   = bodyLength;
 
     auto Rview   = pc->R.getView();
     auto invalid = pc->InvalidMask.getView();
