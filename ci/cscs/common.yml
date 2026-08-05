@@ -18,3 +18,4 @@ include:
 stages:
   - opalx_build
   - opalx_test
+  - opalx_regression
