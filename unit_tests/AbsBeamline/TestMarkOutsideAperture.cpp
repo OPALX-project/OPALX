@@ -208,26 +208,32 @@ namespace {
     // z-window source (MonitorRep)
     // ================================================================
 
-    TEST_F(MarkOutsideApertureTest, UsesFieldExtentWindowNotBodySpan) {
-        // Monitor::getFieldExtent is centered on the plane: [-halfLength, +halfLength].
+    TEST_F(MarkOutsideApertureTest, UsesBodyWindowNotFieldExtent) {
+        // The marking window is the geometric body [0, L), NOT getFieldExtent().
+        // A monitor is the sharpest case: its field extent is centered on the
+        // recording plane ([-halfLength, +halfLength]) and so reaches upstream
+        // of the body, while the body starts at z = 0.
+        const double length = 0.01;  // what OpalMonitor::update installs
         MonitorRep monitor("test_monitor");
+        monitor.getGeometry().setElementLength(length);
         monitor.setAperture(ApertureType::ELLIPTICAL, {0.01, 0.01});
 
-        double zBegin = 0.0, zEnd = 0.0;
-        monitor.getFieldExtent(zBegin, zEnd);
-        ASSERT_LT(zBegin, 0.0);
-        ASSERT_GT(zEnd, 0.0);
+        double fieldBegin = 0.0, fieldEnd = 0.0;
+        monitor.getFieldExtent(fieldBegin, fieldEnd);
+        ASSERT_LT(fieldBegin, 0.0) << "field extent must reach upstream for this test to bite";
 
         auto pc = makeContainer();
         createParticlesAt(
                 pc, {
-                            {0.020, 0.0, 0.5 * zBegin},   // in centered window, out of aperture
-                            {0.020, 0.0, 2.0 * zBegin},   // upstream of window -> kept
-                            {0.005, 0.0, 0.5 * zBegin},   // in window, in aperture -> kept
+                            {0.020, 0.0, 0.5 * length},       // in body, out of aperture -> marked
+                            {0.020, 0.0, 0.5 * fieldBegin},   // in field extent but upstream of
+                                                              // the body -> kept
+                            {0.020, 0.0, 2.0 * length},       // downstream of the body -> kept
+                            {0.005, 0.0, 0.5 * length},       // in body, in aperture -> kept
                     });
 
         EXPECT_EQ(monitor.markOutsideAperture(pc), 1u);
-        EXPECT_EQ(invalidMaskOnHost(pc), std::vector<bool>({true, false, false}));
+        EXPECT_EQ(invalidMaskOnHost(pc), std::vector<bool>({true, false, false, false}));
     }
 
     // ================================================================
@@ -272,6 +278,49 @@ namespace {
 
         EXPECT_EQ(sbend.markOutsideAperture(pc), 1u);
         EXPECT_EQ(invalidMaskOnHost(pc), std::vector<bool>({false, true}));
+    }
+
+    TEST_F(MarkOutsideApertureTest, SBendMarksOnlyInsideTheBodyNotTheFringe) {
+        // With a non-zero gap the Enge field extends one fringe half width past
+        // each face, but the aperture belongs to the body: a particle still
+        // upstream of the entrance face must not be scraped.
+        const double curvature = 1.0;
+        const double length    = 1.0;
+        const double radius    = 1.0 / curvature;
+
+        SBendRep sbend("test_sbend_fringe");
+        sbend.getGeometry().setElementLength(length);
+        sbend.getGeometry().setCurvature(curvature);
+        sbend.setFullGap(0.02);
+        sbend.setAperture(ApertureType::ELLIPTICAL, {0.05, 0.05});
+
+        double fieldBegin = 0.0, fieldEnd = 0.0;
+        sbend.getFieldExtent(fieldBegin, fieldEnd);
+        ASSERT_LT(fieldBegin, 0.0) << "gap must produce a fringe reaching upstream";
+        ASSERT_GT(fieldEnd, length) << "gap must produce a fringe reaching downstream";
+
+        // Straight entrance frame: for z < 0 the arc transform is the identity,
+        // so these sit at arc s < 0 -- inside the field extent, outside the body.
+        const double zUp = 0.5 * fieldBegin;
+
+        // Downstream of the exit face, on the straight exit tangent.
+        const auto exitPos = [&](double extra, double d) -> std::array<double, 3> {
+            const double phi = curvature * length;
+            const double cx  = -radius + (radius + d) * std::cos(phi);
+            const double cz  = (radius + d) * std::sin(phi);
+            return {cx - extra * std::sin(phi), 0.0, cz + extra * std::cos(phi)};
+        };
+        const std::array<double, 3> downstream = exitPos(0.5 * (fieldEnd - length), 0.1);
+
+        auto pc = makeContainer();
+        createParticlesAt(
+                pc, {
+                            {0.10, 0.0, zUp},  // upstream fringe, outside aperture -> kept
+                            downstream,        // downstream fringe, outside aperture -> kept
+                    });
+
+        EXPECT_EQ(sbend.markOutsideAperture(pc), 0u);
+        EXPECT_EQ(invalidMaskOnHost(pc), std::vector<bool>({false, false}));
     }
 
 }  // namespace
