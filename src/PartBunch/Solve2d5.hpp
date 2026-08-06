@@ -42,6 +42,13 @@ Solve2d5<T>::Solve2d5(
 
 template <typename T>
 void Solve2d5<T>::orbitThreadersReady() {
+    if (ippl::Comm->size() != 1) {
+        throw OpalException(
+                "Solve2d5::orbitThreadersReady",
+                "FFT2D5 currently supports only one MPI rank. Distributed fields and ORB load "
+                "balancing are not implemented for this solver.");
+    }
+
     // Load the reference path to determine the Frenet-Serret domain dimensions
     auto pathLength = loadReferencePath();
     sizer_m         = {pipeSizeX_m, pipeSizeY_m, pathLength};
