@@ -42,6 +42,13 @@ Solve2d5<T>::Solve2d5(
 
 template <typename T>
 void Solve2d5<T>::orbitThreadersReady() {
+    if (ippl::Comm->size() != 1) {
+        throw OpalException(
+                "Solve2d5::orbitThreadersReady",
+                "FFT2D5 currently supports only one MPI rank. Distributed fields and ORB load "
+                "balancing are not implemented for this solver.");
+    }
+
     // Load the reference path to determine the Frenet-Serret domain dimensions
     auto pathLength = loadReferencePath();
     sizer_m         = {pipeSizeX_m, pipeSizeY_m, pathLength};
@@ -562,8 +569,11 @@ KOKKOS_FUNCTION void Solve2d5<T>::doGatherFromGrid(
         diagnostic.deboostFromBeam(n, e(n), b(n), invalid(n));
         // Calculate the longitudinal E field in Frenet-Serret coordinates
         const int index = (fsR.data_m[2] - origin.data_m[2]) * invDr.data_m[2] + 0.5;
-        const auto ldg  = lineDensityGradient(index);
-        e(n).data_m[2]  = gBy4PiEpsilon0 * ldg / beamGamma / beamGamma;
+        T ldg{};
+        if (index >= 0 && index < static_cast<int>(lineDensityGradient.extent(0))) {
+            ldg = lineDensityGradient(index);
+        }
+        e(n).data_m[2] = gBy4PiEpsilon0 * ldg / beamGamma / beamGamma;
         diagnostic.longitudinalField(n, e(n), b(n), invalid(n));
         // And finally back into lab coordinates
         convertFromFrenetSerret(n, bUnit, nUnit, tUnit, e, b);
