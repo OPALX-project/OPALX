@@ -34,6 +34,22 @@
         export OPALX_PUBLISH_BRANCH=""
       fi
       echo "OPALX_PUBLISH_BRANCH=$OPALX_PUBLISH_BRANCH"
+    - |
+      # Fetch the PR title from GitHub so the overview page shows
+      # "pr-508 CI/CD and regression testing fixes at CSCS" instead of
+      # just "pr-508".  The repos are public so no token is needed.
+      if [[ -n "$OPALX_PUBLISH_BRANCH" && "$OPALX_PUBLISH_BRANCH" =~ ^pr-([0-9]+)$ ]]; then
+        PR_NUM="${BASH_REMATCH[1]}"
+        echo "Fetching PR title for #$PR_NUM from GitHub..."
+        PR_TITLE=$(curl -fsSL "https://api.github.com/repos/OPALX-project/OPALX/pulls/${PR_NUM}" \
+          | python3 -c "import json,sys; print(json.load(sys.stdin)['title'])" 2>/dev/null || true)
+        if [[ -n "$PR_TITLE" ]]; then
+          export OPALX_PUBLISH_BRANCH="${OPALX_PUBLISH_BRANCH} ${PR_TITLE}"
+          echo "OPALX_PUBLISH_BRANCH (with title)=$OPALX_PUBLISH_BRANCH"
+        else
+          echo "WARNING: could not fetch PR title for #$PR_NUM, using branch name only"
+        fi
+      fi
   script:
     - echo "=== Verify release build artifact ==="
     - ls -l $BUILD_PATH/bin/
@@ -131,7 +147,7 @@
       --config=$CI_PROJECT_DIR/ci/cscs/config/$REGTEST_CONFIG
       --opalx-exe-path=$BUILD_PATH/bin
       --opalx-build-dir=$BUILD_PATH
-      --opalx-branch=${OPALX_PUBLISH_BRANCH:-$CI_COMMIT_REF_NAME}
+      --opalx-branch="${OPALX_PUBLISH_BRANCH:-$CI_COMMIT_REF_NAME}"
       --reg-tests
       --unit-tests
       --no-gpl
@@ -197,7 +213,7 @@
             bash $CI_PROJECT_DIR/nightlybuildx/scripts/run_tests \
               --do-not-compile-run \
               --publish-dir=$(pwd)/docs/opalx-regression-test \
-              --opalx-branch=$OPALX_PUBLISH_BRANCH \
+               --opalx-branch="$OPALX_PUBLISH_BRANCH" \
               --config=$CI_PROJECT_DIR/ci/cscs/config/$REGTEST_CONFIG
             git add -A
             if ! git diff --cached --quiet; then
