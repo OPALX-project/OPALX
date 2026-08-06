@@ -8,6 +8,7 @@ set(_SRCS
     AttributeSet.cpp
     BeamlineVisitor.cpp
     ConstantEFieldCavity.cpp
+    ConstantFocusing.cpp
     Drift.cpp
     ElementBase.cpp
     Laser.cpp
@@ -34,6 +35,7 @@ set(_HDRS
     AttributeSet.h
     BeamlineVisitor.h
     ConstantEFieldCavity.h
+    ConstantFocusing.h
     Drift.h
     ElementBase.h
     Laser.h

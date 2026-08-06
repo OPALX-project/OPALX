@@ -53,7 +53,8 @@ enum class ElementType : unsigned short {
     VACUUM,
     SOLENOID,
     SOURCE,
-    CONSTANTEFIELDCAVITY
+    CONSTANTEFIELDCAVITY,
+    CONSTANTFOCUSING
 };
 
 enum class ApertureType : unsigned short {
