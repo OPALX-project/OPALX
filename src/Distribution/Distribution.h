@@ -55,6 +55,7 @@ class H5PartWrapper;
 
 enum class DistributionType : short {
     NODIST = -1,
+    UNIFORM,
     GAUSS,
     MULTIVARIATEGAUSS,
     FLATTOP,
@@ -193,6 +194,7 @@ private:
     // void initializeBeam(PartBunch_t* beam);
     void printDist(Inform& os, size_t numberOfParticles) const;
     void printDistGauss(Inform& os) const;
+    void printDistUniform(Inform& os) const;
     void printDistMultiVariateGauss(Inform& os) const;
     void printDistFlatTop(Inform& os) const;
     void printDistFromFile(Inform& os) const;
@@ -200,6 +202,8 @@ private:
     void setAttributes();
 
     void setDistParametersGauss();
+
+    void setDistParametersUniform();
 
     void setDistParametersMultiVariateGauss();
 
