@@ -33,6 +33,12 @@
 
 #include "AbsBeamline/BeamlineVisitor.h"
 
+#include "AbsBeamline/ConstantFocusing.h"
+
 BeamlineVisitor::BeamlineVisitor() {}
 
 BeamlineVisitor::~BeamlineVisitor() {}
+
+void BeamlineVisitor::visitConstantFocusing(const ConstantFocusing& focusing) {
+    visitElementBase(focusing);
+}

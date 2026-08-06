@@ -36,6 +36,7 @@
 // Generic element classes interacting with a BeamlineVisitor.
 class ElementBase;
 class ConstantEFieldCavity;
+class ConstantFocusing;
 
 // Beam line structure classes.
 class Beamline;
@@ -75,6 +76,9 @@ public:
 
     /// Apply the algorithm to a constant E-field cavity element.
     virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&) = 0;
+
+    /// Apply the algorithm to a constant linear focusing element.
+    virtual void visitConstantFocusing(const ConstantFocusing&);
 
     /// Apply the algorithm to a drift space.
     virtual void visitDrift(const Drift&) = 0;
