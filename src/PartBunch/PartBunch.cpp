@@ -53,6 +53,12 @@ PartBunch<T, Dim>::PartBunch(
     if (dataSink_m == nullptr) {
         throw OpalException("PartBunch::PartBunch", "dataSink must not be null.");
     }
+    if (OPALFieldSolver_m->getType() == "FFT2D5" && ippl::Comm->size() != 1) {
+        throw OpalException(
+                "PartBunch::PartBunch",
+                "FFT2D5 currently supports only one MPI rank. Distributed fields and ORB load "
+                "balancing are not implemented for this solver.");
+    }
     if (qi.size() != num_containers) {
         throw OpalException("PartBunch::PartBunch", "qi size must match num_containers.");
     }
@@ -340,7 +346,7 @@ void PartBunch<T, Dim>::setSolver() {
                 &this->fcontainer_m->getPhi(), this->getBCHandler(),
                 binningCmd ? binningCmd->getTablePrintFrequency() : 0,
                 binningCmd ? binningCmd->getAdaptiveBinning() : true,
-                OPALFieldSolver_m->getGreensFunction());
+                OPALFieldSolver_m->getGreensFunction(), OPALFieldSolver_m->getP3MCutoff());
         this->setFieldSolver(binnedSolver);
         m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
     }
@@ -969,7 +975,7 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks", "FieldSolver type string is empty.");
     }
-    if (stype != "FFT" && stype != "OPEN" && stype != "CG" && stype != "NONE"
+    if (stype != "FFT" && stype != "P3M" && stype != "OPEN" && stype != "CG" && stype != "NONE"
         && stype != "FFT2D5") {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks", "Unsupported FieldSolver type: " + stype);

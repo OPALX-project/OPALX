@@ -143,6 +143,7 @@ private:
     FieldSolverCmd(const std::string& name, FieldSolverCmd* parent);
 
     void validateP3MConfiguration() const;
+    void validateFFT2D5Configuration() const;
 
     std::string fsName_m;
     FieldSolverCmdType fsType_m;
