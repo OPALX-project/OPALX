@@ -42,6 +42,8 @@
 
 #include "Distribution/OpalFlatTop.h"
 
+#include "Distribution/Uniform.h"
+
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
@@ -728,6 +730,9 @@ void TrackRun::setupDistributionsAndSamplers(
         // Build a sampler instance for this emission source.
         std::shared_ptr<SamplingBase> sampler;
         switch (opalDist->getType()) {
+            case DistributionType::UNIFORM:
+                sampler = std::make_shared<Uniform>(pc, fc, opalDist);
+                break;
             case DistributionType::GAUSS:
                 sampler = std::make_shared<Gaussian>(pc, fc, opalDist);
                 break;
