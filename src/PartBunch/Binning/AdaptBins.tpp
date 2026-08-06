@@ -213,51 +213,83 @@ namespace ParticleBinning {
                 Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
 
         // Calculate shared memory size for the histogram (binCount elements)
-        const size_t shared_size = scratch_view_type::shmem_size(binCount);
+        const size_t shared_size      = scratch_view_type::shmem_size(binCount);
+        const size_t max_scratch_size = static_cast<size_t>(team_policy::scratch_size_max(0));
 
-        const size_type team_size  = 128;
-        const size_type block_size = team_size * 8;
+        if (shared_size > max_scratch_size) {
+            Inform msg("AdaptBins");
+            msg << level1 << "WARNING: Team-based histogram reduction requested " << shared_size
+                << " bytes of team scratch memory, but the active Kokkos backend allows only "
+                << max_scratch_size << " bytes. Cannot launch team-based histogram reduction."
+                << endl;
+
+            throw OpalException(
+                    "AdaptBins::executeInitLocalHistoReductionTeamFor",
+                    "Team-based histogram scratch memory exceeds the active Kokkos backend limit.");
+        }
+
+        constexpr size_type preferred_team_size      = 128;
+        constexpr size_type particles_per_team_scale = 8;
+        const size_type block_size = preferred_team_size * particles_per_team_scale;
         const size_type num_leagues =
                 (localNumParticles + block_size - 1) / block_size;  // number of teams!
+
+        auto initLocalHist = KOKKOS_LAMBDA(const member_type& teamMember) {
+            // Allocate team-local histogram in scratch memory
+            scratch_view_type team_local_hist(teamMember.team_scratch(0), binCount);
+
+            // Initialize shared memory histogram to zero
+            Kokkos::parallel_for(
+                    Kokkos::TeamThreadRange(teamMember, binCount), [&](const bin_index_type b) {
+                        team_local_hist(b) = 0;
+                    });
+            teamMember.team_barrier();
+
+            const size_type start_i = teamMember.league_rank() * block_size;
+            const size_type end_i   = Kokkos::min(start_i + block_size, localNumParticles);
+
+            Kokkos::parallel_for(
+                    Kokkos::TeamThreadRange(teamMember, start_i, end_i), [&](const size_type i) {
+                        bin_index_type ndx = binIndex(i);  // Get bin index for the particle
+                        if (ndx < binCount)
+                            Kokkos::atomic_inc(
+                                    &team_local_hist(ndx));  // Atomic within shared memory
+                    });
+            teamMember.team_barrier();
+
+            // Reduce the team-local histogram into global memory
+            Kokkos::parallel_for(
+                    Kokkos::TeamThreadRange(teamMember, binCount), [&](const bin_index_type i) {
+                        Kokkos::atomic_add(&device_histo(i), team_local_hist(i));
+                    });
+        };
+
+        team_policy sizing_policy(num_leagues, Kokkos::AUTO());
+        const int max_team_size =
+                sizing_policy.team_size_max(initLocalHist, Kokkos::ParallelForTag());
+        if (max_team_size < 1) {
+            throw OpalException(
+                    "AdaptBins::executeInitLocalHistoReductionTeamFor",
+                    "The active Kokkos backend reported no valid team size for team-based "
+                    "histogram reduction.");
+        }
+
+        const size_type team_size =
+                static_cast<size_type>(std::min<int>(preferred_team_size, max_team_size));
+
+        if (team_size != preferred_team_size) {
+            Inform msg("AdaptBins");
+            msg << level1 << "WARNING: Requested team_size=" << preferred_team_size
+                << " for team-based histogram reduction, but the active Kokkos backend allows only "
+                << max_team_size << ". Using team_size=" << team_size << " instead." << endl;
+        }
 
         // Set up team policy with scratch memory allocation for each team
         team_policy policy(num_leagues, team_size);
         policy = policy.set_scratch_size(0, Kokkos::PerTeam(shared_size));
 
         // Launch a team parallel_for with the scratch memory setup
-        Kokkos::parallel_for(
-                "initLocalHist", policy, KOKKOS_LAMBDA(const member_type& teamMember) {
-                    // Allocate team-local histogram in scratch memory
-                    scratch_view_type team_local_hist(teamMember.team_scratch(0), binCount);
-
-                    // Initialize shared memory histogram to zero
-                    Kokkos::parallel_for(
-                            Kokkos::TeamThreadRange(teamMember, binCount),
-                            [&](const bin_index_type b) {
-                                team_local_hist(b) = 0;
-                            });
-                    teamMember.team_barrier();
-
-                    const size_type start_i = teamMember.league_rank() * block_size;
-                    const size_type end_i   = Kokkos::min(start_i + block_size, localNumParticles);
-
-                    Kokkos::parallel_for(
-                            Kokkos::TeamThreadRange(teamMember, start_i, end_i),
-                            [&](const size_type i) {
-                                bin_index_type ndx = binIndex(i);  // Get bin index for the particle
-                                if (ndx < binCount)
-                                    Kokkos::atomic_inc(
-                                            &team_local_hist(ndx));  // Atomic within shared memory
-                            });
-                    teamMember.team_barrier();
-
-                    // Reduce the team-local histogram into global memory
-                    Kokkos::parallel_for(
-                            Kokkos::TeamThreadRange(teamMember, binCount),
-                            [&](const bin_index_type i) {
-                                Kokkos::atomic_add(&device_histo(i), team_local_hist(i));
-                            });
-                });
+        Kokkos::parallel_for("initLocalHist", policy, initLocalHist);
 
         localBinHisto_m.modify_device();
     }
