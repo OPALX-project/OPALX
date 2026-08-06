@@ -110,7 +110,7 @@ Distribution::Distribution()
       avrgpz_m(0.0) {
     itsAttr[DISTRIBUTION::TYPE] = Attributes::makePredefinedString(
             "TYPE", "Distribution type.",
-            {"GAUSS", "MULTIVARIATEGAUSS", "FLATTOP", "OPALFLATTOP", "FROMFILE",
+            {"UNIFORM", "GAUSS", "MULTIVARIATEGAUSS", "FLATTOP", "OPALFLATTOP", "FROMFILE",
              "EMITTEDFROMFILE"});
 
     itsAttr[DISTRIBUTION::FNAME] =
@@ -246,6 +246,9 @@ Inform& Distribution::printInfo(Inform& os) const {
         os << "* In restart. Distribution read in from .h5 file." << endl;
     } else {
         switch (distrTypeT_m) {
+            case DistributionType::UNIFORM:
+                printDistUniform(os);
+                break;
             case DistributionType::GAUSS:
                 printDistGauss(os);
                 break;
@@ -271,6 +274,18 @@ Inform& Distribution::printInfo(Inform& os) const {
        << endl;
 
     return os;
+}
+
+void Distribution::setDistParametersUniform() {
+    setSigmaR_m();
+    for (unsigned d = 0; d < 3; ++d) {
+        if (sigmaR_m[d] <= 0.0) {
+            throw OpalException(
+                    "Distribution::setDistParametersUniform",
+                    "UNIFORM requires SIGMAX, SIGMAY and SIGMAZ to be greater than zero.");
+        }
+    }
+    avrgpz_m = 0.0;
 }
 
 void Distribution::setAvrgPz(double avrgpz) { avrgpz_m = avrgpz; }
@@ -435,6 +450,12 @@ void Distribution::printDistGauss(Inform& os) const {
     os << "* SIGMAPZ    = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
 }
 
+void Distribution::printDistUniform(Inform& os) const {
+    os << "* Distribution type: UNIFORM" << endl;
+    os << "* Uniform ellipsoid semi-axes [m]: " << sigmaR_m << endl;
+    os << "* Cold momentum: P = (0, 0, " << avrgpz_m << ") [Beta Gamma]" << endl;
+}
+
 void Distribution::printDistMultiVariateGauss(Inform& os) const {
     os << "* Distribution type: MULTIVARIATEGAUSS" << endl;
     os << "* " << endl;
@@ -508,6 +529,9 @@ void Distribution::setDist() {
     setDistType();
     // set distribution parameters
     switch (distrTypeT_m) {
+        case DistributionType::UNIFORM:
+            setDistParametersUniform();
+            break;
         case DistributionType::GAUSS:
             setDistParametersGauss();
             break;
@@ -535,6 +559,7 @@ void Distribution::setDist() {
 void Distribution::setDistType() {
     static const std::map<std::string, DistributionType> typeStringToDistType_s = {
             {"NODIST", DistributionType::NODIST},
+            {"UNIFORM", DistributionType::UNIFORM},
             {"GAUSS", DistributionType::GAUSS},
             {"MULTIVARIATEGAUSS", DistributionType::MULTIVARIATEGAUSS},
             {"FLATTOP", DistributionType::FLATTOP},
