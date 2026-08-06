@@ -3,35 +3,9 @@
 #include "Distribution/Uniform.h"
 #include "PartBunch/BunchStateHandler.h"
 
-class UniformTest : public ::testing::Test {
-protected:
-    static void SetUpTestSuite() {
-        int argc    = 0;
-        char** argv = nullptr;
-        ippl::initialize(argc, argv);
-    }
+namespace {
 
-    static void TearDownTestSuite() { ippl::finalize(); }
-
-    void SetUp() override {
-        const Vector_t<int, 3> nr(16);
-        const Vector_t<double, 3> rmin(-1.0);
-        const Vector_t<double, 3> hr(2.0 / 16.0);
-        ippl::NDIndex<3> domain;
-        for (unsigned d = 0; d < 3; ++d) {
-            domain[d] = ippl::Index(nr[d]);
-        }
-        std::array<bool, 3> decomp{true, true, true};
-        Mesh_t<3> mesh(domain, hr, rmin);
-        FieldLayout_t<3> layout(MPI_COMM_WORLD, domain, decomp, false);
-        pc = std::make_shared<ParticleContainer_t>(mesh, layout);
-        pc->setBunchStateHandler(std::make_shared<BunchStateHandler>());
-    }
-
-    std::shared_ptr<ParticleContainer_t> pc;
-};
-
-TEST_F(UniformTest, SamplesColdUniformEllipsoid) {
+void checkColdUniformEllipsoid(const std::shared_ptr<ParticleContainer_t>& pc) {
     constexpr size_t total = 100000;
     const Vector_t<double, 3> axes(1.0, 2.0, 3.0);
     constexpr double pz = 0.002;
@@ -78,4 +52,38 @@ TEST_F(UniformTest, SamplesColdUniformEllipsoid) {
         EXPECT_NEAR(sum[d], 0.0, 1.5e-2 * axes[d]);
         EXPECT_NEAR(sum2[d], axes[d] * axes[d] / 5.0, 1.0e-2 * axes[d] * axes[d]);
     }
+}
+
+}  // namespace
+
+class UniformTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite() {
+        int argc    = 0;
+        char** argv = nullptr;
+        ippl::initialize(argc, argv);
+    }
+
+    static void TearDownTestSuite() { ippl::finalize(); }
+
+    void SetUp() override {
+        const Vector_t<int, 3> nr(16);
+        const Vector_t<double, 3> rmin(-1.0);
+        const Vector_t<double, 3> hr(2.0 / 16.0);
+        ippl::NDIndex<3> domain;
+        for (unsigned d = 0; d < 3; ++d) {
+            domain[d] = ippl::Index(nr[d]);
+        }
+        std::array<bool, 3> decomp{true, true, true};
+        Mesh_t<3> mesh(domain, hr, rmin);
+        FieldLayout_t<3> layout(MPI_COMM_WORLD, domain, decomp, false);
+        pc = std::make_shared<ParticleContainer_t>(mesh, layout);
+        pc->setBunchStateHandler(std::make_shared<BunchStateHandler>());
+    }
+
+    std::shared_ptr<ParticleContainer_t> pc;
+};
+
+TEST_F(UniformTest, SamplesColdUniformEllipsoid) {
+    checkColdUniformEllipsoid(pc);
 }
