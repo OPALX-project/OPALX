@@ -49,6 +49,14 @@ retain the feature.
 - Configured `build_openmp` with current IPPL and Kokkos 5.2.0.
 - Built `opalx_exe`, `TestBeamBeam`, and
   `TestBeamBeamDiagnosticsWriter` successfully.
+- Built the complete default target, including every configured unit-test
+  executable, successfully. The full build exposed that the initial
+  `BeamlineVisitor::visitBeamBeam` hook was pure virtual and therefore made
+  existing specialized test visitors abstract. The hook now has a default
+  no-op; BeamBeam-aware production visitors continue to override it.
+- `TestMultipoleT`: 5/5 tests passed after the visitor compatibility fix.
+- `TestVariableRFCavity`: 15/15 tests passed after the visitor compatibility
+  fix.
 - `TestBeamBeamDiagnosticsWriter`: 4/4 tests passed, one MPI rank.
 - `TestBeamBeam`: 11/11 passed with one rank and 11/11 with two ranks.
 - Manufactured static BeamBeam input completed normally with one rank and
@@ -80,6 +88,5 @@ retain the feature.
 
 ## Next step
 
-Review the final feature delta against `origin/master`, stage the intended
-integration only, and create the local merge commit. Do not push without
-explicit permission.
+Keep the sandbox baseline migration separate from the code integration. Do not
+push without explicit permission.
