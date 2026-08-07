@@ -1,0 +1,40 @@
+\documentclass[11pt]{article}
+\usepackage[margin=0.8in]{geometry}
+\usepackage{animate}
+\usepackage{graphicx}
+\usepackage{hyperref}
+
+\title{MSOL Matched-Charge Field Movies}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+The frames are every 20 MSOL trajectory steps from step 0 to step 1500.
+The contours show $\mathbf{E}\cdot\mathbf{E}$ with a fixed logarithmic color
+scale within each projection movie.
+
+\section*{Transverse projection: $x$--$y$}
+
+\begin{center}
+\animategraphics[
+  controls,
+  loop,
+  poster=first,
+  width=0.98\linewidth
+]{8}{movie_frames/xy/msol-edot-xy-}{0000}{0075}
+\end{center}
+
+\section*{Longitudinal--radial projection: $z$--$r$}
+
+\begin{center}
+\animategraphics[
+  controls,
+  loop,
+  poster=first,
+  width=0.98\linewidth
+]{8}{movie_frames/zr/msol-edot-zr-}{0000}{0075}
+\end{center}
+
+\end{document}

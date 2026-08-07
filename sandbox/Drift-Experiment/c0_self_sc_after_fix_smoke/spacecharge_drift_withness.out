@@ -1,0 +1,270 @@
+OPAL-X>               ____  _____        _       __   __
+OPAL-X> [1;32m
+OPAL-X> 
+OPAL-X>   ██████  ██████   █████  ██      ██   ██
+OPAL-X>  ██    ██ ██   ██ ██   ██ ██       ██ ██
+OPAL-X>  ██    ██ ██████  ███████ ██        ███
+OPAL-X>  ██    ██ ██      ██   ██ ██       ██ ██
+OPAL-X>   ██████  ██      ██   ██ ███████ ██   ██
+OPAL-X> 
+OPAL-X>          This is OPALX (Object Oriented Parallel Accelerator Library for Exascale)
+OPAL-X> 
+OPAL-X> [0m
+OPAL-X> 
+OPAL-X> OPALX is the performance portable version of OPAL :: Version 0.9
+OPAL-X>             git rev. 1177cfa4a273047f3e436a2f1e19954d1e38a40c
+OPAL-X> 
+OPAL-X> 
+OPAL-X>              (c) PSI, https://github.com/OPALX-project/OPALX
+OPAL-X> 
+OPAL-X> 
+OPAL-X> Please send cookies, goodies or other motivations (wine and beer ... ) 
+OPAL-X> to the OPAL developers https://github.com/OPALX-project/OPALX/issues
+OPAL-X> 
+OPAL-X> Time: 08:35:46 date: 06/07/2026
+OPAL-X> 
+OPAL-X> * Host:   OpenMP
+OPAL-X> * Device: OpenMP
+OPAL-X> 
+OPAL-X> * Reading input stream 'spacecharge_drift_withness.in'
+OPAL-X> * ************* F I E L D S O L V E R ********************************************** 
+OPAL-X> * FIELDSOLVER  FS0
+OPAL-X> * BINS         SOURCEBINNING
+OPAL-X> * TYPE         OPEN
+OPAL-X> * RANKS        1
+OPAL-X> * NX           16
+OPAL-X> * NY           16
+OPAL-X> * NZ           32
+OPAL-X> * BBOXINCR     1
+OPAL-X> * GREENSF      STANDARD
+OPAL-X> * XDIM         serial  
+OPAL-X> * YDIM         serial  
+OPAL-X> * ZDIM         parallel  
+OPAL-X> * ********************************************************************************** 
+OPAL-X> 
+OPAL-X> * ************* B I N N I N G ****************************************************** 
+OPAL-X> * BINNING        SOURCEBINNING
+OPAL-X> * MAXBINS        1
+OPAL-X> * DESIREDWIDTH   0.1
+OPAL-X> * BINNINGALPHA   1
+OPAL-X> * BINNINGBETA    1
+OPAL-X> * ADAPTIVEBINNING FALSE
+OPAL-X> * PARAMETER      VELOCITYZ
+OPAL-X> * TABLEPRINTFREQ 0
+OPAL-X> * ********************************************************************************** 
+OPAL-X> 
+OPAL-X> * RUN resolved beams: PRIMARY_ELECTRONS, WITNESS_ELECTRONS, WITNESS_POSITRONS
+OPAL-X> * ************* B E A M ************************************************************ 
+OPAL-X> * BEAM        PRIMARY_ELECTRONS
+OPAL-X> * PARTICLE    ELECTRON
+OPAL-X> * REST MASS   0.000510999 [GeV]
+OPAL-X> * CHARGE      -e * 1 
+OPAL-X> * MOMENTUM    2.4551e+08 [eV/c]
+OPAL-X> * MOMENTUM    0.24551 [GeV/c]
+OPAL-X> * BCHARGE     2.00272e-09 [C]
+OPAL-X> * NALLOC      100
+OPAL-X> * ********************************************************************************** 
+OPAL-X> 
+OPAL-X> * ************* B E A M ************************************************************ 
+OPAL-X> * BEAM        WITNESS_ELECTRONS
+OPAL-X> * PARTICLE    ELECTRON
+OPAL-X> * REST MASS   0.000510999 [GeV]
+OPAL-X> * CHARGE      -e * 1 
+OPAL-X> * MOMENTUM    1 [eV/c]
+OPAL-X> * MOMENTUM    0 [GeV/c]
+OPAL-X> * BCHARGE     9.61306e-19 [C]
+OPAL-X> * NALLOC      6
+OPAL-X> * ********************************************************************************** 
+OPAL-X> 
+OPAL-X> * ************* B E A M ************************************************************ 
+OPAL-X> * BEAM        WITNESS_POSITRONS
+OPAL-X> * PARTICLE    POSITRON
+OPAL-X> * REST MASS   0.000510999 [GeV]
+OPAL-X> * CHARGE      +e * 1 
+OPAL-X> * MOMENTUM    1 [eV/c]
+OPAL-X> * MOMENTUM    0 [GeV/c]
+OPAL-X> * BCHARGE     9.61306e-19 [C]
+OPAL-X> * NALLOC      6
+OPAL-X> * ********************************************************************************** 
+OPAL-X> 
+OPAL-X[2]> * Beam[0] PRIMARY_ELECTRONS macro charge per particle [C]: -2.00272e-11
+OPAL-X[2]> * Beam[0] PRIMARY_ELECTRONS macro mass per particle [GeV/c^2]: 63874.9
+OPAL-X[2]> * Beam[0] PRIMARY_ELECTRONS particles per macro particle: 1.25e+08
+OPAL-X> 
+OPAL-X[2]> * Beam[1] WITNESS_ELECTRONS macro charge per particle [C]: -1.60218e-19
+OPAL-X[2]> * Beam[1] WITNESS_ELECTRONS macro mass per particle [GeV/c^2]: 0.000510999
+OPAL-X[2]> * Beam[1] WITNESS_ELECTRONS particles per macro particle: 1
+OPAL-X> 
+OPAL-X[2]> * Beam[2] WITNESS_POSITRONS macro charge per particle [C]: 1.60218e-19
+OPAL-X[2]> * Beam[2] WITNESS_POSITRONS macro mass per particle [GeV/c^2]: 0.000510999
+OPAL-X[2]> * Beam[2] WITNESS_POSITRONS particles per macro particle: 1
+OPAL-X> 
+OPAL-X> * Creating new file for data: 'spacecharge_drift_withness_c0.stat'
+OPAL-X> * Creating new file for data: 'spacecharge_drift_withness_c1.stat'
+OPAL-X> * Creating new file for data: 'spacecharge_drift_withness_c2.stat'
+OPAL-X> * Creating new file for data: 'spacecharge_drift_withness.lbal'
+PartBunch::setSolver[2]> Initializing solver: OPEN
+KOKKOS DEBUG[2]> =====================================
+KOKKOS DEBUG[2]>  Kokkos Debug Information (Rank 0)
+KOKKOS DEBUG[2]> =====================================
+KOKKOS DEBUG[2]> CPU Threads (OpenMP): 8
+KOKKOS DEBUG[2]> CUDA/HIP: GPU support disabled.
+KOKKOS DEBUG[2]> Default Execution Space Concurrency: 8
+KOKKOS DEBUG[2]> Binning cost function parameters: alpha = 1, beta = 1, desiredWidth = 0.1
+KOKKOS DEBUG[2]> =====================================
+PartBunch::pre_run[2]> Starting pre_run...
+OPAL-X[2]> * BCHandler<3>: [OPEN, OPEN, OPEN]
+OPAL-X[2]> * Particle sampling / sampler setup for all emission sources done.
+OPAL-X[2]> * Configured emitting source of type FROMFILE with NPARTDIST = 6, t0 = 4e-12
+OPAL-X[2]> * Particle sampling / sampler setup for all emission sources done.
+OPAL-X[2]> * Configured emitting source of type FROMFILE with NPARTDIST = 6, t0 = 4e-12
+OPAL-X[2]> * Particle sampling / sampler setup for all emission sources done.
+OPAL-X> 
+OPAL-X> * ************** B U N C H ********************************************************* 
+OPAL-X> * CONTAINER       = 0
+OPAL-X> * PARTICLES       = 100
+OPAL-X> * CHARGE          = -2.002721e-09 (Cb) 
+OPAL-X> * QM STORAGE MODE = SINGLE
+OPAL-X> * <EKIN>          = 245.000 [MeV]
+OPAL-X> * <dEKIN>         = 0.000 [eV]
+OPAL-X> * INTEGRATOR      = LF2
+OPAL-X> * MIN R (origin)  = (     -4.44205 ,     -3.81237 ,    750.79720 ) [um]
+OPAL-X> * MAX R (max ext) = (      0.00487 ,      0.00555 ,      3.73380 ) [mm]
+OPAL-X> * RMS R           = (      2.12475 ,      1.84051 ,    572.98021 ) [um]
+OPAL-X> * RMS P           = ( 5.337203e-10 , 4.299399e-10 , 9.568117e-13 ) [beta gamma]
+OPAL-X> * Mean R          = ( 0.000000e+00 , 2.541099e-23 , 2.100833e-03 ) [m]
+OPAL-X> * Mean P          = ( 6.514437e-12 , -1.572353e-11 , 4.804520e+02 ) [beta gamma]
+OPAL-X> * MESH SPACING    = (      0.59386 ,      0.59696 ,     95.08318 ) [um]
+OPAL-X> * COMPDOM INCR    = 1.000000e+00 (%) 
+OPAL-X> * FIELD LAYOUT    = Domain = {[0:15:1],[0:15:1],[0:31:1]}
+OPAL-X> Total number of boxes = 1
+OPAL-X>     Box 0 {[0:15:1],[0:15:1],[0:31:1]}
+OPAL-X> 
+OPAL-X> * Centroid : 
+OPAL-X> * 0.000000e+00 6.514437e-10 2.541099e-21 -1.572353e-09 2.100833e-01 4.804520e+04 
+OPAL-X> * Cov Matrix : 
+OPAL-X> * 4.514563e-12 -4.985681e-17 -7.164598e-13 4.484863e-18 4.686606e-11 -1.652178e-19 
+OPAL-X> * -4.985681e-17 2.848573e-19 1.804231e-17 -3.715563e-20 -6.120926e-14 -1.609640e-23 
+OPAL-X> * -7.164598e-13 1.804231e-17 3.387470e-12 -3.076314e-17 -2.647923e-10 -1.792814e-19 
+OPAL-X> * 4.484863e-18 -3.715563e-20 -3.076314e-17 1.848483e-19 -4.058207e-14 -7.378586e-24 
+OPAL-X> * 4.686606e-11 -6.120926e-14 -2.647923e-10 -4.058207e-14 3.283063e-07 1.219670e-16 
+OPAL-X> * -1.652178e-19 -1.609640e-23 -1.792814e-19 -7.378586e-24 1.219670e-16 9.154886e-25 
+OPAL-X> * * ********************************************************************************** 
+OPAL-X> 
+OPAL-X> 
+OPAL-X> * ************** B U N C H ********************************************************* 
+OPAL-X> * CONTAINER       = 1
+OPAL-X> * PARTICLES       = 0
+OPAL-X> * CHARGE          = -0.000000e+00 (Cb) 
+OPAL-X> * QM STORAGE MODE = SINGLE
+OPAL-X> * <EKIN>          = 0.000 [eV]
+OPAL-X> * <dEKIN>         = 0.000 [eV]
+OPAL-X> * INTEGRATOR      = LF2
+OPAL-X> * MIN R (origin)  = (      0.00000 ,      0.00000 ,      0.00000 ) [um]
+OPAL-X> * MAX R (max ext) = (      0.00000 ,      0.00000 ,      0.00000 ) [um]
+OPAL-X> * RMS R           = (      0.00000 ,      0.00000 ,      0.00000 ) [um]
+OPAL-X> * RMS P           = ( 0.000000e+00 , 0.000000e+00 , 0.000000e+00 ) [beta gamma]
+OPAL-X> * Mean R          = ( 0.000000e+00 , 0.000000e+00 , 0.000000e+00 ) [m]
+OPAL-X> * Mean P          = ( 0.000000e+00 , 0.000000e+00 , 0.000000e+00 ) [beta gamma]
+OPAL-X> * MESH SPACING    = (      0.59386 ,      0.59696 ,     95.08318 ) [um]
+OPAL-X> * COMPDOM INCR    = 1.000000e+00 (%) 
+OPAL-X> * FIELD LAYOUT    = Domain = {[0:15:1],[0:15:1],[0:31:1]}
+OPAL-X> Total number of boxes = 1
+OPAL-X>     Box 0 {[0:15:1],[0:15:1],[0:31:1]}
+OPAL-X> 
+OPAL-X> * Centroid : 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * Cov Matrix : 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * * ********************************************************************************** 
+OPAL-X> 
+OPAL-X> 
+OPAL-X> * ************** B U N C H ********************************************************* 
+OPAL-X> * CONTAINER       = 2
+OPAL-X> * PARTICLES       = 0
+OPAL-X> * CHARGE          = 0.000000e+00 (Cb) 
+OPAL-X> * QM STORAGE MODE = SINGLE
+OPAL-X> * <EKIN>          = 0.000 [eV]
+OPAL-X> * <dEKIN>         = 0.000 [eV]
+OPAL-X> * INTEGRATOR      = LF2
+OPAL-X> * MIN R (origin)  = (      0.00000 ,      0.00000 ,      0.00000 ) [um]
+OPAL-X> * MAX R (max ext) = (      0.00000 ,      0.00000 ,      0.00000 ) [um]
+OPAL-X> * RMS R           = (      0.00000 ,      0.00000 ,      0.00000 ) [um]
+OPAL-X> * RMS P           = ( 0.000000e+00 , 0.000000e+00 , 0.000000e+00 ) [beta gamma]
+OPAL-X> * Mean R          = ( 0.000000e+00 , 0.000000e+00 , 0.000000e+00 ) [m]
+OPAL-X> * Mean P          = ( 0.000000e+00 , 0.000000e+00 , 0.000000e+00 ) [beta gamma]
+OPAL-X> * MESH SPACING    = (      0.59386 ,      0.59696 ,     95.08318 ) [um]
+OPAL-X> * COMPDOM INCR    = 1.000000e+00 (%) 
+OPAL-X> * FIELD LAYOUT    = Domain = {[0:15:1],[0:15:1],[0:31:1]}
+OPAL-X> Total number of boxes = 1
+OPAL-X>     Box 0 {[0:15:1],[0:15:1],[0:31:1]}
+OPAL-X> 
+OPAL-X> * Centroid : 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * Cov Matrix : 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * * ********************************************************************************** 
+OPAL-X> 
+OPAL-X> * DR_UP gone live
+OPAL-X> * IP1 gone live
+ParallelTracker::execute[2]> Dump initial phase space done.
+OPAL-X> * OrbitThreader dt_m= 1e-15
+OPAL-X> * OrbitThreader maxDistance= 1
+OPAL-X> * OrbitThreader #elements  = 1
+OPAL-X> * OrbitThreader maxDistance= 1.79769e+308
+OPAL-X> * OrbitThreader #elements  = 1
+OPAL-X> 
+OPAL-X> * Size of map 2 sections 
+OPAL-X> * Key: (0.000000 - 0.001000) number of overlapping elements 1
+OPAL-X> *                            DR_UP
+OPAL-X> * Key: (0.001000 - 0.011000) number of overlapping elements 1
+OPAL-X> *                            IP1
+OPAL-X> 
+OPAL-X> * Creating new file for data: 'data/spacecharge_drift_withness_ElementPositions.sdds'
+OPAL-X> * Track start at: 08:35:47, t= 0.000 [fs]; zstart at: 0.000 [um]
+OPAL-X> * Initial dt = 100.000 [fs]
+OPAL-X> * Max integration steps = 1820, next step = 0
+OPAL-X>                dt [ns]           zStop [m]        num Steps [1]
+OPAL-X> ->         1.000000e-13        3.285010e-03                  40
+OPAL-X>            1.000000e-15        3.809646e-03                1780
+PartBunch::performBunchSanityChecks[2]> ========= Done performing PartBunch sanity checks... =========
+ParallelTracker::execute[2]> Starting track with dt = 100.000 [fs], track steps = 0 to 40.
+BB-DIAG BB-state=Inactive active_bunches=3 retired_bunches=0 witness_states=c1:active:n=0,c2:active:n=0 BB-active=FALSE source_active=TRUE source_retirement_pending=FALSE
+OPAL-X> * 08:35:47 Step      0 container[0] at 29.979 [um], t= 100.000 [fs], E=786.492 [MeV]
+OPAL-X> * 08:35:47 Step      1 container[0] at 59.958 [um], t= 200.000 [fs], E=817.675 [MeV]
+OPAL-X> * 08:35:47 Step      2 container[0] at 89.938 [um], t= 300.000 [fs], E=826.671 [MeV]
+OPAL-X> * 08:35:47 Step      3 container[0] at 119.917 [um], t= 400.000 [fs], E=830.684 [MeV]
+OPAL-X> * 08:35:47 Step      4 container[0] at 149.896 [um], t= 500.000 [fs], E=832.974 [MeV]
+OPAL-X> * 08:35:47 Step      5 container[0] at 179.875 [um], t= 600.000 [fs], E=834.466 [MeV]
+OPAL-X> * 08:35:47 Step      6 container[0] at 209.854 [um], t= 700.000 [fs], E=835.517 [MeV]
+OPAL-X> * 08:35:47 Step      7 container[0] at 239.833 [um], t= 800.000 [fs], E=836.298 [MeV]
+OPAL-X> * 08:35:47 Step      8 container[0] at 269.813 [um], t= 900.000 [fs], E=836.901 [MeV]
+OPAL-X> * 08:35:47 Step      9 container[0] at 299.792 [um], t= 1.000 [ps], E=837.384 [MeV]
+OPAL-X> * 08:35:47 Step     10 container[0] at 329.771 [um], t= 1.100 [ps], E=837.779 [MeV]
+OPAL-X> * 08:35:47 Step     11 container[0] at 359.750 [um], t= 1.200 [ps], E=838.111 [MeV]
+OPAL-X> * 08:35:47 Step     12 container[0] at 389.729 [um], t= 1.300 [ps], E=838.393 [MeV]
+OPAL-X> * 08:35:47 Step     13 container[0] at 419.709 [um], t= 1.400 [ps], E=838.636 [MeV]
+OPAL-X[2]> Entering BeamBeam window: interaction_point_s=0.006 m, s_range=(0.001, 0.011) m, length=0.010 m, aperture_half_width=(0.001, 0.001) m, witness_containers=(1,2), retire_time=0.000 s, copy_time=NONE
+BB-DIAG BB-state=Active active_bunches=3 retired_bunches=0 witness_states=c1:active:n=0,c2:active:n=0 BB-active=TRUE
+OPAL-X> * 08:35:47 Step     14 container[0] at 449.688 [um], t= 1.500 [ps], E=839.221 [MeV]
+OPAL-X> * 08:35:47 Step     15 container[0] at 479.667 [um], t= 1.600 [ps], E=839.753 [MeV]
+OPAL-X> * 08:35:47 Step     16 container[0] at 509.646 [um], t= 1.700 [ps], E=840.229 [MeV]
+OPAL-X> * 08:35:47 Step     17 container[0] at 539.625 [um], t= 1.800 [ps], E=840.667 [MeV]
+OPAL-X> * 08:35:47 Step     18 container[0] at 569.604 [um], t= 1.900 [ps], E=841.072 [MeV]
+OPAL-X> * 08:35:47 Step     19 container[0] at 599.584 [um], t= 2.000 [ps], E=841.441 [MeV]
+OPAL-X> * 08:35:47 Step     20 container[0] at 629.563 [um], t= 2.100 [ps], E=841.780 [MeV]
+OPAL-X> * 08:35:47 Step     21 container[0] at 659.542 [um], t= 2.200 [ps], E=842.092 [MeV]
+OPAL-X> * 08:35:47 Step     22 container[0] at 689.521 [um], t= 2.300 [ps], E=842.382 [MeV]
+OPAL-X> * 08:35:47 Step     23 container[0] at 719.500 [um], t= 2.400 [ps], E=842.647 [MeV]
+OPAL-X> * 08:35:47 Step     24 container[0] at 749.480 [um], t= 2.500 [ps], E=842.889 [MeV]
+OPAL-X> * 08:35:47 Step     25 container[0] at 779.459 [um], t= 2.600 [ps], E=843.108 [MeV]
