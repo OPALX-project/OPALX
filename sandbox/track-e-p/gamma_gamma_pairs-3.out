@@ -1,0 +1,357 @@
+OPAL-X>               ____  _____        _       __   __
+OPAL-X> [1;32m
+OPAL-X> 
+OPAL-X>   ██████  ██████   █████  ██      ██   ██
+OPAL-X>  ██    ██ ██   ██ ██   ██ ██       ██ ██
+OPAL-X>  ██    ██ ██████  ███████ ██        ███
+OPAL-X>  ██    ██ ██      ██   ██ ██       ██ ██
+OPAL-X>   ██████  ██      ██   ██ ███████ ██   ██
+OPAL-X> 
+OPAL-X>          This is OPALX (Object Oriented Parallel Accelerator Library for Exascale)
+OPAL-X> 
+OPAL-X> [0m
+OPAL-X> 
+OPAL-X> OPALX is the performance portable version of OPAL :: Version 0.9
+OPAL-X>             git rev. 110c8fe2635f4262bc46589205ea7d7cff6ffc2a
+OPAL-X> 
+OPAL-X> 
+OPAL-X>              (c) PSI, https://github.com/OPALX-project/OPALX
+OPAL-X> 
+OPAL-X> 
+OPAL-X> Please send cookies, goodies or other motivations (wine and beer ... ) 
+OPAL-X> to the OPAL developers https://github.com/OPALX-project/OPALX/issues
+OPAL-X> 
+OPAL-X> Time: 17:36:45 date: 27/05/2026
+OPAL-X> 
+OPAL-X> * Host:   OpenMP
+OPAL-X> * Device: OpenMP
+OPAL-X> 
+OPAL-X> * Reading input stream 'gamma_gamma_pairs-3.in'
+OPAL-X> * ************* F I E L D S O L V E R ********************************************** 
+OPAL-X> * FIELDSOLVER  FS1
+OPAL-X> * BINS         NONE
+OPAL-X> * TYPE         OPEN
+OPAL-X> * RANKS        1
+OPAL-X> * NX           16
+OPAL-X> * NY           16
+OPAL-X> * NZ           16
+OPAL-X> * BBOXINCR     2
+OPAL-X> * GREENSF      INTEGRATED
+OPAL-X> * XDIM         serial  
+OPAL-X> * YDIM         serial  
+OPAL-X> * ZDIM         parallel  
+OPAL-X> * ********************************************************************************** 
+OPAL-X> 
+OPAL-X> * RUN resolved beams: PRIMARYELECTRONS, GAMMAGAMMAELECTRONS, GAMMAGAMMAPOSITRONS
+OPAL-X> * ************* B E A M ************************************************************ 
+OPAL-X> * BEAM        PRIMARYELECTRONS
+OPAL-X> * PARTICLE    ELECTRON
+OPAL-X> * REST MASS   0.000510999 [GeV]
+OPAL-X> * CHARGE      -e * 1 
+OPAL-X> * MOMENTUM    2.4551e+08 [eV/c]
+OPAL-X> * MOMENTUM    0.24551 [GeV/c]
+OPAL-X> * BCHARGE     2.00272e-09 [C]
+OPAL-X> * NALLOC      10000
+OPAL-X> * ********************************************************************************** 
+OPAL-X> 
+OPAL-X> * ************* B E A M ************************************************************ 
+OPAL-X> * BEAM        GAMMAGAMMAELECTRONS
+OPAL-X> * PARTICLE    ELECTRON
+OPAL-X> * REST MASS   0.000510999 [GeV]
+OPAL-X> * CHARGE      -e * 1 
+OPAL-X> * MOMENTUM    1 [eV/c]
+OPAL-X> * MOMENTUM    0 [GeV/c]
+OPAL-X> * BCHARGE     2.07802e-16 [C]
+OPAL-X> * NALLOC      1297
+OPAL-X> * ********************************************************************************** 
+OPAL-X> 
+OPAL-X> * ************* B E A M ************************************************************ 
+OPAL-X> * BEAM        GAMMAGAMMAPOSITRONS
+OPAL-X> * PARTICLE    POSITRON
+OPAL-X> * REST MASS   0.000510999 [GeV]
+OPAL-X> * CHARGE      +e * 1 
+OPAL-X> * MOMENTUM    1 [eV/c]
+OPAL-X> * MOMENTUM    0 [GeV/c]
+OPAL-X> * BCHARGE     2.07802e-16 [C]
+OPAL-X> * NALLOC      1297
+OPAL-X> * ********************************************************************************** 
+OPAL-X> 
+OPAL-X[2]> * Beam[0] PRIMARYELECTRONS macro charge per particle [C]: -2.00272e-13
+OPAL-X[2]> * Beam[0] PRIMARYELECTRONS macro mass per particle [GeV/c^2]: 638.749
+OPAL-X[2]> * Beam[0] PRIMARYELECTRONS particles per macro particle: 1.25e+06
+OPAL-X> 
+OPAL-X[2]> * Beam[1] GAMMAGAMMAELECTRONS macro charge per particle [C]: -1.60218e-19
+OPAL-X[2]> * Beam[1] GAMMAGAMMAELECTRONS macro mass per particle [GeV/c^2]: 0.000510999
+OPAL-X[2]> * Beam[1] GAMMAGAMMAELECTRONS particles per macro particle: 1
+OPAL-X> 
+OPAL-X[2]> * Beam[2] GAMMAGAMMAPOSITRONS macro charge per particle [C]: 1.60218e-19
+OPAL-X[2]> * Beam[2] GAMMAGAMMAPOSITRONS macro mass per particle [GeV/c^2]: 0.000510999
+OPAL-X[2]> * Beam[2] GAMMAGAMMAPOSITRONS particles per macro particle: 1
+OPAL-X> 
+OPAL-X> * Creating new file for data: 'gamma_gamma_pairs-3_c0.stat'
+OPAL-X> * Creating new file for data: 'gamma_gamma_pairs-3_c1.stat'
+OPAL-X> * Creating new file for data: 'gamma_gamma_pairs-3_c2.stat'
+OPAL-X> * Creating new file for data: 'gamma_gamma_pairs-3.lbal'
+PartBunch::setSolver[2]> Initializing solver: OPEN
+PartBunch::setBins[2]> Solver FS1 has no binning command attached, not using binning.
+PartBunch::pre_run[2]> Starting pre_run...
+OPAL-X[2]> * BCHandler<3>: [OPEN, OPEN, OPEN]
+OPAL-X[2]> * Particle sampling / sampler setup for all emission sources done.
+OPAL-X[2]> * Configured emitting source of type EMITTEDFROMFILE with NPARTDIST = 1297, t0 = 1e-10
+OPAL-X[2]> * Particle sampling / sampler setup for all emission sources done.
+OPAL-X[2]> * Configured emitting source of type EMITTEDFROMFILE with NPARTDIST = 1297, t0 = 1e-10
+OPAL-X[2]> * Particle sampling / sampler setup for all emission sources done.
+OPAL-X> 
+OPAL-X> * ************** B U N C H ********************************************************* 
+OPAL-X> * CONTAINER       = 0
+OPAL-X> * PARTICLES       = 10000
+OPAL-X> * CHARGE          = -2.002721e-09 (Cb) 
+OPAL-X> * QM STORAGE MODE = SINGLE
+OPAL-X> * <EKIN>          = 245.002 [MeV]
+OPAL-X> * <dEKIN>         = 1.814 [keV]
+OPAL-X> * INTEGRATOR      = LF2
+OPAL-X> * MIN R (origin)  = (     -0.00582 ,     -0.00580 ,     -1.79088 ) [mm]
+OPAL-X> * MAX R (max ext) = (      0.00583 ,      0.00579 ,      1.78751 ) [mm]
+OPAL-X> * RMS R           = (      1.92365 ,      1.92934 ,    592.77344 ) [um]
+OPAL-X> * RMS P           = ( 1.292347e+00 , 1.308691e+00 , 4.767531e-12 ) [beta gamma]
+OPAL-X> * Mean R          = ( -4.302927e-23 , -3.049319e-23 , -5.898060e-21 ) [m]
+OPAL-X> * Mean P          = ( 1.879154e-02 , -2.963064e-02 , 4.804520e+02 ) [beta gamma]
+OPAL-X> * MESH SPACING    = (      0.75767 ,      0.75367 ,    232.59500 ) [um]
+OPAL-X> * COMPDOM INCR    = 2.000000e+00 (%) 
+OPAL-X> * FIELD LAYOUT    = Domain = {[0:15:1],[0:15:1],[0:15:1]}
+OPAL-X> Total number of boxes = 1
+OPAL-X>     Box 0 {[0:15:1],[0:15:1],[0:15:1]}
+OPAL-X> 
+OPAL-X> * Centroid : 
+OPAL-X> * -4.302927e-19 1.879154e+02 -3.049319e-19 -2.963064e+02 -5.898060e-17 4.804520e+06 
+OPAL-X> * Cov Matrix : 
+OPAL-X> * 3.700433e-12 -2.820603e-08 5.379430e-14 1.469402e-09 1.714057e-11 1.231507e-20 
+OPAL-X> * -2.820603e-08 1.670160e+00 -4.047673e-08 -2.334086e-03 5.467264e-06 8.659608e-15 
+OPAL-X> * 5.379430e-14 -4.047673e-08 3.722348e-12 -2.965102e-08 4.534734e-12 1.666791e-20 
+OPAL-X> * 1.469402e-09 -2.334086e-03 -2.965102e-08 1.712673e+00 8.380015e-07 1.810192e-14 
+OPAL-X> * 1.714057e-11 5.467264e-06 4.534734e-12 8.380015e-07 3.513804e-07 6.618802e-18 
+OPAL-X> * 1.231507e-20 8.659608e-15 1.666791e-20 1.810192e-14 6.618802e-18 2.272935e-23 
+OPAL-X> * * ********************************************************************************** 
+OPAL-X> 
+OPAL-X> 
+OPAL-X> * ************** B U N C H ********************************************************* 
+OPAL-X> * CONTAINER       = 1
+OPAL-X> * PARTICLES       = 0
+OPAL-X> * CHARGE          = -0.000000e+00 (Cb) 
+OPAL-X> * QM STORAGE MODE = SINGLE
+OPAL-X> * <EKIN>          = 0.000 [eV]
+OPAL-X> * <dEKIN>         = 0.000 [eV]
+OPAL-X> * INTEGRATOR      = LF2
+OPAL-X> * MIN R (origin)  = (      0.00000 ,      0.00000 ,      0.00000 ) [um]
+OPAL-X> * MAX R (max ext) = (      0.00000 ,      0.00000 ,      0.00000 ) [um]
+OPAL-X> * RMS R           = (      0.00000 ,      0.00000 ,      0.00000 ) [um]
+OPAL-X> * RMS P           = ( 0.000000e+00 , 0.000000e+00 , 0.000000e+00 ) [beta gamma]
+OPAL-X> * Mean R          = ( 0.000000e+00 , 0.000000e+00 , 0.000000e+00 ) [m]
+OPAL-X> * Mean P          = ( 0.000000e+00 , 0.000000e+00 , 0.000000e+00 ) [beta gamma]
+OPAL-X> * MESH SPACING    = (      0.75767 ,      0.75367 ,    232.59500 ) [um]
+OPAL-X> * COMPDOM INCR    = 2.000000e+00 (%) 
+OPAL-X> * FIELD LAYOUT    = Domain = {[0:15:1],[0:15:1],[0:15:1]}
+OPAL-X> Total number of boxes = 1
+OPAL-X>     Box 0 {[0:15:1],[0:15:1],[0:15:1]}
+OPAL-X> 
+OPAL-X> * Centroid : 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * Cov Matrix : 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * * ********************************************************************************** 
+OPAL-X> 
+OPAL-X> 
+OPAL-X> * ************** B U N C H ********************************************************* 
+OPAL-X> * CONTAINER       = 2
+OPAL-X> * PARTICLES       = 0
+OPAL-X> * CHARGE          = 0.000000e+00 (Cb) 
+OPAL-X> * QM STORAGE MODE = SINGLE
+OPAL-X> * <EKIN>          = 0.000 [eV]
+OPAL-X> * <dEKIN>         = 0.000 [eV]
+OPAL-X> * INTEGRATOR      = LF2
+OPAL-X> * MIN R (origin)  = (      0.00000 ,      0.00000 ,      0.00000 ) [um]
+OPAL-X> * MAX R (max ext) = (      0.00000 ,      0.00000 ,      0.00000 ) [um]
+OPAL-X> * RMS R           = (      0.00000 ,      0.00000 ,      0.00000 ) [um]
+OPAL-X> * RMS P           = ( 0.000000e+00 , 0.000000e+00 , 0.000000e+00 ) [beta gamma]
+OPAL-X> * Mean R          = ( 0.000000e+00 , 0.000000e+00 , 0.000000e+00 ) [m]
+OPAL-X> * Mean P          = ( 0.000000e+00 , 0.000000e+00 , 0.000000e+00 ) [beta gamma]
+OPAL-X> * MESH SPACING    = (      0.75767 ,      0.75367 ,    232.59500 ) [um]
+OPAL-X> * COMPDOM INCR    = 2.000000e+00 (%) 
+OPAL-X> * FIELD LAYOUT    = Domain = {[0:15:1],[0:15:1],[0:15:1]}
+OPAL-X> Total number of boxes = 1
+OPAL-X>     Box 0 {[0:15:1],[0:15:1],[0:15:1]}
+OPAL-X> 
+OPAL-X> * Centroid : 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * Cov Matrix : 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X> * * ********************************************************************************** 
+OPAL-X> 
+OPAL-X> * DR_UP gone live
+OPAL-X> * IP1 gone live
+OPAL-X> * DR_DN gone live
+ParallelTracker::execute[2]> Dump initial phase space done.
+OPAL-X> * OrbitThreader dt_m= 1e-12
+OPAL-X> * OrbitThreader maxDistance= 1.003
+OPAL-X> * OrbitThreader #elements  = 1
+OPAL-X> * OrbitThreader maxDistance= 1.79769e+308
+OPAL-X> * OrbitThreader #elements  = 1
+OPAL-X> 
+OPAL-X> * Size of map 2 sections 
+OPAL-X> * Key: (0.000000 - 0.009893) number of overlapping elements 1
+OPAL-X> *                            DR_UP
+OPAL-X> * Key: (0.009893 - 0.059958) number of overlapping elements 1
+OPAL-X> *                            IP1
+OPAL-X> 
+OPAL-X> * Creating new file for data: 'data/gamma_gamma_pairs-3_ElementPositions.sdds'
+OPAL-X> * Track start at: 17:36:45, t= -2039752.352 [ms]; zstart at: 0.000 [um]
+OPAL-X> * Initial dt = 1.000 [ps]
+OPAL-X> * Max integration steps = 130, next step = 0
+OPAL-X>                dt [ns]           zStop [m]        num Steps [1]
+OPAL-X> ->         1.000000e-12        7.000000e-02                 130
+PartBunch::performBunchSanityChecks[2]> ========= Done performing PartBunch sanity checks... =========
+ParallelTracker::execute[2]> Starting track with dt = 1.000 [ps], track steps = 0 to 130.
+OPAL-X> * 17:36:45 Step      0 container[0] at 0.000 [um], t= -1530108.203 [ms], E=245.002 [MeV]
+OPAL-X> * 17:36:45 Step      0 container[1] at 0.000 [um], t= -1530108.203 [ms], E=500.345 [keV]
+OPAL-X> * 17:36:45 Step      0 container[2] at 0.000 [um], t= -1530108.203 [ms], E=132.235 [keV]
+ParallelTracker::execute[2]> Approaching end of current step size configuration for container 0 (zstop = 70.000 [mm], path length = 0.000 [um]).
+ParallelTracker::execute[2]> Approaching end of current step size configuration for container 1 (zstop = 70.000 [mm], path length = 0.000 [um]).
+ParallelTracker::execute[2]> Approaching end of current step size configuration for container 2 (zstop = 70.000 [mm], path length = 0.000 [um]).
+ParallelTracker::execute[2]> All active containers reached current zstop. Preparing to switch to next configuration.
+OPAL-X[2]> * Dump phase space of last step
+OPAL-X> * DR_UP gone off
+OPAL-X> * IP1 gone off
+OPAL-X> * DR_DN gone off
+ParallelTracker::execute[2]> Total FieldSolver calls: 1
+OPAL-X> 
+OPAL-X> * Done executing ParallelTracker at 17:36:45
+OPAL-X> 
+OPAL-X> * End of input stream 'gamma_gamma_pairs-3.in'
+Timings> ---------------------------------------------
+Timings>      Timing results for 1 rank(s):
+Timings> ---------------------------------------------
+Timings> mainTimer........... Wall tot =   0.437485
+Timings> 
+Timings> Write Stat.......... Wall max = 0.00242071
+Timings>                      Wall avg = 0.00242071
+Timings>                      Wall min = 0.00242071
+Timings> 
+Timings> Write H5-File....... Wall max = 0.00922004
+Timings>                      Wall avg = 0.00922004
+Timings>                      Wall min = 0.00922004
+Timings> 
+Timings> Initialize.......... Wall max =  0.0645485
+Timings>                      Wall avg =  0.0645485
+Timings>                      Wall min =  0.0645485
+Timings> 
+Timings> Initialize: extra H. Wall max = 0.000972416
+Timings>                      Wall avg = 0.000972416
+Timings>                      Wall min = 0.000972416
+Timings> 
+Timings> Warmup.............. Wall max =  0.0398882
+Timings>                      Wall avg =  0.0398882
+Timings>                      Wall min =  0.0398882
+Timings> 
+Timings> Green Init.......... Wall max =   0.021654
+Timings>                      Wall avg =   0.021654
+Timings>                      Wall min =   0.021654
+Timings> 
+Timings> FFT: Green.......... Wall max =   0.038249
+Timings>                      Wall avg =   0.038249
+Timings>                      Wall min =   0.038249
+Timings> 
+Timings> Solve............... Wall max =   0.231013
+Timings>                      Wall avg =   0.231013
+Timings>                      Wall min =   0.231013
+Timings> 
+Timings> Solve: Physical to . Wall max = 0.000160333
+Timings>                      Wall avg = 0.000160333
+Timings>                      Wall min = 0.000160333
+Timings> 
+Timings> FFT: Rho............ Wall max =  0.0379896
+Timings>                      Wall avg =  0.0379896
+Timings>                      Wall min =  0.0379896
+Timings> 
+Timings> FFT: Convolution.... Wall max =  0.0392069
+Timings>                      Wall avg =  0.0392069
+Timings>                      Wall min =  0.0392069
+Timings> 
+Timings> Solve: Double to ph. Wall max = 0.000152792
+Timings>                      Wall avg = 0.000152792
+Timings>                      Wall min = 0.000152792
+Timings> 
+Timings> Solve: Electric fie. Wall max =    0.12819
+Timings>                      Wall avg =    0.12819
+Timings>                      Wall min =    0.12819
+Timings> 
+Timings> FFT: Efield......... Wall max =   0.117576
+Timings>                      Wall avg =   0.117576
+Timings>                      Wall min =   0.117576
+Timings> 
+Timings> Efield: double to p. Wall max = 0.000556042
+Timings>                      Wall avg = 0.000556042
+Timings>                      Wall min = 0.000556042
+Timings> 
+Timings> samplingTime........ Wall max =   0.018836
+Timings>                      Wall avg =   0.018836
+Timings>                      Wall min =   0.018836
+Timings> 
+Timings> Sampling............ Wall max = 0.00454683
+Timings>                      Wall avg = 0.00454683
+Timings>                      Wall min = 0.00454683
+Timings> 
+Timings> particleBC.......... Wall max = 0.00254404
+Timings>                      Wall avg = 0.00254404
+Timings>                      Wall min = 0.00254404
+Timings> 
+Timings> updateParticle...... Wall max =          0
+Timings>                      Wall avg =          0
+Timings>                      Wall min =          0
+Timings> 
+Timings> computeMoments...... Wall max = 0.00466462
+Timings>                      Wall avg = 0.00466462
+Timings>                      Wall min = 0.00466462
+Timings> 
+Timings> TIntegration1....... Wall max = 0.000676041
+Timings>                      Wall avg = 0.000676041
+Timings>                      Wall min = 0.000676041
+Timings> 
+Timings> TIntegration2....... Wall max =  0.0015895
+Timings>                      Wall avg =  0.0015895
+Timings>                      Wall min =  0.0015895
+Timings> 
+Timings> External field eval. Wall max = 0.000896917
+Timings>                      Wall avg = 0.000896917
+Timings>                      Wall min = 0.000896917
+Timings> 
+Timings> PluginElements...... Wall max =          0
+Timings>                      Wall avg =          0
+Timings>                      Wall min =          0
+Timings> 
+Timings> Binaryrepart........ Wall max =          0
+Timings>                      Wall avg =          0
+Timings>                      Wall min =          0
+Timings> 
+Timings> OrbThreader......... Wall max = 0.00250838
+Timings>                      Wall avg = 0.00250838
+Timings>                      Wall min = 0.00250838
+Timings> 
+Timings> fillHalo............ Wall max =    7.5e-07
+Timings>                      Wall avg =    7.5e-07
+Timings>                      Wall min =    7.5e-07
+Timings> 
+Timings> gather.............. Wall max = 0.00208592
+Timings>                      Wall avg = 0.00208592
+Timings>                      Wall min = 0.00208592
+Timings> 
+Timings> ---------------------------------------------
