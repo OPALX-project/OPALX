@@ -31,7 +31,6 @@
 #include "Random/NormalDistribution.h"
 #include "Random/Randn.h"
 #include "Structure/FieldSolverCmd.h"
-#include "Structure/H5BeamBeamDiagnosticsWriter.h"
 #include "Utilities/OpalException.h"
 
 class DataSink;  ///< Forward declaration; full definition only required in the .cpp translation
@@ -61,7 +60,8 @@ public:
     using BinnedFieldSolver_t = BinnedFieldSolver<T, Dim>;
     using LoadBalancer_t      = LoadBalancer<T, Dim>;
     using Base                = ippl::ParticleBase<
-                           ippl::ParticleSpatialLayout<T, Dim>, Kokkos::DefaultExecutionSpace::memory_space>;
+                           ippl::ParticleSpatialLayout<T, Dim, ippl::UniformCartesian<T, Dim>>,
+                           Kokkos::DefaultExecutionSpace::memory_space>;
 
     using CoordinateSelector_t = typename ParticleBinning::CoordinateSelector<ParticleContainer_t>;
     using GammaSelector_t      = typename ParticleBinning::GammaSelector<ParticleContainer_t>;
@@ -87,13 +87,12 @@ public:
     Vector_t<double, Dim> hr_m;  ///< Mesh spacing (m).
 
     double lbt_m;                    ///< Load-balancer timescale parameter.
-    bool isFirstRepartition_m;       ///< True until the first ORB-style repartition completes.
     ippl::NDIndex<Dim> domain_m;     ///< Global mesh index extent per dimension.
     std::array<bool, Dim> decomp_m;  ///< Domain decomposition flags (per axis).
 
 private:
     std::vector<bool> pcActive_m;   ///< Per-container: participate in this track segment.
-    std::vector<bool> pcAtZStop_m;  ///< Per-container: frozen at current z-stop until next segment.
+    std::vector<bool> pcAtSStop_m;  ///< Per-container: frozen at current s-stop until next segment.
     std::vector<std::string> particleNames_m;  ///< Per-container beam particle names.
 
     std::vector<double> qi_m;  ///< Charge per macroparticle [C], one entry per container.
@@ -110,11 +109,6 @@ private:
     DataSink* dataSink_m;                      ///< Borrowed diagnostics and dump output sink.
 
     double t_m;  ///< Current simulation time (s).
-
-    /** Scratch E field for binned accumulation (same layout as mesh E). */
-    std::shared_ptr<VField_t<T, Dim>> Etmp_m;
-    /** Scratch B field for binned accumulation (same layout as mesh B). */
-    std::shared_ptr<VField_t<T, Dim>> Btmp_m;
 
     long long globalTrackStep_m;  ///< Global integration step counter.
 
@@ -133,30 +127,19 @@ public:
         Vector_t<double, Dim> rmin;
         Vector_t<double, Dim> rmax;
         Vector_t<double, Dim> hr;
-
         Vector_t<double, Dim> partrmin;
         Vector_t<double, Dim> partrmax;
     };
 
     SavedFieldDomainState saveFieldDomainState() const;
     void restoreFieldDomainState(const SavedFieldDomainState& state);
-    /**
-     * @brief Replace the active field mesh by the fixed BeamBeam interaction-window mesh.
-     *
-     * The longitudinal domain is always fixed around the interaction point,
-     * @f$z \in [z_\mathrm{IP}-L/2, z_\mathrm{IP}+L/2]@f$.  If explicit
-     * BeamBeam apertures are provided, the transverse domain is also fixed to
-     * @f$x \in [-a_x,a_x]@f$ and @f$y \in [-a_y,a_y]@f$; otherwise the current
-     * transverse field bounds are preserved for backward compatibility.
-     */
+
+    /** @brief Replace the active field mesh by a fixed BeamBeam interaction window. */
     void enableBeamBeamWindowMesh(
             double interactionPointLocalZ, double beamBeamWindowLength,
             std::optional<double> xAperture = std::nullopt,
             std::optional<double> yAperture = std::nullopt);
 
-    /**
-     * @brief Bunch-side geometry and model switches for the active BeamBeam window.
-     */
     struct BeamBeamWindowConfig {
         double beamBeamWindowLength = 0.0;
         double interactionPointS    = 0.0;
@@ -178,7 +161,6 @@ private:
     std::optional<BeamBeamWindowConfig> beamBeamWindowConfig_m;
     std::optional<BeamBeamWindowVisualizationTail> beamBeamWindowVisualizationTail_m;
     bool beamBeamWindowParticleLayoutInitialized_m = false;
-    std::unique_ptr<H5BeamBeamDiagnosticsWriter> beamBeamDiagnosticsWriter_m;
     double lastDepositedChargeBeforeBackground_m    = 0.0;
     bool lastDepositedChargeBeforeBackgroundValid_m = false;
 
@@ -241,12 +223,23 @@ public:
     void applyGridUpdate(const Vector_t<double, Dim>& lower, const Vector_t<double, Dim>& upper);
 
     /**
+     * @brief Enable or disable old-OPAL emitting-beam longitudinal mesh stretching.
+     *
+     * Thin wrapper around @c BunchStateHandler::setEmissionMeshProgress. The stretch is used only
+     * for @c bunchUpdate calls where @c active is true.
+     *
+     * @param active Whether the emitting-beam mesh stretch is active.
+     * @param emittedFraction Fraction of the source inventory already emitted.
+     */
+    void setEmissionMeshProgress(bool active, double emittedFraction);
+
+    /**
      * @brief Reinitialize the z dimension of the field grid to `nrZ` cells.
      *
-     * Rebuilds the FieldLayout, all field arrays, the accumulation buffers, and the
-     * IPPL Poisson solver to match the new z extent. A no-op if `nrZ` equals the
-     * current z cell count. Called from `bunchUpdate` to double the z resolution
-     * while image charges are active.
+     * Rebuilds the FieldLayout, refreshes all OPALX-owned fields and accumulation buffers, and
+     * refreshes layout-dependent IPPL solver scratch to match the new z extent. A no-op if `nrZ`
+     * equals the current z cell count. Called from `bunchUpdate` to double the z resolution while
+     * image charges are active.
      *
      * @param nrZ Target number of z grid cells.
      */
@@ -324,7 +317,7 @@ public:
         }
     }
 
-    /// @brief Force container @p i inactive without marking it as stopped at the segment z-stop.
+    /// @brief Force container @p i inactive (used after BeamBeam source retirement).
     void setPcInactive(size_t i) {
         if (i < pcActive_m.size()) {
             pcActive_m[i] = false;
@@ -332,13 +325,13 @@ public:
     }
 
     /// @param i Container index.
-    /// @return Whether container @p i is frozen at the current z-stop.
-    bool pcAtZStop(size_t i) const { return i < pcAtZStop_m.size() && pcAtZStop_m[i]; }
+    /// @return Whether container @p i is frozen at the current s-stop.
+    bool pcAtSStop(size_t i) const { return i < pcAtSStop_m.size() && pcAtSStop_m[i]; }
 
-    /// @brief Deactivate container @p i until the next step-size segment (z-stop reached).
-    void setPcAtZStop(size_t i);
+    /// @brief Deactivate container @p i until the next step-size segment (s-stop reached).
+    void setPcAtSStop(size_t i);
 
-    /// @brief After emission: reactivate non-empty containers not marked at z-stop.
+    /// @brief After emission: reactivate non-empty containers not marked at s-stop.
     void refreshPcActiveAfterEmit();
 
     /// @return True if any container is active.
@@ -373,16 +366,30 @@ public:
     }
 
     /// @brief Scratch E field used by the binned solver path.
-    std::shared_ptr<VField_t<T, Dim>> getTempEField() { return this->Etmp_m; }
+    std::shared_ptr<VField_t<T, Dim>> getTempEField() {
+        return this->fcontainer_m ? this->fcontainer_m->getTempEField() : nullptr;
+    }
 
     /// @param Etmp Scratch E field matching the mesh layout.
-    void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) { this->Etmp_m = Etmp; }
+    void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) {
+        if (!this->fcontainer_m) {
+            throw OpalException("PartBunch::setTempEField", "FieldContainer is not initialized.");
+        }
+        this->fcontainer_m->setTempEField(Etmp);
+    }
 
     /// @brief Scratch B field used by the binned solver path.
-    std::shared_ptr<VField_t<T, Dim>> getTempBField() { return this->Btmp_m; }
+    std::shared_ptr<VField_t<T, Dim>> getTempBField() {
+        return this->fcontainer_m ? this->fcontainer_m->getTempBField() : nullptr;
+    }
 
     /// @param Btmp Scratch B field matching the mesh layout.
-    void setTempBField(std::shared_ptr<VField_t<T, Dim>> Btmp) { this->Btmp_m = Btmp; }
+    void setTempBField(std::shared_ptr<VField_t<T, Dim>> Btmp) {
+        if (!this->fcontainer_m) {
+            throw OpalException("PartBunch::setTempBField", "FieldContainer is not initialized.");
+        }
+        this->fcontainer_m->setTempBField(Btmp);
+    }
 
     /// @brief Non-const access to adaptive binning state.
     std::shared_ptr<AdaptBins_t> getBins() { return bins_m; }
@@ -612,13 +619,9 @@ public:
             double beamBeamWindowLength, double interactionPointS, double windowBeginS,
             double windowEndS, bool copyModel, std::optional<double> xAperture = std::nullopt,
             std::optional<double> yAperture = std::nullopt) {
-        beamBeamWindowConfig_m                    = BeamBeamWindowConfig{beamBeamWindowLength,
-                                                      interactionPointS,
-                                                      windowBeginS,
-                                                      windowEndS,
-                                                      copyModel,
-                                                      xAperture,
-                                                      yAperture};
+        beamBeamWindowConfig_m = BeamBeamWindowConfig{
+                beamBeamWindowLength, interactionPointS, windowBeginS, windowEndS, copyModel,
+                xAperture, yAperture};
         beamBeamWindowParticleLayoutInitialized_m = false;
     }
 
@@ -629,12 +632,14 @@ public:
 
     bool hasBeamBeamWindowConfig() const { return beamBeamWindowConfig_m.has_value(); }
 
-    const BeamBeamWindowConfig& getBeamBeamWindowConfig() const { return *beamBeamWindowConfig_m; }
+    const BeamBeamWindowConfig& getBeamBeamWindowConfig() const {
+        return *beamBeamWindowConfig_m;
+    }
 
     void setBeamBeamWindowVisualizationTail(
             double interactionPointS, double windowBeginS, double windowEndS, int steps) {
-        beamBeamWindowVisualizationTail_m =
-                BeamBeamWindowVisualizationTail{interactionPointS, windowBeginS, windowEndS, steps};
+        beamBeamWindowVisualizationTail_m = BeamBeamWindowVisualizationTail{
+                interactionPointS, windowBeginS, windowEndS, steps};
     }
 
     void clearBeamBeamWindowVisualizationTail() { beamBeamWindowVisualizationTail_m.reset(); }
@@ -665,7 +670,7 @@ public:
     std::vector<std::string> buildScalarDumpHeaders(
             const std::string& snapshotKind, const std::string& coordinateFrame = "beam_local",
             const std::optional<BeamBeamWindowConfig>& geometryOverride = std::nullopt,
-            std::optional<bool> activeOverride                          = std::nullopt) const;
+            std::optional<bool> activeOverride = std::nullopt) const;
 
     void setPhysicalBounds(const Vector_t<double, Dim>& rmin, const Vector_t<double, Dim>& rmax) {
         rmin_m = rmin;

@@ -15,12 +15,11 @@
 #include <cmath>
 
 VerticalFFAMagnet::VerticalFFAMagnet(const std::string& name)
-    : Component(name), straightGeometry_m(1.) {}
+    : ElementBase(name), straightGeometry_m(Geometry::makeStraight(1.)) {}
 
 VerticalFFAMagnet::VerticalFFAMagnet(const VerticalFFAMagnet& right)
-    : Component(right),
+    : ElementBase(right),
       straightGeometry_m(right.straightGeometry_m),
-      dummy(right.dummy),
       maxOrder_m(right.maxOrder_m),
       k_m(right.k_m),
       Bz_m(right.Bz_m),
@@ -41,26 +40,21 @@ ElementBase* VerticalFFAMagnet::clone() const {
     return magnet;
 }
 
-EMField& VerticalFFAMagnet::getField() { return dummy; }
-
-const EMField& VerticalFFAMagnet::getField() const { return dummy; }
-
 void VerticalFFAMagnet::initialise() {
     calculateDfCoefficients();
     straightGeometry_m.setElementLength(bbLength_m);  // length = phi r
 }
 
-void VerticalFFAMagnet::initialise(
-        PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
+void VerticalFFAMagnet::initialise(PartBunch_t* bunch) {
     RefPartBunch_m = bunch;
     initialise();
 }
 
 void VerticalFFAMagnet::finalise() { RefPartBunch_m = nullptr; }
 
-BGeometryBase& VerticalFFAMagnet::getGeometry() { return straightGeometry_m; }
+Geometry& VerticalFFAMagnet::getGeometry() { return straightGeometry_m; }
 
-const BGeometryBase& VerticalFFAMagnet::getGeometry() const { return straightGeometry_m; }
+const Geometry& VerticalFFAMagnet::getGeometry() const { return straightGeometry_m; }
 
 void VerticalFFAMagnet::accept(BeamlineVisitor& visitor) const {
     visitor.visitVerticalFFAMagnet(*this);

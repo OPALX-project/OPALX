@@ -19,8 +19,7 @@
 #define OPALX_TravelingWaveRep_HH
 
 #include "AbsBeamline/TravelingWave.h"
-#include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/AcceleratingField.h"
+#include "BeamlineGeometry/Geometry.h"
 
 class TravelingWaveRep : public TravelingWave {
 public:
@@ -41,23 +40,15 @@ public:
     //  If the attribute does not exist, it returns nullptr.
     virtual Channel* getChannel(const std::string& aKey, bool = false);
 
-    /// Get field.
-    //  Version for non-constant object.
-    virtual AcceleratingField& getField();
-
-    /// Get field.
-    //  Version for constant object.
-    virtual const AcceleratingField& getField() const;
-
     /// Get geometry.
     //  Return the element geometry.
     //  Version for non-constant object.
-    virtual StraightGeometry& getGeometry();
+    virtual Geometry& getGeometry();
 
     /// Get geometry.
     //  Return the element geometry
     //  Version for constant object.
-    virtual const StraightGeometry& getGeometry() const;
+    virtual const Geometry& getGeometry() const;
 
     /// Get amplitude.
     //  Return the RF amplitude in Volts.
@@ -92,10 +83,7 @@ private:
     void operator=(const TravelingWaveRep&);
 
     /// The cavity's geometry.
-    StraightGeometry geometry;
-
-    /// The cavity's field.
-    AcceleratingField field;
+    Geometry geometry;
 
     /// Cavities are ignored (amplitude = 0) when this switch is set.
     static bool ignoreCavities;

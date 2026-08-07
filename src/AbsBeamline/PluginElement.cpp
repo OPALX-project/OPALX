@@ -28,19 +28,17 @@
 
 PluginElement::PluginElement() : PluginElement("") {}
 
-PluginElement::PluginElement(const std::string& name) : Component(name) {
+PluginElement::PluginElement(const std::string& name) : ElementBase(name) {
     setDimensions(0.0, 0.0, 0.0, 0.0);
 }
 
-PluginElement::PluginElement(const PluginElement& right) : Component(right) {
+PluginElement::PluginElement(const PluginElement& right) : ElementBase(right) {
     setDimensions(right.xstart_m, right.xend_m, right.ystart_m, right.yend_m);
 }
 
 PluginElement::~PluginElement() {
     if (online_m) goOffline();
 }
-
-void PluginElement::initialise(PartBunch_t* bunch, double&, double&) { initialise(bunch); }
 
 void PluginElement::initialise(PartBunch_t* bunch) {
     RefPartBunch_m = bunch;
@@ -62,20 +60,12 @@ void PluginElement::goOffline() {
     online_m = false;
 }
 
-bool PluginElement::bends() const { return false; }
+void PluginElement::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {}
 
-bool PluginElement::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) { return false; }
-
-bool PluginElement::apply(
-        const size_t& /*i*/, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&) {
-    return false;
-}
-
-bool PluginElement::apply(
+void PluginElement::apply(
         const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
     *gmsg << "passed R, P, t, E, B arguments not used in PluginElement::apply" << endl;
-    return false;
 }
 
 bool PluginElement::applyToReferenceParticle(
@@ -199,9 +189,13 @@ bool PluginElement::check(
     return flag;
 }
 
-void PluginElement::getFieldExtend(double& zBegin, double& zEnd) const {
+void PluginElement::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = -0.005;
     zEnd   = 0.005;
+}
+
+bool PluginElement::isInside(const Vector_t<double, 3>& r) const {
+    return r(2) >= 0.0 && r(2) < getGeometry().getElementLength() && isInsideTransverse(r);
 }
 
 int PluginElement::checkPoint(const double& x, const double& y) const {

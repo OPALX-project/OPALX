@@ -1,0 +1,5 @@
+include:
+  # CPU
+  - local: "ci/cscs/openmp/build_openmp.yml"
+  - local: "ci/cscs/openmp/run_openmp.yml"
+  - local: "ci/cscs/openmp/regression_openmp.yml"

@@ -25,10 +25,9 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/EndFieldModel/EndFieldModel.h"
-#include "BeamlineGeometry/PlanarArcGeometry.h"
-#include "Fields/BMultipoleField.h"
+#include "BeamlineGeometry/Geometry.h"
 
 #ifndef ABSBEAMLINE_ScalingFFAMagnet_H
 #define ABSBEAMLINE_ScalingFFAMagnet_H
@@ -44,7 +43,7 @@
  *  placement.
  */
 
-class ScalingFFAMagnet : public Component {
+class ScalingFFAMagnet : public ElementBase {
 public:
     /** Construct a new ScalingFFAMagnet
      *
@@ -65,12 +64,8 @@ public:
      *  \param t time at which the field is to be calculated
      *  \param E calculated electric field - always 0 (no E-field)
      *  \param B calculated magnetic field
-     *  \returns true if particle is outside the field map
      */
-    bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
-
-    bool apply(const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B)
-            override;
+    void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     /** Calculate the field at some arbitrary position
      *
@@ -79,9 +74,8 @@ public:
      *  \param t not used
      *  \param E not used
      *  \param B calculated magnetic field
-     *  \returns true if particle is outside the field map, else false
      */
-    bool apply(
+    void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
@@ -109,7 +103,7 @@ public:
      *  \param startField not used
      *  \param endField not used
      */
-    void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    void initialise(PartBunch_t* bunch) override;
 
     /** Initialise the ScalingFFAMagnet
      *
@@ -121,23 +115,14 @@ public:
     /** Finalise the ScalingFFAMagnet - sets bunch to nullptr */
     void finalise() override;
 
-    /** Return true - ScalingFFAMagnet always bends the reference particle */
-    inline bool bends() const override;
-
     /** Not implemented */
-    void getFieldExtend(double& /*zBegin*/, double& /*zEnd*/) const override {}
+    void getFieldExtent(double& /*zBegin*/, double& /*zEnd*/) const override {}
 
     /** Return the cell geometry */
-    BGeometryBase& getGeometry() override;
+    Geometry& getGeometry() override;
 
     /** Return the cell geometry */
-    const BGeometryBase& getGeometry() const override;
-
-    /** Return a dummy (0.) field value (what is this for?) */
-    EMField& getField() override;
-
-    /** Return a dummy (0.) field value (what is this for?) */
-    const EMField& getField() const override;
+    const Geometry& getGeometry() const override;
 
     /** Accept a beamline visitor */
     void accept(BeamlineVisitor& visitor) const override;
@@ -277,8 +262,7 @@ private:
     ScalingFFAMagnet(const ScalingFFAMagnet& right);
 
     ScalingFFAMagnet& operator=(const ScalingFFAMagnet& rhs);
-    PlanarArcGeometry planarArcGeometry_m;
-    BMultipoleField dummy;
+    Geometry planarArcGeometry_m{Geometry::makeSBend(1., 1.)};
 
     size_t maxOrder_m        = 0;
     double tanDelta_m        = 0.;

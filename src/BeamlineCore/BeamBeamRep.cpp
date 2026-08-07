@@ -25,11 +25,10 @@ namespace {
         void (BeamBeamRep::*set)(double);
     };
 
-    const Entry entries[] = {
-            {"L", &BeamBeamRep::getElementLength, &BeamBeamRep::setElementLength}, {0, 0, 0}};
+    const Entry entries[] = {{0, 0, 0}};
 }  // namespace
 
-BeamBeamRep::BeamBeamRep() : BeamBeam(), geometry(0.0) {}
+BeamBeamRep::BeamBeamRep() : BeamBeam(), geometry() {}
 
 BeamBeamRep::BeamBeamRep(const BeamBeamRep& right) : BeamBeam(right), geometry(right.geometry) {}
 
@@ -49,10 +48,6 @@ Channel* BeamBeamRep::getChannel(const std::string& aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
-NullField& BeamBeamRep::getField() { return field; }
+Geometry& BeamBeamRep::getGeometry() { return geometry; }
 
-const NullField& BeamBeamRep::getField() const { return field; }
-
-StraightGeometry& BeamBeamRep::getGeometry() { return geometry; }
-
-const StraightGeometry& BeamBeamRep::getGeometry() const { return geometry; }
+const Geometry& BeamBeamRep::getGeometry() const { return geometry; }

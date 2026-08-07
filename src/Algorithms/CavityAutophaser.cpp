@@ -38,10 +38,10 @@
 
 extern Inform* gmsg;
 
-CavityAutophaser::CavityAutophaser(const PartData& ref, std::shared_ptr<Component> cavity)
+CavityAutophaser::CavityAutophaser(const PartData& ref, std::shared_ptr<ElementBase> cavity)
     : itsReference_m(ref), itsCavity_m(cavity) {
     double zbegin = 0.0, zend = 0.0;
-    cavity->getFieldExtend(zbegin, zend);
+    cavity->getFieldExtent(zbegin, zend);
     initialR_m = Vector_t<double, 3>(0, 0, zbegin);
 }
 
@@ -106,7 +106,7 @@ double CavityAutophaser::getPhaseAtMaxEnergy(
         }
 
         if (designEnergy > 0.0) {
-            const double length = itsCavity_m->getElementLength();
+            const double length = itsCavity_m->getGeometry().getElementLength();
             if (length <= 0.0) {
                 throw OpalException(
                         "CavityAutophaser::getPhaseAtMaxEnergy()",
@@ -152,7 +152,7 @@ double CavityAutophaser::getPhaseAtMaxEnergy(
 
         newPhase = std::fmod(newPhase + basePhase, Physics::two_pi);
 
-        if (!opal->isOptimizerRun()) {
+        if (!opal->isOptimizerRun() && ippl::Comm->rank() == 0) {
             std::string fname = Util::combineFilePath(
                     {opal->getAuxiliaryOutputDirectory(), itsCavity_m->getName() + "_AP.dat"});
             std::ofstream out(fname);

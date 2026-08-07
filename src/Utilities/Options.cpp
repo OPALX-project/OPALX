@@ -44,6 +44,8 @@ namespace Options {
 
     int stepInfoFreq = 1;
 
+    int printRankDistrFreq = 0;
+
     bool psDumpEachTurn = false;
 
     DumpFrame psDumpFrame = DumpFrame::GLOBAL;
@@ -67,6 +69,8 @@ namespace Options {
     bool rhoDump = false;
 
     bool ebDump = false;
+
+    bool rankDump = false;
 
     bool csrDump = false;
 
@@ -111,5 +115,7 @@ namespace Options {
     bool useQMAttributes = false;  // corresponds to QM_MODE=SINGLE
 
     bool aggressiveStateSync = false;
+
+    double loadBalancingThreshold = 0.05;  // Default threshold for triggering load balancing
 
 }  // namespace Options

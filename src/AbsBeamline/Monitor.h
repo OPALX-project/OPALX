@@ -18,8 +18,7 @@
 #ifndef OPALX_Monitor_HH
 #define OPALX_Monitor_HH
 
-#include "AbsBeamline/Component.h"
-#include "BeamlineGeometry/StraightGeometry.h"
+#include "AbsBeamline/ElementBase.h"
 #include "PartBunch/PartBunch.h"
 #include "Structure/LossDataSink.h"
 
@@ -30,7 +29,7 @@
 
 class BeamlineVisitor;
 
-class Monitor : public Component {
+class Monitor : public ElementBase {
 public:
     /// Plane selection.
     enum Plane {
@@ -54,22 +53,12 @@ public:
     /// Apply visitor to Monitor.
     void accept(BeamlineVisitor&) const override;
 
-    /// Get geometry.
-    virtual StraightGeometry& getGeometry() override = 0;
-
-    /// Get geometry. Version for const object.
-    virtual const StraightGeometry& getGeometry() const override = 0;
-
     /// Get plane on which monitor observes.
     virtual Plane getPlane() const = 0;
 
-    virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
-    virtual bool apply(
-            const size_t& i, const double& t, Vector_t<double, 3>& E,
-            Vector_t<double, 3>& B) override;
-
-    virtual bool apply(
+    virtual void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
@@ -77,11 +66,9 @@ public:
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    virtual void initialise(PartBunch_t* bunch) override;
 
     virtual void finalise() override;
-
-    virtual bool bends() const override;
 
     virtual void goOnline(const double& kineticEnergy) override;
 
@@ -89,7 +76,7 @@ public:
 
     virtual ElementType getType() const override;
 
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     void setCollectionType(CollectionType type);
 
@@ -120,7 +107,7 @@ inline void Monitor::setCollectionType(CollectionType type) { type_m = type; }
 inline int Monitor::getRequiredNumberOfTimeSteps() const { return 1; }
 
 inline bool Monitor::isInside(const Vector_t<double, 3>& r) const {
-    const double length = getElementLength();
+    const double length = getGeometry().getElementLength();
     return std::abs(r(2)) <= 0.5 * length && isInsideTransverse(r);
 }
 

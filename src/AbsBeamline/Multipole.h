@@ -1,9 +1,7 @@
 #ifndef OPALX_Multipole_HH
 #define OPALX_Multipole_HH
 
-#include "AbsBeamline/Component.h"
-#include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/BMultipoleField.h"
+#include "AbsBeamline/ElementBase.h"
 
 class Fieldmap;
 constexpr int MAX_MP_ORDER = 5;
@@ -27,7 +25,7 @@ constexpr int MAX_MP_ORDER = 5;
  * Units for multipole strengths are Teslas / m^(n-1).
  */
 
-class Multipole : public Component {
+class Multipole : public ElementBase {
 public:
     /* ============================== Constructors ============================== */
     explicit Multipole(const std::string& name);
@@ -65,24 +63,8 @@ public:
     /* ============================== Apply Functions =========================== */
     /**
      * @brief Apply to all particles. Kernel launch moved inside the function.
-     *
-     * @returns true if particle is out-of-bounds (lost), false otherwise
      */
-    virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
-
-    /**
-     * @brief Apply to particle i
-     *
-     * @param i Particle index
-     * @param t Time
-     * @param E Electric Field
-     * @param B Magnetic Field
-     *
-     * @returns true if particle is out-of-bounds (lost), false otherwise
-     */
-    virtual bool apply(
-            const size_t& i, const double& t, Vector_t<double, 3>& E,
-            Vector_t<double, 3>& B) override;
+    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     /**
      * @brief Apply to particle with position R and momentum P
@@ -92,10 +74,8 @@ public:
      * @param t Time
      * @param E Electric Field
      * @param B Magnetic Field
-     *
-     * @returns true if particle is out-of-bounds (lost), false otherwise
      */
-    virtual bool apply(
+    virtual void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
@@ -118,12 +98,6 @@ public:
     // @brief Apply visitor to Multipole.
     virtual void accept(BeamlineVisitor&) const override;
 
-    // @brief Get multipole field.
-    virtual BMultipoleField& getField() override = 0;
-
-    // @breif Get multipole field. Version for const object.
-    virtual const BMultipoleField& getField() const override = 0;
-
     // @returns Is the n-th component focusing?
     bool isFocusing(int n) const;
 
@@ -134,25 +108,15 @@ public:
      * @param startField Where the fields start along the path
      * @param endFied Where the fields end along the path
      */
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    virtual void initialise(PartBunch_t* bunch) override;
 
     virtual void finalise() override;
 
-    virtual bool bends() const override;
-
     virtual ElementType getType() const override;
 
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
-    virtual bool isInside(const Vector_t<double, 3>& r) const override;
     /* ========================================================================== */
-    /* =========================== Unused Functions ============================= */
-    // @returns StraightGeometry
-    virtual StraightGeometry& getGeometry() override = 0;
-
-    // @returns StraightGeometry
-    virtual const StraightGeometry& getGeometry() const override = 0;
-
     // @brief Set number of slices for map tracking
     void setNSlices(const std::size_t& nSlices);
 

@@ -1,5 +1,6 @@
 #include "PartBunch/FieldSolver.hpp"
 
+#include <array>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
@@ -10,11 +11,28 @@
 #include "Physics/Physics.h"
 #include "Structure/H5BeamBeamDiagnosticsWriter.h"
 #include "Utilities/Options.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
 
 extern Inform* gmsg;
 
 namespace {
+
+    int mapOpenSolverGreensFunction(const std::string& greensFunction) {
+        const std::string value = Util::toUpper(greensFunction);
+        if (value == "STANDARD") {
+            return OpenSolver_t<double, 3>::STANDARD;
+        }
+        if (value == "INTEGRATED") {
+            return OpenSolver_t<double, 3>::INTEGRATED;
+        }
+
+        throw OpalException(
+                "FieldSolver::initOpenSolver",
+                "Unknown GREENSF value \"" + greensFunction
+                        + "\". Supported values are STANDARD and INTEGRATED.");
+    }
+
     std::string trim(std::string value) {
         const auto first = value.find_first_not_of(" \t");
         if (first == std::string::npos) {
@@ -134,16 +152,13 @@ namespace {
                 meta.fieldStage = value;
             }
         }
-
         return meta;
     }
 
     std::string h5FieldName(const std::string& what, const std::string& tag) {
-        if (!tag.empty()) {
-            return tag;
-        }
-        return Util::toUpper(what);
+        return tag.empty() ? Util::toUpper(what) : tag;
     }
+
 }  // namespace
 
 template <>
@@ -197,8 +212,8 @@ void FieldSolver<double, 3>::dumpVectField(
 
     //    std::variant<Field_t<3>*, VField_t<double, 3>* > field;
 
-    if (ippl::Comm->size() > 1) {
-        m << level5 << "Skipping vector field dump for multiple ranks." << endl;
+    if (ippl::Comm->size() > 1 || (tag.empty() && call_counter_m < 2)) {
+        m << level5 << "Skipping vector field dump for multiple ranks or first call." << endl;
         return;
     }
 
@@ -236,8 +251,8 @@ void FieldSolver<double, 3>::dumpVectField(
         const auto meta = makeH5Metadata(*field, extraHeaderLines);
         H5BeamBeamDiagnosticsWriter::writeVectorQuantity(
                 filename, h5FieldName(what, tag), meta, *field);
-        m << level5 << "*** FINISHED DUMPING " + Util::toUpper(what) << " FIELD *** to " << filename
-          << endl;
+        m << level5 << "*** FINISHED DUMPING " + Util::toUpper(what) << " FIELD *** to "
+          << filename << endl;
         return;
     }
 
@@ -268,11 +283,9 @@ void FieldSolver<double, 3>::dumpVectField(
     fout << "# " << Util::toUpper(what) << " " << type << " data on grid" << std::endl
          << "# origin= " << std::fixed << origin << " h= " << std::fixed << spacing
          << " nghosts=" << nghost << std::endl;
-
     for (const std::string& headerLine : extraHeaderLines) {
         fout << "# " << headerLine << std::endl;
     }
-
     fout << "#" << std::setw(4) << "i" << std::setw(5) << "j" << std::setw(5) << "k"
          << std::setw(17) << "x [m]" << std::setw(17) << "y [m]" << std::setw(17) << "z [m]";
 
@@ -359,8 +372,8 @@ void FieldSolver<double, 3>::dumpScalField(
         const auto meta = makeH5Metadata(*field, extraHeaderLines);
         H5BeamBeamDiagnosticsWriter::writeScalarQuantity(
                 filename, h5FieldName(what, tag), meta, *field);
-        m << level5 << "*** FINISHED DUMPING " + Util::toUpper(what) << " FIELD *** to " << filename
-          << endl;
+        m << level5 << "*** FINISHED DUMPING " + Util::toUpper(what) << " FIELD *** to "
+          << filename << endl;
         return;
     }
 
@@ -393,11 +406,9 @@ void FieldSolver<double, 3>::dumpScalField(
     fout << "# " << Util::toUpper(what) << " " << type << " data on grid" << std::endl
          << "# origin= " << std::fixed << origin << " h= " << std::fixed << spacing
          << " nghosts=" << nghost << std::endl;
-
     for (const std::string& headerLine : extraHeaderLines) {
         fout << "# " << headerLine << std::endl;
     }
-
     fout << "#" << std::setw(4) << "i" << std::setw(5) << "j" << std::setw(5) << "k"
          << std::setw(17) << "x [m]" << std::setw(17) << "y [m]" << std::setw(17) << "z [m]";
 
@@ -458,6 +469,7 @@ void FieldSolver<double, 3>::initOpenSolver() {
     sp.add("comm", ippl::p2p_pl);
     sp.add("r2c_direction", 0);
     sp.add("algorithm", OpenSolver_t<double, 3>::HOCKNEY);
+    sp.add("greens_function", mapOpenSolverGreensFunction(greensFunction_m));
     initSolverWithParams<OpenSolver_t<double, 3>>(sp);
 }
 
@@ -481,6 +493,28 @@ void FieldSolver<double, 3>::initFFTSolver() {
                 "FieldSolver<double,3>::initFFTSolver",
                 "FFTSolver_t is only implemented for 2D and 3D fields.");
     }
+}
+
+template <>
+void FieldSolver<double, 3>::initP3MSolver() {
+    if (p3mCutoff_m <= 0.0) {
+        throw OpalException(
+                "FieldSolver::initP3MSolver", "The P3M cutoff radius must be greater than zero.");
+    }
+
+    ippl::ParameterList sp;
+    sp.add("output_type", FFTTruncatedGreenSolver_t<double, 3>::GRAD);
+    sp.add("use_heffte_defaults", false);
+    sp.add("use_pencils", true);
+    sp.add("use_reorder", false);
+    sp.add("use_gpu_aware", true);
+    sp.add("comm", ippl::p2p_pl);
+    sp.add("r2c_direction", 0);
+    sp.add("alpha", getP3MAlpha());
+    // rho already carries 1/epsilon_0; the sign matches OPALX's gathered electric field.
+    sp.add("force_constant", -1.0 / (4.0 * Physics::pi));
+    sp.add("regularization_cutoff", 1.0e-9);  // standard PP regularization length
+    initSolverWithParams<FFTTruncatedGreenSolver_t<double, 3>>(sp);
 }
 
 template <>
@@ -510,6 +544,8 @@ void FieldSolver<double, 3>::initSolver() {
     Inform m;
     if (this->getStype() == "FFT") {
         initFFTSolver();
+    } else if (this->getStype() == "P3M") {
+        initP3MSolver();
     } else if (this->getStype() == "OPEN") {
         initOpenSolver();
     } else if (this->getStype() == "CG") {
@@ -519,6 +555,51 @@ void FieldSolver<double, 3>::initSolver() {
     } else {
         throw OpalException(
                 "FieldSolver::initSolver",
+                "No known solver matches the argument: " + this->getStype());
+    }
+}
+
+template <>
+void FieldSolver<double, 3>::refreshAfterFieldLayoutChange() {
+    Inform m("FieldSolver::refreshAfterFieldLayoutChange");
+    m << level4
+      << "Refreshing existing solver backend for field layout change: " << this->getStype() << endl;
+
+    if (!rho_m || !E_m) {
+        throw OpalException(
+                "FieldSolver::refreshAfterFieldLayoutChange",
+                "rho/E field pointers must be assigned before refreshing the solver.");
+    }
+
+    if (this->getStype() == "CG") {
+        if (!phi_m) {
+            throw OpalException(
+                    "FieldSolver::refreshAfterFieldLayoutChange",
+                    "phi field pointer must be assigned before refreshing the CG solver.");
+        }
+        auto& solver = std::get<CGSolver_t<double, 3>>(this->getSolver());
+        solver.setRhs(*rho_m);
+        solver.setLhs(*phi_m);
+        solver.setGradient(*E_m);
+    } else if (this->getStype() == "FFT") {
+        auto& solver = std::get<FFTSolver_t<double, 3>>(this->getSolver());
+        solver.setRhs(*rho_m);
+        solver.setLhs(*E_m);
+    } else if (this->getStype() == "P3M") {
+        auto& solver = std::get<FFTTruncatedGreenSolver_t<double, 3>>(this->getSolver());
+        solver.setRhs(*rho_m);
+        solver.setLhs(*E_m);
+    } else if (this->getStype() == "OPEN") {
+        auto& solver = std::get<OpenSolver_t<double, 3>>(this->getSolver());
+        solver.setRhs(*rho_m);
+        solver.setLhs(*E_m);
+    } else if (this->getStype() == "NONE") {
+        auto& solver = std::get<NullSolver_t<double, 3>>(this->getSolver());
+        solver.setRhs(*rho_m);
+        solver.setLhs(*E_m);
+    } else {
+        throw OpalException(
+                "FieldSolver::refreshAfterFieldLayoutChange",
                 "No known solver matches the argument: " + this->getStype());
     }
 }
@@ -672,7 +753,7 @@ double FieldSolver<double, 3>::getCouplingConstant() const {
 
     /// \todo Verify this before activating a new solver!
     const std::string stype = this->getStype();
-    if (stype == "OPEN") {
+    if (stype == "OPEN" || stype == "P3M") {
         return 1.0 / Physics::epsilon_0;
     } else if (stype == "FFT") {
         return 1.0 / Physics::epsilon_0;
@@ -706,25 +787,3 @@ void FieldSolver<double, 3>::setPotentialBCs() {
     // rho_m->setFieldBC(bc_container);
     m << level4 << "Potential BCs in FieldSolver updated using BCHandler." << endl;
 }
-
-/*
-/// \todo to be implemented...
-template<>
-void FieldSolver<double,3>::initP3MSolver() {
-    //        if constexpr (Dim == 3) {
-    ippl::ParameterList sp;
-    sp.add("output_type", P3MSolver_t<double, 3>::GRAD);
-    sp.add("use_heffte_defaults", false);
-    sp.add("use_pencils", true);
-    sp.add("use_reorder", false);
-    sp.add("use_gpu_aware", true);
-    sp.add("comm", ippl::p2p_pl);
-    sp.add("r2c_direction", 0);
-
-    initSolverWithParams<P3MSolver_t<double, 3>>(sp);
-    //  } else {
-    // throw std::runtime_error("Unsupported dimensionality for P3M solver");
-    // }
-}
-
-*/

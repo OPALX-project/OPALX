@@ -70,10 +70,7 @@ void OpalMultipole::update() {
     // Get pointer to MultipoleRep object to set length
     MultipoleRep* mult = dynamic_cast<MultipoleRep*>(getElement());
     double length      = getLength();
-    mult->setElementLength(length);
-
-    // Multipole field for MultipoleRep
-    BMultipoleField field;
+    mult->getGeometry().setElementLength(length);
 
     // Get the vector with the multipole expansion components
     const std::vector<double> norm = Attributes::getRealArray(itsAttr[KN]);
@@ -87,23 +84,23 @@ void OpalMultipole::update() {
     normErrors.resize(normSize, 0.0);
     skewErrors.resize(skewSize, 0.0);
 
-    double factor    = OpalData::getInstance()->getP0() / Physics::c;
     unsigned int top = (normSize > skewSize) ? normSize : skewSize;
 
-    // Loop over components (0=Dipole, 1=Quadrupole, ...)
+    // KN/KS are NORMALISED strengths [m^-(n+1)]; the components stored/applied by
+    // Multipole are physical field coefficients [T/m^n]. Convert with Brho = P0/c,
+    // one factor for every order, exactly as OpalSBend does (OpalSBend.cpp:71-76).
+    double factor = OpalData::getInstance()->getP0() / Physics::c;
+
+    // Loop over components (0=Dipole, 1=Quadrupole, ...) populating the device
+    // coefficient views read by Multipole::apply().
     for (unsigned int comp = 0; comp < top; ++comp) {
-        factor /= double(comp + 1);
         if (comp < normSize) {
-            field.setNormalComponent(comp, norm[comp] * factor);
-            mult->setNormalComponent(comp, norm[comp], normErrors[comp]);
+            mult->setNormalComponent(comp, factor * norm[comp], factor * normErrors[comp]);
         }
         if (comp < skewSize) {
-            field.setSkewComponent(comp, skew[comp] * factor);
-            mult->setSkewComponent(comp, skew[comp], skewErrors[comp]);
+            mult->setSkewComponent(comp, factor * skew[comp], factor * skewErrors[comp]);
         }
     }
-
-    mult->setField(field);
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(mult);

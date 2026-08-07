@@ -11,6 +11,7 @@
 
 #include "OPALTypes.h"
 #include "Utility/IpplInfo.h"
+#include "Utility/IpplTimings.h"
 
 #include "H5hut.h"
 
@@ -80,6 +81,7 @@ protected:
     std::string predecessorOPALFlavour_m;
     h5_int64_t numSteps_m;
     bool startedFromExistingFile_m;
+    IpplTimings::TimerRef h5OpenCloseTimer_m;
 
     static std::string copyFilePrefix_m;
 };

@@ -1,8 +1,7 @@
 set (_SRCS
+    BeamBeamWindowAnimation.cpp
     ArithmeticError.cpp
     CLRangeError.cpp
-    BeamBeamWindowAnimation.cpp
-    BeamlineFieldElement.cpp
     ExpressionRandom.cpp
     ComplexErrorFun.cpp
     ConvergenceError.cpp
@@ -11,32 +10,11 @@ set (_SRCS
     FormatError.cpp
     GeneralOpalException.cpp
     LogicalError.cpp
-    Mesher.cpp
-    MSLang.cpp
-    MSLang/ArgumentExtractor.cpp
-    MSLang/BoundingBox2D.cpp
-    MSLang/Difference.cpp
-    MSLang/Ellipse.cpp
-    MSLang/Intersection.cpp
-    MSLang/Mask.cpp
-    MSLang/matheval.cpp
-    MSLang/Polygon.cpp
-    MSLang/QuadTree.cpp
-    MSLang/Rectangle.cpp
-    MSLang/Repeat.cpp
-    MSLang/Rotation.cpp
-    MSLang/Shear.cpp
-    MSLang/SymmetricDifference.cpp
-    MSLang/Translation.cpp
-    MSLang/Triangle.cpp
-    MSLang/Union.cpp
     Options.cpp
     OverflowError.cpp
     ParseError.cpp
-    PortableBitmapReader.cpp
     PortableGraymapReader.cpp
     Util.cpp
-    RingSection.cpp
     SDDSParser.cpp
     OpalException.cpp
     OpalFilter.cpp
@@ -48,10 +26,10 @@ set (_SRCS
     )
 
 set (HDRS
+    BeamBeamWindowAnimation.h
     ArithmeticError.h
     CLRangeError.h
-    BeamBeamWindowAnimation.h
-    BeamlineFieldElement.h
+    ElementList.h
     ExpressionRandom.h
     ComplexErrorFun.h
     ConvergenceError.h
@@ -60,33 +38,10 @@ set (HDRS
     FormatError.h
     GeneralOpalException.h
     LogicalError.h
-    Mesher.h
-    MSLang.h
-    MSLang/ArgumentExtractor.h
-    MSLang/AffineTransformation.h
-    MSLang/BoundingBox2D.h
-    MSLang/Difference.h
-    MSLang/Ellipse.h
-    MSLang/Intersection.h
-    MSLang/Mask.h
-    MSLang/matheval.h
-    MSLang/matheval.hpp
-    MSLang/Polygon.h
-    MSLang/QuadTree.h
-    MSLang/Rectangle.h
-    MSLang/Repeat.h
-    MSLang/Rotation.h
-    MSLang/Shear.h
-    MSLang/SymmetricDifference.h
-    MSLang/Translation.h
-    MSLang/Triangle.h
-    MSLang/Union.h
     Options.h
     OverflowError.h
     ParseError.h
-    PortableBitmapReader.h
     PortableGraymapReader.h
-    RingSection.h  
     Util.h
     OpalException.h
     OpalFilter.h

@@ -21,13 +21,13 @@
 #include <iostream>
 #include <set>
 #include <vector>
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "BasicActions/DumpEMFields.h"
-#include "BeamlineGeometry/NullGeometry.h"
+
+#include "BeamlineGeometry/Geometry.h"
 #include "Elements/OpalBeamline.h"
-#include "Fields/NullField.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
 #include "gtest/gtest.h"
@@ -38,27 +38,19 @@ namespace {
      *  field lookup routines and placement routines and the like by generating a
      *  "fake" component.
      */
-    class MockComponent : public Component {
+    class MockComponent : public ElementBase {
     public:
-        MockComponent() : Component("MockComponent"), field_m(std::make_unique<NullField>()) {}
-        MockComponent(const MockComponent& /*rhs*/)
-            : Component("MockComponent"), field_m(std::make_unique<NullField>()) {}
+        MockComponent() : ElementBase("MockComponent") {}
+        MockComponent(const MockComponent& /*rhs*/) : ElementBase("MockComponent") {}
         ~MockComponent() override = default;
         void accept(BeamlineVisitor&) const override {}
         ElementBase* clone() const override { return new MockComponent(*this); }
-        EMField& getField() override { return *field_m; }
-        EMField& getField() const override { return *field_m; }
-        bool apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) override { return false; }
-        bool apply(
-                const size_t& /*i*/, const double& /*t*/, Vector_t<double, 3>& /*E*/,
-                Vector_t<double, 3>& /*B*/) override {
-            return false;
-        }
-        bool apply(
+        void apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) override {}
+        void apply(
                 const Vector_t<double, 3>& r, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
                 Vector_t<double, 3>& E, Vector_t<double, 3>& B) override {
             if (r(0) < 0. || r(0) > 1. || r(1) < -1. || r(1) > 0. || r(2) < 0. || r(2) > 1.) {
-                return true;  // isOutOfBounds
+                return;  // out of bounds: no field
             }
             B(0) = r(0);
             B(1) = r(1);
@@ -66,7 +58,6 @@ namespace {
             E(0) = -r(0);
             E(1) = -r(1);
             E(2) = -r(2);
-            return false;  // NOT isOutOfBounds
         }
         bool applyToReferenceParticle(
                 const Vector_t<double, 3>& /*r*/, const Vector_t<double, 3>& /*P*/,
@@ -74,16 +65,14 @@ namespace {
                 Vector_t<double, 3>& /*B*/) override {
             return false;
         }
-        void initialise(PartBunch_t*, double&, double&) override {}
+        void initialise(PartBunch_t*) override {}
         void finalise() override {}
-        bool bends() const override { return true; }
-        void getFieldExtend(double&, double&) const override {}
+        void getFieldExtent(double&, double&) const override {}
 
-        BGeometryBase& getGeometry() override { return geometry_m; }
-        const BGeometryBase& getGeometry() const override { return geometry_m; }
+        Geometry& getGeometry() override { return geometry_m; }
+        const Geometry& getGeometry() const override { return geometry_m; }
 
-        NullGeometry geometry_m;
-        std::unique_ptr<NullField> field_m;
+        Geometry geometry_m{Geometry::makeNull()};
     };
 
     void setOneAttribute(DumpEMFields* dump, const std::string& name, const double value) {
@@ -164,7 +153,7 @@ namespace {
         execute_throws(&dump1, "should throw due to nsteps < 1");
         setAttributesCart(&dump1, 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., "/dev/null");
         dump1.execute();  // should be okay (normal)
-        std::set<std::shared_ptr<Component>> elements;
+        std::set<std::shared_ptr<ElementBase>> elements;
         elements.insert(std::make_shared<MockComponent>());
         EXPECT_NO_THROW(DumpEMFields::writeFields(elements));
         setAttributesCart(
@@ -218,7 +207,7 @@ namespace {
         DumpEMFields dump4;
         setAttributesCart(&dump4, 0.1, 0.1, 3., -0.1, 0.2, 2., 0.2, 0.3, 2., 1., 1., 2., fname4);
         dump4.execute();
-        std::set<std::shared_ptr<Component>> elements;
+        std::set<std::shared_ptr<ElementBase>> elements;
         elements.insert(std::make_shared<MockComponent>());
         try {
             DumpEMFields::writeFields(elements);
@@ -283,7 +272,7 @@ namespace {
                 1., 1., 2., fnameCyl);
         dump.execute();
         // depending on execution order, this might write cartesian tests as well... never mind
-        std::set<std::shared_ptr<Component>> elements;
+        std::set<std::shared_ptr<ElementBase>> elements;
         elements.insert(std::make_shared<MockComponent>());
         try {
             DumpEMFields::writeFields(elements);
@@ -353,7 +342,7 @@ namespace {
         setOriginCyl(&dump2, 0.01, 0.02, 0.03);
         dump2.execute();
         // depending on execution order, this might write cartesian tests as well... never mind
-        std::set<std::shared_ptr<Component>> elements;
+        std::set<std::shared_ptr<ElementBase>> elements;
         elements.insert(std::make_shared<MockComponent>());
         try {
             DumpEMFields::writeFields(elements);
@@ -414,7 +403,7 @@ namespace {
                 1., 1., 2., fnameCyl);
         dump.execute();
         DumpEMFields::failGrid();
-        std::set<std::shared_ptr<Component>> elements;
+        std::set<std::shared_ptr<ElementBase>> elements;
         elements.insert(std::make_shared<MockComponent>());
         EXPECT_ANY_THROW(DumpEMFields::writeFields(elements));
         DumpEMFields::clearDumps();
@@ -430,7 +419,7 @@ namespace {
                 &dump, 0.1, 0.1, 3., 90. * Units::deg2rad, 45. * Units::deg2rad, 16, 0.2, 0.3, 2.,
                 1., 1., 2., fnameCyl);
         dump.execute();
-        std::set<std::shared_ptr<Component>> elements;
+        std::set<std::shared_ptr<ElementBase>> elements;
         elements.insert(std::make_shared<MockComponent>());
         EXPECT_ANY_THROW(DumpEMFields::writeFields(elements));
         DumpEMFields::clearDumps();
@@ -447,7 +436,7 @@ namespace {
                 1., 1., 2., fnameCyl);
         dump.execute();
         DumpEMFields::failWrite();
-        std::set<std::shared_ptr<Component>> elements;
+        std::set<std::shared_ptr<ElementBase>> elements;
         elements.insert(std::make_shared<MockComponent>());
         EXPECT_ANY_THROW(DumpEMFields::writeFields(elements));
         DumpEMFields::clearDumps();

@@ -149,7 +149,7 @@ void OpalBeamBeam::update() {
     OpalElement::update();
 
     BeamBeamRep* beamBeam = static_cast<BeamBeamRep*>(getElement());
-    beamBeam->setElementLength(Attributes::getReal(itsAttr[LENGTH]));
+    beamBeam->getGeometry().setElementLength(Attributes::getReal(itsAttr[LENGTH]));
     const double copyTime = Attributes::getReal(itsAttr[COPY_TIME]);
     if (copyTime < 0.0) {
         throw OpalException(

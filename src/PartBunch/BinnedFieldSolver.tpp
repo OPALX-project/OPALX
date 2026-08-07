@@ -8,28 +8,22 @@
 #include <vector>
 
 namespace opalx::detail {
-    // Keep these beam-beam mirror/restore kernels at namespace scope.  With CUDA,
-    // KOKKOS_LAMBDA uses extended __host__ __device__ lambdas, and NVCC rejects
-    // such lambdas when their enclosing member function has private or protected
-    // access.  computeLegacySelfFields is intentionally private, so these helpers
-    // provide a public enclosing scope without changing the solver's class API.
     template <typename PositionView>
     Kokkos::View<double*> mirrorBeamBeamZPositions(
             PositionView rView, const size_t nLoc, const double interactionPointBeamZ) {
         Kokkos::View<double*> originalZ("BinnedFieldSolver::BeamBeamOriginalZ", nLoc);
-
         Kokkos::parallel_for(
                 "BinnedFieldSolver::BeamBeamMirror", nLoc, KOKKOS_LAMBDA(const size_t i) {
                     originalZ(i) = rView(i)[2];
                     rView(i)[2]  = 2.0 * interactionPointBeamZ - rView(i)[2];
                 });
         Kokkos::fence();
-
         return originalZ;
     }
 
     template <typename PositionView, typename OriginalZView>
-    void restoreBeamBeamZPositions(PositionView rView, const size_t nLoc, OriginalZView originalZ) {
+    void restoreBeamBeamZPositions(
+            PositionView rView, const size_t nLoc, OriginalZView originalZ) {
         Kokkos::parallel_for(
                 "BinnedFieldSolver::BeamBeamRestore", nLoc,
                 KOKKOS_LAMBDA(const size_t i) { rView(i)[2] = originalZ(i); });
@@ -37,22 +31,26 @@ namespace opalx::detail {
     }
 
     inline bool shouldDumpBeamBeamFieldDiagnostics(const long long globalTrackStep) {
-        if (Options::psDumpFreq <= 0) {
-            return false;
-        }
-        return ((globalTrackStep % Options::psDumpFreq) + 1 == Options::psDumpFreq);
+        return Options::psDumpFreq > 0
+               && ((globalTrackStep % Options::psDumpFreq) + 1 == Options::psDumpFreq);
     }
 }  // namespace opalx::detail
 
 template <typename T, unsigned Dim>
 BinnedFieldSolver<T, Dim>::BinnedFieldSolver(
         std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
-        std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency, bool adaptiveBinning)
-    : FieldSolver<T, Dim>(solver, rho, E, phi, bcHandler) {
+        std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency, bool adaptiveBinning,
+        std::string greensFunction, T p3mCutoff)
+    : FieldSolver<T, Dim>(solver, rho, E, phi, bcHandler, std::move(greensFunction), p3mCutoff) {
     scatterAttribute_m    = ScatterAttribute::ChargeQ;
     gatherAttribute_m     = GatherAttribute::ElectricFieldE;
     tablePrintFrequency_m = tablePrintFrequency;
     adaptiveBinning_m     = adaptiveBinning;
+}
+
+template <typename T, unsigned Dim>
+void BinnedFieldSolver<T, Dim>::refreshAfterFieldLayoutChange() {
+    FieldSolver<T, Dim>::refreshAfterFieldLayoutChange();
 }
 
 template <typename T, unsigned Dim>
@@ -107,6 +105,11 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
 
     // decide which solver path to run (binned vs legacy).
     const bool hasBins = bunch.hasBinning();
+    if (this->getStype() == "P3M" && hasBins) {
+        throw OpalException(
+                "BinnedFieldSolver::computeSelfFields",
+                "TYPE=P3M does not support BINS. Remove BINS from the FIELDSOLVER definition.");
+    }
 
     m << level4 << "Entry: rank=" << ippl::Comm->rank() << ", localParticles=" << pc->getLocalNum()
       << ", totalParticles=" << pc->getTotalNum() << ", hasBins=" << (hasBins ? 1 : 0)
@@ -336,31 +339,6 @@ void BinnedFieldSolver<T, Dim>::printBinStatsTable(
 }
 
 template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::setScalarField(Field_t<Dim>& field, double value) {
-    auto view = field.getView();
-    Kokkos::deep_copy(view, value);
-}
-
-template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::scaleAndShiftScalarField(
-        Field_t<Dim>& field, double scale, double shift) {
-    auto view = field.getView();
-
-    ippl::parallel_for(
-            "BinnedFieldSolver::scaleAndShiftScalarField", field.getFieldRangePolicy(),
-            KOKKOS_LAMBDA(const typename ippl::RangePolicy<Dim>::index_array_type& idx) {
-                apply(view, idx) = apply(view, idx) * scale + shift;
-            });
-}
-
-template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::setVectorField(
-        VField_t<T, Dim>& field, const Vector_t<T, Dim>& value) {
-    auto view = field.getView();
-    Kokkos::deep_copy(view, value);
-}
-
-template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
     // execute full binned self-field algorithm.
     // fetch the adaptive bin structure.
@@ -375,14 +353,20 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
     // build and merge adaptive bins for this step.
     rebinAndPrepare(bunch, bins);
 
-    // obtain the temporary E buffer used to accumulate bin contributions.
-    std::shared_ptr<VField_t<T, Dim>> EtmpSP = bunch.getTempEField();
+    // obtain the temporary buffers used to accumulate bin contributions.
+    auto fieldContainer = bunch.getFieldContainer();
+    if (!fieldContainer) {
+        throw OpalException(
+                "BinnedFieldSolver::computeBinnedSelfFields", "FieldContainer is not initialized.");
+    }
+
+    std::shared_ptr<VField_t<T, Dim>> EtmpSP = fieldContainer->getTempEField();
     if (!EtmpSP) {
         throw OpalException(
                 "BinnedFieldSolver::computeBinnedSelfFields",
                 "Temporary E field (Etmp) is not initialized.");
     }
-    std::shared_ptr<VField_t<T, Dim>> BtmpSP = bunch.getTempBField();
+    std::shared_ptr<VField_t<T, Dim>> BtmpSP = fieldContainer->getTempBField();
     if (!BtmpSP) {
         throw OpalException(
                 "BinnedFieldSolver::computeBinnedSelfFields",
@@ -392,8 +376,8 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
     VField_t<T, Dim>& Etmp = *EtmpSP;
     VField_t<T, Dim>& Btmp = *BtmpSP;
     // clear the accumulation buffer.
-    setVectorField(Etmp, Vector_t<T, Dim>(0.0));
-    setVectorField(Btmp, Vector_t<T, Dim>(0.0));
+    Etmp = 0.0;
+    Btmp = 0.0;
 
     // determine the number of bins used for this step.
     const bin_index_type nBins = bins->getCurrentBinCount();
@@ -456,7 +440,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
                                                          : ImageScatterMode::PrimaryAndImage;
             prepareRhoForBin(bunch, bins, binIndex, nPartGlobal, gammaBin, scatterMode);
 
-            setVectorField(*(this->getE()), Vector_t<T, Dim>(0.0));
+            *(this->getE()) = 0.0;
             mesh.setMeshSpacing(hrStretched);
 
             m << level4 << "binIndex=" << static_cast<int>(binIndex)
@@ -466,7 +450,8 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             m << level4 << "binIndex=" << static_cast<int>(binIndex)
               << " primary runSolver(true) done; accumulate->Etmp" << endl;
 
-            accumulateFieldToTemp(gammaBin, kinematics.pmean, EtmpSP, BtmpSP, +1.0);
+            accumulateFieldToTemp(
+                    *fieldContainer, gammaBin, kinematics.pmean, EtmpSP, BtmpSP, +1.0);
 
             mesh.setMeshSpacing(hrOrig);
         }
@@ -489,7 +474,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             prepareRhoForBin(
                     bunch, bins, binIndex, nPartGlobal, gammaBin, ImageScatterMode::ImageOnly);
 
-            setVectorField(*(this->getE()), Vector_t<T, Dim>(0.0));
+            *(this->getE()) = 0.0;
             mesh.setMeshSpacing(hrStretched);
 
             m << level4 << "binIndex=" << static_cast<int>(binIndex)
@@ -498,7 +483,8 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             m << level4 << "binIndex=" << static_cast<int>(binIndex)
               << " image runSolver(true) done; accumulate->Etmp (B negated)" << endl;
 
-            accumulateFieldToTemp(gammaBin, kinematics.pmean, EtmpSP, BtmpSP, -1.0);
+            accumulateFieldToTemp(
+                    *fieldContainer, gammaBin, kinematics.pmean, EtmpSP, BtmpSP, -1.0);
             mesh.setMeshSpacing(hrOrig);
 
             // Dump phi ~= 0 check on the Dirichlet plane AFTER the correction
@@ -521,20 +507,20 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             prepareRhoForBin(
                     bunch, bins, binIndex, nPartGlobal, gammaBin, ImageScatterMode::PrimaryOnly);
 
-            setVectorField(*(this->getE()), Vector_t<T, Dim>(0.0));
+            *(this->getE()) = 0.0;
             mesh.setMeshSpacing(hrStretched);
 
-            // Shift formula in stretched (rest-frame) coordinates:
-            //   shift_z = L + 2*origin_z - 2*R0Z = 2 * (z_center_rest - R0Z).
-            // Origin is in lab-frame z; hrStretched[Dim-1] is the rest-frame
-            // z-spacing. See the TestShiftedGreensFunction derivation.
+            // Shift formula in the bin rest frame. Old OPAL computes the same
+            // distance as zshift = -2 * gamma * (z_center - z_plane); IPPL's
+            // shiftedGreensFunction uses the opposite sign convention because it
+            // evaluates G(r - shift). See TestShiftedGreensFunction.
             const auto origin = mesh.getOrigin();
             const int N_z =
                     static_cast<int>(this->getRho()->getLayout().getDomain()[Dim - 1].length());
-            const double z_center_rest =
-                    origin[Dim - 1] + 0.5 * static_cast<double>(N_z) * hrStretched[Dim - 1];
+            const double zCenter =
+                    origin[Dim - 1] + 0.5 * static_cast<double>(N_z) * hrOrig[Dim - 1];
             ippl::Vector<double, Dim> shift(0.0);
-            shift[Dim - 1] = 2.0 * (z_center_rest - shiftedGreensPlaneZ_m);
+            shift[Dim - 1] = 2.0 * gammaBin * (zCenter - shiftedGreensPlaneZ_m);
 
             m << level4 << "binIndex=" << static_cast<int>(binIndex)
               << " shifted-GF runSolver start, plane=" << shiftedGreensPlaneZ_m
@@ -549,7 +535,8 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             // image field a second time and reinforce the near-cathode
             // transverse field instead of cancelling it.
             constexpr int zFlipAxis = static_cast<int>(Dim) - 1;
-            accumulateFieldToTemp(gammaBin, kinematics.pmean, EtmpSP, BtmpSP, -1.0, zFlipAxis);
+            accumulateFieldToTemp(
+                    *fieldContainer, gammaBin, kinematics.pmean, EtmpSP, BtmpSP, -1.0, zFlipAxis);
 
             mesh.setMeshSpacing(hrOrig);
         }
@@ -594,29 +581,18 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
     typename PartBunch_t::Base::particle_position_type* R = &pc->R;
 
     Field_t<Dim>& rho = *(this->getRho());
-    setScalarField(rho, 0.0);
+    rho               = 0.0;
 
     // Scatter charge to mesh rho using dt-weighted deposition (master approach):
     // scale dt by Q, scatter dt, then restore dt.
     const bool beamBeamActive = bunch.hasBeamBeamWindowConfig();
-    static IpplTimings::TimerRef beamBeamPrimaryScatterTimer =
-            IpplTimings::getTimer("BB primary scatter");
-    if (beamBeamActive) {
-        IpplTimings::startTimer(beamBeamPrimaryScatterTimer);
-    }
     if (beamBeamActive) {
         imageScatterController_m.scatterPrimaryOnly(pc, *R, rho);
     } else {
         imageScatterController_m.scatterPrimaryAndImage(pc, *R, rho);
     }
-    if (beamBeamActive) {
-        IpplTimings::stopTimer(beamBeamPrimaryScatterTimer);
-    }
 
-    if (bunch.hasBeamBeamWindowConfig() && bunch.getBeamBeamWindowConfig().copyModel) {
-        static IpplTimings::TimerRef beamBeamCopyScatterTimer =
-                IpplTimings::getTimer("BB copy scatter");
-        IpplTimings::startTimer(beamBeamCopyScatterTimer);
+    if (beamBeamActive && bunch.getBeamBeamWindowConfig().copyModel) {
         const double interactionPointBeamZ =
                 bunch.getBeamBeamWindowConfig().interactionPointS - pc->get_sPos();
 
@@ -625,27 +601,20 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
             const size_t nLoc = pc->getLocalNum();
             auto originalZ =
                     opalx::detail::mirrorBeamBeamZPositions(rView, nLoc, interactionPointBeamZ);
-
             imageScatterController_m.scatterPrimaryOnly(pc, pc->R, rho);
-
             opalx::detail::restoreBeamBeamZPositions(rView, nLoc, originalZ);
         };
 
         if (ippl::Comm->size() > 1) {
             Field_t<Dim> primaryRho = rho.deepCopy();
-            setScalarField(rho, 0.0);
+            rho                     = 0.0;
             scatterMirroredSameSign();
             rho = rho + primaryRho;
         } else {
             scatterMirroredSameSign();
         }
-        IpplTimings::stopTimer(beamBeamCopyScatterTimer);
     }
 
-    static IpplTimings::TimerRef beamBeamRhoPrepTimer = IpplTimings::getTimer("BB rho prep");
-    if (beamBeamActive) {
-        IpplTimings::startTimer(beamBeamRhoPrepTimer);
-    }
     bunch.setLastDepositedChargeBeforeBackground(rho.sum());
 
     //  apply mesh normalization, background subtraction, and rho scaling.
@@ -659,7 +628,7 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
 
     // Alpine uses net-0 charge for non-OPEN solvers (periodic BCs).
     double shift = 0.0;
-    if (stype != "OPEN") {
+    if (stype != "OPEN" && stype != "P3M") {
         double size = 1.0;
         for (size_t d = 0; d < Dim; ++d) {
             size *= bunch.rmax_m[d] - bunch.rmin_m[d];
@@ -670,37 +639,27 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
     }
 
     const bool dumpBeamBeamFieldDiagnostics =
-            bunch.hasBeamBeamWindowConfig()
+            beamBeamActive
             && opalx::detail::shouldDumpBeamBeamFieldDiagnostics(bunch.getGlobalTrackStep());
     std::vector<std::string> beamBeamFieldHeaders;
     if (dumpBeamBeamFieldDiagnostics) {
-        static IpplTimings::TimerRef beamBeamFieldDiagTimer =
-                IpplTimings::getTimer("BB field diag");
-        IpplTimings::startTimer(beamBeamFieldDiagTimer);
         pc->updateMoments();
         beamBeamFieldHeaders = bunch.buildScalarDumpHeaders("active_beambeam_field_diagnostics");
 
         std::vector<std::string> rhoHeaders = beamBeamFieldHeaders;
         rhoHeaders.emplace_back("field_stage=rho_before_coupling");
         this->dumpScalField("RHO", "beambeam_rho_pre", rhoHeaders);
-        IpplTimings::stopTimer(beamBeamFieldDiagTimer);
     }
 
-    scaleAndShiftScalarField(rho, this->getCouplingConstant() / normalizer, shift);
+    rho = rho * (this->getCouplingConstant() / normalizer) + shift;
 
     // Ensure deterministic output even for solver types that do not update `E`.
-    setVectorField(*(this->getE()), Vector_t<T, Dim>(0.0));
-    if (beamBeamActive) {
-        IpplTimings::stopTimer(beamBeamRhoPrepTimer);
-    }
+    *(this->getE()) = 0.0;
 
     // run the solver once and gather mesh E back to particles.
     m << level4 << "Legacy mode: runSolver() start" << endl;
     this->runSolver(dumpBeamBeamFieldDiagnostics);
     if (dumpBeamBeamFieldDiagnostics) {
-        static IpplTimings::TimerRef beamBeamFieldDiagTimer =
-                IpplTimings::getTimer("BB field diag");
-        IpplTimings::startTimer(beamBeamFieldDiagTimer);
         std::vector<std::string> phiHeaders = beamBeamFieldHeaders;
         phiHeaders.emplace_back("field_stage=phi_after_solve");
         this->dumpScalField("PHI", "beambeam_phi", phiHeaders);
@@ -708,29 +667,51 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
         std::vector<std::string> eHeaders = beamBeamFieldHeaders;
         eHeaders.emplace_back("field_stage=e_after_solve");
         this->dumpVectField("EF", "beambeam_e", eHeaders);
-        IpplTimings::stopTimer(beamBeamFieldDiagTimer);
     }
     dumpDirichletPlaneDiagnosticsIfRequested(bunch, "legacy");
     m << level4 << "Legacy mode: gather E->particles" << endl;
 
     // Gather solver output directly (legacy path does not use Etmp).
     if (gatherAttribute_m == GatherAttribute::ElectricFieldE) {
-        static IpplTimings::TimerRef beamBeamFieldGatherTimer =
-                IpplTimings::getTimer("BB field gather");
-        if (beamBeamActive) {
-            IpplTimings::startTimer(beamBeamFieldGatherTimer);
-        }
         gather(pc->E, *this->getE(), *R);
-        if (beamBeamActive) {
-            IpplTimings::stopTimer(beamBeamFieldGatherTimer);
-        }
     } else {
         throw OpalException(
                 "BinnedFieldSolver::computeLegacySelfFields",
                 "Unsupported gather attribute in legacy solver.");
     }
 
+    if (stype == "P3M") {
+        applyP3MShortRangeInteraction(*pc);
+    }
+
     // TABLEPRINTFREQ is binned-mode only; legacy mode intentionally prints nothing.
+}
+
+template <typename T, unsigned Dim>
+void BinnedFieldSolver<T, Dim>::applyP3MShortRangeInteraction(ParticleCtr_t& pc) {
+    if (!pc.hasP3MLayout()) {
+        throw OpalException(
+                "BinnedFieldSolver::applyP3MShortRangeInteraction",
+                "TYPE=P3M requires ParticleSpatialOverlapLayout.");
+    }
+
+    using ContainerView = p3m_detail::ContainerView<ParticleCtr_t>;
+    using ChargeView    = p3m_detail::ChargeView<typename ParticleCtr_t::qm_view_type>;
+    using Interaction   = ippl::TruncatedGreenParticleInteraction<
+              ContainerView, particle_position_type, ChargeView>;
+
+    ContainerView container(pc);
+    ChargeView charge(
+            pc.getQView(), pc.getQMStorageMode() == ParticleCtr_t::QMStorageMode::Attributes);
+
+    ippl::ParameterList params;
+    params.add("rcut", this->getP3MCutoff());
+    params.add("alpha", this->getP3MAlpha());
+    // Raw particle charge is used here, so include epsilon_0 in the short-range coefficient.
+    params.add("force_constant", -1.0 / (4.0 * Physics::pi * Physics::epsilon_0));
+
+    Interaction interaction(container, pc.E, pc.R, charge, params);
+    interaction.solve();
 }
 
 template <typename T, unsigned Dim>
@@ -811,7 +792,7 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
       << ", gammaBin=" << std::setprecision(10) << gammaBin << endl;
 
     Field_t<Dim>& rho = *(this->getRho());
-    setScalarField(rho, 0.0);
+    rho               = 0.0;
 
     // access particle views and validate scatter support.
     std::shared_ptr<ParticleCtr_t> pc                     = bunch.getParticleContainer();
@@ -898,12 +879,12 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
 
     // Lorentz transform of charge density to the bin rest frame (thesis Eq. step 7).
     normalizer *= gammaBin;
-    scaleAndShiftScalarField(rho, this->getCouplingConstant() / normalizer, shift);
+    rho = rho * (this->getCouplingConstant() / normalizer) + shift;
 }
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
-        const double gammaBin, const Vector_t<double, Dim>& pmean,
+        FieldContainer_t& fieldContainer, const double gammaBin, const Vector_t<double, Dim>& pmean,
         std::shared_ptr<VField_t<T, Dim>> EtmpSP, std::shared_ptr<VField_t<T, Dim>> BtmpSP,
         double bFieldSign, int flipAxis) {
     // transform rest-frame fields to lab-frame fields and accumulate.
@@ -967,8 +948,14 @@ void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
         }
         (void)nghost;
 
-        this->buildFlippedZSlab(Eprime);
-        auto flippedView = flippedZSlabField_m->getView();
+        this->buildFlippedZSlab(fieldContainer, Eprime);
+        auto flippedZSlabField = fieldContainer.getFlippedZSlabField();
+        if (!flippedZSlabField) {
+            throw OpalException(
+                    "BinnedFieldSolver::accumulateFieldToTemp",
+                    "Shifted-Green scratch field is not initialized.");
+        }
+        auto flippedView = flippedZSlabField->getView();
 
         ippl::parallel_for(
                 "BinnedFieldSolver::accumulateFieldToTemp[flipped]", Eprime.getFieldRangePolicy(),
@@ -999,30 +986,22 @@ void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
 }
 
 template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::buildFlippedZSlab(const VField_t<T, Dim>& src) {
-    // Populate flippedZSlabField_m with src spatially mirrored along the z axis:
-    //   flippedZSlabField_m(i, j, k) == src(i, j, flipped_k)
+void BinnedFieldSolver<T, Dim>::buildFlippedZSlab(
+        FieldContainer_t& fieldContainer, const VField_t<T, Dim>& src) {
+    // Populate FieldContainer's flipped z-slab scratch with src mirrored along the z axis:
+    //   flippedZSlab(i, j, k) == src(i, j, flipped_k)
     // where the flip is the GLOBAL reflection k_glob -> N_z_global - 1 - k_glob,
     // realised via opalx::detail::mirrorField (device-resident, CUDA-aware-MPI).
     //
     // The accumulate lambda downstream iterates src.getFieldRangePolicy() which
     // excludes ghost cells; mirrorField zero-initialises ghosts, which is safe.
 
-    // Lazy-allocate the scratch field with the same layout / mesh / ghost count
-    // as src. Reinitialise if src is rebuilt on a different layout across calls.
-    auto& layout         = src.getLayout();
-    auto& mesh           = src.get_mesh();
-    const int srcNghost  = src.getNghost();
-    const bool needsInit = !flippedZSlabField_m || &flippedZSlabField_m->getLayout() != &layout
-                           || flippedZSlabField_m->getNghost() != srcNghost;
-    if (!flippedZSlabField_m) {
-        flippedZSlabField_m = std::make_shared<VField_t<T, Dim>>();
-    }
-    if (needsInit) {
-        flippedZSlabField_m->initialize(mesh, layout, srcNghost);
-    }
+    auto flippedZSlabField = fieldContainer.getOrCreateFlippedZSlabField(src);
 
-    opalx::detail::mirrorField(src, *flippedZSlabField_m, Dim - 1);
+    IpplTimings::TimerRef mirrorFieldTimer = IpplTimings::getTimer("mirrorField");
+    IpplTimings::startTimer(mirrorFieldTimer);
+    opalx::detail::mirrorField(src, *flippedZSlabField, Dim - 1);
+    IpplTimings::stopTimer(mirrorFieldTimer);
 }
 
 template <typename T, unsigned Dim>

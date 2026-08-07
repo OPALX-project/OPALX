@@ -29,7 +29,7 @@ class ImageChargeScatterController {
 public:
     using ParticleCtr_t  = ParticleContainer<T, Dim>;
     using PositionAttr_t = typename ippl::ParticleBase<
-            ippl::ParticleSpatialLayout<T, Dim>,
+            ippl::ParticleSpatialLayout<T, Dim, ippl::UniformCartesian<T, Dim>>,
             Kokkos::DefaultExecutionSpace::memory_space>::particle_position_type;
     using RhoField_t  = Field_t<Dim>;
     using BinPolicy_t = Kokkos::RangePolicy<>;
@@ -149,15 +149,6 @@ public:
     void scatterScaledDtSubset(
             std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions, RhoField_t& rho,
             const BinPolicy_t& policy, const Hash_t& hash) const;
-
-    /**
-     * @brief Accumulate scalar field halo contributions through host-staged MPI buffers.
-     *
-     * This mirrors `rho.accumulateHalo()` for scalar rho fields, but avoids the device-buffer MPI
-     * path used by IPPL HaloCells. It is used by the all-local binned scatter workaround on
-     * GH200/Daint.
-     */
-    void accumulateScalarHaloHostStaged(RhoField_t& rho) const;
 
     /**
      * @brief Apply z-mirror and charge sign flip for all local particles.

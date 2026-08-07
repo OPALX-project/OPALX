@@ -10,10 +10,48 @@
 #include <string>
 #include <vector>
 
+// The IPPL interaction header relies on declarations provided by Ippl.h.
+// clang-format off
+#include "Ippl.h"
+#include "Interaction/TruncatedGreenParticleInteraction.h"
+// clang-format on
 #include "PartBunch/FieldSolver.hpp"
 #include "PartBunch/ImageChargeScatterController.h"
 #include "PartBunch/PartBunch.h"
+#include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
+
+namespace p3m_detail {
+    template <typename ParticleContainer>
+    class ContainerView {
+    public:
+        explicit ContainerView(const ParticleContainer& pc) : pc_m(pc) {}
+
+        const typename ParticleContainer::P3MLayout_t& getLayout() const {
+            return pc_m.getP3MLayout();
+        }
+
+    private:
+        const ParticleContainer& pc_m;
+    };
+
+    template <typename View>
+    class ChargeView {
+    public:
+        using value_type      = typename View::value_type;
+        using execution_space = typename View::execution_space;
+
+        ChargeView(View charge, bool perParticle) : charge_m(charge), perParticle_m(perParticle) {}
+
+        KOKKOS_INLINE_FUNCTION value_type operator()(size_t i) const {
+            return charge_m(perParticle_m ? i : 0);
+        }
+
+    private:
+        View charge_m;
+        bool perParticle_m;
+    };
+}  // namespace p3m_detail
 
 /**
  * @brief Field solver wrapper that implements the full binned self-field algorithm.
@@ -43,12 +81,13 @@ class BinnedFieldSolver : public FieldSolver<T, Dim> {
     static_assert(Dim == 3, "BinnedFieldSolver currently supports Dim == 3 only.");
 
 public:
-    using PartBunch_t    = PartBunch<T, Dim>;
-    using ParticleCtr_t  = typename PartBunch_t::ParticleContainer_t;
-    using AdaptBins_t    = typename PartBunch_t::AdaptBins_t;
-    using BCHandler_t    = BCHandler<Dim>;
-    using bin_index_type = typename AdaptBins_t::bin_index_type;
-    using size_type      = typename AdaptBins_t::size_type;
+    using PartBunch_t      = PartBunch<T, Dim>;
+    using ParticleCtr_t    = typename PartBunch_t::ParticleContainer_t;
+    using FieldContainer_t = typename PartBunch_t::FieldContainer_t;
+    using AdaptBins_t      = typename PartBunch_t::AdaptBins_t;
+    using BCHandler_t      = BCHandler<Dim>;
+    using bin_index_type   = typename AdaptBins_t::bin_index_type;
+    using size_type        = typename AdaptBins_t::size_type;
 
     using particle_position_type = typename PartBunch_t::Base::particle_position_type;
 
@@ -78,7 +117,7 @@ public:
     /**
      * @brief Construct a binned/legacy-compatible solver.
      *
-     * @param solver     Concrete solver name (e.g. `FFT`, `OPEN`, `CG`, `NONE`).
+     * @param solver     Concrete solver name (e.g. `FFT`, `P3M`, `OPEN`, `CG`, `NONE`).
      * @param rho        Pointer to the mesh charge-density field storage.
      * @param E          Pointer to the mesh electric-field storage (solver output).
      * @param phi        Pointer to the potential-field storage (solver internal use).
@@ -87,10 +126,19 @@ public:
      *                             to console in binned mode. If `0`, printing is disabled.
      * @param adaptiveBinning If true, merge uniform bins adaptively after rebinning. If false,
      *                        keep the uniform MAXBINS histogram.
+     * @param greensFunction  OPAL `GREENSF` selection (`STANDARD` or `INTEGRATED`) forwarded to
+     *                        IPPL's open-boundary FFT solver.
+     * @param p3mCutoff       P3M particle-particle cutoff radius in metres.
      */
     BinnedFieldSolver(
             std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
-            std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency, bool adaptiveBinning);
+            std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency, bool adaptiveBinning,
+            std::string greensFunction = "STANDARD", T p3mCutoff = T(0));
+
+    /**
+     * @brief Override to receive notification that the orbit threaders are ready.
+     */
+    virtual void orbitThreadersReady() {}
 
     /**
      * @brief Compute space-charge self-fields for the given particle bunch.
@@ -106,20 +154,13 @@ public:
      * @throws OpalException If required internal data (particle container / temp E field)
      *                        is missing, or if unsupported scatter/gather modes are selected.
      */
-    void computeSelfFields(PartBunch_t& bunch);
+    virtual void computeSelfFields(PartBunch_t& bunch);
 
     /**
      * @brief Gather the most recently solved source field to a passive witness container.
      *
-     * The caller must place @p target positions in the same field frame used for
-     * the source solve before calling this method. No charge is deposited from
-     * @p target; the method only samples the current mesh field and writes the
-     * result into @p target.E and @p target.B. For the binned solver path the
-     * accumulated temporary E/B fields are gathered. For the legacy path the
-     * electrostatic solver E field is gathered and B is set to zero.
-     *
-     * @param bunch  Bunch that owns the field solver and temporary field buffers.
-     * @param target Passive witness particle container to receive fields.
+     * The caller places target positions in the source field frame. Witness charge is not
+     * deposited; only the current mesh E/B fields are sampled.
      */
     void gatherCurrentFieldsToContainer(PartBunch_t& bunch, ParticleCtr_t& target);
 
@@ -160,6 +201,15 @@ public:
     /// timestep. Reuses the same step budget (@c zerofaceMaxSteps_m) as the image-charge path.
     bool isShiftedGreensActiveForStep(size_t step) const;
 
+    /**
+     * @brief Refresh solver-owned state after the field layout has changed.
+     *
+     * ORB repartitioning changes the domain decomposition underneath the shared
+     * mesh fields. Rebind the existing concrete Poisson solver to the updated
+     * FieldContainer fields without reconstructing the solver wrapper.
+     */
+    void refreshAfterFieldLayoutChange();
+
     /// @brief Configure dump frequency for dirichlet-plane diagnostics (`0` disables dumps).
     void setZeroFacePlaneDumpFrequency(int frequency);
     int getZeroFacePlaneDumpFrequency() const { return zeroFacePlaneDumpFrequency_m; }
@@ -184,13 +234,6 @@ private:
     bool shiftedGreensEnabled_m  = false;
     double shiftedGreensPlaneZ_m = 0.0;
 
-    // Scratch field holding the axis-flipped version of E' for the shifted-GF
-    // correction pass. Populated by buildFlippedZSlab (which delegates to
-    // opalx::detail::mirrorField) before accumulateFieldToTemp's flipped branch.
-    // Same layout/mesh/ghost count as *(this->getE()). Allocated lazily on first
-    // use; reused across bins and timesteps.
-    std::shared_ptr<VField_t<T, Dim>> flippedZSlabField_m;
-
     /**
      * @brief Row entry for the level-3 bin statistics table.
      */
@@ -214,22 +257,6 @@ private:
     void printBinStatsTable(
             const std::string& binningCmdName, const std::vector<BinStatsRow>& rows);
 
-public:
-    /**
-     * @brief Set all scalar field entries, including ghosts, without IPPL expression templates.
-     */
-    static void setScalarField(Field_t<Dim>& field, double value);
-
-    /**
-     * @brief Apply @c field = field * scale + shift on owned cells without expression templates.
-     */
-    static void scaleAndShiftScalarField(Field_t<Dim>& field, double scale, double shift);
-
-    /**
-     * @brief Set all vector field entries, including ghosts, without IPPL expression templates.
-     */
-    static void setVectorField(VField_t<T, Dim>& field, const Vector_t<T, Dim>& value);
-
 private:
     /**
      * @brief Dump and report potential values interpolated on the image-charge plane.
@@ -246,7 +273,7 @@ private:
      * @brief Compute self-fields using the binned algorithm.
      *
      * Requires that the bunch has a valid bin structure and a temporary electric field
-     * buffer (`bunch.getTempEField()`).
+     * buffer (`bunch.getFieldContainer()->getTempEField()`).
      *
      * @param bunch Particle bunch for which to compute self-fields.
      */
@@ -261,6 +288,9 @@ private:
      * @param bunch Particle bunch for which to compute self-fields.
      */
     void computeLegacySelfFields(PartBunch_t& bunch);
+
+    /// Add IPPL's short-range P3M interaction to the gathered particle electric field.
+    void applyP3MShortRangeInteraction(ParticleCtr_t& pc);
 
     /**
      * @brief Build and prepare adaptive bins for the current step.
@@ -343,23 +373,22 @@ public:
      * @param flipAxis  Axis in which to flip the read index (use -1 for no flip).
      */
     void accumulateFieldToTemp(
-            const double gammaBin, const Vector_t<double, Dim>& pmean,
-            std::shared_ptr<VField_t<T, Dim>> EtmpSP, std::shared_ptr<VField_t<T, Dim>> BtmpSP,
-            double bFieldSign = 1.0, int flipAxis = -1);
+            FieldContainer_t& fieldContainer, const double gammaBin,
+            const Vector_t<double, Dim>& pmean, std::shared_ptr<VField_t<T, Dim>> EtmpSP,
+            std::shared_ptr<VField_t<T, Dim>> BtmpSP, double bFieldSign = 1.0, int flipAxis = -1);
 
 private:
-    /// @brief Populate @c flippedZSlab_m with the z-axis globally-flipped version of @p src.
+    /// @brief Populate FieldContainer's flipped z-slab scratch with the flipped version of @p src.
     ///
     /// Under `PARFFTZ=true` the global flip `k -> N_z_global-1-k` generally crosses MPI ranks.
     /// This helper does one pairwise-exchange pass over `ippl::Comm`: each rank packs the z-slabs
     /// of @p src that peers need, posts `MPI_Isend`/`MPI_Irecv`, and unpacks the received slabs
-    /// into the correct local destination indices of @c flippedZSlab_m. After the call the
-    /// lambda in `accumulateFieldToTemp` reads @c flippedZSlab_m(i, j, k) directly without any
-    /// cross-rank access.
+    /// into the correct local destination indices of the scratch field. After the call the lambda
+    /// in `accumulateFieldToTemp` reads the scratch field directly without any cross-rank access.
     ///
     /// @param src  Source vector field (typically `*(this->getE())` after the shifted-GF solve).
     ///             Only the z axis is flipped; x and y stay local to the rank.
-    void buildFlippedZSlab(const VField_t<T, Dim>& src);
+    void buildFlippedZSlab(FieldContainer_t& fieldContainer, const VField_t<T, Dim>& src);
 
     /**
      * @brief Gather the accumulated lab-frame fields from temporaries back to particles.

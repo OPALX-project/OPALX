@@ -6,8 +6,7 @@
 Laser::Laser() : Laser("") {}
 
 Laser::Laser(const std::string& name)
-    : Component(name),
-      startField_m(0.0),
+    : ElementBase(name),
       wavelength_m(0.0),
       pulseEnergy_m(0.0),
       pulseLength_m(0.0),
@@ -17,8 +16,7 @@ Laser::Laser(const std::string& name)
       stokes_m(0.0) {}
 
 Laser::Laser(const Laser& right)
-    : Component(right),
-      startField_m(right.startField_m),
+    : ElementBase(right),
       wavelength_m(right.wavelength_m),
       pulseEnergy_m(right.pulseEnergy_m),
       pulseLength_m(right.pulseLength_m),
@@ -31,19 +29,14 @@ Laser::~Laser() {}
 
 void Laser::accept(BeamlineVisitor& visitor) const { visitor.visitLaser(*this); }
 
-void Laser::initialise(PartBunch_t* bunch, double& startField, double& endField) {
-    endField       = startField + getElementLength();
-    RefPartBunch_m = bunch;
-    startField_m   = startField;
-}
+void Laser::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
 
 void Laser::finalise() {}
 
-bool Laser::bends() const { return false; }
-
-void Laser::getFieldExtend(double& zBegin, double& zEnd) const {
-    zBegin = startField_m;
-    zEnd   = startField_m + getElementLength();
+void Laser::getFieldExtent(double& zBegin, double& zEnd) const {
+    // Local-chart field-support interval.
+    zBegin = 0.0;
+    zEnd   = getGeometry().getElementLength();
 }
 
 ElementType Laser::getType() const { return ElementType::LASER; }

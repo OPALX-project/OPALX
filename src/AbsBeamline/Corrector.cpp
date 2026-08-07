@@ -31,7 +31,7 @@
 Corrector::Corrector() : Corrector("") {}
 
 Corrector::Corrector(const Corrector& right)
-    : Component(right),
+    : ElementBase(right),
       kickX_m(right.kickX_m),
       kickY_m(right.kickY_m),
       designEnergy_m(right.designEnergy_m),
@@ -40,7 +40,7 @@ Corrector::Corrector(const Corrector& right)
       kickField_m(right.kickField_m) {}
 
 Corrector::Corrector(const std::string& name)
-    : Component(name),
+    : ElementBase(name),
       kickX_m(0.0),
       kickY_m(0.0),
       designEnergy_m(0.0),
@@ -52,19 +52,21 @@ Corrector::~Corrector() {}
 
 void Corrector::accept(BeamlineVisitor& visitor) const { visitor.visitCorrector(*this); }
 
-bool Corrector::apply(
+void Corrector::apply(
         const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     Vector_t<double, 3>& R = RefPartBunch_m->R[i];
     Vector_t<double, 3>& P = RefPartBunch_m->P[i];
 
-    return apply(R, P, t, E, B);
+    apply(R, P, t, E, B);
 }
 
-bool Corrector::apply(
+void Corrector::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
     if (R(2) >= 0.0 && R(2) < getElementLength()) {
-        if (!isInsideTransverse(R)) return getFlagDeleteOnTransverseExit();
+        if (!isInsideTransverse(R)) {
+            return;
+        }
 
         double tau            = 1.0;
         const double& dt      = RefPartBunch_m->getdT();
@@ -79,14 +81,9 @@ bool Corrector::apply(
 
         B += kickField_m * tau;
     }
-
-    return false;
 }
 
-void Corrector::initialise(PartBunch_t* bunch, double& startField, double& endField) {
-    endField       = startField + getElementLength();
-    RefPartBunch_m = bunch;
-}
+void Corrector::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
 
 void Corrector::finalise() {}
 
@@ -131,9 +128,7 @@ void Corrector::setDesignEnergy(const double& ekin, bool changeable) {
     }
 }
 
-bool Corrector::bends() const { return false; }
-
-void Corrector::getFieldExtend(double& zBegin, double& zEnd) const {
+void Corrector::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = 0.0;
     zEnd   = getElementLength();
 }

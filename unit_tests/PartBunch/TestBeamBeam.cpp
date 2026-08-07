@@ -45,6 +45,12 @@ namespace {
         void setBoxIncr(double value) {
             Attributes::setReal(itsAttr[FIELDSOLVER::BBOXINCR], value);
         }
+
+        void setParallelDecomposition(bool value) {
+            Attributes::setBool(itsAttr[FIELDSOLVER::PARFFTX], value);
+            Attributes::setBool(itsAttr[FIELDSOLVER::PARFFTY], value);
+            Attributes::setBool(itsAttr[FIELDSOLVER::PARFFTZ], value);
+        }
     };
 
     std::shared_ptr<TestableFieldSolverCmd> fieldSolverForBunch;
@@ -58,6 +64,7 @@ namespace {
         fieldSolver->setNY(8);
         fieldSolver->setNZ(8);
         fieldSolver->setBoxIncr(1.0);
+        fieldSolver->setParallelDecomposition(true);
         fieldSolver->execute();
         return fieldSolver;
     }
@@ -231,8 +238,6 @@ namespace {
 
         const Vector3d initialRMin = fieldContainer->getRMin();
         const Vector3d initialRMax = fieldContainer->getRMax();
-        const Vector3d initialHr   = fieldContainer->getHr();
-
         bunch->enableBeamBeamWindowMesh(1.25, 0.50);
 
         const Vector3d updatedRMin = fieldContainer->getRMin();
@@ -244,14 +249,15 @@ namespace {
         EXPECT_DOUBLE_EQ(updatedRMin[1], initialRMin[1]);
         EXPECT_DOUBLE_EQ(updatedRMax[0], initialRMax[0]);
         EXPECT_DOUBLE_EQ(updatedRMax[1], initialRMax[1]);
-        EXPECT_DOUBLE_EQ(updatedHr[0], initialHr[0]);
-        EXPECT_DOUBLE_EQ(updatedHr[1], initialHr[1]);
+        // Current master represents RMin/RMax as the first/last cell centers.
+        EXPECT_DOUBLE_EQ(updatedHr[0], (initialRMax[0] - initialRMin[0]) / 7.0);
+        EXPECT_DOUBLE_EQ(updatedHr[1], (initialRMax[1] - initialRMin[1]) / 7.0);
 
         EXPECT_DOUBLE_EQ(updatedRMin[2], 1.00);
         EXPECT_DOUBLE_EQ(updatedRMax[2], 1.50);
-        EXPECT_DOUBLE_EQ(updatedHr[2], 0.50 / 8.0);
+        EXPECT_DOUBLE_EQ(updatedHr[2], 0.50 / 7.0);
 
-        expectVectorNear(meshOrigin, updatedRMin, 1.0e-14);
+        expectVectorNear(meshOrigin, updatedRMin - 0.5 * updatedHr, 1.0e-14);
     }
 
     TEST_F(BeamBeamPartBunchTest, EnableBeamBeamWindowMeshUsesExplicitTransverseAperture) {
@@ -272,11 +278,11 @@ namespace {
         EXPECT_DOUBLE_EQ(updatedRMin[2], 1.00);
         EXPECT_DOUBLE_EQ(updatedRMax[2], 1.50);
 
-        EXPECT_DOUBLE_EQ(updatedHr[0], 4.0e-3 / 8.0);
-        EXPECT_DOUBLE_EQ(updatedHr[1], 6.0e-3 / 8.0);
-        EXPECT_DOUBLE_EQ(updatedHr[2], 0.50 / 8.0);
+        EXPECT_DOUBLE_EQ(updatedHr[0], 4.0e-3 / 7.0);
+        EXPECT_DOUBLE_EQ(updatedHr[1], 6.0e-3 / 7.0);
+        EXPECT_DOUBLE_EQ(updatedHr[2], 0.50 / 7.0);
 
-        expectVectorNear(meshOrigin, updatedRMin, 1.0e-14);
+        expectVectorNear(meshOrigin, updatedRMin - 0.5 * updatedHr, 1.0e-14);
     }
 
     // ----------------------------------------------------------------------------

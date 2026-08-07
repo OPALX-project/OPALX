@@ -62,6 +62,7 @@ namespace {
         C0PSDUMPFREQ,
         STATDUMPFREQ,
         STEPINFOFQ,
+        PRINTRANKDISTRFQ,
         PSDUMPEACHTURN,
         PSDUMPFRAME,
         SPTDUMPFREQ,
@@ -72,6 +73,7 @@ namespace {
         REMOTEPARTDEL,
         RHODUMP,
         EBDUMP,
+        RANKDUMP,
         CSRDUMP,
         AUTOPHASE,
         NUMBLOCKS,
@@ -96,6 +98,7 @@ namespace {
         COMPUTEPERCENTILES,
         QM_MODE,
         AGGRESSIVE_STATE_SYNC,
+        LOADBALANCINGTHRESHOLD,
         SIZE
     };
 }  // namespace
@@ -128,22 +131,22 @@ Option::Option()
     itsAttr[PSDUMPFREQ] = Attributes::makeReal(
             "PSDUMPFREQ",
             "The frequency to dump the phase space, "
-            "i.e.dump data when step%psDumpFreq==0, its default value is 10.",
+            "i.e. dump data when step%psDumpFreq==0; 0 disables phase space dumps. "
+            "Its default value is 10.",
             psDumpFreq);
 
     itsAttr[C0PSDUMPFREQ] = Attributes::makeReal(
             "C0PSDUMPFREQ",
             "Optional phase-space dump frequency for particle container 0. "
-            "A negative value follows PSDUMPFREQ; zero disables c0 HDF5 dumps. "
-            "Positive values are checked on global PSDUMPFREQ dump steps, so use a "
-            "multiple of PSDUMPFREQ when thinning c0 output.",
+            "A negative value follows PSDUMPFREQ; zero disables container-0 HDF5 dumps. "
+            "Positive values are checked on global PSDUMPFREQ dump steps.",
             c0PsDumpFreq);
 
     itsAttr[STATDUMPFREQ] = Attributes::makeReal(
             "STATDUMPFREQ",
             "The frequency to dump statistical data "
             "(e.g. RMS beam quantities), i.e. dump data when step%statDumpFreq == 0, "
-            "its default value is 10.",
+            "0 disables statistical dumps. Its default value is 10.",
             statDumpFreq);
 
     itsAttr[STEPINFOFQ] = Attributes::makeReal(
@@ -151,6 +154,12 @@ Option::Option()
             "The frequency to print per-step tracking status lines. "
             "A value of 0 disables these status lines; its default value is 1.",
             stepInfoFreq);
+
+    itsAttr[PRINTRANKDISTRFQ] = Attributes::makeReal(
+            "PRINTRANKDISTRFQ",
+            "The frequency to print per-rank particle distribution tables. "
+            "A value of 0 disables these tables; its default value is 0.",
+            printRankDistrFreq);
 
     itsAttr[PSDUMPEACHTURN] = Attributes::makeBool(
             "PSDUMPEACHTURN",
@@ -232,6 +241,12 @@ Option::Option()
             "If true, in addition to the phase space the "
             "E and B field at each particle is also dumped into the H5 file)",
             ebDump);
+
+    itsAttr[RANKDUMP] = Attributes::makeBool(
+            "RANKDUMP",
+            "If true, the current MPI rank for each particle is dumped into the H5 file. "
+            "Default: false.",
+            rankDump);
 
     itsAttr[CSRDUMP] = Attributes::makeBool(
             "CSRDUMP",
@@ -349,11 +364,18 @@ Option::Option()
     itsAttr[AGGRESSIVE_STATE_SYNC] = Attributes::makeBool(
             "AGGRESSIVE_STATE_SYNC",
             "If true, every mutation of the shared BunchStateHandler flags "
-            "(moments-dirty, unitless-positions, emitting-now, first-repartition) "
+            "(moments-dirty, unitless-positions, emitting-now) "
             "performs an MPI allreduce so that all ranks converge to the same "
             "value. Guards against rank-local divergence at the cost of an extra "
             "collective on every state change. Default: false.",
             aggressiveStateSync);
+
+    itsAttr[LOADBALANCINGTHRESHOLD] = Attributes::makeReal(
+            "LOADBALANCINGTHRESHOLD",
+            "The threshold for triggering load balancing. If the ratio difference of particles in "
+            "a rank exceeds this threshold, load balancing will be triggered. Default is 0.05 "
+            "(5%). This threshold is only tested every `repartFreq` steps.",
+            loadBalancingThreshold);
 
     registerOwnership(AttributeHandler::STATEMENT);
 
@@ -370,6 +392,7 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setReal(itsAttr[C0PSDUMPFREQ], c0PsDumpFreq);
     Attributes::setReal(itsAttr[STATDUMPFREQ], statDumpFreq);
     Attributes::setReal(itsAttr[STEPINFOFQ], stepInfoFreq);
+    Attributes::setReal(itsAttr[PRINTRANKDISTRFQ], printRankDistrFreq);
     Attributes::setBool(itsAttr[PSDUMPEACHTURN], psDumpEachTurn);
     Attributes::setPredefinedString(itsAttr[PSDUMPFRAME], getDumpFrameString(psDumpFrame));
     Attributes::setReal(itsAttr[SPTDUMPFREQ], sptDumpFreq);
@@ -382,6 +405,7 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setReal(itsAttr[REBINFREQ], rebinFreq);
     Attributes::setBool(itsAttr[RHODUMP], rhoDump);
     Attributes::setBool(itsAttr[EBDUMP], ebDump);
+    Attributes::setBool(itsAttr[RANKDUMP], rankDump);
     Attributes::setBool(itsAttr[CSRDUMP], csrDump);
     Attributes::setReal(itsAttr[AUTOPHASE], autoPhase);
     Attributes::setBool(itsAttr[CZERO], cZero);
@@ -405,6 +429,7 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setString(
             itsAttr[QM_MODE], useQMAttributes ? std::string("ATTRIBUTES") : std::string("SINGLE"));
     Attributes::setBool(itsAttr[AGGRESSIVE_STATE_SYNC], aggressiveStateSync);
+    Attributes::setReal(itsAttr[LOADBALANCINGTHRESHOLD], loadBalancingThreshold);
 }
 
 Option::~Option() {}
@@ -421,6 +446,7 @@ void Option::execute() {
     remotePartDel         = Attributes::getReal(itsAttr[REMOTEPARTDEL]);
     rhoDump               = Attributes::getBool(itsAttr[RHODUMP]);
     ebDump                = Attributes::getBool(itsAttr[EBDUMP]);
+    rankDump              = Attributes::getBool(itsAttr[RANKDUMP]);
     csrDump               = Attributes::getBool(itsAttr[CSRDUMP]);
     enableHDF5            = Attributes::getBool(itsAttr[ENABLEHDF5]);
     enableVTK             = Attributes::getBool(itsAttr[ENABLEVTK]);
@@ -445,6 +471,15 @@ void Option::execute() {
     }
 
     aggressiveStateSync = Attributes::getBool(itsAttr[AGGRESSIVE_STATE_SYNC]);
+
+    // Set threshold and check if in the valid range [0, 1]
+    loadBalancingThreshold = Attributes::getReal(itsAttr[LOADBALANCINGTHRESHOLD]);
+    if (loadBalancingThreshold < 0.0 || loadBalancingThreshold > 1.0) {
+        throw OpalException(
+                "Option::execute",
+                "LOADBALANCINGTHRESHOLD must be in the range [0, 1]. Current value: "
+                        + std::to_string(loadBalancingThreshold));
+    }
 
     /// note: rangen is used only for the random number generator in the OPAL language
     ///       not for the distributions
@@ -473,22 +508,30 @@ void Option::execute() {
 
     if (itsAttr[PSDUMPFREQ]) {
         psDumpFreq = int(Attributes::getReal(itsAttr[PSDUMPFREQ]));
-        if (psDumpFreq == 0) psDumpFreq = std::numeric_limits<int>::max();
+        if (psDumpFreq < 0) {
+            throw OpalException("Option::execute", "PSDUMPFREQ must be non-negative.");
+        }
     }
 
     if (itsAttr[C0PSDUMPFREQ]) {
         c0PsDumpFreq = int(Attributes::getReal(itsAttr[C0PSDUMPFREQ]));
-        if (c0PsDumpFreq < -1) c0PsDumpFreq = -1;
     }
 
     if (itsAttr[STATDUMPFREQ]) {
         statDumpFreq = int(Attributes::getReal(itsAttr[STATDUMPFREQ]));
-        if (statDumpFreq == 0) statDumpFreq = std::numeric_limits<int>::max();
+        if (statDumpFreq < 0) {
+            throw OpalException("Option::execute", "STATDUMPFREQ must be non-negative.");
+        }
     }
 
     if (itsAttr[STEPINFOFQ]) {
         stepInfoFreq = int(Attributes::getReal(itsAttr[STEPINFOFQ]));
         if (stepInfoFreq < 0) stepInfoFreq = 0;
+    }
+
+    if (itsAttr[PRINTRANKDISTRFQ]) {
+        printRankDistrFreq = int(Attributes::getReal(itsAttr[PRINTRANKDISTRFQ]));
+        if (printRankDistrFreq < 0) printRankDistrFreq = 0;
     }
 
     if (itsAttr[SPTDUMPFREQ]) {

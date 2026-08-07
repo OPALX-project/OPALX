@@ -12,14 +12,12 @@
  *
  * 1. Basic API
  *    - getType()
- *    - bends()
  *    - amplitude / frequency / phase setters and getters
  *
  * 2. Geometry
- *    - getFieldExtend()
- *    - getElementDimensions()
- *    - getEdgeToBegin()
- *    - getEdgeToEnd()
+ *    - getFieldExtent()
+ *    - getGeometry().getEdgeToBegin()
+ *    - getGeometry().getEdgeToEnd()
  *
  * 3. Spatial behavior
  *    - apply() in entry region
@@ -124,28 +122,6 @@ private:
 };
 
 // ---------------------------------------------------------------------------
-// Dummy Geometry
-// ---------------------------------------------------------------------------
-class DummyGeometryTW : public BGeometryBase {
-public:
-    double getArcLength() const override { return 0.0; }
-    double getElementLength() const override { return length_m; }
-    void setElementLength(double length) override { length_m = length; }
-
-    Euclid3D getTransform(double, double) const override { return Euclid3D(); }
-
-private:
-    double length_m = 0.0;
-};
-
-// ---------------------------------------------------------------------------
-// Dummy Field
-// ---------------------------------------------------------------------------
-class DummyFieldTW : public EMField {
-public:
-    void scale(double) override {}
-};
-
 // ---------------------------------------------------------------------------
 // Minimal concrete TravelingWave
 // ---------------------------------------------------------------------------
@@ -161,11 +137,8 @@ public:
 
     void setTestElementLength(double v) { geom_.setElementLength(v); }
 
-    BGeometryBase& getGeometry() override { return geom_; }
-    const BGeometryBase& getGeometry() const override { return geom_; }
-
-    EMField& getField() override { return field_; }
-    const EMField& getField() const override { return field_; }
+    Geometry& getGeometry() override { return geom_; }
+    const Geometry& getGeometry() const override { return geom_; }
 
     void setAmplitude(double v) { amplitude_ = v; }
     void setFrequency(double v) { frequency_ = v; }
@@ -189,8 +162,7 @@ private:
     double frequency_ = 0.0;
     double phase_     = 0.0;
 
-    DummyGeometryTW geom_;
-    DummyFieldTW field_;
+    Geometry geom_;
 };
 
 // ---------------------------------------------------------------------------
@@ -242,8 +214,6 @@ protected:
 // ---------------------------------------------------------------------------
 TEST_F(TravelingWaveTest, GetType) { EXPECT_EQ(tw_->getType(), ElementType::TRAVELINGWAVE); }
 
-TEST_F(TravelingWaveTest, Bends) { EXPECT_FALSE(tw_->bends()); }
-
 TEST_F(TravelingWaveTest, GetSetAmplitudeFrequencyPhase) {
     tw_->setAmplitude(5.0);
     tw_->setFrequency(2.0);
@@ -259,7 +229,7 @@ TEST_F(TravelingWaveTest, GetSetAmplitudeFrequencyPhase) {
 // ---------------------------------------------------------------------------
 TEST_F(TravelingWaveTest, GetDimensions) {
     double zBegin = 0.0, zEnd = 0.0;
-    tw_->getFieldExtend(zBegin, zEnd);
+    tw_->getFieldExtent(zBegin, zEnd);
 
     EXPECT_DOUBLE_EQ(zBegin, -1.0);  // -0.5 * periodLength
     EXPECT_DOUBLE_EQ(zEnd, 3.0);     // zBegin + elementLength
@@ -267,15 +237,16 @@ TEST_F(TravelingWaveTest, GetDimensions) {
 
 TEST_F(TravelingWaveTest, GetElementDimensions) {
     double begin = 0.0, end = 0.0;
-    tw_->getElementDimensions(begin, end);
+    begin = 0.0;
+    end   = tw_->getGeometry().getElementLength();
 
     EXPECT_DOUBLE_EQ(begin, 0.0);
     EXPECT_DOUBLE_EQ(end, 4.0);
 }
 
 TEST_F(TravelingWaveTest, EdgeTransforms) {
-    auto beg = tw_->getEdgeToBegin();
-    auto end = tw_->getEdgeToEnd();
+    auto beg = tw_->getGeometry().getEdgeToBegin();
+    auto end = tw_->getGeometry().getEdgeToEnd();
 
     EXPECT_DOUBLE_EQ(beg.getOrigin()(2), 0.0);
     EXPECT_DOUBLE_EQ(end.getOrigin()(2), 4.0);
@@ -436,8 +407,13 @@ TEST_F(TravelingWaveTest, FieldmapOutOfBounds) {
     Vector_t<double, 3> E = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-    bool out = tw_->apply(R, P, 0.0, E, B);
-    EXPECT_TRUE(out);
+    tw_->apply(R, P, 0.0, E, B);
+
+    // Out-of-bounds: no field is applied.
+    EXPECT_DOUBLE_EQ(E(0), 0.0);
+    EXPECT_DOUBLE_EQ(E(1), 0.0);
+    EXPECT_DOUBLE_EQ(E(2), 0.0);
+    EXPECT_TRUE(tw_->applyToReferenceParticle(R, P, 0.0, E, B));
 }
 
 TEST_F(TravelingWaveTest, IsInside) {

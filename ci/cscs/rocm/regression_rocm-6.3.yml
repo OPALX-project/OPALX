@@ -1,0 +1,31 @@
+include:
+  - local: "ci/cscs/common.yml"
+  - local: "ci/cscs/regression-common.yml"
+
+variables:
+  ROCM6_3_UENV: "prgenv-gnu/25.07-6.3.3:v12"
+  BUILD_ARCH: "gpu-rocm-mi300"
+  REGTEST_CONFIG: "rocm.conf"
+  CTEST_SITE: "Beverin mi300 ROCm 6.3.3"
+  SRUN_ARGS: "--uenv=${ROCM6_3_UENV} --view=${WITH_UENV_VIEW} --repo=${SCRATCH}/.uenv-images-ci-beverin --gpus-per-task=1"
+  HSA_XNACK: "1"
+
+# ---------------------------------------------------------
+# Common settings for OPALX regression tests (ROCm / MI300)
+# ---------------------------------------------------------
+.opalx-regression-rocm-common:
+  extends:
+    - .opalx-regression-common
+    - .baremetal-runner-beverin-mi300
+  variables:
+    SLURM_CPUS_PER_TASK: 8
+
+# ---------------------------------------------------------
+# rocm mi300 regression release
+# ---------------------------------------------------------
+opalx-regression-rocm6_3-mi300-release:
+  extends: .opalx-regression-rocm-common
+  needs: ["opalx-build-rocm6_3-release"]
+  variables:
+    BUILD_DIR: "build-$CI_COMMIT_SHORT_SHA-release"
+    BUILD_TYPE: Release

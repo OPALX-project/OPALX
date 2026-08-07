@@ -5,11 +5,9 @@
 #include "Algorithms/OrbitThreader.h"
 #include "Algorithms/PartData.h"
 #include "BeamlineCore/MultipoleRep.h"
-#include "BeamlineGeometry/NullGeometry.h"
-#include "BeamlineGeometry/PlacementPose.h"
+#include "BeamlineGeometry/Geometry.h"
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
-#include "Fields/NullField.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
@@ -27,14 +25,14 @@ namespace {
         DummyBeamline() : Beamline("dummy") {}
 
         ElementType getType() const override { return ElementType::BEAMLINE; }
-        BGeometryBase& getGeometry() override { return geometry_; }
-        const BGeometryBase& getGeometry() const override { return geometry_; }
+        Geometry& getGeometry() override { return geometry_; }
+        const Geometry& getGeometry() const override { return geometry_; }
         void accept(BeamlineVisitor& visitor) const override { visitor.visitBeamline(*this); }
         ElementBase* clone() const override { return new DummyBeamline(*this); }
         void iterate(BeamlineVisitor&, bool) const override {}
 
     private:
-        NullGeometry geometry_;
+        Geometry geometry_{Geometry::makeNull()};
     };
 
     /**
@@ -43,30 +41,20 @@ namespace {
      * This models the post-redesign case where placement/geometry uses the body
      * extent while tracking constraints must use the field-support interval.
      */
-    class FieldSupportOnlyComponent final : public Component {
+    class FieldSupportOnlyComponent final : public ElementBase {
     public:
         FieldSupportOnlyComponent(
                 const std::string& name, const double fieldBegin, const double fieldEnd)
-            : Component(name), fieldBegin_m(fieldBegin), fieldEnd_m(fieldEnd) {}
+            : ElementBase(name), fieldBegin_m(fieldBegin), fieldEnd_m(fieldEnd) {}
 
         void accept(BeamlineVisitor&) const override {}
         ElementBase* clone() const override { return new FieldSupportOnlyComponent(*this); }
 
-        EMField& getField() override { return field_m; }
-        const EMField& getField() const override { return field_m; }
+        void apply(const std::shared_ptr<ParticleContainer_t>&) override {}
 
-        bool apply(const std::shared_ptr<ParticleContainer_t>&) override { return false; }
-
-        bool apply(
-                const size_t&, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&) override {
-            return false;
-        }
-
-        bool apply(
+        void apply(
                 const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&,
-                Vector_t<double, 3>&, Vector_t<double, 3>&) override {
-            return false;
-        }
+                Vector_t<double, 3>&, Vector_t<double, 3>&) override {}
 
         bool applyToReferenceParticle(
                 const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&,
@@ -74,25 +62,23 @@ namespace {
             return false;
         }
 
-        void initialise(PartBunch_t*, double&, double&) override {}
+        void initialise(PartBunch_t*) override {}
         void finalise() override {}
-        bool bends() const override { return false; }
 
-        void getFieldExtend(double& zBegin, double& zEnd) const override {
+        void getFieldExtent(double& zBegin, double& zEnd) const override {
             zBegin = fieldBegin_m;
             zEnd   = fieldEnd_m;
         }
 
         ElementType getType() const override { return ElementType::ANY; }
 
-        BGeometryBase& getGeometry() override { return geometry_m; }
-        const BGeometryBase& getGeometry() const override { return geometry_m; }
+        Geometry& getGeometry() override { return geometry_m; }
+        const Geometry& getGeometry() const override { return geometry_m; }
 
     private:
         double fieldBegin_m;
         double fieldEnd_m;
-        NullGeometry geometry_m;
-        NullField field_m;
+        Geometry geometry_m{Geometry::makeNull()};
     };
 }  // namespace
 
@@ -165,10 +151,10 @@ protected:
             const std::string& name, const double length, const double entryPosition,
             const double normalComponent) {
         auto quadrupole = std::make_shared<MultipoleRep>(name);
-        quadrupole->setElementLength(length);
+        quadrupole->getGeometry().setElementLength(length);
         quadrupole->setNormalComponent(1, normalComponent);
-        quadrupole->setPlacementPose(PlacementPose(
-                CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, entryPosition), Quaternion())));
+        quadrupole->setCSTrafoGlobal2Local(
+                CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, entryPosition), Quaternion()));
         quadrupole->fixPosition();
         return quadrupole;
     }
@@ -176,9 +162,9 @@ protected:
     std::shared_ptr<FieldSupportOnlyComponent> makePlacedFieldSupportOnlyComponent(
             const std::string& name, const double entryPosition, const double fieldLength) {
         auto component = std::make_shared<FieldSupportOnlyComponent>(name, 0.0, fieldLength);
-        component->setElementLength(0.0);
-        component->setPlacementPose(PlacementPose(
-                CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, entryPosition), Quaternion())));
+        component->getGeometry().setElementLength(0.0);
+        component->setCSTrafoGlobal2Local(
+                CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, entryPosition), Quaternion()));
         component->fixPosition();
         return component;
     }
@@ -187,22 +173,7 @@ protected:
     std::shared_ptr<DataSink> dataSink_m;
 };
 
-TEST_F(OrbitThreaderTest, ExposesEmptyReferencePathModelBeforeExecution) {
-    StepSizeConfig stepSizes;
-    stepSizes.push_back(1.0e-12, 1.0, 8);
-    stepSizes.resetIterator();
-
-    PartData reference(1.0, 9.382720813e8, 1.0e6);
-    OpalBeamline beamline;
-    OrbitThreader threader(
-            reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
-            1.0e-12, stepSizes, beamline);
-
-    EXPECT_TRUE(threader.getReferencePathModel().empty());
-    EXPECT_TRUE(threader.getActionRangeRegistrationModel().empty());
-}
-
-TEST_F(OrbitThreaderTest, ExecutesOverlapAndBuildsTracedAndRegistrationModels) {
+TEST_F(OrbitThreaderTest, ExecutesOverlapAndRecordsBothElements) {
     auto bunch = makeBunch(0);
 
     DummyBeamline beamlineForVisitor;
@@ -222,43 +193,17 @@ TEST_F(OrbitThreaderTest, ExecutesOverlapAndBuildsTracedAndRegistrationModels) {
     PartData reference(1.0, 9.382720813e8, 1.0e6);
     OrbitThreader threader(
             reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
-            1.0e-11, stepSizes, beamline);
+            1.0e-11, stepSizes, beamline, /*isDesignBeam=*/true);
 
     threader.execute();
 
-    const ReferencePathModel& tracedModel = threader.getReferencePathModel();
-    ASSERT_FALSE(tracedModel.empty());
-
-    bool foundOverlap = false;
-    for (const auto& segment : tracedModel.getSegments()) {
-        if (segment.getActiveElements().size() != 2u) {
-            continue;
-        }
-
-        std::set<std::string> activeNames;
-        for (const auto& element : segment.getActiveElements()) {
-            activeNames.insert(element->getName());
-        }
-
-        if (activeNames == std::set<std::string>{"Q_LONG", "Q_SHORT"}) {
-            foundOverlap = true;
-            EXPECT_NEAR(segment.getBegin(), 0.45, 0.02);
-            EXPECT_NEAR(segment.getEnd(), 0.5, 0.02);
-            break;
-        }
+    // The two quadrupoles overlap on s in [0.45, 0.5]; a query centred there returns both.
+    IndexMap::value_t elements = threader.query(0.475, 0.01);
+    std::set<std::string> activeNames;
+    for (const auto& element : elements) {
+        activeNames.insert(element->getName());
     }
-    EXPECT_TRUE(foundOverlap);
-
-    const ReferencePathModel& registrationModel = threader.getActionRangeRegistrationModel();
-    ASSERT_EQ(registrationModel.size(), 2u);
-
-    std::set<std::string> registeredNames;
-    for (const auto& segment : registrationModel.getSegments()) {
-        ASSERT_EQ(segment.getActiveElements().size(), 1u);
-        EXPECT_TRUE(segment.hasLegacyElementEdge());
-        registeredNames.insert((*segment.getActiveElements().begin())->getName());
-    }
-    EXPECT_EQ(registeredNames, (std::set<std::string>{"Q_LONG", "Q_SHORT"}));
+    EXPECT_EQ(activeNames, (std::set<std::string>{"Q_LONG", "Q_SHORT"}));
 }
 
 TEST_F(OrbitThreaderTest, UsesFieldSupportExtentForLengthCheck) {
@@ -279,7 +224,7 @@ TEST_F(OrbitThreaderTest, UsesFieldSupportExtentForLengthCheck) {
     PartData reference(1.0, 9.382720813e8, 1.0e6);
     OrbitThreader threader(
             reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
-            1.0e-12, stepSizes, beamline);
+            1.0e-12, stepSizes, beamline, /*isDesignBeam=*/true);
 
     EXPECT_NO_THROW(threader.execute());
 }
