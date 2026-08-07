@@ -228,11 +228,7 @@ namespace ParticleBinning {
                     "Team-based histogram scratch memory exceeds the active Kokkos backend limit.");
         }
 
-        constexpr size_type preferred_team_size      = 128;
-        constexpr size_type particles_per_team_scale = 8;
-        const size_type block_size = preferred_team_size * particles_per_team_scale;
-        const size_type num_leagues =
-                (localNumParticles + block_size - 1) / block_size;  // number of teams!
+        constexpr size_type particles_per_thread = 8;
 
         auto initLocalHist = KOKKOS_LAMBDA(const member_type& teamMember) {
             // Allocate team-local histogram in scratch memory
@@ -245,8 +241,10 @@ namespace ParticleBinning {
                     });
             teamMember.team_barrier();
 
-            const size_type start_i = teamMember.league_rank() * block_size;
-            const size_type end_i   = Kokkos::min(start_i + block_size, localNumParticles);
+            const size_type particles_per_team =
+                    static_cast<size_type>(teamMember.team_size()) * particles_per_thread;
+            const size_type start_i = teamMember.league_rank() * particles_per_team;
+            const size_type end_i   = Kokkos::min(start_i + particles_per_team, localNumParticles);
 
             Kokkos::parallel_for(
                     Kokkos::TeamThreadRange(teamMember, start_i, end_i), [&](const size_type i) {
@@ -264,31 +262,26 @@ namespace ParticleBinning {
                     });
         };
 
-        team_policy sizing_policy(num_leagues, Kokkos::AUTO());
-        const int max_team_size =
-                sizing_policy.team_size_max(initLocalHist, Kokkos::ParallelForTag());
-        if (max_team_size < 1) {
+        // Ask Kokkos which team size AUTO would select for this kernel and scratch allocation.
+        team_policy sizing_policy(1, Kokkos::AUTO());
+        sizing_policy = sizing_policy.set_scratch_size(0, Kokkos::PerTeam(shared_size));
+        const int team_size =
+                sizing_policy.team_size_recommended(initLocalHist, Kokkos::ParallelForTag());
+        if (team_size < 1) {
             throw OpalException(
                     "AdaptBins::executeInitLocalHistoReductionTeamFor",
-                    "The active Kokkos backend reported no valid team size for team-based "
+                    "The active Kokkos backend reported no recommended team size for team-based "
                     "histogram reduction.");
         }
 
-        const size_type team_size =
-                static_cast<size_type>(std::min<int>(preferred_team_size, max_team_size));
+        const size_type particles_per_team =
+                static_cast<size_type>(team_size) * particles_per_thread;
+        const size_type num_leagues =
+                (localNumParticles + particles_per_team - 1) / particles_per_team;
 
-        if (team_size != preferred_team_size) {
-            Inform msg("AdaptBins");
-            msg << level1 << "WARNING: Requested team_size=" << preferred_team_size
-                << " for team-based histogram reduction, but the active Kokkos backend allows only "
-                << max_team_size << ". Using team_size=" << team_size << " instead." << endl;
-        }
-
-        // Set up team policy with scratch memory allocation for each team
+        // Launch with the same team size used to calculate the league partition.
         team_policy policy(num_leagues, team_size);
         policy = policy.set_scratch_size(0, Kokkos::PerTeam(shared_size));
-
-        // Launch a team parallel_for with the scratch memory setup
         Kokkos::parallel_for("initLocalHist", policy, initLocalHist);
 
         localBinHisto_m.modify_device();
