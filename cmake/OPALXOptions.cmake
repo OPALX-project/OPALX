@@ -135,12 +135,19 @@ endif()
 # Kokkos architecture selection
 # -----------------------------------------------------------------------------
 
+set(OPALX_KOKKOS_ARCHITECTURES
+    HOPPER90 AMPERE80 AMPERE86 AMPERE87 VOLTA70 VOLTA72 PASCAL61 PASCAL60 ADA102
+    BLACKWELL100 BLACKWELL103 BLACKWELL120 BLACKWELL121
+    AMD_GFX1101 AMD_GFX1151 AMD_GFX1152
+    BDW SKX CNL ZEN ZEN2 ZEN3 ARM80 ARM81
+    INTEL_GEN9 INTEL_GEN11 INTEL_GEN12LP INTEL_DG1 INTEL_XEHP INTEL_PVC)
+
 set(ARCH "" CACHE STRING
-    "Kokkos architecture (CMAKE_CUDA_ARCHITECTURES is auto-configured from this): HOPPER90, AMPERE80, AMPERE86, AMPERE87, VOLTA70, VOLTA72, PASCAL61, PASCAL60, ADA102, BDW, SKX, CNL, ZEN, ZEN2, ZEN3, ARM80, ARM81, INTEL_GEN9, INTEL_GEN11, INTEL_GEN12LP, INTEL_DG1, INTEL_XEHP, INTEL_PVC")
-set_property(CACHE ARCH PROPERTY STRINGS "" HOPPER90 AMPERE80 AMPERE86 AMPERE87 VOLTA70 VOLTA72 PASCAL61 PASCAL60 ADA102 BDW SKX CNL ZEN ZEN2 ZEN3 ARM80 ARM81 INTEL_GEN9 INTEL_GEN11 INTEL_GEN12LP INTEL_DG1 INTEL_XEHP INTEL_PVC)
+    "Kokkos architecture. CUDA architectures auto-configure CMAKE_CUDA_ARCHITECTURES; AMD_GFX architectures auto-configure CMAKE_HIP_ARCHITECTURES for HIP.")
+set_property(CACHE ARCH PROPERTY STRINGS "" ${OPALX_KOKKOS_ARCHITECTURES})
 
 # Clear all architecture flags (include new ones for future-proofing)
-foreach(a HOPPER90 AMPERE80 AMPERE86 AMPERE87 VOLTA70 VOLTA72 PASCAL61 PASCAL60 ADA102 BDW SKX CNL ZEN ZEN2 ZEN3 ARM80 ARM81 INTEL_GEN9 INTEL_GEN11 INTEL_GEN12LP INTEL_DG1 INTEL_XEHP INTEL_PVC)
+foreach(a ${OPALX_KOKKOS_ARCHITECTURES})
     set(Kokkos_ARCH_${a} OFF CACHE BOOL "" FORCE)
 endforeach()
 
@@ -172,11 +179,17 @@ endif()
 
 # Validate architecture configuration for non-CUDA backends
 if("HIP" IN_LIST OPALX_PLATFORMS)
+    if(ARCH MATCHES "^AMD_GFX([0-9A-Fa-f]+)$")
+        string(TOLOWER "gfx${CMAKE_MATCH_1}" _opalx_hip_architecture)
+        set(CMAKE_HIP_ARCHITECTURES "${_opalx_hip_architecture}" CACHE STRING
+            "HIP GPU architecture (auto-derived from ARCH=${ARCH})" FORCE)
+    endif()
+
     if(NOT DEFINED CMAKE_HIP_ARCHITECTURES OR CMAKE_HIP_ARCHITECTURES STREQUAL "")
         message(FATAL_ERROR 
             "HIP backend selected but CMAKE_HIP_ARCHITECTURES is not set. "
             "Please explicitly specify the target HIP GPU architecture(s) via:\n"
-            " -DCMAKE_HIP_ARCHITECTURES=<arch>.\n")
+            " -DARCH=AMD_GFX1152 or -DCMAKE_HIP_ARCHITECTURES=gfx1152.\n")
     endif()
     colour_message(STATUS ${Green} "✅ HIP backend: CMAKE_HIP_ARCHITECTURES=${CMAKE_HIP_ARCHITECTURES}")
 endif()
