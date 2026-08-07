@@ -231,23 +231,22 @@ public:
 
     /**
      * @brief Apply to all particles. Kernel launch moved inside the function.
-     *
-     * @returns true if particle is out-of-bounds (lost), false otherwise
      */
-    virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc);
+    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc);
 
     /**
      * @brief Apply to particle with position R and momentum P
+     *
+     * Fields are only applied to particles inside the element's field bounds
+     * and transverse aperture.
      *
      * @param R Position
      * @param P Momentum
      * @param t Time
      * @param E Electric Field
      * @param B Magnetic Field
-     *
-     * @returns true if particle is out-of-bounds (lost), false otherwise
      */
-    virtual bool apply(
+    virtual void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 

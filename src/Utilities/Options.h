@@ -50,10 +50,12 @@ namespace Options {
     /// The current random seed.
     extern int seed;
 
-    /// The frequency to dump the phase space, i.e.dump data when step%psDumpFreq==0
+    /// The frequency to dump the phase space, i.e. dump data when
+    /// step%psDumpFreq==0; 0 disables phase space dumps.
     extern int psDumpFreq;
 
-    /// The frequency to dump statistical values, e.e. dump data when step%statDumpFreq==0
+    /// The frequency to dump statistical values, i.e. dump data when
+    /// step%statDumpFreq==0; 0 disables statistical dumps.
     extern int statDumpFreq;
 
     /// The frequency to print per-step tracking status lines; 0 disables them.
