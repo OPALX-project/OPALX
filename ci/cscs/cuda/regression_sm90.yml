@@ -3,11 +3,11 @@ include:
   - local: "ci/cscs/regression-common.yml"
 
 variables:
-  CUDA12_9_UENV: "/capstor/store/cscs/cscs/public/uenvs/opal-x-gh200-mpich-gcc-2025-12-19-cuda-12.9.1.squashfs"
+  CUDA_UENV: "/capstor/store/cscs/cscs/public/uenvs/opal-x-gh200-mpich-gcc-2026-08-04-cuda-13.1.1.squashfs"
   BUILD_ARCH: "gpu-cuda-gh200"
   REGTEST_CONFIG: "cuda.conf"
-  CTEST_SITE: "Daint gh200 CUDA 12.9.1"
-  SRUN_ARGS: "--uenv=${CUDA12_9_UENV} --view=${WITH_UENV_VIEW} --repo=${SCRATCH}/.uenv-images-ci-daint --gpus-per-task=1"
+  CTEST_SITE: "Daint gh200 CUDA 13.1.1"
+  SRUN_ARGS: "--uenv=${CUDA_UENV} --view=${WITH_UENV_VIEW} --repo=${SCRATCH}/.uenv-images-ci-daint --gpus-per-task=1"
   WRAPPER: "/user-environment/wrapper-mpi.sh"
 
 # ---------------------------------------------------------
@@ -23,9 +23,9 @@ variables:
 # ---------------------------------------------------------
 # cuda gh200 regression release
 # ---------------------------------------------------------
-opalx-regression-cuda12-sm90-release:
+opalx-regression-cuda13-sm90-release:
   extends: .opalx-regression-cuda-common
-  needs: ["opalx-build-cuda12-sm90-release"]
+  needs: ["opalx-build-cuda13-sm90-release"]
   variables:
     BUILD_DIR: "build-$CI_COMMIT_SHORT_SHA-release"
     BUILD_TYPE: Release
