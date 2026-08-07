@@ -199,7 +199,7 @@ double OpalFlatTop::toBirthTime(double opalPulseTime) const {
 
 Vector_t<double, 3> OpalFlatTop::getInitialReferenceMomentum() const {
     if (emissionModel_m == "ASTRA") {
-        return Vector_t<double, 3>({0.0, 0.0, 0.5 * euclidean_norm(P0_m)});
+        return P0_m + Vector_t<double, 3>({0.0, 0.0, 0.5 * emissionMomentumMagnitude_m});
     }
     return P0_m;
 }
@@ -332,7 +332,7 @@ void OpalFlatTop::generateLocalParticles(
     const Vector_t<double, 3> sigmaR = sigmaR_m;
     const Vector_t<double, 3> R0     = R0_m;
     const Vector_t<double, 3> P0     = P0_m;
-    const double pTot                = euclidean_norm(P0);
+    const double pTot                = emissionMomentumMagnitude_m;
     const bool useAstra              = emissionModel_m == "ASTRA";
     const bool useNone               = emissionModel_m == "NONE";
     if (!useAstra && !useNone) {
@@ -357,9 +357,9 @@ void OpalFlatTop::generateLocalParticles(
                     const double rand2 = generator.drand(0.0, 1.0);
                     const double phi   = 2.0 * Kokkos::acos(Kokkos::sqrt(rand1));
                     const double angle = twoPi * rand2;
-                    p[0]               = pTot * Kokkos::sin(phi) * Kokkos::cos(angle);
-                    p[1]               = pTot * Kokkos::sin(phi) * Kokkos::sin(angle);
-                    p[2]               = pTot * Kokkos::fabs(Kokkos::cos(phi));
+                    p[0] += pTot * Kokkos::sin(phi) * Kokkos::cos(angle);
+                    p[1] += pTot * Kokkos::sin(phi) * Kokkos::sin(angle);
+                    p[2] += pTot * Kokkos::fabs(Kokkos::cos(phi));
                 }
                 randPool.free_state(generator);
 
@@ -401,7 +401,7 @@ void OpalFlatTop::initDomainDecomp(double BoxIncr) {
     hr_m                            = (1.0 + BoxIncr / 100.0) * (l / nr_m);
     mesh->setMeshSpacing(hr_m);
     mesh->setOrigin(o - 0.5 * hr_m * BoxIncr / 100.0);
-    pc_m->getLayout().updateLayout(*FL, *mesh);
+    pc_m->updateLayout(*FL, *mesh);
 }
 
 void OpalFlatTop::setWithDomainDecomp(bool withDomainDecomp) {

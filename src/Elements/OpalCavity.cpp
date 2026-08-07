@@ -93,11 +93,7 @@ void OpalCavity::update() {
     double phi0          = Attributes::getReal(itsAttr[PHI0]);
     double kineticEnergy = Attributes::getReal(itsAttr[DESIGNENERGY]);
 
-    rfc->setElementLength(length);
-
-    rfc->setAmplitude(Units::MVpm2Vpm * peak);
-    rfc->setFrequency(freq);
-    rfc->setPhase(phase);
+    rfc->getGeometry().setElementLength(length);
 
     rfc->dropFieldmaps();
 

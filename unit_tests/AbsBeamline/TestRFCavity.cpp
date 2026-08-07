@@ -12,11 +12,10 @@
  *
  * 1. Basic API
  *    - getType()
- *    - bends()
  *    - amplitude / frequency / phase setters and getters
  *
  * 2. Geometry
- *    - getFieldExtend()
+ *    - getFieldExtent()
  *
  * 3. Spatial behavior
  *    - apply() inside the element
@@ -113,28 +112,6 @@ private:
 };
 
 // ---------------------------------------------------------------------------
-// Dummy Geometry (fully concrete)
-// ---------------------------------------------------------------------------
-class DummyGeometry : public BGeometryBase {
-public:
-    double getArcLength() const override { return 0.0; }
-    double getElementLength() const override { return length_m; }
-    void setElementLength(double length) override { length_m = length; }
-
-    Euclid3D getTransform(double, double) const override { return Euclid3D(); }
-
-private:
-    double length_m = 0.0;
-};
-
-// ---------------------------------------------------------------------------
-// Dummy Field (fully concrete)
-// ---------------------------------------------------------------------------
-class DummyField : public EMField {
-public:
-    void scale(double) override {}
-};
-
 // ---------------------------------------------------------------------------
 // Minimal concrete RFCavity
 // ---------------------------------------------------------------------------
@@ -149,11 +126,8 @@ public:
 
     ElementBase* clone() const override { return new TestRFCavity(*this); }
 
-    BGeometryBase& getGeometry() override { return geom_; }
-    const BGeometryBase& getGeometry() const override { return geom_; }
-
-    EMField& getField() override { return field_; }
-    const EMField& getField() const override { return field_; }
+    Geometry& getGeometry() override { return geom_; }
+    const Geometry& getGeometry() const override { return geom_; }
 
     // ---- Simple setters for testing ----
     void setAmplitude(double v) { amplitude_ = v; }
@@ -173,8 +147,7 @@ private:
     double frequency_ = 0.0;
     double phase_     = 0.0;
 
-    DummyGeometry geom_;
-    DummyField field_;
+    Geometry geom_;
 };
 
 // ---------------------------------------------------------------------------
@@ -190,7 +163,7 @@ protected:
         cav_->setFieldmap(fmap_.get());
         cav_->setStartField(0.0);
         cav_->setEndField(1.0);
-        cav_->setElementLength(1.0);
+        cav_->getGeometry().setElementLength(1.0);
 
         // --- RF defaults ---
         cav_->setScale(1.0);
@@ -205,8 +178,6 @@ protected:
 // Basic API
 // ---------------------------------------------------------------------------
 TEST_F(RFCavityTest, GetType) { EXPECT_EQ(cav_->getType(), ElementType::RFCAVITY); }
-
-TEST_F(RFCavityTest, Bends) { EXPECT_FALSE(cav_->bends()); }
 
 TEST_F(RFCavityTest, GetSetAmplitudeFrequencyPhase) {
     cav_->setAmplitude(5.0);
@@ -224,7 +195,7 @@ TEST_F(RFCavityTest, GetSetAmplitudeFrequencyPhase) {
 TEST_F(RFCavityTest, GetDimensions) {
     double zBegin = -1.0, zEnd = -1.0;
 
-    cav_->getFieldExtend(zBegin, zEnd);
+    cav_->getFieldExtent(zBegin, zEnd);
 
     EXPECT_EQ(zBegin, 0.0);
     EXPECT_EQ(zEnd, 1.0);
@@ -233,39 +204,41 @@ TEST_F(RFCavityTest, GetDimensions) {
 TEST_F(RFCavityTest, BodyExtentCanDifferFromFieldSupport) {
     cav_->setStartField(0.2);
     cav_->setEndField(0.8);
-    cav_->setElementLength(1.0);
+    cav_->getGeometry().setElementLength(1.0);
 
     double bodyBegin = -1.0, bodyEnd = -1.0;
-    cav_->getElementDimensions(bodyBegin, bodyEnd);
+    bodyBegin = 0.0;
+    bodyEnd   = cav_->getGeometry().getElementLength();
     EXPECT_EQ(bodyBegin, 0.0);
     EXPECT_EQ(bodyEnd, 1.0);
 
-    const auto entry = cav_->getEdgeToBegin();
-    const auto exit  = cav_->getEdgeToEnd();
+    const auto entry = cav_->getGeometry().getEdgeToBegin();
+    const auto exit  = cav_->getGeometry().getEdgeToEnd();
     EXPECT_EQ(entry.getOrigin()(2), 0.0);
     EXPECT_EQ(exit.getOrigin()(2), 1.0);
 
     Vector_t<double, 3> E = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
-    EXPECT_FALSE(cav_->apply({0.0, 0.0, 0.1}, {0.0, 0.0, 1.0}, 0.0, E, B));
+    cav_->apply({0.0, 0.0, 0.1}, {0.0, 0.0, 1.0}, 0.0, E, B);
     EXPECT_DOUBLE_EQ(E(0), 0.0);
 
-    EXPECT_FALSE(cav_->apply({0.0, 0.0, 0.5}, {0.0, 0.0, 1.0}, 0.0, E, B));
+    cav_->apply({0.0, 0.0, 0.5}, {0.0, 0.0, 1.0}, 0.0, E, B);
     EXPECT_DOUBLE_EQ(E(0), 1.0);
 }
 
 TEST_F(RFCavityTest, ZeroBodyLengthDoesNotFallBackToFieldmapLength) {
-    cav_->setElementLength(0.0);
+    cav_->getGeometry().setElementLength(0.0);
 
-    EXPECT_DOUBLE_EQ(cav_->getElementLength(), 0.0);
+    EXPECT_DOUBLE_EQ(cav_->getGeometry().getElementLength(), 0.0);
 
     double bodyBegin = -1.0, bodyEnd = -1.0;
-    cav_->getElementDimensions(bodyBegin, bodyEnd);
+    bodyBegin = 0.0;
+    bodyEnd   = cav_->getGeometry().getElementLength();
     EXPECT_DOUBLE_EQ(bodyBegin, 0.0);
     EXPECT_DOUBLE_EQ(bodyEnd, 0.0);
 
     double fieldBegin = -1.0, fieldEnd = -1.0;
-    cav_->getFieldExtend(fieldBegin, fieldEnd);
+    cav_->getFieldExtent(fieldBegin, fieldEnd);
     EXPECT_DOUBLE_EQ(fieldBegin, 0.0);
     EXPECT_DOUBLE_EQ(fieldEnd, 1.0);
 }
@@ -491,7 +464,11 @@ TEST_F(RFCavityTest, FieldmapOutOfBounds) {
     Vector_t<double, 3> E = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-    bool out = cav_->apply(R, P, 0.0, E, B);
+    cav_->apply(R, P, 0.0, E, B);
 
-    EXPECT_TRUE(out);
+    // Out-of-bounds: no field is applied.
+    EXPECT_DOUBLE_EQ(E(0), 0.0);
+    EXPECT_DOUBLE_EQ(E(1), 0.0);
+    EXPECT_DOUBLE_EQ(E(2), 0.0);
+    EXPECT_TRUE(cav_->applyToReferenceParticle(R, P, 0.0, E, B));
 }

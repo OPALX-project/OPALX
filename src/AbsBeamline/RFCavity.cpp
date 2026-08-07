@@ -9,7 +9,7 @@
 
 #include <filesystem>
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Fields/Astra1DDynamic.h"
 #include "Fields/FM2DDynamic.h"
 #include "Fields/Fieldmap.h"
@@ -39,7 +39,7 @@ const BiMap<CavityType, std::string> RFCavity::bmCavityTypeString_s = []() {
 RFCavity::RFCavity() : RFCavity("") {}
 
 RFCavity::RFCavity(const RFCavity& right)
-    : Component(right),
+    : ElementBase(right),
       phaseTD_m(right.phaseTD_m),
       phaseName_m(right.phaseName_m),
       amplitudeTD_m(right.amplitudeTD_m),
@@ -73,7 +73,7 @@ RFCavity::RFCavity(const RFCavity& right)
       num_points_m(right.num_points_m) {}
 
 RFCavity::RFCavity(const std::string& name)
-    : Component(name),
+    : ElementBase(name),
       phaseTD_m(nullptr),
       amplitudeTD_m(nullptr),
       frequencyTD_m(nullptr),
@@ -115,7 +115,7 @@ void RFCavity::accept(BeamlineVisitor& visitor) const { visitor.visitRFCavity(*t
  * @note TODO: Check if getFieldstrength(R, tmpE, tmpB) returns 0 outside of RF cavity to skip if
  * statement
  */
-bool RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     // RF parameters (copied to device)
     double freq  = frequency_m;
     double scale = scale_m + scaleError_m;
@@ -146,35 +146,20 @@ bool RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
                 "RFCavity particle application currently requires an FM2DDynamic or Astra1DDynamic "
                 "field map.");
     }
-
-    return false;
 }
 
-bool RFCavity::apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
-    auto Rview                              = pc->R.getView();
-    auto Pview                              = pc->P.getView();
-
-    const Vector_t<double, 3> R = Rview(i);
-    const Vector_t<double, 3> P = Pview(i);
-
-    return apply(R, P, t, E, B);
-}
-
-bool RFCavity::apply(
+void RFCavity::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     if (R(2) >= startField_m && R(2) < endField_m) {
         Vector_t<double, 3> tmpE({0.0, 0.0, 0.0}), tmpB({0.0, 0.0, 0.0});
 
         bool outOfBounds = fieldmap_m->getFieldstrength(R, tmpE, tmpB);
-        if (outOfBounds) return getFlagDeleteOnTransverseExit();
+        if (outOfBounds) return;
 
         E += (scale_m + scaleError_m) * std::cos(frequency_m * t + phase_m + phaseError_m) * tmpE;
         B -= (scale_m + scaleError_m) * std::sin(frequency_m * t + phase_m + phaseError_m) * tmpB;
     }
-    return false;
 }
 
 bool RFCavity::applyToReferenceParticle(
@@ -192,7 +177,7 @@ bool RFCavity::applyToReferenceParticle(
     return false;
 }
 
-void RFCavity::initialise(PartBunch_t* bunch, double& startField, double& endField) {
+void RFCavity::initialise(PartBunch_t* bunch) {
     startField_m = endField_m = 0.0;
     if (bunch == nullptr) {
         return;
@@ -226,9 +211,6 @@ void RFCavity::initialise(PartBunch_t* bunch, double& startField, double& endFie
         }
         frequency_m = fieldmap_m->getFrequency();
     }
-    const double bodyBegin = startField;
-    startField             = bodyBegin + startField_m;
-    endField               = bodyBegin + endField_m;
 }
 
 // In current version ,this function reads in the cavity voltage profile data from file.
@@ -273,8 +255,6 @@ void RFCavity::initialise(
 }
 
 void RFCavity::finalise() {}
-
-bool RFCavity::bends() const { return false; }
 
 void RFCavity::goOnline(const double&) {
     Fieldmap::readMap(filename_m);
@@ -473,7 +453,7 @@ double RFCavity::spline(double z, double* za) {
     return splint;
 }
 
-void RFCavity::getFieldExtend(double& zBegin, double& zEnd) const {
+void RFCavity::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = startField_m;
     zEnd   = endField_m;
 }
@@ -711,11 +691,4 @@ bool RFCavity::isInside(const Vector_t<double, 3>& r) const {
     }
 
     return false;
-}
-
-double RFCavity::getElementLength() const { return ElementBase::getElementLength(); }
-
-void RFCavity::getElementDimensions(double& begin, double& end) const {
-    begin = 0.0;
-    end   = getElementLength();
 }

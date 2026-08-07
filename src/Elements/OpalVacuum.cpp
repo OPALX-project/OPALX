@@ -72,7 +72,7 @@ void OpalVacuum::update() {
     double temperature = Attributes::getReal(itsAttr[TEMPERATURE]);
     bool stop          = Attributes::getBool(itsAttr[STOP]);
 
-    vac->setElementLength(length);
+    vac->getGeometry().setElementLength(length);
     vac->setResidualGas(gas);
     vac->setPressure(pressure);
     vac->setPressureMapFN(pmap);

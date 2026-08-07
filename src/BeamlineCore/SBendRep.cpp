@@ -9,22 +9,15 @@ namespace {
         void (SBendRep::*set)(double);
     };
 
-    const Entry entries[] = {
-            {"L", &SBendRep::getElementLength, &SBendRep::setElementLength},
-            {"BY", &SBendRep::getB, &SBendRep::setB},
-            {"E1", &SBendRep::getEntryFaceRotation, &SBendRep::setEntryFaceRotation},
-            {"E2", &SBendRep::getExitFaceRotation, &SBendRep::setExitFaceRotation},
-            {"H1", &SBendRep::getEntryFaceCurvature, &SBendRep::setEntryFaceCurvature},
-            {"H2", &SBendRep::getExitFaceCurvature, &SBendRep::setExitFaceCurvature},
-            {nullptr, nullptr, nullptr}};
+    const Entry entries[] = {{"BY", &SBendRep::getB, &SBendRep::setB}, {nullptr, nullptr, nullptr}};
 }  // namespace
 
-SBendRep::SBendRep() : SBend(), geometry_m(0.0, 0.0), field_m() {}
+SBendRep::SBendRep() : SBend(), geometry_m(Geometry::makeSBend(0.0, 0.0)) {}
 
-SBendRep::SBendRep(const SBendRep& right)
-    : SBend(right), geometry_m(right.geometry_m), field_m(right.field_m) {}
+SBendRep::SBendRep(const SBendRep& right) : SBend(right), geometry_m(right.geometry_m) {}
 
-SBendRep::SBendRep(const std::string& name) : SBend(name), geometry_m(0.0, 0.0), field_m() {}
+SBendRep::SBendRep(const std::string& name)
+    : SBend(name), geometry_m(Geometry::makeSBend(0.0, 0.0)) {}
 
 SBendRep::~SBendRep() = default;
 
@@ -40,12 +33,6 @@ Channel* SBendRep::getChannel(const std::string& aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
-BMultipoleField& SBendRep::getField() { return field_m; }
+Geometry& SBendRep::getGeometry() { return geometry_m; }
 
-const BMultipoleField& SBendRep::getField() const { return field_m; }
-
-PlanarArcGeometry& SBendRep::getGeometry() { return geometry_m; }
-
-const PlanarArcGeometry& SBendRep::getGeometry() const { return geometry_m; }
-
-void SBendRep::setField(const BMultipoleField& field) { field_m = field; }
+const Geometry& SBendRep::getGeometry() const { return geometry_m; }

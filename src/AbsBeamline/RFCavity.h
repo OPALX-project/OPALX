@@ -18,7 +18,7 @@
 #ifndef OPALX_RFCavity_HH
 #define OPALX_RFCavity_HH
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Algorithms/AbstractTimeDependence.h"
 #include "Physics/Physics.h"
 
@@ -31,7 +31,7 @@ class Fieldmap;
 
 enum class CavityType : unsigned short { SW, SGSW };
 
-class RFCavity : public Component {
+class RFCavity : public ElementBase {
 public:
     /// Constructor with given name.
     explicit RFCavity(const std::string& name);
@@ -93,13 +93,9 @@ public:
             const double& p0, const double& t0, const double& dt, const double& q,
             const double& mass, std::ofstream* out = nullptr);
 
-    virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
-    virtual bool apply(
-            const size_t& i, const double& t, Vector_t<double, 3>& E,
-            Vector_t<double, 3>& B) override;
-
-    virtual bool apply(
+    virtual void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
@@ -107,7 +103,7 @@ public:
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    virtual void initialise(PartBunch_t* bunch) override;
 
     virtual void initialise(
             PartBunch_t* bunch, std::shared_ptr<AbstractTimeDependence> freq_atd,
@@ -115,8 +111,6 @@ public:
             std::shared_ptr<AbstractTimeDependence> phase_atd);
 
     virtual void finalise() override;
-
-    virtual bool bends() const override;
 
     virtual void goOnline(const double& kineticEnergy) override;
 
@@ -164,9 +158,9 @@ public:
      * \f$[z_\mathrm{field}^{\mathrm{begin}}, z_\mathrm{field}^{\mathrm{end}}]\f$
      * on which the RF field map is defined. In the placement redesign this may
      * differ from the nominal body extent returned by
-     * `getElementDimensions()`.
+     * the geometry body interval [0, L].
      */
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
 
@@ -187,13 +181,8 @@ public:
      *
      * The body length is the placed hardware extent configured on the cavity
      * geometry. It is independent of the field-support extent returned by
-     * `getFieldExtend()`.
+     * `getFieldExtent()`.
      */
-    virtual double getElementLength() const override;
-    virtual void getElementDimensions(double& begin, double& end) const override;
-
-    virtual CoordinateSystemTrafo getEdgeToBegin() const override;
-    virtual CoordinateSystemTrafo getEdgeToEnd() const override;
 
 protected:
     std::shared_ptr<AbstractTimeDependence> phaseTD_m;
@@ -383,16 +372,5 @@ inline void RFCavity::setFrequencyModel(std::shared_ptr<AbstractTimeDependence> 
 inline void RFCavity::setFrequencyModelName(std::string name) { frequencyName_m = name; }
 
 inline std::string RFCavity::getFrequencyModelName() { return frequencyName_m; }
-
-inline CoordinateSystemTrafo RFCavity::getEdgeToBegin() const {
-    CoordinateSystemTrafo ret(Vector_t<double, 3>({0, 0, 0}), Quaternion(1, 0, 0, 0));
-    return ret;
-}
-
-inline CoordinateSystemTrafo RFCavity::getEdgeToEnd() const {
-    CoordinateSystemTrafo ret(
-            Vector_t<double, 3>({0, 0, getElementLength()}), Quaternion(1, 0, 0, 0));
-    return ret;
-}
 
 #endif  // OPALX_RFCavity_HH

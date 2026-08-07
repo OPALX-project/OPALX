@@ -26,17 +26,15 @@ namespace {
         void (MonitorRep::*set)(double);
     };
 
-    const Entry entries[] = {
-            {"L", &MonitorRep::getElementLength, &MonitorRep::setElementLength}, {0, 0, 0}};
+    const Entry entries[] = {{0, 0, 0}};
 }  // namespace
 
-MonitorRep::MonitorRep() : Monitor(), field(), geometry(), active(true) {}
+MonitorRep::MonitorRep() : Monitor(), geometry(), active(true) {}
 
 MonitorRep::MonitorRep(const MonitorRep& right)
-    : Monitor(right), field(), geometry(right.geometry), active(true) {}
+    : Monitor(right), geometry(right.geometry), active(true) {}
 
-MonitorRep::MonitorRep(const std::string& name)
-    : Monitor(name), field(), geometry(), active(true) {}
+MonitorRep::MonitorRep(const std::string& name) : Monitor(name), geometry(), active(true) {}
 
 MonitorRep::~MonitorRep() {}
 
@@ -52,13 +50,9 @@ Channel* MonitorRep::getChannel(const std::string& aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
-NullField& MonitorRep::getField() { return field; }
+Geometry& MonitorRep::getGeometry() { return geometry; }
 
-const NullField& MonitorRep::getField() const { return field; }
-
-StraightGeometry& MonitorRep::getGeometry() { return geometry; }
-
-const StraightGeometry& MonitorRep::getGeometry() const { return geometry; }
+const Geometry& MonitorRep::getGeometry() const { return geometry; }
 
 Monitor::Plane MonitorRep::getPlane() const { return active ? XY : OFF; }
 

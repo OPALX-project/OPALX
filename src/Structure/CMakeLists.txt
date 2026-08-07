@@ -38,8 +38,8 @@ set (HDRS
     FieldSolverCmd.h
     BinningCmd.h
     H5PartWrapperForPT.h
-    H5PartWrapper.h
     H5BeamBeamDiagnosticsWriter.h
+    H5PartWrapper.h
     IpplInfoWrapper.h
     MonitorStatisticsWriter.h
     H5Writer.h

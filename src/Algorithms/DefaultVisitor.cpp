@@ -34,7 +34,6 @@
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/RFCavity.h"
-#include "AbsBeamline/Ring.h"
 #include "AbsBeamline/SBend.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbsBeamline/Solenoid.h"
@@ -57,7 +56,7 @@ void DefaultVisitor::execute() {
     itsLine.accept(*this);
 }
 
-void DefaultVisitor::visitComponent(const Component& comp) { applyDefault(comp); }
+void DefaultVisitor::visitElementBase(const ElementBase& comp) { applyDefault(comp); }
 
 void DefaultVisitor::visitConstantEFieldCavity(const ConstantEFieldCavity& cav) {
     applyDefault(cav);
@@ -78,8 +77,6 @@ void DefaultVisitor::visitMultipole(const Multipole& mult) { applyDefault(mult);
 void DefaultVisitor::visitMultipoleT(const MultipoleT& multT) { applyDefault(multT); }
 
 void DefaultVisitor::visitRBend(const RBend& bend) { applyDefault(bend); }
-
-void DefaultVisitor::visitRing(const Ring& ring) { applyDefault(ring); }
 
 void DefaultVisitor::visitRFCavity(const RFCavity& cav) { applyDefault(cav); }
 

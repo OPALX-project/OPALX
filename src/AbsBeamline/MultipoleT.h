@@ -63,13 +63,12 @@
  * ---------------------------------------------------------------------
  */
 #include <vector>
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Algorithms/AbstractTimeDependence.h"
-#include "Fields/BMultipoleField.h"
 #include "MultipoleTBase.h"
 #include "MultipoleTConfig.h"
 
-class MultipoleT : public Component {
+class MultipoleT : public ElementBase {
 public:
     /** Constructor
      *  \param name -> User-defined name
@@ -84,25 +83,19 @@ public:
     /** Accept a beamline visitor */
     void accept(BeamlineVisitor& visitor) const override;
     /** Return the cell geometry */
-    BGeometryBase& getGeometry() override;
+    Geometry& getGeometry() override;
     /** Return the cell geometry */
-    const BGeometryBase& getGeometry() const override;
-    /** Return a dummy field value */
-    EMField& getField() override { return dummy; }
-    /** Return a dummy field value */
-    const EMField& getField() const override { return dummy; }
+    const Geometry& getGeometry() const override;
     /** Calculate the field for all particles */
-    bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
     /** Calculate the field at some arbitrary position \n
-     *  If particle is outside field map true is returned,
-     *  otherwise false is returned
      *  \param R -> Position in the lab coordinate system of the multipole
      *  \param P -> Not used
      *  \param t -> Time at which the field is to be calculated
      *  \param E -> Calculated electric field - always 0 (no E-field)
      *  \param B -> Calculated magnetic field
      */
-    bool apply(
+    void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
     /** Calculate the field at the position of the ith particle
@@ -110,24 +103,19 @@ public:
      *  position
      *  This overload is single-container only. In multi-container tracking,
      *  use apply(const std::shared_ptr<ParticleContainer_t>& pc).
-     *  If particle is outside field map true is returned,
-     *  otherwise false is returned
      *  \param t -> Time at which the field is to be calculated
      *  \param E -> Calculated electric field - always 0 (no E-field)
      *  \param B -> Calculated magnetic field
      */
-    bool apply(const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B)
-            override;
     /** Initialise the MultipoleT
      *  \param bunch -> Bunch the global bunch object
      *  \param startField -> Not used
      *  \param endField -> Not used
      */
-    void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    void initialise(PartBunch_t* bunch) override;
     /** Finalise the MultipoleT - sets bunch to nullptr */
     void finalise() override;
     /** Return true if dipole component not zero */
-    bool bends() const override;
     /** Get the number of terms used in calculation of field components */
     size_t getMaxFOrder() const { return config_m.maxFOrder_m; }
     size_t getMaxXOrder() const { return config_m.maxXOrder_m; }
@@ -182,7 +170,7 @@ public:
      * If straight-> Actual length
      * If curved -> Arc length
      */
-    void setElementLength(double length) override;
+    void setElementLength(double length);
     /** Get the length of the magnet */
     double getLength() const { return config_m.length_m; }
     /** Set the aperture dimensions \n
@@ -217,9 +205,9 @@ public:
      *  on the full local body interval
      *  latexmath:[z \in [0, L)].
      */
-    void getFieldExtend(double& zBegin, double& zEnd) const override {
+    void getFieldExtent(double& zBegin, double& zEnd) const override {
         zBegin = 0.0;
-        zEnd   = getElementLength();
+        zEnd   = getGeometry().getElementLength();
     }
 
     void setScalingName(const std::string& name);
@@ -235,9 +223,6 @@ protected:
     void chooseImplementation();
     double getScaling(double t) const;
     void validateConfiguration() const;
-
-    /** Not implemented */
-    BMultipoleField dummy;
 
     // Time dependence
     std::string scalingName_m;

@@ -1,5 +1,5 @@
-#ifndef CLASSIC_BeamBeam_HH
-#define CLASSIC_BeamBeam_HH
+#ifndef OPALX_BeamBeam_HH
+#define OPALX_BeamBeam_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: Ip.h,v $
@@ -21,14 +21,14 @@
 //
 // ------------------------------------------------------------------------
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 
 // Class BeamBeam
 // ------------------------------------------------------------------------
 /// Interface for a beam-beam interaction element.
 //  Class BeamBeam defines the abstract interface for a beam-beam element.
 
-class BeamBeam : public Component {
+class BeamBeam : public ElementBase {
 public:
     /// Constructor with given name.
     explicit BeamBeam(const std::string& name);
@@ -40,15 +40,13 @@ public:
     /// Apply visitor to BeamBeam.
     virtual void accept(BeamlineVisitor&) const override;
 
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    virtual void initialise(PartBunch_t* bunch) override;
 
     virtual void finalise() override;
 
-    virtual bool bends() const override;
-
     virtual ElementType getType() const override;
 
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     // set number of slices for map tracking
     void setNSlices(const std::size_t& nSlices);  // Philippe was here
@@ -59,7 +57,6 @@ public:
     virtual int getRequiredNumberOfTimeSteps() const override;
 
 private:
-    double startField_m;
     std::size_t nSlices_m;
 
     // Not implemented.
@@ -68,4 +65,4 @@ private:
 
 inline int BeamBeam::getRequiredNumberOfTimeSteps() const { return 1; }
 
-#endif  // CLASSIC_BeamBeam_HH
+#endif  // OPALX_BeamBeam_HH

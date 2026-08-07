@@ -45,20 +45,24 @@ extern Inform* gmsg;
 
 OrbitThreader::OrbitThreader(
         const PartData& ref, const Vector_t<double, 3>& r, const Vector_t<double, 3>& p, double s,
-        double maxDiffZBunch, double t, double dt, StepSizeConfig stepSizes, OpalBeamline& bl)
+        double maxDiffZBunch, double t, double dt, StepSizeConfig stepSizes, OpalBeamline& bl,
+        bool isDesignBeam)
     : r_m(r),
       p_m(p),
       pathLength_m(s),
       time_m(t),
       dt_m(dt),
       stepSizes_m(stepSizes),
-      zstop_m(stepSizes.getFinalZStop() + std::copysign(1.0, dt) * 2 * maxDiffZBunch),
+      sStop_m(stepSizes.getFinalSStop() + std::copysign(1.0, dt) * 2 * maxDiffZBunch),
       itsOpalBeamline_m(bl),
+      isDesignBeam_m(isDesignBeam),
       errorFlag_m(0),
       integrator_m{},
       reference_m(ref) {
     auto opal = OpalData::getInstance();
-    if (ippl::Comm->rank() == 0 && !opal->isOptimizerRun()) {
+    // Only the design beam writes the _DesignPath.dat trajectory log; secondary species
+    // must not open (and truncate) it.
+    if (isDesignBeam_m && ippl::Comm->rank() == 0 && !opal->isOptimizerRun()) {
         std::string fileName = Util::combineFilePath(
                 {opal->getAuxiliaryOutputDirectory(),
                  opal->getInputBasename() + "_DesignPath.dat"});
@@ -82,7 +86,7 @@ OrbitThreader::OrbitThreader(
     }
     pathLengthRange_m = stepSizes_m.getPathLengthRange();
     pathLengthRange_m.enlargeIfOutside(pathLength_m);
-    pathLengthRange_m.enlargeIfOutside(zstop_m);
+    pathLengthRange_m.enlargeIfOutside(sStop_m);
 
     stepRange_m.enlargeIfOutside(0);
     stepRange_m.enlargeIfOutside(stepSizes_m.getNumStepsFinestResolution());
@@ -90,8 +94,8 @@ OrbitThreader::OrbitThreader(
     computeBoundingBox();
 }
 
-void OrbitThreader::checkElementLengths(const std::set<std::shared_ptr<Component>>& fields) {
-    while (!stepSizes_m.reachedEnd() && pathLength_m > stepSizes_m.getZStop()) {
+void OrbitThreader::checkElementLengths(const std::set<std::shared_ptr<ElementBase>>& fields) {
+    while (!stepSizes_m.reachedEnd() && pathLength_m > stepSizes_m.getSStop()) {
         ++stepSizes_m;
     }
     if (stepSizes_m.reachedEnd()) {
@@ -99,10 +103,10 @@ void OrbitThreader::checkElementLengths(const std::set<std::shared_ptr<Component
     }
     double driftLength =
             Physics::c * std::abs(stepSizes_m.getdT()) * euclidean_norm(p_m) / Util::getGamma(p_m);
-    for (const std::shared_ptr<Component>& field : fields) {
+    for (const std::shared_ptr<ElementBase>& field : fields) {
         double fieldBegin = 0.0;
         double fieldEnd   = 0.0;
-        field->getFieldExtend(fieldBegin, fieldEnd);
+        field->getFieldExtent(fieldBegin, fieldEnd);
 
         const double length = std::abs(fieldEnd - fieldBegin);
         const int numSteps  = field->getRequiredNumberOfTimeSteps();
@@ -132,31 +136,29 @@ void OrbitThreader::execute() {
     Vector_t<double, 3> nextR = r_m / (Physics::c * dt_m);
     integrator_m.push(nextR, p_m, dt_m);
     nextR = nextR * Physics::c * dt_m;
-    setDesignEnergy(allElements, visitedElements);
+    if (isDesignBeam_m) {
+        setDesignEnergy(allElements, visitedElements);
+    }
 
     auto elementSet = itsOpalBeamline_m.getElements(nextR);
-    std::set<std::shared_ptr<Component>> intersection, currentSet;
+    std::set<std::shared_ptr<ElementBase>> intersection, currentSet;
     errorFlag_m = EVERYTHINGFINE;
 
     *gmsg << "* OrbitThreader dt_m= " << dt_m << endl;
 
     do {
         checkElementLengths(elementSet);
-        if (containsCavity(elementSet)) {
+        if (isDesignBeam_m && containsCavity(elementSet)) {
             autophaseCavities(elementSet, visitedElements);
         }
 
-        double initialS              = pathLength_m;
-        Vector_t<double, 3> initialR = r_m;
-        Vector_t<double, 3> initialP = p_m;
-        double maxDistance           = computeDriftLengthToBoundingBox(elementSet, r_m, p_m);
+        double initialS    = pathLength_m;
+        double maxDistance = computeDriftLengthToBoundingBox(elementSet, r_m, p_m);
 
         integrate(elementSet, maxDistance);
 
         *gmsg << "* OrbitThreader maxDistance= " << maxDistance << endl;
         *gmsg << "* OrbitThreader #elements  = " << elementSet.size() << endl;
-
-        registerElement(elementSet, initialS, initialR, initialP);
 
         if (errorFlag_m == HITMATERIAL) {
             // Shouldn't be reached because reference particle
@@ -172,7 +174,9 @@ void OrbitThreader::execute() {
             visitedElements.insert((*it)->getName());
         }
 
-        setDesignEnergy(allElements, visitedElements);
+        if (isDesignBeam_m) {
+            setDesignEnergy(allElements, visitedElements);
+        }
 
         currentSet = elementSet;
         if (errorFlag_m == EVERYTHINGFINE) {
@@ -190,10 +194,13 @@ void OrbitThreader::execute() {
              && !(pathLengthRange_m.isOutside(pathLength_m) && intersection.empty()
                   && !(elementSet.empty() || currentSet.empty())));
 
-    imap_m.tidyUp(zstop_m);
+    imap_m.tidyUp(sStop_m);
     *gmsg << level1 << "\n" << imap_m << endl;
-    imap_m.saveSDDS(initialPathLength);
-    processElementRegister();
+    if (isDesignBeam_m) {
+        // Geometry SDDS dump is a design-beam output; secondary species only build their map.
+        imap_m.saveSDDS(initialPathLength);
+    }
+    logger_m.close();
 }
 
 void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDrift*/) {
@@ -228,7 +235,7 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
             Bf += itsOpalBeamline_m.rotateFromLocalCS(*it, localB);
         }
 
-        if (((pathLength_m > 0.0 && pathLength_m < zstop_m) || dt_m < 0.0)
+        if (((pathLength_m > 0.0 && pathLength_m < sStop_m) || dt_m < 0.0)
             && currentStep_m % loggingFrequency_m == 0 && ippl::Comm->rank() == 0
             && !OpalData::getInstance()->isOptimizerRun()) {
             const Vector<double, 3> d = r_m - oldR;
@@ -354,97 +361,14 @@ void OrbitThreader::trackBack() {
     stepRange_m.enlargeIfOutside(currentStep_m);
 }
 
-void OrbitThreader::registerElement(
-        const IndexMap::value_t& elementSet, double start, const Vector_t<double, 3>& R,
-        const Vector_t<double, 3>& P) {
-    IndexMap::value_t::const_iterator it        = elementSet.begin();
-    const IndexMap::value_t::const_iterator end = elementSet.end();
-
-    for (; it != end; ++it) {
-        bool found = false;
-        auto prior = elementRegistry_m.equal_range(*it);
-
-        for (auto pit = prior.first; pit != prior.second; ++pit) {
-            if (std::abs((*pit).second.endField_m - start) < 1e-10) {
-                found                    = true;
-                (*pit).second.endField_m = pathLength_m;
-                break;
-            }
-        }
-
-        if (found) continue;
-
-        Vector_t<double, 3> initialR = itsOpalBeamline_m.transformToLocalCS(*it, R);
-        Vector_t<double, 3> initialP = itsOpalBeamline_m.rotateToLocalCS(*it, P);
-        double elementEdge           = start - initialR(2) * euclidean_norm(initialP) / initialP(2);
-
-        elementPosition ep = {start, pathLength_m, elementEdge};
-        elementRegistry_m.insert(std::make_pair(*it, ep));
-    }
-}
-
-void OrbitThreader::processElementRegister() {
-    using registry_key_t = std::shared_ptr<Component>;
-    using registry_map_t = std::map<
-            registry_key_t, std::set<elementPosition, elementPositionComp>,
-            std::owner_less<registry_key_t>>;
-    registry_map_t tmpRegistry;
-
-    for (auto it = elementRegistry_m.begin(); it != elementRegistry_m.end(); ++it) {
-        const registry_key_t& element = (*it).first;
-        elementPosition& ep           = (*it).second;
-
-        auto prior = tmpRegistry.find(element);
-        if (prior == tmpRegistry.end()) {
-            std::set<elementPosition, elementPositionComp> tmpSet;
-            tmpSet.insert(ep);
-            tmpRegistry.insert(std::make_pair(element, tmpSet));
-            continue;
-        }
-
-        std::set<elementPosition, elementPositionComp>& set = (*prior).second;
-        set.insert(ep);
-    }
-
-    actionRangeRegistrationModel_m.clear();
-    std::vector<ReferencePathSegment> registeredSegments;
-    for (auto& [element, set] : tmpRegistry) {
-        std::queue<std::pair<double, double>> range;
-
-        for (auto sit = set.begin(); sit != set.end(); ++sit) {
-            range.push(std::make_pair((*sit).elementEdge_m, (*sit).endField_m));
-            registeredSegments.push_back(ReferencePathSegment(
-                    (*sit).startField_m, (*sit).endField_m,
-                    ReferencePathSegment::element_set_t{element}, (*sit).elementEdge_m));
-        }
-        element->setActionRange(range);
-    }
-
-    std::sort(
-            registeredSegments.begin(), registeredSegments.end(),
-            [](const ReferencePathSegment& lhs, const ReferencePathSegment& rhs) {
-                if (lhs.getBegin() < rhs.getBegin()) {
-                    return true;
-                }
-                if (lhs.getBegin() > rhs.getBegin()) {
-                    return false;
-                }
-                return lhs.getEnd() < rhs.getEnd();
-            });
-
-    for (const auto& segment : registeredSegments) {
-        actionRangeRegistrationModel_m.addSegment(segment);
-    }
-}
-
 void OrbitThreader::setDesignEnergy(
-        FieldList& allElements, const std::set<std::string>& visitedElements) {
+        ElementList& allElements, const std::set<std::string>& visitedElements) {
     double kineticEnergyeV = reference_m.getM() * (sqrt(dot(p_m, p_m) + 1.0) - 1.0);
 
-    FieldList::iterator it        = allElements.begin();
-    const FieldList::iterator end = allElements.end();
+    ElementList::iterator it        = allElements.begin();
+    const ElementList::iterator end = allElements.end();
     for (; it != end; ++it) {
-        std::shared_ptr<Component> element = (*it).getElement();
+        std::shared_ptr<ElementBase> element = (*it);
         if (visitedElements.find(element->getName()) == visitedElements.end()
             && !(element->getType() == ElementType::RFCAVITY
                  || element->getType() == ElementType::TRAVELINGWAVE)) {
@@ -454,14 +378,14 @@ void OrbitThreader::setDesignEnergy(
 }
 
 void OrbitThreader::computeBoundingBox() {
-    FieldList allElements         = itsOpalBeamline_m.getElementByType(ElementType::ANY);
-    FieldList::iterator it        = allElements.begin();
-    const FieldList::iterator end = allElements.end();
+    ElementList allElements         = itsOpalBeamline_m.getElementByType(ElementType::ANY);
+    ElementList::iterator it        = allElements.begin();
+    const ElementList::iterator end = allElements.end();
     for (; it != end; ++it) {
-        if (it->getElement()->getType() == ElementType::MARKER) {
+        if ((*it)->getType() == ElementType::MARKER) {
             continue;
         }
-        BoundingBox other = it->getBoundingBoxInLabCoords();
+        BoundingBox other = (*it)->getBoundingBoxInLabCoords();
         globalBoundingBox_m.enlargeToContainBoundingBox(other);
     }
     updateBoundingBoxWithCurrentPosition();
@@ -477,7 +401,7 @@ void OrbitThreader::updateBoundingBoxWithCurrentPosition() {
 }
 
 double OrbitThreader::computeDriftLengthToBoundingBox(
-        const std::set<std::shared_ptr<Component>>& elements, const Vector_t<double, 3>& position,
+        const std::set<std::shared_ptr<ElementBase>>& elements, const Vector_t<double, 3>& position,
         const Vector_t<double, 3>& direction) const {
     if (elements.empty()
         || (elements.size() == 1 && (*elements.begin())->getType() == ElementType::DRIFT)) {

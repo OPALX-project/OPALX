@@ -64,7 +64,7 @@
  */
 
 #include "AbsBeamline/MultipoleTBase.h"
-#include "BeamlineGeometry/PlanarArcGeometry.h"
+#include "BeamlineGeometry/Geometry.h"
 
 class MultipoleTCurvedConstRadius final : public MultipoleTBase {
 public:
@@ -73,7 +73,7 @@ public:
     /** Initialise the element */
     void initialise() override;
     /** Return the cell geometry */
-    BGeometryBase* getGeometry() override { return &planarArcGeometry_m; }
+    Geometry* getGeometry() override { return &planarArcGeometry_m; }
     /** Return the field for an array of points */
     // Container-agnostic: R/E/B views come from the caller's particle container.
     void getField(
@@ -85,7 +85,7 @@ public:
 
 private:
     /** Geometry */
-    PlanarArcGeometry planarArcGeometry_m;
+    Geometry planarArcGeometry_m{Geometry::makeSBend(1.0, 1.0)};
 
     // Helpers
     KOKKOS_INLINE_FUNCTION static Vector_t<double, 3> toMagnetCoords(

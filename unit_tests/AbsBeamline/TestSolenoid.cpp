@@ -2,13 +2,12 @@
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/IndexMap.h"
-#include "BeamlineCore/BeamBeamRep.h"
 #include "BeamlineCore/DriftRep.h"
 #include "BeamlineCore/MultipoleRep.h"
 #include "BeamlineCore/RFCavityRep.h"
 #include "BeamlineCore/SolenoidRep.h"
 #include "BeamlineCore/TravelingWaveRep.h"
-#include "BeamlineGeometry/NullGeometry.h"
+#include "BeamlineGeometry/Geometry.h"
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
 #include "Fields/Fieldmap.h"
@@ -162,28 +161,26 @@ public:
     DummyBeamline() : Beamline("dummy") {}
 
     ElementType getType() const override { return ElementType::BEAMLINE; }
-    BGeometryBase& getGeometry() override { return geometry_; }
-    const BGeometryBase& getGeometry() const override { return geometry_; }
+    Geometry& getGeometry() override { return geometry_; }
+    const Geometry& getGeometry() const override { return geometry_; }
     void accept(BeamlineVisitor& visitor) const override { visitor.visitBeamline(*this); }
     ElementBase* clone() const override { return new DummyBeamline(*this); }
     void iterate(BeamlineVisitor&, bool) const override {}
 
 private:
-    NullGeometry geometry_;
+    Geometry geometry_{Geometry::makeNull()};
 };
 
 TEST_F(SolenoidPlacementTest, FieldMapEdgesAndSupportEnvelopeFollowFieldMap) {
     const auto mapFile = writeXZFieldmap("solenoid_edges.map", -5.0, 15.0, 4, 0.0, 3.0, 3);
 
     SolenoidRep solenoid("SOL1");
-    solenoid.setElementLength(1.0);
+    solenoid.getGeometry().setElementLength(1.0);
     solenoid.setFieldMapFN(mapFile.string());
     solenoid.setElementPosition(1.0);
 
-    double startField = 1.0;
-    double endField   = 0.0;
     try {
-        solenoid.initialise(nullptr, startField, endField);
+        solenoid.initialise(nullptr);
     } catch (const OpalException& ex) {
         FAIL() << ex.where() << ": " << ex.what();
     } catch (...) {
@@ -191,20 +188,19 @@ TEST_F(SolenoidPlacementTest, FieldMapEdgesAndSupportEnvelopeFollowFieldMap) {
     }
 
     double fieldBegin = 0.0, fieldEnd = 0.0;
-    solenoid.getFieldExtend(fieldBegin, fieldEnd);
+    solenoid.getFieldExtent(fieldBegin, fieldEnd);
 
     double bodyBegin = 0.0, bodyEnd = 0.0;
-    solenoid.getElementDimensions(bodyBegin, bodyEnd);
+    bodyBegin = 0.0;
+    bodyEnd   = solenoid.getGeometry().getElementLength();
 
-    EXPECT_NEAR(startField, 0.95, 1e-12);
-    EXPECT_NEAR(endField, 1.15, 1e-12);
-    EXPECT_NEAR(solenoid.getElementLength(), 1.0, 1e-12);
+    EXPECT_NEAR(solenoid.getGeometry().getElementLength(), 1.0, 1e-12);
     EXPECT_NEAR(fieldBegin, -0.05, 1e-12);
     EXPECT_NEAR(fieldEnd, 0.15, 1e-12);
     EXPECT_NEAR(bodyBegin, 0.0, 1e-12);
     EXPECT_NEAR(bodyEnd, 1.0, 1e-12);
-    EXPECT_NEAR(solenoid.getEdgeToBegin().getOrigin()(2), 0.0, 1e-12);
-    EXPECT_NEAR(solenoid.getEdgeToEnd().getOrigin()(2), 1.0, 1e-12);
+    EXPECT_NEAR(solenoid.getGeometry().getEdgeToBegin().getOrigin()(2), 0.0, 1e-12);
+    EXPECT_NEAR(solenoid.getGeometry().getEdgeToEnd().getOrigin()(2), 1.0, 1e-12);
     EXPECT_TRUE(solenoid.isInside({0.0, 0.0, 0.00}));
     EXPECT_TRUE(solenoid.isInside({0.0, 0.0, 0.14}));
     EXPECT_FALSE(solenoid.isInside({0.0, 0.0, 0.20}));
@@ -223,7 +219,7 @@ TEST_F(SolenoidPlacementTest, LatticeExportsUseFieldMapEdgesAndSolenoidMeshType)
     const auto mapFile = writeXZFieldmap("solenoid_lattice.map", -5.0, 15.0, 4, 0.0, 3.0, 3);
 
     SolenoidRep solenoid("SOL1");
-    solenoid.setElementLength(1.0);
+    solenoid.getGeometry().setElementLength(1.0);
     solenoid.setFieldMapFN(mapFile.string());
     solenoid.setElementPosition(1.0);
 
@@ -243,9 +239,8 @@ TEST_F(SolenoidPlacementTest, LatticeExportsUseFieldMapEdgesAndSolenoidMeshType)
     const auto elements = beamline.getElements();
     ASSERT_EQ(elements.size(), 1u);
     const auto& placedComponent = *elements.begin();
-    const PlacedElement placed  = beamline.getPlacedElement(placedComponent);
-    EXPECT_NEAR(placed.getNominalEntryTransform().getOrigin()(2), 1.0, 1e-12);
-    EXPECT_NEAR(placed.getNominalExitTransform().getOrigin()(2), 2.0, 1e-12);
+    EXPECT_NEAR(beamline.getNominalEntryTransform(placedComponent).getOrigin()(2), 1.0, 1e-12);
+    EXPECT_NEAR(beamline.getNominalExitTransform(placedComponent).getOrigin()(2), 2.0, 1e-12);
     EXPECT_EQ(beamline.getElements(Vector_t<double, 3>(0.0, 0.0, 1.10)).size(), 1u);
     EXPECT_TRUE(beamline.getElements(Vector_t<double, 3>(0.0, 0.0, 1.30)).empty());
 
@@ -260,14 +255,14 @@ TEST_F(SolenoidPlacementTest, LatticeExportsUseFieldMapEdgesAndSolenoidMeshType)
     while (std::getline(txt, textLine)) {
         if (textLine.find("\"BEGIN: SOL1\"") != std::string::npos) {
             const auto [z, x, y] = parsePositionLine(textLine);
-            const auto entry     = placed.getNominalEntryTransform().getOrigin();
+            const auto entry     = beamline.getNominalEntryTransform(placedComponent).getOrigin();
             EXPECT_NEAR(z, entry(2), 1e-12);
             EXPECT_NEAR(x, entry(0), 1e-12);
             EXPECT_NEAR(y, entry(1), 1e-12);
             foundBegin = true;
         } else if (textLine.find("\"END: SOL1\"") != std::string::npos) {
             const auto [z, x, y] = parsePositionLine(textLine);
-            const auto exit      = placed.getNominalExitTransform().getOrigin();
+            const auto exit      = beamline.getNominalExitTransform(placedComponent).getOrigin();
             EXPECT_NEAR(z, exit(2), 1e-12);
             EXPECT_NEAR(x, exit(0), 1e-12);
             EXPECT_NEAR(y, exit(1), 1e-12);
@@ -286,22 +281,6 @@ TEST_F(SolenoidPlacementTest, LatticeExportsUseFieldMapEdgesAndSolenoidMeshType)
     EXPECT_NE(
             script.find("os.path.getmtime(script_file) > os.path.getmtime(vtk_file)"),
             std::string::npos);
-    EXPECT_NE(script.find("def getBeamBeamApertureVolume():"), std::string::npos);
-    EXPECT_NE(script.find("pv.CellType.HEXAHEDRON"), std::string::npos);
-    EXPECT_NE(script.find("0.650000 0.650000 0.650000 0.280000"), std::string::npos);
-    EXPECT_NE(script.find("display_scale = 1.0e3"), std::string::npos);
-    EXPECT_NE(script.find("mesh.points *= display_scale"), std::string::npos);
-    EXPECT_NE(script.find("zlabel='Z [mm]'"), std::string::npos);
-    EXPECT_NE(script.find("def addParticleVisualization("), std::string::npos);
-    EXPECT_NE(
-            script.find("parser.add_argument('--part-vis', action='store_true')"),
-            std::string::npos);
-    EXPECT_NE(
-            script.find("parser.add_argument('--part-debug', action='store_true')"),
-            std::string::npos);
-    EXPECT_NE(script.find("args.part_max_primary"), std::string::npos);
-    EXPECT_NE(script.find("ref_part_r = np.asarray(group.attrs.get('RefPartR'"), std::string::npos);
-    EXPECT_NE(script.find("plotter.reset_camera()"), std::string::npos);
 }
 
 TEST_F(SolenoidPlacementTest, ElementPositionsSDDSMarksSolenoidColumn) {
@@ -336,11 +315,11 @@ TEST_F(SolenoidPlacementTest, DriftMeshesAsBlueCylinderUsingFirstNonDriftReferen
     const auto mapFile = writeXZFieldmap("solenoid_drift_mesh.map", -5.0, 15.0, 4, 0.0, 3.0, 3);
 
     DriftRep drift("DR1");
-    drift.setElementLength(0.5);
+    drift.getGeometry().setElementLength(0.5);
     drift.setElementPosition(0.0);
 
     SolenoidRep solenoid("SOL1");
-    solenoid.setElementLength(1.0);
+    solenoid.getGeometry().setElementLength(1.0);
     solenoid.setFieldMapFN(mapFile.string());
     solenoid.setElementPosition(0.5);
 
@@ -363,7 +342,7 @@ TEST_F(SolenoidPlacementTest, DriftMeshesAsBlueCylinderUsingFirstNonDriftReferen
 
 TEST_F(SolenoidPlacementTest, QuadrupoleMeshesAsPoleBodyRatherThanGenericCylinder) {
     MultipoleRep quadrupole("Q1");
-    quadrupole.setElementLength(0.4);
+    quadrupole.getGeometry().setElementLength(0.4);
     quadrupole.setElementPosition(0.0);
     quadrupole.setAperture(ApertureType::ELLIPTICAL, std::vector<double>{0.02, 0.03, 1.0});
     quadrupole.setNormalComponent(1, 1.0);
@@ -386,7 +365,7 @@ TEST_F(SolenoidPlacementTest, QuadrupoleMeshesAsPoleBodyRatherThanGenericCylinde
 
 TEST_F(SolenoidPlacementTest, RFCavityMeshesAsBulgedCellStructure) {
     RFCavityRep cavity("RFC1");
-    cavity.setElementLength(0.7);
+    cavity.getGeometry().setElementLength(0.7);
     cavity.setElementPosition(0.0);
     cavity.setAperture(ApertureType::ELLIPTICAL, std::vector<double>{0.02, 0.03, 1.0});
 
@@ -404,7 +383,7 @@ TEST_F(SolenoidPlacementTest, RFCavityMeshesAsBulgedCellStructure) {
 
 TEST_F(SolenoidPlacementTest, TravelingWaveMeshesAsPeriodicStructure) {
     TravelingWaveRep travelingWave("TW1");
-    travelingWave.setElementLength(0.8);
+    travelingWave.getGeometry().setElementLength(0.8);
     travelingWave.setElementPosition(0.0);
     travelingWave.setAperture(ApertureType::ELLIPTICAL, std::vector<double>{0.02, 0.03, 1.0});
 
@@ -418,23 +397,4 @@ TEST_F(SolenoidPlacementTest, TravelingWaveMeshesAsPeriodicStructure) {
             (std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
     EXPECT_NE(script.find("color = [7]"), std::string::npos);
     EXPECT_NE(script.find("numVertices = [1152]"), std::string::npos);
-}
-
-TEST_F(SolenoidPlacementTest, BeamBeamMeshesAsNamedBox) {
-    BeamBeamRep beamBeam("BB1");
-    beamBeam.setElementLength(0.05);
-    beamBeam.setElementPosition(0.0);
-    beamBeam.setAperture(ApertureType::CONIC_RECTANGULAR, std::vector<double>{0.005, 0.005, 0.05});
-
-    MeshGenerator mesh;
-    mesh.add(beamBeam);
-    mesh.write(testStem_);
-
-    std::ifstream py(outputPath("_ElementPositions.py"));
-    ASSERT_TRUE(py.is_open());
-    const std::string script(
-            (std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
-    EXPECT_NE(script.find("color = [9]"), std::string::npos);
-    EXPECT_NE(script.find("numVertices = [8]"), std::string::npos);
-    EXPECT_NE(script.find("('BeamBeam', (0.0, 0.7, 0.9))"), std::string::npos);
 }

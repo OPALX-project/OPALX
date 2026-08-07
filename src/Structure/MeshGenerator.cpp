@@ -97,9 +97,9 @@ void MeshGenerator::add(const ElementBase& element) {
         // mesh = dipole->getSurfaceMesh();
         mesh.type_m = DIPOLE;
     } else if (element.getType() == ElementType::SOLENOID) {
-        double end = 0.0;
-        element.getElementDimensions(start, end);
-        mesh = getCylinder(end - start, driftMinor_m, driftMajor_m, 1.0);
+        start      = 0.0;
+        double end = element.getGeometry().getElementLength();
+        mesh       = getCylinder(end - start, driftMinor_m, driftMajor_m, 1.0);
         {
             double minor = 0.0;
             double major = 0.0;
@@ -112,9 +112,9 @@ void MeshGenerator::add(const ElementBase& element) {
         if (!hasDriftReference_m) {
             return;
         }
-        double end = 0.0;
-        element.getElementDimensions(start, end);
-        mesh = getTube(
+        start      = 0.0;
+        double end = element.getGeometry().getElementLength();
+        mesh       = getTube(
                 end - start, 0.7 * driftMinor_m, 0.7 * driftMajor_m, driftMinor_m, driftMajor_m);
         mesh.type_m = DRIFT;
     } else {
@@ -122,9 +122,10 @@ void MeshGenerator::add(const ElementBase& element) {
         if (element.getType() == ElementType::RFCAVITY
             || element.getType() == ElementType::TRAVELINGWAVE) {
             start = 0.0;
-            end   = element.getElementLength();
+            end   = element.getGeometry().getElementLength();
         } else {
-            element.getElementDimensions(start, end);
+            start = 0.0;
+            end   = element.getGeometry().getElementLength();
         }
         length     = end - start;
         auto apert = element.getAperture();
@@ -132,9 +133,7 @@ void MeshGenerator::add(const ElementBase& element) {
         switch (apert.first) {
             case ApertureType::RECTANGULAR:
             case ApertureType::CONIC_RECTANGULAR:
-                mesh =
-                        getBox(length, apert.second[0], apert.second[1],
-                               element.getType() == ElementType::BEAMBEAM ? 1.0 : apert.second[2]);
+                mesh = getBox(length, apert.second[0], apert.second[1], apert.second[2]);
                 break;
             case ApertureType::ELLIPTICAL:
             case ApertureType::CONIC_ELLIPTICAL:
@@ -189,9 +188,8 @@ void MeshGenerator::add(const ElementBase& element) {
         }
     }
 
-    const CoordinateSystemTrafo trafo =
-            element.getPlacedElement().getNominalBodyTransform().inverted();
-    Vector_t<double, 3> z = trafo.rotateTo(Vector_t<double, 3>(0, 0, 1));
+    const CoordinateSystemTrafo trafo = element.getCSTrafoGlobal2Local().inverted();
+    Vector_t<double, 3> z             = trafo.rotateTo(Vector_t<double, 3>(0, 0, 1));
     for (unsigned int i = 0; i < mesh.vertices_m.size(); ++i) {
         mesh.vertices_m[i] = trafo.transformTo(mesh.vertices_m[i]) + start * z;
     }
@@ -217,153 +215,9 @@ void MeshGenerator::write(const std::string& fname) {
 
     out << std::fixed << std::setprecision(6);
 
-    out << "import os, sys, argparse, math, base64, zlib, struct, re\n\n";
+    out << "import os, sys, argparse, math, base64, zlib, struct\n\n";
     out << "if sys.version_info < (3,0):\n";
     out << "    range = xrange\n\n";
-
-    out << R"PY(def stripComment(line):
-    in_quote = False
-    for i, char in enumerate(line):
-        if char == '"':
-            in_quote = not in_quote
-        elif char == '!' and not in_quote:
-            return line[:i]
-    return line
-
-def splitTopLevel(text, separator=','):
-    parts = []
-    start = 0
-    depth = 0
-    in_quote = False
-    for i, char in enumerate(text):
-        if char == '"':
-            in_quote = not in_quote
-        elif not in_quote:
-            if char == '(':
-                depth += 1
-            elif char == ')':
-                depth -= 1
-            elif char == separator and depth == 0:
-                parts.append(text[start:i].strip())
-                start = i + 1
-    parts.append(text[start:].strip())
-    return parts
-
-def evalExpr(expr, variables):
-    cleaned = expr.strip().strip('"')
-    try:
-        return float(cleaned)
-    except ValueError:
-        pass
-
-    allowed = dict((name.lower(), value) for name, value in variables.items())
-    allowed.update({
-        'pi': math.pi,
-        'twopi': 2.0 * math.pi,
-        'sqrt': math.sqrt,
-        'sin': math.sin,
-        'cos': math.cos,
-        'tan': math.tan,
-        'abs': abs,
-    })
-    return float(eval(cleaned.lower(), {"__builtins__": {}}, allowed))
-
-def readInputVariables(input_file):
-    variables = {}
-    with open(input_file) as fh:
-        for line in fh:
-            line = stripComment(line).strip()
-            if not line:
-                continue
-            match = re.match(r'^(?:REAL|INT|BOOL|STRING)\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?);',
-                             line, flags=re.IGNORECASE)
-            if match is None:
-                continue
-            name = match.group(1).lower()
-            value = match.group(2).strip()
-            try:
-                variables[name] = evalExpr(value, variables)
-            except Exception:
-                pass
-    return variables
-
-def parseElementBody(body):
-    values = {}
-    for item in splitTopLevel(body):
-        if '=' not in item:
-            continue
-        key, value = item.split('=', 1)
-        values[key.strip().upper()] = value.strip()
-    return values
-
-def parseAperture(aperture_expr, variables):
-    aperture_expr = aperture_expr.strip().strip('"')
-    match = re.match(r'([A-Za-z]+)\s*\((.*)\)\s*$', aperture_expr)
-    if match is None:
-        return None
-
-    shape = match.group(1).upper()
-    args = [evalExpr(arg, variables) for arg in splitTopLevel(match.group(2))]
-    if shape == 'SQUARE' and len(args) in (1, 2):
-        return {'shape': 'RECTANGLE', 'x_half': 0.5 * args[0], 'y_half': 0.5 * args[0],
-                'end_scale': args[1] if len(args) == 2 else 1.0}
-    if shape == 'RECTANGLE' and len(args) in (2, 3):
-        return {'shape': 'RECTANGLE', 'x_half': 0.5 * args[0], 'y_half': 0.5 * args[1],
-                'end_scale': args[2] if len(args) == 3 else 1.0}
-
-    return None
-
-def findInputFile():
-    candidates = [
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', ')PY"
-        << fname << R"PY(.in'),
-        os.path.join(os.getcwd(), ')PY"
-        << fname << R"PY(.in'),
-    ]
-    for candidate in candidates:
-        candidate = os.path.abspath(candidate)
-        if os.path.exists(candidate):
-            return candidate
-    return None
-
-def getBeamBeamApertureVolume():
-    input_file = findInputFile()
-    if input_file is None:
-        return None
-
-    variables = readInputVariables(input_file)
-    with open(input_file) as fh:
-        content = "\n".join(stripComment(line) for line in fh)
-
-    for match in re.finditer(r'([A-Za-z_][A-Za-z0-9_]*)\s*:\s*BEAMBEAM\s*,(.*?);',
-                             content, flags=re.IGNORECASE | re.DOTALL):
-        name = match.group(1)
-        values = parseElementBody(match.group(2))
-        if 'APERTURE' not in values:
-            continue
-
-        aperture = parseAperture(values['APERTURE'], variables)
-        if aperture is None or aperture['shape'] != 'RECTANGLE':
-            continue
-
-        z_min = evalExpr(values.get('ELEMEDGE', '0.0'), variables)
-        length = evalExpr(values.get('L', '0.0'), variables)
-        z_max = z_min + length
-        x0 = aperture['x_half']
-        y0 = aperture['y_half']
-        points = [
-            [-x0, -y0, z_min], [ x0, -y0, z_min], [ x0,  y0, z_min], [-x0,  y0, z_min],
-            [-x0, -y0, z_max], [ x0, -y0, z_max], [ x0,  y0, z_max], [-x0,  y0, z_max],
-        ]
-        return {
-            'name': name + ' aperture',
-            'points': points,
-            'cell': [0, 1, 2, 3, 4, 5, 6, 7],
-        }
-
-    return None
-
-)PY";
 
     std::stringstream vertices_ascii;
     std::ostringstream vertices_compressed;
@@ -541,198 +395,7 @@ def getBeamBeamApertureVolume():
     out << indent << indent << indent << "k += 8\n";
     out << indent << indent << "vertices.append(current)\n\n";
 
-    out << R"PY(def resolveParticleH5File(name):
-    candidates = [
-        os.path.join(os.getcwd(), name),
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), name),
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', name),
-    ]
-    for candidate in candidates:
-        candidate = os.path.abspath(candidate)
-        if os.path.exists(candidate):
-            return candidate
-    return None
-
-def getH5ParticleStep(h5_file, requested_step):
-    step_names = []
-    for name in h5_file.keys():
-        if not name.startswith('Step#'):
-            continue
-        group = h5_file[name]
-        if all(dataset in group for dataset in ('x', 'y', 'z')):
-            step_names.append((int(name[5:]), name))
-    if not step_names:
-        return None
-    step_names.sort()
-    if requested_step == 'latest':
-        return step_names[-1][1]
-    requested = int(requested_step)
-    has_global_step = False
-    for step, name in step_names:
-        group = h5_file[name]
-        global_step = group.attrs.get('GlobalTrackStep')
-        has_global_step = has_global_step or global_step is not None
-        if global_step is not None and int(global_step[0]) == requested:
-            return name
-    if has_global_step:
-        return None
-    for step, name in step_names:
-        if step == requested:
-            return name
-    return None
-
-def getParticleSpecs(max_primary, max_pairs):
-    return [
-        { 'file': ')PY"
-        << fname << R"PY(_c0.h5', 'label': 'Primary e-', 'color': (0.0, 0.15, 1.0),
-          'max_points': max_primary, 'point_size': 5.0, 'opacity': 0.35 },
-        { 'file': ')PY"
-        << fname << R"PY(_c1.h5', 'label': 'Pair e-', 'color': (0.0, 0.85, 0.35),
-          'max_points': max_pairs, 'point_size': 9.0, 'opacity': 0.9 },
-        { 'file': ')PY"
-        << fname << R"PY(_c2.h5', 'label': 'Pair e+', 'color': (0.95, 0.0, 0.55),
-          'max_points': max_pairs, 'point_size': 9.0, 'opacity': 0.9 },
-    ]
-
-def getAvailableParticleSteps(part_debug=False):
-    try:
-        import h5py
-    except ModuleNotFoundError:
-        if part_debug:
-            sys.stderr.write("h5py is not installed; particle slider disabled.\n")
-        return []
-
-    particle_file = resolveParticleH5File(')PY"
-        << fname << R"PY(_c0.h5')
-    if particle_file is None:
-        return []
-    with h5py.File(particle_file, 'r') as h5_file:
-        steps = []
-        for name in h5_file.keys():
-            if not name.startswith('Step#'):
-                continue
-            group = h5_file[name]
-            if all(dataset in group for dataset in ('x', 'y', 'z')):
-                steps.append(int(name[5:]))
-        steps.sort()
-        return steps
-
-def loadParticlePointClouds(pv, np, display_scale, part_step, max_primary, max_pairs, part_debug=False):
-    try:
-        import h5py
-    except ModuleNotFoundError:
-        sys.stderr.write("h5py is not installed; particle visualization disabled.\n")
-        return []
-
-    clouds = []
-    for spec in getParticleSpecs(max_primary, max_pairs):
-        particle_file = resolveParticleH5File(spec['file'])
-        if particle_file is None:
-            if part_debug:
-                sys.stderr.write("particle file not found: %s\n" % spec['file'])
-            continue
-        with h5py.File(particle_file, 'r') as h5_file:
-            step_name = getH5ParticleStep(h5_file, part_step)
-            if step_name is None:
-                if part_debug:
-                    sys.stderr.write("particle step not found in %s: %s\n" % (particle_file, part_step))
-                continue
-            group = h5_file[step_name]
-            count = len(group['x'])
-            if count == 0:
-                if part_debug:
-                    sys.stderr.write("empty particle step in %s: %s\n" % (particle_file, step_name))
-                continue
-            max_points = min(spec['max_points'], count)
-            if max_points < count:
-                indices = np.linspace(0, count - 1, max_points, dtype=np.int64)
-            else:
-                indices = slice(None)
-            points = np.column_stack((group['x'][indices], group['y'][indices], group['z'][indices]))
-            ref_part_r = np.asarray(group.attrs.get('RefPartR', [0.0, 0.0, 0.0]), dtype=float)
-            points += ref_part_r
-            points *= display_scale
-            if part_debug:
-                mins = points.min(axis=0)
-                maxs = points.max(axis=0)
-                sys.stderr.write(
-                    "%s %s: loaded %d/%d particles, bounds [mm] x=(%.3g, %.3g) y=(%.3g, %.3g) z=(%.3g, %.3g)\n" %
-                    (spec['label'], step_name, len(points), count,
-                     mins[0], maxs[0], mins[1], maxs[1], mins[2], maxs[2]))
-            cloud = pv.PolyData(points)
-            clouds.append({'spec': spec, 'cloud': cloud})
-    return clouds
-
-def updateParticleActors(plotter, pv, np, display_scale, part_step, max_primary, max_pairs,
-                         actor_by_label=None, part_debug=False):
-    if actor_by_label is None:
-        actor_by_label = {}
-    seen_labels = set()
-    for item in loadParticlePointClouds(pv, np, display_scale, part_step, max_primary, max_pairs, part_debug):
-        spec = item['spec']
-        seen_labels.add(spec['label'])
-        actor = actor_by_label.get(spec['label'])
-        if actor is None:
-            actor = plotter.add_mesh(
-                item['cloud'],
-                color=spec['color'],
-                opacity=spec['opacity'],
-                point_size=spec['point_size'],
-                render_points_as_spheres=True,
-                label=spec['label'])
-            actor_by_label[spec['label']] = actor
-        else:
-            actor.mapper.SetInputData(item['cloud'])
-
-    if actor_by_label:
-        empty_cloud = pv.PolyData(np.empty((0, 3)))
-        for label, actor in actor_by_label.items():
-            if label not in seen_labels:
-                actor.mapper.SetInputData(empty_cloud)
-    return actor_by_label
-
-def addParticleVisualization(plotter, pv, np, display_scale, part_step, max_primary, max_pairs, part_debug=False):
-    return updateParticleActors(
-        plotter, pv, np, display_scale, part_step, max_primary, max_pairs, None, part_debug)
-
-def addParticleStepSlider(plotter, pv, np, display_scale, initial_step, max_primary, max_pairs, part_debug=False):
-    steps = getAvailableParticleSteps(part_debug)
-    if len(steps) < 2:
-        return addParticleVisualization(
-            plotter, pv, np, display_scale, initial_step, max_primary, max_pairs, part_debug)
-
-    if initial_step == 'latest':
-        initial_index = len(steps) - 1
-    else:
-        requested = int(initial_step)
-        initial_index = min(range(len(steps)), key=lambda i: abs(steps[i] - requested))
-
-    actor_by_label = updateParticleActors(
-        plotter, pv, np, display_scale, steps[initial_index], max_primary, max_pairs,
-        None, part_debug)
-
-    def update_particle_step(value):
-        index = int(round(value))
-        index = max(0, min(index, len(steps) - 1))
-        updateParticleActors(
-            plotter, pv, np, display_scale, steps[index], max_primary, max_pairs,
-            actor_by_label, part_debug)
-        plotter.add_text('Step %d' % steps[index], name='particle_step_label',
-                         position='lower_left', font_size=10)
-        plotter.render()
-
-    plotter.add_slider_widget(
-        update_particle_step, [0, len(steps) - 1], value=initial_index,
-        title='Particle step', pointa=(0.23, 0.08), pointb=(0.77, 0.08),
-        style='modern', fmt='%.0f')
-    update_particle_step(initial_index)
-    return actor_by_label
-
-)PY";
-
-    out << "def showVTK(part_vis=False, part_step='latest', max_primary=50000, max_pairs=20000, "
-           "part_debug=False, part_slider=False, movie_file=None, movie_fps=12, "
-           "movie_step_stride=1):\n";
+    out << "def showVTK():\n";
     out << indent << "try:\n";
     out << indent << indent << "import numpy as np\n";
     out << indent << indent << "import pyvista as pv\n";
@@ -745,21 +408,6 @@ def addParticleStepSlider(plotter, pv, np, display_scale, initial_step, max_prim
     out << indent << indent << "sys.stderr.write(\"  python -m pip install pyvista\\n\")\n";
     out << indent << indent << "return 1\n\n";
 
-    out << indent << "if movie_file is not None:\n";
-    out << indent << indent << "import importlib.util\n";
-    out << indent << indent << "if importlib.util.find_spec('imageio') is None:\n";
-    out << indent << indent << indent
-        << "sys.stderr.write(\"Movie output needs imageio for PyVista's movie writers.\\n\")\n";
-    out << indent << indent << indent
-        << "sys.stderr.write(\"Install it for the Python you are running, for example:\\n\")\n";
-    out << indent << indent << indent
-        << "sys.stderr.write(\"  python3 -m pip install --user imageio\\n\")\n";
-    out << indent << indent << indent
-        << "sys.stderr.write(\"For MP4 output you may also need:\\n\")\n";
-    out << indent << indent << indent
-        << "sys.stderr.write(\"  python3 -m pip install --user imageio-ffmpeg\\n\")\n";
-    out << indent << indent << indent << "return 1\n\n";
-
     out << indent << "vtk_file = \"" << fname << "_ElementPositions.vtk\"\n";
     out << indent << "script_file = os.path.abspath(__file__)\n";
     out << indent << "needs_export = not os.path.exists(vtk_file)\n";
@@ -770,9 +418,7 @@ def addParticleStepSlider(plotter, pv, np, display_scale, initial_step, max_prim
     out << indent << indent << "exportVTK()\n\n";
 
     out << indent << "mesh = pv.read(vtk_file)\n";
-    out << indent << "display_scale = 1.0e3\n";
-    out << indent << "mesh.points *= display_scale\n";
-    out << indent << "plotter = pv.Plotter(off_screen=movie_file is not None)\n";
+    out << indent << "plotter = pv.Plotter()\n";
     out << indent << "add_mesh_kwargs = {}\n";
     out << indent << "active_scalars_name = mesh.active_scalars_name\n";
     out << indent << "if active_scalars_name is not None:\n";
@@ -797,7 +443,6 @@ def addParticleStepSlider(plotter, pv, np, display_scale, initial_step, max_prim
     out << indent << indent << indent << indent << "('TravelingWave', (0.0, 0.6, 0.0)),\n";
     out << indent << indent << indent << indent << "('Drift', (0.0, 0.0, 1.0)),\n";
     out << indent << indent << indent << indent << "('BeamBeam', (0.0, 0.7, 0.9)),\n";
-    out << indent << indent << indent << indent << "('BeamBeam aperture', (0.65, 0.65, 0.65)),\n";
     out << indent << indent << indent << "]\n";
     out << indent << indent << indent << "present = []\n";
     out << indent << indent << indent << "for label, color in legend:\n";
@@ -810,77 +455,8 @@ def addParticleStepSlider(plotter, pv, np, display_scale, initial_step, max_prim
         << "plotter.add_legend(present, bcolor=(1.0, 1.0, 1.0), face='circle', border=True, "
            "size=(0.2, 0.24))\n";
     out << indent << "plotter.add_mesh(mesh, **add_mesh_kwargs)\n";
-    out << indent << "aperture = getBeamBeamApertureVolume()\n";
-    out << indent << "if aperture is not None:\n";
-    out << indent << indent << "points = np.asarray(aperture['points'], dtype=float)\n";
-    out << indent << indent << "points *= display_scale\n";
-    out << indent << indent << "cells = np.asarray([8] + aperture['cell'], dtype=int)\n";
-    out << indent << indent << "celltypes = np.asarray([pv.CellType.HEXAHEDRON], dtype=np.uint8)\n";
-    out << indent << indent << "aperture_grid = pv.UnstructuredGrid(cells, celltypes, points)\n";
-    out << indent << indent
-        << "plotter.add_mesh(aperture_grid, color=(0.65, 0.65, 0.65), opacity=0.28, "
-           "show_edges=True, "
-           "label=aperture['name'])\n";
-    out << indent << "if part_vis or movie_file is not None:\n";
-    out << indent << indent << "if part_slider:\n";
-    out << indent << indent << indent << "if movie_file is not None:\n";
-    out << indent << indent << indent << indent
-        << "sys.stderr.write(\"particle slider is disabled while writing a movie.\\n\")\n";
-    out << indent << indent << indent << "else:\n";
-    out << indent << indent << indent << indent
-        << "addParticleStepSlider(plotter, pv, np, display_scale, part_step, max_primary, "
-           "max_pairs, part_debug)\n";
-    out << indent << indent << "elif movie_file is None:\n";
-    out << indent << indent << indent
-        << "addParticleVisualization(plotter, pv, np, display_scale, part_step, max_primary, "
-           "max_pairs, part_debug)\n";
-    out << indent << indent << "if movie_file is None:\n";
-    out << indent << indent << indent << "plotter.reset_camera()\n";
     out << indent << "plotter.add_axes()\n";
-    out << indent << "try:\n";
-    out << indent << indent
-        << "plotter.show_grid(xtitle='X [mm]', ytitle='Y [mm]', ztitle='Z [mm]')\n";
-    out << indent << "except TypeError:\n";
-    out << indent << indent << "try:\n";
-    out << indent << indent << indent
-        << "plotter.show_grid(xlabel='X [mm]', ylabel='Y [mm]', zlabel='Z [mm]')\n";
-    out << indent << indent << "except TypeError:\n";
-    out << indent << indent << indent << "plotter.show_grid()\n";
-    out << indent << "if movie_file is not None:\n";
-    out << indent << indent << "steps = getAvailableParticleSteps(part_debug)\n";
-    out << indent << indent << "if not steps:\n";
-    out << indent << indent << indent
-        << "sys.stderr.write(\"no particle H5 steps available for movie output.\\n\")\n";
-    out << indent << indent << indent << "plotter.close()\n";
-    out << indent << indent << indent << "return 1\n";
-    out << indent << indent << "movie_step_stride = max(1, int(movie_step_stride))\n";
-    out << indent << indent << "movie_fps = max(1, int(movie_fps))\n";
-    out << indent << indent << "steps = steps[::movie_step_stride]\n";
-    out << indent << indent << "actor_by_label = {}\n";
-    out << indent << indent << "writer_open = False\n";
-    out << indent << indent << "for step in steps:\n";
-    out << indent << indent << indent
-        << "updateParticleActors(plotter, pv, np, display_scale, step, max_primary, max_pairs, "
-           "actor_by_label, part_debug)\n";
-    out << indent << indent << indent
-        << "plotter.add_text('Step %d' % step, name='particle_step_label', "
-           "position='lower_left', font_size=10)\n";
-    out << indent << indent << indent << "if not writer_open:\n";
-    out << indent << indent << indent << indent << "plotter.reset_camera()\n";
-    out << indent << indent << indent << indent << "if movie_file.lower().endswith('.gif'):\n";
-    out << indent << indent << indent << indent << indent << "try:\n";
-    out << indent << indent << indent << indent << indent << indent
-        << "plotter.open_gif(movie_file, fps=movie_fps)\n";
-    out << indent << indent << indent << indent << indent << "except TypeError:\n";
-    out << indent << indent << indent << indent << indent << indent
-        << "plotter.open_gif(movie_file)\n";
-    out << indent << indent << indent << indent << "else:\n";
-    out << indent << indent << indent << indent << indent
-        << "plotter.open_movie(movie_file, framerate=movie_fps)\n";
-    out << indent << indent << indent << indent << "writer_open = True\n";
-    out << indent << indent << indent << "plotter.write_frame()\n";
-    out << indent << indent << "plotter.close()\n";
-    out << indent << indent << "return 0\n";
+    out << indent << "plotter.show_grid()\n";
     out << indent << "plotter.show()\n";
     out << indent << "return 0\n\n";
 
@@ -1012,30 +588,14 @@ def addParticleStepSlider(plotter, pv, np, display_scale, initial_step, max_prim
 
     out << indent << indent << "startIdx = vertexCounter\n\n";
 
-    out << indent << "aperture = getBeamBeamApertureVolume()\n";
-    out << indent << "if aperture is not None:\n";
-    out << indent << indent << "aperture_start = vertexCounter\n";
-    out << indent << indent << "for point in aperture['points']:\n";
-    out << indent << indent << indent
-        << "vertices_str += (\"%f %f %f\\n\" % (point[0], point[1], point[2]))\n";
-    out << indent << indent << indent << "vertexCounter += 1\n";
-    out << indent << indent << "triangles_str += (\"8 %d %d %d %d %d %d %d %d\\n\" %\n";
-    out << indent << indent << indent
-        << "tuple(aperture_start + idx for idx in aperture['cell']))\n";
-    out << indent << indent << "cellTypes_str += \"12\\n\"\n";
-    out << indent << indent << "color_str += \"0.650000 0.650000 0.650000 0.280000\\n\"\n";
-    out << indent << indent << "cellCounter += 1\n\n";
-
     out << indent << "fh = open('" << fname << "_ElementPositions.vtk','w')\n";
     out << indent << "fh.write(\"# vtk DataFile Version 2.0\\n\")\n";
     out << indent << "fh.write(\"test\\nASCII\\n\\n\")\n";
     out << indent << "fh.write(\"DATASET UNSTRUCTURED_GRID\\n\")\n";
     out << indent << "fh.write(\"POINTS \" + str(vertexCounter) + \" float\\n\")\n";
     out << indent << "fh.write(vertices_str)\n";
-    out << indent << "cell_size = (cellCounter - (1 if aperture is not None else 0)) * 4\n";
-    out << indent << "if aperture is not None:\n";
-    out << indent << indent << "cell_size += 9\n";
-    out << indent << "fh.write(\"CELLS \" + str(cellCounter) + \" \" + str(cell_size) + \"\\n\")\n";
+    out << indent
+        << "fh.write(\"CELLS \" + str(cellCounter) + \" \" + str(cellCounter * 4) + \"\\n\")\n";
     out << indent << "fh.write(triangles_str)\n";
     out << indent << "fh.write(\"CELL_TYPES \" + str(cellCounter) + \"\\n\")\n";
     out << indent << "fh.write(cellTypes_str)\n";
@@ -1568,15 +1128,6 @@ def addParticleStepSlider(plotter, pv, np, display_scale, initial_step, max_prim
     out << indent << "parser.add_argument('--export-vtk', action='store_true')\n";
     out << indent << "parser.add_argument('--export-web', action='store_true')\n";
     out << indent << "parser.add_argument('--show', action='store_true')\n";
-    out << indent << "parser.add_argument('--part-vis', action='store_true')\n";
-    out << indent << "parser.add_argument('--part-step', default='latest')\n";
-    out << indent << "parser.add_argument('--part-max-primary', type=int, default=50000)\n";
-    out << indent << "parser.add_argument('--part-max-pairs', type=int, default=20000)\n";
-    out << indent << "parser.add_argument('--part-debug', action='store_true')\n";
-    out << indent << "parser.add_argument('--part-slider', action='store_true')\n";
-    out << indent << "parser.add_argument('--part-movie')\n";
-    out << indent << "parser.add_argument('--movie-fps', type=int, default=12)\n";
-    out << indent << "parser.add_argument('--movie-step-stride', type=int, default=1)\n";
     out << indent << "parser.add_argument('--background', nargs=3, type=float)\n";
     out << indent << "parser.add_argument('--project-to-plane', action='store_true')\n";
     out << indent << "parser.add_argument('--normal', nargs=3, type=float)\n";
@@ -1599,16 +1150,8 @@ def addParticleStepSlider(plotter, pv, np, display_scale, initial_step, max_prim
     out << indent << indent << "exportWeb(bgcolor)\n";
     out << indent << indent << "sys.exit()\n\n";
 
-    out << indent << "if (args.part_movie):\n";
-    out << indent << indent
-        << "sys.exit(showVTK(True, args.part_step, args.part_max_primary, args.part_max_pairs, "
-           "args.part_debug, False, args.part_movie, args.movie_fps, "
-           "args.movie_step_stride))\n\n";
-
     out << indent << "if (args.show):\n";
-    out << indent << indent
-        << "sys.exit(showVTK(args.part_vis, args.part_step, args.part_max_primary, "
-           "args.part_max_pairs, args.part_debug, args.part_slider))\n\n";
+    out << indent << indent << "sys.exit(showVTK())\n\n";
 
     out << indent << "if (args.project_to_plane):\n";
     out << indent << indent << "normal = [0.0, 1.0, 0.0]\n";

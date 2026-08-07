@@ -18,11 +18,14 @@ protected:
     std::shared_ptr<FieldContainer_t> fc_m;
     Distribution_t* opalDist_m = nullptr;
     std::string samplingMethod_m;
-    /// Emission source offset: position R0, momentum P0, start time t0 (applied in sample step).
+    /// Emission-source state passed in by TrackRun. R0 and P0 are final offsets:
+    /// samplers generate their mathematical shape first, then add these offsets during sampling.
     Vector_t<double, 3> R0_m    = 0.0;
     Vector_t<double, 3> P0_m    = 0.0;
     double t0_m                 = 0.0;
     std::string emissionModel_m = "NONE";
+    /// Source EKIN converted to beta*gamma; used as the ASTRA half-sphere radius.
+    double emissionMomentumMagnitude_m = 0.0;
 
     /// Initial polarization vector P applied to every particle this sampler creates.
     /// Rest-frame Pauli expectations along lab-frame axes; |Pol| in [0, 1].
@@ -47,11 +50,12 @@ public:
 
     void setEmissionOffsets(
             ippl::Vector<double, 3> R0, ippl::Vector<double, 3> P0, double t0,
-            const std::string& emissionModel = "NONE") {
-        R0_m            = R0;
-        P0_m            = P0;
-        t0_m            = t0;
-        emissionModel_m = emissionModel;
+            const std::string& emissionModel = "NONE", double emissionMomentumMagnitude = 0.0) {
+        R0_m                        = R0;
+        P0_m                        = P0;
+        t0_m                        = t0;
+        emissionModel_m             = emissionModel;
+        emissionMomentumMagnitude_m = emissionMomentumMagnitude;
     }
 
     void setInitialPolarization(const ippl::Vector<double, 3>& pol) { initialPol_m = pol; }
@@ -88,6 +92,9 @@ public:
         return hasEmittedOnce_m;
     }
 
+    /// @brief Fraction of this sampler's total inventory already emitted.
+    virtual double getEmittedFraction() const { return 1.0; }
+
     /// @brief Optional tracker time shift needed before the first emitted particles are born.
     virtual double getGlobalTimeShift() const { return 0.0; }
 
@@ -95,6 +102,13 @@ public:
     virtual bool hasInitialReferenceMomentum() const { return false; }
 
     virtual Vector_t<double, 3> getInitialReferenceMomentum() const {
+        return Vector_t<double, 3>(0.0);
+    }
+
+    /// @brief Optional initial reference position in the source-local frame.
+    virtual bool hasInitialReferencePosition() const { return false; }
+
+    virtual Vector_t<double, 3> getInitialReferencePosition() const {
         return Vector_t<double, 3>(0.0);
     }
 

@@ -13,9 +13,8 @@
  *
  * 1. Basic API
  *    - getType()
- *    - bends()
  *    - getRequiredNumberOfTimeSteps()
- *    - getFieldExtend()
+ *    - getFieldExtent()
  *
  * 2. Collection type bookkeeping
  *    - default collection type is SPATIAL
@@ -48,19 +47,10 @@
 
 #define private public
 #include "AbsBeamline/Monitor.h"
+#include "BeamlineGeometry/Geometry.h"
 #undef private
 
-#include "Fields/EMField.h"
-
 #include <memory>
-
-// ---------------------------------------------------------------------------
-// Dummy field
-// ---------------------------------------------------------------------------
-class DummyMonitorField : public EMField {
-public:
-    void scale(double) override {}
-};
 
 // ---------------------------------------------------------------------------
 // Minimal concrete Monitor
@@ -73,13 +63,9 @@ public:
 
     ElementBase* clone() const override { return new TestMonitor(*this); }
 
-    StraightGeometry& getGeometry() override { return geom_; }
+    Geometry& getGeometry() override { return geom_; }
 
-    const StraightGeometry& getGeometry() const override { return geom_; }
-
-    EMField& getField() override { return field_; }
-
-    const EMField& getField() const override { return field_; }
+    const Geometry& getGeometry() const override { return geom_; }
 
     Plane getPlane() const override { return plane_; }
 
@@ -88,8 +74,7 @@ public:
     void setLength(double length) { geom_.setElementLength(length); }
 
 private:
-    StraightGeometry geom_;
-    DummyMonitorField field_;
+    Geometry geom_;
     Plane plane_ = OFF;
 };
 
@@ -116,12 +101,6 @@ TEST_F(MonitorTest, GetType) {
     EXPECT_EQ(monitor.getType(), ElementType::MONITOR);
 }
 
-TEST_F(MonitorTest, Bends) {
-    TestMonitor monitor;
-
-    EXPECT_FALSE(monitor.bends());
-}
-
 TEST_F(MonitorTest, RequiredNumberOfTimeStepsIsOne) {
     TestMonitor monitor;
 
@@ -134,7 +113,7 @@ TEST_F(MonitorTest, GetFieldExtendUsesMonitorHalfLength) {
     double zBegin = 0.0;
     double zEnd   = 0.0;
 
-    monitor.getFieldExtend(zBegin, zEnd);
+    monitor.getFieldExtent(zBegin, zEnd);
 
     EXPECT_DOUBLE_EQ(zBegin, -0.005);
     EXPECT_DOUBLE_EQ(zEnd, 0.005);
@@ -201,10 +180,10 @@ TEST_F(MonitorTest, IsInsideRejectsPointsOutsideElementLength) {
 // ---------------------------------------------------------------------------
 // Safe early returns
 // ---------------------------------------------------------------------------
-TEST_F(MonitorTest, ApplyNullParticleContainerReturnsFalse) {
+TEST_F(MonitorTest, ApplyNullParticleContainerIsSafe) {
     TestMonitor monitor;
 
-    EXPECT_FALSE(monitor.apply(std::shared_ptr<ParticleContainer_t>()));
+    EXPECT_NO_THROW(monitor.apply(std::shared_ptr<ParticleContainer_t>()));
 }
 
 TEST_F(MonitorTest, ApplyToReferenceParticleWithoutReferenceBunchReturnsFalse) {
@@ -220,7 +199,7 @@ TEST_F(MonitorTest, ApplyToReferenceParticleWithoutReferenceBunchReturnsFalse) {
     EXPECT_FALSE(monitor.applyToReferenceParticle(R, P, 0.0, E, B));
 }
 
-TEST_F(MonitorTest, FieldOnlyApplyOverloadReturnsFalseAndLeavesFieldsUnchanged) {
+TEST_F(MonitorTest, FieldOnlyApplyOverloadLeavesFieldsUnchanged) {
     TestMonitor monitor;
 
     Vector_t<double, 3> R(0.0);
@@ -236,7 +215,7 @@ TEST_F(MonitorTest, FieldOnlyApplyOverloadReturnsFalseAndLeavesFieldsUnchanged) 
     B(1) = 5.0;
     B(2) = 6.0;
 
-    EXPECT_FALSE(monitor.apply(R, P, 0.0, E, B));
+    monitor.apply(R, P, 0.0, E, B);
 
     EXPECT_DOUBLE_EQ(E(0), 1.0);
     EXPECT_DOUBLE_EQ(E(1), 2.0);

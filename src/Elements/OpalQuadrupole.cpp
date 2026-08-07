@@ -24,7 +24,6 @@
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/MultipoleRep.h"
-#include "Fields/BMultipoleField.h"
 #include "Physics/Physics.h"
 
 OpalQuadrupole::OpalQuadrupole()
@@ -66,34 +65,25 @@ void OpalQuadrupole::update() {
 
     MultipoleRep* mult = dynamic_cast<MultipoleRep*>(getElement());
     double length      = getLength();
-    mult->setElementLength(length);
+    mult->getGeometry().setElementLength(length);
 
-    // Build a multipole field from the scalar K1 / K1S values.
     // The KN vector convention is: index 0 = dipole, index 1 = quadrupole, ...
-    BMultipoleField field;
-
-    double k1   = Attributes::getReal(itsAttr[K1]);
-    double dk1  = Attributes::getReal(itsAttr[DK1]);
-    double k1s  = Attributes::getReal(itsAttr[K1S]);
-    double dk1s = Attributes::getReal(itsAttr[DK1S]);
-
+    // Populate the device coefficient views read by Multipole::apply().
+    // K1 is a NORMALISED strength [m^-2]; the field component stored/applied by
+    // Multipole is a physical gradient [T/m].
     double factor = OpalData::getInstance()->getP0() / Physics::c;
+    double k1     = Attributes::getReal(itsAttr[K1]) * factor;
+    double dk1    = Attributes::getReal(itsAttr[DK1]) * factor;
+    double k1s    = Attributes::getReal(itsAttr[K1S]) * factor;
+    double dk1s   = Attributes::getReal(itsAttr[DK1S]) * factor;
 
-    // comp 0 (dipole): strength = 0, factor /= 1
-    factor /= 1.0;  // comp 0
-    field.setNormalComponent(0, 0.0);
+    // comp 0 (dipole): strength = 0
     mult->setNormalComponent(0, 0.0, 0.0);
-    field.setSkewComponent(0, 0.0);
     mult->setSkewComponent(0, 0.0, 0.0);
 
-    // comp 1 (quadrupole): factor /= 2
-    factor /= 2.0;
-    field.setNormalComponent(1, k1 * factor);
+    // comp 1 (quadrupole)
     mult->setNormalComponent(1, k1, dk1);
-    field.setSkewComponent(1, k1s * factor);
     mult->setSkewComponent(1, k1s, dk1s);
-
-    mult->setField(field);
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(mult);

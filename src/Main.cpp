@@ -104,7 +104,7 @@ namespace OPALXMAIN {
 #ifdef KOKKOS_ENABLE_CUDA
         *gmsg << "* Device: " << Kokkos::Cuda::name() << endl << endl;
 #elif defined(KOKKOS_ENABLE_HIP)
-        *gmsg << "* Device: " << Kokkos::Experimental::HIP::name() << endl << endl;
+        *gmsg << "* Device: " << Kokkos::HIP::name() << endl << endl;
 #elif defined(KOKKOS_ENABLE_OPENMP)
         *gmsg << "* Device: " << Kokkos::OpenMP::name() << endl << endl;
 #else

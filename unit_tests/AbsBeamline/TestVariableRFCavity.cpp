@@ -52,11 +52,10 @@ public:
     // Overrides of BeamlineVisitor
     void execute() override {}
     void visitBeamline(const Beamline&) override {}
-    void visitComponent(const Component&) override {}
+    void visitElementBase(const ElementBase&) override {}
     void visitConstantEFieldCavity(const ConstantEFieldCavity&) override {}
     void visitDrift(const Drift&) override {}
     void visitFlaggedElmPtr(const FlaggedElmPtr&) override {}
-    void visitBeamBeam(const BeamBeam&) override {}
     void visitLaser(const Laser&) override {}
     void visitMarker(const Marker&) override {}
     void visitMonitor(const Monitor&) override {}
@@ -65,7 +64,6 @@ public:
     void visitRBend(const RBend&) override {}
     void visitRFCavity(const RFCavity&) override {}
     void visitScalingFFAMagnet(const ScalingFFAMagnet&) override {}
-    void visitRing(const Ring&) override {}
     void visitSBend(const SBend&) override {}
     void visitSolenoid(const Solenoid&) override {}
     void visitTravelingWave(const TravelingWave&) override {}
@@ -278,7 +276,7 @@ TEST_F(TestVariableRFCavity, TestApplyField) {
         const double integralF = poly2->getIntegral(t) * Units::MHz2Hz;
         const double e_test =
                 amplitude * sin(Physics::two_pi * integralF + phase) * Units::MVpm2Vpm;
-        EXPECT_FALSE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+        EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
         EXPECT_NEAR(0., E[0], 1.e-6);
         EXPECT_NEAR(0., E[1], 1.e-6);
         EXPECT_NEAR(e_test, E[2], 1.e-6);
@@ -303,28 +301,28 @@ TEST_F(TestVariableRFCavity, TestApplyBoundingBox) {
     Vector_t<double, 3> B({0., 0., 0.});
     Vector_t<double, 3> E({0., 0., 0.});
     double t = 0;
-    EXPECT_FALSE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+    EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
     R[2] = 2. - 1e-9;
-    EXPECT_FALSE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+    EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
     R[2] = 1.e-9;
-    EXPECT_FALSE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+    EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
     R[2] = -1.e-9;
-    EXPECT_FALSE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+    EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
     R[2] = 2. + 1.e-9;
-    EXPECT_FALSE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+    EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
     R[2] = 1.;
     R[1] = -1.5 - 1e-9;
-    EXPECT_TRUE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+    EXPECT_TRUE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
     R[1] = +1.5 + 1e-9;
-    EXPECT_TRUE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+    EXPECT_TRUE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
     R[1] = 0.;
-    EXPECT_FALSE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+    EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
     R[0] = -2. - 1e-9;
-    EXPECT_TRUE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+    EXPECT_TRUE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
     R[0] = +2. + 1e-9;
-    EXPECT_TRUE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+    EXPECT_TRUE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
     R[0] = 0.;
-    EXPECT_FALSE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
+    EXPECT_FALSE(cav1.applyToReferenceParticle(R, Vector_t<double, 3>(0.0), t, E, B));
 }
 
 TEST_F(TestVariableRFCavity, BunchFields) {
@@ -361,8 +359,7 @@ TEST_F(TestVariableRFCavity, BunchFields) {
     Kokkos::fence();
     // Register the bunch with the element
     bunch->setT(0.0);
-    double startField, endField;
-    initialise(bunch.get(), startField, endField);
+    initialise(bunch.get());
     EXPECT_NE(RefPartBunch_m, nullptr);
     // Get the fields for all particles
     apply(pc);
@@ -375,9 +372,11 @@ TEST_F(TestVariableRFCavity, BunchFields) {
     for (size_t i = 0; i < line.size(); ++i) {
         EXPECT_DOUBLE_EQ(line[i], 1.0 * Units::MVpm2Vpm);
     }
-    // Get the field for one of the particles
+    // Get the field at one particle's position via the position overload
     Vector_t<double, 3> singleE{}, singleB{};
-    EXPECT_FALSE(apply(0, 0.0, singleE, singleB));
+    const auto hostR0 = Kokkos::create_mirror_view(pc->R.getView());
+    Kokkos::deep_copy(hostR0, pc->R.getView());
+    EXPECT_FALSE(applyToReferenceParticle(hostR0(0), Vector_t<double, 3>{}, 0.0, singleE, singleB));
     EXPECT_DOUBLE_EQ(singleE[2], 1.0 * Units::MVpm2Vpm);
     // Done
     finalise();
@@ -407,16 +406,15 @@ TEST_F(TestVariableRFCavity, OddApis) {
     const VariableRFCavity cav1;
     // The field-support interval follows the body length.
     double a{}, b{};
-    EXPECT_NO_THROW(cav1.getFieldExtend(a, b));
+    EXPECT_NO_THROW(cav1.getFieldExtent(a, b));
     EXPECT_DOUBLE_EQ(a, 0.0);
     EXPECT_DOUBLE_EQ(b, 0.0);
     VariableRFCavity cavWithLength;
     cavWithLength.setLength(3.0);
-    EXPECT_NO_THROW(cavWithLength.getFieldExtend(a, b));
+    EXPECT_NO_THROW(cavWithLength.getFieldExtent(a, b));
     EXPECT_DOUBLE_EQ(a, 0.0);
     EXPECT_DOUBLE_EQ(b, 3.0);
     // The cavity does not make a bend
-    EXPECT_FALSE(cav1.bends());
     // Self assignment
     VariableRFCavity cav2;
     cav2.setLength(3.0);
@@ -424,9 +422,6 @@ TEST_F(TestVariableRFCavity, OddApis) {
     EXPECT_DOUBLE_EQ(cav2.getLength(), 0.0);
     EXPECT_NO_THROW(cav2 = cav2);
     EXPECT_DOUBLE_EQ(cav2.getLength(), 0.0);
-    // No implementation of field
-    EXPECT_ANY_THROW(cav1.getField());
-    EXPECT_ANY_THROW(cav2.getField());
 }
 
 TEST_F(TestVariableRFCavity, FieldSupportMatchesBodyLength) {
@@ -443,13 +438,13 @@ TEST_F(TestVariableRFCavity, FieldSupportMatchesBodyLength) {
 
     double zBegin = -1.0;
     double zEnd   = -1.0;
-    getFieldExtend(zBegin, zEnd);
+    getFieldExtent(zBegin, zEnd);
     EXPECT_DOUBLE_EQ(zBegin, 0.0);
     EXPECT_DOUBLE_EQ(zEnd, 10.0);
 
     Vector_t<double, 3> E{}, B{};
-    EXPECT_FALSE(apply({0.0, 0.0, -0.1}, {}, 0.0, E, B));
+    EXPECT_FALSE(applyToReferenceParticle({0.0, 0.0, -0.1}, {}, 0.0, E, B));
     EXPECT_DOUBLE_EQ(E[2], 0.0);
-    EXPECT_FALSE(apply({0.0, 0.0, 5.0}, {}, 0.0, E, B));
+    EXPECT_FALSE(applyToReferenceParticle({0.0, 0.0, 5.0}, {}, 0.0, E, B));
     EXPECT_DOUBLE_EQ(E[2], 1.0 * Units::MVpm2Vpm);
 }

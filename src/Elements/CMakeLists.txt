@@ -1,10 +1,10 @@
 set (_SRCS
+    OpalBeamBeam.cpp
     OpalCavity.cpp
     OpalConstantEFieldCavity.cpp
     OpalTravelingWave.cpp
     OpalBend.cpp
     OpalDrift.cpp
-    OpalBeamBeam.cpp
     OpalElement.cpp
     OpalLaser.cpp
     OpalMonitor.cpp
@@ -16,7 +16,7 @@ set (_SRCS
     OpalSBend.cpp
     OpalSolenoid.cpp
     OpalBeamline.cpp
-    OpalRingDefinition.cpp      
+    PlacementResolver.cpp
     OpalVerticalFFAMagnet.cpp
     OpalProbe.cpp
     OpalPolynomialTimeDependence.cpp
@@ -26,12 +26,13 @@ set (_SRCS
 )
 
 set (HDRS
+    OpalBeamBeam.h
     OpalBeamline.h
+    PlacementResolver.h
     OpalBend.h
     OpalCavity.h
     OpalConstantEFieldCavity.h
     OpalDrift.h
-    OpalBeamBeam.h
     OpalElement.h
     OpalMonitor.h
     OpalMarker.h
@@ -43,7 +44,6 @@ set (HDRS
     OpalSource.h
     OpalSolenoid.h
     OpalTravelingWave.h
-    OpalRingDefinition.h
     OpalLaser.h
     OpalVerticalFFAMagnet.h
     OpalProbe.h

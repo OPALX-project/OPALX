@@ -46,12 +46,12 @@ void OpalDrift::update() {
 
     //    DriftRep* drf = static_cast<DriftRep*>(getElement());
 
-    // drf->setElementLength(Attributes::getReal(itsAttr[LENGTH]));
+    // drf->getGeometry().setElementLength(Attributes::getReal(itsAttr[LENGTH]));
 
     auto drf = getElement();
     if (drf) {
         auto L = Attributes::getReal(itsAttr[LENGTH]);
-        drf->setElementLength(L);
+        drf->getGeometry().setElementLength(L);
     } else
         std::cout << "error drf->setElementLength " << std::endl;
 

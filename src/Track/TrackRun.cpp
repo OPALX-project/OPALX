@@ -67,6 +67,7 @@
 #include "changes.h"
 
 #include "Utilities/BiMap.h"
+#include "Utilities/Util.h"
 
 #include <algorithm>
 #include <cmath>
@@ -397,14 +398,14 @@ void TrackRun::execute() {
 
     // Create PartBunch (PIC Manager) with multiple particle containers
     bunch_m = std::make_unique<bunch_type>(
-            macrocharges,           // Macro charge [C]
-            macromasses,            // Macro Mass [GeV]
-            beams,                  // Beam objects per container
-            totalParticlesPerBeam,  // Per-beam particle counts for allocation
-            1.0,                    // lbt
-            "LF2",                  // Integrator
-            fs_m,                   // Fieldsolver
-            ds_m);                  // Data sink
+            macrocharges,                     // Macro charge [C]
+            macromasses,                      // Macro Mass [GeV]
+            beams,                            // Beam objects per container
+            totalParticlesPerBeam,            // Per-beam particle counts for allocation
+            Options::loadBalancingThreshold,  // Load balancing threshold
+            "LF2",                            // Integrator
+            fs_m,                             // Fieldsolver
+            ds_m);                            // Data sink
 
     // Validate container setup produced by constructor
     const auto& particleContainers = bunch_m->getParticleContainers();
@@ -749,11 +750,30 @@ void TrackRun::setupDistributionsAndSamplers(
                 throw OpalException("Distribution::create", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
         }
 
-        // Per-source emission offsets, start time, and emission model.
-        const auto R0   = src->getR0();
-        const auto P0   = src->getP0();
-        const double t0 = src->getT0();
-        sampler->setEmissionOffsets(R0, P0, t0, src->getEmissionModel());
+        // Per-source emission state. The distribution remains a shape sampler; source physics is
+        // folded into the sampler setup here before particles are generated.
+        const auto R0                = src->getR0();
+        auto P0                      = src->getP0();
+        const double t0              = src->getT0();
+        const std::string emitModel  = src->getEmissionModel();
+        const bool generatedEmission = opalDist->emitting_m
+                                       && opalDist->getType() != DistributionType::FROMFILE
+                                       && opalDist->getType() != DistributionType::EMITTEDFROMFILE;
+        const double eKin                = src->getKineticEnergy();
+        double emissionMomentumMagnitude = 0.0;
+        if (generatedEmission && eKin > 0.0) {
+            // EKIN is source-side kinetic energy in eV. Convert it to normalized momentum. For
+            // EMISSIONMODEL=NONE it is added to P0Z, reproducing old OPAL's cathode-energy
+            // increment. For ASTRA, the normalized half-sphere samples are stretched to this
+            // magnitude in the sampler, then the P0 offset is added to every sampled momentum.
+            const double thermalP = Util::getBetaGamma(eKin, beam->getMass() * Units::GeV2eV);
+            if (emitModel == "NONE") {
+                P0[2] += thermalP;
+            } else if (emitModel == "ASTRA") {
+                emissionMomentumMagnitude = thermalP;
+            }
+        }
+        sampler->setEmissionOffsets(R0, P0, t0, emitModel, emissionMomentumMagnitude);
 
         // Initial polarization from BEAM (ignored if container has no spin attribute).
         const std::vector<double> pol = beam->getPolarization();
@@ -916,6 +936,10 @@ Inform& TrackRun::print(Inform& os) const {
        << " (-1 follows PSDUMPFREQ, 0 disables c0 HDF5)" << '\n'
        << "* Statistics dump frequency     = " << Options::statDumpFreq << " w.r.t. the time step."
        << '\n'
+       << "* Rank distribution print freq. = " << Options::printRankDistrFreq
+       << " w.r.t. the time step." << '\n'
+       << "* Rank H5 dump                  = " << std::boolalpha << Options::rankDump
+       << std::noboolalpha << '\n'
        << "* DT                            = " << Track::block->dT.front() << " [s]\n"
        << "* MAXSTEPS                      = " << Track::block->localTimeSteps.front() << '\n';
 

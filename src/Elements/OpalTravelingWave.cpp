@@ -75,10 +75,7 @@ void OpalTravelingWave::update() {
     //    std::string type = Attributes::getString(itsAttr[TYPE]);
     double kineticEnergy = Attributes::getReal(itsAttr[DESIGNENERGY]);
 
-    rfc->setElementLength(length);
-    rfc->setAmplitude(Units::MVpm2Vpm * vPeak);
-    rfc->setFrequency(freq);
-    rfc->setPhase(phase);
+    rfc->getGeometry().setElementLength(length);
 
     rfc->setFieldMapFN(fmapfm);
     rfc->setFast(fast);

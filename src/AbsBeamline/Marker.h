@@ -21,14 +21,14 @@
 //
 // ------------------------------------------------------------------------
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 
 // Class Marker
 // ------------------------------------------------------------------------
 /// Interface for a marker.
 //  Class Marker defines the abstract interface for a marker element.
 
-class Marker : public Component {
+class Marker : public ElementBase {
 public:
     /// Constructor with given name.
     explicit Marker(const std::string& name);
@@ -40,15 +40,13 @@ public:
     /// Apply visitor to Marker.
     virtual void accept(BeamlineVisitor&) const override;
 
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    virtual void initialise(PartBunch_t* bunch) override;
 
     virtual void finalise() override;
 
-    virtual bool bends() const override;
-
     virtual ElementType getType() const override;
 
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     virtual int getRequiredNumberOfTimeSteps() const override;
 

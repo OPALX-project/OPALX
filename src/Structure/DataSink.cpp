@@ -49,11 +49,10 @@ std::string DataSink::diagnosticStemForContainer(
 }
 
 namespace {
-    bool shouldDumpH5Container(PartBunch_t& beam, size_t containerIndex) {
+    bool shouldDumpH5Container(const PartBunch_t& beam, size_t containerIndex) {
         if (containerIndex != 0 || Options::c0PsDumpFreq < 0) {
             return true;
         }
-
         if (Options::c0PsDumpFreq == 0) {
             return false;
         }

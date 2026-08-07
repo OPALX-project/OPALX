@@ -23,12 +23,10 @@
 #ifndef OPAL_INDEXMAP_H
 #define OPAL_INDEXMAP_H
 
-#include "Algorithms/ReferencePathModel.h"
-
 #include <map>
 #include <ostream>
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Utilities/OpalException.h"
 
 #include <set>
@@ -43,7 +41,7 @@ public:
         second_type end;
     };
     typedef Range key_t;
-    typedef std::set<std::shared_ptr<Component> > value_t;
+    typedef std::set<std::shared_ptr<ElementBase>> value_t;
 
     IndexMap();
 
@@ -51,16 +49,15 @@ public:
 
     value_t query(key_t::first_type s, key_t::second_type ds);
 
-    void tidyUp(double zstop);
+    void tidyUp(double sStop);
 
     void print(std::ostream&) const;
     void saveSDDS(double startS) const;
     size_t size() const;
-    const ReferencePathModel& getReferencePathModel() const;
 
-    size_t numElements() const;
-    key_t getRange(const IndexMap::value_t::value_type& element, double position) const;
-    value_t getTouchingElements(const key_t& range) const;
+    /// Reverse lookup: the path-length range over which @p element is active. Single-pass
+    /// (linac) assumption: each element is entered exactly once, so it owns exactly one range.
+    key_t getRange(const IndexMap::value_t::value_type& element) const;
 
     class OutOfBounds : public OpalException {
     public:
@@ -89,27 +86,19 @@ private:
     };
 
     typedef std::map<key_t, value_t, myCompare> map_t;
-    typedef std::multimap<value_t::value_type, key_t> invertedMap_t;
+    // Reverse map: one range per element (single-pass linac invariant).
+    typedef std::map<value_t::value_type, key_t, std::owner_less<value_t::value_type>>
+            invertedMap_t;
     map_t mapRange2Element_m;
     invertedMap_t mapElement2Range_m;
-    mutable ReferencePathModel referencePathModel_m;
-    mutable bool referencePathModelDirty_m;
 
     double totalPathLength_m;
 
-    void rebuildReferencePathModel() const;
     static bool almostEqual(double, double);
     static const double oneMinusEpsilon_m;
 };
 
 inline size_t IndexMap::size() const { return mapRange2Element_m.size(); }
-
-inline const ReferencePathModel& IndexMap::getReferencePathModel() const {
-    if (referencePathModelDirty_m) {
-        rebuildReferencePathModel();
-    }
-    return referencePathModel_m;
-}
 
 inline std::ostream& operator<<(std::ostream& out, const IndexMap& im) {
     im.print(out);

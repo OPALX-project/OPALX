@@ -22,7 +22,6 @@
 
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Beamlines/Beamline.h"
-#include "Beamlines/BeamlineGeometry.h"
 
 #include <algorithm>
 #include <list>
@@ -63,12 +62,10 @@ public:
     virtual void makeSharable();
 
     /// Get geometry.
-    //  Version for non-constant object.
-    virtual BeamlineGeometry& getGeometry();
-
-    /// Get geometry.
-    //  Version for constant object.
-    virtual const BeamlineGeometry& getGeometry() const;
+    //  A placeholder geometry that exists only to satisfy the ElementBase
+    //  interface; the beamline's lengths are computed by summing its elements.
+    virtual Geometry& getGeometry();
+    virtual const Geometry& getGeometry() const;
 
     /// Get arc length.
     //  Return the length of the geometry, measured along the design orbit.
@@ -93,35 +90,6 @@ public:
     //  geometry (non-negative).
     virtual double getExit() const;
 
-    /// Get transform.
-    //  Return the transform of the local coordinate system from the
-    //  position [b]fromS[/b] to the position [b]toS[/b].
-    virtual Euclid3D getTransform(double fromS, double toS) const;
-
-    /// Get transform.
-    //  Equivalent to getTransform(0.0, s).
-    //  Return the transform of the local coordinate system from the
-    //  origin and [b]s[/b].
-    virtual Euclid3D getTransform(double s) const;
-
-    /// Get transform.
-    //  Equivalent to getTransform(getEntrance(), getExit()).
-    //  Return the transform of the local coordinate system from the
-    //  entrance to the exit of the element.
-    virtual Euclid3D getTotalTransform() const;
-
-    /// Get transform.
-    //  Equivalent to getTransform(0.0, getEntrance()).
-    //  Return the transform of the local coordinate system from the
-    //  origin to the entrance of the element.
-    virtual Euclid3D getEntranceFrame() const;
-
-    /// Get transform.
-    //  Equivalent to getTransform(0.0, getExit()).
-    //  Return the transform of the local coordinate system from the
-    //  origin to the exit of the element.
-    virtual Euclid3D getExitFrame() const;
-
     /// Get beamline type
     virtual ElementType getType() const;
 
@@ -142,9 +110,8 @@ public:
     size_t size() const;
 
 protected:
-    /// The beamline geometry.
-    //  Exists to match the interface for ElementBase.
-    BeamlineGeometry itsGeometry;
+    /// Placeholder geometry to satisfy the ElementBase interface.
+    Geometry itsGeometry_m;
 
     Vector_t<double, 3> itsOrigin_m;
     Quaternion itsCoordTrafoTo_m;
@@ -158,7 +125,6 @@ template <class T>
 TBeamline<T>::TBeamline()
     : Beamline(),
       std::list<T>(),
-      itsGeometry(*this),
       itsOrigin_m(0),
       itsCoordTrafoTo_m(1.0, 0.0, 0.0, 0.0),
       relativePositions_m(false) {}
@@ -167,7 +133,6 @@ template <class T>
 TBeamline<T>::TBeamline(const std::string& name)
     : Beamline(name),
       std::list<T>(),
-      itsGeometry(*this),
       itsOrigin_m(0),
       itsCoordTrafoTo_m(1.0, 0.0, 0.0, 0.0),
       relativePositions_m(false) {}
@@ -176,7 +141,6 @@ template <class T>
 TBeamline<T>::TBeamline(const TBeamline<T>& rhs)
     : Beamline(rhs),
       std::list<T>(rhs),
-      itsGeometry(*this),
       itsOrigin_m(rhs.itsOrigin_m),
       itsCoordTrafoTo_m(rhs.itsCoordTrafoTo_m),
       relativePositions_m(rhs.relativePositions_m) {}
@@ -256,13 +220,13 @@ inline void TBeamline<T>::makeSharable() {
 }
 
 template <class T>
-inline BeamlineGeometry& TBeamline<T>::getGeometry() {
-    return itsGeometry;
+inline Geometry& TBeamline<T>::getGeometry() {
+    return itsGeometry_m;
 }
 
 template <class T>
-inline const BeamlineGeometry& TBeamline<T>::getGeometry() const {
-    return itsGeometry;
+inline const Geometry& TBeamline<T>::getGeometry() const {
+    return itsGeometry_m;
 }
 
 template <class T>
@@ -270,7 +234,7 @@ double TBeamline<T>::getArcLength() const {
     double length = 0.0;
 
     for (typename std::list<T>::const_iterator iter = this->begin(); iter != this->end(); ++iter) {
-        length += iter->getElement()->getArcLength();
+        length += iter->getElement()->getGeometry().getArcLength();
     }
 
     return length;
@@ -281,7 +245,7 @@ double TBeamline<T>::getElementLength() const {
     double length = 0.0;
 
     for (typename std::list<T>::const_iterator iter = this->begin(); iter != this->end(); ++iter) {
-        length += iter->getElement()->getElementLength();
+        length += iter->getElement()->getGeometry().getElementLength();
     }
 
     return length;
@@ -300,79 +264,6 @@ double TBeamline<T>::getEntrance() const {
 template <class T>
 double TBeamline<T>::getExit() const {
     return (getArcLength() / 2.0);
-}
-
-template <class T>
-Euclid3D TBeamline<T>::getTransform(double fromS, double toS) const {
-    Euclid3D transform;
-
-    if (fromS < toS) {
-        double s1                                  = getEntrance();
-        typename std::list<T>::const_iterator iter = this->begin();
-
-        while (iter != this->end() && s1 <= toS) {
-            const ElementBase& element = *iter->getElement();
-            double l                   = element.getArcLength();
-            double s2                  = s1 + l;
-
-            if (s2 > fromS) {
-                double s0   = (s1 + s2) / 2.0;
-                double arc1 = std::max(s1, fromS) - s0;
-                double arc2 = std::min(s2, toS) - s0;
-                transform *= element.getTransform(arc1, arc2);
-            }
-
-            s1 = s2;
-            ++iter;
-        }
-    } else {
-        double s1                                          = getExit();
-        typename std::list<T>::const_reverse_iterator iter = this->rbegin();
-
-        while (iter != this->rend() && s1 >= toS) {
-            const ElementBase& element = *iter->getElement();
-            double l                   = element.getArcLength();
-            double s2                  = s1 - l;
-
-            if (s2 < fromS) {
-                double s0   = (s1 + s2) / 2.0;
-                double arc1 = std::min(s1, fromS) - s0;
-                double arc2 = std::max(s2, toS) - s0;
-                transform *= element.getTransform(arc1, arc2);
-            }
-
-            s1 = s2;
-            ++iter;
-        }
-    }
-
-    return transform;
-}
-
-template <class T>
-Euclid3D TBeamline<T>::getTotalTransform() const {
-    Euclid3D transform;
-
-    for (typename std::list<T>::const_iterator iter = this->begin(); iter != this->end(); ++iter) {
-        transform.dotBy(iter->getElement()->getTotalTransform());
-    }
-
-    return transform;
-}
-
-template <class T>
-Euclid3D TBeamline<T>::getTransform(double s) const {
-    return getTransform(0.0, s);
-}
-
-template <class T>
-Euclid3D TBeamline<T>::getEntranceFrame() const {
-    return getTransform(0.0, getEntrance());
-}
-
-template <class T>
-Euclid3D TBeamline<T>::getExitFrame() const {
-    return getTransform(0.0, getExit());
 }
 
 template <class T>

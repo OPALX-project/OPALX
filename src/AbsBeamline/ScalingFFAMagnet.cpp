@@ -31,12 +31,11 @@
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 ScalingFFAMagnet::ScalingFFAMagnet(const std::string& name)
-    : Component(name), planarArcGeometry_m(1., 1.), dummy(), endField_m(nullptr) {}
+    : ElementBase(name), planarArcGeometry_m(Geometry::makeSBend(1., 1.)), endField_m(nullptr) {}
 
 ScalingFFAMagnet::ScalingFFAMagnet(const ScalingFFAMagnet& right)
-    : Component(right),
+    : ElementBase(right),
       planarArcGeometry_m(right.planarArcGeometry_m),
-      dummy(),
       maxOrder_m(right.maxOrder_m),
       tanDelta_m(right.tanDelta_m),
       k_m(right.k_m),
@@ -66,38 +65,20 @@ ScalingFFAMagnet* ScalingFFAMagnet::clone() const {
     return magnet;
 }
 
-EMField& ScalingFFAMagnet::getField() { return dummy; }
-
-const EMField& ScalingFFAMagnet::getField() const { return dummy; }
-
-bool ScalingFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) { return false; }
-
-bool ScalingFFAMagnet::apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
-    auto Rview                              = pc->R.getView();
-    auto Pview                              = pc->P.getView();
-
-    const Vector_t<double, 3> R = Rview(i);
-    const Vector_t<double, 3> P = Pview(i);
-    return apply(R, P, t, E, B);
-}
+void ScalingFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {}
 
 void ScalingFFAMagnet::initialise() { calculateDfCoefficients(); }
 
-void ScalingFFAMagnet::initialise(
-        PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
+void ScalingFFAMagnet::initialise(PartBunch_t* bunch) {
     RefPartBunch_m = bunch;
     initialise();
 }
 
 void ScalingFFAMagnet::finalise() { RefPartBunch_m = nullptr; }
 
-bool ScalingFFAMagnet::bends() const { return true; }
+Geometry& ScalingFFAMagnet::getGeometry() { return planarArcGeometry_m; }
 
-BGeometryBase& ScalingFFAMagnet::getGeometry() { return planarArcGeometry_m; }
-
-const BGeometryBase& ScalingFFAMagnet::getGeometry() const { return planarArcGeometry_m; }
+const Geometry& ScalingFFAMagnet::getGeometry() const { return planarArcGeometry_m; }
 
 void ScalingFFAMagnet::accept(BeamlineVisitor& visitor) const {
     visitor.visitScalingFFAMagnet(*this);
@@ -167,10 +148,10 @@ bool ScalingFFAMagnet::getFieldValueCylindrical(
     return false;
 }
 
-bool ScalingFFAMagnet::apply(
+void ScalingFFAMagnet::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
-    return getFieldValue(R, B);
+    getFieldValue(R, B);
 }
 
 void ScalingFFAMagnet::calculateDfCoefficients() {

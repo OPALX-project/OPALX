@@ -38,8 +38,6 @@ public:
         ELEMEDGE,                   // The position of the element (in path length)
         WAKEF,                      // The wake function to be used
         PARTICLEMATTERINTERACTION,  // The particle mater interaction handler to be used
-        ORIGIN,                     // The location of the element in floor coordinates
-        ORIENTATION,                // The orientation of the element (Tait Bryan angles)
         X,       // The x-coordinate of the location of the element in floor coordinates
         Y,       // The y-coordinate of the location of the element in floor coordinates
         Z,       // The z-coordinate of the location of the element in floor coordinates
@@ -90,7 +88,14 @@ public:
     //  This special version handles special printing in OPAL-8 format.
     virtual void print(std::ostream&) const;
 
-    /// Update the embedded OPALX element.
+    /// @brief Transfer the parsed attributes onto the OPALX ElementBase
+    /// Processes the state common to every element:
+    ///     - Aperture
+    ///     - Placement (either ELEMEDGE or X/Y/Z/THETA/PHI/PSI)
+    ///     - Misalignment
+    /// @note Each element overrides update() to specialise its geometry and
+    /// field data, this base version is also called.
+    /// @note Final placement is resolved by PlacementResolver, not here.
     virtual void update();
 
     /// Transmit the ``unknown'' (not known to OPALX) attributes to OPALX.
@@ -124,6 +129,14 @@ private:
     // Not implemented.
     OpalElement();
     void operator=(const OpalElement&);
+
+    /// Enforce that an element is placed by exactly one method.
+    //  @param hasElemEdge true if ELEMEDGE was set (placement along the reference path).
+    //  @param has6DPose   true if any of X, Y, Z, THETA, PHI was set (6D lab-frame pose).
+    //                     PSI is shared between both modes and is excluded from this test.
+    //  Throws OpalException if both or neither method is given. Skipped for the builtin
+    //  prototype, whose attributes are all unset.
+    void validatePlacement(bool hasElemEdge, bool has6DPose) const;
 
     // The original size of the attribute list.
     int itsSize;

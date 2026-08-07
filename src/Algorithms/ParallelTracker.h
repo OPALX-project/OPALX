@@ -62,7 +62,6 @@
 #include <tuple>
 #include <vector>
 
-class ParticleMatterInteractionHandler;
 class PluginElement;
 class BeamBeamWindowAnimation;
 
@@ -77,9 +76,9 @@ private:
     DataSink* itsDataSink_m;         ///< Borrowed beam statistics and phase-space output sink.
     OpalBeamline itsOpalBeamline_m;  ///< Cloned field elements and coordinate transforms.
     bool globalEOL_m;                ///< End-of-line flag (e.g. orbit threader out of bounds).
-    double zstart_m;                 ///< Path-length start position for the track (m).
+    double sStart_m;                 ///< Path-length start position for the track (m).
 
-    /** Step-size segments: z-stop, dt, and steps per segment. */
+    /** Step-size segments: s-stop, dt, and steps per segment. */
     StepSizeConfig stepSizes_m;
 
     double dtCurrentTrack_m;          ///< Global @f$\Delta t@f$ for the current track segment.
@@ -130,16 +129,16 @@ public:
      * @param bunch             Borrowed particle bunch (multi-container).
      * @param ds                Borrowed data sink for statistics and dumps.
      * @param revBeam           Reversed beam flag (see single-argument constructor).
-     * @param maxSTEPS          Max integration steps per z-segment (parallel to zstop/dt).
-     * @param zstart            Starting path length (m).
-     * @param zstop             Stop path length per segment (m).
+     * @param maxSTEPS          Max integration steps per s-segment (parallel to sStop/dt).
+     * @param sStart            Starting path length (m).
+     * @param sStop             Stop path length per segment (m).
      * @param dt                Time step per segment (s).
      * @param emittingSamplers  Optional per-container samplers for emitParticles(t, dt).
      */
     explicit ParallelTracker(
             const Beamline& bl, PartBunch_t& bunch, DataSink* ds, bool revBeam,
-            const std::vector<unsigned long long>& maxSTEPS, double zstart,
-            const std::vector<double>& zstop, const std::vector<double>& dt,
+            const std::vector<unsigned long long>& maxSTEPS, double sStart,
+            const std::vector<double>& sStop, const std::vector<double>& dt,
             const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers = {});
 
     /// @brief Destructor; releases tracker resources.
@@ -149,8 +148,8 @@ public:
     /// DefaultVisitor.
     virtual void visitBeamline(const Beamline&);
 
-    /// @brief Visit a generic component using the base tracker behavior.
-    virtual void visitComponent(const Component&);
+    /// @brief Visit a generic element using the base tracker behavior.
+    virtual void visitElementBase(const ElementBase&);
 
     /// @brief Apply the algorithm to a constant E-field cavity.
     virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&);
@@ -224,16 +223,20 @@ public:
      * @brief Self-fields in beam frame (primary container); optional binary repartition.
      * @param step Global step index (used for repartition cadence).
      */
-    void computeSpaceChargeFields(unsigned long long step, OrbitThreader& oth);
+    void computeSpaceChargeFields(unsigned long long step, OrbitThreader& sourceOth);
 
     /// @brief Apply external fields from elements intersecting each active container.
-    /// @param oth Orbit threader for element queries.
-    void computeExternalFields(OrbitThreader& oth);
+    /// @param oths Per-container orbit threaders (one per distinct species; same-species
+    ///             containers share one) used for element queries.
+    void computeExternalFields(const std::vector<std::shared_ptr<OrbitThreader>>& oths);
 
     /// @brief Emit macroparticles from configured samplers per container.
     /// @param t  Bunch time (s).
     /// @param dt Global time step (s).
     void emitFromEmissionSources(double t, double dt);
+
+    /// @brief Mark particles moving backward behind an active source/cathode plane.
+    size_t markBackwardParticlesAtSourcePlane();
 
     /// @brief Apply global processes and return the global number of particles marked invalid.
     size_t applyGlobalProcesses(double dt);
@@ -294,11 +297,6 @@ private:
     /// @brief Delete particles marked invalid by the central per-container mask.
     size_t deleteInvalidParticles(bool activeOnly, Inform& m, const std::string& reason);
 
-public:
-    /// @brief Mark particles moving backward behind an active source/cathode plane.
-    size_t markBackwardParticlesAtSourcePlane();
-
-private:
     /// @brief Force-activate containers whose emitting samplers have not yet finished.
     void activateEmittingContainers(double t);
 
@@ -314,43 +312,23 @@ private:
         double head = 0.0;
     };
 
-    void checkInBBRegion(OrbitThreader& oth);
+    void checkInBBRegion(OrbitThreader& sourceOth);
     std::optional<BEAMBEAM::ActualGeometry> detectBeamBeamWindow(
-            OrbitThreader& oth, const ippl::Vector<double, 3>& rmin,
+            OrbitThreader& sourceOth, const ippl::Vector<double, 3>& rmin,
             const ippl::Vector<double, 3>& rmax);
     BeamBeamLongitudinalExtent computeBeamBeamLongitudinalExtent(
             double bunchS, const ippl::Vector<double, 3>& rmin,
             const ippl::Vector<double, 3>& rmax) const;
     void applyBeamBeamWindowConfig(const BEAMBEAM::ActualGeometry& geometry);
     std::optional<double> performBeamBeamWindowEntryTransition(
-            const BEAMBEAM::ActualGeometry& geometry, const ippl::Vector<double, 3>& physicalRMin,
+            const BEAMBEAM::ActualGeometry& geometry,
+            const ippl::Vector<double, 3>& physicalRMin,
             const ippl::Vector<double, 3>& physicalRMax);
     void validateBeamBeamCopiedCharge(double referenceCharge) const;
     void dumpBeamBeamTransitionSnapshot(const std::string& snapshotKind);
     void enterBeamBeamWindow(const BEAMBEAM::ActualGeometry& geometry, Inform& m);
     void leaveBeamBeamWindow(Inform& m);
-    /**
-     * @brief Delete source-container particles after the BeamBeam @c RETIRE_TIME is reached.
-     *
-     * The source container object and its reference state remain allocated, but all particles in
-     * container[0] are marked invalid and compacted once the configured retirement criterion
-     * @f$t \ge t_\mathrm{retire}@f$ is reached. Witness containers are not touched and remain
-     * active so they can continue with external fields and any previously gathered BeamBeam kick.
-     * This is an intentional non-conserving removal of source charge after the modeled high-energy
-     * collision has passed the chosen diagnostic time.
-     */
     void retireBeamBeamSourceContainer(Inform& m);
-    /**
-     * @brief Emit grepable BeamBeam runtime diagnostics to stdout.
-     *
-     * Lines start with @c BB-DIAG and contain only BeamBeam state/count/witness information; the
-     * integration stage and step are intentionally omitted because the regular tracker output
-     * already carries step context. Routine diagnostics are suppressed while this state is
-     * unchanged. Boolean fields are printed only on their first diagnostic line or when their value
-     * changes.
-     *
-     * @param force If true, emit a line even if the state signature did not change.
-     */
     void logBeamBeamDiagnostics(bool force = false);
     void renderBeamBeamWindowFrame(
             double bunchTailS, double bunchHeadS, const BEAMBEAM::ActualGeometry& geometry);
@@ -358,16 +336,9 @@ private:
     void computeBeamBeamWindowSelfFields(
             const CoordinateSystemTrafo& referenceToBeamCSTrafo,
             const CoordinateSystemTrafo& beamToReferenceCSTrafo, Inform& m);
-    /**
-     * @brief Gather the active BeamBeam source field to passive witness containers.
-     *
-     * Witness particle positions are temporarily shifted from their own container frame into the
-     * source-beam frame using @f$z_s=z_t+s_t-s_s@f$, sampled on the active BeamBeam mesh, and then
-     * restored to the witness frame. Only @c E/@c B receive the sampled field; witness charge is
-     * not deposited back onto the source mesh.
-     */
     void gatherBeamBeamFieldsToWitnessContainers(Inform& m);
-    void computeDefaultSelfFields(const CoordinateSystemTrafo& beamToReferenceCSTrafo, Inform& m);
+    void computeDefaultSelfFields(
+            const CoordinateSystemTrafo& beamToReferenceCSTrafo, Inform& m);
     void dumpSpaceChargePrimaryFieldH5() const;
     void transformFieldsToReferenceFrame(
             const CoordinateSystemTrafo& beamToReferenceCSTrafo, Inform& m);
@@ -378,7 +349,7 @@ private:
      */
     void printInitialContainerRefs(Inform& m) const;
 
-    /// @brief Integrate references in time until path length reaches zstart_m.
+    /// @brief Integrate references in time until path length reaches sStart_m.
     void findStartPositions(const BorisPusher& pusher);
 
     /// @brief Autophase TRAVELINGWAVE and RFCAVITY elements along the reference orbit.

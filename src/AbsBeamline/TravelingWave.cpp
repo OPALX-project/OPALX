@@ -63,7 +63,7 @@ void TravelingWave::accept(BeamlineVisitor& visitor) const { visitor.visitTravel
  * of the field from the core to the exit region, while maintaining the correct phase
  * relationship between the fields.
  */
-bool TravelingWave::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void TravelingWave::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     // RF parameters (copied to device)
     const double freq       = frequency_m;
     const double scaleEntry = scale_m + scaleError_m;
@@ -107,33 +107,20 @@ bool TravelingWave::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
             -scaleCore * sinCore1, scaleCore * cosCore2, -scaleCore * sinCore2,
             scaleEntry * cosExit, -scaleEntry * sinExit, startField, startCoreField, startExitField,
             mappedStartExit, periodLength, cellLength, fieldLength);
-
-    return false;
 }
 
-bool TravelingWave::apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
-    auto Rview                              = pc->R.getView();
-    auto Pview                              = pc->P.getView();
-    const Vector_t<double, 3> R             = Rview(i);
-    const Vector_t<double, 3> P             = Pview(i);
-
-    return apply(R, P, t, E, B);
-}
-
-bool TravelingWave::apply(
+void TravelingWave::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     const double omega_t = frequency_m * t;
-    if (R(2) < startField_m || R(2) >= endField_m) return false;
+    if (R(2) < startField_m || R(2) >= endField_m) return;
 
     Vector_t<double, 3> tmpR({R(0), R(1), R(2) - startField_m});
     Vector_t<double, 3> tmpE({0.0, 0.0, 0.0}), tmpB({0.0, 0.0, 0.0});
     double tmpcos = 0.0, tmpsin = 0.0;
 
     if (tmpR(2) < startCoreField_m) {
-        if (!fieldmap_m->isInside(tmpR)) return getFlagDeleteOnTransverseExit();
+        if (!fieldmap_m->isInside(tmpR)) return;
 
         tmpcos = (scale_m + scaleError_m) * std::cos(omega_t + phase_m + phaseError_m);
         tmpsin = -(scale_m + scaleError_m) * std::sin(omega_t + phase_m + phaseError_m);
@@ -144,7 +131,7 @@ bool TravelingWave::apply(
         tmpR(2)        = tmpR(2) - periodLength_m * std::floor(tmpR(2) / periodLength_m);
         tmpR(2) += startCoreField_m;
 
-        if (!fieldmap_m->isInside(tmpR)) return getFlagDeleteOnTransverseExit();
+        if (!fieldmap_m->isInside(tmpR)) return;
 
         tmpcos = (scaleCore_m + scaleCoreError_m) * std::cos(omega_t + phaseCore1_m + phaseError_m);
         tmpsin =
@@ -167,7 +154,7 @@ bool TravelingWave::apply(
 
     } else {
         tmpR(2) -= mappedStartExitField_m;
-        if (!fieldmap_m->isInside(tmpR)) return getFlagDeleteOnTransverseExit();
+        if (!fieldmap_m->isInside(tmpR)) return;
 
         tmpcos = (scale_m + scaleError_m) * std::cos(omega_t + phaseExit_m + phaseError_m);
         tmpsin = -(scale_m + scaleError_m) * std::sin(omega_t + phaseExit_m + phaseError_m);
@@ -176,8 +163,6 @@ bool TravelingWave::apply(
     fieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
     E += tmpcos * tmpE;
     B += tmpsin * tmpB;
-
-    return false;
 }
 
 bool TravelingWave::applyToReferenceParticle(
@@ -237,18 +222,15 @@ bool TravelingWave::applyToReferenceParticle(
     return false;
 }
 
-void TravelingWave::initialise(PartBunch_t* bunch, double& startField, double& endField) {
+void TravelingWave::initialise(PartBunch_t* bunch) {
     if (bunch == nullptr) {
         return;
     }
 
     Inform msg("TravelingWave ", *gmsg);
 
-    RefPartBunch_m    = bunch;
-    double bodyBegin  = startField;
-    double dummyStart = 0.0;
-    double dummyEnd   = 0.0;
-    RFCavity::initialise(bunch, dummyStart, dummyEnd);
+    RefPartBunch_m = bunch;
+    RFCavity::initialise(bunch);
     if (std::abs(startField_m) > 0.0) {
         throw GeneralOpalException(
                 "TravelingWave::initialise",
@@ -264,9 +246,6 @@ void TravelingWave::initialise(PartBunch_t* bunch, double& startField, double& e
     mappedStartExitField_m = startExitField_m - 3.0 * periodLength_m / 2.0;
 
     endField_m = startExitField_m + periodLength_m / 2.0;
-
-    startField = bodyBegin + startField_m;
-    endField   = bodyBegin + endField_m;
 
     scaleCore_m      = scale_m / std::sin(Physics::two_pi * mode_m);
     scaleCoreError_m = scaleError_m / std::sin(Physics::two_pi * mode_m);
@@ -287,8 +266,6 @@ void TravelingWave::initialise(
 
 void TravelingWave::finalise() {}
 
-bool TravelingWave::bends() const { return false; }
-
 void TravelingWave::goOnline(const double&) {
     Fieldmap::readMap(filename_m);
     online_m = true;
@@ -296,14 +273,9 @@ void TravelingWave::goOnline(const double&) {
 
 void TravelingWave::goOffline() { Fieldmap::freeMap(filename_m); }
 
-void TravelingWave::getFieldExtend(double& zBegin, double& zEnd) const {
+void TravelingWave::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = startField_m;
     zEnd   = endField_m;
-}
-
-void TravelingWave::getElementDimensions(double& begin, double& end) const {
-    begin = 0.0;
-    end   = getElementLength();
 }
 
 ElementType TravelingWave::getType() const { return ElementType::TRAVELINGWAVE; }
