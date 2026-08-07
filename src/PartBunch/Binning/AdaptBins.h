@@ -293,18 +293,18 @@ namespace ParticleBinning {
          * - Reducing each team's local histogram into a global histogram (atomics).
          *
          * ### Memory and Execution
-         * For GPU architecture, this function does not need to be changed. Should problems with
-         * unusal execution time occur (e.g. if this function is supposed to be called on CPU --
-         * which it shouldn't), it might make sense to look at the following parameters calculated
-         * in the function:
+         * Kokkos recommends the team size for the active backend, kernel, and scratch allocation.
+         * That value determines the league partition before launch so that every team thread
+         * processes a fixed number of particles. Should unusual execution time occur, it might
+         * make sense to look at the following parameters calculated in the function:
          * - **Scratch Memory**: Scratch memory is allocated per team for a local histogram, with
          * size `binCount`.
-         * - **Concurrency**: `team_size` specifies the number of threads per team, and each team
-         * processes a `block_size`.
+         * - **Concurrency**: Kokkos recommends the team size, and every team thread processes up
+         * to eight particles.
          *
-         * @note This function is optimized for GPU execution using team-based parallelism,
-         *       it does not work on Host (since `team_size` is hardcoded and to a big number).
-         *       If you want to run this on Host, change `team_size=1` and increase `block_size`.
+         * @note This function is optimized for GPU execution using team-based parallelism. The
+         *       standard histogram mode selection uses the dedicated host reduction on host-only
+         *       execution spaces.
          *
          * @pre `localBinHisto` and `binIndex` must be initialized with appropriate sizes before
          * calling this function.
@@ -544,7 +544,7 @@ namespace ParticleBinning {
             int num_gpus = Kokkos::num_devices();
             msg << level2 << "HIP Enabled: Rank " << rank << " sees " << num_gpus
                 << " GPU(s) available." << endl;
-            Kokkos::Experimental::HIP hip_instance;
+            Kokkos::HIP hip_instance;
             std::stringstream ss;
             hip_instance.print_configuration(ss);
             msg << level2 << ss.str();
