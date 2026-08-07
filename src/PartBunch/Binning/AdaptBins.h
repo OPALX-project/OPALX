@@ -544,7 +544,7 @@ namespace ParticleBinning {
             int num_gpus = Kokkos::num_devices();
             msg << level2 << "HIP Enabled: Rank " << rank << " sees " << num_gpus
                 << " GPU(s) available." << endl;
-            Kokkos::Experimental::HIP hip_instance;
+            Kokkos::HIP hip_instance;
             std::stringstream ss;
             hip_instance.print_configuration(ss);
             msg << level2 << ss.str();

@@ -2,13 +2,13 @@ include:
   - local: "ci/cscs/common.yml"
 
 variables:
-  CUDA12_9_UENV: "/capstor/store/cscs/cscs/public/uenvs/opal-x-gh200-mpich-gcc-2025-12-19-cuda-12.9.1.squashfs"
+  CUDA_UENV: "/capstor/store/cscs/cscs/public/uenvs/opal-x-gh200-mpich-gcc-2026-08-04-cuda-13.1.1.squashfs"
   WITH_UENV_VIEW: "default"
   WRAPPER: "/user-environment/wrapper-mpi.sh"
   SCRATCH: "/capstor/scratch/cscs/biddisco"
-  SRUN_FLAGS: "--uenv=${CUDA12_9_UENV};--view=${WITH_UENV_VIEW};--repo=$SCRATCH/.uenv-images-ci-daint;$WRAPPER"
+  SRUN_FLAGS: "--uenv=${CUDA_UENV};--view=${WITH_UENV_VIEW};--repo=$SCRATCH/.uenv-images-ci-daint;$WRAPPER"
   BUILD_ARCH: "gh200"
-  CTEST_SITE: "Daint gh200 CUDA 12.9.1"
+  CTEST_SITE: "Daint gh200 CUDA 13.1.1"
 
 # ---------------------------------------------------------
 # Common settings for cuda builds
@@ -17,7 +17,7 @@ variables:
 .opalx-build-cuda-common:
   stage: opalx_build
   extends: [.uenv-runner-daint-gh200]
-  image: "${CUDA12_9_UENV}"
+  image: "${CUDA_UENV}"
   variables:
     SLURM_JOB_NUM_NODES: 1
   before_script:
@@ -42,6 +42,8 @@ variables:
       -DMPIEXEC_EXECUTABLE=/usr/bin/srun
       -DMPIEXEC_PREFLAGS="$SRUN_FLAGS"
       -DMPIEXEC_MAX_NUMPROCS=4
+    - ninja -C $BUILD_PATH opalx opalx_exe
+    - ls -l $BUILD_PATH/bin/opalx
     - echo "Build directory size (before cleanup):" $(du -sh $BUILD_PATH | cut -f1)
     - find $BUILD_PATH -name \*.o -delete
     - echo "Build directory size (cleaned for artefacts):" $(du -sh $BUILD_PATH | cut -f1)
@@ -53,7 +55,7 @@ variables:
 # ---------------------------------------------------------
 # cuda build debug
 # ---------------------------------------------------------
-opalx-build-cuda12-sm90-debug:
+opalx-build-cuda13-sm90-debug:
   extends: .opalx-build-cuda-common
   variables:
     BUILD_DIR: "build-$CI_COMMIT_SHORT_SHA-debug"
@@ -62,7 +64,7 @@ opalx-build-cuda12-sm90-debug:
 # ---------------------------------------------------------
 # cuda build release
 # ---------------------------------------------------------
-opalx-build-cuda12-sm90-release:
+opalx-build-cuda13-sm90-release:
   extends: .opalx-build-cuda-common
   variables:
     BUILD_DIR: "build-$CI_COMMIT_SHORT_SHA-release"

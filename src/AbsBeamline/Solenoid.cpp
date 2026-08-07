@@ -64,25 +64,13 @@ Solenoid::~Solenoid() {
  * @returns true if at least one particle is lost, false otherwise
  * (not implemented, always returns false)
  */
-bool Solenoid::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void Solenoid::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     Inform m("Solenoid::apply");
     m << level5 << "Solenoid::apply() called." << endl;
 
     fieldmap_m->applyField(pc, scale_m + scaleError_m);
-
-    return false;
 }
 
-/**
- * @brief apply the solenoid field to particle i
- *
- * @param i Particle index
- * @param t Time
- * @param E Electric Field
- * @param B Magnetic Field
- *
- * @returns true if particle is lost, false otherwise
- */
 /**
  * @brief Apply to particle with position R and momentum P
  *
@@ -91,10 +79,8 @@ bool Solenoid::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
  * @param t Time
  * @param E Electric Field
  * @param B Magnetic Field
- *
- * @returns true if particle is lost, false otherwise
  */
-bool Solenoid::apply(
+void Solenoid::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
     if (R(2) >= startField_m && R(2) < endField_m) {
@@ -102,13 +88,11 @@ bool Solenoid::apply(
 
         const bool outOfBounds = fieldmap_m->getFieldstrength(R, tmpE, tmpB);
         if (outOfBounds) {
-            return getFlagDeleteOnTransverseExit();
+            return;
         }
 
         B += (scale_m + scaleError_m) * tmpB;
     }
-
-    return false;
 }
 
 /**

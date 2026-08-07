@@ -24,9 +24,9 @@ public:
     virtual ElementType getType() const override;
     virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
-    virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
-    virtual bool apply(
+    virtual void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
     virtual bool applyToReferenceParticle(
