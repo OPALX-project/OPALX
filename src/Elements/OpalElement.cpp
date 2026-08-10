@@ -97,7 +97,7 @@ OpalElement::~OpalElement() {}
 
 std::pair<ApertureType, std::vector<double>> OpalElement::getApert() const {
     std::pair<ApertureType, std::vector<double>> retvalue(
-            ApertureType::ELLIPTICAL, std::vector<double>({0.5, 0.5}));
+            ApertureType::ELLIPTICAL, std::vector<double>({1e6, 1e6}));
     if (!itsAttr[APERT]) {
         return retvalue;
     }
