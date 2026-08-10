@@ -29,7 +29,6 @@
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
-#include "AbsBeamline/FlexibleCollimator.h"
 #include "AbsBeamline/Laser.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
@@ -116,9 +115,6 @@ public:
 
     /// Apply the algorithm to a FlaggedElmPtr.
     virtual void visitFlaggedElmPtr(const FlaggedElmPtr&);
-
-    /// Apply the algorithm to a flexible collimator
-    virtual void visitFlexibleCollimator(const FlexibleCollimator&);
 
     /// Apply the algorithm to a marker.
     virtual void visitMarker(const Marker&);
@@ -279,11 +275,6 @@ template <class ELEM>
 void SpecificElementVisitor<ELEM>::visitFlaggedElmPtr(const FlaggedElmPtr& element) {
     const ElementBase* wrappedElement = element.getElement();
     wrappedElement->accept(*this);
-}
-
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitFlexibleCollimator(const FlexibleCollimator& element) {
-    CastsTrait<ELEM, FlexibleCollimator>::apply(allElementsOfTypeE, element);
 }
 
 template <class ELEM>
