@@ -225,11 +225,11 @@ namespace {
         auto pc = makeContainer();
         createParticlesAt(
                 pc, {
-                            {0.020, 0.0, 0.5 * length},       // in body, out of aperture -> marked
-                            {0.020, 0.0, 0.5 * fieldBegin},   // in field extent but upstream of
-                                                              // the body -> kept
-                            {0.020, 0.0, 2.0 * length},       // downstream of the body -> kept
-                            {0.005, 0.0, 0.5 * length},       // in body, in aperture -> kept
+                            {0.020, 0.0, 0.5 * length},      // in body, out of aperture -> marked
+                            {0.020, 0.0, 0.5 * fieldBegin},  // in field extent but upstream of
+                                                             // the body -> kept
+                            {0.020, 0.0, 2.0 * length},      // downstream of the body -> kept
+                            {0.005, 0.0, 0.5 * length},      // in body, in aperture -> kept
                     });
 
         EXPECT_EQ(monitor.markOutsideAperture(pc), 1u);
@@ -258,8 +258,8 @@ namespace {
             return {-radius + (radius + d) * std::cos(phi), 0.0, (radius + d) * std::sin(phi)};
         };
 
-        const std::array<double, 3> onOrbit  = entryPos(0.5, 0.0);   // arc (0, 0, 0.5)
-        const std::array<double, 3> offOrbit = entryPos(0.5, 0.1);   // arc (0.1, 0, 0.5)
+        const std::array<double, 3> onOrbit  = entryPos(0.5, 0.0);  // arc (0, 0, 0.5)
+        const std::array<double, 3> offOrbit = entryPos(0.5, 0.1);  // arc (0.1, 0, 0.5)
 
         // Verify the frame conversion assumptions of this test.
         const Vector_t<double, 3> arcOn = GeometryHelper::toBendArcCoords(
