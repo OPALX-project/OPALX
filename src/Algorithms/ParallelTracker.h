@@ -211,9 +211,9 @@ public:
     /// @param func Called per (element, container) pair in the element-local frame.
     void forEachElementInBunchFrame(
             const std::vector<std::shared_ptr<OrbitThreader>>& oths,
-            const std::function<void(
-                    const std::shared_ptr<ElementBase>&,
-                    const std::shared_ptr<ParticleContainer_t>&)>& func);
+            const std::function<
+                    void(const std::shared_ptr<ElementBase>&,
+                         const std::shared_ptr<ParticleContainer_t>&)>& func);
 
     /// @brief Mark particles outside the transverse aperture of each nearby element.
     /// @param oths Per-container orbit threaders used for element queries.

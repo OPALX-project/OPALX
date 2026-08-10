@@ -143,9 +143,9 @@ size_t SBend::markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc
                         GeometryHelper::toBendArcCoords(Rview(i), curvature, bodyLength);
 
                 const bool inZ = arc(2) >= zBegin && arc(2) < zEnd;
-                const bool hit = inZ
-                                 && !ApertureHelper::isInsideAperture(
-                                         arc(0), arc(1), type, xLimit, yLimit);
+                const bool hit =
+                        inZ
+                        && !ApertureHelper::isInsideAperture(arc(0), arc(1), type, xLimit, yLimit);
                 const bool newlyMarked = hit && !invalid(i);
                 invalid(i)             = invalid(i) || hit;
                 count += newlyMarked ? 1 : 0;
