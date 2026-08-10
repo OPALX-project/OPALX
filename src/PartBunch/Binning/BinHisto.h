@@ -3,6 +3,7 @@
 
 #include "BinningTools.h"  // For postSum computation
 #include "Ippl.h"
+#include "Utility/ViewUtils.h"
 
 #include <iomanip>  // for std::setw, std::setprecision, etc. (debug output)
 
@@ -212,7 +213,7 @@ namespace ParticleBinning {
         template <typename Histogram_t>
         void copyBinWidths(const Histogram_t& other) {
             using other_dwidth_view_type = typename Histogram_t::dwidth_view_type;
-            Kokkos::deep_copy(
+            ippl::detail::deepCopyIfDifferent(
                     getDeviceView<dwidth_view_type>(binWidths_m),
                     other.template getDeviceView<other_dwidth_view_type>(other.getBinWidths()));
             if constexpr (UseDualView) {

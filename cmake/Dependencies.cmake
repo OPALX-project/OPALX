@@ -131,14 +131,18 @@ if(NOT _opalx_ippl_git_shallow)
 endif()
 
 
-# Kokkos 5 removed this toggle: DualView modify checks are always enabled.
-# A stale cache entry or old site preset that sets it to OFF makes Kokkos fail
-# during option validation, so remove it before IPPL adds Kokkos.
-
-if(DEFINED Kokkos_ENABLE_DEBUG_DUALVIEW_MODIFY_CHECK)
-    unset(Kokkos_ENABLE_DEBUG_DUALVIEW_MODIFY_CHECK)
-    unset(Kokkos_ENABLE_DEBUG_DUALVIEW_MODIFY_CHECK CACHE)
-endif()
+# Kokkos 5 removed these toggles. Stale cache entries or old site presets can make
+# Kokkos fail during option validation, so remove them before IPPL adds Kokkos.
+foreach(_opalx_removed_kokkos_option
+        Kokkos_ENABLE_DEBUG_DUALVIEW_MODIFY_CHECK
+        Kokkos_ENABLE_CUDA_UVM
+        Kokkos_ENABLE_CUDA_LAMBDA
+        Kokkos_ENABLE_CUDA_LDG_INTRINSIC)
+    if(DEFINED ${_opalx_removed_kokkos_option})
+        unset(${_opalx_removed_kokkos_option})
+        unset(${_opalx_removed_kokkos_option} CACHE)
+    endif()
+endforeach()
 
 
 
