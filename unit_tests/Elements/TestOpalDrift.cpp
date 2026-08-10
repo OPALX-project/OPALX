@@ -163,6 +163,6 @@ TEST_F(TestOpalDrift, UnknownApertureStringThrows) {
     EXPECT_THROW(makeDrift("CIRCLE"), OpalException);
 }
 
-TEST_F(TestOpalDrift, NoApertureDefaultsToHalfMeterEllipse) {
-    expectAperture(makeDrift(std::nullopt), ApertureType::ELLIPTICAL, {0.5, 0.5});
+TEST_F(TestOpalDrift, NoApertureDefaults1e6Ellipse) {
+    expectAperture(makeDrift(std::nullopt), ApertureType::ELLIPTICAL, {1e6, 1e6});
 }
