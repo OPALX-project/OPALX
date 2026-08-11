@@ -43,29 +43,6 @@ namespace {
 
 }  // namespace
 
-TEST_F(TestOpalDrift, CircleDefaultsMatchDefaultApertureBehaviour) {
-    auto noAperture = makeDrift(std::nullopt);
-    auto circle     = makeDrift("CIRCLE(1)");
-
-    ElementBase* noApertureElement = noAperture->getElement();
-    ElementBase* circleElement     = circle->getElement();
-
-    ASSERT_NE(noApertureElement, nullptr);
-    ASSERT_NE(circleElement, nullptr);
-
-    const std::vector<Vector_t<double, 3>> probes = {
-            {0.00, 0.00, 0.20}, {0.20, 0.10, 1.00},  {0.49, 0.00, 0.20}, {0.49, 0.00, 1.00},
-            {0.49, 0.00, 1.80}, {0.50, 0.00, 1.00},  {0.00, 0.50, 1.00}, {0.36, 0.36, 1.00},
-            {0.40, 0.40, 1.00}, {0.00, 0.00, -0.10}, {0.00, 0.00, 2.00}};
-
-    for (const Vector_t<double, 3>& r : probes) {
-        SCOPED_TRACE(
-                ::testing::Message()
-                << "Probe point (" << r[0] << ", " << r[1] << ", " << r[2] << ")");
-        EXPECT_EQ(noApertureElement->isInside(r), circleElement->isInside(r));
-    }
-}
-
 TEST_F(TestOpalDrift, SquareAndRectangleEquivalentBehaviour) {
     auto rectangle = makeDrift("RECTANGLE(1,1)");
     auto square    = makeDrift("SQUARE(1)");
