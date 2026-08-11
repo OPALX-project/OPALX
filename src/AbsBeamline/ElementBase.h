@@ -92,8 +92,8 @@ namespace ApertureHelper {
     }
 
     /**
-     * @brief Host convenience overload 
-     * 
+     * @brief Host convenience overload
+     *
      * @param r position in the element's coordinatesystem
      * @param aperture vector of aperture coefficients (usually aperture_m)
      */
