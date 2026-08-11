@@ -286,7 +286,7 @@ void Multipole::apply(
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     // Check bounds
     if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return;
-    if (!isInsideTransverse(R)) {
+    if (!ApertureHelper::isInsideAperture(R, aperture_m)) {
         return;
     }
 
@@ -310,7 +310,7 @@ bool Multipole::applyToReferenceParticle(
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     // Check bounds
     if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return false;
-    if (!isInsideTransverse(R)) {
+    if (!ApertureHelper::isInsideAperture(R, aperture_m)) {
         return true;
     }
 

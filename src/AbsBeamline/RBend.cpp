@@ -72,7 +72,7 @@ void RBend::apply(
     if (R(2) < zBegin || R(2) >= zEnd) {
         return;
     }
-    if (!isInsideTransverse(R)) {
+    if (!ApertureHelper::isInsideAperture(R, aperture_m)) {
         return;
     }
 
@@ -88,7 +88,7 @@ bool RBend::applyToReferenceParticle(
     if (R(2) < zBegin || R(2) >= zEnd) {
         return false;
     }
-    if (!isInsideTransverse(R)) {
+    if (!ApertureHelper::isInsideAperture(R, aperture_m)) {
         return true;
     }
 
@@ -127,7 +127,7 @@ bool RBend::isInside(const Vector_t<double, 3>& r) const {
     double zBegin = 0.0;
     double zEnd   = 0.0;
     getFieldExtent(zBegin, zEnd);
-    return r(2) >= zBegin && r(2) < zEnd && isInsideTransverse(r);
+    return r(2) >= zBegin && r(2) < zEnd && ApertureHelper::isInsideAperture(r, aperture_m);
 }
 
 BendFieldModel::FieldInputs RBend::makeFieldInputs() const {

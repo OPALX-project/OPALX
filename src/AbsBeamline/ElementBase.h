@@ -56,12 +56,54 @@ enum class ElementType : unsigned short {
     CONSTANTEFIELDCAVITY
 };
 
-enum class ApertureType : unsigned short {
-    RECTANGULAR,
-    ELLIPTICAL,
-    CONIC_RECTANGULAR,
-    CONIC_ELLIPTICAL
-};
+enum class ApertureType : unsigned short { RECTANGULAR, ELLIPTICAL };
+
+/**
+ * @brief Stateless, device-callable aperture functions.
+ */
+namespace ApertureHelper {
+
+    /**
+     * @brief Transverse-aperture containment test.
+     *
+     * Limits are half-apertures; the boundary itself counts as outside. The
+     * aperture is constant along the element.
+     *
+     * @param x transverse horizontal position [m]
+     * @param y transverse vertical position [m]
+     * @param type aperture shape
+     * @param xLimit horizontal half-aperture [m]
+     * @param yLimit vertical half-aperture [m]
+     */
+    KOKKOS_INLINE_FUNCTION bool isInsideAperture(
+            const double x, const double y, const ApertureType type, const double xLimit,
+            const double yLimit) {
+        switch (type) {
+            case ApertureType::RECTANGULAR:
+                return (Kokkos::abs(x) < xLimit && Kokkos::abs(y) < yLimit);
+            case ApertureType::ELLIPTICAL: {
+                const double u = x / xLimit;
+                const double v = y / yLimit;
+                return (u * u + v * v < 1.0);
+            }
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * @brief Host convenience overload
+     *
+     * @param r position in the element's coordinatesystem
+     * @param aperture vector of aperture coefficients (usually aperture_m)
+     */
+    inline bool isInsideAperture(
+            const Vector_t<double, 3>& r,
+            const std::pair<ApertureType, std::vector<double>>& aperture) {
+        return isInsideAperture(r[0], r[1], aperture.first, aperture.second[0], aperture.second[1]);
+    }
+
+}  // namespace ApertureHelper
 
 /**
  * @class ElementBase
@@ -265,6 +307,21 @@ public:
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
+    /**
+     * @brief Mark local particles inside the element's longitudinal window but
+     * outside its transverse aperture in pc->InvalidMask.
+     *
+     * Called by ParallelTracker::applyElementApertures with the bunch in the
+     * element-local frame. ORs into InvalidMask and never clears existing
+     * marks; the tracker's end-of-step deletion flushes all marks. The
+     * z-window is [zBegin, zEnd) from getGeometry().getElemLength(), since the
+     * aperture is a geometric property of the element.
+     * No-op when getFlagDeleteOnTransverseExit() is false.
+     *
+     * @return local number of newly marked particles
+     */
+    virtual size_t markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc);
+
     // Design energy for elements such as RF-cavities
     virtual double getDesignEnergy() const;
     virtual void setDesignEnergy(const double& energy, bool changeable = true);
@@ -338,8 +395,6 @@ public:
     bool getFlagDeleteOnTransverseExit() const;
 
 protected:
-    bool isInsideTransverse(const Vector_t<double, 3>& r) const;
-
     // Sharable flag.
     // If this flag is true, the element is always shared.
     mutable bool shareFlag;
@@ -400,7 +455,7 @@ inline bool ElementBase::isInside(const Vector_t<double, 3>& r) const {
     double zBegin = 0.0;
     double zEnd   = 0.0;
     getFieldExtent(zBegin, zEnd);
-    return r(2) >= zBegin && r(2) < zEnd && isInsideTransverse(r);
+    return r(2) >= zBegin && r(2) < zEnd && ApertureHelper::isInsideAperture(r, aperture_m);
 }
 
 /* ===================== Coordinate system & placement ====================== */
