@@ -21,6 +21,7 @@
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/SBendRep.h"
 #include "Physics/Physics.h"
+#include "Physics/Units.h"
 #include "Utilities/OpalException.h"
 
 OpalSBend::OpalSBend()
