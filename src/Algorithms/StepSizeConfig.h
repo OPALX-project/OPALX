@@ -51,6 +51,12 @@ public:
 
     StepSizeConfig& advanceToPos(double spos);
 
+    /// Advance to the zero-based configuration index; the size selects the end iterator.
+    StepSizeConfig& advanceToIndex(std::size_t index);
+
+    /// Return the zero-based current index; the size denotes the end iterator.
+    std::size_t getCurrentIndex();
+
     StepSizeConfig& operator++();
 
     StepSizeConfig& operator--();

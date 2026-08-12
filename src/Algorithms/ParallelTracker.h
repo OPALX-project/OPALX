@@ -81,7 +81,10 @@ private:
     double dtCurrentTrack_m;          ///< Global @f$\Delta t@f$ for the current track segment.
     unsigned long long repartFreq_m;  ///< Space-charge repartition period (steps); 0 disables it.
     std::vector<std::vector<std::shared_ptr<SamplingBase>>>
-            emittingSamplers_m;  ///< Per-container emitters.
+            emittingSamplers_m;    ///< Per-container emitters.
+    bool restarting_m;             ///< Preserve state loaded from a checkpoint at startup.
+    std::size_t restartSegment_m;  ///< Step-size segment containing the next step.
+    unsigned long long restartSegmentSteps_m;  ///< Completed steps in that segment.
 
     // --- Timers ---
     IpplTimings::TimerRef timeIntegrationTimer1_m;
@@ -112,12 +115,17 @@ public:
      * @param sStop             Stop path length per segment (m).
      * @param dt                Time step per segment (s).
      * @param emittingSamplers  Optional per-container samplers for emitParticles(t, dt).
+     * @param restarting        True when bunch state was restored from a checkpoint.
+     * @param restartSegment    Zero-based step-size segment to resume.
+     * @param restartSegmentSteps Steps already completed in that segment.
      */
     explicit ParallelTracker(
             const Beamline& bl, PartBunch_t& bunch, DataSink* ds, bool revBeam,
             const std::vector<unsigned long long>& maxSTEPS, double sStart,
             const std::vector<double>& sStop, const std::vector<double>& dt,
-            const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers = {});
+            const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers = {},
+            bool restarting = false, std::size_t restartSegment = 0,
+            unsigned long long restartSegmentSteps = 0);
 
     /// @brief Destructor; releases tracker resources.
     virtual ~ParallelTracker();

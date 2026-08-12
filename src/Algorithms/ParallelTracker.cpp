@@ -50,6 +50,7 @@
 
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/BoundingBox.h"
+#include "Structure/CheckpointFile.h"
 #include "Utilities/LogicalError.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
@@ -75,6 +76,9 @@ ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
       sStart_m(0.0),
       dtCurrentTrack_m(0.0),
       repartFreq_m(0),
+      restarting_m(false),
+      restartSegment_m(0),
+      restartSegmentSteps_m(0),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
@@ -89,7 +93,8 @@ ParallelTracker::ParallelTracker(
         const Beamline& beamline, PartBunch_t& bunch, DataSink* ds, bool revBeam,
         const std::vector<unsigned long long>& maxSteps, double sStart,
         const std::vector<double>& sStop, const std::vector<double>& dt,
-        const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers)
+        const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers,
+        bool restarting, std::size_t restartSegment, unsigned long long restartSegmentSteps)
     : Tracker(beamline, bunch, revBeam, false),
       itsDataSink_m(ds),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
@@ -98,6 +103,9 @@ ParallelTracker::ParallelTracker(
       dtCurrentTrack_m(0.0),
       repartFreq_m(0),
       emittingSamplers_m(emittingSamplers),
+      restarting_m(restarting),
+      restartSegment_m(restartSegment),
+      restartSegmentSteps_m(restartSegmentSteps),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
@@ -165,10 +173,18 @@ void ParallelTracker::visitBeamline(const Beamline& bl) {
 void ParallelTracker::execute() {
     Inform m("ParallelTracker::execute");
 
+    // Restart/follow-up state is process-wide so every output-producing element can select append
+    // semantics before the beamline is prepared and its writers are initialized.
+    if (restarting_m || OpalData::getInstance()->hasPriorTrack()) {
+        OpalData::getInstance()->setOpenMode(OpalData::OpenMode::APPEND);
+    }
+
     // PartBunch::resetPcActive() ran in the constructor while containers were still empty
     // (allocate-then-destroy for capacity). Initial particles are loaded later in TrackRun
     // without refreshing these flags, so reference updates must not skip all containers.
-    itsBunch_m->resetPcActive();
+    if (!restarting_m || restartSegmentSteps_m == 0) {
+        itsBunch_m->resetPcActive();
+    }
     activateEmittingContainers(itsBunch_m->getT());
 
     // Initialize the Boris particle pusher
@@ -180,6 +196,9 @@ void ParallelTracker::execute() {
 
     // Populate the OpalBeamline and calculate coordinate transformations
     prepareSections();
+    if (restarting_m) {
+        restoreCavityPhases();
+    }
 
     // Select the minimal time step from the configuration
     double minTimeStep = stepSizes_m.getMinTimeStep();
@@ -189,89 +208,100 @@ void ParallelTracker::execute() {
     itsOpalBeamline_m.activateElements();
     m << level3 << "Activated all beamline elements." << endl;
 
-    // Calculate the coordinate transformation from the beamline origin to the lab frame
-    CoordinateSystemTrafo beamlineToLab = itsOpalBeamline_m.getCSTrafoLab2Local().inverted();
-
-    // Per-container: lab transform and reference orbit state (each beam's PartData for P0
-    // fallback).
+    // A fresh run derives each reference pose from its initial distribution. A restart must keep
+    // the per-container reference pose and reference-to-lab transform stored in the checkpoint.
     const auto& particleContainers = itsBunch_m->getParticleContainers();
-    for (size_t ci = 0; ci < particleContainers.size(); ++ci) {
-        const auto& pc = particleContainers[ci];
-        if (!pc) {
-            continue;
+    if (!restarting_m) {
+        CoordinateSystemTrafo beamlineToLab = itsOpalBeamline_m.getCSTrafoLab2Local().inverted();
+        for (size_t ci = 0; ci < particleContainers.size(); ++ci) {
+            const auto& pc = particleContainers[ci];
+            if (!pc) {
+                continue;
+            }
+            if (!pc->getReference()) {
+                throw OpalException(
+                        "ParallelTracker::execute",
+                        "Particle container has null PartData reference during lab-frame init.");
+            }
+            pc->setToLabTrafo(beamlineToLab);
+
+            // Resolve the reference particle's pose in the beamline frame. Position and
+            // momentum follow the same 3-tier rule: the bunch mean when particles already
+            // exist; otherwise the input-specified emission offsets (R0, P0) reported by
+            // the sampler; otherwise the design pose (lattice origin, beta*gamma along +z).
+            Vector_t<double, 3> refR = 0.0;
+            Vector_t<double, 3> refP = 0.0;
+            if (pc->getTotalNum() > 0) {
+                refR = pc->getMeanR();
+                refP = pc->getMeanP();
+            } else {
+                // Empty container (e.g. an emitted distribution before its first emission):
+                // the bunch mean is undefined, so take the emission offsets from the sampler.
+                bool useSamplerPosition         = false;
+                bool useSamplerMomentum         = false;
+                Vector_t<double, 3> samplerRefR = 0.0;
+                Vector_t<double, 3> samplerRefP = 0.0;
+                if (ci < emittingSamplers_m.size()) {
+                    for (const auto& sampler : emittingSamplers_m[ci]) {
+                        if (!sampler) {
+                            continue;
+                        }
+                        if (!useSamplerMomentum && sampler->hasInitialReferenceMomentum()) {
+                            samplerRefP        = sampler->getInitialReferenceMomentum();
+                            useSamplerMomentum = true;
+                        }
+                        if (!useSamplerPosition && sampler->hasInitialReferencePosition()) {
+                            samplerRefR        = sampler->getInitialReferencePosition();
+                            useSamplerPosition = true;
+                        }
+                    }
+                }
+
+                // Position: emission offset R0, else the lattice origin.
+                refR = useSamplerPosition ? samplerRefR : Vector_t<double, 3>(0.0);
+
+                // Momentum: emission offset P0, else the design beta*gamma along +z.
+                if (useSamplerMomentum) {
+                    if (dot(samplerRefP, samplerRefP) <= 0.0) {
+                        throw OpalException(
+                                "ParallelTracker::execute",
+                                "Sampler-provided initial reference momentum is zero.");
+                    }
+                    refP = samplerRefP;
+                } else {
+                    const PartData& pref = *pc->getReference();
+                    const double P0      = pref.getP() / pref.getM();  // beta*gamma from BEAM pc
+                    refP                 = Vector_t<double, 3>(0.0, 0.0, P0);
+                }
+            }
+
+            pc->getRefPartR() = beamlineToLab.transformTo(refR);
+            pc->getRefPartP() = beamlineToLab.rotateTo(refP);
         }
-        if (!pc->getReference()) {
+
+        m << level4
+          << "Transformed reference particle position and momentum to lab frame (all containers)."
+          << endl;
+
+        // Integrate reference orbits forward until all container path lengths reach sStart_m.
+        findStartPositions(pusher);
+        stepSizes_m.advanceToPos(sStart_m);
+    } else {
+        stepSizes_m.advanceToIndex(restartSegment_m);
+        if (!stepSizes_m.reachedEnd() && restartSegmentSteps_m > stepSizes_m.getNumSteps()) {
             throw OpalException(
                     "ParallelTracker::execute",
-                    "Particle container has null PartData reference during lab-frame init.");
+                    "checkpoint completed-step count exceeds the configured segment length");
         }
-        pc->setToLabTrafo(beamlineToLab);
-
-        // Resolve the reference particle's pose in the beamline frame. Position and
-        // momentum follow the same 3-tier rule: the bunch mean when particles already
-        // exist; otherwise the input-specified emission offsets (R0, P0) reported by
-        // the sampler; otherwise the design pose (lattice origin, beta*gamma along +z).
-        Vector_t<double, 3> refR = 0.0;
-        Vector_t<double, 3> refP = 0.0;
-        if (pc->getTotalNum() > 0) {
-            refR = pc->getMeanR();
-            refP = pc->getMeanP();
-        } else {
-            // Empty container (e.g. an emitted distribution before its first emission):
-            // the bunch mean is undefined, so take the emission offsets from the sampler.
-            bool useSamplerPosition         = false;
-            bool useSamplerMomentum         = false;
-            Vector_t<double, 3> samplerRefR = 0.0;
-            Vector_t<double, 3> samplerRefP = 0.0;
-            if (ci < emittingSamplers_m.size()) {
-                for (const auto& sampler : emittingSamplers_m[ci]) {
-                    if (!sampler) {
-                        continue;
-                    }
-                    if (!useSamplerMomentum && sampler->hasInitialReferenceMomentum()) {
-                        samplerRefP        = sampler->getInitialReferenceMomentum();
-                        useSamplerMomentum = true;
-                    }
-                    if (!useSamplerPosition && sampler->hasInitialReferencePosition()) {
-                        samplerRefR        = sampler->getInitialReferencePosition();
-                        useSamplerPosition = true;
-                    }
-                }
-            }
-
-            // Position: emission offset R0, else the lattice origin.
-            refR = useSamplerPosition ? samplerRefR : Vector_t<double, 3>(0.0);
-
-            // Momentum: emission offset P0, else the design beta*gamma along +z.
-            if (useSamplerMomentum) {
-                if (dot(samplerRefP, samplerRefP) <= 0.0) {
-                    throw OpalException(
-                            "ParallelTracker::execute",
-                            "Sampler-provided initial reference momentum is zero.");
-                }
-                refP = samplerRefP;
-            } else {
-                const PartData& pref = *pc->getReference();
-                const double P0      = pref.getP() / pref.getM();  // beta*gamma from BEAM pc
-                refP                 = Vector_t<double, 3>(0.0, 0.0, P0);
-            }
-        }
-
-        pc->getRefPartR() = beamlineToLab.transformTo(refR);
-        pc->getRefPartP() = beamlineToLab.rotateTo(refP);
     }
 
-    m << level4
-      << "Transformed reference particle position and momentum to lab frame (all containers)."
-      << endl;
-
-    // Integrate reference orbits forward until all container path lengths reach sStart_m (when
-    // needed).
-    findStartPositions(pusher);
-
-    // Advance through the time step configurations, skipping any that end
-    // before the start position (sStart_m)
-    stepSizes_m.advanceToPos(sStart_m);
+    if (stepSizes_m.reachedEnd()) {
+        *gmsg << level1 << "* Checkpoint is already at the end of the configured tracking "
+              << "schedule; no integration steps remain." << endl;
+        itsOpalBeamline_m.switchElementsOff();
+        Kokkos::fence();
+        return;
+    }
 
     // Global spatial bounds: union over all containers
     Vector_t<double, 3> rmin(0.0), rmax(0.0);
@@ -293,7 +323,7 @@ void ParallelTracker::execute() {
     bool const statDump0 = 0;
 
     // Write initial phase space and statistics
-    writePhaseSpace(0, psDump0, statDump0);
+    writePhaseSpace(itsBunch_m->getGlobalTrackStep(), psDump0, statDump0);
     m << level2 << "Dump initial phase space done." << endl;
 
     // Create one OrbitThreader per container, each threaded with its own reference orbit.
@@ -340,15 +370,19 @@ void ParallelTracker::execute() {
     setTime();
     m << level4 << "Set time view of particle bunch." << endl;
 
-    // Legacy OPAL emission starts the tracker before the RF reference time for centered
-    // flat-top pulses, so the early half is accelerated before statistics reach t = 0.
-    const double globalTimeShift = OpalData::getInstance()->getGlobalPhaseShift();
-    double time                  = itsBunch_m->getT() - globalTimeShift;
-    itsBunch_m->setT(time);
+    // Legacy OPAL emission starts a fresh tracker before the RF reference time for centered
+    // flat-top pulses. Checkpoint time already contains this shift and must not be shifted again.
+    double time = itsBunch_m->getT();
+    if (!restarting_m) {
+        time -= OpalData::getInstance()->getGlobalPhaseShift();
+        itsBunch_m->setT(time);
+    }
     m << level4 << "Reset bunch time to " << time << "." << endl;
 
-    // Get the current global tracking step
-    unsigned long long step = itsBunch_m->getGlobalTrackStep();
+    // Get the current global tracking step and the position within the step-size schedule.
+    unsigned long long step                    = itsBunch_m->getGlobalTrackStep();
+    std::size_t segmentIndex                   = stepSizes_m.getCurrentIndex();
+    unsigned long long stepsCompletedInSegment = restarting_m ? restartSegmentSteps_m : 0;
     OPALTimer::Timer myt1;
     *gmsg << level1 << "* Track start at: " << myt1.time() << ", t= " << Util::getTimeString(time)
           << "; "
@@ -373,20 +407,25 @@ void ParallelTracker::execute() {
 
     // Main tracking loop over step size configurations
     m << level5 << ">>>>>>>>>>>>>>>>>> Starting Tracking Loop >>>>>>>>>>>>>>>>>>" << endl;
+    bool firstSegment = true;
     while (!stepSizes_m.reachedEnd()) {
-        // Set the number of steps for the current track
-        unsigned long long trackSteps = stepSizes_m.getNumSteps() + step;
-        dtCurrentTrack_m              = stepSizes_m.getdT();
+        const unsigned long long stepsInSegment = stepSizes_m.getNumSteps();
+        const unsigned long long trackSteps     = step + (stepsInSegment - stepsCompletedInSegment);
+        dtCurrentTrack_m                        = stepSizes_m.getdT();
 
         // Select global dt from dtCurrentTrack_m and copy to all container dt views.
         changeDT();
-        itsBunch_m->resetPcActive();
+        if (!(restarting_m && firstSegment && stepsCompletedInSegment > 0)) {
+            itsBunch_m->resetPcActive();
+        }
         activateEmittingContainers(itsBunch_m->getT());
+        firstSegment = false;
 
         // Inner loop over the number of steps for the current configuration
         m << level2 << "Starting track with dt = " << Util::getTimeString(dtCurrentTrack_m)
           << ", track steps = " << step << " to " << trackSteps << "." << endl;
-        for (; step < trackSteps; ++step) {
+        while (stepsCompletedInSegment < stepsInSegment) {
+            step = itsBunch_m->getGlobalTrackStep();
             if (!itsBunch_m->anyPcActive()) {
                 m << level4 << "No active particle containers; ending inner track segment." << endl;
                 break;
@@ -553,6 +592,7 @@ void ParallelTracker::execute() {
 
             // Increment the global track step counter at the end of the step
             itsBunch_m->incTrackSteps();
+            ++stepsCompletedInSegment;
             m << level5 << "Track steps incremented." << endl;
 
             // Check if active containers have reached the end of the current step size
@@ -579,6 +619,21 @@ void ParallelTracker::execute() {
                     itsBunch_m->setPcAtSStop(i);
                 }
             }
+            const bool segmentComplete =
+                    !itsBunch_m->anyPcActive() || stepsCompletedInSegment == stepsInSegment;
+
+            if (Options::checkpointFreq > 0
+                && itsBunch_m->getGlobalTrackStep() % Options::checkpointFreq == 0) {
+                const std::size_t nextSegment = segmentComplete ? segmentIndex + 1 : segmentIndex;
+                const unsigned long long nextSegmentSteps =
+                        segmentComplete ? 0 : stepsCompletedInSegment;
+                const std::string checkpointPath =
+                        CheckpointFile::defaultPath(OpalData::getInstance()->getInputBasename());
+                CheckpointFile::write(checkpointPath, *itsBunch_m, nextSegment, nextSegmentSteps);
+                m << level2 << "Wrote checkpoint '" << checkpointPath << "' after global step "
+                  << itsBunch_m->getGlobalTrackStep() << "." << endl;
+            }
+
             if (!itsBunch_m->anyPcActive()) {
                 m << level2
                   << "All active containers reached current sStop. Preparing to switch to "
@@ -594,6 +649,8 @@ void ParallelTracker::execute() {
 
         if (globalEOL_m) break;
         ++stepSizes_m;
+        ++segmentIndex;
+        stepsCompletedInSegment = 0;
     }
     bool const psDump = Options::psDumpFreq > 0
                         && (((itsBunch_m->getGlobalTrackStep() - 1) % Options::psDumpFreq) + 1
@@ -602,7 +659,7 @@ void ParallelTracker::execute() {
                           && (((itsBunch_m->getGlobalTrackStep() - 1) % Options::statDumpFreq) + 1
                               != Options::statDumpFreq);
 
-    writePhaseSpace((step + 1), psDump, statDump);
+    writePhaseSpace(itsBunch_m->getGlobalTrackStep(), psDump, statDump);
 
     if (psDump) {
         *gmsg << level2 << "* Dump phase space of last step" << endl;

@@ -3,6 +3,7 @@ set (_SRCS
   EmissionSource.cpp
   BoundingBox.cpp
   BoundaryGeometry.cpp
+  CheckpointFile.cpp
   BinConfigWriter.cpp
   DirichletPlaneWriter.cpp
   DataSink.cpp
@@ -29,6 +30,7 @@ set (HDRS
     Beam.h
     EmissionSource.h
     BoundaryGeometry.h
+    CheckpointFile.h
     BoundingBox.h
     BinConfigWriter.h
     DirichletPlaneWriter.h
