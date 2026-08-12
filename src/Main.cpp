@@ -123,8 +123,7 @@ namespace OPALXMAIN {
                        "informations.\n";
         *ippl::Info << "   --git-revision           : Print the revision hash of the repository.\n";
         *ippl::Info << "   --input <fname>          : Specifies the input file <fname>.\n";
-        *ippl::Info << "   --restart <n>            : Performes a restart from step <n>.\n";
-        *ippl::Info << "   --restartfn <fname>      : Uses the file <fname> to restart from.\n";
+        *ippl::Info << "   --restart <fname>        : Restart from checkpoint file <fname>.\n";
         //*ippl::printHelp();
         *ippl::Info << "   --help-command <command> : Display the help for the command <command>\n";
         *ippl::Info << "   --help                   : Display this command-line summary.\n";
@@ -284,14 +283,14 @@ int main(int argc, char* argv[]) {
                     ++ii;
                     inputFileArgument = ii;
                     continue;
-                } else if (
-                        argStr == std::string("-restart") || argStr == std::string("--restart")) {
+                } else if (argStr == std::string("--restart")) {
+                    if (ii + 1 >= argc) {
+                        *gmsg << "Missing checkpoint filename after --restart" << endl;
+                        OPALXMAIN::printHelp();
+                        exit(1);
+                    }
                     opal->setRestartRun();
-                    opal->setRestartStep(atoi(argv[++ii]));
-                    continue;
-                } else if (
-                        argStr == std::string("-restartfn")
-                        || argStr == std::string("--restartfn")) {
+                    opal->setOpenMode(OpalData::OpenMode::APPEND);
                     restartFileName = std::string(argv[++ii]);
                     continue;
                 } else if (argStr == std::string("--info")) {
@@ -328,11 +327,8 @@ int main(int argc, char* argv[]) {
             opal->storeInputFn(fname);
 
             if (opal->inRestartRun()) {
-                if (restartFileName.empty()) {
-                    restartFileName = opal->getInputBasename() + std::string(".h5");
-                }
                 if (!fs::exists(restartFileName)) {
-                    *ippl::Info << "Restart file '" << restartFileName << "' doesn't exist!"
+                    *ippl::Info << "Checkpoint file '" << restartFileName << "' doesn't exist!"
                                 << endl;
                     exit(1);
                 }

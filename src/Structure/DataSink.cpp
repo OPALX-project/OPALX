@@ -51,12 +51,15 @@ std::string DataSink::diagnosticStemForContainer(
 DataSink::DataSink() { this->init(false, {}, 1); }
 
 DataSink::DataSink(
-        const std::vector<H5PartWrapper*>& h5wrappers, bool restart, size_t numParticleContainers) {
+        const std::vector<H5PartWrapper*>& h5wrappers, bool restart, size_t numParticleContainers,
+        const std::string& outputBasename, bool appendStatistics) {
     if (restart && !Options::enableHDF5) {
         throw OpalException("DataSink::DataSink()", "Can not restart when HDF5 is disabled");
     }
 
-    this->init(restart, h5wrappers, numParticleContainers);
+    this->init(
+            restart, h5wrappers, numParticleContainers, outputBasename,
+            restart || appendStatistics);
 
     if (restart) {
         rewindLines();
@@ -293,9 +296,35 @@ void DataSink::rewindLines() {
     }
 }
 
+void DataSink::rewindToCheckpoint(PartBunch_t& beam) {
+    for (const auto& writer : h5Writers_m) {
+        writer->rewindToTime(beam.getT(), beam.getdT());
+    }
+
+    unsigned int linesToRewind = 0;
+    const std::size_t count    = std::min(statWriters_m.size(), beam.getNumParticleContainers());
+
+    for (std::size_t i = 0; i < count; ++i) {
+        const auto pc = beam.getParticleContainer(i);
+        if (!pc || !statWriters_m[i]->exists()) {
+            continue;
+        }
+        const unsigned int removed = statWriters_m[i]->rewindToSpos(pc->get_sPos());
+        linesToRewind              = std::max(linesToRewind, removed);
+    }
+
+    if (linesToRewind > 0) {
+        for (const auto& writer : sddsWriter_m) {
+            writer->rewindLines(linesToRewind);
+        }
+    }
+}
+
 void DataSink::init(
-        bool restart, const std::vector<H5PartWrapper*>& h5wrappers, size_t numParticleContainers) {
-    std::string fn = OpalData::getInstance()->getInputBasename();
+        bool restart, const std::vector<H5PartWrapper*>& h5wrappers, size_t numParticleContainers,
+        const std::string& outputBasename, bool appendStatistics) {
+    std::string fn =
+            outputBasename.empty() ? OpalData::getInstance()->getInputBasename() : outputBasename;
 
     lossWrCounter_m   = 0;
     StatMarkerTimer_m = IpplTimings::getTimer("Write Stat");
@@ -303,11 +332,13 @@ void DataSink::init(
     statWriters_m.clear();
     for (size_t i = 0; i < numParticleContainers; ++i) {
         std::string stem = diagnosticStemForContainer(fn, numParticleContainers, i);
-        statWriters_m.push_back(statWriter_t(new StatWriter(stem + std::string(".stat"), restart)));
+        statWriters_m.push_back(
+                statWriter_t(new StatWriter(stem + std::string(".stat"), appendStatistics)));
     }
 
     sddsWriter_m.clear();
-    sddsWriter_m.push_back(sddsWriter_t(new LBalWriter(fn + std::string(".lbal"), restart)));
+    sddsWriter_m.push_back(
+            sddsWriter_t(new LBalWriter(fn + std::string(".lbal"), appendStatistics)));
 
     h5Writers_m.clear();
     if (Options::enableHDF5) {
