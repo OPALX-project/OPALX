@@ -96,9 +96,10 @@ void OpalRBend::update() {
 
     // Energy in eV.
     if (itsAttr[DESIGNENERGY]) {
-        //bend->setDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]) * Units::MeV2eV, false);
+        // bend->setDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]) * Units::MeV2eV, false);
         throw OpalException(
-                "OpalRBend::update", "DESIGNENERGY is not supported yet for the OPALX-native RBEND port.");
+                "OpalRBend::update",
+                "DESIGNENERGY is not supported yet for the OPALX-native RBEND port.");
     }
 
     if (itsAttr[GAP])
