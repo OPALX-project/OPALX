@@ -100,8 +100,10 @@ void OpalSBend::update() {
 
     // Units are eV.
     if (itsAttr[DESIGNENERGY]) {
-        bend->setDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]), false);
-    }
+        //bend->setDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]), false);
+        throw OpalException(
+            "OpalRBend::update", "DESIGNENERGY is not supported yet for the OPALX-native SBEND port.");
+}
 
     if (itsAttr[GAP])
         throw OpalException(
