@@ -17,6 +17,7 @@
 //
 #include "Elements/OpalSBend.h"
 #include <cmath>
+#include <string>
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/SBendRep.h"
@@ -110,17 +111,56 @@ void OpalSBend::update() {
     bend->setFullGap(2.0 * Attributes::getReal(itsAttr[HGAP]));
     bend->setFringeIntegral(Attributes::getReal(itsAttr[FINT]));
 
-    if (itsAttr[APERT])
-        throw OpalException(
-                "OpalSBend::update", "APERTURE in SBEND not supported; use GAP and HAPERT instead");
+    // Transverse aperture. The vertical half-aperture is the pole gap HGAP; the horizontal
+    // one comes from HAPERT or from APERTURE, never from both. OpalElement::update() has
+    // already installed either the APERTURE string (full widths, halved by getApert()) or
+    // the 1e6 default, so this block only adds the gap and rejects the combinations that
+    // have no physical meaning.
+    //
+    // "Given" means written in the deck. HAPERT has a default, so itsAttr[HAPERT] reads as
+    // set even when the deck omits it; only defaultUsed() tells the two apart.
+    const bool hasApert  = !itsAttr[APERT].defaultUsed();
+    const bool hasHapert = !itsAttr[HAPERT].defaultUsed();
+    const double hgap    = Attributes::getReal(itsAttr[HGAP]);
+    const double hapert  = Attributes::getReal(itsAttr[HAPERT]);
 
-    // Only override the aperture when a positive HAPERT is actually given. HAPERT has a
-    // default of 0.0, and itsAttr[HAPERT] reads as "set" even when the deck omits it, so
-    // gating on presence would install a zero-width rectangular aperture that makes
-    // the aperture test always false and silently drops the bend from the beamline.
-    if (Attributes::getReal(itsAttr[HAPERT]) > 0.0) {
-        double hapert = Attributes::getReal(itsAttr[HAPERT]);
-        bend->setAperture(ApertureType::RECTANGULAR, std::vector<double>({hapert, hapert}));
+    if (hasApert && hasHapert) {
+        throw OpalException(
+                "OpalSBend::update",
+                getOpalName()
+                        + ": APERTURE and HAPERT cannot both be given. APERTURE sets both "
+                          "half-apertures, HAPERT only the horizontal one.");
+    }
+    if ((hasApert || hasHapert) && hgap <= 0.0) {
+        throw OpalException(
+                "OpalSBend::update",
+                getOpalName()
+                        + ": HAPERT/APERTURE requires a positive HGAP; the vertical aperture "
+                          "is the half gap.");
+    }
+    if (hasHapert && hapert <= 0.0) {
+        throw OpalException("OpalSBend::update", getOpalName() + ": HAPERT must be positive.");
+    }
+
+    auto aperture = bend->getAperture();
+    if (hasApert) {
+        // Keep the deck's own shape and half-widths, but the chamber cannot be taller than
+        // the poles it sits between. Equality is fine: flush with the pole faces.
+        if (aperture.second[1] > hgap) {
+            throw OpalException(
+                    "OpalSBend::update",
+                    getOpalName() + ": vertical half-aperture " + std::to_string(aperture.second[1])
+                            + " m exceeds the half gap HGAP = " + std::to_string(hgap) + " m.");
+        }
+    } else if (hgap > 0.0) {
+        // Flat poles above and below, a flat side wall left and right. Without HAPERT the
+        // horizontal half-width stays at the 1e6 default, i.e. vertical scraping only.
+        aperture.first     = ApertureType::RECTANGULAR;
+        aperture.second[1] = hgap;
+        if (hasHapert) {
+            aperture.second[0] = hapert;
+        }
+        bend->setAperture(aperture.first, aperture.second);
     }
 
     if (itsAttr[LENGTH])
