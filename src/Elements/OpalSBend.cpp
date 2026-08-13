@@ -22,6 +22,7 @@
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/SBendRep.h"
 #include "Physics/Physics.h"
+#include "Physics/Units.h"
 #include "Utilities/OpalException.h"
 
 OpalSBend::OpalSBend()
@@ -101,7 +102,10 @@ void OpalSBend::update() {
 
     // Units are eV.
     if (itsAttr[DESIGNENERGY]) {
-        bend->setDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]), false);
+        // bend->setDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]) * Units::MeV2eV, false);
+        throw OpalException(
+                "OpalSBend::update",
+                "DESIGNENERGY is not supported yet for the OPALX-native SBEND port.");
     }
 
     if (itsAttr[GAP])
