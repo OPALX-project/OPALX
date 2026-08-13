@@ -29,6 +29,11 @@
 
 class StepSizeConfig {
 public:
+    struct ResumePosition {
+        std::size_t segment;
+        unsigned long long stepsCompletedInSegment;
+    };
+
     StepSizeConfig();
 
     StepSizeConfig(const StepSizeConfig& right);
@@ -53,6 +58,9 @@ public:
 
     /// Advance to the zero-based configuration index; the size selects the end iterator.
     StepSizeConfig& advanceToIndex(std::size_t index);
+
+    /// Advance to the segment containing the next step after @p completedSteps global steps.
+    ResumePosition advanceToGlobalStep(unsigned long long completedSteps);
 
     /// Return the zero-based current index; the size denotes the end iterator.
     std::size_t getCurrentIndex();
