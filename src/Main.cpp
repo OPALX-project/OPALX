@@ -123,7 +123,7 @@ namespace OPALXMAIN {
                        "informations.\n";
         *ippl::Info << "   --git-revision           : Print the revision hash of the repository.\n";
         *ippl::Info << "   --input <fname>          : Specifies the input file <fname>.\n";
-        *ippl::Info << "   --restart <fname>        : Restart from checkpoint file <fname>.\n";
+        *ippl::Info << "   --restart [<fname>]      : Restart from checkpoint file <fname>.\n";
         //*ippl::printHelp();
         *ippl::Info << "   --help-command <command> : Display the help for the command <command>\n";
         *ippl::Info << "   --help                   : Display this command-line summary.\n";
@@ -208,6 +208,25 @@ int main(int argc, char* argv[]) {
                 OPALXMAIN::printHelp();
                 exit(1);
             }
+            const auto optionConsumesArgument = [](const std::string& option) {
+                return option == "--help-command" || option == "--input" || option == "--info"
+                       || option == "--overallocate";
+            };
+
+            const auto hasLaterInputArgument = [&](int first) {
+                for (int jj = first; jj < argc; ++jj) {
+                    const std::string arg(argv[jj]);
+                    if (optionConsumesArgument(arg)) {
+                        ++jj;
+                    } else if (arg == "--restart") {
+                        continue;
+                    } else if (!arg.empty() && arg.front() != '-') {
+                        return true;
+                    }
+                }
+                return false;
+            };
+
             int inputFileArgument = -1;
             std::string fname;
             std::string restartFileName;
@@ -280,18 +299,30 @@ int main(int argc, char* argv[]) {
                     }
                     exit(0);
                 } else if (argStr == std::string("--input")) {
+                    if (ii + 1 >= argc || std::string(argv[ii + 1]).front() == '-') {
+                        *gmsg << "Missing input filename after --input" << endl;
+                        OPALXMAIN::printHelp();
+                        exit(1);
+                    }
+                    if (inputFileArgument != -1) {
+                        *gmsg << "Multiple input files specified" << endl;
+                        OPALXMAIN::printHelp();
+                        exit(1);
+                    }
                     ++ii;
                     inputFileArgument = ii;
                     continue;
                 } else if (argStr == std::string("--restart")) {
-                    if (ii + 1 >= argc) {
-                        *gmsg << "Missing checkpoint filename after --restart" << endl;
-                        OPALXMAIN::printHelp();
-                        exit(1);
-                    }
                     opal->setRestartRun();
                     opal->setOpenMode(OpalData::OpenMode::APPEND);
-                    restartFileName = std::string(argv[++ii]);
+                    if (ii + 1 < argc) {
+                        const std::string nextArg(argv[ii + 1]);
+                        if (!nextArg.empty() && nextArg.front() != '-'
+                            && (inputFileArgument != -1 || hasLaterInputArgument(ii + 2))) {
+                            restartFileName = nextArg;
+                            ++ii;
+                        }
+                    }
                     continue;
                 } else if (argStr == std::string("--info")) {
                     ++ii;
@@ -300,8 +331,12 @@ int main(int argc, char* argv[]) {
                     ++ii;
                     continue;
                 } else {
-                    if (inputFileArgument == -1 && (ii == 1 || ii + 1 == argc)
-                        && argv[ii][0] != '-') {
+                    if (!argStr.empty() && argStr.front() != '-') {
+                        if (inputFileArgument != -1) {
+                            *gmsg << "Multiple input files specified" << endl;
+                            OPALXMAIN::printHelp();
+                            exit(1);
+                        }
                         inputFileArgument = ii;
                         continue;
                     } else {
@@ -327,6 +362,11 @@ int main(int argc, char* argv[]) {
             opal->storeInputFn(fname);
 
             if (opal->inRestartRun()) {
+                if (restartFileName.empty()) {
+                    fs::path restartPath(fname);
+                    restartPath.replace_extension("");
+                    restartFileName = restartPath.string() + "_restart.h5";
+                }
                 if (!fs::exists(restartFileName)) {
                     *ippl::Info << "Checkpoint file '" << restartFileName << "' doesn't exist!"
                                 << endl;
