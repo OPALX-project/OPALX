@@ -517,7 +517,8 @@ void TrackRun::execute() {
     itsTracker_m = std::make_unique<ParallelTracker>(
             *Track::block->use->fetchLine(), *bunch_m, ds_m, false, Track::block->localTimeSteps,
             Track::block->zstart, Track::block->zstop, Track::block->dT, emittingSamplersList,
-            isRestart, restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment);
+            isRestart, static_cast<unsigned long long>(restartMetadata.globalTrackStep),
+            restartMetadata.dt);
     itsTracker_m->execute();
 
     /*

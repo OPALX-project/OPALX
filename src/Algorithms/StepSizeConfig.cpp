@@ -57,6 +57,32 @@ StepSizeConfig& StepSizeConfig::advanceToIndex(std::size_t index) {
     return *this;
 }
 
+StepSizeConfig::ResumePosition StepSizeConfig::advanceToGlobalStep(
+        unsigned long long completedSteps) {
+    it_m                              = configurations_m.begin();
+    std::size_t segment               = 0;
+    unsigned long long remainingSteps = completedSteps;
+
+    while (it_m != configurations_m.end()) {
+        const unsigned long long stepsInSegment = std::get<2>(*it_m);
+        if (remainingSteps < stepsInSegment) {
+            return ResumePosition{segment, remainingSteps};
+        }
+
+        remainingSteps -= stepsInSegment;
+        ++it_m;
+        ++segment;
+    }
+
+    if (remainingSteps == 0) {
+        return ResumePosition{segment, 0};
+    }
+
+    throw OpalException(
+            "StepSizeConfig::advanceToGlobalStep",
+            "checkpoint global step exceeds the configured tracking schedule");
+}
+
 std::size_t StepSizeConfig::getCurrentIndex() {
     return static_cast<std::size_t>(std::distance(configurations_m.begin(), it_m));
 }

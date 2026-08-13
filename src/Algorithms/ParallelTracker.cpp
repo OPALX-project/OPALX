@@ -77,8 +77,8 @@ ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
       dtCurrentTrack_m(0.0),
       repartFreq_m(0),
       restarting_m(false),
-      restartSegment_m(0),
-      restartSegmentSteps_m(0),
+      restartGlobalStep_m(0),
+      restartDt_m(0.0),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
@@ -94,7 +94,7 @@ ParallelTracker::ParallelTracker(
         const std::vector<unsigned long long>& maxSteps, double sStart,
         const std::vector<double>& sStop, const std::vector<double>& dt,
         const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers,
-        bool restarting, std::size_t restartSegment, unsigned long long restartSegmentSteps)
+        bool restarting, unsigned long long restartGlobalStep, double restartDt)
     : Tracker(beamline, bunch, revBeam, false),
       itsDataSink_m(ds),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
@@ -104,8 +104,8 @@ ParallelTracker::ParallelTracker(
       repartFreq_m(0),
       emittingSamplers_m(emittingSamplers),
       restarting_m(restarting),
-      restartSegment_m(restartSegment),
-      restartSegmentSteps_m(restartSegmentSteps),
+      restartGlobalStep_m(restartGlobalStep),
+      restartDt_m(restartDt),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
@@ -172,6 +172,26 @@ void ParallelTracker::visitBeamline(const Beamline& bl) {
  */
 void ParallelTracker::execute() {
     Inform m("ParallelTracker::execute");
+    StepSizeConfig::ResumePosition restartPosition{0, 0};
+    if (restarting_m) {
+        restartPosition = stepSizes_m.advanceToGlobalStep(restartGlobalStep_m);
+        if (!stepSizes_m.reachedEnd()) {
+            const double configuredDt = stepSizes_m.getdT();
+            const double tolerance    = 100.0 * std::numeric_limits<double>::epsilon()
+                                     * std::max(
+                                             {std::abs(configuredDt), std::abs(restartDt_m),
+                                              std::numeric_limits<double>::min()});
+            if (std::abs(configuredDt - restartDt_m) > tolerance) {
+                throw OpalException(
+                        "ParallelTracker::execute",
+                        "restart input changes the time-step schedule at the checkpointed global "
+                        "step");
+            }
+        }
+        m << level2 << "Restart global step " << restartGlobalStep_m << " maps to step-size "
+          << "segment " << restartPosition.segment << " with "
+          << restartPosition.stepsCompletedInSegment << " completed steps in that segment." << endl;
+    }
 
     // Restart/follow-up state is process-wide so every output-producing element can select append
     // semantics before the beamline is prepared and its writers are initialized.
@@ -182,7 +202,7 @@ void ParallelTracker::execute() {
     // PartBunch::resetPcActive() ran in the constructor while containers were still empty
     // (allocate-then-destroy for capacity). Initial particles are loaded later in TrackRun
     // without refreshing these flags, so reference updates must not skip all containers.
-    if (!restarting_m || restartSegmentSteps_m == 0) {
+    if (!restarting_m || restartPosition.stepsCompletedInSegment == 0) {
         itsBunch_m->resetPcActive();
     }
     activateEmittingContainers(itsBunch_m->getT());
@@ -287,12 +307,7 @@ void ParallelTracker::execute() {
         findStartPositions(pusher);
         stepSizes_m.advanceToPos(sStart_m);
     } else {
-        stepSizes_m.advanceToIndex(restartSegment_m);
-        if (!stepSizes_m.reachedEnd() && restartSegmentSteps_m > stepSizes_m.getNumSteps()) {
-            throw OpalException(
-                    "ParallelTracker::execute",
-                    "checkpoint completed-step count exceeds the configured segment length");
-        }
+        stepSizes_m.advanceToIndex(restartPosition.segment);
     }
 
     if (stepSizes_m.reachedEnd()) {
@@ -380,9 +395,10 @@ void ParallelTracker::execute() {
     m << level4 << "Reset bunch time to " << time << "." << endl;
 
     // Get the current global tracking step and the position within the step-size schedule.
-    unsigned long long step                    = itsBunch_m->getGlobalTrackStep();
-    std::size_t segmentIndex                   = stepSizes_m.getCurrentIndex();
-    unsigned long long stepsCompletedInSegment = restarting_m ? restartSegmentSteps_m : 0;
+    unsigned long long step  = itsBunch_m->getGlobalTrackStep();
+    std::size_t segmentIndex = stepSizes_m.getCurrentIndex();
+    unsigned long long stepsCompletedInSegment =
+            restarting_m ? restartPosition.stepsCompletedInSegment : 0;
     OPALTimer::Timer myt1;
     *gmsg << level1 << "* Track start at: " << myt1.time() << ", t= " << Util::getTimeString(time)
           << "; "
