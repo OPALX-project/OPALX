@@ -125,7 +125,7 @@ public:
     Matrix_t correlationMatrix_m;
 
     /// True if particles are emitted over time; false if injected at initialization.
-    bool emitting_m = false; 
+    bool emitting_m = false;
 
     double getTEmission() const;
     void setTEmission(double tEmission);
