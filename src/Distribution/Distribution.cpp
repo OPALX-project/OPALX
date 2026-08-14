@@ -506,6 +506,13 @@ void Distribution::setAttributes() {
 void Distribution::setDist() {
     // set distribution type
     setDistType();
+
+    // This flag is used for every distribution type during checkpoint restart
+    // validation. Initialize it from the input before dispatching to the
+    // type-specific setup; otherwise non-flat-top distributions leave it
+    // indeterminate.
+    emitting_m = Attributes::getBool(itsAttr[DISTRIBUTION::EMITTED]);
+
     // set distribution parameters
     switch (distrTypeT_m) {
         case DistributionType::GAUSS:
