@@ -1,4 +1,5 @@
 set (_SRCS
+    CollimatorRep.cpp
     ConstantEFieldCavityRep.cpp
     DriftRep.cpp
     LaserRep.cpp
@@ -14,6 +15,7 @@ set (_SRCS
     )
 
 set (HDRS
+    CollimatorRep.h
     ConstantEFieldCavityRep.h
     DriftRep.h
     LaserRep.h

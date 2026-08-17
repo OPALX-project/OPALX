@@ -51,6 +51,9 @@ public:
     /// Apply the algorithm to a constant E-field cavity element.
     void visitConstantEFieldCavity(const ConstantEFieldCavity&) override;
 
+    /// Apply the algorithm to a collimator.
+    void visitCollimator(const Collimator&) override;
+
     /// Apply the algorithm to a drift space.
     void visitDrift(const Drift&) override;
 
