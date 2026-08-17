@@ -122,6 +122,17 @@ public:
 
     bool getFast() const;
 
+    /**
+     * @brief Read the field map back to front.
+     *
+     * Mirrors the map in z and negates Bz, leaving Br alone -- what turning the
+     * magnet around does to an axisymmetric field. Only G4beamline cylinder
+     * maps support this; other map types throw when it is set.
+     */
+    void setZReverse(bool zReverse);
+
+    bool getZReverse() const;
+
     virtual ElementType getType() const override;
 
     /**
@@ -186,6 +197,9 @@ private:
 
     /// Fast tracking flag @note currently not implemented
     bool fast_m;
+
+    /// Load the field map mirrored in z, with Bz negated
+    bool zReverse_m;
 
     /// @note not implemente
     void operator=(const Solenoid&);
