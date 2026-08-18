@@ -36,6 +36,7 @@
 #include "Algorithms/IndexMap.h"
 #include "Algorithms/OrbitThreader.h"
 
+#include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
@@ -141,6 +142,9 @@ public:
 
     /// @brief Apply the algorithm to a constant E-field cavity.
     virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&);
+
+    /// @brief Apply the algorithm to a collimator.
+    virtual void visitCollimator(const Collimator&);
 
     /// @brief Apply the algorithm to a drift.
     virtual void visitDrift(const Drift&);
@@ -338,6 +342,10 @@ private:
 
 inline void ParallelTracker::visitConstantEFieldCavity(const ConstantEFieldCavity& cav) {
     itsOpalBeamline_m.visit(cav, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitCollimator(const Collimator& coll) {
+    itsOpalBeamline_m.visit(coll, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitDrift(const Drift& drift) {

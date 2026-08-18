@@ -37,6 +37,7 @@ class ConstChannel;
 enum class ElementType : unsigned short {
     ANY,
     BEAMLINE,
+    COLLIMATOR,
     DRIFT,
     LASER,
     MARKER,
