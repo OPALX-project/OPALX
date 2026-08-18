@@ -36,6 +36,7 @@
 #include "Algorithms/IndexMap.h"
 #include "Algorithms/OrbitThreader.h"
 
+#include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/ConstantFocusing.h"
 #include "AbsBeamline/Drift.h"
@@ -135,6 +136,8 @@ public:
 
     /// @brief Apply the algorithm to a constant linear focusing element.
     virtual void visitConstantFocusing(const ConstantFocusing&);
+    /// @brief Apply the algorithm to a collimator.
+    virtual void visitCollimator(const Collimator&);
 
     /// @brief Apply the algorithm to a drift.
     virtual void visitDrift(const Drift&);
@@ -336,6 +339,8 @@ inline void ParallelTracker::visitConstantEFieldCavity(const ConstantEFieldCavit
 
 inline void ParallelTracker::visitConstantFocusing(const ConstantFocusing& focusing) {
     itsOpalBeamline_m.visit(focusing, *this, *itsBunch_m);
+inline void ParallelTracker::visitCollimator(const Collimator& coll) {
+    itsOpalBeamline_m.visit(coll, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitDrift(const Drift& drift) {
