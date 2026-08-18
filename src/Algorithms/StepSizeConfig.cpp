@@ -57,30 +57,25 @@ StepSizeConfig& StepSizeConfig::advanceToIndex(std::size_t index) {
     return *this;
 }
 
-StepSizeConfig::ResumePosition StepSizeConfig::advanceToGlobalStep(
-        unsigned long long completedSteps) {
-    it_m                              = configurations_m.begin();
-    std::size_t segment               = 0;
-    unsigned long long remainingSteps = completedSteps;
+StepSizeConfig& StepSizeConfig::advanceToResumePosition(const ResumePosition& position) {
+    advanceToIndex(position.segment);
 
-    while (it_m != configurations_m.end()) {
-        const unsigned long long stepsInSegment = std::get<2>(*it_m);
-        if (remainingSteps < stepsInSegment) {
-            return ResumePosition{segment, remainingSteps};
+    if (reachedEnd()) {
+        if (position.stepsCompletedInSegment != 0) {
+            throw OpalException(
+                    "StepSizeConfig::advanceToResumePosition",
+                    "checkpoint has a nonzero step offset at the end of the tracking schedule");
         }
-
-        remainingSteps -= stepsInSegment;
-        ++it_m;
-        ++segment;
+        return *this;
     }
 
-    if (remainingSteps == 0) {
-        return ResumePosition{segment, 0};
+    if (position.stepsCompletedInSegment >= getNumSteps()) {
+        throw OpalException(
+                "StepSizeConfig::advanceToResumePosition",
+                "checkpoint step offset is outside the selected tracking segment");
     }
 
-    throw OpalException(
-            "StepSizeConfig::advanceToGlobalStep",
-            "checkpoint global step exceeds the configured tracking schedule");
+    return *this;
 }
 
 std::size_t StepSizeConfig::getCurrentIndex() {

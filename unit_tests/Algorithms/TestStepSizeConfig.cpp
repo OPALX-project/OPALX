@@ -27,46 +27,37 @@ TEST(StepSizeConfigTest, AdvanceToIndexRejectsOutOfRangeIndex) {
     EXPECT_THROW(config.advanceToIndex(2), OpalException);
 }
 
-TEST(StepSizeConfigTest, AdvanceToGlobalStepMapsIntoExtendedSingleSegment) {
-    StepSizeConfig config;
-    config.push_back(1.0e-12, 1.0, 20);
-
-    const auto position = config.advanceToGlobalStep(15);
-
-    EXPECT_EQ(position.segment, 0u);
-    EXPECT_EQ(position.stepsCompletedInSegment, 15u);
-    EXPECT_EQ(config.getCurrentIndex(), 0u);
-    EXPECT_DOUBLE_EQ(config.getdT(), 1.0e-12);
-    EXPECT_EQ(config.getNumSteps(), 20u);
-}
-
-TEST(StepSizeConfigTest, AdvanceToGlobalStepMapsAcrossSegmentBoundaries) {
+TEST(StepSizeConfigTest, AdvanceToResumePositionUsesStoredSegmentAfterEarlyStop) {
     StepSizeConfig config;
     config.push_back(1.0e-12, 1.0, 10);
     config.push_back(2.0e-12, 2.0, 20);
-    config.push_back(3.0e-12, 3.0, 30);
 
-    auto position = config.advanceToGlobalStep(10);
-    EXPECT_EQ(position.segment, 1u);
-    EXPECT_EQ(position.stepsCompletedInSegment, 0u);
+    // Segment 0 may have reached ZSTOP after only five of its ten allowed steps. A checkpoint
+    // after two more global steps must resume segment 1 at offset two, even though global step
+    // seven would still fall inside segment 0 if inferred only from MAXSTEPS.
+    config.advanceToResumePosition({1, 2});
+
     EXPECT_EQ(config.getCurrentIndex(), 1u);
     EXPECT_DOUBLE_EQ(config.getdT(), 2.0e-12);
+    EXPECT_EQ(config.getNumSteps(), 20u);
+}
 
-    position = config.advanceToGlobalStep(12);
-    EXPECT_EQ(position.segment, 1u);
-    EXPECT_EQ(position.stepsCompletedInSegment, 2u);
-    EXPECT_EQ(config.getCurrentIndex(), 1u);
-    EXPECT_DOUBLE_EQ(config.getdT(), 2.0e-12);
+TEST(StepSizeConfigTest, AdvanceToResumePositionAcceptsEndOfSchedule) {
+    StepSizeConfig config;
+    config.push_back(1.0e-12, 1.0, 10);
+    config.push_back(2.0e-12, 2.0, 20);
 
-    position = config.advanceToGlobalStep(60);
-    EXPECT_EQ(position.segment, 3u);
-    EXPECT_EQ(position.stepsCompletedInSegment, 0u);
+    config.advanceToResumePosition({2, 0});
+
     EXPECT_TRUE(config.reachedEnd());
 }
 
-TEST(StepSizeConfigTest, AdvanceToGlobalStepRejectsStepsPastSchedule) {
+TEST(StepSizeConfigTest, AdvanceToResumePositionRejectsInvalidOffsets) {
     StepSizeConfig config;
     config.push_back(1.0e-12, 1.0, 10);
+    config.push_back(2.0e-12, 2.0, 20);
 
-    EXPECT_THROW(config.advanceToGlobalStep(11), OpalException);
+    EXPECT_THROW(config.advanceToResumePosition({0, 10}), OpalException);
+    EXPECT_THROW(config.advanceToResumePosition({2, 1}), OpalException);
+    EXPECT_THROW(config.advanceToResumePosition({3, 0}), OpalException);
 }
