@@ -61,15 +61,13 @@ bool MeshGenerator::getTransverseSupport(const ElementBase& element, double& min
     }
 
     const auto apert = element.getAperture();
-    if (apert.second.size() < 3) {
+    if (apert.second.size() < 2) {
         return false;
     }
 
     switch (apert.first) {
         case ApertureType::RECTANGULAR:
-        case ApertureType::CONIC_RECTANGULAR:
         case ApertureType::ELLIPTICAL:
-        case ApertureType::CONIC_ELLIPTICAL:
             minor = apert.second[0];
             major = apert.second[1];
             return true;
@@ -132,20 +130,18 @@ void MeshGenerator::add(const ElementBase& element) {
 
         switch (apert.first) {
             case ApertureType::RECTANGULAR:
-            case ApertureType::CONIC_RECTANGULAR:
-                mesh = getBox(length, apert.second[0], apert.second[1], apert.second[2]);
+                mesh = getBox(length, apert.second[0], apert.second[1], 1.0);
                 break;
             case ApertureType::ELLIPTICAL:
-            case ApertureType::CONIC_ELLIPTICAL:
                 if (element.getType() == ElementType::MULTIPOLE
                     && static_cast<const Multipole*>(&element)->getMaxNormalComponentIndex() == 2) {
-                    mesh = getQuadrupole(length, apert.second[0], apert.second[1], apert.second[2]);
+                    mesh = getQuadrupole(length, apert.second[0], apert.second[1], 1.0);
                 } else if (element.getType() == ElementType::RFCAVITY) {
                     mesh = getRFCavity(length, apert.second[0], apert.second[1]);
                 } else if (element.getType() == ElementType::TRAVELINGWAVE) {
                     mesh = getTravelingWave(length, apert.second[0], apert.second[1]);
                 } else {
-                    mesh = getCylinder(length, apert.second[0], apert.second[1], apert.second[2]);
+                    mesh = getCylinder(length, apert.second[0], apert.second[1], 1.0);
                 }
                 break;
             default:

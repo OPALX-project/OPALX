@@ -108,7 +108,7 @@ inline int Monitor::getRequiredNumberOfTimeSteps() const { return 1; }
 
 inline bool Monitor::isInside(const Vector_t<double, 3>& r) const {
     const double length = getGeometry().getElementLength();
-    return std::abs(r(2)) <= 0.5 * length && isInsideTransverse(r);
+    return std::abs(r(2)) <= 0.5 * length && ApertureHelper::isInsideAperture(r, aperture_m);
 }
 
 #endif  // OPALX_Monitor_HH

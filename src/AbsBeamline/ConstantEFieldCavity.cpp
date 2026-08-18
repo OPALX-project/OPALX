@@ -64,7 +64,7 @@ void ConstantEFieldCavity::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
     if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return;
-    if (!isInsideTransverse(R)) {
+    if (!ApertureHelper::isInsideAperture(R, aperture_m)) {
         return;
     }
 
@@ -77,7 +77,7 @@ bool ConstantEFieldCavity::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
     if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return false;
-    if (!isInsideTransverse(R)) {
+    if (!ApertureHelper::isInsideAperture(R, aperture_m)) {
         return true;
     }
 

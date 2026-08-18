@@ -74,6 +74,11 @@ public:
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
+    /// @brief Mark particles outside the transverse aperture in pc->InvalidMask.
+    /// @note Overrides the base version to measure the z-window and the aperture
+    ///       in arc-length coordinates, matching isInside().
+    size_t markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) override;
+
     /// @brief Calculate the SBend field extent in the element's coordinatesystem
     /// @param zBegin Where the field begins (negative for fringe fields)
     /// @param zEnd Where the field ends (larger than element length for fringe fields)
@@ -95,12 +100,12 @@ public:
     void setFringeIntegral(double fringeIntegral);
 
     /// @brief Set the design energy.
-    /// @param energy The design energy.
+    /// @param energy The design energy in eV.
     /// @param changeable Whether the design energy can be changed later.
     void setDesignEnergy(const double& energy, bool changeable = true) override;
 
     /// @brief Get the design energy.
-    /// @return The design energy.
+    /// @return The design energy in eV.
     double getDesignEnergy() const override;
 
     /// @brief Store the normal/skew multipole coefficients into the device views
@@ -174,7 +179,7 @@ inline void SBend::setFringeIntegral(double fringeIntegral) {
 
 inline void SBend::setDesignEnergy(const double& energy, bool changeable) {
     if (designEnergyChangeable_m) {
-        designEnergy_m           = std::abs(energy) * 1e6;
+        designEnergy_m           = std::abs(energy);
         designEnergyChangeable_m = changeable;
     }
 }

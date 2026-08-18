@@ -8,6 +8,7 @@ set(_SRCS
     AttributeSet.cpp
     BeamBeam.cpp
     BeamlineVisitor.cpp
+    Collimator.cpp
     ConstantEFieldCavity.cpp
     Drift.cpp
     ElementBase.cpp
@@ -36,6 +37,7 @@ set(_HDRS
     BeamBeam.h
     BeamBeamDefinitions.h
     BeamlineVisitor.h
+    Collimator.h
     ConstantEFieldCavity.h
     Drift.h
     ElementBase.h
