@@ -68,7 +68,9 @@
       TOOLS_ENV="$SCRATCH/nightlybuildx-tools-$(uname -m)"
       MAMBA_ROOT_PREFIX="$SCRATCH/micromamba-root-$(uname -m)"
       export MAMBA_ROOT_PREFIX
-      if [ ! -x "$TOOLS_ENV/bin/python3" ] || [ ! -x "$TOOLS_ENV/bin/pandoc" ] || [ ! -x "$TOOLS_ENV/bin/xsltproc" ]; then
+      if [ ! -x "$TOOLS_ENV/bin/python3" ] || ! "$TOOLS_ENV/bin/python3" -c "import site" 2>/dev/null || [ ! -x "$TOOLS_ENV/bin/pandoc" ] || [ ! -x "$TOOLS_ENV/bin/xsltproc" ]; then
+        echo "NightlyBuildX tools environment is missing or broken, recreating $TOOLS_ENV"
+        rm -rf "$TOOLS_ENV"
         MAMBA_DIR="$SCRATCH/micromamba-bin-$(uname -m)"
         mkdir -p "$MAMBA_DIR"
         case "$(uname -m)" in
