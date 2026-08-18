@@ -93,7 +93,7 @@ Object* MacroCmd::makeTemplate(const std::string& name, TokenStream&, Statement&
     macro->parseFormals(statement);
 
     // Parse macro body->
-    bool isMacro = statement.keyword("MACRO");
+    [[maybe_unused]] const bool isMacro = statement.keyword("MACRO");
     PAssert(isMacro);
     Token token;
 
