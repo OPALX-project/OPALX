@@ -111,7 +111,7 @@ Object* SequenceTemplate::makeTemplate(const std::string&, TokenStream&, Stateme
 void SequenceTemplate::parseTemplate(TokenStream& is, Statement& statement) {
     // Save the formals.
     parseFormals(statement);
-    bool isSequence = statement.keyword("SEQUENCE");
+    [[maybe_unused]] const bool isSequence = statement.keyword("SEQUENCE");
     PAssert(isSequence);
 
     // Parse the sequence header.

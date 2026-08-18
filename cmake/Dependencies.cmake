@@ -16,6 +16,7 @@ set(FETCHCONTENT_UPDATES_DISCONNECTED ON) # opt out of auto-updates
 set(FETCHCONTENT_QUIET ON)
 
 include(FetchContent)
+include(CheckCCompilerFlag)
 
 # ------------------------------------------------------------------------------
 # MPI
@@ -221,15 +222,21 @@ else()
     FetchContent_MakeAvailable(HDF5)
 
     # HDF5 2.2.0 triggers this Clang diagnostic in H5Dint.c. Keep the
-    # suppression private to the bundled dependency so OPALX retains it.
+    # suppression private to the bundled dependency so OPALX retains it,
+    # and only enable it for Clang variants that recognize the option.
     if(CMAKE_C_COMPILER_ID MATCHES "Clang")
-        foreach(_opalx_hdf5_target hdf5-static hdf5-shared)
-            if(TARGET ${_opalx_hdf5_target})
-                target_compile_options(
-                    ${_opalx_hdf5_target}
-                    PRIVATE -Wno-uninitialized-const-pointer)
-            endif()
-        endforeach()
+        check_c_compiler_flag(
+            "-Werror=unknown-warning-option -Wno-uninitialized-const-pointer"
+            OPALX_C_SUPPORTS_WNO_UNINITIALIZED_CONST_POINTER)
+        if(OPALX_C_SUPPORTS_WNO_UNINITIALIZED_CONST_POINTER)
+            foreach(_opalx_hdf5_target hdf5-static hdf5-shared)
+                if(TARGET ${_opalx_hdf5_target})
+                    target_compile_options(
+                        ${_opalx_hdf5_target}
+                        PRIVATE -Wno-uninitialized-const-pointer)
+                endif()
+            endforeach()
+        endif()
     endif()
 
     set(HDF5_FOUND TRUE)
@@ -294,6 +301,18 @@ else()
     FetchContent_MakeAvailable(H5hut)
     set(CMAKE_SKIP_INSTALL_RULES ${OPALX_PREVIOUS_CMAKE_SKIP_INSTALL_RULES})
     unset(OPALX_PREVIOUS_CMAKE_SKIP_INSTALL_RULES)
+
+    # H5hut's bundled qsort helpers trigger GCC's -Wtype-limits diagnostic.
+    # Keep the suppression on the external targets that compile those files.
+    if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+        foreach(_opalx_h5hut_target H5hut h5priv_qsort h5priv_qsort_r)
+            if(TARGET ${_opalx_h5hut_target})
+                target_compile_options(
+                    ${_opalx_h5hut_target}
+                    PRIVATE -Wno-type-limits)
+            endif()
+        endforeach()
+    endif()
 
     # Check that kokkos actually has the platform backends that we need
     if (H5hut_FOUND)
