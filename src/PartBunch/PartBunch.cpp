@@ -320,15 +320,20 @@ void PartBunch<T, Dim>::setSolver() {
     setBins();
 
     if (Dim == 3 && solver_m == "FFT2D5") {
+        const std::string pipeMode = OPALFieldSolver_m->getPipeMode();
         typename Solve2d5<T>::LongitudinalFieldMode mode;
-        if (OPALFieldSolver_m->getPipeMode() == "OPEN") {
+        if (pipeMode == "OPEN") {
             mode = Solve2d5<T>::LongitudinalFieldMode::Open;
-        } else if (OPALFieldSolver_m->getPipeMode() == "CIRCULAR") {
+        } else if (pipeMode == "CIRCULAR") {
             mode = Solve2d5<T>::LongitudinalFieldMode::Cylindrical;
-        } else if (OPALFieldSolver_m->getPipeMode() == "PLATES") {
+        } else if (pipeMode == "PLATES") {
             mode = Solve2d5<T>::LongitudinalFieldMode::Plates;
-        } else if (OPALFieldSolver_m->getPipeMode() == "NONE") {
+        } else if (pipeMode == "NONE") {
             mode = Solve2d5<T>::LongitudinalFieldMode::None;
+        } else {
+            throw OpalException(
+                    "PartBunch::setSolver",
+                    "Unsupported FFT2D5 pipe mode \"" + pipeMode + "\".");
         }
         auto solver2d5 = std::make_shared<Solve2d5<T>>(
                 this, this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
