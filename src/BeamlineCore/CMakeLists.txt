@@ -1,5 +1,6 @@
 set (_SRCS
     BeamBeamRep.cpp
+    CollimatorRep.cpp
     ConstantEFieldCavityRep.cpp
     DriftRep.cpp
     LaserRep.cpp
@@ -16,6 +17,7 @@ set (_SRCS
 
 set (HDRS
     BeamBeamRep.h
+    CollimatorRep.h
     ConstantEFieldCavityRep.h
     DriftRep.h
     LaserRep.h

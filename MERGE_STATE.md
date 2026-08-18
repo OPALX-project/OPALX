@@ -1,6 +1,6 @@
 # BeamBeam master integration state
 
-Updated: 2026-08-07
+Updated: 2026-08-18
 
 ## Goal
 
@@ -17,14 +17,21 @@ retain the feature.
   `/tmp/opalx-beambeam-pre-master-2026-08-07.patch`.
 - Analytic/integration workspace backup:
   `/tmp/opalx-beambeam-pre-master-untracked-2026-08-07.tar.gz`.
-- Merge target: `origin/master` at
+- Previous merge target: `origin/master` at
   `0dea93e9a61bcee2081d3d9419239872d45b17b3`.
+- Current merge target: `origin/master` at
+  `28f187e570d2638afc7f4ed300a9c30f7b9f8e43`.
 - Current IPPL dependency: `36a4ca62a52e36a8a2c945c9048d0f010971d309`.
 - All master-owned paths were reset to the exact master version and master
   deletions were accepted. Obsolete `Component` and interaction-animation
   abstractions were not restored.
-- The merge remains active until the reviewed integration is staged and
-  committed. No push is authorized.
+- The current merge is active and all five conflicts are resolved. The master
+  versions of `ElementBase.cpp`, `ElementBase.h`, `DefaultVisitor.cpp`,
+  `ParallelTracker.h`, and `BeamlineCore/CMakeLists.txt` were taken first, then
+  only the additive BeamBeam enum, visitor, tracker declarations, and build
+  registrations were restored. Master's collimator and aperture behavior was
+  not changed.
+- No commit or push is authorized yet.
 
 ## Integrated design
 
@@ -44,7 +51,7 @@ retain the feature.
 - Mesh visualization retains the element type and colors without restoring the
   removed legacy movie-script implementation.
 
-## Validation completed
+## Validation completed for the previous master integration
 
 - Configured `build_openmp` with current IPPL and Kokkos 5.2.0.
 - Built `opalx_exe`, `TestBeamBeam`, and
@@ -86,7 +93,23 @@ retain the feature.
 - BeamBeam copied-source deposition is currently limited to the legacy
   non-binned field-solver path. Binned BeamBeam copy behavior remains a follow-up.
 
+## Validation for the current master integration
+
+- Configured `build_openmp` successfully against the merged tree. CMake reports
+  IPPL `36a4ca62a52e36a8a2c945c9048d0f010971d309`, Kokkos 5.2.0, and the OpenMP
+  backend.
+- Built the complete default target successfully through 100%, including all
+  configured unit-test executables and master's new collimator/aperture tests.
+- One-rank CTest BeamBeam subset: 2/2 executables passed
+  (`TestBeamBeam` 11/11 tests and `TestBeamBeamDiagnosticsWriter` 4/4 tests).
+- Two-rank direct MPI validation: `TestBeamBeam` passed 11/11 tests on both
+  ranks; `TestBeamBeamDiagnosticsWriter` passed 4/4 tests on both ranks.
+- The two-rank run emitted OpenMP oversubscription/binding warnings because each
+  rank requested the machine default of ten threads; the tests still exited
+  successfully.
+
 ## Next step
 
-Keep the sandbox baseline migration separate from the code integration. Do not
-push without explicit permission.
+Review the completed current-master merge, then obtain explicit permission
+before committing. Keep the BeamBeam redesign and sandbox baseline migration
+separate from this merge. Do not push without explicit permission.

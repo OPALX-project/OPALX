@@ -144,7 +144,7 @@ Dependency version/ref options:
 | Flag | Default | Description |
 |------|---------|-------------|
 | `IPPL_GIT_TAG` | `master` | IPPL branch, tag, commit, or release version to fetch. Numeric release shorthand such as `3.2.0` is resolved to `IPPL-3.2.0`. |
-| `Kokkos_VERSION` | `5.1.1` | Kokkos version requested by IPPL. A plain version asks CMake to use an installed Kokkos of that version or newer; use `git.<tag>`, `git.<branch>`, or `git.<sha>` to request a source checkout ref. |
+| `Kokkos_VERSION` | `5.2.0` | Kokkos version requested by IPPL. A plain version asks CMake to use an installed Kokkos of that version or newer; use `git.<tag>`, `git.<branch>`, or `git.<sha>` to request a source checkout ref. |
 | `Heffte_VERSION` | `2.4.0` | Heffte version requested by IPPL when FFT support is enabled. A plain version asks CMake to use an installed Heffte of that version or newer; use `git.<tag>`, `git.<branch>`, or `git.<sha>` to request a source checkout ref. |
 
 Enable flags with `-D<FLAG>=ON` during CMake configuration.
