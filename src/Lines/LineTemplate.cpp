@@ -102,7 +102,7 @@ Object* LineTemplate::makeTemplate(const std::string&, TokenStream&, Statement&)
 
 void LineTemplate::parseTemplate(TokenStream&, Statement& statement) {
     parseFormals(statement);
-    bool isLine = statement.keyword("LINE");
+    [[maybe_unused]] const bool isLine = statement.keyword("LINE");
     PAssert(isLine);
 
     // Store the template list.
