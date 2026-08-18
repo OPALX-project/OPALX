@@ -195,35 +195,33 @@ If the environment is broken, it is deleted and recreated from scratch.
 ### 8. Clone NightlyBuildX
 
 ```bash
-git clone --depth 1 --branch local-summary-nogpl https://github.com/OPALX-project/NightlyBuildX.git nightlybuildx
+git clone --depth 1 --branch alps-regression-testing https://github.com/OPALX-project/NightlyBuildX.git nightlybuildx
 ```
 
-The `local-summary-nogpl` branch is used because it contains the modern
-regression result dashboard with Python/matplotlib plotting (no gnuplot
-dependency) and overview page generation.
+The `alps-regression-testing` branch is a work-in-progress branch that adds
+ALPS/CSCS-friendly options to NightlyBuildX:
 
-### 9. Patch run_tests to Skip salloc
+- `--no-salloc` — skip the `salloc` wrapper when already inside a SLURM
+  allocation.
+- Standard-folder aware `--opalx-build-dir` — detects `bin/opalx` as well as
+  `src/opalx`.
+- Robust OPALX revision detection via `OPALX_SRC_DIR`.
+- `run-reg-tests.py` exits non-zero when tests fail.
+
+Once verified, this branch will be proposed back to NightlyBuildX via a PR.
+
+### 9. Pass `--no-salloc` to `run_tests`
 
 The NightlyBuildX `run_tests` script tries to use `salloc` when running
-locally, but inside CSCS CI the allocation already exists. This patch
-disables the salloc path:
+locally, but inside CSCS CI the allocation already exists. The `--no-salloc`
+flag disables the salloc wrapper.
 
-```bash
-sed -i 's|if command -v salloc >/dev/null 2>&1 && sinfo >/dev/null 2>&1; then|if false; then|' nightlybuildx/scripts/run_tests
-```
+### 10. Provide `OPALX_SRC_DIR` for Revision Detection
 
-### 10. Patch run-reg-tests.py to Fail CI on Test Failures
-
-The NightlyBuildX `run-reg-tests.py` prints a summary but always exits 0.
-This patch makes it exit non-zero when `totalNrPassed != totalNrTests`:
-
-```python
-old = "    rt.run(compare_only=args.run_local_now)\n"
-new = "    rt.run(compare_only=args.run_local_now)\n    if rt.totalNrPassed != rt.totalNrTests:\n        sys.exit(1)\n"
-```
-
-**Future TODO:** Submit this as a PR upstream to NightlyBuildX so the local
-patch is no longer needed.
+Because the regression runner uses a pre-built binary from a GitLab artifact,
+the OPALX source directory is not in the fixed relative location that
+NightlyBuildX expects. Setting `OPALX_SRC_DIR=$CI_PROJECT_DIR` lets it read the
+git revision from the actual checkout.
 
 ### 11. Install mpirun → srun Wrapper
 
@@ -236,11 +234,13 @@ export PATH=$(pwd)/ci-bin:$PATH
 ### 12. Run Regression and Unit Tests
 
 ```bash
+OPALX_SRC_DIR=$CI_PROJECT_DIR \
 bash nightlybuildx/scripts/run_tests \
   --config=$CI_PROJECT_DIR/ci/cscs/config/$REGTEST_CONFIG \
   --opalx-exe-path=$BUILD_PATH/bin \
   --opalx-build-dir=$BUILD_PATH \
   --opalx-branch="${OPALX_PUBLISH_BRANCH:-$CI_COMMIT_REF_NAME}" \
+  --no-salloc \
   --reg-tests \
   --unit-tests \
   --no-gpl \
@@ -317,15 +317,21 @@ Build artifacts contain hardcoded paths from the build runner's working
 directory. The test runner uses a different path. Without `sed` rewriting,
 test executables launched via `srun` can't find shared libraries.
 
-### salloc patch
+### `--no-salloc`
 
 NightlyBuildX `run_tests` tries to allocate via `salloc`, but inside CSCS
-CI the allocation already exists. The patch disables this path.
+CI the allocation already exists. The `--no-salloc` flag disables this path.
 
-### run-reg-tests.py exit code patch
+### `run-reg-tests.py` exit code
 
-NightlyBuildX `run-reg-tests.py` always exits 0. Without this patch, CI
-would pass even when regression tests fail.
+NightlyBuildX `run-reg-tests.py` exits non-zero when
+`totalNrPassed != totalNrTests`, so CI fails when regression tests fail.
+
+### `OPALX_SRC_DIR`
+
+The pre-built binary is not located next to the OPALX source tree, so the
+revision detection heuristic fails. `OPALX_SRC_DIR=$CI_PROJECT_DIR` points it
+at the actual GitLab checkout.
 
 ### NightlyBuildX tools environment validation
 
@@ -337,7 +343,7 @@ functional, not just that the binary exists.
 
 | Repository | Branch | Purpose |
 |-----------|--------|---------|
-| `https://github.com/OPALX-project/NightlyBuildX.git` | `local-summary-nogpl` | Scripts: `run_tests`, `run-reg-tests.py`, `OpalRegressionTests/`, HTML templates |
+| `https://github.com/OPALX-project/NightlyBuildX.git` | `alps-regression-testing` | Scripts: `run_tests`, `run-reg-tests.py`, `OpalRegressionTests/`, HTML templates |
 | `https://github.com/OPALX-project/regression-tests-x.git` | `master` | Regression test input files, `.local` scripts, reference data |
 | `git@gitea.psi.ch:AMAS/opal-live-doc.git` | `master` | Published results website (GitLab Pages at `amas.pages.psi.ch`) |
 
@@ -369,7 +375,7 @@ functional, not just that the binary exists.
 ## Remaining TODOs
 
 - [ ] Switch regression jobs from all PRs to **master-only** once fully verified
-- [ ] Submit PR to NightlyBuildX to make `run-reg-tests.py` exit non-zero on failures (removes the local patch)
+- [ ] Open a PR from `alps-regression-testing` back to NightlyBuildX main
 - [ ] Increase `SLURM_TIMELIMIT` from 30 min if timeouts occur
 - [ ] Review concurrency/resource usage of regression jobs if needed
 - [ ] Ensure `PSI_GIT_SSHKEY` is set as a CI/CD variable for the push step

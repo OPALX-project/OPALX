@@ -113,28 +113,9 @@
       xsltproc --version | head -1
       perl --version | head -2
 
-    - echo "=== Clone NightlyBuildX (local-summary-nogpl) ==="
-    - git clone --depth 1 --branch local-summary-nogpl https://github.com/OPALX-project/NightlyBuildX.git nightlybuildx
+    - echo "=== Clone NightlyBuildX (alps-regression-testing) ==="
+    - git clone --depth 1 --branch alps-regression-testing https://github.com/OPALX-project/NightlyBuildX.git nightlybuildx
     - ls nightlybuildx/scripts
-
-    - echo "=== Patch run_tests to skip salloc (not available inside CSCS CI allocations) ==="
-    - |
-      sed -i 's|if command -v salloc >/dev/null 2>&1 && sinfo >/dev/null 2>&1; then|if false; then|' nightlybuildx/scripts/run_tests
-      grep -n "if false; then" nightlybuildx/scripts/run_tests
-
-    - echo "=== Patch run-reg-tests.py to fail CI on test failures ==="
-    - |
-      python3 - <<'PY'
-      from pathlib import Path
-      p = Path("nightlybuildx/scripts/run-reg-tests.py")
-      s = p.read_text()
-      old = "    rt.run(compare_only=args.run_local_now)\n"
-      new = "    rt.run(compare_only=args.run_local_now)\n    if rt.totalNrPassed != rt.totalNrTests:\n        sys.exit(1)\n"
-      if old not in s:
-          raise SystemExit("ERROR: could not find rt.run() in run-reg-tests.py")
-      p.write_text(s.replace(old, new, 1))
-      print("Patched run-reg-tests.py to exit non-zero on test failures")
-      PY
 
     - echo "=== Install mpirun -> srun wrapper ==="
     - mkdir -p ci-bin
@@ -145,11 +126,13 @@
 
     - echo "=== Run regression and unit tests via NightlyBuildX ==="
     - >-
+      OPALX_SRC_DIR=$CI_PROJECT_DIR
       bash nightlybuildx/scripts/run_tests
       --config=$CI_PROJECT_DIR/ci/cscs/config/$REGTEST_CONFIG
       --opalx-exe-path=$BUILD_PATH/bin
       --opalx-build-dir=$BUILD_PATH
       --opalx-branch="${OPALX_PUBLISH_BRANCH:-$CI_COMMIT_REF_NAME}"
+      --no-salloc
       --reg-tests
       --unit-tests
       --no-gpl
