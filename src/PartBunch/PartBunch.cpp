@@ -332,12 +332,7 @@ void PartBunch<T, Dim>::setSolver() {
             mode = Solve2d5<T>::LongitudinalFieldMode::None;
         } else {
             throw OpalException(
-<<<<<<< HEAD
                     "PartBunch::setSolver", "Unsupported FFT2D5 pipe mode \"" + pipeMode + "\".");
-=======
-                    "PartBunch::setSolver",
-                    "Unsupported FFT2D5 pipe mode \"" + pipeMode + "\".");
->>>>>>> bbb7781d9798a425425aedaa88247d8a32d00965
         }
         auto solver2d5 = std::make_shared<Solve2d5<T>>(
                 this, this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
