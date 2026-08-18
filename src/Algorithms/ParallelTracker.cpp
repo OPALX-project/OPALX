@@ -79,6 +79,7 @@ ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
       restarting_m(false),
       restartGlobalStep_m(0),
       restartDt_m(0.0),
+      restartPosition_m({0, 0}),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
@@ -94,7 +95,8 @@ ParallelTracker::ParallelTracker(
         const std::vector<unsigned long long>& maxSteps, double sStart,
         const std::vector<double>& sStop, const std::vector<double>& dt,
         const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers,
-        bool restarting, unsigned long long restartGlobalStep, double restartDt)
+        bool restarting, unsigned long long restartGlobalStep, double restartDt,
+        StepSizeConfig::ResumePosition restartPosition)
     : Tracker(beamline, bunch, revBeam, false),
       itsDataSink_m(ds),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
@@ -106,6 +108,7 @@ ParallelTracker::ParallelTracker(
       restarting_m(restarting),
       restartGlobalStep_m(restartGlobalStep),
       restartDt_m(restartDt),
+      restartPosition_m(restartPosition),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
@@ -174,7 +177,8 @@ void ParallelTracker::execute() {
     Inform m("ParallelTracker::execute");
     StepSizeConfig::ResumePosition restartPosition{0, 0};
     if (restarting_m) {
-        restartPosition = stepSizes_m.advanceToGlobalStep(restartGlobalStep_m);
+        restartPosition = restartPosition_m;
+        stepSizes_m.advanceToResumePosition(restartPosition);
         if (!stepSizes_m.reachedEnd()) {
             const double configuredDt = stepSizes_m.getdT();
             const double tolerance    = 100.0 * std::numeric_limits<double>::epsilon()
@@ -188,7 +192,7 @@ void ParallelTracker::execute() {
                         "step");
             }
         }
-        m << level2 << "Restart global step " << restartGlobalStep_m << " maps to step-size "
+        m << level2 << "Restart global step " << restartGlobalStep_m << " resumes step-size "
           << "segment " << restartPosition.segment << " with "
           << restartPosition.stepsCompletedInSegment << " completed steps in that segment." << endl;
     }

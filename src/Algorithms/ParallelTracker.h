@@ -85,6 +85,7 @@ private:
     bool restarting_m;           ///< Preserve state loaded from a checkpoint at startup.
     unsigned long long restartGlobalStep_m;  ///< Completed global steps restored from checkpoint.
     double restartDt_m;                      ///< Time step stored in the checkpoint.
+    StepSizeConfig::ResumePosition restartPosition_m;  ///< Saved schedule segment and offset.
 
     // --- Timers ---
     IpplTimings::TimerRef timeIntegrationTimer1_m;
@@ -118,6 +119,7 @@ public:
      * @param restarting        True when bunch state was restored from a checkpoint.
      * @param restartGlobalStep Completed global integration steps restored from a checkpoint.
      * @param restartDt         Time step stored in the checkpoint.
+     * @param restartPosition   Saved step-size segment and completed steps within that segment.
      */
     explicit ParallelTracker(
             const Beamline& bl, PartBunch_t& bunch, DataSink* ds, bool revBeam,
@@ -125,7 +127,7 @@ public:
             const std::vector<double>& sStop, const std::vector<double>& dt,
             const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers = {},
             bool restarting = false, unsigned long long restartGlobalStep = 0,
-            double restartDt = 0.0);
+            double restartDt = 0.0, StepSizeConfig::ResumePosition restartPosition = {0, 0});
 
     /// @brief Destructor; releases tracker resources.
     virtual ~ParallelTracker();

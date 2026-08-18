@@ -518,7 +518,9 @@ void TrackRun::execute() {
             *Track::block->use->fetchLine(), *bunch_m, ds_m, false, Track::block->localTimeSteps,
             Track::block->zstart, Track::block->zstop, Track::block->dT, emittingSamplersList,
             isRestart, static_cast<unsigned long long>(restartMetadata.globalTrackStep),
-            restartMetadata.dt);
+            restartMetadata.dt,
+            StepSizeConfig::ResumePosition{
+                    restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment});
     itsTracker_m->execute();
 
     /*
