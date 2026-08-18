@@ -7,6 +7,7 @@ add_subdirectory(EndFieldModel)
 set(_SRCS
     AttributeSet.cpp
     BeamlineVisitor.cpp
+    Collimator.cpp
     ConstantEFieldCavity.cpp
     Drift.cpp
     ElementBase.cpp
@@ -33,6 +34,7 @@ set(_SRCS
 set(_HDRS
     AttributeSet.h
     BeamlineVisitor.h
+    Collimator.h
     ConstantEFieldCavity.h
     Drift.h
     ElementBase.h

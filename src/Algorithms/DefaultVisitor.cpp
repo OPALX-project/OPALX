@@ -22,6 +22,7 @@
 //
 #include "Algorithms/DefaultVisitor.h"
 
+#include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
@@ -60,6 +61,8 @@ void DefaultVisitor::visitElementBase(const ElementBase& comp) { applyDefault(co
 void DefaultVisitor::visitConstantEFieldCavity(const ConstantEFieldCavity& cav) {
     applyDefault(cav);
 }
+
+void DefaultVisitor::visitCollimator(const Collimator& coll) { applyDefault(coll); }
 
 void DefaultVisitor::visitDrift(const Drift& drf) { applyDefault(drf); }
 
