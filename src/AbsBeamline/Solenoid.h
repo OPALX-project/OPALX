@@ -129,9 +129,9 @@ public:
      * magnet around does to an axisymmetric field. Only G4beamline cylinder
      * maps support this; other map types throw when it is set.
      */
-    void setZReverse(bool zReverse);
+    void setIsZReversed(bool zReverse);
 
-    bool getZReverse() const;
+    bool getIsZReversed() const;
 
     virtual ElementType getType() const override;
 
@@ -199,7 +199,7 @@ private:
     bool fast_m;
 
     /// Load the field map mirrored in z, with Bz negated
-    bool zReverse_m;
+    bool isZReversed_m;
 
     /// @note not implemente
     void operator=(const Solenoid&);

@@ -58,7 +58,7 @@ void OpalSolenoid::update() {
     sol->getGeometry().setElementLength(length);
     sol->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));
     sol->setFast(fast);
-    sol->setZReverse(Attributes::getBool(itsAttr[ZREVERSE]));
+    sol->setIsZReversed(Attributes::getBool(itsAttr[ZREVERSE]));
     sol->setBz(Bz);
     sol->setKS(Attributes::getReal(itsAttr[KS]));
     sol->setDKS(Attributes::getReal(itsAttr[DKS]));

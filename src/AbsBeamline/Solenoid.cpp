@@ -42,7 +42,7 @@ Solenoid::Solenoid(const Solenoid& right)
       startField_m(right.startField_m),
       endField_m(right.endField_m),
       fast_m(right.fast_m),
-      zReverse_m(right.zReverse_m) {}
+      isZReversed_m(right.isZReversed_m) {}
 
 Solenoid::Solenoid(const std::string& name)
     : ElementBase(name),
@@ -53,7 +53,7 @@ Solenoid::Solenoid(const std::string& name)
       startField_m(0.0),
       endField_m(0.0),
       fast_m(true),
-      zReverse_m(false) {}
+      isZReversed_m(false) {}
 
 Solenoid::~Solenoid() {
     //    _Fieldmap::deleteFieldmap(filename_m);
@@ -144,7 +144,7 @@ void Solenoid::initialise(PartBunch_t* bunch) {
 
     RefPartBunch_m = bunch;
 
-    fieldmap_m = Fieldmap::getFieldmap(filename_m, fast_m, zReverse_m);
+    fieldmap_m = Fieldmap::getFieldmap(filename_m, fast_m, isZReversed_m);
 
     if (fieldmap_m != nullptr) {
         msg << level2 << getName() << " using file ";
@@ -185,10 +185,10 @@ void Solenoid::setFast(bool fast) { fast_m = fast; }
 bool Solenoid::getFast() const { return fast_m; }
 
 /// @brief Set the flag that reads the field map back to front
-void Solenoid::setZReverse(bool zReverse) { zReverse_m = zReverse; }
+void Solenoid::setIsZReversed(bool zReverse) { isZReversed_m = zReverse; }
 
 /// @brief Get the flag that reads the field map back to front
-bool Solenoid::getZReverse() const { return zReverse_m; }
+bool Solenoid::getIsZReversed() const { return isZReversed_m; }
 
 /// @brief Get the dimensions of the solenoid
 /// @param zBegin Start position
