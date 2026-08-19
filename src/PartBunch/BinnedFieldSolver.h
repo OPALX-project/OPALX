@@ -378,6 +378,14 @@ public:
             std::shared_ptr<VField_t<T, Dim>> BtmpSP, double bFieldSign = 1.0, int flipAxis = -1);
 
 private:
+    /// Prepare one bin and optionally return its dt-weighted deposited charge before
+    /// normalization. Charge measurement adds a field reduction and is enabled only for the
+    /// BeamBeam entry/copy validation path.
+    double prepareRhoForBinImpl(
+            PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins, const bin_index_type binIndex,
+            const size_type nPartGlobal, const double gammaBin, ImageScatterMode mode,
+            bool measureDepositedCharge);
+
     /// @brief Populate FieldContainer's flipped z-slab scratch with the flipped version of @p src.
     ///
     /// Under `PARFFTZ=true` the global flip `k -> N_z_global-1-k` generally crosses MPI ranks.

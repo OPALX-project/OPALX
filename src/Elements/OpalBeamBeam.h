@@ -26,6 +26,7 @@ public:
         GEOMETRY = COMMON,  // geometry of boundary, one more enum member besides the common ones in
                             // OpalElement.
         COPY_TIME,          // Start mirrored-bunch copy model at or after this simulation time [s]
+        BBRIGID,            // Suppress the BeamBeam collective kick on the physical source
         VISUALIZE,          // Enable ASCII beam-beam-window visualization
         WITNESS_CONTAINERS,  // Passive containers that gather source BeamBeam fields
         RETIRE_TIME,         // Delete source particles at or after this simulation time [s]

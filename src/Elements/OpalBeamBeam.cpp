@@ -111,6 +111,12 @@ OpalBeamBeam::OpalBeamBeam()
             "Start the mirrored-bunch copy model once simulation time reaches this value [s]. "
             "Use 0 to disable copied fields.",
             0.0);
+    itsAttr[BBRIGID] = Attributes::makeBool(
+            "BBRIGID",
+            "If true, suppress the BeamBeam collective self-field kick on the physical source "
+            "particles while retaining their solved mesh field for passive witness containers. "
+            "External fields and ordinary tracking remain active.",
+            false);
     itsAttr[VISUALIZE] = Attributes::makeBool(
             "VISUALIZE", "If true, emit the ASCII beam-beam-window visualization during tracking.",
             false);
@@ -156,6 +162,7 @@ void OpalBeamBeam::update() {
                 "OpalBeamBeam::update", "COPY_TIME must be non-negative and is specified in s.");
     }
     beamBeam->setAttribute("COPY_TIME", copyTime);
+    beamBeam->setAttribute("BBRIGID", Attributes::getBool(itsAttr[BBRIGID]) ? 1.0 : 0.0);
     beamBeam->setAttribute("VISUALIZE", Attributes::getBool(itsAttr[VISUALIZE]) ? 1.0 : 0.0);
     beamBeam->setAttribute(
             "WITNESS_CONTAINERS_MASK",

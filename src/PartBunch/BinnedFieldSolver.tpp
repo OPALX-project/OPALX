@@ -392,6 +392,9 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
     binStats.reserve(static_cast<size_t>(nBins));
 
     bool dumpedDirichletPlaneThisStep = false;
+    const bool beamBeamActive         = bunch.hasBeamBeamWindowConfig();
+    const bool beamBeamCopyActive     = beamBeamActive && bunch.getBeamBeamWindowConfig().copyModel;
+    double depositedBeamBeamCharge    = 0.0;
 
     // iterate over merged bins and accumulate E contributions.
     for (bin_index_type binIndex = 0; binIndex < nBins; ++binIndex) {
@@ -438,7 +441,11 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             const ImageScatterMode scatterMode = correctionActive
                                                          ? ImageScatterMode::PrimaryOnly
                                                          : ImageScatterMode::PrimaryAndImage;
-            prepareRhoForBin(bunch, bins, binIndex, nPartGlobal, gammaBin, scatterMode);
+            const double depositedCharge       = prepareRhoForBinImpl(
+                    bunch, bins, binIndex, nPartGlobal, gammaBin, scatterMode, beamBeamActive);
+            if (beamBeamActive) {
+                depositedBeamBeamCharge += depositedCharge;
+            }
 
             *(this->getE()) = 0.0;
             mesh.setMeshSpacing(hrStretched);
@@ -452,6 +459,50 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
 
             accumulateFieldToTemp(
                     *fieldContainer, gammaBin, kinematics.pmean, EtmpSP, BtmpSP, +1.0);
+
+            mesh.setMeshSpacing(hrOrig);
+        }
+
+        // --- BeamBeam copied-primary pass: same-sign mirrored charge, opposite velocity ---
+        //
+        // The BeamBeam model evolves one physical primary bunch and represents the
+        // counter-propagating primary through reflection about the interaction point.
+        // Deposit that reflected distribution on the same fixed window mesh, solve it
+        // independently, and reverse only the longitudinal mean momentum for the lab-frame
+        // transform. The reversed velocity leaves E unchanged at exact overlap and reverses B.
+        if (beamBeamCopyActive) {
+            auto pc           = bunch.getParticleContainer();
+            auto rView        = pc->R.getView();
+            const size_t nLoc = pc->getLocalNum();
+            const double interactionPointBeamZ =
+                    bunch.getBeamBeamWindowConfig().interactionPointS - pc->get_sPos();
+            auto originalZ =
+                    opalx::detail::mirrorBeamBeamZPositions(rView, nLoc, interactionPointBeamZ);
+
+            double depositedCopiedCharge = 0.0;
+            try {
+                depositedCopiedCharge = prepareRhoForBinImpl(
+                        bunch, bins, binIndex, nPartGlobal, gammaBin, ImageScatterMode::PrimaryOnly,
+                        true);
+            } catch (...) {
+                opalx::detail::restoreBeamBeamZPositions(rView, nLoc, originalZ);
+                throw;
+            }
+            opalx::detail::restoreBeamBeamZPositions(rView, nLoc, originalZ);
+            depositedBeamBeamCharge += depositedCopiedCharge;
+
+            *(this->getE()) = 0.0;
+            mesh.setMeshSpacing(hrStretched);
+
+            m << level4 << "binIndex=" << static_cast<int>(binIndex)
+              << " BeamBeam copied-primary runSolver(true) start" << endl;
+            this->runSolver(true);
+            m << level4 << "binIndex=" << static_cast<int>(binIndex)
+              << " BeamBeam copied-primary runSolver(true) done; accumulate->Etmp" << endl;
+
+            Vector_t<double, Dim> copiedPmean = kinematics.pmean;
+            copiedPmean[Dim - 1]              = -copiedPmean[Dim - 1];
+            accumulateFieldToTemp(*fieldContainer, gammaBin, copiedPmean, EtmpSP, BtmpSP, +1.0);
 
             mesh.setMeshSpacing(hrOrig);
         }
@@ -540,6 +591,10 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
 
             mesh.setMeshSpacing(hrOrig);
         }
+    }
+
+    if (beamBeamActive) {
+        bunch.setLastDepositedChargeBeforeBackground(depositedBeamBeamCharge);
     }
 
     // after all bins, gather the accumulated lab-frame field back to particles.
@@ -782,6 +837,16 @@ template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
         PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins, const bin_index_type binIndex,
         const size_type nPartGlobal, const double gammaBin, ImageScatterMode mode) {
+    (void)prepareRhoForBinImpl(
+            bunch, bins, binIndex, nPartGlobal, gammaBin, mode,
+            /*measureDepositedCharge=*/false);
+}
+
+template <typename T, unsigned Dim>
+double BinnedFieldSolver<T, Dim>::prepareRhoForBinImpl(
+        PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins, const bin_index_type binIndex,
+        const size_type nPartGlobal, const double gammaBin, ImageScatterMode mode,
+        bool measureDepositedCharge) {
     // Scatter bin charge to rho using dt-weighted deposition.
     // If the ParticleContainer supports scaleDtByCharge(), use the master approach:
     // scale dt by charge, scatter dt, then unscale.
@@ -854,6 +919,8 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
         }
     }
 
+    const double depositedCharge = measureDepositedCharge ? rho.sum() : 0.0;
+
     // normalize rho for fractional time steps and mesh conventions.
     const std::string stype = this->getStype();
     double normalizer       = bunch.getdT();
@@ -880,6 +947,7 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
     // Lorentz transform of charge density to the bin rest frame (thesis Eq. step 7).
     normalizer *= gammaBin;
     rho = rho * (this->getCouplingConstant() / normalizer) + shift;
+    return depositedCharge;
 }
 
 template <typename T, unsigned Dim>

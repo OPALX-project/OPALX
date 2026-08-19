@@ -1,0 +1,22 @@
+{
+  "case": {
+    "separation_sigma_z": 3.0,
+    "primary_macroparticles": 400000,
+    "mesh_nxy": 64,
+    "mesh_nz": 128,
+    "probe_nx": 51,
+    "probe_nz": 101,
+    "omp_threads": 4
+  },
+  "acceptance": {
+    "relative_l2_E_max": 0.03,
+    "relative_l2_B_max": 0.03,
+    "median_E_magnitude_ratio_min": 0.97,
+    "median_E_magnitude_ratio_max": 1.03,
+    "median_B_magnitude_ratio_min": 0.97,
+    "median_B_magnitude_ratio_max": 1.03,
+    "median_E_direction_cosine_min": 0.999,
+    "median_B_direction_cosine_min": 0.999,
+    "uncovered_probe_fraction_max": 0.0
+  }
+}

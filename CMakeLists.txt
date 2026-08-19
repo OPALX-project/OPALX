@@ -153,6 +153,10 @@ add_subdirectory(src)
 
 include_directories(${CMAKE_SOURCE_DIR}/src ${OPALX_INCLUDE_DIR})
 
+if(OPALX_ENABLE_TESTS)
+  add_subdirectory(test)
+endif()
+
 if(OPALX_ENABLE_UNIT_TESTS)
   add_subdirectory(unit_tests)
 endif()
