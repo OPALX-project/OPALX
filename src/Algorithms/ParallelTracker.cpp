@@ -429,6 +429,7 @@ void ParallelTracker::execute() {
     m << level5 << ">>>>>>>>>>>>>>>>>> Starting Tracking Loop >>>>>>>>>>>>>>>>>>" << endl;
     bool firstSegment = true;
     while (!stepSizes_m.reachedEnd()) {
+        step                                    = itsBunch_m->getGlobalTrackStep();
         const unsigned long long stepsInSegment = stepSizes_m.getNumSteps();
         const unsigned long long trackSteps     = step + (stepsInSegment - stepsCompletedInSegment);
         dtCurrentTrack_m                        = stepSizes_m.getdT();
