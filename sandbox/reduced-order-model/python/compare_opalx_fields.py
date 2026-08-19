@@ -206,6 +206,8 @@ def analyze_case(
             "Bz_analytic_T": b_analytic[:, 2],
         }
     )
+    if "id" in frame:
+        output.insert(1, "id", frame["id"].to_numpy())
     e_opalx_abs = np.linalg.norm(e_opalx, axis=1)
     e_analytic_abs = np.linalg.norm(e_analytic, axis=1)
     b_opalx_abs = np.linalg.norm(b_opalx, axis=1)

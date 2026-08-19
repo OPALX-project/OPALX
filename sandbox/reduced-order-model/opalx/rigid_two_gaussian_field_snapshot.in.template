@@ -6,7 +6,7 @@ OPTION, VERSION = 10900;
 OPTION, ASCIIDUMP = FALSE;
 OPTION, EBDUMP = TRUE;
 OPTION, IDEALIZED = TRUE;
-OPTION, SEED = 20260629;
+OPTION, SEED = @SEED@;
 
 TITLE, STRING = "@CASE_TITLE@";
 
@@ -82,18 +82,7 @@ FS0: FIELDSOLVER,
     // frame.  Use the cell-integrated kernel for the resulting anisotropic cells.
     GREENSF = INTEGRATED;
 
-DIST_PRIMARY_ELECTRONS: DISTRIBUTION,
-    TYPE = GAUSS,
-    SIGMAX = primary_sigma_xy,
-    SIGMAY = primary_sigma_xy,
-    SIGMAZ = primary_sigma_z,
-    SIGMAPX = primary_sigma_pxy,
-    SIGMAPY = primary_sigma_pxy,
-    SIGMAPZ = 1.0e-12,
-    CUTOFFX = 6.0,
-    CUTOFFY = 6.0,
-    CUTOFFLONG = 6.0,
-    NPARTDIST = primary_macroparticles;
+@PRIMARY_DISTRIBUTION@
 
 DIST_FIELD_PROBES: DISTRIBUTION,
     TYPE = FROMFILE,
@@ -113,7 +102,7 @@ FIELD_PROBE_SOURCES: EMISSIONSOURCELIST = (SOURCE_FIELD_PROBES);
 
 PRIMARY_ELECTRONS: BEAM,
     PARTICLE = ELECTRON,
-    PC = primary_p0,
+@PRIMARY_BEAM_ENERGY@
     NALLOC = primary_macroparticles,
     BCHARGE = primary_bunch_charge,
     SOURCES = PRIMARY_ELECTRON_SOURCES;

@@ -21,9 +21,25 @@ Run the focused checks with:
 
 ```bash
 ~/.venv-h6/bin/python -m unittest \
-  sandbox/reduced-order-model/python/test_rigid_two_gaussian_fields.py
+  sandbox/reduced-order-model/python/test_rigid_two_gaussian_fields.py \
+  sandbox/reduced-order-model/python/test_fixed_primary_fromfile.py
 ```
 
 The historical manufactured-solution material remains in
 `sandbox/analytic-model/`; it is intentionally not moved while the reduced model
 interface and comparison quantities are being fixed.
+
+For the A100 convergence study, `prepare_a100_convergence.py` renders the
+deduplicated case matrix, `analyze_opalx_convergence.py` creates CSV summaries
+and PNG/PDF convergence figures, and `fetch_and_plot_a100_convergence.py` copies
+only compact results from Merlin before invoking the analyzer locally. The
+one-command Slurm submission entry point is
+`../merlin/submit_a100_convergence.sh`.
+
+`make_opalx_field_cases.py` also creates the deterministic primary source used
+by the MPI scan. It writes positions in metres and absolute normalized momenta
+in beta-gamma units, matching OPALX `FROMFILE`. The sampled positions reproduce
+the active `GAUSS` behavior: independent normals truncated at three sigma and
+then translated to an exactly zero finite-sample centroid. Preparation records
+the generated file's SHA-256 and RNG metadata; the same file is referenced by
+all rank counts.
