@@ -252,7 +252,12 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
     }
 }
 
-TrackRun::~TrackRun() {}
+TrackRun::~TrackRun() {
+    // ParallelTracker borrows bunch_m and may retain sampler-owned shared
+    // references to its particle containers. Release those references before
+    // PartBunch destroys the collective MPI particle layouts.
+    itsTracker_m.reset();
+}
 
 TrackRun* TrackRun::clone(const std::string& name) { return new TrackRun(name, this); }
 
