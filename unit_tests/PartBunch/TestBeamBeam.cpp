@@ -192,6 +192,14 @@ namespace {
         EXPECT_EQ(witnesses[1], 2u);
     }
 
+    TEST_F(BeamBeamPartBunchTest, RigidSourceOnlyDisablesSourceCollectiveKick) {
+        BEAMBEAM::Config config;
+        EXPECT_TRUE(BEAMBEAM::sourceCollectiveKickEnabled(config));
+
+        config.rigidSource = true;
+        EXPECT_FALSE(BEAMBEAM::sourceCollectiveKickEnabled(config));
+    }
+
     TEST_F(BeamBeamPartBunchTest, WitnessLongitudinalOffsetMapsIpToSourceFrame) {
         const double sourceS  = 30.0e-3;
         const double witnessS = 0.0;

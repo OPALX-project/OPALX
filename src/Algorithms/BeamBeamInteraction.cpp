@@ -216,7 +216,8 @@ std::optional<BEAMBEAM::ActualGeometry> BeamBeamInteraction::detectWindow(
         return BEAMBEAM::ActualGeometry{
                 interactionPointS, range.begin, range.end, windowLength,
                 BEAMBEAM::Config{
-                        element_m.getAttribute("VISUALIZE") != 0.0, copyTime, sourceRetireTime,
+                        element_m.getAttribute("VISUALIZE") != 0.0,
+                        element_m.getAttribute("BBRIGID") != 0.0, copyTime, sourceRetireTime,
                         xAperture, yAperture,
                         BEAMBEAM::decodeWitnessContainerMask(
                                 element_m.getAttribute("WITNESS_CONTAINERS_MASK"))}};
@@ -271,6 +272,8 @@ void BeamBeamInteraction::enterWindow(
         } else {
             diagnostics << "NONE";
         }
+        diagnostics << ", rigid_source="
+                    << (geometry.config.rigidSource ? "TRUE" : "FALSE");
         *gmsg << level2 << diagnostics.str() << endl;
     }
     logDiagnostics(bunch, true);
@@ -297,7 +300,18 @@ std::optional<double> BeamBeamInteraction::performWindowEntryTransition(
     }
 
     IpplTimings::startTimer(entryTransitionTimer_m);
-    bunch.clearBeamBeamWindowConfig();
+    if (bunch.hasBinning()) {
+        // Keep the interaction marker active for the binned diagnostic solve, but force the
+        // physical-primary-only model on the pre-enlarged mesh. The binned solver uses this
+        // marker to measure deposited charge without imposing that reduction on ordinary
+        // self-field steps.
+        bunch.setBeamBeamWindowConfig(
+                geometry.length, geometry.interactionPointS, geometry.beginS, geometry.endS,
+                /*copyModel=*/false, geometry.config.xAperture, geometry.config.yAperture);
+    } else {
+        // Preserve the legacy pre-enlarge solve exactly; that path already records rho.sum().
+        bunch.clearBeamBeamWindowConfig();
+    }
     bunch.computeSelfFields();
     if (!bunch.hasLastDepositedChargeBeforeBackground()) {
         IpplTimings::stopTimer(entryTransitionTimer_m);
@@ -453,6 +467,18 @@ void BeamBeamInteraction::computeWindowSelfFields(
     IpplTimings::startTimer(transformBackTimer_m);
     transformFieldsToReferenceFrame(beamToReferenceCSTrafo, bunch, message);
     IpplTimings::stopTimer(transformBackTimer_m);
+    if (!BEAMBEAM::sourceCollectiveKickEnabled(geometry.config)) {
+        auto source = bunch.getParticleContainer(0);
+        if (source != nullptr) {
+            source->E = 0.0;
+            source->B = 0.0;
+            Kokkos::fence();
+        }
+        message << level4
+                << "BBRIGID: suppressed the BeamBeam collective kick on source container[0]; "
+                   "the solved mesh field remains available to witness containers."
+                << endl;
+    }
     message << level5 << "Compute self fields on BeamBeam-window mesh done." << endl;
     bunch.calcBeamParameters();
     IpplTimings::stopTimer(windowTimer_m);
@@ -569,6 +595,8 @@ void BeamBeamInteraction::logDiagnostics(PartBunch_t& bunch, bool force) {
     const bool copyActive =
             state_m.geometry.has_value()
             && BEAMBEAM::copyTimeReached(bunch.getT(), state_m.geometry->config.copyTime);
+    const bool rigidSource =
+            state_m.geometry.has_value() && state_m.geometry->config.rigidSource;
     const char* stateName = "Inactive";
     if (state_m.state == BEAMBEAM::WindowState::Active) {
         stateName = "Active";
@@ -602,7 +630,7 @@ void BeamBeamInteraction::logDiagnostics(PartBunch_t& bunch, bool force) {
     signature << stateName << "|" << activeContainers << "|" << (state_m.sourceRetired ? 1 : 0)
               << "|" << (hasWitnessState ? witnessStates.str() : "NONE") << "|" << interactionActive
               << "|" << sourceActive << "|" << copyActive << "|" << state_m.sourceRetirementPending
-              << "|" << state_m.sourceBunchesOverlap;
+              << "|" << state_m.sourceBunchesOverlap << "|" << rigidSource;
     if (!force && lastDiagnosticSignature_m.has_value()
         && *lastDiagnosticSignature_m == signature.str()) {
         return;
@@ -613,7 +641,8 @@ void BeamBeamInteraction::logDiagnostics(PartBunch_t& bunch, bool force) {
     line << std::fixed << std::setprecision(3) << "BB-DIAG BB-state=" << stateName
          << " active_bunches=" << activeContainers
          << " retired_bunches=" << (state_m.sourceRetired ? 1 : 0)
-         << " witness_states=" << (hasWitnessState ? witnessStates.str() : "NONE");
+         << " witness_states=" << (hasWitnessState ? witnessStates.str() : "NONE")
+         << " rigid_source=" << (rigidSource ? "TRUE" : "FALSE");
     const auto appendBoolIfChanged = [&line](const char* key, bool value,
                                              std::optional<bool>& previous) {
         if (!previous.has_value() || *previous != value) {

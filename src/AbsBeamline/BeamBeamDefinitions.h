@@ -25,12 +25,30 @@ namespace BEAMBEAM {
      */
     struct Config {
         bool visualize = false;
+        /**
+         * Suppress the BeamBeam collective kick on physical source container 0.
+         *
+         * The source still deposits charge and the resulting mesh field remains
+         * available to the copied source model and passive witness containers.
+         * This switch does not suppress ordinary tracking or external fields.
+         */
+        bool rigidSource = false;
         std::optional<double> copyTime;
         std::optional<double> sourceRetireTime;
         std::optional<double> xAperture;
         std::optional<double> yAperture;
         std::vector<std::size_t> witnessContainers;
     };
+
+    /**
+     * @brief Whether the physical source samples its BeamBeam collective field.
+     *
+     * Keeping this policy explicit ensures that rigid-source mode changes only
+     * the source response; field deposition and witness gathering are unchanged.
+     */
+    inline bool sourceCollectiveKickEnabled(const Config& config) {
+        return !config.rigidSource;
+    }
 
     /**
      * @brief Decode the numeric BeamBeam witness-container bit mask.
