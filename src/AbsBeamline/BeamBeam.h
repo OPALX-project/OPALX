@@ -46,6 +46,9 @@ public:
 
     virtual ElementType getType() const override;
 
+    /// Create the per-run collective behavior for this placed element.
+    std::unique_ptr<ElementInteraction> createInteraction() const override;
+
     virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     // set number of slices for map tracking

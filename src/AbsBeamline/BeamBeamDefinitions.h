@@ -10,8 +10,8 @@
  * @brief Beam-beam-specific shared type vocabulary.
  *
  * This namespace centralizes the stable BeamBeam concepts used across the
- * element, tracker, and diagnostics code. The actual runtime ownership still
- * belongs to the tracker; only the type definitions live here.
+ * element interaction and diagnostics code. Runtime ownership belongs to the
+ * per-run BeamBeamInteraction; only the shared type definitions live here.
  */
 namespace BEAMBEAM {
 
@@ -161,10 +161,10 @@ namespace BEAMBEAM {
     }
 
     /**
-     * @brief Tracker-owned runtime state for the BeamBeam model.
+     * @brief Interaction-owned runtime state for the BeamBeam model.
      *
-     * The tracker keeps the lifecycle, the currently active actual geometry, and
-     * the saved field-domain rollback state together in this structure.
+     * BeamBeamInteraction keeps the lifecycle, currently active actual geometry,
+     * and saved field-domain rollback state together in this structure.
      */
     template <class SavedFieldDomainState>
     struct Runtime {

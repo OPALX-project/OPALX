@@ -1,9 +1,11 @@
 set (_SRCS
     AbstractTimeDependence.cpp
     AbstractTracker.cpp
+    BeamBeamInteraction.cpp
     CavityAutophaser.cpp
     DefaultVisitor.cpp
     DistributionMoments.cpp
+    ElementInteractionManager.cpp
     Flagger.cpp
     IndexMap.cpp
     OrbitThreader.cpp
@@ -21,9 +23,12 @@ set (_SRCS
 set (HDRS
     AbstractTimeDependence.h
     AbstractTracker.h
+    BeamBeamInteraction.h
     CavityAutophaser.h
     DefaultVisitor.h
     DistributionMoments.h
+    ElementInteraction.h
+    ElementInteractionManager.h
     Flagger.h
     IndexMap.h
     OrbitThreader.h

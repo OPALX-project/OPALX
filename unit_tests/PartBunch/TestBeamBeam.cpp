@@ -5,7 +5,10 @@
 
 #include "AbsBeamline/BeamBeamDefinitions.h"
 #include "AbstractObjects/OpalData.h"
+#include "Algorithms/ElementInteractionManager.h"
 #include "Attributes/Attributes.h"
+#include "BeamlineCore/BeamBeamRep.h"
+#include "BeamlineCore/DriftRep.h"
 #include "PartBunch/PartBunch.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
@@ -161,6 +164,23 @@ namespace {
 
         bunch->clearBeamBeamWindowConfig();
         EXPECT_FALSE(bunch->hasBeamBeamWindowConfig());
+    }
+
+    TEST_F(BeamBeamPartBunchTest, OnlyStatefulElementsCreateRuntimeInteractions) {
+        auto bunch    = makeBunch();
+        auto beamBeam = std::make_shared<BeamBeamRep>("BB");
+        auto drift    = std::make_shared<DriftRep>("D");
+
+        ElementInteractionManager manager;
+        manager.initialize({beamBeam, drift});
+
+        ASSERT_EQ(manager.size(), 1u);
+        EXPECT_FALSE(manager.freezesFieldMesh());
+        EXPECT_FALSE(manager.suppressesDefaultSelfField());
+
+        ElementInteractionContext context{*bunch};
+        const auto result = manager.execute(ElementInteractionPhase::Diagnostics, context);
+        EXPECT_FALSE(result.selfFieldHandled);
     }
 
     TEST_F(BeamBeamPartBunchTest, WitnessContainerMaskDecodesConfiguredContainers) {

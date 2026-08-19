@@ -51,7 +51,6 @@
 
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/BoundingBox.h"
-#include "Utilities/BeamBeamWindowAnimation.h"
 #include "Utilities/LogicalError.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
@@ -101,16 +100,7 @@ ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
       PluginElemTimer_m(IpplTimings::getTimer("PluginElements")),
       BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
-      OrbThreader_m(IpplTimings::getTimer("OrbThreader")),
-      beamBeamWindowTimer_m(IpplTimings::getTimer("BB window total")),
-      beamBeamEntryTransitionTimer_m(IpplTimings::getTimer("BB entry trans")),
-      beamBeamMeshSetupTimer_m(IpplTimings::getTimer("BB mesh setup")),
-      beamBeamSelfFieldTimer_m(IpplTimings::getTimer("BB self fields")),
-      beamBeamTransformBackTimer_m(IpplTimings::getTimer("BB transform back")),
-      beamBeamWitnessGatherTimer_m(IpplTimings::getTimer("BB witness gather")),
-      beamBeamTransitionDumpTimer_m(IpplTimings::getTimer("BB transition dump")),
-      beamBeamState_m(),
-      beamBeamWindowAnimation_m(std::make_unique<BeamBeamWindowAnimation>()) {}
+      OrbThreader_m(IpplTimings::getTimer("OrbThreader")) {}
 
 /**
  * @brief Construct tracker with bunch, data sink, z-segments, and optional emitters.
@@ -132,16 +122,7 @@ ParallelTracker::ParallelTracker(
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
       BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
-      OrbThreader_m(IpplTimings::getTimer("OrbThreader")),
-      beamBeamWindowTimer_m(IpplTimings::getTimer("BB window total")),
-      beamBeamEntryTransitionTimer_m(IpplTimings::getTimer("BB entry trans")),
-      beamBeamMeshSetupTimer_m(IpplTimings::getTimer("BB mesh setup")),
-      beamBeamSelfFieldTimer_m(IpplTimings::getTimer("BB self fields")),
-      beamBeamTransformBackTimer_m(IpplTimings::getTimer("BB transform back")),
-      beamBeamWitnessGatherTimer_m(IpplTimings::getTimer("BB witness gather")),
-      beamBeamTransitionDumpTimer_m(IpplTimings::getTimer("BB transition dump")),
-      beamBeamState_m(),
-      beamBeamWindowAnimation_m(std::make_unique<BeamBeamWindowAnimation>()) {
+      OrbThreader_m(IpplTimings::getTimer("OrbThreader")) {
     for (unsigned int i = 0; i < sStop.size(); ++i) {
         stepSizes_m.push_back(dt[i], sStop[i], maxSteps[i]);
     }
@@ -219,6 +200,10 @@ void ParallelTracker::execute() {
 
     // Populate the OpalBeamline and calculate coordinate transformations
     prepareSections();
+
+    // Build per-run behavior through the generic element interaction contract.
+    // The tracker does not inspect concrete element types here.
+    elementInteractions_m.initialize(itsOpalBeamline_m.getElements());
 
     // Select the minimal time step from the configuration
     double minTimeStep = stepSizes_m.getMinTimeStep();
@@ -363,7 +348,7 @@ void ParallelTracker::execute() {
     if (oths.empty() || !oths[0]) {
         throw OpalException(
                 "ParallelTracker::execute",
-                "The primary BeamBeam/source container requires an OrbitThreader.");
+                "The primary particle container requires an OrbitThreader.");
     }
     m << level4 << "Orbit threader execution done." << endl;
     itsBunch_m->getFieldSolver()->orbitThreadersReady();
@@ -456,7 +441,7 @@ void ParallelTracker::execute() {
             if (nSourceMarkedAfterPush > 0) {
                 deleteInvalidParticles(true, m, "backward source-plane particles after first push");
             }
-            if (!usesFrozenBeamBeamWindowMesh()) {
+            if (!elementInteractions_m.freezesFieldMesh()) {
                 itsBunch_m->bunchUpdate();
                 m << level5 << "Bunch updated after timeIntegration1." << endl;
             }
@@ -472,7 +457,9 @@ void ParallelTracker::execute() {
             // Otherwise no interaction, can skip (and for some reason seg-fault...)
             computeSpaceChargeFields(step, *oths[0]);
             m << level4 << "Space charge field computation done at step " << step << "." << endl;
-            logBeamBeamDiagnostics();
+            ElementInteractionContext diagnosticsContext{*itsBunch_m};
+            diagnosticsContext.message = &m;
+            elementInteractions_m.execute(ElementInteractionPhase::Diagnostics, diagnosticsContext);
             //}
 
             // Emission is placed BETWEEN space-charge and external-field evaluation
@@ -491,8 +478,10 @@ void ParallelTracker::execute() {
             emitFromEmissionSources(itsBunch_m->getT(), itsBunch_m->getdT());
             m << level4 << "Emit particles from emission sources done at step " << step << "."
               << endl;
-            gatherBeamBeamFieldsToWitnessContainers(m);
-            logBeamBeamDiagnostics();
+            ElementInteractionContext afterEmissionContext{*itsBunch_m};
+            afterEmissionContext.message = &m;
+            elementInteractions_m.execute(
+                    ElementInteractionPhase::AfterEmission, afterEmissionContext);
             const size_t nSourceMarkedAfterEmission = markBackwardParticlesAtSourcePlane();
             if (nSourceMarkedAfterEmission > 0) {
                 deleteInvalidParticles(
@@ -502,7 +491,7 @@ void ParallelTracker::execute() {
             // switches getdT() back to the track step before external fields, reference update, and
             // time increment, while per-particle fractional dt values remain untouched.
             selectDT();
-            if (!usesFrozenBeamBeamWindowMesh()) {
+            if (!elementInteractions_m.freezesFieldMesh()) {
                 itsBunch_m->bunchUpdate();
                 m << level5 << "Bunch updated after emission." << endl;
             }
@@ -523,7 +512,7 @@ void ParallelTracker::execute() {
             if (nSourceMarkedAfterStep > 0) {
                 deleteInvalidParticles(true, m, "backward source-plane particles");
             }
-            if (!usesFrozenBeamBeamWindowMesh()) {
+            if (!elementInteractions_m.freezesFieldMesh()) {
                 itsBunch_m->bunchUpdate();
                 m << level5 << "Bunch updated after timeIntegration2." << endl;
             }
@@ -778,10 +767,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step, OrbitThr
                         "space charge effects, please use TYPE=NONE for the field solver.");
     }
 
-    const auto sourceContainer = itsBunch_m->getParticleContainer(0);
-    if (beamBeamState_m.sourceRetired
-        && (!sourceContainer || sourceContainer->getTotalNum() == 0)) {
-        beamBeamReferenceToBeamCSTrafo_m.reset();
+    if (elementInteractions_m.suppressesDefaultSelfField()) {
         return;
     }
 
@@ -812,7 +798,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step, OrbitThr
 
     // Particle coordinates are already relative to the container reference path. Space-charge
     // evaluation needs only the alignment rotation; translating by s would count path length
-    // twice in BeamBeam window tests.
+    // twice in fixed-mesh interaction tests.
     CoordinateSystemTrafo referenceToBeamCSTrafo(Vector_t<double, 3>(0.0), alignment);
     CoordinateSystemTrafo beamToReferenceCSTrafo = referenceToBeamCSTrafo.inverted();
 
@@ -845,7 +831,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step, OrbitThr
         }
     }
     itsBunch_m->setEmissionMeshProgress(emissionMeshStretchActive, emittedFraction);
-    if (!usesFrozenBeamBeamWindowMesh()) {
+    if (!elementInteractions_m.freezesFieldMesh()) {
         itsBunch_m->bunchUpdate();
     }
     itsBunch_m->setEmissionMeshProgress(false, 1.0);
@@ -865,26 +851,15 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step, OrbitThr
 
     // itsBunch_m->setGlobalMeanR(itsBunch_m->get_centroid());
 
-    checkInBBRegion(sourceOth);
-    if (!beamBeamState_m.sourceRetired && beamBeamState_m.geometry.has_value()
-        && BEAMBEAM::sourceRetireTimeReached(
-                itsBunch_m->getT(), beamBeamState_m.geometry->config.sourceRetireTime)) {
-        beamBeamState_m.sourceRetirementPending = true;
-    }
-    if (beamBeamState_m.sourceRetirementPending) {
-        beamBeamReferenceToBeamCSTrafo_m.reset();
-        if (beamBeamState_m.state == BEAMBEAM::WindowState::Active) {
-            leaveBeamBeamWindow(m);
-        }
-        retireBeamBeamSourceContainer(m);
-        return;
-    }
-
-    if (beamBeamState_m.state == BEAMBEAM::WindowState::Active) {
-        beamBeamReferenceToBeamCSTrafo_m = referenceToBeamCSTrafo;
-        computeBeamBeamWindowSelfFields(referenceToBeamCSTrafo, beamToReferenceCSTrafo, m);
-    } else {
-        beamBeamReferenceToBeamCSTrafo_m.reset();
+    ElementInteractionContext interactionContext{*itsBunch_m};
+    interactionContext.sourceOrbitThreader    = &sourceOth;
+    interactionContext.referenceToBeamCSTrafo = &referenceToBeamCSTrafo;
+    interactionContext.beamToReferenceCSTrafo = &beamToReferenceCSTrafo;
+    interactionContext.message                = &m;
+    interactionContext.endOfLine              = &globalEOL_m;
+    const ElementInteractionResult interactionResult =
+            elementInteractions_m.execute(ElementInteractionPhase::SelfField, interactionContext);
+    if (!interactionResult.selfFieldHandled) {
         computeDefaultSelfFields(beamToReferenceCSTrafo, m);
     }
 }
@@ -932,555 +907,6 @@ void ParallelTracker::dumpSpaceChargePrimaryFieldH5() const {
         fields[1] = Vector_t<double, 3>(0.0);
     }
     itsDataSink_m->dumpH5(*itsBunch_m, fdByContainer);
-}
-
-void ParallelTracker::checkInBBRegion(OrbitThreader& sourceOth) {
-    Inform m("BeamBeam ");
-    if (beamBeamState_m.state == BEAMBEAM::WindowState::Completed) {
-        return;
-    }
-
-    Vector_t<double, 3> rmin(0.0), rmax(0.0);
-    itsBunch_m->calcBeamParameters();
-    itsBunch_m->get_bounds(rmin, rmax);
-
-    auto pc                                = itsBunch_m->getParticleContainer();
-    const double bunchS                    = pc->get_sPos();
-    BeamBeamLongitudinalExtent bunchExtent = computeBeamBeamLongitudinalExtent(bunchS, rmin, rmax);
-
-    std::optional<BEAMBEAM::ActualGeometry> geometry =
-            detectBeamBeamWindow(sourceOth, rmin, rmax);
-    if (!geometry.has_value() && beamBeamState_m.state == BEAMBEAM::WindowState::Active
-        && beamBeamState_m.geometry.has_value()) {
-        geometry = beamBeamState_m.geometry;
-    }
-    if (!geometry.has_value()) {
-        beamBeamDiagnostics_m.frameObserved  = false;
-        beamBeamState_m.sourceBunchesOverlap = false;
-        return;
-    }
-
-    const auto& activeGeometry          = *geometry;
-    beamBeamDiagnostics_m.frameObserved = activeGeometry.config.visualize
-                                          && bunchExtent.head >= activeGeometry.beginS
-                                          && bunchExtent.tail <= activeGeometry.endS;
-    const bool copyModelActive =
-            BEAMBEAM::copyTimeReached(itsBunch_m->getT(), activeGeometry.config.copyTime);
-    beamBeamState_m.sourceBunchesOverlap =
-            copyModelActive
-            && BEAMBEAM::copiedSourceBunchesOverlap(
-                    bunchExtent.tail, bunchExtent.head, activeGeometry);
-    beamBeamState_m.geometry = activeGeometry;
-
-    const double beamBeamCellHalfWidth =
-            0.5 * activeGeometry.length / static_cast<double>(itsBunch_m->nr_m[2]);
-    const bool leavingBeamBeamWindow = beamBeamState_m.state == BEAMBEAM::WindowState::Active
-                                       && bunchExtent.head > activeGeometry.endS;
-    if (leavingBeamBeamWindow) {
-        leaveBeamBeamWindow(m);
-    }
-
-    if (beamBeamDiagnostics_m.frameObserved) {
-        renderBeamBeamWindowFrame(bunchExtent.tail, bunchExtent.head, activeGeometry);
-    }
-
-    if (beamBeamState_m.state == BEAMBEAM::WindowState::Inactive
-        && bunchExtent.tail >= activeGeometry.beginS + beamBeamCellHalfWidth) {
-        enterBeamBeamWindow(activeGeometry, m);
-    }
-}
-
-ParallelTracker::BeamBeamLongitudinalExtent ParallelTracker::computeBeamBeamLongitudinalExtent(
-        double bunchS, const ippl::Vector<double, 3>& rmin,
-        const ippl::Vector<double, 3>& rmax) const {
-    return {bunchS + rmin[2], bunchS + rmax[2]};
-}
-
-std::optional<BEAMBEAM::ActualGeometry> ParallelTracker::detectBeamBeamWindow(
-        OrbitThreader& sourceOth, const ippl::Vector<double, 3>& rmin,
-        const ippl::Vector<double, 3>& rmax) {
-    const double bunchS = itsBunch_m->getParticleContainer()->get_sPos();
-    IndexMap::value_t elements;
-    try {
-        elements =
-                sourceOth.query(bunchS + 0.5 * (rmax[2] + rmin[2]), rmax[2] - rmin[2]);
-    } catch (IndexMap::OutOfBounds&) {
-        globalEOL_m = true;
-        return std::nullopt;
-    }
-
-    for (const auto& element : elements) {
-        if (element->getType() != ElementType::BEAMBEAM) {
-            continue;
-        }
-
-        const double beamBeamWindowLength = element->getGeometry().getElementLength();
-        if (beamBeamWindowLength <= 0.0) {
-            return std::nullopt;
-        }
-
-        const IndexMap::key_t ipRange = sourceOth.getRange(element);
-        const double configuredInteractionPointS = element->getAttribute("IP_S");
-        const double interactionPointS           = configuredInteractionPointS > 0.0
-                                                           ? configuredInteractionPointS
-                                                           : 0.5 * (ipRange.begin + ipRange.end);
-        std::optional<double> xAperture;
-        std::optional<double> yAperture;
-        std::optional<double> sourceRetireTime;
-        const auto aperture = element->getAperture();
-        if (element->getAttribute("APERTURE_SET") != 0.0 && aperture.second.size() >= 2) {
-            xAperture = std::abs(aperture.second[0]);
-            yAperture = std::abs(aperture.second[1]);
-        }
-        const double retireTime = element->getAttribute("RETIRE_TIME");
-        if (retireTime > 0.0) {
-            sourceRetireTime = retireTime;
-        }
-        std::optional<double> copyTime;
-        const double copyTimeValue = element->getAttribute("COPY_TIME");
-        if (copyTimeValue > 0.0) {
-            copyTime = copyTimeValue;
-        }
-        return BEAMBEAM::ActualGeometry{
-                interactionPointS, ipRange.begin, ipRange.end, beamBeamWindowLength,
-                BEAMBEAM::Config{
-                        element->getAttribute("VISUALIZE") != 0.0, copyTime, sourceRetireTime,
-                        xAperture, yAperture,
-                        BEAMBEAM::decodeWitnessContainerMask(
-                                element->getAttribute("WITNESS_CONTAINERS_MASK"))}};
-    }
-
-    return std::nullopt;
-}
-
-void ParallelTracker::enterBeamBeamWindow(
-        const BEAMBEAM::ActualGeometry& geometry, Inform& m) {
-    beamBeamState_m.state                        = BEAMBEAM::WindowState::Active;
-    beamBeamState_m.geometry                     = geometry;
-    beamBeamState_m.savedFieldDomain             = itsBunch_m->saveFieldDomainState();
-    beamBeamDiagnostics_m.entryRhoSnapshotDumped = false;
-    itsBunch_m->clearBeamBeamWindowVisualizationTail();
-    applyBeamBeamWindowConfig(geometry);
-    if (gmsg != nullptr) {
-        std::ostringstream diagnostics;
-        diagnostics << std::fixed << std::setprecision(3)
-                    << "Entering BeamBeam window: interaction_point_s="
-                    << geometry.interactionPointS << " m, s_range=(" << geometry.beginS << ", "
-                    << geometry.endS << ") m, length=" << geometry.length << " m";
-        if (geometry.config.xAperture.has_value() && geometry.config.yAperture.has_value()) {
-            diagnostics << ", aperture_half_width=(" << *geometry.config.xAperture << ", "
-                        << *geometry.config.yAperture << ") m";
-        } else {
-            diagnostics << ", aperture_half_width=(not set; preserving transverse field bounds)";
-        }
-        diagnostics << ", witness_containers=";
-        if (geometry.config.witnessContainers.empty()) {
-            diagnostics << "NONE";
-        } else {
-            diagnostics << "(";
-            for (std::size_t i = 0; i < geometry.config.witnessContainers.size(); ++i) {
-                if (i != 0) {
-                    diagnostics << ",";
-                }
-                diagnostics << geometry.config.witnessContainers[i];
-            }
-            diagnostics << ")";
-        }
-        diagnostics << ", retire_time=";
-        if (geometry.config.sourceRetireTime.has_value()) {
-            diagnostics << *geometry.config.sourceRetireTime << " s";
-        } else {
-            diagnostics << "NONE";
-        }
-        diagnostics << ", copy_time=";
-        if (geometry.config.copyTime.has_value()) {
-            diagnostics << *geometry.config.copyTime << " s";
-        } else {
-            diagnostics << "NONE";
-        }
-        *gmsg << level2 << diagnostics.str() << endl;
-    }
-    logBeamBeamDiagnostics(true);
-    m << level5 << "start BeamBeam-window mode" << endl;
-}
-
-void ParallelTracker::applyBeamBeamWindowConfig(const BEAMBEAM::ActualGeometry& geometry) {
-    const bool copyModel =
-            BEAMBEAM::copyTimeReached(itsBunch_m->getT(), geometry.config.copyTime);
-    itsBunch_m->setBeamBeamWindowConfig(
-            geometry.length, geometry.interactionPointS, geometry.beginS, geometry.endS,
-            copyModel, geometry.config.xAperture, geometry.config.yAperture);
-}
-
-std::optional<double> ParallelTracker::performBeamBeamWindowEntryTransition(
-        const BEAMBEAM::ActualGeometry& geometry,
-        const ippl::Vector<double, 3>& physicalRMin,
-        const ippl::Vector<double, 3>& physicalRMax) {
-    if (beamBeamDiagnostics_m.entryRhoSnapshotDumped) {
-        return std::nullopt;
-    }
-    if (!BEAMBEAM::copyTimeReached(itsBunch_m->getT(), geometry.config.copyTime)) {
-        beamBeamDiagnostics_m.entryRhoSnapshotDumped = true;
-        return std::nullopt;
-    }
-
-    IpplTimings::startTimer(beamBeamEntryTransitionTimer_m);
-    itsBunch_m->clearBeamBeamWindowConfig();
-    itsBunch_m->computeSelfFields();
-    if (!itsBunch_m->hasLastDepositedChargeBeforeBackground()) {
-        IpplTimings::stopTimer(beamBeamEntryTransitionTimer_m);
-        throw OpalException(
-                "ParallelTracker::performBeamBeamWindowEntryTransition",
-                "Missing deposited-charge diagnostics for the pre-enlarge BeamBeam solve.");
-    }
-
-    const double referenceCharge =
-            std::abs(itsBunch_m->getLastDepositedChargeBeforeBackground());
-    dumpBeamBeamTransitionSnapshot("before_interaction_window_mesh_enlarge");
-    applyBeamBeamWindowConfig(geometry);
-    itsBunch_m->setPhysicalBounds(physicalRMin, physicalRMax);
-    beamBeamDiagnostics_m.entryRhoSnapshotDumped = true;
-    IpplTimings::stopTimer(beamBeamEntryTransitionTimer_m);
-    return referenceCharge;
-}
-
-void ParallelTracker::validateBeamBeamCopiedCharge(double referenceCharge) const {
-    if (!itsBunch_m->hasLastDepositedChargeBeforeBackground()) {
-        throw OpalException(
-                "ParallelTracker::validateBeamBeamCopiedCharge",
-                "Missing deposited-charge diagnostics for the enlarged BeamBeam solve.");
-    }
-
-    const double enlargedCharge =
-            std::abs(itsBunch_m->getLastDepositedChargeBeforeBackground());
-    const double expectedCharge = 2.0 * referenceCharge;
-    const double tolerance      = std::max(1.0e-18, 1.0e-2 * expectedCharge);
-    if (std::abs(enlargedCharge - expectedCharge) > tolerance) {
-        std::ostringstream msg;
-        msg << "BeamBeam enlarged-domain charge mismatch: expected " << expectedCharge
-            << " C from copied bunch, got " << enlargedCharge << " C.";
-        throw OpalException("ParallelTracker::validateBeamBeamCopiedCharge", msg.str());
-    }
-}
-
-void ParallelTracker::dumpBeamBeamTransitionSnapshot(const std::string& snapshotKind) {
-    IpplTimings::startTimer(beamBeamTransitionDumpTimer_m);
-    auto headers = itsBunch_m->buildScalarDumpHeaders(snapshotKind);
-    itsBunch_m->getFieldSolver()->dumpScalField("RHO", "collwin_vis", headers);
-    IpplTimings::stopTimer(beamBeamTransitionDumpTimer_m);
-}
-
-void ParallelTracker::leaveBeamBeamWindow(Inform& m) {
-    beamBeamState_m.state                        = BEAMBEAM::WindowState::Completed;
-    beamBeamDiagnostics_m.entryRhoSnapshotDumped = false;
-
-    if (beamBeamState_m.geometry.has_value()) {
-        const auto& geometry = *beamBeamState_m.geometry;
-        itsBunch_m->setBeamBeamWindowVisualizationTail(
-                geometry.interactionPointS, geometry.beginS, geometry.endS,
-                postBeamBeamWindowVisualizationSteps_m);
-    }
-
-    if (beamBeamState_m.savedFieldDomain.has_value()) {
-        itsBunch_m->restoreFieldDomainState(*beamBeamState_m.savedFieldDomain);
-        itsBunch_m->calcBeamParameters();
-        beamBeamState_m.savedFieldDomain.reset();
-    }
-
-    itsBunch_m->clearBeamBeamWindowConfig();
-    logBeamBeamDiagnostics(true);
-    m << level5 << "finished BeamBeam-window mode" << endl;
-}
-
-void ParallelTracker::retireBeamBeamSourceContainer(Inform& m) {
-    if (!beamBeamState_m.sourceRetirementPending) {
-        return;
-    }
-
-    auto source = itsBunch_m->getParticleContainer(0);
-    if (!source) {
-        beamBeamState_m.sourceRetirementPending = false;
-        beamBeamState_m.sourceRetired           = true;
-        return;
-    }
-
-    const size_t marked  = source->markAllParticlesInvalid();
-    const size_t deleted = source->deleteInvalidParticles();
-    itsBunch_m->setPcInactive(0);
-    beamBeamState_m.sourceRetirementPending = false;
-    beamBeamState_m.sourceRetired           = true;
-
-    m << level2 << "Retired BeamBeam source container[0] at RETIRE_TIME: marked " << marked
-      << ", deleted " << deleted << ", remaining " << source->getTotalNum()
-      << ". Witness containers remain active." << endl;
-    logBeamBeamDiagnostics(true);
-}
-
-void ParallelTracker::logBeamBeamDiagnostics(bool force) {
-    if (ippl::Comm->rank() != 0) {
-        return;
-    }
-    if (!force && !beamBeamState_m.geometry.has_value() && !beamBeamState_m.sourceRetired) {
-        return;
-    }
-
-    const size_t nContainers = itsBunch_m->getNumParticleContainers();
-    size_t activeContainers  = 0;
-    for (size_t ci = 0; ci < nContainers; ++ci) {
-        if (itsBunch_m->isPcActive(ci)) {
-            ++activeContainers;
-        }
-    }
-
-    auto source             = itsBunch_m->getParticleContainer(0);
-    const bool sourceActive = source && itsBunch_m->isPcActive(0);
-    const bool bbActive     = beamBeamState_m.state == BEAMBEAM::WindowState::Active;
-    const bool copyActive =
-            beamBeamState_m.geometry.has_value()
-            && BEAMBEAM::copyTimeReached(
-                    itsBunch_m->getT(), beamBeamState_m.geometry->config.copyTime);
-    const char* bbState = "Inactive";
-    if (beamBeamState_m.state == BEAMBEAM::WindowState::Active) {
-        bbState = "Active";
-    } else if (beamBeamState_m.state == BEAMBEAM::WindowState::Completed) {
-        bbState = "Completed";
-    }
-
-    std::ostringstream witnessStates;
-    bool hasWitnessState = false;
-    if (beamBeamState_m.geometry.has_value()
-        && !beamBeamState_m.geometry->config.witnessContainers.empty()) {
-        for (const size_t ci : beamBeamState_m.geometry->config.witnessContainers) {
-            if (hasWitnessState) {
-                witnessStates << ",";
-            }
-            hasWitnessState = true;
-
-            if (ci >= nContainers) {
-                witnessStates << "c" << ci << ":missing";
-                continue;
-            }
-
-            auto pc            = itsBunch_m->getParticleContainer(ci);
-            const size_t total = pc ? pc->getTotalNum() : 0;
-            const bool active  = itsBunch_m->isPcActive(ci);
-            witnessStates << "c" << ci << ":" << (active ? "active" : "inactive")
-                          << ":n=" << total;
-        }
-    }
-
-    std::ostringstream signature;
-    signature << bbState << "|" << activeContainers << "|"
-              << (beamBeamState_m.sourceRetired ? 1 : 0) << "|"
-              << (hasWitnessState ? witnessStates.str() : "NONE") << "|" << bbActive << "|"
-              << sourceActive << "|" << copyActive << "|"
-              << beamBeamState_m.sourceRetirementPending << "|"
-              << beamBeamState_m.sourceBunchesOverlap;
-    if (!force && beamBeamLastDiagnosticSignature_m.has_value()
-        && *beamBeamLastDiagnosticSignature_m == signature.str()) {
-        return;
-    }
-    beamBeamLastDiagnosticSignature_m = signature.str();
-
-    std::ostringstream line;
-    line << std::fixed << std::setprecision(3) << "BB-DIAG BB-state=" << bbState
-         << " active_bunches=" << activeContainers
-         << " retired_bunches=" << (beamBeamState_m.sourceRetired ? 1 : 0)
-         << " witness_states=" << (hasWitnessState ? witnessStates.str() : "NONE");
-    const auto appendBoolIfChanged = [&line](const char* key, bool value,
-                                             std::optional<bool>& previous) {
-        if (!previous.has_value() || *previous != value) {
-            line << " " << key << "=" << (value ? "TRUE" : "FALSE");
-            previous = value;
-        }
-    };
-    const auto appendBoolIfChangedAfterInitialFalse =
-            [&line](const char* key, bool value, std::optional<bool>& previous) {
-                const bool shouldPrint = value || (previous.has_value() && *previous != value);
-                if (shouldPrint) {
-                    line << " " << key << "=" << (value ? "TRUE" : "FALSE");
-                }
-                previous = value;
-            };
-    appendBoolIfChanged("BB-active", bbActive, beamBeamLastDiagnosticActive_m);
-    appendBoolIfChanged("source_active", sourceActive, beamBeamLastDiagnosticSourceActive_m);
-    appendBoolIfChangedAfterInitialFalse(
-            "copy_active", copyActive, beamBeamLastDiagnosticCopyActive_m);
-    appendBoolIfChanged(
-            "source_retirement_pending", beamBeamState_m.sourceRetirementPending,
-            beamBeamLastDiagnosticSourceRetirementPending_m);
-    appendBoolIfChangedAfterInitialFalse(
-            "source_bunches_overlap", beamBeamState_m.sourceBunchesOverlap,
-            beamBeamLastDiagnosticSourceOverlap_m);
-    std::cout << line.str() << std::endl;
-}
-
-void ParallelTracker::renderBeamBeamWindowFrame(
-        double bunchTailS, double bunchHeadS, const BEAMBEAM::ActualGeometry& geometry) {
-    if (ippl::Comm->rank() != 0) {
-        return;
-    }
-
-    const bool useFrozenBeamBeamWindowMesh = usesFrozenBeamBeamWindowMesh();
-    const double bunchCenterS              = 0.5 * (bunchTailS + bunchHeadS);
-    const double meshBeginS = useFrozenBeamBeamWindowMesh ? geometry.beginS : bunchTailS;
-    const double meshEndS   = useFrozenBeamBeamWindowMesh ? geometry.endS : bunchHeadS;
-
-    beamBeamWindowAnimation_m->render(
-            bunchCenterS, meshBeginS, meshEndS, geometry.beginS, geometry.endS,
-            geometry.interactionPointS, beamBeamState_m.state == BEAMBEAM::WindowState::Active,
-            useFrozenBeamBeamWindowMesh);
-}
-
-bool ParallelTracker::usesFrozenBeamBeamWindowMesh() const {
-    return beamBeamState_m.state == BEAMBEAM::WindowState::Active;
-}
-
-void ParallelTracker::computeBeamBeamWindowSelfFields(
-        const CoordinateSystemTrafo&, const CoordinateSystemTrafo& beamToReferenceCSTrafo,
-        Inform& m) {
-    IpplTimings::startTimer(beamBeamWindowTimer_m);
-    PAssert(beamBeamState_m.geometry.has_value());
-    const auto& geometry = *beamBeamState_m.geometry;
-
-    const double bunchS                = itsBunch_m->getParticleContainer()->get_sPos();
-    const double interactionPointBeamZ = geometry.interactionPointS - bunchS;
-
-    IpplTimings::startTimer(beamBeamMeshSetupTimer_m);
-    Vector_t<double, 3> physicalRMin(0.0), physicalRMax(0.0);
-    itsBunch_m->calcBeamParameters();
-    itsBunch_m->get_bounds(physicalRMin, physicalRMax);
-    if (geometry.config.xAperture.has_value()
-        && (physicalRMin[0] < -*geometry.config.xAperture
-            || physicalRMax[0] > *geometry.config.xAperture)) {
-        IpplTimings::stopTimer(beamBeamMeshSetupTimer_m);
-        IpplTimings::stopTimer(beamBeamWindowTimer_m);
-        std::ostringstream msg;
-        msg << "BeamBeam APERTURE x half-width " << *geometry.config.xAperture
-            << " m does not contain the bunch x extent [" << physicalRMin[0] << ", "
-            << physicalRMax[0]
-            << "] m in the BeamBeam frame. Increase the BeamBeam APERTURE or reduce the "
-               "transverse bunch extent before using the fixed BeamBeam mesh.";
-        throw OpalException("ParallelTracker::computeBeamBeamWindowSelfFields", msg.str());
-    }
-    if (geometry.config.yAperture.has_value()
-        && (physicalRMin[1] < -*geometry.config.yAperture
-            || physicalRMax[1] > *geometry.config.yAperture)) {
-        IpplTimings::stopTimer(beamBeamMeshSetupTimer_m);
-        IpplTimings::stopTimer(beamBeamWindowTimer_m);
-        std::ostringstream msg;
-        msg << "BeamBeam APERTURE y half-width " << *geometry.config.yAperture
-            << " m does not contain the bunch y extent [" << physicalRMin[1] << ", "
-            << physicalRMax[1]
-            << "] m in the BeamBeam frame. Increase the BeamBeam APERTURE or reduce the "
-               "transverse bunch extent before using the fixed BeamBeam mesh.";
-        throw OpalException("ParallelTracker::computeBeamBeamWindowSelfFields", msg.str());
-    }
-    IpplTimings::stopTimer(beamBeamMeshSetupTimer_m);
-
-    const std::optional<double> preEnlargePrimaryCharge =
-            performBeamBeamWindowEntryTransition(geometry, physicalRMin, physicalRMax);
-    applyBeamBeamWindowConfig(geometry);
-
-    IpplTimings::startTimer(beamBeamMeshSetupTimer_m);
-    itsBunch_m->enableBeamBeamWindowMesh(
-            interactionPointBeamZ, geometry.length, geometry.config.xAperture,
-            geometry.config.yAperture);
-    IpplTimings::stopTimer(beamBeamMeshSetupTimer_m);
-
-    IpplTimings::startTimer(beamBeamSelfFieldTimer_m);
-    itsBunch_m->computeSelfFields();
-    IpplTimings::stopTimer(beamBeamSelfFieldTimer_m);
-    if (preEnlargePrimaryCharge.has_value()
-        && BEAMBEAM::copyTimeReached(itsBunch_m->getT(), geometry.config.copyTime)) {
-        validateBeamBeamCopiedCharge(*preEnlargePrimaryCharge);
-    }
-    if (preEnlargePrimaryCharge.has_value()) {
-        dumpBeamBeamTransitionSnapshot("after_interaction_window_mesh_enlarge");
-    }
-    itsBunch_m->setPhysicalBounds(physicalRMin, physicalRMax);
-
-    IpplTimings::startTimer(beamBeamTransformBackTimer_m);
-    transformFieldsToReferenceFrame(beamToReferenceCSTrafo, m);
-    IpplTimings::stopTimer(beamBeamTransformBackTimer_m);
-    m << level5 << "Compute self fields on BeamBeam-window mesh done." << endl;
-    itsBunch_m->calcBeamParameters();
-    IpplTimings::stopTimer(beamBeamWindowTimer_m);
-}
-
-void ParallelTracker::gatherBeamBeamFieldsToWitnessContainers(Inform& m) {
-    IpplTimings::startTimer(beamBeamWitnessGatherTimer_m);
-    if (beamBeamState_m.state != BEAMBEAM::WindowState::Active
-        || !beamBeamState_m.geometry.has_value()) {
-        IpplTimings::stopTimer(beamBeamWitnessGatherTimer_m);
-        return;
-    }
-
-    const auto& witnessContainers = beamBeamState_m.geometry->config.witnessContainers;
-    if (witnessContainers.empty()) {
-        IpplTimings::stopTimer(beamBeamWitnessGatherTimer_m);
-        return;
-    }
-    if (!beamBeamReferenceToBeamCSTrafo_m.has_value()) {
-        IpplTimings::stopTimer(beamBeamWitnessGatherTimer_m);
-        throw OpalException(
-                "ParallelTracker::gatherBeamBeamFieldsToWitnessContainers",
-                "BeamBeam witness containers are configured, but source-frame transforms are "
-                "not available for the current step.");
-    }
-
-    auto* solver = itsBunch_m->getFieldSolver();
-    if (solver == nullptr) {
-        IpplTimings::stopTimer(beamBeamWitnessGatherTimer_m);
-        throw OpalException(
-                "ParallelTracker::gatherBeamBeamFieldsToWitnessContainers",
-                "BeamBeam witness containers require an active field solver.");
-    }
-
-    const size_t nContainers = itsBunch_m->getNumParticleContainers();
-    const double sourceS     = itsBunch_m->getParticleContainer()->get_sPos();
-    for (const size_t ci : witnessContainers) {
-        if (ci == 0) {
-            IpplTimings::stopTimer(beamBeamWitnessGatherTimer_m);
-            throw OpalException(
-                    "ParallelTracker::gatherBeamBeamFieldsToWitnessContainers",
-                    "container[0] is the BeamBeam source and cannot be a witness container.");
-        }
-        if (ci >= nContainers) {
-            IpplTimings::stopTimer(beamBeamWitnessGatherTimer_m);
-            throw OpalException(
-                    "ParallelTracker::gatherBeamBeamFieldsToWitnessContainers",
-                    "Configured BeamBeam witness container[" + std::to_string(ci)
-                            + "] is out of range for the current TRACK BEAMS list.");
-        }
-        if (!itsBunch_m->isPcActive(ci)) {
-            continue;
-        }
-        auto pc = itsBunch_m->getParticleContainer(ci);
-        if (!pc || pc->getTotalNum() == 0 || pc->getLocalNum() == 0) {
-            continue;
-        }
-
-        const size_t nLoc = pc->getLocalNum();
-        const double longitudinalOffset =
-                BEAMBEAM::longitudinalOffsetToSourceFrame(sourceS, pc->get_sPos());
-        CoordinateSystemTrafo witnessToBeamCSTrafo(
-                Vector_t<double, 3>(0.0, 0.0, -longitudinalOffset),
-                beamBeamReferenceToBeamCSTrafo_m->getRotation());
-
-        witnessToBeamCSTrafo.transformBunchTo(pc->R.getView(), nLoc);
-        Kokkos::fence();
-        solver->gatherCurrentFieldsToContainer(*itsBunch_m, *pc);
-        Kokkos::fence();
-        witnessToBeamCSTrafo.transformBunchFrom(pc->R.getView(), nLoc);
-        witnessToBeamCSTrafo.rotateBunchFrom(pc->E.getView(), nLoc);
-        witnessToBeamCSTrafo.rotateBunchFrom(pc->B.getView(), nLoc);
-        Kokkos::fence();
-
-        m << level4 << "Gathered BeamBeam source fields to witness container[" << ci << "] ("
-          << pc->getTotalNum() << " particles)." << endl;
-    }
-    IpplTimings::stopTimer(beamBeamWitnessGatherTimer_m);
 }
 
 /**

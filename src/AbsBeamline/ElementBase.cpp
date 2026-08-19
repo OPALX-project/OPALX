@@ -13,6 +13,8 @@
 //
 #include "AbsBeamline/ElementBase.h"
 
+#include "Algorithms/ElementInteraction.h"
+
 #include "Channels/Channel.h"
 #include "PartBunch/PartBunch.h"
 #include "Utilities/LogicalError.h"
@@ -154,6 +156,8 @@ ElementBase* ElementBase::copyStructure() {
         return clone();
     }
 }
+
+std::unique_ptr<ElementInteraction> ElementBase::createInteraction() const { return nullptr; }
 
 void ElementBase::makeSharable() { shareFlag = true; }
 
