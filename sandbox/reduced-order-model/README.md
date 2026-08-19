@@ -5,6 +5,8 @@ source model with OPALX witness-particle trajectories.
 
 - `python/` contains the independent reference-field and trajectory scripts.
 - `opalx/` contains OPALX input decks and their local input data.
+- `merlin/` contains the self-submitting A100 convergence workflow.
+- `a100_convergence_study.json` is the authoritative convergence matrix.
 
 The OPALX `BEAMBEAM` element provides the model switch:
 
@@ -42,3 +44,13 @@ At every snapshot the IP is at the origin. The centroids are at z=-d/2 and
 z=+d/2, moving in +z and -z respectively, for d/sigma_z = 3, 2, 1, and 0. The
 Python evaluator uses the exact uniform-motion Lorentz transform of each rigid
 Gaussian. Pair fields are not included.
+
+The complete remote-run/local-plot procedure is documented in
+`opalx/README.md`. Merlin performs only the OPALX field solves; compact result
+files are fetched and analyzed with the local `~/.venv-h6` environment.
+
+The MPI-decomposition scan does not use OPALX's parallel random sampler. Its
+primary phase space is generated once as a deterministic, recentred,
+three-sigma-truncated Gaussian `FROMFILE` sample and read unchanged on 1, 2,
+and 4 ranks. This separates numerical decomposition effects from Monte Carlo
+sample-to-sample variation.

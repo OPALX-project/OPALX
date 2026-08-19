@@ -556,7 +556,10 @@ void BeamBeamInteraction::gatherFieldsToWitnessContainers(PartBunch_t& bunch, In
             continue;
         }
         auto container = bunch.getParticleContainer(containerIndex);
-        if (!container || container->getTotalNum() == 0 || container->getLocalNum() == 0) {
+        // IPPL gather updates distributed field halos, so every MPI rank must
+        // participate when the witness container is globally nonempty. Some
+        // ranks may legitimately own no local witnesses after redistribution.
+        if (!container || container->getTotalNum() == 0) {
             continue;
         }
 

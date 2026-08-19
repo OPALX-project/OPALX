@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import os
 import subprocess
@@ -58,6 +59,89 @@ def write_probe_file(path: Path, parameters) -> int:
     return count
 
 
+def _truncated_standard_normal(
+    rng: np.random.Generator, shape: tuple[int, ...], cutoff_sigma: float
+) -> np.ndarray:
+    """Draw independent standard normals conditioned on ``abs(x) <= cutoff``."""
+    if cutoff_sigma <= 0.0:
+        raise ValueError("cutoff_sigma must be positive")
+    values = np.empty(int(np.prod(shape)), dtype=np.float64)
+    remaining = np.arange(values.size)
+    while remaining.size:
+        candidates = rng.standard_normal(remaining.size)
+        accepted = np.abs(candidates) <= cutoff_sigma
+        values[remaining[accepted]] = candidates[accepted]
+        remaining = remaining[~accepted]
+    return values.reshape(shape)
+
+
+def write_deterministic_primary_file(
+    path: Path,
+    parameters,
+    track12,
+    particle_count: int,
+    seed: int,
+    *,
+    cutoff_sigma: float = 3.0,
+    sigma_xyp: float = 1.0e-12,
+    sigma_pz: float = 1.0e-12,
+) -> dict[str, object]:
+    """Write one fixed primary Gaussian sample for MPI-decomposition tests.
+
+    The position construction matches the active OPALX ``GAUSS`` semantics:
+    independent normals truncated at +/- ``cutoff_sigma`` and then translated
+    so that the finite sample has exactly zero centroid. File momenta are
+    absolute normalized momenta (beta*gamma), as required by ``FROMFILE``.
+    """
+    if particle_count <= 0:
+        raise ValueError("particle_count must be positive")
+    if sigma_xyp < 0.0 or sigma_pz < 0.0:
+        raise ValueError("momentum widths must be non-negative")
+
+    rng = np.random.Generator(np.random.PCG64(seed))
+    normalized_positions = _truncated_standard_normal(
+        rng, (particle_count, 3), cutoff_sigma
+    )
+    position_sigmas = np.array(
+        [parameters.sigma_x_m, parameters.sigma_y_m, parameters.sigma_z_m],
+        dtype=np.float64,
+    )
+    positions = normalized_positions * position_sigmas
+    positions -= np.mean(positions, axis=0, dtype=np.float64)
+
+    gamma = 1.0 + parameters.kinetic_energy_MeV * 1.0e6 / track12.ELECTRON_REST_EV
+    beta_gamma = np.sqrt(gamma * gamma - 1.0)
+    sigma_pxy = beta_gamma * sigma_xyp
+    momenta = np.empty_like(positions)
+    momenta[:, 0] = rng.normal(0.0, sigma_pxy, particle_count)
+    momenta[:, 1] = rng.normal(0.0, sigma_pxy, particle_count)
+    momenta[:, 2] = rng.normal(beta_gamma, sigma_pz, particle_count)
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as stream:
+        stream.write(f"{particle_count}\n")
+        stream.write("x y z px py pz\n")
+        np.savetxt(stream, np.column_stack((positions, momenta)), fmt="%.16e")
+
+    digest_state = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest_state.update(chunk)
+    return {
+        "path": str(path),
+        "sha256": digest_state.hexdigest(),
+        "particle_count": particle_count,
+        "seed": seed,
+        "rng": "NumPy PCG64",
+        "numpy_version": np.__version__,
+        "position_cutoff_sigma_before_recentering": cutoff_sigma,
+        "position_centroid_m": np.mean(positions, axis=0).tolist(),
+        "sigma_xyp": sigma_xyp,
+        "sigma_pz": sigma_pz,
+        "beta_gamma": float(beta_gamma),
+    }
+
+
 def render_case(
     template: str,
     parameters,
@@ -67,6 +151,8 @@ def render_case(
     primary_macroparticles: int,
     nxy: int,
     nz: int,
+    seed: int = 20260629,
+    primary_particle_filename: str | None = None,
 ) -> Path:
     label = f"{separation:g}".replace(".", "p") + "sigma"
     case_name = f"rigid_fields_{label}"
@@ -84,6 +170,28 @@ def render_case(
         - 0.5 * separation * parameters.sigma_z_m
         - 1.5 * beta * track12.C_LIGHT * dt_s
     )
+    if primary_particle_filename is None:
+        primary_distribution = """DIST_PRIMARY_ELECTRONS: DISTRIBUTION,
+    TYPE = GAUSS,
+    SIGMAX = primary_sigma_xy,
+    SIGMAY = primary_sigma_xy,
+    SIGMAZ = primary_sigma_z,
+    SIGMAPX = primary_sigma_pxy,
+    SIGMAPY = primary_sigma_pxy,
+    SIGMAPZ = 1.0e-12,
+    CUTOFFX = 6.0,
+    CUTOFFY = 6.0,
+    CUTOFFLONG = 6.0,
+    NPARTDIST = primary_macroparticles;"""
+        primary_beam_energy = "    PC = primary_p0,"
+    else:
+        primary_distribution = f"""DIST_PRIMARY_ELECTRONS: DISTRIBUTION,
+    TYPE = FROMFILE,
+    FNAME = \"{primary_particle_filename}\",
+    NPARTDIST = primary_macroparticles;"""
+        # FROMFILE contains absolute beta*gamma and rejects PC/ENERGY/GAMMA.
+        primary_beam_energy = ""
+
     replacements = {
         "@CASE_TITLE@": f"Rigid two-Gaussian field snapshot, d={separation:g} sigma_z",
         "@SEPARATION_SIGMA_Z@": f"{separation:.16e}",
@@ -93,6 +201,9 @@ def render_case(
         "@PRIMARY_MACROPARTICLES@": str(primary_macroparticles),
         "@NXY@": str(nxy),
         "@NZ@": str(nz),
+        "@SEED@": str(seed),
+        "@PRIMARY_DISTRIBUTION@": primary_distribution,
+        "@PRIMARY_BEAM_ENERGY@": primary_beam_energy,
     }
     rendered = template
     for token, value in replacements.items():
@@ -142,6 +253,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--primary-macroparticles", type=int, default=400000)
     parser.add_argument("--nxy", type=int, default=64)
     parser.add_argument("--nz", type=int, default=128)
+    parser.add_argument("--seed", type=int, default=20260629)
+    parser.add_argument(
+        "--primary-particle-file",
+        type=str,
+        default=None,
+        help="Use a FROMFILE primary sample instead of OPALX GAUSS sampling.",
+    )
     parser.add_argument(
         "--probe-nx",
         type=int,
@@ -201,6 +319,8 @@ def main() -> int:
             args.primary_macroparticles,
             args.nxy,
             args.nz,
+            args.seed,
+            args.primary_particle_file,
         )
         print(f"wrote {input_path}")
         if args.run:

@@ -389,11 +389,14 @@ The original Merlin checkout at `/psi/home/adelmann/opalx-dev/opalx` remains
 untouched because it contains an interrupted merge, one unresolved
 `FieldMirror.hpp` conflict, and hundreds of staged sandbox artifacts. Validation
 used the clean detached worktree
-`/psi/home/adelmann/opalx-dev/opalx-a100-5a354101f` at revision `5a354101f` and
+`/psi/home/adelmann/opalx-dev/opalx-a100-5a354101f` at revision `a447748f4` and
 the build `/psi/home/adelmann/opalx-dev/build-opalx-a100-5a354101f-pinned`.
-That validation worktree now has only the uncommitted copies of
-`BeamBeamDefinitions.h` and `BeamBeamInteraction.cpp` used to test the window
-geometry fix; no remote commit was created.
+That validation worktree is clean. A separate detached study worktree,
+`/psi/home/adelmann/opalx-dev/opalx-a100-study-a447748f4`, contains the
+uncommitted convergence workflow and the collective witness-gather fix. The
+CUDA executable was rebuilt from that one-line source fix, after which the
+validation source file was restored; the exact source patch and executable
+SHA-256 are stored with the run data.
 The CUDA configuration was `ARCH=AMPERE80`, CUDA architecture 80, Kokkos 5.2.0,
 and IPPL revision `36a4ca62a52e36a8a2c945c9048d0f010971d309`.
 
@@ -429,14 +432,17 @@ The exact A100 validation scope is:
 | 353953 | 1 | 1 | exact 100000-particle premature-`Completed` reproducer after the fix | 2 | passed, both solves `Active` |
 | 353956/353958 | 2 | 2 | 400000-particle manufactured full deck | 2 | passed with `MPI_Comm_size=2`; 7.04 s measured runtime |
 | 353959 | 2 | 2 | focused `TestBeamBeam` suite | none (13 unit tests) | all 13 passed on both ranks |
+| 353960/353963 | up to 4 concurrently | 1 per convergence case | complete 16-case convergence matrix | 2 per deck | all 14 one-rank cases passed |
+| 353961 | 2 | 2 | 400000-particle manufactured full deck | 2 | passed in 7.12 s |
+| 353962/353964 | 4 | 4 | pre-fix 400000-particle manufactured full deck | stalled in first witness gather | canceled after stack capture |
+| 353965 | 4 | 4 | corrected 400000-particle manufactured full deck | 2 | passed in 9.41 s with zero uncovered probes |
+| 353966 | 1 | 1 | dedicated timing of the baseline full deck | 2 | passed in 3.60 s |
 
-Thus four A100s were used by one genuine four-rank MPI test and were also used
-to run independent convergence cases concurrently. No four-rank/four-A100
-end-to-end OPALX tracking deck has been run. The current end-to-end MPI maximum
-is two ranks on two A100s. Every manufactured tracking deck sets
-`MAXSTEPS=2`: Step#0 samples the physical source, and Step#1 samples the
-physical-plus-copied source. The four-rank mirror test has no tracking loop or
-time steps; it applies and verifies one distributed field-mirroring operation.
+Thus the end-to-end maximum is now four connected MPI ranks on four A100s.
+Every manufactured tracking deck sets `MAXSTEPS=2`: Step#0 samples the physical
+source, and Step#1 samples the physical-plus-copied source. The earlier
+four-rank mirror test remains a deterministic unit-level check; job 353965 is
+the first full four-rank tracking validation.
 
 The 3-sigma convergence cases use fixed 51x101 passive probes and the
 `INTEGRATED` physical-plus-mirrored Step#1 field. Jobs 353949 and 353950 ran the
@@ -445,6 +451,8 @@ heavy solves on up to four A100s. Source H5 output remained disabled. The fixed
 
 | source macroparticles | relative L2(E) | relative L2(B) |
 | ---: | ---: | ---: |
+| 100,000 | 2.5247% | 2.6614% |
+| 200,000 | 1.7837% | 1.7281% |
 | 400,000 | 1.2089% | 1.1434% |
 | 800,000 | 1.0389% | 0.9410% |
 | 1,600,000 | 1.0111% | 0.8539% |
@@ -473,12 +481,75 @@ sub-percent trajectory-study candidate. Three baseline seeds give mean
 L2(E)=1.2642% with standard deviation 0.0601 percentage points and mean
 L2(B)=1.2145% with standard deviation 0.0654 percentage points.
 
-The reusable local analyzer is
-`sandbox/reduced-order-model/python/analyze_opalx_convergence.py`; it writes the
-complete summary and particle/fixed-particle/constant-occupancy scans without
-committing generated results. The current local artifacts are below
-`/tmp/a100-convergence-5a354101f/persistent-postprocess`, and the remote run data
-are below `/psi/home/adelmann/opalx-dev/a100-convergence-5a354101f`.
+Those are sample standard deviations of three scalar L2 norms. They are not
+the `1/sqrt(N)` uncertainty of the deposited field, and three seeds are
+insufficient to estimate that uncertainty reliably.
+
+The reusable Merlin driver is
+`sandbox/reduced-order-model/merlin/submit_a100_convergence.sh`; one command
+prepares the manifest and submits dependent single-, two-, and four-A100 jobs.
+The local fetch/plot entry point is
+`sandbox/reduced-order-model/python/fetch_and_plot_a100_convergence.py`. Current
+local artifacts are below
+`sandbox/reduced-order-model/outputs/a100-convergence/a100-convergence-a447748f4-full`,
+and remote run data are below
+`/psi/home/adelmann/opalx-dev/a100-convergence-a447748f4-full`.
+
+The fixed 400000-particle, 64x64x128 rank scan is:
+
+| MPI ranks / A100s | relative L2(E) | relative L2(B) | wall time |
+| ---: | ---: | ---: | ---: |
+| 1 | 1.2089% | 1.1434% | 3.60 s |
+| 2 | 1.3418% | 1.1492% | 7.12 s |
+| 4 | 1.3643% | 1.2356% | 9.41 s |
+
+The short two-step deck does not strong-scale: MPI launch and distributed-halo
+overhead dominate its runtime. The same OPAL seed also produces
+rank-count-dependent parallel Gaussian samples. Consequently, the 1/2/4-rank
+field differences are an end-to-end rank sensitivity, not a pure
+decomposition-invariance measurement. Relative to the one-rank fields, the
+two-rank E/B differences are 1.2530%/1.3897% and the four-rank differences are
+1.4165%/1.4897%. Exact decomposition behavior remains covered by deterministic
+distributed unit tests.
+
+The workflow now adds a separate deterministic MPI-decomposition scan. It
+generates one 400000-particle primary file with NumPy PCG64, fixed three-sigma
+position truncation, exact finite-sample recentering, and absolute beta-gamma
+momenta. The 1/2/4-rank decks all reference the same SHA-256-checked file
+through OPALX `FROMFILE`; their primary `BEAM` omits `PC` as required. The
+ordinary particle, mesh, and seed scans continue to use OPALX `GAUSS`.
+
+A local OpenMP validation of this fixed source passed at one and two connected
+MPI ranks. The manufactured errors were 1.228840%/1.221809% (E/B) at one rank
+and 1.228862%/1.221754% at two ranks. The direct two-rank-versus-one-rank field
+differences fell to 0.01022% for E and 0.01115% for B, compared with
+1.2530%/1.3897% when the primary sample changed with rank count. Thus most of
+the earlier apparent rank dependence was sampling variation. The remaining
+approximately 1e-4 relative difference is the deposition/reduction-order effect
+to check on 1/2/4 A100s. The Merlin driver supports `--rank-only` for that
+three-job check without repeating the convergence matrix.
+
+The first A100 fixed-source chain used jobs 353967/353968/353969. The one- and
+two-rank cases completed in 6 s and 9 s. The four-rank physics completed both
+BeamBeam solves, then hung during object teardown and was canceled after stack
+capture. Every rank was inside collective `MPI_Win_free` from
+`ParticleSpatialLayout::~ParticleSpatialLayout`, but rank 0 reached it through
+`PartBunch::~PartBunch` while ranks 1--3 reached it through a particle-container
+`shared_ptr` released by `ParallelTracker::~ParallelTracker`. Thus different
+ranks were freeing different MPI windows in the same collective slot.
+
+Two lifetime defects explain this. `Distribution::emitting_m` has no initial
+value and `setDist()` does not set it for `GAUSS` or `FROMFILE`, so an injected
+file sampler can be retained as an emitting sampler depending on indeterminate
+memory. Separately, `TrackRun` declares the tracker before the bunch, which
+causes automatic member destruction to destroy the borrowed bunch before the
+tracker and its sampler references. The required source fix is to initialize
+and reset `emitting_m=false` before distribution-type setup, and explicitly
+destroy `itsTracker_m` at the start of `TrackRun::~TrackRun`, before automatic
+bunch destruction. Both are lifetime/control-state corrections only: they do
+not change fields, units, deposition, solver order during tracking, or particle
+physics. Because these are master-derived files, implementation awaits explicit
+permission under the merge rule.
 
 Two failures exposed by the scan were resolved as follows:
 
@@ -504,16 +575,37 @@ Two failures exposed by the scan were resolved as follows:
   `MPI_Comm_size=2` and returned normally for the corrected 400000-particle
   full deck (jobs 353956 and 353958; measured runtime 7.04 seconds). Job 353959
   likewise passed all 13 focused BeamBeam tests on both real MPI ranks in 7
-  seconds. The reusable Merlin workflow is now split between the single-rank
-  convergence script and a dedicated `opalx_a100_mpi2.sh`; no OPALX source
-  change was needed for this launcher-level defect.
+  seconds. The persistent driver therefore uses independent dependent
+  allocations and `mpiexec` for every multi-rank stage; no OPALX source change
+  was needed for this launcher-level defect.
+- The first full four-rank runs (353962 and 353964) exposed a real collective
+  mismatch. Ranks with zero locally owned witness particles skipped
+  `gatherCurrentFieldsToContainer()`, while ranks owning witnesses entered its
+  IPPL halo exchange. Stack capture showed ranks 0/2 waiting in halo receives
+  and ranks 1/3 already waiting in the next `DistributionMoments` all-reduce.
+  `BeamBeamInteraction::gatherFieldsToWitnessContainers()` now skips only a
+  globally empty witness container; zero-local-particle ranks still enter the
+  distributed gather with a zero-length particle range. Job 353965 completed
+  both tracking solves on four ranks/four A100s in 9.41 seconds. This changes no
+  field discretization, units, or particle physics; it restores identical MPI
+  collective order on every rank.
+
+The first automated submission also revealed a script-only stdin error: the
+background `srun` steps inherited the manifest file descriptor and consumed
+unread labels. The driver now redirects each background step from `/dev/null`;
+job 353963 recovered and completed all skipped cases. The final workflow also
+times the rank-one baseline alone before launching concurrent cases and records
+the executable hash plus exact tracked OPALX source patch.
 
 ## Next step
 
-The BeamBeam lifecycle and two-rank A100 execution are now validated. Next,
-repair and validate the timed pair-file format, remove the `IP_S` override so
-the element midpoint is the sole IP definition, and begin the rigid-source
-electron/positron witness-trajectory comparison.
+After permission, correct the distribution-state initialization and tracker-
+before-bunch destruction order, rebuild, and rerun the deterministic primary-
+file scan on 1/2/4 A100s. Then quantify the direct field difference from one
+rank. After that, repair and validate the timed pair-
+file format, remove the `IP_S` override so the element midpoint is the sole IP
+definition, and begin the rigid-source electron/positron witness-trajectory
+comparison.
 
 Deferred reminder: before finalizing the H5 output workflow, remind the user
 that the stored electric-field values are in V/m while the current
