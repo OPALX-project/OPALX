@@ -26,7 +26,8 @@ Implementation
   - `BeamBeam`
   - `BeamBeamRep`
   - `OpalBeamBeam`
-- Shared BeamBeam type definitions live in [BeamBeamDefinitions.h](/Users/adelmann/git/opalx/src/AbsBeamline/BeamBeamDefinitions.h):
+- Shared BeamBeam type definitions live in
+  [BeamBeamDefinitions.h](src/AbsBeamline/BeamBeamDefinitions.h):
   - `BEAMBEAM::Config`
   - `BEAMBEAM::ActualGeometry`
   - `BEAMBEAM::WindowState`
@@ -36,14 +37,36 @@ Implementation
   - `Inactive`
   - `Active`
   - `Completed`
-- `ParallelTracker` owns:
+- `ElementBase::createInteraction()` is the generic factory for optional,
+  stateful per-run element behavior. Ordinary local-field elements retain the
+  existing `apply()` path.
+- [ElementInteractionManager](src/Algorithms/ElementInteractionManager.h) owns
+  the interactions created by placed elements
+  and dispatches the generic `SelfField`, `AfterEmission`, and `Diagnostics`
+  phases.
+- [BeamBeamInteraction](src/Algorithms/BeamBeamInteraction.h) owns:
   - BeamBeam entry / exit detection
   - actual lab-frame BeamBeam geometry
   - the high-level BeamBeam state machine
+  - fixed-mesh setup and restoration
+  - BeamBeam self-field orchestration and witness-field gathering
+  - source retirement, timing, and diagnostics state
+- `ParallelTracker` owns only the generic `ElementInteractionManager`; it has no
+  BeamBeam runtime state or BeamBeam-specific execution branch.
 - `PartBunch` owns:
   - the fixed BeamBeam mesh handoff
   - mirrored deposition
   - restoration of the normal co-moving field domain
+
+Ownership and lifetime:
+
+- `OpalBeamline` owns the placed `BeamBeamRep` clone and its immutable
+  configuration for the tracking run.
+- `ElementInteractionManager` retains that clone and owns one
+  `BeamBeamInteraction` runtime object.
+- `BeamBeamInteraction` borrows `PartBunch`, `OrbitThreader`, coordinate
+  transforms, and logging services only for the duration of each generic phase
+  dispatch.
 
 Runtime Logic
 
@@ -70,8 +93,8 @@ Diagnostics
   - `data/collision_ascii_frames.txt`
   - `BeamBeamWindowAnimation`
 - HDF5 diagnostics:
-  - [H5BeamBeamDiagnosticsWriter.h](/Users/adelmann/git/opalx/src/Structure/H5BeamBeamDiagnosticsWriter.h)
-  - [H5BeamBeamDiagnosticsWriter.cpp](/Users/adelmann/git/opalx/src/Structure/H5BeamBeamDiagnosticsWriter.cpp)
+  - [H5BeamBeamDiagnosticsWriter.h](src/Structure/H5BeamBeamDiagnosticsWriter.h)
+  - [H5BeamBeamDiagnosticsWriter.cpp](src/Structure/H5BeamBeamDiagnosticsWriter.cpp)
 - Current user-facing HDF states are:
   - `normal tracking`
   - `beambeam tracking`
@@ -85,13 +108,13 @@ Diagnostics
 
 Python Tools
 
-- [checkCollWin.py](/Users/adelmann/git/opalx/sandbox/checkCollWin.py)
+- [checkCollWin.py](sandbox/checkCollWin.py)
   - collision-window / BeamBeam scalar-dump viewer
-- [read_beambeam_h5.py](/Users/adelmann/git/opalx/sandbox/read_beambeam_h5.py)
+- [read_beambeam_h5.py](sandbox/read_beambeam_h5.py)
   - HDF5 overview, line density, and `x,z` gallery tool
-- [beam-beam-manufactured-solution.py](/Users/adelmann/git/opalx/sandbox/beam-beam-manufactured-solution.py)
+- [beam-beam-manufactured-solution.py](sandbox/beam-beam-manufactured-solution.py)
   - manufactured-solution generator and OPALX comparison tool
-- [beambeam_analysis.py](/Users/adelmann/git/opalx/sandbox/beambeam_analysis.py)
+- [beambeam_analysis.py](sandbox/beambeam_analysis.py)
   - combined front-end with Tk GUI / browser fallback
 
 Manufactured Solution

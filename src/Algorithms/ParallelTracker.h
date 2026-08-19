@@ -22,6 +22,7 @@
 #ifndef OPALX_ParallelTracker_HH
 #define OPALX_ParallelTracker_HH
 
+#include "Algorithms/ElementInteractionManager.h"
 #include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/Tracker.h"
 #include "Steppers/BorisPusher.h"
@@ -37,7 +38,6 @@
 #include "Algorithms/OrbitThreader.h"
 
 #include "AbsBeamline/BeamBeam.h"
-#include "AbsBeamline/BeamBeamDefinitions.h"
 #include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/Drift.h"
@@ -65,7 +65,6 @@
 #include <vector>
 
 class PluginElement;
-class BeamBeamWindowAnimation;
 
 /**
  * @brief Implements the main time-based simulation loop for parallel tracking.
@@ -77,8 +76,10 @@ class ParallelTracker : public Tracker {
 private:
     DataSink* itsDataSink_m;         ///< Borrowed beam statistics and phase-space output sink.
     OpalBeamline itsOpalBeamline_m;  ///< Cloned field elements and coordinate transforms.
-    bool globalEOL_m;                ///< End-of-line flag (e.g. orbit threader out of bounds).
-    double sStart_m;                 ///< Path-length start position for the track (m).
+    /// Generic per-run behavior created by placed elements.
+    ElementInteractionManager elementInteractions_m;
+    bool globalEOL_m;  ///< End-of-line flag (e.g. orbit threader out of bounds).
+    double sStart_m;   ///< Path-length start position for the track (m).
 
     /** Step-size segments: s-stop, dt, and steps per segment. */
     StepSizeConfig stepSizes_m;
@@ -96,25 +97,6 @@ private:
     IpplTimings::TimerRef PluginElemTimer_m;
     IpplTimings::TimerRef BinRepartTimer_m;
     IpplTimings::TimerRef OrbThreader_m;
-    IpplTimings::TimerRef beamBeamWindowTimer_m;
-    IpplTimings::TimerRef beamBeamEntryTransitionTimer_m;
-    IpplTimings::TimerRef beamBeamMeshSetupTimer_m;
-    IpplTimings::TimerRef beamBeamSelfFieldTimer_m;
-    IpplTimings::TimerRef beamBeamTransformBackTimer_m;
-    IpplTimings::TimerRef beamBeamWitnessGatherTimer_m;
-    IpplTimings::TimerRef beamBeamTransitionDumpTimer_m;
-
-    BEAMBEAM::Runtime<PartBunch_t::SavedFieldDomainState> beamBeamState_m;
-    BEAMBEAM::Diagnostics beamBeamDiagnostics_m;
-    std::optional<CoordinateSystemTrafo> beamBeamReferenceToBeamCSTrafo_m;
-    std::optional<bool> beamBeamLastDiagnosticActive_m;
-    std::optional<bool> beamBeamLastDiagnosticSourceActive_m;
-    std::optional<bool> beamBeamLastDiagnosticSourceRetirementPending_m;
-    std::optional<bool> beamBeamLastDiagnosticCopyActive_m;
-    std::optional<bool> beamBeamLastDiagnosticSourceOverlap_m;
-    std::optional<std::string> beamBeamLastDiagnosticSignature_m;
-    static constexpr int postBeamBeamWindowVisualizationSteps_m = 4;
-    std::unique_ptr<BeamBeamWindowAnimation> beamBeamWindowAnimation_m;
 
 public:
     /**
@@ -327,38 +309,7 @@ private:
      */
     void computeInitialBounds(Vector_t<double, 3>& rmin, Vector_t<double, 3>& rmax);
 
-    struct BeamBeamLongitudinalExtent {
-        double tail = 0.0;
-        double head = 0.0;
-    };
-
-    void checkInBBRegion(OrbitThreader& sourceOth);
-    std::optional<BEAMBEAM::ActualGeometry> detectBeamBeamWindow(
-            OrbitThreader& sourceOth, const ippl::Vector<double, 3>& rmin,
-            const ippl::Vector<double, 3>& rmax);
-    BeamBeamLongitudinalExtent computeBeamBeamLongitudinalExtent(
-            double bunchS, const ippl::Vector<double, 3>& rmin,
-            const ippl::Vector<double, 3>& rmax) const;
-    void applyBeamBeamWindowConfig(const BEAMBEAM::ActualGeometry& geometry);
-    std::optional<double> performBeamBeamWindowEntryTransition(
-            const BEAMBEAM::ActualGeometry& geometry,
-            const ippl::Vector<double, 3>& physicalRMin,
-            const ippl::Vector<double, 3>& physicalRMax);
-    void validateBeamBeamCopiedCharge(double referenceCharge) const;
-    void dumpBeamBeamTransitionSnapshot(const std::string& snapshotKind);
-    void enterBeamBeamWindow(const BEAMBEAM::ActualGeometry& geometry, Inform& m);
-    void leaveBeamBeamWindow(Inform& m);
-    void retireBeamBeamSourceContainer(Inform& m);
-    void logBeamBeamDiagnostics(bool force = false);
-    void renderBeamBeamWindowFrame(
-            double bunchTailS, double bunchHeadS, const BEAMBEAM::ActualGeometry& geometry);
-    bool usesFrozenBeamBeamWindowMesh() const;
-    void computeBeamBeamWindowSelfFields(
-            const CoordinateSystemTrafo& referenceToBeamCSTrafo,
-            const CoordinateSystemTrafo& beamToReferenceCSTrafo, Inform& m);
-    void gatherBeamBeamFieldsToWitnessContainers(Inform& m);
-    void computeDefaultSelfFields(
-            const CoordinateSystemTrafo& beamToReferenceCSTrafo, Inform& m);
+    void computeDefaultSelfFields(const CoordinateSystemTrafo& beamToReferenceCSTrafo, Inform& m);
     void dumpSpaceChargePrimaryFieldH5() const;
     void transformFieldsToReferenceFrame(
             const CoordinateSystemTrafo& beamToReferenceCSTrafo, Inform& m);

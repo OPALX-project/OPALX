@@ -20,6 +20,7 @@
 
 #include "AbsBeamline/BeamBeam.h"
 #include "AbsBeamline/BeamlineVisitor.h"
+#include "Algorithms/BeamBeamInteraction.h"
 #include "PartBunch/PartBunch.h"
 
 extern Inform* gmsg;
@@ -53,3 +54,7 @@ void BeamBeam::getFieldExtent(double& zBegin, double& zEnd) const {
 }
 
 ElementType BeamBeam::getType() const { return ElementType::BEAMBEAM; }
+
+std::unique_ptr<ElementInteraction> BeamBeam::createInteraction() const {
+    return std::make_unique<BeamBeamInteraction>(*this);
+}
