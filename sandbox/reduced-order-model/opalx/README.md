@@ -73,6 +73,52 @@ ctest --test-dir build_openmp \
   -R '^TestBeamBeamManufacturedFields$' --output-on-failure
 ```
 
-The test uses `regression.json` for its 51x101 probe grid and acceptance
-thresholds. It writes its generated inputs, small H5/STAT outputs, and compact
-summary CSV below `build_openmp/test/BeamBeam/`; it never creates plots.
+The test uses `regression.json` for its 100000-particle source, 51x101 probe grid,
+and acceptance thresholds. The particle count intentionally covers the
+short-tracking-horizon case that previously clipped the OrbitThreader range and
+ended the BeamBeam window after the first solve on CUDA. It writes its generated
+inputs, small H5/STAT outputs, and compact summary CSV below
+`build_openmp/test/BeamBeam/`; it never creates plots.
+
+On Merlin, run a multi-rank GPU case in its own batch allocation. For example,
+request one node, two tasks, and two GPUs in the job header, then use the
+cluster's Slurm-aware Open MPI launcher:
+
+```bash
+mpiexec -n 2 /path/to/opalx rigid_fields_3sigma.in \
+  --kokkos-map-device-id-by=mpi_rank
+```
+
+Do not append this launch to the four-GPU batch that runs many exclusive
+single-rank `srun` steps. In job 353949 both OPALX ranks completed, but the
+parent PRRTE launcher remained alive after rank exit in that mixed workflow.
+Also do not use plain multi-task `srun` on this cluster: its PMI2 plugin is not
+connected to this Open MPI build, so it starts independent MPI singletons. The
+dedicated two-task `mpiexec` job returned normally for the full 400000-particle
+case and reported `MPI_Comm_size=2`.
+
+The current A100 coverage should not be overstated. Job 353948 used four
+connected MPI ranks on four A100s, but only for the distributed 8x8x8
+mirror-field unit test; it did not execute the OPALX tracking loop. The full
+manufactured deck has been validated with at most two ranks on two A100s. It
+uses `MAXSTEPS=2`: Step#0 contains the physical-source solve and Step#1 the
+physical-plus-copied-source solve. A four-rank/four-A100 full-deck run remains
+future validation work.
+
+For convergence studies, keep each completed case in a directory named
+`N<particles-in-thousands>k_M<transverse-mesh>_S<seed>/3sigma` and add an empty
+`completed` marker only after OPALX exits successfully. Aggregate the Step#1
+physical-plus-copied comparisons with:
+
+```bash
+MPLBACKEND=Agg ~/.venv-h6/bin/python \
+  sandbox/reduced-order-model/python/analyze_opalx_convergence.py \
+  --case-root /path/to/convergence-cases \
+  --output-dir /path/to/convergence-summary
+```
+
+The analyzer reports fixed-mesh particle convergence, fixed-particle mesh
+behavior, constant-particles-per-cell mesh convergence, and seed spread. It
+keeps cases with missing probe coverage in `invalid_cases.csv` but excludes them
+from convergence plots. Generated H5, CSV, logs, and PNG files remain build/run
+artifacts and must not be committed.

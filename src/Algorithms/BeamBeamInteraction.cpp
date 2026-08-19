@@ -188,11 +188,20 @@ std::optional<BEAMBEAM::ActualGeometry> BeamBeamInteraction::detectWindow(
             return std::nullopt;
         }
 
-        const IndexMap::key_t range              = sourceThreader.getRange(element);
+        const IndexMap::key_t range = sourceThreader.getRange(element);
+        // The OrbitThreader map is only a discovery aid. Its range can be clipped by the
+        // configured tracking horizon (for example, a short MAXSTEPS run that starts inside this
+        // element), so using range.end as the physical window end makes the BeamBeam lifecycle
+        // depend on the sampled bunch extent. ELEMEDGE and the element length are the authoritative
+        // path-length geometry. For 6D-pose placement, where no ELEMEDGE path coordinate exists,
+        // retain the threaded entrance as the best available path-length anchor.
+        const double windowBeginS =
+                element_m.isElementPositionSet() ? element_m.getElementPosition() : range.begin;
+        const double windowEndS                  = windowBeginS + windowLength;
         const double configuredInteractionPointS = element_m.getAttribute("IP_S");
         const double interactionPointS           = configuredInteractionPointS > 0.0
                                                            ? configuredInteractionPointS
-                                                           : 0.5 * (range.begin + range.end);
+                                                           : 0.5 * (windowBeginS + windowEndS);
         std::optional<double> xAperture;
         std::optional<double> yAperture;
         const auto aperture = element_m.getAperture();
@@ -214,7 +223,7 @@ std::optional<BEAMBEAM::ActualGeometry> BeamBeamInteraction::detectWindow(
         }
 
         return BEAMBEAM::ActualGeometry{
-                interactionPointS, range.begin, range.end, windowLength,
+                interactionPointS, windowBeginS, windowEndS, windowLength,
                 BEAMBEAM::Config{
                         element_m.getAttribute("VISUALIZE") != 0.0,
                         element_m.getAttribute("BBRIGID") != 0.0, copyTime, sourceRetireTime,

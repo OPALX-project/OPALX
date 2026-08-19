@@ -335,11 +335,13 @@ golden data.
   Do not check in generated H5, STAT, CSV field tables, logs, cache files, or
   PNGs.
 
-The 51x101 CTest result is relative L2(E)=1.0985%, relative L2(B)=1.1221%,
-median E ratio=1.00478, median B ratio=1.00222, median E/B direction cosines
-0.9999965/0.9999944, and zero uncovered probes. It passes all thresholds and
-agrees with the earlier 101x201 comparison within rounding. On the local
-OpenMP build the complete test takes about 5.2 seconds.
+The persistent 100000-source-particle, 51x101-probe CTest result is relative
+L2(E)=2.0976%, relative L2(B)=2.1984%, median E ratio=1.00544, median B
+ratio=1.00584, median E/B direction cosines 0.9999874/0.9999843, and zero
+uncovered probes. It passes all thresholds. The smaller source sample is
+intentional: it exercises the short-tracking-horizon case that exposed the
+premature CUDA `Completed` transition while reducing the local OpenMP test to
+about 5.0 seconds.
 
 Initial regression assertions, to be finalized after particle-count and mesh
 convergence, are:
@@ -381,13 +383,137 @@ factor-5000 field amplification.
   the master-derived H5 writer requires explicit permission and a downstream
   compatibility audit.
 
+## Merlin6 A100 validation and convergence (2026-08-19)
+
+The original Merlin checkout at `/psi/home/adelmann/opalx-dev/opalx` remains
+untouched because it contains an interrupted merge, one unresolved
+`FieldMirror.hpp` conflict, and hundreds of staged sandbox artifacts. Validation
+used the clean detached worktree
+`/psi/home/adelmann/opalx-dev/opalx-a100-5a354101f` at revision `5a354101f` and
+the build `/psi/home/adelmann/opalx-dev/build-opalx-a100-5a354101f-pinned`.
+That validation worktree now has only the uncommitted copies of
+`BeamBeamDefinitions.h` and `BeamBeamInteraction.cpp` used to test the window
+geometry fix; no remote commit was created.
+The CUDA configuration was `ARCH=AMPERE80`, CUDA architecture 80, Kokkos 5.2.0,
+and IPPL revision `36a4ca62a52e36a8a2c945c9048d0f010971d309`.
+
+The complete Release/CUDA build with all enabled unit tests finished at 100%
+using `-j20`. `TestBeamBeamDiagnosticsWriter`, `TestBeamBeam`, and
+`TestBinnedFieldSolver` all compiled and linked. Compiler diagnostics were
+limited to existing IPPL signed/unsigned comparisons and pre-existing
+`Solve2d5` initialization/visibility warnings; no BeamBeam source failed to
+compile.
+
+Slurm validation used four `nvidia_a100-sxm4-40gb` GPUs on
+`gmerlin6/gwendolen`:
+
+- Job 353947 passed the three focused one-rank tests and the one-rank 3-sigma
+  manufactured solve. An initial attempt to use `srun` for multi-rank checks
+  started independent MPI singletons and was rejected as invalid evidence.
+- Job 353948 reran the MPI checks with the cluster's Slurm-aware `mpiexec` and
+  `--kokkos-map-device-id-by=mpi_rank`. The two-rank exact-overlap E-doubling/B-
+  cancellation test and the four-rank non-slab 3-D mirror-decomposition test
+  both passed on every rank.
+- The A100 manufactured result was relative L2(E)=1.208856%, relative
+  L2(B)=1.143423%, median E/B magnitude ratios 1.002883/1.002491, median E/B
+  direction cosines 0.9999982/0.9999970, and zero uncovered probes. Compact
+  results were copied home and evaluated with the local `~/.venv-h6` Python
+  environment, not post-processed on Merlin.
+
+The exact A100 validation scope is:
+
+| job | A100s | connected MPI ranks | workload | tracking steps | result |
+| ---: | ---: | ---: | --- | ---: | --- |
+| 353948 | 4 | 4 | `MirrorFieldZHandlesNonSlab3DDecomposition` on an 8x8x8 distributed field | none (unit-level field operation) | passed on all ranks |
+| 353949/353950 | up to 4 concurrently | 1 per convergence case | manufactured full decks | 2 per deck | fields completed; 353949 later exposed the mixed-launcher parent hang |
+| 353953 | 1 | 1 | exact 100000-particle premature-`Completed` reproducer after the fix | 2 | passed, both solves `Active` |
+| 353956/353958 | 2 | 2 | 400000-particle manufactured full deck | 2 | passed with `MPI_Comm_size=2`; 7.04 s measured runtime |
+| 353959 | 2 | 2 | focused `TestBeamBeam` suite | none (13 unit tests) | all 13 passed on both ranks |
+
+Thus four A100s were used by one genuine four-rank MPI test and were also used
+to run independent convergence cases concurrently. No four-rank/four-A100
+end-to-end OPALX tracking deck has been run. The current end-to-end MPI maximum
+is two ranks on two A100s. Every manufactured tracking deck sets
+`MAXSTEPS=2`: Step#0 samples the physical source, and Step#1 samples the
+physical-plus-copied source. The four-rank mirror test has no tracking loop or
+time steps; it applies and verifies one distributed field-mirroring operation.
+
+The 3-sigma convergence cases use fixed 51x101 passive probes and the
+`INTEGRATED` physical-plus-mirrored Step#1 field. Jobs 353949 and 353950 ran the
+heavy solves on up to four A100s. Source H5 output remained disabled. The fixed
+64x64x128 particle scan was:
+
+| source macroparticles | relative L2(E) | relative L2(B) |
+| ---: | ---: | ---: |
+| 400,000 | 1.2089% | 1.1434% |
+| 800,000 | 1.0389% | 0.9410% |
+| 1,600,000 | 1.0111% | 0.8539% |
+| 3,200,000 | 0.8755% | 0.7079% |
+| 6,400,000 | 0.7454% | 0.5821% |
+
+At 400,000 particles, mesh refinement is not a spatial-convergence sequence:
+the E/B errors are 3.298%/3.773%, 1.209%/1.143%, 1.397%/1.548%, and
+1.641%/1.876% on 32x32x64, 64x64x128, 96x96x192, and 128x128x256 meshes. The
+upturn is deposition noise from too few particles per increasingly fine cell.
+
+Holding source macroparticles per mesh cell approximately constant gives:
+
+| mesh | source macroparticles | relative L2(E) | relative L2(B) |
+| ---: | ---: | ---: | ---: |
+| 32x32x64 | 400,000 | 3.2980% | 3.7729% |
+| 64x64x128 | 3,200,000 | 0.8755% | 0.7079% |
+| 96x96x192 | 10,800,000 | 0.5954% | 0.6861% |
+| 128x128x256 | 25,600,000 | 0.6042% | 0.8102% |
+
+The useful accuracy floor for this Monte Carlo deposition and 51x101 diagnostic
+is therefore about 0.6--0.8%; 128x128x256 does not improve on 96x96x192. The
+400,000-particle 64x64x128 baseline remains an inexpensive roughly 1.2% field
+regression, while 96x96x192 with about 10.8 million particles is the current
+sub-percent trajectory-study candidate. Three baseline seeds give mean
+L2(E)=1.2642% with standard deviation 0.0601 percentage points and mean
+L2(B)=1.2145% with standard deviation 0.0654 percentage points.
+
+The reusable local analyzer is
+`sandbox/reduced-order-model/python/analyze_opalx_convergence.py`; it writes the
+complete summary and particle/fixed-particle/constant-occupancy scans without
+committing generated results. The current local artifacts are below
+`/tmp/a100-convergence-5a354101f/persistent-postprocess`, and the remote run data
+are below `/psi/home/adelmann/opalx-dev/a100-convergence-5a354101f`.
+
+Two failures exposed by the scan were resolved as follows:
+
+- The 100000- and 200000-particle CUDA cases derived the BeamBeam end from an
+  OrbitThreader range clipped by the short tracking horizon (about 8.9 mm), not
+  from the physical 16 mm element. A sampled bunch head crossing that artificial
+  end caused the particle-count-dependent `Completed` transition. The
+  interaction now uses `ELEMEDGE` plus the declared element length as its
+  authoritative path-length window; the threaded range is only used to discover
+  the element and as the entrance fallback for 6D-pose placement. Job 353953
+  confirmed `s_range=(0.000, 0.016)` m and `Active` on both solves for the exact
+  100000-particle A100 reproducer. Its Step#1 result is L2(E)=2.5247%,
+  L2(B)=2.6614%, median E/B ratios 1.00262/1.00369, direction cosines
+  0.9999832/0.9999801, and zero uncovered probes.
+- The apparent two-rank shutdown defect was outside OPALX. Slurm accounting for
+  canceled job 353949 shows both OPALX ranks (`353949.9` and `.10`) completed
+  successfully in 19 seconds; only the nested `mpiexec`/PRRTE parent in the
+  mixed four-GPU batch remained alive. Plain multi-task `srun` is not a valid
+  workaround on Merlin: Slurm provides PMI2 while this Open MPI build expects a
+  PMIx server, so jobs 353954, 353955, and 353957 started independent MPI
+  singletons and are discarded as multi-rank evidence. A dedicated two-task,
+  two-GPU allocation using the cluster's Slurm-aware `mpiexec -n 2` reported
+  `MPI_Comm_size=2` and returned normally for the corrected 400000-particle
+  full deck (jobs 353956 and 353958; measured runtime 7.04 seconds). Job 353959
+  likewise passed all 13 focused BeamBeam tests on both real MPI ranks in 7
+  seconds. The reusable Merlin workflow is now split between the single-rank
+  convergence script and a dedicated `opalx_a100_mpi2.sh`; no OPALX source
+  change was needed for this launcher-level defect.
+
 ## Next step
 
-Perform particle-count and mesh convergence for the `INTEGRATED` 3-sigma
-physical+mirrored field before electron/positron trajectories. Then repair the
-timed pair-file format and remove the `IP_S` override so the element midpoint is
-the sole IP definition. The full physics deck remains blocked on those two
-integration items, not on primary E/B field normalization.
+The BeamBeam lifecycle and two-rank A100 execution are now validated. Next,
+repair and validate the timed pair-file format, remove the `IP_S` override so
+the element midpoint is the sole IP definition, and begin the rigid-source
+electron/positron witness-trajectory comparison.
 
 Deferred reminder: before finalizing the H5 output workflow, remind the user
 that the stored electric-field values are in V/m while the current
