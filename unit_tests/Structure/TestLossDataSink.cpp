@@ -5,7 +5,7 @@
  * This test suite validates the core behavior of LossDataSink using:
  *  - small deterministic OpalParticle samples
  *  - direct access to internal bookkeeping where needed
- *  - a single-rank initialized IPPL/MPI environment
+ *  - an initialized IPPL/MPI environment
  *
  * ---------------------------------------------------------------------------
  * Coverage
@@ -38,6 +38,12 @@
  *    - split boundaries are monotonic
  *    - split boundaries cover all local particles
  *
+ * 7. Monitor HDF5 checkpoint rewind
+ *    - records at and after the checkpoint global step are removed
+ *    - earlier records are preserved
+ *    - repeated rewind and append does not accumulate duplicate records
+ *    - malformed records without GlobalTrackStep are rejected
+ *
  * ---------------------------------------------------------------------------
  * Notes
  * ---------------------------------------------------------------------------
@@ -59,6 +65,9 @@
 
 #include <cmath>
 #include <cstddef>
+#include <filesystem>
+#include <stdexcept>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -85,6 +94,80 @@ namespace {
         return OpalParticle(id, r, p, time, charge, mass);
     }
 
+    h5_file_t openCollectiveH5(const std::string& fileName, h5_int32_t mode) {
+        h5_prop_t props = H5CreateFileProp();
+        if (props == H5_ERR) {
+            throw std::runtime_error("Could not create HDF5 file properties");
+        }
+
+        MPI_Comm comm = ippl::Comm->getCommunicator();
+        if (H5SetPropFileMPIOCollective(props, &comm) == H5_ERR) {
+            H5CloseProp(props);
+            throw std::runtime_error("Could not configure collective HDF5 access");
+        }
+
+        h5_file_t file = H5OpenFile(fileName.c_str(), mode, props);
+        H5CloseProp(props);
+        if (file == static_cast<h5_file_t>(H5_ERR)) {
+            throw std::runtime_error("Could not open HDF5 file " + fileName);
+        }
+        return file;
+    }
+
+    void writeGlobalTrackSteps(
+            const std::string& fileName, const std::vector<h5_int64_t>& globalTrackSteps) {
+        h5_file_t file = openCollectiveH5(fileName, H5_O_WRONLY);
+        for (std::size_t step = 0; step < globalTrackSteps.size(); ++step) {
+            if (H5SetStep(file, static_cast<h5_int64_t>(step)) != H5_SUCCESS
+                || H5WriteStepAttribInt64(file, "GlobalTrackStep", &globalTrackSteps[step], 1)
+                           != H5_SUCCESS) {
+                H5CloseFile(file);
+                throw std::runtime_error("Could not write GlobalTrackStep test data");
+            }
+        }
+        if (H5CloseFile(file) != H5_SUCCESS) {
+            throw std::runtime_error("Could not close HDF5 test file after writing");
+        }
+    }
+
+    void appendGlobalTrackStep(const std::string& fileName, h5_int64_t globalTrackStep) {
+        h5_file_t file            = openCollectiveH5(fileName, H5_O_APPENDONLY);
+        const h5_ssize_t numSteps = H5GetNumSteps(file);
+        if (numSteps < 0 || H5SetStep(file, numSteps) != H5_SUCCESS
+            || H5WriteStepAttribInt64(file, "GlobalTrackStep", &globalTrackStep, 1) != H5_SUCCESS) {
+            H5CloseFile(file);
+            throw std::runtime_error("Could not append GlobalTrackStep test data");
+        }
+        if (H5CloseFile(file) != H5_SUCCESS) {
+            throw std::runtime_error("Could not close HDF5 test file after appending");
+        }
+    }
+
+    std::vector<h5_int64_t> readGlobalTrackSteps(const std::string& fileName) {
+        h5_file_t file            = openCollectiveH5(fileName, H5_O_RDONLY);
+        const h5_ssize_t numSteps = H5GetNumSteps(file);
+        if (numSteps < 0) {
+            H5CloseFile(file);
+            throw std::runtime_error("Could not read HDF5 test step count");
+        }
+
+        std::vector<h5_int64_t> globalTrackSteps(static_cast<std::size_t>(numSteps));
+        for (h5_ssize_t step = 0; step < numSteps; ++step) {
+            if (H5SetStep(file, step) != H5_SUCCESS
+                || H5ReadStepAttribInt64(
+                           file, "GlobalTrackStep",
+                           &globalTrackSteps[static_cast<std::size_t>(step)])
+                           != H5_SUCCESS) {
+                H5CloseFile(file);
+                throw std::runtime_error("Could not read GlobalTrackStep test data");
+            }
+        }
+        if (H5CloseFile(file) != H5_SUCCESS) {
+            throw std::runtime_error("Could not close HDF5 test file after reading");
+        }
+        return globalTrackSteps;
+    }
+
     class LossDataSinkTest : public ::testing::Test {
     protected:
         static void SetUpTestSuite() {
@@ -100,7 +183,17 @@ namespace {
             Options::computePercentiles = false;
         }
 
-        void TearDown() override { Options::computePercentiles = oldComputePercentiles_m; }
+        void TearDown() override {
+            Options::computePercentiles = oldComputePercentiles_m;
+
+            ippl::Comm->barrier();
+            if (ippl::Comm->rank() == 0) {
+                std::filesystem::remove("test_monitor_checkpoint_rewind.h5");
+                std::filesystem::remove("test_monitor_checkpoint_keep_all.h5");
+                std::filesystem::remove("test_monitor_checkpoint_missing_step.h5");
+            }
+            ippl::Comm->barrier();
+        }
 
     private:
         bool oldComputePercentiles_m = false;
@@ -294,6 +387,43 @@ namespace {
 
         EXPECT_NEAR(stat.meanKineticEnergy_m, 6.6, 1.0e-6);
         EXPECT_NEAR(stat.totalMass_m, 0.51099895, 1.0e-12);
+    }
+
+    TEST_F(LossDataSinkTest, RewindH5RemovesCheckpointAndLaterStepsBeforeAppend) {
+        const std::string fileName = "test_monitor_checkpoint_rewind.h5";
+        writeGlobalTrackSteps(fileName, {4, 8, 12});
+
+        LossDataSink::rewindH5ToGlobalTrackStep(fileName, 8);
+        EXPECT_EQ(readGlobalTrackSteps(fileName), std::vector<h5_int64_t>({4}));
+
+        appendGlobalTrackStep(fileName, 8);
+        EXPECT_EQ(readGlobalTrackSteps(fileName), std::vector<h5_int64_t>({4, 8}));
+
+        // Restarting from the same checkpoint again removes the abandoned replacement
+        // before appending it once more, so repeated restart cannot accumulate duplicates.
+        LossDataSink::rewindH5ToGlobalTrackStep(fileName, 8);
+        appendGlobalTrackStep(fileName, 8);
+        EXPECT_EQ(readGlobalTrackSteps(fileName), std::vector<h5_int64_t>({4, 8}));
+    }
+
+    TEST_F(LossDataSinkTest, RewindH5KeepsEveryStepBeforeCheckpoint) {
+        const std::string fileName = "test_monitor_checkpoint_keep_all.h5";
+        writeGlobalTrackSteps(fileName, {2, 5});
+
+        LossDataSink::rewindH5ToGlobalTrackStep(fileName, 8);
+
+        EXPECT_EQ(readGlobalTrackSteps(fileName), std::vector<h5_int64_t>({2, 5}));
+    }
+
+    TEST_F(LossDataSinkTest, RewindH5RejectsStepWithoutGlobalTrackStep) {
+        const std::string fileName = "test_monitor_checkpoint_missing_step.h5";
+        h5_file_t file             = openCollectiveH5(fileName, H5_O_WRONLY);
+        h5_float64_t time          = 1.0e-12;
+        ASSERT_EQ(H5SetStep(file, 0), H5_SUCCESS);
+        ASSERT_EQ(H5WriteStepAttribFloat64(file, "TIME", &time, 1), H5_SUCCESS);
+        ASSERT_EQ(H5CloseFile(file), H5_SUCCESS);
+
+        EXPECT_THROW(LossDataSink::rewindH5ToGlobalTrackStep(fileName, 1), GeneralOpalException);
     }
 
 }  // namespace
