@@ -1,7 +1,7 @@
 {
   "case": {
     "separation_sigma_z": 3.0,
-    "primary_macroparticles": 400000,
+    "primary_macroparticles": 100000,
     "mesh_nxy": 64,
     "mesh_nz": 128,
     "probe_nx": 51,

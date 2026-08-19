@@ -99,9 +99,12 @@ namespace BEAMBEAM {
      * @brief Actual lab-frame/path-length geometry of the currently active placed
      * BeamBeam element.
      *
-     * These values are not intrinsic element-local coordinates. They are derived
-     * from the placed element range in the lattice and therefore represent the
-     * actual BeamBeam window seen by the tracker at runtime.
+     * These values are not intrinsic element-local coordinates. For ELEMEDGE
+     * placement, beginS is the placed entrance and endS is beginS plus the
+     * declared element length. The OrbitThreader range is intentionally not used
+     * as the physical end because a short tracking horizon may clip that map.
+     * For 6D-pose placement, the threaded entrance supplies the path-length
+     * anchor because no ELEMEDGE coordinate exists.
      */
     struct ActualGeometry {
         double interactionPointS = 0.0;
