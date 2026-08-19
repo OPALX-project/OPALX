@@ -142,6 +142,137 @@ void LossDataSink::closeFile() {
     H5file_m = 0;
 }
 
+void LossDataSink::rewindH5ToGlobalTrackStep(
+        const std::string& fileName, long long checkpointGlobalTrackStep) {
+    namespace fs = std::filesystem;
+
+    if (!fs::exists(fileName)) {
+        return;
+    }
+    if (checkpointGlobalTrackStep < 0) {
+        throw GeneralOpalException(
+                "LossDataSink::rewindH5ToGlobalTrackStep",
+                "checkpoint global track step must be non-negative");
+    }
+
+    h5_prop_t props = H5CreateFileProp();
+    if (props == H5_ERR) {
+        throw GeneralOpalException(
+                "LossDataSink::rewindH5ToGlobalTrackStep",
+                "could not create HDF5 file properties for '" + fileName + "'");
+    }
+
+    MPI_Comm comm = ippl::Comm->getCommunicator();
+    if (H5SetPropFileMPIOCollective(props, &comm) == H5_ERR) {
+        H5CloseProp(props);
+        throw GeneralOpalException(
+                "LossDataSink::rewindH5ToGlobalTrackStep",
+                "could not configure parallel HDF5 access for '" + fileName + "'");
+    }
+
+    h5_file_t file = H5OpenFile(fileName.c_str(), H5_O_RDONLY, props);
+    H5CloseProp(props);
+    if (file == static_cast<h5_file_t>(H5_ERR)) {
+        throw GeneralOpalException(
+                "LossDataSink::rewindH5ToGlobalTrackStep",
+                "could not open monitor HDF5 file '" + fileName + "'");
+    }
+
+    const auto failRead = [&](const std::string& message) {
+        H5CloseFile(file);
+        throw GeneralOpalException("LossDataSink::rewindH5ToGlobalTrackStep", message);
+    };
+
+    const h5_ssize_t numSteps = H5GetNumSteps(file);
+    if (numSteps < 0) {
+        failRead("could not read the step count from monitor HDF5 file '" + fileName + "'");
+    }
+
+    h5_ssize_t keepSteps       = 0;
+    h5_int64_t previousStep    = std::numeric_limits<h5_int64_t>::min();
+    const h5_int64_t threshold = static_cast<h5_int64_t>(checkpointGlobalTrackStep);
+    for (h5_ssize_t step = 0; step < numSteps; ++step) {
+        if (H5SetStep(file, step) != H5_SUCCESS) {
+            failRead(
+                    "could not select step " + std::to_string(step) + " in monitor HDF5 file '"
+                    + fileName + "'");
+        }
+        if (H5HasStepAttrib(file, "GlobalTrackStep") <= 0) {
+            failRead(
+                    "monitor HDF5 step " + std::to_string(step) + " in '" + fileName
+                    + "' has no GlobalTrackStep attribute");
+        }
+
+        h5_int64_t globalTrackStep = 0;
+        if (H5ReadStepAttribInt64(file, "GlobalTrackStep", &globalTrackStep) != H5_SUCCESS) {
+            failRead(
+                    "could not read GlobalTrackStep from monitor HDF5 step " + std::to_string(step)
+                    + " in '" + fileName + "'");
+        }
+        if (step > 0 && globalTrackStep < previousStep) {
+            failRead(
+                    "GlobalTrackStep is not monotonic at monitor HDF5 step " + std::to_string(step)
+                    + " in '" + fileName + "'");
+        }
+
+        previousStep = globalTrackStep;
+        if (globalTrackStep < threshold) {
+            keepSteps = step + 1;
+        }
+    }
+
+    if (H5CloseFile(file) != H5_SUCCESS) {
+        throw GeneralOpalException(
+                "LossDataSink::rewindH5ToGlobalTrackStep",
+                "could not close monitor HDF5 file '" + fileName + "' after validation");
+    }
+
+    if (keepSteps < numSteps) {
+        hid_t access = H5Pcreate(H5P_FILE_ACCESS);
+        if (access < 0 || H5Pset_fapl_mpio(access, comm, MPI_INFO_NULL) < 0) {
+            if (access >= 0) {
+                H5Pclose(access);
+            }
+            throw GeneralOpalException(
+                    "LossDataSink::rewindH5ToGlobalTrackStep",
+                    "could not configure native parallel HDF5 access for '" + fileName + "'");
+        }
+
+        hid_t nativeFile = H5Fopen(fileName.c_str(), H5F_ACC_RDWR, access);
+        H5Pclose(access);
+        if (nativeFile < 0) {
+            throw GeneralOpalException(
+                    "LossDataSink::rewindH5ToGlobalTrackStep",
+                    "could not reopen monitor HDF5 file '" + fileName + "' for rewind");
+        }
+
+        for (h5_ssize_t step = numSteps; step > keepSteps; --step) {
+            const std::string groupName = "Step#" + std::to_string(step - 1);
+            if (H5Ldelete(nativeFile, groupName.c_str(), H5P_DEFAULT) < 0) {
+                H5Fclose(nativeFile);
+                throw GeneralOpalException(
+                        "LossDataSink::rewindH5ToGlobalTrackStep",
+                        "could not remove monitor HDF5 group '" + groupName + "' from '" + fileName
+                                + "'");
+            }
+        }
+
+        const herr_t flushStatus = H5Fflush(nativeFile, H5F_SCOPE_GLOBAL);
+        const herr_t closeStatus = H5Fclose(nativeFile);
+        if (flushStatus < 0 || closeStatus < 0) {
+            throw GeneralOpalException(
+                    "LossDataSink::rewindH5ToGlobalTrackStep",
+                    "could not finalize monitor HDF5 rewind for '" + fileName + "'");
+        }
+
+        *ippl::Info << level2 << "Rewound monitor HDF5 file '" << fileName << "' from " << numSteps
+                    << " to " << keepSteps << " step(s) at checkpoint global step "
+                    << checkpointGlobalTrackStep << "." << endl;
+    }
+
+    ippl::Comm->barrier();
+}
+
 namespace {
     constexpr double percentileOneSigmaNormalDist = 0.6826894921370859;
 
