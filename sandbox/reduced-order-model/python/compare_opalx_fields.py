@@ -36,11 +36,11 @@ def sorted_steps(h5_file: h5py.File) -> list[str]:
     return sorted(h5_file.keys(), key=lambda key: int(key.split("#", maxsplit=1)[1]))
 
 
-def reference_z(group: h5py.Group) -> float:
+def reference_position(group: h5py.Group) -> np.ndarray:
     if "RefPartR" in group.attrs:
-        return float(group.attrs["RefPartR"][2])
+        return np.asarray(group.attrs["RefPartR"], dtype=float)
     if "SPOS" in group.attrs:
-        return float(group.attrs["SPOS"][0])
+        return np.array([0.0, 0.0, float(group.attrs["SPOS"][0])])
     raise KeyError("H5 step has neither RefPartR nor SPOS")
 
 
@@ -110,7 +110,9 @@ def read_case(case_dir: Path, step_index: int) -> tuple[pd.DataFrame, float]:
             if step_name not in source_h5:
                 raise KeyError(f"{source_files[0]} has steps {sorted_steps(source_h5)}")
             group = source_h5[step_name]
-            source_centroid_abs_z_m = reference_z(group) + float(np.mean(group["z"][:]))
+            source_centroid_abs_z_m = reference_position(group)[2] + float(
+                np.mean(group["z"][:])
+            )
     else:
         raise FileNotFoundError(
             f"{case_dir}: expected one _c0.stat or one _c0.h5, found "
@@ -127,7 +129,10 @@ def read_case(case_dir: Path, step_index: int) -> tuple[pd.DataFrame, float]:
         if missing:
             raise KeyError(f"{witness_files[0]}:{step_name} missing {missing}; set EBDUMP=TRUE")
         frame = pd.DataFrame({name: group[name][:] for name in required})
-        frame["z_abs_m"] = reference_z(group) + frame["z"]
+        ref_r = reference_position(group)
+        frame["x"] += ref_r[0]
+        frame["y"] += ref_r[1]
+        frame["z_abs_m"] = ref_r[2] + frame["z"]
         if "id" in group:
             frame["id"] = group["id"][:]
     return frame, source_centroid_abs_z_m

@@ -403,9 +403,12 @@ and figures into `sandbox/data/`.
 
 ## Gamma-Gamma Pair Tracking
 
-The current gamma-gamma pair sandbox lives in `track-e-p/`.  It contains the
-OPALX inputs, low-energy `e-/e+` FROMFILE distributions, and generated
-visualization output.
+The validated timed-input and reduced-order workflow lives in
+`cain-opalx-reduced-order-model/`; its README defines the explicit
+`x y z px py pz birth_time` contract and the one-command conversion, OPALX run,
+and H5 validation. `track-e-p/` remains the authoritative location of the raw
+`fort98.txt` CAIN table and contains the earlier inputs, converted files, and
+generated visualization output.
 
 Main active files:
 

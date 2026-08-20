@@ -1,6 +1,6 @@
 /**
  * @file EmittedFromFile.h
- * @brief Defines an emitted file distribution with old-OPAL time-column semantics.
+ * @brief Defines emitted file distributions with legacy and explicit birth-time semantics.
  */
 
 #ifndef OPALX_EMITTED_FROM_FILE_H
@@ -18,12 +18,17 @@
 
 /**
  * @class EmittedFromFile
- * @brief Reads old-OPAL emitted distribution dumps and emits particles by file time.
+ * @brief Reads emitted distributions and emits particles at per-record birth times.
  *
- * The data rows are interpreted positionally as
- * x px y py t pz [optional-bin].  The file time is an old-OPAL pre-emission
- * time, so a row with t = -6e-13 is emitted at t = +6e-13 when the source t0 is
- * zero.
+ * Legacy old-OPAL rows are interpreted positionally as
+ * `x px y py t pz [optional-bin]`; their time is negated and recentered using
+ * the old-OPAL emission-window convention.
+ *
+ * Explicit spacetime rows require a named header containing
+ * `x y z px py pz birth_time` (`t` is accepted as an alias for `birth_time`
+ * when `z` is present). Columns are mapped by name. Positions are offsets from
+ * the emission-source `R0`, momenta are normalized @f$p/(mc)@f$ offsets from
+ * `P0`, and `birth_time` is a time offset in seconds from the source `T0`.
  */
 class EmittedFromFile : public SamplingBase {
 public:
@@ -109,21 +114,21 @@ public:
     bool hasInitialReferencePosition() const override { return inventoryBuilt_m; }
 
     /**
-     * @brief Returns the initial reference position used by the tracker.
+     * @brief Returns the mean initial position used by the tracker.
      *
-     * @return The emission-source position offset R0 (the emission point); particles
-     *         are born symmetric about it, so no per-record average is needed.
+     * @return The mean selected file position plus the emission-source R0.
      */
-    Vector_t<double, 3> getInitialReferencePosition() const override { return R0_m; }
+    Vector_t<double, 3> getInitialReferencePosition() const override { return initialRefR_m; }
 
     /**
-     * @brief Returns the global time shift needed to center old-OPAL file times.
+     * @brief Returns the global time shift needed to reach the earliest birth.
      *
-     * @return Non-negative shift from source time to the midpoint of the emission window.
+     * Legacy files retain their centered old-OPAL shift. Explicit files shift
+     * only when `T0 + min(birth_time)` is negative.
+     *
+     * @return Non-negative amount subtracted from the initial tracker time.
      */
-    double getGlobalTimeShift() const override {
-        return std::max(0.0, 0.5 * emissionTime_m - t0_m);
-    }
+    double getGlobalTimeShift() const override { return globalTimeShift_m; }
 
     /**
      * @brief Returns the preferred emission time step.
@@ -159,14 +164,15 @@ public:
 
 private:
     /**
-     * @brief Raw row parsed from an old-OPAL emitted distribution dump.
+     * @brief Raw row parsed from a legacy or explicit emitted distribution.
      */
     struct RawRecord {
         double x        = 0.0;    ///< Horizontal position from the file.
         double px       = 0.0;    ///< Horizontal momentum offset from the file.
         double y        = 0.0;    ///< Vertical position from the file.
         double py       = 0.0;    ///< Vertical momentum offset from the file.
-        double fileTime = 0.0;    ///< Old-OPAL pre-emission time column.
+        double z        = 0.0;    ///< Explicit longitudinal position; zero for legacy rows.
+        double fileTime = 0.0;    ///< Legacy time or explicit birth-time offset.
         double pz       = 0.0;    ///< Longitudinal momentum offset from the file.
         size_t bin      = 0;      ///< Optional old-OPAL emission bin number.
         bool hasBin     = false;  ///< True if the optional bin number was present.
@@ -186,11 +192,11 @@ private:
     void resolveFilenameFromInput();
 
     /**
-     * @brief Reads and parses an old-OPAL emitted particle file.
+     * @brief Reads and parses a legacy or explicit emitted particle file.
      *
      * Accepted files may contain a leading particle count and header, or a
-     * comment header. Data rows are interpreted positionally as
-     * x px y py t pz [optional-bin].
+     * comment header. Without an explicit spacetime header, data rows use the
+     * legacy positional format `x px y py t pz [optional-bin]`.
      *
      * @param filename Path to the file to read.
      */
@@ -214,10 +220,13 @@ private:
     std::string filename_m;                     ///< File path to read emitted particle data from.
     std::vector<RawRecord> rawRecords_m;        ///< Parsed file rows before selection and sorting.
     std::vector<Record> records_m;              ///< Selected records sorted by tracker birth time.
+    bool explicitBirthFormat_m        = false;  ///< True for named x/y/z/.../birth_time files.
     size_t nextGlobalIndex_m          = 0;      ///< First global record index not emitted yet.
     bool inventoryBuilt_m             = false;  ///< True once records_m is ready for emission.
+    Vector_t<double, 3> initialRefR_m = 0.0;    ///< Average initial reference position.
     Vector_t<double, 3> initialRefP_m = 0.0;    ///< Average initial reference momentum.
     double emissionTime_m             = 0.0;    ///< Total emission time spanned by records_m.
+    double globalTimeShift_m          = 0.0;    ///< Shift needed to include the earliest birth.
     size_t emissionSteps_m            = 100;    ///< Number of steps used to derive emission dt.
 };
 

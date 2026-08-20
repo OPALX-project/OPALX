@@ -3,13 +3,14 @@
 #include <mpi.h>
 
 #include <algorithm>
-#include <array>
 #include <cctype>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <limits>
+#include <optional>
 #include <sstream>
+#include <unordered_map>
 
 #include <Kokkos_Core.hpp>
 
@@ -40,11 +41,36 @@ namespace {
         return stream && stream.eof();
     }
 
-    bool looksLikeHeader(const std::string& line) {
-        const std::string lower = lowercase(line);
-        return lower.find("x") != std::string::npos && lower.find("px") != std::string::npos
-               && lower.find("y") != std::string::npos && lower.find("py") != std::string::npos
-               && lower.find("t") != std::string::npos && lower.find("pz") != std::string::npos;
+    struct HeaderLayout {
+        bool explicitBirth = false;
+        std::unordered_map<std::string, size_t> column;
+    };
+
+    std::optional<HeaderLayout> parseHeader(const std::string& line) {
+        std::istringstream stream(line);
+        HeaderLayout layout;
+        std::string token;
+        size_t index = 0;
+        while (stream >> token) {
+            token = lowercase(token);
+            if (!layout.column.emplace(token, index).second) {
+                return std::nullopt;
+            }
+            ++index;
+        }
+
+        const auto has = [&layout](const std::string& name) {
+            return layout.column.find(name) != layout.column.end();
+        };
+        const bool common = has("x") && has("y") && has("px") && has("py") && has("pz");
+        if (common && has("z") && (has("birth_time") || has("t"))) {
+            layout.explicitBirth = true;
+            return layout;
+        }
+        if (common && !has("z") && has("t")) {
+            return layout;
+        }
+        return std::nullopt;
     }
 
     double getConfiguredEmissionTime(const Distribution_t* opalDist) {
@@ -67,39 +93,13 @@ namespace {
         return cutoffLong * (sigmaTRise + sigmaTFall) + flattopTime;
     }
 
-    struct ParsedRecordValues {
-        std::array<double, 6> coordinates;
-        size_t bin  = 0;
-        bool hasBin = false;
-    };
-
-    bool parseRecordValues(
-            const std::string& line, ParsedRecordValues& record, std::string& error) {
+    bool parseNumericValues(const std::string& line, std::vector<double>& values) {
         std::istringstream stream(line);
-        std::vector<double> values;
         double value = 0.0;
         while (stream >> value) {
             values.push_back(value);
         }
-        if (values.size() < record.coordinates.size()) {
-            return false;
-        }
-
-        for (size_t i = 0; i < record.coordinates.size(); ++i) {
-            record.coordinates[i] = values[i];
-        }
-
-        if (values.size() >= 7) {
-            const double rawBin     = values[6];
-            const double roundedBin = std::round(rawBin);
-            if (roundedBin <= 0.0 || std::fabs(rawBin - roundedBin) > 1.0e-9) {
-                error = "optional bin column must be a positive integer";
-                return false;
-            }
-            record.bin    = static_cast<size_t>(roundedBin);
-            record.hasBin = true;
-        }
-        return true;
+        return stream.eof();
     }
 }  // namespace
 
@@ -152,11 +152,13 @@ void EmittedFromFile::readFile(const std::string& filename) {
     }
 
     rawRecords_m.clear();
+    explicitBirthFormat_m   = false;
     bool sawFirstPayload    = false;
     bool expectHeaderAfterN = false;
     bool hasDeclaredCount   = false;
     size_t declaredCount    = 0;
     size_t lineNumber       = 0;
+    std::optional<HeaderLayout> header;
 
     std::string line;
     while (std::getline(file, line)) {
@@ -190,38 +192,82 @@ void EmittedFromFile::readFile(const std::string& filename) {
         }
 
         if (expectHeaderAfterN) {
-            if (!looksLikeHeader(stripped)) {
+            header = parseHeader(stripped);
+            if (!header.has_value()) {
                 throw OpalException(
                         "EmittedFromFile::readFile",
-                        "Expected a header containing x px y py t pz after the count line in '"
+                        "Expected a legacy 'x px y py t pz' or explicit "
+                        "'x y z px py pz birth_time' header after the count line in '"
                                 + filename + "'.");
             }
-            expectHeaderAfterN = false;
+            explicitBirthFormat_m = header->explicitBirth;
+            expectHeaderAfterN    = false;
             continue;
         }
 
-        if (looksLikeHeader(stripped)) {
+        if (const auto parsedHeader = parseHeader(stripped); parsedHeader.has_value()) {
+            if (!rawRecords_m.empty()) {
+                throw OpalException(
+                        "EmittedFromFile::readFile", "A header appears after particle data on line "
+                                                             + std::to_string(lineNumber) + " in '"
+                                                             + filename + "'.");
+            }
+            header                = parsedHeader;
+            explicitBirthFormat_m = header->explicitBirth;
             continue;
         }
 
-        ParsedRecordValues values;
-        std::string parseError;
-        if (!parseRecordValues(stripped, values, parseError)) {
-            const std::string detail =
-                    parseError.empty() ? "has fewer than six numeric columns" : parseError;
+        std::vector<double> values;
+        if (!parseNumericValues(stripped, values)) {
             throw OpalException(
                     "EmittedFromFile::readFile", "Line " + std::to_string(lineNumber) + " in '"
-                                                         + filename + "' " + detail + ".");
+                                                         + filename + "' is not fully numeric.");
         }
         RawRecord record;
-        record.x        = values.coordinates[0];
-        record.px       = values.coordinates[1];
-        record.y        = values.coordinates[2];
-        record.py       = values.coordinates[3];
-        record.fileTime = values.coordinates[4];
-        record.pz       = values.coordinates[5];
-        record.bin      = values.bin;
-        record.hasBin   = values.hasBin;
+        if (explicitBirthFormat_m) {
+            const auto valueAt = [&](const std::string& name) -> double {
+                const size_t column = header->column.at(name);
+                if (column >= values.size()) {
+                    throw OpalException(
+                            "EmittedFromFile::readFile",
+                            "Line " + std::to_string(lineNumber) + " in '" + filename
+                                    + "' has fewer columns than its explicit header.");
+                }
+                return values[column];
+            };
+            record.x        = valueAt("x");
+            record.y        = valueAt("y");
+            record.z        = valueAt("z");
+            record.px       = valueAt("px");
+            record.py       = valueAt("py");
+            record.pz       = valueAt("pz");
+            record.fileTime = valueAt(header->column.count("birth_time") ? "birth_time" : "t");
+        } else {
+            if (values.size() < 6) {
+                throw OpalException(
+                        "EmittedFromFile::readFile",
+                        "Line " + std::to_string(lineNumber) + " in '" + filename
+                                + "' has fewer than six numeric columns.");
+            }
+            record.x        = values[0];
+            record.px       = values[1];
+            record.y        = values[2];
+            record.py       = values[3];
+            record.fileTime = values[4];
+            record.pz       = values[5];
+            if (values.size() >= 7) {
+                const double rawBin     = values[6];
+                const double roundedBin = std::round(rawBin);
+                if (roundedBin <= 0.0 || std::fabs(rawBin - roundedBin) > 1.0e-9) {
+                    throw OpalException(
+                            "EmittedFromFile::readFile",
+                            "Line " + std::to_string(lineNumber) + " in '" + filename
+                                    + "' optional bin column must be a positive integer.");
+                }
+                record.bin    = static_cast<size_t>(roundedBin);
+                record.hasBin = true;
+            }
+        }
         rawRecords_m.push_back(record);
     }
 
@@ -271,8 +317,10 @@ void EmittedFromFile::buildInventory(size_t requested) {
     records_m.reserve(selected);
     nextGlobalIndex_m = 0;
     inventoryBuilt_m  = false;
+    initialRefR_m     = R0_m;
     initialRefP_m     = P0_m;
     emissionTime_m    = 0.0;
+    globalTimeShift_m = 0.0;
 
     if (selected == 0) {
         if (opalDist_m) {
@@ -282,20 +330,24 @@ void EmittedFromFile::buildInventory(size_t requested) {
         return;
     }
 
-    double minPulseTime     = -rawRecords_m[0].fileTime;
+    double minPulseTime =
+            explicitBirthFormat_m ? rawRecords_m[0].fileTime : -rawRecords_m[0].fileTime;
     double maxPulseTime     = minPulseTime;
     bool allRecordsHaveBins = rawRecords_m[0].hasBin;
     size_t maxBin           = rawRecords_m[0].bin;
     for (size_t i = 1; i < selected; ++i) {
-        const double pulseTime = -rawRecords_m[i].fileTime;
-        minPulseTime           = std::min(minPulseTime, pulseTime);
-        maxPulseTime           = std::max(maxPulseTime, pulseTime);
-        allRecordsHaveBins     = allRecordsHaveBins && rawRecords_m[i].hasBin;
-        maxBin                 = std::max(maxBin, rawRecords_m[i].bin);
+        const double pulseTime =
+                explicitBirthFormat_m ? rawRecords_m[i].fileTime : -rawRecords_m[i].fileTime;
+        minPulseTime       = std::min(minPulseTime, pulseTime);
+        maxPulseTime       = std::max(maxPulseTime, pulseTime);
+        allRecordsHaveBins = allRecordsHaveBins && rawRecords_m[i].hasBin;
+        maxBin             = std::max(maxBin, rawRecords_m[i].bin);
     }
 
     double pulseCenter = 0.5 * (minPulseTime + maxPulseTime);
-    if (allRecordsHaveBins && maxBin > 0) {
+    if (explicitBirthFormat_m) {
+        emissionTime_m = std::max(0.0, maxPulseTime - minPulseTime);
+    } else if (allRecordsHaveBins && maxBin > 0) {
         double lowerEmissionTime = 0.0;
         double upperEmissionTime = std::numeric_limits<double>::infinity();
         for (size_t i = 0; i < selected; ++i) {
@@ -320,7 +372,7 @@ void EmittedFromFile::buildInventory(size_t requested) {
     }
 
     const double configuredEmissionTime = getConfiguredEmissionTime(opalDist_m);
-    if (configuredEmissionTime > 0.0) {
+    if (!explicitBirthFormat_m && configuredEmissionTime > 0.0) {
         const double tolerance = std::max(1.0e-18, configuredEmissionTime * 1.0e-12);
         if (configuredEmissionTime + tolerance < maxPulseTime) {
             throw OpalException(
@@ -333,15 +385,22 @@ void EmittedFromFile::buildInventory(size_t requested) {
     if (opalDist_m) {
         opalDist_m->setTEmission(emissionTime_m);
     }
+    globalTimeShift_m = explicitBirthFormat_m ? std::max(0.0, -(t0_m + minPulseTime))
+                                              : std::max(0.0, 0.5 * emissionTime_m - t0_m);
 
     double pxSum = 0.0;
     double pySum = 0.0;
     double pzSum = 0.0;
+    Vector_t<double, 3> rSum(0.0);
     for (size_t i = 0; i < selected; ++i) {
         Record record;
         record.raw       = rawRecords_m[i];
-        record.birthTime = t0_m - record.raw.fileTime - pulseCenter;
+        record.birthTime = explicitBirthFormat_m ? t0_m + record.raw.fileTime
+                                                 : t0_m - record.raw.fileTime - pulseCenter;
         records_m.push_back(record);
+        rSum[0] += record.raw.x + R0_m[0];
+        rSum[1] += record.raw.y + R0_m[1];
+        rSum[2] += record.raw.z + R0_m[2];
         pxSum += record.raw.px + P0_m[0];
         pySum += record.raw.py + P0_m[1];
         pzSum += record.raw.pz + P0_m[2];
@@ -352,10 +411,15 @@ void EmittedFromFile::buildInventory(size_t requested) {
     });
 
     const double invSelected = 1.0 / static_cast<double>(selected);
-    initialRefP_m[0]         = pxSum * invSelected;
-    initialRefP_m[1]         = pySum * invSelected;
-    initialRefP_m[2]         = pzSum * invSelected;
-    inventoryBuilt_m         = true;
+    if (explicitBirthFormat_m) {
+        initialRefR_m[0] = rSum[0] * invSelected;
+        initialRefR_m[1] = rSum[1] * invSelected;
+        initialRefR_m[2] = rSum[2] * invSelected;
+    }
+    initialRefP_m[0] = pxSum * invSelected;
+    initialRefP_m[1] = pySum * invSelected;
+    initialRefP_m[2] = pzSum * invSelected;
+    inventoryBuilt_m = true;
 }
 
 std::pair<size_t, size_t> EmittedFromFile::computeLocalEmitRange(size_t totalToEmit) const {
@@ -462,7 +526,7 @@ void EmittedFromFile::generateLocalParticles(
     }
 
     using HostView = Kokkos::View<double**, Kokkos::HostSpace>;
-    HostView hostData("EmittedFromFile_hostData", nNew, 6);
+    HostView hostData("EmittedFromFile_hostData", nNew, 7);
     const double tEnd             = tStart + dt;
     const double overdueTolerance = std::max(1.0e-18, std::abs(dt) * 1.0e-12);
 
@@ -479,10 +543,11 @@ void EmittedFromFile::generateLocalParticles(
 
         hostData(i, 0) = record.raw.x;
         hostData(i, 1) = record.raw.y;
-        hostData(i, 2) = record.raw.px;
-        hostData(i, 3) = record.raw.py;
-        hostData(i, 4) = record.raw.pz;
-        hostData(i, 5) = stepDt;
+        hostData(i, 2) = record.raw.z;
+        hostData(i, 3) = record.raw.px;
+        hostData(i, 4) = record.raw.py;
+        hostData(i, 5) = record.raw.pz;
+        hostData(i, 6) = stepDt;
     }
 
     auto deviceData =
@@ -501,13 +566,13 @@ void EmittedFromFile::generateLocalParticles(
             "EmittedFromFile_generateLocalParticles", nNew, KOKKOS_LAMBDA(const size_t i) {
                 const size_t j = offset + i;
                 Vector_t<double, 3> p(
-                        deviceData(i, 2) + P0[0], deviceData(i, 3) + P0[1],
-                        deviceData(i, 4) + P0[2]);
-                const double stepDt = deviceData(i, 5);
+                        deviceData(i, 3) + P0[0], deviceData(i, 4) + P0[1],
+                        deviceData(i, 5) + P0[2]);
+                const double stepDt = deviceData(i, 6);
 
                 Rview(j)[0] = deviceData(i, 0) + R0[0];
                 Rview(j)[1] = deviceData(i, 1) + R0[1];
-                Rview(j)[2] = R0[2];
+                Rview(j)[2] = deviceData(i, 2) + R0[2];
                 Pview(j)    = p;
                 dtView(j)   = stepDt;
 
