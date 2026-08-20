@@ -113,8 +113,8 @@
       xsltproc --version | head -1
       perl --version | head -2
 
-    - echo "=== Clone NightlyBuildX (alps-regression-testing) ==="
-    - git clone --depth 1 --branch alps-regression-testing https://github.com/OPALX-project/NightlyBuildX.git nightlybuildx
+    - echo "=== Clone NightlyBuildX (main) ==="
+    - git clone --depth 1 --branch main https://github.com/OPALX-project/NightlyBuildX.git nightlybuildx
     - ls nightlybuildx/scripts
 
     - echo "=== Install mpirun -> srun wrapper ==="
