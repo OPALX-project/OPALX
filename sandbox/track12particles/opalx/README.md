@@ -77,7 +77,11 @@ Fetch a completed production run and make all plots locally:
   --remote-dir /path/to/run/production
 ```
 
-The comparison reconstructs absolute particle coordinates by adding all three
+The comparison overlays CAIN, OPALX, and the centered anisotropic rigid
+two-Gaussian manufactured solution. The manufactured model includes both
+primary bunches, uses no finite-sample centroid jitter, and is integrated on
+the exact CAIN output-time grid. The comparison reconstructs absolute OPALX
+particle coordinates by adding all three
 components of the H5 `RefPartR` attribute to the stored `x`, `y`, and `z`
 offsets.  Raw H5 IDs are not stable under MPI redistribution, so pair identity
 is reconstructed from birth order and one-step phase-space continuity.  The
@@ -116,9 +120,9 @@ wrap onward their field sampling is not a physical open-boundary trajectory.
 Generated production reports and plots are in the ignored local directory
 `timed/a100_400k_1024x128x128/results/`.  In particular:
 
-- `track12_cain_vs_opalx.png`: slide-scale `x(s)` comparison;
-- `track12_cain_vs_opalx_wide.png`: full-range `x(s)` comparison;
-- `track12_cain_vs_opalx_y.png`: unwrapped `y(s)` comparison;
+- `track12_cain_vs_opalx.png`: three-panel slide-scale `x(s)` comparison;
+- `track12_cain_vs_opalx_wide.png`: three-panel full-range `x(s)` comparison;
+- `track12_cain_vs_opalx_y.png`: three-panel unwrapped `y(s)` comparison;
 - `track12_first_kick_summary.csv`: all twelve first-kick values and ratios;
 - `track12_comparison.json`: aggregate, per-species, H5-identity, and wrap diagnostics.
 

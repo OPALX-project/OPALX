@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare exact-grid OPALX witness trajectories with TestParticleOrbit.dat."""
+"""Compare exact-grid CAIN, OPALX, and manufactured witness trajectories."""
 
 from __future__ import annotations
 
@@ -25,6 +25,11 @@ CAIN_CT_STEP_M = 1.8e-6
 IP_S_M = 4.0e-3
 COLORS = {"electron": "#b51f2e", "positron": "#1f5fb5"}
 LINE_STYLES = ["-", (0, (8, 6)), (0, (5, 5)), (0, (10, 8)), (0, (2, 3)), (0, (9, 4, 2, 4))]
+MANUFACTURED_MODEL = "anisotropic"
+MANUFACTURED_SOURCE_SELECTION = "both"
+MANUFACTURED_SOURCE_TIME_OFFSET_S = 0.0
+MANUFACTURED_MC_SOURCE_PARTICLES = 0
+MANUFACTURED_MAX_SUBSTEP_S = 1.0e-15
 
 
 def load_track12_module():
@@ -313,6 +318,101 @@ def merge_reference(reference: pd.DataFrame, opalx: pd.DataFrame) -> pd.DataFram
     return merged.sort_values(["species", "pair", "reference_step"]).reset_index(drop=True)
 
 
+def make_manufactured_reference(reference: pd.DataFrame, module) -> pd.DataFrame:
+    """Track the CAIN initial states through the centered rigid two-beam model."""
+    return module.track_manufactured_on_reference_grid(
+        reference,
+        MANUFACTURED_MODEL,
+        module.DEFAULT_SOURCE_KINETIC_MEV,
+        module.DEFAULT_SOURCE_CHARGE_C,
+        module.SIGMA_Z_M,
+        module.SIGMA_XY_M,
+        module.SIGMA_XY_M,
+        module.SIGMA_Z_M,
+        MANUFACTURED_MAX_SUBSTEP_S,
+        MANUFACTURED_SOURCE_SELECTION,
+        MANUFACTURED_SOURCE_TIME_OFFSET_S,
+        MANUFACTURED_MC_SOURCE_PARTICLES,
+        module.DEFAULT_MC_SEED,
+    )
+
+
+def merge_manufactured(
+    comparison: pd.DataFrame, manufactured: pd.DataFrame
+) -> pd.DataFrame:
+    """Add manufactured positions and momenta on the common CAIN time grid."""
+    selected = manufactured.rename(
+        columns={
+            "step": "reference_step",
+            "x": "x_manufactured_m",
+            "y": "y_manufactured_m",
+            "s": "s_manufactured_m",
+            "Px_beta_gamma": "px_manufactured",
+            "Py_beta_gamma": "py_manufactured",
+            "Ps_beta_gamma": "pz_manufactured",
+        }
+    )[
+        [
+            "species",
+            "pair",
+            "reference_step",
+            "x_manufactured_m",
+            "y_manufactured_m",
+            "s_manufactured_m",
+            "px_manufactured",
+            "py_manufactured",
+            "pz_manufactured",
+        ]
+    ]
+    merged = comparison.merge(
+        selected,
+        on=["species", "pair", "reference_step"],
+        how="inner",
+        validate="one_to_one",
+    )
+    if len(merged) != len(comparison):
+        raise ValueError(
+            f"matched {len(merged)} manufactured rows, expected {len(comparison)}"
+        )
+    for coordinate in ("x", "y", "s"):
+        merged[f"d{coordinate}_opalx_manufactured_m"] = (
+            merged[f"{coordinate}_opalx_m"]
+            - merged[f"{coordinate}_manufactured_m"]
+        )
+        merged[f"d{coordinate}_manufactured_cain_m"] = (
+            merged[f"{coordinate}_manufactured_m"] - merged[f"{coordinate}_cain_m"]
+        )
+    for coordinate in ("px", "py", "pz"):
+        merged[f"d{coordinate}_opalx_manufactured"] = (
+            merged[f"{coordinate}_opalx"] - merged[f"{coordinate}_manufactured"]
+        )
+        merged[f"d{coordinate}_manufactured_cain"] = (
+            merged[f"{coordinate}_manufactured"] - merged[f"{coordinate}_cain"]
+        )
+    return merged.sort_values(["species", "pair", "reference_step"]).reset_index(drop=True)
+
+
+def manufactured_error_metrics(comparison: pd.DataFrame) -> dict[str, object]:
+    """Return OPALX position errors relative to the manufactured trajectory."""
+    metrics: dict[str, object] = {"matched_samples": int(len(comparison))}
+    for coordinate in ("x", "y", "s"):
+        difference = comparison[f"d{coordinate}_opalx_manufactured_m"].to_numpy()
+        reference = comparison[f"{coordinate}_manufactured_m"].to_numpy()
+        reference_norm = np.linalg.norm(reference)
+        metrics[f"rmse_{coordinate}_um"] = float(
+            np.sqrt(np.mean(difference**2)) * 1.0e6
+        )
+        metrics[f"max_abs_{coordinate}_um"] = float(
+            np.max(np.abs(difference)) * 1.0e6
+        )
+        metrics[f"relative_l2_{coordinate}"] = (
+            float(np.linalg.norm(difference) / reference_norm)
+            if reference_norm > 0.0
+            else None
+        )
+    return metrics
+
+
 def error_metrics(comparison: pd.DataFrame) -> dict[str, object]:
     metrics: dict[str, object] = {"matched_samples": int(len(comparison))}
     for coordinate, unit_scale in (("x", 1.0e6), ("y", 1.0e6), ("s", 1.0e6)):
@@ -366,6 +466,12 @@ def make_first_kick_summary(comparison: pd.DataFrame) -> pd.DataFrame:
     first_kicks["px_ratio_opalx_to_cain"] = (
         first_kicks["px_opalx"] / first_kicks["px_cain"]
     )
+    first_kicks["px_ratio_opalx_to_manufactured"] = (
+        first_kicks["px_opalx"] / first_kicks["px_manufactured"]
+    )
+    first_kicks["px_ratio_manufactured_to_cain"] = (
+        first_kicks["px_manufactured"] / first_kicks["px_cain"]
+    )
     return first_kicks[
         [
             "species",
@@ -373,9 +479,13 @@ def make_first_kick_summary(comparison: pd.DataFrame) -> pd.DataFrame:
             "global_step",
             "px_opalx",
             "px_cain",
+            "px_manufactured",
             "px_ratio_opalx_to_cain",
+            "px_ratio_opalx_to_manufactured",
+            "px_ratio_manufactured_to_cain",
             "py_opalx",
             "py_cain",
+            "py_manufactured",
         ]
     ].sort_values(["species", "pair"])
 
@@ -433,8 +543,13 @@ def plot_trajectories(
     from matplotlib.lines import Line2D
 
     plt.rcParams.update({"font.family": "DejaVu Serif", "font.size": 11, "axes.labelsize": 15})
-    fig, axes = plt.subplots(1, 2, figsize=(12.6, 5.3), dpi=180, sharex=True, sharey=True)
-    for ax, model in zip(axes, ("cain", "opalx"), strict=True):
+    models = (
+        ("cain", "CAIN reference"),
+        ("opalx", "OPALX exact timed births"),
+        ("manufactured", "Manufactured rigid two-Gaussian"),
+    )
+    fig, axes = plt.subplots(1, 3, figsize=(18.0, 5.3), dpi=180, sharex=True, sharey=True)
+    for ax, (model, title) in zip(axes, models, strict=True):
         for (species, pair), group in comparison.groupby(["species", "pair"], sort=True):
             ax.plot(
                 group[f"s_{model}_m"] * 1.0e3,
@@ -446,7 +561,7 @@ def plot_trajectories(
         ax.axhline(0.0, color="black", linewidth=0.7, linestyle=(0, (2, 6)))
         ax.set_xlabel("S - IP [mm]")
         ax.grid(True, color="0.9", linewidth=0.5)
-        ax.set_title("CAIN reference" if model == "cain" else "OPALX exact timed births")
+        ax.set_title(title)
         if slide_limits:
             ax.set_xlim(-0.75, 1.65)
             ax.set_ylim(-9.0, 20.0)
@@ -462,7 +577,7 @@ def plot_trajectories(
         frameon=False,
     )
     fig.suptitle(
-        f"12 CAIN test-particle trajectories: {coordinate}(s)", y=0.995
+        f"12 test-particle trajectories: {coordinate}(s)", y=0.995
     )
     fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.88))
     fig.savefig(output)
@@ -506,7 +621,10 @@ def main() -> None:
     )
     opalx = add_missing_birth_samples(opalx, reference, pair_t0_s)
     comparison = merge_reference(reference, opalx)
+    manufactured = make_manufactured_reference(reference, module)
+    comparison = merge_manufactured(comparison, manufactured)
     summary, overall, by_species = make_summary(comparison)
+    opalx_vs_manufactured = manufactured_error_metrics(comparison)
     first_kicks = make_first_kick_summary(comparison)
     identity = {
         "periodic_particle_layout_m": list(periods_m),
@@ -521,6 +639,14 @@ def main() -> None:
     report = {
         "overall": overall,
         "by_species": by_species,
+        "opalx_vs_manufactured": opalx_vs_manufactured,
+        "manufactured_model": {
+            "model": MANUFACTURED_MODEL,
+            "source_selection": MANUFACTURED_SOURCE_SELECTION,
+            "source_time_offset_s": MANUFACTURED_SOURCE_TIME_OFFSET_S,
+            "mc_source_particles": MANUFACTURED_MC_SOURCE_PARTICLES,
+            "max_substep_s": MANUFACTURED_MAX_SUBSTEP_S,
+        },
         "h5_identity": identity,
         "first_kicks": first_kicks.to_dict(orient="records"),
         "particles": summary.to_dict(orient="records"),
@@ -548,6 +674,7 @@ def main() -> None:
     )
     print(json.dumps(overall, indent=2))
     print(json.dumps(by_species, indent=2))
+    print(json.dumps({"opalx_vs_manufactured": opalx_vs_manufactured}, indent=2))
     print(first_kicks.to_string(index=False))
     print(summary.to_string(index=False))
     print(f"results: {results_dir.resolve()}")
