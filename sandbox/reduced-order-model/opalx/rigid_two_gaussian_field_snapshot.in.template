@@ -50,7 +50,6 @@ IP1: BEAMBEAM,
     COPY_TIME = 1.0e-30,
     WITNESS_CONTAINERS = "1",
     RETIRE_TIME = 0.0,
-    IP_S = bb_ip_s,
     APERTURE = "CIRCLE(2.0e-5)";
 
 LINE1: LINE = (IP1);
