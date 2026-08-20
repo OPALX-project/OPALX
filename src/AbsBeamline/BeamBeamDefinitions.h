@@ -115,6 +115,21 @@ namespace BEAMBEAM {
     };
 
     /**
+     * @brief Derive the BeamBeam interaction point from placed element geometry.
+     *
+     * The interaction point has no independent input coordinate: it is always
+     * the midpoint between the placed element entrance and exit,
+     * @f[
+     *   s_\mathrm{IP} = s_\mathrm{begin}
+     *                   + \frac{s_\mathrm{end}-s_\mathrm{begin}}{2}.
+     * @f]
+     * All arguments and the return value are lab-frame path lengths in metres.
+     */
+    inline double interactionPointAtElementMidpoint(double beginS, double endS) {
+        return beginS + 0.5 * (endS - beginS);
+    }
+
+    /**
      * @brief Test whether the tracked source bunch overlaps its copied counter-propagating source.
      *
      * In the current copy model the second high-energy source bunch is represented by mirroring the

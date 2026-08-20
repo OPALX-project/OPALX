@@ -198,10 +198,8 @@ std::optional<BEAMBEAM::ActualGeometry> BeamBeamInteraction::detectWindow(
         const double windowBeginS =
                 element_m.isElementPositionSet() ? element_m.getElementPosition() : range.begin;
         const double windowEndS                  = windowBeginS + windowLength;
-        const double configuredInteractionPointS = element_m.getAttribute("IP_S");
-        const double interactionPointS           = configuredInteractionPointS > 0.0
-                                                           ? configuredInteractionPointS
-                                                           : 0.5 * (windowBeginS + windowEndS);
+        const double interactionPointS =
+                BEAMBEAM::interactionPointAtElementMidpoint(windowBeginS, windowEndS);
         std::optional<double> xAperture;
         std::optional<double> yAperture;
         const auto aperture = element_m.getAperture();

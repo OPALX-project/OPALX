@@ -200,6 +200,11 @@ namespace {
         EXPECT_FALSE(BEAMBEAM::sourceCollectiveKickEnabled(config));
     }
 
+    TEST_F(BeamBeamPartBunchTest, InteractionPointIsPlacedElementMidpoint) {
+        EXPECT_DOUBLE_EQ(BEAMBEAM::interactionPointAtElementMidpoint(1.0, 1.5), 1.25);
+        EXPECT_DOUBLE_EQ(BEAMBEAM::interactionPointAtElementMidpoint(-0.004, 0.012), 0.004);
+    }
+
     TEST_F(BeamBeamPartBunchTest, WitnessLongitudinalOffsetMapsIpToSourceFrame) {
         const double sourceS  = 30.0e-3;
         const double witnessS = 0.0;
