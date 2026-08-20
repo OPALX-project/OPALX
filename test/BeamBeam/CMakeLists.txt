@@ -7,10 +7,11 @@ execute_process(
 )
 if(NOT _beambeam_python_dependencies EQUAL 0)
   message(
-    FATAL_ERROR
-      "BeamBeam integration tests require h5py, numpy, and pandas for "
-      "${Python3_EXECUTABLE}: ${_beambeam_python_import_error}"
+    STATUS
+      "Skipping BeamBeam integration tests: h5py, numpy, and pandas are not "
+      "all available for ${Python3_EXECUTABLE}: ${_beambeam_python_import_error}"
   )
+  return()
 endif()
 
 set(_beambeam_regression_driver
