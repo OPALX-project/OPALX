@@ -38,6 +38,7 @@
 
 #include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/ConstantEFieldCavity.h"
+#include "AbsBeamline/ConstantFocusing.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Laser.h"
@@ -133,6 +134,8 @@ public:
     /// @brief Apply the algorithm to a constant E-field cavity.
     virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&);
 
+    /// @brief Apply the algorithm to a constant linear focusing element.
+    virtual void visitConstantFocusing(const ConstantFocusing&);
     /// @brief Apply the algorithm to a collimator.
     virtual void visitCollimator(const Collimator&);
 
@@ -332,6 +335,10 @@ private:
 
 inline void ParallelTracker::visitConstantEFieldCavity(const ConstantEFieldCavity& cav) {
     itsOpalBeamline_m.visit(cav, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitConstantFocusing(const ConstantFocusing& focusing) {
+    itsOpalBeamline_m.visit(focusing, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitCollimator(const Collimator& coll) {
