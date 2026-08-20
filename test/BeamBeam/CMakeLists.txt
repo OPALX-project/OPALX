@@ -62,3 +62,36 @@ set_tests_properties(
     TIMEOUT 600
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
+
+if(MPIEXEC_EXECUTABLE)
+  set(_beambeam_witness_gather_mpi_driver
+      "${PROJECT_SOURCE_DIR}/sandbox/track12particles/opalx/timed/run_witness_gather_mpi_regression.py")
+  set(_beambeam_witness_gather_mpi_work_dir
+      "${CMAKE_CURRENT_BINARY_DIR}/witness-gather-mpi-regression")
+  set(_beambeam_witness_gather_mpi_local_args)
+  if(MPIEXEC_EXECUTABLE MATCHES "open-mpi|openmpi")
+    list(APPEND _beambeam_witness_gather_mpi_local_args --openmpi-local)
+  endif()
+
+  add_test(
+    NAME TestBeamBeamWitnessGatherMPI
+    COMMAND
+      ${Python3_EXECUTABLE} ${_beambeam_witness_gather_mpi_driver}
+      --opalx $<TARGET_FILE:opalx_exe>
+      --mpiexec ${MPIEXEC_EXECUTABLE}
+      --work-dir ${_beambeam_witness_gather_mpi_work_dir}
+      --ranks 1 2 4
+      --relative-tolerance 5e-4
+      ${_beambeam_witness_gather_mpi_local_args}
+      --force
+  )
+  set_tests_properties(
+    TestBeamBeamWitnessGatherMPI
+    PROPERTIES
+      LABELS "integration;physics;beambeam;mpi"
+      PROCESSORS 4
+      RUN_SERIAL TRUE
+      TIMEOUT 300
+      WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+  )
+endif()

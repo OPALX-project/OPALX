@@ -564,8 +564,6 @@ void BeamBeamInteraction::gatherFieldsToWitnessContainers(PartBunch_t& bunch, In
             continue;
         }
 
-        const size_t nLocal = container->getLocalNum();
-
         // R is stored relative to each container's independent reference particle.
         // Translate the witness-local coordinates into the source-local frame before
         // applying the source beam rotation. The longitudinal component continues to
@@ -582,13 +580,29 @@ void BeamBeamInteraction::gatherFieldsToWitnessContainers(PartBunch_t& bunch, In
                 -1.0 * offsetToSourceFrame,
                 referenceToBeamCSTrafo_m->getRotation());
 
-        witnessToBeamCSTrafo.transformBunchTo(container->R.getView(), nLocal);
+        const size_t nLocalBeforeRedistribution = container->getLocalNum();
+        witnessToBeamCSTrafo.transformBunchTo(
+                container->R.getView(), nLocalBeforeRedistribution);
         Kokkos::fence();
+
+        // Timed witnesses can be emitted after the fixed BeamBeam field layout has been
+        // initialized. Emission distributes file records by rank capacity, which does not
+        // establish the spatial ownership required by IPPL gather. Redistribute only after R
+        // has been transformed into the source-field frame; every rank participates because
+        // the globally-empty case was rejected above. ParticleContainer::update migrates all
+        // registered witness attributes together and leaves the solved source mesh unchanged.
+        container->update();
+        container->markMomentsDirty();
+
         solver->gatherCurrentFieldsToContainer(bunch, *container);
         Kokkos::fence();
-        witnessToBeamCSTrafo.transformBunchFrom(container->R.getView(), nLocal);
-        witnessToBeamCSTrafo.rotateBunchFrom(container->E.getView(), nLocal);
-        witnessToBeamCSTrafo.rotateBunchFrom(container->B.getView(), nLocal);
+        const size_t nLocalAfterRedistribution = container->getLocalNum();
+        witnessToBeamCSTrafo.transformBunchFrom(
+                container->R.getView(), nLocalAfterRedistribution);
+        witnessToBeamCSTrafo.rotateBunchFrom(
+                container->E.getView(), nLocalAfterRedistribution);
+        witnessToBeamCSTrafo.rotateBunchFrom(
+                container->B.getView(), nLocalAfterRedistribution);
         Kokkos::fence();
 
         message << level4 << "Gathered BeamBeam source fields to witness container["

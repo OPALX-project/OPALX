@@ -1,0 +1,129 @@
+OPTION, PSDUMPFREQ = 1;
+OPTION, C0PSDUMPFREQ = 0;
+OPTION, STATDUMPFREQ = 0;
+OPTION, STEPINFOFQ = 1;
+OPTION, BOUNDPDESTROY = 1.0e9;
+OPTION, VERSION = 10900;
+OPTION, ASCIIDUMP = FALSE;
+OPTION, EBDUMP = TRUE;
+OPTION, IDEALIZED = TRUE;
+OPTION, SEED = 20260629;
+
+TITLE, STRING = "Timed BeamBeam witness-gather MPI-rank regression";
+
+REAL primary_kinetic_energy = 0.245;
+REAL primary_gamma = (primary_kinetic_energy + EMASS) / EMASS;
+REAL primary_beta = sqrt(1.0 - 1.0 / (primary_gamma^2));
+REAL primary_electrons_per_bunch = 1.25e10;
+REAL primary_macroparticles = @PRIMARY_MACROPARTICLES@;
+REAL elementary_charge = 1.602176634e-19;
+REAL primary_bunch_charge = primary_electrons_per_bunch * elementary_charge;
+
+REAL n_witness_per_species = @WITNESS_COUNT@;
+REAL witness_bunch_charge = n_witness_per_species * elementary_charge;
+
+REAL bb_length = 8.0e-3;
+REAL bb_ip_s = 0.5 * bb_length;
+REAL track_dt = 1.8e-6 / CLIGHT;
+REAL witness_t0 = 0.5 * track_dt;
+// Step 0 freezes the BeamBeam mesh while both witness containers are empty.
+// The primary reaches the IP when the witnesses first participate.
+REAL primary_source_r0z = bb_ip_s - 0.5 * primary_beta * CLIGHT * track_dt;
+REAL n_steps = 5;
+
+IP1: BEAMBEAM,
+    L = bb_length,
+    ELEMEDGE = 0.0,
+    BBRIGID = TRUE,
+    VISUALIZE = FALSE,
+    COPY_TIME = 1.0e-30,
+    WITNESS_CONTAINERS = "1,2",
+    RETIRE_TIME = 0.0,
+    APERTURE = "RECTANGLE(4.0e-5, 4.0e-5)",
+    DELETEONTRANSVERSEEXIT = FALSE;
+
+REGRESSION_LINE: LINE = (IP1);
+
+SOURCEBINNING: BINNING,
+    MAXBINS = 1,
+    DESIREDWIDTH = 0.1,
+    BINNINGALPHA = 1.0,
+    BINNINGBETA = 1.0,
+    PARAMETER = "VELOCITYZ",
+    ADAPTIVEBINNING = FALSE,
+    DUMPBINSFILE = "NONE",
+    TABLEPRINTFREQ = 0;
+
+FS1: FIELDSOLVER,
+    TYPE = OPEN,
+    BINS = "SOURCEBINNING",
+    NX = 32, NY = 32, NZ = 64,
+    PARFFTX = TRUE, PARFFTY = TRUE, PARFFTZ = TRUE,
+    BCFFTX = OPEN, BCFFTY = OPEN, BCFFTZ = OPEN,
+    BBOXINCR = 1,
+    GREENSF = INTEGRATED;
+
+DIST_PRIMARY_ELECTRONS: DISTRIBUTION,
+    TYPE = FROMFILE,
+    FNAME = "../input/primary_fixed.fromfile",
+    NPARTDIST = primary_macroparticles;
+
+DIST_WITNESS_ELECTRONS: DISTRIBUTION,
+    TYPE = EMITTEDFROMFILE,
+    FNAME = "../input/witness_electrons.emittedfromfile",
+    EMITTED = TRUE,
+    EMISSIONSTEPS = 1,
+    NPARTDIST = n_witness_per_species;
+
+DIST_WITNESS_POSITRONS: DISTRIBUTION,
+    TYPE = EMITTEDFROMFILE,
+    FNAME = "../input/witness_positrons.emittedfromfile",
+    EMITTED = TRUE,
+    EMISSIONSTEPS = 1,
+    NPARTDIST = n_witness_per_species;
+
+SOURCE_PRIMARY_ELECTRONS: EMISSIONSOURCE,
+    DISTRIBUTION = DIST_PRIMARY_ELECTRONS,
+    R0Z = primary_source_r0z;
+SOURCE_WITNESS_ELECTRONS: EMISSIONSOURCE,
+    DISTRIBUTION = DIST_WITNESS_ELECTRONS,
+    T0 = witness_t0,
+    R0Z = bb_ip_s;
+SOURCE_WITNESS_POSITRONS: EMISSIONSOURCE,
+    DISTRIBUTION = DIST_WITNESS_POSITRONS,
+    T0 = witness_t0,
+    R0Z = bb_ip_s;
+
+PRIMARY_ELECTRON_SOURCES: EMISSIONSOURCELIST = (SOURCE_PRIMARY_ELECTRONS);
+WITNESS_ELECTRON_SOURCES: EMISSIONSOURCELIST = (SOURCE_WITNESS_ELECTRONS);
+WITNESS_POSITRON_SOURCES: EMISSIONSOURCELIST = (SOURCE_WITNESS_POSITRONS);
+
+PRIMARY_ELECTRONS: BEAM,
+    PARTICLE = ELECTRON,
+    NALLOC = primary_macroparticles,
+    BCHARGE = primary_bunch_charge,
+    SOURCES = PRIMARY_ELECTRON_SOURCES;
+
+WITNESS_ELECTRONS: BEAM,
+    PARTICLE = ELECTRON,
+    NALLOC = n_witness_per_species,
+    BCHARGE = witness_bunch_charge,
+    SOURCES = WITNESS_ELECTRON_SOURCES;
+
+WITNESS_POSITRONS: BEAM,
+    PARTICLE = POSITRON,
+    NALLOC = n_witness_per_species,
+    BCHARGE = witness_bunch_charge,
+    SOURCES = WITNESS_POSITRON_SOURCES;
+
+TRACK,
+    LINE = REGRESSION_LINE,
+    BEAMS = {PRIMARY_ELECTRONS, WITNESS_ELECTRONS, WITNESS_POSITRONS},
+    MAXSTEPS = n_steps,
+    ZSTART = 0.0,
+    ZSTOP = bb_length,
+    DT = track_dt;
+RUN, METHOD = "PARALLEL", FIELDSOLVER = FS1;
+ENDTRACK;
+
+QUIT;
