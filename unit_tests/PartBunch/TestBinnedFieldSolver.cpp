@@ -1,7 +1,6 @@
 /**
  * @file TestBinnedFieldSolver.cpp
- * @brief Smoke tests for `PartBunch::computeSelfFields()` with and without particle binning
- * enabled.
+ * @brief Smoke tests for binned self-fields and open/periodic P3M configuration.
  *
  * This file validates that the self-field computation pathway is stable across the
  * "legacy" (no binning attached) and "binned" (adaptive bins attached) execution paths.
@@ -18,6 +17,8 @@
  *   and (near) zero after the call.
  * - When binning is active, the current bin count is sane (between 1 and the configured
  *   maximum).
+ * - Open and periodic P3M select the same solver wrapper with matching particle boundaries.
+ * - Mixed and unsupported P3M boundary conditions are rejected during command validation.
  *
  * Notes:
  * - The fixture initializes IPPL and disables HDF5 output to keep the tests lightweight.

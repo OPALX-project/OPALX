@@ -259,6 +259,7 @@ void FieldSolverCmd::validateP3MConfiguration() const {
         return;
     }
 
+    // Fail before constructing the PartBunch or IPPL solver.
     (void)constructBCHandler();
 
     if (getP3MCutoff() <= 0.0) {

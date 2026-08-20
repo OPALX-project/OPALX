@@ -95,7 +95,7 @@ PartBunch<T, Dim>::PartBunch(
 
     this->setBCHandler(std::make_shared<BCHandler_t>(OPALFieldSolver_m->constructBCHandler()));
 
-    // TODO: support mixed periodic/open per axis; currently all periodic or all open.
+    // Open P3M must not wrap particles at the temporary mesh boundary.
     bool isAllPeriodic = this->getBCHandler()->isAll(BCHandler_t::PERIODIC);
     m << level5 << "* FieldContainer set to isAllPeriodic = " << isAllPeriodic << endl;
     const ippl::BC particleBC = (useP3M && !isAllPeriodic) ? ippl::BC::NO : ippl::BC::PERIODIC;

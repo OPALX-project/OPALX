@@ -8,6 +8,7 @@
  * - Moment computation stability (empty and known-data cases).
  * - Min / max position computation.
  * - `markParticlesOutside` and `deleteInvalidParticles` mask-driven deletion.
+ * - Propagation of periodic and open boundary conditions to the P3M overlap layout.
  *
  * The fixture constructs a lightweight `ParticleContainer` on a minimal 8^3
  * periodic mesh without a full `PartBunch`, so no field-solver or DataSink
@@ -43,8 +44,8 @@ namespace {
 
         static void TearDownTestSuite() { ippl::finalize(); }
 
-        /// Build a minimal ParticleContainer on an 8^3 periodic mesh over [-4, 4]^3.
-        /// Reads `Options::useQMAttributes` at construction time.
+        /// Build a minimal ParticleContainer on an 8^3 mesh over [-4, 4]^3 with selectable layout
+        /// and particle boundary conditions.
         std::shared_ptr<PC_t> makeContainer(
                 PC_t::LayoutType layoutType = PC_t::LayoutType::Spatial,
                 ippl::BC particleBC         = ippl::BC::PERIODIC) {

@@ -21,6 +21,7 @@ Uniform::Uniform(
 }
 
 void Uniform::initRandomPool() {
+    // Give every MPI rank an independent deterministic stream when a user seed is configured.
     const size_t seed = Options::seed == -1
                                 ? 1234567
                                 : static_cast<size_t>(Options::seed + 100 * ippl::Comm->rank());
@@ -51,6 +52,9 @@ void Uniform::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> /
     const double pz        = avrgpz_m;
     constexpr double twoPi = 6.283185307179586476925286766559;
 
+    // For a point uniform by volume in the unit sphere, r^3 is uniform on [0, 1], cos(theta) is
+    // uniform on [-1, 1], and phi is uniform on [0, 2*pi). Scaling each Cartesian component by
+    // its semi-axis maps the sphere to the requested ellipsoid without changing uniformity.
     Kokkos::parallel_for(
             "Uniform::generateParticles", nlocal, KOKKOS_LAMBDA(const size_t j) {
                 auto generator      = pool.get_state();

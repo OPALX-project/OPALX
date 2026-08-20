@@ -6,8 +6,10 @@
 #include "Distribution/SamplingBase.hpp"
 
 /**
- * One-shot cold distribution that is spatially uniform inside an ellipsoid.
- * SIGMAX, SIGMAY and SIGMAZ are interpreted as its semi-axes.
+ * @brief One-shot cold distribution that is uniform by volume inside an ellipsoid.
+ *
+ * `SIGMAX`, `SIGMAY`, and `SIGMAZ` are semi-axes, not RMS widths. Emission models and delayed
+ * emission are not supported.
  */
 class Uniform : public SamplingBase {
 public:
