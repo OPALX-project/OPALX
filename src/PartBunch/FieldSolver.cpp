@@ -346,6 +346,8 @@ void FieldSolver<double, 3>::initP3MSolver() {
     sp.add("regularization_cutoff", 1.0e-9);  // standard PP regularization length
 
     using P3MSolver_t = FFTTruncatedGreenSolver_t<double, 3>;
+    // The same P3M wrapper handles both modes; boundary_type selects periodic images or the open
+    // kernel.
     if (bcHandler_m->isAll(BCHandler_t::PERIODIC)) {
         sp.add("boundary_type", P3MSolver_t::PERIODIC);
     } else if (bcHandler_m->isAll(BCHandler_t::OPEN)) {

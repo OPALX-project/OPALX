@@ -55,7 +55,7 @@ class H5PartWrapper;
 
 enum class DistributionType : short {
     NODIST = -1,
-    UNIFORM,
+    UNIFORM,  ///< Cold distribution uniform by volume inside an ellipsoid.
     GAUSS,
     MULTIVARIATEGAUSS,
     FLATTOP,
