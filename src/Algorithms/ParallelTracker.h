@@ -339,6 +339,8 @@ inline void ParallelTracker::visitConstantEFieldCavity(const ConstantEFieldCavit
 
 inline void ParallelTracker::visitConstantFocusing(const ConstantFocusing& focusing) {
     itsOpalBeamline_m.visit(focusing, *this, *itsBunch_m);
+}
+
 inline void ParallelTracker::visitCollimator(const Collimator& coll) {
     itsOpalBeamline_m.visit(coll, *this, *itsBunch_m);
 }

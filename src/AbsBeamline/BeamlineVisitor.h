@@ -80,7 +80,7 @@ public:
 
     /// Apply the algorithm to a collimator.
     virtual void visitCollimator(const Collimator&) = 0;
-    
+
     /// Apply the algorithm to a constant linear focusing element.
     virtual void visitConstantFocusing(const ConstantFocusing& focusing);
 
