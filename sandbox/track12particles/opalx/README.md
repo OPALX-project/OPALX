@@ -77,6 +77,24 @@ Fetch a completed production run and make all plots locally:
   --remote-dir /path/to/run/production
 ```
 
+The timed witness-gather MPI regression uses a deterministic 100000-particle
+primary, eight co-located electron/positron witnesses emitted after the fixed
+BeamBeam mesh is initialized, a 32x32x64 mesh, and five tracking steps. It runs
+the identical input on one, two, and four local CPU ranks and requires the E,
+B, and first-kick results to agree with the one-rank baseline within a relative
+tolerance of `5e-4`:
+
+```sh
+~/.venv-h6/bin/python timed/run_witness_gather_mpi_regression.py \
+  --opalx ../../../../build_openmp/src/opalx \
+  --mpiexec /opt/homebrew/bin/mpiexec \
+  --openmpi-local --force
+```
+
+The same matrix is registered as `TestBeamBeamWitnessGatherMPI`. Unlike the
+CTest `PROCESSORS` property, the regression driver explicitly launches each
+rank count through `mpiexec`.
+
 The comparison overlays CAIN, OPALX, and the centered anisotropic rigid
 two-Gaussian manufactured solution. The manufactured model includes both
 primary bunches, uses no finite-sample centroid jitter, and is integrated on

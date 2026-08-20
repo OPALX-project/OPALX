@@ -1015,3 +1015,50 @@ the corresponding x and longitudinal relative L2 differences are 1.930% and
 no relative y norm is reported. The regenerated slide-scale, wide-range, and y
 figures were inspected visually. Python compilation, all six manufactured-field
 unit tests, and `git diff --check` pass.
+
+## MPI-rank-invariant timed witness gather (2026-08-20)
+
+The production rank dependence was reduced to a five-step local CPU regression
+using a deterministic 100000-particle `FROMFILE` primary, a 32x32x64 mesh, and
+eight co-located electron/positron witnesses. Both witness containers are empty
+when the fixed BeamBeam mesh is initialized; their records are then distributed
+by emission rank capacity before the first field gather. The identical case is
+launched through connected Open MPI runs with one, two, and four ranks.
+
+Before the fix, the short reproducer gave relative E differences from the
+one-rank result of 0.510173 on two ranks and 0.770383 on four ranks. Relative B
+differences were 1.6725e3 and 1.0854e7, respectively, and the first momentum
+update was likewise rank dependent. This confirms that the test exercises the
+same field-cell ownership defect as the full four-A100 timed track12 run.
+
+`BeamBeamInteraction::gatherFieldsToWitnessContainers()` now transforms each
+globally nonempty witness container into the source-field frame and calls the
+container's spatial `update()` before IPPL gather. All ranks participate. The
+update migrates every registered witness attribute together; after gather, the
+inverse transformation uses the new local particle count. It does not modify
+the source charge deposition, mesh field, Poisson solve, charge normalization,
+or witness passivity. Because witnesses move, redistribution is performed on
+every gather rather than only at emission.
+
+The fixed rank-count result is:
+
+| MPI ranks | relative E vs rank 1 | relative B vs rank 1 | relative momentum kick vs rank 1 |
+| ---: | ---: | ---: | ---: |
+| 1 | 0 | 0 | 0 |
+| 2 | 3.634144e-7 | 3.634146e-7 | 3.634163e-7 |
+| 4 | 3.186525e-7 | 3.186526e-7 | 3.186570e-7 |
+
+These are more than three orders of magnitude below the required `5e-4`
+relative ceiling. Co-located electron/positron E and B values are identical,
+and their relative first-x-kick charge-symmetry residual is approximately
+6.3e-11 on every rank count.
+
+The persistent driver is
+`sandbox/track12particles/opalx/timed/run_witness_gather_mpi_regression.py`,
+with its compact input template beside it. CTest target
+`TestBeamBeamWitnessGatherMPI` explicitly launches the 1/2/4-rank matrix and
+enforces finite nonzero fields, a finite nonzero momentum kick, charge symmetry,
+and the `5e-4` rank-count threshold. It passes in approximately five seconds on
+the local OpenMP build. The existing manufactured-field, witness-reference-
+offset, emitted-from-file, BeamBeam diagnostics, and BeamBeam unit tests also
+pass; the complete focused selection is six of six.
