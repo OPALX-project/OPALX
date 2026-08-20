@@ -845,3 +845,173 @@ that the stored electric-field values are in V/m while the current
 `H5PartWrapperForPT` metadata labels them as MV/m. Do not alter this
 master-derived writer without explicit permission and a downstream
 compatibility audit.
+
+## Corrected full track12 A100 rerun (2026-08-20)
+
+Commit `7df4bf567` (`Fix timed BeamBeam witness emission and field sampling`)
+was pulled into the clean Merlin worktree
+`/psi/home/adelmann/opalx-dev/opalx-a100-5a354101f` on the local branch
+`codex/a100-track12-7df4bf567`. The heavily dirty/conflicted Merlin checkout at
+`/psi/home/adelmann/opalx-dev/opalx` was inspected but left untouched.
+
+A fresh Release CUDA build was configured in `build-a100/` with GCC 14.3,
+CUDA 12.9.1, IPPL `36a4ca62`, Kokkos 5.2.0, and `ARCH=AMPERE80`. The cache
+confirms compute capability 80 and disables the login node's auto-detected
+Pascal 61 architecture. The build completed with `-j20`; executable SHA-256 is
+`1c8e15c2e1fe1a7ba28b6ca89c1054d41e2533c98757ac3a77fa0d5f1ac3af18`.
+The only worktree status item is the generated untracked `build-a100/`
+directory; no source file is modified.
+
+The exact 400000-particle, 1024 x 128 x 128 timed track12 case is staged at
+`/psi/home/adelmann/opalx-dev/track12-7df4bf567-20260820`. The production deck
+SHA-256 is `929d6d9d...e3633bec157`, the fixed primary is
+`625621de...e94aa59ccd5`, and both six-particle emitted witness inputs are
+`7a74b5ee...68dab30e36a`. The committed launcher
+`sandbox/track12particles/opalx/timed/merlin/submit_track12_a100.sh` submits
+independent Slurm allocations and runs four MPI ranks through `mpiexec`, one
+rank per A100.
+
+Four-A100 smoke job 353975 completed successfully in 27.17 s, including pair-1
+emission into both witness containers. Its dependent full production job
+353976 completed successfully on `merlin-g-100` with four distinct
+A100-SXM4-40GB devices and exit code 0. The 1501-step production calculation
+took 6230.75 s (`01:43:51` Slurm elapsed). The local, ignored result copy is
+`sandbox/track12particles/opalx/timed/a100_400k_1024x128x128_refpart_fix/`.
+
+The exact-grid analyzer matched all 13012 CAIN samples. The transverse
+reference-offset correction reduced the electron x RMSE from 511.68 um to
+37.70 um and relative L2 x from 1.12695 to 0.08304. It did not, however,
+produce a valid rank-independent comparison. Pairs 1 and 2 have both newborns
+on rank 0 and their electron/positron first kicks are equal and opposite to
+roundoff. For pairs 3--6 the newborn electron and positron are on different
+ranks (3/0, 3/0, 2/1, and 2/1 respectively); their first-kick magnitudes differ
+by factors 1.922, 1.888, 1.902, and 1.916. This is a 61--63% charge-symmetry
+error, whereas the corresponding CAIN asymmetry is below 0.4%.
+
+The rank correlation is consistent with the current witness gather assuming
+that each target particle is owned by the MPI rank containing its field cell.
+IPPL `ParticleAttrib::gather()` indexes the rank-local field view using the
+local NDIndex. BeamBeam initializes the fixed-window particle layouts before
+the timed witnesses exist; while that mesh is frozen, later emissions are not
+spatially redistributed before `gatherCurrentFieldsToContainer()`. A one-rank
+run is therefore the next discriminator: it removes this ownership condition
+without changing the executable, physics, input particles, mesh, or timestep.
+
+The one-rank case was staged separately at
+`/psi/home/adelmann/opalx-dev/track12-7df4bf567-20260820-1rank`. It uses the
+same executable and verified input hashes. Merlin CMake cache evidence confirms
+`CMAKE_BUILD_TYPE=Release` with `-O3 -DNDEBUG` for C++ and CUDA; the executable
+SHA-256 remains `1c8e15c2...f1ac3af18`. One-A100 full-mesh smoke job 353977
+completed in 6.48 s. The dependent 1501-step production job 353978 completed
+successfully in 382.77 s (`00:06:23` Slurm elapsed) with one MPI rank and four
+OpenMP threads. This is 16.3 times faster than the four-rank production run,
+showing that the current small-particle/fixed-field workload is dominated by
+multi-rank communication rather than GPU field work.
+
+The one-rank results were fetched to the ignored directory
+`sandbox/track12particles/opalx/timed/a100_1rank_400k_1024x128x128_refpart_fix/`.
+All 13012 CAIN samples match the exact output grid. Electron and positron
+first-kick magnitudes agree to better than `8e-8%` for every pair, restoring
+the expected charge-sign symmetry. In the four-rank run, pairs 3--6 still have
+61--63% symmetry errors. Direct pointwise comparison shows that four-rank
+electron pairs 3--6 agree with the one-rank trajectories at approximately
+`1e-6 um` or better in x, while the four-rank positron pairs differ by up to
+6.89 um. Four-rank pairs 1--2, created on rank 0 for both species, receive only
+about 53% of the one-rank first kick. These results confirm that witness field
+gather is rank-ownership dependent; the one-rank run removes the artifact.
+
+The serial result does not yet reproduce CAIN uniformly. The one-rank first
+`|Delta px|` ratios OPALX/CAIN for pairs 1--6 are approximately 76.77, 11.30,
+2.16, 1.055, 1.170, and 2.593 (electron and positron values overlap). Thus the
+central pair is close, but the early and late source-timing dependence remains
+a physics/numerics question after the MPI gather is repaired.
+
+`sandbox/track12particles/opalx/timed/compare_rank_counts.py` persistently
+generates the first-kick/rank-symmetry plot, the pointwise trajectory-difference
+plot, and CSV/JSON summaries below the one-rank result's `rank_comparison/`
+directory. The next code step is a focused multi-rank fix that spatially
+redistributes newly emitted and subsequently moving witness containers against
+the frozen BeamBeam field layout before IPPL gather, followed by the same
+one-rank/four-rank comparison as a regression.
+
+## One-rank timed track12 versus manufactured Gaussian (2026-08-20)
+
+The sandbox already contains the required manufactured solution. The current
+reusable implementation is
+`sandbox/track12particles/track12particles.py`, backed by the independently
+tested rigid two-Gaussian field evaluator in
+`sandbox/reduced-order-model/python/rigid_two_gaussian_fields.py`. The older
+`sandbox/analytic-model/` scripts are useful historical comparisons but are
+tied to earlier decks and conventions.
+
+The exact one-rank OPALX output was compared without changing tracked code. The
+manufactured tracker used the anisotropic model, both counter-propagating rigid
+primary sources, zero source-time offset in the CAIN-local clock, and no
+Monte-Carlo centroid-jitter estimate:
+
+```
+/Users/adelmann/.venv-h6/bin/python \
+  sandbox/track12particles/track12particles.py \
+  --input sandbox/TestParticleOrbit.dat \
+  --output-dir /tmp/track12-manufactured-both-centered \
+  --manufactured-model anisotropic \
+  --source-selection both \
+  --source-time-offset-s 0 \
+  --mc-source-particles 0
+```
+
+All 13012 OPALX/manufactured trajectory samples match by species, pair, and
+step. The one-rank OPALX/manufactured first-`|Delta px|` ratios for pairs 1--6
+are `0.647869`, `0.662034`, `0.663379`, `0.686392`, `0.679476`, and `0.677163`
+for electrons, and `0.647983`, `0.662326`, `0.664333`, `0.687951`, `0.680449`,
+and `0.677460` for positrons. Their close charge-sign agreement and coherent
+time dependence support correct timed emission and mirroring in the one-rank
+run. The nearly constant 0.65--0.69 amplitude factor is also consistent with
+the prior exact-production pair-4 field comparison, whose OPALX/continuum
+field-predicted kick ratio was approximately 0.678.
+
+Against the manufactured trajectories, the one-rank electron RMS differences
+are 8.553 um in x, 3.710 um in y, and 3.474 um longitudinally; the relative L2
+differences are 1.822% in x and 0.435% longitudinally. The positron RMS
+differences are 2.995 um in x, 0.115 um in y, and 1.027 um longitudinally; its
+x relative L2 value is not informative because the manufactured positron x
+trajectory has a small, oscillatory norm. The ideal centered manufactured
+solution has zero y motion, whereas the finite OPALX source and mesh retain a
+small transverse asymmetry.
+
+This is not yet a like-for-like amplitude validation: the manufactured source
+is an untruncated continuum Gaussian, while OPALX uses a deterministic 400000-
+particle source truncated at 3 sigma and deposited on the production mesh. The
+production domain gives approximately 2.35 um x cells and 1.89 um y cells for
+a 1.944 um transverse source sigma. The existing controlled first-kick scan,
+by contrast, reached OPALX/analytic field ratios of 0.9587 at 0.635 um cells
+and 0.9843 at 0.315 um cells. That evidence makes transverse mesh resolution
+the leading explanation for the approximately 32% production-field deficit,
+not a timing error. The clean next comparison is to add a persistent one-rank
+analyzer, repeat the timed case with transverse mesh refinement, and add a
+3-sigma-truncated manufactured reference to quantify the smaller source-model
+difference separately. The MPI witness-gather repair remains necessary before
+treating any four-rank trajectory as a physics result.
+
+The manufactured-field Python unit tests
+`test_rigid_two_gaussian_fields.py` and `test_fixed_primary_fromfile.py` pass
+all six cases in the prescribed `/Users/adelmann/.venv-h6` environment. The
+track12 and first-kick scripts also pass Python byte-code compilation.
+
+The normal timed-track12 analyzer now computes this manufactured trajectory as
+part of every CAIN--OPALX comparison. Its three existing plot files retain
+their names for workflow compatibility but contain three shared-axis panels:
+CAIN, OPALX, and the manufactured rigid two-Gaussian model. The pointwise CSV
+also contains manufactured positions and momenta, both pairwise differences,
+and the first-kick CSV contains OPALX/manufactured and manufactured/CAIN ratios.
+The JSON report records the fixed manufactured configuration and aggregate
+OPALX/manufactured position errors.
+
+Regenerating the one-rank A100 analysis matched all 13012 manufactured samples
+and took approximately 28 seconds locally. The aggregate OPALX/manufactured
+RMS differences are 6.408 um in x, 2.625 um in y, and 2.562 um longitudinally;
+the corresponding x and longitudinal relative L2 differences are 1.930% and
+0.308%. The ideal centered manufactured y trajectory is identically zero, so
+no relative y norm is reported. The regenerated slide-scale, wide-range, and y
+figures were inspected visually. Python compilation, all six manufactured-field
+unit tests, and `git diff --check` pass.
