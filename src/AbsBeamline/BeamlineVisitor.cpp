@@ -39,6 +39,14 @@ BeamlineVisitor::BeamlineVisitor() {}
 
 BeamlineVisitor::~BeamlineVisitor() {}
 
+/**
+ * @copybrief BeamlineVisitor::visitConstantFocusing
+ *
+ * The default implementation preserves compatibility for visitors that do not require special
+ * focusing behavior by forwarding to `visitElementBase`.
+ *
+ * @param focusing Element supplied to the visitor.
+ */
 void BeamlineVisitor::visitConstantFocusing(const ConstantFocusing& focusing) {
     visitElementBase(focusing);
 }

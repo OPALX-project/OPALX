@@ -1,3 +1,8 @@
+/**
+ * @file ConstantFocusing.cpp
+ * @brief Implements collective scaling and particle-local gating for `ConstantFocusing`.
+ */
+
 #include "AbsBeamline/ConstantFocusing.h"
 
 #include "AbsBeamline/BeamlineVisitor.h"
@@ -74,6 +79,8 @@ void ConstantFocusing::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     const auto R = pc->R.getView();
     const auto E = pc->E.getView();
 
+    // Freeze the gradient from the first space-charge field seen by the element. The reduction is
+    // bunch-wide because the configured focusing scale describes the complete particle ensemble.
     if (!gradientInitialized_m) {
         Vector_t<double, 3> avgAbsE(0.0);
         Kokkos::parallel_reduce(
@@ -100,10 +107,17 @@ void ConstantFocusing::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     ippl::Comm->allreduce(centroid[0], 3, std::plus<double>());
     centroid /= static_cast<double>(nTotal);
 
+    // Gate each particle in the element extent
     const double gradient = gradient_m;
+    double zBegin         = 0.0;
+    double zEnd           = 0.0;
+    getFieldExtent(zBegin, zEnd);
     Kokkos::parallel_for(
-            "ConstantFocusing::apply", nLocal,
-            KOKKOS_LAMBDA(const size_t i) { E(i) += gradient * (R(i) - centroid); });
+            "ConstantFocusing::apply", nLocal, KOKKOS_LAMBDA(const size_t i) {
+                if (R(i)[2] >= zBegin && R(i)[2] < zEnd) {
+                    E(i) += gradient * (R(i) - centroid);
+                }
+            });
 }
 
 void ConstantFocusing::apply(

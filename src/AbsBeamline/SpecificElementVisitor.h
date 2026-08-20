@@ -104,8 +104,11 @@ public:
     /// Apply the algorithm to a constant E-field cavity element.
     virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&);
 
-    /// Apply the algorithm to a constant linear focusing element.
-    virtual void visitConstantFocusing(const ConstantFocusing&);
+    /**
+     * @brief Collect a constant linear focusing element when it matches `ELEM`.
+     * @param element Element considered by the visitor.
+     */
+    virtual void visitConstantFocusing(const ConstantFocusing& element);
 
     /// Apply the algorithm to a drift.
     virtual void visitDrift(const Drift&);
