@@ -1,0 +1,110 @@
+OPTION, PSDUMPFREQ = 1;
+OPTION, C0PSDUMPFREQ = 0;
+OPTION, STATDUMPFREQ = 1;
+OPTION, STEPINFOFQ = 100;
+OPTION, BOUNDPDESTROY = 1.0e9;
+OPTION, VERSION = 10900;
+OPTION, ASCIIDUMP = FALSE;
+OPTION, EBDUMP = TRUE;
+OPTION, IDEALIZED = TRUE;
+OPTION, SEED = 20260629;
+
+TITLE, STRING = "Track12 pair-4 manufactured first-kick field probe";
+
+// This two-step diagnostic samples the physical and copied primary fields at
+// the pair-4 birth point: x=sigma_x, y=0, and the common bunch centroid at the
+// IP. A 1 fs step matches the established manufactured-field regression. Step
+// 0 initializes the physical source; COPY_TIME activates its copy for step 1.
+
+REAL primary_kinetic_energy = 0.245;
+REAL primary_gamma = (primary_kinetic_energy + EMASS) / EMASS;
+REAL primary_beta = sqrt(1.0 - 1.0 / (primary_gamma^2));
+REAL primary_p0 = primary_gamma * primary_beta * EMASS;
+REAL primary_beta_gamma = primary_p0 / EMASS;
+
+REAL primary_sigma_xy = 1.944325075701e-6;
+REAL primary_sigma_z = 0.6e-3;
+REAL primary_electrons_per_bunch = 1.25e10;
+REAL primary_macroparticles = @PRIMARY_MACROPARTICLES@;
+REAL elementary_charge = 1.602176634e-19;
+REAL primary_bunch_charge = primary_electrons_per_bunch * elementary_charge;
+
+REAL bb_length = 0.016;
+REAL bb_ip_s = 0.5 * bb_length;
+REAL dt_track = 1.0e-15;
+REAL primary_source_r0z = bb_ip_s - 1.5 * primary_beta * CLIGHT * dt_track;
+
+IP1: BEAMBEAM,
+    L = bb_length,
+    ELEMEDGE = 0.0,
+    BBRIGID = TRUE,
+    VISUALIZE = FALSE,
+    COPY_TIME = 1.0e-30,
+    WITNESS_CONTAINERS = "1",
+    RETIRE_TIME = 0.0,
+    IP_S = bb_ip_s,
+    APERTURE = "@APERTURE_SPEC@",
+    DELETEONTRANSVERSEEXIT = FALSE;
+
+TRACK12_LINE: LINE = (IP1);
+
+SOURCEBINNING: BINNING,
+    MAXBINS = 1,
+    DESIREDWIDTH = 0.1,
+    BINNINGALPHA = 1.0,
+    BINNINGBETA = 1.0,
+    PARAMETER = "VELOCITYZ",
+    ADAPTIVEBINNING = FALSE,
+    DUMPBINSFILE = "NONE",
+    TABLEPRINTFREQ = 0;
+
+FS1: FIELDSOLVER,
+    TYPE = OPEN,
+    BINS = "SOURCEBINNING",
+    NX = @NX@, NY = @NY@, NZ = @NZ@,
+    PARFFTX = TRUE, PARFFTY = TRUE, PARFFTZ = TRUE,
+    BCFFTX = OPEN, BCFFTY = OPEN, BCFFTZ = OPEN,
+    BBOXINCR = 1,
+    GREENSF = INTEGRATED;
+
+@PRIMARY_DISTRIBUTION@
+
+DIST_FIELD_PROBE: DISTRIBUTION,
+    TYPE = FROMFILE,
+    FNAME = "input/pair4_probe.fromfile",
+    NPARTDIST = 1;
+
+SOURCE_PRIMARY_ELECTRONS: EMISSIONSOURCE,
+    DISTRIBUTION = DIST_PRIMARY_ELECTRONS,
+    R0Z = primary_source_r0z;
+SOURCE_FIELD_PROBE: EMISSIONSOURCE,
+    DISTRIBUTION = DIST_FIELD_PROBE,
+    R0Z = bb_ip_s;
+
+PRIMARY_ELECTRON_SOURCES: EMISSIONSOURCELIST = (SOURCE_PRIMARY_ELECTRONS);
+FIELD_PROBE_SOURCES: EMISSIONSOURCELIST = (SOURCE_FIELD_PROBE);
+
+PRIMARY_ELECTRONS: BEAM,
+    PARTICLE = ELECTRON,
+@PRIMARY_BEAM_ENERGY@
+    NALLOC = primary_macroparticles,
+    BCHARGE = primary_bunch_charge,
+    SOURCES = PRIMARY_ELECTRON_SOURCES;
+
+FIELD_PROBE: BEAM,
+    PARTICLE = ELECTRON,
+    NALLOC = 1,
+    BCHARGE = elementary_charge,
+    SOURCES = FIELD_PROBE_SOURCES;
+
+TRACK,
+    LINE = TRACK12_LINE,
+    BEAMS = {PRIMARY_ELECTRONS, FIELD_PROBE},
+    MAXSTEPS = 2,
+    ZSTART = 0.0,
+    ZSTOP = bb_length,
+    DT = dt_track;
+RUN, METHOD = "PARALLEL", FIELDSOLVER = FS1;
+ENDTRACK;
+
+QUIT;

@@ -34,3 +34,31 @@ set_tests_properties(
     TIMEOUT 600
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )
+
+set(_beambeam_witness_reference_driver
+    "${PROJECT_SOURCE_DIR}/sandbox/track12particles/opalx/timed/scan_first_kick_fields.py")
+set(_beambeam_witness_reference_work_dir
+    "${CMAKE_CURRENT_BINARY_DIR}/witness-reference-offset-regression")
+
+add_test(
+  NAME TestBeamBeamWitnessReferenceOffset
+  COMMAND
+    ${Python3_EXECUTABLE} ${_beambeam_witness_reference_driver}
+    --opalx $<TARGET_FILE:opalx_exe>
+    --output-dir ${_beambeam_witness_reference_work_dir}
+    --case square20_n64_random
+    --omp-threads 4
+    --force
+    --no-plot
+    --max-e-magnitude-relative-error 0.08
+    --min-e-direction-cosine 0.999
+)
+set_tests_properties(
+  TestBeamBeamWitnessReferenceOffset
+  PROPERTIES
+    LABELS "integration;physics;beambeam"
+    PROCESSORS 4
+    RUN_SERIAL TRUE
+    TIMEOUT 600
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)

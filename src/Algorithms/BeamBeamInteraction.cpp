@@ -537,7 +537,8 @@ void BeamBeamInteraction::gatherFieldsToWitnessContainers(PartBunch_t& bunch, In
     }
 
     const size_t nContainers = bunch.getNumParticleContainers();
-    const double sourceS     = bunch.getParticleContainer()->get_sPos();
+    const auto source        = bunch.getParticleContainer();
+    const double sourceS     = source->get_sPos();
     for (const size_t containerIndex : witnessContainers) {
         if (containerIndex == 0) {
             IpplTimings::stopTimer(witnessGatherTimer_m);
@@ -564,10 +565,21 @@ void BeamBeamInteraction::gatherFieldsToWitnessContainers(PartBunch_t& bunch, In
         }
 
         const size_t nLocal = container->getLocalNum();
-        const double longitudinalOffset =
+
+        // R is stored relative to each container's independent reference particle.
+        // Translate the witness-local coordinates into the source-local frame before
+        // applying the source beam rotation. The longitudinal component continues to
+        // use path length, which is the authoritative curvilinear coordinate; x and y
+        // come from the lab-frame reference-particle displacement. Omitting these
+        // transverse components gathers every offset witness container as if its
+        // reference particle were on the source axis (for example, track12 has
+        // RefPartR.x = sigma_x and particle-local x approximately zero).
+        Vector_t<double, 3> offsetToSourceFrame =
+                container->getRefPartR() - source->getRefPartR();
+        offsetToSourceFrame[2] =
                 BEAMBEAM::longitudinalOffsetToSourceFrame(sourceS, container->get_sPos());
         CoordinateSystemTrafo witnessToBeamCSTrafo(
-                Vector_t<double, 3>(0.0, 0.0, -longitudinalOffset),
+                -1.0 * offsetToSourceFrame,
                 referenceToBeamCSTrafo_m->getRotation());
 
         witnessToBeamCSTrafo.transformBunchTo(container->R.getView(), nLocal);

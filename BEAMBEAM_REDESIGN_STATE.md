@@ -597,15 +597,248 @@ job 353963 recovered and completed all skipped cases. The final workflow also
 times the rank-one baseline alone before launching concurrent cases and records
 the executable hash plus exact tracked OPALX source patch.
 
+## Timed CAIN pair input repair and validation (2026-08-19)
+
+The timed input boundary is now repaired without changing the legacy old-OPAL
+format. `EMITTEDFROMFILE` recognizes a named explicit-spacetime header
+`x y z px py pz birth_time`; columns are mapped by name, `birth_time` is a
+second offset from source `T0`, and the full birth position is
+`R0 + (x,y,z)`. The existing prototype spelling `t` is accepted as an alias
+only when the named header also contains `z`. Legacy positional
+`x px y py t pz [bin]` files retain their negation, recentering, optional-bin,
+and source-position behavior.
+
+The exact explicit convention is
+`t_birth = T0 + birth_time`, `R_birth = R0 + (x,y,z)`.
+
+The existing fractional-step path remains in use: a particle born during a
+step receives `dt_particle = t_step_end - t_birth`, is initialized with the
+corresponding leapfrog half drift, receives the already-solved primary field in
+the generic BeamBeam `AfterEmission` phase, and then completes only that
+fraction of the Boris step. A focused regression checks the explicit `T0`,
+signed `z`, mean reference position, fractional `dt`, and half drift. All seven
+`TestEmittedFromFile` tests pass directly on one rank and with two connected MPI
+ranks. The test fixture now uses rank-local temporary filenames, removing its
+former multi-rank file-write race.
+
+The reproducible workflow is in
+`sandbox/cain-opalx-reduced-order-model/`. It keeps
+`sandbox/track-e-p/fort98.txt` as the single raw-data source, converts CAIN
+species 2 to electrons and species 3 to positrons, divides momenta by
+510998.95 eV, and writes `birth_time=ct/c`. The conversion validator confirms
+1297 records per species, exact paired `(ct,x,y,z)` values, and floating-point
+round-trip maxima of 4.44e-16 in normalized momentum and 4.04e-28 s in birth
+time. CAIN `ct/c` spans -4.137532372 ps to +3.237052748 ps. CAIN weights are
+recorded in the manifest but are not written as macro-weights because the pair
+containers are passive witnesses; each H5 witness particle carries one signed
+elementary charge for species metadata and pushing.
+
+The reduced-order deck sets `T0=s_IP/(beta*c)=116.747686201 ps`, so CAIN time
+zero coincides with the primary centroid at the BeamBeam element midpoint. It
+uses container 0 for primary electrons, container 1 for CAIN electrons, and
+container 2 for CAIN positrons, with `WITNESS_CONTAINERS="1,2"`,
+`BBRIGID=TRUE`, zero source divergence/momentum spread, and the integrated
+Green function.
+
+The complete 160-step deck passed locally on one rank in 4.51 s and two MPI
+ranks in 1.69 s. In both runs the persistent H5 validator matched every witness
+dump to the exact cumulative CAIN birth schedule: both containers first dump
+one particle at global step 122 and reach 1297 particles, electron `sp=1` has
+negative elementary charge, and positron `sp=2` has positive elementary
+charge. The BeamBeam RHO diagnostics report all-container population increasing
+from 10000 to 12594 while the source charge remains exactly
+-2.0027207925e-9 C at all 112 active-window solves. This confirms that witness
+containers are gather-only and do not enter the field source.
+
+The corresponding user-facing format documentation is updated in the separate
+`/Users/adelmann/git/opalx-manual` worktree; its 53-chapter validation passes.
+Generated pair files, H5 data, and JSON reports remain ignored outputs and are
+recreated by `run_pipeline.sh`.
+
+## Exact track12 CAIN trajectory comparison (2026-08-20, completed baseline)
+
+The 12 artificial CAIN test particles in `sandbox/TestParticleOrbit.dat` are
+now represented by one exact-timed OPALX deck in
+`sandbox/track12particles/opalx/timed/`. There are six right-going electron--
+positron pairs. Their birth `ct` values are -0.9000, -0.5994, -0.3006, 0,
++0.3006, and +0.5994 mm, and the CAIN output interval is exactly 1.8 um/c
+(6.004153713566736 fs). The OPALX tracker starts one interval before the first
+birth and ends at global step 1500. No temporal interpolation is used. A birth
+at an exact floating-point step boundary may first appear in H5 at reference
+step zero or one; the analyzer supplies the exact emitted-file row whenever H5
+starts at step one.
+
+`prepare_timed_track12.py` writes separate explicit-spacetime
+`EMITTEDFROMFILE` inputs for the two species and a deterministic, re-centered,
+3-sigma-truncated primary `FROMFILE` sample using NumPy PCG64 seed 20260629.
+The production case has 400000 primary macroparticles and SHA-256
+`625621deae71b5e66522dfc8b9c17d02a75bf9db3e7cd6a0d70f5e94aa59ccd5`.
+Electron and positron files intentionally have identical numeric initial
+states; the separate OPALX beam containers supply the species and charge sign.
+The witness containers are gather-only through `WITNESS_CONTAINERS="1,2"`.
+
+The physical source and its BeamBeam reflection supply the co-propagating and
+oncoming fields. `BBRIGID=TRUE` holds the sampled primary distribution fixed.
+The fixed field domain is `RECTANGLE(2.4e-3, 2.4e-4)` with
+`DELETEONTRANSVERSEEXIT=FALSE`; this prevents deletion of the approximately
+1 mm CAIN electron excursions.
+The production mesh is 1024 x 128 x 128. Its transverse cell sizes are about
+2.34 um and 1.88 um. The stable 10000-particle 64 x 16 x 32 local run matched
+all 13012 output rows but is an intentionally under-resolved workflow smoke
+test, not physics evidence.
+
+`compare_timed_track12.py` reconstructs absolute H5 positions by adding all
+three `RefPartR` components and matches by species/pair/exact CAIN grid step.
+Raw H5 IDs are not stable under MPI redistribution: six electron trajectories
+use 10 distinct raw IDs and six positron trajectories use 16. The analyzer now
+reconstructs identity by birth order and one-step phase-space continuity. The
+fixed transverse particle layout is periodic. Its periods are the aperture
+centre-to-centre widths plus one cell, 2.402346 mm x 0.241890 mm; the analyzer
+unwraps crossings for continuous trajectory plots and retains the raw wrapped
+coordinates in the pointwise CSV. It writes pointwise, per-particle, and
+first-kick CSVs, a JSON summary, slide/wide x(s) plots, and an unwrapped y(s)
+plot. `fetch_and_compare_a100.py` fetches only the completed witness H5 files
+and manifests and performs this analysis locally.
+
+The current Merlin executable was built in the non-git directory
+`/psi/home/adelmann/opalx-dev/track12-a1cdd08-explicit-20260819` from commit
+`a1cdd08cc` plus the two local explicit-birth source files. Neither Merlin git
+worktree was modified. It uses IPPL revision `36a4ca62`, Kokkos 5.2.0, CUDA
+12.9, and Ampere compute capability 8.0. The executable SHA-256 is
+`e89b8840ccba04da3c614f780be68cd6474772c6ae156a702713335577e49432`.
+Four-rank/four-A100 smoke job 353970 completed the full-mesh three-step case in
+27.12 s, emitted pair 1 into both witness containers, and shut down normally.
+The dependent 1501-step production job 353971 completed successfully in
+1:43:15. Its run manifest records four distinct A100-SXM4-40GB UUIDs and every
+executable/input hash. All twelve population transitions occurred in the
+intended order; no witness was deleted and shutdown was normal.
+
+The local comparison matched all 13012 CAIN rows. The timing/input mechanics
+are validated, but the trajectories are not reproduced. Per-species errors are:
+
+| species | samples | RMSE x [um] | relative L2 x | RMSE y [um] | RMSE s [um] |
+|---|---:|---:|---:|---:|---:|
+| electron | 6506 | 511.68 | 1.12695 | 251.14 | 30.52 |
+| positron | 6506 | 5.04 | 0.94299 | 1.08 | 0.78 |
+
+The first electron kick isolates the failure before trajectory integration:
+
+| pair | CAIN px | OPALX px | OPALX/CAIN |
+|---:|---:|---:|---:|
+| 1 | 2.2302e-5 | 3.0190e-5 | 1.3537 |
+| 2 | 3.8885e-4 | 1.6348e-5 | 0.0420 |
+| 3 | 6.6503e-3 | -5.8373e-5 | -0.0088 |
+| 4 | 2.2261e-2 | 2.6816e-4 | 0.0120 |
+| 5 | 1.2516e-2 | 4.8192e-5 | 0.0039 |
+| 6 | 1.7218e-3 | -6.2312e-6 | -0.0036 |
+
+The positron kicks are equal and opposite to the electron kicks to the printed
+precision. This confirms the electron/positron container assignment and points
+to the sampled source field, not the charge sign. Pairs 3 and 6 already have
+the wrong transverse sign and the central pair receives only 1.20% of the CAIN
+kick. Four electron trajectories subsequently cross the y particle boundary,
+for nine periodic wraps; after a wrap their field sampling is not a physical
+open-boundary trajectory even though the analyzer can unwrap H5 coordinates.
+
+The mirrored-copy implementation was checked directly: the binned solver
+reverses copied pz, and `BeamBeamCopyDoublesEAndCancelsBAtExactOverlap` verifies
+that exact overlap doubles E and cancels B. The PowerPoint setup was also read
+directly: 245 MeV, 1.25e10 electrons, 0.6 mm rms bunch length cut at 3 sigma,
+400000 macroparticles, six artificial right-going e-/e+ pairs at x/sigma_x=1,
+and the six stated insertion times.
+
+## Witness reference-frame field defect and controlled repair (2026-08-20)
+
+The failed production trajectory was caused primarily by a coordinate-frame
+defect in `BeamBeamInteraction::gatherFieldsToWitnessContainers()`, not by a
+non-convergent Poisson solve. Particle `R` is local to each container's
+independent reference particle. In track12, the witness H5 group has
+`RefPartR.x=sigma_x` and particle-local `R.x` near zero. The witness gather
+translated only the longitudinal path offset, so it sampled the source field
+near x=0 while the reconstructed H5 trajectory correctly appeared at
+x=sigma_x.
+
+The gather now translates witness-local coordinates into the source-local
+frame using the transverse reference-particle difference
+`RefPartR_witness-RefPartR_source`; its z component is replaced by the existing
+authoritative curvilinear difference `s_witness-s_source`. The same transform
+is undone after gather and the fields are rotated back as before. This does not
+alter source deposition, charge, field units, the field solve, reductions, or
+the Boris pusher. It changes only the physical location where a passive
+witness samples the already-computed source field. No public API changed.
+
+`sandbox/track12particles/opalx/timed/scan_first_kick_fields.py` is the
+persistent pair-4 regression and convergence driver. It uses a singleton
+witness at x=sigma_x and compares OPALX E/B with the untruncated rigid Gaussian.
+The normal seeded Gaussian and a deterministic equal-probability tensor source
+both converge monotonically as the 20 um half-width (40 um full) transverse
+domain is refined:
+
+| mesh | cell [um] | random E/analytic | tensor E/analytic |
+|---:|---:|---:|---:|
+| 32 x 32 | 1.290 | 0.901839 | 0.893207 |
+| 64 x 64 | 0.635 | 0.958711 | 0.953227 |
+| 128 x 128 | 0.315 | 0.984256 | 0.978678 |
+
+At approximately 0.63 um cells, doubling the full square domain from 40 to
+80 um or changing to the 2:1 aspect ratio changes the tensor result by less
+than 0.1%.
+Random-versus-tensor differences are approximately 1% or less, and field
+directions are correct. `CIRCLE` and `RECTANGLE` apertures are identical for
+identical actual bounds; their arguments are full diameter/width, not radius or
+half width. The earlier rank/grid pathology was therefore the missing
+transverse reference offset combined with misleading aperture labels, rather
+than failure of the main field calculation.
+
+The focused integration CTest `TestBeamBeamWitnessReferenceOffset` uses the
+seeded 64 x 64 case, requires less than 8% field-magnitude error and direction
+cosine at least 0.999, and passes together with
+`TestBeamBeamManufacturedFields`. Before the fix the singleton field and kick
+were only about 1--2% of the analytic values; after the fix the regression
+field ratio is 0.958711 and its direction cosine is 0.999988.
+
+An exact production-discretization probe was built in the isolated non-git
+Merlin source snapshot
+`/psi/home/adelmann/opalx-dev/track12-a1cdd08-explicit-20260819`. Only
+`source/src/Algorithms/BeamBeamInteraction.cpp` was updated there; neither
+Merlin Git worktree was modified. The corrected CUDA executable SHA-256 is
+`e035ccd596306890bf7d131e3deb1b8978efaa84bde422b018e96468c0cfe2e3`.
+Four-rank/four-A100 job 353974 used the hash-identical fixed 400000-particle
+source, 1024 x 128 x 128 mesh, and 2.4 mm x 0.24 mm domain. It completed and
+shut down normally in 23.14 s. At pair-4 overlap it measured
+`|E|=6.569904892e9 V/m`, E direction cosine 0.999995, and
+OPALX/analytic E ratio 0.678097. A constant-field Boris kick over the first CAIN
+6.004 fs output interval gives `Delta px=0.023143`, versus CAIN `0.022261`, or
+OPALX/CAIN=1.039622. The continuum analytic kick is 0.034129; that comparison
+uses an untruncated continuum Gaussian rather than the finite source and coarse
+production mesh.
+
+Validation completed:
+
+- the isolated CUDA build linked successfully at 100%; only pre-existing
+  H5Hut, IPPL signedness, and `Solve2d5` warnings appeared;
+- focused local CTest targets `TestBeamBeamManufacturedFields`,
+  `TestBeamBeamWitnessReferenceOffset`, `TestEmittedFromFile`,
+  `TestBeamBeamDiagnosticsWriter`, and `TestBeamBeam` all pass;
+- all seven `TestEmittedFromFile` cases pass with two connected MPI ranks;
+- the updated `track12particles_model.tex` builds successfully in an isolated
+  output directory; its pre-existing small overfull-box warnings remain;
+- Python scripts pass `py_compile`, shell scripts pass `bash -n`, and
+  `git diff --check` passes.
+
 ## Next step
 
-After permission, correct the distribution-state initialization and tracker-
-before-bunch destruction order, rebuild, and rerun the deterministic primary-
-file scan on 1/2/4 A100s. Then quantify the direct field difference from one
-rank. After that, repair and validate the timed pair-
-file format, remove the `IP_S` override so the element midpoint is the sole IP
-definition, and begin the rigid-source electron/positron witness-trajectory
-comparison.
+The controlled first-kick diagnostic is repaired, convergent, and agrees with
+the central CAIN first kick to 3.96% on the exact production discretization.
+The next physics step is therefore to rebuild the complete prepared timed deck
+with the corrected executable, rerun the four-A100 smoke/production chain, and
+compare all twelve first kicks and trajectories. Inspect the first-kick table
+before interpreting later boundary crossings or aggregate trajectory norms.
+After that result, quantify any remaining difference by source timing
+(longitudinal 3-sigma edge/hourglass convention), mesh refinement, and source
+truncation in that order. The remaining element cleanup is to remove or
+neutralize the `IP_S` override so the element midpoint is the sole IP
+definition.
 
 Deferred reminder: before finalizing the H5 output workflow, remind the user
 that the stored electric-field values are in V/m while the current
