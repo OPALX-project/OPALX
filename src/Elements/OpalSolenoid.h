@@ -28,6 +28,7 @@ public:
         DKS,          // The longitudinal magnetic field error.
         FMAPFN,       // The Field filename
         FAST,         // Faster but less accurate
+        ZREVERSE,     // Read the field map back to front
         SIZE
     };
 
