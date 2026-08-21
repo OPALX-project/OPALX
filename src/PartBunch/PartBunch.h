@@ -160,7 +160,7 @@ public:
 private:
     std::optional<BeamBeamWindowConfig> beamBeamWindowConfig_m;
     std::optional<BeamBeamWindowVisualizationTail> beamBeamWindowVisualizationTail_m;
-    bool beamBeamWindowParticleLayoutInitialized_m = false;
+    bool beamBeamWindowParticleLayoutInitialized_m  = false;
     double lastDepositedChargeBeforeBackground_m    = 0.0;
     bool lastDepositedChargeBeforeBackgroundValid_m = false;
 
@@ -619,9 +619,13 @@ public:
             double beamBeamWindowLength, double interactionPointS, double windowBeginS,
             double windowEndS, bool copyModel, std::optional<double> xAperture = std::nullopt,
             std::optional<double> yAperture = std::nullopt) {
-        beamBeamWindowConfig_m = BeamBeamWindowConfig{
-                beamBeamWindowLength, interactionPointS, windowBeginS, windowEndS, copyModel,
-                xAperture, yAperture};
+        beamBeamWindowConfig_m                    = BeamBeamWindowConfig{beamBeamWindowLength,
+                                                      interactionPointS,
+                                                      windowBeginS,
+                                                      windowEndS,
+                                                      copyModel,
+                                                      xAperture,
+                                                      yAperture};
         beamBeamWindowParticleLayoutInitialized_m = false;
     }
 
@@ -632,14 +636,12 @@ public:
 
     bool hasBeamBeamWindowConfig() const { return beamBeamWindowConfig_m.has_value(); }
 
-    const BeamBeamWindowConfig& getBeamBeamWindowConfig() const {
-        return *beamBeamWindowConfig_m;
-    }
+    const BeamBeamWindowConfig& getBeamBeamWindowConfig() const { return *beamBeamWindowConfig_m; }
 
     void setBeamBeamWindowVisualizationTail(
             double interactionPointS, double windowBeginS, double windowEndS, int steps) {
-        beamBeamWindowVisualizationTail_m = BeamBeamWindowVisualizationTail{
-                interactionPointS, windowBeginS, windowEndS, steps};
+        beamBeamWindowVisualizationTail_m =
+                BeamBeamWindowVisualizationTail{interactionPointS, windowBeginS, windowEndS, steps};
     }
 
     void clearBeamBeamWindowVisualizationTail() { beamBeamWindowVisualizationTail_m.reset(); }
@@ -670,7 +672,7 @@ public:
     std::vector<std::string> buildScalarDumpHeaders(
             const std::string& snapshotKind, const std::string& coordinateFrame = "beam_local",
             const std::optional<BeamBeamWindowConfig>& geometryOverride = std::nullopt,
-            std::optional<bool> activeOverride = std::nullopt) const;
+            std::optional<bool> activeOverride                          = std::nullopt) const;
 
     void setPhysicalBounds(const Vector_t<double, Dim>& rmin, const Vector_t<double, Dim>& rmax) {
         rmin_m = rmin;

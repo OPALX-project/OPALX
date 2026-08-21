@@ -202,8 +202,8 @@ void PartBunch<T, Dim>::restoreFieldDomainState(const SavedFieldDomainState& sta
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::enableBeamBeamWindowMesh(
-        double interactionPointLocalZ, double beamBeamWindowLength,
-        std::optional<double> xAperture, std::optional<double> yAperture) {
+        double interactionPointLocalZ, double beamBeamWindowLength, std::optional<double> xAperture,
+        std::optional<double> yAperture) {
     Inform m("PartBunch::enableBeamBeamWindowMesh");
     if (beamBeamWindowLength <= 0.0) {
         throw OpalException(
@@ -235,8 +235,8 @@ void PartBunch<T, Dim>::enableBeamBeamWindowMesh(
     const Vector_t<double, Dim> span = upper - lower;
     for (unsigned d = 0; d < Dim; ++d) {
         const int nCells = nr_m[d];
-        hr_m[d] = nCells > 1 ? span[d] / static_cast<double>(nCells - 1) : span[d];
-        meshOrigin[d] = lower[d] - 0.5 * hr_m[d];
+        hr_m[d]          = nCells > 1 ? span[d] / static_cast<double>(nCells - 1) : span[d];
+        meshOrigin[d]    = lower[d] - 0.5 * hr_m[d];
     }
     mesh->setOrigin(meshOrigin);
     mesh->setMeshSpacing(hr_m);

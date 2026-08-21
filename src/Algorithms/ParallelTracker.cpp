@@ -66,19 +66,19 @@ extern Inform* gmsg;
 
 namespace {
 
-bool shouldDumpSpaceChargeFieldH5(long long step) {
-    const char* value = std::getenv("OPALX_SC_FIELD_H5_STEPS");
-    if (value == nullptr || value[0] == '\0') {
-        return false;
-    }
+    bool shouldDumpSpaceChargeFieldH5(long long step) {
+        const char* value = std::getenv("OPALX_SC_FIELD_H5_STEPS");
+        if (value == nullptr || value[0] == '\0') {
+            return false;
+        }
 
-    try {
-        const long long maxStep = std::stoll(value);
-        return step <= maxStep;
-    } catch (...) {
-        return true;
+        try {
+            const long long maxStep = std::stoll(value);
+            return step <= maxStep;
+        } catch (...) {
+            return true;
+        }
     }
-}
 
 }  // namespace
 
@@ -484,8 +484,7 @@ void ParallelTracker::execute() {
                     ElementInteractionPhase::AfterEmission, afterEmissionContext);
             const size_t nSourceMarkedAfterEmission = markBackwardParticlesAtSourcePlane();
             if (nSourceMarkedAfterEmission > 0) {
-                deleteInvalidParticles(
-                        true, m, "backward source-plane particles after emission");
+                deleteInvalidParticles(true, m, "backward source-plane particles after emission");
             }
             // Old OPAL reselects the global dt after emission. On the final emission step this
             // switches getdT() back to the track step before external fields, reference update, and
@@ -764,7 +763,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step, OrbitThr
         throw OpalException(
                 "ParallelTracker::computeSpaceChargeFields",
                 "Bunch has no field solver assigned! If you want to run without "
-                        "space charge effects, please use TYPE=NONE for the field solver.");
+                "space charge effects, please use TYPE=NONE for the field solver.");
     }
 
     if (elementInteractions_m.suppressesDefaultSelfField()) {
@@ -870,11 +869,9 @@ void ParallelTracker::transformFieldsToReferenceFrame(
     beamToReferenceCSTrafo.transformBunchTo(
             itsBunch_m->getParticleContainer()->R.getView(), nLocRef);
     m << level5 << "Transform particle positions back to reference coordinate system done." << endl;
-    beamToReferenceCSTrafo.rotateBunchTo(
-            itsBunch_m->getParticleContainer()->E.getView(), nLocRef);
+    beamToReferenceCSTrafo.rotateBunchTo(itsBunch_m->getParticleContainer()->E.getView(), nLocRef);
     m << level5 << "Rotate E fields back to reference coordinate system done." << endl;
-    beamToReferenceCSTrafo.rotateBunchTo(
-            itsBunch_m->getParticleContainer()->B.getView(), nLocRef);
+    beamToReferenceCSTrafo.rotateBunchTo(itsBunch_m->getParticleContainer()->B.getView(), nLocRef);
     m << level5
       << "Rotate B fields back to reference coordinate system done. ComputeSelfFields done."
       << endl;

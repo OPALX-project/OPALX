@@ -22,8 +22,7 @@ namespace opalx::detail {
     }
 
     template <typename PositionView, typename OriginalZView>
-    void restoreBeamBeamZPositions(
-            PositionView rView, const size_t nLoc, OriginalZView originalZ) {
+    void restoreBeamBeamZPositions(PositionView rView, const size_t nLoc, OriginalZView originalZ) {
         Kokkos::parallel_for(
                 "BinnedFieldSolver::BeamBeamRestore", nLoc,
                 KOKKOS_LAMBDA(const size_t i) { rView(i)[2] = originalZ(i); });
