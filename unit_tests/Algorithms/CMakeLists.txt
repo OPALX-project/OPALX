@@ -10,3 +10,22 @@ add_opalx_test(TestIndexMap USE_GTEST_MAIN)
 add_opalx_test(TestOrbitThreader USE_GTEST_MAIN)
 add_opalx_test(TestDistributionMoments USE_GTEST_MAIN)
 add_opalx_test(TestStepSizeConfig USE_GTEST_MAIN NO_MPI)
+
+if(BUILD_TESTING)
+  add_test(
+    NAME TestCheckpointMonitorRestart
+    COMMAND
+      ${CMAKE_COMMAND}
+      "-DOPALX_EXE=$<TARGET_FILE:opalx_exe>"
+      "-DINPUT_FILE=${CMAKE_CURRENT_SOURCE_DIR}/CheckpointMonitorRestart.in"
+      "-DTEST_WORKDIR=${CMAKE_CURRENT_BINARY_DIR}/TestCheckpointMonitorRestart.run"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/TestCheckpointMonitorRestart.cmake"
+  )
+  set_tests_properties(
+    TestCheckpointMonitorRestart
+    PROPERTIES
+      LABELS "integration;checkpoint;monitor"
+      RUN_SERIAL TRUE
+      TIMEOUT 60
+  )
+endif()
