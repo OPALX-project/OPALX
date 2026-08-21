@@ -66,6 +66,7 @@
 #include "Elements/OpalCavity.h"
 #include "Elements/OpalCollimator.h"
 #include "Elements/OpalConstantEFieldCavity.h"
+#include "Elements/OpalConstantFocusing.h"
 #include "Elements/OpalDrift.h"
 #include "Elements/OpalLaser.h"
 #include "Elements/OpalMarker.h"
@@ -136,6 +137,7 @@ namespace {
         opal->create(new OpalCavity());
         opal->create(new OpalTravelingWave());
         opal->create(new OpalConstantEFieldCavity());
+        opal->create(new OpalConstantFocusing());
         opal->create(new OpalCollimator());
         opal->create(new OpalDrift());
         opal->create(new OpalBeamBeam());

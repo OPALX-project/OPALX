@@ -1,7 +1,6 @@
 /**
  * @file TestBinnedFieldSolver.cpp
- * @brief Smoke tests for `PartBunch::computeSelfFields()` with and without particle binning
- * enabled.
+ * @brief Smoke tests for binned self-fields and open/periodic P3M configuration.
  *
  * This file validates that the self-field computation pathway is stable across the
  * "legacy" (no binning attached) and "binned" (adaptive bins attached) execution paths.
@@ -18,6 +17,8 @@
  *   and (near) zero after the call.
  * - When binning is active, the current bin count is sane (between 1 and the configured
  *   maximum).
+ * - Open and periodic P3M select the same solver wrapper with matching particle boundaries.
+ * - Mixed and unsupported P3M boundary conditions are rejected during command validation.
  *
  * Notes:
  * - The fixture initializes IPPL and disables HDF5 output to keep the tests lightweight.
@@ -32,6 +33,8 @@
 #include <memory>
 #include <random>
 #include <string>
+#include <utility>
+#include <variant>
 
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
@@ -43,6 +46,7 @@
 #include "Structure/BinningCmd.h"
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utility/Inform.h"
 
@@ -77,6 +81,11 @@ namespace {
         void setBinsName(const std::string& binsName) {
             Attributes::setString(this->itsAttr[FIELDSOLVER::BINS], binsName);
         }
+
+        void setP3MCutoff(double cutoff) {
+            Attributes::setReal(this->itsAttr[FIELDSOLVER::P3MRCUT], cutoff);
+        }
+
     };
 
     class TestableBinningCmd : public BinningCmd {
@@ -304,6 +313,17 @@ namespace {
             rebuildBunch();
         }
 
+        void rebuildP3MBunch(const std::string& boundary) {
+            fsCmd->setType("P3M");
+            fsCmd->setP3MCutoff(0.25);
+            fsCmd->setBCX(boundary);
+            fsCmd->setBCY(boundary);
+            fsCmd->setBCZ(boundary);
+            fsCmd->setParallelDecomposition(true);
+            fsCmd->execute();
+            rebuildBunch();
+        }
+
         std::shared_ptr<AdaptBins_t> attachBins(
                 typename AdaptBins_t::bin_index_type maxBins, double alpha, double beta,
                 double desiredWidth) {
@@ -470,6 +490,41 @@ namespace {
                 EXPECT_DOUBLE_EQ(restoredR(i)[d], originalR(i)[d]);
             }
         }
+    }
+
+    TEST_F(BinnedFieldSolverSmokeTest, P3MOpenAndPeriodicUseSameSolverWrapperAndSelectedLayoutBC) {
+        for (const auto& [boundary, expectedParticleBC] :
+             {std::pair{"PERIODIC", ippl::BC::PERIODIC}, std::pair{"OPEN", ippl::BC::NO}}) {
+            ASSERT_NO_THROW(rebuildP3MBunch(boundary));
+            ASSERT_NE(bunch->getFieldSolver(), nullptr);
+            EXPECT_EQ(bunch->getFieldSolver()->getStype(), "P3M");
+            EXPECT_TRUE((std::holds_alternative<FFTTruncatedGreenSolver_t<double, 3>>(
+                    bunch->getFieldSolver()->getSolver())));
+            EXPECT_DOUBLE_EQ(bunch->getFieldSolver()->getP3MCutoff(), 0.25);
+            ASSERT_TRUE(pc->hasP3MLayout());
+            for (const auto bc : pc->getP3MLayout().getParticleBC()) {
+                EXPECT_EQ(bc, expectedParticleBC);
+            }
+
+            createParticles(2, /*pzMin=*/0.1, /*pzMax=*/0.2);
+            EXPECT_NO_THROW(bunch->computeSelfFields());
+        }
+    }
+
+    TEST_F(BinnedFieldSolverSmokeTest, P3MRejectsMixedAndDirichletBoundaries) {
+        fsCmd->setType("P3M");
+        fsCmd->setP3MCutoff(0.25);
+        fsCmd->setParallelDecomposition(true);
+
+        fsCmd->setBCX("OPEN");
+        fsCmd->setBCY("OPEN");
+        fsCmd->setBCZ("PERIODIC");
+        EXPECT_THROW(fsCmd->execute(), OpalException);
+
+        fsCmd->setBCX("DIRICHLET");
+        fsCmd->setBCY("DIRICHLET");
+        fsCmd->setBCZ("DIRICHLET");
+        EXPECT_THROW(fsCmd->execute(), OpalException);
     }
 
     TEST_F(BinnedFieldSolverSmokeTest, BunchUpdate_ImageChargeBoundsIncludeMirroredZ) {
