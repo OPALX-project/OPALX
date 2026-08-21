@@ -46,9 +46,7 @@ namespace BEAMBEAM {
      * Keeping this policy explicit ensures that rigid-source mode changes only
      * the source response; field deposition and witness gathering are unchanged.
      */
-    inline bool sourceCollectiveKickEnabled(const Config& config) {
-        return !config.rigidSource;
-    }
+    inline bool sourceCollectiveKickEnabled(const Config& config) { return !config.rigidSource; }
 
     /**
      * @brief Decode the numeric BeamBeam witness-container bit mask.

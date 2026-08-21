@@ -10,8 +10,8 @@
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
 #include "Structure/H5BeamBeamDiagnosticsWriter.h"
-#include "Utilities/Options.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
 extern Inform* gmsg;
@@ -251,8 +251,8 @@ void FieldSolver<double, 3>::dumpVectField(
         const auto meta = makeH5Metadata(*field, extraHeaderLines);
         H5BeamBeamDiagnosticsWriter::writeVectorQuantity(
                 filename, h5FieldName(what, tag), meta, *field);
-        m << level5 << "*** FINISHED DUMPING " + Util::toUpper(what) << " FIELD *** to "
-          << filename << endl;
+        m << level5 << "*** FINISHED DUMPING " + Util::toUpper(what) << " FIELD *** to " << filename
+          << endl;
         return;
     }
 
@@ -372,8 +372,8 @@ void FieldSolver<double, 3>::dumpScalField(
         const auto meta = makeH5Metadata(*field, extraHeaderLines);
         H5BeamBeamDiagnosticsWriter::writeScalarQuantity(
                 filename, h5FieldName(what, tag), meta, *field);
-        m << level5 << "*** FINISHED DUMPING " + Util::toUpper(what) << " FIELD *** to "
-          << filename << endl;
+        m << level5 << "*** FINISHED DUMPING " + Util::toUpper(what) << " FIELD *** to " << filename
+          << endl;
         return;
     }
 

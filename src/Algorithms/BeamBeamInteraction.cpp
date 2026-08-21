@@ -197,7 +197,7 @@ std::optional<BEAMBEAM::ActualGeometry> BeamBeamInteraction::detectWindow(
         // retain the threaded entrance as the best available path-length anchor.
         const double windowBeginS =
                 element_m.isElementPositionSet() ? element_m.getElementPosition() : range.begin;
-        const double windowEndS                  = windowBeginS + windowLength;
+        const double windowEndS = windowBeginS + windowLength;
         const double interactionPointS =
                 BEAMBEAM::interactionPointAtElementMidpoint(windowBeginS, windowEndS);
         std::optional<double> xAperture;
@@ -279,8 +279,7 @@ void BeamBeamInteraction::enterWindow(
         } else {
             diagnostics << "NONE";
         }
-        diagnostics << ", rigid_source="
-                    << (geometry.config.rigidSource ? "TRUE" : "FALSE");
+        diagnostics << ", rigid_source=" << (geometry.config.rigidSource ? "TRUE" : "FALSE");
         *gmsg << level2 << diagnostics.str() << endl;
     }
     logDiagnostics(bunch, true);
@@ -570,17 +569,14 @@ void BeamBeamInteraction::gatherFieldsToWitnessContainers(PartBunch_t& bunch, In
         // transverse components gathers every offset witness container as if its
         // reference particle were on the source axis (for example, track12 has
         // RefPartR.x = sigma_x and particle-local x approximately zero).
-        Vector_t<double, 3> offsetToSourceFrame =
-                container->getRefPartR() - source->getRefPartR();
+        Vector_t<double, 3> offsetToSourceFrame = container->getRefPartR() - source->getRefPartR();
         offsetToSourceFrame[2] =
                 BEAMBEAM::longitudinalOffsetToSourceFrame(sourceS, container->get_sPos());
         CoordinateSystemTrafo witnessToBeamCSTrafo(
-                -1.0 * offsetToSourceFrame,
-                referenceToBeamCSTrafo_m->getRotation());
+                -1.0 * offsetToSourceFrame, referenceToBeamCSTrafo_m->getRotation());
 
         const size_t nLocalBeforeRedistribution = container->getLocalNum();
-        witnessToBeamCSTrafo.transformBunchTo(
-                container->R.getView(), nLocalBeforeRedistribution);
+        witnessToBeamCSTrafo.transformBunchTo(container->R.getView(), nLocalBeforeRedistribution);
         Kokkos::fence();
 
         // Timed witnesses can be emitted after the fixed BeamBeam field layout has been
@@ -595,12 +591,9 @@ void BeamBeamInteraction::gatherFieldsToWitnessContainers(PartBunch_t& bunch, In
         solver->gatherCurrentFieldsToContainer(bunch, *container);
         Kokkos::fence();
         const size_t nLocalAfterRedistribution = container->getLocalNum();
-        witnessToBeamCSTrafo.transformBunchFrom(
-                container->R.getView(), nLocalAfterRedistribution);
-        witnessToBeamCSTrafo.rotateBunchFrom(
-                container->E.getView(), nLocalAfterRedistribution);
-        witnessToBeamCSTrafo.rotateBunchFrom(
-                container->B.getView(), nLocalAfterRedistribution);
+        witnessToBeamCSTrafo.transformBunchFrom(container->R.getView(), nLocalAfterRedistribution);
+        witnessToBeamCSTrafo.rotateBunchFrom(container->E.getView(), nLocalAfterRedistribution);
+        witnessToBeamCSTrafo.rotateBunchFrom(container->B.getView(), nLocalAfterRedistribution);
         Kokkos::fence();
 
         message << level4 << "Gathered BeamBeam source fields to witness container["
@@ -631,9 +624,8 @@ void BeamBeamInteraction::logDiagnostics(PartBunch_t& bunch, bool force) {
     const bool copyActive =
             state_m.geometry.has_value()
             && BEAMBEAM::copyTimeReached(bunch.getT(), state_m.geometry->config.copyTime);
-    const bool rigidSource =
-            state_m.geometry.has_value() && state_m.geometry->config.rigidSource;
-    const char* stateName = "Inactive";
+    const bool rigidSource = state_m.geometry.has_value() && state_m.geometry->config.rigidSource;
+    const char* stateName  = "Inactive";
     if (state_m.state == BEAMBEAM::WindowState::Active) {
         stateName = "Active";
     } else if (state_m.state == BEAMBEAM::WindowState::Completed) {
