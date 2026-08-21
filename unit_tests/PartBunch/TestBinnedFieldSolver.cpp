@@ -85,7 +85,6 @@ namespace {
         void setP3MCutoff(double cutoff) {
             Attributes::setReal(this->itsAttr[FIELDSOLVER::P3MRCUT], cutoff);
         }
-
     };
 
     class TestableBinningCmd : public BinningCmd {
