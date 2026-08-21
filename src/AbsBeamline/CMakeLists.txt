@@ -10,6 +10,7 @@ set(_SRCS
     BeamlineVisitor.cpp
     Collimator.cpp
     ConstantEFieldCavity.cpp
+    ConstantFocusing.cpp
     Drift.cpp
     ElementBase.cpp
     Laser.cpp
@@ -39,6 +40,7 @@ set(_HDRS
     BeamlineVisitor.h
     Collimator.h
     ConstantEFieldCavity.h
+    ConstantFocusing.h
     Drift.h
     ElementBase.h
     Laser.h
