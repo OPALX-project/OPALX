@@ -31,6 +31,7 @@
 #include "Fields/Astra1DMagnetoStatic.h"
 #include "Fields/FM2DDynamic.h"
 #include "Fields/FM2DMagnetoStatic.h"
+#include "Fields/G4BL2DMagnetoStatic.h"
 
 #include "Physics/Physics.h"
 #include "Utilities/GeneralOpalException.h"
@@ -67,13 +68,25 @@ namespace fs = std::filesystem;
  *
  * @param Filename Absolute path to the fieldmap file.
  * @param fast Not implemented. Previously attempted to load a "fast" version.
+ * @param zReverse Load the map mirrored in z with the longitudinal component
+ * negated. Only G4beamline cylinder maps support this; the other readers throw
+ * when it is set.
  * @return Fieldmap* Pointer to the managed fieldmap instance.
  */
-Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/) {
+Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/, bool zReverse) {
     std::map<std::string, FieldmapDescription>::iterator position =
             FieldmapDictionary.find(Filename);
     /// Found matching entry?
     if (position != FieldmapDictionary.end()) {
+        // The cache is keyed on the filename alone, so the same file cannot be
+        // held in two orientations at once.
+        if ((*position).second.Map->isZReversed() != zReverse) {
+            throw GeneralOpalException(
+                    "Fieldmap::getFieldmap()",
+                    "Fieldmap \"" + Filename
+                            + "\" is already loaded with the opposite ZREVERSE setting. The same "
+                              "file cannot be used in both orientations in one run");
+        }
         (*position).second.RefCounter++;
         /// Return fieldmap pointer
         return (*position).second.Map;
@@ -82,6 +95,13 @@ Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/) {
         std::pair<std::map<std::string, FieldmapDescription>::iterator, bool> position;
         /// Determine fieldmap type
         type = readHeader(Filename);
+
+        if (zReverse && type != TG4BL2DMagnetoStatic) {
+            throw GeneralOpalException(
+                    "Fieldmap::getFieldmap()",
+                    "ZREVERSE is only supported for G4beamline cylinder field maps, not for \""
+                            + Filename + "\"");
+        }
         /**
          * @brief Based on type:
          * - Create new fieldmap object by parsing the fieldmap file
@@ -96,6 +116,15 @@ Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/) {
                                 Filename,
                                 FieldmapDescription(
                                         T2DMagnetoStatic, new FM2DMagnetoStatic(Filename))));
+                return (*position.first).second.Map;
+                break;
+
+            case TG4BL2DMagnetoStatic:
+                position = FieldmapDictionary.insert(
+                        std::make_pair(
+                                Filename, FieldmapDescription(
+                                                  TG4BL2DMagnetoStatic,
+                                                  new G4BL2DMagnetoStatic(Filename, zReverse))));
                 return (*position.first).second.Map;
                 break;
 
@@ -292,6 +321,31 @@ MapType Fieldmap::readHeader(std::string Filename) {
         }
         if (std::strcmp(tmpString, "aD") == 0) {
             return TAstraDynamic;
+        }
+    }
+
+    /**
+     * G4beamline maps carry no descriptor. They open with an optional `param`
+     * line followed by the section keyword that names the grid type, so look
+     * for that keyword instead of a magic number.
+     */
+    if (std::strcmp(magicnumber, "para") == 0 || std::strcmp(magicnumber, "cyli") == 0
+        || std::strcmp(magicnumber, "grid") == 0) {
+        std::string section = buffer.substr(0, buffer.find_first_of(" \t"));
+        while (section == "param" && !File.eof()) {
+            getLine(File, lines_read_m, buffer);
+            section = buffer.substr(0, buffer.find_first_of(" \t"));
+        }
+
+        if (section == "cylinder") {
+            return TG4BL2DMagnetoStatic;
+        }
+        if (section == "grid") {
+            throw GeneralOpalException(
+                    "Fieldmap::readHeader()",
+                    "'" + Filename
+                            + "' is a G4beamline 'grid' field map. Only 'cylinder' maps are "
+                              "supported so far.");
         }
     }
 
