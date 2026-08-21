@@ -63,6 +63,37 @@
 
 extern Inform* gmsg;
 
+namespace {
+    /**
+     * Keep output-producing elements in preparation mode until real tracking starts.
+     *
+     * The guard also clears the process-wide state when setup exits through an exception or an
+     * early return, so a failed tracker cannot suppress diagnostics in a later track command.
+     */
+    class PreparationStateGuard {
+    public:
+        explicit PreparationStateGuard(OpalData& opalData) : opalData_m(opalData) {
+            opalData_m.setInPrepState(true);
+        }
+
+        ~PreparationStateGuard() { finish(); }
+
+        PreparationStateGuard(const PreparationStateGuard&)            = delete;
+        PreparationStateGuard& operator=(const PreparationStateGuard&) = delete;
+
+        void finish() {
+            if (active_m) {
+                opalData_m.setInPrepState(false);
+                active_m = false;
+            }
+        }
+
+    private:
+        OpalData& opalData_m;
+        bool active_m{true};
+    };
+}  // namespace
+
 // --- Constructors ---
 
 /**
@@ -175,6 +206,7 @@ void ParallelTracker::visitBeamline(const Beamline& bl) {
  */
 void ParallelTracker::execute() {
     Inform m("ParallelTracker::execute");
+    PreparationStateGuard preparationState(*OpalData::getInstance());
     StepSizeConfig::ResumePosition restartPosition{0, 0};
     if (restarting_m) {
         restartPosition = restartPosition_m;
@@ -424,6 +456,10 @@ void ParallelTracker::execute() {
 
     // Handle any dump field requests
     DumpEMFields::writeFields(itsOpalBeamline_m.getElements());
+
+    // OrbitThreader and the other setup stages may cross diagnostic elements while constructing
+    // the reference map. Only crossings produced by the real tracking loop may write output.
+    preparationState.finish();
 
     // Main tracking loop over step size configurations
     m << level5 << ">>>>>>>>>>>>>>>>>> Starting Tracking Loop >>>>>>>>>>>>>>>>>>" << endl;
