@@ -8,6 +8,66 @@
 #include <vector>
 
 namespace opalx::detail {
+    template <typename T, unsigned Dim, typename RangePolicy, typename MirroredView,
+              typename ElectricView, typename MagneticView>
+    void accumulateMirroredPrimaryField(
+            const RangePolicy& rangePolicy, MirroredView mirroredView, ElectricView electricView,
+            MagneticView magneticView, const double gammaBin, const double gammaMinusOne,
+            const double gammaOverCSq, const Vector_t<double, Dim>& velocity,
+            const Vector_t<double, Dim>& direction) {
+        ippl::parallel_for(
+                "BinnedFieldSolver::accumulateMirroredPrimaryFieldToTemp", rangePolicy,
+                KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
+                    Vector_t<T, Dim> ePrime = mirroredView(idx[0], idx[1], idx[2]);
+                    ePrime[Dim - 1]         = -ePrime[Dim - 1];
+
+                    const T ePrimeDotW      = ePrime.dot(direction);
+                    Vector_t<T, Dim> eLab   =
+                            gammaBin * ePrime - gammaMinusOne * ePrimeDotW * direction;
+                    Vector_t<T, Dim> bLab   = gammaOverCSq * cross(velocity, ePrime);
+                    Vector_t<T, Dim> eTotal = apply(electricView, idx);
+                    Vector_t<T, Dim> bTotal = apply(magneticView, idx);
+                    eTotal += eLab;
+                    bTotal += bLab;
+                    apply(electricView, idx) = eTotal;
+                    apply(magneticView, idx) = bTotal;
+                });
+    }
+
+    template <typename T, unsigned Dim, typename RangePolicy, typename ElectricView,
+              typename MagneticView>
+    void finalizeBeamBeamTwoField(
+            const RangePolicy& rangePolicy, ElectricView electricView, MagneticView magneticView,
+            const double gammaBin, const double gammaMinusOne, const double gammaOverCSq,
+            const Vector_t<double, Dim>& physicalVelocity,
+            const Vector_t<double, Dim>& physicalDirection,
+            const Vector_t<double, Dim>& copiedVelocity,
+            const Vector_t<double, Dim>& copiedDirection, const bool includeCopy) {
+        ippl::parallel_for(
+                "BinnedFieldSolver::finalizeBeamBeamTwoFieldResult", rangePolicy,
+                KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
+                    const Vector_t<T, Dim> physicalEPrime = apply(electricView, idx);
+                    const T physicalEDotW = physicalEPrime.dot(physicalDirection);
+                    Vector_t<T, Dim> electricTotal = gammaBin * physicalEPrime
+                                                     - gammaMinusOne * physicalEDotW
+                                                               * physicalDirection;
+                    Vector_t<T, Dim> magneticTotal =
+                            gammaOverCSq * cross(physicalVelocity, physicalEPrime);
+
+                    if (includeCopy) {
+                        Vector_t<T, Dim> copiedEPrime = apply(magneticView, idx);
+                        copiedEPrime[Dim - 1]         = -copiedEPrime[Dim - 1];
+                        const T copiedEDotW = copiedEPrime.dot(copiedDirection);
+                        electricTotal += gammaBin * copiedEPrime
+                                         - gammaMinusOne * copiedEDotW * copiedDirection;
+                        magneticTotal += gammaOverCSq * cross(copiedVelocity, copiedEPrime);
+                    }
+
+                    apply(electricView, idx) = electricTotal;
+                    apply(magneticView, idx) = magneticTotal;
+                });
+    }
+
     template <typename PositionView>
     Kokkos::View<double*> mirrorBeamBeamZPositions(
             PositionView rView, const size_t nLoc, const double interactionPointBeamZ) {
@@ -1081,23 +1141,9 @@ void BinnedFieldSolver<T, Dim>::accumulateMirroredPrimaryFieldToTemp(
     auto eTmpView     = EtmpSP->getView();
     auto bTmpView     = BtmpSP->getView();
 
-    ippl::parallel_for(
-            "BinnedFieldSolver::accumulateMirroredPrimaryFieldToTemp",
-            physicalEprime.getFieldRangePolicy(),
-            KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
-                Vector_t<T, Dim> ePrime = mirroredView(idx[0], idx[1], idx[2]);
-                ePrime[Dim - 1]         = -ePrime[Dim - 1];
-
-                const T ePrimeDotW      = ePrime.dot(w);
-                Vector_t<T, Dim> eLab   = gammaBin * ePrime - gammaMinusOne * ePrimeDotW * w;
-                Vector_t<T, Dim> bLab   = gammaOverCSq * cross(v, ePrime);
-                Vector_t<T, Dim> eTotal = apply(eTmpView, idx);
-                Vector_t<T, Dim> bTotal = apply(bTmpView, idx);
-                eTotal += eLab;
-                bTotal += bLab;
-                apply(eTmpView, idx) = eTotal;
-                apply(bTmpView, idx) = bTotal;
-            });
+    opalx::detail::accumulateMirroredPrimaryField<T, Dim>(
+            physicalEprime.getFieldRangePolicy(), mirroredView, eTmpView, bTmpView, gammaBin,
+            gammaMinusOne, gammaOverCSq, v, w);
 }
 
 template <typename T, unsigned Dim>
@@ -1139,28 +1185,9 @@ void BinnedFieldSolver<T, Dim>::finalizeBeamBeamTwoFieldResult(
     auto electricView          = electricField.getView();
     auto magneticView          = magneticField.getView();
 
-    ippl::parallel_for(
-            "BinnedFieldSolver::finalizeBeamBeamTwoFieldResult",
-            electricField.getFieldRangePolicy(),
-            KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
-                const Vector_t<T, Dim> physicalEPrime = apply(electricView, idx);
-                const T physicalEDotW                 = physicalEPrime.dot(physicalW);
-                Vector_t<T, Dim> electricTotal =
-                        gammaBin * physicalEPrime - gammaMinusOne * physicalEDotW * physicalW;
-                Vector_t<T, Dim> magneticTotal = gammaOverCSq * cross(physicalV, physicalEPrime);
-
-                if (includeCopy) {
-                    Vector_t<T, Dim> copiedEPrime = apply(magneticView, idx);
-                    copiedEPrime[Dim - 1]         = -copiedEPrime[Dim - 1];
-                    const T copiedEDotW           = copiedEPrime.dot(copiedW);
-                    electricTotal +=
-                            gammaBin * copiedEPrime - gammaMinusOne * copiedEDotW * copiedW;
-                    magneticTotal += gammaOverCSq * cross(copiedV, copiedEPrime);
-                }
-
-                apply(electricView, idx) = electricTotal;
-                apply(magneticView, idx) = magneticTotal;
-            });
+    opalx::detail::finalizeBeamBeamTwoField<T, Dim>(
+            electricField.getFieldRangePolicy(), electricView, magneticView, gammaBin,
+            gammaMinusOne, gammaOverCSq, physicalV, physicalW, copiedV, copiedW, includeCopy);
 }
 
 template <typename T, unsigned Dim>
