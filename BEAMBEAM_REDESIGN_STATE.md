@@ -1516,6 +1516,80 @@ The tested BeamBeam decks use `TYPE=OPEN`, not P3M. The working-tree
 `src/PartBunch/FieldSolver.cpp` was not modified. Kokkos in `build_openmp` is
 confirmed as version 5.2.0.
 
+### Short A100 validation of the one-solve/two-field path (2026-08-23)
+
+Merlin6 was fast-forwarded to `48cc28a38` and rebuilt in Release mode with
+CUDA, `Kokkos_ARCH_AMPERE80=ON`, and Kokkos 5.2.0. NVCC exposed a portability
+error that the Mac OpenMP compiler cannot see: an extended device lambda may
+not be enclosed by a private member function. The two new field-combination
+kernels now live in namespace-level implementation helpers while the calling
+member functions remain private. This changes neither formulas nor data flow.
+The focused local manufactured-field, witness-gather MPI, and binned-solver
+tests passed after the change.
+
+The tracked Merlin source remains clean. As for the Mac build, the known
+master/IPPL `P3MSolver_t::PERIODIC/OPEN` mismatch was handled through a
+build-only source copy; no tracked master-derived source was changed. The
+resulting A100 executable SHA-256 is
+`023bce569d969dbbcd382a22b60b573b936d5aad5c480366821935e2ef6a278a`.
+The exact tested BeamBeam implementation and build note are retained below
+each run's `build-record/` directory.
+
+Jobs `354012/354013/354014` ran the deterministic fixed 400000-particle,
+`64x64x128`, 51x101-probe, two-step manufactured-field case on one, two, and
+four A100s. All completed normally. The run and all Slurm artifacts are under
+`/psi/home/adelmann/opalx-dev/a100-twofield-short-48cc28a38-20260823T2049Z`;
+the compact local copy and plots are under
+`sandbox/reduced-order-model/outputs/a100-convergence/a100-twofield-short-48cc28a38-20260823T2049Z`.
+
+| MPI ranks / A100s | relative L2(E) | relative L2(B) | relative E vs rank 1 | relative B vs rank 1 | compute real [s] |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 1.228881% | 1.221693% | 0 | 0 | 4.94 |
+| 2 | 1.228884% | 1.221697% | 2.5900e-5 | 2.8784e-5 | 8.29 |
+| 4 | 1.228881% | 1.221693% | 2.2561e-16 | 2.3840e-16 | 10.50 |
+
+Against the older two-solve A100 outputs from
+`a100-fixed-rank-a447748f4`, the direct field differences on aligned probes
+were `6.6201e-5/7.3566e-5` in relative L2(E/B) on one and four ranks, and
+`6.6764e-5/7.4192e-5` on two ranks. Thus the optimized reconstruction changes
+the discrete fields by less than 0.008%; the manufactured-solution errors stay
+at about 1.22%. The two-step process timings are startup dominated: the old/new
+one-rank values were 4.70/4.94 s and the two-rank values were 8.26/8.29 s, so
+they are not useful performance evidence.
+
+Jobs `354015/354016` therefore repeated the established one-rank, one-A100,
+400000-primary-particle, `1024x128x128`, ten-step timing probe with `--info 1`.
+All inputs have the same hashes as job `354009`. Remote artifacts are under
+`/psi/home/adelmann/opalx-dev/track12-timing-10step-1rank-48cc28a38-20260823T2055Z`;
+the local analysis is under
+`sandbox/track12particles/opalx/timed/a100_timing_10step_1rank_48cc28a38`.
+
+| timer | old two-solve [s] | new one-solve/two-field [s] | change | old/new calls |
+| --- | ---: | ---: | ---: | ---: |
+| process real | 7.520 | 6.620 | -12.0% | - |
+| `mainTimer` | 3.888 | 2.924 | -24.8% | 1 / 1 |
+| `BB window total` | 2.149 | 1.186 | -44.8% | 10 / 10 |
+| `BB self fields` | 2.131 | 1.168 | -45.2% | 10 / 10 |
+| `Solve` | 2.139 | 1.210 | -43.4% | 20 / 11 |
+| `Solve: Electric field` | 1.315 | 0.7235 | -45.0% | 20 / 11 |
+| `FFT: Efield` | 0.8535 | 0.4697 | -45.0% | 60 / 33 |
+| `scatter` | 0.002760 | 0.001819 | -34.1% | 19 / 10 |
+| `mirrorField` | 0 | 0.006446 | new cost | 0 / 9 |
+
+The eleven solves are ten physical-primary solves plus the solver warmup; nine
+steps have an active copied primary and therefore call `mirrorField`. Witness
+gathering, sampling, and H5 timings stayed unchanged within 1.3%, confirming
+that the measured reduction is localized to BeamBeam self-field construction.
+
+The old/new ten-step witness trajectories were matched by species, stored
+step, and particle ID. Maximum coordinate differences were approximately
+`1.05e-12 m` in x, `2.37e-13 m` in y, and `5.2e-16 m` longitudinally. Maximum
+absolute momentum-component differences were `2.56e-7` in px, `5.14e-8` in
+py, and `6.36e-9` in pz; the full momentum relative L2 difference was
+`4.76e-8`. These are consistent with the expected floating-point change from
+reconstructing the copied source by exact mesh reflection instead of a second
+scatter and solve.
+
 ## PR validation matrix
 
 All BeamBeam field solves below use the cell-integrated Green function. The
@@ -1527,6 +1601,8 @@ counts are listed separately.
 | --- | ---: | ---: | ---: | ---: | --- | ---: |
 | OPALX--IMPACT proton drift | `Nsrc=32768` | `16x16x16` | 100 ps; 1000 | 1/0 and 2/0 | Relative L2 `(rms x, rms eps_x)` = `(3.512%, 5.235%)` at 1 rank and `(3.429%, 4.092%)` at 2 ranks | not recorded |
 | Persistent manufactured-field CTest, 3-sigma separation | `Nsrc=100000`; 5151 probes | `64x64x128` | 1 fs; 2 | 1/0 | Relative L2 `(E,B)=(2.0976%,2.1984%)`; median magnitude ratios `(1.00544,1.00584)` | about 5 s |
+| Optimized fixed-source A100 rank scan, jobs 354012--354014 | `Nsrc=400000`; 5151 probes | `64x64x128` | 1 fs; 2 | 1/1, 2/2, 4/4 | Relative L2 `(E,B)` = `(1.228881%,1.221693%)`, `(1.228884%,1.221697%)`, `(1.228881%,1.221693%)`; four-rank fields agree with one rank to `2.4e-16` | 4.94, 8.29, 10.50 s |
+| Optimized ten-step timing probe, job 354016 | `Nsrc=400000`; 1 e- + 1 e+ emitted | `1024x128x128` | 6.004154 fs; 10 | 1/1 | `Solve` calls 20 to 11; `BB self fields` -45.2%; `mainTimer` -24.8%; momentum relative L2 change `4.76e-8` | 6.62 s |
 | A100 source-particle scan, 3-sigma separation | `Nsrc=0.1--6.4M`; 5151 probes | `64x64x128` | 1 fs; 2 | 1/1 | Relative L2 `(E,B)` decreases from `(2.5247%,2.6614%)` to `(0.7454%,0.5821%)` | 3.09--12.40 s |
 | A100 constant-occupancy mesh scan | `Nsrc=0.4M`; 5151 probes | `32x32x64` | 1 fs; 2 | 1/1 | Relative L2 `(E,B)=(3.2980%,3.7729%)` | 6.72 s |
 | A100 constant-occupancy mesh scan | `Nsrc=3.2M`; 5151 probes | `64x64x128` | 1 fs; 2 | 1/1 | Relative L2 `(E,B)=(0.8755%,0.7079%)` | 12.40 s |
