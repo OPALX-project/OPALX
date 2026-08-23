@@ -216,6 +216,18 @@ def run_case(opalx: Path, input_path: Path, omp_threads: int, force: bool) -> tu
     return "ok", runtime
 
 
+def external_runtime(input_path: Path) -> float:
+    """Read the `/usr/bin/time -p` real time recorded by the A100 launcher."""
+    path = input_path.parent / "runtime_compute.txt"
+    if not path.is_file():
+        return 0.0
+    for line in path.read_text(encoding="utf-8").splitlines():
+        fields = line.split()
+        if len(fields) == 2 and fields[0] == "real":
+            return float(fields[1])
+    raise ValueError(f"{path}: missing real runtime")
+
+
 def sorted_steps(h5_file: h5py.File) -> list[str]:
     return sorted(h5_file.keys(), key=lambda name: int(name.split("#", 1)[1]))
 
@@ -284,12 +296,18 @@ def source_centroid(input_path: Path) -> float:
     return row["ref_z"] + row["mean_s"]
 
 
-def analytic_fields(position: np.ndarray, source_z_from_ip: float, track12):
+def manufactured_fields(
+    position: np.ndarray,
+    source_z_from_ip: float,
+    track12,
+    cutoff_sigma: float | None,
+):
     beta = track12.beta_from_kinetic_energy(track12.DEFAULT_SOURCE_KINETIC_MEV)
     kwargs = {
         "charge_C": track12.DEFAULT_SOURCE_CHARGE_C,
         "sigma_lab_m": (track12.SIGMA_XY_M, track12.SIGMA_XY_M, track12.SIGMA_Z_M),
         "t0_s": 0.0,
+        "cutoff_sigma": cutoff_sigma,
     }
     physical = track12.RigidAnisotropicGaussianSource(
         "physical", beta_z=+beta, center_t0_m=np.array([0.0, 0.0, source_z_from_ip]), **kwargs
@@ -298,6 +316,16 @@ def analytic_fields(position: np.ndarray, source_z_from_ip: float, track12):
         "copied", beta_z=-beta, center_t0_m=np.array([0.0, 0.0, -source_z_from_ip]), **kwargs
     )
     return track12.anisotropic_total_lab_fields(position, 0.0, (physical, copied))
+
+
+def interaction_point_s(input_path: Path) -> float:
+    """Derive the IP from the placed BeamBeam element midpoint."""
+    deck = input_path.read_text(encoding="utf-8")
+    length_match = re.search(r"REAL\s+bb_length\s*=\s*([^;]+);", deck)
+    edge_match = re.search(r"IP1\s*:\s*BEAMBEAM,.*?ELEMEDGE\s*=\s*([^,;]+)", deck, re.S)
+    if length_match is None or edge_match is None:
+        raise ValueError(f"{input_path}: cannot derive BeamBeam midpoint")
+    return float(edge_match.group(1)) + 0.5 * float(length_match.group(1))
 
 
 def cain_pair4_first_kick(track12) -> float:
@@ -332,10 +360,14 @@ def analyze_case(
     row["cell_y_um"] = float(case["full_y_m"]) / (int(case["ny"]) - 1) * 1.0e6
     row.update(read_probe(input_path))
 
-    ip_s = 0.008
+    ip_s = interaction_point_s(input_path)
     source_z = source_centroid(input_path) - ip_s
     position = np.array([row["x_m"], row["y_m"], row["z_abs_m"] - ip_s], dtype=float)
-    e_analytic, b_analytic = analytic_fields(position, source_z, track12)
+    e_analytic, b_analytic = manufactured_fields(position, source_z, track12, None)
+    cutoff_sigma = float(case.get("manufactured_cutoff_sigma", 3.0))
+    e_truncated, b_truncated = manufactured_fields(
+        position, source_z, track12, cutoff_sigma
+    )
     e_opalx = np.array(
         [row["Ex_opalx_V_per_m"], row["Ey_opalx_V_per_m"], row["Ez_opalx_V_per_m"]]
     )
@@ -344,19 +376,37 @@ def analyze_case(
         row[f"E{axis}_analytic_V_per_m"] = float(value)
     for axis, value in zip("xyz", b_analytic):
         row[f"B{axis}_analytic_T"] = float(value)
+    for axis, value in zip("xyz", e_truncated):
+        row[f"E{axis}_truncated_V_per_m"] = float(value)
+    for axis, value in zip("xyz", b_truncated):
+        row[f"B{axis}_truncated_T"] = float(value)
+    row["manufactured_cutoff_sigma"] = cutoff_sigma
     row["E_abs_opalx_V_per_m"] = float(np.linalg.norm(e_opalx))
     row["E_abs_analytic_V_per_m"] = float(np.linalg.norm(e_analytic))
     row["B_abs_opalx_T"] = float(np.linalg.norm(b_opalx))
     row["B_abs_analytic_T"] = float(np.linalg.norm(b_analytic))
+    row["E_abs_truncated_V_per_m"] = float(np.linalg.norm(e_truncated))
+    row["B_abs_truncated_T"] = float(np.linalg.norm(b_truncated))
     row["E_magnitude_ratio"] = row["E_abs_opalx_V_per_m"] / row["E_abs_analytic_V_per_m"]
     row["E_direction_cosine"] = float(
         np.dot(e_opalx, e_analytic)
         / (np.linalg.norm(e_opalx) * np.linalg.norm(e_analytic))
     )
+    row["E_magnitude_ratio_truncated"] = (
+        row["E_abs_opalx_V_per_m"] / row["E_abs_truncated_V_per_m"]
+    )
+    row["E_direction_cosine_truncated"] = float(
+        np.dot(e_opalx, e_truncated)
+        / (np.linalg.norm(e_opalx) * np.linalg.norm(e_truncated))
+    )
     row["dPx_field_opalx"] = field_kick(e_opalx, b_opalx, track12)
     row["dPx_field_analytic"] = field_kick(e_analytic, b_analytic, track12)
+    row["dPx_field_truncated"] = field_kick(e_truncated, b_truncated, track12)
     row["dPx_CAIN"] = cain_pair4_first_kick(track12)
     row["dPx_opalx_over_analytic"] = row["dPx_field_opalx"] / row["dPx_field_analytic"]
+    row["dPx_opalx_over_truncated"] = (
+        row["dPx_field_opalx"] / row["dPx_field_truncated"]
+    )
     row["dPx_opalx_over_CAIN"] = row["dPx_field_opalx"] / row["dPx_CAIN"]
     return row
 
@@ -368,6 +418,25 @@ def configure_matplotlib(output_dir: Path) -> None:
     import matplotlib
 
     matplotlib.use("Agg", force=True)
+
+
+def fitted_error_scaling(
+    cell_spacing_um: pd.Series, ratio: pd.Series, samples: int = 100
+) -> tuple[np.ndarray, np.ndarray, float]:
+    """Fit ``abs(1-ratio) = C h**p`` and return the ratio curve and order."""
+    h = np.asarray(cell_spacing_um, dtype=float)
+    values = np.asarray(ratio, dtype=float)
+    error = np.abs(1.0 - values)
+    valid = np.isfinite(h) & np.isfinite(error) & (h > 0.0) & (error > 0.0)
+    if np.count_nonzero(valid) < 2:
+        raise ValueError("a scaling fit requires at least two finite nonzero errors")
+    order, log_coefficient = np.polyfit(np.log(h[valid]), np.log(error[valid]), 1)
+    h_fit = np.geomspace(np.min(h[valid]), np.max(h[valid]), samples)
+    side = np.sign(np.median(values[valid] - 1.0))
+    if side == 0.0:
+        side = -1.0
+    ratio_fit = 1.0 + side * np.exp(log_coefficient) * h_fit**order
+    return h_fit, ratio_fit, float(order)
 
 
 def plot_results(results: pd.DataFrame, output_dir: Path) -> None:
@@ -389,22 +458,81 @@ def plot_results(results: pd.DataFrame, output_dir: Path) -> None:
         }
         if len(group) > 1:
             kwargs.update({"lw": 1.5, "ms": 6.5})
-        plot(group["cell_x_um"], group["E_magnitude_ratio"], **kwargs)
+        plot(group["cell_x_um"], group["E_magnitude_ratio_truncated"], **kwargs)
 
         plot = axes[1].plot if len(group) > 1 else axes[1].scatter
-        plot(group["cell_x_um"], group["dPx_opalx_over_analytic"], **kwargs)
+        plot(group["cell_x_um"], group["dPx_opalx_over_truncated"], **kwargs)
+
+        proportional = group.loc[
+            np.isclose(group["nx"] / group["ny"], 8.0)
+            & group["case"].str.startswith("production_rect_")
+        ].sort_values("cell_x_um", ascending=False)
+        if model == "fixed" and len(proportional) >= 7:
+            fit_groups = (
+                ("3 coarse points", proportional.iloc[:3], "--", "C1"),
+                ("4 fine points", proportional.iloc[-4:], "-.", "C3"),
+            )
+            for axis, ratio_column in zip(
+                axes,
+                ("E_magnitude_ratio_truncated", "dPx_opalx_over_truncated"),
+            ):
+                for label, fit_group, linestyle, color in fit_groups:
+                    h_fit, ratio_fit, order = fitted_error_scaling(
+                        fit_group["cell_x_um"], fit_group[ratio_column]
+                    )
+                    axis.plot(
+                        h_fit,
+                        ratio_fit,
+                        linestyle=linestyle,
+                        color=color,
+                        lw=1.5,
+                        label=rf"{label}: $1-r\propto h^{{{order:.2f}}}$",
+                    )
     for axis in axes:
         axis.axhline(1.0, color="0.2", ls="--", lw=1.0)
-        axis.set_xscale("log")
+        axis.invert_xaxis()
         axis.grid(True, which="both", color="0.88", lw=0.6)
         axis.set_xlabel(r"$x$ cell spacing [$\mu$m]")
-        axis.legend(title="primary representation", fontsize=8)
-    axes[0].set_ylabel(r"$|E|_{\rm OPALX}/|E|_{\rm analytic}$")
-    axes[1].set_ylabel(r"$\Delta p_x^{\rm OPALX}/\Delta p_x^{\rm analytic}$")
+        axis.legend(title="data and scaling fits", fontsize=8)
+    axes[0].set_ylabel(r"$|E|_{\rm OPALX}/|E|_{\rm truncated}$")
+    axes[1].set_ylabel(r"$\Delta p_x^{\rm OPALX}/\Delta p_x^{\rm truncated}$")
     if not refinement.empty:
         fig.suptitle(r"Pair-4 overlap: $40\,\mu$m full square-domain refinement")
+    elif plotted["case"].str.startswith("production_rect_").all():
+        fig.suptitle(
+            r"Pair-4 overlap: production aperture, fixed $N_z=128$, $\pm3\sigma$ source"
+        )
     fig.savefig(output_dir / "pair4_field_and_kick_convergence.png", dpi=240)
     plt.close(fig)
+
+
+def add_observed_orders(results: pd.DataFrame) -> pd.DataFrame:
+    """Add pairwise convergence orders for fixed-domain refinement sequences."""
+    output = results.copy()
+    output["effective_cell_um"] = np.sqrt(
+        output["cell_x_um"] * output["cell_y_um"]
+    )
+    output["observed_order_E"] = np.nan
+    output["observed_order_kick"] = np.nan
+    group_columns = ["primary_model", "full_x_m", "full_y_m"]
+    for _key, group in output.groupby(group_columns, sort=False):
+        indices = group.sort_values("effective_cell_um", ascending=False).index
+        for coarse_index, fine_index in zip(indices[:-1], indices[1:]):
+            h_ratio = (
+                output.at[coarse_index, "effective_cell_um"]
+                / output.at[fine_index, "effective_cell_um"]
+            )
+            for ratio_column, order_column in (
+                ("E_magnitude_ratio_truncated", "observed_order_E"),
+                ("dPx_opalx_over_truncated", "observed_order_kick"),
+            ):
+                coarse_error = abs(1.0 - output.at[coarse_index, ratio_column])
+                fine_error = abs(1.0 - output.at[fine_index, ratio_column])
+                if h_ratio > 1.0 and coarse_error > 0.0 and fine_error > 0.0:
+                    output.at[fine_index, order_column] = math.log(
+                        coarse_error / fine_error
+                    ) / math.log(h_ratio)
+    return output
 
 
 def main() -> int:
@@ -475,19 +603,26 @@ def main() -> int:
 
     rows = []
     for case in cases:
-        input_path = render_case(
-            case,
-            args.output_dir,
-            config,
-            int(tensor_metadata["particle_count"]) if tensor_metadata else 0,
-            fixed_primary,
-            track12,
-        )
+        if args.analyze_only:
+            input_path = (
+                args.output_dir / str(case["name"]) / "pair4_field_probe.in"
+            )
+            if not input_path.is_file():
+                raise FileNotFoundError(input_path)
+        else:
+            input_path = render_case(
+                case,
+                args.output_dir,
+                config,
+                int(tensor_metadata["particle_count"]) if tensor_metadata else 0,
+                fixed_primary,
+                track12,
+            )
         if args.prepare_only:
             print(f"prepared {input_path}")
             continue
         if args.analyze_only:
-            status, runtime = "external", 0.0
+            status, runtime = "external", external_runtime(input_path)
         else:
             status, runtime = run_case(
                 args.opalx.resolve(), input_path, args.omp_threads, args.force
@@ -495,15 +630,15 @@ def main() -> int:
         row = analyze_case(case, input_path, status, runtime, track12)
         rows.append(row)
         print(
-            f"{row['case']}: |E| ratio={row['E_magnitude_ratio']:.6g}, "
-            f"kick ratio={row['dPx_opalx_over_analytic']:.6g}, runtime={runtime:.2f} s",
+            f"{row['case']}: |E| ratio={row['E_magnitude_ratio_truncated']:.6g}, "
+            f"kick ratio={row['dPx_opalx_over_truncated']:.6g}, runtime={runtime:.2f} s",
             flush=True,
         )
 
     if args.prepare_only:
         return 0
 
-    results = pd.DataFrame(rows)
+    results = add_observed_orders(pd.DataFrame(rows))
     results.to_csv(args.output_dir / "pair4_first_kick_field_scan.csv", index=False)
     if not args.no_plot:
         plot_results(results, args.output_dir)
@@ -547,17 +682,21 @@ def main() -> int:
     columns = [
         "case",
         "E_magnitude_ratio",
-        "E_direction_cosine",
+        "E_magnitude_ratio_truncated",
+        "E_direction_cosine_truncated",
         "dPx_field_opalx",
         "dPx_field_analytic",
+        "dPx_field_truncated",
         "dPx_CAIN",
+        "observed_order_E",
+        "observed_order_kick",
     ]
     print(results[columns].to_string(index=False))
     print(f"wrote {args.output_dir}")
 
     failures = []
     if args.max_e_magnitude_relative_error is not None:
-        errors = np.abs(results["E_magnitude_ratio"] - 1.0)
+        errors = np.abs(results["E_magnitude_ratio_truncated"] - 1.0)
         failed = results.loc[errors.gt(args.max_e_magnitude_relative_error), "case"]
         if not failed.empty:
             failures.append(
@@ -566,7 +705,7 @@ def main() -> int:
             )
     if args.min_e_direction_cosine is not None:
         failed = results.loc[
-            results["E_direction_cosine"].lt(args.min_e_direction_cosine), "case"
+            results["E_direction_cosine_truncated"].lt(args.min_e_direction_cosine), "case"
         ]
         if not failed.empty:
             failures.append(

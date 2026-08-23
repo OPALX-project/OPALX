@@ -443,7 +443,11 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             const double depositedCharge       = prepareRhoForBinImpl(
                     bunch, bins, binIndex, nPartGlobal, gammaBin, scatterMode, beamBeamActive);
             if (beamBeamActive) {
-                depositedBeamBeamCharge += depositedCharge;
+                // The rigid copied primary has the same charge as the physical primary. Its
+                // field is reconstructed below from the physical solve, so account for both
+                // sources without repeating the scatter solely for this diagnostic.
+                depositedBeamBeamCharge +=
+                        beamBeamCopyActive ? 2.0 * depositedCharge : depositedCharge;
             }
 
             *(this->getE()) = 0.0;
@@ -459,49 +463,10 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             accumulateFieldToTemp(
                     *fieldContainer, gammaBin, kinematics.pmean, EtmpSP, BtmpSP, +1.0);
 
-            mesh.setMeshSpacing(hrOrig);
-        }
-
-        // --- BeamBeam copied-primary pass: same-sign mirrored charge, opposite velocity ---
-        //
-        // The BeamBeam model evolves one physical primary bunch and represents the
-        // counter-propagating primary through reflection about the interaction point.
-        // Deposit that reflected distribution on the same fixed window mesh, solve it
-        // independently, and reverse only the longitudinal mean momentum for the lab-frame
-        // transform. The reversed velocity leaves E unchanged at exact overlap and reverses B.
-        if (beamBeamCopyActive) {
-            auto pc           = bunch.getParticleContainer();
-            auto rView        = pc->R.getView();
-            const size_t nLoc = pc->getLocalNum();
-            const double interactionPointBeamZ =
-                    bunch.getBeamBeamWindowConfig().interactionPointS - pc->get_sPos();
-            auto originalZ =
-                    opalx::detail::mirrorBeamBeamZPositions(rView, nLoc, interactionPointBeamZ);
-
-            double depositedCopiedCharge = 0.0;
-            try {
-                depositedCopiedCharge = prepareRhoForBinImpl(
-                        bunch, bins, binIndex, nPartGlobal, gammaBin, ImageScatterMode::PrimaryOnly,
-                        true);
-            } catch (...) {
-                opalx::detail::restoreBeamBeamZPositions(rView, nLoc, originalZ);
-                throw;
+            if (beamBeamCopyActive) {
+                accumulateMirroredPrimaryFieldToTemp(
+                        *fieldContainer, gammaBin, kinematics.pmean, EtmpSP, BtmpSP);
             }
-            opalx::detail::restoreBeamBeamZPositions(rView, nLoc, originalZ);
-            depositedBeamBeamCharge += depositedCopiedCharge;
-
-            *(this->getE()) = 0.0;
-            mesh.setMeshSpacing(hrStretched);
-
-            m << level4 << "binIndex=" << static_cast<int>(binIndex)
-              << " BeamBeam copied-primary runSolver(true) start" << endl;
-            this->runSolver(true);
-            m << level4 << "binIndex=" << static_cast<int>(binIndex)
-              << " BeamBeam copied-primary runSolver(true) done; accumulate->Etmp" << endl;
-
-            Vector_t<double, Dim> copiedPmean = kinematics.pmean;
-            copiedPmean[Dim - 1]              = -copiedPmean[Dim - 1];
-            accumulateFieldToTemp(*fieldContainer, gammaBin, copiedPmean, EtmpSP, BtmpSP, +1.0);
 
             mesh.setMeshSpacing(hrOrig);
         }
@@ -1050,6 +1015,58 @@ void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
                     apply(bTmpView, idx) = bTotal;
                 });
     }
+}
+
+template <typename T, unsigned Dim>
+void BinnedFieldSolver<T, Dim>::accumulateMirroredPrimaryFieldToTemp(
+        FieldContainer_t& fieldContainer, const double gammaBin,
+        const Vector_t<double, Dim>& physicalPmean, std::shared_ptr<VField_t<T, Dim>> EtmpSP,
+        std::shared_ptr<VField_t<T, Dim>> BtmpSP) {
+    static_assert(Dim == 3, "BeamBeam mirrored-primary accumulation requires three dimensions");
+
+    // The BeamBeam copy is a same-sign primary reflected about the interaction point, not an
+    // image charge. Its vector-field parity under z reflection is (+Ex, +Ey, -Ez). Reverse only
+    // the longitudinal mean velocity before performing the usual rest-to-lab transformation.
+    Vector_t<double, Dim> copiedPmean = physicalPmean;
+    copiedPmean[Dim - 1]              = -copiedPmean[Dim - 1];
+
+    const double invGamma         = (gammaBin > 0.0) ? (1.0 / gammaBin) : 0.0;
+    const Vector_t<double, Dim> v = Physics::c * copiedPmean * invGamma;
+    const double vNorm            = Kokkos::sqrt(v.dot(v));
+    const Vector_t<double, Dim> w = (vNorm > 0.0) ? (v / vNorm) : Vector_t<double, Dim>(0.0);
+    const double gammaMinusOne    = gammaBin - 1.0;
+    const double gammaOverCSq     = gammaBin / (Physics::c * Physics::c);
+
+    const VField_t<T, Dim>& physicalEprime = *(this->getE());
+    buildFlippedZSlab(fieldContainer, physicalEprime);
+    auto mirroredField = fieldContainer.getFlippedZSlabField();
+    if (!mirroredField) {
+        throw OpalException(
+                "BinnedFieldSolver::accumulateMirroredPrimaryFieldToTemp",
+                "Mirrored-primary scratch field is not initialized.");
+    }
+
+    auto mirroredView = mirroredField->getView();
+    auto eTmpView     = EtmpSP->getView();
+    auto bTmpView     = BtmpSP->getView();
+
+    ippl::parallel_for(
+            "BinnedFieldSolver::accumulateMirroredPrimaryFieldToTemp",
+            physicalEprime.getFieldRangePolicy(),
+            KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
+                Vector_t<T, Dim> ePrime = mirroredView(idx[0], idx[1], idx[2]);
+                ePrime[Dim - 1]         = -ePrime[Dim - 1];
+
+                const T ePrimeDotW      = ePrime.dot(w);
+                Vector_t<T, Dim> eLab   = gammaBin * ePrime - gammaMinusOne * ePrimeDotW * w;
+                Vector_t<T, Dim> bLab   = gammaOverCSq * cross(v, ePrime);
+                Vector_t<T, Dim> eTotal = apply(eTmpView, idx);
+                Vector_t<T, Dim> bTotal = apply(bTmpView, idx);
+                eTotal += eLab;
+                bTotal += bLab;
+                apply(eTmpView, idx) = eTotal;
+                apply(bTmpView, idx) = bTotal;
+            });
 }
 
 template <typename T, unsigned Dim>

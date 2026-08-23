@@ -30,6 +30,7 @@ MANUFACTURED_SOURCE_SELECTION = "both"
 MANUFACTURED_SOURCE_TIME_OFFSET_S = 0.0
 MANUFACTURED_MC_SOURCE_PARTICLES = 0
 MANUFACTURED_MAX_SUBSTEP_S = 1.0e-15
+MANUFACTURED_SOURCE_CUTOFF_SIGMA = 3.0
 
 
 def load_track12_module():
@@ -334,6 +335,7 @@ def make_manufactured_reference(reference: pd.DataFrame, module) -> pd.DataFrame
         MANUFACTURED_SOURCE_TIME_OFFSET_S,
         MANUFACTURED_MC_SOURCE_PARTICLES,
         module.DEFAULT_MC_SEED,
+        MANUFACTURED_SOURCE_CUTOFF_SIGMA,
     )
 
 
@@ -546,7 +548,7 @@ def plot_trajectories(
     models = (
         ("cain", "CAIN reference"),
         ("opalx", "OPALX exact timed births"),
-        ("manufactured", "Manufactured rigid two-Gaussian"),
+        ("manufactured", r"Manufactured rigid two-Gaussian ($\pm3\sigma$)"),
     )
     fig, axes = plt.subplots(1, 3, figsize=(18.0, 5.3), dpi=180, sharex=True, sharey=True)
     for ax, (model, title) in zip(axes, models, strict=True):
@@ -646,6 +648,7 @@ def main() -> None:
             "source_time_offset_s": MANUFACTURED_SOURCE_TIME_OFFSET_S,
             "mc_source_particles": MANUFACTURED_MC_SOURCE_PARTICLES,
             "max_substep_s": MANUFACTURED_MAX_SUBSTEP_S,
+            "component_cutoff_sigma": MANUFACTURED_SOURCE_CUTOFF_SIGMA,
         },
         "h5_identity": identity,
         "first_kicks": first_kicks.to_dict(orient="records"),
