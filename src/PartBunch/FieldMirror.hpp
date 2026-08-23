@@ -42,7 +42,8 @@ namespace opalx {
         //
         // In-place (same Field for src and dst) is supported via a scratch copy.
         template <typename Field>
-        void mirrorField(const Field& src, Field& dst, unsigned axis) {
+        void mirrorField(
+                const Field& src, Field& dst, unsigned axis, bool clearDestination = true) {
             constexpr unsigned Dim = Field::dim;
             static_assert(Dim == 3, "mirrorField: only Dim == 3 is implemented");
             assert(axis < Dim);
@@ -57,7 +58,7 @@ namespace opalx {
             // In-place safety: read-before-write via a scratch copy of src.
             if (static_cast<const void*>(&src) == static_cast<const void*>(&dst)) {
                 Field scratch = src.deepCopy();
-                mirrorField(scratch, dst, axis);
+                mirrorField(scratch, dst, axis, clearDestination);
                 return;
             }
 
@@ -73,9 +74,12 @@ namespace opalx {
             auto srcView = src.getView();
             auto dstView = dst.getView();
 
-            // Deterministic zero-init: only cells inside a mirror-intersect region
-            // are overwritten below, so ghost cells and any residual interior stay 0.
-            Kokkos::deep_copy(dstView, value_type{});
+            // Generic callers retain deterministic zeroing of ghosts and any residual cells.
+            // A full-domain out-of-place reflection overwrites every owned destination cell and
+            // may skip this extra device pass when its caller does not consume stale ghosts.
+            if (clearDestination) {
+                Kokkos::deep_copy(dstView, value_type{});
+            }
 
             // Reflect p's local domain on the mirror axis (other axes untouched).
             auto reflectOnAxis = [&](const ippl::NDIndex<Dim>& ldom_p) {

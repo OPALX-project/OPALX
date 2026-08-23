@@ -416,6 +416,8 @@ namespace {
         auto bins = bunch->getBins();
         ASSERT_NE(bins, nullptr);
         EXPECT_EQ(bins->getCurrentBinCount(), maxBins);
+        EXPECT_NE(bunch->getFieldContainer()->getTempEField(), nullptr);
+        EXPECT_NE(bunch->getFieldContainer()->getTempBField(), nullptr);
     }
 
     TEST_F(BinnedFieldSolverSmokeTest, OpenSolver_UsesStandardGreensFunctionFromFieldSolverCmd) {
@@ -437,12 +439,23 @@ namespace {
         createZMirrorSymmetricParticles(kDefaultNParticles, /*pz=*/2.0);
         attachBins(/*maxBins=*/1, /*alpha=*/1.0, /*beta=*/1.0, /*desiredWidth=*/1.0);
 
+        // Simulate a preceding generic binned step. Entering the eligible BeamBeam path must
+        // release its extra electric accumulator so the active solve retains only E_m/B_m.
+        bunch->getFieldContainer()->initializeTemporaryFields();
+        ASSERT_NE(bunch->getFieldContainer()->getTempEField(), nullptr);
+        ASSERT_NE(bunch->getFieldContainer()->getTempBField(), nullptr);
+
         const double interactionPointS =
                 pc->get_sPos() + 0.5 * (bunch->rmin_m[2] + bunch->rmax_m[2]);
         bunch->setBeamBeamWindowConfig(
                 bunch->rmax_m[2] - bunch->rmin_m[2], interactionPointS, bunch->rmin_m[2],
                 bunch->rmax_m[2], /*copyModel=*/false);
         ASSERT_NO_THROW(bunch->computeSelfFields());
+        EXPECT_EQ(bunch->getFieldContainer()->getTempEField(), nullptr);
+        ASSERT_NE(bunch->getFieldContainer()->getTempBField(), nullptr);
+        EXPECT_EQ(
+                bunch->getFieldContainer()->getTempBField().get(),
+                &bunch->getFieldContainer()->getB());
         ASSERT_TRUE(bunch->hasLastDepositedChargeBeforeBackground());
         const double physicalCharge = bunch->getLastDepositedChargeBeforeBackground();
 
@@ -457,6 +470,11 @@ namespace {
                 bunch->rmax_m[2] - bunch->rmin_m[2], interactionPointS, bunch->rmin_m[2],
                 bunch->rmax_m[2], /*copyModel=*/true);
         ASSERT_NO_THROW(bunch->computeSelfFields());
+        EXPECT_EQ(bunch->getFieldContainer()->getTempEField(), nullptr);
+        ASSERT_NE(bunch->getFieldContainer()->getTempBField(), nullptr);
+        EXPECT_EQ(
+                bunch->getFieldContainer()->getTempBField().get(),
+                &bunch->getFieldContainer()->getB());
         ASSERT_TRUE(bunch->hasLastDepositedChargeBeforeBackground());
         EXPECT_NEAR(
                 bunch->getLastDepositedChargeBeforeBackground(), 2.0 * physicalCharge,
@@ -489,6 +507,28 @@ namespace {
                 EXPECT_DOUBLE_EQ(restoredR(i)[d], originalR(i)[d]);
             }
         }
+    }
+
+    TEST_F(BinnedFieldSolverSmokeTest, ConfiguredImageModelDisablesBeamBeamTwoFieldFastPath) {
+        rebuildOpenBunchWithGreensFunction("INTEGRATED");
+        createZMirrorSymmetricParticles(kDefaultNParticles, /*pz=*/2.0);
+        attachBins(/*maxBins=*/1, /*alpha=*/1.0, /*beta=*/1.0, /*desiredWidth=*/1.0);
+
+        // Keep the image model configured but outside its active step budget. The fast-path guard
+        // is deliberately based on configuration, not the transient per-step enabled flag.
+        bunch->setImageChargeConfiguration(true, /*zPlane=*/0.0);
+        bunch->setZerofaceMaxSteps(1);
+        bunch->setGlobalTrackStep(1);
+
+        const double interactionPointS =
+                pc->get_sPos() + 0.5 * (bunch->rmin_m[2] + bunch->rmax_m[2]);
+        bunch->setBeamBeamWindowConfig(
+                bunch->rmax_m[2] - bunch->rmin_m[2], interactionPointS, bunch->rmin_m[2],
+                bunch->rmax_m[2], /*copyModel=*/true);
+
+        ASSERT_NO_THROW(bunch->computeSelfFields());
+        EXPECT_NE(bunch->getFieldContainer()->getTempEField(), nullptr);
+        EXPECT_NE(bunch->getFieldContainer()->getTempBField(), nullptr);
     }
 
     TEST_F(BinnedFieldSolverSmokeTest, P3MOpenAndPeriodicUseSameSolverWrapperAndSelectedLayoutBC) {

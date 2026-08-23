@@ -41,5 +41,6 @@ input-files/OPAL-X-STAT0.csv
 input-files/timing.dat
 build_*
 *.json
+!sandbox/track12particles/opalx/timed/first_kick_field_scan.json
 coverage_html/
 .idea

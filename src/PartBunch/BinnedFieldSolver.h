@@ -72,6 +72,9 @@ namespace p3m_detail {
  *   - After bins are calculated, it solves electrostatics per bin in a quasi-static approximation.
  *   - Fields per bin are then transformed to the lab frame and accumulated into the temporary
  *     fields, this also produces the magnetic field contributions.
+ *   - A BeamBeam interaction with exactly one bin and no configured cathode/image model uses a
+ *     two-field fast path: the physical solve remains in `E_m`, `B_m` stages the reflected
+ *     primary, and one device kernel overwrites both with the final lab-frame fields.
  *   - Finally, the accumulated fields are gathered back to the particles.
  *   - This procedure approximates full Maxwell's equations for the self-fields.
  *   - Without a bins object, it falls back to the legacy electrostatic approximation.
@@ -234,6 +237,9 @@ private:
     bool shiftedGreensEnabled_m  = false;
     double shiftedGreensPlaneZ_m = 0.0;
 
+    /// True only while the most recent solve left final lab-frame fields in FieldContainer E/B.
+    bool beamBeamTwoFieldResultActive_m = false;
+
     /**
      * @brief Row entry for the level-3 bin statistics table.
      */
@@ -272,12 +278,15 @@ private:
     /**
      * @brief Compute self-fields using the binned algorithm.
      *
-     * Requires that the bunch has a valid bin structure and a temporary electric field
-     * buffer (`bunch.getFieldContainer()->getTempEField()`).
+     * Generic multi-bin and cathode-correction solves lazily allocate temporary accumulation
+     * fields. The guarded one-bin BeamBeam path writes final fields directly to FieldContainer
+     * E/B and does not allocate those temporaries.
      *
-     * @param bunch Particle bunch for which to compute self-fields.
+     * @param bunch                  Particle bunch for which to compute self-fields.
+     * @param noImageModelConfigured True only if neither explicit image charge nor shifted
+     *                               Green's correction was configured before per-step gating.
      */
-    void computeBinnedSelfFields(PartBunch_t& bunch);
+    void computeBinnedSelfFields(PartBunch_t& bunch, bool noImageModelConfigured);
 
     /**
      * @brief Compute self-fields using the legacy monolithic algorithm.
@@ -412,6 +421,23 @@ private:
             const Vector_t<double, Dim>& physicalPmean, std::shared_ptr<VField_t<T, Dim>> EtmpSP,
             std::shared_ptr<VField_t<T, Dim>> BtmpSP);
 
+    /**
+     * @brief Finalize the guarded one-bin BeamBeam solve directly in FieldContainer E/B.
+     *
+     * On entry @c E_m contains the physical-primary rest-frame electric field. When the rigid
+     * counter-primary is active, the method reflects @c E_m into @c B_m out of place. A single
+     * device kernel then reads both rest-frame fields and overwrites them with the total
+     * lab-frame electric and magnetic fields. No temporary accumulation or host staging occurs.
+     *
+     * @param fieldContainer Owns the E/B fields on the active BeamBeam mesh.
+     * @param gammaBin       Global mean gamma of the single source bin.
+     * @param physicalPmean Global mean normalized momentum of the physical primary.
+     * @param includeCopy    Whether to add the reflected counter-propagating primary.
+     */
+    void finalizeBeamBeamTwoFieldResult(
+            FieldContainer_t& fieldContainer, double gammaBin,
+            const Vector_t<double, Dim>& physicalPmean, bool includeCopy);
+
     /// Prepare one bin and optionally return its dt-weighted deposited charge before
     /// normalization. Charge measurement adds a field reduction and is enabled only for the
     /// BeamBeam entry/copy validation path.
@@ -442,6 +468,10 @@ private:
     void gatherFromTempToParticles(
             PartBunch_t& bunch, std::shared_ptr<VField_t<T, Dim>> EtmpSP,
             std::shared_ptr<VField_t<T, Dim>> BtmpSP);
+
+    /// Gather a concrete E/B mesh pair to the active primary container.
+    void gatherFieldsToParticles(
+            PartBunch_t& bunch, VField_t<T, Dim>& electricField, VField_t<T, Dim>& magneticField);
 };
 
 // Reduce compile-time churn: instantiate the only supported concrete solver in one TU.
