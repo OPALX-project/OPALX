@@ -8,8 +8,9 @@
 #include <vector>
 
 namespace opalx::detail {
-    template <typename T, unsigned Dim, typename RangePolicy, typename MirroredView,
-              typename ElectricView, typename MagneticView>
+    template <
+            typename T, unsigned Dim, typename RangePolicy, typename MirroredView,
+            typename ElectricView, typename MagneticView>
     void accumulateMirroredPrimaryField(
             const RangePolicy& rangePolicy, MirroredView mirroredView, ElectricView electricView,
             MagneticView magneticView, const double gammaBin, const double gammaMinusOne,
@@ -21,8 +22,8 @@ namespace opalx::detail {
                     Vector_t<T, Dim> ePrime = mirroredView(idx[0], idx[1], idx[2]);
                     ePrime[Dim - 1]         = -ePrime[Dim - 1];
 
-                    const T ePrimeDotW      = ePrime.dot(direction);
-                    Vector_t<T, Dim> eLab   =
+                    const T ePrimeDotW = ePrime.dot(direction);
+                    Vector_t<T, Dim> eLab =
                             gammaBin * ePrime - gammaMinusOne * ePrimeDotW * direction;
                     Vector_t<T, Dim> bLab   = gammaOverCSq * cross(velocity, ePrime);
                     Vector_t<T, Dim> eTotal = apply(electricView, idx);
@@ -34,8 +35,9 @@ namespace opalx::detail {
                 });
     }
 
-    template <typename T, unsigned Dim, typename RangePolicy, typename ElectricView,
-              typename MagneticView>
+    template <
+            typename T, unsigned Dim, typename RangePolicy, typename ElectricView,
+            typename MagneticView>
     void finalizeBeamBeamTwoField(
             const RangePolicy& rangePolicy, ElectricView electricView, MagneticView magneticView,
             const double gammaBin, const double gammaMinusOne, const double gammaOverCSq,
@@ -47,17 +49,17 @@ namespace opalx::detail {
                 "BinnedFieldSolver::finalizeBeamBeamTwoFieldResult", rangePolicy,
                 KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
                     const Vector_t<T, Dim> physicalEPrime = apply(electricView, idx);
-                    const T physicalEDotW = physicalEPrime.dot(physicalDirection);
-                    Vector_t<T, Dim> electricTotal = gammaBin * physicalEPrime
-                                                     - gammaMinusOne * physicalEDotW
-                                                               * physicalDirection;
+                    const T physicalEDotW                 = physicalEPrime.dot(physicalDirection);
+                    Vector_t<T, Dim> electricTotal =
+                            gammaBin * physicalEPrime
+                            - gammaMinusOne * physicalEDotW * physicalDirection;
                     Vector_t<T, Dim> magneticTotal =
                             gammaOverCSq * cross(physicalVelocity, physicalEPrime);
 
                     if (includeCopy) {
                         Vector_t<T, Dim> copiedEPrime = apply(magneticView, idx);
                         copiedEPrime[Dim - 1]         = -copiedEPrime[Dim - 1];
-                        const T copiedEDotW = copiedEPrime.dot(copiedDirection);
+                        const T copiedEDotW           = copiedEPrime.dot(copiedDirection);
                         electricTotal += gammaBin * copiedEPrime
                                          - gammaMinusOne * copiedEDotW * copiedDirection;
                         magneticTotal += gammaOverCSq * cross(copiedVelocity, copiedEPrime);
