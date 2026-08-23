@@ -378,12 +378,12 @@ public:
         this->fcontainer_m->setTempEField(Etmp);
     }
 
-    /// @brief Scratch B field used by the binned solver path.
+    /// @brief Compatibility access to FieldContainer B_m, used as the binned B accumulator.
     std::shared_ptr<VField_t<T, Dim>> getTempBField() {
         return this->fcontainer_m ? this->fcontainer_m->getTempBField() : nullptr;
     }
 
-    /// @param Btmp Scratch B field matching the mesh layout.
+    /// @param Btmp Replacement B_m field matching the mesh layout.
     void setTempBField(std::shared_ptr<VField_t<T, Dim>> Btmp) {
         if (!this->fcontainer_m) {
             throw OpalException("PartBunch::setTempBField", "FieldContainer is not initialized.");

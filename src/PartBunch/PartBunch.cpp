@@ -1179,41 +1179,45 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
     }
     ms << level4 << "FieldSolver type: " << stype << endl;
 
-    // Basic check that the E-field layout has non-zero extent
+    // Basic check that the persistent E/B field layouts have non-zero extent.
     auto Eview = fctr->getE().getView();
+    auto Bview = fctr->getB().getView();
     if (stype != "NONE" && (Eview.extent(0) == 0 || Eview.extent(1) == 0 || Eview.extent(2) == 0)) {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks",
                 "E-field layout not initialized (zero extent). ");
     }
-    ms << level4 << "E-field layout initialized." << endl;
+    if (stype != "NONE" && (Bview.extent(0) == 0 || Bview.extent(1) == 0 || Bview.extent(2) == 0)) {
+        throw OpalException(
+                "PartBunch::performBunchSanityChecks",
+                "B-field layout not initialized (zero extent). ");
+    }
+    ms << level4 << "E/B field layouts initialized." << endl;
 
-    // Temporary E/B accumulation fields (binned solver path)
+    // Generic binned electric accumulation is lazy so the one-bin BeamBeam path retains only
+    // E_m/B_m. B_m is also the generic magnetic accumulator; getTempBField() remains as a
+    // compatibility alias rather than owning another vector field.
     auto Etmp = fctr->getTempEField();
     auto Btmp = fctr->getTempBField();
-    if (!Etmp || !Btmp) {
+    if (!Btmp || Btmp.get() != &fctr->getB()) {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks",
-                "Temporary E field (Etmp) and/or B field (Btmp) not initialized.");
+                "Binned magnetic-field alias does not reference FieldContainer B_m.");
     }
-    auto EtmpView = Etmp->getView();
-    auto BtmpView = Btmp->getView();
-    if (EtmpView.extent(0) == 0 || EtmpView.extent(1) == 0 || EtmpView.extent(2) == 0) {
-        throw OpalException(
-                "PartBunch::performBunchSanityChecks",
-                "Etmp field layout not initialized (zero extent). ");
+    if (Etmp) {
+        auto EtmpView = Etmp->getView();
+        if (EtmpView.extent(0) == 0 || EtmpView.extent(1) == 0 || EtmpView.extent(2) == 0) {
+            throw OpalException(
+                    "PartBunch::performBunchSanityChecks",
+                    "Etmp field layout not initialized (zero extent). ");
+        }
+        if (&Etmp->get_mesh() != &fctr->getMesh()) {
+            throw OpalException(
+                    "PartBunch::performBunchSanityChecks",
+                    "Etmp field does not use the FieldContainer mesh.");
+        }
     }
-    if (BtmpView.extent(0) == 0 || BtmpView.extent(1) == 0 || BtmpView.extent(2) == 0) {
-        throw OpalException(
-                "PartBunch::performBunchSanityChecks",
-                "Btmp field layout not initialized (zero extent). ");
-    }
-    if (&Etmp->get_mesh() != &fctr->getMesh() || &Btmp->get_mesh() != &fctr->getMesh()) {
-        throw OpalException(
-                "PartBunch::performBunchSanityChecks",
-                "Etmp/Btmp fields do not use the FieldContainer mesh.");
-    }
-    ms << level4 << "Etmp and Btmp fields initialized on the FieldContainer mesh." << endl;
+    ms << level4 << "Lazy Etmp and shared B_m field state is consistent." << endl;
 
     if (!this->pcontainer_m) {
         throw OpalException(
