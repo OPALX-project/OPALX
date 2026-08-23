@@ -800,9 +800,50 @@ summarized in Table~\ref{tab:track12-corrected-pair4-probe}.
 
 The corrected production-discretization field therefore predicts the central
 CAIN first kick within 3.96\%, instead of the pre-fix trajectory's 1.20\%
-residual.  The timed-input, species, and comparison pipeline remains validated,
-and a complete corrected 12-particle production rerun is now justified.  That
-rerun has not yet been performed; the trajectory tables above remain pre-fix
-baselines.
+residual.
+
+For the subsequent like-for-like comparison, each Gaussian coordinate is
+conditioned on $|x_i|\leq 3\sigma_i$ and the retained density is renormalized
+to the full bunch charge.  Lorentz dilation multiplies both $z$ and
+$\sigma_z$ by the same factor, so the normalized cutoff is unchanged in the
+source rest frame. Factoring the Coulomb kernel into Gaussian integrals reduces
+the bounded three-dimensional convolution to a one-dimensional logarithmic
+quadrature. A ten-sigma cutoff reproduces the untruncated implementation to
+within $2\times10^{-10}$ relatively. At the pair-4 overlap point, the
+three-sigma field is 1.0082068311 times the untruncated field.
+
+One-rank Merlin job 353987 held the deterministic 400000-particle source, the
+\SI{2.4}{mm}$\times$\SI{0.24}{mm} aperture, $N_z=128$, and the two-step
+\SI{1}{fs} probe fixed while refining only the transverse mesh.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{rrrrr}
+    \hline
+    $N_x\times N_y$ & Cell $x/y$ [\si{\micro m}] & $|E|$ ratio & Kick ratio & Order \\
+    \hline
+    $1024\times128$ & 2.346 / 1.890 & 0.672577 & 0.672591 & -- \\
+    $1536\times192$ & 1.564 / 1.257 & 0.835404 & 0.835416 & 1.690 \\
+    $2048\times256$ & 1.172 / 0.941 & 0.912683 & 0.912698 & 2.198 \\
+    \hline
+  \end{tabular}
+  \caption{Production-aperture transverse refinement. Ratios use the
+  component-wise three-sigma-truncated manufactured field and its
+  constant-field Boris kick.}
+  \label{tab:track12-production-refinement}
+\end{table}
+
+The field direction cosine remains at least 0.999993. Field magnitude and kick
+converge monotonically together, with an observed order approaching two. The
+source cutoff is a sub-percent correction in the opposite direction: the
+coarse-mesh ratio is 0.678097 against the untruncated source but 0.672577
+against the truncated source. Transverse discretization is therefore the
+dominant first-kick deficit.
+
+The complete midpoint-only 12-particle rerun (job 353986) finished 1501 steps
+on one A100 in \SI{383.03}{s} and matched all 13012 CAIN-grid samples. It agrees
+with the preceding valid one-rank run to approximately $10^{-16}$~m in $x$ and
+$1.05\times10^{-13}$ in normalized $p_x$, confirming that eliminating the
+unused interaction-point override does not change a midpoint-configured case.
 
 \end{document}

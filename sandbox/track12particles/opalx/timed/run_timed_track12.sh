@@ -23,7 +23,9 @@ fi
 
 (
     cd "${run_dir}"
-    "${opalx_exe}" track12_timed.in 2>&1 | tee track12_timed.out
+    # IPPL suppresses timing.dat contents at its default --info level zero.
+    "${opalx_exe}" track12_timed.in --info 1 2>&1 | tee track12_timed.out
+    test -s timing.dat
 )
 
 "${python_bin}" "${run_dir}/compare_timed_track12.py"

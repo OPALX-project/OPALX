@@ -56,17 +56,23 @@ cd sandbox/track12particles/opalx/timed
 ```
 
 On Merlin6, first stage a prepared `production/` case and then submit the
-four-A100 smoke and production dependency chain with:
+smoke and production dependency chain.  The rank count is explicit; for the
+efficient one-rank/one-A100 configuration use:
 
 ```sh
 ./merlin/submit_track12_a100.sh submit \
   --run-root /path/to/run \
-  --opalx /path/to/cuda-build/src/opalx
+  --opalx /path/to/cuda-build/src/opalx \
+  --mpi-ranks 1 \
+  --production-time 04:00:00
 ```
 
-The smoke uses the full production mesh for three steps.  The production job
-starts only after that allocation/parser/MPI check succeeds.  Multi-rank OPALX
-is launched with `mpiexec`, with one rank per A100 and
+The smoke uses the full production mesh for three steps. The production job
+starts only after that allocation/parser/MPI check succeeds and accepts an
+explicit Slurm time limit so large-mesh trajectories are not tied to the
+four-hour default. Both jobs retain the exact submitted script and scheduler
+output below the run-local `slurm/` directory. Multi-rank OPALX is launched
+with `mpiexec`, with one rank per A100 and
 `--kokkos-map-device-id-by=mpi_rank`; plain multi-task `srun` would create MPI
 singletons on Merlin.
 
@@ -76,6 +82,14 @@ Fetch a completed production run and make all plots locally:
 ~/.venv-h6/bin/python timed/fetch_and_compare_a100.py \
   --remote-dir /path/to/run/production
 ```
+
+The maintained local and Merlin launchers pass `--info 1` to OPALX and require
+a nonempty `timing.dat` before marking a case complete. IPPL defaults this
+message level to zero, and its current timing-file writer inherits that level:
+without the explicit option it opens/truncates `timing.dat` but suppresses all
+rows. `runtime_compute.txt` remains the independent whole-process wall-time
+measurement, while `timing.dat` contains nested OPALX/IPPL timers and must not
+be treated as an additive exclusive-time profile.
 
 The timed witness-gather MPI regression uses a deterministic 100000-particle
 primary, eight co-located electron/positron witnesses emitted after the fixed
@@ -96,9 +110,11 @@ CTest `PROCESSORS` property, the regression driver explicitly launches each
 rank count through `mpiexec`.
 
 The comparison overlays CAIN, OPALX, and the centered anisotropic rigid
-two-Gaussian manufactured solution. The manufactured model includes both
-primary bunches, uses no finite-sample centroid jitter, and is integrated on
-the exact CAIN output-time grid. The comparison reconstructs absolute OPALX
+two-Gaussian manufactured solution. The manufactured density is independently
+truncated and renormalized in each coordinate at three sigma, matching the
+fixed OPALX source-generation rule without its finite-sample noise. It includes
+both primary bunches, uses no finite-sample centroid jitter, and is integrated
+on the exact CAIN output-time grid. The comparison reconstructs absolute OPALX
 particle coordinates by adding all three
 components of the H5 `RefPartR` attribute to the stored `x`, `y`, and `z`
 offsets.  Raw H5 IDs are not stable under MPI redistribution, so pair identity
@@ -166,9 +182,11 @@ field.  It does not change source deposition, the Poisson solve, field units,
 charge normalization, or MPI reduction order.
 
 `timed/scan_first_kick_fields.py` provides the persistent regression and mesh
-diagnostic.  It compares the pair-4 field at `x=sigma_x` with the untruncated
-rigid-Gaussian manufactured solution.  Both the normal seeded Gaussian sample
-and a deterministic equal-probability tensor source converge monotonically:
+diagnostic.  It records both the historical untruncated rigid-Gaussian
+reference and the like-for-like component-wise three-sigma-truncated
+manufactured reference. Both the normal seeded Gaussian sample and a
+deterministic equal-probability tensor source converge monotonically in the
+historical compact-domain scan:
 
 | full domain and mesh | source | x cell [um] | OPALX/analytic `|E|` |
 |---|---|---:|---:|
@@ -215,6 +233,73 @@ with:
   --run-root /path/to/prepared/run \
   --opalx /path/to/cuda-build/src/opalx
 ```
+
+For every Merlin submission, the launcher copies the exact script passed to
+`sbatch` into the run-local `slurm/` directory. Slurm stdout/stderr is written
+there as well. Application logs, runtime files, and manifests remain inside
+the corresponding case directory below the same run root. Do not submit a
+script from a transient location or place scheduler output outside the run
+root; the run directory must remain a self-contained execution record.
+
+For the production-aperture convergence study, prepare the three fixed-source
+cases locally, run them sequentially in one one-rank A100 allocation, and fetch
+only the compact probe outputs for local analysis:
+
+```sh
+~/.venv-h6/bin/python timed/prepare_timed_track12.py
+
+~/.venv-h6/bin/python timed/scan_first_kick_fields.py --prepare-only \
+  --case production_rect_1024x128_fixed400k \
+  --case production_rect_1536x192_fixed400k \
+  --case production_rect_2048x256_fixed400k \
+  --output-dir /path/to/prepared/run
+
+./timed/merlin/submit_first_kick_field_probe_a100.sh submit \
+  --run-root /path/to/prepared/run \
+  --opalx /path/to/cuda-build/src/opalx \
+  --mpi-ranks 1 \
+  --cases production_rect_1024x128_fixed400k,production_rect_1536x192_fixed400k,production_rect_2048x256_fixed400k
+
+~/.venv-h6/bin/python timed/fetch_and_plot_first_kick_a100.py \
+  --remote-root /path/to/completed/run
+```
+
+Merlin jobs `353987`, `353996`, `353997`, `353999`, and `354001` used commit
+`8da5b9e83`, the same deterministic 400000-particle source, the fixed
+`2.4 mm x 0.24 mm` aperture, and `Nz=128` throughout. The deterministic
+rank-invariance regression permits the one-rank and multi-rank results to be
+combined in one discretization curve:
+
+| transverse mesh | ranks/A100s | OPALX/truncated `|E|` | OPALX/truncated kick | runtime [s] |
+|---:|---:|---:|---:|---:|
+| 1024 x 128 | 1/1 | 0.672577 | 0.672591 | 5.69 |
+| 1536 x 192 | 1/1 | 0.835404 | 0.835416 | 6.93 |
+| 2048 x 256 | 1/1 | 0.912683 | 0.912698 | 7.59 |
+| 2304 x 288 | 3/3 | 0.916806 | 0.916822 | 58.11 |
+| 2560 x 320 | 3/3 | 0.930909 | 0.930931 | 69.51 |
+| 2688 x 336 | 3/3 | 0.940164 | 0.940189 | 76.38 |
+| 3072 x 384 | 4/4 | 0.971438 | 0.971466 | 121.56 |
+
+The field direction cosine is at least `0.999993`, so refinement corrects the
+magnitude rather than rotating the field. The three-sigma manufactured field
+at this point is `0.8207%` stronger than the untruncated Gaussian field; source
+truncation therefore slightly lowers the OPALX/reference ratio and cannot
+explain the coarse-grid deficit. The asymptotic order approaches two, as
+expected for the mesh interpolation/deposition error in this smooth probe.
+The `3072x384x128` case failed during initialization on two and three A100s but
+completed on four. Since its per-rank cell count on four GPUs is slightly below
+that of the successful `2688x336x128` three-GPU case, the evidence supports a
+per-device peak-memory or FFT-workspace threshold rather than an intrinsic
+mesh-size failure. The generic `MPI_ABORT(-100)` did not retain the originating
+exception, so the exact transient allocation is not yet identified.
+
+The separate `4096x256x128` four-A100 cross-check completed in 109.34 seconds
+and produced OPALX/truncated manufactured ratios `0.960704` for `|E|` and
+`0.960733` for the kick. This is not part of the proportional-refinement curve:
+its approximately `0.586 um x 0.941 um` cell spacing refines x relative to
+`3072x384x128` while coarsening y. Its lower ratio confirms that the remaining
+field error depends materially on y resolution and cannot be removed by
+x-only refinement.
 
 ## Files
 

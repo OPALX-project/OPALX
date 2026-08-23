@@ -24,6 +24,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.special import ndtr
 
 
 DEFAULT_INPUT = Path("/Users/adelmann/Desktop/TestParticleOrbit.dat")
@@ -61,11 +62,14 @@ class RigidAnisotropicGaussianSource:
         beta_z: float,
         center_t0_m: np.ndarray,
         t0_s: float = 0.0,
+        cutoff_sigma: float | None = None,
     ) -> None:
         if abs(beta_z) >= 1.0:
             raise ValueError(f"{name}: |beta_z| must be < 1")
         if any(sigma <= 0.0 for sigma in sigma_lab_m):
             raise ValueError(f"{name}: all source sigmas must be positive")
+        if cutoff_sigma is not None and cutoff_sigma <= 0.0:
+            raise ValueError(f"{name}: cutoff_sigma must be positive")
         self.name = name
         self.charge_C = charge_C
         self.beta = np.array([0.0, 0.0, beta_z], dtype=float)
@@ -73,6 +77,7 @@ class RigidAnisotropicGaussianSource:
         self.gamma = 1.0 / np.sqrt(1.0 - beta_z * beta_z)
         self.center_t0_m = np.asarray(center_t0_m, dtype=float)
         self.t0_s = t0_s
+        self.cutoff_sigma = cutoff_sigma
 
         sigma_x, sigma_y, sigma_z_lab = sigma_lab_m
         # The bunch is specified by lab-frame sigma_z.  In the source rest frame
@@ -151,6 +156,79 @@ def anisotropic_gaussian_rest_field(
     return coefficient * r_prime_m * np.asarray(integrals)
 
 
+def anisotropic_truncated_gaussian_rest_field(
+    r_prime_m: np.ndarray,
+    charge_C: float,
+    sigma_rest_m: np.ndarray,
+    cutoff_sigma: float,
+) -> np.ndarray:
+    """Return E' for a component-wise truncated triaxial Gaussian.
+
+    Each rest-frame coordinate is independently conditioned on
+    ``abs(x_i) <= cutoff_sigma * sigma_i`` and the retained density is
+    renormalized to the full bunch charge.  Lorentz dilation preserves the
+    normalized longitudinal cutoff because both z and sigma_z acquire the
+    same factor.  Factoring the Coulomb kernel into Gaussian integrals reduces
+    the bounded three-dimensional convolution to the same one-dimensional
+    logarithmic quadrature used by the untruncated reference.
+    """
+    if cutoff_sigma <= 0.0:
+        raise ValueError("cutoff_sigma must be positive")
+    if np.allclose(r_prime_m, 0.0, atol=0.0):
+        return np.zeros(3)
+
+    r_prime_m = np.asarray(r_prime_m, dtype=float)
+    sigma_rest_m = np.asarray(sigma_rest_m, dtype=float)
+    sigma2 = sigma_rest_m * sigma_rest_m
+
+    # s has units 1/m^2 in
+    #   1/R = pi^(-1/2) integral_0^inf s^(-1/2) exp(-s R^2) ds.
+    # Center its logarithmic grid on the inverse geometric-mean variance.
+    scale = float(np.exp(-np.mean(np.log(sigma2))))
+    s = scale * np.exp(LOG_QUAD_NODES)
+    denominator = 1.0 + 2.0 * s[:, None] * sigma2[None, :]
+    conditional_mean = (
+        2.0 * s[:, None] * sigma2[None, :] * r_prime_m[None, :] / denominator
+    )
+    conditional_sigma = sigma_rest_m[None, :] / np.sqrt(denominator)
+    lower = (
+        -cutoff_sigma * sigma_rest_m[None, :] - conditional_mean
+    ) / conditional_sigma
+    upper = (
+        +cutoff_sigma * sigma_rest_m[None, :] - conditional_mean
+    ) / conditional_sigma
+    retained_probability = ndtr(upper) - ndtr(lower)
+    normalizer = float(ndtr(cutoff_sigma) - ndtr(-cutoff_sigma))
+    phi_lower = np.exp(-0.5 * lower * lower) / np.sqrt(2.0 * np.pi)
+    phi_upper = np.exp(-0.5 * upper * upper) / np.sqrt(2.0 * np.pi)
+    unbounded_convolution = np.exp(
+        -s[:, None] * r_prime_m[None, :] ** 2 / denominator
+    ) / np.sqrt(denominator)
+
+    scalar_integrals = (
+        unbounded_convolution * retained_probability / normalizer
+    )
+    displacement_integrals = unbounded_convolution / normalizer * (
+        retained_probability * (r_prime_m[None, :] - conditional_mean)
+        - conditional_sigma * (phi_lower - phi_upper)
+    )
+
+    field_integrals = []
+    for axis in range(3):
+        other_axes = [other for other in range(3) if other != axis]
+        integrand = (
+            2.0
+            / np.sqrt(np.pi)
+            * s**1.5
+            * displacement_integrals[:, axis]
+            * np.prod(scalar_integrals[:, other_axes], axis=1)
+        )
+        field_integrals.append(float(np.trapezoid(integrand, LOG_QUAD_NODES)))
+
+    coefficient = charge_C / (4.0 * np.pi * EPSILON_0)
+    return coefficient * np.asarray(field_integrals)
+
+
 def anisotropic_source_lab_fields(
     position_m: np.ndarray,
     time_s: float,
@@ -161,7 +239,17 @@ def anisotropic_source_lab_fields(
     r_prime = displacement.copy()
     r_prime[2] *= source.gamma
 
-    e_prime = anisotropic_gaussian_rest_field(r_prime, source.charge_C, source.sigma_rest)
+    if source.cutoff_sigma is None:
+        e_prime = anisotropic_gaussian_rest_field(
+            r_prime, source.charge_C, source.sigma_rest
+        )
+    else:
+        e_prime = anisotropic_truncated_gaussian_rest_field(
+            r_prime,
+            source.charge_C,
+            source.sigma_rest,
+            source.cutoff_sigma,
+        )
     e_lab = e_prime.copy()
     e_lab[0] *= source.gamma
     e_lab[1] *= source.gamma
@@ -410,6 +498,7 @@ def make_anisotropic_sources(
     source_time_offset_s: float,
     mc_source_particles: int,
     mc_seed: int,
+    source_cutoff_sigma: float | None = None,
 ) -> tuple[RigidAnisotropicGaussianSource, ...]:
     beta = beta_from_kinetic_energy(source_kinetic_MeV)
     centroid_offsets = source_centroid_offsets(
@@ -424,6 +513,7 @@ def make_anisotropic_sources(
         beta_z=+beta,
         center_t0_m=centroid_offsets["copropagating"],
         t0_s=source_time_offset_s,
+        cutoff_sigma=source_cutoff_sigma,
     )
     oncoming = RigidAnisotropicGaussianSource(
         "oncoming",
@@ -432,6 +522,7 @@ def make_anisotropic_sources(
         beta_z=-beta,
         center_t0_m=centroid_offsets["oncoming"],
         t0_s=source_time_offset_s,
+        cutoff_sigma=source_cutoff_sigma,
     )
     if source_selection == "both":
         return (copropagating, oncoming)
@@ -475,6 +566,7 @@ def scan_source_phase(reference: pd.DataFrame, args: argparse.Namespace) -> pd.D
                 offset_ps * 1.0e-12,
                 args.mc_source_particles,
                 args.mc_seed,
+                args.source_cutoff_sigma,
             )
             metrics = trajectory_error_metrics(reference, manufactured)
             rows.append(
@@ -513,6 +605,7 @@ def write_scan_outputs(reference: pd.DataFrame, args: argparse.Namespace) -> Non
         best_offset_s,
         args.mc_source_particles,
         args.mc_seed,
+        args.source_cutoff_sigma,
     )
     args.scan_comparison_plot.parent.mkdir(parents=True, exist_ok=True)
     plot_cain_and_manufactured(reference, manufactured, args.scan_comparison_plot)
@@ -536,11 +629,14 @@ def track_manufactured_on_reference_grid(
     source_time_offset_s: float,
     mc_source_particles: int,
     mc_seed: int,
+    source_cutoff_sigma: float | None = None,
 ) -> pd.DataFrame:
     """Track the 12 initial particles with the manufactured model on the CAIN ct grid."""
     if max_substep_s <= 0.0:
         raise ValueError("--max-substep-s must be positive")
     if model == "spherical":
+        if source_cutoff_sigma is not None:
+            raise ValueError("source cutoff is implemented only for the anisotropic model")
         manufactured = load_manufactured_module()
         sources = make_manufactured_sources(
             manufactured,
@@ -570,6 +666,7 @@ def track_manufactured_on_reference_grid(
             source_time_offset_s,
             mc_source_particles,
             mc_seed,
+            source_cutoff_sigma,
         )
 
         def field_function(position_m, time_s, field_sources):
@@ -620,6 +717,7 @@ def track_manufactured_on_reference_grid(
                     "mc_source_particles": mc_source_particles,
                     "mc_seed": mc_seed,
                     "source_centroid_offsets_m": source_offset_summary,
+                    "source_cutoff_sigma": source_cutoff_sigma,
                     "pair": int(row["pair"]),
                     "kind": int(row["kind"]),
                     "species": row["species"],
@@ -972,6 +1070,7 @@ def write_outputs(data: pd.DataFrame, args: argparse.Namespace) -> None:
             args.source_time_offset_s,
             args.mc_source_particles,
             args.mc_seed,
+            args.source_cutoff_sigma,
         )
 
     if args.manufactured_csv is not None:
@@ -1130,6 +1229,15 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=DEFAULT_MC_SEED,
         help="Random seed for reproducible source centroid noise.",
+    )
+    parser.add_argument(
+        "--source-cutoff-sigma",
+        type=float,
+        default=None,
+        help=(
+            "Optional component-wise Gaussian source cutoff in sigma, with "
+            "the retained density renormalized to the specified bunch charge."
+        ),
     )
     parser.add_argument(
         "--scan-source-phase",

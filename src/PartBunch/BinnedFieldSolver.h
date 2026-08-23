@@ -378,6 +378,40 @@ public:
             std::shared_ptr<VField_t<T, Dim>> BtmpSP, double bFieldSign = 1.0, int flipAxis = -1);
 
 private:
+    /**
+     * @brief Accumulate the counter-propagating BeamBeam primary from the physical solve.
+     *
+     * The rigid copied primary is the same-sign reflection of the physical primary about the
+     * interaction point. The fixed BeamBeam mesh is centred on that point, so the copied
+     * rest-frame field follows exactly from the already-solved physical field:
+     *
+     * @f[
+     *   \mathbf{E}'_{\mathrm{copy}}(x,y,z)
+     *   = \operatorname{diag}(1,1,-1)
+     *     \mathbf{E}'_{\mathrm{physical}}(x,y,2z_{\mathrm{IP}}-z).
+     * @f]
+     *
+     * The copied mean momentum has only its longitudinal component reversed. This method then
+     * applies the normal rest-to-lab Lorentz transform and adds the copied E and B fields to the
+     * temporary mesh fields. It is deliberately separate from the image-charge flip in
+     * accumulateFieldToTemp(): image charges use the different parity
+     * @f$\operatorname{diag}(-1,-1,1)@f$ and must not share this physics path.
+     *
+     * The global z reflection is performed by buildFlippedZSlab(), including its MPI exchange
+     * when the field is decomposed in z. This replaces a second scatter and Poisson solve with
+     * one vector-field reflection and one accumulation kernel.
+     *
+     * @param fieldContainer Owns the reusable reflected-field scratch allocation.
+     * @param gammaBin       Global average gamma for the merged physical-primary bin.
+     * @param physicalPmean Global average normalized momentum of the physical primary.
+     * @param EtmpSP         Temporary electric field buffer for accumulation.
+     * @param BtmpSP         Temporary magnetic field buffer for accumulation.
+     */
+    void accumulateMirroredPrimaryFieldToTemp(
+            FieldContainer_t& fieldContainer, const double gammaBin,
+            const Vector_t<double, Dim>& physicalPmean, std::shared_ptr<VField_t<T, Dim>> EtmpSP,
+            std::shared_ptr<VField_t<T, Dim>> BtmpSP);
+
     /// Prepare one bin and optionally return its dt-weighted deposited charge before
     /// normalization. Charge measurement adds a field reduction and is enabled only for the
     /// BeamBeam entry/copy validation path.
