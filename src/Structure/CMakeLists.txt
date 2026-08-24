@@ -10,6 +10,7 @@ set (_SRCS
   ElementPositionWriter.cpp
   FieldSolverCmd.cpp
   BinningCmd.cpp
+  H5FileSpace.cpp
   H5PartWrapper.cpp
   H5PartWrapperForPT.cpp
   MonitorStatisticsWriter.cpp

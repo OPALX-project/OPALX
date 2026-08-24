@@ -3,6 +3,7 @@
 //
 
 #include "Structure/H5PartWrapper.h"
+#include "Structure/H5FileSpace.h"
 
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
@@ -104,40 +105,7 @@ void H5PartWrapper::rewindToTime(double checkpointTime, double timeStep) {
     close();
 
     if (keepSteps < numSteps) {
-        hid_t access  = H5Pcreate(H5P_FILE_ACCESS);
-        MPI_Comm comm = ippl::Comm->getCommunicator();
-        if (access < 0 || H5Pset_fapl_mpio(access, comm, MPI_INFO_NULL) < 0) {
-            if (access >= 0) {
-                H5Pclose(access);
-            }
-            throw OpalException(
-                    "H5PartWrapper::rewindToTime",
-                    "could not configure parallel diagnostic HDF5 access");
-        }
-
-        hid_t nativeFile = H5Fopen(fileName_m.c_str(), H5F_ACC_RDWR, access);
-        H5Pclose(access);
-        if (nativeFile < 0) {
-            throw OpalException(
-                    "H5PartWrapper::rewindToTime",
-                    "could not reopen diagnostic HDF5 file '" + fileName_m + "'");
-        }
-
-        for (h5_ssize_t step = numSteps; step > keepSteps; --step) {
-            const std::string groupName = "Step#" + std::to_string(step - 1);
-            if (H5Ldelete(nativeFile, groupName.c_str(), H5P_DEFAULT) < 0) {
-                H5Fclose(nativeFile);
-                throw OpalException(
-                        "H5PartWrapper::rewindToTime",
-                        "could not remove diagnostic HDF5 group '" + groupName + "'");
-            }
-        }
-        const herr_t flushStatus = H5Fflush(nativeFile, H5F_SCOPE_GLOBAL);
-        const herr_t closeStatus = H5Fclose(nativeFile);
-        if (flushStatus < 0 || closeStatus < 0) {
-            throw OpalException(
-                    "H5PartWrapper::rewindToTime", "could not finalize diagnostic HDF5 rewind");
-        }
+        H5FileSpace::compactStepPrefix(fileName_m, static_cast<std::size_t>(keepSteps));
 
         *ippl::Info << level2 << "Rewound diagnostic HDF5 file '" << fileName_m << "' from "
                     << numSteps << " to " << keepSteps << " step(s)." << endl;

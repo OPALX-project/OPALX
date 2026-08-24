@@ -44,6 +44,10 @@
  *    - repeated rewind and append does not accumulate duplicate records
  *    - malformed records without GlobalTrackStep are rejected
  *
+ * 8. HDF5 file-space management
+ *    - rewind physically compacts discarded steps
+ *    - repeated rewind and append cycles do not grow the file
+ *
  * ---------------------------------------------------------------------------
  * Notes
  * ---------------------------------------------------------------------------
@@ -115,8 +119,14 @@ namespace {
     }
 
     void writeGlobalTrackSteps(
-            const std::string& fileName, const std::vector<h5_int64_t>& globalTrackSteps) {
-        h5_file_t file = openCollectiveH5(fileName, H5_O_WRONLY);
+            const std::string& fileName, const std::vector<h5_int64_t>& globalTrackSteps,
+            std::size_t payloadSize = 0) {
+        h5_file_t file                = openCollectiveH5(fileName, H5_O_WRONLY);
+        const h5_int64_t rootMetadata = 17;
+        if (H5WriteFileAttribInt64(file, "TestRootMetadata", &rootMetadata, 1) != H5_SUCCESS) {
+            H5CloseFile(file);
+            throw std::runtime_error("Could not write HDF5 root metadata test data");
+        }
         for (std::size_t step = 0; step < globalTrackSteps.size(); ++step) {
             if (H5SetStep(file, static_cast<h5_int64_t>(step)) != H5_SUCCESS
                 || H5WriteStepAttribInt64(file, "GlobalTrackStep", &globalTrackSteps[step], 1)
@@ -124,19 +134,39 @@ namespace {
                 H5CloseFile(file);
                 throw std::runtime_error("Could not write GlobalTrackStep test data");
             }
+            if (payloadSize > 0) {
+                std::vector<h5_float64_t> payload(
+                        payloadSize, static_cast<h5_float64_t>(globalTrackSteps[step]));
+                if (H5PartSetNumParticles(file, static_cast<h5_size_t>(payload.size()))
+                            != H5_SUCCESS
+                    || H5PartWriteDataFloat64(file, "x", payload.data()) != H5_SUCCESS) {
+                    H5CloseFile(file);
+                    throw std::runtime_error("Could not write HDF5 payload test data");
+                }
+            }
         }
         if (H5CloseFile(file) != H5_SUCCESS) {
             throw std::runtime_error("Could not close HDF5 test file after writing");
         }
     }
 
-    void appendGlobalTrackStep(const std::string& fileName, h5_int64_t globalTrackStep) {
+    void appendGlobalTrackStep(
+            const std::string& fileName, h5_int64_t globalTrackStep, std::size_t payloadSize = 0) {
         h5_file_t file            = openCollectiveH5(fileName, H5_O_APPENDONLY);
         const h5_ssize_t numSteps = H5GetNumSteps(file);
         if (numSteps < 0 || H5SetStep(file, numSteps) != H5_SUCCESS
             || H5WriteStepAttribInt64(file, "GlobalTrackStep", &globalTrackStep, 1) != H5_SUCCESS) {
             H5CloseFile(file);
             throw std::runtime_error("Could not append GlobalTrackStep test data");
+        }
+        if (payloadSize > 0) {
+            std::vector<h5_float64_t> payload(
+                    payloadSize, static_cast<h5_float64_t>(globalTrackStep));
+            if (H5PartSetNumParticles(file, static_cast<h5_size_t>(payload.size())) != H5_SUCCESS
+                || H5PartWriteDataFloat64(file, "x", payload.data()) != H5_SUCCESS) {
+                H5CloseFile(file);
+                throw std::runtime_error("Could not append HDF5 payload test data");
+            }
         }
         if (H5CloseFile(file) != H5_SUCCESS) {
             throw std::runtime_error("Could not close HDF5 test file after appending");
@@ -168,6 +198,19 @@ namespace {
         return globalTrackSteps;
     }
 
+    h5_int64_t readRootMetadata(const std::string& fileName) {
+        h5_file_t file          = openCollectiveH5(fileName, H5_O_RDONLY);
+        h5_int64_t rootMetadata = 0;
+        if (H5ReadFileAttribInt64(file, "TestRootMetadata", &rootMetadata) != H5_SUCCESS) {
+            H5CloseFile(file);
+            throw std::runtime_error("Could not read HDF5 root metadata test data");
+        }
+        if (H5CloseFile(file) != H5_SUCCESS) {
+            throw std::runtime_error("Could not close HDF5 test file after reading metadata");
+        }
+        return rootMetadata;
+    }
+
     class LossDataSinkTest : public ::testing::Test {
     protected:
         static void SetUpTestSuite() {
@@ -191,6 +234,8 @@ namespace {
                 std::filesystem::remove("test_monitor_checkpoint_rewind.h5");
                 std::filesystem::remove("test_monitor_checkpoint_keep_all.h5");
                 std::filesystem::remove("test_monitor_checkpoint_missing_step.h5");
+                std::filesystem::remove("test_monitor_checkpoint_compaction.h5");
+                std::filesystem::remove("test_monitor_checkpoint_compaction.h5.opalx-rewind.tmp");
             }
             ippl::Comm->barrier();
         }
@@ -424,6 +469,32 @@ namespace {
         ASSERT_EQ(H5CloseFile(file), H5_SUCCESS);
 
         EXPECT_THROW(LossDataSink::rewindH5ToGlobalTrackStep(fileName, 1), GeneralOpalException);
+    }
+
+    TEST_F(LossDataSinkTest, RewindH5CompactsPhysicalStorageAcrossRestartCycles) {
+        const std::string fileName        = "test_monitor_checkpoint_compaction.h5";
+        constexpr std::size_t payloadSize = 32768;
+        writeGlobalTrackSteps(fileName, {4, 8, 12}, payloadSize);
+        const auto originalSize = std::filesystem::file_size(fileName);
+
+        LossDataSink::rewindH5ToGlobalTrackStep(fileName, 8);
+        const auto firstCompactedSize = std::filesystem::file_size(fileName);
+        EXPECT_LT(firstCompactedSize, originalSize);
+        EXPECT_EQ(readRootMetadata(fileName), 17);
+        EXPECT_EQ(readGlobalTrackSteps(fileName), std::vector<h5_int64_t>({4}));
+
+        appendGlobalTrackStep(fileName, 8, payloadSize);
+        appendGlobalTrackStep(fileName, 12, payloadSize);
+        const auto firstRestartSize = std::filesystem::file_size(fileName);
+
+        LossDataSink::rewindH5ToGlobalTrackStep(fileName, 8);
+        const auto secondCompactedSize = std::filesystem::file_size(fileName);
+        EXPECT_EQ(secondCompactedSize, firstCompactedSize);
+
+        appendGlobalTrackStep(fileName, 8, payloadSize);
+        appendGlobalTrackStep(fileName, 12, payloadSize);
+        EXPECT_EQ(std::filesystem::file_size(fileName), firstRestartSize);
+        EXPECT_EQ(readGlobalTrackSteps(fileName), std::vector<h5_int64_t>({4, 8, 12}));
     }
 
 }  // namespace
