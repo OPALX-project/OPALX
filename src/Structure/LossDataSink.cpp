@@ -17,6 +17,8 @@
 //
 #include "Structure/LossDataSink.h"
 
+#include "Structure/H5FileSpace.h"
+
 #include "AbstractObjects/OpalData.h"
 #include "BuildInfo.h"
 #include "Utilities/GSLHistogram.h"
@@ -228,42 +230,7 @@ void LossDataSink::rewindH5ToGlobalTrackStep(
     }
 
     if (keepSteps < numSteps) {
-        hid_t access = H5Pcreate(H5P_FILE_ACCESS);
-        if (access < 0 || H5Pset_fapl_mpio(access, comm, MPI_INFO_NULL) < 0) {
-            if (access >= 0) {
-                H5Pclose(access);
-            }
-            throw GeneralOpalException(
-                    "LossDataSink::rewindH5ToGlobalTrackStep",
-                    "could not configure native parallel HDF5 access for '" + fileName + "'");
-        }
-
-        hid_t nativeFile = H5Fopen(fileName.c_str(), H5F_ACC_RDWR, access);
-        H5Pclose(access);
-        if (nativeFile < 0) {
-            throw GeneralOpalException(
-                    "LossDataSink::rewindH5ToGlobalTrackStep",
-                    "could not reopen monitor HDF5 file '" + fileName + "' for rewind");
-        }
-
-        for (h5_ssize_t step = numSteps; step > keepSteps; --step) {
-            const std::string groupName = "Step#" + std::to_string(step - 1);
-            if (H5Ldelete(nativeFile, groupName.c_str(), H5P_DEFAULT) < 0) {
-                H5Fclose(nativeFile);
-                throw GeneralOpalException(
-                        "LossDataSink::rewindH5ToGlobalTrackStep",
-                        "could not remove monitor HDF5 group '" + groupName + "' from '" + fileName
-                                + "'");
-            }
-        }
-
-        const herr_t flushStatus = H5Fflush(nativeFile, H5F_SCOPE_GLOBAL);
-        const herr_t closeStatus = H5Fclose(nativeFile);
-        if (flushStatus < 0 || closeStatus < 0) {
-            throw GeneralOpalException(
-                    "LossDataSink::rewindH5ToGlobalTrackStep",
-                    "could not finalize monitor HDF5 rewind for '" + fileName + "'");
-        }
+        H5FileSpace::compactStepPrefix(fileName, static_cast<std::size_t>(keepSteps));
 
         *ippl::Info << level2 << "Rewound monitor HDF5 file '" << fileName << "' from " << numSteps
                     << " to " << keepSteps << " step(s) at checkpoint global step "
