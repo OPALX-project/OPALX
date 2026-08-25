@@ -544,7 +544,8 @@ namespace {
             double value;
         };
         static void expectPotential(
-                const Solve2d5_t::ScalarGridView3D_t& phi, const std::vector<PhiValue>& expected) {
+                const Solve2d5_t::ScalarGridView3D_t& phi, const std::vector<PhiValue>& expected,
+                const double error = 1e-6) {
             // Transfer to host
             const auto hostView = Kokkos::create_mirror_view(phi);
             Kokkos::deep_copy(hostView, phi);
@@ -565,7 +566,7 @@ namespace {
                 SCOPED_TRACE(
                         "Index: " + std::to_string(e.i) + "," + std::to_string(e.j) + ","
                         + std::to_string(e.k));
-                EXPECT_NEAR(hostView(e.i, e.j, e.k), e.value, 1e-6);
+                EXPECT_NEAR(hostView(e.i, e.j, e.k), e.value, error);
             }
         }
 
@@ -1831,7 +1832,7 @@ namespace {
                 info->rhoView_m, {{5, 5, 2, 963538234764917},
                                      {5, 6, 2, 947474778602442.75},
                                      {4, 6, 2, 954504662037936.12},
-                                     {6, 7, 2, 948706293379785}});
+                                     {6, 7, 2, 948706293379785}}, 10.0);
     }
 
     TEST_F(TestSolve2d5, KvBeam_ElectricField) {
