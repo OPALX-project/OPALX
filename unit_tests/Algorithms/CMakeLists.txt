@@ -15,6 +15,10 @@ if(BUILD_TESTING)
   add_test(
     NAME TestCheckpointMonitorRestart
     COMMAND
+      ${MPIEXEC_EXECUTABLE}
+      ${MPIEXEC_NUMPROC_FLAG}
+      1
+      ${MPIEXEC_PREFLAGS}
       ${CMAKE_COMMAND}
       "-DOPALX_EXE=$<TARGET_FILE:opalx_exe>"
       "-DINPUT_FILE=${CMAKE_CURRENT_SOURCE_DIR}/CheckpointMonitorRestart.in"
