@@ -176,6 +176,8 @@ T Solve2d5<T>::loadReferencePath() {
 template <typename T>
 template <typename DiagnosticPolicy>
 void Solve2d5<T>::scatterToGrid(const PartBunch_t& bunch, DiagnosticPolicy diagnostic) {
+    using Policy2D_t = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
+    using Policy3D_t = Kokkos::MDRangePolicy<Kokkos::Rank<3>>;
     if (referencePath_m.extent(0) > 1) {
         const auto& ref    = referencePath_m;
         const auto invDr   = 1.0 / hr_m;
@@ -217,12 +219,11 @@ void Solve2d5<T>::scatterToGrid(const PartBunch_t& bunch, DiagnosticPolicy diagn
         }
         // Handle the closed ring periodic boundary condition
         if (closedRing_m) {
-            using Policy2D_t          = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
             constexpr auto firstRealZ = LineDensityFirstRealCell;
             const auto lastRealZ      = nR_m.data_m[2] - 1 + LineDensityFirstRealCell;
             Kokkos::parallel_for(
                     "Solve2d5::scatterToGrid::boundaries",
-                    Policy2D_t({0, 0}, {nR_m.data_m[0], nR_m.data_m[1]}),
+                    Policy2D_t({0, 0}, {rhoView.extent(0), rhoView.extent(1)}),
                     KOKKOS_LAMBDA(const size_t i, const size_t j) {
                         rhoView(i, j, firstRealZ) += rhoView(i, j, lastRealZ + 1);
                         rhoView(i, j, lastRealZ) += rhoView(i, j, firstRealZ - 1);
@@ -232,15 +233,14 @@ void Solve2d5<T>::scatterToGrid(const PartBunch_t& bunch, DiagnosticPolicy diagn
             Kokkos::fence();
         }
         // Now scale by volume and time step to get the proper charge density.
-        // ippl::apply is a function that accesses a view using indices in an array like structure
-        // and is from IpplOperations.h
         const auto cellVolume =
-                std::reduce(hr_m.begin(), hr_m.end(), 1.0, std::multiplies<double>());
+                std::reduce(hr_m.begin(), hr_m.end(), 1.0, std::multiplies());
         const auto scale = bunch.getdT() * cellVolume;
-        ippl::parallel_for(
-                "Solve2d5::scatterToGrid::scale", rho_m->getFieldRangePolicy(),
-                KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
-                    ippl::apply(rhoView, idx) = ippl::apply(rhoView, idx) / scale;
+        Kokkos::parallel_for(
+                "Solve2d5::scatterToGrid::scale",
+                Policy3D_t({0, 0, 0}, {rhoView.extent(0), rhoView.extent(1), rhoView.extent(2)}),
+                KOKKOS_LAMBDA(const size_t i, const size_t j, const size_t k) {
+                    rhoView(i, j, k) /= scale;
                 });
         Kokkos::fence();
         diagnostic.scatterChargeDensity(rhoView);
@@ -453,6 +453,7 @@ void Solve2d5<T>::solvePoissons(DiagnosticPolicy diagnostic) {
                 });
         s.solver_m->solve();
         Kokkos::fence();
+        diagnostic.potential(rho2d, z);
         auto e2d = s.E_m->getView();
         // Copy the 2D E field into the 3D E field grid
         Kokkos::parallel_for(
@@ -600,24 +601,24 @@ template <typename T>
 KOKKOS_FUNCTION void Solve2d5<T>::scatter3D(
         ScalarGridView3D_t rho, const ippl::Vector<T, 3U>& wlo, const ippl::Vector<T, 3U>& whi,
         int x, int y, int z, T charge) {
-    rho(x - 1, y - 1, z - 1) = wlo[0] * wlo[1] * wlo[2] * charge;
-    rho(x, y - 1, z - 1)     = whi[0] * wlo[1] * wlo[2] * charge;
-    rho(x - 1, y, z - 1)     = wlo[0] * whi[1] * wlo[2] * charge;
-    rho(x, y, z - 1)         = whi[0] * whi[1] * wlo[2] * charge;
-    rho(x - 1, y - 1, z)     = wlo[0] * wlo[1] * whi[2] * charge;
-    rho(x, y - 1, z)         = whi[0] * wlo[1] * whi[2] * charge;
-    rho(x - 1, y, z)         = wlo[0] * whi[1] * whi[2] * charge;
-    rho(x, y, z)             = whi[0] * whi[1] * whi[2] * charge;
+    rho(x - 1, y - 1, z - 1) += wlo[0] * wlo[1] * wlo[2] * charge;
+    rho(x, y - 1, z - 1) += whi[0] * wlo[1] * wlo[2] * charge;
+    rho(x - 1, y, z - 1) += wlo[0] * whi[1] * wlo[2] * charge;
+    rho(x, y, z - 1) += whi[0] * whi[1] * wlo[2] * charge;
+    rho(x - 1, y - 1, z) += wlo[0] * wlo[1] * whi[2] * charge;
+    rho(x, y - 1, z) += whi[0] * wlo[1] * whi[2] * charge;
+    rho(x - 1, y, z) += wlo[0] * whi[1] * whi[2] * charge;
+    rho(x, y, z) += whi[0] * whi[1] * whi[2] * charge;
 }
 
 template <typename T>
 KOKKOS_FUNCTION void Solve2d5<T>::scatter2D(
         ScalarGridView3D_t rho, const ippl::Vector<T, 3U>& wlo, const ippl::Vector<T, 3U>& whi,
         int x, int y, int z, T charge) {
-    rho(x - 1, y - 1, z) = wlo[0] * wlo[1] * charge;
-    rho(x, y - 1, z)     = whi[0] * wlo[1] * charge;
-    rho(x - 1, y, z)     = wlo[0] * whi[1] * charge;
-    rho(x, y, z)         = whi[0] * whi[1] * charge;
+    rho(x - 1, y - 1, z) += wlo[0] * wlo[1] * charge;
+    rho(x, y - 1, z) += whi[0] * wlo[1] * charge;
+    rho(x - 1, y, z) += wlo[0] * whi[1] * charge;
+    rho(x, y, z) += whi[0] * whi[1] * charge;
 }
 
 template <typename T>
