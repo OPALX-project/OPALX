@@ -100,7 +100,7 @@ namespace {
 
     h5_file_t openCollectiveH5(const std::string& fileName, h5_int32_t mode) {
         h5_prop_t props = H5CreateFileProp();
-        if (props == H5_ERR) {
+        if (props == static_cast<h5_prop_t>(H5_ERR)) {
             throw std::runtime_error("Could not create HDF5 file properties");
         }
 
