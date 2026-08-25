@@ -9,8 +9,8 @@ source Coulomb field while the source is active, then switches the overlay off
 after the BeamBeam source retirement time.
 
 The movie is written to ``sandbox/data`` by default, while the preview PNG is
-written to ``sandbox/note/figs`` so the note can use it without depending on the
-old regression directory.
+written to ``sandbox/regression/figures`` so validation output remains outside
+the archived publication-note directory.
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 TRACK_DIR = ROOT / "sandbox/track-e-p"
 DEFAULT_OUTPUT = ROOT / "sandbox/data/gamma_gamma_large_cylinder_field_histogram.mp4"
-DEFAULT_PREVIEW = ROOT / "sandbox/note/figs/gamma_gamma_large_cylinder_field_histogram_preview.png"
+DEFAULT_PREVIEW = ROOT / "sandbox/regression/figures/gamma_gamma_large_cylinder_field_histogram_preview.png"
 
 C_LIGHT = 299_792_458.0
 EPSILON_0 = 8.854_187_812_8e-12

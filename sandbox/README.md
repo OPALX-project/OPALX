@@ -1,576 +1,111 @@
-# BeamBeam Sandbox
+# BeamBeam sandbox
 
-This sandbox contains OPALX BeamBeam inputs, diagnostics, visualization tools,
-and the manufactured witness-field note.  The current layout keeps generated
-data separate from source scripts and notes:
+The authoritative model, implementation, and validation summary is
+[`BEAMBEAM_PHYSICS_AND_VALIDATION.md`](BEAMBEAM_PHYSICS_AND_VALIDATION.md).
+This README is only the operational index; detailed physics conclusions should
+not be duplicated here.
 
-- `python/`: reusable Python analysis and visualization tools.
-- `note/`: LaTeX note and generated table inputs.
-- `data/`: OPALX-generated diagnostics, figures, movies, and temporary outputs.
-- `track-e-p/`: gamma-gamma pair tracking inputs, FROMFILE distributions, and
-  generated OPALX element/particle visualization scripts.
-- `oldpy/`: older one-off helper scripts kept for reference.
+## Active workspaces
 
-## Python Environment
+| path | purpose |
+|---|---|
+| [`reduced-order-model/`](reduced-order-model/README.md) | independent anisotropic rigid two-Gaussian manufactured fields, OPALX field comparison, and A100 convergence workflow |
+| [`cain-opalx-reduced-order-model/`](cain-opalx-reduced-order-model/README.md) | conversion and validation of the 1,297 + 1,297 exact-timed CAIN input |
+| [`track12particles/opalx/`](track12particles/opalx/README.md) | exact-timed 6 e- + 6 e+ CAIN/OPALX/manufactured trajectory benchmark |
+| [`track-e-p/`](track-e-p/INPUT_INVENTORY.md) | 32 cm, 15 cm-radius production inputs for the complete CAIN population |
+| [`OPALX-IMPACT/`](OPALX-IMPACT/) | independent drift-with-space-charge field-solver sanity comparison |
+| [`regression/`](regression/README.md) | compact broad-regression baseline and generated diagnostic figures |
+| [`python/`](python/) | maintained analysis and visualization utilities |
+| [`attic/`](attic/README.md) | superseded notes, models, scans, and one-off scripts retained for provenance |
 
-Assume Python 3.11.  The sandbox environment is the shared home-level
-`~/.venv-h6` venv; see `../INSTALL.md` for the full recipe:
+The chronological design and run ledger is
+[`../BEAMBEAM_REDESIGN_STATE.md`](../BEAMBEAM_REDESIGN_STATE.md). It records
+historical intermediate results; the consolidated note above determines which
+results are current.
+
+## Authoritative cases
+
+The short validation case and the production case are intentionally different:
+
+| case | element and field domain | witnesses |
+|---|---|---:|
+| Track-12 validation | 8 mm; `RECTANGLE(2.4e-3,2.4e-4)` | 6 e- + 6 e+ |
+| Production | 32 cm; `CIRCLE(0.30)` = 15 cm radius | 1,297 e- + 1,297 e+ |
+
+Both use the element midpoint as the sole IP. The manufactured source is the
+anisotropic lab-frame Gaussian; the archived spherical model is not an
+acceptance reference.
+
+## Python environment
+
+Use the shared OPALX Python environment:
 
 ```bash
-cd /path/to/opalx-beambeam
-python3.11 --version
-python3.11 -m venv --system-site-packages ~/.venv-h6
 source ~/.venv-h6/bin/activate
 python --version
-python -m pip install -r ~/.venv-h6/requirements-h6.txt
 ```
 
-If pip reports that the newest available NumPy is `1.19.5`, the venv was made
-with an old Python.  Load Python 3.11 on the cluster, remove `~/.venv-h6`, and
-recreate it.
+Assume Python 3.11 with NumPy, pandas, matplotlib, Pillow, h5py, SciPy,
+PyVista/VTK, and imageio. See [`../VENV.md`](../VENV.md) for the full
+environment recipe. Set a run-local or temporary `MPLCONFIGDIR` on machines
+where the home cache is unavailable.
 
-The scripts expect NumPy, pandas, matplotlib, Pillow, h5py, SciPy, PyVista/VTK,
-and imageio.  Tkinter is needed for the native GUI but is not installed by pip.
-For a MacPorts Python 3.11 environment, install Tk support with:
+## Core checks
+
+Run the available static-field component of the broad sandbox regression from
+the repository root:
 
 ```bash
-sudo port install \
-  python311 \
-  py311-tkinter
+python sandbox/python/run_sandbox_regressions.py --check fields
 ```
 
-Current `~/.venv-h6` snapshot used for this checkout:
+The complete broad wrapper also expects historical OPALX--IMPACT and pair-stat
+outputs that are not present in this checkout; see
+[`regression/README.md`](regression/README.md). The maintained focused checks
+below are the current BeamBeam acceptance path.
 
-```text
-Python executable: ~/.venv-h6/bin/python
-Python version:    3.11.15
-Tk/Tcl:            8.6 / 8.6
-
-numpy              2.4.3
-pandas             3.0.2
-matplotlib         3.10.8
-Pillow             9.5.0
-h5py               3.16.0
-scipy              1.17.1
-pyvista            0.48.2
-vtk                9.6.1
-imageio            2.37.3
-imageio-ffmpeg     0.6.0
-```
-
-Installed distributions reported by `python -m pip list --format=freeze`:
-
-```text
-attrs==26.1.0
-beautifulsoup4==4.14.3
-Brotli==1.2.0
-certifi==2026.4.22
-charset-normalizer==3.4.7
-contourpy==1.3.3
-cycler==0.12.1
-cyclopts==4.11.2
-docstring_parser==0.18.0
-docutils==0.22.4
-fonttools==4.62.1
-h5py==3.16.0
-idna==3.14
-ImageIO==2.37.3
-imageio-ffmpeg==0.6.0
-kiwisolver==1.5.0
-lxml==6.0.2
-markdown-it-py==4.2.0
-matplotlib==3.10.8
-mdurl==0.1.2
-numpy==2.4.3
-oldest-supported-numpy==0.1
-olefile==0.47
-packaging==26.0
-pandas==3.0.2
-Pillow==9.5.0
-pip==24.0
-platformdirs==4.9.6
-pooch==1.9.0
-pycairo==1.29.0
-Pygments==2.20.0
-pyparsing==3.3.2
-python-dateutil==2.9.0.post0
-pytz==2026.1.post1
-pyvista==0.48.2
-requests==2.33.1
-rich==15.0.0
-rich-rst==1.3.2
-scipy==1.17.1
-scooby==0.11.2
-setuptools==79.0.1
-six==1.17.0
-soupsieve==2.8.3
-typing_extensions==4.15.0
-unicodedata2==17.0.1
-urllib3==2.7.0
-vtk==9.6.1
-zopfli==0.4.1
-```
-
-Quick check:
+Run the focused manufactured Python checks with:
 
 ```bash
-export MPLCONFIGDIR="${TMPDIR:-/tmp}/opalx-mpl"
-python - <<'PY'
-import tkinter as tk
-import numpy
-import pandas
-import matplotlib
-import PIL
-import h5py
-import scipy
-import pyvista
-import vtk
-import imageio
-import imageio_ffmpeg
-
-print("tk", tk.TkVersion, tk.TclVersion)
-print("numpy", numpy.__version__)
-print("pandas", pandas.__version__)
-print("matplotlib", matplotlib.__version__)
-print("PIL", PIL.__version__)
-print("h5py", h5py.__version__)
-print("scipy", scipy.__version__)
-print("pyvista", pyvista.__version__)
-print("vtk", vtk.vtkVersion.GetVTKVersion())
-print("imageio", imageio.__version__)
-print("imageio-ffmpeg", imageio_ffmpeg.__version__)
-PY
+~/.venv-h6/bin/python -m unittest \
+  sandbox/reduced-order-model/python/test_rigid_two_gaussian_fields.py \
+  sandbox/reduced-order-model/python/test_fixed_primary_fromfile.py
 ```
 
-## Main Tools
-
-- `python/beambeam_analysis.py`: combined GUI and CLI front-end for collision
-  window, manufactured solution, and OPALX comparison views.
-- `python/checkCollWin.py`: collision-window scalar dump viewer; writes PNG or
-  GIF from OPALX `RHO_scalar-collwin_vis` dumps.
-- `python/read_beambeam_h5.py`: BeamBeam diagnostics HDF5 overview and simple
-  line-density/gallery plots.
-- `python/beam-beam-manufactured-solution.py`: manufactured BeamBeam field
-  comparison helper.
-- `python/boosted_gaussian_witness.py`: Lorentz-transformed boosted-Gaussian
-  manufactured witness calculation used by the LaTeX note.
-- `python/run_sandbox_regressions.py`: one-command regression checks for
-  the BeamBeam field dumps, gamma-gamma e-/e+ pair tracking summaries,
-  and the OPALX-IMPACT drift comparison.
-- `python/make_sandbox_regression_overview.py`: optional standalone overview
-  generator.  The main maintained documentation is the note.
-- `python/plot_cylinder_crossings.py`: first-cylinder-crossing histogram
-  generator for the large BeamBeam-window runs.
-- `note/boosted_gaussian_witness.tex`: current physics note.
-
-## Regression Checks
-
-Run all sandbox regression checks from the repository root:
+The end-to-end manufactured OPALX comparison is an opt-in CTest:
 
 ```bash
-source ~/.venv-h6/bin/activate
-python sandbox/python/run_sandbox_regressions.py
+OPALX_RUN_MANUFACTURED_REGRESSION=1 \
+ctest --test-dir build_openmp -R TestBeamBeamManufacturedFields --output-on-failure
 ```
 
-The checks compare compact numeric/file metrics with the accepted baseline in
-`sandbox/note/sandbox_regression_baseline.json` and write the latest-run
-flattened metric table to `sandbox/note/current_metrics.csv`.  To rerun
-the sandbox OPALX inputs before checking, provide an OPALX executable:
+The exact-timed full-CAIN input pipeline is:
 
 ```bash
-python sandbox/python/run_sandbox_regressions.py \
-  --run-opalx \
-  --opalx-exe /path/to/opalx
+sandbox/cain-opalx-reduced-order-model/run_pipeline.sh
 ```
 
-Update the JSON baseline only after accepting an intentional physics or
-numerics change.  The baseline records the current git branch, commit, dirty
-flag, and `git status --short` output:
+The persistent one-, two-, and four-rank timed witness-gather regression is:
 
 ```bash
-python sandbox/python/run_sandbox_regressions.py --update-baseline
+~/.venv-h6/bin/python \
+  sandbox/track12particles/opalx/timed/run_witness_gather_mpi_regression.py \
+  --opalx build_openmp/src/opalx \
+  --mpiexec /opt/homebrew/bin/mpiexec \
+  --openmpi-local --force
 ```
 
-The regression overview has been merged into
-`sandbox/note/boosted_gaussian_witness.tex`.  Rebuild the note with:
-
-```bash
-cd sandbox/note
-latexmk -pdf boosted_gaussian_witness.tex
-```
-
-For archival standalone output, `sandbox/python/make_sandbox_regression_overview.py`
-can still write `sandbox/note/sandbox_regression_overview.{tex,pdf}` and the
-corresponding note-local figures.
-
-## Combined GUI
-
-```bash
-cd /path/to/opalx-beambeam
-source ~/.venv-h6/bin/activate
-python sandbox/python/beambeam_analysis.py gui
-```
-
-If Tk is unavailable, the tool falls back to a local browser UI.  For the native
-Tk GUI, run from a normal terminal with the `~/.venv-h6` environment active.
-
-The GUI stores its last inputs in:
-
-```text
-sandbox/.beambeam_analysis_state.json
-```
-
-## Collision-Window Movies
-
-`checkCollWin.py` renders OPALX collision-window scalar dumps.  Give a seed dump
-and a step range; a multi-step range writes a GIF.
-
-For the current `BeamBeam-static-1V.in` example, OPALX normally writes only the
-two active-window dumps at steps 5 and 6.  If the input is run from the repository
-root as `sandbox/BeamBeam-static-1V.in`, those files are under `data/sandbox/`:
-
-```bash
-cd /path/to/opalx-beambeam
-source ~/.venv-h6/bin/activate
-
-python sandbox/python/checkCollWin.py \
-  data/sandbox/BeamBeam-static-1V-RHO_scalar-collwin_vis-000005.dat \
-  --start 5 --end 6 \
-  --physical \
-  --output data/sandbox/BeamBeam-static-1V-collwin.gif \
-  --input sandbox/BeamBeam-static-1V.in \
-  --duration 120 \
-  --save-frames
-```
-
-Useful options:
-
-- `--physical`: plot physical coordinates in mm.  This is the preferred view
-  for checking the BeamBeam element and collision-window positions.
-- `--grid`: plot raw grid indices `i,j,k`; useful for debugging the mesh dump
-  itself, but less useful for checking the longitudinal window location.
-- `--no-geometry`: hide BeamBeam/window overlays.
-- `--save-frames`: also write one PNG per movie frame.
-- `--input path/to/input.in`: explicitly provide the OPALX input file used to
-  infer BeamBeam geometry.
-
-The collision-window figure shows:
-
-- Three central slices of the dumped charge density: `x-y`, `x-s`, and `y-s`.
-- Green dashed lines and the gold marker: the interaction point.
-- Orange dashed rectangle: the full BeamBeam element span.
-- Crimson shaded band and solid horizontal lines: the active collision-window
-  interval.  The lower and upper lines are labelled `window start` and
-  `window end`.  If the window is the full BeamBeam element, the label states
-  `collision window = BeamBeam`.
-- Cyan `b1` marker: the simulated bunch center.  Magenta `b2` marker: the
-  mirrored bunch used for the symmetric collision-window visualization.
-
-The title records the OPALX step, time, dump state, active-window flag, bunch
-center, IP position, BeamBeam `s` range, collision-window `s` range, mesh
-spacing, and integrated dumped charge.  If the dump range contains before/after
-snapshots with the same OPALX `global_step`, both frames are kept in the GIF so
-the transition into the collision window remains visible.
-
-The combined front-end can run the same path:
-
-```bash
-python sandbox/python/beambeam_analysis.py collwin \
-  data/sandbox/BeamBeam-static-1V-RHO_scalar-collwin_vis-000005.dat \
-  --start 5 --end 6 \
-  --physical \
-  --output data/sandbox/BeamBeam-static-1V-collwin.gif \
-  --input sandbox/BeamBeam-static-1V.in
-```
-
-If OPALX is run from inside `sandbox/` instead, replace `data/sandbox/` in the
-commands above with `sandbox/data/` or with the directory where the dumps were
-written.
-
-## ASCII Diagnostics
-
-The current BeamBeam diagnostics workflow is based on ASCII scalar/vector dumps,
-not on a required HDF5 diagnostics file.  Use
-`beam-beam-manufactured-solution.py` with one matched dump triplet from the same
-OPALX step:
-
-- `RHO_scalar-beambeam_rho_pre-*.dat`: binned source charge density.
-- `PHI_scalar-beambeam_phi-*.dat`: solved electrostatic potential.
-- `EF_vector-beambeam_e-*.dat`: solved electric field.
-
-Example:
-
-```bash
-cd /path/to/opalx-beambeam
-source ~/.venv-h6/bin/activate
-
-python sandbox/python/beam-beam-manufactured-solution.py \
-  --compare-rho-dump data/sandbox/BeamBeam-2-RHO_scalar-beambeam_rho_pre-000003.dat \
-  --compare-phi-dump data/sandbox/BeamBeam-2-PHI_scalar-beambeam_phi-000004.dat \
-  --compare-e-dump data/sandbox/BeamBeam-2-EF_vector-beambeam_e-000004.dat \
-  --output data/sandbox/BeamBeam-2-ascii-diagnostics.png
-```
-
-The script prints scalar error metrics and writes the requested output image plus
-five derived line-profile figures:
-
-- `BeamBeam-2-ascii-diagnostics.png`: central `x-z` slice comparison for
-  `rho` and `phi`.  Each row shows analytic, OPALX, and OPALX-minus-analytic
-  panels with max, L2, and relative L2 difference annotations.
-- `BeamBeam-2-ascii-diagnostics-rho-z-axis.png`: `rho(z)` on the central beam
-  axis and the corresponding difference curve.
-- `BeamBeam-2-ascii-diagnostics-phi-z-axis.png`: `phi(z)` on the central beam
-  axis and the corresponding difference curve.
-- `BeamBeam-2-ascii-diagnostics-ez-z-axis.png`: `E_z(z)` on the central beam
-  axis and the corresponding difference curve.  This is the main longitudinal
-  field diagnostic near the interaction point.
-- `BeamBeam-2-ascii-diagnostics-ex-x-axis.png`: `E_x(x)` through the grid plane
-  nearest the interaction point and the corresponding difference curve.
-- `BeamBeam-2-ascii-diagnostics-ey-y-axis.png`: `E_y(y)` through the grid plane
-  nearest the interaction point and the corresponding difference curve.
-
-For active BeamBeam-window snapshots, the script reconstructs the mirrored
-Gaussian source from the dump metadata and uses the local interaction-point
-position as the symmetry plane.
-
-## Optional Diagnostics HDF5
-
-Recent simple BeamBeam examples may not write a `*-beambeam_diagnostics.h5`
-file.  The `read_beambeam_h5.py` helper is still useful for older runs or inputs
-where that diagnostics file is explicitly produced, but it is not required for
-the collision-window dump workflow above.
-
-When such an HDF5 file exists, use:
-
-```bash
-python sandbox/python/read_beambeam_h5.py \
-  --overview --table \
-  path/to/example-beambeam_diagnostics.h5
-```
-
-Line-density GIF:
-
-```bash
-python sandbox/python/read_beambeam_h5.py \
-  --line-density-z \
-  --start 6 --end 57 \
-  --bins 64 \
-  --gif path/to/example-line-density-z.gif \
-  path/to/example-beambeam_diagnostics.h5
-```
-
-Static projected gallery:
-
-```bash
-python sandbox/python/read_beambeam_h5.py \
-  --gallery-xz \
-  --start 6 --end 20 \
-  --gallery-cols 5 \
-  path/to/example-beambeam_diagnostics.h5
-```
-
-## Manufactured Witness Note
-
-The LaTeX note is kept in this repository under `sandbox/note/` and is also
-available on Overleaf:
-
-```text
-https://www.overleaf.com/project/6a00de23024e8d1800affb90
-```
-
-Regenerate the tables and figures used by the LaTeX note:
-
-```bash
-cd /path/to/opalx-beambeam
-source ~/.venv-h6/bin/activate
-
-python sandbox/python/boosted_gaussian_witness.py
-
-python sandbox/python/boosted_gaussian_witness.py \
-  --pair-demo \
-  --output-prefix sandbox/data/boosted_gaussian_witness_physical
-```
-
-Build the note:
-
-```bash
-cd sandbox/note
-latexmk -pdf boosted_gaussian_witness.tex
-```
-
-The script writes generated LaTeX tables into `sandbox/note/` and pair-demo CSV
-and figures into `sandbox/data/`.
-
-## Gamma-Gamma Pair Tracking
-
-The validated timed-input and reduced-order workflow lives in
-`cain-opalx-reduced-order-model/`; its README defines the explicit
-`x y z px py pz birth_time` contract and the one-command conversion, OPALX run,
-and H5 validation. `track-e-p/` remains the authoritative location of the raw
-`fort98.txt` CAIN table and contains the earlier inputs, converted files, and
-generated visualization output.
-
-Main active files:
-
-- `track-e-p/gamma_gamma_pairs-2.in`: active regression input with
-  witness-container space-charge sampling enabled.
-- `track-e-p/fort98.txt`: original pair list from the gamma-gamma process.
-- `track-e-p/gamma_gamma_electrons.fromfile`: electron FROMFILE distribution.
-- `track-e-p/gamma_gamma_positrons.fromfile`: positron FROMFILE distribution.
-- `track-e-p/gamma_gamma_electrons-t.fromfile`: optional electron FROMFILE
-  distribution with fort98 creation time preserved as `t=ct/c` in seconds and
-  `bin_number=1`.
-- `track-e-p/gamma_gamma_positrons-t.fromfile`: optional positron FROMFILE
-  distribution with fort98 creation time preserved as `t=ct/c` in seconds and
-  `bin_number=1`.
-
-The older no-witness input and its generated outputs are kept under
-`track-e-p/attic/`.
-
-Regenerate the FROMFILE distributions:
-
-```bash
-cd sandbox/track-e-p
-source ~/.venv-h6/bin/activate
-
-python convert_fort98_to_fromfile.py fort98.txt
-```
-
-`convert_fort98_to_fromfile.py` reads `fort98.txt` columns
-`species weight ct x y z energy px py pz`, splits species `2` and `3` into
-electron and positron files, and converts momenta from eV/c to OPALX
-`beta*gamma`.  By default it writes only the six OPALX FROMFILE phase-space
-columns:
-
-```text
-x y z px py pz
-```
-
-Use `--add-time` to regenerate the time-preserving variants:
-
-```bash
-python convert_fort98_to_fromfile.py fort98.txt --add-time
-```
-
-With `--add-time`, the converter writes `gamma_gamma_electrons-t.fromfile` and
-`gamma_gamma_positrons-t.fromfile` with two extra machine-readable columns:
-
-```text
-x y z px py pz t bin_number
-```
-
-Here `t=ct/c` is the fort98 creation time in seconds and `bin_number` is a
-constant integer column set to `1` for every particle.  The analyzer ignores
-`bin_number` but preserves and uses `t` when present.
-
-Run OPALX from `track-e-p/` so generated output lands under `track-e-p/data/`:
-
-```bash
-cd sandbox/track-e-p
-
-/path/to/opalx gamma_gamma_pairs-2.in
-```
-
-For MPI:
-
-```bash
-cd sandbox/track-e-p
-
-mpirun -np 2 /path/to/opalx gamma_gamma_pairs-2.in
-```
-
-OPALX writes generated element visualization scripts next to the output, for
-example:
-
-```text
-track-e-p/data/gamma_gamma_pairs-2_ElementPositions.py
-```
-
-These generated scripts can visualize the lattice, BeamBeam aperture, H5
-particles, and write particle movies.  Do not edit them for persistent changes:
-update `src/Structure/MeshGenerator.cpp`, rebuild OPALX, and rerun the input.
-
-Interactive particle view with a step slider:
-
-```bash
-cd sandbox/track-e-p
-source ~/.venv-h6/bin/activate
-
-python data/gamma_gamma_pairs-2_ElementPositions.py \
-  --show \
-  --part-vis \
-  --part-slider \
-  --part-max-primary 20000 \
-  --part-max-pairs 10000
-```
-
-Static latest-step view:
-
-```bash
-python data/gamma_gamma_pairs-2_ElementPositions.py \
-  --show \
-  --part-vis \
-  --part-step latest
-```
-
-Specific global step:
-
-```bash
-python data/gamma_gamma_pairs-2_ElementPositions.py \
-  --show \
-  --part-vis \
-  --part-step 100
-```
-
-Write a particle GIF:
-
-```bash
-python data/gamma_gamma_pairs-2_ElementPositions.py \
-  --part-movie pairs.gif \
-  --movie-fps 12 \
-  --movie-step-stride 2 \
-  --part-max-primary 20000 \
-  --part-max-pairs 10000
-```
-
-Notes:
-
-- `--show` is required for interactive/static visualization.  Without it, the
-  generated script prints help and exits.
-- `--part-slider` is interactive only and is disabled while writing a movie.
-- `--part-step latest` is the default for static particle views.
-- `--movie-fps` sets playback rate.
-- `--movie-step-stride` keeps every Nth stored H5 step to reduce movie size.
-- `--part-debug` prints H5 particle-step discovery details.
-- GIF output uses PyVista plus imageio; MP4-style filenames use PyVista's movie
-  writer and may also need `imageio-ffmpeg`.
-
-Momentum diagnostics:
-
-```bash
-cd sandbox/track-e-p
-source ~/.venv-h6/bin/activate
-
-python analyze_pair_momenta.py --plot
-```
-
-By default the momentum script reads `gamma_gamma_electrons.fromfile` and
-`gamma_gamma_positrons.fromfile`, then writes figures and CSV summaries into
-`track-e-p/data/`.  It accepts `--electron-file`, `--positron-file`,
-`--output-dir`, `--plot`, and `--pair-index`.
-
-To include the fort98 creation-time diagnostics and a time histogram, point the
-analyzer at the time-preserving files:
-
-```bash
-python analyze_pair_momenta.py \
-  --electron-file gamma_gamma_electrons-t.fromfile \
-  --positron-file gamma_gamma_positrons-t.fromfile \
-  --plot
-```
-
-When both inputs contain a `t` column, the script also writes
-`pair_time_species_summary.csv`, `pair_time_pair_summary.csv`, and
-`pair_momentum_time_histogram.png`.  The time summaries are reported in
-picoseconds only and include count, minimum, maximum, span, mean, and standard
-deviation.  `bin_number` is allowed in the input and ignored by the analyzer.
+Detailed input generation, Merlin submission, data fetching, and plotting
+commands live with the corresponding active workspace. Every Merlin run must
+keep its submitted Slurm script, scheduler logs, application logs, timing
+files, manifests, and exact inputs below that run's local directory.
+
+## Output and units
+
+Active broad-regression output belongs under `sandbox/regression/`; scientific
+case output belongs under its case-specific workspace. Active scripts must not
+write into `sandbox/attic/`.
+
+OPALX electric-field data are interpreted as V/m and magnetic fields as T. The
+current H5 electric-field unit metadata incorrectly says MV/m; this known issue
+is documented in the consolidated note and must be fixed separately.

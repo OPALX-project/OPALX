@@ -1,411 +1,155 @@
-# OPALX 12-Particle BeamBeam Experiment
+# Exact-timed OPALX Track-12 benchmark
 
-This directory contains the OPALX version of the CAIN 12-particle comparison.
+This workspace compares six artificial CAIN electron--positron pairs with
+OPALX and the anisotropic rigid two-Gaussian manufactured solution. The current
+one-clock workflow is under [`timed/`](timed/); older pair-by-pair and
+pre-reference-offset studies are retained under
+[`../../attic/track12/`](../../attic/track12/).
 
-## Exact-timed comparison
+See [`../../BEAMBEAM_PHYSICS_AND_VALIDATION.md`](../../BEAMBEAM_PHYSICS_AND_VALIDATION.md)
+for the physics interpretation and current validation summary.
 
-The current comparison lives in `timed/`.  It replaces the older workaround
-of generating one deck per pair with one physical clock and one OPALX deck.
-The CAIN data describe six artificial electron--positron pairs moving in the
-positive longitudinal direction.  They are born at
-
-```text
-ct = -0.9000, -0.5994, -0.3006, 0.0000, 0.3006, 0.5994 mm
-```
-
-and are sampled every `1.8 um/c = 6.004153713566736 fs` through
-`ct = 1.8 mm`.  The tracker begins one interval before the first birth so that
-the mirrored primary source is active before a witness is present.  Every
-birth and OPALX output lies on the CAIN grid and the final global step is 1500,
-so no time interpolation is used.  At an exact floating-point step boundary a
-newborn may first appear in H5 at reference step zero or one; the comparison
-uses the exact emitted-file row whenever H5 starts at step one.
-
-The emitted files use the explicit named format
+## Definition of the validation case
 
 ```text
-x y z px py pz birth_time
+BeamBeam length            8 mm
+interaction point          element midpoint = 4 mm
+field domain               2.4 mm x 0.24 mm rectangle
+primary macroparticles     400000 deterministic particles
+primary rms sizes          1.944325075701 um, 1.944325075701 um, 0.6 mm
+primary support            component-wise 3 sigma truncation
+witnesses                  6 electrons + 6 positrons
+timestep                   1.8 um/c = 6.004153713566736 fs
+production steps           1501
+fine mesh                  4096 x 256 x 128
 ```
 
-where positions are offsets from the emission-source `R0`, momenta are
-normalized by `m_e c`, and `birth_time` is an offset in seconds from the
-source `T0`.  Electron and positron files intentionally contain the same
-numeric initial phase-space states; their separate beam containers determine
-the particle species and charge sign.
+This is a validation geometry, not the 32 cm, 15 cm-radius production
+BeamBeam element used for the 1,297 + 1,297 CAIN population.
 
-The physical primary and its reflection about the BeamBeam midpoint supply the
-co-propagating and oncoming source fields.  The 12 witnesses gather those
-fields but are excluded from deposition by `WITNESS_CONTAINERS = "1,2"`.
-`BBRIGID = TRUE` holds the sampled source distribution fixed for this
-reduced-order comparison.  `APERTURE = "RECTANGLE(2.4e-3, 2.4e-4)"` fixes a
-field domain large enough for the CAIN electron excursions.
-`DELETEONTRANSVERSEEXIT = FALSE` prevents particle deletion, but it does not
-make the particle layout open: an over-kicked particle that reaches the edge
-wraps periodically, which the analyzer reports explicitly.
+The CAIN births occur at
 
-The production parameters are 400000 deterministic primary macroparticles
-(NumPy PCG64 seed 20260629) and a `1024 x 128 x 128` mesh.  The transverse cell
-sizes are approximately `2.34 um` in x and `1.88 um` in y; substantially
-coarser meshes are parser/workflow smoke tests, not trajectory validation.
-
-Prepare and run locally with the OpenMP build:
-
-```sh
-cd sandbox/track12particles/opalx/timed
-./run_timed_track12.sh
+```text
+ct = -0.9000, -0.5994, -0.3006, 0.0000, 0.3006, 0.5994 mm.
 ```
 
-On Merlin6, first stage a prepared `production/` case and then submit the
-smoke and production dependency chain.  The rank count is explicit; for the
-efficient one-rank/one-A100 configuration use:
+The tracker begins one interval before the first birth. Every birth and output
+sample lies on the CAIN time grid, so all 13,012 trajectory samples are matched
+without interpolation. Electron and positron emitted files deliberately carry
+the same numeric initial phase space; their separate OPALX beam containers
+provide the species and charge sign.
 
-```sh
-./merlin/submit_track12_a100.sh submit \
+The primary and its reflection about the element midpoint provide the two
+source fields. `BBRIGID=TRUE` is used here to keep the manufactured comparison
+controlled. Witness containers 1 and 2 gather the source field but never
+deposit charge.
+
+## Prepare and run locally
+
+From this directory:
+
+```bash
+./timed/run_timed_track12.sh
+```
+
+The preparation step regenerates the deterministic primary, exact emitted
+witness files, and manifest. The comparison reconstructs absolute coordinates
+using all three H5 `RefPartR` components. Pair identity is recovered from birth
+order and phase-space continuity because raw H5 IDs can change after MPI
+redistribution.
+
+## Run on Merlin
+
+Stage the case in a persistent run directory and submit through the tracked
+launcher. The efficient single-A100 form is:
+
+```bash
+./timed/merlin/submit_track12_a100.sh submit \
   --run-root /path/to/run \
   --opalx /path/to/cuda-build/src/opalx \
   --mpi-ranks 1 \
   --production-time 04:00:00
 ```
 
-The smoke uses the full production mesh for three steps. The production job
-starts only after that allocation/parser/MPI check succeeds and accepts an
-explicit Slurm time limit so large-mesh trajectories are not tied to the
-four-hour default. Both jobs retain the exact submitted script and scheduler
-output below the run-local `slurm/` directory. Multi-rank OPALX is launched
-with `mpiexec`, with one rank per A100 and
-`--kokkos-map-device-id-by=mpi_rank`; plain multi-task `srun` would create MPI
-singletons on Merlin.
+Multi-rank runs use `mpiexec`, one rank per A100, with
+`--kokkos-map-device-id-by=mpi_rank`. Plain multi-task `srun` is not used on
+Merlin because it creates MPI singleton processes. Launchers pass `--info 1`
+and require a nonempty `timing.dat` before marking a case complete.
 
-Fetch a completed production run and make all plots locally:
+Every run directory must retain:
 
-```sh
+- the exact submitted Slurm script and `%j` scheduler logs under `slurm/`;
+- input decks, emitted files, fixed primary, and hashes;
+- OPALX logs, `runtime_compute.txt`, and nonempty `timing.dat`;
+- H5 results and the preparation/run manifests.
+
+Fetch completed H5 and compact metadata, then analyze locally:
+
+```bash
 ~/.venv-h6/bin/python timed/fetch_and_compare_a100.py \
   --remote-dir /path/to/run/production
 ```
 
-The maintained local and Merlin launchers pass `--info 1` to OPALX and require
-a nonempty `timing.dat` before marking a case complete. IPPL defaults this
-message level to zero, and its current timing-file writer inherits that level:
-without the explicit option it opens/truncates `timing.dat` but suppresses all
-rows. `runtime_compute.txt` remains the independent whole-process wall-time
-measurement, while `timing.dat` contains nested OPALX/IPPL timers and must not
-be treated as an additive exclusive-time profile.
+## Persistent field and MPI checks
 
-The timed witness-gather MPI regression uses a deterministic 100000-particle
-primary, eight co-located electron/positron witnesses emitted after the fixed
-BeamBeam mesh is initialized, a 32x32x64 mesh, and five tracking steps. It runs
-the identical input on one, two, and four local CPU ranks and requires the E,
-B, and first-kick results to agree with the one-rank baseline within a relative
-tolerance of `5e-4`:
+The pair-4 field/kick refinement driver is
+[`timed/scan_first_kick_fields.py`](timed/scan_first_kick_fields.py). It compares
+both the historical untruncated Gaussian and the authoritative component-wise
+three-sigma-truncated anisotropic source.
 
-```sh
+The timed MPI witness-gather regression runs the same fixed source and newborn
+witnesses on one, two, and four ranks:
+
+```bash
 ~/.venv-h6/bin/python timed/run_witness_gather_mpi_regression.py \
   --opalx ../../../../build_openmp/src/opalx \
   --mpiexec /opt/homebrew/bin/mpiexec \
   --openmpi-local --force
 ```
 
-The same matrix is registered as `TestBeamBeamWitnessGatherMPI`. Unlike the
-CTest `PROCESSORS` property, the regression driver explicitly launches each
-rank count through `mpiexec`.
+It requires E, B, and first-kick agreement with the one-rank result within
+`5e-4`; the current deterministic result agrees below `1.5e-15`.
 
-The comparison overlays CAIN, OPALX, and the centered anisotropic rigid
-two-Gaussian manufactured solution. The manufactured density is independently
-truncated and renormalized in each coordinate at three sigma, matching the
-fixed OPALX source-generation rule without its finite-sample noise. It includes
-both primary bunches, uses no finite-sample centroid jitter, and is integrated
-on the exact CAIN output-time grid. The comparison reconstructs absolute OPALX
-particle coordinates by adding all three
-components of the H5 `RefPartR` attribute to the stored `x`, `y`, and `z`
-offsets.  Raw H5 IDs are not stable under MPI redistribution, so pair identity
-is reconstructed from birth order and one-step phase-space continuity.  The
-fixed particle layout is periodic transversely; wrapped H5 positions are
-unwrapped for continuous plots while the raw positions are retained in the
-pointwise CSV.  It matches all 13012 CAIN samples exactly by species, pair, and
-grid step.  For births whose initial state precedes the first H5 record, the
-exact generated emitted-file row is included as the step-zero sample.
+## Current fine-grid result
 
-## Four-A100 production result
+The authoritative complete run is Merlin job 354018 on four A100-SXM4-40GB
+GPUs. It used the `4096x256x128` mesh for all 1501 steps, completed normally in
+25,278.83 seconds, produced a nonempty 68-line `timing.dat`, matched all 13,012
+CAIN-grid samples, and had no transverse wraps.
 
-The exact case completed on four A100-SXM4-40GB GPUs as Merlin job `353971` in
-`1:43:15`.  All twelve witnesses were emitted in the intended order, no
-witness contributed to the field solve, and all 13012 CAIN rows were matched.
-The input/output mechanics are therefore validated, but this discretization
-does **not** reproduce the CAIN trajectories.
+| comparison | x relative L2 | x RMSE | longitudinal relative L2 | longitudinal RMSE |
+|---|---:|---:|---:|---:|
+| OPALX vs three-sigma manufactured | 0.6004% | 1.996 um | 0.0971% | 0.807 um |
+| OPALX vs CAIN | 9.545% | 30.648 um | 2.9774% | 24.477 um |
 
-| species | samples | RMSE x [um] | relative L2 x | RMSE y [um] | RMSE s [um] |
-|---|---:|---:|---:|---:|---:|
-| electron | 6506 | 511.68 | 1.12695 | 251.14 | 30.52 |
-| positron | 6506 | 5.04 | 0.94299 | 1.08 | 0.78 |
+The twelve OPALX/manufactured first-x-kick ratios are 0.92947--0.97490,
+whereas OPALX/CAIN spans 1.505--110.39. Mesh refinement therefore validates
+OPALX against the like-for-like manufactured source but does not make it
+converge to CAIN's different collective-field model.
 
-The first transverse kick identifies the failure before long-time integration.
-For the central pair, CAIN gives `px = 2.2261e-2`, whereas OPALX gives
-`2.6816e-4`, only `1.20%` of the CAIN kick.  Pairs 3 and 6 begin with the wrong
-transverse sign.  The equal-and-opposite electron/positron OPALX kicks confirm
-that species/container assignment is correct; the source field sampled at the
-witness is not.
+The optimized one-solve/two-field implementation ran this identical deck 1.992
+times faster than the preceding two-solve version. A direct H5 comparison gives
+maximum accumulated coordinate changes of 1.87 nm in x, 21.62 nm in y, and
+0.257 nm longitudinally.
 
-This is now retained as the **pre-reference-offset-fix baseline**.  The weak
-and sign-changing kicks were subsequently traced to witness-coordinate
-conversion, not to a non-convergent field solve.  Four electron trajectories
-also cross the periodic y boundary (nine wrap events in total); from the first
-wrap onward their field sampling is not a physical open-boundary trajectory.
+The local compact result is under
+`timed/a100_4rank_400k_4096x256x128_twofield_816d11ff8/`. Generated plots and
+large H5 files are intentionally ignored by Git.
 
-Generated production reports and plots are in the ignored local directory
-`timed/a100_400k_1024x128x128/results/`.  In particular:
-
-- `track12_cain_vs_opalx.png`: three-panel slide-scale `x(s)` comparison;
-- `track12_cain_vs_opalx_wide.png`: three-panel full-range `x(s)` comparison;
-- `track12_cain_vs_opalx_y.png`: three-panel unwrapped `y(s)` comparison;
-- `track12_first_kick_summary.csv`: all twelve first-kick values and ratios;
-- `track12_comparison.json`: aggregate, per-species, H5-identity, and wrap diagnostics.
-
-## Witness reference offset and corrected first kick
-
-Each particle container stores particle `R` relative to its own reference
-particle.  In the timed track12 case the witness reference has
-`RefPartR.x = sigma_x`, while its particle-local `R.x` is nearly zero.  The
-BeamBeam witness gather previously translated only the longitudinal path
-offset.  It therefore sampled an offset witness container near the primary
-axis even though H5 correctly reported its absolute position at `x=sigma_x`.
-
-The gather now translates the witness coordinates into the source container's
-reference frame using the transverse difference
+## Coordinate and field conventions
 
 ```text
-RefPartR_witness - RefPartR_source
+x_OPALX  = x_CAIN
+y_OPALX  = y_CAIN
+z_OPALX  = s_CAIN
+p_OPALX  = p_CAIN / (m_e c)
 ```
 
-and retains `s_witness - s_source` as the authoritative longitudinal offset.
-This changes only where a passive witness samples the already-computed source
-field.  It does not change source deposition, the Poisson solve, field units,
-charge normalization, or MPI reduction order.
+Emission-source `R0Z` places the CAIN longitudinal coordinate around the
+BeamBeam midpoint. A witness born inside a step receives only the remaining
+fractional drift and Boris kick. OPALX electric-field values in H5 are V/m even
+though the current metadata incorrectly labels them MV/m.
 
-`timed/scan_first_kick_fields.py` provides the persistent regression and mesh
-diagnostic.  It records both the historical untruncated rigid-Gaussian
-reference and the like-for-like component-wise three-sigma-truncated
-manufactured reference. Both the normal seeded Gaussian sample and a
-deterministic equal-probability tensor source converge monotonically in the
-historical compact-domain scan:
-
-| full domain and mesh | source | x cell [um] | OPALX/analytic `|E|` |
-|---|---|---:|---:|
-| 40 um, 32 x 32 | seeded random | 1.290 | 0.90184 |
-| 40 um, 64 x 64 | seeded random | 0.635 | 0.95871 |
-| 40 um, 128 x 128 | seeded random | 0.315 | 0.98426 |
-| 40 um, 32 x 32 | tensor | 1.290 | 0.89321 |
-| 40 um, 64 x 64 | tensor | 0.635 | 0.95323 |
-| 40 um, 128 x 128 | tensor | 0.315 | 0.97868 |
-
-The scan names these cases `square20` for their 20 um half-width.  Doubling the
-full domain from 40 to 80 um at fixed cell size changes the field by less than 0.1%,
-and the random/tensor difference is approximately 1% or less.  The field
-direction cosine exceeds 0.99994 at the two finest random meshes.  The CTest
-`TestBeamBeamWitnessReferenceOffset` runs the 64 x 64 seeded case and would
-fail against the pre-fix on-axis gather.
-
-The exact fixed-source production probe ran on four A100s as Merlin job
-`353974`.  It used the same 400000-particle source, 1024 x 128 x 128 mesh, and
-2.4 mm x 0.24 mm transverse domain as the trajectory baseline.  It completed
-in 23.14 s and gave:
-
-| quantity | value |
-|---|---:|
-| OPALX `|E|` | 6.569905e9 V/m |
-| OPALX/analytic `|E|` | 0.678097 |
-| field direction cosine | 0.999995 |
-| field-predicted OPALX `Delta px` | 0.023143 |
-| CAIN first `Delta px` | 0.022261 |
-| OPALX/CAIN first kick | 1.039622 |
-
-The analytic denominator is the untruncated continuum Gaussian, whereas the
-OPALX result uses the fixed finite source and the comparatively coarse CAIN
-production mesh.  The meaningful trajectory decision is that the corrected
-OPALX field predicts the CAIN central first kick within 3.96%, instead of the
-pre-fix trajectory's 1.20% residual.  A complete corrected 12-particle run is
-therefore justified; it has not yet been performed.
-
-The four-A100 probe can be submitted from a prepared portable run directory
-with:
-
-```sh
-./timed/merlin/submit_first_kick_field_probe_a100.sh submit \
-  --run-root /path/to/prepared/run \
-  --opalx /path/to/cuda-build/src/opalx
-```
-
-For every Merlin submission, the launcher copies the exact script passed to
-`sbatch` into the run-local `slurm/` directory. Slurm stdout/stderr is written
-there as well. Application logs, runtime files, and manifests remain inside
-the corresponding case directory below the same run root. Do not submit a
-script from a transient location or place scheduler output outside the run
-root; the run directory must remain a self-contained execution record.
-
-For the production-aperture convergence study, prepare the three fixed-source
-cases locally, run them sequentially in one one-rank A100 allocation, and fetch
-only the compact probe outputs for local analysis:
-
-```sh
-~/.venv-h6/bin/python timed/prepare_timed_track12.py
-
-~/.venv-h6/bin/python timed/scan_first_kick_fields.py --prepare-only \
-  --case production_rect_1024x128_fixed400k \
-  --case production_rect_1536x192_fixed400k \
-  --case production_rect_2048x256_fixed400k \
-  --output-dir /path/to/prepared/run
-
-./timed/merlin/submit_first_kick_field_probe_a100.sh submit \
-  --run-root /path/to/prepared/run \
-  --opalx /path/to/cuda-build/src/opalx \
-  --mpi-ranks 1 \
-  --cases production_rect_1024x128_fixed400k,production_rect_1536x192_fixed400k,production_rect_2048x256_fixed400k
-
-~/.venv-h6/bin/python timed/fetch_and_plot_first_kick_a100.py \
-  --remote-root /path/to/completed/run
-```
-
-Merlin jobs `353987`, `353996`, `353997`, `353999`, and `354001` used commit
-`8da5b9e83`, the same deterministic 400000-particle source, the fixed
-`2.4 mm x 0.24 mm` aperture, and `Nz=128` throughout. The deterministic
-rank-invariance regression permits the one-rank and multi-rank results to be
-combined in one discretization curve:
-
-| transverse mesh | ranks/A100s | OPALX/truncated `|E|` | OPALX/truncated kick | runtime [s] |
-|---:|---:|---:|---:|---:|
-| 1024 x 128 | 1/1 | 0.672577 | 0.672591 | 5.69 |
-| 1536 x 192 | 1/1 | 0.835404 | 0.835416 | 6.93 |
-| 2048 x 256 | 1/1 | 0.912683 | 0.912698 | 7.59 |
-| 2304 x 288 | 3/3 | 0.916806 | 0.916822 | 58.11 |
-| 2560 x 320 | 3/3 | 0.930909 | 0.930931 | 69.51 |
-| 2688 x 336 | 3/3 | 0.940164 | 0.940189 | 76.38 |
-| 3072 x 384 | 4/4 | 0.971438 | 0.971466 | 121.56 |
-
-The field direction cosine is at least `0.999993`, so refinement corrects the
-magnitude rather than rotating the field. The three-sigma manufactured field
-at this point is `0.8207%` stronger than the untruncated Gaussian field; source
-truncation therefore slightly lowers the OPALX/reference ratio and cannot
-explain the coarse-grid deficit. The asymptotic order approaches two, as
-expected for the mesh interpolation/deposition error in this smooth probe.
-The `3072x384x128` case failed during initialization on two and three A100s but
-completed on four. Since its per-rank cell count on four GPUs is slightly below
-that of the successful `2688x336x128` three-GPU case, the evidence supports a
-per-device peak-memory or FFT-workspace threshold rather than an intrinsic
-mesh-size failure. The generic `MPI_ABORT(-100)` did not retain the originating
-exception, so the exact transient allocation is not yet identified.
-
-The separate `4096x256x128` four-A100 cross-check completed in 109.34 seconds
-and produced OPALX/truncated manufactured ratios `0.960704` for `|E|` and
-`0.960733` for the kick. This is not part of the proportional-refinement curve:
-its approximately `0.586 um x 0.941 um` cell spacing refines x relative to
-`3072x384x128` while coarsening y. Its lower ratio confirms that the remaining
-field error depends materially on y resolution and cannot be removed by
-x-only refinement.
-
-## Files
-
-- `generate_track12_opalx_inputs.py` converts `sandbox/TestParticleOrbit.dat`
-  into OPALX `FROMFILE` witness distributions.
-- `track12_electrons.fromfile` and `track12_positrons.fromfile` are generated
-  inputs with columns `x y z px py pz`.
-- `track12_witness_metadata.csv` records the particle names and source-file
-  timestamp, since OPALX `FROMFILE` does not carry particle labels.
-- `track12_beambeam.in` is the intended comparison input with 400000 primary
-  source macroparticles.
-- `track12_beambeam_smoke.in` is a cheaper parser/tracking smoke run with 4000
-  primary source macroparticles and a coarser time step.
-- `track12_one_bunch_electrons.in` is the first validation run: one read-in
-  electron bunch only, no BeamBeam interaction.
-- `track12_primary_one_beam_smoke.in` tracks one 4000-macroparticle primary
-  Gaussian electron beam in a drift, with no BeamBeam interaction.
-- `track12_primary_one_beam.in` is the same source-only run at 400000
-  macroparticles.
-- `track12_primary_with_pairs_smoke.in` tracks the primary beam plus the read-in
-  six-electron and six-positron CAIN test particles in a drift, still without a
-  BeamBeam element.
-- `track12_beambeam_one_source_quick.in` is a fast one-source BeamBeam
-  diagnostic. It enables `WITNESS_CONTAINERS` but leaves `COPY_TIME = 0`, so no
-  copied counter-propagating source is included.
-- `track12_beambeam_copied_source_1fs_probe.in` is a staged-timestep diagnostic
-  with a 1 fs fine segment through the copied-source BeamBeam window.
-- `generate_timing_pair_inputs.py` creates the pair-wise timing-correct OPALX
-  decks under `timing_pairs/`. These decks keep the numeric TestParticleOrbit
-  witness coordinates but shift the primary source centroid per pair so the
-  first field evaluation uses the insertion timing implied by
-  `TestParticleOrbitSimulation.pptx`. They are retained as historical
-  diagnostics; use `timed/` for the exact one-clock comparison.
-
-## Coordinate Convention
-
-The CAIN columns are mapped as
-
-```text
-x_OPALX = x_CAIN
-y_OPALX = y_CAIN
-z_OPALX = s_CAIN
-px_OPALX = Px_CAIN / (m_e c)
-py_OPALX = Py_CAIN / (m_e c)
-pz_OPALX = Ps_CAIN / (m_e c)
-```
-
-The witness emission sources apply `R0Z = bb_ip_s`, so the CAIN `s` coordinate
-is interpreted as a longitudinal offset around the BeamBeam interaction point.
-
-The PowerPoint source slides define the witness `ct` values as insertion times.
-For an oncoming primary bunch centered at the IP at `ct = 0`, the source center
-at insertion is `s_c = -ct_i`. Because the TestParticleOrbit initial rows use
-`s_i = ct_i`, each pair needs a different primary source offset. The generated
-pair decks use
-
-```text
-primary_source_r0z = bb_ip_s - ct_i
-witness_r0z = bb_ip_s
-```
-
-so `s_i - s_c = 2 ct_i`; pair 1 starts at the `-3 sigma_z` source edge and
-pair 4 starts at the bunch center. This fixes timing only; it intentionally does
-not tune source direction, species mapping, field normalization, or pusher
-details.
-
-## Commands
-
-Regenerate witness files:
-
-```sh
-~/.venv-h6/bin/python generate_track12_opalx_inputs.py
-```
-
-Generate pair-wise slide-timed BeamBeam inputs:
-
-```sh
-~/.venv-h6/bin/python generate_timing_pair_inputs.py
-```
-
-Run the smoke input from this directory:
-
-```sh
-/Users/adelmann/git/opalx-beambeam/build_openmp/src/opalx track12_one_bunch_electrons.in
-```
-
-Run the source-only primary-beam smoke input:
-
-```sh
-/Users/adelmann/git/opalx-beambeam/build_openmp/src/opalx track12_primary_one_beam_smoke.in
-```
-
-Run the primary-plus-e-/e+ no-BeamBeam smoke input:
-
-```sh
-/Users/adelmann/git/opalx-beambeam/build_openmp/src/opalx track12_primary_with_pairs_smoke.in
-```
-
-Run the BeamBeam smoke input from this directory:
-
-```sh
-/Users/adelmann/git/opalx-beambeam/build_openmp/src/opalx track12_beambeam_smoke.in
-```
-
-Run the 400000-particle comparison:
-
-```sh
-/Users/adelmann/git/opalx-beambeam/build_openmp/src/opalx track12_beambeam.in
-```
+Historical generated decks at this directory level remain useful for tracing
+the early investigation, but they are not current validation evidence. Use the
+single `timed/` deck and its manifest for new comparisons.

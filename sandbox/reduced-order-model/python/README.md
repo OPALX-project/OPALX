@@ -26,8 +26,8 @@ Run the focused checks with:
 ```
 
 The historical manufactured-solution material remains in
-`sandbox/analytic-model/`; it is intentionally not moved while the reduced model
-interface and comparison quantities are being fixed.
+`sandbox/attic/models/spherical-rest-gaussian/`; it is retained only as a
+historical record. It is not an active reference model or acceptance test.
 
 For the A100 convergence study, `prepare_a100_convergence.py` renders the
 deduplicated case matrix, `analyze_opalx_convergence.py` creates CSV summaries

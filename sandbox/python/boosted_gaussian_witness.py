@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Manufactured Lorentz-transformed Gaussian source fields for one witness.
+"""Legacy spherical-Gaussian source fields for one witness.
 
 This script is intentionally independent of OPALX internals.  It evaluates the
 closed-form rest-frame electric field of one or two spherical Gaussian charge
 clouds, Lorentz-transforms the fields to the lab/reference frame, and applies
-one OPALX-style Boris kick to a witness electron.
+one OPALX-style Boris kick to a witness electron.  It is retained for historical
+exploratory tools; the authoritative BeamBeam manufactured solution is the
+anisotropic lab-frame model in ``sandbox/reduced-order-model``.
 """
 
 from __future__ import annotations
@@ -28,7 +30,6 @@ ELECTRON_CHARGE_UNITS = -1.0
 DEFAULT_SOURCE_ELECTRONS = 1.25e10
 DEFAULT_SOURCE_CHARGE_C = -DEFAULT_SOURCE_ELECTRONS * ELEMENTARY_CHARGE_C
 SANDBOX_DIR = Path(__file__).resolve().parents[1]
-NOTE_DIR = SANDBOX_DIR / "note"
 DATA_DIR = SANDBOX_DIR / "data"
 
 
@@ -438,8 +439,8 @@ def compute_case(case: WitnessCase, time_s: float, dt_s: float) -> dict[str, obj
     }
 
 
-DEFAULT_LATEX_TABLE = NOTE_DIR / "boosted_gaussian_witness_initial_cases_table.tex"
-DEFAULT_PAIR_KINEMATICS_TABLE = NOTE_DIR / "boosted_gaussian_witness_pair_kinematics_table.tex"
+DEFAULT_LATEX_TABLE = DATA_DIR / "boosted_gaussian_witness_initial_cases_table.tex"
+DEFAULT_PAIR_KINEMATICS_TABLE = DATA_DIR / "boosted_gaussian_witness_pair_kinematics_table.tex"
 
 
 def fmt_vec(vector: np.ndarray, scale: float = 1.0) -> str:

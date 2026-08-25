@@ -16,10 +16,10 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_INPUT_DIR = ROOT / "sandbox/track-e-p/data"
 DEFAULT_OUTPUT_H5 = ROOT / "sandbox/data/gamma_gamma_large_cylinder_efield_debug.h5"
-DEFAULT_GALLERY = ROOT / "sandbox/note/figs/gamma_gamma_large_cylinder_efield_debug.png"
-DEFAULT_EZ_GALLERY = ROOT / "sandbox/note/figs/gamma_gamma_large_cylinder_efield_debug_ez.png"
-DEFAULT_TIMELINE = ROOT / "sandbox/note/figs/gamma_gamma_large_cylinder_efield_debug_lab_timeline.png"
-DEFAULT_PROFILE = ROOT / "sandbox/note/figs/gamma_gamma_large_cylinder_efield_debug_z_profile.png"
+DEFAULT_GALLERY = ROOT / "sandbox/regression/figures/gamma_gamma_large_cylinder_efield_debug.png"
+DEFAULT_EZ_GALLERY = ROOT / "sandbox/regression/figures/gamma_gamma_large_cylinder_efield_debug_ez.png"
+DEFAULT_TIMELINE = ROOT / "sandbox/regression/figures/gamma_gamma_large_cylinder_efield_debug_lab_timeline.png"
+DEFAULT_PROFILE = ROOT / "sandbox/regression/figures/gamma_gamma_large_cylinder_efield_debug_z_profile.png"
 HEADER_RE = re.compile(r"([A-Za-z0-9_.\[\]]+)\s*=\s*(\([^)]*\)|\[[^\]]*\]|[^#\s]+)")
 STEP_RE = re.compile(r"-(\d{6})\.dat$")
 

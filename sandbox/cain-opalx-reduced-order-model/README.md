@@ -5,6 +5,10 @@ in the OPALX `BEAMBEAM` element. The authoritative raw table remains
 `../track-e-p/fort98.txt`; the generated inputs and JSON reports are intentionally
 not committed.
 
+The distinction between this complete 1,297 + 1,297 input dataset, the
+12-particle trajectory benchmark, and the production geometry is consolidated
+in [`../BEAMBEAM_PHYSICS_AND_VALIDATION.md`](../BEAMBEAM_PHYSICS_AND_VALIDATION.md).
+
 ## Explicit emitted-file contract
 
 The converter writes

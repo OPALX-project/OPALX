@@ -1,0 +1,7 @@
+# Preserve local historical run artifacts without adding files that were not
+# tracked before the archive move. Previously tracked files remain tracked.
+**/__pycache__/
+**/*.stat
+**/*.aux
+**/*.fdb_latexmk
+**/.DS_Store
