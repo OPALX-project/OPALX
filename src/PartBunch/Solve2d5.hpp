@@ -601,24 +601,24 @@ template <typename T>
 KOKKOS_FUNCTION void Solve2d5<T>::scatter3D(
         ScalarGridView3D_t rho, const ippl::Vector<T, 3U>& wlo, const ippl::Vector<T, 3U>& whi,
         int x, int y, int z, T charge) {
-    rho(x - 1, y - 1, z - 1) += wlo[0] * wlo[1] * wlo[2] * charge;
-    rho(x, y - 1, z - 1) += whi[0] * wlo[1] * wlo[2] * charge;
-    rho(x - 1, y, z - 1) += wlo[0] * whi[1] * wlo[2] * charge;
-    rho(x, y, z - 1) += whi[0] * whi[1] * wlo[2] * charge;
-    rho(x - 1, y - 1, z) += wlo[0] * wlo[1] * whi[2] * charge;
-    rho(x, y - 1, z) += whi[0] * wlo[1] * whi[2] * charge;
-    rho(x - 1, y, z) += wlo[0] * whi[1] * whi[2] * charge;
-    rho(x, y, z) += whi[0] * whi[1] * whi[2] * charge;
+    Kokkos::atomic_add(&rho(x - 1, y - 1, z - 1), wlo[0] * wlo[1] * wlo[2] * charge);
+    Kokkos::atomic_add(&rho(x, y - 1, z - 1), whi[0] * wlo[1] * wlo[2] * charge);
+    Kokkos::atomic_add(&rho(x - 1, y, z - 1), wlo[0] * whi[1] * wlo[2] * charge);
+    Kokkos::atomic_add(&rho(x, y, z - 1), whi[0] * whi[1] * wlo[2] * charge);
+    Kokkos::atomic_add(&rho(x - 1, y - 1, z), wlo[0] * wlo[1] * whi[2] * charge);
+    Kokkos::atomic_add(&rho(x, y - 1, z), whi[0] * wlo[1] * whi[2] * charge);
+    Kokkos::atomic_add(&rho(x - 1, y, z), wlo[0] * whi[1] * whi[2] * charge);
+    Kokkos::atomic_add(&rho(x, y, z), whi[0] * whi[1] * whi[2] * charge);
 }
 
 template <typename T>
 KOKKOS_FUNCTION void Solve2d5<T>::scatter2D(
         ScalarGridView3D_t rho, const ippl::Vector<T, 3U>& wlo, const ippl::Vector<T, 3U>& whi,
         int x, int y, int z, T charge) {
-    rho(x - 1, y - 1, z) += wlo[0] * wlo[1] * charge;
-    rho(x, y - 1, z) += whi[0] * wlo[1] * charge;
-    rho(x - 1, y, z) += wlo[0] * whi[1] * charge;
-    rho(x, y, z) += whi[0] * whi[1] * charge;
+    Kokkos::atomic_add(&rho(x - 1, y - 1, z), wlo[0] * wlo[1] * charge);
+    Kokkos::atomic_add(&rho(x, y - 1, z), whi[0] * wlo[1] * charge);
+    Kokkos::atomic_add(&rho(x - 1, y, z), wlo[0] * whi[1] * charge);
+    Kokkos::atomic_add(&rho(x, y, z), whi[0] * whi[1] * charge);
 }
 
 template <typename T>
