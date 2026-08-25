@@ -1781,8 +1781,8 @@ namespace {
         fsCmd_m->setNX(10);
         fsCmd_m->setNY(10);
         fsCmd_m->setNZ(3);
-        fsCmd_m->setPipeSizeX(0.01);
-        fsCmd_m->setPipeSizeY(0.01);
+        fsCmd_m->setPipeSizeX(0.02);
+        fsCmd_m->setPipeSizeY(0.02);
         fsCmd_m->setClosedRing(false);
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
@@ -1828,10 +1828,10 @@ namespace {
         solver->doRunSolver<Info>(*info);
         // Check the charge density
         expectPotential(               //i, j, k, phi
-                info->rhoView_m, {{5, 5, 2, -1.7331e14},
-                                     {5, 6, 2, -1.4760e14},
-                                     {4, 6, 2, -2.4384e14},
-                                     {6, 7, 2, +3.0663e13}});
+                info->rhoView_m, {{5, 5, 2, 963538234764917},
+                                     {5, 6, 2, 947474778602442.75},
+                                     {4, 6, 2, 954504662037936.12},
+                                     {6, 7, 2, 948706293379785}});
     }
 
     TEST_F(TestSolve2d5, KvBeam_ElectricField) {
@@ -1840,8 +1840,8 @@ namespace {
         fsCmd_m->setNX(10);
         fsCmd_m->setNY(10);
         fsCmd_m->setNZ(3);
-        fsCmd_m->setPipeSizeX(0.01);
-        fsCmd_m->setPipeSizeY(0.01);
+        fsCmd_m->setPipeSizeX(0.02);
+        fsCmd_m->setPipeSizeY(0.02);
         fsCmd_m->setClosedRing(false);
         rebuildBunch();
         auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
@@ -1849,10 +1849,10 @@ namespace {
         const auto info = solver->createDiagnostic<Info>(Info::Kind::EField);
         solver->doRunSolver<Info>(*info);
         // Check the charge density
-        expectEField(               //i, j, k, Ex,             Ey,             Ez
-                info->eFieldView_m, {{5, 5, 2, -1.7331e14,     -3.1870e13,     0},
-                                     {5, 6, 2, -1.4760e14,     +2.8234e13,     0},
-                                     {4, 6, 2, -2.4384e14,     +1.9649e13,     0},
-                                     {6, 7, 2, +3.0663e13,     +1.5967e14,     0}});
+        expectEField(               //i, j, k, Ex,                  Ey,                   Ez
+                info->eFieldView_m, {{5, 5, 2, 22636807214983288.0, 3856068046813647.5,   0.0},
+                                     {5, 6, 2, -927805928809394.75, 6103969523576944.0,   0.0},
+                                     {4, 6, 2, -5967249946832035.0, 12198160561896932.0,  0.0},
+                                     {6, 7, 2, 12256750350007952.0, 20338717682993576.0,  0.0}});
     }
 }  // namespace

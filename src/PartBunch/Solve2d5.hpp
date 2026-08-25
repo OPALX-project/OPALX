@@ -453,7 +453,7 @@ void Solve2d5<T>::solvePoissons(DiagnosticPolicy diagnostic) {
                 });
         s.solver_m->solve();
         Kokkos::fence();
-        diagnostic.potential(rho2d, z);
+        diagnostic.potential(rho2d, z + nghost);
         auto e2d = s.E_m->getView();
         // Copy the 2D E field into the 3D E field grid
         Kokkos::parallel_for(
