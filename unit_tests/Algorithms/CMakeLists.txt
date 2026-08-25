@@ -9,7 +9,7 @@ add_opalx_test(TestCoordinateSystemTrafo USE_GTEST_MAIN)
 add_opalx_test(TestIndexMap USE_GTEST_MAIN)
 add_opalx_test(TestOrbitThreader USE_GTEST_MAIN)
 add_opalx_test(TestDistributionMoments USE_GTEST_MAIN)
-add_opalx_test(TestStepSizeConfig USE_GTEST_MAIN NO_MPI)
+add_opalx_test(TestStepSizeConfig USE_GTEST_MAIN)
 
 if(BUILD_TESTING)
   add_test(
