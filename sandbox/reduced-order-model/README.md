@@ -3,6 +3,9 @@
 This directory is the reproducible workspace for comparing a rigid two-Gaussian
 source model with OPALX witness-particle trajectories.
 
+The physics interpretation and current accepted results are consolidated in
+[`../BEAMBEAM_PHYSICS_AND_VALIDATION.md`](../BEAMBEAM_PHYSICS_AND_VALIDATION.md).
+
 - `python/` contains the independent reference-field and trajectory scripts.
 - `opalx/` contains OPALX input decks and their local input data.
 - `merlin/` contains the self-submitting A100 convergence workflow.
@@ -25,14 +28,14 @@ also gives the primary source zero divergence and momentum spread and does not
 apply external focusing inside the BeamBeam element. `BBRIGID` does not silently
 overwrite those input choices.
 
-The first comparison should use identical source geometry, charge, clock, pair
+Every comparison uses identical source geometry, charge, clock, pair
 emission times, and initial pair phase space in both implementations. Compare the
 electric and magnetic fields first, then the electron/positron trajectories.
 
 ## Stage 1: rigid-source fields
 
-The authoritative parameters are in `parameters.json`. The initial field study
-uses two identical 245 MeV electron bunches, each containing 1.25e10 electrons,
+The authoritative parameters are in `parameters.json`. The field study uses
+two identical 245 MeV electron bunches, each containing 1.25e10 electrons,
 with lab-frame rms sizes
 
 ```text

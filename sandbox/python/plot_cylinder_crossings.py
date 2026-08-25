@@ -13,7 +13,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
 TRACK_DIR = ROOT / "sandbox/track-e-p"
-DEFAULT_OUTPUT = ROOT / "sandbox/note/figs/gamma_gamma_large_cylinder_staged_dt_crossings.png"
+DEFAULT_OUTPUT = ROOT / "sandbox/regression/figures/gamma_gamma_large_cylinder_staged_dt_crossings.png"
 
 
 def configure_plot_environment(output: Path) -> None:

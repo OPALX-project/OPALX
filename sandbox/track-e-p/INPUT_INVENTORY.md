@@ -1,13 +1,23 @@
 # BeamBeam input inventory
 
 This directory contains OPALX inputs for the gamma-gamma pair tracking studies.
-The current large-cylinder configuration is:
+The current production target is:
 
 - BeamBeam window length: `bb_length = 0.32 m`
 - BeamBeam cylinder aperture: `APERTURE="CIRCLE(0.30)"`, i.e. radius `15 cm`
+- Interaction point: the BeamBeam element midpoint, 16 cm from either edge
+- Witness population: 1,297 CAIN electrons and 1,297 CAIN positrons
+- Primary source: anisotropic lab-frame Gaussian with
+  `sigma_x = sigma_y = 1.944325075701 um` and `sigma_z = 0.6 mm`
 - Witness injection: `tinj = primary_ip_time - 16.747e-12`
 - Primary source retirement: `primary_retire_time = 1000e-12`
 - Coarse debug timestep unless noted: `DT = 1.0e-12`
+
+The `1000 ps` retirement is the present explicit deck choice, not a claimed
+three-sigma physical cutoff. Copy and retirement times require convergence
+checks for production conclusions. See
+[`../BEAMBEAM_PHYSICS_AND_VALIDATION.md`](../BEAMBEAM_PHYSICS_AND_VALIDATION.md)
+for the model contract.
 
 ## Current large-cylinder inputs
 
@@ -26,9 +36,8 @@ The current large-cylinder configuration is:
 
 | file | purpose |
 | --- | --- |
-| `gamma_gamma_pairs-2.in` | Small proof-of-principle cylinder setup: 5 cm BeamBeam window, `CIRCLE(0.02)` aperture, retirement at `121 ps`, coarse `DT = 1 ps`. Keep for reproducing the earlier Figure 3/Figure 4 validation path. |
-| `gamma_gamma_pairs-3.in` | Older rectangular-aperture setup with 5 cm BeamBeam window and `RECTANGLE(0.02, 0.02, 0.05)`. Kept as historical comparison input. |
-| `attic/gamma_gamma_pairs.in` | Archived original input with no witness BeamBeam containers. Do not use for current BeamBeam validation unless intentionally reproducing the original archived setup. |
+| `gamma_gamma_pairs-2.in` | Historical 5 cm proof-of-principle cylinder with `CIRCLE(0.02)`, `121 ps` retirement, and a coarse 1 ps step. Do not use for current validation or production conclusions. |
+| `gamma_gamma_pairs-3.in` | Historical 5 cm rectangular-aperture setup. Do not use for current validation or production conclusions. |
 
 ## Generated data note
 

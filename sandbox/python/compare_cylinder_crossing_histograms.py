@@ -2,7 +2,7 @@
 """Compare two BeamBeam cylinder-edge crossing histograms from OPALX H5 files.
 
 This is the relocated comparison helper from the old regression directory.  It
-now writes to ``sandbox/note/figs`` by default.
+now writes to ``sandbox/regression/figures`` by default.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
 TRACK_DIR = ROOT / "sandbox/track-e-p"
-DEFAULT_OUTPUT = ROOT / "sandbox/note/figs/gamma_gamma_large_cylinder_retire1000ps_q1em5_compare.png"
+DEFAULT_OUTPUT = ROOT / "sandbox/regression/figures/gamma_gamma_large_cylinder_retire1000ps_q1em5_compare.png"
 
 
 def configure_plot_environment() -> None:

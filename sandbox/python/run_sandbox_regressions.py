@@ -9,8 +9,9 @@ workflow:
 * the OPALX-vs-IMPACT drift comparison CSV/stat pair.
 
 Use ``--update-baseline`` only after intentionally accepting new physics output.
-The default baseline and current-metrics CSV live in ``sandbox/note`` so this
-script remains usable after removing the old ``sandbox/regression`` directory.
+The default baseline and current-metrics CSV live in ``sandbox/regression``.
+Historical publication notes and their generated assets live under
+``sandbox/attic`` and are not part of this active regression workflow.
 
 Typical use from the repository root::
 
@@ -37,9 +38,9 @@ import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[2]
-NOTE_DIR = ROOT / "sandbox/note"
-DEFAULT_BASELINE = NOTE_DIR / "sandbox_regression_baseline.json"
-DEFAULT_CSV = NOTE_DIR / "current_metrics.csv"
+REGRESSION_DIR = ROOT / "sandbox/regression"
+DEFAULT_BASELINE = REGRESSION_DIR / "sandbox_regression_baseline.json"
+DEFAULT_CSV = REGRESSION_DIR / "current_metrics.csv"
 
 
 def load_module(name: str, path: Path):

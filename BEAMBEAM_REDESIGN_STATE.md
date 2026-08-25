@@ -144,7 +144,8 @@ Implementation findings and remaining gaps:
   - `src/AbsBeamline/ElementBase.{h,cpp}`
 - Test and design documentation:
   - `unit_tests/PartBunch/TestBeamBeam.cpp`
-  - `beam-beam-summary.md`
+  - `sandbox/BEAMBEAM_PHYSICS_AND_VALIDATION.md`
+  - historical predecessor: `sandbox/attic/notes/beam-beam-summary-legacy.md`
 - Reduced-order mode and validation scaffold:
   - `CMakeLists.txt`
   - `test/{CMakeLists.txt,BeamBeam/CMakeLists.txt}`
@@ -941,8 +942,8 @@ reusable implementation is
 `sandbox/track12particles/track12particles.py`, backed by the independently
 tested rigid two-Gaussian field evaluator in
 `sandbox/reduced-order-model/python/rigid_two_gaussian_fields.py`. The older
-`sandbox/analytic-model/` scripts are useful historical comparisons but are
-tied to earlier decks and conventions.
+`sandbox/attic/models/spherical-rest-gaussian/` scripts are useful historical
+comparisons but are tied to earlier decks and conventions.
 
 The exact one-rank OPALX output was compared without changing tracked code. The
 manufactured tracker used the anisotropic model, both counter-propagating rigid
@@ -1590,6 +1591,61 @@ py, and `6.36e-9` in pz; the full momentum relative L2 difference was
 reconstructing the copied source by exact mesh reflection instead of a second
 scatter and solve.
 
+### Optimized full fine-grid A100 trajectory run (2026-08-23)
+
+Merlin checkout `/psi/home/adelmann/opalx-dev/opalx-a100-5a354101f` was
+fast-forwarded to CUDA-fix commit `816d11ff8` and its Release A100 build was
+updated with `cmake --build build-a100 -j20`. The exact previous production
+deck and fixed input particles were copied into
+`/psi/home/adelmann/opalx-dev/track12-4096x256x128-4rank-816d11ff8-20260823`.
+The production deck SHA-256 remains
+`318357ae32d52ee2057254742bb31ea53fcbc1dabb1c82e69e1d4e893f7934fc`,
+and the primary input SHA-256 remains
+`625621deae71b5e66522dfc8b9c17d02a75bf9db3e7cd6a0d70f5e94aa59ccd5`.
+
+The run-local Slurm launcher explicitly invokes `opalx ... --info 1`, requires
+`timing.dat` to be nonempty before writing `completed`, and retains both its
+exact submitted copy and `%j` logs below the run's `slurm/` directory. The
+three-step, `4096x256x128`, four-rank/four-A100 smoke job `354017` completed in
+114.65 s and wrote a 68-line timing table. Its `afterok` successor, full
+1501-step production job `354018`, completed normally on `merlin-g-100` with
+exit code `0:0` in 25278.83 s (07:01:18.83). It wrote both six-particle witness
+H5 files with 1500 stored step groups and a nonempty 68-line `timing.dat`.
+Relative to the identical-deck 50347.67 s two-solve run, the elapsed compute
+time decreased by 49.791%, a 1.992x speedup. The A100 executable SHA-256
+recorded by the job is
+`e81c37aa58a93932aad7ec873d6e67e26fa107ef0313243f7d660210018c6781`.
+
+Locally, ClangFormat 21 found only formatting differences in
+`src/PartBunch/BinnedFieldSolver.tpp`. The whitespace-only result was
+subsequently committed and pushed as `df7cd6cba`; it was not included in the
+executable used by these jobs, which had already been built from the
+semantically identical `816d11ff8` source.
+
+The completed witness H5 files were fetched to
+`sandbox/track12particles/opalx/timed/a100_4rank_400k_4096x256x128_twofield_816d11ff8`.
+The comparison used the correct `4096x256x128` preparation manifest retained
+with the original Merlin fine-grid run; the earlier local fine-grid result
+directory had inadvertently retained the coarse `1024x128x128` manifest.
+All 13012 CAIN-grid samples matched, and no transverse trajectory wraps were
+detected. Relative to the three-sigma-truncated manufactured rigid-beam model,
+the OPALX x-trajectory relative L2 error is 0.6004%, with 1.996 um RMSE; the
+longitudinal relative L2 error is 0.0971%, with 0.807 um RMSE. The manufactured
+model has exactly zero y motion, while the finite deterministic OPALX source
+gives 2.531 um y RMSE. The twelve first-x-kick ratios OPALX/manufactured range
+from 0.92947 to 0.97490 (mean 0.94860), and electron/positron charge symmetry
+holds to a maximum relative residual of `7.57e-10`. The much wider
+OPALX/CAIN first-kick range, 1.505 to 110.39, reflects the already established
+difference between the CAIN and rigid two-Gaussian collective-field models.
+
+A direct H5 comparison against the previous identical-deck two-solve
+fine-grid OPALX result matched 6504 stored samples per species. The largest
+coordinate changes were 1.87 nm in x, 21.62 nm in y, and 0.257 nm
+longitudinally; relative L2 momentum changes were `2.62e-6` for electrons and
+`3.51e-6` for positrons. Thus the optimized one-solve/two-field construction
+retains the prior OPALX trajectory to small accumulated numerical differences
+while nearly halving runtime.
+
 ## PR validation matrix
 
 All BeamBeam field solves below use the cell-integrated Green function. The
@@ -1616,6 +1672,7 @@ counts are listed separately.
 | Full timed track12, one-rank baseline, job 353978 | `Nsrc=400000`; 6 e- + 6 e+ | `1024x128x128` | 6.004154 fs; 1501 | 1/1 | 13012/13012 samples; kick charge asymmetry below `7.4e-8%`; OPALX/manufactured first-kick ratio `0.648--0.688` | 382.77 s |
 | Full timed track12 after MPI fix, job 353984 | `Nsrc=400000`; 6 e- + 6 e+ | `1024x128x128` | 6.004154 fs; 1501 | 4/4 | 13012/13012 samples; max relative first-kick difference vs 1 rank `4.29e-15`; max `|Delta(x,y,s)|=(6.16e-5,3.07e-4,2.49e-5)` um | 6188.74 s |
 | Full timed track12, midpoint-only, job 353986 | `Nsrc=400000`; 6 e- + 6 e+ | `1024x128x128` | 6.004154 fs; 1501 | 1/1 | 13012/13012 samples; agrees with prior one-rank result to `1.0e-16 m` in x and `1.05e-13` in normalized px | 383.03 s |
+| Optimized full fine-grid track12, job 354018 | `Nsrc=400000`; 6 e- + 6 e+ | `4096x256x128` | 6.004154 fs; 1501 | 4/4 | 13012/13012 samples; OPALX/manufactured x relative L2 `0.6004%`; first-kick ratio `0.92947--0.97490`; max old/new trajectory change `(x,y,s)=(1.87,21.62,0.257)` nm | 25278.83 s |
 | Production-aperture pair-4 refinement, jobs 353987/353996/353997/353999/354001 | `Nsrc=400000`; 1 witness | `1024x128x128` to `3072x384x128` | 1 fs; 2 | 1/1, 3/3, 4/4 | OPALX/3-sigma-truncated `|E|` rises monotonically from `0.672577` to `0.971438`; finest kick ratio `0.971466` | 5.69--121.56 s |
 | Anisotropic pair-4 cross-check, job 354002 | `Nsrc=400000`; 1 witness | `4096x256x128` | 1 fs; 2 | 4/4 | OPALX/3-sigma-truncated `(E,kick)=(0.960704,0.960733)`; finer x but coarser y than `3072x384x128` | 109.34 s |
 
@@ -1626,3 +1683,25 @@ witness-reference scan, the listed 32/64/128 transverse meshes correspond to
 rank scan changes with rank count; deterministic decomposition invariance is
 therefore established by the fixed-source witness regression and the complete
 track12 comparison, not inferred from that sampling scan.
+
+## Documentation consolidation and archive (2026-08-24)
+
+The authoritative current description is now
+`sandbox/BEAMBEAM_PHYSICS_AND_VALIDATION.md`, organized as problem statement,
+OPALX implementation, manufactured solution, and CAIN solution. It fixes the
+agreed distinction between the 8 mm Track-12 validation geometry and the 32 cm,
+15 cm-radius production element with 1,297 CAIN electrons plus 1,297 CAIN
+positrons. The anisotropic lab-frame Gaussian is the sole current manufactured
+source, and the BeamBeam element midpoint is the sole IP.
+
+Superseded LaTeX notes, the spherical rest-frame analytic model, pre-reference-
+offset window/particle/c0 scans and their dedicated scripts, and older one-off
+Python tools were moved to `sandbox/attic/`. `sandbox/attic/README.md` records
+why each item was archived and points to its replacement. Active broad
+regression output was separated from publication assets and now lives under
+`sandbox/regression/`; active scripts must not write into the attic.
+
+No physics source or public API changed during this consolidation. Remaining
+validation risks are the production-scale mesh/time/source convergence, the
+physical convention difference from CAIN, and the known H5 electric-field unit
+metadata defect (stored V/m but labeled MV/m).

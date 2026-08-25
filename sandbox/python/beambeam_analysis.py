@@ -2202,7 +2202,7 @@ def parse_args() -> argparse.Namespace:
     pair_parser.add_argument(
         "--write-pair-latex-table",
         type=Path,
-        default=Path("sandbox/note/boosted_gaussian_witness_pair_kinematics_table.tex"),
+        default=Path("sandbox/data/boosted_gaussian_witness_pair_kinematics_table.tex"),
     )
 
     compare_parser = subparsers.add_parser("compare", help="Run the manufactured-vs-OPALX compare view.")
