@@ -40,7 +40,7 @@ namespace {
 
     h5_file_t openFile(const std::string& fileName, h5_int32_t flags) {
         h5_prop_t props = H5CreateFileProp();
-        if (props == H5_ERR) {
+        if (props == static_cast<h5_prop_t>(H5_ERR)) {
             throw OpalException("CheckpointFile", "could not create HDF5 file properties");
         }
 

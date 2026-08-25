@@ -158,7 +158,7 @@ void LossDataSink::rewindH5ToGlobalTrackStep(
     }
 
     h5_prop_t props = H5CreateFileProp();
-    if (props == H5_ERR) {
+    if (props == static_cast<h5_prop_t>(H5_ERR)) {
         throw GeneralOpalException(
                 "LossDataSink::rewindH5ToGlobalTrackStep",
                 "could not create HDF5 file properties for '" + fileName + "'");
