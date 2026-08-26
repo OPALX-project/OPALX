@@ -30,6 +30,7 @@ extern "C" {
 #include "OpalConfigure/Configure.h"
 #include "OpalParser/FileStream.h"
 #include "OpalParser/OpalParser.h"
+#include "Structure/CheckpointFile.h"
 #include "Utilities/Timer.h"
 
 #include "BasicActions/Option.h"
@@ -363,9 +364,7 @@ int main(int argc, char* argv[]) {
 
             if (opal->inRestartRun()) {
                 if (restartFileName.empty()) {
-                    fs::path restartPath(fname);
-                    restartPath.replace_extension("");
-                    restartFileName = restartPath.string() + "_restart.h5";
+                    restartFileName = CheckpointFile::defaultPath(opal->getInputBasename());
                 }
                 if (!fs::exists(restartFileName)) {
                     *ippl::Info << "Checkpoint file '" << restartFileName << "' doesn't exist!"
