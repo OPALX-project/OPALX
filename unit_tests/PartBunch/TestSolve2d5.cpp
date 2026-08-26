@@ -46,7 +46,8 @@ namespace {
             Attributes::setString(this->itsAttr[FIELDSOLVER::BINS], name);
         }
 
-        void setParallelDimensions(bool parallelX, bool parallelY, bool parallelZ) {
+        void setParallelDimensions(
+                const bool parallelX, const bool parallelY, const bool parallelZ) {
             Attributes::setBool(this->itsAttr[FIELDSOLVER::PARFFTX], parallelX);
             Attributes::setBool(this->itsAttr[FIELDSOLVER::PARFFTY], parallelY);
             Attributes::setBool(this->itsAttr[FIELDSOLVER::PARFFTZ], parallelZ);
@@ -67,8 +68,7 @@ namespace {
                 const Solve2d5<double>::LineDensityView_t& lineDensity,
                 const Solve2d5<double>::LineDensityView_t& lineDensityGradient,
                 const VField_t<T, 3>& eField) {
-            auto& pcs = partBunch.getParticleContainers();
-            if (!pcs.empty()) {
+            if (auto& pcs = partBunch.getParticleContainers(); !pcs.empty()) {
                 auto& pc  = pcs.front();
                 r_m       = Solve2d5_t::VectorView_t("fsr", pc->R.getParticleCount());
                 p_m       = Solve2d5_t::VectorView_t("fsp", pc->R.getParticleCount());
@@ -200,7 +200,7 @@ namespace {
             }
         }
 
-        std::tuple<std::vector<Vector_t<double, 3>>, std::vector<Vector_t<double, 3>>>
+        [[nodiscard]] std::tuple<std::vector<Vector_t<double, 3>>, std::vector<Vector_t<double, 3>>>
         getParticles() const {
             const auto rHost       = Kokkos::create_mirror(r_m);
             const auto pHost       = Kokkos::create_mirror(p_m);
@@ -219,7 +219,7 @@ namespace {
             return std::make_tuple(r, p);
         }
 
-        std::tuple<std::vector<Vector_t<double, 3>>, std::vector<Vector_t<double, 3>>>
+        [[nodiscard]] std::tuple<std::vector<Vector_t<double, 3>>, std::vector<Vector_t<double, 3>>>
         getParticleFields() const {
             const auto eHost       = Kokkos::create_mirror(e_m);
             const auto bHost       = Kokkos::create_mirror(b_m);
@@ -391,14 +391,13 @@ namespace {
             bunch_m->getFieldSolver()->orbitThreadersReady();
         }
 
-        void makeReferencePathFile(
+        static void makeReferencePathFile(
                 const std::filesystem::path& fileName, const std::vector<Point_t>& points,
                 const bool noTimeColumn = false) {
             // Emulates the file created by OrbitThreader.  Use noTimeColumn = true to create
             // an invalid file.
             // Make the directory path exist
-            auto parentPath = fileName.parent_path();
-            if (!parentPath.empty()) {
+            if (const auto parentPath = fileName.parent_path(); !parentPath.empty()) {
                 std::filesystem::create_directories(parentPath);
             }
             // Create the file
@@ -437,7 +436,7 @@ namespace {
         }
 
         static void expectParticleFields(
-                size_t index, const std::vector<Vector_t<double, 3>>& es,
+                const size_t index, const std::vector<Vector_t<double, 3>>& es,
                 const std::vector<Vector_t<double, 3>>& bs, const Vector_t<double, 3>& e,
                 const Vector_t<double, 3>& b, const double eTolerance = 1e-6,
                 const double bTolerance = 1e-16) {
@@ -712,7 +711,7 @@ namespace {
             fsCmd_m->execute();
             FAIL() << "Expected FFT2D5 input validation to reject multiple MPI ranks.";
         } catch (const OpalException& exception) {
-            const std::string message = exception.what();
+            const std::string& message = exception.what();
             EXPECT_NE(message.find("exactly one MPI rank"), std::string::npos);
         }
 
@@ -720,7 +719,7 @@ namespace {
             rebuildBunch();
             FAIL() << "Expected FFT2D5 construction to reject multiple MPI ranks.";
         } catch (const OpalException& exception) {
-            const std::string message = exception.what();
+            const std::string& message = exception.what();
             EXPECT_NE(message.find("exactly one MPI rank"), std::string::npos);
         }
     }
