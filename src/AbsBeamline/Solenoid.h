@@ -42,9 +42,8 @@ public:
     /**
      * @brief apply the solenoid field to all particles in the bunch
      *
-     * @returns true if at least one particle is lost, false otherwise
      */
-    virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     /**
      * @brief apply the solenoid field to particle i
@@ -65,9 +64,8 @@ public:
      * @param E Electric Field
      * @param B Magnetic Field
      *
-     * @returns true if particle is lost, false otherwise
      */
-    virtual bool apply(
+    virtual void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
@@ -123,6 +121,17 @@ public:
     void setFast(bool fast);
 
     bool getFast() const;
+
+    /**
+     * @brief Read the field map back to front.
+     *
+     * Mirrors the map in z and negates Bz, leaving Br alone -- what turning the
+     * magnet around does to an axisymmetric field. Only G4beamline cylinder
+     * maps support this; other map types throw when it is set.
+     */
+    void setIsZReversed(bool zReverse);
+
+    bool getIsZReversed() const;
 
     virtual ElementType getType() const override;
 
@@ -188,6 +197,9 @@ private:
 
     /// Fast tracking flag @note currently not implemented
     bool fast_m;
+
+    /// Load the field map mirrored in z, with Bz negated
+    bool isZReversed_m;
 
     /// @note not implemente
     void operator=(const Solenoid&);

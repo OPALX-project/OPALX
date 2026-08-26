@@ -407,8 +407,13 @@ TEST_F(TravelingWaveTest, FieldmapOutOfBounds) {
     Vector_t<double, 3> E = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-    bool out = tw_->apply(R, P, 0.0, E, B);
-    EXPECT_TRUE(out);
+    tw_->apply(R, P, 0.0, E, B);
+
+    // Out-of-bounds: no field is applied.
+    EXPECT_DOUBLE_EQ(E(0), 0.0);
+    EXPECT_DOUBLE_EQ(E(1), 0.0);
+    EXPECT_DOUBLE_EQ(E(2), 0.0);
+    EXPECT_TRUE(tw_->applyToReferenceParticle(R, P, 0.0, E, B));
 }
 
 TEST_F(TravelingWaveTest, IsInside) {

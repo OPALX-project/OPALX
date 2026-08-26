@@ -36,7 +36,9 @@
 #include "Algorithms/IndexMap.h"
 #include "Algorithms/OrbitThreader.h"
 
+#include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/ConstantEFieldCavity.h"
+#include "AbsBeamline/ConstantFocusing.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Laser.h"
@@ -54,6 +56,7 @@
 #include "Distribution/SamplingBase.hpp"
 #include "Elements/OpalBeamline.h"
 
+#include <functional>
 #include <list>
 #include <memory>
 #include <tuple>
@@ -131,6 +134,11 @@ public:
     /// @brief Apply the algorithm to a constant E-field cavity.
     virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&);
 
+    /// @brief Apply the algorithm to a constant linear focusing element.
+    virtual void visitConstantFocusing(const ConstantFocusing&);
+    /// @brief Apply the algorithm to a collimator.
+    virtual void visitCollimator(const Collimator&);
+
     /// @brief Apply the algorithm to a drift.
     virtual void visitDrift(const Drift&);
 
@@ -203,6 +211,21 @@ public:
     /// @param oths Per-container orbit threaders (one per distinct species; same-species
     ///             containers share one) used for element queries.
     void computeExternalFields(const std::vector<std::shared_ptr<OrbitThreader>>& oths);
+
+    /// @brief Call func for each element intersecting each active container, with the
+    ///        container transformed into the element-local frame.
+    /// @param oths Per-container orbit threaders used for element queries.
+    /// @param func Called per (element, container) pair in the element-local frame.
+    void forEachElementInBunchFrame(
+            const std::vector<std::shared_ptr<OrbitThreader>>& oths,
+            const std::function<
+                    void(const std::shared_ptr<ElementBase>&,
+                         const std::shared_ptr<ParticleContainer_t>&)>& func);
+
+    /// @brief Mark particles outside the transverse aperture of each nearby element.
+    /// @param oths Per-container orbit threaders used for element queries.
+    /// @return global number of newly marked particles (allreduced) — collective call.
+    size_t applyElementApertures(const std::vector<std::shared_ptr<OrbitThreader>>& oths);
 
     /// @brief Emit macroparticles from configured samplers per container.
     /// @param t  Bunch time (s).
@@ -312,6 +335,14 @@ private:
 
 inline void ParallelTracker::visitConstantEFieldCavity(const ConstantEFieldCavity& cav) {
     itsOpalBeamline_m.visit(cav, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitConstantFocusing(const ConstantFocusing& focusing) {
+    itsOpalBeamline_m.visit(focusing, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitCollimator(const Collimator& coll) {
+    itsOpalBeamline_m.visit(coll, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitDrift(const Drift& drift) {

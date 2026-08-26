@@ -65,7 +65,7 @@ ScalingFFAMagnet* ScalingFFAMagnet::clone() const {
     return magnet;
 }
 
-bool ScalingFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) { return false; }
+void ScalingFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {}
 
 void ScalingFFAMagnet::initialise() { calculateDfCoefficients(); }
 
@@ -148,10 +148,10 @@ bool ScalingFFAMagnet::getFieldValueCylindrical(
     return false;
 }
 
-bool ScalingFFAMagnet::apply(
+void ScalingFFAMagnet::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
-    return getFieldValue(R, B);
+    getFieldValue(R, B);
 }
 
 void ScalingFFAMagnet::calculateDfCoefficients() {

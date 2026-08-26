@@ -56,9 +56,9 @@ public:
     /// Get plane on which monitor observes.
     virtual Plane getPlane() const = 0;
 
-    virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
-    virtual bool apply(
+    virtual void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
@@ -108,7 +108,7 @@ inline int Monitor::getRequiredNumberOfTimeSteps() const { return 1; }
 
 inline bool Monitor::isInside(const Vector_t<double, 3>& r) const {
     const double length = getGeometry().getElementLength();
-    return std::abs(r(2)) <= 0.5 * length && isInsideTransverse(r);
+    return std::abs(r(2)) <= 0.5 * length && ApertureHelper::isInsideAperture(r, aperture_m);
 }
 
 #endif  // OPALX_Monitor_HH

@@ -8,6 +8,7 @@ set (_SRCS
     MultiVariateGaussian.cpp
     OpalFlatTop.cpp
     SamplingBase.cpp
+    Uniform.cpp
     )
 
 set (HDRS
@@ -20,6 +21,7 @@ set (HDRS
     MultiVariateGaussian.h
     OpalFlatTop.h
     SamplingBase.hpp
+    Uniform.h
     )
 
 target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

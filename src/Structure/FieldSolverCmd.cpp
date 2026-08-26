@@ -41,8 +41,8 @@ FieldSolverCmd::FieldSolverCmd()
               FIELDSOLVER::SIZE, "FIELDSOLVER",
               "The \"FIELDSOLVER\" statement defines data for a the field solver") {
     itsAttr[FIELDSOLVER::TYPE] = Attributes::makePredefinedString(
-            "TYPE", "Name of the attached field solver.", {"NONE", "FFT", "OPEN", "CG", "FFT2D5"});
-    // removed, since not implemented: "P3M"
+            "TYPE", "Name of the attached field solver.",
+            {"NONE", "FFT", "P3M", "OPEN", "CG", "FFT2D5"});
 
     itsAttr[FIELDSOLVER::BINS] = Attributes::makeString(
             "BINS", "Name of BINNING definition to be used, or NONE for no binning.", "NONE");
@@ -70,8 +70,8 @@ FieldSolverCmd::FieldSolverCmd()
             "BCFFTZ", "Boundary conditions in z.", {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN");
 
     itsAttr[FIELDSOLVER::GREENSF] = Attributes::makePredefinedString(
-            "GREENSF", "Which Greensfunction to be used.", {"STANDARD", "INTEGRATED"},
-            "INTEGRATED");
+            "GREENSF", "Green function for TYPE=OPEN; TYPE=P3M selects its kernel internally.",
+            {"STANDARD", "INTEGRATED"}, "INTEGRATED");
 
     itsAttr[FIELDSOLVER::P3MRCUT] = Attributes::makeReal(
             "RCUT", "P3M particle-particle cutoff radius in m (ALPHA is derived as 2/RCUT).", 0.0);
@@ -112,6 +112,7 @@ FieldSolverCmd* FieldSolverCmd::clone(const std::string& name) {
 void FieldSolverCmd::execute() {
     setFieldSolverCmdType();
     validateP3MConfiguration();
+    validateFFT2D5Configuration();
     setDomainDecomposition();
     update();
 }
@@ -161,10 +162,10 @@ BCHandler<3> FieldSolverCmd::constructBCHandler() const {
     }
 
     if (Attributes::getString(itsAttr[FIELDSOLVER::TYPE]) == "P3M"
-        && !boundary_conditions.isAll(BCH_t::PERIODIC)) {
+        && !boundary_conditions.isAll(BCH_t::PERIODIC) && !boundary_conditions.isAll(BCH_t::OPEN)) {
         throw OpalException(
                 "FieldSolverCmd::constructBCHandler",
-                "TYPE=P3M requires PERIODIC boundary conditions in all dimensions.");
+                "TYPE=P3M requires uniform OPEN or PERIODIC boundary conditions.");
     }
 
     return boundary_conditions;
@@ -237,9 +238,9 @@ void FieldSolverCmd::setRefPathFileName(const std::string& refPathFileName) {
 
 void FieldSolverCmd::setFieldSolverCmdType() {
     static const std::map<std::string, FieldSolverCmdType> stringType_s = {
-            {"NONE", FieldSolverCmdType::NONE},     {"FFT", FieldSolverCmdType::FFT},
-            {"OPEN", FieldSolverCmdType::OPEN},     {"CG", FieldSolverCmdType::CG},
-            {"FFT2D5", FieldSolverCmdType::FFT2D5},
+            {"NONE", FieldSolverCmdType::NONE}, {"FFT", FieldSolverCmdType::FFT},
+            {"P3M", FieldSolverCmdType::P3M},   {"OPEN", FieldSolverCmdType::OPEN},
+            {"CG", FieldSolverCmdType::CG},     {"FFT2D5", FieldSolverCmdType::FFT2D5},
     };
 
     fsName_m = getType();
@@ -258,6 +259,9 @@ void FieldSolverCmd::validateP3MConfiguration() const {
         return;
     }
 
+    // Fail before constructing the PartBunch or IPPL solver.
+    (void)constructBCHandler();
+
     if (getP3MCutoff() <= 0.0) {
         throw OpalException(
                 "FieldSolverCmd::validateP3MConfiguration",
@@ -272,10 +276,40 @@ void FieldSolverCmd::validateP3MConfiguration() const {
     }
 }
 
+void FieldSolverCmd::validateFFT2D5Configuration() const {
+    if (fsType_m != FieldSolverCmdType::FFT2D5) {
+        return;
+    }
+
+    if (ippl::Comm->size() != 1) {
+        throw OpalException(
+                "FieldSolverCmd::validateFFT2D5Configuration",
+                "TYPE=FFT2D5 currently supports only one MPI rank. Distributed fields and "
+                "ORB load balancing are not implemented for this solver.");
+    }
+
+    const std::string binsName = getBinsName();
+    if (!binsName.empty() && binsName != "NONE") {
+        throw OpalException(
+                "FieldSolverCmd::validateFFT2D5Configuration",
+                "TYPE=FFT2D5 does not support BINS. Remove BINS from the FIELDSOLVER definition.");
+    }
+}
+
 void FieldSolverCmd::setDomainDecomposition() {
     domainDecomposition_m[0] = Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTX]);
     domainDecomposition_m[1] = Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTY]);
     domainDecomposition_m[2] = Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTZ]);
+
+    if (fsType_m == FieldSolverCmdType::FFT2D5) {
+        if (domainDecomposition_m[0] || domainDecomposition_m[1] || domainDecomposition_m[2]) {
+            throw OpalException(
+                    "FieldSolverCmd::setDomainDecomposition",
+                    "TYPE=FFT2D5 uses a serial field layout. Set PARFFTX, PARFFTY and PARFFTZ "
+                    "to FALSE.");
+        }
+        return;
+    }
 
     /// \todo At the moment, only 3D domain decomposition is supported. This should be extended to
     /// support 1D and 2D domain decomposition in the future, once the changes in the IPPL ORB are

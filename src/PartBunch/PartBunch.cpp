@@ -53,6 +53,12 @@ PartBunch<T, Dim>::PartBunch(
     if (dataSink_m == nullptr) {
         throw OpalException("PartBunch::PartBunch", "dataSink must not be null.");
     }
+    if (OPALFieldSolver_m->getType() == "FFT2D5" && ippl::Comm->size() != 1) {
+        throw OpalException(
+                "PartBunch::PartBunch",
+                "FFT2D5 currently supports only one MPI rank. Distributed fields and ORB load "
+                "balancing are not implemented for this solver.");
+    }
     if (qi.size() != num_containers) {
         throw OpalException("PartBunch::PartBunch", "qi size must match num_containers.");
     }
@@ -89,9 +95,10 @@ PartBunch<T, Dim>::PartBunch(
 
     this->setBCHandler(std::make_shared<BCHandler_t>(OPALFieldSolver_m->constructBCHandler()));
 
-    // TODO: support mixed periodic/open per axis; currently all periodic or all open.
+    // Open P3M must not wrap particles at the temporary mesh boundary.
     bool isAllPeriodic = this->getBCHandler()->isAll(BCHandler_t::PERIODIC);
     m << level5 << "* FieldContainer set to isAllPeriodic = " << isAllPeriodic << endl;
+    const ippl::BC particleBC = (useP3M && !isAllPeriodic) ? ippl::BC::NO : ippl::BC::PERIODIC;
 
     //      set stuff for pre_run i.e. warmup
     //      this will be reset when the correct computational
@@ -118,14 +125,14 @@ PartBunch<T, Dim>::PartBunch(
     this->setParticleContainer(
             std::make_shared<ParticleContainer_t>(
                     this->fcontainer_m->getMesh(), this->fcontainer_m->getFL(),
-                    beams[0]->hasPolarization(), layoutType, p3mCutoff));
+                    beams[0]->hasPolarization(), layoutType, p3mCutoff, particleBC));
     this->pcontainer_m->setBunchStateHandler(bunchState_m);
     /// \todo if we want, we could also have a separate BunchStateHandler for each container later?
     /// But I think it could also make sense to only have one global handler.
     for (size_t i = 1; i < num_containers; ++i) {
         auto pc = std::make_shared<ParticleContainer_t>(
                 this->fcontainer_m->getMesh(), this->fcontainer_m->getFL(),
-                beams[i]->hasPolarization(), layoutType, p3mCutoff);
+                beams[i]->hasPolarization(), layoutType, p3mCutoff, particleBC);
         pc->setBunchStateHandler(bunchState_m);
         this->addParticleContainer(pc);
     }
@@ -340,7 +347,7 @@ void PartBunch<T, Dim>::setSolver() {
                 &this->fcontainer_m->getPhi(), this->getBCHandler(),
                 binningCmd ? binningCmd->getTablePrintFrequency() : 0,
                 binningCmd ? binningCmd->getAdaptiveBinning() : true,
-                OPALFieldSolver_m->getGreensFunction());
+                OPALFieldSolver_m->getGreensFunction(), OPALFieldSolver_m->getP3MCutoff());
         this->setFieldSolver(binnedSolver);
         m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
     }
@@ -969,7 +976,7 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks", "FieldSolver type string is empty.");
     }
-    if (stype != "FFT" && stype != "OPEN" && stype != "CG" && stype != "NONE"
+    if (stype != "FFT" && stype != "P3M" && stype != "OPEN" && stype != "CG" && stype != "NONE"
         && stype != "FFT2D5") {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks", "Unsupported FieldSolver type: " + stype);
