@@ -23,12 +23,12 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/ConstantEFieldCavity.h"
+#include "AbsBeamline/ConstantFocusing.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Cyclotron.h"
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
-#include "AbsBeamline/FlexibleCollimator.h"
 #include "AbsBeamline/Laser.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
@@ -104,6 +104,12 @@ public:
     /// Apply the algorithm to a constant E-field cavity element.
     virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&);
 
+    /**
+     * @brief Collect a constant linear focusing element when it matches `ELEM`.
+     * @param element Element considered by the visitor.
+     */
+    virtual void visitConstantFocusing(const ConstantFocusing& element);
+
     /// Apply the algorithm to a drift.
     virtual void visitDrift(const Drift&);
 
@@ -112,9 +118,6 @@ public:
 
     /// Apply the algorithm to a FlaggedElmPtr.
     virtual void visitFlaggedElmPtr(const FlaggedElmPtr&);
-
-    /// Apply the algorithm to a flexible collimator
-    virtual void visitFlexibleCollimator(const FlexibleCollimator&);
 
     /// Apply the algorithm to a marker.
     virtual void visitMarker(const Marker&);
@@ -257,6 +260,11 @@ void SpecificElementVisitor<ELEM>::visitConstantEFieldCavity(const ConstantEFiel
 }
 
 template <class ELEM>
+void SpecificElementVisitor<ELEM>::visitConstantFocusing(const ConstantFocusing& element) {
+    CastsTrait<ELEM, ConstantFocusing>::apply(allElementsOfTypeE, element);
+}
+
+template <class ELEM>
 void SpecificElementVisitor<ELEM>::visitDrift(const Drift& element) {
     CastsTrait<ELEM, Drift>::apply(allElementsOfTypeE, element);
 }
@@ -270,11 +278,6 @@ template <class ELEM>
 void SpecificElementVisitor<ELEM>::visitFlaggedElmPtr(const FlaggedElmPtr& element) {
     const ElementBase* wrappedElement = element.getElement();
     wrappedElement->accept(*this);
-}
-
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitFlexibleCollimator(const FlexibleCollimator& element) {
-    CastsTrait<ELEM, FlexibleCollimator>::apply(allElementsOfTypeE, element);
 }
 
 template <class ELEM>

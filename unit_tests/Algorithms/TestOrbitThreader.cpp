@@ -50,13 +50,11 @@ namespace {
         void accept(BeamlineVisitor&) const override {}
         ElementBase* clone() const override { return new FieldSupportOnlyComponent(*this); }
 
-        bool apply(const std::shared_ptr<ParticleContainer_t>&) override { return false; }
+        void apply(const std::shared_ptr<ParticleContainer_t>&) override {}
 
-        bool apply(
+        void apply(
                 const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&,
-                Vector_t<double, 3>&, Vector_t<double, 3>&) override {
-            return false;
-        }
+                Vector_t<double, 3>&, Vector_t<double, 3>&) override {}
 
         bool applyToReferenceParticle(
                 const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&,

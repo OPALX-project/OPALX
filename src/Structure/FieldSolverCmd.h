@@ -46,7 +46,7 @@ namespace FIELDSOLVER {
         BCFFTX,        // boundary condition in x [FFT + AMR_MG only]
         BCFFTY,        // boundary condition in y [FFT + AMR_MG only]
         BCFFTZ,        // boundary condition in z [FFT + AMR_MG only]
-        GREENSF,       // holds greensfunction to be used [FFT + P3M only]
+        GREENSF,       // Green function for OPEN; P3M selects its kernel internally
         P3MRCUT,       // P3M particle-particle cutoff radius [m]
         BBOXINCR,      // how much the boundingbox is increased
         PIPEMODE,      // One of OPEN, CIRCULAR, PLATES, NONE [FFT2D5 only]
@@ -143,6 +143,7 @@ private:
     FieldSolverCmd(const std::string& name, FieldSolverCmd* parent);
 
     void validateP3MConfiguration() const;
+    void validateFFT2D5Configuration() const;
 
     std::string fsName_m;
     FieldSolverCmdType fsType_m;

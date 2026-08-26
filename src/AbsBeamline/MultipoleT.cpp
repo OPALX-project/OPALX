@@ -46,19 +46,18 @@ double MultipoleT::getScaling(const double t) const {
     return scaling;
 }
 
-bool MultipoleT::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void MultipoleT::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     validateConfiguration();
     implementation_->getField(
             pc->R.getView(), pc->E.getView(), pc->B.getView(), getScaling(RefPartBunch_m->getT()),
             pc->getLocalNum());
-    return false;
 }
 
-bool MultipoleT::apply(
+void MultipoleT::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     validateConfiguration();
-    return implementation_->getField(R, E, B, getScaling(t));
+    implementation_->getField(R, E, B, getScaling(t));
 }
 
 void MultipoleT::setFringeField(
