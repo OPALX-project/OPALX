@@ -102,12 +102,14 @@ PrimaryElectrons: BEAM,
 
 GammaGammaElectrons: BEAM,
     PARTICLE = ELECTRON,
+    ORBITTHREADER = FALSE,
     NALLOC = n_pairs_per_species,
     BCHARGE = pair_bunch_charge,
     SOURCES = ElectronSources;
 
 GammaGammaPositrons: BEAM,
     PARTICLE = POSITRON,
+    ORBITTHREADER = FALSE,
     NALLOC = n_pairs_per_species,
     BCHARGE = pair_bunch_charge,
     SOURCES = PositronSources;
