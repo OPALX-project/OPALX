@@ -558,6 +558,77 @@ At activation the centroid separation is $2d=\SI{12}{\milli\metre}$.  A
 three-sigma-truncated source has its nearest edge seven rms lengths from the
 IP.
 
+The intended timeline is therefore:
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+      x=1.02cm,
+      y=1.00cm,
+      >=Latex,
+      font=\sffamily\small,
+      physical path/.style={primaryblue, very thick,
+                            -{Latex[length=2.0mm,width=1.3mm]}},
+      mirror path/.style={primaryblue!65!black, very thick,
+                          -{Latex[length=2.0mm,width=1.3mm]}},
+      event line/.style={black!55, densely dashed, thin}
+  ]
+    \fill[black!4] (-6.15,-1.85) rectangle (-5.0,1.85);
+    \fill[meshgreen!10] (-5.0,-1.85) rectangle (5.0,1.85);
+    \fill[black!4] (5.0,-1.85) rectangle (6.15,1.85);
+
+    \draw[event line] (-5.0,-2.05) -- (-5.0,2.05);
+    \draw[event line] (0.0,-2.05) -- (0.0,2.05);
+    \draw[event line] (5.0,-2.05) -- (5.0,2.05);
+    \draw[black!55, thin] (-6.15,0) -- (6.15,0)
+      node[right, text=black] {$z=z_{\mathrm{IP}}$};
+
+    \draw[physical path] (-5.55,-1.44) -- (5.55,1.44)
+      node[above left, text=primaryblue] {physical primary};
+    \draw[mirror path] (-5.55,1.44) -- (5.55,-1.44)
+      node[below left, text=primaryblue!65!black] {mirrored primary};
+
+    \fill[pairred] (0,0) circle (1.7pt);
+    \node[above=3pt, text=pairred, align=center] at (0,0)
+      {primary-centroid overlap\\IP};
+
+    \draw[photonorange, line width=3.0pt] (-1.035,-1.66) -- (0.81,-1.66);
+    \draw[photonorange, thin] (-1.035,-1.76) -- (-1.035,-1.56);
+    \draw[photonorange, thin] (0.81,-1.76) -- (0.81,-1.56);
+    \node[below=2pt, text=photonorange, align=center] at (-0.112,-1.66)
+      {individual CAIN witness births\\$-4.14$ to $+3.24$ ps};
+
+    \draw[<->, black!65] (-5.0,1.68) -- (5.0,1.68)
+      node[midway, fill=meshgreen!10, inner sep=2pt, align=center]
+      {physical $+$ mirrored primary field\\gathered to primaries and witnesses};
+
+    \draw[->, black, thick] (-6.15,-2.35) -- (6.25,-2.35)
+      node[right] {$t-t_{\mathrm{IP}}$};
+    \foreach \x/\lab in {
+      -5/{$-d/(\beta c)=-20$ ps},
+       0/{$0$},
+       5/{$+d/(\beta c)=+20$ ps}}
+      {
+        \draw[black, thick] (\x,-2.27) -- (\x,-2.43);
+        \node[below=3pt, align=center] at (\x,-2.43) {\lab};
+      }
+
+    \node[align=center, font=\sffamily\scriptsize] at (-5.58,0.88)
+      {ordinary primary\\self-field};
+    \node[align=center, font=\sffamily\scriptsize] at (5.58,0.88)
+      {ordinary primary\\self-field};
+    \node[align=center, font=\sffamily\scriptsize] at (-5.0,-0.76)
+      {centroids at $\mp d$\\separation $2d$};
+    \node[align=center, font=\sffamily\scriptsize] at (5.0,-0.76)
+      {centroids at $\pm d$\\separation $2d$};
+  \end{tikzpicture}
+  \caption{Proposed symmetric BeamBeam interaction timeline for
+  $d=10\sigma_z$.  The combined physical-plus-mirrored field is enabled while
+  either primary centroid is within distance $d$ of the IP.  Witnesses appear
+  at their individual CAIN birth times and remain passive field gatherers.  The
+  drawing is a proposed cutoff model, not a statement of converged accuracy.}
+  \label{fig:intended-timeline}
+\end{figure}
+
 This is a cutoff hypothesis, not an accuracy result.  Gaussian density at the
 IP is exponentially small at ten rms lengths, but the electromagnetic field is
 long-ranged.  The integrated witness and primary impulses must be converged for
@@ -678,6 +749,8 @@ or generating program.  Figure~\ref{fig:geometry} is native TikZ in this
     \ref{fig:track12}
       & \code{compare\_timed\_track12.py}
       & \path{results/track12_cain_vs_opalx.png} \\
+    \ref{fig:intended-timeline} & \code{bb-note.tex}
+      & inline TikZ, generated during \LaTeX{} compilation \\
     \bottomrule
   \end{tabularx}
 \end{table}

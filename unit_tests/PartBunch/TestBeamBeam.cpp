@@ -84,9 +84,22 @@ namespace {
                 fieldSolverForBunch.get(), dataSinkForBunch.get());
     }
 
+    std::shared_ptr<Bunch_t> makeTwoContainerBunch() {
+        Beam* beam = Beam::find("UNNAMED_BEAM");
+        if (beam == nullptr) {
+            beam = beamForBunch.get();
+        }
+
+        return std::make_shared<Bunch_t>(
+                std::vector<double>{-1.0e-15, 1.0e-15}, std::vector<double>{5.10999e-4, 5.10999e-4},
+                std::vector<Beam*>{beam, beam}, std::vector<size_t>{16, 16}, 1.0, "LF2",
+                fieldSolverForBunch.get(), dataSinkForBunch.get());
+    }
+
     void setParticlePositions(
-            const std::shared_ptr<Bunch_t>& bunch, const std::vector<Vector3d>& positions) {
-        auto pc = bunch->getParticleContainer();
+            const std::shared_ptr<Bunch_t>& bunch, const std::vector<Vector3d>& positions,
+            size_t containerIndex = 0) {
+        auto pc = bunch->getParticleContainer(containerIndex);
         if (pc->getLocalNum() == 0) {
             pc->createParticles(positions.size());
         } else {
@@ -205,6 +218,20 @@ namespace {
         EXPECT_DOUBLE_EQ(BEAMBEAM::interactionPointAtElementMidpoint(-0.004, 0.012), 0.004);
     }
 
+    TEST_F(BeamBeamPartBunchTest, CollectiveFieldWindowIsTwentyMillimetresAroundIp) {
+        constexpr double ip = 0.17;
+        EXPECT_DOUBLE_EQ(BEAMBEAM::fieldWindowLength, 20.0e-3);
+        EXPECT_DOUBLE_EQ(BEAMBEAM::fieldWindowBegin(ip), 0.16);
+        EXPECT_DOUBLE_EQ(BEAMBEAM::fieldWindowEnd(ip), 0.18);
+    }
+
+    TEST_F(BeamBeamPartBunchTest, SourceExitsOnlyAfterItsTailPassesFieldWindow) {
+        constexpr double ip = 0.17;
+        EXPECT_FALSE(BEAMBEAM::sourceFullyExitedFieldWindow(0.179, ip));
+        EXPECT_FALSE(BEAMBEAM::sourceFullyExitedFieldWindow(0.180, ip));
+        EXPECT_TRUE(BEAMBEAM::sourceFullyExitedFieldWindow(0.181, ip));
+    }
+
     TEST_F(BeamBeamPartBunchTest, WitnessLongitudinalOffsetMapsIpToSourceFrame) {
         const double sourceS  = 30.0e-3;
         const double witnessS = 0.0;
@@ -214,14 +241,6 @@ namespace {
                 witnessZ + BEAMBEAM::longitudinalOffsetToSourceFrame(sourceS, witnessS);
 
         EXPECT_NEAR(sourceFrameZ, 5.0e-3, 1.0e-15);
-    }
-
-    TEST_F(BeamBeamPartBunchTest, SourceRetirementTimeUsesConfiguredThreshold) {
-        EXPECT_FALSE(BEAMBEAM::sourceRetireTimeReached(200.0e-12, std::nullopt));
-        const std::optional<double> retireTime = 100.0e-12;
-        EXPECT_FALSE(BEAMBEAM::sourceRetireTimeReached(99.0e-12, retireTime));
-        EXPECT_TRUE(BEAMBEAM::sourceRetireTimeReached(100.0e-12, retireTime));
-        EXPECT_TRUE(BEAMBEAM::sourceRetireTimeReached(101.0e-12, retireTime));
     }
 
     TEST_F(BeamBeamPartBunchTest, CopyTimeUsesConfiguredThreshold) {
@@ -241,21 +260,6 @@ namespace {
         EXPECT_TRUE(BEAMBEAM::copiedSourceBunchesOverlap(1.20, 1.30, geometry));
         EXPECT_TRUE(BEAMBEAM::copiedSourceBunchesOverlap(1.25, 1.50, geometry));
         EXPECT_FALSE(BEAMBEAM::copiedSourceBunchesOverlap(1.30, 1.50, geometry));
-    }
-
-    TEST_F(BeamBeamPartBunchTest, MarkAllParticlesInvalidRetiresAllParticles) {
-        auto bunch = makeBunch();
-        setParticlePositions(
-                bunch, {Vector3d(-1.0e-3, 0.0, 0.0), Vector3d(0.0, 1.0e-3, 2.0e-3),
-                        Vector3d(1.0e-3, 0.0, 4.0e-3)});
-
-        auto pc                  = bunch->getParticleContainer();
-        const size_t totalBefore = pc->getTotalNum();
-        ASSERT_GT(totalBefore, 0u);
-
-        EXPECT_EQ(pc->markAllParticlesInvalid(), totalBefore);
-        EXPECT_EQ(pc->deleteInvalidParticles(), totalBefore);
-        EXPECT_EQ(pc->getTotalNum(), 0u);
     }
 
     // ----------------------------------------------------------------------------
@@ -293,11 +297,13 @@ namespace {
         expectVectorNear(meshOrigin, updatedRMin - 0.5 * updatedHr, 1.0e-14);
     }
 
-    TEST_F(BeamBeamPartBunchTest, EnableBeamBeamWindowMeshUsesExplicitTransverseAperture) {
+    TEST_F(BeamBeamPartBunchTest, EnableBeamBeamWindowMeshUsesExplicitTransverseBounds) {
         auto bunch          = makeBunch();
         auto fieldContainer = bunch->getFieldContainer();
 
-        bunch->enableBeamBeamWindowMesh(1.25, 0.50, 2.0e-3, 3.0e-3);
+        const Vector3d particleLower(-2.0e-3, -3.0e-3, -9.0);
+        const Vector3d particleUpper(2.0e-3, 3.0e-3, 9.0);
+        bunch->enableBeamBeamWindowMesh(1.25, 0.50, particleLower, particleUpper);
 
         const Vector3d updatedRMin = fieldContainer->getRMin();
         const Vector3d updatedRMax = fieldContainer->getRMax();
@@ -393,6 +399,23 @@ namespace {
 
         EXPECT_LT(updatedRMin[0], frozenRMin[0]);
         EXPECT_GT(updatedRMax[0], frozenRMax[0]);
+    }
+
+    TEST_F(BeamBeamPartBunchTest, FieldBoundsIncludePassiveWitnessContainer) {
+        auto bunch = makeTwoContainerBunch();
+        setParticlePositions(
+                bunch, {Vector3d(-1.0e-3, -2.0e-3, -3.0e-3), Vector3d(1.0e-3, 2.0e-3, 3.0e-3)});
+        setParticlePositions(
+                bunch, {Vector3d(-12.0e-3, -8.0e-3, -1.0e-3), Vector3d(15.0e-3, 9.0e-3, 1.0e-3)},
+                1);
+
+        Vector3d lower(0.0), upper(0.0);
+        bunch->computeBoundsForFieldSolve(lower, upper);
+
+        EXPECT_LT(lower[0], -12.0e-3);
+        EXPECT_GT(upper[0], 15.0e-3);
+        EXPECT_LT(lower[1], -8.0e-3);
+        EXPECT_GT(upper[1], 9.0e-3);
     }
 
 }  // namespace
