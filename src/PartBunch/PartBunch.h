@@ -142,8 +142,10 @@ public:
      * @brief Replace the active field mesh by a fixed-z BeamBeam window with explicit transverse
      * bounds.
      *
-     * The transverse bounds are normally obtained from @c computeBoundsForFieldSolve after all
-     * active BeamBeam witnesses have been expressed in the source frame.
+     * The transverse bounds are obtained from @c computeBoundsForFieldSolve after all active
+     * BeamBeam witnesses have been expressed in the source frame. Numerical padding and
+     * cell-aspect constraints are applied by the BeamBeam interaction before this call. The
+     * physical element aperture is deliberately independent of this field domain.
      */
     void enableBeamBeamWindowMesh(
             double interactionPointLocalZ, double beamBeamWindowLength,

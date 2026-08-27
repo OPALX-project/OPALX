@@ -24,7 +24,7 @@ fi
 (
     cd "${run_dir}"
     # IPPL suppresses timing.dat contents at its default --info level zero.
-    "${opalx_exe}" track12_timed.in --info 1 2>&1 | tee track12_timed.out
+    "${opalx_exe}" track12_timed.in --info 4 2>&1 | tee track12_timed.out
     test -s timing.dat
 )
 

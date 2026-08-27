@@ -53,11 +53,8 @@ IP1: BEAMBEAM,
     VISUALIZE = FALSE,
     COPY_TIME = 1.0e-30,
     WITNESS_CONTAINERS = "1,2",
-    RETIRE_TIME = 0.0,
-    // APERTURE sets the fixed BeamBeam field domain. The CAIN trajectories
-    // remain inside this rectangle (about 1 mm in x and 83 um in y). Disabling
-    // deletion does not make the particle layout open: over-kicked particles
-    // wrap periodically, and the comparison script reports those crossings.
+    // APERTURE is only the physical acceptance. The numerical field domain is
+    // the non-shrinking primary-plus-witness envelope with an aspect-ratio floor.
     APERTURE = "RECTANGLE(2.4e-3, 2.4e-4)",
     DELETEONTRANSVERSEEXIT = FALSE;
 
@@ -129,12 +126,14 @@ PRIMARY_ELECTRONS: BEAM,
 
 WITNESS_ELECTRONS: BEAM,
     PARTICLE = ELECTRON,
+    ORBITTHREADER = FALSE,
     NALLOC = n_witness_per_species,
     BCHARGE = witness_bunch_charge,
     SOURCES = WITNESS_ELECTRON_SOURCES;
 
 WITNESS_POSITRONS: BEAM,
     PARTICLE = POSITRON,
+    ORBITTHREADER = FALSE,
     NALLOC = n_witness_per_species,
     BCHARGE = witness_bunch_charge,
     SOURCES = WITNESS_POSITRON_SOURCES;

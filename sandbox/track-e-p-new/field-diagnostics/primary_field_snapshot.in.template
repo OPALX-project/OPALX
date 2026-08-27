@@ -1,0 +1,123 @@
+OPTION, PSDUMPFREQ = 1;
+OPTION, STATDUMPFREQ = 1;
+OPTION, C0PSDUMPFREQ = 0;
+OPTION, BOUNDPDESTROY = 1.0e9;
+OPTION, VERSION = 10900;
+OPTION, ASCIIDUMP = FALSE;
+OPTION, EBDUMP = TRUE;
+OPTION, IDEALIZED = TRUE;
+OPTION, SEED = @SEED@;
+
+TITLE, STRING = "Primary BeamBeam field diagnostic";
+
+// Generated with reduced-order-model/python/make_opalx_field_cases.py.
+// The passive probes sample the x-z plane without depositing charge.
+REAL primary_kinetic_energy = 0.245;
+REAL primary_gamma = (primary_kinetic_energy + EMASS) / EMASS;
+REAL primary_beta = sqrt(1.0 - 1.0 / (primary_gamma^2));
+REAL primary_p0 = primary_gamma * primary_beta * EMASS;
+REAL primary_beta_gamma = primary_p0 / EMASS;
+
+REAL primary_sigma_xy = 1.944325075701e-6;
+REAL primary_sigma_z = 0.6e-3;
+REAL primary_sigma_xyp = 1.0e-12;
+REAL primary_sigma_pxy = primary_beta_gamma * primary_sigma_xyp;
+REAL primary_electrons_per_bunch = 1.25e10;
+REAL primary_macroparticles = @PRIMARY_MACROPARTICLES@;
+REAL elementary_charge = 1.602176634e-19;
+REAL primary_bunch_charge = primary_electrons_per_bunch * elementary_charge;
+
+REAL n_field_probes = @N_FIELD_PROBES@;
+REAL field_probe_bunch_charge = n_field_probes * elementary_charge;
+
+REAL bb_length = 0.016;
+REAL bb_ip_s = 0.5 * bb_length;
+REAL primary_source_r0z = @PRIMARY_SOURCE_R0Z_M@;
+REAL dt_track = 1.0e-15;
+REAL n_steps = 1;
+REAL NXY = @NXY@;
+REAL NZ = @NZ@;
+
+IP1: BEAMBEAM,
+    L = bb_length,
+    ELEMEDGE = 0.0,
+    BBRIGID = TRUE,
+    VISUALIZE = FALSE,
+    COPY_TIME = 0.0,
+    WITNESS_CONTAINERS = "1",
+    DELETEONTRANSVERSEEXIT = FALSE;
+
+LINE1: LINE = (IP1);
+
+SOURCEBINNING: BINNING,
+    MAXBINS = 1,
+    DESIREDWIDTH = 0.1,
+    BINNINGALPHA = 1.0,
+    BINNINGBETA = 1.0,
+    PARAMETER = "VELOCITYZ",
+    ADAPTIVEBINNING = FALSE,
+    DUMPBINSFILE = "NONE",
+    TABLEPRINTFREQ = 0;
+
+FS0: FIELDSOLVER,
+    TYPE = OPEN,
+    BINS = "SOURCEBINNING",
+    NX = NXY,
+    NY = NXY,
+    NZ = NZ,
+    PARFFTX = TRUE,
+    PARFFTY = TRUE,
+    PARFFTZ = TRUE,
+    BCFFTX = OPEN,
+    BCFFTY = OPEN,
+    BCFFTZ = OPEN,
+    BBOXINCR = 1,
+    GREENSF = INTEGRATED;
+
+@PRIMARY_DISTRIBUTION@
+
+DIST_FIELD_PROBES: DISTRIBUTION,
+    TYPE = FROMFILE,
+    FNAME = "@FIELD_PROBE_FILENAME@",
+    NPARTDIST = n_field_probes;
+
+SOURCE_PRIMARY_ELECTRONS: EMISSIONSOURCE,
+    DISTRIBUTION = DIST_PRIMARY_ELECTRONS,
+    R0Z = primary_source_r0z;
+
+SOURCE_FIELD_PROBES: EMISSIONSOURCE,
+    DISTRIBUTION = DIST_FIELD_PROBES,
+    R0Z = bb_ip_s;
+
+PRIMARY_ELECTRON_SOURCES: EMISSIONSOURCELIST = (SOURCE_PRIMARY_ELECTRONS);
+FIELD_PROBE_SOURCES: EMISSIONSOURCELIST = (SOURCE_FIELD_PROBES);
+
+PRIMARY_ELECTRONS: BEAM,
+    PARTICLE = ELECTRON,
+@PRIMARY_BEAM_ENERGY@
+    NALLOC = primary_macroparticles,
+    BCHARGE = primary_bunch_charge,
+    SOURCES = PRIMARY_ELECTRON_SOURCES;
+
+FIELD_PROBES: BEAM,
+    PARTICLE = ELECTRON,
+    ORBITTHREADER = FALSE,
+    NALLOC = n_field_probes,
+    BCHARGE = field_probe_bunch_charge,
+    SOURCES = FIELD_PROBE_SOURCES;
+
+TRACK,
+    LINE = LINE1,
+    BEAMS = {PRIMARY_ELECTRONS, FIELD_PROBES},
+    MAXSTEPS = n_steps,
+    DT = dt_track,
+    ZSTART = 0.0,
+    ZSTOP = bb_length;
+
+RUN,
+    METHOD = "PARALLEL",
+    FIELDSOLVER = FS0;
+
+ENDTRACK;
+
+QUIT;

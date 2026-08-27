@@ -55,6 +55,41 @@ class RigidTwoGaussianFieldsTest(unittest.TestCase):
             np.testing.assert_allclose(e_batch[index], e_scalar, rtol=2.0e-14, atol=1.0e-3)
             np.testing.assert_allclose(b_batch[index], b_scalar, rtol=2.0e-14, atol=1.0e-12)
 
+    def test_vectorized_truncated_fields_match_scalar_evaluator(self) -> None:
+        beta = self.track12.beta_from_kinetic_energy(self.parameters.kinetic_energy_MeV)
+        source = self.track12.RigidAnisotropicGaussianSource(
+            "truncated",
+            charge_C=-self.parameters.electrons_per_bunch
+            * self.track12.ELEMENTARY_CHARGE_C,
+            sigma_lab_m=(
+                self.parameters.sigma_x_m,
+                self.parameters.sigma_y_m,
+                self.parameters.sigma_z_m,
+            ),
+            beta_z=beta,
+            center_t0_m=np.zeros(3),
+            cutoff_sigma=3.0,
+        )
+        positions = np.array(
+            [
+                [0.73 * self.parameters.sigma_x_m, 0.0, -1.1 * self.parameters.sigma_z_m],
+                [-1.2 * self.parameters.sigma_x_m, 0.4 * self.parameters.sigma_y_m, 0.2 * self.parameters.sigma_z_m],
+                [2.0 * self.parameters.sigma_x_m, -0.8 * self.parameters.sigma_y_m, 1.7 * self.parameters.sigma_z_m],
+            ]
+        )
+        e_batch, b_batch = MODEL.total_lab_fields_batch(
+            positions,
+            (source,),
+            self.track12,
+            self.parameters.quadrature_chunk_size,
+        )
+        for index, position in enumerate(positions):
+            e_scalar, b_scalar = self.track12.anisotropic_total_lab_fields(
+                position, 0.0, (source,)
+            )
+            np.testing.assert_allclose(e_batch[index], e_scalar, rtol=3.0e-14, atol=1.0e-3)
+            np.testing.assert_allclose(b_batch[index], b_scalar, rtol=3.0e-14, atol=1.0e-12)
+
     def test_fields_vanish_at_ip_by_pair_symmetry(self) -> None:
         for separation in (3.0, 2.0, 1.0, 0.0):
             sources = MODEL.make_sources(self.track12, self.parameters, separation)
