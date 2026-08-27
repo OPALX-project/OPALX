@@ -324,6 +324,17 @@ namespace {
         expectVectorNear(meshOrigin, updatedRMin - 0.5 * updatedHr, 1.0e-14);
     }
 
+    TEST_F(BeamBeamPartBunchTest, BeamBeamMinimumTransverseSpanLimitsRestFrameAspect) {
+        constexpr double gamma = 480.453039972;
+        const double span      = BEAMBEAM::minimumTransverseSpan(20.0e-3, 128, 256, gamma);
+        const double dx        = span / 255.0;
+        const double dzRest    = gamma * 20.0e-3 / 127.0;
+
+        EXPECT_NEAR(span, 128.625e-6, 5.0e-10);
+        EXPECT_NEAR(dzRest / dx, BEAMBEAM::maximumRestFrameCellAspectRatio, 1.0e-9);
+        EXPECT_DOUBLE_EQ(BEAMBEAM::minimumTransverseSpan(20.0e-3, 1, 256, gamma), 0.0);
+    }
+
     // ----------------------------------------------------------------------------
     // save/restore field-domain state
     // ----------------------------------------------------------------------------

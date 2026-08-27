@@ -4,3 +4,4 @@ data/
 *.out
 *.stat
 timing.dat
+runs/

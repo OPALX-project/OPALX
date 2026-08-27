@@ -19,6 +19,34 @@ namespace BEAMBEAM {
     inline constexpr double fieldWindowLength = 20.0e-3;
 
     /**
+     * Maximum longitudinal-to-transverse cell ratio in the primary rest frame.
+     *
+     * The integrated Green function was finite through approximately 1.95e5 and
+     * non-finite at 3.84e5 for the deterministic BeamBeam manufactured source.
+     * The lower value leaves headroom below the measured transition.
+     */
+    inline constexpr double maximumRestFrameCellAspectRatio = 1.5e5;
+
+    /**
+     * @brief Minimum transverse span required by the BeamBeam cell-aspect constraint.
+     *
+     * Lorentz transformation to the primary rest frame stretches the longitudinal
+     * cell by @p gamma. For a fixed longitudinal window, this returns the transverse
+     * span whose cell width limits @f$\gamma\,\Delta z/\Delta x@f$ to @p maxAspect.
+     */
+    inline double minimumTransverseSpan(
+            double longitudinalLength, std::size_t longitudinalCells, std::size_t transverseCells,
+            double gamma, double maxAspect = maximumRestFrameCellAspectRatio) {
+        if (longitudinalCells < 2 || transverseCells < 2 || longitudinalLength <= 0.0
+            || gamma <= 0.0 || maxAspect <= 0.0) {
+            return 0.0;
+        }
+        const double restFrameLongitudinalCell =
+                gamma * longitudinalLength / static_cast<double>(longitudinalCells - 1);
+        return restFrameLongitudinalCell * static_cast<double>(transverseCells - 1) / maxAspect;
+    }
+
+    /**
      * @brief Lifecycle of a single BeamBeam passage during tracking.
      */
     enum class WindowState { Inactive, Active, Completed };

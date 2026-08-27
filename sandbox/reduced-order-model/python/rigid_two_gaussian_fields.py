@@ -24,6 +24,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.special import ndtr
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -172,6 +173,77 @@ def anisotropic_gaussian_rest_fields_batch(
     return fields
 
 
+def anisotropic_truncated_gaussian_rest_fields_batch(
+    positions_rest_m: np.ndarray,
+    charge_C: float,
+    sigma_rest_m: np.ndarray,
+    cutoff_sigma: float,
+    *,
+    epsilon_0: float,
+    log_quad_nodes: np.ndarray,
+    chunk_size: int,
+) -> np.ndarray:
+    """Vectorized component-wise-truncated Gaussian field quadrature."""
+    if cutoff_sigma <= 0.0:
+        raise ValueError("cutoff_sigma must be positive")
+    positions_rest_m = np.asarray(positions_rest_m, dtype=float)
+    sigma = np.asarray(sigma_rest_m, dtype=float)
+    sigma2 = sigma * sigma
+    scale = float(np.exp(-np.mean(np.log(sigma2))))
+    s = scale * np.exp(log_quad_nodes)
+    denominator = 1.0 + 2.0 * s[:, None] * sigma2[None, :]
+    conditional_sigma = sigma[None, :] / np.sqrt(denominator)
+    normalizer = float(ndtr(cutoff_sigma) - ndtr(-cutoff_sigma))
+    coefficient = charge_C / (4.0 * np.pi * epsilon_0)
+    fields = np.empty_like(positions_rest_m)
+
+    for begin in range(0, len(positions_rest_m), chunk_size):
+        end = min(begin + chunk_size, len(positions_rest_m))
+        positions = positions_rest_m[begin:end]
+        conditional_mean = (
+            2.0
+            * s[None, :, None]
+            * sigma2[None, None, :]
+            * positions[:, None, :]
+            / denominator[None, :, :]
+        )
+        lower = (
+            -cutoff_sigma * sigma[None, None, :] - conditional_mean
+        ) / conditional_sigma[None, :, :]
+        upper = (
+            +cutoff_sigma * sigma[None, None, :] - conditional_mean
+        ) / conditional_sigma[None, :, :]
+        retained_probability = ndtr(upper) - ndtr(lower)
+        phi_lower = np.exp(-0.5 * lower * lower) / np.sqrt(2.0 * np.pi)
+        phi_upper = np.exp(-0.5 * upper * upper) / np.sqrt(2.0 * np.pi)
+        unbounded_convolution = np.exp(
+            -s[None, :, None]
+            * positions[:, None, :] ** 2
+            / denominator[None, :, :]
+        ) / np.sqrt(denominator)[None, :, :]
+        scalar_integrals = unbounded_convolution * retained_probability / normalizer
+        displacement_integrals = unbounded_convolution / normalizer * (
+            retained_probability * (positions[:, None, :] - conditional_mean)
+            - conditional_sigma[None, :, :] * (phi_lower - phi_upper)
+        )
+
+        chunk_fields = np.empty_like(positions)
+        for axis in range(3):
+            other_axes = [other for other in range(3) if other != axis]
+            integrand = (
+                2.0
+                / np.sqrt(np.pi)
+                * s[None, :] ** 1.5
+                * displacement_integrals[:, :, axis]
+                * np.prod(scalar_integrals[:, :, other_axes], axis=2)
+            )
+            chunk_fields[:, axis] = np.trapezoid(
+                integrand, log_quad_nodes, axis=1
+            )
+        fields[begin:end] = coefficient * chunk_fields
+    return fields
+
+
 def source_lab_fields_batch(
     positions_m: np.ndarray,
     source,
@@ -181,14 +253,25 @@ def source_lab_fields_batch(
     displacement = np.asarray(positions_m, dtype=float) - source.center(0.0)[None, :]
     positions_rest = displacement.copy()
     positions_rest[:, 2] *= source.gamma
-    e_rest = anisotropic_gaussian_rest_fields_batch(
-        positions_rest,
-        source.charge_C,
-        source.sigma_rest,
-        epsilon_0=track12.EPSILON_0,
-        log_quad_nodes=track12.LOG_QUAD_NODES,
-        chunk_size=chunk_size,
-    )
+    if source.cutoff_sigma is None:
+        e_rest = anisotropic_gaussian_rest_fields_batch(
+            positions_rest,
+            source.charge_C,
+            source.sigma_rest,
+            epsilon_0=track12.EPSILON_0,
+            log_quad_nodes=track12.LOG_QUAD_NODES,
+            chunk_size=chunk_size,
+        )
+    else:
+        e_rest = anisotropic_truncated_gaussian_rest_fields_batch(
+            positions_rest,
+            source.charge_C,
+            source.sigma_rest,
+            source.cutoff_sigma,
+            epsilon_0=track12.EPSILON_0,
+            log_quad_nodes=track12.LOG_QUAD_NODES,
+            chunk_size=chunk_size,
+        )
     e_lab = e_rest.copy()
     e_lab[:, :2] *= source.gamma
     velocity = np.broadcast_to(source.beta * track12.C_LIGHT, e_lab.shape)

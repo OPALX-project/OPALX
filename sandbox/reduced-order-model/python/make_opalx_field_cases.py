@@ -226,7 +226,7 @@ def run_case(opalx: Path, input_path: Path, omp_threads: int, force: bool) -> No
     environment = os.environ.copy()
     environment["OMP_NUM_THREADS"] = str(omp_threads)
     completed = subprocess.run(
-        [str(opalx), input_path.name],
+        [str(opalx), "--info", "4", input_path.name],
         cwd=input_path.parent,
         env=environment,
         stdout=subprocess.PIPE,

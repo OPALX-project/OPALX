@@ -14,7 +14,9 @@ for the physics interpretation and current validation summary.
 ```text
 BeamBeam length            8 mm
 interaction point          element midpoint = 4 mm
-field domain               2.4 mm x 0.24 mm rectangle
+longitudinal field window  20 mm, centered on the IP
+transverse field domain    non-shrinking primary+witness envelope with aspect floor
+physical aperture          2.4 mm x 0.24 mm rectangle
 primary macroparticles     400000 deterministic particles
 primary rms sizes          1.944325075701 um, 1.944325075701 um, 0.6 mm
 primary support            component-wise 3 sigma truncation
@@ -73,7 +75,7 @@ launcher. The efficient single-A100 form is:
 
 Multi-rank runs use `mpiexec`, one rank per A100, with
 `--kokkos-map-device-id-by=mpi_rank`. Plain multi-task `srun` is not used on
-Merlin because it creates MPI singleton processes. Launchers pass `--info 1`
+Merlin because it creates MPI singleton processes. Launchers pass `--info 4`
 and require a nonempty `timing.dat` before marking a case complete.
 
 Every run directory must retain:
@@ -112,7 +114,7 @@ It requires E, B, and first-kick agreement with the one-rank result within
 
 ## Current fine-grid result
 
-The authoritative complete run is Merlin job 354018 on four A100-SXM4-40GB
+The authoritative complete legacy-domain baseline is Merlin job 354018 on four A100-SXM4-40GB
 GPUs. It used the `4096x256x128` mesh for all 1501 steps, completed normally in
 25,278.83 seconds, produced a nonempty 68-line `timing.dat`, matched all 13,012
 CAIN-grid samples, and had no transverse wraps.

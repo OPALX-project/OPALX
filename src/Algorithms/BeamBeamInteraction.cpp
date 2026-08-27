@@ -10,6 +10,7 @@
 #include "PartBunch/BinnedFieldSolver.h"
 #include "Utilities/BeamBeamWindowAnimation.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/Util.h"
 #include "Utility/Inform.h"
 #include "Utility/PAssert.h"
 
@@ -236,9 +237,11 @@ std::optional<BEAMBEAM::ActualGeometry> BeamBeamInteraction::detectWindow(
 
 void BeamBeamInteraction::enterWindow(
         const BEAMBEAM::ActualGeometry& geometry, PartBunch_t& bunch, Inform& message) {
-    state_m.state                        = BEAMBEAM::WindowState::Active;
-    state_m.geometry                     = geometry;
-    state_m.savedFieldDomain             = bunch.saveFieldDomainState();
+    state_m.state            = BEAMBEAM::WindowState::Active;
+    state_m.geometry         = geometry;
+    state_m.savedFieldDomain = bunch.saveFieldDomainState();
+    transverseMeshLower_m.reset();
+    transverseMeshUpper_m.reset();
     diagnostics_m.entryRhoSnapshotDumped = false;
     bunch.clearBeamBeamWindowVisualizationTail();
     applyWindowConfig(geometry, bunch);
@@ -270,6 +273,8 @@ void BeamBeamInteraction::enterWindow(
         } else {
             diagnostics << "NONE";
         }
+        diagnostics << ", transverse_domain=(combined non-shrinking envelope with rest-frame "
+                       "cell-aspect floor)";
         diagnostics << ", rigid_source=" << (geometry.config.rigidSource ? "TRUE" : "FALSE");
         *gmsg << level2 << diagnostics.str() << endl;
     }
@@ -375,6 +380,8 @@ void BeamBeamInteraction::leaveWindow(PartBunch_t& bunch, Inform& message) {
     }
 
     bunch.clearBeamBeamWindowConfig();
+    transverseMeshLower_m.reset();
+    transverseMeshUpper_m.reset();
     logDiagnostics(bunch, true);
     message << level5 << "finished BeamBeam-window mode" << endl;
 }
@@ -426,6 +433,58 @@ void BeamBeamInteraction::updateWindowMesh(
     try {
         Vector_t<double, 3> lower(0.0), upper(0.0);
         bunch.computeBoundsForFieldSolve(lower, upper);
+        const Vector_t<double, 3> aggregateLower = lower;
+        const Vector_t<double, 3> aggregateUpper = upper;
+
+        std::ostringstream containerBounds;
+        const auto& containers = bunch.getParticleContainers();
+        for (std::size_t index = 0; index < containers.size(); ++index) {
+            const auto& container = containers[index];
+            if (!container || container->getTotalNum() == 0) {
+                continue;
+            }
+            containerBounds << " c" << index << "=(" << container->getMinR() << ", "
+                            << container->getMaxR() << ")";
+        }
+
+        const auto source = bunch.getParticleContainer(0);
+        PAssert(source != nullptr);
+        const double gamma = Util::getGamma(source->getRefPartP());
+        const double restFrameDz =
+                gamma * BEAMBEAM::fieldWindowLength / static_cast<double>(bunch.nr_m[2] - 1);
+
+        for (unsigned dimension = 0; dimension < 2; ++dimension) {
+            const double minimumSpan = BEAMBEAM::minimumTransverseSpan(
+                    BEAMBEAM::fieldWindowLength, bunch.nr_m[2], bunch.nr_m[dimension], gamma);
+            const double span = upper[dimension] - lower[dimension];
+            if (span < minimumSpan) {
+                const double midpoint = 0.5 * (lower[dimension] + upper[dimension]);
+                lower[dimension]      = midpoint - 0.5 * minimumSpan;
+                upper[dimension]      = midpoint + 0.5 * minimumSpan;
+            }
+        }
+
+        if (transverseMeshLower_m.has_value() && transverseMeshUpper_m.has_value()) {
+            for (unsigned dimension = 0; dimension < 2; ++dimension) {
+                lower[dimension] = std::min(lower[dimension], (*transverseMeshLower_m)[dimension]);
+                upper[dimension] = std::max(upper[dimension], (*transverseMeshUpper_m)[dimension]);
+            }
+        }
+        transverseMeshLower_m = lower;
+        transverseMeshUpper_m = upper;
+
+        Inform diagnostics("BeamBeamInteraction::updateWindowMesh");
+        diagnostics << level4 << std::scientific << std::setprecision(6)
+                    << "BeamBeam transverse mesh: aggregate_bounds=(" << aggregateLower << ", "
+                    << aggregateUpper << "), retained_bounds=(" << lower << ", " << upper
+                    << "), gamma=" << gamma << ", rest_frame_dz=" << restFrameDz << ", aspect_xy=("
+                    << restFrameDz
+                               / ((upper[0] - lower[0]) / static_cast<double>(bunch.nr_m[0] - 1))
+                    << ", "
+                    << restFrameDz
+                               / ((upper[1] - lower[1]) / static_cast<double>(bunch.nr_m[1] - 1))
+                    << "), container_bounds:" << containerBounds.str() << endl;
+
         bunch.enableBeamBeamWindowMesh(
                 interactionPointBeamZ, BEAMBEAM::fieldWindowLength, lower, upper);
     } catch (...) {
@@ -588,6 +647,37 @@ void BeamBeamInteraction::gatherFieldsToWitnessContainers(PartBunch_t& bunch, In
 
         solver->gatherCurrentFieldsToContainer(bunch, *container);
         Kokkos::fence();
+        if (message.getOutputLevel() >= 4) {
+            auto electricView                         = container->E.getView();
+            auto magneticView                         = container->B.getView();
+            unsigned long long localElectricNonFinite = 0;
+            unsigned long long localMagneticNonFinite = 0;
+            Kokkos::parallel_reduce(
+                    "BeamBeamInteraction::diagnoseGatheredE", container->getLocalNum(),
+                    KOKKOS_LAMBDA(const size_t i, unsigned long long& count) {
+                        const Vector_t<double, 3> value = electricView(i);
+                        for (unsigned component = 0; component < 3; ++component) {
+                            count += Kokkos::isfinite(value[component]) ? 0ULL : 1ULL;
+                        }
+                    },
+                    localElectricNonFinite);
+            Kokkos::parallel_reduce(
+                    "BeamBeamInteraction::diagnoseGatheredB", container->getLocalNum(),
+                    KOKKOS_LAMBDA(const size_t i, unsigned long long& count) {
+                        const Vector_t<double, 3> value = magneticView(i);
+                        for (unsigned component = 0; component < 3; ++component) {
+                            count += Kokkos::isfinite(value[component]) ? 0ULL : 1ULL;
+                        }
+                    },
+                    localMagneticNonFinite);
+            unsigned long long globalElectricNonFinite = localElectricNonFinite;
+            unsigned long long globalMagneticNonFinite = localMagneticNonFinite;
+            ippl::Comm->allreduce(globalElectricNonFinite, 1, std::plus<unsigned long long>());
+            ippl::Comm->allreduce(globalMagneticNonFinite, 1, std::plus<unsigned long long>());
+            message << level4 << "BeamBeam witness finiteness after gather: container["
+                    << containerIndex << "] E_nonfinite=" << globalElectricNonFinite
+                    << ", B_nonfinite=" << globalMagneticNonFinite << endl;
+        }
         const size_t nLocalAfterRedistribution = container->getLocalNum();
         witnessToBeamCSTrafo.transformBunchFrom(container->R.getView(), nLocalAfterRedistribution);
         witnessToBeamCSTrafo.rotateBunchFrom(container->E.getView(), nLocalAfterRedistribution);

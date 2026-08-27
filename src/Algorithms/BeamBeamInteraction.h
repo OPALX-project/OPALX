@@ -90,6 +90,8 @@ private:
 
     BEAMBEAM::Runtime<PartBunch_t::SavedFieldDomainState> state_m;
     BEAMBEAM::Diagnostics diagnostics_m;
+    std::optional<Vector_t<double, 3>> transverseMeshLower_m;
+    std::optional<Vector_t<double, 3>> transverseMeshUpper_m;
     std::optional<CoordinateSystemTrafo> referenceToBeamCSTrafo_m;
     std::optional<bool> lastDiagnosticActive_m;
     std::optional<bool> lastDiagnosticSourceActive_m;
