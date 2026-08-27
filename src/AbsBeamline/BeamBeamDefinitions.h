@@ -15,6 +15,9 @@
  */
 namespace BEAMBEAM {
 
+    /** Fixed longitudinal extent of the BeamBeam collective-field solve [m]. */
+    inline constexpr double fieldWindowLength = 20.0e-3;
+
     /**
      * @brief Lifecycle of a single BeamBeam passage during tracking.
      */
@@ -34,9 +37,6 @@ namespace BEAMBEAM {
          */
         bool rigidSource = false;
         std::optional<double> copyTime;
-        std::optional<double> sourceRetireTime;
-        std::optional<double> xAperture;
-        std::optional<double> yAperture;
         std::vector<std::size_t> witnessContainers;
     };
 
@@ -127,6 +127,21 @@ namespace BEAMBEAM {
         return beginS + 0.5 * (endS - beginS);
     }
 
+    /** @brief Upstream boundary of the fixed collective-field window [m]. */
+    inline double fieldWindowBegin(double interactionPointS) {
+        return interactionPointS - 0.5 * fieldWindowLength;
+    }
+
+    /** @brief Downstream boundary of the fixed collective-field window [m]. */
+    inline double fieldWindowEnd(double interactionPointS) {
+        return interactionPointS + 0.5 * fieldWindowLength;
+    }
+
+    /** @brief True once the complete physical primary has crossed the downstream field boundary. */
+    inline bool sourceFullyExitedFieldWindow(double sourceTailS, double interactionPointS) {
+        return sourceTailS > fieldWindowEnd(interactionPointS);
+    }
+
     /**
      * @brief Test whether the tracked source bunch overlaps its copied counter-propagating source.
      *
@@ -160,24 +175,6 @@ namespace BEAMBEAM {
     }
 
     /**
-     * @brief Test whether source retirement should trigger from a configured time.
-     *
-     * A BeamBeam element may specify @c RETIRE_TIME in seconds. A missing value disables source
-     * retirement; otherwise the tracked source container is retired once
-     * @f[
-     *   t \ge t_\mathrm{retire}.
-     * @f]
-     *
-     * @param currentTime Current simulation time in seconds.
-     * @param sourceRetireTime Optional source-retirement time in seconds.
-     * @return True if source retirement may be applied before the next BeamBeam/default solve.
-     */
-    inline bool sourceRetireTimeReached(
-            double currentTime, const std::optional<double>& sourceRetireTime) {
-        return sourceRetireTime.has_value() && currentTime >= *sourceRetireTime;
-    }
-
-    /**
      * @brief Test whether the mirrored-source copy model should be active.
      *
      * A BeamBeam element may specify @c COPY_TIME in seconds. A missing value disables copied
@@ -205,9 +202,7 @@ namespace BEAMBEAM {
         WindowState state = WindowState::Inactive;
         std::optional<ActualGeometry> geometry;
         std::optional<SavedFieldDomainState> savedFieldDomain;
-        bool sourceRetirementPending = false;
-        bool sourceRetired           = false;
-        bool sourceBunchesOverlap    = false;
+        bool sourceBunchesOverlap = false;
     };
 
     /**

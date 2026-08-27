@@ -60,7 +60,7 @@ bool BeamBeamInteraction::freezesFieldMesh() const noexcept {
 }
 
 bool BeamBeamInteraction::suppressesDefaultSelfField() const noexcept {
-    return state_m.sourceRetired;
+    return state_m.state == BEAMBEAM::WindowState::Completed;
 }
 
 bool BeamBeamInteraction::computeSelfFields(ElementInteractionContext& context) {
@@ -77,23 +77,16 @@ bool BeamBeamInteraction::computeSelfFields(ElementInteractionContext& context) 
     PartBunch_t& bunch = context.bunch;
 
     checkInRegion(context);
-    if (!state_m.sourceRetired && state_m.geometry.has_value()
-        && BEAMBEAM::sourceRetireTimeReached(
-                bunch.getT(), state_m.geometry->config.sourceRetireTime)) {
-        state_m.sourceRetirementPending = true;
-    }
-    if (state_m.sourceRetirementPending) {
-        referenceToBeamCSTrafo_m.reset();
-        if (state_m.state == BEAMBEAM::WindowState::Active) {
-            leaveWindow(bunch, message);
-        }
-        retireSourceContainer(bunch, message);
-        return true;
-    }
-
     if (state_m.state != BEAMBEAM::WindowState::Active) {
         referenceToBeamCSTrafo_m.reset();
-        return false;
+        // Once the placed BeamBeam element has been identified, this interaction owns the
+        // complete space-charge policy: no ordinary source-only solve is allowed before or after
+        // the fixed interaction window.
+        const bool handled = state_m.geometry.has_value();
+        if (handled) {
+            transformFieldsToReferenceFrame(*context.beamToReferenceCSTrafo, bunch, message);
+        }
+        return handled;
     }
 
     referenceToBeamCSTrafo_m = *context.referenceToBeamCSTrafo;
@@ -137,10 +130,20 @@ void BeamBeamInteraction::checkInRegion(ElementInteractionContext& context) {
                                            bunchExtent.tail, bunchExtent.head, activeGeometry);
     state_m.geometry = activeGeometry;
 
-    const double cellHalfWidth = 0.5 * activeGeometry.length / static_cast<double>(bunch.nr_m[2]);
-    const bool leavingWindow   = state_m.state == BEAMBEAM::WindowState::Active
-                               && bunchExtent.head > activeGeometry.endS;
+    const double fieldBeginS = BEAMBEAM::fieldWindowBegin(activeGeometry.interactionPointS);
+    const double cellHalfWidth =
+            0.5 * BEAMBEAM::fieldWindowLength / static_cast<double>(bunch.nr_m[2]);
+    const bool leavingWindow = state_m.state == BEAMBEAM::WindowState::Active
+                               && BEAMBEAM::sourceFullyExitedFieldWindow(
+                                       bunchExtent.tail, activeGeometry.interactionPointS);
     Inform message("BeamBeam ");
+    if (state_m.state == BEAMBEAM::WindowState::Inactive
+        && BEAMBEAM::sourceFullyExitedFieldWindow(
+                bunchExtent.tail, activeGeometry.interactionPointS)) {
+        state_m.state = BEAMBEAM::WindowState::Completed;
+        logDiagnostics(bunch, true);
+        return;
+    }
     if (leavingWindow) {
         leaveWindow(bunch, message);
     }
@@ -150,7 +153,7 @@ void BeamBeamInteraction::checkInRegion(ElementInteractionContext& context) {
     }
 
     if (state_m.state == BEAMBEAM::WindowState::Inactive
-        && bunchExtent.tail >= activeGeometry.beginS + cellHalfWidth) {
+        && bunchExtent.tail >= fieldBeginS + cellHalfWidth) {
         enterWindow(activeGeometry, bunch, message);
     }
 }
@@ -168,6 +171,37 @@ std::optional<BEAMBEAM::ActualGeometry> BeamBeamInteraction::detectWindow(
     OrbitThreader& sourceThreader = *context.sourceOrbitThreader;
     const double bunchS           = bunch.getParticleContainer()->get_sPos();
 
+    const auto makeGeometry = [this](double windowBeginS) {
+        const double windowLength = element_m.getGeometry().getElementLength();
+        const double windowEndS   = windowBeginS + windowLength;
+        const double interactionPointS =
+                BEAMBEAM::interactionPointAtElementMidpoint(windowBeginS, windowEndS);
+
+        std::optional<double> copyTime;
+        const double copyTimeValue = element_m.getAttribute("COPY_TIME");
+        if (copyTimeValue > 0.0) {
+            copyTime = copyTimeValue;
+        }
+
+        return BEAMBEAM::ActualGeometry{
+                interactionPointS, windowBeginS, windowEndS, windowLength,
+                BEAMBEAM::Config{
+                        element_m.getAttribute("VISUALIZE") != 0.0,
+                        element_m.getAttribute("BBRIGID") != 0.0, copyTime,
+                        BEAMBEAM::decodeWitnessContainerMask(
+                                element_m.getAttribute("WITNESS_CONTAINERS_MASK"))}};
+    };
+
+    // ELEMEDGE placement is authoritative and lets the interaction suppress ordinary space
+    // charge before the source reaches the numerical field window. A 6D-pose placement has no
+    // path-length entrance, so retain the orbit-threader discovery fallback below.
+    if (element_m.isElementPositionSet()) {
+        if (element_m.getGeometry().getElementLength() <= 0.0) {
+            return std::nullopt;
+        }
+        return makeGeometry(element_m.getElementPosition());
+    }
+
     IndexMap::value_t elements;
     try {
         elements = sourceThreader.query(bunchS + 0.5 * (rmax[2] + rmin[2]), rmax[2] - rmin[2]);
@@ -183,8 +217,7 @@ std::optional<BEAMBEAM::ActualGeometry> BeamBeamInteraction::detectWindow(
             continue;
         }
 
-        const double windowLength = element_m.getGeometry().getElementLength();
-        if (windowLength <= 0.0) {
+        if (element_m.getGeometry().getElementLength() <= 0.0) {
             return std::nullopt;
         }
 
@@ -195,39 +228,7 @@ std::optional<BEAMBEAM::ActualGeometry> BeamBeamInteraction::detectWindow(
         // depend on the sampled bunch extent. ELEMEDGE and the element length are the authoritative
         // path-length geometry. For 6D-pose placement, where no ELEMEDGE path coordinate exists,
         // retain the threaded entrance as the best available path-length anchor.
-        const double windowBeginS =
-                element_m.isElementPositionSet() ? element_m.getElementPosition() : range.begin;
-        const double windowEndS = windowBeginS + windowLength;
-        const double interactionPointS =
-                BEAMBEAM::interactionPointAtElementMidpoint(windowBeginS, windowEndS);
-        std::optional<double> xAperture;
-        std::optional<double> yAperture;
-        const auto aperture = element_m.getAperture();
-        if (element_m.getAttribute("APERTURE_SET") != 0.0 && aperture.second.size() >= 2) {
-            xAperture = std::abs(aperture.second[0]);
-            yAperture = std::abs(aperture.second[1]);
-        }
-
-        std::optional<double> sourceRetireTime;
-        const double retireTime = element_m.getAttribute("RETIRE_TIME");
-        if (retireTime > 0.0) {
-            sourceRetireTime = retireTime;
-        }
-
-        std::optional<double> copyTime;
-        const double copyTimeValue = element_m.getAttribute("COPY_TIME");
-        if (copyTimeValue > 0.0) {
-            copyTime = copyTimeValue;
-        }
-
-        return BEAMBEAM::ActualGeometry{
-                interactionPointS, windowBeginS, windowEndS, windowLength,
-                BEAMBEAM::Config{
-                        element_m.getAttribute("VISUALIZE") != 0.0,
-                        element_m.getAttribute("BBRIGID") != 0.0, copyTime, sourceRetireTime,
-                        xAperture, yAperture,
-                        BEAMBEAM::decodeWitnessContainerMask(
-                                element_m.getAttribute("WITNESS_CONTAINERS_MASK"))}};
+        return makeGeometry(range.begin);
     }
 
     return std::nullopt;
@@ -246,14 +247,10 @@ void BeamBeamInteraction::enterWindow(
         std::ostringstream diagnostics;
         diagnostics << std::fixed << std::setprecision(3)
                     << "Entering BeamBeam window: interaction_point_s="
-                    << geometry.interactionPointS << " m, s_range=(" << geometry.beginS << ", "
-                    << geometry.endS << ") m, length=" << geometry.length << " m";
-        if (geometry.config.xAperture.has_value() && geometry.config.yAperture.has_value()) {
-            diagnostics << ", aperture_half_width=(" << *geometry.config.xAperture << ", "
-                        << *geometry.config.yAperture << ") m";
-        } else {
-            diagnostics << ", aperture_half_width=(not set; preserving transverse field bounds)";
-        }
+                    << geometry.interactionPointS << " m, field_s_range=("
+                    << BEAMBEAM::fieldWindowBegin(geometry.interactionPointS) << ", "
+                    << BEAMBEAM::fieldWindowEnd(geometry.interactionPointS)
+                    << ") m, field_length=" << BEAMBEAM::fieldWindowLength << " m";
         diagnostics << ", witness_containers=";
         if (geometry.config.witnessContainers.empty()) {
             diagnostics << "NONE";
@@ -266,12 +263,6 @@ void BeamBeamInteraction::enterWindow(
                 diagnostics << geometry.config.witnessContainers[i];
             }
             diagnostics << ")";
-        }
-        diagnostics << ", retire_time=";
-        if (geometry.config.sourceRetireTime.has_value()) {
-            diagnostics << *geometry.config.sourceRetireTime << " s";
-        } else {
-            diagnostics << "NONE";
         }
         diagnostics << ", copy_time=";
         if (geometry.config.copyTime.has_value()) {
@@ -288,10 +279,12 @@ void BeamBeamInteraction::enterWindow(
 
 void BeamBeamInteraction::applyWindowConfig(
         const BEAMBEAM::ActualGeometry& geometry, PartBunch_t& bunch) const {
-    const bool copyModel = BEAMBEAM::copyTimeReached(bunch.getT(), geometry.config.copyTime);
+    const bool copyModel     = BEAMBEAM::copyTimeReached(bunch.getT(), geometry.config.copyTime);
+    const double fieldBeginS = BEAMBEAM::fieldWindowBegin(geometry.interactionPointS);
+    const double fieldEndS   = BEAMBEAM::fieldWindowEnd(geometry.interactionPointS);
     bunch.setBeamBeamWindowConfig(
-            geometry.length, geometry.interactionPointS, geometry.beginS, geometry.endS, copyModel,
-            geometry.config.xAperture, geometry.config.yAperture);
+            BEAMBEAM::fieldWindowLength, geometry.interactionPointS, fieldBeginS, fieldEndS,
+            copyModel);
 }
 
 std::optional<double> BeamBeamInteraction::performWindowEntryTransition(
@@ -312,8 +305,10 @@ std::optional<double> BeamBeamInteraction::performWindowEntryTransition(
         // marker to measure deposited charge without imposing that reduction on ordinary
         // self-field steps.
         bunch.setBeamBeamWindowConfig(
-                geometry.length, geometry.interactionPointS, geometry.beginS, geometry.endS,
-                /*copyModel=*/false, geometry.config.xAperture, geometry.config.yAperture);
+                BEAMBEAM::fieldWindowLength, geometry.interactionPointS,
+                BEAMBEAM::fieldWindowBegin(geometry.interactionPointS),
+                BEAMBEAM::fieldWindowEnd(geometry.interactionPointS),
+                /*copyModel=*/false);
     } else {
         // Preserve the legacy pre-enlarge solve exactly; that path already records rho.sum().
         bunch.clearBeamBeamWindowConfig();
@@ -368,7 +363,8 @@ void BeamBeamInteraction::leaveWindow(PartBunch_t& bunch, Inform& message) {
     if (state_m.geometry.has_value()) {
         const auto& geometry = *state_m.geometry;
         bunch.setBeamBeamWindowVisualizationTail(
-                geometry.interactionPointS, geometry.beginS, geometry.endS,
+                geometry.interactionPointS, BEAMBEAM::fieldWindowBegin(geometry.interactionPointS),
+                BEAMBEAM::fieldWindowEnd(geometry.interactionPointS),
                 postWindowVisualizationSteps_m);
     }
 
@@ -383,28 +379,60 @@ void BeamBeamInteraction::leaveWindow(PartBunch_t& bunch, Inform& message) {
     message << level5 << "finished BeamBeam-window mode" << endl;
 }
 
-void BeamBeamInteraction::retireSourceContainer(PartBunch_t& bunch, Inform& message) {
-    if (!state_m.sourceRetirementPending) {
-        return;
+void BeamBeamInteraction::transformWitnessPositionsToSourceFrame(
+        const CoordinateSystemTrafo& referenceToBeamCSTrafo, PartBunch_t& bunch,
+        bool toSourceFrame) const {
+    PAssert(state_m.geometry.has_value());
+    const auto source = bunch.getParticleContainer(0);
+    PAssert(source != nullptr);
+
+    const double sourceS = source->get_sPos();
+    for (const size_t containerIndex : state_m.geometry->config.witnessContainers) {
+        if (containerIndex == 0 || containerIndex >= bunch.getNumParticleContainers()) {
+            continue;
+        }
+        auto container = bunch.getParticleContainer(containerIndex);
+        if (!container || container->getTotalNum() == 0) {
+            continue;
+        }
+
+        Vector_t<double, 3> offsetToSourceFrame = container->getRefPartR() - source->getRefPartR();
+        offsetToSourceFrame[2] =
+                BEAMBEAM::longitudinalOffsetToSourceFrame(sourceS, container->get_sPos());
+        CoordinateSystemTrafo witnessToBeamCSTrafo(
+                -1.0 * offsetToSourceFrame, referenceToBeamCSTrafo.getRotation());
+        if (toSourceFrame) {
+            witnessToBeamCSTrafo.transformBunchTo(container->R.getView(), container->getLocalNum());
+        } else {
+            witnessToBeamCSTrafo.transformBunchFrom(
+                    container->R.getView(), container->getLocalNum());
+        }
     }
+    Kokkos::fence();
+}
 
-    auto source = bunch.getParticleContainer(0);
-    if (!source) {
-        state_m.sourceRetirementPending = false;
-        state_m.sourceRetired           = true;
-        return;
+void BeamBeamInteraction::updateWindowMesh(
+        const CoordinateSystemTrafo& referenceToBeamCSTrafo, PartBunch_t& bunch) {
+    PAssert(state_m.geometry.has_value());
+    const auto& geometry               = *state_m.geometry;
+    const double sourceS               = bunch.getParticleContainer(0)->get_sPos();
+    const double interactionPointBeamZ = geometry.interactionPointS - sourceS;
+
+    // Particle coordinates are container-local. Express passive witnesses in the source frame
+    // while reusing PartBunch's established all-container bounding-box calculation. The routine
+    // already performs the distributed min/max operations and applies BOXINCR; witnesses affect
+    // only the mesh envelope and remain excluded from charge deposition.
+    transformWitnessPositionsToSourceFrame(referenceToBeamCSTrafo, bunch, true);
+    try {
+        Vector_t<double, 3> lower(0.0), upper(0.0);
+        bunch.computeBoundsForFieldSolve(lower, upper);
+        bunch.enableBeamBeamWindowMesh(
+                interactionPointBeamZ, BEAMBEAM::fieldWindowLength, lower, upper);
+    } catch (...) {
+        transformWitnessPositionsToSourceFrame(referenceToBeamCSTrafo, bunch, false);
+        throw;
     }
-
-    const size_t marked  = source->markAllParticlesInvalid();
-    const size_t deleted = source->deleteInvalidParticles();
-    bunch.setPcInactive(0);
-    state_m.sourceRetirementPending = false;
-    state_m.sourceRetired           = true;
-
-    message << level2 << "Retired BeamBeam source container[0] at RETIRE_TIME: marked " << marked
-            << ", deleted " << deleted << ", remaining " << source->getTotalNum()
-            << ". Witness containers remain active." << endl;
-    logDiagnostics(bunch, true);
+    transformWitnessPositionsToSourceFrame(referenceToBeamCSTrafo, bunch, false);
 }
 
 void BeamBeamInteraction::computeWindowSelfFields(
@@ -413,39 +441,10 @@ void BeamBeamInteraction::computeWindowSelfFields(
     PAssert(state_m.geometry.has_value());
     const auto& geometry = *state_m.geometry;
 
-    const double bunchS                = bunch.getParticleContainer()->get_sPos();
-    const double interactionPointBeamZ = geometry.interactionPointS - bunchS;
-
     IpplTimings::startTimer(meshSetupTimer_m);
     Vector_t<double, 3> physicalRMin(0.0), physicalRMax(0.0);
     bunch.calcBeamParameters();
     bunch.get_bounds(physicalRMin, physicalRMax);
-    if (geometry.config.xAperture.has_value()
-        && (physicalRMin[0] < -*geometry.config.xAperture
-            || physicalRMax[0] > *geometry.config.xAperture)) {
-        IpplTimings::stopTimer(meshSetupTimer_m);
-        IpplTimings::stopTimer(windowTimer_m);
-        std::ostringstream error;
-        error << "BeamBeam APERTURE x half-width " << *geometry.config.xAperture
-              << " m does not contain the bunch x extent [" << physicalRMin[0] << ", "
-              << physicalRMax[0]
-              << "] m in the BeamBeam frame. Increase the BeamBeam APERTURE or reduce the "
-                 "transverse bunch extent before using the fixed BeamBeam mesh.";
-        throw OpalException("BeamBeamInteraction::computeWindowSelfFields", error.str());
-    }
-    if (geometry.config.yAperture.has_value()
-        && (physicalRMin[1] < -*geometry.config.yAperture
-            || physicalRMax[1] > *geometry.config.yAperture)) {
-        IpplTimings::stopTimer(meshSetupTimer_m);
-        IpplTimings::stopTimer(windowTimer_m);
-        std::ostringstream error;
-        error << "BeamBeam APERTURE y half-width " << *geometry.config.yAperture
-              << " m does not contain the bunch y extent [" << physicalRMin[1] << ", "
-              << physicalRMax[1]
-              << "] m in the BeamBeam frame. Increase the BeamBeam APERTURE or reduce the "
-                 "transverse bunch extent before using the fixed BeamBeam mesh.";
-        throw OpalException("BeamBeamInteraction::computeWindowSelfFields", error.str());
-    }
     IpplTimings::stopTimer(meshSetupTimer_m);
 
     const std::optional<double> preEnlargePrimaryCharge =
@@ -453,9 +452,8 @@ void BeamBeamInteraction::computeWindowSelfFields(
     applyWindowConfig(geometry, bunch);
 
     IpplTimings::startTimer(meshSetupTimer_m);
-    bunch.enableBeamBeamWindowMesh(
-            interactionPointBeamZ, geometry.length, geometry.config.xAperture,
-            geometry.config.yAperture);
+    PAssert(referenceToBeamCSTrafo_m.has_value());
+    updateWindowMesh(*referenceToBeamCSTrafo_m, bunch);
     IpplTimings::stopTimer(meshSetupTimer_m);
 
     IpplTimings::startTimer(selfFieldTimer_m);
@@ -606,7 +604,7 @@ void BeamBeamInteraction::logDiagnostics(PartBunch_t& bunch, bool force) {
     if (ippl::Comm->rank() != 0) {
         return;
     }
-    if (!force && !state_m.geometry.has_value() && !state_m.sourceRetired) {
+    if (!force && !state_m.geometry.has_value()) {
         return;
     }
 
@@ -655,10 +653,10 @@ void BeamBeamInteraction::logDiagnostics(PartBunch_t& bunch, bool force) {
     }
 
     std::ostringstream signature;
-    signature << stateName << "|" << activeContainers << "|" << (state_m.sourceRetired ? 1 : 0)
-              << "|" << (hasWitnessState ? witnessStates.str() : "NONE") << "|" << interactionActive
-              << "|" << sourceActive << "|" << copyActive << "|" << state_m.sourceRetirementPending
-              << "|" << state_m.sourceBunchesOverlap << "|" << rigidSource;
+    signature << stateName << "|" << activeContainers << "|"
+              << (hasWitnessState ? witnessStates.str() : "NONE") << "|" << interactionActive << "|"
+              << sourceActive << "|" << copyActive << "|" << state_m.sourceBunchesOverlap << "|"
+              << rigidSource;
     if (!force && lastDiagnosticSignature_m.has_value()
         && *lastDiagnosticSignature_m == signature.str()) {
         return;
@@ -668,7 +666,6 @@ void BeamBeamInteraction::logDiagnostics(PartBunch_t& bunch, bool force) {
     std::ostringstream line;
     line << std::fixed << std::setprecision(3) << "BB-DIAG BB-state=" << stateName
          << " active_bunches=" << activeContainers
-         << " retired_bunches=" << (state_m.sourceRetired ? 1 : 0)
          << " witness_states=" << (hasWitnessState ? witnessStates.str() : "NONE")
          << " rigid_source=" << (rigidSource ? "TRUE" : "FALSE");
     const auto appendBoolIfChanged = [&line](const char* key, bool value,
@@ -689,9 +686,6 @@ void BeamBeamInteraction::logDiagnostics(PartBunch_t& bunch, bool force) {
     appendBoolIfChanged("BB-active", interactionActive, lastDiagnosticActive_m);
     appendBoolIfChanged("source_active", sourceActive, lastDiagnosticSourceActive_m);
     appendBoolIfChangedAfterInitialFalse("copy_active", copyActive, lastDiagnosticCopyActive_m);
-    appendBoolIfChanged(
-            "source_retirement_pending", state_m.sourceRetirementPending,
-            lastDiagnosticSourceRetirementPending_m);
     appendBoolIfChangedAfterInitialFalse(
             "source_bunches_overlap", state_m.sourceBunchesOverlap, lastDiagnosticSourceOverlap_m);
     std::cout << line.str() << std::endl;
@@ -705,8 +699,11 @@ void BeamBeamInteraction::renderWindowFrame(
 
     const bool useFrozenWindowMesh = freezesFieldMesh();
     const double bunchCenterS      = 0.5 * (bunchTailS + bunchHeadS);
-    const double meshBeginS        = useFrozenWindowMesh ? geometry.beginS : bunchTailS;
-    const double meshEndS          = useFrozenWindowMesh ? geometry.endS : bunchHeadS;
+    const double meshBeginS        = useFrozenWindowMesh
+                                             ? BEAMBEAM::fieldWindowBegin(geometry.interactionPointS)
+                                             : bunchTailS;
+    const double meshEndS =
+            useFrozenWindowMesh ? BEAMBEAM::fieldWindowEnd(geometry.interactionPointS) : bunchHeadS;
 
     windowAnimation_m->render(
             bunchCenterS, meshBeginS, meshEndS, geometry.beginS, geometry.endS,

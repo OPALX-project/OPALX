@@ -202,34 +202,34 @@ void PartBunch<T, Dim>::restoreFieldDomainState(const SavedFieldDomainState& sta
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::enableBeamBeamWindowMesh(
-        double interactionPointLocalZ, double beamBeamWindowLength, std::optional<double> xAperture,
-        std::optional<double> yAperture) {
+        double interactionPointLocalZ, double beamBeamWindowLength) {
+    enableBeamBeamWindowMesh(
+            interactionPointLocalZ, beamBeamWindowLength, this->fcontainer_m->getRMin(),
+            this->fcontainer_m->getRMax());
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::enableBeamBeamWindowMesh(
+        double interactionPointLocalZ, double beamBeamWindowLength,
+        const Vector_t<double, Dim>& particleLower, const Vector_t<double, Dim>& particleUpper) {
     Inform m("PartBunch::enableBeamBeamWindowMesh");
     if (beamBeamWindowLength <= 0.0) {
         throw OpalException(
                 "PartBunch::enableBeamBeamWindowMesh", "beamBeamWindowLength must be > 0");
     }
-    if ((xAperture.has_value() && *xAperture <= 0.0)
-        || (yAperture.has_value() && *yAperture <= 0.0)) {
+    if (particleLower[0] >= particleUpper[0] || particleLower[1] >= particleUpper[1]) {
         throw OpalException(
-                "PartBunch::enableBeamBeamWindowMesh", "BeamBeam apertures must be > 0");
+                "PartBunch::enableBeamBeamWindowMesh",
+                "BeamBeam transverse particle bounds must have positive extent");
     }
 
     auto* mesh = &this->fcontainer_m->getMesh();
     auto* FL   = &this->fcontainer_m->getFL();
 
-    Vector_t<double, Dim> lower = this->fcontainer_m->getRMin();
-    Vector_t<double, Dim> upper = this->fcontainer_m->getRMax();
-    if (xAperture.has_value()) {
-        lower[0] = -*xAperture;
-        upper[0] = *xAperture;
-    }
-    if (yAperture.has_value()) {
-        lower[1] = -*yAperture;
-        upper[1] = *yAperture;
-    }
-    lower[2] = interactionPointLocalZ - 0.5 * beamBeamWindowLength;
-    upper[2] = interactionPointLocalZ + 0.5 * beamBeamWindowLength;
+    Vector_t<double, Dim> lower = particleLower;
+    Vector_t<double, Dim> upper = particleUpper;
+    lower[2]                    = interactionPointLocalZ - 0.5 * beamBeamWindowLength;
+    upper[2]                    = interactionPointLocalZ + 0.5 * beamBeamWindowLength;
 
     Vector_t<double, Dim> meshOrigin = lower;
     const Vector_t<double, Dim> span = upper - lower;
@@ -250,10 +250,8 @@ void PartBunch<T, Dim>::enableBeamBeamWindowMesh(
             continue;
         }
         pc->updateLayout(*FL, *mesh);
-        if (!beamBeamWindowParticleLayoutInitialized_m) {
-            pc->update();
-            pc->markMomentsDirty();
-        }
+        pc->update();
+        pc->markMomentsDirty();
     }
     beamBeamWindowParticleLayoutInitialized_m = true;
 

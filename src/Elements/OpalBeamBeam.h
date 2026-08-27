@@ -29,7 +29,6 @@ public:
         BBRIGID,            // Suppress the BeamBeam collective kick on the physical source
         VISUALIZE,          // Enable ASCII beam-beam-window visualization
         WITNESS_CONTAINERS,  // Passive containers that gather source BeamBeam fields
-        RETIRE_TIME,         // Delete source particles at or after this simulation time [s]
         SIZE
     };
 

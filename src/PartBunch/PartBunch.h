@@ -134,11 +134,19 @@ public:
     SavedFieldDomainState saveFieldDomainState() const;
     void restoreFieldDomainState(const SavedFieldDomainState& state);
 
-    /** @brief Replace the active field mesh by a fixed BeamBeam interaction window. */
+    /** @brief Replace the active field mesh by a fixed-z BeamBeam interaction window. */
+    void enableBeamBeamWindowMesh(double interactionPointLocalZ, double beamBeamWindowLength);
+
+    /**
+     * @brief Replace the active field mesh by a fixed-z BeamBeam window with explicit transverse
+     * bounds.
+     *
+     * The transverse bounds are normally obtained from @c computeBoundsForFieldSolve after all
+     * active BeamBeam witnesses have been expressed in the source frame.
+     */
     void enableBeamBeamWindowMesh(
             double interactionPointLocalZ, double beamBeamWindowLength,
-            std::optional<double> xAperture = std::nullopt,
-            std::optional<double> yAperture = std::nullopt);
+            const Vector_t<double, Dim>& particleLower, const Vector_t<double, Dim>& particleUpper);
 
     struct BeamBeamWindowConfig {
         double beamBeamWindowLength = 0.0;
@@ -146,8 +154,6 @@ public:
         double windowBeginS         = 0.0;
         double windowEndS           = 0.0;
         bool copyModel              = false;
-        std::optional<double> xAperture;
-        std::optional<double> yAperture;
     };
 
     struct BeamBeamWindowVisualizationTail {
@@ -317,7 +323,7 @@ public:
         }
     }
 
-    /// @brief Force container @p i inactive (used after BeamBeam source retirement).
+    /// @brief Force particle container @p i inactive.
     void setPcInactive(size_t i) {
         if (i < pcActive_m.size()) {
             pcActive_m[i] = false;
@@ -617,15 +623,9 @@ public:
 
     void setBeamBeamWindowConfig(
             double beamBeamWindowLength, double interactionPointS, double windowBeginS,
-            double windowEndS, bool copyModel, std::optional<double> xAperture = std::nullopt,
-            std::optional<double> yAperture = std::nullopt) {
-        beamBeamWindowConfig_m                    = BeamBeamWindowConfig{beamBeamWindowLength,
-                                                      interactionPointS,
-                                                      windowBeginS,
-                                                      windowEndS,
-                                                      copyModel,
-                                                      xAperture,
-                                                      yAperture};
+            double windowEndS, bool copyModel) {
+        beamBeamWindowConfig_m = BeamBeamWindowConfig{
+                beamBeamWindowLength, interactionPointS, windowBeginS, windowEndS, copyModel};
         beamBeamWindowParticleLayoutInitialized_m = false;
     }
 
