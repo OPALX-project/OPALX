@@ -93,7 +93,8 @@ public:
 private:
     std::vector<bool> pcActive_m;   ///< Per-container: participate in this track segment.
     std::vector<bool> pcAtSStop_m;  ///< Per-container: frozen at current s-stop until next segment.
-    std::vector<std::string> particleNames_m;  ///< Per-container beam particle names.
+    std::vector<bool> independentOrbitThreader_m;  ///< Per-container reference-map ownership.
+    std::vector<std::string> particleNames_m;      ///< Per-container beam particle names.
 
     std::vector<double> qi_m;  ///< Charge per macroparticle [C], one entry per container.
     std::vector<double> mi_m;  ///< Mass per macroparticle [GeV], one entry per container.
@@ -315,6 +316,11 @@ public:
     /// @param i Container index.
     /// @return Whether container @p i participates in the current segment.
     bool isPcActive(size_t i) const { return i < pcActive_m.size() && pcActive_m[i]; }
+
+    /// @return Whether container @p i constructs an independent reference-orbit threader.
+    bool usesIndependentOrbitThreader(size_t i) const {
+        return i < independentOrbitThreader_m.size() && independentOrbitThreader_m[i];
+    }
 
     /// @brief Force container @p i active (e.g. for containers with pending emission).
     void setPcActive(size_t i) {

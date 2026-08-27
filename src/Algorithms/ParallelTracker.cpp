@@ -326,10 +326,21 @@ void ParallelTracker::execute() {
     // their own map and reuse that shared element state, so the design beam threads first.
     const size_t nContainers = itsBunch_m->getNumParticleContainers();
     std::vector<std::shared_ptr<OrbitThreader>> oths(nContainers);
+    if (nContainers > 0 && !itsBunch_m->usesIndependentOrbitThreader(0)) {
+        throw OpalException(
+                "ParallelTracker::execute",
+                "Primary container 0 must construct the design OrbitThreader; "
+                "ORBITTHREADER=FALSE is supported only for secondary beams.");
+    }
     bool designBeamAssigned = false;
     for (size_t ci = 0; ci < nContainers; ++ci) {
         const auto& pc = itsBunch_m->getParticleContainer(ci);
         if (!pc || !pc->getReference()) {
+            continue;
+        }
+        if (!itsBunch_m->usesIndependentOrbitThreader(ci)) {
+            m << level2 << "Container " << ci
+              << " will reuse the primary design OrbitThreader element map." << endl;
             continue;
         }
 
@@ -349,6 +360,11 @@ void ParallelTracker::execute() {
         throw OpalException(
                 "ParallelTracker::execute",
                 "The primary particle container requires an OrbitThreader.");
+    }
+    for (size_t ci = 1; ci < nContainers; ++ci) {
+        if (!oths[ci] && itsBunch_m->getParticleContainer(ci)) {
+            oths[ci] = oths[0];
+        }
     }
     m << level4 << "Orbit threader execution done." << endl;
     itsBunch_m->getFieldSolver()->orbitThreadersReady();
