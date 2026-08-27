@@ -647,37 +647,6 @@ void BeamBeamInteraction::gatherFieldsToWitnessContainers(PartBunch_t& bunch, In
 
         solver->gatherCurrentFieldsToContainer(bunch, *container);
         Kokkos::fence();
-        if (message.getOutputLevel() >= 4) {
-            auto electricView                         = container->E.getView();
-            auto magneticView                         = container->B.getView();
-            unsigned long long localElectricNonFinite = 0;
-            unsigned long long localMagneticNonFinite = 0;
-            Kokkos::parallel_reduce(
-                    "BeamBeamInteraction::diagnoseGatheredE", container->getLocalNum(),
-                    KOKKOS_LAMBDA(const size_t i, unsigned long long& count) {
-                        const Vector_t<double, 3> value = electricView(i);
-                        for (unsigned component = 0; component < 3; ++component) {
-                            count += Kokkos::isfinite(value[component]) ? 0ULL : 1ULL;
-                        }
-                    },
-                    localElectricNonFinite);
-            Kokkos::parallel_reduce(
-                    "BeamBeamInteraction::diagnoseGatheredB", container->getLocalNum(),
-                    KOKKOS_LAMBDA(const size_t i, unsigned long long& count) {
-                        const Vector_t<double, 3> value = magneticView(i);
-                        for (unsigned component = 0; component < 3; ++component) {
-                            count += Kokkos::isfinite(value[component]) ? 0ULL : 1ULL;
-                        }
-                    },
-                    localMagneticNonFinite);
-            unsigned long long globalElectricNonFinite = localElectricNonFinite;
-            unsigned long long globalMagneticNonFinite = localMagneticNonFinite;
-            ippl::Comm->allreduce(globalElectricNonFinite, 1, std::plus<unsigned long long>());
-            ippl::Comm->allreduce(globalMagneticNonFinite, 1, std::plus<unsigned long long>());
-            message << level4 << "BeamBeam witness finiteness after gather: container["
-                    << containerIndex << "] E_nonfinite=" << globalElectricNonFinite
-                    << ", B_nonfinite=" << globalMagneticNonFinite << endl;
-        }
         const size_t nLocalAfterRedistribution = container->getLocalNum();
         witnessToBeamCSTrafo.transformBunchFrom(container->R.getView(), nLocalAfterRedistribution);
         witnessToBeamCSTrafo.rotateBunchFrom(container->E.getView(), nLocalAfterRedistribution);
