@@ -130,10 +130,10 @@ export OMP_NUM_THREADS="$OMP_THREADS"
 } > run_manifest.txt
 
 # IPPL's timing.dat writer inherits the --info level.  Its default level zero
-# creates the file but suppresses every row, so request level one explicitly.
+# creates the file but suppresses every row, so request level four explicitly.
 /usr/bin/time -p -o runtime_compute.txt \
     mpiexec -n "${SLURM_NTASKS:-$MPI_RANKS}" \
-    "$OPALX" track12_timed.in --info 1 --kokkos-map-device-id-by=mpi_rank \
+    "$OPALX" track12_timed.in --info 4 --kokkos-map-device-id-by=mpi_rank \
     > opalx.log 2>&1
 test -s timing.dat
 date -u +%Y-%m-%dT%H:%M:%SZ > completed

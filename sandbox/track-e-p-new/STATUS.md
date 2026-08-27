@@ -278,8 +278,9 @@ A primary-only `256 x 256 x 128` run without an aperture floor selected a
 `128.63 um x 128.63 um` transverse domain, was completely finite, and had relative L2(E/B)
 `2.4073e-2` against the three-sigma-truncated manufactured source. The full-mesh finiteness
 reductions used during diagnosis were subsequently removed because they would add two complete
-field traversals to every `--info 4` production step; the inexpensive witness-component check is
-retained.
+field traversals to every `--info 4` production step. The temporary witness-component reduction
+was also removed after CUDA rejected its extended device lambda inside the private interaction
+method; H5 trajectory validation remains the authoritative finiteness check.
 
 Two three-step local Track-12 runs used `1024 x 128 x 128` and `512 x 64 x 128`. Both selected
 `Delta x = Delta y = 0.5044 um`, produced finite first and second witness kicks, and agreed in the
