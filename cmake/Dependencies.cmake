@@ -282,6 +282,14 @@ else()
     set(CMAKE_SKIP_INSTALL_RULES ${OPALX_PREVIOUS_CMAKE_SKIP_INSTALL_RULES})
     unset(OPALX_PREVIOUS_CMAKE_SKIP_INSTALL_RULES)
 
+    # Keep warnings enabled for OPALX while suppressing diagnostics from the fetched
+    # third-party H5hut sources. Installed H5hut libraries are not compiled here.
+    if(TARGET H5hut)
+      target_compile_options(H5hut PRIVATE
+        $<$<COMPILE_LANG_AND_ID:C,GNU,Clang,AppleClang,NVHPC>:-w>
+        $<$<COMPILE_LANG_AND_ID:C,MSVC>:/w>)
+    endif()
+
     # Check that kokkos actually has the platform backends that we need
     if (H5hut_FOUND)
       message(STATUS "H5hut ${H5hut_VERSION} found externally")
