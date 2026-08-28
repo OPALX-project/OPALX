@@ -324,6 +324,21 @@ namespace {
         expectVectorNear(meshOrigin, updatedRMin - 0.5 * updatedHr, 1.0e-14);
     }
 
+    TEST_F(BeamBeamPartBunchTest, OpenWindowMeshDoesNotWrapLongitudinalParticlePosition) {
+        auto bunch = makeBunch();
+        auto pc    = bunch->getParticleContainer();
+
+        setParticlePositions(bunch, {Vector3d(0.0, 0.0, 0.30)});
+        bunch->enableBeamBeamWindowMesh(0.0, 0.50);
+
+        ASSERT_EQ(pc->getTotalNum(), static_cast<size_t>(ippl::Comm->size()));
+        auto positions = pc->R.getHostMirror();
+        Kokkos::deep_copy(positions, pc->R.getView());
+        for (size_t i = 0; i < pc->getLocalNum(); ++i) {
+            EXPECT_DOUBLE_EQ(positions(i)[2], 0.30);
+        }
+    }
+
     TEST_F(BeamBeamPartBunchTest, BeamBeamMinimumTransverseSpanLimitsRestFrameAspect) {
         constexpr double gamma = 480.453039972;
         const double span      = BEAMBEAM::minimumTransverseSpan(20.0e-3, 128, 256, gamma);
