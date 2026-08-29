@@ -40,6 +40,8 @@ namespace Options {
 
     int statDumpFreq = 10;
 
+    int checkpointFreq = 0;
+
     int stepInfoFreq = 1;
 
     int printRankDistrFreq = 0;

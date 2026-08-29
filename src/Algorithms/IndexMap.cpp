@@ -304,6 +304,7 @@ namespace {
                 flags[SOLENOID] = 1;
                 break;
             case ElementType::CONSTANTEFIELDCAVITY:
+            case ElementType::CONSTANTFOCUSING:
                 flags[OTHER] = 1;
                 break;
             default:

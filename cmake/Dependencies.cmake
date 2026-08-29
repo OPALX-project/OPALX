@@ -302,16 +302,12 @@ else()
     set(CMAKE_SKIP_INSTALL_RULES ${OPALX_PREVIOUS_CMAKE_SKIP_INSTALL_RULES})
     unset(OPALX_PREVIOUS_CMAKE_SKIP_INSTALL_RULES)
 
-    # H5hut's bundled qsort helpers trigger GCC's -Wtype-limits diagnostic.
-    # Keep the suppression on the external targets that compile those files.
-    if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
-        foreach(_opalx_h5hut_target H5hut h5priv_qsort h5priv_qsort_r)
-            if(TARGET ${_opalx_h5hut_target})
-                target_compile_options(
-                    ${_opalx_h5hut_target}
-                    PRIVATE -Wno-type-limits)
-            endif()
-        endforeach()
+    # Keep warnings enabled for OPALX while suppressing diagnostics from the fetched
+    # third-party H5hut sources. Installed H5hut libraries are not compiled here.
+    if(TARGET H5hut)
+      target_compile_options(H5hut PRIVATE
+        $<$<COMPILE_LANG_AND_ID:C,GNU,Clang,AppleClang,NVHPC>:-w>
+        $<$<COMPILE_LANG_AND_ID:C,MSVC>:/w>)
     endif()
 
     # Check that kokkos actually has the platform backends that we need
