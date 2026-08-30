@@ -16,6 +16,7 @@ set(FETCHCONTENT_UPDATES_DISCONNECTED ON) # opt out of auto-updates
 set(FETCHCONTENT_QUIET ON)
 
 include(FetchContent)
+include(CheckCCompilerFlag)
 
 # ------------------------------------------------------------------------------
 # MPI
@@ -219,6 +220,25 @@ else()
 
     # Now FetchContent_MakeAvailable will see the option
     FetchContent_MakeAvailable(HDF5)
+
+    # HDF5 2.2.0 triggers this Clang diagnostic in H5Dint.c. Keep the
+    # suppression private to the bundled dependency so OPALX retains it,
+    # and only enable it for Clang variants that recognize the option.
+    if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+        check_c_compiler_flag(
+            "-Werror=unknown-warning-option -Wno-uninitialized-const-pointer"
+            OPALX_C_SUPPORTS_WNO_UNINITIALIZED_CONST_POINTER)
+        if(OPALX_C_SUPPORTS_WNO_UNINITIALIZED_CONST_POINTER)
+            foreach(_opalx_hdf5_target hdf5-static hdf5-shared)
+                if(TARGET ${_opalx_hdf5_target})
+                    target_compile_options(
+                        ${_opalx_hdf5_target}
+                        PRIVATE -Wno-uninitialized-const-pointer)
+                endif()
+            endforeach()
+        endif()
+    endif()
+
     set(HDF5_FOUND TRUE)
 
     if (TARGET hdf5-shared)
@@ -281,6 +301,14 @@ else()
     FetchContent_MakeAvailable(H5hut)
     set(CMAKE_SKIP_INSTALL_RULES ${OPALX_PREVIOUS_CMAKE_SKIP_INSTALL_RULES})
     unset(OPALX_PREVIOUS_CMAKE_SKIP_INSTALL_RULES)
+
+    # Keep warnings enabled for OPALX while suppressing diagnostics from the fetched
+    # third-party H5hut sources. Installed H5hut libraries are not compiled here.
+    if(TARGET H5hut)
+      target_compile_options(H5hut PRIVATE
+        $<$<COMPILE_LANG_AND_ID:C,GNU,Clang,AppleClang,NVHPC>:-w>
+        $<$<COMPILE_LANG_AND_ID:C,MSVC>:/w>)
+    endif()
 
     # Check that kokkos actually has the platform backends that we need
     if (H5hut_FOUND)
@@ -437,6 +465,19 @@ if(OPALX_ENABLE_UNIT_TESTS)
         set(BUILD_GTEST ON CACHE BOOL "" FORCE)
 
         FetchContent_MakeAvailable(GTest)
+
+        # GoogleTest 1.16.0 triggers this Clang diagnostic in
+        # gtest-printers.h. Do not weaken warnings on OPALX targets.
+        if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+            foreach(_opalx_gtest_target gtest gtest_main)
+                if(TARGET ${_opalx_gtest_target})
+                    target_compile_options(
+                        ${_opalx_gtest_target}
+                        PRIVATE -Wno-character-conversion)
+                endif()
+            endforeach()
+        endif()
+
         message(STATUS "✅ GoogleTest built from source (${GTest_VERSION})")
     endif()
 endif()
