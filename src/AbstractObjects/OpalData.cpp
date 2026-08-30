@@ -270,6 +270,21 @@ bool OpalData::isInPrepState() { return p->isInPrepState_m; }
 
 void OpalData::setInPrepState(bool state) { p->isInPrepState_m = state; }
 
+OpalData::PreparationState::PreparationState(OpalData& opalData) : opalData_m(opalData) {
+    opalData_m.setInPrepState(true);
+}
+
+OpalData::PreparationState::~PreparationState() noexcept { finish(); }
+
+void OpalData::PreparationState::finish() noexcept {
+    if (active_m) {
+        opalData_m.setInPrepState(false);
+        active_m = false;
+    }
+}
+
+OpalData::PreparationState OpalData::enterPreparationState() { return PreparationState(*this); }
+
 bool OpalData::hasPriorTrack() { return p->hasPriorRun_m; }
 
 void OpalData::setPriorTrack(const bool& value) { p->hasPriorRun_m = value; }
