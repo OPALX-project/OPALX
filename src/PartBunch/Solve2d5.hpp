@@ -240,9 +240,8 @@ void Solve2d5<T>::scatterToGrid(const PartBunch_t& bunch, DiagnosticPolicy diagn
             Kokkos::fence();
         }
         // Now scale by volume and time step to get the proper charge density.
-        const auto cellVolume =
-                std::reduce(hr_m.begin(), hr_m.end(), 1.0, std::multiplies());
-        const auto scale = bunch.getdT() * cellVolume;
+        const auto cellVolume = std::reduce(hr_m.begin(), hr_m.end(), 1.0, std::multiplies());
+        const auto scale      = bunch.getdT() * cellVolume;
         Kokkos::parallel_for(
                 "Solve2d5::scatterToGrid::scale",
                 Policy3D_t({0, 0, 0}, {rhoView.extent(0), rhoView.extent(1), rhoView.extent(2)}),
