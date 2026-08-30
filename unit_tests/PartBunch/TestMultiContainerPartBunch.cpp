@@ -346,4 +346,68 @@ namespace {
         Options::enableHDF5 = savedH5;
     }
 
+    TEST_F(MultiContainerPartBunchTest, DataSink_RewindToCheckpointAppendsDiagnosticH5InPlace) {
+        createParticlesInContainer(0, 4u, 0.1, 0.2);
+        createParticlesInContainer(1, 4u, 0.1, 0.2);
+
+        const bool savedH5  = Options::enableHDF5;
+        Options::enableHDF5 = true;
+        struct RestoreH5Option {
+            bool value;
+            ~RestoreH5Option() { Options::enableHDF5 = value; }
+        } restoreH5{savedH5};
+
+        const std::string base = "test_diagnostic_checkpoint_rewind";
+        const std::string f0   = base + "_c0.h5";
+        const std::string f1   = base + "_c1.h5";
+        auto w0                = std::make_unique<H5PartWrapperForPT>(f0, H5_O_WRONLY);
+        auto w1                = std::make_unique<H5PartWrapperForPT>(f1, H5_O_WRONLY);
+        std::vector<H5PartWrapper*> wrappers{w0.get(), w1.get()};
+
+        {
+            DataSink ds(wrappers, false, 2, base);
+            std::vector<std::array<Vector_t<double, 3>, 2>> fd(2);
+            fd[0] = zeroFdPair();
+            fd[1] = zeroFdPair();
+
+            bunch->setdT(1.0e-12);
+            bunch->setT(1.0e-12);
+            ds.dumpH5(*bunch, fd);
+            bunch->setT(2.0e-12);
+            ds.dumpH5(*bunch, fd);
+
+            bunch->setT(1.0e-12);
+            ds.rewindToCheckpoint(*bunch);
+            bunch->setT(2.0e-12);
+            ds.dumpH5(*bunch, fd);
+        }
+        w0.reset();
+        w1.reset();
+
+        h5_prop_t props = H5CreateFileProp();
+        MPI_Comm comm   = ippl::Comm->getCommunicator();
+        ASSERT_NE(props, H5_ERR);
+        ASSERT_NE(H5SetPropFileMPIOCollective(props, &comm), H5_ERR);
+        h5_file_t file = H5OpenFile(f0.c_str(), H5_O_RDONLY, props);
+        H5CloseProp(props);
+        ASSERT_NE(file, static_cast<h5_file_t>(H5_ERR));
+        EXPECT_EQ(H5GetNumSteps(file), 2);
+        h5_float64_t time = 0.0;
+        ASSERT_EQ(H5SetStep(file, 0), H5_SUCCESS);
+        ASSERT_EQ(H5ReadStepAttribFloat64(file, "TIME", &time), H5_SUCCESS);
+        EXPECT_DOUBLE_EQ(time, 1.0e-12);
+        ASSERT_EQ(H5SetStep(file, 1), H5_SUCCESS);
+        ASSERT_EQ(H5ReadStepAttribFloat64(file, "TIME", &time), H5_SUCCESS);
+        EXPECT_DOUBLE_EQ(time, 2.0e-12);
+        ASSERT_EQ(H5CloseFile(file), H5_SUCCESS);
+
+        ippl::Comm->barrier();
+        if (ippl::Comm->rank() == 0) {
+            std::remove(f0.c_str());
+            std::remove(f1.c_str());
+            std::remove((base + ".lbal").c_str());
+        }
+        ippl::Comm->barrier();
+    }
+
 }  // namespace

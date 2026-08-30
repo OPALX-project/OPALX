@@ -43,6 +43,10 @@ public:
     void close();
 
     double getLastPosition();
+    bool startedFromExistingFile() const;
+
+    /** Remove diagnostic steps after @p checkpointTime in the direction of @p timeStep. */
+    void rewindToTime(double checkpointTime, double timeStep);
     virtual void readHeader()                                                              = 0;
     virtual void readStep(PartBunch_t*, h5_ssize_t firstParticle, h5_ssize_t lastParticle) = 0;
 
@@ -103,5 +107,7 @@ inline double H5PartWrapper::getLastPosition() {
 
     return pathLength;
 }
+
+inline bool H5PartWrapper::startedFromExistingFile() const { return startedFromExistingFile_m; }
 
 #endif  // OPAL_H5PARTWRAPPER_H
