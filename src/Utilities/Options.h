@@ -58,6 +58,10 @@ namespace Options {
     /// step%statDumpFreq==0; 0 disables statistical dumps.
     extern int statDumpFreq;
 
+    /// The frequency to write a restart checkpoint after completed integration steps;
+    /// 0 disables checkpointing.
+    extern int checkpointFreq;
+
     /// The frequency to print per-step tracking status lines; 0 disables them.
     extern int stepInfoFreq;
 

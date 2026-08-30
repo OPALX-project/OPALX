@@ -125,8 +125,8 @@ public:
 
     Matrix_t correlationMatrix_m;
 
-    bool emitting_m;  /// Distribution is an emitted, and is currently
-                      /// emitting, rather than an injected, beam.
+    /// True if particles are emitted over time; false if injected at initialization.
+    bool emitting_m = false;
 
     double getTEmission() const;
     void setTEmission(double tEmission);

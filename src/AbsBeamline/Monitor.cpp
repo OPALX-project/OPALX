@@ -315,11 +315,17 @@ void Monitor::initialise(PartBunch_t* bunch) {
 
     filename_m = getOutputFN();
 
-    if (OpalData::getInstance()->getOpenMode() == OpalData::OpenMode::WRITE
-        || currentPosition < monitorStart) {
-        namespace fs = std::filesystem;
-
-        const fs::path lossFileName(filename_m + ".h5");
+    namespace fs = std::filesystem;
+    const fs::path lossFileName(filename_m + ".h5");
+    auto* opalData = OpalData::getInstance();
+    if (opalData->inRestartRun()) {
+        if (!Options::asciidump && bunch != nullptr) {
+            LossDataSink::rewindH5ToGlobalTrackStep(
+                    lossFileName.string(), bunch->getGlobalTrackStep());
+        }
+    } else if (
+            opalData->getOpenMode() == OpalData::OpenMode::WRITE
+            || currentPosition < monitorStart) {
         if (fs::exists(lossFileName)) {
             ippl::Comm->barrier();
             if (ippl::Comm->rank() == 0) {
