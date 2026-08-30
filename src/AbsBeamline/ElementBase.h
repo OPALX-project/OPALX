@@ -33,10 +33,12 @@
 class BeamlineVisitor;
 class Channel;
 class ConstChannel;
+class ElementInteraction;
 
 enum class ElementType : unsigned short {
     ANY,
     BEAMLINE,
+    BEAMBEAM,
     COLLIMATOR,
     DRIFT,
     LASER,
@@ -150,6 +152,15 @@ public:
     ///       elements remain shared.
     /// @return The copied structure.
     virtual ElementBase* copyStructure();
+
+    /**
+     * @brief Create mutable per-run behavior for this placed element.
+     *
+     * Ordinary local-field elements use the default null implementation and
+     * continue through apply(). Elements requiring coordinated, stateful work
+     * override this factory. Ownership transfers to the tracking run.
+     */
+    virtual std::unique_ptr<ElementInteraction> createInteraction() const;
 
     /// @brief Test if the element can be shared.
     /// @return True if the element is sharable.

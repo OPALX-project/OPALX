@@ -22,6 +22,7 @@
 #ifndef OPALX_ParallelTracker_HH
 #define OPALX_ParallelTracker_HH
 
+#include "Algorithms/ElementInteractionManager.h"
 #include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/Tracker.h"
 #include "Steppers/BorisPusher.h"
@@ -36,6 +37,7 @@
 #include "Algorithms/IndexMap.h"
 #include "Algorithms/OrbitThreader.h"
 
+#include "AbsBeamline/BeamBeam.h"
 #include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/ConstantFocusing.h"
@@ -59,6 +61,7 @@
 #include <functional>
 #include <list>
 #include <memory>
+#include <optional>
 #include <tuple>
 #include <vector>
 
@@ -74,8 +77,10 @@ class ParallelTracker : public Tracker {
 private:
     DataSink* itsDataSink_m;         ///< Borrowed beam statistics and phase-space output sink.
     OpalBeamline itsOpalBeamline_m;  ///< Cloned field elements and coordinate transforms.
-    bool globalEOL_m;                ///< End-of-line flag (e.g. orbit threader out of bounds).
-    double sStart_m;                 ///< Path-length start position for the track (m).
+    /// Generic per-run behavior created by placed elements.
+    ElementInteractionManager elementInteractions_m;
+    bool globalEOL_m;  ///< End-of-line flag (e.g. orbit threader out of bounds).
+    double sStart_m;   ///< Path-length start position for the track (m).
 
     /** Step-size segments: s-stop, dt, and steps per segment. */
     StepSizeConfig stepSizes_m;
@@ -152,6 +157,9 @@ public:
     /// @brief Apply the algorithm to a drift.
     virtual void visitDrift(const Drift&);
 
+    /// @brief Apply the algorithm to a BeamBeam interaction element.
+    virtual void visitBeamBeam(const BeamBeam&);
+
     /// @brief Reject laser tracking until dedicated laser tracking is implemented.
     virtual void visitLaser(const Laser&);
 
@@ -215,7 +223,7 @@ public:
      * @brief Self-fields in beam frame (primary container); optional binary repartition.
      * @param step Global step index (used for repartition cadence).
      */
-    void computeSpaceChargeFields(unsigned long long step);
+    void computeSpaceChargeFields(unsigned long long step, OrbitThreader& sourceOth);
 
     /// @brief Apply external fields from elements intersecting each active container.
     /// @param oths Per-container orbit threaders (one per distinct species; same-species
@@ -314,6 +322,11 @@ private:
      */
     void computeInitialBounds(Vector_t<double, 3>& rmin, Vector_t<double, 3>& rmax);
 
+    void computeDefaultSelfFields(const CoordinateSystemTrafo& beamToReferenceCSTrafo, Inform& m);
+    void dumpSpaceChargePrimaryFieldH5() const;
+    void transformFieldsToReferenceFrame(
+            const CoordinateSystemTrafo& beamToReferenceCSTrafo, Inform& m);
+
     /**
      * @brief Log reference state for each container at track start.
      * @param m Inform stream for log output.
@@ -357,6 +370,10 @@ inline void ParallelTracker::visitCollimator(const Collimator& coll) {
 
 inline void ParallelTracker::visitDrift(const Drift& drift) {
     itsOpalBeamline_m.visit(drift, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitBeamBeam(const BeamBeam& beamBeam) {
+    itsOpalBeamline_m.visit(beamBeam, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitMonitor(const Monitor& monitor) {

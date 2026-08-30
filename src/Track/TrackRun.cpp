@@ -237,7 +237,12 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
     }
 }
 
-TrackRun::~TrackRun() {}
+TrackRun::~TrackRun() {
+    // ParallelTracker borrows bunch_m and may retain sampler-owned shared
+    // references to its particle containers. Release those references before
+    // PartBunch destroys the collective MPI particle layouts.
+    itsTracker_m.reset();
+}
 
 TrackRun* TrackRun::clone(const std::string& name) { return new TrackRun(name, this); }
 
@@ -962,6 +967,8 @@ Inform& TrackRun::print(Inform& os) const {
            << '\n';
     }
     os << "* Phase space dump frequency    = " << Options::psDumpFreq << '\n'
+       << "* c0 phase space dump frequency = " << Options::c0PsDumpFreq
+       << " (-1 follows PSDUMPFREQ, 0 disables c0 HDF5)" << '\n'
        << "* Statistics dump frequency     = " << Options::statDumpFreq << " w.r.t. the time step."
        << '\n'
        << "* Rank distribution print freq. = " << Options::printRankDistrFreq

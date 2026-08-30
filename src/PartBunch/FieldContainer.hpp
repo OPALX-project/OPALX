@@ -53,6 +53,7 @@ private:
     Vector_t<double, Dim> rmax_m;
     std::array<bool, Dim> decomp_m;
     VField_t<T, Dim> E_m;
+    std::shared_ptr<VField_t<T, Dim>> B_m;
     Field_t<Dim> rho_m;
     Field<T, Dim> phi_m;
 
@@ -66,18 +67,10 @@ private:
     std::shared_ptr<VField_t<T, Dim>> Etmp_m;
 
     /**
-     * @brief Scratch magnetic field for accumulated binned-solver results.
-     *
-     * The binned solver derives the lab-frame magnetic field from each bin-frame electric solve
-     * and accumulates it here alongside @c Etmp_m before the final gather to particles.
-     */
-    std::shared_ptr<VField_t<T, Dim>> Btmp_m;
-
-    /**
      * @brief Scratch field for the shifted-Green z-mirror operation.
      *
      * The shifted-Green solve produces an electric field that must be mirrored in z after the
-     * solve and before accumulation into @c Etmp_m and @c Btmp_m. The global mirror can require
+     * solve and before accumulation into @c Etmp_m and @c B_m. The global mirror can require
      * MPI communication, so the mirrored rank writes into this out-of-place field instead of
      * attempting an in-place swap. The other vector fields cannot be reused for this staging
      * because they are already active during bin accumulation.
@@ -89,6 +82,17 @@ private:
 public:
     VField_t<T, Dim>& getE() { return E_m; }
     void setE(VField_t<T, Dim>& E) { E_m = E; }
+
+    /**
+     * @brief Magnetic field paired with @c E_m on the primary field layout.
+     *
+     * Ordinary binned solves accumulate into the lazy @c Etmp_m / persistent @c B_m pair because
+     * several bins or cathode corrections may contribute. The guarded one-bin BeamBeam path
+     * instead uses @c B_m as out-of-place storage for the reflected rest-frame electric field,
+     * then overwrites @c E_m and @c B_m with the final lab-frame fields in one device kernel.
+     */
+    VField_t<T, Dim>& getB() { return *B_m; }
+    void setB(VField_t<T, Dim>& B) { *B_m = B; }
 
     Field_t<Dim>& getRho() { return rho_m; }
     void setRho(Field_t<Dim>& rho) { rho_m = rho; }
@@ -117,8 +121,10 @@ public:
     std::shared_ptr<VField_t<T, Dim>> getTempEField() { return Etmp_m; }
     void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) { Etmp_m = Etmp; }
 
-    std::shared_ptr<VField_t<T, Dim>> getTempBField() { return Btmp_m; }
-    void setTempBField(std::shared_ptr<VField_t<T, Dim>> Btmp) { Btmp_m = Btmp; }
+    // Compatibility accessors: B_m is the magnetic accumulator for the generic binned path and
+    // the final magnetic field for the BeamBeam two-field path. There is no separate Btmp field.
+    std::shared_ptr<VField_t<T, Dim>> getTempBField() { return B_m; }
+    void setTempBField(std::shared_ptr<VField_t<T, Dim>> Btmp) { B_m = Btmp; }
 
     std::shared_ptr<VField_t<T, Dim>> getFlippedZSlabField() { return flippedZSlabField_m; }
     void resetFlippedZSlabField() { flippedZSlabField_m.reset(); }
@@ -126,17 +132,24 @@ public:
     void initializeTemporaryFields() {
         if (!Etmp_m) {
             Etmp_m = std::make_shared<VField_t<T, Dim>>();
+            Etmp_m->initialize(mesh_m, fl_m);
         }
-        Etmp_m->initialize(mesh_m, fl_m);
+    }
 
-        if (!Btmp_m) {
-            Btmp_m = std::make_shared<VField_t<T, Dim>>();
-        }
-        Btmp_m->initialize(mesh_m, fl_m);
+    /// Release generic binned scratch before entering the two-field BeamBeam path.
+    void releaseTemporaryFields() {
+        Etmp_m.reset();
+        resetFlippedZSlabField();
     }
 
     void updateFieldLayoutsAfterLayoutChange(const std::string& stype_m = "") {
         E_m.updateLayout(fl_m);
+        if (B_m) {
+            B_m->updateLayout(fl_m);
+        } else {
+            B_m = std::make_shared<VField_t<T, Dim>>();
+            B_m->initialize(mesh_m, fl_m);
+        }
         rho_m.updateLayout(fl_m);
 
         if (stype_m == "CG") {
@@ -147,16 +160,6 @@ public:
 
         if (Etmp_m) {
             Etmp_m->updateLayout(fl_m);
-        } else {
-            Etmp_m = std::make_shared<VField_t<T, Dim>>();
-            Etmp_m->initialize(mesh_m, fl_m);
-        }
-
-        if (Btmp_m) {
-            Btmp_m->updateLayout(fl_m);
-        } else {
-            Btmp_m = std::make_shared<VField_t<T, Dim>>();
-            Btmp_m->initialize(mesh_m, fl_m);
         }
 
         resetFlippedZSlabField();
@@ -186,13 +189,16 @@ public:
         m << level3 << "FL           = " << fl_m << endl;
 
         E_m.initialize(mesh_m, fl_m);
+        if (!B_m) {
+            B_m = std::make_shared<VField_t<T, Dim>>();
+        }
+        B_m->initialize(mesh_m, fl_m);
         rho_m.initialize(mesh_m, fl_m);
-        m << level3 << "E_m, rho_m field initialized." << endl;
+        m << level3 << "E_m, B_m, rho_m fields initialized." << endl;
         if (stype_m == "CG") {
             phi_m.initialize(mesh_m, fl_m);
             m << level3 << "Phi field initialized for " << stype_m << endl;
         }
-        initializeTemporaryFields();
         resetFlippedZSlabField();
     }
 };

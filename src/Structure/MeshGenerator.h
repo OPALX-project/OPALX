@@ -70,7 +70,8 @@ private:
         SOLENOID,
         RFCAVITY,
         TRAVELINGWAVE,
-        DRIFT
+        DRIFT,
+        BEAMBEAM
     };
 
     static MeshData getCylinder(

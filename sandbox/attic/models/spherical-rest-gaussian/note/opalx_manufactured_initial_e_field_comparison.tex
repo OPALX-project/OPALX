@@ -1,0 +1,35 @@
+\documentclass[11pt]{article}
+\usepackage[margin=0.7in]{geometry}
+\usepackage{graphicx}
+
+\begin{document}
+
+\begin{table}[htbp]
+  \centering
+  \caption{Initial electric-field magnitude comparison after the OPALX one-step BeamBeam field gather.}
+  \label{tab:opalx-manufactured-initial-e-field}
+  \resizebox{\textwidth}{!}{%
+    \begin{tabular}{llrrrrr}
+      \hline
+      Particle & Species & Pair & $S$ [mm] & $|E|_{\mathrm{OPALX}}$ [V/m] & $|E|_{\mathrm{manuf.}}$ [V/m] & Rel. err. \\
+      \hline
+      Te-1 & electron & 1 & -0.9000 & $1.497157 \times 10^{7}$ & $2.686889 \times 10^{7}$ & $-4.4279 \times 10^{-1}$ \\
+      Te+1 & positron & 1 & -0.9000 & $1.497157 \times 10^{7}$ & $2.686889 \times 10^{7}$ & $-4.4279 \times 10^{-1}$ \\
+      Te-2 & electron & 2 & -0.5994 & $3.221653 \times 10^{8}$ & $3.288006 \times 10^{8}$ & $-2.0180 \times 10^{-2}$ \\
+      Te+2 & positron & 2 & -0.5994 & $3.221653 \times 10^{8}$ & $3.288006 \times 10^{8}$ & $-2.0180 \times 10^{-2}$ \\
+      Te-3 & electron & 3 & -0.3006 & $1.466869 \times 10^{9}$ & $1.465476 \times 10^{9}$ & $9.5043 \times 10^{-4}$ \\
+      Te+3 & positron & 3 & -0.3006 & $1.466869 \times 10^{9}$ & $1.465476 \times 10^{9}$ & $9.5043 \times 10^{-4}$ \\
+      Te-4 & electron & 4 & 0.0000 & $2.419077 \times 10^{9}$ & $2.422187 \times 10^{9}$ & $-1.2839 \times 10^{-3}$ \\
+      Te+4 & positron & 4 & 0.0000 & $2.419077 \times 10^{9}$ & $2.422187 \times 10^{9}$ & $-1.2839 \times 10^{-3}$ \\
+      Te-5 & electron & 5 & 0.3006 & $1.472718 \times 10^{9}$ & $1.466912 \times 10^{9}$ & $3.9576 \times 10^{-3}$ \\
+      Te+5 & positron & 5 & 0.3006 & $1.472718 \times 10^{9}$ & $1.466912 \times 10^{9}$ & $3.9576 \times 10^{-3}$ \\
+      Te-6 & electron & 6 & 0.5994 & $3.271389 \times 10^{8}$ & $3.294436 \times 10^{8}$ & $-6.9957 \times 10^{-3}$ \\
+      Te+6 & positron & 6 & 0.5994 & $3.271389 \times 10^{8}$ & $3.294436 \times 10^{8}$ & $-6.9957 \times 10^{-3}$ \\
+      \hline
+    \end{tabular}%
+  }
+  \par\smallskip
+  {\footnotesize $L_2$ relative error on $|E|$: $4.769359 \times 10^{-3}$; absolute $L_2$: $6.274261 \times 10^{6}$ V/m.}
+\end{table}
+
+\end{document}

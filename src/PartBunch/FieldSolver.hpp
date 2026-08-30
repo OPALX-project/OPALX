@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 #include "BCHandler.hpp"
 #include "Manager/BaseManager.h"
 #include "Manager/FieldSolverBase.h"
@@ -42,8 +43,12 @@ public:
 
     ~FieldSolver() override = default;
 
-    void dumpScalField(std::string what);
-    void dumpVectField(std::string what);
+    void dumpScalField(
+            std::string what, const std::string& tag = "",
+            const std::vector<std::string>& extraHeaderLines = {});
+    void dumpVectField(
+            std::string what, const std::string& tag = "",
+            const std::vector<std::string>& extraHeaderLines = {});
 
     Field_t<Dim>* getRho() { return rho_m; }
     void setRho(Field_t<Dim>* rho) { rho_m = rho; }

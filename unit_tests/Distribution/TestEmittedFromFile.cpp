@@ -46,7 +46,8 @@ protected:
         pc                = std::make_shared<ParticleContainer<double, 3>>(mesh, fl);
         bunchStateHandler = std::make_shared<BunchStateHandler>();
         pc->setBunchStateHandler(bunchStateHandler);
-        tempFilename = "emittedfromfile_test_input.dat";
+        tempFilename =
+                "emittedfromfile_test_input_rank_" + std::to_string(ippl::Comm->rank()) + ".dat";
     }
 
     void TearDown() override {
@@ -95,6 +96,15 @@ protected:
         out << "1.0e-3 0.0 2.0e-3 0.0 -2.0e-12 2.0e-1\n";
         out << "3.0e-3 0.0 4.0e-3 0.0 -5.0e-13 4.0e-1\n";
         out << "5.0e-3 0.0 6.0e-3 0.0 -1.0e-12 6.0e-1\n";
+    }
+
+    void writeExplicitBirthDump() {
+        std::ofstream out(tempFilename);
+        ASSERT_TRUE(out.is_open());
+        out << "2\n";
+        out << "x y z px py pz birth_time\n";
+        out << "1.0e-3 2.0e-3 3.0e-3 0.0 0.0 4.0e-1 -2.5e-13\n";
+        out << "5.0e-3 6.0e-3 -4.0e-3 0.0 0.0 6.0e-1 2.5e-13\n";
     }
 
     std::shared_ptr<ParticleContainer<double, 3>> pc;
@@ -196,6 +206,50 @@ TEST_F(EmittedFromFileTest, EmitsSortedRecordsWithFractionalDtAndHalfStepDrift) 
 
     sampler.emitParticles(tStart + 2.0e-12, 1.0e-12);
     EXPECT_EQ(globalParticleCount(), static_cast<size_t>(3));
+}
+
+TEST_F(EmittedFromFileTest, PreservesExplicitBirthSpacetimeAndFractionalFirstStep) {
+    writeExplicitBirthDump();
+    allocate(4);
+
+    auto fc = std::shared_ptr<FieldContainer_t>();
+    EmittedFromFile sampler(pc, fc, tempFilename);
+    sampler.setEmissionOffsets(
+            Vector_t<double, 3>(0.1, 0.2, 0.3), Vector_t<double, 3>(0.0), 1.0e-12, "NONE");
+
+    size_t requested = 0;
+    sampler.generateParticles(requested, nr);
+    ASSERT_EQ(requested, static_cast<size_t>(2));
+    EXPECT_DOUBLE_EQ(sampler.getEmissionTime(), 5.0e-13);
+    EXPECT_DOUBLE_EQ(sampler.getGlobalTimeShift(), 0.0);
+
+    const Vector_t<double, 3> refR = sampler.getInitialReferencePosition();
+    EXPECT_NEAR(refR[0], 0.103, 1.0e-15);
+    EXPECT_NEAR(refR[1], 0.204, 1.0e-15);
+    EXPECT_NEAR(refR[2], 0.2995, 1.0e-15);
+
+    sampler.emitParticles(0.5e-12, 0.6e-12);
+    EXPECT_EQ(globalParticleCount(), static_cast<size_t>(1));
+
+    if (ippl::Comm->size() == 1) {
+        auto Rview_d  = pc->R.getView();
+        auto dtView_d = pc->dt.getView();
+        auto Rview    = Kokkos::create_mirror_view(Rview_d);
+        auto dtView   = Kokkos::create_mirror_view(dtView_d);
+        Kokkos::deep_copy(Rview, Rview_d);
+        Kokkos::deep_copy(dtView, dtView_d);
+
+        const double fractionalDt = 0.35e-12;
+        const double gamma        = std::sqrt(1.0 + 0.4 * 0.4);
+        EXPECT_NEAR(dtView(0), fractionalDt, 1.0e-18);
+        EXPECT_NEAR(Rview(0)[0], 0.101, 1.0e-15);
+        EXPECT_NEAR(Rview(0)[1], 0.202, 1.0e-15);
+        EXPECT_NEAR(Rview(0)[2], 0.303 + 0.5 * Physics::c * fractionalDt * 0.4 / gamma, 1.0e-15);
+    }
+
+    sampler.emitParticles(1.1e-12, 0.2e-12);
+    EXPECT_EQ(globalParticleCount(), static_cast<size_t>(2));
+    EXPECT_TRUE(sampler.isEmissionDone(1.3e-12));
 }
 
 TEST_F(EmittedFromFileTest, HonorsRequestedParticleLimitBeforeSorting) {

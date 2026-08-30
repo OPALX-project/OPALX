@@ -1,0 +1,9 @@
+Kokkos::OpenMP::initialize WARNING: OMP_PROC_BIND environment variable not set
+  In general, for best performance with OpenMP 4.0 or better set OMP_PROC_BIND=spread and OMP_PLACES=threads
+  For best performance with OpenMP 3.1 set OMP_PROC_BIND=true
+  For unit testing set OMP_PROC_BIND=false
+
+BB-DIAG BB-state=Active active_bunches=3 retired_bunches=0 witness_states=c1:active:n=0,c2:active:n=0 BB-active=TRUE source_active=TRUE source_retirement_pending=FALSE
+BB-DIAG BB-state=Active active_bunches=3 retired_bunches=0 witness_states=c1:active:n=1,c2:active:n=1
+BB-DIAG BB-state=Completed active_bunches=3 retired_bunches=0 witness_states=c1:active:n=1,c2:active:n=1 BB-active=FALSE source_retirement_pending=TRUE
+BB-DIAG BB-state=Completed active_bunches=2 retired_bunches=1 witness_states=c1:active:n=1,c2:active:n=1 source_active=FALSE source_retirement_pending=FALSE

@@ -1,0 +1,65 @@
+OPTION, PSDUMPFREQ = 100;
+OPTION, STATDUMPFREQ = 1;
+OPTION, BOUNDPDESTROY = 10;
+OPTION, VERSION = 10900;
+OPTION, SEED = 20260629;
+
+TITLE, STRING = "Track one primary Gaussian electron beam in OPALX";
+
+// CAIN-scale source-only validation: one primary Gaussian electron bunch in a
+// drift.  No BeamBeam element, no copied source, no witness containers.
+REAL primary_kinetic_energy = 0.245;     // GeV
+REAL primary_gamma = (primary_kinetic_energy + EMASS) / EMASS;
+REAL primary_beta = sqrt(1.0 - 1.0 / (primary_gamma^2));
+REAL primary_p0 = primary_gamma * primary_beta * EMASS;  // GeV/c
+REAL primary_beta_gamma = primary_p0 / EMASS;
+
+REAL primary_sigma_xy = 1.944325075701e-6; // m
+REAL primary_sigma_z = 0.6e-3;             // m
+REAL primary_sigma_xyp = 1.0e-12;
+REAL primary_sigma_pxy = primary_beta_gamma * primary_sigma_xyp;
+
+REAL primary_electrons_per_bunch = 1.25e10;
+REAL primary_macroparticles = 400000;
+REAL elementary_charge = 1.602176634e-19;
+REAL primary_bunch_charge = primary_electrons_per_bunch * elementary_charge;
+
+REAL drift_length = 0.006;
+REAL dt_track = 5.0e-14;
+REAL n_steps = 1000;
+REAL N = 32;
+
+DR1: DRIFT, L = drift_length, ELEMEDGE = 0.0;
+primaryLine: LINE = (DR1);
+
+FS1: FIELDSOLVER, TYPE = OPEN,
+    NX = N, NY = N, NZ = N,
+    PARFFTX = FALSE, PARFFTY = FALSE, PARFFTZ = TRUE,
+    BCFFTX = OPEN, BCFFTY = OPEN, BCFFTZ = OPEN,
+    BBOXINCR = 1,
+    GREENSF = STANDARD;
+
+DistPrimaryElectrons: DISTRIBUTION, TYPE = GAUSS,
+    SIGMAX = primary_sigma_xy, SIGMAY = primary_sigma_xy, SIGMAZ = primary_sigma_z,
+    SIGMAPX = primary_sigma_pxy, SIGMAPY = primary_sigma_pxy, SIGMAPZ = 1.0e-12,
+    NPARTDIST = primary_macroparticles;
+
+SourcePrimaryElectrons: EMISSIONSOURCE, DISTRIBUTION = DistPrimaryElectrons;
+PrimaryElectronSources: EMISSIONSOURCELIST = (SourcePrimaryElectrons);
+
+PrimaryElectrons: BEAM,
+    PARTICLE = ELECTRON,
+    PC = primary_p0,
+    NALLOC = primary_macroparticles,
+    BCHARGE = primary_bunch_charge,
+    SOURCES = PrimaryElectronSources;
+
+TRACK, LINE = primaryLine,
+    BEAM = PrimaryElectrons,
+    MAXSTEPS = n_steps,
+    ZSTOP = drift_length,
+    DT = dt_track;
+ RUN, METHOD = "PARALLEL", FIELDSOLVER = FS1;
+ENDTRACK;
+
+QUIT;

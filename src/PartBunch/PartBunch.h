@@ -8,6 +8,8 @@
 #define PARTBUNCH_H
 
 #include <memory>
+#include <optional>
+#include <string>
 #include <vector>
 
 #include "Algorithms/CoordinateSystemTrafo.h"
@@ -91,7 +93,8 @@ public:
 private:
     std::vector<bool> pcActive_m;   ///< Per-container: participate in this track segment.
     std::vector<bool> pcAtSStop_m;  ///< Per-container: frozen at current s-stop until next segment.
-    std::vector<std::string> particleNames_m;  ///< Per-container beam particle names.
+    std::vector<bool> independentOrbitThreader_m;  ///< Per-container reference-map ownership.
+    std::vector<std::string> particleNames_m;      ///< Per-container beam particle names.
 
     std::vector<double> qi_m;  ///< Charge per macroparticle [C], one entry per container.
     std::vector<double> mi_m;  ///< Mass per macroparticle [GeV], one entry per container.
@@ -114,6 +117,61 @@ private:
             globalPartPerNode_m;  ///< Per-rank particle counts for load-balance stats.
 
     double rmsDensity_m;  ///< Legacy RMS density placeholder (may still appear in stats).
+
+public:
+    /**
+     * @brief Saved field-domain state used while the BeamBeam window temporarily
+     * replaces the longitudinal field mesh by a fixed interaction-window mesh.
+     */
+    struct SavedFieldDomainState {
+        Vector_t<double, Dim> origin;
+        Vector_t<double, Dim> rmin;
+        Vector_t<double, Dim> rmax;
+        Vector_t<double, Dim> hr;
+        Vector_t<double, Dim> partrmin;
+        Vector_t<double, Dim> partrmax;
+    };
+
+    SavedFieldDomainState saveFieldDomainState() const;
+    void restoreFieldDomainState(const SavedFieldDomainState& state);
+
+    /** @brief Replace the active field mesh by a fixed-z BeamBeam interaction window. */
+    void enableBeamBeamWindowMesh(double interactionPointLocalZ, double beamBeamWindowLength);
+
+    /**
+     * @brief Replace the active field mesh by a fixed-z BeamBeam window with explicit transverse
+     * bounds.
+     *
+     * The transverse bounds are obtained from @c computeBoundsForFieldSolve after all active
+     * BeamBeam witnesses have been expressed in the source frame. Numerical padding and
+     * cell-aspect constraints are applied by the BeamBeam interaction before this call. The
+     * physical element aperture is deliberately independent of this field domain.
+     */
+    void enableBeamBeamWindowMesh(
+            double interactionPointLocalZ, double beamBeamWindowLength,
+            const Vector_t<double, Dim>& particleLower, const Vector_t<double, Dim>& particleUpper);
+
+    struct BeamBeamWindowConfig {
+        double beamBeamWindowLength = 0.0;
+        double interactionPointS    = 0.0;
+        double windowBeginS         = 0.0;
+        double windowEndS           = 0.0;
+        bool copyModel              = false;
+    };
+
+    struct BeamBeamWindowVisualizationTail {
+        double interactionPointS = 0.0;
+        double windowBeginS      = 0.0;
+        double windowEndS        = 0.0;
+        int remainingSteps       = 0;
+    };
+
+private:
+    std::optional<BeamBeamWindowConfig> beamBeamWindowConfig_m;
+    std::optional<BeamBeamWindowVisualizationTail> beamBeamWindowVisualizationTail_m;
+    bool beamBeamWindowParticleLayoutInitialized_m  = false;
+    double lastDepositedChargeBeforeBackground_m    = 0.0;
+    bool lastDepositedChargeBeforeBackgroundValid_m = false;
 
 public:
     /**
@@ -261,10 +319,22 @@ public:
     /// @return Whether container @p i participates in the current segment.
     bool isPcActive(size_t i) const { return i < pcActive_m.size() && pcActive_m[i]; }
 
+    /// @return Whether container @p i constructs an independent reference-orbit threader.
+    bool usesIndependentOrbitThreader(size_t i) const {
+        return i < independentOrbitThreader_m.size() && independentOrbitThreader_m[i];
+    }
+
     /// @brief Force container @p i active (e.g. for containers with pending emission).
     void setPcActive(size_t i) {
         if (i < pcActive_m.size()) {
             pcActive_m[i] = true;
+        }
+    }
+
+    /// @brief Force particle container @p i inactive.
+    void setPcInactive(size_t i) {
+        if (i < pcActive_m.size()) {
+            pcActive_m[i] = false;
         }
     }
 
@@ -322,12 +392,12 @@ public:
         this->fcontainer_m->setTempEField(Etmp);
     }
 
-    /// @brief Scratch B field used by the binned solver path.
+    /// @brief Compatibility access to FieldContainer B_m, used as the binned B accumulator.
     std::shared_ptr<VField_t<T, Dim>> getTempBField() {
         return this->fcontainer_m ? this->fcontainer_m->getTempBField() : nullptr;
     }
 
-    /// @param Btmp Scratch B field matching the mesh layout.
+    /// @param Btmp Replacement B_m field matching the mesh layout.
     void setTempBField(std::shared_ptr<VField_t<T, Dim>> Btmp) {
         if (!this->fcontainer_m) {
             throw OpalException("PartBunch::setTempBField", "FieldContainer is not initialized.");
@@ -558,6 +628,64 @@ public:
      * this delegator once per step.
      */
     void computeSelfFields();
+
+    void setBeamBeamWindowConfig(
+            double beamBeamWindowLength, double interactionPointS, double windowBeginS,
+            double windowEndS, bool copyModel) {
+        beamBeamWindowConfig_m = BeamBeamWindowConfig{
+                beamBeamWindowLength, interactionPointS, windowBeginS, windowEndS, copyModel};
+        beamBeamWindowParticleLayoutInitialized_m = false;
+    }
+
+    void clearBeamBeamWindowConfig() {
+        beamBeamWindowConfig_m.reset();
+        beamBeamWindowParticleLayoutInitialized_m = false;
+    }
+
+    bool hasBeamBeamWindowConfig() const { return beamBeamWindowConfig_m.has_value(); }
+
+    const BeamBeamWindowConfig& getBeamBeamWindowConfig() const { return *beamBeamWindowConfig_m; }
+
+    void setBeamBeamWindowVisualizationTail(
+            double interactionPointS, double windowBeginS, double windowEndS, int steps) {
+        beamBeamWindowVisualizationTail_m =
+                BeamBeamWindowVisualizationTail{interactionPointS, windowBeginS, windowEndS, steps};
+    }
+
+    void clearBeamBeamWindowVisualizationTail() { beamBeamWindowVisualizationTail_m.reset(); }
+
+    bool hasBeamBeamWindowVisualizationTail() const {
+        return beamBeamWindowVisualizationTail_m.has_value()
+               && beamBeamWindowVisualizationTail_m->remainingSteps > 0;
+    }
+
+    bool hasLastDepositedChargeBeforeBackground() const {
+        return lastDepositedChargeBeforeBackgroundValid_m;
+    }
+
+    double getLastDepositedChargeBeforeBackground() const {
+        return lastDepositedChargeBeforeBackground_m;
+    }
+
+    void setLastDepositedChargeBeforeBackground(double charge) {
+        lastDepositedChargeBeforeBackground_m      = charge;
+        lastDepositedChargeBeforeBackgroundValid_m = true;
+    }
+
+    void invalidateLastDepositedChargeBeforeBackground() {
+        lastDepositedChargeBeforeBackground_m      = 0.0;
+        lastDepositedChargeBeforeBackgroundValid_m = false;
+    }
+
+    std::vector<std::string> buildScalarDumpHeaders(
+            const std::string& snapshotKind, const std::string& coordinateFrame = "beam_local",
+            const std::optional<BeamBeamWindowConfig>& geometryOverride = std::nullopt,
+            std::optional<bool> activeOverride                          = std::nullopt) const;
+
+    void setPhysicalBounds(const Vector_t<double, Dim>& rmin, const Vector_t<double, Dim>& rmax) {
+        rmin_m = rmin;
+        rmax_m = rmax;
+    }
 
     /**
      * @brief Write bin edges/counts to the data sink when configured.

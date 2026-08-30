@@ -72,6 +72,9 @@ namespace p3m_detail {
  *   - After bins are calculated, it solves electrostatics per bin in a quasi-static approximation.
  *   - Fields per bin are then transformed to the lab frame and accumulated into the temporary
  *     fields, this also produces the magnetic field contributions.
+ *   - A BeamBeam interaction with exactly one bin and no configured cathode/image model uses a
+ *     two-field fast path: the physical solve remains in `E_m`, `B_m` stages the reflected
+ *     primary, and one device kernel overwrites both with the final lab-frame fields.
  *   - Finally, the accumulated fields are gathered back to the particles.
  *   - This procedure approximates full Maxwell's equations for the self-fields.
  *   - Without a bins object, it falls back to the legacy electrostatic approximation.
@@ -157,6 +160,14 @@ public:
     virtual void computeSelfFields(PartBunch_t& bunch);
 
     /**
+     * @brief Gather the most recently solved source field to a passive witness container.
+     *
+     * The caller places target positions in the source field frame. Witness charge is not
+     * deposited; only the current mesh E/B fields are sampled.
+     */
+    void gatherCurrentFieldsToContainer(PartBunch_t& bunch, ParticleCtr_t& target);
+
+    /**
      * @brief Set particle scatter attribute (extensible; default is `ChargeQ`).
      * @param attr Attribute to scatter from.
      */
@@ -226,6 +237,9 @@ private:
     bool shiftedGreensEnabled_m  = false;
     double shiftedGreensPlaneZ_m = 0.0;
 
+    /// True only while the most recent solve left final lab-frame fields in FieldContainer E/B.
+    bool beamBeamTwoFieldResultActive_m = false;
+
     /**
      * @brief Row entry for the level-3 bin statistics table.
      */
@@ -264,12 +278,15 @@ private:
     /**
      * @brief Compute self-fields using the binned algorithm.
      *
-     * Requires that the bunch has a valid bin structure and a temporary electric field
-     * buffer (`bunch.getFieldContainer()->getTempEField()`).
+     * Generic multi-bin and cathode-correction solves lazily allocate temporary accumulation
+     * fields. The guarded one-bin BeamBeam path writes final fields directly to FieldContainer
+     * E/B and does not allocate those temporaries.
      *
-     * @param bunch Particle bunch for which to compute self-fields.
+     * @param bunch                  Particle bunch for which to compute self-fields.
+     * @param noImageModelConfigured True only if neither explicit image charge nor shifted
+     *                               Green's correction was configured before per-step gating.
      */
-    void computeBinnedSelfFields(PartBunch_t& bunch);
+    void computeBinnedSelfFields(PartBunch_t& bunch, bool noImageModelConfigured);
 
     /**
      * @brief Compute self-fields using the legacy monolithic algorithm.
@@ -370,6 +387,65 @@ public:
             std::shared_ptr<VField_t<T, Dim>> BtmpSP, double bFieldSign = 1.0, int flipAxis = -1);
 
 private:
+    /**
+     * @brief Accumulate the counter-propagating BeamBeam primary from the physical solve.
+     *
+     * The rigid copied primary is the same-sign reflection of the physical primary about the
+     * interaction point. The fixed BeamBeam mesh is centred on that point, so the copied
+     * rest-frame field follows exactly from the already-solved physical field:
+     *
+     * @f[
+     *   \mathbf{E}'_{\mathrm{copy}}(x,y,z)
+     *   = \operatorname{diag}(1,1,-1)
+     *     \mathbf{E}'_{\mathrm{physical}}(x,y,2z_{\mathrm{IP}}-z).
+     * @f]
+     *
+     * The copied mean momentum has only its longitudinal component reversed. This method then
+     * applies the normal rest-to-lab Lorentz transform and adds the copied E and B fields to the
+     * temporary mesh fields. It is deliberately separate from the image-charge flip in
+     * accumulateFieldToTemp(): image charges use the different parity
+     * @f$\operatorname{diag}(-1,-1,1)@f$ and must not share this physics path.
+     *
+     * The global z reflection is performed by buildFlippedZSlab(), including its MPI exchange
+     * when the field is decomposed in z. This replaces a second scatter and Poisson solve with
+     * one vector-field reflection and one accumulation kernel.
+     *
+     * @param fieldContainer Owns the reusable reflected-field scratch allocation.
+     * @param gammaBin       Global average gamma for the merged physical-primary bin.
+     * @param physicalPmean Global average normalized momentum of the physical primary.
+     * @param EtmpSP         Temporary electric field buffer for accumulation.
+     * @param BtmpSP         Temporary magnetic field buffer for accumulation.
+     */
+    void accumulateMirroredPrimaryFieldToTemp(
+            FieldContainer_t& fieldContainer, const double gammaBin,
+            const Vector_t<double, Dim>& physicalPmean, std::shared_ptr<VField_t<T, Dim>> EtmpSP,
+            std::shared_ptr<VField_t<T, Dim>> BtmpSP);
+
+    /**
+     * @brief Finalize the guarded one-bin BeamBeam solve directly in FieldContainer E/B.
+     *
+     * On entry @c E_m contains the physical-primary rest-frame electric field. When the rigid
+     * counter-primary is active, the method reflects @c E_m into @c B_m out of place. A single
+     * device kernel then reads both rest-frame fields and overwrites them with the total
+     * lab-frame electric and magnetic fields. No temporary accumulation or host staging occurs.
+     *
+     * @param fieldContainer Owns the E/B fields on the active BeamBeam mesh.
+     * @param gammaBin       Global mean gamma of the single source bin.
+     * @param physicalPmean Global mean normalized momentum of the physical primary.
+     * @param includeCopy    Whether to add the reflected counter-propagating primary.
+     */
+    void finalizeBeamBeamTwoFieldResult(
+            FieldContainer_t& fieldContainer, double gammaBin,
+            const Vector_t<double, Dim>& physicalPmean, bool includeCopy);
+
+    /// Prepare one bin and optionally return its dt-weighted deposited charge before
+    /// normalization. Charge measurement adds a field reduction and is enabled only for the
+    /// BeamBeam entry/copy validation path.
+    double prepareRhoForBinImpl(
+            PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins, const bin_index_type binIndex,
+            const size_type nPartGlobal, const double gammaBin, ImageScatterMode mode,
+            bool measureDepositedCharge);
+
     /// @brief Populate FieldContainer's flipped z-slab scratch with the flipped version of @p src.
     ///
     /// Under `PARFFTZ=true` the global flip `k -> N_z_global-1-k` generally crosses MPI ranks.
@@ -392,6 +468,10 @@ private:
     void gatherFromTempToParticles(
             PartBunch_t& bunch, std::shared_ptr<VField_t<T, Dim>> EtmpSP,
             std::shared_ptr<VField_t<T, Dim>> BtmpSP);
+
+    /// Gather a concrete E/B mesh pair to the active primary container.
+    void gatherFieldsToParticles(
+            PartBunch_t& bunch, VField_t<T, Dim>& electricField, VField_t<T, Dim>& magneticField);
 };
 
 // Reduce compile-time churn: instantiate the only supported concrete solver in one TU.

@@ -57,6 +57,9 @@ public:
     /// Apply the algorithm to a drift space.
     void visitDrift(const Drift&) override;
 
+    /// Apply the algorithm to a beam-beam interaction element.
+    void visitBeamBeam(const BeamBeam&) override;
+
     /// Apply the algorithm to a laser.
     void visitLaser(const Laser&) override;
 

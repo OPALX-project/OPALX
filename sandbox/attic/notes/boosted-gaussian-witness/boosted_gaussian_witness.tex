@@ -1,0 +1,1101 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{tabularx}
+\usepackage{tikz}
+\usepackage[table]{xcolor}
+\usetikzlibrary{arrows.meta}
+
+\title{Boosted Gaussian Witness Kick  -- A Manufactured Solution}
+
+\author{A Adelmann}
+\date{\today}
+
+\newcommand{\vect}[1]{\boldsymbol{#1}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\E}{\vect{E}}
+\newcommand{\B}{\vect{B}}
+\newcommand{\Pmom}{\vect{P}}
+\newcommand{\betav}{\boldsymbol{\beta}}
+\newcommand{\gammal}{\gamma}
+\numberwithin{equation}{section}
+
+\begin{document}
+\maketitle
+
+\section{Purpose}
+
+This note defines a manufactured solution for a low-energy witness
+\(e^-/e^+\) pair, kicked by the electromagnetic field of two highly
+relativistic colliding Gaussian electron bunches.  The goal is to guide an
+OPALX implementation and establish an order-of-magnitude estimate.
+
+It is understood that for the detector design, of a $\gamma\text{-}\gamma$ collider, a full self-consistent model is essential. 
+
+The terminology used below is:
+\begin{itemize}
+  \item \emph{colliding Gaussian beams}: the two prescribed high-energy
+        electron bunches representing the beams at the interaction point;
+  \item \emph{source}: a field-producing bunch.  In the present OPALX witness
+        implementation this is particle container 0, which defines the mesh and
+        field solve.  In the manufactured model the source index \(j\) labels
+        one of the prescribed colliding Gaussian bunches;
+  \item \emph{witness}: the low-energy \(e^-/e^+\) particles.  They sample the
+        source fields but do not deposit charge in the present model.
+\end{itemize}
+
+Each source Gaussian bunch is prescribed as a uniformly, non-accelerated moving
+spherical Gaussian charge distribution in its own rest frame.  The rest-frame
+Coulomb field is known analytically and is Lorentz-transformed to the lab frame
+at the witness event.  The resulting lab-frame field is then applied to the
+witness particles with the same Boris kick convention used by OPALX.
+
+\section{Current OPALX Witness Model}
+
+The present OPALX witness treatment is a source-frame field sampling model.
+The source bunch defines the mesh and the field solve.  A witness particle is
+not deposited on that mesh; instead its position is translated and rotated into
+the source beam-beam frame, the already available mesh field is gathered there,
+and the gathered vectors are rotated back before applying the usual particle
+kick.
+
+In this approximation the witness is represented only by its spatial coordinate
+in the active tracking step.  The relevant mapping is geometric,
+\begin{equation}
+  \vect r_s = R_s\left(\vect r_w + (s_w-s_s)\hat{\vect z}\right),
+\end{equation}
+where \(s_s\) and \(s_w\) are the source and witness path lengths and \(R_s\)
+is the rigid rotation from the tracking reference coordinates into the local
+source-beam coordinates used by the \texttt{BeamBeam} field mesh.  It is an
+orthonormal \(3\times3\) spatial rotation, not a Lorentz boost.  In the straight
+coordinate system used by the present tests, with no crossing angle and no
+curved reference trajectory, the two frames are aligned and \(R_s=I\).  It is
+kept explicitly because the implementation also has to support a rotated source
+reference frame.  The sampled fields are then
+\begin{equation}
+  \E_{\mathrm{used}} = R_s^T \E_s(\vect r_s),
+  \qquad
+  \B_{\mathrm{used}} = R_s^T \B_s(\vect r_s).
+\end{equation}
+This is useful as a first implementation because it reuses the \texttt{BeamBeam} mesh,
+but it does not treat the field evaluation as a Lorentz-covariant event
+calculation.
+
+The full relativistic reference model will eventually start from the witness event
+\begin{equation}
+  x_w^\mu=(c t_w,\vect x_w)
+\end{equation}
+and evaluates the contribution of each source bunch \(j\) at that event.  Let
+the source Gaussian bunch move with almost constant \texttt{BeamBeam} velocity
+\begin{equation}
+  \vect v_j = c\betav_j,
+  \qquad
+  \gamma_j = \frac{1}{\sqrt{1-\betav_j^2}},
+\end{equation}
+and define the event relative to the source centroid by
+\begin{equation}
+  \Delta t_j = t_w - t_{j0},
+  \qquad
+  \Delta \vect x_j = \vect x_w-\vect X_{j0}.
+\end{equation}
+With the decomposition into components parallel and transverse to
+\(\betav_j\), the Lorentz transformation into the source rest frame is
+\begin{equation}
+  c t'_j =
+  \gamma_j\left(c\Delta t_j-\betav_j\cdot\Delta\vect x_j\right),
+\end{equation}
+\begin{equation}
+  \Delta \vect x'_{j,\parallel}
+  =
+  \gamma_j\left(\Delta \vect x_{j,\parallel}
+  - c\betav_j\Delta t_j\right),
+  \qquad
+  \Delta \vect x'_{j,\perp}=\Delta \vect x_{j,\perp}.
+\end{equation}
+The term \(\betav_j\cdot\Delta\vect x_j/c\) is the relativity-of-simultaneity
+piece that is absent in the current geometric sampling model.
+
+For the manufactured Gaussian reference used here, the source rest-frame
+charge density is
+\begin{equation}
+  \rho'_j(r') =
+  \frac{Q_j}{(2\pi)^{3/2}\sigma_j^3}
+  \exp\left(-\frac{r'^2}{2\sigma_j^2}\right),
+\end{equation}
+and the electrostatic field is
+\begin{equation}
+  \E'_j(\vect r') =
+  \frac{Q_j}{4\pi\epsilon_0}
+  \frac{\vect r'}{r'^3}
+  \left[
+    \operatorname{erf}\left(\frac{r'}{\sqrt{2}\sigma_j}\right)
+    -
+    \sqrt{\frac{2}{\pi}}\frac{r'}{\sigma_j}
+    \exp\left(-\frac{r'^2}{2\sigma_j^2}\right)
+  \right],
+  \qquad
+  \B'_j=0.
+\end{equation}
+More generally, the source rest-frame field tensor is transformed back to the
+lab/reference frame,
+\begin{equation}
+  F^{\mu\nu}_{j,\mathrm{lab}}(x_w)
+  =
+  \Lambda^\mu{}_{\alpha}(\betav_j)
+  F_j^{\prime\,\alpha\beta}(x'_j)
+  \Lambda^\nu{}_{\beta}(\betav_j).
+\end{equation}
+The tensor expression above is the compact matrix form.  For comparison with
+the code paths below, the same transformation is kept in component form as
+\begin{equation}
+  \E_j =
+  \gamma_j(\E'_j-\vect v_j\times\B'_j)
+  -
+  \frac{\gamma_j^2}{\gamma_j+1}
+  \frac{\vect v_j}{c^2}
+  (\vect v_j\cdot\E'_j),
+\end{equation}
+\begin{equation}
+  \B_j =
+  \gamma_j\left(\B'_j+\frac{\vect v_j\times\E'_j}{c^2}\right)
+  -
+  \frac{\gamma_j^2}{\gamma_j+1}
+  \frac{\vect v_j}{c^2}
+  (\vect v_j\cdot\B'_j).
+\end{equation}
+The fields acting on the witness are the superposition
+\begin{equation}
+  \E(x_w)=\sum_j \E_j(x_w),
+  \qquad
+  \B(x_w)=\sum_j \B_j(x_w).
+\end{equation}
+For the OPALX normalized momentum
+\(\Pmom=\gamma_w\betav_w\), the corresponding witness equations of motion are
+\begin{equation}
+  \frac{\dd \vect x_w}{\dd t}
+  =
+  c\frac{\Pmom}{\sqrt{1+\Pmom^2}},
+  \qquad
+  \frac{\dd \Pmom}{\dd t}
+  =
+  \frac{q}{m c}
+  \left[
+    \E(x_w)
+    +
+    c\frac{\Pmom}{\sqrt{1+\Pmom^2}}\times\B(x_w)
+  \right].
+\end{equation}
+This is the model the manufactured solution is meant to test against: event
+transformation into each source rest frame, field evaluation there, field-tensor
+transformation back to the lab/reference frame, and then the witness kick.
+
+During an active \texttt{BEAMBEAM} window, OPALX treats particle container 0 as
+the source bunch.  Additional containers listed through
+\texttt{WITNESS\_CONTAINERS} are passive: their charge is not deposited onto the
+source mesh, and they only sample the field that was already computed from
+container 0.
+
+Let the source container path length be \(s_s\), the witness container path
+length be \(s_w\), and the witness particle coordinate in its own container frame
+be
+\begin{equation}
+  \vect r_w = (x_w,y_w,z_w).
+\end{equation}
+The implemented longitudinal mapping into the source frame is
+\begin{equation}
+  \Delta s = s_w-s_s,
+  \qquad
+  z_s = z_w + \Delta s .
+\end{equation}
+With the same \(R_s\) defined above, the sampled source-frame coordinate is
+\begin{equation}
+  \vect r_s
+  =
+  R_s\left(\vect r_w + \Delta s\,\hat{\vect z}\right).
+\end{equation}
+OPALX then gathers the current source mesh fields at this point:
+\begin{equation}
+  \E_s(\vect r_s), \qquad \B_s(\vect r_s).
+\end{equation}
+After gathering, the witness particle positions are restored and the fields are
+rotated back with the inverse rigid rotation,
+\begin{equation}
+  \E_{\mathrm{used}} = R_s^T \E_s,
+  \qquad
+  \B_{\mathrm{used}} = R_s^T \B_s.
+\end{equation}
+Those fields are passed to the normal per-container Boris kick.  In OPALX units
+the particle momentum is
+\begin{equation}
+  \Pmom = \betav_w \gamma_w,
+\end{equation}
+and the continuous Lorentz-force equation represented by the kick is
+\begin{equation}
+  \frac{\dd \Pmom}{\dd t}
+  =
+  \frac{q c}{m c^2}\E_{\mathrm{used}}
+  +
+  \frac{q c^2}{m c^2}\betav_w \times \B_{\mathrm{used}}.
+\end{equation}
+
+\subsection{Source Field Currently Available in OPALX}
+
+The \texttt{BeamBeam} field calculation uses the binned quasi-static field path.  This
+statement includes the case where the adaptive binning has only one current bin:
+as long as a \texttt{BINNING} definition is attached to the field solver, OPALX
+dispatches to \texttt{computeBinnedSelfFields()} and applies the same
+quasi-static Lorentz correction to that single bin.
+
+For a source bin \(b\), OPALX computes the global mean normalized momentum
+\begin{equation}
+  \bar{\Pmom}_b = \langle \betav\gamma\rangle_b,
+\end{equation}
+and the bin Lorentz factor and mean velocity
+\begin{equation}
+  \gamma_b = \sqrt{1+\bar{\Pmom}_b^2},
+  \qquad
+  \vect v_b = c\,\frac{\bar{\Pmom}_b}{\gamma_b}.
+\end{equation}
+Equivalently, the bin normalized velocity and its unit direction are
+\begin{equation}
+  \label{eq:opalx-bin-beta}
+  \betav_b =
+  \frac{\vect v_b}{c}
+  =
+  \frac{\bar{\Pmom}_b}{\gamma_b},
+  \qquad
+  \hat{\betav}_b =
+  \frac{\betav_b}{|\betav_b|}.
+\end{equation}
+Before the Poisson solve, the mesh density is transformed to the approximate bin
+rest frame by
+\begin{equation}
+  \rho'_b = \frac{\rho_b}{\gamma_b},
+\end{equation}
+and the longitudinal mesh spacing is stretched by
+\begin{equation}
+  \Delta z' = \gamma_b \Delta z .
+\end{equation}
+After solving the electrostatic problem in this stretched frame, the code
+accumulates the lab-frame fields
+\begin{equation}
+\label{eq:opalx-bin-e-field}
+  \E_b =
+  \gamma_b \E'_b
+  -
+  (\gamma_b-1)
+  (\E'_b\cdot \hat{\betav}_b)\hat{\betav}_b,
+\end{equation}
+\begin{equation}
+\label{eq:opalx-bin-b-field}
+  \B_b =
+  \frac{\gamma_b}{c}\betav_b \times \E'_b.
+\end{equation}
+The electric-field transformation could equivalently be written in matrix form
+as
+\begin{equation}
+  \label{eq:opalx-bin-e-matrix}
+  \E_b =
+  \left[
+    \gamma_b I
+    -
+    (\gamma_b-1)\hat{\betav}_b\hat{\betav}_b^T
+  \right]\E'_b,
+\end{equation}
+and the magnetic field can be written in the same operator style by introducing
+the skew-symmetric cross-product matrix
+\begin{equation}
+  \label{eq:opalx-bin-cross-matrix}
+  [\betav_b]_\times =
+  \begin{pmatrix}
+    0 & -\beta_{b,z} & \beta_{b,y}\\
+    \beta_{b,z} & 0 & -\beta_{b,x}\\
+    -\beta_{b,y} & \beta_{b,x} & 0
+  \end{pmatrix},
+  \qquad
+  [\betav_b]_\times \vect a = \betav_b\times\vect a.
+\end{equation}
+Then Eq.~\eqref{eq:opalx-bin-b-field} is equivalently
+\begin{equation}
+  \label{eq:opalx-bin-b-matrix}
+  \B_b =
+  \frac{\gamma_b}{c}
+  [\betav_b]_\times \E'_b.
+\end{equation}
+The component forms in Eqs.~\eqref{eq:opalx-bin-e-field} and
+\eqref{eq:opalx-bin-b-field} are still kept because they make the parallel and
+transverse parts visible and mirror the implementation.
+The accumulated fields are then gathered to source particles, and the current
+mesh fields can also be sampled by witness containers.
+
+\subsection{What Is Missing}
+
+The witness model is still a source-frame field sampling approximation.  It
+rotates and translates witness geometry into the source beam frame, samples the
+mesh, and rotates the sampled vectors back.  It does not evaluate the
+electromagnetic field tensor at the witness event.
+
+A covariant treatment would start from a witness event
+\begin{equation}
+  x^\mu_w = (c t_w,\vect x_w)
+\end{equation}
+and transform that event into the rest frame of each source bunch.  For a source
+with velocity \(\vect v_s=c\betav_s\), the parallel part of the event transform is
+\begin{equation}
+  t'_s =
+  \gamma_s
+  \left(
+    t_w - \frac{\betav_s\cdot \vect x_w}{c}
+  \right),
+\end{equation}
+\begin{equation}
+  \vect x'_{s,\parallel}
+  =
+  \gamma_s
+  \left(
+    \vect x_{w,\parallel} - \vect v_s t_w
+  \right),
+  \qquad
+  \vect x'_{s,\perp}=\vect x_{w,\perp}.
+\end{equation}
+The field tensor would then be transformed back to the lab/reference frame,
+\begin{equation}
+  F^{\mu\nu}_{\mathrm{lab}}
+  =
+  \Lambda^\mu{}_\alpha
+  F'^{\alpha\beta}_s
+  \Lambda^\nu{}_\beta .
+\end{equation}
+
+In vector notation, for a source rest-frame field \(\E'\), \(\B'\), the lab field
+is
+\begin{equation}
+  \E =
+  \gamma_s(\E' - \vect v_s\times \B')
+  -
+  \frac{\gamma_s^2}{\gamma_s+1}
+  \frac{\vect v_s}{c^2}
+  (\vect v_s\cdot \E'),
+\end{equation}
+\begin{equation}
+  \B =
+  \gamma_s\left(\B' + \frac{\vect v_s\times \E'}{c^2}\right)
+  -
+  \frac{\gamma_s^2}{\gamma_s+1}
+  \frac{\vect v_s}{c^2}
+  (\vect v_s\cdot \B').
+\end{equation}
+The current witness gather does not perform this per-source or per-witness event
+transformation.
+
+The missing physics and numerical pieces are:
+\begin{itemize}
+  \item no Lorentz transformation of the witness event into each source frame;
+  \item no relativity-of-simultaneity term in the sampled source coordinate;
+  \item no full \(F^{\mu\nu}\) transformation for the sampled field;
+  \item no retarded-time or Lienard-Wiechert treatment for accelerated sources;
+  \item no deposition of witness charge back onto the source mesh;
+  \item no witness-witness or electron-positron mutual space charge;
+  \item no separate Lorentz transformation of the already accumulated source
+        mesh fields into the low-energy witness frame.
+\end{itemize}
+
+\section{Manufactured Boosted-Gaussian Model}
+
+For a controlled implementation target, prescribe each source bunch \(j\) by
+\begin{equation}
+  Q_j,\qquad \sigma'_j,\qquad \betav_j,\qquad
+  \gamma_j = \frac{1}{\sqrt{1-\betav_j^2}},
+\end{equation}
+and by the lab-frame center worldline
+\begin{equation}
+  \vect R_j(t) = \vect R_{j0} + \betav_j c(t-t_0).
+\end{equation}
+At the witness event \((t,\vect r_w)\), define the lab-frame displacement from
+the source center,
+\begin{equation}
+  \boldsymbol{\ell}_j = \vect r_w - \vect R_j(t).
+\end{equation}
+Split it into parts parallel and perpendicular to the source velocity,
+\begin{equation}
+  \boldsymbol{\ell}_{j,\parallel}
+  =
+  (\boldsymbol{\ell}_j\cdot\hat{\betav}_j)\hat{\betav}_j,
+  \qquad
+  \boldsymbol{\ell}_{j,\perp}
+  =
+  \boldsymbol{\ell}_j-\boldsymbol{\ell}_{j,\parallel}.
+\end{equation}
+For a uniformly moving source, the corresponding source-rest coordinate at the
+same lab event is
+\begin{equation}
+  \vect r'_j
+  =
+  \boldsymbol{\ell}_{j,\perp}
+  +
+  \gamma_j \boldsymbol{\ell}_{j,\parallel}.
+\end{equation}
+
+The rest-frame charge density is a spherical Gaussian,
+\begin{equation}
+  \rho'_j(\vect r')
+  =
+  \frac{Q_j}{(2\pi)^{3/2}{\sigma'_j}^3}
+  \exp\left(-\frac{r'^2}{2{\sigma'_j}^2}\right).
+\end{equation}
+The analytic rest-frame electrostatic potential and electric field are
+\begin{equation}
+  \phi'_j(\vect r')
+  =
+  \frac{Q_j}{4\pi\epsilon_0}
+  \frac{\operatorname{erf}(u)}{r'},
+  \qquad
+  u = \frac{r'}{\sqrt{2}\sigma'_j},
+\end{equation}
+\begin{equation}
+  \E'_j(\vect r')
+  =
+  \frac{Q_j}{4\pi\epsilon_0}
+  \frac{
+    \operatorname{erf}(u)
+    -
+    \sqrt{2/\pi}\,(r'/\sigma'_j)
+    \exp[-r'^2/(2{\sigma'_j}^2)]
+  }{r'^3}
+  \vect r',
+\end{equation}
+with the regular limit \(\E'_j(0)=0\).  Since the source is electrostatic in its
+own rest frame,
+\begin{equation}
+  \B'_j = 0.
+\end{equation}
+
+Boosting this field into the lab gives the simpler component form
+\begin{equation}
+  \E_{j,\parallel} = \E'_{j,\parallel},
+  \qquad
+  \E_{j,\perp} = \gamma_j \E'_{j,\perp},
+\end{equation}
+\begin{equation}
+  \B_j = \frac{1}{c^2}\vect v_j \times \E_j.
+\end{equation}
+The total manufactured lab field at the witness event is
+\begin{equation}
+  \label{eq:manufactured-total-field}
+  \E_w(t,\vect r_w) = \sum_j \E_j(t,\vect r_w),
+  \qquad
+  \B_w(t,\vect r_w) = \sum_j \B_j(t,\vect r_w).
+\end{equation}
+
+\subsection{Witness Kick}
+
+The manufactured witness uses the same normalized momentum convention as OPALX,
+\begin{equation}
+  \Pmom = \betav_w\gamma_w .
+\end{equation}
+The fields used by the kick are exactly the total manufactured lab-frame fields
+from Eq.~\eqref{eq:manufactured-total-field}, evaluated at the current witness
+event:
+\begin{equation}
+  \E_w^n = \E_w(t^n,\vect r_w^n),
+  \qquad
+  \B_w^n = \B_w(t^n,\vect r_w^n).
+\end{equation}
+They are therefore not the source-frame mesh fields
+\(\E_s(\vect r_s),\B_s(\vect r_s)\) used in the current OPALX sampling
+approximation.  The Python prototype applies the same Boris kick sequence used
+in OPALX:
+
+\begin{align}
+ \Pmom^- &=
+  \Pmom^n
+  +
+  \frac{1}{2}\Delta t\,\frac{q c}{m c^2}\E_w^n, \\
+\vect t &=
+  \frac{1}{2}\Delta t\,\frac{q c^2}{\gamma^- m c^2}\B_w^n,
+  \qquad
+  \vect s =
+  \frac{2\vect t}{1+\vect t\cdot\vect t}, \\
+\Pmom' &= \Pmom^- + \Pmom^- \times \vect t, \\
+\Pmom^+ &= \Pmom^- + \Pmom' \times \vect s, \\
+\Pmom^{n+1} &=
+  \Pmom^+
+  +
+  \frac{1}{2}\Delta t\,\frac{q c}{m c^2}\E_w^n .
+\end{align}
+
+\subsection{Initial Manufactured Cases}
+
+The first Python prototype is
+\texttt{sandbox/python/boosted\_gaussian\_witness.py}.
+The current numerical examples use the large \(\gamma\gamma\) BeamBeam
+diagnostic geometry:
+\begin{equation}
+  L_{\mathrm{BB}} = 0.32~\mathrm{m},\qquad
+  R_{\mathrm{BB}} = 0.15~\mathrm{m},\qquad
+  s_{\mathrm{IP}} = 0.17~\mathrm{m}.
+\end{equation}
+The manufactured model is written in local time measured from pair creation at
+the IP.  In the corresponding OPALX large-cylinder input this event is placed
+at about \(550.3~\mathrm{ps}\), with the primary source crossing the IP at
+about \(567.1~\mathrm{ps}\).  The delayed-retirement diagnostic keeps the
+primary source active until \(1000~\mathrm{ps}\) in the OPALX clock, while the
+manufactured solution below isolates the continuum field model from the OPALX
+source-retirement bookkeeping.
+The table below was generated with
+\begin{equation}
+\begin{split}
+  K_s &= 245~\mathrm{MeV},\\
+  \gamma_s &= 480.453039976,\\
+  \beta_s &= 0.999997833949,\\
+  Q &= -2.002721~\mathrm{nC},\\
+  \sigma' &= 0.6~\mathrm{mm},\\
+  \Delta t &= 1~\mathrm{ps},\\
+  \Pmom_w^0 &= (0,0,0).
+\end{split}
+\end{equation}
+The two symmetric source centers are both at the IP at \(t=0\), moving in
+opposite \(z\)-directions.  The witness charge is an electron charge.
+
+\begin{center}
+\small
+\resizebox{\textwidth}{!}{%
+\input{boosted_gaussian_witness_initial_cases_table.tex}
+}
+\end{center}
+
+The central symmetric case is intentionally a null test:
+\begin{equation}
+  \E(0)=0,\qquad \B(0)=0,\qquad \Delta\Pmom=0.
+\end{equation}
+The off-axis symmetric case checks the transverse electric kick while the two
+magnetic fields cancel.  The single-source and asymmetric cases give nonzero
+magnetic fields and therefore exercise the full \((\E,\B)\) Boris path.
+
+\subsection{Back-to-Back Breit-Wheeler Pair Propagation}
+
+The Python prototype also contains a two-particle witness test intended to be a
+minimal model for a low-energy Breit-Wheeler pair born at the interaction point.
+The electron and positron are initialized at the same lab event,
+\begin{equation}
+  \vect r_{e^-}(0)=\vect r_{e^+}(0)=\vect 0,
+\end{equation}
+with equal kinetic energy
+\begin{equation}
+  K_{e^-}=K_{e^+}=313~\mathrm{keV}.
+\end{equation}
+The corresponding normalized momentum magnitude is
+\begin{equation}
+  |\Pmom|
+  =
+  \sqrt{
+    \left(1+\frac{K}{m_ec^2}\right)^2-1
+  }
+  =
+  1.26500561229,
+  \qquad
+  \beta = 0.784487091427.
+\end{equation}
+For the default test direction \(\hat{\vect u}=\hat{\vect x}\),
+\begin{equation}
+  \Pmom_{e^-}(0)=|\Pmom|\hat{\vect u},
+  \qquad
+  \Pmom_{e^+}(0)=-|\Pmom|\hat{\vect u}.
+\end{equation}
+
+Three trajectories are integrated with identical initial conditions and timestep:
+\begin{itemize}
+  \item \texttt{symmetric\_collision}: the pair samples the
+        Lorentz-transformed fields of two equal boosted Gaussian source bunches;
+  \item \texttt{asymmetric\_collision}: the pair samples the same left source
+        and a right source with \(80\%\) of the charge;
+  \item \texttt{no\_fields}: the same pair is propagated freely with
+        \(\E=\B=0\).
+\end{itemize}
+All cases are written into the same trajectory CSV with a \texttt{scenario}
+column.
+
+For the physical-charge illustration
+\begin{equation}
+\begin{split}
+  Q=-2.002721~\mathrm{nC},\qquad
+  \sigma'=0.6~\mathrm{mm},\\
+  \Delta t_{\mathrm{fine}}=0.001~\mathrm{ps}\quad(0\le t\le 5~\mathrm{ps}),
+  \qquad
+  \Delta t_{\mathrm{tail}}=0.1~\mathrm{ps},\\
+  T=1050~\mathrm{ps},
+\end{split}
+\end{equation}
+the exact creation point is a symmetry null:
+\begin{equation}
+  \E(0,\vect 0)=\vect 0,
+  \qquad
+  \B(0,\vect 0)=\vect 0.
+\end{equation}
+In the symmetric collision with the default pure transverse launch, both
+particles remain in the \(z=0\) symmetry plane, so the magnetic fields from the
+two equal and opposite source bunches cancel along the trajectory.  The
+asymmetric collision breaks this cancellation and samples a nonzero magnetic
+field even for the same initial pair direction.  The generated kinematic
+summary is evaluated at \(T=1050~\mathrm{ps}\).  At the default
+\(313~\mathrm{keV}\) kinetic energy the free transverse path length over this
+interval is about \(246.9~\mathrm{mm}\), so the manufactured trajectory crosses
+the \(R_{\mathrm{BB}}=150~\mathrm{mm}\) cylinder scale within the plotted time
+window:
+
+\begin{center}
+\small
+\resizebox{\textwidth}{!}{%
+\input{boosted_gaussian_witness_pair_kinematics_table.tex}
+}
+\end{center}
+
+The field evaluation and the particle push in this manufactured model are
+performed in the lab/reference frame.  Each source field is obtained by
+transforming the current witness event into the corresponding source rest
+frame, evaluating the spherical Gaussian Coulomb field there, and boosting the
+field back to the lab frame.  The magnetic field is included in the Boris
+rotation through
+\begin{equation}
+  \B_j = \frac{1}{c^2}\vect v_j\times\E_j .
+\end{equation}
+The vanishing magnetic contribution in the default symmetric pair run is
+therefore not an omission.  It is a symmetry result: the pair starts at the
+overlap event and is launched transversely in the \(z=0\) plane, where the
+magnetic fields of the two equal counter-propagating electron bunches cancel.
+The asymmetric case breaks this cancellation and gives a nonzero magnetic field.
+
+An earlier uniform \(\Delta t=0.1~\mathrm{ps}\) pair run was useful as a
+geometry check, but it under-resolved the force transient at bunch overlap.
+The table above and Figure~\ref{fig:manufactured-pair-paths} therefore use a
+multirate integration: \(0.001~\mathrm{ps}\) through the first
+\(5~\mathrm{ps}\), followed by \(0.1~\mathrm{ps}\) steps after the source
+overlap has passed.  Since the manufactured source has \(\gamma_s=480.453\) and
+\(\sigma'=0.6~\mathrm{mm}\), the lab-frame longitudinal source scale is
+\begin{equation}
+  \sigma_z = \frac{\sigma'}{\gamma_s}
+  \simeq 1.25~\mu\mathrm{m},
+  \qquad
+  \frac{\sigma_z}{c} \simeq 4.16~\mathrm{fs}
+  = 0.00416~\mathrm{ps}.
+\end{equation}
+Thus a timestep comparable to a few femtoseconds is required to resolve the
+initial kick.  A short \(5~\mathrm{ps}\) timestep check for the symmetric
+electron gives
+\begin{center}
+\small
+\begin{tabular}{lll}
+\hline
+\(\Delta t\) [ps] & \(\Delta x\) [\(\mu\mathrm{m}\)] & \(\Delta K\) [eV] \\
+\hline
+0.1   & 0.00434 & 5.20 \\
+0.01  & 0.04295 & 48.64 \\
+0.005 & 0.05191 & 58.68 \\
+0.002 & 0.05387 & 60.86 \\
+0.001 & 0.05415 & 61.16 \\
+\hline
+\end{tabular}
+\end{center}
+The coarse \(0.1~\mathrm{ps}\) run therefore underestimated the early energy
+kick by about a factor of twelve.  Production manufactured-solution comparisons
+should use a timestep near \(10^{-3}~\mathrm{ps}\) during overlap, or an
+equivalent adaptive integration around the source-overlap event.
+
+Figure~\ref{fig:manufactured-field-t0} shows the magnitude of the initial
+manufactured electric field for the symmetric and asymmetric source
+configurations.  Figure~\ref{fig:manufactured-pair-paths} shows the resulting
+pair trajectories and their deviation from free propagation.
+
+\begin{figure}[!htp]
+  \centering
+  \includegraphics[width=\textwidth]{./figs/boosted_gaussian_witness_physical_field_t0.png}
+  \caption{Magnitude of the manufactured boosted-Gaussian electric field at
+  pair creation for the updated \(\sigma'=0.6~\mathrm{mm}\) source bunch.  The
+  white marker is the interaction point.}
+  \label{fig:manufactured-field-t0}
+\end{figure}
+
+\begin{figure}[!htp]
+  \centering
+  \includegraphics[width=\textwidth]{./figs/boosted_gaussian_witness_physical_paths.png}
+  \caption{Back-to-back \(e^-/e^+\) propagation with and without the colliding
+  source fields over \(1050~\mathrm{ps}\).  The first \(5~\mathrm{ps}\) are
+  integrated with \(0.001~\mathrm{ps}\) steps to resolve the overlap kick; the
+  later drift uses \(0.1~\mathrm{ps}\) steps with \(0.1~\mathrm{ps}\) trajectory
+  output.  The x-z projection marks the \(R_{\mathrm{BB}}=15~\mathrm{cm}\)
+  cylinder scale and the 32 cm BeamBeam longitudinal window; the lower-right
+  panel shows the field-on trajectory minus the free trajectory.}
+  \label{fig:manufactured-pair-paths}
+\end{figure}
+
+\section{Implementation Use in OPALX}
+
+The recommended implementation sequence is:
+\begin{enumerate}
+  \item Keep the Python evaluator as the reference for exact one-witness values.
+  \item Add an OPALX unit or regression test with one prescribed source and one
+        witness particle.
+  \item First compare the field sampled by OPALX against the Python
+        \((\E,\B)\) value at the same event.
+  \item Then compare the witness momentum after one kick against the Python
+        Boris update.
+  \item Only after this single-particle manufactured test passes should the
+        implementation be generalized to many witnesses and mesh interpolation.
+\end{enumerate}
+
+\clearpage
+\section{Sandbox Regression Overview}
+
+This section incorporates the BeamBeam sandbox regression overview into the
+manufactured-solution note.  The reusable regression and plotting scripts now
+live under \texttt{sandbox/python}; accepted metrics and figure copies used by
+this note live under \texttt{sandbox/note}.
+
+\subsection{Compared Cases}
+
+\begin{tabularx}{\textwidth}{@{}p{0.24\textwidth}p{0.31\textwidth}X@{}}
+\toprule
+Check & Input / source & Comparison target \\
+\midrule
+BeamBeam field dumps &
+{\footnotesize\path{sandbox/BeamBeam-static-1V.in}} &
+ASCII \(\rho\), \(\phi\), and \(\E\) dumps are compared against the analytic
+symmetric Gaussian manufactured solution. \\
+Gamma-gamma \(e^-/e^+\) tracking &
+{\footnotesize\path{sandbox/track-e-p/gamma_gamma_pairs-2.in}} &
+FROMFILE pair kinematics and final witness-container summaries are checked for
+the primary beam, electrons, and positrons. \\
+OPALX-IMPACT drift &
+{\footnotesize\path{sandbox/OPALX-IMPACT/drift-1.in}} &
+A simple proton drift with space charge is compared with digitized IMPACT
+reference data. \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Current Regression Metrics}
+
+\begin{tabularx}{\textwidth}{@{}p{0.30\textwidth}p{0.28\textwidth}X@{}}
+\toprule
+Metric & Meaning & Current value \\
+\midrule
+BeamBeam field snapshot & diagnostic kind & active beam-beam field diagnostics \\
+charge integral & deposited charge & \(-1.112650055\times10^{-14}\) \\
+\(\rho\) relative \(L_2\) & density error & \(5.2218586\times10^{-2}\) \\
+\(\phi\) relative \(L_2\) & potential error & \(3.0422484\times10^{-3}\) \\
+\(E_x\) relative \(L_2\) & electric field error & \(1.5030245\times10^{-2}\) \\
+\(E_y\) relative \(L_2\) & electric field error & \(1.5821869\times10^{-2}\) \\
+\(E_z\) relative \(L_2\) & electric field error & \(2.4273686\times10^{-2}\) \\
+\bottomrule
+\end{tabularx}
+
+\begin{tabularx}{\textwidth}{@{}p{0.30\textwidth}p{0.28\textwidth}X@{}}
+\toprule
+Metric & Meaning & Current value \\
+\midrule
+OPALX rows & stat samples & 73 \\
+IMPACT rows & digitized samples & 71 \\
+final \(x\) & OPALX final centroid & \(3.4785129\times10^{-2}\) \\
+final \(\epsilon_x\) & OPALX final emittance & 1.8927107 \\
+RMS \(x\) difference & OPALX - IMPACT & \(7.6561747\times10^{-4}\) \\
+max \(x\) difference & OPALX - IMPACT & \(2.2219403\times10^{-3}\) \\
+RMS \(\epsilon_x\) difference & OPALX - IMPACT & \(8.6413341\times10^{-2}\) \\
+max \(\epsilon_x\) difference & OPALX - IMPACT & \(1.3101915\times10^{-1}\) \\
+\bottomrule
+\end{tabularx}
+
+\begin{figure}[!htp]
+  \centering
+  \includegraphics[width=0.82\textwidth]{./figs/opalx_impact_drift_comparison.png}
+  \caption{Digitized IMPACT reference data overlaid with the current OPALX
+  drift result from \texttt{sandbox/OPALX-IMPACT/drift-1.stat}.}
+  \label{fig:regression-impact-drift}
+\end{figure}
+
+\begin{tabularx}{\textwidth}{@{}p{0.30\textwidth}p{0.28\textwidth}X@{}}
+\toprule
+Metric & Meaning & Current value \\
+\midrule
+electron count & FROMFILE particles & 1297 \\
+positron count & FROMFILE particles & 1297 \\
+electron mean \(K\) & input pair kinematics & 313.601 keV \\
+positron mean \(K\) & input pair kinematics & 313.615 keV \\
+median opening angle & pair summary & \(168.907^\circ\) \\
+opening \(>150^\circ\) & pair summary fraction & 0.754819 \\
+electron final energy & \texttt{gamma\_gamma\_pairs-2} c1 & 0.315272 MeV \\
+positron final energy & \texttt{gamma\_gamma\_pairs-2} c2 & 0.311939 MeV \\
+electron final rms \(x\) & \texttt{gamma\_gamma\_pairs-2} c1 & \(1.3766180\times10^{-2}\) m \\
+positron final rms \(x\) & \texttt{gamma\_gamma\_pairs-2} c2 & \(1.3706767\times10^{-2}\) m \\
+\bottomrule
+\end{tabularx}
+
+\subsection{BeamBeam Diagnostic Timeline}
+
+\begin{figure}[!htp]
+\centering
+\begin{tikzpicture}[
+    x=1cm,
+    y=-0.065cm,
+    >=Latex,
+    font=\footnotesize,
+    bunch/.style={draw=black, line width=0.45pt, minimum width=0.58cm, minimum height=0.22cm},
+    event/.style={anchor=west, align=left, text width=5.6cm},
+    window/.style={draw=black, line width=0.45pt, minimum width=2.5cm, minimum height=0.62cm},
+]
+\definecolor{sourcegreen}{HTML}{1B9E77}
+\definecolor{pairmagenta}{HTML}{D33682}
+\definecolor{paircyan}{HTML}{2AA6B8}
+
+\draw[->, line width=0.6pt] (0,15) -- (0,212);
+\node[anchor=south] at (0,12) {time [ps]};
+\foreach \t/\y in {22/22,45/45,100/100,111/136,116/169,121/202} {
+    \draw[line width=0.45pt] (-0.12,\y) -- (0.12,\y);
+    \node[left] at (-0.18,\y) {\t};
+}
+
+\node[event] at (8.2,22) {approach: source bunches still separated};
+\node[event] at (8.2,45) {\texttt{BB-active=TRUE}};
+\node[event] at (8.2,100) {witness pair born at IP: \texttt{c1,c2:n=1297}};
+\node[event] at (8.2,136) {\texttt{source\_bunches\_overlap=TRUE}};
+\node[event] at (8.2,169) {source bunches passed IP};
+\node[event] at (8.2,202) {\texttt{source\_bunches\_overlap=FALSE}\\
+\texttt{retired\_bunches=1, source\_active=FALSE}};
+
+\foreach \y/\xb/\xg in {22/3.55/6.45,45/4.35/5.65,100/4.78/5.22,136/5.00/5.00,169/5.35/4.65} {
+    \node[window] at (5,\y) {};
+    \draw[line width=0.45pt] (5,\y-6.0) -- (5,\y+6.0);
+    \node[bunch, fill=black] at (\xb,\y) {};
+    \node[bunch, draw=sourcegreen, fill=sourcegreen!18, line width=0.85pt] at (\xg,\y) {};
+}
+\node[window] at (5,202) {};
+\draw[line width=0.45pt] (5,196.0) -- (5,208.0);
+\node[bunch, draw=gray, dashed] (retiredPrimaryA) at (4.65,202) {};
+\node[bunch, draw=gray, dashed] (retiredPrimaryB) at (5.35,202) {};
+\foreach \nodeName in {retiredPrimaryA,retiredPrimaryB} {
+    \draw[gray, line width=0.55pt]
+        ([xshift=-5pt,yshift=-3pt]\nodeName.center) --
+        ([xshift=5pt,yshift=3pt]\nodeName.center);
+    \draw[gray, line width=0.55pt]
+        ([xshift=-5pt,yshift=3pt]\nodeName.center) --
+        ([xshift=5pt,yshift=-3pt]\nodeName.center);
+}
+
+\foreach \t/\h in {100/8,136/10,169/11,202/12} {
+    \path[draw=black, fill=paircyan!55, line width=0.45pt]
+        (5.00,\t) -- ([xshift=-4pt,yshift=-\h pt]5.00,\t)
+        -- ([xshift=4pt,yshift=-\h pt]5.00,\t) -- cycle;
+    \path[draw=black, fill=pairmagenta!65, line width=0.45pt]
+        (5.00,\t) -- ([xshift=-4pt,yshift=\h pt]5.00,\t)
+        -- ([xshift=4pt,yshift=\h pt]5.00,\t) -- cycle;
+}
+
+\node[anchor=south] at (5.0,11) {BeamBeam window};
+\node[anchor=north] at (5.24,16) {IP};
+\draw[->, line width=0.45pt] (3.45,16) -- (4.05,16);
+\draw[->, line width=0.45pt] (6.55,16) -- (5.95,16);
+\node[anchor=west, text width=8.2cm, font=\scriptsize] at (0.7,217)
+{Draft event timeline, not to scale. The rows track grepable
+\texttt{BB-DIAG} transitions from OPALX stdout; the final row shows the
+configured \texttt{RETIRE\_TIME} deleting the primary source while the witness
+pair remains active.};
+\end{tikzpicture}
+\caption{Timeline for copied BeamBeam source bunches and the injected
+low-energy witness pair.}
+\label{fig:regression-beambeam-timeline}
+\end{figure}
+
+\subsection{Cylinder Crossing Histograms}
+
+\begin{figure}[!htp]
+  \centering
+  \includegraphics[width=0.88\textwidth]{./figs/gamma_gamma_cylinder_losses.png}
+  \caption{Cylinder-edge crossing histogram for the low-energy witness pair
+  after source retirement.  Bars show the first recorded H5 particle position
+  with radius at least 1 cm for containers \texttt{c1} and \texttt{c2}.}
+  \label{fig:regression-small-cylinder-crossings}
+\end{figure}
+
+\begin{figure}[!htp]
+\centering
+\begin{tikzpicture}[x=1cm, y=1cm, font=\footnotesize]
+\definecolor{pairmagenta}{HTML}{D33682}
+\definecolor{paircyan}{HTML}{2AA6B8}
+\draw[line width=0.7pt] (0,0.55) -- (8.6,0.55);
+\draw[line width=0.7pt] (0,-0.55) -- (8.6,-0.55);
+\draw[line width=0.7pt] (0,0) ellipse (0.32 and 0.55);
+\draw[line width=0.7pt] (8.6,0) ellipse (0.32 and 0.55);
+\draw[line width=0.5pt] (4.3,-0.78) -- (4.3,0.78);
+\node[anchor=north] at (4.3,-0.82) {IP, $s=0.17$ m};
+\node[anchor=south] at (4.3,0.68) {BeamBeam cylinder: length 32 cm, radius 15 cm};
+\node[draw=black, fill=paircyan!55, minimum width=0.20cm, minimum height=0.40cm] at (4.18,0.0) {};
+\node[draw=black, fill=pairmagenta!65, minimum width=0.20cm, minimum height=0.40cm] at (4.42,0.0) {};
+\end{tikzpicture}
+
+\vspace{0.6em}
+\begin{tabularx}{0.86\textwidth}{@{}p{0.38\textwidth}p{0.18\textwidth}X@{}}
+\toprule
+Event & Time & Note \\
+\midrule
+BeamBeam window active & observed & \texttt{BB-active=TRUE} is emitted before witness injection. \\
+Witness pair injected & 550.3 ps & Preserves the 16.747 ps pre-IP offset from the proof-of-principle setup. \\
+Primary reaches IP & 567.1 ps & \(s_\mathrm{IP}=0.17~\mathrm{m}\) for the 32 cm BeamBeam window. \\
+Source retired & 571.3 ps & Preserves the 4.253 ps post-IP retirement offset. \\
+Tracking ends & 1600 ps & Long enough for the first 15 cm radial crossings. \\
+\bottomrule
+\end{tabularx}
+\caption{Timing and geometry summary for the large-cylinder setup.}
+\label{fig:regression-large-cylinder-setup}
+\end{figure}
+
+\begin{figure}[!htp]
+  \centering
+  \includegraphics[width=0.88\textwidth]{./figs/gamma_gamma_large_cylinder_crossings.png}
+  \caption{Cylinder-edge crossing histogram for the large setup with 15 cm
+  radius and 32 cm BeamBeam length.  Bars show first recorded H5 particle
+  positions with radius at least 15 cm for containers \texttt{c1} and
+  \texttt{c2}.}
+  \label{fig:regression-large-cylinder-crossings}
+\end{figure}
+
+\begin{figure}[!htp]
+  \centering
+  \includegraphics[width=0.88\textwidth]{./figs/gamma_gamma_large_cylinder_charge_compare.png}
+  \caption{Comparison of nominal large-cylinder crossing histograms with a
+  rerun where the primary bunch charge is scaled by \(10^{-5}\).  Solid curves
+  show the nominal primary charge, dashed curves show the reduced-charge run,
+  and grey bars show the reduced-minus-nominal bin difference.}
+  \label{fig:regression-large-cylinder-charge-compare}
+\end{figure}
+
+\begin{figure}[!htp]
+  \centering
+  \includegraphics[width=0.88\textwidth]{./figs/gamma_gamma_large_cylinder_staged_dt_crossings.png}
+  \caption{Final nominal staged-timestep run overlaid with the available
+  \(10^{-5}\) primary-charge run for the 15 cm radius, 32 cm-long BeamBeam
+  cylinder with 1000 ps source-retirement time.  The nominal run uses a 1 fs
+  timestep over the witness-injection and source-overlap interval, then returns
+  to 1 ps tracking for the post-overlap drift.  The reduced-charge comparison
+  uses the existing 1000 ps retirement H5 files.  Both spectra have the same
+  total first recorded cylinder-edge crossings: \(701\) electrons and
+  \(692\) positrons.}
+  \label{fig:regression-large-cylinder-staged-dt-crossings}
+\end{figure}
+
+The overlaid reduced-charge spectrum is not a staged-timestep rerun; it uses
+the previous \(10^{-5}\)-charge, 1000 ps-retirement output.  That run stores
+fewer H5 samples than the staged nominal run but reaches the same 1600 ps final
+time.
+
+\subsection{Figure Generation and Output Paths}
+
+The figure files used by this note are stored under \texttt{sandbox/note/figs}
+so the note does not depend on the regression output directory at compile time.
+The regression plotting scripts have been relocated to \texttt{sandbox/python}
+and default to note-local outputs.  In particular,
+\texttt{make\_sandbox\_regression\_overview.py} writes overview figures under
+\texttt{sandbox/note/figs}, \texttt{plot\_cylinder\_crossings.py} writes the
+staged large-cylinder histogram there, and
+\texttt{compare\_cylinder\_crossing\_histograms.py} accepts \texttt{--output}
+for explicit figure placement.
+
+\subsection{Regression Workflow Notes}
+
+The lightweight regression checks are now driven from
+\texttt{sandbox/python/run\_sandbox\_regressions.py}.  They cover three compact
+checks: manufactured \texttt{BeamBeam} field dumps, gamma-gamma
+\(e^-/e^+\) FROMFILE pair tracking, and the OPALX--IMPACT drift comparison.
+The accepted baseline is the JSON file
+\texttt{sandbox/note/sandbox\_regression\_baseline.json}; the latest flattened
+metrics are written to \texttt{sandbox/note/current\_metrics.csv}.  The CSV is
+run output, while the JSON file is the comparison reference.
+
+The baseline should only be updated after an intentional physics or numerics
+change.  When accepting new results, record the expected impact on conservation,
+stability, floating-point reproducibility, and OpenMP/MPI execution order.  The
+baseline JSON records the git branch, commit, dirty flag, and
+\texttt{git status --short} output present when the baseline was accepted.
+
+The pair-input utilities remain in \texttt{sandbox/track-e-p}.  The standard
+six-column FROMFILE distributions are regenerated with
+\texttt{convert\_fort98\_to\_fromfile.py}.  Creation-time diagnostics use the
+\texttt{--add-time} option, which writes
+\texttt{x y z px py pz t bin\_number} with \(t=ct/c\) in seconds and
+\texttt{bin\_number=1}.  The analyzer
+\texttt{analyze\_pair\_momenta.py} reports the corresponding time summaries in
+picoseconds and can write the time histogram diagnostics.
+
+\subsection{Staged Timestep Rationale}
+
+OPALX interprets vector-valued \texttt{DT} and \texttt{MAXSTEPS} entries as
+per-segment tracking instructions.  The entries are not cumulative step
+numbers.  For example,
+\begin{verbatim}
+MAXSTEPS = {550, 25001, 1025}
+DT       = {1.0e-12, 1.0e-15, 1.0e-12}
+\end{verbatim}
+means 550 coarse 1 ps steps, followed by 25001 fine 1 fs steps, followed by
+1025 coarse 1 ps steps.  The total simulated time is therefore
+\begin{equation}
+  550~\mathrm{ps} + 25001~\mathrm{fs} + 1025~\mathrm{ps}
+  = 1600.001~\mathrm{ps}.
+\end{equation}
+
+The fine segment starts at \(550~\mathrm{ps}\).  This deliberately brackets the
+proof-of-principle witness injection time
+\begin{equation}
+  t_{\mathrm{inj}} =
+  t_{\mathrm{IP}} - 16.747~\mathrm{ps}
+  \simeq 550.312~\mathrm{ps},
+\end{equation}
+and continues through the primary bunch IP crossing at
+\begin{equation}
+  t_{\mathrm{IP}} = \frac{0.17~\mathrm{m}}{c}
+  \simeq 567.059~\mathrm{ps}.
+\end{equation}
+The reason is operational as well as numerical: the \texttt{FROMFILE} source is
+a one-shot delayed emitter.  It emits when the active time interval
+\([t,t+\Delta t)\) crosses \texttt{T0}; it does not itself request a smaller
+emission timestep.  Thus the global tracker timestep must already be fine
+before \(t_{\mathrm{inj}}\) if pair creation is to occur with femtosecond
+resolution.
+
+For the histogram-focused production run, only the witness trajectory samples
+are needed to find the first cylinder-edge crossing,
+\begin{equation}
+  \sqrt{x^2+y^2}\geq 0.15~\mathrm{m}.
+\end{equation}
+The integration still uses the 1 fs segment above, but dense diagnostic output
+is not required.  The staged input therefore uses
+\begin{verbatim}
+OPTION, PSDUMPFREQ = 10;
+OPTION, STATDUMPFREQ = 0;
+\end{verbatim}
+so H5 phase-space samples are written every ten integration steps and stat
+files are suppressed.  In the coarse tail this gives approximately 10 ps
+sampling, corresponding to about 3 mm of light-travel distance, which is small
+compared with the current histogram span.  The source-field ASCII
+\texttt{.dat} files produced by the debug-enabled field solver are not used for
+the histogram and can be deleted during or after the run.
+
+\subsection{Reproduction Commands}
+
+\begin{verbatim}
+source .venv-h6/bin/activate
+python sandbox/python/run_sandbox_regressions.py \
+  --run-opalx \
+  --opalx-exe build_openmp/src/opalx
+cd sandbox/track-e-p
+../../build_openmp/src/opalx gamma_gamma_pairs-large-cylinder.in
+../../build_openmp/src/opalx gamma_gamma_pairs-large-cylinder-q1em5.in
+cd ../..
+python sandbox/python/make_sandbox_regression_overview.py
+cd sandbox/note
+latexmk -pdf boosted_gaussian_witness.tex
+\end{verbatim}
+
+\end{document}

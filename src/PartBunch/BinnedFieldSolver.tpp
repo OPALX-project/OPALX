@@ -1,10 +1,101 @@
 #include "Structure/DataSink.h"
 
 #include "PartBunch/FieldMirror.hpp"
+#include "Utilities/Options.h"
 
 #include <cstring>
 #include <utility>
 #include <vector>
+
+namespace opalx::detail {
+    template <
+            typename T, unsigned Dim, typename RangePolicy, typename MirroredView,
+            typename ElectricView, typename MagneticView>
+    void accumulateMirroredPrimaryField(
+            const RangePolicy& rangePolicy, MirroredView mirroredView, ElectricView electricView,
+            MagneticView magneticView, const double gammaBin, const double gammaMinusOne,
+            const double gammaOverCSq, const Vector_t<double, Dim>& velocity,
+            const Vector_t<double, Dim>& direction) {
+        ippl::parallel_for(
+                "BinnedFieldSolver::accumulateMirroredPrimaryFieldToTemp", rangePolicy,
+                KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
+                    Vector_t<T, Dim> ePrime = mirroredView(idx[0], idx[1], idx[2]);
+                    ePrime[Dim - 1]         = -ePrime[Dim - 1];
+
+                    const T ePrimeDotW = ePrime.dot(direction);
+                    Vector_t<T, Dim> eLab =
+                            gammaBin * ePrime - gammaMinusOne * ePrimeDotW * direction;
+                    Vector_t<T, Dim> bLab   = gammaOverCSq * cross(velocity, ePrime);
+                    Vector_t<T, Dim> eTotal = apply(electricView, idx);
+                    Vector_t<T, Dim> bTotal = apply(magneticView, idx);
+                    eTotal += eLab;
+                    bTotal += bLab;
+                    apply(electricView, idx) = eTotal;
+                    apply(magneticView, idx) = bTotal;
+                });
+    }
+
+    template <
+            typename T, unsigned Dim, typename RangePolicy, typename ElectricView,
+            typename MagneticView>
+    void finalizeBeamBeamTwoField(
+            const RangePolicy& rangePolicy, ElectricView electricView, MagneticView magneticView,
+            const double gammaBin, const double gammaMinusOne, const double gammaOverCSq,
+            const Vector_t<double, Dim>& physicalVelocity,
+            const Vector_t<double, Dim>& physicalDirection,
+            const Vector_t<double, Dim>& copiedVelocity,
+            const Vector_t<double, Dim>& copiedDirection, const bool includeCopy) {
+        ippl::parallel_for(
+                "BinnedFieldSolver::finalizeBeamBeamTwoFieldResult", rangePolicy,
+                KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
+                    const Vector_t<T, Dim> physicalEPrime = apply(electricView, idx);
+                    const T physicalEDotW                 = physicalEPrime.dot(physicalDirection);
+                    Vector_t<T, Dim> electricTotal =
+                            gammaBin * physicalEPrime
+                            - gammaMinusOne * physicalEDotW * physicalDirection;
+                    Vector_t<T, Dim> magneticTotal =
+                            gammaOverCSq * cross(physicalVelocity, physicalEPrime);
+
+                    if (includeCopy) {
+                        Vector_t<T, Dim> copiedEPrime = apply(magneticView, idx);
+                        copiedEPrime[Dim - 1]         = -copiedEPrime[Dim - 1];
+                        const T copiedEDotW           = copiedEPrime.dot(copiedDirection);
+                        electricTotal += gammaBin * copiedEPrime
+                                         - gammaMinusOne * copiedEDotW * copiedDirection;
+                        magneticTotal += gammaOverCSq * cross(copiedVelocity, copiedEPrime);
+                    }
+
+                    apply(electricView, idx) = electricTotal;
+                    apply(magneticView, idx) = magneticTotal;
+                });
+    }
+
+    template <typename PositionView>
+    Kokkos::View<double*> mirrorBeamBeamZPositions(
+            PositionView rView, const size_t nLoc, const double interactionPointBeamZ) {
+        Kokkos::View<double*> originalZ("BinnedFieldSolver::BeamBeamOriginalZ", nLoc);
+        Kokkos::parallel_for(
+                "BinnedFieldSolver::BeamBeamMirror", nLoc, KOKKOS_LAMBDA(const size_t i) {
+                    originalZ(i) = rView(i)[2];
+                    rView(i)[2]  = 2.0 * interactionPointBeamZ - rView(i)[2];
+                });
+        Kokkos::fence();
+        return originalZ;
+    }
+
+    template <typename PositionView, typename OriginalZView>
+    void restoreBeamBeamZPositions(PositionView rView, const size_t nLoc, OriginalZView originalZ) {
+        Kokkos::parallel_for(
+                "BinnedFieldSolver::BeamBeamRestore", nLoc,
+                KOKKOS_LAMBDA(const size_t i) { rView(i)[2] = originalZ(i); });
+        Kokkos::fence();
+    }
+
+    inline bool shouldDumpBeamBeamFieldDiagnostics(const long long globalTrackStep) {
+        return Options::psDumpFreq > 0
+               && ((globalTrackStep % Options::psDumpFreq) + 1 == Options::psDumpFreq);
+    }
+}  // namespace opalx::detail
 
 template <typename T, unsigned Dim>
 BinnedFieldSolver<T, Dim>::BinnedFieldSolver(
@@ -34,6 +125,7 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
     }
 
     Inform m("BinnedFieldSolver::computeSelfFields");
+    beamBeamTwoFieldResultActive_m = false;
     // TYPE=NONE is a true no-op: skip all binning/scatter/solve/gather work.
     if (this->getStype() == "NONE") {
         // Already called in ParallelTracker::resetFields()
@@ -73,6 +165,12 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
                           "charge is intended.");
     }
 
+    // The BeamBeam two-field fast path must be disabled when a cathode/image model was
+    // configured, even if its per-step budget has expired and the model is temporarily gated
+    // below. Capture the configured state before changing either runtime flag.
+    const bool noImageModelConfigured =
+            !imageScatterController_m.isEnabled() && !shiftedGreensEnabled_m;
+
     // decide which solver path to run (binned vs legacy).
     const bool hasBins = bunch.hasBinning();
     if (this->getStype() == "P3M" && hasBins) {
@@ -110,7 +208,7 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
 
     if (hasBins) {
         m << level4 << "Dispatching to computeBinnedSelfFields() (binned path)." << endl;
-        computeBinnedSelfFields(bunch);
+        computeBinnedSelfFields(bunch, noImageModelConfigured);
     } else {
         // Legacy path has no separate correction pass: it scatters primary+image
         // in one shot via ImageChargeScatterController::scatterPrimaryAndImage
@@ -132,6 +230,47 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
     if (shiftedGreensWasEnabled && !shiftedGreensActiveThisStep) {
         shiftedGreensEnabled_m = true;
     }
+}
+
+template <typename T, unsigned Dim>
+void BinnedFieldSolver<T, Dim>::gatherCurrentFieldsToContainer(
+        PartBunch_t& bunch, ParticleCtr_t& target) {
+    if (this->getStype() == "NONE") {
+        target.E = 0.0;
+        target.B = 0.0;
+        return;
+    }
+
+    if (gatherAttribute_m != GatherAttribute::ElectricFieldE) {
+        throw OpalException(
+                "BinnedFieldSolver::gatherCurrentFieldsToContainer",
+                "Unsupported gather attribute in witness field gather.");
+    }
+
+    if (beamBeamTwoFieldResultActive_m) {
+        auto fieldContainer = bunch.getFieldContainer();
+        if (!fieldContainer) {
+            throw OpalException(
+                    "BinnedFieldSolver::gatherCurrentFieldsToContainer",
+                    "BeamBeam two-field gather requires an initialized FieldContainer.");
+        }
+        gather(target.E, fieldContainer->getE(), target.R);
+        gather(target.B, fieldContainer->getB(), target.R);
+    } else if (bunch.hasBinning()) {
+        auto EtmpSP = bunch.getTempEField();
+        auto BtmpSP = bunch.getTempBField();
+        if (!EtmpSP || !BtmpSP) {
+            throw OpalException(
+                    "BinnedFieldSolver::gatherCurrentFieldsToContainer",
+                    "Binned witness field gather requires temporary E and B field buffers.");
+        }
+        gather(target.E, *EtmpSP, target.R);
+        gather(target.B, *BtmpSP, target.R);
+    } else {
+        gather(target.E, *this->getE(), target.R);
+        target.B = 0.0;
+    }
+    Kokkos::fence();
 }
 
 template <typename T, unsigned Dim>
@@ -277,7 +416,8 @@ void BinnedFieldSolver<T, Dim>::printBinStatsTable(
 }
 
 template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
+void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(
+        PartBunch_t& bunch, const bool noImageModelConfigured) {
     // execute full binned self-field algorithm.
     // fetch the adaptive bin structure.
     std::shared_ptr<AdaptBins_t> bins = bunch.getBins();
@@ -291,45 +431,50 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
     // build and merge adaptive bins for this step.
     rebinAndPrepare(bunch, bins);
 
-    // obtain the temporary buffers used to accumulate bin contributions.
     auto fieldContainer = bunch.getFieldContainer();
     if (!fieldContainer) {
         throw OpalException(
                 "BinnedFieldSolver::computeBinnedSelfFields", "FieldContainer is not initialized.");
     }
 
-    std::shared_ptr<VField_t<T, Dim>> EtmpSP = fieldContainer->getTempEField();
-    if (!EtmpSP) {
-        throw OpalException(
-                "BinnedFieldSolver::computeBinnedSelfFields",
-                "Temporary E field (Etmp) is not initialized.");
-    }
-    std::shared_ptr<VField_t<T, Dim>> BtmpSP = fieldContainer->getTempBField();
-    if (!BtmpSP) {
-        throw OpalException(
-                "BinnedFieldSolver::computeBinnedSelfFields",
-                "Temporary B field (Btmp) is not initialized.");
-    }
-
-    VField_t<T, Dim>& Etmp = *EtmpSP;
-    VField_t<T, Dim>& Btmp = *BtmpSP;
-    // clear the accumulation buffer.
-    Etmp = 0.0;
-    Btmp = 0.0;
-
     // determine the number of bins used for this step.
     const bin_index_type nBins = bins->getCurrentBinCount();
+    const bool beamBeamTwoFieldFastPath =
+            bunch.hasBeamBeamWindowConfig() && nBins == 1 && noImageModelConfigured;
+
+    // Generic binned/image-charge operation needs accumulation fields. Keep them lazy so the
+    // two-field BeamBeam path owns only E_m/B_m on the large fixed interaction mesh.
+    std::shared_ptr<VField_t<T, Dim>> EtmpSP;
+    std::shared_ptr<VField_t<T, Dim>> BtmpSP;
+    if (beamBeamTwoFieldFastPath) {
+        fieldContainer->releaseTemporaryFields();
+    } else {
+        fieldContainer->initializeTemporaryFields();
+        EtmpSP = fieldContainer->getTempEField();
+        BtmpSP = fieldContainer->getTempBField();
+        if (!EtmpSP || !BtmpSP) {
+            throw OpalException(
+                    "BinnedFieldSolver::computeBinnedSelfFields",
+                    "Generic binned solve could not initialize temporary E/B fields.");
+        }
+        *EtmpSP = 0.0;
+        *BtmpSP = 0.0;
+    }
 
     // Level-5 debug: per-step overview before entering the bin loop.
     Inform m("BinnedFieldSolver::computeBinnedSelfFields");
     m << level4 << "Binned mode: nBins=" << static_cast<int>(nBins)
-      << ", stype=" << this->getStype() << endl;
+      << ", stype=" << this->getStype()
+      << ", beamBeamTwoFieldFastPath=" << (beamBeamTwoFieldFastPath ? 1 : 0) << endl;
 
     // Cache values for the level-3 per-call table.
     std::vector<BinStatsRow> binStats;
     binStats.reserve(static_cast<size_t>(nBins));
 
     bool dumpedDirichletPlaneThisStep = false;
+    const bool beamBeamActive         = bunch.hasBeamBeamWindowConfig();
+    const bool beamBeamCopyActive     = beamBeamActive && bunch.getBeamBeamWindowConfig().copyModel;
+    double depositedBeamBeamCharge    = 0.0;
 
     // iterate over merged bins and accumulate E contributions.
     for (bin_index_type binIndex = 0; binIndex < nBins; ++binIndex) {
@@ -376,7 +521,15 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             const ImageScatterMode scatterMode = correctionActive
                                                          ? ImageScatterMode::PrimaryOnly
                                                          : ImageScatterMode::PrimaryAndImage;
-            prepareRhoForBin(bunch, bins, binIndex, nPartGlobal, gammaBin, scatterMode);
+            const double depositedCharge       = prepareRhoForBinImpl(
+                    bunch, bins, binIndex, nPartGlobal, gammaBin, scatterMode, beamBeamActive);
+            if (beamBeamActive) {
+                // The rigid copied primary has the same charge as the physical primary. Its
+                // field is reconstructed below from the physical solve, so account for both
+                // sources without repeating the scatter solely for this diagnostic.
+                depositedBeamBeamCharge +=
+                        beamBeamCopyActive ? 2.0 * depositedCharge : depositedCharge;
+            }
 
             *(this->getE()) = 0.0;
             mesh.setMeshSpacing(hrStretched);
@@ -385,11 +538,22 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
               << " primary runSolver(true) start"
               << " (hr_z stretched by gamma=" << gammaBin << ")" << endl;
             this->runSolver(true);
-            m << level4 << "binIndex=" << static_cast<int>(binIndex)
-              << " primary runSolver(true) done; accumulate->Etmp" << endl;
+            if (beamBeamTwoFieldFastPath) {
+                m << level4 << "binIndex=" << static_cast<int>(binIndex)
+                  << " primary runSolver(true) done; finalize directly in E_m/B_m" << endl;
+                finalizeBeamBeamTwoFieldResult(
+                        *fieldContainer, gammaBin, kinematics.pmean, beamBeamCopyActive);
+            } else {
+                m << level4 << "binIndex=" << static_cast<int>(binIndex)
+                  << " primary runSolver(true) done; accumulate->Etmp" << endl;
+                accumulateFieldToTemp(
+                        *fieldContainer, gammaBin, kinematics.pmean, EtmpSP, BtmpSP, +1.0);
 
-            accumulateFieldToTemp(
-                    *fieldContainer, gammaBin, kinematics.pmean, EtmpSP, BtmpSP, +1.0);
+                if (beamBeamCopyActive) {
+                    accumulateMirroredPrimaryFieldToTemp(
+                            *fieldContainer, gammaBin, kinematics.pmean, EtmpSP, BtmpSP);
+                }
+            }
 
             mesh.setMeshSpacing(hrOrig);
         }
@@ -480,8 +644,18 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
         }
     }
 
-    // after all bins, gather the accumulated lab-frame field back to particles.
-    gatherFromTempToParticles(bunch, EtmpSP, BtmpSP);
+    if (beamBeamActive) {
+        bunch.setLastDepositedChargeBeforeBackground(depositedBeamBeamCharge);
+    }
+
+    // After all bins, gather the final lab-frame fields back to the primary particles. Publish
+    // which mesh pair remains current so subsequent witness gathers use the same result.
+    if (beamBeamTwoFieldFastPath) {
+        gatherFieldsToParticles(bunch, fieldContainer->getE(), fieldContainer->getB());
+        beamBeamTwoFieldResultActive_m = true;
+    } else {
+        gatherFromTempToParticles(bunch, EtmpSP, BtmpSP);
+    }
 
     // per-call table: gammaBin / nParticles / binNumber.
     if (tablePrintFrequency_m > 0) {
@@ -523,7 +697,37 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
 
     // Scatter charge to mesh rho using dt-weighted deposition (master approach):
     // scale dt by Q, scatter dt, then restore dt.
-    imageScatterController_m.scatterPrimaryAndImage(pc, *R, rho);
+    const bool beamBeamActive = bunch.hasBeamBeamWindowConfig();
+    if (beamBeamActive) {
+        imageScatterController_m.scatterPrimaryOnly(pc, *R, rho);
+    } else {
+        imageScatterController_m.scatterPrimaryAndImage(pc, *R, rho);
+    }
+
+    if (beamBeamActive && bunch.getBeamBeamWindowConfig().copyModel) {
+        const double interactionPointBeamZ =
+                bunch.getBeamBeamWindowConfig().interactionPointS - pc->get_sPos();
+
+        auto scatterMirroredSameSign = [&]() {
+            auto rView        = pc->R.getView();
+            const size_t nLoc = pc->getLocalNum();
+            auto originalZ =
+                    opalx::detail::mirrorBeamBeamZPositions(rView, nLoc, interactionPointBeamZ);
+            imageScatterController_m.scatterPrimaryOnly(pc, pc->R, rho);
+            opalx::detail::restoreBeamBeamZPositions(rView, nLoc, originalZ);
+        };
+
+        if (ippl::Comm->size() > 1) {
+            Field_t<Dim> primaryRho = rho.deepCopy();
+            rho                     = 0.0;
+            scatterMirroredSameSign();
+            rho = rho + primaryRho;
+        } else {
+            scatterMirroredSameSign();
+        }
+    }
+
+    bunch.setLastDepositedChargeBeforeBackground(rho.sum());
 
     //  apply mesh normalization, background subtraction, and rho scaling.
     const std::string stype = this->getStype();
@@ -546,6 +750,19 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
         shift               = -(totalQ / size) * this->getCouplingConstant();
     }
 
+    const bool dumpBeamBeamFieldDiagnostics =
+            beamBeamActive
+            && opalx::detail::shouldDumpBeamBeamFieldDiagnostics(bunch.getGlobalTrackStep());
+    std::vector<std::string> beamBeamFieldHeaders;
+    if (dumpBeamBeamFieldDiagnostics) {
+        pc->updateMoments();
+        beamBeamFieldHeaders = bunch.buildScalarDumpHeaders("active_beambeam_field_diagnostics");
+
+        std::vector<std::string> rhoHeaders = beamBeamFieldHeaders;
+        rhoHeaders.emplace_back("field_stage=rho_before_coupling");
+        this->dumpScalField("RHO", "beambeam_rho_pre", rhoHeaders);
+    }
+
     rho = rho * (this->getCouplingConstant() / normalizer) + shift;
 
     // Ensure deterministic output even for solver types that do not update `E`.
@@ -553,7 +770,16 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
 
     // run the solver once and gather mesh E back to particles.
     m << level4 << "Legacy mode: runSolver() start" << endl;
-    this->runSolver();
+    this->runSolver(dumpBeamBeamFieldDiagnostics);
+    if (dumpBeamBeamFieldDiagnostics) {
+        std::vector<std::string> phiHeaders = beamBeamFieldHeaders;
+        phiHeaders.emplace_back("field_stage=phi_after_solve");
+        this->dumpScalField("PHI", "beambeam_phi", phiHeaders);
+
+        std::vector<std::string> eHeaders = beamBeamFieldHeaders;
+        eHeaders.emplace_back("field_stage=e_after_solve");
+        this->dumpVectField("EF", "beambeam_e", eHeaders);
+    }
     dumpDirichletPlaneDiagnosticsIfRequested(bunch, "legacy");
     m << level4 << "Legacy mode: gather E->particles" << endl;
 
@@ -668,6 +894,16 @@ template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
         PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins, const bin_index_type binIndex,
         const size_type nPartGlobal, const double gammaBin, ImageScatterMode mode) {
+    (void)prepareRhoForBinImpl(
+            bunch, bins, binIndex, nPartGlobal, gammaBin, mode,
+            /*measureDepositedCharge=*/false);
+}
+
+template <typename T, unsigned Dim>
+double BinnedFieldSolver<T, Dim>::prepareRhoForBinImpl(
+        PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins, const bin_index_type binIndex,
+        const size_type nPartGlobal, const double gammaBin, ImageScatterMode mode,
+        bool measureDepositedCharge) {
     // Scatter bin charge to rho using dt-weighted deposition.
     // If the ParticleContainer supports scaleDtByCharge(), use the master approach:
     // scale dt by charge, scatter dt, then unscale.
@@ -740,6 +976,8 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
         }
     }
 
+    const double depositedCharge = measureDepositedCharge ? rho.sum() : 0.0;
+
     // normalize rho for fractional time steps and mesh conventions.
     const std::string stype = this->getStype();
     double normalizer       = bunch.getdT();
@@ -766,6 +1004,7 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
     // Lorentz transform of charge density to the bin rest frame (thesis Eq. step 7).
     normalizer *= gammaBin;
     rho = rho * (this->getCouplingConstant() / normalizer) + shift;
+    return depositedCharge;
 }
 
 template <typename T, unsigned Dim>
@@ -872,6 +1111,88 @@ void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
 }
 
 template <typename T, unsigned Dim>
+void BinnedFieldSolver<T, Dim>::accumulateMirroredPrimaryFieldToTemp(
+        FieldContainer_t& fieldContainer, const double gammaBin,
+        const Vector_t<double, Dim>& physicalPmean, std::shared_ptr<VField_t<T, Dim>> EtmpSP,
+        std::shared_ptr<VField_t<T, Dim>> BtmpSP) {
+    static_assert(Dim == 3, "BeamBeam mirrored-primary accumulation requires three dimensions");
+
+    // The BeamBeam copy is a same-sign primary reflected about the interaction point, not an
+    // image charge. Its vector-field parity under z reflection is (+Ex, +Ey, -Ez). Reverse only
+    // the longitudinal mean velocity before performing the usual rest-to-lab transformation.
+    Vector_t<double, Dim> copiedPmean = physicalPmean;
+    copiedPmean[Dim - 1]              = -copiedPmean[Dim - 1];
+
+    const double invGamma         = (gammaBin > 0.0) ? (1.0 / gammaBin) : 0.0;
+    const Vector_t<double, Dim> v = Physics::c * copiedPmean * invGamma;
+    const double vNorm            = Kokkos::sqrt(v.dot(v));
+    const Vector_t<double, Dim> w = (vNorm > 0.0) ? (v / vNorm) : Vector_t<double, Dim>(0.0);
+    const double gammaMinusOne    = gammaBin - 1.0;
+    const double gammaOverCSq     = gammaBin / (Physics::c * Physics::c);
+
+    const VField_t<T, Dim>& physicalEprime = *(this->getE());
+    buildFlippedZSlab(fieldContainer, physicalEprime);
+    auto mirroredField = fieldContainer.getFlippedZSlabField();
+    if (!mirroredField) {
+        throw OpalException(
+                "BinnedFieldSolver::accumulateMirroredPrimaryFieldToTemp",
+                "Mirrored-primary scratch field is not initialized.");
+    }
+
+    auto mirroredView = mirroredField->getView();
+    auto eTmpView     = EtmpSP->getView();
+    auto bTmpView     = BtmpSP->getView();
+
+    opalx::detail::accumulateMirroredPrimaryField<T, Dim>(
+            physicalEprime.getFieldRangePolicy(), mirroredView, eTmpView, bTmpView, gammaBin,
+            gammaMinusOne, gammaOverCSq, v, w);
+}
+
+template <typename T, unsigned Dim>
+void BinnedFieldSolver<T, Dim>::finalizeBeamBeamTwoFieldResult(
+        FieldContainer_t& fieldContainer, const double gammaBin,
+        const Vector_t<double, Dim>& physicalPmean, const bool includeCopy) {
+    static_assert(Dim == 3, "BeamBeam two-field finalization requires three dimensions");
+
+    VField_t<T, Dim>& electricField = fieldContainer.getE();
+    VField_t<T, Dim>& magneticField = fieldContainer.getB();
+
+    if (includeCopy) {
+        // B_m is independent of E_m and every owned destination cell is covered by the global
+        // reflection. Skip mirrorField's generic full-field clear; gather() refreshes ghosts
+        // after the combined kernel has produced the final lab-frame B field.
+        IpplTimings::TimerRef mirrorFieldTimer = IpplTimings::getTimer("mirrorField");
+        IpplTimings::startTimer(mirrorFieldTimer);
+        opalx::detail::mirrorField(
+                electricField, magneticField, Dim - 1, /*clearDestination=*/false);
+        IpplTimings::stopTimer(mirrorFieldTimer);
+    }
+
+    const double invGamma = (gammaBin > 0.0) ? (1.0 / gammaBin) : 0.0;
+
+    const Vector_t<double, Dim> physicalV = Physics::c * physicalPmean * invGamma;
+    const double physicalVNorm            = Kokkos::sqrt(physicalV.dot(physicalV));
+    const Vector_t<double, Dim> physicalW =
+            (physicalVNorm > 0.0) ? (physicalV / physicalVNorm) : Vector_t<double, Dim>(0.0);
+
+    Vector_t<double, Dim> copiedPmean   = physicalPmean;
+    copiedPmean[Dim - 1]                = -copiedPmean[Dim - 1];
+    const Vector_t<double, Dim> copiedV = Physics::c * copiedPmean * invGamma;
+    const double copiedVNorm            = Kokkos::sqrt(copiedV.dot(copiedV));
+    const Vector_t<double, Dim> copiedW =
+            (copiedVNorm > 0.0) ? (copiedV / copiedVNorm) : Vector_t<double, Dim>(0.0);
+
+    const double gammaMinusOne = gammaBin - 1.0;
+    const double gammaOverCSq  = gammaBin / (Physics::c * Physics::c);
+    auto electricView          = electricField.getView();
+    auto magneticView          = magneticField.getView();
+
+    opalx::detail::finalizeBeamBeamTwoField<T, Dim>(
+            electricField.getFieldRangePolicy(), electricView, magneticView, gammaBin,
+            gammaMinusOne, gammaOverCSq, physicalV, physicalW, copiedV, copiedW, includeCopy);
+}
+
+template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::buildFlippedZSlab(
         FieldContainer_t& fieldContainer, const VField_t<T, Dim>& src) {
     // Populate FieldContainer's flipped z-slab scratch with src mirrored along the z axis:
@@ -898,17 +1219,21 @@ void BinnedFieldSolver<T, Dim>::gatherFromTempToParticles(
     Inform m("BinnedFieldSolver::gatherFromTempToParticles");
     m << level4 << "gather Etmp/Btmp->particles" << endl;
 
-    VField_t<T, Dim>& Etmp            = *EtmpSP;
-    VField_t<T, Dim>& Btmp            = *BtmpSP;
+    gatherFieldsToParticles(bunch, *EtmpSP, *BtmpSP);
+}
+
+template <typename T, unsigned Dim>
+void BinnedFieldSolver<T, Dim>::gatherFieldsToParticles(
+        PartBunch_t& bunch, VField_t<T, Dim>& electricField, VField_t<T, Dim>& magneticField) {
     std::shared_ptr<ParticleCtr_t> pc = bunch.getParticleContainer();
 
     // gather only the supported field attribute back to particles.
     if (gatherAttribute_m == GatherAttribute::ElectricFieldE) {
-        gather(pc->E, Etmp, pc->R);
-        gather(pc->B, Btmp, pc->R);
+        gather(pc->E, electricField, pc->R);
+        gather(pc->B, magneticField, pc->R);
     } else {
         throw OpalException(
-                "BinnedFieldSolver::gatherFromTempToParticles",
+                "BinnedFieldSolver::gatherFieldsToParticles",
                 "Unsupported gather attribute in binned solver.");
     }
 }

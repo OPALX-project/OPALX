@@ -1,0 +1,204 @@
+OPTION, PSDUMPFREQ = 20;
+OPTION, STATDUMPFREQ = 20;
+OPTION, C0PSDUMPFREQ = 600;
+OPTION, BOUNDPDESTROY = 1.0e9;
+OPTION, VERSION = 10900;
+OPTION, ASCIIDUMP = FALSE;
+OPTION, EBDUMP = TRUE;
+OPTION, IDEALIZED = TRUE;
+OPTION, SEED = 20260629;
+
+TITLE, STRING = "400k one-c0 edge-timed track12 witnesses, self-SC 24 mm mesh";
+
+// Timing convention from TestParticleOrbitSimulation.pptx:
+//   sigma_z = 0.6 mm and the six witness pairs have ct/sigma_z =
+//   -1.5, -1.0, -0.5, 0.0, 0.5, 1.0.
+// This deck injects all six raw track12 electron/positron test particles at
+// one absolute witness emission time.  The six PPTX timings are encoded as the
+// initial witness z offsets in track12_electrons.fromfile and
+// track12_positrons.fromfile.  For this edge-timing diagnostic, the primary
+// source is shifted so the c0 +3 sigma_z leading edge reaches the first
+// track12 witness position, ct/sigma_z = -1.5, at that witness emission time.
+//
+// Witness kinematics for this stage:
+//   Use the raw track12/PPTX momenta: Px = Py = 0 and Ps/(m_e c) = sqrt(3),
+//   mapped to OPALX pz.  Do not rotate this into transverse momentum; that
+//   belongs to the separate Breit-Wheeler-pair experiment.
+//
+// Mesh convention:
+//   BeamBeam APERTURE is the c0-source and witness-sampling field window.
+//   COPY_TIME = 0 keeps only the physical c0 bunch as the field source.  The
+//   mesh is widened here because c0 now self-expands from its own space charge.
+//   The c0 bunch starts to the left of the IP in the current +z convention and
+//   moves through the witness particles.
+
+REAL primary_kinetic_energy = 0.245;
+REAL primary_gamma = (primary_kinetic_energy + EMASS) / EMASS;
+REAL primary_beta = sqrt(1.0 - 1.0 / (primary_gamma^2));
+REAL primary_p0 = primary_gamma * primary_beta * EMASS;
+REAL primary_beta_gamma = primary_p0 / EMASS;
+
+REAL primary_sigma_xy = 1.944325075701e-6;
+REAL primary_sigma_z = 0.6e-3;
+REAL primary_sigma_xyp = 1.0e-12;
+REAL primary_sigma_pxy = primary_beta_gamma * primary_sigma_xyp;
+
+REAL primary_charge_scale = 1.0;
+REAL primary_electrons_per_bunch = 1.25e10 * primary_charge_scale;
+REAL primary_macroparticles = 400000;
+REAL elementary_charge = 1.602176634e-19;
+REAL primary_bunch_charge = primary_electrons_per_bunch * elementary_charge;
+
+REAL n_witness_per_species = 6;
+REAL witness_bunch_charge = n_witness_per_species * elementary_charge;
+
+REAL bb_start_s = 1.0e-3;
+// Keep the BeamBeam IP fixed at the track12 injection plane.  The element is
+// intentionally longer downstream than upstream so c0 can be retired by time,
+// not by prematurely leaving the BeamBeam element.
+REAL bb_ip_s = 6.0e-3;
+REAL bb_length = 1.9e-2;
+REAL primary_edge_sigma = 3.0;
+REAL track12_first_ct_m = -1.5 * primary_sigma_z;
+REAL track12_edge_reference_s = bb_ip_s + track12_first_ct_m;
+REAL witness_t0 = 4.0e-12;
+REAL witness_r0z = bb_ip_s;
+REAL primary_centroid_at_witness_t0 = track12_edge_reference_s - primary_edge_sigma * primary_sigma_z;
+REAL primary_source_r0z = primary_centroid_at_witness_t0 - primary_beta * CLIGHT * witness_t0;
+REAL near_ip_active_time = 5.0e-11;
+REAL post_retire_observation_time = 1.0e-12;
+REAL primary_retire_time = witness_t0 + near_ip_active_time;
+
+REAL fine_start_s = primary_source_r0z + primary_beta * CLIGHT * (witness_t0 - 5.0e-14);
+REAL fine_stop_s = primary_source_r0z + primary_beta * CLIGHT * (witness_t0 + near_ip_active_time + post_retire_observation_time);
+REAL coarse_dt = 1.0e-13;
+REAL fine_dt = 5.0e-15;
+// With primary_source_r0z shifted, fine_start_s is the absolute position reached
+// 50 fs before witness T0.  Keep MAXSTEPS aligned with the first ZSTOP;
+// otherwise OPALX advances time after the bunch has reached the staged stop,
+// delaying the fine 1 fs window.
+REAL coarse_steps = 40;
+// Fine window covers 50 fs before witness T0, the 50 ps active-field window,
+// and 1 ps after c0 retirement to verify ballistic post-retirement motion.
+REAL fine_steps = 10210;
+
+REAL NXY = 64;
+REAL NZ = 32;
+REAL c0_source_mesh_diameter = 24.0e-3;
+REAL witness_observation_radius = 0.30;
+
+DR_UP: DRIFT,
+    L = bb_start_s,
+    ELEMEDGE = 0.0;
+
+IP1: BEAMBEAM,
+    L = bb_length,
+    ELEMEDGE = bb_start_s,
+    VISUALIZE = FALSE,
+    COPY_TIME = 0.0,
+    WITNESS_CONTAINERS = "1,2",
+    RETIRE_TIME = primary_retire_time,
+    IP_S = bb_ip_s,
+    // c0-source/witness-sampling mesh only.  CIRCLE takes the diameter here,
+    // so this gives a 12 mm radius.
+    APERTURE = "CIRCLE(0.0240)";
+
+LINE1: LINE = (DR_UP, IP1);
+
+SOURCEBINNING: BINNING,
+    MAXBINS = 1,
+    DESIREDWIDTH = 0.1,
+    BINNINGALPHA = 1.0,
+    BINNINGBETA = 1.0,
+    PARAMETER = "VELOCITYZ",
+    ADAPTIVEBINNING = FALSE,
+    DUMPBINSFILE = "NONE",
+    TABLEPRINTFREQ = 0;
+
+FS0: FIELDSOLVER,
+    TYPE = OPEN,
+    BINS = "SOURCEBINNING",
+    NX = NXY,
+    NY = NXY,
+    NZ = NZ,
+    PARFFTX = FALSE,
+    PARFFTY = FALSE,
+    PARFFTZ = TRUE,
+    BCFFTX = OPEN,
+    BCFFTY = OPEN,
+    BCFFTZ = OPEN,
+    BBOXINCR = 1,
+    GREENSF = STANDARD;
+
+DIST_PRIMARY_ELECTRONS: DISTRIBUTION,
+    TYPE = GAUSS,
+    SIGMAX = primary_sigma_xy,
+    SIGMAY = primary_sigma_xy,
+    SIGMAZ = primary_sigma_z,
+    SIGMAPX = primary_sigma_pxy,
+    SIGMAPY = primary_sigma_pxy,
+    SIGMAPZ = 1.0e-12,
+    NPARTDIST = primary_macroparticles;
+
+DIST_WITNESS_ELECTRONS: DISTRIBUTION,
+    TYPE = FROMFILE,
+    FNAME = "track12_electrons.fromfile",
+    NPARTDIST = n_witness_per_species;
+
+DIST_WITNESS_POSITRONS: DISTRIBUTION,
+    TYPE = FROMFILE,
+    FNAME = "track12_positrons.fromfile",
+    NPARTDIST = n_witness_per_species;
+
+SOURCE_PRIMARY_ELECTRONS: EMISSIONSOURCE,
+    DISTRIBUTION = DIST_PRIMARY_ELECTRONS,
+    R0Z = primary_source_r0z;
+
+SOURCE_WITNESS_ELECTRONS: EMISSIONSOURCE,
+    DISTRIBUTION = DIST_WITNESS_ELECTRONS,
+    T0 = witness_t0,
+    R0Z = witness_r0z;
+
+SOURCE_WITNESS_POSITRONS: EMISSIONSOURCE,
+    DISTRIBUTION = DIST_WITNESS_POSITRONS,
+    T0 = witness_t0,
+    R0Z = witness_r0z;
+
+PRIMARY_ELECTRON_SOURCES: EMISSIONSOURCELIST = (SOURCE_PRIMARY_ELECTRONS);
+WITNESS_ELECTRON_SOURCES: EMISSIONSOURCELIST = (SOURCE_WITNESS_ELECTRONS);
+WITNESS_POSITRON_SOURCES: EMISSIONSOURCELIST = (SOURCE_WITNESS_POSITRONS);
+
+PRIMARY_ELECTRONS: BEAM,
+    PARTICLE = ELECTRON,
+    PC = primary_p0,
+    NALLOC = primary_macroparticles,
+    BCHARGE = primary_bunch_charge,
+    SOURCES = PRIMARY_ELECTRON_SOURCES;
+
+WITNESS_ELECTRONS: BEAM,
+    PARTICLE = ELECTRON,
+    NALLOC = n_witness_per_species,
+    BCHARGE = witness_bunch_charge,
+    SOURCES = WITNESS_ELECTRON_SOURCES;
+
+WITNESS_POSITRONS: BEAM,
+    PARTICLE = POSITRON,
+    NALLOC = n_witness_per_species,
+    BCHARGE = witness_bunch_charge,
+    SOURCES = WITNESS_POSITRON_SOURCES;
+
+TRACK,
+    LINE = LINE1,
+    BEAMS = {PRIMARY_ELECTRONS, WITNESS_ELECTRONS, WITNESS_POSITRONS},
+    MAXSTEPS = {coarse_steps, fine_steps},
+    DT = {coarse_dt, fine_dt},
+    ZSTART = 0.0,
+    ZSTOP = {fine_start_s, fine_stop_s};
+
+RUN,
+    METHOD = "PARALLEL",
+    FIELDSOLVER = FS0;
+
+ENDTRACK;
+
+QUIT;

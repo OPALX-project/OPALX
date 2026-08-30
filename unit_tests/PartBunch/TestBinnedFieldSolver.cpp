@@ -17,7 +17,8 @@
  *   and (near) zero after the call.
  * - When binning is active, the current bin count is sane (between 1 and the configured
  *   maximum).
- * - Open and periodic P3M select the same solver wrapper with matching particle boundaries.
+ * - Open field layouts use non-wrapping particle boundaries for standard and P3M solvers.
+ * - Periodic field layouts retain periodic particle boundaries.
  * - Mixed and unsupported P3M boundary conditions are rejected during command validation.
  *
  * Notes:
@@ -28,6 +29,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <random>
@@ -71,18 +73,18 @@ namespace {
             Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::GREENSF], greensFunction);
         }
 
+        void setParallelDecomposition(bool value) {
+            Attributes::setBool(this->itsAttr[FIELDSOLVER::PARFFTX], value);
+            Attributes::setBool(this->itsAttr[FIELDSOLVER::PARFFTY], value);
+            Attributes::setBool(this->itsAttr[FIELDSOLVER::PARFFTZ], value);
+        }
+
         void setBinsName(const std::string& binsName) {
             Attributes::setString(this->itsAttr[FIELDSOLVER::BINS], binsName);
         }
 
         void setP3MCutoff(double cutoff) {
             Attributes::setReal(this->itsAttr[FIELDSOLVER::P3MRCUT], cutoff);
-        }
-
-        void setParallelDecomposition(bool value) {
-            Attributes::setBool(this->itsAttr[FIELDSOLVER::PARFFTX], value);
-            Attributes::setBool(this->itsAttr[FIELDSOLVER::PARFFTY], value);
-            Attributes::setBool(this->itsAttr[FIELDSOLVER::PARFFTZ], value);
         }
     };
 
@@ -239,7 +241,57 @@ namespace {
             pc->update();
         }
 
+        void createZMirrorSymmetricParticles(size_t nPart, double pz) {
+            ASSERT_EQ(nPart % 2, 0u);
+            pc->createParticles(nPart);
+
+            auto R_host  = pc->R.getHostMirror();
+            auto P_host  = pc->P.getHostMirror();
+            auto dt_host = pc->dt.getHostMirror();
+            auto E_host  = pc->E.getHostMirror();
+            auto B_host  = pc->B.getHostMirror();
+
+            const auto rmin                  = bunch->rmin_m;
+            const auto rmax                  = bunch->rmax_m;
+            const Vector_t<double, 3> center = 0.5 * (rmin + rmax);
+            const Vector_t<double, 3> width  = rmax - rmin;
+            const double dt                  = bunch->getdT();
+            const double qi                  = pc->getChargePerParticle();
+
+            for (size_t pair = 0; pair < nPart / 2; ++pair) {
+                const double phase = static_cast<double>(pair + 1);
+                const double x     = center[0] + 0.18 * width[0] * std::sin(0.7 * phase);
+                const double y     = center[1] + 0.16 * width[1] * std::cos(1.1 * phase);
+                const double z     = 0.08 * width[2] * (0.25 + static_cast<double>(pair % 7) / 7.0);
+
+                for (size_t side = 0; side < 2; ++side) {
+                    const size_t i = 2 * pair + side;
+                    R_host(i)[0]   = x;
+                    R_host(i)[1]   = y;
+                    R_host(i)[2]   = center[2] + (side == 0 ? -z : z);
+                    P_host(i)[0]   = 0.0;
+                    P_host(i)[1]   = 0.0;
+                    P_host(i)[2]   = pz;
+                    dt_host(i)     = dt;
+                    E_host(i)      = Vector_t<double, 3>(0.0);
+                    B_host(i)      = Vector_t<double, 3>(0.0);
+                }
+            }
+
+            Kokkos::deep_copy(pc->R.getView(), R_host);
+            Kokkos::deep_copy(pc->P.getView(), P_host);
+            Kokkos::deep_copy(pc->dt.getView(), dt_host);
+            Kokkos::deep_copy(pc->E.getView(), E_host);
+            Kokkos::deep_copy(pc->B.getView(), B_host);
+            pc->setQ(qi);
+
+            ippl::Comm->barrier();
+            Kokkos::fence();
+            pc->update();
+        }
+
         void rebuildBunch() {
+            fsCmd->execute();
             fsCmdBase      = fsCmd;
             Beam* testBeam = Beam::find("UNNAMED_BEAM");
             bunch          = std::make_shared<PartBunch_t>(
@@ -365,6 +417,8 @@ namespace {
         auto bins = bunch->getBins();
         ASSERT_NE(bins, nullptr);
         EXPECT_EQ(bins->getCurrentBinCount(), maxBins);
+        EXPECT_NE(bunch->getFieldContainer()->getTempEField(), nullptr);
+        EXPECT_NE(bunch->getFieldContainer()->getTempBField(), nullptr);
     }
 
     TEST_F(BinnedFieldSolverSmokeTest, OpenSolver_UsesStandardGreensFunctionFromFieldSolverCmd) {
@@ -379,6 +433,115 @@ namespace {
 
         ASSERT_NE(bunch->getFieldSolver(), nullptr);
         EXPECT_EQ(bunch->getFieldSolver()->getGreensFunction(), "INTEGRATED");
+    }
+
+    TEST_F(BinnedFieldSolverSmokeTest, StandardLayoutUsesConfiguredParticleBoundaryCondition) {
+        for (const auto bc : pc->getPL().getParticleBC()) {
+            EXPECT_EQ(bc, ippl::BC::PERIODIC);
+        }
+
+        ASSERT_NO_THROW(rebuildOpenBunchWithGreensFunction("INTEGRATED"));
+        ASSERT_FALSE(pc->hasP3MLayout());
+        for (const auto bc : pc->getPL().getParticleBC()) {
+            EXPECT_EQ(bc, ippl::BC::NO);
+        }
+    }
+
+    TEST_F(BinnedFieldSolverSmokeTest, BeamBeamCopyDoublesEAndCancelsBAtExactOverlap) {
+        rebuildOpenBunchWithGreensFunction("INTEGRATED");
+        createZMirrorSymmetricParticles(kDefaultNParticles, /*pz=*/2.0);
+        attachBins(/*maxBins=*/1, /*alpha=*/1.0, /*beta=*/1.0, /*desiredWidth=*/1.0);
+
+        // Simulate a preceding generic binned step. Entering the eligible BeamBeam path must
+        // release its extra electric accumulator so the active solve retains only E_m/B_m.
+        bunch->getFieldContainer()->initializeTemporaryFields();
+        ASSERT_NE(bunch->getFieldContainer()->getTempEField(), nullptr);
+        ASSERT_NE(bunch->getFieldContainer()->getTempBField(), nullptr);
+
+        const double interactionPointS =
+                pc->get_sPos() + 0.5 * (bunch->rmin_m[2] + bunch->rmax_m[2]);
+        bunch->setBeamBeamWindowConfig(
+                bunch->rmax_m[2] - bunch->rmin_m[2], interactionPointS, bunch->rmin_m[2],
+                bunch->rmax_m[2], /*copyModel=*/false);
+        ASSERT_NO_THROW(bunch->computeSelfFields());
+        EXPECT_EQ(bunch->getFieldContainer()->getTempEField(), nullptr);
+        ASSERT_NE(bunch->getFieldContainer()->getTempBField(), nullptr);
+        EXPECT_EQ(
+                bunch->getFieldContainer()->getTempBField().get(),
+                &bunch->getFieldContainer()->getB());
+        ASSERT_TRUE(bunch->hasLastDepositedChargeBeforeBackground());
+        const double physicalCharge = bunch->getLastDepositedChargeBeforeBackground();
+
+        auto physicalE = pc->E.getHostMirror();
+        auto physicalB = pc->B.getHostMirror();
+        auto originalR = pc->R.getHostMirror();
+        Kokkos::deep_copy(physicalE, pc->E.getView());
+        Kokkos::deep_copy(physicalB, pc->B.getView());
+        Kokkos::deep_copy(originalR, pc->R.getView());
+
+        bunch->setBeamBeamWindowConfig(
+                bunch->rmax_m[2] - bunch->rmin_m[2], interactionPointS, bunch->rmin_m[2],
+                bunch->rmax_m[2], /*copyModel=*/true);
+        ASSERT_NO_THROW(bunch->computeSelfFields());
+        EXPECT_EQ(bunch->getFieldContainer()->getTempEField(), nullptr);
+        ASSERT_NE(bunch->getFieldContainer()->getTempBField(), nullptr);
+        EXPECT_EQ(
+                bunch->getFieldContainer()->getTempBField().get(),
+                &bunch->getFieldContainer()->getB());
+        ASSERT_TRUE(bunch->hasLastDepositedChargeBeforeBackground());
+        EXPECT_NEAR(
+                bunch->getLastDepositedChargeBeforeBackground(), 2.0 * physicalCharge,
+                std::max(1.0e-18, 1.0e-12 * std::abs(physicalCharge)));
+
+        auto copiedE   = pc->E.getHostMirror();
+        auto copiedB   = pc->B.getHostMirror();
+        auto restoredR = pc->R.getHostMirror();
+        Kokkos::deep_copy(copiedE, pc->E.getView());
+        Kokkos::deep_copy(copiedB, pc->B.getView());
+        Kokkos::deep_copy(restoredR, pc->R.getView());
+
+        double eScale = 0.0;
+        double bScale = 0.0;
+        for (size_t i = 0; i < pc->getLocalNum(); ++i) {
+            for (unsigned d = 0; d < 3; ++d) {
+                eScale = std::max(eScale, std::abs(physicalE(i)[d]));
+                bScale = std::max(bScale, std::abs(physicalB(i)[d]));
+            }
+        }
+        EXPECT_GT(eScale, 0.0);
+        EXPECT_GT(bScale, 0.0);
+
+        const double eTolerance = std::max(1.0e-12, 1.0e-10 * eScale);
+        const double bTolerance = std::max(1.0e-12, 1.0e-10 * bScale);
+        for (size_t i = 0; i < pc->getLocalNum(); ++i) {
+            for (unsigned d = 0; d < 3; ++d) {
+                EXPECT_NEAR(copiedE(i)[d], 2.0 * physicalE(i)[d], eTolerance);
+                EXPECT_NEAR(copiedB(i)[d], 0.0, bTolerance);
+                EXPECT_DOUBLE_EQ(restoredR(i)[d], originalR(i)[d]);
+            }
+        }
+    }
+
+    TEST_F(BinnedFieldSolverSmokeTest, ConfiguredImageModelDisablesBeamBeamTwoFieldFastPath) {
+        rebuildOpenBunchWithGreensFunction("INTEGRATED");
+        createZMirrorSymmetricParticles(kDefaultNParticles, /*pz=*/2.0);
+        attachBins(/*maxBins=*/1, /*alpha=*/1.0, /*beta=*/1.0, /*desiredWidth=*/1.0);
+
+        // Keep the image model configured but outside its active step budget. The fast-path guard
+        // is deliberately based on configuration, not the transient per-step enabled flag.
+        bunch->setImageChargeConfiguration(true, /*zPlane=*/0.0);
+        bunch->setZerofaceMaxSteps(1);
+        bunch->setGlobalTrackStep(1);
+
+        const double interactionPointS =
+                pc->get_sPos() + 0.5 * (bunch->rmin_m[2] + bunch->rmax_m[2]);
+        bunch->setBeamBeamWindowConfig(
+                bunch->rmax_m[2] - bunch->rmin_m[2], interactionPointS, bunch->rmin_m[2],
+                bunch->rmax_m[2], /*copyModel=*/true);
+
+        ASSERT_NO_THROW(bunch->computeSelfFields());
+        EXPECT_NE(bunch->getFieldContainer()->getTempEField(), nullptr);
+        EXPECT_NE(bunch->getFieldContainer()->getTempBField(), nullptr);
     }
 
     TEST_F(BinnedFieldSolverSmokeTest, P3MOpenAndPeriodicUseSameSolverWrapperAndSelectedLayoutBC) {

@@ -6,6 +6,8 @@
 #include "PartBunch/PartBunch.h"
 #include <algorithm>
 #include <cmath>
+#include <iomanip>
+#include <sstream>
 #include "Algorithms/Matrix.h"
 #include "PartBunch/BinnedFieldSolver.h"
 #include "Particle/ParticleAttrib.h"
@@ -95,10 +97,10 @@ PartBunch<T, Dim>::PartBunch(
 
     this->setBCHandler(std::make_shared<BCHandler_t>(OPALFieldSolver_m->constructBCHandler()));
 
-    // Open P3M must not wrap particles at the temporary mesh boundary.
+    // Open field layouts must not wrap particles at the numerical mesh boundary.
     bool isAllPeriodic = this->getBCHandler()->isAll(BCHandler_t::PERIODIC);
     m << level5 << "* FieldContainer set to isAllPeriodic = " << isAllPeriodic << endl;
-    const ippl::BC particleBC = (useP3M && !isAllPeriodic) ? ippl::BC::NO : ippl::BC::PERIODIC;
+    const ippl::BC particleBC = isAllPeriodic ? ippl::BC::PERIODIC : ippl::BC::NO;
 
     //      set stuff for pre_run i.e. warmup
     //      this will be reset when the correct computational
@@ -138,12 +140,14 @@ PartBunch<T, Dim>::PartBunch(
     }
     const auto& containers = this->getParticleContainers();
     particleNames_m.resize(containers.size());
+    independentOrbitThreader_m.resize(containers.size());
     for (size_t i = 0; i < containers.size(); ++i) {
         containers[i]->setQ(qi[i]);
         containers[i]->setM(mi[i]);
         containers[i]->setReference(&beams[i]->getReference());
-        particleNames_m[i] = beams[i]->getParticleName();
-        containers[i]->Sp  = static_cast<short>(
+        particleNames_m[i]            = beams[i]->getParticleName();
+        independentOrbitThreader_m[i] = beams[i]->usesIndependentOrbitThreader();
+        containers[i]->Sp             = static_cast<short>(
                 ParticleProperties::getParticleType(beams[i]->getParticleName()));
     }
 
@@ -168,6 +172,93 @@ PartBunch<T, Dim>::PartBunch(
     resetPcActive();
 
     m << level5 << "* PartBunch constructor done." << endl;
+}
+
+template <typename T, unsigned Dim>
+typename PartBunch<T, Dim>::SavedFieldDomainState PartBunch<T, Dim>::saveFieldDomainState() const {
+    SavedFieldDomainState state;
+    state.origin   = this->fcontainer_m->getMesh().getOrigin();
+    state.rmin     = this->fcontainer_m->getRMin();
+    state.rmax     = this->fcontainer_m->getRMax();
+    state.hr       = this->fcontainer_m->getHr();
+    state.partrmin = rmin_m;
+    state.partrmax = rmax_m;
+    return state;
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::restoreFieldDomainState(const SavedFieldDomainState& state) {
+    auto* mesh = &this->fcontainer_m->getMesh();
+    mesh->setOrigin(state.origin);
+    mesh->setMeshSpacing(state.hr);
+
+    this->fcontainer_m->setRMin(state.rmin);
+    this->fcontainer_m->setRMax(state.rmax);
+    this->fcontainer_m->setHr(state.hr);
+    hr_m   = state.hr;
+    rmin_m = state.partrmin;
+    rmax_m = state.partrmax;
+
+    beamBeamWindowParticleLayoutInitialized_m = false;
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::enableBeamBeamWindowMesh(
+        double interactionPointLocalZ, double beamBeamWindowLength) {
+    enableBeamBeamWindowMesh(
+            interactionPointLocalZ, beamBeamWindowLength, this->fcontainer_m->getRMin(),
+            this->fcontainer_m->getRMax());
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::enableBeamBeamWindowMesh(
+        double interactionPointLocalZ, double beamBeamWindowLength,
+        const Vector_t<double, Dim>& particleLower, const Vector_t<double, Dim>& particleUpper) {
+    Inform m("PartBunch::enableBeamBeamWindowMesh");
+    if (beamBeamWindowLength <= 0.0) {
+        throw OpalException(
+                "PartBunch::enableBeamBeamWindowMesh", "beamBeamWindowLength must be > 0");
+    }
+    if (particleLower[0] >= particleUpper[0] || particleLower[1] >= particleUpper[1]) {
+        throw OpalException(
+                "PartBunch::enableBeamBeamWindowMesh",
+                "BeamBeam transverse particle bounds must have positive extent");
+    }
+
+    auto* mesh = &this->fcontainer_m->getMesh();
+    auto* FL   = &this->fcontainer_m->getFL();
+
+    Vector_t<double, Dim> lower = particleLower;
+    Vector_t<double, Dim> upper = particleUpper;
+    lower[2]                    = interactionPointLocalZ - 0.5 * beamBeamWindowLength;
+    upper[2]                    = interactionPointLocalZ + 0.5 * beamBeamWindowLength;
+
+    Vector_t<double, Dim> meshOrigin = lower;
+    const Vector_t<double, Dim> span = upper - lower;
+    for (unsigned d = 0; d < Dim; ++d) {
+        const int nCells = nr_m[d];
+        hr_m[d]          = nCells > 1 ? span[d] / static_cast<double>(nCells - 1) : span[d];
+        meshOrigin[d]    = lower[d] - 0.5 * hr_m[d];
+    }
+    mesh->setOrigin(meshOrigin);
+    mesh->setMeshSpacing(hr_m);
+    this->fcontainer_m->setRMin(lower);
+    this->fcontainer_m->setRMax(upper);
+    this->fcontainer_m->setHr(hr_m);
+
+    const auto& containers = this->getParticleContainers();
+    for (const auto& pc : containers) {
+        if (!pc) {
+            continue;
+        }
+        pc->updateLayout(*FL, *mesh);
+        pc->update();
+        pc->markMomentsDirty();
+    }
+    beamBeamWindowParticleLayoutInitialized_m = true;
+
+    m << level3 << "Enabled BeamBeam window mesh: rmin=" << lower << ", rmax=" << upper
+      << ", origin=" << meshOrigin << ", hr=" << hr_m << endl;
 }
 
 /**
@@ -663,6 +754,12 @@ void PartBunch<T, Dim>::bunchUpdate() {
     Vector_t<double, Dim> lower(0.0);
     Vector_t<double, Dim> upper(0.0);
     computeBoundsForFieldSolve(lower, upper);
+    if (beamBeamWindowConfig_m.has_value()) {
+        const auto currentRMin = this->fcontainer_m->getRMin();
+        const auto currentRMax = this->fcontainer_m->getRMax();
+        lower[2]               = currentRMin[2];
+        upper[2]               = currentRMax[2];
+    }
     applyGridUpdate(lower, upper);
 
     m << level5 << "Bunch grid update done; tracker cadence controls load balancing." << endl;
@@ -820,6 +917,104 @@ void PartBunch<T, Dim>::applyGridUpdate(
 }
 
 template <typename T, unsigned Dim>
+std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
+        const std::string& snapshotKind, const std::string& coordinateFrame,
+        const std::optional<BeamBeamWindowConfig>& geometryOverride,
+        std::optional<bool> activeOverride) const {
+    std::vector<std::string> headers;
+    headers.reserve(20);
+
+    const auto meshOrigin = this->fcontainer_m->getMesh().getOrigin();
+    headers.push_back("coordinate_frame=" + coordinateFrame);
+    const auto pc = this->pcontainer_m;
+
+    std::ostringstream globalStepHeader;
+    globalStepHeader << "global_step=" << globalTrackStep_m;
+    headers.push_back(globalStepHeader.str());
+
+    std::ostringstream timeHeader;
+    timeHeader << std::setprecision(12) << "time=" << getT();
+    headers.push_back(timeHeader.str());
+
+    if (pc) {
+        std::ostringstream pathHeader;
+        pathHeader << std::setprecision(12) << "path_length_s=" << pc->get_sPos();
+        headers.push_back(pathHeader.str());
+    }
+
+    headers.push_back("snapshot_kind=" + snapshotKind);
+
+    const bool active = activeOverride.value_or(beamBeamWindowConfig_m.has_value());
+    headers.push_back(std::string("interaction_window_active=") + (active ? "1" : "0"));
+
+    std::ostringstream meshOriginHeader;
+    meshOriginHeader << "mesh_origin=" << meshOrigin;
+    headers.push_back(meshOriginHeader.str());
+
+    std::ostringstream meshSpacingHeader;
+    meshSpacingHeader << "mesh_spacing=" << hr_m;
+    headers.push_back(meshSpacingHeader.str());
+
+    std::ostringstream fieldRMinHeader;
+    fieldRMinHeader << "field_domain_rmin=" << this->fcontainer_m->getRMin();
+    headers.push_back(fieldRMinHeader.str());
+
+    std::ostringstream bunchRMinHeader;
+    bunchRMinHeader << "bunch_bounds_rmin=" << rmin_m;
+    headers.push_back(bunchRMinHeader.str());
+
+    std::ostringstream bunchRMaxHeader;
+    bunchRMaxHeader << "bunch_bounds_rmax=" << rmax_m;
+    headers.push_back(bunchRMaxHeader.str());
+
+    const BeamBeamWindowConfig* geometry = nullptr;
+    if (geometryOverride.has_value()) {
+        geometry = &*geometryOverride;
+    } else if (beamBeamWindowConfig_m.has_value()) {
+        geometry = &*beamBeamWindowConfig_m;
+    }
+
+    if (geometry != nullptr) {
+        std::ostringstream ipHeader;
+        ipHeader << std::setprecision(12) << "interaction_point_s=" << geometry->interactionPointS;
+        headers.push_back(ipHeader.str());
+
+        if (pc) {
+            std::ostringstream localIpHeader;
+            localIpHeader << std::setprecision(12) << "interaction_point_local_z="
+                          << (geometry->interactionPointS - pc->get_sPos());
+            headers.push_back(localIpHeader.str());
+        }
+
+        std::ostringstream rangeHeader;
+        rangeHeader << std::setprecision(12) << "ip_element_s_range=(" << geometry->windowBeginS
+                    << "," << geometry->windowEndS << ")";
+        headers.push_back(rangeHeader.str());
+    }
+
+    headers.push_back("particle_total_num=" + std::to_string(getTotalNumAllContainers()));
+
+    if (pc) {
+        const auto meanR = pc->getMeanR();
+
+        std::ostringstream chargeHeader;
+        chargeHeader << std::setprecision(12) << "particle_total_charge=" << pc->getTotalCharge();
+        headers.push_back(chargeHeader.str());
+
+        std::ostringstream meanRHeader;
+        meanRHeader << std::setprecision(12) << "particle_mean_r=(" << meanR[0] << "," << meanR[1]
+                    << "," << meanR[2] << ")";
+        headers.push_back(meanRHeader.str());
+
+        std::ostringstream meanSHeader;
+        meanSHeader << std::setprecision(12) << "particle_mean_s=" << (pc->get_sPos() + meanR[2]);
+        headers.push_back(meanSHeader.str());
+    }
+
+    return headers;
+}
+
+template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::setImageChargeConfiguration(bool enabled, double zPlane) {
     this->getFieldSolver()->setImageChargeConfiguration(enabled, zPlane);
 }
@@ -846,6 +1041,7 @@ template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::computeSelfFields() {
     BinnedFieldSolver_t* bsolver = this->getFieldSolver();
 
+    invalidateLastDepositedChargeBeforeBackground();
     bsolver->computeSelfFields(*this);
 }
 
@@ -987,41 +1183,45 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
     }
     ms << level4 << "FieldSolver type: " << stype << endl;
 
-    // Basic check that the E-field layout has non-zero extent
+    // Basic check that the persistent E/B field layouts have non-zero extent.
     auto Eview = fctr->getE().getView();
+    auto Bview = fctr->getB().getView();
     if (stype != "NONE" && (Eview.extent(0) == 0 || Eview.extent(1) == 0 || Eview.extent(2) == 0)) {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks",
                 "E-field layout not initialized (zero extent). ");
     }
-    ms << level4 << "E-field layout initialized." << endl;
+    if (stype != "NONE" && (Bview.extent(0) == 0 || Bview.extent(1) == 0 || Bview.extent(2) == 0)) {
+        throw OpalException(
+                "PartBunch::performBunchSanityChecks",
+                "B-field layout not initialized (zero extent). ");
+    }
+    ms << level4 << "E/B field layouts initialized." << endl;
 
-    // Temporary E/B accumulation fields (binned solver path)
+    // Generic binned electric accumulation is lazy so the one-bin BeamBeam path retains only
+    // E_m/B_m. B_m is also the generic magnetic accumulator; getTempBField() remains as a
+    // compatibility alias rather than owning another vector field.
     auto Etmp = fctr->getTempEField();
     auto Btmp = fctr->getTempBField();
-    if (!Etmp || !Btmp) {
+    if (!Btmp || Btmp.get() != &fctr->getB()) {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks",
-                "Temporary E field (Etmp) and/or B field (Btmp) not initialized.");
+                "Binned magnetic-field alias does not reference FieldContainer B_m.");
     }
-    auto EtmpView = Etmp->getView();
-    auto BtmpView = Btmp->getView();
-    if (EtmpView.extent(0) == 0 || EtmpView.extent(1) == 0 || EtmpView.extent(2) == 0) {
-        throw OpalException(
-                "PartBunch::performBunchSanityChecks",
-                "Etmp field layout not initialized (zero extent). ");
+    if (Etmp) {
+        auto EtmpView = Etmp->getView();
+        if (EtmpView.extent(0) == 0 || EtmpView.extent(1) == 0 || EtmpView.extent(2) == 0) {
+            throw OpalException(
+                    "PartBunch::performBunchSanityChecks",
+                    "Etmp field layout not initialized (zero extent). ");
+        }
+        if (&Etmp->get_mesh() != &fctr->getMesh()) {
+            throw OpalException(
+                    "PartBunch::performBunchSanityChecks",
+                    "Etmp field does not use the FieldContainer mesh.");
+        }
     }
-    if (BtmpView.extent(0) == 0 || BtmpView.extent(1) == 0 || BtmpView.extent(2) == 0) {
-        throw OpalException(
-                "PartBunch::performBunchSanityChecks",
-                "Btmp field layout not initialized (zero extent). ");
-    }
-    if (&Etmp->get_mesh() != &fctr->getMesh() || &Btmp->get_mesh() != &fctr->getMesh()) {
-        throw OpalException(
-                "PartBunch::performBunchSanityChecks",
-                "Etmp/Btmp fields do not use the FieldContainer mesh.");
-    }
-    ms << level4 << "Etmp and Btmp fields initialized on the FieldContainer mesh." << endl;
+    ms << level4 << "Lazy Etmp and shared B_m field state is consistent." << endl;
 
     if (!this->pcontainer_m) {
         throw OpalException(
