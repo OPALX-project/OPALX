@@ -34,6 +34,8 @@ public:
 
     double getLastPosition();
 
+    void rewindToTime(double checkpointTime, double timeStep);
+
     /** \brief Dumps Phase Space to H5 file.
      *
      * \param beam The beam.
@@ -82,5 +84,9 @@ inline void H5Writer::changeH5Wrapper(H5PartWrapper* h5wrapper) { h5wrapper_m = 
 inline void H5Writer::storeCavityInformation() { h5wrapper_m->storeCavityInformation(); }
 
 inline double H5Writer::getLastPosition() { return h5wrapper_m->getLastPosition(); }
+
+inline void H5Writer::rewindToTime(double checkpointTime, double timeStep) {
+    h5wrapper_m->rewindToTime(checkpointTime, timeStep);
+}
 
 #endif

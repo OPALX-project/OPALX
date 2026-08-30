@@ -100,7 +100,7 @@ unsigned long OpalBeamline::getFieldAt(
 
     for (; it != end; ++it) {
         ElementType type = (*it)->getType();
-        if (type == ElementType::MARKER) continue;
+        if (type == ElementType::MARKER || type == ElementType::MONITOR) continue;
 
         Vector_t<double, 3> localR = transformToLocalCS(*it, position);
         Vector_t<double, 3> localP = rotateToLocalCS(*it, momentum);
