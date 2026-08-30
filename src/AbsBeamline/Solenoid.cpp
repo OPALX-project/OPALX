@@ -41,7 +41,8 @@ Solenoid::Solenoid(const Solenoid& right)
       scaleError_m(right.scaleError_m),
       startField_m(right.startField_m),
       endField_m(right.endField_m),
-      fast_m(right.fast_m) {}
+      fast_m(right.fast_m),
+      isZReversed_m(right.isZReversed_m) {}
 
 Solenoid::Solenoid(const std::string& name)
     : ElementBase(name),
@@ -51,7 +52,8 @@ Solenoid::Solenoid(const std::string& name)
       scaleError_m(0.0),
       startField_m(0.0),
       endField_m(0.0),
-      fast_m(true) {}
+      fast_m(true),
+      isZReversed_m(false) {}
 
 Solenoid::~Solenoid() {
     //    _Fieldmap::deleteFieldmap(filename_m);
@@ -142,7 +144,7 @@ void Solenoid::initialise(PartBunch_t* bunch) {
 
     RefPartBunch_m = bunch;
 
-    fieldmap_m = Fieldmap::getFieldmap(filename_m, fast_m);
+    fieldmap_m = Fieldmap::getFieldmap(filename_m, fast_m, isZReversed_m);
 
     if (fieldmap_m != nullptr) {
         msg << level2 << getName() << " using file ";
@@ -182,6 +184,12 @@ void Solenoid::setFast(bool fast) { fast_m = fast; }
 /// @brief Get the fast flag
 bool Solenoid::getFast() const { return fast_m; }
 
+/// @brief Set the flag that reads the field map back to front
+void Solenoid::setIsZReversed(bool zReverse) { isZReversed_m = zReverse; }
+
+/// @brief Get the flag that reads the field map back to front
+bool Solenoid::getIsZReversed() const { return isZReversed_m; }
+
 /// @brief Get the dimensions of the solenoid
 /// @param zBegin Start position
 /// @param zEnd End position
@@ -198,7 +206,8 @@ ElementType Solenoid::getType() const { return ElementType::SOLENOID; }
 /// @param r Position
 /// @returns true if inside, false otherwise
 bool Solenoid::isInside(const Vector_t<double, 3>& r) const {
-    return fieldmap_m != nullptr && isInsideTransverse(r) && fieldmap_m->isInside(r);
+    return fieldmap_m != nullptr && ApertureHelper::isInsideAperture(r, aperture_m)
+           && fieldmap_m->isInside(r);
 }
 
 /// @brief Get the dimensions of the solenoid

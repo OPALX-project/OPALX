@@ -91,12 +91,12 @@ public:
     void setFringeIntegral(double fringeIntegral);
 
     /// @brief Set the design energy.
-    /// @param energy The design energy.
+    /// @param energy The design energy in eV.
     /// @param changeable Whether the design energy can be changed later.
     void setDesignEnergy(const double& energy, bool changeable = true) override;
 
     /// @brief Get the design energy.
-    /// @return The design energy.
+    /// @return The design energy in eV.
     double getDesignEnergy() const override;
 
     /// @brief Store the normal/skew multipole coefficients into the device views
@@ -176,7 +176,7 @@ inline void RBend::setFringeIntegral(double fringeIntegral) {
 
 inline void RBend::setDesignEnergy(const double& energy, bool changeable) {
     if (designEnergyChangeable_m) {
-        designEnergy_m           = std::abs(energy) * 1e6;
+        designEnergy_m           = std::abs(energy);
         designEnergyChangeable_m = changeable;
     }
 }

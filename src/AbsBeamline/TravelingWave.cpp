@@ -439,5 +439,6 @@ double TravelingWave::getAutoPhaseEstimate(
 }
 
 bool TravelingWave::isInside(const Vector_t<double, 3>& r) const {
-    return (isInsideTransverse(r) && r(2) >= -0.5 * periodLength_m && r(2) < startExitField_m);
+    return (ApertureHelper::isInsideAperture(r, aperture_m) && r(2) >= -0.5 * periodLength_m
+            && r(2) < startExitField_m);
 }

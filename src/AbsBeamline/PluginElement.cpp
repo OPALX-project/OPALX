@@ -195,7 +195,8 @@ void PluginElement::getFieldExtent(double& zBegin, double& zEnd) const {
 }
 
 bool PluginElement::isInside(const Vector_t<double, 3>& r) const {
-    return r(2) >= 0.0 && r(2) < getGeometry().getElementLength() && isInsideTransverse(r);
+    return r(2) >= 0.0 && r(2) < getGeometry().getElementLength()
+           && ApertureHelper::isInsideAperture(r, aperture_m);
 }
 
 int PluginElement::checkPoint(const double& x, const double& y) const {

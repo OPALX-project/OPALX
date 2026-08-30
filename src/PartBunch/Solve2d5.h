@@ -209,7 +209,8 @@ public:
             GatherEField,
             Deboosted,
             LongitudinalField,
-            LabFrameFields
+            LabFrameFields,
+            Potential
         };
         KOKKOS_FUNCTION void frenetSerretScatter(
                 const size_t, const Vector3D_t&, const Vector3D_t&, bool) const {}
@@ -217,6 +218,7 @@ public:
                 const size_t, const Vector3D_t&, const Vector3D_t&, bool) const {}
         KOKKOS_FUNCTION void scatterCharge(const ScalarGridView3D_t&) const {}
         KOKKOS_FUNCTION void scatterChargeDensity(const ScalarGridView3D_t&) const {}
+        KOKKOS_FUNCTION void potential(const Field_t<2U>::view_type&, size_t) const {}
         KOKKOS_FUNCTION void eField(const VField_t<T, 3U>::view_type&) const {}
         KOKKOS_FUNCTION void totalDensity(const LineDensityView_t&) const {}
         KOKKOS_FUNCTION void lineDensity(const LineDensityView_t&) const {}
