@@ -23,6 +23,7 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/ConstantEFieldCavity.h"
+#include "AbsBeamline/ConstantFocusing.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Cyclotron.h"
 #include "AbsBeamline/Degrader.h"
@@ -102,6 +103,12 @@ public:
 
     /// Apply the algorithm to a constant E-field cavity element.
     virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&);
+
+    /**
+     * @brief Collect a constant linear focusing element when it matches `ELEM`.
+     * @param element Element considered by the visitor.
+     */
+    virtual void visitConstantFocusing(const ConstantFocusing& element);
 
     /// Apply the algorithm to a drift.
     virtual void visitDrift(const Drift&);
@@ -250,6 +257,11 @@ void SpecificElementVisitor<ELEM>::visitDegrader(const Degrader& element) {
 template <class ELEM>
 void SpecificElementVisitor<ELEM>::visitConstantEFieldCavity(const ConstantEFieldCavity& element) {
     CastsTrait<ELEM, ConstantEFieldCavity>::apply(allElementsOfTypeE, element);
+}
+
+template <class ELEM>
+void SpecificElementVisitor<ELEM>::visitConstantFocusing(const ConstantFocusing& element) {
+    CastsTrait<ELEM, ConstantFocusing>::apply(allElementsOfTypeE, element);
 }
 
 template <class ELEM>
