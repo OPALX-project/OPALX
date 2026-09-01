@@ -17,7 +17,8 @@
  *   and (near) zero after the call.
  * - When binning is active, the current bin count is sane (between 1 and the configured
  *   maximum).
- * - Open and periodic P3M select the same solver wrapper with matching particle boundaries.
+ * - Open field layouts use non-wrapping particle boundaries for standard and P3M solvers.
+ * - Periodic field layouts retain periodic particle boundaries.
  * - Mixed and unsupported P3M boundary conditions are rejected during command validation.
  *
  * Notes:
@@ -379,6 +380,18 @@ namespace {
 
         ASSERT_NE(bunch->getFieldSolver(), nullptr);
         EXPECT_EQ(bunch->getFieldSolver()->getGreensFunction(), "INTEGRATED");
+    }
+
+    TEST_F(BinnedFieldSolverSmokeTest, StandardLayoutUsesConfiguredParticleBoundaryCondition) {
+        for (const auto bc : pc->getPL().getParticleBC()) {
+            EXPECT_EQ(bc, ippl::BC::PERIODIC);
+        }
+
+        ASSERT_NO_THROW(rebuildOpenBunchWithGreensFunction("INTEGRATED"));
+        ASSERT_FALSE(pc->hasP3MLayout());
+        for (const auto bc : pc->getPL().getParticleBC()) {
+            EXPECT_EQ(bc, ippl::BC::NO);
+        }
     }
 
     TEST_F(BinnedFieldSolverSmokeTest, P3MOpenAndPeriodicUseSameSolverWrapperAndSelectedLayoutBC) {
