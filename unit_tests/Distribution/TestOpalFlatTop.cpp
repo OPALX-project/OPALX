@@ -36,9 +36,6 @@ protected:
             domain[i] = ippl::Index(this->nr[i]);
         }
 
-        fc = std::make_shared<FieldContainer_t>(
-                hr, rmin, rmax, decomp, domain, origin, this->isAllPeriodic_m);
-
         Mesh_t<3> mesh(domain, hr, origin);
         FieldLayout_t<3> fl(MPI_COMM_WORLD, domain, decomp, this->isAllPeriodic_m);
         pc = std::make_shared<ParticleContainer<double, 3>>(mesh, fl);
@@ -55,7 +52,6 @@ protected:
     }
 
     std::shared_ptr<ParticleContainer<double, 3>> pc;
-    std::shared_ptr<FieldContainer_t> fc;
     std::shared_ptr<BunchStateHandler> bunchStateHandler;
     ippl::Vector<int, 3> nr;
     bool isAllPeriodic_m = true;
@@ -65,7 +61,7 @@ TEST_F(OpalFlatTopTest, BuildsSortedInventoryWithExactSizeAndEmissionBounds) {
     const Vector_t<double, 3> sigmaR = {0.5, 0.5, 0.0};
     const Vector_t<double, 3> cutoff = {4.0, 4.0, 4.0};
     OpalFlatTop sampler(
-            pc, fc,
+            pc,
             /*emitting=*/true,
             /*sigmaTFall=*/0.15,
             /*sigmaTRise=*/0.25, cutoff,
@@ -93,7 +89,7 @@ TEST_F(OpalFlatTopTest, EmitsAllInventoryWithVariableDtAndNoRemainderLoss) {
     const Vector_t<double, 3> sigmaR = {0.5, 0.5, 0.0};
     const Vector_t<double, 3> cutoff = {4.0, 4.0, 4.0};
     OpalFlatTop sampler(
-            pc, fc,
+            pc,
             /*emitting=*/true,
             /*sigmaTFall=*/0.1,
             /*sigmaTRise=*/0.1, cutoff,
@@ -124,7 +120,7 @@ TEST_F(OpalFlatTopTest, RejectsOverdueBirthTimesInsteadOfPreAgingParticles) {
     const Vector_t<double, 3> sigmaR = {0.5, 0.5, 0.0};
     const Vector_t<double, 3> cutoff = {4.0, 4.0, 4.0};
     OpalFlatTop sampler(
-            pc, fc,
+            pc,
             /*emitting=*/true,
             /*sigmaTFall=*/1.0e-12,
             /*sigmaTRise=*/1.0e-12, cutoff,
@@ -146,7 +142,7 @@ TEST_F(OpalFlatTopTest, UsesStoredBirthTimesForParticleDtAndZCorrection) {
     const Vector_t<double, 3> sigmaR = {0.5, 0.5, 0.0};
     const Vector_t<double, 3> cutoff = {4.0, 4.0, 4.0};
     OpalFlatTop sampler(
-            pc, fc,
+            pc,
             /*emitting=*/true,
             /*sigmaTFall=*/1.0e-12,
             /*sigmaTRise=*/1.0e-12, cutoff,
@@ -201,7 +197,7 @@ TEST_F(OpalFlatTopTest, ProvidesOldOpalInitialReferenceMomentum) {
     const Vector_t<double, 3> sigmaR = {0.5, 0.5, 0.0};
     const Vector_t<double, 3> cutoff = {4.0, 4.0, 4.0};
     OpalFlatTop sampler(
-            pc, fc,
+            pc,
             /*emitting=*/true,
             /*sigmaTFall=*/1.0e-12,
             /*sigmaTRise=*/1.0e-12, cutoff,

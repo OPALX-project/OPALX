@@ -11,6 +11,7 @@
 #include "SpaceCharge/Pic3D/FieldComposer.h"
 #include "SpaceCharge/Pic3D/FieldFramePolicy.h"
 #include "SpaceCharge/Pic3D/IterationPlan.h"
+#include "SpaceCharge/Pic3D/P3MShortRangeInteraction.h"
 #include "SpaceCharge/Pic3D/PicDomainManager.h"
 #include "SpaceCharge/Pic3D/PicParticleDomainAdapter.h"
 #include "SpaceCharge/Pic3D/PicScatterGather.h"
@@ -83,6 +84,7 @@ namespace opalx::spacecharge {
         ParticleContainer* primary_m = nullptr;
         std::shared_ptr<Workspace> workspace_m;
         std::unique_ptr<IpplPoissonAdapter> backend_m;
+        std::optional<P3MShortRangeInteraction> shortRangeInteraction_m;
         PoissonBackendKind backendKind_m;
         DataSink* dataSink_m = nullptr;
         std::optional<BinningConfig> binningConfig_m;

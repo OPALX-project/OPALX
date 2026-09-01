@@ -135,6 +135,7 @@ namespace opalx::spacecharge {
         [[nodiscard]] bool active() const { return selectedForSolve_m; }
         [[nodiscard]] bool selectedForSolve() const { return selectedForSolve_m; }
         [[nodiscard]] bool trackingActive() const { return trackingActive_m; }
+        void setSelectedForSolve(bool selected) { selectedForSolve_m = selected; }
         void setTrackingActive(bool active) { trackingActive_m = active; }
         [[nodiscard]] const ParticleContainerAttributes& attributes() const { return attributes_m; }
         [[nodiscard]] const ParticleAttributeHandle* find(ParticleAttribute attribute) const {
@@ -182,6 +183,8 @@ namespace opalx::spacecharge {
         [[nodiscard]] generation_type generation() const { return generation_m; }
         /** @brief Record a host-side particle storage change after all native views are invalid. */
         void updateGeneration(generation_type generation) { generation_m = generation; }
+        /** @brief Apply an algorithm capability without changing container membership. */
+        void applySelection(ParticleSelectionPolicy policy);
         [[nodiscard]] std::size_t activeContainerCount() const;
 
         [[nodiscard]] bool activeContainersProvide(ParticleAttributeSet required) const;

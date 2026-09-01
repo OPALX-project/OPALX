@@ -16,7 +16,6 @@ OpalFlatTop::OpalFlatTop(std::shared_ptr<ParticleContainer_t> pc, Distribution_t
       host_rng_m(determineHostSeed()) {
     setParameters(opalDist);
 }
-
 OpalFlatTop::OpalFlatTop(
         std::shared_ptr<ParticleContainer_t> pc, bool emitting, double sigmaTFall,
         double sigmaTRise, Vector_t<double, 3> cutoff, double tPulseLengthFWHM,

@@ -1,0 +1,31 @@
+include:
+  - local: "ci/cscs/common.yml"
+  - local: "ci/cscs/regression-common.yml"
+
+variables:
+  CUDA_UENV: "/capstor/store/cscs/cscs/public/uenvs/opal-x-gh200-mpich-gcc-2026-08-04-cuda-13.1.1.squashfs"
+  BUILD_ARCH: "gpu-cuda-gh200"
+  REGTEST_CONFIG: "cuda.conf"
+  CTEST_SITE: "Daint gh200 CUDA 13.1.1"
+  SRUN_ARGS: "--uenv=${CUDA_UENV} --view=${WITH_UENV_VIEW} --repo=${SCRATCH}/.uenv-images-ci-daint --gpus-per-task=1"
+  WRAPPER: "/user-environment/wrapper-mpi.sh"
+
+# ---------------------------------------------------------
+# Common settings for OPALX regression tests (CUDA / GH200)
+# ---------------------------------------------------------
+.opalx-regression-cuda-common:
+  extends:
+    - .opalx-regression-common
+    - .baremetal-runner-daint-gh200
+  variables:
+    SLURM_CPUS_PER_TASK: 64
+
+# ---------------------------------------------------------
+# cuda gh200 regression release
+# ---------------------------------------------------------
+opalx-regression-cuda13-sm90-release:
+  extends: .opalx-regression-cuda-common
+  needs: ["opalx-build-cuda13-sm90-release"]
+  variables:
+    BUILD_DIR: "build-$CI_COMMIT_SHORT_SHA-release"
+    BUILD_TYPE: Release

@@ -168,7 +168,7 @@ namespace opalx::spacecharge {
         validateParticleSet(particles);
 
         for (ParticleContainer* container : containers_m) {
-            container->getLayout().updateLayout(fieldLayout, mesh);
+            container->updateLayout(fieldLayout, mesh);
             container->update();
             container->markMomentsDirty();
         }

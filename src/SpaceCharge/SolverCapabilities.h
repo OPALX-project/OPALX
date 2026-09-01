@@ -11,7 +11,10 @@
 namespace opalx::spacecharge {
 
     /** @brief Algorithm families selectable by the self-field factory. */
-    enum class SelfFieldAlgorithmKind : std::uint8_t { Pic3D };
+    enum class SelfFieldAlgorithmKind : std::uint8_t { Pic3D, Pic2d5 };
+
+    /** @brief Common policy for selecting containers before algorithm validation. */
+    enum class ParticleSelectionPolicy : std::uint8_t { PrimaryOnly, AllTrackingActive };
 
     /** @brief Per-call particle attributes exposed through ParticleSetView. */
     enum class ParticleAttribute : std::uint8_t {
@@ -92,7 +95,8 @@ namespace opalx::spacecharge {
      * types deliberately do not appear here.
      */
     struct SolverCapabilities {
-        SelfFieldAlgorithmKind algorithm = SelfFieldAlgorithmKind::Pic3D;
+        SelfFieldAlgorithmKind algorithm          = SelfFieldAlgorithmKind::Pic3D;
+        ParticleSelectionPolicy particleSelection = ParticleSelectionPolicy::PrimaryOnly;
 
         bool supportsBinning            = false;
         bool supportsImageCharge        = false;

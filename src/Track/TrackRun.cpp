@@ -42,6 +42,8 @@
 
 #include "Distribution/OpalFlatTop.h"
 
+#include "Distribution/Uniform.h"
+
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
@@ -57,6 +59,7 @@
 #include "Lines/EmissionSourceList.h"
 #include "Structure/Beam.h"
 #include "Structure/BoundaryGeometry.h"
+#include "Structure/CheckpointFile.h"
 #include "Structure/DataSink.h"
 #include "Structure/EmissionSource.h"
 #include "Structure/H5PartWrapper.h"
@@ -77,6 +80,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <memory>
@@ -84,28 +88,9 @@
 
 #include <unistd.h>
 
-#include <filesystem>
-
 extern Inform* gmsg;
 
 namespace {
-
-    /** Restart source path for container @p index when using per-container H5 names. */
-    std::string h5RestartSourceForContainer(
-            const std::string& restartFile, const std::string& containerH5FileName,
-            size_t numContainers) {
-        if (numContainers <= 1) {
-            return restartFile;
-        }
-        namespace fs = std::filesystem;
-        fs::path rf(restartFile);
-        fs::path leaf = fs::path(containerH5FileName).filename();
-        if (rf.has_parent_path()) {
-            return (rf.parent_path() / leaf).string();
-        }
-        return leaf.string();
-    }
-
     /**
      * @brief Enforces unit macro weight
      * @note For now, for the moment calculation to give unbiased estimators of the
@@ -393,10 +378,39 @@ void TrackRun::execute() {
         globalProcessesLists[i] = makeGlobalProcessesForBeam(*b, i);
     }
 
+    const bool isRestart = opal_m->inRestartRun();
+    if (isRestart) {
+        opal_m->setOpenMode(OpalData::OpenMode::APPEND);
+        for (size_t i = 0; i < emissionSourcesLists.size(); ++i) {
+            for (const EmissionSource* source : emissionSourcesLists[i]) {
+                Distribution* distribution = Distribution::find(source->getDistributionName());
+                distribution->setDistType();
+                distribution->setDist();
+                if (distribution->emitting_m || source->getT0() > 0.0
+                    || distribution->getType() == DistributionType::EMITTEDFROMFILE) {
+                    throw OpalException(
+                            "TrackRun::execute",
+                            "Checkpoint restart does not yet support time-dependent or delayed "
+                            "emission sources (beam '"
+                                    + beamNames[i] + "', distribution '"
+                                    + source->getDistributionName() + "').");
+                }
+            }
+            if (!globalProcessesLists[i].empty()) {
+                throw OpalException(
+                        "TrackRun::execute",
+                        "Checkpoint restart does not yet support stochastic global processes "
+                        "such as DECAY (beam '"
+                                + beamNames[i] + "').");
+            }
+        }
+    }
+
     // Parser-owned commands are consumed once. Runtime solver objects retain only this
     // immutable snapshot and never borrow FieldSolverCmd or EmissionSource objects.
     auto selfFieldConfig =
             opalx::spacecharge::SelfFieldConfigBuilder::build(*fs_m, emissionSourcesLists);
+    const auto particleLayoutConfig = selfFieldConfig.particleLayoutConfig();
 
     /*
     Need the following units for mass and charge:
@@ -423,7 +437,8 @@ void TrackRun::execute() {
             totalParticlesPerBeam,            // Per-beam particle counts for allocation
             Options::loadBalancingThreshold,  // Load balancing threshold
             "LF2",                            // Integrator
-            fs_m);                            // Field solver setup
+            fs_m,                             // Field solver setup
+            particleLayoutConfig);            // Particle layout setup
 
     // Validate container setup produced by constructor
     const auto& particleContainers = bunch_m->getParticleContainers();
@@ -469,27 +484,37 @@ void TrackRun::execute() {
         *gmsg << level5 << "MPI_Comm_size= " << world_size << endl;
     }
 
-    // Setup all distributions and samplers, perform initial sampling (t0 == 0),
-    // and prepare per-container emitting sampler lists for ParallelTracker.
-    // Do this for each particle container
+    // A fresh run samples its distributions. A restart restores the exact saved particle state
+    // instead, so sampling it again would duplicate particles and consume random numbers.
     OpalData::getInstance()->setGlobalPhaseShift(0.0);
     std::vector<emittingSamplers_t> emittingSamplersList(particleContainers.size());
-    for (size_t i = 0; i < particleContainers.size(); ++i) {
-        setupDistributionsAndSamplers(
-                emissionSourcesLists[i], beams[i], emittingSamplersList[i], i);
+    CheckpointFile::Metadata restartMetadata;
+    if (isRestart) {
+        restartMetadata = CheckpointFile::read(opal_m->getRestartFileName(), *bunch_m);
+        ds_m->rewindToCheckpoint(*bunch_m);
+        *gmsg << level1 << "* Restored checkpoint '" << opal_m->getRestartFileName()
+              << "' at global step " << restartMetadata.globalTrackStep
+              << ", t = " << Util::getTimeString(restartMetadata.time) << "." << endl;
+    } else {
+        for (size_t i = 0; i < particleContainers.size(); ++i) {
+            setupDistributionsAndSamplers(
+                    emissionSourcesLists[i], beams[i], emittingSamplersList[i], i);
+        }
     }
     selfFieldSystem_m = opalx::spacecharge::SelfFieldFactory::create(
             std::move(selfFieldConfig), *bunch_m, ds_m);
 
-    // Refresh the initial particle statistics after distribution setup.
-    bunch_m->setCharge();
-    bunch_m->setMass();
+    if (!isRestart) {
+        // Refresh the initial particle statistics after distribution setup.
+        bunch_m->setCharge();
+        bunch_m->setMass();
+    }
 
     bunch_m->updateAllParticleMoments();
     bunch_m->print(*gmsg);
 
     // Set ZStart, ZStop, and dT
-    if (bunch_m->getParticleContainer()->getTotalNum() > 0) {
+    if (!isRestart && bunch_m->getParticleContainer()->getTotalNum() > 0) {
         double spos = Track::block->zstart;
         auto& zstop = Track::block->zstop;
         auto it     = Track::block->dT.begin();
@@ -501,7 +526,7 @@ void TrackRun::execute() {
         }
 
         bunch_m->setdT(*it);
-    } else {
+    } else if (!isRestart) {
         Track::block->zstart = 0.0;
     }
 
@@ -514,7 +539,10 @@ void TrackRun::execute() {
     itsTracker_m = std::make_unique<ParallelTracker>(
             *Track::block->use->fetchLine(), *bunch_m, *selfFieldSystem_m, ds_m, false,
             Track::block->localTimeSteps, Track::block->zstart, Track::block->zstop,
-            Track::block->dT, emittingSamplersList);
+            Track::block->dT, emittingSamplersList, isRestart,
+            static_cast<unsigned long long>(restartMetadata.globalTrackStep), restartMetadata.dt,
+            StepSizeConfig::ResumePosition{
+                    restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment});
     itsTracker_m->execute();
 
     /*
@@ -543,20 +571,18 @@ void TrackRun::initDataSink(size_t numParticleContainers) {
     phaseSpaceSinks_m.clear();
     phaseSpaceSinks_m.reserve(numParticleContainers);
 
-    const std::string base = opal_m->getInputBasename();
+    const bool isRestart        = opal_m->inRestartRun();
+    const std::string inputBase = opal_m->getInputBasename();
 
-    for (size_t i = 0; i < numParticleContainers; ++i) {
+    for (size_t i = 0; Options::enableHDF5 && i < numParticleContainers; ++i) {
         const std::string stem =
-                DataSink::diagnosticStemForContainer(base, numParticleContainers, i);
+                DataSink::diagnosticStemForContainer(inputBase, numParticleContainers, i);
         const std::string dest = stem + std::string(".h5");
 
-        if (opal_m->inRestartRun()) {
-            const std::string src = h5RestartSourceForContainer(
-                    OpalData::getInstance()->getRestartFileName(), dest, numParticleContainers);
+        if (isRestart && std::filesystem::exists(dest)) {
             phaseSpaceSinks_m.push_back(
-                    std::make_unique<H5PartWrapperForPT>(
-                            dest, opal_m->getRestartStep(), src, H5_O_WRONLY));
-        } else if (isFollowupTrack_m) {
+                    std::make_unique<H5PartWrapperForPT>(dest, -1, dest, H5_O_RDWR));
+        } else if (!isRestart && isFollowupTrack_m) {
             phaseSpaceSinks_m.push_back(
                     std::make_unique<H5PartWrapperForPT>(
                             dest, -1, stem + std::string(".h5"), H5_O_WRONLY));
@@ -566,7 +592,7 @@ void TrackRun::initDataSink(size_t numParticleContainers) {
     }
 
     const std::vector<H5PartWrapper*> sinks = borrowedPhaseSpaceSinks();
-    if (!opal_m->inRestartRun()) {
+    if (!isRestart) {
         if (!opal_m->hasDataSinkAllocated()) {
             opal_m->setDataSink(new DataSink(sinks, false, numParticleContainers));
         } else {
@@ -574,7 +600,9 @@ void TrackRun::initDataSink(size_t numParticleContainers) {
             raw->changeH5Wrappers(sinks);
         }
     } else {
-        opal_m->setDataSink(new DataSink(sinks, true, numParticleContainers));
+        // All diagnostics continue under their original basename. Existing phase-space H5 files
+        // are opened for append; absent ones are initialized as new diagnostic files.
+        opal_m->setDataSink(new DataSink(sinks, false, numParticleContainers, inputBase, true));
     }
 
     // DataSink lifetime is managed by OpalData; TrackRun only borrows it.
@@ -746,6 +774,9 @@ void TrackRun::setupDistributionsAndSamplers(
         // Build a sampler instance for this emission source.
         std::shared_ptr<SamplingBase> sampler;
         switch (opalDist->getType()) {
+            case DistributionType::UNIFORM:
+                sampler = std::make_shared<Uniform>(pc, opalDist);
+                break;
             case DistributionType::GAUSS:
                 sampler = std::make_shared<Gaussian>(pc, opalDist);
                 break;

@@ -24,7 +24,7 @@ template <typename T, unsigned Dim>
 PartBunch<T, Dim>::PartBunch(
         std::vector<double> qi, std::vector<double> mi, const std::vector<Beam*>& beams,
         std::vector<size_t> totalParticlesPerBeam, double lbt, std::string integration_method,
-        FieldSolverCmd* OPALFieldSolver)
+        FieldSolverCmd* OPALFieldSolver, opalx::spacecharge::ParticleLayoutConfig layoutConfig)
     : dt_m(0),
       it_m(0),
       integration_method_m(integration_method),
@@ -76,18 +76,31 @@ PartBunch<T, Dim>::PartBunch(
         this->decomp_m[i] = domainDecomposition[i];
     }
 
-    const BCHandler<Dim> bcHandler = OPALFieldSolver->constructBCHandler();
-
-    // TODO: support mixed periodic/open per axis; currently all periodic or all open.
-    const bool isAllPeriodic = bcHandler.isAll(BCHandler<Dim>::PERIODIC);
+    const bool useOverlap =
+            layoutConfig.kind == opalx::spacecharge::ParticleLayoutKind::SpatialOverlap;
+    const T overlapCutoff = static_cast<T>(layoutConfig.overlapCutoff);
+    if (useOverlap && !(overlapCutoff > T(0))) {
+        throw OpalException(
+                "PartBunch::PartBunch",
+                "A spatial-overlap particle layout requires a positive cutoff.");
+    }
+    const auto layoutType           = useOverlap ? ParticleContainer_t::LayoutType::SpatialOverlap
+                                                 : ParticleContainer_t::LayoutType::Spatial;
+    const bool isAllPeriodic        = layoutConfig.periodic;
+    const ippl::BC particleBoundary = isAllPeriodic ? ippl::BC::PERIODIC : ippl::BC::NO;
     m << level5 << "* Initial PIC workspace set to isAllPeriodic = " << isAllPeriodic << endl;
 
     // Set up the initial particle layout. Pic3DSolver replaces this geometry with the
     // physical computational domain before the first runtime solve.
 
     Vector_t<double, Dim> length(6.0);
+    if (useOverlap) {
+        for (unsigned dimension = 0; dimension < Dim; ++dimension) {
+            length[dimension] = static_cast<double>(nr_m[dimension]) * overlapCutoff;
+        }
+    }
     this->hr_m     = length / this->nr_m;
-    this->origin_m = -3.0;
+    this->origin_m = useOverlap ? -0.5 * length : Vector_t<double, Dim>(-3.0);
     this->dt_m     = 0.5 / this->nr_m[2];
 
     rmin_m = origin_m;
@@ -100,14 +113,16 @@ PartBunch<T, Dim>::PartBunch(
     initialFieldLayout_m = fieldLayout.str();
 
     pcontainer_m = std::make_shared<ParticleContainer_t>(
-            picWorkspace_m->mesh(), picWorkspace_m->layout(), beams[0]->hasPolarization());
+            picWorkspace_m->mesh(), picWorkspace_m->layout(), beams[0]->hasPolarization(),
+            layoutType, overlapCutoff, particleBoundary);
     pcontainers_m.push_back(pcontainer_m);
     pcontainer_m->setBunchStateHandler(bunchState_m);
     /// \todo if we want, we could also have a separate BunchStateHandler for each container later?
     /// But I think it could also make sense to only have one global handler.
     for (size_t i = 1; i < num_containers; ++i) {
         auto pc = std::make_shared<ParticleContainer_t>(
-                picWorkspace_m->mesh(), picWorkspace_m->layout(), beams[i]->hasPolarization());
+                picWorkspace_m->mesh(), picWorkspace_m->layout(), beams[i]->hasPolarization(),
+                layoutType, overlapCutoff, particleBoundary);
         pc->setBunchStateHandler(bunchState_m);
         pcontainers_m.push_back(std::move(pc));
     }

@@ -3,6 +3,7 @@
 //
 
 #include "Structure/H5PartWrapper.h"
+#include "Structure/H5FileSpace.h"
 
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
@@ -12,9 +13,11 @@
 
 #include "Utility/PAssert.h"
 
+#include <algorithm>
+#include <cmath>
 #include <filesystem>
-
 #include <fstream>
+#include <limits>
 
 namespace {
     const h5_int64_t H5TypesCHAR   = H5_STRING_T;
@@ -31,7 +34,8 @@ H5PartWrapper::H5PartWrapper(const std::string& fileName, h5_int32_t flags)
       fileName_m(fileName),
       predecessorOPALFlavour_m("NOT SET"),
       numSteps_m(0),
-      startedFromExistingFile_m(false) {
+      startedFromExistingFile_m(false),
+      h5OpenCloseTimer_m(IpplTimings::getTimer("H5 open close")) {
     open(flags);
 }
 
@@ -41,7 +45,8 @@ H5PartWrapper::H5PartWrapper(
       fileName_m(fileName),
       predecessorOPALFlavour_m("NOT SET"),
       numSteps_m(0),
-      startedFromExistingFile_m(true) {
+      startedFromExistingFile_m(true),
+      h5OpenCloseTimer_m(IpplTimings::getTimer("H5 open close")) {
     if (sourceFile.empty()) {
         sourceFile = fileName_m;
     }
@@ -55,15 +60,62 @@ H5PartWrapper::~H5PartWrapper() { close(); }
 
 void H5PartWrapper::close() {
     if (file_m) {
+        IpplTimings::startTimer(h5OpenCloseTimer_m);
         ippl::Comm->barrier();
 
         REPORTONERROR(H5CloseFile(file_m));
 
         file_m = 0;
+        IpplTimings::stopTimer(h5OpenCloseTimer_m);
     }
 }
 
+void H5PartWrapper::rewindToTime(double checkpointTime, double timeStep) {
+    close();
+    open(H5_O_RDWR);
+
+    const h5_ssize_t numSteps = H5GetNumSteps(file_m);
+    if (numSteps < 0) {
+        close();
+        throw OpalException(
+                "H5PartWrapper::rewindToTime", "could not read diagnostic HDF5 step count");
+    }
+
+    h5_ssize_t keepSteps = 0;
+    for (h5_ssize_t step = 0; step < numSteps; ++step) {
+        REPORTONERROR(H5SetStep(file_m, step));
+        if (H5HasStepAttrib(file_m, "TIME") <= 0) {
+            close();
+            throw OpalException(
+                    "H5PartWrapper::rewindToTime",
+                    "diagnostic HDF5 step " + std::to_string(step) + " has no TIME attribute");
+        }
+        h5_float64_t time = 0.0;
+        READSTEPATTRIB(Float64, file_m, "TIME", &time);
+        const double scale = std::max(
+                {std::abs(time), std::abs(checkpointTime), std::numeric_limits<double>::min()});
+        const double tolerance      = 64.0 * std::numeric_limits<double>::epsilon() * scale;
+        const bool beyondCheckpoint = timeStep >= 0.0 ? time > checkpointTime + tolerance
+                                                      : time < checkpointTime - tolerance;
+        if (beyondCheckpoint) {
+            break;
+        }
+        keepSteps = step + 1;
+    }
+    close();
+
+    if (keepSteps < numSteps) {
+        H5FileSpace::compactStepPrefix(fileName_m, static_cast<std::size_t>(keepSteps));
+
+        *ippl::Info << level2 << "Rewound diagnostic HDF5 file '" << fileName_m << "' from "
+                    << numSteps << " to " << keepSteps << " step(s)." << endl;
+    }
+    numSteps_m = keepSteps;
+    ippl::Comm->barrier();
+}
+
 void H5PartWrapper::open(h5_int32_t flags) {
+    IpplTimings::startTimer(h5OpenCloseTimer_m);
     h5_prop_t props = H5CreateFileProp();
     MPI_Comm comm   = ippl::Comm->getCommunicator();
     h5_err_t h5err  = H5SetPropFileMPIOCollective(props, &comm);
@@ -74,6 +126,7 @@ void H5PartWrapper::open(h5_int32_t flags) {
     file_m = H5OpenFile(fileName_m.c_str(), flags, props);
     PAssert(file_m != (h5_file_t)H5_ERR);
     H5CloseProp(props);
+    IpplTimings::stopTimer(h5OpenCloseTimer_m);
 }
 
 void H5PartWrapper::storeCavityInformation() {
@@ -137,6 +190,12 @@ void H5PartWrapper::copyFile(const std::string& sourceFile, int lastStep, h5_int
         PAssert(source != (h5_file_t)H5_ERR);
         H5CloseProp(props);
         h5_ssize_t numStepsInSource = H5GetNumSteps(source);
+
+        if (numStepsInSource == 0) {
+            REPORTONERROR(H5CloseFile(source));
+            numSteps_m = 0;
+            return;
+        }
 
         if (lastStep == -1 || lastStep >= numStepsInSource) {
             REPORTONERROR(H5SetStep(source, numStepsInSource - 1));

@@ -48,6 +48,11 @@ private:
     void writeStepHeader(
             PartBunch_t*, const std::map<std::string, double>&, size_t particleContainerIndex);
     void writeStepData(PartBunch_t*, size_t particleContainerIndex);
+
+    IpplTimings::TimerRef h5TotalStepTimer_m;
+    IpplTimings::TimerRef h5StepHeaderTimer_m;
+    IpplTimings::TimerRef h5DeviceHostCopyTimer_m;
+    IpplTimings::TimerRef h5DatasetWriteTimer_m;
 };
 
 inline bool H5PartWrapperForPT::predecessorIsSameFlavour() const {

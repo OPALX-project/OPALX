@@ -50,13 +50,11 @@ namespace {
         void accept(BeamlineVisitor&) const override {}
         ElementBase* clone() const override { return new FieldSupportOnlyComponent(*this); }
 
-        bool apply(const std::shared_ptr<ParticleContainer_t>&) override { return false; }
+        void apply(const std::shared_ptr<ParticleContainer_t>&) override {}
 
-        bool apply(
+        void apply(
                 const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&,
-                Vector_t<double, 3>&, Vector_t<double, 3>&) override {
-            return false;
-        }
+                Vector_t<double, 3>&, Vector_t<double, 3>&) override {}
 
         bool applyToReferenceParticle(
                 const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&,
@@ -144,7 +142,7 @@ protected:
 
         auto bunch = std::make_shared<PartBunch_t>(
                 std::vector{1.0}, std::vector{1.0}, std::vector<Beam*>{opBeam},
-                std::vector<size_t>{numParticles}, 1.0, "LF2", fsCmdBase_m.get(), dataSink_m.get());
+                std::vector<size_t>{numParticles}, 1.0, "LF2", fsCmdBase_m.get());
         bunch->getParticleContainer()->createParticles(numParticles);
         return bunch;
     }

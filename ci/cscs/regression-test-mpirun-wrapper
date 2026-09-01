@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -e
+
+np=1
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -np|-n)
+      np="$2"
+      shift 2
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+echo "[mpirun-wrapper] translated mpirun -np ${np} -> srun ${SRUN_ARGS} -n ${np} ${WRAPPER} env MALLOC_CHECK_=0 GLIBC_TUNABLES=glibc.malloc.tcache_count=0 $*"
+exec srun ${SRUN_ARGS} -n "${np}" ${WRAPPER} env MALLOC_CHECK_=0 GLIBC_TUNABLES=glibc.malloc.tcache_count=0 "$@"

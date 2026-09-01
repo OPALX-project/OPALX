@@ -17,6 +17,16 @@ namespace opalx::spacecharge {
         class IpplPoissonBackend;
     }
 
+    /** @brief Construction values for one concrete IPPL grid backend. */
+    struct IpplPoissonBackendConfig {
+        PoissonBackendKind kind         = PoissonBackendKind::None;
+        GreenFunctionKind greenFunction = GreenFunctionKind::Integrated;
+        double p3mCutoff                = 0.0;
+        std::array<BoundaryConditionKind, 3> boundaryConditions{
+                BoundaryConditionKind::Open, BoundaryConditionKind::Open,
+                BoundaryConditionKind::Open};
+    };
+
     /**
      * @brief Owns construction-time backend selection and all concrete IPPL solver access.
      *
@@ -27,7 +37,7 @@ namespace opalx::spacecharge {
     class IpplPoissonAdapter final {
     public:
         [[nodiscard]] static std::unique_ptr<IpplPoissonAdapter> create(
-                PoissonBackendKind kind, GreenFunctionKind greenFunction, IpplPoissonFields fields);
+                IpplPoissonBackendConfig config, IpplPoissonFields fields);
 
         [[nodiscard]] static const IpplPoissonCapabilities& capabilitiesFor(
                 PoissonBackendKind kind);
@@ -56,8 +66,7 @@ namespace opalx::spacecharge {
         [[nodiscard]] double couplingConstant() const;
 
     private:
-        IpplPoissonAdapter(
-                PoissonBackendKind kind, GreenFunctionKind greenFunction, IpplPoissonFields fields);
+        IpplPoissonAdapter(IpplPoissonBackendConfig config, IpplPoissonFields fields);
 
         // Backends borrow the active alternative, so storage must outlive backend_m.
         Solver_t<double, 3> solverStorage_m;

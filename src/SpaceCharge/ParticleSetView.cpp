@@ -126,6 +126,16 @@ namespace opalx::spacecharge {
         return count;
     }
 
+    void ParticleSetView::applySelection(ParticleSelectionPolicy policy) {
+        for (std::size_t index = 0; index < containers_m.size(); ++index) {
+            bool selected = index == primaryIndex_m;
+            if (policy == ParticleSelectionPolicy::AllTrackingActive) {
+                selected = containers_m[index].trackingActive();
+            }
+            containers_m[index].setSelectedForSolve(selected);
+        }
+    }
+
     bool ParticleSetView::activeContainersProvide(ParticleAttributeSet required) const {
         for (const ParticleContainerView& container : containers_m) {
             if (container.active() && !container.availableAttributes().contains(required)) {

@@ -17,6 +17,7 @@ set (_PRIVATE_HDRS
     BinningPlan.tpp
     FieldFramePolicy.h
     IterationPlanFactory.h
+    P3MShortRangeInteraction.h
     Pic3DSolver.h
     PicDomainManager.h
     PicParticleDomainAdapter.h

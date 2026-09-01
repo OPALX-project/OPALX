@@ -7,7 +7,9 @@ add_subdirectory(EndFieldModel)
 set(_SRCS
     AttributeSet.cpp
     BeamlineVisitor.cpp
+    Collimator.cpp
     ConstantEFieldCavity.cpp
+    ConstantFocusing.cpp
     Drift.cpp
     ElementBase.cpp
     Laser.cpp
@@ -33,7 +35,9 @@ set(_SRCS
 set(_HDRS
     AttributeSet.h
     BeamlineVisitor.h
+    Collimator.h
     ConstantEFieldCavity.h
+    ConstantFocusing.h
     Drift.h
     ElementBase.h
     Laser.h
@@ -54,6 +58,7 @@ set(_HDRS
     RBend.h
     SBend.h
     VariableRFCavity.h
+    MultipoleTConfig.h
 )
 
 # Add local include directory

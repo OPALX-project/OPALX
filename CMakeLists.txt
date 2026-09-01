@@ -134,6 +134,21 @@ endif()
 # ------------------------------------------------------------------------------
 # Define sources for project
 # ------------------------------------------------------------------------------
+# IPPL's CMakeLists.txt (via FetchContent) may unset CMAKE_RUNTIME_OUTPUT_DIRECTORY
+# when IPPL_USE_STANDARD_FOLDERS is OFF. Re-apply our output directories here
+# so that opalx_exe lands in ${PROJECT_BINARY_DIR}/bin as expected.
+if(OPALX_USE_STANDARD_FOLDERS)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY
+      ${PROJECT_BINARY_DIR}/bin
+      CACHE PATH "Single Directory for all Executables." FORCE)
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY
+      ${PROJECT_BINARY_DIR}/lib
+      CACHE PATH "Single Directory for all Libraries." FORCE)
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY
+      ${PROJECT_BINARY_DIR}/lib
+      CACHE PATH "Single Directory for all static libraries." FORCE)
+endif()
+
 add_subdirectory(src)
 
 include_directories(${CMAKE_SOURCE_DIR}/src ${OPALX_INCLUDE_DIR})

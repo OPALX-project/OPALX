@@ -1,0 +1,30 @@
+#ifndef OPALX_UNIFORM_H
+#define OPALX_UNIFORM_H
+
+#include <Kokkos_Random.hpp>
+
+#include "Distribution/SamplingBase.hpp"
+
+/**
+ * @brief One-shot cold distribution that is uniform by volume inside an ellipsoid.
+ *
+ * `SIGMAX`, `SIGMAY`, and `SIGMAZ` are semi-axes, not RMS widths. Emission models and delayed
+ * emission are not supported.
+ */
+class Uniform : public SamplingBase {
+public:
+    Uniform(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist);
+    Uniform(std::shared_ptr<ParticleContainer_t> pc, const Vector_t<double, 3>& semiAxes,
+            double avrgpz = 0.0);
+
+    void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) override;
+
+private:
+    void initRandomPool();
+
+    Kokkos::Random_XorShift64_Pool<> randPool_m;
+    Vector_t<double, 3> semiAxes_m;
+    double avrgpz_m;
+};
+
+#endif  // OPALX_UNIFORM_H

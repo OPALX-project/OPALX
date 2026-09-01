@@ -200,6 +200,7 @@ void OrbitThreader::execute() {
         // Geometry SDDS dump is a design-beam output; secondary species only build their map.
         imap_m.saveSDDS(initialPathLength);
     }
+    logger_m.close();
 }
 
 void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDrift*/) {

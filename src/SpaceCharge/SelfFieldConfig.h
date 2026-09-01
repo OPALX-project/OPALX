@@ -6,6 +6,7 @@
 #ifndef OPALX_SPACE_CHARGE_SELF_FIELD_CONFIG_H
 #define OPALX_SPACE_CHARGE_SELF_FIELD_CONFIG_H
 
+#include "SpaceCharge/ParticleLayoutConfig.h"
 #include "SpaceCharge/SolverCapabilities.h"
 
 #include <array>
@@ -19,7 +20,13 @@
 namespace opalx::spacecharge {
 
     /** @brief Poisson backend selected for the Cartesian 3D PIC algorithm. */
-    enum class PoissonBackendKind : std::uint8_t { None, FftPeriodic, Open, ConjugateGradient };
+    enum class PoissonBackendKind : std::uint8_t {
+        None,
+        FftPeriodic,
+        Open,
+        ConjugateGradient,
+        P3M
+    };
 
     /** @brief Boundary condition snapshot independent of IPPL boundary types. */
     enum class BoundaryConditionKind : std::uint8_t { Open, Dirichlet, Periodic };
@@ -29,6 +36,9 @@ namespace opalx::spacecharge {
 
     /** @brief Bunch attribute used to construct energy or longitudinal bins. */
     enum class BinningParameterKind : std::uint8_t { VelocityZ, PositionZ, MomentumZ, GammaZ };
+
+    /** @brief Longitudinal-field approximation used by the 2.5D algorithm. */
+    enum class Pic2d5LongitudinalFieldMode : std::uint8_t { Open, Cylindrical, Plates, None };
 
     /** @brief Static source-plane correction values resolved during run setup. */
     struct CorrectionConfigValues {
@@ -111,6 +121,7 @@ namespace opalx::spacecharge {
                 BoundaryConditionKind::Open, BoundaryConditionKind::Open,
                 BoundaryConditionKind::Open};
         GreenFunctionKind greenFunction   = GreenFunctionKind::Integrated;
+        double p3mCutoff                  = 0.0;
         double boundingBoxIncreasePercent = 2.0;
         std::optional<BinningConfig> binning;
         std::size_t repartitionFrequency = 0;
@@ -150,6 +161,7 @@ namespace opalx::spacecharge {
             return values_m.boundaryConditions;
         }
         [[nodiscard]] GreenFunctionKind greenFunction() const { return values_m.greenFunction; }
+        [[nodiscard]] double p3mCutoff() const { return values_m.p3mCutoff; }
         [[nodiscard]] double boundingBoxIncreasePercent() const {
             return values_m.boundingBoxIncreasePercent;
         }
@@ -168,7 +180,43 @@ namespace opalx::spacecharge {
         Pic3DConfigValues values_m;
     };
 
-    using SelfFieldAlgorithmConfig = std::variant<Pic3DConfig>;
+    /** @brief Mutable construction values for the independent 2.5D PIC algorithm. */
+    struct Pic2d5ConfigValues {
+        std::array<std::size_t, 3> meshSize{8, 8, 8};
+        Pic2d5LongitudinalFieldMode longitudinalFieldMode = Pic2d5LongitudinalFieldMode::Open;
+        double pipeSizeX                                  = 1.0;
+        double pipeSizeY                                  = 1.0;
+        double beamRadius                                 = 1.0;
+        bool closedRing                                   = false;
+        bool scatterLongitudinally                        = true;
+        std::string referencePathFile;
+    };
+
+    /** @brief Immutable configuration of the reference-path 2.5D PIC algorithm. */
+    class Pic2d5Config {
+    public:
+        explicit Pic2d5Config(Pic2d5ConfigValues values);
+
+        [[nodiscard]] const std::array<std::size_t, 3>& meshSize() const {
+            return values_m.meshSize;
+        }
+        [[nodiscard]] Pic2d5LongitudinalFieldMode longitudinalFieldMode() const {
+            return values_m.longitudinalFieldMode;
+        }
+        [[nodiscard]] double pipeSizeX() const { return values_m.pipeSizeX; }
+        [[nodiscard]] double pipeSizeY() const { return values_m.pipeSizeY; }
+        [[nodiscard]] double beamRadius() const { return values_m.beamRadius; }
+        [[nodiscard]] bool closedRing() const { return values_m.closedRing; }
+        [[nodiscard]] bool scatterLongitudinally() const { return values_m.scatterLongitudinally; }
+        [[nodiscard]] const std::string& referencePathFile() const {
+            return values_m.referencePathFile;
+        }
+
+    private:
+        Pic2d5ConfigValues values_m;
+    };
+
+    using SelfFieldAlgorithmConfig = std::variant<Pic3DConfig, Pic2d5Config>;
 
     /**
      * @brief Run-lifetime configuration owned by SelfFieldSystem.
@@ -181,6 +229,7 @@ namespace opalx::spacecharge {
         explicit SelfFieldConfig(SelfFieldAlgorithmConfig algorithmConfig);
 
         [[nodiscard]] SelfFieldAlgorithmKind algorithmKind() const;
+        [[nodiscard]] ParticleLayoutConfig particleLayoutConfig() const;
         [[nodiscard]] const SelfFieldAlgorithmConfig& algorithmConfig() const {
             return algorithmConfig_m;
         }

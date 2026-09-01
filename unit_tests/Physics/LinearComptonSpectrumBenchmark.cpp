@@ -258,9 +258,6 @@ namespace {
             domain[i] = ippl::Index(nr[i]);
         }
 
-        auto fc = std::make_shared<FieldContainer_t>(hr, rmin, rmax, decomp, domain, origin, true);
-        (void)fc;
-
         Mesh_t<3> mesh(domain, hr, origin);
         FieldLayout_t<3> fl(MPI_COMM_WORLD, domain, decomp, true);
         return std::make_shared<ParticleContainer<double, 3>>(mesh, fl);

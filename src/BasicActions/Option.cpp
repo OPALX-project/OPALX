@@ -60,6 +60,7 @@ namespace {
         TELL,
         PSDUMPFREQ,
         STATDUMPFREQ,
+        CHECKPOINTFREQ,
         STEPINFOFQ,
         PRINTRANKDISTRFQ,
         PSDUMPEACHTURN,
@@ -130,15 +131,23 @@ Option::Option()
     itsAttr[PSDUMPFREQ] = Attributes::makeReal(
             "PSDUMPFREQ",
             "The frequency to dump the phase space, "
-            "i.e.dump data when step%psDumpFreq==0, its default value is 10.",
+            "i.e. dump data when step%psDumpFreq==0; 0 disables phase space dumps. "
+            "Its default value is 10.",
             psDumpFreq);
 
     itsAttr[STATDUMPFREQ] = Attributes::makeReal(
             "STATDUMPFREQ",
             "The frequency to dump statistical data "
             "(e.g. RMS beam quantities), i.e. dump data when step%statDumpFreq == 0, "
-            "its default value is 10.",
+            "0 disables statistical dumps. Its default value is 10.",
             statDumpFreq);
+
+    itsAttr[CHECKPOINTFREQ] = Attributes::makeReal(
+            "CHECKPOINTFREQ",
+            "The frequency to write a restart checkpoint after completed integration steps, "
+            "i.e. checkpoint when GlobalTrackStep % CHECKPOINTFREQ == 0. "
+            "A value of 0 disables checkpointing. Its default value is 0.",
+            checkpointFreq);
 
     itsAttr[STEPINFOFQ] = Attributes::makeReal(
             "STEPINFOFQ",
@@ -381,6 +390,7 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setReal(itsAttr[SEED], seed);
     Attributes::setReal(itsAttr[PSDUMPFREQ], psDumpFreq);
     Attributes::setReal(itsAttr[STATDUMPFREQ], statDumpFreq);
+    Attributes::setReal(itsAttr[CHECKPOINTFREQ], checkpointFreq);
     Attributes::setReal(itsAttr[STEPINFOFQ], stepInfoFreq);
     Attributes::setReal(itsAttr[PRINTRANKDISTRFQ], printRankDistrFreq);
     Attributes::setBool(itsAttr[PSDUMPEACHTURN], psDumpEachTurn);
@@ -498,12 +508,23 @@ void Option::execute() {
 
     if (itsAttr[PSDUMPFREQ]) {
         psDumpFreq = int(Attributes::getReal(itsAttr[PSDUMPFREQ]));
-        if (psDumpFreq == 0) psDumpFreq = std::numeric_limits<int>::max();
+        if (psDumpFreq < 0) {
+            throw OpalException("Option::execute", "PSDUMPFREQ must be non-negative.");
+        }
     }
 
     if (itsAttr[STATDUMPFREQ]) {
         statDumpFreq = int(Attributes::getReal(itsAttr[STATDUMPFREQ]));
-        if (statDumpFreq == 0) statDumpFreq = std::numeric_limits<int>::max();
+        if (statDumpFreq < 0) {
+            throw OpalException("Option::execute", "STATDUMPFREQ must be non-negative.");
+        }
+    }
+
+    if (itsAttr[CHECKPOINTFREQ]) {
+        checkpointFreq = int(Attributes::getReal(itsAttr[CHECKPOINTFREQ]));
+        if (checkpointFreq < 0) {
+            throw OpalException("Option::execute", "CHECKPOINTFREQ must be non-negative.");
+        }
     }
 
     if (itsAttr[STEPINFOFQ]) {

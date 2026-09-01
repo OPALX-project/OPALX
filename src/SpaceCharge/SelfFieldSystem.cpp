@@ -8,6 +8,7 @@
 #include "Utilities/OpalException.h"
 
 #include <string>
+#include <type_traits>
 #include <utility>
 
 namespace opalx::spacecharge {
@@ -15,13 +16,21 @@ namespace opalx::spacecharge {
     namespace {
 
         SelfFieldDiagnosticSchedule makeDiagnosticSchedule(const SelfFieldConfig& config) {
-            const Pic3DConfig& picConfig = config.get<Pic3DConfig>();
-            SelfFieldDiagnosticSchedule schedule;
-            schedule.planeDumpFrequency = picConfig.correction().planeDumpFrequency();
-            if (picConfig.binning().has_value()) {
-                schedule.binTableFrequency = picConfig.binning()->tablePrintFrequency();
-            }
-            return schedule;
+            return std::visit(
+                    [](const auto& algorithmConfig) {
+                        using Config = std::decay_t<decltype(algorithmConfig)>;
+                        SelfFieldDiagnosticSchedule schedule;
+                        if constexpr (std::is_same_v<Config, Pic3DConfig>) {
+                            schedule.planeDumpFrequency =
+                                    algorithmConfig.correction().planeDumpFrequency();
+                            if (algorithmConfig.binning().has_value()) {
+                                schedule.binTableFrequency =
+                                        algorithmConfig.binning()->tablePrintFrequency();
+                            }
+                        }
+                        return schedule;
+                    },
+                    config.algorithmConfig());
         }
 
     }  // namespace
@@ -40,40 +49,62 @@ namespace opalx::spacecharge {
     }
 
     void SelfFieldSystem::solve(SolveContext& context) {
+        context.particles().applySelection(capabilities_m.particleSelection);
         validateContext(context);
         auto solveEvent = diagnostics_m.scopedEvent(SelfFieldEventKind::Solve, "self-field");
         algorithm_m->execute(context, diagnostics_m);
     }
 
     RequestedPhysics SelfFieldSystem::requestedPhysicsForStep(std::size_t step) const {
-        const Pic3DConfig& picConfig       = config_m.get<Pic3DConfig>();
-        const CorrectionConfig& correction = picConfig.correction();
-        const bool correctionActive =
-                correction.enabled()
-                && (correction.maximumSteps() == 0 || step < correction.maximumSteps());
-
-        RequestedPhysics requested;
-        requested.useBinning = picConfig.binning().has_value();
-        if (correctionActive) {
-            requested.correction     = {correction.kind(), correction.planeZ()};
-            requested.writePotential = correction.kind() == CorrectionKind::ImageCharge
-                                       && correction.planeDumpFrequency() != 0;
-        }
-        return requested;
+        return std::visit(
+                [step](const auto& algorithmConfig) {
+                    using Config = std::decay_t<decltype(algorithmConfig)>;
+                    RequestedPhysics requested;
+                    if constexpr (std::is_same_v<Config, Pic3DConfig>) {
+                        const CorrectionConfig& correction = algorithmConfig.correction();
+                        const bool correctionActive        = correction.enabled()
+                                                      && (correction.maximumSteps() == 0
+                                                          || step < correction.maximumSteps());
+                        requested.useBinning = algorithmConfig.binning().has_value();
+                        if (correctionActive) {
+                            requested.correction = {correction.kind(), correction.planeZ()};
+                            requested.writePotential =
+                                    correction.kind() == CorrectionKind::ImageCharge
+                                    && correction.planeDumpFrequency() != 0;
+                        }
+                    }
+                    return requested;
+                },
+                config_m.algorithmConfig());
     }
 
     CorrectionRequest SelfFieldSystem::configuredCorrection() const {
-        const CorrectionConfig& correction = config_m.get<Pic3DConfig>().correction();
-        return {correction.kind(), correction.planeZ()};
+        return std::visit(
+                [](const auto& algorithmConfig) {
+                    using Config = std::decay_t<decltype(algorithmConfig)>;
+                    if constexpr (std::is_same_v<Config, Pic3DConfig>) {
+                        const CorrectionConfig& correction = algorithmConfig.correction();
+                        return CorrectionRequest{correction.kind(), correction.planeZ()};
+                    }
+                    return CorrectionRequest{};
+                },
+                config_m.algorithmConfig());
     }
 
     int SelfFieldSystem::reportedBinCount() const {
-        const auto& binning = config_m.get<Pic3DConfig>().binning();
-        if (!binning.has_value() || !diagnostics_m.hasCurrentBinCount()
-            || diagnostics_m.currentBinCount() == binning->maximumBins()) {
-            return 1;
-        }
-        return static_cast<int>(diagnostics_m.currentBinCount());
+        return std::visit(
+                [this](const auto& algorithmConfig) {
+                    using Config = std::decay_t<decltype(algorithmConfig)>;
+                    if constexpr (std::is_same_v<Config, Pic3DConfig>) {
+                        const auto& binning = algorithmConfig.binning();
+                        if (binning.has_value() && diagnostics_m.hasCurrentBinCount()
+                            && diagnostics_m.currentBinCount() != binning->maximumBins()) {
+                            return static_cast<int>(diagnostics_m.currentBinCount());
+                        }
+                    }
+                    return 1;
+                },
+                config_m.algorithmConfig());
     }
 
     void SelfFieldSystem::validateConfiguration() const {
@@ -83,31 +114,39 @@ namespace opalx::spacecharge {
                     "The selected algorithm does not match the self-field configuration.");
         }
 
-        const Pic3DConfig& picConfig = config_m.get<Pic3DConfig>();
-        if (picConfig.binning().has_value() && !capabilities_m.supportsBinning) {
-            throw OpalException(
-                    "SelfFieldSystem::SelfFieldSystem",
-                    "The selected self-field algorithm does not support binning.");
-        }
-        if (!capabilities_m.supports(picConfig.correction().kind())) {
-            throw OpalException(
-                    "SelfFieldSystem::SelfFieldSystem",
-                    "The selected self-field algorithm does not support the configured "
-                    "source-plane correction.");
-        }
-        if (picConfig.correction().planeDumpFrequency() != 0
-            && !capabilities_m.supportsPotentialOutput) {
-            throw OpalException(
-                    "SelfFieldSystem::SelfFieldSystem",
-                    "The selected self-field algorithm cannot write the configured potential "
-                    "diagnostic.");
-        }
-        if (picConfig.repartitionFrequency() != 0 && !capabilities_m.supportsRedistribution) {
-            throw OpalException(
-                    "SelfFieldSystem::SelfFieldSystem",
-                    "The selected self-field algorithm does not support particle "
-                    "redistribution.");
-        }
+        std::visit(
+                [this](const auto& algorithmConfig) {
+                    using Config = std::decay_t<decltype(algorithmConfig)>;
+                    if constexpr (std::is_same_v<Config, Pic3DConfig>) {
+                        if (algorithmConfig.binning().has_value()
+                            && !capabilities_m.supportsBinning) {
+                            throw OpalException(
+                                    "SelfFieldSystem::SelfFieldSystem",
+                                    "The selected self-field algorithm does not support binning.");
+                        }
+                        if (!capabilities_m.supports(algorithmConfig.correction().kind())) {
+                            throw OpalException(
+                                    "SelfFieldSystem::SelfFieldSystem",
+                                    "The selected self-field algorithm does not support the "
+                                    "configured source-plane correction.");
+                        }
+                        if (algorithmConfig.correction().planeDumpFrequency() != 0
+                            && !capabilities_m.supportsPotentialOutput) {
+                            throw OpalException(
+                                    "SelfFieldSystem::SelfFieldSystem",
+                                    "The selected self-field algorithm cannot write the "
+                                    "configured potential diagnostic.");
+                        }
+                        if (algorithmConfig.repartitionFrequency() != 0
+                            && !capabilities_m.supportsRedistribution) {
+                            throw OpalException(
+                                    "SelfFieldSystem::SelfFieldSystem",
+                                    "The selected self-field algorithm does not support particle "
+                                    "redistribution.");
+                        }
+                    }
+                },
+                config_m.algorithmConfig());
     }
 
     void SelfFieldSystem::validateContext(const SolveContext& context) const {
@@ -154,9 +193,9 @@ namespace opalx::spacecharge {
                     "support.");
         }
 
-        const CorrectionKind configuredCorrection = config_m.get<Pic3DConfig>().correction().kind();
+        const CorrectionKind configuredKind = this->configuredCorrection().kind;
         if (requested.correction.kind != CorrectionKind::None
-            && requested.correction.kind != configuredCorrection) {
+            && requested.correction.kind != configuredKind) {
             throw OpalException(
                     "SelfFieldSystem::solve",
                     "The solve requests a correction different from the immutable run "

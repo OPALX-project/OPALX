@@ -32,7 +32,8 @@ enum MapType {
     T3DMagnetoStatic,
     T3DMagnetoStatic_Extended,
     T3DMagnetoStaticH5Block,
-    T3DDynamicH5Block
+    T3DDynamicH5Block,
+    TG4BL2DMagnetoStatic
 };
 
 enum SwapType {
@@ -70,9 +71,12 @@ public:
      * @param Filename The path to the field map file.
      * @param fast If true, load a "fast" version if available
      * (implementation dependent).
+     * @param zReverse If true, mirror the map in z and negate the longitudinal
+     * component on load. Only supported by readers that document it; the
+     * others throw when it is set.
      * @return Pointer to the Fieldmap instance.
      */
-    static Fieldmap* getFieldmap(std::string Filename, bool fast = false);
+    static Fieldmap* getFieldmap(std::string Filename, bool fast = false, bool zReverse = false);
 
     /**
      * @brief Get a list of all loaded field map names.
@@ -205,6 +209,9 @@ public:
 
     MapType getType() { return Type; }
 
+    /// @brief True if the map was loaded mirrored in z with Bz negated.
+    bool isZReversed() const { return zReverse_m; }
+
     virtual void getOnaxisEz(std::vector<std::pair<double, double>>& onaxis);
 
     /// @brief Check if a point is inside the field map.
@@ -225,7 +232,7 @@ protected:
     Fieldmap() = delete;
 
     Fieldmap(const std::string& aFilename)
-        : Filename_m(aFilename), lines_read_m(0), normalize_m(true) {};
+        : Filename_m(aFilename), lines_read_m(0), normalize_m(true), zReverse_m(false) {};
 
     virtual ~Fieldmap() { ; };
     MapType Type;
@@ -234,6 +241,10 @@ protected:
     int lines_read_m;
 
     bool normalize_m;
+
+    /// @brief Load the map mirrored in z, with the longitudinal component negated
+    bool zReverse_m;
+
     void getLine(std::ifstream& in, std::string& buffer) { getLine(in, lines_read_m, buffer); }
 
     static void getLine(std::ifstream& in, int& lines_read, std::string& buffer);
