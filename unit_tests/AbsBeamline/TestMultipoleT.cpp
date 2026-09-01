@@ -83,6 +83,7 @@ public:
     void execute() override {}
     void visitBeamline(const Beamline&) override {}
     void visitElementBase(const ElementBase&) override {}
+    void visitCollimator(const Collimator&) override {}
     void visitConstantEFieldCavity(const ConstantEFieldCavity&) override {}
     void visitDrift(const Drift&) override {}
     void visitFlaggedElmPtr(const FlaggedElmPtr&) override {}
@@ -217,7 +218,7 @@ TEST_F(TestMultipoleT, ApplySingleParticleThrowsForMultiContainerBunch) {
     const auto bunch = std::make_shared<PartBunch_t>(
             std::vector<double>{1.0e-9, 2.0e-9}, std::vector<double>{0.511e-3, 0.938},
             std::vector<Beam*>{testBeam, testBeam}, std::vector<size_t>{1, 1}, 1.0, "LF2",
-            fsCmd.get(), dataSink.get());
+            fsCmd.get());
     ASSERT_EQ(bunch->getNumParticleContainers(), 2u);
 
     // Register bunch; the per-particle-index apply() was removed, so only check that

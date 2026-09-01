@@ -12,7 +12,6 @@ FlatTop::FlatTop(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDi
     : SamplingBase(pc, opalDist), rand_pool_m(determineRandInit()) {
     setParameters(opalDist);
 }
-
 FlatTop::FlatTop(
         std::shared_ptr<ParticleContainer_t> pc, bool emitting, double sigmaTFall,
         double sigmaTRise, Vector_t<double, 3> cutoff, double tPulseLengthFWHM,

@@ -6,6 +6,7 @@
 #include "SpaceCharge/SelfFieldFactory.h"
 
 #include "PartBunch/PartBunch.h"
+#include "SpaceCharge/Pic2d5/Pic2d5Solver.h"
 #include "SpaceCharge/Pic3D/Pic3DSolver.h"
 #include "Utilities/OpalException.h"
 
@@ -22,6 +23,10 @@ namespace opalx::spacecharge {
                 algorithm = std::make_unique<Pic3DSolver>(
                         config.get<Pic3DConfig>(), bunch.getParticleContainers(),
                         bunch.takePicWorkspace(), dataSink);
+                break;
+            case SelfFieldAlgorithmKind::Pic2d5:
+                algorithm = std::make_unique<Pic2d5Solver>(
+                        config.get<Pic2d5Config>(), bunch.getParticleContainers());
                 break;
         }
 

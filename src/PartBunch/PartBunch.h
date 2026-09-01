@@ -22,6 +22,7 @@
 #include "Random/InverseTransformSampling.h"
 #include "Random/NormalDistribution.h"
 #include "Random/Randn.h"
+#include "SpaceCharge/ParticleLayoutConfig.h"
 #include "Structure/FieldSolverCmd.h"
 #include "Utilities/OpalException.h"
 
@@ -47,6 +48,7 @@ class PartBunch {
 public:
     using ParticleContainer_t = ParticleContainer<T, Dim>;
     using PicWorkspace_t      = opalx::spacecharge::PicWorkspace<T, Dim>;
+    using binIndex_t          = typename ParticleContainer_t::bin_index_type;
     using Base                = ippl::ParticleBase<
                            ippl::ParticleSpatialLayout<T, Dim, ippl::UniformCartesian<T, Dim>>,
                            Kokkos::DefaultExecutionSpace::memory_space>;
@@ -109,11 +111,13 @@ public:
      * @param lbt                    Load-balancer timescale.
      * @param integration_method     Integrator label (e.g. leapfrog).
      * @param OPALFieldSolver        Borrowed field solver command (mesh, BCs, optional binning).
+     * @param layoutConfig           Algorithm-neutral particle layout setup.
      */
     PartBunch(
             std::vector<double> qi, std::vector<double> mi, const std::vector<Beam*>& beams,
             std::vector<size_t> totalParticlesPerBeam, double lbt, std::string integration_method,
-            FieldSolverCmd* OPALFieldSolver);
+            FieldSolverCmd* OPALFieldSolver,
+            opalx::spacecharge::ParticleLayoutConfig layoutConfig = {});
 
     /**
      * @brief Recompute moments for every particle container without changing the PIC domain.

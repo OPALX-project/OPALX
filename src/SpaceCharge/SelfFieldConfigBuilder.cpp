@@ -5,6 +5,7 @@
 
 #include "SpaceCharge/SelfFieldConfigBuilder.h"
 
+#include "AbstractObjects/OpalData.h"
 #include "Distribution/Distribution.h"
 #include "PartBunch/BCHandler.hpp"
 #include "Structure/BinningCmd.h"
@@ -12,6 +13,7 @@
 #include "Structure/FieldSolverCmd.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
+#include "Utilities/Util.h"
 
 #include <algorithm>
 #include <array>
@@ -31,6 +33,10 @@ namespace opalx::spacecharge {
                     return PoissonBackendKind::Open;
                 case FieldSolverCmdType::CG:
                     return PoissonBackendKind::ConjugateGradient;
+                case FieldSolverCmdType::P3M:
+                    return PoissonBackendKind::P3M;
+                case FieldSolverCmdType::FFT2D5:
+                    break;
             }
             throw OpalException("SelfFieldConfigBuilder::build", "Unknown FIELDSOLVER TYPE value.");
         }
@@ -45,6 +51,10 @@ namespace opalx::spacecharge {
                     return "OPEN";
                 case FieldSolverCmdType::CG:
                     return "CG";
+                case FieldSolverCmdType::P3M:
+                    return "P3M";
+                case FieldSolverCmdType::FFT2D5:
+                    return "FFT2D5";
             }
             return "(unknown)";
         }
@@ -74,6 +84,35 @@ namespace opalx::spacecharge {
             }
             throw OpalException(
                     "SelfFieldConfigBuilder::build", "Unknown BINNING PARAMETER value.");
+        }
+
+        Pic2d5LongitudinalFieldMode convertPic2d5Mode(const std::string& name) {
+            if (name == "OPEN") {
+                return Pic2d5LongitudinalFieldMode::Open;
+            }
+            if (name == "CIRCULAR") {
+                return Pic2d5LongitudinalFieldMode::Cylindrical;
+            }
+            if (name == "PLATES") {
+                return Pic2d5LongitudinalFieldMode::Plates;
+            }
+            if (name == "NONE") {
+                return Pic2d5LongitudinalFieldMode::None;
+            }
+            throw OpalException(
+                    "SelfFieldConfigBuilder::build",
+                    "Unknown FIELDSOLVER PIPEMODE value '" + name + "'.");
+        }
+
+        std::string resolveReferencePath(const FieldSolverCmd& fieldSolver) {
+            std::string path = fieldSolver.getRefPathFileName();
+            if (!path.empty()) {
+                return path;
+            }
+            OpalData* opal = OpalData::getInstance();
+            return Util::combineFilePath(
+                    {opal->getAuxiliaryOutputDirectory(),
+                     opal->getInputBasename() + "_DesignPath.dat"});
         }
 
         std::array<BoundaryConditionKind, 3> convertBoundaryConditions(
@@ -257,7 +296,30 @@ namespace opalx::spacecharge {
             const FieldSolverCmd& fieldSolver,
             const std::vector<std::vector<EmissionSource*>>& emissionSources) {
         const FieldSolverCmdType solverType = fieldSolver.getFieldSolverCmdType();
-        const auto decomposition            = fieldSolver.getDomainDecomposition();
+
+        if (solverType == FieldSolverCmdType::FFT2D5) {
+            const CorrectionConfig correction = buildCorrectionConfig(emissionSources, solverType);
+            if (correction.enabled()) {
+                throw OpalException(
+                        "SelfFieldConfigBuilder::build",
+                        "FFT2D5 does not support source-plane corrections.");
+            }
+            Pic2d5ConfigValues values;
+            values.meshSize = {
+                    convertMeshSize(fieldSolver.getNX(), "NX"),
+                    convertMeshSize(fieldSolver.getNY(), "NY"),
+                    convertMeshSize(fieldSolver.getNZ(), "NZ")};
+            values.longitudinalFieldMode = convertPic2d5Mode(fieldSolver.getPipeMode());
+            values.pipeSizeX             = fieldSolver.getPipeSizeX();
+            values.pipeSizeY             = fieldSolver.getPipeSizeY();
+            values.beamRadius            = fieldSolver.getBeamRadius();
+            values.closedRing            = fieldSolver.getClosedRing();
+            values.scatterLongitudinally = fieldSolver.getScatterLongitudinally();
+            values.referencePathFile     = resolveReferencePath(fieldSolver);
+            return SelfFieldConfig(Pic2d5Config(std::move(values)));
+        }
+
+        const auto decomposition = fieldSolver.getDomainDecomposition();
 
         Pic3DConfigValues values;
         values.backend  = convertBackend(solverType);
@@ -272,6 +334,7 @@ namespace opalx::spacecharge {
                         : values.parallelDimensions;
         values.boundaryConditions = convertBoundaryConditions(fieldSolver.constructBCHandler());
         values.greenFunction      = convertGreenFunction(fieldSolver.getGreensFunction());
+        values.p3mCutoff = solverType == FieldSolverCmdType::P3M ? fieldSolver.getP3MCutoff() : 0.0;
         values.boundingBoxIncreasePercent = fieldSolver.getBoxIncr();
         values.binning                    = buildBinningConfig(fieldSolver.getBinningCmd());
         values.repartitionFrequency =

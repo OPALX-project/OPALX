@@ -63,7 +63,8 @@ public:
     /// numParticleContainers.
     DataSink(
             const std::vector<H5PartWrapper*>& h5wrappers, bool restart,
-            size_t numParticleContainers);
+            size_t numParticleContainers, const std::string& outputBasename = "",
+            bool appendStatistics = false);
     DataSink(H5PartWrapper* h5wrapper, bool restart);
     DataSink(H5PartWrapper* h5wrapper);
 
@@ -71,6 +72,13 @@ public:
      * basename_cN. */
     static std::string diagnosticStemForContainer(
             const std::string& inputBasename, size_t numContainers, size_t index);
+
+    /**
+     * Remove diagnostic output beyond the restored checkpoint before appending a continuation.
+     * HDF5 is rewound by time, statistics by per-container path position, and load-balance output
+     * by the largest removed statistics-row count.
+     */
+    void rewindToCheckpoint(PartBunch_t& beam);
 
     /**
      * @brief Write H5 phase-space data for all particle containers.
@@ -183,7 +191,8 @@ private:
 
     void init(
             bool restart, const std::vector<H5PartWrapper*>& h5wrappers,
-            size_t numParticleContainers);
+            size_t numParticleContainers, const std::string& outputBasename = "",
+            bool appendStatistics = false);
 
     std::vector<h5Writer_t> h5Writers_m;
     std::vector<statWriter_t> statWriters_m;

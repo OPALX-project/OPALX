@@ -30,6 +30,8 @@ namespace opalx::spacecharge {
                     return "OPEN";
                 case PoissonBackendKind::ConjugateGradient:
                     return "CG";
+                case PoissonBackendKind::P3M:
+                    return "P3M";
             }
             throw OpalException("Pic3DSolver::Pic3DSolver", "Unknown Poisson backend.");
         }
@@ -103,8 +105,15 @@ namespace opalx::spacecharge {
         }
 
         workspace_m->initializeFields(backendName(backendKind_m));
-        backend_m = IpplPoissonAdapter::create(
-                backendKind_m, config.greenFunction(), bindFields(*workspace_m));
+        IpplPoissonBackendConfig backendConfig;
+        backendConfig.kind               = backendKind_m;
+        backendConfig.greenFunction      = config.greenFunction();
+        backendConfig.p3mCutoff          = config.p3mCutoff();
+        backendConfig.boundaryConditions = config.boundaryConditions();
+        backend_m = IpplPoissonAdapter::create(backendConfig, bindFields(*workspace_m));
+        if (backendKind_m == PoissonBackendKind::P3M) {
+            shortRangeInteraction_m.emplace(config.p3mCutoff());
+        }
         backend_m->setPotentialBoundaryConditions(config.boundaryConditions());
         backend_m->warmup();
 
@@ -422,6 +431,9 @@ namespace opalx::spacecharge {
                 if (direct) {
                     fieldComposer_m.gatherElectrostatic(
                             scatterGather_m, primary_m->E, primary_m->R, *workspace_m);
+                    if (shortRangeInteraction_m.has_value()) {
+                        shortRangeInteraction_m->apply(*primary_m);
+                    }
                 } else {
                     FieldComposer_t::Policy compositionPolicy;
                     compositionPolicy.meanMomentum = unit.meanMomentum;

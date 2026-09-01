@@ -1,196 +1,123 @@
-# Future 2.5D Field Solver Extension Audit
+# FFT2D5 Integration Audit
 
-## Scope and result
+## Status
 
-This audit compares the refactored runtime boundary with the prototype in
-`25dsolver/src/PartBunch/Solve2d5.h` and `Solve2d5.hpp`. It does not add a 2.5D
-implementation or change its tests.
+FFT2D5 is implemented as an independent `SelfFieldAlgorithm` under
+`src/SpaceCharge/Pic2d5/`. This document records the resulting ownership and behavior. It replaces
+the earlier future-extension audit.
 
-The runtime boundary passes the extension audit. A future `Pic2d5Solver` can be
-implemented directly as a `SelfFieldAlgorithm`, consume the existing
-collection-shaped `SolveContext`, and keep the tracker free of a concrete 2.5D
-branch. The extension requires localized configuration, factory, and setup
-work, but it does not require changing `SelfFieldAlgorithm::execute`,
-`SolveContext`, or the `ParallelTracker` call site.
+The tracker contains no FFT2D5 branch. Its only self-field action is
+`SelfFieldSystem::solve(SolveContext&)`, the same boundary used by Pic3D.
 
-## Prototype responsibilities and future ownership
+## Ownership
 
-| Current 2.5D prototype responsibility | Future owner |
+| Responsibility | Owner |
 |---|---|
-| reference-path loading and interpolation | `Pic2d5Solver` reference-path component |
-| lab/Frenet coordinate conversion | 2.5D frame policy |
-| slice mesh, charge and field arrays, line density | 2.5D workspace |
-| array of 2D open Poisson solvers | 2.5D backend component |
-| scatter, slice solve, gather, lab-field restore | `Pic2d5Solver::execute` orchestration |
+| immutable parser snapshot | `Pic2d5Config` |
+| all-active particle selection | `SelfFieldSystem` using `SolverCapabilities` |
+| design-path loading and device copy | `ReferencePath` |
+| master-compatible outer frame ordering | `Pic2d5FramePolicy` |
+| Frenet mapping and boost/deboost operations | `Pic2d5Solver` device helpers |
+| persistent 3D staging fields and line density | `SliceWorkspace` |
+| persistent per-slice 2D fields and OPEN solvers | `SliceWorkspace::Slice` |
+| scatter, slice solves, gradient, and gather | `Pic2d5Solver` |
 
-The prototype currently combines these responsibilities in `Solve2d5`:
+No component stores a `PartBunch*`, `FieldSolverCmd*`, or runtime parser reference. FFT2D5 does not
+replace `PartBunch` field storage and does not inherit from `FieldSolver` or `BinnedFieldSolver`.
 
-- `orbitThreadersReady()` loads the generated design path, creates the 3D
-  staging fields, and allocates the slice mesh, fields, and solver array.
-- `doRunSolver()` sequences scatter, slice solves, line-density calculation,
-  and gather.
-- the device helpers convert particles between lab and Frenet coordinates,
-  boost and deboost fields, and calculate the longitudinal field.
-- the class inherits `BinnedFieldSolver` and stores a `PartBunch*` plus live
-  field pointers.
+## Configuration and capabilities
 
-Only the algorithm and mathematics are reference material. The inheritance,
-`PartBunch*` storage, low-level IPPL scatter/gather calls, global parser/output
-lookup, and current no-partition slice layout must not be copied into the new
-design.
+`Pic2d5Config` snapshots:
 
-## Existing boundary used by `Pic2d5Solver`
+- three-dimensional staging resolution;
+- longitudinal field mode: OPEN, CIRCULAR, PLATES, or NONE;
+- transverse pipe sizes and beam radius;
+- closed-ring policy;
+- longitudinal scattering selection;
+- configured or default design-path filename.
 
-`ParallelTracker` presents particle positions in lab/reference coordinates.
-The current 3D implementation performs its beam-frame transform inside
-`Pic3DSolver::execute` through `FieldFramePolicy`, then restores positions and
-fields before returning. A 2.5D implementation can ignore the supplied 3D
-beam transform handles and apply its own reference-path/Frenet mapping.
+Its capabilities select every tracking-active particle container. The common system applies that
+selection before validating required readable and writable particle attributes. FFT2D5 reports no
+binning or correction request and a compatibility bin count of one.
 
-`ParticleSetView` already supplies:
+Parser and immutable configuration validation reject multiple MPI ranks, binning, source-plane
+corrections, and parallel field-layout dimensions.
 
-- all particle containers, an explicit primary index, solve-selection and
-  tracking-active flags;
-- stable handles for position, momentum, charge, mass, time step, invalid
-  mask, and writable electric and magnetic fields;
-- a storage generation used to prevent retaining stale Kokkos views.
+## Initialization contract
 
-The tracker currently marks only the primary container as selected, although
-it exposes attribute handles and tracking-active state for every container.
-The future extension should add a generic selection policy to
-`SolverCapabilities` (`PrimaryOnly` for 3D PIC and `AllTrackingActive` for
-2.5D). `SelfFieldSystem::solve` can apply that policy to the mutable particle
-view before validation. This keeps the selection algorithm-neutral and avoids
-a solver-name branch in the tracker.
+Construction does not require the design-path file because orbit threading has not produced it yet.
+On the first execution, `ensureInitialized()`:
 
-The future solver must reacquire native device views from the selected handles
-after migration, compaction, or reallocation. Quantities such as per-container
-mean longitudinal momentum can be reduced from the exposed momentum attributes
-and communicator instead of retaining a `PartBunch` or calling its statistics
-methods.
+1. loads and validates at least two distinct reference-path points;
+2. computes the path length;
+3. transfers the path to persistent device storage;
+4. creates the staging mesh, layouts, fields, density views, and per-slice backends;
+5. publishes initialized state only after every resource is valid.
 
-`SolveContext::StepState` supplies the communicator, time step, reference
-state, and current lab/reference frame handles. The context remains borrowed
-for one call and must never be retained by the solver.
+A failed attempt leaves the solver uninitialized and retryable. Later solves reuse every allocation
+and backend.
 
-## Future integration steps
+## Execution sequence
 
-1. Add a validated immutable `Pic2d5Config` containing the transverse pipe
-   dimensions, 3D staging resolution, longitudinal-field mode, beam radius,
-   closed-ring policy, reference-path location, and 2D backend options.
-2. Add `Pic2d5` to `SelfFieldAlgorithmKind` and `Pic2d5Config` to
-   `SelfFieldAlgorithmConfig`. Extend `SelfFieldConfigBuilder` to snapshot the
-   parser values; the runtime solver must retain no parser pointer.
-3. Add one `SelfFieldFactory` branch that constructs `Pic2d5Solver` directly
-   from immutable configuration and stable particle-container setup resources.
-   It must not call `takePicWorkspace()` and the resulting runtime object must
-   not store `PartBunch*`.
-4. Replace the current `Pic3DConfig` reads inside `SelfFieldSystem` with a
-   configuration visitor or algorithm-specific request policy. For 2.5D the
-   existing tracker-facing methods return no correction, no binning request,
-   and a reported bin count of one. `ParallelTracker` remains unchanged.
-5. Resolve setup-time particle-layout lifetime explicitly. `PartBunch`
-   currently constructs the IPPL particle layouts from a `PicWorkspace`. For
-   2.5D it may retain that object only as the layout lifetime anchor, or the
-   future project may extract a neutral particle-layout owner. It must not
-   treat the 3D PIC fields as the 2.5D physics workspace.
-6. Add a generic particle-selection policy and a selected-state setter/helper
-   to `ParticleSetView`; apply the policy in `SelfFieldSystem` before common
-   attribute validation.
-7. Place the implementation under `src/SpaceCharge/Pic2d5/`. Keep its
-   reference path, frame policy, workspace, and backend types private to that
-   module.
+For one common solve, `Pic2d5Solver`:
 
-These changes are confined to setup and algorithm selection. They do not add
-Cartesian fields, ORB, binning, or 3D correction records to the common solver
-interface.
+1. enters the solver-owned compatibility frame policy;
+2. transforms selected particles to Frenet coordinates and boosts momenta;
+3. deposits charge atomically into the persistent staging density;
+4. applies cell-volume and time normalization;
+5. handles open or closed longitudinal boundaries;
+6. copies each slice into its persistent 2D backend and solves transverse Poisson;
+7. constructs line density and its guarded longitudinal gradient;
+8. performs the bilateral transverse gather and optional longitudinal field calculation;
+9. deboosts fields and maps them back to lab coordinates;
+10. restores temporary particle and field transforms on normal and exceptional exits.
 
-## Delayed initialization
+The bilateral gather and compatibility frame ordering intentionally match current master, including
+its selected historical conventions. A cleaner frame contract remains a possible later change, but
+is not part of this parity merge.
 
-The prototype cannot allocate its domain until the orbit threader has produced
-the reference-path file. The future solver can handle this without restoring
-`orbitThreadersReady()` or a concrete solver check in the tracker:
+## Physics behavior retained from master
 
-1. Resolve the configured or default output path while building the immutable
-   configuration, but do not require the file to exist during construction.
-2. At the start of the first `Pic2d5Solver::execute`, call an idempotent
-   `ensureInitialized()` host method.
-3. Load and validate the reference path, transfer it once through an explicit
-   host mirror/deep copy, then construct the persistent 2.5D workspace and
-   Poisson backend array.
-4. Mark initialization complete only after every resource is valid so a failed
-   attempt does not leave a partially initialized solver.
+- atomic charge deposition;
+- charge-to-volume-density normalization;
+- optional two-dimensional or three-dimensional longitudinal scatter;
+- bilateral transverse gather from adjacent longitudinal slices;
+- guarded gradient indexing and single-slice handling;
+- OPEN, CIRCULAR, PLATES, and NONE longitudinal modes;
+- closed-ring density, field, and gradient wrapping;
+- configurable reference-path filename;
+- field and position restoration when execution throws.
 
-The first self-field call already occurs after orbit threading. Lazy,
-solver-owned initialization therefore needs no tracker API change. If a later
-solver needs an earlier preparation point, it should use a generic
-`SelfFieldSystem` lifecycle hook rather than a solver-kind branch.
+## GPU and lifetime audit
 
-## Execute and diagnostics model
+Reference-path and workspace data remain device resident after initialization. Device kernels
+capture views and scalar policy values rather than parser or owning runtime objects. CUDA-visible
+device helpers are public or standalone as required by the repository's CUDA compilation rule.
 
-`Pic2d5Solver::execute` owns the complete sequence:
+Workspace fields are declared before the solver array so reverse destruction releases backends
+before the fields and layouts they borrow. Particle views are obtained for each execution instead
+of being retained across storage changes.
 
-1. validate required particle attributes and initialize persistent state;
-2. transform selected lab particles to Frenet coordinates without exposing
-   Frenet types through `SolveContext`;
-3. deposit charge into persistent slice staging fields;
-4. run the solver-owned 2D Poisson array and calculate line-density gradients;
-5. gather, add the longitudinal field, deboost, and write lab-frame particle
-   electric and magnetic fields;
-6. restore any temporary particle mutations on every exit path.
+The module uses no distributed communication. Its one-rank validation is therefore a deliberate
+correctness boundary, not an accidental decomposition choice.
 
-The frame contract needs one explicit check during that implementation. The
-particle positions delivered to the solver and the points in
-`_DesignPath.dat` must be proven to use the same reference coordinate system,
-or the required mapping must be supplied as a checked host service. The
-existing `trackerToSolve` and `solveToTracker` handles describe the 3D
-reference/beam transform and must not be silently reinterpreted as a Frenet or
-global-path transform.
+## Verification
 
-The call remains inside the common solve, solve-unit, backend-solve, and field-
-composition lifecycle where applicable. Reference-path loading, Frenet
-mapping, slice copies, line-density work, and per-slice solves may publish
-solver-specific `IpplTimings` labels without expanding the permanent common
-diagnostics API.
+`TestPic2d5Solver` covers lazy initialization, all supported pipe modes, persistent slice creation,
+and per-slice solve diagnostics through the common API. Configuration tests cover algorithm kind,
+neutral layout selection, and the all-tracking-active capability.
 
-## GPU and distributed-memory requirements
+`Pic2d5EndToEnd` is a checked-in CTest fixture that runs the production executable for two tracking
+steps. Orbit threading generates `data/Pic2d5EndToEnd_DesignPath.dat`; the first common solve loads
+it lazily; eight persistent slice backends execute on each step. The test passes only when the run
+completes and reports all 16 backend solves.
 
-- Keep the reference path and reusable slice state device-resident after the
-  one-time host load. Use explicit mirrors and `deep_copy` for initialization.
-- Capture only views and trivial scalar/policy values in Kokkos lambdas. Do not
-  capture `this`, shared pointers, diagnostics objects with host state, or
-  parser/configuration objects.
-- Put CUDA-visible device helpers in public or standalone policy functions as
-  required by this repository's CUDA build constraint.
-- Reacquire particle views after any storage generation change and preserve
-  the GPU-aware MPI path; do not introduce unconditional host staging.
-- Design the slice layout and 2D backend ownership for multiple ranks. The
-  prototype's no-partition layout and one solver object per slice are not a
-  distributed-memory contract.
-- Allocate fields, line-density arrays, and solver work buffers once. Do not
-  allocate them per step or per slice solve.
-- Precompute segment lengths, cumulative path length, and stable transported
-  frames. The prototype scans the full path and recomputes arc length for every
-  particle, which scales as particle count times path-segment count and assumes
-  a fixed planar normal.
-- Replace the prototype's one host-synchronizing line-density reduction per
-  slice with a device-resident reduction strategy, and isolate the sequential
-  per-slice FFT loop so a pooled or batched backend can replace it.
-- Check or wrap the longitudinal-gradient index before reading it on device;
-  the prototype can index outside the line-density-gradient view.
-- Declare mesh/layout and field storage before backends that borrow them so
-  reverse destruction releases the Poisson solver array first.
+The Release/SERIAL unit-test build and complete 87-test suite pass after integration.
 
-## Dependency audit
+## Deferred work
 
-The common headers `SelfFieldAlgorithm.h`, `SolveContext.h`,
-`ParticleSetView.h`, `SolverCapabilities.h`, and `SelfFieldSystem.h` include no
-IPPL field, Cartesian mesh, `FieldLayout`, ORB, Pic3D workspace, binning-plan,
-or correction-plan type. `ParallelTracker` includes only the common
-`SolveContext` and `SelfFieldSystem` boundary for self-field work. Runtime code
-under `SpaceCharge/Pic3D` and `SpaceCharge/Ippl` stores no `PartBunch*`,
-`FieldSolverCmd*`, `BinningCmd*`, or `EmissionSource*`.
-
-The audit therefore leaves one independent implementation path:
-`Pic2d5Solver` owns its geometry, workspace, and backend, while the common call
-and tracker remain unchanged.
+- distributed-memory FFT2D5;
+- batched or pooled slice FFT execution;
+- a device-resident line-density reduction that avoids sequential slice orchestration;
+- a redesigned reference-frame contract that intentionally changes master's ordering;
+- CUDA and HIP production compile and hardware runtime evidence.

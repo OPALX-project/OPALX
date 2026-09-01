@@ -53,8 +53,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/BuildInfo.h.in
 # Build the main executable target: opalx
 # ------------------------------------------------------------------
 
-add_library(opalx
-        AbsBeamline/MultipoleTConfig.h)
+add_library(opalx)
 target_sources(opalx PRIVATE changes.cpp)
 
 target_compile_features(opalx PUBLIC cxx_std_20)
@@ -90,8 +89,7 @@ target_include_directories(
   PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 
-target_sources(opalx PUBLIC changes.cpp)
-#
+# Subdirectories
 add_subdirectory (AbsBeamline)
 add_subdirectory (AbstractObjects)
 add_subdirectory (Algorithms)

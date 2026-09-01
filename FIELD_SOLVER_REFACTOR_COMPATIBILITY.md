@@ -1,154 +1,190 @@
 # Field Solver Refactor Compatibility Report
 
-## Status
+## Integration baseline
 
-All implementation stages and the local Stage 13 verification are complete in the
-`refactor-take-two` worktree. Release/SERIAL production builds, installation, the selected
-one-rank regression matrix, retained Stage 0 comparisons, and selected two-rank runs pass.
+This report records the semantic merge of `master` into `refactor-take-two` and the resulting
+self-field parity work.
 
-CUDA and HIP production compiles cannot be performed on this Apple Silicon Mac. Static review
-found no obvious source-level CUDA/HIP blocker, but the branch still requires production-only
-compiles in Linux CUDA and HIP environments before it can satisfy the GPU part of the production
-gate. Unit-test migration remains the explicitly deferred follow-up requested for this refactor.
+- Refactor parent: `631876866d1e46433a06430ba4d118e9917ec31d`
+- Master parent: `a5c8592401c9ff3b2d7f383cfc621ffa734f95d3`
+- Common ancestor: `a2adf3b070c16394f5f68f3a7a9b8c9f11bf7310`
+- Pinned IPPL source: `65172536f5d2693d50c0c1fb7bc57ac7ac8a346c`
+- Host verification: Apple Silicon, Clang 21.1.8, OpenMPI 5.0.9, Release/SERIAL
 
-## Verification configuration
+Both merge parents and the integrated tree were built against that same IPPL checkout. This avoids
+attributing dependency changes to the solver integration.
 
-- Source worktree: `/Users/aliemen/Desktop/opalx/refactor-take-two`
-- Build tree: `/Users/aliemen/Desktop/opalx/build_refactor_take_two_final`
-- Install tree: `/private/tmp/opalx-refactor-take-two-install`
-- Configuration: `Release`, `SERIAL`, `OPALX_ENABLE_UNIT_TESTS=OFF`
-- Compilers: `/opt/homebrew/bin/clang` and `/opt/homebrew/bin/clang++`
-- IPPL: fetched from current `master`, commit `2180f35b0771b2c0a2694a20a9f7fd576ced242c`
-- Production target: `/Users/aliemen/Desktop/opalx/build_refactor_take_two_final/src/opalx`
+## Result
 
-The build directory did not exist before the final configure. A complete build and a subsequent
-incremental build after the final ownership cleanup both completed successfully. `cmake --install`
-also completed successfully after configuring the temporary prefix. The installed tree contains
-the common self-field API, the IPPL adapter API, the Pic3D API and template headers, including
-`SpaceCharge/Pic3D/FieldMirror.hpp`, and the production executable.
+The merged implementation keeps the refactor's single tracker-facing boundary:
 
-## Preserved input and output contracts
+```text
+ParallelTracker -> SelfFieldSystem::solve(SolveContext&)
+                -> selected SelfFieldAlgorithm
+                   |- Pic3DSolver
+                   |  |- FFT periodic
+                   |  |- OPEN
+                   |  `- P3M long range + short range
+                   `- Pic2d5Solver
+```
 
-No OPALX input syntax was changed. The existing parser and command objects still accept the
-checked-in configurations used by the matrix, including:
+The deleted `FieldSolver`, `BinnedFieldSolver`, `FieldContainer`, `LoadBalancer`,
+`ImageChargeScatterController`, and `ippl::PicManager` orchestration were not restored. Parser
+objects are converted once to immutable configuration. `PartBunch` owns particle storage and a
+neutral particle-layout descriptor, while each concrete algorithm owns its field workspace,
+backend, frame policy, and algorithm-specific state.
 
-- no self field (`TYPE=NONE`);
-- periodic and open FFT solves;
-- standard and integrated Green functions;
-- adaptive binning and delayed emission;
-- shifted-Green correction;
-- the existing `ZEROFACE_R0Z` and `ZEROFACE_MAXSTEPS` image-charge options.
+`TrackRun` preserves master's construction and destruction constraints. Configuration and particle
+storage are created before sampling or restore, the solver system is created after particle state is
+available, and the tracker is created last. Destruction therefore releases the tracker before the
+solver and the solver before particle storage.
 
-The regression runs preserve the existing `.stat`, H5, timing, element-position, and auxiliary
-output names. All checked-in `.rt` assertions pass without changing tolerances or references. The
-`nBins` column remains present and its complete sequence is unchanged in the retained comparisons.
+## Common interface changes
 
-Solver diagnostics retain the historical warm-up distinction: the low-level `Solve` timer has one
-more call than the tracking-level field-solver count. Existing timing names for scatter, gather,
-shifted Green, mirror communication, and redistribution remain observable.
+- `SelfFieldAlgorithmKind` now includes `Pic2d5`.
+- `SelfFieldAlgorithmConfig` now contains `Pic3DConfig` or `Pic2d5Config`.
+- `PoissonBackendKind` now includes `P3M`, with an immutable cutoff in `Pic3DConfig`.
+- `SolverCapabilities` supplies `PrimaryOnly` or `AllTrackingActive` particle selection.
+- `SelfFieldSystem` uses configuration visitors for requested physics, diagnostics, correction
+  reporting, and reported bin count.
+- `ParticleSetView` exposes controlled solve-selection mutation without exposing concrete storage.
+- `ParticleLayoutConfig` describes spatial or overlap layout ownership, cutoff, and particle
+  boundary behavior at construction time.
 
-## Final regression matrix
+The public execution signatures remain unchanged:
 
-All paths below are relative to
-`/Users/aliemen/Desktop/opalx/build_refactor_take_two_final/smoke`.
+```cpp
+void SelfFieldAlgorithm::execute(SolveContext&, SelfFieldDiagnostics&);
+void SelfFieldSystem::solve(SolveContext&);
+```
 
-| Case | MPI ranks | Result | Final artifact |
-|---|---:|---|---|
-| `Drift-1-fromfile` | 1 | 7/7 checked-in assertions pass | `Drift-1-fromfile/stage13-verified-20260718T123059.977216Z` |
-| `Drift-3-open-fromfile` | 1 | 8/8 checked-in assertions pass | `Drift-3-open-fromfile/stage13-verified-20260718T123100.970848Z` |
-| `Drift-3-periodic-fromfile` | 1 | 8/8 checked-in assertions pass | `Drift-3-periodic-fromfile/stage13-verified-20260718T123100.857621Z` |
-| `Drift-3-open-integrated-fromfile` | 1 | 8/8 checked-in assertions pass | `Drift-3-open-integrated-fromfile/stage13-verified-20260718T123101.123671Z` |
-| `Drift-4-open-bins-fromfile` | 1 | 8/8 checked-in assertions pass | `Drift-4-open-bins-fromfile/stage13-verified-20260718T123120.321537Z` |
-| `Drift-4-multi-emit-open` | 1 | 9/9 checked-in assertions pass | `Drift-4-multi-emit-open/stage13-verified-20260718T123114.643986Z` |
-| `AWAGun-1-emittedfromfile` | 1 | 9/9 checked-in assertions pass | `AWAGun-1-emittedfromfile/stage13-verified-20260718T123140.052396Z` |
-| `SwissFEL-booster-SC-emittedfromfile` | 1 | 9/9 checked-in assertions pass | `SwissFEL-booster-SC-emittedfromfile/stage13-verified-20260718T123137.639452Z` |
-| `FodoCell-fromfile` | 1 | 7/7 checked-in assertions pass | `FodoCell-fromfile/stage13-verified-20260718T123115.465408Z` |
-| `SwissFEL-booster-SC-emittedfromfile` | 2 | 9/9 Stage 0 two-rank assertions pass | `SwissFEL-booster-SC-emittedfromfile/stage13-verified-np2-20260718T123252.375919Z` |
-| `Drift-3-open-fromfile` | 2 | run-to-completion pass | `Drift-3-open-fromfile/stage13-verified-open-np2-20260718T123249.834310Z` |
-| image-configured `Drift-4-multi-emit-open` | 2 | parser/configuration run-to-completion pass | `Drift-4-multi-emit-open/stage13-verified-image-np2-20260718T123248.607618Z` |
+## P3M parity
 
-The smoke runner copied every case into the build tree. The checked-in `RegressionTests` and
-reference directories were not modified.
+P3M is a typed Pic3D backend, not a separate legacy solver island. Its long-range path uses
+`FFTTruncatedGreenSolver_t` with master's `alpha = 2 / RCUT`, force constant, GPU-aware FFT
+parameters, and OPEN or PERIODIC boundary selection. A focused `P3MShortRangeInteraction` runs
+`TruncatedGreenParticleInteraction` after grid gather with master's charge and normalization
+conventions.
 
-## Stage 0 and semantic parity evidence
+P3M particle storage uses an overlap layout. OPEN layouts use non-wrapping particle boundaries and
+PERIODIC layouts use periodic boundaries. Layout update and migration calls are independent of the
+concrete layout type.
 
-The final executable was also run against the five retained one-rank Stage 0 `.stat` files. Every
-applicable `.rt` comparison passes:
+Configuration rejects:
 
-- `Drift-1-fromfile/stage13-verified-baseline-20260718T123156.958880Z`
-- `Drift-3-open-fromfile/stage13-verified-baseline-20260718T123158.470386Z`
-- `Drift-3-periodic-fromfile/stage13-verified-baseline-20260718T123200.346574Z`
-- `Drift-4-open-bins-fromfile/stage13-verified-baseline-20260718T123219.459084Z`
-- `Drift-4-multi-emit-open/stage13-verified-baseline-20260718T123217.737553Z`
+- non-positive `RCUT`;
+- binning;
+- mixed or unsupported field boundary conditions;
+- source-plane corrections;
+- neutralizing-background subtraction.
 
-Full `nBins` sequence comparisons are exact:
+## FFT2D5 parity
 
-- AWAGun final versus Stage 11: 235 rows;
-- SwissFEL two-rank final versus Stage 0: 344 rows;
-- SwissFEL two-rank final versus Stage 11: 344 rows.
+Production FFT2D5 logic now lives under `src/SpaceCharge/Pic2d5/` and is independent of the deleted
+solver hierarchy. `Pic2d5Solver` retains no `PartBunch*`, parser object, or borrowed Pic3D field
+storage. The module contains separate reference-path, frame-policy, persistent-workspace, and
+per-slice Poisson responsibilities.
 
-Correction and redistribution counters also retain the expected semantics:
+The first solve lazily loads the configured or default design path after orbit threading. Resource
+construction is idempotent and publishes initialized state only after the reference path, device
+copy, persistent fields, and all slice solvers are valid.
 
-| Evidence | Tracking calls | Low-level solves | Shifted Green | Mirror | Redistribution |
-|---|---:|---:|---:|---:|---:|
-| AWAGun, one rank | 5202 | 5203 | 2408 | 2408 | not exercised |
-| SwissFEL, two ranks | 6824 | 6825 | 3412 | 3412 | 96 binary repartitions |
+The implementation preserves master's selected compatibility ordering and restores temporary
+position and field transforms on exceptions. It also retains master's atomic charge deposition,
+volume-density normalization, bilateral transverse gather, guarded longitudinal gradient,
+single-slice handling, pipe modes, closed-ring behavior, optional longitudinal scattering, and
+configurable reference-path filename.
 
-The SwissFEL run also records 96 `allReduce` and 96 `scatterR` operations, confirming that the
-two-rank redistribution path executed rather than merely parsing its configuration.
+FFT2D5 deliberately remains single-rank and rejects binning, corrections, and redistributed field
+layouts.
 
-## Architecture and GPU review
+## Other merged behavior
 
-The final source scan finds no production references to the deleted `BinnedFieldSolver`, old
-`FieldSolver`, `FieldContainer`, `LoadBalancer`, `ImageChargeScatterController`, or
-`ippl::PicManager` orchestration paths. `ParallelTracker` sees only the common
-`SolveContext`/`SelfFieldSystem` boundary for self-field execution, while `TrackRun` uses only
-configuration, factory, and system assembly interfaces. The final cleanup also removes a
-discarded per-step global-bounds calculation that previously performed two MPI reductions and a
-barrier without using their results.
+- `DataSink` combines master's checkpoint output rewind with explicit reported-bin-count input.
+- `ParallelTracker` retains master's restart scheduling, preparation state, aperture handling,
+  monitor suppression, and step reporting while making one common self-field call.
+- New master distribution types and warning fixes are retained without distribution ownership of a
+  field container.
+- The old solver source and tests remain deleted. Their coverage is replaced by configuration,
+  selection, Pic3D, P3M layout, short-range, Pic2d5 component, and FFT2D5 production tests.
 
-`PicDomainManager` now preserves layout-refresh and backend-rebind work across exceptions. It marks
-the backend dirty before either an extent rebuild or ORB can mutate the layout. A later update
-repeats every workspace field-layout refresh before migration and clears the state only after the
-backend refresh succeeds.
+## Verification evidence
 
-Static review of every refactor-owned Kokkos kernel found:
+### Builds and unit tests
 
-- no `this`, parser, owning class, or `PartBunch` capture;
-- public CUDA-visible enclosing methods;
-- current particle and field views reacquired after migration or layout changes;
-- explicit host mirrors/deep copies for host field inspection;
-- persistent solver workspace and scratch allocation;
-- backend destruction before the fields it borrows;
-- send/receive buffers retained until MPI completion in the shifted-Green mirror path.
+- Clean Release/SERIAL build with `OPALX_ENABLE_UNIT_TESTS=OFF`: pass.
+- Clean Release/SERIAL build with `OPALX_ENABLE_UNIT_TESTS=ON`: pass.
+- Complete CTest suite after integration: 87/87 pass.
+- Focused checkpoint, multi-container, particle-container, configuration, and Pic2d5 tests: pass.
+- Checked-in `Pic2d5EndToEnd` CTest: pass, two tracking steps and 16 per-slice backend solves.
+- End-to-end `TYPE=NONE` checkpoint restart: pass. A fresh 100-step run checkpointed at global
+  step 90, advanced to step 100, then restored step 90, rewound `.stat` and HDF5 output, and
+  reproduced the final ten steps.
 
-The existing device-resident communication design is preserved. FFT adapters set
-`use_gpu_aware=true`, and `FieldMirror` communicates buffers in the field view's memory space.
-CUDA and HIP runtime use therefore requires genuinely GPU-aware MPI; unconditional host staging
-was deliberately not introduced.
+Build trees:
 
-This Mac has no `nvcc`, `hipcc`, `amdclang++`, CUDA toolkit, ROCm installation, or compatible GPU.
-The repository's CUDA and HIP workflows document suitable Linux toolchain environments, but they
-currently enable the deferred unit tests and cannot be used unchanged for this production-only
-gate. Required external evidence is:
+- `/Users/aliemen/Desktop/opalx/build_master_merge_baseline`
+- `/Users/aliemen/Desktop/opalx/build_refactor_merge_baseline`
+- `/Users/aliemen/Desktop/opalx/build_refactor_merge_tests`
 
-1. a clean `opalx` production compile with `PLATFORMS=CUDA` and unit tests disabled;
-2. a clean `opalx` production compile with `PLATFORMS=HIP` and unit tests disabled;
-3. a runtime shifted-Green/redistribution check on hardware with GPU-aware MPI.
+### P3M regressions
 
-## Recorded gaps and deferred follow-up
+`Drift-3-p3m-periodic-fromfile` passes all eight checked-in assertions exactly or within floating
+point roundoff on one and two ranks. Its artifacts are:
 
-- The checked-in suite has no case that proves an active separate image-charge pass. The explicit
-  two-rank smoke parses `ZEROFACE_R0Z=true` and `ZEROFACE_MAXSTEPS=7` and exits successfully, but
-  its timing data does not show an image/mirror pass. It is configuration coverage only.
-- Unit tests were intentionally not built or migrated. The legacy unit-test files that include
-  deleted APIs must be adapted in a separate follow-up before unit-test-enabled CI can pass.
-- No dedicated regression case covers CG, P3M, or Barnes-Hut solvers.
-- SYCL and OpenMP production compile checks were not run in this final local SERIAL gate.
-- CUDA/HIP compile and hardware runtime evidence remain external acceptance requirements.
-- The checked-in CUDA/HIP workflows must either run a production-only compile with unit tests
-  disabled or wait for the separate unit-test migration.
+- `build_refactor_merge_baseline/smoke/Drift-3-p3m-periodic-fromfile/merge-parity-periodic-20260901T204736.155987Z`
+- `build_refactor_merge_baseline/smoke/Drift-3-p3m-periodic-fromfile/merge-p3m-np2-20260901T210234.577041Z`
 
-The future 2.5D integration boundary, ownership model, and prototype hazards are documented in
-[`FIELD_SOLVER_2D5_EXTENSION_AUDIT.md`](FIELD_SOLVER_2D5_EXTENSION_AUDIT.md). No 2.5D code or tests
-were added during this refactor.
+`dih-p3m-open` runs all 250 steps successfully. Against the repository reference, both the pinned
+master control and integrated build miss the same two tight emittance tolerances. This is baseline
+or platform drift, not an integration regression. Comparing the integrated result directly to the
+pinned master control passes all eight assertions. The maximum relative integrated-to-master
+difference among those checks is `1.15e-6`.
+
+Control and parity artifacts:
+
+- `build_master_merge_baseline/smoke/dih-p3m-open/master-control-open-20260901T205021.025442Z`
+- `build_refactor_merge_baseline/smoke/dih-p3m-open/merge-vs-master-open-20260901T205038.536527Z`
+
+### Post-merge MPI parity
+
+The exact staged implementation also passes:
+
+- `Drift-3-open-integrated-fromfile` on two ranks with shifted Green: 8/8 assertions;
+- `SwissFEL-booster-SC-emittedfromfile` on two ranks with shifted Green and ORB migration: 9/9
+  assertions.
+
+Artifacts:
+
+- `build_refactor_merge_baseline/smoke/Drift-3-open-integrated-fromfile/merge-shifted-green-np2-20260901T210206.112630Z`
+- `build_refactor_merge_baseline/smoke/SwissFEL-booster-SC-emittedfromfile/merge-orb-np2-20260901T210217.765476Z`
+
+### Retained pre-merge parity matrix
+
+The refactor parent already passed the established one-rank FFT, OPEN, integrated Green, binning,
+emission, and correction matrix, plus selected two-rank OPEN, shifted-Green, and ORB cases. This
+merge keeps the same Pic3D implementation as the ownership base and recompiles it with master's
+tracker and parser changes. The complete unit suite and new production gates pass after that
+integration.
+
+## Dependency audit
+
+The common headers expose no IPPL field, Cartesian mesh, `FieldLayout`, ORB, Pic3D workspace,
+binning-plan, or correction-plan type. `ParallelTracker` depends only on `SolveContext` and
+`SelfFieldSystem` for self-field execution. Concrete IPPL types remain below `SpaceCharge/Ippl`,
+`SpaceCharge/Pic3D`, and `SpaceCharge/Pic2d5`.
+
+No production orchestration reference remains to the deleted legacy classes. A final
+`git diff --check` and dependency scan are part of merge finalization.
+
+## External acceptance still required
+
+This Mac has no CUDA or HIP compiler or compatible GPU. The following production evidence must be
+collected in the existing Linux accelerator CI environments:
+
+1. clean `PLATFORMS=CUDA` and `PLATFORMS=HIP` production compiles;
+2. P3M short-range runtime coverage on both backends;
+3. shifted-Green communication and layout migration with GPU-aware MPI;
+4. a multi-rank GPU-aware P3M run.
+
+FFT2D5 distributed-memory support remains intentionally out of scope.

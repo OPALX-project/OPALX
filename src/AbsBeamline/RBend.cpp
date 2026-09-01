@@ -36,7 +36,7 @@ void RBend::initialise(PartBunch_t* bunch) {
 
 void RBend::finalise() { online_m = false; }
 
-bool RBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void RBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     auto Rview          = pc->R.getView();
     auto Bview          = pc->B.getView();
     const size_t nLocal = pc->getLocalNum();
@@ -62,25 +62,22 @@ bool RBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
                 Bview(i)(1) += Bf(1);
                 Bview(i)(2) += Bf(2);
             });
-
-    return false;
 }
 
-bool RBend::apply(
+void RBend::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     double zBegin = 0.0, zEnd = 0.0;
     getFieldExtent(zBegin, zEnd);
     if (R(2) < zBegin || R(2) >= zEnd) {
-        return false;
+        return;
     }
-    if (!isInsideTransverse(R)) {
-        return getFlagDeleteOnTransverseExit();
+    if (!ApertureHelper::isInsideAperture(R, aperture_m)) {
+        return;
     }
 
     computeFieldHost(R, B);
     (void)E;
-    return false;
 }
 
 bool RBend::applyToReferenceParticle(
@@ -91,7 +88,7 @@ bool RBend::applyToReferenceParticle(
     if (R(2) < zBegin || R(2) >= zEnd) {
         return false;
     }
-    if (!isInsideTransverse(R)) {
+    if (!ApertureHelper::isInsideAperture(R, aperture_m)) {
         return true;
     }
 
@@ -130,7 +127,7 @@ bool RBend::isInside(const Vector_t<double, 3>& r) const {
     double zBegin = 0.0;
     double zEnd   = 0.0;
     getFieldExtent(zBegin, zEnd);
-    return r(2) >= zBegin && r(2) < zEnd && isInsideTransverse(r);
+    return r(2) >= zBegin && r(2) < zEnd && ApertureHelper::isInsideAperture(r, aperture_m);
 }
 
 BendFieldModel::FieldInputs RBend::makeFieldInputs() const {

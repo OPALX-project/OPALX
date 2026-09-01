@@ -10,6 +10,7 @@ set (_SRCS
 
 set (HDRS
     ParticleSetView.h
+    ParticleLayoutConfig.h
     SelfFieldAlgorithm.h
     SelfFieldConfig.h
     SelfFieldConfigBuilder.h
@@ -25,6 +26,7 @@ target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_sources(opalx PRIVATE ${_SRCS})
 
 add_subdirectory (Ippl)
+add_subdirectory (Pic2d5)
 add_subdirectory (Pic3D)
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/SpaceCharge")
