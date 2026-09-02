@@ -44,7 +44,7 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet() :
 
     itsAttr[END_FIELD_MODEL] = Attributes::makeString
         ("END_FIELD_MODEL",
-         "Names the end field model of the magnet, giving the field magnitude along a line of "
+         "NOT IMPLEMENTED IN OPALX; Names the end field model of the magnet, giving the field magnitude along a line of "
          "constant radius. If blank, uses the 'END_LENGTH' and 'CENTRE_LENGTH' "
          "parameters and a tanh model. If 'END_FIELD_MODEL' is not blank, Opal will seek "
          "an END_FIELD_MODEL corresponding to the name defined in this string.");
@@ -87,16 +87,16 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet() :
 
     registerOwnership();
 
-    ScalingFFAMagnet* magnet = new ScalingFFAMagnet("ScalingFFAMagnet");
-    magnet->setEndField(new endfieldmodel::Tanh(1., 1., 1));
+    ScalingFFAMagnet<endfieldmodel::Tanh>* magnet = new ScalingFFAMagnet<endfieldmodel::Tanh>("ScalingFFAMagnet");
+    magnet->setEndField(endfieldmodel::Tanh(1., 1., 1));
     setElement(magnet);
 }
 
 OpalScalingFFAMagnet::OpalScalingFFAMagnet(const std::string& name,
                                              OpalScalingFFAMagnet* parent):
     OpalElement(name, parent) {
-    ScalingFFAMagnet* magnet = new ScalingFFAMagnet(name);
-    magnet->setEndField(new endfieldmodel::Tanh(1., 1., 1));
+    ScalingFFAMagnet<endfieldmodel::Tanh>* magnet = new ScalingFFAMagnet<endfieldmodel::Tanh>(name);
+    magnet->setEndField(endfieldmodel::Tanh(1., 1., 1));
     setElement(magnet);
 }
 
@@ -108,31 +108,33 @@ OpalScalingFFAMagnet *OpalScalingFFAMagnet::clone(const std::string& name) {
 }
 
 void OpalScalingFFAMagnet::setupDefaultEndField() {
-    ScalingFFAMagnet* magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
+    ScalingFFAMagnet<endfieldmodel::Tanh>* magnet = dynamic_cast<ScalingFFAMagnet<endfieldmodel::Tanh>*>(getElement());
     // get centre length and end length in metres
-    endfieldmodel::Tanh* endField = new endfieldmodel::Tanh();
+    endfieldmodel::Tanh endField;
     double end_length = Attributes::getReal(itsAttr[END_LENGTH]);
     double centre_length = Attributes::getReal(itsAttr[CENTRE_LENGTH])/2.;
-    endField->setLambda(end_length);
+    endField.setLambda(end_length);
     // x0 is the distance between B=0.5*B0 and B=B0 i.e. half the centre length
-    endField->setX0(centre_length);
-    std::shared_ptr<endfieldmodel::EndFieldModel> efm(endField);
+    endField.setX0(centre_length);
+    magnet->setEndField(endField);
     std::string endName = "__opal_internal__" + getOpalName();
-    endfieldmodel::EndFieldModel::setEndFieldModel(endName, efm);
     magnet->setEndFieldName(endName);
+    //std::shared_ptr<endfieldmodel::EndFieldModel> efm(endField);
+    //endfieldmodel::EndFieldModel::setEndFieldModel(endName, efm);
 }
 
 void OpalScalingFFAMagnet::setupNamedEndField() {
     if (!itsAttr[END_FIELD_MODEL]) {
         return;
     }
+    throw OpalException("OpalScalingFFAMagnet::setupNamedEndField", "Named end field is not implemented in OPALX");
     std::string name = Attributes::getString(itsAttr[END_FIELD_MODEL]);
-    ScalingFFAMagnet* magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
-    magnet->setEndFieldName(name);
+    //ScalingFFAMagnet* magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
+    //magnet->setEndFieldName(name);
 }
 
 void OpalScalingFFAMagnet::update() {
-    ScalingFFAMagnet* magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
+    ScalingFFAMagnet<endfieldmodel::Tanh>* magnet = dynamic_cast<ScalingFFAMagnet<endfieldmodel::Tanh>*>(getElement());
 
     // use L = r0*theta; we define the magnet into length for UI but into angles
     // internally; and use m as external default unit
@@ -154,7 +156,7 @@ void OpalScalingFFAMagnet::update() {
     }
     // internally OpalScalingFFAMagnet uses radians, so we scale all lengths to
     // radians.
-    magnet->getEndField()->rescale(1/r0Abs);
+    magnet->getEndField().rescale(1/r0Abs);
 
     // get rmin and rmax bounding box edge
     if (!itsAttr[RADIAL_NEG_EXTENT]) {
