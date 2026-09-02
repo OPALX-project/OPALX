@@ -57,13 +57,9 @@ public:
     /** Inheritable copy constructor */
     ScalingFFAMagnet* clone() const override;
 
-    /** Calculate the field at the position of the ith particle
+    /** Calculate the field for particles in the container
      *
-     *  \param i index of the particle event override; field is calculated at this
-     *         position
-     *  \param t time at which the field is to be calculated
-     *  \param E calculated electric field - always 0 (no E-field)
-     *  \param B calculated magnetic field
+     *  \param pc the set of particles for which the field is calculated
      */
     void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 

@@ -25,11 +25,13 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "AbsBeamline/ScalingFFAMagnet.h"
 #include <cmath>
+
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
+#include "AbsBeamline/ScalingFFAMagnet.h"
+
 ScalingFFAMagnet::ScalingFFAMagnet(const std::string& name)
     : ElementBase(name), planarArcGeometry_m(Geometry::makeSBend(1., 1.)), endField_m(nullptr) {}
 

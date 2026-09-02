@@ -15,6 +15,7 @@ set (_SRCS
     OpalQuadrupole.cpp
     OpalRBend.cpp
     OpalSBend.cpp
+    OpalScalingFFAMagnet.cpp
     OpalSolenoid.cpp
     OpalBeamline.cpp
     PlacementResolver.cpp
@@ -43,6 +44,7 @@ set (HDRS
     OpalQuadrupole.h
     OpalRBend.h
     OpalSBend.h
+    OpalScalingFFAMagnet.h
     OpalSource.h
     OpalSolenoid.h
     OpalTravelingWave.h
