@@ -3,8 +3,11 @@
 #include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/IndexMap.h"
 #include "BeamlineCore/DriftRep.h"
+#include "BeamlineCore/MarkerRep.h"
 #include "BeamlineCore/MultipoleRep.h"
+#include "BeamlineCore/RBendRep.h"
 #include "BeamlineCore/RFCavityRep.h"
+#include "BeamlineCore/SBendRep.h"
 #include "BeamlineCore/SolenoidRep.h"
 #include "BeamlineCore/TravelingWaveRep.h"
 #include "BeamlineGeometry/Geometry.h"
@@ -309,6 +312,63 @@ TEST_F(SolenoidPlacementTest, ElementPositionsSDDSMarksSolenoidColumn) {
         foundSolenoidRow = true;
     }
     EXPECT_TRUE(foundSolenoidRow);
+}
+
+TEST_F(SolenoidPlacementTest, SBendMeshesAsCurvedDipole) {
+    SBendRep bend("B1");
+    bend.getGeometry() = Geometry::makeSBend(1.0, Physics::pi / 2.0);
+    bend.setAperture(ApertureType::RECTANGULAR, {0.2, 0.1, 1.0});
+
+    MeshGenerator mesh;
+    mesh.add(bend);
+    mesh.write(testStem_);
+
+    std::ifstream py(outputPath("_ElementPositions.py"));
+    ASSERT_TRUE(py.is_open());
+    const std::string script(
+            (std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
+    EXPECT_NE(script.find("color = [1]"), std::string::npos);
+    EXPECT_NE(script.find("numVertices = [76]"), std::string::npos);
+    EXPECT_EQ(script.find("triangles = []]"), std::string::npos);
+}
+
+TEST_F(SolenoidPlacementTest, DefaultUnboundedApertureIsNotADriftMeshReference) {
+    MarkerRep marker("M1");
+    double minor = 0.0;
+    double major = 0.0;
+    EXPECT_FALSE(MeshGenerator::getTransverseSupport(marker, minor, major));
+
+    SBendRep bend("B1");
+    bend.setAperture(ApertureType::RECTANGULAR, {2.0, 1.0, 1.0});
+    ASSERT_TRUE(MeshGenerator::getTransverseSupport(bend, minor, major));
+    EXPECT_DOUBLE_EQ(minor, 2.0);
+    EXPECT_DOUBLE_EQ(major, 1.0);
+
+    MeshGenerator mesh;
+    mesh.add(marker);
+    mesh.write(testStem_);
+
+    std::ifstream py(outputPath("_ElementPositions.py"));
+    ASSERT_TRUE(py.is_open());
+    const std::string script(
+            (std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
+    EXPECT_NE(script.find("numVertices = [0]"), std::string::npos);
+    EXPECT_NE(script.find("triangles = [[ ]]"), std::string::npos);
+}
+
+TEST_F(SolenoidPlacementTest, EmptyMeshSerializesAsValidPython) {
+    RBendRep bend("RB1");
+
+    MeshGenerator mesh;
+    mesh.add(bend);
+    mesh.write(testStem_);
+
+    std::ifstream py(outputPath("_ElementPositions.py"));
+    ASSERT_TRUE(py.is_open());
+    const std::string script(
+            (std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
+    EXPECT_NE(script.find("numVertices = [0]"), std::string::npos);
+    EXPECT_NE(script.find("triangles = [[ ]]"), std::string::npos);
 }
 
 TEST_F(SolenoidPlacementTest, DriftMeshesAsBlueCylinderUsingFirstNonDriftReference) {
