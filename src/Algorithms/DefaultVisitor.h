@@ -91,7 +91,7 @@ public:
     void visitTravelingWave(const TravelingWave&) override;
 
     /// Apply the algorithm to a scaling FFA magnet.
-    void visitScalingFFAMagnet(const ScalingFFAMagnet& spiral) override;
+    void visitScalingFFAMagnet(const ScalingFFAMagnet<endfieldmodel::Tanh>& spiral) override;
 
     /// Apply the algorithm to a vertical FFA magnet.
     void visitVerticalFFAMagnet(const VerticalFFAMagnet&) override;

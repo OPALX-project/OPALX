@@ -32,10 +32,12 @@
 #include "Physics/Units.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
 
-ScalingFFAMagnet::ScalingFFAMagnet(const std::string& name)
-    : ElementBase(name), planarArcGeometry_m(Geometry::makeSBend(1., 1.)), endField_m(nullptr) {}
+template <class EFM>
+ScalingFFAMagnet<EFM>::ScalingFFAMagnet(const std::string& name)
+    : ElementBase(name), planarArcGeometry_m(Geometry::makeSBend(1., 1.)) {}
 
-ScalingFFAMagnet::ScalingFFAMagnet(const ScalingFFAMagnet& right)
+template <class EFM>
+ScalingFFAMagnet<EFM>::ScalingFFAMagnet(const ScalingFFAMagnet<EFM>& right)
     : ElementBase(right),
       planarArcGeometry_m(right.planarArcGeometry_m),
       maxOrder_m(right.maxOrder_m),
@@ -50,113 +52,70 @@ ScalingFFAMagnet::ScalingFFAMagnet(const ScalingFFAMagnet& right)
       azimuthalExtent_m(right.azimuthalExtent_m),
       verticalExtent_m(right.verticalExtent_m),
       centre_m(right.centre_m),
-      endField_m(nullptr),
+      endField_m(right.endField_m),
       endFieldName_m(right.endFieldName_m),
       dfCoefficients_m(right.dfCoefficients_m) {
-    endField_m     = right.endField_m->clone();
     RefPartBunch_m = right.RefPartBunch_m;
     Bz_m           = right.Bz_m;
     r0_m           = right.r0_m;
 }
 
-ScalingFFAMagnet::~ScalingFFAMagnet() { delete endField_m; }
+template <class EFM>
+ScalingFFAMagnet<EFM>::~ScalingFFAMagnet() {}
 
-ScalingFFAMagnet* ScalingFFAMagnet::clone() const {
+template <class EFM>
+ScalingFFAMagnet<EFM>* ScalingFFAMagnet<EFM>::clone() const {
     ScalingFFAMagnet* magnet = new ScalingFFAMagnet(*this);
     magnet->initialise();
     return magnet;
 }
 
-void ScalingFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {}
 
-void ScalingFFAMagnet::initialise() { calculateDfCoefficients(); }
+template <class EFM>
+void ScalingFFAMagnet<EFM>::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+    // Kernel launch over all particles
+    const Kokkos::View<Vector_t<double, 3>*> R = pc->R.getView();
+    const Kokkos::View<Vector_t<double, 3>*> B = pc->B.getView();
+    const size_t count = pc->getLocalNum();
+    const ScalingFFAMagnetConfig<EFM> config = getConfig();
+        Kokkos::parallel_for(
+            "ScalingFFAMagnet<>::getFieldValue()", count, KOKKOS_LAMBDA(const size_t i) {
+                getFieldValue(config, R(i), B(i));
+            });
+}
 
-void ScalingFFAMagnet::initialise(PartBunch_t* bunch) {
+template <class EFM>
+void ScalingFFAMagnet<EFM>::initialise() { calculateDfCoefficients(); }
+
+template <class EFM>
+void ScalingFFAMagnet<EFM>::initialise(PartBunch_t* bunch) {
     RefPartBunch_m = bunch;
     initialise();
 }
 
-void ScalingFFAMagnet::finalise() { RefPartBunch_m = nullptr; }
+template <class EFM>
+void ScalingFFAMagnet<EFM>::finalise() { RefPartBunch_m = nullptr; }
 
-Geometry& ScalingFFAMagnet::getGeometry() { return planarArcGeometry_m; }
+template <class EFM>
+Geometry& ScalingFFAMagnet<EFM>::getGeometry() { return planarArcGeometry_m; }
 
-const Geometry& ScalingFFAMagnet::getGeometry() const { return planarArcGeometry_m; }
+template <class EFM>
+const Geometry& ScalingFFAMagnet<EFM>::getGeometry() const { return planarArcGeometry_m; }
 
-void ScalingFFAMagnet::accept(BeamlineVisitor& visitor) const {
+template <class EFM>
+void ScalingFFAMagnet<EFM>::accept(BeamlineVisitor& visitor) const {
     visitor.visitScalingFFAMagnet(*this);
 }
 
-bool ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const {
-    Vector_t<double, 3> pos = R - centre_m;
-    double r                = std::sqrt(pos[0] * pos[0] + pos[2] * pos[2]);
-    double phi              = std::atan2(
-            pos[2], pos[0]);  // angle between y-axis and position vector in anticlockwise direction
-    Vector_t<double, 3> posCyl({r, pos[1], phi});
-    Vector_t<double, 3> bCyl({0., 0., 0.});  // br bz bphi
-    bool outOfBounds = getFieldValueCylindrical(posCyl, bCyl);
-    // this is cartesian coordinates
-    B[1] += bCyl[1];
-    B[0] += bCyl[0] * std::cos(phi) - bCyl[2] * std::sin(phi);
-    B[2] += bCyl[0] * std::sin(phi) + bCyl[2] * std::cos(phi);
-    return outOfBounds;
-}
-
-bool ScalingFFAMagnet::getFieldValueCylindrical(
-        const Vector_t<double, 3>& pos, Vector_t<double, 3>& B) const {
-    double r   = pos[0];
-    double z   = pos[1];
-    double phi = pos[2];
-    if (r < rMin_m || r > rMax_m) {
-        return true;
-    }
-
-    double normRadius = r / r0_m;
-    double g          = tanDelta_m * std::log(normRadius);
-    double phiSpiral  = phi - g - phiStart_m;
-    double h          = std::pow(normRadius, k_m) * Bz_m;
-    if (phiSpiral < -azimuthalExtent_m || phiSpiral > azimuthalExtent_m) {
-        return true;
-    }
-    if (z < -verticalExtent_m || z > verticalExtent_m) {
-        return true;
-    }
-    // std::cerr << "ScalingFFAMagnet::getFieldValueCylindrical " << phiSpiral << " "
-    //           << endField_m->function(phiSpiral, 0) << " " << endField_m->getEndLength()
-    //           << " " << endField_m->getCentreLength()  << std::endl;
-    std::vector<double> fringeDerivatives(maxOrder_m + 1, 0.);
-    for (size_t i = 0; i < fringeDerivatives.size(); ++i) {
-        fringeDerivatives[i] = endField_m->function(phiSpiral, i);  // d^i_phi f
-    }
-    for (size_t n = 0; n < dfCoefficients_m.size(); n += 2) {
-        double f2n = 0;
-        Vector_t<double, 3> deltaB;
-        for (size_t i = 0; i < dfCoefficients_m[n].size(); ++i) {
-            f2n += dfCoefficients_m[n][i] * fringeDerivatives[i];
-        }
-        deltaB[1] = f2n * h * std::pow(z / r, n);  // Bz = sum(f_2n * h * (z/r)^2n
-        if (maxOrder_m >= n + 1) {
-            double f2nplus1 = 0;
-            for (size_t i = 0;
-                 i < dfCoefficients_m[n + 1].size() && n + 1 < dfCoefficients_m.size(); ++i) {
-                f2nplus1 += dfCoefficients_m[n + 1][i] * fringeDerivatives[i];
-            }
-            deltaB[0] = (f2n * (k_m - n) / (n + 1) - tanDelta_m * f2nplus1) * h
-                        * std::pow(z / r, n + 1);  // Br
-            deltaB[2] =
-                    f2nplus1 * h * std::pow(z / r, n + 1);  // Bphi = sum(f_2n+1 * h * (z/r)^2n+1
-        }
-        B += deltaB;
-    }
-    return false;
-}
-
-void ScalingFFAMagnet::apply(
+template <class EFM>
+void ScalingFFAMagnet<EFM>::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
     getFieldValue(R, B);
 }
 
-void ScalingFFAMagnet::calculateDfCoefficients() {
+template <class EFM>
+void ScalingFFAMagnet<EFM>::calculateDfCoefficients() {
     dfCoefficients_m    = std::vector<std::vector<double> >(maxOrder_m + 1);
     dfCoefficients_m[0] = std::vector<double>(1, 1.);  // f_0 = 1.*0th derivative
     for (size_t n = 0; n < maxOrder_m; n += 2) {       // n indexes the power in z
@@ -181,37 +140,37 @@ void ScalingFFAMagnet::calculateDfCoefficients() {
     }
 }
 
-void ScalingFFAMagnet::setEndField(endfieldmodel::EndFieldModel* endField) {
-    if (endField_m != nullptr) {
-        delete endField_m;
-    }
+template <class EFM>
+void ScalingFFAMagnet<EFM>::setEndField(EFM endField) {
     endField_m = endField;
 }
 
 extern Inform* gmsg;
 
 // Note this is tested in OpalScalingFFAMagnetTest.*
-void ScalingFFAMagnet::setupEndField() {
+template <class EFM>
+void ScalingFFAMagnet<EFM>::setupEndField() {
     if (endFieldName_m == "") {  // no end field is defined
         return;
     }
-    std::shared_ptr<endfieldmodel::EndFieldModel> efm =
-            endfieldmodel::EndFieldModel::getEndFieldModel(endFieldName_m);
-    endfieldmodel::EndFieldModel* newEFM = efm->clone();
-    newEFM->rescale(Units::m2mm * 1.0 / getR0());
+
+    //std::shared_ptr<endfieldmodel::EndFieldModel> efm =
+    //        endfieldmodel::EndFieldModel::getEndFieldModel(endFieldName_m);
+    EFM newEFM = endField_m;
+    newEFM.rescale(Units::m2mm * 1.0 / getR0());
     setEndField(newEFM);
 
-    double defaultExtent = (newEFM->getEndLength() * 4. + newEFM->getCentreLength());
+    double defaultExtent = (newEFM.getEndLength() * 4. + newEFM.getCentreLength());
     if (phiStart_m < 0.0) {
         setPhiStart(defaultExtent / 2.0);
     } else {
-        setPhiStart(getPhiStart() + newEFM->getCentreLength() * 0.5);
+        setPhiStart(getPhiStart() + newEFM.getCentreLength() * 0.5);
     }
     if (phiEnd_m < 0.0) {
         setPhiEnd(defaultExtent);
     }
     if (azimuthalExtent_m < 0.0) {
-        setAzimuthalExtent(newEFM->getEndLength() * 5. + newEFM->getCentreLength() / 2.0);
+        setAzimuthalExtent(newEFM.getEndLength() * 5. + newEFM.getCentreLength() / 2.0);
     }
     planarArcGeometry_m.setElementLength(r0_m * phiEnd_m);  // length = phi r
     planarArcGeometry_m.setCurvature(1. / r0_m);

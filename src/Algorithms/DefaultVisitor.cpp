@@ -36,6 +36,7 @@
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/SBend.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
+#include "AbsBeamline/EndFieldModel/Tanh.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/TravelingWave.h"
 #include "AbsBeamline/VariableRFCavity.h"
@@ -86,7 +87,7 @@ void DefaultVisitor::visitSolenoid(const Solenoid& so) { applyDefault(so); }
 
 void DefaultVisitor::visitTravelingWave(const TravelingWave& trw) { applyDefault(trw); }
 
-void DefaultVisitor::visitScalingFFAMagnet(const ScalingFFAMagnet& spiral) { applyDefault(spiral); }
+void DefaultVisitor::visitScalingFFAMagnet(const ScalingFFAMagnet<endfieldmodel::Tanh>& spiral) { applyDefault(spiral); }
 
 void DefaultVisitor::visitVerticalFFAMagnet(const VerticalFFAMagnet& mag) { applyDefault(mag); }
 

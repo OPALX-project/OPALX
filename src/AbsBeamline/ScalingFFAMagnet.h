@@ -27,6 +27,7 @@
 
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/EndFieldModel/EndFieldModel.h"
+#include "AbsBeamline/EndFieldModel/Tanh.h"
 #include "BeamlineGeometry/Geometry.h"
 
 #ifndef ABSBEAMLINE_ScalingFFAMagnet_H
@@ -41,8 +42,33 @@
  *  to be done after parsing has finished. setupEndField() is called by e.g.
  *  ParallelCyclotronTracker just before the object is handed to OpalRing for
  *  placement.
+ *
+ *  Note about ScalingFFAMagnetConfig; GPU can't handle member data well so I 
+ *  make a struct to hold member data which we hand off for the actual field
+ *  lookup.
  */
 
+template <class EFM> // EndFieldModel
+struct ScalingFFAMagnetConfig {
+    size_t maxOrder_m        = 0;
+    double tanDelta_m        = 0.;
+    double k_m               = 0.;
+    double Bz_m              = 0.;
+    double r0_m              = 0.;
+    double rMin_m            = 0.;  // minimum radius
+    double rMax_m            = 0.;  // maximum radius
+    double phiStart_m        = 0.;  // offsets this element
+    double phiEnd_m          = 0.;  // used for placement of next element
+    double azimuthalExtent_m = 0.;  // maximum distance used for field calculation
+    double verticalExtent_m  = 0.;  // maximum allowed distance from the midplane
+    Vector_t<double, 3> centre_m;
+    EFM endField_m;
+    std::string endFieldName_m               = "";
+    const double fp_tolerance                = 1e-18;
+    std::vector<std::vector<double> > dfCoefficients_m;
+};
+
+template <class EFM> // EndFieldModel
 class ScalingFFAMagnet : public ElementBase {
 public:
     /** Construct a new ScalingFFAMagnet
@@ -63,6 +89,8 @@ public:
      */
     void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
+    ScalingFFAMagnetConfig<EFM> getConfig() const;
+
     /** Calculate the field at some arbitrary position
      *
      *  \param R position in the local coordinate system of the bend
@@ -82,7 +110,20 @@ public:
      *  \param B calculated magnetic field defined like (Bx, By, Bz)
      *  \returns true if particle is outside the field map, else false
      */
-    bool getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const;
+    KOKKOS_INLINE_FUNCTION static bool getFieldValue(const ScalingFFAMagnetConfig<EFM>& config, 
+                                                     const Vector_t<double, 3>& R,
+                                                     Vector_t<double, 3>& B);
+    
+    /** Calculate the field at some arbitrary position in cylindrical coordinates
+     *
+     *  \param R position in the local coordinate system of the bend, in
+     *           cylindrical polar coordinates defined like (r, y, phi)
+     *  \param B calculated magnetic field defined like (Br, By, Bphi)
+     *  \returns true if particle is outside the field map, else false
+     */
+    KOKKOS_INLINE_FUNCTION static bool getFieldValueCylindrical(const ScalingFFAMagnetConfig<EFM>& config,
+                                                                const Vector_t<double, 3>& R,
+                                                                Vector_t<double, 3>& B);
 
     /** Calculate the field at some arbitrary position in cylindrical coordinates
      *
@@ -91,13 +132,11 @@ public:
      *  \param B calculated magnetic field defined like (Br, By, Bphi)
      *  \returns true if particle is outside the field map, else false
      */
-    bool getFieldValueCylindrical(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const;
+    bool getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B);
 
     /** Initialise the ScalingFFAMagnet
      *
      *  \param bunch the global bunch object
-     *  \param startField not used
-     *  \param endField not used
      */
     void initialise(PartBunch_t* bunch) override;
 
@@ -158,14 +197,14 @@ public:
      *  Returns the fringe field model; ScalingFFAMagnet retains ownership of the
      *  returned memory.
      */
-    endfieldmodel::EndFieldModel* getEndField() const { return endField_m; }
+    EFM getEndField() const { return endField_m; }
 
     /** Set the fringe field
      *
      * - endField: the new fringe field; ScalingFFAMagnet takes ownership of the
      *   memory associated with endField.
      */
-    void setEndField(endfieldmodel::EndFieldModel* endField);
+    void setEndField(EFM endField);
 
     /** Get the maximum power of y modelled in the off-midplane expansion;
      */
@@ -272,10 +311,79 @@ private:
     double azimuthalExtent_m = 0.;  // maximum distance used for field calculation
     double verticalExtent_m  = 0.;  // maximum allowed distance from the midplane
     Vector_t<double, 3> centre_m;
-    endfieldmodel::EndFieldModel* endField_m = nullptr;
+    EFM endField_m;
     std::string endFieldName_m               = "";
     const double fp_tolerance                = 1e-18;
     std::vector<std::vector<double> > dfCoefficients_m;
 };
+
+template <class EFM>
+bool ScalingFFAMagnet<EFM>::getFieldValue(
+    const ScalingFFAMagnetConfig<EFM>& config, const Vector_t<double, 3>& R, Vector_t<double, 3>& B) {
+    Vector_t<double, 3> pos = R - config.centre_m;
+    double r                = std::sqrt(pos[0] * pos[0] + pos[2] * pos[2]);
+    double phi              = std::atan2(
+            pos[2], pos[0]);  // angle between y-axis and position vector in anticlockwise direction
+    Vector_t<double, 3> posCyl({r, pos[1], phi});
+    Vector_t<double, 3> bCyl({0., 0., 0.});  // br bz bphi
+    bool outOfBounds = getFieldValueCylindrical(config, posCyl, bCyl);
+    // this is cartesian coordinates
+    B[1] += bCyl[1];
+    B[0] += bCyl[0] * std::cos(phi) - bCyl[2] * std::sin(phi);
+    B[2] += bCyl[0] * std::sin(phi) + bCyl[2] * std::cos(phi);
+    return outOfBounds;
+}
+
+template <class EFM>
+bool ScalingFFAMagnet<EFM>::getFieldValueCylindrical(
+    const ScalingFFAMagnetConfig<EFM>& config, const Vector_t<double, 3>& pos, Vector_t<double, 3>& B) {
+    double r   = pos[0];
+    double z   = pos[1];
+    double phi = pos[2];
+    if (r < config.rMin_m || r > config.rMax_m) {
+        return true;
+    }
+
+    double normRadius = r / config.r0_m;
+    double g          = config.tanDelta_m * std::log(normRadius);
+    double phiSpiral  = phi - g - config.phiStart_m;
+    double h          = std::pow(normRadius, config.k_m) * config.Bz_m;
+    if (phiSpiral < -config.azimuthalExtent_m || phiSpiral > config.azimuthalExtent_m) {
+        return true;
+    }
+    if (z < -config.verticalExtent_m || z > config.verticalExtent_m) {
+        return true;
+    }
+    // std::cerr << "ScalingFFAMagnet::getFieldValueCylindrical " << phiSpiral << " "
+    //           << config.endField_m->function(phiSpiral, 0) << " " << config.endField_m->getEndLength()
+    //           << " " << config.endField_m->getCentreLength()  << std::endl;
+    std::vector<double> fringeDerivatives(config.maxOrder_m + 1, 0.);
+    for (size_t i = 0; i < fringeDerivatives.size(); ++i) {
+        fringeDerivatives[i] = config.endField_m.function(phiSpiral, i);  // d^i_phi f
+    }
+    for (size_t n = 0; n < config.dfCoefficients_m.size(); n += 2) {
+        double f2n = 0;
+        Vector_t<double, 3> deltaB;
+        for (size_t i = 0; i < config.dfCoefficients_m[n].size(); ++i) {
+            f2n += config.dfCoefficients_m[n][i] * fringeDerivatives[i];
+        }
+        deltaB[1] = f2n * h * std::pow(z / r, n);  // Bz = sum(f_2n * h * (z/r)^2n
+        if (config.maxOrder_m >= n + 1) {
+            double f2nplus1 = 0;
+            for (size_t i = 0;
+                 i < config.dfCoefficients_m[n + 1].size() && n + 1 < config.dfCoefficients_m.size(); ++i) {
+                f2nplus1 += config.dfCoefficients_m[n + 1][i] * fringeDerivatives[i];
+            }
+            deltaB[0] = (f2n * (config.k_m - n) / (n + 1) - config.tanDelta_m * f2nplus1) * h
+                        * std::pow(z / r, n + 1);  // Br
+            deltaB[2] =
+                    f2nplus1 * h * std::pow(z / r, n + 1);  // Bphi = sum(f_2n+1 * h * (z/r)^2n+1
+        }
+        B += deltaB;
+    }
+    return false;
+}
+
+template class ScalingFFAMagnet<endfieldmodel::Tanh>;
 
 #endif
