@@ -15,8 +15,8 @@
 
 #include "Elements/OpalMultipoleT.h"
 #include <vector>
-#include "BeamlineCore/MultipoleTRep.h"
 #include "Attributes/Attributes.h"
+#include "BeamlineCore/MultipoleTRep.h"
 
 OpalMultipoleT::OpalMultipoleT()
     : OpalElement(
