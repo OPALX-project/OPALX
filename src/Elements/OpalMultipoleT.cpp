@@ -15,7 +15,7 @@
 
 #include "Elements/OpalMultipoleT.h"
 #include <vector>
-#include "AbsBeamline/MultipoleT.h"
+#include "BeamlineCore/MultipoleTRep.h"
 #include "Attributes/Attributes.h"
 
 OpalMultipoleT::OpalMultipoleT()
@@ -103,7 +103,7 @@ void OpalMultipoleT::update() {
     auto tp = Attributes::getRealArray(itsAttr[TP]);
     // Set the attributes
     const auto length = Attributes::getReal(itsAttr[LENGTH]);
-    auto* multT       = dynamic_cast<MultipoleT*>(getElement());
+    auto* multT       = dynamic_cast<MultipoleTRep*>(getElement());
     multT->setElementLength(length);
     multT->setBendAngle(bendAngle, varRadius);
     multT->setAperture(Attributes::getReal(itsAttr[VAPERT]), Attributes::getReal(itsAttr[HAPERT]));

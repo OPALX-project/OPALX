@@ -1,6 +1,4 @@
 //
-// Cubic Spline Interpolation to replace GSL spline
-//
 // Copyright (c) 2023, Paul Scherrer Institute, Villigen PSI, Switzerland
 // All rights reserved
 //
