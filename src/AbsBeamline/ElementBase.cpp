@@ -40,7 +40,6 @@ const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
         {ElementType::SBEND, "SBEND"},
         {ElementType::RBEND, "RBEND"},
         {ElementType::RBEND3D, "RBEND3D"},
-        {ElementType::RING, "Ring"},
         {ElementType::SOURCE, "SOURCE"},
         {ElementType::SOLENOID, "SOLENOID"},
         {ElementType::PROBE, "Probe"},
