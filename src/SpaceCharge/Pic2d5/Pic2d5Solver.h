@@ -51,7 +51,7 @@ namespace opalx::spacecharge {
         [[nodiscard]] std::size_t sliceCount() const;
         [[nodiscard]] const ReferencePath::View& referencePathView() const;
 
-    private:
+    public:
         void ensureInitialized();
         void validateParticleMembership(const SolveContext& context) const;
         void run(SolveContext& context, SelfFieldDiagnostics& diagnostics);
@@ -59,7 +59,7 @@ namespace opalx::spacecharge {
         void solvePoissons(SelfFieldDiagnostics& diagnostics);
         void calculateLineDensity();
         void gatherFromGrid(const SolveContext& context);
-
+        
         template <bool ScatterLongitudinally>
         KOKKOS_FUNCTION static void scatterParticle(
                 std::size_t index, const VectorView& position, const VectorView& momentum,
@@ -117,6 +117,7 @@ namespace opalx::spacecharge {
         [[nodiscard]] bool selected(const SolveContext& context, std::size_t index) const;
         [[nodiscard]] double longitudinalGeometryFactor() const;
 
+    private:
         Pic2d5Config config_m;
         std::vector<ParticleContainer*> particles_m;
         std::unique_ptr<ReferencePath> referencePath_m;
