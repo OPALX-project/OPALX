@@ -223,6 +223,24 @@ public:
         if (spinEnabled_m) {
             this->addAttribute(Pol);
         }
+
+#ifdef IPPL_ENABLE_CATALYST
+        // Set human-readable names so Catalyst/ParaView labels the fields correctly.
+        dt.set_name("dt");
+        Phi.set_name("Phi");
+        Bin.set_name("Bin");
+        P.set_name("P");
+        E.set_name("E");
+        B.set_name("B");
+        InvalidMask.set_name("InvalidMask");
+        if (qmStorageMode_m == QMStorageMode::Attributes) {
+            QAttr.set_name("Q");
+            MAttr.set_name("M");
+        }
+        if (spinEnabled_m) {
+            Pol.set_name("Pol");
+        }
+#endif
     }
 
     void setupBCs(ippl::BC particleBC) { this->setParticleBC(particleBC); }
