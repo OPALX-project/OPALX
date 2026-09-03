@@ -258,6 +258,8 @@ void IndexMap::saveSDDS(double initialPathLength) const {
         while (j < numEntries && std::get<0>(sectors[j]) < range.end) {
             ++j;
         }
+        // Bound fix since we can go beyond the range when threading through
+        // elements multiple times
         if (j == numEntries) {
             --j;
         }
