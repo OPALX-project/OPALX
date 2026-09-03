@@ -76,6 +76,7 @@ private:
     OpalBeamline itsOpalBeamline_m;  ///< Cloned field elements and coordinate transforms.
     bool globalEOL_m;                ///< End-of-line flag (e.g. orbit threader out of bounds).
     double sStart_m;                 ///< Path-length start position for the track (m).
+    double ringPeriod_m;             ///< One-turn path length for RING, or zero for LINE.
 
     /** Step-size segments: s-stop, dt, and steps per segment. */
     StepSizeConfig stepSizes_m;
@@ -122,6 +123,7 @@ public:
      * @param restartGlobalStep Completed global integration steps restored from a checkpoint.
      * @param restartDt         Time step stored in the checkpoint.
      * @param restartPosition   Saved step-size segment and completed steps within that segment.
+     * @param ringPeriod        One-turn path length for periodic RING lookup; zero for LINE.
      */
     explicit ParallelTracker(
             const Beamline& bl, PartBunch_t& bunch, DataSink* ds, bool revBeam,
@@ -129,7 +131,8 @@ public:
             const std::vector<double>& sStop, const std::vector<double>& dt,
             const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers = {},
             bool restarting = false, unsigned long long restartGlobalStep = 0,
-            double restartDt = 0.0, StepSizeConfig::ResumePosition restartPosition = {0, 0});
+            double restartDt = 0.0, StepSizeConfig::ResumePosition restartPosition = {0, 0},
+            double ringPeriod = 0.0);
 
     /// @brief Destructor; releases tracker resources.
     virtual ~ParallelTracker();

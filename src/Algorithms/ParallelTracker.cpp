@@ -74,6 +74,7 @@ ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
       globalEOL_m(false),
       sStart_m(0.0),
+      ringPeriod_m(0.0),
       dtCurrentTrack_m(0.0),
       repartFreq_m(0),
       restarting_m(false),
@@ -96,12 +97,13 @@ ParallelTracker::ParallelTracker(
         const std::vector<double>& sStop, const std::vector<double>& dt,
         const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers,
         bool restarting, unsigned long long restartGlobalStep, double restartDt,
-        StepSizeConfig::ResumePosition restartPosition)
+        StepSizeConfig::ResumePosition restartPosition, double ringPeriod)
     : Tracker(beamline, bunch, revBeam, false),
       itsDataSink_m(ds),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
       globalEOL_m(false),
       sStart_m(sStart),
+      ringPeriod_m(ringPeriod),
       dtCurrentTrack_m(0.0),
       repartFreq_m(0),
       emittingSamplers_m(emittingSamplers),
@@ -368,7 +370,7 @@ void ParallelTracker::execute() {
                 minTimeStep,
                 stepSizes_m,        // Step size configuration
                 itsOpalBeamline_m,  // OpalBeamline object
-                isDesignBeam);
+                isDesignBeam, ringPeriod_m);
         oths[ci]->execute();
     }
     m << level4 << "Orbit threader execution done." << endl;
