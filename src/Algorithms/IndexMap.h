@@ -55,8 +55,8 @@ public:
     void saveSDDS(double startS) const;
     size_t size() const;
 
-    /// Reverse lookup: the path-length range over which @p element is active. Single-pass
-    /// (linac) assumption: each element is entered exactly once, so it owns exactly one range.
+    /// Reverse lookup: the path-length range of the FIRST crossing of @p element. Later
+    /// crossings (ring) are recorded only in the range-to-elements map used by query().
     key_t getRange(const IndexMap::value_t::value_type& element) const;
 
     class OutOfBounds : public OpalException {
@@ -74,7 +74,7 @@ public:
 private:
     class myCompare {
     public:
-        bool operator()(const key_t x, const key_t y) const {
+        bool operator()(const key_t& x, const key_t& y) const {
             if (x.begin < y.begin) return true;
 
             if (x.begin == y.begin) {
@@ -86,7 +86,7 @@ private:
     };
 
     typedef std::map<key_t, value_t, myCompare> map_t;
-    // Reverse map: one range per element (single-pass linac invariant).
+    // Reverse map: one range per element — the first crossing (see getRange).
     typedef std::map<value_t::value_type, key_t, std::owner_less<value_t::value_type>>
             invertedMap_t;
     map_t mapRange2Element_m;
