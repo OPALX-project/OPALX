@@ -68,7 +68,7 @@ struct ScalingFFAMagnetConfig {
     std::vector<std::vector<double> > dfCoefficients_m;
 };
 
-template <class EFM> // EndFieldModel
+template <class EFM> // EndFieldModel 
 class ScalingFFAMagnet : public ElementBase {
 public:
     /** Construct a new ScalingFFAMagnet

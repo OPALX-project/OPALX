@@ -94,7 +94,7 @@ public:
     void visitScalingFFAMagnet(const ScalingFFAMagnet<endfieldmodel::Tanh>& spiral) override;
 
     /// Apply the algorithm to a vertical FFA magnet.
-    void visitVerticalFFAMagnet(const VerticalFFAMagnet&) override;
+    void visitVerticalFFAMagnet(const VerticalFFAMagnet<endfieldmodel::Tanh>&) override;
 
     /// Apply the algorithm to a variable RF cavity.
     void visitVariableRFCavity(const VariableRFCavity&) override;

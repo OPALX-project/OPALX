@@ -61,7 +61,7 @@ class Tanh;
 }
 template <class EFM> class ScalingFFAMagnet;
 class Offset;
-class VerticalFFAMagnet;
+template <class EFM> class VerticalFFAMagnet;
 class Probe;
 
 class BeamlineVisitor {
@@ -129,7 +129,7 @@ public:
     virtual void visitTravelingWave(const TravelingWave&) = 0;
 
     /// Apply the algorithm to a vertical FFA magnet.
-    virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet&) = 0;
+    virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet<endfieldmodel::Tanh>&) = 0;
 
     /// Apply the algorithm to a Probe.
     virtual void visitProbe(const Probe&) = 0;

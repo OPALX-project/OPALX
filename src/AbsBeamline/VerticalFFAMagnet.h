@@ -10,20 +10,32 @@
 #include "AbsBeamline/ElementBase.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "PartBunch/PartBunch.h"
+#include "AbsBeamline/EndFieldModel/Tanh.h"
 
 #ifndef ABSBEAMLINE_VerticalFFAMagnet_H
 #define ABSBEAMLINE_VerticalFFAMagnet_H
 
-namespace endfieldmodel {
-    class EndFieldModel;
-}
+/** VerticalFFA field calculation data
+ */
+template <class EFM>
+struct VerticalFFAMagnetConfig {
+    size_t maxOrder_m   = 0;
+    double k_m          = 0.;
+    double Bz_m         = 0.;
+    double zNegExtent_m = 0.;  // extent downwards from the midplane
+    double zPosExtent_m = 0.;  // extent upwards from the midplane
+    double halfWidth_m  = 0.;  // extent in either +x or -x
+    double bbLength_m   = 0.;
+    EFM endField_m;
+    std::vector<std::vector<double> > dfCoefficients_m;
+};
 
 /** Bending magnet with an exponential dependence on field in the vertical plane
  *
  *  VerticalFFAMagnet makes a rectangular bending magnet with a dipole field
  *  that has a dependence like B0 exp(mz)
  */
-
+template <class EFM> // EndFieldModel
 class VerticalFFAMagnet : public ElementBase {
 public:
     /** Construct a new VerticalFFAMagnet
@@ -72,11 +84,28 @@ public:
      */
     bool getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const;
 
+    /** Calculate the field for particles in the container
+     *
+     *  \param pc the set of particles for which the field is calculated
+     *
+     *  This is a static function so that it can call the GPU
+     */
+    static void getFieldValue(const VerticalFFAMagnetConfig<EFM>& config, const std::shared_ptr<ParticleContainer_t>& pc);
+
+    /** Calculate the field at some arbitrary position in cartesian coordinates
+     *
+     *  \param R position in the local coordinate system of the bend, in
+     *           cartesian coordinates defined like (x, y, z)
+     *  \param B calculated magnetic field defined like (Bx, By, Bz)
+     *  \returns true if particle is outside the field map, else false
+     */
+    KOKKOS_INLINE_FUNCTION static bool getFieldValue(const VerticalFFAMagnetConfig<EFM>& config, 
+                                                     const Vector_t<double, 3>& R,
+                                                     Vector_t<double, 3>& B);
+
     /** Initialise the VerticalFFAMagnet
      *
      *  \param bunch the global bunch object (but not used)
-     *  \param startField not used
-     *  \param endField not used
      */
     void initialise(PartBunch_t* bunch) override;
 
@@ -113,58 +142,58 @@ public:
      *  Returns the fringe field model; VerticalFFAMagnet retains ownership of
      *  the returned memory.
      */
-    endfieldmodel::EndFieldModel* getEndField() const { return endField_m.get(); }
+    EFM getEndField() const { return config_m.endField_m; }
 
     /** Set the fringe field
      *
      * - endField: the new fringe field; VerticalFFAMagnet takes ownership of
      *   the memory associated with endField.
      */
-    void setEndField(endfieldmodel::EndFieldModel* endField);
+    void setEndField(EFM endField);
 
     /** Get the maximum power of x used in the off-midplane expansion;
      */
-    size_t getMaxOrder() const { return maxOrder_m; }
+    size_t getMaxOrder() const { return config_m.maxOrder_m; }
 
     /** Set the maximum power of x used in the off-midplane expansion;
      */
     void setMaxOrder(size_t maxOrder);
 
     /** Get the centre field at z=0 */
-    double getB0() const { return Bz_m / Tesla; }
+    double getB0() const { return config_m.Bz_m; }
 
     /** Set the centre field at z=0 */
-    void setB0(double Bz) { Bz_m = Bz * Tesla; }
+    void setB0(double Bz) { config_m.Bz_m = Bz; }
 
     /** Get the field index */
-    double getFieldIndex() const { return k_m * mm; }  // units are [m^{-1}]
+    double getFieldIndex() const { return config_m.k_m; }  // units are [m^{-1}]
 
     /** Set the field index */
-    void setFieldIndex(double index) { k_m = index / mm; }
+    void setFieldIndex(double index) { config_m.k_m = index; }
 
     /** Get the maximum extent below z = 0 */
-    double getNegativeVerticalExtent() const { return zNegExtent_m / mm; }
+    double getNegativeVerticalExtent() const { return config_m.zNegExtent_m; }
 
     /** Set the maximum extent below z = 0 */
     inline void setNegativeVerticalExtent(double negativeExtent);
 
     /** Get the maximum extent above z = 0 */
-    double getPositiveVerticalExtent() const { return zPosExtent_m / mm; }
+    double getPositiveVerticalExtent() const { return config_m.zPosExtent_m; }
 
     /** set the maximum extent above z = 0 */
     inline void setPositiveVerticalExtent(double positiveExtent);
 
     /** Get the length of the bounding box (centred on magnet centre) */
-    double getBBLength() const { return bbLength_m / mm; }
+    double getBBLength() const { return config_m.bbLength_m; }
 
     /** Set the length of the bounding box (centred on magnet centre) */
-    void setBBLength(double bbLength) { bbLength_m = bbLength * mm; }
+    void setBBLength(double bbLength) { config_m.bbLength_m = bbLength; }
 
     /** Get the full width of the bounding box (centred on magnet centre) */
-    double getWidth() const { return halfWidth_m / mm * 2.; }
+    double getWidth() const { return config_m.halfWidth_m * 2.; }
 
     /** Set the full width of the bounding box (centred on magnet centre) */
-    void setWidth(double width) { halfWidth_m = width / 2 * mm; }
+    void setWidth(double width) { config_m.halfWidth_m = width / 2; }
 
     /** Get the coefficients used for the field expansion
      *
@@ -186,32 +215,26 @@ private:
 
     VerticalFFAMagnet& operator=(const VerticalFFAMagnet& rhs);
     Geometry straightGeometry_m{Geometry::makeStraight(1.)};
-
-    size_t maxOrder_m   = 0;
-    double k_m          = 0.;
-    double Bz_m         = 0.;
-    double zNegExtent_m = 0.;  // extent downwards from the midplane
-    double zPosExtent_m = 0.;  // extent upwards from the midplane
-    double halfWidth_m  = 0.;  // extent in either +x or -x
-    double bbLength_m   = 0.;
-    std::unique_ptr<endfieldmodel::EndFieldModel> endField_m;
-    std::vector<std::vector<double> > dfCoefficients_m;
-
-    const double mm    = 1000.;
-    const double Tesla = 10.;
+    VerticalFFAMagnetConfig<EFM> config_m;
 };
 
-void VerticalFFAMagnet::setNegativeVerticalExtent(double negativeExtent) {
-    zNegExtent_m = negativeExtent * mm;
+template class VerticalFFAMagnet<endfieldmodel::Tanh>;
+
+template <class EFM>
+void VerticalFFAMagnet<EFM>::setNegativeVerticalExtent(double negativeExtent) {
+    config_m.zNegExtent_m = negativeExtent;
 }
 
-void VerticalFFAMagnet::setPositiveVerticalExtent(double positiveExtent) {
-    zPosExtent_m = positiveExtent * mm;
+template <class EFM>
+void VerticalFFAMagnet<EFM>::setPositiveVerticalExtent(double positiveExtent) {
+    config_m.zPosExtent_m = positiveExtent;
 }
 
-void VerticalFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {}
+template <class EFM>
+void VerticalFFAMagnet<EFM>::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {}
 
-void VerticalFFAMagnet::apply(
+template <class EFM>
+void VerticalFFAMagnet<EFM>::apply(
         const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
     auto Rview                              = pc->R.getView();
@@ -221,14 +244,72 @@ void VerticalFFAMagnet::apply(
     apply(R, P, t, E, B);
 }
 
-void VerticalFFAMagnet::apply(
+template <class EFM>
+void VerticalFFAMagnet<EFM>::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double&,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
     getFieldValue(R, B);
 }
 
-std::vector<std::vector<double> > VerticalFFAMagnet::getDfCoefficients() const {
-    return dfCoefficients_m;
+template <class EFM>
+std::vector<std::vector<double> > VerticalFFAMagnet<EFM>::getDfCoefficients() const {
+    return config_m.dfCoefficients_m;
+}
+
+template <class EFM>
+void VerticalFFAMagnet<EFM>::getFieldValue(const VerticalFFAMagnetConfig<EFM>& config, 
+                                           const std::shared_ptr<ParticleContainer_t>& pc) {
+    const Kokkos::View<Vector_t<double, 3>*> R = pc->R.getView();
+    const Kokkos::View<Vector_t<double, 3>*> B = pc->B.getView();
+    const size_t count = pc->getLocalNum();
+        Kokkos::parallel_for(
+            "VerticalFFAMagnet<>::getFieldValue()", count, KOKKOS_LAMBDA(const size_t i) {
+                getFieldValue(config, R(i), B(i));
+            });
+}
+
+
+template <class EFM>
+bool VerticalFFAMagnet<EFM>::getFieldValue(const VerticalFFAMagnetConfig<EFM>& config_m, 
+                   const Vector_t<double, 3>& R,
+                   Vector_t<double, 3>& B) {
+    if (std::abs(R[0]) > config_m.halfWidth_m || R[2] < 0. || R[2] > config_m.bbLength_m || R[1] < -config_m.zNegExtent_m
+        || R[1] > config_m.zPosExtent_m) {
+        return true;
+    }
+    std::vector<double> fringeDerivatives(config_m.maxOrder_m + 2, 0.);
+    double zRel = R[2] - config_m.bbLength_m / 2.;  // z relative to centre of magnet
+    for (size_t i = 0; i < fringeDerivatives.size(); ++i) {
+        fringeDerivatives[i] = config_m.endField_m.function(zRel, i);  // d^i_phi f
+    }
+
+    std::vector<double> x_n(config_m.maxOrder_m + 1);  // x^n
+    x_n[0] = 1.;                              // x^0
+    for (size_t i = 1; i < x_n.size(); ++i) {
+        x_n[i] = x_n[i - 1] * R[0];
+    }
+
+    // note that the last element is always 0, because dfCoefficients_m is
+    // of size maxOrder_m+1. This leads to better Maxwellianness in testing.
+    std::vector<double> f_n(config_m.maxOrder_m + 2, 0.);
+    std::vector<double> dz_f_n(config_m.maxOrder_m + 1, 0.);
+    for (size_t n = 0; n < config_m.dfCoefficients_m.size(); ++n) {
+        const std::vector<double>& coefficients = config_m.dfCoefficients_m[n];
+        for (size_t i = 0; i < coefficients.size(); ++i) {
+            f_n[n] += coefficients[i] * fringeDerivatives[i];
+            dz_f_n[n] += coefficients[i] * fringeDerivatives[i + 1];
+        }
+    }
+    double bref = config_m.Bz_m * exp(config_m.k_m * R[1]);
+    B[0]        = 0.;
+    B[1]        = 0.;
+    B[2]        = 0.;
+    for (size_t n = 0; n < x_n.size(); ++n) {
+        B[0] += bref * f_n[n + 1] * (n + 1) / config_m.k_m * x_n[n];
+        B[1] += bref * f_n[n] * x_n[n];
+        B[2] += bref * dz_f_n[n] / config_m.k_m * x_n[n];
+    }
+    return false;
 }
 
 #endif
