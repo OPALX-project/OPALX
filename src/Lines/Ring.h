@@ -29,6 +29,9 @@ public:
     /// Parse a closed-topology sequence definition.
     void parse(Statement& stat) override;
 
+    /// Isolate and tag all occurrences owned by this RING.
+    void prepareForTracking() override;
+
 protected:
     const char* getSequenceKeyword() const override;
 

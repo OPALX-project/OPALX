@@ -516,6 +516,7 @@ void TrackRun::execute() {
        findPhasesForMaxEnergy();
 
     */
+    Track::block->use->prepareForTracking();
     itsTracker_m = std::make_unique<ParallelTracker>(
             *Track::block->use->fetchLine(), *bunch_m, ds_m, false, Track::block->localTimeSteps,
             Track::block->zstart, Track::block->zstop, Track::block->dT, emittingSamplersList,

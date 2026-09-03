@@ -43,7 +43,9 @@ Out of scope for this stage:
    occurrence so registered prototypes and ordinary LINE occurrences are not contaminated.
    Synthetic `#S` and `#E` markers remain untagged.
 6. Reject nested RINGs and RING-as-a-LINE-member with a parse error in this stage.
-7. Propagate topology through the runtime clone made by `OpalBeamline::visit`.
+7. Materialize RING occurrences immediately before tracking, after `OpalData::update()` has
+   populated the registered element prototypes. Parser-time cloning is too early and would retain
+   default geometry. LINE preparation remains a no-op.
 
 ## Implementation sequence
 
@@ -145,8 +147,9 @@ Expected files:
 
 ## Next step
 
-Add the topology and per-occurrence ownership metadata described in steps 2 and 4. The parser and
-first-pass OrbitThreader validation no longer block that work.
+Use the RING ownership metadata to implement the first behavior that genuinely differs from LINE,
+starting with an explicit first-turn completion rule only if a multi-turn RING case demonstrates
+that the existing OrbitThreader termination is insufficient.
 
 ## Completed first-pass results
 
@@ -161,5 +164,16 @@ first-pass OrbitThreader validation no longer block that work.
 - One-rank and two-rank OpenMP runs complete successfully. Their 768 ElementPositions records and
   45 DesignPath records match `orig` numerically within `2e-8`; this tolerance covers the final
   printed digit of the text placement output.
-- Added a small in-memory `TestRing` unit test for clone/print and modifier rejection.
-- Focused tests pass: TestRing (3), TestOrbitThreader (2), TestIndexMap (4), TestSolenoid (10).
+- Added host-side `BeamlineMembership` metadata to `ElementBase`. The default is LINE with no
+  owner; RING requires a non-empty owner name, and cloning preserves the value.
+- RING roots carry their canonical name. Immediately before tracking, every non-synthetic member
+  occurrence is recursively cloned and tagged, leaving registered prototypes and ordinary LINEs
+  unchanged. This timing preserves element geometry populated during the global update.
+- Corrected LINE member construction to share the registered element's existing `shared_ptr`
+  control block; this prevents occurrence replacement from deleting a registered prototype.
+- Added in-memory ownership tests for validation, clone preservation, duplicate occurrences,
+  recursive nested-LINE tagging, and independence between two rings. ISIS remains intentionally
+  outside the unit-test suite.
+- Final clean one-rank and two-rank OpenMP runs complete successfully. Each produces 768
+  ElementPositions records and 45 DesignPath records matching `orig` within `2e-8`.
+- Focused tests pass: TestRing (6), TestOrbitThreader (2), TestIndexMap (4), TestSolenoid (10).
