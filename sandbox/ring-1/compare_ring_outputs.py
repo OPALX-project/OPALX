@@ -87,13 +87,20 @@ def main() -> None:
     candidate_path, candidate_active = design_path(
         args.candidate / "isis_sbend_ring_DesignPath.dat"
     )
-    assert_numeric_equal("DesignPath", reference_path, candidate_path, args.atol)
-    if reference_active != candidate_active:
-        raise AssertionError("DesignPath active-element names differ")
+    if len(candidate_path) < len(reference_path):
+        raise AssertionError(
+            "DesignPath: candidate is shorter than the explicit golden prefix: "
+            f"reference={len(reference_path)}, candidate={len(candidate_path)}"
+        )
+    candidate_prefix = candidate_path.iloc[: len(reference_path)].reset_index(drop=True)
+    assert_numeric_equal("DesignPath prefix", reference_path, candidate_prefix, args.atol)
+    if reference_active != candidate_active[: len(reference_active)]:
+        raise AssertionError("DesignPath prefix active-element names differ")
 
     print(
         f"PASS: ElementPositions ({len(reference_positions)} rows) and "
-        f"DesignPath ({len(reference_path)} rows), atol={args.atol:g}"
+        f"DesignPath golden prefix ({len(reference_path)} of {len(candidate_path)} rows), "
+        f"atol={args.atol:g}"
     )
 
 

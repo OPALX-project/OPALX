@@ -182,3 +182,14 @@ RING acceptance criterion.
 - `isis_sbend_ring_10t.in` completed ten nominal circumferences (1633.630220 m) with one particle.
   The reference trajectory is not expected to close or remain stable until a closed-orbit finder
   is available. `plot_ring_10t.py` provides a reproducible visualization of this result.
+- RING OrbitThreader construction now stops after exactly one circumference, independently of the
+  particle-tracking `MAXSTEPS` budget. The resulting IndexMap is reused for all later turns by
+  folding absolute path-length queries into that one-turn interval, including queries that cross
+  the turn seam. LINE map construction and lookup remain non-periodic.
+- IndexMap exposes the signed turn quotient and a topological phase in `[0, 2*pi)`, both derived
+  from accumulated path length and circumference. This is intentionally not a geometric azimuth:
+  it remains well-defined for the non-closing reference trajectory used before closed-orbit finding.
+- The one-rank `TURNS=10` example again reaches 1633.630220 m with one particle while its
+  DesignPath output contains only the first 163.36 m turn. A two-rank one-turn run produces the
+  same 768 placements and matches the 45-row explicit golden trajectory prefix within `2e-8`.
+- Focused tests pass: TestRing, TestOrbitThreader, TestIndexMap, and TestSolenoid.

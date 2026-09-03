@@ -45,9 +45,18 @@ public:
 
     IndexMap();
 
+    /// Configure this map as one periodic interval [origin, origin + period).
+    void setPeriod(double origin, double period);
+
     void add(key_t::first_type initialStep, key_t::second_type finalStep, const value_t& val);
 
     value_t query(key_t::first_type s, key_t::second_type ds);
+
+    /// Return the signed turn index containing absolute path length @p s.
+    long long getTurnNumber(double s) const;
+
+    /// Return the topological phase in [0, 2*pi) at absolute path length @p s.
+    double getPhase(double s) const;
 
     void tidyUp(double sStop);
 
@@ -93,6 +102,11 @@ private:
     invertedMap_t mapElement2Range_m;
 
     double totalPathLength_m;
+    double periodOrigin_m;
+    double period_m;
+
+    value_t queryRange(double lowerLimit, double upperLimit);
+    double wrap(double s) const;
 
     static bool almostEqual(double, double);
     static const double oneMinusEpsilon_m;

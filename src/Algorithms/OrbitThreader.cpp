@@ -46,19 +46,25 @@ extern Inform* gmsg;
 OrbitThreader::OrbitThreader(
         const PartData& ref, const Vector_t<double, 3>& r, const Vector_t<double, 3>& p, double s,
         double maxDiffZBunch, double t, double dt, StepSizeConfig stepSizes, OpalBeamline& bl,
-        bool isDesignBeam)
+        bool isDesignBeam, double period)
     : r_m(r),
       p_m(p),
       pathLength_m(s),
       time_m(t),
       dt_m(dt),
       stepSizes_m(stepSizes),
-      sStop_m(stepSizes.getFinalSStop() + std::copysign(1.0, dt) * 2 * maxDiffZBunch),
+      sStop_m(period > 0.0
+                      ? s + std::copysign(period, dt)
+                      : stepSizes.getFinalSStop() + std::copysign(1.0, dt) * 2 * maxDiffZBunch),
+      period_m(period),
       itsOpalBeamline_m(bl),
       isDesignBeam_m(isDesignBeam),
       errorFlag_m(0),
       integrator_m{},
       reference_m(ref) {
+    if (period_m > 0.0) {
+        imap_m.setPeriod(pathLength_m, period_m);
+    }
     auto opal = OpalData::getInstance();
     // Only the design beam writes the _DesignPath.dat trajectory log; secondary species
     // must not open (and truncate) it.
@@ -104,6 +110,11 @@ void OrbitThreader::checkElementLengths(const std::set<std::shared_ptr<ElementBa
     double driftLength =
             Physics::c * std::abs(stepSizes_m.getdT()) * euclidean_norm(p_m) / Util::getGamma(p_m);
     for (const std::shared_ptr<ElementBase>& field : fields) {
+        // Markers and monitors carry no field integration requirement. Their finite display
+        // geometry must not constrain the reference-particle time step at the RING seam.
+        if (field->getType() == ElementType::MARKER || field->getType() == ElementType::MONITOR) {
+            continue;
+        }
         double fieldBegin = 0.0;
         double fieldEnd   = 0.0;
         field->getFieldExtent(fieldBegin, fieldEnd);
@@ -166,7 +177,8 @@ void OrbitThreader::execute() {
             pathLength_m += std::copysign(1.0, dt_m);
         }
 
-        imap_m.add(initialS, pathLength_m, elementSet);
+        const double finalS = reachedPeriodicEnd() ? sStop_m : pathLength_m;
+        imap_m.add(initialS, finalS, elementSet);
 
         IndexMap::value_t::const_iterator it        = elementSet.begin();
         const IndexMap::value_t::const_iterator end = elementSet.end();
@@ -190,7 +202,7 @@ void OrbitThreader::execute() {
         std::set_intersection(
                 currentSet.begin(), currentSet.end(), elementSet.begin(), elementSet.end(),
                 std::inserter(intersection, intersection.begin()));
-    } while (errorFlag_m != EOL && stepRange_m.isInside(currentStep_m)
+    } while (errorFlag_m != EOL && (period_m > 0.0 || stepRange_m.isInside(currentStep_m))
              && !(pathLengthRange_m.isOutside(pathLength_m) && intersection.empty()
                   && !(elementSet.empty() || currentSet.empty())));
 
@@ -268,19 +280,29 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
         ++currentStep_m;
         time_m += dt_m;
 
+        if (reachedPeriodicEnd()) {
+            errorFlag_m = EOL;
+            globalBoundingBox_m.enlargeToContainPosition(r_m);
+            return;
+        }
+
         nextR = r_m / (Physics::c * dt_m);
         integrator_m.push(nextR, p_m, dt_m);
         nextR = nextR * Physics::c * dt_m;
 
         if (activeSet.empty()
             && (pathLengthRange_m.isOutside(pathLength_m)
-                || stepRange_m.isOutside(currentStep_m))) {
+                || (period_m <= 0.0 && stepRange_m.isOutside(currentStep_m)))) {
             errorFlag_m = EOL;
             globalBoundingBox_m.enlargeToContainPosition(r_m);
             return;
         }
 
     } while (activeSet == itsOpalBeamline_m.getElements(nextR));
+}
+
+bool OrbitThreader::reachedPeriodicEnd() const {
+    return period_m > 0.0 && (dt_m > 0.0 ? pathLength_m >= sStop_m : pathLength_m <= sStop_m);
 }
 
 bool OrbitThreader::containsCavity(const IndexMap::value_t& activeSet) {

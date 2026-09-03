@@ -41,7 +41,20 @@ namespace {
     void insertFlags(std::vector<double>& flags, std::shared_ptr<ElementBase> element);
 }
 
-IndexMap::IndexMap() : mapRange2Element_m(), mapElement2Range_m(), totalPathLength_m(0.0) {}
+IndexMap::IndexMap()
+    : mapRange2Element_m(),
+      mapElement2Range_m(),
+      totalPathLength_m(0.0),
+      periodOrigin_m(0.0),
+      period_m(0.0) {}
+
+void IndexMap::setPeriod(double origin, double period) {
+    if (!(period > 0.0) || !std::isfinite(origin) || !std::isfinite(period)) {
+        throw OpalException("IndexMap::setPeriod", "period must be finite and positive");
+    }
+    periodOrigin_m = origin;
+    period_m       = period;
+}
 
 void IndexMap::print(std::ostream& out) const {
     if (mapRange2Element_m.empty()) return;
@@ -68,8 +81,41 @@ void IndexMap::print(std::ostream& out) const {
 }
 
 IndexMap::value_t IndexMap::query(key_t::first_type s, key_t::second_type ds) {
-    const double lowerLimit = s - ds;  //(ds < s? s - ds: 0);
-    const double upperLimit = std::min(totalPathLength_m, s + ds);
+    if (ds < 0.0) {
+        throw OutOfBounds("IndexMap::query", "query half-width must not be negative");
+    }
+    if (period_m == 0.0) {
+        return queryRange(s - ds, s + ds);
+    }
+
+    if (2.0 * ds >= period_m) {
+        value_t elements;
+        for (const auto& entry : mapRange2Element_m) {
+            const auto& rangeElements = entry.second;
+            elements.insert(rangeElements.begin(), rangeElements.end());
+        }
+        return elements;
+    }
+
+    const double lower        = s - ds;
+    const double upper        = s + ds;
+    const double wrappedLower = wrap(lower);
+    const double wrappedUpper = wrap(upper);
+    const auto lowerTurn = static_cast<long long>(std::floor((lower - periodOrigin_m) / period_m));
+    const auto upperTurn = static_cast<long long>(std::floor((upper - periodOrigin_m) / period_m));
+
+    if (lowerTurn == upperTurn && wrappedLower <= wrappedUpper) {
+        return queryRange(wrappedLower, wrappedUpper);
+    }
+
+    value_t elements = queryRange(wrappedLower, periodOrigin_m + period_m);
+    value_t head     = queryRange(periodOrigin_m, wrappedUpper);
+    elements.insert(head.begin(), head.end());
+    return elements;
+}
+
+IndexMap::value_t IndexMap::queryRange(double lowerLimit, double upperLimit) {
+    upperLimit = std::min(totalPathLength_m, upperLimit);
     value_t elementSet;
 
     map_t::reverse_iterator rit = mapRange2Element_m.rbegin();
@@ -77,9 +123,8 @@ IndexMap::value_t IndexMap::query(key_t::first_type s, key_t::second_type ds) {
         throw OutOfBounds("IndexMap::query", "out of bounds");
     }
 
-    // Start the scan at the first entry that can overlap [lowerLimit, upperLimit] instead of at
-    // the front: the map grows with every turn on a ring. Entries before lower_bound have
-    // begin < lowerLimit; step back over those still reaching into the interval.
+    // Start the scan at the first entry that can overlap [lowerLimit, upperLimit]. Entries before
+    // lower_bound have begin < lowerLimit; step back over those still reaching into the interval.
     map_t::iterator it        = mapRange2Element_m.lower_bound(key_t{lowerLimit, lowerLimit});
     const map_t::iterator end = mapRange2Element_m.end();
     while (it != mapRange2Element_m.begin() && std::prev(it)->first.end > lowerLimit) {
@@ -109,6 +154,29 @@ IndexMap::value_t IndexMap::query(key_t::first_type s, key_t::second_type ds) {
     }
 
     return elementSet;
+}
+
+double IndexMap::wrap(double s) const {
+    double offset = std::fmod(s - periodOrigin_m, period_m);
+    if (offset < 0.0) {
+        offset += period_m;
+    }
+    return periodOrigin_m + offset;
+}
+
+long long IndexMap::getTurnNumber(double s) const {
+    if (period_m == 0.0) {
+        throw OpalException("IndexMap::getTurnNumber", "map is not periodic");
+    }
+    return static_cast<long long>(std::floor((s - periodOrigin_m) / period_m));
+}
+
+double IndexMap::getPhase(double s) const {
+    if (period_m == 0.0) {
+        throw OpalException("IndexMap::getPhase", "map is not periodic");
+    }
+    const double twoPi = 2.0 * std::acos(-1.0);
+    return twoPi * (wrap(s) - periodOrigin_m) / period_m;
 }
 
 void IndexMap::add(key_t::first_type initialS, key_t::second_type finalS, const value_t& val) {
@@ -187,9 +255,9 @@ void IndexMap::saveSDDS(double initialPathLength) const {
                     return mapElement2Range_m.at(element).end < range.begin;
                 });
         if (reentered) {
-            *gmsg << level2 << "* IndexMap: ring detected (element re-entered at s = "
-                  << range.begin << " m); the element position file contains the first pass only"
-                  << endl;
+            *gmsg << level2
+                  << "* IndexMap: ring detected (element re-entered at s = " << range.begin
+                  << " m); the element position file contains the first pass only" << endl;
             break;
         }
 

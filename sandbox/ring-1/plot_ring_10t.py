@@ -57,6 +57,29 @@ def read_lattice_positions(path: Path) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=["x", "z"])
 
 
+def read_statistics(path: Path) -> pd.DataFrame:
+    rows: list[list[float]] = []
+    with path.open() as stream:
+        for line in stream:
+            fields = line.split()
+            if len(fields) < 47:
+                continue
+            try:
+                rows.append(
+                    [
+                        float(fields[0]),
+                        float(fields[1]),
+                        float(fields[4]),
+                        float(fields[17]),
+                        float(fields[18]),
+                        float(fields[19]),
+                    ]
+                )
+            except ValueError:
+                continue
+    return pd.DataFrame(rows, columns=["time", "s", "energy", "rx", "ry", "rz"])
+
+
 def nearest_turn_samples(frame: pd.DataFrame, turns: int) -> pd.DataFrame:
     samples = []
     for turn in range(1, turns + 1):
@@ -84,18 +107,26 @@ def main() -> None:
         type=Path,
         default=base / "data" / "isis_sbend_ring_10t_ElementPositions.txt",
     )
+    parser.add_argument(
+        "--statistics",
+        type=Path,
+        default=base / "isis_sbend_ring_10t.stat",
+    )
     parser.add_argument("--output", type=Path, default=base / "isis_sbend_ring_10t.png")
     args = parser.parse_args()
 
     frame = read_design_path(args.design_path)
     lattice = read_lattice_positions(args.element_positions)
+    statistics = read_statistics(args.statistics)
     turns = 10
-    samples = nearest_turn_samples(frame, turns)
+    samples = nearest_turn_samples(statistics, turns)
 
-    # Downsample only for rendering; closure metrics use the full data.
-    stride = max(1, len(frame) // 12_000)
+    # Downsample only for rendering; turn metrics use the statistics output.
+    stride = max(1, len(frame) // 4_000)
     plotted = frame.iloc[::stride].copy()
-    plotted["turn"] = np.minimum((plotted["s"] / CIRCUMFERENCE_M).astype(int) + 1, turns)
+    statistics["turn"] = np.minimum(
+        (statistics["s"] / CIRCUMFERENCE_M).astype(int) + 1, turns
+    )
 
     plt.style.use("seaborn-v0_8-whitegrid")
     fig = plt.figure(figsize=(12.5, 6.8), constrained_layout=True)
@@ -107,7 +138,14 @@ def main() -> None:
     orbit_ax.scatter(
         lattice["x"], lattice["z"], s=5, color="0.75", alpha=0.6, label="lattice elements"
     )
-    points = plotted[["rx", "rz"]].to_numpy().reshape(-1, 1, 2)
+    orbit_ax.plot(
+        plotted["rx"],
+        plotted["rz"],
+        linewidth=1.5,
+        color="0.35",
+        label="one-turn threaded map",
+    )
+    points = statistics[["rx", "rz"]].to_numpy().reshape(-1, 1, 2)
     segments = np.concatenate([points[:-1], points[1:]], axis=1)
     norm = BoundaryNorm(np.arange(0.5, turns + 1.5), turns)
     collection = LineCollection(
@@ -117,13 +155,13 @@ def main() -> None:
         linewidth=1.2,
         alpha=0.9,
     )
-    collection.set_array(plotted["turn"].to_numpy()[:-1])
+    collection.set_array(statistics["turn"].to_numpy()[:-1])
     orbit_ax.add_collection(collection)
     orbit_ax.autoscale()
     orbit_ax.set_aspect("equal", adjustable="datalim")
     orbit_ax.set_xlabel("Reference x [m]")
     orbit_ax.set_ylabel("Reference z [m]")
-    orbit_ax.set_title("Reference trajectory and nominal lattice")
+    orbit_ax.set_title("One-turn map and tracked reference samples")
     orbit_ax.legend(loc="best", frameon=False)
     colorbar = fig.colorbar(collection, ax=orbit_ax, ticks=np.arange(1, turns + 1))
     colorbar.set_label("Nominal turn")

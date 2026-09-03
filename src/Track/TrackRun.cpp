@@ -521,8 +521,13 @@ void TrackRun::execute() {
 
     auto maxSteps = Track::block->localTimeSteps;
     auto sStop    = Track::block->zstop;
-    if (!itsAttr[TRACKRUN::TURNS].defaultUsed()
-        && Track::block->use->fetchLine()->getBeamlineTopology() == BeamlineTopology::RING) {
+    const bool isRing =
+            Track::block->use->fetchLine()->getBeamlineTopology() == BeamlineTopology::RING;
+    const double ringPeriod = isRing ? Track::block->use->getLength() : 0.0;
+    if (isRing && !(ringPeriod > 0.0)) {
+        throw OpalException("TrackRun::execute", "A RING requires a positive circumference.");
+    }
+    if (!itsAttr[TRACKRUN::TURNS].defaultUsed() && isRing) {
         const double requestedTurns = Attributes::getReal(itsAttr[TRACKRUN::TURNS]);
         const double roundedTurns   = std::round(requestedTurns);
         if (requestedTurns < 1.0 || std::abs(requestedTurns - roundedTurns) > 1.0e-12) {
@@ -537,17 +542,16 @@ void TrackRun::execute() {
         }
 
         const auto turns             = static_cast<unsigned long long>(roundedTurns);
-        const double circumference   = Track::block->use->getLength();
         const double beta            = Track::block->reference.getBeta();
         const double distancePerStep = Physics::c * std::abs(Track::block->dT.front()) * beta;
-        if (!(circumference > 0.0) || !(distancePerStep > 0.0)) {
+        if (!(distancePerStep > 0.0)) {
             throw OpalException(
                     "TrackRun::execute",
                     "A RING tracked with TURNS requires positive circumference, DT, and "
                     "reference velocity.");
         }
 
-        const double pathLength     = roundedTurns * circumference;
+        const double pathLength     = roundedTurns * ringPeriod;
         const double estimatedSteps = std::ceil(pathLength / distancePerStep);
         const double safetySteps    = 2.0 * estimatedSteps + 100.0;
         if (safetySteps > static_cast<double>(std::numeric_limits<unsigned long long>::max())) {
@@ -557,7 +561,7 @@ void TrackRun::execute() {
         sStop.front()    = Track::block->zstart + pathLength;
         maxSteps.front() = std::max(maxSteps.front(), static_cast<unsigned long long>(safetySteps));
         *gmsg << level1 << "* RING " << Track::block->use->getOpalName() << ": tracking " << turns
-              << " turns, circumference = " << circumference
+              << " turns, circumference = " << ringPeriod
               << " m, target path length = " << sStop.front() << " m." << endl;
     }
 
@@ -566,7 +570,8 @@ void TrackRun::execute() {
             sStop, Track::block->dT, emittingSamplersList, isRestart,
             static_cast<unsigned long long>(restartMetadata.globalTrackStep), restartMetadata.dt,
             StepSizeConfig::ResumePosition{
-                    restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment});
+                    restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment},
+            ringPeriod);
     itsTracker_m->execute();
 
     /*
