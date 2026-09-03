@@ -6,7 +6,6 @@
 #ifndef OPALX_SPACE_CHARGE_IPPL_POISSON_TYPES_H
 #define OPALX_SPACE_CHARGE_IPPL_POISSON_TYPES_H
 
-#include <algorithm>
 #include <optional>
 
 #include "Ippl.h"
@@ -14,13 +13,10 @@
 
 namespace opalx::spacecharge {
 
-    class SelfFieldDiagnostics;
-
     /** @brief Borrowed field bindings required by one IPPL Poisson backend. */
     struct IpplPoissonFields {
         Field_t<3>* chargeDensity          = nullptr;
         VField_t<double, 3>* electricField = nullptr;
-        Field_t<3>* potential              = nullptr;
     };
 
     /** @brief Options for one backend solve, independent of a concrete IPPL solver class. */
@@ -34,21 +30,18 @@ namespace opalx::spacecharge {
 
     /** @brief Host-side lifecycle options for one backend invocation. */
     struct IpplPoissonSolveOptions {
-        bool suppressFieldDump            = false;
-        SelfFieldDiagnostics* diagnostics = nullptr;
+        bool suppressFieldDump = false;
     };
 
     /** @brief Backend storage and normalization policies consumed by 3D PIC orchestration. */
     struct IpplPoissonCapabilities {
-        bool isNoOp                              = false;
-        bool supportsShiftedGreenFunction        = false;
-        bool usesSeparatePotentialField          = false;
-        bool requiresPotentialBoundaryConditions = false;
-        bool normalizeChargeByCellVolume         = true;
-        bool subtractNeutralizingBackground      = true;
-        bool debugDumpChargeBeforeSolve          = false;
-        bool debugDumpScalarAfterSolve           = false;
-        bool debugDumpVectorAfterSolve           = false;
+        bool isNoOp                         = false;
+        bool supportsShiftedGreenFunction   = false;
+        bool normalizeChargeByCellVolume    = true;
+        bool subtractNeutralizingBackground = true;
+        bool debugDumpChargeBeforeSolve     = false;
+        bool debugDumpScalarAfterSolve      = false;
+        bool debugDumpVectorAfterSolve      = false;
     };
 
 }  // namespace opalx::spacecharge

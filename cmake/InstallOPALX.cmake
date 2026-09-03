@@ -2,7 +2,7 @@
 # -------------------------------------------------------
 # Installation logic for the OPALX library
 # -------------------------------------------------------
-# Install headers (optional — keep if your build needs them)
+# Install headers (optional - keep if your build needs them)
 install(
   DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/opalx
@@ -11,6 +11,12 @@ install(
   EXCLUDE
   PATTERN "OPALconfig.h" EXCLUDE
   PATTERN "OPALXVersions.h" EXCLUDE
+  PATTERN "SpaceCharge/Ippl" EXCLUDE
+  PATTERN "SpaceCharge/Pic2d5" EXCLUDE
+  PATTERN "SpaceCharge/Pic3D" EXCLUDE
+  PATTERN "SpaceCharge/ParticleFrameGuard.h" EXCLUDE
+  PATTERN "SpaceCharge/SelfFieldConfigBuilder.h" EXCLUDE
+  PATTERN "SpaceCharge/SelfFieldFactory.h" EXCLUDE
   PATTERN "CMakeFiles" EXCLUDE
   PATTERN "CMakeLists.txt" EXCLUDE
   PATTERN "*.cpp" EXCLUDE

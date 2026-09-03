@@ -68,6 +68,7 @@
 #include "SpaceCharge/SelfFieldConfig.h"
 #include "SpaceCharge/SelfFieldConfigBuilder.h"
 #include "SpaceCharge/SelfFieldFactory.h"
+#include "SpaceCharge/SelfFieldRequestPolicy.h"
 #include "SpaceCharge/SelfFieldSystem.h"
 
 #include "BuildInfo.h"
@@ -410,7 +411,8 @@ void TrackRun::execute() {
     // immutable snapshot and never borrow FieldSolverCmd or EmissionSource objects.
     auto selfFieldConfig =
             opalx::spacecharge::SelfFieldConfigBuilder::build(*fs_m, emissionSourcesLists);
-    const auto particleLayoutConfig = selfFieldConfig.particleLayoutConfig();
+    const opalx::spacecharge::SelfFieldRequestPolicy selfFieldRequestPolicy(selfFieldConfig);
+    const auto particleStorageConfig = selfFieldConfig.particleStorageConfig();
 
     /*
     Need the following units for mass and charge:
@@ -437,8 +439,7 @@ void TrackRun::execute() {
             totalParticlesPerBeam,            // Per-beam particle counts for allocation
             Options::loadBalancingThreshold,  // Load balancing threshold
             "LF2",                            // Integrator
-            fs_m,                             // Field solver setup
-            particleLayoutConfig);            // Particle layout setup
+            particleStorageConfig);           // Particle storage setup
 
     // Validate container setup produced by constructor
     const auto& particleContainers = bunch_m->getParticleContainers();
@@ -537,8 +538,8 @@ void TrackRun::execute() {
 
     */
     itsTracker_m = std::make_unique<ParallelTracker>(
-            *Track::block->use->fetchLine(), *bunch_m, *selfFieldSystem_m, ds_m, false,
-            Track::block->localTimeSteps, Track::block->zstart, Track::block->zstop,
+            *Track::block->use->fetchLine(), *bunch_m, *selfFieldSystem_m, selfFieldRequestPolicy,
+            ds_m, false, Track::block->localTimeSteps, Track::block->zstart, Track::block->zstop,
             Track::block->dT, emittingSamplersList, isRestart,
             static_cast<unsigned long long>(restartMetadata.globalTrackStep), restartMetadata.dt,
             StepSizeConfig::ResumePosition{
@@ -677,7 +678,7 @@ void TrackRun::wireDaughterContainers(const std::vector<Beam*>& beams) {
             if (decayProc) {
                 requireUnitMacroWeight(*beams[daughterIdx], "daughter");
                 // A muon daughter (e.g. from pion decay) receives a per-particle
-                // polarization from the decay, so its container must have spin storage —
+                // polarization from the decay, so its container must have spin storage -
                 // which is enabled by setting POLARIZATION on the daughter muon BEAM.
                 const ParticleType daughterType =
                         ParticleProperties::getParticleType(beams[daughterIdx]->getParticleName());

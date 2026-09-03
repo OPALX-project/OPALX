@@ -1,18 +1,17 @@
 /**
  * @file SelfFieldSystem.cpp
- * @brief Implements common self-field request validation and dispatch.
+ * @brief Implements common self-field binding and request validation.
  */
 
 #include "SpaceCharge/SelfFieldSystem.h"
 
+#include "SpaceCharge/SelfFieldRequestPolicy.h"
 #include "Utilities/OpalException.h"
 
-#include <string>
 #include <type_traits>
 #include <utility>
 
 namespace opalx::spacecharge {
-
     namespace {
 
         SelfFieldDiagnosticSchedule makeDiagnosticSchedule(const SelfFieldConfig& config) {
@@ -36,59 +35,37 @@ namespace opalx::spacecharge {
     }  // namespace
 
     SelfFieldSystem::SelfFieldSystem(
-            SelfFieldConfig config, std::unique_ptr<SelfFieldAlgorithm> algorithm)
+            SelfFieldConfig config, std::unique_ptr<SelfFieldAlgorithm> algorithm,
+            std::vector<ParticleFieldBinding3d> bindings, std::size_t primaryIndex)
         : config_m(std::move(config)),
           algorithm_m(std::move(algorithm)),
+          bindings_m(std::move(bindings)),
+          primaryIndex_m(primaryIndex),
           diagnostics_m(makeDiagnosticSchedule(config_m)) {
         if (algorithm_m == nullptr) {
             throw OpalException(
                     "SelfFieldSystem::SelfFieldSystem", "The self-field algorithm is null.");
+        }
+        if (bindings_m.empty() || primaryIndex_m >= bindings_m.size()) {
+            throw OpalException(
+                    "SelfFieldSystem::SelfFieldSystem", "The particle binding set is invalid.");
+        }
+        for (const ParticleFieldBinding3d& binding : bindings_m) {
+            if (!binding.hasCompleteIdentity()) {
+                throw OpalException(
+                        "SelfFieldSystem::SelfFieldSystem",
+                        "The particle binding set contains an incomplete binding.");
+            }
         }
         capabilities_m = algorithm_m->capabilities();
         validateConfiguration();
     }
 
     void SelfFieldSystem::solve(SolveContext& context) {
+        validateBindings(context.particles());
         context.particles().applySelection(capabilities_m.particleSelection);
-        validateContext(context);
-        auto solveEvent = diagnostics_m.scopedEvent(SelfFieldEventKind::Solve, "self-field");
+        validateRequest(context);
         algorithm_m->execute(context, diagnostics_m);
-    }
-
-    RequestedPhysics SelfFieldSystem::requestedPhysicsForStep(std::size_t step) const {
-        return std::visit(
-                [step](const auto& algorithmConfig) {
-                    using Config = std::decay_t<decltype(algorithmConfig)>;
-                    RequestedPhysics requested;
-                    if constexpr (std::is_same_v<Config, Pic3DConfig>) {
-                        const CorrectionConfig& correction = algorithmConfig.correction();
-                        const bool correctionActive        = correction.enabled()
-                                                      && (correction.maximumSteps() == 0
-                                                          || step < correction.maximumSteps());
-                        requested.useBinning = algorithmConfig.binning().has_value();
-                        if (correctionActive) {
-                            requested.correction = {correction.kind(), correction.planeZ()};
-                            requested.writePotential =
-                                    correction.kind() == CorrectionKind::ImageCharge
-                                    && correction.planeDumpFrequency() != 0;
-                        }
-                    }
-                    return requested;
-                },
-                config_m.algorithmConfig());
-    }
-
-    CorrectionRequest SelfFieldSystem::configuredCorrection() const {
-        return std::visit(
-                [](const auto& algorithmConfig) {
-                    using Config = std::decay_t<decltype(algorithmConfig)>;
-                    if constexpr (std::is_same_v<Config, Pic3DConfig>) {
-                        const CorrectionConfig& correction = algorithmConfig.correction();
-                        return CorrectionRequest{correction.kind(), correction.planeZ()};
-                    }
-                    return CorrectionRequest{};
-                },
-                config_m.algorithmConfig());
     }
 
     int SelfFieldSystem::reportedBinCount() const {
@@ -108,12 +85,6 @@ namespace opalx::spacecharge {
     }
 
     void SelfFieldSystem::validateConfiguration() const {
-        if (capabilities_m.algorithm != config_m.algorithmKind()) {
-            throw OpalException(
-                    "SelfFieldSystem::SelfFieldSystem",
-                    "The selected algorithm does not match the self-field configuration.");
-        }
-
         std::visit(
                 [this](const auto& algorithmConfig) {
                     using Config = std::decay_t<decltype(algorithmConfig)>;
@@ -149,31 +120,25 @@ namespace opalx::spacecharge {
                 config_m.algorithmConfig());
     }
 
-    void SelfFieldSystem::validateContext(const SolveContext& context) const {
-        const ParticleSetView& particles = context.particles();
-        if (!capabilities_m.supportsMultipleContainers && particles.activeContainerCount() > 1) {
+    void SelfFieldSystem::validateBindings(const ParticleSetView& particles) const {
+        const auto bindings = particles.bindings();
+        if (bindings.size() != bindings_m.size() || particles.primaryIndex() != primaryIndex_m) {
             throw OpalException(
                     "SelfFieldSystem::solve",
-                    "The selected self-field algorithm supports only one active particle "
-                    "container.");
+                    "The solve context particle binding set does not match construction.");
         }
-        if (!particles.activeContainersProvide(capabilities_m.requiredReadableAttributes)) {
-            throw OpalException(
-                    "SelfFieldSystem::solve",
-                    "An active particle container is missing a readable attribute required by "
-                    "the self-field algorithm (required bits: "
-                            + std::to_string(capabilities_m.requiredReadableAttributes.bits())
-                            + ").");
+        for (std::size_t index = 0; index < bindings.size(); ++index) {
+            if (!bindings[index].sameIdentity(bindings_m[index])) {
+                throw OpalException(
+                        "SelfFieldSystem::solve",
+                        "The solve context particle or R/P/E/B binding does not match "
+                        "construction at index "
+                                + std::to_string(index) + ".");
+            }
         }
-        if (!particles.activeContainersProvideWritable(capabilities_m.requiredWritableAttributes)) {
-            throw OpalException(
-                    "SelfFieldSystem::solve",
-                    "An active particle container is missing a writable attribute required by "
-                    "the self-field algorithm (required bits: "
-                            + std::to_string(capabilities_m.requiredWritableAttributes.bits())
-                            + ").");
-        }
+    }
 
+    void SelfFieldSystem::validateRequest(const SolveContext& context) const {
         const RequestedPhysics& requested = context.requestedPhysics();
         if (requested.useBinning && !capabilities_m.supportsBinning) {
             throw OpalException(
@@ -192,13 +157,16 @@ namespace opalx::spacecharge {
                     "The solve requests a correction that the selected algorithm does not "
                     "support.");
         }
-
-        const CorrectionKind configuredKind = this->configuredCorrection().kind;
-        if (requested.correction.kind != CorrectionKind::None
-            && requested.correction.kind != configuredKind) {
+        const RequestedPhysics expected =
+                SelfFieldRequestPolicy(config_m).forStep(context.stepState().step);
+        const bool wrongPlane = requested.correction.kind != CorrectionKind::None
+                                && requested.correction.planeZ != expected.correction.planeZ;
+        if (requested.useBinning != expected.useBinning
+            || requested.writePotential != expected.writePotential
+            || requested.correction.kind != expected.correction.kind || wrongPlane) {
             throw OpalException(
                     "SelfFieldSystem::solve",
-                    "The solve requests a correction different from the immutable run "
+                    "The requested physics differs from the immutable step-resolved "
                     "configuration.");
         }
     }

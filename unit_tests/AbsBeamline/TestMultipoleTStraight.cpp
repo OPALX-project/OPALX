@@ -20,6 +20,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
+#include "Structure/FieldSolverCmd.h"
 #include "gtest/gtest.h"
 
 class TestMultipoleTStraight : public testing::Test, public MultipoleT {
@@ -204,7 +205,8 @@ public:
                 /*qi=*/std::vector{1.0}, /*mi=*/std::vector{1.0},
                 /*beams=*/std::vector<Beam*>{opBeam},
                 /*totalParticlesPerBeam=*/std::vector<size_t>{numParticles},
-                /*lbt=*/1.0, /*integration_method=*/"LF2", fsCmdBase_m.get());
+                /*lbt=*/1.0, /*integration_method=*/"LF2",
+                opalx::spacecharge::ParticleStorageConfig3d{.periodicParticleBoundary = true});
         bunch->getParticleContainer()->createParticles(numParticles);
         return bunch;
     }

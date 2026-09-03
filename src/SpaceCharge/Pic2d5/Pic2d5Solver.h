@@ -7,7 +7,7 @@
 #define OPALX_SPACE_CHARGE_PIC2D5_PIC2D5_SOLVER_H
 
 #include "PartBunch/ParticleContainer.hpp"
-#include "SpaceCharge/Pic2d5/Pic2d5FramePolicy.h"
+#include "SpaceCharge/ParticleFrameGuard.h"
 #include "SpaceCharge/Pic2d5/ReferencePath.h"
 #include "SpaceCharge/Pic2d5/SliceWorkspace.h"
 #include "SpaceCharge/SelfFieldAlgorithm.h"
@@ -40,9 +40,7 @@ namespace opalx::spacecharge {
         using ScalarGridView3   = Field_t<3>::view_type;
         using VectorGridView3   = VField_t<double, 3>::view_type;
 
-        Pic2d5Solver(
-                Pic2d5Config config,
-                std::span<const std::shared_ptr<ParticleContainer>> particleContainers);
+        Pic2d5Solver(Pic2d5Config config, std::span<const ParticleFieldBinding3d> particleBindings);
 
         [[nodiscard]] SolverCapabilities capabilities() const override;
         void execute(SolveContext& context, SelfFieldDiagnostics& diagnostics) override;
@@ -53,13 +51,12 @@ namespace opalx::spacecharge {
 
     public:
         void ensureInitialized();
-        void validateParticleMembership(const SolveContext& context) const;
         void run(SolveContext& context, SelfFieldDiagnostics& diagnostics);
         void scatterToGrid(const SolveContext& context);
         void solvePoissons(SelfFieldDiagnostics& diagnostics);
         void calculateLineDensity();
         void gatherFromGrid(const SolveContext& context);
-        
+
         template <bool ScatterLongitudinally>
         KOKKOS_FUNCTION static void scatterParticle(
                 std::size_t index, const VectorView& position, const VectorView& momentum,
@@ -124,7 +121,6 @@ namespace opalx::spacecharge {
         std::unique_ptr<SliceWorkspace> workspace_m;
         LineDensityView lineDensity_m;
         LineDensityView lineDensityGradient_m;
-        Pic2d5FramePolicy framePolicy_m;
 
         static constexpr std::size_t LineDensityGhostCells    = 2;
         static constexpr std::size_t LineDensityFirstRealCell = 1;

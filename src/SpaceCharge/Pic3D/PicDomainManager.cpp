@@ -20,7 +20,7 @@ namespace opalx::spacecharge {
         using Workspace = PicWorkspace<double, 3>;
 
         IpplPoissonFields backendFields(Workspace& workspace) {
-            return {&workspace.chargeDensity(), &workspace.electricField(), &workspace.potential()};
+            return {&workspace.chargeDensity(), &workspace.electricField()};
         }
 
     }  // namespace
@@ -34,9 +34,6 @@ namespace opalx::spacecharge {
             PicParticleDomainAdapter& particles, IpplPoissonAdapter& backend,
             SelfFieldDiagnostics& diagnostics) {
         const bool beamFrame = frame == PicDomainFrame::Beam;
-        auto domainEvent     = diagnostics.scopedEvent(
-                SelfFieldEventKind::DomainUpdate,
-                beamFrame ? "beam-frame-mesh" : "reference-frame-mesh");
 
         const std::size_t step              = context.stepState().step;
         const CorrectionRequest& correction = context.requestedPhysics().correction;
@@ -47,8 +44,9 @@ namespace opalx::spacecharge {
             // throws, the recovery update must still rebind the solver after layouts agree.
             backendRefreshRequired_m = true;
         }
-        workspace.rebuildGlobalLayoutInPlace(extents, config_m.layoutRebuildParallelDimensions());
-        if (repeatFieldLayoutRefresh) {
+        const bool layoutChanged = workspace.domain().rebuildGlobalLayoutInPlace(
+                extents, config_m.layoutRebuildParallelDimensions());
+        if (layoutChanged || repeatFieldLayoutRefresh) {
             // A previous update may have stopped partway through an extent or ORB layout change.
             // Repeating every field refresh is safe and repairs the workspace before migration.
             workspace.updateFieldLayoutsAfterLayoutChange();
@@ -63,14 +61,13 @@ namespace opalx::spacecharge {
 
         // A mesh change invalidates native particle-layout views even when the global field
         // decomposition is unchanged. Migrate first and reacquire views only in later kernels.
-        particles.updateLayoutsAndMigrate(
-                workspace.layout(), workspace.mesh(), context.particles());
+        particles.updateLayoutsAndMigrate(workspace.layout(), workspace.mesh());
         particles.updateMoments();
 
         bool redistributed = false;
         if (beamFrame && redistributionDue(step)
             && particles.loadIsImbalanced(config_m.loadBalancingThreshold(), rankFlags_m)) {
-            redistributed = redistribute(context, workspace, particles, diagnostics);
+            redistributed = redistribute(context, workspace, particles);
         }
 
         // Layout-owned fields and particle layouts now agree. Rebind backend RHS before LHS only
@@ -159,7 +156,7 @@ namespace opalx::spacecharge {
                             : span[dimension] / static_cast<double>(extents[dimension] - 1);
             origin[dimension] = bounds.lower[dimension] - 0.5 * spacing[dimension];
         }
-        workspace.setGeometry(bounds.lower, bounds.upper, spacing, origin);
+        workspace.domain().setGeometry(bounds.lower, bounds.upper, spacing, origin);
     }
 
     bool PicDomainManager::redistributionDue(std::size_t step) const {
@@ -168,10 +165,9 @@ namespace opalx::spacecharge {
     }
 
     bool PicDomainManager::redistribute(
-            SolveContext& context, Workspace& workspace, PicParticleDomainAdapter& particles,
-            SelfFieldDiagnostics& diagnostics) {
+            SolveContext& context, Workspace& workspace, PicParticleDomainAdapter& particles) {
         Inform m("PicDomainManager::redistribute");
-        const int ranks = context.stepState().communicator.size;
+        const int ranks = context.stepState().mpiSize;
         if (ranks < 2 || particles.primaryTotalCount() == 0) {
             return false;
         }
@@ -188,8 +184,6 @@ namespace opalx::spacecharge {
             return false;
         }
 
-        auto redistributionEvent =
-                diagnostics.scopedEvent(SelfFieldEventKind::DomainUpdate, "redistribution");
         const std::size_t localBefore = particles.primaryLocalCount();
         orb_m                         = Orb();
         orb_m.initialize(workspace.layout(), workspace.mesh(), workspace.chargeDensity());
@@ -206,8 +200,7 @@ namespace opalx::spacecharge {
         // ORB mutates the stable FieldLayout object. Refresh every field before migrating every
         // particle container into that decomposition. No pre-migration Kokkos view is retained.
         workspace.updateFieldLayoutsAfterLayoutChange();
-        particles.updateLayoutsAndMigrate(
-                workspace.layout(), workspace.mesh(), context.particles());
+        particles.updateLayoutsAndMigrate(workspace.layout(), workspace.mesh());
 
         m << level2 << "ORB load balancing done. Rank 0: " << localBefore << " -> "
           << particles.primaryLocalCount() << " particles in primary container." << endl;

@@ -63,7 +63,7 @@ namespace opalx::spacecharge {
         [[nodiscard]] bool redistributionDue(std::size_t step) const;
         [[nodiscard]] bool redistribute(
                 SolveContext& context, PicWorkspace<double, 3>& workspace,
-                PicParticleDomainAdapter& particles, SelfFieldDiagnostics& diagnostics);
+                PicParticleDomainAdapter& particles);
 
         Pic3DConfig config_m;
         Orb orb_m;

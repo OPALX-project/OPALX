@@ -13,26 +13,23 @@
 
 #include <algorithm>
 #include <cmath>
-#include <exception>
 #include <functional>
 #include <numeric>
-#include <typeindex>
 #include <utility>
 
 namespace opalx::spacecharge {
 
     Pic2d5Solver::Pic2d5Solver(
-            Pic2d5Config config,
-            std::span<const std::shared_ptr<ParticleContainer>> particleContainers)
+            Pic2d5Config config, std::span<const ParticleFieldBinding3d> particleBindings)
         : config_m(std::move(config)) {
-        particles_m.reserve(particleContainers.size());
-        for (const auto& particles : particleContainers) {
-            if (particles == nullptr) {
+        particles_m.reserve(particleBindings.size());
+        for (const ParticleFieldBinding3d& binding : particleBindings) {
+            if (binding.container == nullptr) {
                 throw OpalException(
                         "Pic2d5Solver::Pic2d5Solver",
                         "FFT2D5 cannot borrow a null particle container.");
             }
-            particles_m.push_back(particles.get());
+            particles_m.push_back(binding.container);
         }
         if (particles_m.empty()) {
             throw OpalException(
@@ -43,46 +40,29 @@ namespace opalx::spacecharge {
 
     SolverCapabilities Pic2d5Solver::capabilities() const {
         SolverCapabilities result;
-        result.algorithm                  = SelfFieldAlgorithmKind::Pic2d5;
-        result.particleSelection          = ParticleSelectionPolicy::AllTrackingActive;
-        result.supportsBinning            = false;
-        result.supportsImageCharge        = false;
-        result.supportsShiftedGreen       = false;
-        result.supportsRedistribution     = false;
-        result.supportsMultipleContainers = true;
-        result.supportsPotentialOutput    = false;
-        result.requiredReadableAttributes =
-                ParticleAttribute::Position | ParticleAttribute::Momentum
-                | ParticleAttribute::Charge | ParticleAttribute::TimeStep
-                | ParticleAttribute::InvalidMask;
-        result.requiredWritableAttributes = ParticleAttribute::ElectricField
-                                            | ParticleAttribute::MagneticField
-                                            | ParticleAttribute::TimeStep;
+        result.particleSelection       = ParticleSelectionPolicy::AllTrackingActive;
+        result.supportsBinning         = false;
+        result.supportsImageCharge     = false;
+        result.supportsShiftedGreen    = false;
+        result.supportsRedistribution  = false;
+        result.supportsPotentialOutput = false;
         return result;
     }
 
     void Pic2d5Solver::execute(SolveContext& context, SelfFieldDiagnostics& diagnostics) {
-        if (context.stepState().communicator.size != 1) {
+        if (context.stepState().mpiSize != 1) {
             throw OpalException(
                     "Pic2d5Solver::execute",
                     "FFT2D5 currently supports only one MPI rank. Distributed fields and ORB "
                     "load balancing are not implemented for this solver.");
         }
-        validateParticleMembership(context);
         ensureInitialized();
-        framePolicy_m.validate(context);
 
-        Pic2d5FramePolicy::State frameState;
-        try {
-            framePolicy_m.enter(context, *particles_m.front(), frameState);
-            framePolicy_m.markComputedFields(frameState);
-            run(context, diagnostics);
-            framePolicy_m.leave(context, *particles_m.front(), frameState);
-        } catch (...) {
-            const std::exception_ptr original = std::current_exception();
-            framePolicy_m.restore(context, *particles_m.front(), frameState);
-            std::rethrow_exception(original);
-        }
+        ParticleFrameGuard<double, 3> frameGuard(context.stepState().frames, *particles_m.front());
+        frameGuard.enter();
+        frameGuard.markComputedFields();
+        run(context, diagnostics);
+        frameGuard.leave();
     }
 
     std::size_t Pic2d5Solver::sliceCount() const {
@@ -116,26 +96,6 @@ namespace opalx::spacecharge {
         lineDensityGradient_m = std::move(lineDensityGradient);
     }
 
-    void Pic2d5Solver::validateParticleMembership(const SolveContext& context) const {
-        const auto views = context.particles().containers();
-        if (views.size() != particles_m.size() || context.particles().primaryIndex() != 0) {
-            throw OpalException(
-                    "Pic2d5Solver::execute",
-                    "SolveContext particle membership does not match FFT2D5 construction.");
-        }
-        using Position = typename ParticleContainer::particle_position_type;
-        for (std::size_t index = 0; index < particles_m.size(); ++index) {
-            const auto* handle = views[index].find(ParticleAttribute::Position);
-            if (handle == nullptr || handle->nativeType() != std::type_index(typeid(Position))
-                || std::addressof(handle->native<Position>())
-                           != std::addressof(particles_m[index]->R)) {
-                throw OpalException(
-                        "Pic2d5Solver::execute",
-                        "SolveContext particle order does not match FFT2D5 construction.");
-            }
-        }
-    }
-
     void Pic2d5Solver::run(SolveContext& context, SelfFieldDiagnostics& diagnostics) {
         scatterToGrid(context);
         solvePoissons(diagnostics);
@@ -144,7 +104,7 @@ namespace opalx::spacecharge {
     }
 
     bool Pic2d5Solver::selected(const SolveContext& context, std::size_t index) const {
-        return context.particles().containers()[index].selectedForSolve();
+        return context.particles().bindings()[index].selectedForSolve;
     }
 
     void Pic2d5Solver::scatterToGrid(const SolveContext& context) {
@@ -354,12 +314,8 @@ namespace opalx::spacecharge {
                     KOKKOS_LAMBDA(const std::size_t i, const std::size_t j) {
                         rho2dView(i, j) /= Physics::epsilon_0;
                     });
-            {
-                auto backendEvent =
-                        diagnostics.scopedEvent(SelfFieldEventKind::BackendSolve, "FFT2D5-slice");
-                slice.solver->solve();
-                diagnostics.completeBackendSolve();
-            }
+            slice.solver->solve();
+            diagnostics.completeBackendSolve();
             Kokkos::fence();
             auto electric2dView = slice.electricField->getView();
             Kokkos::parallel_for(

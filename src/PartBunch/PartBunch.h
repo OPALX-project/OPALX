@@ -16,22 +16,17 @@
 #include "Algorithms/PartData.h"
 #include "Attributes/Attributes.h"
 #include "PartBunch/BunchStateHandler.h"
+#include "PartBunch/CartesianDomain.h"
 #include "PartBunch/ParticleContainer.hpp"
 #include "Physics/Physics.h"
 #include "Random/Distribution.h"
 #include "Random/InverseTransformSampling.h"
 #include "Random/NormalDistribution.h"
 #include "Random/Randn.h"
-#include "SpaceCharge/ParticleLayoutConfig.h"
-#include "Structure/FieldSolverCmd.h"
+#include "SpaceCharge/ParticleStorageConfig.h"
 #include "Utilities/OpalException.h"
 
 class Beam;
-
-namespace opalx::spacecharge {
-    template <typename T, unsigned Dim>
-    class PicWorkspace;
-}  // namespace opalx::spacecharge
 
 extern Inform* gmsg;
 
@@ -47,7 +42,7 @@ template <typename T, unsigned Dim>
 class PartBunch {
 public:
     using ParticleContainer_t = ParticleContainer<T, Dim>;
-    using PicWorkspace_t      = opalx::spacecharge::PicWorkspace<T, Dim>;
+    using CartesianDomain_t   = opalx::spacecharge::CartesianDomain<T, Dim>;
     using binIndex_t          = typename ParticleContainer_t::bin_index_type;
     using Base                = ippl::ParticleBase<
                            ippl::ParticleSpatialLayout<T, Dim, ippl::UniformCartesian<T, Dim>>,
@@ -84,7 +79,8 @@ private:
     std::shared_ptr<BunchStateHandler>
             bunchState_m;  ///< Shared per-container coordinate and moment state.
 
-    std::shared_ptr<PicWorkspace_t> picWorkspace_m;
+    std::unique_ptr<CartesianDomain_t>
+            cartesianDomain_m;  ///< Outlives every particle layout that borrows it.
     std::shared_ptr<ParticleContainer_t> pcontainer_m;
     std::vector<std::shared_ptr<ParticleContainer_t>> pcontainers_m;
 
@@ -110,14 +106,12 @@ public:
      * @param totalParticlesPerBeam  Target macroparticle count per beam (for local allocation).
      * @param lbt                    Load-balancer timescale.
      * @param integration_method     Integrator label (e.g. leapfrog).
-     * @param OPALFieldSolver        Borrowed field solver command (mesh, BCs, optional binning).
-     * @param layoutConfig           Algorithm-neutral particle layout setup.
+     * @param storageConfig          Immutable Cartesian domain and particle-layout setup.
      */
     PartBunch(
             std::vector<double> qi, std::vector<double> mi, const std::vector<Beam*>& beams,
             std::vector<size_t> totalParticlesPerBeam, double lbt, std::string integration_method,
-            FieldSolverCmd* OPALFieldSolver,
-            opalx::spacecharge::ParticleLayoutConfig layoutConfig = {});
+            opalx::spacecharge::ParticleStorageConfig<T, Dim> storageConfig);
 
     /**
      * @brief Recompute moments for every particle container without changing the PIC domain.
@@ -178,8 +172,9 @@ public:
     std::shared_ptr<BunchStateHandler> getBunchStateHandler() { return bunchState_m; }
     std::shared_ptr<const BunchStateHandler> getBunchStateHandler() const { return bunchState_m; }
 
-    /** @brief Transfer the setup-time Cartesian workspace to the selected self-field algorithm. */
-    [[nodiscard]] std::shared_ptr<PicWorkspace_t> takePicWorkspace();
+    /** @brief Domain whose mesh and layout back every particle container in this bunch. */
+    [[nodiscard]] CartesianDomain_t& cartesianDomain() { return *cartesianDomain_m; }
+    [[nodiscard]] const CartesianDomain_t& cartesianDomain() const { return *cartesianDomain_m; }
 
     [[nodiscard]] std::shared_ptr<ParticleContainer_t> getParticleContainer() const {
         return pcontainer_m;

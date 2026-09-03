@@ -3,6 +3,10 @@ message(STATUS "Adding unit tests found in ${_relPath}")
 
 add_opalx_test(TestSelfFieldConfig USE_GTEST_MAIN)
 add_opalx_test(TestPic2d5Solver USE_GTEST_MAIN RUN_SERIAL)
+add_opalx_test(TestSelfFieldSystem USE_GTEST_MAIN RUN_SERIAL)
+add_opalx_test(TestPic3DPolicies USE_GTEST_MAIN)
+add_opalx_test(TestBinningPlan USE_GTEST_MAIN RUN_SERIAL)
+add_opalx_test(TestCartesianPicInfrastructure USE_GTEST_MAIN RUN_SERIAL)
 
 set(_pic2d5_regression_dir "${CMAKE_CURRENT_BINARY_DIR}/Pic2d5EndToEnd")
 file(MAKE_DIRECTORY "${_pic2d5_regression_dir}")
