@@ -45,7 +45,7 @@ namespace endfieldmodel {
      *  expressions, one can calculate a recursion relation for higher order
      *  derivatives and hence calculate analytical derivatives at arbitrary order.
      */
-    class Tanh : public EndFieldModel {
+    class Tanh {
     public:
         /** Create a double tanh function
          *
@@ -115,6 +115,14 @@ namespace endfieldmodel {
         /** Prints a human readable string to out */
         std::ostream& print(std::ostream& out) const;
 
+        endfieldmodel::Tanh& operator=(const endfieldmodel::Tanh& rhs) {
+            _x0 = rhs._x0;
+            _lambda = rhs._lambda;
+            _tdi = rhs._tdi;
+            return *this;
+        }
+
+
     private:
         double _x0, _lambda;
 
@@ -126,5 +134,6 @@ namespace endfieldmodel {
     };
 
 }  // namespace endfieldmodel
+
 
 #endif

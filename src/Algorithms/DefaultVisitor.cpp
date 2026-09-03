@@ -89,7 +89,7 @@ void DefaultVisitor::visitTravelingWave(const TravelingWave& trw) { applyDefault
 
 void DefaultVisitor::visitScalingFFAMagnet(const ScalingFFAMagnet<endfieldmodel::Tanh>& spiral) { applyDefault(spiral); }
 
-void DefaultVisitor::visitVerticalFFAMagnet(const VerticalFFAMagnet& mag) { applyDefault(mag); }
+void DefaultVisitor::visitVerticalFFAMagnet(const VerticalFFAMagnet<endfieldmodel::Tanh>& mag) { applyDefault(mag); }
 
 void DefaultVisitor::visitVariableRFCavity(const VariableRFCavity& cavity) { applyDefault(cavity); }
 
