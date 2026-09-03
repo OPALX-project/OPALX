@@ -147,9 +147,8 @@ Expected files:
 
 ## Next step
 
-Use the RING ownership metadata to implement the first behavior that genuinely differs from LINE,
-starting with an explicit first-turn completion rule only if a multi-turn RING case demonstrates
-that the existing OrbitThreader termination is insufficient.
+Add closed-orbit finding before treating turn-to-turn particle stability or geometric closure as a
+RING acceptance criterion.
 
 ## Completed first-pass results
 
@@ -177,3 +176,9 @@ that the existing OrbitThreader termination is insufficient.
 - Final clean one-rank and two-rank OpenMP runs complete successfully. Each produces 768
   ElementPositions records and 45 DesignPath records matching `orig` within `2e-8`.
 - Focused tests pass: TestRing (6), TestOrbitThreader (2), TestIndexMap (4), TestSolenoid (10).
+- Explicit `RUN,TURNS=N` on a RING now derives the path target from `N` times the circumference and
+  supplies a conservative integration-step budget. The default/omitted TURNS path and LINE
+  schedules are unchanged; the first implementation accepts one DT/MAXSTEPS/ZSTOP segment.
+- `isis_sbend_ring_10t.in` completed ten nominal circumferences (1633.630220 m) with one particle.
+  The reference trajectory is not expected to close or remain stable until a closed-orbit finder
+  is available. `plot_ring_10t.py` provides a reproducible visualization of this result.
