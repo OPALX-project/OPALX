@@ -28,6 +28,7 @@
 #include "Steppers/SpinTBMTPusher.h"
 #include "Structure/DataSink.h"
 
+#include "SpaceCharge/SelfFieldRequestPolicy.h"
 #include "SpaceCharge/SolveContext.h"
 
 #include "BasicActions/Option.h"
@@ -81,11 +82,13 @@ private:
     DataSink* itsDataSink_m;  ///< Borrowed beam statistics and phase-space output sink.
     opalx::spacecharge::SelfFieldSystem*
             selfFieldSystem_m;  ///< Borrowed run-lifetime self-field dispatcher.
-    std::vector<opalx::spacecharge::ParticleContainerView>
-            selfFieldParticleViews_m;  ///< Stable handles; no per-step view-list allocation.
-    OpalBeamline itsOpalBeamline_m;    ///< Cloned field elements and coordinate transforms.
-    bool globalEOL_m;                  ///< End-of-line flag (e.g. orbit threader out of bounds).
-    double sStart_m;                   ///< Path-length start position for the track (m).
+    opalx::spacecharge::SelfFieldRequestPolicy
+            selfFieldRequestPolicy_m;  ///< Immutable input-derived per-step request rules.
+    std::vector<opalx::spacecharge::ParticleFieldBinding3d>
+            selfFieldParticleBindings_m;  ///< Stable identities and per-call selection flags.
+    OpalBeamline itsOpalBeamline_m;       ///< Cloned field elements and coordinate transforms.
+    bool globalEOL_m;                     ///< End-of-line flag (e.g. orbit threader out of bounds).
+    double sStart_m;                      ///< Path-length start position for the track (m).
 
     /** Step-size segments: s-stop, dt, and steps per segment. */
     StepSizeConfig stepSizes_m;
@@ -120,6 +123,7 @@ public:
      * @param bl                Beamline definition.
      * @param bunch             Borrowed particle bunch (multi-container).
      * @param selfFieldSystem   Borrowed dispatcher owned by TrackRun.
+     * @param requestPolicy     Immutable input-derived per-step self-field requests.
      * @param ds                Borrowed data sink for statistics and dumps.
      * @param revBeam           Reversed beam flag (see single-argument constructor).
      * @param maxSTEPS          Max integration steps per s-segment (parallel to sStop/dt).
@@ -134,7 +138,8 @@ public:
      */
     explicit ParallelTracker(
             const Beamline& bl, PartBunch_t& bunch,
-            opalx::spacecharge::SelfFieldSystem& selfFieldSystem, DataSink* ds, bool revBeam,
+            opalx::spacecharge::SelfFieldSystem& selfFieldSystem,
+            opalx::spacecharge::SelfFieldRequestPolicy requestPolicy, DataSink* ds, bool revBeam,
             const std::vector<unsigned long long>& maxSTEPS, double sStart,
             const std::vector<double>& sStop, const std::vector<double>& dt,
             const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers = {},
@@ -241,7 +246,7 @@ public:
 
     /// @brief Mark particles outside the transverse aperture of each nearby element.
     /// @param oths Per-container orbit threaders used for element queries.
-    /// @return global number of newly marked particles (allreduced) — collective call.
+    /// @return global number of newly marked particles (allreduced) - collective call.
     size_t applyElementApertures(const std::vector<std::shared_ptr<OrbitThreader>>& oths);
 
     /// @brief Emit macroparticles from configured samplers per container.
@@ -265,8 +270,16 @@ public:
     void setTime();
 
 private:
-    /// @brief Build stable particle-attribute handles once; device views remain per-call.
-    void initializeSelfFieldParticleViews();
+    struct SelfFieldEmissionProgress {
+        bool active     = false;
+        double fraction = 1.0;
+    };
+
+    /// @brief Build stable native particle and field identities once.
+    void initializeSelfFieldParticleBindings();
+
+    [[nodiscard]] opalx::spacecharge::FrameState makeSelfFieldFrameState() const;
+    [[nodiscard]] SelfFieldEmissionProgress selfFieldEmissionProgress() const;
 
     /// @brief Update reference trajectories and lab/reference coordinate transforms.
     void updateReference(const BorisPusher& pusher);

@@ -1,6 +1,6 @@
 /**
  * @file BinningPlan.tpp
- * @brief Implements persistent adaptive/fixed PIC bin iteration.
+ * @brief Implements persistent adaptive or fixed PIC bin traversal.
  */
 
 #ifndef OPALX_SPACE_CHARGE_PIC3D_BINNING_PLAN_TPP
@@ -8,13 +8,8 @@
 
 #include "Utilities/OpalException.h"
 
-#include <array>
 #include <functional>
 #include <limits>
-#include <memory>
-#include <string>
-#include <utility>
-#include <vector>
 
 namespace opalx::spacecharge {
 
@@ -23,53 +18,52 @@ namespace opalx::spacecharge {
         : particles_m(particles), config_m(std::move(config)), bins_m(makeBins()) {}
 
     template <typename T, unsigned Dim>
-    PreparedIteration BinningPlan<T, Dim>::prepare(
-            generation_type particleGeneration, BinConfigurationObserver* observer) {
-        advanceEpoch();
-        prepared_m        = false;
-        nextBin_m         = 0;
-        nextGlobalCount_m = 0;
-        nextBinReady_m    = false;
+    BinningPreparation BinningPlan<T, Dim>::prepare(bool captureSnapshots) {
+        prepared_m = false;
+        nextBin_m  = 0;
 
         bins_m->doFullRebin(bins_m->getMaxBinCount());
-        recordIfRequested(observer, BinConfigurationPoint::BeforeMerge);
+        BinningPreparation result;
+        if (captureSnapshots) {
+            result.beforeMerge = hostSnapshot();
+        }
         if (config_m.adaptive()) {
             bins_m->genAdaptiveHistogram();
-            recordIfRequested(observer, BinConfigurationPoint::AfterMerge);
+            if (captureSnapshots) {
+                result.afterMerge = hostSnapshot();
+            }
         }
         bins_m->sortContainerByBin();
+        result.mergedBinCount = static_cast<std::size_t>(bins_m->getCurrentBinCount());
+        prepared_m            = true;
+        return result;
+    }
+
+    template <typename T, unsigned Dim>
+    std::optional<typename BinningPlan<T, Dim>::Unit> BinningPlan<T, Dim>::next() {
+        if (!prepared_m) {
+            throw OpalException(
+                    "BinningPlan::next", "The binning plan must be prepared before traversal.");
+        }
 
         const bin_index_type mergedBinCount = bins_m->getCurrentBinCount();
-        prepared_m                          = true;
-        return PreparedIteration{
-                IterationKind::Binning, particleGeneration,
-                static_cast<std::size_t>(mergedBinCount), preparationEpoch_m};
-    }
-
-    template <typename T, unsigned Dim>
-    bool BinningPlan<T, Dim>::hasNext(
-            const PreparedIteration& prepared, generation_type currentParticleGeneration) {
-        validatePrepared(prepared, currentParticleGeneration);
-        return stageNextNonemptyBin();
-    }
-
-    template <typename T, unsigned Dim>
-    std::optional<typename BinningPlan<T, Dim>::Unit> BinningPlan<T, Dim>::next(
-            const PreparedIteration& prepared, generation_type currentParticleGeneration) {
-        validatePrepared(prepared, currentParticleGeneration);
-        if (!stageNextNonemptyBin()) {
+        size_type globalCount               = 0;
+        while (nextBin_m < mergedBinCount) {
+            globalCount = bins_m->getNPartInBin(nextBin_m, true);
+            if (globalCount > 0) {
+                break;
+            }
+            ++nextBin_m;
+        }
+        if (nextBin_m >= mergedBinCount) {
             return std::nullopt;
         }
 
         const bin_index_type binIndex = nextBin_m++;
-        const size_type globalCount   = nextGlobalCount_m;
-        nextGlobalCount_m             = 0;
-        nextBinReady_m                = false;
-
-        const size_type localCount = bins_m->getNPartInBin(binIndex, false);
-        const auto policy          = bins_m->getBinIterationPolicy(binIndex);
-        const auto hash            = bins_m->getHashArray();
-        const auto momentum        = particles_m.P.getView();
+        const size_type localCount    = bins_m->getNPartInBin(binIndex, false);
+        const auto policy             = bins_m->getBinIterationPolicy(binIndex);
+        const auto hash               = bins_m->getHashArray();
+        const auto momentum           = particles_m.P.getView();
 
         ippl::Vector<double, Dim> localMomentumSum(0.0);
         Kokkos::parallel_reduce(
@@ -88,9 +82,8 @@ namespace opalx::spacecharge {
                 },
                 localGammaSum);
 
-        ippl::Vector<double, Dim> globalMomentumSum(0.0);
         ippl::Comm->allreduce(localMomentumSum, 1, std::plus<ippl::Vector<double, Dim>>());
-        globalMomentumSum = localMomentumSum;
+        ippl::Vector<double, Dim> globalMomentumSum = localMomentumSum;
         ippl::Comm->allreduce(localGammaSum, 1, std::plus<double>());
 
         std::array<double, Dim> meanMomentum{};
@@ -108,16 +101,19 @@ namespace opalx::spacecharge {
         const bool coversAllLocalParticles =
                 static_cast<size_type>(policy.begin()) == 0
                 && static_cast<size_type>(policy.end()) == localParticleCount;
-        return Unit(
-                IterationKind::Binning, SolveUnitFieldMode::LorentzTransformed,
-                static_cast<std::size_t>(binIndex), localCount, globalCount,
-                Selection::indexed(policy, hash), coversAllLocalParticles, meanMomentum, gamma);
+        return Unit{
+                static_cast<std::size_t>(binIndex),
+                localCount,
+                globalCount,
+                Selection::indexed(policy, hash),
+                coversAllLocalParticles,
+                meanMomentum,
+                gamma};
     }
 
     template <typename T, unsigned Dim>
     BinConfigurationSnapshot BinningPlan<T, Dim>::hostSnapshot() const {
         BinConfigurationSnapshot snapshot;
-        snapshot.diagnosticName = config_m.name();
         snapshot.lowerBound = bins_m->getBinConfigHost(snapshot.particleCounts, snapshot.widths);
         return snapshot;
     }
@@ -155,63 +151,6 @@ namespace opalx::spacecharge {
                         "MOMENTUMZ binning is not supported; use VELOCITYZ or GAMMAZ.");
         }
         throw OpalException("BinningPlan::BinningPlan", "Unknown binning parameter.");
-    }
-
-    template <typename T, unsigned Dim>
-    void BinningPlan<T, Dim>::recordIfRequested(
-            BinConfigurationObserver* observer, BinConfigurationPoint point) const {
-        if (observer == nullptr || !observer->wants(point)) {
-            return;
-        }
-        const BinConfigurationSnapshot snapshot = hostSnapshot();
-        observer->record(point, snapshot);
-    }
-
-    template <typename T, unsigned Dim>
-    void BinningPlan<T, Dim>::validatePrepared(
-            const PreparedIteration& prepared, generation_type currentParticleGeneration) const {
-        if (!prepared_m || prepared.kind != IterationKind::Binning
-            || prepared.preparationEpoch != preparationEpoch_m) {
-            throw OpalException(
-                    "BinningPlan::next",
-                    "The prepared iteration does not belong to the current binning epoch.");
-        }
-        if (prepared.particleGeneration != currentParticleGeneration) {
-            throw OpalException(
-                    "BinningPlan::next",
-                    "Particle storage changed after the bin iteration was prepared.");
-        }
-        if (prepared.mergedBinCount != static_cast<std::size_t>(bins_m->getCurrentBinCount())) {
-            throw OpalException("BinningPlan::next", "The prepared merged-bin count is stale.");
-        }
-    }
-
-    template <typename T, unsigned Dim>
-    bool BinningPlan<T, Dim>::stageNextNonemptyBin() {
-        if (nextBinReady_m) {
-            return true;
-        }
-
-        const bin_index_type mergedBinCount = bins_m->getCurrentBinCount();
-        while (nextBin_m < mergedBinCount) {
-            nextGlobalCount_m = bins_m->getNPartInBin(nextBin_m, true);
-            if (nextGlobalCount_m > 0) {
-                nextBinReady_m = true;
-                return true;
-            }
-            ++nextBin_m;
-        }
-        nextGlobalCount_m = 0;
-        return false;
-    }
-
-    template <typename T, unsigned Dim>
-    void BinningPlan<T, Dim>::advanceEpoch() {
-        if (preparationEpoch_m == std::numeric_limits<std::uint64_t>::max()) {
-            throw OpalException(
-                    "BinningPlan::prepare", "The iteration preparation epoch overflowed.");
-        }
-        ++preparationEpoch_m;
     }
 
 }  // namespace opalx::spacecharge

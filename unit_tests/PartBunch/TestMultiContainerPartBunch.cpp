@@ -14,35 +14,16 @@
 #include <vector>
 
 #include "AbstractObjects/OpalData.h"
-#include "Attributes/Attributes.h"
 #include "Ippl.h"
 #include "PartBunch/PartBunch.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
-#include "Structure/FieldSolverCmd.h"
 #include "Structure/H5PartWrapperForPT.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utility/Inform.h"
 
 namespace {
-
-    class TestableFieldSolverCmd : public FieldSolverCmd {
-    public:
-        void setType(const std::string& t) {
-            Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::TYPE], t);
-        }
-
-        void setBCX(const std::string& bc) {
-            Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::BCFFTX], bc);
-        }
-        void setBCY(const std::string& bc) {
-            Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::BCFFTY], bc);
-        }
-        void setBCZ(const std::string& bc) {
-            Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::BCFFTZ], bc);
-        }
-    };
 
     using PartBunch_t         = PartBunch<double, 3>;
     using ParticleContainer_t = typename PartBunch_t::ParticleContainer_t;
@@ -68,15 +49,7 @@ namespace {
         }
 
         void SetUp() override {
-            fsCmd = std::make_shared<TestableFieldSolverCmd>();
-            fsCmd->setType("NONE");
-            fsCmd->setNX(8);
-            fsCmd->setNY(8);
-            fsCmd->setNZ(8);
-            fsCmd->setBCX("PERIODIC");
-            fsCmd->setBCY("PERIODIC");
-            fsCmd->setBCZ("PERIODIC");
-            fsCmdBase = fsCmd;
+            storageConfig.periodicParticleBoundary = true;
 
             dataSink = std::make_shared<DataSink>();
             beam     = std::make_shared<Beam>();
@@ -93,7 +66,7 @@ namespace {
                     std::vector<Beam*>{testBeam, testBeam},
                     std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam},
                     /*lbt=*/1.0,
-                    /*integration_method=*/"LF2", fsCmdBase.get());
+                    /*integration_method=*/"LF2", storageConfig);
             q0_m = q0;
             q1_m = q1;
             m0_m = m0;
@@ -103,8 +76,6 @@ namespace {
         void TearDown() override {
             bunch.reset();
             dataSink.reset();
-            fsCmd.reset();
-            fsCmdBase.reset();
             beam.reset();
         }
 
@@ -166,8 +137,7 @@ namespace {
             return fd;
         }
 
-        std::shared_ptr<TestableFieldSolverCmd> fsCmd;
-        std::shared_ptr<FieldSolverCmd> fsCmdBase;
+        opalx::spacecharge::ParticleStorageConfig3d storageConfig;
         std::shared_ptr<DataSink> dataSink;
         std::shared_ptr<Beam> beam;
         Beam* testBeam = nullptr;
@@ -213,7 +183,7 @@ namespace {
                         std::vector<double>{1.0}, std::vector<double>{1.0, 1.0},
                         std::vector<Beam*>{testBeam, testBeam},
                         std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam}, 1.0, "LF2",
-                        fsCmdBase.get())),
+                        storageConfig)),
                 OpalException);
     }
 
@@ -223,7 +193,7 @@ namespace {
                         std::vector<double>{1.0, 1.0}, std::vector<double>{1.0, 1.0},
                         std::vector<Beam*>{testBeam, nullptr},
                         std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam}, 1.0, "LF2",
-                        fsCmdBase.get())),
+                        storageConfig)),
                 OpalException);
     }
 

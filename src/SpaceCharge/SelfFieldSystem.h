@@ -11,43 +11,36 @@
 
 #include <cstddef>
 #include <memory>
+#include <vector>
 
 namespace opalx::spacecharge {
 
     /** @brief Stable tracker-facing entry point for all self-field algorithms. */
     class SelfFieldSystem {
     public:
-        SelfFieldSystem(SelfFieldConfig config, std::unique_ptr<SelfFieldAlgorithm> algorithm);
+        SelfFieldSystem(
+                SelfFieldConfig config, std::unique_ptr<SelfFieldAlgorithm> algorithm,
+                std::vector<ParticleFieldBinding3d> bindings, std::size_t primaryIndex = 0);
 
         SelfFieldSystem(const SelfFieldSystem&)            = delete;
         SelfFieldSystem& operator=(const SelfFieldSystem&) = delete;
         SelfFieldSystem(SelfFieldSystem&&)                 = delete;
         SelfFieldSystem& operator=(SelfFieldSystem&&)      = delete;
 
-        /** @brief Validate and dispatch one borrowed solve context. */
         void solve(SolveContext& context);
 
-        /** @brief Resolve the immutable run configuration for one tracker step. */
-        [[nodiscard]] RequestedPhysics requestedPhysicsForStep(std::size_t step) const;
-
-        /** @brief Return the configured correction independent of its per-step activity. */
-        [[nodiscard]] CorrectionRequest configuredCorrection() const;
-
-        /** @brief Return the legacy-compatible bin count for statistics output. */
         [[nodiscard]] int reportedBinCount() const;
-
-        [[nodiscard]] const SelfFieldConfig& config() const { return config_m; }
-        [[nodiscard]] const SolverCapabilities& capabilities() const { return capabilities_m; }
-        [[nodiscard]] SelfFieldDiagnostics& diagnostics() { return diagnostics_m; }
         [[nodiscard]] const SelfFieldDiagnostics& diagnostics() const { return diagnostics_m; }
-        void setDiagnosticSink(SelfFieldDiagnosticSink* sink) { diagnostics_m.setSink(sink); }
 
     private:
         void validateConfiguration() const;
-        void validateContext(const SolveContext& context) const;
+        void validateBindings(const ParticleSetView& particles) const;
+        void validateRequest(const SolveContext& context) const;
 
         SelfFieldConfig config_m;
         std::unique_ptr<SelfFieldAlgorithm> algorithm_m;
+        std::vector<ParticleFieldBinding3d> bindings_m;
+        std::size_t primaryIndex_m = 0;
         SolverCapabilities capabilities_m;
         SelfFieldDiagnostics diagnostics_m;
     };

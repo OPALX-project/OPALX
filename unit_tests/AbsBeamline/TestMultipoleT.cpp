@@ -218,7 +218,7 @@ TEST_F(TestMultipoleT, ApplySingleParticleThrowsForMultiContainerBunch) {
     const auto bunch = std::make_shared<PartBunch_t>(
             std::vector<double>{1.0e-9, 2.0e-9}, std::vector<double>{0.511e-3, 0.938},
             std::vector<Beam*>{testBeam, testBeam}, std::vector<size_t>{1, 1}, 1.0, "LF2",
-            fsCmd.get());
+            opalx::spacecharge::ParticleStorageConfig3d{.periodicParticleBoundary = true});
     ASSERT_EQ(bunch->getNumParticleContainers(), 2u);
 
     // Register bunch; the per-particle-index apply() was removed, so only check that

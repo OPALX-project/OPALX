@@ -1,38 +1,77 @@
 /**
  * @file BinningPlan.h
- * @brief Declares persistent adaptive/fixed PIC bin iteration.
+ * @brief Declares persistent adaptive or fixed PIC bin traversal.
  */
 
 #ifndef OPALX_SPACE_CHARGE_PIC3D_BINNING_PLAN_H
 #define OPALX_SPACE_CHARGE_PIC3D_BINNING_PLAN_H
 
 // Complete ParticleContainer field aliases before loading the legacy AdaptBins header.
-#include "SpaceCharge/Pic3D/IterationPlan.h"
+#include "SpaceCharge/Pic3D/PicScatterGather.h"
 
 #include "PartBunch/Binning/AdaptBins.h"
 #include "SpaceCharge/SelfFieldConfig.h"
 
-#include <cstdint>
+#include <array>
+#include <cstddef>
 #include <memory>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace opalx::spacecharge {
+
+    struct BinConfigurationSnapshot final {
+        using size_type = ippl::detail::size_type;
+
+        double lowerBound = 0.0;
+        std::vector<size_type> particleCounts;
+        std::vector<double> widths;
+    };
+
+    struct BinningPreparation final {
+        std::size_t mergedBinCount = 0;
+        std::optional<BinConfigurationSnapshot> beforeMerge;
+        std::optional<BinConfigurationSnapshot> afterMerge;
+    };
+
+    /** @brief One globally nonempty bin and its current particle selection. */
+    template <typename T, unsigned Dim>
+    struct BinnedSolveUnit final {
+        using ScatterGather = PicScatterGather<T, Dim>;
+        using Selection     = typename ScatterGather::Selection;
+        using size_type     = typename ScatterGather::size_type;
+
+        [[nodiscard]] Selection depositSelection() const {
+            if (coversAllLocalParticles) {
+                return Selection::direct(0, localParticleCount);
+            }
+            return indexedSelection;
+        }
+
+        std::size_t ordinal           = 0;
+        size_type localParticleCount  = 0;
+        size_type globalParticleCount = 0;
+        Selection indexedSelection;
+        bool coversAllLocalParticles = false;
+        std::array<double, Dim> meanMomentum{};
+        double gamma = 1.0;
+    };
 
     /**
      * @brief Reuses AdaptBins to prepare and lazily traverse globally nonempty merged bins.
      *
-     * The plan persistently owns the concrete AdaptBins selected by immutable configuration and
-     * borrows one particle container for its lifetime. The plan adds no particle-view cache;
-     * AdaptBins reacquires its selector view during every full rebin.
+     * prepare() owns the full rebin and optional host snapshots. next() performs one
+     * rank-synchronous empty-bin query at a time and returns no external epoch or lifetime token.
      */
     template <typename T, unsigned Dim>
-    class BinningPlan final : public IterationPlan<T, Dim> {
+    class BinningPlan final {
         static_assert(Dim == 3, "BinningPlan currently supports Dim == 3 only.");
 
     public:
-        using Base              = IterationPlan<T, Dim>;
-        using ParticleContainer = typename Base::ParticleContainer;
-        using generation_type   = typename Base::generation_type;
-        using Unit              = typename Base::Unit;
+        using ParticleContainer = ::ParticleContainer<T, Dim>;
+        using Unit              = BinnedSolveUnit<T, Dim>;
         using Selection         = typename Unit::Selection;
         using size_type         = typename Unit::size_type;
         using AdaptBins         = ParticleBinning::AdaptBinsBase<ParticleContainer>;
@@ -45,44 +84,21 @@ namespace opalx::spacecharge {
         BinningPlan(BinningPlan&&)                 = delete;
         BinningPlan& operator=(BinningPlan&&)      = delete;
 
-        [[nodiscard]] IterationKind kind() const override { return IterationKind::Binning; }
-        [[nodiscard]] const std::string& diagnosticName() const override { return config_m.name(); }
-        [[nodiscard]] std::size_t maximumBinCount() const override {
-            return config_m.maximumBins();
-        }
+        [[nodiscard]] const std::string& diagnosticName() const { return config_m.name(); }
+        [[nodiscard]] std::size_t maximumBinCount() const { return config_m.maximumBins(); }
 
-        PreparedIteration prepare(
-                generation_type particleGeneration,
-                BinConfigurationObserver* observer = nullptr) override;
-
-        [[nodiscard]] bool hasNext(
-                const PreparedIteration& prepared,
-                generation_type currentParticleGeneration) override;
-
-        [[nodiscard]] std::optional<Unit> next(
-                const PreparedIteration& prepared,
-                generation_type currentParticleGeneration) override;
-
-        /** @brief Copy the current global histogram into host-owned diagnostic storage. */
-        [[nodiscard]] BinConfigurationSnapshot hostSnapshot() const;
+        [[nodiscard]] BinningPreparation prepare(bool captureSnapshots);
+        [[nodiscard]] std::optional<Unit> next();
 
     private:
+        [[nodiscard]] BinConfigurationSnapshot hostSnapshot() const;
         [[nodiscard]] std::unique_ptr<AdaptBins> makeBins();
-        void recordIfRequested(
-                BinConfigurationObserver* observer, BinConfigurationPoint point) const;
-        void validatePrepared(
-                const PreparedIteration& prepared, generation_type currentParticleGeneration) const;
-        [[nodiscard]] bool stageNextNonemptyBin();
-        void advanceEpoch();
 
         ParticleContainer& particles_m;
         BinningConfig config_m;
         std::unique_ptr<AdaptBins> bins_m;
-        std::uint64_t preparationEpoch_m = 0;
-        bin_index_type nextBin_m         = 0;
-        size_type nextGlobalCount_m      = 0;
-        bool nextBinReady_m              = false;
-        bool prepared_m                  = false;
+        bin_index_type nextBin_m = 0;
+        bool prepared_m          = false;
     };
 
     extern template class BinningPlan<double, 3>;

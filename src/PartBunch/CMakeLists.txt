@@ -1,12 +1,15 @@
 set (_SRCS
     PartBunch.cpp
     BunchStateHandler.cpp
+    CartesianDomain.cpp
 )
 
 set (HDRS
     PartBunch.h
     PartBunchFwd.h
     BunchStateHandler.h
+    CartesianDomain.h
+    CartesianDomain.tpp
     ParticleContainerTypes.h
     ParticleContainer.hpp
     BCHandler.hpp

@@ -1,6 +1,6 @@
 /**
  * @file IpplPoissonAdapter.h
- * @brief Typed ownership boundary around concrete IPPL Poisson backends.
+ * @brief Owns and dispatches the selected concrete IPPL Poisson solver.
  */
 
 #ifndef OPALX_SPACE_CHARGE_IPPL_POISSON_ADAPTER_H
@@ -10,14 +10,11 @@
 #include "SpaceCharge/SelfFieldConfig.h"
 
 #include <array>
-#include <memory>
+#include <cstddef>
+#include <variant>
 
 namespace opalx::spacecharge {
-    namespace detail {
-        class IpplPoissonBackend;
-    }
 
-    /** @brief Construction values for one concrete IPPL grid backend. */
     struct IpplPoissonBackendConfig {
         PoissonBackendKind kind         = PoissonBackendKind::None;
         GreenFunctionKind greenFunction = GreenFunctionKind::Integrated;
@@ -28,22 +25,14 @@ namespace opalx::spacecharge {
     };
 
     /**
-     * @brief Owns construction-time backend selection and all concrete IPPL solver access.
+     * @brief OPALX-owned variant over the supported IPPL Poisson solver implementations.
      *
-     * The adapter owns the selected IPPL solver variant and borrows stable field objects. It is
-     * host-only and never enters a device kernel. refresh() must be called after a field-layout
-     * change; each backend rebinds its right-hand side before its left-hand side.
+     * refresh() rebinds the right-hand side before the left-hand side after every layout change.
+     * Construction and execution are host-only; no concrete backend type crosses this boundary.
      */
     class IpplPoissonAdapter final {
     public:
-        [[nodiscard]] static std::unique_ptr<IpplPoissonAdapter> create(
-                IpplPoissonBackendConfig config, IpplPoissonFields fields);
-
-        [[nodiscard]] static const IpplPoissonCapabilities& capabilitiesFor(
-                PoissonBackendKind kind);
-        [[nodiscard]] static double couplingConstantFor(PoissonBackendKind kind);
-
-        ~IpplPoissonAdapter();
+        IpplPoissonAdapter(IpplPoissonBackendConfig config, IpplPoissonFields fields);
 
         IpplPoissonAdapter(const IpplPoissonAdapter&)            = delete;
         IpplPoissonAdapter& operator=(const IpplPoissonAdapter&) = delete;
@@ -53,26 +42,29 @@ namespace opalx::spacecharge {
         void solve(
                 const IpplPoissonSolveRequest& request = {},
                 const IpplPoissonSolveOptions& options = {});
-        /** @brief Clear deposited charge and perform the construction-time planning solve. */
         void warmup();
-        /** @brief Apply IPPL boundary conditions to the backend potential field when required. */
-        void setPotentialBoundaryConditions(
-                const std::array<BoundaryConditionKind, 3>& boundaryConditions);
-        /** @brief Compatibility overload for an already translated IPPL boundary container. */
-        void setPotentialBoundaryConditions(ippl::BConds<Field_t<3>, 3> boundaryConditions);
         void refresh(IpplPoissonFields fields);
 
-        [[nodiscard]] const IpplPoissonCapabilities& capabilities() const;
-        [[nodiscard]] double couplingConstant() const;
+        [[nodiscard]] static const IpplPoissonCapabilities& capabilitiesFor(
+                PoissonBackendKind kind);
+        [[nodiscard]] static double couplingConstantFor(PoissonBackendKind kind);
+        [[nodiscard]] const IpplPoissonCapabilities& capabilities() const {
+            return capabilitiesFor(kind_m);
+        }
+        [[nodiscard]] double couplingConstant() const { return couplingConstantFor(kind_m); }
 
     private:
-        IpplPoissonAdapter(IpplPoissonBackendConfig config, IpplPoissonFields fields);
+        using NullBackend     = NullSolver_t<double, 3>;
+        using PeriodicBackend = FFTSolver_t<double, 3>;
+        using OpenBackend     = OpenSolver_t<double, 3>;
+        using P3MBackend      = FFTTruncatedGreenSolver_t<double, 3>;
+        using Backend =
+                std::variant<std::monostate, NullBackend, PeriodicBackend, OpenBackend, P3MBackend>;
 
-        // Backends borrow the active alternative, so storage must outlive backend_m.
-        Solver_t<double, 3> solverStorage_m;
-        std::unique_ptr<detail::IpplPoissonBackend> backend_m;
+        Backend backend_m;
         IpplPoissonFields fields_m;
         PoissonBackendKind kind_m;
+        std::size_t runtimeSolveCount_m = 0;
     };
 
 }  // namespace opalx::spacecharge

@@ -84,6 +84,12 @@ namespace opalx::spacecharge {
                         "P3M does not support source-plane corrections.");
             }
         }
+        if (values_m.correction.kind() == CorrectionKind::ShiftedGreen
+            && values_m.backend != PoissonBackendKind::Open) {
+            throw OpalException(
+                    "Pic3DConfig::Pic3DConfig",
+                    "The shifted-Green correction requires the OPEN backend.");
+        }
     }
 
     Pic2d5Config::Pic2d5Config(Pic2d5ConfigValues values) : values_m(std::move(values)) {
@@ -104,8 +110,63 @@ namespace opalx::spacecharge {
         }
     }
 
-    SelfFieldConfig::SelfFieldConfig(SelfFieldAlgorithmConfig algorithmConfig)
-        : algorithmConfig_m(std::move(algorithmConfig)) {}
+    SelfFieldConfig::SelfFieldConfig(
+            SelfFieldAlgorithmConfig algorithmConfig, ParticleStorageConfig3d particleStorageConfig)
+        : algorithmConfig_m(std::move(algorithmConfig)),
+          particleStorageConfig_m(std::move(particleStorageConfig)) {
+        const bool invalidMesh = std::any_of(
+                particleStorageConfig_m.meshSize.begin(), particleStorageConfig_m.meshSize.end(),
+                [](std::size_t extent) {
+                    return extent == 0;
+                });
+        if (invalidMesh || particleStorageConfig_m.boundingBoxIncreasePercent < 0.0) {
+            throw OpalException(
+                    "SelfFieldConfig::SelfFieldConfig",
+                    "The particle-storage mesh and bounding box must be valid.");
+        }
+
+        std::visit(
+                [this](const auto& config) {
+                    using Config = std::decay_t<decltype(config)>;
+                    if (config.meshSize() != particleStorageConfig_m.meshSize) {
+                        throw OpalException(
+                                "SelfFieldConfig::SelfFieldConfig",
+                                "The solver and particle-storage mesh sizes differ.");
+                    }
+                    if constexpr (std::is_same_v<Config, Pic3DConfig>) {
+                        const bool p3m         = config.backend() == PoissonBackendKind::P3M;
+                        const bool allPeriodic = std::all_of(
+                                config.boundaryConditions().begin(),
+                                config.boundaryConditions().end(), [](BoundaryConditionKind kind) {
+                                    return kind == BoundaryConditionKind::Periodic;
+                                });
+                        const bool wrongLayout = p3m
+                                                 != (particleStorageConfig_m.layoutKind
+                                                     == ParticleLayoutKind::SpatialOverlap);
+                        const bool wrongCutoff =
+                                p3m ? particleStorageConfig_m.overlapCutoff != config.p3mCutoff()
+                                    : particleStorageConfig_m.overlapCutoff != 0.0;
+                        if (config.parallelDimensions() != particleStorageConfig_m.decomposition
+                            || config.boundingBoxIncreasePercent()
+                                       != particleStorageConfig_m.boundingBoxIncreasePercent
+                            || allPeriodic != particleStorageConfig_m.periodicParticleBoundary
+                            || wrongLayout || wrongCutoff) {
+                            throw OpalException(
+                                    "SelfFieldConfig::SelfFieldConfig",
+                                    "The Cartesian solver and particle-storage setup differ.");
+                        }
+                    } else {
+                        if (particleStorageConfig_m.layoutKind != ParticleLayoutKind::Spatial
+                            || particleStorageConfig_m.overlapCutoff != 0.0
+                            || particleStorageConfig_m.periodicParticleBoundary) {
+                            throw OpalException(
+                                    "SelfFieldConfig::SelfFieldConfig",
+                                    "FFT2D5 requires the standard non-wrapping particle layout.");
+                        }
+                    }
+                },
+                algorithmConfig_m);
+    }
 
     SelfFieldAlgorithmKind SelfFieldConfig::algorithmKind() const {
         return std::visit(
@@ -116,27 +177,6 @@ namespace opalx::spacecharge {
                     } else {
                         return SelfFieldAlgorithmKind::Pic2d5;
                     }
-                },
-                algorithmConfig_m);
-    }
-
-    ParticleLayoutConfig SelfFieldConfig::particleLayoutConfig() const {
-        return std::visit(
-                [](const auto& config) {
-                    using Config = std::decay_t<decltype(config)>;
-                    ParticleLayoutConfig result;
-                    if constexpr (std::is_same_v<Config, Pic3DConfig>) {
-                        result.periodic = std::all_of(
-                                config.boundaryConditions().begin(),
-                                config.boundaryConditions().end(), [](BoundaryConditionKind kind) {
-                                    return kind == BoundaryConditionKind::Periodic;
-                                });
-                        if (config.backend() == PoissonBackendKind::P3M) {
-                            result.kind          = ParticleLayoutKind::SpatialOverlap;
-                            result.overlapCutoff = config.p3mCutoff();
-                        }
-                    }
-                    return result;
                 },
                 algorithmConfig_m);
     }

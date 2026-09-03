@@ -9,7 +9,6 @@
 #include "Structure/Beam.h"
 #include "Structure/CheckpointFile.h"
 #include "Structure/DataSink.h"
-#include "Structure/FieldSolverCmd.h"
 #include "Utilities/Options.h"
 #include "Utility/Inform.h"
 
@@ -20,18 +19,6 @@
 #include <vector>
 
 namespace {
-    class TestFieldSolverCmd : public FieldSolverCmd {
-    public:
-        void setType(const std::string& type) {
-            Attributes::setPredefinedString(itsAttr[FIELDSOLVER::TYPE], type);
-        }
-        void setBC(const std::string& bc) {
-            Attributes::setPredefinedString(itsAttr[FIELDSOLVER::BCFFTX], bc);
-            Attributes::setPredefinedString(itsAttr[FIELDSOLVER::BCFFTY], bc);
-            Attributes::setPredefinedString(itsAttr[FIELDSOLVER::BCFFTZ], bc);
-        }
-    };
-
     using Bunch = PartBunch<double, 3>;
 
     void expectVectorEqual(const Vector_t<double, 3>& actual, const Vector_t<double, 3>& expected) {
@@ -68,13 +55,8 @@ namespace {
         }
 
         void SetUp() override {
-            Options::useQMAttributes = false;
-            fieldSolver              = std::make_unique<TestFieldSolverCmd>();
-            fieldSolver->setType("NONE");
-            fieldSolver->setNX(8);
-            fieldSolver->setNY(8);
-            fieldSolver->setNZ(8);
-            fieldSolver->setBC("PERIODIC");
+            Options::useQMAttributes               = false;
+            storageConfig.periodicParticleBoundary = true;
 
             beamObject = std::make_unique<Beam>();
             beam       = Beam::find("UNNAMED_BEAM");
@@ -93,7 +75,7 @@ namespace {
             return std::make_unique<Bunch>(
                     std::vector<double>{1.25e-12, -2.5e-12}, std::vector<double>{0.511e-3, 0.938},
                     std::vector<Beam*>{beam, beam}, std::vector<std::size_t>{16, 16}, 1.0, "LF2",
-                    fieldSolver.get());
+                    storageConfig);
         }
 
         void populate(Bunch& bunch) {
@@ -131,7 +113,7 @@ namespace {
             Kokkos::fence();
         }
 
-        std::unique_ptr<TestFieldSolverCmd> fieldSolver;
+        opalx::spacecharge::ParticleStorageConfig3d storageConfig;
         std::unique_ptr<Beam> beamObject;
         Beam* beam = nullptr;
     };

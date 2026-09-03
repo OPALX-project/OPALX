@@ -8,10 +8,8 @@
 #include <cmath>
 #include <sstream>
 #include "Algorithms/Matrix.h"
-#include "PartBunch/BCHandler.hpp"
 #include "Particle/ParticleAttrib.h"
 #include "Physics/ParticleProperties.h"
-#include "SpaceCharge/Pic3D/PicWorkspace.h"
 #include "Structure/Beam.h"
 #include "Utilities/Util.h"
 
@@ -24,7 +22,7 @@ template <typename T, unsigned Dim>
 PartBunch<T, Dim>::PartBunch(
         std::vector<double> qi, std::vector<double> mi, const std::vector<Beam*>& beams,
         std::vector<size_t> totalParticlesPerBeam, double lbt, std::string integration_method,
-        FieldSolverCmd* OPALFieldSolver, opalx::spacecharge::ParticleLayoutConfig layoutConfig)
+        opalx::spacecharge::ParticleStorageConfig<T, Dim> storageConfig)
     : dt_m(0),
       it_m(0),
       integration_method_m(integration_method),
@@ -44,9 +42,6 @@ PartBunch<T, Dim>::PartBunch(
     if (num_containers == 0) {
         throw OpalException("PartBunch::PartBunch", "num_containers must be > 0.");
     }
-    if (OPALFieldSolver == nullptr) {
-        throw OpalException("PartBunch::PartBunch", "OPALFieldSolver must not be null.");
-    }
     if (qi.size() != num_containers) {
         throw OpalException("PartBunch::PartBunch", "qi size must match num_containers.");
     }
@@ -63,22 +58,17 @@ PartBunch<T, Dim>::PartBunch(
         }
     }
 
-    //  get the needed information from OPAL FieldSolver command
-
-    boundingBoxIncreasePercent_m = OPALFieldSolver->getBoxIncr();
-    nr_m                         = Vector_t<int, Dim>(
-            OPALFieldSolver->getNX(), OPALFieldSolver->getNY(), OPALFieldSolver->getNZ());
-
-    const Vector_t<bool, 3> domainDecomposition = OPALFieldSolver->getDomainDecomposition();
-
-    for (unsigned i = 0; i < Dim; i++) {
-        this->domain_m[i] = ippl::Index(nr_m[i]);
-        this->decomp_m[i] = domainDecomposition[i];
+    cartesianDomain_m            = std::make_unique<CartesianDomain_t>(storageConfig);
+    boundingBoxIncreasePercent_m = storageConfig.boundingBoxIncreasePercent;
+    for (unsigned dimension = 0; dimension < Dim; ++dimension) {
+        nr_m[dimension]     = static_cast<int>(storageConfig.meshSize[dimension]);
+        domain_m[dimension] = ippl::Index(nr_m[dimension]);
+        decomp_m[dimension] = storageConfig.decomposition[dimension];
     }
 
     const bool useOverlap =
-            layoutConfig.kind == opalx::spacecharge::ParticleLayoutKind::SpatialOverlap;
-    const T overlapCutoff = static_cast<T>(layoutConfig.overlapCutoff);
+            storageConfig.layoutKind == opalx::spacecharge::ParticleLayoutKind::SpatialOverlap;
+    const T overlapCutoff = storageConfig.overlapCutoff;
     if (useOverlap && !(overlapCutoff > T(0))) {
         throw OpalException(
                 "PartBunch::PartBunch",
@@ -86,34 +76,23 @@ PartBunch<T, Dim>::PartBunch(
     }
     const auto layoutType           = useOverlap ? ParticleContainer_t::LayoutType::SpatialOverlap
                                                  : ParticleContainer_t::LayoutType::Spatial;
-    const bool isAllPeriodic        = layoutConfig.periodic;
+    const bool isAllPeriodic        = storageConfig.periodicParticleBoundary;
     const ippl::BC particleBoundary = isAllPeriodic ? ippl::BC::PERIODIC : ippl::BC::NO;
-    m << level5 << "* Initial PIC workspace set to isAllPeriodic = " << isAllPeriodic << endl;
+    m << level5 << "* Initial Cartesian domain set to isAllPeriodic = " << isAllPeriodic << endl;
 
-    // Set up the initial particle layout. Pic3DSolver replaces this geometry with the
-    // physical computational domain before the first runtime solve.
-
-    Vector_t<double, Dim> length(6.0);
-    if (useOverlap) {
-        for (unsigned dimension = 0; dimension < Dim; ++dimension) {
-            length[dimension] = static_cast<double>(nr_m[dimension]) * overlapCutoff;
-        }
-    }
-    this->hr_m     = length / this->nr_m;
-    this->origin_m = useOverlap ? -0.5 * length : Vector_t<double, Dim>(-3.0);
+    this->hr_m     = cartesianDomain_m->spacing();
+    this->origin_m = cartesianDomain_m->origin();
     this->dt_m     = 0.5 / this->nr_m[2];
 
-    rmin_m = origin_m;
-    rmax_m = origin_m + length;
+    rmin_m = cartesianDomain_m->lower();
+    rmax_m = cartesianDomain_m->upper();
 
-    picWorkspace_m = std::make_shared<PicWorkspace_t>(
-            hr_m, rmin_m, rmax_m, decomp_m, domain_m, origin_m, isAllPeriodic);
     std::ostringstream fieldLayout;
-    fieldLayout << picWorkspace_m->layout();
+    fieldLayout << cartesianDomain_m->layout();
     initialFieldLayout_m = fieldLayout.str();
 
     pcontainer_m = std::make_shared<ParticleContainer_t>(
-            picWorkspace_m->mesh(), picWorkspace_m->layout(), beams[0]->hasPolarization(),
+            cartesianDomain_m->mesh(), cartesianDomain_m->layout(), beams[0]->hasPolarization(),
             layoutType, overlapCutoff, particleBoundary);
     pcontainers_m.push_back(pcontainer_m);
     pcontainer_m->setBunchStateHandler(bunchState_m);
@@ -121,7 +100,7 @@ PartBunch<T, Dim>::PartBunch(
     /// But I think it could also make sense to only have one global handler.
     for (size_t i = 1; i < num_containers; ++i) {
         auto pc = std::make_shared<ParticleContainer_t>(
-                picWorkspace_m->mesh(), picWorkspace_m->layout(), beams[i]->hasPolarization(),
+                cartesianDomain_m->mesh(), cartesianDomain_m->layout(), beams[i]->hasPolarization(),
                 layoutType, overlapCutoff, particleBoundary);
         pc->setBunchStateHandler(bunchState_m);
         pcontainers_m.push_back(std::move(pc));
@@ -396,16 +375,6 @@ void PartBunch<T, Dim>::updateAllParticleMoments() {
         }
         this->getParticleContainer(i)->updateMoments();
     }
-}
-
-template <typename T, unsigned Dim>
-std::shared_ptr<typename PartBunch<T, Dim>::PicWorkspace_t> PartBunch<T, Dim>::takePicWorkspace() {
-    if (!picWorkspace_m) {
-        throw OpalException(
-                "PartBunch::takePicWorkspace",
-                "The setup-time PIC workspace was already transferred.");
-    }
-    return std::move(picWorkspace_m);
 }
 
 /** Explicit instantiation for 3D double (OPAL-T). */

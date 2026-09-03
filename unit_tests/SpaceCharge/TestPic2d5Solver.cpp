@@ -53,28 +53,7 @@ namespace opalx::spacecharge {
                 std::filesystem::remove(pathFile_m);
             }
 
-            ParticleContainerAttributes attributes() {
-                ParticleContainerAttributes result;
-                result.position = ParticleAttributeHandle::writable(
-                        ParticleAttribute::Position, particles_m->R);
-                result.momentum = ParticleAttributeHandle::readable(
-                        ParticleAttribute::Momentum, particles_m->P);
-                result.charge =
-                        ParticleAttributeHandle::readable(ParticleAttribute::Charge, *particles_m);
-                result.mass =
-                        ParticleAttributeHandle::readable(ParticleAttribute::Mass, *particles_m);
-                result.timeStep = ParticleAttributeHandle::writable(
-                        ParticleAttribute::TimeStep, particles_m->dt);
-                result.electricField = ParticleAttributeHandle::writable(
-                        ParticleAttribute::ElectricField, particles_m->E);
-                result.magneticField = ParticleAttributeHandle::writable(
-                        ParticleAttribute::MagneticField, particles_m->B);
-                result.invalidMask = ParticleAttributeHandle::readable(
-                        ParticleAttribute::InvalidMask, particles_m->InvalidMask);
-                result.bin =
-                        ParticleAttributeHandle::writable(ParticleAttribute::Bin, particles_m->Bin);
-                return result;
-            }
+            ParticleFieldBinding3d binding() { return bindParticleFields(*particles_m); }
 
             Pic2d5Config config(Pic2d5LongitudinalFieldMode mode) const {
                 Pic2d5ConfigValues values;
@@ -96,20 +75,13 @@ namespace opalx::spacecharge {
         };
 
         TEST_F(Pic2d5SolverTest, LazyInitializationBuildsPersistentSliceBackends) {
-            std::array containers{particles_m};
-            Pic2d5Solver solver(config(Pic2d5LongitudinalFieldMode::Open), containers);
+            std::array bindings{binding()};
+            Pic2d5Solver solver(config(Pic2d5LongitudinalFieldMode::Open), bindings);
             EXPECT_FALSE(solver.initialized());
 
-            std::array views{ParticleContainerView("primary", attributes(), true, true)};
-            ParticleSetView particleView(views, 0, 0);
-            FrameState frames;
-            frames.trackerToSolve = BorrowedHostObject::reference(trackerToSolve_m);
-            frames.solveToTracker = BorrowedHostObject::reference(solveToTracker_m);
-            CommunicatorView communicator{
-                    BorrowedHostObject::reference(*ippl::Comm), ippl::Comm->rank(),
-                    ippl::Comm->size()};
-            StepState step{
-                    0, 0.0, 1.0e-12, 0, false, std::move(communicator), {}, std::move(frames), 1.0};
+            ParticleSetView particleView(bindings, 0);
+            FrameState frames{trackerToSolve_m, solveToTracker_m};
+            StepState step{0, 0.0, 1.0e-12, false, 1.0, ippl::Comm->size(), std::move(frames)};
             SolveContext solveContext(std::move(particleView), std::move(step));
             SelfFieldDiagnostics diagnostics;
 
@@ -126,6 +98,24 @@ namespace opalx::spacecharge {
                   Pic2d5LongitudinalFieldMode::Plates, Pic2d5LongitudinalFieldMode::None}) {
                 EXPECT_NO_THROW(config(mode));
             }
+        }
+
+        TEST_F(Pic2d5SolverTest, SelectionPoliciesUsePrimaryOrEveryTrackingActiveBinding) {
+            std::array bindings{binding(), binding(), binding()};
+            bindings[0].trackingActive = true;
+            bindings[1].trackingActive = true;
+            bindings[2].trackingActive = false;
+            ParticleSetView particles(bindings, 0);
+
+            particles.applySelection(ParticleSelectionPolicy::AllTrackingActive);
+            EXPECT_TRUE(bindings[0].selectedForSolve);
+            EXPECT_TRUE(bindings[1].selectedForSolve);
+            EXPECT_FALSE(bindings[2].selectedForSolve);
+
+            particles.applySelection(ParticleSelectionPolicy::PrimaryOnly);
+            EXPECT_TRUE(bindings[0].selectedForSolve);
+            EXPECT_FALSE(bindings[1].selectedForSolve);
+            EXPECT_FALSE(bindings[2].selectedForSolve);
         }
 
     }  // namespace

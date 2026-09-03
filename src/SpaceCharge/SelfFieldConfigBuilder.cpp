@@ -296,6 +296,21 @@ namespace opalx::spacecharge {
             const FieldSolverCmd& fieldSolver,
             const std::vector<std::vector<EmissionSource*>>& emissionSources) {
         const FieldSolverCmdType solverType = fieldSolver.getFieldSolverCmdType();
+        if (solverType == FieldSolverCmdType::CG) {
+            throw OpalException(
+                    "SelfFieldConfigBuilder::build",
+                    "FIELDSOLVER TYPE=CG is recognized but not implemented.");
+        }
+
+        const std::array<std::size_t, 3> meshSize{
+                convertMeshSize(fieldSolver.getNX(), "NX"),
+                convertMeshSize(fieldSolver.getNY(), "NY"),
+                convertMeshSize(fieldSolver.getNZ(), "NZ")};
+        const auto decomposition = fieldSolver.getDomainDecomposition();
+        ParticleStorageConfig3d storage;
+        storage.meshSize                   = meshSize;
+        storage.decomposition              = {decomposition[0], decomposition[1], decomposition[2]};
+        storage.boundingBoxIncreasePercent = fieldSolver.getBoxIncr();
 
         if (solverType == FieldSolverCmdType::FFT2D5) {
             const CorrectionConfig correction = buildCorrectionConfig(emissionSources, solverType);
@@ -305,10 +320,7 @@ namespace opalx::spacecharge {
                         "FFT2D5 does not support source-plane corrections.");
             }
             Pic2d5ConfigValues values;
-            values.meshSize = {
-                    convertMeshSize(fieldSolver.getNX(), "NX"),
-                    convertMeshSize(fieldSolver.getNY(), "NY"),
-                    convertMeshSize(fieldSolver.getNZ(), "NZ")};
+            values.meshSize              = meshSize;
             values.longitudinalFieldMode = convertPic2d5Mode(fieldSolver.getPipeMode());
             values.pipeSizeX             = fieldSolver.getPipeSizeX();
             values.pipeSizeY             = fieldSolver.getPipeSizeY();
@@ -316,17 +328,12 @@ namespace opalx::spacecharge {
             values.closedRing            = fieldSolver.getClosedRing();
             values.scatterLongitudinally = fieldSolver.getScatterLongitudinally();
             values.referencePathFile     = resolveReferencePath(fieldSolver);
-            return SelfFieldConfig(Pic2d5Config(std::move(values)));
+            return SelfFieldConfig(Pic2d5Config(std::move(values)), std::move(storage));
         }
 
-        const auto decomposition = fieldSolver.getDomainDecomposition();
-
         Pic3DConfigValues values;
-        values.backend  = convertBackend(solverType);
-        values.meshSize = {
-                convertMeshSize(fieldSolver.getNX(), "NX"),
-                convertMeshSize(fieldSolver.getNY(), "NY"),
-                convertMeshSize(fieldSolver.getNZ(), "NZ")};
+        values.backend            = convertBackend(solverType);
+        values.meshSize           = meshSize;
         values.parallelDimensions = {decomposition[0], decomposition[1], decomposition[2]};
         values.layoutRebuildParallelDimensions =
                 usesLongitudinalResizeDecomposition(emissionSources)
@@ -342,7 +349,17 @@ namespace opalx::spacecharge {
         values.loadBalancingThreshold = Options::loadBalancingThreshold;
         values.correction             = buildCorrectionConfig(emissionSources, solverType);
 
-        return SelfFieldConfig(Pic3DConfig(std::move(values)));
+        storage.periodicParticleBoundary = std::all_of(
+                values.boundaryConditions.begin(), values.boundaryConditions.end(),
+                [](BoundaryConditionKind kind) {
+                    return kind == BoundaryConditionKind::Periodic;
+                });
+        if (solverType == FieldSolverCmdType::P3M) {
+            storage.layoutKind    = ParticleLayoutKind::SpatialOverlap;
+            storage.overlapCutoff = values.p3mCutoff;
+        }
+
+        return SelfFieldConfig(Pic3DConfig(std::move(values)), std::move(storage));
     }
 
 }  // namespace opalx::spacecharge

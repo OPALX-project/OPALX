@@ -6,7 +6,7 @@
 #ifndef OPALX_SPACE_CHARGE_SELF_FIELD_CONFIG_H
 #define OPALX_SPACE_CHARGE_SELF_FIELD_CONFIG_H
 
-#include "SpaceCharge/ParticleLayoutConfig.h"
+#include "SpaceCharge/ParticleStorageConfig.h"
 #include "SpaceCharge/SolverCapabilities.h"
 
 #include <array>
@@ -226,10 +226,14 @@ namespace opalx::spacecharge {
      */
     class SelfFieldConfig {
     public:
-        explicit SelfFieldConfig(SelfFieldAlgorithmConfig algorithmConfig);
+        SelfFieldConfig(
+                SelfFieldAlgorithmConfig algorithmConfig,
+                ParticleStorageConfig3d particleStorageConfig);
 
         [[nodiscard]] SelfFieldAlgorithmKind algorithmKind() const;
-        [[nodiscard]] ParticleLayoutConfig particleLayoutConfig() const;
+        [[nodiscard]] const ParticleStorageConfig3d& particleStorageConfig() const {
+            return particleStorageConfig_m;
+        }
         [[nodiscard]] const SelfFieldAlgorithmConfig& algorithmConfig() const {
             return algorithmConfig_m;
         }
@@ -241,6 +245,7 @@ namespace opalx::spacecharge {
 
     private:
         SelfFieldAlgorithmConfig algorithmConfig_m;
+        ParticleStorageConfig3d particleStorageConfig_m;
     };
 
 }  // namespace opalx::spacecharge

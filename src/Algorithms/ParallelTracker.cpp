@@ -72,7 +72,8 @@ ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
     : Tracker(beamline, revBeam, false),
       itsDataSink_m(),
       selfFieldSystem_m(nullptr),
-      selfFieldParticleViews_m(),
+      selfFieldRequestPolicy_m(),
+      selfFieldParticleBindings_m(),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
       globalEOL_m(false),
       sStart_m(0.0),
@@ -92,7 +93,8 @@ ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
  */
 ParallelTracker::ParallelTracker(
         const Beamline& beamline, PartBunch_t& bunch,
-        opalx::spacecharge::SelfFieldSystem& selfFieldSystem, DataSink* ds, bool revBeam,
+        opalx::spacecharge::SelfFieldSystem& selfFieldSystem,
+        opalx::spacecharge::SelfFieldRequestPolicy requestPolicy, DataSink* ds, bool revBeam,
         const std::vector<unsigned long long>& maxSteps, double sStart,
         const std::vector<double>& sStop, const std::vector<double>& dt,
         const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers,
@@ -101,7 +103,8 @@ ParallelTracker::ParallelTracker(
     : Tracker(beamline, bunch, revBeam, false),
       itsDataSink_m(ds),
       selfFieldSystem_m(&selfFieldSystem),
-      selfFieldParticleViews_m(),
+      selfFieldRequestPolicy_m(std::move(requestPolicy)),
+      selfFieldParticleBindings_m(),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
       globalEOL_m(false),
       sStart_m(sStart),
@@ -121,7 +124,7 @@ ParallelTracker::ParallelTracker(
 
     stepSizes_m.sortAscendingSStop();
     stepSizes_m.resetIterator();
-    initializeSelfFieldParticleViews();
+    initializeSelfFieldParticleBindings();
 }
 
 /**
@@ -129,45 +132,19 @@ ParallelTracker::ParallelTracker(
  */
 ParallelTracker::~ParallelTracker() {}
 
-void ParallelTracker::initializeSelfFieldParticleViews() {
+void ParallelTracker::initializeSelfFieldParticleBindings() {
     using namespace opalx::spacecharge;
 
     const auto& particleContainers = itsBunch_m->getParticleContainers();
-    selfFieldParticleViews_m.clear();
-    selfFieldParticleViews_m.reserve(particleContainers.size());
-    for (size_t containerIndex = 0; containerIndex < particleContainers.size(); ++containerIndex) {
-        const auto& container = particleContainers[containerIndex];
+    selfFieldParticleBindings_m.clear();
+    selfFieldParticleBindings_m.reserve(particleContainers.size());
+    for (const auto& container : particleContainers) {
         if (!container) {
             throw OpalException(
-                    "ParallelTracker::initializeSelfFieldParticleViews",
+                    "ParallelTracker::initializeSelfFieldParticleBindings",
                     "Cannot build a self-field context for a null particle container.");
         }
-
-        ParticleContainerAttributes attributes;
-        attributes.position =
-                ParticleAttributeHandle::writable(ParticleAttribute::Position, container->R);
-        attributes.momentum =
-                ParticleAttributeHandle::readable(ParticleAttribute::Momentum, container->P);
-        // Q and M may use either shared single-value storage or private particle attributes.
-        // Borrow the stable container object; a concrete adapter reacquires getQView/getMView.
-        attributes.charge =
-                ParticleAttributeHandle::readable(ParticleAttribute::Charge, *container);
-        attributes.mass = ParticleAttributeHandle::readable(ParticleAttribute::Mass, *container);
-        attributes.timeStep =
-                ParticleAttributeHandle::writable(ParticleAttribute::TimeStep, container->dt);
-        attributes.electricField =
-                ParticleAttributeHandle::writable(ParticleAttribute::ElectricField, container->E);
-        attributes.magneticField =
-                ParticleAttributeHandle::writable(ParticleAttribute::MagneticField, container->B);
-        attributes.invalidMask = ParticleAttributeHandle::readable(
-                ParticleAttribute::InvalidMask, container->InvalidMask);
-        attributes.bin = ParticleAttributeHandle::writable(ParticleAttribute::Bin, container->Bin);
-
-        // Stage 2 preserves the existing primary-container-only solve while making collection
-        // membership explicit for future multi-container algorithms.
-        const bool active = containerIndex == 0;
-        selfFieldParticleViews_m.emplace_back(
-                active ? "primary" : "inactive", std::move(attributes), active);
+        selfFieldParticleBindings_m.push_back(bindParticleFields(*container));
     }
 }
 // --- Visit functions ---
@@ -495,8 +472,8 @@ void ParallelTracker::execute() {
                 break;
             }
 
-            // Particle R and mesh are in REFERENCE frame for the whole step except inside
-            // computeSpaceChargeFields (beam frame only inside Pic3DSolver).
+            // Particle R and mesh are in the reference frame for the whole step except during
+            // solver-owned frame transformations inside computeSpaceChargeFields().
 
             // Reset EOL flag each step: transient OutOfBounds (e.g. from invalid mesh
             // bounds immediately after first emission) must not persist across steps.
@@ -801,19 +778,67 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
     IpplTimings::stopTimer(timeIntegrationTimer2_m);
 }
 
+opalx::spacecharge::FrameState ParallelTracker::makeSelfFieldFrameState() const {
+    constexpr double momentumTolerance = 1e-12;
+    const auto primary                 = itsBunch_m->getParticleContainer();
+    Vector_t<double, 3> meanMomentum   = primary->getMeanP();
+    double momentumLengthSquared       = dot(meanMomentum, meanMomentum);
+    if (momentumLengthSquared < momentumTolerance * momentumTolerance) {
+        meanMomentum          = primary->getRefPartP();
+        momentumLengthSquared = dot(meanMomentum, meanMomentum);
+    }
+    if (momentumLengthSquared < momentumTolerance * momentumTolerance) {
+        meanMomentum = Vector_t<double, 3>(0, 0, 1);
+    }
+
+    const Quaternion alignment = getQuaternion(meanMomentum, Vector_t<double, 3>(0, 0, 1));
+    const CoordinateSystemTrafo solveToTracker(
+            Vector_t<double, 3>(0, 0, primary->get_sPos()), alignment.conjugate());
+    return {solveToTracker.inverted(), solveToTracker};
+}
+
+ParallelTracker::SelfFieldEmissionProgress ParallelTracker::selfFieldEmissionProgress() const {
+    SelfFieldEmissionProgress progress;
+    const double currentTime = itsBunch_m->getT();
+    for (const auto& samplers : emittingSamplers_m) {
+        for (const auto& sampler : samplers) {
+            if (!sampler || sampler->isEmissionDone(currentTime)) {
+                continue;
+            }
+            const double samplerFraction = sampler->getEmittedFraction();
+            if (samplerFraction < 1.0) {
+                progress.active   = true;
+                progress.fraction = std::min(progress.fraction, samplerFraction);
+            }
+        }
+    }
+
+    if (Options::aggressiveStateSync) {
+        bool globallyActive = progress.active;
+        ippl::Comm->allreduce(progress.active, globallyActive, 1, std::logical_or<bool>());
+        const double localFraction =
+                progress.active ? std::clamp(progress.fraction, 0.0, 1.0) : 1.0;
+        double globalFraction = localFraction;
+        ippl::Comm->allreduce(localFraction, globalFraction, 1, std::less<double>());
+        progress.active   = globallyActive;
+        progress.fraction = globallyActive ? globalFraction : 1.0;
+    } else {
+        progress.fraction = progress.active ? std::clamp(progress.fraction, 0.0, 1.0) : 1.0;
+    }
+    return progress;
+}
+
 /**
  * @copybrief ParallelTracker::computeSpaceChargeFields
  *
  * @par Frame of reference
  * - Entry: @f$R@f$, @f$E@f$, @f$B@f$ in the reference (lab) frame.
  * - After transform to beam: @f$R@f$ in the beam frame (origin at reference, z along momentum).
- * - Inside Pic3DSolver: the PIC domain follows @f$R@f$ in the beam frame.
+ * - Inside the selected algorithm: temporary solver-specific frames are guarded and restored.
  * - After transform back: @f$R@f$, @f$E@f$, @f$B@f$ in the reference frame again.
  */
 void ParallelTracker::computeSpaceChargeFields() {
     Inform m("ParallelTracker::computeSpaceChargeFields");
-    // Current limitation: space-charge transform/scatter/gather is applied via the primary
-    // container path only. Keep this behavior until the dedicated multi-container SC refactor.
     if (selfFieldSystem_m == nullptr) {
         throw OpalException(
                 "ParallelTracker::computeSpaceChargeFields",
@@ -830,100 +855,25 @@ void ParallelTracker::computeSpaceChargeFields() {
     }
 
     itsBunch_m->calcBeamParameters();
-    m << level4 << "Calculate beam parameters done." << endl;
-
-    // Use mean momentum for beam-frame alignment; with 0 or 1 particle get_pmean() can be
-    // zero or negligible (e.g. rank with no particles), which would make getQuaternion throw.
-    const double pmean_tol    = 1e-12;
-    Vector_t<double, 3> pmean = itsBunch_m->getParticleContainer()->getMeanP();
-    double pmean_len2         = dot(pmean, pmean);
-    if (pmean_len2 < pmean_tol * pmean_tol) {
-        pmean      = itsBunch_m->getParticleContainer()->getRefPartP();
-        pmean_len2 = dot(pmean, pmean);
-    }
-    if (pmean_len2 < pmean_tol * pmean_tol) {
-        pmean = Vector_t<double, 3>(0, 0, 1);
-    }
-    Quaternion alignment = getQuaternion(pmean, Vector_t<double, 3>(0, 0, 1));
-
-    CoordinateSystemTrafo beamToReferenceCSTrafo(
-            Vector_t<double, 3>(0, 0, itsBunch_m->getParticleContainer()->get_sPos()),
-            alignment.conjugate());
-
-    CoordinateSystemTrafo referenceToBeamCSTrafo = beamToReferenceCSTrafo.inverted();
-
-    // While emission is still running, ask the concrete solver to stretch its beam-frame mesh
-    // over the full source pulse length, matching old OPAL. If only 5% of the pulse is emitted,
-    // the z domain is stretched by a factor of 20. This prevents the early charge distribution
-    // from being compressed onto an artificially short mesh and receiving excessive kicks.
-    bool emissionMeshStretchActive = false;
-    double emittedFraction         = 1.0;
-    const double currentTime       = itsBunch_m->getT();
-    for (const auto& samplers : emittingSamplers_m) {
-        for (const auto& sampler : samplers) {
-            if (!sampler || sampler->isEmissionDone(currentTime)) {
-                continue;
-            }
-            const double samplerFraction = sampler->getEmittedFraction();
-            if (samplerFraction < 1.0) {
-                emissionMeshStretchActive = true;
-                emittedFraction           = std::min(emittedFraction, samplerFraction);
-            }
-        }
-    }
-    // Preserve the legacy aggressive state convergence while carrying emission progress as
-    // explicit per-call solver state instead of storing it in PartBunch.
-    if (Options::aggressiveStateSync) {
-        bool globallyActive = emissionMeshStretchActive;
-        ippl::Comm->allreduce(
-                emissionMeshStretchActive, globallyActive, 1, std::logical_or<bool>());
-        const double localEmittedFraction =
-                emissionMeshStretchActive ? std::clamp(emittedFraction, 0.0, 1.0) : 1.0;
-        double globallyEmittedFraction = localEmittedFraction;
-        ippl::Comm->allreduce(
-                localEmittedFraction, globallyEmittedFraction, 1, std::less<double>());
-        emissionMeshStretchActive = globallyActive;
-        emittedFraction           = globallyActive ? globallyEmittedFraction : 1.0;
-    } else {
-        emittedFraction = emissionMeshStretchActive ? std::clamp(emittedFraction, 0.0, 1.0) : 1.0;
+    const auto frames   = makeSelfFieldFrameState();
+    const auto emission = selfFieldEmissionProgress();
+    for (std::size_t index = 0; index < selfFieldParticleBindings_m.size(); ++index) {
+        selfFieldParticleBindings_m[index].trackingActive = itsBunch_m->isPcActive(index);
     }
 
-    // itsBunch_m->setGlobalMeanR(itsBunch_m->get_centroid());
-
-    // Build a fresh collection-shaped view for this call. Its persistent handles borrow stable
-    // particle attribute objects, not Kokkos views, so the concrete solver must reacquire device
-    // views after any particle migration or storage reallocation.
     using namespace opalx::spacecharge;
-    for (std::size_t i = 0; i < selfFieldParticleViews_m.size(); ++i) {
-        selfFieldParticleViews_m[i].setTrackingActive(itsBunch_m->isPcActive(i));
-    }
-    ParticleSetView particles(selfFieldParticleViews_m, 0, 0);
-    const auto primaryContainer = itsBunch_m->getParticleContainer();
-    const auto& referenceR      = primaryContainer->getRefPartR();
-    const auto& referenceP      = primaryContainer->getRefPartP();
-
-    ReferenceState referenceState{
-            {referenceR(0), referenceR(1), referenceR(2)},
-            {referenceP(0), referenceP(1), referenceP(2)},
-            primaryContainer->get_sPos()};
-    FrameState frameState;
-    frameState.trackerToSolve = BorrowedHostObject::reference(referenceToBeamCSTrafo);
-    frameState.solveToTracker = BorrowedHostObject::reference(beamToReferenceCSTrafo);
-    CommunicatorView communicator{
-            BorrowedHostObject::reference(*ippl::Comm), ippl::Comm->rank(), ippl::Comm->size()};
-    const std::size_t globalTrackStep = static_cast<std::size_t>(itsBunch_m->getGlobalTrackStep());
+    const std::size_t step = static_cast<std::size_t>(itsBunch_m->getGlobalTrackStep());
+    ParticleSetView particles(selfFieldParticleBindings_m, 0);
     StepState stepState{
-            globalTrackStep,
+            step,
             itsBunch_m->getT(),
             itsBunch_m->getdT(),
-            0,
-            emissionMeshStretchActive,
-            std::move(communicator),
-            std::move(referenceState),
-            std::move(frameState),
-            emittedFraction};
-    RequestedPhysics requestedPhysics = selfFieldSystem_m->requestedPhysicsForStep(globalTrackStep);
-    SolveContext context(std::move(particles), std::move(stepState), std::move(requestedPhysics));
+            emission.active,
+            emission.fraction,
+            ippl::Comm->size(),
+            frames};
+    SolveContext context(
+            std::move(particles), std::move(stepState), selfFieldRequestPolicy_m.forStep(step));
     selfFieldSystem_m->solve(context);
     m << level3 << "Compute self fields done." << endl;
 }
@@ -1159,7 +1109,7 @@ size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
     }
 
     using namespace opalx::spacecharge;
-    const CorrectionRequest correction = selfFieldSystem_m->configuredCorrection();
+    const CorrectionRequest correction = selfFieldRequestPolicy_m.configuredCorrection();
     if (correction.kind == CorrectionKind::None) {
         return 0;
     }
