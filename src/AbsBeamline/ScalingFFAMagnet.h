@@ -89,8 +89,6 @@ public:
      */
     void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
-    ScalingFFAMagnetConfig<EFM> getConfig() const;
-
     /** Calculate the field at some arbitrary position
      *
      *  \param R position in the local coordinate system of the bend
@@ -102,6 +100,14 @@ public:
     void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+
+    /** Calculate the field for particles in the container
+     *
+     *  \param pc the set of particles for which the field is calculated
+     *
+     *  This is a static function so that it can call the GPU
+     */
+    static void getFieldValue(const ScalingFFAMagnetConfig<EFM>& config, const std::shared_ptr<ParticleContainer_t>& pc);
 
     /** Calculate the field at some arbitrary position in cartesian coordinates
      *
@@ -132,7 +138,7 @@ public:
      *  \param B calculated magnetic field defined like (Br, By, Bphi)
      *  \returns true if particle is outside the field map, else false
      */
-    bool getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B);
+    bool getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const;
 
     /** Initialise the ScalingFFAMagnet
      *
@@ -162,42 +168,45 @@ public:
     /** Accept a beamline visitor */
     void accept(BeamlineVisitor& visitor) const override;
 
+    /** Return the field lookup configuration */
+    ScalingFFAMagnetConfig<EFM> getConfig() const {return config_m;}
+
     /** Get tan delta - delta is the spiral angle */
-    double getTanDelta() const { return tanDelta_m; }
+    double getTanDelta() const { return config_m.tanDelta_m; }
 
     /** Set tan delta - delta is the spiral angle */
-    void setTanDelta(double tanDelta) { tanDelta_m = tanDelta; }
+    void setTanDelta(double tanDelta) { config_m.tanDelta_m = tanDelta; }
 
     /** Get the field index k */
-    double getFieldIndex() const { return k_m; }
+    double getFieldIndex() const { return config_m.k_m; }
 
     /** Set the field index k */
-    void setFieldIndex(double k) { k_m = k; }
+    void setFieldIndex(double k) { config_m.k_m = k; }
 
     /** Get the dipole constant B_0 */
-    double getDipoleConstant() const { return Bz_m; }
+    double getDipoleConstant() const { return config_m.Bz_m; }
 
     /** Set the dipole constant B_0 */
-    void setDipoleConstant(double Bz) { Bz_m = Bz; }
+    void setDipoleConstant(double Bz) { config_m.Bz_m = Bz; }
 
     /** Get the radius constant R_0 */
-    double getR0() const { return r0_m; }
+    double getR0() const { return config_m.r0_m; }
 
     /** Set the radius constant R_0 */
-    void setR0(double r0) { r0_m = r0; }
+    void setR0(double r0) { config_m.r0_m = r0; }
 
     /** Get the centre of the sector */
-    Vector_t<double, 3> getCentre() const { return centre_m; }
+    Vector_t<double, 3> getCentre() const { return config_m.centre_m; }
 
     /** Set the centre of the sector */
-    void setCentre(Vector_t<double, 3> centre) { centre_m = centre; }
+    void setCentre(Vector_t<double, 3> centre) { config_m.centre_m = centre; }
 
     /** Get the fringe field
      *
      *  Returns the fringe field model; ScalingFFAMagnet retains ownership of the
      *  returned memory.
      */
-    EFM getEndField() const { return endField_m; }
+    EFM getEndField() const { return config_m.endField_m; }
 
     /** Set the fringe field
      *
@@ -208,62 +217,62 @@ public:
 
     /** Get the maximum power of y modelled in the off-midplane expansion;
      */
-    size_t getMaxOrder() const { return maxOrder_m; }
+    size_t getMaxOrder() const { return config_m.maxOrder_m; }
 
     /** Set the maximum power of y modelled in the off-midplane expansion;
      */
-    void setMaxOrder(size_t maxOrder) { maxOrder_m = maxOrder; }
+    void setMaxOrder(size_t maxOrder) { config_m.maxOrder_m = maxOrder; }
 
     /** Get the offset of the magnet centre from the start
      */
-    double getPhiStart() const { return phiStart_m; }
+    double getPhiStart() const { return config_m.phiStart_m; }
 
     /** Set the offset of the magnet centre from the start
      */
-    void setPhiStart(double phiStart) { phiStart_m = phiStart; }
+    void setPhiStart(double phiStart) { config_m.phiStart_m = phiStart; }
 
     /** Get the offset of the magnet end from the start
      */
-    double getPhiEnd() const { return phiEnd_m; }
+    double getPhiEnd() const { return config_m.phiEnd_m; }
 
     /** Set the offset of the magnet end from the start
      */
-    void setPhiEnd(double phiEnd) { phiEnd_m = phiEnd; }
+    void setPhiEnd(double phiEnd) { config_m.phiEnd_m = phiEnd; }
 
     /** Get the maximum radius
      */
-    double getRMin() const { return rMin_m; }
+    double getRMin() const { return config_m.rMin_m; }
 
     /** Set the maximum radius
      */
-    void setRMin(double rMin) { rMin_m = rMin; }
+    void setRMin(double rMin) { config_m.rMin_m = rMin; }
 
     /** Get the maximum radius
      */
-    double getRMax() const { return rMax_m; }
+    double getRMax() const { return config_m.rMax_m; }
 
     /** Set the maximum radius
      */
-    void setRMax(double rMax) { rMax_m = rMax; }
+    void setRMax(double rMax) { config_m.rMax_m = rMax; }
 
     /** Get the maximum azimuthal displacement from \psi=0
      */
-    double getAzimuthalExtent() const { return azimuthalExtent_m; }
+    double getAzimuthalExtent() const { return config_m.azimuthalExtent_m; }
 
     /** Set the maximum azimuthal displacement from \psi=0
      */
-    void setAzimuthalExtent(double azimuthalExtent) { azimuthalExtent_m = azimuthalExtent; }
+    void setAzimuthalExtent(double azimuthalExtent) { config_m.azimuthalExtent_m = azimuthalExtent; }
 
     /** Get the maximum vertical displacement from the midplane
      */
-    double getVerticalExtent() const { return verticalExtent_m; }
+    double getVerticalExtent() const { return config_m.verticalExtent_m; }
 
     /** Set the maximum vertical displacement from the midplane
      */
-    void setVerticalExtent(double verticalExtent) { verticalExtent_m = verticalExtent; }
+    void setVerticalExtent(double verticalExtent) { config_m.verticalExtent_m = verticalExtent; }
 
     /** Return the calculated df coefficients */
-    std::vector<std::vector<double> > getDfCoefficients() { return dfCoefficients_m; }
+    std::vector<std::vector<double> > getDfCoefficients() { return config_m.dfCoefficients_m; }
 
     /** setupEndField does some end field and geometry set-up
      *
@@ -280,10 +289,10 @@ public:
      *  Called during parsing of the input file; OPAL looks for the endFieldName
      *  when setupEndField() is called.
      */
-    void setEndFieldName(std::string name) { endFieldName_m = name; }
+    void setEndFieldName(std::string name) { config_m.endFieldName_m = name; }
 
     /** Return the end field name. */
-    std::string getEndFieldName() const { return endFieldName_m; }
+    std::string getEndFieldName() const { return config_m.endFieldName_m; }
 
 private:
     /** Calculate the df coefficients, ready for field generation
@@ -299,22 +308,7 @@ private:
     ScalingFFAMagnet& operator=(const ScalingFFAMagnet& rhs);
     Geometry planarArcGeometry_m{Geometry::makeSBend(1., 1.)};
 
-    size_t maxOrder_m        = 0;
-    double tanDelta_m        = 0.;
-    double k_m               = 0.;
-    double Bz_m              = 0.;
-    double r0_m              = 0.;
-    double rMin_m            = 0.;  // minimum radius
-    double rMax_m            = 0.;  // maximum radius
-    double phiStart_m        = 0.;  // offsets this element
-    double phiEnd_m          = 0.;  // used for placement of next element
-    double azimuthalExtent_m = 0.;  // maximum distance used for field calculation
-    double verticalExtent_m  = 0.;  // maximum allowed distance from the midplane
-    Vector_t<double, 3> centre_m;
-    EFM endField_m;
-    std::string endFieldName_m               = "";
-    const double fp_tolerance                = 1e-18;
-    std::vector<std::vector<double> > dfCoefficients_m;
+    ScalingFFAMagnetConfig<EFM> config_m;
 };
 
 template <class EFM>

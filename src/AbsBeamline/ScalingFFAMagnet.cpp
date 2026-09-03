@@ -40,24 +40,8 @@ template <class EFM>
 ScalingFFAMagnet<EFM>::ScalingFFAMagnet(const ScalingFFAMagnet<EFM>& right)
     : ElementBase(right),
       planarArcGeometry_m(right.planarArcGeometry_m),
-      maxOrder_m(right.maxOrder_m),
-      tanDelta_m(right.tanDelta_m),
-      k_m(right.k_m),
-      Bz_m(right.Bz_m),
-      r0_m(right.r0_m),
-      rMin_m(right.rMin_m),
-      rMax_m(right.rMax_m),
-      phiStart_m(right.phiStart_m),
-      phiEnd_m(right.phiEnd_m),
-      azimuthalExtent_m(right.azimuthalExtent_m),
-      verticalExtent_m(right.verticalExtent_m),
-      centre_m(right.centre_m),
-      endField_m(right.endField_m),
-      endFieldName_m(right.endFieldName_m),
-      dfCoefficients_m(right.dfCoefficients_m) {
+      config_m(right.config_m) {
     RefPartBunch_m = right.RefPartBunch_m;
-    Bz_m           = right.Bz_m;
-    r0_m           = right.r0_m;
 }
 
 template <class EFM>
@@ -70,19 +54,29 @@ ScalingFFAMagnet<EFM>* ScalingFFAMagnet<EFM>::clone() const {
     return magnet;
 }
 
-
 template <class EFM>
 void ScalingFFAMagnet<EFM>::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     // Kernel launch over all particles
+    const ScalingFFAMagnetConfig<EFM> config = getConfig();
+    getFieldValue(config, pc);
+}
+
+template <class EFM>
+void ScalingFFAMagnet<EFM>::getFieldValue(const ScalingFFAMagnetConfig<EFM>& config, const std::shared_ptr<ParticleContainer_t>& pc) {
     const Kokkos::View<Vector_t<double, 3>*> R = pc->R.getView();
     const Kokkos::View<Vector_t<double, 3>*> B = pc->B.getView();
     const size_t count = pc->getLocalNum();
-    const ScalingFFAMagnetConfig<EFM> config = getConfig();
         Kokkos::parallel_for(
             "ScalingFFAMagnet<>::getFieldValue()", count, KOKKOS_LAMBDA(const size_t i) {
                 getFieldValue(config, R(i), B(i));
             });
 }
+
+template <class EFM>
+bool ScalingFFAMagnet<EFM>::getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const {
+    return getFieldValue(config_m, R, B);
+}
+
 
 template <class EFM>
 void ScalingFFAMagnet<EFM>::initialise() { calculateDfCoefficients(); }
@@ -111,38 +105,38 @@ template <class EFM>
 void ScalingFFAMagnet<EFM>::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
-    getFieldValue(R, B);
+    getFieldValue(config_m, R, B);
 }
 
 template <class EFM>
 void ScalingFFAMagnet<EFM>::calculateDfCoefficients() {
-    dfCoefficients_m    = std::vector<std::vector<double> >(maxOrder_m + 1);
-    dfCoefficients_m[0] = std::vector<double>(1, 1.);  // f_0 = 1.*0th derivative
-    for (size_t n = 0; n < maxOrder_m; n += 2) {       // n indexes the power in z
-        dfCoefficients_m[n + 1] = std::vector<double>(dfCoefficients_m[n].size() + 1, 0);
-        for (size_t i = 0; i < dfCoefficients_m[n].size(); ++i) {  // i indexes the derivative
-            dfCoefficients_m[n + 1][i + 1] = dfCoefficients_m[n][i] / (n + 1);
+    config_m.dfCoefficients_m    = std::vector<std::vector<double> >(config_m.maxOrder_m + 1);
+    config_m.dfCoefficients_m[0] = std::vector<double>(1, 1.);  // f_0 = 1.*0th derivative
+    for (size_t n = 0; n < config_m.maxOrder_m; n += 2) {       // n indexes the power in z
+        config_m.dfCoefficients_m[n + 1] = std::vector<double>(config_m.dfCoefficients_m[n].size() + 1, 0);
+        for (size_t i = 0; i < config_m.dfCoefficients_m[n].size(); ++i) {  // i indexes the derivative
+            config_m.dfCoefficients_m[n + 1][i + 1] = config_m.dfCoefficients_m[n][i] / (n + 1);
         }
-        if (n + 1 == maxOrder_m) {
+        if (n + 1 == config_m.maxOrder_m) {
             break;
         }
-        dfCoefficients_m[n + 2] = std::vector<double>(dfCoefficients_m[n].size() + 2, 0);
-        for (size_t i = 0; i < dfCoefficients_m[n].size(); ++i) {  // i indexes the derivative
-            dfCoefficients_m[n + 2][i] =
-                    -(k_m - n) * (k_m - n) / (n + 1) * dfCoefficients_m[n][i] / (n + 2);
+        config_m.dfCoefficients_m[n + 2] = std::vector<double>(config_m.dfCoefficients_m[n].size() + 2, 0);
+        for (size_t i = 0; i < config_m.dfCoefficients_m[n].size(); ++i) {  // i indexes the derivative
+            config_m.dfCoefficients_m[n + 2][i] =
+                    -(config_m.k_m - n) * (config_m.k_m - n) / (n + 1) * config_m.dfCoefficients_m[n][i] / (n + 2);
         }
-        for (size_t i = 0; i < dfCoefficients_m[n + 1].size(); ++i) {  // i indexes the derivative
-            dfCoefficients_m[n + 2][i] +=
-                    2 * (k_m - n) * tanDelta_m * dfCoefficients_m[n + 1][i] / (n + 2);
-            dfCoefficients_m[n + 2][i + 1] -=
-                    (1 + tanDelta_m * tanDelta_m) * dfCoefficients_m[n + 1][i] / (n + 2);
+        for (size_t i = 0; i < config_m.dfCoefficients_m[n + 1].size(); ++i) {  // i indexes the derivative
+            config_m.dfCoefficients_m[n + 2][i] +=
+                    2 * (config_m.k_m - n) * config_m.tanDelta_m * config_m.dfCoefficients_m[n + 1][i] / (n + 2);
+            config_m.dfCoefficients_m[n + 2][i + 1] -=
+                    (1 + config_m.tanDelta_m * config_m.tanDelta_m) * config_m.dfCoefficients_m[n + 1][i] / (n + 2);
         }
     }
 }
 
 template <class EFM>
 void ScalingFFAMagnet<EFM>::setEndField(EFM endField) {
-    endField_m = endField;
+    config_m.endField_m = endField;
 }
 
 extern Inform* gmsg;
@@ -150,28 +144,28 @@ extern Inform* gmsg;
 // Note this is tested in OpalScalingFFAMagnetTest.*
 template <class EFM>
 void ScalingFFAMagnet<EFM>::setupEndField() {
-    if (endFieldName_m == "") {  // no end field is defined
+    if (config_m.endFieldName_m == "") {  // no end field is defined
         return;
     }
 
     //std::shared_ptr<endfieldmodel::EndFieldModel> efm =
     //        endfieldmodel::EndFieldModel::getEndFieldModel(endFieldName_m);
-    EFM newEFM = endField_m;
+    EFM newEFM = config_m.endField_m;
     newEFM.rescale(Units::m2mm * 1.0 / getR0());
     setEndField(newEFM);
 
     double defaultExtent = (newEFM.getEndLength() * 4. + newEFM.getCentreLength());
-    if (phiStart_m < 0.0) {
+    if (config_m.phiStart_m < 0.0) {
         setPhiStart(defaultExtent / 2.0);
     } else {
         setPhiStart(getPhiStart() + newEFM.getCentreLength() * 0.5);
     }
-    if (phiEnd_m < 0.0) {
+    if (config_m.phiEnd_m < 0.0) {
         setPhiEnd(defaultExtent);
     }
-    if (azimuthalExtent_m < 0.0) {
+    if (config_m.azimuthalExtent_m < 0.0) {
         setAzimuthalExtent(newEFM.getEndLength() * 5. + newEFM.getCentreLength() / 2.0);
     }
-    planarArcGeometry_m.setElementLength(r0_m * phiEnd_m);  // length = phi r
-    planarArcGeometry_m.setCurvature(1. / r0_m);
+    planarArcGeometry_m.setElementLength(config_m.r0_m * config_m.phiEnd_m);  // length = phi r
+    planarArcGeometry_m.setCurvature(1. / config_m.r0_m);
 }
