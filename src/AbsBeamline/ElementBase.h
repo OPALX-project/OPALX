@@ -57,6 +57,15 @@ enum class ElementType : unsigned short {
     CONSTANTFOCUSING
 };
 
+/// Topology of the beam sequence which owns an element occurrence.
+enum class BeamlineTopology : unsigned short { LINE, RING };
+
+/// Host-side ownership metadata for an element occurrence.
+struct BeamlineMembership {
+    BeamlineTopology topology = BeamlineTopology::LINE;
+    std::string ownerName;
+};
+
 enum class ApertureType : unsigned short { RECTANGULAR, ELLIPTICAL };
 
 /**
@@ -182,6 +191,25 @@ public:
     /// @param type The element type.
     /// @return The element type string.
     static std::string getTypeString(ElementType type);
+
+    /* ======================= Beamline membership =========================== */
+
+    /// Return the topology and owner of this element occurrence.
+    const BeamlineMembership& getBeamlineMembership() const;
+
+    /// Return the topology of the owning beam sequence.
+    BeamlineTopology getBeamlineTopology() const;
+
+    /// Return the owning RING name, or an empty string for LINE membership.
+    const std::string& getBeamlineOwnerName() const;
+
+    /// Assign validated beam-sequence ownership metadata.
+    /// RING membership requires a non-empty owner; LINE membership requires
+    /// an empty owner.
+    void setBeamlineMembership(BeamlineTopology topology, std::string ownerName = {});
+
+    /// Restore the default LINE membership.
+    void clearBeamlineMembership();
 
     /// @brief Apply a visitor.
     /// @note This method must be overridden by derived classes. It should call
@@ -423,6 +451,9 @@ private:
     // The element's name
     std::string elementID;
     static const std::map<ElementType, std::string> elementTypeToString_s;
+
+    // --- Beamline membership ---
+    BeamlineMembership beamlineMembership_m;
 
     // --- User-defined attributes ---
     AttributeSet userAttribs;

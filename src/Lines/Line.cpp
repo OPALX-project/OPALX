@@ -340,8 +340,7 @@ void Line::parseList(Statement& stat, bool allowModifiers) {
                         "Line::parseList()", "A RING cannot be nested in a LINE or another RING.");
             } else if (Element* elem = dynamic_cast<Element*>(obj)) {
                 while (repeat-- > 0) {
-                    ElementBase* base = elem->getElement();
-                    FlaggedElmPtr member(base, rev);
+                    FlaggedElmPtr member(ElmPtr(elem->getElementPtr()), rev);
                     line->push_back(member);
                 }
 

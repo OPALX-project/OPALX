@@ -47,6 +47,9 @@ public:
     //  The result it the ideal line.
     virtual Beamline* fetchLine() const = 0;
 
+    /// Prepare occurrence-specific state immediately before tracking.
+    virtual void prepareForTracking() {}
+
 protected:
     /// Constructor for exemplars.
     BeamSequence(int size, const char* name, const char* help);
