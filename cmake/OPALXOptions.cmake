@@ -213,6 +213,24 @@ set(IPPL_ENABLE_TESTS   OFF CACHE BOOL "" FORCE)
 set(IPPL_PLATFORMS "${OPALX_PLATFORMS}" CACHE STRING "" FORCE)
 
 # -----------------------------------------------------------------------------
+# Catalyst in-situ visualization (forwarded to IPPL)
+# -----------------------------------------------------------------------------
+
+option(OPALX_ENABLE_CATALYST "Enable ParaView Catalyst in-situ visualization via IPPL" OFF)
+set(CATALYST_HINT_PATH "" CACHE PATH
+    "Path to Catalyst CMake config dir, e.g. .../lib/cmake/catalyst-2.1")
+
+if(OPALX_ENABLE_CATALYST)
+    set(IPPL_ENABLE_CATALYST ON CACHE BOOL "" FORCE)
+    if(NOT CATALYST_HINT_PATH)
+        message(WARNING "OPALX_ENABLE_CATALYST=ON but CATALYST_HINT_PATH is not set")
+    endif()
+else()
+    set(IPPL_ENABLE_CATALYST OFF CACHE BOOL "" FORCE)
+endif()
+message(STATUS "🔧 OPALX Catalyst support (OPALX_ENABLE_CATALYST): ${OPALX_ENABLE_CATALYST}")
+
+# -----------------------------------------------------------------------------
 # Other OPALX options
 # -----------------------------------------------------------------------------
 

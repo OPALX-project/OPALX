@@ -205,3 +205,93 @@ srun ./opalx DriftTest-1.in  --info 10 --kokkos-map-device-id-by=mpi_rank
 ```
 
 The documentation has been moved to the [OPAL Landing Page](https://amas.pages.psi.ch/opal/).
+
+## Catalyst in-situ visualization
+
+OPALX can stream particle data to a ParaView Catalyst client through IPPL's
+Catalyst adaptor. This branch (`catalyst-viz-v2-jb`) is intended to be used
+with the IPPL `catalyst-viz-v2.0.0-apps` branch.
+
+### Finding Catalyst
+
+If Catalyst was installed through Spack, locate its CMake config directory:
+
+```bash
+spack location -i libcatalyst
+# example output:
+# /home/biddisco/opt/spack.git/opt/spack/linux-skylake/libcatalyst-2.1.0-ghuep42ra45472ltlknwt6j66tp3el2e
+```
+
+Use the `lib/cmake/catalyst-*` subdirectory as `CATALYST_HINT_PATH`.
+
+### Configuring OPALX with Catalyst
+
+Point CMake at the local IPPL branch and the Catalyst installation:
+
+```bash
+mkdir build_catalyst && cd build_catalyst
+
+cmake .. \
+    -DOPALX_ENABLE_CATALYST=ON \
+    -DCATALYST_HINT_PATH=/home/biddisco/opt/spack.git/opt/spack/linux-skylake/libcatalyst-2.1.0-ghuep42ra45472ltlknwt6j66tp3el2e/lib/cmake/catalyst-2.1 \
+    -DFETCHCONTENT_SOURCE_DIR_IPPL=/home/biddisco/src/ippl/catalyst \
+    -DPLATFORMS=SERIAL
+
+make -j
+```
+
+On a GPU node add the appropriate `-DPLATFORMS=CUDA -DARCH=...` flags as
+described above.
+
+### Running with Catalyst
+
+Make sure the ParaView build is visible to Catalyst, explicitly set all Catalyst
+switches (the current IPPL branch crashes if any of these are left unset), and
+activate visualization:
+
+```bash
+export IPPL_CATALYST_VIS=ON
+export IPPL_CATALYST_LIVE=OFF
+export IPPL_CATALYST_STEER=OFF
+export IPPL_CATALYST_PNG=OFF
+export IPPL_CATALYST_VTK=OFF
+export IPPL_CATALYST_VERBOSITY=5
+export IPPL_CATALYST_PROXY_OPTION=OFF
+export CATALYST_IMPLEMENTATION_PATHS=/home/biddisco/build/paraview/lib/catalyst
+export CATALYST_IMPLEMENTATION_NAME=paraview
+
+./opalx fodo-test.in --info 5
+```
+
+You can then connect a ParaView client to the running simulation.
+
+To test the Catalyst hook without a live ParaView client, point
+`CATALYST_PIPELINE_PATH` at a no-op pipeline, e.g.:
+
+```python
+# /tmp/catalyst_noop.py
+def initialize():
+    pass
+
+def execute(data):
+    pass
+
+def finalize():
+    pass
+```
+
+```bash
+export CATALYST_PIPELINE_PATH=/tmp/catalyst_noop.py
+./opalx fodo-test.in --info 5
+```
+
+Other useful Catalyst environment variables:
+
+| Variable | Values | Description |
+|----------|--------|-------------|
+| `IPPL_CATALYST_VIS` | `ON` / `OFF` | Enable/disable visualization output. |
+| `IPPL_CATALYST_STEER` | `ON` / `OFF` | Enable/disable steering (currently not used by OPALX). |
+| `IPPL_CATALYST_PNG` | `ON` / `OFF` | Write PNG image extracts. |
+| `IPPL_CATALYST_VTK` | `ON` / `OFF` | Write VTK extracts. |
+| `IPPL_CATALYST_PROXY_OPTION` | `ON` / `PRODUCE_ONLY` / `OFF` | Control the Catalyst proxy file generation. |
+| `OPALX_CATALYST_LIVE_FREQ` | positive integer (default `1`) | Only push data to the live ParaView client every N tracking steps. |

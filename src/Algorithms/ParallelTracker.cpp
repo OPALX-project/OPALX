@@ -23,14 +23,20 @@
 #include <array>
 #include <cfloat>
 #include <cmath>
+#include <cstdlib>
 #include <fstream>
 #include <functional>
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
+
+// IPPL's Catalyst adaptor expects an external TestName symbol (declared in Manager/datatypes.h).
+// OPALX does not use it, but it must be defined in exactly one translation unit.
+const char* TestName = nullptr;
 
 #include "Algorithms/Matrix.h"
 #include "BasicActions/DumpEMFields.h"
@@ -60,6 +66,10 @@
 
 #include "AbsBeamline/PluginElement.h"
 #include "AbsBeamline/VerticalFFAMagnet.h"
+
+#ifdef IPPL_ENABLE_CATALYST
+#include "Stream/InSitu/CatalystAdaptor.h"
+#endif
 
 extern Inform* gmsg;
 
@@ -192,6 +202,13 @@ void ParallelTracker::visitBeamline(const Beamline& bl) {
  */
 void ParallelTracker::execute() {
     Inform m("ParallelTracker::execute");
+
+#ifdef IPPL_ENABLE_CATALYST
+    // Catalyst in-situ visualization adaptor. Declared here so it lives until
+    // Finalize() is called at the end of the tracking loop.
+    ippl::CatalystAdaptor cat_vis;
+#endif
+
     auto preparationState = OpalData::getInstance()->enterPreparationState();
     StepSizeConfig::ResumePosition restartPosition{0, 0};
     if (restarting_m) {
@@ -441,6 +458,17 @@ void ParallelTracker::execute() {
     // the reference map. Only crossings produced by the real tracking loop may write output.
     preparationState.finish();
 
+#ifdef IPPL_ENABLE_CATALYST
+    {
+        // Keep the particle container alive as an lvalue; MakeVisRegistryRuntimePtr only binds
+        // lvalue arguments, so a temporary shared_ptr would silently create an empty registry.
+        auto particleContainer        = itsBunch_m->getParticleContainer();
+        auto runtime_vis_registry     = ippl::MakeVisRegistryRuntimePtr("electrons", particleContainer);
+        auto runtime_steer_registry   = ippl::MakeVisRegistryRuntimePtr();
+        cat_vis.Initialize(runtime_vis_registry, runtime_steer_registry);
+    }
+#endif
+
     // Main tracking loop over step size configurations
     m << level5 << ">>>>>>>>>>>>>>>>>> Starting Tracking Loop >>>>>>>>>>>>>>>>>>" << endl;
     bool firstSegment = true;
@@ -626,6 +654,20 @@ void ParallelTracker::execute() {
             ++stepsCompletedInSegment;
             m << level5 << "Track steps incremented." << endl;
 
+#ifdef IPPL_ENABLE_CATALYST
+            {
+                static const int liveFreq = []() {
+                    const char* env = std::getenv("OPALX_CATALYST_LIVE_FREQ");
+                    int f = env ? std::atoi(env) : 1;
+                    return f > 0 ? f : 1;
+                }();
+                const auto step = itsBunch_m->getGlobalTrackStep();
+                if (step % liveFreq == 0) {
+                    cat_vis.Execute(step, step);
+                }
+            }
+#endif
+
             // Check if active containers have reached the end of the current step size
             // configuration (sStop), and if so prepare to switch to the next configuration on the
             // next iteration.
@@ -695,6 +737,10 @@ void ParallelTracker::execute() {
     if (psDump) {
         *gmsg << level2 << "* Dump phase space of last step" << endl;
     }
+
+#ifdef IPPL_ENABLE_CATALYST
+    cat_vis.Finalize();
+#endif
 
     itsOpalBeamline_m.switchElementsOff();
 
