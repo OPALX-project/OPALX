@@ -294,3 +294,4 @@ Other useful Catalyst environment variables:
 | `IPPL_CATALYST_PNG` | `ON` / `OFF` | Write PNG image extracts. |
 | `IPPL_CATALYST_VTK` | `ON` / `OFF` | Write VTK extracts. |
 | `IPPL_CATALYST_PROXY_OPTION` | `ON` / `PRODUCE_ONLY` / `OFF` | Control the Catalyst proxy file generation. |
+| `OPALX_CATALYST_LIVE_FREQ` | positive integer (default `1`) | Only push data to the live ParaView client every N tracking steps. |

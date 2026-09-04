@@ -23,6 +23,7 @@
 #include <array>
 #include <cfloat>
 #include <cmath>
+#include <cstdlib>
 #include <fstream>
 #include <functional>
 #include <iomanip>
@@ -654,8 +655,17 @@ void ParallelTracker::execute() {
             m << level5 << "Track steps incremented." << endl;
 
 #ifdef IPPL_ENABLE_CATALYST
-            cat_vis.Execute(itsBunch_m->getGlobalTrackStep(),
-                            itsBunch_m->getGlobalTrackStep());
+            {
+                static const int liveFreq = []() {
+                    const char* env = std::getenv("OPALX_CATALYST_LIVE_FREQ");
+                    int f = env ? std::atoi(env) : 1;
+                    return f > 0 ? f : 1;
+                }();
+                const auto step = itsBunch_m->getGlobalTrackStep();
+                if (step % liveFreq == 0) {
+                    cat_vis.Execute(step, step);
+                }
+            }
 #endif
 
             // Check if active containers have reached the end of the current step size
