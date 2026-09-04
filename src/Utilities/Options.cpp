@@ -90,6 +90,8 @@ namespace Options {
 
     bool enableVTK = true;
 
+    bool enableLinearTransferMaps = false;
+
     bool asciidump = false;
 
     double boundpDestroy = 10;

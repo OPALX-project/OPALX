@@ -26,6 +26,7 @@ set (HDRS
     DistributionMoments.h
     Flagger.h
     IndexMap.h
+    LinearTransferMap.h
     OrbitThreader.h
     ParallelTracker.h
     PartData.h

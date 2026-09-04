@@ -28,7 +28,9 @@
 #include <fstream>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
+#include <vector>
 #include "Elements/OpalBeamline.h"
 #include "Steppers/BorisPusher.h"
 #include "Structure/BoundingBox.h"
@@ -48,6 +50,18 @@ public:
     IndexMap::key_t getRange(const IndexMap::value_t::value_type& element) const;
 
     BoundingBox getBoundingBox() const;
+
+    /**
+     * @brief Combined map in reference-path order, available after execute() when enabled.
+     *
+     * If the ordered element/section maps are \f$M_1,\ldots,M_N\f$, this is
+     * \f[
+     * M_{\rm total}=M_N\cdots M_2M_1.
+     * \f]
+     * Analytic drift matrices are inserted for uncovered field-free path intervals.  For a
+     * periodic OrbitThreader this is the one-turn map.
+     */
+    const std::optional<matrix6x6_t>& getCombinedLinearTransferMap() const;
 
 private:
     /// position of reference particle in lab coordinates
@@ -91,6 +105,21 @@ private:
 
     BoundingBox globalBoundingBox_m;
 
+    struct ReferenceSample {
+        LinearTransferMapReference state;
+    };
+
+    struct RayState {
+        Vector_t<double, 3> position{0.0};
+        Vector_t<double, 3> momentum{0.0};
+        double time{0.0};
+    };
+
+    bool collectReferenceSamples_m{false};
+    double transferMapStartPathLength_m{0.0};
+    std::vector<ReferenceSample> referenceSamples_m;
+    std::optional<matrix6x6_t> combinedLinearTransferMap_m;
+
     void trackBack();
     void integrate(const IndexMap::value_t& activeSet, double maxDrift = 10.0);
     bool containsCavity(const IndexMap::value_t& activeSet);
@@ -107,6 +136,26 @@ private:
 
     void checkElementLengths(const std::set<std::shared_ptr<ElementBase>>& elements);
     bool reachedPeriodicEnd() const;
+
+    void recordReferenceSample();
+    void calculateLinearTransferMaps();
+    LinearTransferMapReference refineBoundary(
+            const std::shared_ptr<ElementBase>& element, const LinearTransferMapReference& before,
+            const LinearTransferMapReference& after, bool entering);
+    RayState advanceRay(const RayState& state, double dt);
+    RayState trackRayToExit(
+            const RayState& initial, const LinearTransferMapReference& exit,
+            double referenceFlightTime);
+    LinearTransferMap makeLinearTransferMap(
+            const LinearTransferMapReference& entrance, const LinearTransferMapReference& exit,
+            std::size_t pass);
+    static LinearTransferMapReference transportFrame(
+            const LinearTransferMapReference& frame, const Vector_t<double, 3>& momentum);
+    static std::array<double, 6> coordinates(
+            const RayState& ray, const LinearTransferMapReference& reference);
+    static RayState rayFromCoordinates(
+            const std::array<double, 6>& coordinates, const LinearTransferMapReference& reference);
+    void printCombinedLinearTransferMap() const;
 };
 
 inline IndexMap::value_t OrbitThreader::query(
@@ -119,4 +168,8 @@ inline IndexMap::key_t OrbitThreader::getRange(const IndexMap::value_t::value_ty
 }
 
 inline BoundingBox OrbitThreader::getBoundingBox() const { return globalBoundingBox_m; }
+
+inline const std::optional<matrix6x6_t>& OrbitThreader::getCombinedLinearTransferMap() const {
+    return combinedLinearTransferMap_m;
+}
 #endif
