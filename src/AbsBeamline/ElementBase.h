@@ -17,7 +17,7 @@
 
 #include "AbsBeamline/AttributeSet.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
-#include "Algorithms/LinearTransferMap.h"
+#include "Structure/LinearTransferMap.h"
 #include "Algorithms/Quaternion.hpp"
 #include "BeamlineGeometry/Geometry.h"
 #include "OPALTypes.h"

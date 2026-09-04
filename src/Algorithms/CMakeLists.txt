@@ -6,6 +6,8 @@ set (_SRCS
     DistributionMoments.cpp
     Flagger.cpp
     IndexMap.cpp
+    ExternalFieldRayTracker.cpp
+    LinearTransferMapBuilder.cpp
     OrbitThreader.cpp
     ParallelTracker.cpp
     PartData.cpp
@@ -26,6 +28,8 @@ set (HDRS
     DistributionMoments.h
     Flagger.h
     IndexMap.h
+    ExternalFieldRayTracker.h
+    LinearTransferMapBuilder.h
     LinearTransferMap.h
     OrbitThreader.h
     ParallelTracker.h

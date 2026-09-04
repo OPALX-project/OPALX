@@ -23,6 +23,7 @@
 #define OPAL_ORBITTHREADER_H
 
 #include "Algorithms/IndexMap.h"
+#include "Algorithms/LinearTransferMapBuilder.h"
 #include "Algorithms/StepSizeConfig.h"
 
 #include <fstream>
@@ -122,20 +123,13 @@ private:
 
     BoundingBox globalBoundingBox_m;
 
-    struct ReferenceSample {
-        LinearTransferMapReference state;
-    };
-
-    struct RayState {
-        Vector_t<double, 3> position{0.0};
-        Vector_t<double, 3> momentum{0.0};
-        double time{0.0};
-    };
+    using ReferenceSample = LinearTransferMapBuilder::ReferenceSample;
+    using RayState = ExternalFieldRayTracker::State;
+    ExternalFieldRayTracker rayTracker_m;
 
     bool collectReferenceSamples_m{false};
     double transferMapStartPathLength_m{0.0};
     std::vector<ReferenceSample> referenceSamples_m;
-    std::vector<LinearTransferMap> transferMapSegments_m;
     std::optional<matrix6x6_t> combinedLinearTransferMap_m;
     std::optional<double> combinedDeterminantResidual_m;
     std::optional<double> combinedSymplecticResidual_m;
@@ -158,23 +152,6 @@ private:
     void checkElementLengths(const std::set<std::shared_ptr<ElementBase>>& elements);
 
     void recordReferenceSample();
-    void calculateLinearTransferMaps();
-    LinearTransferMapReference refineBoundary(
-            const std::shared_ptr<ElementBase>& element, const LinearTransferMapReference& before,
-            const LinearTransferMapReference& after, bool entering);
-    RayState advanceRay(const RayState& state, double dt);
-    RayState trackRayToExit(
-            const RayState& initial, const LinearTransferMapReference& exit,
-            double referenceFlightTime);
-    LinearTransferMap makeLinearTransferMap(
-            const LinearTransferMapReference& entrance, const LinearTransferMapReference& exit,
-            std::size_t pass);
-    static LinearTransferMapReference transportFrame(
-            const LinearTransferMapReference& frame, const Vector_t<double, 3>& momentum);
-    static std::array<double, 6> coordinates(
-            const RayState& ray, const LinearTransferMapReference& reference);
-    static RayState rayFromCoordinates(
-            const std::array<double, 6>& coordinates, const LinearTransferMapReference& reference);
     void printCombinedLinearTransferMap() const;
 };
 
