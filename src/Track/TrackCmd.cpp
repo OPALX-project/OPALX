@@ -48,7 +48,6 @@ namespace {
                    // particles passes
         STEPSPERTURN,    // Return the timsteps per revolution period. ONLY available for OPAL-cycl.
         TIMEINTEGRATOR,  // the name of time integrator
-        MAP_ORDER,       // Truncation order of maps for ThickTracker (default: 1 (linear))
         SIZE
     };
 }  // namespace
@@ -102,9 +101,6 @@ TrackCmd::TrackCmd() : Action(SIZE, "TRACK", "The \"TRACK\" command initiates tr
     itsAttr[TIMEINTEGRATOR] = Attributes::makePredefinedString(
             "TIMEINTEGRATOR", "Name of time integrator to be used.",
             {"RK-4", "RK4", "LF-2", "LF2", "MTS"}, "RK4");
-
-    itsAttr[MAP_ORDER] = Attributes::makeReal(
-            "MAP_ORDER", "Truncation order of maps for ThickTracker (default: 1, i.e. linear).", 1);
 
     registerOwnership(AttributeHandler::COMMAND);
     AttributeHandler::addAttributeOwner("TRACK", AttributeHandler::COMMAND, "RUN");
@@ -235,8 +231,6 @@ void TrackCmd::execute() {
     Track::block = new Track(
             theLineToTrack, beam->getReference(), dt, maxsteps, stepsperturn, zstart, zstop,
             timeintegrator, t0, dtScInit, deltaTau, emissionSourcesList, beamNames);
-
-    Track::block->truncOrder = (int)Attributes::getReal(itsAttr[MAP_ORDER]);
 
     Track::block->parser.run();
 
