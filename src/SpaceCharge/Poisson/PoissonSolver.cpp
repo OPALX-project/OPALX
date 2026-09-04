@@ -206,149 +206,68 @@ namespace opalx::spacecharge {
 
     }  // namespace
 
-    namespace detail {
-
-        NullPoissonBackendAdapter::NullPoissonBackendAdapter(
-                const PoissonSolverConfig&, PoissonFieldBinding fields) {
-            solver_m.mergeParameters(ippl::ParameterList{});
-            bindFields(solver_m, fields);
-        }
-
-        std::string_view NullPoissonBackendAdapter::name() noexcept { return "NONE"; }
-
-        const PoissonSolverCapabilities& NullPoissonBackendAdapter::capabilities() noexcept {
-            return nullCapabilities;
-        }
-
-        double NullPoissonBackendAdapter::couplingConstant() noexcept {
-            return 1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
-        }
-
-        void NullPoissonBackendAdapter::solve(const PoissonSolveRequest&) { solver_m.solve(); }
-
-        PeriodicFFTPoissonBackendAdapter::PeriodicFFTPoissonBackendAdapter(
-                const PoissonSolverConfig&, PoissonFieldBinding fields) {
-            ippl::ParameterList parameters = commonFftParameters();
-            parameters.add("output_type", FFTSolver_t<double, 3>::GRAD);
-            solver_m.mergeParameters(parameters);
-            bindFields(solver_m, fields);
-        }
-
-        std::string_view PeriodicFFTPoissonBackendAdapter::name() noexcept { return "FFT"; }
-
-        const PoissonSolverCapabilities& PeriodicFFTPoissonBackendAdapter::capabilities() noexcept {
-            return fftCapabilities;
-        }
-
-        double PeriodicFFTPoissonBackendAdapter::couplingConstant() noexcept {
-            return 1.0 / Physics::epsilon_0;
-        }
-
-        void PeriodicFFTPoissonBackendAdapter::solve(const PoissonSolveRequest&) {
-            solver_m.solve();
-        }
-
-        OpenPoissonBackendAdapter::OpenPoissonBackendAdapter(
-                const PoissonSolverConfig& config, PoissonFieldBinding fields) {
-            ippl::ParameterList parameters = commonFftParameters();
-            parameters.add("output_type", OpenSolver_t<double, 3>::SOL_AND_GRAD);
-            parameters.add("algorithm", OpenSolver_t<double, 3>::HOCKNEY);
-            parameters.add("greens_function", openGreenFunctionValue(config.greenFunction));
-            solver_m.mergeParameters(parameters);
-            bindFields(solver_m, fields);
-        }
-
-        std::string_view OpenPoissonBackendAdapter::name() noexcept { return "OPEN"; }
-
-        const PoissonSolverCapabilities& OpenPoissonBackendAdapter::capabilities() noexcept {
-            return openCapabilities;
-        }
-
-        double OpenPoissonBackendAdapter::couplingConstant() noexcept {
-            return 1.0 / Physics::epsilon_0;
-        }
-
-        void OpenPoissonBackendAdapter::solve(const PoissonSolveRequest& request) {
-            if (!request.hasShiftedGreenFunction()) {
-                solver_m.solve();
-                return;
-            }
-            solver_m.shiftedGreensFunction(*request.greenFunctionShift);
-            solver_m.solve();
-            solver_m.greensFunction();
-        }
-
-        P3MPoissonBackendAdapter::P3MPoissonBackendAdapter(
-                const PoissonSolverConfig& config, PoissonFieldBinding fields) {
-            if (!(config.p3mCutoff > 0.0)) {
-                throw OpalException(
-                        "P3MPoissonBackendAdapter::P3MPoissonBackendAdapter",
-                        "The P3M cutoff radius must be positive.");
-            }
-            const bool allPeriodic = std::all_of(
-                    config.boundaryConditions.begin(), config.boundaryConditions.end(),
-                    [](FieldBoundaryCondition kind) {
-                        return kind == FieldBoundaryCondition::Periodic;
-                    });
-            const bool allOpen = std::all_of(
-                    config.boundaryConditions.begin(), config.boundaryConditions.end(),
-                    [](FieldBoundaryCondition kind) {
-                        return kind == FieldBoundaryCondition::Open;
-                    });
-            if (!allPeriodic && !allOpen) {
-                throw OpalException(
-                        "P3MPoissonBackendAdapter::P3MPoissonBackendAdapter",
-                        "P3M requires uniform OPEN or PERIODIC boundary conditions.");
-            }
-
-            ippl::ParameterList parameters = commonFftParameters();
-            parameters.add("output_type", FFTTruncatedGreenSolver_t<double, 3>::GRAD);
-            // Preserve the Ewald split used by the particle-particle term: alpha=2/RCUT. rho
-            // already carries 1/epsilon_0, so the mesh force constant omits epsilon_0.
-            parameters.add("alpha", 2.0 / config.p3mCutoff);
-            parameters.add("force_constant", -1.0 / (4.0 * Physics::pi));
-            parameters.add("regularization_cutoff", 1.0e-9);
-            parameters.add(
-                    "boundary_type", allPeriodic ? FFTTruncatedGreenSolver_t<double, 3>::PERIODIC
-                                                 : FFTTruncatedGreenSolver_t<double, 3>::OPEN);
-            solver_m.mergeParameters(parameters);
-            bindFields(solver_m, fields);
-        }
-
-        std::string_view P3MPoissonBackendAdapter::name() noexcept { return "P3M"; }
-
-        const PoissonSolverCapabilities& P3MPoissonBackendAdapter::capabilities() noexcept {
-            return p3mCapabilities;
-        }
-
-        double P3MPoissonBackendAdapter::couplingConstant() noexcept {
-            return 1.0 / Physics::epsilon_0;
-        }
-
-        void P3MPoissonBackendAdapter::solve(const PoissonSolveRequest&) { solver_m.solve(); }
-
-    }  // namespace detail
-
     PoissonSolver::PoissonSolver(PoissonSolverConfig config, PoissonFieldBinding fields)
         : config_m(std::move(config)), fields_m(fields) {
         requireCommonFields(fields_m, "PoissonSolver::PoissonSolver");
-        constructBackend(fields_m);
+        constructBackend();
+        bindBackendFields(fields_m);
     }
 
-    void PoissonSolver::constructBackend(PoissonFieldBinding fields) {
+    void PoissonSolver::constructBackend() {
         switch (config_m.type) {
-            case PoissonSolverType::None:
-                backend_m.emplace<detail::NullPoissonBackendAdapter>(config_m, fields);
-                return;
-            case PoissonSolverType::PeriodicFFT:
-                backend_m.emplace<detail::PeriodicFFTPoissonBackendAdapter>(config_m, fields);
-                return;
-            case PoissonSolverType::Open:
-                backend_m.emplace<detail::OpenPoissonBackendAdapter>(config_m, fields);
-                return;
-            case PoissonSolverType::P3M:
-                backend_m.emplace<detail::P3MPoissonBackendAdapter>(config_m, fields);
-                return;
+            case PoissonSolverType::None: {
+                auto& backend = backend_m.emplace<NullBackend>();
+                backend.mergeParameters(ippl::ParameterList{});
+                break;
+            }
+            case PoissonSolverType::PeriodicFFT: {
+                auto& backend                  = backend_m.emplace<PeriodicBackend>();
+                ippl::ParameterList parameters = commonFftParameters();
+                parameters.add("output_type", PeriodicBackend::GRAD);
+                backend.mergeParameters(parameters);
+                break;
+            }
+            case PoissonSolverType::Open: {
+                auto& backend                  = backend_m.emplace<OpenBackend>();
+                ippl::ParameterList parameters = commonFftParameters();
+                parameters.add("output_type", OpenBackend::SOL_AND_GRAD);
+                parameters.add("algorithm", OpenBackend::HOCKNEY);
+                parameters.add("greens_function", openGreenFunctionValue(config_m.greenFunction));
+                backend.mergeParameters(parameters);
+                break;
+            }
+            case PoissonSolverType::P3M: {
+                if (!(config_m.p3mCutoff > 0.0)) {
+                    throw OpalException(
+                            "PoissonSolver::constructBackend",
+                            "The P3M cutoff radius must be positive.");
+                }
+                const bool allPeriodic = std::all_of(
+                        config_m.boundaryConditions.begin(), config_m.boundaryConditions.end(),
+                        [](FieldBoundaryCondition kind) {
+                            return kind == FieldBoundaryCondition::Periodic;
+                        });
+                const bool allOpen = std::all_of(
+                        config_m.boundaryConditions.begin(), config_m.boundaryConditions.end(),
+                        [](FieldBoundaryCondition kind) {
+                            return kind == FieldBoundaryCondition::Open;
+                        });
+                if (!allPeriodic && !allOpen) {
+                    throw OpalException(
+                            "PoissonSolver::constructBackend",
+                            "P3M requires uniform OPEN or PERIODIC boundary conditions.");
+                }
+                auto& backend                  = backend_m.emplace<P3MBackend>();
+                ippl::ParameterList parameters = commonFftParameters();
+                parameters.add("output_type", P3MBackend::GRAD);
+                parameters.add("alpha", 2.0 / config_m.p3mCutoff);
+                parameters.add("force_constant", -1.0 / (4.0 * Physics::pi));
+                parameters.add("regularization_cutoff", 1.0e-9);
+                parameters.add(
+                        "boundary_type", allPeriodic ? P3MBackend::PERIODIC : P3MBackend::OPEN);
+                backend.mergeParameters(parameters);
+                break;
+            }
             case PoissonSolverType::ConjugateGradient:
                 throw OpalException(
                         "PoissonSolver::constructBackend",
@@ -357,6 +276,21 @@ namespace opalx::spacecharge {
         throw OpalException(
                 "PoissonSolver::constructBackend",
                 "No IPPL backend matches the Poisson configuration.");
+    }
+
+    void PoissonSolver::bindBackendFields(PoissonFieldBinding fields) {
+        std::visit(
+                [&fields](auto& backend) {
+                    using Backend = std::decay_t<decltype(backend)>;
+                    if constexpr (std::is_same_v<Backend, std::monostate>) {
+                        throw OpalException(
+                                "PoissonSolver::bindBackendFields",
+                                "The Poisson backend has not been constructed.");
+                    } else {
+                        bindFields(backend, fields);
+                    }
+                },
+                backend_m);
     }
 
     void PoissonSolver::solve(
@@ -382,12 +316,20 @@ namespace opalx::spacecharge {
         std::visit(
                 [&request](auto& backend) {
                     using Backend = std::decay_t<decltype(backend)>;
-                    if constexpr (detail::PoissonBackend<Backend>) {
-                        backend.solve(request);
-                    } else {
+                    if constexpr (std::is_same_v<Backend, std::monostate>) {
                         throw OpalException(
                                 "PoissonSolver::solve",
                                 "The Poisson backend has not been constructed.");
+                    } else if constexpr (std::is_same_v<Backend, OpenBackend>) {
+                        if (request.hasShiftedGreenFunction()) {
+                            backend.shiftedGreensFunction(*request.greenFunctionShift);
+                            backend.solve();
+                            backend.greensFunction();
+                        } else {
+                            backend.solve();
+                        }
+                    } else {
+                        backend.solve();
                     }
                 },
                 backend_m);
@@ -416,53 +358,55 @@ namespace opalx::spacecharge {
         // plans for the old extents. Complete that work before destroying the typed backend, then
         // reconstruct it so IPPL allocates matching internal fields as well as a matching plan.
         Kokkos::fence();
-        constructBackend(fields);
+        constructBackend();
+        bindBackendFields(fields);
         fields_m = fields;
     }
 
     std::string_view PoissonSolver::name() const {
-        return std::visit(
-                [](const auto& backend) -> std::string_view {
-                    using Backend = std::decay_t<decltype(backend)>;
-                    if constexpr (detail::PoissonBackend<Backend>) {
-                        return Backend::name();
-                    } else {
-                        throw OpalException(
-                                "PoissonSolver::name",
-                                "The Poisson backend has not been constructed.");
-                    }
-                },
-                backend_m);
+        switch (config_m.type) {
+            case PoissonSolverType::None:
+                return "NONE";
+            case PoissonSolverType::PeriodicFFT:
+                return "FFT";
+            case PoissonSolverType::Open:
+                return "OPEN";
+            case PoissonSolverType::P3M:
+                return "P3M";
+            case PoissonSolverType::ConjugateGradient:
+                return "CG";
+        }
+        throw OpalException("PoissonSolver::name", "Unknown Poisson backend.");
     }
 
     const PoissonSolverCapabilities& PoissonSolver::capabilities() const {
-        return std::visit(
-                [](const auto& backend) -> const PoissonSolverCapabilities& {
-                    using Backend = std::decay_t<decltype(backend)>;
-                    if constexpr (detail::PoissonBackend<Backend>) {
-                        return Backend::capabilities();
-                    } else {
-                        throw OpalException(
-                                "PoissonSolver::capabilities",
-                                "The Poisson backend has not been constructed.");
-                    }
-                },
-                backend_m);
+        switch (config_m.type) {
+            case PoissonSolverType::None:
+                return nullCapabilities;
+            case PoissonSolverType::PeriodicFFT:
+                return fftCapabilities;
+            case PoissonSolverType::Open:
+                return openCapabilities;
+            case PoissonSolverType::P3M:
+                return p3mCapabilities;
+            case PoissonSolverType::ConjugateGradient:
+                break;
+        }
+        throw OpalException(
+                "PoissonSolver::capabilities", "The CG Poisson backend is not implemented.");
     }
 
     double PoissonSolver::couplingConstant() const {
-        return std::visit(
-                [](const auto& backend) -> double {
-                    using Backend = std::decay_t<decltype(backend)>;
-                    if constexpr (detail::PoissonBackend<Backend>) {
-                        return Backend::couplingConstant();
-                    } else {
-                        throw OpalException(
-                                "PoissonSolver::couplingConstant",
-                                "The Poisson backend has not been constructed.");
-                    }
-                },
-                backend_m);
+        if (config_m.type == PoissonSolverType::None) {
+            return 1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
+        }
+        if (config_m.type == PoissonSolverType::PeriodicFFT
+            || config_m.type == PoissonSolverType::Open
+            || config_m.type == PoissonSolverType::P3M) {
+            return 1.0 / Physics::epsilon_0;
+        }
+        throw OpalException(
+                "PoissonSolver::couplingConstant", "The CG Poisson backend is not implemented.");
     }
 
 }  // namespace opalx::spacecharge

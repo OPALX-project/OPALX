@@ -11,7 +11,6 @@
 #include "SpaceCharge/SpaceChargeConfig.h"
 
 #include <array>
-#include <concepts>
 #include <cstddef>
 #include <optional>
 #include <string_view>
@@ -19,13 +18,11 @@
 
 namespace opalx::spacecharge {
 
-    /** @brief Borrowed grid fields required by every supported Poisson solver. */
     struct PoissonFieldBinding {
         Field_t<3>* chargeDensity          = nullptr;
         VField_t<double, 3>* electricField = nullptr;
     };
 
-    /** @brief Per-call changes to the Green function used by a Poisson solve. */
     struct PoissonSolveRequest {
         std::optional<ippl::Vector<double, 3>> greenFunctionShift;
 
@@ -34,12 +31,10 @@ namespace opalx::spacecharge {
         }
     };
 
-    /** @brief Per-call output controls that do not affect the computed field. */
     struct PoissonSolveOptions {
         bool suppressFieldDump = false;
     };
 
-    /** @brief Storage and normalization behavior of a selected Poisson solver. */
     struct PoissonSolverCapabilities {
         bool isNoOp                         = false;
         bool supportsShiftedGreenFunction   = false;
@@ -59,101 +54,11 @@ namespace opalx::spacecharge {
                 FieldBoundaryCondition::Open};
     };
 
-    namespace detail {
-
-        /**
-         * @brief Compile-time contract for an OPALX adapter around an IPPL Poisson solver.
-         *
-         * An adapter owns one concrete backend, configures it from the flat solver snapshot, and
-         * binds RHS before LHS during construction. Backend-specific temporary behavior belongs in
-         * solve(); the facade depends only on this contract.
-         */
-        template <typename Backend>
-        concept PoissonBackend =
-                std::constructible_from<Backend, const PoissonSolverConfig&, PoissonFieldBinding>
-                && requires(Backend& backend, const PoissonSolveRequest& request) {
-                       { Backend::name() } -> std::same_as<std::string_view>;
-                       {
-                           Backend::capabilities()
-                       } -> std::same_as<const PoissonSolverCapabilities&>;
-                       { Backend::couplingConstant() } -> std::same_as<double>;
-                       { backend.solve(request) } -> std::same_as<void>;
-                   };
-
-        class NullPoissonBackendAdapter final {
-        public:
-            NullPoissonBackendAdapter(
-                    const PoissonSolverConfig& config, PoissonFieldBinding fields);
-
-            [[nodiscard]] static std::string_view name() noexcept;
-            [[nodiscard]] static const PoissonSolverCapabilities& capabilities() noexcept;
-            [[nodiscard]] static double couplingConstant() noexcept;
-            void solve(const PoissonSolveRequest& request);
-
-        private:
-            NullSolver_t<double, 3> solver_m;
-        };
-
-        class PeriodicFFTPoissonBackendAdapter final {
-        public:
-            PeriodicFFTPoissonBackendAdapter(
-                    const PoissonSolverConfig& config, PoissonFieldBinding fields);
-
-            [[nodiscard]] static std::string_view name() noexcept;
-            [[nodiscard]] static const PoissonSolverCapabilities& capabilities() noexcept;
-            [[nodiscard]] static double couplingConstant() noexcept;
-            void solve(const PoissonSolveRequest& request);
-
-        private:
-            FFTSolver_t<double, 3> solver_m;
-        };
-
-        class OpenPoissonBackendAdapter final {
-        public:
-            OpenPoissonBackendAdapter(
-                    const PoissonSolverConfig& config, PoissonFieldBinding fields);
-
-            [[nodiscard]] static std::string_view name() noexcept;
-            [[nodiscard]] static const PoissonSolverCapabilities& capabilities() noexcept;
-            [[nodiscard]] static double couplingConstant() noexcept;
-            void solve(const PoissonSolveRequest& request);
-
-        private:
-            OpenSolver_t<double, 3> solver_m;
-        };
-
-        class P3MPoissonBackendAdapter final {
-        public:
-            P3MPoissonBackendAdapter(const PoissonSolverConfig& config, PoissonFieldBinding fields);
-
-            [[nodiscard]] static std::string_view name() noexcept;
-            [[nodiscard]] static const PoissonSolverCapabilities& capabilities() noexcept;
-            [[nodiscard]] static double couplingConstant() noexcept;
-            void solve(const PoissonSolveRequest& request);
-
-        private:
-            FFTTruncatedGreenSolver_t<double, 3> solver_m;
-        };
-
-        static_assert(PoissonBackend<NullPoissonBackendAdapter>);
-        static_assert(PoissonBackend<PeriodicFFTPoissonBackendAdapter>);
-        static_assert(PoissonBackend<OpenPoissonBackendAdapter>);
-        static_assert(PoissonBackend<P3MPoissonBackendAdapter>);
-
-    }  // namespace detail
-
     /**
-     * @brief OPALX-owned variant over the supported IPPL Poisson solver implementations.
+     * @brief Host-only variant over concrete IPPL Poisson backends.
      *
-     * rebuildAfterLayoutChange() reconstructs the typed adapter after a layout change. Each adapter
-     * binds the right-hand side before the left-hand side; reconstruction also resizes private FFT
-     * fields and heFFTe plans that IPPL cannot refresh through its public interface. Construction
-     * and execution are host-only; no concrete backend type crosses this boundary.
-     *
-     * To integrate another grid-based IPPL solver, add its parser/config enum mapping, implement a
-     * PoissonBackend adapter, append that adapter to Backend, and add one construction case. The
-     * Cartesian algorithm and SpaceChargeSolveContext remain unchanged. CG remains reserved until
-     * its scalar potential and gradient bindings are implemented together.
+     * Native backends are fully emplaced before setRhs() initializes their fields and CUDA/FFT
+     * resources. Layout changes reconstruct the backend and preserve RHS-before-LHS binding.
      */
     class PoissonSolver final {
     public:
@@ -174,12 +79,15 @@ namespace opalx::spacecharge {
         [[nodiscard]] double couplingConstant() const;
 
     private:
-        void constructBackend(PoissonFieldBinding fields);
+        void constructBackend();
+        void bindBackendFields(PoissonFieldBinding fields);
 
-        using Backend = std::variant<
-                std::monostate, detail::NullPoissonBackendAdapter,
-                detail::PeriodicFFTPoissonBackendAdapter, detail::OpenPoissonBackendAdapter,
-                detail::P3MPoissonBackendAdapter>;
+        using NullBackend     = NullSolver_t<double, 3>;
+        using PeriodicBackend = FFTSolver_t<double, 3>;
+        using OpenBackend     = OpenSolver_t<double, 3>;
+        using P3MBackend      = FFTTruncatedGreenSolver_t<double, 3>;
+        using Backend =
+                std::variant<std::monostate, NullBackend, PeriodicBackend, OpenBackend, P3MBackend>;
 
         Backend backend_m;
         const PoissonSolverConfig config_m;
