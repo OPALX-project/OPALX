@@ -1,7 +1,4 @@
-/**
- * @file SpaceChargeConfigBuilder.h
- * @brief Converts setup-time parser objects into immutable space-charge configuration.
- */
+/** @file SpaceChargeConfigBuilder.h @brief Converts parser state into runtime configuration. */
 
 #ifndef OPALX_SPACE_CHARGE_CONFIG_BUILDER_H
 #define OPALX_SPACE_CHARGE_CONFIG_BUILDER_H
@@ -15,18 +12,9 @@ class FieldSolverCmd;
 
 namespace opalx::spacecharge {
 
-    /** @brief One-time conversion boundary from parser objects to space-charge configuration. */
-    class SpaceChargeConfigBuilder {
-    public:
-        /**
-         * @brief Snapshot the field-solver, binning, option, and emission-source configuration.
-         *
-         * No parser pointer is retained in the returned value.
-         */
-        [[nodiscard]] static SpaceChargeConfig build(
-                const FieldSolverCmd& fieldSolver,
-                const std::vector<std::vector<EmissionSource*>>& emissionSources);
-    };
+    [[nodiscard]] SpaceChargeConfig buildSpaceChargeConfig(
+            const FieldSolverCmd& fieldSolver,
+            const std::vector<std::vector<EmissionSource*>>& emissionSources);
 
 }  // namespace opalx::spacecharge
 

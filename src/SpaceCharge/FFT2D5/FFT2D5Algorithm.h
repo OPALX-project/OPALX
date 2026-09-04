@@ -11,13 +11,15 @@
 #include "SpaceCharge/FFT2D5/ReferencePath.h"
 #include "SpaceCharge/SpaceChargeAlgorithm.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
-#include "SpaceCharge/SpaceChargeFrameTransform.h"
+#include "SpaceCharge/SpaceChargeFrames.h"
 
 #include <Kokkos_Core.hpp>
 
 #include <memory>
 #include <span>
 #include <vector>
+
+class BunchStateHandler;
 
 namespace opalx::spacecharge {
 
@@ -41,10 +43,10 @@ namespace opalx::spacecharge {
         using VectorGridView3   = VField_t<double, 3>::view_type;
 
         FFT2D5Algorithm(
-                FFT2D5Config config, std::span<const ParticleFieldBinding3D> particleBindings);
+                FFT2D5Config config, std::span<ParticleContainer* const> particles,
+                std::shared_ptr<const BunchStateHandler> bunchState);
 
-        [[nodiscard]] SpaceChargeCapabilities capabilities() const override;
-        void solve(SpaceChargeSolveContext& context, SpaceChargeDiagnostics& diagnostics) override;
+        [[nodiscard]] SpaceChargeSolveResult solve(const SpaceChargeSolveContext& context) override;
 
         [[nodiscard]] bool initialized() const { return fieldStorage_m != nullptr; }
         [[nodiscard]] std::size_t sliceCount() const;
@@ -61,7 +63,7 @@ namespace opalx::spacecharge {
          * slice fields and the longitudinal line-density field are then gathered, unboosted, and
          * transformed back to Cartesian coordinates.
          */
-        void solveFields(SpaceChargeSolveContext& context, SpaceChargeDiagnostics& diagnostics);
+        void solveFields(const SpaceChargeSolveContext& context, SpaceChargeSolveResult& result);
 
         /**
          * @brief Deposit every selected container into the shared 3D charge-density staging field.
@@ -77,7 +79,7 @@ namespace opalx::spacecharge {
          * Each 2D IPPL field owns its own allocation, so charge is copied out of the 3D staging
          * field and the solved transverse field is copied back after each solve.
          */
-        void solveSlicePoissonProblems(SpaceChargeDiagnostics& diagnostics);
+        void solveSlicePoissonProblems(SpaceChargeSolveResult& result);
 
         /** @brief Integrate transverse density and form the guarded longitudinal gradient. */
         void calculateLineDensity();
@@ -163,6 +165,7 @@ namespace opalx::spacecharge {
     private:
         FFT2D5Config config_m;
         std::vector<ParticleContainer*> particles_m;
+        std::shared_ptr<const BunchStateHandler> bunchState_m;
         std::unique_ptr<ReferencePath> referencePath_m;
         std::unique_ptr<FFT2D5FieldStorage> fieldStorage_m;
         LineDensityView lineDensity_m;

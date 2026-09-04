@@ -37,9 +37,9 @@ namespace opalx::spacecharge {
         using OpenSolver2  = ippl::FFTOpenPoissonSolver<VectorField2, ScalarField2>;
 
         struct Slice final {
-            std::shared_ptr<VectorField2> electricField;
-            std::shared_ptr<ScalarField2> chargeDensity;
-            std::shared_ptr<OpenSolver2> solver;
+            std::unique_ptr<VectorField2> electricField;
+            std::unique_ptr<ScalarField2> chargeDensity;
+            std::unique_ptr<OpenSolver2> solver;
         };
 
         FFT2D5FieldStorage(const FFT2D5Config& config, double pathLength);

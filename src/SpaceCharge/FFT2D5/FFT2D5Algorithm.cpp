@@ -5,8 +5,8 @@
 
 #include "SpaceCharge/FFT2D5/FFT2D5Algorithm.h"
 
+#include "PartBunch/BunchStateHandler.h"
 #include "Physics/Physics.h"
-#include "SpaceCharge/SpaceChargeDiagnostics.h"
 #include "Utilities/OpalException.h"
 
 #include <Kokkos_NumericTraits.hpp>
@@ -20,51 +20,59 @@
 namespace opalx::spacecharge {
 
     FFT2D5Algorithm::FFT2D5Algorithm(
-            FFT2D5Config config, std::span<const ParticleFieldBinding3D> particleBindings)
-        : config_m(std::move(config)) {
-        particles_m.reserve(particleBindings.size());
-        for (const ParticleFieldBinding3D& binding : particleBindings) {
-            if (binding.container == nullptr) {
+            FFT2D5Config config, std::span<ParticleContainer* const> particles,
+            std::shared_ptr<const BunchStateHandler> bunchState)
+        : config_m(std::move(config)), bunchState_m(std::move(bunchState)) {
+        particles_m.reserve(particles.size());
+        for (ParticleContainer* particleContainer : particles) {
+            if (particleContainer == nullptr) {
                 throw OpalException(
                         "FFT2D5Algorithm::FFT2D5Algorithm",
                         "FFT2D5 cannot borrow a null particle container.");
             }
-            particles_m.push_back(binding.container);
+            particles_m.push_back(particleContainer);
         }
         if (particles_m.empty()) {
             throw OpalException(
                     "FFT2D5Algorithm::FFT2D5Algorithm",
                     "FFT2D5 requires at least one particle container.");
         }
+        if (bunchState_m == nullptr) {
+            throw OpalException(
+                    "FFT2D5Algorithm::FFT2D5Algorithm", "The bunch state handler is null.");
+        }
     }
 
-    SpaceChargeCapabilities FFT2D5Algorithm::capabilities() const {
-        SpaceChargeCapabilities result;
-        result.particleSelection       = ParticleSelectionMode::AllTrackingActive;
-        result.supportsBinning         = false;
-        result.supportsImageCharge     = false;
-        result.supportsShiftedGreen    = false;
-        result.supportsRedistribution  = false;
-        result.supportsPotentialOutput = false;
-        return result;
-    }
-
-    void FFT2D5Algorithm::solve(
-            SpaceChargeSolveContext& context, SpaceChargeDiagnostics& diagnostics) {
+    SpaceChargeSolveResult FFT2D5Algorithm::solve(const SpaceChargeSolveContext& context) {
         if (context.stepState().mpiSize != 1) {
             throw OpalException(
                     "FFT2D5Algorithm::solve",
                     "FFT2D5 currently supports only one MPI rank. Distributed fields and ORB "
                     "load balancing are not implemented for this solver.");
         }
+        if (bunchState_m->fixedCartesianDomain().has_value()) {
+            throw OpalException(
+                    "FFT2D5Algorithm::solve", "FFT2D5 does not support a fixed Cartesian domain.");
+        }
         ensureInitialized();
 
-        SpaceChargeFrameTransform<double, 3> frameTransform(
-                context.stepState().frames, *particles_m.front());
-        frameTransform.enter();
-        frameTransform.markComputedFields();
-        solveFields(context, diagnostics);
-        frameTransform.leave();
+        for (std::size_t index = 0; index < particles_m.size(); ++index) {
+            if (isSelected(context, index)) {
+                enterSolveFrame(context.stepState().frames, *particles_m[index]);
+            }
+        }
+        SpaceChargeSolveResult result;
+        solveFields(context, result);
+        for (std::size_t index = 0; index < particles_m.size(); ++index) {
+            if (!isSelected(context, index)) {
+                continue;
+            }
+            ParticleContainer& particles = *particles_m[index];
+            leaveSolveFrame(context.stepState().frames, particles);
+            particles.markMomentsDirty();
+            particles.updateMoments();
+        }
+        return result;
     }
 
     std::size_t FFT2D5Algorithm::sliceCount() const {
@@ -87,7 +95,7 @@ namespace opalx::spacecharge {
         // Construct every dependent object locally first. A failed path load or field allocation
         // leaves the algorithm uninitialized, so the next solve can retry without partial state.
         auto referencePath =
-                std::make_unique<ReferencePath>(ReferencePath::load(config_m.referencePathFile()));
+                std::make_unique<ReferencePath>(ReferencePath::load(config_m.referencePathFile));
         auto fieldStorage = std::make_unique<FFT2D5FieldStorage>(config_m, referencePath->length());
         LineDensityView lineDensity(
                 "FFT2D5LineDensity", fieldStorage->slices().size() + LineDensityGhostCells);
@@ -101,16 +109,16 @@ namespace opalx::spacecharge {
     }
 
     void FFT2D5Algorithm::solveFields(
-            SpaceChargeSolveContext& context, SpaceChargeDiagnostics& diagnostics) {
+            const SpaceChargeSolveContext& context, SpaceChargeSolveResult& result) {
         scatterToGrid(context);
-        solveSlicePoissonProblems(diagnostics);
+        solveSlicePoissonProblems(result);
         calculateLineDensity();
         gatherFromGrid(context);
     }
 
     bool FFT2D5Algorithm::isSelected(
             const SpaceChargeSolveContext& context, std::size_t index) const {
-        return context.particles().bindings()[index].selectedForSolve;
+        return context.trackingActive()[index] != 0;
     }
 
     void FFT2D5Algorithm::scatterToGrid(const SpaceChargeSolveContext& context) {
@@ -136,13 +144,18 @@ namespace opalx::spacecharge {
             }
             ParticleContainer& particles = *particles_m[containerIndex];
             particles.updateMoments();
+            if (particles.getTotalNum() > 0 && particles.getChargePerParticle() == 0.0) {
+                throw OpalException(
+                        "FFT2D5Algorithm::scatterToGrid",
+                        "Per-particle charge is zero for an active FFT2D5 container.");
+            }
             particles.scaleDtByCharge();
             const auto position       = particles.R.getView();
             const auto momentum       = particles.P.getView();
             const double meanPs       = particles.getMeanP()[2];
             const auto timeStepCharge = particles.dt.getView();
             const auto invalid        = particles.InvalidMask.getView();
-            if (config_m.scatterLongitudinally()) {
+            if (config_m.scatterLongitudinally) {
                 Kokkos::parallel_for(
                         "FFT2D5Algorithm::scatterToGrid::3d", particles.getLocalNum(),
                         KOKKOS_LAMBDA(const std::size_t index) {
@@ -165,7 +178,7 @@ namespace opalx::spacecharge {
             particles.unscaleDtByCharge();
         }
 
-        if (config_m.closedRing()) {
+        if (config_m.closedRing) {
             // Fold periodic ghost charge into the opposite real boundary before slice solves.
             constexpr std::size_t firstReal = LineDensityFirstRealCell;
             const std::size_t lastReal =
@@ -303,7 +316,7 @@ namespace opalx::spacecharge {
         }
     }
 
-    void FFT2D5Algorithm::solveSlicePoissonProblems(SpaceChargeDiagnostics& diagnostics) {
+    void FFT2D5Algorithm::solveSlicePoissonProblems(SpaceChargeSolveResult& result) {
         using Policy         = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
         auto& rho3d          = fieldStorage_m->chargeDensity();
         auto& electric3d     = fieldStorage_m->electricField();
@@ -326,7 +339,7 @@ namespace opalx::spacecharge {
                         rho2dView(i, j) /= Physics::epsilon_0;
                     });
             slice.solver->solve();
-            diagnostics.recordBackendSolve();
+            ++result.backendSolves;
             Kokkos::fence();
             auto electric2dView = slice.electricField->getView();
             Kokkos::parallel_for(
@@ -342,7 +355,7 @@ namespace opalx::spacecharge {
 
         constexpr std::size_t leftGhost = 0;
         const std::size_t rightGhost    = electric3dView.extent(2) - 1;
-        if (config_m.closedRing()) {
+        if (config_m.closedRing) {
             // Periodic ghosts expose the opposite real slice to the bilateral gather.
             Kokkos::parallel_for(
                     "FFT2D5Algorithm::solveSlicePoissonProblems::closed-boundary",
@@ -365,7 +378,7 @@ namespace opalx::spacecharge {
     }
 
     void FFT2D5Algorithm::calculateLineDensity() {
-        if (config_m.longitudinalFieldMode() == FFT2D5LongitudinalFieldMode::None) {
+        if (config_m.longitudinalFieldMode == FFT2D5LongitudinalFieldMode::None) {
             Kokkos::deep_copy(lineDensity_m, 0.0);
             Kokkos::deep_copy(lineDensityGradient_m, 0.0);
             return;
@@ -385,7 +398,7 @@ namespace opalx::spacecharge {
                     sum);
             hostLineDensity(k) = sum;
         }
-        if (config_m.closedRing()) {
+        if (config_m.closedRing) {
             hostLineDensity(0)              = hostLineDensity(sliceCount);
             hostLineDensity(sliceCount + 1) = hostLineDensity(LineDensityFirstRealCell);
         } else {
@@ -421,11 +434,11 @@ namespace opalx::spacecharge {
     double FFT2D5Algorithm::longitudinalGeometryFactor() const {
         const double pipeRadius = std::min(fieldStorage_m->size()[0], fieldStorage_m->size()[1]);
         double factor           = OpenG0;
-        if (config_m.longitudinalFieldMode() == FFT2D5LongitudinalFieldMode::Cylindrical) {
-            factor = CircularPipeG0 + 2.0 * std::log(pipeRadius / config_m.beamRadius());
-        } else if (config_m.longitudinalFieldMode() == FFT2D5LongitudinalFieldMode::Plates) {
+        if (config_m.longitudinalFieldMode == FFT2D5LongitudinalFieldMode::Cylindrical) {
+            factor = CircularPipeG0 + 2.0 * std::log(pipeRadius / config_m.beamRadius);
+        } else if (config_m.longitudinalFieldMode == FFT2D5LongitudinalFieldMode::Plates) {
             factor = ParallelPlatesG0
-                     + 2.0 * std::log(4.0 * pipeRadius / (Physics::pi * config_m.beamRadius()));
+                     + 2.0 * std::log(4.0 * pipeRadius / (Physics::pi * config_m.beamRadius));
         }
         return factor / (4.0 * Physics::pi * Physics::epsilon_0);
     }

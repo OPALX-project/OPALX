@@ -28,7 +28,7 @@
 #include "Steppers/SpinTBMTPusher.h"
 #include "Structure/DataSink.h"
 
-#include "SpaceCharge/SpaceChargeRequestSchedule.h"
+#include "SpaceCharge/SpaceChargeConfig.h"
 #include "SpaceCharge/SpaceChargeSolveContext.h"
 
 #include "BasicActions/Option.h"
@@ -82,13 +82,11 @@ private:
     DataSink* itsDataSink_m;  ///< Borrowed beam statistics and phase-space output sink.
     opalx::spacecharge::SpaceChargeSolver*
             spaceChargeSolver_m;  ///< Borrowed run-lifetime space-charge solver.
-    opalx::spacecharge::SpaceChargeRequestSchedule
-            spaceChargeRequestSchedule_m;  ///< Immutable input-derived per-step request rules.
-    std::vector<opalx::spacecharge::ParticleFieldBinding3D>
-            spaceChargeParticleBindings_m;  ///< Stable identities and per-call selection flags.
-    OpalBeamline itsOpalBeamline_m;         ///< Cloned field elements and coordinate transforms.
-    bool globalEOL_m;  ///< End-of-line flag (e.g. orbit threader out of bounds).
-    double sStart_m;   ///< Path-length start position for the track (m).
+    opalx::spacecharge::CorrectionConfig spaceChargeCorrection_m;
+    std::vector<std::uint8_t> spaceChargeContainerActivity_m;
+    OpalBeamline itsOpalBeamline_m;  ///< Cloned field elements and coordinate transforms.
+    bool globalEOL_m;                ///< End-of-line flag (e.g. orbit threader out of bounds).
+    double sStart_m;                 ///< Path-length start position for the track (m).
 
     /** Step-size segments: s-stop, dt, and steps per segment. */
     StepSizeConfig stepSizes_m;
@@ -123,7 +121,7 @@ public:
      * @param bl                Beamline definition.
      * @param bunch             Borrowed particle bunch (multi-container).
      * @param spaceChargeSolver   Borrowed solver owned by TrackRun.
-     * @param requestSchedule     Immutable input-derived per-step space-charge requests.
+     * @param correction         Source-plane correction used by tracker-side loss handling.
      * @param ds                Borrowed data sink for statistics and dumps.
      * @param revBeam           Reversed beam flag (see single-argument constructor).
      * @param maxSTEPS          Max integration steps per s-segment (parallel to sStop/dt).
@@ -139,8 +137,8 @@ public:
     explicit ParallelTracker(
             const Beamline& bl, PartBunch_t& bunch,
             opalx::spacecharge::SpaceChargeSolver& spaceChargeSolver,
-            opalx::spacecharge::SpaceChargeRequestSchedule requestSchedule, DataSink* ds,
-            bool revBeam, const std::vector<unsigned long long>& maxSTEPS, double sStart,
+            opalx::spacecharge::CorrectionConfig correction, DataSink* ds, bool revBeam,
+            const std::vector<unsigned long long>& maxSTEPS, double sStart,
             const std::vector<double>& sStop, const std::vector<double>& dt,
             const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers = {},
             bool restarting = false, unsigned long long restartGlobalStep = 0,
@@ -277,7 +275,7 @@ private:
     };
 
     /// @brief Build stable native particle and field identities once.
-    void initializeSpaceChargeParticleBindings();
+    void initializeSpaceChargeContainerActivity();
 
     [[nodiscard]] opalx::spacecharge::CoordinateFrameTransforms makeSpaceChargeFrameTransforms()
             const;

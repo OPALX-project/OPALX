@@ -54,7 +54,7 @@ namespace opalx::spacecharge {
             }
 
             [[nodiscard]] BinningConfig config(bool adaptive) const {
-                BinningConfig::Parameters values;
+                BinningConfig values;
                 values.name          = "PLAN_TEST";
                 values.maximumBins   = 4;
                 values.desiredWidth  = 0.15;
@@ -63,7 +63,7 @@ namespace opalx::spacecharge {
                 values.parameter     = BinningVariable::VelocityZ;
                 values.adaptive      = adaptive;
                 values.dumpFrequency = 1;
-                return BinningConfig(std::move(values));
+                return values;
             }
 
             std::unique_ptr<Mesh_t<3>> mesh_m;
@@ -72,12 +72,12 @@ namespace opalx::spacecharge {
         };
 
         TEST_F(ParticleBinTraversalTest, RequiresPreparationBeforeLazyTraversal) {
-            ParticleBinTraversal<double, 3> plan(*particles_m, config(false));
+            ParticleBinTraversal plan(*particles_m, config(false));
             EXPECT_THROW(static_cast<void>(plan.nextNonemptyBin()), OpalException);
         }
 
         TEST_F(ParticleBinTraversalTest, TraversesOnlyNonemptyBinsAndReturnsOptionalSnapshot) {
-            ParticleBinTraversal<double, 3> plan(*particles_m, config(false));
+            ParticleBinTraversal plan(*particles_m, config(false));
             const BinPreparationResult prepared = plan.prepareBins(true);
             EXPECT_GT(prepared.mergedBinCount, 0u);
             EXPECT_TRUE(prepared.beforeMerge.has_value());
@@ -97,7 +97,7 @@ namespace opalx::spacecharge {
         }
 
         TEST_F(ParticleBinTraversalTest, CapturesPostMergeSnapshotOnlyForAdaptiveBinning) {
-            ParticleBinTraversal<double, 3> plan(*particles_m, config(true));
+            ParticleBinTraversal plan(*particles_m, config(true));
             const BinPreparationResult prepared = plan.prepareBins(true);
             EXPECT_TRUE(prepared.beforeMerge.has_value());
             EXPECT_TRUE(prepared.afterMerge.has_value());

@@ -11,10 +11,8 @@
 namespace opalx::spacecharge {
 
     SpaceChargeSolveContext::SpaceChargeSolveContext(
-            ParticleFieldSet particles, SpaceChargeStepState stepState, SpaceChargeRequest request)
-        : particles_m(std::move(particles)),
-          stepState_m(std::move(stepState)),
-          request_m(std::move(request)) {
+            std::span<const std::uint8_t> trackingActive, SpaceChargeStepState stepState)
+        : trackingActive_m(trackingActive), stepState_m(std::move(stepState)) {
         if (stepState_m.mpiSize < 1) {
             throw std::invalid_argument(
                     "SpaceChargeSolveContext communicator size must be positive");

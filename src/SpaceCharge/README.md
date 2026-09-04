@@ -1,71 +1,48 @@
 # Space-Charge Architecture
 
-`SpaceChargeSolver` is the stable tracker-facing orchestrator. It validates immutable configuration,
-particle binding identity, per-step requests, and bunch-wide fixed-domain state before dispatching a
-compiled-in `SpaceChargeAlgorithm`.
+`SpaceChargeSolver` is the tracker-facing owner of one compiled-in `SpaceChargeAlgorithm`. The
+tracker supplies only step state and per-container activity; concrete algorithms borrow stable
+particle containers at construction and reacquire Kokkos views after migration.
 
 ```mermaid
 flowchart LR
-    Tracker[ParallelTracker] -->|borrowed SpaceChargeSolveContext| Solver[SpaceChargeSolver]
-    Factory[SpaceChargeSolverFactory] --> Solver
-    Solver --> Algorithm[SpaceChargeAlgorithm]
-    Algorithm --> Cartesian[CartesianPICAlgorithm]
-    Algorithm --> FFT25[FFT2D5Algorithm]
-    Cartesian -->|read-only persistent state| BunchState[BunchStateHandler]
+    Tracker[ParallelTracker] --> Solver[SpaceChargeSolver]
+    Factory[makeSpaceChargeSolver] --> Solver
+    Solver --> Cartesian[CartesianPICAlgorithm]
+    Solver --> FFT25[FFT2D5Algorithm]
+    Cartesian --> State[BunchStateHandler]
     Cartesian --> Domain[CartesianDomainUpdater]
+    Cartesian --> Bins[ParticleBinTraversal]
     Cartesian --> Poisson[PoissonSolver]
-    Poisson --> Contract[PoissonBackend concept]
-    Contract --> Null[Null adapter]
-    Contract --> FFT[Periodic FFT adapter]
-    Contract --> Open[Open adapter]
-    Contract --> P3M[P3M adapter]
+    Poisson --> Backends[Native IPPL backend variant]
 ```
 
-## Algorithm Extension
+## Extension Points
 
-A meshless or tree-based implementation derives directly from `SpaceChargeAlgorithm`. Adding a
-compiled-in algorithm requires:
+A new independent algorithm adds a `SpaceChargeConfig` alternative, parser conversion in
+`buildSpaceChargeConfig()`, construction in `makeSpaceChargeSolver()`, and a
+`SpaceChargeAlgorithm` implementation. Meshless and tree algorithms belong at this boundary rather
+than in Cartesian PIC or `PoissonSolver`.
 
-1. A parser-independent configuration alternative in `SpaceChargeAlgorithmConfig`.
-2. Parser/configuration mapping in `SpaceChargeConfigBuilder`.
-3. Construction registration in `SpaceChargeSolverFactory`.
-4. Capability reporting and focused validation/tests.
-
-The tracker and `SpaceChargeSolveContext` remain unchanged after registration. Context data is
-borrowed for one call, and device views must be reacquired after any migration or layout change.
+`PoissonSolver` is a closed, host-only variant over native IPPL backends. A grid backend adds one
+variant alternative, construction case, metadata case, parser mapping, and focused tests. Backend
+objects are fully constructed before RHS/LHS binding because `setRhs()` initializes CUDA and FFT
+resources. CG remains recognized and rejected; potential storage and layout refresh are reserved for
+its future implementation.
 
 ## Cartesian PIC
 
-The Cartesian path transforms the primary container to the solve frame, updates the mesh, runs
-ordered correction/deposition/Poisson/gather passes, restores primary R/E/B, then normally rebuilds
-a reference-frame domain after migrating all containers. Fixed Cartesian bounds are persistent
-bunch-wide state in `BunchStateHandler`; they are read directly by Cartesian PIC rather than copied
-through the tracker context or immutable domain configuration.
+Cartesian PIC transforms and solves only the primary container in the beam frame. The reference
+phase restores a shared tracker-frame domain and migrates all containers. Domain geometry, particle
+migration, ORB, and Poisson reconstruction ordering live together in `CartesianDomainUpdater`.
+Adaptive binning remains isolated behind `ParticleBinTraversal`.
 
-Fixed mode currently requires OPEN with no correction or ORB. It accepts binning, uses exact supplied
-solve-frame bounds, migrates only the primary container, skips emission stretching, and preserves the
-beam-frame mesh after the solve. Clearing the state restores domain-following behavior on the next
-Cartesian solve.
-
-## Poisson Extension
-
-`PoissonSolver` owns a private variant of adapters satisfying the C++20 `PoissonBackend` concept.
-Each adapter owns one concrete IPPL backend and centralizes its name, capabilities, coupling
-constant, parameter construction, RHS-before-LHS binding, and solve behavior. To add a compatible
-grid backend:
-
-1. Add parser/config enum mapping.
-2. Implement and compile-check one adapter.
-3. Append it to the private backend variant.
-4. Add one case to `PoissonSolver::constructBackend()`.
-5. Add focused construction, metadata, rebuild, and solve tests.
-
-CG remains recognized and rejected early. Its potential field storage and layout-refresh support are
-reserved until scalar-LHS and gradient-output bindings are implemented together.
+Fixed Cartesian bounds are persistent bunch-wide state. Fixed mode requires OPEN with no correction
+or ORB, keeps configured extents and decomposition, disables emission stretching, migrates only the
+primary container, and retains the beam-frame mesh until the state is cleared.
 
 ## Failure Policy
 
-Space-charge exceptions terminate the current run. Successful paths restore temporary Green
-functions, particle charge/time-step transforms, mesh spacing, and coordinate frames in their
-established order. No rollback is attempted after a thrown backend, kernel, migration, or transform,
-and transient state is unspecified after failure.
+Successful paths restore temporary Green functions, image transforms, time-step scaling, mesh
+spacing, and coordinate frames in their established order. Exceptions terminate the run; transient
+particle, field, mesh, frame, and backend state is unspecified after failure.

@@ -8,10 +8,10 @@
 
 #include <array>
 #include <cstddef>
-#include <string_view>
 
 #include "Manager/BaseManager.h"
 #include "PartBunch/CartesianDomain.h"
+#include "SpaceCharge/SpaceChargeConfig.h"
 
 namespace opalx::spacecharge {
 
@@ -83,7 +83,7 @@ namespace opalx::spacecharge {
         [[nodiscard]] const VectorField& flippedZSlabField() const { return flippedZSlabField_m; }
 
         /** @brief Initialize every persistent field once the backend type is known. */
-        void initializeFields(std::string_view solverType);
+        void initializeFields(PoissonSolverType solverType);
 
         /** @brief Refresh all initialized fields after an in-place layout mutation. */
         void updateFieldLayoutsAfterLayoutChange();

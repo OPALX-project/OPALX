@@ -25,15 +25,14 @@ namespace opalx::spacecharge {
      * rule because the explicit image-charge and shifted-Green paths share the same magnetic sign
      * convention while obtaining their electric samples differently.
      */
-    template <unsigned Dim>
     struct FieldCompositionPolicy final {
-        std::array<double, Dim> meanMomentum{};
+        std::array<double, 3> meanMomentum{};
         double gamma               = 1.0;
         double magneticSign        = 1.0;
         FieldSourceRule sourceRule = FieldSourceRule::Direct;
     };
 
-    static_assert(std::is_trivially_copyable_v<FieldCompositionPolicy<3>>);
+    static_assert(std::is_trivially_copyable_v<FieldCompositionPolicy>);
 
     /**
      * @brief Converts electrostatic backend output to lab-frame fields and gathers final results.
@@ -46,18 +45,15 @@ namespace opalx::spacecharge {
      * only current views, scalar values, and small vector values obtained after the latest
      * particle or field-layout change.
      */
-    template <typename T, unsigned Dim>
     class RelativisticFieldComposer final {
-        static_assert(Dim == 3, "RelativisticFieldComposer currently supports Dim == 3 only.");
-
     public:
-        using FieldStorage         = CartesianPICFieldStorage<T, Dim>;
-        using ParticleMeshTransfer = ParticleMeshFieldTransfer<T, Dim>;
+        using FieldStorage         = CartesianPICFieldStorage<double, 3>;
+        using ParticleMeshTransfer = ParticleMeshFieldTransfer;
         using Vector               = typename FieldStorage::Vector;
         using VectorField          = typename FieldStorage::VectorField;
         using PositionAttribute    = typename ParticleMeshTransfer::PositionAttribute;
         using VectorAttribute      = typename ParticleMeshTransfer::VectorAttribute;
-        using Policy               = FieldCompositionPolicy<Dim>;
+        using Policy               = FieldCompositionPolicy;
 
         /** @brief Clear the persistent lab-frame electric and magnetic accumulators. */
         void clearAccumulation(FieldStorage& fieldStorage) const;
@@ -92,10 +88,6 @@ namespace opalx::spacecharge {
                 FieldStorage& fieldStorage) const;
     };
 
-    extern template class RelativisticFieldComposer<double, 3>;
-
 }  // namespace opalx::spacecharge
-
-#include "SpaceCharge/CartesianPIC/RelativisticFieldComposer.tpp"
 
 #endif  // OPALX_SPACE_CHARGE_CARTESIAN_PIC_RELATIVISTIC_FIELD_COMPOSER_H

@@ -1,28 +1,22 @@
 set (_SRCS
-    ParticleFieldSet.cpp
     SpaceChargeConfig.cpp
     SpaceChargeConfigBuilder.cpp
-    SpaceChargeSolverFactory.cpp
-    SpaceChargeRequestSchedule.cpp
+    SpaceChargeFactory.cpp
     SpaceChargeSolver.cpp
     SpaceChargeSolveContext.cpp
     )
 
 set (HDRS
-    ParticleFieldSet.h
-    SpaceChargeAlgorithm.h
     SpaceChargeConfig.h
-    SpaceChargeDiagnostics.h
-    SpaceChargeRequestSchedule.h
-    SpaceChargeSolver.h
     SpaceChargeSolveContext.h
-    SpaceChargeCapabilities.h
     )
 
 set (_PRIVATE_HDRS
-    SpaceChargeFrameTransform.h
+    SpaceChargeAlgorithm.h
+    SpaceChargeSolver.h
+    SpaceChargeFrames.h
     SpaceChargeConfigBuilder.h
-    SpaceChargeSolverFactory.h
+    SpaceChargeFactory.h
     )
 
 target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

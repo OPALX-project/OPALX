@@ -72,8 +72,8 @@ ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
     : Tracker(beamline, revBeam, false),
       itsDataSink_m(),
       spaceChargeSolver_m(nullptr),
-      spaceChargeRequestSchedule_m(),
-      spaceChargeParticleBindings_m(),
+      spaceChargeCorrection_m(),
+      spaceChargeContainerActivity_m(),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
       globalEOL_m(false),
       sStart_m(0.0),
@@ -94,7 +94,7 @@ ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
 ParallelTracker::ParallelTracker(
         const Beamline& beamline, PartBunch_t& bunch,
         opalx::spacecharge::SpaceChargeSolver& spaceChargeSolver,
-        opalx::spacecharge::SpaceChargeRequestSchedule requestSchedule, DataSink* ds, bool revBeam,
+        opalx::spacecharge::CorrectionConfig correction, DataSink* ds, bool revBeam,
         const std::vector<unsigned long long>& maxSteps, double sStart,
         const std::vector<double>& sStop, const std::vector<double>& dt,
         const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers,
@@ -103,8 +103,8 @@ ParallelTracker::ParallelTracker(
     : Tracker(beamline, bunch, revBeam, false),
       itsDataSink_m(ds),
       spaceChargeSolver_m(&spaceChargeSolver),
-      spaceChargeRequestSchedule_m(std::move(requestSchedule)),
-      spaceChargeParticleBindings_m(),
+      spaceChargeCorrection_m(std::move(correction)),
+      spaceChargeContainerActivity_m(),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
       globalEOL_m(false),
       sStart_m(sStart),
@@ -124,7 +124,7 @@ ParallelTracker::ParallelTracker(
 
     stepSizes_m.sortAscendingSStop();
     stepSizes_m.resetIterator();
-    initializeSpaceChargeParticleBindings();
+    initializeSpaceChargeContainerActivity();
 }
 
 /**
@@ -132,22 +132,15 @@ ParallelTracker::ParallelTracker(
  */
 ParallelTracker::~ParallelTracker() {}
 
-void ParallelTracker::initializeSpaceChargeParticleBindings() {
-    using namespace opalx::spacecharge;
-
-    // Bind the stable container and R/P/E/B attribute objects once. Particle migration may replace
-    // their device views, so concrete algorithms must reacquire a view immediately before each
-    // kernel instead of retaining one through this tracker-level binding.
+void ParallelTracker::initializeSpaceChargeContainerActivity() {
     const auto& particleContainers = itsBunch_m->getParticleContainers();
-    spaceChargeParticleBindings_m.clear();
-    spaceChargeParticleBindings_m.reserve(particleContainers.size());
+    spaceChargeContainerActivity_m.assign(particleContainers.size(), 0);
     for (const auto& container : particleContainers) {
         if (!container) {
             throw OpalException(
-                    "ParallelTracker::initializeSpaceChargeParticleBindings",
-                    "Cannot build a space-charge context for a null particle container.");
+                    "ParallelTracker::initializeSpaceChargeContainerActivity",
+                    "Cannot track space charge for a null particle container.");
         }
-        spaceChargeParticleBindings_m.push_back(makeParticleFieldBinding(*container));
     }
 }
 // --- Visit functions ---
@@ -709,13 +702,12 @@ void ParallelTracker::execute() {
     Kokkos::fence();
 
     if (spaceChargeSolver_m != nullptr) {
-        m << level2
-          << "Total FieldSolver calls: " << spaceChargeSolver_m->diagnostics().backendSolveCount()
+        m << level2 << "Total FieldSolver calls: " << spaceChargeSolver_m->backendSolveCount()
           << endl;
     }
     if (ippl::Comm->size() > 1) {
-        m << level2 << "Total binary repartitions: "
-          << spaceChargeSolver_m->diagnostics().redistributionCount() << endl;
+        m << level2 << "Total binary repartitions: " << spaceChargeSolver_m->redistributionCount()
+          << endl;
     }
 
     OPALTimer::Timer myt3;
@@ -873,11 +865,8 @@ void ParallelTracker::computeSpaceChargeFields() {
     const auto frames   = makeSpaceChargeFrameTransforms();
     const auto emission = spaceChargeEmissionProgress();
 
-    // Keep every container's tracking state current. SpaceChargeSolver applies the selected
-    // algorithm's mode afterward: Cartesian PIC selects only the primary container, whereas
-    // FFT2D5 selects every tracking-active container.
-    for (std::size_t index = 0; index < spaceChargeParticleBindings_m.size(); ++index) {
-        spaceChargeParticleBindings_m[index].trackingActive = itsBunch_m->isPcActive(index);
+    for (std::size_t index = 0; index < spaceChargeContainerActivity_m.size(); ++index) {
+        spaceChargeContainerActivity_m[index] = itsBunch_m->isPcActive(index) ? 1 : 0;
     }
 
     using namespace opalx::spacecharge;
@@ -885,7 +874,6 @@ void ParallelTracker::computeSpaceChargeFields() {
 
     // The context borrows stable attribute objects, not their current Kokkos views. The solver may
     // migrate particles after this point and safely reacquire each view before later kernels.
-    ParticleFieldSet particles(spaceChargeParticleBindings_m, 0);
     SpaceChargeStepState stepState{
             step,
             itsBunch_m->getT(),
@@ -894,9 +882,7 @@ void ParallelTracker::computeSpaceChargeFields() {
             emission.fraction,
             ippl::Comm->size(),
             frames};
-    SpaceChargeSolveContext context(
-            std::move(particles), std::move(stepState),
-            spaceChargeRequestSchedule_m.requestForStep(step));
+    SpaceChargeSolveContext context(spaceChargeContainerActivity_m, std::move(stepState));
     spaceChargeSolver_m->solve(context);
     m << level3 << "Compute space-charge fields done." << endl;
 }
@@ -1132,13 +1118,11 @@ size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
     }
 
     using namespace opalx::spacecharge;
-    const SpaceChargeCorrectionRequest correction =
-            spaceChargeRequestSchedule_m.configuredCorrection();
-    if (correction.kind == SpaceChargeCorrectionType::None) {
+    if (spaceChargeCorrection_m.kind == SpaceChargeCorrectionType::None) {
         return 0;
     }
 
-    const double sourcePlaneZ = correction.planeZ;
+    const double sourcePlaneZ = spaceChargeCorrection_m.planeZ;
     // Legacy OPAL's SOURCE element is 5 cm long and is shifted upstream from ELEMEDGE.
     // Source::apply deletes only once a particle crosses the element-local entrance plane
     // (Rz <= 0), not when it crosses the cathode/image plane at ELEMEDGE.

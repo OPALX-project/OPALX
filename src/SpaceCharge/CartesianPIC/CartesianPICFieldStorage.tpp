@@ -16,7 +16,7 @@ namespace opalx::spacecharge {
     CartesianPICFieldStorage<T, Dim>::CartesianPICFieldStorage(Domain& domain) : domain_m(domain) {}
 
     template <typename T, unsigned Dim>
-    void CartesianPICFieldStorage<T, Dim>::initializeFields(std::string_view solverType) {
+    void CartesianPICFieldStorage<T, Dim>::initializeFields(PoissonSolverType solverType) {
         Inform m("CartesianPICFieldStorage::initializeFields");
         if (fieldsInitialized_m) {
             throw OpalException(
@@ -30,7 +30,7 @@ namespace opalx::spacecharge {
 
         electricField_m.initialize(mesh(), layout());
         chargeDensity_m.initialize(mesh(), layout());
-        potentialInitialized_m = solverType == "CG";
+        potentialInitialized_m = solverType == PoissonSolverType::ConjugateGradient;
         if (potentialInitialized_m) {
             potential_m.initialize(mesh(), layout());
         }
