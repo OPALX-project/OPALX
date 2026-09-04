@@ -150,12 +150,12 @@ private:
     void setDesignEnergy(ElementList& allElements, const std::set<std::string>& visitedElements);
     void computeBoundingBox();
     void updateBoundingBoxWithCurrentPosition();
+    bool reachedThreadingEnd() const;
     double computeDriftLengthToBoundingBox(
             const std::set<std::shared_ptr<ElementBase>>& elements,
             const Vector_t<double, 3>& position, const Vector_t<double, 3>& direction) const;
 
     void checkElementLengths(const std::set<std::shared_ptr<ElementBase>>& elements);
-    bool reachedPeriodicEnd() const;
 
     void recordReferenceSample();
     void calculateLinearTransferMaps();
