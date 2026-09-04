@@ -88,18 +88,18 @@ def parse_map(output: str) -> np.ndarray:
 def run(executable: Path, name: str) -> np.ndarray:
     input_file = ROOT / name / f"map-2-{name}.in"
     completed = subprocess.run(
-        [str(executable), "--info", "1", input_file.name],
+        [str(executable), "--info", "2", input_file.name],
         cwd=input_file.parent,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         check=False,
     )
-    log_file = input_file.with_suffix(".log")
-    log_file.write_text(completed.stdout)
+    output_file = input_file.with_suffix(".out")
+    output_file.write_text(completed.stdout)
     if completed.returncode != 0:
         raise RuntimeError(
-            f"{input_file.name} exited with status {completed.returncode}; see {log_file}"
+            f"{input_file.name} exited with status {completed.returncode}; see {output_file}"
         )
     return parse_map(completed.stdout)
 

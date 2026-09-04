@@ -43,9 +43,10 @@ Each directory is self-contained apart from the shared reference-particle distri
 parent. For example, run one case with
 
     cd drift
-    ../../../omp-build/src/opalx --info 1 map-2-drift.in
+    ../../../omp-build/src/opalx --info 2 map-2-drift.in > map-2-drift.out 2>&1
 
-From `sandbox/map-2`, run all cases and write one `.log` inside each case directory with
+From `sandbox/map-2`, run all cases with `--info 2` and write the complete output to a matching
+`.out` file inside each case directory with
 
     ~/.venv-h6/bin/python check_maps.py ../../omp-build/src/opalx
 
