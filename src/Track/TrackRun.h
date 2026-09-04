@@ -43,7 +43,6 @@ class Inform;
 class Tracker;
 
 namespace opalx::spacecharge {
-    class SpaceChargeConfig;
     class SpaceChargeSolver;
 }  // namespace opalx::spacecharge
 

@@ -22,18 +22,13 @@ namespace opalx::spacecharge {
      * particle @c dt and, for an image pass, @c R and @c Q; each mutation is restored on the
      * successful path. Exceptions are terminal and leave temporary state unspecified.
      *
-     * @tparam T Particle and field scalar type.
-     * @tparam Dim Cartesian dimension. The production implementation is @c double,3.
      */
-    template <typename T, unsigned Dim>
     class ParticleMeshFieldTransfer final {
-        static_assert(Dim == 3, "ParticleMeshFieldTransfer currently supports Dim == 3 only.");
-
     public:
-        using ParticleContainer = ::ParticleContainer<T, Dim>;
+        using ParticleContainer = ::ParticleContainer<double, 3>;
         using PositionAttribute = typename ParticleContainer::particle_position_type;
         using VectorAttribute   = PositionAttribute;
-        using FieldStorage      = CartesianPICFieldStorage<T, Dim>;
+        using FieldStorage      = CartesianPICFieldStorage<double, 3>;
         using ScalarField       = typename FieldStorage::ScalarField;
         using VectorField       = typename FieldStorage::VectorField;
         using ExecutionSpace    = Kokkos::DefaultExecutionSpace;
@@ -112,7 +107,7 @@ namespace opalx::spacecharge {
         void depositCharge(
                 ParticleContainer& particles, FieldStorage& fieldStorage, DepositKind depositKind,
                 const Selection& selection, const ChargeNormalization& normalization,
-                const ImagePolicy& imagePolicy = {}) const;
+                const ImagePolicy& imagePolicy) const;
 
         /**
          * @brief Gather one vector field into an explicit writable particle destination.
@@ -164,10 +159,6 @@ namespace opalx::spacecharge {
                 FieldStorage& fieldStorage, const ChargeNormalization& normalization) const;
     };
 
-    extern template class ParticleMeshFieldTransfer<double, 3>;
-
 }  // namespace opalx::spacecharge
-
-#include "SpaceCharge/CartesianPIC/ParticleMeshFieldTransfer.tpp"
 
 #endif  // OPALX_SPACE_CHARGE_PARTICLE_MESH_FIELD_TRANSFER_H

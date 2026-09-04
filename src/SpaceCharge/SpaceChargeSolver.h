@@ -1,19 +1,15 @@
 /**
  * @file SpaceChargeSolver.h
- * @brief Owns one configured space-charge algorithm and validates solve requests.
+ * @brief Owns one configured algorithm and aggregates completed work.
  */
 
 #ifndef OPALX_SPACE_CHARGE_SOLVER_H
 #define OPALX_SPACE_CHARGE_SOLVER_H
 
 #include "SpaceCharge/SpaceChargeAlgorithm.h"
-#include "SpaceCharge/SpaceChargeConfig.h"
 
 #include <cstddef>
 #include <memory>
-#include <vector>
-
-class BunchStateHandler;
 
 namespace opalx::spacecharge {
 
@@ -21,9 +17,8 @@ namespace opalx::spacecharge {
     class SpaceChargeSolver {
     public:
         SpaceChargeSolver(
-                SpaceChargeConfig config, std::unique_ptr<SpaceChargeAlgorithm> algorithm,
-                std::vector<ParticleFieldBinding3D> bindings,
-                std::shared_ptr<const BunchStateHandler> bunchState, std::size_t primaryIndex = 0);
+                std::unique_ptr<SpaceChargeAlgorithm> algorithm,
+                std::size_t particleContainerCount);
 
         SpaceChargeSolver(const SpaceChargeSolver&)            = delete;
         SpaceChargeSolver& operator=(const SpaceChargeSolver&) = delete;
@@ -31,28 +26,23 @@ namespace opalx::spacecharge {
         SpaceChargeSolver& operator=(SpaceChargeSolver&&)      = delete;
 
         /**
-         * @brief Validate and dispatch one tracker-owned request.
+         * @brief Validate per-container activity and dispatch one tracker step.
          *
          * Exceptions are terminal for the current run. Once dispatch begins, transient particle,
          * mesh, field, frame, and backend state is unspecified if an operation throws.
          */
-        void solve(SpaceChargeSolveContext& context);
+        void solve(const SpaceChargeSolveContext& context);
 
-        [[nodiscard]] int reportedBinCount() const;
-        [[nodiscard]] const SpaceChargeDiagnostics& diagnostics() const { return diagnostics_m; }
+        [[nodiscard]] int reportedBinCount() const { return reportedBinCount_m; }
+        [[nodiscard]] std::size_t backendSolveCount() const { return backendSolveCount_m; }
+        [[nodiscard]] std::size_t redistributionCount() const { return redistributionCount_m; }
 
     private:
-        void validateConfiguration() const;
-        void validateBindings(const ParticleFieldSet& particles) const;
-        void validateRequest(const SpaceChargeSolveContext& context) const;
-
-        SpaceChargeConfig config_m;
         std::unique_ptr<SpaceChargeAlgorithm> algorithm_m;
-        std::vector<ParticleFieldBinding3D> bindings_m;
-        std::size_t primaryIndex_m = 0;
-        std::shared_ptr<const BunchStateHandler> bunchState_m;
-        SpaceChargeCapabilities capabilities_m;
-        SpaceChargeDiagnostics diagnostics_m;
+        std::size_t particleContainerCount_m = 0;
+        std::size_t backendSolveCount_m      = 0;
+        std::size_t redistributionCount_m    = 0;
+        int reportedBinCount_m               = 1;
     };
 
 }  // namespace opalx::spacecharge

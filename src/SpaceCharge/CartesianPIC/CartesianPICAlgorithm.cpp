@@ -41,31 +41,29 @@ namespace opalx::spacecharge {
             return {&fieldStorage.chargeDensity(), &fieldStorage.electricField()};
         }
 
-        ParticleContainer& requirePrimaryParticles(
-                std::span<const ParticleFieldBinding3D> bindings) {
-            if (bindings.empty() || bindings.front().container == nullptr) {
+        ParticleContainer& requirePrimaryParticles(std::span<ParticleContainer* const> particles) {
+            if (particles.empty() || particles.front() == nullptr) {
                 throw OpalException(
                         "CartesianPICAlgorithm::CartesianPICAlgorithm",
                         "The primary particle container is not available.");
             }
-            return *bindings.front().container;
+            return *particles.front();
         }
 
     }  // namespace
 
     CartesianPICAlgorithm::CartesianPICAlgorithm(
-            CartesianPICConfig config, std::span<const ParticleFieldBinding3D> particleBindings,
+            CartesianPICConfig config, std::span<ParticleContainer* const> particles,
             std::unique_ptr<FieldStorage> fieldStorage, DataSink* dataSink,
             std::shared_ptr<const BunchStateHandler> bunchState)
-        : primary_m(&requirePrimaryParticles(particleBindings)),
+        : config_m(config),
+          primary_m(&requirePrimaryParticles(particles)),
           bunchState_m(std::move(bunchState)),
           fieldStorage_m(std::move(fieldStorage)),
-          poissonSolverType_m(config.backend()),
+          poissonSolverType_m(config.backend),
           dataSink_m(dataSink),
-          binningConfig_m(config.binning()),
-          correctionPassSchedule_m(config.correction(), config.binning().has_value()),
-          particleDomainOperations_m(particleBindings),
-          domainUpdater_m(config, bunchState_m) {
+          binningConfig_m(config.binning),
+          domainUpdater_m(config, particles) {
         if (fieldStorage_m == nullptr) {
             throw OpalException(
                     "CartesianPICAlgorithm::CartesianPICAlgorithm",
@@ -91,65 +89,125 @@ namespace opalx::spacecharge {
             binStats_m.reserve(particleBinTraversal_m->maximumBinCount());
         }
 
-        fieldStorage_m->initializeFields(poissonSolverName(poissonSolverType_m));
+        fieldStorage_m->initializeFields(poissonSolverType_m);
         PoissonSolverConfig poissonConfig;
         poissonConfig.type               = poissonSolverType_m;
-        poissonConfig.greenFunction      = config.greenFunction();
-        poissonConfig.p3mCutoff          = config.p3mCutoff();
-        poissonConfig.boundaryConditions = config.boundaryConditions();
+        poissonConfig.greenFunction      = config.greenFunction;
+        poissonConfig.p3mCutoff          = config.p3mCutoff;
+        poissonConfig.boundaryConditions = config.boundaryConditions;
         poissonSolver_m                  = std::make_unique<PoissonSolver>(
                 poissonConfig, makePoissonFieldBinding(*fieldStorage_m));
         if (poissonSolverType_m == PoissonSolverType::P3M) {
-            shortRangeInteraction_m.emplace(config.p3mCutoff());
+            shortRangeInteraction_m.emplace(config.p3mCutoff);
         }
         // Preserve the construction-time planning solve, but reset the Poisson solver's runtime
         // count so diagnostics and debug-file numbering begin with the first physical solve.
         poissonSolver_m->warmup();
     }
 
-    SpaceChargeCapabilities CartesianPICAlgorithm::capabilities() const {
-        SpaceChargeCapabilities result;
-        result.particleSelection            = ParticleSelectionMode::PrimaryOnly;
-        result.supportsBinning              = true;
-        result.supportsImageCharge          = true;
-        result.supportsShiftedGreen         = true;
-        result.supportsRedistribution       = true;
-        result.supportsPotentialOutput      = true;
-        result.supportsFixedCartesianDomain = true;
-        return result;
+    CartesianPICAlgorithm::SolvePlan CartesianPICAlgorithm::makeSolvePlan(std::size_t step) const {
+        SolvePlan plan;
+        const CorrectionConfig& configured = config_m.correction;
+        plan.correctionExpired             = configured.enabled() && configured.maximumSteps != 0
+                                 && step >= configured.maximumSteps;
+        plan.activeCorrection = plan.correctionExpired ? CorrectionConfig() : configured;
+
+        if (binningConfig_m.has_value()) {
+            plan.passes[plan.passCount++] = PassKind::Primary;
+            if (plan.activeCorrection.kind == SpaceChargeCorrectionType::ImageCharge) {
+                plan.passes[plan.passCount++] = PassKind::Image;
+            } else if (plan.activeCorrection.kind == SpaceChargeCorrectionType::ShiftedGreen) {
+                plan.passes[plan.passCount++] = PassKind::ShiftedImage;
+            }
+        } else {
+            plan.passes[plan.passCount++] =
+                    plan.activeCorrection.kind == SpaceChargeCorrectionType::ImageCharge
+                            ? PassKind::PrimaryAndImage
+                            : PassKind::Primary;
+        }
+        return plan;
     }
 
-    void CartesianPICAlgorithm::solve(
-            SpaceChargeSolveContext& context, SpaceChargeDiagnostics& diagnostics) {
-        const CorrectionPassSequence correction =
-                correctionPassSchedule_m.passesForStep(context.request(), context.stepState().step);
+    CartesianPICAlgorithm::PassProperties CartesianPICAlgorithm::passProperties(
+            PassKind pass, double planeZ, bool binned) {
+        using DepositKind = ParticleMeshTransfer::DepositKind;
+        switch (pass) {
+            case PassKind::Primary:
+                return {DepositKind::Primary,    {},    false,    binned, 1.0,
+                        FieldSourceRule::Direct, false, "primary"};
+            case PassKind::PrimaryAndImage:
+                return {DepositKind::PrimaryAndImage,
+                        {true, planeZ},
+                        false,
+                        false,
+                        1.0,
+                        FieldSourceRule::Direct,
+                        true,
+                        "primary-and-image"};
+            case PassKind::Image:
+                return {DepositKind::Image,      {true, planeZ}, false,  true, -1.0,
+                        FieldSourceRule::Direct, false,          "image"};
+            case PassKind::ShiftedImage:
+                return {DepositKind::Primary,
+                        {},
+                        true,
+                        false,
+                        -1.0,
+                        FieldSourceRule::ShiftedGreenImageZ,
+                        false,
+                        "shifted-green"};
+        }
+        throw OpalException("CartesianPICAlgorithm::passProperties", "Unknown solve pass.");
+    }
 
-        const bool fixedDomain = bunchState_m->fixedCartesianDomain().has_value();
-        SpaceChargeFrameTransform<double, 3> frameTransform(context.stepState().frames, *primary_m);
-        frameTransform.enter();
-        domainUpdater_m.updateForSolve(
-                DomainCoordinateFrame::Beam, context, *fieldStorage_m, particleDomainOperations_m,
-                *poissonSolver_m, diagnostics);
+    SpaceChargeSolveResult CartesianPICAlgorithm::solve(const SpaceChargeSolveContext& context) {
+        SpaceChargeSolveResult result;
+        const SolvePlan plan = makeSolvePlan(context.stepState().step);
 
-        frameTransform.markComputedFields();
-        solveInBeamFrame(context, correction, diagnostics);
+        const auto& fixedState = bunchState_m->fixedCartesianDomain();
+        const bool fixedDomain = fixedState.has_value();
+        if (fixedDomain) {
+            if (poissonSolverType_m != PoissonSolverType::Open) {
+                throw OpalException(
+                        "CartesianPICAlgorithm::solve",
+                        "A fixed Cartesian domain currently requires the OPEN Poisson backend.");
+            }
+            if (config_m.correction.enabled()) {
+                throw OpalException(
+                        "CartesianPICAlgorithm::solve",
+                        "A fixed Cartesian domain does not support source-plane corrections.");
+            }
+            if (config_m.repartitionFrequency != 0) {
+                throw OpalException(
+                        "CartesianPICAlgorithm::solve",
+                        "ORB redistribution must be disabled while a fixed Cartesian domain is "
+                        "active.");
+            }
+        }
+        enterSolveFrame(context.stepState().frames, *primary_m);
+        result.redistributions += domainUpdater_m.updateForSolve(
+                DomainCoordinateFrame::Beam, context, plan.activeCorrection,
+                fixedDomain ? &*fixedState : nullptr, *fieldStorage_m, *poissonSolver_m);
 
-        frameTransform.leave();
+        solveInBeamFrame(context, plan, result);
+
+        leaveSolveFrame(context.stepState().frames, *primary_m);
         if (fixedDomain) {
             // Keep the fixed beam-frame mesh and decomposition for the next interaction. Only the
             // restored primary coordinates changed, so refresh moments without migrating them.
             primary_m->markMomentsDirty();
-            particleDomainOperations_m.updatePrimaryMoments();
+            primary_m->updateMoments();
         } else {
-            domainUpdater_m.updateForSolve(
-                    DomainCoordinateFrame::Reference, context, *fieldStorage_m,
-                    particleDomainOperations_m, *poissonSolver_m, diagnostics);
+            result.redistributions += domainUpdater_m.updateForSolve(
+                    DomainCoordinateFrame::Reference, context, plan.activeCorrection, nullptr,
+                    *fieldStorage_m, *poissonSolver_m);
         }
+        return result;
     }
 
     void CartesianPICAlgorithm::solveInBeamFrame(
-            SpaceChargeSolveContext& context, const CorrectionPassSequence& correction,
-            SpaceChargeDiagnostics& diagnostics) {
+            const SpaceChargeSolveContext& context, const SolvePlan& plan,
+            SpaceChargeSolveResult& result) {
         Inform m("CartesianPICAlgorithm::solveInBeamFrame");
         const auto& poissonCapabilities = poissonSolver_m->capabilities();
         if (poissonCapabilities.isNoOp) {
@@ -177,7 +235,7 @@ namespace opalx::spacecharge {
                               "Set BCHARGE on the BEAM definition, or use TYPE=NONE when no "
                               "space charge is intended.");
         }
-        if (correction.passCount == 0) {
+        if (plan.passCount == 0) {
             throw OpalException(
                     "CartesianPICAlgorithm::solveInBeamFrame",
                     "The prepared correction contains no primary solve pass.");
@@ -189,49 +247,43 @@ namespace opalx::spacecharge {
           << ", totalParticles=" << primary_m->getTotalNum() << ", hasBins=" << (binned ? 1 : 0)
           << ", stype=" << poissonSolverName(poissonSolverType_m) << endl;
 
-        if (correction.correctionExpired) {
+        if (plan.correctionExpired) {
             m << level3 << "ZEROFACE_MAXSTEPS reached (step=" << context.stepState().step
-              << ", maxSteps=" << correction.maximumSteps << "); disabling ";
-            if (correction.configuredCorrection.kind == SpaceChargeCorrectionType::ShiftedGreen) {
+              << ", maxSteps=" << config_m.correction.maximumSteps << "); disabling ";
+            if (config_m.correction.kind == SpaceChargeCorrectionType::ShiftedGreen) {
                 m << "SHIFTED_GREENS_FUNCTION correction for this step." << endl;
             } else {
                 m << "image charges for this step." << endl;
             }
         }
 
-        if (!binned && correction.shiftedIgnored) {
-            m << level3 << "SHIFTED_GREENS_FUNCTION is set but no binning is active; "
-              << "the whole-bunch path does not apply the Dirichlet correction." << endl;
-        }
-
         if (binned) {
-            solveBinned(context, correction, diagnostics);
+            solveBinned(context, plan, result);
         } else {
-            solveWholeBunch(context, correction, diagnostics);
+            solveWholeBunch(context, plan, result);
         }
     }
 
     void CartesianPICAlgorithm::solveWholeBunch(
-            SpaceChargeSolveContext& context, const CorrectionPassSequence& correction,
-            SpaceChargeDiagnostics& diagnostics) {
-        diagnostics.recordBinCount(0);
-        bool dumpedDirichletPlaneThisStep = false;
+            const SpaceChargeSolveContext& context, const SolvePlan& plan,
+            SpaceChargeSolveResult& result) {
+        result.reportedBins = 1;
 
         // The direct image-charge mode deposits primary and mirrored charge into one RHS and uses
         // one standard solve. Shifted Green remains a binned-only correction for compatibility.
-        for (const CartesianPICPass pass : correction) {
-            solvePass(context, nullptr, pass, dumpedDirichletPlaneThisStep, diagnostics);
+        for (std::size_t index = 0; index < plan.passCount; ++index) {
+            solvePass(context, plan, nullptr, plan.passes[index], result);
         }
     }
 
     void CartesianPICAlgorithm::solveBinned(
-            SpaceChargeSolveContext& context, const CorrectionPassSequence& correction,
-            SpaceChargeDiagnostics& diagnostics) {
+            const SpaceChargeSolveContext& context, const SolvePlan& plan,
+            SpaceChargeSolveResult& result) {
         const long long step = static_cast<long long>(context.stepState().step);
         const bool captureSnapshots =
                 dataSink_m != nullptr && binningConfig_m.has_value()
-                && !binningConfig_m->dumpFile().empty() && binningConfig_m->dumpFrequency() > 0
-                && step % static_cast<long long>(binningConfig_m->dumpFrequency()) == 0;
+                && !binningConfig_m->dumpFile.empty() && binningConfig_m->dumpFrequency > 0
+                && step % static_cast<long long>(binningConfig_m->dumpFrequency) == 0;
 
         // A pre-merge snapshot records the freshly rebuilt histogram. Adaptive binning supplies a
         // second snapshot after merging; fixed binning deliberately has no post-merge snapshot.
@@ -242,7 +294,9 @@ namespace opalx::spacecharge {
         if (prepared.afterMerge.has_value()) {
             dumpBinSnapshot(context, *prepared.afterMerge, false);
         }
-        diagnostics.recordBinCount(prepared.mergedBinCount);
+        result.reportedBins = prepared.mergedBinCount == binningConfig_m->maximumBins
+                                      ? 1
+                                      : static_cast<int>(prepared.mergedBinCount);
         relativisticFieldComposer_m.clearAccumulation(*fieldStorage_m);
 
         Inform m("CartesianPICAlgorithm::solveBinned");
@@ -250,7 +304,6 @@ namespace opalx::spacecharge {
           << ", stype=" << poissonSolverName(poissonSolverType_m) << endl;
 
         binStats_m.clear();
-        bool dumpedDirichletPlaneThisStep = false;
         while (const std::optional<ParticleBinType> unit =
                        particleBinTraversal_m->nextNonemptyBin()) {
             m << level4 << "binIndex=" << static_cast<int>(unit->ordinal)
@@ -262,28 +315,24 @@ namespace opalx::spacecharge {
                             static_cast<unsigned long long>(unit->globalParticleCount),
                             unit->gamma});
 
-            for (const CartesianPICPass pass : correction) {
-                solvePass(context, &*unit, pass, dumpedDirichletPlaneThisStep, diagnostics);
+            for (std::size_t index = 0; index < plan.passCount; ++index) {
+                solvePass(context, plan, &*unit, plan.passes[index], result);
             }
         }
 
         relativisticFieldComposer_m.gatherAccumulated(
                 particleMeshTransfer_m, primary_m->E, primary_m->B, primary_m->R, *fieldStorage_m);
-        if (diagnostics.shouldPrintBinTable(step)) {
+        if (binningConfig_m->tablePrintFrequency > 0
+            && step % static_cast<long long>(binningConfig_m->tablePrintFrequency) == 0) {
             printBinStatsTable();
         }
     }
 
     void CartesianPICAlgorithm::solvePass(
-            SpaceChargeSolveContext& context, const ParticleBinType* unit, CartesianPICPass pass,
-            bool& dumpedDirichletPlaneThisStep, SpaceChargeDiagnostics& diagnostics) {
-        const double planeZ         = context.request().correction.planeZ;
-        const PassProperties policy = cartesianPICPassProperties<double, 3>(pass, planeZ);
-        if (policy.binned != (unit != nullptr)) {
-            throw OpalException(
-                    "CartesianPICAlgorithm::solvePass",
-                    "The solve-pass tag does not match the particle traversal.");
-        }
+            const SpaceChargeSolveContext& context, const SolvePlan& plan,
+            const ParticleBinType* unit, PassKind pass, SpaceChargeSolveResult& result) {
+        const double planeZ         = plan.activeCorrection.planeZ;
+        const PassProperties policy = passProperties(pass, planeZ, unit != nullptr);
 
         const auto& capabilities = poissonSolver_m->capabilities();
         if (unit == nullptr) {
@@ -315,7 +364,7 @@ namespace opalx::spacecharge {
         stretchedSpacing[2] *= gamma;
 
         PoissonSolveRequest poissonRequest;
-        if (policy.backendRule == BackendSolveRule::ShiftedGreen) {
+        if (policy.shiftedGreen) {
             const auto origin = mesh.getOrigin();
             const int longitudinalExtent =
                     static_cast<int>(fieldStorage_m->layout().getDomain()[2].length());
@@ -334,7 +383,7 @@ namespace opalx::spacecharge {
         }
 
         Inform m("CartesianPICAlgorithm::solvePass");
-        m << level4 << "pass=" << cartesianPICPassLabel(pass)
+        m << level4 << "pass=" << policy.label
           << ", binIndex=" << static_cast<int>(unit == nullptr ? 0 : unit->ordinal)
           << ", suppressFieldDump=" << (policy.suppressFieldDump ? 1 : 0);
         if (poissonRequest.hasShiftedGreenFunction()) {
@@ -343,11 +392,10 @@ namespace opalx::spacecharge {
         m << endl;
 
         poissonSolver_m->solve(poissonRequest, {.suppressFieldDump = policy.suppressFieldDump});
-        diagnostics.recordBackendSolve();
+        ++result.backendSolves;
 
         if (unit == nullptr && policy.dumpDirichletPlaneAfter) {
-            dumpDirichletPlaneDiagnosticsIfRequested(context, "legacy", planeZ, diagnostics);
-            dumpedDirichletPlaneThisStep = true;
+            dumpDirichletPlaneDiagnosticsIfRequested(context, "legacy", planeZ);
         }
 
         if (unit == nullptr) {
@@ -370,14 +418,6 @@ namespace opalx::spacecharge {
 
         if (unit != nullptr) {
             mesh.setMeshSpacing(originalSpacing);
-        }
-
-        // The explicit-image mesh contains the source plane, so evaluating the Dirichlet residual
-        // is meaningful. A shifted-Green correction may solve on a domain far from that plane and
-        // therefore never requests this diagnostic.
-        if (unit != nullptr && policy.dumpDirichletPlaneAfter && !dumpedDirichletPlaneThisStep) {
-            dumpDirichletPlaneDiagnosticsIfRequested(context, "binned", planeZ, diagnostics);
-            dumpedDirichletPlaneThisStep = true;
         }
     }
 
@@ -441,14 +481,14 @@ namespace opalx::spacecharge {
         dataSink_m->dumpBinConfig(
                 static_cast<long long>(context.stepState().step), context.stepState().time,
                 beforeMerge, particleCounts, snapshot.widths, snapshot.lowerBound,
-                binningConfig_m->dumpFile());
+                binningConfig_m->dumpFile);
     }
 
     void CartesianPICAlgorithm::dumpDirichletPlaneDiagnosticsIfRequested(
-            const SpaceChargeSolveContext& context, const std::string& solveTag, double planeZ,
-            SpaceChargeDiagnostics& diagnostics) {
-        const long long step = static_cast<long long>(context.stepState().step);
-        if (!diagnostics.shouldDumpPlane(step)) {
+            const SpaceChargeSolveContext& context, const std::string& solveTag, double planeZ) {
+        const long long step        = static_cast<long long>(context.stepState().step);
+        const std::size_t frequency = config_m.correction.planeDumpFrequency;
+        if (frequency == 0 || step < 0 || step % static_cast<long long>(frequency) != 0) {
             return;
         }
         Inform m("CartesianPICAlgorithm::dumpDirichletPlaneDiagnosticsIfRequested");

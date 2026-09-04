@@ -29,25 +29,25 @@ namespace opalx::spacecharge {
 
         FFT2D5FieldStorage::Vector3 makeSize(const FFT2D5Config& config, double pathLength) {
             FFT2D5FieldStorage::Vector3 size;
-            size[0] = config.pipeSizeX();
-            size[1] = config.pipeSizeY();
+            size[0] = config.pipeSizeX;
+            size[1] = config.pipeSizeY;
             size[2] = pathLength;
             return size;
         }
 
         FFT2D5FieldStorage::Vector3 makeOrigin(const FFT2D5Config& config) {
             FFT2D5FieldStorage::Vector3 origin;
-            origin[0] = -0.5 * config.pipeSizeX();
-            origin[1] = -0.5 * config.pipeSizeY();
+            origin[0] = -0.5 * config.pipeSizeX;
+            origin[1] = -0.5 * config.pipeSizeY;
             origin[2] = 0.0;
             return origin;
         }
 
         FFT2D5FieldStorage::Vector3 makeSpacing(const FFT2D5Config& config, double pathLength) {
             FFT2D5FieldStorage::Vector3 spacing;
-            const auto& meshSize = config.meshSize();
-            spacing[0]           = config.pipeSizeX() / static_cast<double>(meshSize[0]);
-            spacing[1]           = config.pipeSizeY() / static_cast<double>(meshSize[1]);
+            const auto& meshSize = config.grid.meshSize;
+            spacing[0]           = config.pipeSizeX / static_cast<double>(meshSize[0]);
+            spacing[1]           = config.pipeSizeY / static_cast<double>(meshSize[1]);
             spacing[2]           = pathLength / static_cast<double>(meshSize[2]);
             return spacing;
         }
@@ -55,7 +55,7 @@ namespace opalx::spacecharge {
     }  // namespace
 
     FFT2D5FieldStorage::FFT2D5FieldStorage(const FFT2D5Config& config, double pathLength)
-        : meshSize_m(config.meshSize()),
+        : meshSize_m(config.grid.meshSize),
           spacing_m(makeSpacing(config, pathLength)),
           origin_m(makeOrigin(config)),
           size_m(makeSize(config, pathLength)),
@@ -86,9 +86,9 @@ namespace opalx::spacecharge {
 
         slices_m.resize(meshSize_m[2]);
         for (Slice& slice : slices_m) {
-            slice.electricField = std::make_shared<VectorField2>(sliceMesh_m, sliceLayout_m);
-            slice.chargeDensity = std::make_shared<ScalarField2>(sliceMesh_m, sliceLayout_m);
-            slice.solver        = std::make_shared<OpenSolver2>(
+            slice.electricField = std::make_unique<VectorField2>(sliceMesh_m, sliceLayout_m);
+            slice.chargeDensity = std::make_unique<ScalarField2>(sliceMesh_m, sliceLayout_m);
+            slice.solver        = std::make_unique<OpenSolver2>(
                     *slice.electricField, *slice.chargeDensity, solverParameters_m);
         }
     }

@@ -16,7 +16,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Ippl.h"
 #include "PartBunch/PartBunch.h"
-#include "SpaceCharge/SpaceChargeSolverFactory.h"
+#include "SpaceCharge/SpaceChargeFactory.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "Structure/H5PartWrapperForPT.h"
@@ -209,17 +209,17 @@ namespace {
 
     TEST_F(MultiContainerPartBunchTest, SpaceChargeFactoryConstructsConfiguredCartesianAlgorithm) {
         using namespace opalx::spacecharge;
-        CartesianPICConfig::Parameters values;
-        values.backend                    = PoissonSolverType::PeriodicFFT;
-        values.meshSize                   = storageConfig.meshSize;
-        values.parallelDimensions         = storageConfig.decomposition;
-        values.boundingBoxIncreasePercent = storageConfig.boundingBoxIncreasePercent;
-        values.boundaryConditions         = {
+        CartesianPICConfig values;
+        values.backend                         = PoissonSolverType::PeriodicFFT;
+        values.grid.meshSize                   = storageConfig.meshSize;
+        values.grid.decomposition              = storageConfig.decomposition;
+        values.grid.boundingBoxIncreasePercent = storageConfig.boundingBoxIncreasePercent;
+        values.boundaryConditions              = {
                 FieldBoundaryCondition::Periodic, FieldBoundaryCondition::Periodic,
                 FieldBoundaryCondition::Periodic};
-        SpaceChargeConfig config(CartesianPICConfig(values), storageConfig);
+        SpaceChargeConfig config = values;
 
-        auto solver = SpaceChargeSolverFactory::create(std::move(config), *bunch, dataSink.get());
+        auto solver = makeSpaceChargeSolver(std::move(config), *bunch, dataSink.get());
         EXPECT_NE(solver, nullptr);
     }
 

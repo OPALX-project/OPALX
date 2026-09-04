@@ -218,14 +218,14 @@ namespace opalx::spacecharge {
             case PoissonSolverType::None: {
                 auto& backend = backend_m.emplace<NullBackend>();
                 backend.mergeParameters(ippl::ParameterList{});
-                break;
+                return;
             }
             case PoissonSolverType::PeriodicFFT: {
                 auto& backend                  = backend_m.emplace<PeriodicBackend>();
                 ippl::ParameterList parameters = commonFftParameters();
                 parameters.add("output_type", PeriodicBackend::GRAD);
                 backend.mergeParameters(parameters);
-                break;
+                return;
             }
             case PoissonSolverType::Open: {
                 auto& backend                  = backend_m.emplace<OpenBackend>();
@@ -234,7 +234,7 @@ namespace opalx::spacecharge {
                 parameters.add("algorithm", OpenBackend::HOCKNEY);
                 parameters.add("greens_function", openGreenFunctionValue(config_m.greenFunction));
                 backend.mergeParameters(parameters);
-                break;
+                return;
             }
             case PoissonSolverType::P3M: {
                 if (!(config_m.p3mCutoff > 0.0)) {
@@ -266,7 +266,7 @@ namespace opalx::spacecharge {
                 parameters.add(
                         "boundary_type", allPeriodic ? P3MBackend::PERIODIC : P3MBackend::OPEN);
                 backend.mergeParameters(parameters);
-                break;
+                return;
             }
             case PoissonSolverType::ConjugateGradient:
                 throw OpalException(

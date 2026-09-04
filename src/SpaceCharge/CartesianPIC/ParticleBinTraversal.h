@@ -37,9 +37,8 @@ namespace opalx::spacecharge {
     };
 
     /** @brief One globally nonempty bin and its current particle selection. */
-    template <typename T, unsigned Dim>
     struct ParticleBin final {
-        using ScatterGather = ParticleMeshFieldTransfer<T, Dim>;
+        using ScatterGather = ParticleMeshFieldTransfer;
         using Selection     = typename ScatterGather::Selection;
         using size_type     = typename ScatterGather::size_type;
 
@@ -55,7 +54,7 @@ namespace opalx::spacecharge {
         size_type globalParticleCount = 0;
         Selection indexedSelection;
         bool coversAllLocalParticles = false;
-        std::array<double, Dim> meanMomentum{};
+        std::array<double, 3> meanMomentum{};
         double gamma = 1.0;
     };
 
@@ -66,13 +65,10 @@ namespace opalx::spacecharge {
      * one rank-synchronous empty-bin query at a time and returns no external epoch or lifetime
      * token.
      */
-    template <typename T, unsigned Dim>
     class ParticleBinTraversal final {
-        static_assert(Dim == 3, "ParticleBinTraversal currently supports Dim == 3 only.");
-
     public:
-        using ParticleContainer = ::ParticleContainer<T, Dim>;
-        using Unit              = ParticleBin<T, Dim>;
+        using ParticleContainer = ::ParticleContainer<double, 3>;
+        using Unit              = ParticleBin;
         using Selection         = typename Unit::Selection;
         using size_type         = typename Unit::size_type;
         using AdaptBins         = ParticleBinning::AdaptBinsBase<ParticleContainer>;
@@ -85,8 +81,8 @@ namespace opalx::spacecharge {
         ParticleBinTraversal(ParticleBinTraversal&&)                 = delete;
         ParticleBinTraversal& operator=(ParticleBinTraversal&&)      = delete;
 
-        [[nodiscard]] const std::string& diagnosticName() const { return config_m.name(); }
-        [[nodiscard]] std::size_t maximumBinCount() const { return config_m.maximumBins(); }
+        [[nodiscard]] const std::string& diagnosticName() const { return config_m.name; }
+        [[nodiscard]] std::size_t maximumBinCount() const { return config_m.maximumBins; }
 
         [[nodiscard]] BinPreparationResult prepareBins(bool captureSnapshots);
         [[nodiscard]] std::optional<Unit> nextNonemptyBin();
@@ -102,10 +98,6 @@ namespace opalx::spacecharge {
         bool prepared_m          = false;
     };
 
-    extern template class ParticleBinTraversal<double, 3>;
-
 }  // namespace opalx::spacecharge
-
-#include "SpaceCharge/CartesianPIC/ParticleBinTraversal.tpp"
 
 #endif  // OPALX_SPACE_CHARGE_CARTESIAN_PIC_PARTICLE_BIN_TRAVERSAL_H

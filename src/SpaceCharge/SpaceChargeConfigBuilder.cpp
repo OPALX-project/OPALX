@@ -170,7 +170,7 @@ namespace opalx::spacecharge {
                         "SpaceChargeConfigBuilder::build", "BINNING MAXBINS must be positive.");
             }
 
-            BinningConfig::Parameters values;
+            BinningConfig values;
             values.name         = command->getOpalName();
             values.maximumBins  = static_cast<std::size_t>(maximumBins);
             values.desiredWidth = command->getDesiredWidth();
@@ -188,7 +188,7 @@ namespace opalx::spacecharge {
                 values.dumpFile.clear();
                 values.dumpFrequency = 0;
             }
-            return BinningConfig(std::move(values));
+            return values;
         }
 
         CorrectionConfig buildCorrectionConfig(
@@ -281,19 +281,19 @@ namespace opalx::spacecharge {
                                 + fieldSolverTypeName(solverType) + "').");
             }
 
-            CorrectionConfig::Parameters values;
+            CorrectionConfig values;
             values.kind               = enableImageCharge ? SpaceChargeCorrectionType::ImageCharge
                                         : enableShiftedGreens ? SpaceChargeCorrectionType::ShiftedGreen
                                                               : SpaceChargeCorrectionType::None;
             values.planeZ             = planeZ;
             values.planeDumpFrequency = static_cast<std::size_t>(dumpFrequency);
             values.maximumSteps       = static_cast<std::size_t>(maximumSteps);
-            return CorrectionConfig(values);
+            return values;
         }
 
     }  // namespace
 
-    SpaceChargeConfig SpaceChargeConfigBuilder::build(
+    SpaceChargeConfig buildSpaceChargeConfig(
             const FieldSolverCmd& fieldSolver,
             const std::vector<std::vector<EmissionSource*>>& emissionSources) {
         const FieldSolverCmdType solverType = fieldSolver.getFieldSolverCmdType();
@@ -308,10 +308,10 @@ namespace opalx::spacecharge {
                 convertMeshSize(fieldSolver.getNY(), "NY"),
                 convertMeshSize(fieldSolver.getNZ(), "NZ")};
         const auto decomposition = fieldSolver.getDomainDecomposition();
-        CartesianDomainConfig3D domainConfig;
-        domainConfig.meshSize      = meshSize;
-        domainConfig.decomposition = {decomposition[0], decomposition[1], decomposition[2]};
-        domainConfig.boundingBoxIncreasePercent = fieldSolver.getBoxIncr();
+        CartesianGridConfig grid;
+        grid.meshSize                   = meshSize;
+        grid.decomposition              = {decomposition[0], decomposition[1], decomposition[2]};
+        grid.boundingBoxIncreasePercent = fieldSolver.getBoxIncr();
 
         if (solverType == FieldSolverCmdType::FFT2D5) {
             const CorrectionConfig correction = buildCorrectionConfig(emissionSources, solverType);
@@ -320,8 +320,8 @@ namespace opalx::spacecharge {
                         "SpaceChargeConfigBuilder::build",
                         "FFT2D5 does not support source-plane corrections.");
             }
-            FFT2D5Config::Parameters values;
-            values.meshSize              = meshSize;
+            FFT2D5Config values;
+            values.grid                  = grid;
             values.longitudinalFieldMode = convertFFT2D5Mode(fieldSolver.getPipeMode());
             values.pipeSizeX             = fieldSolver.getPipeSizeX();
             values.pipeSizeY             = fieldSolver.getPipeSizeY();
@@ -329,38 +329,29 @@ namespace opalx::spacecharge {
             values.closedRing            = fieldSolver.getClosedRing();
             values.scatterLongitudinally = fieldSolver.getScatterLongitudinally();
             values.referencePathFile     = resolveReferencePath(fieldSolver);
-            return SpaceChargeConfig(FFT2D5Config(std::move(values)), std::move(domainConfig));
+            SpaceChargeConfig config     = std::move(values);
+            validateSpaceChargeConfig(config);
+            return config;
         }
 
-        CartesianPICConfig::Parameters values;
-        values.backend            = convertPoissonSolverType(solverType);
-        values.meshSize           = meshSize;
-        values.parallelDimensions = {decomposition[0], decomposition[1], decomposition[2]};
-        values.layoutRebuildParallelDimensions =
-                usesLongitudinalResizeDecomposition(emissionSources)
-                        ? std::array<bool, 3>{false, false, true}
-                        : values.parallelDimensions;
+        CartesianPICConfig values;
+        values.grid                       = grid;
+        values.backend                    = convertPoissonSolverType(solverType);
+        values.layoutRebuildDecomposition = usesLongitudinalResizeDecomposition(emissionSources)
+                                                    ? std::array<bool, 3>{false, false, true}
+                                                    : values.grid.decomposition;
         values.boundaryConditions = convertBoundaryConditions(fieldSolver.constructBCHandler());
         values.greenFunction      = convertGreenFunction(fieldSolver.getGreensFunction());
         values.p3mCutoff = solverType == FieldSolverCmdType::P3M ? fieldSolver.getP3MCutoff() : 0.0;
-        values.boundingBoxIncreasePercent = fieldSolver.getBoxIncr();
-        values.binning                    = buildBinningConfig(fieldSolver.getBinningCmd());
+        values.binning   = buildBinningConfig(fieldSolver.getBinningCmd());
         values.repartitionFrequency =
                 Options::repartFreq > 0 ? static_cast<std::size_t>(Options::repartFreq) : 0;
         values.loadBalancingThreshold = Options::loadBalancingThreshold;
         values.correction             = buildCorrectionConfig(emissionSources, solverType);
 
-        domainConfig.periodicParticleBoundary = std::all_of(
-                values.boundaryConditions.begin(), values.boundaryConditions.end(),
-                [](FieldBoundaryCondition kind) {
-                    return kind == FieldBoundaryCondition::Periodic;
-                });
-        if (solverType == FieldSolverCmdType::P3M) {
-            domainConfig.layoutType    = ParticleLayoutType::SpatialOverlap;
-            domainConfig.overlapCutoff = values.p3mCutoff;
-        }
-
-        return SpaceChargeConfig(CartesianPICConfig(std::move(values)), std::move(domainConfig));
+        SpaceChargeConfig config = std::move(values);
+        validateSpaceChargeConfig(config);
+        return config;
     }
 
 }  // namespace opalx::spacecharge

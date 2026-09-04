@@ -6,10 +6,10 @@
 #ifndef OPALX_SPACE_CHARGE_SOLVE_CONTEXT_H
 #define OPALX_SPACE_CHARGE_SOLVE_CONTEXT_H
 
-#include "Algorithms/CoordinateSystemTrafo.h"
-#include "SpaceCharge/ParticleFieldSet.h"
-
 #include <cstddef>
+#include <cstdint>
+#include <span>
+#include "Algorithms/CoordinateSystemTrafo.h"
 
 namespace opalx::spacecharge {
 
@@ -30,39 +30,25 @@ namespace opalx::spacecharge {
         CoordinateFrameTransforms frames;
     };
 
-    struct SpaceChargeCorrectionRequest {
-        SpaceChargeCorrectionType kind = SpaceChargeCorrectionType::None;
-        double planeZ                  = 0.0;
-    };
-
-    struct SpaceChargeRequest {
-        bool useBinning     = false;
-        bool writePotential = false;
-        SpaceChargeCorrectionRequest correction;
-    };
-
     /**
-     * @brief Borrowed particle bindings and immutable state for one space-charge call.
+     * @brief Borrowed container activity and immutable state for one space-charge call.
      *
-     * The context must not be retained after solve() returns. Persistent algorithm objects use the
-     * native storage registered at construction and SpaceChargeSolver validates those identities
-     * before every dispatch.
+     * Concrete algorithms borrow stable particle containers at construction. The context therefore
+     * carries only per-step tracker state and one activity byte per container.
      */
     class SpaceChargeSolveContext {
     public:
         SpaceChargeSolveContext(
-                ParticleFieldSet particles, SpaceChargeStepState stepState,
-                SpaceChargeRequest request = {});
+                std::span<const std::uint8_t> trackingActive, SpaceChargeStepState stepState);
 
-        [[nodiscard]] ParticleFieldSet& particles() { return particles_m; }
-        [[nodiscard]] const ParticleFieldSet& particles() const { return particles_m; }
+        [[nodiscard]] std::span<const std::uint8_t> trackingActive() const {
+            return trackingActive_m;
+        }
         [[nodiscard]] const SpaceChargeStepState& stepState() const { return stepState_m; }
-        [[nodiscard]] const SpaceChargeRequest& request() const { return request_m; }
 
     private:
-        ParticleFieldSet particles_m;
+        std::span<const std::uint8_t> trackingActive_m;
         SpaceChargeStepState stepState_m;
-        SpaceChargeRequest request_m;
     };
 
 }  // namespace opalx::spacecharge

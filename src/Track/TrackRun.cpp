@@ -67,9 +67,8 @@
 
 #include "SpaceCharge/SpaceChargeConfig.h"
 #include "SpaceCharge/SpaceChargeConfigBuilder.h"
-#include "SpaceCharge/SpaceChargeRequestSchedule.h"
+#include "SpaceCharge/SpaceChargeFactory.h"
 #include "SpaceCharge/SpaceChargeSolver.h"
-#include "SpaceCharge/SpaceChargeSolverFactory.h"
 
 #include "BuildInfo.h"
 #include "Utility/Inform.h"
@@ -410,10 +409,14 @@ void TrackRun::execute() {
     // Parser-owned commands are consumed once. Runtime solver objects retain only this
     // immutable snapshot and never borrow FieldSolverCmd or EmissionSource objects.
     auto spaceChargeConfig =
-            opalx::spacecharge::SpaceChargeConfigBuilder::build(*fs_m, emissionSourcesLists);
-    const opalx::spacecharge::SpaceChargeRequestSchedule spaceChargeRequestSchedule(
-            spaceChargeConfig);
-    const auto cartesianDomainConfig = spaceChargeConfig.cartesianDomainConfig();
+            opalx::spacecharge::buildSpaceChargeConfig(*fs_m, emissionSourcesLists);
+    opalx::spacecharge::CorrectionConfig spaceChargeCorrection;
+    if (const auto* cartesian =
+                std::get_if<opalx::spacecharge::CartesianPICConfig>(&spaceChargeConfig)) {
+        spaceChargeCorrection = cartesian->correction;
+    }
+    const auto cartesianDomainConfig =
+            opalx::spacecharge::makeCartesianDomainConfig(spaceChargeConfig);
 
     /*
     Need the following units for mass and charge:
@@ -503,8 +506,8 @@ void TrackRun::execute() {
                     emissionSourcesLists[i], beams[i], emittingSamplersList[i], i);
         }
     }
-    spaceChargeSolver_m = opalx::spacecharge::SpaceChargeSolverFactory::create(
-            std::move(spaceChargeConfig), *bunch_m, ds_m);
+    spaceChargeSolver_m =
+            opalx::spacecharge::makeSpaceChargeSolver(std::move(spaceChargeConfig), *bunch_m, ds_m);
 
     if (!isRestart) {
         // Refresh the initial particle statistics after distribution setup.
@@ -539,11 +542,10 @@ void TrackRun::execute() {
 
     */
     itsTracker_m = std::make_unique<ParallelTracker>(
-            *Track::block->use->fetchLine(), *bunch_m, *spaceChargeSolver_m,
-            spaceChargeRequestSchedule, ds_m, false, Track::block->localTimeSteps,
-            Track::block->zstart, Track::block->zstop, Track::block->dT, emittingSamplersList,
-            isRestart, static_cast<unsigned long long>(restartMetadata.globalTrackStep),
-            restartMetadata.dt,
+            *Track::block->use->fetchLine(), *bunch_m, *spaceChargeSolver_m, spaceChargeCorrection,
+            ds_m, false, Track::block->localTimeSteps, Track::block->zstart, Track::block->zstop,
+            Track::block->dT, emittingSamplersList, isRestart,
+            static_cast<unsigned long long>(restartMetadata.globalTrackStep), restartMetadata.dt,
             StepSizeConfig::ResumePosition{
                     restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment});
     itsTracker_m->execute();
