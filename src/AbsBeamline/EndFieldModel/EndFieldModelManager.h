@@ -35,49 +35,59 @@
 
 namespace endfieldmodel {
 
-    class EndFieldModel {
+class Tanh;
+
+class EndFieldModelManager {
     public:
-        /** Destructor */
-        virtual ~EndFieldModel() { ; }
+        /** This is horrible. I really want to use an Abstraction but GPU does
+         *  not allow it so I have to do if (type == BLAH) { do something } 
+         */
+        enum EndFieldModelType {kTANH, kENGE, kASYMMETRICENGE};
 
-        /** Stream a human readable description of the end field model to out */
-        virtual std::ostream& print(std::ostream& out) const = 0;
+        EndFieldModelManager() {}
+        ~EndFieldModelManager() {}
 
-        /** Return the value of the function or its n^th derivative
+        /** Look up the EndFieldModel that has a given name
          *
-         *  @param x: returns d^n f(x)/dx^n
-         *  @param n: the derivative
-         */
-        virtual double function(double x, int n) const = 0;
-
-        /** Return the nominal flat top length of the magnet
-         */
-        virtual double getCentreLength() const = 0;
-
-        /** Return the nominal end field length of the magnet
-         */
-        virtual double getEndLength() const = 0;
-
-        /** Inheritable copy constructor - returns a deep copy of the EndFieldModel */
-        virtual EndFieldModel* clone() const = 0;
-
-        /** Set the maximum derivative that will be required to be calculated
+         *  @param name: name of the EndFieldModel
          *
-         *  Some end field models e.g. Enge use recursion relations to calculate
-         *  analytically derivatives at high order. By setting the maximum derivative
-         *  these models can set up the tables of recursion coefficients at set-up
-         *  time which makes the derivative lookup faster.
+         *  @returns shared_ptr to the appropriate EndFieldModel.
+         *  @throws GeneralOpalException if name is not recognised
          */
-        virtual void setMaximumDerivative(size_t n) = 0;
+        template <class EFM>
+        std::shared_ptr<EFM> getEndFieldModel(std::string name);
 
-        /** Rescale the end field lengths and offsets by a factor x0
+        /** Add a value to the lookup table
          *
-         *  If before rescaling the endfieldmodel returns f(x), after rescaling the
-         *  endfieldmodel should return f(x*scaleFactor)
+         *  @param name: name of the EndFieldModel. If name already exists in the
+         *  map, it is overwritten with the new value.
+         *  @param efm: shared_ptr to the EndFieldModel.
          */
-        virtual void rescale(double scaleFactor) = 0;
+        template <class EFM>
+        void setEndFieldModel(std::string name, std::shared_ptr<EFM> efm);
+
+        /** Get the name corresponding to a given EndFieldModel
+         *
+         *  @param efm: EndFieldModel to lookup
+         *
+         *  @returns name corresponding to the EndFieldModel. Note that this
+         *  just does a dumb loop over the stored map values; so O(N).
+         *  @throws GeneralOpalException if efm is not recognised
+         */
+        template <class EFM>
+        std::string getName(std::shared_ptr<EFM> efm);
+
     private:
+        std::map<std::string, std::shared_ptr<Tanh> > tanhMap_m;
+        std::map<std::string, std::shared_ptr<Enge> > engeMap_m;
+        std::map<std::string, std::shared_ptr<AsymmetricEnge> > asymmtricEngeMap_m;
     };
+
+    template <>
+    std::shared_ptr<Tanh> getEndFieldModel(std::string name) {
+        return tanhMap_m(name);
+    }
+
 
     std::vector<std::vector<int> > CompactVector(std::vector<std::vector<int> > vec);
 

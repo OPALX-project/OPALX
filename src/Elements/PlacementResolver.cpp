@@ -190,7 +190,6 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
             // across it so the following elements are placed correctly.
             double thisLength = element->getGeometry().getChordLength();
             double bendAngle  = element->getGeometry().getBendAngle();
-
             double rotationAngleAboutZ = element->getRotationAboutZ();
             Quaternion_t rotationAboutZ(
                     cos(0.5 * rotationAngleAboutZ),

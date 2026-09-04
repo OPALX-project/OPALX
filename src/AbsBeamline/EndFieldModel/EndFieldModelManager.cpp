@@ -58,4 +58,33 @@ namespace endfieldmodel {
         return vec;
     }
 
+    std::map<std::string, std::shared_ptr<EndFieldModel> > EndFieldModel::efm_map;
+
+    std::shared_ptr<EndFieldModel> EndFieldModel::getEndFieldModel(std::string name) {
+        try {
+            return efm_map.at(name);
+        } catch (std::exception& exc) {
+            throw GeneralOpalException(
+                    "EndFieldModel::getEndFieldModel",
+                    "Could not find EndFieldModel with name '" + name + "'");
+        }
+    }
+
+    void EndFieldModel::setEndFieldModel(std::string name, std::shared_ptr<EndFieldModel> efm) {
+        efm_map[name] = efm;
+    }
+
+    std::string EndFieldModel::getName(std::shared_ptr<EndFieldModel> efm) {
+        typedef std::map<std::string, std::shared_ptr<EndFieldModel> > EfmMap;
+        for (EfmMap::iterator it = efm_map.begin(); it != efm_map.end(); ++it) {
+            if (it->second == efm) {
+                return it->first;
+            }
+        }
+        std::stringstream ss;
+        ss << efm;
+        throw GeneralOpalException(
+                "EndFieldModel::getName", "Could not find EndFieldModel with address " + ss.str());
+    }
+
 }  // namespace endfieldmodel

@@ -35,7 +35,7 @@
 
 namespace endfieldmodel {
 
-    class EndFieldModel {
+    class EndFieldModelManager {
     public:
         /** Destructor */
         virtual ~EndFieldModel() { ; }
@@ -76,7 +76,36 @@ namespace endfieldmodel {
          *  endfieldmodel should return f(x*scaleFactor)
          */
         virtual void rescale(double scaleFactor) = 0;
+
+        /** Look up the EndFieldModel that has a given name
+         *
+         *  @param name: name of the EndFieldModel
+         *
+         *  @returns shared_ptr to the appropriate EndFieldModel.
+         *  @throws GeneralOpalException if name is not recognised
+         */
+        static std::shared_ptr<EndFieldModel> getEndFieldModel(std::string name);
+
+        /** Add a value to the lookup table
+         *
+         *  @param name: name of the EndFieldModel. If name already exists in the
+         *  map, it is overwritten with the new value.
+         *  @param efm: shared_ptr to the EndFieldModel.
+         */
+        static void setEndFieldModel(std::string name, std::shared_ptr<EndFieldModel> efm);
+
+        /** Get the name corresponding to a given EndFieldModel
+         *
+         *  @param efm: EndFieldModel to lookup
+         *
+         *  @returns name corresponding to the EndFieldModel. Note that this
+         *  just does a dumb loop over the stored map values; so O(N).
+         *  @throws GeneralOpalException if efm is not recognised
+         */
+        static std::string getName(std::shared_ptr<EndFieldModel> efm);
+
     private:
+        static std::map<std::string, std::shared_ptr<EndFieldModel> > efm_map;
     };
 
     std::vector<std::vector<int> > CompactVector(std::vector<std::vector<int> > vec);
