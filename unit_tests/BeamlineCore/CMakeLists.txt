@@ -5,3 +5,4 @@ add_opalx_test(TestConstantEFieldCavityRep USE_GTEST_MAIN
     SOURCES TestConstantEzRep.cpp)
 
 add_opalx_test(TestBendRep USE_GTEST_MAIN)
+add_opalx_test(TestMultipoleTRep USE_GTEST_MAIN)

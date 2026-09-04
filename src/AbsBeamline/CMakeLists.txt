@@ -17,9 +17,6 @@ set(_SRCS
     Monitor.cpp
     Multipole.cpp
     MultipoleT.cpp
-    MultipoleTBase.cpp
-    MultipoleTStraight.cpp
-    MultipoleTCurvedConstRadius.cpp
     RFCavity.cpp
     ScalingFFAMagnet.cpp        
     Solenoid.cpp
@@ -44,12 +41,8 @@ set(_HDRS
     Marker.h
     Multipole.h
     MultipoleT.h
-    MultipoleTBase.h
-    MultipoleTStraight.h
-    MultipoleTCurvedConstRadius.h
     RFCavity.h
     TravelingWave.h
-    SpecificElementVisitor.h
     ScalingFFAMagnet.h
     Solenoid.h
     VerticalFFAMagnet.h
@@ -58,7 +51,8 @@ set(_HDRS
     RBend.h
     SBend.h
     VariableRFCavity.h
-    MultipoleTConfig.h
+    BendFieldModel.h
+    MultipoleTFieldModel.h
 )
 
 # Add local include directory
