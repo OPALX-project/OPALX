@@ -86,16 +86,16 @@ def parse_map(output: str) -> np.ndarray:
 
 
 def run(executable: Path, name: str) -> np.ndarray:
-    input_file = ROOT / f"map-2-{name}.in"
+    input_file = ROOT / name / f"map-2-{name}.in"
     completed = subprocess.run(
         [str(executable), "--info", "1", input_file.name],
-        cwd=ROOT,
+        cwd=input_file.parent,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         check=False,
     )
-    log_file = ROOT / f"map-2-{name}.log"
+    log_file = input_file.with_suffix(".log")
     log_file.write_text(completed.stdout)
     if completed.returncode != 0:
         raise RuntimeError(
@@ -122,14 +122,14 @@ def main() -> int:
 
     failed = False
     for name, reference in expected.items():
-        measured = run(args.executable, name)
+        measured = run(args.executable.resolve(), name)
         error = float(np.max(np.abs(measured - reference)))
         passed = error <= tolerances[name]
         print(f"{name:10s} max|M_OPALX-M_exact| = {error:.6e}  "
               f"tolerance={tolerances[name]:.1e}  {'PASS' if passed else 'FAIL'}")
         failed |= not passed
 
-    measured = run(args.executable, "dba")
+    measured = run(args.executable.resolve(), "dba")
     indices = np.ix_([0, 1, 5], [0, 1, 5])
     reference = dba_horizontal()
     error = float(np.max(np.abs(measured[indices] - reference)))
