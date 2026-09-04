@@ -202,6 +202,7 @@ TEST_F(OrbitThreaderTest, ExecutesOverlapAndRecordsBothElements) {
     stepSizes.push_back(1.0e-11, 0.7, 512);
     stepSizes.resetIterator();
 
+    Options::enableLinearTransferMaps = true;
     PartData reference(1.0, 9.382720813e8, 1.0e6);
     OrbitThreader threader(
             reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
@@ -216,6 +217,39 @@ TEST_F(OrbitThreaderTest, ExecutesOverlapAndRecordsBothElements) {
         activeNames.insert(element->getName());
     }
     EXPECT_EQ(activeNames, (std::set<std::string>{"Q_LONG", "Q_SHORT"}));
+
+    std::shared_ptr<ElementBase> runtimeLong;
+    std::shared_ptr<ElementBase> runtimeShort;
+    for (const auto& element : beamline.getElements()) {
+        if (element->getName() == "Q_LONG") runtimeLong = element;
+        if (element->getName() == "Q_SHORT") runtimeShort = element;
+    }
+    ASSERT_NE(runtimeLong, nullptr);
+    ASSERT_NE(runtimeShort, nullptr);
+    EXPECT_TRUE(runtimeLong->isOverlapping());
+    EXPECT_TRUE(runtimeShort->isOverlapping());
+    ASSERT_EQ(runtimeLong->getLinearTransferMaps().size(), 2);
+    ASSERT_EQ(runtimeShort->getLinearTransferMaps().size(), 2);
+
+    const auto findOverlap = [](const auto& maps) -> const LinearTransferMap* {
+        for (const auto& map : maps) {
+            if (map.includesOverlappingFields) return &map;
+        }
+        return nullptr;
+    };
+    const auto* longOverlap  = findOverlap(runtimeLong->getLinearTransferMaps());
+    const auto* shortOverlap = findOverlap(runtimeShort->getLinearTransferMaps());
+    ASSERT_NE(longOverlap, nullptr);
+    ASSERT_NE(shortOverlap, nullptr);
+    EXPECT_EQ(longOverlap->segment, shortOverlap->segment);
+    EXPECT_EQ(
+            std::set<std::string>(
+                    longOverlap->activeElements.begin(), longOverlap->activeElements.end()),
+            (std::set<std::string>{"Q_LONG", "Q_SHORT"}));
+
+    const auto ordered = beamline.getLinearTransferMapsInReferenceOrder();
+    EXPECT_EQ(ordered.size(), 3);  // shared overlap segment is returned only once
+    ASSERT_TRUE(threader.getCombinedLinearTransferMap().has_value());
 }
 
 TEST_F(OrbitThreaderTest, BuildsOnePeriodicTurnIndependentOfTrackStepBudget) {

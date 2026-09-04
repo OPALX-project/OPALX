@@ -112,6 +112,10 @@ void ElementBase::addLinearTransferMap(LinearTransferMap map) {
 
 void ElementBase::clearLinearTransferMaps() { linearTransferMaps_m.clear(); }
 
+bool ElementBase::isOverlapping() const { return isOverlapping_m; }
+
+void ElementBase::setOverlapping(const bool overlapping) { isOverlapping_m = overlapping; }
+
 void ElementBase::setBeamlineMembership(BeamlineTopology topology, std::string ownerName) {
     if (topology == BeamlineTopology::RING && ownerName.empty()) {
         throw GeneralOpalException(

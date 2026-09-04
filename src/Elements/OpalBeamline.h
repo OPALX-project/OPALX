@@ -106,8 +106,10 @@ public:
     /**
      * @brief Return an ordered view of all element-owned linear transfer maps.
      *
-     * The element remains the owner of each map.  Results are ordered by entrance path length,
-     * then pass and element name, which makes the sequence directly suitable for composition.
+     * The element remains the owner of each attached map copy. Results are ordered by entrance
+     * path length; a segment attached to several overlapping elements is returned only once.
+     * Field-free segments have no element owner and are therefore not included here. The
+     * OrbitThreader composes its complete ordered segment list, including those gaps.
      */
     std::vector<ElementTransferMapRef> getLinearTransferMapsInReferenceOrder() const;
 

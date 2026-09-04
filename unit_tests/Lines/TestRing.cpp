@@ -59,11 +59,14 @@ TEST(RingMembershipTest, DefaultsValidatesAndSurvivesClone) {
 
     drift.setBeamlineMembership(BeamlineTopology::RING, "R1");
     drift.addLinearTransferMap(LinearTransferMap{});
+    drift.setOverlapping(true);
     std::unique_ptr<ElementBase> clone(drift.clone());
     EXPECT_EQ(clone->getBeamlineTopology(), BeamlineTopology::RING);
     EXPECT_EQ(clone->getBeamlineOwnerName(), "R1");
     EXPECT_TRUE(drift.hasLinearTransferMaps());
     EXPECT_FALSE(clone->hasLinearTransferMaps());
+    EXPECT_TRUE(drift.isOverlapping());
+    EXPECT_FALSE(clone->isOverlapping());
 
     drift.clearBeamlineMembership();
     EXPECT_EQ(drift.getBeamlineTopology(), BeamlineTopology::LINE);
