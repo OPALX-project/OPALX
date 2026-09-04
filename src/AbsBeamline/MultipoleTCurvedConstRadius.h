@@ -99,15 +99,14 @@ private:
 KOKKOS_INLINE_FUNCTION Vector_t<double, 3> MultipoleTCurvedConstRadius::toMagnetCoords(
         const Vector_t<double, 3>& R, const MultipoleTConfig& config) {
     // Skew and entry angle
-    Vector_t<double, 3> result = rotateFrame(R, config);
-    // Go to local Frenet-Serret coordinates
+    const Vector_t<double, 3> rotated = rotateFrame(R, config);
+    // Go to the arc coordinates of the design orbit. This is the same mapping the bends use,
+    // so a positive bend angle turns the orbit towards -x, with the centre of curvature on
+    // the -x side, exactly as for SBEND.
     // Note: if the bend angle is zero, this object is not constructed
-    const double radius  = config.length_m / config.bendAngle_m;
-    const double rMinusX = radius - R[0];
-    const double alpha   = Kokkos::hypot(rMinusX, R[2]);
-    result[0]            = alpha - radius;
-    result[1]            = R[1];
-    result[2]            = radius * Kokkos::atan2(R[2], rMinusX);
+    const double curvature = config.bendAngle_m / config.length_m;
+    Vector_t<double, 3> result =
+            GeometryHelper::toBendArcCoords(rotated, curvature, config.length_m);
     // Magnet origin at the center rather than entry
     result[2] -= config.length_m / 2.0;
     return result;
@@ -161,7 +160,11 @@ KOKKOS_INLINE_FUNCTION bool MultipoleTCurvedConstRadius::computeBField(
             myB[1] += innerSumZ * zzk;
             myB[2] += innerSumS * xszk;
         }
-        B += myB * scaling;
+        // myB is expressed in the basis tangent to the design arc; rotate it into the
+        // element entrance frame, which is the frame the tracker works in.
+        const double sFromEntrance = RPrime[2] + config.length_m / 2.0;
+        B += GeometryHelper::rotateArcFieldToEntry(myB, sFromEntrance, 1.0 / rho, config.length_m)
+             * scaling;
     }
     return !insideAperture;
 }

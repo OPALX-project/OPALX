@@ -13,6 +13,7 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 
+#include <algorithm>
 #include <vector>
 #include "AbsBeamline/MultipoleT.h"
 #include "AbstractObjects/OpalData.h"
@@ -43,14 +44,32 @@ public:
     static Vector_t<double, 3> curvilinearToGlobal(
             const Vector_t<double, 3>& local, const Vector_t<double, 3>& elementEntry,
             const double elementLength, const double bendAngle) {
-        const auto radius  = elementLength / bendAngle;
-        const double s     = local[2] + elementLength / 2.0;
-        const auto cosSbyR = std::cos(s / radius);
-        const auto sinSbyR = std::sin(s / radius);
-        const double x     = radius - (local[0] + radius) * cosSbyR + elementEntry[0];
-        const double y     = local[1] + elementEntry[1];
-        const double z     = (local[0] + radius) * sinSbyR + elementEntry[2];
-        return {x, y, z};
+        // Inverse of GeometryHelper::toBendArcCoords. The centre of curvature sits on the
+        // -x side, so a positive bend angle turns the design orbit towards -x, as for SBEND.
+        // Outside the body the reference path continues along the straight entrance and exit
+        // tangents, so those two regions are mapped back through the tangent, not the arc.
+        const double radius = elementLength / bendAngle;
+        // Arc length from the entrance; local[2] is measured from the magnet centre.
+        const double s = local[2] + elementLength / 2.0;
+        const double y = local[1] + elementEntry[1];
+
+        if (s <= 0.0) {
+            // Upstream of the entrance face: the entrance tangent, so s is just z.
+            return {local[0] + elementEntry[0], y, s + elementEntry[2]};
+        }
+
+        const double phi = std::min(s, elementLength) / radius;
+        const double x   = (local[0] + radius) * std::cos(phi) - radius;
+        const double z   = (local[0] + radius) * std::sin(phi);
+        if (s <= elementLength) {
+            return {x + elementEntry[0], y, z + elementEntry[2]};
+        }
+
+        // Downstream of the exit face: continue along the exit tangent, which has turned
+        // by the full bend angle.
+        const double overshoot = s - elementLength;
+        return {x - overshoot * std::sin(phi) + elementEntry[0], y,
+                z + overshoot * std::cos(phi) + elementEntry[2]};
     }
 
     void grabTransverseDataLine(
@@ -133,7 +152,10 @@ public:
             const Vector_t<double, 3>& elementEntry, const double elementLength,
             const double bendAngle, const double dr) {
         const double stepSize = length / static_cast<double>(divLine.size() - 1);
-        const double startS   = 0 - (elementLength - length) / 2;
+        // Centre the sampled window on the magnet. local[2] is measured from the magnet
+        // centre, so the window runs from -length/2 to +length/2 whether it is shorter or
+        // longer than the body.
+        const double startS = -length / 2;
         for (size_t i = 0; i < divLine.size(); ++i) {
             // Get the sourrounding 6 B fields
             Vector_t<double, 3> local{x, 0, static_cast<double>(i) * stepSize + startS};
@@ -429,6 +451,61 @@ TEST_F(TestMultipoleTCurvedConstRadius, DivCurl) {
                 std::hypot(curlLine[i][0], curlLine[i][1], curlLine[i][2]) * dr / fieldLine[i];
         EXPECT_NEAR(divError, 0, 1e-5);
         EXPECT_NEAR(curlError, 0, 1e-2);
+    }
+}
+
+// Check the arc mapping and the rotation of the field into the element entrance frame.
+TEST_F(TestMultipoleTCurvedConstRadius, ArcCoordinatesAndEntranceFrameField) {
+    constexpr double length    = 4.4;
+    constexpr double bendAngle = M_PI / 8.0;
+    constexpr double curvature = bendAngle / length;
+    setElementLength(length);
+    setBendAngle(bendAngle, false);
+    setAperture(3.5, 3.5);
+    setFringeField(length / 2, 0.3, 0.3);
+    setRotation(0.0);
+    setEntranceAngle(0.0);
+    setMaxOrder(5, 10);
+    setTransProfile({1.0});
+
+    // A point on the design arc maps back to zero radial offset and its own arc length,
+    // with the centre of curvature on the -x side (positive angle turns towards -x).
+    for (const double s : {0.0, 0.25 * length, 0.5 * length, length}) {
+        const Vector_t<double, 3> onArc =
+                curvilinearToGlobal({0.0, 0.0, s - length / 2}, {}, length, bendAngle);
+        EXPECT_LE(onArc[0], 0.0) << "the design orbit must turn towards -x";
+        const Vector_t<double, 3> arc = GeometryHelper::toBendArcCoords(onArc, curvature, length);
+        EXPECT_NEAR(arc(0), 0.0, 1e-12);
+        EXPECT_NEAR(arc(2), s, 1e-12);
+    }
+
+    // The field is returned in the element entrance frame, not in the basis tangent to the
+    // arc. With equal fringe lengths the field in the tangent basis mirrors about the magnet
+    // centre: the vertical and radial parts are even in (s - L/2), the longitudinal part odd.
+    // Predict the far-face field from the near-face one and check the frames agree.
+    constexpr double y0    = 0.2;
+    constexpr double delta = 0.5;
+
+    const auto fieldAt = [&](const double s) {
+        const Vector_t<double, 3> R =
+                curvilinearToGlobal({0.0, y0, s - length / 2}, {}, length, bendAngle);
+        Vector_t<double, 3> E{}, B{};
+        apply(R, {}, 0.0, E, B);
+        return B;
+    };
+
+    // Undo the rotation at the near face to get the field in the tangent basis there.
+    const Vector_t<double, 3> nearTangent =
+            GeometryHelper::rotateArcFieldToEntry(fieldAt(delta), delta, -curvature, length);
+    ASSERT_GT(std::abs(nearTangent[2]), 1e-6) << "need a longitudinal component to rotate";
+
+    const Vector_t<double, 3> farTangent(nearTangent[0], nearTangent[1], -nearTangent[2]);
+    const Vector_t<double, 3> expected =
+            GeometryHelper::rotateArcFieldToEntry(farTangent, length - delta, curvature, length);
+
+    const Vector_t<double, 3> got = fieldAt(length - delta);
+    for (unsigned int i = 0; i < 3; ++i) {
+        EXPECT_NEAR(got[i], expected[i], 1e-9) << "component " << i;
     }
 }
 
