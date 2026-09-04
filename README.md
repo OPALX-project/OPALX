@@ -296,27 +296,33 @@ Other useful Catalyst environment variables:
 | `IPPL_CATALYST_PROXY_OPTION` | `ON` / `PRODUCE_ONLY` / `OFF` | Control the Catalyst proxy file generation. |
 | `OPALX_CATALYST_LIVE_FREQ` | positive integer (default `1`) | Only push data to the live ParaView client every N tracking steps. |
 
-### Bunch-to-lab transform attributes
+### Bunch-to-lab transform channel
 
-When Catalyst is enabled, the particle channel also carries the current
-bunch-frame-to-lab transform as constant per-particle arrays.  These are useful
-for transforming accelerator geometry (which is defined in lab/world
-coordinates) into the bunch frame so the camera can track the bunch while it
-stays centred:
+OPALX tracks particles in a bunch reference frame.  When Catalyst is enabled, a
+separate single-point polydata channel named `BunchTransformData_<label>` is
+published for every registered bunch (e.g. `BunchTransformData_electrons`).  It
+carries the current transform as point-data arrays, so you can transform either
+accelerator geometry into the bunch frame or particles into lab/world
+coordinates inside ParaView:
 
 | Array | Components | Meaning |
 |-------|------------|---------|
-| `BunchOrigin` | `(x, y, z)` | Bunch-frame origin expressed in lab coordinates. |
-| `BunchRotRow0` | `(r00, r01, r02)` | First row of the lab→bunch rotation matrix. |
-| `BunchRotRow1` | `(r10, r11, r12)` | Second row of the lab→bunch rotation matrix. |
-| `BunchRotRow2` | `(r20, r21, r22)` | Third row of the lab→bunch rotation matrix. |
+| `BunchOrigin` | `(x, y, z)` | Bunch-frame origin in lab coordinates (lab→bunch translation). |
+| `BunchRotRow0/1/2` | `(rX0, rX1, rX2)` | Rows of the lab→bunch rotation matrix. |
+| `BunchInvOrigin` | `(x, y, z)` | Lab-frame origin in bunch coordinates (bunch→lab translation). |
+| `BunchInvRotRow0/1/2` | `(rX0, rX1, rX2)` | Rows of the bunch→lab rotation matrix. |
 
-For a lab-frame geometry point `X`, the corresponding bunch-frame point is:
+To use it, wire a `Programmable Filter` with two inputs:
 
-```text
-X_bunch = R * (X - BunchOrigin)
-```
+- **Input 0**: the geometry or particle dataset you want to transform.
+- **Input 1**: the `BunchTransformData_<label>` source.
 
-where `R` is the 3×3 matrix formed by the three `BunchRotRow*` arrays.  In
-ParaView this can be applied with a `Programmable Filter` on the geometry
-source.
+Then load the script `catalyst/bunch_transform_filter.py` from this repository
+into the filter.  The script has an `INVERSE` flag at the top:
+
+- `INVERSE = False` (default): transforms lab geometry into the bunch frame,
+  keeping the bunch centred in the view.
+- `INVERSE = True`: transforms bunch-frame particles into lab/world coordinates.
+
+For a lab point `X`, the bunch-frame point is `X_bunch = R * (X - BunchOrigin)`.
+For a bunch point `Y`, the lab point is `Y_lab = R_inv * Y + BunchInvOrigin`.
