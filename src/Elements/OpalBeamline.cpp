@@ -139,6 +139,23 @@ void OpalBeamline::prepareSections() {
 
 void OpalBeamline::print(Inform& /*msg*/) const {}
 
+std::vector<ElementTransferMapRef> OpalBeamline::getLinearTransferMapsInReferenceOrder() const {
+    std::vector<ElementTransferMapRef> result;
+    for (const auto& element : elements_m) {
+        for (const auto& map : element->getLinearTransferMaps()) {
+            result.push_back({element, &map});
+        }
+    }
+    std::sort(result.begin(), result.end(), [](const auto& left, const auto& right) {
+        if (left.map->entrance.pathLength != right.map->entrance.pathLength) {
+            return left.map->entrance.pathLength < right.map->entrance.pathLength;
+        }
+        if (left.map->pass != right.map->pass) return left.map->pass < right.map->pass;
+        return left.element->getName() < right.element->getName();
+    });
+    return result;
+}
+
 void OpalBeamline::swap(OpalBeamline& rhs) {
     std::swap(elements_m, rhs.elements_m);
     std::swap(prepared_m, rhs.prepared_m);

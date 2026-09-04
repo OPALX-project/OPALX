@@ -58,9 +58,12 @@ TEST(RingMembershipTest, DefaultsValidatesAndSurvivesClone) {
             GeneralOpalException);
 
     drift.setBeamlineMembership(BeamlineTopology::RING, "R1");
+    drift.addLinearTransferMap(LinearTransferMap{});
     std::unique_ptr<ElementBase> clone(drift.clone());
     EXPECT_EQ(clone->getBeamlineTopology(), BeamlineTopology::RING);
     EXPECT_EQ(clone->getBeamlineOwnerName(), "R1");
+    EXPECT_TRUE(drift.hasLinearTransferMaps());
+    EXPECT_FALSE(clone->hasLinearTransferMaps());
 
     drift.clearBeamlineMembership();
     EXPECT_EQ(drift.getBeamlineTopology(), BeamlineTopology::LINE);

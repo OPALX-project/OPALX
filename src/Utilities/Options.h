@@ -143,6 +143,9 @@ namespace Options {
     /// If true VTK files are written
     extern bool enableVTK;
 
+    /// Calculate first-order external-field transfer maps during design-orbit threading.
+    extern bool enableLinearTransferMaps;
+
     extern bool asciidump;
 
     /// Governs how many sigmas away particles are deleted

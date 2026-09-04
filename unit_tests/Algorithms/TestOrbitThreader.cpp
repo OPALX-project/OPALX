@@ -4,6 +4,7 @@
 #include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/OrbitThreader.h"
 #include "Algorithms/PartData.h"
+#include "BeamlineCore/DriftRep.h"
 #include "BeamlineCore/MultipoleRep.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "Beamlines/Beamline.h"
@@ -108,10 +109,13 @@ protected:
     }
 
     void SetUp() override {
+        Options::enableLinearTransferMaps = false;
         OpalData::getInstance()->storeInputFn("TestOrbitThreader.opal");
         OpalData::getInstance()->setOpenMode(OpalData::OpenMode::WRITE);
         std::filesystem::create_directories(OpalData::getInstance()->getAuxiliaryOutputDirectory());
     }
+
+    void TearDown() override { Options::enableLinearTransferMaps = false; }
 
     class TestableFieldSolverCmd : public FieldSolverCmd {
     public:
@@ -221,8 +225,11 @@ TEST_F(OrbitThreaderTest, BuildsOnePeriodicTurnIndependentOfTrackStepBudget) {
     DefaultVisitor visitor(beamlineForVisitor, false, false);
 
     OpalBeamline beamline;
-    auto quadrupole = makePlacedQuadrupole("Q_PERIODIC", 0.5, 0.0, 0.5);
-    beamline.visit(*quadrupole, visitor, *bunch);
+    DriftRep drift("D_PERIODIC");
+    drift.getGeometry().setElementLength(0.8);
+    drift.setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector_t<double, 3>(0.0), Quaternion()));
+    drift.fixPosition();
+    beamline.visit(drift, visitor, *bunch);
     beamline.prepareSections();
 
     StepSizeConfig stepSizes;
@@ -230,14 +237,18 @@ TEST_F(OrbitThreaderTest, BuildsOnePeriodicTurnIndependentOfTrackStepBudget) {
     stepSizes.resetIterator();
 
     PartData reference(1.0, 9.382720813e8, 1.0e6);
+    Options::enableLinearTransferMaps = true;
     OrbitThreader threader(
-            reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
-            1.0e-11, stepSizes, beamline, /*isDesignBeam=*/true, /*period=*/0.6);
+            reference, Vector_t<double, 3>(0.0, 0.0, 0.2), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.2,
+            /*maxDiffZBunch=*/0.1, 0.0, 1.0e-11, stepSizes, beamline, /*isDesignBeam=*/true,
+            /*period=*/0.6);
 
     threader.execute();
 
-    EXPECT_EQ(names(threader.query(0.1, 0.01)), (std::set<std::string>{"Q_PERIODIC"}));
-    EXPECT_EQ(names(threader.query(0.7, 0.01)), (std::set<std::string>{"Q_PERIODIC"}));
+    EXPECT_EQ(names(threader.query(0.1, 0.01)), (std::set<std::string>{"D_PERIODIC"}));
+    EXPECT_EQ(names(threader.query(0.7, 0.01)), (std::set<std::string>{"D_PERIODIC"}));
+    ASSERT_TRUE(threader.getCombinedLinearTransferMap().has_value());
+    EXPECT_NEAR((*threader.getCombinedLinearTransferMap())(0, 1), 0.6, 2.0e-5);
 }
 
 TEST_F(OrbitThreaderTest, UsesFieldSupportExtentForLengthCheck) {
@@ -261,4 +272,48 @@ TEST_F(OrbitThreaderTest, UsesFieldSupportExtentForLengthCheck) {
             1.0e-12, stepSizes, beamline, /*isDesignBeam=*/true);
 
     EXPECT_NO_THROW(threader.execute());
+}
+
+TEST_F(OrbitThreaderTest, CalculatesAndAttachesLinearDriftMap) {
+    auto bunch = makeBunch(0);
+
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    OpalBeamline beamline;
+    DriftRep drift("D_MAP");
+    constexpr double length = 0.3;
+    drift.getGeometry().setElementLength(length);
+    drift.setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector_t<double, 3>(0.0), Quaternion()));
+    drift.fixPosition();
+    beamline.visit(drift, visitor, *bunch);
+    beamline.prepareSections();
+
+    StepSizeConfig stepSizes;
+    stepSizes.push_back(1.0e-11, 0.4, 256);
+    stepSizes.resetIterator();
+
+    Options::enableLinearTransferMaps = true;
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    OrbitThreader threader(
+            reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
+            1.0e-11, stepSizes, beamline, /*isDesignBeam=*/true);
+
+    ASSERT_NO_THROW(threader.execute());
+    const auto runtimeElements = beamline.getElements();
+    ASSERT_EQ(runtimeElements.size(), 1);
+    const auto& maps = (*runtimeElements.begin())->getLinearTransferMaps();
+    ASSERT_EQ(maps.size(), 1);
+    const auto& map = maps.front().matrix;
+    EXPECT_NEAR(map(0, 0), 1.0, 1.0e-8);
+    EXPECT_NEAR(map(0, 1), length, 2.0e-5);
+    EXPECT_NEAR(map(2, 2), 1.0, 1.0e-8);
+    EXPECT_NEAR(map(2, 3), length, 2.0e-5);
+    EXPECT_NEAR(map(4, 5), length / 2.0, 2.0e-5);  // gamma^2 = 1 + |beta*gamma|^2 = 2
+    EXPECT_NEAR(map(5, 5), 1.0, 1.0e-8);
+
+    ASSERT_TRUE(threader.getCombinedLinearTransferMap().has_value());
+    // The combined LINE map covers the full threaded interval, including the field-free tail to
+    // ZSTOP; the element-owned map above covers only the drift itself.
+    EXPECT_NEAR((*threader.getCombinedLinearTransferMap())(0, 1), 0.4, 1.0e-3);
 }

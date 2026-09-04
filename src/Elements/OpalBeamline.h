@@ -21,6 +21,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <vector>
 
 #include "AbsBeamline/ElementBase.h"
 #include "PartBunch/PartBunch.h"
@@ -34,6 +35,12 @@
 #include "OPALTypes.h"
 
 class BoundaryGeometry;
+
+/// Association used to traverse element-owned maps in reference-path order; `map` is non-owning.
+struct ElementTransferMapRef {
+    std::shared_ptr<const ElementBase> element;
+    const LinearTransferMap* map{nullptr};
+};
 
 class OpalBeamline {
 public:
@@ -95,6 +102,14 @@ public:
             Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
     ElementList getElementByType(ElementType);
+
+    /**
+     * @brief Return an ordered view of all element-owned linear transfer maps.
+     *
+     * The element remains the owner of each map.  Results are ordered by entrance path length,
+     * then pass and element name, which makes the sequence directly suitable for composition.
+     */
+    std::vector<ElementTransferMapRef> getLinearTransferMapsInReferenceOrder() const;
 
     void swap(OpalBeamline& rhs);
     void merge(OpalBeamline& rhs);

@@ -100,6 +100,18 @@ const std::string& ElementBase::getBeamlineOwnerName() const {
     return beamlineMembership_m.ownerName;
 }
 
+bool ElementBase::hasLinearTransferMaps() const { return !linearTransferMaps_m.empty(); }
+
+const std::vector<LinearTransferMap>& ElementBase::getLinearTransferMaps() const {
+    return linearTransferMaps_m;
+}
+
+void ElementBase::addLinearTransferMap(LinearTransferMap map) {
+    linearTransferMaps_m.push_back(std::move(map));
+}
+
+void ElementBase::clearLinearTransferMaps() { linearTransferMaps_m.clear(); }
+
 void ElementBase::setBeamlineMembership(BeamlineTopology topology, std::string ownerName) {
     if (topology == BeamlineTopology::RING && ownerName.empty()) {
         throw GeneralOpalException(

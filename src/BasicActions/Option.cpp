@@ -83,6 +83,7 @@ namespace {
         RNGTYPE,
         ENABLEHDF5,
         ENABLEVTK,
+        ENABLELINEARTRANSFERMAPS,
         ASCIIDUMP,
         BOUNDPDESTROY,
         BEAMHALOBOUNDARY,
@@ -302,6 +303,12 @@ Option::Option()
     itsAttr[ENABLEVTK] = Attributes::makeBool(
             "ENABLEVTK", "If true, writing of VTK files are enabled", enableVTK);
 
+    itsAttr[ENABLELINEARTRANSFERMAPS] = Attributes::makeBool(
+            "ENABLELINEARTRANSFERMAPS",
+            "If true, calculate first-order external-field transfer maps during design-orbit "
+            "threading.",
+            enableLinearTransferMaps);
+
     itsAttr[ASCIIDUMP] = Attributes::makeBool(
             "ASCIIDUMP", "If true, some of the elements dump in ASCII instead of HDF5", asciidump);
 
@@ -416,6 +423,7 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setReal(itsAttr[NLHS], nLHS);
     Attributes::setBool(itsAttr[ENABLEHDF5], enableHDF5);
     Attributes::setBool(itsAttr[ENABLEVTK], enableVTK);
+    Attributes::setBool(itsAttr[ENABLELINEARTRANSFERMAPS], enableLinearTransferMaps);
     Attributes::setBool(itsAttr[ASCIIDUMP], asciidump);
     Attributes::setReal(itsAttr[BOUNDPDESTROY], boundpDestroy);
     Attributes::setReal(itsAttr[BEAMHALOBOUNDARY], beamHaloBoundary);
@@ -450,6 +458,9 @@ void Option::execute() {
     csrDump               = Attributes::getBool(itsAttr[CSRDUMP]);
     enableHDF5            = Attributes::getBool(itsAttr[ENABLEHDF5]);
     enableVTK             = Attributes::getBool(itsAttr[ENABLEVTK]);
+
+    enableLinearTransferMaps = Attributes::getBool(itsAttr[ENABLELINEARTRANSFERMAPS]);
+
     idealized             = Attributes::getBool(itsAttr[IDEALIZED]);
     asciidump             = Attributes::getBool(itsAttr[ASCIIDUMP]);
     version               = Attributes::getReal(itsAttr[VERSION]);

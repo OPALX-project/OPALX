@@ -17,6 +17,7 @@
 
 #include "AbsBeamline/AttributeSet.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
+#include "Algorithms/LinearTransferMap.h"
 #include "Algorithms/Quaternion.hpp"
 #include "BeamlineGeometry/Geometry.h"
 #include "OPALTypes.h"
@@ -202,6 +203,18 @@ public:
 
     /// Return the owning RING name, or an empty string for LINE membership.
     const std::string& getBeamlineOwnerName() const;
+
+    /// @brief Whether this runtime occurrence owns at least one calculated linear transfer map.
+    bool hasLinearTransferMaps() const;
+
+    /// @brief Calculated maps in traversal/pass order for this runtime occurrence.
+    const std::vector<LinearTransferMap>& getLinearTransferMaps() const;
+
+    /// @brief Attach a calculated map to this runtime occurrence.
+    void addLinearTransferMap(LinearTransferMap map);
+
+    /// @brief Remove runtime results; cloned elements never inherit calculated maps.
+    void clearLinearTransferMaps();
 
     /// Assign validated beam-sequence ownership metadata.
     /// RING membership requires a non-empty owner; LINE membership requires
@@ -454,6 +467,9 @@ private:
 
     // --- Beamline membership ---
     BeamlineMembership beamlineMembership_m;
+
+    // Runtime results are deliberately not copied by ElementBase's copy constructor.
+    std::vector<LinearTransferMap> linearTransferMaps_m;
 
     // --- User-defined attributes ---
     AttributeSet userAttribs;
