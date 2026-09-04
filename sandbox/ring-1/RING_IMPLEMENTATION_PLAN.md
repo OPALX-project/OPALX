@@ -202,3 +202,6 @@ RING acceptance criterion.
 - The corrected ten-turn run completes at 1633.630188 m with one retained particle. Its reference
   position is 5.1 mm from the origin and its momentum points along the entrance tangent after turn
   ten; exact periodic matching remains the responsibility of the future closed-orbit finder.
+- Step diagnostics for RING tracking report the one-based turn number and the topological angle in
+  degrees. The angle is derived from accumulated path length modulo the ring circumference; LINE
+  diagnostics retain their existing longitudinal-position output.

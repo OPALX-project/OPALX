@@ -63,6 +63,22 @@
 
 extern Inform* gmsg;
 
+namespace {
+    std::string getRingProgressString(double pathLength, double circumference) {
+        const double completedTurns = std::floor(pathLength / circumference);
+        double pathInTurn           = std::fmod(pathLength, circumference);
+        if (pathInTurn < 0.0) {
+            pathInTurn += circumference;
+        }
+        const double angleDegrees = 360.0 * pathInTurn / circumference;
+
+        std::ostringstream progress;
+        progress << "Turn " << static_cast<long long>(completedTurns) + 1
+                 << ", angle=" << std::fixed << std::setprecision(3) << angleDegrees << " [deg]";
+        return progress.str();
+    }
+}  // namespace
+
 // --- Constructors ---
 
 /**
@@ -1704,9 +1720,13 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
         if (printStepInfo) {
             *gmsg << level1 << "* " << myt2.time() << " "
                   << "Step " << std::setw(6) << globalStep << " "
-                  << "container[" << ci << "] "
-                  << "at " << Util::getLengthString(sPos) << ", "
-                  << "t= " << Util::getTimeString(itsBunch_m->getT()) << ", "
+                  << "container[" << ci << "] ";
+            if (ringPeriod_m > 0.0) {
+                *gmsg << getRingProgressString(sPos, ringPeriod_m) << ", ";
+            } else {
+                *gmsg << "at " << Util::getLengthString(sPos) << ", ";
+            }
+            *gmsg << "t= " << Util::getTimeString(itsBunch_m->getT()) << ", "
                   << "E=" << Util::getEnergyString(pc->getMeanKineticEnergy()) << endl;
         }
         anyLogged = true;
