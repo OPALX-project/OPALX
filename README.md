@@ -295,3 +295,28 @@ Other useful Catalyst environment variables:
 | `IPPL_CATALYST_VTK` | `ON` / `OFF` | Write VTK extracts. |
 | `IPPL_CATALYST_PROXY_OPTION` | `ON` / `PRODUCE_ONLY` / `OFF` | Control the Catalyst proxy file generation. |
 | `OPALX_CATALYST_LIVE_FREQ` | positive integer (default `1`) | Only push data to the live ParaView client every N tracking steps. |
+
+### Bunch-to-lab transform attributes
+
+When Catalyst is enabled, the particle channel also carries the current
+bunch-frame-to-lab transform as constant per-particle arrays.  These are useful
+for transforming accelerator geometry (which is defined in lab/world
+coordinates) into the bunch frame so the camera can track the bunch while it
+stays centred:
+
+| Array | Components | Meaning |
+|-------|------------|---------|
+| `BunchOrigin` | `(x, y, z)` | Bunch-frame origin expressed in lab coordinates. |
+| `BunchRotRow0` | `(r00, r01, r02)` | First row of the lab→bunch rotation matrix. |
+| `BunchRotRow1` | `(r10, r11, r12)` | Second row of the lab→bunch rotation matrix. |
+| `BunchRotRow2` | `(r20, r21, r22)` | Third row of the lab→bunch rotation matrix. |
+
+For a lab-frame geometry point `X`, the corresponding bunch-frame point is:
+
+```text
+X_bunch = R * (X - BunchOrigin)
+```
+
+where `R` is the 3×3 matrix formed by the three `BunchRotRow*` arrays.  In
+ParaView this can be applied with a `Programmable Filter` on the geometry
+source.

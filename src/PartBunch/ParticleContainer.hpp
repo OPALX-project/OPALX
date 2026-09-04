@@ -171,6 +171,15 @@ public:
     /// particle deletion mask (indicates which particles are deleted every timestep)
     ippl::ParticleAttrib<bool> InvalidMask;
 
+#ifdef IPPL_ENABLE_CATALYST
+    /// Bunch-frame origin expressed in lab/world coordinates (constant per particle).
+    ippl::ParticleAttrib<Vector_t<double, 3>> BunchOrigin;
+    /// Rows of the lab->bunch rotation matrix (constant per particle).
+    ippl::ParticleAttrib<Vector_t<double, 3>> BunchRotRow0;
+    ippl::ParticleAttrib<Vector_t<double, 3>> BunchRotRow1;
+    ippl::ParticleAttrib<Vector_t<double, 3>> BunchRotRow2;
+#endif
+
     /// Per-particle polarization vector P (rest-frame Pauli expectation values along
     /// lab-frame axes; |Pol| in [0, 1]). Registered only when spinEnabled_m is true.
     /// Storage is float to halve memory; kernels should compute in double and cast.
@@ -240,6 +249,15 @@ public:
         if (spinEnabled_m) {
             Pol.set_name("Pol");
         }
+
+        this->addAttribute(BunchOrigin);
+        this->addAttribute(BunchRotRow0);
+        this->addAttribute(BunchRotRow1);
+        this->addAttribute(BunchRotRow2);
+        BunchOrigin.set_name("BunchOrigin");
+        BunchRotRow0.set_name("BunchRotRow0");
+        BunchRotRow1.set_name("BunchRotRow1");
+        BunchRotRow2.set_name("BunchRotRow2");
 #endif
     }
 
@@ -254,6 +272,35 @@ public:
         trafo.rotateBunchTo(this->B.getView(), nLoc);
         markMomentsDirty();
     }
+
+#ifdef IPPL_ENABLE_CATALYST
+    /// Fill per-particle bunch-to-lab transform attributes from toLabTrafo_m.
+    /// These are constant across all particles but published as point data so that
+    /// ParaView/Catalyst can transform accelerator geometry into the bunch frame.
+    void updateBunchTransformAttributes() {
+        const size_t nLoc = this->getLocalNum();
+        if (nLoc == 0) {
+            return;
+        }
+
+        const auto origin = toLabTrafo_m.getOrigin();
+        const auto rot    = toLabTrafo_m.getRotationMatrix();
+
+        auto originView = BunchOrigin.getView();
+        auto row0View   = BunchRotRow0.getView();
+        auto row1View   = BunchRotRow1.getView();
+        auto row2View   = BunchRotRow2.getView();
+
+        Kokkos::parallel_for(
+            "updateBunchTransformAttributes", nLoc,
+            KOKKOS_LAMBDA(const size_t i) {
+                originView(i) = origin;
+                row0View(i)   = Vector_t<double, 3>(rot(0, 0), rot(0, 1), rot(0, 2));
+                row1View(i)   = Vector_t<double, 3>(rot(1, 0), rot(1, 1), rot(1, 2));
+                row2View(i)   = Vector_t<double, 3>(rot(2, 0), rot(2, 1), rot(2, 2));
+            });
+    }
+#endif
     SpatialLayout_t& getPL() {
         return overlapLayout_m ? static_cast<SpatialLayout_t&>(*overlapLayout_m) : *spatialLayout_m;
     }
@@ -558,7 +605,12 @@ public:
     CoordinateSystemTrafo& getToLabTrafo() { return toLabTrafo_m; }
 
     /// @brief Set local-to-lab coordinate transformation.
-    void setToLabTrafo(const CoordinateSystemTrafo& toLabTrafo) { toLabTrafo_m = toLabTrafo; }
+    void setToLabTrafo(const CoordinateSystemTrafo& toLabTrafo) {
+        toLabTrafo_m = toLabTrafo;
+#ifdef IPPL_ENABLE_CATALYST
+        updateBunchTransformAttributes();
+#endif
+    }
 
     /// @brief Advance reference/lab transform state and map bunch accordingly.
     void updateRefToLabCSTrafo(double bunchDT) {
@@ -572,6 +624,9 @@ public:
         CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));
         transformBunch(update);
         toLabTrafo_m = toLabTrafo_m * update.inverted();
+#ifdef IPPL_ENABLE_CATALYST
+        updateBunchTransformAttributes();
+#endif
     }
 
     /// @brief Apply a fractional Boris step and update reference/lab transform state.
@@ -588,6 +643,9 @@ public:
         Vector_t<double, 3> P = refPartP_m;
         CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));
         toLabTrafo_m = toLabTrafo_m * update.inverted();
+#ifdef IPPL_ENABLE_CATALYST
+        updateBunchTransformAttributes();
+#endif
     }
 
     /**
