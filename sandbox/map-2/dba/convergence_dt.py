@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -53,7 +54,8 @@ def parse_reported_residual(output: str, label: str) -> float:
 
 
 def run_case(
-    executable: Path, source: str, dt: float, temporary_root: Path
+    executable: Path, source: str, dt: float, temporary_root: Path,
+    output_directory: Path = DBA, ranks: int = 1, mpi_args: tuple[str, ...] = (),
 ) -> dict[str, float | str]:
     label = f"{dt:.0e}"
     run_directory = temporary_root / label / "dba"
@@ -62,15 +64,18 @@ def run_case(
     input_file = run_directory / "map-2-dba.in"
     input_file.write_text(replace_dt(source, dt))
 
+    command = [str(executable), "--info", "2", input_file.name]
+    if ranks > 1:
+        command = ["mpiexec", *mpi_args, "-n", str(ranks)] + command
     completed = subprocess.run(
-        [str(executable), "--info", "2", input_file.name],
+        command,
         cwd=run_directory,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         check=False,
     )
-    output_file = DBA / f"map-2-dba-dt-{label}.out"
+    output_file = output_directory / f"map-2-dba-dt-{label}.out"
     output_file.write_text(completed.stdout)
     if completed.returncode != 0:
         reason = "OPALX rejected this time step"
@@ -81,6 +86,8 @@ def run_case(
             "status": "INVALID",
             "reason": reason,
             "full_matrix_error": np.nan,
+            "R16": np.nan,
+            "R26": np.nan,
             "abs_R16": np.nan,
             "abs_R26": np.nan,
             "dispersion_error": np.nan,
@@ -89,12 +96,15 @@ def run_case(
         }
 
     measured = parse_map(completed.stdout)
+    np.savetxt(output_directory / f"map-2-dba-dt-{label}-matrix.txt", measured, fmt="%.12e")
     exact = dba()
     return {
         "dt_s": dt,
         "status": "OK",
         "reason": "",
         "full_matrix_error": float(np.max(np.abs(measured - exact))),
+        "R16": float(measured[0, 5]),
+        "R26": float(measured[1, 5]),
         "abs_R16": float(abs(measured[0, 5])),
         "abs_R26": float(abs(measured[1, 5])),
         "dispersion_error": float(max(abs(measured[0, 5]), abs(measured[1, 5]))),
@@ -118,14 +128,17 @@ def add_observed_orders(frame: pd.DataFrame) -> pd.DataFrame:
 
 def make_plot(frame: pd.DataFrame, output: Path) -> None:
     figure, axis = plt.subplots(figsize=(7.2, 4.8), constrained_layout=True)
-    series = (
+    series = [
         ("full_matrix_error", r"$\max_{ij}|M_{ij}-M_{ij}^{\rm exact}|$", "o"),
         ("dispersion_error", r"$\max(|R_{16}|,|R_{26}|)$", "s"),
         ("determinant_error", r"$|\det M-1|$", "^"),
         ("canonical_J_error", r"$\max_{ij}|(M^TJM-J)_{ij}|$", "D"),
-    )
+    ]
+    if "difference_from_finest" in frame:
+        series.append(("difference_from_finest", r"$\max_{ij}|M_{ij}-M_{ij}^{\rm finest}|$", "v"))
     for column, label, marker in series:
-        axis.loglog(frame["dt_s"], frame[column], marker=marker, linewidth=1.6, label=label)
+        values = frame[column].where(frame[column] > 0.0)
+        axis.loglog(frame["dt_s"], values, marker=marker, linewidth=1.6, label=label)
     axis.set_xlabel(r"Time step $\Delta t$ [s]")
     axis.set_ylabel("Absolute residual")
     axis.grid(True, which="both", alpha=0.3)
@@ -138,19 +151,40 @@ def make_plot(frame: pd.DataFrame, output: Path) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("executable", type=Path, help="path to the OPALX executable")
+    parser.add_argument("--input", type=Path, default=DBA / "map-2-dba.in",
+                        help="input template (never modified)")
+    parser.add_argument("--output-dir", type=Path, default=DBA,
+                        help="directory for stdout, CSV and figure")
+    parser.add_argument("--ranks", type=int, default=1, help="MPI ranks per run")
+    parser.add_argument("--mpi-args", default="", help="extra mpiexec arguments (shell-style quoting)")
     args = parser.parse_args()
     executable = args.executable.resolve()
-    source = (DBA / "map-2-dba.in").read_text()
+    if args.ranks < 1:
+        parser.error("--ranks must be positive")
+    source = args.input.read_text()
+    args.output_dir.mkdir(parents=True, exist_ok=True)
 
     with tempfile.TemporaryDirectory(prefix="opalx-map-2-dba-") as directory:
         temporary_root = Path(directory)
-        rows = [run_case(executable, source, dt, temporary_root) for dt in DT_VALUES]
+        rows = [run_case(executable, source, dt, temporary_root, args.output_dir, args.ranks,
+                         tuple(shlex.split(args.mpi_args)))
+                for dt in DT_VALUES]
 
     frame = add_observed_orders(pd.DataFrame(rows))
-    frame.to_csv(DBA / "convergence-dt.csv", index=False, float_format="%.12e")
-    make_plot(frame, DBA / "convergence-dt.png")
+    if all(row["status"] == "OK" for row in rows[1:]):
+        # Separate the time-discretization error from the fixed finite-difference
+        # amplitude floor by also comparing with the finest numerical map.
+        finest = np.loadtxt(args.output_dir / "map-2-dba-dt-1e-13-matrix.txt")
+        for index, row in enumerate(rows[1:], start=1):
+            measured = np.loadtxt(args.output_dir /
+                                 f"map-2-dba-dt-{row['dt_s']:.0e}-matrix.txt")
+            frame.loc[index, "difference_from_finest"] = np.max(np.abs(measured - finest))
+    frame.to_csv(args.output_dir / "convergence-dt.csv", index=False, float_format="%.12e")
+    make_plot(frame, args.output_dir / "convergence-dt.png")
     print(frame.to_string(index=False, float_format=lambda value: f"{value:.6e}"))
-    return 0
+    # 1e-10 is deliberately rejected by the existing element-length guard. All finer
+    # cases must succeed; parser errors and missing maps must not silently pass a study.
+    return int(any(row["status"] != "OK" for row in rows[1:]))
 
 
 if __name__ == "__main__":

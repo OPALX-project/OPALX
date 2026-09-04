@@ -39,9 +39,11 @@ on `(x,x',delta)`. The remaining nontrivial entries are `R34=rho*theta`, `R51=-s
 interpretation because the transported reference frame and mechanical-momentum coordinates may
 differ from canonical textbook conventions.
 
-The reference matrices are continuous-s solutions. The OPALX maps use time integration with
-`DT=2 ps`; endpoint and integration errors therefore scale with approximately `c*DT = 0.6 mm`.
-The checker tolerances are numerical convergence tolerances, not changes to the analytic maps.
+The reference matrices are continuous-s solutions. The inputs use `DT=2 ps` for the straight
+cases and `DT=0.2 ps` for the DBA. Map-enabled reference and shadow-ray integration now subdivide
+steps at field-support transitions; no exact element maps are used in OPALX. The tightened
+full-matrix tolerances are `1e-8` (drift), `1e-6` (quadrupole/FODO), and `1e-5` (DBA), covering
+the measured discretization and finite-difference errors without changing the analytic model.
 
 Each directory is self-contained apart from the shared reference-particle distribution in its
 parent. For example, run one case with
@@ -56,6 +58,8 @@ From `sandbox/map-2`, run all cases with `--info 2` and write the complete outpu
 
 The script also writes the calculated closed-form matrix to `analytic-map.txt` in every case
 directory. It exits nonzero if any entry exceeds its documented numerical tolerance.
+`--input-root <directory>` uses an alternate self-contained case tree while still writing the
+`.out` and analytic files here, allowing validation without changing an edited input deck.
 
 ## DBA time-step convergence
 
@@ -65,18 +69,35 @@ from `DT=1e-10 s` through `DT=1e-13 s` without modifying the input file:
 
     ~/.venv-h6/bin/python convergence_dt.py ../../../omp-build/src/opalx
 
-The script saves each complete `--info 2` output as `map-2-dba-dt-<dt>.out`, the numerical table
-as `convergence-dt.csv`, and a log-log summary as `convergence-dt.png`.
+The script saves each complete `--info 2` output as `map-2-dba-dt-<dt>.out`, all 36 matrix
+entries as `map-2-dba-dt-<dt>-matrix.txt`, the numerical table as `convergence-dt.csv`, and a
+log-log summary as `convergence-dt.png`. `--input <file>` and `--output-dir <directory>` allow
+isolated comparisons. The input template is never modified.
 
-The current results are:
+Results with boundary subdivision and unchanged finite-difference amplitudes (`1e-3`) are:
 
-| DT [s] | Status | Full 6x6 error | max(abs(R16), abs(R26)) | abs(det(M)-1) | Canonical-J error |
-|---:|:---|---:|---:|---:|---:|
-| 1e-10 | invalid: too long for QACH | -- | -- | -- | -- |
-| 1e-11 | OK | 1.143394e-3 | 1.143394e-3 | 3.271809e-7 | 1.113492e-3 |
-| 1e-12 | OK | 1.036400e-4 | 2.950285e-5 | 1.679018e-7 | 8.112797e-5 |
-| 1e-13 | OK | 8.104655e-6 | 8.104655e-6 | 1.764114e-7 | 3.112249e-6 |
+| DT [s] | Full 6x6 error | R16 [m] | R26 | abs(det(M)-1) | Canonical-J error | Difference from finest map |
+|---:|---:|---:|---:|---:|---:|---:|
+| 1e-10 | invalid: too long for QACH | -- | -- | -- | -- | -- |
+| 1e-11 | 4.795159e-5 | -1.886340e-5 | -5.631439e-6 | 1.765608e-7 | 2.434575e-7 | 5.334683e-5 |
+| 1e-12 | 4.864807e-6 | -1.594085e-6 | -4.164608e-7 | 1.764936e-7 | 2.295652e-7 | 5.304300e-7 |
+| 1e-13 | 5.395237e-6 | -1.416116e-6 | -3.617474e-7 | 1.765487e-7 | 2.296295e-7 | 0 |
 
-The observed orders of the full-matrix error are 1.04 and 1.11. Thus this range shows roughly
-first-order convergence with `DT`. The determinant residual has already reached an approximately
-`2e-7` floor, while the full matrix and canonical-form residual continue to improve.
+Compared with the finest numerical map, reducing DT from `1e-11` to `1e-12` reduces the error
+by 100.6 (observed order 2.00). This removes the previously observed first-order boundary error.
+The comparison with the exact *linear* map reaches a finite-difference floor, so it need not
+decrease monotonically at the finest steps. R16 and R26 approach small nonzero finite-difference
+residuals; the analytic values remain zero. Matrix stdout now retains twelve decimal places
+in scientific notation so printing does not mask the time-discretization trend.
+
+The study was repeated with two MPI ranks; all printed matrix entries and diagnostic residuals
+matched the single-rank values. For the local Open MPI launcher, run with
+
+    ~/.venv-h6/bin/python convergence_dt.py ../../../omp-build/src/opalx \
+      --ranks 2 --mpi-args '--map-by slot:OVERSUBSCRIBE --bind-to none' \
+      --output-dir /tmp/map-2-dba-mpi2
+
+Boundary subdivision uses each element's field-support query and also limits steps relative
+to the shortest support extent. It does not estimate field-table interpolation error or
+guarantee resolution of grazing crossings or arbitrarily small transverse features. The
+production-particle integrator and the existing input time-step safety check are unchanged.

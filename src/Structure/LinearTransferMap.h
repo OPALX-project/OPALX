@@ -56,12 +56,12 @@ struct LinearTransferMapReference {
  * Each stored matrix covers one unique path segment over which the active-element set is
  * constant. A copy is attached to every element active in that segment. Consequently an element
  * can own several consecutive segment maps, while an overlap segment is calculated only once for
- * ordered beamline composition. `activeElements` identifies that set. In a segment with active
- * set \f$A_k\f$, the shadow rays see the superposed external fields
+ * ordered beamline composition. `activeElements` identifies that reference set. Shadow rays
+ * instead select the active set \f$A(\mathbf r)\f$ at their own positions and see
  * \f[
- *   \mathbf E_k=\sum_{i\in A_k}\mathbf E_i,
+ *   \mathbf E(\mathbf r,t)=\sum_{i\in A(\mathbf r)}\mathbf E_i(\mathbf r,t),
  *   \qquad
- *   \mathbf B_k=\sum_{i\in A_k}\mathbf B_i.
+ *   \mathbf B(\mathbf r,t)=\sum_{i\in A(\mathbf r)}\mathbf B_i(\mathbf r,t).
  * \f]
  * Since the segments are disjoint and path ordered, the complete map is
  * \f[
@@ -82,6 +82,8 @@ struct LinearTransferMapReference {
  * using a pivoted solve.  Centered differences have truncation error
  * \f$O(\epsilon^2)\f$.
  *
+ * Field-support crossings are resolved independently for each ray by
+ * ExternalFieldRayTracker; segment ownership does not freeze its field selection.
  * External fields from all active elements are summed during ray integration; collective fields
  * and RF structures are excluded. @c determinantResidual stores \f$|\det(M)-1|\f$, which checks
  * phase-space volume preservation.

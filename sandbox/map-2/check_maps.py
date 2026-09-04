@@ -101,8 +101,8 @@ def parse_map(output: str) -> np.ndarray:
     raise RuntimeError("could not parse six transfer-map rows")
 
 
-def run(executable: Path, name: str) -> np.ndarray:
-    input_file = ROOT / name / f"map-2-{name}.in"
+def run(executable: Path, name: str, input_root: Path = ROOT) -> np.ndarray:
+    input_file = input_root / name / f"map-2-{name}.in"
     completed = subprocess.run(
         [str(executable), "--info", "2", input_file.name],
         cwd=input_file.parent,
@@ -111,7 +111,7 @@ def run(executable: Path, name: str) -> np.ndarray:
         stderr=subprocess.STDOUT,
         check=False,
     )
-    output_file = input_file.with_suffix(".out")
+    output_file = ROOT / name / f"map-2-{name}.out"
     output_file.write_text(completed.stdout)
     if completed.returncode != 0:
         raise RuntimeError(
@@ -123,6 +123,8 @@ def run(executable: Path, name: str) -> np.ndarray:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("executable", type=Path, help="path to the OPALX executable")
+    parser.add_argument("--input-root", type=Path, default=ROOT,
+                        help="alternate case directory tree; outputs remain in map-2")
     args = parser.parse_args()
 
     expected = {
@@ -133,19 +135,20 @@ def main() -> int:
             quadrupole(1.0, 0.2), drift(0.4)),
         "dba": dba(),
     }
-    # The exact matrices are continuous-s models. The finite dt advances the reference endpoint
-    # by at most about c*dt, so millimetre-scale absolute tolerances are used here.
+    # Boundary subdivision removes the old O(c*dt) straddle error. These stricter
+    # bounds cover measured full-matrix errors (3.4e-11, 1.4e-7, 5.0e-8, 5.4e-6)
+    # and the fixed 1e-3 finite-difference amplitudes, not a changed analytic model.
     tolerances = {
-        "drift": 1.0e-3,
-        "quadrupole": 2.0e-3,
-        "fodo": 5.0e-3,
-        "dba": 2.0e-3,
+        "drift": 1.0e-8,
+        "quadrupole": 1.0e-6,
+        "fodo": 1.0e-6,
+        "dba": 1.0e-5,
     }
 
     failed = False
     for name, reference in expected.items():
         write_analytic_map(name, reference)
-        measured = run(args.executable.resolve(), name)
+        measured = run(args.executable.resolve(), name, args.input_root.resolve())
         error = float(np.max(np.abs(measured - reference)))
         passed = error <= tolerances[name]
         detail = ""
