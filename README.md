@@ -295,3 +295,37 @@ Other useful Catalyst environment variables:
 | `IPPL_CATALYST_VTK` | `ON` / `OFF` | Write VTK extracts. |
 | `IPPL_CATALYST_PROXY_OPTION` | `ON` / `PRODUCE_ONLY` / `OFF` | Control the Catalyst proxy file generation. |
 | `OPALX_CATALYST_LIVE_FREQ` | positive integer (default `1`) | Only push data to the live ParaView client every N tracking steps. |
+
+### Bunch-to-lab transform channel
+
+OPALX tracks particles in a bunch reference frame.  When Catalyst is enabled, the
+particle multimesh collection for each registered bunch contains a third block
+named `block_transform` with a single point that carries the current transform
+as point-data arrays.  This keeps each bunch self-contained: the particles, the
+helper box, and the transform travel together as one dataset.
+
+| Array | Components | Meaning |
+|-------|------------|---------|
+| `BunchOrigin` | `(x, y, z)` | Bunch-frame origin in lab coordinates (lab→bunch translation). |
+| `BunchRotRow0/1/2` | `(rX0, rX1, rX2)` | Rows of the lab→bunch rotation matrix. |
+| `BunchInvOrigin` | `(x, y, z)` | Lab-frame origin in bunch coordinates (bunch→lab translation). |
+| `BunchInvRotRow0/1/2` | `(rX0, rX1, rX2)` | Rows of the bunch→lab rotation matrix. |
+
+To use it in ParaView:
+
+1. Apply an `ExtractBlock` filter to the particle collection and select only the
+   `block_transform` block to obtain a single-point polydata source.
+2. Add a `Programmable Filter` with two inputs:
+   - **Input 0**: the geometry or particle dataset you want to transform.
+   - **Input 1**: the extracted `block_transform` source (or the whole particle
+     collection; the script will locate the transform block automatically).
+3. Load the script `catalyst/bunch_transform_filter.py` from this repository
+   into the filter.
+4. Set the `INVERSE` flag at the top of the script:
+   - `INVERSE = False` (default): transforms lab geometry into the bunch frame,
+     keeping the bunch centred in the view.
+   - `INVERSE = True`: transforms bunch-frame particles into lab/world
+     coordinates.
+
+For a lab point `X`, the bunch-frame point is `X_bunch = R * (X - BunchOrigin)`.
+For a bunch point `Y`, the lab point is `Y_lab = R_inv * Y + BunchInvOrigin`.

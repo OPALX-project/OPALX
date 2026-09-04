@@ -465,6 +465,24 @@ void ParallelTracker::execute() {
         auto particleContainer        = itsBunch_m->getParticleContainer();
         auto runtime_vis_registry     = ippl::MakeVisRegistryRuntimePtr("electrons", particleContainer);
         auto runtime_steer_registry   = ippl::MakeVisRegistryRuntimePtr();
+
+        // Register the single-point transform channel before Initialize() so the
+        // pipeline script knows to create a proxy for it.
+        const auto& toLab0 = itsBunch_m->getParticleContainer()->getToLabTrafo();
+        const auto invToLab0 = toLab0.inverted();
+        auto rowsFromMatrix = [](const matrix3x3_t& m) {
+            return std::array<Vector_t<double, 3>, 3>{
+                Vector_t<double, 3>(m(0, 0), m(0, 1), m(0, 2)),
+                Vector_t<double, 3>(m(1, 0), m(1, 1), m(1, 2)),
+                Vector_t<double, 3>(m(2, 0), m(2, 1), m(2, 2))};
+        };
+        ippl::TransformData td0;
+        td0.origin    = toLab0.getOrigin();
+        td0.rows      = rowsFromMatrix(toLab0.getRotationMatrix());
+        td0.invOrigin = invToLab0.getOrigin();
+        td0.invRows   = rowsFromMatrix(invToLab0.getRotationMatrix());
+        cat_vis.addTransformChannel("electrons", td0);
+
         cat_vis.Initialize(runtime_vis_registry, runtime_steer_registry);
     }
 #endif
@@ -663,6 +681,26 @@ void ParallelTracker::execute() {
                 }();
                 const auto step = itsBunch_m->getGlobalTrackStep();
                 if (step % liveFreq == 0) {
+                    // Publish the current bunch-frame transform as a single-point polydata
+                    // channel so ParaView can transform geometry into the bunch frame (or,
+                    // with the inverse matrix, particles into lab coordinates).
+                    const auto& toLab = itsBunch_m->getParticleContainer()->getToLabTrafo();
+                    const auto invToLab = toLab.inverted();
+
+                    auto rowsFromMatrix = [](const matrix3x3_t& m) {
+                        return std::array<Vector_t<double, 3>, 3>{
+                            Vector_t<double, 3>(m(0, 0), m(0, 1), m(0, 2)),
+                            Vector_t<double, 3>(m(1, 0), m(1, 1), m(1, 2)),
+                            Vector_t<double, 3>(m(2, 0), m(2, 1), m(2, 2))};
+                    };
+
+                    ippl::TransformData td;
+                    td.origin    = toLab.getOrigin();
+                    td.rows      = rowsFromMatrix(toLab.getRotationMatrix());
+                    td.invOrigin = invToLab.getOrigin();
+                    td.invRows   = rowsFromMatrix(invToLab.getRotationMatrix());
+
+                    cat_vis.addTransformChannel("electrons", td);
                     cat_vis.Execute(step, step);
                 }
             }
