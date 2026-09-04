@@ -96,9 +96,9 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
                 continue;  // already placed by Phase 1 (Mode A)
             }
 
-            // This pass only frames bends (any element whose geometry turns the orbit); every
-            // other element is placed in Phase 3.
-            if (!element->getGeometry().isBend()) {
+            // This pass only frames bends; every other element is placed in Phase 3.
+            if (element->getType() != ElementType::SBEND && element->getType() != ElementType::RBEND
+                && element->getType() != ElementType::RBEND3D) {
                 continue;
             }
 
@@ -147,7 +147,8 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
             // E1/E2 pole-face rotations are rejected at parse time, so there is no face tilt to
             // add. Only this element's own frame is set here; the running frame handed to the next
             // element (currentCoordTrafo) is advanced separately below.
-            const bool isRectangular = element->getGeometry().isRectangularBend();
+            const bool isRectangular = element->getType() == ElementType::RBEND
+                                       || element->getType() == ElementType::RBEND3D;
             const Quaternion_t entryFrameRotation =
                     isRectangular ? halfRotationAboutAxis
                                   : Quaternion_t(1.0, Vector_t<double, 3>(0, 0, 0));
@@ -183,7 +184,8 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
         Vector_t<double, 3> beginThis3D(0, 0, beginThisPathLength - endPriorPathLength);
 
         Vector_t<double, 3> endThis3D;
-        if (element->getGeometry().isBend()) {
+        if (element->getType() == ElementType::SBEND || element->getType() == ElementType::RBEND
+            || element->getType() == ElementType::RBEND3D) {
             // Bend: its own frame is already set (Phase 2); here we only advance the running frame
             // across it so the following elements are placed correctly.
             double thisLength = element->getGeometry().getChordLength();

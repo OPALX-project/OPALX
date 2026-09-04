@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2026, Paul Scherrer Institute, Villigen PSI, Switzerland
+// Copyright (c) 2023, Paul Scherrer Institute, Villigen PSI, Switzerland
 // All rights reserved
 //
 // This file is part of OPAL.
@@ -13,34 +13,11 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 
-#ifndef OPALX_MultipoleTRep_HH
-#define OPALX_MultipoleTRep_HH
+#ifndef OPALX_MULTIPOLETREP_H
+#define OPALX_MULTIPOLETREP_H
 
 #include "AbsBeamline/MultipoleT.h"
-#include "BeamlineGeometry/Geometry.h"
 
-/**
- * @class MultipoleTRep
- * @brief Representation of a combined-function multipole with a tanh fringe.
- *
- * The representation owns the body geometry: a straight body, or a planar arc
- * when the deck gives a bend angle. The field itself lives in MultipoleT.
- */
-class MultipoleTRep : public MultipoleT {
-public:
-    MultipoleTRep();
-    explicit MultipoleTRep(const std::string& name);
-    MultipoleTRep(const MultipoleTRep&);
-    ~MultipoleTRep() override;
+using MultipoleTRep = MultipoleT;
 
-    ElementBase* clone() const override;
-    Channel* getChannel(const std::string& aKey, bool create = false) override;
-
-    Geometry& getGeometry() override;
-    const Geometry& getGeometry() const override;
-
-private:
-    Geometry geometry_m{Geometry::makeStraight(0.0)};
-};
-
-#endif  // OPALX_MultipoleTRep_HH
+#endif  // OPALX_MULTIPOLETREP_H

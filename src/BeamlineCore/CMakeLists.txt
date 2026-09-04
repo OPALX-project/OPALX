@@ -7,7 +7,6 @@ set (_SRCS
     MarkerRep.cpp
     MonitorRep.cpp
     MultipoleRep.cpp
-    MultipoleTRep.cpp
     RBendRep.cpp
     RFCavityRep.cpp
     SBendRep.cpp

@@ -224,7 +224,7 @@ void OpalBeamline::save3DLattice() {
 
         mesh.add(*(element.get()));
 
-        if (element->getGeometry().isBend()) {
+        if (element->getType() == ElementType::SBEND || element->getType() == ElementType::RBEND) {
             std::vector<Vector_t<double, 3>> designPath = element->getGeometry().getDesignPath();
             unsigned int size                           = designPath.size();
 
