@@ -326,7 +326,9 @@ TEST_F(OrbitThreaderTest, CalculatesAndAttachesLinearDriftMap) {
     beamline.prepareSections();
 
     StepSizeConfig stepSizes;
-    stepSizes.push_back(1.0e-11, 0.4, 256);
+    // MAXSTEPS limits production tracking, but an enabled map calculation must still thread the
+    // complete requested interval to ZSTOP.
+    stepSizes.push_back(1.0e-11, 0.4, 1);
     stepSizes.resetIterator();
 
     Options::enableLinearTransferMaps = true;

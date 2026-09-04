@@ -320,7 +320,7 @@ void OrbitThreader::execute() {
             pathLength_m += std::copysign(1.0, dt_m);
         }
 
-        const double finalS = reachedPeriodicEnd() ? sStop_m : pathLength_m;
+        const double finalS = reachedThreadingEnd() ? sStop_m : pathLength_m;
         imap_m.add(initialS, finalS, elementSet);
 
         // Store overlap participation on the runtime occurrences during the reference pass.
@@ -353,7 +353,8 @@ void OrbitThreader::execute() {
         std::set_intersection(
                 currentSet.begin(), currentSet.end(), elementSet.begin(), elementSet.end(),
                 std::inserter(intersection, intersection.begin()));
-    } while (errorFlag_m != EOL && (period_m > 0.0 || stepRange_m.isInside(currentStep_m))
+    } while (errorFlag_m != EOL
+             && (collectReferenceSamples_m || period_m > 0.0 || stepRange_m.isInside(currentStep_m))
              && !(pathLengthRange_m.isOutside(pathLength_m) && intersection.empty()
                   && !(elementSet.empty() || currentSet.empty())));
 
@@ -439,7 +440,7 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
         ++currentStep_m;
         time_m += dt_m;
         if (collectReferenceSamples_m) {
-            if (reachedPeriodicEnd() && pathLength_m != oldPathLength) {
+            if (reachedThreadingEnd() && pathLength_m != oldPathLength) {
                 const double fraction  = (sStop_m - oldPathLength) / (pathLength_m - oldPathLength);
                 const RayState clipped = advanceRay({oldR, oldP, oldTime}, fraction * dt_m);
                 LinearTransferMapReference state =
@@ -454,7 +455,7 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
             }
         }
 
-        if (reachedPeriodicEnd()) {
+        if (reachedThreadingEnd()) {
             errorFlag_m = EOL;
             globalBoundingBox_m.enlargeToContainPosition(r_m);
             return;
@@ -464,7 +465,7 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
         integrator_m.push(nextR, p_m, dt_m);
         nextR = nextR * Physics::c * dt_m;
 
-        if (activeSet.empty()
+        if (activeSet.empty() && !collectReferenceSamples_m
             && (pathLengthRange_m.isOutside(pathLength_m)
                 || (period_m <= 0.0 && stepRange_m.isOutside(currentStep_m)))) {
             errorFlag_m = EOL;
@@ -475,8 +476,9 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
     } while (activeSet == itsOpalBeamline_m.getElements(nextR));
 }
 
-bool OrbitThreader::reachedPeriodicEnd() const {
-    return period_m > 0.0 && (dt_m > 0.0 ? pathLength_m >= sStop_m : pathLength_m <= sStop_m);
+bool OrbitThreader::reachedThreadingEnd() const {
+    const bool stopAtSStop = period_m > 0.0 || collectReferenceSamples_m;
+    return stopAtSStop && (dt_m > 0.0 ? pathLength_m >= sStop_m : pathLength_m <= sStop_m);
 }
 
 bool OrbitThreader::containsCavity(const IndexMap::value_t& activeSet) {
