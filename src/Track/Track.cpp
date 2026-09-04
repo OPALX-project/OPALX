@@ -53,7 +53,6 @@ Track::Track(
       zstart(zStart),
       zstop(zStop),
       timeIntegrator(timeintegrator),
-      truncOrder(1),
       beamNames_m(beamNames) {
     if (!OpalData::getInstance()->hasBunchAllocated()) {
         /// \todo can we do this anymore  OpalData::getInstance()->setPartBunch(new
