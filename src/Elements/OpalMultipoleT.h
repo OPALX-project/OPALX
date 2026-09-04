@@ -18,29 +18,28 @@
 
 #include "Elements/OpalElement.h"
 
-/**
- * @class OpalMultipoleT
- * @brief Parser element for a combined-function multipole with a tanh fringe.
- *
- * @c TP gives the mid-plane field profile in tesla (dipole first, then the
- * gradient, and so on), sign included. A non-zero @c ANGLE makes the body a
- * planar arc of that bend angle, with @c L the arc length; the deck has to keep
- * the sign of @c TP[0] consistent with the bend direction, exactly as it would
- * for the field of any other magnet. Everything else about placement, apertures
- * and misalignment comes from OpalElement.
- */
 class OpalMultipoleT final : public OpalElement {
 public:
     // The attributes of class OpalMultipoleT
     enum {
-        TP = COMMON,  // Transverse field profile
-        LFRINGE,      // Length of the left (entrance) end field
-        RFRINGE,      // Length of the right (exit) end field
-        MAXFORDER,    // Number of terms in the vertical field expansion
-        ANGLE,        // Bend angle of a curved magnet
-        HAPERT,       // Aperture width
-        VAPERT,       // Aperture height
-        SCALING_MODEL,  // Name of a time dependence scaling the field
+        TP = COMMON,  // Transverse field components
+        // Attributes for a straight multipole
+        RFRINGE,    // Length of right fringe field
+        LFRINGE,    // Length of left fringe field
+        HAPERT,     // Aperture horizontal dimension
+        VAPERT,     // Aperture vertical dimension
+        MAXFORDER,  // Maximum order in the field expansion
+        ROTATION,   // Rotation angle about central axis for skew elements
+        EANGLE,     // Entrance angle
+        BBLENGTH,   // Length within which field is calculated
+        // Further attributes for a constant radius curved multipole
+        ANGLE,      // Bending angle of a sector magnet
+        MAXXORDER,  // Maximum order in x in polynomial expansions
+        // Further attributes for a variable radius multipole
+        VARRADIUS,    // Variable radius flag
+        ENTRYOFFSET,  // Longitudinal offset from standard entrance point
+        // Time dependence
+        SCALING_MODEL,  // Name of a time dependence object
         SIZE            // size of the enum
     };
 
@@ -65,6 +64,9 @@ public:
 private:
     /** Constants */
     static constexpr double DefaultMAXFORDER = 3.0;
+    static constexpr double MinimumMAXFORDER = 1.0;
+    static constexpr double MaximumMAXFORDER = 9.0;
+    static constexpr double DefaultMAXXORDER = 20.0;
 
     // Clone constructor.
     OpalMultipoleT(const std::string& name, OpalMultipoleT* parent);

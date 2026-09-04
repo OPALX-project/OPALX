@@ -86,9 +86,13 @@ void MeshGenerator::add(const ElementBase& element) {
     double start = 0.0;
 
     MeshData mesh;
-    if (element.getGeometry().isBend()) {
-        // Bend bodies (sector or rectangular, including a curved MULTIPOLET): no surface
-        // mesh yet, only the type tag.
+    if (element.getType() == ElementType::SBEND || element.getType() == ElementType::RBEND) {
+        // const Bend2D* dipole = static_cast<const Bend2D*>(&element);
+        // mesh = dipole->getSurfaceMesh();
+        mesh.type_m = DIPOLE;
+    } else if (element.getType() == ElementType::RBEND3D) {
+        // const RBend3D* dipole = static_cast<const RBend3D*>(&element);
+        // mesh = dipole->getSurfaceMesh();
         mesh.type_m = DIPOLE;
     } else if (element.getType() == ElementType::SOLENOID) {
         start      = 0.0;
