@@ -58,10 +58,19 @@ public:
      * \f[
      * M_{\rm total}=M_N\cdots M_2M_1.
      * \f]
-     * Analytic drift matrices are inserted for uncovered field-free path intervals.  For a
-     * periodic OrbitThreader this is the one-turn map.
+     * The product contains every unique constant-active-set segment, including field-free
+     * intervals. For a periodic OrbitThreader this is the one-turn map.
      */
     const std::optional<matrix6x6_t>& getCombinedLinearTransferMap() const;
+
+    /**
+     * @brief Maximum component of \f$M^TJM-J\f$ for the combined map.
+     *
+     * This is a canonical-form diagnostic. The reported slopes and mechanical momenta are not
+     * globally canonical, so a nonzero value does not by itself demonstrate nonsymplectic
+     * physical tracking.
+     */
+    const std::optional<double>& getCombinedSymplecticResidual() const;
 
 private:
     /// position of reference particle in lab coordinates
@@ -120,6 +129,7 @@ private:
     std::vector<ReferenceSample> referenceSamples_m;
     std::vector<LinearTransferMap> transferMapSegments_m;
     std::optional<matrix6x6_t> combinedLinearTransferMap_m;
+    std::optional<double> combinedSymplecticResidual_m;
 
     void trackBack();
     void integrate(const IndexMap::value_t& activeSet, double maxDrift = 10.0);
@@ -172,5 +182,9 @@ inline BoundingBox OrbitThreader::getBoundingBox() const { return globalBounding
 
 inline const std::optional<matrix6x6_t>& OrbitThreader::getCombinedLinearTransferMap() const {
     return combinedLinearTransferMap_m;
+}
+
+inline const std::optional<double>& OrbitThreader::getCombinedSymplecticResidual() const {
+    return combinedSymplecticResidual_m;
 }
 #endif

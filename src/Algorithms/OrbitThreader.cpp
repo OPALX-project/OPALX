@@ -49,7 +49,8 @@ extern Inform* gmsg;
 namespace {
     constexpr std::array<double, 6> transferMapSteps{1.0e-3, 1.0e-3, 1.0e-3,
                                                      1.0e-3, 1.0e-3, 1.0e-3};
-    constexpr double boundaryTolerance = 1.0e-12;
+    constexpr double boundaryTolerance   = 1.0e-12;
+    constexpr double symplecticTolerance = 1.0e-6;
 
     Vector_t<double, 3> crossProduct(const Vector_t<double, 3>& a, const Vector_t<double, 3>& b) {
         return Vector_t<double, 3>(
@@ -247,6 +248,7 @@ void OrbitThreader::execute() {
         referenceSamples_m.clear();
         transferMapSegments_m.clear();
         combinedLinearTransferMap_m.reset();
+        combinedSymplecticResidual_m.reset();
         transferMapStartPathLength_m = initialPathLength;
         collectReferenceSamples_m    = true;
         recordReferenceSample();
@@ -275,9 +277,6 @@ void OrbitThreader::execute() {
         double maxDistance = computeDriftLengthToBoundingBox(elementSet, r_m, p_m);
 
         integrate(elementSet, maxDistance);
-
-        *gmsg << "* OrbitThreader maxDistance= " << maxDistance << endl;
-        *gmsg << "* OrbitThreader #elements  = " << elementSet.size() << endl;
 
         if (errorFlag_m == HITMATERIAL) {
             // Shouldn't be reached because reference particle
@@ -947,7 +946,8 @@ void OrbitThreader::calculateLinearTransferMaps() {
     for (const auto& segment : transferMapSegments_m) {
         combined = prod(segment.matrix, combined);
     }
-    combinedLinearTransferMap_m = combined;
+    combinedLinearTransferMap_m  = combined;
+    combinedSymplecticResidual_m = symplecticResidual(combined);
 }
 
 void OrbitThreader::printCombinedLinearTransferMap() const {
@@ -964,5 +964,12 @@ void OrbitThreader::printCombinedLinearTransferMap() const {
         }
         *gmsg << "\n";
     }
+    const double residual = *combinedSymplecticResidual_m;
+    *gmsg << "* Canonical-form symplecticity diagnostic: "
+          << (residual <= symplecticTolerance ? "PASS" : "FAIL") << "\n"
+          << "*   max|M^T J M - J| = " << std::setprecision(7) << std::scientific << residual
+          << "  (tolerance " << symplecticTolerance << ")\n"
+          << "*   The reported slopes and mechanical momenta are not globally canonical;\n"
+          << "*   this test is diagnostic unless the entrance/exit coordinates are canonical.\n";
     *gmsg << std::defaultfloat << endl;
 }
