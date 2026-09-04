@@ -56,3 +56,27 @@ From `sandbox/map-2`, run all cases with `--info 2` and write the complete outpu
 
 The script also writes the calculated closed-form matrix to `analytic-map.txt` in every case
 directory. It exits nonzero if any entry exceeds its documented numerical tolerance.
+
+## DBA time-step convergence
+
+The DBA input deliberately uses `MAXSTEPS=1`: the transfer map is constructed by OrbitThreader
+before the single production-tracking step. From `sandbox/map-2/dba`, sweep the four decade values
+from `DT=1e-10 s` through `DT=1e-13 s` without modifying the input file:
+
+    ~/.venv-h6/bin/python convergence_dt.py ../../../omp-build/src/opalx
+
+The script saves each complete `--info 2` output as `map-2-dba-dt-<dt>.out`, the numerical table
+as `convergence-dt.csv`, and a log-log summary as `convergence-dt.png`.
+
+The current results are:
+
+| DT [s] | Status | Full 6x6 error | max(abs(R16), abs(R26)) | abs(det(M)-1) | Canonical-J error |
+|---:|:---|---:|---:|---:|---:|
+| 1e-10 | invalid: too long for QACH | -- | -- | -- | -- |
+| 1e-11 | OK | 1.143394e-3 | 1.143394e-3 | 3.271809e-7 | 1.113492e-3 |
+| 1e-12 | OK | 1.036400e-4 | 2.950285e-5 | 1.679018e-7 | 8.112797e-5 |
+| 1e-13 | OK | 8.104655e-6 | 8.104655e-6 | 1.764114e-7 | 3.112249e-6 |
+
+The observed orders of the full-matrix error are 1.04 and 1.11. Thus this range shows roughly
+first-order convergence with `DT`. The determinant residual has already reached an approximately
+`2e-7` floor, while the full matrix and canonical-form residual continue to improve.
