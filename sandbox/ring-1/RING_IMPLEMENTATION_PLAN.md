@@ -189,7 +189,16 @@ RING acceptance criterion.
 - IndexMap exposes the signed turn quotient and a topological phase in `[0, 2*pi)`, both derived
   from accumulated path length and circumference. This is intentionally not a geometric azimuth:
   it remains well-defined for the non-closing reference trajectory used before closed-orbit finding.
-- The one-rank `TURNS=10` example again reaches 1633.630220 m with one particle while its
-  DesignPath output contains only the first 163.36 m turn. A two-rank one-turn run produces the
-  same 768 placements and matches the 45-row explicit golden trajectory prefix within `2e-8`.
+- The one-rank `TURNS=10` example reaches ten circumferences with one particle while its
+  DesignPath output contains only the first 163.36 m turn. One-rank and two-rank one-turn runs
+  produce the same 768 placements; those placements match the explicit golden geometry within
+  `2e-8`.
 - Focused tests pass: TestRing, TestOrbitThreader, TestIndexMap, and TestSolenoid.
+- Corrected the ISIS tracking fixture to set `P0 = 0.3691313146252514 GeV/c`, matching the
+  70 MeV proton in the distribution. The previous default `P0 = 1 GeV/c` over-strengthened every
+  bend. Corrected `HGAP` from 2 m to the intended 2 cm; the former value gave each Enge face a
+  20 m fringe and made unrelated bends overlap. With `RUN,TURNS=1`, the reference particle now
+  traverses one circumference and returns within 2 mm of the origin with the entrance direction.
+- The corrected ten-turn run completes at 1633.630188 m with one retained particle. Its reference
+  position is 5.1 mm from the origin and its momentum points along the entrance tangent after turn
+  ten; exact periodic matching remains the responsibility of the future closed-orbit finder.

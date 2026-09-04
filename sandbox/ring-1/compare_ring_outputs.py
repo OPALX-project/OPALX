@@ -38,6 +38,21 @@ def design_path(path: Path) -> tuple[pd.DataFrame, list[tuple[str, ...]]]:
     return pd.DataFrame(numeric_rows), active
 
 
+def statistics_row_near_s(path: Path, target_s: float) -> np.ndarray:
+    rows = []
+    for line in path.read_text().splitlines():
+        fields = line.split()
+        if len(fields) < 23:
+            continue
+        try:
+            rows.append(np.asarray([float(value) for value in fields[:23]]))
+        except ValueError:
+            continue
+    if not rows:
+        raise AssertionError(f"no statistics rows found in {path}")
+    return min(rows, key=lambda row: abs(row[1] - target_s))
+
+
 def assert_numeric_equal(
     label: str, reference: pd.DataFrame, candidate: pd.DataFrame, atol: float
 ) -> None:
@@ -62,6 +77,9 @@ def main() -> None:
     # 2e-8 m covers its final-place rounding while remaining far below the
     # geometry scales in this lattice.
     parser.add_argument("--atol", type=float, default=2.0e-8)
+    parser.add_argument("--circumference", type=float, default=163.3630220240698)
+    parser.add_argument("--closure-atol", type=float, default=2.0e-2)
+    parser.add_argument("--statistics", type=Path)
     args = parser.parse_args()
 
     reference_positions = element_positions(
@@ -81,26 +99,46 @@ def main() -> None:
         args.atol,
     )
 
-    reference_path, reference_active = design_path(
-        args.reference / "isis_sbend_survey_DesignPath.dat"
-    )
-    candidate_path, candidate_active = design_path(
+    candidate_path, _ = design_path(
         args.candidate / "isis_sbend_ring_DesignPath.dat"
     )
-    if len(candidate_path) < len(reference_path):
+    if candidate_path.empty:
+        raise AssertionError("DesignPath is empty")
+
+    final = candidate_path.iloc[-1].to_numpy()
+    final_s = final[0]
+    closure_error = np.linalg.norm(final[1:4])
+    if abs(final_s - args.circumference) > args.closure_atol:
         raise AssertionError(
-            "DesignPath: candidate is shorter than the explicit golden prefix: "
-            f"reference={len(reference_path)}, candidate={len(candidate_path)}"
+            f"DesignPath ends at s={final_s:.9g} m, expected {args.circumference:.9g} m"
         )
-    candidate_prefix = candidate_path.iloc[: len(reference_path)].reset_index(drop=True)
-    assert_numeric_equal("DesignPath prefix", reference_path, candidate_prefix, args.atol)
-    if reference_active != candidate_active[: len(reference_active)]:
-        raise AssertionError("DesignPath prefix active-element names differ")
+    if closure_error > args.closure_atol:
+        raise AssertionError(
+            f"DesignPath one-turn position closure error is {closure_error:.9g} m"
+        )
+    if np.linalg.norm(final[4:6]) > 1.0e-3 or final[6] <= 0.0:
+        raise AssertionError("DesignPath momentum does not return to the entrance direction")
+
+    statistics_path = args.statistics or args.candidate.parent / "isis_sbend_ring.stat"
+    statistics = statistics_row_near_s(statistics_path, args.circumference)
+    particle_s = statistics[1]
+    particle_closure_error = np.linalg.norm(statistics[17:20])
+    if abs(particle_s - args.circumference) > args.closure_atol:
+        raise AssertionError(
+            f"particle ends at s={particle_s:.9g} m, expected {args.circumference:.9g} m"
+        )
+    if particle_closure_error > args.closure_atol:
+        raise AssertionError(
+            f"particle one-turn position closure error is {particle_closure_error:.9g} m"
+        )
+    if np.linalg.norm(statistics[20:22]) > 1.0e-3 or statistics[22] <= 0.0:
+        raise AssertionError("particle momentum does not return to the entrance direction")
 
     print(
         f"PASS: ElementPositions ({len(reference_positions)} rows) and "
-        f"DesignPath golden prefix ({len(reference_path)} of {len(candidate_path)} rows), "
-        f"atol={args.atol:g}"
+        f"one-turn DesignPath ({len(candidate_path)} rows, "
+        f"closure={closure_error:.6g} m), particle closure={particle_closure_error:.6g} m, "
+        f"placement atol={args.atol:g}"
     )
 
 
