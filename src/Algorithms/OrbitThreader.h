@@ -64,6 +64,14 @@ public:
     const std::optional<matrix6x6_t>& getCombinedLinearTransferMap() const;
 
     /**
+     * @brief Absolute determinant error \f$|\det(M)-1|\f$ for the combined map.
+     *
+     * This checks phase-space volume preservation. It is necessary, but for a \f$6\times6\f$
+     * map not sufficient, for symplecticity.
+     */
+    const std::optional<double>& getCombinedDeterminantResidual() const;
+
+    /**
      * @brief Maximum component of \f$M^TJM-J\f$ for the combined map.
      *
      * This is a canonical-form diagnostic. The reported slopes and mechanical momenta are not
@@ -129,6 +137,7 @@ private:
     std::vector<ReferenceSample> referenceSamples_m;
     std::vector<LinearTransferMap> transferMapSegments_m;
     std::optional<matrix6x6_t> combinedLinearTransferMap_m;
+    std::optional<double> combinedDeterminantResidual_m;
     std::optional<double> combinedSymplecticResidual_m;
 
     void trackBack();
@@ -182,6 +191,10 @@ inline BoundingBox OrbitThreader::getBoundingBox() const { return globalBounding
 
 inline const std::optional<matrix6x6_t>& OrbitThreader::getCombinedLinearTransferMap() const {
     return combinedLinearTransferMap_m;
+}
+
+inline const std::optional<double>& OrbitThreader::getCombinedDeterminantResidual() const {
+    return combinedDeterminantResidual_m;
 }
 
 inline const std::optional<double>& OrbitThreader::getCombinedSymplecticResidual() const {
