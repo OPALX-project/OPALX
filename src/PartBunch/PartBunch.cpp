@@ -22,7 +22,7 @@ template <typename T, unsigned Dim>
 PartBunch<T, Dim>::PartBunch(
         std::vector<double> qi, std::vector<double> mi, const std::vector<Beam*>& beams,
         std::vector<size_t> totalParticlesPerBeam, double lbt, std::string integration_method,
-        opalx::spacecharge::ParticleStorageConfig<T, Dim> storageConfig)
+        opalx::spacecharge::CartesianDomainConfig<T, Dim> domainConfig)
     : dt_m(0),
       it_m(0),
       integration_method_m(integration_method),
@@ -58,17 +58,20 @@ PartBunch<T, Dim>::PartBunch(
         }
     }
 
-    cartesianDomain_m            = std::make_unique<CartesianDomain_t>(storageConfig);
-    boundingBoxIncreasePercent_m = storageConfig.boundingBoxIncreasePercent;
+    // The initial geometry only provides a valid mesh and layout while particles are sampled or
+    // restored. Cartesian PIC replaces the physical bounds before its first runtime solve, while
+    // the mesh and FieldLayout object addresses remain stable for every borrowing container.
+    cartesianDomain_m            = std::make_unique<CartesianDomain_t>(domainConfig);
+    boundingBoxIncreasePercent_m = domainConfig.boundingBoxIncreasePercent;
     for (unsigned dimension = 0; dimension < Dim; ++dimension) {
-        nr_m[dimension]     = static_cast<int>(storageConfig.meshSize[dimension]);
+        nr_m[dimension]     = static_cast<int>(domainConfig.meshSize[dimension]);
         domain_m[dimension] = ippl::Index(nr_m[dimension]);
-        decomp_m[dimension] = storageConfig.decomposition[dimension];
+        decomp_m[dimension] = domainConfig.decomposition[dimension];
     }
 
     const bool useOverlap =
-            storageConfig.layoutKind == opalx::spacecharge::ParticleLayoutKind::SpatialOverlap;
-    const T overlapCutoff = storageConfig.overlapCutoff;
+            domainConfig.layoutType == opalx::spacecharge::ParticleLayoutType::SpatialOverlap;
+    const T overlapCutoff = domainConfig.overlapCutoff;
     if (useOverlap && !(overlapCutoff > T(0))) {
         throw OpalException(
                 "PartBunch::PartBunch",
@@ -76,7 +79,7 @@ PartBunch<T, Dim>::PartBunch(
     }
     const auto layoutType           = useOverlap ? ParticleContainer_t::LayoutType::SpatialOverlap
                                                  : ParticleContainer_t::LayoutType::Spatial;
-    const bool isAllPeriodic        = storageConfig.periodicParticleBoundary;
+    const bool isAllPeriodic        = domainConfig.periodicParticleBoundary;
     const ippl::BC particleBoundary = isAllPeriodic ? ippl::BC::PERIODIC : ippl::BC::NO;
     m << level5 << "* Initial Cartesian domain set to isAllPeriodic = " << isAllPeriodic << endl;
 

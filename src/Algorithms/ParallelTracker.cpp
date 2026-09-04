@@ -47,7 +47,7 @@
 
 #include "Processes/GlobalProcesses/GlobalProcess.h"
 
-#include "SpaceCharge/SelfFieldSystem.h"
+#include "SpaceCharge/SpaceChargeSolver.h"
 
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/BoundingBox.h"
@@ -71,9 +71,9 @@ extern Inform* gmsg;
 ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
     : Tracker(beamline, revBeam, false),
       itsDataSink_m(),
-      selfFieldSystem_m(nullptr),
-      selfFieldRequestPolicy_m(),
-      selfFieldParticleBindings_m(),
+      spaceChargeSolver_m(nullptr),
+      spaceChargeRequestSchedule_m(),
+      spaceChargeParticleBindings_m(),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
       globalEOL_m(false),
       sStart_m(0.0),
@@ -93,8 +93,8 @@ ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
  */
 ParallelTracker::ParallelTracker(
         const Beamline& beamline, PartBunch_t& bunch,
-        opalx::spacecharge::SelfFieldSystem& selfFieldSystem,
-        opalx::spacecharge::SelfFieldRequestPolicy requestPolicy, DataSink* ds, bool revBeam,
+        opalx::spacecharge::SpaceChargeSolver& spaceChargeSolver,
+        opalx::spacecharge::SpaceChargeRequestSchedule requestSchedule, DataSink* ds, bool revBeam,
         const std::vector<unsigned long long>& maxSteps, double sStart,
         const std::vector<double>& sStop, const std::vector<double>& dt,
         const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers,
@@ -102,9 +102,9 @@ ParallelTracker::ParallelTracker(
         StepSizeConfig::ResumePosition restartPosition)
     : Tracker(beamline, bunch, revBeam, false),
       itsDataSink_m(ds),
-      selfFieldSystem_m(&selfFieldSystem),
-      selfFieldRequestPolicy_m(std::move(requestPolicy)),
-      selfFieldParticleBindings_m(),
+      spaceChargeSolver_m(&spaceChargeSolver),
+      spaceChargeRequestSchedule_m(std::move(requestSchedule)),
+      spaceChargeParticleBindings_m(),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
       globalEOL_m(false),
       sStart_m(sStart),
@@ -124,7 +124,7 @@ ParallelTracker::ParallelTracker(
 
     stepSizes_m.sortAscendingSStop();
     stepSizes_m.resetIterator();
-    initializeSelfFieldParticleBindings();
+    initializeSpaceChargeParticleBindings();
 }
 
 /**
@@ -132,19 +132,22 @@ ParallelTracker::ParallelTracker(
  */
 ParallelTracker::~ParallelTracker() {}
 
-void ParallelTracker::initializeSelfFieldParticleBindings() {
+void ParallelTracker::initializeSpaceChargeParticleBindings() {
     using namespace opalx::spacecharge;
 
+    // Bind the stable container and R/P/E/B attribute objects once. Particle migration may replace
+    // their device views, so concrete algorithms must reacquire a view immediately before each
+    // kernel instead of retaining one through this tracker-level binding.
     const auto& particleContainers = itsBunch_m->getParticleContainers();
-    selfFieldParticleBindings_m.clear();
-    selfFieldParticleBindings_m.reserve(particleContainers.size());
+    spaceChargeParticleBindings_m.clear();
+    spaceChargeParticleBindings_m.reserve(particleContainers.size());
     for (const auto& container : particleContainers) {
         if (!container) {
             throw OpalException(
-                    "ParallelTracker::initializeSelfFieldParticleBindings",
-                    "Cannot build a self-field context for a null particle container.");
+                    "ParallelTracker::initializeSpaceChargeParticleBindings",
+                    "Cannot build a space-charge context for a null particle container.");
         }
-        selfFieldParticleBindings_m.push_back(bindParticleFields(*container));
+        spaceChargeParticleBindings_m.push_back(makeParticleFieldBinding(*container));
     }
 }
 // --- Visit functions ---
@@ -705,15 +708,14 @@ void ParallelTracker::execute() {
     // Ensure all Kokkos operations are complete
     Kokkos::fence();
 
-    if (selfFieldSystem_m != nullptr) {
+    if (spaceChargeSolver_m != nullptr) {
         m << level2
-          << "Total FieldSolver calls: " << selfFieldSystem_m->diagnostics().backendSolveCount()
+          << "Total FieldSolver calls: " << spaceChargeSolver_m->diagnostics().backendSolveCount()
           << endl;
     }
     if (ippl::Comm->size() > 1) {
-        m << level2
-          << "Total binary repartitions: " << selfFieldSystem_m->diagnostics().redistributionCount()
-          << endl;
+        m << level2 << "Total binary repartitions: "
+          << spaceChargeSolver_m->diagnostics().redistributionCount() << endl;
     }
 
     OPALTimer::Timer myt3;
@@ -750,7 +752,7 @@ void ParallelTracker::timeIntegration1(BorisPusher& pusher) {
  */
 void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
     // Legacy note: cathode transport/emission was sequenced after space charge so that
-    // the first step of newborn particles omits self-fields; multi-container emission
+    // the first step of newborn particles omits space-charges; multi-container emission
     // is handled separately in execute().
     Inform m("ParallelTracker::timeIntegration2");
 
@@ -778,11 +780,16 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
     IpplTimings::stopTimer(timeIntegrationTimer2_m);
 }
 
-opalx::spacecharge::FrameState ParallelTracker::makeSelfFieldFrameState() const {
+opalx::spacecharge::CoordinateFrameTransforms ParallelTracker::makeSpaceChargeFrameTransforms()
+        const {
     constexpr double momentumTolerance = 1e-12;
     const auto primary                 = itsBunch_m->getParticleContainer();
     Vector_t<double, 3> meanMomentum   = primary->getMeanP();
     double momentumLengthSquared       = dot(meanMomentum, meanMomentum);
+
+    // The bunch mean can vanish with zero or one particle, or on an empty MPI rank. Prefer the
+    // reference-particle direction in that case and finally use +z so getQuaternion always
+    // receives a well-defined direction.
     if (momentumLengthSquared < momentumTolerance * momentumTolerance) {
         meanMomentum          = primary->getRefPartP();
         momentumLengthSquared = dot(meanMomentum, meanMomentum);
@@ -797,9 +804,15 @@ opalx::spacecharge::FrameState ParallelTracker::makeSelfFieldFrameState() const 
     return {solveToTracker.inverted(), solveToTracker};
 }
 
-ParallelTracker::SelfFieldEmissionProgress ParallelTracker::selfFieldEmissionProgress() const {
-    SelfFieldEmissionProgress progress;
+ParallelTracker::SpaceChargeEmissionProgress ParallelTracker::spaceChargeEmissionProgress() const {
+    SpaceChargeEmissionProgress progress;
     const double currentTime = itsBunch_m->getT();
+
+    // While emission is active, Cartesian PIC stretches its beam-frame mesh over the full source
+    // pulse length, matching old OPAL. For example, 5 percent emission produces approximately a
+    // factor-20 longitudinal stretch. Without it, early charge is compressed onto an artificially
+    // short mesh and can receive excessive self-field kicks, including kicks back into the source.
+    // The least-complete active source determines the required stretch.
     for (const auto& samplers : emittingSamplers_m) {
         for (const auto& sampler : samplers) {
             if (!sampler || sampler->isEmissionDone(currentTime)) {
@@ -814,6 +827,8 @@ ParallelTracker::SelfFieldEmissionProgress ParallelTracker::selfFieldEmissionPro
     }
 
     if (Options::aggressiveStateSync) {
+        // Preserve legacy state convergence across ranks: any active source keeps stretching
+        // enabled, and the minimum emitted fraction supplies the most conservative domain length.
         bool globallyActive = progress.active;
         ippl::Comm->allreduce(progress.active, globallyActive, 1, std::logical_or<bool>());
         const double localFraction =
@@ -839,10 +854,10 @@ ParallelTracker::SelfFieldEmissionProgress ParallelTracker::selfFieldEmissionPro
  */
 void ParallelTracker::computeSpaceChargeFields() {
     Inform m("ParallelTracker::computeSpaceChargeFields");
-    if (selfFieldSystem_m == nullptr) {
+    if (spaceChargeSolver_m == nullptr) {
         throw OpalException(
                 "ParallelTracker::computeSpaceChargeFields",
-                "No self-field system is available. Use TYPE=NONE for a configured no-op "
+                "No space-charge solver is available. Use TYPE=NONE for a configured no-op "
                 "solver.");
     }
 
@@ -855,16 +870,23 @@ void ParallelTracker::computeSpaceChargeFields() {
     }
 
     itsBunch_m->calcBeamParameters();
-    const auto frames   = makeSelfFieldFrameState();
-    const auto emission = selfFieldEmissionProgress();
-    for (std::size_t index = 0; index < selfFieldParticleBindings_m.size(); ++index) {
-        selfFieldParticleBindings_m[index].trackingActive = itsBunch_m->isPcActive(index);
+    const auto frames   = makeSpaceChargeFrameTransforms();
+    const auto emission = spaceChargeEmissionProgress();
+
+    // Keep every container's tracking state current. SpaceChargeSolver applies the selected
+    // algorithm's mode afterward: Cartesian PIC selects only the primary container, whereas
+    // FFT2D5 selects every tracking-active container.
+    for (std::size_t index = 0; index < spaceChargeParticleBindings_m.size(); ++index) {
+        spaceChargeParticleBindings_m[index].trackingActive = itsBunch_m->isPcActive(index);
     }
 
     using namespace opalx::spacecharge;
     const std::size_t step = static_cast<std::size_t>(itsBunch_m->getGlobalTrackStep());
-    ParticleSetView particles(selfFieldParticleBindings_m, 0);
-    StepState stepState{
+
+    // The context borrows stable attribute objects, not their current Kokkos views. The solver may
+    // migrate particles after this point and safely reacquire each view before later kernels.
+    ParticleFieldSet particles(spaceChargeParticleBindings_m, 0);
+    SpaceChargeStepState stepState{
             step,
             itsBunch_m->getT(),
             itsBunch_m->getdT(),
@@ -872,10 +894,11 @@ void ParallelTracker::computeSpaceChargeFields() {
             emission.fraction,
             ippl::Comm->size(),
             frames};
-    SolveContext context(
-            std::move(particles), std::move(stepState), selfFieldRequestPolicy_m.forStep(step));
-    selfFieldSystem_m->solve(context);
-    m << level3 << "Compute self fields done." << endl;
+    SpaceChargeSolveContext context(
+            std::move(particles), std::move(stepState),
+            spaceChargeRequestSchedule_m.requestForStep(step));
+    spaceChargeSolver_m->solve(context);
+    m << level3 << "Compute space-charge fields done." << endl;
 }
 
 /**
@@ -892,8 +915,8 @@ void ParallelTracker::computeExternalFields(
     //
     // "Source-plane" refers to the X/Y plane at z=R0Z defined through the emitting EMISSIONSOURCE,
     // from where particles are emitted. It can happen that particles land behind the source plane
-    // because e.g. of self-field kicks. Particles with negative z momentum located behind R0Z (with
-    // a certain threshold) are then removed from the simulation.
+    // because e.g. of space-charge kicks. Particles with negative z momentum located behind R0Z
+    // (with a certain threshold) are then removed from the simulation.
     const size_t nSourceMarked = markBackwardParticlesAtSourcePlane();
     if (nSourceMarked > 0) {
         deleteInvalidParticles(
@@ -1104,13 +1127,14 @@ size_t ParallelTracker::deleteInvalidParticles(
 size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
     /// \todo this function should probably be integrated as a GunSource element similar to old
     /// OPAL.
-    if (selfFieldSystem_m == nullptr) {
+    if (spaceChargeSolver_m == nullptr) {
         return 0;
     }
 
     using namespace opalx::spacecharge;
-    const CorrectionRequest correction = selfFieldRequestPolicy_m.configuredCorrection();
-    if (correction.kind == CorrectionKind::None) {
+    const SpaceChargeCorrectionRequest correction =
+            spaceChargeRequestSchedule_m.configuredCorrection();
+    if (correction.kind == SpaceChargeCorrectionType::None) {
         return 0;
     }
 
@@ -1736,7 +1760,7 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
 
     if (statDump) {
         const int reportedBinCount =
-                selfFieldSystem_m == nullptr ? 1 : selfFieldSystem_m->reportedBinCount();
+                spaceChargeSolver_m == nullptr ? 1 : spaceChargeSolver_m->reportedBinCount();
         itsDataSink_m->dumpSDDS(*itsBunch_m, fdByContainer, reportedBinCount, -1.0);
         *gmsg << level3 << "* Wrote beam statistics." << endl;
     }

@@ -17,13 +17,13 @@
 #include "Attributes/Attributes.h"
 #include "PartBunch/BunchStateHandler.h"
 #include "PartBunch/CartesianDomain.h"
+#include "PartBunch/CartesianDomainConfig.h"
 #include "PartBunch/ParticleContainer.hpp"
 #include "Physics/Physics.h"
 #include "Random/Distribution.h"
 #include "Random/InverseTransformSampling.h"
 #include "Random/NormalDistribution.h"
 #include "Random/Randn.h"
-#include "SpaceCharge/ParticleStorageConfig.h"
 #include "Utilities/OpalException.h"
 
 class Beam;
@@ -106,18 +106,18 @@ public:
      * @param totalParticlesPerBeam  Target macroparticle count per beam (for local allocation).
      * @param lbt                    Load-balancer timescale.
      * @param integration_method     Integrator label (e.g. leapfrog).
-     * @param storageConfig          Immutable Cartesian domain and particle-layout setup.
+     * @param domainConfig           Immutable Cartesian domain and particle-layout setup.
      */
     PartBunch(
             std::vector<double> qi, std::vector<double> mi, const std::vector<Beam*>& beams,
             std::vector<size_t> totalParticlesPerBeam, double lbt, std::string integration_method,
-            opalx::spacecharge::ParticleStorageConfig<T, Dim> storageConfig);
+            opalx::spacecharge::CartesianDomainConfig<T, Dim> domainConfig);
 
     /**
      * @brief Recompute moments for every particle container without changing the PIC domain.
      *
      * Mesh geometry, field layout, particle migration, and backend refresh belong exclusively to
-     * the concrete self-field algorithm. Tracking calls this after particle mutations when only
+     * the concrete space-charge algorithm. Tracking calls this after particle mutations when only
      * current statistics are required.
      */
     void updateAllParticleMoments();

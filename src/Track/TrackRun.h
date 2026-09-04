@@ -43,8 +43,8 @@ class Inform;
 class Tracker;
 
 namespace opalx::spacecharge {
-    class SelfFieldConfig;
-    class SelfFieldSystem;
+    class SpaceChargeConfig;
+    class SpaceChargeSolver;
 }  // namespace opalx::spacecharge
 
 class TrackRun : public Action {
@@ -91,7 +91,7 @@ private:
 
     /**
      * @brief Wire daughter containers to cross-container processes (e.g. muon decay -> electron).
-     * @note Must be called after setupGlobalProcesses — reads processes from the containers.
+     * @note Must be called after setupGlobalProcesses - reads processes from the containers.
      */
     void wireDaughterContainers(const std::vector<Beam*>& beams);
 
@@ -109,10 +109,10 @@ private:
 
     using bunch_type = PartBunch_t;
 
-    // The destructor preserves the borrowed-particle lifetime contract: tracker, self-field
+    // The destructor preserves the borrowed-particle lifetime contract: tracker, space-charge
     // system, then the particle bunch. Algorithm destructors never observe dangling particles.
     std::unique_ptr<bunch_type> bunch_m;
-    std::unique_ptr<opalx::spacecharge::SelfFieldSystem> selfFieldSystem_m;
+    std::unique_ptr<opalx::spacecharge::SpaceChargeSolver> spaceChargeSolver_m;
     std::unique_ptr<Tracker> itsTracker_m;
 
     /// Distributions referenced by all emission sources (non-owning raw pointers).

@@ -1,37 +1,36 @@
 set (_SRCS
-    ParticleSetView.cpp
-    SelfFieldConfig.cpp
-    SelfFieldConfigBuilder.cpp
-    SelfFieldFactory.cpp
-    SelfFieldRequestPolicy.cpp
-    SelfFieldSystem.cpp
-    SolveContext.cpp
+    ParticleFieldSet.cpp
+    SpaceChargeConfig.cpp
+    SpaceChargeConfigBuilder.cpp
+    SpaceChargeSolverFactory.cpp
+    SpaceChargeRequestSchedule.cpp
+    SpaceChargeSolver.cpp
+    SpaceChargeSolveContext.cpp
     )
 
 set (HDRS
-    ParticleSetView.h
-    ParticleStorageConfig.h
-    SelfFieldAlgorithm.h
-    SelfFieldConfig.h
-    SelfFieldDiagnostics.h
-    SelfFieldRequestPolicy.h
-    SelfFieldSystem.h
-    SolveContext.h
-    SolverCapabilities.h
+    ParticleFieldSet.h
+    SpaceChargeAlgorithm.h
+    SpaceChargeConfig.h
+    SpaceChargeDiagnostics.h
+    SpaceChargeRequestSchedule.h
+    SpaceChargeSolver.h
+    SpaceChargeSolveContext.h
+    SpaceChargeCapabilities.h
     )
 
 set (_PRIVATE_HDRS
-    ParticleFrameGuard.h
-    SelfFieldConfigBuilder.h
-    SelfFieldFactory.h
+    SpaceChargeFrameGuard.h
+    SpaceChargeConfigBuilder.h
+    SpaceChargeSolverFactory.h
     )
 
 target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_sources(opalx PRIVATE ${_SRCS} ${_PRIVATE_HDRS})
 
-add_subdirectory (Ippl)
-add_subdirectory (Pic2d5)
-add_subdirectory (Pic3D)
+add_subdirectory (Poisson)
+add_subdirectory (FFT2D5)
+add_subdirectory (CartesianPIC)
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/SpaceCharge")

@@ -113,7 +113,7 @@ namespace {
             Kokkos::fence();
         }
 
-        opalx::spacecharge::ParticleStorageConfig3d storageConfig;
+        opalx::spacecharge::CartesianDomainConfig3D storageConfig;
         std::unique_ptr<Beam> beamObject;
         Beam* beam = nullptr;
     };

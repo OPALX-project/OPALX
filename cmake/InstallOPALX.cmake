@@ -11,12 +11,12 @@ install(
   EXCLUDE
   PATTERN "OPALconfig.h" EXCLUDE
   PATTERN "OPALXVersions.h" EXCLUDE
-  PATTERN "SpaceCharge/Ippl" EXCLUDE
-  PATTERN "SpaceCharge/Pic2d5" EXCLUDE
-  PATTERN "SpaceCharge/Pic3D" EXCLUDE
-  PATTERN "SpaceCharge/ParticleFrameGuard.h" EXCLUDE
-  PATTERN "SpaceCharge/SelfFieldConfigBuilder.h" EXCLUDE
-  PATTERN "SpaceCharge/SelfFieldFactory.h" EXCLUDE
+  PATTERN "SpaceCharge/Poisson" EXCLUDE
+  PATTERN "SpaceCharge/FFT2D5" EXCLUDE
+  PATTERN "SpaceCharge/CartesianPIC" EXCLUDE
+  PATTERN "SpaceCharge/SpaceChargeFrameGuard.h" EXCLUDE
+  PATTERN "SpaceCharge/SpaceChargeConfigBuilder.h" EXCLUDE
+  PATTERN "SpaceCharge/SpaceChargeSolverFactory.h" EXCLUDE
   PATTERN "CMakeFiles" EXCLUDE
   PATTERN "CMakeLists.txt" EXCLUDE
   PATTERN "*.cpp" EXCLUDE
