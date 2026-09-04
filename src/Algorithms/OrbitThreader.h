@@ -39,7 +39,7 @@ public:
     OrbitThreader(
             const PartData& ref, const Vector_t<double, 3>& r, const Vector_t<double, 3>& p,
             double s, double maxDiffZBunch, double t, double dT, StepSizeConfig stepSizes,
-            OpalBeamline& bl, bool isDesignBeam);
+            OpalBeamline& bl, bool isDesignBeam, double period = 0.0);
 
     void execute();
 
@@ -69,6 +69,7 @@ private:
     /// final position in path length
     StepSizeConfig stepSizes_m;
     const double sStop_m;
+    const double period_m;
     ValueRange<double> pathLengthRange_m;
 
     OpalBeamline& itsOpalBeamline_m;
@@ -105,6 +106,7 @@ private:
             const Vector_t<double, 3>& position, const Vector_t<double, 3>& direction) const;
 
     void checkElementLengths(const std::set<std::shared_ptr<ElementBase>>& elements);
+    bool reachedPeriodicEnd() const;
 };
 
 inline IndexMap::value_t OrbitThreader::query(

@@ -78,6 +78,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
+#include <limits>
 #include <memory>
 #include <vector>
 
@@ -516,13 +517,61 @@ void TrackRun::execute() {
        findPhasesForMaxEnergy();
 
     */
+    Track::block->use->prepareForTracking();
+
+    auto maxSteps = Track::block->localTimeSteps;
+    auto sStop    = Track::block->zstop;
+    const bool isRing =
+            Track::block->use->fetchLine()->getBeamlineTopology() == BeamlineTopology::RING;
+    const double ringPeriod = isRing ? Track::block->use->getLength() : 0.0;
+    if (isRing && !(ringPeriod > 0.0)) {
+        throw OpalException("TrackRun::execute", "A RING requires a positive circumference.");
+    }
+    if (!itsAttr[TRACKRUN::TURNS].defaultUsed() && isRing) {
+        const double requestedTurns = Attributes::getReal(itsAttr[TRACKRUN::TURNS]);
+        const double roundedTurns   = std::round(requestedTurns);
+        if (requestedTurns < 1.0 || std::abs(requestedTurns - roundedTurns) > 1.0e-12) {
+            throw OpalException(
+                    "TrackRun::execute", "TURNS must be a positive integer for a RING.");
+        }
+        if (Track::block->dT.size() != 1 || maxSteps.size() != 1 || sStop.size() != 1) {
+            throw OpalException(
+                    "TrackRun::execute",
+                    "RING tracking with explicit TURNS currently requires one DT/MAXSTEPS/ZSTOP "
+                    "segment.");
+        }
+
+        const auto turns             = static_cast<unsigned long long>(roundedTurns);
+        const double beta            = Track::block->reference.getBeta();
+        const double distancePerStep = Physics::c * std::abs(Track::block->dT.front()) * beta;
+        if (!(distancePerStep > 0.0)) {
+            throw OpalException(
+                    "TrackRun::execute",
+                    "A RING tracked with TURNS requires positive circumference, DT, and "
+                    "reference velocity.");
+        }
+
+        const double pathLength     = roundedTurns * ringPeriod;
+        const double estimatedSteps = std::ceil(pathLength / distancePerStep);
+        const double safetySteps    = 2.0 * estimatedSteps + 100.0;
+        if (safetySteps > static_cast<double>(std::numeric_limits<unsigned long long>::max())) {
+            throw OpalException("TrackRun::execute", "RING TURNS step budget overflows.");
+        }
+
+        sStop.front()    = Track::block->zstart + pathLength;
+        maxSteps.front() = std::max(maxSteps.front(), static_cast<unsigned long long>(safetySteps));
+        *gmsg << level1 << "* RING " << Track::block->use->getOpalName() << ": tracking " << turns
+              << " turns, circumference = " << ringPeriod
+              << " m, target path length = " << sStop.front() << " m." << endl;
+    }
+
     itsTracker_m = std::make_unique<ParallelTracker>(
-            *Track::block->use->fetchLine(), *bunch_m, ds_m, false, Track::block->localTimeSteps,
-            Track::block->zstart, Track::block->zstop, Track::block->dT, emittingSamplersList,
-            isRestart, static_cast<unsigned long long>(restartMetadata.globalTrackStep),
-            restartMetadata.dt,
+            *Track::block->use->fetchLine(), *bunch_m, ds_m, false, maxSteps, Track::block->zstart,
+            sStop, Track::block->dT, emittingSamplersList, isRestart,
+            static_cast<unsigned long long>(restartMetadata.globalTrackStep), restartMetadata.dt,
             StepSizeConfig::ResumePosition{
-                    restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment});
+                    restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment},
+            ringPeriod);
     itsTracker_m->execute();
 
     /*

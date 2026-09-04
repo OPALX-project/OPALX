@@ -20,6 +20,14 @@
 extern Inform* gmsg;
 
 namespace {
+    std::set<std::string> names(const IndexMap::value_t& elements) {
+        std::set<std::string> result;
+        for (const auto& element : elements) {
+            result.insert(element->getName());
+        }
+        return result;
+    }
+
     class DummyBeamline final : public Beamline {
     public:
         DummyBeamline() : Beamline("dummy") {}
@@ -204,6 +212,32 @@ TEST_F(OrbitThreaderTest, ExecutesOverlapAndRecordsBothElements) {
         activeNames.insert(element->getName());
     }
     EXPECT_EQ(activeNames, (std::set<std::string>{"Q_LONG", "Q_SHORT"}));
+}
+
+TEST_F(OrbitThreaderTest, BuildsOnePeriodicTurnIndependentOfTrackStepBudget) {
+    auto bunch = makeBunch(0);
+
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    OpalBeamline beamline;
+    auto quadrupole = makePlacedQuadrupole("Q_PERIODIC", 0.5, 0.0, 0.5);
+    beamline.visit(*quadrupole, visitor, *bunch);
+    beamline.prepareSections();
+
+    StepSizeConfig stepSizes;
+    stepSizes.push_back(1.0e-11, 10.0, 1);
+    stepSizes.resetIterator();
+
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    OrbitThreader threader(
+            reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
+            1.0e-11, stepSizes, beamline, /*isDesignBeam=*/true, /*period=*/0.6);
+
+    threader.execute();
+
+    EXPECT_EQ(names(threader.query(0.1, 0.01)), (std::set<std::string>{"Q_PERIODIC"}));
+    EXPECT_EQ(names(threader.query(0.7, 0.01)), (std::set<std::string>{"Q_PERIODIC"}));
 }
 
 TEST_F(OrbitThreaderTest, UsesFieldSupportExtentForLengthCheck) {

@@ -83,6 +83,7 @@
 #include "Elements/OpalTravelingWave.h"
 #include "Elements/OpalVariableRFCavity.h"
 #include "Elements/OpalVerticalFFAMagnet.h"
+#include "Lines/Ring.h"
 
 // Structure-related commands.
 #include "Lines/EmissionSourceList.h"
@@ -149,6 +150,7 @@ namespace {
         opal->create(new OpalSBend());
         opal->create(new OpalSolenoid());
         opal->create(new Line());
+        opal->create(new Ring());
         opal->create(new OpalVerticalFFAMagnet());
         opal->create(new OpalPolynomialTimeDependence());
         opal->create(new OpalSinusoidalTimeDependence());

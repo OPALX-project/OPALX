@@ -40,7 +40,6 @@ const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
         {ElementType::SBEND, "SBEND"},
         {ElementType::RBEND, "RBEND"},
         {ElementType::RBEND3D, "RBEND3D"},
-        {ElementType::RING, "Ring"},
         {ElementType::SOURCE, "SOURCE"},
         {ElementType::SOLENOID, "SOLENOID"},
         {ElementType::PROBE, "Probe"},
@@ -60,6 +59,7 @@ ElementBase::ElementBase(const ElementBase& right)
       RefPartBunch_m(nullptr),
       online_m(right.online_m),
       elementID(right.elementID),
+      beamlineMembership_m(right.beamlineMembership_m),
       userAttribs(right.userAttribs),
       positionIsFixed(right.positionIsFixed),
       elementPosition_m(right.elementPosition_m),
@@ -75,6 +75,7 @@ ElementBase::ElementBase(const std::string& name)
       RefPartBunch_m(nullptr),
       online_m(false),
       elementID(name),
+      beamlineMembership_m(),
       userAttribs(),
       positionIsFixed(false),
       elementPosition_m(0.0),
@@ -88,6 +89,33 @@ ElementBase::~ElementBase() {}
 const std::string& ElementBase::getName() const { return elementID; }
 
 void ElementBase::setName(const std::string& name) { elementID = name; }
+
+const BeamlineMembership& ElementBase::getBeamlineMembership() const {
+    return beamlineMembership_m;
+}
+
+BeamlineTopology ElementBase::getBeamlineTopology() const { return beamlineMembership_m.topology; }
+
+const std::string& ElementBase::getBeamlineOwnerName() const {
+    return beamlineMembership_m.ownerName;
+}
+
+void ElementBase::setBeamlineMembership(BeamlineTopology topology, std::string ownerName) {
+    if (topology == BeamlineTopology::RING && ownerName.empty()) {
+        throw GeneralOpalException(
+                "ElementBase::setBeamlineMembership()",
+                "RING membership requires a non-empty owner name");
+    }
+    if (topology == BeamlineTopology::LINE && !ownerName.empty()) {
+        throw GeneralOpalException(
+                "ElementBase::setBeamlineMembership()",
+                "LINE membership cannot have an owner name");
+    }
+
+    beamlineMembership_m = {topology, std::move(ownerName)};
+}
+
+void ElementBase::clearBeamlineMembership() { beamlineMembership_m = {}; }
 
 void ElementBase::setOutputFN(const std::string fn) { outputfn_m = fn; }
 

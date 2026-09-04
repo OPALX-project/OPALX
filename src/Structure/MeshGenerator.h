@@ -40,7 +40,10 @@ public:
      * @param element Beamline element to inspect.
      * @param minor Output minor transverse radius.
      * @param major Output major transverse radius.
-     * @return true if a finite support size is available, false otherwise.
+     * OPALX's 1e6-m unbounded-aperture sentinel is not a physical support and
+     * is rejected.
+     *
+     * @return true if a positive, bounded support size is available, false otherwise.
      */
     static bool getTransverseSupport(const ElementBase& element, double& minor, double& major);
 
@@ -95,6 +98,21 @@ private:
     static MeshData getTube(
             double length, double innerMinor, double innerMajor, double outerMinor,
             double outerMajor, const unsigned int numSegments = 36);
+
+    /**
+     * @brief Build a solid sector-bend body following the reference arc.
+     *
+     * Cross sections remain normal to the local design-orbit tangent. The
+     * horizontal and vertical half sizes come from the element aperture.
+     *
+     * @param arcLength Reference-orbit arc length.
+     * @param curvature Signed reference curvature.
+     * @param horizontalHalfSize Horizontal half size in the local radial direction.
+     * @param verticalHalfSize Vertical half size.
+     * @return Triangulated curved dipole body.
+     */
+    static MeshData getSBend(
+            double arcLength, double curvature, double horizontalHalfSize, double verticalHalfSize);
 
     /**
      * @brief Build a quadrupole-like body from four longitudinal pole blocks.
