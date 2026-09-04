@@ -4,10 +4,11 @@ These cases exercise `OPTION, ENABLELINEARTRANSFERMAPS = TRUE` against systems w
 first-order maps. They use one on-axis 250 MeV electron, no collective field, hard-edge elements,
 and explicit `ELEMEDGE` placement.
 
-- `map-2-drift.in`: one 1 m drift; validates the complete 6x6 map.
-- `map-2-quadrupole.in`: one 0.4 m quadrupole with `K1=1 m^-2`; validates the complete 6x6 map.
-- `map-2-fodo.in`: a symmetric thick-lens FODO cell; validates the product of five exact maps.
-- `map-2-dba.in`: two 30 degree sector bends around a thick quadrupole. The quadrupole strength is
+- `drift/map-2-drift.in`: one 1 m drift; validates the complete 6x6 map.
+- `quadrupole/map-2-quadrupole.in`: one 0.4 m quadrupole with `K1=1 m^-2`; validates the complete
+  6x6 map.
+- `fodo/map-2-fodo.in`: a symmetric thick-lens FODO cell; validates the product of five exact maps.
+- `dba/map-2-dba.in`: two 30 degree sector bends around a thick quadrupole. Its strength is
   the analytic solution for zero exit dispersion in the hard-edge model.
 
 For a drift of length L, the nontrivial entries in the coordinates printed by OPALX are
@@ -38,7 +39,13 @@ The reference matrices are continuous-s solutions. The OPALX maps use time integ
 `DT=2 ps`; endpoint and integration errors therefore scale with approximately `c*DT = 0.6 mm`.
 The checker tolerances are numerical convergence tolerances, not changes to the analytic maps.
 
-Run all cases and write one `.log` per case with
+Each directory is self-contained apart from the shared reference-particle distribution in its
+parent. For example, run one case with
+
+    cd drift
+    ../../../omp-build/src/opalx --info 1 map-2-drift.in
+
+From `sandbox/map-2`, run all cases and write one `.log` inside each case directory with
 
     ~/.venv-h6/bin/python check_maps.py ../../omp-build/src/opalx
 
