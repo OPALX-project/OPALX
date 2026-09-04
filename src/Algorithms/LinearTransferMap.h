@@ -83,9 +83,12 @@ struct LinearTransferMapReference {
  * \f$O(\epsilon^2)\f$.
  *
  * External fields from all active elements are summed during ray integration; collective fields
- * and RF structures are excluded. Since the chosen slopes and mechanical momenta are not globally
- * canonical, `symplecticResidual` is a diagnostic rather than a universal invariant.
- * It stores the maximum component of \f$M^TJM-J\f$ for the block-diagonal canonical matrix
+ * and RF structures are excluded. @c determinantResidual stores \f$|\det(M)-1|\f$, which checks
+ * phase-space volume preservation.
+ * This is necessary, but for a \f$6\times6\f$ map not sufficient, for symplecticity. Since the
+ * chosen slopes and mechanical momenta are not globally canonical, @c symplecticResidual is a
+ * diagnostic rather than a universal invariant. It stores
+ * \f$\max_{i,j}|(M^TJM-J)_{ij}|\f$ for the block-diagonal canonical matrix
  * \f$J=\mathrm{diag}(J_2,J_2,J_2)\f$.
  */
 struct LinearTransferMap {
@@ -100,6 +103,7 @@ struct LinearTransferMap {
     /// Names of all elements active throughout this segment.
     std::vector<std::string> activeElements;
     double inputConditionNumber{0.0};
+    double determinantResidual{0.0};
     double symplecticResidual{0.0};
     bool includesOverlappingFields{false};
 };

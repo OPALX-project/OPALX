@@ -250,6 +250,7 @@ TEST_F(OrbitThreaderTest, ExecutesOverlapAndRecordsBothElements) {
     const auto ordered = beamline.getLinearTransferMapsInReferenceOrder();
     EXPECT_EQ(ordered.size(), 3);  // shared overlap segment is returned only once
     ASSERT_TRUE(threader.getCombinedLinearTransferMap().has_value());
+    ASSERT_TRUE(threader.getCombinedDeterminantResidual().has_value());
     ASSERT_TRUE(threader.getCombinedSymplecticResidual().has_value());
 }
 
@@ -351,6 +352,8 @@ TEST_F(OrbitThreaderTest, CalculatesAndAttachesLinearDriftMap) {
     // The combined LINE map covers the full threaded interval, including the field-free tail to
     // ZSTOP; the element-owned map above covers only the drift itself.
     EXPECT_NEAR((*threader.getCombinedLinearTransferMap())(0, 1), 0.4, 1.0e-3);
+    ASSERT_TRUE(threader.getCombinedDeterminantResidual().has_value());
+    EXPECT_LT(*threader.getCombinedDeterminantResidual(), 1.0e-8);
     ASSERT_TRUE(threader.getCombinedSymplecticResidual().has_value());
     EXPECT_LT(*threader.getCombinedSymplecticResidual(), 1.0e-8);
 }

@@ -49,8 +49,8 @@ extern Inform* gmsg;
 namespace {
     constexpr std::array<double, 6> transferMapSteps{1.0e-3, 1.0e-3, 1.0e-3,
                                                      1.0e-3, 1.0e-3, 1.0e-3};
-    constexpr double boundaryTolerance   = 1.0e-12;
-    constexpr double symplecticTolerance = 1.0e-6;
+    constexpr double boundaryTolerance      = 1.0e-12;
+    constexpr double mapDiagnosticTolerance = 1.0e-6;
 
     Vector_t<double, 3> crossProduct(const Vector_t<double, 3>& a, const Vector_t<double, 3>& b) {
         return Vector_t<double, 3>(
@@ -136,6 +136,41 @@ namespace {
         }
         return maximum;
     }
+
+    double determinant(const matrix6x6_t& map) {
+        double work[6][6]{};
+        for (int row = 0; row < 6; ++row) {
+            for (int col = 0; col < 6; ++col) {
+                work[row][col] = map(row, col);
+            }
+        }
+
+        double result = 1.0;
+        for (int col = 0; col < 6; ++col) {
+            int pivot = col;
+            for (int row = col + 1; row < 6; ++row) {
+                if (std::abs(work[row][col]) > std::abs(work[pivot][col])) pivot = row;
+            }
+            if (work[pivot][col] == 0.0) return 0.0;
+            if (pivot != col) {
+                for (int j = col; j < 6; ++j) {
+                    std::swap(work[pivot][j], work[col][j]);
+                }
+                result = -result;
+            }
+            const double diagonal = work[col][col];
+            result *= diagonal;
+            for (int row = col + 1; row < 6; ++row) {
+                const double factor = work[row][col] / diagonal;
+                for (int j = col + 1; j < 6; ++j) {
+                    work[row][j] -= factor * work[col][j];
+                }
+            }
+        }
+        return result;
+    }
+
+    double determinantResidual(const matrix6x6_t& map) { return std::abs(determinant(map) - 1.0); }
 }  // namespace
 
 OrbitThreader::OrbitThreader(
@@ -248,6 +283,7 @@ void OrbitThreader::execute() {
         referenceSamples_m.clear();
         transferMapSegments_m.clear();
         combinedLinearTransferMap_m.reset();
+        combinedDeterminantResidual_m.reset();
         combinedSymplecticResidual_m.reset();
         transferMapStartPathLength_m = initialPathLength;
         collectReferenceSamples_m    = true;
@@ -796,6 +832,7 @@ LinearTransferMap OrbitThreader::makeLinearTransferMap(
     result.exit                      = exit;
     result.pass                      = pass;
     result.inputConditionNumber      = condition;
+    result.determinantResidual       = determinantResidual(result.matrix);
     result.symplecticResidual        = symplecticResidual(result.matrix);
     result.includesOverlappingFields = false;
     return result;
@@ -946,8 +983,9 @@ void OrbitThreader::calculateLinearTransferMaps() {
     for (const auto& segment : transferMapSegments_m) {
         combined = prod(segment.matrix, combined);
     }
-    combinedLinearTransferMap_m  = combined;
-    combinedSymplecticResidual_m = symplecticResidual(combined);
+    combinedLinearTransferMap_m   = combined;
+    combinedDeterminantResidual_m = determinantResidual(combined);
+    combinedSymplecticResidual_m  = symplecticResidual(combined);
 }
 
 void OrbitThreader::printCombinedLinearTransferMap() const {
@@ -964,11 +1002,16 @@ void OrbitThreader::printCombinedLinearTransferMap() const {
         }
         *gmsg << "\n";
     }
-    const double residual = *combinedSymplecticResidual_m;
+    const double determinantError = *combinedDeterminantResidual_m;
+    const double symplecticError  = *combinedSymplecticResidual_m;
+    *gmsg << "* Volume-preservation diagnostic: "
+          << (determinantError <= mapDiagnosticTolerance ? "PASS" : "FAIL") << "\n"
+          << "*   |det(M) - 1| = " << std::setprecision(7) << std::scientific << determinantError
+          << "  (tolerance " << mapDiagnosticTolerance << ")\n";
     *gmsg << "* Canonical-form symplecticity diagnostic: "
-          << (residual <= symplecticTolerance ? "PASS" : "FAIL") << "\n"
-          << "*   max|M^T J M - J| = " << std::setprecision(7) << std::scientific << residual
-          << "  (tolerance " << symplecticTolerance << ")\n"
+          << (symplecticError <= mapDiagnosticTolerance ? "PASS" : "FAIL") << "\n"
+          << "*   max_ij |(M^T J M - J)_ij| = " << symplecticError << "  (tolerance "
+          << mapDiagnosticTolerance << ")\n"
           << "*   The reported slopes and mechanical momenta are not globally canonical;\n"
           << "*   this test is diagnostic unless the entrance/exit coordinates are canonical.\n";
     *gmsg << std::defaultfloat << endl;
