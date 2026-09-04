@@ -15,7 +15,7 @@
 namespace opalx::spacecharge {
 
     template <typename T, unsigned Dim>
-    CartesianDomain<T, Dim>::CartesianDomain(const ParticleStorageConfig<T, Dim>& config)
+    CartesianDomain<T, Dim>::CartesianDomain(const CartesianDomainConfig<T, Dim>& config)
         : extents_m(config.meshSize),
           decomposition_m(config.decomposition),
           periodic_m(config.periodicParticleBoundary),
@@ -87,9 +87,9 @@ namespace opalx::spacecharge {
 
     template <typename T, unsigned Dim>
     typename CartesianDomain<T, Dim>::Vector CartesianDomain<T, Dim>::initialLength(
-            const ParticleStorageConfig<T, Dim>& config) {
+            const CartesianDomainConfig<T, Dim>& config) {
         Vector length(T(6));
-        if (config.layoutKind == ParticleLayoutKind::SpatialOverlap) {
+        if (config.layoutType == ParticleLayoutType::SpatialOverlap) {
             if (!(config.overlapCutoff > T(0))) {
                 throw OpalException(
                         "CartesianDomain::initialLength",
@@ -105,7 +105,7 @@ namespace opalx::spacecharge {
 
     template <typename T, unsigned Dim>
     typename CartesianDomain<T, Dim>::Vector CartesianDomain<T, Dim>::initialSpacing(
-            const ParticleStorageConfig<T, Dim>& config) {
+            const CartesianDomainConfig<T, Dim>& config) {
         const Vector length = initialLength(config);
         Vector spacing(T(0));
         for (unsigned dimension = 0; dimension < Dim; ++dimension) {
@@ -116,8 +116,8 @@ namespace opalx::spacecharge {
 
     template <typename T, unsigned Dim>
     typename CartesianDomain<T, Dim>::Vector CartesianDomain<T, Dim>::initialOrigin(
-            const ParticleStorageConfig<T, Dim>& config) {
-        return config.layoutKind == ParticleLayoutKind::SpatialOverlap
+            const CartesianDomainConfig<T, Dim>& config) {
+        return config.layoutType == ParticleLayoutType::SpatialOverlap
                        ? T(-0.5) * initialLength(config)
                        : Vector(T(-3));
     }

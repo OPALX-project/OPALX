@@ -8,6 +8,7 @@ set (HDRS
     PartBunch.h
     PartBunchFwd.h
     BunchStateHandler.h
+    CartesianDomainConfig.h
     CartesianDomain.h
     CartesianDomain.tpp
     ParticleContainerTypes.h

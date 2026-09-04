@@ -137,7 +137,7 @@ namespace {
             return fd;
         }
 
-        opalx::spacecharge::ParticleStorageConfig3d storageConfig;
+        opalx::spacecharge::CartesianDomainConfig3D storageConfig;
         std::shared_ptr<DataSink> dataSink;
         std::shared_ptr<Beam> beam;
         Beam* testBeam = nullptr;

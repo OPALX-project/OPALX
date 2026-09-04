@@ -65,11 +65,11 @@
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPT.h"
 
-#include "SpaceCharge/SelfFieldConfig.h"
-#include "SpaceCharge/SelfFieldConfigBuilder.h"
-#include "SpaceCharge/SelfFieldFactory.h"
-#include "SpaceCharge/SelfFieldRequestPolicy.h"
-#include "SpaceCharge/SelfFieldSystem.h"
+#include "SpaceCharge/SpaceChargeConfig.h"
+#include "SpaceCharge/SpaceChargeConfigBuilder.h"
+#include "SpaceCharge/SpaceChargeRequestSchedule.h"
+#include "SpaceCharge/SpaceChargeSolver.h"
+#include "SpaceCharge/SpaceChargeSolverFactory.h"
 
 #include "BuildInfo.h"
 #include "Utility/Inform.h"
@@ -188,7 +188,7 @@ TrackRun::TrackRun()
              "The \"RUN\" sub-command tracks the defined particles through "
              "the given lattice."),
       bunch_m(nullptr),
-      selfFieldSystem_m(nullptr),
+      spaceChargeSolver_m(nullptr),
       itsTracker_m(nullptr),
       fs_m(nullptr),
       ds_m(nullptr),
@@ -220,7 +220,7 @@ TrackRun::TrackRun()
 TrackRun::TrackRun(const std::string& name, TrackRun* parent)
     : Action(name, parent),
       bunch_m(nullptr),
-      selfFieldSystem_m(nullptr),
+      spaceChargeSolver_m(nullptr),
       itsTracker_m(nullptr),
       fs_m(nullptr),
       ds_m(nullptr),
@@ -250,7 +250,7 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
 TrackRun::~TrackRun() {
     // Solvers borrow particle containers and must be destroyed before their owner.
     itsTracker_m.reset();
-    selfFieldSystem_m.reset();
+    spaceChargeSolver_m.reset();
     bunch_m.reset();
 }
 
@@ -409,10 +409,11 @@ void TrackRun::execute() {
 
     // Parser-owned commands are consumed once. Runtime solver objects retain only this
     // immutable snapshot and never borrow FieldSolverCmd or EmissionSource objects.
-    auto selfFieldConfig =
-            opalx::spacecharge::SelfFieldConfigBuilder::build(*fs_m, emissionSourcesLists);
-    const opalx::spacecharge::SelfFieldRequestPolicy selfFieldRequestPolicy(selfFieldConfig);
-    const auto particleStorageConfig = selfFieldConfig.particleStorageConfig();
+    auto spaceChargeConfig =
+            opalx::spacecharge::SpaceChargeConfigBuilder::build(*fs_m, emissionSourcesLists);
+    const opalx::spacecharge::SpaceChargeRequestSchedule spaceChargeRequestSchedule(
+            spaceChargeConfig);
+    const auto cartesianDomainConfig = spaceChargeConfig.cartesianDomainConfig();
 
     /*
     Need the following units for mass and charge:
@@ -439,7 +440,7 @@ void TrackRun::execute() {
             totalParticlesPerBeam,            // Per-beam particle counts for allocation
             Options::loadBalancingThreshold,  // Load balancing threshold
             "LF2",                            // Integrator
-            particleStorageConfig);           // Particle storage setup
+            cartesianDomainConfig);           // Cartesian domain and particle-layout setup
 
     // Validate container setup produced by constructor
     const auto& particleContainers = bunch_m->getParticleContainers();
@@ -502,8 +503,8 @@ void TrackRun::execute() {
                     emissionSourcesLists[i], beams[i], emittingSamplersList[i], i);
         }
     }
-    selfFieldSystem_m = opalx::spacecharge::SelfFieldFactory::create(
-            std::move(selfFieldConfig), *bunch_m, ds_m);
+    spaceChargeSolver_m = opalx::spacecharge::SpaceChargeSolverFactory::create(
+            std::move(spaceChargeConfig), *bunch_m, ds_m);
 
     if (!isRestart) {
         // Refresh the initial particle statistics after distribution setup.
@@ -538,10 +539,11 @@ void TrackRun::execute() {
 
     */
     itsTracker_m = std::make_unique<ParallelTracker>(
-            *Track::block->use->fetchLine(), *bunch_m, *selfFieldSystem_m, selfFieldRequestPolicy,
-            ds_m, false, Track::block->localTimeSteps, Track::block->zstart, Track::block->zstop,
-            Track::block->dT, emittingSamplersList, isRestart,
-            static_cast<unsigned long long>(restartMetadata.globalTrackStep), restartMetadata.dt,
+            *Track::block->use->fetchLine(), *bunch_m, *spaceChargeSolver_m,
+            spaceChargeRequestSchedule, ds_m, false, Track::block->localTimeSteps,
+            Track::block->zstart, Track::block->zstop, Track::block->dT, emittingSamplersList,
+            isRestart, static_cast<unsigned long long>(restartMetadata.globalTrackStep),
+            restartMetadata.dt,
             StepSizeConfig::ResumePosition{
                     restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment});
     itsTracker_m->execute();

@@ -7,8 +7,8 @@
 #define OPALX_PART_BUNCH_CARTESIAN_DOMAIN_H
 
 #include "Manager/BaseManager.h"
+#include "PartBunch/CartesianDomainConfig.h"
 #include "PartBunch/ParticleContainerTypes.h"
-#include "SpaceCharge/ParticleStorageConfig.h"
 
 #include <array>
 #include <cstddef>
@@ -20,6 +20,9 @@ namespace opalx::spacecharge {
      *
      * Particle layouts and PIC fields borrow mesh() and layout(). Their addresses remain stable
      * while geometry and decomposition are updated in place by solver-owned policy.
+     *
+     * @note PartBunch declares this domain before its particle containers. Reverse member
+     * destruction therefore releases every borrowing particle layout before the domain.
      */
     template <typename T, unsigned Dim>
     class CartesianDomain final {
@@ -29,7 +32,7 @@ namespace opalx::spacecharge {
         using Vector  = ippl::Vector<T, Dim>;
         using Extents = std::array<std::size_t, Dim>;
 
-        explicit CartesianDomain(const ParticleStorageConfig<T, Dim>& config);
+        explicit CartesianDomain(const CartesianDomainConfig<T, Dim>& config);
 
         CartesianDomain(const CartesianDomain&)            = delete;
         CartesianDomain& operator=(const CartesianDomain&) = delete;
@@ -59,9 +62,9 @@ namespace opalx::spacecharge {
 
     private:
         [[nodiscard]] static ippl::NDIndex<Dim> makeIndexDomain(const Extents& extents);
-        [[nodiscard]] static Vector initialLength(const ParticleStorageConfig<T, Dim>& config);
-        [[nodiscard]] static Vector initialSpacing(const ParticleStorageConfig<T, Dim>& config);
-        [[nodiscard]] static Vector initialOrigin(const ParticleStorageConfig<T, Dim>& config);
+        [[nodiscard]] static Vector initialLength(const CartesianDomainConfig<T, Dim>& config);
+        [[nodiscard]] static Vector initialSpacing(const CartesianDomainConfig<T, Dim>& config);
+        [[nodiscard]] static Vector initialOrigin(const CartesianDomainConfig<T, Dim>& config);
 
         Extents extents_m;
         std::array<bool, Dim> decomposition_m;
