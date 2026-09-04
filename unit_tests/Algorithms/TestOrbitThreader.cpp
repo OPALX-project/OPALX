@@ -185,6 +185,80 @@ protected:
     std::shared_ptr<DataSink> dataSink_m;
 };
 
+TEST_F(OrbitThreaderTest, MapBuilderDoesNotAttachOrMutateSamples) {
+    OpalBeamline beamline;
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    auto entrance = LinearTransferMapBuilder::initialFrame(
+            beamline, Vector_t<double, 3>(0.0, 0.0, 1.0));
+    entrance.momentum = Vector_t<double, 3>(0.0, 0.0, 1.0);
+    auto exit = entrance;
+    exit.position(2) = exit.pathLength = 0.1;
+    exit.time = 0.1 * std::sqrt(2.0) / Physics::c;
+    const std::vector<LinearTransferMapBuilder::ReferenceSample> samples{{entrance}, {exit}};
+    LinearTransferMapBuilder builder(beamline, reference, 1.0e-11);
+    const auto result = builder.build(samples, 0.0);
+    ASSERT_EQ(result.segments.size(), 1);
+    EXPECT_TRUE(result.segments.front().owners.empty());
+    ASSERT_TRUE(result.combined);
+    EXPECT_NEAR((*result.combined)(0, 1), 0.1, 1.0e-9);
+    EXPECT_NEAR((*result.combined)(4, 5), 0.05, 1.0e-7);
+    EXPECT_EQ(samples.front().state.pathLength, 0.0);
+    EXPECT_EQ(samples.back().state.pathLength, 0.1);
+}
+
+TEST_F(OrbitThreaderTest, RayTrackerZeroStepDoesNotEvaluateFields) {
+    OpalBeamline beamline;
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    ExternalFieldRayTracker tracker(beamline, reference);
+    ExternalFieldRayTracker::State initial{
+            Vector_t<double, 3>(1.0, 2.0, 3.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 2.0};
+    const auto step = tracker.step(initial, 0.0, [](const auto&, auto&, auto&) {
+        ADD_FAILURE() << "A zero step must not evaluate a field";
+        return false;
+    });
+    const Vector_t<double, 3> displacement = step.end.position - initial.position;
+    const Vector_t<double, 3> momentumChange = step.end.momentum - initial.momentum;
+    EXPECT_EQ(euclidean_norm(displacement), 0.0);
+    EXPECT_EQ(euclidean_norm(momentumChange), 0.0);
+    EXPECT_EQ(step.end.time, initial.time);
+}
+
+TEST_F(OrbitThreaderTest, RayTrackerInitializesAllFieldComponents) {
+    OpalBeamline beamline;
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    ExternalFieldRayTracker tracker(beamline, reference);
+    ExternalFieldRayTracker::State initial;
+    initial.momentum(2) = 1.0;
+    const auto step = tracker.step(initial, 1.0e-11, [](const auto&, auto& electric, auto& magnetic) {
+        for (unsigned component = 0; component < 3; ++component) {
+            EXPECT_EQ(electric(component), 0.0);
+            EXPECT_EQ(magnetic(component), 0.0);
+        }
+        return false;
+    });
+    EXPECT_EQ(step.end.position(0), 0.0);
+    EXPECT_EQ(step.end.position(1), 0.0);
+    EXPECT_EQ(step.end.momentum(0), 0.0);
+    EXPECT_EQ(step.end.momentum(1), 0.0);
+    EXPECT_EQ(step.end.momentum(2), 1.0);
+}
+
+TEST_F(OrbitThreaderTest, BishopFrameRemainsOrthonormalThroughBendAndReversal) {
+    OpalBeamline beamline;
+    auto frame = LinearTransferMapBuilder::initialFrame(
+            beamline, Vector_t<double, 3>(0.0, 0.0, 1.0));
+    for (const auto& momentum : {Vector_t<double, 3>(1.0, 2.0, 3.0),
+                                 Vector_t<double, 3>(-1.0, -2.0, -3.0)}) {
+        frame = LinearTransferMapBuilder::transportFrame(frame, momentum);
+        EXPECT_NEAR(euclidean_norm(frame.xAxis), 1.0, 1.0e-14);
+        EXPECT_NEAR(euclidean_norm(frame.yAxis), 1.0, 1.0e-14);
+        EXPECT_NEAR(euclidean_norm(frame.sAxis), 1.0, 1.0e-14);
+        EXPECT_NEAR(dot(frame.xAxis, frame.yAxis), 0.0, 1.0e-14);
+        EXPECT_NEAR(dot(frame.xAxis, frame.sAxis), 0.0, 1.0e-14);
+        EXPECT_NEAR(dot(frame.yAxis, frame.sAxis), 0.0, 1.0e-14);
+    }
+}
+
 TEST_F(OrbitThreaderTest, ExecutesOverlapAndRecordsBothElements) {
     auto bunch = makeBunch(0);
 
