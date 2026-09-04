@@ -101,6 +101,23 @@ TEST(GeometryTest, RectangularBend) {
     expectTrafo(g.getEdgeToEnd(), {0.0, 0.0, L}, kIdentity);
 }
 
+TEST(GeometryTest, IsBendIdentifiesTheBodiesThatTurnTheOrbit) {
+    // Placement asks the geometry, not the element type, whether an element turns the
+    // reference orbit, so any element carrying a bend geometry is framed as a bend.
+    EXPECT_FALSE(Geometry::makeNull().isBend());
+    EXPECT_FALSE(Geometry::makeStraight(0.75).isBend());
+    EXPECT_TRUE(Geometry::makeSBend(1.0, 0.2).isBend());
+    EXPECT_TRUE(Geometry::makeRBend(0.9, 0.40).isBend());
+
+    EXPECT_FALSE(Geometry::makeNull().isRectangularBend());
+    EXPECT_FALSE(Geometry::makeStraight(0.75).isRectangularBend());
+    EXPECT_FALSE(Geometry::makeSBend(1.0, 0.2).isRectangularBend());
+    EXPECT_TRUE(Geometry::makeRBend(0.9, 0.40).isRectangularBend());
+
+    // A default-constructed geometry is straight.
+    EXPECT_FALSE(Geometry().isBend());
+}
+
 TEST(GeometryTest, SetElementLengthRecomputesArcAngle) {
     Geometry g = Geometry::makeSBend(1.0, 0.2);  // angle = 0.2
     EXPECT_DOUBLE_EQ(g.getBendAngle(), 0.2);

@@ -103,7 +103,13 @@ void OpalMultipoleT::update() {
     auto tp = Attributes::getRealArray(itsAttr[TP]);
     // Set the attributes
     const auto length = Attributes::getReal(itsAttr[LENGTH]);
-    auto* multT       = dynamic_cast<MultipoleTRep*>(getElement());
+    if (bendAngle != 0.0 && length == 0.0) {
+        throw OpalException(
+                "OpalMultipoleT::Update",
+                "A curved magnet (non-zero ANGLE) needs a non-zero L: the curvature is "
+                "ANGLE / L, with L the arc length");
+    }
+    auto* multT = dynamic_cast<MultipoleTRep*>(getElement());
     multT->setElementLength(length);
     multT->setBendAngle(bendAngle, varRadius);
     multT->setAperture(Attributes::getReal(itsAttr[VAPERT]), Attributes::getReal(itsAttr[HAPERT]));
