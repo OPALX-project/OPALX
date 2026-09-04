@@ -27,6 +27,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <regex>
 
 namespace {
@@ -141,8 +142,13 @@ void OpalBeamline::print(Inform& /*msg*/) const {}
 
 std::vector<ElementTransferMapRef> OpalBeamline::getLinearTransferMapsInReferenceOrder() const {
     std::vector<ElementTransferMapRef> result;
+    std::set<std::size_t> seenSegments;
     for (const auto& element : elements_m) {
         for (const auto& map : element->getLinearTransferMaps()) {
+            if (map.segment != std::numeric_limits<std::size_t>::max()
+                && !seenSegments.insert(map.segment).second) {
+                continue;
+            }
             result.push_back({element, &map});
         }
     }

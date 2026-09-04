@@ -118,6 +118,7 @@ private:
     bool collectReferenceSamples_m{false};
     double transferMapStartPathLength_m{0.0};
     std::vector<ReferenceSample> referenceSamples_m;
+    std::vector<LinearTransferMap> transferMapSegments_m;
     std::optional<matrix6x6_t> combinedLinearTransferMap_m;
 
     void trackBack();

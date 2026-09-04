@@ -9,6 +9,9 @@
 
 #include <array>
 #include <cstddef>
+#include <limits>
+#include <string>
+#include <vector>
 
 /**
  * @brief Reference-orbit state and continuously transported beam frame at a map boundary.
@@ -49,9 +52,23 @@ struct LinearTransferMapReference {
  * \zeta=-\beta_0c(t-t_0),
  * \qquad \delta=|\mathbf p|/p_0-1.
  * \f]
- * All positions are in metres, slopes and \f$\delta\f$ are dimensionless.  The entrance and
- * exit are the first and last reference-orbit crossings of the element's field-support region;
- * hence a tabulated or analytic fringe field is included in the element map.
+ * All positions are in metres, slopes and \f$\delta\f$ are dimensionless.
+ * Each stored matrix covers one unique path segment over which the active-element set is
+ * constant. A copy is attached to every element active in that segment. Consequently an element
+ * can own several consecutive segment maps, while an overlap segment is calculated only once for
+ * ordered beamline composition. `activeElements` identifies that set. In a segment with active
+ * set \f$A_k\f$, the shadow rays see the superposed external fields
+ * \f[
+ *   \mathbf E_k=\sum_{i\in A_k}\mathbf E_i,
+ *   \qquad
+ *   \mathbf B_k=\sum_{i\in A_k}\mathbf B_i.
+ * \f]
+ * Since the segments are disjoint and path ordered, the complete map is
+ * \f[
+ *   M_{\mathrm{total}}=M_N M_{N-1}\cdots M_1,
+ * \f]
+ * including field-free segment maps. A shared overlap segment must therefore occur only once in
+ * this product, even though a copy is attached to every participating element.
  *
  * For each coordinate \f$j\f$, two private rays are launched with \f$\pm\epsilon_j\f$.  With
  * \f[
@@ -65,9 +82,9 @@ struct LinearTransferMapReference {
  * using a pivoted solve.  Centered differences have truncation error
  * \f$O(\epsilon^2)\f$.
  *
- * This map excludes collective fields.  In the first implementation RF structures and
- * overlapping elements are rejected.  Since the chosen slopes and mechanical momenta are not
- * globally canonical, `symplecticResidual` is a diagnostic rather than a universal invariant.
+ * External fields from all active elements are summed during ray integration; collective fields
+ * and RF structures are excluded. Since the chosen slopes and mechanical momenta are not globally
+ * canonical, `symplecticResidual` is a diagnostic rather than a universal invariant.
  * It stores the maximum component of \f$M^TJM-J\f$ for the block-diagonal canonical matrix
  * \f$J=\mathrm{diag}(J_2,J_2,J_2)\f$.
  */
@@ -76,7 +93,12 @@ struct LinearTransferMap {
     std::array<double, 6> finiteDifferenceSteps{};
     LinearTransferMapReference entrance;
     LinearTransferMapReference exit;
+    /// Unique segment ordinal within this OrbitThreader execution.
+    std::size_t segment{std::numeric_limits<std::size_t>::max()};
+    /// Per-element attachment ordinal (useful for a ring-seam split or repeated occurrence).
     std::size_t pass{0};
+    /// Names of all elements active throughout this segment.
+    std::vector<std::string> activeElements;
     double inputConditionNumber{0.0};
     double symplecticResidual{0.0};
     bool includesOverlappingFields{false};

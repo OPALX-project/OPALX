@@ -207,14 +207,20 @@ public:
     /// @brief Whether this runtime occurrence owns at least one calculated linear transfer map.
     bool hasLinearTransferMaps() const;
 
-    /// @brief Calculated maps in traversal/pass order for this runtime occurrence.
+    /// @brief Calculated path-segment maps involving this runtime occurrence, in traversal order.
     const std::vector<LinearTransferMap>& getLinearTransferMaps() const;
 
-    /// @brief Attach a calculated map to this runtime occurrence.
+    /// @brief Attach a path-segment map involving this runtime occurrence.
     void addLinearTransferMap(LinearTransferMap map);
 
     /// @brief Remove runtime results; cloned elements never inherit calculated maps.
     void clearLinearTransferMaps();
+
+    /// @brief Whether this runtime occurrence shared a threaded path interval with another element.
+    bool isOverlapping() const;
+
+    /// @brief Set overlap participation discovered by the design-orbit threader.
+    void setOverlapping(bool overlapping);
 
     /// Assign validated beam-sequence ownership metadata.
     /// RING membership requires a non-empty owner; LINE membership requires
@@ -470,6 +476,7 @@ private:
 
     // Runtime results are deliberately not copied by ElementBase's copy constructor.
     std::vector<LinearTransferMap> linearTransferMaps_m;
+    bool isOverlapping_m{false};
 
     // --- User-defined attributes ---
     AttributeSet userAttribs;

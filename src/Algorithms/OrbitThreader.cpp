@@ -242,8 +242,10 @@ void OrbitThreader::execute() {
     if (calculateMaps) {
         for (const auto& element : itsOpalBeamline_m.getElements()) {
             element->clearLinearTransferMaps();
+            element->setOverlapping(false);
         }
         referenceSamples_m.clear();
+        transferMapSegments_m.clear();
         combinedLinearTransferMap_m.reset();
         transferMapStartPathLength_m = initialPathLength;
         collectReferenceSamples_m    = true;
@@ -285,6 +287,14 @@ void OrbitThreader::execute() {
 
         const double finalS = reachedPeriodicEnd() ? sStop_m : pathLength_m;
         imap_m.add(initialS, finalS, elementSet);
+
+        // Store overlap participation on the runtime occurrences during the reference pass.
+        // Ignore the backwards pre-roll before the requested map origin.
+        if (calculateMaps && finalS > transferMapStartPathLength_m && elementSet.size() > 1) {
+            for (const auto& element : elementSet) {
+                element->setOverlapping(true);
+            }
+        }
 
         IndexMap::value_t::const_iterator it        = elementSet.begin();
         const IndexMap::value_t::const_iterator end = elementSet.end();
@@ -829,22 +839,7 @@ void OrbitThreader::calculateLinearTransferMaps() {
     }
     if (referenceSamples_m.size() < 2) return;
 
-    using ElementPtr = std::shared_ptr<ElementBase>;
-    struct BoundaryPair {
-        ElementPtr element;
-        LinearTransferMapReference entrance;
-        LinearTransferMapReference exit;
-    };
-    std::vector<BoundaryPair> boundaries;
-    std::map<ElementPtr, LinearTransferMapReference, std::owner_less<ElementPtr>> pending;
-
-    auto previousSet = itsOpalBeamline_m.getElements(referenceSamples_m.front().state.position);
     const auto validateActiveSet = [](const IndexMap::value_t& active) {
-        if (active.size() > 1) {
-            throw OpalException(
-                    "OrbitThreader::calculateLinearTransferMaps",
-                    "Linear transfer maps currently require non-overlapping elements.");
-        }
         for (const auto& element : active) {
             if (element->getType() == ElementType::RFCAVITY
                 || element->getType() == ElementType::TRAVELINGWAVE) {
@@ -856,10 +851,22 @@ void OrbitThreader::calculateLinearTransferMaps() {
             }
         }
     };
+
+    using ElementPtr = std::shared_ptr<ElementBase>;
+    struct BoundaryEvent {
+        LinearTransferMapReference state;
+        ElementPtr element;
+        bool entering;
+    };
+    struct Segment {
+        LinearTransferMapReference entrance;
+        LinearTransferMapReference exit;
+        IndexMap::value_t active;
+    };
+
+    std::vector<BoundaryEvent> events;
+    auto previousSet = itsOpalBeamline_m.getElements(referenceSamples_m.front().state.position);
     validateActiveSet(previousSet);
-    for (const auto& element : previousSet) {
-        pending[element] = referenceSamples_m.front().state;
-    }
 
     for (std::size_t sample = 1; sample < referenceSamples_m.size(); ++sample) {
         const auto& before = referenceSamples_m[sample - 1].state;
@@ -872,11 +879,7 @@ void OrbitThreader::calculateLinearTransferMaps() {
                 previousSet.begin(), previousSet.end(), currentSet.begin(), currentSet.end(),
                 std::inserter(exited, exited.begin()));
         for (const auto& element : exited) {
-            const auto found = pending.find(element);
-            if (found == pending.end()) continue;
-            boundaries.push_back(
-                    {element, found->second, refineBoundary(element, before, after, false)});
-            pending.erase(found);
+            events.push_back({refineBoundary(element, before, after, false), element, false});
         }
 
         IndexMap::value_t entered;
@@ -884,52 +887,66 @@ void OrbitThreader::calculateLinearTransferMaps() {
                 currentSet.begin(), currentSet.end(), previousSet.begin(), previousSet.end(),
                 std::inserter(entered, entered.begin()));
         for (const auto& element : entered) {
-            pending[element] = refineBoundary(element, before, after, true);
+            events.push_back({refineBoundary(element, before, after, true), element, true});
         }
         previousSet = std::move(currentSet);
     }
 
-    // A periodic interval may finish inside the same occurrence in which it started.  Preserve
-    // both clipped pieces; their path ordering makes the one-turn product unambiguous.
-    for (const auto& [element, entrance] : pending) {
-        const auto& exit = referenceSamples_m.back().state;
-        if (exit.pathLength - entrance.pathLength > 1.0e-12) {
-            boundaries.push_back({element, entrance, exit});
+    std::sort(events.begin(), events.end(), [](const auto& left, const auto& right) {
+        if (left.state.pathLength != right.state.pathLength) {
+            return left.state.pathLength < right.state.pathLength;
+        }
+        // At an exactly shared boundary, close the old set before opening the new one.
+        if (left.entering != right.entering) return left.entering < right.entering;
+        return left.element->getName() < right.element->getName();
+    });
+
+    std::vector<Segment> segments;
+    IndexMap::value_t active =
+            itsOpalBeamline_m.getElements(referenceSamples_m.front().state.position);
+    LinearTransferMapReference segmentEntrance = referenceSamples_m.front().state;
+    constexpr double minimumSegmentLength      = 1.0e-12;
+    for (const auto& event : events) {
+        if (event.state.pathLength - segmentEntrance.pathLength > minimumSegmentLength) {
+            segments.push_back({segmentEntrance, event.state, active});
+        }
+        if (event.entering) {
+            active.insert(event.element);
+        } else {
+            active.erase(event.element);
+        }
+        segmentEntrance = event.state;
+    }
+    const auto& finalState = referenceSamples_m.back().state;
+    if (finalState.pathLength - segmentEntrance.pathLength > minimumSegmentLength) {
+        segments.push_back({segmentEntrance, finalState, active});
+    }
+
+    std::map<ElementPtr, std::size_t, std::owner_less<ElementPtr>> passes;
+    transferMapSegments_m.reserve(segments.size());
+    for (std::size_t segment = 0; segment < segments.size(); ++segment) {
+        const auto& interval = segments[segment];
+        validateActiveSet(interval.active);
+        LinearTransferMap map = makeLinearTransferMap(interval.entrance, interval.exit, segment);
+        map.segment           = segment;
+        map.includesOverlappingFields = interval.active.size() > 1;
+        for (const auto& element : interval.active) {
+            map.activeElements.push_back(element->getName());
+        }
+        std::sort(map.activeElements.begin(), map.activeElements.end());
+        transferMapSegments_m.push_back(map);
+        for (const auto& element : interval.active) {
+            LinearTransferMap attached = map;
+            attached.pass              = passes[element]++;
+            element->addLinearTransferMap(std::move(attached));
         }
     }
 
-    std::sort(boundaries.begin(), boundaries.end(), [](const auto& left, const auto& right) {
-        return left.entrance.pathLength < right.entrance.pathLength;
-    });
-    std::map<ElementPtr, std::size_t, std::owner_less<ElementPtr>> passes;
-    for (const auto& boundary : boundaries) {
-        boundary.element->addLinearTransferMap(makeLinearTransferMap(
-                boundary.entrance, boundary.exit, passes[boundary.element]++));
-    }
-
-    const auto ordered = itsOpalBeamline_m.getLinearTransferMapsInReferenceOrder();
-    if (ordered.empty()) return;
+    if (transferMapSegments_m.empty()) return;
     matrix6x6_t combined;
-    double previousExit                          = referenceSamples_m.front().state.pathLength;
-    LinearTransferMapReference previousReference = referenceSamples_m.front().state;
-    const auto appendDrift                       = [&](const double length) {
-        if (length <= 1.0e-10) return;
-        matrix6x6_t drift;
-        drift(0, 1)         = length;
-        drift(2, 3)         = length;
-        const double p      = euclidean_norm(previousReference.momentum);
-        const double gamma2 = 1.0 + p * p;
-        drift(4, 5)         = length / gamma2;
-        combined            = prod(drift, combined);
-    };
-    for (const auto& entry : ordered) {
-        const double gap = entry.map->entrance.pathLength - previousExit;
-        appendDrift(gap);
-        combined          = prod(entry.map->matrix, combined);
-        previousExit      = entry.map->exit.pathLength;
-        previousReference = entry.map->exit;
+    for (const auto& segment : transferMapSegments_m) {
+        combined = prod(segment.matrix, combined);
     }
-    appendDrift(referenceSamples_m.back().state.pathLength - previousExit);
     combinedLinearTransferMap_m = combined;
 }
 
