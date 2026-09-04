@@ -56,11 +56,11 @@ class VariableRFCavity;
 class TravelingWave;
 class SBend;
 class Solenoid;
-namespace endfieldmodel {
-class Tanh;
-}
-template <class EFM> class ScalingFFAMagnet;
+class ScalingFFAMagnet;
 class Offset;
+namespace endfieldmodel {
+  class Tanh;
+}
 template <class EFM> class VerticalFFAMagnet;
 class Probe;
 
@@ -117,7 +117,7 @@ public:
     /// Apply the algorithm to a variable RF cavity.
     virtual void visitVariableRFCavity(const VariableRFCavity&) = 0;
 
-    virtual void visitScalingFFAMagnet(const ScalingFFAMagnet<endfieldmodel::Tanh>&) = 0;
+    virtual void visitScalingFFAMagnet(const ScalingFFAMagnet&) = 0;
 
     /// Apply the algorithm to a sector bend.
     virtual void visitSBend(const SBend&) = 0;
