@@ -59,12 +59,12 @@ namespace opalx::spacecharge {
         }
         ensureInitialized();
 
-        SpaceChargeFrameGuard<double, 3> frameGuard(
+        SpaceChargeFrameTransform<double, 3> frameTransform(
                 context.stepState().frames, *particles_m.front());
-        frameGuard.enter();
-        frameGuard.markComputedFields();
+        frameTransform.enter();
+        frameTransform.markComputedFields();
         solveFields(context, diagnostics);
-        frameGuard.leave();
+        frameTransform.leave();
     }
 
     std::size_t FFT2D5Algorithm::sliceCount() const {
@@ -137,37 +137,32 @@ namespace opalx::spacecharge {
             ParticleContainer& particles = *particles_m[containerIndex];
             particles.updateMoments();
             particles.scaleDtByCharge();
-            try {
-                const auto position       = particles.R.getView();
-                const auto momentum       = particles.P.getView();
-                const double meanPs       = particles.getMeanP()[2];
-                const auto timeStepCharge = particles.dt.getView();
-                const auto invalid        = particles.InvalidMask.getView();
-                if (config_m.scatterLongitudinally()) {
-                    Kokkos::parallel_for(
-                            "FFT2D5Algorithm::scatterToGrid::3d", particles.getLocalNum(),
-                            KOKKOS_LAMBDA(const std::size_t index) {
-                                scatterParticle<true>(
-                                        index, position, momentum, reference, meanPs,
-                                        timeStepCharge, invalid, inverseSpacing, ghostCells,
-                                        localDomain, rhoView, origin);
-                            });
-                } else {
-                    Kokkos::parallel_for(
-                            "FFT2D5Algorithm::scatterToGrid::2d", particles.getLocalNum(),
-                            KOKKOS_LAMBDA(const std::size_t index) {
-                                scatterParticle<false>(
-                                        index, position, momentum, reference, meanPs,
-                                        timeStepCharge, invalid, inverseSpacing, ghostCells,
-                                        localDomain, rhoView, origin);
-                            });
-                }
-                Kokkos::fence();
-                particles.unscaleDtByCharge();
-            } catch (...) {
-                particles.unscaleDtByCharge();
-                throw;
+            const auto position       = particles.R.getView();
+            const auto momentum       = particles.P.getView();
+            const double meanPs       = particles.getMeanP()[2];
+            const auto timeStepCharge = particles.dt.getView();
+            const auto invalid        = particles.InvalidMask.getView();
+            if (config_m.scatterLongitudinally()) {
+                Kokkos::parallel_for(
+                        "FFT2D5Algorithm::scatterToGrid::3d", particles.getLocalNum(),
+                        KOKKOS_LAMBDA(const std::size_t index) {
+                            scatterParticle<true>(
+                                    index, position, momentum, reference, meanPs, timeStepCharge,
+                                    invalid, inverseSpacing, ghostCells, localDomain, rhoView,
+                                    origin);
+                        });
+            } else {
+                Kokkos::parallel_for(
+                        "FFT2D5Algorithm::scatterToGrid::2d", particles.getLocalNum(),
+                        KOKKOS_LAMBDA(const std::size_t index) {
+                            scatterParticle<false>(
+                                    index, position, momentum, reference, meanPs, timeStepCharge,
+                                    invalid, inverseSpacing, ghostCells, localDomain, rhoView,
+                                    origin);
+                        });
             }
+            Kokkos::fence();
+            particles.unscaleDtByCharge();
         }
 
         if (config_m.closedRing()) {

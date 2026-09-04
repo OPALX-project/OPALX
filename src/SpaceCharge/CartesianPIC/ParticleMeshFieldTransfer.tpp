@@ -9,7 +9,6 @@
 #include "Interpolation/CIC.h"
 #include "Utilities/OpalException.h"
 
-#include <exception>
 #include <functional>
 #include <numeric>
 #include <string>
@@ -63,18 +62,9 @@ namespace opalx::spacecharge {
             ParticleContainer& particles, PositionAttribute& positions, ScalarField& rho,
             const Selection& selection) const {
         // IPPL scatter accepts a particle attribute as its weight. Preserve the established
-        // convention by temporarily storing dt*Q in dt, then restore dt even when scatter fails.
+        // convention by temporarily storing dt*Q in dt, then restore dt after the scatter.
         particles.scaleDtByCharge();
-        try {
-            scatterCurrentWeights(particles, positions, rho, selection);
-        } catch (...) {
-            const std::exception_ptr original = std::current_exception();
-            try {
-                particles.unscaleDtByCharge();
-            } catch (...) {
-            }
-            std::rethrow_exception(original);
-        }
+        scatterCurrentWeights(particles, positions, rho, selection);
         particles.unscaleDtByCharge();
     }
 
@@ -83,18 +73,9 @@ namespace opalx::spacecharge {
             ParticleContainer& particles, PositionAttribute& positions, const Selection& selection,
             double planeZ) const {
         // Reflecting z and flipping Q are both self-inverse. Keeping them paired allows the same
-        // operation to restore the particle state after deposition or exception cleanup.
+        // operation to restore the particle state after successful deposition.
         reflectPositions(positions, selection, planeZ);
-        try {
-            flipChargeSign(particles, selection);
-        } catch (...) {
-            const std::exception_ptr original = std::current_exception();
-            try {
-                reflectPositions(positions, selection, planeZ);
-            } catch (...) {
-            }
-            std::rethrow_exception(original);
-        }
+        flipChargeSign(particles, selection);
     }
 
     template <typename T, unsigned Dim>
@@ -198,16 +179,7 @@ namespace opalx::spacecharge {
             ParticleContainer& particles, PositionAttribute& positions, ScalarField& rho,
             const Selection& selection, const ImagePolicy& imagePolicy) const {
         applyImageTransform(particles, positions, selection, imagePolicy.planeZ);
-        try {
-            scatterScaledTimeStep(particles, positions, rho, selection);
-        } catch (...) {
-            const std::exception_ptr original = std::current_exception();
-            try {
-                restoreImageTransform(particles, positions, selection, imagePolicy.planeZ);
-            } catch (...) {
-            }
-            std::rethrow_exception(original);
-        }
+        scatterScaledTimeStep(particles, positions, rho, selection);
         restoreImageTransform(particles, positions, selection, imagePolicy.planeZ);
     }
 

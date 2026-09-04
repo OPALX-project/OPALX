@@ -62,7 +62,11 @@ namespace opalx::spacecharge {
         /** @brief Rebind every particle layout and complete migration before views are reused. */
         void updateLayoutsAndMigrate(Layout& fieldLayout, Mesh& mesh);
 
+        /** @brief Rebind and migrate only the primary container used by Cartesian PIC. */
+        void updatePrimaryLayoutAndMigrate(Layout& fieldLayout, Mesh& mesh);
+
         void updateMoments();
+        void updatePrimaryMoments();
 
     private:
         [[nodiscard]] ParticleContainer& primary();

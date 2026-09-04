@@ -1,10 +1,10 @@
 /**
- * @file SpaceChargeFrameGuard.h
- * @brief Defines exception-safe tracker and solve-frame restoration.
+ * @file SpaceChargeFrameTransform.h
+ * @brief Defines explicit tracker and solve-frame transformations.
  */
 
-#ifndef OPALX_SPACE_CHARGE_FRAME_GUARD_H
-#define OPALX_SPACE_CHARGE_FRAME_GUARD_H
+#ifndef OPALX_SPACE_CHARGE_FRAME_TRANSFORM_H
+#define OPALX_SPACE_CHARGE_FRAME_TRANSFORM_H
 
 #include "PartBunch/ParticleContainer.hpp"
 #include "SpaceCharge/SpaceChargeSolveContext.h"
@@ -13,44 +13,40 @@
 namespace opalx::spacecharge {
 
     /**
-     * @brief Restores primary R, E, and B in the exact compatibility order after a solve.
+     * @brief Transforms primary R, E, and B in the exact compatibility order.
      *
-     * Views are reacquired for each transform, so layout migration between enter() and leave()
-     * is safe. The destructor suppresses cleanup failures to preserve an active solver exception.
+     * Views are reacquired for each operation, so layout migration between enter() and leave() is
+     * safe. Callers invoke leave() explicitly after a successful solve. An exception is terminal
+     * for the current run, and this object does not attempt rollback during stack unwinding.
      */
     template <typename T, unsigned Dim>
-    class SpaceChargeFrameGuard final {
-        static_assert(Dim == 3, "SpaceChargeFrameGuard currently supports Dim == 3 only.");
+    class SpaceChargeFrameTransform final {
+        static_assert(Dim == 3, "SpaceChargeFrameTransform currently supports Dim == 3 only.");
 
     public:
         using ParticleContainer = ::ParticleContainer<T, Dim>;
 
-        SpaceChargeFrameGuard(const CoordinateFrameTransforms& frames, ParticleContainer& particles)
+        SpaceChargeFrameTransform(
+                const CoordinateFrameTransforms& frames, ParticleContainer& particles)
             : frames_m(frames), particles_m(particles) {}
 
-        ~SpaceChargeFrameGuard() { restoreNoThrow(); }
-
-        SpaceChargeFrameGuard(const SpaceChargeFrameGuard&)            = delete;
-        SpaceChargeFrameGuard& operator=(const SpaceChargeFrameGuard&) = delete;
-        SpaceChargeFrameGuard(SpaceChargeFrameGuard&&)                 = delete;
-        SpaceChargeFrameGuard& operator=(SpaceChargeFrameGuard&&)      = delete;
+        SpaceChargeFrameTransform(const SpaceChargeFrameTransform&)            = delete;
+        SpaceChargeFrameTransform& operator=(const SpaceChargeFrameTransform&) = delete;
+        SpaceChargeFrameTransform(SpaceChargeFrameTransform&&)                 = delete;
+        SpaceChargeFrameTransform& operator=(SpaceChargeFrameTransform&&)      = delete;
 
         void enter() {
             if (positionsInSolveFrame_m || electricInSolveFrame_m || magneticInSolveFrame_m) {
                 throw OpalException(
-                        "SpaceChargeFrameGuard::enter",
-                        "The particle frame guard is already active.");
+                        "SpaceChargeFrameTransform::enter",
+                        "The particle frame transform is already active.");
             }
-            // Set the state before launching so exception cleanup conservatively restores a
-            // partially submitted device transformation.
-            positionsInSolveFrame_m = true;
             frames_m.trackerToSolve.transformBunchTo(
                     particles_m.R.getView(), particles_m.getLocalNum());
+            positionsInSolveFrame_m = true;
         }
 
         void markComputedFields() noexcept {
-            // A failing algorithm may have written either field before throwing. Treat both as
-            // solve-frame data so cleanup rotates any partial result consistently.
             electricInSolveFrame_m = true;
             magneticInSolveFrame_m = true;
         }
@@ -75,18 +71,6 @@ namespace opalx::spacecharge {
             }
         }
 
-        void restoreNoThrow() noexcept {
-            try {
-                leave();
-            } catch (...) {
-                // Preserve the original algorithm or migration exception during stack unwinding.
-            }
-        }
-
-        [[nodiscard]] bool positionsInSolveFrame() const noexcept {
-            return positionsInSolveFrame_m;
-        }
-
     private:
         const CoordinateFrameTransforms& frames_m;
         ParticleContainer& particles_m;
@@ -97,4 +81,4 @@ namespace opalx::spacecharge {
 
 }  // namespace opalx::spacecharge
 
-#endif  // OPALX_SPACE_CHARGE_FRAME_GUARD_H
+#endif  // OPALX_SPACE_CHARGE_FRAME_TRANSFORM_H

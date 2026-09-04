@@ -1,7 +1,9 @@
 #ifndef BUNCH_STATE_HANDLER_H
 #define BUNCH_STATE_HANDLER_H
 
+#include <array>
 #include <memory>
+#include <optional>
 #include <vector>
 
 /**
@@ -11,16 +13,14 @@
  * Single instance per PartBunch, shared with every component that needs
  * access (ParticleContainer, DistributionMoments, ...).
  *
+ * Bunch-wide state, such as a fixed Cartesian solve domain, lives directly on
+ * this handler and persists independently of particle-container lifetimes.
  * Per-container flags (`momentsDirty`, `unitlessPositions`) live in the
  *   nested `ContainerState` struct. Each `ParticleContainer` registers itself
  *   via `registerContainer()` at `setBunchStateHandler` time and receives a
  *   `std::shared_ptr<ContainerState>` slot. The container holds the only strong
  *   reference; the handler keeps a `std::weak_ptr` so the slot is released
  *   automatically when the container is destroyed (no unregister needed).
- *
- * - **emittingNow** (aka "isEmitting"): managed by the emitting
- *   distribution itself (e.g. FlatTop sets it when t > t0 and
- *   particles are being created).
  *
  * ### Invariants
  *
@@ -37,7 +37,7 @@
  *
  * ### MPI consistency
  *
- * Every flag is conceptually consistent across MPI ranks. The OPALX option
+ * Every state is conceptually consistent across MPI ranks. The OPALX option
  * `AGGRESSIVE_STATE_SYNC` (see `Options::aggressiveStateSync`) forces every
  * setter below to perform an `ippl::Comm->allreduce` with
  * `std::logical_or<bool>` so ranks converge to the same (conservative) value
@@ -47,6 +47,19 @@
  */
 class BunchStateHandler {
 public:
+    /**
+     * @brief Persistent fixed bounds for Cartesian PIC solves.
+     *
+     * Bounds use metres in the Cartesian PIC solve frame. This state is bunch-wide rather than
+     * tied to a particle container, and remains active until explicitly cleared.
+     */
+    struct FixedCartesianDomainState {
+        std::array<double, 3> lower;
+        std::array<double, 3> upper;
+
+        bool operator==(const FixedCartesianDomainState&) const = default;
+    };
+
     /**
      * @brief Per-container slot of mutable flags. One per registered
      *        ParticleContainer. Lifetime is tied to the owning container
@@ -79,11 +92,36 @@ public:
      */
     std::shared_ptr<ContainerState> registerContainer();
 
+    /**
+     * @brief Activate fixed Cartesian PIC bounds.
+     *
+     * Reapplying identical bounds is idempotent. Active bounds must be cleared before they can be
+     * replaced. This host-side operation is collective by contract: every MPI rank must call it
+     * with identical values.
+     *
+     * @throws OpalException if a bound is non-finite, not strictly increasing, or attempts to
+     * replace different active bounds.
+     */
+    void setFixedCartesianDomain(std::array<double, 3> lower, std::array<double, 3> upper);
+
+    /**
+     * @brief Return to domain-following Cartesian PIC behavior on the next solve.
+     *
+     * This host-side operation is collective by contract and must be called on every MPI rank.
+     */
+    void clearFixedCartesianDomain() noexcept { fixedCartesianDomain_m.reset(); }
+
+    [[nodiscard]] const std::optional<FixedCartesianDomainState>& fixedCartesianDomain()
+            const noexcept {
+        return fixedCartesianDomain_m;
+    }
+
 private:
     // Weak refs to every slot handed out by registerContainer(). Used only by
     // handler-internal operations that iterate over all containers; pruned
     // lazily on iteration. Never exposed to callers.
     std::vector<std::weak_ptr<ContainerState>> registered_m;
+    std::optional<FixedCartesianDomainState> fixedCartesianDomain_m;
 };
 
 #endif

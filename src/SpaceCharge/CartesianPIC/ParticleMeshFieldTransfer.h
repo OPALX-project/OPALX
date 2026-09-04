@@ -19,8 +19,8 @@ namespace opalx::spacecharge {
      * Particle attributes and fields are borrowed for the duration of one call. The operation
      * never retains native Kokkos views, so callers may safely reacquire attributes after a
      * particle migration before invoking it again. Charge deposition temporarily mutates
-     * particle @c dt and, for an image pass, @c R and @c Q; each mutation is restored before the
-     * call returns or propagates an exception.
+     * particle @c dt and, for an image pass, @c R and @c Q; each mutation is restored on the
+     * successful path. Exceptions are terminal and leave temporary state unspecified.
      *
      * @tparam T Particle and field scalar type.
      * @tparam Dim Cartesian dimension. The production implementation is @c double,3.

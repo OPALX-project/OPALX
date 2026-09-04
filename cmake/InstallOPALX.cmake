@@ -14,7 +14,7 @@ install(
   PATTERN "SpaceCharge/Poisson" EXCLUDE
   PATTERN "SpaceCharge/FFT2D5" EXCLUDE
   PATTERN "SpaceCharge/CartesianPIC" EXCLUDE
-  PATTERN "SpaceCharge/SpaceChargeFrameGuard.h" EXCLUDE
+  PATTERN "SpaceCharge/SpaceChargeFrameTransform.h" EXCLUDE
   PATTERN "SpaceCharge/SpaceChargeConfigBuilder.h" EXCLUDE
   PATTERN "SpaceCharge/SpaceChargeSolverFactory.h" EXCLUDE
   PATTERN "CMakeFiles" EXCLUDE

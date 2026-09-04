@@ -20,7 +20,7 @@ set (HDRS
     )
 
 set (_PRIVATE_HDRS
-    SpaceChargeFrameGuard.h
+    SpaceChargeFrameTransform.h
     SpaceChargeConfigBuilder.h
     SpaceChargeSolverFactory.h
     )

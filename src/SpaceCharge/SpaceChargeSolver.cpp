@@ -5,6 +5,7 @@
 
 #include "SpaceCharge/SpaceChargeSolver.h"
 
+#include "PartBunch/BunchStateHandler.h"
 #include "SpaceCharge/SpaceChargeRequestSchedule.h"
 #include "Utilities/OpalException.h"
 
@@ -36,11 +37,13 @@ namespace opalx::spacecharge {
 
     SpaceChargeSolver::SpaceChargeSolver(
             SpaceChargeConfig config, std::unique_ptr<SpaceChargeAlgorithm> algorithm,
-            std::vector<ParticleFieldBinding3D> bindings, std::size_t primaryIndex)
+            std::vector<ParticleFieldBinding3D> bindings,
+            std::shared_ptr<const BunchStateHandler> bunchState, std::size_t primaryIndex)
         : config_m(std::move(config)),
           algorithm_m(std::move(algorithm)),
           bindings_m(std::move(bindings)),
           primaryIndex_m(primaryIndex),
+          bunchState_m(std::move(bunchState)),
           diagnostics_m(makeDiagnosticSchedule(config_m)) {
         if (algorithm_m == nullptr) {
             throw OpalException(
@@ -49,6 +52,10 @@ namespace opalx::spacecharge {
         if (bindings_m.empty() || primaryIndex_m >= bindings_m.size()) {
             throw OpalException(
                     "SpaceChargeSolver::SpaceChargeSolver", "The particle binding set is invalid.");
+        }
+        if (bunchState_m == nullptr) {
+            throw OpalException(
+                    "SpaceChargeSolver::SpaceChargeSolver", "The bunch state handler is null.");
         }
         for (const ParticleFieldBinding3D& binding : bindings_m) {
             if (!binding.hasCompleteIdentity()) {
@@ -141,6 +148,33 @@ namespace opalx::spacecharge {
 
     void SpaceChargeSolver::validateRequest(const SpaceChargeSolveContext& context) const {
         const SpaceChargeRequest& requested = context.request();
+        if (bunchState_m->fixedCartesianDomain().has_value()) {
+            if (!capabilities_m.supportsFixedCartesianDomain
+                || config_m.algorithmType() != SpaceChargeAlgorithmType::CartesianPIC) {
+                throw OpalException(
+                        "SpaceChargeSolver::solve",
+                        "The selected space-charge algorithm does not support a fixed Cartesian "
+                        "domain.");
+            }
+            const CartesianPICConfig& cartesian = config_m.get<CartesianPICConfig>();
+            if (cartesian.backend() != PoissonSolverType::Open) {
+                throw OpalException(
+                        "SpaceChargeSolver::solve",
+                        "A fixed Cartesian domain currently requires the OPEN Poisson backend.");
+            }
+            if (cartesian.correction().enabled()
+                || requested.correction.kind != SpaceChargeCorrectionType::None) {
+                throw OpalException(
+                        "SpaceChargeSolver::solve",
+                        "A fixed Cartesian domain does not support source-plane corrections.");
+            }
+            if (cartesian.repartitionFrequency() != 0) {
+                throw OpalException(
+                        "SpaceChargeSolver::solve",
+                        "ORB redistribution must be disabled while a fixed Cartesian domain is "
+                        "active.");
+            }
+        }
         if (requested.useBinning && !capabilities_m.supportsBinning) {
             throw OpalException(
                     "SpaceChargeSolver::solve",

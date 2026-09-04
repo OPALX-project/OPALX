@@ -72,12 +72,7 @@ namespace opalx::spacecharge {
         VectorField& mirroredField             = fieldStorage.mirrorScratchFor(sourceField);
         IpplTimings::TimerRef mirrorFieldTimer = IpplTimings::getTimer("mirrorField");
         IpplTimings::startTimer(mirrorFieldTimer);
-        try {
-            opalx::detail::mirrorField(sourceField, mirroredField, Dim - 1);
-        } catch (...) {
-            IpplTimings::stopTimer(mirrorFieldTimer);
-            throw;
-        }
+        opalx::detail::mirrorField(sourceField, mirroredField, Dim - 1);
         IpplTimings::stopTimer(mirrorFieldTimer);
 
         auto mirroredView       = mirroredField.getView();

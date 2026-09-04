@@ -16,6 +16,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Ippl.h"
 #include "PartBunch/PartBunch.h"
+#include "SpaceCharge/SpaceChargeSolverFactory.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "Structure/H5PartWrapperForPT.h"
@@ -204,6 +205,22 @@ namespace {
         createParticlesInContainer(1, n1, 0.2, 0.6);
 
         EXPECT_EQ(bunch->getTotalNumAllContainers(), n0 + n1);
+    }
+
+    TEST_F(MultiContainerPartBunchTest, SpaceChargeFactoryConstructsConfiguredCartesianAlgorithm) {
+        using namespace opalx::spacecharge;
+        CartesianPICConfig::Parameters values;
+        values.backend                    = PoissonSolverType::PeriodicFFT;
+        values.meshSize                   = storageConfig.meshSize;
+        values.parallelDimensions         = storageConfig.decomposition;
+        values.boundingBoxIncreasePercent = storageConfig.boundingBoxIncreasePercent;
+        values.boundaryConditions         = {
+                FieldBoundaryCondition::Periodic, FieldBoundaryCondition::Periodic,
+                FieldBoundaryCondition::Periodic};
+        SpaceChargeConfig config(CartesianPICConfig(values), storageConfig);
+
+        auto solver = SpaceChargeSolverFactory::create(std::move(config), *bunch, dataSink.get());
+        EXPECT_NE(solver, nullptr);
     }
 
     // --- DataSink stems and writers ---

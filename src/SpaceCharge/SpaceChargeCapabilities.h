@@ -24,6 +24,7 @@ namespace opalx::spacecharge {
         bool supportsShiftedGreen               = false;
         bool supportsRedistribution             = false;
         bool supportsPotentialOutput            = false;
+        bool supportsFixedCartesianDomain       = false;
 
         [[nodiscard]] constexpr bool supports(SpaceChargeCorrectionType correction) const {
             switch (correction) {
