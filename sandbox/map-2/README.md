@@ -7,9 +7,11 @@ and explicit `ELEMEDGE` placement.
 - `drift/map-2-drift.in`: one 1 m drift; validates the complete 6x6 map.
 - `quadrupole/map-2-quadrupole.in`: one 0.4 m quadrupole with `K1=1 m^-2`; validates the complete
   6x6 map.
-- `fodo/map-2-fodo.in`: a symmetric thick-lens FODO cell; validates the product of five exact maps.
+- `fodo/map-2-fodo.in`: a symmetric thick-lens FODO cell; validates all entries of the product of
+  five exact maps.
 - `dba/map-2-dba.in`: two 30 degree sector bends around a thick quadrupole. Its strength is
-  the analytic solution for zero exit dispersion in the hard-edge model.
+  the analytic solution for zero exit dispersion in the hard-edge model; all entries of the
+  resulting 6x6 map are checked.
 
 For a drift of length L, the nontrivial entries in the coordinates printed by OPALX are
 
@@ -25,15 +27,17 @@ and the vertical block replaces trigonometric functions by their hyperbolic coun
 `K1` exchanges the two planes. The FODO reference is the ordered product of these drift and
 quadrupole matrices.
 
-The DBA checker uses the hard-edge sector-bend horizontal-dispersion matrix
+The DBA checker uses the complete hard-edge sector-bend matrix. Its horizontal-dispersion block is
 
     [ cos(theta)       rho sin(theta)   rho(1-cos(theta)) ]
     [ -sin(theta)/rho  cos(theta)       sin(theta)        ]
     [ 0                 0                1                 ]
 
-on `(x,x',delta)`. The bend case is intentionally checked separately because the transported
-reference frame and mechanical-momentum coordinates may differ from canonical textbook
-conventions.
+on `(x,x',delta)`. The remaining nontrivial entries are `R34=rho*theta`, `R51=-sin(theta)`,
+`R52=-rho*(1-cos(theta))`, and
+`R56=rho*(sin(theta)-theta)+rho*theta/gamma^2`. The bend case retains a slightly looser
+interpretation because the transported reference frame and mechanical-momentum coordinates may
+differ from canonical textbook conventions.
 
 The reference matrices are continuous-s solutions. The OPALX maps use time integration with
 `DT=2 ps`; endpoint and integration errors therefore scale with approximately `c*DT = 0.6 mm`.
@@ -50,4 +54,5 @@ From `sandbox/map-2`, run all cases with `--info 2` and write the complete outpu
 
     ~/.venv-h6/bin/python check_maps.py ../../omp-build/src/opalx
 
-The script exits nonzero if a comparison exceeds its documented numerical tolerance.
+The script also writes the calculated closed-form matrix to `analytic-map.txt` in every case
+directory. It exits nonzero if any entry exceeds its documented numerical tolerance.

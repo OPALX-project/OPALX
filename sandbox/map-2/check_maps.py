@@ -51,23 +51,39 @@ def product(*maps: np.ndarray) -> np.ndarray:
     return result
 
 
-def sector_horizontal(rho: float, angle: float) -> np.ndarray:
+def sector_bend(rho: float, angle: float) -> np.ndarray:
+    """Hard-edge sector-bend map in (x, x', y, y', zeta, delta)."""
     c = math.cos(angle)
     s = math.sin(angle)
-    return np.array([[c, rho * s, rho * (1.0 - c)],
-                     [-s / rho, c, s],
-                     [0.0, 0.0, 1.0]])
+    length = rho * angle
+    result = np.eye(6)
+    result[0, 0] = c
+    result[0, 1] = rho * s
+    result[0, 5] = rho * (1.0 - c)
+    result[1, 0] = -s / rho
+    result[1, 1] = c
+    result[1, 5] = s
+    result[2, 3] = length
+    result[4, 0] = -s
+    result[4, 1] = -rho * (1.0 - c)
+    result[4, 5] = rho * (s - angle) + length / GAMMA2
+    return result
 
 
-def dba_horizontal() -> np.ndarray:
+def dba() -> np.ndarray:
     rho = 2.0
     angle = math.pi / 6.0
-    bend = sector_horizontal(rho, angle)
-    d = np.array([[1.0, 1.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
-    q2 = plane(6.371966681365967, 0.2)
-    q = np.eye(3)
-    q[0:2, 0:2] = q2
-    return bend @ d @ q @ d @ bend
+    bend = sector_bend(rho, angle)
+    return product(bend, drift(1.0), quadrupole(-6.371966681365967, 0.2),
+                   drift(1.0), bend)
+
+
+def write_analytic_map(name: str, matrix: np.ndarray) -> None:
+    output_file = ROOT / name / "analytic-map.txt"
+    header = "Exact hard-edge map in (x, x', y, y', zeta, delta); rows follow."
+    printable = matrix.copy()
+    printable[np.abs(printable) < 1.0e-14] = 0.0
+    np.savetxt(output_file, printable, fmt="% .12e", header=header)
 
 
 def parse_map(output: str) -> np.ndarray:
@@ -115,29 +131,32 @@ def main() -> int:
         "fodo": product(
             drift(0.4), quadrupole(-1.0, 0.2), drift(0.8),
             quadrupole(1.0, 0.2), drift(0.4)),
+        "dba": dba(),
     }
     # The exact matrices are continuous-s models. The finite dt advances the reference endpoint
     # by at most about c*dt, so millimetre-scale absolute tolerances are used here.
-    tolerances = {"drift": 1.0e-3, "quadrupole": 2.0e-3, "fodo": 5.0e-3}
+    tolerances = {
+        "drift": 1.0e-3,
+        "quadrupole": 2.0e-3,
+        "fodo": 5.0e-3,
+        "dba": 2.0e-3,
+    }
 
     failed = False
     for name, reference in expected.items():
+        write_analytic_map(name, reference)
         measured = run(args.executable.resolve(), name)
         error = float(np.max(np.abs(measured - reference)))
         passed = error <= tolerances[name]
-        print(f"{name:10s} max|M_OPALX-M_exact| = {error:.6e}  "
-              f"tolerance={tolerances[name]:.1e}  {'PASS' if passed else 'FAIL'}")
+        detail = ""
+        if name == "dba":
+            achromat_error = max(abs(measured[0, 5]), abs(measured[1, 5]))
+            detail = f"  max(|R16|,|R26|)={achromat_error:.6e}"
+        print(
+            f"{name:10s} max|M_OPALX-M_exact| = {error:.6e}  "
+            f"tolerance={tolerances[name]:.1e}{detail}  {'PASS' if passed else 'FAIL'}"
+        )
         failed |= not passed
-
-    measured = run(args.executable.resolve(), "dba")
-    indices = np.ix_([0, 1, 5], [0, 1, 5])
-    reference = dba_horizontal()
-    error = float(np.max(np.abs(measured[indices] - reference)))
-    achromat_error = float(max(abs(measured[0, 5]), abs(measured[1, 5])))
-    passed = error <= 2.0e-2 and achromat_error <= 2.0e-2
-    print(f"dba        max|Mx_OPALX-Mx_exact| = {error:.6e}; "
-          f"max(|R16|,|R26|)={achromat_error:.6e}  {'PASS' if passed else 'FAIL'}")
-    failed |= not passed
     return int(failed)
 
 
