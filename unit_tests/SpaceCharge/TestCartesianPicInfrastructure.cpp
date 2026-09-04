@@ -132,6 +132,14 @@ namespace opalx::spacecharge {
             EXPECT_EQ(workspace.layoutExtents(), (std::array<std::size_t, 3>{8, 8, 16}));
             EXPECT_EQ(&workspace.electricField().getLayout(), &domain.layout());
             EXPECT_EQ(&workspace.chargeDensity().getLayout(), &domain.layout());
+
+            ASSERT_TRUE(domain.rebuildGlobalLayoutInPlace(
+                    {8, 8, 8}, std::array<bool, 3>{true, true, true}));
+            EXPECT_NO_THROW(workspace.updateFieldLayoutsAfterLayoutChange());
+            EXPECT_NO_THROW(
+                    backend.refresh({&workspace.chargeDensity(), &workspace.electricField()}));
+            EXPECT_NO_THROW(backend.solve({}, {.suppressFieldDump = true}));
+            EXPECT_EQ(workspace.layoutExtents(), (std::array<std::size_t, 3>{8, 8, 8}));
         }
 
         TEST_F(CartesianPicInfrastructureTest, VariantDispatchesNullPeriodicAndOpenBackends) {
