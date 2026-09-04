@@ -220,8 +220,9 @@ namespace opalx::spacecharge {
     /**
      * @brief Run-lifetime configuration owned by SpaceChargeSolver.
      *
-     * Add a new alternative to SpaceChargeAlgorithmConfig when a future independent algorithm is
-     * integrated. Callers and SpaceChargeSolveContext do not need to change for that addition.
+     * A compiled-in independent algorithm requires a new SpaceChargeAlgorithmConfig alternative,
+     * parser/configuration mapping, and SpaceChargeSolverFactory registration. Once registered,
+     * the tracker-facing SpaceChargeSolveContext boundary does not change.
      */
     class SpaceChargeConfig {
     public:

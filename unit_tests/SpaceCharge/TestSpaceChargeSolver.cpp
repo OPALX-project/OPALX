@@ -2,11 +2,12 @@
 
 #include "Algorithms/Quaternion.hpp"
 #include "PartBunch/BunchStateHandler.h"
-#include "SpaceCharge/SpaceChargeFrameGuard.h"
+#include "SpaceCharge/SpaceChargeFrameTransform.h"
 #include "SpaceCharge/SpaceChargeRequestSchedule.h"
 #include "SpaceCharge/SpaceChargeSolver.h"
 #include "Utilities/OpalException.h"
 
+#include <algorithm>
 #include <array>
 #include <memory>
 #include <stdexcept>
@@ -38,6 +39,15 @@ namespace opalx::spacecharge {
             std::vector<bool> selected;
         };
 
+        class ThrowingAlgorithm final : public SpaceChargeAlgorithm {
+        public:
+            [[nodiscard]] SpaceChargeCapabilities capabilities() const override { return {}; }
+
+            void solve(SpaceChargeSolveContext&, SpaceChargeDiagnostics&) override {
+                throw std::runtime_error("deliberate algorithm failure");
+            }
+        };
+
         class SpaceChargeSolverTest : public ::testing::Test {
         protected:
             using Container = ::ParticleContainer<double, 3>;
@@ -62,7 +72,7 @@ namespace opalx::spacecharge {
                         false);
                 for (std::size_t index = 0; index < 3; ++index) {
                     auto container = std::make_shared<Container>(*mesh_m, *layout_m);
-                    container->setBunchStateHandler(std::make_shared<BunchStateHandler>());
+                    container->setBunchStateHandler(bunchState_m);
                     containers_m.push_back(std::move(container));
                 }
             }
@@ -89,8 +99,25 @@ namespace opalx::spacecharge {
                 values.meshSize   = {4, 4, 4};
                 values.binning    = std::move(binning);
                 values.correction = std::move(correction);
+                return cartesianPICConfig(std::move(values));
+            }
+
+            [[nodiscard]] SpaceChargeConfig cartesianPICConfig(
+                    CartesianPICConfig::Parameters values) const {
                 CartesianDomainConfig3D storage;
-                storage.meshSize = values.meshSize;
+                storage.meshSize                   = values.meshSize;
+                storage.decomposition              = values.parallelDimensions;
+                storage.boundingBoxIncreasePercent = values.boundingBoxIncreasePercent;
+                const bool periodic                = std::all_of(
+                        values.boundaryConditions.begin(), values.boundaryConditions.end(),
+                        [](FieldBoundaryCondition boundary) {
+                            return boundary == FieldBoundaryCondition::Periodic;
+                        });
+                storage.periodicParticleBoundary = periodic;
+                if (values.backend == PoissonSolverType::P3M) {
+                    storage.layoutType    = ParticleLayoutType::SpatialOverlap;
+                    storage.overlapCutoff = values.p3mCutoff;
+                }
                 return SpaceChargeConfig(CartesianPICConfig(std::move(values)), std::move(storage));
             }
 
@@ -104,6 +131,7 @@ namespace opalx::spacecharge {
 
             std::unique_ptr<Mesh_t<3>> mesh_m;
             std::unique_ptr<FieldLayout_t<3>> layout_m;
+            std::shared_ptr<BunchStateHandler> bunchState_m = std::make_shared<BunchStateHandler>();
             std::vector<std::shared_ptr<Container>> containers_m;
         };
 
@@ -111,7 +139,8 @@ namespace opalx::spacecharge {
             auto expected  = bindings();
             auto algorithm = std::make_unique<RecordingAlgorithm>(SpaceChargeCapabilities{});
             RecordingAlgorithm* recorder = algorithm.get();
-            SpaceChargeSolver system(cartesianPICConfig(), std::move(algorithm), expected);
+            SpaceChargeSolver system(
+                    cartesianPICConfig(), std::move(algorithm), expected, bunchState_m);
 
             auto exact = bindings();
             ParticleFieldSet exactView(exact, 0);
@@ -140,7 +169,8 @@ namespace opalx::spacecharge {
         TEST_F(SpaceChargeSolverTest, RejectsEveryMismatchedNativeIdentity) {
             const auto expected = bindings();
             auto algorithm      = std::make_unique<RecordingAlgorithm>(SpaceChargeCapabilities{});
-            SpaceChargeSolver system(cartesianPICConfig(), std::move(algorithm), expected);
+            SpaceChargeSolver system(
+                    cartesianPICConfig(), std::move(algorithm), expected, bunchState_m);
 
             for (int mismatch = 0; mismatch < 5; ++mismatch) {
                 auto actual = bindings();
@@ -173,7 +203,8 @@ namespace opalx::spacecharge {
             capabilities.particleSelection = ParticleSelectionMode::PrimaryOnly;
             auto algorithm                 = std::make_unique<RecordingAlgorithm>(capabilities);
             RecordingAlgorithm* recorder   = algorithm.get();
-            SpaceChargeSolver system(cartesianPICConfig(), std::move(algorithm), expected);
+            SpaceChargeSolver system(
+                    cartesianPICConfig(), std::move(algorithm), expected, bunchState_m);
 
             auto actual              = bindings();
             actual[0].trackingActive = true;
@@ -195,7 +226,7 @@ namespace opalx::spacecharge {
             capabilities.particleSelection = ParticleSelectionMode::AllTrackingActive;
             auto algorithm                 = std::make_unique<RecordingAlgorithm>(capabilities);
             RecordingAlgorithm* recorder   = algorithm.get();
-            SpaceChargeSolver system(fft2D5Config(), std::move(algorithm), expected);
+            SpaceChargeSolver system(fft2D5Config(), std::move(algorithm), expected, bunchState_m);
 
             auto actual              = bindings();
             actual[0].trackingActive = true;
@@ -227,7 +258,8 @@ namespace opalx::spacecharge {
             capabilities.supportsPotentialOutput = true;
             auto algorithm               = std::make_unique<RecordingAlgorithm>(capabilities);
             RecordingAlgorithm* recorder = algorithm.get();
-            SpaceChargeSolver system(std::move(config), std::move(algorithm), expected);
+            SpaceChargeSolver system(
+                    std::move(config), std::move(algorithm), expected, bunchState_m);
 
             auto exact = bindings();
             ParticleFieldSet exactView(exact, 0);
@@ -253,7 +285,7 @@ namespace opalx::spacecharge {
             EXPECT_THROW(system.solve(expiredContext), OpalException);
         }
 
-        TEST_F(SpaceChargeSolverTest, FrameGuardRestoresPrimaryPositionAndFieldsDuringUnwinding) {
+        TEST_F(SpaceChargeSolverTest, FrameTransformRestoresPrimaryPositionAndFieldsExplicitly) {
             auto& particles = *containers_m.front();
             particles.createParticles(1);
             auto position = particles.R.getHostMirror();
@@ -269,13 +301,10 @@ namespace opalx::spacecharge {
             const CoordinateSystemTrafo trackerToSolve(
                     Vector_t<double, 3>(0.25, -0.5, 1.0), Quaternion(1.0, 0.0, 0.0, 0.0));
             const CoordinateFrameTransforms frames{trackerToSolve, trackerToSolve.inverted()};
-            const auto throwDuringSolve = [&] {
-                SpaceChargeFrameGuard<double, 3> guard(frames, particles);
-                guard.enter();
-                guard.markComputedFields();
-                throw std::runtime_error("deliberate solve failure");
-            };
-            EXPECT_THROW(throwDuringSolve(), std::runtime_error);
+            SpaceChargeFrameTransform<double, 3> transform(frames, particles);
+            transform.enter();
+            transform.markComputedFields();
+            transform.leave();
 
             const auto restoredPosition =
                     Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), particles.R.getView());
@@ -288,6 +317,120 @@ namespace opalx::spacecharge {
                 EXPECT_DOUBLE_EQ(restoredElectric(0)[dimension], electric(0)[dimension]);
                 EXPECT_DOUBLE_EQ(restoredMagnetic(0)[dimension], magnetic(0)[dimension]);
             }
+        }
+
+        TEST_F(SpaceChargeSolverTest, PropagatesAlgorithmFailureWithoutRecoveryContract) {
+            auto expected  = bindings();
+            auto algorithm = std::make_unique<ThrowingAlgorithm>();
+            SpaceChargeSolver system(
+                    cartesianPICConfig(), std::move(algorithm), expected, bunchState_m);
+            auto actual = bindings();
+            ParticleFieldSet view(actual, 0);
+            SpaceChargeSolveContext context(view, {});
+
+            EXPECT_THROW(system.solve(context), std::runtime_error);
+        }
+
+        TEST_F(SpaceChargeSolverTest, AcceptsFixedDomainForOpenWithoutCorrectionsOrORB) {
+            CartesianPICConfig::Parameters values;
+            values.backend  = PoissonSolverType::Open;
+            values.meshSize = {4, 4, 4};
+            auto expected   = bindings();
+            SpaceChargeCapabilities capabilities;
+            capabilities.supportsFixedCartesianDomain = true;
+            auto algorithm               = std::make_unique<RecordingAlgorithm>(capabilities);
+            RecordingAlgorithm* recorder = algorithm.get();
+            SpaceChargeSolver system(
+                    cartesianPICConfig(std::move(values)), std::move(algorithm), expected,
+                    bunchState_m);
+            bunchState_m->setFixedCartesianDomain({-1.0, -2.0, -3.0}, {1.0, 2.0, 3.0});
+
+            auto actual = bindings();
+            ParticleFieldSet view(actual, 0);
+            SpaceChargeSolveContext context(view, {});
+            EXPECT_NO_THROW(system.solve(context));
+            EXPECT_EQ(recorder->executionCount, 1u);
+        }
+
+        TEST_F(SpaceChargeSolverTest, RejectsFixedDomainForUnsupportedAlgorithmAndBackends) {
+            bunchState_m->setFixedCartesianDomain({-1.0, -2.0, -3.0}, {1.0, 2.0, 3.0});
+
+            {
+                auto expected  = bindings();
+                auto algorithm = std::make_unique<RecordingAlgorithm>(SpaceChargeCapabilities{});
+                SpaceChargeSolver system(
+                        fft2D5Config(), std::move(algorithm), expected, bunchState_m);
+                auto actual = bindings();
+                ParticleFieldSet view(actual, 0);
+                SpaceChargeSolveContext context(view, {});
+                EXPECT_THROW(system.solve(context), OpalException);
+            }
+
+            for (const PoissonSolverType backend :
+                 {PoissonSolverType::None, PoissonSolverType::PeriodicFFT,
+                  PoissonSolverType::P3M}) {
+                CartesianPICConfig::Parameters values;
+                values.backend  = backend;
+                values.meshSize = {4, 4, 4};
+                if (backend == PoissonSolverType::PeriodicFFT) {
+                    values.boundaryConditions = {
+                            FieldBoundaryCondition::Periodic, FieldBoundaryCondition::Periodic,
+                            FieldBoundaryCondition::Periodic};
+                } else if (backend == PoissonSolverType::P3M) {
+                    values.p3mCutoff = 0.25;
+                }
+                auto expected = bindings();
+                SpaceChargeCapabilities capabilities;
+                capabilities.supportsFixedCartesianDomain = true;
+                auto algorithm = std::make_unique<RecordingAlgorithm>(capabilities);
+                SpaceChargeSolver system(
+                        cartesianPICConfig(std::move(values)), std::move(algorithm), expected,
+                        bunchState_m);
+                auto actual = bindings();
+                ParticleFieldSet view(actual, 0);
+                SpaceChargeSolveContext context(view, {});
+                EXPECT_THROW(system.solve(context), OpalException);
+            }
+        }
+
+        TEST_F(SpaceChargeSolverTest, RejectsCorrectionsAndORBWhileFixedDomainIsActive) {
+            bunchState_m->setFixedCartesianDomain({-1.0, -2.0, -3.0}, {1.0, 2.0, 3.0});
+            SpaceChargeCapabilities capabilities;
+            capabilities.supportsFixedCartesianDomain = true;
+            capabilities.supportsImageCharge          = true;
+            capabilities.supportsRedistribution       = true;
+
+            CartesianPICConfig::Parameters correctedValues;
+            correctedValues.backend    = PoissonSolverType::Open;
+            correctedValues.meshSize   = {4, 4, 4};
+            correctedValues.correction = CorrectionConfig(
+                    {.kind = SpaceChargeCorrectionType::ImageCharge, .planeZ = 0.5});
+            auto correctedConfig = cartesianPICConfig(std::move(correctedValues));
+            const SpaceChargeRequest correctedRequest =
+                    SpaceChargeRequestSchedule(correctedConfig).requestForStep(0);
+            auto correctedBindings  = bindings();
+            auto correctedAlgorithm = std::make_unique<RecordingAlgorithm>(capabilities);
+            SpaceChargeSolver corrected(
+                    std::move(correctedConfig), std::move(correctedAlgorithm), correctedBindings,
+                    bunchState_m);
+            auto correctedActual = bindings();
+            ParticleFieldSet correctedView(correctedActual, 0);
+            SpaceChargeSolveContext correctedContext(correctedView, {}, correctedRequest);
+            EXPECT_THROW(corrected.solve(correctedContext), OpalException);
+
+            CartesianPICConfig::Parameters orbValues;
+            orbValues.backend              = PoissonSolverType::Open;
+            orbValues.meshSize             = {4, 4, 4};
+            orbValues.repartitionFrequency = 1;
+            auto orbBindings               = bindings();
+            auto orbAlgorithm              = std::make_unique<RecordingAlgorithm>(capabilities);
+            SpaceChargeSolver orb(
+                    cartesianPICConfig(std::move(orbValues)), std::move(orbAlgorithm), orbBindings,
+                    bunchState_m);
+            auto orbActual = bindings();
+            ParticleFieldSet orbView(orbActual, 0);
+            SpaceChargeSolveContext orbContext(orbView, {});
+            EXPECT_THROW(orb.solve(orbContext), OpalException);
         }
 
     }  // namespace

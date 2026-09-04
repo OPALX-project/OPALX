@@ -5,10 +5,10 @@
 
 #include "SpaceCharge/CartesianPIC/CartesianPICAlgorithm.h"
 
+#include "PartBunch/BunchStateHandler.h"
 #include "Structure/DataSink.h"
 #include "Utilities/OpalException.h"
 
-#include <exception>
 #include <iomanip>
 #include <optional>
 #include <string>
@@ -55,15 +55,17 @@ namespace opalx::spacecharge {
 
     CartesianPICAlgorithm::CartesianPICAlgorithm(
             CartesianPICConfig config, std::span<const ParticleFieldBinding3D> particleBindings,
-            std::unique_ptr<FieldStorage> fieldStorage, DataSink* dataSink)
+            std::unique_ptr<FieldStorage> fieldStorage, DataSink* dataSink,
+            std::shared_ptr<const BunchStateHandler> bunchState)
         : primary_m(&requirePrimaryParticles(particleBindings)),
+          bunchState_m(std::move(bunchState)),
           fieldStorage_m(std::move(fieldStorage)),
           poissonSolverType_m(config.backend()),
           dataSink_m(dataSink),
           binningConfig_m(config.binning()),
           correctionPassSchedule_m(config.correction(), config.binning().has_value()),
           particleDomainOperations_m(particleBindings),
-          domainUpdater_m(config) {
+          domainUpdater_m(config, bunchState_m) {
         if (fieldStorage_m == nullptr) {
             throw OpalException(
                     "CartesianPICAlgorithm::CartesianPICAlgorithm",
@@ -72,6 +74,11 @@ namespace opalx::spacecharge {
         if (dataSink_m == nullptr) {
             throw OpalException(
                     "CartesianPICAlgorithm::CartesianPICAlgorithm", "The data sink is null.");
+        }
+        if (bunchState_m == nullptr) {
+            throw OpalException(
+                    "CartesianPICAlgorithm::CartesianPICAlgorithm",
+                    "The bunch state handler is null.");
         }
         if (poissonSolverType_m == PoissonSolverType::ConjugateGradient) {
             throw OpalException(
@@ -102,12 +109,13 @@ namespace opalx::spacecharge {
 
     SpaceChargeCapabilities CartesianPICAlgorithm::capabilities() const {
         SpaceChargeCapabilities result;
-        result.particleSelection       = ParticleSelectionMode::PrimaryOnly;
-        result.supportsBinning         = true;
-        result.supportsImageCharge     = true;
-        result.supportsShiftedGreen    = true;
-        result.supportsRedistribution  = true;
-        result.supportsPotentialOutput = true;
+        result.particleSelection            = ParticleSelectionMode::PrimaryOnly;
+        result.supportsBinning              = true;
+        result.supportsImageCharge          = true;
+        result.supportsShiftedGreen         = true;
+        result.supportsRedistribution       = true;
+        result.supportsPotentialOutput      = true;
+        result.supportsFixedCartesianDomain = true;
         return result;
     }
 
@@ -116,34 +124,26 @@ namespace opalx::spacecharge {
         const CorrectionPassSequence correction =
                 correctionPassSchedule_m.passesForStep(context.request(), context.stepState().step);
 
-        SpaceChargeFrameGuard<double, 3> frameGuard(context.stepState().frames, *primary_m);
-        try {
-            frameGuard.enter();
-            domainUpdater_m.updateForSolve(
-                    DomainCoordinateFrame::Beam, context, *fieldStorage_m,
-                    particleDomainOperations_m, *poissonSolver_m, diagnostics);
+        const bool fixedDomain = bunchState_m->fixedCartesianDomain().has_value();
+        SpaceChargeFrameTransform<double, 3> frameTransform(context.stepState().frames, *primary_m);
+        frameTransform.enter();
+        domainUpdater_m.updateForSolve(
+                DomainCoordinateFrame::Beam, context, *fieldStorage_m, particleDomainOperations_m,
+                *poissonSolver_m, diagnostics);
 
-            frameGuard.markComputedFields();
-            solveInBeamFrame(context, correction, diagnostics);
+        frameTransform.markComputedFields();
+        solveInBeamFrame(context, correction, diagnostics);
 
-            frameGuard.leave();
+        frameTransform.leave();
+        if (fixedDomain) {
+            // Keep the fixed beam-frame mesh and decomposition for the next interaction. Only the
+            // restored primary coordinates changed, so refresh moments without migrating them.
+            primary_m->markMomentsDirty();
+            particleDomainOperations_m.updatePrimaryMoments();
+        } else {
             domainUpdater_m.updateForSolve(
                     DomainCoordinateFrame::Reference, context, *fieldStorage_m,
                     particleDomainOperations_m, *poissonSolver_m, diagnostics);
-        } catch (...) {
-            const std::exception_ptr originalException = std::current_exception();
-            frameGuard.restoreNoThrow();
-            if (!frameGuard.positionsInSolveFrame()) {
-                try {
-                    domainUpdater_m.updateForSolve(
-                            DomainCoordinateFrame::Reference, context, *fieldStorage_m,
-                            particleDomainOperations_m, *poissonSolver_m, diagnostics);
-                } catch (...) {
-                    // Preserve the original solve failure if reference-frame domain recovery also
-                    // fails. The updater keeps the Poisson solver dirty for the next safe retry.
-                }
-            }
-            std::rethrow_exception(originalException);
         }
     }
 
@@ -311,7 +311,7 @@ namespace opalx::spacecharge {
 
         // Each binned Poisson solve is performed in the bin rest frame. Stretching the
         // longitudinal mesh spacing by gamma applies the Lorentz contraction convention used by
-        // the legacy solver; the original spacing is restored on both success and failure.
+        // the legacy solver; the original spacing is restored after successful composition.
         stretchedSpacing[2] *= gamma;
 
         PoissonSolveRequest poissonRequest;
@@ -329,58 +329,47 @@ namespace opalx::spacecharge {
             poissonRequest.greenFunctionShift = shift;
         }
 
-        bool spacingStretched = false;
-        try {
-            if (unit != nullptr) {
-                mesh.setMeshSpacing(stretchedSpacing);
-                spacingStretched = true;
-            }
+        if (unit != nullptr) {
+            mesh.setMeshSpacing(stretchedSpacing);
+        }
 
-            Inform m("CartesianPICAlgorithm::solvePass");
-            m << level4 << "pass=" << cartesianPICPassLabel(pass)
-              << ", binIndex=" << static_cast<int>(unit == nullptr ? 0 : unit->ordinal)
-              << ", suppressFieldDump=" << (policy.suppressFieldDump ? 1 : 0);
-            if (poissonRequest.hasShiftedGreenFunction()) {
-                m << ", plane=" << planeZ
-                  << ", shift_z=" << (*poissonRequest.greenFunctionShift)[2];
-            }
-            m << endl;
+        Inform m("CartesianPICAlgorithm::solvePass");
+        m << level4 << "pass=" << cartesianPICPassLabel(pass)
+          << ", binIndex=" << static_cast<int>(unit == nullptr ? 0 : unit->ordinal)
+          << ", suppressFieldDump=" << (policy.suppressFieldDump ? 1 : 0);
+        if (poissonRequest.hasShiftedGreenFunction()) {
+            m << ", plane=" << planeZ << ", shift_z=" << (*poissonRequest.greenFunctionShift)[2];
+        }
+        m << endl;
 
-            poissonSolver_m->solve(poissonRequest, {.suppressFieldDump = policy.suppressFieldDump});
-            diagnostics.recordBackendSolve();
+        poissonSolver_m->solve(poissonRequest, {.suppressFieldDump = policy.suppressFieldDump});
+        diagnostics.recordBackendSolve();
 
-            if (unit == nullptr && policy.dumpDirichletPlaneAfter) {
-                dumpDirichletPlaneDiagnosticsIfRequested(context, "legacy", planeZ, diagnostics);
-                dumpedDirichletPlaneThisStep = true;
-            }
+        if (unit == nullptr && policy.dumpDirichletPlaneAfter) {
+            dumpDirichletPlaneDiagnosticsIfRequested(context, "legacy", planeZ, diagnostics);
+            dumpedDirichletPlaneThisStep = true;
+        }
 
-            if (unit == nullptr) {
-                relativisticFieldComposer_m.gatherElectrostatic(
-                        particleMeshTransfer_m, primary_m->E, primary_m->R, *fieldStorage_m);
-                if (shortRangeInteraction_m.has_value()) {
-                    shortRangeInteraction_m->apply(*primary_m);
-                }
-            } else {
-                RelativisticFieldComposerType::Policy compositionPolicy;
-                compositionPolicy.meanMomentum = unit->meanMomentum;
-                compositionPolicy.gamma        = unit->gamma;
-                compositionPolicy.magneticSign = policy.magneticSign;
-                compositionPolicy.sourceRule   = policy.sourceRule;
+        if (unit == nullptr) {
+            relativisticFieldComposer_m.gatherElectrostatic(
+                    particleMeshTransfer_m, primary_m->E, primary_m->R, *fieldStorage_m);
+            if (shortRangeInteraction_m.has_value()) {
+                shortRangeInteraction_m->apply(*primary_m);
+            }
+        } else {
+            RelativisticFieldComposerType::Policy compositionPolicy;
+            compositionPolicy.meanMomentum = unit->meanMomentum;
+            compositionPolicy.gamma        = unit->gamma;
+            compositionPolicy.magneticSign = policy.magneticSign;
+            compositionPolicy.sourceRule   = policy.sourceRule;
 
-                // Shifted Green reuses the real-charge RHS. Its image sign enters through field
-                // reflection and component signs here; negating rho would invert the image twice.
-                relativisticFieldComposer_m.accumulate(*fieldStorage_m, compositionPolicy);
-            }
+            // Shifted Green reuses the real-charge RHS. Its image sign enters through field
+            // reflection and component signs here; negating rho would invert the image twice.
+            relativisticFieldComposer_m.accumulate(*fieldStorage_m, compositionPolicy);
+        }
 
-            if (spacingStretched) {
-                mesh.setMeshSpacing(originalSpacing);
-                spacingStretched = false;
-            }
-        } catch (...) {
-            if (spacingStretched) {
-                mesh.setMeshSpacing(originalSpacing);
-            }
-            throw;
+        if (unit != nullptr) {
+            mesh.setMeshSpacing(originalSpacing);
         }
 
         // The explicit-image mesh contains the source plane, so evaluating the Dirichlet residual

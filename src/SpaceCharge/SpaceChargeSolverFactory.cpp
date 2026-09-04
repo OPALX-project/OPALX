@@ -35,6 +35,7 @@ namespace opalx::spacecharge {
             }
             bindings.push_back(makeParticleFieldBinding(*container));
         }
+        std::shared_ptr<const BunchStateHandler> bunchState = bunch.getBunchStateHandler();
 
         std::unique_ptr<SpaceChargeAlgorithm> algorithm;
         switch (config.algorithmType()) {
@@ -43,7 +44,7 @@ namespace opalx::spacecharge {
                         config.get<CartesianPICConfig>(), bindings,
                         std::make_unique<CartesianPICFieldStorage<double, 3>>(
                                 bunch.cartesianDomain()),
-                        dataSink);
+                        dataSink, bunchState);
                 break;
             case SpaceChargeAlgorithmType::FFT2D5:
                 algorithm = std::make_unique<FFT2D5Algorithm>(config.get<FFT2D5Config>(), bindings);
@@ -56,7 +57,8 @@ namespace opalx::spacecharge {
                     "No implementation exists for this algorithm.");
         }
         return std::make_unique<SpaceChargeSolver>(
-                std::move(config), std::move(algorithm), std::move(bindings));
+                std::move(config), std::move(algorithm), std::move(bindings),
+                std::move(bunchState));
     }
 
 }  // namespace opalx::spacecharge

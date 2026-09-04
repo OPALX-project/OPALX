@@ -126,11 +126,20 @@ namespace opalx::spacecharge {
         }
     }
 
+    void ParticleDomainOperations::updatePrimaryLayoutAndMigrate(Layout& fieldLayout, Mesh& mesh) {
+        ParticleContainer& container = primary();
+        container.updateLayout(fieldLayout, mesh);
+        container.update();
+        container.markMomentsDirty();
+    }
+
     void ParticleDomainOperations::updateMoments() {
         for (ParticleContainer* container : containers_m) {
             container->updateMoments();
         }
     }
+
+    void ParticleDomainOperations::updatePrimaryMoments() { primary().updateMoments(); }
 
     ParticleDomainOperations::ParticleContainer& ParticleDomainOperations::primary() {
         return *containers_m[primaryIndex_m];

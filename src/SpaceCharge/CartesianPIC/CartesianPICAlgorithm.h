@@ -17,7 +17,7 @@
 #include "SpaceCharge/Poisson/PoissonSolver.h"
 #include "SpaceCharge/SpaceChargeAlgorithm.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
-#include "SpaceCharge/SpaceChargeFrameGuard.h"
+#include "SpaceCharge/SpaceChargeFrameTransform.h"
 
 #include <cstdint>
 #include <memory>
@@ -27,6 +27,7 @@
 #include <vector>
 
 class DataSink;
+class BunchStateHandler;
 
 namespace opalx::spacecharge {
 
@@ -36,8 +37,15 @@ namespace opalx::spacecharge {
      * The algorithm borrows stable particle containers and a data sink while owning its field
      * storage, Poisson solver, and all 3D orchestration components. It never retains PartBunch,
      * parser objects, per-call transforms, or native Kokkos views. The common solve() boundary is
-     * always the tracker frame; SpaceChargeFrameGuard owns the 3D beam-frame conversion and
+     * always the tracker frame; SpaceChargeFrameTransform owns the 3D beam-frame conversion and
      * restoration contract.
+     *
+     * Each solve transforms primary positions to the beam frame, updates geometry/layouts, deposits
+     * charge, invokes the configured backend passes, gathers and composes fields, then restores
+     * primary R/E/B to the tracker frame. Normal mode migrates every container and next rebuilds a
+     * reference-frame domain. Fixed-domain mode migrates only the primary, keeps the beam-frame
+     * mesh and decomposition for BeamBeam reuse, and recomputes its restored-coordinate moments
+     * without a second migration.
      */
     class CartesianPICAlgorithm final : public SpaceChargeAlgorithm {
     public:
@@ -51,7 +59,8 @@ namespace opalx::spacecharge {
 
         CartesianPICAlgorithm(
                 CartesianPICConfig config, std::span<const ParticleFieldBinding3D> particleBindings,
-                std::unique_ptr<FieldStorage> fieldStorage, DataSink* dataSink);
+                std::unique_ptr<FieldStorage> fieldStorage, DataSink* dataSink,
+                std::shared_ptr<const BunchStateHandler> bunchState);
 
         [[nodiscard]] SpaceChargeCapabilities capabilities() const override;
         void solve(SpaceChargeSolveContext& context, SpaceChargeDiagnostics& diagnostics) override;
@@ -88,6 +97,7 @@ namespace opalx::spacecharge {
         void printBinStatsTable() const;
 
         ParticleContainer* primary_m = nullptr;
+        std::shared_ptr<const BunchStateHandler> bunchState_m;
         std::unique_ptr<FieldStorage> fieldStorage_m;
         std::unique_ptr<PoissonSolver> poissonSolver_m;
         std::optional<P3MShortRangeInteraction> shortRangeInteraction_m;

@@ -12,7 +12,10 @@
 #include "SpaceCharge/SpaceChargeDiagnostics.h"
 #include "SpaceCharge/SpaceChargeSolveContext.h"
 
+#include <memory>
 #include <vector>
+
+class BunchStateHandler;
 
 namespace opalx::spacecharge {
 
@@ -24,15 +27,16 @@ namespace opalx::spacecharge {
     /**
      * @brief Owns Cartesian mesh updates, layout changes, and ORB scheduling for 3D PIC.
      *
-     * The updater stores immutable run configuration and reusable host communication scratch.
-     * It does not own or borrow PartBunch, FieldSolver, or particle views. Every native object is
-     * supplied explicitly for the duration of updateForSolve().
+     * The updater stores immutable run configuration, a shared read-only bunch-state handle,
+     * and reusable host communication scratch. It does not borrow PartBunch, FieldSolver, or
+     * particle views. Every native object is supplied explicitly for updateForSolve().
      */
     class CartesianDomainUpdater final {
     public:
         using Orb = ippl::OrthogonalRecursiveBisection<Field<double, 3>, double>;
 
-        explicit CartesianDomainUpdater(CartesianPICConfig config);
+        CartesianDomainUpdater(
+                CartesianPICConfig config, std::shared_ptr<const BunchStateHandler> bunchState);
 
         CartesianDomainUpdater(const CartesianDomainUpdater&)            = delete;
         CartesianDomainUpdater& operator=(const CartesianDomainUpdater&) = delete;
@@ -43,8 +47,9 @@ namespace opalx::spacecharge {
          * @brief Rebuild physical geometry, migrate particles, and optionally redistribute.
          *
          * Beam-frame updates apply emission stretching and the configured ORB cadence. Reference
-         * updates restore a mesh around reference-frame particles without either operation.
-         * Image-domain extension and longitudinal resizing apply in both frames while active.
+         * updates restore a mesh around reference-frame particles without either operation. While
+         * fixed state is active, its exact solve-frame bounds override envelope expansion and both
+         * emission stretching and ORB are skipped.
          */
         void updateForSolve(
                 DomainCoordinateFrame frame, SpaceChargeSolveContext& context,
@@ -69,9 +74,10 @@ namespace opalx::spacecharge {
                 ParticleDomainOperations& particles);
 
         CartesianPICConfig config_m;
+        std::shared_ptr<const BunchStateHandler> bunchState_m;
         Orb orb_m;
         std::vector<int> rankFlags_m;
-        /** Remains set across failed updates until the poissonSolver is rebound successfully. */
+        /** Tracks an ordinary nonthrowing ORB layout mutation until backend reconstruction. */
         bool poissonRebuildRequired_m = false;
     };
 
