@@ -53,8 +53,10 @@ namespace {
     class FieldSupportOnlyComponent final : public ElementBase {
     public:
         FieldSupportOnlyComponent(
-                const std::string& name, const double fieldBegin, const double fieldEnd)
-            : ElementBase(name), fieldBegin_m(fieldBegin), fieldEnd_m(fieldEnd) {}
+                const std::string& name, const double fieldBegin, const double fieldEnd,
+                const double longitudinalElectricField = 0.0)
+            : ElementBase(name), fieldBegin_m(fieldBegin), fieldEnd_m(fieldEnd),
+              electricField_m(longitudinalElectricField) {}
 
         void accept(BeamlineVisitor&) const override {}
         ElementBase* clone() const override { return new FieldSupportOnlyComponent(*this); }
@@ -66,8 +68,11 @@ namespace {
                 Vector_t<double, 3>&, Vector_t<double, 3>&) override {}
 
         bool applyToReferenceParticle(
-                const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&,
-                Vector_t<double, 3>&, Vector_t<double, 3>&) override {
+                const Vector_t<double, 3>& position, const Vector_t<double, 3>&, const double&,
+                Vector_t<double, 3>& electric, Vector_t<double, 3>&) override {
+            if (position(2) >= fieldBegin_m && position(2) < fieldEnd_m) {
+                electric(2) += electricField_m;
+            }
             return false;
         }
 
@@ -87,6 +92,7 @@ namespace {
     private:
         double fieldBegin_m;
         double fieldEnd_m;
+        double electricField_m;
         Geometry geometry_m{Geometry::makeNull()};
     };
 }  // namespace
@@ -123,6 +129,14 @@ protected:
             Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::TYPE], t);
         }
 
+        void enableParallelDecomposition() {
+            Attributes::setBool(this->itsAttr[FIELDSOLVER::PARFFTX], true);
+            Attributes::setBool(this->itsAttr[FIELDSOLVER::PARFFTY], true);
+            Attributes::setBool(this->itsAttr[FIELDSOLVER::PARFFTZ], true);
+            setFieldSolverCmdType();
+            setDomainDecomposition();
+        }
+
         void setBCX(const std::string& bc) {
             Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::BCFFTX], bc);
         }
@@ -141,6 +155,8 @@ protected:
         const auto fsCmd = std::make_shared<TestableFieldSolverCmd>();
         fsCmdBase_m      = fsCmd;
         fsCmd->setType("NONE");
+        // Initialize the layout explicitly; the tests also run with two MPI ranks.
+        fsCmd->enableParallelDecomposition();
         fsCmd->setNX(8);
         fsCmd->setNY(8);
         fsCmd->setNZ(8);
@@ -257,6 +273,66 @@ TEST_F(OrbitThreaderTest, BishopFrameRemainsOrthonormalThroughBendAndReversal) {
         EXPECT_NEAR(dot(frame.xAxis, frame.sAxis), 0.0, 1.0e-14);
         EXPECT_NEAR(dot(frame.yAxis, frame.sAxis), 0.0, 1.0e-14);
     }
+}
+
+TEST_F(OrbitThreaderTest, RayTrackerResolvesThinSupportForEachMomentumAndReverseTime) {
+    auto bunch = makeBunch(0);
+    DummyBeamline line;
+    DefaultVisitor visitor(line, false, false);
+    OpalBeamline beamline;
+    // Both the entrance and exit are beyond the nominal drift midpoint. The body
+    // has zero length: only field support can prevent this region being skipped.
+    FieldSupportOnlyComponent field("THIN_E", 0.003, 0.0034, 1.0e8);
+    field.setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector_t<double, 3>(0.0), Quaternion()));
+    field.fixPosition();
+    beamline.visit(field, visitor, *bunch);
+    beamline.prepareSections();
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    ExternalFieldRayTracker tracker(beamline, reference);
+    for (double momentum : {0.9, 1.0, 1.1}) {
+        ExternalFieldRayTracker::State initial;
+        initial.momentum(2) = momentum;
+        std::vector<ExternalFieldRayTracker::Step> steps;
+        const auto final = tracker.advance(initial, 2.0e-11, &steps);
+        ASSERT_GT(final.position(2), 0.0034);
+        ASSERT_GT(steps.size(), 1);
+        // Exact work-energy identity: gamma_out - gamma_in = q E L / (m c^2).
+        // 1e-10 in gamma is much smaller than the 4.26e-5 signal; it allows the
+        // second-order orbit error and floating-point boundary localization.
+        const double expectedGamma = std::sqrt(1.0 + momentum * momentum)
+                                     + 1.0e8 * 0.0004 / reference.getM();
+        EXPECT_NEAR(std::sqrt(1.0 + dot(final.momentum, final.momentum)), expectedGamma, 1.0e-10);
+        EXPECT_NEAR(final.time, 2.0e-11, 1.0e-24);
+        const auto recovered = tracker.advance(final, -2.0e-11);
+        const Vector_t<double, 3> displacement = recovered.position - initial.position;
+        const Vector_t<double, 3> momentumChange = recovered.momentum - initial.momentum;
+        EXPECT_LT(euclidean_norm(displacement), 1.0e-10);
+        EXPECT_LT(euclidean_norm(momentumChange), 1.0e-9);
+    }
+}
+
+TEST_F(OrbitThreaderTest, RayTrackerSumsOverlappingSupportsAcrossBoundaries) {
+    auto bunch = makeBunch(0);
+    DummyBeamline line;
+    DefaultVisitor visitor(line, false, false);
+    OpalBeamline beamline;
+    FieldSupportOnlyComponent first("E1", 0.001, 0.003, 1.0e8);
+    FieldSupportOnlyComponent second("E2", 0.002, 0.0035, -2.0e7);
+    for (auto* field : {&first, &second}) {
+        field->setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector_t<double, 3>(0.0), Quaternion()));
+        field->fixPosition();
+        beamline.visit(*field, visitor, *bunch);
+    }
+    beamline.prepareSections();
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    ExternalFieldRayTracker tracker(beamline, reference);
+    ExternalFieldRayTracker::State initial;
+    initial.momentum(2) = 1.0;
+    const auto final = tracker.advance(initial, 2.0e-11);
+    ASSERT_GT(final.position(2), 0.0035);
+    const double work = 1.0e8 * 0.002 - 2.0e7 * 0.0015;
+    EXPECT_NEAR(std::sqrt(1.0 + dot(final.momentum, final.momentum)),
+                std::sqrt(2.0) + work / reference.getM(), 1.0e-10);
 }
 
 TEST_F(OrbitThreaderTest, ExecutesOverlapAndRecordsBothElements) {

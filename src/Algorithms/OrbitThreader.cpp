@@ -239,7 +239,7 @@ void OrbitThreader::execute() {
     collectReferenceSamples_m = false;
     if (calculateMaps) {
         LinearTransferMapBuilder builder(itsOpalBeamline_m, reference_m, dt_m);
-        auto result = builder.build(referenceSamples_m, transferMapStartPathLength_m);
+        auto result = builder.build(std::move(referenceSamples_m), transferMapStartPathLength_m);
         std::map<std::shared_ptr<ElementBase>, std::size_t,
                  std::owner_less<std::shared_ptr<ElementBase>>> passes;
         for (auto& segment : result.segments) {
@@ -263,90 +263,113 @@ void OrbitThreader::execute() {
 }
 
 void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDrift*/) {
-    CoordinateSystemTrafo labToBeamline = itsOpalBeamline_m.getCSTrafoLab2Local();
     Vector_t<double, 3> nextR;
+    std::vector<ExternalFieldRayTracker::Step> steps;
     do {
         errorFlag_m = EVERYTHINGFINE;
 
-        const Vector_t<double, 3> oldR = r_m;
-        const Vector_t<double, 3> oldP = p_m;
-        const double oldTime = time_m;
-        const double oldPathLength = pathLength_m;
-        std::string names("\t");
-        const auto step = rayTracker_m.step(
-                {r_m, p_m, time_m}, dt_m,
-                [&](const RayState& ray, auto& electric, auto& magnetic) {
-                    for (const auto& element : activeSet) {
-                        const auto localR = itsOpalBeamline_m.transformToLocalCS(element, ray.position);
-                        const auto localP = itsOpalBeamline_m.rotateToLocalCS(element, ray.momentum);
-                        Vector_t<double, 3> localE(0.0), localB(0.0);
-                        if (element->applyToReferenceParticle(
-                                    localR, localP, ray.time, localE, localB)) return true;
-                        names += element->getName() + ", ";
-                        electric += itsOpalBeamline_m.rotateFromLocalCS(element, localE);
-                        magnetic += itsOpalBeamline_m.rotateFromLocalCS(element, localB);
-                    }
-                    return false;
-                });
-        r_m = step.midpoint.position;
-        if (step.hitMaterial) {
-            errorFlag_m = HITMATERIAL;
-            return;
+        steps.clear();
+        if (collectReferenceSamples_m) {
+            rayTracker_m.advance({r_m, p_m, time_m}, dt_m, &steps);
+        } else {
+            steps.push_back(rayTracker_m.step(
+                    {r_m, p_m, time_m}, dt_m,
+                    [&](const RayState& ray, auto& electric, auto& magnetic) {
+                        for (const auto& element : activeSet) {
+                            const auto localR =
+                                    itsOpalBeamline_m.transformToLocalCS(element, ray.position);
+                            const auto localP =
+                                    itsOpalBeamline_m.rotateToLocalCS(element, ray.momentum);
+                            Vector_t<double, 3> localE(0.0), localB(0.0);
+                            if (element->applyToReferenceParticle(
+                                        localR, localP, ray.time, localE, localB))
+                                return true;
+                            electric += itsOpalBeamline_m.rotateFromLocalCS(element, localE);
+                            magnetic += itsOpalBeamline_m.rotateFromLocalCS(element, localB);
+                        }
+                        return false;
+                    }));
         }
-        const auto& Ef = step.electric;
-        const auto& Bf = step.magnetic;
+        for (const auto& step : steps) {
+            const double stepDt            = step.duration;
+            const Vector_t<double, 3> oldR = r_m;
+            const Vector_t<double, 3> oldP = p_m;
+            const double oldTime           = time_m;
+            const double oldPathLength     = pathLength_m;
+            std::string names("\t");
+            const auto fields = collectReferenceSamples_m
+                                        ? itsOpalBeamline_m.getElements(step.midpoint.position)
+                                        : activeSet;
+            for (const auto& element : fields)
+                names += element->getName() + ", ";
+            r_m = step.midpoint.position;
+            if (step.hitMaterial) {
+                errorFlag_m = HITMATERIAL;
+                return;
+            }
+            const auto& Ef = step.electric;
+            const auto& Bf = step.magnetic;
 
-        if (((pathLength_m > 0.0 && pathLength_m < sStop_m) || dt_m < 0.0)
-            && currentStep_m % loggingFrequency_m == 0 && ippl::Comm->rank() == 0
-            && !OpalData::getInstance()->isOptimizerRun()) {
+            if (((pathLength_m > 0.0 && pathLength_m < sStop_m) || dt_m < 0.0)
+                && currentStep_m % loggingFrequency_m == 0 && ippl::Comm->rank() == 0
+                && !OpalData::getInstance()->isOptimizerRun()) {
+                const Vector<double, 3> d = r_m - oldR;
+
+                logger_m << std::setw(18) << std::setprecision(8)
+                         << pathLength_m + std::copysign(euclidean_norm(d), dt_m) << std::setw(18)
+                         << std::setprecision(8) << r_m(0) << std::setw(18) << std::setprecision(8)
+                         << r_m(1) << std::setw(18) << std::setprecision(8) << r_m(2)
+                         << std::setw(18) << std::setprecision(8) << p_m(0) << std::setw(18)
+                         << std::setprecision(8) << p_m(1) << std::setw(18) << std::setprecision(8)
+                         << p_m(2) << std::setw(18) << std::setprecision(8) << Ef(0)
+                         << std::setw(18) << std::setprecision(8) << Ef(1) << std::setw(18)
+                         << std::setprecision(8) << Ef(2) << std::setw(18) << std::setprecision(8)
+                         << Bf(0) << std::setw(18) << std::setprecision(8) << Bf(1) << std::setw(18)
+                         << std::setprecision(8) << Bf(2) << std::setw(18) << std::setprecision(8)
+                         << reference_m.getM() * (sqrt(dot(p_m, p_m) + 1) - 1) * Units::eV2MeV
+                         << std::setw(18) << std::setprecision(8)
+                         << step.midpoint.time * Units::s2ns << names << std::endl;
+            }
+
+            r_m = step.end.position;
+            p_m = step.end.momentum;
+
             const Vector<double, 3> d = r_m - oldR;
 
-            logger_m << std::setw(18) << std::setprecision(8)
-                     << pathLength_m + std::copysign(euclidean_norm(d), dt_m) << std::setw(18)
-                     << std::setprecision(8) << r_m(0) << std::setw(18) << std::setprecision(8)
-                     << r_m(1) << std::setw(18) << std::setprecision(8) << r_m(2) << std::setw(18)
-                     << std::setprecision(8) << p_m(0) << std::setw(18) << std::setprecision(8)
-                     << p_m(1) << std::setw(18) << std::setprecision(8) << p_m(2) << std::setw(18)
-                     << std::setprecision(8) << Ef(0) << std::setw(18) << std::setprecision(8)
-                     << Ef(1) << std::setw(18) << std::setprecision(8) << Ef(2) << std::setw(18)
-                     << std::setprecision(8) << Bf(0) << std::setw(18) << std::setprecision(8)
-                     << Bf(1) << std::setw(18) << std::setprecision(8) << Bf(2) << std::setw(18)
-                     << std::setprecision(8)
-                     << reference_m.getM() * (sqrt(dot(p_m, p_m) + 1) - 1) * Units::eV2MeV
-                     << std::setw(18) << std::setprecision(8) << (time_m + 0.5 * dt_m) * Units::s2ns
-                     << names << std::endl;
-        }
+            pathLength_m += std::copysign(euclidean_norm(d), dt_m);
 
-        r_m = step.end.position;
-        p_m = step.end.momentum;
+            time_m = step.end.time;
+            if (collectReferenceSamples_m) {
+                // The nominal midpoint can miss a short overlap. Use every accepted
+                // boundary-resolved interval when recording overlap participation.
+                if (pathLength_m > transferMapStartPathLength_m && fields.size() > 1) {
+                    for (const auto& element : fields) element->setOverlapping(true);
+                }
+                if (reachedThreadingEnd() && pathLength_m != oldPathLength) {
+                    const double fraction =
+                            (sStop_m - oldPathLength) / (pathLength_m - oldPathLength);
+                    const RayState clipped =
+                            rayTracker_m.advance({oldR, oldP, oldTime}, fraction * stepDt);
+                    LinearTransferMapReference state = LinearTransferMapBuilder::transportFrame(
+                            referenceSamples_m.back().state, clipped.momentum);
+                    state.position   = clipped.position;
+                    state.momentum   = clipped.momentum;
+                    state.time       = clipped.time;
+                    state.pathLength = sStop_m;
+                    referenceSamples_m.push_back({state});
+                } else {
+                    recordReferenceSample();
+                }
+            }
 
-        const Vector<double, 3> d = r_m - oldR;
-
-        pathLength_m += std::copysign(euclidean_norm(d), dt_m);
-
-        ++currentStep_m;
-        time_m += dt_m;
-        if (collectReferenceSamples_m) {
-            if (reachedThreadingEnd() && pathLength_m != oldPathLength) {
-                const double fraction  = (sStop_m - oldPathLength) / (pathLength_m - oldPathLength);
-                const RayState clipped = rayTracker_m.advance({oldR, oldP, oldTime}, fraction * dt_m);
-                LinearTransferMapReference state =
-                        LinearTransferMapBuilder::transportFrame(referenceSamples_m.back().state, clipped.momentum);
-                state.position   = clipped.position;
-                state.momentum   = clipped.momentum;
-                state.time       = clipped.time;
-                state.pathLength = sStop_m;
-                referenceSamples_m.push_back({state});
-            } else {
-                recordReferenceSample();
+            if (reachedThreadingEnd()) {
+                errorFlag_m = EOL;
+                globalBoundingBox_m.enlargeToContainPosition(r_m);
+                ++currentStep_m;
+                return;
             }
         }
-
-        if (reachedThreadingEnd()) {
-            errorFlag_m = EOL;
-            globalBoundingBox_m.enlargeToContainPosition(r_m);
-            return;
-        }
+        ++currentStep_m;
 
         nextR = r_m / (Physics::c * dt_m);
         integrator_m.push(nextR, p_m, dt_m);
@@ -524,7 +547,7 @@ void OrbitThreader::printCombinedLinearTransferMap() const {
     for (int row = 0; row < 6; ++row) {
         *gmsg << "  ";
         for (int column = 0; column < 6; ++column) {
-            *gmsg << std::setw(15) << std::setprecision(7) << std::scientific << map(row, column);
+            *gmsg << std::setw(21) << std::setprecision(12) << std::scientific << map(row, column);
         }
         *gmsg << "\n";
     }
