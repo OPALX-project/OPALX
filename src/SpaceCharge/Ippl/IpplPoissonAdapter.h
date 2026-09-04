@@ -27,8 +27,10 @@ namespace opalx::spacecharge {
     /**
      * @brief OPALX-owned variant over the supported IPPL Poisson solver implementations.
      *
-     * refresh() rebinds the right-hand side before the left-hand side after every layout change.
-     * Construction and execution are host-only; no concrete backend type crosses this boundary.
+     * refresh() reconstructs the typed backend after a layout change, then binds the right-hand
+     * side before the left-hand side. Reconstructing also resizes backend-private FFT fields and
+     * heFFTe plans that cannot be refreshed through the public IPPL interface. Construction and
+     * execution are host-only; no concrete backend type crosses this boundary.
      */
     class IpplPoissonAdapter final {
     public:
@@ -49,11 +51,14 @@ namespace opalx::spacecharge {
                 PoissonBackendKind kind);
         [[nodiscard]] static double couplingConstantFor(PoissonBackendKind kind);
         [[nodiscard]] const IpplPoissonCapabilities& capabilities() const {
-            return capabilitiesFor(kind_m);
+            return capabilitiesFor(config_m.kind);
         }
-        [[nodiscard]] double couplingConstant() const { return couplingConstantFor(kind_m); }
+        [[nodiscard]] double couplingConstant() const { return couplingConstantFor(config_m.kind); }
 
     private:
+        void constructBackend();
+        void bindBackendFields(IpplPoissonFields fields);
+
         using NullBackend     = NullSolver_t<double, 3>;
         using PeriodicBackend = FFTSolver_t<double, 3>;
         using OpenBackend     = OpenSolver_t<double, 3>;
@@ -62,8 +67,8 @@ namespace opalx::spacecharge {
                 std::variant<std::monostate, NullBackend, PeriodicBackend, OpenBackend, P3MBackend>;
 
         Backend backend_m;
+        const IpplPoissonBackendConfig config_m;
         IpplPoissonFields fields_m;
-        PoissonBackendKind kind_m;
         std::size_t runtimeSolveCount_m = 0;
     };
 

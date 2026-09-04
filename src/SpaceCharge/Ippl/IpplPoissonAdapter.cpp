@@ -10,6 +10,8 @@
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
 
+#include <Kokkos_Core.hpp>
+
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
@@ -222,10 +224,14 @@ namespace opalx::spacecharge {
 
     IpplPoissonAdapter::IpplPoissonAdapter(
             IpplPoissonBackendConfig config, IpplPoissonFields fields)
-        : fields_m(fields), kind_m(config.kind) {
+        : config_m(std::move(config)), fields_m(fields) {
         requireCommonFields(fields_m, "IpplPoissonAdapter::IpplPoissonAdapter");
+        constructBackend();
+        bindBackendFields(fields_m);
+    }
 
-        switch (kind_m) {
+    void IpplPoissonAdapter::constructBackend() {
+        switch (config_m.kind) {
             case PoissonBackendKind::None: {
                 auto& solver = backend_m.emplace<NullBackend>();
                 solver.mergeParameters(ippl::ParameterList{});
@@ -243,35 +249,35 @@ namespace opalx::spacecharge {
                 ippl::ParameterList parameters = commonFftParameters();
                 parameters.add("output_type", OpenBackend::SOL_AND_GRAD);
                 parameters.add("algorithm", OpenBackend::HOCKNEY);
-                parameters.add("greens_function", openGreenFunctionValue(config.greenFunction));
+                parameters.add("greens_function", openGreenFunctionValue(config_m.greenFunction));
                 solver.mergeParameters(parameters);
                 break;
             }
             case PoissonBackendKind::P3M: {
-                if (!(config.p3mCutoff > 0.0)) {
+                if (!(config_m.p3mCutoff > 0.0)) {
                     throw OpalException(
-                            "IpplPoissonAdapter::IpplPoissonAdapter",
+                            "IpplPoissonAdapter::constructBackend",
                             "The P3M cutoff radius must be positive.");
                 }
                 const bool allPeriodic = std::all_of(
-                        config.boundaryConditions.begin(), config.boundaryConditions.end(),
+                        config_m.boundaryConditions.begin(), config_m.boundaryConditions.end(),
                         [](BoundaryConditionKind kind) {
                             return kind == BoundaryConditionKind::Periodic;
                         });
                 const bool allOpen = std::all_of(
-                        config.boundaryConditions.begin(), config.boundaryConditions.end(),
+                        config_m.boundaryConditions.begin(), config_m.boundaryConditions.end(),
                         [](BoundaryConditionKind kind) {
                             return kind == BoundaryConditionKind::Open;
                         });
                 if (!allPeriodic && !allOpen) {
                     throw OpalException(
-                            "IpplPoissonAdapter::IpplPoissonAdapter",
+                            "IpplPoissonAdapter::constructBackend",
                             "P3M requires uniform OPEN or PERIODIC boundary conditions.");
                 }
                 auto& solver                   = backend_m.emplace<P3MBackend>();
                 ippl::ParameterList parameters = commonFftParameters();
                 parameters.add("output_type", P3MBackend::GRAD);
-                parameters.add("alpha", 2.0 / config.p3mCutoff);
+                parameters.add("alpha", 2.0 / config_m.p3mCutoff);
                 parameters.add("force_constant", -1.0 / (4.0 * Physics::pi));
                 parameters.add("regularization_cutoff", 1.0e-9);
                 parameters.add(
@@ -281,16 +287,31 @@ namespace opalx::spacecharge {
             }
             case PoissonBackendKind::ConjugateGradient:
                 throw OpalException(
-                        "IpplPoissonAdapter::IpplPoissonAdapter",
+                        "IpplPoissonAdapter::constructBackend",
                         "The CG Poisson backend is recognized but not implemented.");
         }
-        refresh(fields_m);
+    }
+
+    void IpplPoissonAdapter::bindBackendFields(IpplPoissonFields fields) {
+        std::visit(
+                [&fields](auto& solver) {
+                    using Solver = std::decay_t<decltype(solver)>;
+                    if constexpr (std::is_same_v<Solver, std::monostate>) {
+                        throw OpalException(
+                                "IpplPoissonAdapter::bindBackendFields",
+                                "The Poisson backend has not been constructed.");
+                    } else {
+                        solver.setRhs(*fields.chargeDensity);
+                        solver.setLhs(*fields.electricField);
+                    }
+                },
+                backend_m);
     }
 
     void IpplPoissonAdapter::solve(
             const IpplPoissonSolveRequest& request, const IpplPoissonSolveOptions& options) {
         Inform m("IpplPoissonAdapter::solve");
-        m << level3 << "Running solver with type: " << backendName(kind_m)
+        m << level3 << "Running solver with type: " << backendName(config_m.kind)
           << ". Force skip field dump: " << options.suppressFieldDump << endl;
 
         if (request.hasShiftedGreenFunction() && !capabilities().supportsShiftedGreenFunction) {
@@ -355,19 +376,12 @@ namespace opalx::spacecharge {
 
     void IpplPoissonAdapter::refresh(IpplPoissonFields fields) {
         requireCommonFields(fields, "IpplPoissonAdapter::refresh");
-        std::visit(
-                [&fields](auto& solver) {
-                    using Solver = std::decay_t<decltype(solver)>;
-                    if constexpr (std::is_same_v<Solver, std::monostate>) {
-                        throw OpalException(
-                                "IpplPoissonAdapter::refresh",
-                                "The Poisson backend has not been constructed.");
-                    } else {
-                        solver.setRhs(*fields.chargeDensity);
-                        solver.setLhs(*fields.electricField);
-                    }
-                },
-                backend_m);
+        // Layout refresh can resize device fields while the previous FFT still owns buffers and
+        // plans for the old extents. Complete that work before destroying the typed backend, then
+        // reconstruct it so IPPL allocates matching internal fields as well as a matching plan.
+        Kokkos::fence();
+        constructBackend();
+        bindBackendFields(fields);
         fields_m = fields;
     }
 

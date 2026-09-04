@@ -8,6 +8,8 @@
 
 #include "Utilities/OpalException.h"
 
+#include <Kokkos_Core.hpp>
+
 namespace opalx::spacecharge {
 
     template <typename T, unsigned Dim>
@@ -48,6 +50,9 @@ namespace opalx::spacecharge {
                     "The workspace fields must be initialized before a layout refresh.");
         }
 
+        // updateLayout() reallocates Kokkos views. Complete work using the previous field storage
+        // before any of those device allocations can be released.
+        Kokkos::fence();
         electricField_m.updateLayout(layout());
         chargeDensity_m.updateLayout(layout());
         if (potentialInitialized_m) {

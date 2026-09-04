@@ -8,6 +8,8 @@
 
 #include "Utilities/OpalException.h"
 
+#include <Kokkos_Core.hpp>
+
 #include <limits>
 
 namespace opalx::spacecharge {
@@ -48,6 +50,9 @@ namespace opalx::spacecharge {
         if (layoutExtents() == extents) {
             return false;
         }
+        // Every particle layout, field, and FFT plan borrows this stable layout object. Device
+        // work using the old decomposition must finish before initialize() mutates it in place.
+        Kokkos::fence();
         const ippl::NDIndex<Dim> domain = makeIndexDomain(extents);
         layout_m.initialize(domain, decomposition_m, periodic_m);
         extents_m = extents;
