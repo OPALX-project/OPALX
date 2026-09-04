@@ -3,5 +3,6 @@ data/
 *.h5
 *.log
 *.loss
+*.out
 *.stat
 timing.dat
