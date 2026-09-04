@@ -46,7 +46,7 @@ def main() -> None:
         if kind == "SBEND":
             element_lines.append(
                 f"{name}: SBEND, L = {length:.12g}, ANGLE = BEND_ANGLE, "
-                "HGAP = 2.0, HAPERT = 2.0, FINT = 0.5, "
+                "HGAP = 0.02, HAPERT = 2.0, FINT = 0.5, "
                 f"ELEMEDGE = {elemedge:.12g};"
             )
         else:
@@ -68,9 +68,11 @@ OPTION, ASCIIDUMP = TRUE;
 
 Title, string = "ISIS native-SBEND ELEMEDGE RING survey";
 
-// Compact counterpart of orig/isis_sbend_survey.in.
-// It differs only in placement representation and the closed-topology keyword.
+// Compact closed-topology tracking fixture derived from orig/isis_sbend_survey.in.
+// P0 and HGAP below make the full-turn reference trajectory physically consistent.
 REAL BEND_ANGLE = 2.0 * PI / 10.0;
+// Match the SBEND rigidity to the 70 MeV reference particle in the distribution.
+REAL P0 = 0.3691313146252514;
 
 MSTART: MONITOR, L = 0.0, ELEMEDGE = 0.0, TYPE = TEMPORAL,
     OUTFN = "isis_sbend_ring_start";
@@ -97,7 +99,7 @@ BEAM0: BEAM, PARTICLE = PROTON, NALLOC = 1,
 
 TRACK, LINE = ISIS_RING, BEAM = BEAM0, MAXSTEPS = 1,
     DT = 1.0e-10, ZSTOP = 1.0e6;
-RUN, METHOD = "PARALLEL", FIELDSOLVER = FS0;
+RUN, METHOD = "PARALLEL", FIELDSOLVER = FS0, TURNS = 1;
 ENDTRACK;
 
 QUIT;
