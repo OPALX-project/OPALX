@@ -24,6 +24,15 @@
 
 extern Inform* gmsg;
 
+bool ElementBase::isInsideBody(const Vector_t<double, 3>& r) const {
+    const auto& geometry = getGeometry();
+    const auto local = geometry.kind() == GeometryKind::SBend
+            ? GeometryHelper::toBendArcCoords(r, geometry.getCurvature(), geometry.getElementLength())
+            : r;
+    return local(2) >= 0.0 && local(2) < geometry.getElementLength()
+            && ApertureHelper::isInsideAperture(local, aperture_m);
+}
+
 const std::vector<double> ElementBase::defaultAperture_m = std::vector<double>({1e6, 1e6});
 
 const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {

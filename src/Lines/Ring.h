@@ -32,6 +32,15 @@ public:
     /// Isolate and tag all occurrences owned by this RING.
     void prepareForTracking() override;
 
+    /**
+     * @brief Design circumference in metres, summed over nominal occurrence arc lengths.
+     *
+     * Drifts fill the nominal gaps and are counted once; field-support extensions never
+     * contribute. Rectangular-bend chord lengths are converted by Geometry::getArcLength().
+     * This is not the length of a tracked or closed orbit and does not validate 3D closure.
+     */
+    double getLength() const override;
+
 protected:
     const char* getSequenceKeyword() const override;
 

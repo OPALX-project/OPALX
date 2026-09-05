@@ -57,6 +57,15 @@ OpalBeamline::OpalBeamline(const Vector_t<double, 3>& origin, const Quaternion& 
 
 OpalBeamline::~OpalBeamline() { elements_m.clear(); }
 
+std::set<std::shared_ptr<ElementBase>> OpalBeamline::getBodyElements(
+        const Vector_t<double, 3>& x) const {
+    std::set<std::shared_ptr<ElementBase>> result;
+    for (const auto& element : elements_m) {
+        if (element->isInsideBody(transformToLocalCS(element, x))) result.insert(element);
+    }
+    return result;
+}
+
 std::set<std::shared_ptr<ElementBase>> OpalBeamline::getElements(const Vector_t<double, 3>& x) {
     std::set<std::shared_ptr<ElementBase>> elementSet;
     ElementList::iterator it        = elements_m.begin();

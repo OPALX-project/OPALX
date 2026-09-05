@@ -7,6 +7,7 @@
 #include "BasicActions/Option.h"
 #include "BeamlineCore/DriftRep.h"
 #include "BeamlineCore/MultipoleRep.h"
+#include "BeamlineCore/SBendRep.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
@@ -26,6 +27,19 @@
 extern Inform* gmsg;
 
 namespace {
+    // Vary only the numerical cutoff of the native field, never its body, gap or FINT.
+    class CutoffSBend final : public SBendRep {
+    public:
+        explicit CutoffSBend(double cutoff) : SBendRep("B_CUTOFF"), cutoff_m(cutoff) {}
+        ElementBase* clone() const override { return new CutoffSBend(*this); }
+        void getFieldExtent(double& begin, double& end) const override {
+            begin = -cutoff_m;
+            end = getGeometry().getElementLength() + cutoff_m;
+        }
+    private:
+        double cutoff_m;
+    };
+
     std::set<std::string> names(const IndexMap::value_t& elements) {
         std::set<std::string> result;
         for (const auto& element : elements) {
@@ -60,9 +74,9 @@ namespace {
         unsigned fieldCalls{0};
         FieldSupportOnlyComponent(
                 const std::string& name, const double fieldBegin, const double fieldEnd,
-                const double longitudinalElectricField = 0.0)
+                const double longitudinalElectricField = 0.0, const double magneticField = 0.0)
             : ElementBase(name), fieldBegin_m(fieldBegin), fieldEnd_m(fieldEnd),
-              electricField_m(longitudinalElectricField) {}
+              electricField_m(longitudinalElectricField), magneticField_m(magneticField) {}
 
         void accept(BeamlineVisitor&) const override {}
         ElementBase* clone() const override { return new FieldSupportOnlyComponent(*this); }
@@ -75,10 +89,11 @@ namespace {
 
         bool applyToReferenceParticle(
                 const Vector_t<double, 3>& position, const Vector_t<double, 3>&, const double&,
-                Vector_t<double, 3>& electric, Vector_t<double, 3>&) override {
+                Vector_t<double, 3>& electric, Vector_t<double, 3>& magnetic) override {
             ++fieldCalls;
             if (position(2) >= fieldBegin_m && position(2) < fieldEnd_m) {
                 electric(2) += electricField_m;
+                magnetic(1) += magneticField_m;
             }
             return false;
         }
@@ -100,6 +115,7 @@ namespace {
         double fieldBegin_m;
         double fieldEnd_m;
         double electricField_m;
+        double magneticField_m;
         Geometry geometry_m{Geometry::makeNull()};
     };
 }  // namespace
@@ -842,7 +858,7 @@ TEST_F(OrbitThreaderTest, ExecutesOverlapAndRecordsBothElements) {
     ASSERT_TRUE(threader.getCombinedSymplecticResidual().has_value());
 }
 
-TEST_F(OrbitThreaderTest, BuildsOnePeriodicTurnIndependentOfTrackStepBudget) {
+TEST_F(OrbitThreaderTest, RingReturnLengthIsMeasuredNotTakenFromDesignCircumference) {
     Options::linearTransferMapRichardsonLevels = 1;
     auto bunch = makeBunch(0);
 
@@ -850,33 +866,157 @@ TEST_F(OrbitThreaderTest, BuildsOnePeriodicTurnIndependentOfTrackStepBudget) {
     DefaultVisitor visitor(beamlineForVisitor, false, false);
 
     OpalBeamline beamline;
-    DriftRep drift("D_PERIODIC");
-    drift.getGeometry().setElementLength(0.8);
-    drift.setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector_t<double, 3>(0.0), Quaternion()));
-    drift.fixPosition();
-    beamline.visit(drift, visitor, *bunch);
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    // An exactly circular relativistic orbit of radius 1 m in a uniform magnetic field.
+    FieldSupportOnlyComponent field("CIRCLE", -2.0, 2.0, 0.0, reference.getM() / Physics::c);
+    beamline.visit(field, visitor, *bunch);
     beamline.prepareSections();
 
     StepSizeConfig stepSizes;
-    stepSizes.push_back(1.0e-11, 10.0, 1);
+    stepSizes.push_back(1.0e-10, 5.0, 1);
     stepSizes.resetIterator();
 
-    PartData reference(1.0, 9.382720813e8, 1.0e6);
     Options::enableLinearTransferMaps = true;
+    Options::linearTransferMapIntegrator = "DOP853";
     OrbitThreader threader(
-            reference, Vector_t<double, 3>(0.0, 0.0, 0.2), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.2,
-            /*maxDiffZBunch=*/0.1, 0.0, 1.0e-11, stepSizes, beamline, /*isDesignBeam=*/true,
-            /*period=*/0.6);
+            reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0,
+            /*maxDiffZBunch=*/0.0, 0.0, 1.0e-10, stepSizes, beamline, /*isDesignBeam=*/true,
+            /*period=*/5.0);
 
     threader.execute();
 
-    EXPECT_EQ(names(threader.query(0.1, 0.01)), (std::set<std::string>{"D_PERIODIC"}));
-    EXPECT_EQ(names(threader.query(0.7, 0.01)), (std::set<std::string>{"D_PERIODIC"}));
+    EXPECT_EQ(threader.getDesignCircumference(), 5.0);
+    ASSERT_TRUE(threader.getReferenceReturnLength());
+    EXPECT_NEAR(*threader.getReferenceReturnLength(), 2.0 * Physics::pi, 1.e-10);
+    EXPECT_LT(euclidean_norm(threader.getReferenceReturnDisplacement()), 1.e-10);
+    EXPECT_EQ(names(threader.query(2.0 * Physics::pi - 0.01, 0.02)),
+              (std::set<std::string>{"CIRCLE"}));
+    EXPECT_EQ(names(threader.query(4.0 * Physics::pi + 0.01, 0.02)),
+              (std::set<std::string>{"CIRCLE"}));
     ASSERT_TRUE(threader.getCombinedLinearTransferMap().has_value());
-    EXPECT_NEAR((*threader.getCombinedLinearTransferMap())(0, 1), 0.6, 2.0e-5);
+    EXPECT_NEAR((*threader.getCombinedLinearTransferMap())(0, 5), 0.0, 1.e-8);
+    EXPECT_NEAR((*threader.getCombinedLinearTransferMap())(1, 5), 0.0, 1.e-8);
+    EXPECT_NEAR((*threader.getCombinedLinearTransferMap())(2, 3), 2.0 * Physics::pi, 1.e-7);
+}
+
+TEST_F(OrbitThreaderTest, RingWithoutReturnFailsInsteadOfUsingCircumferenceAsOrbitLength) {
+    OpalBeamline beamline;
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    StepSizeConfig steps;
+    steps.push_back(1.e-10, 0.1, 1);
+    steps.resetIterator();
+    OrbitThreader threader(reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0, 0, 1),
+            0.0, 0.0, 0.0, 1.e-10, steps, beamline, false, 0.1);
+    EXPECT_THROW(threader.execute(), OpalException);
+    EXPECT_FALSE(threader.getReferenceReturnLength());
+}
+
+TEST_F(OrbitThreaderTest, NominalDriftMapIncludesNeighbourFieldWithoutOwningItsSupport) {
+    auto bunch = makeBunch(0);
+    DummyBeamline lattice;
+    DefaultVisitor visitor(lattice, false, false);
+    OpalBeamline beamline;
+    // A source body ends at 0.1 m; its field extends through the drift to 0.3 m.
+    FieldSupportOnlyComponent source("FRINGE", 0.0, 0.3, 1.e7);
+    source.getGeometry() = Geometry::makeStraight(0.1);
+    DriftRep drift("D_FRINGE");
+    drift.getGeometry().setElementLength(0.2);
+    drift.setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector_t<double, 3>(0, 0, 0.1), Quaternion()));
+    beamline.visit(source, visitor, *bunch);
+    beamline.visit(drift, visitor, *bunch);
+    beamline.prepareSections();
+    EXPECT_EQ(names(beamline.getBodyElements(Vector_t<double, 3>(0, 0, 0.2))),
+              (std::set<std::string>{"D_FRINGE"}));
+    EXPECT_EQ(names(beamline.getElements(Vector_t<double, 3>(0, 0, 0.2))),
+              (std::set<std::string>{"D_FRINGE", "FRINGE"}));
+    Options::enableLinearTransferMaps = true;
+    Options::linearTransferMapIntegrator = "DOP853";
+    Options::linearTransferMapRichardsonLevels = 1;
+    StepSizeConfig steps;
+    steps.push_back(1.e-11, 0.3, 1);
+    steps.resetIterator();
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    OrbitThreader threader(reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0, 0, 1),
+            0.0, 0.0, 0.0, 1.e-11, steps, beamline, true);
+    threader.execute();
     const auto maps = beamline.getLinearTransferMapsInReferenceOrder();
-    ASSERT_FALSE(maps.empty());
-    EXPECT_EQ(maps.front().map->richardsonLevels, 1);
+    ASSERT_EQ(maps.size(), 2);
+    EXPECT_EQ(maps[0].element->getName(), "FRINGE");
+    EXPECT_EQ(maps[1].element->getName(), "D_FRINGE");
+    EXPECT_NEAR(maps[0].map->exit.pathLength, 0.1, 1.e-11);
+    EXPECT_NEAR(maps[1].map->entrance.pathLength, 0.1, 1.e-11);
+    EXPECT_NEAR(maps[1].map->exit.pathLength, 0.3, 1.e-11);
+    EXPECT_TRUE(maps[1].map->includesOverlappingFields);
+    EXPECT_EQ(maps[1].map->activeElements, (std::vector<std::string>{"D_FRINGE", "FRINGE"}));
+    // Acceleration in the nominal drift must change its momentum transfer, not act as a drift.
+    EXPECT_GT(std::abs(maps[1].map->matrix(5, 5) - 1.0), 1.e-4);
+    const auto product = prod(maps[1].map->matrix, maps[0].map->matrix);
+    for (unsigned i = 0; i < 6; ++i)
+        for (unsigned j = 0; j < 6; ++j)
+            EXPECT_EQ(product(i, j), (*threader.getCombinedLinearTransferMap())(i, j));
+}
+
+TEST_F(OrbitThreaderTest, NativeFringeCutoffConvergesAtFixedNominalGeometry) {
+    auto bunch = makeBunch(0);
+    DummyBeamline lattice;
+    DefaultVisitor visitor(lattice, false, false);
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    Options::enableLinearTransferMaps = true;
+    Options::linearTransferMapIntegrator = "DOP853";
+    Options::linearTransferMapRichardsonLevels = 1;
+    Options::linearTransferMapSteps.fill(1.e-4);
+    std::vector<matrix6x6_t> matrices;
+    for (const double gaps : {2.0, 3.0, 4.0, 5.0}) {
+        OpalBeamline beamline;
+        CutoffSBend bend(gaps * 0.02);
+        bend.getGeometry() = Geometry::makeSBend(0.2, 0.5);
+        bend.setFullGap(0.02);
+        bend.setFringeIntegral(0.1);
+        bend.setFieldComponents({reference.getM() / (2.0 * Physics::c)}, {});
+        bend.setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector_t<double, 3>(0, 0, 0.2), Quaternion()));
+        DriftRep before("D_BEFORE"), after("D_AFTER");
+        before.getGeometry().setElementLength(0.2);
+        after.getGeometry().setElementLength(0.2);
+        after.setCSTrafoGlobal2Local(bend.getGeometry().getEdgeToEnd() * bend.getCSTrafoGlobal2Local());
+        beamline.visit(before, visitor, *bunch);
+        beamline.visit(bend, visitor, *bunch);
+        beamline.visit(after, visitor, *bunch);
+        beamline.prepareSections();
+        double designLength = 0.0;
+        for (const auto& element : beamline.getElements()) designLength += element->getGeometry().getArcLength();
+        EXPECT_DOUBLE_EQ(designLength, 0.2 + 0.2 + 0.2);
+        StepSizeConfig steps;
+        steps.push_back(1.e-11, 0.6, 1);
+        steps.resetIterator();
+        OrbitThreader threader(reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0, 0, 1),
+                0.0, 0.0, 0.0, 1.e-11, steps, beamline, true);
+        threader.execute();
+        ASSERT_TRUE(threader.getCombinedLinearTransferMap());
+        matrices.push_back(*threader.getCombinedLinearTransferMap());
+        for (const auto& entry : beamline.getLinearTransferMapsInReferenceOrder()) {
+            if (entry.element->getName() == "B_CUTOFF") {
+                const auto localEntry = entry.element->getCSTrafoGlobal2Local().transformTo(entry.map->entrance.position);
+                const auto localExit = (entry.element->getGeometry().getEdgeToEnd()
+                        * entry.element->getCSTrafoGlobal2Local()).transformTo(entry.map->exit.position);
+                EXPECT_NEAR(localEntry(2), 0.0, 1.e-10);
+                EXPECT_NEAR(localExit(2), 0.0, 1.e-10);
+            }
+        }
+    }
+    const auto difference = [&](unsigned a, unsigned b) {
+        double error = 0.0;
+        for (unsigned i = 0; i < 6; ++i)
+            for (unsigned j = 0; j < 6; ++j)
+                error = std::max(error, std::abs(matrices[a](i, j) - matrices[b](i, j)));
+        return error;
+    };
+    // 2 gaps still truncates a non-negligible Enge tail; at 3 gaps it is ~1e-13,
+    // and 4/5 gaps lie beyond the profile's existing exponent clipping threshold.
+    EXPECT_GT(difference(0, 3), 1.e-6);
+    EXPECT_LT(difference(1, 3), 1.e-8);
+    EXPECT_LT(difference(2, 3), 1.e-8);
+    RecordProperty("cutoff_2_to_5_max_entry_difference", std::to_string(difference(0, 3)));
+    RecordProperty("cutoff_3_to_5_max_entry_difference", std::to_string(difference(1, 3)));
 }
 
 TEST_F(OrbitThreaderTest, UsesFieldSupportExtentForLengthCheck) {

@@ -39,6 +39,17 @@
 
 class OrbitThreader {
 public:
+    /**
+     * @brief Thread a LINE interval or a RING return section.
+     *
+     * Positive @p period is the nominal design circumference in metres, never the sum of
+     * field-support lengths. A ring ends at the launch-direction crossing of
+     * \f$(\mathbf r-\mathbf r_0)\cdot\widehat{\mathbf p}_0=0\f$ after travelling at least
+     * half the design circumference. Search is bounded by twice that distance (or four
+     * nominal flight times). The measured return length sets the distance-index period;
+     * the design circumference is unchanged. This simple-ring return search does not
+     * solve for a fixed point or certify position/momentum closure.
+     */
     OrbitThreader(
             const PartData& ref, const Vector_t<double, 3>& r, const Vector_t<double, 3>& p,
             double s, double maxDiffZBunch, double t, double dT, StepSizeConfig stepSizes,
@@ -59,8 +70,9 @@ public:
      * \f[
      * M_{\rm total}=M_N\cdots M_2M_1.
      * \f]
-     * The product contains every unique constant-active-set segment, including field-free
-     * intervals. For a periodic OrbitThreader this is the one-turn map.
+     * The product contains every unique nominal-owner segment, including unowned intervals.
+     * For a periodic OrbitThreader this is a same-section return derivative; it becomes a
+     * closed-orbit one-turn map only after reference position and momentum closure.
      */
     const std::optional<matrix6x6_t>& getCombinedLinearTransferMap() const;
 
@@ -80,6 +92,13 @@ public:
      * physical tracking.
      */
     const std::optional<double>& getCombinedSymplecticResidual() const;
+
+    /// Design circumference supplied by RING, in metres; zero for a LINE.
+    double getDesignCircumference() const { return period_m; }
+    /// Measured distance to the ring return plane, not necessarily a closed-orbit length.
+    const std::optional<double>& getReferenceReturnLength() const { return referenceReturnLength_m; }
+    /// Lab displacement after returning to the starting transverse plane, in metres.
+    Vector_t<double, 3> getReferenceReturnDisplacement() const { return r_m - ringOrigin_m.position; }
 
 private:
     /// position of reference particle in lab coordinates
@@ -128,6 +147,10 @@ private:
     double timeCorrection_m{0.0};
     double pathLengthCorrection_m{0.0};
     RayState currentRay() const;
+    RayState ringOrigin_m;
+    bool referencePass_m{false};
+    std::optional<double> referenceReturnLength_m;
+    void checkRingReturn(const RayState& before, double stepDt);
     void setCurrentRay(const RayState& ray);
     Vector_t<double, 3> nextMidpointPosition() const;
     /// Snapshot of OPTION settings; reference and perturbed rays use the same integrator.

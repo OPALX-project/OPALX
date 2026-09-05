@@ -243,7 +243,7 @@ LinearTransferMapReference LinearTransferMapBuilder::refineBoundary(
         const std::shared_ptr<ElementBase>& element, const LinearTransferMapReference& before,
         const LinearTransferMapReference& after, const bool entering) {
     const auto isInside = [&](const RayState& ray) {
-        return element->isInside(itsOpalBeamline_m.transformToLocalCS(element, ray.position));
+        return element->isInsideBody(itsOpalBeamline_m.transformToLocalCS(element, ray.position));
     };
 
     const RayState start = rayState(before);
@@ -322,7 +322,12 @@ LinearTransferMapBuilder::RayState LinearTransferMapBuilder::trackRayToExit(
         RayState next                              = tracker_m.advance(previous, dt_m);
         const Vector_t<double, 3> nextDisplacement = displacement(next, exit);
         const double nextDistance                  = dot(nextDisplacement, exit.sAxis);
-        if (crossed(previousDistance, nextDistance)) {
+        const double elapsed = std::abs(compensated::difference(
+                next.time, next.timeCorrection, initial.time, initial.timeCorrection));
+        // A one-turn entrance and exit can be the same plane. Do not accept the launch
+        // crossing (or the opposite-side crossing) as the ray's return. This is a local
+        // linear-map search about the supplied reference flight, not an arbitrary orbit search.
+        if (elapsed >= 0.5 * std::abs(referenceFlightTime) && crossed(previousDistance, nextDistance)) {
             double lower   = 0.0;
             double upper   = dt_m;
             RayState trial = next;
@@ -498,14 +503,14 @@ LinearTransferMapBuilder::Result LinearTransferMapBuilder::build(
     };
 
     std::vector<BoundaryEvent> events;
-    auto previousSet = itsOpalBeamline_m.getElements(referenceSamples_m.front().state.position);
-    validateActiveSet(previousSet);
+    auto previousSet = itsOpalBeamline_m.getBodyElements(referenceSamples_m.front().state.position);
+    validateActiveSet(itsOpalBeamline_m.getElements(referenceSamples_m.front().state.position));
 
     for (std::size_t sample = 1; sample < referenceSamples_m.size(); ++sample) {
         const auto& before = referenceSamples_m[sample - 1].state;
         const auto& after  = referenceSamples_m[sample].state;
-        auto currentSet    = itsOpalBeamline_m.getElements(after.position);
-        validateActiveSet(currentSet);
+        auto currentSet    = itsOpalBeamline_m.getBodyElements(after.position);
+        validateActiveSet(itsOpalBeamline_m.getElements(after.position));
 
         IndexMap::value_t exited;
         std::set_difference(
@@ -536,7 +541,7 @@ LinearTransferMapBuilder::Result LinearTransferMapBuilder::build(
 
     std::vector<Segment> segments;
     IndexMap::value_t active =
-            itsOpalBeamline_m.getElements(referenceSamples_m.front().state.position);
+            itsOpalBeamline_m.getBodyElements(referenceSamples_m.front().state.position);
     LinearTransferMapReference segmentEntrance = referenceSamples_m.front().state;
     constexpr double minimumSegmentLength      = 1.0e-12;
     for (const auto& event : events) {
@@ -556,13 +561,29 @@ LinearTransferMapBuilder::Result LinearTransferMapBuilder::build(
     }
 
     result.segments.reserve(segments.size());
+    std::size_t sampleIndex = 1;
     for (std::size_t segment = 0; segment < segments.size(); ++segment) {
         const auto& interval = segments[segment];
         validateActiveSet(interval.active);
         LinearTransferMap map = makeLinearTransferMap(interval.entrance, interval.exit, segment);
         map.segment           = segment;
+        // Ownership follows bodies, while contributors can change inside one body interval.
+        // Record the union encountered by the reference; each shadow ray still queries its
+        // own summed field at every stage, including all support-boundary subdivisions.
+        IndexMap::value_t contributors;
         map.includesOverlappingFields = interval.active.size() > 1;
-        for (const auto& element : interval.active) {
+        for (; sampleIndex < referenceSamples_m.size(); ++sampleIndex) {
+            const auto& before = referenceSamples_m[sampleIndex - 1].state;
+            const auto& after = referenceSamples_m[sampleIndex].state;
+            if (before.pathLength >= interval.exit.pathLength) break;
+            if (after.pathLength <= interval.entrance.pathLength) continue;
+            auto fields = itsOpalBeamline_m.getElements(0.5 * (before.position + after.position));
+            validateActiveSet(fields);
+            map.includesOverlappingFields = map.includesOverlappingFields || fields.size() > 1;
+            contributors.insert(fields.begin(), fields.end());
+        }
+        if (sampleIndex > 1) --sampleIndex; // a sample bracket may straddle a nominal boundary
+        for (const auto& element : contributors) {
             map.activeElements.push_back(element->getName());
         }
         std::sort(map.activeElements.begin(), map.activeElements.end());

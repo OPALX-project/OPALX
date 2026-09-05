@@ -12,6 +12,20 @@
 #include <algorithm>
 
 namespace {
+    double designLength(const FlaggedBeamline& line) {
+        double length = 0.0;
+        for (const auto& member : line) {
+            const auto* element = member.getElement();
+            if (!element || element->getType() == ElementType::MARKER) continue;
+            if (const auto* nested = dynamic_cast<const FlaggedBeamline*>(element)) {
+                length += designLength(*nested);
+            } else {
+                length += element->getGeometry().getArcLength();
+            }
+        }
+        return length;
+    }
+
     void cloneAndAssignMembership(FlaggedBeamline& line, const std::string& ringName) {
         for (auto& member : line) {
             ElementBase* element = member.getElement();
@@ -52,6 +66,8 @@ Ring* Ring::copy(const std::string& name) {
 }
 
 void Ring::parse(Statement& stat) { parseDefinition(stat, false); }
+
+double Ring::getLength() const { return designLength(*fetchLine()); }
 
 const char* Ring::getSequenceKeyword() const { return "RING"; }
 

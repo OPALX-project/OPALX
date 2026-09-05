@@ -83,9 +83,9 @@ OrbitThreader::OrbitThreader(
       rayTracker_m(bl, ref, isDesignBeam && Options::enableLinearTransferMaps
                                    ? mapSettings_m.integrationMethod
                                    : ExternalFieldRayTracker::IntegrationMethod::BORIS) {
-    if (period_m > 0.0) {
-        imap_m.setPeriod(pathLength_m, period_m);
-    }
+    ringOrigin_m = currentRay();
+    if (period_m > 0.0 && (dt == 0.0 || euclidean_norm(p) == 0.0))
+        throw OpalException("OrbitThreader", "A RING reference needs nonzero momentum and DT.");
     auto opal = OpalData::getInstance();
     // Only the design beam writes the _DesignPath.dat trajectory log; secondary species
     // must not open (and truncate) it.
@@ -162,6 +162,7 @@ void OrbitThreader::execute() {
     std::set<std::string> visitedElements;
 
     trackBack();
+    referencePass_m = true;
     updateBoundingBoxWithCurrentPosition();
     pathLengthRange_m.enlargeIfOutside(pathLength_m);
 
@@ -208,8 +209,10 @@ void OrbitThreader::execute() {
             compensated::add(std::copysign(1.0, dt_m), pathLength_m, pathLengthCorrection_m);
         }
 
-        const double finalS = reachedThreadingEnd() ? sStop_m : pathLength_m;
-        imap_m.add(initialS, finalS, elementSet);
+        const double finalS = reachedThreadingEnd() && period_m <= 0.0 ? sStop_m : pathLength_m;
+        // Map/ring threading records every accepted support-resolved step in integrate().
+        if (!collectReferenceSamples_m && period_m <= 0.0)
+            imap_m.add(initialS, finalS, elementSet);
 
         // Store overlap participation on the runtime occurrences during the reference pass.
         // Ignore the backwards pre-roll before the requested map origin.
@@ -241,10 +244,24 @@ void OrbitThreader::execute() {
                 std::inserter(intersection, intersection.begin()));
     } while (errorFlag_m != EOL
              && (collectReferenceSamples_m || period_m > 0.0 || stepRange_m.isInside(currentStep_m))
-             && !(pathLengthRange_m.isOutside(pathLength_m) && intersection.empty()
-                  && !(elementSet.empty() || currentSet.empty())));
+             && (period_m > 0.0
+                 || !(pathLengthRange_m.isOutside(pathLength_m) && intersection.empty()
+                      && !(elementSet.empty() || currentSet.empty()))));
 
-    imap_m.tidyUp(sStop_m);
+    if (referenceReturnLength_m) {
+        // The IndexMap is indexed by travelled distance, not by nominal lattice s.
+        imap_m.setPeriod(std::min(initialPathLength, pathLength_m), *referenceReturnLength_m);
+        if (isDesignBeam_m) {
+            *gmsg << level1 << std::setprecision(12)
+                  << "* RING design circumference = " << period_m << " m\n"
+                  << "* RING reference return length = " << *referenceReturnLength_m << " m\n"
+                  << "* RING return displacement = " << euclidean_norm(Vector_t<double, 3>(r_m - ringOrigin_m.position))
+                  << " m; relative momentum mismatch = "
+                  << euclidean_norm(Vector_t<double, 3>(p_m - ringOrigin_m.momentum)) / euclidean_norm(ringOrigin_m.momentum)
+                  << "\n* RING return is not a closed-orbit solve.\n";
+        }
+    }
+    imap_m.tidyUp(period_m > 0.0 ? pathLength_m : sStop_m);
     collectReferenceSamples_m = false;
     if (calculateMaps) {
         LinearTransferMapBuilder builder(itsOpalBeamline_m, reference_m, dt_m, mapSettings_m);
@@ -278,7 +295,7 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
         errorFlag_m = EVERYTHINGFINE;
 
         steps.clear();
-        const bool resolveSupport = collectReferenceSamples_m
+        const bool resolveSupport = period_m > 0.0 || collectReferenceSamples_m
                 || (isDesignBeam_m && Options::enableLinearTransferMaps
                     && mapSettings_m.integrationMethod != ExternalFieldRayTracker::IntegrationMethod::BORIS);
         if (resolveSupport) {
@@ -319,7 +336,7 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
             const auto& Ef = step.electric;
             const auto& Bf = step.magnetic;
 
-            if (((pathLength_m > 0.0 && pathLength_m < sStop_m) || dt_m < 0.0)
+            if (((pathLength_m > 0.0 && (period_m > 0.0 || pathLength_m < sStop_m)) || dt_m < 0.0)
                 && currentStep_m % loggingFrequency_m == 0 && ippl::Comm->rank() == 0
                 && !OpalData::getInstance()->isOptimizerRun()) {
                 logger_m << std::setw(18) << std::setprecision(8)
@@ -339,13 +356,14 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
             }
 
             setCurrentRay(step.end);
+            if (period_m > 0.0 && referencePass_m) checkRingReturn(oldRay, stepDt);
             if (collectReferenceSamples_m) {
                 // The nominal midpoint can miss a short overlap. Use every accepted
                 // boundary-resolved interval when recording overlap participation.
                 if (pathLength_m > transferMapStartPathLength_m && fields.size() > 1) {
                     for (const auto& element : fields) element->setOverlapping(true);
                 }
-                if (reachedThreadingEnd()) {
+                if (period_m <= 0.0 && reachedThreadingEnd()) {
                     setCurrentRay(rayTracker_m.advanceToPathLength(oldRay, stepDt, sStop_m));
                     // The located state is within the path-localization tolerance.
                     // Use the requested endpoint label and stop even if bisection
@@ -355,6 +373,9 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
                 }
                 recordReferenceSample();
             }
+
+            if (resolveSupport && referencePass_m)
+                imap_m.add(oldRay.pathLength, pathLength_m, fields);
 
             if (reachedThreadingEnd()) {
                 errorFlag_m = EOL;
@@ -367,7 +388,7 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
 
         nextR = nextMidpointPosition();
 
-        if (activeSet.empty() && !collectReferenceSamples_m
+        if (period_m <= 0.0 && activeSet.empty() && !collectReferenceSamples_m
             && (pathLengthRange_m.isOutside(pathLength_m)
                 || (period_m <= 0.0 && stepRange_m.isOutside(currentStep_m)))) {
             errorFlag_m = EOL;
@@ -379,9 +400,50 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
 }
 
 bool OrbitThreader::reachedThreadingEnd() const {
+    if (period_m > 0.0) return referencePass_m && referenceReturnLength_m.has_value();
     const bool stopAtSStop = period_m > 0.0 || collectReferenceSamples_m;
     const double distance = compensated::difference(pathLength_m, pathLengthCorrection_m, sStop_m, 0.0);
     return stopAtSStop && (dt_m > 0.0 ? distance >= 0.0 : distance <= 0.0);
+}
+
+void OrbitThreader::checkRingReturn(const RayState& before, const double stepDt) {
+    // A bounded one-circuit search, not a closed-orbit finder. The half-circumference guard
+    // excludes the launch plane and the opposite-side crossing of a simple ring. The return
+    // must have the same crossing direction as launch; fail rather than invent a return.
+    const Vector_t<double, 3> normal = ringOrigin_m.momentum / euclidean_norm(ringOrigin_m.momentum);
+    const double direction = std::copysign(1.0, dt_m);
+    const auto distance = [&](const RayState& ray) {
+        double value = 0.0;
+        for (unsigned d = 0; d < 3; ++d)
+            value += normal(d) * compensated::difference(ray.position(d), ray.positionCorrection(d),
+                    ringOrigin_m.position(d), ringOrigin_m.positionCorrection(d));
+        return direction * value;
+    };
+    const double travelled = std::abs(compensated::difference(pathLength_m, pathLengthCorrection_m,
+            ringOrigin_m.pathLength, ringOrigin_m.pathLengthCorrection));
+    if (travelled > 0.5 * period_m && distance(before) < 0.0 && distance(currentRay()) >= 0.0) {
+        double lower = 0.0, upper = stepDt;
+        RayState trial = currentRay();
+        for (unsigned i = 0; i < 60; ++i) {
+            const double middle = 0.5 * (lower + upper);
+            trial = rayTracker_m.advance(before, middle);
+            if (distance(trial) >= 0.0) upper = middle;
+            else lower = middle;
+            if (std::abs(upper - lower) <= 1.e-12 * std::abs(dt_m)) break;
+        }
+        setCurrentRay(trial);
+        referenceReturnLength_m = std::abs(compensated::difference(pathLength_m,
+                pathLengthCorrection_m, ringOrigin_m.pathLength, ringOrigin_m.pathLengthCorrection));
+    } else {
+        const double initialSpeed = Physics::c * euclidean_norm(ringOrigin_m.momentum)
+                / Util::getGamma(ringOrigin_m.momentum);
+        if (travelled > 2.0 * period_m
+            || std::abs(time_m - ringOrigin_m.time) > 4.0 * period_m / initialSpeed)
+            throw OpalException("OrbitThreader::checkRingReturn",
+                    "RING reference did not return to its starting plane within the one-circuit "
+                    "search window (twice the design circumference). Check geometry, fields and "
+                    "launch orbit; a closed-orbit finder may be required.");
+    }
 }
 
 bool OrbitThreader::containsCavity(const IndexMap::value_t& activeSet) {
@@ -519,6 +581,14 @@ void OrbitThreader::recordReferenceSample() {
     state = referenceSamples_m.empty()
                     ? LinearTransferMapBuilder::initialFrame(itsOpalBeamline_m, p_m)
                     : LinearTransferMapBuilder::transportFrame(referenceSamples_m.back().state, p_m);
+    if (referenceReturnLength_m) {
+        // Use the original plane and axes for a genuine same-section return derivative.
+        // The returned reference momentum need not be parallel to this fixed plane normal.
+        const auto frame = LinearTransferMapBuilder::initialFrame(itsOpalBeamline_m, ringOrigin_m.momentum);
+        state.xAxis = frame.xAxis;
+        state.yAxis = frame.yAxis;
+        state.sAxis = frame.sAxis;
+    }
     state.position   = r_m;
     state.momentum   = p_m;
     state.time       = time_m;
