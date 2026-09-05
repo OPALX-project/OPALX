@@ -76,6 +76,13 @@ def _inspect_input(idx, dataset, indent=""):
             block = dataset.GetPartitionedDataSet(i)
             _inspect_input(f"{idx}[{i}]", block, indent + "  ")
         return
+    if hasattr(dataset, 'GetNumberOfPartitions'):
+        n = dataset.GetNumberOfPartitions()
+        _dbg(f"{indent}  partitions: {n}")
+        for i in range(n):
+            block = dataset.GetPartition(i)
+            _inspect_input(f"{idx}[{i}]", block, indent + "  ")
+        return
     if hasattr(dataset, 'GetNumberOfBlocks'):
         n = dataset.GetNumberOfBlocks()
         _dbg(f"{indent}  blocks: {n}")
@@ -106,6 +113,15 @@ def _find_transform_block(dataset):
         n = dataset.GetNumberOfPartitionedDataSets()
         for i in range(n):
             block = dataset.GetPartitionedDataSet(i)
+            found = _find_transform_block(block)
+            if found is not None:
+                return found
+        return None
+
+    if hasattr(dataset, 'GetNumberOfPartitions'):
+        n = dataset.GetNumberOfPartitions()
+        for i in range(n):
+            block = dataset.GetPartition(i)
             found = _find_transform_block(block)
             if found is not None:
                 return found
