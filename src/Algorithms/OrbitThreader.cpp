@@ -80,7 +80,9 @@ OrbitThreader::OrbitThreader(
       errorFlag_m(0),
       reference_m(ref),
       mapSettings_m(mapSettingsFromOptions()),
-      rayTracker_m(bl, ref, mapSettings_m.integrationMethod) {
+      rayTracker_m(bl, ref, isDesignBeam && Options::enableLinearTransferMaps
+                                   ? mapSettings_m.integrationMethod
+                                   : ExternalFieldRayTracker::IntegrationMethod::BORIS) {
     if (period_m > 0.0) {
         imap_m.setPeriod(pathLength_m, period_m);
     }
@@ -276,7 +278,10 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
         errorFlag_m = EVERYTHINGFINE;
 
         steps.clear();
-        if (collectReferenceSamples_m) {
+        const bool resolveSupport = collectReferenceSamples_m
+                || (isDesignBeam_m && Options::enableLinearTransferMaps
+                    && mapSettings_m.integrationMethod != ExternalFieldRayTracker::IntegrationMethod::BORIS);
+        if (resolveSupport) {
             rayTracker_m.advance(currentRay(), dt_m, &steps);
         } else {
             steps.push_back(rayTracker_m.step(
@@ -301,7 +306,7 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
             const double stepDt            = step.duration;
             const RayState oldRay = currentRay();
             std::string names("\t");
-            const auto fields = collectReferenceSamples_m
+            const auto fields = resolveSupport
                                         ? itsOpalBeamline_m.getElements(step.midpoint.position)
                                         : activeSet;
             for (const auto& element : fields)
@@ -321,9 +326,9 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
                          << step.midpoint.pathLength << std::setw(18)
                          << std::setprecision(8) << r_m(0) << std::setw(18) << std::setprecision(8)
                          << r_m(1) << std::setw(18) << std::setprecision(8) << r_m(2)
-                         << std::setw(18) << std::setprecision(8) << p_m(0) << std::setw(18)
-                         << std::setprecision(8) << p_m(1) << std::setw(18) << std::setprecision(8)
-                         << p_m(2) << std::setw(18) << std::setprecision(8) << Ef(0)
+                         << std::setw(18) << std::setprecision(8) << step.midpoint.momentum(0) << std::setw(18)
+                         << std::setprecision(8) << step.midpoint.momentum(1) << std::setw(18) << std::setprecision(8)
+                         << step.midpoint.momentum(2) << std::setw(18) << std::setprecision(8) << Ef(0)
                          << std::setw(18) << std::setprecision(8) << Ef(1) << std::setw(18)
                          << std::setprecision(8) << Ef(2) << std::setw(18) << std::setprecision(8)
                          << Bf(0) << std::setw(18) << std::setprecision(8) << Bf(1) << std::setw(18)
@@ -559,6 +564,9 @@ void OrbitThreader::printCombinedLinearTransferMap() const {
     for (const auto step : mapSettings_m.finiteDifferenceSteps)
         *gmsg << " " << std::setprecision(12) << std::scientific << step;
     *gmsg << std::defaultfloat << "\n";
+    if (mapSettings_m.integrationMethod != ExternalFieldRayTracker::IntegrationMethod::BORIS)
+        *gmsg << "* Linear-map RK stepping: fixed nominal DT with support subdivision; "
+              << "no adaptive error controller.\n";
     *gmsg << level1
           << (period_m > 0.0 ? "\n* Combined one-turn linear transfer map"
                              : "\n* Combined linear transfer map")
