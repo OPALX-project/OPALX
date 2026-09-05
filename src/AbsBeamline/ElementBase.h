@@ -58,12 +58,34 @@ enum class ElementType : unsigned short {
     CONSTANTFOCUSING
 };
 
-/// Topology of the beam sequence which owns an element occurrence.
+/// Logical sequence topology, independent of ElementType and field-support overlap.
+/// RING is a sequence declaration, not a new physical element type or a closure test.
 enum class BeamlineTopology : unsigned short { LINE, RING };
 
-/// Host-side ownership metadata for an element occurrence.
+/**
+ * @brief Logical RING membership carried by a sequence member or runtime occurrence.
+ *
+ * An occurrence is one use of an element in a sequence, rather than its reusable input
+ * definition. Ring::prepareForTracking() clones occurrences recursively and assigns the
+ * enclosing RING name to each, including members inside nested LINEs. For example, two
+ * uses of a quadrupole in ring R1 have distinct element objects but both carry
+ * {BeamlineTopology::RING, "R1"}; neither the quadrupole name nor an inner LINE name
+ * is the ownerName. The original quadrupole definition is not retagged.
+ *
+ * Ordinary LINE membership is {BeamlineTopology::LINE, ""}: LINE names and a full
+ * parent hierarchy are deliberately not recorded. ElementBase's copy constructor
+ * preserves this metadata, including when OpalBeamline clones tracking elements.
+ * This is host-side value metadata, not a pointer to a sequence, C++ memory ownership,
+ * a unique occurrence identifier, a turn counter, or evidence of orbit closure.
+ *
+ * Do not use membership to select fields or assign transfer-map intervals. Those use,
+ * respectively, ElementBase::isInside() and ElementBase::isInsideBody(). Field tails
+ * can act in another element's nominal body without changing either element's membership.
+ */
 struct BeamlineMembership {
+    /// LINE by default; RING after assignment by the enclosing Ring.
     BeamlineTopology topology = BeamlineTopology::LINE;
+    /// Enclosing RING's name (required for RING), empty for LINE; stored by value.
     std::string ownerName;
 };
 
@@ -195,7 +217,8 @@ public:
 
     /* ======================= Beamline membership =========================== */
 
-    /// Return the topology and owner of this element occurrence.
+    /// Read the logical sequence tag; the returned reference is owned by this element.
+    /// See BeamlineMembership for its distinction from map ownership and field support.
     const BeamlineMembership& getBeamlineMembership() const;
 
     /// Return the topology of the owning beam sequence.
@@ -207,27 +230,53 @@ public:
     /// @brief Whether this runtime occurrence owns at least one calculated linear transfer map.
     bool hasLinearTransferMaps() const;
 
-    /// @brief Calculated path-segment maps involving this runtime occurrence, in traversal order.
+    /**
+     * @brief Maps attached to this nominal body by the design-orbit threader.
+     *
+     * OrbitThreader appends in reference-path order. One element may receive several
+     * segments, and a segment with several nominal owners is copied to each owner.
+     * Field contribution alone does not imply ownership: a magnet's fringe can act
+     * in a drift-owned map. These are runtime results, not maps of isolated fields.
+     *
+     * The vector belongs to this element. References/pointers to its entries can be
+     * invalidated by addLinearTransferMap(), clearLinearTransferMaps(), or a new
+     * map-enabled design pass. Clones start with an empty vector.
+     * @see OpalBeamline::getLinearTransferMapsInReferenceOrder()
+     */
     const std::vector<LinearTransferMap>& getLinearTransferMaps() const;
 
-    /// @brief Attach a path-segment map involving this runtime occurrence.
+    /// Append a map by value; does not validate, sort, deduplicate, or update overlap flags.
     void addLinearTransferMap(LinearTransferMap map);
 
-    /// @brief Remove runtime results; cloned elements never inherit calculated maps.
+    /// Remove attached maps only; membership and isOverlapping() are unchanged.
     void clearLinearTransferMaps();
 
-    /// @brief Whether this runtime occurrence shared a threaded path interval with another element.
+    /**
+     * @brief Whether the map-enabled design pass observed shared field support.
+     *
+     * True if this occurrence participated in a sampled support set containing more
+     * than one element along the requested reference interval. This is an accumulated
+     * flag for that pass, not an overlap partner list or a full 3D intersection test.
+     * Support selection can include a field-free drift; it does not test whether each
+     * selected element contributes a nonzero field. Thus true need not mean overlapping
+     * nominal bodies or an invalid lattice.
+     *
+     * Initially false, not inherited by clones, and reset before map-enabled design
+     * threading. Secondary-species threading leaves the design result unchanged.
+     * @see LinearTransferMap::includesOverlappingFields
+     */
     bool isOverlapping() const;
 
     /// @brief Set overlap participation discovered by the design-orbit threader.
     void setOverlapping(bool overlapping);
 
-    /// Assign validated beam-sequence ownership metadata.
-    /// RING membership requires a non-empty owner; LINE membership requires
-    /// an empty owner.
+    /// Assign the logical sequence tag only; does not change placement, maps or overlap flags.
+    /// @param topology LINE or RING.
+    /// @param ownerName Enclosing RING name, or empty for LINE.
+    /// @throws GeneralOpalException If RING has an empty name or LINE a nonempty name.
     void setBeamlineMembership(BeamlineTopology topology, std::string ownerName = {});
 
-    /// Restore the default LINE membership.
+    /// Restore {BeamlineTopology::LINE, ""} only; maps and overlap flags are unchanged.
     void clearBeamlineMembership();
 
     /// @brief Apply a visitor.
@@ -259,6 +308,10 @@ public:
      * The local longitudinal interval is [0,L), with arc coordinates for a sector bend.
      * The transverse aperture is respected. A drift can own this interval even when a
      * neighbouring magnet contributes a fringe field there. Zero-length bodies own no interval.
+     * This defines transfer-map ownership, not the region used for field evaluation.
+     * @param r Position [m] in the element entrance frame, not the lab frame.
+     * @return Whether the point belongs to the nominal body and transverse aperture.
+     * @see OpalBeamline::getBodyElements()
      */
     bool isInsideBody(const Vector_t<double, 3>& r) const;
 
@@ -481,10 +534,12 @@ private:
     static const std::map<ElementType, std::string> elementTypeToString_s;
 
     // --- Beamline membership ---
+    /// Logical sequence tag, preserved by the copy constructor; see BeamlineMembership.
     BeamlineMembership beamlineMembership_m;
 
-    // Runtime results are deliberately not copied by ElementBase's copy constructor.
+    /// Host-owned map copies. Runtime results below are deliberately not copied.
     std::vector<LinearTransferMap> linearTransferMaps_m;
+    /// Reference-pass support-overlap diagnostic, not static lattice membership.
     bool isOverlapping_m{false};
 
     // --- User-defined attributes ---

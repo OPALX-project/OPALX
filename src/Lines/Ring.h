@@ -13,6 +13,14 @@
 
 #include "Lines/Line.h"
 
+/**
+ * @brief RING sequence declaration: ordered lattice members with periodic topology.
+ *
+ * A RING is not a physical element. Its embedded beamline and prepared occurrences
+ * carry BeamlineMembership metadata; TrackRun reads the root topology to enable
+ * periodic tracking. This declaration alone does not enforce geometrical closure
+ * or find a closed orbit.
+ */
 class Ring : public Line {
 public:
     /// Exemplar constructor.
@@ -23,20 +31,33 @@ public:
     /// Make an empty clone which is filled by the parser.
     Ring* clone(const std::string& name) override;
 
-    /// Make a complete copy, including the sequence members.
+    /// Copy the sequence member list; prepareForTracking() isolates member objects later.
     Ring* copy(const std::string& name) override;
 
     /// Parse a closed-topology sequence definition.
     void parse(Statement& stat) override;
 
-    /// Isolate and tag all occurrences owned by this RING.
+    /**
+     * @brief Clone and tag occurrences before the runtime tracking lattice is built.
+     *
+     * Called by TrackRun through BeamSequence. Each member and nested member is
+     * cloned, then tagged with this RING's name (not the immediate nested LINE name).
+     * Repeated uses of a prototype become independent objects; prototypes and other
+     * rings keep their own metadata. Null members and internal names starting with
+     * '#' are skipped. The root beamline is tagged too.
+     *
+     * ElementBase cloning preserves membership but starts with no calculated maps
+     * and a false overlap flag. Calling this again replaces occurrence objects again;
+     * clients must not rely on occurrence pointer identity across preparation.
+     */
     void prepareForTracking() override;
 
     /**
      * @brief Design circumference in metres, summed over nominal occurrence arc lengths.
      *
-     * Drifts fill the nominal gaps and are counted once; field-support extensions never
-     * contribute. Rectangular-bend chord lengths are converted by Geometry::getArcLength().
+     * Recursively sums every non-marker occurrence, including explicit drifts and repeated
+     * members. No implicit gaps are inferred from placement, and field-support extensions
+     * never contribute. Rectangular-bend chord lengths are converted by Geometry::getArcLength().
      * This is not the length of a tracked or closed orbit and does not validate 3D closure.
      */
     double getLength() const override;

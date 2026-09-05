@@ -27,6 +27,9 @@ namespace {
     }
 
     void cloneAndAssignMembership(FlaggedBeamline& line, const std::string& ringName) {
+        // A member list may share prototypes, even after copying the outer sequence.
+        // Isolate every occurrence before tagging it; nested LINEs retain the outer
+        // ringName so that membership describes the tracked RING, not a parent chain.
         for (auto& member : line) {
             ElementBase* element = member.getElement();
             if (!element || (!element->getName().empty() && element->getName().front() == '#')) {
