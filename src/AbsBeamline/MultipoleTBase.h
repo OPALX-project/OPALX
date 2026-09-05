@@ -101,6 +101,8 @@ public:
     static constexpr size_t MaxFactorial         = 20;
     static constexpr size_t MaxPowerInteger      = 20;
     static constexpr unsigned int MaxDerivatives = 20;
+    /// How many fringe lengths past each pole face the tanh fringe is still counted as field.
+    static constexpr double FringeReach = 6.0;
 
     /** Helper function that returns factorial of n for n<=20 on both host and GPU */
     KOKKOS_INLINE_FUNCTION static double factorial(unsigned int n);
