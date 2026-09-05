@@ -84,9 +84,6 @@ public:
     /// The ID of time integrator
     Steppers::TimeIntegrator timeIntegrator;
 
-    /// Trunction order for map tracking
-    int truncOrder;
-
     /// The names of beams selected on the enclosing TRACK command.
     /// (If RUN::BEAM is omitted, TrackRun resolves from this list.)
     std::vector<std::string> beamNames_m;

@@ -27,6 +27,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <regex>
 
 namespace {
@@ -55,6 +56,15 @@ OpalBeamline::OpalBeamline(const Vector_t<double, 3>& origin, const Quaternion& 
       coordTransformationTo_m(origin, rotation) {}
 
 OpalBeamline::~OpalBeamline() { elements_m.clear(); }
+
+std::set<std::shared_ptr<ElementBase>> OpalBeamline::getBodyElements(
+        const Vector_t<double, 3>& x) const {
+    std::set<std::shared_ptr<ElementBase>> result;
+    for (const auto& element : elements_m) {
+        if (element->isInsideBody(transformToLocalCS(element, x))) result.insert(element);
+    }
+    return result;
+}
 
 std::set<std::shared_ptr<ElementBase>> OpalBeamline::getElements(const Vector_t<double, 3>& x) {
     std::set<std::shared_ptr<ElementBase>> elementSet;
@@ -138,6 +148,28 @@ void OpalBeamline::prepareSections() {
 }
 
 void OpalBeamline::print(Inform& /*msg*/) const {}
+
+std::vector<ElementTransferMapRef> OpalBeamline::getLinearTransferMapsInReferenceOrder() const {
+    std::vector<ElementTransferMapRef> result;
+    std::set<std::size_t> seenSegments;
+    for (const auto& element : elements_m) {
+        for (const auto& map : element->getLinearTransferMaps()) {
+            if (map.segment != std::numeric_limits<std::size_t>::max()
+                && !seenSegments.insert(map.segment).second) {
+                continue;
+            }
+            result.push_back({element, &map});
+        }
+    }
+    std::sort(result.begin(), result.end(), [](const auto& left, const auto& right) {
+        if (left.map->entrance.pathLength != right.map->entrance.pathLength) {
+            return left.map->entrance.pathLength < right.map->entrance.pathLength;
+        }
+        if (left.map->pass != right.map->pass) return left.map->pass < right.map->pass;
+        return left.element->getName() < right.element->getName();
+    });
+    return result;
+}
 
 void OpalBeamline::swap(OpalBeamline& rhs) {
     std::swap(elements_m, rhs.elements_m);
