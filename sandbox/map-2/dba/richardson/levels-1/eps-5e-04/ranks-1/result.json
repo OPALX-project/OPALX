@@ -1,0 +1,32 @@
+{
+  "dt_s": 1e-13,
+  "status": "OK",
+  "reason": "",
+  "full_matrix_error": 2.5191515540257114e-08,
+  "R16": -7.855007665559e-09,
+  "R26": -1.443163259331e-08,
+  "abs_R16": 7.855007665559e-09,
+  "abs_R26": 1.443163259331e-08,
+  "dispersion_error": 1.443163259331e-08,
+  "determinant_error": 3.4419811e-10,
+  "canonical_J_error": 2.651932e-08,
+  "epsilon": 0.0005,
+  "steps": [
+    0.0005,
+    0.0005,
+    0.0005,
+    0.0005,
+    0.0005,
+    0.0005
+  ],
+  "richardson_levels": 1,
+  "ranks": 1,
+  "provenance": {
+    "git_revision": "926b097d980dc39d56064e0e1783da9ccd3e8eac",
+    "builder_sha256": "4ce0a8d25ad0d1292885baa99b7d1d765f634ab01b640d6374d69c609c607df2",
+    "executable_sha256": "e8f491fb765b7dbf7bd0574f4adfab7b47bbc0af32cdd590da97dc24b5f1d2f6",
+    "input_template": "OPTION, ECHO = FALSE, PSDUMPFREQ = 0, STATDUMPFREQ = 0, VERSION = 10900, ASCIIDUMP = FALSE;\n\nOPTION, ENABLELINEARTRANSFERMAPS = TRUE;\n\nTITLE, STRING = \"map-2 symmetric hard-edge double-bend achromat\";\n\nREAL P0 = 0.2505104781131461;\nREAL RHO = 2.0;\nREAL THETA = PI / 6;\nREAL LB = RHO * THETA;\nREAL LD = 1.0;\nREAL LQ = 0.2;\n// Exact thick-lens solution of R16=R26=0 for B-D-Q-D-B with these dimensions.\nREAL KACH = -6.371966681365967;\n\nB1: SBEND, L = LB, ANGLE = THETA, HGAP = 0.0, FINT = 0.0, ELEMEDGE = 0.0;\nD1: DRIFT, L = LD, ELEMEDGE = LB;\nQACH: QUADRUPOLE, L = LQ, K1 = KACH, ELEMEDGE = LB + LD;\nD2: DRIFT, L = LD, ELEMEDGE = LB + LD + LQ;\nB2: SBEND, L = LB, ANGLE = THETA, HGAP = 0.0, FINT = 0.0,\n    ELEMEDGE = LB + 2 * LD + LQ;\nLATTICE: LINE = (B1, D1, QACH, D2, B2);\n\nDIST: DISTRIBUTION, TYPE = FROMFILE, FNAME = \"../reference-particle.txt\", NPARTDIST = 1;\nSOURCE: EMISSIONSOURCE, DISTRIBUTION = DIST;\nSOURCES: EMISSIONSOURCELIST = (SOURCE);\nFS: FIELDSOLVER, TYPE = NONE, NX = 16, NY = 16, NZ = 16,\n    PARFFTX = TRUE, PARFFTY = TRUE, PARFFTZ = TRUE,\n    BCFFTX = OPEN, BCFFTY = OPEN, BCFFTZ = OPEN,\n    BBOXINCR = 1, GREENSF = INTEGRATED;\nBEAM1: BEAM, PARTICLE = ELECTRON, NALLOC = 1,\n       BCHARGE = 1.6021766339999998e-19, SOURCES = SOURCES, CHARGE = -1;\n\nOPTION, ENABLELINEARTRANSFERMAPS=TRUE, LINEARTRANSFERMAPRICHARDSON=1, LINEARTRANSFERMAPSTEPS={5.0000000000000001e-04,5.0000000000000001e-04,5.0000000000000001e-04,5.0000000000000001e-04,5.0000000000000001e-04,5.0000000000000001e-04}, LINEARTRANSFERMAPINTEGRATOR=\"BORIS\";\n\nTRACK, LINE = LATTICE, BEAM = BEAM1, MAXSTEPS = 1, DT = 2.0e-13,\n      ZSTOP = 2 * LB + 2 * LD + LQ;\nRUN, METHOD = \"PARALLEL\", FIELDSOLVER = FS;\nENDTRACK;\nQUIT;\n",
+    "input_path": "/Users/adelmann/git/opalx/sandbox/map-2/dba/map-2-dba.in",
+    "mpi_args": "--map-by slot:OVERSUBSCRIBE --bind-to none"
+  }
+}

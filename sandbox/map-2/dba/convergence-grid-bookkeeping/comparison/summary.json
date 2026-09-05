@@ -1,0 +1,16 @@
+{
+  "primary_cases": 385,
+  "valid_pairs": 330,
+  "improved_pairs": 132,
+  "worsened_pairs": 197,
+  "median_full_map_gain": 0.9639688630592635,
+  "gain_definition": "before error / after error; >1 improves; not a significance test",
+  "best_before": 7.478656759042e-09,
+  "best_after": 8.366484394173e-09,
+  "input_checks": "same template, distribution, analytic map, all per-case input hashes",
+  "sources": {
+    "/Users/adelmann/git/opalx/sandbox/map-2/dba/convergence-grid": "eaa5f583e626b7aae8834658d270ebc46d1d0d2d25bfb46be82663599a3f7b5a",
+    "/Users/adelmann/git/opalx/sandbox/map-2/dba/convergence-grid-bookkeeping": "b507790829b805129826f5da80d1ea498e0ad29ff7c2efa2ecb66443b6eb74b3"
+  },
+  "comparison_script_sha256": "bce7327288438c2ed03b31569e3d1f08fd428bb18f5acad007e2f41207c90e23"
+}

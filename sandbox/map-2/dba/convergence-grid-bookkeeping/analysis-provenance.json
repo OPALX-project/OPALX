@@ -1,0 +1,11 @@
+{
+  "postprocessing_scripts_sha256": {
+    "convergence_grid.py": "8a7acc3baeadee840743518e3689ec90d9f903be3d31deef5feb490b83c1c11d",
+    "convergence_grid_plots.py": "9798ce2dd7cbabde786a3b5d38352f4141fe8d9acfb902fcf8e70d81b21caa60",
+    "validate_convergence_grid.py": "99d7eef0c1f04355efc79d6345e1d0012d3243dc5314dfcd761a3bc2cba8b7f4",
+    "test_convergence_grid.py": "6ff19b99ce80acb4bd6d57dc8a3b23980271b3c3697dec0f2062cba083d772db"
+  },
+  "coordinate_scales": "(1 m, 1, 1 m, 1, 1 m, 1)",
+  "numpy_version": "2.4.6",
+  "pandas_version": "3.0.3"
+}

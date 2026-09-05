@@ -18,6 +18,7 @@
 //
 
 #include "Algorithms/OrbitThreader.h"
+#include "Algorithms/CompensatedSum.h"
 
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/TravelingWave.h"
@@ -48,6 +49,16 @@ extern Inform* gmsg;
 
 namespace {
     constexpr double mapDiagnosticTolerance = 1.0e-6;
+
+    LinearTransferMapBuilder::Settings mapSettingsFromOptions() {
+        LinearTransferMapBuilder::Settings settings;
+        settings.finiteDifferenceSteps = Options::linearTransferMapSteps;
+        settings.richardsonLevels      = Options::linearTransferMapRichardsonLevels;
+        settings.integrationMethod     = ExternalFieldRayTracker::parseIntegrationMethod(
+                Options::linearTransferMapIntegrator);
+        settings.validate();
+        return settings;
+    }
 }
 
 OrbitThreader::OrbitThreader(
@@ -67,9 +78,9 @@ OrbitThreader::OrbitThreader(
       itsOpalBeamline_m(bl),
       isDesignBeam_m(isDesignBeam),
       errorFlag_m(0),
-      integrator_m{},
       reference_m(ref),
-      rayTracker_m(bl, ref) {
+      mapSettings_m(mapSettingsFromOptions()),
+      rayTracker_m(bl, ref, mapSettings_m.integrationMethod) {
     if (period_m > 0.0) {
         imap_m.setPeriod(pathLength_m, period_m);
     }
@@ -167,9 +178,7 @@ void OrbitThreader::execute() {
         recordReferenceSample();
     }
 
-    Vector_t<double, 3> nextR = r_m / (Physics::c * dt_m);
-    integrator_m.push(nextR, p_m, dt_m);
-    nextR = nextR * Physics::c * dt_m;
+    Vector_t<double, 3> nextR = nextMidpointPosition();
     if (isDesignBeam_m) {
         setDesignEnergy(allElements, visitedElements);
     }
@@ -194,7 +203,7 @@ void OrbitThreader::execute() {
         if (errorFlag_m == HITMATERIAL) {
             // Shouldn't be reached because reference particle
             // isn't stopped by collimators
-            pathLength_m += std::copysign(1.0, dt_m);
+            compensated::add(std::copysign(1.0, dt_m), pathLength_m, pathLengthCorrection_m);
         }
 
         const double finalS = reachedThreadingEnd() ? sStop_m : pathLength_m;
@@ -220,9 +229,7 @@ void OrbitThreader::execute() {
 
         currentSet = elementSet;
         if (errorFlag_m == EVERYTHINGFINE) {
-            nextR = r_m / (Physics::c * dt_m);
-            integrator_m.push(nextR, p_m, dt_m);
-            nextR = nextR * Physics::c * dt_m;
+            nextR = nextMidpointPosition();
 
             elementSet = itsOpalBeamline_m.getElements(nextR);
         }
@@ -238,7 +245,7 @@ void OrbitThreader::execute() {
     imap_m.tidyUp(sStop_m);
     collectReferenceSamples_m = false;
     if (calculateMaps) {
-        LinearTransferMapBuilder builder(itsOpalBeamline_m, reference_m, dt_m);
+        LinearTransferMapBuilder builder(itsOpalBeamline_m, reference_m, dt_m, mapSettings_m);
         auto result = builder.build(std::move(referenceSamples_m), transferMapStartPathLength_m);
         std::map<std::shared_ptr<ElementBase>, std::size_t,
                  std::owner_less<std::shared_ptr<ElementBase>>> passes;
@@ -270,10 +277,10 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
 
         steps.clear();
         if (collectReferenceSamples_m) {
-            rayTracker_m.advance({r_m, p_m, time_m}, dt_m, &steps);
+            rayTracker_m.advance(currentRay(), dt_m, &steps);
         } else {
             steps.push_back(rayTracker_m.step(
-                    {r_m, p_m, time_m}, dt_m,
+                    currentRay(), dt_m,
                     [&](const RayState& ray, auto& electric, auto& magnetic) {
                         for (const auto& element : activeSet) {
                             const auto localR =
@@ -292,10 +299,7 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
         }
         for (const auto& step : steps) {
             const double stepDt            = step.duration;
-            const Vector_t<double, 3> oldR = r_m;
-            const Vector_t<double, 3> oldP = p_m;
-            const double oldTime           = time_m;
-            const double oldPathLength     = pathLength_m;
+            const RayState oldRay = currentRay();
             std::string names("\t");
             const auto fields = collectReferenceSamples_m
                                         ? itsOpalBeamline_m.getElements(step.midpoint.position)
@@ -313,10 +317,8 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
             if (((pathLength_m > 0.0 && pathLength_m < sStop_m) || dt_m < 0.0)
                 && currentStep_m % loggingFrequency_m == 0 && ippl::Comm->rank() == 0
                 && !OpalData::getInstance()->isOptimizerRun()) {
-                const Vector<double, 3> d = r_m - oldR;
-
                 logger_m << std::setw(18) << std::setprecision(8)
-                         << pathLength_m + std::copysign(euclidean_norm(d), dt_m) << std::setw(18)
+                         << step.midpoint.pathLength << std::setw(18)
                          << std::setprecision(8) << r_m(0) << std::setw(18) << std::setprecision(8)
                          << r_m(1) << std::setw(18) << std::setprecision(8) << r_m(2)
                          << std::setw(18) << std::setprecision(8) << p_m(0) << std::setw(18)
@@ -331,35 +333,22 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
                          << step.midpoint.time * Units::s2ns << names << std::endl;
             }
 
-            r_m = step.end.position;
-            p_m = step.end.momentum;
-
-            const Vector<double, 3> d = r_m - oldR;
-
-            pathLength_m += std::copysign(euclidean_norm(d), dt_m);
-
-            time_m = step.end.time;
+            setCurrentRay(step.end);
             if (collectReferenceSamples_m) {
                 // The nominal midpoint can miss a short overlap. Use every accepted
                 // boundary-resolved interval when recording overlap participation.
                 if (pathLength_m > transferMapStartPathLength_m && fields.size() > 1) {
                     for (const auto& element : fields) element->setOverlapping(true);
                 }
-                if (reachedThreadingEnd() && pathLength_m != oldPathLength) {
-                    const double fraction =
-                            (sStop_m - oldPathLength) / (pathLength_m - oldPathLength);
-                    const RayState clipped =
-                            rayTracker_m.advance({oldR, oldP, oldTime}, fraction * stepDt);
-                    LinearTransferMapReference state = LinearTransferMapBuilder::transportFrame(
-                            referenceSamples_m.back().state, clipped.momentum);
-                    state.position   = clipped.position;
-                    state.momentum   = clipped.momentum;
-                    state.time       = clipped.time;
-                    state.pathLength = sStop_m;
-                    referenceSamples_m.push_back({state});
-                } else {
-                    recordReferenceSample();
+                if (reachedThreadingEnd()) {
+                    setCurrentRay(rayTracker_m.advanceToPathLength(oldRay, stepDt, sStop_m));
+                    // The located state is within the path-localization tolerance.
+                    // Use the requested endpoint label and stop even if bisection
+                    // returned the last representable point just below it.
+                    pathLength_m = sStop_m;
+                    pathLengthCorrection_m = 0.0;
                 }
+                recordReferenceSample();
             }
 
             if (reachedThreadingEnd()) {
@@ -371,9 +360,7 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
         }
         ++currentStep_m;
 
-        nextR = r_m / (Physics::c * dt_m);
-        integrator_m.push(nextR, p_m, dt_m);
-        nextR = nextR * Physics::c * dt_m;
+        nextR = nextMidpointPosition();
 
         if (activeSet.empty() && !collectReferenceSamples_m
             && (pathLengthRange_m.isOutside(pathLength_m)
@@ -388,7 +375,8 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
 
 bool OrbitThreader::reachedThreadingEnd() const {
     const bool stopAtSStop = period_m > 0.0 || collectReferenceSamples_m;
-    return stopAtSStop && (dt_m > 0.0 ? pathLength_m >= sStop_m : pathLength_m <= sStop_m);
+    const double distance = compensated::difference(pathLength_m, pathLengthCorrection_m, sStop_m, 0.0);
+    return stopAtSStop && (dt_m > 0.0 ? distance >= 0.0 : distance <= 0.0);
 }
 
 bool OrbitThreader::containsCavity(const IndexMap::value_t& activeSet) {
@@ -447,9 +435,7 @@ void OrbitThreader::trackBack() {
     std::swap(tmpRange, pathLengthRange_m);
     double initialPathLength = pathLength_m;
 
-    Vector_t<double, 3> nextR = r_m / (Physics::c * dt_m);
-    integrator_m.push(nextR, p_m, dt_m);
-    nextR = nextR * Physics::c * dt_m;
+    Vector_t<double, 3> nextR = nextMidpointPosition();
 
     while (std::abs(initialPathLength - pathLength_m) < distTrackBack_m) {
         auto elementSet = itsOpalBeamline_m.getElements(nextR);
@@ -458,9 +444,7 @@ void OrbitThreader::trackBack() {
         maxDrift        = std::min(maxDrift, distTrackBack_m);
         integrate(elementSet, maxDrift);
 
-        nextR = r_m / (Physics::c * dt_m);
-        integrator_m.push(nextR, p_m, dt_m);
-        nextR = nextR * Physics::c * dt_m;
+        nextR = nextMidpointPosition();
     }
     std::swap(tmpRange, pathLengthRange_m);
     currentStep_m *= -1;
@@ -534,11 +518,47 @@ void OrbitThreader::recordReferenceSample() {
     state.momentum   = p_m;
     state.time       = time_m;
     state.pathLength = pathLength_m;
+    state.positionCorrection = positionCorrection_m;
+    state.timeCorrection = timeCorrection_m;
+    state.pathLengthCorrection = pathLengthCorrection_m;
     referenceSamples_m.push_back({state});
+}
+
+OrbitThreader::RayState OrbitThreader::currentRay() const {
+    return {r_m, p_m, time_m, pathLength_m, positionCorrection_m,
+            timeCorrection_m, pathLengthCorrection_m};
+}
+
+void OrbitThreader::setCurrentRay(const RayState& ray) {
+    r_m = ray.position;
+    p_m = ray.momentum;
+    time_m = ray.time;
+    pathLength_m = ray.pathLength;
+    positionCorrection_m = ray.positionCorrection;
+    timeCorrection_m = ray.timeCorrection;
+    pathLengthCorrection_m = ray.pathLengthCorrection;
+}
+
+Vector_t<double, 3> OrbitThreader::nextMidpointPosition() const {
+    Vector_t<double, 3> position = r_m;
+    auto correction = positionCorrection_m;
+    const double factor = (0.5 * Physics::c * dt_m) / Util::getGamma(p_m);
+    for (unsigned component = 0; component < 3; ++component)
+        compensated::add(factor * p_m(component), position(component), correction(component));
+    return position;
 }
 
 void OrbitThreader::printCombinedLinearTransferMap() const {
     if (!combinedLinearTransferMap_m || ippl::Comm->rank() != 0) return;
+    *gmsg << level1 << "* Linear-map integrator: "
+          << ExternalFieldRayTracker::integrationMethodName(mapSettings_m.integrationMethod)
+          << "; Richardson levels: " << mapSettings_m.richardsonLevels
+          << "; formal differentiation order: " << 2 * (mapSettings_m.richardsonLevels + 1)
+          << "; rays per segment: " << 12 * (mapSettings_m.richardsonLevels + 1) << "\n"
+          << "* Linear-map starting perturbations (x,x',y,y',zeta,delta):";
+    for (const auto step : mapSettings_m.finiteDifferenceSteps)
+        *gmsg << " " << std::setprecision(12) << std::scientific << step;
+    *gmsg << std::defaultfloat << "\n";
     *gmsg << level1
           << (period_m > 0.0 ? "\n* Combined one-turn linear transfer map"
                              : "\n* Combined linear transfer map")

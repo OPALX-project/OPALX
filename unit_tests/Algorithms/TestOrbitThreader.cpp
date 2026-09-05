@@ -4,6 +4,7 @@
 #include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/OrbitThreader.h"
 #include "Algorithms/PartData.h"
+#include "BasicActions/Option.h"
 #include "BeamlineCore/DriftRep.h"
 #include "BeamlineCore/MultipoleRep.h"
 #include "BeamlineGeometry/Geometry.h"
@@ -12,10 +13,12 @@
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utility/Inform.h"
 
 #include <filesystem>
+#include <limits>
 #include <set>
 
 extern Inform* gmsg;
@@ -116,12 +119,42 @@ protected:
 
     void SetUp() override {
         Options::enableLinearTransferMaps = false;
+        resetMapSettings();
         OpalData::getInstance()->storeInputFn("TestOrbitThreader.opal");
         OpalData::getInstance()->setOpenMode(OpalData::OpenMode::WRITE);
         std::filesystem::create_directories(OpalData::getInstance()->getAuxiliaryOutputDirectory());
     }
 
-    void TearDown() override { Options::enableLinearTransferMaps = false; }
+    void TearDown() override {
+        Options::enableLinearTransferMaps = false;
+        resetMapSettings();
+    }
+
+    static void resetMapSettings() {
+        Options::linearTransferMapRichardsonLevels = 0;
+        Options::linearTransferMapSteps.fill(1.e-3);
+        Options::linearTransferMapIntegrator = "BORIS";
+    }
+
+    LinearTransferMap freeDriftMap(const unsigned levels, const double deltaStep,
+                                  const double clockOrigin = 0.0) {
+        OpalBeamline beamline;
+        PartData reference(1.0, 9.382720813e8, 1.0e6);
+        auto entrance = LinearTransferMapBuilder::initialFrame(
+                beamline, Vector_t<double, 3>(0.0, 0.0, 1.0));
+        entrance.momentum = Vector_t<double, 3>(0.0, 0.0, 1.0);
+        entrance.time = clockOrigin;
+        auto exit         = entrance;
+        exit.position(2) = exit.pathLength = 0.1;
+        const double flightTime = 0.1 * std::sqrt(2.0) / Physics::c;
+        exit.time = clockOrigin + flightTime;
+        exit.timeCorrection = (exit.time - clockOrigin) - flightTime;
+        LinearTransferMapBuilder::Settings settings;
+        settings.richardsonLevels         = levels;
+        settings.finiteDifferenceSteps[5] = deltaStep;
+        LinearTransferMapBuilder builder(beamline, reference, 1.e-11, settings);
+        return builder.build({{entrance}, {exit}}, 0.0).segments.front().map;
+    }
 
     class TestableFieldSolverCmd : public FieldSolverCmd {
     public:
@@ -202,6 +235,9 @@ protected:
 };
 
 TEST_F(OrbitThreaderTest, MapBuilderDoesNotAttachOrMutateSamples) {
+    // Standalone optics callers get explicit/default settings, not process-wide OPTION state.
+    Options::linearTransferMapRichardsonLevels = 2;
+    Options::linearTransferMapSteps.fill(0.1);
     OpalBeamline beamline;
     PartData reference(1.0, 9.382720813e8, 1.0e6);
     auto entrance = LinearTransferMapBuilder::initialFrame(
@@ -214,12 +250,119 @@ TEST_F(OrbitThreaderTest, MapBuilderDoesNotAttachOrMutateSamples) {
     LinearTransferMapBuilder builder(beamline, reference, 1.0e-11);
     const auto result = builder.build(samples, 0.0);
     ASSERT_EQ(result.segments.size(), 1);
+    EXPECT_EQ(result.segments.front().map.richardsonLevels, 0);
+    EXPECT_EQ(result.segments.front().map.finiteDifferenceSteps[5], 1.e-3);
+    EXPECT_FALSE(result.segments.front().map.richardsonCorrection.has_value());
     EXPECT_TRUE(result.segments.front().owners.empty());
     ASSERT_TRUE(result.combined);
     EXPECT_NEAR((*result.combined)(0, 1), 0.1, 1.0e-9);
     EXPECT_NEAR((*result.combined)(4, 5), 0.05, 1.0e-7);
     EXPECT_EQ(samples.front().state.pathLength, 0.0);
     EXPECT_EQ(samples.back().state.pathLength, 0.1);
+}
+
+TEST_F(OrbitThreaderTest, RichardsonHasExpectedDifferentiationOrder) {
+    // Exact relativistic drift: R56=L/(1+p0^2)=0.05 for L=0.1 m and p0=1 beta*gamma.
+    // Large delta amplitudes keep truncation above integration/roundoff noise in this test.
+    for (unsigned levels = 0; levels <= 2; ++levels) {
+        const auto coarse          = freeDriftMap(levels, 0.16);
+        const auto fine            = freeDriftMap(levels, 0.08);
+        const double coarseError   = std::abs(coarse.matrix(4, 5) - 0.05);
+        const double fineError     = std::abs(fine.matrix(4, 5) - 0.05);
+        const double expectedRatio = std::ldexp(1.0, 2 * int(levels + 1));
+        EXPECT_GT(coarseError / fineError, 0.8 * expectedRatio);
+        EXPECT_LT(coarseError / fineError, 1.2 * expectedRatio);
+        EXPECT_EQ(fine.richardsonLevels, levels);
+        EXPECT_EQ(fine.finiteDifferenceSteps[5], 0.08);
+        EXPECT_EQ(fine.finestFiniteDifferenceSteps[5], std::ldexp(0.08, -int(levels)));
+        EXPECT_EQ(fine.richardsonCorrection.has_value(), levels > 0);
+        EXPECT_EQ(fine.integrationMethod, "BORIS");
+    }
+}
+
+TEST_F(OrbitThreaderTest, RichardsonTableauMatchesIndependentDriftFormula) {
+    // No exact map is used by the builder: the analytic flight time is only a test oracle.
+    const auto zeta = [](const double delta) {
+        const double p = 1.0 + delta;
+        return -0.1 / std::sqrt(2.0) * std::sqrt(1.0 + p * p) / p;
+    };
+    std::vector<double> previous;
+    for (unsigned level = 0; level <= LinearTransferMapBuilder::Settings::maximumRichardsonLevels;
+         ++level) {
+        const double h = std::ldexp(0.16, -int(level));
+        std::vector<double> current{(zeta(h) - zeta(-h)) / (2.0 * h)};
+        for (unsigned order = 1; order <= level; ++order) {
+            const double factor = std::pow(4.0, order);
+            current.push_back((factor * current.back() - previous[order - 1]) / (factor - 1.0));
+        }
+        const auto measured = freeDriftMap(level, 0.16);
+        // Numerical tracking + exit-plane root finding add floating-point error to exact drift.
+        EXPECT_NEAR(measured.matrix(4, 5), current.back(), 2.e-11);
+        if (level > 0) {
+            ASSERT_TRUE(measured.richardsonCorrection);
+            EXPECT_NEAR(
+                    (*measured.richardsonCorrection)[5], std::abs(current.back() - previous.back()),
+                    4.e-11);
+        }
+        previous = std::move(current);
+    }
+}
+
+TEST_F(OrbitThreaderTest, ValidatesMapSettingsAndIntegrationChoice) {
+    LinearTransferMapBuilder::Settings settings;
+    EXPECT_NO_THROW(settings.validate());
+    for (double invalid :
+         {0.0, -1.0, std::numeric_limits<double>::infinity(),
+          std::numeric_limits<double>::quiet_NaN()}) {
+        settings.finiteDifferenceSteps[0] = invalid;
+        EXPECT_THROW(settings.validate(), OpalException);
+    }
+    settings                          = {};
+    settings.finiteDifferenceSteps[5] = 1.0;
+    EXPECT_THROW(settings.validate(), OpalException);
+    settings                  = {};
+    settings.richardsonLevels = 5;
+    EXPECT_THROW(settings.validate(), OpalException);
+    using Method = ExternalFieldRayTracker::IntegrationMethod;
+    EXPECT_EQ(ExternalFieldRayTracker::parseIntegrationMethod("LF2"), Method::BORIS);
+    EXPECT_THROW(ExternalFieldRayTracker::parseIntegrationMethod("RK4"), OpalException);
+    OpalBeamline beamline;
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    EXPECT_THROW(
+            ExternalFieldRayTracker(beamline, reference, static_cast<Method>(123)), OpalException);
+    EXPECT_THROW(LinearTransferMapBuilder(beamline, reference, 0.0), OpalException);
+}
+
+TEST_F(OrbitThreaderTest, MapOptionsPersistAcrossStatementsAndRejectInvalidInputs) {
+    Option exemplar;
+    std::unique_ptr<Option> command(exemplar.clone("MAP_OPTIONS"));
+    Attributes::setReal(*command->findAttribute("LINEARTRANSFERMAPRICHARDSON"), 2.0);
+    const std::vector<double> steps{1.e-3, 2.e-3, 3.e-3, 4.e-3, 5.e-3, 6.e-3};
+    Attributes::setRealArray(*command->findAttribute("LINEARTRANSFERMAPSTEPS"), steps);
+    Attributes::setPredefinedString(*command->findAttribute("LINEARTRANSFERMAPINTEGRATOR"), "LF2");
+    command->execute();
+    EXPECT_EQ(Options::linearTransferMapRichardsonLevels, 2);
+    EXPECT_EQ(Options::linearTransferMapSteps[5], 6.e-3);
+    EXPECT_EQ(Options::linearTransferMapIntegrator, "BORIS");
+    std::unique_ptr<Option> next(exemplar.clone("NEXT_MAP_OPTIONS"));
+    next->execute();  // An unrelated later OPTION must not reset these values.
+    EXPECT_EQ(Options::linearTransferMapRichardsonLevels, 2);
+    EXPECT_EQ(Attributes::getRealArray(*next->findAttribute("LINEARTRANSFERMAPSTEPS")), steps);
+    for (double invalid :
+         {-1.0, 1.5, 5.0, std::numeric_limits<double>::infinity(),
+          std::numeric_limits<double>::quiet_NaN()}) {
+        Attributes::setReal(*next->findAttribute("LINEARTRANSFERMAPRICHARDSON"), invalid);
+        EXPECT_THROW(next->execute(), OpalException);
+        EXPECT_EQ(Options::linearTransferMapRichardsonLevels, 2);
+    }
+    Attributes::setReal(*next->findAttribute("LINEARTRANSFERMAPRICHARDSON"), 1.0);
+    for (const auto& invalid :
+         {std::vector<double>{}, std::vector<double>{1.e-3}, std::vector<double>(7, 1.e-3),
+          std::vector<double>(6, 0.0), std::vector<double>(6, 1.0)}) {
+        Attributes::setRealArray(*next->findAttribute("LINEARTRANSFERMAPSTEPS"), invalid);
+        EXPECT_THROW(next->execute(), OpalException);
+        EXPECT_EQ(Options::linearTransferMapRichardsonLevels, 2);
+    }
 }
 
 TEST_F(OrbitThreaderTest, RayTrackerZeroStepDoesNotEvaluateFields) {
@@ -257,6 +400,136 @@ TEST_F(OrbitThreaderTest, RayTrackerInitializesAllFieldComponents) {
     EXPECT_EQ(step.end.momentum(0), 0.0);
     EXPECT_EQ(step.end.momentum(1), 0.0);
     EXPECT_EQ(step.end.momentum(2), 1.0);
+}
+
+TEST_F(OrbitThreaderTest, RayTrackerRetainsSmallPositionTimeAndPathIncrements) {
+    OpalBeamline beamline;
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    ExternalFieldRayTracker tracker(beamline, reference);
+    ExternalFieldRayTracker::State state;
+    state.momentum(2) = 1.0;
+    state.position = Vector_t<double, 3>(1.0, 2.0, 3.0);
+    state.time = state.pathLength = 1.0;
+    const auto initial = state;
+    constexpr unsigned steps = 10000;
+    constexpr double dt = 1.e-25;  // Each half-drift/time update is below a high-part ulp.
+    for (unsigned i = 0; i < steps; ++i)
+        state = tracker.step(state, dt, [](const auto&, auto&, auto&) { return false; }).end;
+    const double distance = steps * dt * Physics::c / std::sqrt(2.0);
+    // Difference includes the retained low part; 1e-25 m is ~1e-12 relative here.
+    EXPECT_NEAR((state.position(2) - initial.position(2)) - state.positionCorrection(2), distance, 1.e-25);
+    EXPECT_NEAR((state.pathLength - initial.pathLength) - state.pathLengthCorrection, distance, 1.e-25);
+    EXPECT_NEAR((state.time - initial.time) - state.timeCorrection, steps * dt, 1.e-32);
+    EXPECT_EQ(state.position(0), initial.position(0));
+    EXPECT_EQ(state.position(1), initial.position(1));
+}
+
+TEST_F(OrbitThreaderTest, RayTrackerMagneticPathUsesSpeedNotChordAndReverses) {
+    OpalBeamline beamline;
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    ExternalFieldRayTracker tracker(beamline, reference);
+    ExternalFieldRayTracker::State initial;
+    initial.momentum(2) = 1.0;
+    constexpr double dt = 1.e-9;
+    const auto field = [](const auto&, auto&, auto& magnetic) {
+        magnetic(1) = 10.0;
+        return false;
+    };
+    const auto step = tracker.step(initial, dt, field);
+    const double length = Physics::c * dt / std::sqrt(2.0);
+    EXPECT_NEAR(step.midpoint.pathLength, 0.5 * length, 1.e-15);
+    EXPECT_NEAR(step.end.pathLength, length, 1.e-15);
+    const Vector_t<double, 3> chord = step.end.position - initial.position;
+    EXPECT_GT(length - euclidean_norm(chord), 1.e-3);
+    EXPECT_NEAR(euclidean_norm(step.end.momentum), 1.0, 1.e-15);
+    const auto recovered = tracker.step(step.end, -dt, field).end;
+    EXPECT_NEAR(euclidean_norm(recovered.position), 0.0, 1.e-15);
+    EXPECT_NEAR(recovered.pathLength, 0.0, 1.e-15);
+    EXPECT_NEAR(recovered.time, 0.0, 1.e-24);
+}
+
+TEST_F(OrbitThreaderTest, PathStopIsTrackedUnderAccelerationAndReverseTime) {
+    auto bunch = makeBunch(0);
+    DummyBeamline line;
+    DefaultVisitor visitor(line, false, false);
+    OpalBeamline beamline;
+    FieldSupportOnlyComponent field("PATH_E", -1.0, 1.0, 1.e10);
+    field.setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector_t<double, 3>(0.0), Quaternion()));
+    field.fixPosition();
+    beamline.visit(field, visitor, *bunch);
+    beamline.prepareSections();
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    ExternalFieldRayTracker tracker(beamline, reference);
+    ExternalFieldRayTracker::State initial;
+    initial.momentum(2) = 0.1;
+    constexpr double dt = 1.e-9;
+    const auto end = tracker.advance(initial, dt);
+    const double target = 0.37 * end.pathLength;
+    const auto clipped = tracker.advanceToPathLength(initial, dt, target);
+    EXPECT_NEAR(clipped.pathLength, target, 2.e-12);  // c times the existing time-root tolerance.
+    EXPECT_NEAR(clipped.position(2), target, 2.e-12);
+    EXPECT_GT(std::abs(clipped.time - 0.37 * dt), 1.e-11);  // A time fraction is not a path root.
+    const auto reverse = tracker.advanceToPathLength(end, -dt, target);
+    EXPECT_NEAR(reverse.pathLength, target, 2.e-12);
+    EXPECT_THROW(tracker.advanceToPathLength(initial, dt, 2.0 * end.pathLength), OpalException);
+    EXPECT_THROW(tracker.advanceToPathLength(initial, dt, -1.0), OpalException);
+}
+
+TEST_F(OrbitThreaderTest, CompensatedClockPreservesFullDriftMapAtLargeTimeOrigin) {
+    const auto zeroOrigin = freeDriftMap(1, 0.03);
+    const auto lateOrigin = freeDriftMap(1, 0.03, 1000.0);
+    for (unsigned row = 0; row < 6; ++row)
+        for (unsigned column = 0; column < 6; ++column)
+            EXPECT_NEAR(zeroOrigin.matrix(row, column), lateOrigin.matrix(row, column), 2.e-11);
+}
+
+TEST_F(OrbitThreaderTest, AcceleratedPathQuadratureConvergesAtSecondOrder) {
+    OpalBeamline beamline;
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    ExternalFieldRayTracker tracker(beamline, reference);
+    constexpr double electric = 1.e10, duration = 1.e-9, initialMomentum = 0.1;
+    const double rate = reference.getQ() * electric * Physics::c / reference.getM();
+    const double finalMomentum = initialMomentum + rate * duration;
+    const double exactLength = Physics::c / rate *
+            (std::sqrt(1.0 + finalMomentum * finalMomentum) - std::sqrt(1.0 + initialMomentum * initialMomentum));
+    std::vector<double> errors;
+    for (unsigned steps : {100u, 200u}) {
+        ExternalFieldRayTracker::State ray;
+        ray.momentum(2) = initialMomentum;
+        for (unsigned i = 0; i < steps; ++i)
+            ray = tracker.step(ray, duration / steps, [](const auto&, auto& field, auto&) {
+                field(2) = electric;
+                return false;
+            }).end;
+        EXPECT_NEAR(ray.momentum(2), finalMomentum, 1.e-12);
+        errors.push_back(std::abs(ray.pathLength - exactLength));
+    }
+    EXPECT_NEAR(errors[0] / errors[1], 4.0, 0.01);
+}
+
+TEST_F(OrbitThreaderTest, MapBuilderClipsPrerollWithCompensatedReferenceClock) {
+    OpalBeamline beamline;
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    auto before = LinearTransferMapBuilder::initialFrame(
+            beamline, Vector_t<double, 3>(0.0, 0.0, 1.0));
+    before.momentum(2) = 1.0;
+    before.position(2) = before.pathLength = -0.05;
+    before.time = 1000.0;
+    auto after = before;
+    after.position(2) = after.pathLength = 0.05;
+    const double flightTime = 0.1 * std::sqrt(2.0) / Physics::c;
+    after.time = before.time + flightTime;
+    after.timeCorrection = (after.time - before.time) - flightTime;
+    LinearTransferMapBuilder builder(beamline, reference, 1.e-11);
+    const auto result = builder.build({{before}, {after}}, 0.0);
+    ASSERT_EQ(result.segments.size(), 1);
+    const auto& map = result.segments.front().map;
+    EXPECT_EQ(map.entrance.pathLength, 0.0);
+    EXPECT_NEAR(map.entrance.position(2), 0.0, 2.e-13);
+    const double elapsed = (map.entrance.time - before.time) - map.entrance.timeCorrection;
+    EXPECT_NEAR(elapsed, 0.5 * flightTime, 1.e-21);
+    EXPECT_NEAR(map.matrix(0, 1), 0.05, 1.e-10);
+    EXPECT_NEAR(map.matrix(4, 5), 0.025, 1.e-7);  // Existing centered delta truncation.
 }
 
 TEST_F(OrbitThreaderTest, BishopFrameRemainsOrthonormalThroughBendAndReversal) {
@@ -336,6 +609,7 @@ TEST_F(OrbitThreaderTest, RayTrackerSumsOverlappingSupportsAcrossBoundaries) {
 }
 
 TEST_F(OrbitThreaderTest, ExecutesOverlapAndRecordsBothElements) {
+    Options::linearTransferMapRichardsonLevels = 1;
     auto bunch = makeBunch(0);
 
     DummyBeamline beamlineForVisitor;
@@ -391,6 +665,13 @@ TEST_F(OrbitThreaderTest, ExecutesOverlapAndRecordsBothElements) {
     const auto* shortOverlap = findOverlap(runtimeShort->getLinearTransferMaps());
     ASSERT_NE(longOverlap, nullptr);
     ASSERT_NE(shortOverlap, nullptr);
+    EXPECT_EQ(longOverlap->richardsonLevels, 1);
+    EXPECT_EQ(shortOverlap->richardsonLevels, 1);
+    EXPECT_EQ(longOverlap->finestFiniteDifferenceSteps[0], 5.e-4);
+    EXPECT_TRUE(longOverlap->richardsonCorrection.has_value());
+    for (unsigned row = 0; row < 6; ++row)
+        for (unsigned column = 0; column < 6; ++column)
+            EXPECT_EQ(longOverlap->matrix(row, column), shortOverlap->matrix(row, column));
     EXPECT_EQ(longOverlap->segment, shortOverlap->segment);
     EXPECT_EQ(
             std::set<std::string>(
@@ -405,6 +686,7 @@ TEST_F(OrbitThreaderTest, ExecutesOverlapAndRecordsBothElements) {
 }
 
 TEST_F(OrbitThreaderTest, BuildsOnePeriodicTurnIndependentOfTrackStepBudget) {
+    Options::linearTransferMapRichardsonLevels = 1;
     auto bunch = makeBunch(0);
 
     DummyBeamline beamlineForVisitor;
@@ -435,6 +717,9 @@ TEST_F(OrbitThreaderTest, BuildsOnePeriodicTurnIndependentOfTrackStepBudget) {
     EXPECT_EQ(names(threader.query(0.7, 0.01)), (std::set<std::string>{"D_PERIODIC"}));
     ASSERT_TRUE(threader.getCombinedLinearTransferMap().has_value());
     EXPECT_NEAR((*threader.getCombinedLinearTransferMap())(0, 1), 0.6, 2.0e-5);
+    const auto maps = beamline.getLinearTransferMapsInReferenceOrder();
+    ASSERT_FALSE(maps.empty());
+    EXPECT_EQ(maps.front().map->richardsonLevels, 1);
 }
 
 TEST_F(OrbitThreaderTest, UsesFieldSupportExtentForLengthCheck) {

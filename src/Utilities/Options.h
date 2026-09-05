@@ -21,6 +21,7 @@
 
 #include "Utilities/ExpressionRandom.h"
 
+#include <array>
 #include <string>
 
 enum class DumpFrame : unsigned short { GLOBAL, BUNCH_MEAN, REFERENCE };
@@ -145,6 +146,12 @@ namespace Options {
 
     /// Calculate first-order external-field transfer maps during design-orbit threading.
     extern bool enableLinearTransferMaps;
+    /// Number of Richardson extrapolation levels, zero retaining centered differences.
+    extern unsigned linearTransferMapRichardsonLevels;
+    /// Starting amplitudes in (x,x',y,y',zeta,delta) coordinates.
+    extern std::array<double, 6> linearTransferMapSteps;
+    /// Ray integrator shared by map-enabled reference and perturbed rays.
+    extern std::string linearTransferMapIntegrator;
 
     extern bool asciidump;
 

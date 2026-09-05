@@ -10,6 +10,7 @@
 #include <array>
 #include <cstddef>
 #include <limits>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -38,6 +39,10 @@ struct LinearTransferMapReference {
     Vector_t<double, 3> sAxis{0.0, 0.0, 1.0};
     double time{0.0};
     double pathLength{0.0};
+    /// Kahan residuals carried with sampled/reattached ray states (value = high - correction).
+    Vector_t<double, 3> positionCorrection = Vector_t<double, 3>(0.0);
+    double timeCorrection{0.0};
+    double pathLengthCorrection{0.0};
 };
 
 /**
@@ -80,7 +85,10 @@ struct LinearTransferMapReference {
  * M D_{\rm in}=D_{\rm out},
  * \f]
  * using a pivoted solve.  Centered differences have truncation error
- * \f$O(\epsilon^2)\f$.
+ * \f$O(\epsilon^2)\f$. Optional Richardson refinement is configured through
+ * LinearTransferMapBuilder::Settings. Each level halves all six amplitudes;
+ * extrapolation acts on the segment matrix before ordered composition. It does
+ * not increase integration order or guarantee accuracy or symplecticity.
  *
  * Field-support crossings are resolved independently for each ray by
  * ExternalFieldRayTracker; segment ownership does not freeze its field selection.
@@ -96,6 +104,13 @@ struct LinearTransferMapReference {
 struct LinearTransferMap {
     matrix6x6_t matrix{0.0};
     std::array<double, 6> finiteDifferenceSteps{};
+    /// Smallest amplitudes used, equal to finiteDifferenceSteps / 2^richardsonLevels.
+    std::array<double, 6> finestFiniteDifferenceSteps{};
+    unsigned richardsonLevels{0};
+    /// Per-column maximum change between the last two tableau diagonals; NOT an error bound.
+    /// Absent for level zero. Matrix entries have mixed physical units.
+    std::optional<std::array<double, 6>> richardsonCorrection;
+    std::string integrationMethod{"BORIS"};
     LinearTransferMapReference entrance;
     LinearTransferMapReference exit;
     /// Unique segment ordinal within this OrbitThreader execution.

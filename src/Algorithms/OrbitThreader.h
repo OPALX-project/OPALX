@@ -115,7 +115,6 @@ private:
 
     unsigned int errorFlag_m;
 
-    BorisPusher integrator_m;
     const PartData& reference_m;
 
     std::ofstream logger_m;
@@ -125,6 +124,14 @@ private:
 
     using ReferenceSample = LinearTransferMapBuilder::ReferenceSample;
     using RayState = ExternalFieldRayTracker::State;
+    Vector_t<double, 3> positionCorrection_m = Vector_t<double, 3>(0.0);
+    double timeCorrection_m{0.0};
+    double pathLengthCorrection_m{0.0};
+    RayState currentRay() const;
+    void setCurrentRay(const RayState& ray);
+    Vector_t<double, 3> nextMidpointPosition() const;
+    /// Snapshot of OPTION settings; reference and perturbed rays use the same integrator.
+    LinearTransferMapBuilder::Settings mapSettings_m;
     ExternalFieldRayTracker rayTracker_m;
 
     bool collectReferenceSamples_m{false};
