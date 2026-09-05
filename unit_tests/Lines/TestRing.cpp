@@ -6,6 +6,7 @@
 
 #include "BeamlineCore/DriftRep.h"
 #include "BeamlineCore/MarkerRep.h"
+#include "BeamlineCore/SBendRep.h"
 #include "Beamlines/FlaggedBeamline.h"
 #include "Lines/Ring.h"
 #include "OpalParser/SimpleStatement.h"
@@ -132,6 +133,34 @@ TEST(RingMembershipTest, KeepsSharedPrototypeIndependentAcrossRings) {
     EXPECT_EQ(secondOccurrence->getBeamlineOwnerName(), "R2");
     EXPECT_EQ(prototype->getBeamlineTopology(), BeamlineTopology::LINE);
     EXPECT_TRUE(prototype->getBeamlineOwnerName().empty());
+}
+
+TEST(RingMembershipTest, CircumferenceCountsNominalArcsAndDriftsNotFringeSupports) {
+    auto bend = std::make_shared<SBendRep>("B");
+    bend->getGeometry().setElementLength(1.0);
+    bend->getGeometry().setCurvature(0.5);
+    auto drift = std::make_shared<DriftRep>("D");
+    drift->getGeometry().setElementLength(0.4);
+    auto nested = std::make_shared<FlaggedBeamline>("CELL");
+    nested->push_back(FlaggedElmPtr(ElmPtr(bend)));
+    nested->push_back(FlaggedElmPtr(ElmPtr(drift)));
+    TestableRing ring;
+    ring.line()->push_back(FlaggedElmPtr(ElmPtr(nested)));
+    ring.line()->push_back(FlaggedElmPtr(ElmPtr(nested)));
+    for (const double gap : {0.0, 0.1, 0.2}) {
+        bend->setFullGap(gap);
+        bend->setFringeIntegral(0.1);
+        EXPECT_DOUBLE_EQ(ring.getLength(), 2.8);
+        double begin = 0.0, end = 0.0;
+        bend->getFieldExtent(begin, end);
+        EXPECT_DOUBLE_EQ(end - begin, 1.0 + 10.0 * gap);
+        EXPECT_TRUE(bend->isInsideBody(Vector_t<double, 3>(0, 0, 0.1)));
+        EXPECT_FALSE(bend->isInsideBody(Vector_t<double, 3>(0, 0, -0.01)));
+        EXPECT_EQ(bend->isInside(Vector_t<double, 3>(0, 0, -0.01)), gap > 0.0);
+    }
+    // Rectangular-bend geometry stores a chord, not a design arc.
+    drift->getGeometry() = Geometry::makeRBend(0.4, 0.6);
+    EXPECT_NEAR(ring.getLength(), 2.0 * (1.0 + 0.4 * 0.3 / std::sin(0.3)), 1.e-14);
 }
 
 TEST_F(RingTest, RejectsReflection) {

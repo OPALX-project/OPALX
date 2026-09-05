@@ -19,7 +19,9 @@
  *
  * Momentum is stored in OPALX units, \f$\vec{\beta}\gamma=\mathbf p/(mc)\f$.
  * The right-handed orthonormal triad \f$(\mathbf e_x,\mathbf e_y,\mathbf e_s)\f$ has
- * \f$\mathbf e_s=\mathbf p_0/|\mathbf p_0|\f$.  Between reference steps the transverse
+ * \f$\mathbf e_s=\mathbf p_0/|\mathbf p_0|\f$ except at a RING return section, where
+ * the starting plane and axes are reused even for a mismatched return momentum.
+ * Between reference steps the transverse
  * axes are advanced by the minimum rotation taking the old \f$\mathbf e_s\f$ into the new
  * one (Bishop transport).  Its axis and angle are
  * \f[
@@ -58,10 +60,12 @@ struct LinearTransferMapReference {
  * \qquad \delta=|\mathbf p|/p_0-1.
  * \f]
  * All positions are in metres, slopes and \f$\delta\f$ are dimensionless.
- * Each stored matrix covers one unique path segment over which the active-element set is
- * constant. A copy is attached to every element active in that segment. Consequently an element
+ * Each stored matrix covers one unique path segment over which the nominal body-owner set is
+ * constant. A copy is attached to every nominal owner in that segment. Consequently an element
  * can own several consecutive segment maps, while an overlap segment is calculated only once for
- * ordered beamline composition. `activeElements` identifies that reference set. Shadow rays
+ * ordered beamline composition. `activeElements` is the union of support-selected elements
+ * encountered by the reference, and may differ from the owners. A drift map includes any
+ * neighbouring fringe fields; no fringe-support length is added to the nominal body. Shadow rays
  * instead select the active set \f$A(\mathbf r)\f$ at their own positions and see
  * \f[
  *   \mathbf E(\mathbf r,t)=\sum_{i\in A(\mathbf r)}\mathbf E_i(\mathbf r,t),
@@ -72,7 +76,7 @@ struct LinearTransferMapReference {
  * \f[
  *   M_{\mathrm{total}}=M_N M_{N-1}\cdots M_1,
  * \f]
- * including field-free segment maps. A shared overlap segment must therefore occur only once in
+ * including unowned intervals (which can contain field tails). A shared overlap segment must occur only once in
  * this product, even though a copy is attached to every participating element.
  *
  * For each coordinate \f$j\f$, two private rays are launched with \f$\pm\epsilon_j\f$.  With
@@ -117,7 +121,7 @@ struct LinearTransferMap {
     std::size_t segment{std::numeric_limits<std::size_t>::max()};
     /// Per-element attachment ordinal (useful for a ring-seam split or repeated occurrence).
     std::size_t pass{0};
-    /// Names of all elements active throughout this segment.
+    /// Union of support-selected elements encountered by the reference in this nominal interval.
     std::vector<std::string> activeElements;
     double inputConditionNumber{0.0};
     double determinantResidual{0.0};

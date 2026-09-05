@@ -51,6 +51,9 @@ public:
     void activateElements();
     std::set<std::shared_ptr<ElementBase>> getElements(const Vector_t<double, 3>& x);
 
+    /// Nominal body owners at a lab position; never use this to restrict field evaluation.
+    std::set<std::shared_ptr<ElementBase>> getBodyElements(const Vector_t<double, 3>& x) const;
+
     /**
      * Get all elements in the beamline, regardless of their position.
      * @return Set of shared pointers to all elements in the beamline.
@@ -108,8 +111,8 @@ public:
      *
      * The element remains the owner of each attached map copy. Results are ordered by entrance
      * path length; a segment attached to several overlapping elements is returned only once.
-     * Field-free segments have no element owner and are therefore not included here. The
-     * OrbitThreader composes its complete ordered segment list, including those gaps.
+     * Unowned intervals are not included here, even if a neighbouring field tail is present.
+     * OrbitThreader composes the complete ordered segment list, including those intervals.
      */
     std::vector<ElementTransferMapRef> getLinearTransferMapsInReferenceOrder() const;
 

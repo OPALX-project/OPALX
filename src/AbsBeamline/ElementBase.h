@@ -253,6 +253,15 @@ public:
     /// @return True if r is inside the field interval.
     virtual bool isInside(const Vector_t<double, 3>& r) const;
 
+    /**
+     * @brief Nominal body containment, independent of longitudinal field support.
+     *
+     * The local longitudinal interval is [0,L), with arc coordinates for a sector bend.
+     * The transverse aperture is respected. A drift can own this interval even when a
+     * neighbouring magnet contributes a fringe field there. Zero-length bodies own no interval.
+     */
+    bool isInsideBody(const Vector_t<double, 3>& r) const;
+
     /// @brief Get the bounding box.
     /// @return The bounding box in lab coordinates.
     virtual BoundingBox getBoundingBoxInLabCoords() const;

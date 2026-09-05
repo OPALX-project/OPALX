@@ -68,6 +68,7 @@ TEST(IndexMapTest, ReentryKeepsFirstRangeAndQueryFindsBothCrossings) {
     IndexMap map;
     map.add(0.0, 1.0, IndexMap::value_t{drift1});
     map.add(1.0, 2.0, IndexMap::value_t{drift1});  // continuation, merges
+    EXPECT_EQ(map.size(), 1);
     map.add(5.0, 6.0, IndexMap::value_t{drift1});  // re-entry
     map.add(6.0, 7.0, IndexMap::value_t{drift1});
 

@@ -183,7 +183,18 @@ void IndexMap::add(key_t::first_type initialS, key_t::second_type finalS, const 
     if (initialS > finalS) {
         std::swap(initialS, finalS);
     }
+    if (initialS == finalS) return;
     key_t key{initialS, finalS * oneMinusEpsilon_m};
+
+    // Boundary-resolved reference integration can produce many adjacent steps with the same
+    // support set. Coalesce those intervals without merging separate visits across a gap.
+    if (!mapRange2Element_m.empty()) {
+        const auto last = std::prev(mapRange2Element_m.end());
+        if (last->second == val && almostEqual(initialS, last->first.end / oneMinusEpsilon_m)) {
+            key.begin = last->first.begin;
+            mapRange2Element_m.erase(last);
+        }
+    }
 
     mapRange2Element_m.insert(std::pair<key_t, value_t>(key, val));
     totalPathLength_m = (*mapRange2Element_m.rbegin()).first.end;
@@ -197,7 +208,7 @@ void IndexMap::add(key_t::first_type initialS, key_t::second_type finalS, const 
         auto res = mapElement2Range_m.insert(std::make_pair(*setIt, key));
         if (!res.second) {
             key_t& currentRange = res.first->second;
-            if (almostEqual(key.begin, currentRange.end / oneMinusEpsilon_m)) {
+            if (almostEqual(initialS, currentRange.end / oneMinusEpsilon_m)) {
                 currentRange.end = key.end;  // extend the element's contiguous range
             }
         }
@@ -254,7 +265,7 @@ void IndexMap::saveSDDS(double initialPathLength) const {
                 std::any_of(sectorElements.begin(), sectorElements.end(), [&](const auto& element) {
                     return mapElement2Range_m.at(element).end < range.begin;
                 });
-        if (reentered) {
+        if (reentered && period_m <= 0.0) {
             *gmsg << level2
                   << "* IndexMap: ring detected (element re-entered at s = " << range.begin
                   << " m); the element position file contains the first pass only" << endl;

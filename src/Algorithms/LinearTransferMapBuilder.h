@@ -60,7 +60,7 @@ public:
         IndexMap::value_t owners;
     };
     struct Result {
-        /// Includes field-free segments (owners empty); each overlap occurs only once.
+        /// Includes unowned intervals (possibly containing fringe fields); each overlap once.
         std::vector<Segment> segments;
         std::optional<matrix6x6_t> combined;
         std::optional<double> determinantResidual;

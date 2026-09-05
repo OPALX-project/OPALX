@@ -88,6 +88,11 @@ ExternalFieldRayTracker::ExternalFieldRayTracker(
         element->getFieldExtent(begin, end);
         const double length = std::abs(end - begin);
         if (length > 0.0) maximumStep_m = std::min(maximumStep_m, length / (4.0 * Physics::c));
+        // Reference samples must also resolve nominal map-ownership intervals when a field
+        // extends far beyond a short body. This cap does not truncate the field itself.
+        const double bodyLength = element->getGeometry().getArcLength();
+        if (bodyLength > 0.0)
+            maximumStep_m = std::min(maximumStep_m, bodyLength / (4.0 * Physics::c));
     }
 }
 
