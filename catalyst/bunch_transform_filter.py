@@ -30,8 +30,63 @@ INVERSE = False  # False: lab -> bunch (transform geometry, bunch stays centred)
                  # True:  bunch -> lab (transform particles to world coords)
 
 # ---------------------------------------------------------------------------
+# Debug logging
+# ---------------------------------------------------------------------------
+_DBG_FILE = "/tmp/bunch_transform_filter_debug.txt"
+
+def _dbg(msg):
+    with open(_DBG_FILE, "a") as f:
+        f.write(msg + "\n")
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+def _type_name(obj):
+    return type(obj).__name__
+
+
+def _list_arrays(dataset, indent="  "):
+    out = []
+    if dataset is None or not hasattr(dataset, 'GetPointData'):
+        return [indent + "(no GetPointData)"]
+    pda = dataset.GetPointData()
+    n = pda.GetNumberOfArrays()
+    if n == 0:
+        return [indent + "(no point arrays)"]
+    for i in range(n):
+        arr = pda.GetArray(i)
+        name = pda.GetArrayName(i) if arr else "?"
+        out.append(f"{indent}array[{i}] = {name}")
+    return out
+
+
+def _inspect_input(idx, dataset, indent=""):
+    _dbg(f"{indent}Input {idx}: {_type_name(dataset)}")
+    if dataset is None:
+        return
+    if hasattr(dataset, 'GetNumberOfPoints'):
+        _dbg(f"{indent}  points: {dataset.GetNumberOfPoints()}")
+    if hasattr(dataset, 'GetNumberOfCells'):
+        _dbg(f"{indent}  cells: {dataset.GetNumberOfCells()}")
+    if hasattr(dataset, 'GetNumberOfPartitionedDataSets'):
+        n = dataset.GetNumberOfPartitionedDataSets()
+        _dbg(f"{indent}  partitioned datasets: {n}")
+        for i in range(n):
+            block = dataset.GetPartitionedDataSet(i)
+            _inspect_input(f"{idx}[{i}]", block, indent + "  ")
+        return
+    if hasattr(dataset, 'GetNumberOfBlocks'):
+        n = dataset.GetNumberOfBlocks()
+        _dbg(f"{indent}  blocks: {n}")
+        for i in range(n):
+            block = dataset.GetBlock(i)
+            _inspect_input(f"{idx}[{i}]", block, indent + "  ")
+        return
+    for line in _list_arrays(dataset, indent + "  "):
+        _dbg(line)
+
+
 def _has_transform_arrays(dataset):
     """Return True if the leaf dataset has the BunchOrigin/BunchRotRow* arrays."""
     if dataset is None:
@@ -47,7 +102,6 @@ def _has_transform_arrays(dataset):
 
 def _find_transform_block(dataset):
     """Recursively search a composite/multiblock dataset for the transform block."""
-    # vtkPartitionedDataSetCollection / vtkMultiBlockDataSet
     if hasattr(dataset, 'GetNumberOfPartitionedDataSets'):
         n = dataset.GetNumberOfPartitionedDataSets()
         for i in range(n):
@@ -98,23 +152,24 @@ def _read_transform(dataset):
 
 
 # ---------------------------------------------------------------------------
-# Read the transform from Input 1
+# Main
 # ---------------------------------------------------------------------------
-transform_input = self.GetInputDataObject(0, 1)
-origin, R = _read_transform(transform_input)
-
-# ---------------------------------------------------------------------------
-# Apply the transform to the points of Input 0
-# ---------------------------------------------------------------------------
+_dbg("=" * 60)
 input0 = self.GetInputDataObject(0, 0)
-pts = vtk_to_numpy(input0.GetPoints().GetData())
+input1 = self.GetInputDataObject(0, 1)
+_inspect_input(0, input0)
+_inspect_input(1, input1)
 
-# x' = R * (x - origin)
+origin, R = _read_transform(input1)
+_dbg(f"Transform origin: {origin}")
+_dbg(f"Transform rotation rows:\n{R}")
+
+pts = vtk_to_numpy(input0.GetPoints().GetData())
+_dbg(f"Input 0 points: {pts.shape}")
+
 new_pts = (pts - origin) @ R.T
 
-# ---------------------------------------------------------------------------
-# Produce output
-# ---------------------------------------------------------------------------
 output = self.GetOutput()
 output.ShallowCopy(input0)
 output.GetPoints().SetData(numpy_to_vtk(new_pts))
+_dbg("Output generated")
