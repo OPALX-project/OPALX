@@ -24,6 +24,7 @@ set (HDRS
     AbstractTimeDependence.h
     AbstractTracker.h
     CavityAutophaser.h
+    CompensatedSum.h
     DefaultVisitor.h
     DistributionMoments.h
     Flagger.h

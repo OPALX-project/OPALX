@@ -1,0 +1,26 @@
+{
+  "dt_s": 1e-10,
+  "status": "INVALID",
+  "reason": "time step too long for QACH field extent",
+  "full_matrix_error": NaN,
+  "R16": NaN,
+  "R26": NaN,
+  "abs_R16": NaN,
+  "abs_R26": NaN,
+  "dispersion_error": NaN,
+  "determinant_error": NaN,
+  "canonical_J_error": NaN,
+  "epsilon": 1e-05,
+  "richardson_levels": 2,
+  "ranks": 1,
+  "finest_epsilon": 2.5e-06,
+  "rays_per_segment": 36,
+  "elapsed_s": 0.22492766589857638,
+  "integration_method": "BORIS",
+  "signature": "655051077935d29566d4a2a1930af7dc3145423b104ed9c504249d28127686f1",
+  "path": "L2/dt-1e-10/eps-1e-05/ranks-1",
+  "artifacts_sha256": {
+    "map-2-dba.in": "324fc1291141c5c3afbc86438b80c83499b5f3f3abdcefa049ebca8a20243e26",
+    "map-2-dba-dt-1e-10.out": "41870b4988ae1a45baca9210e9a6aa90cdf3762fa5336a46b1f7985716020f7d"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "identity": {
+    "executable_sha256": "2836d3d5af462771448b4cb718ccb696e405fbddb0e7992134291e63e4032cd2",
+    "input_template_sha256": "588354fb27e3ed9e43de88e7aecd9a5f944eb293eaf3cc2bf426c093e0df5347",
+    "distribution_sha256": "b61172d4e35bab3bde335020bde7f3a9909c565f2960607266306bf3fd1f0de0",
+    "sources_sha256": {
+      "src/Algorithms/ExternalFieldRayTracker.h": "4bde4aa102a3fda73580be7a6d6ae12c508944478d10985d1a55b7a233158552",
+      "src/Algorithms/ExternalFieldRayTracker.cpp": "ef3073f626a15d4ad66fa004c0c93e4fde062328f8dce600d1c25f6932edbcff",
+      "src/Algorithms/LinearTransferMapBuilder.h": "7ba4c2bd4bef8eccbcd1ab1d3a31024592e896f86b6e6d5ae64979ce0ced3080",
+      "src/Algorithms/LinearTransferMapBuilder.cpp": "1dab8cf73cbdd3fa7dc58ffa4600dfca74ccffe878430d02f46724467c2799a2",
+      "src/Algorithms/OrbitThreader.h": "423f40a1e018d6f97f995d668769d0b51b03d1c3097fa178f551d880f29e1ba4",
+      "src/Algorithms/OrbitThreader.cpp": "009cfc842c32ea692bfc769750bce0ff784113196057c1d08013e4e43c3e08e8",
+      "src/Structure/LinearTransferMap.h": "4ca3935ee778a08a65a7adb1a6ce7ce7f9ad8b7488519fc9e1a48003eaf35c67",
+      "src/BasicActions/Option.cpp": "2a5369afa36ef1703ecf8d52e14bc9316192553e000317fc9308dbb6016e1004",
+      "src/Algorithms/CompensatedSum.h": "5a45c0b48644bf84a95bda4321c4e62a254757ea4ad6034c34a1904208ee0a7b",
+      "src/Utilities/Options.h": "558c0b9012c15d400d5bba12dfae827c857ab05d07be172f43a9a308e5382222",
+      "src/Utilities/Options.cpp": "d8a9e59ba1eb62afbe7501d110a9cc6dcd6bc195ee50484fbcd769b75bb9d953",
+      "sandbox/map-2/check_maps.py": "291322715096c75b938c38cdd188586d5ac07ce8b831b37e9061fcdbf72c37a8",
+      "sandbox/map-2/dba/convergence_dt.py": "d6fcda63900b0e88c1f5402e2a75df0094bdabbd0f3331d1f9a4ebba9f1c4e40",
+      "sandbox/map-2/dba/convergence_perturbations.py": "e336159aa312fab7724cefe4910b87490212e86cea5e17cae18283dc21815328"
+    }
+  },
+  "executable": "/Users/adelmann/git/opalx/omp-build/src/opalx",
+  "input_path": "/Users/adelmann/git/opalx/sandbox/map-2/dba/map-2-dba.in",
+  "input_template": "OPTION, ECHO = FALSE, PSDUMPFREQ = 0, STATDUMPFREQ = 0, VERSION = 10900, ASCIIDUMP = FALSE;\n\nOPTION, ENABLELINEARTRANSFERMAPS = TRUE;\n\nTITLE, STRING = \"map-2 symmetric hard-edge double-bend achromat\";\n\nREAL P0 = 0.2505104781131461;\nREAL RHO = 2.0;\nREAL THETA = PI / 6;\nREAL LB = RHO * THETA;\nREAL LD = 1.0;\nREAL LQ = 0.2;\n// Exact thick-lens solution of R16=R26=0 for B-D-Q-D-B with these dimensions.\nREAL KACH = -6.371966681365967;\n\nB1: SBEND, L = LB, ANGLE = THETA, HGAP = 0.0, FINT = 0.0, ELEMEDGE = 0.0;\nD1: DRIFT, L = LD, ELEMEDGE = LB;\nQACH: QUADRUPOLE, L = LQ, K1 = KACH, ELEMEDGE = LB + LD;\nD2: DRIFT, L = LD, ELEMEDGE = LB + LD + LQ;\nB2: SBEND, L = LB, ANGLE = THETA, HGAP = 0.0, FINT = 0.0,\n    ELEMEDGE = LB + 2 * LD + LQ;\nLATTICE: LINE = (B1, D1, QACH, D2, B2);\n\nDIST: DISTRIBUTION, TYPE = FROMFILE, FNAME = \"../reference-particle.txt\", NPARTDIST = 1;\nSOURCE: EMISSIONSOURCE, DISTRIBUTION = DIST;\nSOURCES: EMISSIONSOURCELIST = (SOURCE);\nFS: FIELDSOLVER, TYPE = NONE, NX = 16, NY = 16, NZ = 16,\n    PARFFTX = TRUE, PARFFTY = TRUE, PARFFTZ = TRUE,\n    BCFFTX = OPEN, BCFFTY = OPEN, BCFFTZ = OPEN,\n    BBOXINCR = 1, GREENSF = INTEGRATED;\nBEAM1: BEAM, PARTICLE = ELECTRON, NALLOC = 1,\n       BCHARGE = 1.6021766339999998e-19, SOURCES = SOURCES, CHARGE = -1;\n\nTRACK, LINE = LATTICE, BEAM = BEAM1, MAXSTEPS = 1, DT = 2.0e-13,\n      ZSTOP = 2 * LB + 2 * LD + LQ;\nRUN, METHOD = \"PARALLEL\", FIELDSOLVER = FS;\nENDTRACK;\nQUIT;\n",
+  "created_utc": "2026-09-05T06:18:40Z",
+  "git_revision": "926b097d980dc39d56064e0e1783da9ccd3e8eac",
+  "omp_num_threads": 1,
+  "workers": 2,
+  "mpi_args": "--map-by slot:OVERSUBSCRIBE --bind-to none",
+  "coordinate_scales": "(1 m, 1, 1 m, 1, 1 m, 1)",
+  "numpy_version": "2.4.6",
+  "pandas_version": "3.0.3"
+}
