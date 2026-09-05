@@ -39,6 +39,7 @@
 #include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/ConstantFocusing.h"
+#include "AbsBeamline/CyclotronSector.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Laser.h"
@@ -71,7 +72,14 @@ class PluginElement;
  *       ParallelTracker::execute().
  */
 class ParallelTracker : public Tracker {
+public:
+    /// Stop each container after this many directed reference return-plane crossings.
+    void setRequestedTurns(unsigned long long turns) { requestedTurns_m = turns; }
+    virtual void visitCyclotronSector(const CyclotronSector& sector) {
+        itsOpalBeamline_m.visit(sector, *this, *itsBunch_m);
+    }
 private:
+    unsigned long long requestedTurns_m = 0;
     DataSink* itsDataSink_m;         ///< Borrowed beam statistics and phase-space output sink.
     OpalBeamline itsOpalBeamline_m;  ///< Cloned field elements and coordinate transforms.
     bool globalEOL_m;                ///< End-of-line flag (e.g. orbit threader out of bounds).

@@ -196,6 +196,7 @@ private:
     double pathLengthCorrection_m{0.0};
     RayState currentRay() const;
     RayState ringOrigin_m;
+    bool ringReturnArmed_m = false; ///< Negative-side excursion arms the next directed return.
     bool referencePass_m{false};
     std::optional<double> referenceReturnLength_m;
     void checkRingReturn(const RayState& before, double stepDt);

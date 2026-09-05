@@ -32,6 +32,7 @@
 #include <string>
 #include <vector>
 
+#include "Algorithms/DirectedTurnCounter.h"
 #include "Algorithms/Matrix.h"
 #include "BasicActions/DumpEMFields.h"
 
@@ -371,6 +372,7 @@ void ParallelTracker::execute() {
     const size_t nContainers = itsBunch_m->getNumParticleContainers();
     std::vector<std::shared_ptr<OrbitThreader>> oths(nContainers);
     bool designBeamAssigned = false;
+    std::vector<std::unique_ptr<DirectedTurnCounter>> turnCounters(nContainers);
     for (size_t ci = 0; ci < nContainers; ++ci) {
         const auto& pc = itsBunch_m->getParticleContainer(ci);
         if (!pc || !pc->getReference()) {
@@ -378,6 +380,10 @@ void ParallelTracker::execute() {
         }
 
         const bool isDesignBeam = !designBeamAssigned;
+        if (requestedTurns_m) {
+            turnCounters[ci] = std::make_unique<DirectedTurnCounter>(
+                    pc->getRefPartR(), pc->getRefPartP());
+        }
         designBeamAssigned      = true;
         oths[ci]                = std::make_shared<OrbitThreader>(
                 *pc->getReference(), pc->getRefPartR(), pc->getRefPartP(), pc->get_sPos(),
@@ -654,7 +660,16 @@ void ParallelTracker::execute() {
                 m << level4 << "Calculated drift per time step (container " << i
                   << "): " << Util::getLengthString(driftPerTimeStep) << "." << endl;
 
-                if (std::abs(stepSizes_m.getSStop() - pc->get_sPos()) < 0.5 * driftPerTimeStep) {
+                if (requestedTurns_m) {
+                    if (turnCounters[i]->update(pc->getRefPartR(), pc->getRefPartP())) {
+                        m << level1 << "* RING container " << i << ": completed directed turn "
+                          << turnCounters[i]->count() << ", path length = " << pc->get_sPos()
+                          << " m." << endl;
+                    }
+                    if (turnCounters[i]->count() >= requestedTurns_m) {
+                        itsBunch_m->setPcAtSStop(i);
+                    }
+                } else if (std::abs(stepSizes_m.getSStop() - pc->get_sPos()) < 0.5 * driftPerTimeStep) {
                     m << level2
                       << "Approaching end of current step size configuration for container " << i
                       << " (sStop = " << Util::getLengthString(stepSizes_m.getSStop())
@@ -695,6 +710,15 @@ void ParallelTracker::execute() {
         ++stepSizes_m;
         ++segmentIndex;
         stepsCompletedInSegment = 0;
+    }
+    if (requestedTurns_m) {
+        for (const auto& counter : turnCounters) {
+            if (counter && counter->count() < requestedTurns_m) {
+                throw OpalException(
+                        "ParallelTracker::execute",
+                        "RING did not complete requested directed turns within MAXSTEPS or field bounds.");
+            }
+        }
     }
     bool const psDump = Options::psDumpFreq > 0
                         && (((itsBunch_m->getGlobalTrackStep() - 1) % Options::psDumpFreq) + 1
@@ -1721,7 +1745,7 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
             *gmsg << level1 << "* " << myt2.time() << " "
                   << "Step " << std::setw(6) << globalStep << " "
                   << "container[" << ci << "] ";
-            if (ringPeriod_m > 0.0) {
+            if (ringPeriod_m > 0.0 && !requestedTurns_m) {
                 *gmsg << getRingProgressString(sPos, ringPeriod_m) << ", ";
             } else {
                 *gmsg << "at " << Util::getLengthString(sPos) << ", ";

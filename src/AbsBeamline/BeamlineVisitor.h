@@ -74,6 +74,7 @@ public:
 
     /// Apply the algorithm to an arbitrary element.
     virtual void visitElementBase(const ElementBase&) = 0;
+    virtual void visitCyclotronSector(const class CyclotronSector&);
 
     /// Apply the algorithm to a constant E-field cavity element.
     virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&) = 0;
