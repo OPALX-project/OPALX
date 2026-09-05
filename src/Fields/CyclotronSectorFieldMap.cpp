@@ -45,6 +45,8 @@ CyclotronSectorFieldMap::CyclotronSectorFieldMap(const std::string& filename) {
     int count;
     if (!(in >> count) || count < 0 || count > 10000000) fail();
     skip(4);
+    // The obsolete first block is fixed-width numeric data: adjacent signed
+    // values need not have whitespace between them, so token-skipping is wrong.
     for (int i = 0; i < count; ++i) {
         double unused;
         if (!(in >> unused)) fail();
@@ -63,6 +65,8 @@ CyclotronSectorFieldMap::CyclotronSectorFieldMap(const std::string& filename) {
     host = Kokkos::create_mirror_view(data);
     for (int i = 0; i < nr; ++i) {
         if (i) skip(6);
+        // Preserve only the base field; derivatives below reproduce legacy
+        // OPAL's recomputation rather than trusting the three derivative blocks.
         for (int channel = 0; channel < 4; ++channel)
             for (int j = 0; j < nt; ++j) {
                 double value;

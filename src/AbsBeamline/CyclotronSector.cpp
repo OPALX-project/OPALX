@@ -5,6 +5,12 @@
 #include "Utilities/OpalException.h"
 
 namespace {
+    /** @brief Common scalar/device field formula in the sector entrance frame.
+     * grid contains F, dF/dr, dF/dtheta in SI units. Here dt is angular grid
+     * spacing [rad], not a time step, and p is a position [m], not momentum.
+     * Bounds are checked before interpolation. Contributions are added to b [T].
+     * The legacy (x,y,z)->(x,-z,y) rotation makes By positive for positive map F.
+     */
     template <class V, class C>
     KOKKOS_INLINE_FUNCTION void field(
             const V& grid, const C& coils, double rmin, double dr, double dt, int nr, int nt,
@@ -42,6 +48,7 @@ void CyclotronSector::configure(
     vmin      = low;
     vmax      = high;
     scale     = factor;
+    // This arc is a placement/geometry representation, not an equilibrium orbit.
     geometry  = Geometry::makeSBend(radius * angle, 1 / radius);
     coils     = Kokkos::View<CyclotronTrimCoil*>("cyclotron_trim_coils", models.size());
     hostCoils = Kokkos::create_mirror_view(coils);
