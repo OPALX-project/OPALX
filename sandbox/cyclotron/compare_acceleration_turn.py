@@ -20,6 +20,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--steps-per-turn', type=int, default=2880)
+    parser.add_argument('--no-trim-coils', action='store_true')
+    parser.add_argument('--target-mev', type=float)
+    parser.add_argument('--max-turns', type=int, default=220)
+    parser.add_argument('--fixed-steps', type=int, help='Compare a matched endpoint; do not enable EKINSTOP')
     parser.add_argument('--reference', type=Path,
         default=root/'acceleration-reference/lf2-2880-validated/first-turn.csv')
     args = parser.parse_args()
@@ -31,6 +35,10 @@ def main():
     lines = ['OPTION, VERSION=10900, PSDUMPFREQ=1, STATDUMPFREQ=1;',
         'OPTION, ENABLELINEARTRANSFERMAPS=FALSE;',
         'TC1: TRIMCOIL, TYPE="PSI-BFIELD-MIRRORED", RMIN=4.350, RMAX=4.470, BMAX=1.4e-3, SLPTC=600;']
+    if args.no_trim_coils:
+        lines[-1] = lines[-1].replace('BMAX=1.4e-3', 'BMAX=0')
+    if args.target_mev:
+        lines[0] = 'OPTION, VERSION=10900, PSDUMPFREQ=1000, STATDUMPFREQ=1000, STEPINFOFQ=10000;'
     for i in range(8):
         a = i*math.pi/4
         lines.append(f'SM{i}: CYCLOTRONSECTOR, FMAPFN="{root / "opal/bfield.dat"}", '
@@ -54,8 +62,9 @@ def main():
         'ES0: EMISSIONSOURCE, DISTRIBUTION=DIST0;', 'SOURCES0: EMISSIONSOURCELIST=(ES0);',
         'FS0: FIELDSOLVER, TYPE=NONE, NX=16, NY=16, NZ=16, PARFFTX=TRUE, PARFFTY=TRUE, PARFFTZ=TRUE, BCFFTX=OPEN, BCFFTY=OPEN, BCFFTZ=OPEN;',
         'BEAM0: BEAM, PARTICLE=PROTON, NALLOC=1, BCHARGE=1.602176634e-19, SOURCES=SOURCES0, CHARGE=1;',
-        f'TRACK, LINE=MYCYCL, BEAM=BEAM0, MAXSTEPS={args.steps_per_turn*2}, DT={6/(50.65e6*args.steps_per_turn):.17g}, ZSTOP=1e6;',
-        'RUN, METHOD="PARALLEL", FIELDSOLVER=FS0, TURNS=1;', 'ENDTRACK;', 'QUIT;']
+        f'TRACK, LINE=MYCYCL, BEAM=BEAM0, MAXSTEPS={args.fixed_steps or args.steps_per_turn*(args.max_turns if args.target_mev else 2)}, DT={6/(50.65e6*args.steps_per_turn):.17g}, ZSTOP=1e6'
+        + (f', EKINSTOP={args.target_mev/1000:.17g}' if args.target_mev and not args.fixed_steps else '') + ';',
+        'RUN, METHOD="PARALLEL", FIELDSOLVER=FS0' + ('' if args.target_mev or args.fixed_steps else ', TURNS=1') + ';', 'ENDTRACK;', 'QUIT;']
     (work/'acceleration.in').write_text('\n'.join(lines)+'\n')
     (work/'proton.dat').write_text(f'1\nx px y py z pz\n0 {launch.px:.17g} 0 0 0 {launch.py:.17g}\n')
     with (work/'run.log').open('w') as log:
@@ -74,6 +83,33 @@ def main():
     result = dict(steps=len(rows), final_energy_MeV=rows[-1]['energy'],
                   final_time_s=rows[-1]['t'], max_particle_offset_m=max(r['offset'] for r in rows),
                   gap_events=events)
+    if args.target_mev:
+        result['output_records'] = result.pop('steps')
+        result['position_m'] = rows[-1]['r'].tolist()
+        result['momentum'] = rows[-1]['p'].tolist()
+        result['target_MeV'] = args.target_mev
+        result['ranks'] = 1
+        result['trim_coils'] = not args.no_trim_coils
+        if not args.fixed_steps:
+            assert 'EKINSTOP reached after complete gap kick' in (work/'run.log').read_text()
+        assert result['final_energy_MeV'] >= args.target_mev
+        assert result['max_particle_offset_m'] < 1e-7, result
+        result['gap_event_count'] = len(result.pop('gap_events'))
+        if args.fixed_steps:
+            indices = np.rint(np.array([r['t'] for r in rows])*50.65e6*args.steps_per_turn/6).astype(int)
+            matched = old.iloc[indices]
+            errors_r = np.linalg.norm(np.array([r['r'] for r in rows])-matched[['x','z','y']].to_numpy()*[1,-1,1], axis=1)
+            errors_p = np.linalg.norm(np.array([r['p'] for r in rows])-matched[['px','pz','py']].to_numpy()*[1,-1,1], axis=1)
+            result['max_sampled_position_error_m'] = float(errors_r.max())
+            result['final_position_error_m'] = float(errors_r[-1])
+            result['final_momentum_error'] = float(errors_p[-1])
+            result['old_final_energy_MeV'] = float(matched.kinetic_MeV.iloc[-1])
+            result['final_energy_difference_eV'] = (result['final_energy_MeV']-result['old_final_energy_MeV'])*1e6
+            pd.DataFrame({'time_s':[r['t'] for r in rows], 'position_error_m':errors_r, 'momentum_error':errors_p}).to_csv(work/'errors.csv',index=False)
+        (work/'summary.json').write_text(json.dumps(result, indent=2)+'\n')
+        pd.DataFrame({'time_s':[r['t'] for r in rows], 'energy_MeV':[r['energy'] for r in rows]}).to_csv(work/'energy.csv',index=False)
+        print(json.dumps(result,indent=2))
+        return
     n = min(len(rows), len(old)-1)
     reference_r = old[['x','z','y']].to_numpy()[1:n+1]*[1,-1,1]
     reference_p = old[['px','pz','py']].to_numpy()[1:n+1]*[1,-1,1]

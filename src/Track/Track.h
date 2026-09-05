@@ -68,6 +68,13 @@ public:
     /// The ellapsed time of the beam can be used to propper
     /// start the beam when created in a cavity i.e. without emission
     double t0_m;
+    /** Optional kinetic-energy stop [GeV]; zero disables it (SINGLEGAP RING only).
+     * Explicit input must be positive and finite. RUN transfers it to the tracker
+     * in eV; it is incompatible with explicit TURNS, restart or multiple DT segments.
+     * The first qualifying complete kick ends tracking, not a nominal turn or
+     * an artificial interpolation of the RF energy increment.
+     */
+    double kineticEnergyStopGeV = 0;
 
     /// Maximal number of timesteps
     std::vector<unsigned long long> localTimeSteps;

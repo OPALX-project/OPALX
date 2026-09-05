@@ -1,0 +1,32 @@
+[
+  {
+    "case": "No TC, DT",
+    "old_MeV": 590.3258951725991,
+    "opalx_MeV": 590.3268245375589,
+    "difference_eV": 929.3649598021148,
+    "difference_ppm": 1.574325245431403,
+    "final_position_error_um": 55.78491810867598,
+    "max_position_error_um": 56.56660654621937,
+    "particle_reference_nm": 1.5579874801057887
+  },
+  {
+    "case": "No TC, DT/2",
+    "old_MeV": 590.2969105166821,
+    "opalx_MeV": 590.297352912883,
+    "difference_eV": 442.3962008104354,
+    "difference_ppm": 0.7494469188788563,
+    "final_position_error_um": 26.682284373293097,
+    "max_position_error_um": 26.682284373293097,
+    "particle_reference_nm": 3.1867074277738756
+  },
+  {
+    "case": "TC on, DT",
+    "old_MeV": 590.3850139236016,
+    "opalx_MeV": 590.3861162337621,
+    "difference_eV": 1102.3101604905605,
+    "difference_ppm": 1.8671038974461576,
+    "final_position_error_um": 63.18260704633585,
+    "max_position_error_um": 65.3010413057742,
+    "particle_reference_nm": 1.4038574089605056
+  }
+]

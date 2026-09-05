@@ -1,8 +1,122 @@
 # Cyclotron acceleration: 72 to 590 MeV
 
-Date: 2026-09-06. Status: approved; first-turn old-OPAL baseline established.
-The first OPALX accelerating turn is implemented and compared; energy-stop and
-longer-run milestones remain pending.
+Date: 2026-09-06. Status: 590 MeV comparison achieved with and without trim coils.
+TRACK EKINSTOP is implemented and validated. The progress notes below retain the
+chronology; the final checkpoint supersedes their historical pending items.
+
+## Final 590 MeV checkpoint
+
+- All comparisons use one MPI rank, one proton, OpenMP build, OMP_NUM_THREADS=1.
+- No TC, DT=41.1319513 ps: old 590.325895173 MeV, OPALX 590.326824538 MeV;
+  difference +929.365 eV, matched final position difference 55.785 micrometres.
+- No TC, DT/2: old 590.296910517 MeV, OPALX 590.297352913 MeV;
+  difference +442.396 eV, matched final position difference 26.682 micrometres.
+- Active TC, DT: old 590.385013924 MeV, OPALX 590.386116234 MeV;
+  difference +1102.310 eV, matched final position difference 63.183 micrometres.
+  The old input explicitly sets PHIMIN=0, PHIMAX=360 (see investigation below).
+- Each OPALX endpoint contains 949 gap events; particle/reference offset <3.2 nm.
+- EKINSTOP writes the full post-kick state at the gap, with no remainder drift.
+  Coordinate comparisons instead use separate matched fixed-step endpoints.
+- report_acceleration590.py passes empirical 1.5 keV / 100 micrometre agreement
+  envelopes and requires improvement on no-TC refinement. These are inter-code
+  regression guards, not absolute accuracy bounds: old LF2 itself shifts 29 keV
+  on halving DT. Active-TC refinement remains future work.
+- Seven energy-stop rejection cases and a successful short-target case pass.
+- Source Doxygen and separate opalx-manual user/physics chapters document units,
+  formulas, old-OPAL conventions, stopping semantics and limitations.
+- Reproducible scripts plus compact JSON/CSV results are retained; large raw
+  trajectories remain local. No new Rep class or upstream dependency changes.
+- Restrictions remain: one unpolarized median-plane proton, no restart, no
+  multi-container/GPU production path; E/B diagnostic arrays are not populated.
+
+Final validation passed: TestCyclotronSector, TestCyclotronRF, TestRFCavity and
+TestOrbitThreader (4/4); seven CLI rejection cases; first-turn rerun (0.758 um);
+72 MeV coasting DT/DT2/DT4 rerun (matched LF2 8.5256 nm); comparison report;
+RF-kernel Doxygen with warnings-as-errors; manual validator (57 chapters), both
+Quarto chapter renders and diff whitespace checks. Reviewed the source diff.
+Push only 545-add-cyclotron-coasting-beam. Manual changes stay local
+in the separate manual repository unless separately authorized for publication.
+
+## Active 590 MeV goal (AFK authorization, 2026-09-06)
+
+User approved pushing the first-turn work and continuing autonomously to 590 MeV,
+starting with TC disabled in both codes, then detailed source/manual documentation.
+Do not introduce a CyclotronSectorRep; Rep classes will eventually be removed.
+First-turn implementation committed and pushed to the feature branch as 44821f8cc
+with detailed physics, design, test and limitation notes. No changes to master.
+
+Old OPAL LF2, 2880 steps/nominal turn, TC BMAX=0, 220 nominal-turn safety budget:
+target first reached at step 545799, t=22.449777887463 microseconds,
+K=590.325895172599 MeV, preceding sample K=589.569926098435 MeV.
+Recorded under acceleration590/old-lf2-2880-no-tc (target.json and to-target.csv).
+This is an end-of-step sample after the full kick, not the exact gap event.
+
+Implemented TRACK EKINSTOP [GeV] propagation through Track and TrackRun, requiring
+one positive DT segment, non-restarted RING, no explicit RUN TURNS. Runtime requires
+the one-proton SINGLEGAP path and target above launch energy. Directed turns remain
+diagnostic. MAXSTEPS exhaustion before target raises an error. Whole kicks are
+retained; the final timestep is shortened to the reference's actual gap event.
+Reference stepping is computed in advance for this mode and published through
+the existing post-step reference update. Particle is advanced independently using
+the same event routine; no reference state is copied into the physical particle.
+
+Short target test at 73.5 MeV passes: stops at RF0, t=90.0387913539 ns,
+actual K=73.7423186821 MeV, particle/reference offset 2.03 pm. The first script
+attempt used wrong option STEPINFOFREQ; corrected to STEPINFOFQ. Output sampling
+is reduced to every 1000 steps for long runs. A full OPALX 590 MeV run is active
+under acceleration590/opalx-stop-2880-no-tc. Compare final energies first, then
+use a matched fixed-step endpoint run to compare coordinates: old OPAL retains
+the remainder drift whereas EKINSTOP deliberately stops on the gap.
+
+Pending: full-run result, matched endpoint/refinement, energy-stop rejection tests,
+source/manual docs, final review and push. Final comparison tolerances must be
+justified from refinement, not copied from first-turn tolerances. One rank only.
+
+590 progress update: OPALX EKINSTOP=0.590 completes at RF4 after 949 kicks,
+K=590.326824537559 MeV, t=22.449771272973 us; particle/reference offset <1.531 nm.
+Energy difference from coarse old LF2 is +929.365 eV (1.6 ppm). The coordinate
+difference of the raw terminal records is not comparable until accounting for
+old OPAL's remainder drift. A fixed 545799-step OPALX run is active to provide
+that matched comparison (acceleration590/opalx-endpoint-2880-no-tc).
+
+Old half-step LF2 reference completed: step 1091597, t=22.449757321487 us,
+K=590.296910516682 MeV. Old final energy changes by -28.985 keV on refinement,
+so the 929 eV inter-code difference must be interpreted separately from timestep
+accuracy. OPALX matched half-step run active at opalx-endpoint-5760-no-tc.
+Five CLI rejection cases pass via test_energy_stop.py: negative target, target
+below launch, explicit TURNS conflict, exhausted MAXSTEPS, and no RF gaps.
+
+Matched coarse endpoint completes with final position error 55.785 um, sampled
+maximum 56.567 um, final momentum error 1.601e-6, energy difference +929.365 eV.
+Half-step comparison remains active (OPALX run session 46126).
+
+TC investigation: old-lf2-2880-tc produced exactly the same output as TC-off even
+though BMAX was nonzero. Source inspection found OpalTrimCoil.cpp PHIMAX help says
+default 360 but makeReal supplies no default (hence zero). The generator now sets
+PHIMIN=0, PHIMAX=360 explicitly. A new true TC-on reference is running under
+old-lf2-2880-tc-explicit-azimuth. The earlier tc directory is NOT evidence of an
+active-TC comparison. No-TC results are unaffected. This also explains why earlier
+low-energy baselines did not test the effective azimuth gate; no claims about
+full-radius TC agreement should use those runs.
+
+Explicit-azimuth TC reference now completed: first target at step 545792,
+t=22.449489963804 us, K=590.385013923602 MeV (preceding 589.626175513160 MeV).
+This is a genuine +59.119 keV change relative to TC-off and a different crossing
+time. Matching OPALX TC-on fixed-endpoint run is active under
+acceleration590/opalx-endpoint-2880-tc. All TC parameters are explicitly the same
+named mirrored profile in the two codes; this does not claim equivalence with
+every obsolete inline TC syntax/version.
+
+Half-step no-TC comparison completed: OPALX K=590.297352912883 MeV versus old
+590.296910516682 MeV, difference +442.396 eV (0.75 ppm). Matched final position
+error 26.6823 um, momentum 9.9041e-7, particle/reference offset <3.187 nm.
+Both have 949 kicks. The error decreases from +929 eV / 55.8 um at DT to
++442 eV / 26.7 um at DT/2. The no-TC 590 MeV agreement goal is achieved;
+active-TC comparison, final documentation validation and final push remain.
+
+Seven energy-stop rejection cases now pass, adding explicit zero and multi-DT
+segments. Doxygen contracts were expanded for SINGLEGAP versus continuous fields,
+energy-stop units, reference precomputation and final-step clock handling.
 
 ## OPALX implementation checkpoint (2026-09-06)
 
@@ -213,5 +327,6 @@ must be measured rather than silently treating these algorithms as identical.
 
 ## Current next step
 
-The user approved the plan with a one-turn-first sequence. The old-OPAL baseline
-is now available; proceed to profile/kick tests and one-turn OPALX RF support.
+The one-turn-first and 590 MeV goals are achieved. Future physics work can refine
+the active-TC trajectory and extend beyond the deliberately restricted one-proton
+model; neither is required to reproduce the comparisons recorded above.

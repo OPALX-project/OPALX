@@ -32,6 +32,17 @@ class Fieldmap;
 
 enum class CavityType : unsigned short { SW, SGSW };
 
+/** @brief RF physics shared by RFCavityRep: continuous fields or discrete gaps.
+ * STANDING uses the existing field-map apply() path. SINGLEGAP is configured by
+ * OpalCavity through configureCyclotronGap(); it stores a shared radial voltage
+ * profile and a value-type kick model. In that mode apply() deliberately adds no
+ * fields and isInside() returns false: ParallelTracker must detect and integrate
+ * the oriented gap event. Calling only the ordinary field API does not accelerate
+ * a particle through a SINGLEGAP cavity.
+ *
+ * The concrete RFCavityRep still supplies geometry/cloning as for existing RF
+ * elements. The cyclotron extension does not add another Rep subclass.
+ */
 class RFCavity : public ElementBase {
 public:
     /** Configure the static SINGLEGAP model before tracking. Geometry uses local
@@ -43,7 +54,16 @@ public:
     bool isCyclotronGap() const { return static_cast<bool>(cyclotronProfile_m); }
     /// Clear the discrete model before a parser reconfiguration to another type.
     void clearCyclotronGap() { cyclotronProfile_m.reset(); }
+    /// Inclusive local-x profile support [m]; not a global machine-radius check.
     bool gapSupports(double x) const { return x >= gapMin_m && x <= gapMax_m; }
+    /** Apply a full static proton kick in gap-local coordinates.
+     * @pre isCyclotronGap() is true and the caller has localized a positive z crossing.
+     * @param x Local coordinate along the gap [m].
+     * @param t Absolute RF time [s].
+     * @param mass Proton rest energy [eV].
+     * @param[in,out] p Local mechanical momentum [beta*gamma].
+     * @return False for out-of-support, non-median-plane or unphysical states.
+     */
     bool applyGapKick(double x, double t, double mass, Vector_t<double, 3>& p) const {
         return cyclotronKick_m.apply(cyclotronProfile_m->host,
             (x-gapMin_m)/(gapMax_m-gapMin_m), t, mass, p);

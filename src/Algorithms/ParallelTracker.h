@@ -75,6 +75,11 @@ class ParallelTracker : public Tracker {
 public:
     /// Stop each container after this many directed reference return-plane crossings.
     void setRequestedTurns(unsigned long long turns) { requestedTurns_m = turns; }
+    /** Reference kinetic-energy target [eV]; zero disables. Stop after a full RF
+     * kick, never by clipping its energy gain. TRACK validates positive finite
+     * input and compatible RING controls; execute() checks launch and model.
+     */
+    void setKineticEnergyStop(double energy) { kineticEnergyStop_m = energy; }
     virtual void visitCyclotronSector(const CyclotronSector& sector) {
         itsOpalBeamline_m.visit(sector, *this, *itsBunch_m);
     }
@@ -84,12 +89,22 @@ private:
      * R/P are in the tracking frame, t/dt in seconds. Splits Boris steps at
      * directed gap-plane roots and applies full kicks in time order. Field
      * queries use spatial support, not the threader's nominal closed orbit.
+     * Assumes distinct gap planes and a single unpolarized median-plane proton.
      * The caller must choose dt small enough to bracket each crossing without
      * an intervening recrossing of the same plane. Particle E/B diagnostic views
      * are not populated by this event path; only positions/momenta are advanced.
+     * @return Elapsed time [s], equal to dt unless EKINSTOP is met at a gap.
+     * On target completion the outgoing state is immediately after that complete
+     * kick; the remainder magnetic drift is deliberately omitted. With report=true
+     * the reference marks energyTargetReached_m and emits the terminal diagnostic.
      */
-    void advanceCyclotronGaps(Vector_t<double, 3>& r, Vector_t<double, 3>& p,
+    double advanceCyclotronGaps(Vector_t<double, 3>& r, Vector_t<double, 3>& p,
                              double t, double dt, double mass, bool report);
+    double kineticEnergyStop_m = 0; ///< Optional reference kinetic-energy target [eV].
+    bool energyTargetReached_m = false; ///< Latched only by the reference's complete kick.
+    /// Energy-mode reference is precomputed so the final bunch clock uses its substep.
+    bool pendingEnergyReference_m = false;
+    Vector_t<double, 3> pendingReferenceR_m, pendingReferenceP_m;
     unsigned long long requestedTurns_m = 0;
     DataSink* itsDataSink_m;         ///< Borrowed beam statistics and phase-space output sink.
     OpalBeamline itsOpalBeamline_m;  ///< Cloned field elements and coordinate transforms.

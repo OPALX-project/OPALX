@@ -373,6 +373,8 @@ void ParallelTracker::execute() {
     std::vector<std::shared_ptr<OrbitThreader>> oths(nContainers);
     bool designBeamAssigned = false;
     std::vector<std::unique_ptr<DirectedTurnCounter>> turnCounters(nContainers);
+    if (kineticEnergyStop_m > 0 && (!hasCyclotronGaps() || nContainers != 1))
+        throw OpalException("ParallelTracker", "EKINSTOP requires the single-container cyclotron gap path.");
     for (size_t ci = 0; ci < nContainers; ++ci) {
         const auto& pc = itsBunch_m->getParticleContainer(ci);
         if (!pc || !pc->getReference()) {
@@ -380,7 +382,10 @@ void ParallelTracker::execute() {
         }
 
         const bool isDesignBeam = !designBeamAssigned;
-        if (requestedTurns_m) {
+        if (kineticEnergyStop_m > 0
+            && (std::sqrt(1+dot(pc->getRefPartP(),pc->getRefPartP()))-1)*pc->getReference()->getM() >= kineticEnergyStop_m)
+            throw OpalException("ParallelTracker", "EKINSTOP must exceed the launch kinetic energy.");
+        if (requestedTurns_m || kineticEnergyStop_m > 0) {
             turnCounters[ci] = std::make_unique<DirectedTurnCounter>(
                     pc->getRefPartR(), pc->getRefPartP());
         }
@@ -660,13 +665,14 @@ void ParallelTracker::execute() {
                 m << level4 << "Calculated drift per time step (container " << i
                   << "): " << Util::getLengthString(driftPerTimeStep) << "." << endl;
 
-                if (requestedTurns_m) {
+                if (requestedTurns_m || kineticEnergyStop_m > 0) {
                     if (turnCounters[i]->update(pc->getRefPartR(), pc->getRefPartP())) {
                         m << level1 << "* RING container " << i << ": completed directed turn "
                           << turnCounters[i]->count() << ", path length = " << pc->get_sPos()
                           << " m." << endl;
                     }
-                    if (turnCounters[i]->count() >= requestedTurns_m) {
+                    if ((requestedTurns_m && turnCounters[i]->count() >= requestedTurns_m)
+                        || energyTargetReached_m) {
                         itsBunch_m->setPcAtSStop(i);
                     }
                 } else if (std::abs(stepSizes_m.getSStop() - pc->get_sPos()) < 0.5 * driftPerTimeStep) {
@@ -711,6 +717,8 @@ void ParallelTracker::execute() {
         ++segmentIndex;
         stepsCompletedInSegment = 0;
     }
+    if (kineticEnergyStop_m > 0 && !energyTargetReached_m)
+        throw OpalException("ParallelTracker::execute", "EKINSTOP was not reached within MAXSTEPS or field bounds.");
     if (requestedTurns_m) {
         for (const auto& counter : turnCounters) {
             if (counter && counter->count() < requestedTurns_m) {
@@ -763,7 +771,7 @@ bool ParallelTracker::hasCyclotronGaps() {
     return false;
 }
 
-void ParallelTracker::advanceCyclotronGaps(
+double ParallelTracker::advanceCyclotronGaps(
         Vector_t<double, 3>& r, Vector_t<double, 3>& p, double t, double dt,
         double mass, bool report) {
     const auto all = itsOpalBeamline_m.getElements();
@@ -827,7 +835,7 @@ void ParallelTracker::advanceCyclotronGaps(
                 selected = element;
             }
         }
-        if (!selected) { r = endR; p = endP; return; }
+        if (!selected) { r = endR; p = endP; return dt; }
         magneticAdvance(r, p, earliest);
         t += earliest;
         remaining -= earliest;
@@ -841,7 +849,16 @@ void ParallelTracker::advanceCyclotronGaps(
         if (report)
             *gmsg << level2 << "Cyclotron gap " << selected->getName() << " t=" << t
                   << " s K=" << (std::sqrt(1+dot(p,p))-1)*mass*1e-6 << " MeV" << endl;
+        if (kineticEnergyStop_m > 0 && (std::sqrt(1+dot(p,p))-1)*mass >= kineticEnergyStop_m) {
+            if (report) {
+                energyTargetReached_m = true;
+                *gmsg << level1 << "EKINSTOP reached after complete gap kick " << selected->getName()
+                      << " at t=" << t << " s; K=" << (std::sqrt(1+dot(p,p))-1)*mass*1e-6 << " MeV" << endl;
+            }
+            return dt-remaining;
+        }
     }
+    return dt;
 }
 
 /**
@@ -883,8 +900,26 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
         auto p = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->P.getView());
         const auto& toLab = pc->getToLabTrafo();
         Vector_t<double, 3> position = toLab.transformTo(r(0)), momentum = toLab.rotateTo(p(0));
+        const double requestedDt = itsBunch_m->getdT();
+        double actualDt = requestedDt;
+        if (kineticEnergyStop_m > 0) {
+            // Establish the reference's stopping time before incrementT(). Keep
+            // the ordinary post-step frame update, publishing this pending state
+            // there. The physical particle is advanced independently below.
+            pendingReferenceR_m = pc->getRefPartR();
+            pendingReferenceP_m = pc->getRefPartP();
+            actualDt = advanceCyclotronGaps(pendingReferenceR_m, pendingReferenceP_m,
+                itsBunch_m->getT(), requestedDt, pc->getReference()->getM(), true);
+            pendingEnergyReference_m = true;
+        }
         advanceCyclotronGaps(position, momentum, itsBunch_m->getT(), itsBunch_m->getdT(),
                              pc->getReference()->getM(), false);
+        if (energyTargetReached_m) {
+            // Only the terminal step changes dt; subsequent steps are disabled
+            // after writing diagnostics. No fractional RF impulse is introduced.
+            itsBunch_m->setdT(actualDt);
+            pc->dt = actualDt;
+        }
         r(0) = toLab.transformFrom(position);
         p(0) = toLab.rotateFrom(momentum);
         Kokkos::deep_copy(pc->R.getView(), r);
@@ -1677,6 +1712,12 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& pusher) {
         auto& pc                = *pcPtr;
         const PartData& refKick = *pc.getReference();
         if (hasCyclotronGaps()) {
+            if (pendingEnergyReference_m) {
+                pc.getRefPartR() = pendingReferenceR_m;
+                pc.getRefPartP() = pendingReferenceP_m;
+                pendingEnergyReference_m = false;
+                continue;
+            }
             advanceCyclotronGaps(pc.getRefPartR(), pc.getRefPartP(), itsBunch_m->getT()-dt,
                                  dt, refKick.getM(), true);
             continue;
@@ -1866,7 +1907,8 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
             *gmsg << level1 << "* " << myt2.time() << " "
                   << "Step " << std::setw(6) << globalStep << " "
                   << "container[" << ci << "] ";
-            if (ringPeriod_m > 0.0 && !requestedTurns_m) {
+            if (ringPeriod_m > 0.0 && !requestedTurns_m && kineticEnergyStop_m == 0
+                && !hasCyclotronGaps()) {
                 *gmsg << getRingProgressString(sPos, ringPeriod_m) << ", ";
             } else {
                 *gmsg << "at " << Util::getLengthString(sPos) << ", ";
