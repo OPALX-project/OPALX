@@ -18,6 +18,8 @@
 #include "Utility/Inform.h"
 
 #include <filesystem>
+#include <iomanip>
+#include <iostream>
 #include <limits>
 #include <set>
 
@@ -55,6 +57,7 @@ namespace {
      */
     class FieldSupportOnlyComponent final : public ElementBase {
     public:
+        unsigned fieldCalls{0};
         FieldSupportOnlyComponent(
                 const std::string& name, const double fieldBegin, const double fieldEnd,
                 const double longitudinalElectricField = 0.0)
@@ -73,6 +76,7 @@ namespace {
         bool applyToReferenceParticle(
                 const Vector_t<double, 3>& position, const Vector_t<double, 3>&, const double&,
                 Vector_t<double, 3>& electric, Vector_t<double, 3>&) override {
+            ++fieldCalls;
             if (position(2) >= fieldBegin_m && position(2) < fieldEnd_m) {
                 electric(2) += electricField_m;
             }
@@ -137,7 +141,7 @@ protected:
     }
 
     LinearTransferMap freeDriftMap(const unsigned levels, const double deltaStep,
-                                  const double clockOrigin = 0.0) {
+                                  const double clockOrigin = 0.0, const std::string& method = "BORIS") {
         OpalBeamline beamline;
         PartData reference(1.0, 9.382720813e8, 1.0e6);
         auto entrance = LinearTransferMapBuilder::initialFrame(
@@ -152,6 +156,7 @@ protected:
         LinearTransferMapBuilder::Settings settings;
         settings.richardsonLevels         = levels;
         settings.finiteDifferenceSteps[5] = deltaStep;
+        settings.integrationMethod = ExternalFieldRayTracker::parseIntegrationMethod(method);
         LinearTransferMapBuilder builder(beamline, reference, 1.e-11, settings);
         return builder.build({{entrance}, {exit}}, 0.0).segments.front().map;
     }
@@ -325,7 +330,9 @@ TEST_F(OrbitThreaderTest, ValidatesMapSettingsAndIntegrationChoice) {
     EXPECT_THROW(settings.validate(), OpalException);
     using Method = ExternalFieldRayTracker::IntegrationMethod;
     EXPECT_EQ(ExternalFieldRayTracker::parseIntegrationMethod("LF2"), Method::BORIS);
-    EXPECT_THROW(ExternalFieldRayTracker::parseIntegrationMethod("RK4"), OpalException);
+    EXPECT_EQ(ExternalFieldRayTracker::parseIntegrationMethod("RK4"), Method::RK4);
+    EXPECT_EQ(ExternalFieldRayTracker::parseIntegrationMethod("DOP853"), Method::DOP853);
+    EXPECT_THROW(ExternalFieldRayTracker::parseIntegrationMethod("UNKNOWN"), OpalException);
     OpalBeamline beamline;
     PartData reference(1.0, 9.382720813e8, 1.0e6);
     EXPECT_THROW(
@@ -561,7 +568,9 @@ TEST_F(OrbitThreaderTest, RayTrackerResolvesThinSupportForEachMomentumAndReverse
     beamline.visit(field, visitor, *bunch);
     beamline.prepareSections();
     PartData reference(1.0, 9.382720813e8, 1.0e6);
-    ExternalFieldRayTracker tracker(beamline, reference);
+    for (const std::string method : {"BORIS", "RK4", "DOP853"}) {
+    SCOPED_TRACE(method);
+    ExternalFieldRayTracker tracker(beamline, reference, ExternalFieldRayTracker::parseIntegrationMethod(method));
     for (double momentum : {0.9, 1.0, 1.1}) {
         ExternalFieldRayTracker::State initial;
         initial.momentum(2) = momentum;
@@ -582,6 +591,7 @@ TEST_F(OrbitThreaderTest, RayTrackerResolvesThinSupportForEachMomentumAndReverse
         EXPECT_LT(euclidean_norm(displacement), 1.0e-10);
         EXPECT_LT(euclidean_norm(momentumChange), 1.0e-9);
     }
+    }
 }
 
 TEST_F(OrbitThreaderTest, RayTrackerSumsOverlappingSupportsAcrossBoundaries) {
@@ -598,7 +608,9 @@ TEST_F(OrbitThreaderTest, RayTrackerSumsOverlappingSupportsAcrossBoundaries) {
     }
     beamline.prepareSections();
     PartData reference(1.0, 9.382720813e8, 1.0e6);
-    ExternalFieldRayTracker tracker(beamline, reference);
+    for (const std::string method : {"BORIS", "RK4", "DOP853"}) {
+    SCOPED_TRACE(method);
+    ExternalFieldRayTracker tracker(beamline, reference, ExternalFieldRayTracker::parseIntegrationMethod(method));
     ExternalFieldRayTracker::State initial;
     initial.momentum(2) = 1.0;
     const auto final = tracker.advance(initial, 2.0e-11);
@@ -606,6 +618,151 @@ TEST_F(OrbitThreaderTest, RayTrackerSumsOverlappingSupportsAcrossBoundaries) {
     const double work = 1.0e8 * 0.002 - 2.0e7 * 0.0015;
     EXPECT_NEAR(std::sqrt(1.0 + dot(final.momentum, final.momentum)),
                 std::sqrt(2.0) + work / reference.getM(), 1.0e-10);
+    }
+}
+
+TEST_F(OrbitThreaderTest, RungeKuttaMagneticHelixHasExpectedGlobalOrder) {
+    OpalBeamline beamline;
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    constexpr double magnetic = 10.0, transverse = 0.2, longitudinal = 0.1;
+    const double gamma = std::sqrt(1.0 + transverse * transverse + longitudinal * longitudinal);
+    const double omega = reference.getQ() * Physics::c * Physics::c * magnetic / (reference.getM() * gamma);
+    const double duration = 4.0 / omega;
+    for (const std::string method : {"RK4", "DOP853"}) {
+        SCOPED_TRACE(method);
+        ExternalFieldRayTracker tracker(beamline, reference, ExternalFieldRayTracker::parseIntegrationMethod(method));
+        std::vector<double> errors;
+        for (unsigned n : {4u, 8u, 16u}) {
+            ExternalFieldRayTracker::State ray;
+            ray.momentum = Vector_t<double, 3>(transverse, 0.0, longitudinal);
+            for (unsigned i = 0; i < n; ++i)
+                ray = tracker.step(ray, duration / n, [](const auto&, auto&, auto& b) {
+                    b(2) = magnetic;
+                    return false;
+                }).end;
+            const Vector_t<double, 3> exactP(transverse * std::cos(4.0), -transverse * std::sin(4.0), longitudinal);
+            const Vector_t<double, 3> exactR(
+                    Physics::c * transverse / (gamma * omega) * std::sin(4.0),
+                    Physics::c * transverse / (gamma * omega) * (std::cos(4.0) - 1.0),
+                    Physics::c * longitudinal / gamma * duration);
+            const Vector_t<double, 3> dp = ray.momentum - exactP;
+            const Vector_t<double, 3> dr = ray.position - exactR;
+            const double exactPath = Physics::c * std::hypot(transverse, longitudinal) / gamma * duration;
+            errors.push_back(std::max({euclidean_norm(dp), euclidean_norm(dr), std::abs(ray.pathLength - exactPath)}));
+            std::cout << std::scientific << std::setprecision(12)
+                      << "HELIX " << method << " steps=" << n << " dt_s=" << duration / n
+                      << " position_error_m=" << euclidean_norm(dr)
+                      << " momentum_error=" << euclidean_norm(dp)
+                      << " path_error_m=" << std::abs(ray.pathLength - exactPath)
+                      << " gamma_error=" << std::abs(std::sqrt(1.0 + dot(ray.momentum, ray.momentum)) - gamma)
+                      << std::defaultfloat << '\n';
+        }
+        const double order = std::log2(errors[1] / errors[2]);
+        EXPECT_GT(order, method == "RK4" ? 3.7 : 7.4);
+        EXPECT_LT(order, method == "RK4" ? 4.4 : 8.6);
+    }
+}
+
+TEST_F(OrbitThreaderTest, RungeKuttaTimeDependentElectricForceUsesStageClocksAndChargeUnits) {
+    OpalBeamline beamline;
+    constexpr double duration = 1.e-9, amplitude = 3.e8;
+    for (double charge : {-1.0, 1.0}) {
+        PartData reference(charge, 9.382720813e8, 1.0e6);
+        for (const std::string method : {"RK4", "DOP853"}) {
+            SCOPED_TRACE(method);
+            ExternalFieldRayTracker tracker(beamline, reference, ExternalFieldRayTracker::parseIntegrationMethod(method));
+            ExternalFieldRayTracker::State ray;
+            ray.momentum(2) = 1.0;
+            const auto fields = [](const auto& state, auto& e, auto&) {
+                e(2) = amplitude * std::cos(state.time / duration);
+                return false;
+            };
+            for (unsigned i = 0; i < 20; ++i) ray = tracker.step(ray, duration / 20, fields).end;
+            const double exact = 1.0 + charge * Physics::c * amplitude / reference.getM() * duration * std::sin(1.0);
+            EXPECT_NEAR(ray.momentum(2), exact, method == "RK4" ? 1.e-9 : 3.e-15);
+            for (unsigned i = 0; i < 20; ++i) ray = tracker.step(ray, -duration / 20, fields).end;
+            EXPECT_NEAR(ray.momentum(2), 1.0, 3.e-14);
+            EXPECT_NEAR(ray.position(2), 0.0, 1.e-10);
+            EXPECT_NEAR(ray.pathLength, 0.0, 1.e-10);
+        }
+    }
+}
+
+TEST_F(OrbitThreaderTest, RungeKuttaZeroStepsMaterialHitsAndFieldInitialization) {
+    OpalBeamline beamline;
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    for (const std::string method : {"RK4", "DOP853"}) {
+        SCOPED_TRACE(method);
+        ExternalFieldRayTracker tracker(beamline, reference, ExternalFieldRayTracker::parseIntegrationMethod(method));
+        ExternalFieldRayTracker::State ray;
+        ray.momentum(2) = 1.0;
+        unsigned calls = 0;
+        const auto field = [&](const auto&, auto& e, auto& b) {
+            ++calls;
+            for (unsigned d = 0; d < 3; ++d) { EXPECT_EQ(e(d), 0.0); EXPECT_EQ(b(d), 0.0); }
+            e(2) = 1.0;
+            return false;
+        };
+        tracker.step(ray, 0.0, field);
+        EXPECT_EQ(calls, 0u);
+        tracker.step(ray, 1.e-11, field);
+        EXPECT_EQ(calls, method == "RK4" ? 9u : 25u);
+        EXPECT_TRUE(tracker.step(ray, 1.e-11, [](const auto&, auto&, auto&) { return true; }).hitMaterial);
+        EXPECT_THROW(tracker.step(ray, std::numeric_limits<double>::quiet_NaN(), field), OpalException);
+    }
+}
+
+TEST_F(OrbitThreaderTest, RungeKuttaMapsPreserveDriftAndCompensatedClock) {
+    for (const std::string method : {"RK4", "DOP853"}) {
+        SCOPED_TRACE(method);
+        Option exemplar;
+        std::unique_ptr<Option> option(exemplar.clone("RK_MAP_OPTION"));
+        Attributes::setPredefinedString(*option->findAttribute("LINEARTRANSFERMAPINTEGRATOR"), method);
+        option->execute();
+        EXPECT_EQ(Options::linearTransferMapIntegrator, method);
+        const auto origin = freeDriftMap(1, .03, 0.0, method);
+        const auto late = freeDriftMap(1, .03, 1000.0, method);
+        EXPECT_EQ(origin.integrationMethod, method);
+        EXPECT_NEAR(origin.matrix(0, 1), .1, 1.e-10);
+        for (unsigned i = 0; i < 6; ++i)
+            for (unsigned j = 0; j < 6; ++j)
+                EXPECT_NEAR(origin.matrix(i, j), late.matrix(i, j), 2.e-11);
+    }
+}
+
+TEST_F(OrbitThreaderTest, MapIntegratorOptionDoesNotAffectDisabledMapsOrSecondaryThreading) {
+    auto bunch = makeBunch(0);
+    DummyBeamline line;
+    DefaultVisitor visitor(line, false, false);
+    OpalBeamline beamline;
+    FieldSupportOnlyComponent field("ISOLATION_E", 0.0, .1, 1.e8);
+    field.setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector_t<double, 3>(0.0), Quaternion()));
+    field.fixPosition();
+    beamline.visit(field, visitor, *bunch);
+    beamline.prepareSections();
+    auto* runtime = dynamic_cast<FieldSupportOnlyComponent*>(beamline.getElements().begin()->get());
+    ASSERT_NE(runtime, nullptr);
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    for (bool design : {false, true}) {
+        // Secondary threading remains Boris even when map computation is enabled.
+        Options::enableLinearTransferMaps = !design;
+        unsigned borisCalls = 0;
+        for (const std::string method : {"BORIS", "RK4", "DOP853"}) {
+            SCOPED_TRACE(method);
+            Options::linearTransferMapIntegrator = method;
+            runtime->fieldCalls = 0;
+            StepSizeConfig steps;
+            steps.push_back(1.e-11, .1, 20);
+            steps.resetIterator();
+            OrbitThreader threader(reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0),
+                    0.0, 0.0, 0.0, 1.e-11, steps, beamline, design);
+            threader.execute();
+            EXPECT_FALSE(threader.getCombinedLinearTransferMap());
+            EXPECT_GT(runtime->fieldCalls, 0u);
+            if (method == "BORIS") borisCalls = runtime->fieldCalls;
+            else EXPECT_EQ(runtime->fieldCalls, borisCalls);
+        }
+    }
 }
 
 TEST_F(OrbitThreaderTest, ExecutesOverlapAndRecordsBothElements) {

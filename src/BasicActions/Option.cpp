@@ -329,9 +329,10 @@ Option::Option()
             std::vector<double>(linearTransferMapSteps.begin(), linearTransferMapSteps.end()));
     itsAttr[LINEARTRANSFERMAPINTEGRATOR] = Attributes::makePredefinedString(
             "LINEARTRANSFERMAPINTEGRATOR",
-            "Integrator for both map-enabled reference and shadow rays. Currently only "
-            "BORIS (alias LF2) is supported; independent of Richardson differentiation.",
-            {"BORIS", "LF2"}, linearTransferMapIntegrator);
+            "Integrator for map reference and shadow rays only: BORIS (alias LF2), "
+            "fixed-step RK4 or fixed-step DOP853 (eighth-order formula, no adaptive controller). "
+            "Independent of Richardson differentiation; does not change particle TRACK.",
+            {"BORIS", "LF2", "RK4", "DOP853"}, linearTransferMapIntegrator);
 
     itsAttr[ASCIIDUMP] = Attributes::makeBool(
             "ASCIIDUMP", "If true, some of the elements dump in ASCII instead of HDF5", asciidump);
