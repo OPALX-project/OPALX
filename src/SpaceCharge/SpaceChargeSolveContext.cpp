@@ -5,6 +5,7 @@
 
 #include "SpaceCharge/SpaceChargeSolveContext.h"
 
+#include <cmath>
 #include <stdexcept>
 #include <utility>
 
@@ -13,6 +14,10 @@ namespace opalx::spacecharge {
     SpaceChargeSolveContext::SpaceChargeSolveContext(
             std::span<const std::uint8_t> trackingActive, SpaceChargeStepState stepState)
         : trackingActive_m(trackingActive), stepState_m(std::move(stepState)) {
+        if (!std::isfinite(stepState_m.time) || !std::isfinite(stepState_m.timeStep)) {
+            throw std::invalid_argument(
+                    "SpaceChargeSolveContext requires finite time and time step");
+        }
         if (stepState_m.mpiSize < 1) {
             throw std::invalid_argument(
                     "SpaceChargeSolveContext communicator size must be positive");

@@ -7,6 +7,7 @@
 #include "SpaceCharge/FFT2D5/FFT2D5Algorithm.h"
 
 #include <array>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -143,6 +144,58 @@ namespace opalx::spacecharge {
                 }
             }
             EXPECT_NEAR(particles_m->getMeanR()[2], 0.5, 1.0e-14);
+        }
+
+        TEST_F(FFT2D5AlgorithmTest, RepeatedSolveReplacesFieldsAndPreservesInactiveContainer) {
+            particles_m->createParticles(2);
+            particles_m->setQ(1.0e-15);
+            particles_m->setM(Physics::m_e);
+            auto positions = particles_m->R.getHostMirror();
+            positions(0)   = Vector_t<double, 3>(-0.1, 0.0, 0.25);
+            positions(1)   = Vector_t<double, 3>(0.1, 0.0, 0.75);
+            Kokkos::deep_copy(particles_m->R.getView(), positions);
+            Kokkos::deep_copy(particles_m->P.getView(), Vector_t<double, 3>(0.0, 0.0, 0.1));
+            Kokkos::deep_copy(particles_m->dt.getView(), 1.0e-12);
+            ParticleContainer secondary(*mesh_m, *layout_m);
+            secondary.setBunchStateHandler(bunchState_m);
+            secondary.createParticles(1);
+            Kokkos::deep_copy(secondary.R.getView(), Vector_t<double, 3>(100.0));
+            Kokkos::deep_copy(secondary.E.getView(), Vector_t<double, 3>(7.0));
+            Kokkos::deep_copy(secondary.B.getView(), Vector_t<double, 3>(9.0));
+            std::array particles{particles_m.get(), &secondary};
+            FFT2D5Algorithm solver(
+                    config(FFT2D5LongitudinalFieldMode::Open), particles, bunchState_m);
+            SpaceChargeStepState step;
+            step.timeStep = 1.0e-12;
+            const std::array<std::uint8_t, 2> activity{1, 0};
+            SpaceChargeSolveContext context(activity, step);
+            EXPECT_EQ(solver.solve(context).backendSolves, 4u);
+            auto firstE = Kokkos::create_mirror_view_and_copy(
+                    Kokkos::HostSpace(), particles_m->E.getView());
+            auto firstB = Kokkos::create_mirror_view_and_copy(
+                    Kokkos::HostSpace(), particles_m->B.getView());
+            auto* fieldAllocation = particles_m->E.getView().data();
+            Kokkos::deep_copy(particles_m->E.getView(), Vector_t<double, 3>(123.0));
+            Kokkos::deep_copy(particles_m->B.getView(), Vector_t<double, 3>(456.0));
+            EXPECT_EQ(solver.solve(context).backendSolves, 4u);
+            EXPECT_EQ(particles_m->E.getView().data(), fieldAllocation);
+            auto repeatedE = Kokkos::create_mirror_view_and_copy(
+                    Kokkos::HostSpace(), particles_m->E.getView());
+            auto repeatedB = Kokkos::create_mirror_view_and_copy(
+                    Kokkos::HostSpace(), particles_m->B.getView());
+            auto otherE =
+                    Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), secondary.E.getView());
+            auto otherB =
+                    Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), secondary.B.getView());
+            for (unsigned d = 0; d < 3; ++d) {
+                EXPECT_DOUBLE_EQ(otherE(0)[d], 7.0);
+                EXPECT_DOUBLE_EQ(otherB(0)[d], 9.0);
+                for (std::size_t i = 0; i < 2; ++i) {
+                    EXPECT_TRUE(std::isfinite(repeatedE(i)[d]));
+                    EXPECT_NEAR(repeatedE(i)[d], firstE(i)[d], 1.0e-12);
+                    EXPECT_NEAR(repeatedB(i)[d], firstB(i)[d], 1.0e-12);
+                }
+            }
         }
 
     }  // namespace

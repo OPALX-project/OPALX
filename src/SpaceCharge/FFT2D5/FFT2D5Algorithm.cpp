@@ -63,6 +63,7 @@ namespace opalx::spacecharge {
 
         for (std::size_t index = 0; index < particles_m.size(); ++index) {
             if (context.trackingActive()[index] != 0) {
+                clearSelfFields(*particles_m[index]);
                 enterSolveFrame(context.stepState().frames, *particles_m[index]);
             }
         }

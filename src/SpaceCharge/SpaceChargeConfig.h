@@ -17,13 +17,22 @@
 
 namespace opalx::spacecharge {
 
-    enum class SpaceChargeAlgorithmType : std::uint8_t { CartesianPIC, FFT2D5 };
     enum class SpaceChargeCorrectionType : std::uint8_t { None, ImageCharge, ShiftedGreen };
     enum class PoissonSolverType : std::uint8_t { None, PeriodicFFT, Open, ConjugateGradient, P3M };
+    /** @brief Boundary of the Poisson domain, independent of source-plane corrections. */
     enum class FieldBoundaryCondition : std::uint8_t { Open, Dirichlet, Periodic };
     enum class GreenFunctionType : std::uint8_t { Standard, Integrated };
     enum class BinningVariable : std::uint8_t { VelocityZ, PositionZ, MomentumZ, GammaZ };
     enum class FFT2D5LongitudinalFieldMode : std::uint8_t { Open, Cylindrical, Plates, None };
+
+    struct PoissonSolverConfig {
+        PoissonSolverType type          = PoissonSolverType::None;
+        GreenFunctionType greenFunction = GreenFunctionType::Integrated;
+        double p3mCutoff                = 0.0;
+        std::array<FieldBoundaryCondition, 3> boundaryConditions{
+                FieldBoundaryCondition::Open, FieldBoundaryCondition::Open,
+                FieldBoundaryCondition::Open};
+    };
 
     struct CartesianGridConfig {
         std::array<std::size_t, 3> meshSize{8, 8, 8};
@@ -31,6 +40,7 @@ namespace opalx::spacecharge {
         double boundingBoxIncreasePercent = 2.0;
     };
 
+    /** @brief Source-plane field correction; planeZ is in metres in the Cartesian solve frame. */
     struct CorrectionConfig {
         SpaceChargeCorrectionType kind = SpaceChargeCorrectionType::None;
         double planeZ                  = 0.0;
@@ -74,7 +84,7 @@ namespace opalx::spacecharge {
     };
 
     struct FFT2D5Config {
-        CartesianGridConfig grid;
+        CartesianGridConfig grid{.decomposition = {false, false, false}};
         FFT2D5LongitudinalFieldMode longitudinalFieldMode = FFT2D5LongitudinalFieldMode::Open;
         double pipeSizeX                                  = 1.0;
         double pipeSizeY                                  = 1.0;
@@ -86,8 +96,10 @@ namespace opalx::spacecharge {
 
     using SpaceChargeConfig = std::variant<CartesianPICConfig, FFT2D5Config>;
 
+    void validatePoissonSolverConfig(const PoissonSolverConfig& config);
+    [[nodiscard]] PoissonSolverConfig makePoissonSolverConfig(const CartesianPICConfig& config);
+
     void validateSpaceChargeConfig(const SpaceChargeConfig& config);
-    [[nodiscard]] SpaceChargeAlgorithmType algorithmType(const SpaceChargeConfig& config);
     [[nodiscard]] CartesianDomainConfig3D makeCartesianDomainConfig(
             const SpaceChargeConfig& config);
 

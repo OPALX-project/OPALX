@@ -13,7 +13,7 @@
 
 namespace opalx::spacecharge {
 
-    /** @brief Coordinate transforms owned by the current solve context. */
+    /** @brief Inverse spatial transforms between tracker and solve axes; no Lorentz boost. */
     struct CoordinateFrameTransforms {
         CoordinateSystemTrafo trackerToSolve;
         CoordinateSystemTrafo solveToTracker;

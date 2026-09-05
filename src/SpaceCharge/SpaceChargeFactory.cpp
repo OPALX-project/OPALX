@@ -42,9 +42,13 @@ namespace opalx::spacecharge {
                                 std::make_unique<CartesianPICFieldStorage<double, 3>>(
                                         bunch.cartesianDomain()),
                                 dataSink, bunchState);
-                    } else {
+                    } else if constexpr (std::is_same_v<Config, FFT2D5Config>) {
                         return std::make_unique<FFT2D5Algorithm>(
                                 std::move(selected), particles, bunchState);
+                    } else {
+                        static_assert(
+                                std::is_same_v<Config, void>,
+                                "Add construction for this algorithm");
                     }
                 },
                 std::move(config));

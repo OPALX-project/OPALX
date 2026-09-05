@@ -1,8 +1,8 @@
 //
-// Class FieldSolver
+// Class FieldSolverCmd
 //   The class for the OPAL FIELDSOLVER command.
-//   A FieldSolver definition is used by most physics commands to define the
-//   particle charge and the reference momentum, together with some other data.
+//   Stores parsed mesh, boundary, and algorithm attributes. SpaceCharge owns
+//   their conversion and solver compatibility validation.
 //
 // Copyright (c) 200x - 2022, Paul Scherrer Institut, Villigen PSI, Switzerland
 //
@@ -43,9 +43,9 @@ namespace FIELDSOLVER {
         PARFFTX,       // parallelized grid in x
         PARFFTY,       // parallelized grid in y
         PARFFTZ,       // parallelized grid in z
-        BCFFTX,        // boundary condition in x [FFT + AMR_MG only]
-        BCFFTY,        // boundary condition in y [FFT + AMR_MG only]
-        BCFFTZ,        // boundary condition in z [FFT + AMR_MG only]
+        BCFFTX,        // Poisson-domain boundary in x
+        BCFFTY,        // Poisson-domain boundary in y
+        BCFFTZ,        // Poisson-domain boundary in z
         GREENSF,       // Green function for OPEN; P3M selects its kernel internally
         P3MRCUT,       // P3M particle-particle cutoff radius [m]
         BBOXINCR,      // how much the boundingbox is increased
@@ -60,6 +60,7 @@ namespace FIELDSOLVER {
     };
 }
 
+/** @brief Parsed FIELDSOLVER attributes; solver compatibility is validated in SpaceCharge. */
 class FieldSolverCmd : public Definition {
 public:
     /// Exemplar constructor.
@@ -73,7 +74,7 @@ public:
     /// Find named FieldSolverCmd.
     static FieldSolverCmd* find(const std::string& name);
 
-    std::string getType();
+    std::string getType() const;
     std::string getBinsName() const;
     BinningCmd* getBinningCmd() const;
     std::string getGreensFunction() const;
@@ -105,17 +106,11 @@ public:
     /// Execute (init) the field solver data.
     virtual void execute();
 
-    bool hasValidSolver();
-
     bool hasBinningCmd() const { return getBinningCmd() != nullptr; }
 
-    void setFieldSolverCmdType();
     FieldSolverCmdType getFieldSolverCmdType() const;
 
-    void setDomainDecomposition();
-    ippl::Vector<bool, 3> getDomainDecomposition() const { return domainDecomposition_m; }
-
-    ippl::Vector<bool, 3> getDomDec() const;
+    ippl::Vector<bool, 3> getDomainDecomposition() const;
 
     Inform& printInfo(Inform& os) const;
 
@@ -141,16 +136,7 @@ private:
 
     // Clone constructor.
     FieldSolverCmd(const std::string& name, FieldSolverCmd* parent);
-
-    void validateP3MConfiguration() const;
-    void validateFFT2D5Configuration() const;
-
-    std::string fsName_m;
-    FieldSolverCmdType fsType_m;
-    ippl::Vector<bool, 3> domainDecomposition_m;
 };
-
-inline FieldSolverCmdType FieldSolverCmd::getFieldSolverCmdType() const { return fsType_m; }
 
 inline Inform& operator<<(Inform& os, const FieldSolverCmd& fs) { return fs.printInfo(os); }
 

@@ -1,8 +1,8 @@
 //
 // Class FieldSolverCmd
 //   The class for the OPAL FIELDSOLVER command.
-//   A FieldSolverCmd definition is used by most physics commands to define the
-//   particle charge and the reference momentum, together with some other data.
+//   Stores parsed mesh, boundary, and algorithm attributes. SpaceCharge owns
+//   their conversion and solver compatibility validation.
 //
 // Copyright (c) 200x - 2022, Paul Scherrer Institut, Villigen PSI, Switzerland
 //
@@ -61,13 +61,16 @@ FieldSolverCmd::FieldSolverCmd()
             Attributes::makeBool("PARFFTZ", "True, dimension 2 i.e z is parallelized", true);
 
     itsAttr[FIELDSOLVER::BCFFTX] = Attributes::makePredefinedString(
-            "BCFFTX", "Boundary conditions in x.", {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN");
+            "BCFFTX",
+            "Poisson-domain boundary in x; source-plane corrections are configured separately.",
+            {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN");
 
     itsAttr[FIELDSOLVER::BCFFTY] = Attributes::makePredefinedString(
-            "BCFFTY", "Boundary conditions in y.", {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN");
+            "BCFFTY", "Poisson-domain boundary in y.", {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN");
 
     itsAttr[FIELDSOLVER::BCFFTZ] = Attributes::makePredefinedString(
-            "BCFFTZ", "Boundary conditions in z.", {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN");
+            "BCFFTZ", "Poisson-domain boundary in z; distinct from a source-plane correction.",
+            {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN");
 
     itsAttr[FIELDSOLVER::GREENSF] = Attributes::makePredefinedString(
             "GREENSF", "Green function for TYPE=OPEN; TYPE=P3M selects its kernel internally.",
@@ -81,7 +84,8 @@ FieldSolverCmd::FieldSolverCmd()
 
     // Attributes for FFT2D5 mode
     itsAttr[FIELDSOLVER::PIPEMODE] = Attributes::makePredefinedString(
-            "PIPEMODE", "Treatment of the beam pipe in [FFT2D5 only].",
+            "PIPEMODE",
+            "Longitudinal-field geometry model; transverse Poisson slices remain open [FFT2D5].",
             {"OPEN", "CIRCULAR", "PLATES", "NONE"}, "OPEN");
     itsAttr[FIELDSOLVER::BEAMR] =
             Attributes::makeReal("BEAMR", "Beam radius in metres [FFT2D5 only]", 1.0);
@@ -109,13 +113,7 @@ FieldSolverCmd* FieldSolverCmd::clone(const std::string& name) {
     return new FieldSolverCmd(name, this);
 }
 
-void FieldSolverCmd::execute() {
-    setFieldSolverCmdType();
-    validateP3MConfiguration();
-    validateFFT2D5Configuration();
-    setDomainDecomposition();
-    update();
-}
+void FieldSolverCmd::execute() { update(); }
 
 FieldSolverCmd* FieldSolverCmd::find(const std::string& name) {
     FieldSolverCmd* fs = dynamic_cast<FieldSolverCmd*>(OpalData::getInstance()->find(name));
@@ -126,7 +124,9 @@ FieldSolverCmd* FieldSolverCmd::find(const std::string& name) {
     return fs;
 }
 
-std::string FieldSolverCmd::getType() { return Attributes::getString(itsAttr[FIELDSOLVER::TYPE]); }
+std::string FieldSolverCmd::getType() const {
+    return Attributes::getString(itsAttr[FIELDSOLVER::TYPE]);
+}
 
 std::string FieldSolverCmd::getBinsName() const {
     return Attributes::getString(itsAttr[FIELDSOLVER::BINS]);
@@ -148,26 +148,6 @@ BCHandler<3> FieldSolverCmd::constructBCHandler() const {
             BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTY])),
             BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTZ])));
 
-    /// \todo remove this restriction when more BC configurations are implemented
-    /**
-     * Add an additional check weather the boundary conditions are valid, which
-     * currently means either OPEN or PERIODIC in all dimensions.
-     */
-    if (!boundary_conditions.isAllEqual()) {
-        throw OpalException(
-                "PartBunch::PartBunch",
-                "Currently only uniform boundary conditions in all "
-                "dimensions are supported! Please set all "
-                "dimensions to either OPEN or PERIODIC.");
-    }
-
-    if (Attributes::getString(itsAttr[FIELDSOLVER::TYPE]) == "P3M"
-        && !boundary_conditions.isAll(BCH_t::PERIODIC) && !boundary_conditions.isAll(BCH_t::OPEN)) {
-        throw OpalException(
-                "FieldSolverCmd::constructBCHandler",
-                "TYPE=P3M requires uniform OPEN or PERIODIC boundary conditions.");
-    }
-
     return boundary_conditions;
 }
 
@@ -187,11 +167,7 @@ double FieldSolverCmd::getBoxIncr() const {
     return Attributes::getReal(itsAttr[FIELDSOLVER::BBOXINCR]);
 }
 
-void FieldSolverCmd::update() {
-    if (itsAttr[FIELDSOLVER::TYPE]) {
-        fsName_m = getType();
-    }
-}
+void FieldSolverCmd::update() {}
 
 std::string FieldSolverCmd::getPipeMode() const {
     return Attributes::getString(itsAttr[FIELDSOLVER::PIPEMODE]);
@@ -236,93 +212,23 @@ void FieldSolverCmd::setRefPathFileName(const std::string& refPathFileName) {
     Attributes::setString(itsAttr[FIELDSOLVER::REFPATHFNAME], refPathFileName);
 }
 
-void FieldSolverCmd::setFieldSolverCmdType() {
-    static const std::map<std::string, FieldSolverCmdType> stringType_s = {
+FieldSolverCmdType FieldSolverCmd::getFieldSolverCmdType() const {
+    static const std::map<std::string, FieldSolverCmdType> types = {
             {"NONE", FieldSolverCmdType::NONE}, {"FFT", FieldSolverCmdType::FFT},
             {"P3M", FieldSolverCmdType::P3M},   {"OPEN", FieldSolverCmdType::OPEN},
-            {"CG", FieldSolverCmdType::CG},     {"FFT2D5", FieldSolverCmdType::FFT2D5},
-    };
-
-    fsName_m = getType();
-
-    if (fsName_m.empty()) {
-        throw OpalException(
-                "FieldSolverCmd::setFieldSolverCmdType",
-                "The attribute \"TYPE\" isn't set for \"FIELDSOLVER\"!");
-    } else {
-        fsType_m = stringType_s.at(fsName_m);
+            {"CG", FieldSolverCmdType::CG},     {"FFT2D5", FieldSolverCmdType::FFT2D5}};
+    const auto found = types.find(getType());
+    if (found == types.end()) {
+        throw OpalException("FieldSolverCmd::getFieldSolverCmdType", "Unknown or missing TYPE.");
     }
+    return found->second;
 }
 
-void FieldSolverCmd::validateP3MConfiguration() const {
-    if (fsType_m != FieldSolverCmdType::P3M) {
-        return;
-    }
-
-    // Fail before constructing the PartBunch or IPPL solver.
-    (void)constructBCHandler();
-
-    if (getP3MCutoff() <= 0.0) {
-        throw OpalException(
-                "FieldSolverCmd::validateP3MConfiguration",
-                "TYPE=P3M requires RCUT to be greater than zero.");
-    }
-
-    const std::string binsName = getBinsName();
-    if (!binsName.empty() && binsName != "NONE") {
-        throw OpalException(
-                "FieldSolverCmd::validateP3MConfiguration",
-                "TYPE=P3M does not support BINS. Remove BINS from the FIELDSOLVER definition.");
-    }
+ippl::Vector<bool, 3> FieldSolverCmd::getDomainDecomposition() const {
+    return {Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTX]),
+            Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTY]),
+            Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTZ])};
 }
-
-void FieldSolverCmd::validateFFT2D5Configuration() const {
-    if (fsType_m != FieldSolverCmdType::FFT2D5) {
-        return;
-    }
-
-    if (ippl::Comm->size() != 1) {
-        throw OpalException(
-                "FieldSolverCmd::validateFFT2D5Configuration",
-                "TYPE=FFT2D5 currently supports only one MPI rank. Distributed fields and "
-                "ORB load balancing are not implemented for this solver.");
-    }
-
-    const std::string binsName = getBinsName();
-    if (!binsName.empty() && binsName != "NONE") {
-        throw OpalException(
-                "FieldSolverCmd::validateFFT2D5Configuration",
-                "TYPE=FFT2D5 does not support BINS. Remove BINS from the FIELDSOLVER definition.");
-    }
-}
-
-void FieldSolverCmd::setDomainDecomposition() {
-    domainDecomposition_m[0] = Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTX]);
-    domainDecomposition_m[1] = Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTY]);
-    domainDecomposition_m[2] = Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTZ]);
-
-    if (fsType_m == FieldSolverCmdType::FFT2D5) {
-        if (domainDecomposition_m[0] || domainDecomposition_m[1] || domainDecomposition_m[2]) {
-            throw OpalException(
-                    "FieldSolverCmd::setDomainDecomposition",
-                    "TYPE=FFT2D5 uses a serial field layout. Set PARFFTX, PARFFTY and PARFFTZ "
-                    "to FALSE.");
-        }
-        return;
-    }
-
-    /// \todo At the moment, only 3D domain decomposition is supported. This should be extended to
-    /// support 1D and 2D domain decomposition in the future, once the changes in the IPPL ORB are
-    /// merged. Having parallel in all dimensions is what's currently supported best.
-    if (!(domainDecomposition_m[0] && domainDecomposition_m[1] && domainDecomposition_m[2])) {
-        throw OpalException(
-                "FieldSolverCmd::setDomainDecomposition",
-                "Currently only 3D domain decomposition is supported. Please set PARFFTX, PARFFTY "
-                "and PARFFTZ to TRUE. Other decompositions will come soon.");
-    }
-}
-
-bool FieldSolverCmd::hasValidSolver() { return false; }
 
 BinningCmd* FieldSolverCmd::getBinningCmd() const {
     const std::string binsName = getBinsName();
@@ -337,7 +243,7 @@ Inform& FieldSolverCmd::printInfo(Inform& os) const {
        << endl;
     os << "* FIELDSOLVER  " << getOpalName() << '\n'
        << "* BINS         " << getBinsName() << '\n'
-       << "* TYPE         " << fsName_m << '\n'
+       << "* TYPE         " << getType() << '\n'
        << "* RANKS        " << ippl::Comm->size() << '\n'
        << "* NX           " << Attributes::getReal(itsAttr[FIELDSOLVER::NX]) << '\n'
        << "* NY           " << Attributes::getReal(itsAttr[FIELDSOLVER::NY]) << '\n'
@@ -345,7 +251,7 @@ Inform& FieldSolverCmd::printInfo(Inform& os) const {
        << "* BBOXINCR     " << Attributes::getReal(itsAttr[FIELDSOLVER::BBOXINCR]) << '\n'
        << "* GREENSF      " << Attributes::getString(itsAttr[FIELDSOLVER::GREENSF]) << endl;
 
-    if (fsName_m == "P3M") {
+    if (getType() == "P3M") {
         const double cutoff = getP3MCutoff();
         os << "* RCUT         " << cutoff << " [m]" << '\n'
            << "* ALPHA        " << 2.0 / cutoff << " [1/m]" << endl;

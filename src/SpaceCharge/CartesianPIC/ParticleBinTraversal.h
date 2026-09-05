@@ -36,7 +36,8 @@ namespace opalx::spacecharge {
         std::optional<BinConfigurationSnapshot> afterMerge;
     };
 
-    /** @brief One globally nonempty bin and its current particle selection. */
+    /** @brief One globally nonempty bin; mean momentum uses Cartesian solve axes and beta-gamma
+     * units. */
     struct ParticleBin final {
         using ScatterGather = ParticleMeshFieldTransfer;
         using Selection     = typename ScatterGather::Selection;

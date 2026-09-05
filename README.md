@@ -149,15 +149,6 @@ Dependency version/ref options:
 
 Enable flags with `-D<FLAG>=ON` during CMake configuration.
 
-Generate line-coverage summaries for all SpaceCharge sources, `.cpp` files, and each subsystem with:
-
-```bash
-tools/report_space_charge_coverage.sh /path/to/coverage-build
-```
-
-The script runs the full SERIAL unit suite and writes reports under
-`coverage-space-charge/`. Coverage is reported for inspection and does not enforce a numeric gate.
-
 ### Compilation
 
 Finally, compile OPALX with 
