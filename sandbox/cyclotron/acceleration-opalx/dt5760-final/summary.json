@@ -1,0 +1,16 @@
+{
+  "steps": 5762,
+  "final_energy_MeV": 73.74231828838819,
+  "final_time_s": 1.1850115169461963e-07,
+  "max_particle_offset_m": 6.193309323301928e-12,
+  "gap_events": [
+    "OPAL-X[2]> Cyclotron gap RF1 t=1.025223e-09 s K=7.246003e+01 MeV",
+    "OPAL-X[2]> Cyclotron gap RF3 t=3.061304e-08 s K=7.292543e+01 MeV",
+    "OPAL-X[2]> Cyclotron gap RF2 t=4.513688e-08 s K=7.280056e+01 MeV",
+    "OPAL-X[2]> Cyclotron gap RF4 t=6.037897e-08 s K=7.327310e+01 MeV",
+    "OPAL-X[2]> Cyclotron gap RF0 t=9.003868e-08 s K=7.374232e+01 MeV"
+  ],
+  "max_position_error_m": 5.070688506322208e-07,
+  "max_momentum_error": 1.750090997222518e-07,
+  "old_final_energy_MeV": 73.74232172625784
+}

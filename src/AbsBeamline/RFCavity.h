@@ -21,6 +21,7 @@
 #include "AbsBeamline/ElementBase.h"
 #include "Algorithms/AbstractTimeDependence.h"
 #include "Physics/Physics.h"
+#include "Fields/CyclotronRFProfile.h"
 
 #include "Utilities/BiMap.h"
 
@@ -33,6 +34,24 @@ enum class CavityType : unsigned short { SW, SGSW };
 
 class RFCavity : public ElementBase {
 public:
+    /** Configure the static SINGLEGAP model before tracking. Geometry uses local
+     * x in [RMIN,RMAX] [m] along the gap and local z=0 as its directed plane.
+     * The ordinary element pose supplies all translations and rotations.
+     */
+    void configureCyclotronGap(const std::string& filename, double rmin, double rmax,
+                               const CyclotronRFKick& kick);
+    bool isCyclotronGap() const { return static_cast<bool>(cyclotronProfile_m); }
+    /// Clear the discrete model before a parser reconfiguration to another type.
+    void clearCyclotronGap() { cyclotronProfile_m.reset(); }
+    bool gapSupports(double x) const { return x >= gapMin_m && x <= gapMax_m; }
+    bool applyGapKick(double x, double t, double mass, Vector_t<double, 3>& p) const {
+        return cyclotronKick_m.apply(cyclotronProfile_m->host,
+            (x-gapMin_m)/(gapMax_m-gapMin_m), t, mass, p);
+    }
+    /// Discrete gaps never contribute to continuous field lookup or apertures.
+    bool isInsideBody(const Vector_t<double, 3>& r) const override {
+        return !isCyclotronGap() && ElementBase::isInsideBody(r);
+    }
     /// Constructor with given name.
     explicit RFCavity(const std::string& name);
 
@@ -210,6 +229,9 @@ protected:
     double endField_m;   /**< end point of field support(m)*/
 
 private:
+    std::shared_ptr<const CyclotronRFProfile> cyclotronProfile_m;
+    CyclotronRFKick cyclotronKick_m;
+    double gapMin_m = 0, gapMax_m = 0;
     CavityType type_m;
 
     static const BiMap<CavityType, std::string> bmCavityTypeString_s;

@@ -2,6 +2,19 @@
 
 Date: 2026-09-06
 
+## Source documentation review (2026-09-06)
+
+Reviewed the new cyclotron sector, map reader, parser/trim-coil definition, and
+directed turn counter against their implementations. Expanded Doxygen with SI
+units, local/global coordinate conventions, field formulas and signs, half-open
+sector boundaries, interpolation preconditions, legacy mirrored-coil limitations,
+device-view lifetime expectations, and endpoint-based turn-counting semantics.
+Map views are explicitly documented as read-only by convention, not by their types.
+No physics or numerical behavior changed. Targeted Doxygen generation passed with
+documentation warnings treated as errors; `git diff --check` passed. The review
+does not constitute a documentation audit of the entire source tree.
+Next step: retain these documentation improvements with the cyclotron implementation.
+
 ## Goal and scope
 
 Read the PSI Ring median-plane magnetic field map and its trim-coil definition in

@@ -70,7 +70,12 @@ RFCavity::RFCavity(const RFCavity& right)
       RNormal_m(nullptr),
       VrNormal_m(nullptr),
       DvDr_m(nullptr),
-      num_points_m(right.num_points_m) {}
+      num_points_m(right.num_points_m) {
+    cyclotronProfile_m = right.cyclotronProfile_m;
+    cyclotronKick_m = right.cyclotronKick_m;
+    gapMin_m = right.gapMin_m;
+    gapMax_m = right.gapMax_m;
+}
 
 RFCavity::RFCavity(const std::string& name)
     : ElementBase(name),
@@ -116,6 +121,7 @@ void RFCavity::accept(BeamlineVisitor& visitor) const { visitor.visitRFCavity(*t
  * statement
  */
 void RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+    if (isCyclotronGap()) return;
     // RF parameters (copied to device)
     double freq  = frequency_m;
     double scale = scale_m + scaleError_m;
@@ -151,6 +157,7 @@ void RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
 void RFCavity::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    if (isCyclotronGap()) return;
     if (R(2) >= startField_m && R(2) < endField_m) {
         Vector_t<double, 3> tmpE({0.0, 0.0, 0.0}), tmpB({0.0, 0.0, 0.0});
 
@@ -165,6 +172,7 @@ void RFCavity::apply(
 bool RFCavity::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    if (isCyclotronGap()) return false;
     if (R(2) >= startField_m && R(2) < endField_m) {
         Vector_t<double, 3> tmpE({0.0, 0.0, 0.0}), tmpB({0.0, 0.0, 0.0});
 
@@ -178,6 +186,7 @@ bool RFCavity::applyToReferenceParticle(
 }
 
 void RFCavity::initialise(PartBunch_t* bunch) {
+    if (isCyclotronGap()) { RefPartBunch_m = bunch; return; }
     startField_m = endField_m = 0.0;
     if (bunch == nullptr) {
         return;
@@ -257,18 +266,33 @@ void RFCavity::initialise(
 void RFCavity::finalise() {}
 
 void RFCavity::goOnline(const double&) {
+    if (isCyclotronGap()) { online_m = true; return; }
     Fieldmap::readMap(filename_m);
 
     online_m = true;
 }
 
 void RFCavity::goOffline() {
+    if (isCyclotronGap()) { online_m = false; return; }
     Fieldmap::freeMap(filename_m);
 
     online_m = false;
 }
 
 void RFCavity::setRmin(double rmin) { rmin_m = rmin; }
+
+void RFCavity::configureCyclotronGap(const std::string& filename, double rmin, double rmax,
+                                    const CyclotronRFKick& kick) {
+    kick.validate();
+    if (!std::isfinite(rmin) || !std::isfinite(rmax) || rmin < 0 || rmax <= rmin)
+        throw OpalException("RFCavity::configureCyclotronGap", "Invalid gap support [m].");
+    auto profile = std::make_shared<CyclotronRFProfile>(filename);
+    cyclotronProfile_m = std::move(profile);
+    cyclotronKick_m = kick;
+    gapMin_m = rmin;
+    gapMax_m = rmax;
+    autophaseVeto_m = true;
+}
 
 void RFCavity::setRmax(double rmax) { rmax_m = rmax; }
 
@@ -686,6 +710,7 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(
 }
 
 bool RFCavity::isInside(const Vector_t<double, 3>& r) const {
+    if (isCyclotronGap()) return false;
     if (fieldmap_m != nullptr && ApertureHelper::isInsideAperture(r, aperture_m)) {
         return fieldmap_m->isInside(r);
     }

@@ -79,6 +79,17 @@ public:
         itsOpalBeamline_m.visit(sector, *this, *itsBunch_m);
     }
 private:
+    bool hasCyclotronGaps();
+    /** Host-only event integration for the initial one-proton RF milestone.
+     * R/P are in the tracking frame, t/dt in seconds. Splits Boris steps at
+     * directed gap-plane roots and applies full kicks in time order. Field
+     * queries use spatial support, not the threader's nominal closed orbit.
+     * The caller must choose dt small enough to bracket each crossing without
+     * an intervening recrossing of the same plane. Particle E/B diagnostic views
+     * are not populated by this event path; only positions/momenta are advanced.
+     */
+    void advanceCyclotronGaps(Vector_t<double, 3>& r, Vector_t<double, 3>& p,
+                             double t, double dt, double mass, bool report);
     unsigned long long requestedTurns_m = 0;
     DataSink* itsDataSink_m;         ///< Borrowed beam statistics and phase-space output sink.
     OpalBeamline itsOpalBeamline_m;  ///< Cloned field elements and coordinate transforms.

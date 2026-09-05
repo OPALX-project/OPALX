@@ -756,10 +756,99 @@ void ParallelTracker::execute() {
 
 // --- PIC integration and fields ---
 
+bool ParallelTracker::hasCyclotronGaps() {
+    for (const auto& element : itsOpalBeamline_m.getElements())
+        if (auto* cavity = dynamic_cast<RFCavity*>(element.get()))
+            if (cavity->isCyclotronGap()) return true;
+    return false;
+}
+
+void ParallelTracker::advanceCyclotronGaps(
+        Vector_t<double, 3>& r, Vector_t<double, 3>& p, double t, double dt,
+        double mass, bool report) {
+    const auto all = itsOpalBeamline_m.getElements();
+    std::vector<std::shared_ptr<ElementBase>> gaps;
+    for (const auto& element : all) {
+        auto* cavity = dynamic_cast<RFCavity*>(element.get());
+        if (cavity && cavity->isCyclotronGap()) gaps.push_back(element);
+        else if (element->getType() != ElementType::CYCLOTRONSECTOR)
+            throw OpalException("ParallelTracker", "The initial SINGLEGAP path supports cyclotron sectors and gaps only.");
+    }
+    const BorisPusher pusher;
+    std::sort(gaps.begin(), gaps.end(), [](const auto& a, const auto& b) {
+        return a->getName() < b->getName();
+    });
+    auto magneticAdvance = [&](Vector_t<double, 3>& x, Vector_t<double, 3>& v, double h) {
+        x += (0.5*h*Physics::c/std::sqrt(1+dot(v,v))) * v;
+        Vector_t<double, 3> e(0), b(0);
+        bool supported = false;
+        for (const auto& element : all) {
+            if (element->getType() != ElementType::CYCLOTRONSECTOR) continue;
+            const auto& transform = itsOpalBeamline_m.getCSTrafoLab2Local(element);
+            Vector_t<double, 3> localE(0), localB(0);
+            const auto localR = transform.transformTo(x);
+            supported = supported || element->isInside(localR);
+            element->apply(localR, transform.rotateTo(v), t, localE, localB);
+            b += transform.rotateFrom(localB);
+        }
+        if (!supported)
+            throw OpalException("ParallelTracker", "SINGLEGAP trajectory left cyclotron field support.");
+        pusher.kick(x, v, e, b, h, mass, 1);
+        x += (0.5*h*Physics::c/std::sqrt(1+dot(v,v))) * v;
+    };
+    // Each accepted gap is excluded for the remainder of this step. Root finding
+    // places the state on its nonnegative side, preventing a duplicate next step.
+    std::set<ElementBase*> visited;
+    double remaining = dt;
+    while (remaining > 0) {
+        auto endR = r, endP = p;
+        magneticAdvance(endR, endP, remaining);
+        double earliest = remaining;
+        std::shared_ptr<ElementBase> selected;
+        for (const auto& element : gaps) {
+            if (visited.count(element.get())) continue;
+            const auto& transform = itsOpalBeamline_m.getCSTrafoLab2Local(element);
+            if (!(transform.transformTo(r)[2] < 0)
+                || transform.transformTo(endR)[2] < 0) continue;
+            double low = 0, high = remaining;
+            // Resolve to ~1e-12 of a step; no tolerance loosening of orbit comparisons.
+            for (int iteration = 0; iteration < 40; ++iteration) {
+                const double mid = 0.5*(low+high);
+                auto trialR = r, trialP = p;
+                magneticAdvance(trialR, trialP, mid);
+                if (transform.transformTo(trialR)[2] < 0) low = mid;
+                else high = mid;
+            }
+            auto trialR = r, trialP = p;
+            magneticAdvance(trialR, trialP, high);
+            auto* cavity = static_cast<RFCavity*>(element.get());
+            if (cavity->gapSupports(transform.transformTo(trialR)[0]) && high <= earliest) {
+                earliest = high;
+                selected = element;
+            }
+        }
+        if (!selected) { r = endR; p = endP; return; }
+        magneticAdvance(r, p, earliest);
+        t += earliest;
+        remaining -= earliest;
+        const auto& transform = itsOpalBeamline_m.getCSTrafoLab2Local(selected);
+        auto localP = transform.rotateTo(p);
+        auto* cavity = static_cast<RFCavity*>(selected.get());
+        if (!cavity->applyGapKick(transform.transformTo(r)[0], t, mass, localP))
+            throw OpalException("ParallelTracker", "Unsupported or unphysical SINGLEGAP kick.");
+        p = transform.rotateFrom(localP);
+        visited.insert(selected.get());
+        if (report)
+            *gmsg << level2 << "Cyclotron gap " << selected->getName() << " t=" << t
+                  << " s K=" << (std::sqrt(1+dot(p,p))-1)*mass*1e-6 << " MeV" << endl;
+    }
+}
+
 /**
  * @copybrief ParallelTracker::timeIntegration1
  */
 void ParallelTracker::timeIntegration1(BorisPusher& pusher) {
+    if (hasCyclotronGaps()) return; // Event path performs both drifts with its own substeps.
     Inform m("ParallelTracker::timeIntegration1");
     IpplTimings::startTimer(timeIntegrationTimer1_m);
     const size_t n = itsBunch_m->getNumParticleContainers();
@@ -781,6 +870,28 @@ void ParallelTracker::timeIntegration1(BorisPusher& pusher) {
  * @copybrief ParallelTracker::timeIntegration2
  */
 void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
+    if (hasCyclotronGaps()) {
+        if (ippl::Comm->size() != 1 || itsBunch_m->getNumParticleContainers() != 1
+            || itsBunch_m->getTotalNumAllContainers() != 1
+            || itsBunch_m->getFieldSolverType() != "NONE")
+            throw OpalException("ParallelTracker", "SINGLEGAP requires one particle, one container, one rank and TYPE=NONE field solver.");
+        auto pc = itsBunch_m->getParticleContainer();
+        if (pc->hasSpin() || pc->getReference()->getQ() != 1 || restarting_m
+            || std::abs(pc->getReference()->getM()/(Physics::m_p*1e9)-1) > 1e-12)
+            throw OpalException("ParallelTracker", "SINGLEGAP requires an unpolarized positive proton and does not support restart.");
+        auto r = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+        auto p = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->P.getView());
+        const auto& toLab = pc->getToLabTrafo();
+        Vector_t<double, 3> position = toLab.transformTo(r(0)), momentum = toLab.rotateTo(p(0));
+        advanceCyclotronGaps(position, momentum, itsBunch_m->getT(), itsBunch_m->getdT(),
+                             pc->getReference()->getM(), false);
+        r(0) = toLab.transformFrom(position);
+        p(0) = toLab.rotateFrom(momentum);
+        Kokkos::deep_copy(pc->R.getView(), r);
+        Kokkos::deep_copy(pc->P.getView(), p);
+        pc->markMomentsDirty();
+        return;
+    }
     // Legacy note: cathode transport/emission was sequenced after space charge so that
     // the first step of newborn particles omits self-fields; multi-container emission
     // is handled separately in execute().
@@ -940,6 +1051,9 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
  */
 void ParallelTracker::computeExternalFields(
         const std::vector<std::shared_ptr<OrbitThreader>>& oths) {
+    // Event integration evaluates fields spatially at each substep, without the
+    // coasting threader's path-length index. No continuous RF impulse is added.
+    if (hasCyclotronGaps()) return;
     IpplTimings::startTimer(fieldEvaluationTimer_m);
     Inform msg("ParallelTracker ", *gmsg);
 
@@ -1043,6 +1157,8 @@ void ParallelTracker::forEachElementInBunchFrame(
  */
 size_t ParallelTracker::applyElementApertures(
         const std::vector<std::shared_ptr<OrbitThreader>>& oths) {
+    // The restricted sector/gap path checks its own field support during stepping.
+    if (hasCyclotronGaps()) return 0;
     size_t localMarked = 0;
     forEachElementInBunchFrame(
             oths, [&localMarked](
@@ -1560,6 +1676,11 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& pusher) {
         }
         auto& pc                = *pcPtr;
         const PartData& refKick = *pc.getReference();
+        if (hasCyclotronGaps()) {
+            advanceCyclotronGaps(pc.getRefPartR(), pc.getRefPartP(), itsBunch_m->getT()-dt,
+                                 dt, refKick.getM(), true);
+            continue;
+        }
         Vector_t<double, 3> Ef(0.0), Bf(0.0);
 
         pc.getRefPartR() /= scaleFactor;
