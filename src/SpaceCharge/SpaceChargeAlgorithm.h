@@ -32,9 +32,15 @@ namespace opalx::spacecharge {
         /**
          * @brief Compute one configured space-charge update.
          *
-         * On entry, participating particles are in the tracker frame. A successful implementation
-         * returns computed positions and fields in that frame. The context is borrowed only for
-         * this call. Layout migration invalidates native device views, which must be reacquired.
+         * R (metres), normalized momentum P (beta*gamma), E (V/m), and B (tesla) use tracker
+         * axes on entry and return. Successful calls replace E/B on participating containers,
+         * including zero fields for NONE, and preserve R/P/Q/dt apart from roundoff and particle
+         * permutation/migration. Cartesian PIC participates with the primary container; FFT2D5
+         * uses tracking-active containers. Other containers' field values are preserved.
+         *
+         * The context is borrowed only for this call. Spatial frame changes rotate P with R;
+         * algorithm-specific Lorentz transformations are separate. Layout migration invalidates
+         * native device views, which must be reacquired before later kernels.
          *
          * Exceptions propagate to the run-level handler and are terminal for the current run.
          * Temporary particle, mesh, field, backend, and frame state is unspecified after failure;

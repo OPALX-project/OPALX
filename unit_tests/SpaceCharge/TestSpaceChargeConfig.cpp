@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <limits>
 
 #include "Attributes/Attributes.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
@@ -58,7 +59,7 @@ namespace opalx::spacecharge {
         TEST(SpaceChargeConfigTest, DerivesIndependentFFT2D5Domain) {
             FFT2D5Config config;
             config.grid.meshSize       = {16, 18, 20};
-            config.grid.decomposition  = {false, true, false};
+            config.grid.decomposition  = {false, false, false};
             config.pipeSizeX           = 0.1;
             config.pipeSizeY           = 0.2;
             config.beamRadius          = 0.01;
@@ -66,7 +67,7 @@ namespace opalx::spacecharge {
             SpaceChargeConfig selected = config;
             validateSpaceChargeConfig(selected);
 
-            EXPECT_EQ(algorithmType(selected), SpaceChargeAlgorithmType::FFT2D5);
+            EXPECT_TRUE(std::holds_alternative<FFT2D5Config>(selected));
             const auto domain = makeCartesianDomainConfig(selected);
             EXPECT_EQ(domain.meshSize, config.grid.meshSize);
             EXPECT_EQ(domain.decomposition, config.grid.decomposition);
@@ -78,7 +79,7 @@ namespace opalx::spacecharge {
             CartesianPICConfig shifted;
             shifted.backend         = PoissonSolverType::Open;
             shifted.correction.kind = SpaceChargeCorrectionType::ShiftedGreen;
-            EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(shifted)), OpalException);
+            EXPECT_NO_THROW(validateSpaceChargeConfig(SpaceChargeConfig(shifted)));
 
             shifted.binning.emplace();
             EXPECT_NO_THROW(validateSpaceChargeConfig(SpaceChargeConfig(shifted)));
@@ -109,6 +110,82 @@ namespace opalx::spacecharge {
             TestableFieldSolverCmd command;
             command.setType("CG");
             EXPECT_THROW(static_cast<void>(buildSpaceChargeConfig(command, {})), OpalException);
+        }
+
+        TEST(SpaceChargeConfigTest, ValidatesPoissonDomainBoundaryMatrix) {
+            for (const auto backend :
+                 {PoissonSolverType::None, PoissonSolverType::Open, PoissonSolverType::PeriodicFFT,
+                  PoissonSolverType::P3M, PoissonSolverType::ConjugateGradient}) {
+                for (const auto boundary :
+                     {FieldBoundaryCondition::Open, FieldBoundaryCondition::Periodic,
+                      FieldBoundaryCondition::Dirichlet}) {
+                    PoissonSolverConfig config;
+                    config.type      = backend;
+                    config.p3mCutoff = backend == PoissonSolverType::P3M ? 0.1 : 0.0;
+                    config.boundaryConditions.fill(boundary);
+                    const bool accepted = boundary != FieldBoundaryCondition::Dirichlet
+                                          && backend != PoissonSolverType::ConjugateGradient
+                                          && (backend != PoissonSolverType::Open
+                                              || boundary == FieldBoundaryCondition::Open)
+                                          && (backend != PoissonSolverType::PeriodicFFT
+                                              || boundary == FieldBoundaryCondition::Periodic);
+                    if (accepted) {
+                        EXPECT_NO_THROW(validatePoissonSolverConfig(config));
+                    } else {
+                        EXPECT_THROW(validatePoissonSolverConfig(config), OpalException);
+                    }
+                    config.boundaryConditions[0] = FieldBoundaryCondition::Dirichlet;
+                    EXPECT_THROW(validatePoissonSolverConfig(config), OpalException);
+                }
+            }
+        }
+
+        TEST(SpaceChargeConfigTest, ShiftedGreenIsIndependentOfBinningAndKernelDiscretization) {
+            CartesianPICConfig config;
+            config.backend         = PoissonSolverType::Open;
+            config.correction.kind = SpaceChargeCorrectionType::ShiftedGreen;
+            for (auto green : {GreenFunctionType::Standard, GreenFunctionType::Integrated}) {
+                config.greenFunction = green;
+                config.binning.reset();
+                EXPECT_NO_THROW(validateSpaceChargeConfig(config));
+                config.binning.emplace();
+                EXPECT_NO_THROW(validateSpaceChargeConfig(config));
+            }
+            config.boundaryConditions.fill(FieldBoundaryCondition::Periodic);
+            EXPECT_THROW(validateSpaceChargeConfig(config), OpalException);
+        }
+
+        TEST(SpaceChargeConfigBuilderTest, ParserDefersCompatibilityAndReadsCurrentAttributes) {
+            TestableFieldSolverCmd command;
+            command.setType("P3M");
+            command.setNX(8);
+            command.setNY(8);
+            command.setNZ(8);
+            EXPECT_NO_THROW(command.execute());
+            EXPECT_THROW((void)buildSpaceChargeConfig(command, {}), OpalException);
+            command.setType("OPEN");
+            EXPECT_EQ(command.getFieldSolverCmdType(), FieldSolverCmdType::OPEN);
+            const auto snapshot = std::get<CartesianPICConfig>(buildSpaceChargeConfig(command, {}));
+            command.setNX(16);
+            EXPECT_EQ(snapshot.grid.meshSize[0], 8u);
+            EXPECT_EQ(
+                    std::get<CartesianPICConfig>(buildSpaceChargeConfig(command, {}))
+                            .grid.meshSize[0],
+                    16u);
+        }
+
+        TEST(SpaceChargeConfigBuilderTest, RejectsInvalidMeshValuesBeforeIntegerConversion) {
+            TestableFieldSolverCmd command;
+            command.setType("OPEN");
+            command.setNY(8);
+            command.setNZ(8);
+            for (double value :
+                 {0.0, -1.0, 8.5, std::numeric_limits<double>::quiet_NaN(),
+                  std::numeric_limits<double>::infinity(),
+                  double(std::numeric_limits<int>::max()) + 1.0}) {
+                command.setNX(value);
+                EXPECT_THROW((void)buildSpaceChargeConfig(command, {}), OpalException);
+            }
         }
 
     }  // namespace

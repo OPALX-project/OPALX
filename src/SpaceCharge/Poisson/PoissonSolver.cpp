@@ -208,6 +208,7 @@ namespace opalx::spacecharge {
 
     PoissonSolver::PoissonSolver(PoissonSolverConfig config, PoissonFieldBinding fields)
         : config_m(std::move(config)), fields_m(fields) {
+        validatePoissonSolverConfig(config_m);
         requireCommonFields(fields_m, "PoissonSolver::PoissonSolver");
         constructBackend();
         bindBackendFields(fields_m);
@@ -237,26 +238,11 @@ namespace opalx::spacecharge {
                 return;
             }
             case PoissonSolverType::P3M: {
-                if (!(config_m.p3mCutoff > 0.0)) {
-                    throw OpalException(
-                            "PoissonSolver::constructBackend",
-                            "The P3M cutoff radius must be positive.");
-                }
                 const bool allPeriodic = std::all_of(
                         config_m.boundaryConditions.begin(), config_m.boundaryConditions.end(),
                         [](FieldBoundaryCondition kind) {
                             return kind == FieldBoundaryCondition::Periodic;
                         });
-                const bool allOpen = std::all_of(
-                        config_m.boundaryConditions.begin(), config_m.boundaryConditions.end(),
-                        [](FieldBoundaryCondition kind) {
-                            return kind == FieldBoundaryCondition::Open;
-                        });
-                if (!allPeriodic && !allOpen) {
-                    throw OpalException(
-                            "PoissonSolver::constructBackend",
-                            "P3M requires uniform OPEN or PERIODIC boundary conditions.");
-                }
                 auto& backend                  = backend_m.emplace<P3MBackend>();
                 ippl::ParameterList parameters = commonFftParameters();
                 parameters.add("output_type", P3MBackend::GRAD);

@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <limits>
 #include <string>
 
@@ -40,24 +41,6 @@ namespace opalx::spacecharge {
             }
             throw OpalException(
                     "SpaceChargeConfigBuilder::build", "Unknown FIELDSOLVER TYPE value.");
-        }
-
-        std::string fieldSolverTypeName(FieldSolverCmdType type) {
-            switch (type) {
-                case FieldSolverCmdType::NONE:
-                    return "NONE";
-                case FieldSolverCmdType::FFT:
-                    return "FFT";
-                case FieldSolverCmdType::OPEN:
-                    return "OPEN";
-                case FieldSolverCmdType::CG:
-                    return "CG";
-                case FieldSolverCmdType::P3M:
-                    return "P3M";
-                case FieldSolverCmdType::FFT2D5:
-                    return "FFT2D5";
-            }
-            return "(unknown)";
         }
 
         GreenFunctionType convertGreenFunction(const std::string& name) {
@@ -118,25 +101,30 @@ namespace opalx::spacecharge {
 
         std::array<FieldBoundaryCondition, 3> convertBoundaryConditions(
                 const BCHandler<3>& boundaryConditions) {
-            FieldBoundaryCondition kind = FieldBoundaryCondition::Open;
-            if (boundaryConditions.isAll(BCHandler<3>::PERIODIC)) {
-                kind = FieldBoundaryCondition::Periodic;
-            } else if (boundaryConditions.isAll(BCHandler<3>::DIRICHLET)) {
-                kind = FieldBoundaryCondition::Dirichlet;
-            } else if (!boundaryConditions.isAll(BCHandler<3>::OPEN)) {
-                throw OpalException(
-                        "SpaceChargeConfigBuilder::build",
-                        "Only uniform boundary conditions are currently supported.");
+            std::array<FieldBoundaryCondition, 3> result;
+            for (unsigned d = 0; d < 3; ++d) {
+                switch (boundaryConditions[d]) {
+                    case BCHandler<3>::OPEN:
+                        result[d] = FieldBoundaryCondition::Open;
+                        break;
+                    case BCHandler<3>::PERIODIC:
+                        result[d] = FieldBoundaryCondition::Periodic;
+                        break;
+                    case BCHandler<3>::DIRICHLET:
+                        result[d] = FieldBoundaryCondition::Dirichlet;
+                        break;
+                }
             }
-            return {kind, kind, kind};
+            return result;
         }
 
         std::size_t convertMeshSize(double value, const char* attribute) {
-            if (value <= 0.0
-                || value > static_cast<double>(std::numeric_limits<std::size_t>::max())) {
+            if (!std::isfinite(value) || value <= 0.0 || std::trunc(value) != value
+                || value > static_cast<double>(std::numeric_limits<int>::max())) {
                 throw OpalException(
                         "SpaceChargeConfigBuilder::build",
-                        std::string("FIELDSOLVER ") + attribute + " must be positive.");
+                        std::string("FIELDSOLVER ") + attribute
+                                + " must be a positive integer fitting an IPPL Index.");
             }
             return static_cast<std::size_t>(value);
         }
@@ -192,8 +180,7 @@ namespace opalx::spacecharge {
         }
 
         CorrectionConfig buildCorrectionConfig(
-                const std::vector<std::vector<EmissionSource*>>& emissionSources,
-                FieldSolverCmdType solverType) {
+                const std::vector<std::vector<EmissionSource*>>& emissionSources) {
             bool enableImageCharge      = false;
             bool enableShiftedGreens    = false;
             double planeZ               = 0.0;
@@ -274,13 +261,11 @@ namespace opalx::spacecharge {
                         "SHIFTED_GREENS_FUNCTION=true on another; the two "
                         "Dirichlet-correction paths are mutually exclusive at the run level.");
             }
-            if (enableShiftedGreens && solverType != FieldSolverCmdType::OPEN) {
+            if (dumpFrequency < 0 || maximumSteps < 0) {
                 throw OpalException(
-                        "SpaceChargeConfigBuilder::build",
-                        "SHIFTED_GREENS_FUNCTION=true requires FIELDSOLVER TYPE=OPEN (got '"
-                                + fieldSolverTypeName(solverType) + "').");
+                        "buildSpaceChargeConfig",
+                        "Source-plane dump frequency and maximum steps must not be negative.");
             }
-
             CorrectionConfig values;
             values.kind               = enableImageCharge ? SpaceChargeCorrectionType::ImageCharge
                                         : enableShiftedGreens ? SpaceChargeCorrectionType::ShiftedGreen
@@ -314,7 +299,23 @@ namespace opalx::spacecharge {
         grid.boundingBoxIncreasePercent = fieldSolver.getBoxIncr();
 
         if (solverType == FieldSolverCmdType::FFT2D5) {
-            const CorrectionConfig correction = buildCorrectionConfig(emissionSources, solverType);
+            if (ippl::Comm->size() != 1) {
+                throw OpalException("buildSpaceChargeConfig", "FFT2D5 supports only one MPI rank.");
+            }
+            const auto binsName = fieldSolver.getBinsName();
+            if (!binsName.empty() && binsName != "NONE") {
+                throw OpalException("buildSpaceChargeConfig", "FFT2D5 does not support BINS.");
+            }
+            const auto boundaries = convertBoundaryConditions(fieldSolver.constructBCHandler());
+            if (!std::all_of(boundaries.begin(), boundaries.end(), [](auto boundary) {
+                    return boundary == FieldBoundaryCondition::Open;
+                })) {
+                throw OpalException(
+                        "buildSpaceChargeConfig",
+                        "FFT2D5 transverse Poisson slices are OPEN. Use CLOSEDRING for "
+                        "longitudinal periodicity and PIPEMODE for the longitudinal-field model.");
+            }
+            const CorrectionConfig correction = buildCorrectionConfig(emissionSources);
             if (correction.enabled()) {
                 throw OpalException(
                         "SpaceChargeConfigBuilder::build",
@@ -342,12 +343,12 @@ namespace opalx::spacecharge {
                                                     : values.grid.decomposition;
         values.boundaryConditions = convertBoundaryConditions(fieldSolver.constructBCHandler());
         values.greenFunction      = convertGreenFunction(fieldSolver.getGreensFunction());
-        values.p3mCutoff = solverType == FieldSolverCmdType::P3M ? fieldSolver.getP3MCutoff() : 0.0;
-        values.binning   = buildBinningConfig(fieldSolver.getBinningCmd());
+        values.p3mCutoff          = fieldSolver.getP3MCutoff();
+        values.binning            = buildBinningConfig(fieldSolver.getBinningCmd());
         values.repartitionFrequency =
                 Options::repartFreq > 0 ? static_cast<std::size_t>(Options::repartFreq) : 0;
         values.loadBalancingThreshold = Options::loadBalancingThreshold;
-        values.correction             = buildCorrectionConfig(emissionSources, solverType);
+        values.correction             = buildCorrectionConfig(emissionSources);
 
         SpaceChargeConfig config = std::move(values);
         validateSpaceChargeConfig(config);

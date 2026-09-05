@@ -7,6 +7,7 @@
 #include "Interpolation/CIC.h"
 #include "Utilities/OpalException.h"
 
+#include <cmath>
 #include <functional>
 #include <numeric>
 #include <string>
@@ -177,6 +178,12 @@ namespace opalx::spacecharge {
         // and the bin gamma to recover the charge-density convention expected by the Poisson
         // solver. P3M retains volume normalization but deliberately skips the periodic
         // neutralizing background.
+        if (!std::isfinite(normalization.timeStep) || normalization.timeStep == 0.0
+            || !std::isfinite(normalization.gamma) || normalization.gamma < 1.0) {
+            throw OpalException(
+                    "ParticleMeshFieldTransfer::normalizeChargeDensity",
+                    "Deposition requires a finite nonzero time step and gamma >= 1.");
+        }
         double normalizer = normalization.timeStep;
         if (normalization.normalizeByCellVolume) {
             const auto& spacing = fieldStorage.spacing();

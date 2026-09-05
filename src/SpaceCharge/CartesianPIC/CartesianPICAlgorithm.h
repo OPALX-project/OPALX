@@ -74,7 +74,7 @@ namespace opalx::spacecharge {
         struct PassProperties {
             ParticleMeshTransfer::DepositKind depositKind =
                     ParticleMeshTransfer::DepositKind::Primary;
-            ParticleMeshTransfer::ImagePolicy imagePolicy;
+            ParticleMeshTransfer::ImagePolicy imagePolicy{};
             bool shiftedGreen            = false;
             bool suppressFieldDump       = false;
             double magneticSign          = 1.0;
@@ -120,9 +120,7 @@ namespace opalx::spacecharge {
         std::unique_ptr<FieldStorage> fieldStorage_m;
         std::unique_ptr<PoissonSolver> poissonSolver_m;
         std::optional<P3MShortRangeInteraction> shortRangeInteraction_m;
-        PoissonSolverType poissonSolverType_m;
         DataSink* dataSink_m = nullptr;
-        std::optional<BinningConfig> binningConfig_m;
         std::unique_ptr<ParticleBinTraversalType> particleBinTraversal_m;
         CartesianDomainUpdater domainUpdater_m;
         ParticleMeshTransfer particleMeshTransfer_m;

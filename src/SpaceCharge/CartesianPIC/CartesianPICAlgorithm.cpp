@@ -19,23 +19,6 @@ namespace opalx::spacecharge {
 
         using ParticleContainer = CartesianPICAlgorithm::ParticleContainer;
 
-        std::string_view poissonSolverName(PoissonSolverType kind) {
-            switch (kind) {
-                case PoissonSolverType::None:
-                    return "NONE";
-                case PoissonSolverType::PeriodicFFT:
-                    return "FFT";
-                case PoissonSolverType::Open:
-                    return "OPEN";
-                case PoissonSolverType::ConjugateGradient:
-                    return "CG";
-                case PoissonSolverType::P3M:
-                    return "P3M";
-            }
-            throw OpalException(
-                    "CartesianPICAlgorithm::CartesianPICAlgorithm", "Unknown Poisson backend.");
-        }
-
         PoissonFieldBinding makePoissonFieldBinding(
                 CartesianPICAlgorithm::FieldStorage& fieldStorage) {
             return {&fieldStorage.chargeDensity(), &fieldStorage.electricField()};
@@ -60,9 +43,7 @@ namespace opalx::spacecharge {
           primary_m(&requirePrimaryParticles(particles)),
           bunchState_m(std::move(bunchState)),
           fieldStorage_m(std::move(fieldStorage)),
-          poissonSolverType_m(config.backend),
           dataSink_m(dataSink),
-          binningConfig_m(config.binning),
           domainUpdater_m(config, particles) {
         if (fieldStorage_m == nullptr) {
             throw OpalException(
@@ -78,26 +59,17 @@ namespace opalx::spacecharge {
                     "CartesianPICAlgorithm::CartesianPICAlgorithm",
                     "The bunch state handler is null.");
         }
-        if (poissonSolverType_m == PoissonSolverType::ConjugateGradient) {
-            throw OpalException(
-                    "CartesianPICAlgorithm::CartesianPICAlgorithm",
-                    "The CG Poisson backend is recognized but not implemented.");
-        }
-        if (binningConfig_m.has_value()) {
+        validateSpaceChargeConfig(SpaceChargeConfig(config_m));
+        if (config_m.binning.has_value()) {
             particleBinTraversal_m =
-                    std::make_unique<ParticleBinTraversalType>(*primary_m, *binningConfig_m);
+                    std::make_unique<ParticleBinTraversalType>(*primary_m, *config_m.binning);
             binStats_m.reserve(particleBinTraversal_m->maximumBinCount());
         }
 
-        fieldStorage_m->initializeFields(poissonSolverType_m);
-        PoissonSolverConfig poissonConfig;
-        poissonConfig.type               = poissonSolverType_m;
-        poissonConfig.greenFunction      = config.greenFunction;
-        poissonConfig.p3mCutoff          = config.p3mCutoff;
-        poissonConfig.boundaryConditions = config.boundaryConditions;
-        poissonSolver_m                  = std::make_unique<PoissonSolver>(
-                poissonConfig, makePoissonFieldBinding(*fieldStorage_m));
-        if (poissonSolverType_m == PoissonSolverType::P3M) {
+        fieldStorage_m->initializeFields(config_m.backend);
+        poissonSolver_m = std::make_unique<PoissonSolver>(
+                makePoissonSolverConfig(config_m), makePoissonFieldBinding(*fieldStorage_m));
+        if (config_m.backend == PoissonSolverType::P3M) {
             shortRangeInteraction_m.emplace(config.p3mCutoff);
         }
         // Preserve the construction-time planning solve, but reset the Poisson solver's runtime
@@ -112,7 +84,8 @@ namespace opalx::spacecharge {
                                  && step >= configured.maximumSteps;
         plan.activeCorrection = plan.correctionExpired ? CorrectionConfig() : configured;
 
-        if (binningConfig_m.has_value()) {
+        if (config_m.binning.has_value()
+            || plan.activeCorrection.kind == SpaceChargeCorrectionType::ShiftedGreen) {
             plan.passes[plan.passCount++] = PassKind::Primary;
             if (plan.activeCorrection.kind == SpaceChargeCorrectionType::ImageCharge) {
                 plan.passes[plan.passCount++] = PassKind::Image;
@@ -133,29 +106,23 @@ namespace opalx::spacecharge {
         using DepositKind = ParticleMeshTransfer::DepositKind;
         switch (pass) {
             case PassKind::Primary:
-                return {DepositKind::Primary,    {},    false,    binned, 1.0,
-                        FieldSourceRule::Direct, false, "primary"};
+                return {.depositKind = DepositKind::Primary, .suppressFieldDump = binned};
             case PassKind::PrimaryAndImage:
-                return {DepositKind::PrimaryAndImage,
-                        {true, planeZ},
-                        false,
-                        false,
-                        1.0,
-                        FieldSourceRule::Direct,
-                        true,
-                        "primary-and-image"};
+                return {.depositKind             = DepositKind::PrimaryAndImage,
+                        .imagePolicy             = {true, planeZ},
+                        .dumpDirichletPlaneAfter = true,
+                        .label                   = "primary-and-image"};
             case PassKind::Image:
-                return {DepositKind::Image,      {true, planeZ}, false,  true, -1.0,
-                        FieldSourceRule::Direct, false,          "image"};
+                return {.depositKind       = DepositKind::Image,
+                        .imagePolicy       = {true, planeZ},
+                        .suppressFieldDump = true,
+                        .magneticSign      = -1.0,
+                        .label             = "image"};
             case PassKind::ShiftedImage:
-                return {DepositKind::Primary,
-                        {},
-                        true,
-                        false,
-                        -1.0,
-                        FieldSourceRule::ShiftedGreenImageZ,
-                        false,
-                        "shifted-green"};
+                return {.shiftedGreen = true,
+                        .magneticSign = -1.0,
+                        .sourceRule   = FieldSourceRule::ShiftedGreenImageZ,
+                        .label        = "shifted-green"};
         }
         throw OpalException("CartesianPICAlgorithm::passProperties", "Unknown solve pass.");
     }
@@ -167,7 +134,7 @@ namespace opalx::spacecharge {
         const auto& fixedState = bunchState_m->fixedCartesianDomain();
         const bool fixedDomain = fixedState.has_value();
         if (fixedDomain) {
-            if (poissonSolverType_m != PoissonSolverType::Open) {
+            if (config_m.backend != PoissonSolverType::Open) {
                 throw OpalException(
                         "CartesianPICAlgorithm::solve",
                         "A fixed Cartesian domain currently requires the OPEN Poisson backend.");
@@ -184,6 +151,7 @@ namespace opalx::spacecharge {
                         "active.");
             }
         }
+        clearSelfFields(*primary_m);
         enterSolveFrame(context.stepState().frames, *primary_m);
         result.redistributions += domainUpdater_m.updateForSolve(
                 DomainCoordinateFrame::Beam, context, plan.activeCorrection,
@@ -219,8 +187,6 @@ namespace opalx::spacecharge {
         // Use the global count because early emission can leave this rank empty while another rank
         // owns the only emitted particle. A single global charge has no space-charge field here.
         if (primary_m->getTotalNum() <= 1) {
-            Kokkos::deep_copy(primary_m->E.getView(), Vector_t<double, 3>(0.0));
-            Kokkos::deep_copy(primary_m->B.getView(), Vector_t<double, 3>(0.0));
             return;
         }
         // Deposition temporarily stores dt*Q in the particle time-step attribute. Reject Q=0
@@ -230,7 +196,7 @@ namespace opalx::spacecharge {
             throw OpalException(
                     "CartesianPICAlgorithm::solveInBeamFrame",
                     "Per-particle charge is zero but a space-charge solver is active (type="
-                            + std::string(poissonSolverName(poissonSolverType_m))
+                            + std::string(poissonSolver_m->name())
                             + "). This almost always means the BEAM command is missing BCHARGE. "
                               "Set BCHARGE on the BEAM definition, or use TYPE=NONE when no "
                               "space charge is intended.");
@@ -245,7 +211,7 @@ namespace opalx::spacecharge {
         m << level4 << "Entry: rank=" << ippl::Comm->rank()
           << ", localParticles=" << primary_m->getLocalNum()
           << ", totalParticles=" << primary_m->getTotalNum() << ", hasBins=" << (binned ? 1 : 0)
-          << ", stype=" << poissonSolverName(poissonSolverType_m) << endl;
+          << ", stype=" << poissonSolver_m->name() << endl;
 
         if (plan.correctionExpired) {
             m << level3 << "ZEROFACE_MAXSTEPS reached (step=" << context.stepState().step
@@ -269,10 +235,17 @@ namespace opalx::spacecharge {
             SpaceChargeSolveResult& result) {
         result.reportedBins = 1;
 
-        // The direct image-charge mode deposits primary and mirrored charge into one RHS and uses
-        // one standard solve. Shifted Green remains a binned-only correction for compatibility.
+        const bool accumulatePasses = plan.passCount > 1;
+        if (accumulatePasses) {
+            relativisticFieldComposer_m.clearAccumulation(*fieldStorage_m);
+        }
         for (std::size_t index = 0; index < plan.passCount; ++index) {
             solvePass(context, plan, nullptr, plan.passes[index], result);
+        }
+        if (accumulatePasses) {
+            relativisticFieldComposer_m.gatherAccumulated(
+                    particleMeshTransfer_m, primary_m->E, primary_m->B, primary_m->R,
+                    *fieldStorage_m);
         }
     }
 
@@ -281,9 +254,9 @@ namespace opalx::spacecharge {
             SpaceChargeSolveResult& result) {
         const long long step = static_cast<long long>(context.stepState().step);
         const bool captureSnapshots =
-                dataSink_m != nullptr && binningConfig_m.has_value()
-                && !binningConfig_m->dumpFile.empty() && binningConfig_m->dumpFrequency > 0
-                && step % static_cast<long long>(binningConfig_m->dumpFrequency) == 0;
+                dataSink_m != nullptr && config_m.binning.has_value()
+                && !config_m.binning->dumpFile.empty() && config_m.binning->dumpFrequency > 0
+                && step % static_cast<long long>(config_m.binning->dumpFrequency) == 0;
 
         // A pre-merge snapshot records the freshly rebuilt histogram. Adaptive binning supplies a
         // second snapshot after merging; fixed binning deliberately has no post-merge snapshot.
@@ -294,14 +267,14 @@ namespace opalx::spacecharge {
         if (prepared.afterMerge.has_value()) {
             dumpBinSnapshot(context, *prepared.afterMerge, false);
         }
-        result.reportedBins = prepared.mergedBinCount == binningConfig_m->maximumBins
+        result.reportedBins = prepared.mergedBinCount == config_m.binning->maximumBins
                                       ? 1
                                       : static_cast<int>(prepared.mergedBinCount);
         relativisticFieldComposer_m.clearAccumulation(*fieldStorage_m);
 
         Inform m("CartesianPICAlgorithm::solveBinned");
         m << level4 << "Iteration mode=binned, nBins=" << static_cast<int>(prepared.mergedBinCount)
-          << ", stype=" << poissonSolverName(poissonSolverType_m) << endl;
+          << ", stype=" << poissonSolver_m->name() << endl;
 
         binStats_m.clear();
         while (const std::optional<ParticleBinType> unit =
@@ -322,8 +295,8 @@ namespace opalx::spacecharge {
 
         relativisticFieldComposer_m.gatherAccumulated(
                 particleMeshTransfer_m, primary_m->E, primary_m->B, primary_m->R, *fieldStorage_m);
-        if (binningConfig_m->tablePrintFrequency > 0
-            && step % static_cast<long long>(binningConfig_m->tablePrintFrequency) == 0) {
+        if (config_m.binning->tablePrintFrequency > 0
+            && step % static_cast<long long>(config_m.binning->tablePrintFrequency) == 0) {
             printBinStatsTable();
         }
     }
@@ -398,7 +371,7 @@ namespace opalx::spacecharge {
             dumpDirichletPlaneDiagnosticsIfRequested(context, "legacy", planeZ);
         }
 
-        if (unit == nullptr) {
+        if (unit == nullptr && plan.passCount == 1) {
             relativisticFieldComposer_m.gatherElectrostatic(
                     particleMeshTransfer_m, primary_m->E, primary_m->R, *fieldStorage_m);
             if (shortRangeInteraction_m.has_value()) {
@@ -406,8 +379,10 @@ namespace opalx::spacecharge {
             }
         } else {
             RelativisticFieldComposerType::Policy compositionPolicy;
-            compositionPolicy.meanMomentum = unit->meanMomentum;
-            compositionPolicy.gamma        = unit->gamma;
+            if (unit != nullptr) {
+                compositionPolicy.meanMomentum = unit->meanMomentum;
+                compositionPolicy.gamma        = unit->gamma;
+            }
             compositionPolicy.magneticSign = policy.magneticSign;
             compositionPolicy.sourceRule   = policy.sourceRule;
 
@@ -481,7 +456,7 @@ namespace opalx::spacecharge {
         dataSink_m->dumpBinConfig(
                 static_cast<long long>(context.stepState().step), context.stepState().time,
                 beforeMerge, particleCounts, snapshot.widths, snapshot.lowerBound,
-                binningConfig_m->dumpFile);
+                config_m.binning->dumpFile);
     }
 
     void CartesianPICAlgorithm::dumpDirichletPlaneDiagnosticsIfRequested(

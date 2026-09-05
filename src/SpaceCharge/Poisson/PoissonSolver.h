@@ -45,15 +45,6 @@ namespace opalx::spacecharge {
         bool debugDumpVectorAfterSolve      = false;
     };
 
-    struct PoissonSolverConfig {
-        PoissonSolverType type          = PoissonSolverType::None;
-        GreenFunctionType greenFunction = GreenFunctionType::Integrated;
-        double p3mCutoff                = 0.0;
-        std::array<FieldBoundaryCondition, 3> boundaryConditions{
-                FieldBoundaryCondition::Open, FieldBoundaryCondition::Open,
-                FieldBoundaryCondition::Open};
-    };
-
     /**
      * @brief Host-only variant over concrete IPPL Poisson backends.
      *

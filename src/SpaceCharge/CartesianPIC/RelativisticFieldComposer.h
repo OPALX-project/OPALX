@@ -21,9 +21,9 @@ namespace opalx::spacecharge {
     /**
      * @brief Device-safe value policy for one backend-field contribution.
      *
-     * Momentum is normalized as beta-gamma. The magnetic sign remains independent of the source
-     * rule because the explicit image-charge and shifted-Green paths share the same magnetic sign
-     * convention while obtaining their electric samples differently.
+     * Momentum is normalized as beta-gamma in the Cartesian solve axes. The magnetic sign remains
+     * independent of the source rule because the explicit image-charge and shifted-Green paths
+     * share the same magnetic sign convention while obtaining their electric samples differently.
      */
     struct FieldCompositionPolicy final {
         std::array<double, 3> meanMomentum{};
@@ -35,7 +35,8 @@ namespace opalx::spacecharge {
     static_assert(std::is_trivially_copyable_v<FieldCompositionPolicy>);
 
     /**
-     * @brief Converts electrostatic backend output to lab-frame fields and gathers final results.
+     * @brief Converts electrostatic backend output to unboosted fields in the Cartesian solve axes
+     * and gathers final results.
      *
      * The composer owns no fields or particle data. Persistent accumulation and mirror scratch
      * live in @c CartesianPICFieldStorage. Gather operations delegate interpolation to @c
@@ -55,7 +56,8 @@ namespace opalx::spacecharge {
         using VectorAttribute      = typename ParticleMeshTransfer::VectorAttribute;
         using Policy               = FieldCompositionPolicy;
 
-        /** @brief Clear the persistent lab-frame electric and magnetic accumulators. */
+        /** @brief Clear the persistent electric and magnetic accumulators in the Cartesian solve
+         * axes. */
         void clearAccumulation(FieldStorage& fieldStorage) const;
 
         /**

@@ -8,6 +8,8 @@
 #include "Utilities/OpalException.h"
 
 #include <algorithm>
+#include <cmath>
+#include <limits>
 #include <type_traits>
 
 namespace opalx::spacecharge {
@@ -15,12 +17,15 @@ namespace opalx::spacecharge {
 
         void validateGrid(const CartesianGridConfig& grid) {
             if (std::any_of(grid.meshSize.begin(), grid.meshSize.end(), [](std::size_t size) {
-                    return size == 0;
+                    return size == 0
+                           || size > static_cast<std::size_t>(std::numeric_limits<int>::max());
                 })) {
                 throw OpalException(
-                        "validateSpaceChargeConfig", "Mesh dimensions must be positive.");
+                        "validateSpaceChargeConfig",
+                        "Mesh dimensions must fit in a positive IPPL Index.");
             }
-            if (grid.boundingBoxIncreasePercent < 0.0) {
+            if (!std::isfinite(grid.boundingBoxIncreasePercent)
+                || grid.boundingBoxIncreasePercent < 0.0) {
                 throw OpalException(
                         "validateSpaceChargeConfig",
                         "The bounding-box increase must not be negative.");
@@ -28,6 +33,10 @@ namespace opalx::spacecharge {
         }
 
         void validateCorrection(const CorrectionConfig& correction) {
+            if (!std::isfinite(correction.planeZ)) {
+                throw OpalException(
+                        "validateSpaceChargeConfig", "Source-plane position must be finite.");
+            }
             switch (correction.kind) {
                 case SpaceChargeCorrectionType::None:
                 case SpaceChargeCorrectionType::ImageCharge:
@@ -46,6 +55,12 @@ namespace opalx::spacecharge {
         }
 
         void validateBinning(const BinningConfig& binning) {
+            if (!std::isfinite(binning.desiredWidth) || !(binning.desiredWidth > 0.0)
+                || !std::isfinite(binning.alpha) || !std::isfinite(binning.beta)) {
+                throw OpalException(
+                        "validateSpaceChargeConfig",
+                        "Binning needs a finite positive width and finite cost parameters.");
+            }
             if (binning.maximumBins == 0) {
                 throw OpalException(
                         "validateSpaceChargeConfig", "Binning requires at least one bin.");
@@ -68,73 +83,23 @@ namespace opalx::spacecharge {
             if (config.binning.has_value()) {
                 validateBinning(*config.binning);
             }
-            if (!(config.loadBalancingThreshold >= 0.0)) {
+            if (!std::isfinite(config.loadBalancingThreshold)
+                || config.loadBalancingThreshold < 0.0) {
                 throw OpalException(
                         "validateSpaceChargeConfig",
                         "The load-balancing threshold must not be negative.");
             }
-            switch (config.backend) {
-                case PoissonSolverType::None:
-                case PoissonSolverType::PeriodicFFT:
-                case PoissonSolverType::Open:
-                case PoissonSolverType::ConjugateGradient:
-                case PoissonSolverType::P3M:
-                    break;
-                default:
-                    throw OpalException("validateSpaceChargeConfig", "Unknown Poisson backend.");
-            }
-            switch (config.greenFunction) {
-                case GreenFunctionType::Standard:
-                case GreenFunctionType::Integrated:
-                    break;
-                default:
-                    throw OpalException(
-                            "validateSpaceChargeConfig", "Unknown open Green function.");
-            }
-            for (const FieldBoundaryCondition boundary : config.boundaryConditions) {
-                if (boundary != FieldBoundaryCondition::Open
-                    && boundary != FieldBoundaryCondition::Dirichlet
-                    && boundary != FieldBoundaryCondition::Periodic) {
-                    throw OpalException(
-                            "validateSpaceChargeConfig", "Unknown field boundary condition.");
-                }
-            }
-            if (config.backend == PoissonSolverType::P3M && !(config.p3mCutoff > 0.0)) {
-                throw OpalException(
-                        "validateSpaceChargeConfig", "The P3M cutoff radius must be positive.");
-            }
-            if (config.backend != PoissonSolverType::P3M && config.p3mCutoff != 0.0) {
+            validatePoissonSolverConfig(makePoissonSolverConfig(config));
+            if (config.backend == PoissonSolverType::P3M
+                && (config.binning.has_value() || config.correction.enabled())) {
                 throw OpalException(
                         "validateSpaceChargeConfig",
-                        "A P3M cutoff may only be configured for the P3M backend.");
+                        "P3M does not support binning or source-plane corrections.");
             }
-            const bool allOpen = std::all_of(
-                    config.boundaryConditions.begin(), config.boundaryConditions.end(),
-                    [](FieldBoundaryCondition boundary) {
-                        return boundary == FieldBoundaryCondition::Open;
-                    });
-            const bool allPeriodic = std::all_of(
-                    config.boundaryConditions.begin(), config.boundaryConditions.end(),
-                    [](FieldBoundaryCondition boundary) {
-                        return boundary == FieldBoundaryCondition::Periodic;
-                    });
-            if (config.backend == PoissonSolverType::P3M) {
-                if (!allOpen && !allPeriodic) {
-                    throw OpalException(
-                            "validateSpaceChargeConfig",
-                            "P3M requires uniform OPEN or PERIODIC boundary conditions.");
-                }
-                if (config.binning.has_value() || config.correction.enabled()) {
-                    throw OpalException(
-                            "validateSpaceChargeConfig",
-                            "P3M does not support binning or source-plane corrections.");
-                }
-            }
-            if (config.correction.kind == SpaceChargeCorrectionType::ShiftedGreen
-                && (config.backend != PoissonSolverType::Open || !config.binning.has_value())) {
+            if (config.correction.enabled() && config.backend != PoissonSolverType::Open) {
                 throw OpalException(
                         "validateSpaceChargeConfig",
-                        "Shifted-Green correction requires OPEN with particle binning.");
+                        "Source-plane corrections require the OPEN Poisson backend.");
             }
             if (config.correction.planeDumpFrequency != 0 && config.binning.has_value()) {
                 throw OpalException(
@@ -145,8 +110,18 @@ namespace opalx::spacecharge {
 
         void validateFFT2D5(const FFT2D5Config& config) {
             validateGrid(config.grid);
-            if (!(config.pipeSizeX > 0.0) || !(config.pipeSizeY > 0.0)
-                || !(config.beamRadius > 0.0)) {
+            if (std::any_of(
+                        config.grid.decomposition.begin(), config.grid.decomposition.end(),
+                        [](bool parallel) {
+                            return parallel;
+                        })) {
+                throw OpalException(
+                        "validateSpaceChargeConfig",
+                        "FFT2D5 uses serial slices; set PARFFTX/PARFFTY/PARFFTZ to FALSE.");
+            }
+            if (!std::isfinite(config.pipeSizeX) || !std::isfinite(config.pipeSizeY)
+                || !std::isfinite(config.beamRadius) || !(config.pipeSizeX > 0.0)
+                || !(config.pipeSizeY > 0.0) || !(config.beamRadius > 0.0)) {
                 throw OpalException(
                         "validateSpaceChargeConfig",
                         "FFT2D5 pipe dimensions and beam radius must be positive.");
@@ -165,23 +140,79 @@ namespace opalx::spacecharge {
 
     }  // namespace
 
+    PoissonSolverConfig makePoissonSolverConfig(const CartesianPICConfig& config) {
+        return {config.backend, config.greenFunction, config.p3mCutoff, config.boundaryConditions};
+    }
+
+    void validatePoissonSolverConfig(const PoissonSolverConfig& config) {
+        const auto& boundaries = config.boundaryConditions;
+        const bool allOpen = std::all_of(boundaries.begin(), boundaries.end(), [](auto boundary) {
+            return boundary == FieldBoundaryCondition::Open;
+        });
+        const bool allPeriodic =
+                std::all_of(boundaries.begin(), boundaries.end(), [](auto boundary) {
+                    return boundary == FieldBoundaryCondition::Periodic;
+                });
+        if (config.type == PoissonSolverType::ConjugateGradient) {
+            throw OpalException(
+                    "validateSpaceChargeConfig",
+                    "The CG backend is recognized but not implemented.");
+        }
+        if (!allOpen && !allPeriodic) {
+            throw OpalException(
+                    "validateSpaceChargeConfig",
+                    "Implemented Poisson backends require uniform OPEN or PERIODIC "
+                    "domain boundaries. DIRICHLET mesh faces and mixed boundaries are "
+                    "not implemented. Source-plane corrections are configured separately.");
+        }
+        switch (config.type) {
+            case PoissonSolverType::None:
+            case PoissonSolverType::P3M:
+                break;
+            case PoissonSolverType::Open:
+                if (!allOpen) {
+                    throw OpalException(
+                            "validateSpaceChargeConfig",
+                            "TYPE=OPEN requires OPEN domain boundaries.");
+                }
+                break;
+            case PoissonSolverType::PeriodicFFT:
+                if (!allPeriodic) {
+                    throw OpalException(
+                            "validateSpaceChargeConfig",
+                            "TYPE=FFT requires PERIODIC domain boundaries.");
+                }
+                break;
+            default:
+                throw OpalException("validateSpaceChargeConfig", "Unknown Poisson backend.");
+        }
+        if (config.greenFunction != GreenFunctionType::Standard
+            && config.greenFunction != GreenFunctionType::Integrated) {
+            throw OpalException("validateSpaceChargeConfig", "Unknown open Green function.");
+        }
+        if (!std::isfinite(config.p3mCutoff)
+            || (config.type == PoissonSolverType::P3M ? config.p3mCutoff <= 0.0
+                                                      : config.p3mCutoff != 0.0)) {
+            throw OpalException(
+                    "validateSpaceChargeConfig",
+                    "P3M requires a finite positive cutoff; other backends require no cutoff.");
+        }
+    }
+
     void validateSpaceChargeConfig(const SpaceChargeConfig& config) {
         std::visit(
                 [](const auto& selected) {
                     using Config = std::decay_t<decltype(selected)>;
                     if constexpr (std::is_same_v<Config, CartesianPICConfig>) {
                         validateCartesian(selected);
-                    } else {
+                    } else if constexpr (std::is_same_v<Config, FFT2D5Config>) {
                         validateFFT2D5(selected);
+                    } else {
+                        static_assert(
+                                std::is_same_v<Config, void>, "Add validation for this algorithm");
                     }
                 },
                 config);
-    }
-
-    SpaceChargeAlgorithmType algorithmType(const SpaceChargeConfig& config) {
-        return std::holds_alternative<CartesianPICConfig>(config)
-                       ? SpaceChargeAlgorithmType::CartesianPIC
-                       : SpaceChargeAlgorithmType::FFT2D5;
     }
 
     CartesianDomainConfig3D makeCartesianDomainConfig(const SpaceChargeConfig& config) {

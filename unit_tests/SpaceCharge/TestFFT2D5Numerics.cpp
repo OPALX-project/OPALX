@@ -710,7 +710,8 @@ namespace {
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setParallelDimensions(false, false, true);
 
-        EXPECT_THROW(fsCmd_m->execute(), OpalException);
+        EXPECT_NO_THROW(fsCmd_m->execute());
+        EXPECT_THROW((void)buildSpaceChargeConfig(*fsCmd_m, {}), OpalException);
     }
 
     TEST_F(TestSolve2d5, Configuration_BinningRejected) {
@@ -718,7 +719,8 @@ namespace {
         fsCmd_m->setBinsName("UNUSED_BINNING");
         fsCmd_m->setParallelDimensions(false, false, false);
 
-        EXPECT_THROW(fsCmd_m->execute(), OpalException);
+        EXPECT_NO_THROW(fsCmd_m->execute());
+        EXPECT_THROW((void)buildSpaceChargeConfig(*fsCmd_m, {}), OpalException);
     }
 
     TEST_F(TestSolve2d5, Configuration_MultipleRanksRejected) {
@@ -727,12 +729,8 @@ namespace {
         }
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setParallelDimensions(false, false, false);
-        EXPECT_THROW(fsCmd_m->execute(), OpalException);
-        FFT2D5Config config;
-        config.grid.decomposition = {false, false, false};
-        const std::array particles{pc_m.get()};
-        FFT2D5Algorithm solver(config, particles, bunch_m->getBunchStateHandler());
-        EXPECT_THROW((void)solver.solve(context()), OpalException);
+        EXPECT_NO_THROW(fsCmd_m->execute());
+        EXPECT_THROW((void)buildSpaceChargeConfig(*fsCmd_m, {}), OpalException);
     }
 
     TEST_F(TestSolve2d5, LoadReferencePath_ReadFail) {

@@ -841,7 +841,7 @@ ParallelTracker::SpaceChargeEmissionProgress ParallelTracker::spaceChargeEmissio
  * @par Frame of reference
  * - Entry: @f$R@f$, @f$E@f$, @f$B@f$ in the reference (lab) frame.
  * - After transform to beam: @f$R@f$ in the beam frame (origin at reference, z along momentum).
- * - Inside the selected algorithm: temporary solver-specific frames are guarded and restored.
+ * - Inside the selected algorithm: temporary solver-specific frames are restored on success.
  * - After transform back: @f$R@f$, @f$E@f$, @f$B@f$ in the reference frame again.
  */
 void ParallelTracker::computeSpaceChargeFields() {
@@ -872,8 +872,7 @@ void ParallelTracker::computeSpaceChargeFields() {
     using namespace opalx::spacecharge;
     const std::size_t step = static_cast<std::size_t>(itsBunch_m->getGlobalTrackStep());
 
-    // The context borrows stable attribute objects, not their current Kokkos views. The solver may
-    // migrate particles after this point and safely reacquire each view before later kernels.
+    // Algorithms borrow the stable containers at construction; this context supplies step state.
     SpaceChargeStepState stepState{
             step,
             itsBunch_m->getT(),
