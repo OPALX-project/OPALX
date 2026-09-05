@@ -6,6 +6,7 @@ set (_SRCS
 
 set (_PRIVATE_HDRS
     FFT2D5Algorithm.h
+    FFT2D5Algorithm.hpp
     ReferencePath.h
     FFT2D5FieldStorage.h
     )

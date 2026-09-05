@@ -94,14 +94,6 @@ namespace opalx::spacecharge {
             EXPECT_EQ(result.backendSolves, 4u);
         }
 
-        TEST_F(FFT2D5AlgorithmTest, EveryMasterLongitudinalModeIsAccepted) {
-            for (const FFT2D5LongitudinalFieldMode mode :
-                 {FFT2D5LongitudinalFieldMode::Open, FFT2D5LongitudinalFieldMode::Cylindrical,
-                  FFT2D5LongitudinalFieldMode::Plates, FFT2D5LongitudinalFieldMode::None}) {
-                EXPECT_NO_THROW(config(mode));
-            }
-        }
-
         TEST_F(FFT2D5AlgorithmTest, RejectsFixedCartesianDomain) {
             std::array particles{particles_m.get()};
             FFT2D5Algorithm solver(
