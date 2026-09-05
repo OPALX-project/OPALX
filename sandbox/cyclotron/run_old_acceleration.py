@@ -21,6 +21,9 @@ def main():
     parser.add_argument('--steps-per-turn', type=int, default=2880)
     parser.add_argument('--integrator', choices=['LF2', 'RK4'], default='LF2')
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--nominal-turns', type=float, default=1.1)
+    parser.add_argument('--no-trim-coils', action='store_true')
+    parser.add_argument('--target-mev', type=float)
     args = parser.parse_args()
     if args.steps_per_turn < 720:
         parser.error('Use at least 720 steps per nominal turn')
@@ -29,12 +32,15 @@ def main():
     source = (root/'opal/cyclotron2.in').read_text()
     source = re.sub(r'(?m)^(\w+\s*=[^;\n]+;)[ \t]*$', r'REAL \1', source)
     source = source.replace('REAL FREQ=', 'FREQ=')
+    source = source.replace('OPTION, PSDUMPFREQ= 10;', 'OPTION, PSDUMPFREQ=1000000;')
     source = source.replace('OPTION, PSDUMPLOCALFRAME= TRUE;',
                             'OPTION, VERSION=20200, SPTDUMPFREQ=1, PSDUMPFRAME=GLOBAL;')
     source = source.replace('TCR1=4350, TCR2=4470, MBTC=14e-3, SLPTC=6.0', 'TRIMCOIL=TC1')
     source = source.replace('Ring: CYCLOTRON',
         'TC1: TRIMCOIL, TYPE="PSI-BFIELD-MIRRORED", RMIN=4350, RMAX=4470, '
-        'BMAX=1.4e-3, SLPTC=0.6;\nRing: CYCLOTRON')
+        'BMAX=1.4e-3, SLPTC=0.6, PHIMIN=0, PHIMAX=360;\nRing: CYCLOTRON')
+    if args.no_trim_coils:
+        source = source.replace('BMAX=1.4e-3', 'BMAX=0')
     source = source.replace('DISTRIBUTION=FROMFILE', 'TYPE=FROMFILE')
     source = source.replace('Ring: CYCLOTRON', 'RingCycl: CYCLOTRON')
     source = source.replace('(Ring,', '(RingCycl,')
@@ -42,7 +48,7 @@ def main():
         source = source.replace(f'"{name}"', f'"{root / "opal" / name}"')
     # Small margin brackets the actual directed turn, not only the nominal RF period.
     source = source.replace('MAXSTEPS= 720*15, STEPSPERTURN= 720',
-        f'MAXSTEPS={int(args.steps_per_turn*1.1)}, STEPSPERTURN={args.steps_per_turn}, '
+        f'MAXSTEPS={int(args.steps_per_turn*args.nominal_turns)}, STEPSPERTURN={args.steps_per_turn}, '
         f'TIMEINTEGRATOR="{args.integrator}"')
     (work/'acceleration.in').write_text(source)
     env = dict(os.environ, OMP_NUM_THREADS='1')
@@ -91,7 +97,21 @@ def main():
         cavity_diagnostics_in_bounded_run=cavity_lines,
         trim_conversion='Modern named coil follows supplied cyclotron1.in; historical inline conversion not independently established.')
     (work/'summary.json').write_text(json.dumps(metrics, indent=2)+'\n')
-    print(json.dumps(metrics, indent=2))
+    if args.target_mev is not None:
+        reached = np.flatnonzero(orbit.kinetic_MeV.to_numpy() >= args.target_mev)
+        if len(reached) == 0:
+            raise RuntimeError(f'Target {args.target_mev} MeV not reached; maximum {orbit.kinetic_MeV.max()} MeV')
+        index = int(reached[0])
+        target = dict(target_MeV=args.target_mev, step=index, time_s=index*dt,
+            energy_MeV=float(orbit.kinetic_MeV.iloc[index]),
+            position_m=r[index].tolist(), momentum=p[index].tolist(),
+            preceding_energy_MeV=float(orbit.kinetic_MeV.iloc[index-1]),
+            ranks=1, trim_coils=not args.no_trim_coils, trim_azimuth_degrees=[0,360], integrator=args.integrator)
+        (work/'target.json').write_text(json.dumps(target, indent=2)+'\n')
+        orbit.iloc[:index+1].to_csv(work/'to-target.csv', index=False)
+        print(json.dumps(target, indent=2))
+    else:
+        print(json.dumps({k:v for k,v in metrics.items() if k != 'cavity_diagnostics_in_bounded_run'}, indent=2))
 
 
 if __name__ == '__main__':

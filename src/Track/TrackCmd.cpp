@@ -16,6 +16,7 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Track/TrackCmd.h"
+#include <cmath>
 
 #include "AbstractObjects/BeamSequence.h"
 #include "AbstractObjects/OpalData.h"
@@ -48,6 +49,7 @@ namespace {
                    // particles passes
         STEPSPERTURN,    // Return the timsteps per revolution period. ONLY available for OPAL-cycl.
         TIMEINTEGRATOR,  // the name of time integrator
+        EKINSTOP,       // Optional SINGLEGAP reference kinetic-energy target [GeV].
         SIZE
     };
 }  // namespace
@@ -97,6 +99,8 @@ TrackCmd::TrackCmd() : Action(SIZE, "TRACK", "The \"TRACK\" command initiates tr
 
     itsAttr[STEPSPERTURN] = Attributes::makeReal(
             "STEPSPERTURN", "The time steps per revolution period, only for opal-cycl.", 720);
+    itsAttr[EKINSTOP] = Attributes::makeReal(
+            "EKINSTOP", "Stop after the first complete RF kick reaching this kinetic energy [GeV].", 0.0);
 
     itsAttr[TIMEINTEGRATOR] = Attributes::makePredefinedString(
             "TIMEINTEGRATOR", "Name of time integrator to be used.",
@@ -228,9 +232,13 @@ void TrackCmd::execute() {
     /// \todo track block needs to be removed
     /// \todo here the tracker is constructed
 
+    const double kineticStop = Attributes::getReal(itsAttr[EKINSTOP]);
+    if (!itsAttr[EKINSTOP].defaultUsed() && (!std::isfinite(kineticStop) || kineticStop <= 0))
+        throw OpalException("TrackCmd::execute", "EKINSTOP must be finite and positive [GeV].");
     Track::block = new Track(
             theLineToTrack, beam->getReference(), dt, maxsteps, stepsperturn, zstart, zstop,
             timeintegrator, t0, dtScInit, deltaTau, emissionSourcesList, beamNames);
+    Track::block->kineticEnergyStopGeV = kineticStop;
 
     Track::block->parser.run();
 

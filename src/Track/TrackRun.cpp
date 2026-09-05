@@ -527,6 +527,15 @@ void TrackRun::execute() {
         throw OpalException("TrackRun::execute", "A RING requires a positive circumference.");
     }
     unsigned long long directedTurns = 0;
+    const double kineticStop = Track::block->kineticEnergyStopGeV;
+    if (kineticStop > 0) {
+        if (!isRing || isRestart || !itsAttr[TRACKRUN::TURNS].defaultUsed()
+            || Track::block->dT.size() != 1 || maxSteps.size() != 1 || sStop.size() != 1
+            || !(Track::block->dT.front() > 0))
+            throw OpalException("TrackRun::execute",
+                "EKINSTOP requires a non-restarted RING, one positive DT segment and no explicit TURNS.");
+        sStop.front() = std::numeric_limits<double>::max();
+    }
     if (!itsAttr[TRACKRUN::TURNS].defaultUsed() && isRing) {
         const double requestedTurns = Attributes::getReal(itsAttr[TRACKRUN::TURNS]);
         const double roundedTurns   = std::round(requestedTurns);
@@ -582,6 +591,7 @@ void TrackRun::execute() {
                     restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment},
             ringPeriod);
     static_cast<ParallelTracker*>(itsTracker_m.get())->setRequestedTurns(directedTurns);
+    static_cast<ParallelTracker*>(itsTracker_m.get())->setKineticEnergyStop(kineticStop*1e9);
     itsTracker_m->execute();
 
     /*
