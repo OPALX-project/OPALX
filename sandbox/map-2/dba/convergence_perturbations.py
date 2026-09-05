@@ -23,10 +23,12 @@ REPOSITORY = DBA.parents[2]
 BUILDER = REPOSITORY / "src/Algorithms/LinearTransferMapBuilder.cpp"
 
 
-def configure_map(input_text: str, epsilon: float, levels: int) -> str:
+def configure_map(input_text: str, epsilon: float, levels: int, integrator: str = "BORIS") -> str:
+    if integrator not in ("BORIS", "RK4", "DOP853"):
+        raise ValueError("unsupported map integrator")
     steps = ",".join([f"{epsilon:.16e}"] * 6)
     option = (f"OPTION, ENABLELINEARTRANSFERMAPS=TRUE, LINEARTRANSFERMAPRICHARDSON={levels}, "
-              f'LINEARTRANSFERMAPSTEPS={{{steps}}}, LINEARTRANSFERMAPINTEGRATOR="BORIS";\n\n')
+              f'LINEARTRANSFERMAPSTEPS={{{steps}}}, LINEARTRANSFERMAPINTEGRATOR="{integrator}";\n\n')
     updated, count = re.subn(r"(?m)^TRACK\b", option + "TRACK", input_text)
     if count != 1:
         raise RuntimeError("expected exactly one TRACK statement")
@@ -86,7 +88,8 @@ def main() -> int:
     parser.add_argument("--build-dir", type=Path, default=REPOSITORY / "omp-build")
     parser.add_argument("--input", type=Path, default=DBA / "map-2-dba.in")
     parser.add_argument("--output-dir", type=Path, default=DBA / "perturbations")
-    parser.add_argument("--ranks", type=int, nargs="+", default=[1, 2])
+    parser.add_argument("--ranks", type=int, nargs="+", default=[1],
+                        help="MPI ranks per case; default: single rank")
     parser.add_argument("--mpi-args", default="--map-by slot:OVERSUBSCRIBE --bind-to none")
     parser.add_argument("--jobs", type=int, default=8)
     parser.add_argument("--epsilon", type=float, default=1.e-3)
