@@ -167,6 +167,48 @@ def _read_transform(dataset):
     return origin, np.vstack([r0, r1, r2])
 
 
+def _transform_leaf(dataset, origin, R, path=""):
+    """Transform points on a leaf polydata. Returns number of points processed."""
+    pts = vtk_to_numpy(dataset.GetPoints().GetData())
+    new_pts = (pts - origin) @ R.T
+    dataset.GetPoints().SetData(numpy_to_vtk(new_pts))
+    _dbg(f"  transformed leaf {path}: {pts.shape[0]} points")
+    return pts.shape[0]
+
+
+def _transform_dataset(dataset, origin, R, path=""):
+    """Recursively transform points in a composite or leaf dataset."""
+    if hasattr(dataset, 'GetNumberOfPartitionedDataSets'):
+        n = dataset.GetNumberOfPartitionedDataSets()
+        _dbg(f"{path} PartitionedDataSetCollection ({n} datasets)")
+        for i in range(n):
+            block = dataset.GetPartitionedDataSet(i)
+            _transform_dataset(block, origin, R, f"{path}[{i}]")
+        return
+
+    if hasattr(dataset, 'GetNumberOfPartitions'):
+        n = dataset.GetNumberOfPartitions()
+        _dbg(f"{path} PartitionedDataSet ({n} partitions)")
+        for i in range(n):
+            block = dataset.GetPartition(i)
+            _transform_dataset(block, origin, R, f"{path}[{i}]")
+        return
+
+    if hasattr(dataset, 'GetNumberOfBlocks'):
+        n = dataset.GetNumberOfBlocks()
+        _dbg(f"{path} MultiBlock ({n} blocks)")
+        for i in range(n):
+            block = dataset.GetBlock(i)
+            _transform_dataset(block, origin, R, f"{path}[{i}]")
+        return
+
+    if hasattr(dataset, 'GetPoints'):
+        _transform_leaf(dataset, origin, R, path)
+        return
+
+    _dbg(f"{path} unrecognized dataset type: {_type_name(dataset)}")
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -180,12 +222,7 @@ origin, R = _read_transform(input1)
 _dbg(f"Transform origin: {origin}")
 _dbg(f"Transform rotation rows:\n{R}")
 
-pts = vtk_to_numpy(input0.GetPoints().GetData())
-_dbg(f"Input 0 points: {pts.shape}")
-
-new_pts = (pts - origin) @ R.T
-
 output = self.GetOutput()
-output.ShallowCopy(input0)
-output.GetPoints().SetData(numpy_to_vtk(new_pts))
+output.DeepCopy(input0)
+_transform_dataset(output, origin, R, "out")
 _dbg("Output generated")
