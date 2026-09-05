@@ -6,6 +6,7 @@
 #include "SpaceCharge/FFT2D5/ReferencePath.h"
 
 #include "Utilities/OpalException.h"
+#include "VectorMath.h"
 
 #include <filesystem>
 #include <fstream>
@@ -48,7 +49,7 @@ namespace opalx::spacecharge {
             points.back()[2] = rz;
             if (points.size() > 1) {
                 const Vector segment = points.back() - points[points.size() - 2];
-                length += segment.Pnorm();
+                length += euclidean_norm(segment);
             }
         }
         if (points.size() < 2 || !(length > 0.0)) {
