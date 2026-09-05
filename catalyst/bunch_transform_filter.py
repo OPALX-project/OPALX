@@ -11,8 +11,8 @@ carries the point-data arrays:
 
 That block can be provided in one of two ways:
 
-  1. As a separate source (e.g. extracted with ExtractBlock from the particle
-     multimesh collection).  Set it as Input 1.
+  1. As a separate source (e.g. ippl_particles_electrons.transform).  Set it
+     as Input 1.
   2. As the third block inside the particle multimesh collection itself.  In
      that case pass the whole collection as Input 1 and the filter will locate
      the block containing BunchOrigin automatically.
@@ -21,7 +21,6 @@ Input 0 is always the dataset you want to transform (geometry or particles).
 """
 
 from paraview.numpy_support import vtk_to_numpy, numpy_to_vtk
-from paraview.vtk.util.numpy_support import vtk_to_numpy as vtk_to_numpy_alt
 import numpy as np
 
 # ---------------------------------------------------------------------------
@@ -33,21 +32,21 @@ INVERSE = False  # False: lab -> bunch (transform geometry, bunch stays centred)
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-def _has_transform_arrays(pd):
-    """Return True if the dataset has the BunchOrigin/BunchRotRow* arrays."""
-    if pd is None:
+def _has_transform_arrays(dataset):
+    """Return True if the leaf dataset has the BunchOrigin/BunchRotRow* arrays."""
+    if dataset is None:
         return False
-    pda = pd.GetPointData()
+    if not hasattr(dataset, 'GetPointData'):
+        return False
+    pda = dataset.GetPointData()
     if pda is None:
         return False
-    return pda.GetArray("BunchOrigin") is not None and pda.GetArray("BunchRotRow0") is not None
+    return (pda.GetArray("BunchOrigin") is not None
+            and pda.GetArray("BunchRotRow0") is not None)
 
 
 def _find_transform_block(dataset):
     """Recursively search a composite/multiblock dataset for the transform block."""
-    if _has_transform_arrays(dataset):
-        return dataset
-
     # vtkPartitionedDataSetCollection / vtkMultiBlockDataSet
     if hasattr(dataset, 'GetNumberOfPartitionedDataSets'):
         n = dataset.GetNumberOfPartitionedDataSets()
@@ -67,6 +66,9 @@ def _find_transform_block(dataset):
                 return found
         return None
 
+    if _has_transform_arrays(dataset):
+        return dataset
+
     return None
 
 
@@ -76,7 +78,8 @@ def _read_transform(dataset):
     if tf is None:
         raise RuntimeError(
             "Could not find a transform block with BunchOrigin/BunchRotRow* arrays. "
-            "Make sure Input 1 is the BunchTransformData block or the particle collection."
+            "Make sure Input 1 is the ippl_particles_electrons.transform source "
+            "or the full particle collection."
         )
 
     pda = tf.GetPointData()
