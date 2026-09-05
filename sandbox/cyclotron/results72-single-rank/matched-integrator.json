@@ -1,0 +1,7 @@
+{
+  "integrator": "old OPAL LF2 versus OPALX Boris",
+  "ranks": 1,
+  "samples": 722,
+  "max_position_error_m": 8.52556461620439e-09,
+  "max_momentum_error": 1.4005905078286257e-09
+}

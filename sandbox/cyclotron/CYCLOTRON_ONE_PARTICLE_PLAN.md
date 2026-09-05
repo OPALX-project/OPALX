@@ -42,11 +42,56 @@ reported state was approximately `r=2.13112 m`, `theta=-0.6182 deg` after step
 the step-720 state is printed only in the log.  The comparison harness must account
 for this output convention.
 
-The supplied `ic.dat` ends near `r=4.3002 m`, whereas the trim coil acts over
-`4.350--4.470 m`.  Therefore the 72 MeV trajectory verifies that a trim coil can
-be parsed and attached, but it does not verify a nonzero trim-coil field.  A
-separate field-level test and an on/off trajectory launched in the trim-coil
-radial range are required.
+The supplied `ic.dat` ends near `r=4.3002 m`. Source inspection during implementation
+corrected the original assumption about trim-coil support: `4.350--4.470 m` are
+shape radii, not hard cutoffs. The mirrored model has radial tails (negligible at
+72 MeV). Separate field tests near the shape radii exercise the substantial effect.
+
+## Implementation state (2026-09-06)
+
+- Added the PSI map reader, sector scalar/device evaluation, named mirrored trim
+  definition, parser/visitor wiring, and directed reference turn counter.
+- Added `TestCyclotronSector` and `opalx/coasting72.in` with the legacy launch state.
+- Full build passed in the existing `omp-build` with `-j 10`.
+- The initial compile exposed the Kokkos 5 mirror-type rename and IPPL expression
+  conversion; both were corrected. Numeric (not whitespace-token) skipping is
+  required for the PSI format's packed numeric header block.
+- One 72 MeV proton now completes its first directed turn in 722 steps at
+  DT=0.164527805199081 ns, t=118.789075354 ns, path=13.202970643 m.
+- The tracked particle stays within 3.5e-13 m of the reference at this timestep;
+  energy drift is below 3.2e-11 MeV.
+- Old OPAL's default is RK4 (`TrackCmd.cpp`); explicit LF2 selects its Boris
+  drift-kick-drift (`Steppers/LF2.hpp`). Both integrators were verified in the
+  installed executable's runtime logs on one rank. The explicit RK4 reproducer
+  produces a byte-identical orbit dump to the original baseline.
+- Matching LF2 against OPALX at the same timestep gives max position difference
+  8.53e-9 m and momentum difference 1.41e-9 beta-gamma, including old ASCII precision
+  and rounded launch momentum. Against RK4 the position differences are 335, 76,
+  and 36 micrometres at DT, DT/2, and DT/4.
+- `TestCyclotronSector` (7 cases), `TestIndexMap`, `TestOrbitThreader`,
+  `TestOpalBeamlinePlacement`, and `TestRing` passed.
+- A separate two-rank comparison completed before the user's correction and was
+  identical to one rank. The user subsequently specified that these runs use one
+  rank; the reproducible comparison script now runs exclusively on one rank.
+- Manuals were found in `/Users/adelmann/git/opalx-manual` (the paths previously
+  listed in AGENTS.md do not exist). User and physics pages were added there;
+  manual validation passed. Those changes are separate from the OPALX checkout.
+- Directed-turn completion uses the first timestep endpoint past the return plane;
+  its longitudinal overshoot is bounded by one timestep and must converge with DT.
+- Explicit TURNS restart is rejected until counters/plane state are persisted.
+- Reproducers: `reference72/coasting72-rk4.in`, `reference72/coasting72-lf2.in`,
+  `opalx/coasting72.in`, and `compare_coasting72.py`. Run the old inputs after
+  sourcing `/Users/adelmann/OPAL-2022.1/etc/profile.d/opal.sh` from `reference72`.
+- Field map SHA256: `0bd65560cfe7c92df55e64a17058d6d856cc3b75d4737a2a100bcbbe97b0d305`.
+- Final single-rank script passed in `results72-single-rank`, including the LF2
+  agreement assertion. The relevant unit tests passed after the final code changes.
+  Both new manual pages render successfully. Validation used the OpenMP CPU build;
+  GPU compilation/execution has not been checked.
+- Reviewed the source diff. Whitespace checks pass for code and authored inputs;
+  the raw PSI map retains two original header lines with trailing spaces so its
+  bytes and SHA256 remain unchanged.
+- First milestone complete; next work is user review and selection of the next
+  energy/initial condition. Tunes and RF remain future work.
 
 ## Integration checks already run
 
@@ -60,7 +105,7 @@ radial range are required.
 ## Agreed user model for the first milestone
 
 The user accepted this design on 2026-09-06, including directed return-plane
-crossings for turn counting. Physics implementation remains the next step.
+crossings for turn counting. The first coasting milestone is implemented.
 
 Keep `TRIMCOIL` as a named field-model definition, not a third beamline element.
 Each explicitly placed sector references the definition:
@@ -123,9 +168,10 @@ SI units internally.  Attach named trim-coil models to `OpalCyclotronSector` dur
 input update; device evaluation must use trivially copyable parameters, not host
 polymorphic pointers.
 
-The old model adds `Delta Bz(r)` and the first-order off-plane radial component
-`Delta Br(r,z) = -z d(Delta Bz)/dr`.  Preserve its sign convention only after a
-direct scalar-field comparison establishes the OPALX X-Z-ring mapping.
+The old model subtracts its analytic profile from Bz and its unmirrored derivative
+times z from Br. Preserve that legacy derivative convention on both halves of the
+profile; do not silently replace it with a differentiated mirrored function. The
+proper rotation into OPALX is `(x,y,z)_old -> (x,-z,y)_new`, including field vectors.
 
 Acceptance: analytic values, radial symmetry about the coil midpoint, azimuth
 gate, zero-strength case, and on/off differences agree with old OPAL.
@@ -195,8 +241,8 @@ Compare in global Cartesian coordinates at every common time sample:
 - final directed return-plane state.
 
 First compare the base map with trim-coil strength zero, then enable the coil.  Run
-a one-rank time-step convergence study; keep MPI correctness as a separate small
-regression, not a duplicate convergence sweep.
+a one-rank time-step convergence study. Following the user's 2026-09-06
+instruction, this run family uses one rank exclusively.
 
 No tolerance should be chosen until the scalar field comparison separates parser,
 interpolation, coordinate/sign, and integrator differences.

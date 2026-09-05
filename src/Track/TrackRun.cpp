@@ -193,8 +193,7 @@ TrackRun::TrackRun()
 
     itsAttr[TRACKRUN::TURNS] = Attributes::makeReal(
             "TURNS",
-            "Number of turns to be tracked; Number of neighboring bunches to be tracked in "
-            "cyclotron.",
+            "Number of directed reference return-plane crossings for a RING.",
             1.0);
 
     itsAttr[TRACKRUN::FIELDSOLVER] =
@@ -524,13 +523,16 @@ void TrackRun::execute() {
     const bool isRing =
             Track::block->use->fetchLine()->getBeamlineTopology() == BeamlineTopology::RING;
     const double ringPeriod = isRing ? Track::block->use->getLength() : 0.0;
-    if (isRing && !(ringPeriod > 0.0)) {
+    if (isRing && (!(ringPeriod > 0.0) || !std::isfinite(ringPeriod))) {
         throw OpalException("TrackRun::execute", "A RING requires a positive circumference.");
     }
+    unsigned long long directedTurns = 0;
     if (!itsAttr[TRACKRUN::TURNS].defaultUsed() && isRing) {
         const double requestedTurns = Attributes::getReal(itsAttr[TRACKRUN::TURNS]);
         const double roundedTurns   = std::round(requestedTurns);
-        if (requestedTurns < 1.0 || std::abs(requestedTurns - roundedTurns) > 1.0e-12) {
+        if (!std::isfinite(requestedTurns)
+            || requestedTurns >= static_cast<double>(std::numeric_limits<unsigned long long>::max())
+            || requestedTurns < 1.0 || std::abs(requestedTurns - roundedTurns) > 1.0e-12) {
             throw OpalException(
                     "TrackRun::execute", "TURNS must be a positive integer for a RING.");
         }
@@ -541,7 +543,13 @@ void TrackRun::execute() {
                     "segment.");
         }
 
-        const auto turns             = static_cast<unsigned long long>(roundedTurns);
+        const auto turns = static_cast<unsigned long long>(roundedTurns);
+        if (isRestart) {
+            throw OpalException(
+                    "TrackRun::execute",
+                    "Explicit RING TURNS restart requires persisted return-plane counters and is not supported yet.");
+        }
+        directedTurns = turns;
         const double beta            = Track::block->reference.getBeta();
         const double distancePerStep = Physics::c * std::abs(Track::block->dT.front()) * beta;
         if (!(distancePerStep > 0.0)) {
@@ -554,15 +562,16 @@ void TrackRun::execute() {
         const double pathLength     = roundedTurns * ringPeriod;
         const double estimatedSteps = std::ceil(pathLength / distancePerStep);
         const double safetySteps    = 2.0 * estimatedSteps + 100.0;
-        if (safetySteps > static_cast<double>(std::numeric_limits<unsigned long long>::max())) {
+        if (!std::isfinite(safetySteps)
+            || safetySteps >= static_cast<double>(std::numeric_limits<unsigned long long>::max())) {
             throw OpalException("TrackRun::execute", "RING TURNS step budget overflows.");
         }
 
-        sStop.front()    = Track::block->zstart + pathLength;
+        sStop.front()    = std::numeric_limits<double>::max();
         maxSteps.front() = std::max(maxSteps.front(), static_cast<unsigned long long>(safetySteps));
         *gmsg << level1 << "* RING " << Track::block->use->getOpalName() << ": tracking " << turns
-              << " turns, circumference = " << ringPeriod
-              << " m, target path length = " << sStop.front() << " m." << endl;
+              << " directed turns; nominal circumference for step-budget estimate = "
+              << ringPeriod << " m." << endl;
     }
 
     itsTracker_m = std::make_unique<ParallelTracker>(
@@ -572,6 +581,7 @@ void TrackRun::execute() {
             StepSizeConfig::ResumePosition{
                     restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment},
             ringPeriod);
+    static_cast<ParallelTracker*>(itsTracker_m.get())->setRequestedTurns(directedTurns);
     itsTracker_m->execute();
 
     /*

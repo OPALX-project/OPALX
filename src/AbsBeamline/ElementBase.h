@@ -55,7 +55,8 @@ enum class ElementType : unsigned short {
     SOLENOID,
     SOURCE,
     CONSTANTEFIELDCAVITY,
-    CONSTANTFOCUSING
+    CONSTANTFOCUSING,
+    CYCLOTRONSECTOR
 };
 
 /// Logical sequence topology, independent of ElementType and field-support overlap.
@@ -313,7 +314,7 @@ public:
      * @return Whether the point belongs to the nominal body and transverse aperture.
      * @see OpalBeamline::getBodyElements()
      */
-    bool isInsideBody(const Vector_t<double, 3>& r) const;
+    virtual bool isInsideBody(const Vector_t<double, 3>& r) const;
 
     /// @brief Get the bounding box.
     /// @return The bounding box in lab coordinates.

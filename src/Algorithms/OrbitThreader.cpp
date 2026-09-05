@@ -407,7 +407,7 @@ bool OrbitThreader::reachedThreadingEnd() const {
 }
 
 void OrbitThreader::checkRingReturn(const RayState& before, const double stepDt) {
-    // A bounded one-circuit search, not a closed-orbit finder. The half-circumference guard
+    // A bounded one-circuit search, not a closed-orbit finder. A negative-side excursion
     // excludes the launch plane and the opposite-side crossing of a simple ring. The return
     // must have the same crossing direction as launch; fail rather than invent a return.
     const Vector_t<double, 3> normal = ringOrigin_m.momentum / euclidean_norm(ringOrigin_m.momentum);
@@ -421,7 +421,8 @@ void OrbitThreader::checkRingReturn(const RayState& before, const double stepDt)
     };
     const double travelled = std::abs(compensated::difference(pathLength_m, pathLengthCorrection_m,
             ringOrigin_m.pathLength, ringOrigin_m.pathLengthCorrection));
-    if (travelled > 0.5 * period_m && distance(before) < 0.0 && distance(currentRay()) >= 0.0) {
+    if (distance(before) < -1e-9 || distance(currentRay()) < -1e-9) ringReturnArmed_m = true;
+    if (ringReturnArmed_m && distance(before) < 0.0 && distance(currentRay()) >= 0.0) {
         double lower = 0.0, upper = stepDt;
         RayState trial = currentRay();
         for (unsigned i = 0; i < 60; ++i) {
