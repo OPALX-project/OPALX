@@ -47,7 +47,8 @@ public:
     //  The result it the ideal line.
     virtual Beamline* fetchLine() const = 0;
 
-    /// Prepare occurrence-specific state immediately before tracking.
+    /// Prepare occurrence-specific state before TrackRun constructs the tracking lattice.
+    /// The default is a no-op (LINE); Ring overrides it to clone/tag member occurrences.
     virtual void prepareForTracking() {}
 
 protected:

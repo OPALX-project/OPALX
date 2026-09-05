@@ -499,6 +499,7 @@ LinearTransferMapBuilder::Result LinearTransferMapBuilder::build(
     struct Segment {
         LinearTransferMapReference entrance;
         LinearTransferMapReference exit;
+        // "active" here means nominal body owners, not active field supports.
         IndexMap::value_t active;
     };
 
@@ -568,8 +569,9 @@ LinearTransferMapBuilder::Result LinearTransferMapBuilder::build(
         LinearTransferMap map = makeLinearTransferMap(interval.entrance, interval.exit, segment);
         map.segment           = segment;
         // Ownership follows bodies, while contributors can change inside one body interval.
-        // Record the union encountered by the reference; each shadow ray still queries its
-        // own summed field at every stage, including all support-boundary subdivisions.
+        // Contributor names are sampled at reference-bracket chord midpoints for diagnostics.
+        // They are not a field mask: each shadow ray queries its own summed field at every
+        // stage, including support-boundary subdivisions. A bracket may cross a body boundary.
         IndexMap::value_t contributors;
         map.includesOverlappingFields = interval.active.size() > 1;
         for (; sampleIndex < referenceSamples_m.size(); ++sampleIndex) {

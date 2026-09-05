@@ -1,6 +1,6 @@
 //
 // Class OpalBeamline
-//   :FIXME: add class description
+//   Runtime tracking elements, placement, field selection and transfer-map views.
 //
 // Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
@@ -36,12 +36,29 @@
 
 class BoundaryGeometry;
 
-/// Association used to traverse element-owned maps in reference-path order; `map` is non-owning.
+/**
+ * @brief Borrowed view of one element-owned transfer-map copy.
+ *
+ * The shared element pointer keeps the occurrence alive, but does not stabilize its
+ * map vector. Appending, clearing or recalculating maps can invalidate @c map.
+ * For a shared-owner segment, @c element is one representative owner, not the full
+ * owner set. Copy the LinearTransferMap value if it must survive recalculation.
+ */
 struct ElementTransferMapRef {
+    /// Lifetime handle to the occurrence containing this particular map copy.
     std::shared_ptr<const ElementBase> element;
+    /// Non-owning pointer into ElementBase::getLinearTransferMaps().
     const LinearTransferMap* map{nullptr};
 };
 
+/**
+ * @brief Placed runtime lattice used for external-field queries and map attachment.
+ *
+ * visit() clones concrete sequence occurrences into a flattened element list.
+ * These clones retain logical BeamlineMembership, but start without calculated maps
+ * or overlap flags. Nominal body ownership and field-support selection remain separate;
+ * neither is inferred from that membership tag or from an element's name.
+ */
 class OpalBeamline {
 public:
     OpalBeamline();
@@ -49,14 +66,17 @@ public:
     ~OpalBeamline();
 
     void activateElements();
+    /// Select runtime elements whose isInside() support contains lab position x [m].
+    /// Includes aperture checks; selection does not imply a nonzero field or body ownership.
     std::set<std::shared_ptr<ElementBase>> getElements(const Vector_t<double, 3>& x);
 
-    /// Nominal body owners at a lab position; never use this to restrict field evaluation.
+    /// Nominal body owners at lab position x [m], using ElementBase::isInsideBody().
+    /// Used for map attachment; never use this set to restrict fringe-field evaluation.
     std::set<std::shared_ptr<ElementBase>> getBodyElements(const Vector_t<double, 3>& x) const;
 
     /**
      * Get all elements in the beamline, regardless of their position.
-     * @return Set of shared pointers to all elements in the beamline.
+     * @return Set of shared pointers to all runtime elements, not a reference-path ordering.
      */
     std::set<std::shared_ptr<ElementBase>> getElements();
 
@@ -113,6 +133,13 @@ public:
      * path length; a segment attached to several overlapping elements is returned only once.
      * Unowned intervals are not included here, even if a neighbouring field tail is present.
      * OrbitThreader composes the complete ordered segment list, including those intervals.
+     *
+     * Deduplication uses LinearTransferMap::segment, not names: IDs must belong to the
+     * same calculation. Unassigned IDs (max(size_t)) are not deduplicated. Ties in entrance
+     * path length are ordered by attachment ordinal and then element name.
+     * Returned pointers borrow map-vector storage; see ElementTransferMapRef for lifetime.
+     * To obtain the complete product, use OrbitThreader::getCombinedLinearTransferMap()
+     * rather than multiplying this possibly incomplete view.
      */
     std::vector<ElementTransferMapRef> getLinearTransferMapsInReferenceOrder() const;
 
