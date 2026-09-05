@@ -196,9 +196,9 @@ TEST_F(TestMultipoleT, DefaultFringeParametersOnReusedStorage) {
     // Reuse storage containing a previous magnet's fringe settings, as can happen
     // between fixtures. Default construction must not retain those settings.
     alignas(MultipoleTConfig) unsigned char storage[sizeof(MultipoleTConfig)];
-    auto* config = new (storage) MultipoleTConfig;
-    config->fringeS0_m = 2.0;
-    config->fringeLambdaLeft_m = 0.2;
+    auto* config                = new (storage) MultipoleTConfig;
+    config->fringeS0_m          = 2.0;
+    config->fringeLambdaLeft_m  = 0.2;
     config->fringeLambdaRight_m = 0.3;
     std::destroy_at(config);
     config = new (storage) MultipoleTConfig;
