@@ -1,4 +1,0 @@
-integration_method,samples,compared_samples,ambiguous_quad_boundary_samples,max_field_difference_T,max_rounding_bound_ratio,field_matches_within_text_rounding,drift_samples,drift_fields_exactly_zero,max_abs_y_m,max_abs_uy,final_logged_s_m,orbit_threader_wall_s,total_wall_s
-BORIS,2766,2766,0,2.86910719311112e-07,0.9784735469095924,True,668,True,0.0,0.0,8.2922571,41.6,41.64
-RK4,1110,1066,44,3.4754300798182924e-07,0.9502725448760333,True,294,True,0.0,0.0,8.296739,2.898,2.929
-DOP853,2946,2902,44,3.303024834130919e-07,0.9579233434479223,True,729,True,0.0,0.0,8.2937411,19.49,19.52
