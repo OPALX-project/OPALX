@@ -4,6 +4,10 @@
 #include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/OrbitThreader.h"
 #include "Algorithms/PartData.h"
+#include "Algorithms/ClosedOrbitSolver.h"
+#include "Algorithms/LinearMapEigenAnalysis.h"
+#include "Algorithms/SpectralTunes.h"
+#include "AbsBeamline/CyclotronSector.h"
 #include "BasicActions/Option.h"
 #include "BeamlineCore/DriftRep.h"
 #include "BeamlineCore/MultipoleRep.h"
@@ -19,6 +23,7 @@
 #include "Utility/Inform.h"
 
 #include <filesystem>
+#include <cstdlib>
 #include <iomanip>
 #include <iostream>
 #include <limits>
@@ -298,6 +303,197 @@ TEST_F(OrbitThreaderTest, RichardsonHasExpectedDifferentiationOrder) {
         EXPECT_EQ(fine.finestFiniteDifferenceSteps[5], std::ldexp(0.08, -int(levels)));
         EXPECT_EQ(fine.richardsonCorrection.has_value(), levels > 0);
         EXPECT_EQ(fine.integrationMethod, "BORIS");
+    }
+}
+
+// Opt-in machine benchmark: the PSI map is not distributed with unit-test fixtures.
+// Run on ONE MPI rank with OPALX_COF_CYCLOTRON_MAP pointing to bfield.dat.
+// This exercises native placement/field selection/support events, not a mock field.
+TEST_F(OrbitThreaderTest, Cyclotron72ClosedOrbitBenchmark) {
+    const char* filename = std::getenv("OPALX_COF_CYCLOTRON_MAP");
+    if (!filename) GTEST_SKIP() << "Set OPALX_COF_CYCLOTRON_MAP for the PSI machine benchmark.";
+    // Select measured ic.dat row near 400 MeV, or continue its last row to 590.
+    // Default preserves the original 72 MeV regression and invocation.
+    const std::string selected = std::getenv("OPALX_COF_CASE") ? std::getenv("OPALX_COF_CASE") : "72";
+    ASSERT_TRUE(selected == "72" || selected == "400" || selected == "590");
+    const double energyMeV = selected == "72" ? 72 : (selected == "400" ? 399.995 : 590);
+    int ranks = 0;
+    MPI_Comm_size(MPI_COMM_WORLD, &ranks);
+    ASSERT_EQ(ranks, 1) << "Machine studies run on one rank.";
+    auto bunch = makeBunch(0);
+    DummyBeamline line;
+    DefaultVisitor visitor(line, false, false);
+    OpalBeamline beamline;
+    const auto field = CyclotronSectorFieldMap::read(filename);
+    const double designRadius = field->rmin + 0.5 * (field->nr - 1) * field->dr;
+    for (unsigned i = 0; i < 8; ++i) {
+        const double a = i * std::acos(-1.0) / 4;
+        CyclotronSector sector("SM" + std::to_string(i));
+        sector.configure(field, 8, -0.05, 0.05, 1, {{4.35, 4.47, 0.0014, 600}});
+        sector.setCSTrafoGlobal2Local(CoordinateSystemTrafo(
+                Vector_t<double, 3>(designRadius * std::cos(a), 0, designRadius * std::sin(a)),
+                Quaternion(std::cos(a / 2), 0, std::sin(a / 2), 0)));
+        sector.fixPosition();
+        beamline.visit(sector, visitor, *bunch);
+    }
+    beamline.prepareSections();
+    PartData reference(1, Physics::m_p * 1e9, energyMeV * 1e6);
+    const double gamma = 1 + energyMeV * 1e6 / reference.getM();
+    ExternalFieldRayTracker tracker(beamline, reference,
+                                   ExternalFieldRayTracker::IntegrationMethod::RK4);
+    // Fixed global Z=0 section, +Z return; x is radius and y is vertical.
+    // ic.dat uses MeV, mm and 10^-3 p/(mc); no angular/slopes conversion.
+    OneTurnMap::Coordinates initial{2.1314, -0.00024, 0, 0};
+    if (selected == "400") initial = {4.0203, 0.196818, 0, 0};
+    if (selected == "590") initial = {4.3002, 0.212191, 0, 0};
+    ClosedOrbitSolver::Settings solver;
+    solver.scales = {1, 0.4, 1, 0.4};
+    solver.finiteDifferenceSteps = {1e-5, 1e-6, 1e-5, 1e-6};
+    if (selected == "590") {
+        for (double energy = 529.993;; energy = std::min(590.0, energy + 5)) {
+            const double g = 1 + energy * 1e6 / reference.getM();
+            OneTurnMap::Settings settings;
+            settings.momentum = std::sqrt(g * g - 1);
+            settings.dt = 6.0 / (50.65e6 * 2880);
+            settings.maxSteps = 8000;
+            settings.maxPath = 40;
+            const OneTurnMap map(tracker, CoordinateSystemTrafo(), settings);
+            const auto orbit = ClosedOrbitSolver::solve(map, initial, solver);
+            std::cout << std::setprecision(16) << "Continuation energy_MeV=" << energy
+                      << " status=" << int(orbit.status) << ' ' << orbit.message << std::endl;
+            ASSERT_EQ(orbit.status, ClosedOrbitSolver::Status::Converged);
+            initial = orbit.coordinates;
+            if (energy == 590) break;
+        }
+    }
+    for (unsigned refinement = 0; refinement < 7; ++refinement) {
+        OneTurnMap::Settings controls;
+        controls.momentum = std::sqrt(gamma * gamma - 1);
+        controls.dt = 6.0 / (50.65e6 * 720 * (1u << refinement));
+        controls.maxSteps = 2000 * (1u << refinement);
+        controls.maxPath = 40;
+        OneTurnMap map(tracker, CoordinateSystemTrafo(), controls);
+        const auto orbit = ClosedOrbitSolver::solve(map, initial, solver);
+        std::cout << std::setprecision(16) << "COF energy_MeV=" << energyMeV << " refinement=" << refinement
+                  << " status=" << int(orbit.status) << " " << orbit.message
+                  << " evaluations=" << orbit.evaluations << '\n';
+        ASSERT_EQ(orbit.status, ClosedOrbitSolver::Status::Converged);
+        if (selected == "72") {
+            EXPECT_NEAR(orbit.coordinates[0], 2.13150, 1e-5); // 10 um sanity, not closure tolerance.
+            EXPECT_NEAR(orbit.coordinates[1], -0.0002392, 1e-5);
+        }
+        for (unsigned i = 0; i < 4; ++i)
+            EXPECT_LT(std::abs(orbit.residual[i]), 1e-10);
+        std::cout << "orbit/residual:";
+        for (unsigned i = 0; i < 4; ++i)
+            std::cout << ' ' << orbit.coordinates[i] << '/' << orbit.residual[i];
+        const auto returned = map(orbit.coordinates);
+        const double drift = (std::sqrt(1 + dot(returned.ray.momentum, returned.ray.momentum))
+                              - gamma) / (gamma - 1);
+        std::cout << "\nrelative energy drift=" << drift
+                  << " path_m=" << returned.ray.pathLength << "\nmap:\n";
+        EXPECT_LT(std::abs(returned.sectionResidual), 1e-12);
+        if (selected == "72") {
+            EXPECT_NEAR(returned.ray.pathLength, 13.18972, 5e-5);
+            EXPECT_LT(std::abs(drift), 1e-7);
+        }
+        for (const auto& row : orbit.matrix) {
+            for (double v : row) std::cout << v << ' ';
+            std::cout << '\n';
+        }
+        LinearMapEigenAnalysis::Settings ev;
+        ev.scales = solver.scales;
+        LinearMapEigenAnalysis::writeReport(std::cout,
+                                            LinearMapEigenAnalysis::analyze(orbit.matrix, ev));
+        if (refinement >= 4) {
+            for (double h : {1e-3, 1e-4, 1e-5, 1e-6}) {
+                const auto matrix = map.jacobian(orbit.coordinates, {h, h * 0.1, h, h * 0.1});
+                const auto spectrum = LinearMapEigenAnalysis::analyze(matrix, ev);
+                std::cout << "FD h=" << h;
+                for (const auto& mode : spectrum.modes)
+                    std::cout << " phase=" << std::arg(mode.eigenvalue) / (2 * std::acos(-1.0))
+                              << " modulus=" << std::abs(mode.eigenvalue);
+                std::cout << '\n';
+            }
+        }
+        if (refinement == 6) {
+            auto displaced = initial;
+            displaced[0] += 0.001;
+            displaced[1] += 0.0001;
+            displaced[2] = 0.0005;
+            displaced[3] = 0.00001;
+            const auto recovered = ClosedOrbitSolver::solve(map, displaced, solver);
+            ASSERT_EQ(recovered.status, ClosedOrbitSolver::Status::Converged);
+            for (unsigned i = 0; i < 4; ++i)
+                EXPECT_NEAR(recovered.coordinates[i], orbit.coordinates[i], 1e-9);
+            std::cout << "Displaced launch recovered same orbit; evaluations="
+                      << recovered.evaluations << '\n';
+
+            // Independent small-amplitude legacy spectral check, 100 nominal turns.
+            // Sampling is deliberately identical to the old tune convention, NOT
+            // the directed-section turn definition used by the closed-orbit map.
+            ExternalFieldRayTracker::State a, b;
+            a.position = Vector_t<double, 3>(orbit.coordinates[0], 0, 0);
+            a.momentum = Vector_t<double, 3>(orbit.coordinates[1], 0,
+                    std::sqrt(controls.momentum * controls.momentum
+                              - orbit.coordinates[1] * orbit.coordinates[1]));
+            b = a;
+            b.position += Vector_t<double, 3>(1e-4, 1e-4, 0);
+            std::vector<double> radial, vertical;
+            for (unsigned step = 0; step < 2880 * 100; ++step) {
+                if (step % 200 == 0) {
+                    radial.push_back(std::hypot(b.position[0], b.position[2])
+                                     - std::hypot(a.position[0], a.position[2]));
+                    vertical.push_back(b.position[1]);
+                }
+                a = tracker.advance(a, 6.0 / (50.65e6 * 2880));
+                b = tracker.advance(b, 6.0 / (50.65e6 * 2880));
+            }
+            const double nr = SpectralTunes::analyze(radial, 100).peak.tune;
+            const double ny = SpectralTunes::analyze(vertical, 100).peak.tune;
+            const auto spectrum = LinearMapEigenAnalysis::analyze(orbit.matrix, ev);
+            ASSERT_EQ(spectrum.modes.size(), 2u);
+            // Median-plane uncoupling allows an eigenvector-based plane assignment.
+            // Never identify planes by sorted phase: their ordering changes with energy.
+            double qr = 0, qy = 0;
+            for (unsigned k = 0; k < 4; ++k) {
+                if (spectrum.eigenvalues[k].imag() <= 0) continue;
+                const auto& v = spectrum.eigenvectors[k];
+                const double radialWeight = std::norm(v[0]) + std::norm(v[1]);
+                const double verticalWeight = std::norm(v[2]) + std::norm(v[3]);
+                EXPECT_LT(std::min(radialWeight, verticalWeight), 1e-10);
+                const double q = std::arg(spectrum.eigenvalues[k]) / (2 * std::acos(-1.0));
+                (radialWeight > verticalWeight ? qr : qy) = q;
+            }
+            std::cout << "Small-amplitude spectral nu_r=" << nr << " nu_y=" << ny
+                      << "; map positive phases=" << qr << ',' << qy << '\n';
+            // Legacy analyze() stretches the sampled interval to exactly 100 turns.
+            // Convert physical per-return phases to that axis, accounting for both
+            // actual orbit period and the omitted final sampling interval. This is
+            // a normalization conversion, not a fitted tune or tolerance relaxation.
+            const double sampledTime = (radial.size() - 1) * 200 * 6.0 / (50.65e6 * 2880);
+            const double normalization = sampledTime / (100 * returned.ray.time);
+            // Spectral tracking supplies integer/conjugate branch information absent
+            // from the map. Compare the nearest equivalent phase, not a fitted value.
+            const auto branch = [normalization](double q, double measured) {
+                double result = q;
+                for (int integer = 0; integer <= 4; ++integer)
+                    for (double candidate : {integer + q, integer - q})
+                        if (candidate >= 0 && std::abs(candidate * normalization - measured)
+                                < std::abs(result * normalization - measured)) result = candidate;
+                return result;
+            };
+            qr = branch(qr, nr);
+            qy = branch(qy, ny);
+            std::cout << "Return period_s=" << returned.ray.time
+                      << " legacy normalization=" << normalization
+                      << " selected return branches=" << qr << ',' << qy
+                      << " expected legacy phases=" << qr * normalization
+                      << ',' << qy * normalization << '\n';
+            // One legacy frequency bin; branch/plane identification is external to EV API.
+            EXPECT_NEAR(nr, qr * normalization, 0.0025);
+            EXPECT_NEAR(ny, qy * normalization, 0.0025);
+        }
     }
 }
 

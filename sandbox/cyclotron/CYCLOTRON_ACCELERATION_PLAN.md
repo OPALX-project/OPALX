@@ -6,6 +6,59 @@ chronology; the final checkpoint supersedes their historical pending items.
 
 ## Final 590 MeV checkpoint
 
+Map diagnosis (2026-09-06, diagnostic-only): temporary logging located failure
+in segment 8 of 9, an SM0 seam interval from s=13.1899853731016119 to
+13.1899853903029172 m (17.2013 nm; reference flight 1.5476e-16 s).
+All eight full sector intervals complete. The negative x perturbation of 1 mm
+starts +54.2878 nm on the downstream side of this exit plane. trackRayToExit
+only advances positive DT and accepts upstream-to-downstream crossings; its
+104-step search (17.11 ns) cannot recover the nearby crossing behind that ray.
+The terminal frame deliberately uses the launch-section axes whereas the seam
+entrance uses the transported tangent: the two nearby planes are not parallel
+for this not-exactly-closed reference orbit. This makes the small segment's
+forward-only crossing assumption invalid over the requested perturbation range.
+Control run with all perturbations 1e-5 completes one turn and prints a matrix,
+confirming the perturbation-dependent geometry failure. However its determinant
+residual is 0.12019742 and canonical-form residual 0.22268777. These diagnostics
+fail; slopes/mechanical coordinates are not globally canonical, and no valid
+tunes or symplectic-map claim follows. Small perturbations are not a validated fix.
+Evidence: results72-linear-map/diagnostic-default.log and diagnostic-small-step.log;
+control deck: opalx/coasting72-map/diagnostic-small-step.in. LLDB could not launch
+reliably; temporary logging was used, removed, and the original algorithm rebuilt.
+Suggested next implementation: robust local signed-time plane projection near
+the reference flight (or equivalent seam composition), preserving the fixed
+return section and fields. Do not simply increase the search budget (risks a
+wrong-turn return) or discard the segment/frame transformation. Add a short,
+nonparallel-plane regression; then independently check full-map convergence,
+direct one-turn finite differences and coordinate-aware diagnostics. No fix applied.
+
+Next coasting-map request (2026-09-06): enabled ENABLELINEARTRANSFERMAPS in
+opalx/coasting72.in and ran run_coasting72_map.py on one rank (existing Debug
+binary), TURNS=1, DT=1.64527805199081e-10. Failed in OrbitThreader map building:
+LinearTransferMapBuilder::trackRayToExit reports that a shadow ray did not reach
+the recorded exit plane. Default BORIS map integrator, Richardson=0, starting
+perturbations 1e-3. No one-turn matrix or successful particle turn was produced.
+Log: results72-linear-map/run.log. Next: diagnose ray/segment exit geometry;
+do not treat this run as a successful map or a tune measurement.
+
+Input layout (2026-09-06): all preserved input decks and their distributions now
+live under opal/ (legacy) or opalx/ (new), retaining case subdirectories. Moved
+35 files and rebased file references in 26 decks; numerical settings unchanged.
+Output/reference CSVs, stat files and reports remain in their result directories.
+test_energy_stop.py uses opalx/acceleration590/opalx-stop-smoke-v2 and resolves
+fixture-relative paths before running isolated cases. Generator scripts still
+create disposable input copies in newly requested run directories at execution.
+
+Sandbox cleanup (2026-09-06): moved 449 intermediate/generated files (1016 MiB)
+to temporary recovery archive /tmp/opalx-cyclotron-cleanup-6igijomd, with a
+cleanup-manifest.json recording their original relative paths. Temporary storage
+is not a permanent backup. Preserved every tracked file, original opal inputs,
+the scripts' reference/short-target fixtures, final comparison tables and plots,
+and final 590 MeV stat files. Removed duplicate/failed runs, H5 snapshots and
+generated geometry/timing diagnostics. Sandbox is now approximately 494 MiB;
+remaining bulk is final legacy statistics and reusable reference trajectories.
+The comparison report still passes after cleanup. No source changes or push.
+
 - All comparisons use one MPI rank, one proton, OpenMP build, OMP_NUM_THREADS=1.
 - No TC, DT=41.1319513 ps: old 590.325895173 MeV, OPALX 590.326824538 MeV;
   difference +929.365 eV, matched final position difference 55.785 micrometres.

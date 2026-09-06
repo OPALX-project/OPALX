@@ -14,11 +14,16 @@ import subprocess
 def main():
     root = Path(__file__).resolve().parent
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--fixture', type=Path, default=root/'acceleration590/opalx-stop-smoke-v2')
+    parser.add_argument('--fixture', type=Path, default=root/'opalx/acceleration590/opalx-stop-smoke-v2')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     template = (args.fixture/'acceleration.in').read_text()
-    template = template.replace('"proton.dat"', f'"{(args.fixture / "proton.dat").resolve()}"')
+    # Fixture-relative field/profile/distribution paths must remain valid when
+    # the generated rejection deck is executed in its separate output directory.
+    def absolute_input(match):
+        path = (args.fixture / match.group(1)).resolve()
+        return f'"{path}"' if path.is_file() else match.group(0)
+    template = re.sub(r'"([^"\n]+)"', absolute_input, template)
     cases = [
         ('negative', re.sub(r'EKINSTOP=[^,;]+', 'EKINSTOP=-1', template), 'EKINSTOP must be finite and positive'),
         ('below_launch', re.sub(r'EKINSTOP=[^,;]+', 'EKINSTOP=0.071', template), 'EKINSTOP must exceed the launch'),

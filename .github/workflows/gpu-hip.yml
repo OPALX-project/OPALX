@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt-get update
-          apt-get install -y build-essential git wget p7zip-full unzip locales libopenmpi-dev openmpi-bin
+          apt-get install -y build-essential gfortran git wget p7zip-full unzip locales libopenmpi-dev openmpi-bin
           # Install minimal ROCm packages needed for Kokkos and HeFFTe
           apt-get install -y rocthrust-dev rocprim-dev rocfft-dev
           # Set UTF-8 locale to avoid zip extraction issues
