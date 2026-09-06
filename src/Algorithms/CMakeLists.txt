@@ -7,6 +7,9 @@ set (_SRCS
     Flagger.cpp
     IndexMap.cpp
     ExternalFieldRayTracker.cpp
+    OneTurnMap.cpp
+    ClosedOrbitSolver.cpp
+    LinearMapEigenAnalysis.cpp
     LinearTransferMapBuilder.cpp
     SpectralTunes.cpp
     OrbitThreader.cpp
@@ -32,6 +35,9 @@ set (HDRS
     Flagger.h
     IndexMap.h
     ExternalFieldRayTracker.h
+    OneTurnMap.h
+    ClosedOrbitSolver.h
+    LinearMapEigenAnalysis.h
     LinearTransferMapBuilder.h
     SpectralTunes.h
     LinearTransferMap.h

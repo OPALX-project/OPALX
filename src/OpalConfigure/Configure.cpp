@@ -46,6 +46,7 @@
 
 // Commands introducing a special mode.
 #include "Track/TrackCmd.h"
+#include "Track/CofCmd.h"
 
 // Table-related commands.
 #include "Structure/Beam.h"
@@ -111,6 +112,7 @@ namespace {
         opal->create(new System());
         opal->create(new Title());
         opal->create(new TrackCmd());
+        opal->create(new CofCmd());
         opal->create(new Value());
     }
 

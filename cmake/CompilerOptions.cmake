@@ -36,12 +36,17 @@ endif()
 
 # === Compiler-specific warning suppressions ===
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  add_compile_options(-Wno-deprecated-copy -Wno-sign-compare)
+  add_compile_options(
+    $<$<NOT:$<COMPILE_LANGUAGE:Fortran>>:-Wno-deprecated-copy>
+    $<$<NOT:$<COMPILE_LANGUAGE:Fortran>>:-Wno-sign-compare>)
 endif()
 
 # GCC 12+ false positives for buffer overflows, restrict, etc.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12)
-  add_compile_options(-Wno-stringop-overflow -Wno-array-bounds -Wno-restrict)
+  add_compile_options(
+    $<$<NOT:$<COMPILE_LANGUAGE:Fortran>>:-Wno-stringop-overflow>
+    $<$<NOT:$<COMPILE_LANGUAGE:Fortran>>:-Wno-array-bounds>
+    $<$<NOT:$<COMPILE_LANGUAGE:Fortran>>:-Wno-restrict>)
 endif()
 
 # === Debug-specific sanitizers ===

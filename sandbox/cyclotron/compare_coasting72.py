@@ -49,6 +49,8 @@ def main():
     old_r = old[:, [0, 4, 2]] * [1, -1, 1]
     old_p = old[:, [1, 5, 3]] * [1, -1, 1]
     template = (root/"opalx/coasting72.in").read_text()
+    # This is the orbit-only regression; the separate map case is diagnostic.
+    template = template.replace('ENABLELINEARTRANSFERMAPS=TRUE', 'ENABLELINEARTRANSFERMAPS=FALSE')
     dt = 1.64527805199081e-10
     metrics = []
     runs = {}
