@@ -23,6 +23,7 @@
 #define OPALX_ParallelTracker_HH
 
 #include "Algorithms/StepSizeConfig.h"
+#include "Algorithms/SpectralTunes.h"
 #include "Algorithms/Tracker.h"
 #include "Steppers/BorisPusher.h"
 #include "Steppers/SpinTBMTPusher.h"
@@ -73,6 +74,10 @@ class PluginElement;
  */
 class ParallelTracker : public Tracker {
 public:
+    /// Select a separate serial two-ray spectral diagnostic instead of bunch tracking.
+    void setSpectralTunes(std::vector<double> initial, SpectralTunes::Settings settings) {
+        tuneInitial_m = std::move(initial); tuneSettings_m = settings;
+    }
     /// Stop each container after this many directed reference return-plane crossings.
     void setRequestedTurns(unsigned long long turns) { requestedTurns_m = turns; }
     /** Reference kinetic-energy target [eV]; zero disables. Stop after a full RF
@@ -84,6 +89,8 @@ public:
         itsOpalBeamline_m.visit(sector, *this, *itsBunch_m);
     }
 private:
+    std::vector<double> tuneInitial_m;
+    SpectralTunes::Settings tuneSettings_m;
     bool hasCyclotronGaps();
     /** Host-only event integration for the initial one-proton RF milestone.
      * R/P are in the tracking frame, t/dt in seconds. Splits Boris steps at

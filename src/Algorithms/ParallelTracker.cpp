@@ -252,6 +252,14 @@ void ParallelTracker::execute() {
     itsOpalBeamline_m.activateElements();
     m << level3 << "Activated all beamline elements." << endl;
 
+    if (!tuneInitial_m.empty()) {
+        if (ippl::Comm->size() != 1 || itsBunch_m->getNumParticleContainers() != 1)
+            throw OpalException("SpectralTunes", "Spectral tunes require one rank and one beam.");
+        SpectralTunes::run(itsOpalBeamline_m, *itsBunch_m->getParticleContainer(0)->getReference(),
+                          tuneInitial_m, tuneSettings_m, OpalData::getInstance()->getInputBasename());
+        return;
+    }
+
     // A fresh run derives each reference pose from its initial distribution. A restart must keep
     // the per-container reference pose and reference-to-lab transform stored in the checkpoint.
     const auto& particleContainers = itsBunch_m->getParticleContainers();

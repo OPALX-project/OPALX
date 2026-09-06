@@ -8,6 +8,7 @@ set (_SRCS
     IndexMap.cpp
     ExternalFieldRayTracker.cpp
     LinearTransferMapBuilder.cpp
+    SpectralTunes.cpp
     OrbitThreader.cpp
     ParallelTracker.cpp
     PartData.cpp
@@ -32,6 +33,7 @@ set (HDRS
     IndexMap.h
     ExternalFieldRayTracker.h
     LinearTransferMapBuilder.h
+    SpectralTunes.h
     LinearTransferMap.h
     OrbitThreader.h
     ParallelTracker.h
