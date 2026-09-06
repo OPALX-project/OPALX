@@ -2,9 +2,15 @@
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/IndexMap.h"
+#include "Algorithms/OrbitThreader.h"
+#include "Algorithms/PartData.h"
+#include "Algorithms/StepSizeConfig.h"
 #include "BeamlineCore/DriftRep.h"
+#include "BeamlineCore/MarkerRep.h"
 #include "BeamlineCore/MultipoleRep.h"
+#include "BeamlineCore/RBendRep.h"
 #include "BeamlineCore/RFCavityRep.h"
+#include "BeamlineCore/SBendRep.h"
 #include "BeamlineCore/SolenoidRep.h"
 #include "BeamlineCore/TravelingWaveRep.h"
 #include "BeamlineGeometry/Geometry.h"
@@ -16,9 +22,11 @@
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
 #include "Structure/MeshGenerator.h"
+#include "Utilities/Options.h"
 
 #include "gtest/gtest.h"
 
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -43,14 +51,16 @@ protected:
     }
 
     void SetUp() override {
-        const auto* info = ::testing::UnitTest::GetInstance()->current_test_info();
-        testStem_        = std::string("solenoid_") + info->name();
+        Options::enableLinearTransferMaps = false;
+        const auto* info                  = ::testing::UnitTest::GetInstance()->current_test_info();
+        testStem_                         = std::string("solenoid_") + info->name();
         OpalData::getInstance()->storeInputFn(testStem_ + ".opal");
         OpalData::getInstance()->setOpenMode(OpalData::OpenMode::WRITE);
         cleanupOutputs();
     }
 
     void TearDown() override {
+        Options::enableLinearTransferMaps = false;
         Fieldmap::freeMap(fieldmapFile_.string());
         cleanupOutputs();
     }
@@ -283,6 +293,52 @@ TEST_F(SolenoidPlacementTest, LatticeExportsUseFieldMapEdgesAndSolenoidMeshType)
             std::string::npos);
 }
 
+TEST_F(SolenoidPlacementTest, LinearTransferMapUsesTabulatedFieldMap) {
+    const auto mapFile = writeXZFieldmap("solenoid_transfer.map", 0.0, 20.0, 21, 0.0, 3.0, 4, 0.1);
+
+    auto bunch = makeBunch(0);
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    SolenoidRep solenoid("SOL_MAP");
+    solenoid.getGeometry().setElementLength(0.2);
+    solenoid.setFieldMapFN(mapFile.string());
+    solenoid.setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector_t<double, 3>(0.0), Quaternion()));
+    solenoid.fixPosition();
+
+    OpalBeamline beamline;
+    beamline.visit(solenoid, visitor, *bunch);
+    beamline.prepareSections();
+    beamline.activateElements();
+
+    StepSizeConfig stepSizes;
+    stepSizes.push_back(1.0e-11, 0.25, 128);
+    stepSizes.resetIterator();
+
+    Options::enableLinearTransferMaps = true;
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    OrbitThreader threader(
+            reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
+            1.0e-11, stepSizes, beamline, /*isDesignBeam=*/true);
+    ASSERT_NO_THROW(threader.execute());
+
+    const auto elements = beamline.getElements();
+    ASSERT_EQ(elements.size(), 1u);
+    const auto& maps = (*elements.begin())->getLinearTransferMaps();
+    ASSERT_EQ(maps.size(), 1u);
+    EXPECT_NEAR(maps.front().exit.pathLength - maps.front().entrance.pathLength, 0.2, 2.0e-5);
+    double transverseCoupling = 0.0;
+    for (int row = 0; row < 4; ++row) {
+        for (int column = 0; column < 4; ++column) {
+            ASSERT_TRUE(std::isfinite(maps.front().matrix(row, column)));
+            if ((row < 2) != (column < 2)) {
+                transverseCoupling += std::abs(maps.front().matrix(row, column));
+            }
+        }
+    }
+    EXPECT_GT(transverseCoupling, 1.0e-8);
+}
+
 TEST_F(SolenoidPlacementTest, ElementPositionsSDDSMarksSolenoidColumn) {
     auto solenoid = std::make_shared<SolenoidRep>("SOL1");
 
@@ -309,6 +365,63 @@ TEST_F(SolenoidPlacementTest, ElementPositionsSDDSMarksSolenoidColumn) {
         foundSolenoidRow = true;
     }
     EXPECT_TRUE(foundSolenoidRow);
+}
+
+TEST_F(SolenoidPlacementTest, SBendMeshesAsCurvedDipole) {
+    SBendRep bend("B1");
+    bend.getGeometry() = Geometry::makeSBend(1.0, Physics::pi / 2.0);
+    bend.setAperture(ApertureType::RECTANGULAR, {0.2, 0.1, 1.0});
+
+    MeshGenerator mesh;
+    mesh.add(bend);
+    mesh.write(testStem_);
+
+    std::ifstream py(outputPath("_ElementPositions.py"));
+    ASSERT_TRUE(py.is_open());
+    const std::string script(
+            (std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
+    EXPECT_NE(script.find("color = [1]"), std::string::npos);
+    EXPECT_NE(script.find("numVertices = [76]"), std::string::npos);
+    EXPECT_EQ(script.find("triangles = []]"), std::string::npos);
+}
+
+TEST_F(SolenoidPlacementTest, DefaultUnboundedApertureIsNotADriftMeshReference) {
+    MarkerRep marker("M1");
+    double minor = 0.0;
+    double major = 0.0;
+    EXPECT_FALSE(MeshGenerator::getTransverseSupport(marker, minor, major));
+
+    SBendRep bend("B1");
+    bend.setAperture(ApertureType::RECTANGULAR, {2.0, 1.0, 1.0});
+    ASSERT_TRUE(MeshGenerator::getTransverseSupport(bend, minor, major));
+    EXPECT_DOUBLE_EQ(minor, 2.0);
+    EXPECT_DOUBLE_EQ(major, 1.0);
+
+    MeshGenerator mesh;
+    mesh.add(marker);
+    mesh.write(testStem_);
+
+    std::ifstream py(outputPath("_ElementPositions.py"));
+    ASSERT_TRUE(py.is_open());
+    const std::string script(
+            (std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
+    EXPECT_NE(script.find("numVertices = [0]"), std::string::npos);
+    EXPECT_NE(script.find("triangles = [[ ]]"), std::string::npos);
+}
+
+TEST_F(SolenoidPlacementTest, EmptyMeshSerializesAsValidPython) {
+    RBendRep bend("RB1");
+
+    MeshGenerator mesh;
+    mesh.add(bend);
+    mesh.write(testStem_);
+
+    std::ifstream py(outputPath("_ElementPositions.py"));
+    ASSERT_TRUE(py.is_open());
+    const std::string script(
+            (std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
+    EXPECT_NE(script.find("numVertices = [0]"), std::string::npos);
+    EXPECT_NE(script.find("triangles = [[ ]]"), std::string::npos);
 }
 
 TEST_F(SolenoidPlacementTest, DriftMeshesAsBlueCylinderUsingFirstNonDriftReference) {

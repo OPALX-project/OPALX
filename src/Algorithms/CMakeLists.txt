@@ -6,6 +6,9 @@ set (_SRCS
     DistributionMoments.cpp
     Flagger.cpp
     IndexMap.cpp
+    ExternalFieldRayTracker.cpp
+    LinearTransferMapBuilder.cpp
+    SpectralTunes.cpp
     OrbitThreader.cpp
     ParallelTracker.cpp
     PartData.cpp
@@ -22,10 +25,16 @@ set (HDRS
     AbstractTimeDependence.h
     AbstractTracker.h
     CavityAutophaser.h
+    CompensatedSum.h
+    RungeKuttaTableau.h
     DefaultVisitor.h
     DistributionMoments.h
     Flagger.h
     IndexMap.h
+    ExternalFieldRayTracker.h
+    LinearTransferMapBuilder.h
+    SpectralTunes.h
+    LinearTransferMap.h
     OrbitThreader.h
     ParallelTracker.h
     PartData.h

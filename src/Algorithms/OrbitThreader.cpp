@@ -18,6 +18,7 @@
 //
 
 #include "Algorithms/OrbitThreader.h"
+#include "Algorithms/CompensatedSum.h"
 
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/TravelingWave.h"
@@ -33,9 +34,12 @@
 #include <filesystem>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <iomanip>
 #include <iostream>
 #include <limits>
+#include <map>
 #include <vector>
 
 #define HITMATERIAL 0x80000000
@@ -43,22 +47,45 @@
 #define EVERYTHINGFINE 0x00000000
 extern Inform* gmsg;
 
+namespace {
+    constexpr double mapDiagnosticTolerance = 1.0e-6;
+
+    LinearTransferMapBuilder::Settings mapSettingsFromOptions() {
+        LinearTransferMapBuilder::Settings settings;
+        settings.finiteDifferenceSteps = Options::linearTransferMapSteps;
+        settings.richardsonLevels      = Options::linearTransferMapRichardsonLevels;
+        settings.integrationMethod     = ExternalFieldRayTracker::parseIntegrationMethod(
+                Options::linearTransferMapIntegrator);
+        settings.validate();
+        return settings;
+    }
+}
+
 OrbitThreader::OrbitThreader(
         const PartData& ref, const Vector_t<double, 3>& r, const Vector_t<double, 3>& p, double s,
         double maxDiffZBunch, double t, double dt, StepSizeConfig stepSizes, OpalBeamline& bl,
-        bool isDesignBeam)
+        bool isDesignBeam, double period)
     : r_m(r),
       p_m(p),
       pathLength_m(s),
       time_m(t),
       dt_m(dt),
       stepSizes_m(stepSizes),
-      sStop_m(stepSizes.getFinalSStop() + std::copysign(1.0, dt) * 2 * maxDiffZBunch),
+      sStop_m(period > 0.0
+                      ? s + std::copysign(period, dt)
+                      : stepSizes.getFinalSStop() + std::copysign(1.0, dt) * 2 * maxDiffZBunch),
+      period_m(period),
       itsOpalBeamline_m(bl),
       isDesignBeam_m(isDesignBeam),
       errorFlag_m(0),
-      integrator_m{},
-      reference_m(ref) {
+      reference_m(ref),
+      mapSettings_m(mapSettingsFromOptions()),
+      rayTracker_m(bl, ref, isDesignBeam && Options::enableLinearTransferMaps
+                                   ? mapSettings_m.integrationMethod
+                                   : ExternalFieldRayTracker::IntegrationMethod::BORIS) {
+    ringOrigin_m = currentRay();
+    if (period_m > 0.0 && (dt == 0.0 || euclidean_norm(p) == 0.0))
+        throw OpalException("OrbitThreader", "A RING reference needs nonzero momentum and DT.");
     auto opal = OpalData::getInstance();
     // Only the design beam writes the _DesignPath.dat trajectory log; secondary species
     // must not open (and truncate) it.
@@ -104,6 +131,11 @@ void OrbitThreader::checkElementLengths(const std::set<std::shared_ptr<ElementBa
     double driftLength =
             Physics::c * std::abs(stepSizes_m.getdT()) * euclidean_norm(p_m) / Util::getGamma(p_m);
     for (const std::shared_ptr<ElementBase>& field : fields) {
+        // Markers and monitors carry no field integration requirement. Their finite display
+        // geometry must not constrain the reference-particle time step at the RING seam.
+        if (field->getType() == ElementType::MARKER || field->getType() == ElementType::MONITOR) {
+            continue;
+        }
         double fieldBegin = 0.0;
         double fieldEnd   = 0.0;
         field->getFieldExtent(fieldBegin, fieldEnd);
@@ -130,12 +162,26 @@ void OrbitThreader::execute() {
     std::set<std::string> visitedElements;
 
     trackBack();
+    referencePass_m = true;
     updateBoundingBoxWithCurrentPosition();
     pathLengthRange_m.enlargeIfOutside(pathLength_m);
 
-    Vector_t<double, 3> nextR = r_m / (Physics::c * dt_m);
-    integrator_m.push(nextR, p_m, dt_m);
-    nextR = nextR * Physics::c * dt_m;
+    const bool calculateMaps = isDesignBeam_m && Options::enableLinearTransferMaps;
+    if (calculateMaps) {
+        for (const auto& element : itsOpalBeamline_m.getElements()) {
+            element->clearLinearTransferMaps();
+            element->setOverlapping(false);
+        }
+        referenceSamples_m.clear();
+        combinedLinearTransferMap_m.reset();
+        combinedDeterminantResidual_m.reset();
+        combinedSymplecticResidual_m.reset();
+        transferMapStartPathLength_m = initialPathLength;
+        collectReferenceSamples_m    = true;
+        recordReferenceSample();
+    }
+
+    Vector_t<double, 3> nextR = nextMidpointPosition();
     if (isDesignBeam_m) {
         setDesignEnergy(allElements, visitedElements);
     }
@@ -157,16 +203,24 @@ void OrbitThreader::execute() {
 
         integrate(elementSet, maxDistance);
 
-        *gmsg << "* OrbitThreader maxDistance= " << maxDistance << endl;
-        *gmsg << "* OrbitThreader #elements  = " << elementSet.size() << endl;
-
         if (errorFlag_m == HITMATERIAL) {
             // Shouldn't be reached because reference particle
             // isn't stopped by collimators
-            pathLength_m += std::copysign(1.0, dt_m);
+            compensated::add(std::copysign(1.0, dt_m), pathLength_m, pathLengthCorrection_m);
         }
 
-        imap_m.add(initialS, pathLength_m, elementSet);
+        const double finalS = reachedThreadingEnd() && period_m <= 0.0 ? sStop_m : pathLength_m;
+        // Map/ring threading records every accepted support-resolved step in integrate().
+        if (!collectReferenceSamples_m && period_m <= 0.0)
+            imap_m.add(initialS, finalS, elementSet);
+
+        // Store overlap participation on the runtime occurrences during the reference pass.
+        // Ignore the backwards pre-roll before the requested map origin.
+        if (calculateMaps && finalS > transferMapStartPathLength_m && elementSet.size() > 1) {
+            for (const auto& element : elementSet) {
+                element->setOverlapping(true);
+            }
+        }
 
         IndexMap::value_t::const_iterator it        = elementSet.begin();
         const IndexMap::value_t::const_iterator end = elementSet.end();
@@ -180,9 +234,7 @@ void OrbitThreader::execute() {
 
         currentSet = elementSet;
         if (errorFlag_m == EVERYTHINGFINE) {
-            nextR = r_m / (Physics::c * dt_m);
-            integrator_m.push(nextR, p_m, dt_m);
-            nextR = nextR * Physics::c * dt_m;
+            nextR = nextMidpointPosition();
 
             elementSet = itsOpalBeamline_m.getElements(nextR);
         }
@@ -190,11 +242,44 @@ void OrbitThreader::execute() {
         std::set_intersection(
                 currentSet.begin(), currentSet.end(), elementSet.begin(), elementSet.end(),
                 std::inserter(intersection, intersection.begin()));
-    } while (errorFlag_m != EOL && stepRange_m.isInside(currentStep_m)
-             && !(pathLengthRange_m.isOutside(pathLength_m) && intersection.empty()
-                  && !(elementSet.empty() || currentSet.empty())));
+    } while (errorFlag_m != EOL
+             && (collectReferenceSamples_m || period_m > 0.0 || stepRange_m.isInside(currentStep_m))
+             && (period_m > 0.0
+                 || !(pathLengthRange_m.isOutside(pathLength_m) && intersection.empty()
+                      && !(elementSet.empty() || currentSet.empty()))));
 
-    imap_m.tidyUp(sStop_m);
+    if (referenceReturnLength_m) {
+        // The IndexMap is indexed by travelled distance, not by nominal lattice s.
+        imap_m.setPeriod(std::min(initialPathLength, pathLength_m), *referenceReturnLength_m);
+        if (isDesignBeam_m) {
+            *gmsg << level1 << std::setprecision(12)
+                  << "* RING design circumference = " << period_m << " m\n"
+                  << "* RING reference return length = " << *referenceReturnLength_m << " m\n"
+                  << "* RING return displacement = " << euclidean_norm(Vector_t<double, 3>(r_m - ringOrigin_m.position))
+                  << " m; relative momentum mismatch = "
+                  << euclidean_norm(Vector_t<double, 3>(p_m - ringOrigin_m.momentum)) / euclidean_norm(ringOrigin_m.momentum)
+                  << "\n* RING return is not a closed-orbit solve.\n";
+        }
+    }
+    imap_m.tidyUp(period_m > 0.0 ? pathLength_m : sStop_m);
+    collectReferenceSamples_m = false;
+    if (calculateMaps) {
+        LinearTransferMapBuilder builder(itsOpalBeamline_m, reference_m, dt_m, mapSettings_m);
+        auto result = builder.build(std::move(referenceSamples_m), transferMapStartPathLength_m);
+        std::map<std::shared_ptr<ElementBase>, std::size_t,
+                 std::owner_less<std::shared_ptr<ElementBase>>> passes;
+        for (auto& segment : result.segments) {
+            for (const auto& element : segment.owners) {
+                auto attached = segment.map;
+                attached.pass = passes[element]++;
+                element->addLinearTransferMap(std::move(attached));
+            }
+        }
+        combinedLinearTransferMap_m   = result.combined;
+        combinedDeterminantResidual_m = result.determinantResidual;
+        combinedSymplecticResidual_m  = result.symplecticResidual;
+        printCombinedLinearTransferMap();
+    }
     *gmsg << level1 << "\n" << imap_m << endl;
     if (isDesignBeam_m) {
         // Geometry SDDS dump is a design-beam output; secondary species only build their map.
@@ -204,83 +289,162 @@ void OrbitThreader::execute() {
 }
 
 void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDrift*/) {
-    CoordinateSystemTrafo labToBeamline = itsOpalBeamline_m.getCSTrafoLab2Local();
     Vector_t<double, 3> nextR;
+    std::vector<ExternalFieldRayTracker::Step> steps;
     do {
         errorFlag_m = EVERYTHINGFINE;
 
-        IndexMap::value_t::const_iterator it        = activeSet.begin();
-        const IndexMap::value_t::const_iterator end = activeSet.end();
-        Vector_t<double, 3> oldR                    = r_m;
-
-        r_m /= Physics::c * dt_m;
-        integrator_m.push(r_m, p_m, dt_m);
-        r_m = r_m * Physics::c * dt_m;
-
-        Vector_t<double, 3> Ef(0.0), Bf(0.0);
-        std::string names("\t");
-        for (; it != end; ++it) {
-            Vector_t<double, 3> localR = itsOpalBeamline_m.transformToLocalCS(*it, r_m);
-            Vector_t<double, 3> localP = itsOpalBeamline_m.rotateToLocalCS(*it, p_m);
-            Vector_t<double, 3> localE(0.0), localB(0.0);
-
-            if ((*it)->applyToReferenceParticle(
-                        localR, localP, time_m + 0.5 * dt_m, localE, localB)) {
+        steps.clear();
+        const bool resolveSupport = period_m > 0.0 || collectReferenceSamples_m
+                || (isDesignBeam_m && Options::enableLinearTransferMaps
+                    && mapSettings_m.integrationMethod != ExternalFieldRayTracker::IntegrationMethod::BORIS);
+        if (resolveSupport) {
+            rayTracker_m.advance(currentRay(), dt_m, &steps);
+        } else {
+            steps.push_back(rayTracker_m.step(
+                    currentRay(), dt_m,
+                    [&](const RayState& ray, auto& electric, auto& magnetic) {
+                        for (const auto& element : activeSet) {
+                            const auto localR =
+                                    itsOpalBeamline_m.transformToLocalCS(element, ray.position);
+                            const auto localP =
+                                    itsOpalBeamline_m.rotateToLocalCS(element, ray.momentum);
+                            Vector_t<double, 3> localE(0.0), localB(0.0);
+                            if (element->applyToReferenceParticle(
+                                        localR, localP, ray.time, localE, localB))
+                                return true;
+                            electric += itsOpalBeamline_m.rotateFromLocalCS(element, localE);
+                            magnetic += itsOpalBeamline_m.rotateFromLocalCS(element, localB);
+                        }
+                        return false;
+                    }));
+        }
+        for (const auto& step : steps) {
+            const double stepDt            = step.duration;
+            const RayState oldRay = currentRay();
+            std::string names("\t");
+            const auto fields = resolveSupport
+                                        ? itsOpalBeamline_m.getElements(step.midpoint.position)
+                                        : activeSet;
+            for (const auto& element : fields)
+                names += element->getName() + ", ";
+            r_m = step.midpoint.position;
+            if (step.hitMaterial) {
                 errorFlag_m = HITMATERIAL;
                 return;
             }
-            names += (*it)->getName() + ", ";
+            const auto& Ef = step.electric;
+            const auto& Bf = step.magnetic;
 
-            Ef += itsOpalBeamline_m.rotateFromLocalCS(*it, localE);
-            Bf += itsOpalBeamline_m.rotateFromLocalCS(*it, localB);
+            if (((pathLength_m > 0.0 && (period_m > 0.0 || pathLength_m < sStop_m)) || dt_m < 0.0)
+                && currentStep_m % loggingFrequency_m == 0 && ippl::Comm->rank() == 0
+                && !OpalData::getInstance()->isOptimizerRun()) {
+                logger_m << std::setw(18) << std::setprecision(8)
+                         << step.midpoint.pathLength << std::setw(18)
+                         << std::setprecision(8) << r_m(0) << std::setw(18) << std::setprecision(8)
+                         << r_m(1) << std::setw(18) << std::setprecision(8) << r_m(2)
+                         << std::setw(18) << std::setprecision(8) << step.midpoint.momentum(0) << std::setw(18)
+                         << std::setprecision(8) << step.midpoint.momentum(1) << std::setw(18) << std::setprecision(8)
+                         << step.midpoint.momentum(2) << std::setw(18) << std::setprecision(8) << Ef(0)
+                         << std::setw(18) << std::setprecision(8) << Ef(1) << std::setw(18)
+                         << std::setprecision(8) << Ef(2) << std::setw(18) << std::setprecision(8)
+                         << Bf(0) << std::setw(18) << std::setprecision(8) << Bf(1) << std::setw(18)
+                         << std::setprecision(8) << Bf(2) << std::setw(18) << std::setprecision(8)
+                         << reference_m.getM() * (sqrt(dot(p_m, p_m) + 1) - 1) * Units::eV2MeV
+                         << std::setw(18) << std::setprecision(8)
+                         << step.midpoint.time * Units::s2ns << names << std::endl;
+            }
+
+            setCurrentRay(step.end);
+            if (period_m > 0.0 && referencePass_m) checkRingReturn(oldRay, stepDt);
+            if (collectReferenceSamples_m) {
+                // The nominal midpoint can miss a short overlap. Use every accepted
+                // boundary-resolved interval when recording overlap participation.
+                if (pathLength_m > transferMapStartPathLength_m && fields.size() > 1) {
+                    for (const auto& element : fields) element->setOverlapping(true);
+                }
+                if (period_m <= 0.0 && reachedThreadingEnd()) {
+                    setCurrentRay(rayTracker_m.advanceToPathLength(oldRay, stepDt, sStop_m));
+                    // The located state is within the path-localization tolerance.
+                    // Use the requested endpoint label and stop even if bisection
+                    // returned the last representable point just below it.
+                    pathLength_m = sStop_m;
+                    pathLengthCorrection_m = 0.0;
+                }
+                recordReferenceSample();
+            }
+
+            if (resolveSupport && referencePass_m)
+                imap_m.add(oldRay.pathLength, pathLength_m, fields);
+
+            if (reachedThreadingEnd()) {
+                errorFlag_m = EOL;
+                globalBoundingBox_m.enlargeToContainPosition(r_m);
+                ++currentStep_m;
+                return;
+            }
         }
-
-        if (((pathLength_m > 0.0 && pathLength_m < sStop_m) || dt_m < 0.0)
-            && currentStep_m % loggingFrequency_m == 0 && ippl::Comm->rank() == 0
-            && !OpalData::getInstance()->isOptimizerRun()) {
-            const Vector<double, 3> d = r_m - oldR;
-
-            logger_m << std::setw(18) << std::setprecision(8)
-                     << pathLength_m + std::copysign(euclidean_norm(d), dt_m) << std::setw(18)
-                     << std::setprecision(8) << r_m(0) << std::setw(18) << std::setprecision(8)
-                     << r_m(1) << std::setw(18) << std::setprecision(8) << r_m(2) << std::setw(18)
-                     << std::setprecision(8) << p_m(0) << std::setw(18) << std::setprecision(8)
-                     << p_m(1) << std::setw(18) << std::setprecision(8) << p_m(2) << std::setw(18)
-                     << std::setprecision(8) << Ef(0) << std::setw(18) << std::setprecision(8)
-                     << Ef(1) << std::setw(18) << std::setprecision(8) << Ef(2) << std::setw(18)
-                     << std::setprecision(8) << Bf(0) << std::setw(18) << std::setprecision(8)
-                     << Bf(1) << std::setw(18) << std::setprecision(8) << Bf(2) << std::setw(18)
-                     << std::setprecision(8)
-                     << reference_m.getM() * (sqrt(dot(p_m, p_m) + 1) - 1) * Units::eV2MeV
-                     << std::setw(18) << std::setprecision(8) << (time_m + 0.5 * dt_m) * Units::s2ns
-                     << names << std::endl;
-        }
-
-        r_m /= Physics::c * dt_m;
-        integrator_m.kick(r_m, p_m, Ef, Bf, dt_m, reference_m.getM(), reference_m.getQ());
-        integrator_m.push(r_m, p_m, dt_m);
-        r_m = r_m * Physics::c * dt_m;
-
-        const Vector<double, 3> d = r_m - oldR;
-
-        pathLength_m += std::copysign(euclidean_norm(d), dt_m);
-
         ++currentStep_m;
-        time_m += dt_m;
 
-        nextR = r_m / (Physics::c * dt_m);
-        integrator_m.push(nextR, p_m, dt_m);
-        nextR = nextR * Physics::c * dt_m;
+        nextR = nextMidpointPosition();
 
-        if (activeSet.empty()
+        if (period_m <= 0.0 && activeSet.empty() && !collectReferenceSamples_m
             && (pathLengthRange_m.isOutside(pathLength_m)
-                || stepRange_m.isOutside(currentStep_m))) {
+                || (period_m <= 0.0 && stepRange_m.isOutside(currentStep_m)))) {
             errorFlag_m = EOL;
             globalBoundingBox_m.enlargeToContainPosition(r_m);
             return;
         }
 
     } while (activeSet == itsOpalBeamline_m.getElements(nextR));
+}
+
+bool OrbitThreader::reachedThreadingEnd() const {
+    if (period_m > 0.0) return referencePass_m && referenceReturnLength_m.has_value();
+    const bool stopAtSStop = period_m > 0.0 || collectReferenceSamples_m;
+    const double distance = compensated::difference(pathLength_m, pathLengthCorrection_m, sStop_m, 0.0);
+    return stopAtSStop && (dt_m > 0.0 ? distance >= 0.0 : distance <= 0.0);
+}
+
+void OrbitThreader::checkRingReturn(const RayState& before, const double stepDt) {
+    // A bounded one-circuit search, not a closed-orbit finder. A negative-side excursion
+    // excludes the launch plane and the opposite-side crossing of a simple ring. The return
+    // must have the same crossing direction as launch; fail rather than invent a return.
+    const Vector_t<double, 3> normal = ringOrigin_m.momentum / euclidean_norm(ringOrigin_m.momentum);
+    const double direction = std::copysign(1.0, dt_m);
+    const auto distance = [&](const RayState& ray) {
+        double value = 0.0;
+        for (unsigned d = 0; d < 3; ++d)
+            value += normal(d) * compensated::difference(ray.position(d), ray.positionCorrection(d),
+                    ringOrigin_m.position(d), ringOrigin_m.positionCorrection(d));
+        return direction * value;
+    };
+    const double travelled = std::abs(compensated::difference(pathLength_m, pathLengthCorrection_m,
+            ringOrigin_m.pathLength, ringOrigin_m.pathLengthCorrection));
+    if (distance(before) < -1e-9 || distance(currentRay()) < -1e-9) ringReturnArmed_m = true;
+    if (ringReturnArmed_m && distance(before) < 0.0 && distance(currentRay()) >= 0.0) {
+        double lower = 0.0, upper = stepDt;
+        RayState trial = currentRay();
+        for (unsigned i = 0; i < 60; ++i) {
+            const double middle = 0.5 * (lower + upper);
+            trial = rayTracker_m.advance(before, middle);
+            if (distance(trial) >= 0.0) upper = middle;
+            else lower = middle;
+            if (std::abs(upper - lower) <= 1.e-12 * std::abs(dt_m)) break;
+        }
+        setCurrentRay(trial);
+        referenceReturnLength_m = std::abs(compensated::difference(pathLength_m,
+                pathLengthCorrection_m, ringOrigin_m.pathLength, ringOrigin_m.pathLengthCorrection));
+    } else {
+        const double initialSpeed = Physics::c * euclidean_norm(ringOrigin_m.momentum)
+                / Util::getGamma(ringOrigin_m.momentum);
+        if (travelled > 2.0 * period_m
+            || std::abs(time_m - ringOrigin_m.time) > 4.0 * period_m / initialSpeed)
+            throw OpalException("OrbitThreader::checkRingReturn",
+                    "RING reference did not return to its starting plane within the one-circuit "
+                    "search window (twice the design circumference). Check geometry, fields and "
+                    "launch orbit; a closed-orbit finder may be required.");
+    }
 }
 
 bool OrbitThreader::containsCavity(const IndexMap::value_t& activeSet) {
@@ -339,9 +503,7 @@ void OrbitThreader::trackBack() {
     std::swap(tmpRange, pathLengthRange_m);
     double initialPathLength = pathLength_m;
 
-    Vector_t<double, 3> nextR = r_m / (Physics::c * dt_m);
-    integrator_m.push(nextR, p_m, dt_m);
-    nextR = nextR * Physics::c * dt_m;
+    Vector_t<double, 3> nextR = nextMidpointPosition();
 
     while (std::abs(initialPathLength - pathLength_m) < distTrackBack_m) {
         auto elementSet = itsOpalBeamline_m.getElements(nextR);
@@ -350,9 +512,7 @@ void OrbitThreader::trackBack() {
         maxDrift        = std::min(maxDrift, distTrackBack_m);
         integrate(elementSet, maxDrift);
 
-        nextR = r_m / (Physics::c * dt_m);
-        integrator_m.push(nextR, p_m, dt_m);
-        nextR = nextR * Physics::c * dt_m;
+        nextR = nextMidpointPosition();
     }
     std::swap(tmpRange, pathLengthRange_m);
     currentStep_m *= -1;
@@ -415,4 +575,92 @@ double OrbitThreader::computeDriftLengthToBoundingBox(
     }
 
     return std::numeric_limits<double>::max();
+}
+
+void OrbitThreader::recordReferenceSample() {
+    LinearTransferMapReference state;
+    state = referenceSamples_m.empty()
+                    ? LinearTransferMapBuilder::initialFrame(itsOpalBeamline_m, p_m)
+                    : LinearTransferMapBuilder::transportFrame(referenceSamples_m.back().state, p_m);
+    if (referenceReturnLength_m) {
+        // Use the original plane and axes for a genuine same-section return derivative.
+        // The returned reference momentum need not be parallel to this fixed plane normal.
+        const auto frame = LinearTransferMapBuilder::initialFrame(itsOpalBeamline_m, ringOrigin_m.momentum);
+        state.xAxis = frame.xAxis;
+        state.yAxis = frame.yAxis;
+        state.sAxis = frame.sAxis;
+    }
+    state.position   = r_m;
+    state.momentum   = p_m;
+    state.time       = time_m;
+    state.pathLength = pathLength_m;
+    state.positionCorrection = positionCorrection_m;
+    state.timeCorrection = timeCorrection_m;
+    state.pathLengthCorrection = pathLengthCorrection_m;
+    referenceSamples_m.push_back({state});
+}
+
+OrbitThreader::RayState OrbitThreader::currentRay() const {
+    return {r_m, p_m, time_m, pathLength_m, positionCorrection_m,
+            timeCorrection_m, pathLengthCorrection_m};
+}
+
+void OrbitThreader::setCurrentRay(const RayState& ray) {
+    r_m = ray.position;
+    p_m = ray.momentum;
+    time_m = ray.time;
+    pathLength_m = ray.pathLength;
+    positionCorrection_m = ray.positionCorrection;
+    timeCorrection_m = ray.timeCorrection;
+    pathLengthCorrection_m = ray.pathLengthCorrection;
+}
+
+Vector_t<double, 3> OrbitThreader::nextMidpointPosition() const {
+    Vector_t<double, 3> position = r_m;
+    auto correction = positionCorrection_m;
+    const double factor = (0.5 * Physics::c * dt_m) / Util::getGamma(p_m);
+    for (unsigned component = 0; component < 3; ++component)
+        compensated::add(factor * p_m(component), position(component), correction(component));
+    return position;
+}
+
+void OrbitThreader::printCombinedLinearTransferMap() const {
+    if (!combinedLinearTransferMap_m || ippl::Comm->rank() != 0) return;
+    *gmsg << level1 << "* Linear-map integrator: "
+          << ExternalFieldRayTracker::integrationMethodName(mapSettings_m.integrationMethod)
+          << "; Richardson levels: " << mapSettings_m.richardsonLevels
+          << "; formal differentiation order: " << 2 * (mapSettings_m.richardsonLevels + 1)
+          << "; rays per segment: " << 12 * (mapSettings_m.richardsonLevels + 1) << "\n"
+          << "* Linear-map starting perturbations (x,x',y,y',zeta,delta):";
+    for (const auto step : mapSettings_m.finiteDifferenceSteps)
+        *gmsg << " " << std::setprecision(12) << std::scientific << step;
+    *gmsg << std::defaultfloat << "\n";
+    if (mapSettings_m.integrationMethod != ExternalFieldRayTracker::IntegrationMethod::BORIS)
+        *gmsg << "* Linear-map RK stepping: fixed nominal DT with support subdivision; "
+              << "no adaptive error controller.\n";
+    *gmsg << level1
+          << (period_m > 0.0 ? "\n* Combined one-turn linear transfer map"
+                             : "\n* Combined linear transfer map")
+          << "  (x, x', y, y', zeta, delta):\n";
+    const auto& map = *combinedLinearTransferMap_m;
+    for (int row = 0; row < 6; ++row) {
+        *gmsg << "  ";
+        for (int column = 0; column < 6; ++column) {
+            *gmsg << std::setw(21) << std::setprecision(12) << std::scientific << map(row, column);
+        }
+        *gmsg << "\n";
+    }
+    const double determinantError = *combinedDeterminantResidual_m;
+    const double symplecticError  = *combinedSymplecticResidual_m;
+    *gmsg << "* Volume-preservation diagnostic: "
+          << (determinantError <= mapDiagnosticTolerance ? "PASS" : "FAIL") << "\n"
+          << "*   |det(M) - 1| = " << std::setprecision(7) << std::scientific << determinantError
+          << "  (tolerance " << mapDiagnosticTolerance << ")\n";
+    *gmsg << "* Canonical-form symplecticity diagnostic: "
+          << (symplecticError <= mapDiagnosticTolerance ? "PASS" : "FAIL") << "\n"
+          << "*   max_ij |(M^T J M - J)_ij| = " << symplecticError << "  (tolerance "
+          << mapDiagnosticTolerance << ")\n"
+          << "*   The reported slopes and mechanical momenta are not globally canonical;\n"
+          << "*   this test is diagnostic unless the entrance/exit coordinates are canonical.\n";
+    *gmsg << std::defaultfloat << endl;
 }

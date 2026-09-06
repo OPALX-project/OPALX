@@ -1,0 +1,25 @@
+{
+  "final_energy_MeV": 590.297352912883,
+  "final_time_s": 2.2449757321379708e-05,
+  "max_particle_offset_m": 3.186707427773876e-09,
+  "output_records": 1092,
+  "position_m": [
+    2.1497257883315006,
+    0.0,
+    -3.7946409628082294
+  ],
+  "momentum": [
+    1.0515170223962331,
+    0.0,
+    0.7405297195011328
+  ],
+  "target_MeV": 590.0,
+  "ranks": 1,
+  "trim_coils": false,
+  "gap_event_count": 949,
+  "max_sampled_position_error_m": 2.6682284373293098e-05,
+  "final_position_error_m": 2.6682284373293098e-05,
+  "final_momentum_error": 9.904089723031055e-07,
+  "old_final_energy_MeV": 590.2969105166821,
+  "final_energy_difference_eV": 442.3962008104354
+}

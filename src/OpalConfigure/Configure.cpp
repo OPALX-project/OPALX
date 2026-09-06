@@ -66,6 +66,7 @@
 #include "Elements/OpalCollimator.h"
 #include "Elements/OpalConstantEFieldCavity.h"
 #include "Elements/OpalConstantFocusing.h"
+#include "Elements/OpalCyclotronSector.h"
 #include "Elements/OpalDrift.h"
 #include "Elements/OpalLaser.h"
 #include "Elements/OpalMarker.h"
@@ -83,6 +84,7 @@
 #include "Elements/OpalTravelingWave.h"
 #include "Elements/OpalVariableRFCavity.h"
 #include "Elements/OpalVerticalFFAMagnet.h"
+#include "Lines/Ring.h"
 
 // Structure-related commands.
 #include "Lines/EmissionSourceList.h"
@@ -137,6 +139,8 @@ namespace {
         opal->create(new OpalTravelingWave());
         opal->create(new OpalConstantEFieldCavity());
         opal->create(new OpalConstantFocusing());
+        opal->create(new OpalCyclotronSector());
+        opal->create(new OpalTrimCoil());
         opal->create(new OpalCollimator());
         opal->create(new OpalDrift());
         opal->create(new OpalLaser());
@@ -149,6 +153,7 @@ namespace {
         opal->create(new OpalSBend());
         opal->create(new OpalSolenoid());
         opal->create(new Line());
+        opal->create(new Ring());
         opal->create(new OpalVerticalFFAMagnet());
         opal->create(new OpalPolynomialTimeDependence());
         opal->create(new OpalSinusoidalTimeDependence());
