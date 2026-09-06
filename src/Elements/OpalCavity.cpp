@@ -24,6 +24,7 @@
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Structure/BoundaryGeometry.h"
+#include "Utilities/OpalException.h"
 
 OpalCavity::OpalCavity()
     : OpalElement(SIZE, "RFCAVITY", "The \"RFCAVITY\" element defines an RF cavity."),
@@ -38,12 +39,12 @@ OpalCavity::OpalCavity()
     itsAttr[FAST]     = Attributes::makeBool("FAST", "Faster but less accurate", true);
     itsAttr[APVETO]   = Attributes::makeBool(
             "APVETO", "Do not use this cavity in the Autophase procedure", false);
-    itsAttr[RMIN]  = Attributes::makeReal("RMIN", " Minimal Radius of a cyclotron cavity [mm]");
-    itsAttr[RMAX]  = Attributes::makeReal("RMAX", " Maximal Radius of a cyclotron cavity [mm]");
+    itsAttr[RMIN]  = Attributes::makeReal("RMIN", "SINGLEGAP lower local-x profile bound [m]");
+    itsAttr[RMAX]  = Attributes::makeReal("RMAX", "SINGLEGAP upper local-x profile bound [m]");
     itsAttr[ANGLE] = Attributes::makeReal("ANGLE", "Azimuth position of a cyclotron cavity [deg]");
     itsAttr[PDIS]  = Attributes::makeReal(
             "PDIS", "Shift distance of cavity gap from center of cyclotron [mm]");
-    itsAttr[GAPWIDTH] = Attributes::makeReal("GAPWIDTH", "Gap width of a cyclotron cavity [mm]");
+    itsAttr[GAPWIDTH] = Attributes::makeReal("GAPWIDTH", "SINGLEGAP transit-time width [m]");
     itsAttr[PHI0]     = Attributes::makeReal("PHI0", "Initial phase of cavity [deg]");
     itsAttr[DESIGNENERGY] =
             Attributes::makeReal("DESIGNENERGY", "the mean energy of the particles at exit", -1.0);
@@ -93,6 +94,18 @@ void OpalCavity::update() {
     double phi0          = Attributes::getReal(itsAttr[PHI0]);
     double kineticEnergy = Attributes::getReal(itsAttr[DESIGNENERGY]);
 
+    rfc->clearCyclotronGap();
+    if (type == "SINGLEGAP" && !fmapfn.empty()) {
+        if (angle != 0 || pdis != 0 || peakError != 0 || phase != 0 || phaseError != 0
+            || !Attributes::getString(itsAttr[PHASE_MODEL]).empty()
+            || !Attributes::getString(itsAttr[AMPLITUDE_MODEL]).empty()
+            || !Attributes::getString(itsAttr[FREQUENCY_MODEL]).empty())
+            throw OpalException("OpalCavity::update",
+                "SINGLEGAP uses SI geometry and X/Y/Z/THETA/PHI/PSI poses, PHI0, and static RF parameters only.");
+        rfc->configureCyclotronGap(fmapfn, rmin, rmax,
+            CyclotronRFKick{peak*1e6, freq, phi0*Units::deg2rad, gapwidth, rmax-rmin});
+    }
+
     rfc->getGeometry().setElementLength(length);
 
     rfc->dropFieldmaps();
@@ -105,7 +118,7 @@ void OpalCavity::update() {
     rfc->setFieldMapFN(fmapfn);
 
     rfc->setFast(fast);
-    rfc->setAutophaseVeto(apVeto);
+    rfc->setAutophaseVeto(apVeto || rfc->isCyclotronGap());
     rfc->setCavityType(type);
     rfc->setRmin(rmin);
     rfc->setRmax(rmax);

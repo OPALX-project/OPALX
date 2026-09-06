@@ -1,0 +1,20 @@
+{
+  "final_energy_MeV": 590.3268245375589,
+  "final_time_s": 2.2449771272972993e-05,
+  "max_particle_offset_m": 1.5309126248429817e-09,
+  "output_records": 546,
+  "position_m": [
+    2.1493976991266694,
+    0.0,
+    -3.794931906682202
+  ],
+  "momentum": [
+    1.0515266838356312,
+    0.0,
+    0.7405851014194251
+  ],
+  "target_MeV": 590.0,
+  "ranks": 1,
+  "trim_coils": false,
+  "gap_event_count": 949
+}

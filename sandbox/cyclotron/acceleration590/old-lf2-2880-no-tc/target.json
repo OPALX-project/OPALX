@@ -1,0 +1,20 @@
+{
+  "target_MeV": 590.0,
+  "step": 545799,
+  "time_s": 2.244977788746298e-05,
+  "energy_MeV": 590.3258951725991,
+  "position_m": [
+    2.15071742,
+    -3.79399146,
+    0.0
+  ],
+  "momentum": [
+    1.05152326,
+    0.740587771,
+    0.0
+  ],
+  "preceding_energy_MeV": 589.5699260984348,
+  "ranks": 1,
+  "trim_coils": false,
+  "integrator": "LF2"
+}

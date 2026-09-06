@@ -1,0 +1,72 @@
+OPTION, ECHO= FALSE;
+OPTION, PSDUMPFREQ= 10;
+OPTION, PSDUMPLOCALFRAME= TRUE;
+
+//////////////////////////////////////////////////////////////////////////////
+// input file for single particle tracking				    //
+// the initial conditions are obtained from FIXPO GORBIT mode.              //
+//////////////////////////////////////////////////////////////////////////////
+
+TITLE, STRING= "Ring AEO";
+
+Edes= 0.072;
+pr0 = -0.0164;
+r0  = 2037;
+
+phi01= 192.0+12;
+phi02= phi01+180.0;
+phi04= phi01;
+phi05= phi01+180.0;
+phi03= 111.40+36+2;
+
+volt1st= 0.847;
+ptg=     1.465;
+volt3rd= volt1st*4.0*0.112*ptg;
+
+r1=   1003.38;
+r2=   6203.38;
+rft1= 1845.45;
+rft2= 4477.24;
+
+f1=  50.65;
+f3= 3.0*f1;
+
+gamma=(Edes+PMASS)/PMASS;
+beta=sqrt(1-(1/gamma^2)); 
+gambet=gamma*beta; 
+P0 = gamma*beta*PMASS;
+
+Ring: CYCLOTRON, TYPE="RING", CYHARMON=6, PHIINIT=110.0, PRINIT=pr0, RINIT=r0 , SYMMETRY=8.0, RFFREQ=f1, 
+	         FMAPFN="bfield.dat", TCR1=4350, TCR2=4470, MBTC=14e-3, SLPTC=6.0;
+
+Rf0: RFCAVITY, VOLT=volt1st, FMAPFN="rffield1.dat", TYPE="SINGLEGAP", 
+FREQ=f1, RMIN = r1, RMAX = r2, ANGLE=35.0,  PDIS = 416.0, GAPWIDTH = 300.0, PHI0=phi01; 
+
+Rf1: RFCAVITY, VOLT=volt1st, FMAPFN="rffield1.dat", TYPE="SINGLEGAP", 
+FREQ=f1, RMIN = r1, RMAX = r2, ANGLE=125.0, PDIS = 416.0, GAPWIDTH = 300.0, PHI0=phi02;
+
+Rf3: RFCAVITY, VOLT=volt1st, FMAPFN="rffield1.dat", TYPE="SINGLEGAP", 
+FREQ=f1, RMIN = r1, RMAX = r2, ANGLE=215.0, PDIS = 416.0, GAPWIDTH = 300.0, PHI0=phi04;
+
+Rf4: RFCAVITY, VOLT=volt1st, FMAPFN="rffield1.dat", TYPE="SINGLEGAP", 
+FREQ=f1, RMIN = r1, RMAX = r2, ANGLE=305.0, PDIS = 416.0, GAPWIDTH = 300.0, PHI0=phi05; 
+
+Rf2: RFCAVITY, VOLT=volt3rd, FMAPFN="rffield2.dat", TYPE="SINGLEGAP", 
+FREQ=f3, RMIN = rft1, RMAX = rft2, ANGLE=260.0, PDIS = 452.0, GAPWIDTH = 250.0, PHI0=phi03; 
+
+L1:   LINE = (Ring,Rf0,Rf1,Rf2,Rf3,Rf4);
+
+Dist1:DISTRIBUTION, DISTRIBUTION=FROMFILE,FNAME="dist2.dat"; 
+
+Fs1:FIELDSOLVER, FSTYPE=NONE, MX=64, MY=64, MT=64, PARFFTX=true, PARFFTY=true, PARFFTT=false,
+		 BCFFTX=open, BCFFTY=open, BCFFTT=open;
+
+Beam1: BEAM, PARTICLE=PROTON, pc=P0, NPART=1, BCURRENT=1.0E-6, CHARGE=1.0, BFREQ= f1;
+
+SELECT, LINE=L1;
+
+TRACK, LINE= L1, BEAM= Beam1, MAXSTEPS= 720*15, STEPSPERTURN= 720;
+ RUN, METHOD = "CYCLOTRON-T", BEAM= Beam1, FIELDSOLVER= Fs1, DISTRIBUTION= Dist1;
+ENDTRACK;
+STOP;
+
