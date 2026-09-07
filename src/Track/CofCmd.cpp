@@ -1,6 +1,7 @@
 // Copyright (c) 2026, Paul Scherrer Institute, Villigen PSI, Switzerland
 #include "Track/CofCmd.h"
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -151,9 +152,10 @@ namespace {
             s.solver.positionTolerance = Attributes::getReal(itsAttr[XTOL]);
             s.solver.momentumTolerance = Attributes::getReal(itsAttr[PTOL]);
             s.solver.damping           = Attributes::getBool(itsAttr[DAMPING]);
-            for (auto item :
-                 {std::make_pair(FDSTEP, &s.solver.finiteDifferenceSteps),
-                  std::make_pair(SCALES, &s.solver.scales)}) {
+            const std::array arrayAttributes{
+                    std::make_pair(FDSTEP, &s.solver.finiteDifferenceSteps),
+                    std::make_pair(SCALES, &s.solver.scales)};
+            for (const auto item : arrayAttributes) {
                 if (!itsAttr[item.first].defaultUsed()) {
                     const auto values = Attributes::getRealArray(itsAttr[item.first]);
                     require(values.size() == 4, "FDSTEP and SCALES require exactly four values.");
