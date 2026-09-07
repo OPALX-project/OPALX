@@ -8,10 +8,10 @@
 
 #include "SpaceCharge/CartesianPIC/CartesianDomainUpdater.h"
 #include "SpaceCharge/CartesianPIC/CartesianPICFieldStorage.h"
-#include "SpaceCharge/CartesianPIC/P3MShortRangeInteraction.h"
 #include "SpaceCharge/CartesianPIC/ParticleBinTraversal.h"
 #include "SpaceCharge/CartesianPIC/ParticleMeshFieldTransfer.h"
 #include "SpaceCharge/CartesianPIC/RelativisticFieldComposer.h"
+#include "SpaceCharge/Poisson/P3MAdapters.h"
 #include "SpaceCharge/Poisson/PoissonSolver.h"
 #include "SpaceCharge/SpaceChargeAlgorithm.h"
 #include "SpaceCharge/SpaceChargeConfig.h"

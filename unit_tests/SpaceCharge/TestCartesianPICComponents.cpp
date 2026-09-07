@@ -9,7 +9,7 @@
 #include "SpaceCharge/CartesianPIC/CartesianDomainUpdater.h"
 #include "SpaceCharge/CartesianPIC/CartesianPICAlgorithm.h"
 #include "SpaceCharge/CartesianPIC/CartesianPICFieldStorage.h"
-#include "SpaceCharge/Poisson/PoissonSolver.h"
+#include "SpaceCharge/Poisson/PoissonSolverFactory.h"
 #include "SpaceCharge/SpaceChargeSolveContext.h"
 #include "Structure/DataSink.h"
 #include "Utilities/OpalException.h"
@@ -148,7 +148,7 @@ namespace opalx::spacecharge {
 
             PoissonSolverConfig poissonConfig;
             poissonConfig.type = PoissonSolverType::None;
-            PoissonSolver poisson(
+            auto poisson       = makePoissonSolver(
                     poissonConfig, {&workspace.chargeDensity(), &workspace.electricField()});
 
             CartesianPICConfig values;
@@ -171,7 +171,7 @@ namespace opalx::spacecharge {
 
             EXPECT_FALSE(updater.updateForSolve(
                     DomainCoordinateFrame::Beam, context, {}, &*bunchState->fixedCartesianDomain(),
-                    workspace, poisson));
+                    workspace, *poisson));
             EXPECT_EQ(workspace.layoutExtents(), domainConfig.meshSize);
             EXPECT_EQ(domain.decomposition(), domainConfig.decomposition);
             EXPECT_FALSE(particles->isMomentsDirty());
@@ -184,14 +184,14 @@ namespace opalx::spacecharge {
             secondary->markMomentsDirty();
             bunchState->clearFixedCartesianDomain();
             EXPECT_FALSE(updater.updateForSolve(
-                    DomainCoordinateFrame::Beam, context, {}, nullptr, workspace, poisson));
+                    DomainCoordinateFrame::Beam, context, {}, nullptr, workspace, *poisson));
             EXPECT_NE(domain.lower()[0], fixedLower[0]);
             EXPECT_NE(domain.upper()[0], fixedUpper[0]);
             EXPECT_FALSE(particles->isMomentsDirty());
             EXPECT_TRUE(secondary->isMomentsDirty());
 
             EXPECT_FALSE(updater.updateForSolve(
-                    DomainCoordinateFrame::Reference, context, {}, nullptr, workspace, poisson));
+                    DomainCoordinateFrame::Reference, context, {}, nullptr, workspace, *poisson));
             EXPECT_FALSE(secondary->isMomentsDirty());
         }
 

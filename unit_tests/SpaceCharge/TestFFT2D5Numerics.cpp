@@ -71,7 +71,7 @@ namespace {
                 const FFT2D5Algorithm::LineDensityView_t& lineDensityGradient,
                 const VField_t<T, 3>& eField) {
             if (!particles.empty()) {
-                auto* pc = particles.front();
+                auto* pc  = particles.front();
                 r_m       = Solve2d5_t::VectorView_t("fsr", pc->R.getParticleCount());
                 p_m       = Solve2d5_t::VectorView_t("fsp", pc->R.getParticleCount());
                 e_m       = Solve2d5_t::VectorView_t("e", pc->R.getParticleCount());
@@ -308,7 +308,8 @@ namespace {
                     /*beams=*/std::vector{testBeam},
                     /*totalParticlesPerBeam=*/std::vector{kDefaultNParticles},
                     /*lbt=*/1.0,
-                    /*integration_method=*/"LF2", makeCartesianDomainConfig(buildSpaceChargeConfig(*fsCmd_m, {})));
+                    /*integration_method=*/"LF2",
+                    makeCartesianDomainConfig(buildSpaceChargeConfig(*fsCmd_m, {})));
             pc_m = bunch_m->getParticleContainer();
         }
 
@@ -384,7 +385,7 @@ namespace {
         SpaceChargeSolveContext context() const {
             SpaceChargeStepState step;
             step.timeStep = bunch_m->getdT();
-            step.mpiSize = ippl::Comm->size();
+            step.mpiSize  = ippl::Comm->size();
             return SpaceChargeSolveContext(activity_m, step);
         }
 
@@ -402,11 +403,13 @@ namespace {
                     /*beams=*/std::vector{testBeam},
                     /*totalParticlesPerBeam=*/std::vector{kDefaultNParticles},
                     /*lbt=*/1.0,
-                    /*integration_method=*/"LF2", makeCartesianDomainConfig(buildSpaceChargeConfig(*fsCmd_m, {})));
-            pc_m = bunch_m->getParticleContainer();
+                    /*integration_method=*/"LF2",
+                    makeCartesianDomainConfig(buildSpaceChargeConfig(*fsCmd_m, {})));
+            pc_m        = bunch_m->getParticleContainer();
             auto config = std::get<FFT2D5Config>(buildSpaceChargeConfig(*fsCmd_m, {}));
             const std::array particles{pc_m.get()};
-            solver_m = std::make_unique<FFT2D5Algorithm>(config, particles, bunch_m->getBunchStateHandler());
+            solver_m = std::make_unique<FFT2D5Algorithm>(
+                    config, particles, bunch_m->getBunchStateHandler());
             solver_m->ensureInitialized();
         }
 
