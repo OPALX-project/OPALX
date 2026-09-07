@@ -25,6 +25,20 @@ protected:
     void TearDown() override { std::filesystem::remove(filename); }
 };
 
+namespace {
+    struct CyclotronRFKickTestFunctor {
+        CyclotronRFProfile::View grid;
+        Kokkos::View<double*> output;
+        CyclotronRFKick kick;
+
+        KOKKOS_FUNCTION void operator()(int) const {
+            Vector_t<double, 3> p(.01, 0, .4);
+            output(3) = kick.apply(grid, .6, 1e-9, 938272088.16, p);
+            for (int i = 0; i < 3; ++i) output(i) = p[i];
+        }
+    };
+}  // namespace
+
 TEST_F(CyclotronRFTest, HermiteValuesDerivativesAndEndpoints) {
     CyclotronRFProfile profile(filename);
     for (double u : {0., .1, .5, .9, 1.}) {
@@ -83,11 +97,8 @@ TEST_F(CyclotronRFTest, FocusingDeviceParityAndInvalidState) {
     EXPECT_NEAR(expected[2], -std::sin(angle)*.01+std::cos(angle)*tangent, 1e-14);
     Kokkos::View<double*> output("result", 4);
     const auto grid = profile.data;
-    Kokkos::parallel_for("rf kick test", 1, KOKKOS_LAMBDA(int) {
-        Vector_t<double, 3> p(.01, 0, .4);
-        output(3) = kick.apply(grid, .6, 1e-9, 938272088.16, p);
-        for (int i = 0; i < 3; ++i) output(i) = p[i];
-    });
+    Kokkos::parallel_for(
+            "rf kick test", 1, CyclotronRFKickTestFunctor{grid, output, kick});
     const auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), output);
     EXPECT_EQ(host(3), 1);
     for (int i=0; i<3; ++i) EXPECT_NEAR(host(i), expected[i], 1e-14);

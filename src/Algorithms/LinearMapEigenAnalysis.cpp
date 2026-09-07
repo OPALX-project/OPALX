@@ -5,7 +5,14 @@
 // the C99 _Complex extension. Keep these macros local to this translation unit.
 #define lapack_complex_float std::complex<float>
 #define lapack_complex_double std::complex<double>
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
+#endif
 #include <lapacke.h>
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 #undef lapack_complex_float
 #undef lapack_complex_double
 #include <algorithm>
