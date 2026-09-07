@@ -1,0 +1,19 @@
+{
+  "selected": {
+    "case": "trusted-20260907-dt5e-12-h3e-5",
+    "dt_s": 5e-12,
+    "h": 3e-05,
+    "stability": "STABLE",
+    "matrix_error": 6.312142808440058e-09,
+    "max_position_residual_m": 2.1632138322696126e-13,
+    "max_momentum_residual": 3.2810310102650993e-11,
+    "qx": 0.2298924314934086,
+    "qy": 0.3104636031748715,
+    "qx_error": 6.262619867136721e-10,
+    "qy_error": 1.9508228366049707e-10,
+    "max_modulus_error": 5.126050695025697e-10
+  },
+  "observed_max_tune_error": 4.644365031447606e-09,
+  "observed_max_matrix_error": 5.279402728874949e-08,
+  "note": "Observed envelope against the analytic reference over the tested settings; not a rigorous error bound or an asymptotic convergence-order measurement."
+}

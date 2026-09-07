@@ -18,6 +18,7 @@
 //
 
 #include "Algorithms/OrbitThreader.h"
+#include "Algorithms/OrbitThreaderDiagnostics.h"
 #include "Algorithms/CompensatedSum.h"
 
 #include "AbsBeamline/RFCavity.h"
@@ -40,6 +41,7 @@
 #include <iostream>
 #include <limits>
 #include <map>
+#include <sstream>
 #include <vector>
 
 #define HITMATERIAL 0x80000000
@@ -156,6 +158,10 @@ void OrbitThreader::checkElementLengths(const std::set<std::shared_ptr<ElementBa
 }
 
 void OrbitThreader::execute() {
+    using namespace orbit_threader_diagnostics;
+    Report diagnostics;
+    Session diagnosticSession(diagnostics);
+    TimedPhase referenceTime(reference);
     double initialPathLength = pathLength_m;
 
     auto allElements = itsOpalBeamline_m.getElementByType(ElementType::ANY);
@@ -167,6 +173,18 @@ void OrbitThreader::execute() {
     pathLengthRange_m.enlargeIfOutside(pathLength_m);
 
     const bool calculateMaps = isDesignBeam_m && Options::enableLinearTransferMaps;
+    if (ippl::Comm->rank() == 0) {
+        std::ostringstream settings;
+        settings << "* OrbitThreader settings: design_beam=" << isDesignBeam_m
+                 << " maps=" << calculateMaps << " dt_s=" << dt_m
+                 << " integrator=" << ExternalFieldRayTracker::integrationMethodName(
+                            calculateMaps ? mapSettings_m.integrationMethod
+                                          : ExternalFieldRayTracker::IntegrationMethod::BORIS)
+                 << " richardson_levels=" << mapSettings_m.richardsonLevels
+                 << " period_m=" << period_m
+                 << "; reference and map rays execute serially on the host.\n";
+        *gmsg << level1 << settings.str() << endl;
+    }
     if (calculateMaps) {
         for (const auto& element : itsOpalBeamline_m.getElements()) {
             element->clearLinearTransferMaps();
@@ -263,9 +281,11 @@ void OrbitThreader::execute() {
     }
     imap_m.tidyUp(period_m > 0.0 ? pathLength_m : sStop_m);
     collectReferenceSamples_m = false;
+    referenceTime.stop();
     if (calculateMaps) {
         LinearTransferMapBuilder builder(itsOpalBeamline_m, reference_m, dt_m, mapSettings_m);
         auto result = builder.build(std::move(referenceSamples_m), transferMapStartPathLength_m);
+        TimedPhase attachmentTime(maps);
         std::map<std::shared_ptr<ElementBase>, std::size_t,
                  std::owner_less<std::shared_ptr<ElementBase>>> passes;
         for (auto& segment : result.segments) {
@@ -278,20 +298,32 @@ void OrbitThreader::execute() {
         combinedLinearTransferMap_m   = result.combined;
         combinedDeterminantResidual_m = result.determinantResidual;
         combinedSymplecticResidual_m  = result.symplecticResidual;
+        attachmentTime.stop();
+        TimedPhase mapOutputTime(output);
         printCombinedLinearTransferMap();
     }
+    TimedPhase outputTime(output);
     *gmsg << level1 << "\n" << imap_m << endl;
     if (isDesignBeam_m) {
         // Geometry SDDS dump is a design-beam output; secondary species only build their map.
         imap_m.saveSDDS(initialPathLength);
     }
     logger_m.close();
+    outputTime.stop();
+    if (ippl::Comm->rank() == 0) {
+        std::ostringstream summary;
+        summary << std::setprecision(6);
+        orbit_threader_diagnostics::print(summary, diagnostics);
+        *gmsg << level1 << summary.str() << endl;
+    }
 }
 
 void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDrift*/) {
+    using namespace orbit_threader_diagnostics;
     Vector_t<double, 3> nextR;
     std::vector<ExternalFieldRayTracker::Step> steps;
     do {
+        count(&Work::nominalSteps);
         errorFlag_m = EVERYTHINGFINE;
 
         steps.clear();
@@ -310,6 +342,7 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
                             const auto localP =
                                     itsOpalBeamline_m.rotateToLocalCS(element, ray.momentum);
                             Vector_t<double, 3> localE(0.0), localB(0.0);
+                            count(&Work::elementFields);
                             if (element->applyToReferenceParticle(
                                         localR, localP, ray.time, localE, localB))
                                 return true;
@@ -318,6 +351,7 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
                         }
                         return false;
                     }));
+            orbit_threader_diagnostics::accepted(dt_m);
         }
         for (const auto& step : steps) {
             const double stepDt            = step.duration;
@@ -339,6 +373,8 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
             if (((pathLength_m > 0.0 && (period_m > 0.0 || pathLength_m < sStop_m)) || dt_m < 0.0)
                 && currentStep_m % loggingFrequency_m == 0 && ippl::Comm->rank() == 0
                 && !OpalData::getInstance()->isOptimizerRun()) {
+                Duration logTime(&Work::logSeconds);
+                count(&Work::logRows);
                 logger_m << std::setw(18) << std::setprecision(8)
                          << step.midpoint.pathLength << std::setw(18)
                          << std::setprecision(8) << r_m(0) << std::setw(18) << std::setprecision(8)
@@ -578,6 +614,7 @@ double OrbitThreader::computeDriftLengthToBoundingBox(
 }
 
 void OrbitThreader::recordReferenceSample() {
+    orbit_threader_diagnostics::count(&orbit_threader_diagnostics::Work::samples);
     LinearTransferMapReference state;
     state = referenceSamples_m.empty()
                     ? LinearTransferMapBuilder::initialFrame(itsOpalBeamline_m, p_m)

@@ -1,0 +1,11 @@
+{
+  "binary_sha256": "f64a125d481f7b86c43422c30cf54a8420ec9e008c73d067c37e3a2d85fc6c6f",
+  "input_sha256": "fd4def89feefe2d0441c828dc0130649a6c30d844e8229ce59bcce13f0808443",
+  "ranks": 1,
+  "omp_threads": 4,
+  "dt_s": 1e-11,
+  "h": 3e-05,
+  "integrator": "RK4",
+  "returncode": 0,
+  "elapsed_s": 2.5418082079850137
+}

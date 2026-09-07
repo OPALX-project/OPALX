@@ -137,7 +137,10 @@ private:
     LinearTransferMapReference refineBoundary(
             const std::shared_ptr<ElementBase>& element, const LinearTransferMapReference& before,
             const LinearTransferMapReference& after, bool entering);
-    /// Track to the exit reference plane, allowing each ray its own arrival time and supports.
+    /// Track to the exit plane with safeguarded secant trials fully integrated from the
+    /// bracket start for RK4/DOP853; Boris retains tracked bisection. Preserve the
+    /// 1e-12*abs(DT) time tolerance (secant also accepts an exact plane hit).
+    /// Each ray retains its own arrival time and supports.
     RayState trackRayToExit(
             const RayState& initial, const LinearTransferMapReference& exit,
             double referenceFlightTime);

@@ -16,6 +16,7 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Elements/OpalBeamline.h"
+#include "Algorithms/OrbitThreaderDiagnostics.h"
 
 #include "Elements/PlacementResolver.h"
 
@@ -59,6 +60,8 @@ OpalBeamline::~OpalBeamline() { elements_m.clear(); }
 
 std::set<std::shared_ptr<ElementBase>> OpalBeamline::getBodyElements(
         const Vector_t<double, 3>& x) const {
+    orbit_threader_diagnostics::count(&orbit_threader_diagnostics::Work::bodyLookups);
+    orbit_threader_diagnostics::count(&orbit_threader_diagnostics::Work::elementTests, elements_m.size());
     std::set<std::shared_ptr<ElementBase>> result;
     for (const auto& element : elements_m) {
         if (element->isInsideBody(transformToLocalCS(element, x))) result.insert(element);
@@ -67,6 +70,8 @@ std::set<std::shared_ptr<ElementBase>> OpalBeamline::getBodyElements(
 }
 
 std::set<std::shared_ptr<ElementBase>> OpalBeamline::getElements(const Vector_t<double, 3>& x) {
+    orbit_threader_diagnostics::count(&orbit_threader_diagnostics::Work::supportLookups);
+    orbit_threader_diagnostics::count(&orbit_threader_diagnostics::Work::elementTests, elements_m.size());
     std::set<std::shared_ptr<ElementBase>> elementSet;
     ElementList::iterator it        = elements_m.begin();
     const ElementList::iterator end = elements_m.end();
