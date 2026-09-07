@@ -197,7 +197,9 @@ TrackRun::TrackRun()
 
     itsAttr[TRACKRUN::TURNS] = Attributes::makeReal(
             "TURNS",
-            "Directed RING returns, or nominal turns in SPECTRALTUNES mode.",
+            "Optional directed-return limit for RING tracking. When omitted, TRACK uses its "
+            "ZSTOP/MAXSTEPS schedule. Explicit values must be positive integers. In "
+            "SPECTRALTUNES mode, TURNS is the nominal analysis interval and defaults to 1.",
             1.0);
     itsAttr[TRACKRUN::SPECTRALTUNES] = Attributes::makeBool("SPECTRALTUNES",
         "Run serial two-ray coasting Lomb tune analysis instead of bunch tracking.", false);
