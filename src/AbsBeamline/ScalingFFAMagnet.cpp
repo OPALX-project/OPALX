@@ -75,6 +75,14 @@ bool ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<doub
     }
 }
 
+bool ScalingFFAMagnet::getFieldValueCylindrical(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const {
+    if (tanh_m) {
+        return ScalingFFAMagnet::getFieldValueCylindrical(config_m, *tanh_m, R, B);
+    } else {
+        throw OpalException("ScalingFFAMagnet::getFieldValueCylindrical", "Trying to apply ScalingFFAMagnet when end model was not set");
+    }
+}
+
 void ScalingFFAMagnet::initialise() { calculateDfCoefficients(); }
 
 void ScalingFFAMagnet::initialise(PartBunch_t* bunch) {
