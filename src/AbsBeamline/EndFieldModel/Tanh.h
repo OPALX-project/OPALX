@@ -31,7 +31,7 @@
 #include <iostream>
 #include <vector>
 
-#include "AbsBeamline/EndFieldModel/EndFieldModel.h"
+#include "AbsBeamline/EndFieldModel/CompactVector.h"
 
 namespace endfieldmodel {
 

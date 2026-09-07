@@ -17,6 +17,7 @@
 //
 #include "Elements/OpalScalingFFAMagnet.h"
 
+#include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
 #include "AbsBeamline/EndFieldModel/Tanh.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
 #include "Attributes/Attributes.h"
@@ -110,25 +111,26 @@ OpalScalingFFAMagnet *OpalScalingFFAMagnet::clone(const std::string& name) {
 void OpalScalingFFAMagnet::setupDefaultEndField() {
     ScalingFFAMagnet* magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
     // get centre length and end length in metres
-    auto endField = std::make_shared<endfieldmodel::Tanh>();
     double end_length = Attributes::getReal(itsAttr[END_LENGTH]);
     double centre_length = Attributes::getReal(itsAttr[CENTRE_LENGTH])/2.;
+    auto endField = std::make_shared<endfieldmodel::Tanh>();
     endField->setLambda(end_length);
     // x0 is the distance between B=0.5*B0 and B=B0 i.e. half the centre length
     endField->setX0(centre_length);
     magnet->setEndField(endField);
     std::string endName = "__opal_internal__" + getOpalName();
     magnet->setEndFieldName(endName);
+    endfieldmodel::EndFieldModelManager::getEFMManager()->setEndFieldModel(endName, endField);
+
 }
 
 void OpalScalingFFAMagnet::setupNamedEndField() {
     if (!itsAttr[END_FIELD_MODEL]) {
         return;
     }
-    throw OpalException("OpalScalingFFAMagnet::setupNamedEndField", "Named end field is not implemented in OPALX");
     std::string name = Attributes::getString(itsAttr[END_FIELD_MODEL]);
-    //ScalingFFAMagnet* magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
-    //magnet->setEndFieldName(name);
+    ScalingFFAMagnet* magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
+    magnet->setEndFieldName(name);
 }
 
 void OpalScalingFFAMagnet::update() {

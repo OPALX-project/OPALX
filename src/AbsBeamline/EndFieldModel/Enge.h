@@ -31,7 +31,7 @@
 #include <iostream>
 #include <vector>
 
-#include "AbsBeamline/EndFieldModel/EndFieldModel.h"
+#include "AbsBeamline/EndFieldModel/CompactVector.h"
 
 namespace endfieldmodel {
 
@@ -44,23 +44,23 @@ namespace endfieldmodel {
      *  where h is a polynomial in x/lambda with polynomial coefficients a
      */
 
-    class Enge : public EndFieldModel {
+    class Enge {
     public:
         /** Default constructor */
-        Enge() : _a(), _lambda(0.) { setEngeDiffIndices(10); }
+        Enge() : _lambda(0.), _x0(0) { setEngeDiffIndices(10); }
         /** Builds Enge function with parameters a_0, a_1, ..., lambda and x0.
          *
          *  Note that this class is in the inner loop of tracking, so many function
          *  calls are _not_ checked for correct indexing. Call setMaximumDerivative
          *  before use.
          */
-        Enge(const std::vector<double> a, double x0, double lambda);
+        Enge(std::vector<double> a, double x0, double lambda);
 
         /** Destructor - no mallocs, so does nothing */
-        ~Enge() {}
+        ~Enge() = default;
 
         /** Inheritable copy constructor - no mallocs, so does nothing */
-        Enge* clone() const;
+        [[nodiscard]] Enge* clone() const;
 
         /** Rescale so Enge(x) -> Enge(scaleFactor*x)
          *
@@ -69,31 +69,31 @@ namespace endfieldmodel {
         void rescale(double scaleFactor);
 
         /** Return the value of enge(x+x0) + enge(-x-x0) at some point x */
-        inline double function(double x, int n) const;
+        [[nodiscard]] inline double function(double x, int n) const;
 
         /** Nominal end length is lambda */
-        inline double getEndLength() const;
+        [[nodiscard]] inline double getEndLength() const;
 
         /** Nominal centre length is x0/2 */
-        inline double getCentreLength() const;
+        [[nodiscard]] inline double getCentreLength() const;
 
         /** Print human-readable version of enge */
         std::ostream& print(std::ostream& out) const;
 
         /** Returns the enge polynomial coefficients (a_i) */
-        std::vector<double> getCoefficients() const { return _a; }
+        [[nodiscard]] std::vector<double> getCoefficients() const { return _a; }
 
         /** Sets the enge polynomial coefficients (a_i) */
         void setCoefficients(std::vector<double> a) { _a = a; }
 
         /** Returns the value of lambda */
-        inline double getLambda() const { return _lambda; }
+        [[nodiscard]] double getLambda() const { return _lambda; }
 
         /** Sets the value of lambda */
         inline void setLambda(double lambda) { _lambda = lambda; }
 
         /** Returns the value of x0 */
-        inline double getX0() const { return _x0; }
+        [[nodiscard]] double getX0() const { return _x0; }
 
         /** Sets the value of x0 */
         inline void setX0(double x0) { _x0 = x0; }
@@ -105,24 +105,24 @@ namespace endfieldmodel {
          *
          *  Please call setEngeDiffIndices(n) before calling if n > max_index
          */
-        double getEnge(double x, int n) const;
+        [[nodiscard]] double getEnge(double x, int n) const;
 
         /** Returns \f$Enge(x-x0) + Enge(-x-x0)-1\f$ and its derivatives */
-        inline double getDoubleEnge(double x, int n) const;
+        [[nodiscard]] inline double getDoubleEnge(double x, int n) const;
 
         /** Returns \f$h(x)\f$ or its \f$n^{th}\f$ derivative.
          *
          *  Here \f$h(x) = a_0 + a_1 x/\lambda + a_2 x^2/lambda^2 + \ldots \f$
          *  Please call setEngeDiffIndices(n) before calling if n > max_index
          */
-        double hN(double x, int n) const;
+        [[nodiscard]] double hN(double x, int n) const;
 
         /** Returns \f$g(x)\f$ or its \f$n^{th}\f$ derivative.
          *
          *  Here \f$g(x) = 1+exp(h(x))\f$.
          *  Please call setEngeDiffIndices(n) before calling if n > max_index
          */
-        double gN(double x, int n) const;
+        [[nodiscard]] double gN(double x, int n) const;
 
         /** Recursively calculate the indices for Enge and H
          *
