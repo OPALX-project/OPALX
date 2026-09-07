@@ -1,0 +1,17 @@
+{
+  "binary_sha256": "f64a125d481f7b86c43422c30cf54a8420ec9e008c73d067c37e3a2d85fc6c6f",
+  "input_sha256": "a54b1c07f1331674162ad2c53365c38acde0b39510554c46f5e8b17c7ad56e2c",
+  "particle_sha256": "3b9ba09d571e66556870104bf93038bd32550605a30e4212ca6587e8b46dc0b1",
+  "command": [
+    "/Users/adelmann/git/opalx/omp-build/src/opalx",
+    "--info",
+    "2",
+    "map.in"
+  ],
+  "ranks": 1,
+  "omp_threads": 4,
+  "p0_mc": 490.23677663749817,
+  "integrator": "RK4",
+  "returncode": 0,
+  "elapsed_s": 4.5275883339345455
+}

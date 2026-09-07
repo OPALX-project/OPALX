@@ -4,6 +4,9 @@
 
 #include <functional>
 #include <limits>
+#include <memory>
+#include <optional>
+#include <set>
 #include <string>
 #include <vector>
 #include "OPALTypes.h"
@@ -11,6 +14,7 @@
 
 class OpalBeamline;
 class PartData;
+class ElementBase;
 
 /**
  * @brief Host-side external-field integration shared by reference and transfer-map rays.
@@ -132,6 +136,7 @@ public:
     State advanceToPathLength(const State& initial, double dt, double target) const;
 
 private:
+    using ElementSet = std::set<std::shared_ptr<ElementBase>>;
     OpalBeamline& beamline_m;
     const PartData& reference_m;
     BorisPusher integrator_m;
@@ -139,8 +144,16 @@ private:
     double maximumStep_m{std::numeric_limits<double>::max()};
     Step borisStep(const State& initial, double dt, const FieldEvaluator& fields) const;
     Step rungeKuttaStep(const State& initial, double dt, const FieldEvaluator& fields) const;
+    /** Reuse only membership evaluated at the identical recursive start or an
+     * accepted endpoint. Containment must remain a fixed function of position
+     * during advance(). No field values, rejected endpoints, or states from a
+     * previous advance call are cached. Borrowed sets outlive the child call.
+     * An absent endpoint set means the original short-circuit test did not query
+     * that position; do not introduce a query merely to populate the cache.
+     */
     State advanceRecursive(
             const State& initial, double dt, double tolerance, std::vector<Step>* accepted,
-            unsigned depth) const;
+            unsigned depth, const ElementSet* initialElements = nullptr,
+            std::optional<ElementSet>* finalElements = nullptr) const;
 };
 #endif

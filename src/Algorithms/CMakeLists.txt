@@ -42,6 +42,7 @@ set (HDRS
     SpectralTunes.h
     LinearTransferMap.h
     OrbitThreader.h
+    OrbitThreaderDiagnostics.h
     ParallelTracker.h
     PartData.h
     PolynomialTimeDependence.h

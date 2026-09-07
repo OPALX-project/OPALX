@@ -1,0 +1,27 @@
+COF ring=LATTICE beam=BEAM1
+Nominal closure position_m=3.5042444728376209e-15 angle_rad=1.3877787807814461e-15
+Integrator=BORIS DT_s=2.0000000000000005e-11 p0_mc=490.23677663749817 MAXSTEPS=20000 MAXPATH_m=35 T0_s=0
+XTOL_m=1e-10 PTOL_mc=1e-10 MAXIT=20 DAMPING=1
+Status=0 Closed orbit verified by a fresh map evaluation. evaluations=10
+FDSTEP=3.0000000000000004e-05 0.014707103299124941 3.0000000000000004e-05 0.014707103299124941
+SCALES=1 490.23677597553331 1 490.23677597553331
+Coordinates (x,px,y,py): 0 0 0 0
+Residual: -1.6101906520438171e-13 -1.0684144175955684e-11 0 0
+Matrix:
+0.12609816537229904 -0.015658198708081023 0 0
+62.848810494358531 0.12609917236268908 0 0
+0 0 -0.37071987435134035 -0.0033325458266231793
+0 0 258.83121180259946 -0.37071960560737827
+Return time_s=8.5947571056846037e-08 path_m=25.766379980535365 relative_energy_drift=3.2532558590538863e-15
+One-turn eigenanalysis: UNSTABLE (growing eigenvalue)
+Maximum relative eigenpair residual: 2.853274488738294e-17
+Scaled packed-basis reciprocal condition: 0.1292324993559688
+Near-integer warning: no
+lambda[0] = (0.1260986688674941,0.9920177232725939), modulus = 1.000000018788547
+lambda[1] = (0.1260986688674941,-0.9920177232725939), modulus = 1.000000018788547
+lambda[2] = (-0.3707197399793593,0.928744784476637), modulus = 1.000000000151459
+lambda[3] = (-0.3707197399793593,-0.928744784476637), modulus = 1.000000000151459
+Mode 1: off unit circle; no stable tune reported
+Mode 2: fractional phase 0.3104444787535393, conjugate branch 0.6895555212464608
+Modes may be coupled; no x/y assignment. Integer tune and oriented branch are undetermined.
+Stability is a numerical matrix diagnostic; validate DT and FDSTEP convergence.

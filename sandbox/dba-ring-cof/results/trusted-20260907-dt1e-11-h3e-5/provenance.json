@@ -1,0 +1,10 @@
+{
+  "binary_sha256": "f64a125d481f7b86c43422c30cf54a8420ec9e008c73d067c37e3a2d85fc6c6f",
+  "input_sha256": "82e33fffc8c9dbe463076cbef474697130ad644027702776eb6cd4ff2bc944d7",
+  "ranks": 1,
+  "omp_threads": 4,
+  "dt_s": 1e-11,
+  "h": 3e-05,
+  "returncode": 0,
+  "elapsed_s": 5.398620167048648
+}

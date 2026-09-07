@@ -1,0 +1,22 @@
+{
+  "one_family_stable_samples": 822,
+  "two_family_stable_samples": null,
+  "selected": {
+    "k1_m2": 2.84,
+    "k2_m2": null,
+    "half_trace_x": 0.6920618659809304,
+    "half_trace_y": -0.1971814112264615,
+    "stable": true,
+    "qx_principal": 0.2298924308671466,
+    "qy_principal": 0.31046360297978914,
+    "score": 2.2649884121220714e-07
+  },
+  "circumference_m": 25.766370614359175,
+  "momentum_GeV_c": 0.2505104781131461,
+  "normalized_momentum": 490.23677597553325,
+  "periodic_dispersion_m": 9.337460094228828,
+  "periodic_dispersion_slope": 2.2204460492503106e-16,
+  "ring_R16_m": 8.160905086420417,
+  "ring_R26": -1.1970601706222395,
+  "scope": "Analytic hard-edge linear optics only; COF not yet validated"
+}

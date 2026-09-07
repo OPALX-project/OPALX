@@ -1,0 +1,17 @@
+{
+  "max_matrix_error": 1.0974736674995711e-08,
+  "coordinates": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "residual": [
+    5.985417403195123e-14,
+    -4.818639143477819e-12,
+    0,
+    0
+  ],
+  "stability": "STABLE",
+  "relative_energy_drift": 2.4399418942904145e-15
+}

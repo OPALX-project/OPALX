@@ -3,6 +3,8 @@
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/OrbitThreader.h"
+#include "Algorithms/MapExitRoot.h"
+#include "Algorithms/OrbitThreaderDiagnostics.h"
 #include "Algorithms/PartData.h"
 #include "Algorithms/ClosedOrbitSolver.h"
 #include "Algorithms/LinearMapEigenAnalysis.h"
@@ -23,6 +25,7 @@
 #include "Utility/Inform.h"
 
 #include <filesystem>
+#include <bit>
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
@@ -32,6 +35,77 @@
 extern Inform* gmsg;
 
 namespace {
+    // Freeze the pre-cache traversal as a regression oracle. Public step() still
+    // supplies the numerical method; this independently recomputes every support
+    // set and checks that reuse changes neither the trial tree nor any ray bits.
+    ExternalFieldRayTracker::State advanceWithoutMembershipReuse(
+            ExternalFieldRayTracker& tracker, OpalBeamline& beamline,
+            const ExternalFieldRayTracker::State& initial, double dt,
+            std::vector<ExternalFieldRayTracker::Step>& accepted) {
+        using Ray = ExternalFieldRayTracker::State;
+        double cap = std::numeric_limits<double>::max();
+        for (const auto& element : beamline.getElements()) {
+            if (element->getType() == ElementType::MARKER || element->getType() == ElementType::MONITOR)
+                continue;
+            double begin = 0.0, end = 0.0;
+            element->getFieldExtent(begin, end);
+            if (std::abs(end - begin) > 0.0) cap = std::min(cap, std::abs(end - begin) / (4 * Physics::c));
+            const double length = element->getGeometry().getArcLength();
+            if (length > 0.0) cap = std::min(cap, length / (4 * Physics::c));
+        }
+        const double tolerance = 1.0e-12 * std::abs(dt);
+        std::function<Ray(const Ray&, double, unsigned)> advance;
+        advance = [&](const Ray& start, double h, unsigned depth) -> Ray {
+            const double floor = 64.0 * std::numeric_limits<double>::epsilon()
+                                 * std::max(1.0, euclidean_norm(start.position)) / Physics::c;
+            const bool resolved = std::abs(h) <= std::max(tolerance, floor);
+            const auto split = [&]() {
+                if (depth >= 64) throw std::runtime_error("Uncached oracle did not converge");
+                const Ray middle = advance(start, 0.5 * h, depth + 1);
+                return advance(middle, 0.5 * h, depth + 1);
+            };
+            if (!resolved && std::abs(h) > cap) return split();
+            const auto initialSet = beamline.getElements(start.position);
+            bool crossed = false;
+            const auto trial = tracker.step(start, h, [&](const Ray& ray, auto& electric, auto& magnetic) {
+                const auto stageSet = beamline.getElements(ray.position);
+                crossed = crossed || stageSet != initialSet;
+                for (const auto& element : stageSet) {
+                    if (element->getType() == ElementType::MARKER || element->getType() == ElementType::MONITOR)
+                        continue;
+                    const auto localR = beamline.transformToLocalCS(element, ray.position);
+                    const auto localP = beamline.rotateToLocalCS(element, ray.momentum);
+                    Vector_t<double, 3> localE(0.0), localB(0.0);
+                    if (element->applyToReferenceParticle(localR, localP, ray.time, localE, localB)) return true;
+                    electric += beamline.rotateFromLocalCS(element, localE);
+                    magnetic += beamline.rotateFromLocalCS(element, localB);
+                }
+                return false;
+            });
+            if (!resolved && (crossed || initialSet != beamline.getElements(trial.end.position))) return split();
+            if (trial.hitMaterial) throw std::runtime_error("Uncached oracle hit material");
+            accepted.push_back(trial);
+            return trial.end;
+        };
+        return advance(initial, dt, 0);
+    }
+
+    void expectSameRayBits(const ExternalFieldRayTracker::State& a,
+                           const ExternalFieldRayTracker::State& b) {
+        const auto same = [](double x, double y) {
+            EXPECT_EQ(std::bit_cast<std::uint64_t>(x), std::bit_cast<std::uint64_t>(y));
+        };
+        for (unsigned d = 0; d < 3; ++d) {
+            same(a.position(d), b.position(d));
+            same(a.positionCorrection(d), b.positionCorrection(d));
+            same(a.momentum(d), b.momentum(d));
+        }
+        same(a.time, b.time);
+        same(a.timeCorrection, b.timeCorrection);
+        same(a.pathLength, b.pathLength);
+        same(a.pathLengthCorrection, b.pathLengthCorrection);
+    }
+
     // Vary only the numerical cutoff of the native field, never its body, gap or FINT.
     class CutoffSBend final : public SBendRep {
     public:
@@ -275,6 +349,29 @@ TEST_F(OrbitThreaderTest, MapBuilderDoesNotAttachOrMutateSamples) {
     const std::vector<LinearTransferMapBuilder::ReferenceSample> samples{{entrance}, {exit}};
     LinearTransferMapBuilder builder(beamline, reference, 1.0e-11);
     const auto result = builder.build(samples, 0.0);
+    // Diagnostics must preserve the map exactly and attribute all twelve rays to maps,
+    // keeping nominal-body localization work in its separate phase.
+    orbit_threader_diagnostics::Report diagnostics;
+    {
+        orbit_threader_diagnostics::Session session(diagnostics);
+        const auto measured = builder.build(samples, 0.0);
+        ASSERT_TRUE(measured.combined);
+        ASSERT_TRUE(result.combined);
+        for (unsigned i = 0; i < 6; ++i)
+            for (unsigned j = 0; j < 6; ++j)
+                EXPECT_EQ((*measured.combined)(i, j), (*result.combined)(i, j));
+    }
+    const auto& mapWork = diagnostics.work[orbit_threader_diagnostics::maps];
+    EXPECT_EQ(mapWork.segments, 1);
+    EXPECT_EQ(mapWork.rays, 12);
+    EXPECT_GT(mapWork.nominalSteps, 0);
+    EXPECT_GT(mapWork.advances, mapWork.nominalSteps); // exit-plane localization
+    EXPECT_EQ(mapWork.exitIterations, mapWork.advances - mapWork.nominalSteps);
+    EXPECT_EQ(mapWork.exitIterations, 40 * mapWork.rays);
+    EXPECT_EQ(diagnostics.work[orbit_threader_diagnostics::segmentation].rays, 0);
+    EXPECT_GT(diagnostics.work[orbit_threader_diagnostics::segmentation].bodyLookups, 0);
+    EXPECT_EQ(orbit_threader_diagnostics::activeReport, nullptr);
+    EXPECT_EQ(orbit_threader_diagnostics::activeWork, nullptr);
     ASSERT_EQ(result.segments.size(), 1);
     EXPECT_EQ(result.segments.front().map.richardsonLevels, 0);
     EXPECT_EQ(result.segments.front().map.finiteDifferenceSteps[5], 1.e-3);
@@ -285,6 +382,33 @@ TEST_F(OrbitThreaderTest, MapBuilderDoesNotAttachOrMutateSamples) {
     EXPECT_NEAR((*result.combined)(4, 5), 0.05, 1.0e-7);
     EXPECT_EQ(samples.front().state.pathLength, 0.0);
     EXPECT_EQ(samples.back().state.pathLength, 0.1);
+}
+
+TEST_F(OrbitThreaderTest, HigherOrderMapsUseAcceleratedExitSearch) {
+    OpalBeamline beamline;
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    auto entrance = LinearTransferMapBuilder::initialFrame(
+            beamline, Vector_t<double, 3>(0.0, 0.0, 1.0));
+    entrance.momentum = Vector_t<double, 3>(0.0, 0.0, 1.0);
+    auto exit = entrance;
+    exit.position(2) = exit.pathLength = 0.1;
+    exit.time = 0.1 * std::sqrt(2.0) / Physics::c;
+    for (auto method : {ExternalFieldRayTracker::IntegrationMethod::RK4,
+                        ExternalFieldRayTracker::IntegrationMethod::DOP853}) {
+        LinearTransferMapBuilder::Settings settings;
+        settings.integrationMethod = method;
+        LinearTransferMapBuilder builder(beamline, reference, 1e-11, settings);
+        orbit_threader_diagnostics::Report diagnostics;
+        orbit_threader_diagnostics::Session session(diagnostics);
+        const auto result = builder.build({{entrance}, {exit}}, 0.0);
+        ASSERT_TRUE(result.combined);
+        EXPECT_NEAR((*result.combined)(0, 1), 0.1, 1e-9);
+        EXPECT_NEAR((*result.combined)(4, 5), 0.05, 1e-7);
+        const auto& work = diagnostics.work[orbit_threader_diagnostics::maps];
+        EXPECT_EQ(work.rays, 12);
+        EXPECT_LT(work.exitIterations, 10 * work.rays);
+        EXPECT_EQ(work.exitIterations, work.advances - work.nominalSteps);
+    }
 }
 
 TEST_F(OrbitThreaderTest, RichardsonHasExpectedDifferentiationOrder) {
@@ -788,6 +912,36 @@ TEST_F(OrbitThreaderTest, RayTrackerResolvesThinSupportForEachMomentumAndReverse
         initial.momentum(2) = momentum;
         std::vector<ExternalFieldRayTracker::Step> steps;
         const auto final = tracker.advance(initial, 2.0e-11, &steps);
+        orbit_threader_diagnostics::Report diagnostics;
+        {
+            using namespace orbit_threader_diagnostics;
+            Session session(diagnostics);
+            TimedPhase phase(orbit_threader_diagnostics::reference);
+            std::vector<ExternalFieldRayTracker::Step> measuredSteps;
+            const auto measured = tracker.advance(initial, 2.0e-11, &measuredSteps);
+            EXPECT_EQ(measuredSteps.size(), steps.size());
+            EXPECT_EQ(diagnostics.work[orbit_threader_diagnostics::reference].acceptedSteps,
+                      measuredSteps.size());
+            for (unsigned i = 0; i < 3; ++i) {
+                EXPECT_EQ(measured.position(i), final.position(i));
+                EXPECT_EQ(measured.momentum(i), final.momentum(i));
+                EXPECT_EQ(measured.positionCorrection(i), final.positionCorrection(i));
+            }
+            EXPECT_EQ(measured.time, final.time);
+            EXPECT_EQ(measured.pathLength, final.pathLength);
+            EXPECT_EQ(measured.timeCorrection, final.timeCorrection);
+            EXPECT_EQ(measured.pathLengthCorrection, final.pathLengthCorrection);
+        }
+        const auto& work = diagnostics.work[orbit_threader_diagnostics::reference];
+        EXPECT_EQ(work.advances, 1);
+        EXPECT_GT(work.capSplits, 0);
+        EXPECT_GT(work.supportSplits, 0);
+        EXPECT_GT(work.maxDepth, 0);
+        EXPECT_GT(work.elementFields, 0);
+        EXPECT_EQ(work.elementTests, work.supportLookups); // one lattice element
+        EXPECT_EQ(work.trials, work.acceptedSteps + work.supportSplits);
+        const unsigned evaluationsPerTrial = method == "BORIS" ? 1 : method == "RK4" ? 9 : 25;
+        EXPECT_EQ(work.fieldSamples, evaluationsPerTrial * work.trials);
         ASSERT_GT(final.position(2), 0.0034);
         ASSERT_GT(steps.size(), 1);
         // Exact work-energy identity: gamma_out - gamma_in = q E L / (m c^2).
@@ -803,6 +957,68 @@ TEST_F(OrbitThreaderTest, RayTrackerResolvesThinSupportForEachMomentumAndReverse
         EXPECT_LT(euclidean_norm(displacement), 1.0e-10);
         EXPECT_LT(euclidean_norm(momentumChange), 1.0e-9);
     }
+    }
+}
+
+TEST_F(OrbitThreaderTest, MembershipReusePreservesUncachedSubstepsExactly) {
+    using namespace orbit_threader_diagnostics;
+    auto bunch = makeBunch(0);
+    DummyBeamline line;
+    DefaultVisitor visitor(line, false, false);
+    OpalBeamline beamline;
+    FieldSupportOnlyComponent electric("E", 0.003, 0.0034, 1.0e8);
+    FieldSupportOnlyComponent magnetic("B", 0.0032, 0.004, 0.0, 0.02);
+    for (auto* field : {&electric, &magnetic}) {
+        field->setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector_t<double, 3>(0.0), Quaternion()));
+        field->fixPosition();
+        beamline.visit(*field, visitor, *bunch);
+    }
+    beamline.prepareSections();
+    PartData particle(1.0, 9.382720813e8, 1.0e6);
+    for (const std::string method : {"BORIS", "RK4", "DOP853"}) {
+        SCOPED_TRACE(method);
+        ExternalFieldRayTracker tracker(beamline, particle, ExternalFieldRayTracker::parseIntegrationMethod(method));
+        for (const auto [z, dt] : {std::pair{0.0, 4.e-11}, {0.006, -4.e-11}, {0.003, 4.e-12}}) {
+            SCOPED_TRACE(z);
+            for (const double momentum : {0.9, 1.1}) {
+                ExternalFieldRayTracker::State initial, expected, actual;
+                initial.position(2) = z;
+                initial.momentum(2) = momentum;
+                // Nonzero compensated low parts are passed through all recursive states.
+                initial.positionCorrection(2) = 1.e-20;
+                initial.timeCorrection = 1.e-26;
+                std::vector<ExternalFieldRayTracker::Step> oldSteps, newSteps;
+                Report uncached, cached;
+                {
+                    Session session(uncached);
+                    TimedPhase phase(reference);
+                    expected = advanceWithoutMembershipReuse(tracker, beamline, initial, dt, oldSteps);
+                }
+                {
+                    Session session(cached);
+                    TimedPhase phase(reference);
+                    actual = tracker.advance(initial, dt, &newSteps);
+                }
+                expectSameRayBits(expected, actual);
+                ASSERT_EQ(oldSteps.size(), newSteps.size());
+                for (std::size_t i = 0; i < oldSteps.size(); ++i) {
+                    expectSameRayBits(oldSteps[i].midpoint, newSteps[i].midpoint);
+                    expectSameRayBits(oldSteps[i].end, newSteps[i].end);
+                    EXPECT_EQ(oldSteps[i].duration, newSteps[i].duration);
+                    EXPECT_EQ(oldSteps[i].hitMaterial, newSteps[i].hitMaterial);
+                    for (unsigned d = 0; d < 3; ++d) {
+                        EXPECT_EQ(oldSteps[i].electric(d), newSteps[i].electric(d));
+                        EXPECT_EQ(oldSteps[i].magnetic(d), newSteps[i].magnetic(d));
+                    }
+                }
+                const auto& oldWork = uncached.work[reference];
+                const auto& newWork = cached.work[reference];
+                EXPECT_EQ(oldWork.trials, newWork.trials);
+                EXPECT_EQ(oldWork.fieldSamples, newWork.fieldSamples);
+                EXPECT_GT(newWork.membershipReuses, 0);
+                EXPECT_EQ(oldWork.supportLookups - newWork.supportLookups, newWork.membershipReuses);
+            }
+        }
     }
 }
 
@@ -1286,4 +1502,53 @@ TEST_F(OrbitThreaderTest, CalculatesAndAttachesLinearDriftMap) {
     EXPECT_LT(*threader.getCombinedDeterminantResidual(), 1.0e-8);
     ASSERT_TRUE(threader.getCombinedSymplecticResidual().has_value());
     EXPECT_LT(*threader.getCombinedSymplecticResidual(), 1.0e-8);
+}
+
+TEST(MapExitRoot, LinearAndReversedBrackets) {
+    for (double direction : {-1.0, 1.0}) {
+        unsigned calls = 0;
+        auto f = [&](double t) { ++calls; return direction * (t - 0.375); };
+        EXPECT_NEAR(map_exit_detail::locate(0., 1., -0.375 * direction,
+                                          0.625 * direction, 1e-12, f), 0.375, 1e-12);
+        EXPECT_LE(calls, 4u);
+        EXPECT_NEAR(map_exit_detail::locate(1., 0., 0.625 * direction,
+                                          -0.375 * direction, 1e-12, f), 0.375, 1e-12);
+    }
+}
+
+TEST(MapExitRoot, SkewedAndDiscontinuousResidualsConverge) {
+    for (bool discontinuous : {false, true}) {
+        unsigned calls = 0;
+        auto f = [&](double t) {
+            ++calls;
+            return discontinuous ? (t < 0.317 ? -1.0 : 100.0) : std::pow(t, 10) - 0.01;
+        };
+        const double fa = f(0.), fb = f(1.);
+        const double root = map_exit_detail::locate(0., 1., fa, fb, 1e-12, f);
+        EXPECT_NEAR(root, discontinuous ? 0.317 : std::pow(0.01, 0.1), 1e-12);
+        EXPECT_LE(calls, 98u);
+    }
+}
+
+TEST(MapExitRoot, SmallNegativeTimesAndNearEndpointRoots) {
+    for (double root : {-1e-26, -3.17e-12, -1e-11 + 1e-26}) {
+        auto f = [=](double time) { return time - root; };
+        const double arrival = map_exit_detail::locate(
+                0., -1e-11, f(0.), f(-1e-11), 1e-23, f);
+        EXPECT_NEAR(arrival, root, 1e-23);
+    }
+}
+
+TEST(MapExitRoot, EndpointsAndInvalidResiduals) {
+    unsigned calls = 0;
+    auto f = [&](double) { ++calls; return std::numeric_limits<double>::quiet_NaN(); };
+    EXPECT_DOUBLE_EQ(map_exit_detail::locate(0., 1., 0., 1., 1e-12, f), 0.);
+    EXPECT_DOUBLE_EQ(map_exit_detail::locate(0., 1., -1., 0., 1e-12, f), 1.);
+    EXPECT_EQ(calls, 0u);
+    const double adjacent = std::nextafter(1., 2.);
+    EXPECT_DOUBLE_EQ(map_exit_detail::locate(1., adjacent, -1., 2., 1e-30, f), 1.);
+    EXPECT_EQ(calls, 0u);
+    EXPECT_THROW(map_exit_detail::locate(0., 1., -1., 1., 1e-12, f), OpalException);
+    EXPECT_THROW(map_exit_detail::locate(0., 1., 1., 2., 1e-12, f), OpalException);
+    EXPECT_THROW(map_exit_detail::locate(0., 1., -1., 1., 0., f), OpalException);
 }

@@ -1,4 +1,6 @@
 #include "Algorithms/LinearTransferMapBuilder.h"
+#include "Algorithms/MapExitRoot.h"
+#include "Algorithms/OrbitThreaderDiagnostics.h"
 #include "Algorithms/CompensatedSum.h"
 #include <algorithm>
 #include <cmath>
@@ -307,6 +309,10 @@ LinearTransferMapBuilder::RayState LinearTransferMapBuilder::rayFromCoordinates(
 LinearTransferMapBuilder::RayState LinearTransferMapBuilder::trackRayToExit(
         const RayState& initial, const LinearTransferMapReference& exit,
         const double referenceFlightTime) {
+    using namespace orbit_threader_diagnostics;
+    count(&Work::rays);
+    Duration rayTime(&Work::raySeconds);
+    Duration transportTime(&Work::rayTransportSeconds);
     RayState previous                        = initial;
     Vector_t<double, 3> previousDisplacement = displacement(previous, exit);
     double previousDistance                  = dot(previousDisplacement, exit.sAxis);
@@ -319,6 +325,7 @@ LinearTransferMapBuilder::RayState LinearTransferMapBuilder::trackRayToExit(
             static_cast<std::size_t>(std::ceil(std::abs(referenceFlightTime / dt_m)));
     const std::size_t maximumSteps = std::max<std::size_t>(100, 4 * referenceSteps + 100);
     for (std::size_t step = 0; step < maximumSteps; ++step) {
+        count(&Work::nominalSteps);
         RayState next                              = tracker_m.advance(previous, dt_m);
         const Vector_t<double, 3> nextDisplacement = displacement(next, exit);
         const double nextDistance                  = dot(nextDisplacement, exit.sAxis);
@@ -328,21 +335,36 @@ LinearTransferMapBuilder::RayState LinearTransferMapBuilder::trackRayToExit(
         // crossing (or the opposite-side crossing) as the ray's return. This is a local
         // linear-map search about the supplied reference flight, not an arbitrary orbit search.
         if (elapsed >= 0.5 * std::abs(referenceFlightTime) && crossed(previousDistance, nextDistance)) {
-            double lower   = 0.0;
-            double upper   = dt_m;
+            transportTime.stop();
+            Duration exitTime(&Work::rayExitSeconds);
             RayState trial = next;
-            for (int iteration = 0; iteration < 60; ++iteration) {
-                const double middle                    = 0.5 * (lower + upper);
-                trial                                  = tracker_m.advance(previous, middle);
-                const Vector_t<double, 3> offset = displacement(trial, exit);
-                const double distance                  = dot(offset, exit.sAxis);
-                if (crossed(previousDistance, distance)) {
-                    upper = middle;
-                } else {
-                    lower = middle;
+            double trialTime = dt_m;
+            const auto evaluate = [&](const double time) {
+                count(&Work::exitIterations);
+                trial = tracker_m.advance(previous, time);
+                trialTime = time;
+                return dot(displacement(trial, exit), exit.sAxis);
+            };
+            // Boris remains sensitive to changed trial durations on the stable DBA.
+            // Preserve its original bisection sequence until that difference is resolved.
+            if (settings_m.integrationMethod == ExternalFieldRayTracker::IntegrationMethod::BORIS) {
+                double lower = 0.0;
+                double upper = dt_m;
+                for (unsigned iteration = 0; iteration < 60; ++iteration) {
+                    const double middle = 0.5 * (lower + upper);
+                    const double distance = evaluate(middle);
+                    if (crossed(previousDistance, distance)) upper = middle;
+                    else lower = middle;
+                    if (std::abs(upper - lower) <= boundaryTolerance * std::abs(dt_m)) break;
                 }
-                if (std::abs(upper - lower) <= boundaryTolerance * std::abs(dt_m)) break;
+                return trial;
             }
+            const double arrival = map_exit_detail::locate(
+                    0.0, dt_m, previousDistance, nextDistance,
+                    boundaryTolerance * std::abs(dt_m), evaluate);
+            if (arrival == 0.0) return previous;
+            if (arrival == dt_m) return next;
+            if (arrival != trialTime) evaluate(arrival);
             return trial;
         }
         previous         = next;
@@ -442,6 +464,8 @@ LinearTransferMap LinearTransferMapBuilder::makeLinearTransferMap(
 
 LinearTransferMapBuilder::Result LinearTransferMapBuilder::build(
         std::vector<ReferenceSample> referenceSamples_m, double transferMapStartPathLength_m) {
+    using namespace orbit_threader_diagnostics;
+    TimedPhase segmentationTime(segmentation);
     Result result;
     if (referenceSamples_m.size() < 2) return result;
 
@@ -562,6 +586,9 @@ LinearTransferMapBuilder::Result LinearTransferMapBuilder::build(
     }
 
     result.segments.reserve(segments.size());
+    segmentationTime.stop();
+    TimedPhase mapTime(maps);
+    count(&Work::segments, segments.size());
     std::size_t sampleIndex = 1;
     for (std::size_t segment = 0; segment < segments.size(); ++segment) {
         const auto& interval = segments[segment];
