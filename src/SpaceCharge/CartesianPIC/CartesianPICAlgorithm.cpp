@@ -6,6 +6,7 @@
 #include "SpaceCharge/CartesianPIC/CartesianPICAlgorithm.h"
 
 #include "PartBunch/BunchStateHandler.h"
+#include "SpaceCharge/Poisson/PoissonSolverFactory.h"
 #include "Structure/DataSink.h"
 #include "Utilities/OpalException.h"
 
@@ -67,7 +68,7 @@ namespace opalx::spacecharge {
         }
 
         fieldStorage_m->initializeFields(config_m.backend);
-        poissonSolver_m = std::make_unique<PoissonSolver>(
+        poissonSolver_m = makePoissonSolver(
                 makePoissonSolverConfig(config_m), makePoissonFieldBinding(*fieldStorage_m));
         if (config_m.backend == PoissonSolverType::P3M) {
             shortRangeInteraction_m.emplace(config.p3mCutoff);
@@ -247,6 +248,10 @@ namespace opalx::spacecharge {
                     particleMeshTransfer_m, primary_m->E, primary_m->B, primary_m->R,
                     *fieldStorage_m);
         }
+        // Add particle fields after the final gather so replacement gathering cannot erase them.
+        if (shortRangeInteraction_m.has_value()) {
+            shortRangeInteraction_m->apply(*primary_m);
+        }
     }
 
     void CartesianPICAlgorithm::solveBinned(
@@ -374,9 +379,6 @@ namespace opalx::spacecharge {
         if (unit == nullptr && plan.passCount == 1) {
             relativisticFieldComposer_m.gatherElectrostatic(
                     particleMeshTransfer_m, primary_m->E, primary_m->R, *fieldStorage_m);
-            if (shortRangeInteraction_m.has_value()) {
-                shortRangeInteraction_m->apply(*primary_m);
-            }
         } else {
             RelativisticFieldComposerType::Policy compositionPolicy;
             if (unit != nullptr) {

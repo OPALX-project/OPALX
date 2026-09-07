@@ -9,7 +9,6 @@ set (_SRCS
 
 set (_PRIVATE_HDRS
     ParticleBinTraversal.h
-    P3MShortRangeInteraction.h
     CartesianPICAlgorithm.h
     CartesianDomainUpdater.h
     RelativisticFieldComposer.h

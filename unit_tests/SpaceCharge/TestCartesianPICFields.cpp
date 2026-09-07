@@ -4,9 +4,9 @@
 #include "PartBunch/CartesianDomain.h"
 #include "PartBunch/ParticleContainer.hpp"
 #include "SpaceCharge/CartesianPIC/CartesianPICFieldStorage.h"
-#include "SpaceCharge/CartesianPIC/P3MShortRangeInteraction.h"
 #include "SpaceCharge/CartesianPIC/ParticleMeshFieldTransfer.h"
 #include "SpaceCharge/CartesianPIC/RelativisticFieldComposer.h"
+#include "SpaceCharge/Poisson/P3MAdapters.h"
 #include "Utilities/Options.h"
 
 #include <cmath>

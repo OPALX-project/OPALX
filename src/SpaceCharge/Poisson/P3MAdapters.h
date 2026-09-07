@@ -1,18 +1,74 @@
 /**
- * @file P3MShortRangeInteraction.h
- * @brief Adds the particle-particle contribution of the P3M Ewald split.
+ * @file P3MAdapters.h
+ * @brief IPPL adapters for the mesh and particle contributions of P3M.
+ *
+ * Both stages use the same cutoff in metres, alpha = 2 / cutoff, and regularization cutoff
+ * 1e-9. The mesh RHS is already divided by epsilon_0; the particle stage uses raw charges,
+ * so only its native force constant contains epsilon_0. The particle contribution is added
+ * to E in the Cartesian solve axes after the final mesh-to-particle gather.
  */
 
-#ifndef OPALX_SPACE_CHARGE_CARTESIAN_PIC_P3M_SHORT_RANGE_INTERACTION_H
-#define OPALX_SPACE_CHARGE_CARTESIAN_PIC_P3M_SHORT_RANGE_INTERACTION_H
+#ifndef OPALX_SPACE_CHARGE_P3M_ADAPTERS_H
+#define OPALX_SPACE_CHARGE_P3M_ADAPTERS_H
 
 #include "Interaction/TruncatedGreenParticleInteraction.h"
-#include "Ippl.h"
 #include "PartBunch/ParticleContainer.hpp"
 #include "Physics/Physics.h"
+#include "SpaceCharge/Poisson/PoissonSolverFactory.h"
 #include "Utilities/OpalException.h"
 
+#include <algorithm>
+#include <utility>
+
 namespace opalx::spacecharge {
+
+    /** @brief Adapts the 3D mesh contribution of P3M; particle interactions remain in Cartesian
+     * PIC. */
+    class P3MMeshPoissonAdapter final : public PoissonSolver {
+    public:
+        P3MMeshPoissonAdapter(PoissonSolverConfig config, PoissonFieldBinding fields)
+            : PoissonSolver(std::move(config), fields, PoissonSolverType::P3M) {
+            rebuildImpl(fields);
+        }
+
+        [[nodiscard]] std::string_view name() const override { return "P3M"; }
+        [[nodiscard]] const PoissonSolverCapabilities& capabilities() const override {
+            return capabilities_m;
+        }
+        [[nodiscard]] double couplingConstant() const override { return 1.0 / Physics::epsilon_0; }
+
+    protected:
+        void solveImpl(const PoissonSolveRequest&) override { backend_m->solve(); }
+        void rebuildImpl(PoissonFieldBinding fields) override {
+            auto& backend          = backend_m.emplace();
+            const bool allPeriodic = std::all_of(
+                    config_m.boundaryConditions.begin(), config_m.boundaryConditions.end(),
+                    [](FieldBoundaryCondition boundary) {
+                        return boundary == FieldBoundaryCondition::Periodic;
+                    });
+            auto parameters = detail::commonFftParameters();
+            parameters.add("output_type", NativeBackend::GRAD);
+            parameters.add("alpha", 2.0 / config_m.p3mCutoff);
+            parameters.add("force_constant", -1.0 / (4.0 * Physics::pi));
+            parameters.add("regularization_cutoff", 1.0e-9);
+            parameters.add(
+                    "boundary_type", allPeriodic ? NativeBackend::PERIODIC : NativeBackend::OPEN);
+            backend.mergeParameters(parameters);
+            detail::bindFields(backend, fields);
+        }
+
+    private:
+        static constexpr PoissonSolverCapabilities capabilities_m{
+                .normalizeChargeByCellVolume    = true,
+                .subtractNeutralizingBackground = false,
+                .debugDumpChargeBeforeSolve     = true,
+                .debugDumpScalarAfterSolve      = true,
+                .debugDumpVectorAfterSolve      = true};
+
+        using NativeBackend = FFTTruncatedGreenSolver_t<double, 3>;
+        std::optional<NativeBackend> backend_m;
+    };
+
     namespace detail {
         template <typename Container>
         class P3MContainerView {
@@ -94,4 +150,4 @@ namespace opalx::spacecharge {
 
 }  // namespace opalx::spacecharge
 
-#endif  // OPALX_SPACE_CHARGE_CARTESIAN_PIC_P3M_SHORT_RANGE_INTERACTION_H
+#endif  // OPALX_SPACE_CHARGE_P3M_ADAPTERS_H
