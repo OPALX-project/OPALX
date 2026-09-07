@@ -20,6 +20,7 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <limits>
@@ -76,14 +77,21 @@ IndexMap::value_t IndexMap::query(key_t::first_type s, key_t::second_type ds) {
         throw OutOfBounds("IndexMap::query", "out of bounds");
     }
 
-    map_t::iterator it        = mapRange2Element_m.begin();
+    // Start the scan at the first entry that can overlap [lowerLimit, upperLimit] instead of at
+    // the front: the map grows with every turn on a ring. Entries before lower_bound have
+    // begin < lowerLimit; step back over those still reaching into the interval.
+    map_t::iterator it        = mapRange2Element_m.lower_bound(key_t{lowerLimit, lowerLimit});
     const map_t::iterator end = mapRange2Element_m.end();
+    while (it != mapRange2Element_m.begin() && std::prev(it)->first.end > lowerLimit) {
+        --it;
+    }
 
     for (; it != end; ++it) {
         const double low  = (*it).first.begin;
         const double high = (*it).first.end;
 
-        if (lowerLimit < high && upperLimit >= low) break;
+        if (upperLimit < low) return elementSet;  // all following entries begin even later
+        if (lowerLimit < high) break;
     }
 
     if (it == end) return elementSet;
@@ -112,10 +120,11 @@ void IndexMap::add(key_t::first_type initialS, key_t::second_type finalS, const 
     mapRange2Element_m.insert(std::pair<key_t, value_t>(key, val));
     totalPathLength_m = (*mapRange2Element_m.rbegin()).first.end;
 
-    // Build each element's single range in the reverse map. The reference orbit threads through
-    // an element over several consecutive steps, each a separate add(); merge them into one
-    // contiguous interval. Single-pass (linac) invariant: an element is entered exactly once, so
-    // its steps are contiguous and it owns exactly one range.
+    // Build each element's first-crossing range in the reverse map. The reference orbit threads
+    // through an element over several consecutive steps, each a separate add(); merge them into
+    // one contiguous interval. A non-contiguous add for a known element means the orbit
+    // re-entered it (ring); the first crossing is kept and the new range is only recorded in
+    // mapRange2Element_m, which query() reads.
     for (value_t::iterator setIt = val.begin(); setIt != val.end(); ++setIt) {
         auto res = mapElement2Range_m.insert(std::make_pair(*setIt, key));
         if (!res.second) {
@@ -166,9 +175,23 @@ void IndexMap::saveSDDS(double initialPathLength) const {
     // to the file, where
     // s_i is the start of the range and
     // s_f is the end of the range.
-    // Each range-map entry {range, elements} is one sector of the reference path.
+    // Each range-map entry {range, elements} is one sector of the reference path. On a ring
+    // only the first turn is written: the reverse map holds first-crossing ranges only, so a
+    // sector containing an element whose stored range ends before the sector begins is a
+    // re-entry (second turn) — stop there.
     for (const auto& [range, sectorElements] : mapRange2Element_m) {
         if (sectorElements.empty()) continue;
+
+        const bool reentered =
+                std::any_of(sectorElements.begin(), sectorElements.end(), [&](const auto& element) {
+                    return mapElement2Range_m.at(element).end < range.begin;
+                });
+        if (reentered) {
+            *gmsg << level2 << "* IndexMap: ring detected (element re-entered at s = "
+                  << range.begin << " m); the element position file contains the first pass only"
+                  << endl;
+            break;
+        }
 
         double sectorBegin = range.begin;
         double sectorEnd   = range.end;
@@ -185,7 +208,6 @@ void IndexMap::saveSDDS(double initialPathLength) const {
         }
 
         for (auto element : sectorElements) {
-            // Single-pass: each element owns exactly one range in the reverse map.
             const auto& elementRange = mapElement2Range_m.at(element);
             if (elementRange.begin < sectorBegin) {
                 ::insertFlags(std::get<1>(currentSector[0]), element);
@@ -233,8 +255,13 @@ void IndexMap::saveSDDS(double initialPathLength) const {
         if (i == numEntries) continue;
 
         unsigned int j = ++i;
-        while (std::get<0>(sectors[j]) < range.end) {
+        while (j < numEntries && std::get<0>(sectors[j]) < range.end) {
             ++j;
+        }
+        // Bound fix since we can go beyond the range when threading through
+        // elements multiple times
+        if (j == numEntries) {
+            --j;
         }
 
         double length = range.end - range.begin;
