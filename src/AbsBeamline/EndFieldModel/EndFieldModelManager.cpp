@@ -25,66 +25,54 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "AbsBeamline/EndFieldModel/EndFieldModel.h"
+#include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
 #include <algorithm>
 #include <map>
 #include <sstream>
 #include "Utilities/GeneralOpalException.h"
 
 namespace endfieldmodel {
+std::shared_ptr<EndFieldModelManager> EndFieldModelManager::globalEFM_m;
 
-    bool GreaterThan(std::vector<int> v1, std::vector<int> v2) {
-        size_t n1(v1.size()), n2(v2.size());
-        for (size_t i = 0; i < n1 && i < n2; ++i) {
-            if (v1[n1 - 1 - i] > v2[n2 - 1 - i]) return true;
-            if (v1[n1 - 1 - i] < v2[n2 - 1 - i]) return false;
+template <>
+std::shared_ptr<Tanh> EndFieldModelManager::getEndFieldModel(const std::string& name) {
+    return tanhMap_m[name];
+}
+template <>
+std::shared_ptr<Enge> EndFieldModelManager::getEndFieldModel(const std::string& name) {
+    return engeMap_m[name];
+}
+template <>
+std::shared_ptr<AsymmetricEnge> EndFieldModelManager::getEndFieldModel(const std::string& name) {
+    return asymmetricEngeMap_m[name];
+}
+
+std::shared_ptr<EndFieldModelManager> EndFieldModelManager::getEFMManager() {
+        if (globalEFM_m) {
+            return globalEFM_m;
         }
-        return false;
-    }
+        globalEFM_m = std::make_shared<EndFieldModelManager>();
+        return globalEFM_m;
+}
 
-    std::vector<std::vector<int> > CompactVector(std::vector<std::vector<int> > vec) {
-        // first sort the list
-        std::sort(vec.begin(), vec.end(), GreaterThan);
-        // now look for n = n+1
-        for (size_t j = 0; j < vec.size() - 1; ++j) {
-            while (j < vec.size() - 1
-                   && IterableEquality(
-                           vec[j].begin() + 1, vec[j].end(), vec[j + 1].begin() + 1,
-                           vec[j + 1].end())) {
-                vec[j][0] += vec[j + 1][0];
-                vec.erase(vec.begin() + j + 1);
-            }
-        }
-        return vec;
-    }
+EndFieldModelType EndFieldModelManager::getEndFieldModelType(const std::string& name) {
+    return efmType_m[name];
+}
 
-    std::map<std::string, std::shared_ptr<EndFieldModel> > EndFieldModel::efm_map;
+template <>
+void EndFieldModelManager::setEndFieldModel(const std::string& name, const std::shared_ptr<Tanh>& efm) {
+    tanhMap_m[name] = efm;
+}
+template <>
+void EndFieldModelManager::setEndFieldModel(const std::string& name, const std::shared_ptr<Enge>& efm) {
+    engeMap_m[name] = efm;
+}
+template <>
+void EndFieldModelManager::setEndFieldModel(const std::string& name, const std::shared_ptr<AsymmetricEnge>& efm) {
+    asymmetricEngeMap_m[name] = efm;
+}
 
-    std::shared_ptr<EndFieldModel> EndFieldModel::getEndFieldModel(std::string name) {
-        try {
-            return efm_map.at(name);
-        } catch (std::exception& exc) {
-            throw GeneralOpalException(
-                    "EndFieldModel::getEndFieldModel",
-                    "Could not find EndFieldModel with name '" + name + "'");
-        }
-    }
 
-    void EndFieldModel::setEndFieldModel(std::string name, std::shared_ptr<EndFieldModel> efm) {
-        efm_map[name] = efm;
-    }
 
-    std::string EndFieldModel::getName(std::shared_ptr<EndFieldModel> efm) {
-        typedef std::map<std::string, std::shared_ptr<EndFieldModel> > EfmMap;
-        for (EfmMap::iterator it = efm_map.begin(); it != efm_map.end(); ++it) {
-            if (it->second == efm) {
-                return it->first;
-            }
-        }
-        std::stringstream ss;
-        ss << efm;
-        throw GeneralOpalException(
-                "EndFieldModel::getName", "Could not find EndFieldModel with address " + ss.str());
-    }
 
 }  // namespace endfieldmodel

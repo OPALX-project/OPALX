@@ -26,8 +26,10 @@
  */
 
 #include "AbsBeamline/ElementBase.h"
-#include "AbsBeamline/EndFieldModel/EndFieldModel.h"
 #include "AbsBeamline/EndFieldModel/Tanh.h"
+#include "AbsBeamline/EndFieldModel/Enge.h"
+#include "AbsBeamline/EndFieldModel/AsymmetricEnge.h"
+#include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
 #include "BeamlineGeometry/Geometry.h"
 
 #ifndef ABSBEAMLINE_ScalingFFAMagnet_H
@@ -62,6 +64,7 @@ struct ScalingFFAMagnetConfig {
     double verticalExtent_m  = 0.;  // maximum allowed distance from the midplane
     Vector_t<double, 3> centre_m;
     std::string endFieldName_m               = "";
+    endfieldmodel::EndFieldModelType efmType_m = endfieldmodel::kNOEFM;
     const double fp_tolerance                = 1e-18;
     std::vector<std::vector<double> > dfCoefficients_m;
 };
@@ -313,7 +316,13 @@ private:
     ScalingFFAMagnet& operator=(const ScalingFFAMagnet& rhs);
     mutable Geometry planarArcGeometry_m{Geometry::makeSBend(1., 1.)};
     mutable ScalingFFAMagnetConfig config_m;
-    mutable std::shared_ptr<endfieldmodel::Tanh> tanh;
+    mutable std::shared_ptr<endfieldmodel::Tanh> tanh_m;
+    mutable std::shared_ptr<endfieldmodel::Enge> enge_m;
+    mutable std::shared_ptr<endfieldmodel::AsymmetricEnge> assEnge_m;
+
+    template <class EFM>
+    void setupEFM(std::shared_ptr<EFM> efm) const;
+
 };
 
 template <class EFM>
@@ -393,15 +402,39 @@ bool ScalingFFAMagnet::getFieldValueCylindrical(
 }
 
 template <>
-void ScalingFFAMagnet::setEndField(std::shared_ptr<endfieldmodel::Tanh> endField);
-// {
-//    tanh = endField;
-//}
-
-template <>
 std::shared_ptr<endfieldmodel::Tanh> ScalingFFAMagnet::getEndField<endfieldmodel::Tanh>() const;
-// {
-//    return tanh;
-//}
+template <>
+void ScalingFFAMagnet::setEndField(std::shared_ptr<endfieldmodel::Tanh> endField);
+/*
+template <>
+void ScalingFFAMagnet::setupEFM(std::shared_ptr<endfieldmodel::Tanh> efm) const;
+template <>
+void ScalingFFAMagnet::setupEFM(std::shared_ptr<endfieldmodel::Enge> efm) const;
+template <>
+void ScalingFFAMagnet::setupEFM(std::shared_ptr<endfieldmodel::AsymmetricEnge> efm) const;
+*/
+template <class EFM>
+void ScalingFFAMagnet::setupEFM(std::shared_ptr<EFM> efm) const {
+    efm->rescale(1.0 / getR0());
+    double defaultExtent = efm->getEndLength()*4. + efm->getCentreLength();
+    if (config_m.phiStart_m < 0.0) {
+        config_m.phiStart_m  = defaultExtent / 2.0;
+    } else {
+        config_m.phiStart_m  = getPhiStart() + efm->getCentreLength() * 0.5;
+    }
+    if (config_m.phiEnd_m < 0.0) {
+        config_m.phiEnd_m = defaultExtent;
+    }
+    if (config_m.azimuthalExtent_m < 0.0) {
+        config_m.azimuthalExtent_m  = efm->getEndLength() * 5. + efm->getCentreLength() / 2.0;
+    }
+    planarArcGeometry_m.setElementLength(config_m.r0_m * config_m.phiEnd_m);  // length = phi r
+    planarArcGeometry_m.setCurvature(1. / config_m.r0_m);
+    std::cerr << "ScalingFFAMagnet::setupEndField " << std::endl;
+    std::cerr << "    name: " << getName() << std::endl;
+    std::cerr << "    R0: " << config_m.r0_m << " phiend " << config_m.phiEnd_m << std::endl;
+    std::cerr << "    geom: " << planarArcGeometry_m.getChordLength() << " " << planarArcGeometry_m.getBendAngle() << std::endl;
+}
+
 
 #endif

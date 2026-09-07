@@ -47,7 +47,7 @@ namespace endfieldmodel {
      *  expressions, one can calculate a recursion relation for higher order
      *  derivatives and hence calculate analytical derivatives at arbitrary order.
      */
-    class AsymmetricEnge : public EndFieldModel {
+    class AsymmetricEnge {
     public:
         /** Default constructor */
         AsymmetricEnge();

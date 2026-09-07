@@ -29,6 +29,7 @@
 
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "PartBunch/PartBunch.h"
+#include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
 
 ScalingFFAMagnet::ScalingFFAMagnet(const std::string& name)
@@ -51,12 +52,27 @@ ScalingFFAMagnet* ScalingFFAMagnet::clone() const {
 
 void ScalingFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     // Kernel launch over all particles
-    const ScalingFFAMagnetConfig config = getConfig();
-    getFieldValue<>(config, *tanh, pc);
+    if (tanh_m) {
+        getFieldValue<>(config_m, *tanh_m, pc);
+/*    } else if (enge) {
+        getFieldValue<>(config, *enge, pc);
+    } else if (asymmetricenge) {
+        getFieldValue<>(config, *asymmetricenge, pc);
+*/  } else {
+        throw OpalException("ScalingFFAMagnet::applyt", "Trying to apply ScalingFFAMagnet when end model was not set");
+    }
 }
 
 bool ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const {
-    return getFieldValue<>(config_m, *tanh, R, B);
+    if (tanh_m) {
+       return  getFieldValue<>(config_m, *tanh_m, R, B);
+/*    } else if (enge) {
+        return getFieldValue<>(config, *enge, pc);
+    } else if (asymmetricenge) {
+        return getFieldValue<>(config, *asymmetricenge, pc);
+*/  } else {
+        throw OpalException("ScalingFFAMagnet::getFieldValue", "Trying to apply ScalingFFAMagnet when end model was not set");
+    }
 }
 
 void ScalingFFAMagnet::initialise() { calculateDfCoefficients(); }
@@ -80,7 +96,7 @@ void ScalingFFAMagnet::accept(BeamlineVisitor& visitor) const {
 void ScalingFFAMagnet::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
-    getFieldValue<>(config_m, *tanh, R, B);
+    getFieldValue<>(config_m, *tanh_m, R, B);
 }
 
 void ScalingFFAMagnet::calculateDfCoefficients() {
@@ -115,37 +131,56 @@ void ScalingFFAMagnet::setupEndField() const {
     if (config_m.endFieldName_m == "") {  // no end field is defined
         return;
     }
-
-
-    tanh->rescale(1.0 / getR0());
-    double defaultExtent = (tanh->getEndLength() * 4. + tanh->getCentreLength());
-    if (config_m.phiStart_m < 0.0) {
-        config_m.phiStart_m  = defaultExtent / 2.0;
-    } else {
-        config_m.phiStart_m  = getPhiStart() + tanh->getCentreLength() * 0.5;
+    std::shared_ptr<endfieldmodel::EndFieldModelManager> efmMan =
+                        endfieldmodel::EndFieldModelManager::getEFMManager();
+    config_m.efmType_m = efmMan->getEndFieldModelType(config_m.endFieldName_m);
+    switch (config_m.efmType_m) {
+        case endfieldmodel::kTANH: {
+            auto efm = efmMan->getEndFieldModel<endfieldmodel::Tanh>(config_m.endFieldName_m);
+            setupEFM(efm);
+            break;
+        } case endfieldmodel::kENGE: {
+            auto efm = efmMan->getEndFieldModel<endfieldmodel::Enge>(config_m.endFieldName_m);
+            setupEFM(efm);
+            break;
+        } case endfieldmodel::kASYMMETRICENGE: {
+            auto efm = efmMan->getEndFieldModel<endfieldmodel::AsymmetricEnge>(config_m.endFieldName_m);
+            setupEFM(efm);
+            break;
+        }
+        case endfieldmodel::kNOEFM:
+        default:
+            throw OpalException("ScalingFFAMagnet::setupEndField",
+                    "Did not recognise end field name "+config_m.endFieldName_m);
     }
-    if (config_m.phiEnd_m < 0.0) {
-        config_m.phiEnd_m = defaultExtent;
-    }
-    if (config_m.azimuthalExtent_m < 0.0) {
-        config_m.azimuthalExtent_m  = tanh->getEndLength() * 5. + tanh->getCentreLength() / 2.0;
-    }
-    planarArcGeometry_m.setElementLength(config_m.r0_m * config_m.phiEnd_m);  // length = phi r
-    planarArcGeometry_m.setCurvature(1. / config_m.r0_m);
-    std::cerr << "ScalingFFAMagnet::setupEndField " << std::endl;
-    std::cerr << "    name: " << getName() << std::endl;
-    std::cerr << "    R0: " << config_m.r0_m << " phiend " << config_m.phiEnd_m << std::endl;
-    std::cerr << "    geom: " << planarArcGeometry_m.getChordLength() << " " << planarArcGeometry_m.getBendAngle() << std::endl;
 }
 
 template <>
 std::shared_ptr<endfieldmodel::Tanh> ScalingFFAMagnet::getEndField<endfieldmodel::Tanh>() const {
-    return tanh;
+    return tanh_m;
 }
 
 template <>
 void ScalingFFAMagnet::setEndField(std::shared_ptr<endfieldmodel::Tanh> endField) {
-    tanh = endField;
+    tanh_m = endField;
+    enge_m.reset();
+    assEnge_m.reset();
+    config_m.efmType_m = endfieldmodel::kTANH;
 }
 
+template <>
+void ScalingFFAMagnet::setEndField(std::shared_ptr<endfieldmodel::Enge> endField) {
+    tanh_m.reset();
+    enge_m = endField;
+    assEnge_m.reset();
+    config_m.efmType_m = endfieldmodel::kENGE;
+}
+
+template <>
+void ScalingFFAMagnet::setEndField(std::shared_ptr<endfieldmodel::AsymmetricEnge> endField) {
+    tanh_m.reset();
+    enge_m.reset();
+    assEnge_m = endField;
+    config_m.efmType_m = endfieldmodel::kASYMMETRICENGE;
+}
 

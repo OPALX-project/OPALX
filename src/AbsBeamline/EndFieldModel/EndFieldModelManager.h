@@ -25,8 +25,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef ENDFIELDMODEL_ENDFIELDMODEL_H_
-#define ENDFIELDMODEL_ENDFIELDMODEL_H_
+#ifndef ENDFIELDMODEL_ENDFIELDMODELMANAGER_H_
+#define ENDFIELDMODEL_ENDFIELDMODELMANAGER_H_
 
 #include <iostream>
 #include <map>
@@ -36,26 +36,48 @@
 namespace endfieldmodel {
 
 class Tanh;
+class Enge;
+class AsymmetricEnge;
 
+/** This is horrible. I really want to use an Abstraction but GPU does
+ *  not allow it so I have to do if (type == BLAH) { do something }
+ */
+enum EndFieldModelType {kTANH, kENGE, kASYMMETRICENGE, kNOEFM};
+
+/** Singleton class to handle global register of EndFieldModels */
 class EndFieldModelManager {
     public:
-        /** This is horrible. I really want to use an Abstraction but GPU does
-         *  not allow it so I have to do if (type == BLAH) { do something } 
-         */
-        enum EndFieldModelType {kTANH, kENGE, kASYMMETRICENGE};
+        EndFieldModelManager()  = default;
+        ~EndFieldModelManager() = default;
 
-        EndFieldModelManager() {}
-        ~EndFieldModelManager() {}
+        /** Return the global EndFieldModelManager.
+         *
+         *  If it is not initialised, initialise it.
+         */
+        static std::shared_ptr<EndFieldModelManager> getEFMManager();
+
+        /** Clear the global EndFieldModelManager.
+         */
+        static void clearEFMManager() {globalEFM_m.reset();}
 
         /** Look up the EndFieldModel that has a given name
          *
          *  @param name: name of the EndFieldModel
          *
          *  @returns shared_ptr to the appropriate EndFieldModel.
+         *
          *  @throws GeneralOpalException if name is not recognised
          */
         template <class EFM>
-        std::shared_ptr<EFM> getEndFieldModel(std::string name);
+        std::shared_ptr<EFM> getEndFieldModel(const std::string& name);
+
+        /** Look up the type of EndFieldModel that has a given name
+         *
+         *  @param name: name of the EndFieldModel
+         *
+         *  @returns EndFieldModelType of the appropriate EndFieldModel.
+         */
+        EndFieldModelType getEndFieldModelType(const std::string& name);
 
         /** Add a value to the lookup table
          *
@@ -64,7 +86,7 @@ class EndFieldModelManager {
          *  @param efm: shared_ptr to the EndFieldModel.
          */
         template <class EFM>
-        void setEndFieldModel(std::string name, std::shared_ptr<EFM> efm);
+        void setEndFieldModel(const std::string& name, const std::shared_ptr<EFM>& efm);
 
         /** Get the name corresponding to a given EndFieldModel
          *
@@ -75,80 +97,31 @@ class EndFieldModelManager {
          *  @throws GeneralOpalException if efm is not recognised
          */
         template <class EFM>
-        std::string getName(std::shared_ptr<EFM> efm);
+        std::string getName(const std::shared_ptr<EFM>& efm);
 
     private:
+        std::map<std::string, EndFieldModelType> efmType_m;
         std::map<std::string, std::shared_ptr<Tanh> > tanhMap_m;
         std::map<std::string, std::shared_ptr<Enge> > engeMap_m;
-        std::map<std::string, std::shared_ptr<AsymmetricEnge> > asymmtricEngeMap_m;
-    };
+        std::map<std::string, std::shared_ptr<AsymmetricEnge> > asymmetricEngeMap_m;
 
-    template <>
-    std::shared_ptr<Tanh> getEndFieldModel(std::string name) {
-        return tanhMap_m(name);
-    }
+        static std::shared_ptr<EndFieldModelManager> globalEFM_m;
 
+};
 
-    std::vector<std::vector<int> > CompactVector(std::vector<std::vector<int> > vec);
+template <>
+std::shared_ptr<Tanh> EndFieldModelManager::getEndFieldModel(const std::string& name);
+template <>
+std::shared_ptr<Enge> EndFieldModelManager::getEndFieldModel(const std::string& name);
+template <>
+std::shared_ptr<AsymmetricEnge> EndFieldModelManager::getEndFieldModel(const std::string& name);
 
-    /// CompactVector helper function, used for sorting
-    bool GreaterThan(std::vector<int> v1, std::vector<int> v2);
-
-    /** Return a == b if a and b are same size and a[i] == b[i] for all i.
-     *
-     *  The following operations must be defined for TEMP_ITER it:
-     *    - ++it prefix increment operator
-     *    - (*it) (that is unary *, i.e. dereference operator)
-     *    - it1 != it2 not equals operator
-     *    - (*it1) != (*it2) not equals operator of dereferenced object
-     *
-     *  Call like e.g. \n
-     *      std::vector<int> a,b;\n
-     *      bool test_equal = IterableEquality(a.begin(), a.end(), b.begin(),
-     *                        b.end());\n
-     *
-     *  Can give a segmentation fault if a.begin() is not between a.begin() and
-     *  a.end() (inclusive)
-     */
-    template <class TEMP_ITER>
-    bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end);
-
-    /** Return a == b if a and b are same size and a[i] == b[i] for all i.
-     *
-     *  The following operations must be defined for TEMP_ITER it:
-     *    - ++it prefix increment operator
-     *    - (*it) (that is unary *, i.e. dereference operator)
-     *    - it1 != it2 not equals operator
-     *    - (*it1) != (*it2) not equals operator of dereferenced object
-     *
-     *  Call like e.g. \n
-     *      std::vector<int> a,b;\n
-     *      bool test_equal = IterableEquality(a.begin(), a.end(), b.begin(),
-     *                        b.end());\n
-     *
-     *  Can give a segmentation fault if a.begin() is not between a.begin() and
-     *  a.end() (inclusive)
-     */
-    template <class TEMP_ITER>
-    bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end);
-
-    template <class TEMP_CLASS>
-    bool IterableEquality(const TEMP_CLASS& a, const TEMP_CLASS& b) {
-        return IterableEquality(a.begin(), a.end(), b.begin(), b.end());
-    }
-
-    template <class TEMP_ITER>
-    bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end) {
-        TEMP_ITER a_it = a_begin;
-        TEMP_ITER b_it = b_begin;
-        while (a_it != a_end && b_it != b_end) {
-            if (*a_it != *b_it) return false;
-            ++a_it;
-            ++b_it;
-        }
-        if (a_it != a_end || b_it != b_end) return false;
-        return true;
-    }
+template <>
+void EndFieldModelManager::setEndFieldModel(const std::string& name, const std::shared_ptr<Tanh>& efm);
+template <>
+void EndFieldModelManager::setEndFieldModel(const std::string& name, const std::shared_ptr<Enge>& efm);
+template <>
+void EndFieldModelManager::setEndFieldModel(const std::string& name, const std::shared_ptr<AsymmetricEnge>& efm);
 
 }  // namespace endfieldmodel
 
