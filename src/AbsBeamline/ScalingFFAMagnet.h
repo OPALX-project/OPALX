@@ -139,11 +139,20 @@ public:
     /** Calculate the field at some arbitrary position in cylindrical coordinates
      *
      *  \param R position in the local coordinate system of the bend, in
+     *           CHECK cartesian polar coordinates defined like (r, y, phi)
+     *  \param B CARTESIAN??? calculated magnetic field defined like (Br, By, Bphi)
+     *  \returns true if particle is outside the field map, else false
+     */
+    bool getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const;
+
+    /** Calculate the field at some arbitrary position in cylindrical coordinates
+     *
+     *  \param R position in the local coordinate system of the bend, in
      *           cylindrical polar coordinates defined like (r, y, phi)
      *  \param B calculated magnetic field defined like (Br, By, Bphi)
      *  \returns true if particle is outside the field map, else false
      */
-    bool getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const;
+    bool getFieldValueCylindrical(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const;
 
     /** Initialise the ScalingFFAMagnet
      *
@@ -301,7 +310,6 @@ public:
     /** Return the end field name. */
     std::string getEndFieldName() const { return config_m.endFieldName_m; }
 
-    
 private:
     /** Calculate the df coefficients, ready for field generation
      *
@@ -322,6 +330,8 @@ private:
 
     template <class EFM>
     void setupEFM(std::shared_ptr<EFM> efm) const;
+
+    friend class TestScalingFFAMagnet;
 
 };
 
@@ -405,14 +415,7 @@ template <>
 std::shared_ptr<endfieldmodel::Tanh> ScalingFFAMagnet::getEndField<endfieldmodel::Tanh>() const;
 template <>
 void ScalingFFAMagnet::setEndField(std::shared_ptr<endfieldmodel::Tanh> endField);
-/*
-template <>
-void ScalingFFAMagnet::setupEFM(std::shared_ptr<endfieldmodel::Tanh> efm) const;
-template <>
-void ScalingFFAMagnet::setupEFM(std::shared_ptr<endfieldmodel::Enge> efm) const;
-template <>
-void ScalingFFAMagnet::setupEFM(std::shared_ptr<endfieldmodel::AsymmetricEnge> efm) const;
-*/
+
 template <class EFM>
 void ScalingFFAMagnet::setupEFM(std::shared_ptr<EFM> efm) const {
     efm->rescale(1.0 / getR0());
