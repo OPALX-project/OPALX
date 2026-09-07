@@ -18,8 +18,13 @@
 # cmake-format: on
 # -----------------------------------------------------------------------------
 
-# === Basic warnings (apply to all builds) ===
-add_compile_options(-Wall -Wextra -Wno-deprecated-declarations)
+# === Basic warnings (apply to OPALX's C and C++ languages) ===
+# OPALX enables Fortran only to build the fetched reference LAPACK. Do not pass
+# the project's warning policy into that third-party implementation.
+add_compile_options(
+  $<$<COMPILE_LANGUAGE:C,CXX>:-Wall>
+  $<$<COMPILE_LANGUAGE:C,CXX>:-Wextra>
+  $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-deprecated-declarations>)
 
 # === Use modified variant implementation ===
 if(OPALX_USE_ALTERNATIVE_VARIANT)
