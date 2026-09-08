@@ -59,7 +59,7 @@ PartBunch<T, Dim>::PartBunch(
     }
 
     // The initial geometry only provides a valid mesh and layout while particles are sampled or
-    // restored. Cartesian PIC replaces the physical bounds before its first runtime solve, while
+    // restored. CartesianPIC3D replaces the physical bounds before its first runtime solve, while
     // the mesh and FieldLayout object addresses remain stable for every borrowing container.
     cartesianDomain_m            = std::make_unique<CartesianDomain_t>(domainConfig);
     boundingBoxIncreasePercent_m = domainConfig.boundingBoxIncreasePercent;

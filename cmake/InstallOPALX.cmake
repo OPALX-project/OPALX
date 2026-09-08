@@ -13,7 +13,7 @@ install(
   PATTERN "OPALXVersions.h" EXCLUDE
   PATTERN "SpaceCharge/Poisson" EXCLUDE
   PATTERN "SpaceCharge/FFT2D5" EXCLUDE
-  PATTERN "SpaceCharge/CartesianPIC" EXCLUDE
+  PATTERN "SpaceCharge/CartesianPIC3D" EXCLUDE
   PATTERN "SpaceCharge/SpaceChargeFrames.h" EXCLUDE
   PATTERN "SpaceCharge/SpaceChargeAlgorithm.h" EXCLUDE
   PATTERN "SpaceCharge/SpaceChargeSolver.h" EXCLUDE

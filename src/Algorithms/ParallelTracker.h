@@ -82,7 +82,7 @@ private:
     DataSink* itsDataSink_m;  ///< Borrowed beam statistics and phase-space output sink.
     opalx::spacecharge::SpaceChargeSolver*
             spaceChargeSolver_m;  ///< Borrowed run-lifetime space-charge solver.
-    opalx::spacecharge::CorrectionConfig spaceChargeCorrection_m;
+    opalx::spacecharge::DirichletPlaneConfig dirichletPlane_m;
     std::vector<std::uint8_t> spaceChargeContainerActivity_m;
     OpalBeamline itsOpalBeamline_m;  ///< Cloned field elements and coordinate transforms.
     bool globalEOL_m;                ///< End-of-line flag (e.g. orbit threader out of bounds).
@@ -121,7 +121,7 @@ public:
      * @param bl                Beamline definition.
      * @param bunch             Borrowed particle bunch (multi-container).
      * @param spaceChargeSolver   Borrowed solver owned by TrackRun.
-     * @param correction         Source-plane correction used by tracker-side loss handling.
+     * @param dirichletPlane      Dirichlet plane used by tracker-side loss handling.
      * @param ds                Borrowed data sink for statistics and dumps.
      * @param revBeam           Reversed beam flag (see single-argument constructor).
      * @param maxSTEPS          Max integration steps per s-segment (parallel to sStop/dt).
@@ -137,7 +137,7 @@ public:
     explicit ParallelTracker(
             const Beamline& bl, PartBunch_t& bunch,
             opalx::spacecharge::SpaceChargeSolver& spaceChargeSolver,
-            opalx::spacecharge::CorrectionConfig correction, DataSink* ds, bool revBeam,
+            opalx::spacecharge::DirichletPlaneConfig dirichletPlane, DataSink* ds, bool revBeam,
             const std::vector<unsigned long long>& maxSTEPS, double sStart,
             const std::vector<double>& sStop, const std::vector<double>& dt,
             const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers = {},

@@ -3,7 +3,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/Quaternion.hpp"
 #include "PartBunch/BunchStateHandler.h"
-#include "SpaceCharge/CartesianPIC/CartesianPICAlgorithm.h"
+#include "SpaceCharge/CartesianPIC3D/CartesianPIC3DAlgorithm.h"
 #include "Structure/DataSink.h"
 #include "Utilities/Options.h"
 
@@ -18,13 +18,13 @@ namespace opalx::spacecharge {
         using Vector    = Vector_t<double, 3>;
         using Particles = ParticleContainer<double, 3>;
 
-        class CartesianPICAlgorithmsTest : public ::testing::Test {
+        class CartesianPIC3DAlgorithmsTest : public ::testing::Test {
         protected:
             static void SetUpTestSuite() {
                 int argc    = 0;
                 char** argv = nullptr;
                 ippl::initialize(argc, argv);
-                OpalData::getInstance()->storeInputFn("cartesian_pic_algorithms.opal");
+                OpalData::getInstance()->storeInputFn("cartesian_pic3d_algorithms.opal");
                 gmsg                = new Inform(nullptr, -1);
                 Options::enableHDF5 = false;
             }
@@ -32,8 +32,8 @@ namespace opalx::spacecharge {
             static void TearDownTestSuite() {
                 delete gmsg;
                 gmsg = nullptr;
-                std::remove("cartesian_pic_algorithms.stat");
-                std::remove("cartesian_pic_algorithms.lbal");
+                std::remove("cartesian_pic3d_algorithms.stat");
+                std::remove("cartesian_pic3d_algorithms.lbal");
                 ippl::finalize();
             }
 
@@ -43,11 +43,11 @@ namespace opalx::spacecharge {
                 Particles particles;
                 Particles secondary;
                 DataSink sink;
-                std::unique_ptr<CartesianPICAlgorithm> algorithm;
+                std::unique_ptr<CartesianPIC3DAlgorithm> algorithm;
                 std::array<std::uint8_t, 2> activity{1, 0};
 
                 explicit Run(
-                        const CartesianPICConfig& config, const CoordinateSystemTrafo& pose = {},
+                        const CartesianPIC3DConfig& config, const CoordinateSystemTrafo& pose = {},
                         Vector momentum = Vector(0.0))
                     : domain(makeCartesianDomainConfig(config)),
                       particles(domain.mesh(), domain.layout()),
@@ -82,9 +82,9 @@ namespace opalx::spacecharge {
                     Kokkos::deep_copy(secondary.E.getView(), Vector(7.0));
                     Kokkos::deep_copy(secondary.B.getView(), Vector(9.0));
                     const std::array containers{&particles, &secondary};
-                    algorithm = std::make_unique<CartesianPICAlgorithm>(
+                    algorithm = std::make_unique<CartesianPIC3DAlgorithm>(
                             config, containers,
-                            std::make_unique<CartesianPICFieldStorage<double, 3>>(domain), &sink,
+                            std::make_unique<CartesianPIC3DFieldStorage<double, 3>>(domain), &sink,
                             state);
                 }
 
@@ -98,8 +98,8 @@ namespace opalx::spacecharge {
                 }
             };
 
-            static CartesianPICConfig config() {
-                CartesianPICConfig result;
+            static CartesianPIC3DConfig config() {
+                CartesianPIC3DConfig result;
                 result.backend            = PoissonSolverType::Open;
                 result.grid.meshSize      = {16, 16, 16};
                 result.grid.decomposition = {false, false, false};
@@ -129,12 +129,12 @@ namespace opalx::spacecharge {
             }
         };
 
-        TEST_F(CartesianPICAlgorithmsTest, ShiftedGreenWorksWithEitherKernelWithoutBinning) {
+        TEST_F(CartesianPIC3DAlgorithmsTest, ShiftedGreenWorksWithEitherKernelWithoutBinning) {
             for (auto green : {GreenFunctionType::Standard, GreenFunctionType::Integrated}) {
-                auto wholeConfig          = config();
-                wholeConfig.greenFunction = green;
-                wholeConfig.correction    = {.kind = SpaceChargeCorrectionType::ShiftedGreen};
-                auto binnedConfig         = wholeConfig;
+                auto wholeConfig           = config();
+                wholeConfig.greenFunction  = green;
+                wholeConfig.dirichletPlane = {.kind = DirichletPlaneType::ShiftedGreen};
+                auto binnedConfig          = wholeConfig;
                 binnedConfig.binning.emplace();
                 binnedConfig.binning->maximumBins = 1;
                 binnedConfig.binning->adaptive    = false;
@@ -142,55 +142,53 @@ namespace opalx::spacecharge {
                 EXPECT_EQ(whole.solve().backendSolves, 2u);
                 EXPECT_EQ(binned.solve().backendSolves, 2u);
                 expectFieldsEqual(whole.particles, binned.particles);
-                auto directConfig       = wholeConfig;
-                directConfig.correction = {};
+                auto directConfig           = wholeConfig;
+                directConfig.dirichletPlane = {};
                 Run direct(directConfig);
                 EXPECT_EQ(direct.solve().backendSolves, 1u);
-                auto correctedE = Kokkos::create_mirror_view_and_copy(
+                auto planeE = Kokkos::create_mirror_view_and_copy(
                         Kokkos::HostSpace(), whole.particles.E.getView());
                 auto directE = Kokkos::create_mirror_view_and_copy(
                         Kokkos::HostSpace(), direct.particles.E.getView());
                 double change = 0.0;
                 for (std::size_t i = 0; i < whole.particles.getLocalNum(); ++i) {
-                    change += std::abs(correctedE(i)[2] - directE(i)[2]);
+                    change += std::abs(planeE(i)[2] - directE(i)[2]);
                 }
                 EXPECT_GT(change, 1.0e-6);
             }
         }
 
-        TEST_F(CartesianPICAlgorithmsTest, CorrectionExpiryRestoresDirectFieldsAndMesh) {
-            for (auto correction :
-                 {SpaceChargeCorrectionType::ShiftedGreen,
-                  SpaceChargeCorrectionType::ImageCharge}) {
+        TEST_F(CartesianPIC3DAlgorithmsTest, DirichletPlaneExpiryRestoresDirectFieldsAndMesh) {
+            for (auto dirichletPlane :
+                 {DirichletPlaneType::ShiftedGreen, DirichletPlaneType::ImageCharge}) {
                 for (bool binned : {false, true}) {
-                    auto correctedConfig       = config();
-                    correctedConfig.correction = {.kind = correction, .maximumSteps = 2};
+                    auto planeConfig           = config();
+                    planeConfig.dirichletPlane = {.kind = dirichletPlane, .maximumSteps = 2};
                     if (binned) {
-                        correctedConfig.binning.emplace();
-                        correctedConfig.binning->maximumBins = 1;
-                        correctedConfig.binning->adaptive    = false;
+                        planeConfig.binning.emplace();
+                        planeConfig.binning->maximumBins = 1;
+                        planeConfig.binning->adaptive    = false;
                     }
-                    auto directConfig       = correctedConfig;
-                    directConfig.correction = {};
-                    Run corrected(correctedConfig), direct(directConfig);
+                    auto directConfig           = planeConfig;
+                    directConfig.dirichletPlane = {};
+                    Run withPlane(planeConfig), direct(directConfig);
                     EXPECT_EQ(
-                            corrected.solve(1).backendSolves,
-                            correction == SpaceChargeCorrectionType::ShiftedGreen || binned ? 2u
-                                                                                            : 1u);
+                            withPlane.solve(1).backendSolves,
+                            dirichletPlane == DirichletPlaneType::ShiftedGreen || binned ? 2u : 1u);
                     EXPECT_EQ(
-                            corrected.domain.layoutExtents()[2],
-                            correction == SpaceChargeCorrectionType::ImageCharge ? 32u : 16u);
-                    EXPECT_EQ(corrected.solve(2).backendSolves, 1u);
-                    EXPECT_EQ(corrected.domain.layoutExtents()[2], 16u);
+                            withPlane.domain.layoutExtents()[2],
+                            dirichletPlane == DirichletPlaneType::ImageCharge ? 32u : 16u);
+                    EXPECT_EQ(withPlane.solve(2).backendSolves, 1u);
+                    EXPECT_EQ(withPlane.domain.layoutExtents()[2], 16u);
                     EXPECT_EQ(direct.solve(2).backendSolves, 1u);
-                    expectFieldsEqual(corrected.particles, direct.particles);
-                    EXPECT_EQ(corrected.solve(3).backendSolves, 1u);
-                    expectFieldsEqual(corrected.particles, direct.particles);
+                    expectFieldsEqual(withPlane.particles, direct.particles);
+                    EXPECT_EQ(withPlane.solve(3).backendSolves, 1u);
+                    expectFieldsEqual(withPlane.particles, direct.particles);
                 }
             }
         }
 
-        TEST_F(CartesianPICAlgorithmsTest,
+        TEST_F(CartesianPIC3DAlgorithmsTest,
                ReplacesFieldsUsingExistingAllocationsAndPreservesOtherContainers) {
             for (auto backend : {PoissonSolverType::None, PoissonSolverType::Open}) {
                 auto values    = config();
@@ -216,7 +214,7 @@ namespace opalx::spacecharge {
             }
         }
 
-        TEST_F(CartesianPICAlgorithmsTest,
+        TEST_F(CartesianPIC3DAlgorithmsTest,
                RotatedSolveRestoresMomentumAndRotatesFieldsConsistently) {
             auto values = config();
             values.binning.emplace();
@@ -247,7 +245,7 @@ namespace opalx::spacecharge {
             expectFieldsEqual(rotated.particles, baseline.particles);
         }
 
-        TEST_F(CartesianPICAlgorithmsTest, TrivialP3MPrimaryPreservesSecondaryAndResumesSolving) {
+        TEST_F(CartesianPIC3DAlgorithmsTest, TrivialP3MPrimaryPreservesSecondaryAndResumesSolving) {
             for (std::size_t primaryCount : {0u, 1u}) {
                 SCOPED_TRACE(primaryCount);
                 auto values               = config();
@@ -290,9 +288,9 @@ namespace opalx::spacecharge {
                 Kokkos::deep_copy(secondary.B.getView(), Vector(9.0));
                 DataSink sink;
                 const std::array containers{&primary, &secondary};
-                CartesianPICAlgorithm algorithm(
+                CartesianPIC3DAlgorithm algorithm(
                         values, containers,
-                        std::make_unique<CartesianPICFieldStorage<double, 3>>(domain), &sink,
+                        std::make_unique<CartesianPIC3DFieldStorage<double, 3>>(domain), &sink,
                         state);
                 const std::array<std::uint8_t, 2> activity{1, 1};
                 SpaceChargeStepState step;

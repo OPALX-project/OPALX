@@ -6,9 +6,9 @@
 #include "PartBunch/CartesianDomain.h"
 #include "PartBunch/ParticleContainer.hpp"
 #include "Physics/Physics.h"
-#include "SpaceCharge/CartesianPIC/CartesianDomainUpdater.h"
-#include "SpaceCharge/CartesianPIC/CartesianPICAlgorithm.h"
-#include "SpaceCharge/CartesianPIC/CartesianPICFieldStorage.h"
+#include "SpaceCharge/CartesianPIC3D/CartesianDomainUpdater.h"
+#include "SpaceCharge/CartesianPIC3D/CartesianPIC3DAlgorithm.h"
+#include "SpaceCharge/CartesianPIC3D/CartesianPIC3DFieldStorage.h"
 #include "SpaceCharge/Poisson/PoissonSolver.h"
 #include "SpaceCharge/SpaceChargeSolveContext.h"
 #include "Structure/DataSink.h"
@@ -24,13 +24,13 @@
 namespace opalx::spacecharge {
     namespace {
 
-        class CartesianPICComponentsTest : public ::testing::Test {
+        class CartesianPIC3DComponentsTest : public ::testing::Test {
         protected:
             static void SetUpTestSuite() {
                 int argc    = 0;
                 char** argv = nullptr;
                 ippl::initialize(argc, argv);
-                OpalData::getInstance()->storeInputFn("cartesian_pic_components.opal");
+                OpalData::getInstance()->storeInputFn("cartesian_pic3d_components.opal");
                 gmsg                = new Inform(nullptr, -1);
                 Options::enableHDF5 = false;
             }
@@ -38,8 +38,8 @@ namespace opalx::spacecharge {
             static void TearDownTestSuite() {
                 delete gmsg;
                 gmsg = nullptr;
-                std::remove("cartesian_pic_components.stat");
-                std::remove("cartesian_pic_components.lbal");
+                std::remove("cartesian_pic3d_components.stat");
+                std::remove("cartesian_pic3d_components.lbal");
                 ippl::finalize();
             }
 
@@ -52,7 +52,7 @@ namespace opalx::spacecharge {
             }
         };
 
-        TEST_F(CartesianPICComponentsTest, DomainMutatesLayoutAndGeometryInPlace) {
+        TEST_F(CartesianPIC3DComponentsTest, DomainMutatesLayoutAndGeometryInPlace) {
             auto setup     = storage();
             setup.meshSize = {4, 5, 6};
             CartesianDomain<double, 3> domain(setup);
@@ -81,7 +81,7 @@ namespace opalx::spacecharge {
             }
         }
 
-        TEST_F(CartesianPICComponentsTest, OverlapDomainUsesCutoffAndConfiguredBoundaries) {
+        TEST_F(CartesianPIC3DComponentsTest, OverlapDomainUsesCutoffAndConfiguredBoundaries) {
             auto periodicSetup          = storage(true);
             periodicSetup.meshSize      = {4, 4, 4};
             periodicSetup.layoutType    = ParticleLayoutType::SpatialOverlap;
@@ -110,11 +110,11 @@ namespace opalx::spacecharge {
             }
         }
 
-        TEST_F(CartesianPICComponentsTest, FixedDomainOverridesStretchingAndReturnsToFollowing) {
+        TEST_F(CartesianPIC3DComponentsTest, FixedDomainOverridesStretchingAndReturnsToFollowing) {
             auto domainConfig          = storage();
             domainConfig.decomposition = {true, true, true};
             CartesianDomain<double, 3> domain(domainConfig);
-            CartesianPICFieldStorage<double, 3> workspace(domain);
+            CartesianPIC3DFieldStorage<double, 3> workspace(domain);
             workspace.initializeFields(PoissonSolverType::None);
 
             auto bunchState = std::make_shared<BunchStateHandler>();
@@ -151,7 +151,7 @@ namespace opalx::spacecharge {
             auto poisson       = makePoissonSolver(
                     poissonConfig, {&workspace.chargeDensity(), &workspace.electricField()});
 
-            CartesianPICConfig values;
+            CartesianPIC3DConfig values;
             values.backend                         = PoissonSolverType::None;
             values.grid.meshSize                   = domainConfig.meshSize;
             values.grid.decomposition              = domainConfig.decomposition;
@@ -195,11 +195,11 @@ namespace opalx::spacecharge {
             EXPECT_FALSE(secondary->isMomentsDirty());
         }
 
-        TEST_F(CartesianPICComponentsTest, CartesianAlgorithmRetainsAndClearsFixedMesh) {
+        TEST_F(CartesianPIC3DComponentsTest, CartesianAlgorithmRetainsAndClearsFixedMesh) {
             auto domainConfig          = storage();
             domainConfig.decomposition = {true, true, true};
             CartesianDomain<double, 3> domain(domainConfig);
-            auto fieldStorage   = std::make_unique<CartesianPICFieldStorage<double, 3>>(domain);
+            auto fieldStorage   = std::make_unique<CartesianPIC3DFieldStorage<double, 3>>(domain);
             auto* fieldObserver = fieldStorage.get();
 
             auto bunchState = std::make_shared<BunchStateHandler>();
@@ -226,13 +226,13 @@ namespace opalx::spacecharge {
             const Vector_t<double, 3> originalMean = particles->getMeanR();
 
             std::vector<Container*> particleContainers{particles.get()};
-            CartesianPICConfig values;
+            CartesianPIC3DConfig values;
             values.backend                         = PoissonSolverType::Open;
             values.grid.meshSize                   = domainConfig.meshSize;
             values.grid.decomposition              = domainConfig.decomposition;
             values.grid.boundingBoxIncreasePercent = 10.0;
             DataSink dataSink;
-            CartesianPICAlgorithm algorithm(
+            CartesianPIC3DAlgorithm algorithm(
                     values, particleContainers, std::move(fieldStorage), &dataSink, bunchState);
 
             const std::array<double, 3> fixedLower{-1.0, -1.5, -2.0};

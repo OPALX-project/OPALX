@@ -2,7 +2,7 @@
 
 #include "PartBunch/CartesianDomain.h"
 #include "Physics/Physics.h"
-#include "SpaceCharge/CartesianPIC/CartesianPICFieldStorage.h"
+#include "SpaceCharge/CartesianPIC3D/CartesianPIC3DFieldStorage.h"
 #include "SpaceCharge/Poisson/NullPoissonAdapter.h"
 #include "SpaceCharge/Poisson/OpenPoissonAdapter.h"
 #include "SpaceCharge/Poisson/P3MAdapters.h"
@@ -16,7 +16,7 @@
 namespace opalx::spacecharge {
     namespace {
 
-        using Fields = CartesianPICFieldStorage<double, 3>;
+        using Fields = CartesianPIC3DFieldStorage<double, 3>;
 
         struct BackendCase {
             PoissonSolverType type;

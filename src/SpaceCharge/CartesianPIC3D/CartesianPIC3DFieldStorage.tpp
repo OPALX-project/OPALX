@@ -1,10 +1,10 @@
 /**
- * @file CartesianPICFieldStorage.tpp
- * @brief Implements persistent Cartesian PIC field storage.
+ * @file CartesianPIC3DFieldStorage.tpp
+ * @brief Implements persistent CartesianPIC3D field storage.
  */
 
-#ifndef OPALX_SPACE_CHARGE_CARTESIAN_PIC_FIELD_STORAGE_TPP
-#define OPALX_SPACE_CHARGE_CARTESIAN_PIC_FIELD_STORAGE_TPP
+#ifndef OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_FIELD_STORAGE_TPP
+#define OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_FIELD_STORAGE_TPP
 
 #include "Utilities/OpalException.h"
 
@@ -13,15 +13,16 @@
 namespace opalx::spacecharge {
 
     template <typename T, unsigned Dim>
-    CartesianPICFieldStorage<T, Dim>::CartesianPICFieldStorage(Domain& domain) : domain_m(domain) {}
+    CartesianPIC3DFieldStorage<T, Dim>::CartesianPIC3DFieldStorage(Domain& domain)
+        : domain_m(domain) {}
 
     template <typename T, unsigned Dim>
-    void CartesianPICFieldStorage<T, Dim>::initializeFields(PoissonSolverType solverType) {
-        Inform m("CartesianPICFieldStorage::initializeFields");
+    void CartesianPIC3DFieldStorage<T, Dim>::initializeFields(PoissonSolverType solverType) {
+        Inform m("CartesianPIC3DFieldStorage::initializeFields");
         if (fieldsInitialized_m) {
             throw OpalException(
-                    "CartesianPICFieldStorage::initializeFields",
-                    "The Cartesian PIC fields are already initialized.");
+                    "CartesianPIC3DFieldStorage::initializeFields",
+                    "The CartesianPIC3D fields are already initialized.");
         }
 
         m << level3 << "Mesh spacing = " << mesh().getMeshSpacing() << endl;
@@ -43,11 +44,11 @@ namespace opalx::spacecharge {
     }
 
     template <typename T, unsigned Dim>
-    void CartesianPICFieldStorage<T, Dim>::updateFieldLayoutsAfterLayoutChange() {
+    void CartesianPIC3DFieldStorage<T, Dim>::updateFieldLayoutsAfterLayoutChange() {
         if (!fieldsInitialized_m) {
             throw OpalException(
-                    "CartesianPICFieldStorage::updateFieldLayoutsAfterLayoutChange",
-                    "The Cartesian PIC fields must be initialized before a layout refresh.");
+                    "CartesianPIC3DFieldStorage::updateFieldLayoutsAfterLayoutChange",
+                    "The CartesianPIC3D fields must be initialized before a layout refresh.");
         }
 
         // updateLayout() reallocates Kokkos views. Complete work using the previous field storage
@@ -66,13 +67,13 @@ namespace opalx::spacecharge {
     }
 
     template <typename T, unsigned Dim>
-    typename CartesianPICFieldStorage<T, Dim>::VectorField&
-    CartesianPICFieldStorage<T, Dim>::mirrorScratchFor(const VectorField& source) {
+    typename CartesianPIC3DFieldStorage<T, Dim>::VectorField&
+    CartesianPIC3DFieldStorage<T, Dim>::mirrorScratchFor(const VectorField& source) {
         const bool incompatible = &flippedZSlabField_m.getLayout() != &source.getLayout()
                                   || flippedZSlabField_m.getNghost() != source.getNghost();
         if (incompatible) {
             throw OpalException(
-                    "CartesianPICFieldStorage::mirrorScratchFor",
+                    "CartesianPIC3DFieldStorage::mirrorScratchFor",
                     "Persistent mirror scratch does not match the source field layout.");
         }
         return flippedZSlabField_m;
@@ -80,4 +81,4 @@ namespace opalx::spacecharge {
 
 }  // namespace opalx::spacecharge
 
-#endif  // OPALX_SPACE_CHARGE_CARTESIAN_PIC_FIELD_STORAGE_TPP
+#endif  // OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_FIELD_STORAGE_TPP

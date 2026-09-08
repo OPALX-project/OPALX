@@ -1,11 +1,11 @@
 /**
  * @file RelativisticFieldComposer.cpp
- * @brief Implements Cartesian PIC field conversion, accumulation, and final gather operations.
+ * @brief Implements CartesianPIC3D field conversion, accumulation, and final gather operations.
  */
 
-#include "SpaceCharge/CartesianPIC/RelativisticFieldComposer.h"
+#include "SpaceCharge/CartesianPIC3D/RelativisticFieldComposer.h"
 #include "Physics/Physics.h"
-#include "SpaceCharge/CartesianPIC/FieldMirror.hpp"
+#include "SpaceCharge/CartesianPIC3D/FieldMirror.hpp"
 #include "Utilities/OpalException.h"
 
 namespace opalx::spacecharge {

@@ -410,10 +410,10 @@ void TrackRun::execute() {
     // immutable snapshot and never borrow FieldSolverCmd or EmissionSource objects.
     auto spaceChargeConfig =
             opalx::spacecharge::buildSpaceChargeConfig(*fs_m, emissionSourcesLists);
-    opalx::spacecharge::CorrectionConfig spaceChargeCorrection;
+    opalx::spacecharge::DirichletPlaneConfig dirichletPlane;
     if (const auto* cartesian =
-                std::get_if<opalx::spacecharge::CartesianPICConfig>(&spaceChargeConfig)) {
-        spaceChargeCorrection = cartesian->correction;
+                std::get_if<opalx::spacecharge::CartesianPIC3DConfig>(&spaceChargeConfig)) {
+        dirichletPlane = cartesian->dirichletPlane;
     }
     const auto cartesianDomainConfig =
             opalx::spacecharge::makeCartesianDomainConfig(spaceChargeConfig);
@@ -542,8 +542,8 @@ void TrackRun::execute() {
 
     */
     itsTracker_m = std::make_unique<ParallelTracker>(
-            *Track::block->use->fetchLine(), *bunch_m, *spaceChargeSolver_m, spaceChargeCorrection,
-            ds_m, false, Track::block->localTimeSteps, Track::block->zstart, Track::block->zstop,
+            *Track::block->use->fetchLine(), *bunch_m, *spaceChargeSolver_m, dirichletPlane, ds_m,
+            false, Track::block->localTimeSteps, Track::block->zstart, Track::block->zstop,
             Track::block->dT, emittingSamplersList, isRestart,
             static_cast<unsigned long long>(restartMetadata.globalTrackStep), restartMetadata.dt,
             StepSizeConfig::ResumePosition{

@@ -1,9 +1,9 @@
 /**
  * @file ParticleMeshFieldTransfer.cpp
- * @brief Implements Cartesian PIC CIC deposition and gathering.
+ * @brief Implements CartesianPIC3D CIC deposition and gathering.
  */
 
-#include "SpaceCharge/CartesianPIC/ParticleMeshFieldTransfer.h"
+#include "SpaceCharge/CartesianPIC3D/ParticleMeshFieldTransfer.h"
 #include "Interpolation/CIC.h"
 #include "Utilities/OpalException.h"
 

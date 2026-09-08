@@ -3,9 +3,9 @@
 #include "PartBunch/BunchStateHandler.h"
 #include "PartBunch/CartesianDomain.h"
 #include "PartBunch/ParticleContainer.hpp"
-#include "SpaceCharge/CartesianPIC/CartesianPICFieldStorage.h"
-#include "SpaceCharge/CartesianPIC/ParticleMeshFieldTransfer.h"
-#include "SpaceCharge/CartesianPIC/RelativisticFieldComposer.h"
+#include "SpaceCharge/CartesianPIC3D/CartesianPIC3DFieldStorage.h"
+#include "SpaceCharge/CartesianPIC3D/ParticleMeshFieldTransfer.h"
+#include "SpaceCharge/CartesianPIC3D/RelativisticFieldComposer.h"
 #include "SpaceCharge/Poisson/P3MAdapters.h"
 #include "Utilities/Options.h"
 
@@ -15,7 +15,7 @@
 namespace opalx::spacecharge {
     namespace {
 
-        class CartesianPICFieldsTest : public ::testing::Test {
+        class CartesianPIC3DFieldsTest : public ::testing::Test {
         protected:
             static void SetUpTestSuite() {
                 int argc    = 0;
@@ -33,10 +33,10 @@ namespace opalx::spacecharge {
             }
         };
 
-        TEST_F(CartesianPICFieldsTest, TransferRestoresImageStateAndGathersVectorField) {
+        TEST_F(CartesianPIC3DFieldsTest, TransferRestoresImageStateAndGathersVectorField) {
             Options::useQMAttributes = false;
             CartesianDomain<double, 3> domain(storage());
-            CartesianPICFieldStorage<double, 3> fields(domain);
+            CartesianPIC3DFieldStorage<double, 3> fields(domain);
             fields.initializeFields(PoissonSolverType::None);
 
             using Container = ::ParticleContainer<double, 3>;
@@ -107,9 +107,9 @@ namespace opalx::spacecharge {
             }
         }
 
-        TEST_F(CartesianPICFieldsTest, ComposerHandlesDirectAndMirroredSources) {
+        TEST_F(CartesianPIC3DFieldsTest, ComposerHandlesDirectAndMirroredSources) {
             CartesianDomain<double, 3> domain(storage());
-            CartesianPICFieldStorage<double, 3> fields(domain);
+            CartesianPIC3DFieldStorage<double, 3> fields(domain);
             fields.initializeFields(PoissonSolverType::Open);
 
             auto source = fields.electricField().getHostMirror();
@@ -156,7 +156,7 @@ namespace opalx::spacecharge {
             EXPECT_DOUBLE_EQ(mirrored(ghost, ghost, ghost)[2], source(ghost, ghost, mirroredK)[2]);
         }
 
-        TEST_F(CartesianPICFieldsTest, P3MShortRangeProducesFinitePairField) {
+        TEST_F(CartesianPIC3DFieldsTest, P3MShortRangeProducesFinitePairField) {
             auto setup          = storage();
             setup.layoutType    = ParticleLayoutType::SpatialOverlap;
             setup.overlapCutoff = 0.5;

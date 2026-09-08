@@ -17,8 +17,8 @@ namespace opalx::spacecharge {
             }
         };
 
-        CartesianPICConfig p3mConfig(FieldBoundaryCondition boundary) {
-            CartesianPICConfig config;
+        CartesianPIC3DConfig p3mConfig(FieldBoundaryCondition boundary) {
+            CartesianPIC3DConfig config;
             config.backend            = PoissonSolverType::P3M;
             config.p3mCutoff          = 0.025;
             config.boundaryConditions = {boundary, boundary, boundary};
@@ -51,8 +51,8 @@ namespace opalx::spacecharge {
             config.binning.emplace();
             EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(config)), OpalException);
 
-            config            = p3mConfig(FieldBoundaryCondition::Open);
-            config.correction = {.kind = SpaceChargeCorrectionType::ImageCharge};
+            config                = p3mConfig(FieldBoundaryCondition::Open);
+            config.dirichletPlane = {.kind = DirichletPlaneType::ImageCharge};
             EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(config)), OpalException);
         }
 
@@ -75,30 +75,30 @@ namespace opalx::spacecharge {
             EXPECT_FALSE(domain.periodicParticleBoundary);
         }
 
-        TEST(SpaceChargeConfigTest, RejectsUnsupportedCorrectionCombinations) {
-            CartesianPICConfig shifted;
-            shifted.backend         = PoissonSolverType::Open;
-            shifted.correction.kind = SpaceChargeCorrectionType::ShiftedGreen;
+        TEST(SpaceChargeConfigTest, RejectsUnsupportedDirichletPlaneCombinations) {
+            CartesianPIC3DConfig shifted;
+            shifted.backend             = PoissonSolverType::Open;
+            shifted.dirichletPlane.kind = DirichletPlaneType::ShiftedGreen;
             EXPECT_NO_THROW(validateSpaceChargeConfig(SpaceChargeConfig(shifted)));
 
             shifted.binning.emplace();
             EXPECT_NO_THROW(validateSpaceChargeConfig(SpaceChargeConfig(shifted)));
 
-            CartesianPICConfig binnedDump;
+            CartesianPIC3DConfig binnedDump;
             binnedDump.backend = PoissonSolverType::Open;
             binnedDump.binning.emplace();
-            binnedDump.correction.kind               = SpaceChargeCorrectionType::ImageCharge;
-            binnedDump.correction.planeDumpFrequency = 1;
+            binnedDump.dirichletPlane.kind               = DirichletPlaneType::ImageCharge;
+            binnedDump.dirichletPlane.planeDumpFrequency = 1;
             EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(binnedDump)), OpalException);
         }
 
         TEST(SpaceChargeConfigTest, RejectsInvalidEnumValues) {
-            CartesianPICConfig cartesian;
+            CartesianPIC3DConfig cartesian;
             cartesian.backend = static_cast<PoissonSolverType>(255);
             EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(cartesian)), OpalException);
 
-            cartesian                 = {};
-            cartesian.correction.kind = static_cast<SpaceChargeCorrectionType>(255);
+            cartesian                     = {};
+            cartesian.dirichletPlane.kind = static_cast<DirichletPlaneType>(255);
             EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(cartesian)), OpalException);
 
             FFT2D5Config fft2d5;
@@ -141,9 +141,9 @@ namespace opalx::spacecharge {
         }
 
         TEST(SpaceChargeConfigTest, ShiftedGreenIsIndependentOfBinningAndKernelDiscretization) {
-            CartesianPICConfig config;
-            config.backend         = PoissonSolverType::Open;
-            config.correction.kind = SpaceChargeCorrectionType::ShiftedGreen;
+            CartesianPIC3DConfig config;
+            config.backend             = PoissonSolverType::Open;
+            config.dirichletPlane.kind = DirichletPlaneType::ShiftedGreen;
             for (auto green : {GreenFunctionType::Standard, GreenFunctionType::Integrated}) {
                 config.greenFunction = green;
                 config.binning.reset();
@@ -165,11 +165,12 @@ namespace opalx::spacecharge {
             EXPECT_THROW((void)buildSpaceChargeConfig(command, {}), OpalException);
             command.setType("OPEN");
             EXPECT_EQ(command.getFieldSolverCmdType(), FieldSolverCmdType::OPEN);
-            const auto snapshot = std::get<CartesianPICConfig>(buildSpaceChargeConfig(command, {}));
+            const auto snapshot =
+                    std::get<CartesianPIC3DConfig>(buildSpaceChargeConfig(command, {}));
             command.setNX(16);
             EXPECT_EQ(snapshot.grid.meshSize[0], 8u);
             EXPECT_EQ(
-                    std::get<CartesianPICConfig>(buildSpaceChargeConfig(command, {}))
+                    std::get<CartesianPIC3DConfig>(buildSpaceChargeConfig(command, {}))
                             .grid.meshSize[0],
                     16u);
         }

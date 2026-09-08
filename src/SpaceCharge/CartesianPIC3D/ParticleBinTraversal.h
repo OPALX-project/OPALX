@@ -3,11 +3,11 @@
  * @brief Adaptive and fixed PIC bin traversal.
  */
 
-#ifndef OPALX_SPACE_CHARGE_CARTESIAN_PIC_PARTICLE_BIN_TRAVERSAL_H
-#define OPALX_SPACE_CHARGE_CARTESIAN_PIC_PARTICLE_BIN_TRAVERSAL_H
+#ifndef OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_PARTICLE_BIN_TRAVERSAL_H
+#define OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_PARTICLE_BIN_TRAVERSAL_H
 
 // Complete ParticleContainer field aliases before loading the legacy AdaptBins header.
-#include "SpaceCharge/CartesianPIC/ParticleMeshFieldTransfer.h"
+#include "SpaceCharge/CartesianPIC3D/ParticleMeshFieldTransfer.h"
 
 #include "PartBunch/Binning/AdaptBins.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
@@ -104,4 +104,4 @@ namespace opalx::spacecharge {
 
 }  // namespace opalx::spacecharge
 
-#endif  // OPALX_SPACE_CHARGE_CARTESIAN_PIC_PARTICLE_BIN_TRAVERSAL_H
+#endif  // OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_PARTICLE_BIN_TRAVERSAL_H

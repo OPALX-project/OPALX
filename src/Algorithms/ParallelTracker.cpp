@@ -72,7 +72,7 @@ ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
     : Tracker(beamline, revBeam, false),
       itsDataSink_m(),
       spaceChargeSolver_m(nullptr),
-      spaceChargeCorrection_m(),
+      dirichletPlane_m(),
       spaceChargeContainerActivity_m(),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
       globalEOL_m(false),
@@ -94,7 +94,7 @@ ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
 ParallelTracker::ParallelTracker(
         const Beamline& beamline, PartBunch_t& bunch,
         opalx::spacecharge::SpaceChargeSolver& spaceChargeSolver,
-        opalx::spacecharge::CorrectionConfig correction, DataSink* ds, bool revBeam,
+        opalx::spacecharge::DirichletPlaneConfig dirichletPlane, DataSink* ds, bool revBeam,
         const std::vector<unsigned long long>& maxSteps, double sStart,
         const std::vector<double>& sStop, const std::vector<double>& dt,
         const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers,
@@ -103,7 +103,7 @@ ParallelTracker::ParallelTracker(
     : Tracker(beamline, bunch, revBeam, false),
       itsDataSink_m(ds),
       spaceChargeSolver_m(&spaceChargeSolver),
-      spaceChargeCorrection_m(std::move(correction)),
+      dirichletPlane_m(std::move(dirichletPlane)),
       spaceChargeContainerActivity_m(),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
       globalEOL_m(false),
@@ -800,7 +800,7 @@ ParallelTracker::SpaceChargeEmissionProgress ParallelTracker::spaceChargeEmissio
     SpaceChargeEmissionProgress progress;
     const double currentTime = itsBunch_m->getT();
 
-    // While emission is active, Cartesian PIC stretches its beam-frame mesh over the full source
+    // While emission is active, CartesianPIC3D stretches its beam-frame mesh over the full source
     // pulse length, matching old OPAL. For example, 5 percent emission produces approximately a
     // factor-20 longitudinal stretch. Without it, early charge is compressed onto an artificially
     // short mesh and can receive excessive self-field kicks, including kicks back into the source.
@@ -1117,11 +1117,11 @@ size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
     }
 
     using namespace opalx::spacecharge;
-    if (spaceChargeCorrection_m.kind == SpaceChargeCorrectionType::None) {
+    if (dirichletPlane_m.kind == DirichletPlaneType::None) {
         return 0;
     }
 
-    const double sourcePlaneZ = spaceChargeCorrection_m.planeZ;
+    const double sourcePlaneZ = dirichletPlane_m.planeZ;
     // Legacy OPAL's SOURCE element is 5 cm long and is shifted upstream from ELEMEDGE.
     // Source::apply deletes only once a particle crosses the element-local entrance plane
     // (Rz <= 0), not when it crosses the cathode/image plane at ELEMEDGE.

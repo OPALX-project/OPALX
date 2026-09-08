@@ -1,16 +1,16 @@
 /**
- * @file CartesianPICAlgorithm.h
- * @brief Cartesian 3D PIC space-charge algorithm.
+ * @file CartesianPIC3DAlgorithm.h
+ * @brief CartesianPIC3D space-charge algorithm.
  */
 
-#ifndef OPALX_SPACE_CHARGE_CARTESIAN_PIC_ALGORITHM_H
-#define OPALX_SPACE_CHARGE_CARTESIAN_PIC_ALGORITHM_H
+#ifndef OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_ALGORITHM_H
+#define OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_ALGORITHM_H
 
-#include "SpaceCharge/CartesianPIC/CartesianDomainUpdater.h"
-#include "SpaceCharge/CartesianPIC/CartesianPICFieldStorage.h"
-#include "SpaceCharge/CartesianPIC/ParticleBinTraversal.h"
-#include "SpaceCharge/CartesianPIC/ParticleMeshFieldTransfer.h"
-#include "SpaceCharge/CartesianPIC/RelativisticFieldComposer.h"
+#include "SpaceCharge/CartesianPIC3D/CartesianDomainUpdater.h"
+#include "SpaceCharge/CartesianPIC3D/CartesianPIC3DFieldStorage.h"
+#include "SpaceCharge/CartesianPIC3D/ParticleBinTraversal.h"
+#include "SpaceCharge/CartesianPIC3D/ParticleMeshFieldTransfer.h"
+#include "SpaceCharge/CartesianPIC3D/RelativisticFieldComposer.h"
 #include "SpaceCharge/Poisson/P3MAdapters.h"
 #include "SpaceCharge/Poisson/PoissonSolver.h"
 #include "SpaceCharge/SpaceChargeAlgorithm.h"
@@ -31,9 +31,9 @@ class BunchStateHandler;
 namespace opalx::spacecharge {
 
     /**
-     * @brief Orchestrates Cartesian 3D PIC field solves.
+     * @brief Orchestrates CartesianPIC3D field solves.
      *
-     * The first particle container is the primary. Cartesian PIC computes self-fields only for it;
+     * The first particle container is the primary. CartesianPIC3D computes self-fields only for it;
      * other containers retain E/B and are included in reference-layout updates.
      *
      * R/P/E/B enter and return in tracker axes. A nontrivial solve transforms the primary into beam
@@ -44,17 +44,17 @@ namespace opalx::spacecharge {
      * Particle containers, the data sink, and bunch state are borrowed. Field storage, the Poisson
      * solver, and orchestration helpers are owned.
      */
-    class CartesianPICAlgorithm final : public SpaceChargeAlgorithm {
+    class CartesianPIC3DAlgorithm final : public SpaceChargeAlgorithm {
     public:
         using ParticleContainer             = ::ParticleContainer<double, 3>;
-        using FieldStorage                  = CartesianPICFieldStorage<double, 3>;
+        using FieldStorage                  = CartesianPIC3DFieldStorage<double, 3>;
         using ParticleBinTraversalType      = ParticleBinTraversal;
         using ParticleBinType               = ParticleBin;
         using ParticleMeshTransfer          = ParticleMeshFieldTransfer;
         using RelativisticFieldComposerType = RelativisticFieldComposer;
 
-        CartesianPICAlgorithm(
-                CartesianPICConfig config, std::span<ParticleContainer* const> particles,
+        CartesianPIC3DAlgorithm(
+                CartesianPIC3DConfig config, std::span<ParticleContainer* const> particles,
                 std::unique_ptr<FieldStorage> fieldStorage, DataSink* dataSink,
                 std::shared_ptr<const BunchStateHandler> bunchState);
 
@@ -66,8 +66,8 @@ namespace opalx::spacecharge {
         struct SolvePlan {
             std::array<PassKind, 2> passes{};
             std::size_t passCount = 0;
-            CorrectionConfig activeCorrection;
-            bool correctionExpired = false;
+            DirichletPlaneConfig activeDirichletPlane;
+            bool dirichletPlaneExpired = false;
         };
 
         struct PassProperties {
@@ -113,7 +113,7 @@ namespace opalx::spacecharge {
                 const SpaceChargeSolveContext& context, const std::string& solveTag, double planeZ);
         void printBinStatsTable() const;
 
-        CartesianPICConfig config_m;
+        CartesianPIC3DConfig config_m;
         ParticleContainer* primary_m = nullptr;
         std::shared_ptr<const BunchStateHandler> bunchState_m;
         std::unique_ptr<FieldStorage> fieldStorage_m;
@@ -130,4 +130,4 @@ namespace opalx::spacecharge {
 
 }  // namespace opalx::spacecharge
 
-#endif  // OPALX_SPACE_CHARGE_CARTESIAN_PIC_ALGORITHM_H
+#endif  // OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_ALGORITHM_H

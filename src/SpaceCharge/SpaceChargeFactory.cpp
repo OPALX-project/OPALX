@@ -3,7 +3,7 @@
 #include "SpaceCharge/SpaceChargeFactory.h"
 
 #include "PartBunch/PartBunch.h"
-#include "SpaceCharge/CartesianPIC/CartesianPICAlgorithm.h"
+#include "SpaceCharge/CartesianPIC3D/CartesianPIC3DAlgorithm.h"
 #include "SpaceCharge/FFT2D5/FFT2D5Algorithm.h"
 #include "Utilities/OpalException.h"
 
@@ -31,15 +31,15 @@ namespace opalx::spacecharge {
         std::unique_ptr<SpaceChargeAlgorithm> algorithm = std::visit(
                 [&](auto selected) -> std::unique_ptr<SpaceChargeAlgorithm> {
                     using Config = std::decay_t<decltype(selected)>;
-                    if constexpr (std::is_same_v<Config, CartesianPICConfig>) {
+                    if constexpr (std::is_same_v<Config, CartesianPIC3DConfig>) {
                         if (selected.backend == PoissonSolverType::ConjugateGradient) {
                             throw OpalException(
                                     "makeSpaceChargeSolver",
                                     "The CG Poisson backend is recognized but not implemented.");
                         }
-                        return std::make_unique<CartesianPICAlgorithm>(
+                        return std::make_unique<CartesianPIC3DAlgorithm>(
                                 std::move(selected), particles,
-                                std::make_unique<CartesianPICFieldStorage<double, 3>>(
+                                std::make_unique<CartesianPIC3DFieldStorage<double, 3>>(
                                         bunch.cartesianDomain()),
                                 dataSink, bunchState);
                     } else if constexpr (std::is_same_v<Config, FFT2D5Config>) {

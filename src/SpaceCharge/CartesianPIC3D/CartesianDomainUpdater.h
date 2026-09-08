@@ -1,6 +1,6 @@
 /**
  * @file CartesianDomainUpdater.h
- * @brief Cartesian PIC geometry, migration, and redistribution updates.
+ * @brief CartesianPIC3D geometry, migration, and redistribution updates.
  */
 
 #ifndef OPALX_SPACE_CHARGE_CARTESIAN_DOMAIN_UPDATER_H
@@ -8,7 +8,7 @@
 
 #include "PartBunch/BunchStateHandler.h"
 #include "PartBunch/ParticleContainer.hpp"
-#include "SpaceCharge/CartesianPIC/CartesianPICFieldStorage.h"
+#include "SpaceCharge/CartesianPIC3D/CartesianPIC3DFieldStorage.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
 #include "SpaceCharge/SpaceChargeSolveContext.h"
 
@@ -34,12 +34,12 @@ namespace opalx::spacecharge {
     class CartesianDomainUpdater final {
     public:
         using ParticleContainer = ::ParticleContainer<double, 3>;
-        using FieldStorage      = CartesianPICFieldStorage<double, 3>;
+        using FieldStorage      = CartesianPIC3DFieldStorage<double, 3>;
         using Orb               = ippl::OrthogonalRecursiveBisection<Field<double, 3>, double>;
         using FixedDomain       = BunchStateHandler::FixedCartesianDomainState;
 
         CartesianDomainUpdater(
-                CartesianPICConfig config, std::span<ParticleContainer* const> particles);
+                CartesianPIC3DConfig config, std::span<ParticleContainer* const> particles);
 
         CartesianDomainUpdater(const CartesianDomainUpdater&)            = delete;
         CartesianDomainUpdater& operator=(const CartesianDomainUpdater&) = delete;
@@ -54,7 +54,7 @@ namespace opalx::spacecharge {
          */
         [[nodiscard]] bool updateForSolve(
                 DomainCoordinateFrame frame, const SpaceChargeSolveContext& context,
-                const CorrectionConfig& correction, const FixedDomain* fixedDomain,
+                const DirichletPlaneConfig& dirichletPlane, const FixedDomain* fixedDomain,
                 FieldStorage& fieldStorage, PoissonSolver& poissonSolver);
 
     private:
@@ -64,8 +64,10 @@ namespace opalx::spacecharge {
         [[nodiscard]] bool isRedistributionBlocked(
                 std::span<const std::uint8_t> trackingActive) const;
         [[nodiscard]] bool loadIsImbalanced(double threshold);
-        [[nodiscard]] FieldStorage::Extents targetExtents(const CorrectionConfig& correction) const;
-        void extendImageBounds(CartesianBounds& bounds, const CorrectionConfig& correction) const;
+        [[nodiscard]] FieldStorage::Extents targetExtents(
+                const DirichletPlaneConfig& dirichletPlane) const;
+        void extendImageBounds(
+                CartesianBounds& bounds, const DirichletPlaneConfig& dirichletPlane) const;
         void expandBounds(
                 CartesianBounds& bounds, bool applyEmissionStretch, double emittedFraction,
                 std::size_t longitudinalExtent) const;
@@ -75,7 +77,7 @@ namespace opalx::spacecharge {
                 const SpaceChargeSolveContext& context, FieldStorage& fieldStorage);
         [[nodiscard]] ParticleContainer& primary() const { return *particles_m.front(); }
 
-        CartesianPICConfig config_m;
+        CartesianPIC3DConfig config_m;
         std::vector<ParticleContainer*> particles_m;
         Orb orb_m;
         std::vector<int> rankFlags_m;

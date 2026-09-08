@@ -179,7 +179,7 @@ namespace opalx::spacecharge {
             return values;
         }
 
-        CorrectionConfig buildCorrectionConfig(
+        DirichletPlaneConfig buildDirichletPlaneConfig(
                 const std::vector<std::vector<EmissionSource*>>& emissionSources) {
             bool enableImageCharge      = false;
             bool enableShiftedGreens    = false;
@@ -252,24 +252,24 @@ namespace opalx::spacecharge {
                         "SpaceChargeConfigBuilder::build",
                         "Cannot have more than one emission source with "
                         "SHIFTED_GREENS_FUNCTION=true, since the shifted Green's function "
-                        "correction is only implemented for one plane.");
+                        "Dirichlet boundary condition is only implemented for one plane.");
             }
             if (enableImageCharge && enableShiftedGreens) {
                 throw OpalException(
                         "SpaceChargeConfigBuilder::build",
                         "Cannot have ZEROFACE_R0Z=true on one EMISSIONSOURCE and "
                         "SHIFTED_GREENS_FUNCTION=true on another; the two "
-                        "Dirichlet-correction paths are mutually exclusive at the run level.");
+                        "Dirichlet-plane methods are mutually exclusive at the run level.");
             }
             if (dumpFrequency < 0 || maximumSteps < 0) {
                 throw OpalException(
                         "buildSpaceChargeConfig",
-                        "Source-plane dump frequency and maximum steps must not be negative.");
+                        "Dirichlet-plane dump frequency and maximum steps must not be negative.");
             }
-            CorrectionConfig values;
-            values.kind               = enableImageCharge ? SpaceChargeCorrectionType::ImageCharge
-                                        : enableShiftedGreens ? SpaceChargeCorrectionType::ShiftedGreen
-                                                              : SpaceChargeCorrectionType::None;
+            DirichletPlaneConfig values;
+            values.kind               = enableImageCharge     ? DirichletPlaneType::ImageCharge
+                                        : enableShiftedGreens ? DirichletPlaneType::ShiftedGreen
+                                                              : DirichletPlaneType::None;
             values.planeZ             = planeZ;
             values.planeDumpFrequency = static_cast<std::size_t>(dumpFrequency);
             values.maximumSteps       = static_cast<std::size_t>(maximumSteps);
@@ -315,11 +315,11 @@ namespace opalx::spacecharge {
                         "FFT2D5 transverse Poisson slices are OPEN. Use CLOSEDRING for "
                         "longitudinal periodicity and PIPEMODE for the longitudinal-field model.");
             }
-            const CorrectionConfig correction = buildCorrectionConfig(emissionSources);
-            if (correction.enabled()) {
+            const DirichletPlaneConfig dirichletPlane = buildDirichletPlaneConfig(emissionSources);
+            if (dirichletPlane.enabled()) {
                 throw OpalException(
                         "SpaceChargeConfigBuilder::build",
-                        "FFT2D5 does not support source-plane corrections.");
+                        "FFT2D5 does not support Dirichlet planes.");
             }
             FFT2D5Config values;
             values.grid                  = grid;
@@ -335,7 +335,7 @@ namespace opalx::spacecharge {
             return config;
         }
 
-        CartesianPICConfig values;
+        CartesianPIC3DConfig values;
         values.grid                       = grid;
         values.backend                    = convertPoissonSolverType(solverType);
         values.layoutRebuildDecomposition = usesLongitudinalResizeDecomposition(emissionSources)
@@ -348,7 +348,7 @@ namespace opalx::spacecharge {
         values.repartitionFrequency =
                 Options::repartFreq > 0 ? static_cast<std::size_t>(Options::repartFreq) : 0;
         values.loadBalancingThreshold = Options::loadBalancingThreshold;
-        values.correction             = buildCorrectionConfig(emissionSources);
+        values.dirichletPlane         = buildDirichletPlaneConfig(emissionSources);
 
         SpaceChargeConfig config = std::move(values);
         validateSpaceChargeConfig(config);

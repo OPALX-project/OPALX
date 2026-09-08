@@ -21,9 +21,9 @@
 class BunchStateHandler {
 public:
     /**
-     * @brief Persistent fixed bounds for Cartesian PIC solves.
+     * @brief Persistent fixed bounds for CartesianPIC3D solves.
      *
-     * Bounds use metres in the Cartesian PIC solve frame. This state is bunch-wide rather than
+     * Bounds use metres in the CartesianPIC3D solve frame. This state is bunch-wide rather than
      * tied to a particle container, and remains active until explicitly cleared.
      */
     struct FixedCartesianDomainState {
@@ -51,7 +51,7 @@ public:
     std::shared_ptr<ContainerState> registerContainer();
 
     /**
-     * @brief Activate fixed Cartesian PIC bounds.
+     * @brief Activate fixed CartesianPIC3D bounds.
      *
      * Reapplying identical bounds is idempotent. Active bounds must be cleared before they can be
      * replaced. This host-side operation is collective by contract: every MPI rank must call it
@@ -63,7 +63,7 @@ public:
     void setFixedCartesianDomain(std::array<double, 3> lower, std::array<double, 3> upper);
 
     /**
-     * @brief Return to domain-following Cartesian PIC behavior on the next solve.
+     * @brief Return to domain-following CartesianPIC3D behavior on the next solve.
      *
      * This host-side operation is collective by contract and must be called on every MPI rank.
      */

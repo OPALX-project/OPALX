@@ -61,15 +61,14 @@ FieldSolverCmd::FieldSolverCmd()
             Attributes::makeBool("PARFFTZ", "True, dimension 2 i.e z is parallelized", true);
 
     itsAttr[FIELDSOLVER::BCFFTX] = Attributes::makePredefinedString(
-            "BCFFTX",
-            "Poisson-domain boundary in x; source-plane corrections are configured separately.",
+            "BCFFTX", "Poisson-domain boundary in x; Dirichlet planes are configured separately.",
             {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN");
 
     itsAttr[FIELDSOLVER::BCFFTY] = Attributes::makePredefinedString(
             "BCFFTY", "Poisson-domain boundary in y.", {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN");
 
     itsAttr[FIELDSOLVER::BCFFTZ] = Attributes::makePredefinedString(
-            "BCFFTZ", "Poisson-domain boundary in z; distinct from a source-plane correction.",
+            "BCFFTZ", "Poisson-domain boundary in z; distinct from a Dirichlet plane.",
             {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN");
 
     itsAttr[FIELDSOLVER::GREENSF] = Attributes::makePredefinedString(
