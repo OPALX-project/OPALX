@@ -17,12 +17,15 @@
 
 namespace opalx::spacecharge {
 
+    /** @brief Charge-density input and electric-field output borrowed by a Poisson adapter. */
     struct PoissonFieldBinding {
         Field_t<3>* chargeDensity          = nullptr;
         VField_t<double, 3>* electricField = nullptr;
     };
 
+    /** @brief Per-call options that can change the Poisson kernel. */
     struct PoissonSolveRequest {
+        /** @brief Green-function displacement in metres in the current mesh axes. */
         std::optional<ippl::Vector<double, 3>> greenFunctionShift;
 
         [[nodiscard]] bool hasShiftedGreenFunction() const {
@@ -30,10 +33,12 @@ namespace opalx::spacecharge {
         }
     };
 
+    /** @brief Per-call diagnostic options. */
     struct PoissonSolveOptions {
         bool suppressFieldDump = false;
     };
 
+    /** @brief Backend properties used by deposition and diagnostics. */
     struct PoissonSolverCapabilities {
         bool isNoOp                         = false;
         bool supportsShiftedGreenFunction   = false;
@@ -47,9 +52,8 @@ namespace opalx::spacecharge {
     /**
      * @brief Host-side lifecycle shared by concrete 3D IPPL Poisson adapters.
      *
-     * Fields are borrowed for the adapter lifetime. Request validation, diagnostics and warmup
-     * are shared; native setup and solving belong to the adapters. Exceptions terminate the run
-     * and leave transient backend and field state unspecified.
+     * The adapter borrows its fields. This base class handles validation, diagnostics, warmup, and
+     * layout rebuilds; concrete adapters configure and run the native solver.
      */
     class PoissonSolver {
     public:
@@ -60,14 +64,18 @@ namespace opalx::spacecharge {
         PoissonSolver(PoissonSolver&&)                 = delete;
         PoissonSolver& operator=(PoissonSolver&&)      = delete;
 
+        /** @brief Run the native solver with the requested kernel and diagnostics. */
         void solve(
                 const PoissonSolveRequest& request = {}, const PoissonSolveOptions& options = {});
+        /** @brief Run a zero-RHS planning solve without advancing diagnostic numbering. */
         void warmup();
+        /** @brief Rebind fields and rebuild native resources after a layout change. */
         void rebuildAfterLayoutChange(PoissonFieldBinding fields);
 
         [[nodiscard]] virtual std::string_view name() const                         = 0;
         [[nodiscard]] virtual const PoissonSolverCapabilities& capabilities() const = 0;
-        [[nodiscard]] virtual double couplingConstant() const                       = 0;
+        /** @brief Charge-normalization factor required by the native backend. */
+        [[nodiscard]] virtual double couplingConstant() const = 0;
 
     protected:
         PoissonSolver(
@@ -75,9 +83,7 @@ namespace opalx::spacecharge {
                 PoissonSolverType expectedType);
 
         virtual void solveImpl(const PoissonSolveRequest& request) = 0;
-        /** @brief Reconstruct native resources in place and bind RHS before LHS.
-         *  @note Called from the concrete constructor or after the shared rebuild fence.
-         */
+        /** @brief Reconstruct native resources and bind RHS before LHS. */
         virtual void rebuildImpl(PoissonFieldBinding fields) = 0;
 
         const PoissonSolverConfig config_m;

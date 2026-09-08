@@ -1,6 +1,6 @@
 /**
  * @file CartesianPICAlgorithm.h
- * @brief Declares the complete Cartesian 3D PIC space-charge algorithm.
+ * @brief Cartesian 3D PIC space-charge algorithm.
  */
 
 #ifndef OPALX_SPACE_CHARGE_CARTESIAN_PIC_ALGORITHM_H
@@ -31,20 +31,18 @@ class BunchStateHandler;
 namespace opalx::spacecharge {
 
     /**
-     * @brief Owns all runtime orchestration for the existing Cartesian 3D PIC algorithm.
+     * @brief Orchestrates Cartesian 3D PIC field solves.
      *
-     * The algorithm borrows stable particle containers and a data sink while owning its field
-     * storage, Poisson solver, and all 3D orchestration components. It never retains PartBunch,
-     * parser objects, per-call transforms, or native Kokkos views. The common solve() boundary is
-     * always the tracker frame and explicit frame helpers restore R/E/B after successful solves.
+     * The first particle container is the primary. Cartesian PIC computes self-fields only for it;
+     * other containers retain E/B and are included in reference-layout updates.
      *
-     * Each solve transforms primary positions to the beam frame, updates geometry/layouts, deposits
-     * charge, invokes the configured backend passes, gathers and composes fields, then restores
-     * primary R/E/B to the tracker frame. Normal mode skips the beam-frame update when the global
-     * primary count is at most one, but still rebuilds the reference-frame domain and migrates
-     * every container. Fixed-domain mode migrates only the primary, keeps the beam-frame
-     * mesh and decomposition for BeamBeam reuse, and recomputes its restored-coordinate moments
-     * without a second migration.
+     * R/P/E/B enter and return in tracker axes. A nontrivial solve transforms the primary into beam
+     * axes, updates the mesh and layout, deposits charge, solves, gathers fields, and transforms
+     * back. Empty and single-particle primaries skip the field solve. Fixed-domain mode retains the
+     * beam-frame mesh and migrates only the primary for @c BeamBeam reuse.
+     *
+     * Particle containers, the data sink, and bunch state are borrowed. Field storage, the Poisson
+     * solver, and orchestration helpers are owned.
      */
     class CartesianPICAlgorithm final : public SpaceChargeAlgorithm {
     public:

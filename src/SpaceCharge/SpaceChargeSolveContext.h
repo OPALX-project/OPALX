@@ -6,10 +6,11 @@
 #ifndef OPALX_SPACE_CHARGE_SOLVE_CONTEXT_H
 #define OPALX_SPACE_CHARGE_SOLVE_CONTEXT_H
 
+#include "Algorithms/CoordinateSystemTrafo.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <span>
-#include "Algorithms/CoordinateSystemTrafo.h"
 
 namespace opalx::spacecharge {
 
@@ -21,20 +22,20 @@ namespace opalx::spacecharge {
 
     /** @brief Tracker state captured for one space-charge solve. */
     struct SpaceChargeStepState {
-        std::size_t step       = 0;
-        double time            = 0.0;
-        double timeStep        = 0.0;
+        std::size_t step       = 0;    ///< Global tracker step.
+        double time            = 0.0;  ///< Tracker time in seconds.
+        double timeStep        = 0.0;  ///< Tracker time step in seconds.
         bool emissionActive    = false;
-        double emittedFraction = 1.0;
-        int mpiSize            = 1;
+        double emittedFraction = 1.0;  ///< Least-complete active source fraction in [0, 1].
+        int mpiSize            = 1;    ///< Active communicator size.
         CoordinateFrameTransforms frames;
     };
 
     /**
-     * @brief Borrowed container activity and immutable state for one space-charge call.
+     * @brief Per-container activity and tracker state for one space-charge call.
      *
-     * Concrete algorithms borrow stable particle containers at construction. The context therefore
-     * carries only per-step tracker state and one activity byte per container.
+     * @c trackingActive[i] corresponds to the ith particle container supplied at construction;
+     * zero means inactive. The activity span is borrowed for the call.
      */
     class SpaceChargeSolveContext {
     public:

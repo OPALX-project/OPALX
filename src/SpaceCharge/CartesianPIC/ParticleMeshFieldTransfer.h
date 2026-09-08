@@ -1,6 +1,6 @@
 /**
  * @file ParticleMeshFieldTransfer.h
- * @brief Declares CIC charge deposition and field gathering for Cartesian PIC.
+ * @brief CIC charge deposition and field gathering for Cartesian PIC.
  */
 
 #ifndef OPALX_SPACE_CHARGE_PARTICLE_MESH_FIELD_TRANSFER_H
@@ -14,14 +14,10 @@
 namespace opalx::spacecharge {
 
     /**
-     * @brief Stateless host-side facade over the IPPL CIC scatter/gather operations.
+     * @brief Performs IPPL CIC scatter and gather operations without retaining views.
      *
-     * Particle attributes and fields are borrowed for the duration of one call. The operation
-     * never retains native Kokkos views, so callers may safely reacquire attributes after a
-     * particle migration before invoking it again. Charge deposition temporarily mutates
-     * particle @c dt and, for an image pass, @c R and @c Q; each mutation is restored on the
-     * successful path. Exceptions are terminal and leave temporary state unspecified.
-     *
+     * Deposition temporarily uses @c dt as the charge weight. Image deposition also reflects @c R
+     * and negates @c Q. These particle attributes are restored on success.
      */
     class ParticleMeshFieldTransfer final {
     public:
@@ -44,10 +40,9 @@ namespace opalx::spacecharge {
         enum class GatherMode { Replace, Add };
 
         /**
-         * @brief Borrowed direct or hash-indexed particle selection.
+         * @brief Selects a contiguous range or maps policy indices through a hash.
          *
-         * The hash allocation, when present, must remain valid until depositCharge() returns.
-         * A selection never owns particle storage and must not survive a particle migration.
+         * An indexed hash is borrowed and becomes invalid after particle migration.
          */
         struct Selection {
             enum class Kind { Direct, Indexed };
@@ -75,18 +70,17 @@ namespace opalx::spacecharge {
             Hash hash_m;
         };
 
-        /** @brief Value policy controlling temporary image-charge mutation. */
+        /** @brief Image plane for one deposition pass, in metres in solve axes. */
         struct ImagePolicy {
             bool enabled  = false;
             double planeZ = 0.0;
         };
 
         /**
-         * @brief Values used to convert deposited @c dt*Q weights into charge density.
+         * @brief Converts deposited @c dt*Q weights to the backend's charge convention.
          *
-         * @c selectedCharge is the global primary charge represented by the selection. It is
-         * used only for the periodic neutralizing background. Mesh spacing and physical volume
-         * are read from the borrowed field storage.
+         * @c selectedCharge is the selection's global charge and is used only for the periodic
+         * neutralizing background.
          */
         struct ChargeNormalization {
             double timeStep                     = 0.0;
@@ -97,13 +91,7 @@ namespace opalx::spacecharge {
             bool subtractNeutralizingBackground = false;
         };
 
-        /**
-         * @brief Clear rho, deposit the requested charge source, and normalize it in place.
-         *
-         * Whole-bunch and bin-restricted work share this entry point. A direct selection that
-         * spans all local particles uses IPPL's all-particle scatter overload; all other direct
-         * and indexed selections use its custom-policy overload.
-         */
+        /** @brief Clear rho, deposit the selected charge source, and normalize it in place. */
         void depositCharge(
                 ParticleContainer& particles, FieldStorage& fieldStorage, DepositKind depositKind,
                 const Selection& selection, const ChargeNormalization& normalization,

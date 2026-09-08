@@ -102,7 +102,7 @@ namespace opalx::spacecharge {
         };
     }  // namespace detail
 
-    /** @brief Focused host-side owner of P3M short-range interaction parameters. */
+    /** @brief Applies the short-range particle contribution of P3M. */
     class P3MShortRangeInteraction final {
     public:
         using ParticleContainer = ::ParticleContainer<double, 3>;

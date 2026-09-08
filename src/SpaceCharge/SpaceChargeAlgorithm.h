@@ -1,6 +1,6 @@
 /**
  * @file SpaceChargeAlgorithm.h
- * @brief Common host-side interface implemented by space-charge algorithms.
+ * @brief Tracker-facing interface for space-charge algorithms.
  */
 
 #ifndef OPALX_SPACE_CHARGE_ALGORITHM_H
@@ -12,19 +12,14 @@
 
 namespace opalx::spacecharge {
 
-    /** @brief Completed work and tracker-facing state from one solve. */
+    /** @brief Work completed by one space-charge update. */
     struct SpaceChargeSolveResult {
-        std::size_t backendSolves   = 0;
-        std::size_t redistributions = 0;
-        int reportedBins            = 1;
+        std::size_t backendSolves   = 0;  ///< Completed Poisson backend calls.
+        std::size_t redistributions = 0;  ///< Completed ORB redistributions.
+        int reportedBins = 1;  ///< Bin count reported to tracker diagnostics for this step.
     };
 
-    /**
-     * @brief Run-lifetime space-charge algorithm selected during setup.
-     *
-     * Implementations may own meshes, field solvers, and persistent device scratch. Meshless or
-     * tree algorithms implement this interface directly rather than entering Cartesian PIC.
-     */
+    /** @brief Run-lifetime space-charge algorithm selected during setup. */
     class SpaceChargeAlgorithm {
     public:
         virtual ~SpaceChargeAlgorithm() = default;
@@ -32,19 +27,12 @@ namespace opalx::spacecharge {
         /**
          * @brief Compute one configured space-charge update.
          *
-         * R (metres), normalized momentum P (beta*gamma), E (V/m), and B (tesla) use tracker
-         * axes on entry and return. Successful calls replace E/B on participating containers,
-         * including zero fields for NONE, and preserve R/P/Q/dt apart from roundoff and particle
-         * permutation/migration. Cartesian PIC participates with the primary container; FFT2D5
-         * uses tracking-active containers. Other containers' field values are preserved.
+         * R (metres), normalized P (beta-gamma), E (V/m), and B (tesla) use tracker axes on entry
+         * and return. A successful call replaces E/B on participating containers and preserves
+         * R/P/Q/dt, apart from roundoff and particle reordering during migration. TYPE=NONE returns
+         * zero self-fields.
          *
-         * The context is borrowed only for this call. Spatial frame changes rotate P with R;
-         * algorithm-specific Lorentz transformations are separate. Layout migration invalidates
-         * native device views, which must be reacquired before later kernels.
-         *
-         * Exceptions propagate to the run-level handler and are terminal for the current run.
-         * Temporary particle, mesh, field, backend, and frame state is unspecified after failure;
-         * implementations do not provide rollback or retry guarantees.
+         * @note Particle migration invalidates cached device views.
          */
         [[nodiscard]] virtual SpaceChargeSolveResult solve(
                 const SpaceChargeSolveContext& context) = 0;

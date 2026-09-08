@@ -1,6 +1,6 @@
 /**
  * @file CartesianDomainUpdater.h
- * @brief Declares Cartesian PIC geometry, migration, and redistribution updates.
+ * @brief Cartesian PIC geometry, migration, and redistribution updates.
  */
 
 #ifndef OPALX_SPACE_CHARGE_CARTESIAN_DOMAIN_UPDATER_H
@@ -21,8 +21,10 @@ namespace opalx::spacecharge {
 
     class PoissonSolver;
 
+    /** @brief Coordinate frame used to compute the next particle and mesh domain. */
     enum class DomainCoordinateFrame { Beam, Reference };
 
+    /** @brief Axis-aligned domain bounds in metres in the selected coordinate frame. */
     struct CartesianBounds {
         ippl::Vector<double, 3> lower{0.0};
         ippl::Vector<double, 3> upper{0.0};
@@ -45,8 +47,10 @@ namespace opalx::spacecharge {
         /**
          * @brief Update geometry and ownership for one solve phase.
          *
-         * Beam-frame updates use only the primary container. Reference-frame updates restore all
-         * containers to one shared tracker-frame layout. Fixed bounds apply only to the beam phase.
+         * Beam-frame updates use only the first (primary) container. Reference-frame updates place
+         * all containers on one tracker-frame layout. Fixed bounds apply only in the beam frame.
+         *
+         * @return Whether ORB changed the particle decomposition.
          */
         [[nodiscard]] bool updateForSolve(
                 DomainCoordinateFrame frame, const SpaceChargeSolveContext& context,

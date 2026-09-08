@@ -205,9 +205,7 @@ namespace opalx::spacecharge {
 
     void PoissonSolver::rebuildAfterLayoutChange(PoissonFieldBinding fields) {
         requireCommonFields(fields, "PoissonSolver::rebuildAfterLayoutChange");
-        // Layout refresh can resize device fields while the previous FFT still owns buffers and
-        // plans for the old extents. Complete that work before destroying the typed backend, then
-        // reconstruct it so IPPL allocates matching internal fields as well as a matching plan.
+        // Finish work using the old extents before rebuilding fields and FFT plans.
         Kokkos::fence();
         rebuildImpl(fields);
         fields_m = fields;
