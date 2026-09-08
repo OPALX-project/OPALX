@@ -25,56 +25,62 @@ namespace opalx::spacecharge {
     enum class BinningVariable : std::uint8_t { VelocityZ, PositionZ, MomentumZ, GammaZ };
     enum class FFT2D5LongitudinalFieldMode : std::uint8_t { Open, Cylindrical, Plates, None };
 
+    /** @brief Backend-independent settings for a 3D Poisson solve. */
     struct PoissonSolverConfig {
         PoissonSolverType type          = PoissonSolverType::None;
         GreenFunctionType greenFunction = GreenFunctionType::Integrated;
-        double p3mCutoff                = 0.0;
+        double p3mCutoff                = 0.0;  ///< P3M cutoff radius in metres; otherwise zero.
         std::array<FieldBoundaryCondition, 3> boundaryConditions{
                 FieldBoundaryCondition::Open, FieldBoundaryCondition::Open,
                 FieldBoundaryCondition::Open};
     };
 
+    /** @brief Cartesian mesh extents, MPI decomposition, and particle-bound margin. */
     struct CartesianGridConfig {
-        std::array<std::size_t, 3> meshSize{8, 8, 8};
-        std::array<bool, 3> decomposition{true, true, true};
-        double boundingBoxIncreasePercent = 2.0;
+        std::array<std::size_t, 3> meshSize{8, 8, 8};         ///< Grid points per axis.
+        std::array<bool, 3> decomposition{true, true, true};  ///< Distributed MPI axes.
+        double boundingBoxIncreasePercent = 2.0;  ///< Particle-span percentage added per side.
     };
 
     /** @brief Source-plane field correction; planeZ is in metres in the Cartesian solve frame. */
     struct CorrectionConfig {
         SpaceChargeCorrectionType kind = SpaceChargeCorrectionType::None;
         double planeZ                  = 0.0;
-        std::size_t planeDumpFrequency = 0;
-        std::size_t maximumSteps       = 0;
+        std::size_t planeDumpFrequency = 0;  ///< Steps between plane dumps; zero disables them.
+        std::size_t maximumSteps       = 0;  ///< Number of corrected steps; zero never expires.
 
         [[nodiscard]] bool enabled() const { return kind != SpaceChargeCorrectionType::None; }
     };
 
+    /** @brief Particle binning and its diagnostics. */
     struct BinningConfig {
-        std::string name;
-        std::size_t maximumBins   = 128;
-        double desiredWidth       = 0.1;
-        double alpha              = 1.0;
-        double beta               = 1.5;
+        std::string name;                 ///< BINNING definition name used in diagnostics.
+        std::size_t maximumBins   = 128;  ///< Initial uniform histogram size.
+        double desiredWidth       = 0.1;  ///< Target normalized width in the merge cost.
+        double alpha              = 1.0;  ///< Weight penalizing wide bins.
+        double beta               = 1.5;  ///< Weight penalizing deviation from desiredWidth.
         BinningVariable parameter = BinningVariable::VelocityZ;
-        bool adaptive             = true;
+        bool adaptive             = true;  ///< Merge the initial uniform histogram.
         std::string dumpFile;
-        std::size_t dumpFrequency       = 1;
-        std::size_t tablePrintFrequency = 10;
+        std::size_t dumpFrequency       = 1;   ///< Steps between JSON snapshots.
+        std::size_t tablePrintFrequency = 10;  ///< Steps between console tables.
     };
 
+    /** @brief Complete runtime configuration for Cartesian PIC. */
     struct CartesianPICConfig {
         CartesianGridConfig grid;
         PoissonSolverType backend = PoissonSolverType::None;
+        /** @brief MPI decomposition used after mesh resize; absent uses grid.decomposition. */
         std::optional<std::array<bool, 3>> layoutRebuildDecomposition;
         std::array<FieldBoundaryCondition, 3> boundaryConditions{
                 FieldBoundaryCondition::Open, FieldBoundaryCondition::Open,
                 FieldBoundaryCondition::Open};
         GreenFunctionType greenFunction = GreenFunctionType::Integrated;
-        double p3mCutoff                = 0.0;
+        double p3mCutoff                = 0.0;  ///< P3M cutoff radius in metres.
         std::optional<BinningConfig> binning;
-        std::size_t repartitionFrequency = 0;
-        double loadBalancingThreshold    = 0.05;
+        std::size_t repartitionFrequency = 0;  ///< Steps between ORB checks; zero disables them.
+        /** @brief Per-rank count deviation, divided by global count, that triggers ORB. */
+        double loadBalancingThreshold = 0.05;
         CorrectionConfig correction;
 
         [[nodiscard]] const std::array<bool, 3>& layoutDecomposition() const {
@@ -96,10 +102,14 @@ namespace opalx::spacecharge {
 
     using SpaceChargeConfig = std::variant<CartesianPICConfig, FFT2D5Config>;
 
+    /** @brief Reject unsupported or inconsistent Poisson settings. */
     void validatePoissonSolverConfig(const PoissonSolverConfig& config);
+    /** @brief Extract Poisson settings from Cartesian PIC configuration. */
     [[nodiscard]] PoissonSolverConfig makePoissonSolverConfig(const CartesianPICConfig& config);
 
+    /** @brief Reject unsupported or inconsistent space-charge settings. */
     void validateSpaceChargeConfig(const SpaceChargeConfig& config);
+    /** @brief Derive the initial PartBunch Cartesian domain settings. */
     [[nodiscard]] CartesianDomainConfig3D makeCartesianDomainConfig(
             const SpaceChargeConfig& config);
 

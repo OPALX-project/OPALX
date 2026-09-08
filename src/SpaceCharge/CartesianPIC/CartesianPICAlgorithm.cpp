@@ -72,8 +72,7 @@ namespace opalx::spacecharge {
         if (config_m.backend == PoissonSolverType::P3M) {
             shortRangeInteraction_m.emplace(config.p3mCutoff);
         }
-        // Preserve the construction-time planning solve, but reset the Poisson solver's runtime
-        // count so diagnostics and debug-file numbering begin with the first physical solve.
+        // Plan the backend now; runtime diagnostic numbering begins with the first physical solve.
         poissonSolver_m->warmup();
     }
 
@@ -152,9 +151,8 @@ namespace opalx::spacecharge {
             }
         }
         clearSelfFields(*primary_m);
-        // A globally empty or single-particle primary has no self-field solve. Its following
-        // domain would collapse and can violate P3M's overlap cutoff before the solve is skipped.
-        // Fixed bounds remain valid and still need to be applied even for these trivial bunches.
+        // Skip trivial self-fields before a collapsed domain can violate P3M's overlap cutoff.
+        // Fixed bounds remain valid and must still be applied.
         if (fixedDomain || primary_m->getTotalNum() > 1) {
             enterSolveFrame(context.stepState().frames, *primary_m);
             result.redistributions += domainUpdater_m.updateForSolve(
@@ -166,8 +164,7 @@ namespace opalx::spacecharge {
             leaveSolveFrame(context.stepState().frames, *primary_m);
         }
         if (fixedDomain) {
-            // Keep the fixed beam-frame mesh and decomposition for the next interaction. Only the
-            // restored primary coordinates changed, so refresh moments without migrating them.
+            // Retain the beam-frame layout for reuse and refresh the restored primary moments.
             primary_m->markMomentsDirty();
             primary_m->updateMoments();
         } else {
@@ -189,14 +186,11 @@ namespace opalx::spacecharge {
             return;
         }
 
-        // Use the global count because early emission can leave this rank empty while another rank
-        // owns the only emitted particle. A single global charge has no space-charge field here.
+        // The global count handles early-emission ranks that own no particles.
         if (primary_m->getTotalNum() <= 1) {
             return;
         }
-        // Deposition temporarily stores dt*Q in the particle time-step attribute. Reject Q=0
-        // before that operation because restoring dt would otherwise evaluate 0/0 and leave NaNs
-        // for later passes. In practice this nearly always indicates a missing BEAM BCHARGE.
+        // Deposition restores dt by dividing dt*Q by Q, so reject zero charge first.
         if (primary_m->getChargePerParticle() == 0.0) {
             throw OpalException(
                     "CartesianPICAlgorithm::solveInBeamFrame",
@@ -267,8 +261,6 @@ namespace opalx::spacecharge {
                 && !config_m.binning->dumpFile.empty() && config_m.binning->dumpFrequency > 0
                 && step % static_cast<long long>(config_m.binning->dumpFrequency) == 0;
 
-        // A pre-merge snapshot records the freshly rebuilt histogram. Adaptive binning supplies a
-        // second snapshot after merging; fixed binning deliberately has no post-merge snapshot.
         const BinPreparationResult prepared = particleBinTraversal_m->prepareBins(captureSnapshots);
         if (prepared.beforeMerge.has_value()) {
             dumpBinSnapshot(context, *prepared.beforeMerge, true);
@@ -340,9 +332,7 @@ namespace opalx::spacecharge {
         auto stretchedSpacing           = originalSpacing;
         const double gamma              = unit == nullptr ? 1.0 : unit->gamma;
 
-        // Each binned Poisson solve is performed in the bin rest frame. Stretching the
-        // longitudinal mesh spacing by gamma applies the Lorentz contraction convention used by
-        // the legacy solver; the original spacing is restored after successful composition.
+        // Stretch z by gamma for the bin-rest-frame solve, following the legacy convention.
         stretchedSpacing[2] *= gamma;
 
         PoissonSolveRequest poissonRequest;
@@ -425,8 +415,7 @@ namespace opalx::spacecharge {
                     "The solve-unit all-local flag does not match its indexed selection.");
         }
 
-        // A merged bin often covers every local particle during early emission. Use the direct
-        // scatter path in that case to avoid dereferencing the bin hash in the hot kernel.
+        // Avoid hash indirection when the bin covers every local particle.
         const char* depositName = "PrimaryAndImage";
         if (pass.depositKind == ParticleMeshTransfer::DepositKind::Primary) {
             depositName = "PrimaryOnly";

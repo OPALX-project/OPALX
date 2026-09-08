@@ -1,6 +1,6 @@
 /**
  * @file ParticleBinTraversal.h
- * @brief Declares persistent adaptive or fixed PIC bin traversal.
+ * @brief Adaptive and fixed PIC bin traversal.
  */
 
 #ifndef OPALX_SPACE_CHARGE_CARTESIAN_PIC_PARTICLE_BIN_TRAVERSAL_H
@@ -22,6 +22,7 @@
 
 namespace opalx::spacecharge {
 
+    /** @brief Host snapshot of bin bounds, widths, and particle counts. */
     struct BinConfigurationSnapshot final {
         using size_type = ippl::detail::size_type;
 
@@ -30,6 +31,7 @@ namespace opalx::spacecharge {
         std::vector<double> widths;
     };
 
+    /** @brief Prepared bin count and optional snapshots around adaptive merging. */
     struct BinPreparationResult final {
         std::size_t mergedBinCount = 0;
         std::optional<BinConfigurationSnapshot> beforeMerge;
@@ -60,11 +62,10 @@ namespace opalx::spacecharge {
     };
 
     /**
-     * @brief Reuses AdaptBins to prepare and lazily traverse globally nonempty merged bins.
+     * @brief Prepares and traverses globally nonempty bins through AdaptBins.
      *
-     * prepareBins() owns the full rebin and optional host snapshots. nextNonemptyBin() performs
-     * one rank-synchronous empty-bin query at a time and returns no external epoch or lifetime
-     * token.
+     * Call prepareBins() once per solve, then call nextNonemptyBin() collectively until it returns
+     * @c std::nullopt.
      */
     class ParticleBinTraversal final {
     public:
@@ -85,7 +86,9 @@ namespace opalx::spacecharge {
         [[nodiscard]] const std::string& diagnosticName() const { return config_m.name; }
         [[nodiscard]] std::size_t maximumBinCount() const { return config_m.maximumBins; }
 
+        /** @brief Rebuild bins, optionally capture host snapshots, and reset traversal. */
         [[nodiscard]] BinPreparationResult prepareBins(bool captureSnapshots);
+        /** @brief Collectively return the next globally nonempty bin. */
         [[nodiscard]] std::optional<Unit> nextNonemptyBin();
 
     private:

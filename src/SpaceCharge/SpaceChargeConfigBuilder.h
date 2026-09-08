@@ -12,6 +12,7 @@ class FieldSolverCmd;
 
 namespace opalx::spacecharge {
 
+    /** @brief Convert parser objects and emission sources into validated runtime configuration. */
     [[nodiscard]] SpaceChargeConfig buildSpaceChargeConfig(
             const FieldSolverCmd& fieldSolver,
             const std::vector<std::vector<EmissionSource*>>& emissionSources);

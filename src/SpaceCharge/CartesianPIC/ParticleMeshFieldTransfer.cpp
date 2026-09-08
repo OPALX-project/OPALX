@@ -174,10 +174,8 @@ namespace opalx::spacecharge {
 
     void ParticleMeshFieldTransfer::normalizeChargeDensity(
             FieldStorage& fieldStorage, const ChargeNormalization& normalization) const {
-        // The deposited weight is dt*Q. Divide by the global time step, cell volume when required,
-        // and the bin gamma to recover the charge-density convention expected by the Poisson
-        // solver. P3M retains volume normalization but deliberately skips the periodic
-        // neutralizing background.
+        // Convert dt*Q to the backend charge convention using dt, bin gamma, and cell volume.
+        // P3M uses volume normalization without a periodic neutralizing background.
         if (!std::isfinite(normalization.timeStep) || normalization.timeStep == 0.0
             || !std::isfinite(normalization.gamma) || normalization.gamma < 1.0) {
             throw OpalException(

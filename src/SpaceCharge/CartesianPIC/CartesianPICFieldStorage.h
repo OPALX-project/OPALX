@@ -1,6 +1,6 @@
 /**
  * @file CartesianPICFieldStorage.h
- * @brief Declares persistent field and Cartesian-domain storage for a PIC solve.
+ * @brief Persistent field and Cartesian-domain storage for a PIC solve.
  */
 
 #ifndef OPALX_SPACE_CHARGE_CARTESIAN_PIC_FIELD_STORAGE_H

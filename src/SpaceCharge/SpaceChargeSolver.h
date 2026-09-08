@@ -37,12 +37,7 @@ namespace opalx::spacecharge {
         SpaceChargeSolver(SpaceChargeSolver&&)                 = delete;
         SpaceChargeSolver& operator=(SpaceChargeSolver&&)      = delete;
 
-        /**
-         * @brief Validate per-container activity and dispatch one tracker step.
-         *
-         * Exceptions are terminal for the current run. Once dispatch begins, transient particle,
-         * mesh, field, frame, and backend state is unspecified if an operation throws.
-         */
+        /** @brief Validate per-container activity and dispatch one tracker step. */
         void solve(const SpaceChargeSolveContext& context) {
             if (context.trackingActive().size() != particleContainerCount_m) {
                 throw OpalException(

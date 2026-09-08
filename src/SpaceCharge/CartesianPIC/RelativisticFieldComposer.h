@@ -1,6 +1,6 @@
 /**
  * @file RelativisticFieldComposer.h
- * @brief Declares Cartesian PIC field conversion, accumulation, and final gather operations.
+ * @brief Cartesian PIC field conversion, accumulation, and final gathering.
  */
 
 #ifndef OPALX_SPACE_CHARGE_CARTESIAN_PIC_RELATIVISTIC_FIELD_COMPOSER_H
@@ -19,11 +19,10 @@ namespace opalx::spacecharge {
     enum class FieldSourceRule : std::uint8_t { Direct, ShiftedGreenImageZ };
 
     /**
-     * @brief Device-safe value policy for one backend-field contribution.
+     * @brief Lorentz-conversion settings for one backend-field contribution.
      *
-     * Momentum is normalized as beta-gamma in the Cartesian solve axes. The magnetic sign remains
-     * independent of the source rule because the explicit image-charge and shifted-Green paths
-     * share the same magnetic sign convention while obtaining their electric samples differently.
+     * Mean momentum uses beta-gamma units in Cartesian solve axes. @c magneticSign is independent
+     * of the field reflection selected by @c sourceRule.
      */
     struct FieldCompositionPolicy final {
         std::array<double, 3> meanMomentum{};
@@ -35,16 +34,9 @@ namespace opalx::spacecharge {
     static_assert(std::is_trivially_copyable_v<FieldCompositionPolicy>);
 
     /**
-     * @brief Converts electrostatic backend output to unboosted fields in the Cartesian solve axes
-     * and gathers final results.
+     * @brief Converts and accumulates backend fields in Cartesian solve axes, then gathers them.
      *
-     * The composer owns no fields or particle data. Persistent accumulation and mirror scratch
-     * live in @c CartesianPICFieldStorage. Gather operations delegate interpolation to @c
-     * ParticleMeshFieldTransfer; the composer only chooses the source fields and replace semantics.
-     *
-     * All methods enclosing device kernels are public for CUDA builds. Device lambdas capture
-     * only current views, scalar values, and small vector values obtained after the latest
-     * particle or field-layout change.
+     * Fields and particle data are borrowed; persistent scratch lives in CartesianPICFieldStorage.
      */
     class RelativisticFieldComposer final {
     public:
@@ -56,6 +48,8 @@ namespace opalx::spacecharge {
         using VectorAttribute      = typename ParticleMeshTransfer::VectorAttribute;
         using Policy               = FieldCompositionPolicy;
 
+        // CUDA requires functions enclosing device lambdas to be public.
+
         /** @brief Clear the persistent electric and magnetic accumulators in the Cartesian solve
          * axes. */
         void clearAccumulation(FieldStorage& fieldStorage) const;
@@ -63,27 +57,17 @@ namespace opalx::spacecharge {
         /**
          * @brief Lorentz-convert and add one backend electric-field contribution.
          *
-         * @c Direct reads the backend field at the current cell. @c ShiftedGreenImageZ first
-         * builds a global z-mirror in persistent scratch, then applies the image-field component
-         * signs before the same Lorentz conversion. Contributions are added in call order.
+         * ShiftedGreenImageZ mirrors the field in z and applies image-field component signs first.
+         * Contributions are added in call order.
          */
         void accumulate(FieldStorage& fieldStorage, const Policy& policy) const;
 
-        /**
-         * @brief Replace a writable particle electric field with the electrostatic backend field.
-         *
-         * Interpolation is delegated to @c ParticleMeshFieldTransfer with replace semantics.
-         */
+        /** @brief Replace a particle electric field with gathered backend values. */
         void gatherElectrostatic(
                 ParticleMeshTransfer& particleMeshTransfer, VectorAttribute& destination,
                 const PositionAttribute& positions, FieldStorage& fieldStorage) const;
 
-        /**
-         * @brief Replace writable particle E/B fields with the persistent accumulated fields.
-         *
-         * Electric interpolation is completed before magnetic interpolation, preserving the
-         * existing final-gather order.
-         */
+        /** @brief Replace particle E/B with gathered accumulated fields. */
         void gatherAccumulated(
                 ParticleMeshTransfer& particleMeshTransfer, VectorAttribute& electricDestination,
                 VectorAttribute& magneticDestination, const PositionAttribute& positions,
