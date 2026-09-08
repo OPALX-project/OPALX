@@ -28,22 +28,28 @@
 #include <cmath>
 
 #include "Utilities/GSLCompat.h"
+#include "Utilities/GeneralOpalException.h"
 
 #include "AbsBeamline/EndFieldModel/Tanh.h"
+#include "AbsBeamline/EndFieldModel/CompactVector.h"
 
 namespace endfieldmodel {
 
-    std::vector<std::vector<std::vector<int> > > Tanh::_tdi;
-
-    Tanh::Tanh(double x0, double lambda, int max_index) : _x0(x0), _lambda(lambda) {
-        setTanhDiffIndices(max_index);
-    }
-
-    Tanh::~Tanh() {}
 
     Tanh* Tanh::clone() const { return new Tanh(*this); }
 
-    double Tanh::getTanh(double x, int n) const {
+    std::ostream& Tanh::print(std::ostream& out) const {
+        out << "Tanh model with centre length: " << _impl.getX0() << " end length: " << _impl.getLambda();
+        return out;
+    }
+
+    std::vector<std::vector<std::vector<int> > > TanhImpl::_tdi;
+
+    TanhImpl::TanhImpl(double x0, double lambda, int max_index) : _x0(x0), _lambda(lambda) {
+        setTanhDiffIndices(max_index);
+    }
+
+    double TanhImpl::getTanh(double x, int n) const {
         if (n == 0) return tanh((x + _x0) / _lambda);
         double t      = 0;
         double lam_n  = gsl_sf_pow_int(_lambda, n);
@@ -54,7 +60,7 @@ namespace endfieldmodel {
         return t;
     }
 
-    double Tanh::getNegTanh(double x, int n) const {
+    double TanhImpl::getNegTanh(double x, int n) const {
         if (n == 0) return tanh((x - _x0) / _lambda);
         double t      = 0;
         double lam_n  = gsl_sf_pow_int(_lambda, n);
@@ -65,11 +71,11 @@ namespace endfieldmodel {
         return t;
     }
 
-    double Tanh::function(double x, int n) const { return (getTanh(x, n) - getNegTanh(x, n)) / 2.; }
+    double TanhImpl::function(double x, int n) const { return (getTanh(x, n) - getNegTanh(x, n)) / 2.; }
 
-    void Tanh::setMaximumDerivative(size_t n) { setTanhDiffIndices(n); }
+    void TanhImpl::setMaximumDerivative(size_t n) { setTanhDiffIndices(n); }
 
-    void Tanh::setTanhDiffIndices(size_t n) {
+    void TanhImpl::setTanhDiffIndices(size_t n) {
         _tdi.reserve(n + 1);
         if (_tdi.size() == 0) {
             _tdi.push_back(std::vector<std::vector<int> >(1, std::vector<int>(2)));
@@ -95,18 +101,14 @@ namespace endfieldmodel {
         }
     }
 
-    std::vector<std::vector<int> > Tanh::getTanhDiffIndices(size_t n) {
+    std::vector<std::vector<int> > TanhImpl::getTanhDiffIndices(size_t n) {
         setTanhDiffIndices(n);
         return _tdi[n];
     }
 
-    void Tanh::rescale(double scaleFactor) {
+    void TanhImpl::rescale(double scaleFactor) {
         _x0 *= scaleFactor;
         _lambda *= scaleFactor;
     }
 
-    std::ostream& Tanh::print(std::ostream& out) const {
-        out << "Tanh model with centre length: " << _x0 << " end length: " << _lambda;
-        return out;
-    }
 }  // namespace endfieldmodel

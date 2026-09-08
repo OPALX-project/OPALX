@@ -26,36 +26,13 @@
  */
 
 #include "AbsBeamline/EndFieldModel/EndFieldModel.h"
+#include "Utilities/GeneralOpalException.h"
+
 #include <algorithm>
 #include <map>
 #include <sstream>
-#include "Utilities/GeneralOpalException.h"
+
 
 namespace endfieldmodel {
-
-    bool GreaterThan(std::vector<int> v1, std::vector<int> v2) {
-        size_t n1(v1.size()), n2(v2.size());
-        for (size_t i = 0; i < n1 && i < n2; ++i) {
-            if (v1[n1 - 1 - i] > v2[n2 - 1 - i]) return true;
-            if (v1[n1 - 1 - i] < v2[n2 - 1 - i]) return false;
-        }
-        return false;
-    }
-
-    std::vector<std::vector<int> > CompactVector(std::vector<std::vector<int> > vec) {
-        // first sort the list
-        std::sort(vec.begin(), vec.end(), GreaterThan);
-        // now look for n = n+1
-        for (size_t j = 0; j < vec.size() - 1; ++j) {
-            while (j < vec.size() - 1
-                   && IterableEquality(
-                           vec[j].begin() + 1, vec[j].end(), vec[j + 1].begin() + 1,
-                           vec[j + 1].end())) {
-                vec[j][0] += vec[j + 1][0];
-                vec.erase(vec.begin() + j + 1);
-            }
-        }
-        return vec;
-    }
 
 }  // namespace endfieldmodel
