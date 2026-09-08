@@ -2,7 +2,6 @@ set (_SRCS
     SpaceChargeConfig.cpp
     SpaceChargeConfigBuilder.cpp
     SpaceChargeFactory.cpp
-    SpaceChargeSolver.cpp
     SpaceChargeSolveContext.cpp
     )
 
