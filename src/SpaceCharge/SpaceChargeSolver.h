@@ -7,6 +7,7 @@
 #define OPALX_SPACE_CHARGE_SOLVER_H
 
 #include "SpaceCharge/SpaceChargeAlgorithm.h"
+#include "Utilities/OpalException.h"
 
 #include <cstddef>
 #include <memory>
@@ -17,8 +18,19 @@ namespace opalx::spacecharge {
     class SpaceChargeSolver {
     public:
         SpaceChargeSolver(
-                std::unique_ptr<SpaceChargeAlgorithm> algorithm,
-                std::size_t particleContainerCount);
+                std::unique_ptr<SpaceChargeAlgorithm> algorithm, std::size_t particleContainerCount)
+            : algorithm_m(std::move(algorithm)), particleContainerCount_m(particleContainerCount) {
+            if (algorithm_m == nullptr) {
+                throw OpalException(
+                        "SpaceChargeSolver::SpaceChargeSolver",
+                        "The space-charge algorithm is null.");
+            }
+            if (particleContainerCount_m == 0) {
+                throw OpalException(
+                        "SpaceChargeSolver::SpaceChargeSolver",
+                        "Space charge requires at least one particle container.");
+            }
+        }
 
         SpaceChargeSolver(const SpaceChargeSolver&)            = delete;
         SpaceChargeSolver& operator=(const SpaceChargeSolver&) = delete;
@@ -31,7 +43,18 @@ namespace opalx::spacecharge {
          * Exceptions are terminal for the current run. Once dispatch begins, transient particle,
          * mesh, field, frame, and backend state is unspecified if an operation throws.
          */
-        void solve(const SpaceChargeSolveContext& context);
+        void solve(const SpaceChargeSolveContext& context) {
+            if (context.trackingActive().size() != particleContainerCount_m) {
+                throw OpalException(
+                        "SpaceChargeSolver::solve",
+                        "The container activity set does not match solver construction.");
+            }
+
+            const SpaceChargeSolveResult result = algorithm_m->solve(context);
+            backendSolveCount_m += result.backendSolves;
+            redistributionCount_m += result.redistributions;
+            reportedBinCount_m = result.reportedBins;
+        }
 
         [[nodiscard]] int reportedBinCount() const { return reportedBinCount_m; }
         [[nodiscard]] std::size_t backendSolveCount() const { return backendSolveCount_m; }
