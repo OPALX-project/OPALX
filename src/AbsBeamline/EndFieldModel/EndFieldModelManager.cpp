@@ -34,17 +34,11 @@
 namespace endfieldmodel {
 std::shared_ptr<EndFieldModelManager> EndFieldModelManager::globalEFM_m;
 
-template <>
-std::shared_ptr<Tanh> EndFieldModelManager::getEndFieldModel(const std::string& name) {
-    return tanhMap_m[name];
-}
-template <>
-std::shared_ptr<Enge> EndFieldModelManager::getEndFieldModel(const std::string& name) {
-    return engeMap_m[name];
-}
-template <>
-std::shared_ptr<AsymmetricEnge> EndFieldModelManager::getEndFieldModel(const std::string& name) {
-    return asymmetricEngeMap_m[name];
+std::shared_ptr<EndFieldModel> EndFieldModelManager::getEndFieldModel(const std::string& name) {
+    if (efmMap_m.find(name) == efmMap_m.end()) {
+        throw OpalException("EndFieldModelManager::getEndFieldModel", "Could not find model '"+name+"'");
+    }
+    return efmMap_m[name];
 }
 
 std::shared_ptr<EndFieldModelManager> EndFieldModelManager::getEFMManager() {
@@ -55,24 +49,10 @@ std::shared_ptr<EndFieldModelManager> EndFieldModelManager::getEFMManager() {
         return globalEFM_m;
 }
 
-EndFieldModelType EndFieldModelManager::getEndFieldModelType(const std::string& name) {
-    return efmType_m[name];
+void EndFieldModelManager::setEndFieldModel(const std::string& name,
+                      const std::shared_ptr<EndFieldModel>& efm) {
+    efmMap_m[name] = efm;
 }
-
-template <>
-void EndFieldModelManager::setEndFieldModel(const std::string& name, const std::shared_ptr<Tanh>& efm) {
-    tanhMap_m[name] = efm;
-}
-template <>
-void EndFieldModelManager::setEndFieldModel(const std::string& name, const std::shared_ptr<Enge>& efm) {
-    engeMap_m[name] = efm;
-}
-template <>
-void EndFieldModelManager::setEndFieldModel(const std::string& name, const std::shared_ptr<AsymmetricEnge>& efm) {
-    asymmetricEngeMap_m[name] = efm;
-}
-
-
 
 
 }  // namespace endfieldmodel

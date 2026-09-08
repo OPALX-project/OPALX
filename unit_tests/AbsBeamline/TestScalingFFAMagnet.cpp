@@ -240,7 +240,7 @@ TEST_F(ScalingFFAMagnetTest, ConstructorTest) {
         EXPECT_NEAR(test->getCentre()[1], i, 1e-9);
         EXPECT_NEAR(test->getCentre()[2], i, 1e-9);
         ++i;
-        EXPECT_NEAR(test->getEndField<endfieldmodel::Tanh>()->function(x, 0),
+        EXPECT_NEAR(test->getEndField()->function(x, 0),
                     tanh->function(x, 0), 1e-9);
         EXPECT_EQ(test->getMaxOrder(), ++i);
         EXPECT_NEAR(test->getPhiStart(), ++i, 1e-9);
@@ -253,7 +253,7 @@ TEST_F(ScalingFFAMagnetTest, ConstructorTest) {
 
     std::shared_ptr<endfieldmodel::Tanh> tanh2 = std::make_shared<endfieldmodel::Tanh>(-10., -10., 10);
     magnets[0]->setEndField(tanh2);
-    EXPECT_NEAR(magnets[0]->getEndField<endfieldmodel::Tanh>()->function(10., 0),
+    EXPECT_NEAR(magnets[0]->getEndField()->function(10., 0),
                 tanh2->function(10., 0), 1e-9);
     delete magnets[0];
     delete magnets[1];
@@ -261,13 +261,13 @@ TEST_F(ScalingFFAMagnetTest, ConstructorTest) {
 
 TEST_F(ScalingFFAMagnetTest, PlacementTest) {
     // test that when we are X0 from the centre, we get By = 0.5*B0
-    double centre_length = sector_m->getEndField<endfieldmodel::Tanh>()->getX0();
+    double x0 = sector_m->getEndField()->getCentreLength()/2.0;
     for (double r0 = -r0_m; r0 < 1.5*r0_m; r0 += r0_m*2) { 
         for (double phi_start = 0.; phi_start < psi0_m*3.1; phi_start += psi0_m/2.) {
             sector_m->setR0(r0);
-            sector_m->setPhiStart(phi_start+centre_length);
+            sector_m->setPhiStart(phi_start+x0);
             for (double i = 0.; i < 1.01; i += 0.5) {
-                double phi = i*centre_length*2+phi_start;
+                double phi = i*x0*2+phi_start;
                 Vector_t<double, 3> mom, E, B;
                 double t = 0;
                 Vector_t<double, 3> posCart({r0*(std::cos(phi)-1), 0., std::abs(r0)*std::sin(phi)});
@@ -329,15 +329,15 @@ TEST_F(ScalingFFAMagnetTest, DFCoefficientsTanDeltaTest) {
 }
 
 TEST_F(ScalingFFAMagnetTest, TanhTest) {
-    double numericalDerivative = sector_m->getEndField<endfieldmodel::Tanh>()->function(-psi0_m, 0);
+    double numericalDerivative = sector_m->getEndField()->function(-psi0_m, 0);
     for (size_t order = 0; order < 5; ++order) {
-        double analyticalDerivative = sector_m->getEndField<endfieldmodel::Tanh>()->function(-psi0_m, order);
+        double analyticalDerivative = sector_m->getEndField()->function(-psi0_m, order);
         if (std::abs(numericalDerivative)+std::abs(analyticalDerivative) > 1e-3) {
             EXPECT_NEAR(analyticalDerivative, numericalDerivative, std::abs(analyticalDerivative)*1e-3);
         }
         std::cout << order << " " << analyticalDerivative << " " << numericalDerivative << std::endl;
-        numericalDerivative = sector_m->getEndField<endfieldmodel::Tanh>()->function(-psi0_m*0.9999, order)-
-                              sector_m->getEndField<endfieldmodel::Tanh>()->function(-psi0_m*1.0001, order);
+        numericalDerivative = sector_m->getEndField()->function(-psi0_m*0.9999, order)-
+                              sector_m->getEndField()->function(-psi0_m*1.0001, order);
         numericalDerivative /= -psi0_m*0.9999 + psi0_m*1.0001;
     }
 }

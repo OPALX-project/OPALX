@@ -31,7 +31,7 @@
 #include <iostream>
 #include <vector>
 
-#include "AbsBeamline/EndFieldModel/CompactVector.h"
+#include "AbsBeamline/EndFieldModel/EndFieldModel.h"
 
 namespace endfieldmodel {
 
@@ -45,41 +45,25 @@ namespace endfieldmodel {
      *  expressions, one can calculate a recursion relation for higher order
      *  derivatives and hence calculate analytical derivatives at arbitrary order.
      */
-    class Tanh {
+    class TanhImpl {
     public:
-        /** Create a double tanh function
-         *
-         *  Here x0 is the centre length and lambda is the end length. max_index is
-         *  used to set up for differentiation - don't try to calculate
-         *  higher differentials than exist in max_index.
-         */
-        Tanh(double x0, double lambda, int max_index);
+        TanhImpl(double x0, double lambda, int max_index);
 
         /** Default constructor (initialises x0 and lambda to 0) */
-        Tanh() : _x0(0.), _lambda(0.) { setTanhDiffIndices(12); }
+        TanhImpl() = default;
 
         /** Copy constructor */
-        Tanh(const Tanh& rhs) : _x0(rhs._x0), _lambda(rhs._lambda) {}
+        TanhImpl(const TanhImpl& rhs) : _x0(rhs._x0), _lambda(rhs._lambda) {}
 
         /** Destructor (no mallocs so does nothing) */
-        ~Tanh();
+        ~TanhImpl() = default;
 
-        /** Inherited copy constructor. */
-        Tanh* clone() const;
-
-        /** Rescale the end field by a factor x0 */
-        void rescale(double scaleFactor);
-
-        /** Double Tanh is given by\n
-         *  \f$d(x) = \f$
-         */
         double function(double x, int n) const;
 
-        /** Nominal flat top length is twice x0 (one x0 in each direction) */
-        double getCentreLength() const { return getX0() * 2.0; }
-
-        /** Return nominal fringe field length */
-        double getEndLength() const { return getLambda(); }
+        static KOKKOS_INLINE_FUNCTION void function(const TanhImpl& impl,
+                            Kokkos::View<Vector_t<double, 3>*> vec3d,
+                            const int& maxDerivative,
+                            Kokkos::View<double**> values);
 
         /** Returns the value of tanh((x+x0)/lambda) or its \f$n^{th}\f$ derivative. */
         double getTanh(double x, int n) const;
@@ -110,12 +94,14 @@ namespace endfieldmodel {
         inline void setX0(double x0) { _x0 = x0; }
 
         /** Set the maximum derivative prior to tracking */
-        virtual void setMaximumDerivative(size_t n);
+        void setMaximumDerivative(size_t n);
+
+        void rescale(double scaleFactor);
 
         /** Prints a human readable string to out */
         std::ostream& print(std::ostream& out) const;
 
-        endfieldmodel::Tanh& operator=(const endfieldmodel::Tanh& rhs) {
+        endfieldmodel::TanhImpl& operator=(const endfieldmodel::TanhImpl& rhs) {
             _x0 = rhs._x0;
             _lambda = rhs._lambda;
             _tdi = rhs._tdi;
@@ -132,6 +118,77 @@ namespace endfieldmodel {
          */
         static std::vector<std::vector<std::vector<int> > > _tdi;
     };
+
+    class Tanh : public EndFieldModel {
+    public:
+        /** Create a double tanh function
+         *
+         *  Here x0 is the centre length and lambda is the end length. max_index is
+         *  used to set up for differentiation - don't try to calculate
+         *  higher differentials than exist in max_index.
+         *
+         *  This is a thin wrapper for the TanhImpl providing interface
+         *  to EndFieldModel
+         */
+        Tanh(double x0, double lambda, int max_index) : _impl(x0, lambda, max_index) {}
+
+        /** Default constructor (initialises x0 and lambda to 0) */
+        Tanh() = default;
+
+        /** Copy constructor */
+        Tanh(const Tanh& rhs) = default;
+
+        /** Destructor (no mallocs so does nothing) */
+        ~Tanh() = default;
+
+        /** Inherited copy constructor. */
+        Tanh* clone() const;
+
+        /** Rescale the end field by a factor x0 */
+        void rescale(double scaleFactor) {_impl.rescale(scaleFactor);}
+
+        /** Double Tanh is given by\n
+         *  \f$d(x) = \f$
+         */
+        double function(double x, int n) const {return _impl.function(x, n);}
+
+        /** GPU aware version of the function */
+        KOKKOS_INLINE_FUNCTION void function(Kokkos::View<Vector_t<double, 3>*> vec3d,  const int& n, Kokkos::View<double**> values);
+        std::ostream& print(std::ostream& out) const;
+
+        /** Nominal flat top length is twice x0 (one x0 in each direction) */
+        double getCentreLength() const { return _impl.getX0() * 2.0; }
+
+        /** Return nominal fringe field length */
+        double getEndLength() const { return _impl.getLambda(); }
+
+        void setLambda(const double& lambda) {_impl.setLambda(lambda);}
+        void setX0(const double& x0) {_impl.setX0(x0);}
+
+        /** Set the maximum derivative prior to tracking */
+        virtual void setMaximumDerivative(size_t n) override {return _impl.setMaximumDerivative(n);}
+
+    private:
+        TanhImpl _impl;
+    };
+
+
+    void Tanh::function(Kokkos::View<Vector_t<double, 3>*> vec3d,  const int& maxDerivative, Kokkos::View<double**> values) {
+        TanhImpl::function(_impl, vec3d, maxDerivative, values);
+    }
+
+    void TanhImpl::function(const TanhImpl& impl, Kokkos::View<Vector_t<double, 3>*> vec3d,  const int& maxDerivative, Kokkos::View<double**> values) {
+        const size_t count = vec3d.size();
+        Kokkos::parallel_for(
+            "ScalingFFAMagnet::getFieldValue()", count, KOKKOS_LAMBDA(const size_t i) {
+                for (int order = 0; order < maxDerivative; ++order) {
+                    double x = vec3d(i)[2];
+                    values(i, order) = impl.function(x, order);
+                }
+            }
+        );
+    }
+
 
 }  // namespace endfieldmodel
 

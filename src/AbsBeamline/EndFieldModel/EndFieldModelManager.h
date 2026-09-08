@@ -35,14 +35,7 @@
 
 namespace endfieldmodel {
 
-class Tanh;
-class Enge;
-class AsymmetricEnge;
-
-/** This is horrible. I really want to use an Abstraction but GPU does
- *  not allow it so I have to do if (type == BLAH) { do something }
- */
-enum EndFieldModelType {kTANH, kENGE, kASYMMETRICENGE, kNOEFM};
+class EndFieldModel;
 
 /** Singleton class to handle global register of EndFieldModels */
 class EndFieldModelManager {
@@ -68,16 +61,7 @@ class EndFieldModelManager {
          *
          *  @throws GeneralOpalException if name is not recognised
          */
-        template <class EFM>
-        std::shared_ptr<EFM> getEndFieldModel(const std::string& name);
-
-        /** Look up the type of EndFieldModel that has a given name
-         *
-         *  @param name: name of the EndFieldModel
-         *
-         *  @returns EndFieldModelType of the appropriate EndFieldModel.
-         */
-        EndFieldModelType getEndFieldModelType(const std::string& name);
+        std::shared_ptr<EndFieldModel> getEndFieldModel(const std::string& name);
 
         /** Add a value to the lookup table
          *
@@ -85,8 +69,8 @@ class EndFieldModelManager {
          *  map, it is overwritten with the new value.
          *  @param efm: shared_ptr to the EndFieldModel.
          */
-        template <class EFM>
-        void setEndFieldModel(const std::string& name, const std::shared_ptr<EFM>& efm);
+        void setEndFieldModel(const std::string& name,
+                              const std::shared_ptr<EndFieldModel>& efm);
 
         /** Get the name corresponding to a given EndFieldModel
          *
@@ -97,31 +81,13 @@ class EndFieldModelManager {
          *  @throws GeneralOpalException if efm is not recognised
          */
         template <class EFM>
-        std::string getName(const std::shared_ptr<EFM>& efm);
+        std::string getName(const std::shared_ptr<EndFieldModel>& efm);
 
     private:
-        std::map<std::string, EndFieldModelType> efmType_m;
-        std::map<std::string, std::shared_ptr<Tanh> > tanhMap_m;
-        std::map<std::string, std::shared_ptr<Enge> > engeMap_m;
-        std::map<std::string, std::shared_ptr<AsymmetricEnge> > asymmetricEngeMap_m;
-
+        std::map<std::string, std::shared_ptr<EndFieldModel> > efmMap_m;
         static std::shared_ptr<EndFieldModelManager> globalEFM_m;
 
 };
-
-template <>
-std::shared_ptr<Tanh> EndFieldModelManager::getEndFieldModel(const std::string& name);
-template <>
-std::shared_ptr<Enge> EndFieldModelManager::getEndFieldModel(const std::string& name);
-template <>
-std::shared_ptr<AsymmetricEnge> EndFieldModelManager::getEndFieldModel(const std::string& name);
-
-template <>
-void EndFieldModelManager::setEndFieldModel(const std::string& name, const std::shared_ptr<Tanh>& efm);
-template <>
-void EndFieldModelManager::setEndFieldModel(const std::string& name, const std::shared_ptr<Enge>& efm);
-template <>
-void EndFieldModelManager::setEndFieldModel(const std::string& name, const std::shared_ptr<AsymmetricEnge>& efm);
 
 }  // namespace endfieldmodel
 

@@ -87,8 +87,8 @@ void VerticalFFAMagnet<EFM>::calculateDfCoefficients() {
 }
 
 template <class EFM>
-void VerticalFFAMagnet<EFM>::setEndField(EFM endField) {
-    config_m.endField_m  = endField;
+void VerticalFFAMagnet<EFM>::setEndField(EFM /*endField*/) {
+    //config_m.endField_m  = endField;
     config_m.endField_m.setMaximumDerivative(config_m.maxOrder_m);
 }
 

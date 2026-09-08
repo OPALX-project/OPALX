@@ -32,6 +32,7 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include "VectorMath.h"
 
 namespace endfieldmodel {
 
@@ -48,18 +49,25 @@ namespace endfieldmodel {
          *  @param x: returns d^n f(x)/dx^n
          *  @param n: the derivative
          */
-        virtual double function(double x, int n) const = 0;
+        [[nodiscard]] virtual double function(double x, int n) const = 0;
+
+        /** GPU-aware version of function
+         *
+         *  @param x: returns d^n f(x)/dx^n
+         *  @param n: the derivative
+         */
+        virtual void function(Kokkos::View<Vector_t<double, 3>*> vec3d,  const int& n, Kokkos::View<double**> values) = 0;
 
         /** Return the nominal flat top length of the magnet
          */
-        virtual double getCentreLength() const = 0;
+        [[nodiscard]] virtual double getCentreLength() const = 0;
 
         /** Return the nominal end field length of the magnet
          */
-        virtual double getEndLength() const = 0;
+        [[nodiscard]] virtual double getEndLength() const = 0;
 
         /** Inheritable copy constructor - returns a deep copy of the EndFieldModel */
-        virtual EndFieldModel* clone() const = 0;
+        [[nodiscard]] virtual EndFieldModel* clone() const = 0;
 
         /** Set the maximum derivative that will be required to be calculated
          *
@@ -78,67 +86,6 @@ namespace endfieldmodel {
         virtual void rescale(double scaleFactor) = 0;
     private:
     };
-
-    std::vector<std::vector<int> > CompactVector(std::vector<std::vector<int> > vec);
-
-    /// CompactVector helper function, used for sorting
-    bool GreaterThan(std::vector<int> v1, std::vector<int> v2);
-
-    /** Return a == b if a and b are same size and a[i] == b[i] for all i.
-     *
-     *  The following operations must be defined for TEMP_ITER it:
-     *    - ++it prefix increment operator
-     *    - (*it) (that is unary *, i.e. dereference operator)
-     *    - it1 != it2 not equals operator
-     *    - (*it1) != (*it2) not equals operator of dereferenced object
-     *
-     *  Call like e.g. \n
-     *      std::vector<int> a,b;\n
-     *      bool test_equal = IterableEquality(a.begin(), a.end(), b.begin(),
-     *                        b.end());\n
-     *
-     *  Can give a segmentation fault if a.begin() is not between a.begin() and
-     *  a.end() (inclusive)
-     */
-    template <class TEMP_ITER>
-    bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end);
-
-    /** Return a == b if a and b are same size and a[i] == b[i] for all i.
-     *
-     *  The following operations must be defined for TEMP_ITER it:
-     *    - ++it prefix increment operator
-     *    - (*it) (that is unary *, i.e. dereference operator)
-     *    - it1 != it2 not equals operator
-     *    - (*it1) != (*it2) not equals operator of dereferenced object
-     *
-     *  Call like e.g. \n
-     *      std::vector<int> a,b;\n
-     *      bool test_equal = IterableEquality(a.begin(), a.end(), b.begin(),
-     *                        b.end());\n
-     *
-     *  Can give a segmentation fault if a.begin() is not between a.begin() and
-     *  a.end() (inclusive)
-     */
-    template <class TEMP_ITER>
-    bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end);
-
-    template <class TEMP_CLASS>
-    bool IterableEquality(const TEMP_CLASS& a, const TEMP_CLASS& b) {
-        return IterableEquality(a.begin(), a.end(), b.begin(), b.end());
-    }
-
-    template <class TEMP_ITER>
-    bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end) {
-        TEMP_ITER a_it = a_begin;
-        TEMP_ITER b_it = b_begin;
-        while (a_it != a_end && b_it != b_end) {
-            if (*a_it != *b_it) return false;
-            ++a_it;
-            ++b_it;
-        }
-        if (a_it != a_end || b_it != b_end) return false;
-        return true;
-    }
 
 }  // namespace endfieldmodel
 

@@ -1,5 +1,6 @@
 set (_SRCS
     EndFieldModelManager.cpp
+    EndFieldModel.cpp
     Enge.cpp
     Tanh.cpp 
     AsymmetricEnge.cpp
@@ -8,6 +9,7 @@ set (_SRCS
 
 set (HDRS
     EndFieldModelManager.h
+    EndFieldModel.h
     Enge.h
     Tanh.h
     AsymmetricEnge.h
