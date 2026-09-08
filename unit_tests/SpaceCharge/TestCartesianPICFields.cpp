@@ -52,8 +52,8 @@ namespace opalx::spacecharge {
             timeSteps(1)   = 1.0e-12;
             Kokkos::deep_copy(particles.R.getView(), positions);
             Kokkos::deep_copy(particles.dt.getView(), timeSteps);
-            const auto originalCharge =
-                    Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), particles.getQView());
+            const auto originalCharge = Kokkos::create_mirror(particles.getQView());
+            Kokkos::deep_copy(originalCharge, particles.getQView());
 
             ParticleMeshFieldTransfer transfer;
             ParticleMeshFieldTransfer::ChargeNormalization normalization;

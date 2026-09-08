@@ -153,14 +153,19 @@ namespace opalx::spacecharge {
             }
         }
         clearSelfFields(*primary_m);
-        enterSolveFrame(context.stepState().frames, *primary_m);
-        result.redistributions += domainUpdater_m.updateForSolve(
-                DomainCoordinateFrame::Beam, context, plan.activeCorrection,
-                fixedDomain ? &*fixedState : nullptr, *fieldStorage_m, *poissonSolver_m);
+        // A globally empty or single-particle primary has no self-field solve. Its following
+        // domain would collapse and can violate P3M's overlap cutoff before the solve is skipped.
+        // Fixed bounds remain valid and still need to be applied even for these trivial bunches.
+        if (fixedDomain || primary_m->getTotalNum() > 1) {
+            enterSolveFrame(context.stepState().frames, *primary_m);
+            result.redistributions += domainUpdater_m.updateForSolve(
+                    DomainCoordinateFrame::Beam, context, plan.activeCorrection,
+                    fixedDomain ? &*fixedState : nullptr, *fieldStorage_m, *poissonSolver_m);
 
-        solveInBeamFrame(context, plan, result);
+            solveInBeamFrame(context, plan, result);
 
-        leaveSolveFrame(context.stepState().frames, *primary_m);
+            leaveSolveFrame(context.stepState().frames, *primary_m);
+        }
         if (fixedDomain) {
             // Keep the fixed beam-frame mesh and decomposition for the next interaction. Only the
             // restored primary coordinates changed, so refresh moments without migrating them.

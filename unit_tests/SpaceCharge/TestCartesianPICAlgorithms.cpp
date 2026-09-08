@@ -226,10 +226,10 @@ namespace opalx::spacecharge {
                     Vector(0.1, 0.2, 0.3), Quaternion(std::cos(0.3), 0.0, std::sin(0.3), 0.0));
             Run baseline(values, {}, Vector(0.0, 0.0, 1.0));
             Run rotated(values, pose, Vector(0.0, 0.0, 1.0));
-            auto originalR = Kokkos::create_mirror_view_and_copy(
-                    Kokkos::HostSpace(), rotated.particles.R.getView());
-            auto originalP = Kokkos::create_mirror_view_and_copy(
-                    Kokkos::HostSpace(), rotated.particles.P.getView());
+            auto originalR = Kokkos::create_mirror(rotated.particles.R.getView());
+            auto originalP = Kokkos::create_mirror(rotated.particles.P.getView());
+            Kokkos::deep_copy(originalR, rotated.particles.R.getView());
+            Kokkos::deep_copy(originalP, rotated.particles.P.getView());
             (void)baseline.solve();
             (void)rotated.solve(0, {pose.inverted(), pose});
             auto restoredR = Kokkos::create_mirror_view_and_copy(
@@ -245,6 +245,111 @@ namespace opalx::spacecharge {
             pose.rotateBunchTo(baseline.particles.E.getView(), baseline.particles.getLocalNum());
             pose.rotateBunchTo(baseline.particles.B.getView(), baseline.particles.getLocalNum());
             expectFieldsEqual(rotated.particles, baseline.particles);
+        }
+
+        TEST_F(CartesianPICAlgorithmsTest, TrivialP3MPrimaryPreservesSecondaryAndResumesSolving) {
+            for (std::size_t primaryCount : {0u, 1u}) {
+                SCOPED_TRACE(primaryCount);
+                auto values               = config();
+                values.backend            = PoissonSolverType::P3M;
+                values.p3mCutoff          = 0.1;
+                values.grid.meshSize      = {8, 8, 8};
+                values.grid.decomposition = {false, false, true};
+                CartesianDomain<double, 3> domain(makeCartesianDomainConfig(values));
+                auto state = std::make_shared<BunchStateHandler>();
+                Particles primary(
+                        domain.mesh(), domain.layout(), false,
+                        Particles::LayoutType::SpatialOverlap, values.p3mCutoff, ippl::BC::NO);
+                Particles secondary(
+                        domain.mesh(), domain.layout(), false,
+                        Particles::LayoutType::SpatialOverlap, values.p3mCutoff, ippl::BC::NO);
+                primary.setBunchStateHandler(state);
+                secondary.setBunchStateHandler(state);
+                const bool root = ippl::Comm->rank() == 0;
+                primary.createParticles(root ? primaryCount : 0);
+                secondary.createParticles(root ? 16 : 0);
+                primary.setQ(1.0e-12);
+                primary.setM(Physics::m_e);
+                secondary.setQ(1.0e-12);
+                secondary.setM(Physics::m_e);
+                const Vector initialPosition(0.1, -0.1, 0.2);
+                const Vector initialMomentum(0.2, 0.3, 0.4);
+                Kokkos::deep_copy(primary.R.getView(), initialPosition);
+                Kokkos::deep_copy(primary.P.getView(), initialMomentum);
+                Kokkos::deep_copy(primary.dt.getView(), 1.0e-12);
+                Kokkos::deep_copy(primary.E.getView(), Vector(123.0));
+                Kokkos::deep_copy(primary.B.getView(), Vector(456.0));
+                auto positions = secondary.R.getHostMirror();
+                for (std::size_t i = 0; i < secondary.getLocalNum(); ++i) {
+                    positions(i) =
+                            Vector(i & 1 ? 1.0 : -1.0, i & 2 ? 1.0 : -1.0, i & 4 ? 1.0 : -1.0);
+                }
+                Kokkos::deep_copy(secondary.R.getView(), positions);
+                Kokkos::deep_copy(secondary.P.getView(), Vector(0.0));
+                Kokkos::deep_copy(secondary.E.getView(), Vector(7.0));
+                Kokkos::deep_copy(secondary.B.getView(), Vector(9.0));
+                DataSink sink;
+                const std::array containers{&primary, &secondary};
+                CartesianPICAlgorithm algorithm(
+                        values, containers,
+                        std::make_unique<CartesianPICFieldStorage<double, 3>>(domain), &sink,
+                        state);
+                const std::array<std::uint8_t, 2> activity{1, 1};
+                SpaceChargeStepState step;
+                step.timeStep = 1.0e-12;
+                step.mpiSize  = ippl::Comm->size();
+                const CoordinateSystemTrafo pose(
+                        Vector(0.1, 0.2, 0.3), Quaternion(std::cos(0.3), 0.0, std::sin(0.3), 0.0));
+                step.frames = {pose.inverted(), pose};
+                const SpaceChargeSolveContext context(activity, step);
+
+                EXPECT_EQ(algorithm.solve(context).backendSolves, 0u);
+                EXPECT_EQ(primary.getTotalNum(), primaryCount);
+                EXPECT_EQ(secondary.getTotalNum(), 16u);
+                EXPECT_FALSE(primary.isMomentsDirty());
+                EXPECT_FALSE(secondary.isMomentsDirty());
+                const auto restoredR = Kokkos::create_mirror_view_and_copy(
+                        Kokkos::HostSpace(), primary.R.getView());
+                const auto restoredP = Kokkos::create_mirror_view_and_copy(
+                        Kokkos::HostSpace(), primary.P.getView());
+                const auto electric = Kokkos::create_mirror_view_and_copy(
+                        Kokkos::HostSpace(), primary.E.getView());
+                const auto magnetic = Kokkos::create_mirror_view_and_copy(
+                        Kokkos::HostSpace(), primary.B.getView());
+                const auto secondaryE = Kokkos::create_mirror_view_and_copy(
+                        Kokkos::HostSpace(), secondary.E.getView());
+                const auto secondaryB = Kokkos::create_mirror_view_and_copy(
+                        Kokkos::HostSpace(), secondary.B.getView());
+                for (unsigned d = 0; d < 3; ++d) {
+                    EXPECT_LT(domain.lower()[d], -1.0);
+                    EXPECT_GT(domain.upper()[d], 1.0);
+                    for (std::size_t i = 0; i < primary.getLocalNum(); ++i) {
+                        EXPECT_DOUBLE_EQ(restoredR(i)[d], initialPosition[d]);
+                        EXPECT_DOUBLE_EQ(restoredP(i)[d], initialMomentum[d]);
+                        EXPECT_DOUBLE_EQ(electric(i)[d], 0.0);
+                        EXPECT_DOUBLE_EQ(magnetic(i)[d], 0.0);
+                    }
+                    for (std::size_t i = 0; i < secondary.getLocalNum(); ++i) {
+                        EXPECT_DOUBLE_EQ(secondaryE(i)[d], 7.0);
+                        EXPECT_DOUBLE_EQ(secondaryB(i)[d], 9.0);
+                    }
+                }
+
+                primary.createParticles(root ? 8 : 0);
+                primary.setQ(1.0e-12);
+                primary.setM(Physics::m_e);
+                auto grownPositions = primary.R.getHostMirror();
+                for (std::size_t i = 0; i < primary.getLocalNum(); ++i) {
+                    grownPositions(i) =
+                            Vector(i & 1 ? 0.5 : -0.5, i & 2 ? 0.5 : -0.5, i & 4 ? 0.5 : -0.5);
+                }
+                Kokkos::deep_copy(primary.R.getView(), grownPositions);
+                Kokkos::deep_copy(primary.P.getView(), Vector(0.0));
+                Kokkos::deep_copy(primary.dt.getView(), 1.0e-12);
+                EXPECT_EQ(algorithm.solve(context).backendSolves, 1u);
+                EXPECT_EQ(primary.getTotalNum(), primaryCount + 8);
+                EXPECT_EQ(secondary.getTotalNum(), 16u);
+            }
         }
 
     }  // namespace
