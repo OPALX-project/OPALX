@@ -76,6 +76,38 @@ TEST_F(CoordinateSystemTrafoTest, RotateRoundTrip) {
     expectVectorNear(trafo.rotateFrom(local), vector);
 }
 
+TEST_F(CoordinateSystemTrafoTest, SpaceChargeMomentumRotationPreservesBoostAndRoundTrip) {
+    // Exercise the device-view rotation used around the binned SC solve, including
+    // a straight beam, a large bend, and a zero-momentum particle (gamma=1).
+    using View = Kokkos::View<Vector3*>;
+    View momenta("momenta", 3);
+    auto host = Kokkos::create_mirror_view(momenta);
+    for (double angle : {0.0, 0.7, M_PI / 2}) {
+        CoordinateSystemTrafo beamToRef(Vector3(7.0, -2.0, 3.0), rotationAroundY(angle));
+        const auto refToBeam = beamToRef.inverted();
+        const Vector3 original[] = {
+                beamToRef.rotateTo(Vector3(0.0, 0.0, 0.4)),
+                beamToRef.rotateTo(Vector3(0.01, -0.02, 0.41)), Vector3(0.0)};
+        for (int i = 0; i < 3; ++i) {
+            host(i) = original[i];
+        }
+        Kokkos::deep_copy(momenta, host);
+        refToBeam.rotateBunchTo(momenta, 3);
+        Kokkos::deep_copy(host, momenta);
+        expectVectorNear(host(0), Vector3(0.0, 0.0, 0.4));
+        expectVectorNear(host(1), Vector3(0.01, -0.02, 0.41));
+        expectVectorNear(host(2), Vector3(0.0));
+        for (int i = 0; i < 3; ++i) {
+            EXPECT_NEAR(host(i).dot(host(i)), original[i].dot(original[i]), 1.0e-14);
+        }
+        beamToRef.rotateBunchTo(momenta, 3);
+        Kokkos::deep_copy(host, momenta);
+        for (int i = 0; i < 3; ++i) {
+            expectVectorNear(host(i), original[i]);
+        }
+    }
+}
+
 TEST_F(CoordinateSystemTrafoTest, InverseMatchesTransformFromAndRotateFrom) {
     CoordinateSystemTrafo trafo(Vector3(-1.0, 2.0, 4.0), rotationAroundX(M_PI / 4.0));
     CoordinateSystemTrafo inverse = trafo.inverted();
