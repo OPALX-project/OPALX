@@ -4,7 +4,6 @@
 #include "SpaceCharge/Poisson/PoissonSolver.h"
 
 #include "Physics/Physics.h"
-#include "SpaceCharge/Poisson/PoissonSolverFactory.h"
 
 #include <utility>
 

@@ -3,7 +3,7 @@
  * @brief Implements shared 3D Poisson request handling, diagnostics and lifecycle.
  */
 
-#include "SpaceCharge/Poisson/PoissonSolverFactory.h"
+#include "SpaceCharge/Poisson/PoissonSolver.h"
 
 #include "SpaceCharge/Poisson/NullPoissonAdapter.h"
 #include "SpaceCharge/Poisson/OpenPoissonAdapter.h"

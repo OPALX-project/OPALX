@@ -9,7 +9,7 @@
 #include "SpaceCharge/CartesianPIC/CartesianDomainUpdater.h"
 #include "SpaceCharge/CartesianPIC/CartesianPICAlgorithm.h"
 #include "SpaceCharge/CartesianPIC/CartesianPICFieldStorage.h"
-#include "SpaceCharge/Poisson/PoissonSolverFactory.h"
+#include "SpaceCharge/Poisson/PoissonSolver.h"
 #include "SpaceCharge/SpaceChargeSolveContext.h"
 #include "Structure/DataSink.h"
 #include "Utilities/OpalException.h"

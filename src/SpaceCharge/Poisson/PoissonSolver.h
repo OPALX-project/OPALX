@@ -87,6 +87,32 @@ namespace opalx::spacecharge {
         std::size_t runtimeSolveCount_m = 0;
     };
 
+    /** @brief Validate configuration and construct the selected 3D Poisson adapter. */
+    [[nodiscard]] std::unique_ptr<PoissonSolver> makePoissonSolver(
+            PoissonSolverConfig config, PoissonFieldBinding fields);
+
+    namespace detail {
+
+        inline ippl::ParameterList commonFftParameters() {
+            ippl::ParameterList parameters;
+            parameters.add("use_heffte_defaults", false);
+            parameters.add("use_pencils", true);
+            parameters.add("use_reorder", false);
+            parameters.add("use_gpu_aware", true);
+            parameters.add("comm", ippl::p2p_pl);
+            parameters.add("r2c_direction", 0);
+            return parameters;
+        }
+
+        /** @brief Bind native solver fields in the order required by IPPL initialization. */
+        template <typename NativeBackend>
+        void bindFields(NativeBackend& backend, PoissonFieldBinding fields) {
+            backend.setRhs(*fields.chargeDensity);
+            backend.setLhs(*fields.electricField);
+        }
+
+    }  // namespace detail
+
 }  // namespace opalx::spacecharge
 
 #endif  // OPALX_SPACE_CHARGE_POISSON_SOLVER_H

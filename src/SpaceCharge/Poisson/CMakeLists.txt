@@ -4,7 +4,6 @@ set (_SRCS
 
 set (_PRIVATE_HDRS
     PoissonSolver.h
-    PoissonSolverFactory.h
     NullPoissonAdapter.h
     OpenPoissonAdapter.h
     PeriodicPoissonAdapter.h

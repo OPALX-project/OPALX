@@ -14,7 +14,7 @@
 #include "Interaction/TruncatedGreenParticleInteraction.h"
 #include "PartBunch/ParticleContainer.hpp"
 #include "Physics/Physics.h"
-#include "SpaceCharge/Poisson/PoissonSolverFactory.h"
+#include "SpaceCharge/Poisson/PoissonSolver.h"
 #include "Utilities/OpalException.h"
 
 #include <algorithm>
