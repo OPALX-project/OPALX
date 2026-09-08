@@ -40,8 +40,9 @@ namespace opalx::spacecharge {
      *
      * Each solve transforms primary positions to the beam frame, updates geometry/layouts, deposits
      * charge, invokes the configured backend passes, gathers and composes fields, then restores
-     * primary R/E/B to the tracker frame. Normal mode migrates every container and next rebuilds a
-     * reference-frame domain. Fixed-domain mode migrates only the primary, keeps the beam-frame
+     * primary R/E/B to the tracker frame. Normal mode skips the beam-frame update when the global
+     * primary count is at most one, but still rebuilds the reference-frame domain and migrates
+     * every container. Fixed-domain mode migrates only the primary, keeps the beam-frame
      * mesh and decomposition for BeamBeam reuse, and recomputes its restored-coordinate moments
      * without a second migration.
      */
