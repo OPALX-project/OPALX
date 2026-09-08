@@ -172,6 +172,7 @@ namespace TRACKRUN {
         TUNESAMPLE,        // Fixed sampling stride.
         TUNEINTEGRATOR,    // Integrator shared with map rays, without map building.
         TUNESECTOR,        // Launch chart (centre and radial entrance plane).
+        SCFIELDUPDATE,     // Time within a drift-kick-drift step at which self-fields are solved.
         SIZE
     };
 }  // namespace TRACKRUN
@@ -207,6 +208,11 @@ TrackRun::TrackRun()
     itsAttr[TRACKRUN::TUNEINTEGRATOR] = Attributes::makePredefinedString("TUNEINTEGRATOR",
         "External-field integrator for spectral rays only.", {"BORIS", "LF2", "RK4", "DOP853"}, "RK4");
     itsAttr[TRACKRUN::TUNESECTOR] = Attributes::makeString("TUNESECTOR", "Sector defining tune launch plane and centre.", "SM0");
+    itsAttr[TRACKRUN::SCFIELDUPDATE] = Attributes::makePredefinedString(
+            "SCFIELDUPDATE",
+            "Space-charge field evaluation point: MIDPOINT uses positions after the first half "
+            "drift; PRESTEP reproduces historical OPAL by solving before that drift.",
+            {"MIDPOINT", "PRESTEP"}, "MIDPOINT");
 
     itsAttr[TRACKRUN::FIELDSOLVER] =
             Attributes::makeString("FIELDSOLVER", "Field solver to be used.");
@@ -605,6 +611,10 @@ void TrackRun::execute() {
             ringPeriod);
     static_cast<ParallelTracker*>(itsTracker_m.get())->setRequestedTurns(directedTurns);
     static_cast<ParallelTracker*>(itsTracker_m.get())->setKineticEnergyStop(kineticStop*1e9);
+    static_cast<ParallelTracker*>(itsTracker_m.get())->setSpaceChargeFieldUpdate(
+            Attributes::getString(itsAttr[TRACKRUN::SCFIELDUPDATE]) == "PRESTEP"
+                    ? ParallelTracker::SpaceChargeFieldUpdate::PRESTEP
+                    : ParallelTracker::SpaceChargeFieldUpdate::MIDPOINT);
     if (Attributes::getBool(itsAttr[TRACKRUN::SPECTRALTUNES])) {
         const double turns = Attributes::getReal(itsAttr[TRACKRUN::TURNS]);
         const double sample = Attributes::getReal(itsAttr[TRACKRUN::TUNESAMPLE]);

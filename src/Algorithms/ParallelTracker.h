@@ -74,6 +74,12 @@ class PluginElement;
  */
 class ParallelTracker : public Tracker {
 public:
+    /// Position within drift-kick-drift at which the particle self-field is evaluated.
+    enum class SpaceChargeFieldUpdate {
+        MIDPOINT,  ///< Solve after the first half drift (default OPALX ordering).
+        PRESTEP    ///< Solve before the first half drift (historical OPAL ordering).
+    };
+
     /// Select a separate serial two-ray spectral diagnostic instead of bunch tracking.
     void setSpectralTunes(std::vector<double> initial, SpectralTunes::Settings settings) {
         tuneInitial_m = std::move(initial); tuneSettings_m = settings;
@@ -85,6 +91,12 @@ public:
      * input and compatible RING controls; execute() checks launch and model.
      */
     void setKineticEnergyStop(double energy) { kineticEnergyStop_m = energy; }
+    /** Select the self-field evaluation point. This changes temporal discretization only;
+     * deposition, field solver, and Boris kick are unchanged.
+     */
+    void setSpaceChargeFieldUpdate(SpaceChargeFieldUpdate update) {
+        spaceChargeFieldUpdate_m = update;
+    }
     virtual void visitCyclotronSector(const CyclotronSector& sector) {
         itsOpalBeamline_m.visit(sector, *this, *itsBunch_m);
     }
@@ -113,6 +125,8 @@ private:
     bool pendingEnergyReference_m = false;
     Vector_t<double, 3> pendingReferenceR_m, pendingReferenceP_m;
     unsigned long long requestedTurns_m = 0;
+    SpaceChargeFieldUpdate spaceChargeFieldUpdate_m =
+            SpaceChargeFieldUpdate::MIDPOINT;  ///< Self-field time centering for bunch tracking.
     DataSink* itsDataSink_m;         ///< Borrowed beam statistics and phase-space output sink.
     OpalBeamline itsOpalBeamline_m;  ///< Cloned field elements and coordinate transforms.
     bool globalEOL_m;                ///< End-of-line flag (e.g. orbit threader out of bounds).

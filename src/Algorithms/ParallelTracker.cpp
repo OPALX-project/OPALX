@@ -507,24 +507,31 @@ void ParallelTracker::execute() {
                 computeInitialBounds(rmin, rmax);
             }
 
+            // Historical OPAL evaluated the self-field at R_n and carried the gathered
+            // per-particle field through the first half drift. Keep this as an explicit
+            // compatibility mode; the default evaluates the field at R_{n+1/2} below.
+            if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::PRESTEP) {
+                resetFields();
+                m << level4 << "E and B fields reset before the first half drift at step " << step
+                  << "." << endl;
+                computeSpaceChargeFields(step);
+                m << level4 << "Pre-step space charge field computation done at step " << step
+                  << "." << endl;
+            }
+
             // First half of the time integration
             timeIntegration1(pusher);
             m << level4 << "timeIntegration1 done at step " << step << "." << endl;
             itsBunch_m->bunchUpdate();
             m << level5 << "Bunch updated after timeIntegration1." << endl;
 
-            // Reset E and B fields
-            resetFields();
-            m << level4 << "E and B fields reset at step " << step << "." << endl;
-
-            // std::cout << "local num: " << itsBunch_m->getLocalNum() << std::endl;
-
-            // Space charge field computation
-            // if (itsBunch_m->getLocalNum() > 1) {
-            // Otherwise no interaction, can skip (and for some reason seg-fault...)
-            computeSpaceChargeFields(step);
-            m << level4 << "Space charge field computation done at step " << step << "." << endl;
-            //}
+            if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::MIDPOINT) {
+                resetFields();
+                m << level4 << "E and B fields reset at step " << step << "." << endl;
+                computeSpaceChargeFields(step);
+                m << level4 << "Midpoint space charge field computation done at step " << step
+                  << "." << endl;
+            }
 
             // Emission is placed BETWEEN space-charge and external-field evaluation
             // to match the legacy OPAL ordering (ParallelTTracker): newly emitted
