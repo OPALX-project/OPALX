@@ -970,6 +970,9 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
  * @par Frame of reference
  * - Entry: @f$R@f$, @f$E@f$, @f$B@f$ in the reference (lab) frame.
  * - After transform to beam: @f$R@f$ in the beam frame (origin at reference, z along momentum).
+ *   With binning, @f$P/(mc)@f$ is rotated into the same frame before bin selection
+ *   and Lorentz field reconstruction, and rotated back after the solve. Rotation
+ *   preserves momentum magnitude and gamma up to floating-point roundoff.
  * - Inside computeSelfFields / bunchUpdate: mesh follows @f$R@f$, so mesh is in the beam frame.
  * - After transform back: @f$R@f$, @f$E@f$, @f$B@f$ in the reference frame again.
  * - After final bunchUpdate(): mesh matches reference-frame @f$R@f$.
@@ -1026,6 +1029,14 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     referenceToBeamCSTrafo.transformBunchTo(
             itsBunch_m->getParticleContainer()->R.getView(),
             itsBunch_m->getParticleContainer()->getLocalNum());
+    // Bin selectors and boost velocities must use the frame of the charge mesh.
+    // Rotate on the device before redistribution/rebinning so momenta travel with R.
+    const bool rotateBinMomenta = itsBunch_m->hasBinning();
+    if (rotateBinMomenta) {
+        referenceToBeamCSTrafo.rotateBunchTo(
+                itsBunch_m->getParticleContainer()->P.getView(),
+                itsBunch_m->getParticleContainer()->getLocalNum());
+    }
     m << level4 << "Transform particle positions to beam coordinate system done." << endl;
 
     // While emission is still running, build this beam-frame mesh over the full source
@@ -1074,6 +1085,10 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 
     // Transform positions back to the reference frame.
     const size_t nLocRef = itsBunch_m->getParticleContainer()->getLocalNum();
+    if (rotateBinMomenta) {
+        beamToReferenceCSTrafo.rotateBunchTo(
+                itsBunch_m->getParticleContainer()->P.getView(), nLocRef);
+    }
     beamToReferenceCSTrafo.transformBunchTo(
             itsBunch_m->getParticleContainer()->R.getView(), nLocRef);
     m << level5 << "Transform particle positions back to reference coordinate system done." << endl;

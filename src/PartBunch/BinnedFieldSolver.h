@@ -150,6 +150,9 @@ public:
      * `scatter all particles -> solve once -> gather directly`.
      *
      * @param bunch Particle bunch to update. Ownership remains with the caller.
+     * @pre Particle positions and momenta are expressed in the charge-mesh frame.
+     *      In particular, the bin boost momentum must not remain in the reference
+     *      frame when positions have been rotated to align the mesh with the beam.
      *
      * @throws OpalException If required internal data (particle container / temp E field)
      *                        is missing, or if unsupported scatter/gather modes are selected.
