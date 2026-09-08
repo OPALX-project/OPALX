@@ -6,7 +6,6 @@
 #include "SpaceCharge/CartesianPIC/CartesianPICAlgorithm.h"
 
 #include "PartBunch/BunchStateHandler.h"
-#include "SpaceCharge/Poisson/PoissonSolverFactory.h"
 #include "Structure/DataSink.h"
 #include "Utilities/OpalException.h"
 
