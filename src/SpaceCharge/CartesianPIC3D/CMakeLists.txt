@@ -1,21 +1,21 @@
 set (_SRCS
     ParticleBinTraversal.cpp
     RelativisticFieldComposer.cpp
-    CartesianPICAlgorithm.cpp
+    CartesianPIC3DAlgorithm.cpp
     CartesianDomainUpdater.cpp
     ParticleMeshFieldTransfer.cpp
-    CartesianPICFieldStorage.cpp
+    CartesianPIC3DFieldStorage.cpp
     )
 
 set (_PRIVATE_HDRS
     ParticleBinTraversal.h
-    CartesianPICAlgorithm.h
+    CartesianPIC3DAlgorithm.h
     CartesianDomainUpdater.h
     RelativisticFieldComposer.h
     FieldMirror.hpp
     ParticleMeshFieldTransfer.h
-    CartesianPICFieldStorage.h
-    CartesianPICFieldStorage.tpp
+    CartesianPIC3DFieldStorage.h
+    CartesianPIC3DFieldStorage.tpp
     )
 
 target_sources(opalx PRIVATE ${_SRCS} ${_PRIVATE_HDRS})

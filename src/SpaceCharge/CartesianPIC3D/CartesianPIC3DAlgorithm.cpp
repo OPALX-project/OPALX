@@ -1,9 +1,9 @@
 /**
- * @file CartesianPICAlgorithm.cpp
- * @brief Implements the complete Cartesian 3D PIC space-charge algorithm.
+ * @file CartesianPIC3DAlgorithm.cpp
+ * @brief Implements the complete CartesianPIC3D space-charge algorithm.
  */
 
-#include "SpaceCharge/CartesianPIC/CartesianPICAlgorithm.h"
+#include "SpaceCharge/CartesianPIC3D/CartesianPIC3DAlgorithm.h"
 
 #include "PartBunch/BunchStateHandler.h"
 #include "Structure/DataSink.h"
@@ -17,17 +17,17 @@
 namespace opalx::spacecharge {
     namespace {
 
-        using ParticleContainer = CartesianPICAlgorithm::ParticleContainer;
+        using ParticleContainer = CartesianPIC3DAlgorithm::ParticleContainer;
 
         PoissonFieldBinding makePoissonFieldBinding(
-                CartesianPICAlgorithm::FieldStorage& fieldStorage) {
+                CartesianPIC3DAlgorithm::FieldStorage& fieldStorage) {
             return {&fieldStorage.chargeDensity(), &fieldStorage.electricField()};
         }
 
         ParticleContainer& requirePrimaryParticles(std::span<ParticleContainer* const> particles) {
             if (particles.empty() || particles.front() == nullptr) {
                 throw OpalException(
-                        "CartesianPICAlgorithm::CartesianPICAlgorithm",
+                        "CartesianPIC3DAlgorithm::CartesianPIC3DAlgorithm",
                         "The primary particle container is not available.");
             }
             return *particles.front();
@@ -35,8 +35,8 @@ namespace opalx::spacecharge {
 
     }  // namespace
 
-    CartesianPICAlgorithm::CartesianPICAlgorithm(
-            CartesianPICConfig config, std::span<ParticleContainer* const> particles,
+    CartesianPIC3DAlgorithm::CartesianPIC3DAlgorithm(
+            CartesianPIC3DConfig config, std::span<ParticleContainer* const> particles,
             std::unique_ptr<FieldStorage> fieldStorage, DataSink* dataSink,
             std::shared_ptr<const BunchStateHandler> bunchState)
         : config_m(config),
@@ -47,16 +47,16 @@ namespace opalx::spacecharge {
           domainUpdater_m(config, particles) {
         if (fieldStorage_m == nullptr) {
             throw OpalException(
-                    "CartesianPICAlgorithm::CartesianPICAlgorithm",
-                    "The Cartesian PIC field storage is null.");
+                    "CartesianPIC3DAlgorithm::CartesianPIC3DAlgorithm",
+                    "The CartesianPIC3D field storage is null.");
         }
         if (dataSink_m == nullptr) {
             throw OpalException(
-                    "CartesianPICAlgorithm::CartesianPICAlgorithm", "The data sink is null.");
+                    "CartesianPIC3DAlgorithm::CartesianPIC3DAlgorithm", "The data sink is null.");
         }
         if (bunchState_m == nullptr) {
             throw OpalException(
-                    "CartesianPICAlgorithm::CartesianPICAlgorithm",
+                    "CartesianPIC3DAlgorithm::CartesianPIC3DAlgorithm",
                     "The bunch state handler is null.");
         }
         validateSpaceChargeConfig(SpaceChargeConfig(config_m));
@@ -76,31 +76,33 @@ namespace opalx::spacecharge {
         poissonSolver_m->warmup();
     }
 
-    CartesianPICAlgorithm::SolvePlan CartesianPICAlgorithm::makeSolvePlan(std::size_t step) const {
+    CartesianPIC3DAlgorithm::SolvePlan CartesianPIC3DAlgorithm::makeSolvePlan(
+            std::size_t step) const {
         SolvePlan plan;
-        const CorrectionConfig& configured = config_m.correction;
-        plan.correctionExpired             = configured.enabled() && configured.maximumSteps != 0
-                                 && step >= configured.maximumSteps;
-        plan.activeCorrection = plan.correctionExpired ? CorrectionConfig() : configured;
+        const DirichletPlaneConfig& configured = config_m.dirichletPlane;
+        plan.dirichletPlaneExpired = configured.enabled() && configured.maximumSteps != 0
+                                     && step >= configured.maximumSteps;
+        plan.activeDirichletPlane =
+                plan.dirichletPlaneExpired ? DirichletPlaneConfig() : configured;
 
         if (config_m.binning.has_value()
-            || plan.activeCorrection.kind == SpaceChargeCorrectionType::ShiftedGreen) {
+            || plan.activeDirichletPlane.kind == DirichletPlaneType::ShiftedGreen) {
             plan.passes[plan.passCount++] = PassKind::Primary;
-            if (plan.activeCorrection.kind == SpaceChargeCorrectionType::ImageCharge) {
+            if (plan.activeDirichletPlane.kind == DirichletPlaneType::ImageCharge) {
                 plan.passes[plan.passCount++] = PassKind::Image;
-            } else if (plan.activeCorrection.kind == SpaceChargeCorrectionType::ShiftedGreen) {
+            } else if (plan.activeDirichletPlane.kind == DirichletPlaneType::ShiftedGreen) {
                 plan.passes[plan.passCount++] = PassKind::ShiftedImage;
             }
         } else {
             plan.passes[plan.passCount++] =
-                    plan.activeCorrection.kind == SpaceChargeCorrectionType::ImageCharge
+                    plan.activeDirichletPlane.kind == DirichletPlaneType::ImageCharge
                             ? PassKind::PrimaryAndImage
                             : PassKind::Primary;
         }
         return plan;
     }
 
-    CartesianPICAlgorithm::PassProperties CartesianPICAlgorithm::passProperties(
+    CartesianPIC3DAlgorithm::PassProperties CartesianPIC3DAlgorithm::passProperties(
             PassKind pass, double planeZ, bool binned) {
         using DepositKind = ParticleMeshTransfer::DepositKind;
         switch (pass) {
@@ -123,10 +125,10 @@ namespace opalx::spacecharge {
                         .sourceRule   = FieldSourceRule::ShiftedGreenImageZ,
                         .label        = "shifted-green"};
         }
-        throw OpalException("CartesianPICAlgorithm::passProperties", "Unknown solve pass.");
+        throw OpalException("CartesianPIC3DAlgorithm::passProperties", "Unknown solve pass.");
     }
 
-    SpaceChargeSolveResult CartesianPICAlgorithm::solve(const SpaceChargeSolveContext& context) {
+    SpaceChargeSolveResult CartesianPIC3DAlgorithm::solve(const SpaceChargeSolveContext& context) {
         SpaceChargeSolveResult result;
         const SolvePlan plan = makeSolvePlan(context.stepState().step);
 
@@ -135,17 +137,17 @@ namespace opalx::spacecharge {
         if (fixedDomain) {
             if (config_m.backend != PoissonSolverType::Open) {
                 throw OpalException(
-                        "CartesianPICAlgorithm::solve",
+                        "CartesianPIC3DAlgorithm::solve",
                         "A fixed Cartesian domain currently requires the OPEN Poisson backend.");
             }
-            if (config_m.correction.enabled()) {
+            if (config_m.dirichletPlane.enabled()) {
                 throw OpalException(
-                        "CartesianPICAlgorithm::solve",
-                        "A fixed Cartesian domain does not support source-plane corrections.");
+                        "CartesianPIC3DAlgorithm::solve",
+                        "A fixed Cartesian domain does not support Dirichlet planes.");
             }
             if (config_m.repartitionFrequency != 0) {
                 throw OpalException(
-                        "CartesianPICAlgorithm::solve",
+                        "CartesianPIC3DAlgorithm::solve",
                         "ORB redistribution must be disabled while a fixed Cartesian domain is "
                         "active.");
             }
@@ -156,7 +158,7 @@ namespace opalx::spacecharge {
         if (fixedDomain || primary_m->getTotalNum() > 1) {
             enterSolveFrame(context.stepState().frames, *primary_m);
             result.redistributions += domainUpdater_m.updateForSolve(
-                    DomainCoordinateFrame::Beam, context, plan.activeCorrection,
+                    DomainCoordinateFrame::Beam, context, plan.activeDirichletPlane,
                     fixedDomain ? &*fixedState : nullptr, *fieldStorage_m, *poissonSolver_m);
 
             solveInBeamFrame(context, plan, result);
@@ -169,16 +171,16 @@ namespace opalx::spacecharge {
             primary_m->updateMoments();
         } else {
             result.redistributions += domainUpdater_m.updateForSolve(
-                    DomainCoordinateFrame::Reference, context, plan.activeCorrection, nullptr,
+                    DomainCoordinateFrame::Reference, context, plan.activeDirichletPlane, nullptr,
                     *fieldStorage_m, *poissonSolver_m);
         }
         return result;
     }
 
-    void CartesianPICAlgorithm::solveInBeamFrame(
+    void CartesianPIC3DAlgorithm::solveInBeamFrame(
             const SpaceChargeSolveContext& context, const SolvePlan& plan,
             SpaceChargeSolveResult& result) {
-        Inform m("CartesianPICAlgorithm::solveInBeamFrame");
+        Inform m("CartesianPIC3DAlgorithm::solveInBeamFrame");
         const auto& poissonCapabilities = poissonSolver_m->capabilities();
         if (poissonCapabilities.isNoOp) {
             m << level5 << "Skipping scatter/gather and space-charge computation for NONE solver."
@@ -193,7 +195,7 @@ namespace opalx::spacecharge {
         // Deposition restores dt by dividing dt*Q by Q, so reject zero charge first.
         if (primary_m->getChargePerParticle() == 0.0) {
             throw OpalException(
-                    "CartesianPICAlgorithm::solveInBeamFrame",
+                    "CartesianPIC3DAlgorithm::solveInBeamFrame",
                     "Per-particle charge is zero but a space-charge solver is active (type="
                             + std::string(poissonSolver_m->name())
                             + "). This almost always means the BEAM command is missing BCHARGE. "
@@ -202,8 +204,8 @@ namespace opalx::spacecharge {
         }
         if (plan.passCount == 0) {
             throw OpalException(
-                    "CartesianPICAlgorithm::solveInBeamFrame",
-                    "The prepared correction contains no primary solve pass.");
+                    "CartesianPIC3DAlgorithm::solveInBeamFrame",
+                    "The prepared Dirichlet-plane solve plan contains no primary solve pass.");
         }
 
         const bool binned = particleBinTraversal_m != nullptr;
@@ -212,11 +214,11 @@ namespace opalx::spacecharge {
           << ", totalParticles=" << primary_m->getTotalNum() << ", hasBins=" << (binned ? 1 : 0)
           << ", stype=" << poissonSolver_m->name() << endl;
 
-        if (plan.correctionExpired) {
+        if (plan.dirichletPlaneExpired) {
             m << level3 << "ZEROFACE_MAXSTEPS reached (step=" << context.stepState().step
-              << ", maxSteps=" << config_m.correction.maximumSteps << "); disabling ";
-            if (config_m.correction.kind == SpaceChargeCorrectionType::ShiftedGreen) {
-                m << "SHIFTED_GREENS_FUNCTION correction for this step." << endl;
+              << ", maxSteps=" << config_m.dirichletPlane.maximumSteps << "); disabling ";
+            if (config_m.dirichletPlane.kind == DirichletPlaneType::ShiftedGreen) {
+                m << "SHIFTED_GREENS_FUNCTION Dirichlet plane for this step." << endl;
             } else {
                 m << "image charges for this step." << endl;
             }
@@ -229,7 +231,7 @@ namespace opalx::spacecharge {
         }
     }
 
-    void CartesianPICAlgorithm::solveWholeBunch(
+    void CartesianPIC3DAlgorithm::solveWholeBunch(
             const SpaceChargeSolveContext& context, const SolvePlan& plan,
             SpaceChargeSolveResult& result) {
         result.reportedBins = 1;
@@ -252,7 +254,7 @@ namespace opalx::spacecharge {
         }
     }
 
-    void CartesianPICAlgorithm::solveBinned(
+    void CartesianPIC3DAlgorithm::solveBinned(
             const SpaceChargeSolveContext& context, const SolvePlan& plan,
             SpaceChargeSolveResult& result) {
         const long long step = static_cast<long long>(context.stepState().step);
@@ -273,7 +275,7 @@ namespace opalx::spacecharge {
                                       : static_cast<int>(prepared.mergedBinCount);
         relativisticFieldComposer_m.clearAccumulation(*fieldStorage_m);
 
-        Inform m("CartesianPICAlgorithm::solveBinned");
+        Inform m("CartesianPIC3DAlgorithm::solveBinned");
         m << level4 << "Iteration mode=binned, nBins=" << static_cast<int>(prepared.mergedBinCount)
           << ", stype=" << poissonSolver_m->name() << endl;
 
@@ -302,10 +304,10 @@ namespace opalx::spacecharge {
         }
     }
 
-    void CartesianPICAlgorithm::solvePass(
+    void CartesianPIC3DAlgorithm::solvePass(
             const SpaceChargeSolveContext& context, const SolvePlan& plan,
             const ParticleBinType* unit, PassKind pass, SpaceChargeSolveResult& result) {
-        const double planeZ         = plan.activeCorrection.planeZ;
+        const double planeZ         = plan.activeDirichletPlane.planeZ;
         const PassProperties policy = passProperties(pass, planeZ, unit != nullptr);
 
         const auto& capabilities = poissonSolver_m->capabilities();
@@ -354,7 +356,7 @@ namespace opalx::spacecharge {
             mesh.setMeshSpacing(stretchedSpacing);
         }
 
-        Inform m("CartesianPICAlgorithm::solvePass");
+        Inform m("CartesianPIC3DAlgorithm::solvePass");
         m << level4 << "pass=" << policy.label
           << ", binIndex=" << static_cast<int>(unit == nullptr ? 0 : unit->ordinal)
           << ", suppressFieldDump=" << (policy.suppressFieldDump ? 1 : 0);
@@ -392,10 +394,10 @@ namespace opalx::spacecharge {
         }
     }
 
-    void CartesianPICAlgorithm::depositChargeForBin(
+    void CartesianPIC3DAlgorithm::depositChargeForBin(
             const SpaceChargeSolveContext& context, const ParticleBinType& unit,
             const PassProperties& pass) {
-        Inform m("CartesianPICAlgorithm::depositChargeForBin");
+        Inform m("CartesianPIC3DAlgorithm::depositChargeForBin");
         const auto& indexedSelection = unit.indexedSelection;
         const auto& selectionPolicy  = indexedSelection.policy();
         const auto& hash             = indexedSelection.hash();
@@ -406,12 +408,12 @@ namespace opalx::spacecharge {
 
         if (end > hashExtent) {
             throw OpalException(
-                    "CartesianPICAlgorithm::depositChargeForBin",
+                    "CartesianPIC3DAlgorithm::depositChargeForBin",
                     "Bin scatter policy exceeds its hash extent.");
         }
         if (unit.coversAllLocalParticles != (begin == 0 && end == localCount)) {
             throw OpalException(
-                    "CartesianPICAlgorithm::depositChargeForBin",
+                    "CartesianPIC3DAlgorithm::depositChargeForBin",
                     "The solve-unit all-local flag does not match its indexed selection.");
         }
 
@@ -443,7 +445,7 @@ namespace opalx::spacecharge {
                 normalization, pass.imagePolicy);
     }
 
-    void CartesianPICAlgorithm::dumpBinSnapshot(
+    void CartesianPIC3DAlgorithm::dumpBinSnapshot(
             const SpaceChargeSolveContext& context, const BinConfigurationSnapshot& snapshot,
             bool beforeMerge) const {
         const std::vector<std::size_t> particleCounts(
@@ -454,14 +456,14 @@ namespace opalx::spacecharge {
                 config_m.binning->dumpFile);
     }
 
-    void CartesianPICAlgorithm::dumpDirichletPlaneDiagnosticsIfRequested(
+    void CartesianPIC3DAlgorithm::dumpDirichletPlaneDiagnosticsIfRequested(
             const SpaceChargeSolveContext& context, const std::string& solveTag, double planeZ) {
         const long long step        = static_cast<long long>(context.stepState().step);
-        const std::size_t frequency = config_m.correction.planeDumpFrequency;
+        const std::size_t frequency = config_m.dirichletPlane.planeDumpFrequency;
         if (frequency == 0 || step < 0 || step % static_cast<long long>(frequency) != 0) {
             return;
         }
-        Inform m("CartesianPICAlgorithm::dumpDirichletPlaneDiagnosticsIfRequested");
+        Inform m("CartesianPIC3DAlgorithm::dumpDirichletPlaneDiagnosticsIfRequested");
         if (ippl::Comm->size() != 1) {
             if (!warnedPlaneDumpParallelUnsupported_m) {
                 warnedPlaneDumpParallelUnsupported_m = true;
@@ -486,12 +488,12 @@ namespace opalx::spacecharge {
           << " V, var(phi)=" << planeDiagnostics.variance << " V^2" << endl;
     }
 
-    void CartesianPICAlgorithm::printBinStatsTable() const {
+    void CartesianPIC3DAlgorithm::printBinStatsTable() const {
         const std::string& diagnosticName = particleBinTraversal_m->diagnosticName();
         const std::string informName =
                 diagnosticName.empty()
-                        ? "CartesianPICAlgorithm::printBinStatsTable"
-                        : "CartesianPICAlgorithm::printBinStatsTable[" + diagnosticName + "]";
+                        ? "CartesianPIC3DAlgorithm::printBinStatsTable"
+                        : "CartesianPIC3DAlgorithm::printBinStatsTable[" + diagnosticName + "]";
         Inform m(informName.c_str());
         m << level2 << std::setw(9) << "bin"
           << " | " << std::setw(13) << "nParticles"

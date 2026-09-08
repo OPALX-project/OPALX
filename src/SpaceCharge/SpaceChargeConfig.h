@@ -17,9 +17,9 @@
 
 namespace opalx::spacecharge {
 
-    enum class SpaceChargeCorrectionType : std::uint8_t { None, ImageCharge, ShiftedGreen };
+    enum class DirichletPlaneType : std::uint8_t { None, ImageCharge, ShiftedGreen };
     enum class PoissonSolverType : std::uint8_t { None, PeriodicFFT, Open, ConjugateGradient, P3M };
-    /** @brief Boundary of the Poisson domain, independent of source-plane corrections. */
+    /** @brief Boundary of the Poisson domain, independent of Dirichlet planes. */
     enum class FieldBoundaryCondition : std::uint8_t { Open, Dirichlet, Periodic };
     enum class GreenFunctionType : std::uint8_t { Standard, Integrated };
     enum class BinningVariable : std::uint8_t { VelocityZ, PositionZ, MomentumZ, GammaZ };
@@ -42,14 +42,17 @@ namespace opalx::spacecharge {
         double boundingBoxIncreasePercent = 2.0;  ///< Particle-span percentage added per side.
     };
 
-    /** @brief Source-plane field correction; planeZ is in metres in the Cartesian solve frame. */
-    struct CorrectionConfig {
-        SpaceChargeCorrectionType kind = SpaceChargeCorrectionType::None;
+    /**
+     * @brief Homogeneous Dirichlet plane in the CartesianPIC3D solve frame.
+     * @note planeZ is in metres; image charges or shifted Green functions enforce zero potential.
+     */
+    struct DirichletPlaneConfig {
+        DirichletPlaneType kind        = DirichletPlaneType::None;
         double planeZ                  = 0.0;
         std::size_t planeDumpFrequency = 0;  ///< Steps between plane dumps; zero disables them.
-        std::size_t maximumSteps       = 0;  ///< Number of corrected steps; zero never expires.
+        std::size_t maximumSteps       = 0;  ///< Active solve steps; zero never expires.
 
-        [[nodiscard]] bool enabled() const { return kind != SpaceChargeCorrectionType::None; }
+        [[nodiscard]] bool enabled() const { return kind != DirichletPlaneType::None; }
     };
 
     /** @brief Particle binning and its diagnostics. */
@@ -66,8 +69,8 @@ namespace opalx::spacecharge {
         std::size_t tablePrintFrequency = 10;  ///< Steps between console tables.
     };
 
-    /** @brief Complete runtime configuration for Cartesian PIC. */
-    struct CartesianPICConfig {
+    /** @brief Complete runtime configuration for CartesianPIC3D. */
+    struct CartesianPIC3DConfig {
         CartesianGridConfig grid;
         PoissonSolverType backend = PoissonSolverType::None;
         /** @brief MPI decomposition used after mesh resize; absent uses grid.decomposition. */
@@ -81,7 +84,7 @@ namespace opalx::spacecharge {
         std::size_t repartitionFrequency = 0;  ///< Steps between ORB checks; zero disables them.
         /** @brief Per-rank count deviation, divided by global count, that triggers ORB. */
         double loadBalancingThreshold = 0.05;
-        CorrectionConfig correction;
+        DirichletPlaneConfig dirichletPlane;
 
         [[nodiscard]] const std::array<bool, 3>& layoutDecomposition() const {
             return layoutRebuildDecomposition.has_value() ? *layoutRebuildDecomposition
@@ -100,12 +103,12 @@ namespace opalx::spacecharge {
         std::string referencePathFile;
     };
 
-    using SpaceChargeConfig = std::variant<CartesianPICConfig, FFT2D5Config>;
+    using SpaceChargeConfig = std::variant<CartesianPIC3DConfig, FFT2D5Config>;
 
     /** @brief Reject unsupported or inconsistent Poisson settings. */
     void validatePoissonSolverConfig(const PoissonSolverConfig& config);
-    /** @brief Extract Poisson settings from Cartesian PIC configuration. */
-    [[nodiscard]] PoissonSolverConfig makePoissonSolverConfig(const CartesianPICConfig& config);
+    /** @brief Extract Poisson settings from CartesianPIC3D configuration. */
+    [[nodiscard]] PoissonSolverConfig makePoissonSolverConfig(const CartesianPIC3DConfig& config);
 
     /** @brief Reject unsupported or inconsistent space-charge settings. */
     void validateSpaceChargeConfig(const SpaceChargeConfig& config);

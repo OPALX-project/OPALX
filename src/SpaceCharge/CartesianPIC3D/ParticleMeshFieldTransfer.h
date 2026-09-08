@@ -1,13 +1,13 @@
 /**
  * @file ParticleMeshFieldTransfer.h
- * @brief CIC charge deposition and field gathering for Cartesian PIC.
+ * @brief CIC charge deposition and field gathering for CartesianPIC3D.
  */
 
 #ifndef OPALX_SPACE_CHARGE_PARTICLE_MESH_FIELD_TRANSFER_H
 #define OPALX_SPACE_CHARGE_PARTICLE_MESH_FIELD_TRANSFER_H
 
 #include "PartBunch/ParticleContainer.hpp"
-#include "SpaceCharge/CartesianPIC/CartesianPICFieldStorage.h"
+#include "SpaceCharge/CartesianPIC3D/CartesianPIC3DFieldStorage.h"
 
 #include <cstddef>
 
@@ -24,7 +24,7 @@ namespace opalx::spacecharge {
         using ParticleContainer = ::ParticleContainer<double, 3>;
         using PositionAttribute = typename ParticleContainer::particle_position_type;
         using VectorAttribute   = PositionAttribute;
-        using FieldStorage      = CartesianPICFieldStorage<double, 3>;
+        using FieldStorage      = CartesianPIC3DFieldStorage<double, 3>;
         using ScalarField       = typename FieldStorage::ScalarField;
         using VectorField       = typename FieldStorage::VectorField;
         using ExecutionSpace    = Kokkos::DefaultExecutionSpace;

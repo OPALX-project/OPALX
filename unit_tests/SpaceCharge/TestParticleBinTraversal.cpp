@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "PartBunch/BunchStateHandler.h"
-#include "SpaceCharge/CartesianPIC/ParticleBinTraversal.h"
+#include "SpaceCharge/CartesianPIC3D/ParticleBinTraversal.h"
 #include "Utilities/OpalException.h"
 
 #include <array>

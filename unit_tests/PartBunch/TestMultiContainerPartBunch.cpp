@@ -209,7 +209,7 @@ namespace {
 
     TEST_F(MultiContainerPartBunchTest, SpaceChargeFactoryConstructsConfiguredCartesianAlgorithm) {
         using namespace opalx::spacecharge;
-        CartesianPICConfig values;
+        CartesianPIC3DConfig values;
         values.backend                         = PoissonSolverType::PeriodicFFT;
         values.grid.meshSize                   = storageConfig.meshSize;
         values.grid.decomposition              = storageConfig.decomposition;

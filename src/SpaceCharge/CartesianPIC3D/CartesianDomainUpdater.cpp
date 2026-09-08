@@ -1,9 +1,9 @@
 /**
  * @file CartesianDomainUpdater.cpp
- * @brief Implements Cartesian PIC geometry, migration, and redistribution updates.
+ * @brief Implements CartesianPIC3D geometry, migration, and redistribution updates.
  */
 
-#include "SpaceCharge/CartesianPIC/CartesianDomainUpdater.h"
+#include "SpaceCharge/CartesianPIC3D/CartesianDomainUpdater.h"
 
 #include "SpaceCharge/Poisson/PoissonSolver.h"
 #include "Utilities/OpalException.h"
@@ -24,7 +24,7 @@ namespace opalx::spacecharge {
     }  // namespace
 
     CartesianDomainUpdater::CartesianDomainUpdater(
-            CartesianPICConfig config, std::span<ParticleContainer* const> particles)
+            CartesianPIC3DConfig config, std::span<ParticleContainer* const> particles)
         : config_m(std::move(config)),
           particles_m(particles.begin(), particles.end()),
           rankFlags_m(static_cast<std::size_t>(ippl::Comm->size()), 0) {
@@ -35,18 +35,18 @@ namespace opalx::spacecharge {
                     })) {
             throw OpalException(
                     "CartesianDomainUpdater::CartesianDomainUpdater",
-                    "Cartesian PIC requires non-null particle containers.");
+                    "CartesianPIC3D requires non-null particle containers.");
         }
     }
 
     bool CartesianDomainUpdater::updateForSolve(
             DomainCoordinateFrame frame, const SpaceChargeSolveContext& context,
-            const CorrectionConfig& correction, const FixedDomain* fixedDomain,
+            const DirichletPlaneConfig& dirichletPlane, const FixedDomain* fixedDomain,
             FieldStorage& fieldStorage, PoissonSolver& poissonSolver) {
         const bool beamFrame = frame == DomainCoordinateFrame::Beam;
         const bool fixed     = fixedDomain != nullptr;
         const FieldStorage::Extents extents =
-                fixed ? config_m.grid.meshSize : targetExtents(correction);
+                fixed ? config_m.grid.meshSize : targetExtents(dirichletPlane);
 
         const bool repeatFieldLayoutRefresh = poissonRebuildRequired_m;
         if (fieldStorage.layoutExtents() != extents) {
@@ -68,7 +68,7 @@ namespace opalx::spacecharge {
             }
         } else {
             bounds = computeBounds(beamFrame);
-            extendImageBounds(bounds, correction);
+            extendImageBounds(bounds, dirichletPlane);
             expandBounds(
                     bounds, beamFrame && context.stepState().emissionActive,
                     context.stepState().emittedFraction, fieldStorage.layoutExtents()[2]);
@@ -176,9 +176,9 @@ namespace opalx::spacecharge {
     }
 
     CartesianDomainUpdater::FieldStorage::Extents CartesianDomainUpdater::targetExtents(
-            const CorrectionConfig& correction) const {
+            const DirichletPlaneConfig& dirichletPlane) const {
         FieldStorage::Extents extents = config_m.grid.meshSize;
-        if (correction.kind == SpaceChargeCorrectionType::ImageCharge) {
+        if (dirichletPlane.kind == DirichletPlaneType::ImageCharge) {
             if (extents[2] > std::numeric_limits<std::size_t>::max() / 2) {
                 throw OpalException(
                         "CartesianDomainUpdater::targetExtents",
@@ -190,12 +190,12 @@ namespace opalx::spacecharge {
     }
 
     void CartesianDomainUpdater::extendImageBounds(
-            CartesianBounds& bounds, const CorrectionConfig& correction) const {
-        if (correction.kind != SpaceChargeCorrectionType::ImageCharge) {
+            CartesianBounds& bounds, const DirichletPlaneConfig& dirichletPlane) const {
+        if (dirichletPlane.kind != DirichletPlaneType::ImageCharge) {
             return;
         }
-        const double mirroredMinZ = 2.0 * correction.planeZ - bounds.upper[2];
-        const double mirroredMaxZ = 2.0 * correction.planeZ - bounds.lower[2];
+        const double mirroredMinZ = 2.0 * dirichletPlane.planeZ - bounds.upper[2];
+        const double mirroredMaxZ = 2.0 * dirichletPlane.planeZ - bounds.lower[2];
         bounds.lower[2]           = std::min(bounds.lower[2], mirroredMinZ);
         bounds.upper[2]           = std::max(bounds.upper[2], mirroredMaxZ);
     }

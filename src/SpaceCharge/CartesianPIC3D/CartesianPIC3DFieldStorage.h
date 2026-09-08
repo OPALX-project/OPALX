@@ -1,10 +1,10 @@
 /**
- * @file CartesianPICFieldStorage.h
+ * @file CartesianPIC3DFieldStorage.h
  * @brief Persistent field and Cartesian-domain storage for a PIC solve.
  */
 
-#ifndef OPALX_SPACE_CHARGE_CARTESIAN_PIC_FIELD_STORAGE_H
-#define OPALX_SPACE_CHARGE_CARTESIAN_PIC_FIELD_STORAGE_H
+#ifndef OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_FIELD_STORAGE_H
+#define OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_FIELD_STORAGE_H
 
 #include <array>
 #include <cstddef>
@@ -22,7 +22,7 @@ namespace opalx::spacecharge {
      * scratch bound to those stable objects and refreshes them after solver-directed mutations.
      */
     template <typename T, unsigned Dim>
-    class CartesianPICFieldStorage final {
+    class CartesianPIC3DFieldStorage final {
     public:
         using Mesh        = ippl::UniformCartesian<T, Dim>;
         using Layout      = ippl::FieldLayout<Dim>;
@@ -33,12 +33,12 @@ namespace opalx::spacecharge {
         using VectorField =
                 ippl::Field<ippl::Vector<T, Dim>, Dim, Mesh, typename Mesh::DefaultCentering>;
 
-        explicit CartesianPICFieldStorage(Domain& domain);
+        explicit CartesianPIC3DFieldStorage(Domain& domain);
 
-        CartesianPICFieldStorage(const CartesianPICFieldStorage&)            = delete;
-        CartesianPICFieldStorage& operator=(const CartesianPICFieldStorage&) = delete;
-        CartesianPICFieldStorage(CartesianPICFieldStorage&&)                 = delete;
-        CartesianPICFieldStorage& operator=(CartesianPICFieldStorage&&)      = delete;
+        CartesianPIC3DFieldStorage(const CartesianPIC3DFieldStorage&)            = delete;
+        CartesianPIC3DFieldStorage& operator=(const CartesianPIC3DFieldStorage&) = delete;
+        CartesianPIC3DFieldStorage(CartesianPIC3DFieldStorage&&)                 = delete;
+        CartesianPIC3DFieldStorage& operator=(CartesianPIC3DFieldStorage&&)      = delete;
 
         /** @brief Backend output in the active mesh frame; valid on the current IPPL layout. */
         [[nodiscard]] VectorField& electricField() { return electricField_m; }
@@ -109,10 +109,10 @@ namespace opalx::spacecharge {
         VectorField flippedZSlabField_m;
     };
 
-    extern template class CartesianPICFieldStorage<double, 3>;
+    extern template class CartesianPIC3DFieldStorage<double, 3>;
 
 }  // namespace opalx::spacecharge
 
-#include "SpaceCharge/CartesianPIC/CartesianPICFieldStorage.tpp"
+#include "SpaceCharge/CartesianPIC3D/CartesianPIC3DFieldStorage.tpp"
 
-#endif  // OPALX_SPACE_CHARGE_CARTESIAN_PIC_FIELD_STORAGE_H
+#endif  // OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_FIELD_STORAGE_H

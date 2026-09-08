@@ -1,13 +1,13 @@
 /**
  * @file RelativisticFieldComposer.h
- * @brief Cartesian PIC field conversion, accumulation, and final gathering.
+ * @brief CartesianPIC3D field conversion, accumulation, and final gathering.
  */
 
-#ifndef OPALX_SPACE_CHARGE_CARTESIAN_PIC_RELATIVISTIC_FIELD_COMPOSER_H
-#define OPALX_SPACE_CHARGE_CARTESIAN_PIC_RELATIVISTIC_FIELD_COMPOSER_H
+#ifndef OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_RELATIVISTIC_FIELD_COMPOSER_H
+#define OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_RELATIVISTIC_FIELD_COMPOSER_H
 
-#include "SpaceCharge/CartesianPIC/CartesianPICFieldStorage.h"
-#include "SpaceCharge/CartesianPIC/ParticleMeshFieldTransfer.h"
+#include "SpaceCharge/CartesianPIC3D/CartesianPIC3DFieldStorage.h"
+#include "SpaceCharge/CartesianPIC3D/ParticleMeshFieldTransfer.h"
 
 #include <array>
 #include <cstdint>
@@ -36,11 +36,12 @@ namespace opalx::spacecharge {
     /**
      * @brief Converts and accumulates backend fields in Cartesian solve axes, then gathers them.
      *
-     * Fields and particle data are borrowed; persistent scratch lives in CartesianPICFieldStorage.
+     * Fields and particle data are borrowed; persistent scratch lives in
+     * CartesianPIC3DFieldStorage.
      */
     class RelativisticFieldComposer final {
     public:
-        using FieldStorage         = CartesianPICFieldStorage<double, 3>;
+        using FieldStorage         = CartesianPIC3DFieldStorage<double, 3>;
         using ParticleMeshTransfer = ParticleMeshFieldTransfer;
         using Vector               = typename FieldStorage::Vector;
         using VectorField          = typename FieldStorage::VectorField;
@@ -76,4 +77,4 @@ namespace opalx::spacecharge {
 
 }  // namespace opalx::spacecharge
 
-#endif  // OPALX_SPACE_CHARGE_CARTESIAN_PIC_RELATIVISTIC_FIELD_COMPOSER_H
+#endif  // OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_RELATIVISTIC_FIELD_COMPOSER_H

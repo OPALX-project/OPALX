@@ -3,7 +3,7 @@
  * @brief Implements persistent adaptive or fixed PIC bin traversal.
  */
 
-#include "SpaceCharge/CartesianPIC/ParticleBinTraversal.h"
+#include "SpaceCharge/CartesianPIC3D/ParticleBinTraversal.h"
 #include "Utilities/OpalException.h"
 
 #include <functional>

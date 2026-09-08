@@ -32,25 +32,25 @@ namespace opalx::spacecharge {
             }
         }
 
-        void validateCorrection(const CorrectionConfig& correction) {
-            if (!std::isfinite(correction.planeZ)) {
+        void validateDirichletPlane(const DirichletPlaneConfig& dirichletPlane) {
+            if (!std::isfinite(dirichletPlane.planeZ)) {
                 throw OpalException(
-                        "validateSpaceChargeConfig", "Source-plane position must be finite.");
+                        "validateSpaceChargeConfig", "Dirichlet-plane position must be finite.");
             }
-            switch (correction.kind) {
-                case SpaceChargeCorrectionType::None:
-                case SpaceChargeCorrectionType::ImageCharge:
-                case SpaceChargeCorrectionType::ShiftedGreen:
+            switch (dirichletPlane.kind) {
+                case DirichletPlaneType::None:
+                case DirichletPlaneType::ImageCharge:
+                case DirichletPlaneType::ShiftedGreen:
                     break;
                 default:
-                    throw OpalException(
-                            "validateSpaceChargeConfig", "Unknown source-plane correction.");
+                    throw OpalException("validateSpaceChargeConfig", "Unknown Dirichlet plane.");
             }
-            if (correction.kind != SpaceChargeCorrectionType::ImageCharge
-                && correction.planeDumpFrequency != 0) {
+            if (dirichletPlane.kind != DirichletPlaneType::ImageCharge
+                && dirichletPlane.planeDumpFrequency != 0) {
                 throw OpalException(
                         "validateSpaceChargeConfig",
-                        "Source-plane potential output requires image-charge correction.");
+                        "Dirichlet-plane potential output requires an image-charge Dirichlet "
+                        "plane.");
             }
         }
 
@@ -77,9 +77,9 @@ namespace opalx::spacecharge {
             }
         }
 
-        void validateCartesian(const CartesianPICConfig& config) {
+        void validateCartesian(const CartesianPIC3DConfig& config) {
             validateGrid(config.grid);
-            validateCorrection(config.correction);
+            validateDirichletPlane(config.dirichletPlane);
             if (config.binning.has_value()) {
                 validateBinning(*config.binning);
             }
@@ -91,20 +91,20 @@ namespace opalx::spacecharge {
             }
             validatePoissonSolverConfig(makePoissonSolverConfig(config));
             if (config.backend == PoissonSolverType::P3M
-                && (config.binning.has_value() || config.correction.enabled())) {
+                && (config.binning.has_value() || config.dirichletPlane.enabled())) {
                 throw OpalException(
                         "validateSpaceChargeConfig",
-                        "P3M does not support binning or source-plane corrections.");
+                        "P3M does not support binning or Dirichlet planes.");
             }
-            if (config.correction.enabled() && config.backend != PoissonSolverType::Open) {
+            if (config.dirichletPlane.enabled() && config.backend != PoissonSolverType::Open) {
                 throw OpalException(
                         "validateSpaceChargeConfig",
-                        "Source-plane corrections require the OPEN Poisson backend.");
+                        "Dirichlet planes require the OPEN Poisson backend.");
             }
-            if (config.correction.planeDumpFrequency != 0 && config.binning.has_value()) {
+            if (config.dirichletPlane.planeDumpFrequency != 0 && config.binning.has_value()) {
                 throw OpalException(
                         "validateSpaceChargeConfig",
-                        "Source-plane potential diagnostics are not supported with binning.");
+                        "Dirichlet-plane potential diagnostics are not supported with binning.");
             }
         }
 
@@ -140,7 +140,7 @@ namespace opalx::spacecharge {
 
     }  // namespace
 
-    PoissonSolverConfig makePoissonSolverConfig(const CartesianPICConfig& config) {
+    PoissonSolverConfig makePoissonSolverConfig(const CartesianPIC3DConfig& config) {
         return {config.backend, config.greenFunction, config.p3mCutoff, config.boundaryConditions};
     }
 
@@ -163,7 +163,7 @@ namespace opalx::spacecharge {
                     "validateSpaceChargeConfig",
                     "Implemented Poisson backends require uniform OPEN or PERIODIC "
                     "domain boundaries. DIRICHLET mesh faces and mixed boundaries are "
-                    "not implemented. Source-plane corrections are configured separately.");
+                    "not implemented. Dirichlet planes are configured separately.");
         }
         switch (config.type) {
             case PoissonSolverType::None:
@@ -203,7 +203,7 @@ namespace opalx::spacecharge {
         std::visit(
                 [](const auto& selected) {
                     using Config = std::decay_t<decltype(selected)>;
-                    if constexpr (std::is_same_v<Config, CartesianPICConfig>) {
+                    if constexpr (std::is_same_v<Config, CartesianPIC3DConfig>) {
                         validateCartesian(selected);
                     } else if constexpr (std::is_same_v<Config, FFT2D5Config>) {
                         validateFFT2D5(selected);
@@ -223,7 +223,7 @@ namespace opalx::spacecharge {
                     domain.decomposition              = selected.grid.decomposition;
                     domain.boundingBoxIncreasePercent = selected.grid.boundingBoxIncreasePercent;
                     using Config                      = std::decay_t<decltype(selected)>;
-                    if constexpr (std::is_same_v<Config, CartesianPICConfig>) {
+                    if constexpr (std::is_same_v<Config, CartesianPIC3DConfig>) {
                         domain.periodicParticleBoundary = std::all_of(
                                 selected.boundaryConditions.begin(),
                                 selected.boundaryConditions.end(),
