@@ -1,10 +1,12 @@
 #include "PartBunch/BunchStateHandler.h"
 
 #include "Ippl.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 
-#include <algorithm>
+#include <cmath>
 #include <functional>
+#include <utility>
 
 namespace {
     // Converge a local bool across all MPI ranks using logical-OR. Intentionally
@@ -14,12 +16,6 @@ namespace {
     inline bool syncOr(bool v) {
         bool out = v;
         ippl::Comm->allreduce(v, out, 1, std::logical_or<bool>());
-        return out;
-    }
-
-    inline double syncMin(double v) {
-        double out = v;
-        ippl::Comm->allreduce(v, out, 1, std::less<double>());
         return out;
     }
 }  // namespace
@@ -49,14 +45,25 @@ std::shared_ptr<BunchStateHandler::ContainerState> BunchStateHandler::registerCo
     return state;
 }
 
-void BunchStateHandler::setEmissionMeshProgress(bool active, double emittedFraction) {
-    const bool syncedActive = Options::aggressiveStateSync ? syncOr(active) : active;
-    double fraction         = active ? std::clamp(emittedFraction, 0.0, 1.0) : 1.0;
-
-    if (Options::aggressiveStateSync) {
-        fraction = syncMin(fraction);
+void BunchStateHandler::setFixedCartesianDomain(
+        std::array<double, 3> lower, std::array<double, 3> upper) {
+    for (std::size_t dimension = 0; dimension < lower.size(); ++dimension) {
+        if (!std::isfinite(lower[dimension]) || !std::isfinite(upper[dimension])
+            || lower[dimension] >= upper[dimension]) {
+            throw OpalException(
+                    "BunchStateHandler::setFixedCartesianDomain",
+                    "Fixed Cartesian domain bounds must be finite and strictly increasing.");
+        }
     }
 
-    emissionMeshStretchEnabled_m   = syncedActive;
-    emissionMeshProgressFraction_m = syncedActive ? fraction : 1.0;
+    FixedCartesianDomainState requested{std::move(lower), std::move(upper)};
+    if (fixedCartesianDomain_m.has_value()) {
+        if (*fixedCartesianDomain_m == requested) {
+            return;
+        }
+        throw OpalException(
+                "BunchStateHandler::setFixedCartesianDomain",
+                "Clear the active fixed Cartesian domain before replacing its bounds.");
+    }
+    fixedCartesianDomain_m = std::move(requested);
 }

@@ -1,0 +1,358 @@
+/**
+ * @file SpaceChargeConfigBuilder.cpp
+ * @brief Implements one-time parser-to-space-charge configuration conversion.
+ */
+
+#include "SpaceCharge/SpaceChargeConfigBuilder.h"
+
+#include "AbstractObjects/OpalData.h"
+#include "Distribution/Distribution.h"
+#include "PartBunch/BCHandler.hpp"
+#include "Structure/BinningCmd.h"
+#include "Structure/EmissionSource.h"
+#include "Structure/FieldSolverCmd.h"
+#include "Utilities/OpalException.h"
+#include "Utilities/Options.h"
+#include "Utilities/Util.h"
+
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <limits>
+#include <string>
+
+namespace opalx::spacecharge {
+    namespace {
+
+        PoissonSolverType convertPoissonSolverType(FieldSolverCmdType type) {
+            switch (type) {
+                case FieldSolverCmdType::NONE:
+                    return PoissonSolverType::None;
+                case FieldSolverCmdType::FFT:
+                    return PoissonSolverType::PeriodicFFT;
+                case FieldSolverCmdType::OPEN:
+                    return PoissonSolverType::Open;
+                case FieldSolverCmdType::CG:
+                    return PoissonSolverType::ConjugateGradient;
+                case FieldSolverCmdType::P3M:
+                    return PoissonSolverType::P3M;
+                case FieldSolverCmdType::FFT2D5:
+                    break;
+            }
+            throw OpalException(
+                    "SpaceChargeConfigBuilder::build", "Unknown FIELDSOLVER TYPE value.");
+        }
+
+        GreenFunctionType convertGreenFunction(const std::string& name) {
+            if (name == "STANDARD") {
+                return GreenFunctionType::Standard;
+            }
+            if (name == "INTEGRATED") {
+                return GreenFunctionType::Integrated;
+            }
+            throw OpalException(
+                    "SpaceChargeConfigBuilder::build",
+                    "Unknown FIELDSOLVER GREENSF value '" + name + "'.");
+        }
+
+        BinningVariable convertBinningParameter(BinningParameter parameter) {
+            switch (parameter) {
+                case BinningParameter::VELOCITYZ:
+                    return BinningVariable::VelocityZ;
+                case BinningParameter::POSITIONZ:
+                    return BinningVariable::PositionZ;
+                case BinningParameter::PZ:
+                    return BinningVariable::MomentumZ;
+                case BinningParameter::GAMMAZ:
+                    return BinningVariable::GammaZ;
+            }
+            throw OpalException(
+                    "SpaceChargeConfigBuilder::build", "Unknown BINNING PARAMETER value.");
+        }
+
+        FFT2D5LongitudinalFieldMode convertFFT2D5Mode(const std::string& name) {
+            if (name == "OPEN") {
+                return FFT2D5LongitudinalFieldMode::Open;
+            }
+            if (name == "CIRCULAR") {
+                return FFT2D5LongitudinalFieldMode::Cylindrical;
+            }
+            if (name == "PLATES") {
+                return FFT2D5LongitudinalFieldMode::Plates;
+            }
+            if (name == "NONE") {
+                return FFT2D5LongitudinalFieldMode::None;
+            }
+            throw OpalException(
+                    "SpaceChargeConfigBuilder::build",
+                    "Unknown FIELDSOLVER PIPEMODE value '" + name + "'.");
+        }
+
+        std::string resolveReferencePath(const FieldSolverCmd& fieldSolver) {
+            std::string path = fieldSolver.getRefPathFileName();
+            if (!path.empty()) {
+                return path;
+            }
+            OpalData* opal = OpalData::getInstance();
+            return Util::combineFilePath(
+                    {opal->getAuxiliaryOutputDirectory(),
+                     opal->getInputBasename() + "_DesignPath.dat"});
+        }
+
+        std::array<FieldBoundaryCondition, 3> convertBoundaryConditions(
+                const BCHandler<3>& boundaryConditions) {
+            std::array<FieldBoundaryCondition, 3> result;
+            for (unsigned d = 0; d < 3; ++d) {
+                switch (boundaryConditions[d]) {
+                    case BCHandler<3>::OPEN:
+                        result[d] = FieldBoundaryCondition::Open;
+                        break;
+                    case BCHandler<3>::PERIODIC:
+                        result[d] = FieldBoundaryCondition::Periodic;
+                        break;
+                    case BCHandler<3>::DIRICHLET:
+                        result[d] = FieldBoundaryCondition::Dirichlet;
+                        break;
+                }
+            }
+            return result;
+        }
+
+        std::size_t convertMeshSize(double value, const char* attribute) {
+            if (!std::isfinite(value) || value <= 0.0 || std::trunc(value) != value
+                || value > static_cast<double>(std::numeric_limits<int>::max())) {
+                throw OpalException(
+                        "SpaceChargeConfigBuilder::build",
+                        std::string("FIELDSOLVER ") + attribute
+                                + " must be a positive integer fitting an IPPL Index.");
+            }
+            return static_cast<std::size_t>(value);
+        }
+
+        bool usesLongitudinalResizeDecomposition(
+                const std::vector<std::vector<EmissionSource*>>& emissionSources) {
+            for (const auto& sourceList : emissionSources) {
+                for (const EmissionSource* source : sourceList) {
+                    if (source == nullptr) {
+                        continue;
+                    }
+                    const DistributionType type =
+                            Distribution::find(source->getDistributionName())->getType();
+                    if (type == DistributionType::FLATTOP
+                        || type == DistributionType::OPALFLATTOP) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        std::optional<BinningConfig> buildBinningConfig(const BinningCmd* command) {
+            if (command == nullptr) {
+                return std::nullopt;
+            }
+
+            const int maximumBins = command->getMaxBins();
+            if (maximumBins < 1) {
+                throw OpalException(
+                        "SpaceChargeConfigBuilder::build", "BINNING MAXBINS must be positive.");
+            }
+
+            BinningConfig values;
+            values.name         = command->getOpalName();
+            values.maximumBins  = static_cast<std::size_t>(maximumBins);
+            values.desiredWidth = command->getDesiredWidth();
+            values.alpha        = command->getBinningAlpha();
+            values.beta         = command->getBinningBeta();
+            values.parameter    = convertBinningParameter(command->getParameterType());
+            values.adaptive     = command->getAdaptiveBinning();
+            values.tablePrintFrequency =
+                    static_cast<std::size_t>(command->getTablePrintFrequency());
+
+            if (command->dumpBinsToFile()) {
+                values.dumpFile      = command->getDumpBinsFileName();
+                values.dumpFrequency = static_cast<std::size_t>(command->getDumpBinsFrequency());
+            } else {
+                values.dumpFile.clear();
+                values.dumpFrequency = 0;
+            }
+            return values;
+        }
+
+        DirichletPlaneConfig buildDirichletPlaneConfig(
+                const std::vector<std::vector<EmissionSource*>>& emissionSources) {
+            bool enableImageCharge      = false;
+            bool enableShiftedGreens    = false;
+            double planeZ               = 0.0;
+            int dumpFrequency           = 0;
+            int maximumSteps            = 0;
+            std::size_t zeroFaceSources = 0;
+            std::size_t shiftedSources  = 0;
+
+            for (const auto& sourceList : emissionSources) {
+                for (const EmissionSource* source : sourceList) {
+                    if (source == nullptr) {
+                        continue;
+                    }
+
+                    const bool zeroFace           = source->getZeroFaceR0Z();
+                    const bool shifted            = source->getShiftedGreensFunction();
+                    const int sourceDumpFrequency = source->getZeroFacePlaneDumpFrequency();
+
+                    if (zeroFace && shifted) {
+                        throw OpalException(
+                                "SpaceChargeConfigBuilder::build",
+                                "ZEROFACE_R0Z and SHIFTED_GREENS_FUNCTION are mutually exclusive "
+                                "on the same EMISSIONSOURCE. Enable exactly one.");
+                    }
+
+                    if (!zeroFace && !shifted) {
+                        if (sourceDumpFrequency > 0) {
+                            throw OpalException(
+                                    "SpaceChargeConfigBuilder::build",
+                                    "ZEROFACEPLANEDUMP > 0 requires ZEROFACE_R0Z=true on the "
+                                    "same EMISSIONSOURCE. (Dumping is not supported for "
+                                    "SHIFTED_GREENS_FUNCTION since the computational domain may "
+                                    "be far from R0Z.)");
+                        }
+                        continue;
+                    }
+
+                    if (zeroFace) {
+                        ++zeroFaceSources;
+                        enableImageCharge = true;
+                        planeZ            = source->getR0()[2];
+                        dumpFrequency     = sourceDumpFrequency;
+                        maximumSteps      = source->getZerofaceMaxSteps();
+                    } else {
+                        ++shiftedSources;
+                        enableShiftedGreens = true;
+                        planeZ              = source->getR0()[2];
+                        if (sourceDumpFrequency > 0) {
+                            throw OpalException(
+                                    "SpaceChargeConfigBuilder::build",
+                                    "ZEROFACEPLANEDUMP > 0 is not supported with "
+                                    "SHIFTED_GREENS_FUNCTION=true (the computational domain may "
+                                    "be far from R0Z, making the interpolated plane dump "
+                                    "meaningless).");
+                        }
+                        maximumSteps = source->getZerofaceMaxSteps();
+                    }
+                }
+            }
+
+            if (zeroFaceSources > 1) {
+                throw OpalException(
+                        "SpaceChargeConfigBuilder::build",
+                        "Cannot have more than one emission source with ZEROFACE_R0Z=true, since "
+                        "image charge computation is only implemented for one plane.");
+            }
+            if (shiftedSources > 1) {
+                throw OpalException(
+                        "SpaceChargeConfigBuilder::build",
+                        "Cannot have more than one emission source with "
+                        "SHIFTED_GREENS_FUNCTION=true, since the shifted Green's function "
+                        "Dirichlet boundary condition is only implemented for one plane.");
+            }
+            if (enableImageCharge && enableShiftedGreens) {
+                throw OpalException(
+                        "SpaceChargeConfigBuilder::build",
+                        "Cannot have ZEROFACE_R0Z=true on one EMISSIONSOURCE and "
+                        "SHIFTED_GREENS_FUNCTION=true on another; the two "
+                        "Dirichlet-plane methods are mutually exclusive at the run level.");
+            }
+            if (dumpFrequency < 0 || maximumSteps < 0) {
+                throw OpalException(
+                        "buildSpaceChargeConfig",
+                        "Dirichlet-plane dump frequency and maximum steps must not be negative.");
+            }
+            DirichletPlaneConfig values;
+            values.kind               = enableImageCharge     ? DirichletPlaneType::ImageCharge
+                                        : enableShiftedGreens ? DirichletPlaneType::ShiftedGreen
+                                                              : DirichletPlaneType::None;
+            values.planeZ             = planeZ;
+            values.planeDumpFrequency = static_cast<std::size_t>(dumpFrequency);
+            values.maximumSteps       = static_cast<std::size_t>(maximumSteps);
+            return values;
+        }
+
+    }  // namespace
+
+    SpaceChargeConfig buildSpaceChargeConfig(
+            const FieldSolverCmd& fieldSolver,
+            const std::vector<std::vector<EmissionSource*>>& emissionSources) {
+        const FieldSolverCmdType solverType = fieldSolver.getFieldSolverCmdType();
+        if (solverType == FieldSolverCmdType::CG) {
+            throw OpalException(
+                    "SpaceChargeConfigBuilder::build",
+                    "FIELDSOLVER TYPE=CG is recognized but not implemented.");
+        }
+
+        const std::array<std::size_t, 3> meshSize{
+                convertMeshSize(fieldSolver.getNX(), "NX"),
+                convertMeshSize(fieldSolver.getNY(), "NY"),
+                convertMeshSize(fieldSolver.getNZ(), "NZ")};
+        const auto decomposition = fieldSolver.getDomainDecomposition();
+        CartesianGridConfig grid;
+        grid.meshSize                   = meshSize;
+        grid.decomposition              = {decomposition[0], decomposition[1], decomposition[2]};
+        grid.boundingBoxIncreasePercent = fieldSolver.getBoxIncr();
+
+        if (solverType == FieldSolverCmdType::FFT2D5) {
+            if (ippl::Comm->size() != 1) {
+                throw OpalException("buildSpaceChargeConfig", "FFT2D5 supports only one MPI rank.");
+            }
+            const auto binsName = fieldSolver.getBinsName();
+            if (!binsName.empty() && binsName != "NONE") {
+                throw OpalException("buildSpaceChargeConfig", "FFT2D5 does not support BINS.");
+            }
+            const auto boundaries = convertBoundaryConditions(fieldSolver.constructBCHandler());
+            if (!std::all_of(boundaries.begin(), boundaries.end(), [](auto boundary) {
+                    return boundary == FieldBoundaryCondition::Open;
+                })) {
+                throw OpalException(
+                        "buildSpaceChargeConfig",
+                        "FFT2D5 transverse Poisson slices are OPEN. Use CLOSEDRING for "
+                        "longitudinal periodicity and PIPEMODE for the longitudinal-field model.");
+            }
+            const DirichletPlaneConfig dirichletPlane = buildDirichletPlaneConfig(emissionSources);
+            if (dirichletPlane.enabled()) {
+                throw OpalException(
+                        "SpaceChargeConfigBuilder::build",
+                        "FFT2D5 does not support Dirichlet planes.");
+            }
+            FFT2D5Config values;
+            values.grid                  = grid;
+            values.longitudinalFieldMode = convertFFT2D5Mode(fieldSolver.getPipeMode());
+            values.pipeSizeX             = fieldSolver.getPipeSizeX();
+            values.pipeSizeY             = fieldSolver.getPipeSizeY();
+            values.beamRadius            = fieldSolver.getBeamRadius();
+            values.closedRing            = fieldSolver.getClosedRing();
+            values.scatterLongitudinally = fieldSolver.getScatterLongitudinally();
+            values.referencePathFile     = resolveReferencePath(fieldSolver);
+            SpaceChargeConfig config     = std::move(values);
+            validateSpaceChargeConfig(config);
+            return config;
+        }
+
+        CartesianPIC3DConfig values;
+        values.grid                       = grid;
+        values.backend                    = convertPoissonSolverType(solverType);
+        values.layoutRebuildDecomposition = usesLongitudinalResizeDecomposition(emissionSources)
+                                                    ? std::array<bool, 3>{false, false, true}
+                                                    : values.grid.decomposition;
+        values.boundaryConditions = convertBoundaryConditions(fieldSolver.constructBCHandler());
+        values.greenFunction      = convertGreenFunction(fieldSolver.getGreensFunction());
+        values.p3mCutoff          = fieldSolver.getP3MCutoff();
+        values.binning            = buildBinningConfig(fieldSolver.getBinningCmd());
+        values.repartitionFrequency =
+                Options::repartFreq > 0 ? static_cast<std::size_t>(Options::repartFreq) : 0;
+        values.loadBalancingThreshold = Options::loadBalancingThreshold;
+        values.dirichletPlane         = buildDirichletPlaneConfig(emissionSources);
+
+        SpaceChargeConfig config = std::move(values);
+        validateSpaceChargeConfig(config);
+        return config;
+    }
+
+}  // namespace opalx::spacecharge
