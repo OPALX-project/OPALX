@@ -59,6 +59,20 @@ CATEGORY_COLORS = {
     'Other': (0.5, 0.5, 0.5),
 }
 
+# Cell-data ids written as 'etype' so ParaView can color blocks by
+# category (mirrors the element_type cell data of the legacy mesh output).
+CATEGORY_IDS = {
+    'Solenoids': 0,
+    'Drifts': 1,
+    'Monitors': 2,
+    'Quadrupoles': 3,
+    'Multipoles': 4,
+    'Bends': 5,
+    'Collimators': 6,
+    'Cavities': 7,
+    'Other': 8,
+}
+
 
 def category_of(element):
     etype = element['type']
@@ -256,6 +270,7 @@ def main(argv=None):
         mesh = build_element(element, args, reference)
         if mesh is None:
             continue
+        mesh.cell_data['etype'] = np.full(mesh.n_cells, CATEGORY_IDS[category])
         blocks[category][element['name']] = mesh
 
     beamline = pv.MultiBlock()
