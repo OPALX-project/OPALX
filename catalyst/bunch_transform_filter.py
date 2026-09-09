@@ -26,8 +26,18 @@ import numpy as np
 # ---------------------------------------------------------------------------
 # User-tunable flag
 # ---------------------------------------------------------------------------
-INVERSE = False  # False: lab -> bunch (transform geometry, bunch stays centred)
-                 # True:  bunch -> lab (transform particles to world coords)
+# False: lab -> bunch (transform geometry, bunch stays centred)
+# True:  bunch -> lab (transform particles to world coords)
+#
+# INVERSE is normally passed in by the caller: the loader in a Catalyst/ParaView
+# state script (see catalyst/catalyst-muon-test-1.py) exec's this file with the
+# parameter set. When this script is pasted directly into a Programmable Filter
+# instead, set the flag here or export BUNCH_TRANSFORM_INVERSE=0|1.
+import os
+try:
+    INVERSE
+except NameError:
+    INVERSE = os.environ.get('BUNCH_TRANSFORM_INVERSE', '1') not in ('0', 'false', 'False')
 
 # ---------------------------------------------------------------------------
 # Debug logging
@@ -212,17 +222,17 @@ def _transform_dataset(dataset, origin, R, path=""):
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
-_dbg("=" * 60)
+#_dbg("=" * 60)
 input0 = self.GetInputDataObject(0, 0)
 input1 = self.GetInputDataObject(0, 1)
-_inspect_input(0, input0)
-_inspect_input(1, input1)
+#_inspect_input(0, input0)
+#_inspect_input(1, input1)
 
 origin, R = _read_transform(input1)
-_dbg(f"Transform origin: {origin}")
-_dbg(f"Transform rotation rows:\n{R}")
+#_dbg(f"Transform origin: {origin}")
+#_dbg(f"Transform rotation rows:\n{R}")
 
 output = self.GetOutput()
 output.DeepCopy(input0)
 _transform_dataset(output, origin, R, "out")
-_dbg("Output generated")
+#_dbg("Output generated")
