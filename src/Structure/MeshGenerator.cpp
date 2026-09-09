@@ -6,12 +6,75 @@
 #include "Utilities/Util.h"
 
 #include <fstream>
+#include <iomanip>
 #include <iostream>
+#include <limits>
 #include <vector>
 
 extern Inform* gmsg;
 
 namespace {
+    std::string elementTypeToString(ElementType type) {
+        switch (type) {
+            case ElementType::ANY:
+                return "ANY";
+            case ElementType::BEAMLINE:
+                return "BEAMLINE";
+            case ElementType::COLLIMATOR:
+                return "COLLIMATOR";
+            case ElementType::DRIFT:
+                return "DRIFT";
+            case ElementType::LASER:
+                return "LASER";
+            case ElementType::MARKER:
+                return "MARKER";
+            case ElementType::MONITOR:
+                return "MONITOR";
+            case ElementType::MULTIPOLE:
+                return "MULTIPOLE";
+            case ElementType::MULTIPOLET:
+                return "MULTIPOLET";
+            case ElementType::RFCAVITY:
+                return "RFCAVITY";
+            case ElementType::TRAVELINGWAVE:
+                return "TRAVELINGWAVE";
+            case ElementType::SBEND:
+                return "SBEND";
+            case ElementType::RBEND:
+                return "RBEND";
+            case ElementType::RBEND3D:
+                return "RBEND3D";
+            case ElementType::RING:
+                return "RING";
+            case ElementType::PROBE:
+                return "PROBE";
+            case ElementType::VACUUM:
+                return "VACUUM";
+            case ElementType::SOLENOID:
+                return "SOLENOID";
+            case ElementType::SOURCE:
+                return "SOURCE";
+            case ElementType::CONSTANTEFIELDCAVITY:
+                return "CONSTANTEFIELDCAVITY";
+            case ElementType::CONSTANTFOCUSING:
+                return "CONSTANTFOCUSING";
+            default:
+                return "OTHER";
+        }
+    }
+
+    std::string jsonEscape(const std::string& s) {
+        std::string escaped;
+        escaped.reserve(s.size());
+        for (char c : s) {
+            if (c == '"' || c == '\\') {
+                escaped += '\\';
+            }
+            escaped += c;
+        }
+        return escaped;
+    }
+
     void appendMesh(MeshData& target, const MeshData& source) {
         const unsigned int offset = target.vertices_m.size();
         target.vertices_m.insert(
@@ -195,6 +258,120 @@ void MeshGenerator::add(const ElementBase& element) {
     elements_m.push_back(mesh);
 }
 
+void MeshGenerator::describe(const ElementBase& element) {
+    ElementDescription desc;
+    desc.name           = element.getName();
+    desc.type           = elementTypeToString(element.getType());
+    desc.length         = element.getGeometry().getElementLength();
+    desc.hasTransverse  = false;
+    desc.transverseKind = "";
+    desc.semiX          = 0.0;
+    desc.semiY          = 0.0;
+    desc.multipoleOrder = 0;
+
+    // Same pose convention as add(): trafo maps element-local coordinates to
+    // global coordinates, i.e. p_global = rotation * p_local + position.
+    const CoordinateSystemTrafo trafo = element.getCSTrafoGlobal2Local().inverted();
+    desc.position                     = trafo.transformTo(Vector_t<double, 3>(0.0));
+    desc.rotation                     = trafo.getRotationMatrix();
+
+    if (element.getType() == ElementType::SOLENOID) {
+        // Solenoids draw their support envelope, not their bore aperture.
+        double minor = 0.0;
+        double major = 0.0;
+        if (getTransverseSupport(element, minor, major)) {
+            desc.hasTransverse  = true;
+            desc.transverseKind = "elliptical";
+            desc.semiX          = major;
+            desc.semiY          = minor;
+        }
+    } else {
+        // The APERTURE parser stores semi-axes: second[0] horizontal (x),
+        // second[1] vertical (y). Unset apertures stay at the 1e6 default and
+        // are clamped by the consumer (see reference_transverse).
+        const auto apert = element.getAperture();
+        if (apert.second.size() >= 2) {
+            desc.hasTransverse  = true;
+            desc.transverseKind = apert.first == ApertureType::RECTANGULAR ? "rectangular"
+                                                                           : "elliptical";
+            desc.semiX          = apert.second[0];
+            desc.semiY          = apert.second[1];
+        }
+    }
+
+    if (element.getType() == ElementType::MULTIPOLE) {
+        const auto* multipole = dynamic_cast<const Multipole*>(&element);
+        if (multipole != nullptr) {
+            desc.multipoleOrder = multipole->getMaxNormalComponentIndex();
+        }
+    }
+
+    if (element.getType() == ElementType::SBEND || element.getType() == ElementType::RBEND) {
+        // Local-coordinates design path; the consumer applies the pose above.
+        desc.designPath = element.getGeometry().getDesignPath(64);
+    }
+
+    descriptions_m.push_back(desc);
+}
+
+void MeshGenerator::writeDescriptions(const std::string& fname) const {
+    std::string filename = Util::combineFilePath(
+            {OpalData::getInstance()->getAuxiliaryOutputDirectory(),
+             fname + "_ElementPositions.json"});
+    std::ofstream out(filename);
+    if (!out) {
+        return;
+    }
+    out << std::setprecision(std::numeric_limits<double>::max_digits10);
+
+    out << "{\n";
+    out << "  \"opalx_element_positions\": 1,\n";
+    if (hasDriftReference_m) {
+        out << "  \"reference_transverse\": {\"semi_x\": " << driftMajor_m
+            << ", \"semi_y\": " << driftMinor_m << "},\n";
+    } else {
+        out << "  \"reference_transverse\": null,\n";
+    }
+    out << "  \"elements\": [\n";
+
+    for (size_t e = 0; e < descriptions_m.size(); ++e) {
+        const ElementDescription& desc = descriptions_m[e];
+
+        out << "    {\n";
+        out << "      \"name\": \"" << jsonEscape(desc.name) << "\",\n";
+        out << "      \"type\": \"" << jsonEscape(desc.type) << "\",\n";
+        out << "      \"length\": " << desc.length << ",\n";
+        out << "      \"position\": [" << desc.position(0) << ", " << desc.position(1) << ", "
+            << desc.position(2) << "],\n";
+        out << "      \"rotation\": [[" << desc.rotation(0, 0) << ", " << desc.rotation(0, 1)
+            << ", " << desc.rotation(0, 2) << "], [" << desc.rotation(1, 0) << ", "
+            << desc.rotation(1, 1) << ", " << desc.rotation(1, 2) << "], [" << desc.rotation(2, 0)
+            << ", " << desc.rotation(2, 1) << ", " << desc.rotation(2, 2) << "]],\n";
+
+        if (desc.hasTransverse) {
+            out << "      \"transverse\": {\"kind\": \"" << jsonEscape(desc.transverseKind)
+                << "\", \"semi_x\": " << desc.semiX << ", \"semi_y\": " << desc.semiY << "},\n";
+        } else {
+            out << "      \"transverse\": null,\n";
+        }
+
+        out << "      \"multipole_order\": " << desc.multipoleOrder;
+        if (!desc.designPath.empty()) {
+            out << ",\n      \"design_path\": [\n";
+            for (size_t i = 0; i < desc.designPath.size(); ++i) {
+                out << "        [" << desc.designPath[i](0) << ", " << desc.designPath[i](1) << ", "
+                    << desc.designPath[i](2) << "]" << (i + 1 < desc.designPath.size() ? "," : "")
+                    << "\n";
+            }
+            out << "      ]";
+        }
+        out << "\n    }" << (e + 1 < descriptions_m.size() ? "," : "") << "\n";
+    }
+
+    out << "  ]\n";
+    out << "}\n";
+}
+
 #include <zlib.h>
 #include <sstream>
 
@@ -216,15 +393,18 @@ void MeshGenerator::write(const std::string& fname) {
     std::ostringstream vertices_compressed;
     out << "vertices = []\n";
     out << "numVertices = [";
-    for (auto& element : elements_m) {
-        auto& vertices = element.vertices_m;
-        out << vertices.size() << ", ";
-        for (unsigned int i = 0; i < vertices.size(); ++i) {
-            buffer = reinterpret_cast<const char*>(&(vertices[i](0)));
-            vertices_ascii.write(buffer, 3 * sizeof(double));
+    {
+        const char* separator = "";
+        for (auto& element : elements_m) {
+            auto& vertices = element.vertices_m;
+            out << separator << vertices.size();
+            separator = ", ";
+            for (unsigned int i = 0; i < vertices.size(); ++i) {
+                buffer = reinterpret_cast<const char*>(&(vertices[i](0)));
+                vertices_ascii.write(buffer, 3 * sizeof(double));
+            }
         }
     }
-    out.seekp(-2, std::ios_base::end);
     out << "]\n";
 
     {
@@ -243,37 +423,49 @@ void MeshGenerator::write(const std::string& fname) {
     std::string vertices_base64 = Util::base64_encode(vertices_compressed.str());
     out << "vertices_base64 = \"" << vertices_base64 << "\"\n";
     out << "triangles = [";
-    for (auto& element : elements_m) {
-        out << "[ ";
-        auto& triangles = element.triangles_m;
-        for (unsigned int i = 0; i < triangles.size(); ++i) {
-            out << triangles[i](0) << ", " << triangles[i](1) << ", " << triangles[i](2) << ", ";
+    {
+        const char* elementSeparator = "";
+        for (auto& element : elements_m) {
+            auto& triangles = element.triangles_m;
+            out << elementSeparator << "[";
+            const char* triangleSeparator = "";
+            for (unsigned int i = 0; i < triangles.size(); ++i) {
+                out << triangleSeparator << triangles[i](0) << ", " << triangles[i](1) << ", "
+                    << triangles[i](2);
+                triangleSeparator = ", ";
+            }
+            out << "]";
+            elementSeparator = ", ";
         }
-        out.seekp(-2, std::ios_base::end);
-        out << "], ";
     }
-    out.seekp(-2, std::ios_base::end);
     out << "]\n";
 
     out << "decoration = [";
-    for (auto& element : elements_m) {
-        out << "[ ";
-        for (auto& decoration : element.decorations_m) {
-            out << (decoration.first)(0) << ", " << (decoration.first)(1) << ", "
-                << (decoration.first)(2) << ", " << (decoration.second)(0) << ", "
-                << (decoration.second)(1) << ", " << (decoration.second)(2) << ", ";
+    {
+        const char* elementSeparator = "";
+        for (auto& element : elements_m) {
+            out << elementSeparator << "[";
+            const char* decorationSeparator = "";
+            for (auto& decoration : element.decorations_m) {
+                out << decorationSeparator << (decoration.first)(0) << ", " << (decoration.first)(1)
+                    << ", " << (decoration.first)(2) << ", " << (decoration.second)(0) << ", "
+                    << (decoration.second)(1) << ", " << (decoration.second)(2);
+                decorationSeparator = ", ";
+            }
+            out << "]";
+            elementSeparator = ", ";
         }
-        if (!element.decorations_m.empty()) out.seekp(-2, std::ios_base::end);
-        out << "], ";
     }
-    if (!elements_m.empty()) out.seekp(-2, std::ios_base::end);
     out << "]\n\n";
 
     out << "color = [";
-    for (auto& element : elements_m) {
-        out << element.type_m << ", ";
+    {
+        const char* separator = "";
+        for (auto& element : elements_m) {
+            out << separator << element.type_m;
+            separator = ", ";
+        }
     }
-    out.seekp(-2, std::ios_base::end);
     out << "]\n\n";
 
     std::stringstream index_ascii;
