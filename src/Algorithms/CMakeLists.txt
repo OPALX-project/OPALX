@@ -45,6 +45,7 @@ set (HDRS
     OrbitThreader.h
     OrbitThreaderDiagnostics.h
     ParallelTracker.h
+    ClosedOrbitInitialState.h
     TrackReferenceStep.h
     PartData.h
     PolynomialTimeDependence.h

@@ -16,6 +16,7 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Track/TrackCmd.h"
+#include "Track/CofCmd.h"
 #include <cmath>
 
 #include "AbstractObjects/BeamSequence.h"
@@ -50,6 +51,7 @@ namespace {
         STEPSPERTURN,    // Return the timsteps per revolution period. ONLY available for OPAL-cycl.
         TIMEINTEGRATOR,  // the name of time integrator
         EKINSTOP,       // Optional SINGLEGAP reference kinetic-energy target [GeV].
+        INITIALORBIT,
         SIZE
     };
 }  // namespace
@@ -62,6 +64,7 @@ const std::map<std::string, Steppers::TimeIntegrator> TrackCmd::stringTimeIntegr
         {"MTS", Steppers::TimeIntegrator::MTS}};
 
 TrackCmd::TrackCmd() : Action(SIZE, "TRACK", "The \"TRACK\" command initiates tracking.") {
+    itsAttr[INITIALORBIT] = Attributes::makeString("INITIALORBIT", "Named COF launch for orbit-local generated distributions.");
     itsAttr[LINE] = Attributes::makeString("LINE", "Name of lattice to be tracked.");
 
     itsAttr[SOURCES] = Attributes::makeString(
@@ -235,10 +238,24 @@ void TrackCmd::execute() {
     const double kineticStop = Attributes::getReal(itsAttr[EKINSTOP]);
     if (!itsAttr[EKINSTOP].defaultUsed() && (!std::isfinite(kineticStop) || kineticStop <= 0))
         throw OpalException("TrackCmd::execute", "EKINSTOP must be finite and positive [GeV].");
+    std::optional<ClosedOrbitInitialState> initialOrbit;
+    if (!itsAttr[INITIALORBIT].defaultUsed()) {
+        if (beams.size() != 1 || OpalData::getInstance()->inRestartRun() || zstart != 0)
+            throw OpalException("INITIALORBIT", "Requires one beam, a fresh run and ZSTART=0.");
+        const auto& initial = CofCmd::findResult(Attributes::getString(itsAttr[INITIALORBIT]));
+        if (!beam->hasExplicitEnergy())
+            throw OpalException("INITIALORBIT", "BEAM must specify the same energy as COF.");
+        initial.validate(theLineToTrack->getOpalName(), beam->getParticleName(), beam->getReference());
+        if (!itsAttr[T0].defaultUsed() && t0 != initial.time)
+            throw OpalException("INITIALORBIT", "TRACK T0 conflicts with the COF launch time.");
+        t0 = initial.time;
+        initialOrbit = initial;
+    }
     Track::block = new Track(
             theLineToTrack, beam->getReference(), dt, maxsteps, stepsperturn, zstart, zstop,
             timeintegrator, t0, dtScInit, deltaTau, emissionSourcesList, beamNames);
     Track::block->kineticEnergyStopGeV = kineticStop;
+    Track::block->initialOrbit = std::move(initialOrbit);
 
     Track::block->parser.run();
 

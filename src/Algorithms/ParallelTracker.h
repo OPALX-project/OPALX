@@ -22,6 +22,8 @@
 #ifndef OPALX_ParallelTracker_HH
 #define OPALX_ParallelTracker_HH
 
+#include <optional>
+#include "Algorithms/ClosedOrbitInitialState.h"
 #include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/SpectralTunes.h"
 #include "Algorithms/Tracker.h"
@@ -87,6 +89,9 @@ public:
         PRESTEP    ///< Solve before the first half drift (historical OPAL ordering).
     };
 
+    /// Place the generated bunch in the solved orbit frame, preserving local spread.
+    void setInitialOrbit(const ClosedOrbitInitialState& state) { initialOrbit_m = state; }
+
     /// Select a separate serial two-ray spectral diagnostic instead of bunch tracking.
     void setSpectralTunes(std::vector<double> initial, SpectralTunes::Settings settings) {
         tuneInitial_m = std::move(initial); tuneSettings_m = settings;
@@ -110,6 +115,7 @@ public:
         itsOpalBeamline_m.visit(sector, *this, *itsBunch_m);
     }
 private:
+    std::optional<ClosedOrbitInitialState> initialOrbit_m;
     std::vector<double> tuneInitial_m;
     SpectralTunes::Settings tuneSettings_m;
     bool hasCyclotronGaps();

@@ -101,14 +101,19 @@ void MeshGenerator::add(const ElementBase& element) {
     if (element.getType() == ElementType::SBEND) {
         const auto aperture      = element.getAperture();
         const Geometry& geometry = element.getGeometry();
+        // Unbounded tracking apertures do not describe a drawable magnet body.
+        // Reuse the representative support, or a 50 mm display-only half-size.
+        double horizontalHalfSize = hasDriftReference_m ? driftMinor_m : 0.05;
+        double verticalHalfSize = hasDriftReference_m ? driftMajor_m : 0.05;
         if ((aperture.first == ApertureType::RECTANGULAR
              || aperture.first == ApertureType::ELLIPTICAL)
             && aperture.second.size() >= 2 && isBoundedMeshHalfSize(aperture.second[0])
             && isBoundedMeshHalfSize(aperture.second[1])) {
-            mesh = getSBend(
-                    geometry.getArcLength(), geometry.getCurvature(), aperture.second[0],
-                    aperture.second[1]);
+            horizontalHalfSize = aperture.second[0];
+            verticalHalfSize = aperture.second[1];
         }
+        mesh = getSBend(geometry.getArcLength(), geometry.getCurvature(),
+                       horizontalHalfSize, verticalHalfSize);
         mesh.type_m = DIPOLE;
     } else if (element.getType() == ElementType::RBEND) {
         // const Bend2D* dipole = static_cast<const Bend2D*>(&element);
