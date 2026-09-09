@@ -43,6 +43,7 @@ build_*
 *.json
 coverage_html/
 .idea
+__pycache__/
+*.pyc
+sandbox
 
-# Local study inputs, outputs and exploratory work are not part of the source tree.
-/sandbox/
