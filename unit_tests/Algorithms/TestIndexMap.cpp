@@ -68,6 +68,7 @@ TEST(IndexMapTest, ReentryKeepsFirstRangeAndQueryFindsBothCrossings) {
     IndexMap map;
     map.add(0.0, 1.0, IndexMap::value_t{drift1});
     map.add(1.0, 2.0, IndexMap::value_t{drift1});  // continuation, merges
+    EXPECT_EQ(map.size(), 1);
     map.add(5.0, 6.0, IndexMap::value_t{drift1});  // re-entry
     map.add(6.0, 7.0, IndexMap::value_t{drift1});
 
@@ -79,6 +80,48 @@ TEST(IndexMapTest, ReentryKeepsFirstRangeAndQueryFindsBothCrossings) {
     EXPECT_EQ(names(map.query(6.5, 0.1)), (std::set<std::string>{"D1"}));
 }
 
+TEST(IndexMapTest, PeriodicQueryReusesOneTurnMap) {
+    auto start = std::make_shared<DriftRep>("START");
+    auto end   = std::make_shared<DriftRep>("END");
+
+    IndexMap map;
+    map.setPeriod(10.0, 4.0);
+    map.add(10.0, 11.0, IndexMap::value_t{start});
+    map.add(11.0, 13.0, IndexMap::value_t{});
+    map.add(13.0, 14.0, IndexMap::value_t{end});
+
+    EXPECT_EQ(names(map.query(10.5, 0.1)), (std::set<std::string>{"START"}));
+    EXPECT_EQ(names(map.query(22.5, 0.1)), (std::set<std::string>{"START"}));
+    EXPECT_EQ(names(map.query(9.5, 0.1)), (std::set<std::string>{"END"}));
+}
+
+TEST(IndexMapTest, PeriodicQueryUnionsBothSidesOfTurnSeam) {
+    auto start = std::make_shared<DriftRep>("START");
+    auto end   = std::make_shared<DriftRep>("END");
+
+    IndexMap map;
+    map.setPeriod(0.0, 4.0);
+    map.add(0.0, 1.0, IndexMap::value_t{start});
+    map.add(1.0, 3.0, IndexMap::value_t{});
+    map.add(3.0, 4.0, IndexMap::value_t{end});
+
+    EXPECT_EQ(names(map.query(4.0, 0.2)), (std::set<std::string>{"END", "START"}));
+    EXPECT_EQ(names(map.query(12.0, 0.2)), (std::set<std::string>{"END", "START"}));
+    EXPECT_EQ(names(map.query(2.0, 2.0)), (std::set<std::string>{"END", "START"}));
+}
+
+TEST(IndexMapTest, PeriodicCoordinateReportsTurnAndTopologicalPhase) {
+    IndexMap map;
+    map.setPeriod(10.0, 4.0);
+
+    EXPECT_EQ(map.getTurnNumber(9.9), -1);
+    EXPECT_EQ(map.getTurnNumber(10.0), 0);
+    EXPECT_EQ(map.getTurnNumber(13.99), 0);
+    EXPECT_EQ(map.getTurnNumber(14.0), 1);
+    EXPECT_NEAR(map.getPhase(11.0), 0.5 * std::acos(-1.0), 1.0e-14);
+    EXPECT_NEAR(map.getPhase(15.0), 0.5 * std::acos(-1.0), 1.0e-14);
+}
+
 // saveSDDS needs OpalData (input file name, output directory) and gmsg.
 class IndexMapSDDSTest : public ::testing::Test {
 protected:
@@ -87,8 +130,7 @@ protected:
         char** argv = nullptr;
         ippl::initialize(argc, argv);
         gmsg = new Inform(nullptr, -1);
-        std::filesystem::create_directories(
-                OpalData::getInstance()->getAuxiliaryOutputDirectory());
+        std::filesystem::create_directories(OpalData::getInstance()->getAuxiliaryOutputDirectory());
     }
 
     static void TearDownTestSuite() {

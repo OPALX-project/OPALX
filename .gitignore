@@ -43,3 +43,7 @@ build_*
 *.json
 coverage_html/
 .idea
+__pycache__/
+*.pyc
+sandbox
+

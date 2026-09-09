@@ -49,8 +49,16 @@ extern "C" {
 
 #include "Utilities/GSLCompat.h"
 
+#include <cstdint>
 #include <filesystem>
 #include <system_error>
+#include <vector>
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include <cstring>
 #include <iomanip>
@@ -60,6 +68,25 @@ extern "C" {
 extern Inform* gmsg;
 
 namespace OPALXMAIN {
+    // Prefer the loaded executable to argv[0], which may be a PATH name or symlink.
+    std::string executablePath() {
+        std::error_code error;
+#ifdef __APPLE__
+        std::uint32_t size = 0;
+        _NSGetExecutablePath(nullptr, &size);
+        std::vector<char> buffer(size);
+        if (_NSGetExecutablePath(buffer.data(), &size) == 0) {
+            const auto path = std::filesystem::canonical(buffer.data(), error);
+            return error ? std::string(buffer.data()) : path.string();
+        }
+#elif defined(__linux__)
+        const auto path = std::filesystem::read_symlink("/proc/self/exe", error);
+        if (!error) return path.string();
+#endif
+        const auto arguments = OpalData::getInstance()->getArguments();
+        return arguments.empty() ? "unknown" : arguments.front() + " (invocation)";
+    }
+
     void printStdoutHeader() {
         OPALTimer::Timer simtimer;
         std::string dateStr(simtimer.date());
@@ -96,6 +123,24 @@ namespace OPALXMAIN {
               << buildinfo::bugreport << "\n"
               << endl;
         *gmsg << "Time: " << timeStr << " date: " << dateStr << "\n" << endl;
+        *gmsg << "* Executable: " << executablePath() << '\n'
+              << "* Build configuration: " << OPALX_BUILD_CONFIG << '\n'
+              << "* Compiler: " << buildinfo::compile_line << '\n'
+              << "* CMake C++ flags (configure-time): " << buildinfo::compile_options << '\n'
+              << "* MPI ranks: " << ippl::Comm->size() << '\n';
+#ifdef NDEBUG
+        *gmsg << "* C++ assertions: disabled (NDEBUG)\n";
+#else
+        *gmsg << "* C++ assertions: enabled\n";
+#endif
+#ifdef _OPENMP
+        *gmsg << "* OpenMP max threads: " << omp_get_max_threads()
+              << "; dynamic teams: " << omp_get_dynamic() << '\n';
+#else
+        *gmsg << "* OpenMP: disabled\n";
+#endif
+        *gmsg << "* Kokkos host concurrency: "
+              << Kokkos::HostSpace::execution_space().concurrency() << '\n';
 
         // Check which host device is being used
         *gmsg << "* Host:   " << Kokkos::HostSpace::execution_space::name() << endl;
@@ -518,7 +563,7 @@ int main(int argc, char* argv[]) {
 
         IpplTimings::print();
 
-        IpplTimings::print(
+        if (!opal->hasCofRun || opal->hasTrackingRun) IpplTimings::print(
                 std::string("timing.dat"),
                 OpalData::getInstance()->getProblemCharacteristicValues());
 

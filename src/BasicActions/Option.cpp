@@ -21,6 +21,7 @@
 #include "Ippl.h"
 
 #include "AbstractObjects/OpalData.h"
+#include "Algorithms/LinearTransferMapBuilder.h"
 #include "Attributes/Attributes.h"
 #include "OpalParser/FileStream.h"
 #include "Utilities/ExpressionRandom.h"
@@ -32,6 +33,8 @@
 
 #include "Utilities/BiMap.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <ctime>
 #include <iostream>
@@ -83,6 +86,10 @@ namespace {
         RNGTYPE,
         ENABLEHDF5,
         ENABLEVTK,
+        ENABLELINEARTRANSFERMAPS,
+        LINEARTRANSFERMAPRICHARDSON,
+        LINEARTRANSFERMAPSTEPS,
+        LINEARTRANSFERMAPINTEGRATOR,
         ASCIIDUMP,
         BOUNDPDESTROY,
         BEAMHALOBOUNDARY,
@@ -302,6 +309,31 @@ Option::Option()
     itsAttr[ENABLEVTK] = Attributes::makeBool(
             "ENABLEVTK", "If true, writing of VTK files are enabled", enableVTK);
 
+    itsAttr[ENABLELINEARTRANSFERMAPS] = Attributes::makeBool(
+            "ENABLELINEARTRANSFERMAPS",
+            "If true, calculate first-order external-field transfer maps during design-orbit "
+            "threading.",
+            enableLinearTransferMaps);
+
+    itsAttr[LINEARTRANSFERMAPRICHARDSON] = Attributes::makeReal(
+            "LINEARTRANSFERMAPRICHARDSON",
+            "Richardson levels (integer 0..4). Zero retains centered differences; each level "
+            "adds twelve rays per segment. This does not change ray integration order.",
+            linearTransferMapRichardsonLevels);
+    itsAttr[LINEARTRANSFERMAPSTEPS] = Attributes::makeRealArray(
+            "LINEARTRANSFERMAPSTEPS",
+            "Six positive starting perturbations in (x,x',y,y',zeta,delta); positions in metres, "
+            "slopes and delta dimensionless. The delta amplitude must be less than one.");
+    Attributes::setRealArray(
+            itsAttr[LINEARTRANSFERMAPSTEPS],
+            std::vector<double>(linearTransferMapSteps.begin(), linearTransferMapSteps.end()));
+    itsAttr[LINEARTRANSFERMAPINTEGRATOR] = Attributes::makePredefinedString(
+            "LINEARTRANSFERMAPINTEGRATOR",
+            "Integrator for map reference and shadow rays only: BORIS (alias LF2), "
+            "fixed-step RK4 or fixed-step DOP853 (eighth-order formula, no adaptive controller). "
+            "Independent of Richardson differentiation; does not change particle TRACK.",
+            {"BORIS", "LF2", "RK4", "DOP853"}, linearTransferMapIntegrator);
+
     itsAttr[ASCIIDUMP] = Attributes::makeBool(
             "ASCIIDUMP", "If true, some of the elements dump in ASCII instead of HDF5", asciidump);
 
@@ -416,6 +448,13 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setReal(itsAttr[NLHS], nLHS);
     Attributes::setBool(itsAttr[ENABLEHDF5], enableHDF5);
     Attributes::setBool(itsAttr[ENABLEVTK], enableVTK);
+    Attributes::setBool(itsAttr[ENABLELINEARTRANSFERMAPS], enableLinearTransferMaps);
+    Attributes::setReal(itsAttr[LINEARTRANSFERMAPRICHARDSON], linearTransferMapRichardsonLevels);
+    Attributes::setRealArray(
+            itsAttr[LINEARTRANSFERMAPSTEPS],
+            std::vector<double>(linearTransferMapSteps.begin(), linearTransferMapSteps.end()));
+    Attributes::setPredefinedString(
+            itsAttr[LINEARTRANSFERMAPINTEGRATOR], linearTransferMapIntegrator);
     Attributes::setBool(itsAttr[ASCIIDUMP], asciidump);
     Attributes::setReal(itsAttr[BOUNDPDESTROY], boundpDestroy);
     Attributes::setReal(itsAttr[BEAMHALOBOUNDARY], beamHaloBoundary);
@@ -437,6 +476,24 @@ Option::~Option() {}
 Option* Option::clone(const std::string& name) { return new Option(name, this); }
 
 void Option::execute() {
+    // Validate the complete map configuration before publishing any of its globals.
+    LinearTransferMapBuilder::Settings mapSettings;
+    const double levels = Attributes::getReal(itsAttr[LINEARTRANSFERMAPRICHARDSON]);
+    if (!std::isfinite(levels) || levels < 0.0 || std::floor(levels) != levels
+        || levels > LinearTransferMapBuilder::Settings::maximumRichardsonLevels)
+        throw OpalException(
+                "Option::execute",
+                "LINEARTRANSFERMAPRICHARDSON must be an integer from 0 through 4.");
+    mapSettings.richardsonLevels = static_cast<unsigned>(levels);
+    const auto steps             = Attributes::getRealArray(itsAttr[LINEARTRANSFERMAPSTEPS]);
+    if (steps.size() != 6)
+        throw OpalException(
+                "Option::execute", "LINEARTRANSFERMAPSTEPS requires exactly six values.");
+    std::copy(steps.begin(), steps.end(), mapSettings.finiteDifferenceSteps.begin());
+    mapSettings.integrationMethod = ExternalFieldRayTracker::parseIntegrationMethod(
+            Attributes::getString(itsAttr[LINEARTRANSFERMAPINTEGRATOR]));
+    mapSettings.validate();
+
     // Store the option flags.
     echo                  = Attributes::getBool(itsAttr[ECHO]);
     info                  = Attributes::getBool(itsAttr[INFO]);
@@ -450,6 +507,13 @@ void Option::execute() {
     csrDump               = Attributes::getBool(itsAttr[CSRDUMP]);
     enableHDF5            = Attributes::getBool(itsAttr[ENABLEHDF5]);
     enableVTK             = Attributes::getBool(itsAttr[ENABLEVTK]);
+
+    enableLinearTransferMaps = Attributes::getBool(itsAttr[ENABLELINEARTRANSFERMAPS]);
+    linearTransferMapRichardsonLevels = mapSettings.richardsonLevels;
+    linearTransferMapSteps            = mapSettings.finiteDifferenceSteps;
+    linearTransferMapIntegrator =
+            ExternalFieldRayTracker::integrationMethodName(mapSettings.integrationMethod);
+
     idealized             = Attributes::getBool(itsAttr[IDEALIZED]);
     asciidump             = Attributes::getBool(itsAttr[ASCIIDUMP]);
     version               = Attributes::getReal(itsAttr[VERSION]);

@@ -16,6 +16,8 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Track/TrackCmd.h"
+#include "Track/CofCmd.h"
+#include <cmath>
 
 #include "AbstractObjects/BeamSequence.h"
 #include "AbstractObjects/OpalData.h"
@@ -48,7 +50,8 @@ namespace {
                    // particles passes
         STEPSPERTURN,    // Return the timsteps per revolution period. ONLY available for OPAL-cycl.
         TIMEINTEGRATOR,  // the name of time integrator
-        MAP_ORDER,       // Truncation order of maps for ThickTracker (default: 1 (linear))
+        EKINSTOP,       // Optional SINGLEGAP reference kinetic-energy target [GeV].
+        INITIALORBIT,
         SIZE
     };
 }  // namespace
@@ -61,6 +64,7 @@ const std::map<std::string, Steppers::TimeIntegrator> TrackCmd::stringTimeIntegr
         {"MTS", Steppers::TimeIntegrator::MTS}};
 
 TrackCmd::TrackCmd() : Action(SIZE, "TRACK", "The \"TRACK\" command initiates tracking.") {
+    itsAttr[INITIALORBIT] = Attributes::makeString("INITIALORBIT", "Named COF launch for orbit-local generated distributions.");
     itsAttr[LINE] = Attributes::makeString("LINE", "Name of lattice to be tracked.");
 
     itsAttr[SOURCES] = Attributes::makeString(
@@ -98,13 +102,12 @@ TrackCmd::TrackCmd() : Action(SIZE, "TRACK", "The \"TRACK\" command initiates tr
 
     itsAttr[STEPSPERTURN] = Attributes::makeReal(
             "STEPSPERTURN", "The time steps per revolution period, only for opal-cycl.", 720);
+    itsAttr[EKINSTOP] = Attributes::makeReal(
+            "EKINSTOP", "Stop after the first complete RF kick reaching this kinetic energy [GeV].", 0.0);
 
     itsAttr[TIMEINTEGRATOR] = Attributes::makePredefinedString(
             "TIMEINTEGRATOR", "Name of time integrator to be used.",
             {"RK-4", "RK4", "LF-2", "LF2", "MTS"}, "RK4");
-
-    itsAttr[MAP_ORDER] = Attributes::makeReal(
-            "MAP_ORDER", "Truncation order of maps for ThickTracker (default: 1, i.e. linear).", 1);
 
     registerOwnership(AttributeHandler::COMMAND);
     AttributeHandler::addAttributeOwner("TRACK", AttributeHandler::COMMAND, "RUN");
@@ -232,11 +235,27 @@ void TrackCmd::execute() {
     /// \todo track block needs to be removed
     /// \todo here the tracker is constructed
 
+    const double kineticStop = Attributes::getReal(itsAttr[EKINSTOP]);
+    if (!itsAttr[EKINSTOP].defaultUsed() && (!std::isfinite(kineticStop) || kineticStop <= 0))
+        throw OpalException("TrackCmd::execute", "EKINSTOP must be finite and positive [GeV].");
+    std::optional<ClosedOrbitInitialState> initialOrbit;
+    if (!itsAttr[INITIALORBIT].defaultUsed()) {
+        if (beams.size() != 1 || OpalData::getInstance()->inRestartRun() || zstart != 0)
+            throw OpalException("INITIALORBIT", "Requires one beam, a fresh run and ZSTART=0.");
+        const auto& initial = CofCmd::findResult(Attributes::getString(itsAttr[INITIALORBIT]));
+        if (!beam->hasExplicitEnergy())
+            throw OpalException("INITIALORBIT", "BEAM must specify the same energy as COF.");
+        initial.validate(theLineToTrack->getOpalName(), beam->getParticleName(), beam->getReference());
+        if (!itsAttr[T0].defaultUsed() && t0 != initial.time)
+            throw OpalException("INITIALORBIT", "TRACK T0 conflicts with the COF launch time.");
+        t0 = initial.time;
+        initialOrbit = initial;
+    }
     Track::block = new Track(
             theLineToTrack, beam->getReference(), dt, maxsteps, stepsperturn, zstart, zstop,
             timeintegrator, t0, dtScInit, deltaTau, emissionSourcesList, beamNames);
-
-    Track::block->truncOrder = (int)Attributes::getReal(itsAttr[MAP_ORDER]);
+    Track::block->kineticEnergyStopGeV = kineticStop;
+    Track::block->initialOrbit = std::move(initialOrbit);
 
     Track::block->parser.run();
 

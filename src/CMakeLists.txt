@@ -35,7 +35,8 @@ endif()
 
 set(OPALX_COMPILE_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
 set(OPALX_COMPILE_LINE "${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
-set(OPALX_COMPILE_OPTIONS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}}")
+string(TOUPPER "${CMAKE_BUILD_TYPE}" OPALX_BUILD_TYPE_UPPER)
+set(OPALX_COMPILE_OPTIONS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${OPALX_BUILD_TYPE_UPPER}}")
 set(OPALX_BUGREPORT "https://github.com/OPALX-project/OPALX/issues")
 set(OPALX_VERSION_MAJOR_VALUE "${PROJECT_VERSION_MAJOR}")
 set(OPALX_VERSION_MINOR_VALUE "${PROJECT_VERSION_MINOR}")
@@ -127,6 +128,7 @@ target_link_libraries(opalx PUBLIC
     ${HDF5_LIBRARIES}
     ZLIB::ZLIB
 )
+target_link_libraries(opalx PRIVATE OPALX::lapacke)
 
 target_include_directories(opalx PRIVATE
   ${HDF5_INCLUDE_DIR}
@@ -136,6 +138,7 @@ target_include_directories(opalx PRIVATE
 
 # CLI executable
 add_executable(opalx_exe Main.cpp)
+target_compile_definitions(opalx_exe PRIVATE OPALX_BUILD_CONFIG="$<CONFIG>")
 target_link_libraries(opalx_exe PUBLIC opalx)
 target_include_directories(opalx_exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 

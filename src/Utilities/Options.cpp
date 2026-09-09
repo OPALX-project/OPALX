@@ -90,6 +90,11 @@ namespace Options {
 
     bool enableVTK = true;
 
+    bool enableLinearTransferMaps = false;
+    unsigned linearTransferMapRichardsonLevels = 0;
+    std::array<double, 6> linearTransferMapSteps{1.e-3, 1.e-3, 1.e-3, 1.e-3, 1.e-3, 1.e-3};
+    std::string linearTransferMapIntegrator = "BORIS";
+
     bool asciidump = false;
 
     double boundpDestroy = 10;
