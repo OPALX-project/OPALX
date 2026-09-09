@@ -612,6 +612,9 @@ void TrackRun::execute() {
         }
 
         const auto turns = static_cast<unsigned long long>(roundedTurns);
+        if (fs_m->getType() != "NONE" || beams.size() != 1)
+            throw OpalException("TrackRun::execute",
+                    "Localized TURNS requires one beam and FIELDSOLVER TYPE=NONE; space charge is not yet supported.");
         if (isRestart) {
             throw OpalException(
                     "TrackRun::execute",

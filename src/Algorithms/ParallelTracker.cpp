@@ -33,6 +33,7 @@
 #include <vector>
 
 #include "Algorithms/DirectedTurnCounter.h"
+#include "Algorithms/TrackReferenceStep.h"
 #include "Algorithms/Matrix.h"
 #include "BasicActions/DumpEMFields.h"
 
@@ -211,6 +212,7 @@ void ParallelTracker::visitBeamline(const Beamline& bl) {
  */
 void ParallelTracker::execute() {
     Inform m("ParallelTracker::execute");
+    terminalStepDt_m = 0;
     auto preparationState = OpalData::getInstance()->enterPreparationState();
     StepSizeConfig::ResumePosition restartPosition{0, 0};
     if (restarting_m) {
@@ -395,6 +397,23 @@ void ParallelTracker::execute() {
     // the full pass (autophasing, design energy, geometry dumps); the rest build only
     // their own map and reuse that shared element state, so the design beam threads first.
     const size_t nContainers = itsBunch_m->getNumParticleContainers();
+    if (requestedTurns_m) {
+        if (nContainers != 1)
+            throw OpalException("ParallelTracker", "Localized TURNS requires one particle container.");
+        for (const auto& samplers : emittingSamplers_m)
+            for (const auto& sampler : samplers)
+                if (sampler && !sampler->isEmissionDone(itsBunch_m->getT()))
+                    throw OpalException("ParallelTracker", "Localized TURNS does not yet support ongoing emission.");
+        for (const auto& element : itsOpalBeamline_m.getElements()) {
+            const auto type = element->getType();
+            if (type != ElementType::DRIFT && type != ElementType::MARKER
+                && type != ElementType::MONITOR && type != ElementType::MULTIPOLE
+                && type != ElementType::SBEND && type != ElementType::RBEND
+                && type != ElementType::SOLENOID && type != ElementType::CYCLOTRONSECTOR)
+                throw OpalException("ParallelTracker", "Localized TURNS requires static magnetic elements; unsupported element "
+                        + element->getName());
+        }
+    }
     std::vector<std::shared_ptr<OrbitThreader>> oths(nContainers);
     bool designBeamAssigned = false;
     std::vector<std::unique_ptr<DirectedTurnCounter>> turnCounters(nContainers);
@@ -511,6 +530,26 @@ void ParallelTracker::execute() {
             // Reset EOL flag each step: transient OutOfBounds (e.g. from invalid mesh
             // bounds immediately after first emission) must not persist across steps.
             globalEOL_m = false;
+
+            if (requestedTurns_m && turnCounters.front()->count() == requestedTurns_m - 1) {
+                // Trial only the replicated reference on rank zero. Publish failures and
+                // the accepted duration before any rank enters the particle kernels.
+                const double duration = track_reference::collectiveTerminalStep(
+                        ippl::Comm->getCommunicator(), [&] {
+                            const auto& pc = particleContainers.front();
+                            const track_reference::State start{pc->getRefPartR(), pc->getRefPartP()};
+                            return turnCounters.front()->terminalStep(
+                                    requestedTurns_m, start.position, itsBunch_m->getdT(), [&](double dt) {
+                                        return track_reference::advanceInBeamline(
+                                                itsOpalBeamline_m, *pc->getReference(), start, dt,
+                                                itsBunch_m->getT() + dt, false);
+                                    });
+                        });
+                if (duration < itsBunch_m->getdT()) {
+                    terminalStepDt_m = duration;
+                    changeDT();  // Global clock and per-particle dt before the first half drift.
+                }
+            }
 
             // Historical OPAL evaluated the self-field at R_n and carried the gathered
             // per-particle field through the first half drift. Keep this as an explicit
@@ -1561,6 +1600,7 @@ void ParallelTracker::selectDT() {
     if (hasEmissionDt) {
         selectedDt = emissionDt;
     }
+    if (terminalStepDt_m > 0) selectedDt = std::min(selectedDt, terminalStepDt_m);
     itsBunch_m->setdT(selectedDt);
 }
 
@@ -1676,9 +1716,8 @@ void ParallelTracker::updateReference(const BorisPusher& pusher) {
 /**
  * @copybrief ParallelTracker::updateReferenceParticles
  */
-void ParallelTracker::updateReferenceParticles(const BorisPusher& pusher) {
+void ParallelTracker::updateReferenceParticles(const BorisPusher& /*pusher*/) {
     const double dt          = std::min(itsBunch_m->getT(), itsBunch_m->getdT());
-    const double scaleFactor = Physics::c * dt;
 
     const size_t n = itsBunch_m->getNumParticleContainers();
     for (size_t i = 0; i < n; ++i) {
@@ -1702,39 +1741,15 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& pusher) {
                                  dt, refKick.getM(), true);
             continue;
         }
-        Vector_t<double, 3> Ef(0.0), Bf(0.0);
-
-        pc.getRefPartR() /= scaleFactor;
-        pusher.push(pc.getRefPartR(), pc.getRefPartP(), dt);
-        pc.getRefPartR() *= scaleFactor;
-
-        IndexMap::value_t elements           = itsOpalBeamline_m.getElements(pc.getRefPartR());
-        IndexMap::value_t::const_iterator it = elements.begin();
-        const IndexMap::value_t::const_iterator end = elements.end();
-
-        for (; it != end; ++it) {
-            const CoordinateSystemTrafo& refToLocalCSTrafo =
-                    itsOpalBeamline_m.getCSTrafoLab2Local((*it));
-
-            Vector_t<double, 3> localR = refToLocalCSTrafo.transformTo(pc.getRefPartR());
-            Vector_t<double, 3> localP = refToLocalCSTrafo.rotateTo(pc.getRefPartP());
-            Vector_t<double, 3> localE(0.0), localB(0.0);
-
-            if ((*it)->applyToReferenceParticle(
-                        localR, localP, itsBunch_m->getT() - 0.5 * dt, localE, localB)) {
-                *gmsg << level1 << "The reference particle hit an element" << endl;
-                globalEOL_m = true;
-            }
-
-            Ef += refToLocalCSTrafo.rotateFrom(localE);
-            Bf += refToLocalCSTrafo.rotateFrom(localB);
+        const auto end = track_reference::advanceInBeamline(
+                itsOpalBeamline_m, refKick, {pc.getRefPartR(), pc.getRefPartP()}, dt,
+                itsBunch_m->getT(), true);
+        pc.getRefPartR() = end.position;
+        pc.getRefPartP() = end.momentum;
+        if (end.hitMaterial) {
+            *gmsg << level1 << "The reference particle hit an element" << endl;
+            globalEOL_m = true;
         }
-
-        pusher.kick(pc.getRefPartR(), pc.getRefPartP(), Ef, Bf, dt, refKick.getM(), refKick.getQ());
-
-        pc.getRefPartR() /= scaleFactor;
-        pusher.push(pc.getRefPartR(), pc.getRefPartP(), dt);
-        pc.getRefPartR() *= scaleFactor;
     }
 }
 

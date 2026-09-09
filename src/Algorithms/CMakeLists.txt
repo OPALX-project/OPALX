@@ -14,6 +14,7 @@ set (_SRCS
     SpectralTunes.cpp
     OrbitThreader.cpp
     ParallelTracker.cpp
+    TrackReferenceStep.cpp
     PartData.cpp
     PolynomialTimeDependence.cpp
     SplineTimeDependence.cpp
@@ -44,6 +45,7 @@ set (HDRS
     OrbitThreader.h
     OrbitThreaderDiagnostics.h
     ParallelTracker.h
+    TrackReferenceStep.h
     PartData.h
     PolynomialTimeDependence.h
     SplineTimeDependence.h

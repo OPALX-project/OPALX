@@ -91,7 +91,9 @@ public:
     void setSpectralTunes(std::vector<double> initial, SpectralTunes::Settings settings) {
         tuneInitial_m = std::move(initial); tuneSettings_m = settings;
     }
-    /// Stop each container after this many directed reference return-plane crossings.
+    /// Stop at the localized Nth forward reference return (single static magnetic
+    /// container, no collective fields or ongoing emission). The complete bunch
+    /// advances to that reference event time; individual particles need not close.
     void setRequestedTurns(unsigned long long turns) { requestedTurns_m = turns; }
     /** Reference kinetic-energy target [eV]; zero disables. Stop after a full RF
      * kick, never by clipping its energy gain. TRACK validates positive finite
@@ -148,6 +150,7 @@ private:
     StepSizeConfig stepSizes_m;
 
     double dtCurrentTrack_m;  ///< Global @f$\Delta t@f$ for the current track segment.
+    double terminalStepDt_m = 0;  ///< Positive final-turn cap [s]; zero means no cap.
     std::vector<std::vector<std::shared_ptr<SamplingBase>>>
             emittingSamplers_m;  ///< Per-container emitters.
     bool restarting_m;           ///< Preserve state loaded from a checkpoint at startup.
