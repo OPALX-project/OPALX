@@ -262,6 +262,7 @@ void OpalBeamline::save3DLattice() {
         Vector_t<double, 3> exit3D           = toEnd.getOrigin();
 
         mesh.add(*(element.get()));
+        mesh.describe(*(element.get()));
 
         if (element->getGeometry().isBend()) {
             std::vector<Vector_t<double, 3>> designPath = element->getGeometry().getDesignPath();
@@ -324,6 +325,7 @@ void OpalBeamline::save3DLattice() {
     }
     elements_m.sort(byFieldStart);
     mesh.write(OpalData::getInstance()->getInputBasename());
+    mesh.writeDescriptions(OpalData::getInstance()->getInputBasename());
 }
 
 namespace {
