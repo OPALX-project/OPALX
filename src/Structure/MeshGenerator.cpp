@@ -1,6 +1,7 @@
 #include "Structure/MeshGenerator.h"
 #include "AbsBeamline/FieldmapElement.h"
 #include "AbsBeamline/Multipole.h"
+#include "AbsBeamline/MultipoleT.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
@@ -72,13 +73,21 @@ namespace {
     }
 
     std::string jsonEscape(const std::string& s) {
+        static const char* hex = "0123456789abcdef";
         std::string escaped;
         escaped.reserve(s.size());
         for (char c : s) {
+            const unsigned char uc = static_cast<unsigned char>(c);
             if (c == '"' || c == '\\') {
                 escaped += '\\';
+                escaped += c;
+            } else if (uc < 0x20) {
+                escaped += "\\u00";
+                escaped += hex[uc >> 4];
+                escaped += hex[uc & 0xF];
+            } else {
+                escaped += c;
             }
-            escaped += c;
         }
         return escaped;
     }
@@ -359,6 +368,19 @@ void MeshGenerator::describe(const ElementBase& element) {
         const auto* multipole = dynamic_cast<const Multipole*>(&element);
         if (multipole != nullptr) {
             desc.multipoleOrder = multipole->getMaxNormalComponentIndex();
+        }
+    }
+
+    if (element.getType() == ElementType::MULTIPOLET) {
+        const auto* multipoleT = dynamic_cast<const MultipoleT*>(&element);
+        if (multipoleT != nullptr) {
+            const auto& profile = multipoleT->getTransProfile();
+            for (int i = static_cast<int>(profile.size()) - 1; i >= 0; --i) {
+                if (profile[i] != 0.0) {
+                    desc.multipoleOrder = i + 1;
+                    break;
+                }
+            }
         }
     }
 

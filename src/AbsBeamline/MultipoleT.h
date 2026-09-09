@@ -98,6 +98,8 @@ public:
     void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+    /** Return the element type */
+    ElementType getType() const override;
     /** Calculate the field at the position of the ith particle
      *  \param i -> Index of the particle event; field is calculated at this
      *  position
