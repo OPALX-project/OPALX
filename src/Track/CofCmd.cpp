@@ -21,8 +21,7 @@
 #include "OpalParser/OpalParser.h"
 #include "OpalParser/Statement.h"
 #include "Structure/Beam.h"
-#include "Structure/DataSink.h"
-#include "Structure/FieldSolverCmd.h"
+#include "PartBunch/CartesianDomainConfig.h"
 #include "Utilities/OpalException.h"
 #include "Utility/Inform.h"
 
@@ -206,20 +205,6 @@ namespace {
         }
     };
 
-    class EmptyFieldSolver : public FieldSolverCmd {
-    public:
-        EmptyFieldSolver() {
-            Attributes::setPredefinedString(itsAttr[FIELDSOLVER::TYPE], "NONE");
-            for (auto index : {FIELDSOLVER::PARFFTX, FIELDSOLVER::PARFFTY, FIELDSOLVER::PARFFTZ})
-                Attributes::setBool(itsAttr[index], true);
-            setNX(8);
-            setNY(8);
-            setNZ(8);
-            setFieldSolverCmdType();
-            setDomainDecomposition();
-        }
-    };
-
     class LatticeVisitor : public DefaultVisitor {
         OpalBeamline& lattice;
         PartBunch_t& bunch;
@@ -262,10 +247,10 @@ namespace {
     // are rank-zero only. Broadcast diagnostic text before throwing on solver failure.
     void calculate(BeamSequence& sequence, Beam& beam, const Controls& c, const RunSettings& s) {
         sequence.prepareForTracking();
-        EmptyFieldSolver fields;
-        DataSink sink(std::vector<H5PartWrapper*>{}, false, 0, s.output);
+        // COF needs only empty particle storage for element initialization, not a solver.
+        const opalx::spacecharge::CartesianDomainConfig3D domain;
         PartBunch_t bunch(
-                {beam.getCharge()}, {beam.getMass()}, {&beam}, {0}, 1, "LF2", &fields, &sink);
+                {beam.getCharge()}, {beam.getMass()}, {&beam}, {0}, 1, "LF2", domain);
         OpalBeamline lattice(
                 sequence.fetchLine()->getOrigin3D(), sequence.fetchLine()->getInitialDirection());
         LatticeVisitor visitor(*sequence.fetchLine(), lattice, bunch, sequence.getOpalName());

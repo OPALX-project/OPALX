@@ -1,0 +1,133 @@
+/**
+ * @file CartesianPIC3DAlgorithm.h
+ * @brief CartesianPIC3D space-charge algorithm.
+ */
+
+#ifndef OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_ALGORITHM_H
+#define OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_ALGORITHM_H
+
+#include "SpaceCharge/CartesianPIC3D/CartesianDomainUpdater.h"
+#include "SpaceCharge/CartesianPIC3D/CartesianPIC3DFieldStorage.h"
+#include "SpaceCharge/CartesianPIC3D/ParticleBinTraversal.h"
+#include "SpaceCharge/CartesianPIC3D/ParticleMeshFieldTransfer.h"
+#include "SpaceCharge/CartesianPIC3D/RelativisticFieldComposer.h"
+#include "SpaceCharge/Poisson/P3MAdapters.h"
+#include "SpaceCharge/Poisson/PoissonSolver.h"
+#include "SpaceCharge/SpaceChargeAlgorithm.h"
+#include "SpaceCharge/SpaceChargeConfig.h"
+#include "SpaceCharge/SpaceChargeFrames.h"
+
+#include <array>
+#include <cstdint>
+#include <memory>
+#include <optional>
+#include <span>
+#include <string>
+#include <vector>
+
+class DataSink;
+class BunchStateHandler;
+
+namespace opalx::spacecharge {
+
+    /**
+     * @brief Orchestrates CartesianPIC3D field solves.
+     *
+     * The first particle container is the primary. CartesianPIC3D computes self-fields only for it;
+     * other containers retain E/B and are included in reference-layout updates.
+     *
+     * R/P/E/B enter and return in tracker axes. A nontrivial solve transforms the primary into beam
+     * axes, updates the mesh and layout, deposits charge, solves, gathers fields, and transforms
+     * back. Empty and single-particle primaries skip the field solve. Fixed-domain mode retains the
+     * beam-frame mesh and migrates only the primary for @c BeamBeam reuse.
+     *
+     * Particle containers, the data sink, and bunch state are borrowed. Field storage, the Poisson
+     * solver, and orchestration helpers are owned.
+     */
+    class CartesianPIC3DAlgorithm final : public SpaceChargeAlgorithm {
+    public:
+        using ParticleContainer             = ::ParticleContainer<double, 3>;
+        using FieldStorage                  = CartesianPIC3DFieldStorage<double, 3>;
+        using ParticleBinTraversalType      = ParticleBinTraversal;
+        using ParticleBinType               = ParticleBin;
+        using ParticleMeshTransfer          = ParticleMeshFieldTransfer;
+        using RelativisticFieldComposerType = RelativisticFieldComposer;
+
+        CartesianPIC3DAlgorithm(
+                CartesianPIC3DConfig config, std::span<ParticleContainer* const> particles,
+                std::unique_ptr<FieldStorage> fieldStorage, DataSink* dataSink,
+                std::shared_ptr<const BunchStateHandler> bunchState);
+
+        [[nodiscard]] SpaceChargeSolveResult solve(const SpaceChargeSolveContext& context) override;
+
+    private:
+        enum class PassKind { Primary, PrimaryAndImage, Image, ShiftedImage };
+
+        struct SolvePlan {
+            std::array<PassKind, 2> passes{};
+            std::size_t passCount = 0;
+            DirichletPlaneConfig activeDirichletPlane;
+            bool dirichletPlaneExpired = false;
+        };
+
+        struct PassProperties {
+            ParticleMeshTransfer::DepositKind depositKind =
+                    ParticleMeshTransfer::DepositKind::Primary;
+            ParticleMeshTransfer::ImagePolicy imagePolicy{};
+            bool shiftedGreen            = false;
+            bool suppressFieldDump       = false;
+            double magneticSign          = 1.0;
+            FieldSourceRule sourceRule   = FieldSourceRule::Direct;
+            bool dumpDirichletPlaneAfter = false;
+            const char* label            = "primary";
+        };
+
+        struct BinStatsRow final {
+            long long binNumber;
+            unsigned long long particleCount;
+            double gamma;
+        };
+
+        [[nodiscard]] SolvePlan makeSolvePlan(std::size_t step) const;
+        [[nodiscard]] static PassProperties passProperties(
+                PassKind pass, double planeZ, bool binned);
+        void solveInBeamFrame(
+                const SpaceChargeSolveContext& context, const SolvePlan& plan,
+                SpaceChargeSolveResult& result);
+        void solveWholeBunch(
+                const SpaceChargeSolveContext& context, const SolvePlan& plan,
+                SpaceChargeSolveResult& result);
+        void solveBinned(
+                const SpaceChargeSolveContext& context, const SolvePlan& plan,
+                SpaceChargeSolveResult& result);
+        void solvePass(
+                const SpaceChargeSolveContext& context, const SolvePlan& plan,
+                const ParticleBinType* unit, PassKind pass, SpaceChargeSolveResult& result);
+        void depositChargeForBin(
+                const SpaceChargeSolveContext& context, const ParticleBinType& unit,
+                const PassProperties& pass);
+        void dumpBinSnapshot(
+                const SpaceChargeSolveContext& context, const BinConfigurationSnapshot& snapshot,
+                bool beforeMerge) const;
+        void dumpDirichletPlaneDiagnosticsIfRequested(
+                const SpaceChargeSolveContext& context, const std::string& solveTag, double planeZ);
+        void printBinStatsTable() const;
+
+        CartesianPIC3DConfig config_m;
+        ParticleContainer* primary_m = nullptr;
+        std::shared_ptr<const BunchStateHandler> bunchState_m;
+        std::unique_ptr<FieldStorage> fieldStorage_m;
+        std::unique_ptr<PoissonSolver> poissonSolver_m;
+        std::optional<P3MShortRangeInteraction> shortRangeInteraction_m;
+        DataSink* dataSink_m = nullptr;
+        std::unique_ptr<ParticleBinTraversalType> particleBinTraversal_m;
+        CartesianDomainUpdater domainUpdater_m;
+        ParticleMeshTransfer particleMeshTransfer_m;
+        RelativisticFieldComposerType relativisticFieldComposer_m;
+        std::vector<BinStatsRow> binStats_m;
+        bool warnedPlaneDumpParallelUnsupported_m = false;
+    };
+
+}  // namespace opalx::spacecharge
+
+#endif  // OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_ALGORITHM_H

@@ -13,8 +13,7 @@
  */
 class Uniform : public SamplingBase {
 public:
-    Uniform(std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-            Distribution_t* opalDist);
+    Uniform(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist);
     Uniform(std::shared_ptr<ParticleContainer_t> pc, const Vector_t<double, 3>& semiAxes,
             double avrgpz = 0.0);
 

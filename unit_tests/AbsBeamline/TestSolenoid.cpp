@@ -104,7 +104,8 @@ protected:
                 /*qi=*/std::vector{1.0}, /*mi=*/std::vector{1.0},
                 /*beams=*/std::vector<Beam*>{opBeam},
                 /*totalParticlesPerBeam=*/std::vector<size_t>{numParticles},
-                /*lbt=*/1.0, /*integration_method=*/"LF2", fsCmdBase_m.get(), dataSink_m.get());
+                /*lbt=*/1.0, /*integration_method=*/"LF2",
+                opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});
         bunch->getParticleContainer()->createParticles(numParticles);
         return bunch;
     }
