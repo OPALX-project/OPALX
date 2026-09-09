@@ -14,6 +14,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "Algorithms/Matrix.h"
 #include "OPALTypes.h"
 
 class ElementBase;
@@ -24,6 +25,28 @@ public:
     std::vector<Vector_t<unsigned int, 3>> triangles_m;
     std::vector<std::pair<Vector_t<double, 3>, Vector_t<double, 3>>> decorations_m;
     int type_m;
+};
+
+/**
+ * @brief Serializable description of one beamline element for external tools.
+ *
+ * Carries everything a downstream consumer needs to build geometry on demand:
+ * the element's global pose (local-to-global rotation and the local origin in
+ * global coordinates), its length along the local z-axis, and its transverse
+ * extent in the local x/y semi-axes.
+ */
+struct ElementDescription {
+    std::string name;
+    std::string type;
+    double length;
+    Vector_t<double, 3> position;
+    matrix3x3_t rotation;
+    bool hasTransverse;
+    std::string transverseKind;
+    double semiX;
+    double semiY;
+    int multipoleOrder;
+    std::vector<Vector_t<double, 3>> designPath;
 };
 
 class MeshGenerator {
@@ -58,7 +81,29 @@ public:
 
     void add(const ElementBase& element);
 
+    /**
+     * @brief Record a lightweight description of an element for external consumers.
+     *
+     * Unlike add(), describe() never builds geometry: it records the element's
+     * name, type, length, global pose, and transverse extent so that a separate
+     * tool (e.g. a python script) can generate meshes on demand. Every element of
+     * the beamline is recorded, including those that add() skips or would mesh
+     * at a fallback radius. Transverse extents of unset ("infinite") apertures
+     * are recorded as-is; the consumer is expected to clamp them.
+     */
+    void describe(const ElementBase& element);
+
     void write(const std::string& fname);
+
+    /**
+     * @brief Write the recorded element descriptions as JSON.
+     *
+     * The file <fname>_ElementPositions.json is placed in the auxiliary output
+     * directory next to the legacy python mesh output. It also reports the
+     * representative drift radius (reference_transverse) that consumers should
+     * use to clamp elements without a physical transverse extent.
+     */
+    void writeDescriptions(const std::string& fname) const;
 
 private:
     enum MeshType {
@@ -155,6 +200,7 @@ private:
     static MeshData getBox(double length, double width, double height, double formFactor);
 
     std::vector<MeshData> elements_m;
+    std::vector<ElementDescription> descriptions_m;
     bool hasDriftReference_m;
     double driftMinor_m;
     double driftMajor_m;
