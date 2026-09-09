@@ -19,6 +19,8 @@
 
 #ifndef OPAL_Track_HH
 #define OPAL_Track_HH
+#include <optional>
+#include "Algorithms/ClosedOrbitInitialState.h"
 #include "Algorithms/PartData.h"
 #include "PartBunch/PartBunch.h"
 #include "Steppers/Steppers.h"
@@ -75,6 +77,9 @@ public:
      * an artificial interpolation of the RF energy increment.
      */
     double kineticEnergyStopGeV = 0;
+
+    /// Independent snapshot selected by TRACK INITIALORBIT.
+    std::optional<ClosedOrbitInitialState> initialOrbit;
 
     /// Maximal number of timesteps
     std::vector<unsigned long long> localTimeSteps;

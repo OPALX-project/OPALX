@@ -276,6 +276,7 @@ TrackRun::~TrackRun() {
 TrackRun* TrackRun::clone(const std::string& name) { return new TrackRun(name, this); }
 
 void TrackRun::execute() {
+    OpalData::getInstance()->hasTrackingRun = true;
     const int currentVersion = ((buildinfo::version_major * 100) + buildinfo::version_minor) * 100;
 
     if (Options::version < currentVersion) {
@@ -653,6 +654,17 @@ void TrackRun::execute() {
             StepSizeConfig::ResumePosition{
                     restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment},
             ringPeriod);
+    if (Track::block->initialOrbit) {
+        if (beams.size() != 1 || isRestart || Attributes::getBool(itsAttr[TRACKRUN::SPECTRALTUNES]))
+            throw OpalException("INITIALORBIT", "Requires one fresh beam and ordinary particle tracking.");
+        Track::block->initialOrbit->validate(Track::block->use->getOpalName(), beams.front()->getParticleName(),
+                                     beams.front()->getReference());
+        for (const auto& samplers : emittingSamplersList)
+            for (const auto& sampler : samplers)
+                if (!sampler->isEmissionDone(Track::block->initialOrbit->time))
+                    throw OpalException("INITIALORBIT", "Ongoing emission is not supported.");
+        static_cast<ParallelTracker*>(itsTracker_m.get())->setInitialOrbit(*Track::block->initialOrbit);
+    }
     static_cast<ParallelTracker*>(itsTracker_m.get())->setRequestedTurns(directedTurns);
     static_cast<ParallelTracker*>(itsTracker_m.get())->setKineticEnergyStop(kineticStop*1e9);
     static_cast<ParallelTracker*>(itsTracker_m.get())->setSpaceChargeFieldUpdate(
@@ -885,6 +897,8 @@ void TrackRun::setupDistributionsAndSamplers(
         // PC/ENERGY/GAMMA would be silently ignored, so forbid the combination.
         const bool usesFileMomentum = opalDist->getType() == DistributionType::FROMFILE
                                       || opalDist->getType() == DistributionType::EMITTEDFROMFILE;
+        if (usesFileMomentum && Track::block->initialOrbit)
+            throw OpalException("INITIALORBIT", "FROMFILE/EMITTEDFROMFILE use absolute coordinates; use an orbit-local generated distribution.");
         if (usesFileMomentum) {
             if (beam->hasExplicitEnergy()) {
                 throw OpalException(

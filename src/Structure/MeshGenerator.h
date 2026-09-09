@@ -59,11 +59,16 @@ public:
      */
     void setDriftReference(double minor, double major);
 
+    /** Build display geometry without changing the element or tracking aperture.
+     * SBENDs without a finite aperture use the representative support size, or
+     * 0.05 m transverse half-sizes when no representative support is available.
+     */
     void add(const ElementBase& element);
 
     void write(const std::string& fname);
 
 private:
+    friend class MeshGeneratorTest;
     enum MeshType {
         OTHER = 0,
         DIPOLE,

@@ -283,6 +283,7 @@ void ParallelTracker::execute() {
     // the per-container reference pose and reference-to-lab transform stored in the checkpoint.
     const auto& particleContainers = itsBunch_m->getParticleContainers();
     if (!restarting_m) {
+        if (initialOrbit_m) itsBunch_m->setT(initialOrbit_m->time);
         CoordinateSystemTrafo beamlineToLab = itsOpalBeamline_m.getCSTrafoLab2Local().inverted();
         for (size_t ci = 0; ci < particleContainers.size(); ++ci) {
             const auto& pc = particleContainers[ci];
@@ -293,6 +294,15 @@ void ParallelTracker::execute() {
                 throw OpalException(
                         "ParallelTracker::execute",
                         "Particle container has null PartData reference during lab-frame init.");
+            }
+            if (initialOrbit_m) {
+                // Generated particles already carry orbit-local positions and full momenta.
+                // Change their frame once; preserve the solved reference independently of
+                // finite-sample centroid offsets. Subsequent kernels use the normal frame path.
+                pc->setToLabTrafo(initialOrbit_m->frame().inverted());
+                pc->getRefPartR() = initialOrbit_m->position;
+                pc->getRefPartP() = initialOrbit_m->momentum;
+                continue;
             }
             pc->setToLabTrafo(beamlineToLab);
 

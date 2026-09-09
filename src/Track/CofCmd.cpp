@@ -9,7 +9,6 @@
 #include <limits>
 #include <sstream>
 #include "AbstractObjects/BeamSequence.h"
-#include "AbstractObjects/Directory.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/ClosedOrbitSolver.h"
 #include "Algorithms/DefaultVisitor.h"
@@ -18,10 +17,8 @@
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedElmPtr.h"
 #include "Elements/OpalBeamline.h"
-#include "OpalParser/OpalParser.h"
-#include "OpalParser/Statement.h"
-#include "Structure/Beam.h"
 #include "PartBunch/CartesianDomainConfig.h"
+#include "Structure/Beam.h"
 #include "Utilities/OpalException.h"
 #include "Utility/Inform.h"
 
@@ -38,6 +35,20 @@ namespace {
         SECTION,
         GEOMTOL,
         ANGLETOL,
+        METHOD,
+        DIMENSION,
+        X,
+        PX,
+        Y,
+        PY,
+        MAXIT,
+        XTOL,
+        PTOL,
+        FDSTEP,
+        SCALES,
+        DAMPING,
+        JACOBIAN,
+        OUTPUT,
         SIZE
     };
     void require(bool ok, const std::string& message) {
@@ -92,119 +103,6 @@ namespace {
         std::string output;
     };
 
-    // The local parser owns these actions; clones retain callbacks only for the
-    // duration of this block. No static command context or globally stored action.
-    class CofRun : public Action {
-        enum {
-            METHOD,
-            DIMENSION,
-            X,
-            PX,
-            Y,
-            PY,
-            MAXIT,
-            XTOL,
-            PTOL,
-            FDSTEP,
-            SCALES,
-            DAMPING,
-            JACOBIAN,
-            OUTPUT,
-            N
-        };
-        std::function<void(const RunSettings&)> run;
-        CofRun(const std::string& name, CofRun* parent) : Action(name, parent), run(parent->run) {}
-
-    public:
-        explicit CofRun(std::function<void(const RunSettings&)> callback)
-            : Action(N, "RUN", "Solve the static fixed-energy 4D closed orbit."),
-              run(std::move(callback)) {
-            itsAttr[METHOD] =
-                    Attributes::makePredefinedString("METHOD", "Solver.", {"NEWTON"}, "NEWTON");
-            itsAttr[DIMENSION]  = Attributes::makeReal("DIMENSION", "Only 4 is supported.", 4);
-            const char* names[] = {"X", "PX", "Y", "PY"};
-            for (unsigned i = 0; i < 4; ++i)
-                itsAttr[X + i] =
-                        Attributes::makeReal(names[i], "Section coordinate [m or p/(mc)].", 0);
-            itsAttr[MAXIT] = Attributes::makeReal("MAXIT", "Maximum Newton iterations.", 20);
-            itsAttr[XTOL]  = Attributes::makeReal(
-                    "XTOL", "Position residual and correction tolerance [m].", 1e-10);
-            itsAttr[PTOL] = Attributes::makeReal(
-                    "PTOL", "Momentum residual and correction tolerance [p/(mc)].", 1e-10);
-            itsAttr[FDSTEP] = Attributes::makeRealArray(
-                    "FDSTEP", "Four absolute central-difference steps; default all 1e-6.");
-            itsAttr[SCALES] =
-                    Attributes::makeRealArray("SCALES", "Four coordinate scales; default all 1.");
-            itsAttr[DAMPING]  = Attributes::makeBool("DAMPING", "Use Newton backtracking.", true);
-            itsAttr[JACOBIAN] = Attributes::makePredefinedString(
-                    "JACOBIAN", "Differentiation.", {"CENTRAL"}, "CENTRAL");
-            itsAttr[OUTPUT] =
-                    Attributes::makeString("OUTPUT", "Output prefix (existing files rejected).");
-        }
-        CofRun* clone(const std::string& name) override { return new CofRun(name, this); }
-        void execute() override {
-            require(Attributes::getReal(itsAttr[DIMENSION]) == 4, "Only DIMENSION=4 is supported.");
-            RunSettings s;
-            for (unsigned i = 0; i < 4; ++i)
-                s.initial[i] = Attributes::getReal(itsAttr[X + i]);
-            s.solver.maxIterations     = count(Attributes::getReal(itsAttr[MAXIT]), "MAXIT");
-            s.solver.positionTolerance = Attributes::getReal(itsAttr[XTOL]);
-            s.solver.momentumTolerance = Attributes::getReal(itsAttr[PTOL]);
-            s.solver.damping           = Attributes::getBool(itsAttr[DAMPING]);
-            const std::array arrayAttributes{
-                    std::make_pair(FDSTEP, &s.solver.finiteDifferenceSteps),
-                    std::make_pair(SCALES, &s.solver.scales)};
-            for (const auto item : arrayAttributes) {
-                if (!itsAttr[item.first].defaultUsed()) {
-                    const auto values = Attributes::getRealArray(itsAttr[item.first]);
-                    require(values.size() == 4, "FDSTEP and SCALES require exactly four values.");
-                    std::copy(values.begin(), values.end(), item.second->begin());
-                }
-            }
-            s.output = itsAttr[OUTPUT].defaultUsed()
-                               ? OpalData::getInstance()->getInputBasename() + "_cof"
-                               : Attributes::getString(itsAttr[OUTPUT]);
-            require(!s.output.empty(), "OUTPUT must not be empty.");
-            run(s);
-        }
-    };
-    class CofEnd : public Action {
-        std::function<void()> end;
-        CofEnd(const std::string& name, CofEnd* parent) : Action(name, parent), end(parent->end) {}
-
-    public:
-        explicit CofEnd(std::function<void()> callback)
-            : Action(0, "ENDCOF", "Close the COF block."), end(std::move(callback)) {}
-        CofEnd* clone(const std::string& name) override { return new CofEnd(name, this); }
-        void execute() override { end(); }
-    };
-    class CofParser : public OpalParser {
-        Directory directory;
-
-    public:
-        bool ended = false, ran = false;
-        explicit CofParser(std::function<void(const RunSettings&)> callback) {
-            directory.insert("RUN", new CofRun([this, callback](const RunSettings& s) {
-                                 require(!ran, "Use one RUN per COF block.");
-                                 callback(s);
-                                 ran = true;
-                             }));
-            directory.insert("ENDCOF", new CofEnd([this]() {
-                                 ended = true;
-                                 stop();
-                             }));
-        }
-        Object* find(const std::string& name) const override { return directory.find(name); }
-        void parse(Statement& stat) const override {
-            stat.start();
-            require(stat.keyword("RUN") || stat.keyword("ENDCOF"),
-                    "Only RUN and ENDCOF are allowed inside COF.");
-            stat.start();
-            // Bypass definition/assignment dispatch: context-owning actions cannot escape.
-            parseAction(stat);
-        }
-    };
-
     class LatticeVisitor : public DefaultVisitor {
         OpalBeamline& lattice;
         PartBunch_t& bunch;
@@ -245,12 +143,12 @@ namespace {
 
     // All ranks build the empty reference container once; scalar ray work and files
     // are rank-zero only. Broadcast diagnostic text before throwing on solver failure.
-    void calculate(BeamSequence& sequence, Beam& beam, const Controls& c, const RunSettings& s) {
+    ClosedOrbitInitialState calculate(
+            BeamSequence& sequence, Beam& beam, const Controls& c, const RunSettings& s) {
         sequence.prepareForTracking();
         // COF needs only empty particle storage for element initialization, not a solver.
         const opalx::spacecharge::CartesianDomainConfig3D domain;
-        PartBunch_t bunch(
-                {beam.getCharge()}, {beam.getMass()}, {&beam}, {0}, 1, "LF2", domain);
+        PartBunch_t bunch({beam.getCharge()}, {beam.getMass()}, {&beam}, {0}, 1, "LF2", domain);
         OpalBeamline lattice(
                 sequence.fetchLine()->getOrigin3D(), sequence.fetchLine()->getInitialDirection());
         LatticeVisitor visitor(*sequence.fetchLine(), lattice, bunch, sequence.getOpalName());
@@ -258,6 +156,13 @@ namespace {
         lattice.prepareSections();
         int rank = 0;
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        ClosedOrbitInitialState state;
+        state.section = c.section;
+        state.time    = c.tracking.time;
+        state.massEV  = beam.getReference().getM();
+        state.chargeE = beam.getReference().getQ();
+        state.line    = sequence.getOpalName();
+        state.species = beam.getParticleName();
         std::string error, report;
         if (rank == 0) try {
                 require(!visitor.ordered.empty(), "RING must contain magnetic/transport elements.");
@@ -284,9 +189,8 @@ namespace {
                 require(positionError <= c.geometryTolerance && angleError <= c.angleTolerance,
                         out.str()
                                 + "Nominal ring geometry does not close within GEOMTOL/ANGLETOL.");
-                for (const auto& suffix : {".txt", ".json", "-orbit.csv"})
-                    require(!std::filesystem::exists(s.output + suffix),
-                            "COF output exists: " + s.output + suffix);
+                if (!s.output.empty())
+                    require(!std::filesystem::exists(s.output), "COF output exists: " + s.output);
                 ExternalFieldRayTracker tracker(lattice, beam.getReference(), c.integrator);
                 // Field selection excludes points outside apertures. Select the
                 // nearest finite conventional body independently of aperture,
@@ -377,8 +281,6 @@ namespace {
                     out << '\n';
                 }
                 if (result.status != ClosedOrbitSolver::Status::Converged) {
-                    std::ofstream file(s.output + ".txt");
-                    file << out.str();
                     throw OpalException("COF", out.str());
                 }
                 const auto returned   = map(result.coordinates);
@@ -396,9 +298,7 @@ namespace {
                 LinearMapEigenAnalysis::writeReport(out, spectrum);
                 out << "Stability is a numerical matrix diagnostic; validate DT and FDSTEP "
                        "convergence.\n";
-                std::ofstream json(s.output + ".json"), orbit(s.output + "-orbit.csv"),
-                        file(s.output + ".txt");
-                require(bool(json) && bool(orbit) && bool(file), "Cannot open COF output files.");
+                std::ostringstream json;
                 json << std::setprecision(17) << "{\"converged\":true,\"dt_s\":" << c.tracking.dt
                      << ",\"energy_MeV\":" << (reference.getE() - reference.getM()) / 1e6
                      << ",\"coordinates\":[";
@@ -449,37 +349,34 @@ namespace {
                         json << "null";
                     json << '}';
                 }
-                json << "],\"relative_energy_drift\":" << drift << "}\n";
-                orbit << std::setprecision(17) << "s_m,time_s,X_m,Y_m,Z_m,PX_mc,PY_mc,PZ_mc\n";
-                ExternalFieldRayTracker::State ray;
-                const auto& u = result.coordinates;
-                ray.position  = c.section.transformFrom(Vector_t<double, 3>(u[0], u[2], 0));
-                ray.momentum  = c.section.rotateFrom(
+                const auto& u  = result.coordinates;
+                state.position = c.section.transformFrom(Vector_t<double, 3>(u[0], u[2], 0));
+                state.momentum = c.section.rotateFrom(
                         Vector_t<double, 3>(
                                 u[1], u[3],
                                 std::sqrt(
                                         c.tracking.momentum * c.tracking.momentum - u[1] * u[1]
                                         - u[3] * u[3])));
-                ray.time   = c.tracking.time;
-                auto write = [&](const auto& r) {
-                    orbit << r.pathLength << ',' << r.time;
-                    for (unsigned d = 0; d < 3; ++d)
-                        orbit << ',' << r.position[d];
-                    for (unsigned d = 0; d < 3; ++d)
-                        orbit << ',' << r.momentum[d];
-                    orbit << '\n';
-                };
-                write(ray);
-                for (unsigned i = 1; i < returned.steps; ++i) {
-                    ray = tracker.advance(ray, c.tracking.dt);
-                    write(ray);
+                json << "],\"relative_energy_drift\":" << drift << ",\"time_s\":" << state.time
+                     << ",\"position_m\":[";
+                array(state.position);
+                json << "],\"momentum_mc\":[";
+                array(state.momentum);
+                json << "],\"line\":" << std::quoted(state.line)
+                     << ",\"species\":" << std::quoted(state.species)
+                     << ",\"mass_eV\":" << state.massEV << ",\"charge_e\":" << state.chargeE
+                     << ",\"section_origin_m\":[";
+                array(c.section.transformFrom(Vector_t<double, 3>(0.0)));
+                json << "],\"section_rotation_wxyz\":[";
+                array(c.section.getRotation());
+                json << "]}\n";
+                state.json = json.str();
+                if (!s.output.empty()) {
+                    std::ofstream file(s.output);
+                    file << state.json;
+                    file.flush();
+                    require(bool(file), "Error writing COF OUTPUT: " + s.output);
                 }
-                write(returned.ray);
-                file << out.str();
-                file.flush();
-                json.flush();
-                orbit.flush();
-                require(bool(file) && bool(json) && bool(orbit), "Error writing COF output.");
                 report = out.str();
             } catch (const OpalException& ex) {
                 error = ex.what();
@@ -495,7 +392,20 @@ namespace {
         broadcast(error);
         broadcast(report);
         require(error.empty(), error);
+        broadcast(state.json);
+        double values[6]{};
+        if (rank == 0)
+            for (unsigned d = 0; d < 3; ++d) {
+                values[d]     = state.position[d];
+                values[d + 3] = state.momentum[d];
+            }
+        MPI_Bcast(values, 6, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+        for (unsigned d = 0; d < 3; ++d) {
+            state.position[d] = values[d];
+            state.momentum[d] = values[d + 3];
+        }
         if (rank == 0) *gmsg << report << endl;
+        return state;
     }
 }  // namespace
 
@@ -517,12 +427,31 @@ CofCmd::CofCmd()
             Attributes::makeReal("GEOMTOL", "Nominal end-to-start position tolerance [m].", 1e-9);
     itsAttr[ANGLETOL] =
             Attributes::makeReal("ANGLETOL", "Nominal end-to-start axis tolerance [rad].", 1e-10);
+    itsAttr[METHOD] = Attributes::makePredefinedString("METHOD", "Solver.", {"NEWTON"}, "NEWTON");
+    itsAttr[DIMENSION]  = Attributes::makeReal("DIMENSION", "Only 4 is supported.", 4);
+    const char* names[] = {"X", "PX", "Y", "PY"};
+    for (unsigned i = 0; i < 4; ++i)
+        itsAttr[X + i] = Attributes::makeReal(names[i], "Section coordinate [m or p/(mc)].", 0);
+    itsAttr[MAXIT] = Attributes::makeReal("MAXIT", "Maximum Newton iterations.", 20);
+    itsAttr[XTOL] =
+            Attributes::makeReal("XTOL", "Position residual and correction tolerance [m].", 1e-10);
+    itsAttr[PTOL] = Attributes::makeReal(
+            "PTOL", "Momentum residual and correction tolerance [p/(mc)].", 1e-10);
+    itsAttr[FDSTEP] = Attributes::makeRealArray(
+            "FDSTEP", "Four absolute central-difference steps; default all 1e-6.");
+    itsAttr[SCALES] = Attributes::makeRealArray("SCALES", "Four coordinate scales; default all 1.");
+    itsAttr[DAMPING]  = Attributes::makeBool("DAMPING", "Use Newton backtracking.", true);
+    itsAttr[JACOBIAN] = Attributes::makePredefinedString(
+            "JACOBIAN", "Differentiation.", {"CENTRAL"}, "CENTRAL");
+    itsAttr[OUTPUT] = Attributes::makeString(
+            "OUTPUT", "Optional exact JSON filename (existing files rejected).");
     registerOwnership(AttributeHandler::COMMAND);
-    AttributeHandler::addAttributeOwner("COF", AttributeHandler::COMMAND, "ENDCOF");
 }
 CofCmd::CofCmd(const std::string& name, CofCmd* parent) : Action(name, parent) {}
 CofCmd* CofCmd::clone(const std::string& name) { return new CofCmd(name, this); }
 void CofCmd::execute() {
+    result_m.reset();
+    OpalData::getInstance()->hasCofRun = true;
     require(!OpalData::getInstance()->inRestartRun(), "COF does not support restart mode.");
     auto* sequence = BeamSequence::find(Attributes::getString(itsAttr[LINE]));
     require(sequence->fetchLine()->getBeamlineTopology() == BeamlineTopology::RING,
@@ -564,9 +493,34 @@ void CofCmd::execute() {
         c.section = CoordinateSystemTrafo(
                 Vector_t<double, 3>(v[0], v[1], v[2]), (theta * (phi * psi)).conjugate());
     }
-    CofParser parser([&](const RunSettings& s) {
-        calculate(*sequence, *beam, c, s);
-    });
-    parser.run();
-    require(parser.ended && parser.ran, "COF requires one RUN followed by ENDCOF (not EOF/STOP).");
+    require(Attributes::getReal(itsAttr[DIMENSION]) == 4, "Only DIMENSION=4 is supported.");
+    RunSettings s;
+    for (unsigned i = 0; i < 4; ++i)
+        s.initial[i] = Attributes::getReal(itsAttr[X + i]);
+    s.solver.maxIterations     = count(Attributes::getReal(itsAttr[MAXIT]), "MAXIT");
+    s.solver.positionTolerance = Attributes::getReal(itsAttr[XTOL]);
+    s.solver.momentumTolerance = Attributes::getReal(itsAttr[PTOL]);
+    s.solver.damping           = Attributes::getBool(itsAttr[DAMPING]);
+    const std::array arrayAttributes{
+            std::make_pair(FDSTEP, &s.solver.finiteDifferenceSteps),
+            std::make_pair(SCALES, &s.solver.scales)};
+    for (const auto item : arrayAttributes) {
+        if (!itsAttr[item.first].defaultUsed()) {
+            const auto values = Attributes::getRealArray(itsAttr[item.first]);
+            require(values.size() == 4, "FDSTEP and SCALES require exactly four values.");
+            std::copy(values.begin(), values.end(), item.second->begin());
+        }
+    }
+    if (!itsAttr[OUTPUT].defaultUsed()) {
+        s.output = Attributes::getString(itsAttr[OUTPUT]);
+        require(!s.output.empty(), "Explicit OUTPUT must not be empty.");
+    }
+    result_m = calculate(*sequence, *beam, c, s);
+}
+
+const ClosedOrbitInitialState& CofCmd::findResult(const std::string& name) {
+    auto* command = dynamic_cast<CofCmd*>(OpalData::getInstance()->find(name));
+    require(command && command->result_m.has_value(),
+            "INITIALORBIT must name a successfully executed COF: " + name);
+    return *command->result_m;
 }
