@@ -46,6 +46,7 @@ ScalingFFAMagnet::ScalingFFAMagnet(const ScalingFFAMagnet& right)
 
 ScalingFFAMagnet* ScalingFFAMagnet::clone() const {
     auto* magnet = new ScalingFFAMagnet(*this);
+    magnet->efm_m = efm_m;
     magnet->initialise();
     return magnet;
 }
@@ -63,7 +64,9 @@ void ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<doub
 }
 
 void ScalingFFAMagnet::getFieldValueCylindrical(const Vector_t<double, 3>& Rcyl, Vector_t<double, 3>& Bcyl) const {
-    const Kokkos::View<double**> derivatives;
+    const Kokkos::View<double*> derivatives("single_derivatives", config_m.maxOrder_m);
+    for (size_t i = 0; i < config_m.maxOrder_m; ++i)
+        derivatives(i) = efm_m->function(Rcyl[2], i);
     getFieldValueCylindrical(config_m, derivatives, Rcyl, Bcyl);
 }
 

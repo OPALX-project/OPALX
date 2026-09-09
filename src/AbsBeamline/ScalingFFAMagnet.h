@@ -133,7 +133,7 @@ public:
      *  \returns true if particle is outside the field map, else false
      */
     KOKKOS_INLINE_FUNCTION static void getFieldValueCylindrical(const ScalingFFAMagnetConfig& config,
-                                                                const Kokkos::View<double**>& fringeDerivatives,
+                                                                const Kokkos::View<double*>& fringeDerivatives,
                                                                 const Vector_t<double, 3>& R,
                                                                 Vector_t<double, 3>& B);
 
@@ -350,7 +350,8 @@ void ScalingFFAMagnet::getFieldValue(const ScalingFFAMagnetConfig& config,
     endField->function(Rcyl, config.maxOrder_m, derivatives);
     Kokkos::parallel_for(
         "ScalingFFAMagnet::getFieldValue()", count, KOKKOS_LAMBDA(const size_t i) {
-            getFieldValueCylindrical(config, derivatives, Rcyl(i), Bcyl(i));
+            Kokkos::View<double*> derivatives_i = Kokkos::subview(derivatives, i, Kokkos::ALL);
+            getFieldValueCylindrical(config, derivatives_i, Rcyl(i), Bcyl(i));
             rotateBfield(Rcyl(i), Bcyl(i), B(i));
         }
     );
@@ -372,10 +373,11 @@ void ScalingFFAMagnet::rotateBfield(const Vector_t<double, 3> Rcyli, const Vecto
 }
 
 void ScalingFFAMagnet::getFieldValueCylindrical(
-    const ScalingFFAMagnetConfig& config, const Kokkos::View<double**>& fringeDerivatives, const Vector_t<double, 3>& pos, Vector_t<double, 3>& B) {
+    const ScalingFFAMagnetConfig& config, const Kokkos::View<double*>& derivatives, const Vector_t<double, 3>& pos, Vector_t<double, 3>& B) {
     double r   = pos[0];
     double z   = pos[1];
     double phi = pos[2];
+    std::cerr << "ScalingFFAMagnet::getFieldValueCylindrical r,z,phi " << r << "," << z << "," << phi << std::endl;
     if (r < config.rMin_m || r > config.rMax_m) {
         return;
     }
@@ -384,25 +386,27 @@ void ScalingFFAMagnet::getFieldValueCylindrical(
     double g          = config.tanDelta_m * std::log(normRadius);
     double phiSpiral  = phi - g - config.phiStart_m;
     double h          = std::pow(normRadius, config.k_m) * config.Bz_m;
+    std::cerr << "ScalingFFAMagnet::getFieldValueCylindrical tand,normR,lognormR " << config.tanDelta_m << "," << normRadius << "," << std::log(normRadius) << std::endl;
+    std::cerr << "ScalingFFAMagnet::getFieldValueCylindrical phi,g,phistart " << phi << "," << g << "," << config.phiStart_m << std::endl;
+    std::cerr << "ScalingFFAMagnet::getFieldValueCylindrical phiSpiral,h,tanh " << phiSpiral << "," << h << "," << derivatives(0) << std::endl;
     if (phiSpiral < -config.azimuthalExtent_m || phiSpiral > config.azimuthalExtent_m) {
         return;
     }
     if (z < -config.verticalExtent_m || z > config.verticalExtent_m) {
         return;
     }
-    int CHECK = 1;
     for (size_t n = 0; n < config.dfCoefficients_m.size(); n += 2) {
         double f2n = 0;
         Vector_t<double, 3> deltaB;
         for (size_t i = 0; i < config.dfCoefficients_m[n].size(); ++i) {
-            f2n += config.dfCoefficients_m[n][i] * fringeDerivatives(i, CHECK);
+            f2n += config.dfCoefficients_m[n][i] * derivatives(i);
         }
         deltaB[1] = f2n * h * std::pow(z / r, n);  // Bz = sum(f_2n * h * (z/r)^2n
         if (config.maxOrder_m >= n + 1) {
             double f2nplus1 = 0;
             for (size_t i = 0;
                  i < config.dfCoefficients_m[n + 1].size() && n + 1 < config.dfCoefficients_m.size(); ++i) {
-                f2nplus1 += config.dfCoefficients_m[n + 1][i] * fringeDerivatives(i, CHECK);
+                f2nplus1 += config.dfCoefficients_m[n + 1][i] * derivatives(i);
             }
             deltaB[0] = (f2n * (config.k_m - n) / (n + 1) - config.tanDelta_m * f2nplus1) * h
                         * std::pow(z / r, n + 1);  // Br
