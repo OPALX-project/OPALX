@@ -28,7 +28,16 @@ import numpy as np
 # ---------------------------------------------------------------------------
 # False: lab -> bunch (transform geometry, bunch stays centred)
 # True:  bunch -> lab (transform particles to world coords)
-INVERSE = True
+#
+# INVERSE is normally passed in by the caller: the loader in a Catalyst/ParaView
+# state script (see catalyst/catalyst-muon-test-1.py) exec's this file with the
+# parameter set. When this script is pasted directly into a Programmable Filter
+# instead, set the flag here or export BUNCH_TRANSFORM_INVERSE=0|1.
+import os
+try:
+    INVERSE
+except NameError:
+    INVERSE = os.environ.get('BUNCH_TRANSFORM_INVERSE', '1') not in ('0', 'false', 'False')
 
 # ---------------------------------------------------------------------------
 # Debug logging
