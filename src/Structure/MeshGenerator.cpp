@@ -216,15 +216,18 @@ void MeshGenerator::write(const std::string& fname) {
     std::ostringstream vertices_compressed;
     out << "vertices = []\n";
     out << "numVertices = [";
-    for (auto& element : elements_m) {
-        auto& vertices = element.vertices_m;
-        out << vertices.size() << ", ";
-        for (unsigned int i = 0; i < vertices.size(); ++i) {
-            buffer = reinterpret_cast<const char*>(&(vertices[i](0)));
-            vertices_ascii.write(buffer, 3 * sizeof(double));
+    {
+        const char* separator = "";
+        for (auto& element : elements_m) {
+            auto& vertices = element.vertices_m;
+            out << separator << vertices.size();
+            separator = ", ";
+            for (unsigned int i = 0; i < vertices.size(); ++i) {
+                buffer = reinterpret_cast<const char*>(&(vertices[i](0)));
+                vertices_ascii.write(buffer, 3 * sizeof(double));
+            }
         }
     }
-    out.seekp(-2, std::ios_base::end);
     out << "]\n";
 
     {
@@ -243,37 +246,49 @@ void MeshGenerator::write(const std::string& fname) {
     std::string vertices_base64 = Util::base64_encode(vertices_compressed.str());
     out << "vertices_base64 = \"" << vertices_base64 << "\"\n";
     out << "triangles = [";
-    for (auto& element : elements_m) {
-        out << "[ ";
-        auto& triangles = element.triangles_m;
-        for (unsigned int i = 0; i < triangles.size(); ++i) {
-            out << triangles[i](0) << ", " << triangles[i](1) << ", " << triangles[i](2) << ", ";
+    {
+        const char* elementSeparator = "";
+        for (auto& element : elements_m) {
+            auto& triangles = element.triangles_m;
+            out << elementSeparator << "[";
+            const char* triangleSeparator = "";
+            for (unsigned int i = 0; i < triangles.size(); ++i) {
+                out << triangleSeparator << triangles[i](0) << ", " << triangles[i](1) << ", "
+                    << triangles[i](2);
+                triangleSeparator = ", ";
+            }
+            out << "]";
+            elementSeparator = ", ";
         }
-        out.seekp(-2, std::ios_base::end);
-        out << "], ";
     }
-    out.seekp(-2, std::ios_base::end);
     out << "]\n";
 
     out << "decoration = [";
-    for (auto& element : elements_m) {
-        out << "[ ";
-        for (auto& decoration : element.decorations_m) {
-            out << (decoration.first)(0) << ", " << (decoration.first)(1) << ", "
-                << (decoration.first)(2) << ", " << (decoration.second)(0) << ", "
-                << (decoration.second)(1) << ", " << (decoration.second)(2) << ", ";
+    {
+        const char* elementSeparator = "";
+        for (auto& element : elements_m) {
+            out << elementSeparator << "[";
+            const char* decorationSeparator = "";
+            for (auto& decoration : element.decorations_m) {
+                out << decorationSeparator << (decoration.first)(0) << ", " << (decoration.first)(1)
+                    << ", " << (decoration.first)(2) << ", " << (decoration.second)(0) << ", "
+                    << (decoration.second)(1) << ", " << (decoration.second)(2);
+                decorationSeparator = ", ";
+            }
+            out << "]";
+            elementSeparator = ", ";
         }
-        if (!element.decorations_m.empty()) out.seekp(-2, std::ios_base::end);
-        out << "], ";
     }
-    if (!elements_m.empty()) out.seekp(-2, std::ios_base::end);
     out << "]\n\n";
 
     out << "color = [";
-    for (auto& element : elements_m) {
-        out << element.type_m << ", ";
+    {
+        const char* separator = "";
+        for (auto& element : elements_m) {
+            out << separator << element.type_m;
+            separator = ", ";
+        }
     }
-    out.seekp(-2, std::ios_base::end);
     out << "]\n\n";
 
     std::stringstream index_ascii;
