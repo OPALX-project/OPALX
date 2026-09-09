@@ -34,10 +34,6 @@ protected:
             domain[i] = ippl::Index(this->nr[i]);
         }
 
-        // Create FieldContainer
-        auto fc = std::make_shared<FieldContainer_t>(
-                hr, rmin, rmax, decomp, domain, origin, this->isAllPeriodic_m);
-
         // Create mesh and fieldlayout
         Mesh_t<3> mesh(domain, hr, origin);
         FieldLayout_t<3> fl(MPI_COMM_WORLD, domain, decomp, this->isAllPeriodic_m);
