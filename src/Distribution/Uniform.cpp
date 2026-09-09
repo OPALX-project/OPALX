@@ -5,10 +5,8 @@
 
 #include <cmath>
 
-Uniform::Uniform(
-        std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-        Distribution_t* opalDist)
-    : SamplingBase(pc, fc, opalDist),
+Uniform::Uniform(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist)
+    : SamplingBase(pc, opalDist),
       semiAxes_m(opalDist->getSigmaR()),
       avrgpz_m(opalDist->getAvrgpz()) {
     initRandomPool();

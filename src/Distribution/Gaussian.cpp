@@ -9,13 +9,10 @@
  * @brief Constructs a Gaussian sampler.
  *
  * @param pc Shared pointer to the particle container.
- * @param fc Shared pointer to the field container.
  * @param opalDist Borrowed distribution object.
  */
-Gaussian::Gaussian(
-        std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-        Distribution_t* opalDist)
-    : SamplingBase(pc, fc, opalDist) {
+Gaussian::Gaussian(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist)
+    : SamplingBase(pc, opalDist) {
     samperTimer_m = IpplTimings::getTimer("Sampling");
     initRandomPool();
     setSigmaP(opalDist->getSigmaP());

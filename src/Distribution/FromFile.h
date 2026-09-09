@@ -35,12 +35,9 @@ public:
     /**
      * @brief Constructor for FromFile.
      * @param pc Shared pointer to ParticleContainer.
-     * @param fc Shared pointer to FieldContainer.
      * @param opalDist Borrowed Distribution.
      */
-    FromFile(
-            std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-            Distribution_t* opalDist);
+    FromFile(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist);
 
     /**
      * @brief Convenience constructor that takes the filename directly.
@@ -49,9 +46,7 @@ public:
      * OPALX Distribution object is unnecessary. It behaves like the main
      * constructor but skips querying the Distribution for the filename.
      */
-    FromFile(
-            std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-            const std::string& filename);
+    FromFile(std::shared_ptr<ParticleContainer_t> pc, const std::string& filename);
 
     /**
      * @brief Generates particles by reading from file.

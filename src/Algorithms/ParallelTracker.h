@@ -29,6 +29,9 @@
 #include "Steppers/SpinTBMTPusher.h"
 #include "Structure/DataSink.h"
 
+#include "SpaceCharge/SpaceChargeConfig.h"
+#include "SpaceCharge/SpaceChargeSolveContext.h"
+
 #include "BasicActions/Option.h"
 #include "Utilities/Options.h"
 
@@ -65,6 +68,10 @@
 #include <vector>
 
 class PluginElement;
+
+namespace opalx::spacecharge {
+    class SpaceChargeSolver;
+}  // namespace opalx::spacecharge
 
 /**
  * @brief Implements the main time-based simulation loop for parallel tracking.
@@ -128,6 +135,10 @@ private:
     SpaceChargeFieldUpdate spaceChargeFieldUpdate_m =
             SpaceChargeFieldUpdate::MIDPOINT;  ///< Self-field time centering for bunch tracking.
     DataSink* itsDataSink_m;         ///< Borrowed beam statistics and phase-space output sink.
+    opalx::spacecharge::SpaceChargeSolver*
+            spaceChargeSolver_m;  ///< Borrowed run-lifetime space-charge solver.
+    opalx::spacecharge::DirichletPlaneConfig dirichletPlane_m;
+    std::vector<std::uint8_t> spaceChargeContainerActivity_m;
     OpalBeamline itsOpalBeamline_m;  ///< Cloned field elements and coordinate transforms.
     bool globalEOL_m;                ///< End-of-line flag (e.g. orbit threader out of bounds).
     double sStart_m;                 ///< Path-length start position for the track (m).
@@ -136,8 +147,7 @@ private:
     /** Step-size segments: s-stop, dt, and steps per segment. */
     StepSizeConfig stepSizes_m;
 
-    double dtCurrentTrack_m;          ///< Global @f$\Delta t@f$ for the current track segment.
-    unsigned long long repartFreq_m;  ///< Space-charge repartition period (steps); 0 disables it.
+    double dtCurrentTrack_m;  ///< Global @f$\Delta t@f$ for the current track segment.
     std::vector<std::vector<std::shared_ptr<SamplingBase>>>
             emittingSamplers_m;  ///< Per-container emitters.
     bool restarting_m;           ///< Preserve state loaded from a checkpoint at startup.
@@ -151,7 +161,6 @@ private:
     IpplTimings::TimerRef fieldEvaluationTimer_m;
     IpplTimings::TimerRef WakeFieldTimer_m;
     IpplTimings::TimerRef PluginElemTimer_m;
-    IpplTimings::TimerRef BinRepartTimer_m;
     IpplTimings::TimerRef OrbThreader_m;
 
 public:
@@ -167,6 +176,8 @@ public:
      * @brief Construct tracker with bunch, output sink, and step-size schedule.
      * @param bl                Beamline definition.
      * @param bunch             Borrowed particle bunch (multi-container).
+     * @param spaceChargeSolver   Borrowed solver owned by TrackRun.
+     * @param dirichletPlane      Dirichlet plane used by tracker-side loss handling.
      * @param ds                Borrowed data sink for statistics and dumps.
      * @param revBeam           Reversed beam flag (see single-argument constructor).
      * @param maxSTEPS          Max integration steps per s-segment (parallel to sStop/dt).
@@ -181,7 +192,9 @@ public:
      * @param ringPeriod        One-turn path length for periodic RING lookup; zero for LINE.
      */
     explicit ParallelTracker(
-            const Beamline& bl, PartBunch_t& bunch, DataSink* ds, bool revBeam,
+            const Beamline& bl, PartBunch_t& bunch,
+            opalx::spacecharge::SpaceChargeSolver& spaceChargeSolver,
+            opalx::spacecharge::DirichletPlaneConfig dirichletPlane, DataSink* ds, bool revBeam,
             const std::vector<unsigned long long>& maxSTEPS, double sStart,
             const std::vector<double>& sStop, const std::vector<double>& dt,
             const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers = {},
@@ -269,11 +282,9 @@ public:
     /// particle sees during this step).
     void evolveSpinTBMT();
 
-    /**
-     * @brief Self-fields in beam frame (primary container); optional binary repartition.
-     * @param step Global step index (used for repartition cadence).
-     */
-    void computeSpaceChargeFields(unsigned long long step);
+    /** @brief Build the current tracker-frame context and dispatch the configured space-charge
+     * solve. */
+    void computeSpaceChargeFields();
 
     /// @brief Apply external fields from elements intersecting each active container.
     /// @param oths Per-container orbit threaders (one per distinct species; same-species
@@ -292,7 +303,7 @@ public:
 
     /// @brief Mark particles outside the transverse aperture of each nearby element.
     /// @param oths Per-container orbit threaders used for element queries.
-    /// @return global number of newly marked particles (allreduced) — collective call.
+    /// @return global number of newly marked particles (allreduced) - collective call.
     size_t applyElementApertures(const std::vector<std::shared_ptr<OrbitThreader>>& oths);
 
     /// @brief Emit macroparticles from configured samplers per container.
@@ -316,6 +327,18 @@ public:
     void setTime();
 
 private:
+    struct SpaceChargeEmissionProgress {
+        bool active     = false;
+        double fraction = 1.0;
+    };
+
+    /// @brief Build stable native particle and field identities once.
+    void initializeSpaceChargeContainerActivity();
+
+    [[nodiscard]] opalx::spacecharge::CoordinateFrameTransforms makeSpaceChargeFrameTransforms()
+            const;
+    [[nodiscard]] SpaceChargeEmissionProgress spaceChargeEmissionProgress() const;
+
     /// @brief Update reference trajectories and lab/reference coordinate transforms.
     void updateReference(const BorisPusher& pusher);
 
@@ -347,17 +370,11 @@ private:
     /// @brief Set global bunch dt to dtCurrentTrack_m.
     void selectDT();
 
-    /// @brief Load REPARTFREQ and related options from input.
-    void setOptionalVariables();
-
     /**
      * @brief Whether tracking should stop at end-of-line (global reduction).
      * @param globalBoundingBox Spatial bounds from the orbit threader.
      */
     bool hasEndOfLineReached(const BoundingBox& globalBoundingBox);
-
-    /// @brief Trigger binary repartition for the field solver if configured.
-    void doBinaryRepartition();
 
     /// @brief Delete particles marked invalid by the central per-container mask.
     size_t deleteInvalidParticles(bool activeOnly, Inform& m, const std::string& reason);

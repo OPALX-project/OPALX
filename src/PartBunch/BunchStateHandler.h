@@ -1,72 +1,40 @@
 #ifndef BUNCH_STATE_HANDLER_H
 #define BUNCH_STATE_HANDLER_H
 
+#include <array>
 #include <memory>
+#include <optional>
 #include <vector>
 
 /**
  * @class BunchStateHandler
  * @brief Centralised tracking of mutable bunch-level and per-container status flags.
  *
- * Single instance per PartBunch, shared with every component that needs
- * access (ParticleContainer, DistributionMoments, ...).
+ * One instance is owned by PartBunch. Per-container coordinate and moment-cache flags live in
+ * registered slots whose lifetime follows each ParticleContainer. Fixed Cartesian bounds are
+ * bunch-wide and persist independently of container lifetimes.
  *
- * Two classes of state live here:
- *
- * - **Bunch-wide flags** (emission mesh progress, future `emittingNow`) apply
- *   to the bunch as a whole and are stored as plain members.
- *
- * - **Per-container flags** (`momentsDirty`, `unitlessPositions`) live in the
- *   nested `ContainerState` struct. Each `ParticleContainer` registers itself
- *   via `registerContainer()` at `setBunchStateHandler` time and receives a
- *   `std::shared_ptr<ContainerState>` slot. The container holds the only strong
- *   reference; the handler keeps a `std::weak_ptr` so the slot is released
- *   automatically when the container is destroyed (no unregister needed).
- *
- * - **emittingNow** (aka "isEmitting"): managed by the emitting
- *   distribution itself (e.g. FlatTop sets it when t > t0 and
- *   particles are being created).
- *
- * ### Invariants
- *
- * - **unitlessPositions**: true while the container's positions are in the
- *   dimensionless form R' = R / (c * dt). Toggled only by
- *   ParticleContainer::switchToUnitlessPositions / switchOffUnitlessPositions.
- *   Does NOT mark the container's moments dirty (coordinate representation
- *   change only).
- *
- * - **momentsDirty**: set whenever a physics operation mutates this
- *   container's particle positions (R) or momenta (P) -- push, kick,
- *   emission, particle deletion. Cleared by DistributionMoments::computeMoments
- *   once the moments cache is consistent with the particle state.
- *
- * - **emissionMeshProgress**: true only around the beam-frame bunchUpdate used by the
- *   space-charge solve while a cathode source is still emitting. Old OPAL stretches the
- *   z mesh backward by 1 / emittedFraction so the self-field solve covers the full
- *   source window instead of only the already emitted front slice.
- *
- * ### MPI consistency
- *
- * Every flag is conceptually consistent across MPI ranks. The OPALX option
- * `AGGRESSIVE_STATE_SYNC` (see `Options::aggressiveStateSync`) forces every
- * setter below to perform an `ippl::Comm->allreduce` with
- * `std::logical_or<bool>` so ranks converge to the same (conservative) value
- * even if a caller mutated the flag on only a subset of ranks. Default off:
- * the allreduce on every mutation adds up, and correctly-written callers
- * already set the same value on every rank.
+ * `unitlessPositions` describes the representation @f$R/(c\Delta t)@f$ and does not dirty moments.
+ * `momentsDirty` is set after position or momentum changes and cleared after recomputation.
+ * `Options::aggressiveStateSync` optionally converges these booleans across MPI ranks.
  */
 class BunchStateHandler {
 public:
     /**
-     * @brief Per-container slot of mutable flags. One per registered
-     *        ParticleContainer. Lifetime is tied to the owning container
-     *        (see registerContainer() for details).
+     * @brief Persistent fixed bounds for CartesianPIC3D solves.
      *
-     * Setters here own the MPI consistency logic directly; there is no need
-     * to route back through the handler, because `Options::aggressiveStateSync`
-     * is a namespace flag and `ippl::Comm` is a singleton - i.e. the allreduce
-     * helper is stateless, so the struct can call it without holding any
-     * handler reference.
+     * Bounds use metres in the CartesianPIC3D solve frame. This state is bunch-wide rather than
+     * tied to a particle container, and remains active until explicitly cleared.
+     */
+    struct FixedCartesianDomainState {
+        std::array<double, 3> lower;
+        std::array<double, 3> upper;
+
+        bool operator==(const FixedCartesianDomainState&) const = default;
+    };
+
+    /**
+     * @brief Per-container coordinate-representation and moment-cache state.
      */
     struct ContainerState {
         bool unitlessPositions = false;
@@ -79,36 +47,36 @@ public:
 
     BunchStateHandler() = default;
 
-    // -- per-container registration ---------------------------------------
-
-    /**
-     * @brief Allocate a new per-container slot and return a strong reference
-     *        to it. The handler itself retains only a `std::weak_ptr`, so the
-     *        slot is destroyed automatically once the caller (typically a
-     *        ParticleContainer) releases its shared_ptr.
-     */
+    /** @brief Allocate a slot whose strong ownership is transferred to the container. */
     std::shared_ptr<ContainerState> registerContainer();
 
-    // -- bunch-wide flags --------------------------------------------------
+    /**
+     * @brief Activate fixed CartesianPIC3D bounds.
+     *
+     * Reapplying identical bounds is idempotent. Active bounds must be cleared before they can be
+     * replaced. This host-side operation is collective by contract: every MPI rank must call it
+     * with identical values.
+     *
+     * @throws OpalException if a bound is non-finite, not strictly increasing, or attempts to
+     * replace different active bounds.
+     */
+    void setFixedCartesianDomain(std::array<double, 3> lower, std::array<double, 3> upper);
 
-    bool isEmissionMeshStretchActive() const { return emissionMeshStretchEnabled_m; }
-    double getEmissionMeshFraction() const { return emissionMeshProgressFraction_m; }
-    void setEmissionMeshProgress(bool active, double emittedFraction);
+    /**
+     * @brief Return to domain-following CartesianPIC3D behavior on the next solve.
+     *
+     * This host-side operation is collective by contract and must be called on every MPI rank.
+     */
+    void clearFixedCartesianDomain() noexcept { fixedCartesianDomain_m.reset(); }
 
-    // -- emission liveness -------------------------------------------------
-    // TBD: not wired up yet. Re-introduce a bunch-wide bool (plus impl in .cpp
-    // and a unit test) once an emitting distribution actually needs it.
-    // bool isEmittingNow() const;
-    // void setEmittingNow(bool v);
+    [[nodiscard]] const std::optional<FixedCartesianDomainState>& fixedCartesianDomain()
+            const noexcept {
+        return fixedCartesianDomain_m;
+    }
 
 private:
-    // Weak refs to every slot handed out by registerContainer(). Used only by
-    // handler-internal operations that iterate over all containers; pruned
-    // lazily on iteration. Never exposed to callers.
     std::vector<std::weak_ptr<ContainerState>> registered_m;
-
-    bool emissionMeshStretchEnabled_m     = false;
-    double emissionMeshProgressFraction_m = 1.0;
+    std::optional<FixedCartesianDomainState> fixedCartesianDomain_m;
 };
 
 #endif

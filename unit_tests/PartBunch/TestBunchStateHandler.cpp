@@ -4,6 +4,11 @@
 #include "PartBunch/BunchStateHandler.h"
 #include "Utilities/Options.h"
 
+#include "Utilities/OpalException.h"
+
+#include <array>
+#include <limits>
+
 class BunchStateHandlerTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
@@ -92,6 +97,66 @@ TEST_F(BunchStateHandlerTest, SlotLifetimeFollowsCallerOwnership) {
     }
     // Last strong ref released: slot is destroyed, handler's weak_ptr expires.
     EXPECT_TRUE(observer.expired());
+}
+
+TEST_F(BunchStateHandlerTest, FixedCartesianDomainValidatesAndPersistsExactBounds) {
+    BunchStateHandler h;
+    const std::array<double, 3> lower{-1.0, -2.0, -3.0};
+    const std::array<double, 3> upper{1.0, 2.0, 3.0};
+
+    EXPECT_FALSE(h.fixedCartesianDomain().has_value());
+    h.setFixedCartesianDomain(lower, upper);
+    ASSERT_TRUE(h.fixedCartesianDomain().has_value());
+    EXPECT_EQ(h.fixedCartesianDomain()->lower, lower);
+    EXPECT_EQ(h.fixedCartesianDomain()->upper, upper);
+    EXPECT_NO_THROW(h.setFixedCartesianDomain(lower, upper));
+
+    EXPECT_THROW(
+            h.setFixedCartesianDomain(lower, std::array<double, 3>{1.0, 2.0, 4.0}), OpalException);
+    h.clearFixedCartesianDomain();
+    EXPECT_FALSE(h.fixedCartesianDomain().has_value());
+    EXPECT_NO_THROW(h.setFixedCartesianDomain(lower, std::array<double, 3>{1.0, 2.0, 4.0}));
+}
+
+TEST_F(BunchStateHandlerTest, FixedCartesianDomainRejectsInvalidBounds) {
+    BunchStateHandler h;
+    const std::array<double, 3> lower{-1.0, -2.0, -3.0};
+    const std::array<double, 3> upper{1.0, 2.0, 3.0};
+
+    auto equal = upper;
+    equal[1]   = lower[1];
+    EXPECT_THROW(h.setFixedCartesianDomain(lower, equal), OpalException);
+
+    auto reversed = upper;
+    reversed[2]   = lower[2] - 1.0;
+    EXPECT_THROW(h.setFixedCartesianDomain(lower, reversed), OpalException);
+
+    auto infinite = upper;
+    infinite[0]   = std::numeric_limits<double>::infinity();
+    EXPECT_THROW(h.setFixedCartesianDomain(lower, infinite), OpalException);
+
+    auto nan = lower;
+    nan[0]   = std::numeric_limits<double>::quiet_NaN();
+    EXPECT_THROW(h.setFixedCartesianDomain(nan, upper), OpalException);
+    EXPECT_FALSE(h.fixedCartesianDomain().has_value());
+}
+
+TEST_F(BunchStateHandlerTest, FixedCartesianDomainIsIndependentOfContainerFlags) {
+    BunchStateHandler h;
+    auto first  = h.registerContainer();
+    auto second = h.registerContainer();
+    first->markMomentsClean();
+    second->setUnitlessPositions(true);
+
+    h.setFixedCartesianDomain({-1.0, -1.0, -1.0}, {1.0, 1.0, 1.0});
+    EXPECT_FALSE(first->momentsDirty);
+    EXPECT_FALSE(first->unitlessPositions);
+    EXPECT_TRUE(second->momentsDirty);
+    EXPECT_TRUE(second->unitlessPositions);
+
+    h.clearFixedCartesianDomain();
+    EXPECT_FALSE(first->momentsDirty);
+    EXPECT_TRUE(second->unitlessPositions);
 }
 
 // -----------------------------------------------------------------------------
