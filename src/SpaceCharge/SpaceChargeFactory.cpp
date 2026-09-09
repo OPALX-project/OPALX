@@ -7,8 +7,8 @@
 #include "SpaceCharge/FFT2D5/FFT2D5Algorithm.h"
 #include "Utilities/OpalException.h"
 
-#include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 
 namespace opalx::spacecharge {
@@ -28,30 +28,27 @@ namespace opalx::spacecharge {
         }
         std::shared_ptr<const BunchStateHandler> bunchState = bunch.getBunchStateHandler();
 
-        std::unique_ptr<SpaceChargeAlgorithm> algorithm = std::visit(
-                [&](auto selected) -> std::unique_ptr<SpaceChargeAlgorithm> {
-                    using Config = std::decay_t<decltype(selected)>;
-                    if constexpr (std::is_same_v<Config, CartesianPIC3DConfig>) {
-                        if (selected.backend == PoissonSolverType::ConjugateGradient) {
-                            throw OpalException(
-                                    "makeSpaceChargeSolver",
-                                    "The CG Poisson backend is recognized but not implemented.");
-                        }
-                        return std::make_unique<CartesianPIC3DAlgorithm>(
-                                std::move(selected), particles,
-                                std::make_unique<CartesianPIC3DFieldStorage<double, 3>>(
-                                        bunch.cartesianDomain()),
-                                dataSink, bunchState);
-                    } else if constexpr (std::is_same_v<Config, FFT2D5Config>) {
-                        return std::make_unique<FFT2D5Algorithm>(
-                                std::move(selected), particles, bunchState);
-                    } else {
-                        static_assert(
-                                std::is_same_v<Config, void>,
-                                "Add construction for this algorithm");
-                    }
-                },
-                std::move(config));
+        // SYCL compilation crashes when std::visit returns this unique_ptr. Use an explicit
+        // dispatch instead: if there are more backends in the future, we could come back to
+        // std::visit and try to debug it properly.
+        static_assert(
+                std::variant_size_v<SpaceChargeConfig> == 2, "Add construction for this algorithm");
+        std::unique_ptr<SpaceChargeAlgorithm> algorithm;
+        if (auto* selected = std::get_if<CartesianPIC3DConfig>(&config)) {
+            if (selected->backend == PoissonSolverType::ConjugateGradient) {
+                throw OpalException(
+                        "makeSpaceChargeSolver",
+                        "The CG Poisson backend is recognized but not implemented.");
+            }
+            algorithm = std::make_unique<CartesianPIC3DAlgorithm>(
+                    std::move(*selected), particles,
+                    std::make_unique<CartesianPIC3DFieldStorage<double, 3>>(
+                            bunch.cartesianDomain()),
+                    dataSink, bunchState);
+        } else {
+            algorithm = std::make_unique<FFT2D5Algorithm>(
+                    std::get<FFT2D5Config>(std::move(config)), particles, bunchState);
+        }
         return std::make_unique<SpaceChargeSolver>(std::move(algorithm), particles.size());
     }
 

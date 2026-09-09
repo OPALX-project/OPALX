@@ -223,6 +223,17 @@ namespace {
         EXPECT_NE(solver, nullptr);
     }
 
+    TEST_F(MultiContainerPartBunchTest, SpaceChargeFactoryDefersFFT2D5Initialization) {
+        using namespace opalx::spacecharge;
+        FFT2D5Config values;
+        values.referencePathFile = "";
+        auto solver = makeSpaceChargeSolver(SpaceChargeConfig(values), *bunch, nullptr);
+
+        ASSERT_NE(solver, nullptr);
+        EXPECT_EQ(solver->backendSolveCount(), 0u);
+        EXPECT_EQ(solver->redistributionCount(), 0u);
+    }
+
     // --- DataSink stems and writers ---
 
     TEST_F(MultiContainerPartBunchTest, DiagnosticStemForContainer_SingleVsMulti) {
