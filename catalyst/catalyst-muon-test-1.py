@@ -47,15 +47,16 @@ extractippl_particles_electronstransform = ExtractBlock(
     Selectors=['//block_transform']
 )
 
-# create a new 'XML PolyData Reader'
-mue4_analytical_elementsvtp = XMLPolyDataReader(registrationName='mue4_analytical_elements.vtp', FileName=['/home/biddisco/temp/muon/mue4_analytical_elements.vtp'])
-mue4_analytical_elementsvtp.Set(
-    CellArrayStatus=['element_type'],
-    TimeArray='None',
+# create a new 'XML Multi Block Data Reader' for the element geometry
+# (built by tools/element_positions/element_positions.py from the
+# data/<base>_ElementPositions.json that opalx writes during setup)
+mue4_analytical_elementsvtm = XMLMultiBlockDataReader(registrationName='mue4_analytical_elements', FileName=['/home/biddisco/temp/muon/data/mue4_analytical_ElementPositions.vtm'])
+mue4_analytical_elementsvtm.Set(
+    CellArrayStatus=['etype'],
 )
 
 # create a new 'Programmable Filter'
-programmableFilter1 = ProgrammableFilter(registrationName='ProgrammableFilter1', Input=[mue4_analytical_elementsvtp, extractippl_particles_electronstransform])
+programmableFilter1 = ProgrammableFilter(registrationName='ProgrammableFilter1', Input=[mue4_analytical_elementsvtm, extractippl_particles_electronstransform])
 programmableFilter1.Set(
     RequestInformationScript='',
     RequestUpdateExtentScript='',
@@ -86,22 +87,34 @@ with open(_filter_script) as _fh:
 # show data from programmableFilter1
 programmableFilter1Display = Show(programmableFilter1, renderView1, 'GeometryRepresentation')
 
-# get color transfer function/color map for 'element_type'
-element_typeLUT = GetColorTransferFunction('element_type')
-element_typeLUT.Set(
+# get 2D transfer function for 'etype'
+etypeTF2D = GetTransferFunction2D('etype')
+
+# get color transfer function/color map for 'etype'
+# Categorical coloring by the per-block etype strings (field data on each
+# element block of the vtm). Settings verbatim from the ParaView trace.
+etypeLUT = GetColorTransferFunction('etype')
+etypeLUT.Set(
+    InterpretValuesAsCategories=1,
+    AnnotationsInitialized=1,
+    TransferFunction2D=etypeTF2D,
     RGBPoints=GenerateRGBPoints(
         range_min=0.0,
         range_max=5.0,
     ),
     ScalarRangeInitialized=1.0,
+    Annotations=['DRIFT', 'DRIFT', 'MONITOR', 'MONITOR', 'MULTIPOLE', 'MULTIPOLE', 'SBEND', 'SBEND', 'SOLENOID', 'SOLENOID'],
+    IndexedColors=[1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0],
+    IndexedOpacities=[1.0, 1.0, 1.0, 1.0, 1.0],
+    EnableOpacityMapping=1,
 )
 
 # trace defaults for the display properties.
 programmableFilter1Display.Set(
-    Representation='Wireframe',
-    ColorArrayName=['CELLS', 'element_type'],
-    LookupTable=element_typeLUT,
-    Opacity=0.25,
+    Representation='Surface',
+    ColorArrayName=['FIELD', 'etype'],
+    LookupTable=etypeLUT,
+    Opacity=0.20,
 )
 
 # show data from electrons_bunch (particles only, no helper box)
@@ -137,15 +150,19 @@ ippl_particles_electronsDisplay.OpacityTransferFunction.Points = [-0.04736242342
 
 # setup the color legend parameters for each legend in this view
 
-# get color legend/bar for element_typeLUT in view renderView1
-element_typeLUTColorBar = GetScalarBar(element_typeLUT, renderView1)
-element_typeLUTColorBar.Set(
-    Title='element_type',
+# get color legend/bar for etypeLUT in view renderView1
+etypeLUTColorBar = GetScalarBar(etypeLUT, renderView1)
+etypeLUTColorBar.Set(
+    AutoOrient=0,
+    Orientation='Horizontal',
+    WindowLocation='Lower Left Corner',
+    Title='etype',
     ComponentTitle='',
+    AllowOverlappingLabels=1,
 )
 
 # set color bar visibility
-element_typeLUTColorBar.Visibility = 1
+etypeLUTColorBar.Visibility = 1
 
 # get color legend/bar for bLUT in view renderView1
 bLUTColorBar = GetScalarBar(bLUT, renderView1)
@@ -173,7 +190,7 @@ except Exception:
 bLUTColorBar.Visibility = 1
 
 # show color legend
-programmableFilter1Display.SetScalarBarVisibility(renderView1, False)
+programmableFilter1Display.SetScalarBarVisibility(renderView1, True)
 
 # show color legend
 ippl_particles_electronsDisplay.SetScalarBarVisibility(renderView1, True)
@@ -201,9 +218,9 @@ bPWF.Set(
     ScalarRangeInitialized=1,
 )
 
-# get opacity transfer function/opacity map for 'element_type'
-element_typePWF = GetOpacityTransferFunction('element_type')
-element_typePWF.Set(
+# get opacity transfer function/opacity map for 'etype'
+etypePWF = GetOpacityTransferFunction('etype')
+etypePWF.Set(
     Points=[0.0, 0.0, 0.5, 0.0, 5.0, 1.0, 0.5, 0.0],
     ScalarRangeInitialized=1,
 )
