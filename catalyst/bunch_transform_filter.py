@@ -26,8 +26,9 @@ import numpy as np
 # ---------------------------------------------------------------------------
 # User-tunable flag
 # ---------------------------------------------------------------------------
-INVERSE = False  # False: lab -> bunch (transform geometry, bunch stays centred)
-                 # True:  bunch -> lab (transform particles to world coords)
+# False: lab -> bunch (transform geometry, bunch stays centred)
+# True:  bunch -> lab (transform particles to world coords)
+INVERSE = True
 
 # ---------------------------------------------------------------------------
 # Debug logging
@@ -212,17 +213,17 @@ def _transform_dataset(dataset, origin, R, path=""):
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
-_dbg("=" * 60)
+#_dbg("=" * 60)
 input0 = self.GetInputDataObject(0, 0)
 input1 = self.GetInputDataObject(0, 1)
-_inspect_input(0, input0)
-_inspect_input(1, input1)
+#_inspect_input(0, input0)
+#_inspect_input(1, input1)
 
 origin, R = _read_transform(input1)
-_dbg(f"Transform origin: {origin}")
-_dbg(f"Transform rotation rows:\n{R}")
+#_dbg(f"Transform origin: {origin}")
+#_dbg(f"Transform rotation rows:\n{R}")
 
 output = self.GetOutput()
 output.DeepCopy(input0)
 _transform_dataset(output, origin, R, "out")
-_dbg("Output generated")
+#_dbg("Output generated")
