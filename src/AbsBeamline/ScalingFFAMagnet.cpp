@@ -58,7 +58,9 @@ void ScalingFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
 
 void ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const {
     Vector_t<double, 3> Rcyl, Bcyl;
+    std::cerr << "ScalingFFAMagnet::getFieldValue single" << std::endl;
     getCylindricalCoordinates(config_m, R, Rcyl);
+    std::cerr << "ScalingFFAMagnet::getFieldValue Rcyl " << Rcyl << std::endl;
     getFieldValueCylindrical(Rcyl, Bcyl);
     rotateBfield(Rcyl, Bcyl, B);
 }
@@ -91,6 +93,7 @@ void ScalingFFAMagnet::accept(BeamlineVisitor& visitor) const {
 void ScalingFFAMagnet::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
+    std::cerr << "Host apply" << std::endl;
     getFieldValue(R, B);
 }
 
