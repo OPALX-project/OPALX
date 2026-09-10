@@ -133,8 +133,8 @@ public:
      *  \returns true if particle is outside the field map, else false
      */
     KOKKOS_INLINE_FUNCTION static void getFieldValueCylindrical(const ScalingFFAMagnetConfig& config,
-                                                                const Kokkos::View<double*>& fringeDerivatives,
-                                                                const Vector_t<double, 3>& R,
+                                                                const Kokkos::View<double*>& derivatives,
+                                                                const Vector_t<double, 5>& Rcyl,
                                                                 Vector_t<double, 3>& B);
 
     /** Calculate the field at some arbitrary position in cylindrical coordinates
@@ -146,6 +146,21 @@ public:
      */
     void getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const;
 
+    /** Transform to cylindrical coordinates
+     *
+     *  \param R position in cartesian coordinates
+     *  \param Rcyl value overwritten with the position in cylindrical coordinates
+     *         like [r, y, phi, rnorm, phiSpiral] where rnorm is the normalised
+     *         radius r/r0 and phiSpiral is the azimuthal coordinate in the
+     *         spiral coordinate system.
+     *
+     *  Note that 0,y,0 in cartesian coordinates is r0,y,0 in cylindrical; if r0
+     *  is positive a bend to the left is described i.e. anticlockwise
+     *  coordinates. If r0 is negative a bend to the right is described i.e.
+     *  clockwise coordinates.
+     */
+    void getCylindricalCoordinates(const Vector_t<double, 3>& R, Vector_t<double, 5>& Rcyl);
+
     /** Calculate the field at some arbitrary position in cylindrical coordinates
      *
      *  \param R position in the local coordinate system of the bend, in
@@ -153,7 +168,7 @@ public:
      *  \param B calculated magnetic field defined like (Br, By, Bphi)
      *  \returns true if particle is outside the field map, else false
      */
-    void getFieldValueCylindrical(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const;
+    void getFieldValueCylindrical(const Vector_t<double, 3>& Rcyl, Vector_t<double, 3>& B) const;
 
     /** Initialise the ScalingFFAMagnet
      *
@@ -315,9 +330,9 @@ private:
      */
     void calculateDfCoefficients();
 
-    KOKKOS_INLINE_FUNCTION static void getCylindricalCoordinates(const ScalingFFAMagnetConfig& config, const Vector_t<double, 3> Ri, Vector_t<double, 3>& Rcyli);
+    KOKKOS_INLINE_FUNCTION static void getCylindricalCoordinates(const ScalingFFAMagnetConfig& config, const Vector_t<double, 3> Ri, Vector_t<double, 5>& Rcyli);
 
-    KOKKOS_INLINE_FUNCTION static void rotateBfield(const Vector_t<double, 3> Rcyli, const Vector_t<double, 3> Bcyli, Vector_t<double, 3> Bi);
+    KOKKOS_INLINE_FUNCTION static void rotateBfield(const Vector_t<double, 5>& Rcyli, const Vector_t<double, 3>& Bcyli, Vector_t<double, 3>& Bi);
 
     /** Copy constructor */
     ScalingFFAMagnet(const ScalingFFAMagnet& right);
@@ -328,9 +343,6 @@ private:
     mutable std::shared_ptr<endfieldmodel::EndFieldModel> efm_m;
 
     void setupEFM(std::shared_ptr<endfieldmodel::EndFieldModel> efm) const;
-
-    friend class TestScalingFFAMagnet;
-
 };
 
 void ScalingFFAMagnet::getFieldValue(const ScalingFFAMagnetConfig& config,
@@ -339,15 +351,21 @@ void ScalingFFAMagnet::getFieldValue(const ScalingFFAMagnetConfig& config,
     const size_t count = pc->getLocalNum();
     const Kokkos::View<Vector_t<double, 3>*> R = pc->R.getView();
     const Kokkos::View<Vector_t<double, 3>*> B = pc->B.getView();
-    const Kokkos::View<Vector_t<double, 3>*> Rcyl("Rcyl", count);
-    const Kokkos::View<Vector_t<double, 3>*> Bcyl("Rcyl", count);;
+    const Kokkos::View<Vector_t<double, 5>*> Rcyl("Rcyl", count);
+    const Kokkos::View<Vector_t<double, 3>*> Bcyl("Bcyl", count);;
     const Kokkos::View<double**> derivatives;
     Kokkos::parallel_for(
         "ScalingFFAMagnet::getFieldValue()", count, KOKKOS_LAMBDA(const size_t i) {
             getCylindricalCoordinates(config, R(i), Rcyl(i));
         }
     );
-    endField->function(Rcyl, config.maxOrder_m, derivatives);
+    Kokkos::View<double*> phiSpiral("phiSpiral", count);
+    Kokkos::parallel_for(
+        "ScalingFFAMagnet::phiSpiral", count, KOKKOS_LAMBDA(const size_t i) {
+            phiSpiral(i) = Rcyl(i)[4]; // must be a way to get a subview
+        }
+    );
+    endField->function(phiSpiral, config.maxOrder_m, derivatives);
     Kokkos::parallel_for(
         "ScalingFFAMagnet::getFieldValue()", count, KOKKOS_LAMBDA(const size_t i) {
             Kokkos::View<double*> derivatives_i = Kokkos::subview(derivatives, i, Kokkos::ALL);
@@ -357,18 +375,22 @@ void ScalingFFAMagnet::getFieldValue(const ScalingFFAMagnetConfig& config,
     );
 }
 
-void ScalingFFAMagnet::getCylindricalCoordinates(const ScalingFFAMagnetConfig& config, const Vector_t<double, 3> Ri, Vector_t<double, 3>& Rcyli) {
-    Vector_t<double, 3> pos = Ri - config.centre_m;
-    double r                = std::sqrt(pos[0] * pos[0] + pos[2] * pos[2]);
+
+void ScalingFFAMagnet::getCylindricalCoordinates(const ScalingFFAMagnetConfig& config, const Vector_t<double, 3> Ri, Vector_t<double, 5>& Rcyli) {
+    double r = std::sqrt((Ri[0]+config.r0_m)*(Ri[0]+config.r0_m)+Ri[2]*Ri[2]);
+    double normRadius = std::abs(r / config.r0_m);
+    double g          = config.tanDelta_m * std::log(normRadius);
+    double phi        = std::atan2(Ri[2], (Ri[0]+config.r0_m)/std::copysign(1.0, config.r0_m));
+    double phiSpiral  = phi - g - config.phiStart_m;
+    Rcyli[0]= r;
     // angle between y-axis and position vector in anticlockwise direction
-    double phi              = std::atan2(pos[2], pos[0]);
-    Rcyli[0] = r;
-    Rcyli[1] = pos[1];
+    Rcyli[1] = Ri[1];
     Rcyli[2] = phi;
-    std::cerr << "ScalingMagnetFFA::getCylindricalCoordinates rcart " << Ri << " centrecart " << config.centre_m << " localpos " << pos << " Rcyli " << Rcyli << std::endl;
+    Rcyli[3] = normRadius;
+    Rcyli[4] = phiSpiral;
 }
 
-void ScalingFFAMagnet::rotateBfield(const Vector_t<double, 3> Rcyli, const Vector_t<double, 3> Bcyli, Vector_t<double, 3> Bi) {
+void ScalingFFAMagnet::rotateBfield(const Vector_t<double, 5>& Rcyli, const Vector_t<double, 3>& Bcyli, Vector_t<double, 3>& Bi) {
     double phi = Rcyli[2];
     Bi[1] += Bcyli[1];
     Bi[0] += Bcyli[0] * std::cos(phi) - Bcyli[2] * std::sin(phi);
@@ -376,22 +398,15 @@ void ScalingFFAMagnet::rotateBfield(const Vector_t<double, 3> Rcyli, const Vecto
 }
 
 void ScalingFFAMagnet::getFieldValueCylindrical(
-    const ScalingFFAMagnetConfig& config, const Kokkos::View<double*>& derivatives, const Vector_t<double, 3>& pos, Vector_t<double, 3>& B) {
-    double r   = pos[0];
-    double z   = pos[1];
-    double phi = pos[2];
-    std::cerr << "ScalingFFAMagnet::getFieldValueCylindrical r,z,phi " << r << "," << z << "," << phi << std::endl;
+    const ScalingFFAMagnetConfig& config, const Kokkos::View<double*>& derivatives, const Vector_t<double, 5>& rCyl, Vector_t<double, 3>& B) {
+    double r   = rCyl[0];
+    double z   = rCyl[1];
+    double normRadius = rCyl[3];
+    double phiSpiral = rCyl[4];
     if (r < config.rMin_m || r > config.rMax_m) {
         return;
     }
-
-    double normRadius = std::abs(r / config.r0_m);
-    double g          = config.tanDelta_m * std::log(normRadius);
-    double phiSpiral  = phi - g - config.phiStart_m;
     double h          = std::pow(normRadius, config.k_m) * config.Bz_m;
-    std::cerr << "ScalingFFAMagnet::getFieldValueCylindrical tand,normR,lognormR " << config.tanDelta_m << "," << normRadius << "," << std::log(normRadius) << std::endl;
-    std::cerr << "ScalingFFAMagnet::getFieldValueCylindrical phi,g,phistart " << phi << "," << g << "," << config.phiStart_m << std::endl;
-    std::cerr << "ScalingFFAMagnet::getFieldValueCylindrical phiSpiral,h,tanh " << phiSpiral << "," << h << "," << derivatives(0) << std::endl;
     if (phiSpiral < -config.azimuthalExtent_m || phiSpiral > config.azimuthalExtent_m) {
         return;
     }

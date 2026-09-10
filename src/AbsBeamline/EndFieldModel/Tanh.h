@@ -61,7 +61,7 @@ namespace endfieldmodel {
         double function(double x, int n) const;
 
         static KOKKOS_INLINE_FUNCTION void function(const TanhImpl& impl,
-                            Kokkos::View<Vector_t<double, 3>*> vec3d,
+                            Kokkos::View<double*> xView,
                             const int& maxDerivative,
                             Kokkos::View<double**> values);
 
@@ -153,7 +153,7 @@ namespace endfieldmodel {
         double function(double x, int n) const {return _impl.function(x, n);}
 
         /** GPU aware version of the function */
-        KOKKOS_INLINE_FUNCTION void function(Kokkos::View<Vector_t<double, 3>*> vec3d,  const int& n, Kokkos::View<double**> derivatives);
+        KOKKOS_INLINE_FUNCTION void function(Kokkos::View<double*> xView,  const int& n, Kokkos::View<double**> derivatives);
         std::ostream& print(std::ostream& out) const;
 
         /** Nominal flat top length is twice x0 (one x0 in each direction) */
@@ -164,6 +164,7 @@ namespace endfieldmodel {
 
         void setLambda(const double& lambda) {_impl.setLambda(lambda);}
         void setX0(const double& x0) {_impl.setX0(x0);}
+        double getX0() const {return _impl.getX0();}
 
         /** Set the maximum derivative prior to tracking */
         virtual void setMaximumDerivative(size_t n) override {return _impl.setMaximumDerivative(n);}
@@ -173,17 +174,17 @@ namespace endfieldmodel {
     };
 
 
-    void Tanh::function(Kokkos::View<Vector_t<double, 3>*> vec3d,  const int& maxDerivative, Kokkos::View<double**> derivatives) {
-        TanhImpl::function(_impl, vec3d, maxDerivative, derivatives);
+    void Tanh::function(Kokkos::View<double*> xView,  const int& maxDerivative, Kokkos::View<double**> derivatives) {
+        TanhImpl::function(_impl, xView, maxDerivative, derivatives);
     }
 
-    void TanhImpl::function(const TanhImpl& impl, Kokkos::View<Vector_t<double, 3>*> vec3d,  const int& maxDerivative, Kokkos::View<double**> derivatives) {
-        const size_t count = vec3d.size();
+    void TanhImpl::function(const TanhImpl& impl, Kokkos::View<double*> xView,  const int& maxDerivative, Kokkos::View<double**> derivatives) {
+        const size_t count = xView.size();
         derivatives = Kokkos::View<double**>("derivatives", count, maxDerivative);
         Kokkos::parallel_for(
             "ScalingFFAMagnet::getFieldValue()", count, KOKKOS_LAMBDA(const size_t i) {
                 for (int order = 0; order < maxDerivative; ++order) {
-                    double x = vec3d(i)[2];
+                    double x = xView(i);
                     derivatives(i, order) = impl.function(x, order);
                 }
             }
