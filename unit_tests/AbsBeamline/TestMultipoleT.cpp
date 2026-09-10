@@ -15,6 +15,8 @@
 //
 
 #include <csignal>
+#include <memory>
+#include <new>
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/MultipoleT.h"
 #include "AbstractObjects/OpalData.h"
@@ -188,6 +190,42 @@ TEST_F(TestMultipoleT, ConfigurationValidation) {
     // Illegal F order
     setMaxOrder(10, 10);
     EXPECT_THROW(fieldAtT({0.0, 0.0, 2.0}, 0.0), OpalException);
+}
+
+TEST_F(TestMultipoleT, DefaultFringeParametersOnReusedStorage) {
+    // Reuse storage containing a previous magnet's fringe settings, as can happen
+    // between fixtures. Default construction must not retain those settings.
+    alignas(MultipoleTConfig) unsigned char storage[sizeof(MultipoleTConfig)];
+    auto* config                = new (storage) MultipoleTConfig;
+    config->fringeS0_m          = 2.0;
+    config->fringeLambdaLeft_m  = 0.2;
+    config->fringeLambdaRight_m = 0.3;
+    std::destroy_at(config);
+    config = new (storage) MultipoleTConfig;
+    EXPECT_DOUBLE_EQ(config->fringeS0_m, 0.0);
+    EXPECT_DOUBLE_EQ(config->fringeLambdaLeft_m, 0.0);
+    EXPECT_DOUBLE_EQ(config->fringeLambdaRight_m, 0.0);
+    std::destroy_at(config);
+}
+
+TEST_F(TestMultipoleT, FieldExtentIncludesAsymmetricFringes) {
+    setElementLength(4.0);
+    setFringeField(2.0, 0.2, 0.3);
+    double begin = 0.0, end = 0.0;
+    getFieldExtent(begin, end);
+    EXPECT_DOUBLE_EQ(begin, -1.2);
+    EXPECT_DOUBLE_EQ(end, 5.8);
+
+    // Geometry and fringe contributions remain independent when L changes.
+    setElementLength(5.0);
+    getFieldExtent(begin, end);
+    EXPECT_DOUBLE_EQ(begin, -1.2);
+    EXPECT_DOUBLE_EQ(end, 6.8);
+
+    setFringeField(2.5, 0.0, 0.0);
+    getFieldExtent(begin, end);
+    EXPECT_DOUBLE_EQ(begin, 0.0);
+    EXPECT_DOUBLE_EQ(end, 5.0);
 }
 
 // Tests for the few remaining API functions are collected here
