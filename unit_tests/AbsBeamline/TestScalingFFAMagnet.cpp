@@ -55,6 +55,7 @@ public:
         std::shared_ptr<endfieldmodel::Tanh> tanh = std::make_shared<endfieldmodel::Tanh>(psi0_m, psi0_m/5., 20);
         sector_m->setEndField(tanh);
         sector_m->setTanDelta(std::tan(Physics::pi/4.));
+        sector_m->setCentre({-r0_m, 0.0, 0.0});
         sector_m->setR0(r0_m);
         sector_m->setRMin(0.);
         sector_m->setRMax(r0_m*2.);
