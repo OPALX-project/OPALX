@@ -56,20 +56,32 @@ void ScalingFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     getFieldValue(config_m, efm_m, pc);
 }
 
-void ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const {
-    Vector_t<double, 3> Rcyl, Bcyl;
-    std::cerr << "ScalingFFAMagnet::getFieldValue single" << std::endl;
+void ScalingFFAMagnet::getCylindricalCoordinates(const Vector_t<double, 3>& R,
+                                                 Vector_t<double, 5>& Rcyl) {
     getCylindricalCoordinates(config_m, R, Rcyl);
-    std::cerr << "ScalingFFAMagnet::getFieldValue Rcyl " << Rcyl << std::endl;
+}
+
+void ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const {
+    Vector_t<double, 5> Rffa;
+    Vector_t<double, 3> Bcyl;
+    getCylindricalCoordinates(config_m, R, Rffa);
+    Vector_t<double, 3> Rcyl = {Rffa[0], Rffa[1], Rffa[2]};
     getFieldValueCylindrical(Rcyl, Bcyl);
-    rotateBfield(Rcyl, Bcyl, B);
+    rotateBfield(Rffa, Bcyl, B);
+    // std::cerr << "ScalingFFAManget::getFieldValue Rcyl " << Rcyl << std::endl;
 }
 
 void ScalingFFAMagnet::getFieldValueCylindrical(const Vector_t<double, 3>& Rcyl, Vector_t<double, 3>& Bcyl) const {
     const Kokkos::View<double*> derivatives("single_derivatives", config_m.maxOrder_m);
+    Vector_t<double, 5> Rffa;
+    Rffa[0] = Rcyl[0];
+    Rffa[1] = Rcyl[1];
+    Rffa[2] = Rcyl[2];
+    Rffa[3] = std::abs(Rcyl[0]/config_m.r0_m); // rnorm
+    Rffa[4] = Rcyl[2]-config_m.tanDelta_m * std::log(Rffa[3])-config_m.phiStart_m; // phispiral
     for (size_t i = 0; i < config_m.maxOrder_m; ++i)
-        derivatives(i) = efm_m->function(Rcyl[2], i);
-    getFieldValueCylindrical(config_m, derivatives, Rcyl, Bcyl);
+        derivatives(i) = efm_m->function(Rffa[4], i);
+    getFieldValueCylindrical(config_m, derivatives, Rffa, Bcyl);
 }
 
 void ScalingFFAMagnet::initialise() { calculateDfCoefficients(); }
@@ -93,7 +105,6 @@ void ScalingFFAMagnet::accept(BeamlineVisitor& visitor) const {
 void ScalingFFAMagnet::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
-    std::cerr << "Host apply" << std::endl;
     getFieldValue(R, B);
 }
 
@@ -146,9 +157,5 @@ void ScalingFFAMagnet::setupEndField() const {
     planarArcGeometry_m.setElementLength(config_m.r0_m * config_m.phiEnd_m);  // length = phi r
     planarArcGeometry_m.setCurvature(1. / config_m.r0_m);
     efm_m = efm;
-    std::cerr << "ScalingFFAMagnet::setupEndField " << std::endl;
-    std::cerr << "    name: " << getName() << std::endl;
-    std::cerr << "    R0: " << config_m.r0_m << " phiend " << config_m.phiEnd_m << std::endl;
-    std::cerr << "    geom: " << planarArcGeometry_m.getChordLength() << " " << planarArcGeometry_m.getBendAngle() << std::endl;
 }
 

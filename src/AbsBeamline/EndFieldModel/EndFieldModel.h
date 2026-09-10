@@ -56,7 +56,7 @@ namespace endfieldmodel {
          *  @param x: returns d^n f(x)/dx^n
          *  @param n: the derivative
          */
-        virtual void function(Kokkos::View<Vector_t<double, 3>*> vec3d,  const int& n, Kokkos::View<double**> values) = 0;
+        virtual void function(Kokkos::View<double*> xView,  const int& n, Kokkos::View<double**> values) = 0;
 
         /** Return the nominal flat top length of the magnet
          */

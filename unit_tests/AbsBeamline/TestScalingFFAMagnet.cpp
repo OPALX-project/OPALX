@@ -281,21 +281,39 @@ TEST_F(ScalingFFAMagnetTest, ConstructorTest) {
     delete magnets[1];
 }
 
+TEST_F(ScalingFFAMagnetTest, CylindricalCoordinatesTest) {
+    for (auto r0: {10.0, -10.0}) {
+        sector_m->setR0(r0);
+        for (double i = -3.99; i < 3.99; i += 0.5) {
+            for (auto rtest: {r0*0.9, r0*1.0, r0*1.1}) {
+                double phi = i/8.0*2*M_PI;
+                Vector_t<double, 5> Rcyl;
+                // This describes an arc bending to the left for positive r and
+                // to the right for negative r
+                Vector_t<double, 3> R({rtest*(std::cos(phi))-r0, 0., std::abs(rtest)*std::sin(phi)});
+                sector_m->getCylindricalCoordinates(R, Rcyl);
+                EXPECT_NEAR(Rcyl[0], std::abs(rtest), 1e-6);
+                EXPECT_NEAR(Rcyl[2], phi, 1e-6);
+            }
+        }
+    }
+}
+
 TEST_F(ScalingFFAMagnetTest, PlacementTest) {
     // test that when we are X0 from the centre, we get By = 0.5*B0
-    double x0 = sector_m->getEndField()->getCentreLength()/2.0;
-    for (double r0 = -r0_m; r0 < 1.5*r0_m; r0 += r0_m*2) { 
-        for (double phi_start = 0.; phi_start < psi0_m*3.1; phi_start += psi0_m*10.0) {
+    double centre_length = dynamic_cast<endfieldmodel::Tanh*>(sector_m->getEndField().get())->getX0();
+    for (double r0 = -r0_m; r0 < 1.5*r0_m; r0 += r0_m*2) {
+        for (double phi_start = 0.; phi_start < psi0_m*3.1; phi_start += psi0_m/2.) {
             sector_m->setR0(r0);
-            sector_m->setPhiStart(phi_start+x0);
+            sector_m->setPhiStart(phi_start+centre_length);
             for (double i = 0.; i < 1.01; i += 0.5) {
-                double phi = i*x0*2+phi_start;
+                double phi = i*centre_length*2+phi_start;
                 Vector_t<double, 3> mom, E, B;
                 double t = 0;
                 Vector_t<double, 3> posCart({r0*(std::cos(phi)-1), 0., std::abs(r0)*std::sin(phi)});
                 sector_m->apply(posCart, mom, t, E, B);
                 double byTest = 1-std::abs(i-0.5); // 0.5, 1.0, 0.5
-                EXPECT_NEAR(B[1], byTest, 1e-3) << " for r0 " << r0_m 
+                EXPECT_NEAR(B[1], byTest, 1e-3) << " for r0 " << r0_m
                                                 << " phi_start " << phi_start
                                                 << " and phi test " << phi;
             }
@@ -352,6 +370,7 @@ TEST_F(ScalingFFAMagnetTest, DFCoefficientsTanDeltaTest) {
 
 TEST_F(ScalingFFAMagnetTest, TanhTest) {
     double numericalDerivative = sector_m->getEndField()->function(-psi0_m, 0);
+    std::cout << "d(tanh(x))/dx\nn anal calc" << std::endl;
     for (size_t order = 0; order < 5; ++order) {
         double analyticalDerivative = sector_m->getEndField()->function(-psi0_m, order);
         if (std::abs(numericalDerivative)+std::abs(analyticalDerivative) > 1e-3) {
@@ -401,7 +420,7 @@ TEST_F(ScalingFFAMagnetTest, ConvergenceOrderTest) {
                 sector_m->initialise();
                 sector_m->setR0(r0sign*r0_m);
                 Vector_t<double, 3> pos({r0sign*r0_m*(std::cos(2*psi0_m)-1), y, r0_m*std::sin(2*psi0_m)});
-                Vector_t<double, 3> posCyl({r0_m, y, 2*psi0_m});
+                Vector_t<double, 5> posCyl({r0_m, y, 2*psi0_m});
                 double divB = getDivBCart(pos, Vector_t<double, 3>({delta, delta, delta/r0_m}));
                 Vector_t<double, 3> curlB = getCurlBCart(pos, Vector_t<double, 3>({delta, delta, delta/r0_m}));
                 Vector_t<double, 3> curlBCyl = getCurlBCyl(posCyl, Vector_t<double, 3>({delta, delta, delta/r0_m}));
@@ -449,7 +468,7 @@ TEST_F(ScalingFFAMagnetTest, ConvergenceOrderHackedTest) {
             Vector_t<double, 3> B, pos, curlB;
             double divB;
             if (cylindrical) {
-                pos = Vector_t<double, 3>({3.0, y, psi0_m*2});
+                pos = Vector_t<double, 5>({3.0, y, psi0_m*2});
                 sector_m->getFieldValueCylindrical(pos, B);
                 divB = getDivBCyl(pos, Vector_t<double, 3>({delta, delta, delta/3.}));
                 curlB = getCurlBCyl(pos, Vector_t<double, 3>({delta, delta, delta/3.}));
