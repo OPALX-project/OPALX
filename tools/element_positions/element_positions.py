@@ -74,8 +74,8 @@ CATEGORY_COLORS = {
     'Other': (0.5, 0.5, 0.5),
 }
 
-# Cell-data ids written as 'etype' so ParaView can color blocks by
-# category (mirrors the element_type cell data of the legacy mesh output).
+# Cell-data ids written as 'category_id' so ParaView can color blocks by
+# category.
 CATEGORY_IDS = {
     'Solenoids': 0,
     'Drifts': 1,
@@ -86,6 +86,27 @@ CATEGORY_IDS = {
     'Collimators': 6,
     'Cavities': 7,
     'Other': 8,
+}
+
+# Per-element-type colors used when --color-by-etype is requested.
+# These follow common accelerator visualization conventions; replace with
+# PSI-specific values if they are available.
+ETYPE_COLORS = {
+    'DRIFT': (0.65, 0.65, 0.65),
+    'COLLIMATOR': (0.50, 0.35, 0.20),
+    'SBEND': (0.90, 0.10, 0.10),
+    'RBEND': (0.90, 0.10, 0.10),
+    'RBEND3D': (0.90, 0.10, 0.10),
+    'QUADRUPOLE': (0.10, 0.30, 0.90),
+    'MULTIPOLE': (0.10, 0.55, 0.25),
+    'MULTIPOLET': (0.10, 0.55, 0.25),
+    'SOLENOID': (1.00, 0.55, 0.00),
+    'RFCAVITY': (1.00, 0.80, 0.00),
+    'TRAVELINGWAVE': (1.00, 0.65, 0.00),
+    'CONSTANTEFIELDCAVITY': (1.00, 0.80, 0.00),
+    'MONITOR': (0.90, 0.10, 0.70),
+    'MARKER': (0.90, 0.10, 0.70),
+    'PROBE': (0.90, 0.10, 0.70),
 }
 
 
@@ -435,8 +456,8 @@ class OpalXElementSource(ABC):
         return effective_transverse(self.element, self.args, self.reference)
 
     def _add_metadata(self, mesh, clamped):
-        mesh.field_data['element'] = [self.element['name']]
-        mesh.field_data['etype'] = [self.element['type']]
+        mesh.field_data['element_name'] = [self.element['name']]
+        mesh.field_data['element_type'] = [self.element['type']]
         mesh.field_data['clamped'] = [np.uint8(clamped)]
         return mesh
 
@@ -641,6 +662,41 @@ SOURCE_REGISTRY = {
 # Main entry point
 # -----------------------------------------------------------------------------
 
+def export_color_map(path, preset_name, types=None):
+    """Write a ParaView color preset JSON for the given element types.
+
+    Parameters
+    ----------
+    path : Path
+        Output JSON path.
+    preset_name : str
+        Name shown in ParaView's color preset list.
+    types : iterable of str or None
+        Element types to include. If None, all defined types are exported.
+    """
+    if types is None:
+        types = ETYPE_COLORS.keys()
+
+    annotations = []
+    indexed_colors = []
+    for etype in types:
+        color = ETYPE_COLORS.get(etype)
+        if color is None:
+            continue
+        annotations.extend([etype, etype])
+        indexed_colors.extend(float(c) for c in color)
+
+    preset = {
+        'Name': preset_name,
+        'IndexedColors': indexed_colors,
+        'Annotations': annotations,
+        'NanColor': [0.5, 0.5, 0.5],
+    }
+
+    with open(path, 'w') as fh:
+        json.dump([preset], fh, indent=2)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -673,7 +729,19 @@ def main(argv=None):
         help='close the ends of drift tubes, bends, and generic elements '
         '(default: open tubes so the beam vacuum is visible)',
     )
-    parser.add_argument('--hide', action='append', default=[], help='category to skip (repeatable)')
+    parser.add_argument(
+        '--color-by-etype',
+        action='store_true',
+        help='group and color by element type (e.g. DRIFT, SBEND, QUADRUPOLE) '
+        'instead of category',
+    )
+    parser.add_argument(
+        '--full-color-table',
+        action='store_true',
+        help='export the full ETYPE_COLORS table; default is only the types '
+        'present in the model',
+    )
+    parser.add_argument('--hide', action='append', default=[], help='category or element type to skip (repeatable)')
     parser.add_argument('--show', action='store_true', help='open an interactive pyvista window')
     parser.add_argument('--screenshot', help='write an offscreen render to this path')
     args = parser.parse_args(argv)
@@ -684,24 +752,31 @@ def main(argv=None):
     if reference is not None:
         reference = (reference['semi_x'], reference['semi_y'])
 
-    blocks = {key: pv.MultiBlock() for key in CATEGORY_COLORS}
+    if args.color_by_etype:
+        group_colors = ETYPE_COLORS
+        blocks = {key: pv.MultiBlock() for key in ETYPE_COLORS}
+    else:
+        group_colors = CATEGORY_COLORS
+        blocks = {key: pv.MultiBlock() for key in CATEGORY_COLORS}
+
     for element in data['elements']:
         category = category_of(element)
-        if category in args.hide:
+        group = element['type'] if args.color_by_etype else category
+        if group in args.hide:
             continue
         source_class = SOURCE_REGISTRY.get(element['type'], OpalXGenericSource)
         source = source_class(element, args, reference)
         mesh = source.execute()
         if mesh is None:
             continue
-        mesh.cell_data['etype'] = np.full(mesh.n_cells, CATEGORY_IDS[category])
-        blocks[category][element['name']] = mesh
+        mesh.field_data['category_id'] = [np.uint8(CATEGORY_IDS[category])]
+        blocks[group][element['name']] = mesh
 
     beamline = pv.MultiBlock()
     used = 0
-    for category, group in blocks.items():
-        if len(group):
-            beamline[category] = group
+    for group, group_block in blocks.items():
+        if len(group_block):
+            beamline[group] = group_block
             used += 1
     if used == 0:
         sys.exit('no element geometry built; nothing to write')
@@ -709,15 +784,25 @@ def main(argv=None):
     out = Path(args.out) if args.out else Path(args.json).with_suffix('.vtm')
     beamline.save(out)
     n_elements = sum(len(beamline[key]) for key in beamline.keys())
-    print(f'wrote {out} ({n_elements} elements in {len(beamline.keys())} categories)')
+    group_kind = 'types' if args.color_by_etype else 'categories'
+    print(f'wrote {out} ({n_elements} elements in {len(beamline.keys())} {group_kind})')
+
+    color_map_path = out.with_name(out.stem + '_Colors.json')
+    if args.full_color_table:
+        export_color_map(color_map_path, 'OPAL-X Element Types')
+    else:
+        present_types = sorted({e['type'] for e in data['elements']})
+        preset_name = f'OPAL-X Element Types ({out.stem})'
+        export_color_map(color_map_path, preset_name, present_types)
+    print(f'wrote {color_map_path}')
 
     if args.show or args.screenshot:
         plotter = pv.Plotter(off_screen=bool(args.screenshot) and not args.show)
         shown = []
-        for category in beamline.keys():
-            color = CATEGORY_COLORS.get(category, (0.5, 0.5, 0.5))
-            plotter.add_mesh(beamline[category], color=color, smooth_shading=True)
-            shown.append((category, color))
+        for group in beamline.keys():
+            color = group_colors.get(group, (0.5, 0.5, 0.5))
+            plotter.add_mesh(beamline[group], color=color, smooth_shading=True)
+            shown.append((group, color))
         plotter.add_legend(shown, bcolor=(1.0, 1.0, 1.0), face='circle', border=True)
         plotter.add_axes()
         if args.screenshot:
