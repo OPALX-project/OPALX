@@ -375,13 +375,24 @@ def box(length, semi_x, semi_y):
 
 
 def build_quadrupole(length, semi_x, semi_y):
-    """Four pole pieces around the aperture."""
+    """Four pole pieces around the aperture.
+
+    Pole thickness scales with the aperture but is clamped to a reasonable
+    absolute range so that very large apertures (e.g. test decks with
+    HAPERT/VAPERT = 2 m) still show four distinct poles instead of a solid
+    cylinder.
+    """
+    pole_thick_x = min(max(0.45 * semi_x, 0.05), 0.3)
+    pole_thick_y = min(max(0.45 * semi_y, 0.05), 0.3)
+    pole_long_x = min(max(0.75 * semi_x, 0.1), 0.5)
+    pole_long_y = min(max(0.75 * semi_y, 0.1), 0.5)
+
     poles = []
-    hw, hh = 0.45 * semi_x, 0.75 * semi_y
+    hw, hh = pole_thick_x, pole_long_y
     for sign in (+1, -1):
         xc = sign * (semi_x + hw)
         poles.append(pv.Box(bounds=[xc - hw, xc + hw, -hh, hh, 0.0, length]))
-    hw, hh = 0.75 * semi_x, 0.45 * semi_y
+    hw, hh = pole_long_x, pole_thick_y
     for sign in (+1, -1):
         yc = sign * (semi_y + hh)
         poles.append(pv.Box(bounds=[-hw, hw, yc - hh, yc + hh, 0.0, length]))

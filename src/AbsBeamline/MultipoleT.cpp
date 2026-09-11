@@ -99,9 +99,16 @@ void MultipoleT::chooseImplementation() {
     implementation_->initialise();
 }
 
+ElementType MultipoleT::getType() const { return ElementType::MULTIPOLET; }
+
 void MultipoleT::setAperture(const double& vertAp, const double& horizAp) {
     config_m.verticalAperture_m   = vertAp;
     config_m.horizontalAperture_m = horizAp;
+    // Also update the ElementBase aperture so that generic scraping and
+    // visualization see the HAPERT/VAPERT rectangle.
+    ElementBase::setAperture(
+            ApertureType::RECTANGULAR,
+            {0.5 * horizAp, 0.5 * vertAp});
 }
 
 void MultipoleT::setBoundingBoxLength(const double boundingBoxLength) {
