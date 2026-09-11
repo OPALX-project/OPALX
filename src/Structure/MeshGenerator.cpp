@@ -1,5 +1,6 @@
 #include "Structure/MeshGenerator.h"
 #include "AbsBeamline/Multipole.h"
+#include "AbsBeamline/MultipoleT.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
@@ -303,6 +304,19 @@ void MeshGenerator::describe(const ElementBase& element) {
         const auto* multipole = dynamic_cast<const Multipole*>(&element);
         if (multipole != nullptr) {
             desc.multipoleOrder = multipole->getMaxNormalComponentIndex();
+        }
+    }
+
+    if (element.getType() == ElementType::MULTIPOLET) {
+        const auto* multipoleT = dynamic_cast<const MultipoleT*>(&element);
+        if (multipoleT != nullptr) {
+            const auto& profile = multipoleT->getTransProfile();
+            for (int i = static_cast<int>(profile.size()) - 1; i >= 0; --i) {
+                if (profile[i] != 0.0) {
+                    desc.multipoleOrder = i + 1;
+                    break;
+                }
+            }
         }
     }
 
