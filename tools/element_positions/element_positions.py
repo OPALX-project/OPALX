@@ -259,8 +259,10 @@ def sweep_profile(path, loops, caps=True):
         Cross-section loops given as (u, v) coordinates. u maps to the local
         normal/radial direction, v to the local vertical direction.
     caps : bool
-        If True and a single loop is supplied, close the start and end with
-        triangulated caps. Multi-loop (hollow) profiles are left open.
+        If True, close the start and end with triangulated caps. For a
+        single-loop (solid) profile this produces flat end caps. For a
+        two-loop (hollow) profile this produces annular caps, turning the
+        sweep into a hollow disc or tube with closed ends.
 
     Returns
     -------
@@ -312,26 +314,52 @@ def sweep_profile(path, loops, caps=True):
                 faces.append([3, v00, v11, v10])
             offset += m
 
-    # Caps (only for single-loop, solid profiles)
-    if caps and len(loops) == 1:
-        m = len(loops[0])
+    # Caps
+    if caps:
+        if len(loops) == 1:
+            m = len(loops[0])
 
-        # Start cap: reverse winding so outward normal points toward -z
-        centroid_start = len(vertices)
-        vertices = np.vstack([vertices, path[0].reshape(1, 3)])
-        for j in range(m):
-            faces.append(
-                [3, centroid_start, (j + 1) % m, j]
-            )
+            # Start cap: reverse winding so outward normal points toward -z
+            centroid_start = len(vertices)
+            vertices = np.vstack([vertices, path[0].reshape(1, 3)])
+            for j in range(m):
+                faces.append(
+                    [3, centroid_start, (j + 1) % m, j]
+                )
 
-        # End cap: normal winding so outward normal points toward +z
-        centroid_end = len(vertices)
-        base_end = (n_points - 1) * vertices_per_cross
-        vertices = np.vstack([vertices, path[-1].reshape(1, 3)])
-        for j in range(m):
-            faces.append(
-                [3, centroid_end, base_end + j, base_end + (j + 1) % m]
-            )
+            # End cap: normal winding so outward normal points toward +z
+            centroid_end = len(vertices)
+            base_end = (n_points - 1) * vertices_per_cross
+            vertices = np.vstack([vertices, path[-1].reshape(1, 3)])
+            for j in range(m):
+                faces.append(
+                    [3, centroid_end, base_end + j, base_end + (j + 1) % m]
+                )
+        elif len(loops) == 2 and len(loops[0]) == len(loops[1]):
+            # Annular caps for a two-loop (hollow) profile. The first loop is
+            # assumed to be the outer boundary (counter-clockwise) and the
+            # second loop the inner boundary (clockwise, as produced by
+            # hollow_elliptical_loop).
+            m = len(loops[0])
+
+            # Start cap: outward normal points toward -z
+            for j in range(m):
+                j1 = (j + 1) % m
+                k0 = (m - 1 - j) % m
+                k1 = (m - 2 - j) % m
+                faces.append([3, j, k0, j1])
+                faces.append([3, k0, k1, j1])
+
+            # End cap: outward normal points toward +z
+            base_end = (n_points - 1) * vertices_per_cross
+            for j in range(m):
+                j1 = (j + 1) % m
+                k0 = base_end + (m - 1 - j) % m
+                k1 = base_end + (m - 2 - j) % m
+                bj = base_end + j
+                bj1 = base_end + j1
+                faces.append([3, bj, bj1, k0])
+                faces.append([3, k0, bj1, k1])
 
     if not faces:
         return None
@@ -360,14 +388,15 @@ def cylinder(length, semi_x, semi_y, capped=False, z0=0.0, scale=1.0):
     return mesh
 
 
-def straight_tube(length, semi_x, semi_y, hollow=False, inner_scale=0.45, z0=0.0, n=32):
+def straight_tube(length, semi_x, semi_y, hollow=False, inner_scale=0.45,
+                  z0=0.0, n=32, caps=True):
     """Straight tube (solid or hollow) along local z, elliptical cross-section."""
     path = np.array([[0.0, 0.0, z0], [0.0, 0.0, z0 + length]])
     if hollow:
         loops = hollow_elliptical_loop(semi_x, semi_y, inner_scale, n)
     else:
         loops = [elliptical_loop(semi_x, semi_y, n)]
-    return sweep_profile(path, loops, caps=not hollow)
+    return sweep_profile(path, loops, caps=caps)
 
 
 def box(length, semi_x, semi_y):
@@ -479,7 +508,7 @@ class OpalXBendSource(OpalXElementSource):
             loop = rectangular_loop(semi_x, semi_y)
         else:
             loop = elliptical_loop(semi_x, semi_y)
-        mesh = sweep_profile(points, [loop], caps=True)
+        mesh = sweep_profile(points, [loop], caps=self.args.capped)
         if mesh is None:
             return self._build_tube(semi_x, semi_y, clamped)
         mesh = place(mesh, self.element)
@@ -504,21 +533,8 @@ class OpalXSolenoidSource(OpalXElementSource):
         return self._add_metadata(mesh, clamped)
 
     def _build_solid(self, length, semi_x, semi_y):
-        body = straight_tube(length, semi_x, semi_y, hollow=False)
-        collar_length = min(0.18 * length, 0.8 * min(semi_x, semi_y))
-        if collar_length <= 1e-12 or 2.0 * collar_length >= length:
-            return body
-        mesh = body
-        for z0 in (0.0, length - collar_length):
-            mesh = mesh + straight_tube(
-                collar_length, semi_x * 1.18, semi_y * 1.18,
-                hollow=False, z0=z0
-            )
-        return mesh
-
-    def _build_hollow(self, length, semi_x, semi_y, inner_scale=0.45):
         body = straight_tube(
-            length, semi_x, semi_y, hollow=True, inner_scale=inner_scale
+            length, semi_x, semi_y, hollow=False, caps=self.args.capped
         )
         collar_length = min(0.18 * length, 0.8 * min(semi_x, semi_y))
         if collar_length <= 1e-12 or 2.0 * collar_length >= length:
@@ -527,7 +543,23 @@ class OpalXSolenoidSource(OpalXElementSource):
         for z0 in (0.0, length - collar_length):
             mesh = mesh + straight_tube(
                 collar_length, semi_x * 1.18, semi_y * 1.18,
-                hollow=True, inner_scale=inner_scale, z0=z0
+                hollow=False, z0=z0, caps=self.args.capped
+            )
+        return mesh
+
+    def _build_hollow(self, length, semi_x, semi_y, inner_scale=0.45):
+        body = straight_tube(
+            length, semi_x, semi_y, hollow=True, inner_scale=inner_scale,
+            caps=False
+        )
+        collar_length = min(0.18 * length, 0.8 * min(semi_x, semi_y))
+        if collar_length <= 1e-12 or 2.0 * collar_length >= length:
+            return body
+        mesh = body
+        for z0 in (0.0, length - collar_length):
+            mesh = mesh + straight_tube(
+                collar_length, semi_x * 1.18, semi_y * 1.18,
+                hollow=True, inner_scale=inner_scale, z0=z0, caps=False
             )
         return mesh
 
@@ -543,7 +575,9 @@ class OpalXMultipoleSource(OpalXElementSource):
         if self.element.get('multipole_order') == 2:
             mesh = build_quadrupole(length, semi_x, semi_y)
         else:
-            mesh = straight_tube(length, semi_x, semi_y, hollow=False)
+            mesh = straight_tube(
+                length, semi_x, semi_y, hollow=False, caps=self.args.capped
+            )
         mesh = place(mesh, self.element)
         return self._add_metadata(mesh, clamped)
 
@@ -559,7 +593,9 @@ class OpalXDriftSource(OpalXElementSource):
         if self.element.get('transverse', {}).get('kind') == 'rectangular':
             mesh = box(length, semi_x, semi_y)
         else:
-            mesh = straight_tube(length, semi_x, semi_y, hollow=False)
+            mesh = straight_tube(
+                length, semi_x, semi_y, hollow=False, caps=self.args.capped
+            )
         mesh = place(mesh, self.element)
         return self._add_metadata(mesh, clamped)
 
@@ -592,7 +628,11 @@ class OpalXMonitorSource(OpalXElementSource):
         length = self.element.get('length', 0.0)
         if length <= 0.0:
             length = 0.01
-        mesh = straight_tube(length, semi_x, semi_y, hollow=False, n=16)
+        # Draw monitors as hollow annular discs so the beam pipe is visible.
+        mesh = straight_tube(
+            length, semi_x, semi_y, hollow=True, inner_scale=0.9,
+            n=32, caps=True
+        )
         mesh = place(mesh, self.element)
         return self._add_metadata(mesh, clamped)
 
@@ -605,7 +645,9 @@ class OpalXGenericSource(OpalXElementSource):
         length = self.element.get('length', 0.0)
         if length <= 0.0:
             return None
-        mesh = straight_tube(length, semi_x, semi_y, hollow=False)
+        mesh = straight_tube(
+            length, semi_x, semi_y, hollow=False, caps=self.args.capped
+        )
         mesh = place(mesh, self.element)
         return self._add_metadata(mesh, clamped)
 
@@ -658,6 +700,12 @@ def main(argv=None):
         '--simple-geometry',
         action='store_true',
         help='use schematic geometry: circular bend tubes and solid solenoids',
+    )
+    parser.add_argument(
+        '--capped',
+        action='store_true',
+        help='close the ends of drift tubes, bends, and generic elements '
+        '(default: open tubes so the beam vacuum is visible)',
     )
     parser.add_argument('--hide', action='append', default=[], help='category to skip (repeatable)')
     parser.add_argument('--show', action='store_true', help='open an interactive pyvista window')
