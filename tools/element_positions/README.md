@@ -53,9 +53,49 @@ python element_positions.py data/mue4_analytical_ElementPositions.json \
 | `--no-clamp` | Draw unset apertures at their raw size. |
 | `--simple-geometry` | Use schematic geometry: circular bend tubes and solid solenoids. |
 | `--capped` | Close the ends of drift tubes, bends, and generic elements. Default is open tubes so the beam vacuum stays visible. |
-| `--hide <category>` | Skip a category (repeatable). Categories: `beamline`, `bending`, `focusing`, `rf`, `diagnostic`. |
+| `--color-by-etype` | Group and color by element type instead of category. |
+| `--hide <name>` | Skip a category or element type (repeatable). |
 | `--show` | Open an interactive PyVista window. |
 | `--screenshot <path>` | Render offscreen and save an image. |
+
+## Coloring
+
+### Python preview (`--show`, `--screenshot`)
+
+By default the output is grouped by category and colored with the
+`CATEGORY_COLORS` table. Passing `--color-by-etype` groups by the OPAL-X
+element type string (e.g. `DRIFT`, `SBEND`, `QUADRUPOLE`) and uses the
+`ETYPE_COLORS` lookup table.
+
+The current `ETYPE_COLORS` follow common accelerator visualization conventions.
+If PSI has an official color standard, replace the RGB values in the table; the
+script will use them automatically.
+
+### ParaView
+
+The in-script color table is **not** embedded in the `.vtm` file. For ParaView,
+each element mesh carries the following **field data** arrays (one value per
+mesh block):
+
+- `element_name` — the element's name, e.g. `SOL`, `BEND1`.
+- `element_type` — the OPAL-X type string, e.g. `DRIFT`, `SBEND`, `QUADRUPOLE`.
+- `category_id` — integer category ID.
+- `clamped` — whether the aperture was clamped because it was unset/infinite.
+
+`element_name` is useful for identifying individual elements, but ParaView cannot
+build a categorical lookup table from it when multiple elements with different
+names are visible at once.
+
+To color by element type in ParaView:
+
+1. Load the `.vtm` file.
+2. In the Properties panel, change **Coloring** from `Solid Color` to
+   `element_type` (under **Field Data**).
+3. Open the color map editor, enable **Interpret Values as Categories**, and
+   choose **Import Preset**.
+4. Select the `<base>_ElementPositions_Colors.json` file written next to the
+   `.vtm`. It contains the `ETYPE_COLORS` mapping for the `element_type` field
+   data array.
 
 ## Architecture
 
@@ -79,8 +119,8 @@ Each source receives:
 - `reference`: the `(semi_x, semi_y)` reference transverse extent from the JSON.
 
 It returns a `pyvista.PolyData` mesh in **element-local coordinates**. The caller
-then transforms it to global coordinates with `place()` and attaches category
-cell data.
+then transforms it to global coordinates with `place()` and attaches element
+metadata as field data.
 
 The registry at the bottom of the file maps OPAL-X element type strings to
 source classes:
@@ -129,11 +169,13 @@ Wherever possible the sources reuse VTK/PyVista primitives:
 
 The output is a VTK multiblock dataset (`.vtm`). Each block corresponds to an
 element category, and each block contains one named `PolyData` per element.
-The following field data are attached to every element mesh:
+Every element mesh has:
 
-- `element`: element name.
-- `etype`: OPAL-X element type string.
-- `clamped`: whether the aperture was clamped because it was unset/infinite.
+- Field data `element_name`: element name.
+- Field data `element_type`: OPAL-X element type string.
+- Field data `category_id`: integer category ID.
+- Field data `clamped`: whether the aperture was clamped because it was unset/infinite.
 
-Cell data `etype` contains a category ID so elements can be colored by category
-in ParaView.
+A ParaView color preset file `<base>_ElementPositions_Colors.json` is also
+written next to the `.vtm`. It contains the `ETYPE_COLORS` mapping and can be
+imported as a categorical lookup table for the `element_type` field data array.
