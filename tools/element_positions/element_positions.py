@@ -259,10 +259,8 @@ def sweep_profile(path, loops, caps=True):
         Cross-section loops given as (u, v) coordinates. u maps to the local
         normal/radial direction, v to the local vertical direction.
     caps : bool
-        If True, close the start and end with triangulated caps. For a
-        single-loop (solid) profile this produces flat end caps. For a
-        two-loop (hollow) profile this produces annular caps, turning the
-        sweep into a hollow disc or tube with closed ends.
+        If True and a single loop is supplied, close the start and end with
+        triangulated caps. Multi-loop (hollow) profiles are left open.
 
     Returns
     -------
@@ -314,52 +312,26 @@ def sweep_profile(path, loops, caps=True):
                 faces.append([3, v00, v11, v10])
             offset += m
 
-    # Caps
-    if caps:
-        if len(loops) == 1:
-            m = len(loops[0])
+    # Caps (only for single-loop, solid profiles)
+    if caps and len(loops) == 1:
+        m = len(loops[0])
 
-            # Start cap: reverse winding so outward normal points toward -z
-            centroid_start = len(vertices)
-            vertices = np.vstack([vertices, path[0].reshape(1, 3)])
-            for j in range(m):
-                faces.append(
-                    [3, centroid_start, (j + 1) % m, j]
-                )
+        # Start cap: reverse winding so outward normal points toward -z
+        centroid_start = len(vertices)
+        vertices = np.vstack([vertices, path[0].reshape(1, 3)])
+        for j in range(m):
+            faces.append(
+                [3, centroid_start, (j + 1) % m, j]
+            )
 
-            # End cap: normal winding so outward normal points toward +z
-            centroid_end = len(vertices)
-            base_end = (n_points - 1) * vertices_per_cross
-            vertices = np.vstack([vertices, path[-1].reshape(1, 3)])
-            for j in range(m):
-                faces.append(
-                    [3, centroid_end, base_end + j, base_end + (j + 1) % m]
-                )
-        elif len(loops) == 2 and len(loops[0]) == len(loops[1]):
-            # Annular caps for a two-loop (hollow) profile. The first loop is
-            # assumed to be the outer boundary (counter-clockwise) and the
-            # second loop the inner boundary (clockwise, as produced by
-            # hollow_elliptical_loop).
-            m = len(loops[0])
-
-            # Start cap: outward normal points toward -z
-            for j in range(m):
-                j1 = (j + 1) % m
-                k0 = (m - 1 - j) % m
-                k1 = (m - 2 - j) % m
-                faces.append([3, j, k0, j1])
-                faces.append([3, k0, k1, j1])
-
-            # End cap: outward normal points toward +z
-            base_end = (n_points - 1) * vertices_per_cross
-            for j in range(m):
-                j1 = (j + 1) % m
-                k0 = base_end + (m - 1 - j) % m
-                k1 = base_end + (m - 2 - j) % m
-                bj = base_end + j
-                bj1 = base_end + j1
-                faces.append([3, bj, bj1, k0])
-                faces.append([3, k0, bj1, k1])
+        # End cap: normal winding so outward normal points toward +z
+        centroid_end = len(vertices)
+        base_end = (n_points - 1) * vertices_per_cross
+        vertices = np.vstack([vertices, path[-1].reshape(1, 3)])
+        for j in range(m):
+            faces.append(
+                [3, centroid_end, base_end + j, base_end + (j + 1) % m]
+            )
 
     if not faces:
         return None
@@ -621,18 +593,25 @@ class OpalXCavitySource(OpalXElementSource):
 
 
 class OpalXMonitorSource(OpalXElementSource):
-    """Monitor / marker / probe: thin disc for visual confirmation."""
+    """Monitor / marker / probe: thin annular disc for visual confirmation."""
 
     def execute(self):
         (semi_x, semi_y), clamped = self._effective_transverse()
+        if semi_x <= 0.0 or semi_y <= 0.0:
+            return None
         length = self.element.get('length', 0.0)
         if length <= 0.0:
             length = 0.01
-        # Draw monitors as hollow annular discs so the beam pipe is visible.
-        mesh = straight_tube(
-            length, semi_x, semi_y, hollow=True, inner_scale=0.9,
-            n=32, caps=True
+        # Use VTK's disk source for a robust annular disc, then extrude it
+        # slightly to make a thin washer. The hole radius is 90% of the
+        # aperture so the beam pipe remains visible.
+        disc = pv.Disc(
+            inner=0.9 * semi_x, outer=semi_x,
+            r_res=1, c_res=32, normal=(0.0, 0.0, 1.0)
         )
+        if semi_y != semi_x:
+            disc.scale([1.0, semi_y / semi_x, 1.0], inplace=True)
+        mesh = disc.extrude((0.0, 0.0, length), capping=True)
         mesh = place(mesh, self.element)
         return self._add_metadata(mesh, clamped)
 
