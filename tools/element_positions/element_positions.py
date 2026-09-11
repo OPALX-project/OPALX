@@ -360,15 +360,11 @@ def cylinder(length, semi_x, semi_y, capped=False, z0=0.0, scale=1.0):
     return mesh
 
 
-def straight_tube(length, semi_x, semi_y, hollow=False, inner_scale=0.45,
-                  z0=0.0, n=32, caps=True):
-    """Straight tube (solid or hollow) along local z, elliptical cross-section."""
+def hollow_tube(length, semi_x, semi_y, inner_scale=0.45, z0=0.0, n=32):
+    """Open hollow tube along local z, elliptical cross-section."""
     path = np.array([[0.0, 0.0, z0], [0.0, 0.0, z0 + length]])
-    if hollow:
-        loops = hollow_elliptical_loop(semi_x, semi_y, inner_scale, n)
-    else:
-        loops = [elliptical_loop(semi_x, semi_y, n)]
-    return sweep_profile(path, loops, caps=caps)
+    loops = hollow_elliptical_loop(semi_x, semi_y, inner_scale, n)
+    return sweep_profile(path, loops, caps=False)
 
 
 def box(length, semi_x, semi_y):
@@ -505,33 +501,30 @@ class OpalXSolenoidSource(OpalXElementSource):
         return self._add_metadata(mesh, clamped)
 
     def _build_solid(self, length, semi_x, semi_y):
-        body = straight_tube(
-            length, semi_x, semi_y, hollow=False, caps=self.args.capped
-        )
+        body = cylinder(length, semi_x, semi_y, capped=self.args.capped)
         collar_length = min(0.18 * length, 0.8 * min(semi_x, semi_y))
         if collar_length <= 1e-12 or 2.0 * collar_length >= length:
             return body
         mesh = body
         for z0 in (0.0, length - collar_length):
-            mesh = mesh + straight_tube(
+            mesh = mesh + cylinder(
                 collar_length, semi_x * 1.18, semi_y * 1.18,
-                hollow=False, z0=z0, caps=self.args.capped
+                capped=self.args.capped, z0=z0
             )
         return mesh
 
     def _build_hollow(self, length, semi_x, semi_y, inner_scale=0.45):
-        body = straight_tube(
-            length, semi_x, semi_y, hollow=True, inner_scale=inner_scale,
-            caps=False
+        body = hollow_tube(
+            length, semi_x, semi_y, inner_scale=inner_scale
         )
         collar_length = min(0.18 * length, 0.8 * min(semi_x, semi_y))
         if collar_length <= 1e-12 or 2.0 * collar_length >= length:
             return body
         mesh = body
         for z0 in (0.0, length - collar_length):
-            mesh = mesh + straight_tube(
+            mesh = mesh + hollow_tube(
                 collar_length, semi_x * 1.18, semi_y * 1.18,
-                hollow=True, inner_scale=inner_scale, z0=z0, caps=False
+                inner_scale=inner_scale, z0=z0
             )
         return mesh
 
@@ -547,9 +540,7 @@ class OpalXMultipoleSource(OpalXElementSource):
         if self.element.get('multipole_order') == 2:
             mesh = build_quadrupole(length, semi_x, semi_y)
         else:
-            mesh = straight_tube(
-                length, semi_x, semi_y, hollow=False, caps=self.args.capped
-            )
+            mesh = cylinder(length, semi_x, semi_y, capped=self.args.capped)
         mesh = place(mesh, self.element)
         return self._add_metadata(mesh, clamped)
 
@@ -565,9 +556,7 @@ class OpalXDriftSource(OpalXElementSource):
         if self.element.get('transverse', {}).get('kind') == 'rectangular':
             mesh = box(length, semi_x, semi_y)
         else:
-            mesh = straight_tube(
-                length, semi_x, semi_y, hollow=False, caps=self.args.capped
-            )
+            mesh = cylinder(length, semi_x, semi_y, capped=self.args.capped)
         mesh = place(mesh, self.element)
         return self._add_metadata(mesh, clamped)
 
@@ -624,9 +613,7 @@ class OpalXGenericSource(OpalXElementSource):
         length = self.element.get('length', 0.0)
         if length <= 0.0:
             return None
-        mesh = straight_tube(
-            length, semi_x, semi_y, hollow=False, caps=self.args.capped
-        )
+        mesh = cylinder(length, semi_x, semi_y, capped=self.args.capped)
         mesh = place(mesh, self.element)
         return self._add_metadata(mesh, clamped)
 
