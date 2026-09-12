@@ -421,8 +421,8 @@ TEST_F(ScalingFFAMagnetTest, ConvergenceOrderTest) {
                 sector_m->setR0(r0sign*r0_m);
                 Vector_t<double, 3> pos({r0sign*r0_m*(std::cos(2*psi0_m)-1), y, r0_m*std::sin(2*psi0_m)});
                 Vector_t<double, 5> posCyl({r0_m, y, 2*psi0_m});
-                double divB = getDivBCart(pos, Vector_t<double, 3>({delta, delta, delta/r0_m}));
-                Vector_t<double, 3> curlB = getCurlBCart(pos, Vector_t<double, 3>({delta, delta, delta/r0_m}));
+                double divB = getDivBCart(pos, Vector_t<double, 3>({delta, delta, delta}));
+                Vector_t<double, 3> curlB = getCurlBCart(pos, Vector_t<double, 3>({delta, delta, delta}));
                 Vector_t<double, 3> curlBCyl = getCurlBCyl(posCyl, Vector_t<double, 3>({delta, delta, delta/r0_m}));
                 Vector_t<double, 3> B = getB(pos);
                 Vector_t<double, 3> Bcyl;
@@ -520,17 +520,23 @@ TEST_F(ScalingFFAMagnetTest, VerticalBoundingBoxTest) {
     sector_m->setVerticalExtent(0.1);
     Vector_t<double, 3> mom, E, B;
     double t = 0;
-    Vector_t<double, 3> pos({r0_m*std::sin(psi0_m), 0.09, r0_m*std::cos(psi0_m)});
+    Vector_t<double, 3> pos({r0_m*(std::cos(2.*psi0_m)-1.),
+                             0.09,
+                             r0_m*std::sin(2.*psi0_m)});
 
+    B = 0.0;
     sector_m->apply(pos, mom, t, E, B);
     EXPECT_NE(magnitude(B), 0.0);
     pos[1] = 0.11;
+    B = 0.0;
     sector_m->apply(pos, mom, t, E, B);
     EXPECT_EQ(magnitude(B), 0.0);
     pos[1] = -0.11;
+    B = 0.0;
     sector_m->apply(pos, mom, t, E, B);
     EXPECT_EQ(magnitude(B), 0.0);
     pos[1] = -0.09;
+    B = 0.0;
     sector_m->apply(pos, mom, t, E, B);
     EXPECT_NE(magnitude(B), 0.0);
 }
@@ -541,36 +547,41 @@ TEST_F(ScalingFFAMagnetTest, RadialBoundingBoxTest) {
     double t = 0;
     double r1 = r0_m-0.09;
     Vector_t<double, 3> pos1({r1*std::cos(psi0_m)-r0_m, 0.0, r1*std::sin(psi0_m)});
+    B = 0.0;
     sector_m->apply(pos1, mom, t, E, B);
     EXPECT_NE(magnitude(B), 0.0);
 
     double r2 = r0_m-0.11;
     Vector_t<double, 3> pos2({r2*std::cos(psi0_m)-r0_m, 0.0, r2*std::sin(psi0_m)});
+    B = 0.0;
     sector_m->apply(pos2, mom, t, E, B);
     EXPECT_EQ(magnitude(B), 0.0);
 
     sector_m->setRMax(r0_m+0.1);
     double r3 = r0_m+0.09;
     Vector_t<double, 3> pos3({r3*std::cos(psi0_m)-r0_m, 0.0, r3*std::sin(psi0_m)});
+    B = 0.0;
     sector_m->apply(pos3, mom, t, E, B);
     EXPECT_NE(magnitude(B), 0.0);
 
     double r4 = r0_m+0.11;
     Vector_t<double, 3> pos4({r4*std::cos(psi0_m)-r0_m, 0.0, r4*std::sin(psi0_m)});
+    B = 0.0;
     sector_m->apply(pos4, mom, t, E, B);
     EXPECT_EQ(magnitude(B), 0.0);
 }
 
 TEST_F(ScalingFFAMagnetTest, AzimuthalBoundingBoxTest) {
-    sector_m->setAzimuthalExtent(psi0_m*5.);
+    sector_m->setAzimuthalExtent(psi0_m*0.5);
     sector_m->setPhiStart(psi0_m*3.);
     Vector_t<double, 3> mom, E, B;
     double t = 0;
-    double phi[] = {-2.1*psi0_m, -1.9*psi0_m, 7.9*psi0_m, 8.1*psi0_m};
-    double bb[] = {0.0, 1.0, 1.0, 0.0};
+    double phi[] = {2.49*psi0_m, 2.51*psi0_m, 3.49*psi0_m, 3.51*psi0_m};
+    bool inBounds[] = {false, true, true, false};
     for(size_t i = 0; i < 4; ++i) {
         Vector_t<double, 3> pos({r0_m*(std::cos(phi[i])-1), 0,  r0_m*std::sin(phi[i])});
+        B = 0.0;
         sector_m->apply(pos, mom, t, E, B);
-        EXPECT_EQ(magnitude(B), bb[i]) << i << " " << pos;
+        EXPECT_EQ(magnitude(B) != 0.0, inBounds[i]) << i << " " << pos;
     }
 }
