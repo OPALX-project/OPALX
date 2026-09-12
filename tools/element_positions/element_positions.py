@@ -662,16 +662,32 @@ SOURCE_REGISTRY = {
 # Main entry point
 # -----------------------------------------------------------------------------
 
-def export_color_map(path):
-    """Write a ParaView color preset JSON for the element_type cell array."""
+def export_color_map(path, preset_name, types=None):
+    """Write a ParaView color preset JSON for the given element types.
+
+    Parameters
+    ----------
+    path : Path
+        Output JSON path.
+    preset_name : str
+        Name shown in ParaView's color preset list.
+    types : iterable of str or None
+        Element types to include. If None, all defined types are exported.
+    """
+    if types is None:
+        types = ETYPE_COLORS.keys()
+
     annotations = []
     indexed_colors = []
-    for etype, color in ETYPE_COLORS.items():
+    for etype in types:
+        color = ETYPE_COLORS.get(etype)
+        if color is None:
+            continue
         annotations.extend([etype, etype])
         indexed_colors.extend(float(c) for c in color)
 
     preset = {
-        'Name': 'OPAL-X Element Types',
+        'Name': preset_name,
         'IndexedColors': indexed_colors,
         'Annotations': annotations,
         'NanColor': [0.5, 0.5, 0.5],
@@ -718,6 +734,12 @@ def main(argv=None):
         action='store_true',
         help='group and color by element type (e.g. DRIFT, SBEND, QUADRUPOLE) '
         'instead of category',
+    )
+    parser.add_argument(
+        '--full-color-table',
+        action='store_true',
+        help='export the full ETYPE_COLORS table; default is only the types '
+        'present in the model',
     )
     parser.add_argument('--hide', action='append', default=[], help='category or element type to skip (repeatable)')
     parser.add_argument('--show', action='store_true', help='open an interactive pyvista window')
@@ -766,7 +788,12 @@ def main(argv=None):
     print(f'wrote {out} ({n_elements} elements in {len(beamline.keys())} {group_kind})')
 
     color_map_path = out.with_name(out.stem + '_Colors.json')
-    export_color_map(color_map_path)
+    if args.full_color_table:
+        export_color_map(color_map_path, 'OPAL-X Element Types')
+    else:
+        present_types = sorted({e['type'] for e in data['elements']})
+        preset_name = f'OPAL-X Element Types ({out.stem})'
+        export_color_map(color_map_path, preset_name, present_types)
     print(f'wrote {color_map_path}')
 
     if args.show or args.screenshot:

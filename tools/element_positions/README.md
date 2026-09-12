@@ -54,6 +54,7 @@ python element_positions.py data/mue4_analytical_ElementPositions.json \
 | `--simple-geometry` | Use schematic geometry: circular bend tubes and solid solenoids. |
 | `--capped` | Close the ends of drift tubes, bends, and generic elements. Default is open tubes so the beam vacuum stays visible. |
 | `--color-by-etype` | Group and color by element type instead of category. |
+| `--full-color-table` | Export all defined element-type colors; default is only types present in the model. |
 | `--hide <name>` | Skip a category or element type (repeatable). |
 | `--show` | Open an interactive PyVista window. |
 | `--screenshot <path>` | Render offscreen and save an image. |
@@ -177,5 +178,8 @@ Every element mesh has:
 - Field data `clamped`: whether the aperture was clamped because it was unset/infinite.
 
 A ParaView color preset file `<base>_ElementPositions_Colors.json` is also
-written next to the `.vtm`. It contains the `ETYPE_COLORS` mapping and can be
-imported as a categorical lookup table for the `element_type` field data array.
+written next to the `.vtm`. By default it contains only the element types
+actually present in the model, with a preset name like
+`OPAL-X Element Types (mue4_analytical_ElementPositions)`. Pass
+`--full-color-table` to export all defined `ETYPE_COLORS` with the generic
+preset name `OPAL-X Element Types`.
