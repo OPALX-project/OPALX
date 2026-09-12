@@ -16,11 +16,13 @@ paraview.simple._DisableFirstRenderCameraReset()
 # Create a new 'Render View'
 renderView1 = CreateView('RenderView')
 renderView1.Set(
-    ViewSize=[1145, 665],
-    CenterOfRotation=[-0.006948784008934089, -0.003960216380611253, -0.00011194456114840823],
-    CameraPosition=[-1.010088270216936, 0.4501731382255094, -1.2336669887458869],
-    CameraFocalPoint=[-0.2132561884024458, 0.04602854840922185, 0.13478171088121466],
-    CameraViewUp=[0.08820561969932411, 0.9680948213971375, 0.2345467659924196],
+    ViewSize=[1065, 665],
+    AxesGrid='Grid Axes 3D Actor',
+    OrientationAxesVisibility=0,
+    CenterOfRotation=[0.0030920839110432897, 0.003948736118858261, -0.0005461920502175784],
+    CameraPosition=[-1.7426509604863896, 0.6465715578031851, -1.5098108192902613],
+    CameraFocalPoint=[-0.3378740213177323, 0.16441397672705024, 0.3483630395754754],
+    CameraViewUp=[0.09309152855820636, 0.9785930078078131, 0.18354752076874903],
     UseColorPaletteForBackground=0,
     Background=[0.0, 0.0, 0.0],
 )
@@ -29,55 +31,52 @@ renderView1.Set(
 # setup the data processing pipelines
 # ----------------------------------------------------------------
 
-# create a new 'PV Trivial Producer'
-ippl_particles_electrons = PVTrivialProducer(registrationName='ippl_particles_electrons')
+# create a new 'XML MultiBlock Data Reader'
+ippl_particles_electrons = XMLMultiBlockDataReader(registrationName='ippl_particles_electrons', FileName=['/home/biddisco/temp/muon/electrons_snapshot.vtm'])
+ippl_particles_electrons.PointArrayStatus = ['RankID', 'ParticleIDs', 'position', 'dt', 'Phi', 'Bin', 'P', 'E', 'B', 'InvalidMask', 'BunchOrigin', 'BunchRotRow0', 'BunchRotRow1', 'BunchRotRow2', 'BunchInvOrigin', 'BunchInvRotRow0', 'BunchInvRotRow1', 'BunchInvRotRow2']
 
-# Extract only the particle bunch (block_main), not the helper box.
-electrons_bunch = ExtractBlock(
-    registrationName='electrons_bunch',
-    Input=ippl_particles_electrons,
-    Selectors=['//block_main']
+# create a new 'Extract Block'
+extractBlock1 = ExtractBlock(registrationName='ExtractBlock1', Input=ippl_particles_electrons)
+extractBlock1.Set(
+    Assembly='Hierarchy',
+    Selectors=['//block_transform'],
 )
 
-# Extract the transform block from the particle multimesh collection.
-# The transform is embedded as block_transform, not published as a separate channel.
-extractippl_particles_electronstransform = ExtractBlock(
-    registrationName='electrons_transform',
-    Input=ippl_particles_electrons,
-    Selectors=['//block_transform']
-)
-
-# create a new 'XML Multi Block Data Reader' for the element geometry
-# (built by tools/element_positions/element_positions.py from the
-# data/<base>_ElementPositions.json that opalx writes during setup)
-mue4_analytical_elementsvtm = XMLMultiBlockDataReader(registrationName='mue4_analytical_elements', FileName=['/home/biddisco/temp/muon/data/mue4_analytical_ElementPositions.vtm'])
-mue4_analytical_elementsvtm.Set(
+# create a new 'XML MultiBlock Data Reader'
+mue4_analytical_ElementPositionsvtm = XMLMultiBlockDataReader(registrationName='mue4_analytical_ElementPositions.vtm', FileName=['/home/biddisco/temp/muon/data/mue4_analytical_ElementPositions.vtm'])
+mue4_analytical_ElementPositionsvtm.Set(
+    AssemblySelectors=['/Root'],
     CellArrayStatus=['etype'],
+    PointArrayStatus=['TCoords', 'Normals', 'TubeNormals'],
+    TimeArray='None',
+)
+
+# create a new 'Annotate Time'
+annotateTime1 = AnnotateTime(registrationName='AnnotateTime1')
+annotateTime1.Format = 'Time: {time:07.1f}'
+
+# create a new 'Extract Block'
+extractBlock2 = ExtractBlock(registrationName='ExtractBlock2', Input=ippl_particles_electrons)
+extractBlock2.Set(
+    Assembly='Hierarchy',
+    Selectors=['/Root/block_main'],
 )
 
 # create a new 'Programmable Filter'
-programmableFilter1 = ProgrammableFilter(registrationName='ProgrammableFilter1', Input=[mue4_analytical_elementsvtm, extractippl_particles_electronstransform])
+programmableFilter1 = ProgrammableFilter(registrationName='ProgrammableFilter1', Input=[mue4_analytical_ElementPositionsvtm, extractBlock1])
 programmableFilter1.Set(
     RequestInformationScript='',
     RequestUpdateExtentScript='',
+    CopyArrays=1,
     PythonPath='',
-    Script="""# The bunch-transform filter body lives in catalyst/bunch_transform_filter.py
-# in the repo (the maintained copy of what used to be embedded here). It is
-# exec'd with 'self' and the parameters below passed in.
-
-# Transform direction:
-#   True:  bunch -> lab (transform particles to world coords)
-#   False: lab -> bunch (transform geometry, bunch stays centred)
-INVERSE = True
-
+    Script="""INVERSE = True # parameter passed into the filter body
 import os
+
 _filter_script = os.environ.get(
-    'BUNCH_TRANSFORM_FILTER',
-    '/home/biddisco/src/opalx/master/catalyst/bunch_transform_filter.py')
+'BUNCH_TRANSFORM_FILTER','/home/biddisco/src/opalx/master/catalyst/bunch_transform_filter.py')
 _filter_ns = {'self': self, 'INVERSE': INVERSE}
 with open(_filter_script) as _fh:
-    exec(compile(_fh.read(), _filter_script, 'exec'), _filter_ns)
-""",
+    exec(compile(_fh.read(), _filter_script, 'exec'), _filter_ns)""",
 )
 
 # ----------------------------------------------------------------
@@ -87,82 +86,86 @@ with open(_filter_script) as _fh:
 # show data from programmableFilter1
 programmableFilter1Display = Show(programmableFilter1, renderView1, 'GeometryRepresentation')
 
-# get 2D transfer function for 'etype'
-etypeTF2D = GetTransferFunction2D('etype')
-
-# get color transfer function/color map for 'etype'
-# Categorical coloring by the per-block etype strings (field data on each
-# element block of the vtm). Settings verbatim from the ParaView trace.
-etypeLUT = GetColorTransferFunction('etype')
-etypeLUT.Set(
+# get color transfer function/color map for 'element_type'
+element_typeLUT = GetColorTransferFunction('element_type')
+element_typeLUT.Set(
     InterpretValuesAsCategories=1,
     AnnotationsInitialized=1,
-    TransferFunction2D=etypeTF2D,
-    RGBPoints=GenerateRGBPoints(
-        range_min=0.0,
-        range_max=5.0,
-    ),
-    ScalarRangeInitialized=1.0,
+    NanColor=[0.5, 0.5, 0.5],
     Annotations=['DRIFT', 'DRIFT', 'MONITOR', 'MONITOR', 'MULTIPOLE', 'MULTIPOLE', 'SBEND', 'SBEND', 'SOLENOID', 'SOLENOID'],
-    IndexedColors=[1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0],
+    IndexedColors=[0.6500037908554077, 0.6500037908554077, 0.6500037908554077, 0.9000076055526733, 0.10000763088464737, 0.7000076174736023, 0.10000763088464737, 0.5499961972236633, 0.2500038146972656, 0.9000076055526733, 0.10000763088464737, 0.10000763088464737, 1.0, 0.5499961972236633, 0.0],
     IndexedOpacities=[1.0, 1.0, 1.0, 1.0, 1.0],
-    EnableOpacityMapping=1,
 )
 
 # trace defaults for the display properties.
 programmableFilter1Display.Set(
     Representation='Surface',
-    ColorArrayName=['FIELD', 'etype'],
-    LookupTable=etypeLUT,
-    Opacity=0.20,
+    ColorArrayName=['FIELD', 'element_type'],
+    LookupTable=element_typeLUT,
+    Opacity=0.1,
+    SelectNormalArray='TubeNormals',
+    ComputePointNormals=1,
+    Splitting=0,
+    EdgeColor=[1.0, 1.0, 1.0],
+    EdgeOpacity=0.0,
+    Assembly='Hierarchy',
+    DataAxesGrid='Grid Axes Representation',
+    PolarAxes='Polar Axes Representation',
+    IntensityScalars='Normals',
+    RadiusScalars='Normals',
+    TypeScalars='Normals',
 )
 
-# show data from electrons_bunch (particles only, no helper box)
-ippl_particles_electronsDisplay = Show(electrons_bunch, renderView1, 'UnstructuredGridRepresentation')
+# init the 'Piecewise Function' selected for 'ScaleTransferFunction'
+programmableFilter1Display.ScaleTransferFunction.Points = [-1.0, 0.0, 0.5, 0.0, 1.0, 1.0, 0.5, 0.0]
+
+# init the 'Piecewise Function' selected for 'OpacityTransferFunction'
+programmableFilter1Display.OpacityTransferFunction.Points = [-1.0, 0.0, 0.5, 0.0, 1.0, 1.0, 0.5, 0.0]
+
+# show data from extractBlock2
+extractBlock2Display = Show(extractBlock2, renderView1, 'UnstructuredGridRepresentation')
 
 # get color transfer function/color map for 'B'
 bLUT = GetColorTransferFunction('B')
 bLUT.Set(
+    AutomaticRescaleRangeMode='Grow and update every timestep',
     RGBPoints=GenerateRGBPoints(
-        range_min=0.00,
-        range_max=0.90,
+        range_min=0.0,
+        range_max=0.5,
     ),
     ScalarRangeInitialized=1.0,
 )
 
 # trace defaults for the display properties.
-ippl_particles_electronsDisplay.Set(
+extractBlock2Display.Set(
     Representation='Point Gaussian',
     ColorArrayName=['POINTS', 'B'],
     LookupTable=bLUT,
-    Assembly='Assembly',
-    GaussianRadius=0.0021,
-#    IntensityScalars='B',
-#    RadiusScalars='B',
-#    TypeScalars='B',
+    Assembly='Hierarchy',
+    GaussianRadius=0.0025,
+    DataAxesGrid='Grid Axes Representation',
+    PolarAxes='Polar Axes Representation',
+    IntensityScalars='B',
+    RadiusScalars='B',
+    TypeScalars='B',
 )
 
 # init the 'Piecewise Function' selected for 'ScaleTransferFunction'
-ippl_particles_electronsDisplay.ScaleTransferFunction.Points = [-0.0473624234221366, 0.0, 0.5, 0.0, 0.05172962957261628, 1.0, 0.5, 0.0]
+extractBlock2Display.ScaleTransferFunction.Points = [-0.0010852295478314294, 0.0, 0.5, 0.0, 0.0010451635207817868, 1.0, 0.5, 0.0]
 
 # init the 'Piecewise Function' selected for 'OpacityTransferFunction'
-ippl_particles_electronsDisplay.OpacityTransferFunction.Points = [-0.0473624234221366, 0.0, 0.5, 0.0, 0.05172962957261628, 1.0, 0.5, 0.0]
+extractBlock2Display.OpacityTransferFunction.Points = [-0.0010852295478314294, 0.0, 0.5, 0.0, 0.0010451635207817868, 1.0, 0.5, 0.0]
 
-# setup the color legend parameters for each legend in this view
+# show data from annotateTime1
+annotateTime1Display = Show(annotateTime1, renderView1, 'TextSourceRepresentation')
 
-# get color legend/bar for etypeLUT in view renderView1
-etypeLUTColorBar = GetScalarBar(etypeLUT, renderView1)
-etypeLUTColorBar.Set(
-    AutoOrient=0,
-    Orientation='Horizontal',
-    WindowLocation='Lower Left Corner',
-    Title='etype',
-    ComponentTitle='',
-    AllowOverlappingLabels=1,
+# trace defaults for the display properties.
+annotateTime1Display.Set(
+    WindowLocation='Lower Right Corner',
+    FontFamily='Courier',
 )
 
-# set color bar visibility
-etypeLUTColorBar.Visibility = 1
+# setup the color legend parameters for each legend in this view
 
 # get color legend/bar for bLUT in view renderView1
 bLUTColorBar = GetScalarBar(bLUT, renderView1)
@@ -170,41 +173,29 @@ bLUTColorBar.Set(
     WindowLocation='Upper Left Corner',
     Title='B',
     ComponentTitle='Magnitude',
-    LabelFormat='{:.4f}',
-    RangeLabelFormat='{:.4f}',
-    AutomaticLabelFormat=0,
-    DrawTickLabels=0,
+    AllowOverlappingLabels=1,
 )
-# Shrink the scalar bar vertically to about 75% of its default height while
-# keeping it in the top-left corner. Try the modern length property first;
-# fall back to Position2 for older ParaView builds.
-try:
-    bLUTColorBar.ScalarBarLength = 0.25
-except Exception:
-    try:
-        bLUTColorBar.Position2 = [0.13, 0.225]
-    except Exception:
-        pass
 
 # set color bar visibility
 bLUTColorBar.Visibility = 1
+
+# get color legend/bar for element_typeLUT in view renderView1
+element_typeLUTColorBar = GetScalarBar(element_typeLUT, renderView1)
+element_typeLUTColorBar.Set(
+    WindowLocation='Lower Left Corner',
+    Title='Element',
+    ComponentTitle='',
+    AllowOverlappingLabels=1,
+)
+
+# set color bar visibility
+element_typeLUTColorBar.Visibility = 1
 
 # show color legend
 programmableFilter1Display.SetScalarBarVisibility(renderView1, True)
 
 # show color legend
-ippl_particles_electronsDisplay.SetScalarBarVisibility(renderView1, True)
-
-# Add a small fixed-width time stamp in the bottom-right corner.
-timeLabel = Text(registrationName='TimeLabel')
-timeLabel.Text = 't = 0000000.0 ps'
-timeLabelDisplay = Show(timeLabel, renderView1, 'TextSourceRepresentation')
-timeLabelDisplay.Set(
-    FontSize=10,
-    FontFamily='Courier',  # fixed-width so the label doesn't jitter
-    Color=[1.0, 1.0, 1.0],
-    WindowLocation='Lower Right Corner',
-)
+extractBlock2Display.SetScalarBarVisibility(renderView1, True)
 
 # ----------------------------------------------------------------
 # setup color maps and opacity maps used in the visualization
@@ -214,15 +205,30 @@ timeLabelDisplay.Set(
 # get opacity transfer function/opacity map for 'B'
 bPWF = GetOpacityTransferFunction('B')
 bPWF.Set(
-    Points=[0.001, 0.0, 0.5, 0.0, 0.2, 1.0, 0.5, 0.0],
+    Points=[0.0, 0.0, 0.5, 0.0, 0.5, 1.0, 0.5, 0.0],
     ScalarRangeInitialized=1,
 )
 
-# get opacity transfer function/opacity map for 'etype'
-etypePWF = GetOpacityTransferFunction('etype')
-etypePWF.Set(
-    Points=[0.0, 0.0, 0.5, 0.0, 5.0, 1.0, 0.5, 0.0],
-    ScalarRangeInitialized=1,
+# get opacity transfer function/opacity map for 'element_type'
+element_typePWF = GetOpacityTransferFunction('element_type')
+
+# ----------------------------------------------------------------
+# setup extractors
+# ----------------------------------------------------------------
+
+# create extractor
+pNG1 = CreateExtractor('PNG', renderView1, registrationName='PNG1')
+# trace defaults for the extractor.
+pNG1.Trigger = 'Time Step'
+
+# init the 'Time Step' selected for 'Trigger'
+pNG1.Trigger.Frequency = 5
+
+# init the 'PNG' selected for 'Writer'
+pNG1.Writer.Set(
+    FileName='RenderView1_{timestep:06d}{camera}.png',
+    ImageResolution=[1065, 665],
+    Format='PNG',
 )
 
 # ----------------------------------------------------------------
@@ -233,10 +239,13 @@ etypePWF.Set(
 # Catalyst options
 from paraview import catalyst
 options = catalyst.Options()
-
-# when using paraview gui
 options.EnableCatalystLive = 1
-options.CatalystLiveTrigger = 'TimeStep'   # execute live every Catalyst timestep
+
+# init the 'Time Step' selected for 'GlobalTrigger'
+options.GlobalTrigger.Frequency = 5
+
+# init the 'Time Step' selected for 'CatalystLiveTrigger'
+options.CatalystLiveTrigger.Frequency = 5
 
 # ------------------------------------------------------------------------------
 if __name__ == '__main__':
@@ -244,48 +253,3 @@ if __name__ == '__main__':
     # Code for non in-situ environments; if executing in post-processing
     # i.e. non-Catalyst mode, let's generate extracts using Catalyst options
     SaveExtractsUsingCatalystOptions(options)
-
-# ----------------------------------------------------------------
-# In-situ Catalyst execution: save a PNG every timestep
-# ----------------------------------------------------------------
-import os
-
-def catalyst_execute(info):
-    """Render and save a screenshot for the current Catalyst timestep."""
-    # Ensure the pipeline is up to date for this timestep
-    renderView1.Update()
-
-    # Auto-rescale the B color map to the current data range and keep fixed
-    # decimal labels on the scalar bar.
-    try:
-        bLUT.RescaleTransferFunctionToDataRange()
-        bLUTColorBar.LabelFormat = '{:.4f}'
-        bLUTColorBar.RangeLabelFormat = '{:.4f}'
-        bLUTColorBar.AutomaticLabelFormat = 0
-        bLUTColorBar.DrawTickLabels = 0
-    except Exception:
-        pass
-
-    # Build a filename from the Catalyst cycle/time
-    cycle = int(info.cycle) if hasattr(info, 'cycle') else 0
-    sim_time = float(info.time) if hasattr(info, 'time') else 0.0
-    filename = f"/home/biddisco/temp/muon/catalyst_viz_{cycle:07d}.png"
-
-    # Update the bottom-right time stamp (fixed-width so it doesn't jitter).
-    try:
-        timeLabel.Text = f"t = {sim_time:09.1f} ps"
-    except Exception:
-        pass
-
-    if os.environ.get('IPPL_CATALYST_PNG', '1').upper() in ('1', 'ON', 'TRUE', 'YES'):
-        SaveScreenshot(
-            filename,
-            renderView1,
-            ImageResolution=[1024, 768],
-            FontScaling='Scale fonts proportionally',
-            OverrideColorPalette='',
-            StereoMode='No change',
-            TransparentBackground=0,
-            CompressionLevel='5'
-        )
-
