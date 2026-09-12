@@ -19,6 +19,9 @@
  */
 template <class EFM>
 struct VerticalFFAMagnetConfig {
+    static constexpr size_t MaxOrder = 20;
+    static constexpr size_t CoefficientCount = (MaxOrder + 1) * (MaxOrder + 1);
+
     size_t maxOrder_m   = 0;
     double k_m          = 0.;
     double Bz_m         = 0.;
@@ -26,8 +29,8 @@ struct VerticalFFAMagnetConfig {
     double zPosExtent_m = 0.;  // extent upwards from the midplane
     double halfWidth_m  = 0.;  // extent in either +x or -x
     double bbLength_m   = 0.;
-    EFM endField_m;
-    std::vector<std::vector<double> > dfCoefficients_m;
+    typename EFM::DeviceType endField_m;
+    Kokkos::Array<double, CoefficientCount> dfCoefficients_m{};
 };
 
 /** Bending magnet with an exponential dependence on field in the vertical plane
@@ -142,7 +145,7 @@ public:
      *  Returns the fringe field model; VerticalFFAMagnet retains ownership of
      *  the returned memory.
      */
-    EFM getEndField() const { return config_m.endField_m; }
+    EFM getEndField() const { return endField_m; }
 
     /** Set the fringe field
      *
@@ -216,6 +219,8 @@ private:
     VerticalFFAMagnet& operator=(const VerticalFFAMagnet& rhs);
     Geometry straightGeometry_m{Geometry::makeStraight(1.)};
     VerticalFFAMagnetConfig<EFM> config_m;
+    EFM endField_m;
+    std::vector<std::vector<double> > dfCoefficients_m;
 };
 
 template class VerticalFFAMagnet<endfieldmodel::Tanh>;
@@ -231,7 +236,9 @@ void VerticalFFAMagnet<EFM>::setPositiveVerticalExtent(double positiveExtent) {
 }
 
 template <class EFM>
-void VerticalFFAMagnet<EFM>::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {}
+void VerticalFFAMagnet<EFM>::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+    getFieldValue(config_m, pc);
+}
 
 template <class EFM>
 void VerticalFFAMagnet<EFM>::apply(
@@ -253,7 +260,7 @@ void VerticalFFAMagnet<EFM>::apply(
 
 template <class EFM>
 std::vector<std::vector<double> > VerticalFFAMagnet<EFM>::getDfCoefficients() const {
-    return config_m.dfCoefficients_m;
+    return dfCoefficients_m;
 }
 
 template <class EFM>
@@ -270,41 +277,43 @@ void VerticalFFAMagnet<EFM>::getFieldValue(const VerticalFFAMagnetConfig<EFM>& c
 
 
 template <class EFM>
-bool VerticalFFAMagnet<EFM>::getFieldValue(const VerticalFFAMagnetConfig<EFM>& config_m, 
+KOKKOS_INLINE_FUNCTION
+bool VerticalFFAMagnet<EFM>::getFieldValue(const VerticalFFAMagnetConfig<EFM>& config_m,
                    const Vector_t<double, 3>& R,
                    Vector_t<double, 3>& B) {
-    if (std::abs(R[0]) > config_m.halfWidth_m || R[2] < 0. || R[2] > config_m.bbLength_m || R[1] < -config_m.zNegExtent_m
+    if (Kokkos::abs(R[0]) > config_m.halfWidth_m || R[2] < 0. || R[2] > config_m.bbLength_m || R[1] < -config_m.zNegExtent_m
         || R[1] > config_m.zPosExtent_m) {
         return true;
     }
-    std::vector<double> fringeDerivatives(config_m.maxOrder_m + 2, 0.);
+    Kokkos::Array<double, VerticalFFAMagnetConfig<EFM>::MaxOrder + 2> fringeDerivatives{};
     double zRel = R[2] - config_m.bbLength_m / 2.;  // z relative to centre of magnet
-    for (size_t i = 0; i < fringeDerivatives.size(); ++i) {
-        fringeDerivatives[i] = config_m.endField_m.function(zRel, i);  // d^i_phi f
+    for (size_t i = 0; i < config_m.maxOrder_m + 2; ++i) {
+        fringeDerivatives[i] = config_m.endField_m.functionDevice(zRel, i);  // d^i_phi f
     }
 
-    std::vector<double> x_n(config_m.maxOrder_m + 1);  // x^n
+    Kokkos::Array<double, VerticalFFAMagnetConfig<EFM>::MaxOrder + 1> x_n{};  // x^n
     x_n[0] = 1.;                              // x^0
-    for (size_t i = 1; i < x_n.size(); ++i) {
+    for (size_t i = 1; i <= config_m.maxOrder_m; ++i) {
         x_n[i] = x_n[i - 1] * R[0];
     }
 
     // note that the last element is always 0, because dfCoefficients_m is
     // of size maxOrder_m+1. This leads to better Maxwellianness in testing.
-    std::vector<double> f_n(config_m.maxOrder_m + 2, 0.);
-    std::vector<double> dz_f_n(config_m.maxOrder_m + 1, 0.);
-    for (size_t n = 0; n < config_m.dfCoefficients_m.size(); ++n) {
-        const std::vector<double>& coefficients = config_m.dfCoefficients_m[n];
-        for (size_t i = 0; i < coefficients.size(); ++i) {
-            f_n[n] += coefficients[i] * fringeDerivatives[i];
-            dz_f_n[n] += coefficients[i] * fringeDerivatives[i + 1];
+    Kokkos::Array<double, VerticalFFAMagnetConfig<EFM>::MaxOrder + 2> f_n{};
+    Kokkos::Array<double, VerticalFFAMagnetConfig<EFM>::MaxOrder + 1> dz_f_n{};
+    for (size_t n = 0; n <= config_m.maxOrder_m; ++n) {
+        for (size_t i = 0; i <= n; ++i) {
+            const double coefficient = config_m.dfCoefficients_m[
+                    n * (VerticalFFAMagnetConfig<EFM>::MaxOrder + 1) + i];
+            f_n[n] += coefficient * fringeDerivatives[i];
+            dz_f_n[n] += coefficient * fringeDerivatives[i + 1];
         }
     }
-    double bref = config_m.Bz_m * exp(config_m.k_m * R[1]);
+    double bref = config_m.Bz_m * Kokkos::exp(config_m.k_m * R[1]);
     B[0]        = 0.;
     B[1]        = 0.;
     B[2]        = 0.;
-    for (size_t n = 0; n < x_n.size(); ++n) {
+    for (size_t n = 0; n <= config_m.maxOrder_m; ++n) {
         B[0] += bref * f_n[n + 1] * (n + 1) / config_m.k_m * x_n[n];
         B[1] += bref * f_n[n] * x_n[n];
         B[2] += bref * dz_f_n[n] / config_m.k_m * x_n[n];

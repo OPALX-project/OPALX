@@ -9,6 +9,7 @@
 
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/VerticalFFAMagnet.h"
+#include "Utilities/GeneralOpalException.h"
 
 #include <cmath>
 
@@ -19,7 +20,9 @@ VerticalFFAMagnet<EFM>::VerticalFFAMagnet(const std::string& name)
 template <class EFM>
 VerticalFFAMagnet<EFM>::VerticalFFAMagnet(const VerticalFFAMagnet& right)
     : ElementBase(right),
-      config_m(right.config_m) {
+      config_m(right.config_m),
+      endField_m(right.endField_m),
+      dfCoefficients_m(right.dfCoefficients_m) {
     RefPartBunch_m = right.RefPartBunch_m;
 }
 
@@ -36,6 +39,8 @@ ElementBase* VerticalFFAMagnet<EFM>::clone() const {
 template <class EFM>
 void VerticalFFAMagnet<EFM>::initialise() {
     calculateDfCoefficients();
+    endField_m.setMaximumDerivative(config_m.maxOrder_m + 1);
+    config_m.endField_m = endField_m.getDeviceData();
     straightGeometry_m.setElementLength(config_m.bbLength_m);  // length = phi r
 }
 
@@ -66,34 +71,51 @@ bool VerticalFFAMagnet<EFM>::getFieldValue(const Vector_t<double, 3>& R, Vector_
 
 template <class EFM>
 void VerticalFFAMagnet<EFM>::calculateDfCoefficients() {
-    config_m.dfCoefficients_m    = std::vector<std::vector<double> >(config_m.maxOrder_m + 1);
-    config_m.dfCoefficients_m[0] = std::vector<double>(1, 1.);
+    dfCoefficients_m    = std::vector<std::vector<double> >(config_m.maxOrder_m + 1);
+    dfCoefficients_m[0] = std::vector<double>(1, 1.);
     if (config_m.maxOrder_m > 0) {
-        config_m.dfCoefficients_m[1] = std::vector<double>();
+        dfCoefficients_m[1] = std::vector<double>();
     }
     // n indexes like the polynomial order of the midplane expansion
     // e.g. Bz = exp(mz) f_n y^n
     // where y is distance from the midplane and z is height
-    for (size_t n = 2; n < config_m.dfCoefficients_m.size(); n += 2) {
-        const std::vector<double>& oldCoefficients = config_m.dfCoefficients_m[n - 2];
+    for (size_t n = 2; n < dfCoefficients_m.size(); n += 2) {
+        const std::vector<double>& oldCoefficients = dfCoefficients_m[n - 2];
         std::vector<double> coefficients(oldCoefficients.size() + 2, 0);
         // j indexes the derivative of f_0
         for (size_t j = 0; j < oldCoefficients.size(); ++j) {
             coefficients[j] += -1. / (n) / (n - 1) * config_m.k_m * config_m.k_m * oldCoefficients[j];
             coefficients[j + 2] += -1. / (n) / (n - 1) * oldCoefficients[j];
         }
-        config_m.dfCoefficients_m[n] = coefficients;
+        dfCoefficients_m[n] = coefficients;
+    }
+    for (size_t i = 0; i < VerticalFFAMagnetConfig<EFM>::CoefficientCount; ++i) {
+        config_m.dfCoefficients_m[i] = 0.;
+    }
+    for (size_t n = 0; n < dfCoefficients_m.size(); ++n) {
+        for (size_t i = 0; i < dfCoefficients_m[n].size(); ++i) {
+            config_m.dfCoefficients_m[
+                    n * (VerticalFFAMagnetConfig<EFM>::MaxOrder + 1) + i] =
+                    dfCoefficients_m[n][i];
+        }
     }
 }
 
 template <class EFM>
-void VerticalFFAMagnet<EFM>::setEndField(EFM /*endField*/) {
-    //config_m.endField_m  = endField;
-    config_m.endField_m.setMaximumDerivative(config_m.maxOrder_m);
+void VerticalFFAMagnet<EFM>::setEndField(EFM endField) {
+    endField_m = endField;
+    endField_m.setMaximumDerivative(config_m.maxOrder_m + 1);
+    config_m.endField_m = endField_m.getDeviceData();
 }
 
 template <class EFM>
 void VerticalFFAMagnet<EFM>::setMaxOrder(size_t maxOrder) {
-    config_m.endField_m.setMaximumDerivative(maxOrder);
+    if (maxOrder > VerticalFFAMagnetConfig<EFM>::MaxOrder) {
+        throw GeneralOpalException(
+                "VerticalFFAMagnet::setMaxOrder",
+                "GPU-compatible field expansions are limited to order 20");
+    }
+    endField_m.setMaximumDerivative(maxOrder + 1);
+    config_m.endField_m = endField_m.getDeviceData();
     config_m.maxOrder_m = maxOrder;
 }
