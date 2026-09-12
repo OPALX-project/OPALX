@@ -119,3 +119,5 @@ void VerticalFFAMagnet<EFM>::setMaxOrder(size_t maxOrder) {
     config_m.endField_m = endField_m.getDeviceData();
     config_m.maxOrder_m = maxOrder;
 }
+
+template class VerticalFFAMagnet<endfieldmodel::Tanh>;

@@ -223,7 +223,7 @@ private:
     std::vector<std::vector<double> > dfCoefficients_m;
 };
 
-template class VerticalFFAMagnet<endfieldmodel::Tanh>;
+extern template class VerticalFFAMagnet<endfieldmodel::Tanh>;
 
 template <class EFM>
 void VerticalFFAMagnet<EFM>::setNegativeVerticalExtent(double negativeExtent) {

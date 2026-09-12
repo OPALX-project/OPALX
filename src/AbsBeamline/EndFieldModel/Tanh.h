@@ -144,28 +144,28 @@ namespace endfieldmodel {
         Tanh(const Tanh& rhs) = default;
 
         /** Destructor (no mallocs so does nothing) */
-        ~Tanh() = default;
+        ~Tanh() override = default;
 
         /** Inherited copy constructor. */
-        Tanh* clone() const;
+        Tanh* clone() const override;
 
         /** Rescale the end field by a factor x0 */
-        void rescale(double scaleFactor) {_impl.rescale(scaleFactor);}
+        void rescale(double scaleFactor) override {_impl.rescale(scaleFactor);}
 
         /** Double Tanh is given by\n
          *  \f$d(x) = \f$
          */
-        double function(double x, int n) const {return _impl.function(x, n);}
+        double function(double x, int n) const override {return _impl.function(x, n);}
 
         /** GPU aware version of the function */
         void function(Kokkos::View<double*> xView,  const int& n, Kokkos::View<double**> derivatives) override;
-        std::ostream& print(std::ostream& out) const;
+        std::ostream& print(std::ostream& out) const override;
 
         /** Nominal flat top length is twice x0 (one x0 in each direction) */
-        double getCentreLength() const { return _impl.getX0() * 2.0; }
+        double getCentreLength() const override { return _impl.getX0() * 2.0; }
 
         /** Return nominal fringe field length */
-        double getEndLength() const { return _impl.getLambda(); }
+        double getEndLength() const override { return _impl.getLambda(); }
 
         void setLambda(const double& lambda) {_impl.setLambda(lambda);}
         void setX0(const double& x0) {_impl.setX0(x0);}
