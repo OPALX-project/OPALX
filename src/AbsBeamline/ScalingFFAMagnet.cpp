@@ -75,8 +75,8 @@ void ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<doub
 }
 
 void ScalingFFAMagnet::getFieldValueCylindrical(const Vector_t<double, 3>& Rcyl, Vector_t<double, 3>& Bcyl) const {
-    const Kokkos::View<double*> derivatives("single_derivatives", config_m.maxOrder_m + 1);
-    auto derivativesHost = Kokkos::create_mirror_view(derivatives);
+    Kokkos::View<double*, Kokkos::HostSpace> derivatives(
+            "single_derivatives", config_m.maxOrder_m + 1);
     Vector_t<double, 5> Rffa;
     Rffa[0] = Rcyl[0];
     Rffa[1] = Rcyl[1];
@@ -84,9 +84,8 @@ void ScalingFFAMagnet::getFieldValueCylindrical(const Vector_t<double, 3>& Rcyl,
     Rffa[3] = std::abs(Rcyl[0]/config_m.r0_m); // rnorm
     Rffa[4] = Rcyl[2]-config_m.tanDelta_m * std::log(Rffa[3])-config_m.phiStart_m; // phispiral
     for (size_t i = 0; i <= config_m.maxOrder_m; ++i)
-        derivativesHost(i) = efm_m->function(Rffa[4], i);
-    Kokkos::deep_copy(derivatives, derivativesHost);
-    getFieldValueCylindrical(config_m, derivatives, Rffa, Bcyl);
+        derivatives(i) = efm_m->function(Rffa[4], i);
+    getFieldValueCylindricalImpl(config_m, derivatives, Rffa, Bcyl);
 }
 
 void ScalingFFAMagnet::initialise() {

@@ -332,6 +332,13 @@ private:
      */
     void calculateDfCoefficients();
 
+    template <class DerivativeContainer>
+    KOKKOS_INLINE_FUNCTION static void getFieldValueCylindricalImpl(
+            const ScalingFFAMagnetConfig& config,
+            const DerivativeContainer& derivatives,
+            const Vector_t<double, 5>& Rcyl,
+            Vector_t<double, 3>& B);
+
     KOKKOS_INLINE_FUNCTION static void getCylindricalCoordinates(const ScalingFFAMagnetConfig& config, const Vector_t<double, 3> Ri, Vector_t<double, 5>& Rcyli);
 
     KOKKOS_INLINE_FUNCTION static void rotateBfield(const ScalingFFAMagnetConfig& config,
@@ -413,6 +420,13 @@ void ScalingFFAMagnet::rotateBfield(const ScalingFFAMagnetConfig& config,
 KOKKOS_INLINE_FUNCTION
 void ScalingFFAMagnet::getFieldValueCylindrical(
     const ScalingFFAMagnetConfig& config, const Kokkos::View<double*>& derivatives, const Vector_t<double, 5>& rCyl, Vector_t<double, 3>& B) {
+    getFieldValueCylindricalImpl(config, derivatives, rCyl, B);
+}
+
+template <class DerivativeContainer>
+KOKKOS_INLINE_FUNCTION
+void ScalingFFAMagnet::getFieldValueCylindricalImpl(
+    const ScalingFFAMagnetConfig& config, const DerivativeContainer& derivatives, const Vector_t<double, 5>& rCyl, Vector_t<double, 3>& B) {
     double r   = rCyl[0];
     double z   = rCyl[1];
     double normRadius = rCyl[3];
