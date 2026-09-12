@@ -332,7 +332,10 @@ private:
 
     KOKKOS_INLINE_FUNCTION static void getCylindricalCoordinates(const ScalingFFAMagnetConfig& config, const Vector_t<double, 3> Ri, Vector_t<double, 5>& Rcyli);
 
-    KOKKOS_INLINE_FUNCTION static void rotateBfield(const Vector_t<double, 5>& Rcyli, const Vector_t<double, 3>& Bcyli, Vector_t<double, 3>& Bi);
+    KOKKOS_INLINE_FUNCTION static void rotateBfield(const ScalingFFAMagnetConfig& config,
+                                                    const Vector_t<double, 5>& Rcyli,
+                                                    const Vector_t<double, 3>& Bcyli,
+                                                    Vector_t<double, 3>& Bi);
 
     /** Copy constructor */
     ScalingFFAMagnet(const ScalingFFAMagnet& right);
@@ -365,12 +368,12 @@ void ScalingFFAMagnet::getFieldValue(const ScalingFFAMagnetConfig& config,
             phiSpiral(i) = Rcyl(i)[4]; // must be a way to get a subview
         }
     );
-    endField->function(phiSpiral, config.maxOrder_m, derivatives);
+    endField->function(phiSpiral, config.maxOrder_m + 1, derivatives);
     Kokkos::parallel_for(
         "ScalingFFAMagnet::getFieldValue()", count, KOKKOS_LAMBDA(const size_t i) {
             Kokkos::View<double*> derivatives_i = Kokkos::subview(derivatives, i, Kokkos::ALL);
             getFieldValueCylindrical(config, derivatives_i, Rcyl(i), Bcyl(i));
-            rotateBfield(Rcyl(i), Bcyl(i), B(i));
+            rotateBfield(config, Rcyl(i), Bcyl(i), B(i));
         }
     );
 }
@@ -390,10 +393,14 @@ void ScalingFFAMagnet::getCylindricalCoordinates(const ScalingFFAMagnetConfig& c
     Rcyli[4] = phiSpiral;
 }
 
-void ScalingFFAMagnet::rotateBfield(const Vector_t<double, 5>& Rcyli, const Vector_t<double, 3>& Bcyli, Vector_t<double, 3>& Bi) {
+void ScalingFFAMagnet::rotateBfield(const ScalingFFAMagnetConfig& config,
+                                    const Vector_t<double, 5>& Rcyli,
+                                    const Vector_t<double, 3>& Bcyli,
+                                    Vector_t<double, 3>& Bi) {
     double phi = Rcyli[2];
     Bi[1] += Bcyli[1];
-    Bi[0] += Bcyli[0] * std::cos(phi) - Bcyli[2] * std::sin(phi);
+    Bi[0] += std::copysign(1.0, config.r0_m)
+             * (Bcyli[0] * std::cos(phi) - Bcyli[2] * std::sin(phi));
     Bi[2] += Bcyli[0] * std::sin(phi) + Bcyli[2] * std::cos(phi);
 }
 
