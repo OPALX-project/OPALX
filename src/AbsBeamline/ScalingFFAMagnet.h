@@ -52,6 +52,9 @@
  */
 
 struct ScalingFFAMagnetConfig {
+    static constexpr size_t MaxOrder = 20;
+    static constexpr size_t CoefficientCount = (MaxOrder + 1) * (MaxOrder + 1);
+
     size_t maxOrder_m        = 0;
     double tanDelta_m        = 0.;
     double k_m               = 0.;
@@ -64,9 +67,8 @@ struct ScalingFFAMagnetConfig {
     double azimuthalExtent_m = 0.;  // maximum distance used for field calculation
     double verticalExtent_m  = 0.;  // maximum allowed distance from the midplane
     Vector_t<double, 3> centre_m;
-    std::string endFieldName_m;
     const double fp_tolerance                = 1e-18;
-    std::vector<std::vector<double> > dfCoefficients_m;
+    Kokkos::Array<double, CoefficientCount> dfCoefficients_m{};
 };
 
 class ScalingFFAMagnet : public ElementBase {
@@ -107,7 +109,7 @@ public:
      *
      *  This is a static function so that it can call the GPU
      */
-    KOKKOS_INLINE_FUNCTION static void getFieldValue(const ScalingFFAMagnetConfig& config,
+    static void getFieldValue(const ScalingFFAMagnetConfig& config,
                               const std::shared_ptr<endfieldmodel::EndFieldModel> endField,
                               const std::shared_ptr<ParticleContainer_t> pc);
 
@@ -249,7 +251,7 @@ public:
 
     /** Set the maximum power of y modelled in the off-midplane expansion;
      */
-    void setMaxOrder(size_t maxOrder) { config_m.maxOrder_m = maxOrder; }
+    void setMaxOrder(size_t maxOrder);
 
     /** Get the offset of the magnet centre from the start
      */
@@ -300,7 +302,7 @@ public:
     void setVerticalExtent(double verticalExtent) { config_m.verticalExtent_m = verticalExtent; }
 
     /** Return the calculated df coefficients */
-    std::vector<std::vector<double> > getDfCoefficients() const { return config_m.dfCoefficients_m; }
+    std::vector<std::vector<double> > getDfCoefficients() const { return dfCoefficients_m; }
 
     /** setupEndField does some end field and geometry set-up
      *
@@ -317,10 +319,10 @@ public:
      *  Called during parsing of the input file; OPAL looks for the endFieldName
      *  when setupEndField() is called.
      */
-    void setEndFieldName(const std::string& name) { config_m.endFieldName_m = name; }
+    void setEndFieldName(const std::string& name) { endFieldName_m = name; }
 
     /** Return the end field name. */
-    std::string getEndFieldName() const { return config_m.endFieldName_m; }
+    std::string getEndFieldName() const { return endFieldName_m; }
 
 private:
     /** Calculate the df coefficients, ready for field generation
@@ -344,11 +346,13 @@ private:
     mutable Geometry planarArcGeometry_m{Geometry::makeSBend(1., 1.)};
     mutable ScalingFFAMagnetConfig config_m;
     mutable std::shared_ptr<endfieldmodel::EndFieldModel> efm_m;
+    mutable std::string endFieldName_m;
+    std::vector<std::vector<double> > dfCoefficients_m;
 
     void setupEFM(std::shared_ptr<endfieldmodel::EndFieldModel> efm) const;
 };
 
-void ScalingFFAMagnet::getFieldValue(const ScalingFFAMagnetConfig& config,
+inline void ScalingFFAMagnet::getFieldValue(const ScalingFFAMagnetConfig& config,
                               const std::shared_ptr<endfieldmodel::EndFieldModel> endField,
                               const std::shared_ptr<ParticleContainer_t> pc) {
     const size_t count = pc->getLocalNum();
@@ -356,7 +360,7 @@ void ScalingFFAMagnet::getFieldValue(const ScalingFFAMagnetConfig& config,
     const Kokkos::View<Vector_t<double, 3>*> B = pc->B.getView();
     const Kokkos::View<Vector_t<double, 5>*> Rcyl("Rcyl", count);
     const Kokkos::View<Vector_t<double, 3>*> Bcyl("Bcyl", count);;
-    const Kokkos::View<double**> derivatives;
+    const Kokkos::View<double**> derivatives("derivatives", count, config.maxOrder_m + 1);
     Kokkos::parallel_for(
         "ScalingFFAMagnet::getFieldValue()", count, KOKKOS_LAMBDA(const size_t i) {
             getCylindricalCoordinates(config, R(i), Rcyl(i));
@@ -379,11 +383,12 @@ void ScalingFFAMagnet::getFieldValue(const ScalingFFAMagnetConfig& config,
 }
 
 
+KOKKOS_INLINE_FUNCTION
 void ScalingFFAMagnet::getCylindricalCoordinates(const ScalingFFAMagnetConfig& config, const Vector_t<double, 3> Ri, Vector_t<double, 5>& Rcyli) {
-    double r = std::sqrt((Ri[0]+config.r0_m)*(Ri[0]+config.r0_m)+Ri[2]*Ri[2]);
-    double normRadius = std::abs(r / config.r0_m);
-    double g          = config.tanDelta_m * std::log(normRadius);
-    double phi        = std::atan2(Ri[2], (Ri[0]+config.r0_m)/std::copysign(1.0, config.r0_m));
+    double r = Kokkos::sqrt((Ri[0]+config.r0_m)*(Ri[0]+config.r0_m)+Ri[2]*Ri[2]);
+    double normRadius = Kokkos::abs(r / config.r0_m);
+    double g          = config.tanDelta_m * Kokkos::log(normRadius);
+    double phi        = Kokkos::atan2(Ri[2], (Ri[0]+config.r0_m)/Kokkos::copysign(1.0, config.r0_m));
     double phiSpiral  = phi - g - config.phiStart_m;
     Rcyli[0]= r;
     // angle between y-axis and position vector in anticlockwise direction
@@ -393,17 +398,19 @@ void ScalingFFAMagnet::getCylindricalCoordinates(const ScalingFFAMagnetConfig& c
     Rcyli[4] = phiSpiral;
 }
 
+KOKKOS_INLINE_FUNCTION
 void ScalingFFAMagnet::rotateBfield(const ScalingFFAMagnetConfig& config,
                                     const Vector_t<double, 5>& Rcyli,
                                     const Vector_t<double, 3>& Bcyli,
                                     Vector_t<double, 3>& Bi) {
     double phi = Rcyli[2];
     Bi[1] += Bcyli[1];
-    Bi[0] += std::copysign(1.0, config.r0_m)
-             * (Bcyli[0] * std::cos(phi) - Bcyli[2] * std::sin(phi));
-    Bi[2] += Bcyli[0] * std::sin(phi) + Bcyli[2] * std::cos(phi);
+    Bi[0] += Kokkos::copysign(1.0, config.r0_m)
+             * (Bcyli[0] * Kokkos::cos(phi) - Bcyli[2] * Kokkos::sin(phi));
+    Bi[2] += Bcyli[0] * Kokkos::sin(phi) + Bcyli[2] * Kokkos::cos(phi);
 }
 
+KOKKOS_INLINE_FUNCTION
 void ScalingFFAMagnet::getFieldValueCylindrical(
     const ScalingFFAMagnetConfig& config, const Kokkos::View<double*>& derivatives, const Vector_t<double, 5>& rCyl, Vector_t<double, 3>& B) {
     double r   = rCyl[0];
@@ -413,30 +420,31 @@ void ScalingFFAMagnet::getFieldValueCylindrical(
     if (r < config.rMin_m || r > config.rMax_m) {
         return;
     }
-    double h          = std::pow(normRadius, config.k_m) * config.Bz_m;
+    double h          = Kokkos::pow(normRadius, config.k_m) * config.Bz_m;
     if (phiSpiral < -config.azimuthalExtent_m || phiSpiral > config.azimuthalExtent_m) {
         return;
     }
     if (z < -config.verticalExtent_m || z > config.verticalExtent_m) {
         return;
     }
-    for (size_t n = 0; n < config.dfCoefficients_m.size(); n += 2) {
+    for (size_t n = 0; n <= config.maxOrder_m; n += 2) {
         double f2n = 0;
-        Vector_t<double, 3> deltaB;
-        for (size_t i = 0; i < config.dfCoefficients_m[n].size(); ++i) {
-            f2n += config.dfCoefficients_m[n][i] * derivatives(i);
+        Vector_t<double, 3> deltaB({0., 0., 0.});
+        for (size_t i = 0; i <= n; ++i) {
+            f2n += config.dfCoefficients_m[n * (ScalingFFAMagnetConfig::MaxOrder + 1) + i]
+                   * derivatives(i);
         }
-        deltaB[1] = f2n * h * std::pow(z / r, n);  // Bz = sum(f_2n * h * (z/r)^2n
+        deltaB[1] = f2n * h * Kokkos::pow(z / r, static_cast<int>(n));
         if (config.maxOrder_m >= n + 1) {
             double f2nplus1 = 0;
-            for (size_t i = 0;
-                 i < config.dfCoefficients_m[n + 1].size() && n + 1 < config.dfCoefficients_m.size(); ++i) {
-                f2nplus1 += config.dfCoefficients_m[n + 1][i] * derivatives(i);
+            for (size_t i = 0; i <= n + 1; ++i) {
+                f2nplus1 += config.dfCoefficients_m[
+                        (n + 1) * (ScalingFFAMagnetConfig::MaxOrder + 1) + i] * derivatives(i);
             }
             deltaB[0] = (f2n * (config.k_m - n) / (n + 1) - config.tanDelta_m * f2nplus1) * h
-                        * std::pow(z / r, n + 1);  // Br
+                        * Kokkos::pow(z / r, static_cast<int>(n + 1));  // Br
             deltaB[2] =
-                    f2nplus1 * h * std::pow(z / r, n + 1);  // Bphi = sum(f_2n+1 * h * (z/r)^2n+1
+                    f2nplus1 * h * Kokkos::pow(z / r, static_cast<int>(n + 1));
         }
         B += deltaB;
     }

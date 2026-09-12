@@ -21,6 +21,7 @@
 
 #include "gtest/gtest.h"
 
+#include <algorithm>
 #include <vector>
 #include <cmath>
 #include <fstream>
@@ -381,6 +382,36 @@ TEST_F(ScalingFFAMagnetTest, TanhTest) {
                               sector_m->getEndField()->function(-psi0_m*1.0001, order);
         numericalDerivative /= -psi0_m*0.9999 + psi0_m*1.0001;
     }
+}
+
+TEST_F(ScalingFFAMagnetTest, BatchedTanhMatchesScalarEvaluation) {
+    constexpr size_t pointCount = 3;
+    constexpr int derivativeCount = 6;
+    endfieldmodel::Tanh tanh(psi0_m, psi0_m / 5., derivativeCount - 1);
+    Kokkos::View<double*> points("tanh_points", pointCount);
+    Kokkos::View<double**> derivatives(
+            "tanh_derivatives", pointCount, derivativeCount);
+    auto pointsHost = Kokkos::create_mirror_view(points);
+    pointsHost(0) = -psi0_m;
+    pointsHost(1) = 0.;
+    pointsHost(2) = psi0_m;
+    Kokkos::deep_copy(points, pointsHost);
+
+    tanh.function(points, derivativeCount, derivatives);
+    auto derivativesHost =
+            Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), derivatives);
+    for (size_t point = 0; point < pointCount; ++point) {
+        for (int order = 0; order < derivativeCount; ++order) {
+            const double expected = tanh.function(pointsHost(point), order);
+            EXPECT_NEAR(derivativesHost(point, order), expected,
+                        std::max(1.e-9, std::abs(expected) * 1.e-11));
+        }
+    }
+}
+
+TEST_F(ScalingFFAMagnetTest, RejectsExpansionBeyondDeviceStorage) {
+    EXPECT_THROW(sector_m->setMaxOrder(ScalingFFAMagnetConfig::MaxOrder + 1),
+                 GeneralOpalException);
 }
 
 TEST_F(ScalingFFAMagnetTest, BTwoDTest) {

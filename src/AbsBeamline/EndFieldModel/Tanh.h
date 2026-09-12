@@ -47,20 +47,27 @@ namespace endfieldmodel {
      */
     class TanhImpl {
     public:
+        static constexpr size_t MaxDerivative = 21;
+        static constexpr size_t CoefficientCount =
+                (MaxDerivative + 1) * (MaxDerivative + 2);
+
         TanhImpl(double x0, double lambda, int max_index);
 
         /** Default constructor (initialises x0 and lambda to 0) */
         TanhImpl() = default;
 
         /** Copy constructor */
-        TanhImpl(const TanhImpl& rhs) : _x0(rhs._x0), _lambda(rhs._lambda) {}
+        TanhImpl(const TanhImpl& rhs) = default;
 
         /** Destructor (no mallocs so does nothing) */
         ~TanhImpl() = default;
 
         double function(double x, int n) const;
 
-        static KOKKOS_INLINE_FUNCTION void function(const TanhImpl& impl,
+        /** Device-callable evaluation using coefficients prepared on the host. */
+        KOKKOS_INLINE_FUNCTION double functionDevice(double x, int n) const;
+
+        static void function(const TanhImpl& impl,
                             Kokkos::View<double*> xView,
                             const int& maxDerivative,
                             Kokkos::View<double**> values);
@@ -101,16 +108,13 @@ namespace endfieldmodel {
         /** Prints a human readable string to out */
         std::ostream& print(std::ostream& out) const;
 
-        endfieldmodel::TanhImpl& operator=(const endfieldmodel::TanhImpl& rhs) {
-            _x0 = rhs._x0;
-            _lambda = rhs._lambda;
-            _tdi = rhs._tdi;
-            return *this;
-        }
+        endfieldmodel::TanhImpl& operator=(const endfieldmodel::TanhImpl& rhs) = default;
 
 
     private:
-        double _x0, _lambda;
+        double _x0 = 0.;
+        double _lambda = 0.;
+        Kokkos::Array<int, CoefficientCount> coefficients_m{};
 
         /** _tdi indexes powers of tanh in d^n tanh/dx^n as sum of powers of tanh
          *
@@ -121,6 +125,7 @@ namespace endfieldmodel {
 
     class Tanh : public EndFieldModel {
     public:
+        using DeviceType = TanhImpl;
         /** Create a double tanh function
          *
          *  Here x0 is the centre length and lambda is the end length. max_index is
@@ -153,7 +158,7 @@ namespace endfieldmodel {
         double function(double x, int n) const {return _impl.function(x, n);}
 
         /** GPU aware version of the function */
-        KOKKOS_INLINE_FUNCTION void function(Kokkos::View<double*> xView,  const int& n, Kokkos::View<double**> derivatives);
+        void function(Kokkos::View<double*> xView,  const int& n, Kokkos::View<double**> derivatives) override;
         std::ostream& print(std::ostream& out) const;
 
         /** Nominal flat top length is twice x0 (one x0 in each direction) */
@@ -169,23 +174,45 @@ namespace endfieldmodel {
         /** Set the maximum derivative prior to tracking */
         virtual void setMaximumDerivative(size_t n) override {return _impl.setMaximumDerivative(n);}
 
+        /** Return the trivially-copyable data used inside device kernels. */
+        DeviceType getDeviceData() const { return _impl; }
+
     private:
         TanhImpl _impl;
     };
 
 
-    void Tanh::function(Kokkos::View<double*> xView,  const int& maxDerivative, Kokkos::View<double**> derivatives) {
+    inline void Tanh::function(Kokkos::View<double*> xView,  const int& maxDerivative, Kokkos::View<double**> derivatives) {
         TanhImpl::function(_impl, xView, maxDerivative, derivatives);
     }
 
-    void TanhImpl::function(const TanhImpl& impl, Kokkos::View<double*> xView,  const int& maxDerivative, Kokkos::View<double**> derivatives) {
+    KOKKOS_INLINE_FUNCTION
+    double TanhImpl::functionDevice(double x, int n) const {
+        const double tanhPositive = Kokkos::tanh((x + _x0) / _lambda);
+        const double tanhNegative = Kokkos::tanh((x - _x0) / _lambda);
+        double positivePower = 1.;
+        double negativePower = 1.;
+        double result = 0.;
+        double lambdaPower = 1.;
+        for (int i = 0; i < n; ++i) {
+            lambdaPower *= _lambda;
+        }
+        for (int power = 0; power <= n + 1; ++power) {
+            const int coefficient = coefficients_m[n * (MaxDerivative + 2) + power];
+            result += static_cast<double>(coefficient) * (positivePower - negativePower);
+            positivePower *= tanhPositive;
+            negativePower *= tanhNegative;
+        }
+        return result / (2. * lambdaPower);
+    }
+
+    inline void TanhImpl::function(const TanhImpl& impl, Kokkos::View<double*> xView,  const int& maxDerivative, Kokkos::View<double**> derivatives) {
         const size_t count = xView.size();
-        derivatives = Kokkos::View<double**>("derivatives", count, maxDerivative);
         Kokkos::parallel_for(
-            "ScalingFFAMagnet::getFieldValue()", count, KOKKOS_LAMBDA(const size_t i) {
+            "TanhImpl::function", count, KOKKOS_LAMBDA(const size_t i) {
                 for (int order = 0; order < maxDerivative; ++order) {
                     double x = xView(i);
-                    derivatives(i, order) = impl.function(x, order);
+                    derivatives(i, order) = impl.functionDevice(x, order);
                 }
             }
         );

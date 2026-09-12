@@ -46,7 +46,7 @@ namespace endfieldmodel {
     std::vector<std::vector<std::vector<int> > > TanhImpl::_tdi;
 
     TanhImpl::TanhImpl(double x0, double lambda, int max_index) : _x0(x0), _lambda(lambda) {
-        setTanhDiffIndices(max_index);
+        setMaximumDerivative(max_index);
     }
 
     double TanhImpl::getTanh(double x, int n) const {
@@ -73,7 +73,22 @@ namespace endfieldmodel {
 
     double TanhImpl::function(double x, int n) const { return (getTanh(x, n) - getNegTanh(x, n)) / 2.; }
 
-    void TanhImpl::setMaximumDerivative(size_t n) { setTanhDiffIndices(n); }
+    void TanhImpl::setMaximumDerivative(size_t n) {
+        if (n > MaxDerivative) {
+            throw GeneralOpalException(
+                    "TanhImpl::setMaximumDerivative",
+                    "GPU-compatible tanh derivatives are limited to order 21");
+        }
+        setTanhDiffIndices(n);
+        for (size_t i = 0; i < CoefficientCount; ++i) {
+            coefficients_m[i] = 0;
+        }
+        for (size_t derivative = 0; derivative <= n; ++derivative) {
+            for (const auto& term : _tdi[derivative]) {
+                coefficients_m[derivative * (MaxDerivative + 2) + term[1]] = term[0];
+            }
+        }
+    }
 
     void TanhImpl::setTanhDiffIndices(size_t n) {
         _tdi.reserve(n + 1);
