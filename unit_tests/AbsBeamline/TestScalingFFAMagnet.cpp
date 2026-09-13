@@ -403,8 +403,10 @@ TEST_F(ScalingFFAMagnetTest, BatchedTanhMatchesScalarEvaluation) {
     for (size_t point = 0; point < pointCount; ++point) {
         for (int order = 0; order < derivativeCount; ++order) {
             const double expected = tanh.function(pointsHost(point), order);
+            // Host GSL/libm and GPU Kokkos transcendental implementations differ
+            // slightly; cancellation in even derivatives amplifies that difference.
             EXPECT_NEAR(derivativesHost(point, order), expected,
-                        std::max(1.e-9, std::abs(expected) * 1.e-11));
+                        std::max(5.e-9, std::abs(expected) * 1.e-11));
         }
     }
 }
