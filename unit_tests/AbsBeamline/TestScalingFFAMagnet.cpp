@@ -56,7 +56,6 @@ public:
         std::shared_ptr<endfieldmodel::Tanh> tanh = std::make_shared<endfieldmodel::Tanh>(psi0_m, psi0_m/5., 20);
         sector_m->setEndField(tanh);
         sector_m->setTanDelta(std::tan(Physics::pi/4.));
-        sector_m->setCentre({-r0_m, 0.0, 0.0});
         sector_m->setR0(r0_m);
         sector_m->setRMin(0.);
         sector_m->setRMax(r0_m*2.);
@@ -234,7 +233,6 @@ TEST_F(ScalingFFAMagnetTest, ConstructorTest) {
     test->setDipoleConstant(++i);
     test->setR0(++i);
     double x = ++i;
-    test->setCentre(Vector_t<double, 3>({x, x, x}));
     x = ++i;
     std::shared_ptr<endfieldmodel::Tanh> tanh = std::make_shared<endfieldmodel::Tanh>(x, x, i);
     test->setEndField(tanh);
@@ -256,15 +254,13 @@ TEST_F(ScalingFFAMagnetTest, ConstructorTest) {
         EXPECT_EQ(test->getFieldIndex(), ++i);
         EXPECT_NEAR(test->getDipoleConstant(), ++i, 1e-9);
         EXPECT_NEAR(test->getR0(), ++i, 1e-9);
-        EXPECT_NEAR(test->getCentre()[0], ++i, 1e-9);
-        EXPECT_NEAR(test->getCentre()[1], i, 1e-9);
-        EXPECT_NEAR(test->getCentre()[2], i, 1e-9);
         ++i;
         EXPECT_NEAR(test->getEndField()->function(x, 0),
                     tanh->function(x, 0), 1e-9);
         if (j == 1) {
             break;
         }
+        ++i;
         EXPECT_EQ(test->getMaxOrder(), ++i);
         EXPECT_NEAR(test->getPhiStart(), ++i, 1e-9);
         EXPECT_NEAR(test->getPhiEnd(), ++i, 1e-9);

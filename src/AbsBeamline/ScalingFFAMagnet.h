@@ -66,7 +66,6 @@ struct ScalingFFAMagnetConfig {
     double phiEnd_m          = 0.;  // used for placement of next element
     double azimuthalExtent_m = 0.;  // maximum distance used for field calculation
     double verticalExtent_m  = 0.;  // maximum allowed distance from the midplane
-    Vector_t<double, 3> centre_m;
     const double fp_tolerance                = 1e-18;
     Kokkos::Array<double, CoefficientCount> dfCoefficients_m{};
 };
@@ -226,12 +225,6 @@ public:
 
     /** Set the radius constant R_0 */
     void setR0(double r0) { config_m.r0_m = r0; }
-
-    /** Get the centre of the sector */
-    Vector_t<double, 3> getCentre() const { return config_m.centre_m; }
-
-    /** Set the centre of the sector */
-    void setCentre(Vector_t<double, 3> centre) { config_m.centre_m = centre; }
 
     /** Get the fringe field
      *
