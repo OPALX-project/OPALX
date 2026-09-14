@@ -1,7 +1,7 @@
 //
 // Unit tests for class ScalingFFAMagnet
 //
-// Copyright (c) 2017, Chris Rogers, STFC Rutherford Appleton Laboratory, Didcot, UK
+// Copyright (c) 2017-2026, Chris Rogers, STFC Rutherford Appleton Laboratory, Didcot, UK
 // All rights reserved.
 //
 // This file is part of OPAL.

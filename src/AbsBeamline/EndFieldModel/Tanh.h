@@ -125,7 +125,6 @@ namespace endfieldmodel {
 
     class Tanh : public EndFieldModel {
     public:
-        using DeviceType = TanhImpl;
         /** Create a double tanh function
          *
          *  Here x0 is the centre length and lambda is the end length. max_index is
@@ -175,7 +174,7 @@ namespace endfieldmodel {
         virtual void setMaximumDerivative(size_t n) override {return _impl.setMaximumDerivative(n);}
 
         /** Return the trivially-copyable data used inside device kernels. */
-        DeviceType getDeviceData() const { return _impl; }
+        TanhImpl getDeviceData() const { return _impl; }
 
     private:
         TanhImpl _impl;

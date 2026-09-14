@@ -40,7 +40,7 @@ template <class EFM>
 void VerticalFFAMagnet<EFM>::initialise() {
     calculateDfCoefficients();
     endField_m.setMaximumDerivative(config_m.maxOrder_m + 1);
-    config_m.endField_m = endField_m.getDeviceData();
+    //config_m.endField_m = endField_m.getDeviceData();
     straightGeometry_m.setElementLength(config_m.bbLength_m);  // length = phi r
 }
 
@@ -105,7 +105,7 @@ template <class EFM>
 void VerticalFFAMagnet<EFM>::setEndField(EFM endField) {
     endField_m = endField;
     endField_m.setMaximumDerivative(config_m.maxOrder_m + 1);
-    config_m.endField_m = endField_m.getDeviceData();
+    //config_m.endField_m = endField_m.getDeviceData();
 }
 
 template <class EFM>
@@ -116,7 +116,7 @@ void VerticalFFAMagnet<EFM>::setMaxOrder(size_t maxOrder) {
                 "GPU-compatible field expansions are limited to order 20");
     }
     endField_m.setMaximumDerivative(maxOrder + 1);
-    config_m.endField_m = endField_m.getDeviceData();
+    //config_m.endField_m = endField_m.getDeviceData();
     config_m.maxOrder_m = maxOrder;
 }
 

@@ -29,7 +29,7 @@ struct VerticalFFAMagnetConfig {
     double zPosExtent_m = 0.;  // extent upwards from the midplane
     double halfWidth_m  = 0.;  // extent in either +x or -x
     double bbLength_m   = 0.;
-    typename EFM::DeviceType endField_m;
+    EFM endField_m;
     Kokkos::Array<double, CoefficientCount> dfCoefficients_m{};
 };
 
@@ -288,7 +288,7 @@ bool VerticalFFAMagnet<EFM>::getFieldValue(const VerticalFFAMagnetConfig<EFM>& c
     Kokkos::Array<double, VerticalFFAMagnetConfig<EFM>::MaxOrder + 2> fringeDerivatives{};
     double zRel = R[2] - config_m.bbLength_m / 2.;  // z relative to centre of magnet
     for (size_t i = 0; i < config_m.maxOrder_m + 2; ++i) {
-        fringeDerivatives[i] = config_m.endField_m.functionDevice(zRel, i);  // d^i_phi f
+        //fringeDerivatives[i] = config_m.endField_m.function(xView, i);  // d^i_phi f
     }
 
     Kokkos::Array<double, VerticalFFAMagnetConfig<EFM>::MaxOrder + 1> x_n{};  // x^n
