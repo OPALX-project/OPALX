@@ -41,7 +41,6 @@ public:
         RADIAL_POS_EXTENT,
         HEIGHT,
         MAGNET_START,
-        MAGNET_END,
         AZIMUTHAL_EXTENT,
         SIZE // size of the enum
     };

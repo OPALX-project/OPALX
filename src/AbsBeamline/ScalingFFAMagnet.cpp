@@ -169,19 +169,11 @@ void ScalingFFAMagnet::setupEndField() const {
     std::shared_ptr<endfieldmodel::EndFieldModel> efm =
                              efmMan->getEndFieldModel(endFieldName_m);
     efm->rescale(1.0 / getR0());
-    double defaultExtent = efm->getEndLength()*4. + efm->getCentreLength();
-    if (config_m.phiStart_m < 0.0) {
-        config_m.phiStart_m  = defaultExtent / 2.0;
-    } else {
-        config_m.phiStart_m  = getPhiStart() + efm->getCentreLength() * 0.5;
-    }
-    if (config_m.phiEnd_m < 0.0) {
-        config_m.phiEnd_m = defaultExtent;
-    }
+    config_m.phiStart_m  = getPhiStart() + efm->getCentreLength() * 0.5;
     if (config_m.azimuthalExtent_m < 0.0) {
-        config_m.azimuthalExtent_m  = efm->getEndLength() * 5. + efm->getCentreLength() / 2.0;
+        config_m.azimuthalExtent_m  = efm->getEndLength() * 5. + efm->getCentreLength() * 0.5;
     }
-    planarArcGeometry_m.setElementLength(config_m.r0_m * config_m.phiEnd_m);  // length = phi r
+    planarArcGeometry_m.setElementLength(config_m.r0_m * config_m.phiEnd_m);
     planarArcGeometry_m.setCurvature(1. / config_m.r0_m);
     efm_m = efm;
 }

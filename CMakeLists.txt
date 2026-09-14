@@ -14,6 +14,7 @@ if(POLICY CMP0155)
   cmake_policy(SET CMP0155 OLD)
 endif()
 
+message("ROGERS TEST DEBUG ${CMAKE_BUILD_TYPE}")
 # ------------------------------------------------------------------------------
 # Project declaration and version
 # ------------------------------------------------------------------------------
