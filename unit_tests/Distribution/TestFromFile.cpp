@@ -34,9 +34,6 @@ protected:
             domain[i] = ippl::Index(this->nr[i]);
         }
 
-        auto fc = std::make_shared<FieldContainer_t>(
-                hr, rmin, rmax, decomp, domain, origin, this->isAllPeriodic_m);
-
         Mesh_t<3> mesh(domain, hr, origin);
         FieldLayout_t<3> fl(MPI_COMM_WORLD, domain, decomp, this->isAllPeriodic_m);
 
@@ -100,8 +97,7 @@ protected:
 TEST_F(FromFileTest, GeneratesParticlesFromAsciiFile) {
     writeSampleFile();
 
-    auto fc = std::shared_ptr<FieldContainer_t>();
-    FromFile sampler(pc, fc, tempFilename);
+    FromFile sampler(pc, tempFilename);
 
     size_t requested = 10;  // larger than available in file to test clamping
 
@@ -149,8 +145,7 @@ TEST_F(FromFileTest, ParseHeader_ReorderedColumns) {
     // col5=z. Data "10 20 30 40 50 60" => x=50, y=40, z=60, px=20, py=10, pz=30.
     writeFileWithHeader("py px pz y x z", "10 20 30 40 50 60");
 
-    auto fc = std::shared_ptr<FieldContainer_t>();
-    FromFile sampler(pc, fc, tempFilename);
+    FromFile sampler(pc, tempFilename);
 
     size_t requested = 1;
     sampler.generateParticles(requested, nr);
@@ -176,8 +171,7 @@ TEST_F(FromFileTest, ParseHeader_ReorderedColumns) {
 TEST_F(FromFileTest, ParseHeader_StandardOrderAndAlternateNames) {
     writeFileWithHeader("x y z px/momentumx py/momentumy pz/momentumz", "1.0 2.0 3.0 4.0 5.0 6.0");
 
-    auto fc = std::shared_ptr<FieldContainer_t>();
-    FromFile sampler(pc, fc, tempFilename);
+    FromFile sampler(pc, tempFilename);
 
     size_t requested = 1;
     sampler.generateParticles(requested, nr);

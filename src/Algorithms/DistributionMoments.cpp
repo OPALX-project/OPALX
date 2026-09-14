@@ -131,10 +131,9 @@ void DistributionMoments::computeMoments(
     }
 
     // Short-circuit: nothing has mutated R or P since the last compute.
-    // Every caller that mutates particle state is required to call
-    // markMomentsDirty(), including PartBunch::bunchUpdate(), which calls
-    // pc->markMomentsDirty() immediately after IPPL's pc->update() so that
-    // domain-decomposition / particle migration is also covered.
+    // Every caller that mutates particle state is required to call markMomentsDirty(). The PIC
+    // particle-domain adapter does so immediately after IPPL migration, covering changes in
+    // domain decomposition as well as physics updates.
     if (!slot->momentsDirty) {
         return;
     }
