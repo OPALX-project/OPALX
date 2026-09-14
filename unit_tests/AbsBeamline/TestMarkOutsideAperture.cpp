@@ -38,6 +38,7 @@
 
 #include "BeamlineCore/DriftRep.h"
 #include "BeamlineCore/MonitorRep.h"
+#include "BeamlineCore/MultipoleTRep.h"
 #include "BeamlineCore/SBendRep.h"
 #include "PartBunch/ParticleContainer.hpp"
 
@@ -277,6 +278,39 @@ namespace {
         createParticlesAt(pc, {onOrbit, offOrbit});
 
         EXPECT_EQ(sbend.markOutsideAperture(pc), 1u);
+        EXPECT_EQ(invalidMaskOnHost(pc), std::vector<bool>({false, true}));
+    }
+
+    TEST_F(MarkOutsideApertureTest, CurvedMultipoleTMeasuresApertureInArcCoordinates) {
+        // A curved MULTIPOLET is a bend body too, so it scrapes in arc coordinates exactly
+        // as an SBEND does. Same geometry as the SBEND case above.
+        const double curvature = 1.0;
+        const double length    = 1.0;
+        const double radius    = 1.0 / curvature;
+
+        MultipoleTRep magnet("test_multipolet");
+        magnet.setElementLength(length);
+        magnet.setBendAngle(curvature * length, false);
+        magnet.setTransProfile({-1.0});
+        magnet.setFringeField(length / 2, 0.02, 0.02);
+        magnet.ElementBase::setAperture(ApertureType::ELLIPTICAL, {0.05, 0.05});
+        ASSERT_TRUE(magnet.getGeometry().isBend());
+
+        const auto entryPos = [&](double phi, double d) -> std::array<double, 3> {
+            return {-radius + (radius + d) * std::cos(phi), 0.0, (radius + d) * std::sin(phi)};
+        };
+
+        const std::array<double, 3> onOrbit  = entryPos(0.5, 0.0);  // arc (0, 0, 0.5)
+        const std::array<double, 3> offOrbit = entryPos(0.5, 0.1);  // arc (0.1, 0, 0.5)
+
+        // A straight-frame check would invert the expected marking here.
+        ASSERT_GT(std::abs(onOrbit[0]), 0.05);
+        ASSERT_LT(std::abs(offOrbit[0]), 0.05);
+
+        auto pc = makeContainer();
+        createParticlesAt(pc, {onOrbit, offOrbit});
+
+        EXPECT_EQ(magnet.markOutsideAperture(pc), 1u);
         EXPECT_EQ(invalidMaskOnHost(pc), std::vector<bool>({false, true}));
     }
 

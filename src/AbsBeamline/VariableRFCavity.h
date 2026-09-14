@@ -50,7 +50,7 @@ public:
     VariableRFCavity& operator=(const VariableRFCavity& rhs);
 
     /** Destructor */
-    virtual ~VariableRFCavity() = default;
+    ~VariableRFCavity() override = default;
 
     /** Return a deep copy */
     ElementBase* clone() const override;

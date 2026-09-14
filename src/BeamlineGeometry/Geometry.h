@@ -65,6 +65,10 @@ public:
     ///@}
 
     GeometryKind kind() const { return kind_m; }
+    /// True for a body that turns the design orbit (sector or rectangular bend).
+    bool isBend() const { return kind_m == GeometryKind::SBend || kind_m == GeometryKind::RBend; }
+    /// True for a rectangular (straight box) bend body.
+    bool isRectangularBend() const { return kind_m == GeometryKind::RBend; }
 
     /// @name Lengths
     ///@{

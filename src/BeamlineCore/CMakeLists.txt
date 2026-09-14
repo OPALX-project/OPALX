@@ -30,6 +30,8 @@ set (HDRS
     TravelingWaveRep.h
     SolenoidRep.h
     ProbeRep.h
+    MultipoleTRep.h
+    VariableRfCavityRep.h
 )
 
 target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

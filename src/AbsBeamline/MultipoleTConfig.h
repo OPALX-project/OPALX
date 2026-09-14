@@ -41,10 +41,14 @@ struct MultipoleTConfig {
     double verticalAperture_m{0.5};
     double horizontalAperture_m{0.5};
     double boundingBoxLength_m{0.0};
-    /** Fringe field parameters **/
-    double fringeS0_m;
-    double fringeLambdaLeft_m;
-    double fringeLambdaRight_m;
+    /** Half separation of the fringe-profile centres [m]; set before field evaluation. */
+    double fringeS0_m{0.0};
+    /** Entrance fringe scale [m]. Zero gives no field-support extension by default;
+     *  the tanh field model requires a positive scale for field evaluation.
+     */
+    double fringeLambdaLeft_m{0.0};
+    /** Exit fringe scale [m], with the same default and requirement as the entrance. */
+    double fringeLambdaRight_m{0.0};
 };
 
 #endif  // OPALX_MULTIPOLETCONFIG_H
