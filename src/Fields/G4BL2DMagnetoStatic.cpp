@@ -1,5 +1,6 @@
 #include "Fields/G4BL2DMagnetoStatic.h"
 #include "Fields/FM2DMagnetoStatic.h"  // reuse of computeField(), see the class doc
+#include "Fields/G4BLMapSyntax.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 #include "Utilities/GeneralOpalException.h"
@@ -11,63 +12,9 @@
 #include <sstream>
 #include <string>
 
-namespace {
-
-    /**
-     * @brief Read the next line that carries content.
-     *
-     * Strips '#' comments and surrounding whitespace and skips lines that are
-     * left empty.
-     *
-     * @note This deliberately does not use Fieldmap::getLine(). That reads
-     * through a 256 character buffer (READ_BUFFER_LENGTH), while a data row
-     * here is nR values wide -- 51 values, about 660 characters, for the muE4
-     * WSX map -- and would be silently truncated.
-     *
-     * @return false at end of file
-     */
-    bool nextLine(std::istream& in, std::string& line) {
-        while (std::getline(in, line)) {
-            const size_t comment = line.find('#');
-            if (comment != std::string::npos) {
-                line.erase(comment);
-            }
-            const size_t first = line.find_first_not_of(" \t\r\n");
-            if (first == std::string::npos) {
-                continue;
-            }
-            const size_t last = line.find_last_not_of(" \t\r\n");
-            line              = line.substr(first, last - first + 1);
-            return true;
-        }
-        return false;
-    }
-
-    /// @brief First whitespace separated token of a line, the section keyword
-    std::string firstToken(const std::string& line) {
-        std::istringstream is(line);
-        std::string token;
-        is >> token;
-        return token;
-    }
-
-    /// @brief The `key=value` pairs of a line, skipping the leading keyword
-    std::map<std::string, std::string> keyValues(const std::string& line) {
-        std::istringstream is(line);
-        std::string token;
-        is >> token;  // discard the section keyword
-
-        std::map<std::string, std::string> pairs;
-        while (is >> token) {
-            const size_t equals = token.find('=');
-            if (equals != std::string::npos) {
-                pairs[token.substr(0, equals)] = token.substr(equals + 1);
-            }
-        }
-        return pairs;
-    }
-
-}  // namespace
+using G4BLMapSyntax::firstToken;
+using G4BLMapSyntax::keyValues;
+using G4BLMapSyntax::nextLine;
 
 /**
  * @brief Constructor. Parses and validates the whole file without storing it.

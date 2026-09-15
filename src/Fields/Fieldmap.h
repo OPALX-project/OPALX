@@ -33,7 +33,8 @@ enum MapType {
     T3DMagnetoStatic_Extended,
     T3DMagnetoStaticH5Block,
     T3DDynamicH5Block,
-    TG4BL2DMagnetoStatic
+    TG4BL2DMagnetoStatic,
+    TG4BL3DMagnetoStatic
 };
 
 enum SwapType {
