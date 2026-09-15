@@ -1,5 +1,5 @@
 //
-// Unit tests for class ScalingFFAMagnet
+// Unit tests for class Tanh
 //
 // Copyright (c) 2017-2026, Chris Rogers, STFC Rutherford Appleton Laboratory, Didcot, UK
 // All rights reserved.
@@ -62,13 +62,24 @@ TEST_F(TestTanh, FunctionTest) {
         double fEstimated = (tanh1.function(5+delta, i-1)-tanh1.function(5-delta, i-1))/2/delta;
         EXPECT_NEAR(fCalculated, fEstimated, 1e-6);
     }
-    Kokkos::View<double*> x("x", 2);
-    x(0) = -5.0;
-    x(1) = 5.0;
-    Kokkos::View<double**> derivatives("d", 2, 4);
-    tanh1.function(x, 4, derivatives);
+}
+    // error in GPU land - trying to access HOST memory from DEVICE (or vice
+    // versa). Sort it out in the morning.
+TEST_F(TestTanh, FunctionGpuTest) {
+    endfieldmodel::Tanh tanh1(5, 1, 6);
+    Kokkos::View<double*> xgpu("xgpu", 2);
+    auto xhost = Kokkos::create_mirror_view(xgpu);
+    xhost(0) = -5.0;
+    xhost(1) = 5.0;
+    Kokkos::deep_copy(xgpu, xhost); // target, source
+    Kokkos::View<double**> derivativesgpu("d", 2, 4);
+
+    tanh1.function(xgpu, 4, derivativesgpu);
+
+    auto derivativeshost = Kokkos::create_mirror_view(derivativesgpu);
+    Kokkos::deep_copy(derivativeshost, derivativesgpu); // target, source
     for (auto i: std::vector<int>({0, 1, 2, 3})) {
-        EXPECT_NEAR(derivatives(0, i), tanh1.function(-5, i), 1e-12);
-        EXPECT_NEAR(derivatives(1, i), tanh1.function(5, i), 1e-12);
+        EXPECT_NEAR(derivativeshost(0, i), tanh1.function(-5, i), 1e-12);
+        EXPECT_NEAR(derivativeshost(1, i), tanh1.function(5, i), 1e-12);
     }
 }

@@ -157,7 +157,7 @@ namespace endfieldmodel {
         double function(double x, int n) const override {return _impl.function(x, n);}
 
         /** GPU aware version of the function */
-        void function(Kokkos::View<double*> xView,  const int& n, Kokkos::View<double**> derivatives) override;
+        void function(Kokkos::View<double*> xView,  const int maxDerivative, Kokkos::View<double**>& derivatives);
         std::ostream& print(std::ostream& out) const override;
 
         /** Nominal flat top length is twice x0 (one x0 in each direction) */
@@ -181,7 +181,7 @@ namespace endfieldmodel {
     };
 
 
-    inline void Tanh::function(Kokkos::View<double*> xView,  const int& maxDerivative, Kokkos::View<double**> derivatives) {
+    inline void Tanh::function(Kokkos::View<double*> xView,  const int maxDerivative, Kokkos::View<double**>& derivatives) {
         TanhImpl::function(_impl, xView, maxDerivative, derivatives);
     }
 
@@ -205,7 +205,11 @@ namespace endfieldmodel {
         return result / (2. * lambdaPower);
     }
 
-    inline void TanhImpl::function(const TanhImpl& impl, Kokkos::View<double*> xView,  const int& maxDerivative, Kokkos::View<double**> derivatives) {
+    inline void TanhImpl::function(
+                        const TanhImpl& impl,
+                        Kokkos::View<double*> xView,
+                        const int& maxDerivative,
+                        Kokkos::View<double**> derivatives) {
         const size_t count = xView.size();
         Kokkos::parallel_for(
             "TanhImpl::function", count, KOKKOS_LAMBDA(const size_t i) {
