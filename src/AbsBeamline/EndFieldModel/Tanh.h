@@ -68,9 +68,9 @@ namespace endfieldmodel {
         KOKKOS_INLINE_FUNCTION double functionDevice(double x, int n) const;
 
         static void function(const TanhImpl& impl,
-                            Kokkos::View<double*> xView,
+                            const Kokkos::View<double*>& xView,
                             const int& maxDerivative,
-                            Kokkos::View<double**> values);
+                            Kokkos::View<double**>& derivatives);
 
         /** Returns the value of tanh((x+x0)/lambda) or its \f$n^{th}\f$ derivative. */
         double getTanh(double x, int n) const;
@@ -156,8 +156,14 @@ namespace endfieldmodel {
          */
         double function(double x, int n) const override {return _impl.function(x, n);}
 
-        /** GPU aware version of the function */
-        void function(Kokkos::View<double*> xView,  const int maxDerivative, Kokkos::View<double**>& derivatives);
+        /** GPU aware version of the function
+         *
+         */
+        void function(const Kokkos::View<double*>& xView,
+                      const int maxDerivative,
+                      Kokkos::View<double**>& derivatives) const override;
+
+        /** Print summary of the Tanh model to out */
         std::ostream& print(std::ostream& out) const override;
 
         /** Nominal flat top length is twice x0 (one x0 in each direction) */
@@ -181,7 +187,7 @@ namespace endfieldmodel {
     };
 
 
-    inline void Tanh::function(Kokkos::View<double*> xView,  const int maxDerivative, Kokkos::View<double**>& derivatives) {
+    inline void Tanh::function(const Kokkos::View<double*>& xView,  const int maxDerivative, Kokkos::View<double**>& derivatives) const {
         TanhImpl::function(_impl, xView, maxDerivative, derivatives);
     }
 
@@ -206,10 +212,11 @@ namespace endfieldmodel {
     }
 
     inline void TanhImpl::function(
-                        const TanhImpl& impl,
-                        Kokkos::View<double*> xView,
-                        const int& maxDerivative,
-                        Kokkos::View<double**> derivatives) {
+                            const TanhImpl& impl,
+                            const Kokkos::View<double*>& xView,
+                            const int& maxDerivative,
+                            Kokkos::View<double**>& derivatives) {
+
         const size_t count = xView.size();
         Kokkos::parallel_for(
             "TanhImpl::function", count, KOKKOS_LAMBDA(const size_t i) {

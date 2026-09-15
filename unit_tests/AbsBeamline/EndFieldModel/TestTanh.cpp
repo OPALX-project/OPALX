@@ -29,6 +29,7 @@ public:
         Kokkos::initialize();
     }
     static void TearDownTestSuite() {
+        Kokkos::finalize();
     }
 };
 
