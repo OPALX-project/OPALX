@@ -360,7 +360,7 @@ inline void ScalingFFAMagnet::getFieldValue(const ScalingFFAMagnetConfig& config
     const Kokkos::View<Vector_t<double, 3>*> B = pc->B.getView();
     const Kokkos::View<Vector_t<double, 5>*> Rcyl("Rcyl", count);
     const Kokkos::View<Vector_t<double, 3>*> Bcyl("Bcyl", count);;
-    const Kokkos::View<double**> derivatives("derivatives", count, config.maxOrder_m + 1);
+    Kokkos::View<double**> derivatives("derivatives", count, config.maxOrder_m + 1);
     Kokkos::parallel_for(
         "ScalingFFAMagnet::getFieldValue()", count, KOKKOS_LAMBDA(const size_t i) {
             getCylindricalCoordinates(config, R(i), Rcyl(i));
