@@ -32,6 +32,7 @@
 #include "Fields/FM2DDynamic.h"
 #include "Fields/FM2DMagnetoStatic.h"
 #include "Fields/G4BL2DMagnetoStatic.h"
+#include "Fields/G4BL3DMagnetoStatic.h"
 
 #include "Physics/Physics.h"
 #include "Utilities/GeneralOpalException.h"
@@ -125,6 +126,15 @@ Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/, bool zRever
                                 Filename, FieldmapDescription(
                                                   TG4BL2DMagnetoStatic,
                                                   new G4BL2DMagnetoStatic(Filename, zReverse))));
+                return (*position.first).second.Map;
+                break;
+
+            case TG4BL3DMagnetoStatic:
+                position = FieldmapDictionary.insert(
+                        std::make_pair(
+                                Filename,
+                                FieldmapDescription(
+                                        TG4BL3DMagnetoStatic, new G4BL3DMagnetoStatic(Filename))));
                 return (*position.first).second.Map;
                 break;
 
@@ -341,11 +351,7 @@ MapType Fieldmap::readHeader(std::string Filename) {
             return TG4BL2DMagnetoStatic;
         }
         if (section == "grid") {
-            throw GeneralOpalException(
-                    "Fieldmap::readHeader()",
-                    "'" + Filename
-                            + "' is a G4beamline 'grid' field map. Only 'cylinder' maps are "
-                              "supported so far.");
+            return TG4BL3DMagnetoStatic;
         }
     }
 

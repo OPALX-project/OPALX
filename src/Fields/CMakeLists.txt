@@ -7,6 +7,7 @@ set (_SRCS
     FM2DMagnetoStatic.cpp
     FM2DDynamic.cpp
     G4BL2DMagnetoStatic.cpp
+    G4BL3DMagnetoStatic.cpp
 
     # To be ported from OPAL
     #FM3DH5BlockBase.cpp
@@ -48,6 +49,8 @@ set (HDRS
     FM2DMagnetoStatic.h
     FM2DDynamic.h
     G4BL2DMagnetoStatic.h
+    G4BL3DMagnetoStatic.h
+    G4BLMapSyntax.h
     
     # To be ported from OPAL
     #FM3DDynamic.h
