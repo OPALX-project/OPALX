@@ -176,6 +176,9 @@ public:
     /// @brief Apply the algorithm to a sector bend.
     virtual void visitSBend(const SBend&);
 
+    /// @brief Null op, as everywhere. Why does this exist?
+    virtual void visitScalingFFAMagnet(const ScalingFFAMagnet&);
+
     /// @brief Apply the algorithm to a traveling wave cavity.
     virtual void visitTravelingWave(const TravelingWave&);
 
@@ -386,6 +389,11 @@ inline void ParallelTracker::visitRFCavity(const RFCavity& as) {
 inline void ParallelTracker::visitSBend(const SBend& bend) {
     itsOpalBeamline_m.visit(bend, *this, *itsBunch_m);
 }
+
+inline void ParallelTracker::visitScalingFFAMagnet(const ScalingFFAMagnet& ffa) {
+    itsOpalBeamline_m.visit(ffa, *this, *itsBunch_m);
+}
+
 
 inline void ParallelTracker::visitTravelingWave(const TravelingWave& tw) {
     itsOpalBeamline_m.visit(tw, *this, *itsBunch_m);

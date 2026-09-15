@@ -317,6 +317,10 @@ public:
     /** Return the end field name. */
     std::string getEndFieldName() const { return endFieldName_m; }
 
+    ElementType getElementType() const {return ElementType::RBEND;}
+    std::string getTypeString() const {return "RBEND";}
+    ElementType getType() const {return ElementType::RBEND;}
+
 private:
     /** Calculate the df coefficients, ready for field generation
      *

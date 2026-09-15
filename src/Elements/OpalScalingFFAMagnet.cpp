@@ -137,8 +137,8 @@ void OpalScalingFFAMagnet::setupNamedEndField() {
 }
 
 void OpalScalingFFAMagnet::update() {
+    OpalElement::update();
     ScalingFFAMagnet* magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
-
     // use L = r0*theta; we define the magnet into length for UI but into angles
     // internally; and use m as external default unit
     double r0Abs = std::abs(Attributes::getReal(itsAttr[R0]));
