@@ -166,14 +166,21 @@ void ScalingFFAMagnet::setupEndField() const {
     if (efmInitialised_m) {
         return;
     }
+    if (endFieldName_m == "") {
+        if (!efm_m) {
+            throw GeneralOpalException(
+                    "ScalingFFAMagnet::setupEndField",
+                    "EndFieldName is blank but EndFieldModel not set");
+        }
+        return;
+    }
     auto efmMan = endfieldmodel::EndFieldModelManager::getEFMManager();
-    std::shared_ptr<endfieldmodel::EndFieldModel> efm =
-                             efmMan->getEndFieldModel(endFieldName_m);
-    efm->rescale(1.0 / getR0());
-    config_m.phiStart_m  = config_m.phiStart_m + efm->getCentreLength() * 0.5;
-    config_m.phiEnd_m = config_m.phiStart_m + efm->getCentreLength() * 0.5;
+    efm_m = efmMan->getEndFieldModel(endFieldName_m);
+    efm_m->rescale(1.0 / getR0());
+    config_m.phiStart_m  = config_m.phiStart_m + efm_m->getCentreLength() * 0.5;
+    config_m.phiEnd_m = config_m.phiStart_m + efm_m->getCentreLength() * 0.5;
     if (config_m.azimuthalExtent_m < 0.0) {
-        config_m.azimuthalExtent_m  = efm->getEndLength() * 5. + efm->getCentreLength() * 0.5;
+        config_m.azimuthalExtent_m  = efm_m->getEndLength() * 5. + efm_m->getCentreLength() * 0.5;
     }
     planarArcGeometry_m = Geometry::makeSBend(config_m.r0_m * config_m.phiEnd_m, 1/config_m.r0_m);
     efmInitialised_m = true;
