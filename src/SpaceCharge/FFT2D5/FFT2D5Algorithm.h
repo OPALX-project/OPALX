@@ -372,8 +372,9 @@ namespace opalx::spacecharge {
          */
         template <bool ScatterLongitudinally>
         KOKKOS_FUNCTION static void gatherFromEField(
-                size_t n, const Vector3D_t& fsR, const VectorView_t& e, const Vector3D_t& invDr, int nghost,
-                const ippl::NDIndex<3U>& lDom, const VectorGridView3D_t& eField, const Vector3D_t& origin);
+                size_t n, const Vector3D_t& fsR, const VectorView_t& e, const Vector3D_t& invDr,
+                int nghost, const ippl::NDIndex<3U>& lDom, const VectorGridView3D_t& eField,
+                const Vector3D_t& origin);
 
         /**
          * @brief Kokkos function that unboosts a particle's e efield from the beam
