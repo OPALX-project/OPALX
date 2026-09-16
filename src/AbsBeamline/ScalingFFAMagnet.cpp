@@ -175,7 +175,7 @@ void ScalingFFAMagnet::setupEndField() const {
     if (config_m.azimuthalExtent_m < 0.0) {
         config_m.azimuthalExtent_m  = efm->getEndLength() * 5. + efm->getCentreLength() * 0.5;
     }
-    planarArcGeometry_m = Geometry::makeSBend(config_m.r0_m * config_m.phiEnd_m, config_m.r0_m);
+    planarArcGeometry_m = Geometry::makeSBend(config_m.r0_m * config_m.phiEnd_m, 1/config_m.r0_m);
     efmInitialised_m = true;
 }
 
