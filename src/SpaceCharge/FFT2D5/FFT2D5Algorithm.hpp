@@ -21,6 +21,7 @@
  * Integration changes replace PartBunch access with borrowed containers and per-call state,
  * redirect workspace access, select tracking-active containers, and check deposition inputs.
  */
+// ReSharper disable CppTooWideScopeInitStatement
 #ifndef OPALX_FFT2D5_ALGORITHM_HPP
 #define OPALX_FFT2D5_ALGORITHM_HPP
 
@@ -85,11 +86,11 @@ namespace opalx::spacecharge {
                             "Per-particle charge is zero for an active FFT2D5 container.");
                 }
                 pc->scaleDtByCharge();
-                const auto& r       = pc->R.getView();
-                const auto& p       = pc->P.getView();
-                const auto meanPs   = pc->getMeanP().data_m[2];
-                const auto& dt      = pc->dt.getView();
-                const auto& invalid = pc->InvalidMask.getView();
+                const auto r       = pc->R.getView();
+                const auto p       = pc->P.getView();
+                const auto meanPs  = pc->getMeanP().data_m[2];
+                const auto dt      = pc->dt.getView();
+                const auto invalid = pc->InvalidMask.getView();
                 if (config_m.scatterLongitudinally) {
                     Kokkos::parallel_for(
                             "Solve2d5::scatterToGrid::scatter", pc->getLocalNum(),
@@ -156,7 +157,7 @@ namespace opalx::spacecharge {
     // template parameter.   When true, trilinear CiC is used.  When false, the particle
     // is assigned to a single z slice and bilinear CiC is used in that slice.
     template <bool ScatterLongitudinally, typename DiagnosticPolicy>
-    KOKKOS_INLINE_FUNCTION void FFT2D5Algorithm::doScatterToGrid(
+    KOKKOS_FUNCTION void FFT2D5Algorithm::doScatterToGrid(
             const size_t n, const VectorView_t& r, const VectorView_t& p,
             const ReferenceView_t& ref, const T meanPs, const ScalarView_t& dt,
             const BooleanView_t& invalid, Vector3D_t invDr, const int nghost,
@@ -438,21 +439,32 @@ namespace opalx::spacecharge {
                     gBy4PiEpsilon0 = OpenG0;
                 }
                 gBy4PiEpsilon0 /= 4 * Physics::pi * Physics::epsilon_0;
-                Kokkos::parallel_for(
-                        "Solve2d5::gatherFromGrid", pc->getLocalNum(),
-                        KOKKOS_LAMBDA(const size_t n) {
-                            doGatherFromGrid(
-                                    n, r, p, ref, gammaB, betaB, e, b, invalid, invDr, nghost, lDom,
-                                    eField, origin, gBy4PiEpsilon0, lineDensityGradient,
-                                    diagnostic);
-                        });
+                if (config_m.scatterLongitudinally) {
+                    Kokkos::parallel_for(
+                            "Solve2d5::gatherFromGrid", pc->getLocalNum(),
+                            KOKKOS_LAMBDA(const size_t n) {
+                                doGatherFromGrid<true>(
+                                        n, r, p, ref, gammaB, betaB, e, b, invalid, invDr, nghost, lDom,
+                                        eField, origin, gBy4PiEpsilon0, lineDensityGradient,
+                                        diagnostic);
+                            });
+                } else {
+                    Kokkos::parallel_for(
+                            "Solve2d5::gatherFromGrid", pc->getLocalNum(),
+                            KOKKOS_LAMBDA(const size_t n) {
+                                doGatherFromGrid<false>(
+                                        n, r, p, ref, gammaB, betaB, e, b, invalid, invDr, nghost, lDom,
+                                        eField, origin, gBy4PiEpsilon0, lineDensityGradient,
+                                        diagnostic);
+                            });
+                }
                 Kokkos::fence();
             }
         }
     }
 
-    template <typename DiagnosticPolicy>
-    KOKKOS_INLINE_FUNCTION void FFT2D5Algorithm::doGatherFromGrid(
+    template <bool ScatterLongitudinally, typename DiagnosticPolicy>
+    KOKKOS_FUNCTION void FFT2D5Algorithm::doGatherFromGrid(
             const size_t n, const VectorView_t& r, const VectorView_t& p,
             const ReferenceView_t& ref, const T beamGamma, const T beamBeta, const VectorView_t& e,
             const VectorView_t& b, const BooleanView_t& invalid, Vector3D_t invDr, const int nghost,
@@ -464,7 +476,7 @@ namespace opalx::spacecharge {
             convertToFrenetSerret(n, r, p, ref, fsR, fsP, bUnit, nUnit, tUnit);
             diagnostic.frenetSerretGather(n, fsR, fsP, invalid(n));
             // CiC Gather the boosted E field
-            gatherFromEField(n, fsR, e, invDr, nghost, lDom, eField, origin);
+            gatherFromEField<ScatterLongitudinally>(n, fsR, e, invDr, nghost, lDom, eField, origin);
             diagnostic.gatherEField(n, e(n), b(n), invalid(n));
             // Unboost from the beam frame
             unboostFromBeamFrame(n, beamGamma, beamBeta, e, b);
@@ -483,27 +495,48 @@ namespace opalx::spacecharge {
         }
     }
 
-    KOKKOS_INLINE_FUNCTION void FFT2D5Algorithm::gatherFromEField(
-            const size_t n, Vector3D_t fsR, const VectorView_t& e, Vector3D_t invDr,
-            const int nghost, const ippl::NDIndex<3U>& lDom, VectorGridView3D_t eField,
-            Vector3D_t origin) {
+    template <bool ScatterLongitudinally>
+    KOKKOS_FUNCTION void FFT2D5Algorithm::gatherFromEField(
+            const size_t n, const Vector3D_t& fsR, const VectorView_t& e, const Vector3D_t& invDr,
+            const int nghost, const ippl::NDIndex<3U>& lDom, const VectorGridView3D_t& eField,
+            const Vector3D_t& origin) {
         // CiC gather the boosted E field to the 3D E field grid
         ippl::Vector<T, Dim> whi, wlo;
         ippl::Vector<int, Dim> args;
         if (makeWeights(fsR, origin, invDr, nghost, lDom, eField, whi, wlo, args)) {
-            e(n) = gather2D(eField, wlo, whi, args[0], args[1], args[2] - 1)
-                   + gather2D(eField, wlo, whi, args[0], args[1], args[2]);
+            if constexpr (ScatterLongitudinally) {
+                //e(n) = gather3D(eField, wlo, whi, args[0], args[1], args[2]);
+                e(n) = gather2D(eField, wlo, whi, args[0], args[1], args[2] - 1)
+                       + gather2D(eField, wlo, whi, args[0], args[1], args[2]);
+            } else {
+                e(n) = gather2D(eField, wlo, whi, args[0], args[1], args[2]);
+            }
         }
     }
 
     KOKKOS_INLINE_FUNCTION FFT2D5Algorithm::Vector3D_t FFT2D5Algorithm::gather2D(
             VectorGridView3D_t eField, const ippl::Vector<T, 3U>& wlo,
-            const ippl::Vector<T, 3U>& whi, int x, int y, int z) {
+            const ippl::Vector<T, 3U>& whi, const int x, const int y, const int z) {
         Vector3D_t result;
         result = wlo[0] * wlo[1] * eField(x - 1, y - 1, z);
         result += whi[0] * wlo[1] * eField(x, y - 1, z);
         result += wlo[0] * whi[1] * eField(x - 1, y, z);
         result += whi[0] * whi[1] * eField(x, y, z);
+        return result;
+    }
+
+    KOKKOS_INLINE_FUNCTION FFT2D5Algorithm::Vector3D_t FFT2D5Algorithm::gather3D(
+            VectorGridView3D_t eField, const ippl::Vector<T, 3U>& wlo,
+            const ippl::Vector<T, 3U>& whi, const int x, const int y, const int z) {
+        Vector3D_t result;
+        result = wlo[0] * wlo[1] * wlo[2] * eField(x - 1, y - 1, z - 1);
+        result += whi[0] * wlo[1] * wlo[2] * eField(x, y - 1, z - 1);
+        result += wlo[0] * whi[1] * wlo[2] * eField(x - 1, y, z - 1);
+        result += whi[0] * whi[1] * wlo[2] * eField(x, y, z - 1);
+        result += wlo[0] * wlo[1] * whi[2] * eField(x - 1, y - 1, z);
+        result += whi[0] * wlo[1] * whi[2] * eField(x, y - 1, z);
+        result += wlo[0] * whi[1] * whi[2] * eField(x - 1, y, z);
+        result += whi[0] * whi[1] * whi[2] * eField(x, y, z);
         return result;
     }
 
