@@ -162,6 +162,16 @@ public:
      */
     void getCylindricalCoordinates(const Vector_t<double, 3>& R, Vector_t<double, 5>& Rcyl);
 
+    /** Transform to cartesian coordinates
+     *
+     *  \param Rcyl position in cylindrical coordinates [r, y, phi]
+     *  \param Rcart value overwritten with the position in cartesian coordinates
+     *         like [x, y, z].
+     *
+     *  See the note on the coordinate system above
+     */
+    void getCartesianCoordinates(const Vector_t<double, 3>& Rcyl, Vector_t<double, 3>& Rcart) const;
+
     /** Calculate the field at some arbitrary position in cylindrical coordinates
      *
      *  \param R position in the local coordinate system of the bend, in
@@ -175,7 +185,7 @@ public:
      *
      *  \param bunch the global bunch object
      */
-    void initialise(PartBunch_t* bunch) override;
+    void initialise(PartBunch_t* bunch);
 
     /** Initialise the ScalingFFAMagnet
      *
@@ -187,8 +197,16 @@ public:
     /** Finalise the ScalingFFAMagnet - sets bunch to nullptr */
     void finalise() override;
 
-    /** Not implemented */
-    void getFieldExtent(double& /*zBegin*/, double& /*zEnd*/) const override {}
+    /** Get the field extent
+     *
+     *  \param zBegin sets start z coordinate in the local coordinate system of
+     *         the bend. Azimuthal coordinate is azimuthalExtent-centreLength/2
+     *         at radius maxR
+     *  \param zEnd sets end z coordinate in the local coordinate system of
+     *         the bend. Azimuthal coordinate is azimuthalExtent+centreLength/2
+     *         at radius maxR
+     */
+    void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     /** Return the cell geometry */
     Geometry& getGeometry() override;
@@ -317,9 +335,9 @@ public:
     /** Return the end field name. */
     std::string getEndFieldName() const { return endFieldName_m; }
 
-    ElementType getElementType() const {return ElementType::RBEND;}
-    std::string getTypeString() const {return "RBEND";}
-    ElementType getType() const {return ElementType::RBEND;}
+    ElementType getElementType() const {return ElementType::SBEND;}
+    std::string getTypeString() const {return "SBEND";}
+    ElementType getType() const {return ElementType::SBEND;}
 
 private:
     /** Calculate the df coefficients, ready for field generation
@@ -328,6 +346,10 @@ private:
      *  order for correct field to be calculated.
      */
     void calculateDfCoefficients();
+
+    void getZMin(double& zBegin) const;
+
+    void getZMax(double& zEnd) const;
 
     template <class DerivativeContainer>
     KOKKOS_INLINE_FUNCTION static void getFieldValueCylindricalImpl(
@@ -351,9 +373,8 @@ private:
     mutable ScalingFFAMagnetConfig config_m;
     mutable std::shared_ptr<endfieldmodel::EndFieldModel> efm_m;
     mutable std::string endFieldName_m;
+    mutable bool efmInitialised_m = false;
     std::vector<std::vector<double> > dfCoefficients_m;
-
-    void setupEFM(std::shared_ptr<endfieldmodel::EndFieldModel> efm) const;
 };
 
 inline void ScalingFFAMagnet::getFieldValue(const ScalingFFAMagnetConfig& config,
@@ -389,6 +410,7 @@ inline void ScalingFFAMagnet::getFieldValue(const ScalingFFAMagnetConfig& config
 
 KOKKOS_INLINE_FUNCTION
 void ScalingFFAMagnet::getCylindricalCoordinates(const ScalingFFAMagnetConfig& config, const Vector_t<double, 3> Ri, Vector_t<double, 5>& Rcyli) {
+    Vector_t<double, 3> Rstart = Ri;
     double r = Kokkos::sqrt((Ri[0]+config.r0_m)*(Ri[0]+config.r0_m)+Ri[2]*Ri[2]);
     double normRadius = Kokkos::abs(r / config.r0_m);
     double g          = config.tanDelta_m * Kokkos::log(normRadius);

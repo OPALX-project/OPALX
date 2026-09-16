@@ -46,15 +46,19 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet() :
     itsAttr[END_FIELD_MODEL] = Attributes::makeString
         ("END_FIELD_MODEL",
          "Names the end field model of the magnet, giving the field magnitude along a line of "
-         "constant radius. If blank, uses the 'END_LENGTH' and 'CENTRE_LENGTH'/'L' "
-         "parameters and a tanh model. If 'END_FIELD_MODEL' is not blank, Opal will seek "
+         "constant radius. If blank, uses the 'END_LENGTH' and 'CENTRE_LENGTH' or 'L' "
+         "parameters and a tanh model. If 'END_FIELD_MODEL' is not blank, OpalX will seek "
          "an END_FIELD_MODEL corresponding to the name defined in this string.");
 
     itsAttr[END_LENGTH] = Attributes::makeReal
-        ("END_LENGTH", "The end length of the spiral FFA [m].");
+        ("END_LENGTH", "The end length of the spiral FFA [m]. This determines the fringe field taper");
 
     itsAttr[LENGTH] = Attributes::makeReal
-        ("L", "The centre length of the spiral FFA, if END_FIELD_MODEL is not defined [m].");
+        ("L", "The centre length of the spiral FFA, if END_FIELD_MODEL is not defined [m]. If"
+              "END_FIELD_MODEL is defined, by default for placement purposes the element length"
+              "will be calculated using the END_FIELD_MODEL; this parameter overrides that"
+              "value. In this case it will not affect the field generated but it will affect"
+              "the placement of subsequent elements");
 
     itsAttr[CENTRE_LENGTH] = Attributes::makeReal
         ("CENTRE_LENGTH", "Synonym for L [m].");
@@ -145,17 +149,16 @@ void OpalScalingFFAMagnet::update() {
     double r0Signed = Attributes::getReal(itsAttr[R0]);
     magnet->setR0(r0Signed);
     magnet->setDipoleConstant(Attributes::getReal(itsAttr[B0]));
+    if (itsAttr[APERT]) {
+        throw OpalException("OpalScalingFFAMagnet::update()",
+                            "SCALINGFFAMAGNET does not use APERTURE command");
+    }
 
     // dimensionless quantities
     magnet->setFieldIndex(Attributes::getReal(itsAttr[FIELD_INDEX]));
     magnet->setTanDelta(Attributes::getReal(itsAttr[TAN_DELTA]));
     int maxOrder = std::floor(Attributes::getReal(itsAttr[MAX_Y_POWER]));
     magnet->setMaxOrder(maxOrder);
-
-    if (itsAttr[APERT]) {
-        throw OpalException("OpalScalingFFAMagnet::update()",
-                            "SCALINGFFAMAGNET does not use APERTURE command");
-    }
 
     // get rmin and rmax bounding box edge
     if (!itsAttr[RADIAL_NEG_EXTENT]) {
