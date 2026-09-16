@@ -27,6 +27,25 @@ namespace {
         }
         int calls = 0;
     };
+
+    // A thin, finite-width magnet whose entire support fits between the nominal
+    // step's start and midpoint. No lattice index or OPALX execution is involved.
+    class ThinMagnet : public MonitorRep {
+    public:
+        ThinMagnet() : MonitorRep("thin") { getGeometry().setElementLength(0.003); }
+        ElementBase* clone() const override { return new ThinMagnet(*this); }
+        ElementType getType() const override { return ElementType::MULTIPOLE; }
+        void initialise(PartBunch_t*) override {}
+        void finalise() override {}
+        bool isInside(const Vector& r) const override {
+            return r(2) >= 0 && r(2) < 0.003 && std::abs(r(0)) < 0.02;
+        }
+        bool applyToReferenceParticle(
+                const Vector&, const Vector&, const double&, Vector&, Vector& b) override {
+            b(1) += 0.8;
+            return false;
+        }
+    };
 }  // namespace
 
 class TrackReferenceStepTest : public ::testing::Test {
@@ -114,6 +133,71 @@ TEST_F(TrackReferenceStepTest, BeamlineTrialsDoNotWriteMonitors) {
     EXPECT_EQ(stored->calls, 0);
     const auto committed =
             track_reference::advanceInBeamline(lattice, reference, start, 1e-10, 1e-10, true);
+    EXPECT_EQ(stored->calls, 1);
+    for (unsigned d = 0; d < 3; ++d) {
+        EXPECT_DOUBLE_EQ(trial.position(d), committed.position(d));
+        EXPECT_DOUBLE_EQ(trial.momentum(d), committed.momentum(d));
+    }
+}
+
+TEST_F(TrackReferenceStepTest, ResolvedTransportFindsThinSpatialSupportAndConservesEnergy) {
+    Beam beam;
+    PartBunch_t bunch(
+            {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
+    FlaggedBeamline line;
+    DefaultVisitor visitor(line, false, false);
+    OpalBeamline lattice;
+    ThinMagnet magnet;
+    magnet.setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector(0, 0, 0.01), Quaternion()));
+    magnet.fixPosition();
+    lattice.visit(magnet, visitor, bunch);
+    lattice.prepareSections();
+    const double mass = 9.382720813e8;
+    const PartData reference(1., mass, 1e6);
+    const State start{Vector(0), Vector(0, 0, 1)};
+    const double dt = 0.1 * std::sqrt(2.) / Physics::c;
+    const auto coarse = track_reference::advanceInBeamline(lattice, reference, start, dt, dt, false);
+    EXPECT_DOUBLE_EQ(coarse.momentum(0), 0.); // Midpoint misses the entire magnet.
+    const auto resolved = track_reference::advanceResolvedInBeamline(
+            lattice, reference, start, dt, dt, false);
+    // Integrating dp_x/dz = -q*c*B_y/(mc^2) gives an independent exact impulse.
+    EXPECT_NEAR(resolved.momentum(0), -Physics::c * 0.8 * 0.003 / mass, 2e-13);
+    EXPECT_NEAR(dot(resolved.momentum, resolved.momentum), 1., 2e-13);
+    const State spectator{Vector(0.1, 0, 0), start.momentum};
+    const auto outside = track_reference::advanceResolvedInBeamline(
+            lattice, reference, spectator, dt, dt, false);
+    EXPECT_DOUBLE_EQ(outside.momentum(0), 0.);
+    const auto repeated = track_reference::advanceResolvedInBeamline(
+            lattice, reference, start, dt, dt, false);
+    for (unsigned d = 0; d < 3; ++d) {
+        EXPECT_DOUBLE_EQ(resolved.position(d), repeated.position(d));
+        EXPECT_DOUBLE_EQ(resolved.momentum(d), repeated.momentum(d));
+    }
+    EXPECT_THROW(track_reference::advanceResolvedInBeamline(
+            lattice, reference, start, 0, dt, false), std::invalid_argument);
+}
+
+TEST_F(TrackReferenceStepTest, ResolvedTrialsDoNotRecordMonitors) {
+    Beam beam;
+    PartBunch_t bunch(
+            {1.}, {1.}, {&beam}, {0}, 1., "LF2", opalx::spacecharge::CartesianDomainConfig3D{});
+    FlaggedBeamline line;
+    DefaultVisitor visitor(line, false, false);
+    OpalBeamline lattice;
+    CountingMonitor monitor;
+    monitor.setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector(0), Quaternion()));
+    monitor.fixPosition();
+    lattice.visit(monitor, visitor, bunch);
+    lattice.prepareSections();
+    auto* stored = dynamic_cast<CountingMonitor*>(lattice.getElements().begin()->get());
+    ASSERT_NE(stored, nullptr);
+    const PartData reference(1., 9.382720813e8, 1e6);
+    const State start{Vector(0, 0, 0.2), Vector(0, 0, 1)};
+    const auto trial = track_reference::advanceResolvedInBeamline(
+            lattice, reference, start, 1e-10, 1e-10, false);
+    EXPECT_EQ(stored->calls, 0);
+    const auto committed = track_reference::advanceResolvedInBeamline(
+            lattice, reference, start, 1e-10, 1e-10, true);
     EXPECT_EQ(stored->calls, 1);
     for (unsigned d = 0; d < 3; ++d) {
         EXPECT_DOUBLE_EQ(trial.position(d), committed.position(d));

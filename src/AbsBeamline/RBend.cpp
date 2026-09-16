@@ -45,6 +45,8 @@ void RBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     double zBegin = 0.0;
     double zEnd   = 0.0;
     getFieldExtent(zBegin, zEnd);
+    const ApertureType apertureType = aperture_m.first;
+    const double apertureX = aperture_m.second[0], apertureY = aperture_m.second[1];
 
     // Field info capture by value for kernel.
     const BendFieldModel::FieldInputs inputs = makeFieldInputs();
@@ -52,7 +54,10 @@ void RBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     Kokkos::parallel_for(
             "RBend::apply", nLocal, KOKKOS_LAMBDA(const size_t i) {
                 const Vector_t<double, 3>& point = Rview(i);
-                if (point(2) < zBegin || point(2) > zEnd) {
+                // Match isInside(): entrance belongs to this support, exit does not.
+                if (point(2) < zBegin || point(2) >= zEnd
+                    || !ApertureHelper::isInsideAperture(
+                            point(0), point(1), apertureType, apertureX, apertureY)) {
                     return;  // exits the lambda for current particle
                 }
 

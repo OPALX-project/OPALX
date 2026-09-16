@@ -23,7 +23,9 @@
 #define OPALX_ParallelTracker_HH
 
 #include <optional>
+#include "Algorithms/BorisStepControl.h"
 #include "Algorithms/ClosedOrbitInitialState.h"
+#include "Algorithms/DeviceExternalField.h"
 #include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/SpectralTunes.h"
 #include "Algorithms/Tracker.h"
@@ -59,6 +61,7 @@
 #include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/TravelingWave.h"
+#include "AbsBeamline/VariableRFCavity.h"
 #include "Beamlines/Beamline.h"
 #include "Distribution/SamplingBase.hpp"
 #include "Elements/OpalBeamline.h"
@@ -96,9 +99,21 @@ public:
     void setSpectralTunes(std::vector<double> initial, SpectralTunes::Settings settings) {
         tuneInitial_m = std::move(initial); tuneSettings_m = settings;
     }
-    /// Stop at the localized Nth forward reference return (single static magnetic
-    /// container, no collective fields or ongoing emission). The complete bunch
+    /// Stop at the localized Nth forward reference return (single container,
+    /// supported magnetic/RF elements, no ongoing emission). The complete bunch
     /// advances to that reference event time; individual particles need not close.
+    /// Turn counting is independent of the ordinary device Boris/PIC integration.
+    /// Compatible bare analytic rings share boundary-controlled substeps so all
+    /// particles reach each midpoint together. COF/reference remain host-side.
+    /// This changes rounding and edge truncation errors from the legacy kernels,
+    /// while retaining the energy-conserving magnetic Boris rotation. Boundary
+    /// refinement excludes spin. Immutable field descriptors are uploaded once; particle data
+    /// stay in device views. Supports drifts, passive elements, analytic bends,
+    /// dipoles, quadrupoles and ideal VariableRFCavity elements. Shared boundary
+    /// retries are restricted to bare (NONE solver) tracking; PIC retains the
+    /// ordinary step sequence independently of any diagnostic probe selection.
+    /// Checkpoint/restart and solver configurations that cannot repeat midpoint
+    /// trials retain fixed Boris/PIC steps with spatial field selection.
     void setRequestedTurns(unsigned long long turns) { requestedTurns_m = turns; }
     /** Reference kinetic-energy target [eV]; zero disables. Stop after a full RF
      * kick, never by clipping its energy gain. TRACK validates positive finite
@@ -115,6 +130,9 @@ public:
         itsOpalBeamline_m.visit(sector, *this, *itsBunch_m);
     }
 private:
+    friend class TrackRun;
+    bool bareTracking_m = false; ///< NONE backend; diagnostic eligibility is independent of retries.
+    bool allowBoundaryControl_m = true; ///< Restrict retries to bare, undiagnosed Cartesian solves.
     std::optional<ClosedOrbitInitialState> initialOrbit_m;
     std::vector<double> tuneInitial_m;
     SpectralTunes::Settings tuneSettings_m;
@@ -140,6 +158,28 @@ private:
     bool pendingEnergyReference_m = false;
     Vector_t<double, 3> pendingReferenceR_m, pendingReferenceP_m;
     unsigned long long requestedTurns_m = 0;
+    device_external::Lattice deviceRingFields_m; ///< Geometry for device field selection and trial support checks.
+    bool spatialRing_m = false; ///< Select analytic ring fields by physical position, independent of retries.
+    bool boundaryControlled_m = false;
+    /// Internal subset experiment; one selects every particle (ordinary default).
+    unsigned long long boundaryControlStride_m = 1;
+    double boundaryStepDt_m = 0; ///< Accepted/trial collective substep cap [s].
+    unsigned long long boundaryTrials_m = 0, boundaryRejected_m = 0;
+    /** Complete the first drift and field gathering at a common physical midpoint.
+     * A register-only endpoint trial decides collective subdivision before any
+     * momentum kick, reference update, emission or loss is committed. Rejected
+     * first drifts are reversed on the solver's current particle ownership.
+     */
+    void prepareBoundaryStep(BorisPusher&, const std::vector<std::shared_ptr<OrbitThreader>>&,
+                             boris_step::Control&);
+    bool boundaryCrossed(double dt);
+    void reverseTrialDrift(double dt);
+    /// Internal candidate-selection policy; the public two-argument API is unchanged.
+    void forEachElementInBunchFrame(
+            const std::vector<std::shared_ptr<OrbitThreader>>& oths,
+            const std::function<void(const std::shared_ptr<ElementBase>&,
+                    const std::shared_ptr<ParticleContainer_t>&)>& func,
+            bool spatialCandidates);
     SpaceChargeFieldUpdate spaceChargeFieldUpdate_m =
             SpaceChargeFieldUpdate::MIDPOINT;  ///< Self-field time centering for bunch tracking.
     DataSink* itsDataSink_m;         ///< Borrowed beam statistics and phase-space output sink.
@@ -252,6 +292,9 @@ public:
 
     /// @brief Apply the algorithm to an RF cavity.
     virtual void visitRFCavity(const RFCavity&);
+
+    /// @brief Register and initialise an analytic time-dependent RF cavity.
+    void visitVariableRFCavity(const VariableRFCavity&) override;
 
     /// @brief Apply the algorithm to a sector bend.
     virtual void visitSBend(const SBend&);
@@ -465,6 +508,10 @@ inline void ParallelTracker::visitRBend(const RBend& bend) {
 
 inline void ParallelTracker::visitRFCavity(const RFCavity& as) {
     itsOpalBeamline_m.visit(as, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitVariableRFCavity(const VariableRFCavity& cavity) {
+    itsOpalBeamline_m.visit(cavity, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitSBend(const SBend& bend) {

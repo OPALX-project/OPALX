@@ -7,6 +7,8 @@ set (_SRCS
     Flagger.cpp
     IndexMap.cpp
     ExternalFieldRayTracker.cpp
+    DeviceExternalField.cpp
+    PassiveRingProbe.cpp
     OneTurnMap.cpp
     ClosedOrbitSolver.cpp
     LinearMapEigenAnalysis.cpp
@@ -36,6 +38,9 @@ set (HDRS
     Flagger.h
     IndexMap.h
     ExternalFieldRayTracker.h
+    DeviceExternalField.h
+    PassiveProbe.h
+    PassiveRingProbe.h
     OneTurnMap.h
     ClosedOrbitSolver.h
     LinearMapEigenAnalysis.h

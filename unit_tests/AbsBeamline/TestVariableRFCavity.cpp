@@ -14,12 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
+#include <cmath>
+#include <limits>
 #include <vector>
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/VariableRFCavity.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/AbstractTimeDependence.h"
 #include "Algorithms/PolynomialTimeDependence.h"
+#include "Algorithms/ParallelTracker.h"
+#include "Beamlines/FlaggedBeamline.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Structure/Beam.h"
@@ -362,6 +366,7 @@ TEST_F(TestVariableRFCavity, BunchFields) {
     Kokkos::fence();
     // Register the bunch with the element
     bunch->setT(0.0);
+    bunch->setdT(0.0); // This existing peak-field check samples exactly t=0.
     initialise(bunch.get());
     EXPECT_NE(RefPartBunch_m, nullptr);
     // Get the fields for all particles
@@ -450,4 +455,178 @@ TEST_F(TestVariableRFCavity, FieldSupportMatchesBodyLength) {
     EXPECT_DOUBLE_EQ(E[2], 0.0);
     EXPECT_FALSE(applyToReferenceParticle({0.0, 0.0, 5.0}, {}, 0.0, E, B));
     EXPECT_DOUBLE_EQ(E[2], 1.0 * Units::MVpm2Vpm);
+}
+
+TEST_F(TestVariableRFCavity, DeviceSamplesAllTimeModelsAtBorisMidpoint) {
+    // Nonconstant models expose sampling at the start, at the end, or with
+    // frequency*f(t) instead of the required integral of frequency.
+    setAmplitudeModel(std::make_shared<PolynomialTimeDependence>(std::vector{1.25, 2.e7}));
+    setFrequencyModel(std::make_shared<PolynomialTimeDependence>(std::vector{5., 1.e8}));
+    setPhaseModel(std::make_shared<PolynomialTimeDependence>(std::vector{0.2, -2.e6}));
+    setLength(0.1);
+    setWidth(0.2);
+    setHeight(0.4);
+    const auto bunch = makeBunch(1);
+    const auto pc = bunch->getParticleContainer();
+    auto r = Kokkos::create_mirror_view(pc->R.getView());
+    auto e = Kokkos::create_mirror_view(pc->E.getView());
+    auto b = Kokkos::create_mirror_view(pc->B.getView());
+    const Vector_t<double, 3> initialE{2., -3., 4.}, initialB{0.1, -0.2, 0.3};
+    r(0) = {0.01, -0.02, 0.05};
+    Kokkos::deep_copy(pc->R.getView(), r);
+    initialise(bunch.get());
+    for (const double dt : {4.e-9, 2.e-9}) {
+        SCOPED_TRACE(dt);
+        constexpr double t = 7.e-9;
+        bunch->setT(t);
+        bunch->setdT(dt);
+        e(0) = initialE;
+        b(0) = initialB;
+        Kokkos::deep_copy(pc->E.getView(), e);
+        Kokkos::deep_copy(pc->B.getView(), b);
+        apply(pc);
+        Kokkos::deep_copy(e, pc->E.getView());
+        Kokkos::deep_copy(b, pc->B.getView());
+        const double tm = t + 0.5 * dt;
+        const double expected = (1.25 + 2.e7 * tm) * 1.e6
+                * std::sin(Physics::two_pi * 1.e6 * (5. * tm + 0.5e8 * tm * tm)
+                           + 0.2 - 2.e6 * tm);
+        auto hostE = initialE, refE = initialE, hostB = initialB, refB = initialB;
+        apply(r(0), {}, tm, hostE, hostB);
+        EXPECT_FALSE(applyToReferenceParticle(r(0), {}, tm, refE, refB));
+        EXPECT_NEAR(e(0)[2], initialE[2] + expected,
+                    16 * std::numeric_limits<double>::epsilon() * std::abs(expected));
+        for (unsigned d = 0; d < 3; ++d) {
+            EXPECT_DOUBLE_EQ(e(0)[d], hostE[d]);
+            EXPECT_DOUBLE_EQ(e(0)[d], refE[d]);
+            EXPECT_DOUBLE_EQ(b(0)[d], initialB[d]);
+            EXPECT_DOUBLE_EQ(hostB[d], initialB[d]);
+            EXPECT_DOUBLE_EQ(refB[d], initialB[d]);
+        }
+        EXPECT_DOUBLE_EQ(e(0)[0], initialE[0]);
+        EXPECT_DOUBLE_EQ(e(0)[1], initialE[1]);
+    }
+    finalise();
+}
+
+TEST_F(TestVariableRFCavity, DeviceAndHostHaveIdenticalRectangularSupport) {
+    setAmplitudeModel(std::make_shared<PolynomialTimeDependence>(std::vector{1.}));
+    setFrequencyModel(std::make_shared<PolynomialTimeDependence>(std::vector{1.}));
+    setPhaseModel(std::make_shared<PolynomialTimeDependence>(std::vector{Physics::pi / 2.}));
+    setLength(0.5);
+    setWidth(0.25);
+    setHeight(0.75);
+    struct Sample { Vector_t<double, 3> r; bool field, material; };
+    const std::vector<Sample> samples{
+        {{0., 0., 0.}, true, false},
+        {{0., 0., std::nextafter(0., -1.)}, false, false},
+        {{0., 0., std::nextafter(0.5, 0.)}, true, false},
+        {{0., 0., 0.5}, false, false},
+        {{0.125, 0.375, 0.25}, true, false},
+        {{-0.125, -0.375, 0.25}, true, false},
+        {{std::nextafter(0.125, 1.), 0., 0.25}, false, true},
+        {{std::nextafter(-0.125, -1.), 0., 0.25}, false, true},
+        {{0., std::nextafter(0.375, 1.), 0.25}, false, true},
+        {{0., std::nextafter(-0.375, -1.), 0.25}, false, true},
+        // Another arm of a ring can have the same local z but be metres away.
+        {{8., 0., 0.25}, false, true},
+        {{8., 0., 0.5}, false, false}};
+    const auto bunch = makeBunch(samples.size());
+    const auto pc = bunch->getParticleContainer();
+    auto r = Kokkos::create_mirror_view(pc->R.getView());
+    auto e = Kokkos::create_mirror_view(pc->E.getView());
+    auto b = Kokkos::create_mirror_view(pc->B.getView());
+    const Vector_t<double, 3> initialE{2., -3., 4.}, initialB{0.1, -0.2, 0.3};
+    for (size_t i = 0; i < samples.size(); ++i) {
+        r(i) = samples[i].r;
+        e(i) = initialE;
+        b(i) = initialB;
+    }
+    Kokkos::deep_copy(pc->R.getView(), r);
+    Kokkos::deep_copy(pc->E.getView(), e);
+    Kokkos::deep_copy(pc->B.getView(), b);
+    bunch->setT(-1.e-9);
+    bunch->setdT(2.e-9); // Peak field at the physical midpoint t=0.
+    initialise(bunch.get());
+    apply(pc);
+    Kokkos::deep_copy(e, pc->E.getView());
+    Kokkos::deep_copy(b, pc->B.getView());
+    for (size_t i = 0; i < samples.size(); ++i) {
+        SCOPED_TRACE(i);
+        EXPECT_EQ(isInside(samples[i].r), samples[i].field);
+        auto hostE = initialE, refE = initialE, hostB = initialB, refB = initialB;
+        apply(samples[i].r, {}, 0., hostE, hostB);
+        EXPECT_EQ(applyToReferenceParticle(samples[i].r, {}, 0., refE, refB), samples[i].material);
+        const Vector_t<double, 3> expectedE{2., -3., samples[i].field ? 1000004. : 4.};
+        for (unsigned d = 0; d < 3; ++d) {
+            EXPECT_DOUBLE_EQ(e(i)[d], expectedE[d]);
+            EXPECT_DOUBLE_EQ(hostE[d], expectedE[d]);
+            EXPECT_DOUBLE_EQ(refE[d], expectedE[d]);
+            EXPECT_DOUBLE_EQ(b(i)[d], initialB[d]);
+            EXPECT_DOUBLE_EQ(hostB[d], initialB[d]);
+            EXPECT_DOUBLE_EQ(refB[d], initialB[d]);
+        }
+    }
+    finalise();
+}
+
+TEST_F(TestVariableRFCavity, ParallelTrackerVisitorRegistersLiveCavity) {
+    // Exercise real visitor dispatch without executing an OPALX tracking run.
+    // Previously the inherited DefaultVisitor handler silently dropped this
+    // element, despite the cavity's direct host/device field tests passing.
+    struct Observation {
+        unsigned clones = 0;
+        PartBunch_t* attached = nullptr;
+        VariableRFCavity* runtime = nullptr;
+    } observed;
+    struct ObservedCavity final : VariableRFCavity {
+        explicit ObservedCavity(Observation& state) : VariableRFCavity("registeredRF"), state(state) {}
+        ElementBase* clone() const override {
+            ++state.clones;
+            auto* copy = new ObservedCavity(*this);
+            state.runtime = copy;
+            return copy;
+        }
+        void initialise(PartBunch_t* bunch) override {
+            VariableRFCavity::initialise(bunch);
+            state.attached = bunch;
+        }
+        Observation& state;
+    } cavity(observed);
+    struct BorrowedBunchTracker final : ParallelTracker {
+        BorrowedBunchTracker(const Beamline& line, PartBunch_t& bunch)
+            : ParallelTracker(line, false) { itsBunch_m = &bunch; }
+    };
+    AbstractTimeDependence::setTimeDependence("REGISTER_RF_A",
+            std::make_shared<PolynomialTimeDependence>(std::vector{0.05}));
+    AbstractTimeDependence::setTimeDependence("REGISTER_RF_F",
+            std::make_shared<PolynomialTimeDependence>(std::vector{3.}));
+    AbstractTimeDependence::setTimeDependence("REGISTER_RF_P",
+            std::make_shared<PolynomialTimeDependence>(std::vector{Physics::pi / 2.}));
+    cavity.setAmplitudeName("REGISTER_RF_A");
+    cavity.setFrequencyName("REGISTER_RF_F");
+    cavity.setPhaseName("REGISTER_RF_P");
+    cavity.setLength(0.1);
+    cavity.setWidth(1.);
+    cavity.setHeight(0.2);
+    const auto bunch = makeBunch(1);
+    const auto pc = bunch->getParticleContainer();
+    FlaggedBeamline line;
+    BorrowedBunchTracker tracker(line, *bunch);
+    cavity.accept(tracker);
+    ASSERT_EQ(observed.clones, 1u);
+    ASSERT_EQ(observed.attached, bunch.get());
+    ASSERT_NE(observed.runtime, nullptr);
+    EXPECT_NE(observed.runtime, &cavity);
+    EXPECT_DOUBLE_EQ(observed.runtime->getAmplitude(0.), 0.05);
+    Vector_t<double, 3> hostE(0), hostB(0);
+    EXPECT_FALSE(observed.runtime->applyToReferenceParticle({0., 0., 0.05}, {}, 0., hostE, hostB));
+    EXPECT_DOUBLE_EQ(hostE[2], 50000.);
+    Kokkos::deep_copy(pc->R.getView(), Vector_t<double, 3>{0., 0., 0.05});
+    Kokkos::deep_copy(pc->E.getView(), Vector_t<double, 3>(0));
+    bunch->setT(-1.e-9);
+    bunch->setdT(2.e-9);
+    observed.runtime->apply(pc);
+    const auto fields = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->E.getView());
+    for (unsigned d = 0; d < 3; ++d) EXPECT_DOUBLE_EQ(fields(0)[d], hostE[d]);
 }

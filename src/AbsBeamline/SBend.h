@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+namespace device_external { struct Builder; }
+
 /**
  * @class SBend
  * @brief Analytic sector bending magnet.
@@ -125,6 +127,7 @@ public:
     void setB(double B);
 
 private:
+    friend struct device_external::Builder; // Internal immutable device snapshot.
     /// @brief Compute the field on the host at position R.
     /// @param R Position.
     /// @param B Magnetic field (output).

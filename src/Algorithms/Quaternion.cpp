@@ -62,8 +62,13 @@ Quaternion getQuaternion(ippl::Vector<double, 3> u, ippl::Vector<double, 3> ref)
 
     axis /= normAxis;
 
-    double cosAngle = sqrt(0.5 * (1 + dot(u, ref)));
-    double sinAngle = sqrt(1 - cosAngle * cosAngle);
+    // The cross product retains the angle when nearly parallel vectors have
+    // dot(u, ref) rounded to one. Recovering sine from 1-cos^2 would erase
+    // these small rotations and let repeated reference-frame updates lag.
+    // atan2 also retains the deviation from an antiparallel orientation.
+    const double halfAngle = 0.5 * std::atan2(normAxis, dot(u, ref));
+    const double cosAngle = std::cos(halfAngle);
+    const double sinAngle = std::sin(halfAngle);
 
     return Quaternion(cosAngle, sinAngle * axis);
 }
