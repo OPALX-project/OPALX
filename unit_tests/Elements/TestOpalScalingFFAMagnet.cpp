@@ -81,22 +81,25 @@ TEST_F(TestOpalScalingFFAMagnet, UserInterface) {
 TEST_F(TestOpalScalingFFAMagnet, CentreLength) {
     OpalScalingFFAMagnet ui1;
     Attributes::setReal(ui1.itsAttr[OpalElement::LENGTH], 2.0);
+    Attributes::setReal(ui1.itsAttr[OpalScalingFFAMagnet::R0], 4.0);
     EXPECT_NO_THROW(ui1.update());
     auto* ffa1 = dynamic_cast<ScalingFFAMagnet*>(ui1.getElement());
-    EXPECT_NEAR(ffa1->getEndField()->getCentreLength(), 2.0, 1e-12);
+    EXPECT_NEAR(ffa1->getEndField()->getCentreLength(), 2.0/4.0, 1e-12);
 
     OpalScalingFFAMagnet ui2;
     Attributes::setReal(ui2.itsAttr[OpalScalingFFAMagnet::CENTRE_LENGTH], 3.0);
+    Attributes::setReal(ui2.itsAttr[OpalScalingFFAMagnet::R0], 4.0);
     EXPECT_NO_THROW(ui2.update());
     auto* ffa2 = dynamic_cast<ScalingFFAMagnet*>(ui2.getElement());
-    EXPECT_NEAR(ffa2->getEndField()->getCentreLength(), 3.0, 1e-12);
+    EXPECT_NEAR(ffa2->getEndField()->getCentreLength(), 3.0/4.0, 1e-12);
 
     OpalScalingFFAMagnet ui3;
     Attributes::setReal(ui3.itsAttr[OpalElement::LENGTH], 5.0); // should take this value
     Attributes::setReal(ui3.itsAttr[OpalScalingFFAMagnet::CENTRE_LENGTH], 4.0); // not this value
+    Attributes::setReal(ui3.itsAttr[OpalScalingFFAMagnet::R0], 4.0);
     EXPECT_NO_THROW(ui3.update());
     auto* ffa3 = dynamic_cast<ScalingFFAMagnet*>(ui3.getElement());
-    EXPECT_NEAR(ffa3->getEndField()->getCentreLength(), 5.0, 1e-12);
+    EXPECT_NEAR(ffa3->getEndField()->getCentreLength(), 5.0/4.0, 1e-12);
 }
 
 TEST_F(TestOpalScalingFFAMagnet, Aperture) {
