@@ -33,18 +33,31 @@ class BunchStateHandler;
 namespace opalx::spacecharge {
 
     /**
-     * @brief Original reference-path 2.5D algorithm with solver-owned persistent storage.
+     * @brief A 2D5 solver for electromagnetic field simulations.
      *
-     * Numerical routines and their no-op diagnostic policy are retained from master Solve2d5.
-     * The adapter borrows particle containers, initializes slices after the design path exists,
-     * and applies the common tracker-frame and output contract around the original calculation.
-     * PIPEMODE affects only longitudinal fields; transverse slices use the open Poisson solver.
+     * @details
+     * The solver performs the following sequence of operations to account for space charge
+     * in the electric and magnetic fields that particles feel.
+     * 1. Translate the particle cartesian coordinates into Frenet-Serret coordinates and
+     *    then boost into the beam reference frame.  The reference orbit can be provided from a file
+     * or acquired from the OrbitThreader.
+     * 2. Do CiC scatter of charge into the 3D charge density grid.  This spreads the charge out
+     * both transversely and (optionally) longitudinally which should be a help in reducing noise.
+     * 3. Copy the 3D charge density  grid into a stack of 2D grids along the S coordinate.
+     * 4. Perform the 2D Poisson solve on each of the 2D grids in the stack to determine the
+     *    X and Y electric field components.  Initially, the boundary conditions used will be open.
+     * 5. Calculate the longitudinal S electric field component using the algorithm from PyHEADTAIL.
+     *    This uses the local line density along the reference orbit and a geometry constant that
+     *    encodes the effect of the beam pipe on the longitudinal component.
+     * 6. Do CiC gather of fields for the particle positions.
+     * 7. Translate from the beam reference frame into the lab frame in Frenet-Serret coodinates and
+     *    then back into cartesian coordinates.
      */
     class FFT2D5Algorithm final : public SpaceChargeAlgorithm {
     public:
         using T                       = double;
         static constexpr unsigned Dim = 3;
-        using ParticleContainer       = ::ParticleContainer<double, 3>;
+        using ParticleContainer       = ParticleContainer<double>;
         using LongitudinalFieldMode   = FFT2D5LongitudinalFieldMode;
         using OpenSolver2D_t          = ippl::FFTOpenPoissonSolver<VField_t<T, 2U>, Field_t<2U>>;
         using Mesh3D_t                = ippl::UniformCartesian<T, 3U>;
@@ -143,6 +156,7 @@ namespace opalx::spacecharge {
          *
          * @tparam DiagnosticPolicy Diagnostic policy used to inspect intermediate
          *                           results. Defaults to NullDiagnostic.
+         * @param context Per-call activity and tracker state.
          * @param diagnostic Diagnostic policy instance used for diagnostic callbacks.
          */
         template <typename DiagnosticPolicy = NullDiagnostic>
@@ -238,7 +252,7 @@ namespace opalx::spacecharge {
          * @param invalid Flags identifying particles that should be excluded
          *                from the charge deposition.
          * @param invDr Inverse grid spacing in each spatial dimension.
-         * @param nghost Number of ghost cells surrounding the local grid domain.
+         * @param nGhost Number of ghost cells surrounding the local grid domain.
          * @param lDom Local domain of the charge-density grid.
          * @param rho Charge-density grid onto which particle charge is deposited.
          * @param origin Physical origin of the charge-density grid.
@@ -248,7 +262,7 @@ namespace opalx::spacecharge {
         KOKKOS_FUNCTION static void doScatterToGrid(
                 size_t n, const VectorView_t& r, const VectorView_t& p, const ReferenceView_t& ref,
                 T meanPs, const ScalarView_t& dt, const BooleanView_t& invalid, Vector3D_t invDr,
-                int nghost, ippl::NDIndex<3U> lDom, ScalarGridView3D_t rho, Vector3D_t origin,
+                int nGhost, ippl::NDIndex<3U> lDom, ScalarGridView3D_t rho, Vector3D_t origin,
                 DiagnosticPolicy diagnostic);
 
         /**
@@ -290,14 +304,14 @@ namespace opalx::spacecharge {
          * @param fsR The particle position in Frenet-Serret coordinates
          * @param dt Particle time-step * charge.
          * @param invDr Inverse grid spacing in each spatial dimension.
-         * @param nghost Number of ghost cells surrounding the local grid domain.
+         * @param nGhost Number of ghost cells surrounding the local grid domain.
          * @param lDom Local domain of the charge-density grid.
          * @param rho Charge-density grid onto which particle charge is deposited.
          * @param origin Physical origin of the charge-density grid.
          */
         template <bool ScatterLongitudinally>
         KOKKOS_FUNCTION static void scatterToRho(
-                size_t n, Vector3D_t fsR, const ScalarView_t& dt, Vector3D_t invDr, int nghost,
+                size_t n, Vector3D_t fsR, const ScalarView_t& dt, Vector3D_t invDr, int nGhost,
                 const ippl::NDIndex<3U>& lDom, ScalarGridView3D_t rho, Vector3D_t origin);
 
         /**
@@ -305,6 +319,10 @@ namespace opalx::spacecharge {
          * See implementation for more details.
          *
          * @tparam DiagnosticPolicy Diagnostic policy.
+         * @tparam ScatterLongitudinally If true, scatter particle charge
+         *                               longitudinally between adjacent slices.
+         *                               If false, deposit the charge onto a single
+         *                               longitudinal slice.
          *
          * @param n The particle number.
          * @param r Particle positions.
@@ -318,7 +336,7 @@ namespace opalx::spacecharge {
          * @param invalid Flags identifying particles that should be excluded
          *                from the charge deposition.
          * @param invDr Inverse grid spacing in each spatial dimension.
-         * @param nghost Number of ghost cells surrounding the local grid domain.
+         * @param nGhost Number of ghost cells surrounding the local grid domain.
          * @param lDom Local domain of the charge-density grid.
          * @param eField Electric field grid from the Poisson solver.
          * @param origin Physical origin of the charge-density grid.
@@ -326,17 +344,22 @@ namespace opalx::spacecharge {
          * @param lineDensityGradient The longitudinal line charge density gradient.
          * @param diagnostic Diagnostic policy used to record intermediate results.
          */
-        template <typename DiagnosticPolicy = NullDiagnostic>
+        template <bool ScatterLongitudinally, typename DiagnosticPolicy = NullDiagnostic>
         KOKKOS_FUNCTION static void doGatherFromGrid(
                 size_t n, const VectorView_t& r, const VectorView_t& p, const ReferenceView_t& ref,
                 T beamGamma, T beamBeta, const VectorView_t& e, const VectorView_t& b,
-                const BooleanView_t& invalid, Vector3D_t invDr, int nghost, ippl::NDIndex<3U> lDom,
+                const BooleanView_t& invalid, Vector3D_t invDr, int nGhost, ippl::NDIndex<3U> lDom,
                 VectorGridView3D_t eField, Vector3D_t origin, T gBy4PiEpsilon0,
                 LineDensityView_t lineDensityGradient, DiagnosticPolicy diagnostic);
 
         /**
          * @brief Kokkos function that gathers the boosted E field for a particle from
          *  the electric field grid.
+         *
+         * @tparam ScatterLongitudinally If true, scatter particle charge
+         *                               longitudinally between adjacent slices.
+         *                               If false, deposit the charge onto a single
+         *                               longitudinal slice.
          *
          * @param n The particle number.
          * @param fsR The particle position in Frenet-Serret coordinates
@@ -347,9 +370,11 @@ namespace opalx::spacecharge {
          * @param eField Electric field grid from the Poisson solver.
          * @param origin Physical origin of the charge-density grid.
          */
+        template <bool ScatterLongitudinally>
         KOKKOS_FUNCTION static void gatherFromEField(
-                size_t n, Vector3D_t fsR, const VectorView_t& e, Vector3D_t invDr, int nghost,
-                const ippl::NDIndex<3U>& lDom, VectorGridView3D_t eField, Vector3D_t origin);
+                size_t n, const Vector3D_t& fsR, const VectorView_t& e, const Vector3D_t& invDr,
+                int nghost, const ippl::NDIndex<3U>& lDom, const VectorGridView3D_t& eField,
+                const Vector3D_t& origin);
 
         /**
          * @brief Kokkos function that unboosts a particle's e efield from the beam
@@ -393,7 +418,7 @@ namespace opalx::spacecharge {
          * @param z Longtiduninal coordinate.
          */
         KOKKOS_FUNCTION static Vector3D_t gather2D(
-                VectorGridView3D_t eField, const ippl::Vector<T, 3U>& wlo,
+                const VectorGridView3D_t& eField, const ippl::Vector<T, 3U>& wlo,
                 const ippl::Vector<T, 3U>& whi, int x, int y, int z);
 
         /**
@@ -409,8 +434,23 @@ namespace opalx::spacecharge {
          * @param charge The charge to deposit.
          */
         KOKKOS_FUNCTION static void scatter2D(
-                ScalarGridView3D_t rho, const ippl::Vector<T, 3U>& wlo,
+                const ScalarGridView3D_t& rho, const ippl::Vector<T, 3U>& wlo,
                 const ippl::Vector<T, 3U>& whi, int x, int y, int z, T charge);
+
+        /**
+         * @brief Kokkos function that performs a trilinear gather from the 3D
+         * electric field grid.
+         *
+         * @param eField Electric field grid from the Poisson solver.
+         * @param wlo Lower weighting factors.
+         * @param whi Upper weighting factors.
+         * @param x Horizontal transverse coordinate.
+         * @param y Vertical transverse coordinate.
+         * @param z Longtiduninal coordinate.
+         */
+        KOKKOS_FUNCTION static Vector3D_t gather3D(
+                const VectorGridView3D_t& eField, const ippl::Vector<T, 3U>& wlo,
+                const ippl::Vector<T, 3U>& whi, int x, int y, int z);
 
         /**
          * @brief Kokkos function that performs a trilinear scatter of charge to the 3D
@@ -425,7 +465,7 @@ namespace opalx::spacecharge {
          * @param charge The charge to deposit.
          */
         KOKKOS_FUNCTION static void scatter3D(
-                ScalarGridView3D_t rho, const ippl::Vector<T, 3U>& wlo,
+                const ScalarGridView3D_t& rho, const ippl::Vector<T, 3U>& wlo,
                 const ippl::Vector<T, 3U>& whi, int x, int y, int z, T charge);
 
         /**
@@ -433,7 +473,8 @@ namespace opalx::spacecharge {
          *
          * @param fsR The particle position in Frenet-Serret coordinates
          * @param origin Physical origin of the charge-density grid.
-         * @param nghost Number of ghost cells surrounding the local grid domain.
+         * @param invDr Inverse of the grid spacing.
+         * @param nGhost Number of ghost cells surrounding the local grid domain.
          * @param lDom Local domain of the charge-density grid.
          * @param view The view being indexed.
          * @param whi Upper weighting factors.
@@ -442,21 +483,60 @@ namespace opalx::spacecharge {
          */
         template <typename ViewType>
         KOKKOS_FUNCTION static bool makeWeights(
-                Vector3D_t fsR, Vector3D_t origin, Vector3D_t invDr, int nghost,
+                Vector3D_t fsR, Vector3D_t origin, Vector3D_t invDr, int nGhost,
                 const ippl::NDIndex<3U>& lDom, const ViewType& view, ippl::Vector<T, 3U>& whi,
                 ippl::Vector<T, 3U>& wlo, ippl::Vector<int, 3U>& args);
 
+        /**
+         * @return Returns the number of slices in the Frenet-Serret domain.
+         * For use only by test cases.
+         */
         size_t getNumSlices() const { return fieldStorage_m->slices().size(); }
+
+        /**
+         * @return Returns the mesh object for the Frenet-Serret domain.
+         * For use only by test cases.
+         */
         Mesh2D_t* getSliceMesh() const {
             return &fieldStorage_m->slices().front().chargeDensity->get_mesh();
         }
+
+        /**
+         * @return Returns the slice layout object for the Frenet-Serret domain.
+         * For use only by test cases.
+         */
         Layout2D_t* getSliceLayout() const {
             return &fieldStorage_m->slices().front().chargeDensity->getLayout();
         }
+
+        /**
+         * @return Returns the reference path view for the Frenet-Serret domain.
+         * For use only by test cases.
+         */
         const ReferenceView_t& getReferencePath() const { return referencePathView(); }
+
+        /**
+         * @return Returns the 3D charge density view for the Frenet-Serret domain.
+         * For use only by test cases.
+         */
         Field_t<3>* getRho() const { return &fieldStorage_m->chargeDensity(); }
+
+        /**
+         * @return Returns the 3D electric field view for the Frenet-Serret domain.
+         * For use only by test cases.
+         */
         VField_t<T, 3>* getEField() const { return &fieldStorage_m->electricField(); }
+
+        /**
+         * @return Returns the logntudinal charge density view for the Frenet-Serret domain.
+         * For use only by test cases.
+         */
         const LineDensityView_t& getLineDensity() const { return lineDensity_m; }
+
+        /**
+         * @return Returns the logntudinal charge density gradient view for the Frenet-Serret
+         * domain. For use only by test cases.
+         */
         const LineDensityView_t& getLineDensityGradient() const { return lineDensityGradient_m; }
 
     private:
@@ -469,7 +549,10 @@ namespace opalx::spacecharge {
         LineDensityView_t lineDensityGradient_m;
         static constexpr size_t LineDensityGhostCells    = 2;
         static constexpr size_t LineDensityFirstRealCell = 1;
-        // Space charge modules for PyHEADTAIL, A Oeftiger, SE Hegglin, 2016.
+
+        // Longitudinal field constants from
+        // Space charge modules for PyHEADTAIL, A Oeftiger, SE Hegglin, 2016
+        // https://proceedings.jacow.org/hb2016/papers/mopr025.pdf
         static constexpr T CircularPipeG0   = 0.67;
         static constexpr T ParallelPlatesG0 = 0.67;
         static constexpr T OpenG0           = 6.36;
