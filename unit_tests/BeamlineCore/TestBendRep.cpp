@@ -18,11 +18,16 @@
 
 #include "BeamlineCore/RBendRep.h"
 #include "BeamlineCore/SBendRep.h"
+#include "BeamlineCore/MultipoleRep.h"
 #include "BeamlineGeometry/Geometry.h"
+#include "PartBunch/BunchStateHandler.h"
+#include "PartBunch/ParticleContainer.hpp"
 #include "Physics/Physics.h"
 #include "gtest/gtest.h"
 
 #include <cmath>
+
+extern Inform* gmsg;
 
 namespace {
     using Vector3 = Vector_t<double, 3>;
@@ -36,8 +41,13 @@ namespace {
             int argc    = 0;
             char** argv = nullptr;
             ippl::initialize(argc, argv);
+            gmsg = new Inform(nullptr, -1);
         }
-        static void TearDownTestSuite() { ippl::finalize(); }
+        static void TearDownTestSuite() {
+            delete gmsg;
+            gmsg = nullptr;
+            ippl::finalize();
+        }
     };
 }  // namespace
 
@@ -233,4 +243,87 @@ TEST_F(BendRepTest, SBendEntryFringeAddsHorizontalEdgeField) {
     B = Vector3(0.0);
     straight.applyToReferenceParticle(Vector3(0.0, yOffset, -0.05), Vector3(0.0), 0.0, E, B);
     EXPECT_NEAR(B(0), 0.0, 1.0e-12);
+}
+
+// A particle exactly on a shared face must receive the downstream field only.
+// Exercise the production device apply(), both host field APIs and spatial
+// membership at identical points. Far transverse particles inside the same
+// longitudinal slab must not receive a remote ring magnet's field. Existing
+// gathered fields must remain additive; this field query must not mark losses.
+TEST_F(BendRepTest, DeviceAndHostHardEdgeFieldsUseIdenticalSpatialSupport) {
+    ippl::NDIndex<3> domain;
+    for (unsigned d = 0; d < 3; ++d) domain[d] = ippl::Index(8);
+    ippl::UniformCartesian<double, 3> mesh(domain, Vector3(0.25), Vector3(-1));
+    std::array<bool, 3> decomp{true, true, true};
+    ippl::FieldLayout<3> layout(MPI_COMM_WORLD, domain, decomp, false);
+    auto pc = std::make_shared<ParticleContainer_t>(mesh, layout);
+    pc->setBunchStateHandler(std::make_shared<BunchStateHandler>());
+    constexpr unsigned count = 9;
+    pc->allocateParticles(count);
+    pc->createParticles(count);
+
+    const double sampleS[count] = {-1e-9, 0., 1e-9, 0.5, 1. - 1e-9, 1., 1. + 1e-9, 0.5, 0.5};
+    const bool inside[count] = {false, true, true, true, true, false, false, false, false};
+    const Vector3 initialE(0.1, 0.2, 0.3), initialB(0.4, 0.5, 0.6);
+    for (unsigned kind = 0; kind < 3; ++kind) {
+        SBendRep sector("sector");
+        RBendRep rectangular("rectangular");
+        MultipoleRep multipole("multipole");
+        constexpr double curvature = 0.2;
+        sector.getGeometry() = Geometry::makeSBend(1., curvature);
+        sector.getGeometry().setElementLength(1.);
+        sector.getGeometry().setBendAngle(curvature);
+        sector.setB(-1.);
+        rectangular.getGeometry() = Geometry::makeRBend(1., 0.2);
+        rectangular.getGeometry().setElementLength(1.);
+        rectangular.setB(-1.);
+        multipole.getGeometry().setElementLength(1.);
+        // The normal dipole setter stores half its argument.
+        multipole.setNormalComponent(0, -2.);
+        ElementBase& element = kind == 0 ? static_cast<ElementBase&>(sector)
+                               : kind == 1 ? static_cast<ElementBase&>(rectangular)
+                                           : static_cast<ElementBase&>(multipole);
+        SCOPED_TRACE(element.getName());
+        element.setAperture(ApertureType::RECTANGULAR, {1., 1.});
+        auto r = Kokkos::create_mirror_view(pc->R.getView());
+        for (unsigned i = 0; i < count; ++i) {
+            const double s = sampleS[i];
+            r(i) = Vector3(0, 0, s);
+            if (kind == 0 && s > 0) {
+                const double phi = curvature * std::min(s, 1.);
+                r(i) = Vector3((std::cos(phi) - 1.) / curvature, 0., std::sin(phi) / curvature);
+                if (s > 1.) r(i) += (s - 1.) * Vector3(-std::sin(curvature), 0, std::cos(curvature));
+            }
+            if (i == 7) {
+                // Shift in the bend's radial direction while preserving arc s.
+                const double phi = kind == 0 ? curvature * s : 0.;
+                r(i) += 2. * Vector3(std::cos(phi), 0, std::sin(phi));
+            }
+            if (i == 8) r(i)(1) = 2.;
+        }
+        Kokkos::deep_copy(pc->R.getView(), r);
+        Kokkos::deep_copy(pc->E.getView(), initialE);
+        Kokkos::deep_copy(pc->B.getView(), initialB);
+        element.apply(pc);
+        const auto e = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->E.getView());
+        const auto b = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->B.getView());
+        const auto invalid = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->InvalidMask.getView());
+        for (unsigned i = 0; i < count; ++i) {
+            SCOPED_TRACE(i);
+            EXPECT_EQ(element.isInside(r(i)), inside[i]);
+            Vector3 hostE(initialE), hostB(initialB), refE(initialE), refB(initialB);
+            element.apply(r(i), Vector3(0, 0, 1), 0., hostE, hostB);
+            EXPECT_EQ(element.applyToReferenceParticle(r(i), Vector3(0, 0, 1), 0., refE, refB), i >= 7);
+            EXPECT_FALSE(invalid(i));
+            const Vector3 expectedB = initialB + Vector3(0, inside[i] ? -1. : 0., 0);
+            for (unsigned d = 0; d < 3; ++d) {
+                EXPECT_DOUBLE_EQ(e(i)(d), initialE(d));
+                EXPECT_NEAR(b(i)(d), expectedB(d), 1e-14);
+                EXPECT_NEAR(hostB(d), expectedB(d), 1e-14);
+                EXPECT_NEAR(refB(d), expectedB(d), 1e-14);
+                EXPECT_DOUBLE_EQ(hostE(d), initialE(d));
+                EXPECT_DOUBLE_EQ(refE(d), initialE(d));
+            }
+        }
+    }
 }

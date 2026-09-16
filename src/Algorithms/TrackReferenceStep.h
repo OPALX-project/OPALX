@@ -13,10 +13,10 @@
 class OpalBeamline;
 class PartData;
 
-/** Internal host-side TRACK reference advance, independent of particle storage.
+/** Internal host-side TRACK transport, independent of particle storage.
  * Positions are metres, momenta P/(mc), times seconds, mass rest energy [eV],
- * and charge in proton-charge units. Preserve the tracker’s scaled-position
- * drift/kick/drift arithmetic; this is not the boundary-resolved COF integrator.
+ * and charge in proton-charge units. The legacy advance preserves scaled-position
+ * drift/kick/drift arithmetic; the resolved variant shares COF's spatial solver.
  */
 namespace track_reference {
     struct State {
@@ -54,6 +54,15 @@ namespace track_reference {
      * retains the existing monitor sampling, performed only for the committed step.
      */
     State advanceInBeamline(
+            OpalBeamline&, const PartData&, State, double dt, double endTime, bool diagnostics);
+
+    /** Spatial, support-boundary-resolved Boris transport for static, external-field
+     * TURNS reference tracking. Physical particles use DeviceExternalField.
+     * Units match State; no closed-orbit projection or momentum renormalization.
+     * This reference path runs on the host. Passive monitors are sampled only
+     * on accepted reference substeps, never on particle or terminal-event trials.
+     */
+    State advanceResolvedInBeamline(
             OpalBeamline&, const PartData&, State, double dt, double endTime, bool diagnostics);
 
     /** Run a side-effect-free event search on rank zero and broadcast its duration

@@ -208,7 +208,8 @@ TrackRun::TrackRun()
     itsAttr[TRACKRUN::TURNS] = Attributes::makeReal(
             "TURNS",
             "Optional directed-return limit for RING tracking. When omitted, TRACK uses its "
-            "ZSTOP/MAXSTEPS schedule. Explicit values must be positive integers. In "
+            "ZSTOP/MAXSTEPS schedule. Explicit values must be positive integers and use "
+            "ordinary device Boris/PIC transport; supported bare analytic rings use synchronized boundary steps. In "
             "SPECTRALTUNES mode, TURNS is the nominal analysis interval and defaults to 1.",
             1.0);
     itsAttr[TRACKRUN::SPECTRALTUNES] = Attributes::makeBool("SPECTRALTUNES",
@@ -432,9 +433,27 @@ void TrackRun::execute() {
     auto spaceChargeConfig =
             opalx::spacecharge::buildSpaceChargeConfig(*fs_m, emissionSourcesLists);
     opalx::spacecharge::DirichletPlaneConfig dirichletPlane;
+    bool retrySafeBareTracking = false;
     if (const auto* cartesian =
                 std::get_if<opalx::spacecharge::CartesianPIC3DConfig>(&spaceChargeConfig)) {
         dirichletPlane = cartesian->dirichletPlane;
+        // Boundary retries belong to the bare analytic-ring benchmark. A
+        // diagnostic particle selection must never impose retries of the
+        // collective PIC solve. Keep non-NONE backends on the ordinary path.
+        // Even NONE may traverse the binning adapter, so exclude stateful
+        // binning/diagnostics and repartitioning from retry eligibility.
+        const auto& bin = cartesian->binning;
+        const bool retrySafeBins = !bin || (!bin->adaptive && bin->maximumBins == 1
+                && (bin->dumpFile.empty() || bin->dumpFrequency == 0)
+                && bin->tablePrintFrequency == 0);
+        retrySafeBareTracking = retrySafeBins
+                && cartesian->repartitionFrequency == 0
+                && cartesian->backend == opalx::spacecharge::PoissonSolverType::None
+                && !dirichletPlane.enabled();
+#ifdef OPALX_FIELD_DEBUG
+        // Unbinned backend field dumps are numbered by attempted solve.
+        if (!bin) retrySafeBareTracking = false;
+#endif
     }
     const auto cartesianDomainConfig =
             opalx::spacecharge::makeCartesianDomainConfig(spaceChargeConfig);
@@ -613,9 +632,9 @@ void TrackRun::execute() {
         }
 
         const auto turns = static_cast<unsigned long long>(roundedTurns);
-        if (fs_m->getType() != "NONE" || beams.size() != 1)
+        if (beams.size() != 1)
             throw OpalException("TrackRun::execute",
-                    "Localized TURNS requires one beam and FIELDSOLVER TYPE=NONE; space charge is not yet supported.");
+                    "Localized TURNS requires one beam.");
         if (isRestart) {
             throw OpalException(
                     "TrackRun::execute",
@@ -665,6 +684,9 @@ void TrackRun::execute() {
                     throw OpalException("INITIALORBIT", "Ongoing emission is not supported.");
         static_cast<ParallelTracker*>(itsTracker_m.get())->setInitialOrbit(*Track::block->initialOrbit);
     }
+    // Other solver configurations retain the ordinary unsplit integration sequence.
+    static_cast<ParallelTracker*>(itsTracker_m.get())->bareTracking_m = fs_m->getType() == "NONE";
+    static_cast<ParallelTracker*>(itsTracker_m.get())->allowBoundaryControl_m = retrySafeBareTracking;
     static_cast<ParallelTracker*>(itsTracker_m.get())->setRequestedTurns(directedTurns);
     static_cast<ParallelTracker*>(itsTracker_m.get())->setKineticEnergyStop(kineticStop*1e9);
     static_cast<ParallelTracker*>(itsTracker_m.get())->setSpaceChargeFieldUpdate(
