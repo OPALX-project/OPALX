@@ -222,7 +222,7 @@ spack location -i libcatalyst
 # /home/biddisco/opt/spack.git/opt/spack/linux-skylake/libcatalyst-2.1.0-ghuep42ra45472ltlknwt6j66tp3el2e
 ```
 
-Use the `lib/cmake/catalyst-*` subdirectory as `CATALYST_HINT_PATH`.
+Use the `lib/cmake/catalyst-*` subdirectory as `Catalyst_DIR`.
 
 ### Configuring OPALX with Catalyst
 
@@ -233,7 +233,7 @@ mkdir build_catalyst && cd build_catalyst
 
 cmake .. \
     -DOPALX_ENABLE_CATALYST=ON \
-    -DCATALYST_HINT_PATH=/home/biddisco/opt/spack.git/opt/spack/linux-skylake/libcatalyst-2.1.0-ghuep42ra45472ltlknwt6j66tp3el2e/lib/cmake/catalyst-2.1 \
+    -DCatalyst_DIR=/home/biddisco/opt/spack.git/opt/spack/linux-skylake/libcatalyst-2.1.0-3bt67rwnjflhrxnwtmrnv62dwyxwlklm/lib/cmake/catalyst-2.1 \
     -DFETCHCONTENT_SOURCE_DIR_IPPL=/home/biddisco/src/ippl/catalyst \
     -DPLATFORMS=SERIAL
 
