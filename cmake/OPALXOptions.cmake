@@ -217,13 +217,17 @@ set(IPPL_PLATFORMS "${OPALX_PLATFORMS}" CACHE STRING "" FORCE)
 # -----------------------------------------------------------------------------
 
 option(OPALX_ENABLE_CATALYST "Enable ParaView Catalyst in-situ visualization via IPPL" OFF)
-set(CATALYST_HINT_PATH "" CACHE PATH
-    "Path to Catalyst CMake config dir, e.g. .../lib/cmake/catalyst-2.1")
 
 if(OPALX_ENABLE_CATALYST)
     set(IPPL_ENABLE_CATALYST ON CACHE BOOL "" FORCE)
-    if(NOT CATALYST_HINT_PATH)
-        message(WARNING "OPALX_ENABLE_CATALYST=ON but CATALYST_HINT_PATH is not set")
+    if(NOT Catalyst_DIR)
+        message(WARNING "OPALX_ENABLE_CATALYST=ON but Catalyst_DIR is not set. "
+                        "Set it to the Catalyst CMake config directory, e.g. "
+                        ".../lib/cmake/catalyst-2.1")
+    endif()
+    if(NOT Catalyst_VERSION)
+        # IPPL catalyst-viz-v2.0.0 targets Catalyst 2.1.x.
+        set(Catalyst_VERSION "2.1.0" CACHE STRING "" FORCE)
     endif()
 else()
     set(IPPL_ENABLE_CATALYST OFF CACHE BOOL "" FORCE)

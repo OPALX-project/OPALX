@@ -34,10 +34,6 @@
 #include <string>
 #include <vector>
 
-// IPPL's Catalyst adaptor expects an external TestName symbol (declared in Manager/datatypes.h).
-// OPALX does not use it, but it must be defined in exactly one translation unit.
-const char* TestName = nullptr;
-
 #include "Algorithms/Matrix.h"
 #include "BasicActions/DumpEMFields.h"
 
@@ -459,12 +455,55 @@ void ParallelTracker::execute() {
     preparationState.finish();
 
 #ifdef IPPL_ENABLE_CATALYST
+    // Labels of registered Catalyst field channels; used to force a host copy on
+    // each Catalyst step (otherwise IPPL caches the first timestep).
+    std::vector<std::string> catalystFieldLabels;
+
+    // Field-channel export is opt-in because IPPL's default PNG extractors also
+    // consume registered field channels, which conflicts with user state scripts
+    // that want to bind the same channels. Set OPALX_CATALYST_FIELDS=ON to export.
+    static const bool exportCatalystFields = []() {
+        const char* env = std::getenv("OPALX_CATALYST_FIELDS");
+        if (!env) {
+            return false;
+        }
+        const std::string val(env);
+        return val == "ON" || val == "1" || val == "TRUE" || val == "YES";
+    }();
+
     {
         // Keep the particle container alive as an lvalue; MakeVisRegistryRuntimePtr only binds
         // lvalue arguments, so a temporary shared_ptr would silently create an empty registry.
         auto particleContainer        = itsBunch_m->getParticleContainer();
         auto runtime_vis_registry     = ippl::MakeVisRegistryRuntimePtr("electrons", particleContainer);
         auto runtime_steer_registry   = ippl::MakeVisRegistryRuntimePtr();
+
+        // Register mesh fields for in-situ visualization.
+        if (exportCatalystFields) {
+            auto fcontainer = itsBunch_m->getFieldContainer();
+            if (fcontainer) {
+                runtime_vis_registry->add("E_self", fcontainer->getE());
+                catalystFieldLabels.push_back("E_self");
+
+                if (auto btmp = fcontainer->getTempBField()) {
+                    runtime_vis_registry->add("B_self", *btmp);
+                    catalystFieldLabels.push_back("B_self");
+                }
+
+                runtime_vis_registry->add("rho", fcontainer->getRho());
+                catalystFieldLabels.push_back("rho");
+
+                if (itsBunch_m->getFieldSolver() && itsBunch_m->getFieldSolverType() == "CG") {
+                    runtime_vis_registry->add("phi", fcontainer->getPhi());
+                    catalystFieldLabels.push_back("phi");
+                }
+
+                runtime_vis_registry->add("E_external", fcontainer->getExternalE());
+                catalystFieldLabels.push_back("E_external");
+                runtime_vis_registry->add("B_external", fcontainer->getExternalB());
+                catalystFieldLabels.push_back("B_external");
+            }
+        }
 
         // Register the single-point transform channel before Initialize() so the
         // pipeline script knows to create a proxy for it.
@@ -681,6 +720,18 @@ void ParallelTracker::execute() {
                 }();
                 const auto step = itsBunch_m->getGlobalTrackStep();
                 if (step % liveFreq == 0) {
+                    if (exportCatalystFields) {
+                        // Sample beamline element fields onto the bunch mesh so they can be
+                        // exported as Catalyst field channels.
+                        sampleExternalFieldsToMesh(oths);
+
+                        // Force a host copy of every registered time-varying field channel;
+                        // without this IPPL re-uses the data from the first Catalyst step.
+                        for (const auto& label : catalystFieldLabels) {
+                            cat_vis.rememberNow(label);
+                        }
+                    }
+
                     // Publish the current bunch-frame transform as a single-point polydata
                     // channel so ParaView can transform geometry into the bunch frame (or,
                     // with the inverse matrix, particles into lab coordinates).
@@ -1001,6 +1052,111 @@ void ParallelTracker::computeExternalFields(
 
     IpplTimings::stopTimer(fieldEvaluationTimer_m);
 }
+
+#ifdef IPPL_ENABLE_CATALYST
+/**
+ * @copybrief ParallelTracker::sampleExternalFieldsToMesh
+ */
+void ParallelTracker::sampleExternalFieldsToMesh(
+        const std::vector<std::shared_ptr<OrbitThreader>>& oths) {
+    Inform m("ParallelTracker::sampleExternalFieldsToMesh");
+
+    auto fc = itsBunch_m->getFieldContainer();
+    if (!fc) {
+        m << level4 << "No FieldContainer; skipping external field sampling." << endl;
+        return;
+    }
+
+    auto pc = itsBunch_m->getParticleContainer(0);
+    if (!pc || !pc->getReference()) {
+        m << level4 << "No primary particle container; skipping external field sampling." << endl;
+        return;
+    }
+
+    auto& externalE = fc->getExternalE();
+    auto& externalB = fc->getExternalB();
+
+    // Zero the fields before accumulating element contributions.
+    externalE = 0.0;
+    externalB = 0.0;
+
+    const auto& mesh   = fc->getMesh();
+    const auto& origin = mesh.getOrigin();
+    const auto& h      = mesh.getMeshSpacing();
+
+    const int nghost = externalE.getNghost();
+    const auto owned = externalE.getOwned();
+
+    // Local mesh z-extent in the reference frame, used for the element query.
+    const double zmin = origin[2] + owned[2].first() * h[2];
+    const double zmax = origin[2] + (owned[2].last() + 1) * h[2];
+
+    // Gather elements whose longitudinal window may overlap the local mesh.
+    std::set<std::shared_ptr<ElementBase>> elements;
+    try {
+        if (!oths.empty() && oths[0]) {
+            const double centre = pc->get_sPos() + 0.5 * (zmin + zmax);
+            elements            = oths[0]->query(centre, zmax - zmin);
+        } else {
+            elements = itsOpalBeamline_m.getElements();
+        }
+    } catch (IndexMap::OutOfBounds&) {
+        m << level4 << "Orbit threader query out-of-bounds; skipping external field sampling."
+          << endl;
+        return;
+    }
+
+    if (elements.empty()) {
+        return;
+    }
+
+    const auto& toLab = pc->getToLabTrafo();
+    const double t    = itsBunch_m->getT();
+
+    auto Eview = externalE.getView();
+    auto Bview = externalB.getView();
+    auto Ehost = Kokkos::create_mirror_view(Eview);
+    auto Bhost = Kokkos::create_mirror_view(Bview);
+    Kokkos::deep_copy(Ehost, Eview);
+    Kokkos::deep_copy(Bhost, Bview);
+
+    for (const auto& element : elements) {
+        if (!element) {
+            continue;
+        }
+
+        const CoordinateSystemTrafo refToLocalCSTrafo =
+                (itsOpalBeamline_m.getMisalignment(element)
+                 * (itsOpalBeamline_m.getCSTrafoLab2Local(element) * toLab));
+        const CoordinateSystemTrafo localToRefCSTrafo = refToLocalCSTrafo.inverted();
+
+        for (int i = owned[0].first() + nghost; i <= owned[0].last() + nghost; ++i) {
+            const double x = (i - nghost) * h[0] + origin[0];
+            for (int j = owned[1].first() + nghost; j <= owned[1].last() + nghost; ++j) {
+                const double y = (j - nghost) * h[1] + origin[1];
+                for (int k = owned[2].first() + nghost; k <= owned[2].last() + nghost; ++k) {
+                    const double z = (k - nghost) * h[2] + origin[2];
+
+                    const Vector_t<double, 3> refPoint(x, y, z);
+                    const Vector_t<double, 3> localR = refToLocalCSTrafo.transformTo(refPoint);
+
+                    Vector_t<double, 3> localE(0.0);
+                    Vector_t<double, 3> localB(0.0);
+                    element->apply(localR, Vector_t<double, 3>(0.0), t, localE, localB);
+
+                    Ehost(i, j, k) += localToRefCSTrafo.rotateTo(localE);
+                    Bhost(i, j, k) += localToRefCSTrafo.rotateTo(localB);
+                }
+            }
+        }
+    }
+
+    Kokkos::deep_copy(Eview, Ehost);
+    Kokkos::deep_copy(Bview, Bhost);
+    m << level4 << "Sampled external E/B fields onto mesh (" << elements.size() << " elements)."
+      << endl;
+}
+#endif
 
 /**
  * @copybrief ParallelTracker::forEachElementInBunchFrame

@@ -1,5 +1,7 @@
 # script-version: 2.0
 # Catalyst state generated using paraview version 6.1.2
+import os
+
 import paraview
 paraview.compatibility.major = 6
 paraview.compatibility.minor = 1
@@ -235,14 +237,39 @@ pNG1.Writer.Set(
 # setup camera links
 # ----------------------------------------------------------------
 
+# ----------------------------------------------------------------
+# Snapshot extractor for offline script development
+# ----------------------------------------------------------------
+# OPALX_CATALYST_DUMP_SNAPSHOT=N creates a data extractor that writes on iteration N
+# (and every Nth iteration after that). Set to 0 or unset to disable.
+_snapshot_step = 0
+try:
+    _snapshot_step = int(os.environ.get('OPALX_CATALYST_DUMP_SNAPSHOT', '0'))
+except ValueError:
+    _snapshot_step = 0
+
+if _snapshot_step > 0:
+    ext = CreateExtractor('VTPC', ippl_particles_electrons,
+                          registrationName='Snapshot_electrons')
+    ext.Trigger = 'Time Step'
+    ext.Trigger.Frequency = _snapshot_step
+    ext.Writer.FileName = 'electrons_snapshot/{timestep:06d}.vtpc'
+
+# ----------------------------------------------------------------
+# Per-timestep behaviour
+# ----------------------------------------------------------------
+def catalyst_execute(info):
+    pass
+
 # ------------------------------------------------------------------------------
 # Catalyst options
 from paraview import catalyst
 options = catalyst.Options()
 options.EnableCatalystLive = 1
 
-# init the 'Time Step' selected for 'GlobalTrigger'
-options.GlobalTrigger.Frequency = 5
+# Execute every timestep so OPALX_CATALYST_DUMP_SNAPSHOT is interpreted as the
+# simulation iteration. Individual extractor frequencies still throttle writes.
+options.GlobalTrigger.Frequency = 1
 
 # init the 'Time Step' selected for 'CatalystLiveTrigger'
 options.CatalystLiveTrigger.Frequency = 5
