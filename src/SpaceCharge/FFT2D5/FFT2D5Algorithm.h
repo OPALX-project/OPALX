@@ -252,7 +252,7 @@ namespace opalx::spacecharge {
          * @param invalid Flags identifying particles that should be excluded
          *                from the charge deposition.
          * @param invDr Inverse grid spacing in each spatial dimension.
-         * @param nghost Number of ghost cells surrounding the local grid domain.
+         * @param nGhost Number of ghost cells surrounding the local grid domain.
          * @param lDom Local domain of the charge-density grid.
          * @param rho Charge-density grid onto which particle charge is deposited.
          * @param origin Physical origin of the charge-density grid.
@@ -262,7 +262,7 @@ namespace opalx::spacecharge {
         KOKKOS_FUNCTION static void doScatterToGrid(
                 size_t n, const VectorView_t& r, const VectorView_t& p, const ReferenceView_t& ref,
                 T meanPs, const ScalarView_t& dt, const BooleanView_t& invalid, Vector3D_t invDr,
-                int nghost, ippl::NDIndex<3U> lDom, ScalarGridView3D_t rho, Vector3D_t origin,
+                int nGhost, ippl::NDIndex<3U> lDom, ScalarGridView3D_t rho, Vector3D_t origin,
                 DiagnosticPolicy diagnostic);
 
         /**
@@ -304,14 +304,14 @@ namespace opalx::spacecharge {
          * @param fsR The particle position in Frenet-Serret coordinates
          * @param dt Particle time-step * charge.
          * @param invDr Inverse grid spacing in each spatial dimension.
-         * @param nghost Number of ghost cells surrounding the local grid domain.
+         * @param nGhost Number of ghost cells surrounding the local grid domain.
          * @param lDom Local domain of the charge-density grid.
          * @param rho Charge-density grid onto which particle charge is deposited.
          * @param origin Physical origin of the charge-density grid.
          */
         template <bool ScatterLongitudinally>
         KOKKOS_FUNCTION static void scatterToRho(
-                size_t n, Vector3D_t fsR, const ScalarView_t& dt, Vector3D_t invDr, int nghost,
+                size_t n, Vector3D_t fsR, const ScalarView_t& dt, Vector3D_t invDr, int nGhost,
                 const ippl::NDIndex<3U>& lDom, ScalarGridView3D_t rho, Vector3D_t origin);
 
         /**
@@ -336,7 +336,7 @@ namespace opalx::spacecharge {
          * @param invalid Flags identifying particles that should be excluded
          *                from the charge deposition.
          * @param invDr Inverse grid spacing in each spatial dimension.
-         * @param nghost Number of ghost cells surrounding the local grid domain.
+         * @param nGhost Number of ghost cells surrounding the local grid domain.
          * @param lDom Local domain of the charge-density grid.
          * @param eField Electric field grid from the Poisson solver.
          * @param origin Physical origin of the charge-density grid.
@@ -348,7 +348,7 @@ namespace opalx::spacecharge {
         KOKKOS_FUNCTION static void doGatherFromGrid(
                 size_t n, const VectorView_t& r, const VectorView_t& p, const ReferenceView_t& ref,
                 T beamGamma, T beamBeta, const VectorView_t& e, const VectorView_t& b,
-                const BooleanView_t& invalid, Vector3D_t invDr, int nghost, ippl::NDIndex<3U> lDom,
+                const BooleanView_t& invalid, Vector3D_t invDr, int nGhost, ippl::NDIndex<3U> lDom,
                 VectorGridView3D_t eField, Vector3D_t origin, T gBy4PiEpsilon0,
                 LineDensityView_t lineDensityGradient, DiagnosticPolicy diagnostic);
 
@@ -417,7 +417,7 @@ namespace opalx::spacecharge {
          * @param z Longtiduninal coordinate.
          */
         KOKKOS_FUNCTION static Vector3D_t gather2D(
-                VectorGridView3D_t eField, const ippl::Vector<T, 3U>& wlo,
+                const VectorGridView3D_t& eField, const ippl::Vector<T, 3U>& wlo,
                 const ippl::Vector<T, 3U>& whi, int x, int y, int z);
 
         /**
@@ -433,7 +433,7 @@ namespace opalx::spacecharge {
          * @param charge The charge to deposit.
          */
         KOKKOS_FUNCTION static void scatter2D(
-                ScalarGridView3D_t rho, const ippl::Vector<T, 3U>& wlo,
+                const ScalarGridView3D_t& rho, const ippl::Vector<T, 3U>& wlo,
                 const ippl::Vector<T, 3U>& whi, int x, int y, int z, T charge);
 
         /**
@@ -448,7 +448,7 @@ namespace opalx::spacecharge {
          * @param z Longtiduninal coordinate.
          */
         KOKKOS_FUNCTION static Vector3D_t gather3D(
-                VectorGridView3D_t eField, const ippl::Vector<T, 3U>& wlo,
+                const VectorGridView3D_t& eField, const ippl::Vector<T, 3U>& wlo,
                 const ippl::Vector<T, 3U>& whi, int x, int y, int z);
 
         /**
@@ -464,7 +464,7 @@ namespace opalx::spacecharge {
          * @param charge The charge to deposit.
          */
         KOKKOS_FUNCTION static void scatter3D(
-                ScalarGridView3D_t rho, const ippl::Vector<T, 3U>& wlo,
+                const ScalarGridView3D_t& rho, const ippl::Vector<T, 3U>& wlo,
                 const ippl::Vector<T, 3U>& whi, int x, int y, int z, T charge);
 
         /**
@@ -473,7 +473,7 @@ namespace opalx::spacecharge {
          * @param fsR The particle position in Frenet-Serret coordinates
          * @param origin Physical origin of the charge-density grid.
          * @param invDr Inverse of the grid spacing.
-         * @param nghost Number of ghost cells surrounding the local grid domain.
+         * @param nGhost Number of ghost cells surrounding the local grid domain.
          * @param lDom Local domain of the charge-density grid.
          * @param view The view being indexed.
          * @param whi Upper weighting factors.
@@ -482,7 +482,7 @@ namespace opalx::spacecharge {
          */
         template <typename ViewType>
         KOKKOS_FUNCTION static bool makeWeights(
-                Vector3D_t fsR, Vector3D_t origin, Vector3D_t invDr, int nghost,
+                Vector3D_t fsR, Vector3D_t origin, Vector3D_t invDr, int nGhost,
                 const ippl::NDIndex<3U>& lDom, const ViewType& view, ippl::Vector<T, 3U>& whi,
                 ippl::Vector<T, 3U>& wlo, ippl::Vector<int, 3U>& args);
 
