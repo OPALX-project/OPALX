@@ -72,7 +72,7 @@ Geometry Geometry::makeSBend(double length, double curvature) {
     g.kind_m  = GeometryKind::SBend;
     g.len_m   = length;
     g.h_m     = curvature;
-    g.angle_m = curvature * length;
+    g.angle_m = length/curvature;
     return g;
 }
 

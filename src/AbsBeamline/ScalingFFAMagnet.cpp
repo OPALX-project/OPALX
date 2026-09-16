@@ -36,7 +36,8 @@
 extern Inform* gmsg;
 
 ScalingFFAMagnet::ScalingFFAMagnet(const std::string& name)
-    : ElementBase(name), planarArcGeometry_m(Geometry::makeSBend(1., 1.)) {}
+    : ElementBase(name), planarArcGeometry_m(Geometry::makeSBend(1., 1.)) {
+}
 
 ScalingFFAMagnet::ScalingFFAMagnet(const ScalingFFAMagnet& right)
     : ElementBase(right),
@@ -71,7 +72,6 @@ void ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<doub
     Vector_t<double, 3> Rcyl = {Rffa[0], Rffa[1], Rffa[2]};
     getFieldValueCylindrical(Rcyl, Bcyl);
     rotateBfield(config_m, Rffa, Bcyl, B);
-    // std::cerr << "ScalingFFAManget::getFieldValue Rcyl " << Rcyl << std::endl;
 }
 
 void ScalingFFAMagnet::getFieldValueCylindrical(const Vector_t<double, 3>& Rcyl, Vector_t<double, 3>& Bcyl) const {
@@ -90,6 +90,7 @@ void ScalingFFAMagnet::getFieldValueCylindrical(const Vector_t<double, 3>& Rcyl,
 
 void ScalingFFAMagnet::initialise() {
     calculateDfCoefficients();
+    setupEndField();
     if (efm_m) {
         efm_m->setMaximumDerivative(config_m.maxOrder_m);
     }
@@ -162,18 +163,55 @@ void ScalingFFAMagnet::setMaxOrder(size_t maxOrder) {
 
 // Note this is tested in OpalScalingFFAMagnetTest.*
 void ScalingFFAMagnet::setupEndField() const {
-    if (endFieldName_m == "") {  // no end field is defined
+    if (efmInitialised_m) {
         return;
     }
     auto efmMan = endfieldmodel::EndFieldModelManager::getEFMManager();
     std::shared_ptr<endfieldmodel::EndFieldModel> efm =
                              efmMan->getEndFieldModel(endFieldName_m);
     efm->rescale(1.0 / getR0());
-    config_m.phiStart_m  = getPhiStart() + efm->getCentreLength() * 0.5;
+    config_m.phiStart_m  = config_m.phiStart_m + efm->getCentreLength() * 0.5;
+    config_m.phiEnd_m = config_m.phiStart_m + efm->getCentreLength() * 0.5;
     if (config_m.azimuthalExtent_m < 0.0) {
         config_m.azimuthalExtent_m  = efm->getEndLength() * 5. + efm->getCentreLength() * 0.5;
     }
-    planarArcGeometry_m.setElementLength(config_m.r0_m * config_m.phiEnd_m);
-    planarArcGeometry_m.setCurvature(1. / config_m.r0_m);
-    efm_m = efm;
+    planarArcGeometry_m = Geometry::makeSBend(config_m.r0_m * config_m.phiEnd_m, config_m.r0_m);
+    efmInitialised_m = true;
+}
+
+void ScalingFFAMagnet::getFieldExtent(double& zBegin, double& zEnd) const {
+    setupEndField();
+    getZMin(zBegin);
+    getZMax(zEnd);
+}
+
+void ScalingFFAMagnet::getZMin(double& zBegin) const {
+    double beginPhi = -config_m.azimuthalExtent_m + efm_m->getCentreLength()/2.0;
+    if (beginPhi < -M_PI/2) {
+        beginPhi = -M_PI/2;
+    }
+    Vector_t<double, 3> cylBegin = {config_m.rMax_m, 0.0, beginPhi};
+    Vector_t<double, 3> cartBegin;
+    getCartesianCoordinates(cylBegin, cartBegin);
+    zBegin = cartBegin[2];
+}
+
+
+void ScalingFFAMagnet::getZMax(double& zEnd) const {
+    double endPhi = config_m.azimuthalExtent_m + efm_m->getCentreLength()/2.0;
+    if (endPhi < -M_PI/2) {
+        endPhi = M_PI/2;
+    }
+    Vector_t<double, 3> cylEnd = {config_m.rMax_m, 0.0, endPhi};
+    Vector_t<double, 3> cartEnd;
+    getCartesianCoordinates(cylEnd, cartEnd);
+    zEnd = cartEnd[2];
+}
+
+
+void ScalingFFAMagnet::getCartesianCoordinates(const Vector_t<double, 3>& Rcyl,
+                                               Vector_t<double, 3>& Rcart) const {
+    Rcart[0] = Rcyl[0]*std::cos(Rcyl[2])-config_m.r0_m;
+    Rcart[1] = Rcyl[1];
+    Rcart[2] = Rcyl[0]*std::sin(Rcyl[2]);
 }
