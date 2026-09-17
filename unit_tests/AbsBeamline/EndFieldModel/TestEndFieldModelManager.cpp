@@ -14,3 +14,24 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 
+#include "gtest/gtest.h"
+#include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
+#include "AbsBeamline/EndFieldModel/Tanh.h"
+
+
+TEST(TestEndFieldModelManager, TestEFMSetGet) {
+    auto efmMan = endfieldmodel::EndFieldModelManager::getEFMManager();
+    EXPECT_ANY_THROW(efmMan->getEndFieldModel("test"));
+
+    auto efm = std::make_shared<endfieldmodel::Tanh>();
+    auto efmBad = std::make_shared<endfieldmodel::Tanh>();
+    efmMan->setEndFieldModel("test", efm);
+    EXPECT_EQ(efmMan->getEndFieldModel("test"), efm);
+    EXPECT_EQ(efmMan->getName(efm), "test");
+    EXPECT_ANY_THROW(efmMan->getName(efmBad));
+
+    efmMan->clearEFMManager();
+
+    EXPECT_ANY_THROW(efmMan->getEndFieldModel("test"));
+}
+

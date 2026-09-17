@@ -54,5 +54,20 @@ void EndFieldModelManager::setEndFieldModel(const std::string& name,
     efmMap_m[name] = efm;
 }
 
+std::string EndFieldModelManager::getName(const std::shared_ptr<EndFieldModel>& efm) const {
+    for (auto it = efmMap_m.begin(); it != efmMap_m.end(); ++it) {
+        if ((*it).second == efm) {
+            return (*it).first;
+        }
+    }
+    throw OpalException("EndFieldModelManager::getName",
+                        "Could not find end field model in name look up");
+}
+
+void EndFieldModelManager::clearEFMManager() {
+    globalEFM_m->efmMap_m.clear();
+    globalEFM_m.reset();
+}
+
 
 }  // namespace endfieldmodel
