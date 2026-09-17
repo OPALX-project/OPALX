@@ -5,38 +5,43 @@
 #include "gtest/gtest.h"
 
 TEST(BorisStepControl, CoordinateFloorUsesActualSpeedAndPreservesResolvableDistance) {
-    const double c = 299792458.;
+    const double c    = 299792458.;
     const double beta = 0.07285411307707136;
     for (double scale : {0., 0.001, 1., 8.4, 1e6}) {
-        const double fast = boris_step::positionTimeFloor(scale, c);
-        const double slow = boris_step::positionTimeFloor(scale, beta * c);
+        const double fast     = boris_step::positionTimeFloor(scale, c);
+        const double slow     = boris_step::positionTimeFloor(scale, beta * c);
         const double distance = 64 * std::numeric_limits<double>::epsilon() * std::max(1., scale);
         EXPECT_NEAR(slow / fast, 1 / beta, 4e-15);
         EXPECT_NEAR(fast * c, distance, 2 * std::numeric_limits<double>::epsilon() * distance);
-        EXPECT_NEAR(slow * beta * c, distance, 2 * std::numeric_limits<double>::epsilon() * distance);
+        EXPECT_NEAR(
+                slow * beta * c, distance, 2 * std::numeric_limits<double>::epsilon() * distance);
         EXPECT_GT(slow, fast);
     }
 }
 
 TEST(BorisStepControl, CoordinateFloorRejectsInvalidScaleAndSpeed) {
     const double infinity = std::numeric_limits<double>::infinity();
-    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const double nan      = std::numeric_limits<double>::quiet_NaN();
     for (double speed : {0., -1., infinity, nan})
         EXPECT_THROW(boris_step::positionTimeFloor(1, speed), std::invalid_argument);
     for (double scale : {-1., infinity, nan})
         EXPECT_THROW(boris_step::positionTimeFloor(scale, 1), std::invalid_argument);
-    EXPECT_THROW(boris_step::positionTimeFloor(std::numeric_limits<double>::max(),
-            std::numeric_limits<double>::min()), std::overflow_error);
+    EXPECT_THROW(
+            boris_step::positionTimeFloor(
+                    std::numeric_limits<double>::max(), std::numeric_limits<double>::min()),
+            std::overflow_error);
 }
 
 TEST(BorisStepControl, AccumulatedSolverTranslationKeepsHalfDriftsRepresentable) {
-    const double nominalDt = 6.25e-11;
-    const double speed = 0.07285411307707136 * 299792458.;
-    const double laboratoryScale = 2.;
-    const double solverTranslation = 825.; // Accumulated path after many ring turns [m].
-    boris_step::Control solverAware(nominalDt, boris_step::positionTimeFloor(
-            std::max(laboratoryScale, solverTranslation), speed));
-    while (solverAware.canSplit()) solverAware.split();
+    const double nominalDt         = 6.25e-11;
+    const double speed             = 0.07285411307707136 * 299792458.;
+    const double laboratoryScale   = 2.;
+    const double solverTranslation = 825.;  // Accumulated path after many ring turns [m].
+    boris_step::Control solverAware(
+            nominalDt,
+            boris_step::positionTimeFloor(std::max(laboratoryScale, solverTranslation), speed));
+    while (solverAware.canSplit())
+        solverAware.split();
 
     // Even the half drift remains well above the solver-coordinate roundoff.
     // Control may bisect once below its floor, so its smallest half drift is
@@ -47,9 +52,10 @@ TEST(BorisStepControl, AccumulatedSolverTranslationKeepsHalfDriftsRepresentable)
 
     // Using only the bounded laboratory ring coordinate reproduces the lost
     // motion that motivated including the PIC frame's path translation.
-    boris_step::Control laboratoryOnly(nominalDt,
-            boris_step::positionTimeFloor(laboratoryScale, speed));
-    while (laboratoryOnly.canSplit()) laboratoryOnly.split();
+    boris_step::Control laboratoryOnly(
+            nominalDt, boris_step::positionTimeFloor(laboratoryScale, speed));
+    while (laboratoryOnly.canSplit())
+        laboratoryOnly.split();
     const double unresolvedHalfDrift = 0.5 * speed * laboratoryOnly.step();
     EXPECT_DOUBLE_EQ(solverTranslation + unresolvedHalfDrift, solverTranslation);
     EXPECT_GT(solverAware.step(), laboratoryOnly.step());
@@ -73,14 +79,14 @@ TEST(BorisStepControl, RetainsBothHalvesInChronologicalOrder) {
     boris_step::Control control(8e-10);
     control.split();
     control.split();
-    control.accept(); // First quarter.
+    control.accept();  // First quarter.
     EXPECT_DOUBLE_EQ(control.elapsed(), 2e-10);
     EXPECT_DOUBLE_EQ(control.step(), 2e-10);
-    control.accept(); // Second quarter.
+    control.accept();  // Second quarter.
     EXPECT_DOUBLE_EQ(control.elapsed(), 4e-10);
     EXPECT_DOUBLE_EQ(control.step(), 4e-10);
     control.split();
-    control.accept(); // Third quarter.
+    control.accept();  // Third quarter.
     EXPECT_DOUBLE_EQ(control.elapsed(), 6e-10);
     control.split();
     EXPECT_DOUBLE_EQ(control.step(), 1e-10);
@@ -91,7 +97,7 @@ TEST(BorisStepControl, RetainsBothHalvesInChronologicalOrder) {
 }
 
 TEST(BorisStepControl, UniformSubdivisionNeverDropsAcceptedTime) {
-    const double nominal = 7.123456789e-11;
+    const double nominal  = 7.123456789e-11;
     const double smallest = std::ldexp(nominal, -16);
     boris_step::Control control(nominal);
     std::size_t accepted = 0;
@@ -197,7 +203,7 @@ TEST(BorisStepControl, BoundsTrialsAndPreservesStateOnBudgetFailure) {
 
 TEST(BorisStepControl, RejectsInvalidConstruction) {
     const double infinity = std::numeric_limits<double>::infinity();
-    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const double nan      = std::numeric_limits<double>::quiet_NaN();
     for (double dt : {0., -1., infinity, nan})
         EXPECT_THROW(boris_step::Control control(dt), std::invalid_argument);
     for (double floor : {-1., infinity, nan})

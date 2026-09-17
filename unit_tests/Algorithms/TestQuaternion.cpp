@@ -355,9 +355,9 @@ TEST_F(QuaternionTest, GetQuaternionResolvesNearParallelAngles) {
         EXPECT_TRUE(q.isUnit());
         // Resolve the transverse component to its own floating-point scale,
         // even when the longitudinal dot product has rounded exactly to one.
-        EXPECT_NEAR(rotated(0), ref(0), 16*epsilon*std::abs(angle));
+        EXPECT_NEAR(rotated(0), ref(0), 16 * epsilon * std::abs(angle));
         EXPECT_DOUBLE_EQ(rotated(1), 0.0);
-        EXPECT_NEAR(rotated(2), ref(2), 16*epsilon);
+        EXPECT_NEAR(rotated(2), ref(2), 16 * epsilon);
     }
 }
 
@@ -373,7 +373,7 @@ TEST_F(QuaternionTest, GetQuaternionResolvesNearAntiparallelAngles) {
         // The angle is near pi, so absolute machine precision is the relevant
         // resolution. The requested deviation remains well above this bound.
         for (unsigned d = 0; d < 3; ++d)
-            EXPECT_NEAR(rotated(d), ref(d), 16*epsilon);
+            EXPECT_NEAR(rotated(d), ref(d), 16 * epsilon);
     }
 }
 
@@ -382,7 +382,8 @@ TEST_F(QuaternionTest, GetQuaternionPreservesParallelTolerance) {
     const ippl::Vector<double, 3> ref(5e-13, 0.0, 1.0);
     const Quaternion q = getQuaternion(u, ref);
     EXPECT_DOUBLE_EQ(q.real(), 1.0);
-    for (unsigned d = 1; d < 4; ++d) EXPECT_DOUBLE_EQ(q(d), 0.0);
+    for (unsigned d = 1; d < 4; ++d)
+        EXPECT_DOUBLE_EQ(q(d), 0.0);
 }
 
 TEST_F(QuaternionTest, ConjugatePreservesNorm) {

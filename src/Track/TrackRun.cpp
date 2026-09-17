@@ -16,9 +16,9 @@
 //
 #include "Track/TrackRun.h"
 
-#include "Algorithms/ParallelTracker.h"
-#include "Algorithms/DefaultVisitor.h"
 #include "AbsBeamline/RFCavity.h"
+#include "Algorithms/DefaultVisitor.h"
+#include "Algorithms/ParallelTracker.h"
 
 #include "AbstractObjects/BeamSequence.h"
 
@@ -209,15 +209,20 @@ TrackRun::TrackRun()
             "TURNS",
             "Optional directed-return limit for RING tracking. When omitted, TRACK uses its "
             "ZSTOP/MAXSTEPS schedule. Explicit values must be positive integers and use "
-            "ordinary device Boris/PIC transport; supported bare analytic rings use synchronized boundary steps. In "
+            "ordinary device Boris/PIC transport; supported bare analytic rings use synchronized "
+            "boundary steps. In "
             "SPECTRALTUNES mode, TURNS is the nominal analysis interval and defaults to 1.",
             1.0);
-    itsAttr[TRACKRUN::SPECTRALTUNES] = Attributes::makeBool("SPECTRALTUNES",
-        "Run serial two-ray coasting Lomb tune analysis instead of bunch tracking.", false);
-    itsAttr[TRACKRUN::TUNESAMPLE] = Attributes::makeReal("TUNESAMPLE", "Sample every N tune steps.", 50);
-    itsAttr[TRACKRUN::TUNEINTEGRATOR] = Attributes::makePredefinedString("TUNEINTEGRATOR",
-        "External-field integrator for spectral rays only.", {"BORIS", "LF2", "RK4", "DOP853"}, "RK4");
-    itsAttr[TRACKRUN::TUNESECTOR] = Attributes::makeString("TUNESECTOR", "Sector defining tune launch plane and centre.", "SM0");
+    itsAttr[TRACKRUN::SPECTRALTUNES] = Attributes::makeBool(
+            "SPECTRALTUNES",
+            "Run serial two-ray coasting Lomb tune analysis instead of bunch tracking.", false);
+    itsAttr[TRACKRUN::TUNESAMPLE] =
+            Attributes::makeReal("TUNESAMPLE", "Sample every N tune steps.", 50);
+    itsAttr[TRACKRUN::TUNEINTEGRATOR] = Attributes::makePredefinedString(
+            "TUNEINTEGRATOR", "External-field integrator for spectral rays only.",
+            {"BORIS", "LF2", "RK4", "DOP853"}, "RK4");
+    itsAttr[TRACKRUN::TUNESECTOR] = Attributes::makeString(
+            "TUNESECTOR", "Sector defining tune launch plane and centre.", "SM0");
     itsAttr[TRACKRUN::SCFIELDUPDATE] = Attributes::makePredefinedString(
             "SCFIELDUPDATE",
             "Space-charge field evaluation point: MIDPOINT uses positions after the first half "
@@ -442,14 +447,14 @@ void TrackRun::execute() {
         // collective PIC solve. Keep non-NONE backends on the ordinary path.
         // Even NONE may traverse the binning adapter, so exclude stateful
         // binning/diagnostics and repartitioning from retry eligibility.
-        const auto& bin = cartesian->binning;
-        const bool retrySafeBins = !bin || (!bin->adaptive && bin->maximumBins == 1
-                && (bin->dumpFile.empty() || bin->dumpFrequency == 0)
-                && bin->tablePrintFrequency == 0);
-        retrySafeBareTracking = retrySafeBins
-                && cartesian->repartitionFrequency == 0
-                && cartesian->backend == opalx::spacecharge::PoissonSolverType::None
-                && !dirichletPlane.enabled();
+        const auto& bin          = cartesian->binning;
+        const bool retrySafeBins = !bin
+                                   || (!bin->adaptive && bin->maximumBins == 1
+                                       && (bin->dumpFile.empty() || bin->dumpFrequency == 0)
+                                       && bin->tablePrintFrequency == 0);
+        retrySafeBareTracking = retrySafeBins && cartesian->repartitionFrequency == 0
+                                && cartesian->backend == opalx::spacecharge::PoissonSolverType::None
+                                && !dirichletPlane.enabled();
 #ifdef OPALX_FIELD_DEBUG
         // Unbinned backend field dumps are numbered by attempted solve.
         if (!bin) retrySafeBareTracking = false;
@@ -590,7 +595,8 @@ void TrackRun::execute() {
             using DefaultVisitor::DefaultVisitor;
             void visitRFCavity(const RFCavity& cavity) override {
                 if (cavity.isCyclotronGap())
-                    throw OpalException("TrackRun::execute", "SINGLEGAP requires TYPE=NONE field solver.");
+                    throw OpalException(
+                            "TrackRun::execute", "SINGLEGAP requires TYPE=NONE field solver.");
             }
         } validator(*Track::block->use->fetchLine(), false, false);
         validator.execute();
@@ -605,13 +611,15 @@ void TrackRun::execute() {
         throw OpalException("TrackRun::execute", "A RING requires a positive circumference.");
     }
     unsigned long long directedTurns = 0;
-    const double kineticStop = Track::block->kineticEnergyStopGeV;
+    const double kineticStop         = Track::block->kineticEnergyStopGeV;
     if (kineticStop > 0) {
         if (!isRing || isRestart || !itsAttr[TRACKRUN::TURNS].defaultUsed()
             || Track::block->dT.size() != 1 || maxSteps.size() != 1 || sStop.size() != 1
             || !(Track::block->dT.front() > 0))
-            throw OpalException("TrackRun::execute",
-                "EKINSTOP requires a non-restarted RING, one positive DT segment and no explicit TURNS.");
+            throw OpalException(
+                    "TrackRun::execute",
+                    "EKINSTOP requires a non-restarted RING, one positive DT segment and no "
+                    "explicit TURNS.");
         sStop.front() = std::numeric_limits<double>::max();
     }
     if (!itsAttr[TRACKRUN::TURNS].defaultUsed() && isRing
@@ -633,14 +641,14 @@ void TrackRun::execute() {
 
         const auto turns = static_cast<unsigned long long>(roundedTurns);
         if (beams.size() != 1)
-            throw OpalException("TrackRun::execute",
-                    "Localized TURNS requires one beam.");
+            throw OpalException("TrackRun::execute", "Localized TURNS requires one beam.");
         if (isRestart) {
             throw OpalException(
                     "TrackRun::execute",
-                    "Explicit RING TURNS restart requires persisted return-plane counters and is not supported yet.");
+                    "Explicit RING TURNS restart requires persisted return-plane counters and is "
+                    "not supported yet.");
         }
-        directedTurns = turns;
+        directedTurns                = turns;
         const double beta            = Track::block->reference.getBeta();
         const double distancePerStep = Physics::c * std::abs(Track::block->dT.front()) * beta;
         if (!(distancePerStep > 0.0)) {
@@ -661,56 +669,69 @@ void TrackRun::execute() {
         sStop.front()    = std::numeric_limits<double>::max();
         maxSteps.front() = std::max(maxSteps.front(), static_cast<unsigned long long>(safetySteps));
         *gmsg << level1 << "* RING " << Track::block->use->getOpalName() << ": tracking " << turns
-              << " directed turns; nominal circumference for step-budget estimate = "
-              << ringPeriod << " m." << endl;
+              << " directed turns; nominal circumference for step-budget estimate = " << ringPeriod
+              << " m." << endl;
     }
 
     itsTracker_m = std::make_unique<ParallelTracker>(
             *Track::block->use->fetchLine(), *bunch_m, *spaceChargeSolver_m, dirichletPlane, ds_m,
-            false, maxSteps, Track::block->zstart, sStop, Track::block->dT,
-            emittingSamplersList, isRestart,
-            static_cast<unsigned long long>(restartMetadata.globalTrackStep), restartMetadata.dt,
+            false, maxSteps, Track::block->zstart, sStop, Track::block->dT, emittingSamplersList,
+            isRestart, static_cast<unsigned long long>(restartMetadata.globalTrackStep),
+            restartMetadata.dt,
             StepSizeConfig::ResumePosition{
                     restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment},
             ringPeriod);
     if (Track::block->initialOrbit) {
         if (beams.size() != 1 || isRestart || Attributes::getBool(itsAttr[TRACKRUN::SPECTRALTUNES]))
-            throw OpalException("INITIALORBIT", "Requires one fresh beam and ordinary particle tracking.");
-        Track::block->initialOrbit->validate(Track::block->use->getOpalName(), beams.front()->getParticleName(),
-                                     beams.front()->getReference());
+            throw OpalException(
+                    "INITIALORBIT", "Requires one fresh beam and ordinary particle tracking.");
+        Track::block->initialOrbit->validate(
+                Track::block->use->getOpalName(), beams.front()->getParticleName(),
+                beams.front()->getReference());
         for (const auto& samplers : emittingSamplersList)
             for (const auto& sampler : samplers)
                 if (!sampler->isEmissionDone(Track::block->initialOrbit->time))
                     throw OpalException("INITIALORBIT", "Ongoing emission is not supported.");
-        static_cast<ParallelTracker*>(itsTracker_m.get())->setInitialOrbit(*Track::block->initialOrbit);
+        static_cast<ParallelTracker*>(itsTracker_m.get())
+                ->setInitialOrbit(*Track::block->initialOrbit);
     }
     // Other solver configurations retain the ordinary unsplit integration sequence.
     static_cast<ParallelTracker*>(itsTracker_m.get())->bareTracking_m = fs_m->getType() == "NONE";
-    static_cast<ParallelTracker*>(itsTracker_m.get())->allowBoundaryControl_m = retrySafeBareTracking;
+    static_cast<ParallelTracker*>(itsTracker_m.get())->allowBoundaryControl_m =
+            retrySafeBareTracking;
     static_cast<ParallelTracker*>(itsTracker_m.get())->setRequestedTurns(directedTurns);
-    static_cast<ParallelTracker*>(itsTracker_m.get())->setKineticEnergyStop(kineticStop*1e9);
-    static_cast<ParallelTracker*>(itsTracker_m.get())->setSpaceChargeFieldUpdate(
-            Attributes::getString(itsAttr[TRACKRUN::SCFIELDUPDATE]) == "PRESTEP"
-                    ? ParallelTracker::SpaceChargeFieldUpdate::PRESTEP
-                    : ParallelTracker::SpaceChargeFieldUpdate::MIDPOINT);
+    static_cast<ParallelTracker*>(itsTracker_m.get())->setKineticEnergyStop(kineticStop * 1e9);
+    static_cast<ParallelTracker*>(itsTracker_m.get())
+            ->setSpaceChargeFieldUpdate(
+                    Attributes::getString(itsAttr[TRACKRUN::SCFIELDUPDATE]) == "PRESTEP"
+                            ? ParallelTracker::SpaceChargeFieldUpdate::PRESTEP
+                            : ParallelTracker::SpaceChargeFieldUpdate::MIDPOINT);
     if (Attributes::getBool(itsAttr[TRACKRUN::SPECTRALTUNES])) {
-        const double turns = Attributes::getReal(itsAttr[TRACKRUN::TURNS]);
+        const double turns  = Attributes::getReal(itsAttr[TRACKRUN::TURNS]);
         const double sample = Attributes::getReal(itsAttr[TRACKRUN::TUNESAMPLE]);
-        const auto initial = beams.front()->getTuneInitial();
-        if (!isRing || isRestart || kineticStop > 0 || beams.size()!=1 || fs_m->getType()!="NONE"
-            || beams.front()->getParticleName()!="PROTON" || Track::block->dT.size()!=1
-            || initial.empty() || initial.size()%3 || !(turns>=1 && turns<=100000 && turns==std::floor(turns))
-            || !(sample>=1 && sample<=100000 && sample==std::floor(sample)) || Track::block->stepsPerTurn<=0
-            || !(Track::block->dT.front()>0) || !beams.front()->getGlobalProcessNames().empty())
-            throw OpalException("TrackRun", "SPECTRALTUNES requires non-restarted proton RING, one beam/DT, FIELDSOLVER=NONE, TUNEINITIAL triples and positive integer TURNS/TUNESAMPLE.");
+        const auto initial  = beams.front()->getTuneInitial();
+        if (!isRing || isRestart || kineticStop > 0 || beams.size() != 1
+            || fs_m->getType() != "NONE" || beams.front()->getParticleName() != "PROTON"
+            || Track::block->dT.size() != 1 || initial.empty() || initial.size() % 3
+            || !(turns >= 1 && turns <= 100000 && turns == std::floor(turns))
+            || !(sample >= 1 && sample <= 100000 && sample == std::floor(sample))
+            || Track::block->stepsPerTurn <= 0 || !(Track::block->dT.front() > 0)
+            || !beams.front()->getGlobalProcessNames().empty())
+            throw OpalException(
+                    "TrackRun",
+                    "SPECTRALTUNES requires non-restarted proton RING, one beam/DT, "
+                    "FIELDSOLVER=NONE, TUNEINITIAL triples and positive integer TURNS/TUNESAMPLE.");
         SpectralTunes::Settings settings;
-        settings.turns=static_cast<unsigned>(turns); settings.sampleEvery=static_cast<unsigned>(sample);
-        settings.stepsPerTurn=Track::block->stepsPerTurn; settings.dt=Track::block->dT.front();
-        settings.sector=Attributes::getString(itsAttr[TRACKRUN::TUNESECTOR]);
-        settings.integrator=ExternalFieldRayTracker::parseIntegrationMethod(Attributes::getString(itsAttr[TRACKRUN::TUNEINTEGRATOR]));
-        if (size_t(settings.turns)*settings.stepsPerTurn > Track::block->localTimeSteps.front())
+        settings.turns        = static_cast<unsigned>(turns);
+        settings.sampleEvery  = static_cast<unsigned>(sample);
+        settings.stepsPerTurn = Track::block->stepsPerTurn;
+        settings.dt           = Track::block->dT.front();
+        settings.sector       = Attributes::getString(itsAttr[TRACKRUN::TUNESECTOR]);
+        settings.integrator   = ExternalFieldRayTracker::parseIntegrationMethod(
+                Attributes::getString(itsAttr[TRACKRUN::TUNEINTEGRATOR]));
+        if (size_t(settings.turns) * settings.stepsPerTurn > Track::block->localTimeSteps.front())
             throw OpalException("TrackRun", "Spectral tune steps exceed TRACK MAXSTEPS.");
-        static_cast<ParallelTracker*>(itsTracker_m.get())->setSpectralTunes(initial,settings);
+        static_cast<ParallelTracker*>(itsTracker_m.get())->setSpectralTunes(initial, settings);
     }
     itsTracker_m->execute();
 
@@ -920,7 +941,10 @@ void TrackRun::setupDistributionsAndSamplers(
         const bool usesFileMomentum = opalDist->getType() == DistributionType::FROMFILE
                                       || opalDist->getType() == DistributionType::EMITTEDFROMFILE;
         if (usesFileMomentum && Track::block->initialOrbit)
-            throw OpalException("INITIALORBIT", "FROMFILE/EMITTEDFROMFILE use absolute coordinates; use an orbit-local generated distribution.");
+            throw OpalException(
+                    "INITIALORBIT",
+                    "FROMFILE/EMITTEDFROMFILE use absolute coordinates; use an orbit-local "
+                    "generated distribution.");
         if (usesFileMomentum) {
             if (beam->hasExplicitEnergy()) {
                 throw OpalException(

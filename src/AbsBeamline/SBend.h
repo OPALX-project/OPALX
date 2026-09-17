@@ -10,7 +10,9 @@
 #include <string>
 #include <vector>
 
-namespace device_external { struct Builder; }
+namespace device_external {
+    struct Builder;
+}
 
 /**
  * @class SBend
@@ -127,7 +129,7 @@ public:
     void setB(double B);
 
 private:
-    friend struct device_external::Builder; // Internal immutable device snapshot.
+    friend struct device_external::Builder;  // Internal immutable device snapshot.
     /// @brief Compute the field on the host at position R.
     /// @param R Position.
     /// @param B Magnetic field (output).

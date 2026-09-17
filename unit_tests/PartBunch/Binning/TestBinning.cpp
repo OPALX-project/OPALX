@@ -45,8 +45,8 @@ using Vector = ippl::Vector<T, Dim>;
 using size_type = ippl::detail::size_type;
 
 #include <algorithm>
-#include <cmath>
 #include <cfenv>
+#include <cmath>
 #include <iostream>
 #include <numeric>
 #include <random>
@@ -788,7 +788,7 @@ TEST_F(BinningTest, AdaptBinsDoFullRebin) {
 TEST_F(BinningTest, ColdGammaBinningIsFiniteAndRepeatableWithoutChangingMomentum) {
     createParticlesUniformP(32, 2, 0.073, 0.073);
     using GammaSelector = ParticleBinning::GammaSelector<Container_t>;
-    using GammaBins = ParticleBinning::AdaptBins<Container_t, GammaSelector>;
+    using GammaBins     = ParticleBinning::AdaptBins<Container_t, GammaSelector>;
     for (bin_index_type maximum : {1, 8}) {
         GammaBins bins(*bunch, GammaSelector(2), maximum, 1., 1., 0.1, "COLD_GAMMA");
         for (double pz : {0.073, 0.2, 0.073}) {
@@ -812,9 +812,12 @@ TEST_F(BinningTest, ColdGammaBinningIsFiniteAndRepeatableWithoutChangingMomentum
             EXPECT_EQ(bins.getNPartInBin(0, true), bunch->getTotalNum());
             for (bin_index_type bin = 1; bin < maximum; ++bin)
                 EXPECT_EQ(bins.getNPartInBin(bin, true), 0u);
-            auto binHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), bunch->Bin.getView());
-            auto pHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), bunch->P.getView());
-            auto hashHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), bins.getHashArray());
+            auto binHost =
+                    Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), bunch->Bin.getView());
+            auto pHost =
+                    Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), bunch->P.getView());
+            auto hashHost =
+                    Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), bins.getHashArray());
             std::vector<size_type> indices;
             for (size_type i = 0; i < bunch->getLocalNum(); ++i) {
                 EXPECT_EQ(binHost(i), 0);
@@ -823,7 +826,8 @@ TEST_F(BinningTest, ColdGammaBinningIsFiniteAndRepeatableWithoutChangingMomentum
                 indices.push_back(hashHost(i));
             }
             std::sort(indices.begin(), indices.end());
-            for (size_type i = 0; i < indices.size(); ++i) EXPECT_EQ(indices[i], i);
+            for (size_type i = 0; i < indices.size(); ++i)
+                EXPECT_EQ(indices[i], i);
         }
     }
 }

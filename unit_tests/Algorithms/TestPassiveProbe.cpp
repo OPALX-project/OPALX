@@ -8,28 +8,28 @@
 #include <limits>
 
 namespace {
-using namespace passive_probe;
+    using namespace passive_probe;
 
-void expectEndpoint(const Endpoint& actual, const Endpoint& expected) {
-    EXPECT_DOUBLE_EQ(actual.time, expected.time);
-    for (unsigned d = 0; d < 3; ++d) {
-        EXPECT_DOUBLE_EQ(actual.position(d), expected.position(d));
-        EXPECT_DOUBLE_EQ(actual.momentum(d), expected.momentum(d));
+    void expectEndpoint(const Endpoint& actual, const Endpoint& expected) {
+        EXPECT_DOUBLE_EQ(actual.time, expected.time);
+        for (unsigned d = 0; d < 3; ++d) {
+            EXPECT_DOUBLE_EQ(actual.position(d), expected.position(d));
+            EXPECT_DOUBLE_EQ(actual.momentum(d), expected.momentum(d));
+        }
     }
-}
 
-void expectState(const State& actual, const State& expected) {
-    expectEndpoint(actual.previous, expected.previous);
-    EXPECT_EQ(actual.turns, expected.turns);
-    EXPECT_EQ(actual.initialized, expected.initialized);
-    EXPECT_EQ(actual.armed, expected.armed);
-}
-} // namespace
+    void expectState(const State& actual, const State& expected) {
+        expectEndpoint(actual.previous, expected.previous);
+        EXPECT_EQ(actual.turns, expected.turns);
+        EXPECT_EQ(actual.initialized, expected.initialized);
+        EXPECT_EQ(actual.armed, expected.armed);
+    }
+}  // namespace
 
 class PassiveProbeTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
-        int argc = 0;
+        int argc    = 0;
         char** argv = nullptr;
         ippl::initialize(argc, argv);
     }
@@ -39,7 +39,7 @@ protected:
 TEST_F(PassiveProbeTest, DriftCrossingIsExactAndDoesNotMutateAcceptedEndpoints) {
     const Plane plane{Vector(0.3, -0.4, 0.7), Vector(0, 0, 3), 1e-9};
     const Vector p(0.02, -0.01, 0.3);
-    const Vector velocity = Physics::c * p / std::sqrt(1 + dot(p, p));
+    const Vector velocity     = Physics::c * p / std::sqrt(1 + dot(p, p));
     const double crossingTime = 2e-8, dt = 5e-9;
     const Endpoint before{plane.origin - 0.4 * dt * velocity, p, crossingTime - 0.4 * dt};
     const Endpoint after{plane.origin + 0.6 * dt * velocity, p, crossingTime + 0.6 * dt};
@@ -66,18 +66,25 @@ TEST_F(PassiveProbeTest, InitialPlaneAndOppositeCrossingDoNotCount) {
     State state;
     Sample sample;
     EXPECT_EQ(update(plane, state, {Vector(0), Vector(0, 0, 1), 0}, sample), Status::Initialized);
-    EXPECT_EQ(update(plane, state, {Vector(0, 0, 1), Vector(0, 0, 1), 1}, sample), Status::Advanced);
-    EXPECT_EQ(update(plane, state, {Vector(0, 0, -1), Vector(0, 0, -1), 2}, sample), Status::Advanced);
+    EXPECT_EQ(
+            update(plane, state, {Vector(0, 0, 1), Vector(0, 0, 1), 1}, sample), Status::Advanced);
+    EXPECT_EQ(
+            update(plane, state, {Vector(0, 0, -1), Vector(0, 0, -1), 2}, sample),
+            Status::Advanced);
     EXPECT_EQ(state.turns, 0u);
     EXPECT_TRUE(state.armed);
-    EXPECT_EQ(update(plane, state, {Vector(0, 0, -0.5), Vector(0, 0, 1), 3}, sample), Status::Advanced);
+    EXPECT_EQ(
+            update(plane, state, {Vector(0, 0, -0.5), Vector(0, 0, 1), 3}, sample),
+            Status::Advanced);
     EXPECT_EQ(update(plane, state, {Vector(0), Vector(0, 0, 1), 4}, sample), Status::Crossing);
     EXPECT_DOUBLE_EQ(sample.fraction, 1.0);
     EXPECT_DOUBLE_EQ(sample.crossing.time, 4.0);
     EXPECT_EQ(update(plane, state, {Vector(0), Vector(0, 0, 1), 5}, sample), Status::Advanced);
     EXPECT_EQ(state.turns, 1u);
-    EXPECT_EQ(update(plane, state, {Vector(0, 0, -1), Vector(0, 0, 1), 6}, sample), Status::Advanced);
-    EXPECT_EQ(update(plane, state, {Vector(0, 0, 1), Vector(0, 0, 1), 7}, sample), Status::Crossing);
+    EXPECT_EQ(
+            update(plane, state, {Vector(0, 0, -1), Vector(0, 0, 1), 6}, sample), Status::Advanced);
+    EXPECT_EQ(
+            update(plane, state, {Vector(0, 0, 1), Vector(0, 0, 1), 7}, sample), Status::Crossing);
     EXPECT_EQ(state.turns, 2u);
 }
 
@@ -91,8 +98,12 @@ TEST_F(PassiveProbeTest, ArmingTolerancePreventsNearPlaneJitterAndChecksMomentum
         EXPECT_EQ(update(plane, state, endpoint, sample), Status::Advanced);
     }
     EXPECT_EQ(state.turns, 0u);
-    EXPECT_EQ(update(plane, state, {Vector(0, 0, -0.1), Vector(0, 0, -1), 11}, sample), Status::Advanced);
-    EXPECT_EQ(update(plane, state, {Vector(0, 0, 0.1), Vector(0, 0, -1), 12}, sample), Status::Advanced);
+    EXPECT_EQ(
+            update(plane, state, {Vector(0, 0, -0.1), Vector(0, 0, -1), 11}, sample),
+            Status::Advanced);
+    EXPECT_EQ(
+            update(plane, state, {Vector(0, 0, 0.1), Vector(0, 0, -1), 12}, sample),
+            Status::Advanced);
     EXPECT_FALSE(state.armed);
     EXPECT_EQ(state.turns, 0u);
 }
@@ -118,8 +129,8 @@ TEST_F(PassiveProbeTest, ConstantElectricAccelerationHasSecondOrderObservationEr
     constexpr double p0 = 0.2, acceleration = 2e7, crossingTime = 1e-7;
     const auto endpoint = [&](double t) {
         const double p = p0 + acceleration * t;
-        const double z = Physics::c / acceleration
-                         * (std::sqrt(1 + p * p) - std::sqrt(1 + p0 * p0));
+        const double z =
+                Physics::c / acceleration * (std::sqrt(1 + p * p) - std::sqrt(1 + p0 * p0));
         return Endpoint{Vector(0.2, -0.1, z), Vector(0, 0, p), crossingTime + t};
     };
     double previousTimeError = 0, previousMomentumError = 0;
@@ -128,7 +139,7 @@ TEST_F(PassiveProbeTest, ConstantElectricAccelerationHasSecondOrderObservationEr
         Sample sample;
         ASSERT_EQ(update(Plane{}, state, endpoint(-0.4 * dt), sample), Status::Initialized);
         ASSERT_EQ(update(Plane{}, state, endpoint(0.6 * dt), sample), Status::Crossing);
-        const double timeError = std::abs(sample.crossing.time - crossingTime);
+        const double timeError     = std::abs(sample.crossing.time - crossingTime);
         const double momentumError = std::abs(sample.crossing.momentum(2) - p0);
         EXPECT_GT(timeError, 0);
         EXPECT_GT(momentumError, 0);
@@ -140,7 +151,7 @@ TEST_F(PassiveProbeTest, ConstantElectricAccelerationHasSecondOrderObservationEr
             EXPECT_GT(previousMomentumError / momentumError, 3.8);
             EXPECT_LT(previousMomentumError / momentumError, 4.1);
         }
-        previousTimeError = timeError;
+        previousTimeError     = timeError;
         previousMomentumError = momentumError;
     }
 }
@@ -148,10 +159,12 @@ TEST_F(PassiveProbeTest, ConstantElectricAccelerationHasSecondOrderObservationEr
 TEST_F(PassiveProbeTest, DisabledObservationLeavesHistoryAndSampleUntouched) {
     State state{{Vector(1), Vector(2), 3}, 7, true, true};
     Sample sample{{Vector(4), Vector(5), 6}, 7, 0.3};
-    const State savedState = state;
+    const State savedState   = state;
     const Sample savedSample = sample;
-    const double nan = std::numeric_limits<double>::quiet_NaN();
-    EXPECT_EQ(update(Plane{}, state, {Vector(nan), Vector(nan), nan}, sample, false), Status::Disabled);
+    const double nan         = std::numeric_limits<double>::quiet_NaN();
+    EXPECT_EQ(
+            update(Plane{}, state, {Vector(nan), Vector(nan), nan}, sample, false),
+            Status::Disabled);
     expectState(state, savedState);
     expectEndpoint(sample.crossing, savedSample.crossing);
     EXPECT_EQ(sample.turn, savedSample.turn);
@@ -166,7 +179,7 @@ TEST_F(PassiveProbeTest, RejectsInvalidPlanesAndEndpointsWithoutPartialWrites) {
     const double inf = std::numeric_limits<double>::infinity();
     const auto check = [&](const Plane& plane, const Endpoint& endpoint, State state) {
         const State savedState = state;
-        Sample sample = initialSample;
+        Sample sample          = initialSample;
         EXPECT_EQ(update(plane, state, endpoint, sample), Status::InvalidInput);
         // NaN inputs are only in plane/accepted; history in this test is finite.
         expectState(state, savedState);
@@ -184,10 +197,10 @@ TEST_F(PassiveProbeTest, RejectsInvalidPlanesAndEndpointsWithoutPartialWrites) {
     check(Plane{}, {valid.position, Vector(0, inf, 1), 2}, initial);
     check(Plane{}, {valid.position, valid.momentum, nan}, initial);
     // Finite endpoints can still overflow the time difference or interpolation.
-    State largeTime = initial;
+    State largeTime         = initial;
     largeTime.previous.time = -1e308;
     check(Plane{}, {valid.position, valid.momentum, 1e308}, largeTime);
-    State largeCoordinate = initial;
+    State largeCoordinate                = initial;
     largeCoordinate.previous.position(0) = -1e308;
     check(Plane{}, {Vector(1e308, 0, 1), valid.momentum, 2}, largeCoordinate);
 }
@@ -220,8 +233,9 @@ TEST_F(PassiveProbeTest, RoundedEqualTimesAdvanceHistoryAndAllowSpatiallyBracket
     // Re-observing the same represented endpoint cannot duplicate the crossing.
     EXPECT_EQ(update(Plane{}, state, after, sample), Status::Advanced);
     EXPECT_EQ(state.turns, 1u);
-    const Endpoint later{Vector(0, 0, 2e-14), Vector(0, 0, 0.5),
-                         std::nextafter(time, std::numeric_limits<double>::infinity())};
+    const Endpoint later{
+            Vector(0, 0, 2e-14), Vector(0, 0, 0.5),
+            std::nextafter(time, std::numeric_limits<double>::infinity())};
     EXPECT_EQ(update(Plane{}, state, later, sample), Status::Advanced);
     expectEndpoint(state.previous, later);
 }
@@ -231,13 +245,16 @@ TEST_F(PassiveProbeTest, DecreasingTimeAndCounterOverflowLeaveHistoryUntouched) 
     Sample sample;
     const State initial = state;
     for (double time : {std::nextafter(1., 0.), 0., -1.}) {
-        EXPECT_EQ(update(Plane{}, state, {Vector(0, 0, 1), Vector(0, 0, 1), time}, sample),
-                  Status::DecreasingTime);
+        EXPECT_EQ(
+                update(Plane{}, state, {Vector(0, 0, 1), Vector(0, 0, 1), time}, sample),
+                Status::DecreasingTime);
         expectState(state, initial);
     }
-    state.turns = std::numeric_limits<std::uint64_t>::max();
+    state.turns      = std::numeric_limits<std::uint64_t>::max();
     const State full = state;
-    EXPECT_EQ(update(Plane{}, state, {Vector(0, 0, 1), Vector(0, 0, 1), 2}, sample), Status::TurnOverflow);
+    EXPECT_EQ(
+            update(Plane{}, state, {Vector(0, 0, 1), Vector(0, 0, 1), 2}, sample),
+            Status::TurnOverflow);
     expectState(state, full);
     EXPECT_EQ(sample.turn, 0u);
 }
@@ -248,26 +265,29 @@ TEST_F(PassiveProbeTest, DeviceAndHostObservationsAgree) {
     Kokkos::View<Sample*> samples("passive crossings", count);
     Kokkos::View<Status*> statuses("passive statuses", count);
     const Plane plane{Vector(0.2, -0.4, 0.5), Vector(0, 0, 2), 1e-9};
-    Kokkos::parallel_for("passive accepted endpoints", count, KOKKOS_LAMBDA(unsigned i) {
-        State state;
-        Sample sample;
-        const Endpoint before{plane.origin - Vector(0, 0, 0.1), Vector(0, 0, 1), 4.57e-6};
-        const Endpoint after{plane.origin + Vector(0, 0, 0.1 * (i + 1)), Vector(0, 0, 1),
-                             4.57e-6 + (i == 3 ? 3.25e-22 : 1e-9)};
-        update(plane, state, before, sample);
-        statuses(i) = update(plane, state, after, sample, i != 4);
-        states(i) = state;
-        samples(i) = sample;
-    });
-    const auto stateHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), states);
+    Kokkos::parallel_for(
+            "passive accepted endpoints", count, KOKKOS_LAMBDA(unsigned i) {
+                State state;
+                Sample sample;
+                const Endpoint before{plane.origin - Vector(0, 0, 0.1), Vector(0, 0, 1), 4.57e-6};
+                const Endpoint after{
+                        plane.origin + Vector(0, 0, 0.1 * (i + 1)), Vector(0, 0, 1),
+                        4.57e-6 + (i == 3 ? 3.25e-22 : 1e-9)};
+                update(plane, state, before, sample);
+                statuses(i) = update(plane, state, after, sample, i != 4);
+                states(i)   = state;
+                samples(i)  = sample;
+            });
+    const auto stateHost  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), states);
     const auto sampleHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), samples);
     const auto statusHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), statuses);
     for (unsigned i = 0; i < count; ++i) {
         State state;
         Sample sample;
         const Endpoint before{plane.origin - Vector(0, 0, 0.1), Vector(0, 0, 1), 4.57e-6};
-        const Endpoint after{plane.origin + Vector(0, 0, 0.1 * (i + 1)), Vector(0, 0, 1),
-                             4.57e-6 + (i == 3 ? 3.25e-22 : 1e-9)};
+        const Endpoint after{
+                plane.origin + Vector(0, 0, 0.1 * (i + 1)), Vector(0, 0, 1),
+                4.57e-6 + (i == 3 ? 3.25e-22 : 1e-9)};
         update(plane, state, before, sample);
         EXPECT_EQ(statusHost(i), update(plane, state, after, sample, i != 4));
         if (i == 3) {

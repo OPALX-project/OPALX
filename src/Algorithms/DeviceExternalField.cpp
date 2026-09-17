@@ -1,8 +1,8 @@
 // Copyright (c) 2026, Paul Scherrer Institute, Villigen PSI, Switzerland
 #include "Algorithms/DeviceExternalField.h"
 #include "AbsBeamline/Multipole.h"
-#include "AbsBeamline/SBend.h"
 #include "AbsBeamline/RBend.h"
+#include "AbsBeamline/SBend.h"
 #include "AbsBeamline/VariableRFCavity.h"
 #include "Elements/OpalBeamline.h"
 #include "Utilities/OpalException.h"
@@ -16,7 +16,8 @@ std::vector<std::shared_ptr<ElementBase>> device_external::orderedCandidates(
         if (remaining.erase(element)) ordered.push_back(element);
     }
     if (!remaining.empty())
-        throw OpalException("DeviceExternalField::orderedCandidates",
+        throw OpalException(
+                "DeviceExternalField::orderedCandidates",
                 "Candidate element is not a prepared beamline occurrence.");
     return ordered;
 }
@@ -25,8 +26,8 @@ const char* device_external::Builder::unsupportedReason(const ElementBase& eleme
     // COF uses nominal placement. Do not select a controller which would omit
     // a particle-only misalignment from its support queries.
     const auto misalignment = element.getMisalignment();
-    const auto origin = misalignment.getOrigin();
-    const auto rotation = misalignment.getRotationMatrix();
+    const auto origin       = misalignment.getOrigin();
+    const auto rotation     = misalignment.getRotationMatrix();
     for (unsigned i = 0; i < 3; ++i) {
         if (origin(i) != 0) return "Misalignments are not supported by device boundary control: ";
         for (unsigned j = 0; j < 3; ++j)
@@ -35,9 +36,10 @@ const char* device_external::Builder::unsupportedReason(const ElementBase& eleme
     }
     if (const auto* cavity = dynamic_cast<const VariableRFCavity*>(&element)) {
         return std::isfinite(cavity->getWidth()) && cavity->getWidth() > 0
-                       && std::isfinite(cavity->getHeight()) && cavity->getHeight() > 0
-                       && std::isfinite(cavity->getLength()) && cavity->getLength() > 0
-                ? nullptr : "Device RF boundary control requires finite positive dimensions: ";
+                               && std::isfinite(cavity->getHeight()) && cavity->getHeight() > 0
+                               && std::isfinite(cavity->getLength()) && cavity->getLength() > 0
+                       ? nullptr
+                       : "Device RF boundary control requires finite positive dimensions: ";
     }
     const auto higherBendComponents = [](const auto& magnet) {
         for (int n = 2; n < magnet.maxNormal_m; ++n)
@@ -88,47 +90,53 @@ device_external::Lattice device_external::Builder::build(OpalBeamline& beamline)
         auto& out = host(index++);
         if (const auto* reason = unsupportedReason(*element))
             throw OpalException("DeviceExternalField", std::string(reason) + element->getName());
-        const auto frame = beamline.getCSTrafoLab2Local(element);
-        out.frame.origin = frame.getOrigin();
+        const auto frame   = beamline.getCSTrafoLab2Local(element);
+        out.frame.origin   = frame.getOrigin();
         out.frame.rotation = frame.getRotationMatrix();
         element->getFieldExtent(out.begin, out.end);
         const auto aperture = element->getAperture();
-        out.aperture = aperture.first;
-        out.apertureX = aperture.second.at(0);
-        out.apertureY = aperture.second.at(1);
+        out.aperture        = aperture.first;
+        out.apertureX       = aperture.second.at(0);
+        out.apertureY       = aperture.second.at(1);
         if (const auto* cavity = dynamic_cast<const VariableRFCavity*>(element.get())) {
-            out.kind = Element::UniformRF;
-            out.apertureX = 0.5 * cavity->getWidth();
-            out.apertureY = 0.5 * cavity->getHeight();
+            out.kind            = Element::UniformRF;
+            out.apertureX       = 0.5 * cavity->getWidth();
+            out.apertureY       = 0.5 * cavity->getHeight();
             result.magneticOnly = false;
-        } else switch (element->getType()) {
-            case ElementType::DRIFT:
-            case ElementType::MARKER:
-            case ElementType::MONITOR:
-                break;
-            case ElementType::MULTIPOLE: {
-                const auto& magnet = dynamic_cast<const Multipole&>(*element);
-                out.kind = Element::Multipole;
-                out.bend.dipoleNormal = magnet.getNormalComponent(0);
-                out.bend.quadNormal = magnet.getNormalComponent(1);
-                out.bend.dipoleSkew = magnet.getSkewComponent(0);
-                out.bend.quadSkew = magnet.getSkewComponent(1);
-                break;
+        } else
+            switch (element->getType()) {
+                case ElementType::DRIFT:
+                case ElementType::MARKER:
+                case ElementType::MONITOR:
+                    break;
+                case ElementType::MULTIPOLE: {
+                    const auto& magnet    = dynamic_cast<const Multipole&>(*element);
+                    out.kind              = Element::Multipole;
+                    out.bend.dipoleNormal = magnet.getNormalComponent(0);
+                    out.bend.quadNormal   = magnet.getNormalComponent(1);
+                    out.bend.dipoleSkew   = magnet.getSkewComponent(0);
+                    out.bend.quadSkew     = magnet.getSkewComponent(1);
+                    break;
+                }
+                case ElementType::SBEND:
+                    out.kind = Element::SectorBend;
+                    out.bend = dynamic_cast<const SBend&>(*element).makeFieldInputs();
+                    break;
+                case ElementType::RBEND:
+                    out.kind = Element::RectangularBend;
+                    out.bend = dynamic_cast<const RBend&>(*element).makeFieldInputs();
+                    break;
+                default:
+                    throw OpalException(
+                            "DeviceExternalField",
+                            "Device boundary control has no descriptor for " + element->getName());
             }
-            case ElementType::SBEND:
-                out.kind = Element::SectorBend;
-                out.bend = dynamic_cast<const SBend&>(*element).makeFieldInputs();
-                break;
-            case ElementType::RBEND:
-                out.kind = Element::RectangularBend;
-                out.bend = dynamic_cast<const RBend&>(*element).makeFieldInputs();
-                break;
-            default:
-                throw OpalException("DeviceExternalField", "Device boundary control has no descriptor for " + element->getName());
-        }
-        if (element->getType() != ElementType::MARKER && element->getType() != ElementType::MONITOR) {
-            for (double length : {std::abs(out.end - out.begin), element->getGeometry().getArcLength()})
-                if (length > 0) result.maximumStep = std::min(result.maximumStep, length / (4 * Physics::c));
+        if (element->getType() != ElementType::MARKER
+            && element->getType() != ElementType::MONITOR) {
+            for (double length :
+                 {std::abs(out.end - out.begin), element->getGeometry().getArcLength()})
+                if (length > 0)
+                    result.maximumStep = std::min(result.maximumStep, length / (4 * Physics::c));
         }
     }
     Kokkos::deep_copy(data, host);

@@ -16,9 +16,9 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 
+#include "BeamlineCore/MultipoleRep.h"
 #include "BeamlineCore/RBendRep.h"
 #include "BeamlineCore/SBendRep.h"
-#include "BeamlineCore/MultipoleRep.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "PartBunch/BunchStateHandler.h"
 #include "PartBunch/ParticleContainer.hpp"
@@ -252,7 +252,8 @@ TEST_F(BendRepTest, SBendEntryFringeAddsHorizontalEdgeField) {
 // gathered fields must remain additive; this field query must not mark losses.
 TEST_F(BendRepTest, DeviceAndHostHardEdgeFieldsUseIdenticalSpatialSupport) {
     ippl::NDIndex<3> domain;
-    for (unsigned d = 0; d < 3; ++d) domain[d] = ippl::Index(8);
+    for (unsigned d = 0; d < 3; ++d)
+        domain[d] = ippl::Index(8);
     ippl::UniformCartesian<double, 3> mesh(domain, Vector3(0.25), Vector3(-1));
     std::array<bool, 3> decomp{true, true, true};
     ippl::FieldLayout<3> layout(MPI_COMM_WORLD, domain, decomp, false);
@@ -263,14 +264,14 @@ TEST_F(BendRepTest, DeviceAndHostHardEdgeFieldsUseIdenticalSpatialSupport) {
     pc->createParticles(count);
 
     const double sampleS[count] = {-1e-9, 0., 1e-9, 0.5, 1. - 1e-9, 1., 1. + 1e-9, 0.5, 0.5};
-    const bool inside[count] = {false, true, true, true, true, false, false, false, false};
+    const bool inside[count]    = {false, true, true, true, true, false, false, false, false};
     const Vector3 initialE(0.1, 0.2, 0.3), initialB(0.4, 0.5, 0.6);
     for (unsigned kind = 0; kind < 3; ++kind) {
         SBendRep sector("sector");
         RBendRep rectangular("rectangular");
         MultipoleRep multipole("multipole");
         constexpr double curvature = 0.2;
-        sector.getGeometry() = Geometry::makeSBend(1., curvature);
+        sector.getGeometry()       = Geometry::makeSBend(1., curvature);
         sector.getGeometry().setElementLength(1.);
         sector.getGeometry().setBendAngle(curvature);
         sector.setB(-1.);
@@ -280,7 +281,7 @@ TEST_F(BendRepTest, DeviceAndHostHardEdgeFieldsUseIdenticalSpatialSupport) {
         multipole.getGeometry().setElementLength(1.);
         // The normal dipole setter stores half its argument.
         multipole.setNormalComponent(0, -2.);
-        ElementBase& element = kind == 0 ? static_cast<ElementBase&>(sector)
+        ElementBase& element = kind == 0   ? static_cast<ElementBase&>(sector)
                                : kind == 1 ? static_cast<ElementBase&>(rectangular)
                                            : static_cast<ElementBase&>(multipole);
         SCOPED_TRACE(element.getName());
@@ -288,11 +289,12 @@ TEST_F(BendRepTest, DeviceAndHostHardEdgeFieldsUseIdenticalSpatialSupport) {
         auto r = Kokkos::create_mirror_view(pc->R.getView());
         for (unsigned i = 0; i < count; ++i) {
             const double s = sampleS[i];
-            r(i) = Vector3(0, 0, s);
+            r(i)           = Vector3(0, 0, s);
             if (kind == 0 && s > 0) {
                 const double phi = curvature * std::min(s, 1.);
                 r(i) = Vector3((std::cos(phi) - 1.) / curvature, 0., std::sin(phi) / curvature);
-                if (s > 1.) r(i) += (s - 1.) * Vector3(-std::sin(curvature), 0, std::cos(curvature));
+                if (s > 1.)
+                    r(i) += (s - 1.) * Vector3(-std::sin(curvature), 0, std::cos(curvature));
             }
             if (i == 7) {
                 // Shift in the bend's radial direction while preserving arc s.
@@ -307,13 +309,16 @@ TEST_F(BendRepTest, DeviceAndHostHardEdgeFieldsUseIdenticalSpatialSupport) {
         element.apply(pc);
         const auto e = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->E.getView());
         const auto b = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->B.getView());
-        const auto invalid = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->InvalidMask.getView());
+        const auto invalid =
+                Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->InvalidMask.getView());
         for (unsigned i = 0; i < count; ++i) {
             SCOPED_TRACE(i);
             EXPECT_EQ(element.isInside(r(i)), inside[i]);
             Vector3 hostE(initialE), hostB(initialB), refE(initialE), refB(initialB);
             element.apply(r(i), Vector3(0, 0, 1), 0., hostE, hostB);
-            EXPECT_EQ(element.applyToReferenceParticle(r(i), Vector3(0, 0, 1), 0., refE, refB), i >= 7);
+            EXPECT_EQ(
+                    element.applyToReferenceParticle(r(i), Vector3(0, 0, 1), 0., refE, refB),
+                    i >= 7);
             EXPECT_FALSE(invalid(i));
             const Vector3 expectedB = initialB + Vector3(0, inside[i] ? -1. : 0., 0);
             for (unsigned d = 0; d < 3; ++d) {

@@ -67,8 +67,8 @@ Quaternion getQuaternion(ippl::Vector<double, 3> u, ippl::Vector<double, 3> ref)
     // these small rotations and let repeated reference-frame updates lag.
     // atan2 also retains the deviation from an antiparallel orientation.
     const double halfAngle = 0.5 * std::atan2(normAxis, dot(u, ref));
-    const double cosAngle = std::cos(halfAngle);
-    const double sinAngle = std::sin(halfAngle);
+    const double cosAngle  = std::cos(halfAngle);
+    const double sinAngle  = std::sin(halfAngle);
 
     return Quaternion(cosAngle, sinAngle * axis);
 }
