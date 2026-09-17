@@ -55,6 +55,11 @@ cuda/12.8.1
 
 Other dependencies are fetched and installed in the opalx installation.
 
+A Fortran compiler (for example `gfortran`) is also required. Reference
+BLAS/LAPACK and LAPACKE 3.12.1 are fetched with a pinned archive checksum;
+no separate LAPACK installation is needed. Select a non-default compiler with
+`-DCMAKE_Fortran_COMPILER=/path/to/compiler`.
+
 ```
 ippl/3.2.0
 hdf5/1.10.8_slurm  

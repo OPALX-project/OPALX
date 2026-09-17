@@ -1453,14 +1453,16 @@ MATHJAX_FORMAT         = HTML-CSS
 # The default value is: http://cdn.mathjax.org/mathjax/latest.
 # This tag requires that the tag USE_MATHJAX is set to YES.
 
-MATHJAX_RELPATH        = http://cdn.mathjax.org/mathjax/latest
+# The former cdn.mathjax.org endpoint is retired. Pin the MathJax 2 release
+# used by this HTML-CSS configuration rather than following a major-version update.
+MATHJAX_RELPATH        = https://cdn.jsdelivr.net/npm/mathjax@2.7.9
 
 # The MATHJAX_EXTENSIONS tag can be used to specify one or more MathJax
 # extension names that should be enabled during MathJax rendering. For example
 # MATHJAX_EXTENSIONS = TeX/AMSmath TeX/AMSsymbols
 # This tag requires that the tag USE_MATHJAX is set to YES.
 
-MATHJAX_EXTENSIONS     = AMSmath AMSsymbols
+MATHJAX_EXTENSIONS     = TeX/AMSmath TeX/AMSsymbols
 
 # The MATHJAX_CODEFILE tag can be used to specify a file with javascript pieces
 # of code that will be used on startup of the MathJax code. See the MathJax site

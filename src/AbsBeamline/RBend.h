@@ -10,6 +10,10 @@
 #include <string>
 #include <vector>
 
+namespace device_external {
+    struct Builder;
+}
+
 /**
  * @class RBend
  * @brief Common OPALX interface for analytic horizontal bending magnets.
@@ -116,6 +120,7 @@ public:
     void setB(double B);
 
 private:
+    friend struct device_external::Builder;  // Internal immutable device snapshot.
     /// @brief Compute the field on the host at position R.
     /// @param R Position.
     /// @param B Magnetic field (output).

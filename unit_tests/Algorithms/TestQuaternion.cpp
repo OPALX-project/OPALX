@@ -6,6 +6,7 @@
 #include "Utilities/GeneralOpalException.h"
 
 #include <cmath>
+#include <limits>
 
 class QuaternionTest : public ::testing::Test {
 protected:
@@ -341,6 +342,48 @@ TEST_F(QuaternionTest, GetQuaternionOppositeVectors) {
     EXPECT_NEAR(rotated(0), ref(0), 1e-10);
     EXPECT_NEAR(rotated(1), ref(1), 1e-10);
     EXPECT_NEAR(rotated(2), ref(2), 1e-10);
+}
+
+TEST_F(QuaternionTest, GetQuaternionResolvesNearParallelAngles) {
+    const ippl::Vector<double, 3> u(0.0, 0.0, 1.0);
+    const double epsilon = std::numeric_limits<double>::epsilon();
+    for (double angle : {2e-12, 1e-10, 1e-8, -2e-12, -1e-10, -1e-8}) {
+        SCOPED_TRACE(angle);
+        const ippl::Vector<double, 3> ref(std::sin(angle), 0.0, std::cos(angle));
+        const Quaternion q = getQuaternion(u, ref);
+        const auto rotated = q.rotate(u);
+        EXPECT_TRUE(q.isUnit());
+        // Resolve the transverse component to its own floating-point scale,
+        // even when the longitudinal dot product has rounded exactly to one.
+        EXPECT_NEAR(rotated(0), ref(0), 16 * epsilon * std::abs(angle));
+        EXPECT_DOUBLE_EQ(rotated(1), 0.0);
+        EXPECT_NEAR(rotated(2), ref(2), 16 * epsilon);
+    }
+}
+
+TEST_F(QuaternionTest, GetQuaternionResolvesNearAntiparallelAngles) {
+    const ippl::Vector<double, 3> u(0.0, 0.0, 1.0);
+    const double epsilon = std::numeric_limits<double>::epsilon();
+    for (double deviation : {2e-12, 1e-10, 1e-8, -2e-12, -1e-10, -1e-8}) {
+        SCOPED_TRACE(deviation);
+        const ippl::Vector<double, 3> ref(std::sin(deviation), 0.0, -std::cos(deviation));
+        const Quaternion q = getQuaternion(u, ref);
+        const auto rotated = q.rotate(u);
+        EXPECT_TRUE(q.isUnit());
+        // The angle is near pi, so absolute machine precision is the relevant
+        // resolution. The requested deviation remains well above this bound.
+        for (unsigned d = 0; d < 3; ++d)
+            EXPECT_NEAR(rotated(d), ref(d), 16 * epsilon);
+    }
+}
+
+TEST_F(QuaternionTest, GetQuaternionPreservesParallelTolerance) {
+    const ippl::Vector<double, 3> u(0.0, 0.0, 1.0);
+    const ippl::Vector<double, 3> ref(5e-13, 0.0, 1.0);
+    const Quaternion q = getQuaternion(u, ref);
+    EXPECT_DOUBLE_EQ(q.real(), 1.0);
+    for (unsigned d = 1; d < 4; ++d)
+        EXPECT_DOUBLE_EQ(q(d), 0.0);
 }
 
 TEST_F(QuaternionTest, ConjugatePreservesNorm) {

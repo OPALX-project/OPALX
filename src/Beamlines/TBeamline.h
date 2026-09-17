@@ -143,7 +143,9 @@ TBeamline<T>::TBeamline(const TBeamline<T>& rhs)
       std::list<T>(rhs),
       itsOrigin_m(rhs.itsOrigin_m),
       itsCoordTrafoTo_m(rhs.itsCoordTrafoTo_m),
-      relativePositions_m(rhs.relativePositions_m) {}
+      relativePositions_m(rhs.relativePositions_m) {
+    setBeamlineMembership(rhs.getBeamlineTopology(), rhs.getBeamlineOwnerName());
+}
 
 template <class T>
 TBeamline<T>::~TBeamline() {}
@@ -181,6 +183,7 @@ TBeamline<T>* TBeamline<T>::clone() const {
     line->itsOrigin_m         = itsOrigin_m;
     line->itsCoordTrafoTo_m   = itsCoordTrafoTo_m;
     line->relativePositions_m = relativePositions_m;
+    line->setBeamlineMembership(getBeamlineTopology(), getBeamlineOwnerName());
 
     return line;
 }
@@ -204,6 +207,7 @@ TBeamline<T>* TBeamline<T>::copyStructure() {
         line->itsOrigin_m         = itsOrigin_m;
         line->itsCoordTrafoTo_m   = itsCoordTrafoTo_m;
         line->relativePositions_m = relativePositions_m;
+        line->setBeamlineMembership(getBeamlineTopology(), getBeamlineOwnerName());
 
         return line;
     }
