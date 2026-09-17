@@ -7,6 +7,7 @@ set (_SRCS
     OpalBend.cpp
     OpalDrift.cpp
     OpalElement.cpp
+    OpalEnge.cpp
     OpalLaser.cpp
     OpalMonitor.cpp
     OpalMarker.cpp
@@ -24,6 +25,7 @@ set (_SRCS
     OpalPolynomialTimeDependence.cpp
     OpalSplineTimeDependence.cpp
     OpalSinusoidalTimeDependence.cpp
+    OpalTanh.cpp
     OpalVariableRFCavity.cpp
 )
 
@@ -37,6 +39,7 @@ set (HDRS
     OpalConstantFocusing.h
     OpalDrift.h
     OpalElement.h
+    OpalEnge.h
     OpalMonitor.h
     OpalMarker.h
     OpalMultipole.h
@@ -54,6 +57,7 @@ set (HDRS
     OpalPolynomialTimeDependence.h
     OpalSplineTimeDependence.h
     OpalSinusoidalTimeDependence.h
+    OpalTanh.h
     OpalVariableRFCavity.h
 )
 

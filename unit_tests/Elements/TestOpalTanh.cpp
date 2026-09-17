@@ -1,5 +1,5 @@
 //
-// Unit tests for class EndFieldModelManager
+// Unit tests for class OpalTanh
 //
 // Copyright (c) 2017-2026, Chris Rogers, STFC Rutherford Appleton Laboratory, Didcot, UK
 // All rights reserved.
@@ -14,24 +14,23 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 
+#include "Attributes/Attributes.h"
 #include "gtest/gtest.h"
 #include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
+#include "Elements/OpalTanh.h"
 #include "AbsBeamline/EndFieldModel/Tanh.h"
 
-
-TEST(TestEndFieldModelManager, TestEFMSetGet) {
+TEST(TestOpalTanh, TestSetup) {
+    // Make the UI
+    OpalTanh ui;
+    // Set the attributes
+    Attributes::setReal(ui.itsAttr[OpalTanh::X0], 4);
+    Attributes::setReal(ui.itsAttr[OpalTanh::LAMBDA], 2);
+    ui.update();
     auto efmMan = endfieldmodel::EndFieldModelManager::getEFMManager();
-    EXPECT_ANY_THROW(efmMan->getEndFieldModel("test"));
-
-    auto efm = std::make_shared<endfieldmodel::Tanh>();
-    auto efmBad = std::make_shared<endfieldmodel::Tanh>();
-    efmMan->setEndFieldModel("test", efm);
-    EXPECT_EQ(efmMan->getEndFieldModel("test"), efm);
-    EXPECT_EQ(efmMan->getName(efm), "test");
-    EXPECT_ANY_THROW(efmMan->getName(efmBad));
-
-    efmMan->clearEFMManager();
-
-    EXPECT_ANY_THROW(efmMan->getEndFieldModel("test"));
+    EXPECT_NO_THROW(efmMan->getEndFieldModel("TANH"));
+    auto efm = efmMan->getEndFieldModel("TANH");
+    EXPECT_EQ(efm->getCentreLength(), 8.0);
+    EXPECT_EQ(efm->getEndLength(), 2.0);
 }
 

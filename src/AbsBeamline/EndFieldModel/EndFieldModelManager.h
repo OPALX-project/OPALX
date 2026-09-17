@@ -51,7 +51,7 @@ class EndFieldModelManager {
 
         /** Clear the global EndFieldModelManager.
          */
-        static void clearEFMManager() {globalEFM_m.reset();}
+        static void clearEFMManager();
 
         /** Look up the EndFieldModel that has a given name
          *
@@ -80,8 +80,7 @@ class EndFieldModelManager {
          *  just does a dumb loop over the stored map values; so O(N).
          *  @throws GeneralOpalException if efm is not recognised
          */
-        template <class EFM>
-        std::string getName(const std::shared_ptr<EndFieldModel>& efm);
+        std::string getName(const std::shared_ptr<EndFieldModel>& efm) const;
 
     private:
         std::map<std::string, std::shared_ptr<EndFieldModel> > efmMap_m;
