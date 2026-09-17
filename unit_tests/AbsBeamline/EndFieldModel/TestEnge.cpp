@@ -66,11 +66,33 @@ double myEnge(double x, std::vector<double> a, double x0, double lambda) {
     return enge;
 }
 
-TEST_F(TestEnge, FunctionTest) {
-    std::vector<double> zVector = {0.0, 1.0, 2.0, 3.0};
-    endfieldmodel::Enge enge({0.0, 1.0}, 0.0, 0.5);
-    for (auto z: zVector) {
-        EXPECT_NEAR(enge.getEnge(z, 0), myEnge(z, {0.0, 1.0}, 00.0, 0.5), 1e-12);
+TEST_F(TestEnge, DerivativeTest) {
+    std::vector<double> xVector = {0.0, 1.0, 2.0, 3.0};
+    double dx = 1e-3;
+    double x0 = 5.0;
+    double lambda = 0.5;
+    std::vector<double> engeA = {0.0, 1.0, 2.0};
+    endfieldmodel::Enge enge(engeA, x0, lambda);
+    for (auto x: xVector) {
+        double yTest = enge.function(x, 0);
+        double yRef = myEnge(x-x0, engeA, x0, lambda) +
+                      myEnge(-x-x0, engeA, x0, lambda) - 1;
+        EXPECT_NEAR(yTest, yRef, 1e-12);
+        for (size_t n = 1; n < 5; ++n) {
+            double yP = enge.function(x+dx, n-1);
+            double yM = enge.function(x-dx, n-1);
+            double dyTest = enge.function(x, n);
+            EXPECT_NEAR(dyTest, (yP-yM)/2/dx, 1e-6);
+        }
+    }
+}
+
+
+TEST_F(TestEnge, SingleEngeTest) {
+    std::vector<double> xVector = {0.0, 1.0, 2.0, 3.0};
+    endfieldmodel::Enge enge({0.0, 1.0, 2.0}, 0.0, 0.5);
+    for (auto x: xVector) {
+        EXPECT_NEAR(enge.getEnge(enge.getConfig(), x, 0), myEnge(x, {0.0, 1.0, 2.0}, 0.0, 0.5), 1e-12);
     }
 }
 
@@ -80,9 +102,9 @@ TEST_F(TestEnge, HNTest) {
     enge.setMaximumDerivative(11);
     double dx = 1e-6;
     for(size_t i = 0; i < 10; ++i) {
-        double dhdxNumerical = (enge.hN(10.0+dx, i)-
-                                enge.hN(10.0-dx, i))/2/dx;
-        double dhdx = enge.hN(10.0, i+1);
+        double dhdxNumerical = (enge.hN(enge.getConfig(), 10.0+dx, i)-
+                                enge.hN(enge.getConfig(), 10.0-dx, i))/2/dx;
+        double dhdx = enge.hN(enge.getConfig(), 10.0, i+1);
         EXPECT_NEAR(dhdx, dhdxNumerical, 1e-5)
                 << " for " << i << "^th derivative";
     }
@@ -94,9 +116,9 @@ TEST_F(TestEnge, GNTest) {
     enge.setMaximumDerivative(11);
     double dx = 1e-6;
     for(size_t i = 0; i < 10; ++i) {
-        double dgdxNumerical = (enge.gN(0.1+dx, i)-
-                                enge.gN(0.1-dx, i))/2/dx;
-        double dgdx = enge.gN(0.1, i+1);
+        double dgdxNumerical = (enge.gN(enge.getConfig(), 0.1+dx, i)-
+                                enge.gN(enge.getConfig(), 0.1-dx, i))/2/dx;
+        double dgdx = enge.gN(enge.getConfig(), 0.1, i+1);
         EXPECT_NEAR(dgdx/dgdxNumerical, 1.0, 1e-5)
                 << " for " << i << "^th derivative";
     }

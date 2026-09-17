@@ -36,14 +36,14 @@ namespace endfieldmodel {
     // Use
     // d^n E/dx^n = a_n1m1 F(n1) g(m1) + a_n2m1m2 F(n2) g(m1)g(m2)+...
     // where
-    double Enge::getEnge(double x, int n) const {
+    double Enge::getEnge(const EngeConfig& config, double x, int n) {
         std::vector<std::vector<int> > qt = getQIndex(n);
         std::vector<double> g;
         double e(0.);
         for (size_t i = 0; i < qt.size(); ++i) {
             double ei(qt[i][0]);
             for (size_t j = 1; j < qt[i].size(); ++j) {
-                if (j > g.size()) g.push_back(gN(x, j - 1));
+                if (j > g.size()) g.push_back(gN(config, x, j - 1));
                 ei *= gsl_sf_pow_int(g[j - 1], qt[i][j]);
             }
             if (ei != ei) ei = 0;  // div 0, usually g == 0 and index < 0
@@ -54,22 +54,22 @@ namespace endfieldmodel {
 
     // h     = a_0+a_1 (x/w)+a_2 (x/w)^2+a_3 (x/w)^3+...+a_m (x/w)^m
     // h^(n) = d^nh/dx^n = sum^m_{i=n} a_i x^{i-n}/w^i i!/n!
-    double Enge::hN(double x, int n) const {
+    double Enge::hN(const EngeConfig& config, double x, int n) {
         double hn = 0;
         // optimise by precalculating factor
-        for (unsigned int i = n; i < config_m.a_m.size(); i++)
-            hn += config_m.a_m[i] / gsl_sf_pow_int(config_m.lambda_m, i) * gsl_sf_pow_int(x, i - n) * gsl_sf_fact(i)
+        for (unsigned int i = n; i < config.a_m.size(); i++)
+            hn += config.a_m[i] / gsl_sf_pow_int(config.lambda_m, i) * gsl_sf_pow_int(x, i - n) * gsl_sf_fact(i)
                   / gsl_sf_fact(i - n);
         return hn;
     }
 
     // g     = 1+exp(h)
     // g^(n) = d^ng/dx^n
-    double Enge::gN(double x, int n) const {
-        if (n == 0) return 1 + exp(hN(x, 0));  // special case
+    double Enge::gN(const EngeConfig& config, double x, int n) {
+        if (n == 0) return 1 + exp(hN(config, x, 0));  // special case
         std::vector<double> hn(n + 1);
         for (int i = 0; i <= n; i++)
-            hn[i] = hN(x, i);
+            hn[i] = hN(config, x, i);
         double exp_h0 = exp(hn[0]);
         double gn     = 0;
         for (size_t i = 0; i < _h[n].size(); ++i) {

@@ -123,6 +123,7 @@ namespace endfieldmodel {
     void AsymmetricEnge::setX0End(double x0) { engeEnd_m->setX0(x0); }
 
     double AsymmetricEnge::function(double x, int n) const {
+        /*
         // f(x) = E(x-x0) + E(-x-x0) - 1
         // f^{(2n)} = E^{(2n)}(x-x0) + E^{(2n)}(-x-x0)
         // f^{(2n+1)} = E^{(2n)}(x-x0) - E^{(2n)}(-x-x0)
@@ -135,7 +136,7 @@ namespace endfieldmodel {
         } else {
             return engeStart_m->getEnge(x - engeStart_m->getX0(), n)
                    + engeEnd_m->getEnge(-x - engeEnd_m->getX0(), n);
-        }
+        }*/
     }
 
     AsymmetricEnge* AsymmetricEnge::clone() const { return new AsymmetricEnge(*this); }
