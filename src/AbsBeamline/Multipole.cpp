@@ -247,7 +247,7 @@ void Multipole::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     const size_t nLocal = pc->getLocalNum();
 
     // Local variables that are copied into the kernel
-    double elemLength = getGeometry().getElementLength();
+    double elemLength               = getGeometry().getElementLength();
     const ApertureType apertureType = aperture_m.first;
     const double apertureX = aperture_m.second[0], apertureY = aperture_m.second[1];
 

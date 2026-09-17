@@ -26,8 +26,8 @@
 #include "Algorithms/BorisStepControl.h"
 #include "Algorithms/ClosedOrbitInitialState.h"
 #include "Algorithms/DeviceExternalField.h"
-#include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/SpectralTunes.h"
+#include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/Tracker.h"
 #include "Steppers/BorisPusher.h"
 #include "Steppers/SpinTBMTPusher.h"
@@ -97,7 +97,8 @@ public:
 
     /// Select a separate serial two-ray spectral diagnostic instead of bunch tracking.
     void setSpectralTunes(std::vector<double> initial, SpectralTunes::Settings settings) {
-        tuneInitial_m = std::move(initial); tuneSettings_m = settings;
+        tuneInitial_m  = std::move(initial);
+        tuneSettings_m = settings;
     }
     /// Stop at the localized Nth forward reference return (single container,
     /// supported magnetic/RF elements, no ongoing emission). The complete bunch
@@ -129,10 +130,13 @@ public:
     virtual void visitCyclotronSector(const CyclotronSector& sector) {
         itsOpalBeamline_m.visit(sector, *this, *itsBunch_m);
     }
+
 private:
     friend class TrackRun;
-    bool bareTracking_m = false; ///< NONE backend; diagnostic eligibility is independent of retries.
-    bool allowBoundaryControl_m = true; ///< Restrict retries to bare, undiagnosed Cartesian solves.
+    bool bareTracking_m =
+            false;  ///< NONE backend; diagnostic eligibility is independent of retries.
+    bool allowBoundaryControl_m =
+            true;  ///< Restrict retries to bare, undiagnosed Cartesian solves.
     std::optional<ClosedOrbitInitialState> initialOrbit_m;
     std::vector<double> tuneInitial_m;
     SpectralTunes::Settings tuneSettings_m;
@@ -150,39 +154,43 @@ private:
      * kick; the remainder magnetic drift is deliberately omitted. With report=true
      * the reference marks energyTargetReached_m and emits the terminal diagnostic.
      */
-    double advanceCyclotronGaps(Vector_t<double, 3>& r, Vector_t<double, 3>& p,
-                             double t, double dt, double mass, bool report);
-    double kineticEnergyStop_m = 0; ///< Optional reference kinetic-energy target [eV].
-    bool energyTargetReached_m = false; ///< Latched only by the reference's complete kick.
+    double advanceCyclotronGaps(
+            Vector_t<double, 3>& r, Vector_t<double, 3>& p, double t, double dt, double mass,
+            bool report);
+    double kineticEnergyStop_m = 0;      ///< Optional reference kinetic-energy target [eV].
+    bool energyTargetReached_m = false;  ///< Latched only by the reference's complete kick.
     /// Energy-mode reference is precomputed so the final bunch clock uses its substep.
     bool pendingEnergyReference_m = false;
     Vector_t<double, 3> pendingReferenceR_m, pendingReferenceP_m;
     unsigned long long requestedTurns_m = 0;
-    device_external::Lattice deviceRingFields_m; ///< Geometry for device field selection and trial support checks.
-    bool spatialRing_m = false; ///< Select analytic ring fields by physical position, independent of retries.
+    device_external::Lattice
+            deviceRingFields_m;  ///< Geometry for device field selection and trial support checks.
+    bool spatialRing_m =
+            false;  ///< Select analytic ring fields by physical position, independent of retries.
     bool boundaryControlled_m = false;
     /// Internal subset experiment; one selects every particle (ordinary default).
     unsigned long long boundaryControlStride_m = 1;
-    double boundaryStepDt_m = 0; ///< Accepted/trial collective substep cap [s].
+    double boundaryStepDt_m                    = 0;  ///< Accepted/trial collective substep cap [s].
     unsigned long long boundaryTrials_m = 0, boundaryRejected_m = 0;
     /** Complete the first drift and field gathering at a common physical midpoint.
      * A register-only endpoint trial decides collective subdivision before any
      * momentum kick, reference update, emission or loss is committed. Rejected
      * first drifts are reversed on the solver's current particle ownership.
      */
-    void prepareBoundaryStep(BorisPusher&, const std::vector<std::shared_ptr<OrbitThreader>>&,
-                             boris_step::Control&);
+    void prepareBoundaryStep(
+            BorisPusher&, const std::vector<std::shared_ptr<OrbitThreader>>&, boris_step::Control&);
     bool boundaryCrossed(double dt);
     void reverseTrialDrift(double dt);
     /// Internal candidate-selection policy; the public two-argument API is unchanged.
     void forEachElementInBunchFrame(
             const std::vector<std::shared_ptr<OrbitThreader>>& oths,
-            const std::function<void(const std::shared_ptr<ElementBase>&,
-                    const std::shared_ptr<ParticleContainer_t>&)>& func,
+            const std::function<
+                    void(const std::shared_ptr<ElementBase>&,
+                         const std::shared_ptr<ParticleContainer_t>&)>& func,
             bool spatialCandidates);
     SpaceChargeFieldUpdate spaceChargeFieldUpdate_m =
             SpaceChargeFieldUpdate::MIDPOINT;  ///< Self-field time centering for bunch tracking.
-    DataSink* itsDataSink_m;         ///< Borrowed beam statistics and phase-space output sink.
+    DataSink* itsDataSink_m;  ///< Borrowed beam statistics and phase-space output sink.
     opalx::spacecharge::SpaceChargeSolver*
             spaceChargeSolver_m;  ///< Borrowed run-lifetime space-charge solver.
     opalx::spacecharge::DirichletPlaneConfig dirichletPlane_m;
@@ -195,7 +203,7 @@ private:
     /** Step-size segments: s-stop, dt, and steps per segment. */
     StepSizeConfig stepSizes_m;
 
-    double dtCurrentTrack_m;  ///< Global @f$\Delta t@f$ for the current track segment.
+    double dtCurrentTrack_m;      ///< Global @f$\Delta t@f$ for the current track segment.
     double terminalStepDt_m = 0;  ///< Positive final-turn cap [s]; zero means no cap.
     std::vector<std::vector<std::shared_ptr<SamplingBase>>>
             emittingSamplers_m;  ///< Per-container emitters.

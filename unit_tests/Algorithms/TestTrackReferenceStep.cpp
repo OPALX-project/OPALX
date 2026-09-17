@@ -156,10 +156,11 @@ TEST_F(TrackReferenceStepTest, ResolvedTransportFindsThinSpatialSupportAndConser
     const PartData reference(1., mass, 1e6);
     const State start{Vector(0), Vector(0, 0, 1)};
     const double dt = 0.1 * std::sqrt(2.) / Physics::c;
-    const auto coarse = track_reference::advanceInBeamline(lattice, reference, start, dt, dt, false);
-    EXPECT_DOUBLE_EQ(coarse.momentum(0), 0.); // Midpoint misses the entire magnet.
-    const auto resolved = track_reference::advanceResolvedInBeamline(
-            lattice, reference, start, dt, dt, false);
+    const auto coarse =
+            track_reference::advanceInBeamline(lattice, reference, start, dt, dt, false);
+    EXPECT_DOUBLE_EQ(coarse.momentum(0), 0.);  // Midpoint misses the entire magnet.
+    const auto resolved =
+            track_reference::advanceResolvedInBeamline(lattice, reference, start, dt, dt, false);
     // Integrating dp_x/dz = -q*c*B_y/(mc^2) gives an independent exact impulse.
     EXPECT_NEAR(resolved.momentum(0), -Physics::c * 0.8 * 0.003 / mass, 2e-13);
     EXPECT_NEAR(dot(resolved.momentum, resolved.momentum), 1., 2e-13);
@@ -167,14 +168,15 @@ TEST_F(TrackReferenceStepTest, ResolvedTransportFindsThinSpatialSupportAndConser
     const auto outside = track_reference::advanceResolvedInBeamline(
             lattice, reference, spectator, dt, dt, false);
     EXPECT_DOUBLE_EQ(outside.momentum(0), 0.);
-    const auto repeated = track_reference::advanceResolvedInBeamline(
-            lattice, reference, start, dt, dt, false);
+    const auto repeated =
+            track_reference::advanceResolvedInBeamline(lattice, reference, start, dt, dt, false);
     for (unsigned d = 0; d < 3; ++d) {
         EXPECT_DOUBLE_EQ(resolved.position(d), repeated.position(d));
         EXPECT_DOUBLE_EQ(resolved.momentum(d), repeated.momentum(d));
     }
-    EXPECT_THROW(track_reference::advanceResolvedInBeamline(
-            lattice, reference, start, 0, dt, false), std::invalid_argument);
+    EXPECT_THROW(
+            track_reference::advanceResolvedInBeamline(lattice, reference, start, 0, dt, false),
+            std::invalid_argument);
 }
 
 TEST_F(TrackReferenceStepTest, ResolvedTrialsDoNotRecordMonitors) {

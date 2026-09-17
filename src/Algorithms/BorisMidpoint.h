@@ -38,11 +38,11 @@ namespace boris_midpoint {
      * transport path: the tracker retains its existing kick/push operations.
      */
     KOKKOS_INLINE_FUNCTION State endpoint(
-            Vector midpoint, Vector p, const Vector& e, const Vector& b,
-            double dt, double mass, double charge) {
+            Vector midpoint, Vector p, const Vector& e, const Vector& b, double dt, double mass,
+            double charge) {
         BorisPusher().kick(midpoint, p, e, b, dt, mass, charge);
         return {halfDrift(midpoint, p, dt), p};
     }
-} // namespace boris_midpoint
+}  // namespace boris_midpoint
 
 #endif

@@ -67,18 +67,18 @@ namespace device_external {
         KOKKOS_INLINE_FUNCTION Vector chart(const Vector& lab) const {
             const auto local = frame.pointTo(lab);
             return kind == SectorBend
-                    ? GeometryHelper::toBendArcCoords(local, bend.curvature, bend.bodyLength)
-                    : local;
+                           ? GeometryHelper::toBendArcCoords(local, bend.curvature, bend.bodyLength)
+                           : local;
         }
         KOKKOS_INLINE_FUNCTION bool contains(const Vector& lab) const {
             const auto r = chart(lab);
             // VariableRFCavity's WIDTH/HEIGHT include their transverse faces.
             // This is field support; generic aperture-loss ownership is separate.
             if (kind == UniformRF)
-                return r(2) >= begin && r(2) < end
-                        && Kokkos::abs(r(0)) <= apertureX && Kokkos::abs(r(1)) <= apertureY;
+                return r(2) >= begin && r(2) < end && Kokkos::abs(r(0)) <= apertureX
+                       && Kokkos::abs(r(1)) <= apertureY;
             return r(2) >= begin && r(2) < end
-                    && ApertureHelper::isInsideAperture(r(0), r(1), aperture, apertureX, apertureY);
+                   && ApertureHelper::isInsideAperture(r(0), r(1), aperture, apertureX, apertureY);
         }
         /// Caller has checked support. Reuses the normal bend device field model.
         KOKKOS_INLINE_FUNCTION Vector magnetic(const Vector& lab) const {
@@ -104,7 +104,7 @@ namespace device_external {
     struct Lattice {
         Kokkos::View<const Element*> elements;
         double maximumStep = std::numeric_limits<double>::max();
-        bool magneticOnly = true; ///< The external-only test oracle cannot transport RF.
+        bool magneticOnly  = true;  ///< The external-only test oracle cannot transport RF.
 
         KOKKOS_INLINE_FUNCTION Vector magnetic(const Vector& r) const {
             Vector b(0);
@@ -120,7 +120,8 @@ namespace device_external {
         }
 
         KOKKOS_INLINE_FUNCTION static void halfDrift(State& ray, double h) {
-            const double factor = 0.5 * Physics::c * h / Kokkos::sqrt(1 + dot(ray.momentum, ray.momentum));
+            const double factor =
+                    0.5 * Physics::c * h / Kokkos::sqrt(1 + dot(ray.momentum, ray.momentum));
             for (unsigned d = 0; d < 3; ++d)
                 compensated::add(factor * ray.momentum(d), ray.position(d), ray.correction(d));
         }
@@ -130,28 +131,34 @@ namespace device_external {
          * between particles. False signals invalid input or exhausted refinement;
          * the caller must discard the partial state and report failure.
          */
-        KOKKOS_INLINE_FUNCTION bool advance(State& state, double dt, double mass, double charge) const {
-            if (!magneticOnly || !Kokkos::isfinite(dt) || dt == 0 || !Kokkos::isfinite(mass) || mass <= 0
-                || !Kokkos::isfinite(charge)) return false;
+        KOKKOS_INLINE_FUNCTION bool advance(
+                State& state, double dt, double mass, double charge) const {
+            if (!magneticOnly || !Kokkos::isfinite(dt) || dt == 0 || !Kokkos::isfinite(mass)
+                || mass <= 0 || !Kokkos::isfinite(charge))
+                return false;
             unsigned char pending[65];
             unsigned count = 1;
-            pending[0] = 0;
+            pending[0]     = 0;
             while (count) {
                 const unsigned depth = pending[--count];
-                const double h = Kokkos::ldexp(dt, -static_cast<int>(depth));
-                const double scale = Kokkos::fmax(1., Kokkos::sqrt(dot(state.position, state.position)));
-                const double floor = 64 * std::numeric_limits<double>::epsilon() * scale / Physics::c;
-                const bool resolved = Kokkos::abs(h) <= Kokkos::fmax(1e-12 * Kokkos::abs(dt), floor);
-                bool split = !resolved && Kokkos::abs(h) > maximumStep;
+                const double h       = Kokkos::ldexp(dt, -static_cast<int>(depth));
+                const double scale =
+                        Kokkos::fmax(1., Kokkos::sqrt(dot(state.position, state.position)));
+                const double floor =
+                        64 * std::numeric_limits<double>::epsilon() * scale / Physics::c;
+                const bool resolved =
+                        Kokkos::abs(h) <= Kokkos::fmax(1e-12 * Kokkos::abs(dt), floor);
+                bool split  = !resolved && Kokkos::abs(h) > maximumStep;
                 State trial = state;
                 if (!split) {
                     halfDrift(trial, h);
                     const Vector midpoint = trial.position;
-                    const Vector b = magnetic(midpoint);
+                    const Vector b        = magnetic(midpoint);
                     BorisPusher().kick(midpoint, trial.momentum, Vector(0), b, h, mass, charge);
                     halfDrift(trial, h);
-                    split = !resolved && (differentSupport(state.position, midpoint)
-                                          || differentSupport(state.position, trial.position));
+                    split = !resolved
+                            && (differentSupport(state.position, midpoint)
+                                || differentSupport(state.position, trial.position));
                 }
                 if (split) {
                     if (depth >= 64 || count + 2 > 65) return false;
@@ -159,7 +166,8 @@ namespace device_external {
                     pending[count++] = depth + 1;
                 } else {
                     for (unsigned d = 0; d < 3; ++d)
-                        if (!Kokkos::isfinite(trial.position(d)) || !Kokkos::isfinite(trial.momentum(d)))
+                        if (!Kokkos::isfinite(trial.position(d))
+                            || !Kokkos::isfinite(trial.momentum(d)))
                             return false;
                     state = trial;
                 }
@@ -171,23 +179,29 @@ namespace device_external {
          * count is reduced to the host. E/B diagnostics are endpoint fields in the
          * current bunch frame (E=0 in this static magnetic transport).
          */
-        template<class View>
-        int transport(View r, View p, View e, View b, size_t n, Rigid toLab,
-                      double dt, double mass, double charge) const {
+        template <class View>
+        int transport(
+                View r, View p, View e, View b, size_t n, Rigid toLab, double dt, double mass,
+                double charge) const {
             const Lattice lattice = *this;
-            int failures = 0;
-            using Execution = typename View::execution_space;
-            Kokkos::parallel_reduce("Ring::deviceBoris", Kokkos::RangePolicy<Execution>(0, n),
-                KOKKOS_LAMBDA(size_t i, int& errors) {
-                    State ray;
-                    ray.position = toLab.pointTo(r(i));
-                    ray.momentum = toLab.vectorTo(p(i));
-                    if (!lattice.advance(ray, dt, mass, charge)) { ++errors; return; }
-                    r(i) = toLab.pointFrom(ray.position);
-                    p(i) = toLab.vectorFrom(ray.momentum);
-                    e(i) = Vector(0);
-                    b(i) = toLab.vectorFrom(lattice.magnetic(ray.position));
-                }, failures);
+            int failures          = 0;
+            using Execution       = typename View::execution_space;
+            Kokkos::parallel_reduce(
+                    "Ring::deviceBoris", Kokkos::RangePolicy<Execution>(0, n),
+                    KOKKOS_LAMBDA(size_t i, int& errors) {
+                        State ray;
+                        ray.position = toLab.pointTo(r(i));
+                        ray.momentum = toLab.vectorTo(p(i));
+                        if (!lattice.advance(ray, dt, mass, charge)) {
+                            ++errors;
+                            return;
+                        }
+                        r(i) = toLab.pointFrom(ray.position);
+                        p(i) = toLab.vectorFrom(ray.momentum);
+                        e(i) = Vector(0);
+                        b(i) = toLab.vectorFrom(lattice.magnetic(ray.position));
+                    },
+                    failures);
             return failures;
         }
     };
@@ -202,5 +216,5 @@ namespace device_external {
     private:
         static const char* unsupportedReason(const ElementBase&);
     };
-}
+}  // namespace device_external
 #endif

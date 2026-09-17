@@ -250,12 +250,12 @@ namespace opalx::spacecharge {
                DynamicSolveFrameTranslationPreservesFieldsAndDoesNotRequirePathHistory) {
             for (auto backend : {PoissonSolverType::None, PoissonSolverType::Open}) {
                 SCOPED_TRACE(static_cast<int>(backend));
-                auto values = config();
-                values.backend = backend;
+                auto values                 = config();
+                values.backend              = backend;
                 values.repartitionFrequency = 0;
                 values.binning.emplace();
-                values.binning->maximumBins = 1;
-                values.binning->adaptive = false;
+                values.binning->maximumBins            = 1;
+                values.binning->adaptive               = false;
                 values.grid.boundingBoxIncreasePercent = 50.;
                 // Same physical particles, with no image plane or fixed domain.
                 // Only the solver coordinate origin differs between these runs.
@@ -273,7 +273,8 @@ namespace opalx::spacecharge {
                         Vector(-4., 4., 13.) / 1024., Vector(3., -3., 18.) / 1024.};
                 for (auto* run : {&centred, &translated}) {
                     auto positions = run->particles.R.getHostMirror();
-                    for (std::size_t i = 0; i < initial.size(); ++i) positions(i) = initial[i];
+                    for (std::size_t i = 0; i < initial.size(); ++i)
+                        positions(i) = initial[i];
                     Kokkos::deep_copy(run->particles.R.getView(), positions);
                     run->particles.markMomentsDirty();
                     run->particles.updateMoments();
@@ -289,8 +290,10 @@ namespace opalx::spacecharge {
                     SCOPED_TRACE(step);
                     const auto expectedSolves = backend == PoissonSolverType::Open ? 1u : 0u;
                     EXPECT_EQ(centred.solve(step).backendSolves, expectedSolves);
-                    EXPECT_EQ(translated.solve(step, {solveToTracker.inverted(), solveToTracker})
-                                      .backendSolves, expectedSolves);
+                    EXPECT_EQ(
+                            translated.solve(step, {solveToTracker.inverted(), solveToTracker})
+                                    .backendSolves,
+                            expectedSolves);
                     expectFieldsEqual(translated.particles, centred.particles);
                     const auto centredR = Kokkos::create_mirror_view_and_copy(
                             Kokkos::HostSpace(), centred.particles.R.getView());
@@ -311,8 +314,8 @@ namespace opalx::spacecharge {
 
         TEST_F(CartesianPIC3DAlgorithmsTest,
                CentredNoOpSolveAvoidsQuantizationFromLargePathTranslation) {
-            auto values = config();
-            values.backend = PoissonSolverType::None;
+            auto values                 = config();
+            values.backend              = PoissonSolverType::None;
             values.repartitionFrequency = 0;
             Run centred(values, {}, Vector(0.0, 0.0, 0.073));
             Run translated(values, {}, Vector(0.0, 0.0, 0.073));
@@ -326,13 +329,15 @@ namespace opalx::spacecharge {
                 run->particles.updateMoments();
             }
             const double pathTranslation = 825.;
-            const double coordinateSpacing = std::nextafter(pathTranslation,
-                    std::numeric_limits<double>::infinity()) - pathTranslation;
+            const double coordinateSpacing =
+                    std::nextafter(pathTranslation, std::numeric_limits<double>::infinity())
+                    - pathTranslation;
             const CoordinateSystemTrafo solveToTracker(
                     Vector(0.0, 0.0, pathTranslation), Quaternion(1.0, 0.0, 0.0, 0.0));
             EXPECT_EQ(centred.solve().backendSolves, 0u);
-            EXPECT_EQ(translated.solve(0, {solveToTracker.inverted(), solveToTracker}).backendSolves,
-                      0u);
+            EXPECT_EQ(
+                    translated.solve(0, {solveToTracker.inverted(), solveToTracker}).backendSolves,
+                    0u);
             const auto centredR = Kokkos::create_mirror_view_and_copy(
                     Kokkos::HostSpace(), centred.particles.R.getView());
             const auto restoredR = Kokkos::create_mirror_view_and_copy(

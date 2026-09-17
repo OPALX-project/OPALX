@@ -23,11 +23,11 @@ namespace boris_step {
      * substeps whose movement is lost in repeated coordinate transformations.
      */
     inline double positionTimeFloor(double positionScale, double speed) {
-        if (!std::isfinite(positionScale) || positionScale < 0
-            || !std::isfinite(speed) || speed <= 0)
+        if (!std::isfinite(positionScale) || positionScale < 0 || !std::isfinite(speed)
+            || speed <= 0)
             throw std::invalid_argument("Invalid coordinate scale or speed for Boris time floor");
-        const double floor = (64 * std::numeric_limits<double>::epsilon()
-                * std::max(1., positionScale)) / speed;
+        const double floor =
+                (64 * std::numeric_limits<double>::epsilon() * std::max(1., positionScale)) / speed;
         if (!std::isfinite(floor))
             throw std::overflow_error("Boris position time floor is not representable");
         return floor;
@@ -50,13 +50,13 @@ namespace boris_step {
      */
     class Control {
     public:
-        explicit Control(double nominalDt, double minimumDt = 0,
-                         std::size_t maximumTrials = 1000000)
+        explicit Control(
+                double nominalDt, double minimumDt = 0, std::size_t maximumTrials = 1000000)
             : nominalDt_m(nominalDt), maximumTrials_m(maximumTrials) {
-            if (!std::isfinite(nominalDt) || nominalDt <= 0
-                || !std::isfinite(minimumDt) || minimumDt < 0 || maximumTrials == 0)
+            if (!std::isfinite(nominalDt) || nominalDt <= 0 || !std::isfinite(minimumDt)
+                || minimumDt < 0 || maximumTrials == 0)
                 throw std::invalid_argument("Invalid Boris substep schedule");
-            timeFloor_m = std::max(1e-12 * nominalDt, minimumDt);
+            timeFloor_m  = std::max(1e-12 * nominalDt, minimumDt);
             pending_m[0] = 0;
         }
 
@@ -88,9 +88,9 @@ namespace boris_step {
             if (!canSplit())
                 throw std::runtime_error("Boris boundary refinement reached its time floor");
             requireNextTrial();
-            const auto depth = static_cast<unsigned char>(pending_m[count_m - 1] + 1);
-            pending_m[count_m - 1] = depth; // Retain the second half.
-            pending_m[count_m++] = depth;  // Visit the first half.
+            const auto depth       = static_cast<unsigned char>(pending_m[count_m - 1] + 1);
+            pending_m[count_m - 1] = depth;  // Retain the second half.
+            pending_m[count_m++]   = depth;  // Visit the first half.
             ++trials_m;
         }
 
@@ -103,7 +103,7 @@ namespace boris_step {
             compensated::add(step(), sum_m, correction_m);
             --count_m;
             if (done()) {
-                sum_m = nominalDt_m;
+                sum_m        = nominalDt_m;
                 correction_m = 0;
             } else {
                 ++trials_m;
@@ -125,6 +125,6 @@ namespace boris_step {
         double nominalDt_m, timeFloor_m = 0, sum_m = 0, correction_m = 0;
         std::size_t maximumTrials_m;
     };
-} // namespace boris_step
+}  // namespace boris_step
 
 #endif

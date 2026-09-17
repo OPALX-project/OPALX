@@ -1,7 +1,7 @@
 // Copyright (c) 2026, Paul Scherrer Institute, Villigen PSI, Switzerland
 #include "Algorithms/TrackReferenceStep.h"
-#include "Algorithms/PartData.h"
 #include "Algorithms/ExternalFieldRayTracker.h"
+#include "Algorithms/PartData.h"
 #include "Elements/OpalBeamline.h"
 #include "Utilities/OpalException.h"
 
@@ -36,7 +36,7 @@ track_reference::State track_reference::advanceResolvedInBeamline(
     ExternalFieldRayTracker::State start;
     start.position = state.position;
     start.momentum = state.momentum;
-    start.time = endTime - dt;
+    start.time     = endTime - dt;
     std::vector<ExternalFieldRayTracker::Step> accepted;
     const auto end = tracker.advance(start, dt, diagnostics ? &accepted : nullptr);
     if (diagnostics) {
@@ -44,10 +44,12 @@ track_reference::State track_reference::advanceResolvedInBeamline(
             for (const auto& element : beamline.getElements(step.midpoint.position)) {
                 if (element->getType() != ElementType::MONITOR) continue;
                 Vector_t<double, 3> electric(0), magnetic(0);
-                state.hitMaterial = element->applyToReferenceParticle(
-                        beamline.transformToLocalCS(element, step.midpoint.position),
-                        beamline.rotateToLocalCS(element, step.midpoint.momentum),
-                        step.midpoint.time, electric, magnetic) || state.hitMaterial;
+                state.hitMaterial =
+                        element->applyToReferenceParticle(
+                                beamline.transformToLocalCS(element, step.midpoint.position),
+                                beamline.rotateToLocalCS(element, step.midpoint.momentum),
+                                step.midpoint.time, electric, magnetic)
+                        || state.hitMaterial;
             }
         }
     }

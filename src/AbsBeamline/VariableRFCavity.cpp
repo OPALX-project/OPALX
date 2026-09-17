@@ -112,8 +112,8 @@ void VariableRFCavity::apply(
 }
 
 void VariableRFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
-    const auto R           = pc->R.getView();
-    const auto E           = pc->E.getView();
+    const auto R = pc->R.getView();
+    const auto E = pc->E.getView();
     // The ordinary Boris kick and host reference field both sample this
     // physical midpoint. Match RFCavity's common-time convention.
     const auto t           = RefPartBunch_m->getT() + 0.5 * RefPartBunch_m->getdT();
@@ -143,7 +143,7 @@ bool VariableRFCavity::applyToReferenceParticle(
 
 bool VariableRFCavity::isInside(const Vector_t<double, 3>& r) const {
     return r[2] >= 0.0 && r[2] < getGeometry().getElementLength()
-            && Kokkos::abs(r[0]) <= halfWidth_m && Kokkos::abs(r[1]) <= halfHeight_m;
+           && Kokkos::abs(r[0]) <= halfWidth_m && Kokkos::abs(r[1]) <= halfHeight_m;
 }
 
 void VariableRFCavity::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
