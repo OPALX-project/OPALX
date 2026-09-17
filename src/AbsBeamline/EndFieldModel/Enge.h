@@ -137,6 +137,9 @@ public:
     /** Get a copy of the Config object */
     inline EngeConfig getConfig() const {return config_m;}
 
+    /** Get a copy of the Config object */
+    inline void setConfig(EngeConfig& config) {config_m = config;}
+
     /** Returns the value of the Enge function or its \f$n^{th}\f$ derivative.
      *
      *  Please call setEngeDiffIndices(n) before calling if n > max_index
@@ -194,12 +197,12 @@ std::vector<std::vector<int> > Enge::getHIndex(int n) { return _h[n]; }
 
 double Enge::getDoubleEnge(const EngeConfig& config, double x, int n) {
     if (n == 0) {
-        return (getEnge(config, x - config.x0_m, n) + getEnge(config, -x - config.x0_m, n)) - 1.;
+        return -1+(getEnge(config, x - config.x0_m, n) + getEnge(config, -x - config.x0_m, n));
     } else {
-        if (n % 2 != 0)
-            return getEnge(config, x - config.x0_m, n) - getEnge(config, -x - config.x0_m, n);
+        if (n % 2 == 1)
+            return + getEnge(config, x - config.x0_m, n) - getEnge(config, -x - config.x0_m, n);
         else
-            return getEnge(config, x - config.x0_m, n) + getEnge(config, -x - config.x0_m, n);
+            return + getEnge(config, x - config.x0_m, n) + getEnge(config, -x - config.x0_m, n);
     }
 }
 

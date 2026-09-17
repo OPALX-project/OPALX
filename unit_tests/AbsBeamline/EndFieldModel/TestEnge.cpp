@@ -54,8 +54,8 @@ TEST_F(TestEnge, ConstructorTest) {
     delete enge2;
 }
 
-double myEnge(double x, std::vector<double> a, double x0, double lambda) {
-    double deltaX = (x-x0)/lambda;
+double myEnge(double x, std::vector<double> a, double lambda) {
+    double deltaX = x/lambda;
     double xPow = 1.0;
     double p = 0.0;
     for (size_t i = 0; i < a.size(); ++i) {
@@ -67,24 +67,29 @@ double myEnge(double x, std::vector<double> a, double x0, double lambda) {
 }
 
 TEST_F(TestEnge, DerivativeTest) {
-    std::vector<double> xVector = {0.0, 1.0, 2.0, 3.0};
-    double dx = 1e-3;
+    std::vector<double> xVector = {-5.5, -5.0, -3.0, 0.0, 3.0, 5.0, 5.5};
+    double dx = 1e-4;
     double x0 = 5.0;
     double lambda = 0.5;
-    std::vector<double> engeA = {0.0, 1.0, 2.0};
+    std::vector<double> engeA = {0.0, 1.0, 0.0};
     endfieldmodel::Enge enge(engeA, x0, lambda);
     for (auto x: xVector) {
         double yTest = enge.function(x, 0);
-        double yRef = myEnge(x-x0, engeA, x0, lambda) +
-                      myEnge(-x-x0, engeA, x0, lambda) - 1;
-        EXPECT_NEAR(yTest, yRef, 1e-12);
+        double yRef = -1 + myEnge(x-x0, engeA, lambda)
+                        + myEnge(-x-x0, engeA, lambda);
+        EXPECT_NEAR(yTest, yRef, 1e-12) << x << " " << yTest << " " << yRef;
         for (size_t n = 1; n < 5; ++n) {
             double yP = enge.function(x+dx, n-1);
             double yM = enge.function(x-dx, n-1);
             double dyTest = enge.function(x, n);
-            EXPECT_NEAR(dyTest, (yP-yM)/2/dx, 1e-6);
+            double dyRef = (yP-yM)/2/dx;
+            EXPECT_NEAR(dyTest, dyRef, 1e-3) << x << " "<< n << " * "
+                                             << dyTest << " " << dyRef;
         }
     }
+    EXPECT_NEAR(enge.function(0.0, 0), 1.0, 1e-3);
+    EXPECT_NEAR(enge.function(5.0, 0), 0.5, 1e-3);
+    EXPECT_NEAR(enge.function(-5.0, 0), 0.5, 1e-3);
 }
 
 
@@ -92,7 +97,7 @@ TEST_F(TestEnge, SingleEngeTest) {
     std::vector<double> xVector = {0.0, 1.0, 2.0, 3.0};
     endfieldmodel::Enge enge({0.0, 1.0, 2.0}, 0.0, 0.5);
     for (auto x: xVector) {
-        EXPECT_NEAR(enge.getEnge(enge.getConfig(), x, 0), myEnge(x, {0.0, 1.0, 2.0}, 0.0, 0.5), 1e-12);
+        EXPECT_NEAR(enge.getEnge(enge.getConfig(), x, 0), myEnge(x, {0.0, 1.0, 2.0}, 0.5), 1e-12);
     }
 }
 

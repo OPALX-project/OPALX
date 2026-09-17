@@ -2,6 +2,7 @@
 #include "Elements/OpalAsymmetricEnge.h"
 
 #include "AbsBeamline/EndFieldModel/AsymmetricEnge.h"
+#include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
 #include "Attributes/Attributes.h"
 #include "Physics/Units.h"
 
@@ -38,14 +39,14 @@ void OpalAsymmetricEnge::update() {
     std::vector<double> aVecEnd =
               Attributes::getRealArray(itsAttr[COEFFICIENTS_END]);
 
-    endfieldmodel::EndFieldModel::setEndFieldModel(getOpalName(),
-             std::make_shared<endfieldmodel::AsymmetricEnge>(aVecStart,
+    auto efm = std::make_shared<endfieldmodel::AsymmetricEnge>(aVecStart,
                                                              x0Start,
                                                              lambdaStart,
                                                              aVecEnd,
                                                              x0End,
-                                                             lambdaEnd));
-
+                                                             lambdaEnd);
+    auto efmMan = endfieldmodel::EndFieldModelManager::getEFMManager();
+    efmMan->setEndFieldModel(getOpalName(), efm);
 }
 
 OpalAsymmetricEnge::OpalAsymmetricEnge(const std::string &name,
@@ -57,6 +58,4 @@ OpalAsymmetricEnge::OpalAsymmetricEnge(const std::string &name,
 OpalAsymmetricEnge *OpalAsymmetricEnge::clone(const std::string &name) {
     return new OpalAsymmetricEnge(name, this);
 }
-
-OpalAsymmetricEnge::~OpalAsymmetricEnge() {}
 
