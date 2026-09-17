@@ -58,7 +58,7 @@ namespace endfieldmodel {
          */
         virtual void function(const Kokkos::View<double*>& xView,
                               const int n,
-                              Kokkos::View<double**>& values) const;
+                              Kokkos::View<double**>& values) const = 0;
 
         /** Return the nominal flat top length of the magnet
          */
