@@ -1,23 +1,23 @@
 // Copyright (c) 2026, Paul Scherrer Institute, Villigen PSI, Switzerland
 #include "Algorithms/ExternalFieldRayTracker.h"
-#include "Algorithms/CompensatedSum.h"
-#include "Algorithms/OrbitThreaderDiagnostics.h"
-#include "Algorithms/RungeKuttaTableau.h"
 #include <algorithm>
 #include <cmath>
+#include "Algorithms/CompensatedSum.h"
+#include "Algorithms/OrbitThreaderDiagnostics.h"
 #include "Algorithms/PartData.h"
+#include "Algorithms/RungeKuttaTableau.h"
 #include "Elements/OpalBeamline.h"
 #include "Utilities/OpalException.h"
 
 namespace {
-    using State = ExternalFieldRayTracker::State;
+    using State  = ExternalFieldRayTracker::State;
     using Fields = ExternalFieldRayTracker::FieldEvaluator;
 
     // Each k holds h*f for (r[3], u[3], s), avoiding sums of large SI derivatives.
     template <unsigned Stages>
-    State rkAdvance(const State& initial, double h, const Fields& fields,
-                    const PartData& reference, const external_field_rk::Tableau<Stages>& table,
-                    bool& hitMaterial) {
+    State rkAdvance(
+            const State& initial, double h, const Fields& fields, const PartData& reference,
+            const external_field_rk::Tableau<Stages>& table, bool& hitMaterial) {
         std::array<std::array<double, 7>, Stages> k{};
         const auto combine = [&](const auto& weights, unsigned count, double fraction) {
             State ray = initial;
@@ -26,11 +26,12 @@ namespace {
                 for (unsigned d = 0; d < 7; ++d)
                     compensated::add(weights[j] * k[j][d], increment[d], correction[d]);
             for (unsigned d = 0; d < 3; ++d) {
-                compensated::add(increment[d] - correction[d], ray.position(d),
-                                 ray.positionCorrection(d));
+                compensated::add(
+                        increment[d] - correction[d], ray.position(d), ray.positionCorrection(d));
                 ray.momentum(d) += increment[d + 3] - correction[d + 3];
             }
-            compensated::add(increment[6] - correction[6], ray.pathLength, ray.pathLengthCorrection);
+            compensated::add(
+                    increment[6] - correction[6], ray.pathLength, ray.pathLengthCorrection);
             compensated::add(fraction * h, ray.time, ray.timeCorrection);
             return ray;
         };
@@ -43,18 +44,18 @@ namespace {
                 hitMaterial = true;
                 return ray;
             }
-            const double gamma = std::sqrt(1.0 + dot(ray.momentum, ray.momentum));
+            const double gamma                 = std::sqrt(1.0 + dot(ray.momentum, ray.momentum));
             const Vector_t<double, 3> velocity = (Physics::c / gamma) * ray.momentum;
-            const Vector_t<double, 3> du = force * (electric + cross(velocity, magnetic));
+            const Vector_t<double, 3> du       = force * (electric + cross(velocity, magnetic));
             for (unsigned d = 0; d < 3; ++d) {
-                k[i][d] = h * velocity(d);
+                k[i][d]     = h * velocity(d);
                 k[i][d + 3] = du(d);
             }
             k[i][6] = h * euclidean_norm(velocity);
         }
         return combine(table.b, Stages, 1.0);
     }
-}
+}  // namespace
 
 ExternalFieldRayTracker::IntegrationMethod ExternalFieldRayTracker::parseIntegrationMethod(
         const std::string& name) {
@@ -63,7 +64,8 @@ ExternalFieldRayTracker::IntegrationMethod ExternalFieldRayTracker::parseIntegra
     if (name == "DOP853") return IntegrationMethod::DOP853;
     throw OpalException(
             "ExternalFieldRayTracker::parseIntegrationMethod",
-            "Unsupported external-field ray integrator '" + name + "'. Use BORIS (alias LF2), RK4 or DOP853.");
+            "Unsupported external-field ray integrator '" + name
+                    + "'. Use BORIS (alias LF2), RK4 or DOP853.");
 }
 
 std::string ExternalFieldRayTracker::integrationMethodName(const IntegrationMethod method) {
@@ -117,12 +119,14 @@ ExternalFieldRayTracker::Step ExternalFieldRayTracker::rungeKuttaStep(
         const State& initial, const double dt, const FieldEvaluator& fields) const {
     Step result;
     result.midpoint = result.end = initial;
-    result.duration = dt;
+    result.duration              = dt;
     if (dt == 0.0) return result;
     const auto integrate = [&](double h) {
         if (integrationMethod_m == IntegrationMethod::RK4)
-            return rkAdvance(initial, h, fields, reference_m, external_field_rk::rk4, result.hitMaterial);
-        return rkAdvance(initial, h, fields, reference_m, external_field_rk::dop853, result.hitMaterial);
+            return rkAdvance(
+                    initial, h, fields, reference_m, external_field_rk::rk4, result.hitMaterial);
+        return rkAdvance(
+                initial, h, fields, reference_m, external_field_rk::dop853, result.hitMaterial);
     };
     result.end = integrate(dt);
     if (result.hitMaterial) return result;
@@ -143,12 +147,12 @@ ExternalFieldRayTracker::Step ExternalFieldRayTracker::borisStep(
     if (dt == 0.0) return result;
     const auto halfDrift = [dt](State& ray) {
         const double momentum2 = dot(ray.momentum, ray.momentum);
-        const double factor = (0.5 * Physics::c * dt) / std::sqrt(1.0 + momentum2);
+        const double factor    = (0.5 * Physics::c * dt) / std::sqrt(1.0 + momentum2);
         for (unsigned component = 0; component < 3; ++component)
-            compensated::add(factor * ray.momentum(component), ray.position(component),
-                             ray.positionCorrection(component));
-        compensated::add(factor * std::sqrt(momentum2), ray.pathLength,
-                         ray.pathLengthCorrection);
+            compensated::add(
+                    factor * ray.momentum(component), ray.position(component),
+                    ray.positionCorrection(component));
+        compensated::add(factor * std::sqrt(momentum2), ray.pathLength, ray.pathLengthCorrection);
         compensated::add(0.5 * dt, ray.time, ray.timeCorrection);
     };
     auto& ray = result.midpoint;
@@ -160,8 +164,8 @@ ExternalFieldRayTracker::Step ExternalFieldRayTracker::borisStep(
     // BorisPusher::kick does not use its position argument. Keep the shared kick;
     // only the host drift/bookkeeping changes, not TRACK's particle kernel.
     integrator_m.kick(
-            ray.position, result.end.momentum, result.electric, result.magnetic, dt, reference_m.getM(),
-            reference_m.getQ());
+            ray.position, result.end.momentum, result.electric, result.magnetic, dt,
+            reference_m.getM(), reference_m.getQ());
     halfDrift(result.end);
     return result;
 }
@@ -172,23 +176,28 @@ ExternalFieldRayTracker::State ExternalFieldRayTracker::advanceToPathLength(
         return compensated::difference(ray.pathLength, ray.pathLengthCorrection, target, 0.0);
     };
     if (!std::isfinite(target))
-        throw OpalException("ExternalFieldRayTracker::advanceToPathLength", "Non-finite path target.");
-    State trial = advance(initial, dt);
+        throw OpalException(
+                "ExternalFieldRayTracker::advanceToPathLength", "Non-finite path target.");
+    State trial            = advance(initial, dt);
     const double direction = std::copysign(1.0, dt);
     if (direction * distance(initial) > 0.0 || direction * distance(trial) < 0.0)
-        throw OpalException("ExternalFieldRayTracker::advanceToPathLength", "Path target is not bracketed.");
+        throw OpalException(
+                "ExternalFieldRayTracker::advanceToPathLength", "Path target is not bracketed.");
     if (distance(initial) == 0.0) return initial;
     if (distance(trial) == 0.0) return trial;
     const double timeTolerance = std::max(
             1.e-12 * std::abs(dt), 64.0 * std::numeric_limits<double>::epsilon()
-                    * std::max(1.0, euclidean_norm(initial.position)) / Physics::c);
+                                           * std::max(1.0, euclidean_norm(initial.position))
+                                           / Physics::c);
     double lower = 0.0, upper = dt;
     for (unsigned iteration = 0; iteration < 64; ++iteration) {
         const double middle = 0.5 * (lower + upper);
-        trial = advance(initial, middle);
+        trial               = advance(initial, middle);
         if (distance(trial) == 0.0) break;
-        if (direction * distance(trial) >= 0.0) upper = middle;
-        else lower = middle;
+        if (direction * distance(trial) >= 0.0)
+            upper = middle;
+        else
+            lower = middle;
         if (std::abs(upper - lower) <= timeTolerance) break;
     }
     return trial;
@@ -223,10 +232,11 @@ ExternalFieldRayTracker::State ExternalFieldRayTracker::advanceRecursive(
                     "Field-boundary refinement did not converge.");
         }
         std::optional<ElementSet> middleElements;
-        const auto middle = advanceRecursive(initial, 0.5 * dt, tolerance, accepted, depth + 1,
-                                             knownInitial, &middleElements);
-        return advanceRecursive(middle, 0.5 * dt, tolerance, accepted, depth + 1,
-                                middleElements ? &*middleElements : nullptr, finalElements);
+        const auto middle = advanceRecursive(
+                initial, 0.5 * dt, tolerance, accepted, depth + 1, knownInitial, &middleElements);
+        return advanceRecursive(
+                middle, 0.5 * dt, tolerance, accepted, depth + 1,
+                middleElements ? &*middleElements : nullptr, finalElements);
     };
     if (!resolved && std::abs(dt) > maximumStep_m) {
         count(&Work::capSplits);
@@ -241,10 +251,10 @@ ExternalFieldRayTracker::State ExternalFieldRayTracker::advanceRecursive(
         count(&Work::membershipReuses);
     }
     const auto& initialSet = *initialElements;
-    bool crossedSupport = false;
+    bool crossedSupport    = false;
     const auto trial = step(initial, dt, [&](const State& ray, auto& electric, auto& magnetic) {
         const auto stageSet = beamline_m.getElements(ray.position);
-        crossedSupport = crossedSupport || stageSet != initialSet;
+        crossedSupport      = crossedSupport || stageSet != initialSet;
         for (const auto& element : stageSet) {
             if (element->getType() == ElementType::MARKER
                 || element->getType() == ElementType::MONITOR)
@@ -263,8 +273,7 @@ ExternalFieldRayTracker::State ExternalFieldRayTracker::advanceRecursive(
     // Preserve the original query's short circuit. Only this trial's accepted
     // endpoint can become a sibling's start; a rejected trial follows another path.
     std::optional<ElementSet> endElements;
-    if (!resolved && !crossedSupport)
-        endElements = beamline_m.getElements(trial.end.position);
+    if (!resolved && !crossedSupport) endElements = beamline_m.getElements(trial.end.position);
     if (!resolved && (crossedSupport || initialSet != *endElements)) {
         count(&Work::supportSplits);
         return split(initialElements);

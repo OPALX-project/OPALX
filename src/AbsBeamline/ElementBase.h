@@ -17,11 +17,11 @@
 
 #include "AbsBeamline/AttributeSet.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
-#include "Structure/LinearTransferMap.h"
 #include "Algorithms/Quaternion.hpp"
 #include "BeamlineGeometry/Geometry.h"
 #include "OPALTypes.h"
 #include "Structure/BoundingBox.h"
+#include "Structure/LinearTransferMap.h"
 #include "Utilities/GeneralOpalException.h"
 #include "VectorMath.h"
 

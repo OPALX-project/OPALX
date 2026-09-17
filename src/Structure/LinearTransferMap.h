@@ -107,8 +107,8 @@ struct LinearTransferMapReference {
  * \f[
  *   M_{\mathrm{total}}=M_N M_{N-1}\cdots M_1,
  * \f]
- * including unowned intervals (which can contain field tails). A shared overlap segment must occur only once in
- * this product, even though a copy is attached to every participating element.
+ * including unowned intervals (which can contain field tails). A shared overlap segment must occur
+ * only once in this product, even though a copy is attached to every participating element.
  *
  * For each coordinate \f$j\f$, two private rays are launched with \f$\pm\epsilon_j\f$.  With
  * \f[

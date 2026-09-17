@@ -1,10 +1,10 @@
 #include "Algorithms/LinearTransferMapBuilder.h"
-#include "Algorithms/MapExitRoot.h"
-#include "Algorithms/OrbitThreaderDiagnostics.h"
-#include "Algorithms/CompensatedSum.h"
 #include <algorithm>
 #include <cmath>
 #include <iterator>
+#include "Algorithms/CompensatedSum.h"
+#include "Algorithms/MapExitRoot.h"
+#include "Algorithms/OrbitThreaderDiagnostics.h"
 #include "Elements/OpalBeamline.h"
 #include "Utilities/OpalException.h"
 
@@ -12,26 +12,35 @@ namespace {
     constexpr double boundaryTolerance = 1.0e-12;
 
     ExternalFieldRayTracker::State rayState(const LinearTransferMapReference& reference) {
-        return {reference.position, reference.momentum, reference.time, reference.pathLength,
-                reference.positionCorrection, reference.timeCorrection, reference.pathLengthCorrection};
+        return {reference.position,
+                reference.momentum,
+                reference.time,
+                reference.pathLength,
+                reference.positionCorrection,
+                reference.timeCorrection,
+                reference.pathLengthCorrection};
     }
 
-    void assignRayState(LinearTransferMapReference& reference, const ExternalFieldRayTracker::State& ray) {
-        reference.position = ray.position;
-        reference.momentum = ray.momentum;
-        reference.time = ray.time;
-        reference.pathLength = ray.pathLength;
-        reference.positionCorrection = ray.positionCorrection;
-        reference.timeCorrection = ray.timeCorrection;
+    void assignRayState(
+            LinearTransferMapReference& reference, const ExternalFieldRayTracker::State& ray) {
+        reference.position             = ray.position;
+        reference.momentum             = ray.momentum;
+        reference.time                 = ray.time;
+        reference.pathLength           = ray.pathLength;
+        reference.positionCorrection   = ray.positionCorrection;
+        reference.timeCorrection       = ray.timeCorrection;
         reference.pathLengthCorrection = ray.pathLengthCorrection;
     }
 
-    double flightTime(const LinearTransferMapReference& entrance, const LinearTransferMapReference& exit) {
-        return compensated::difference(exit.time, exit.timeCorrection, entrance.time, entrance.timeCorrection);
+    double flightTime(
+            const LinearTransferMapReference& entrance, const LinearTransferMapReference& exit) {
+        return compensated::difference(
+                exit.time, exit.timeCorrection, entrance.time, entrance.timeCorrection);
     }
 
-    Vector_t<double, 3> displacement(const ExternalFieldRayTracker::State& ray,
-                                     const LinearTransferMapReference& reference) {
+    Vector_t<double, 3> displacement(
+            const ExternalFieldRayTracker::State& ray,
+            const LinearTransferMapReference& reference) {
         Vector_t<double, 3> result;
         for (unsigned component = 0; component < 3; ++component)
             result(component) = compensated::difference(
@@ -249,9 +258,9 @@ LinearTransferMapReference LinearTransferMapBuilder::refineBoundary(
     };
 
     const RayState start = rayState(before);
-    double lower   = 0.0;
-    double upper   = flightTime(before, after);
-    RayState trial = start;
+    double lower         = 0.0;
+    double upper         = flightTime(before, after);
+    RayState trial       = start;
     for (int iteration = 0; iteration < 60; ++iteration) {
         const double middle = 0.5 * (lower + upper);
         trial               = tracker_m.advance(start, middle);
@@ -269,8 +278,8 @@ LinearTransferMapReference LinearTransferMapBuilder::refineBoundary(
 
 std::array<double, 6> LinearTransferMapBuilder::coordinates(
         const RayState& ray, const LinearTransferMapReference& reference) {
-    const Vector_t<double, 3> offset = displacement(ray, reference);
-    const double longitudinalMomentum      = dot(ray.momentum, reference.sAxis);
+    const Vector_t<double, 3> offset  = displacement(ray, reference);
+    const double longitudinalMomentum = dot(ray.momentum, reference.sAxis);
     if (std::abs(longitudinalMomentum) < 1.0e-14) {
         throw OpalException(
                 "LinearTransferMapBuilder::coordinates",
@@ -282,8 +291,9 @@ std::array<double, 6> LinearTransferMapBuilder::coordinates(
             dot(ray.momentum, reference.xAxis) / longitudinalMomentum,
             dot(offset, reference.yAxis),
             dot(ray.momentum, reference.yAxis) / longitudinalMomentum,
-            -beta * Physics::c * compensated::difference(
-                    ray.time, ray.timeCorrection, reference.time, reference.timeCorrection),
+            -beta * Physics::c
+                    * compensated::difference(
+                            ray.time, ray.timeCorrection, reference.time, reference.timeCorrection),
             euclidean_norm(ray.momentum) / referenceMomentum - 1.0};
 }
 
@@ -291,10 +301,12 @@ LinearTransferMapBuilder::RayState LinearTransferMapBuilder::rayFromCoordinates(
         const std::array<double, 6>& coordinate, const LinearTransferMapReference& reference) {
     RayState ray = rayState(reference);
     for (unsigned component = 0; component < 3; ++component) {
-        compensated::add(coordinate[0] * reference.xAxis(component), ray.position(component),
-                         ray.positionCorrection(component));
-        compensated::add(coordinate[2] * reference.yAxis(component), ray.position(component),
-                         ray.positionCorrection(component));
+        compensated::add(
+                coordinate[0] * reference.xAxis(component), ray.position(component),
+                ray.positionCorrection(component));
+        compensated::add(
+                coordinate[2] * reference.yAxis(component), ray.position(component),
+                ray.positionCorrection(component));
     }
     const double referenceMomentum = euclidean_norm(reference.momentum);
     const double momentum          = referenceMomentum * (1.0 + coordinate[5]);
@@ -329,19 +341,21 @@ LinearTransferMapBuilder::RayState LinearTransferMapBuilder::trackRayToExit(
         RayState next                              = tracker_m.advance(previous, dt_m);
         const Vector_t<double, 3> nextDisplacement = displacement(next, exit);
         const double nextDistance                  = dot(nextDisplacement, exit.sAxis);
-        const double elapsed = std::abs(compensated::difference(
-                next.time, next.timeCorrection, initial.time, initial.timeCorrection));
+        const double elapsed                       = std::abs(
+                compensated::difference(
+                        next.time, next.timeCorrection, initial.time, initial.timeCorrection));
         // A one-turn entrance and exit can be the same plane. Do not accept the launch
         // crossing (or the opposite-side crossing) as the ray's return. This is a local
         // linear-map search about the supplied reference flight, not an arbitrary orbit search.
-        if (elapsed >= 0.5 * std::abs(referenceFlightTime) && crossed(previousDistance, nextDistance)) {
+        if (elapsed >= 0.5 * std::abs(referenceFlightTime)
+            && crossed(previousDistance, nextDistance)) {
             transportTime.stop();
             Duration exitTime(&Work::rayExitSeconds);
-            RayState trial = next;
-            double trialTime = dt_m;
+            RayState trial      = next;
+            double trialTime    = dt_m;
             const auto evaluate = [&](const double time) {
                 count(&Work::exitIterations);
-                trial = tracker_m.advance(previous, time);
+                trial     = tracker_m.advance(previous, time);
                 trialTime = time;
                 return dot(displacement(trial, exit), exit.sAxis);
             };
@@ -351,17 +365,19 @@ LinearTransferMapBuilder::RayState LinearTransferMapBuilder::trackRayToExit(
                 double lower = 0.0;
                 double upper = dt_m;
                 for (unsigned iteration = 0; iteration < 60; ++iteration) {
-                    const double middle = 0.5 * (lower + upper);
+                    const double middle   = 0.5 * (lower + upper);
                     const double distance = evaluate(middle);
-                    if (crossed(previousDistance, distance)) upper = middle;
-                    else lower = middle;
+                    if (crossed(previousDistance, distance))
+                        upper = middle;
+                    else
+                        lower = middle;
                     if (std::abs(upper - lower) <= boundaryTolerance * std::abs(dt_m)) break;
                 }
                 return trial;
             }
             const double arrival = map_exit_detail::locate(
-                    0.0, dt_m, previousDistance, nextDistance,
-                    boundaryTolerance * std::abs(dt_m), evaluate);
+                    0.0, dt_m, previousDistance, nextDistance, boundaryTolerance * std::abs(dt_m),
+                    evaluate);
             if (arrival == 0.0) return previous;
             if (arrival == dt_m) return next;
             if (arrival != trialTime) evaluate(arrival);
@@ -383,8 +399,8 @@ matrix6x6_t LinearTransferMapBuilder::makeCenteredMap(
     for (int column = 0; column < 6; ++column) {
         std::array<double, 6> plus{};
         std::array<double, 6> minus{};
-        plus[column]                    = steps[column];
-        minus[column]                   = -steps[column];
+        plus[column]                 = steps[column];
+        minus[column]                = -steps[column];
         const RayState plusEntrance  = rayFromCoordinates(plus, entrance);
         const RayState minusEntrance = rayFromCoordinates(minus, entrance);
         const RayState plusExit  = trackRayToExit(plusEntrance, exit, flightTime(entrance, exit));
@@ -474,21 +490,26 @@ LinearTransferMapBuilder::Result LinearTransferMapBuilder::build(
     const auto firstAtOrAfterStart = std::lower_bound(
             referenceSamples_m.begin(), referenceSamples_m.end(), transferMapStartPathLength_m,
             [](const ReferenceSample& sample, const double pathLength) {
-                return compensated::difference(sample.state.pathLength,
-                        sample.state.pathLengthCorrection, pathLength, 0.0) < 0.0;
+                return compensated::difference(
+                               sample.state.pathLength, sample.state.pathLengthCorrection,
+                               pathLength, 0.0)
+                       < 0.0;
             });
     if (firstAtOrAfterStart == referenceSamples_m.end()) return result;
     if (firstAtOrAfterStart != referenceSamples_m.begin()
-        && compensated::difference(firstAtOrAfterStart->state.pathLength,
-                firstAtOrAfterStart->state.pathLengthCorrection, transferMapStartPathLength_m, 0.0) > 0.0) {
-        const auto& before    = std::prev(firstAtOrAfterStart)->state;
-        const auto& after     = firstAtOrAfterStart->state;
+        && compensated::difference(
+                   firstAtOrAfterStart->state.pathLength,
+                   firstAtOrAfterStart->state.pathLengthCorrection, transferMapStartPathLength_m,
+                   0.0)
+                   > 0.0) {
+        const auto& before     = std::prev(firstAtOrAfterStart)->state;
+        const auto& after      = firstAtOrAfterStart->state;
         const RayState clipped = tracker_m.advanceToPathLength(
                 rayState(before), flightTime(before, after), transferMapStartPathLength_m);
         LinearTransferMapReference start = transportFrame(before, clipped.momentum);
         assignRayState(start, clipped);
-        start.pathLength                 = transferMapStartPathLength_m;
-        start.pathLengthCorrection       = 0.0;
+        start.pathLength           = transferMapStartPathLength_m;
+        start.pathLengthCorrection = 0.0;
 
         std::vector<ReferenceSample> clippedSamples;
         clippedSamples.reserve(
@@ -603,7 +624,7 @@ LinearTransferMapBuilder::Result LinearTransferMapBuilder::build(
         map.includesOverlappingFields = interval.active.size() > 1;
         for (; sampleIndex < referenceSamples_m.size(); ++sampleIndex) {
             const auto& before = referenceSamples_m[sampleIndex - 1].state;
-            const auto& after = referenceSamples_m[sampleIndex].state;
+            const auto& after  = referenceSamples_m[sampleIndex].state;
             if (before.pathLength >= interval.exit.pathLength) break;
             if (after.pathLength <= interval.entrance.pathLength) continue;
             auto fields = itsOpalBeamline_m.getElements(0.5 * (before.position + after.position));
@@ -611,7 +632,7 @@ LinearTransferMapBuilder::Result LinearTransferMapBuilder::build(
             map.includesOverlappingFields = map.includesOverlappingFields || fields.size() > 1;
             contributors.insert(fields.begin(), fields.end());
         }
-        if (sampleIndex > 1) --sampleIndex; // a sample bracket may straddle a nominal boundary
+        if (sampleIndex > 1) --sampleIndex;  // a sample bracket may straddle a nominal boundary
         for (const auto& element : contributors) {
             map.activeElements.push_back(element->getName());
         }

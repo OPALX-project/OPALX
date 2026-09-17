@@ -143,10 +143,14 @@ public:
     double getDesignCircumference() const { return period_m; }
     /// Measured travel distance [m], populated only after a RING return-plane crossing.
     /// This is not necessarily a closed-orbit length and is independent of map enablement.
-    const std::optional<double>& getReferenceReturnLength() const { return referenceReturnLength_m; }
+    const std::optional<double>& getReferenceReturnLength() const {
+        return referenceReturnLength_m;
+    }
     /// Current displacement from the launch position [m] in lab coordinates.
     /// Interpret as a return-closure diagnostic only when getReferenceReturnLength() is present.
-    Vector_t<double, 3> getReferenceReturnDisplacement() const { return r_m - ringOrigin_m.position; }
+    Vector_t<double, 3> getReferenceReturnDisplacement() const {
+        return r_m - ringOrigin_m.position;
+    }
 
 private:
     /// position of reference particle in lab coordinates
@@ -189,14 +193,14 @@ private:
 
     BoundingBox globalBoundingBox_m;
 
-    using ReferenceSample = LinearTransferMapBuilder::ReferenceSample;
-    using RayState = ExternalFieldRayTracker::State;
+    using ReferenceSample                    = LinearTransferMapBuilder::ReferenceSample;
+    using RayState                           = ExternalFieldRayTracker::State;
     Vector_t<double, 3> positionCorrection_m = Vector_t<double, 3>(0.0);
     double timeCorrection_m{0.0};
     double pathLengthCorrection_m{0.0};
     RayState currentRay() const;
     RayState ringOrigin_m;
-    bool ringReturnArmed_m = false; ///< Negative-side excursion arms the next directed return.
+    bool ringReturnArmed_m = false;  ///< Negative-side excursion arms the next directed return.
     bool referencePass_m{false};
     std::optional<double> referenceReturnLength_m;
     void checkRingReturn(const RayState& before, double stepDt);

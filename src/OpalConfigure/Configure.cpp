@@ -45,8 +45,8 @@
 #include "OpalParser/MacroCmd.h"
 
 // Commands introducing a special mode.
-#include "Track/TrackCmd.h"
 #include "Track/CofCmd.h"
+#include "Track/TrackCmd.h"
 
 // Table-related commands.
 #include "Structure/Beam.h"

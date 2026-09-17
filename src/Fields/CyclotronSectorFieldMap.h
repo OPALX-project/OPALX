@@ -34,10 +34,10 @@ public:
      * @throws std::filesystem::filesystem_error If the filename cannot be resolved.
      */
     static std::shared_ptr<const CyclotronSectorFieldMap> read(const std::string& filename);
-    double rmin, dr; ///< Minimum radius and positive radial spacing [m].
-    double thetaMin, dtheta; ///< File angular origin and positive spacing [rad].
-    int nr, nt; ///< Number of radial points and angular points excluding the seam.
-    View data; ///< Device-accessible storage, populated once on the host.
+    double rmin, dr;          ///< Minimum radius and positive radial spacing [m].
+    double thetaMin, dtheta;  ///< File angular origin and positive spacing [rad].
+    int nr, nt;               ///< Number of radial points and angular points excluding the seam.
+    View data;                ///< Device-accessible storage, populated once on the host.
     /// Host mirror for scalar reference tracking; same layout and values as data.
     decltype(Kokkos::create_mirror_view(std::declval<View>())) host;
 

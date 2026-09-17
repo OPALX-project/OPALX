@@ -100,10 +100,13 @@ void OpalCavity::update() {
             || !Attributes::getString(itsAttr[PHASE_MODEL]).empty()
             || !Attributes::getString(itsAttr[AMPLITUDE_MODEL]).empty()
             || !Attributes::getString(itsAttr[FREQUENCY_MODEL]).empty())
-            throw OpalException("OpalCavity::update",
-                "SINGLEGAP uses SI geometry and X/Y/Z/THETA/PHI/PSI poses, PHI0, and static RF parameters only.");
-        rfc->configureCyclotronGap(fmapfn, rmin, rmax,
-            CyclotronRFKick{peak*1e6, freq, phi0*Units::deg2rad, gapwidth, rmax-rmin});
+            throw OpalException(
+                    "OpalCavity::update",
+                    "SINGLEGAP uses SI geometry and X/Y/Z/THETA/PHI/PSI poses, PHI0, and static RF "
+                    "parameters only.");
+        rfc->configureCyclotronGap(
+                fmapfn, rmin, rmax,
+                CyclotronRFKick{peak * 1e6, freq, phi0 * Units::deg2rad, gapwidth, rmax - rmin});
     }
 
     rfc->getGeometry().setElementLength(length);

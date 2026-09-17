@@ -70,9 +70,10 @@ Beam::Beam()
             {"PHOTON", "ELECTRON", "POSITRON", "MUON", "PION", "PROTON", "ANTIPROTON", "DEUTERON",
              "HMINUS", "H2P", "ALPHA", "CARBON", "XENON", "URANIUM"});
 
-    itsAttr[MASS] = Attributes::makeReal("MASS", "Particle rest mass [GeV]");
-    itsAttr[TUNEINITIAL] = Attributes::makeRealArray("TUNEINITIAL",
-        "Repeated spectral launches: kinetic energy [GeV], radius [m], radial momentum [mc].");
+    itsAttr[MASS]        = Attributes::makeReal("MASS", "Particle rest mass [GeV]");
+    itsAttr[TUNEINITIAL] = Attributes::makeRealArray(
+            "TUNEINITIAL",
+            "Repeated spectral launches: kinetic energy [GeV], radius [m], radial momentum [mc].");
 
     itsAttr[CHARGE] = Attributes::makeReal("CHARGE", "Particle charge in proton charges");
 

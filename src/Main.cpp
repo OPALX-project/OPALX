@@ -139,8 +139,8 @@ namespace OPALXMAIN {
 #else
         *gmsg << "* OpenMP: disabled\n";
 #endif
-        *gmsg << "* Kokkos host concurrency: "
-              << Kokkos::HostSpace::execution_space().concurrency() << '\n';
+        *gmsg << "* Kokkos host concurrency: " << Kokkos::HostSpace::execution_space().concurrency()
+              << '\n';
 
         // Check which host device is being used
         *gmsg << "* Host:   " << Kokkos::HostSpace::execution_space::name() << endl;
@@ -563,9 +563,10 @@ int main(int argc, char* argv[]) {
 
         IpplTimings::print();
 
-        if (!opal->hasCofRun || opal->hasTrackingRun) IpplTimings::print(
-                std::string("timing.dat"),
-                OpalData::getInstance()->getProblemCharacteristicValues());
+        if (!opal->hasCofRun || opal->hasTrackingRun)
+            IpplTimings::print(
+                    std::string("timing.dat"),
+                    OpalData::getInstance()->getProblemCharacteristicValues());
 
         ippl::Comm->barrier();
         Fieldmap::clearDictionary();
