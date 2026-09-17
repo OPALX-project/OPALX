@@ -1,15 +1,15 @@
 #include "gtest/gtest.h"
 
+#include "AbsBeamline/CyclotronSector.h"
 #include "AbstractObjects/OpalData.h"
+#include "Algorithms/ClosedOrbitSolver.h"
 #include "Algorithms/DefaultVisitor.h"
-#include "Algorithms/OrbitThreader.h"
+#include "Algorithms/LinearMapEigenAnalysis.h"
 #include "Algorithms/MapExitRoot.h"
+#include "Algorithms/OrbitThreader.h"
 #include "Algorithms/OrbitThreaderDiagnostics.h"
 #include "Algorithms/PartData.h"
-#include "Algorithms/ClosedOrbitSolver.h"
-#include "Algorithms/LinearMapEigenAnalysis.h"
 #include "Algorithms/SpectralTunes.h"
-#include "AbsBeamline/CyclotronSector.h"
 #include "BasicActions/Option.h"
 #include "BeamlineCore/DriftRep.h"
 #include "BeamlineCore/MultipoleRep.h"
@@ -24,9 +24,9 @@
 #include "Utilities/Options.h"
 #include "Utility/Inform.h"
 
-#include <filesystem>
 #include <bit>
 #include <cstdlib>
+#include <filesystem>
 #include <iomanip>
 #include <iostream>
 #include <limits>
@@ -42,14 +42,16 @@ namespace {
             ExternalFieldRayTracker& tracker, OpalBeamline& beamline,
             const ExternalFieldRayTracker::State& initial, double dt,
             std::vector<ExternalFieldRayTracker::Step>& accepted) {
-        using Ray = ExternalFieldRayTracker::State;
+        using Ray  = ExternalFieldRayTracker::State;
         double cap = std::numeric_limits<double>::max();
         for (const auto& element : beamline.getElements()) {
-            if (element->getType() == ElementType::MARKER || element->getType() == ElementType::MONITOR)
+            if (element->getType() == ElementType::MARKER
+                || element->getType() == ElementType::MONITOR)
                 continue;
             double begin = 0.0, end = 0.0;
             element->getFieldExtent(begin, end);
-            if (std::abs(end - begin) > 0.0) cap = std::min(cap, std::abs(end - begin) / (4 * Physics::c));
+            if (std::abs(end - begin) > 0.0)
+                cap = std::min(cap, std::abs(end - begin) / (4 * Physics::c));
             const double length = element->getGeometry().getArcLength();
             if (length > 0.0) cap = std::min(cap, length / (4 * Physics::c));
         }
@@ -59,30 +61,35 @@ namespace {
             const double floor = 64.0 * std::numeric_limits<double>::epsilon()
                                  * std::max(1.0, euclidean_norm(start.position)) / Physics::c;
             const bool resolved = std::abs(h) <= std::max(tolerance, floor);
-            const auto split = [&]() {
+            const auto split    = [&]() {
                 if (depth >= 64) throw std::runtime_error("Uncached oracle did not converge");
                 const Ray middle = advance(start, 0.5 * h, depth + 1);
                 return advance(middle, 0.5 * h, depth + 1);
             };
             if (!resolved && std::abs(h) > cap) return split();
             const auto initialSet = beamline.getElements(start.position);
-            bool crossed = false;
-            const auto trial = tracker.step(start, h, [&](const Ray& ray, auto& electric, auto& magnetic) {
-                const auto stageSet = beamline.getElements(ray.position);
-                crossed = crossed || stageSet != initialSet;
-                for (const auto& element : stageSet) {
-                    if (element->getType() == ElementType::MARKER || element->getType() == ElementType::MONITOR)
-                        continue;
-                    const auto localR = beamline.transformToLocalCS(element, ray.position);
-                    const auto localP = beamline.rotateToLocalCS(element, ray.momentum);
-                    Vector_t<double, 3> localE(0.0), localB(0.0);
-                    if (element->applyToReferenceParticle(localR, localP, ray.time, localE, localB)) return true;
-                    electric += beamline.rotateFromLocalCS(element, localE);
-                    magnetic += beamline.rotateFromLocalCS(element, localB);
-                }
-                return false;
-            });
-            if (!resolved && (crossed || initialSet != beamline.getElements(trial.end.position))) return split();
+            bool crossed          = false;
+            const auto trial =
+                    tracker.step(start, h, [&](const Ray& ray, auto& electric, auto& magnetic) {
+                        const auto stageSet = beamline.getElements(ray.position);
+                        crossed             = crossed || stageSet != initialSet;
+                        for (const auto& element : stageSet) {
+                            if (element->getType() == ElementType::MARKER
+                                || element->getType() == ElementType::MONITOR)
+                                continue;
+                            const auto localR = beamline.transformToLocalCS(element, ray.position);
+                            const auto localP = beamline.rotateToLocalCS(element, ray.momentum);
+                            Vector_t<double, 3> localE(0.0), localB(0.0);
+                            if (element->applyToReferenceParticle(
+                                        localR, localP, ray.time, localE, localB))
+                                return true;
+                            electric += beamline.rotateFromLocalCS(element, localE);
+                            magnetic += beamline.rotateFromLocalCS(element, localB);
+                        }
+                        return false;
+                    });
+            if (!resolved && (crossed || initialSet != beamline.getElements(trial.end.position)))
+                return split();
             if (trial.hitMaterial) throw std::runtime_error("Uncached oracle hit material");
             accepted.push_back(trial);
             return trial.end;
@@ -90,8 +97,8 @@ namespace {
         return advance(initial, dt, 0);
     }
 
-    void expectSameRayBits(const ExternalFieldRayTracker::State& a,
-                           const ExternalFieldRayTracker::State& b) {
+    void expectSameRayBits(
+            const ExternalFieldRayTracker::State& a, const ExternalFieldRayTracker::State& b) {
         const auto same = [](double x, double y) {
             EXPECT_EQ(std::bit_cast<std::uint64_t>(x), std::bit_cast<std::uint64_t>(y));
         };
@@ -113,8 +120,9 @@ namespace {
         ElementBase* clone() const override { return new CutoffSBend(*this); }
         void getFieldExtent(double& begin, double& end) const override {
             begin = -cutoff_m;
-            end = getGeometry().getElementLength() + cutoff_m;
+            end   = getGeometry().getElementLength() + cutoff_m;
         }
+
     private:
         double cutoff_m;
     };
@@ -154,8 +162,11 @@ namespace {
         FieldSupportOnlyComponent(
                 const std::string& name, const double fieldBegin, const double fieldEnd,
                 const double longitudinalElectricField = 0.0, const double magneticField = 0.0)
-            : ElementBase(name), fieldBegin_m(fieldBegin), fieldEnd_m(fieldEnd),
-              electricField_m(longitudinalElectricField), magneticField_m(magneticField) {}
+            : ElementBase(name),
+              fieldBegin_m(fieldBegin),
+              fieldEnd_m(fieldEnd),
+              electricField_m(longitudinalElectricField),
+              magneticField_m(magneticField) {}
 
         void accept(BeamlineVisitor&) const override {}
         ElementBase* clone() const override { return new FieldSupportOnlyComponent(*this); }
@@ -235,23 +246,24 @@ protected:
         Options::linearTransferMapIntegrator = "BORIS";
     }
 
-    LinearTransferMap freeDriftMap(const unsigned levels, const double deltaStep,
-                                  const double clockOrigin = 0.0, const std::string& method = "BORIS") {
+    LinearTransferMap freeDriftMap(
+            const unsigned levels, const double deltaStep, const double clockOrigin = 0.0,
+            const std::string& method = "BORIS") {
         OpalBeamline beamline;
         PartData reference(1.0, 9.382720813e8, 1.0e6);
         auto entrance = LinearTransferMapBuilder::initialFrame(
                 beamline, Vector_t<double, 3>(0.0, 0.0, 1.0));
         entrance.momentum = Vector_t<double, 3>(0.0, 0.0, 1.0);
-        entrance.time = clockOrigin;
+        entrance.time     = clockOrigin;
         auto exit         = entrance;
         exit.position(2) = exit.pathLength = 0.1;
-        const double flightTime = 0.1 * std::sqrt(2.0) / Physics::c;
-        exit.time = clockOrigin + flightTime;
-        exit.timeCorrection = (exit.time - clockOrigin) - flightTime;
+        const double flightTime            = 0.1 * std::sqrt(2.0) / Physics::c;
+        exit.time                          = clockOrigin + flightTime;
+        exit.timeCorrection                = (exit.time - clockOrigin) - flightTime;
         LinearTransferMapBuilder::Settings settings;
         settings.richardsonLevels         = levels;
         settings.finiteDifferenceSteps[5] = deltaStep;
-        settings.integrationMethod = ExternalFieldRayTracker::parseIntegrationMethod(method);
+        settings.integrationMethod        = ExternalFieldRayTracker::parseIntegrationMethod(method);
         LinearTransferMapBuilder builder(beamline, reference, 1.e-11, settings);
         return builder.build({{entrance}, {exit}}, 0.0).segments.front().map;
     }
@@ -339,12 +351,12 @@ TEST_F(OrbitThreaderTest, MapBuilderDoesNotAttachOrMutateSamples) {
     Options::linearTransferMapSteps.fill(0.1);
     OpalBeamline beamline;
     PartData reference(1.0, 9.382720813e8, 1.0e6);
-    auto entrance = LinearTransferMapBuilder::initialFrame(
-            beamline, Vector_t<double, 3>(0.0, 0.0, 1.0));
+    auto entrance =
+            LinearTransferMapBuilder::initialFrame(beamline, Vector_t<double, 3>(0.0, 0.0, 1.0));
     entrance.momentum = Vector_t<double, 3>(0.0, 0.0, 1.0);
-    auto exit = entrance;
+    auto exit         = entrance;
     exit.position(2) = exit.pathLength = 0.1;
-    exit.time = 0.1 * std::sqrt(2.0) / Physics::c;
+    exit.time                          = 0.1 * std::sqrt(2.0) / Physics::c;
     const std::vector<LinearTransferMapBuilder::ReferenceSample> samples{{entrance}, {exit}};
     LinearTransferMapBuilder builder(beamline, reference, 1.0e-11);
     const auto result = builder.build(samples, 0.0);
@@ -364,7 +376,7 @@ TEST_F(OrbitThreaderTest, MapBuilderDoesNotAttachOrMutateSamples) {
     EXPECT_EQ(mapWork.segments, 1);
     EXPECT_EQ(mapWork.rays, 12);
     EXPECT_GT(mapWork.nominalSteps, 0);
-    EXPECT_GT(mapWork.advances, mapWork.nominalSteps); // exit-plane localization
+    EXPECT_GT(mapWork.advances, mapWork.nominalSteps);  // exit-plane localization
     EXPECT_EQ(mapWork.exitIterations, mapWork.advances - mapWork.nominalSteps);
     EXPECT_EQ(mapWork.exitIterations, 40 * mapWork.rays);
     EXPECT_EQ(diagnostics.work[orbit_threader_diagnostics::segmentation].rays, 0);
@@ -386,14 +398,15 @@ TEST_F(OrbitThreaderTest, MapBuilderDoesNotAttachOrMutateSamples) {
 TEST_F(OrbitThreaderTest, HigherOrderMapsUseAcceleratedExitSearch) {
     OpalBeamline beamline;
     PartData reference(1.0, 9.382720813e8, 1.0e6);
-    auto entrance = LinearTransferMapBuilder::initialFrame(
-            beamline, Vector_t<double, 3>(0.0, 0.0, 1.0));
+    auto entrance =
+            LinearTransferMapBuilder::initialFrame(beamline, Vector_t<double, 3>(0.0, 0.0, 1.0));
     entrance.momentum = Vector_t<double, 3>(0.0, 0.0, 1.0);
-    auto exit = entrance;
+    auto exit         = entrance;
     exit.position(2) = exit.pathLength = 0.1;
-    exit.time = 0.1 * std::sqrt(2.0) / Physics::c;
-    for (auto method : {ExternalFieldRayTracker::IntegrationMethod::RK4,
-                        ExternalFieldRayTracker::IntegrationMethod::DOP853}) {
+    exit.time                          = 0.1 * std::sqrt(2.0) / Physics::c;
+    for (auto method :
+         {ExternalFieldRayTracker::IntegrationMethod::RK4,
+          ExternalFieldRayTracker::IntegrationMethod::DOP853}) {
         LinearTransferMapBuilder::Settings settings;
         settings.integrationMethod = method;
         LinearTransferMapBuilder builder(beamline, reference, 1e-11, settings);
@@ -437,17 +450,18 @@ TEST_F(OrbitThreaderTest, Cyclotron72ClosedOrbitBenchmark) {
     if (!filename) GTEST_SKIP() << "Set OPALX_COF_CYCLOTRON_MAP for the PSI machine benchmark.";
     // Select measured ic.dat row near 400 MeV, or continue its last row to 590.
     // Default preserves the original 72 MeV regression and invocation.
-    const std::string selected = std::getenv("OPALX_COF_CASE") ? std::getenv("OPALX_COF_CASE") : "72";
+    const std::string selected =
+            std::getenv("OPALX_COF_CASE") ? std::getenv("OPALX_COF_CASE") : "72";
     ASSERT_TRUE(selected == "72" || selected == "400" || selected == "590");
     const double energyMeV = selected == "72" ? 72 : (selected == "400" ? 399.995 : 590);
-    int ranks = 0;
+    int ranks              = 0;
     MPI_Comm_size(MPI_COMM_WORLD, &ranks);
     ASSERT_EQ(ranks, 1) << "Machine studies run on one rank.";
     auto bunch = makeBunch(0);
     DummyBeamline line;
     DefaultVisitor visitor(line, false, false);
     OpalBeamline beamline;
-    const auto field = CyclotronSectorFieldMap::read(filename);
+    const auto field          = CyclotronSectorFieldMap::read(filename);
     const double designRadius = field->rmin + 0.5 * (field->nr - 1) * field->dr;
     for (unsigned i = 0; i < 8; ++i) {
         const double a = i * std::acos(-1.0) / 4;
@@ -462,24 +476,24 @@ TEST_F(OrbitThreaderTest, Cyclotron72ClosedOrbitBenchmark) {
     beamline.prepareSections();
     PartData reference(1, Physics::m_p * 1e9, energyMeV * 1e6);
     const double gamma = 1 + energyMeV * 1e6 / reference.getM();
-    ExternalFieldRayTracker tracker(beamline, reference,
-                                   ExternalFieldRayTracker::IntegrationMethod::RK4);
+    ExternalFieldRayTracker tracker(
+            beamline, reference, ExternalFieldRayTracker::IntegrationMethod::RK4);
     // Fixed global Z=0 section, +Z return; x is radius and y is vertical.
     // ic.dat uses MeV, mm and 10^-3 p/(mc); no angular/slopes conversion.
     OneTurnMap::Coordinates initial{2.1314, -0.00024, 0, 0};
     if (selected == "400") initial = {4.0203, 0.196818, 0, 0};
     if (selected == "590") initial = {4.3002, 0.212191, 0, 0};
     ClosedOrbitSolver::Settings solver;
-    solver.scales = {1, 0.4, 1, 0.4};
+    solver.scales                = {1, 0.4, 1, 0.4};
     solver.finiteDifferenceSteps = {1e-5, 1e-6, 1e-5, 1e-6};
     if (selected == "590") {
         for (double energy = 529.993;; energy = std::min(590.0, energy + 5)) {
             const double g = 1 + energy * 1e6 / reference.getM();
             OneTurnMap::Settings settings;
             settings.momentum = std::sqrt(g * g - 1);
-            settings.dt = 6.0 / (50.65e6 * 2880);
+            settings.dt       = 6.0 / (50.65e6 * 2880);
             settings.maxSteps = 8000;
-            settings.maxPath = 40;
+            settings.maxPath  = 40;
             const OneTurnMap map(tracker, CoordinateSystemTrafo(), settings);
             const auto orbit = ClosedOrbitSolver::solve(map, initial, solver);
             std::cout << std::setprecision(16) << "Continuation energy_MeV=" << energy
@@ -492,17 +506,18 @@ TEST_F(OrbitThreaderTest, Cyclotron72ClosedOrbitBenchmark) {
     for (unsigned refinement = 0; refinement < 7; ++refinement) {
         OneTurnMap::Settings controls;
         controls.momentum = std::sqrt(gamma * gamma - 1);
-        controls.dt = 6.0 / (50.65e6 * 720 * (1u << refinement));
+        controls.dt       = 6.0 / (50.65e6 * 720 * (1u << refinement));
         controls.maxSteps = 2000 * (1u << refinement);
-        controls.maxPath = 40;
+        controls.maxPath  = 40;
         OneTurnMap map(tracker, CoordinateSystemTrafo(), controls);
         const auto orbit = ClosedOrbitSolver::solve(map, initial, solver);
-        std::cout << std::setprecision(16) << "COF energy_MeV=" << energyMeV << " refinement=" << refinement
-                  << " status=" << int(orbit.status) << " " << orbit.message
-                  << " evaluations=" << orbit.evaluations << '\n';
+        std::cout << std::setprecision(16) << "COF energy_MeV=" << energyMeV
+                  << " refinement=" << refinement << " status=" << int(orbit.status) << " "
+                  << orbit.message << " evaluations=" << orbit.evaluations << '\n';
         ASSERT_EQ(orbit.status, ClosedOrbitSolver::Status::Converged);
         if (selected == "72") {
-            EXPECT_NEAR(orbit.coordinates[0], 2.13150, 1e-5); // 10 um sanity, not closure tolerance.
+            EXPECT_NEAR(
+                    orbit.coordinates[0], 2.13150, 1e-5);  // 10 um sanity, not closure tolerance.
             EXPECT_NEAR(orbit.coordinates[1], -0.0002392, 1e-5);
         }
         for (unsigned i = 0; i < 4; ++i)
@@ -511,26 +526,28 @@ TEST_F(OrbitThreaderTest, Cyclotron72ClosedOrbitBenchmark) {
         for (unsigned i = 0; i < 4; ++i)
             std::cout << ' ' << orbit.coordinates[i] << '/' << orbit.residual[i];
         const auto returned = map(orbit.coordinates);
-        const double drift = (std::sqrt(1 + dot(returned.ray.momentum, returned.ray.momentum))
-                              - gamma) / (gamma - 1);
-        std::cout << "\nrelative energy drift=" << drift
-                  << " path_m=" << returned.ray.pathLength << "\nmap:\n";
+        const double drift =
+                (std::sqrt(1 + dot(returned.ray.momentum, returned.ray.momentum)) - gamma)
+                / (gamma - 1);
+        std::cout << "\nrelative energy drift=" << drift << " path_m=" << returned.ray.pathLength
+                  << "\nmap:\n";
         EXPECT_LT(std::abs(returned.sectionResidual), 1e-12);
         if (selected == "72") {
             EXPECT_NEAR(returned.ray.pathLength, 13.18972, 5e-5);
             EXPECT_LT(std::abs(drift), 1e-7);
         }
         for (const auto& row : orbit.matrix) {
-            for (double v : row) std::cout << v << ' ';
+            for (double v : row)
+                std::cout << v << ' ';
             std::cout << '\n';
         }
         LinearMapEigenAnalysis::Settings ev;
         ev.scales = solver.scales;
-        LinearMapEigenAnalysis::writeReport(std::cout,
-                                            LinearMapEigenAnalysis::analyze(orbit.matrix, ev));
+        LinearMapEigenAnalysis::writeReport(
+                std::cout, LinearMapEigenAnalysis::analyze(orbit.matrix, ev));
         if (refinement >= 4) {
             for (double h : {1e-3, 1e-4, 1e-5, 1e-6}) {
-                const auto matrix = map.jacobian(orbit.coordinates, {h, h * 0.1, h, h * 0.1});
+                const auto matrix   = map.jacobian(orbit.coordinates, {h, h * 0.1, h, h * 0.1});
                 const auto spectrum = LinearMapEigenAnalysis::analyze(matrix, ev);
                 std::cout << "FD h=" << h;
                 for (const auto& mode : spectrum.modes)
@@ -543,8 +560,8 @@ TEST_F(OrbitThreaderTest, Cyclotron72ClosedOrbitBenchmark) {
             auto displaced = initial;
             displaced[0] += 0.001;
             displaced[1] += 0.0001;
-            displaced[2] = 0.0005;
-            displaced[3] = 0.00001;
+            displaced[2]         = 0.0005;
+            displaced[3]         = 0.00001;
             const auto recovered = ClosedOrbitSolver::solve(map, displaced, solver);
             ASSERT_EQ(recovered.status, ClosedOrbitSolver::Status::Converged);
             for (unsigned i = 0; i < 4; ++i)
@@ -557,23 +574,26 @@ TEST_F(OrbitThreaderTest, Cyclotron72ClosedOrbitBenchmark) {
             // the directed-section turn definition used by the closed-orbit map.
             ExternalFieldRayTracker::State a, b;
             a.position = Vector_t<double, 3>(orbit.coordinates[0], 0, 0);
-            a.momentum = Vector_t<double, 3>(orbit.coordinates[1], 0,
-                    std::sqrt(controls.momentum * controls.momentum
-                              - orbit.coordinates[1] * orbit.coordinates[1]));
+            a.momentum = Vector_t<double, 3>(
+                    orbit.coordinates[1], 0,
+                    std::sqrt(
+                            controls.momentum * controls.momentum
+                            - orbit.coordinates[1] * orbit.coordinates[1]));
             b = a;
             b.position += Vector_t<double, 3>(1e-4, 1e-4, 0);
             std::vector<double> radial, vertical;
             for (unsigned step = 0; step < 2880 * 100; ++step) {
                 if (step % 200 == 0) {
-                    radial.push_back(std::hypot(b.position[0], b.position[2])
-                                     - std::hypot(a.position[0], a.position[2]));
+                    radial.push_back(
+                            std::hypot(b.position[0], b.position[2])
+                            - std::hypot(a.position[0], a.position[2]));
                     vertical.push_back(b.position[1]);
                 }
                 a = tracker.advance(a, 6.0 / (50.65e6 * 2880));
                 b = tracker.advance(b, 6.0 / (50.65e6 * 2880));
             }
-            const double nr = SpectralTunes::analyze(radial, 100).peak.tune;
-            const double ny = SpectralTunes::analyze(vertical, 100).peak.tune;
+            const double nr     = SpectralTunes::analyze(radial, 100).peak.tune;
+            const double ny     = SpectralTunes::analyze(vertical, 100).peak.tune;
             const auto spectrum = LinearMapEigenAnalysis::analyze(orbit.matrix, ev);
             ASSERT_EQ(spectrum.modes.size(), 2u);
             // Median-plane uncoupling allows an eigenvector-based plane assignment.
@@ -581,8 +601,8 @@ TEST_F(OrbitThreaderTest, Cyclotron72ClosedOrbitBenchmark) {
             double qr = 0, qy = 0;
             for (unsigned k = 0; k < 4; ++k) {
                 if (spectrum.eigenvalues[k].imag() <= 0) continue;
-                const auto& v = spectrum.eigenvectors[k];
-                const double radialWeight = std::norm(v[0]) + std::norm(v[1]);
+                const auto& v               = spectrum.eigenvectors[k];
+                const double radialWeight   = std::norm(v[0]) + std::norm(v[1]);
                 const double verticalWeight = std::norm(v[2]) + std::norm(v[3]);
                 EXPECT_LT(std::min(radialWeight, verticalWeight), 1e-10);
                 const double q = std::arg(spectrum.eigenvalues[k]) / (2 * std::acos(-1.0));
@@ -594,7 +614,7 @@ TEST_F(OrbitThreaderTest, Cyclotron72ClosedOrbitBenchmark) {
             // Convert physical per-return phases to that axis, accounting for both
             // actual orbit period and the omitted final sampling interval. This is
             // a normalization conversion, not a fitted tune or tolerance relaxation.
-            const double sampledTime = (radial.size() - 1) * 200 * 6.0 / (50.65e6 * 2880);
+            const double sampledTime   = (radial.size() - 1) * 200 * 6.0 / (50.65e6 * 2880);
             const double normalization = sampledTime / (100 * returned.ray.time);
             // Spectral tracking supplies integer/conjugate branch information absent
             // from the map. Compare the nearest equivalent phase, not a fitted value.
@@ -602,8 +622,10 @@ TEST_F(OrbitThreaderTest, Cyclotron72ClosedOrbitBenchmark) {
                 double result = q;
                 for (int integer = 0; integer <= 4; ++integer)
                     for (double candidate : {integer + q, integer - q})
-                        if (candidate >= 0 && std::abs(candidate * normalization - measured)
-                                < std::abs(result * normalization - measured)) result = candidate;
+                        if (candidate >= 0
+                            && std::abs(candidate * normalization - measured)
+                                       < std::abs(result * normalization - measured))
+                            result = candidate;
                 return result;
             };
             qr = branch(qr, nr);
@@ -611,8 +633,8 @@ TEST_F(OrbitThreaderTest, Cyclotron72ClosedOrbitBenchmark) {
             std::cout << "Return period_s=" << returned.ray.time
                       << " legacy normalization=" << normalization
                       << " selected return branches=" << qr << ',' << qy
-                      << " expected legacy phases=" << qr * normalization
-                      << ',' << qy * normalization << '\n';
+                      << " expected legacy phases=" << qr * normalization << ','
+                      << qy * normalization << '\n';
             // One legacy frequency bin; branch/plane identification is external to EV API.
             EXPECT_NEAR(nr, qr * normalization, 0.0025);
             EXPECT_NEAR(ny, qy * normalization, 0.0025);
@@ -717,7 +739,7 @@ TEST_F(OrbitThreaderTest, RayTrackerZeroStepDoesNotEvaluateFields) {
         ADD_FAILURE() << "A zero step must not evaluate a field";
         return false;
     });
-    const Vector_t<double, 3> displacement = step.end.position - initial.position;
+    const Vector_t<double, 3> displacement   = step.end.position - initial.position;
     const Vector_t<double, 3> momentumChange = step.end.momentum - initial.momentum;
     EXPECT_EQ(euclidean_norm(displacement), 0.0);
     EXPECT_EQ(euclidean_norm(momentumChange), 0.0);
@@ -730,13 +752,14 @@ TEST_F(OrbitThreaderTest, RayTrackerInitializesAllFieldComponents) {
     ExternalFieldRayTracker tracker(beamline, reference);
     ExternalFieldRayTracker::State initial;
     initial.momentum(2) = 1.0;
-    const auto step = tracker.step(initial, 1.0e-11, [](const auto&, auto& electric, auto& magnetic) {
-        for (unsigned component = 0; component < 3; ++component) {
-            EXPECT_EQ(electric(component), 0.0);
-            EXPECT_EQ(magnetic(component), 0.0);
-        }
-        return false;
-    });
+    const auto step =
+            tracker.step(initial, 1.0e-11, [](const auto&, auto& electric, auto& magnetic) {
+                for (unsigned component = 0; component < 3; ++component) {
+                    EXPECT_EQ(electric(component), 0.0);
+                    EXPECT_EQ(magnetic(component), 0.0);
+                }
+                return false;
+            });
     EXPECT_EQ(step.end.position(0), 0.0);
     EXPECT_EQ(step.end.position(1), 0.0);
     EXPECT_EQ(step.end.momentum(0), 0.0);
@@ -750,17 +773,24 @@ TEST_F(OrbitThreaderTest, RayTrackerRetainsSmallPositionTimeAndPathIncrements) {
     ExternalFieldRayTracker tracker(beamline, reference);
     ExternalFieldRayTracker::State state;
     state.momentum(2) = 1.0;
-    state.position = Vector_t<double, 3>(1.0, 2.0, 3.0);
+    state.position    = Vector_t<double, 3>(1.0, 2.0, 3.0);
     state.time = state.pathLength = 1.0;
-    const auto initial = state;
-    constexpr unsigned steps = 10000;
+    const auto initial            = state;
+    constexpr unsigned steps      = 10000;
     constexpr double dt = 1.e-25;  // Each half-drift/time update is below a high-part ulp.
     for (unsigned i = 0; i < steps; ++i)
-        state = tracker.step(state, dt, [](const auto&, auto&, auto&) { return false; }).end;
+        state = tracker.step(state, dt,
+                             [](const auto&, auto&, auto&) {
+                                 return false;
+                             })
+                        .end;
     const double distance = steps * dt * Physics::c / std::sqrt(2.0);
     // Difference includes the retained low part; 1e-25 m is ~1e-12 relative here.
-    EXPECT_NEAR((state.position(2) - initial.position(2)) - state.positionCorrection(2), distance, 1.e-25);
-    EXPECT_NEAR((state.pathLength - initial.pathLength) - state.pathLengthCorrection, distance, 1.e-25);
+    EXPECT_NEAR(
+            (state.position(2) - initial.position(2)) - state.positionCorrection(2), distance,
+            1.e-25);
+    EXPECT_NEAR(
+            (state.pathLength - initial.pathLength) - state.pathLengthCorrection, distance, 1.e-25);
     EXPECT_NEAR((state.time - initial.time) - state.timeCorrection, steps * dt, 1.e-32);
     EXPECT_EQ(state.position(0), initial.position(0));
     EXPECT_EQ(state.position(1), initial.position(1));
@@ -773,11 +803,11 @@ TEST_F(OrbitThreaderTest, RayTrackerMagneticPathUsesSpeedNotChordAndReverses) {
     ExternalFieldRayTracker::State initial;
     initial.momentum(2) = 1.0;
     constexpr double dt = 1.e-9;
-    const auto field = [](const auto&, auto&, auto& magnetic) {
+    const auto field    = [](const auto&, auto&, auto& magnetic) {
         magnetic(1) = 10.0;
         return false;
     };
-    const auto step = tracker.step(initial, dt, field);
+    const auto step     = tracker.step(initial, dt, field);
     const double length = Physics::c * dt / std::sqrt(2.0);
     EXPECT_NEAR(step.midpoint.pathLength, 0.5 * length, 1.e-15);
     EXPECT_NEAR(step.end.pathLength, length, 1.e-15);
@@ -805,9 +835,9 @@ TEST_F(OrbitThreaderTest, PathStopIsTrackedUnderAccelerationAndReverseTime) {
     ExternalFieldRayTracker::State initial;
     initial.momentum(2) = 0.1;
     constexpr double dt = 1.e-9;
-    const auto end = tracker.advance(initial, dt);
+    const auto end      = tracker.advance(initial, dt);
     const double target = 0.37 * end.pathLength;
-    const auto clipped = tracker.advanceToPathLength(initial, dt, target);
+    const auto clipped  = tracker.advanceToPathLength(initial, dt, target);
     EXPECT_NEAR(clipped.pathLength, target, 2.e-12);  // c times the existing time-root tolerance.
     EXPECT_NEAR(clipped.position(2), target, 2.e-12);
     EXPECT_GT(std::abs(clipped.time - 0.37 * dt), 1.e-11);  // A time fraction is not a path root.
@@ -830,19 +860,22 @@ TEST_F(OrbitThreaderTest, AcceleratedPathQuadratureConvergesAtSecondOrder) {
     PartData reference(1.0, 9.382720813e8, 1.0e6);
     ExternalFieldRayTracker tracker(beamline, reference);
     constexpr double electric = 1.e10, duration = 1.e-9, initialMomentum = 0.1;
-    const double rate = reference.getQ() * electric * Physics::c / reference.getM();
+    const double rate          = reference.getQ() * electric * Physics::c / reference.getM();
     const double finalMomentum = initialMomentum + rate * duration;
-    const double exactLength = Physics::c / rate *
-            (std::sqrt(1.0 + finalMomentum * finalMomentum) - std::sqrt(1.0 + initialMomentum * initialMomentum));
+    const double exactLength   = Physics::c / rate
+                               * (std::sqrt(1.0 + finalMomentum * finalMomentum)
+                                  - std::sqrt(1.0 + initialMomentum * initialMomentum));
     std::vector<double> errors;
     for (unsigned steps : {100u, 200u}) {
         ExternalFieldRayTracker::State ray;
         ray.momentum(2) = initialMomentum;
         for (unsigned i = 0; i < steps; ++i)
-            ray = tracker.step(ray, duration / steps, [](const auto&, auto& field, auto&) {
-                field(2) = electric;
-                return false;
-            }).end;
+            ray = tracker.step(ray, duration / steps,
+                               [](const auto&, auto& field, auto&) {
+                                   field(2) = electric;
+                                   return false;
+                               })
+                          .end;
         EXPECT_NEAR(ray.momentum(2), finalMomentum, 1.e-12);
         errors.push_back(std::abs(ray.pathLength - exactLength));
     }
@@ -852,16 +885,16 @@ TEST_F(OrbitThreaderTest, AcceleratedPathQuadratureConvergesAtSecondOrder) {
 TEST_F(OrbitThreaderTest, MapBuilderClipsPrerollWithCompensatedReferenceClock) {
     OpalBeamline beamline;
     PartData reference(1.0, 9.382720813e8, 1.0e6);
-    auto before = LinearTransferMapBuilder::initialFrame(
-            beamline, Vector_t<double, 3>(0.0, 0.0, 1.0));
+    auto before =
+            LinearTransferMapBuilder::initialFrame(beamline, Vector_t<double, 3>(0.0, 0.0, 1.0));
     before.momentum(2) = 1.0;
     before.position(2) = before.pathLength = -0.05;
-    before.time = 1000.0;
-    auto after = before;
+    before.time                            = 1000.0;
+    auto after                             = before;
     after.position(2) = after.pathLength = 0.05;
-    const double flightTime = 0.1 * std::sqrt(2.0) / Physics::c;
-    after.time = before.time + flightTime;
-    after.timeCorrection = (after.time - before.time) - flightTime;
+    const double flightTime              = 0.1 * std::sqrt(2.0) / Physics::c;
+    after.time                           = before.time + flightTime;
+    after.timeCorrection                 = (after.time - before.time) - flightTime;
     LinearTransferMapBuilder builder(beamline, reference, 1.e-11);
     const auto result = builder.build({{before}, {after}}, 0.0);
     ASSERT_EQ(result.segments.size(), 1);
@@ -876,10 +909,10 @@ TEST_F(OrbitThreaderTest, MapBuilderClipsPrerollWithCompensatedReferenceClock) {
 
 TEST_F(OrbitThreaderTest, BishopFrameRemainsOrthonormalThroughBendAndReversal) {
     OpalBeamline beamline;
-    auto frame = LinearTransferMapBuilder::initialFrame(
-            beamline, Vector_t<double, 3>(0.0, 0.0, 1.0));
-    for (const auto& momentum : {Vector_t<double, 3>(1.0, 2.0, 3.0),
-                                 Vector_t<double, 3>(-1.0, -2.0, -3.0)}) {
+    auto frame =
+            LinearTransferMapBuilder::initialFrame(beamline, Vector_t<double, 3>(0.0, 0.0, 1.0));
+    for (const auto& momentum :
+         {Vector_t<double, 3>(1.0, 2.0, 3.0), Vector_t<double, 3>(-1.0, -2.0, -3.0)}) {
         frame = LinearTransferMapBuilder::transportFrame(frame, momentum);
         EXPECT_NEAR(euclidean_norm(frame.xAxis), 1.0, 1.0e-14);
         EXPECT_NEAR(euclidean_norm(frame.yAxis), 1.0, 1.0e-14);
@@ -904,58 +937,61 @@ TEST_F(OrbitThreaderTest, RayTrackerResolvesThinSupportForEachMomentumAndReverse
     beamline.prepareSections();
     PartData reference(1.0, 9.382720813e8, 1.0e6);
     for (const std::string method : {"BORIS", "RK4", "DOP853"}) {
-    SCOPED_TRACE(method);
-    ExternalFieldRayTracker tracker(beamline, reference, ExternalFieldRayTracker::parseIntegrationMethod(method));
-    for (double momentum : {0.9, 1.0, 1.1}) {
-        ExternalFieldRayTracker::State initial;
-        initial.momentum(2) = momentum;
-        std::vector<ExternalFieldRayTracker::Step> steps;
-        const auto final = tracker.advance(initial, 2.0e-11, &steps);
-        orbit_threader_diagnostics::Report diagnostics;
-        {
-            using namespace orbit_threader_diagnostics;
-            Session session(diagnostics);
-            TimedPhase phase(orbit_threader_diagnostics::reference);
-            std::vector<ExternalFieldRayTracker::Step> measuredSteps;
-            const auto measured = tracker.advance(initial, 2.0e-11, &measuredSteps);
-            EXPECT_EQ(measuredSteps.size(), steps.size());
-            EXPECT_EQ(diagnostics.work[orbit_threader_diagnostics::reference].acceptedSteps,
-                      measuredSteps.size());
-            for (unsigned i = 0; i < 3; ++i) {
-                EXPECT_EQ(measured.position(i), final.position(i));
-                EXPECT_EQ(measured.momentum(i), final.momentum(i));
-                EXPECT_EQ(measured.positionCorrection(i), final.positionCorrection(i));
+        SCOPED_TRACE(method);
+        ExternalFieldRayTracker tracker(
+                beamline, reference, ExternalFieldRayTracker::parseIntegrationMethod(method));
+        for (double momentum : {0.9, 1.0, 1.1}) {
+            ExternalFieldRayTracker::State initial;
+            initial.momentum(2) = momentum;
+            std::vector<ExternalFieldRayTracker::Step> steps;
+            const auto final = tracker.advance(initial, 2.0e-11, &steps);
+            orbit_threader_diagnostics::Report diagnostics;
+            {
+                using namespace orbit_threader_diagnostics;
+                Session session(diagnostics);
+                TimedPhase phase(orbit_threader_diagnostics::reference);
+                std::vector<ExternalFieldRayTracker::Step> measuredSteps;
+                const auto measured = tracker.advance(initial, 2.0e-11, &measuredSteps);
+                EXPECT_EQ(measuredSteps.size(), steps.size());
+                EXPECT_EQ(
+                        diagnostics.work[orbit_threader_diagnostics::reference].acceptedSteps,
+                        measuredSteps.size());
+                for (unsigned i = 0; i < 3; ++i) {
+                    EXPECT_EQ(measured.position(i), final.position(i));
+                    EXPECT_EQ(measured.momentum(i), final.momentum(i));
+                    EXPECT_EQ(measured.positionCorrection(i), final.positionCorrection(i));
+                }
+                EXPECT_EQ(measured.time, final.time);
+                EXPECT_EQ(measured.pathLength, final.pathLength);
+                EXPECT_EQ(measured.timeCorrection, final.timeCorrection);
+                EXPECT_EQ(measured.pathLengthCorrection, final.pathLengthCorrection);
             }
-            EXPECT_EQ(measured.time, final.time);
-            EXPECT_EQ(measured.pathLength, final.pathLength);
-            EXPECT_EQ(measured.timeCorrection, final.timeCorrection);
-            EXPECT_EQ(measured.pathLengthCorrection, final.pathLengthCorrection);
+            const auto& work = diagnostics.work[orbit_threader_diagnostics::reference];
+            EXPECT_EQ(work.advances, 1);
+            EXPECT_GT(work.capSplits, 0);
+            EXPECT_GT(work.supportSplits, 0);
+            EXPECT_GT(work.maxDepth, 0);
+            EXPECT_GT(work.elementFields, 0);
+            EXPECT_EQ(work.elementTests, work.supportLookups);  // one lattice element
+            EXPECT_EQ(work.trials, work.acceptedSteps + work.supportSplits);
+            const unsigned evaluationsPerTrial = method == "BORIS" ? 1 : method == "RK4" ? 9 : 25;
+            EXPECT_EQ(work.fieldSamples, evaluationsPerTrial * work.trials);
+            ASSERT_GT(final.position(2), 0.0034);
+            ASSERT_GT(steps.size(), 1);
+            // Exact work-energy identity: gamma_out - gamma_in = q E L / (m c^2).
+            // 1e-10 in gamma is much smaller than the 4.26e-5 signal; it allows the
+            // second-order orbit error and floating-point boundary localization.
+            const double expectedGamma =
+                    std::sqrt(1.0 + momentum * momentum) + 1.0e8 * 0.0004 / reference.getM();
+            EXPECT_NEAR(
+                    std::sqrt(1.0 + dot(final.momentum, final.momentum)), expectedGamma, 1.0e-10);
+            EXPECT_NEAR(final.time, 2.0e-11, 1.0e-24);
+            const auto recovered                     = tracker.advance(final, -2.0e-11);
+            const Vector_t<double, 3> displacement   = recovered.position - initial.position;
+            const Vector_t<double, 3> momentumChange = recovered.momentum - initial.momentum;
+            EXPECT_LT(euclidean_norm(displacement), 1.0e-10);
+            EXPECT_LT(euclidean_norm(momentumChange), 1.0e-9);
         }
-        const auto& work = diagnostics.work[orbit_threader_diagnostics::reference];
-        EXPECT_EQ(work.advances, 1);
-        EXPECT_GT(work.capSplits, 0);
-        EXPECT_GT(work.supportSplits, 0);
-        EXPECT_GT(work.maxDepth, 0);
-        EXPECT_GT(work.elementFields, 0);
-        EXPECT_EQ(work.elementTests, work.supportLookups); // one lattice element
-        EXPECT_EQ(work.trials, work.acceptedSteps + work.supportSplits);
-        const unsigned evaluationsPerTrial = method == "BORIS" ? 1 : method == "RK4" ? 9 : 25;
-        EXPECT_EQ(work.fieldSamples, evaluationsPerTrial * work.trials);
-        ASSERT_GT(final.position(2), 0.0034);
-        ASSERT_GT(steps.size(), 1);
-        // Exact work-energy identity: gamma_out - gamma_in = q E L / (m c^2).
-        // 1e-10 in gamma is much smaller than the 4.26e-5 signal; it allows the
-        // second-order orbit error and floating-point boundary localization.
-        const double expectedGamma = std::sqrt(1.0 + momentum * momentum)
-                                     + 1.0e8 * 0.0004 / reference.getM();
-        EXPECT_NEAR(std::sqrt(1.0 + dot(final.momentum, final.momentum)), expectedGamma, 1.0e-10);
-        EXPECT_NEAR(final.time, 2.0e-11, 1.0e-24);
-        const auto recovered = tracker.advance(final, -2.0e-11);
-        const Vector_t<double, 3> displacement = recovered.position - initial.position;
-        const Vector_t<double, 3> momentumChange = recovered.momentum - initial.momentum;
-        EXPECT_LT(euclidean_norm(displacement), 1.0e-10);
-        EXPECT_LT(euclidean_norm(momentumChange), 1.0e-9);
-    }
     }
 }
 
@@ -968,7 +1004,8 @@ TEST_F(OrbitThreaderTest, MembershipReusePreservesUncachedSubstepsExactly) {
     FieldSupportOnlyComponent electric("E", 0.003, 0.0034, 1.0e8);
     FieldSupportOnlyComponent magnetic("B", 0.0032, 0.004, 0.0, 0.02);
     for (auto* field : {&electric, &magnetic}) {
-        field->setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector_t<double, 3>(0.0), Quaternion()));
+        field->setCSTrafoGlobal2Local(
+                CoordinateSystemTrafo(Vector_t<double, 3>(0.0), Quaternion()));
         field->fixPosition();
         beamline.visit(*field, visitor, *bunch);
     }
@@ -976,7 +1013,8 @@ TEST_F(OrbitThreaderTest, MembershipReusePreservesUncachedSubstepsExactly) {
     PartData particle(1.0, 9.382720813e8, 1.0e6);
     for (const std::string method : {"BORIS", "RK4", "DOP853"}) {
         SCOPED_TRACE(method);
-        ExternalFieldRayTracker tracker(beamline, particle, ExternalFieldRayTracker::parseIntegrationMethod(method));
+        ExternalFieldRayTracker tracker(
+                beamline, particle, ExternalFieldRayTracker::parseIntegrationMethod(method));
         for (const auto [z, dt] : {std::pair{0.0, 4.e-11}, {0.006, -4.e-11}, {0.003, 4.e-12}}) {
             SCOPED_TRACE(z);
             for (const double momentum : {0.9, 1.1}) {
@@ -985,13 +1023,14 @@ TEST_F(OrbitThreaderTest, MembershipReusePreservesUncachedSubstepsExactly) {
                 initial.momentum(2) = momentum;
                 // Nonzero compensated low parts are passed through all recursive states.
                 initial.positionCorrection(2) = 1.e-20;
-                initial.timeCorrection = 1.e-26;
+                initial.timeCorrection        = 1.e-26;
                 std::vector<ExternalFieldRayTracker::Step> oldSteps, newSteps;
                 Report uncached, cached;
                 {
                     Session session(uncached);
                     TimedPhase phase(reference);
-                    expected = advanceWithoutMembershipReuse(tracker, beamline, initial, dt, oldSteps);
+                    expected =
+                            advanceWithoutMembershipReuse(tracker, beamline, initial, dt, oldSteps);
                 }
                 {
                     Session session(cached);
@@ -1015,7 +1054,8 @@ TEST_F(OrbitThreaderTest, MembershipReusePreservesUncachedSubstepsExactly) {
                 EXPECT_EQ(oldWork.trials, newWork.trials);
                 EXPECT_EQ(oldWork.fieldSamples, newWork.fieldSamples);
                 EXPECT_GT(newWork.membershipReuses, 0);
-                EXPECT_EQ(oldWork.supportLookups - newWork.supportLookups, newWork.membershipReuses);
+                EXPECT_EQ(
+                        oldWork.supportLookups - newWork.supportLookups, newWork.membershipReuses);
             }
         }
     }
@@ -1029,21 +1069,24 @@ TEST_F(OrbitThreaderTest, RayTrackerSumsOverlappingSupportsAcrossBoundaries) {
     FieldSupportOnlyComponent first("E1", 0.001, 0.003, 1.0e8);
     FieldSupportOnlyComponent second("E2", 0.002, 0.0035, -2.0e7);
     for (auto* field : {&first, &second}) {
-        field->setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector_t<double, 3>(0.0), Quaternion()));
+        field->setCSTrafoGlobal2Local(
+                CoordinateSystemTrafo(Vector_t<double, 3>(0.0), Quaternion()));
         field->fixPosition();
         beamline.visit(*field, visitor, *bunch);
     }
     beamline.prepareSections();
     PartData reference(1.0, 9.382720813e8, 1.0e6);
     for (const std::string method : {"BORIS", "RK4", "DOP853"}) {
-    SCOPED_TRACE(method);
-    ExternalFieldRayTracker tracker(beamline, reference, ExternalFieldRayTracker::parseIntegrationMethod(method));
-    ExternalFieldRayTracker::State initial;
-    initial.momentum(2) = 1.0;
-    const auto final = tracker.advance(initial, 2.0e-11);
-    ASSERT_GT(final.position(2), 0.0035);
-    const double work = 1.0e8 * 0.002 - 2.0e7 * 0.0015;
-    EXPECT_NEAR(std::sqrt(1.0 + dot(final.momentum, final.momentum)),
+        SCOPED_TRACE(method);
+        ExternalFieldRayTracker tracker(
+                beamline, reference, ExternalFieldRayTracker::parseIntegrationMethod(method));
+        ExternalFieldRayTracker::State initial;
+        initial.momentum(2) = 1.0;
+        const auto final    = tracker.advance(initial, 2.0e-11);
+        ASSERT_GT(final.position(2), 0.0035);
+        const double work = 1.0e8 * 0.002 - 2.0e7 * 0.0015;
+        EXPECT_NEAR(
+                std::sqrt(1.0 + dot(final.momentum, final.momentum)),
                 std::sqrt(2.0) + work / reference.getM(), 1.0e-10);
     }
 }
@@ -1053,35 +1096,44 @@ TEST_F(OrbitThreaderTest, RungeKuttaMagneticHelixHasExpectedGlobalOrder) {
     PartData reference(1.0, 9.382720813e8, 1.0e6);
     constexpr double magnetic = 10.0, transverse = 0.2, longitudinal = 0.1;
     const double gamma = std::sqrt(1.0 + transverse * transverse + longitudinal * longitudinal);
-    const double omega = reference.getQ() * Physics::c * Physics::c * magnetic / (reference.getM() * gamma);
+    const double omega =
+            reference.getQ() * Physics::c * Physics::c * magnetic / (reference.getM() * gamma);
     const double duration = 4.0 / omega;
     for (const std::string method : {"RK4", "DOP853"}) {
         SCOPED_TRACE(method);
-        ExternalFieldRayTracker tracker(beamline, reference, ExternalFieldRayTracker::parseIntegrationMethod(method));
+        ExternalFieldRayTracker tracker(
+                beamline, reference, ExternalFieldRayTracker::parseIntegrationMethod(method));
         std::vector<double> errors;
         for (unsigned n : {4u, 8u, 16u}) {
             ExternalFieldRayTracker::State ray;
             ray.momentum = Vector_t<double, 3>(transverse, 0.0, longitudinal);
             for (unsigned i = 0; i < n; ++i)
-                ray = tracker.step(ray, duration / n, [](const auto&, auto&, auto& b) {
-                    b(2) = magnetic;
-                    return false;
-                }).end;
-            const Vector_t<double, 3> exactP(transverse * std::cos(4.0), -transverse * std::sin(4.0), longitudinal);
+                ray = tracker.step(ray, duration / n,
+                                   [](const auto&, auto&, auto& b) {
+                                       b(2) = magnetic;
+                                       return false;
+                                   })
+                              .end;
+            const Vector_t<double, 3> exactP(
+                    transverse * std::cos(4.0), -transverse * std::sin(4.0), longitudinal);
             const Vector_t<double, 3> exactR(
                     Physics::c * transverse / (gamma * omega) * std::sin(4.0),
                     Physics::c * transverse / (gamma * omega) * (std::cos(4.0) - 1.0),
                     Physics::c * longitudinal / gamma * duration);
             const Vector_t<double, 3> dp = ray.momentum - exactP;
             const Vector_t<double, 3> dr = ray.position - exactR;
-            const double exactPath = Physics::c * std::hypot(transverse, longitudinal) / gamma * duration;
-            errors.push_back(std::max({euclidean_norm(dp), euclidean_norm(dr), std::abs(ray.pathLength - exactPath)}));
-            std::cout << std::scientific << std::setprecision(12)
-                      << "HELIX " << method << " steps=" << n << " dt_s=" << duration / n
+            const double exactPath =
+                    Physics::c * std::hypot(transverse, longitudinal) / gamma * duration;
+            errors.push_back(
+                    std::max(
+                            {euclidean_norm(dp), euclidean_norm(dr),
+                             std::abs(ray.pathLength - exactPath)}));
+            std::cout << std::scientific << std::setprecision(12) << "HELIX " << method
+                      << " steps=" << n << " dt_s=" << duration / n
                       << " position_error_m=" << euclidean_norm(dr)
                       << " momentum_error=" << euclidean_norm(dp)
-                      << " path_error_m=" << std::abs(ray.pathLength - exactPath)
-                      << " gamma_error=" << std::abs(std::sqrt(1.0 + dot(ray.momentum, ray.momentum)) - gamma)
+                      << " path_error_m=" << std::abs(ray.pathLength - exactPath) << " gamma_error="
+                      << std::abs(std::sqrt(1.0 + dot(ray.momentum, ray.momentum)) - gamma)
                       << std::defaultfloat << '\n';
         }
         const double order = std::log2(errors[1] / errors[2]);
@@ -1097,17 +1149,22 @@ TEST_F(OrbitThreaderTest, RungeKuttaTimeDependentElectricForceUsesStageClocksAnd
         PartData reference(charge, 9.382720813e8, 1.0e6);
         for (const std::string method : {"RK4", "DOP853"}) {
             SCOPED_TRACE(method);
-            ExternalFieldRayTracker tracker(beamline, reference, ExternalFieldRayTracker::parseIntegrationMethod(method));
+            ExternalFieldRayTracker tracker(
+                    beamline, reference, ExternalFieldRayTracker::parseIntegrationMethod(method));
             ExternalFieldRayTracker::State ray;
-            ray.momentum(2) = 1.0;
+            ray.momentum(2)   = 1.0;
             const auto fields = [](const auto& state, auto& e, auto&) {
                 e(2) = amplitude * std::cos(state.time / duration);
                 return false;
             };
-            for (unsigned i = 0; i < 20; ++i) ray = tracker.step(ray, duration / 20, fields).end;
-            const double exact = 1.0 + charge * Physics::c * amplitude / reference.getM() * duration * std::sin(1.0);
+            for (unsigned i = 0; i < 20; ++i)
+                ray = tracker.step(ray, duration / 20, fields).end;
+            const double exact =
+                    1.0
+                    + charge * Physics::c * amplitude / reference.getM() * duration * std::sin(1.0);
             EXPECT_NEAR(ray.momentum(2), exact, method == "RK4" ? 1.e-9 : 3.e-15);
-            for (unsigned i = 0; i < 20; ++i) ray = tracker.step(ray, -duration / 20, fields).end;
+            for (unsigned i = 0; i < 20; ++i)
+                ray = tracker.step(ray, -duration / 20, fields).end;
             EXPECT_NEAR(ray.momentum(2), 1.0, 3.e-14);
             EXPECT_NEAR(ray.position(2), 0.0, 1.e-10);
             EXPECT_NEAR(ray.pathLength, 0.0, 1.e-10);
@@ -1120,13 +1177,17 @@ TEST_F(OrbitThreaderTest, RungeKuttaZeroStepsMaterialHitsAndFieldInitialization)
     PartData reference(1.0, 9.382720813e8, 1.0e6);
     for (const std::string method : {"RK4", "DOP853"}) {
         SCOPED_TRACE(method);
-        ExternalFieldRayTracker tracker(beamline, reference, ExternalFieldRayTracker::parseIntegrationMethod(method));
+        ExternalFieldRayTracker tracker(
+                beamline, reference, ExternalFieldRayTracker::parseIntegrationMethod(method));
         ExternalFieldRayTracker::State ray;
-        ray.momentum(2) = 1.0;
-        unsigned calls = 0;
+        ray.momentum(2)  = 1.0;
+        unsigned calls   = 0;
         const auto field = [&](const auto&, auto& e, auto& b) {
             ++calls;
-            for (unsigned d = 0; d < 3; ++d) { EXPECT_EQ(e(d), 0.0); EXPECT_EQ(b(d), 0.0); }
+            for (unsigned d = 0; d < 3; ++d) {
+                EXPECT_EQ(e(d), 0.0);
+                EXPECT_EQ(b(d), 0.0);
+            }
             e(2) = 1.0;
             return false;
         };
@@ -1134,8 +1195,13 @@ TEST_F(OrbitThreaderTest, RungeKuttaZeroStepsMaterialHitsAndFieldInitialization)
         EXPECT_EQ(calls, 0u);
         tracker.step(ray, 1.e-11, field);
         EXPECT_EQ(calls, method == "RK4" ? 9u : 25u);
-        EXPECT_TRUE(tracker.step(ray, 1.e-11, [](const auto&, auto&, auto&) { return true; }).hitMaterial);
-        EXPECT_THROW(tracker.step(ray, std::numeric_limits<double>::quiet_NaN(), field), OpalException);
+        EXPECT_TRUE(tracker.step(ray, 1.e-11,
+                                 [](const auto&, auto&, auto&) {
+                                     return true;
+                                 })
+                            .hitMaterial);
+        EXPECT_THROW(
+                tracker.step(ray, std::numeric_limits<double>::quiet_NaN(), field), OpalException);
     }
 }
 
@@ -1144,11 +1210,12 @@ TEST_F(OrbitThreaderTest, RungeKuttaMapsPreserveDriftAndCompensatedClock) {
         SCOPED_TRACE(method);
         Option exemplar;
         std::unique_ptr<Option> option(exemplar.clone("RK_MAP_OPTION"));
-        Attributes::setPredefinedString(*option->findAttribute("LINEARTRANSFERMAPINTEGRATOR"), method);
+        Attributes::setPredefinedString(
+                *option->findAttribute("LINEARTRANSFERMAPINTEGRATOR"), method);
         option->execute();
         EXPECT_EQ(Options::linearTransferMapIntegrator, method);
         const auto origin = freeDriftMap(1, .03, 0.0, method);
-        const auto late = freeDriftMap(1, .03, 1000.0, method);
+        const auto late   = freeDriftMap(1, .03, 1000.0, method);
         EXPECT_EQ(origin.integrationMethod, method);
         EXPECT_NEAR(origin.matrix(0, 1), .1, 1.e-10);
         for (unsigned i = 0; i < 6; ++i)
@@ -1173,28 +1240,31 @@ TEST_F(OrbitThreaderTest, MapIntegratorOptionDoesNotAffectDisabledMapsOrSecondar
     for (bool design : {false, true}) {
         // Secondary threading remains Boris even when map computation is enabled.
         Options::enableLinearTransferMaps = !design;
-        unsigned borisCalls = 0;
+        unsigned borisCalls               = 0;
         for (const std::string method : {"BORIS", "RK4", "DOP853"}) {
             SCOPED_TRACE(method);
             Options::linearTransferMapIntegrator = method;
-            runtime->fieldCalls = 0;
+            runtime->fieldCalls                  = 0;
             StepSizeConfig steps;
             steps.push_back(1.e-11, .1, 20);
             steps.resetIterator();
-            OrbitThreader threader(reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0),
-                    0.0, 0.0, 0.0, 1.e-11, steps, beamline, design);
+            OrbitThreader threader(
+                    reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0,
+                    0.0, 0.0, 1.e-11, steps, beamline, design);
             threader.execute();
             EXPECT_FALSE(threader.getCombinedLinearTransferMap());
             EXPECT_GT(runtime->fieldCalls, 0u);
-            if (method == "BORIS") borisCalls = runtime->fieldCalls;
-            else EXPECT_EQ(runtime->fieldCalls, borisCalls);
+            if (method == "BORIS")
+                borisCalls = runtime->fieldCalls;
+            else
+                EXPECT_EQ(runtime->fieldCalls, borisCalls);
         }
     }
 }
 
 TEST_F(OrbitThreaderTest, ExecutesOverlapAndRecordsBothElements) {
     Options::linearTransferMapRichardsonLevels = 1;
-    auto bunch = makeBunch(0);
+    auto bunch                                 = makeBunch(0);
 
     DummyBeamline beamlineForVisitor;
     DefaultVisitor visitor(beamlineForVisitor, false, false);
@@ -1271,7 +1341,7 @@ TEST_F(OrbitThreaderTest, ExecutesOverlapAndRecordsBothElements) {
 
 TEST_F(OrbitThreaderTest, RingReturnLengthIsMeasuredNotTakenFromDesignCircumference) {
     Options::linearTransferMapRichardsonLevels = 1;
-    auto bunch = makeBunch(0);
+    auto bunch                                 = makeBunch(0);
 
     DummyBeamline beamlineForVisitor;
     DefaultVisitor visitor(beamlineForVisitor, false, false);
@@ -1287,7 +1357,7 @@ TEST_F(OrbitThreaderTest, RingReturnLengthIsMeasuredNotTakenFromDesignCircumfere
     stepSizes.push_back(1.0e-10, 5.0, 1);
     stepSizes.resetIterator();
 
-    Options::enableLinearTransferMaps = true;
+    Options::enableLinearTransferMaps    = true;
     Options::linearTransferMapIntegrator = "DOP853";
     OrbitThreader threader(
             reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0,
@@ -1300,10 +1370,12 @@ TEST_F(OrbitThreaderTest, RingReturnLengthIsMeasuredNotTakenFromDesignCircumfere
     ASSERT_TRUE(threader.getReferenceReturnLength());
     EXPECT_NEAR(*threader.getReferenceReturnLength(), 2.0 * Physics::pi, 1.e-10);
     EXPECT_LT(euclidean_norm(threader.getReferenceReturnDisplacement()), 1.e-10);
-    EXPECT_EQ(names(threader.query(2.0 * Physics::pi - 0.01, 0.02)),
-              (std::set<std::string>{"CIRCLE"}));
-    EXPECT_EQ(names(threader.query(4.0 * Physics::pi + 0.01, 0.02)),
-              (std::set<std::string>{"CIRCLE"}));
+    EXPECT_EQ(
+            names(threader.query(2.0 * Physics::pi - 0.01, 0.02)),
+            (std::set<std::string>{"CIRCLE"}));
+    EXPECT_EQ(
+            names(threader.query(4.0 * Physics::pi + 0.01, 0.02)),
+            (std::set<std::string>{"CIRCLE"}));
     ASSERT_TRUE(threader.getCombinedLinearTransferMap().has_value());
     EXPECT_NEAR((*threader.getCombinedLinearTransferMap())(0, 5), 0.0, 1.e-8);
     EXPECT_NEAR((*threader.getCombinedLinearTransferMap())(1, 5), 0.0, 1.e-8);
@@ -1316,8 +1388,9 @@ TEST_F(OrbitThreaderTest, RingWithoutReturnFailsInsteadOfUsingCircumferenceAsOrb
     StepSizeConfig steps;
     steps.push_back(1.e-10, 0.1, 1);
     steps.resetIterator();
-    OrbitThreader threader(reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0, 0, 1),
-            0.0, 0.0, 0.0, 1.e-10, steps, beamline, false, 0.1);
+    OrbitThreader threader(
+            reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0, 0, 1), 0.0, 0.0, 0.0,
+            1.e-10, steps, beamline, false, 0.1);
     EXPECT_THROW(threader.execute(), OpalException);
     EXPECT_FALSE(threader.getReferenceReturnLength());
 }
@@ -1332,23 +1405,27 @@ TEST_F(OrbitThreaderTest, NominalDriftMapIncludesNeighbourFieldWithoutOwningItsS
     source.getGeometry() = Geometry::makeStraight(0.1);
     DriftRep drift("D_FRINGE");
     drift.getGeometry().setElementLength(0.2);
-    drift.setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector_t<double, 3>(0, 0, 0.1), Quaternion()));
+    drift.setCSTrafoGlobal2Local(
+            CoordinateSystemTrafo(Vector_t<double, 3>(0, 0, 0.1), Quaternion()));
     beamline.visit(source, visitor, *bunch);
     beamline.visit(drift, visitor, *bunch);
     beamline.prepareSections();
-    EXPECT_EQ(names(beamline.getBodyElements(Vector_t<double, 3>(0, 0, 0.2))),
-              (std::set<std::string>{"D_FRINGE"}));
-    EXPECT_EQ(names(beamline.getElements(Vector_t<double, 3>(0, 0, 0.2))),
-              (std::set<std::string>{"D_FRINGE", "FRINGE"}));
-    Options::enableLinearTransferMaps = true;
-    Options::linearTransferMapIntegrator = "DOP853";
+    EXPECT_EQ(
+            names(beamline.getBodyElements(Vector_t<double, 3>(0, 0, 0.2))),
+            (std::set<std::string>{"D_FRINGE"}));
+    EXPECT_EQ(
+            names(beamline.getElements(Vector_t<double, 3>(0, 0, 0.2))),
+            (std::set<std::string>{"D_FRINGE", "FRINGE"}));
+    Options::enableLinearTransferMaps          = true;
+    Options::linearTransferMapIntegrator       = "DOP853";
     Options::linearTransferMapRichardsonLevels = 1;
     StepSizeConfig steps;
     steps.push_back(1.e-11, 0.3, 1);
     steps.resetIterator();
     PartData reference(1.0, 9.382720813e8, 1.0e6);
-    OrbitThreader threader(reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0, 0, 1),
-            0.0, 0.0, 0.0, 1.e-11, steps, beamline, true);
+    OrbitThreader threader(
+            reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0, 0, 1), 0.0, 0.0, 0.0,
+            1.e-11, steps, beamline, true);
     threader.execute();
     const auto maps = beamline.getLinearTransferMapsInReferenceOrder();
     ASSERT_EQ(maps.size(), 2);
@@ -1372,8 +1449,8 @@ TEST_F(OrbitThreaderTest, NativeFringeCutoffConvergesAtFixedNominalGeometry) {
     DummyBeamline lattice;
     DefaultVisitor visitor(lattice, false, false);
     PartData reference(1.0, 9.382720813e8, 1.0e6);
-    Options::enableLinearTransferMaps = true;
-    Options::linearTransferMapIntegrator = "DOP853";
+    Options::enableLinearTransferMaps          = true;
+    Options::linearTransferMapIntegrator       = "DOP853";
     Options::linearTransferMapRichardsonLevels = 1;
     Options::linearTransferMapSteps.fill(1.e-4);
     std::vector<matrix6x6_t> matrices;
@@ -1384,31 +1461,37 @@ TEST_F(OrbitThreaderTest, NativeFringeCutoffConvergesAtFixedNominalGeometry) {
         bend.setFullGap(0.02);
         bend.setFringeIntegral(0.1);
         bend.setFieldComponents({reference.getM() / (2.0 * Physics::c)}, {});
-        bend.setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector_t<double, 3>(0, 0, 0.2), Quaternion()));
+        bend.setCSTrafoGlobal2Local(
+                CoordinateSystemTrafo(Vector_t<double, 3>(0, 0, 0.2), Quaternion()));
         DriftRep before("D_BEFORE"), after("D_AFTER");
         before.getGeometry().setElementLength(0.2);
         after.getGeometry().setElementLength(0.2);
-        after.setCSTrafoGlobal2Local(bend.getGeometry().getEdgeToEnd() * bend.getCSTrafoGlobal2Local());
+        after.setCSTrafoGlobal2Local(
+                bend.getGeometry().getEdgeToEnd() * bend.getCSTrafoGlobal2Local());
         beamline.visit(before, visitor, *bunch);
         beamline.visit(bend, visitor, *bunch);
         beamline.visit(after, visitor, *bunch);
         beamline.prepareSections();
         double designLength = 0.0;
-        for (const auto& element : beamline.getElements()) designLength += element->getGeometry().getArcLength();
+        for (const auto& element : beamline.getElements())
+            designLength += element->getGeometry().getArcLength();
         EXPECT_DOUBLE_EQ(designLength, 0.2 + 0.2 + 0.2);
         StepSizeConfig steps;
         steps.push_back(1.e-11, 0.6, 1);
         steps.resetIterator();
-        OrbitThreader threader(reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0, 0, 1),
-                0.0, 0.0, 0.0, 1.e-11, steps, beamline, true);
+        OrbitThreader threader(
+                reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0, 0, 1), 0.0, 0.0, 0.0,
+                1.e-11, steps, beamline, true);
         threader.execute();
         ASSERT_TRUE(threader.getCombinedLinearTransferMap());
         matrices.push_back(*threader.getCombinedLinearTransferMap());
         for (const auto& entry : beamline.getLinearTransferMapsInReferenceOrder()) {
             if (entry.element->getName() == "B_CUTOFF") {
-                const auto localEntry = entry.element->getCSTrafoGlobal2Local().transformTo(entry.map->entrance.position);
+                const auto localEntry = entry.element->getCSTrafoGlobal2Local().transformTo(
+                        entry.map->entrance.position);
                 const auto localExit = (entry.element->getGeometry().getEdgeToEnd()
-                        * entry.element->getCSTrafoGlobal2Local()).transformTo(entry.map->exit.position);
+                                        * entry.element->getCSTrafoGlobal2Local())
+                                               .transformTo(entry.map->exit.position);
                 EXPECT_NEAR(localEntry(2), 0.0, 1.e-10);
                 EXPECT_NEAR(localExit(2), 0.0, 1.e-10);
             }
@@ -1506,19 +1589,24 @@ TEST_F(OrbitThreaderTest, CalculatesAndAttachesLinearDriftMap) {
 TEST(MapExitRoot, LinearAndReversedBrackets) {
     for (double direction : {-1.0, 1.0}) {
         unsigned calls = 0;
-        auto f = [&](double t) { ++calls; return direction * (t - 0.375); };
-        EXPECT_NEAR(map_exit_detail::locate(0., 1., -0.375 * direction,
-                                          0.625 * direction, 1e-12, f), 0.375, 1e-12);
+        auto f         = [&](double t) {
+            ++calls;
+            return direction * (t - 0.375);
+        };
+        EXPECT_NEAR(
+                map_exit_detail::locate(0., 1., -0.375 * direction, 0.625 * direction, 1e-12, f),
+                0.375, 1e-12);
         EXPECT_LE(calls, 4u);
-        EXPECT_NEAR(map_exit_detail::locate(1., 0., 0.625 * direction,
-                                          -0.375 * direction, 1e-12, f), 0.375, 1e-12);
+        EXPECT_NEAR(
+                map_exit_detail::locate(1., 0., 0.625 * direction, -0.375 * direction, 1e-12, f),
+                0.375, 1e-12);
     }
 }
 
 TEST(MapExitRoot, SkewedAndDiscontinuousResidualsConverge) {
     for (bool discontinuous : {false, true}) {
         unsigned calls = 0;
-        auto f = [&](double t) {
+        auto f         = [&](double t) {
             ++calls;
             return discontinuous ? (t < 0.317 ? -1.0 : 100.0) : std::pow(t, 10) - 0.01;
         };
@@ -1531,16 +1619,20 @@ TEST(MapExitRoot, SkewedAndDiscontinuousResidualsConverge) {
 
 TEST(MapExitRoot, SmallNegativeTimesAndNearEndpointRoots) {
     for (double root : {-1e-26, -3.17e-12, -1e-11 + 1e-26}) {
-        auto f = [=](double time) { return time - root; };
-        const double arrival = map_exit_detail::locate(
-                0., -1e-11, f(0.), f(-1e-11), 1e-23, f);
+        auto f = [=](double time) {
+            return time - root;
+        };
+        const double arrival = map_exit_detail::locate(0., -1e-11, f(0.), f(-1e-11), 1e-23, f);
         EXPECT_NEAR(arrival, root, 1e-23);
     }
 }
 
 TEST(MapExitRoot, EndpointsAndInvalidResiduals) {
     unsigned calls = 0;
-    auto f = [&](double) { ++calls; return std::numeric_limits<double>::quiet_NaN(); };
+    auto f         = [&](double) {
+        ++calls;
+        return std::numeric_limits<double>::quiet_NaN();
+    };
     EXPECT_DOUBLE_EQ(map_exit_detail::locate(0., 1., 0., 1., 1e-12, f), 0.);
     EXPECT_DOUBLE_EQ(map_exit_detail::locate(0., 1., -1., 0., 1e-12, f), 1.);
     EXPECT_EQ(calls, 0u);

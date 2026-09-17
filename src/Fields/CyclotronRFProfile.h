@@ -51,7 +51,7 @@ public:
      * @param[out] derivative Dimensionless dV/du.
      * @return Whether u belongs to the finite profile support.
      */
-    template<class V>
+    template <class V>
     KOKKOS_INLINE_FUNCTION static bool evaluate(
             const V& grid, double u, double& value, double& derivative) {
         value = derivative = 0;
@@ -59,17 +59,19 @@ public:
         int low = 0, high = static_cast<int>(grid.extent(0)) - 1;
         while (high - low > 1) {
             const int mid = (low + high) / 2;
-            if (u < grid(mid, 0)) high = mid;
-            else low = mid;
+            if (u < grid(mid, 0))
+                high = mid;
+            else
+                low = mid;
         }
         const double dx = grid(high, 0) - grid(low, 0);
         const double dy = grid(high, 1) - grid(low, 1);
         const double a = grid(low, 2), b = grid(high, 2);
         const double c2 = 3 * dy - dx * (b + 2 * a);
         const double c3 = -2 * dy + dx * (b + a);
-        const double t = (u - grid(low, 0)) / dx;
-        value = grid(low, 1) + t * dx * a + t * t * c2 + t * t * t * c3;
-        derivative = a + 2 * t / dx * c2 + 3 * t * t / dx * c3;
+        const double t  = (u - grid(low, 0)) / dx;
+        value           = grid(low, 1) + t * dx * a + t * t * c2 + t * t * t * c3;
+        derivative      = a + 2 * t / dx * c2 + 3 * t * t / dx * c3;
         return true;
     }
 };
@@ -97,8 +99,8 @@ struct CyclotronRFKick {
     /// Validate host configuration before launching kernels. Zero width is allowed.
     void validate() const {
         if (!std::isfinite(voltage) || !std::isfinite(omega) || !std::isfinite(phase)
-            || !std::isfinite(width) || !std::isfinite(profileLength)
-            || omega <= 0 || width < 0 || profileLength <= 0)
+            || !std::isfinite(width) || !std::isfinite(profileLength) || omega <= 0 || width < 0
+            || profileLength <= 0)
             throw OpalException("CyclotronRFKick", "Invalid voltage, frequency or gap dimensions.");
     }
 
@@ -110,31 +112,30 @@ struct CyclotronRFKick {
      * @param[in,out] p Local mechanical momentum [beta*gamma].
      * @return False for unsupported/out-of-support states or an unphysical energy kick.
      */
-    template<class V>
+    template <class V>
     KOKKOS_INLINE_FUNCTION bool apply(
             const V& grid, double u, double time, double mass, Vector_t<double, 3>& p) const {
         double f, derivative;
         if (!(mass > 0) || !Kokkos::isfinite(mass) || !Kokkos::isfinite(time)
-            || !Kokkos::isfinite(p[0]) || !Kokkos::isfinite(p[2])
-            || p[1] != 0 || !(p[2] > 0)
-            || !CyclotronRFProfile::evaluate(grid, u, f, derivative)) return false;
+            || !Kokkos::isfinite(p[0]) || !Kokkos::isfinite(p[2]) || p[1] != 0 || !(p[2] > 0)
+            || !CyclotronRFProfile::evaluate(grid, u, f, derivative))
+            return false;
         if (voltage == 0) return true;
         const double p2 = p[0] * p[0] + p[2] * p[2];
         const double bg = Kokkos::sqrt(p2), gamma = Kokkos::sqrt(1 + p2);
-        const double beta = bg / gamma;
-        const double a = omega * width / (2 * Physics::c * beta);
-        const double transit = Kokkos::abs(a) < 1e-8
-                ? 1 - a * a / 6 : Kokkos::sin(a) / a;
-        const double phi = omega * time - phase;
-        const double finalGamma = gamma + voltage * f * transit * Kokkos::cos(phi) / mass;
+        const double beta          = bg / gamma;
+        const double a             = omega * width / (2 * Physics::c * beta);
+        const double transit       = Kokkos::abs(a) < 1e-8 ? 1 - a * a / 6 : Kokkos::sin(a) / a;
+        const double phi           = omega * time - phase;
+        const double finalGamma    = gamma + voltage * f * transit * Kokkos::cos(phi) / mass;
         const double longitudinal2 = finalGamma * finalGamma - 1 - p[0] * p[0];
-        if (!(finalGamma >= 1) || !(longitudinal2 > 0)
-            || !Kokkos::isfinite(longitudinal2)) return false;
+        if (!(finalGamma >= 1) || !(longitudinal2 > 0) || !Kokkos::isfinite(longitudinal2))
+            return false;
         const double longitudinal = Kokkos::sqrt(longitudinal2);
-        const double rotation = -derivative * voltage / profileLength * Kokkos::sin(phi)
-                / (omega * Physics::two_pi) / (bg * mass / Physics::c);
+        const double rotation     = -derivative * voltage / profileLength * Kokkos::sin(phi)
+                                / (omega * Physics::two_pi) / (bg * mass / Physics::c);
         const double radial = p[0];
-        p[0] = Kokkos::cos(rotation) * radial + Kokkos::sin(rotation) * longitudinal;
+        p[0]                = Kokkos::cos(rotation) * radial + Kokkos::sin(rotation) * longitudinal;
         p[2] = -Kokkos::sin(rotation) * radial + Kokkos::cos(rotation) * longitudinal;
         return true;
     }

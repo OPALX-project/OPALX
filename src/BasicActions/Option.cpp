@@ -495,20 +495,20 @@ void Option::execute() {
     mapSettings.validate();
 
     // Store the option flags.
-    echo                  = Attributes::getBool(itsAttr[ECHO]);
-    info                  = Attributes::getBool(itsAttr[INFO]);
-    mtrace                = Attributes::getBool(itsAttr[TRACE]);
-    warn                  = Attributes::getBool(itsAttr[WARN]);
-    psDumpEachTurn        = Attributes::getBool(itsAttr[PSDUMPEACHTURN]);
-    remotePartDel         = Attributes::getReal(itsAttr[REMOTEPARTDEL]);
-    rhoDump               = Attributes::getBool(itsAttr[RHODUMP]);
-    ebDump                = Attributes::getBool(itsAttr[EBDUMP]);
-    rankDump              = Attributes::getBool(itsAttr[RANKDUMP]);
-    csrDump               = Attributes::getBool(itsAttr[CSRDUMP]);
-    enableHDF5            = Attributes::getBool(itsAttr[ENABLEHDF5]);
-    enableVTK             = Attributes::getBool(itsAttr[ENABLEVTK]);
+    echo           = Attributes::getBool(itsAttr[ECHO]);
+    info           = Attributes::getBool(itsAttr[INFO]);
+    mtrace         = Attributes::getBool(itsAttr[TRACE]);
+    warn           = Attributes::getBool(itsAttr[WARN]);
+    psDumpEachTurn = Attributes::getBool(itsAttr[PSDUMPEACHTURN]);
+    remotePartDel  = Attributes::getReal(itsAttr[REMOTEPARTDEL]);
+    rhoDump        = Attributes::getBool(itsAttr[RHODUMP]);
+    ebDump         = Attributes::getBool(itsAttr[EBDUMP]);
+    rankDump       = Attributes::getBool(itsAttr[RANKDUMP]);
+    csrDump        = Attributes::getBool(itsAttr[CSRDUMP]);
+    enableHDF5     = Attributes::getBool(itsAttr[ENABLEHDF5]);
+    enableVTK      = Attributes::getBool(itsAttr[ENABLEVTK]);
 
-    enableLinearTransferMaps = Attributes::getBool(itsAttr[ENABLELINEARTRANSFERMAPS]);
+    enableLinearTransferMaps          = Attributes::getBool(itsAttr[ENABLELINEARTRANSFERMAPS]);
     linearTransferMapRichardsonLevels = mapSettings.richardsonLevels;
     linearTransferMapSteps            = mapSettings.finiteDifferenceSteps;
     linearTransferMapIntegrator =

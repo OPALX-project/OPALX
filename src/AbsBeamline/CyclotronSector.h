@@ -16,9 +16,9 @@
  * See OPAL 2022.1 src/Classic/TrimCoils/TrimCoilMirrored.cpp for the source model.
  */
 struct CyclotronTrimCoil {
-    double rmin = 0, rmax = 0; ///< Inner/outer shape radii [m], with 0 < rmin < rmax.
-    double bmax = 0; ///< Signed profile strength [T]; zero disables the contribution.
-    double slope = 0; ///< Positive radial profile slope [1/m].
+    double rmin = 0, rmax = 0;  ///< Inner/outer shape radii [m], with 0 < rmin < rmax.
+    double bmax  = 0;           ///< Signed profile strength [T]; zero disables the contribution.
+    double slope = 0;           ///< Positive radial profile slope [1/m].
     /** @brief Add the legacy coil correction in the OPALX cylindrical frame.
      * @param r Distance from the sector's ring centre [m].
      * @param y Vertical displacement from the median plane [m].

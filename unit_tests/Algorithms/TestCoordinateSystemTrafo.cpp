@@ -84,7 +84,7 @@ TEST_F(CoordinateSystemTrafoTest, SpaceChargeMomentumRotationPreservesBoostAndRo
     auto host = Kokkos::create_mirror_view(momenta);
     for (double angle : {0.0, 0.7, M_PI / 2}) {
         CoordinateSystemTrafo beamToRef(Vector3(7.0, -2.0, 3.0), rotationAroundY(angle));
-        const auto refToBeam = beamToRef.inverted();
+        const auto refToBeam     = beamToRef.inverted();
         const Vector3 original[] = {
                 beamToRef.rotateTo(Vector3(0.0, 0.0, 0.4)),
                 beamToRef.rotateTo(Vector3(0.01, -0.02, 0.41)), Vector3(0.0)};

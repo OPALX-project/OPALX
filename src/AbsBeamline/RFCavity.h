@@ -20,8 +20,8 @@
 
 #include "AbsBeamline/ElementBase.h"
 #include "Algorithms/AbstractTimeDependence.h"
-#include "Physics/Physics.h"
 #include "Fields/CyclotronRFProfile.h"
+#include "Physics/Physics.h"
 
 #include "Utilities/BiMap.h"
 
@@ -49,8 +49,8 @@ public:
      * x in [RMIN,RMAX] [m] along the gap and local z=0 as its directed plane.
      * The ordinary element pose supplies all translations and rotations.
      */
-    void configureCyclotronGap(const std::string& filename, double rmin, double rmax,
-                               const CyclotronRFKick& kick);
+    void configureCyclotronGap(
+            const std::string& filename, double rmin, double rmax, const CyclotronRFKick& kick);
     bool isCyclotronGap() const { return static_cast<bool>(cyclotronProfile_m); }
     /// Clear the discrete model before a parser reconfiguration to another type.
     void clearCyclotronGap() { cyclotronProfile_m.reset(); }
@@ -65,8 +65,8 @@ public:
      * @return False for out-of-support, non-median-plane or unphysical states.
      */
     bool applyGapKick(double x, double t, double mass, Vector_t<double, 3>& p) const {
-        return cyclotronKick_m.apply(cyclotronProfile_m->host,
-            (x-gapMin_m)/(gapMax_m-gapMin_m), t, mass, p);
+        return cyclotronKick_m.apply(
+                cyclotronProfile_m->host, (x - gapMin_m) / (gapMax_m - gapMin_m), t, mass, p);
     }
     /// Discrete gaps never contribute to continuous field lookup or apertures.
     bool isInsideBody(const Vector_t<double, 3>& r) const override {

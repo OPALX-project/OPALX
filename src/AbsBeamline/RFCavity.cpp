@@ -72,9 +72,9 @@ RFCavity::RFCavity(const RFCavity& right)
       DvDr_m(nullptr),
       num_points_m(right.num_points_m) {
     cyclotronProfile_m = right.cyclotronProfile_m;
-    cyclotronKick_m = right.cyclotronKick_m;
-    gapMin_m = right.gapMin_m;
-    gapMax_m = right.gapMax_m;
+    cyclotronKick_m    = right.cyclotronKick_m;
+    gapMin_m           = right.gapMin_m;
+    gapMax_m           = right.gapMax_m;
 }
 
 RFCavity::RFCavity(const std::string& name)
@@ -186,7 +186,10 @@ bool RFCavity::applyToReferenceParticle(
 }
 
 void RFCavity::initialise(PartBunch_t* bunch) {
-    if (isCyclotronGap()) { RefPartBunch_m = bunch; return; }
+    if (isCyclotronGap()) {
+        RefPartBunch_m = bunch;
+        return;
+    }
     startField_m = endField_m = 0.0;
     if (bunch == nullptr) {
         return;
@@ -266,14 +269,20 @@ void RFCavity::initialise(
 void RFCavity::finalise() {}
 
 void RFCavity::goOnline(const double&) {
-    if (isCyclotronGap()) { online_m = true; return; }
+    if (isCyclotronGap()) {
+        online_m = true;
+        return;
+    }
     Fieldmap::readMap(filename_m);
 
     online_m = true;
 }
 
 void RFCavity::goOffline() {
-    if (isCyclotronGap()) { online_m = false; return; }
+    if (isCyclotronGap()) {
+        online_m = false;
+        return;
+    }
     Fieldmap::freeMap(filename_m);
 
     online_m = false;
@@ -281,17 +290,17 @@ void RFCavity::goOffline() {
 
 void RFCavity::setRmin(double rmin) { rmin_m = rmin; }
 
-void RFCavity::configureCyclotronGap(const std::string& filename, double rmin, double rmax,
-                                    const CyclotronRFKick& kick) {
+void RFCavity::configureCyclotronGap(
+        const std::string& filename, double rmin, double rmax, const CyclotronRFKick& kick) {
     kick.validate();
     if (!std::isfinite(rmin) || !std::isfinite(rmax) || rmin < 0 || rmax <= rmin)
         throw OpalException("RFCavity::configureCyclotronGap", "Invalid gap support [m].");
-    auto profile = std::make_shared<CyclotronRFProfile>(filename);
+    auto profile       = std::make_shared<CyclotronRFProfile>(filename);
     cyclotronProfile_m = std::move(profile);
-    cyclotronKick_m = kick;
-    gapMin_m = rmin;
-    gapMax_m = rmax;
-    autophaseVeto_m = true;
+    cyclotronKick_m    = kick;
+    gapMin_m           = rmin;
+    gapMax_m           = rmax;
+    autophaseVeto_m    = true;
 }
 
 void RFCavity::setRmax(double rmax) { rmax_m = rmax; }

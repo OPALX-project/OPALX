@@ -44,10 +44,10 @@ void CyclotronSector::configure(
         || std::abs(map->nt * map->dtheta - angle) > 1e-8 || !(low < high)
         || !std::isfinite(low + high + factor))
         throw OpalException("CyclotronSector::configure", "Invalid sector bounds or map symmetry.");
-    radius    = map->rmin + 0.5 * (map->nr - 1) * map->dr;
-    vmin      = low;
-    vmax      = high;
-    scale     = factor;
+    radius = map->rmin + 0.5 * (map->nr - 1) * map->dr;
+    vmin   = low;
+    vmax   = high;
+    scale  = factor;
     // This arc is a placement/geometry representation, not an equilibrium orbit.
     geometry  = Geometry::makeSBend(radius * angle, 1 / radius);
     coils     = Kokkos::View<CyclotronTrimCoil*>("cyclotron_trim_coils", models.size());

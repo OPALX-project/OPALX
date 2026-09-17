@@ -15,7 +15,7 @@
 namespace orbit_threader_diagnostics {
     enum Phase { reference, segmentation, maps, output, phaseCount };
     inline constexpr std::array<const char*, phaseCount> phaseNames{
-        "OT reference", "OT segmentation", "OT maps", "OT output"};
+            "OT reference", "OT segmentation", "OT maps", "OT output"};
 
     /** Work performed in a phase, including discarded localization trials.
      * nominalSteps counts outer tracking iterations; advances also includes event
@@ -36,15 +36,17 @@ namespace orbit_threader_diagnostics {
         double raySeconds{0.0}, logSeconds{0.0};
         double rayTransportSeconds{0.0}, rayExitSeconds{0.0};
     };
-    struct Report { std::array<Work, phaseCount> work; };
+    struct Report {
+        std::array<Work, phaseCount> work;
+    };
 
     // A null context makes shared beamline/ray calls outside threading uninstrumented.
     // No atomics, MPI collectives, device memory, or OpenMP regions are introduced.
     // If ray tracking is parallelized later, worker-local reports must be merged explicitly.
     inline thread_local Report* activeReport = nullptr;
-    inline thread_local Work* activeWork = nullptr;
+    inline thread_local Work* activeWork     = nullptr;
 
-    inline void count(std::uint64_t Work::*member, std::uint64_t n = 1) {
+    inline void count(std::uint64_t Work::* member, std::uint64_t n = 1) {
         if (activeWork) activeWork->*member += n;
     }
     inline void accepted(double dt) {
@@ -56,11 +58,18 @@ namespace orbit_threader_diagnostics {
 
     class Session {
         Report* previousReport = activeReport;
-        Work* previousWork = activeWork;
+        Work* previousWork     = activeWork;
+
     public:
-        explicit Session(Report& report) { activeReport = &report; activeWork = nullptr; }
-        ~Session() { activeReport = previousReport; activeWork = previousWork; }
-        Session(const Session&) = delete;
+        explicit Session(Report& report) {
+            activeReport = &report;
+            activeWork   = nullptr;
+        }
+        ~Session() {
+            activeReport = previousReport;
+            activeWork   = previousWork;
+        }
+        Session(const Session&)            = delete;
         Session& operator=(const Session&) = delete;
     };
 
@@ -70,10 +79,11 @@ namespace orbit_threader_diagnostics {
         Work* previousWork = activeWork;
         IpplTimings::TimerRef timer{};
         bool running = false;
+
     public:
         explicit TimedPhase(Phase phase) {
             if (!activeReport) return;
-            timer = IpplTimings::getTimer(phaseNames[phase]);
+            timer      = IpplTimings::getTimer(phaseNames[phase]);
             activeWork = &activeReport->work[phase];
             IpplTimings::startTimer(timer);
             running = true;
@@ -82,10 +92,10 @@ namespace orbit_threader_diagnostics {
             if (!running) return;
             IpplTimings::stopTimer(timer);
             activeWork = previousWork;
-            running = false;
+            running    = false;
         }
         ~TimedPhase() { stop(); }
-        TimedPhase(const TimedPhase&) = delete;
+        TimedPhase(const TimedPhase&)            = delete;
         TimedPhase& operator=(const TimedPhase&) = delete;
     };
 
@@ -94,8 +104,9 @@ namespace orbit_threader_diagnostics {
         using Clock = std::chrono::steady_clock;
         double* total;
         Clock::time_point start;
+
     public:
-        explicit Duration(double Work::*member)
+        explicit Duration(double Work::* member)
             : total(activeWork ? &(activeWork->*member) : nullptr),
               start(total ? Clock::now() : Clock::time_point{}) {}
         void stop() {
@@ -104,33 +115,32 @@ namespace orbit_threader_diagnostics {
             total = nullptr;
         }
         ~Duration() { stop(); }
-        Duration(const Duration&) = delete;
+        Duration(const Duration&)            = delete;
         Duration& operator=(const Duration&) = delete;
     };
 
     inline void print(std::ostream& out, const Report& report) {
-        out << "* OrbitThreader work (this pass, rank 0 local; accepted includes localization trials):\n";
+        out << "* OrbitThreader work (this pass, rank 0 local; accepted includes localization "
+               "trials):\n";
         for (unsigned phase = 0; phase < phaseCount; ++phase) {
             const auto& w = report.work[phase];
-            out << "* " << phaseNames[phase]
-                << ": nominal_steps=" << w.nominalSteps << " advances=" << w.advances
-                << " trials=" << w.trials << " accepted_steps=" << w.acceptedSteps
-                << " cap_splits=" << w.capSplits << " support_splits=" << w.supportSplits
-                << " max_depth=" << w.maxDepth
+            out << "* " << phaseNames[phase] << ": nominal_steps=" << w.nominalSteps
+                << " advances=" << w.advances << " trials=" << w.trials
+                << " accepted_steps=" << w.acceptedSteps << " cap_splits=" << w.capSplits
+                << " support_splits=" << w.supportSplits << " max_depth=" << w.maxDepth
                 << " min_accepted_dt_s=" << (w.acceptedSteps ? w.minAcceptedDt : 0.0)
                 << " step_cap_s=" << (w.advances ? w.stepCap : 0.0) << '\n'
-                << "* " << phaseNames[phase]
-                << ": support_lookups=" << w.supportLookups << " body_lookups=" << w.bodyLookups
-                << " element_tests=" << w.elementTests << " field_samples=" << w.fieldSamples
-                << " element_fields=" << w.elementFields
+                << "* " << phaseNames[phase] << ": support_lookups=" << w.supportLookups
+                << " body_lookups=" << w.bodyLookups << " element_tests=" << w.elementTests
+                << " field_samples=" << w.fieldSamples << " element_fields=" << w.elementFields
                 << " membership_reuses=" << w.membershipReuses << '\n'
-                << "* " << phaseNames[phase]
-                << ": reference_samples=" << w.samples << " segments=" << w.segments
-                << " rays=" << w.rays << " ray_tracking_s=" << w.raySeconds
+                << "* " << phaseNames[phase] << ": reference_samples=" << w.samples
+                << " segments=" << w.segments << " rays=" << w.rays
+                << " ray_tracking_s=" << w.raySeconds
                 << " ray_transport_s=" << w.rayTransportSeconds
                 << " ray_exit_s=" << w.rayExitSeconds << " exit_iterations=" << w.exitIterations
                 << " log_rows=" << w.logRows << " log_write_s=" << w.logSeconds << '\n';
         }
     }
-}
+}  // namespace orbit_threader_diagnostics
 #endif
