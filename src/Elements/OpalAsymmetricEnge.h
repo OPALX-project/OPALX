@@ -23,7 +23,7 @@ class OpalAsymmetricEnge : public OpalElement {
     OpalAsymmetricEnge();
 
     /** Destructor does nothing */
-    virtual ~OpalAsymmetricEnge();
+    virtual ~OpalAsymmetricEnge() = default;
 
     /** Inherited copy constructor */
     virtual OpalAsymmetricEnge *clone(const std::string &name);

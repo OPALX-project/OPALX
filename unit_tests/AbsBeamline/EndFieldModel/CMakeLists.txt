@@ -3,5 +3,6 @@ message(STATUS "Adding unit tests found in ${_relPath}")
 
 add_opalx_test(TestTanh USE_GTEST_MAIN)
 add_opalx_test(TestEnge USE_GTEST_MAIN)
+add_opalx_test(TestAsymmetricEnge USE_GTEST_MAIN)
 add_opalx_test(TestEndFieldModelManager USE_GTEST_MAIN)
 

@@ -37,119 +37,148 @@
 
 namespace endfieldmodel {
 
-    /** Calculate the AsymmetricEnge function (e.g. for multipole end fields).
-     *
-     *  AsymmetricEnge function is given by\n
-     *  \f$T(x) = (tanh( (x+x0)/\lambda )-tanh( (x-x0)/\lambda ))/2\f$\n
-     *  The derivatives of tanh(x) are given by\n
-     *  \f$d^p tanh(x)/dx^p = \sum_q I_{pq} tanh^{q}(x)\f$\n
-     *  where \f$I_{pq}\f$ are calculated using some recursion relation. Using these
-     *  expressions, one can calculate a recursion relation for higher order
-     *  derivatives and hence calculate analytical derivatives at arbitrary order.
+/** Calculate the AsymmetricEnge function (e.g. for multipole end fields).
+ *
+ *  AsymmetricEnge function is given by\n
+ *  \f$T(x) = (tanh( (x+x0)/\lambda )-tanh( (x-x0)/\lambda ))/2\f$\n
+ *  The derivatives of tanh(x) are given by\n
+ *  \f$d^p tanh(x)/dx^p = \sum_q I_{pq} tanh^{q}(x)\f$\n
+ *  where \f$I_{pq}\f$ are calculated using some recursion relation. Using these
+ *  expressions, one can calculate a recursion relation for higher order
+ *  derivatives and hence calculate analytical derivatives at arbitrary order.
+ */
+struct AsymmetricEngeConfig {
+    EngeConfig engeStart_m;
+    EngeConfig engeEnd_m;
+};
+
+class AsymmetricEnge : public EndFieldModel {
+public:
+    /** Default constructor */
+    AsymmetricEnge() = default;
+    /** Constructor taking enge parameters */
+    AsymmetricEnge(
+            const std::vector<double> aStart, double x0Start, double lambdaStart,
+            const std::vector<double> aEnd, double x0End, double lambdaEnd);
+
+    /** Inheritable copy constructor. We take a deep copy of the engeStart
+     *  and engeEnd
      */
-    class AsymmetricEnge {
-    public:
-        /** Default constructor */
-        AsymmetricEnge();
-        /** Constructor taking enge parameters */
-        AsymmetricEnge(
-                const std::vector<double> aStart, double x0Start, double lambdaStart,
-                const std::vector<double> aEnd, double x0End, double lambdaEnd);
+    inline AsymmetricEnge* clone() const;
 
-        /** Inheritable copy constructor. We take a deep copy of the engeStart
-         *  and engeEnd
-         */
-        inline AsymmetricEnge* clone() const;
+    /** Print a human-readable description of the end field model */
+    std::ostream& print(std::ostream& out) const;
 
-        /** Print a human-readable description of the end field model */
-        std::ostream& print(std::ostream& out) const;
+    /** Return the value of enge at some point x */
+    inline double function(double x, int n) const;
 
-        /** Return the value of enge at some point x */
-        inline double function(double x, int n) const;
+    inline virtual void function(const Kokkos::View<double*>& xView,
+                                 const int n,
+                                 Kokkos::View<double**>& values) const override;
 
-        /** Centre length is the average of x0End and x0Start */
-        inline double getCentreLength() const;
+    /** Host side static wrapper */
+    static KOKKOS_INLINE_FUNCTION void functionHost(
+            const AsymmetricEngeConfig& config,
+            const Kokkos::View<double*>& xView,
+            const int n,
+            Kokkos::View<double**>& values);
 
-        /** End length is the average of lambdaEnd and lambdaStart */
-        inline double getEndLength() const;
+    static KOKKOS_INLINE_FUNCTION double functionDevice(
+        const AsymmetricEngeConfig& config, double x, int n);
 
-        /** Get the enge function for the magnet entrance */
-        inline std::shared_ptr<Enge> getEngeStart() const;
 
-        /** Set the enge function for the magnet entrance */
-        inline void setEngeStart(std::shared_ptr<Enge> eStart);
+    /** Centre length is the average of x0End and x0Start */
+    inline double getCentreLength() const;
 
-        /** Get the enge function for the magnet exit */
-        inline std::shared_ptr<Enge> getEngeEnd() const;
+    /** End length is the average of lambdaEnd and lambdaStart */
+    inline double getEndLength() const;
 
-        /** Set the enge function for the magnet exit */
-        inline void setEngeEnd(std::shared_ptr<Enge> eEnd);
+    /** Return x0Start, offset of the start Enge */
+    inline double getX0Start() const;
 
-        /** Return x0Start, offset of the start Enge */
-        inline double getX0Start() const;
+    /** Set x0Start, offset of the start Enge */
+    inline void setX0Start(double x0);
 
-        /** Set x0Start, offset of the start Enge */
-        inline void setX0Start(double x0);
+    /** Return x0End, offset of the end Enge */
+    inline double getX0End() const;
 
-        /** Return x0End, offset of the end Enge */
-        inline double getX0End() const;
+    /** Set x0End, offset of the end Enge */
+    inline void setX0End(double x0);
 
-        /** Set x0End, offset of the end Enge */
-        inline void setX0End(double x0);
+    /** Return x0Start, offset of the start Enge */
+    inline double getLambdaStart() const {return config_m.engeStart_m.lambda_m;}
 
-        /** Setup the Enge recursion for derivatives */
-        inline void setMaximumDerivative(size_t n);
+    /** Return x0End, offset of the end Enge */
+    inline double getLambdaEnd() const {return config_m.engeEnd_m.lambda_m;}
 
-        /** Rescale the Enge to a new length scale */
-        void rescale(double scaleFactor);
+    /** Setup the Enge recursion for derivatives */
+    inline void setMaximumDerivative(size_t n);
 
-    private:
-        AsymmetricEnge(const AsymmetricEnge& rhs);
-        std::shared_ptr<Enge> engeStart_m;
-        std::shared_ptr<Enge> engeEnd_m;
-    };
+    /** Rescale the Enge to a new length scale */
+    void rescale(double scaleFactor);
 
-    std::shared_ptr<Enge> AsymmetricEnge::getEngeStart() const { return engeStart_m; }
-    std::shared_ptr<Enge> AsymmetricEnge::getEngeEnd() const { return engeEnd_m; }
-    void AsymmetricEnge::setEngeStart(std::shared_ptr<Enge> enge) { engeStart_m = enge; }
-    void AsymmetricEnge::setEngeEnd(std::shared_ptr<Enge> enge) { engeEnd_m = enge; }
+    AsymmetricEngeConfig getConfig() const {return config_m;}
 
-    double AsymmetricEnge::getX0Start() const { return engeStart_m->getX0(); }
+private:
+    AsymmetricEnge(const AsymmetricEnge& rhs) = default;
+    AsymmetricEngeConfig config_m;
+};
 
-    double AsymmetricEnge::getX0End() const { return engeEnd_m->getX0(); }
+double AsymmetricEnge::function(double x, int n) const {
+    return functionDevice(config_m, x, n);
+}
 
-    void AsymmetricEnge::setX0Start(double x0) { engeStart_m->setX0(x0); }
+void AsymmetricEnge::function(const Kokkos::View<double*>& xView,
+              const int n,
+              Kokkos::View<double**>& values) const  {
+    functionHost(config_m, xView, n, values);
+}
 
-    void AsymmetricEnge::setX0End(double x0) { engeEnd_m->setX0(x0); }
+void AsymmetricEnge::functionHost(
+            const AsymmetricEngeConfig& config,
+            const Kokkos::View<double*>& xView,
+            const int n,
+            Kokkos::View<double**>& values) {
+    const size_t count = xView.size();
+    Kokkos::parallel_for(
+        "AsymmetricEnge::functionHost()", count, KOKKOS_LAMBDA(const size_t i) {
+            for (int j = 0; j < n; ++j)
+                values(i, j) = functionDevice(config, xView(i), i);
+    });
+}
 
-    double AsymmetricEnge::function(double x, int n) const {
-        /*
-        // f(x) = E(x-x0) + E(-x-x0) - 1
-        // f^{(2n)} = E^{(2n)}(x-x0) + E^{(2n)}(-x-x0)
-        // f^{(2n+1)} = E^{(2n)}(x-x0) - E^{(2n)}(-x-x0)
-        if (n == 0) {
-            return engeStart_m->getEnge(x - engeStart_m->getX0(), n)
-                   + engeEnd_m->getEnge(-x - engeEnd_m->getX0(), n) - 1;
-        } else if (n % 2) {
-            return engeStart_m->getEnge(x - engeStart_m->getX0(), n)
-                   - engeEnd_m->getEnge(-x - engeEnd_m->getX0(), n);
-        } else {
-            return engeStart_m->getEnge(x - engeStart_m->getX0(), n)
-                   + engeEnd_m->getEnge(-x - engeEnd_m->getX0(), n);
-        }*/
+double AsymmetricEnge::functionDevice(const AsymmetricEngeConfig& config, double x, int n) {
+    EngeConfig cStart = config.engeStart_m;
+    EngeConfig cEnd = config.engeEnd_m;
+    if (n == 0) {
+        return -1+(Enge::getEnge(cStart, x - cStart.x0_m, n) + Enge::getEnge(cEnd, -x - cEnd.x0_m, n));
+    } else {
+        if (n % 2 == 1)
+            return Enge::getEnge(cStart, x - cStart.x0_m, n) - Enge::getEnge(cEnd, -x - cEnd.x0_m, n);
+        else
+            return Enge::getEnge(cStart, x - cStart.x0_m, n) + Enge::getEnge(cEnd, -x - cEnd.x0_m, n);
     }
+}
 
-    AsymmetricEnge* AsymmetricEnge::clone() const { return new AsymmetricEnge(*this); }
+double AsymmetricEnge::getX0Start() const { return config_m.engeStart_m.x0_m; }
 
-    void AsymmetricEnge::setMaximumDerivative(size_t n) { Enge::setEngeDiffIndices(n); }
+double AsymmetricEnge::getX0End() const { return config_m.engeEnd_m.x0_m; }
 
-    double AsymmetricEnge::getCentreLength() const {
-        return (engeStart_m->getCentreLength() + engeEnd_m->getCentreLength()) / 2;
-    }
+void AsymmetricEnge::setX0Start(double x0) { config_m.engeStart_m.x0_m = x0; }
 
-    double AsymmetricEnge::getEndLength() const {
-        return (engeStart_m->getEndLength() + engeEnd_m->getEndLength()) / 2;
-    }
+void AsymmetricEnge::setX0End(double x0) { config_m.engeEnd_m.x0_m = x0; }
+
+AsymmetricEnge* AsymmetricEnge::clone() const { return new AsymmetricEnge(*this); }
+
+void AsymmetricEnge::setMaximumDerivative(size_t n) { Enge::setEngeDiffIndices(n); }
+
+double AsymmetricEnge::getCentreLength() const {
+    return config_m.engeStart_m.x0_m + config_m.engeEnd_m.x0_m;
+}
+
+double AsymmetricEnge::getEndLength() const {
+    return config_m.engeStart_m.lambda_m + config_m.engeEnd_m.lambda_m;
+}
 }  // namespace endfieldmodel
 
 #endif
