@@ -55,7 +55,7 @@ TEST_F(TestOpalScalingFFAMagnet, UserInterface) {
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::RADIAL_NEG_EXTENT], 10);
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::RADIAL_POS_EXTENT], 11);
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::HEIGHT], 12);
-    Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::MAGNET_START], 13);
+    Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::LAYOUT_START], 13);
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::AZIMUTHAL_EXTENT], 14);
     // Update the magnet
     EXPECT_NO_THROW(ui.update());

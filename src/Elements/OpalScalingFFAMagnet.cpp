@@ -78,10 +78,16 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet() :
          "Full height of the magnet. Particles moving more than height/2. "
          "off the midplane (either above or below) are out of the aperture [m].");
 
-    itsAttr[MAGNET_START] = Attributes::makeReal
-        ("MAGNET_START",
-         "Determines the position of the central portion of the magnet field "
-         "relative to the element start (default is 0) [m].");
+    itsAttr[LAYOUT_START] = Attributes::makeReal
+        ("LAYOUT_START",
+         "Determines the distance, along the line of r=r0, to the central "
+         "portion of the magnet field relative to the ELEMEDGE/position "
+         "coordinate. Default is 0 [m].");
+
+    itsAttr[LAYOUT_END] = Attributes::makeReal
+        ("LAYOUT_END",
+         "Determines the distance, along the line of r=r0, to the end of the "
+         "magnet for the purposes of placing the next element. Default is L [m].");
 
     itsAttr[AZIMUTHAL_EXTENT] = Attributes::makeReal
         ("AZIMUTHAL_EXTENT",
@@ -182,10 +188,15 @@ void OpalScalingFFAMagnet::update() {
     // get start of the magnet element in radians
     // setPhiStart sets the position of the 0 point of the endFieldModel, which
     // is typically the magnet centre
-    if (itsAttr[MAGNET_START]) {
-        double phi_start = Attributes::getReal(itsAttr[MAGNET_START]) / r0Abs;
+    if (itsAttr[LAYOUT_START]) {
+        double phi_start = Attributes::getReal(itsAttr[LAYOUT_START]) / r0Abs;
         magnet->setPhiStart(phi_start);
     }
+    double phi_end = Attributes::getReal(itsAttr[LENGTH]) / r0Abs;
+    if (itsAttr[LAYOUT_END]) {
+        phi_end = Attributes::getReal(itsAttr[LAYOUT_END]) / r0Abs;
+    }
+    magnet->setPhiStart(phi_end);
     // get azimuthal extent in radians; this is just the bounding box
     if (itsAttr[AZIMUTHAL_EXTENT]) {
         if (Attributes::getReal(itsAttr[AZIMUTHAL_EXTENT]) < 0.0) {
