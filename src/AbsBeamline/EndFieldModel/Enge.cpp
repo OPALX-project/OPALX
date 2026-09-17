@@ -57,8 +57,8 @@ namespace endfieldmodel {
     double Enge::hN(double x, int n) const {
         double hn = 0;
         // optimise by precalculating factor
-        for (unsigned int i = n; i < _a.size(); i++)
-            hn += _a[i] / gsl_sf_pow_int(_lambda, i) * gsl_sf_pow_int(x, i - n) * gsl_sf_fact(i)
+        for (unsigned int i = n; i < config_m.a_m.size(); i++)
+            hn += config_m.a_m[i] / gsl_sf_pow_int(config_m.lambda_m, i) * gsl_sf_pow_int(x, i - n) * gsl_sf_fact(i)
                   / gsl_sf_fact(i - n);
         return hn;
     }
@@ -150,22 +150,26 @@ namespace endfieldmodel {
         }
     }
 
-    Enge::Enge(const std::vector<double> a, double x0, double lambda)
-        : _a(a), _lambda(lambda), _x0(x0) {}
+    Enge::Enge(const std::vector<double> a, double x0, double lambda) {
+        setEngeDiffIndices(10);
+        config_m.a_m = a;
+        config_m.x0_m = x0;
+        config_m.lambda_m = lambda;
+    }
 
     Enge* Enge::clone() const {
-        Enge* myclone = new Enge(_a, _x0, _lambda);
+        Enge* myclone = new Enge(config_m.a_m, config_m.x0_m, config_m.lambda_m);
         return myclone;
     }
 
     void Enge::rescale(double scaleFactor) {
-        _x0 *= scaleFactor;
-        _lambda *= scaleFactor;
+        config_m.x0_m *= scaleFactor;
+        config_m.lambda_m *= scaleFactor;
     }
 
     std::ostream& Enge::print(std::ostream& out) const {
-        out << "Enge function l=" << _lambda << " x0=" << _x0 << " c=";
-        for (auto ai : _a) {
+        out << "Enge function l=" << config_m.lambda_m << " x0=" << config_m.x0_m << " c=";
+        for (auto ai : config_m.a_m) {
             out << ai << " ";
         }
         return out;

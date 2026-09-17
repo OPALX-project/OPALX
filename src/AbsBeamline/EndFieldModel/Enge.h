@@ -32,6 +32,7 @@
 #include <vector>
 
 #include "AbsBeamline/EndFieldModel/CompactVector.h"
+#include "AbsBeamline/EndFieldModel/EndFieldModel.h"
 
 namespace endfieldmodel {
 
@@ -44,10 +45,17 @@ namespace endfieldmodel {
      *  where h is a polynomial in x/lambda with polynomial coefficients a
      */
 
-    class Enge {
+
+    struct EngeConfig {
+        std::vector<double> a_m;
+        double lambda_m = 0.0;
+        double x0_m = 0.0;
+    };
+
+    class Enge : public EndFieldModel {
     public:
         /** Default constructor */
-        Enge() : _lambda(0.), _x0(0) { setEngeDiffIndices(10); }
+        Enge() { setEngeDiffIndices(10); }
         /** Builds Enge function with parameters a_0, a_1, ..., lambda and x0.
          *
          *  Note that this class is in the inner loop of tracking, so many function
@@ -78,25 +86,25 @@ namespace endfieldmodel {
         [[nodiscard]] inline double getCentreLength() const;
 
         /** Print human-readable version of enge */
-        std::ostream& print(std::ostream& out) const;
+        std::ostream& print(std::ostream& out) const override;
 
         /** Returns the enge polynomial coefficients (a_i) */
-        [[nodiscard]] std::vector<double> getCoefficients() const { return _a; }
+        [[nodiscard]] std::vector<double> getCoefficients() const { return config_m.a_m; }
 
         /** Sets the enge polynomial coefficients (a_i) */
-        void setCoefficients(std::vector<double> a) { _a = a; }
+        void setCoefficients(std::vector<double> a) { config_m.a_m = a; }
 
         /** Returns the value of lambda */
-        [[nodiscard]] double getLambda() const { return _lambda; }
+        [[nodiscard]] double getLambda() const { return config_m.lambda_m; }
 
         /** Sets the value of lambda */
-        inline void setLambda(double lambda) { _lambda = lambda; }
+        inline void setLambda(double lambda) { config_m.lambda_m = lambda; }
 
         /** Returns the value of x0 */
-        [[nodiscard]] double getX0() const { return _x0; }
+        [[nodiscard]] double getX0() const { return config_m.x0_m; }
 
         /** Sets the value of x0 */
-        inline void setX0(double x0) { _x0 = x0; }
+        inline void setX0(double x0) { config_m.x0_m = x0; }
 
         /** Calls setEngeDiffIndices to set the maximum derivative */
         inline void setMaximumDerivative(size_t n);
@@ -140,8 +148,7 @@ namespace endfieldmodel {
     private:
         Enge(const Enge& enge);
         Enge& operator=(const Enge& enge);
-        std::vector<double> _a;
-        double _lambda, _x0;
+        EngeConfig config_m;
 
         /** Indexes the derivatives of enge in terms of g */
         static std::vector<std::vector<std::vector<int> > > _q;
@@ -159,18 +166,18 @@ namespace endfieldmodel {
 
     double Enge::getDoubleEnge(double x, int n) const {
         if (n == 0) {
-            return (getEnge(x - _x0, n) + getEnge(-x - _x0, n)) - 1.;
+            return (getEnge(x - config_m.x0_m, n) + getEnge(-x - config_m.x0_m, n)) - 1.;
         } else {
             if (n % 2 != 0)
-                return getEnge(x - _x0, n) - getEnge(-x - _x0, n);
+                return getEnge(x - config_m.x0_m, n) - getEnge(-x - config_m.x0_m, n);
             else
-                return getEnge(x - _x0, n) + getEnge(-x - _x0, n);
+                return getEnge(x - config_m.x0_m, n) + getEnge(-x - config_m.x0_m, n);
         }
     }
 
-    double Enge::getCentreLength() const { return _x0 / 2.0; }
+    double Enge::getCentreLength() const { return config_m.x0_m * 2.0; }
 
-    double Enge::getEndLength() const { return _lambda; }
+    double Enge::getEndLength() const { return config_m.lambda_m; }
 }  // namespace endfieldmodel
 
 #endif
