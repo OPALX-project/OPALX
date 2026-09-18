@@ -151,12 +151,12 @@ double AsymmetricEnge::functionDevice(const AsymmetricEngeConfig& config, double
     EngeConfig cStart = config.engeStart_m;
     EngeConfig cEnd = config.engeEnd_m;
     if (n == 0) {
-        return -1+(Enge::getEnge(cStart, x - cStart.x0_m, n) + Enge::getEnge(cEnd, -x - cEnd.x0_m, n));
+        return (Enge::getEnge(cStart, -x - cStart.x0_m, n) + Enge::getEnge(cEnd, x - cEnd.x0_m, n))-1;
     } else {
         if (n % 2 == 1)
-            return Enge::getEnge(cStart, x - cStart.x0_m, n) - Enge::getEnge(cEnd, -x - cEnd.x0_m, n);
+            return -Enge::getEnge(cStart, -x - cStart.x0_m, n) + Enge::getEnge(cEnd, x - cEnd.x0_m, n);
         else
-            return Enge::getEnge(cStart, x - cStart.x0_m, n) + Enge::getEnge(cEnd, -x - cEnd.x0_m, n);
+            return Enge::getEnge(cStart, -x - cStart.x0_m, n) + Enge::getEnge(cEnd, x - cEnd.x0_m, n);
     }
 }
 

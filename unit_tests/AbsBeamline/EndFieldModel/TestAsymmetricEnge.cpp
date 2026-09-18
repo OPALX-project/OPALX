@@ -54,12 +54,12 @@ TEST_F(TestAsymmetricEnge, ConstructorTest) {
 
 
 TEST_F(TestAsymmetricEnge, DerivativeTest) {
-    std::vector<double> xVector = {-6.0, -5.0, 0.0, 5.0, 6.0};
-    double dx = 1e-3;
+    std::vector<double> xVector = {-2.5, 0.0, 0.0, 3.0, 0.0};
+    double dx = 1e-6;
     double x0S = 2.5;
-    double lambdaS = 0.5;
-    double x0E = 2.5;
-    double lambdaE = 0.5;
+    double lambdaS = 0.1;
+    double x0E = 3.0;
+    double lambdaE = 0.15;
     std::vector<double> aS = {0.0, 1.0, 0.0};
     std::vector<double> aE = {0.0, 1.0, 0.0};
     endfieldmodel::AsymmetricEnge enge(aS, x0S, lambdaS, aE, x0E, lambdaE);
@@ -74,28 +74,21 @@ TEST_F(TestAsymmetricEnge, DerivativeTest) {
         std::cerr << std::endl;
     }
 
-    EXPECT_NEAR(enge.function(-10.0, 0), 0.0, 1e-6);
-    EXPECT_NEAR(enge.function(-5.0, 0), 0.5, 1e-6);
+    EXPECT_NEAR(enge.function(-5.0, 0), 0.0, 1e-2);
+    EXPECT_NEAR(enge.function(-2.5, 0), 0.5, 1e-6); // x0S from the centre
     EXPECT_NEAR(enge.function(0.0, 0), 1.0, 1e-6);
-    EXPECT_NEAR(enge.function(6.0, 0), 0.5, 1e-6);
-    EXPECT_NEAR(enge.function(9.0, 0), 0.0, 1e-6);
-/*
+    EXPECT_NEAR(enge.function(3.0, 0), 0.5, 1e-6); // x0E from the centre
+    EXPECT_NEAR(enge.function(5.0, 0), 0.0, 1e-2);
+
     for (auto x: xVector) {
-        double yTest = enge.function(x, 0);
-        double yRef =
-            1-endfieldmodel::Enge::getEnge(enge.getConfig().engeStart_m, x, 0) -
-              endfieldmodel::Enge::getEnge(enge.getConfig().engeEnd_m, -x, 0);
-        std::cerr << "x: " << x << " yTest: " << yTest << " yRef: " << yRef << std::endl;
-        EXPECT_NEAR(yTest, yRef, 1e-12)
-                << "with x: " << x << " yTest: " << yTest << " yRef: " << yRef;
         for (size_t n = 1; n < 5; ++n) {
             double yP = enge.function(x+dx, n-1);
             double yM = enge.function(x-dx, n-1);
             double dyTest = enge.function(x, n);
-            EXPECT_NEAR(dyTest, (yP-yM)/2/dx, 1e-6);
+            EXPECT_NEAR(dyTest, (yP-yM)/2/dx, 1e-6) << " at x " << x << " n " << n;
         }
     }
-*/
+
 }
 
 
