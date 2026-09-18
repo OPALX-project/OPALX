@@ -39,91 +39,93 @@ namespace endfieldmodel {
     Tanh* Tanh::clone() const { return new Tanh(*this); }
 
     std::ostream& Tanh::print(std::ostream& out) const {
-        out << "Tanh model with centre length: " << _impl.getX0() << " end length: " << _impl.getLambda();
+        out << "Tanh model with centre length: " << getX0() << " end length: " << getLambda();
         return out;
     }
 
-    std::vector<std::vector<std::vector<int> > > TanhImpl::_tdi;
+    std::vector<std::vector<std::vector<int> > > Tanh::tdi_m;
 
-    TanhImpl::TanhImpl(double x0, double lambda, int max_index) : _x0(x0), _lambda(lambda) {
+    Tanh::Tanh(double x0, double lambda, int max_index) {
+        setX0(x0);
+        setLambda(lambda);
         setMaximumDerivative(max_index);
     }
 
-    double TanhImpl::getTanh(double x, int n) const {
-        if (n == 0) return tanh((x + _x0) / _lambda);
+    double Tanh::getTanh(double x, int n) const {
+        if (n == 0) return tanh((x + config_m.x0_m) / config_m.lambda_m);
         double t      = 0;
-        double lam_n  = gsl_sf_pow_int(_lambda, n);
-        double tanh_x = tanh((x + _x0) / _lambda);
-        for (size_t i = 0; i < _tdi[n].size(); i++)
-            t += 1. / lam_n * static_cast<double>(_tdi[n][i][0])
-                 * gsl_sf_pow_int(tanh_x, _tdi[n][i][1]);
+        double lam_n  = gsl_sf_pow_int(config_m.lambda_m, n);
+        double tanh_x = tanh((x + config_m.x0_m) / config_m.lambda_m);
+        for (size_t i = 0; i < tdi_m[n].size(); i++)
+            t += 1. / lam_n * static_cast<double>(tdi_m[n][i][0])
+                 * gsl_sf_pow_int(tanh_x, tdi_m[n][i][1]);
         return t;
     }
 
-    double TanhImpl::getNegTanh(double x, int n) const {
-        if (n == 0) return tanh((x - _x0) / _lambda);
+    double Tanh::getNegTanh(double x, int n) const {
+        if (n == 0) return tanh((x - config_m.x0_m) / config_m.lambda_m);
         double t      = 0;
-        double lam_n  = gsl_sf_pow_int(_lambda, n);
-        double tanh_x = tanh((x - _x0) / _lambda);
-        for (size_t i = 0; i < _tdi[n].size(); i++)
-            t += 1. / lam_n * static_cast<double>(_tdi[n][i][0])
-                 * gsl_sf_pow_int(tanh_x, _tdi[n][i][1]);
+        double lam_n  = gsl_sf_pow_int(config_m.lambda_m, n);
+        double tanh_x = tanh((x - config_m.x0_m) / config_m.lambda_m);
+        for (size_t i = 0; i < tdi_m[n].size(); i++)
+            t += 1. / lam_n * static_cast<double>(tdi_m[n][i][0])
+                 * gsl_sf_pow_int(tanh_x, tdi_m[n][i][1]);
         return t;
     }
 
-    double TanhImpl::function(double x, int n) const { return (getTanh(x, n) - getNegTanh(x, n)) / 2.; }
+    double Tanh::function(double x, int n) const { return (getTanh(x, n) - getNegTanh(x, n)) / 2.; }
 
-    void TanhImpl::setMaximumDerivative(size_t n) {
-        if (n > MaxDerivative) {
+    void Tanh::setMaximumDerivative(size_t n) {
+        if (n > config_m.maxDerivative_m) {
             throw GeneralOpalException(
-                    "TanhImpl::setMaximumDerivative",
+                    "Tanh::setMaximumDerivative",
                     "GPU-compatible tanh derivatives are limited to order 21");
         }
         setTanhDiffIndices(n);
-        for (size_t i = 0; i < CoefficientCount; ++i) {
-            coefficients_m[i] = 0;
+        for (size_t i = 0; i < config_m.coefficientCount_m; ++i) {
+            config_m.coefficients_m[i] = 0;
         }
         for (size_t derivative = 0; derivative <= n; ++derivative) {
-            for (const auto& term : _tdi[derivative]) {
-                coefficients_m[derivative * (MaxDerivative + 2) + term[1]] = term[0];
+            for (const auto& term : tdi_m[derivative]) {
+                config_m.coefficients_m[derivative * (config_m.maxDerivative_m + 2) + term[1]] = term[0];
             }
         }
     }
 
-    void TanhImpl::setTanhDiffIndices(size_t n) {
-        _tdi.reserve(n + 1);
-        if (_tdi.size() == 0) {
-            _tdi.push_back(std::vector<std::vector<int> >(1, std::vector<int>(2)));
-            _tdi[0][0][0] = 1;  // 1*tanh(x) - third index is redundant
-            _tdi[0][0][1] = 1;
+    void Tanh::setTanhDiffIndices(size_t n) {
+        tdi_m.reserve(n + 1);
+        if (tdi_m.size() == 0) {
+            tdi_m.push_back(std::vector<std::vector<int> >(1, std::vector<int>(2)));
+            tdi_m[0][0][0] = 1;  // 1*tanh(x) - third index is redundant
+            tdi_m[0][0][1] = 1;
         }
-        for (size_t i = _tdi.size(); i < n + 1; ++i) {
-            _tdi.push_back(std::vector<std::vector<int> >());
-            for (size_t j = 0; j < _tdi[i - 1].size(); ++j) {
-                int value = _tdi[i - 1][j][1];
+        for (size_t i = tdi_m.size(); i < n + 1; ++i) {
+            tdi_m.push_back(std::vector<std::vector<int> >());
+            for (size_t j = 0; j < tdi_m[i - 1].size(); ++j) {
+                int value = tdi_m[i - 1][j][1];
                 if (value != 0) {
-                    std::vector<int> new_vec(_tdi[i - 1][j]);
+                    std::vector<int> new_vec(tdi_m[i - 1][j]);
                     new_vec[0] *= value;
                     new_vec[1] -= 1;
-                    _tdi[i].push_back(new_vec);
-                    std::vector<int> new_vec2(_tdi[i - 1][j]);
+                    tdi_m[i].push_back(new_vec);
+                    std::vector<int> new_vec2(tdi_m[i - 1][j]);
                     new_vec2[0] *= -value;
                     new_vec2[1] += 1;
-                    _tdi[i].push_back(new_vec2);
+                    tdi_m[i].push_back(new_vec2);
                 }
             }
-            _tdi[i] = CompactVector(_tdi[i]);
+            tdi_m[i] = CompactVector(tdi_m[i]);
         }
     }
 
-    std::vector<std::vector<int> > TanhImpl::getTanhDiffIndices(size_t n) {
+    std::vector<std::vector<int> > Tanh::getTanhDiffIndices(size_t n) {
         setTanhDiffIndices(n);
-        return _tdi[n];
+        return tdi_m[n];
     }
 
-    void TanhImpl::rescale(double scaleFactor) {
-        _x0 *= scaleFactor;
-        _lambda *= scaleFactor;
+    void Tanh::rescale(double scaleFactor) {
+        config_m.x0_m *= scaleFactor;
+        config_m.lambda_m *= scaleFactor;
     }
 
 }  // namespace endfieldmodel

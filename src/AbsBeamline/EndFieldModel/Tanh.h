@@ -35,199 +35,175 @@
 
 namespace endfieldmodel {
 
-    /** Calculate the Tanh function (e.g. for multipole end fields).
+/** Calculate the Tanh function (e.g. for multipole end fields).
+ *
+ *  DoubleTanh function is given by\n
+ *  \f$T(x) = (tanh( (x+x0)/\lambda )-tanh( (x-x0)/\lambda ))/2\f$\n
+ *  The derivatives of tanh(x) are given by\n
+ *  \f$d^p tanh(x)/dx^p = \sum_q I_{pq} tanh^{q}(x)\f$\n
+ *  where \f$I_{pq}\f$ are calculated using some recursion relation. Using these
+ *  expressions, one can calculate a recursion relation for higher order
+ *  derivatives and hence calculate analytical derivatives at arbitrary order.
+ */
+struct TanhConfig {
+    double x0_m = 0.;
+    double lambda_m = 0.;
+    static constexpr size_t maxDerivative_m = 21;
+    static constexpr size_t coefficientCount_m =
+            (maxDerivative_m + 1) * (maxDerivative_m + 2);
+    Kokkos::Array<int, coefficientCount_m> coefficients_m{};
+};
+
+class Tanh : public EndFieldModel {
+public:
+    Tanh(double x0, double lambda, int max_index);
+
+    /** Default constructor (initialises x0 and lambda to 0) */
+    Tanh() = default;
+
+    /** Copy constructor */
+    Tanh(const Tanh& rhs) = default;
+
+    /** Destructor (no mallocs so does nothing) */
+    ~Tanh() = default;
+    /** Inherited copy constructor. */
+    Tanh* clone() const override;
+
+    endfieldmodel::Tanh& operator=(const endfieldmodel::Tanh& rhs) = default;
+
+    double function(double x, int n) const;
+
+    /** Device-callable evaluation using coefficients prepared on the host. */
+    static KOKKOS_INLINE_FUNCTION double functionDevice(const TanhConfig& config, double x, int n);
+
+    void function(const Kokkos::View<double*>& xView,
+                  const int& maxDerivative,
+                  Kokkos::View<double**>& derivatives);
+
+
+    static void functionHost(const TanhConfig& config,
+                        const Kokkos::View<double*>& xView,
+                        const int& maxDerivative,
+                        Kokkos::View<double**>& derivatives);
+
+    /** Returns the value of tanh((x+x0)/lambda) or its \f$n^{th}\f$ derivative. */
+    double getTanh(double x, int n) const;
+
+    /** Returns the value of tanh((x-x0)/lambda) or its \f$n^{th}\f$ derivative. */
+    double getNegTanh(double x, int n) const;
+
+    /** Get all the tanh differential indices \f$I_{pq}\f$.
      *
-     *  DoubleTanh function is given by\n
-     *  \f$T(x) = (tanh( (x+x0)/\lambda )-tanh( (x-x0)/\lambda ))/2\f$\n
-     *  The derivatives of tanh(x) are given by\n
-     *  \f$d^p tanh(x)/dx^p = \sum_q I_{pq} tanh^{q}(x)\f$\n
-     *  where \f$I_{pq}\f$ are calculated using some recursion relation. Using these
-     *  expressions, one can calculate a recursion relation for higher order
-     *  derivatives and hence calculate analytical derivatives at arbitrary order.
+     *  Returns vector of vector of ints where p indexes the differential and
+     * q indexes the tanh power - so
      */
-    class TanhImpl {
-    public:
-        static constexpr size_t MaxDerivative = 21;
-        static constexpr size_t CoefficientCount =
-                (MaxDerivative + 1) * (MaxDerivative + 2);
+    static std::vector<std::vector<int> > getTanhDiffIndices(size_t n);
 
-        TanhImpl(double x0, double lambda, int max_index);
+    /** Nominal flat top length is twice x0 (one x0 in each direction) */
+    double getCentreLength() const override { return config_m.x0_m * 2.0; }
 
-        /** Default constructor (initialises x0 and lambda to 0) */
-        TanhImpl() = default;
+    /** Return nominal fringe field length */
+    double getEndLength() const override { return config_m.lambda_m; }
 
-        /** Copy constructor */
-        TanhImpl(const TanhImpl& rhs) = default;
+    /** Set the value of tanh differential indices to nth order differentials. */
+    static void setTanhDiffIndices(size_t n);
 
-        /** Destructor (no mallocs so does nothing) */
-        ~TanhImpl() = default;
+    /** Return lambda (end length) */
+    inline double getLambda() const { return config_m.lambda_m; }
 
-        double function(double x, int n) const;
+    /** Return x0 (half the flat top length) */
+    inline double getX0() const { return config_m.x0_m; }
 
-        /** Device-callable evaluation using coefficients prepared on the host. */
-        KOKKOS_INLINE_FUNCTION double functionDevice(double x, int n) const;
+    /** Set lambda (end length) */
+    inline void setLambda(double lambda) { config_m.lambda_m = lambda; }
 
-        static void function(const TanhImpl& impl,
-                            const Kokkos::View<double*>& xView,
-                            const int& maxDerivative,
-                            Kokkos::View<double**>& derivatives);
+    /** Set x0 (flat top length) */
+    inline void setX0(double x0) { config_m.x0_m = x0; }
 
-        /** Returns the value of tanh((x+x0)/lambda) or its \f$n^{th}\f$ derivative. */
-        double getTanh(double x, int n) const;
+    /** Set the maximum derivative prior to tracking */
+    void setMaximumDerivative(size_t n) override;
 
-        /** Returns the value of tanh((x-x0)/lambda) or its \f$n^{th}\f$ derivative. */
-        double getNegTanh(double x, int n) const;
+    /** Rescale the endfield */
+    void rescale(double scalefactor);
 
-        /** Get all the tanh differential indices \f$I_{pq}\f$.
-         *
-         *  Returns vector of vector of ints where p indexes the differential and
-         * q indexes the tanh power - so
-         */
-        static std::vector<std::vector<int> > getTanhDiffIndices(size_t n);
+    /** Create a double tanh function
+     *
+     *  Here x0 is the centre length and lambda is the end length. max_index is
+     *  used to set up for differentiation - don't try to calculate
+     *  higher differentials than exist in max_index.
+     *
+     *  This is a thin wrapper for the Tanh providing interface
+     *  to EndFieldModel
+     */
 
-        /** Set the value of tanh differential indices to nth order differentials. */
-        static void setTanhDiffIndices(size_t n);
+    /** GPU aware version of the function
+     *
+     */
+    void function(const Kokkos::View<double*>& xView,
+                  const int maxDerivative,
+                  Kokkos::View<double**>& derivatives) const override;
 
-        /** Return lambda (end length) */
-        inline double getLambda() const { return _lambda; }
+    /** Print summary of the Tanh model to out */
+    std::ostream& print(std::ostream& out) const override;
 
-        /** Return x0 (flat top length) */
-        inline double getX0() const { return _x0; }
+    /** Return the trivially-copyable data used inside device kernels. */
+    TanhConfig getConfig() const { return config_m; }
 
-        /** Set lambda (end length) */
-        inline void setLambda(double lambda) { _lambda = lambda; }
+private:
+    TanhConfig config_m;
 
-        /** Set x0 (flat top length) */
-        inline void setX0(double x0) { _x0 = x0; }
+    /** _tdi indexes powers of tanh in d^n tanh/dx^n as sum of powers of tanh
+     *
+     *  For some reason we index as n, +a, -a, but the third index is redundant
+     */
+    static std::vector<std::vector<std::vector<int> > > tdi_m;
+};
 
-        /** Set the maximum derivative prior to tracking */
-        void setMaximumDerivative(size_t n);
+inline void Tanh::function(const Kokkos::View<double*>& xView,  const int maxDerivative, Kokkos::View<double**>& derivatives) const {
+    Tanh::functionHost(config_m, xView, maxDerivative, derivatives);
+}
 
-        void rescale(double scaleFactor);
-
-        /** Prints a human readable string to out */
-        std::ostream& print(std::ostream& out) const;
-
-        endfieldmodel::TanhImpl& operator=(const endfieldmodel::TanhImpl& rhs) = default;
-
-
-    private:
-        double _x0 = 0.;
-        double _lambda = 0.;
-        Kokkos::Array<int, CoefficientCount> coefficients_m{};
-
-        /** _tdi indexes powers of tanh in d^n tanh/dx^n as sum of powers of tanh
-         *
-         *  For some reason we index as n, +a, -a, but the third index is redundant
-         */
-        static std::vector<std::vector<std::vector<int> > > _tdi;
-    };
-
-    class Tanh : public EndFieldModel {
-    public:
-        /** Create a double tanh function
-         *
-         *  Here x0 is the centre length and lambda is the end length. max_index is
-         *  used to set up for differentiation - don't try to calculate
-         *  higher differentials than exist in max_index.
-         *
-         *  This is a thin wrapper for the TanhImpl providing interface
-         *  to EndFieldModel
-         */
-        Tanh(double x0, double lambda, int max_index) : _impl(x0, lambda, max_index) {}
-
-        /** Default constructor (initialises x0 and lambda to 0) */
-        Tanh() = default;
-
-        /** Copy constructor */
-        Tanh(const Tanh& rhs) = default;
-
-        /** Destructor (no mallocs so does nothing) */
-        ~Tanh() override = default;
-
-        /** Inherited copy constructor. */
-        Tanh* clone() const override;
-
-        /** Rescale the end field by a factor x0 */
-        void rescale(double scaleFactor) override {_impl.rescale(scaleFactor);}
-
-        /** Double Tanh is given by\n
-         *  \f$d(x) = \f$
-         */
-        double function(double x, int n) const override {return _impl.function(x, n);}
-
-        /** GPU aware version of the function
-         *
-         */
-        void function(const Kokkos::View<double*>& xView,
-                      const int maxDerivative,
-                      Kokkos::View<double**>& derivatives) const override;
-
-        /** Print summary of the Tanh model to out */
-        std::ostream& print(std::ostream& out) const override;
-
-        /** Nominal flat top length is twice x0 (one x0 in each direction) */
-        double getCentreLength() const override { return _impl.getX0() * 2.0; }
-
-        /** Return nominal fringe field length */
-        double getEndLength() const override { return _impl.getLambda(); }
-
-        void setLambda(const double& lambda) {_impl.setLambda(lambda);}
-        void setX0(const double& x0) {_impl.setX0(x0);}
-        double getX0() const {return _impl.getX0();}
-
-        /** Set the maximum derivative prior to tracking */
-        virtual void setMaximumDerivative(size_t n) override {return _impl.setMaximumDerivative(n);}
-
-        /** Return the trivially-copyable data used inside device kernels. */
-        TanhImpl getDeviceData() const { return _impl; }
-
-    private:
-        TanhImpl _impl;
-    };
-
-
-    inline void Tanh::function(const Kokkos::View<double*>& xView,  const int maxDerivative, Kokkos::View<double**>& derivatives) const {
-        TanhImpl::function(_impl, xView, maxDerivative, derivatives);
+KOKKOS_INLINE_FUNCTION
+double Tanh::functionDevice(const TanhConfig& config, double x, int n) {
+    const double tanhPositive = Kokkos::tanh((x + config.x0_m) / config.lambda_m);
+    const double tanhNegative = Kokkos::tanh((x - config.x0_m) / config.lambda_m);
+    double positivePower = 1.;
+    double negativePower = 1.;
+    double result = 0.;
+    double lambdaPower = 1.;
+    for (int i = 0; i < n; ++i) {
+        lambdaPower *= config.lambda_m;
     }
-
-    KOKKOS_INLINE_FUNCTION
-    double TanhImpl::functionDevice(double x, int n) const {
-        const double tanhPositive = Kokkos::tanh((x + _x0) / _lambda);
-        const double tanhNegative = Kokkos::tanh((x - _x0) / _lambda);
-        double positivePower = 1.;
-        double negativePower = 1.;
-        double result = 0.;
-        double lambdaPower = 1.;
-        for (int i = 0; i < n; ++i) {
-            lambdaPower *= _lambda;
-        }
-        for (int power = 0; power <= n + 1; ++power) {
-            const int coefficient = coefficients_m[n * (MaxDerivative + 2) + power];
-            result += static_cast<double>(coefficient) * (positivePower - negativePower);
-            positivePower *= tanhPositive;
-            negativePower *= tanhNegative;
-        }
-        return result / (2. * lambdaPower);
+    for (int power = 0; power <= n + 1; ++power) {
+        const int coefficient = config.coefficients_m[n * (config.maxDerivative_m + 2) + power];
+        result += static_cast<double>(coefficient) * (positivePower - negativePower);
+        positivePower *= tanhPositive;
+        negativePower *= tanhNegative;
     }
+    return result / (2. * lambdaPower);
+}
 
-    inline void TanhImpl::function(
-                            const TanhImpl& impl,
-                            const Kokkos::View<double*>& xView,
-                            const int& maxDerivative,
-                            Kokkos::View<double**>& derivatives) {
+inline void Tanh::function(const Kokkos::View<double*>& xView,
+              const int& maxDerivative,
+              Kokkos::View<double**>& derivatives) {
+    functionHost(config_m, xView, maxDerivative, derivatives);
+}
 
-        const size_t count = xView.size();
-        Kokkos::parallel_for(
-            "TanhImpl::function", count, KOKKOS_LAMBDA(const size_t i) {
-                for (int order = 0; order < maxDerivative; ++order) {
-                    double x = xView(i);
-                    derivatives(i, order) = impl.functionDevice(x, order);
-                }
+inline void Tanh::functionHost(
+                        const TanhConfig& config,
+                        const Kokkos::View<double*>& xView,
+                        const int& maxDerivative,
+                        Kokkos::View<double**>& derivatives) {
+    const size_t count = xView.size();
+    Kokkos::parallel_for(
+        "Tanh::function", count, KOKKOS_LAMBDA(const size_t i) {
+            for (int order = 0; order < maxDerivative; ++order) {
+                double x = xView(i);
+                derivatives(i, order) = Tanh::functionDevice(config, x, order);
             }
-        );
-    }
-
+        }
+    );
+}
 
 }  // namespace endfieldmodel
 

@@ -61,7 +61,7 @@ TEST_F(TestOpalScalingFFAMagnet, UserInterface) {
     EXPECT_NO_THROW(ui.update());
     // Check the values
     auto* ffa = dynamic_cast<ScalingFFAMagnet*>(ui.getElement());
-    EXPECT_TRUE(ffa);
+    ASSERT_TRUE(ffa);
     ffa->setupEndField();
     EXPECT_NEAR(ffa->getEndField()->getCentreLength(), 1.0/ffa->getR0(), 1e-12);
     EXPECT_NEAR(ffa->getDipoleConstant(), 2.0, 1e-12);
@@ -74,8 +74,8 @@ TEST_F(TestOpalScalingFFAMagnet, UserInterface) {
     EXPECT_NEAR(ffa->getRMax(), ffa->getR0()+11, 1e-12);
     EXPECT_NEAR(ffa->getVerticalExtent()*2.0, 12, 1e-12);
     // phistart is the (MAGNET_START + LENGTH/2)/R0 [radians]
-    EXPECT_NEAR(ffa->getPhiStart(), (13+0.5)/ffa->getR0(), 1e-12);
-    EXPECT_NEAR(ffa->getAzimuthalExtent(), 14/ffa->getR0(), 1e-12);
+    EXPECT_NEAR(ffa->getPhiStart()*ffa->getR0(), 13+0.5, 1e-12);
+    EXPECT_NEAR(ffa->getAzimuthalExtent()*ffa->getR0(), 14, 1e-12);
 }
 
 TEST_F(TestOpalScalingFFAMagnet, CentreLength) {
