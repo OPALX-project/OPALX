@@ -6,6 +6,7 @@
 #ifndef OPALX_SPACE_CHARGE_SOLVER_H
 #define OPALX_SPACE_CHARGE_SOLVER_H
 
+#include "SpaceCharge/BeamBeamFieldServices.h"
 #include "SpaceCharge/SpaceChargeAlgorithm.h"
 #include "Utilities/OpalException.h"
 
@@ -54,6 +55,17 @@ namespace opalx::spacecharge {
         [[nodiscard]] int reportedBinCount() const { return reportedBinCount_m; }
         [[nodiscard]] std::size_t backendSolveCount() const { return backendSolveCount_m; }
         [[nodiscard]] std::size_t redistributionCount() const { return redistributionCount_m; }
+
+        /** @brief Borrow Cartesian field services, rejecting incompatible algorithms. */
+        [[nodiscard]] BeamBeamFieldServices& beamBeamFields() {
+            auto* services = algorithm_m->beamBeamFields();
+            if (services == nullptr) {
+                throw OpalException(
+                        "SpaceChargeSolver::beamBeamFields",
+                        "BeamBeam requires the CartesianPIC3D algorithm.");
+            }
+            return *services;
+        }
 
     private:
         std::unique_ptr<SpaceChargeAlgorithm> algorithm_m;

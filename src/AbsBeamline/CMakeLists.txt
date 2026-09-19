@@ -6,6 +6,7 @@ add_subdirectory(EndFieldModel)
 # List local source and header files
 set(_SRCS
     AttributeSet.cpp
+    BeamBeam.cpp
     BeamlineVisitor.cpp
     Collimator.cpp
     ConstantEFieldCavity.cpp
@@ -34,6 +35,8 @@ set(_SRCS
 
 set(_HDRS
     AttributeSet.h
+    BeamBeam.h
+    BeamBeamDefinitions.h
     BeamlineVisitor.h
     Collimator.h
     ConstantEFieldCavity.h

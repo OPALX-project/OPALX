@@ -106,6 +106,14 @@ public:
     /// True if PC, ENERGY, or GAMMA was explicitly provided by the user.
     bool hasExplicitEnergy() const;
 
+    /**
+     * @brief Whether this beam constructs an independent reference-orbit threader.
+     *
+     * Temporary multi-beam control. When false, the corresponding particle container reuses the
+     * primary beam's design-orbit element map instead of threading its own reference particle.
+     */
+    bool usesIndependentOrbitThreader() const;
+
     /// Update the BEAM data.
     virtual void update();
 

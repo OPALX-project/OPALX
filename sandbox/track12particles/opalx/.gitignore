@@ -1,0 +1,7 @@
+data/
+__pycache__/
+.pycache-compile/
+*.h5
+*.stat
+timing.dat
+collision_ascii_frames.txt

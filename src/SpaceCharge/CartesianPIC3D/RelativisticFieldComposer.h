@@ -16,7 +16,7 @@
 namespace opalx::spacecharge {
 
     /** @brief Selects how backend electric-field samples enter field composition. */
-    enum class FieldSourceRule : std::uint8_t { Direct, ShiftedGreenImageZ };
+    enum class FieldSourceRule : std::uint8_t { Direct, ShiftedGreenImageZ, MirroredPrimaryZ };
 
     /**
      * @brief Lorentz-conversion settings for one backend-field contribution.
@@ -58,7 +58,9 @@ namespace opalx::spacecharge {
         /**
          * @brief Lorentz-convert and add one backend electric-field contribution.
          *
-         * ShiftedGreenImageZ mirrors the field in z and applies image-field component signs first.
+         * ShiftedGreenImageZ mirrors z with image-charge parity (-Ex,-Ey,+Ez).
+         * MirroredPrimaryZ uses same-charge parity (+Ex,+Ey,-Ez); callers provide the copied
+         * source momentum with reversed pz. Both retain the supplied transverse momentum.
          * Contributions are added in call order.
          */
         void accumulate(FieldStorage& fieldStorage, const Policy& policy) const;

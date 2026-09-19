@@ -17,7 +17,7 @@ namespace opalx::spacecharge {
     void ParticleMeshFieldTransfer::depositCharge(
             ParticleContainer& particles, FieldStorage& fieldStorage, DepositKind depositKind,
             const Selection& selection, const ChargeNormalization& normalization,
-            const ImagePolicy& imagePolicy) const {
+            const ImagePolicy& imagePolicy, double* depositedCharge) const {
         validateSelection(particles, selection);
 
         if (normalization.gamma <= 0.0) {
@@ -44,6 +44,10 @@ namespace opalx::spacecharge {
             depositImage(particles, positions, rho, selection, imagePolicy);
         }
 
+        if (depositedCharge != nullptr) {
+            // rho contains dt*Q at this point; sum() excludes halos and is collective.
+            *depositedCharge = rho.sum() / normalization.timeStep;
+        }
         normalizeChargeDensity(fieldStorage, normalization);
     }
 

@@ -60,7 +60,8 @@ namespace opalx::spacecharge {
             return;
         }
 
-        if (policy.sourceRule != FieldSourceRule::ShiftedGreenImageZ) {
+        if (policy.sourceRule != FieldSourceRule::ShiftedGreenImageZ
+            && policy.sourceRule != FieldSourceRule::MirroredPrimaryZ) {
             throw OpalException(
                     "RelativisticFieldComposer::accumulate", "Unknown backend-field source rule.");
         }
@@ -71,16 +72,17 @@ namespace opalx::spacecharge {
         opalx::detail::mirrorField(sourceField, mirroredField, 2);
         IpplTimings::stopTimer(mirrorFieldTimer);
 
-        auto mirroredView       = mirroredField.getView();
-        const int flipAxis      = 2;
-        const int flipAxisValue = flipAxis;
+        auto mirroredView          = mirroredField.getView();
+        const int flipAxis         = 2;
+        const int flipAxisValue    = flipAxis;
+        const bool sameSignPrimary = policy.sourceRule == FieldSourceRule::MirroredPrimaryZ;
         ippl::parallel_for(
                 "RelativisticFieldComposer::accumulateShiftedGreenImageZ",
                 sourceField.getFieldRangePolicy(),
                 KOKKOS_LAMBDA(const ippl::RangePolicy<3>::index_array_type& idx) {
                     Vector electricPrime = mirroredView(idx[0], idx[1], idx[2]);
                     for (unsigned dimension = 0; dimension < 3; ++dimension) {
-                        if (static_cast<int>(dimension) != flipAxisValue) {
+                        if ((static_cast<int>(dimension) == flipAxisValue) == sameSignPrimary) {
                             electricPrime[dimension] = -electricPrime[dimension];
                         }
                     }

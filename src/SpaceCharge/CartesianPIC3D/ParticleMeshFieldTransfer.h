@@ -95,7 +95,7 @@ namespace opalx::spacecharge {
         void depositCharge(
                 ParticleContainer& particles, FieldStorage& fieldStorage, DepositKind depositKind,
                 const Selection& selection, const ChargeNormalization& normalization,
-                const ImagePolicy& imagePolicy) const;
+                const ImagePolicy& imagePolicy, double* depositedCharge = nullptr) const;
 
         /**
          * @brief Gather one vector field into an explicit writable particle destination.

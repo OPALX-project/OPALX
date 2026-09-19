@@ -1,0 +1,20 @@
+{
+  "source": {
+    "kinetic_energy_MeV": 245.0,
+    "electrons_per_bunch": 12500000000.0,
+    "sigma_x_m": 1.944325075701e-6,
+    "sigma_y_m": 1.944325075701e-6,
+    "sigma_z_m": 6.0e-4
+  },
+  "snapshots": {
+    "centroid_separations_sigma_z": [3.0, 2.0, 1.0, 0.0],
+    "plane_y_m": 0.0
+  },
+  "grid": {
+    "x_half_width_sigma_x": 5.0,
+    "z_half_width_sigma_z": 4.0,
+    "nx": 101,
+    "nz": 201,
+    "quadrature_chunk_size": 512
+  }
+}

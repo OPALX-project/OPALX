@@ -1,0 +1,119 @@
+OPTION, PSDUMPFREQ = 1;
+OPTION, STATDUMPFREQ = 1;
+OPTION, BOUNDPDESTROY = 10;
+OPTION, VERSION = 10900;
+OPTION, SEED = 42;
+
+TITLE, STRING = "Timed CAIN e-/e+ witnesses in the rigid BeamBeam model";
+
+// Primary 245 MeV electron beam. Zero momentum spread/divergence is deliberate:
+// together with BBRIGID it keeps the reduced-order Gaussian source rigid.
+REAL primary_kinetic_energy = 0.245;  // GeV
+REAL primary_gamma = (primary_kinetic_energy + EMASS) / EMASS;
+REAL primary_beta = sqrt(1.0 - 1.0 / (primary_gamma^2));
+REAL primary_p0 = primary_gamma * primary_beta * EMASS;  // GeV/c
+
+REAL primary_geometric_emittance = 5.2e-9;  // m rad
+REAL primary_beta_function = 0.727e-3;      // m
+REAL primary_sigma_xy = sqrt(primary_geometric_emittance * primary_beta_function);
+REAL primary_sigma_z = 0.6e-3;              // m
+
+REAL primary_electrons_per_bunch = 1.25e10;
+REAL primary_macroparticles = 10000;
+REAL elementary_charge = 1.602176634e-19;
+REAL primary_bunch_charge = primary_electrons_per_bunch * elementary_charge;
+
+// The converter splits the 1297 CAIN pairs into one file per species. Pair
+// macrocharge is retained for particle metadata only: containers 1 and 2 are
+// passive witnesses and never scatter charge to the BeamBeam field solve.
+REAL n_pairs_per_species = 1297;
+REAL pair_bunch_charge = n_pairs_per_species * elementary_charge;
+
+REAL drift_length = 0.01;
+REAL bb_length = 0.05;
+REAL bb_ip_s = drift_length + 0.5 * bb_length;
+
+// CAIN birth_time=0 is the nominal collision time: the primary centroid is at
+// the element midpoint. Every record is born at T0+birth_time and
+// R0+(x,y,z), including the signed CAIN z coordinate.
+REAL pair_t0 = bb_ip_s / (primary_beta * CLIGHT);
+REAL track_dt = 1e-12;
+REAL mesh_n = 16;
+
+DR_UP: DRIFT, L=drift_length, ELEMEDGE=0.0;
+IP1: BEAMBEAM,
+    L=bb_length,
+    ELEMEDGE=drift_length,
+    BBRIGID=TRUE,
+    COPY_TIME=50e-12,
+    WITNESS_CONTAINERS="1,2",
+    APERTURE="RECTANGLE(0.02, 0.02)";
+DR_DN: DRIFT, L=drift_length, ELEMEDGE=drift_length + bb_length;
+PAIR_LINE: LINE=(DR_UP, IP1, DR_DN);
+
+FS1: FIELDSOLVER,
+    TYPE=OPEN,
+    NX=mesh_n, NY=mesh_n, NZ=mesh_n,
+    PARFFTX=TRUE, PARFFTY=TRUE, PARFFTZ=TRUE,
+    BCFFTX=OPEN, BCFFTY=OPEN, BCFFTZ=OPEN,
+    GREENSF=INTEGRATED;
+
+DIST_PRIMARY: DISTRIBUTION,
+    TYPE=GAUSS,
+    SIGMAX=primary_sigma_xy, SIGMAY=primary_sigma_xy, SIGMAZ=primary_sigma_z,
+    SIGMAPX=0.0, SIGMAPY=0.0, SIGMAPZ=1.0e-12,
+    NPARTDIST=primary_macroparticles;
+
+DIST_CAINELECTRONS: DISTRIBUTION,
+    TYPE=EMITTEDFROMFILE,
+    FNAME="input/cain_electrons.emittedfromfile",
+    EMITTED=TRUE,
+    EMISSIONSTEPS=8,
+    NPARTDIST=n_pairs_per_species;
+
+DIST_CAINPOSITRONS: DISTRIBUTION,
+    TYPE=EMITTEDFROMFILE,
+    FNAME="input/cain_positrons.emittedfromfile",
+    EMITTED=TRUE,
+    EMISSIONSTEPS=8,
+    NPARTDIST=n_pairs_per_species;
+
+SOURCE_PRIMARY: EMISSIONSOURCE, DISTRIBUTION=DIST_PRIMARY;
+SOURCE_CAINELECTRONS: EMISSIONSOURCE,
+    DISTRIBUTION=DIST_CAINELECTRONS, T0=pair_t0, R0Z=bb_ip_s;
+SOURCE_CAINPOSITRONS: EMISSIONSOURCE,
+    DISTRIBUTION=DIST_CAINPOSITRONS, T0=pair_t0, R0Z=bb_ip_s;
+
+PRIMARY_SOURCES: EMISSIONSOURCELIST=(SOURCE_PRIMARY);
+ELECTRON_SOURCES: EMISSIONSOURCELIST=(SOURCE_CAINELECTRONS);
+POSITRON_SOURCES: EMISSIONSOURCELIST=(SOURCE_CAINPOSITRONS);
+
+PRIMARYELECTRONS: BEAM,
+    PARTICLE=ELECTRON,
+    PC=primary_p0,
+    NALLOC=primary_macroparticles,
+    BCHARGE=primary_bunch_charge,
+    SOURCES=PRIMARY_SOURCES;
+
+GAMMAGAMMAELECTRONS: BEAM,
+    PARTICLE=ELECTRON,
+    NALLOC=n_pairs_per_species,
+    BCHARGE=pair_bunch_charge,
+    SOURCES=ELECTRON_SOURCES;
+
+GAMMAGAMMAPOSITRONS: BEAM,
+    PARTICLE=POSITRON,
+    NALLOC=n_pairs_per_species,
+    BCHARGE=pair_bunch_charge,
+    SOURCES=POSITRON_SOURCES;
+
+TRACK,
+    LINE=PAIR_LINE,
+    BEAMS={PRIMARYELECTRONS, GAMMAGAMMAELECTRONS, GAMMAGAMMAPOSITRONS},
+    MAXSTEPS=160,
+    ZSTOP=2*drift_length + bb_length,
+    DT=track_dt;
+RUN, METHOD="PARALLEL", FIELDSOLVER=FS1;
+ENDTRACK;
+
+QUIT;

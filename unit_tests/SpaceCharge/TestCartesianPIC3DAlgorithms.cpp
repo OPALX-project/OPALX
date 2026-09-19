@@ -189,6 +189,45 @@ namespace opalx::spacecharge {
         }
 
         TEST_F(CartesianPIC3DAlgorithmsTest,
+               TranslatedTrackerFramePreservesAbsoluteDirichletPlane) {
+            // The cathode plane is expressed in absolute solve coordinates, whereas tracker R
+            // moves with its reference particle. Changing that reference must not move the plane
+            // relative to the physical bunch. This differs from BeamBeam's reference-local mesh.
+            const CoordinateSystemTrafo trackerPose(Vector(0.0, 0.0, 0.004), Quaternion());
+            for (auto plane : {DirichletPlaneType::ImageCharge, DirichletPlaneType::ShiftedGreen}) {
+                for (bool binned : {false, true}) {
+                    SCOPED_TRACE(static_cast<int>(plane));
+                    SCOPED_TRACE(binned);
+                    auto values           = config();
+                    values.dirichletPlane = {.kind = plane, .planeZ = 0.003};
+                    if (binned) {
+                        values.binning.emplace();
+                        values.binning->maximumBins = 1;
+                        values.binning->adaptive    = false;
+                    }
+                    Run absolute(values), translated(values, trackerPose);
+                    auto originalR = Kokkos::create_mirror(translated.particles.R.getView());
+                    Kokkos::deep_copy(originalR, translated.particles.R.getView());
+                    const auto expectedSolves =
+                            plane == DirichletPlaneType::ShiftedGreen || binned ? 2u : 1u;
+                    EXPECT_EQ(absolute.solve().backendSolves, expectedSolves);
+                    EXPECT_EQ(
+                            translated.solve(0, {trackerPose.inverted(), trackerPose})
+                                    .backendSolves,
+                            expectedSolves);
+                    expectFieldsEqual(translated.particles, absolute.particles);
+                    const auto restoredR = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), translated.particles.R.getView());
+                    for (std::size_t i = 0; i < translated.particles.getLocalNum(); ++i) {
+                        for (unsigned d = 0; d < 3; ++d) {
+                            EXPECT_NEAR(restoredR(i)[d], originalR(i)[d], 1.0e-14);
+                        }
+                    }
+                }
+            }
+        }
+
+        TEST_F(CartesianPIC3DAlgorithmsTest,
                ReplacesFieldsUsingExistingAllocationsAndPreservesOtherContainers) {
             for (auto backend : {PoissonSolverType::None, PoissonSolverType::Open}) {
                 auto values    = config();
