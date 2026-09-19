@@ -34,12 +34,9 @@ public:
      * @brief Constructor for MultiVariateGaussian.
      *
      * @param pc Shared pointer to the particle container.
-     * @param fc Shared pointer to the field container.
      * @param opalDist Borrowed distribution.
      */
-    MultiVariateGaussian(
-            std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-            Distribution_t* opalDist);
+    MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist);
 
     /**
      * @brief Constructor for MultiVariateGaussian with specified parameters.

@@ -59,10 +59,16 @@
 #include "Lines/EmissionSourceList.h"
 #include "Structure/Beam.h"
 #include "Structure/BoundaryGeometry.h"
+#include "Structure/CheckpointFile.h"
 #include "Structure/DataSink.h"
 #include "Structure/EmissionSource.h"
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPT.h"
+
+#include "SpaceCharge/SpaceChargeConfig.h"
+#include "SpaceCharge/SpaceChargeConfigBuilder.h"
+#include "SpaceCharge/SpaceChargeFactory.h"
+#include "SpaceCharge/SpaceChargeSolver.h"
 
 #include "BuildInfo.h"
 #include "Utility/Inform.h"
@@ -74,6 +80,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <memory>
@@ -81,28 +88,9 @@
 
 #include <unistd.h>
 
-#include <filesystem>
-
 extern Inform* gmsg;
 
 namespace {
-
-    /** Restart source path for container @p index when using per-container H5 names. */
-    std::string h5RestartSourceForContainer(
-            const std::string& restartFile, const std::string& containerH5FileName,
-            size_t numContainers) {
-        if (numContainers <= 1) {
-            return restartFile;
-        }
-        namespace fs = std::filesystem;
-        fs::path rf(restartFile);
-        fs::path leaf = fs::path(containerH5FileName).filename();
-        if (rf.has_parent_path()) {
-            return (rf.parent_path() / leaf).string();
-        }
-        return leaf.string();
-    }
-
     /**
      * @brief Enforces unit macro weight
      * @note For now, for the moment calculation to give unbiased estimators of the
@@ -198,6 +186,8 @@ TrackRun::TrackRun()
     : Action(TRACKRUN::SIZE, "RUN",
              "The \"RUN\" sub-command tracks the defined particles through "
              "the given lattice."),
+      bunch_m(nullptr),
+      spaceChargeSolver_m(nullptr),
       itsTracker_m(nullptr),
       fs_m(nullptr),
       ds_m(nullptr),
@@ -228,6 +218,8 @@ TrackRun::TrackRun()
 
 TrackRun::TrackRun(const std::string& name, TrackRun* parent)
     : Action(name, parent),
+      bunch_m(nullptr),
+      spaceChargeSolver_m(nullptr),
       itsTracker_m(nullptr),
       fs_m(nullptr),
       ds_m(nullptr),
@@ -255,10 +247,10 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
 }
 
 TrackRun::~TrackRun() {
-    // ParallelTracker borrows bunch_m and may retain sampler-owned shared
-    // references to its particle containers. Release those references before
-    // PartBunch destroys the collective MPI particle layouts.
+    // Solvers borrow particle containers and must be destroyed before their owner.
     itsTracker_m.reset();
+    spaceChargeSolver_m.reset();
+    bunch_m.reset();
 }
 
 TrackRun* TrackRun::clone(const std::string& name) { return new TrackRun(name, this); }
@@ -386,6 +378,46 @@ void TrackRun::execute() {
         globalProcessesLists[i] = makeGlobalProcessesForBeam(*b, i);
     }
 
+    const bool isRestart = opal_m->inRestartRun();
+    if (isRestart) {
+        opal_m->setOpenMode(OpalData::OpenMode::APPEND);
+        for (size_t i = 0; i < emissionSourcesLists.size(); ++i) {
+            for (const EmissionSource* source : emissionSourcesLists[i]) {
+                Distribution* distribution = Distribution::find(source->getDistributionName());
+                distribution->setDistType();
+                distribution->setDist();
+                if (distribution->emitting_m || source->getT0() > 0.0
+                    || distribution->getType() == DistributionType::EMITTEDFROMFILE) {
+                    throw OpalException(
+                            "TrackRun::execute",
+                            "Checkpoint restart does not yet support time-dependent or delayed "
+                            "emission sources (beam '"
+                                    + beamNames[i] + "', distribution '"
+                                    + source->getDistributionName() + "').");
+                }
+            }
+            if (!globalProcessesLists[i].empty()) {
+                throw OpalException(
+                        "TrackRun::execute",
+                        "Checkpoint restart does not yet support stochastic global processes "
+                        "such as DECAY (beam '"
+                                + beamNames[i] + "').");
+            }
+        }
+    }
+
+    // Parser-owned commands are consumed once. Runtime solver objects retain only this
+    // immutable snapshot and never borrow FieldSolverCmd or EmissionSource objects.
+    auto spaceChargeConfig =
+            opalx::spacecharge::buildSpaceChargeConfig(*fs_m, emissionSourcesLists);
+    opalx::spacecharge::DirichletPlaneConfig dirichletPlane;
+    if (const auto* cartesian =
+                std::get_if<opalx::spacecharge::CartesianPIC3DConfig>(&spaceChargeConfig)) {
+        dirichletPlane = cartesian->dirichletPlane;
+    }
+    const auto cartesianDomainConfig =
+            opalx::spacecharge::makeCartesianDomainConfig(spaceChargeConfig);
+
     /*
     Need the following units for mass and charge:
     - Charge per macro particle in [C], this should be macrocharge_m or q_m in the bunch.
@@ -403,7 +435,7 @@ void TrackRun::execute() {
         totalParticlesPerBeam[i] = computeTotalAllocationForBunch(b, emissionSourcesLists[i]);
     }
 
-    // Create PartBunch (PIC Manager) with multiple particle containers
+    // Create PartBunch with multiple particle containers.
     bunch_m = std::make_unique<bunch_type>(
             macrocharges,                     // Macro charge [C]
             macromasses,                      // Macro Mass [GeV]
@@ -411,8 +443,7 @@ void TrackRun::execute() {
             totalParticlesPerBeam,            // Per-beam particle counts for allocation
             Options::loadBalancingThreshold,  // Load balancing threshold
             "LF2",                            // Integrator
-            fs_m,                             // Fieldsolver
-            ds_m);                            // Data sink
+            cartesianDomainConfig);           // Cartesian domain and particle-layout setup
 
     // Validate container setup produced by constructor
     const auto& particleContainers = bunch_m->getParticleContainers();
@@ -426,7 +457,7 @@ void TrackRun::execute() {
     wireDaughterContainers(beams);
 
     // BC handler
-    *gmsg << level2 << *(bunch_m->getBCHandler()) << endl;
+    *gmsg << level2 << fs_m->constructBCHandler() << endl;
 
     setupBoundaryGeometry();
 
@@ -458,27 +489,37 @@ void TrackRun::execute() {
         *gmsg << level5 << "MPI_Comm_size= " << world_size << endl;
     }
 
-    // Setup all distributions and samplers, perform initial sampling (t0 == 0),
-    // and prepare per-container emitting sampler lists for ParallelTracker.
-    // Do this for each particle container
+    // A fresh run samples its distributions. A restart restores the exact saved particle state
+    // instead, so sampling it again would duplicate particles and consume random numbers.
     OpalData::getInstance()->setGlobalPhaseShift(0.0);
     std::vector<emittingSamplers_t> emittingSamplersList(particleContainers.size());
-    for (size_t i = 0; i < particleContainers.size(); ++i) {
-        setupDistributionsAndSamplers(
-                emissionSourcesLists[i], beams[i], emittingSamplersList[i], i);
+    CheckpointFile::Metadata restartMetadata;
+    if (isRestart) {
+        restartMetadata = CheckpointFile::read(opal_m->getRestartFileName(), *bunch_m);
+        ds_m->rewindToCheckpoint(*bunch_m);
+        *gmsg << level1 << "* Restored checkpoint '" << opal_m->getRestartFileName()
+              << "' at global step " << restartMetadata.globalTrackStep
+              << ", t = " << Util::getTimeString(restartMetadata.time) << "." << endl;
+    } else {
+        for (size_t i = 0; i < particleContainers.size(); ++i) {
+            setupDistributionsAndSamplers(
+                    emissionSourcesLists[i], beams[i], emittingSamplersList[i], i);
+        }
     }
-    configureImageChargeFromSources(emissionSourcesLists);
+    spaceChargeSolver_m =
+            opalx::spacecharge::makeSpaceChargeSolver(std::move(spaceChargeConfig), *bunch_m, ds_m);
 
-    // Reset the field solver with correct hr_m based on the distribution.
-    bunch_m->setCharge();
-    bunch_m->setMass();
+    if (!isRestart) {
+        // Refresh the initial particle statistics after distribution setup.
+        bunch_m->setCharge();
+        bunch_m->setMass();
+    }
 
-    // Calculate extents and update moments for each container
-    bunch_m->bunchUpdate();
+    bunch_m->updateAllParticleMoments();
     bunch_m->print(*gmsg);
 
     // Set ZStart, ZStop, and dT
-    if (bunch_m->getParticleContainer()->getTotalNum() > 0) {
+    if (!isRestart && bunch_m->getParticleContainer()->getTotalNum() > 0) {
         double spos = Track::block->zstart;
         auto& zstop = Track::block->zstop;
         auto it     = Track::block->dT.begin();
@@ -490,7 +531,7 @@ void TrackRun::execute() {
         }
 
         bunch_m->setdT(*it);
-    } else {
+    } else if (!isRestart) {
         Track::block->zstart = 0.0;
     }
 
@@ -501,8 +542,12 @@ void TrackRun::execute() {
 
     */
     itsTracker_m = std::make_unique<ParallelTracker>(
-            *Track::block->use->fetchLine(), *bunch_m, ds_m, false, Track::block->localTimeSteps,
-            Track::block->zstart, Track::block->zstop, Track::block->dT, emittingSamplersList);
+            *Track::block->use->fetchLine(), *bunch_m, *spaceChargeSolver_m, dirichletPlane, ds_m,
+            false, Track::block->localTimeSteps, Track::block->zstart, Track::block->zstop,
+            Track::block->dT, emittingSamplersList, isRestart,
+            static_cast<unsigned long long>(restartMetadata.globalTrackStep), restartMetadata.dt,
+            StepSizeConfig::ResumePosition{
+                    restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment});
     itsTracker_m->execute();
 
     /*
@@ -531,20 +576,18 @@ void TrackRun::initDataSink(size_t numParticleContainers) {
     phaseSpaceSinks_m.clear();
     phaseSpaceSinks_m.reserve(numParticleContainers);
 
-    const std::string base = opal_m->getInputBasename();
+    const bool isRestart        = opal_m->inRestartRun();
+    const std::string inputBase = opal_m->getInputBasename();
 
-    for (size_t i = 0; i < numParticleContainers; ++i) {
+    for (size_t i = 0; Options::enableHDF5 && i < numParticleContainers; ++i) {
         const std::string stem =
-                DataSink::diagnosticStemForContainer(base, numParticleContainers, i);
+                DataSink::diagnosticStemForContainer(inputBase, numParticleContainers, i);
         const std::string dest = stem + std::string(".h5");
 
-        if (opal_m->inRestartRun()) {
-            const std::string src = h5RestartSourceForContainer(
-                    OpalData::getInstance()->getRestartFileName(), dest, numParticleContainers);
+        if (isRestart && std::filesystem::exists(dest)) {
             phaseSpaceSinks_m.push_back(
-                    std::make_unique<H5PartWrapperForPT>(
-                            dest, opal_m->getRestartStep(), src, H5_O_WRONLY));
-        } else if (isFollowupTrack_m) {
+                    std::make_unique<H5PartWrapperForPT>(dest, -1, dest, H5_O_RDWR));
+        } else if (!isRestart && isFollowupTrack_m) {
             phaseSpaceSinks_m.push_back(
                     std::make_unique<H5PartWrapperForPT>(
                             dest, -1, stem + std::string(".h5"), H5_O_WRONLY));
@@ -554,7 +597,7 @@ void TrackRun::initDataSink(size_t numParticleContainers) {
     }
 
     const std::vector<H5PartWrapper*> sinks = borrowedPhaseSpaceSinks();
-    if (!opal_m->inRestartRun()) {
+    if (!isRestart) {
         if (!opal_m->hasDataSinkAllocated()) {
             opal_m->setDataSink(new DataSink(sinks, false, numParticleContainers));
         } else {
@@ -562,7 +605,9 @@ void TrackRun::initDataSink(size_t numParticleContainers) {
             raw->changeH5Wrappers(sinks);
         }
     } else {
-        opal_m->setDataSink(new DataSink(sinks, true, numParticleContainers));
+        // All diagnostics continue under their original basename. Existing phase-space H5 files
+        // are opened for append; absent ones are initialized as new diagnostic files.
+        opal_m->setDataSink(new DataSink(sinks, false, numParticleContainers, inputBase, true));
     }
 
     // DataSink lifetime is managed by OpalData; TrackRun only borrows it.
@@ -637,7 +682,7 @@ void TrackRun::wireDaughterContainers(const std::vector<Beam*>& beams) {
             if (decayProc) {
                 requireUnitMacroWeight(*beams[daughterIdx], "daughter");
                 // A muon daughter (e.g. from pion decay) receives a per-particle
-                // polarization from the decay, so its container must have spin storage —
+                // polarization from the decay, so its container must have spin storage -
                 // which is enabled by setting POLARIZATION on the daughter muon BEAM.
                 const ParticleType daughterType =
                         ParticleProperties::getParticleType(beams[daughterIdx]->getParticleName());
@@ -691,7 +736,6 @@ void TrackRun::setupDistributionsAndSamplers(
 
     // Common containers / parameters used by all samplers.
     auto pc               = bunch_m->getParticleContainer(index);
-    auto fc               = bunch_m->getFieldContainer();
     Vector_t<int, Dim> nr = bunch_m->nr_m;
     const double avrgpz   = beam->getMomentum() / beam->getMass();
 
@@ -736,25 +780,25 @@ void TrackRun::setupDistributionsAndSamplers(
         std::shared_ptr<SamplingBase> sampler;
         switch (opalDist->getType()) {
             case DistributionType::UNIFORM:
-                sampler = std::make_shared<Uniform>(pc, fc, opalDist);
+                sampler = std::make_shared<Uniform>(pc, opalDist);
                 break;
             case DistributionType::GAUSS:
-                sampler = std::make_shared<Gaussian>(pc, fc, opalDist);
+                sampler = std::make_shared<Gaussian>(pc, opalDist);
                 break;
             case DistributionType::MULTIVARIATEGAUSS:
-                sampler = std::make_shared<MultiVariateGaussian>(pc, fc, opalDist);
+                sampler = std::make_shared<MultiVariateGaussian>(pc, opalDist);
                 break;
             case DistributionType::FLATTOP:
-                sampler = std::make_shared<FlatTop>(pc, fc, opalDist);
+                sampler = std::make_shared<FlatTop>(pc, opalDist);
                 break;
             case DistributionType::OPALFLATTOP:
-                sampler = std::make_shared<OpalFlatTop>(pc, fc, opalDist);
+                sampler = std::make_shared<OpalFlatTop>(pc, opalDist);
                 break;
             case DistributionType::FROMFILE:
-                sampler = std::make_shared<FromFile>(pc, fc, opalDist);
+                sampler = std::make_shared<FromFile>(pc, opalDist);
                 break;
             case DistributionType::EMITTEDFROMFILE:
-                sampler = std::make_shared<EmittedFromFile>(pc, fc, opalDist);
+                sampler = std::make_shared<EmittedFromFile>(pc, opalDist);
                 break;
             default:
                 throw OpalException("Distribution::create", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
@@ -815,115 +859,6 @@ void TrackRun::setupDistributionsAndSamplers(
 
     *gmsg << level2 << "* Particle sampling / sampler setup for all emission sources done." << endl;
     IpplTimings::stopTimer(samplingTime);
-}
-
-void TrackRun::configureImageChargeFromSources(
-        const std::vector<std::vector<EmissionSource*>>& emissionSourcesLists) {
-    bool enableImageCharge   = false;
-    bool enableShiftedGreens = false;
-    double zPlane            = 0.0;
-    int dumpFrequency        = 0;
-    int maxSteps             = 0;
-    size_t numZeroFaceR0Z    = 0;
-    size_t numShiftedGreens  = 0;
-
-    for (const auto& sourceList : emissionSourcesLists) {
-        for (const auto* src : sourceList) {
-            if (!src) {
-                continue;
-            }
-
-            const bool srcZeroFace        = src->getZeroFaceR0Z();
-            const bool srcShifted         = src->getShiftedGreensFunction();
-            const int sourceDumpFrequency = src->getZeroFacePlaneDumpFrequency();
-
-            // Mutual exclusion within a single EMISSIONSOURCE.
-            if (srcZeroFace && srcShifted) {
-                throw OpalException(
-                        "TrackRun::configureImageChargeFromSources",
-                        "ZEROFACE_R0Z and SHIFTED_GREENS_FUNCTION are mutually exclusive on "
-                        "the same EMISSIONSOURCE. Enable exactly one.");
-            }
-
-            if (!srcZeroFace && !srcShifted) {
-                if (sourceDumpFrequency > 0) {
-                    throw OpalException(
-                            "TrackRun::configureImageChargeFromSources",
-                            "ZEROFACEPLANEDUMP > 0 requires ZEROFACE_R0Z=true on the same "
-                            "EMISSIONSOURCE. (Dumping is not supported for "
-                            "SHIFTED_GREENS_FUNCTION since the computational domain may be "
-                            "far from R0Z.)");
-                }
-                continue;
-            }
-
-            if (srcZeroFace) {
-                ++numZeroFaceR0Z;
-                enableImageCharge = true;
-                zPlane            = src->getR0()[2];
-                dumpFrequency     = sourceDumpFrequency;
-                maxSteps          = src->getZerofaceMaxSteps();
-            } else {
-                // srcShifted
-                ++numShiftedGreens;
-                enableShiftedGreens = true;
-                zPlane              = src->getR0()[2];
-                // Dumping is unsupported for the shifted path (see comment above).
-                if (sourceDumpFrequency > 0) {
-                    throw OpalException(
-                            "TrackRun::configureImageChargeFromSources",
-                            "ZEROFACEPLANEDUMP > 0 is not supported with "
-                            "SHIFTED_GREENS_FUNCTION=true (the computational domain may be "
-                            "far from R0Z, making the interpolated plane dump meaningless).");
-                }
-                maxSteps = src->getZerofaceMaxSteps();
-            }
-        }
-    }
-
-    if (numZeroFaceR0Z > 1) {
-        throw OpalException(
-                "TrackRun::configureImageChargeFromSources",
-                "Cannot have more than one emission source with ZEROFACE_R0Z=true, since image "
-                "charge computation is only implemented for one plane.");
-    }
-    if (numShiftedGreens > 1) {
-        throw OpalException(
-                "TrackRun::configureImageChargeFromSources",
-                "Cannot have more than one emission source with SHIFTED_GREENS_FUNCTION=true, "
-                "since the shifted Green's function correction is only implemented for one plane.");
-    }
-    if (enableImageCharge && enableShiftedGreens) {
-        throw OpalException(
-                "TrackRun::configureImageChargeFromSources",
-                "Cannot have ZEROFACE_R0Z=true on one EMISSIONSOURCE and "
-                "SHIFTED_GREENS_FUNCTION=true on another; the two Dirichlet-correction paths "
-                "are mutually exclusive at the run level.");
-    }
-
-    // SHIFTED_GREENS_FUNCTION requires the OPEN field solver. We inspect the
-    // FIELDSOLVER definition via the cached FieldSolverCmd (fs_m, set earlier
-    // in execute()) — the BinnedFieldSolver type is only forward-declared via
-    // PartBunch.h here so we cannot call bunch_m->getFieldSolver()->getStype()
-    // directly without pulling in the full template definition.
-    // The runtime guard inside FieldSolver::runShiftedOpenSolver will also throw,
-    // but catching the misconfiguration here gives the user a cleaner error.
-    if (enableShiftedGreens) {
-        const std::string solverType = fs_m ? fs_m->getType() : std::string("(unknown)");
-        if (solverType != "OPEN") {
-            throw OpalException(
-                    "TrackRun::configureImageChargeFromSources",
-                    "SHIFTED_GREENS_FUNCTION=true requires FIELDSOLVER TYPE=OPEN (got '"
-                            + solverType + "').");
-        }
-    }
-
-    bunch_m->setImageChargeConfiguration(enableImageCharge, zPlane);
-    bunch_m->setShiftedGreensConfiguration(enableShiftedGreens, zPlane);
-    bunch_m->setZeroFacePlaneDumpFrequency(enableImageCharge ? dumpFrequency : 0);
-    // Both Dirichlet paths share the ZEROFACE_MAXSTEPS step budget.
-    const bool anyDirichletActive = enableImageCharge || enableShiftedGreens;
-    bunch_m->setZerofaceMaxSteps(anyDirichletActive ? maxSteps : 0);
 }
 
 Inform& TrackRun::print(Inform& os) const {

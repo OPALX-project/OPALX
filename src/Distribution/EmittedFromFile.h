@@ -38,12 +38,9 @@ public:
      * @brief Constructor for EmittedFromFile.
      *
      * @param pc Shared pointer to ParticleContainer.
-     * @param fc Shared pointer to FieldContainer.
      * @param opalDist Borrowed Distribution.
      */
-    EmittedFromFile(
-            std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-            Distribution_t* opalDist);
+    EmittedFromFile(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist);
 
     /**
      * @brief Convenience constructor that takes the filename directly.
@@ -52,12 +49,9 @@ public:
      * Distribution object is unnecessary.
      *
      * @param pc Shared pointer to ParticleContainer.
-     * @param fc Shared pointer to FieldContainer.
      * @param filename Path to the emitted particle file.
      */
-    EmittedFromFile(
-            std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-            const std::string& filename);
+    EmittedFromFile(std::shared_ptr<ParticleContainer_t> pc, const std::string& filename);
 
     /**
      * @brief Reads the selected file records and builds the birth-time inventory.

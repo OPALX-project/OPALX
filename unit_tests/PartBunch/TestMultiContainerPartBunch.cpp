@@ -14,35 +14,17 @@
 #include <vector>
 
 #include "AbstractObjects/OpalData.h"
-#include "Attributes/Attributes.h"
 #include "Ippl.h"
 #include "PartBunch/PartBunch.h"
+#include "SpaceCharge/SpaceChargeFactory.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
-#include "Structure/FieldSolverCmd.h"
 #include "Structure/H5PartWrapperForPT.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utility/Inform.h"
 
 namespace {
-
-    class TestableFieldSolverCmd : public FieldSolverCmd {
-    public:
-        void setType(const std::string& t) {
-            Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::TYPE], t);
-        }
-
-        void setBCX(const std::string& bc) {
-            Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::BCFFTX], bc);
-        }
-        void setBCY(const std::string& bc) {
-            Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::BCFFTY], bc);
-        }
-        void setBCZ(const std::string& bc) {
-            Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::BCFFTZ], bc);
-        }
-    };
 
     using PartBunch_t         = PartBunch<double, 3>;
     using ParticleContainer_t = typename PartBunch_t::ParticleContainer_t;
@@ -68,15 +50,7 @@ namespace {
         }
 
         void SetUp() override {
-            fsCmd = std::make_shared<TestableFieldSolverCmd>();
-            fsCmd->setType("NONE");
-            fsCmd->setNX(8);
-            fsCmd->setNY(8);
-            fsCmd->setNZ(8);
-            fsCmd->setBCX("PERIODIC");
-            fsCmd->setBCY("PERIODIC");
-            fsCmd->setBCZ("PERIODIC");
-            fsCmdBase = fsCmd;
+            storageConfig.periodicParticleBoundary = true;
 
             dataSink = std::make_shared<DataSink>();
             beam     = std::make_shared<Beam>();
@@ -93,7 +67,7 @@ namespace {
                     std::vector<Beam*>{testBeam, testBeam},
                     std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam},
                     /*lbt=*/1.0,
-                    /*integration_method=*/"LF2", fsCmdBase.get(), dataSink.get());
+                    /*integration_method=*/"LF2", storageConfig);
             q0_m = q0;
             q1_m = q1;
             m0_m = m0;
@@ -103,8 +77,6 @@ namespace {
         void TearDown() override {
             bunch.reset();
             dataSink.reset();
-            fsCmd.reset();
-            fsCmdBase.reset();
             beam.reset();
         }
 
@@ -166,8 +138,7 @@ namespace {
             return fd;
         }
 
-        std::shared_ptr<TestableFieldSolverCmd> fsCmd;
-        std::shared_ptr<FieldSolverCmd> fsCmdBase;
+        opalx::spacecharge::CartesianDomainConfig3D storageConfig;
         std::shared_ptr<DataSink> dataSink;
         std::shared_ptr<Beam> beam;
         Beam* testBeam = nullptr;
@@ -213,7 +184,7 @@ namespace {
                         std::vector<double>{1.0}, std::vector<double>{1.0, 1.0},
                         std::vector<Beam*>{testBeam, testBeam},
                         std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam}, 1.0, "LF2",
-                        fsCmdBase.get(), dataSink.get())),
+                        storageConfig)),
                 OpalException);
     }
 
@@ -223,17 +194,7 @@ namespace {
                         std::vector<double>{1.0, 1.0}, std::vector<double>{1.0, 1.0},
                         std::vector<Beam*>{testBeam, nullptr},
                         std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam}, 1.0, "LF2",
-                        fsCmdBase.get(), dataSink.get())),
-                OpalException);
-    }
-
-    TEST_F(MultiContainerPartBunchTest, Constructor_ThrowsOnNullDataSink) {
-        EXPECT_THROW(
-                static_cast<void>(std::make_shared<PartBunch_t>(
-                        std::vector<double>{1.0, 1.0}, std::vector<double>{1.0, 1.0},
-                        std::vector<Beam*>{testBeam, testBeam},
-                        std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam}, 1.0, "LF2",
-                        fsCmdBase.get(), nullptr)),
+                        storageConfig)),
                 OpalException);
     }
 
@@ -244,6 +205,33 @@ namespace {
         createParticlesInContainer(1, n1, 0.2, 0.6);
 
         EXPECT_EQ(bunch->getTotalNumAllContainers(), n0 + n1);
+    }
+
+    TEST_F(MultiContainerPartBunchTest, SpaceChargeFactoryConstructsConfiguredCartesianAlgorithm) {
+        using namespace opalx::spacecharge;
+        CartesianPIC3DConfig values;
+        values.backend                         = PoissonSolverType::PeriodicFFT;
+        values.grid.meshSize                   = storageConfig.meshSize;
+        values.grid.decomposition              = storageConfig.decomposition;
+        values.grid.boundingBoxIncreasePercent = storageConfig.boundingBoxIncreasePercent;
+        values.boundaryConditions              = {
+                FieldBoundaryCondition::Periodic, FieldBoundaryCondition::Periodic,
+                FieldBoundaryCondition::Periodic};
+        SpaceChargeConfig config = values;
+
+        auto solver = makeSpaceChargeSolver(std::move(config), *bunch, dataSink.get());
+        EXPECT_NE(solver, nullptr);
+    }
+
+    TEST_F(MultiContainerPartBunchTest, SpaceChargeFactoryDefersFFT2D5Initialization) {
+        using namespace opalx::spacecharge;
+        FFT2D5Config values;
+        values.referencePathFile = "";
+        auto solver = makeSpaceChargeSolver(SpaceChargeConfig(values), *bunch, nullptr);
+
+        ASSERT_NE(solver, nullptr);
+        EXPECT_EQ(solver->backendSolveCount(), 0u);
+        EXPECT_EQ(solver->redistributionCount(), 0u);
     }
 
     // --- DataSink stems and writers ---
@@ -270,7 +258,7 @@ namespace {
         fdTooSmall.push_back(zeroFdPair());
 
         const double azimuth = 0.0;
-        EXPECT_THROW(ds.dumpSDDS(*bunch, fdTooSmall, azimuth), OpalException);
+        EXPECT_THROW(ds.dumpSDDS(*bunch, fdTooSmall, 1, azimuth), OpalException);
 
         std::remove((DataSink::diagnosticStemForContainer("unit_test", 2, 0) + ".stat").c_str());
         std::remove((DataSink::diagnosticStemForContainer("unit_test", 2, 1) + ".stat").c_str());
@@ -287,7 +275,7 @@ namespace {
         fd[1] = zeroFdPair();
 
         const double azimuth = 0.0;
-        EXPECT_NO_THROW(ds.dumpSDDS(*bunch, fd, azimuth));
+        EXPECT_NO_THROW(ds.dumpSDDS(*bunch, fd, 1, azimuth));
 
         std::remove((DataSink::diagnosticStemForContainer("unit_test", 2, 0) + ".stat").c_str());
         std::remove((DataSink::diagnosticStemForContainer("unit_test", 2, 1) + ".stat").c_str());
@@ -344,6 +332,70 @@ namespace {
         std::remove((OpalData::getInstance()->getInputBasename() + ".lbal").c_str());
 
         Options::enableHDF5 = savedH5;
+    }
+
+    TEST_F(MultiContainerPartBunchTest, DataSink_RewindToCheckpointAppendsDiagnosticH5InPlace) {
+        createParticlesInContainer(0, 4u, 0.1, 0.2);
+        createParticlesInContainer(1, 4u, 0.1, 0.2);
+
+        const bool savedH5  = Options::enableHDF5;
+        Options::enableHDF5 = true;
+        struct RestoreH5Option {
+            bool value;
+            ~RestoreH5Option() { Options::enableHDF5 = value; }
+        } restoreH5{savedH5};
+
+        const std::string base = "test_diagnostic_checkpoint_rewind";
+        const std::string f0   = base + "_c0.h5";
+        const std::string f1   = base + "_c1.h5";
+        auto w0                = std::make_unique<H5PartWrapperForPT>(f0, H5_O_WRONLY);
+        auto w1                = std::make_unique<H5PartWrapperForPT>(f1, H5_O_WRONLY);
+        std::vector<H5PartWrapper*> wrappers{w0.get(), w1.get()};
+
+        {
+            DataSink ds(wrappers, false, 2, base);
+            std::vector<std::array<Vector_t<double, 3>, 2>> fd(2);
+            fd[0] = zeroFdPair();
+            fd[1] = zeroFdPair();
+
+            bunch->setdT(1.0e-12);
+            bunch->setT(1.0e-12);
+            ds.dumpH5(*bunch, fd);
+            bunch->setT(2.0e-12);
+            ds.dumpH5(*bunch, fd);
+
+            bunch->setT(1.0e-12);
+            ds.rewindToCheckpoint(*bunch);
+            bunch->setT(2.0e-12);
+            ds.dumpH5(*bunch, fd);
+        }
+        w0.reset();
+        w1.reset();
+
+        h5_prop_t props = H5CreateFileProp();
+        MPI_Comm comm   = ippl::Comm->getCommunicator();
+        ASSERT_NE(props, H5_ERR);
+        ASSERT_NE(H5SetPropFileMPIOCollective(props, &comm), H5_ERR);
+        h5_file_t file = H5OpenFile(f0.c_str(), H5_O_RDONLY, props);
+        H5CloseProp(props);
+        ASSERT_NE(file, static_cast<h5_file_t>(H5_ERR));
+        EXPECT_EQ(H5GetNumSteps(file), 2);
+        h5_float64_t time = 0.0;
+        ASSERT_EQ(H5SetStep(file, 0), H5_SUCCESS);
+        ASSERT_EQ(H5ReadStepAttribFloat64(file, "TIME", &time), H5_SUCCESS);
+        EXPECT_DOUBLE_EQ(time, 1.0e-12);
+        ASSERT_EQ(H5SetStep(file, 1), H5_SUCCESS);
+        ASSERT_EQ(H5ReadStepAttribFloat64(file, "TIME", &time), H5_SUCCESS);
+        EXPECT_DOUBLE_EQ(time, 2.0e-12);
+        ASSERT_EQ(H5CloseFile(file), H5_SUCCESS);
+
+        ippl::Comm->barrier();
+        if (ippl::Comm->rank() == 0) {
+            std::remove(f0.c_str());
+            std::remove(f1.c_str());
+            std::remove((base + ".lbal").c_str());
+        }
+        ippl::Comm->barrier();
     }
 
 }  // namespace

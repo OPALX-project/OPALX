@@ -10,13 +10,17 @@
 #include "BeamlineCore/BeamBeamRep.h"
 #include "BeamlineCore/DriftRep.h"
 #include "PartBunch/PartBunch.h"
+#include "SpaceCharge/CartesianPIC3D/CartesianDomainUpdater.h"
+#include "SpaceCharge/Poisson/PoissonSolver.h"
+#include "SpaceCharge/SpaceChargeConfigBuilder.h"
 #include "Structure/Beam.h"
-#include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
 #include "Utilities/Options.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
+#include <variant>
 #include <vector>
 
 extern Inform* gmsg;
@@ -25,6 +29,7 @@ namespace {
 
     using Bunch_t  = PartBunch<double, 3>;
     using Vector3d = ippl::Vector<double, 3>;
+    namespace sc   = opalx::spacecharge;
 
     /**
      * @brief Test-only FieldSolverCmd helper exposing the minimal attribute setters
@@ -34,7 +39,7 @@ namespace {
      * because the bugs we fixed were caused by the coupling between:
      * - cached physical bunch bounds,
      * - field-domain bounds, and
-     * - the temporary BeamBeam-window mesh replacement.
+     * - the solver-owned fixed Cartesian domain used by BeamBeam.
      *
      * Using a real bunch here gives coverage over those interfaces without pulling
      * in the full ParallelTracker machinery.
@@ -57,7 +62,6 @@ namespace {
     };
 
     std::shared_ptr<TestableFieldSolverCmd> fieldSolverForBunch;
-    std::shared_ptr<DataSink> dataSinkForBunch;
     std::shared_ptr<Beam> beamForBunch;
 
     std::shared_ptr<TestableFieldSolverCmd> makeFieldSolverCmd() {
@@ -81,7 +85,8 @@ namespace {
         return std::make_shared<Bunch_t>(
                 std::vector<double>{-1.0e-15}, std::vector<double>{5.10999e-4},
                 std::vector<Beam*>{beam}, std::vector<size_t>{16}, 1.0, "LF2",
-                fieldSolverForBunch.get(), dataSinkForBunch.get());
+                sc::makeCartesianDomainConfig(
+                        sc::buildSpaceChargeConfig(*fieldSolverForBunch, {})));
     }
 
     std::shared_ptr<Bunch_t> makeTwoContainerBunch() {
@@ -93,7 +98,8 @@ namespace {
         return std::make_shared<Bunch_t>(
                 std::vector<double>{-1.0e-15, 1.0e-15}, std::vector<double>{5.10999e-4, 5.10999e-4},
                 std::vector<Beam*>{beam, beam}, std::vector<size_t>{16, 16}, 1.0, "LF2",
-                fieldSolverForBunch.get(), dataSinkForBunch.get());
+                sc::makeCartesianDomainConfig(
+                        sc::buildSpaceChargeConfig(*fieldSolverForBunch, {})));
     }
 
     void setParticlePositions(
@@ -116,7 +122,42 @@ namespace {
         Kokkos::deep_copy(pc->R.getView(), R_host);
         Kokkos::deep_copy(pc->P.getView(), P_host);
         Kokkos::fence();
-        pc->update();
+        pc->markMomentsDirty();
+    }
+
+    // Exercise the same domain updater used by the Cartesian solver without a field solve:
+    // these tests cover geometry and migration, independently of the Poisson discretization.
+    void updateFieldDomain(
+            const std::shared_ptr<Bunch_t>& bunch,
+            sc::DomainCoordinateFrame frame = sc::DomainCoordinateFrame::Beam) {
+        auto config = std::get<sc::CartesianPIC3DConfig>(
+                sc::buildSpaceChargeConfig(*fieldSolverForBunch, {}));
+        config.backend = sc::PoissonSolverType::None;
+        sc::CartesianPIC3DFieldStorage<double, 3> fields(bunch->cartesianDomain());
+        fields.initializeFields(config.backend);
+        auto poisson = sc::makePoissonSolver(
+                sc::makePoissonSolverConfig(config),
+                {&fields.chargeDensity(), &fields.electricField()});
+        std::vector<Bunch_t::ParticleContainer_t*> particles;
+        for (const auto& pc : bunch->getParticleContainers()) {
+            particles.push_back(pc.get());
+        }
+        sc::CartesianDomainUpdater updater(config, particles);
+        std::vector<std::uint8_t> activity(particles.size(), 0);
+        activity.front() = 1;
+        sc::SpaceChargeStepState step;
+        step.mpiSize = ippl::Comm->size();
+        const sc::SpaceChargeSolveContext context(activity, step);
+        const auto& fixed = bunch->getBunchStateHandler()->fixedCartesianDomain();
+        const auto* fixedDomain =
+                frame == sc::DomainCoordinateFrame::Beam && fixed ? &*fixed : nullptr;
+        EXPECT_FALSE(updater.updateForSolve(frame, context, {}, fixedDomain, fields, *poisson));
+    }
+
+    void setFixedDomain(
+            const std::shared_ptr<Bunch_t>& bunch, const Vector3d& lower, const Vector3d& upper) {
+        bunch->getBunchStateHandler()->setFixedCartesianDomain(
+                {lower[0], lower[1], lower[2]}, {upper[0], upper[1], upper[2]});
     }
 
     void expectVectorNear(const Vector3d& actual, const Vector3d& expected, double tolerance) {
@@ -140,13 +181,11 @@ namespace {
             Options::enableHDF5 = false;
 
             fieldSolverForBunch = makeFieldSolverCmd();
-            dataSinkForBunch    = std::make_shared<DataSink>();
             beamForBunch        = std::make_shared<Beam>();
         }
 
         static void TearDownTestSuite() {
             beamForBunch.reset();
-            dataSinkForBunch.reset();
             fieldSolverForBunch.reset();
             delete gmsg;
             gmsg = nullptr;
@@ -155,28 +194,24 @@ namespace {
     };
 
     // ----------------------------------------------------------------------------
-    // BeamBeamWindowConfig lifecycle
+    // Fixed BeamBeam domain lifecycle
     // ----------------------------------------------------------------------------
 
-    // Verifies that the bunch-side BeamBeam-window configuration behaves like a
-    // narrow geometry input only: absent by default, present after configuration,
-    // and removable again without affecting unrelated state.
-    TEST_F(BeamBeamPartBunchTest, BeamBeamWindowConfigLifecycle) {
+    // The shared state owns geometry intent; the Cartesian solver owns its application.
+    TEST_F(BeamBeamPartBunchTest, FixedBeamBeamDomainLifecycle) {
         auto bunch = makeBunch();
+        auto state = bunch->getBunchStateHandler();
 
-        ASSERT_FALSE(bunch->hasBeamBeamWindowConfig());
+        ASSERT_FALSE(state->fixedCartesianDomain());
 
-        bunch->setBeamBeamWindowConfig(0.50, 1.25, 1.00, 1.50, false);
-        ASSERT_TRUE(bunch->hasBeamBeamWindowConfig());
+        setFixedDomain(bunch, Vector3d(-0.2, -0.3, 1.0), Vector3d(0.2, 0.3, 1.5));
+        ASSERT_TRUE(state->fixedCartesianDomain());
 
-        const auto& config = bunch->getBeamBeamWindowConfig();
-        EXPECT_DOUBLE_EQ(config.interactionPointS, 1.25);
-        EXPECT_DOUBLE_EQ(config.windowBeginS, 1.00);
-        EXPECT_DOUBLE_EQ(config.windowEndS, 1.50);
-        EXPECT_FALSE(config.copyModel);
+        EXPECT_DOUBLE_EQ(state->fixedCartesianDomain()->lower[2], 1.0);
+        EXPECT_DOUBLE_EQ(state->fixedCartesianDomain()->upper[2], 1.5);
 
-        bunch->clearBeamBeamWindowConfig();
-        EXPECT_FALSE(bunch->hasBeamBeamWindowConfig());
+        state->clearFixedCartesianDomain();
+        EXPECT_FALSE(state->fixedCartesianDomain());
     }
 
     TEST_F(BeamBeamPartBunchTest, OnlyStatefulElementsCreateRuntimeInteractions) {
@@ -263,24 +298,27 @@ namespace {
     }
 
     // ----------------------------------------------------------------------------
-    // enableBeamBeamWindowMesh
+    // Solver-owned fixed window geometry
     // ----------------------------------------------------------------------------
 
     // The BeamBeam-window mesh switch should keep the transverse field domain
     // unchanged while replacing only the longitudinal mesh extent. This is the
     // explicit Lagrangian-to-Eulerian transition in z that the current model relies on.
-    TEST_F(BeamBeamPartBunchTest, EnableBeamBeamWindowMeshOnlyChangesLongitudinalDomain) {
-        auto bunch          = makeBunch();
-        auto fieldContainer = bunch->getFieldContainer();
+    TEST_F(BeamBeamPartBunchTest, FixedBeamBeamDomainOnlyChangesLongitudinalDomain) {
+        auto bunch   = makeBunch();
+        auto& domain = bunch->cartesianDomain();
 
-        const Vector3d initialRMin = fieldContainer->getRMin();
-        const Vector3d initialRMax = fieldContainer->getRMax();
-        bunch->enableBeamBeamWindowMesh(1.25, 0.50);
+        const Vector3d initialRMin = domain.lower();
+        const Vector3d initialRMax = domain.upper();
+        setFixedDomain(
+                bunch, Vector3d(initialRMin[0], initialRMin[1], 1.0),
+                Vector3d(initialRMax[0], initialRMax[1], 1.5));
+        updateFieldDomain(bunch);
 
-        const Vector3d updatedRMin = fieldContainer->getRMin();
-        const Vector3d updatedRMax = fieldContainer->getRMax();
-        const Vector3d updatedHr   = fieldContainer->getHr();
-        const Vector3d meshOrigin  = fieldContainer->getMesh().getOrigin();
+        const Vector3d updatedRMin = domain.lower();
+        const Vector3d updatedRMax = domain.upper();
+        const Vector3d updatedHr   = domain.spacing();
+        const Vector3d meshOrigin  = domain.mesh().getOrigin();
 
         EXPECT_DOUBLE_EQ(updatedRMin[0], initialRMin[0]);
         EXPECT_DOUBLE_EQ(updatedRMin[1], initialRMin[1]);
@@ -297,18 +335,17 @@ namespace {
         expectVectorNear(meshOrigin, updatedRMin - 0.5 * updatedHr, 1.0e-14);
     }
 
-    TEST_F(BeamBeamPartBunchTest, EnableBeamBeamWindowMeshUsesExplicitTransverseBounds) {
-        auto bunch          = makeBunch();
-        auto fieldContainer = bunch->getFieldContainer();
+    TEST_F(BeamBeamPartBunchTest, FixedBeamBeamDomainUsesExplicitTransverseBounds) {
+        auto bunch   = makeBunch();
+        auto& domain = bunch->cartesianDomain();
 
-        const Vector3d particleLower(-2.0e-3, -3.0e-3, -9.0);
-        const Vector3d particleUpper(2.0e-3, 3.0e-3, 9.0);
-        bunch->enableBeamBeamWindowMesh(1.25, 0.50, particleLower, particleUpper);
+        setFixedDomain(bunch, Vector3d(-2.0e-3, -3.0e-3, 1.0), Vector3d(2.0e-3, 3.0e-3, 1.5));
+        updateFieldDomain(bunch);
 
-        const Vector3d updatedRMin = fieldContainer->getRMin();
-        const Vector3d updatedRMax = fieldContainer->getRMax();
-        const Vector3d updatedHr   = fieldContainer->getHr();
-        const Vector3d meshOrigin  = fieldContainer->getMesh().getOrigin();
+        const Vector3d updatedRMin = domain.lower();
+        const Vector3d updatedRMax = domain.upper();
+        const Vector3d updatedHr   = domain.spacing();
+        const Vector3d meshOrigin  = domain.mesh().getOrigin();
 
         EXPECT_DOUBLE_EQ(updatedRMin[0], -2.0e-3);
         EXPECT_DOUBLE_EQ(updatedRMax[0], 2.0e-3);
@@ -329,7 +366,8 @@ namespace {
         auto pc    = bunch->getParticleContainer();
 
         setParticlePositions(bunch, {Vector3d(0.0, 0.0, 0.30)});
-        bunch->enableBeamBeamWindowMesh(0.0, 0.50);
+        setFixedDomain(bunch, Vector3d(-1.0, -1.0, -0.25), Vector3d(1.0, 1.0, 0.25));
+        updateFieldDomain(bunch);
 
         ASSERT_EQ(pc->getTotalNum(), static_cast<size_t>(ippl::Comm->size()));
         auto positions = pc->R.getHostMirror();
@@ -351,73 +389,88 @@ namespace {
     }
 
     // ----------------------------------------------------------------------------
-    // save/restore field-domain state
+    // Return from the fixed field domain to particle-following geometry
     // ----------------------------------------------------------------------------
 
-    // The field-domain state roundtrip must restore both:
-    // - the mesh-aligned field-domain quantities, and
-    // - the cached physical bunch bounds returned by get_bounds().
-    //
-    // This test covers the exact contract that the BeamBeam-window mode relies on
-    // when it temporarily swaps in an Eulerian longitudinal mesh and later returns to
-    // the original bunch-following state.
-    TEST_F(BeamBeamPartBunchTest, RestoreFieldDomainStateRestoresMeshAndPhysicalBounds) {
-        auto bunch          = makeBunch();
-        auto fieldContainer = bunch->getFieldContainer();
+    // Master no longer snapshots physical bounds alongside fields. Clearing fixed-domain
+    // intent lets the solver recompute geometry, while particle statistics remain physical.
+    TEST_F(BeamBeamPartBunchTest, ClearFixedDomainRestoresMeshAndPreservesPhysicalBounds) {
+        auto bunch   = makeBunch();
+        auto& domain = bunch->cartesianDomain();
 
         const Vector3d physicalRMin(-0.2, -0.3, -0.4);
         const Vector3d physicalRMax(0.5, 0.6, 0.7);
-        bunch->setPhysicalBounds(physicalRMin, physicalRMax);
+        setParticlePositions(bunch, {physicalRMin, physicalRMax});
+        updateFieldDomain(bunch);
+        bunch->calcBeamParameters();
 
-        const auto savedState = bunch->saveFieldDomainState();
-        bunch->enableBeamBeamWindowMesh(1.25, 0.50);
-        bunch->setPhysicalBounds(Vector3d(10.0), Vector3d(11.0));
+        const Vector3d savedLower   = domain.lower();
+        const Vector3d savedUpper   = domain.upper();
+        const Vector3d savedSpacing = domain.spacing();
+        const Vector3d savedOrigin  = domain.origin();
+        setFixedDomain(bunch, Vector3d(-1.0), Vector3d(1.0));
+        updateFieldDomain(bunch);
+        bunch->calcBeamParameters();
 
-        bunch->restoreFieldDomainState(savedState);
+        Vector3d fixedPhysicalRMin(0.0), fixedPhysicalRMax(0.0);
+        bunch->get_bounds(fixedPhysicalRMin, fixedPhysicalRMax);
+        expectVectorNear(fixedPhysicalRMin, physicalRMin, 1.0e-14);
+        expectVectorNear(fixedPhysicalRMax, physicalRMax, 1.0e-14);
+
+        bunch->getBunchStateHandler()->clearFixedCartesianDomain();
+        updateFieldDomain(bunch);
+        bunch->calcBeamParameters();
 
         Vector3d restoredPhysicalRMin(0.0);
         Vector3d restoredPhysicalRMax(0.0);
         bunch->get_bounds(restoredPhysicalRMin, restoredPhysicalRMax);
 
-        expectVectorNear(fieldContainer->getRMin(), savedState.rmin, 1.0e-14);
-        expectVectorNear(fieldContainer->getRMax(), savedState.rmax, 1.0e-14);
-        expectVectorNear(fieldContainer->getHr(), savedState.hr, 1.0e-14);
-        expectVectorNear(fieldContainer->getMesh().getOrigin(), savedState.origin, 1.0e-14);
-        expectVectorNear(restoredPhysicalRMin, savedState.partrmin, 1.0e-14);
-        expectVectorNear(restoredPhysicalRMax, savedState.partrmax, 1.0e-14);
+        expectVectorNear(domain.lower(), savedLower, 1.0e-14);
+        expectVectorNear(domain.upper(), savedUpper, 1.0e-14);
+        expectVectorNear(domain.spacing(), savedSpacing, 1.0e-14);
+        expectVectorNear(domain.origin(), savedOrigin, 1.0e-14);
+        expectVectorNear(restoredPhysicalRMin, physicalRMin, 1.0e-14);
+        expectVectorNear(restoredPhysicalRMax, physicalRMax, 1.0e-14);
     }
 
     // ----------------------------------------------------------------------------
-    // bunchUpdate() in BeamBeam-window mode
+    // Transverse refresh with a fixed longitudinal window
     // ----------------------------------------------------------------------------
 
-    // Once the BeamBeam-window configuration is active, bunchUpdate() must keep
-    // the longitudinal field domain frozen while still allowing the transverse
-    // field domain to follow the physical bunch. This is the key invariant behind
-    // the frozen Eulerian-in-z mesh used during the BeamBeam solve.
-    TEST_F(BeamBeamPartBunchTest, BunchUpdateKeepsLongitudinalFieldDomainFrozen) {
-        auto bunch          = makeBunch();
-        auto fieldContainer = bunch->getFieldContainer();
+    // Moments-only updates cannot mutate the mesh. The interaction explicitly refreshes
+    // transverse domain intent, and the solver applies it without changing the fixed z extent.
+    TEST_F(BeamBeamPartBunchTest, BeamBeamDomainKeepsZFixedWhileTransverseBoundsExpand) {
+        auto bunch   = makeBunch();
+        auto& domain = bunch->cartesianDomain();
 
         setParticlePositions(bunch, {Vector3d(-0.20, -0.10, -0.05), Vector3d(0.10, 0.20, 0.05)});
-        bunch->bunchUpdate();
+        setFixedDomain(bunch, Vector3d(-0.25, -0.15, -0.25), Vector3d(0.15, 0.25, 0.25));
+        updateFieldDomain(bunch);
 
-        // Keep the test particles inside the frozen longitudinal window.  The
-        // invariant under test is transverse growth with fixed z bounds; placing
-        // particles outside z would exercise undefined MPI layout migration instead.
-        bunch->setBeamBeamWindowConfig(0.50, 0.0, -0.25, 0.25, false);
-        bunch->enableBeamBeamWindowMesh(0.0, 0.50);
+        const Vector3d frozenRMin = domain.lower();
+        const Vector3d frozenRMax = domain.upper();
+        const Vector3d frozenHr   = domain.spacing();
 
-        const Vector3d frozenRMin = fieldContainer->getRMin();
-        const Vector3d frozenRMax = fieldContainer->getRMax();
-        const Vector3d frozenHr   = fieldContainer->getHr();
+        auto pc        = bunch->getParticleContainer();
+        auto positions = pc->R.getHostMirror();
+        Kokkos::deep_copy(positions, pc->R.getView());
+        for (size_t i = 0; i < pc->getLocalNum(); ++i) {
+            positions(i)[0] *= 3.0;
+            positions(i)[1] *= 2.0;
+        }
+        Kokkos::deep_copy(pc->R.getView(), positions);
+        pc->markMomentsDirty();
+        bunch->updateAllParticleMoments();
+        expectVectorNear(domain.lower(), frozenRMin, 1.0e-14);
+        expectVectorNear(domain.upper(), frozenRMax, 1.0e-14);
 
-        setParticlePositions(bunch, {Vector3d(-0.60, -0.30, -0.20), Vector3d(0.50, 0.40, 0.20)});
-        bunch->bunchUpdate();
+        bunch->getBunchStateHandler()->clearFixedCartesianDomain();
+        setFixedDomain(bunch, Vector3d(-0.65, -0.25, -0.25), Vector3d(0.35, 0.45, 0.25));
+        updateFieldDomain(bunch);
 
-        const Vector3d updatedRMin = fieldContainer->getRMin();
-        const Vector3d updatedRMax = fieldContainer->getRMax();
-        const Vector3d updatedHr   = fieldContainer->getHr();
+        const Vector3d updatedRMin = domain.lower();
+        const Vector3d updatedRMax = domain.upper();
+        const Vector3d updatedHr   = domain.spacing();
 
         EXPECT_DOUBLE_EQ(updatedRMin[2], frozenRMin[2]);
         EXPECT_DOUBLE_EQ(updatedRMax[2], frozenRMax[2]);
@@ -435,8 +488,9 @@ namespace {
                 bunch, {Vector3d(-12.0e-3, -8.0e-3, -1.0e-3), Vector3d(15.0e-3, 9.0e-3, 1.0e-3)},
                 1);
 
-        Vector3d lower(0.0), upper(0.0);
-        bunch->computeBoundsForFieldSolve(lower, upper);
+        updateFieldDomain(bunch, sc::DomainCoordinateFrame::Reference);
+        const Vector3d lower = bunch->cartesianDomain().lower();
+        const Vector3d upper = bunch->cartesianDomain().upper();
 
         EXPECT_LT(lower[0], -12.0e-3);
         EXPECT_GT(upper[0], 15.0e-3);
