@@ -96,6 +96,10 @@ def write_witness(path: Path, rows) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--reference", type=Path, default=REFERENCE)
+    parser.add_argument(
+        "--output-dir", type=Path, default=HERE,
+        help="Directory for a new case; existing inputs or results are never overwritten.",
+    )
     parser.add_argument("--primary-macroparticles", type=int, default=400_000)
     parser.add_argument("--nx", type=int, default=1024)
     parser.add_argument("--ny", type=int, default=128)
@@ -103,6 +107,43 @@ def main() -> None:
     args = parser.parse_args()
     if args.primary_macroparticles <= 0:
         raise ValueError("--primary-macroparticles must be positive")
+    if min(args.nx, args.ny, args.nz) < 2:
+        raise ValueError("each mesh dimension must be at least two")
+
+    output_dir = args.output_dir.resolve()
+    input_dir = output_dir / "input"
+    results_dir = output_dir / "results"
+    reserved = [
+        output_dir / "track12_timed.in",
+        input_dir,
+        results_dir,
+        *output_dir.glob("track12_timed*.h5"),
+        *output_dir.glob("track12_timed*.stat"),
+        output_dir / "track12_timed.out",
+        output_dir / "opalx.log",
+        output_dir / "completed",
+        output_dir / "timing.dat",
+    ]
+    existing = [str(path) for path in reserved if path.exists() or path.is_symlink()]
+    if existing:
+        raise FileExistsError(
+            "Refusing to overwrite a prepared or executed case; choose a new "
+            "--output-dir. Existing paths: " + ", ".join(existing)
+        )
+
+    # Validate/render the deck before creating any case files.
+    deck = TEMPLATE.read_text(encoding="utf-8")
+    replacements = {
+        "@PRIMARY_MACROPARTICLES@": str(args.primary_macroparticles),
+        "@NX@": str(args.nx),
+        "@NY@": str(args.ny),
+        "@NZ@": str(args.nz),
+        "@SEED@": str(SEED),
+    }
+    for token, value in replacements.items():
+        deck = deck.replace(token, value)
+    if "@" in deck:
+        raise ValueError("unreplaced token remains in generated deck")
 
     module = load_track12_module()
     reference = module.parse_reference_file(args.reference)
@@ -118,7 +159,6 @@ def main() -> None:
         raise ValueError("expected exactly six electron and six positron initial rows")
     np.testing.assert_allclose(electrons["t"], positrons["t"], rtol=0.0, atol=0.0)
 
-    input_dir = HERE / "input"
     write_witness(input_dir / "track12_electrons.emittedfromfile", electrons)
     write_witness(input_dir / "track12_positrons.emittedfromfile", positrons)
     primary_metadata = write_fixed_primary(
@@ -128,19 +168,7 @@ def main() -> None:
         json.dumps(primary_metadata, indent=2) + "\n", encoding="utf-8"
     )
 
-    deck = TEMPLATE.read_text(encoding="utf-8")
-    replacements = {
-        "@PRIMARY_MACROPARTICLES@": str(args.primary_macroparticles),
-        "@NX@": str(args.nx),
-        "@NY@": str(args.ny),
-        "@NZ@": str(args.nz),
-        "@SEED@": str(SEED),
-    }
-    for token, value in replacements.items():
-        deck = deck.replace(token, value)
-    if "@" in deck:
-        raise ValueError("unreplaced token remains in generated deck")
-    (HERE / "track12_timed.in").write_text(deck, encoding="utf-8")
+    (output_dir / "track12_timed.in").write_text(deck, encoding="utf-8")
 
     birth_steps = np.rint(
         1.0 + (initial.sort_values(["kind", "pair"])["t"].to_numpy() - initial["t"].min())
@@ -148,6 +176,7 @@ def main() -> None:
     ).astype(int)
     manifest = {
         "reference": str(args.reference.resolve()),
+        "reference_sha256": hashlib.sha256(args.reference.read_bytes()).hexdigest(),
         "reference_rows": int(len(reference)),
         "witnesses_per_species": 6,
         "cain_ct_step_m": CAIN_CT_STEP_M,
@@ -158,14 +187,18 @@ def main() -> None:
         "final_cain_ct_m": 1.8e-3,
         "primary": primary_metadata,
         "mesh": [args.nx, args.ny, args.nz],
+        "particle_boundary": "open",
+        "input_sha256": {
+            str(path.relative_to(output_dir)): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in [output_dir / "track12_timed.in", *sorted(input_dir.glob("*"))]
+        },
     }
-    results_dir = HERE / "results"
     results_dir.mkdir(parents=True, exist_ok=True)
     (results_dir / "preparation_manifest.json").write_text(
         json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
     )
     print(json.dumps(manifest, indent=2))
-    print(f"deck: {HERE / 'track12_timed.in'}")
+    print(f"deck: {output_dir / 'track12_timed.in'}")
 
 
 if __name__ == "__main__":

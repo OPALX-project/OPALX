@@ -4,12 +4,26 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import importlib.util
 import itertools
 import json
 import os
+import operator
 import re
 from pathlib import Path
+
+# Keep BLAS/Accelerate analysis pools within an explicitly supplied run budget.
+# Set this before h5py imports NumPy and initializes those libraries.
+_thread_budget = os.environ.get("OMP_NUM_THREADS", "")
+if _thread_budget.isdecimal() and int(_thread_budget) > 0:
+    for _variable in (
+        "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "VECLIB_MAXIMUM_THREADS",
+        "NUMEXPR_NUM_THREADS",
+    ):
+        _requested = os.environ.get(_variable, "")
+        if not _requested.isdecimal() or not 0 < int(_requested) <= int(_thread_budget):
+            os.environ[_variable] = _thread_budget
 
 import h5py
 import numpy as np
@@ -22,6 +36,8 @@ REFERENCE = ROOT / "sandbox" / "TestParticleOrbit.dat"
 TRACK12_SCRIPT = ROOT / "sandbox" / "track12particles" / "track12particles.py"
 C_LIGHT = 299_792_458.0
 CAIN_CT_STEP_M = 1.8e-6
+# Retained for archived scripts that explicitly translate their old 4 mm IP.
+# The current CLI and loader derive the IP from each run's input deck.
 IP_S_M = 4.0e-3
 COLORS = {"electron": "#b51f2e", "positron": "#1f5fb5"}
 LINE_STYLES = ["-", (0, (8, 6)), (0, (5, 5)), (0, (10, 8)), (0, (2, 3)), (0, (9, 4, 2, 4))]
@@ -52,8 +68,90 @@ def reference_position(group: h5py.Group) -> np.ndarray:
     return np.array([0.0, 0.0, scalar_attribute(group, "SPOS")])
 
 
+def deck_text(deck: Path) -> str:
+    """Read input text with comments removed for the small geometry parser."""
+    text = re.sub(r"/\*.*?\*/", "", deck.read_text(encoding="utf-8"), flags=re.S)
+    return re.sub(r"//[^\n]*", "", text)
+
+
+def interaction_point(deck: Path) -> float:
+    """Resolve the sole BeamBeam midpoint [m] from numeric REAL expressions.
+
+    This is deliberately not an OPALX interpreter. Unsupported geometry must
+    be supplied through --ip-s-m rather than silently assuming a 4 mm IP.
+    """
+    text = deck_text(deck)
+    definitions = dict(re.findall(r"\bREAL\s+(\w+)\s*=\s*([^;]+);", text, re.I))
+    definitions = {name.lower(): expression for name, expression in definitions.items()}
+    elements = re.findall(r"\b\w+\s*:\s*BEAMBEAM\s*,([^;]+);", text, re.I)
+    if len(elements) != 1:
+        raise ValueError(f"{deck}: expected one BeamBeam element; use --ip-s-m")
+    attributes = dict(re.findall(r"(?:^|,)\s*(\w+)\s*=\s*([^,]+)", elements[0]))
+    attributes = {name.upper(): expression for name, expression in attributes.items()}
+    operations = {
+        ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul,
+        ast.Div: operator.truediv, ast.Pow: operator.pow,
+    }
+
+    def evaluate(expression: str, stack: tuple[str, ...] = ()) -> float:
+        def visit(node: ast.AST) -> float:
+            if isinstance(node, ast.Constant) and type(node.value) in (int, float):
+                return float(node.value)
+            if isinstance(node, ast.Name):
+                name = node.id.lower()
+                if name not in definitions or name in stack:
+                    raise ValueError(f"unresolved geometry variable {name}")
+                return evaluate(definitions[name], (*stack, name))
+            if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
+                return visit(node.operand) * (-1.0 if isinstance(node.op, ast.USub) else 1.0)
+            if isinstance(node, ast.BinOp) and type(node.op) in operations:
+                return operations[type(node.op)](visit(node.left), visit(node.right))
+            raise ValueError("unsupported geometry expression")
+
+        return visit(ast.parse(expression.strip().replace("^", "**"), mode="eval").body)
+
+    try:
+        # Honor explicit historical IP_S decks as well as midpoint-only inputs.
+        if "IP_S" in attributes:
+            ip_s_m = evaluate(attributes["IP_S"])
+        else:
+            ip_s_m = evaluate(attributes["ELEMEDGE"]) + 0.5 * evaluate(attributes["L"])
+    except (KeyError, ValueError, SyntaxError, ArithmeticError) as error:
+        raise ValueError(f"{deck}: cannot resolve BeamBeam IP; use --ip-s-m") from error
+    if not np.isfinite(ip_s_m):
+        raise ValueError(f"{deck}: non-finite BeamBeam IP")
+    return ip_s_m
+
+
+def particle_periods(
+    deck: Path, mesh: list[int], boundary: str = "auto"
+) -> tuple[float, float] | None:
+    """Return legacy periods, or None for non-wrapping OPEN particles.
+
+    Old executables wrapped particles even when BCFFT was OPEN. Such data
+    require an explicit legacy-periodic selection; input alone cannot identify
+    that historical implementation behavior.
+    """
+    if boundary == "open":
+        return None
+    if boundary == "auto":
+        text = deck_text(deck)
+        configured = []
+        for axis in ("X", "Y"):
+            values = re.findall(rf"\bBCFFT{axis}\s*=\s*(\w+)", text, re.I)
+            if len(values) != 1:
+                raise ValueError(f"{deck}: ambiguous BCFFT{axis}; use --particle-boundary")
+            configured.append(values[0].upper())
+        if configured == ["OPEN", "OPEN"]:
+            return None
+        if configured != ["PERIODIC", "PERIODIC"]:
+            raise ValueError(f"{deck}: unsupported mixed boundaries; use --particle-boundary")
+    return transverse_periods(deck, mesh)
+
+
 def transverse_periods(deck: Path, mesh: list[int]) -> tuple[float, float]:
-    text = deck.read_text(encoding="utf-8")
+    """Periods of the historical fixed-aperture particle layout only."""
+    text = deck_text(deck)
     match = re.search(
         r'APERTURE\s*=\s*"RECTANGLE\(\s*([^,]+),\s*([^)]+)\)"', text
     )
@@ -65,8 +163,10 @@ def transverse_periods(deck: Path, mesh: list[int]) -> tuple[float, float]:
     return tuple(width * n / (n - 1) for width, n in zip(widths, mesh[:2], strict=True))
 
 
-def periodic_delta(delta: np.ndarray, periods_m: tuple[float, float]) -> np.ndarray:
+def periodic_delta(delta: np.ndarray, periods_m: tuple[float, float] | None) -> np.ndarray:
     adjusted = delta.copy()
+    if periods_m is None:
+        return adjusted
     for axis, period in enumerate(periods_m):
         adjusted[axis] -= np.rint(adjusted[axis] / period) * period
     return adjusted
@@ -77,8 +177,13 @@ def load_opalx(
     species: str,
     pair_t0_s: float,
     births: dict[int, float],
-    periods_m: tuple[float, float],
+    periods_m: tuple[float, float] | None,
+    ip_s_m: float | None = None,
 ) -> pd.DataFrame:
+    if ip_s_m is None:
+        ip_s_m = interaction_point(path.parent / "track12_timed.in")
+    if not np.isfinite(ip_s_m):
+        raise ValueError("interaction point must be finite")
     raw_rows: list[dict[str, float | int | str]] = []
     previous: dict[int, dict[str, float | int | str]] = {}
     previous_time_s: float | None = None
@@ -105,22 +210,30 @@ def load_opalx(
                         "y_opalx_m": ref_r[1] + float(group["y"][index]),
                         "x_h5_wrapped_m": ref_r[0] + float(group["x"][index]),
                         "y_h5_wrapped_m": ref_r[1] + float(group["y"][index]),
-                        "s_opalx_m": ref_r[2] + float(group["z"][index]) - IP_S_M,
+                        "s_opalx_m": ref_r[2] + float(group["z"][index]) - ip_s_m,
                         "px_opalx": float(group["px"][index]),
                         "py_opalx": float(group["py"][index]),
                         "pz_opalx": float(group["pz"][index]),
                     }
                 )
 
+            for row in current:
+                phase_space = [row[name] for name in (
+                    "x_opalx_m", "y_opalx_m", "s_opalx_m",
+                    "px_opalx", "py_opalx", "pz_opalx", "time_s",
+                )]
+                if not np.all(np.isfinite(phase_space)):
+                    raise ValueError(f"{path}: non-finite phase space at step {global_step}")
+
             if len(current) > len(birth_order):
                 raise ValueError(
                     f"{path}: step {global_step} has {len(current)} particles, "
                     f"but only {len(birth_order)} births are defined"
                 )
-            # The H5 sample at an exact birth time precedes insertion.  A newborn
-            # therefore first appears one CAIN interval later.  The population is
-            # monotonic in this no-deletion test, so its size identifies how many
-            # births have occurred without relying on unstable MPI particle IDs.
+            # At a grid-aligned birth, floating-point emission-time rounding can
+            # include the newborn in that H5 snapshot or first in the next one.
+            # The population is monotonic in this no-deletion test, so its size
+            # identifies births without relying on unstable MPI particle IDs.
             expected_pairs = birth_order[: len(current)]
 
             assignment: dict[int, int] = {}
@@ -198,7 +311,7 @@ def load_opalx(
             next_previous: dict[int, dict[str, float | int | str]] = {}
             for pair, column in sorted(assignment.items()):
                 row = current[column]
-                if pair in previous:
+                if pair in previous and periods_m is not None:
                     prior = previous[pair]
                     wrapped_delta = periodic_delta(
                         np.array(
@@ -493,7 +606,7 @@ def make_first_kick_summary(comparison: pd.DataFrame) -> pd.DataFrame:
 
 
 def make_identity_summary(
-    opalx: pd.DataFrame, periods_m: tuple[float, float]
+    opalx: pd.DataFrame, periods_m: tuple[float, float] | None
 ) -> dict[str, object]:
     h5 = opalx.loc[opalx["sample_origin"].eq("h5")]
     return {
@@ -504,7 +617,7 @@ def make_identity_summary(
                 str(int(pair)): int(pair_group["particle_id"].nunique())
                 for pair, pair_group in group.groupby("pair", sort=True)
             },
-            "transverse_wraps_by_pair": {
+            "transverse_wraps_by_pair": None if periods_m is None else {
                 str(int(pair)): {
                     coordinate: int(
                         np.count_nonzero(
@@ -590,6 +703,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--reference", type=Path, default=REFERENCE)
     parser.add_argument("--run-dir", type=Path, default=HERE)
+    parser.add_argument(
+        "--ip-s-m", type=float,
+        help="Absolute interaction point [m]; default: resolve the input deck midpoint.",
+    )
+    parser.add_argument(
+        "--particle-boundary", choices=("auto", "open", "legacy-periodic"), default="auto",
+        help="auto follows BCFFTX/Y; select legacy-periodic for old wrapping OPEN runs.",
+    )
     args = parser.parse_args()
 
     manifest_path = args.run_dir / "results" / "preparation_manifest.json"
@@ -601,7 +722,9 @@ def main() -> None:
         int(pair): float(group["t"].iloc[0])
         for pair, group in reference.sort_values("step").groupby("pair")
     }
-    periods_m = transverse_periods(args.run_dir / "track12_timed.in", manifest["mesh"])
+    deck = args.run_dir / "track12_timed.in"
+    ip_s_m = interaction_point(deck) if args.ip_s_m is None else args.ip_s_m
+    periods_m = particle_periods(deck, manifest["mesh"], args.particle_boundary)
     opalx = pd.concat(
         [
             load_opalx(
@@ -610,6 +733,7 @@ def main() -> None:
                 pair_t0_s,
                 births,
                 periods_m,
+                ip_s_m,
             ),
             load_opalx(
                 args.run_dir / "track12_timed_c2.h5",
@@ -617,6 +741,7 @@ def main() -> None:
                 pair_t0_s,
                 births,
                 periods_m,
+                ip_s_m,
             ),
         ],
         ignore_index=True,
@@ -629,7 +754,9 @@ def main() -> None:
     opalx_vs_manufactured = manufactured_error_metrics(comparison)
     first_kicks = make_first_kick_summary(comparison)
     identity = {
-        "periodic_particle_layout_m": list(periods_m),
+        "interaction_point_m": ip_s_m,
+        "particle_boundary": "open" if periods_m is None else "legacy-periodic",
+        "periodic_particle_layout_m": None if periods_m is None else list(periods_m),
         "species": make_identity_summary(opalx, periods_m),
     }
 
