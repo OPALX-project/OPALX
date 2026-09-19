@@ -44,6 +44,30 @@ typedef std::map<double, double> energyEvolution_t;
 /// The global OPAL structure.
 class OpalData {
 public:
+    /**
+     * Scope the process-wide preparation state used by output-producing elements.
+     *
+     * The state is cleared explicitly with finish() before real tracking starts, or
+     * automatically when setup exits through an exception or early return.
+     */
+    class PreparationState {
+    public:
+        ~PreparationState() noexcept;
+
+        PreparationState(const PreparationState&)            = delete;
+        PreparationState& operator=(const PreparationState&) = delete;
+
+        void finish() noexcept;
+
+    private:
+        friend class OpalData;
+
+        explicit PreparationState(OpalData& opalData);
+
+        OpalData& opalData_m;
+        bool active_m{true};
+    };
+
     static OpalData* getInstance();
 
     static void deleteInstance();
@@ -150,6 +174,8 @@ public:
 
     bool isInPrepState();
     void setInPrepState(bool state);
+
+    [[nodiscard]] PreparationState enterPreparationState();
 
     /// true if in follow-up track
     bool hasPriorTrack();

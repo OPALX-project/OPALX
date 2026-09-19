@@ -1,0 +1,22 @@
+/** @file SpaceChargeFactory.h @brief Run-lifetime solver construction. */
+
+#ifndef OPALX_SPACE_CHARGE_FACTORY_H
+#define OPALX_SPACE_CHARGE_FACTORY_H
+
+#include "PartBunch/PartBunchFwd.h"
+#include "SpaceCharge/SpaceChargeConfig.h"
+#include "SpaceCharge/SpaceChargeSolver.h"
+
+#include <memory>
+
+class DataSink;
+
+namespace opalx::spacecharge {
+
+    /** @brief Construct the configured run-lifetime space-charge solver. */
+    [[nodiscard]] std::unique_ptr<SpaceChargeSolver> makeSpaceChargeSolver(
+            SpaceChargeConfig config, PartBunch_t& bunch, DataSink* dataSink);
+
+}  // namespace opalx::spacecharge
+
+#endif  // OPALX_SPACE_CHARGE_FACTORY_H

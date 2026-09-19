@@ -9,7 +9,8 @@
 //   DataSink::diagnosticStemForContainer. Each write() call must use the same
 //   particleContainerIndex as that writer's slot so row data comes from
 //   beam->getParticleContainer(particleContainerIndex). Shared beam-level quantities
-//   (e.g. time t, dt, rmsDensity, nBins) still come from PartBunch_t regardless of index.
+//   (e.g. time t, dt, rmsDensity) still come from PartBunch_t regardless of index. The tracker
+//   supplies nBins from the configured self-field system.
 //
 // Copyright (c) 2019, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
 //                     Christof Metzger-Kraus, Open Sourcerer
@@ -227,8 +228,9 @@ void StatWriter::fillHeader(const losses_t& losses, const std::string& species, 
 }
 
 void StatWriter::write(
-        PartBunch_t& beam, Vector_t<double, 3> FDext[], const losses_t& losses,
-        const double& azimuth, const size_t npOutside, size_t particleContainerIndex) {
+        PartBunch_t& beam, Vector_t<double, 3> FDext[], int reportedBinCount,
+        const losses_t& losses, const double& azimuth, const size_t npOutside,
+        size_t particleContainerIndex) {
     using ParticleContainer_t               = ParticleContainer<T, Dim>;
     std::shared_ptr<ParticleContainer_t> pc = beam.getParticleContainer(particleContainerIndex);
     if (!pc) {
@@ -351,7 +353,7 @@ void StatWriter::write(
     columns_m.addColumnValue("plasmaParameter", plasmaParameter);   // 43 plasma parameter
     columns_m.addColumnValue("temperature", temperature);           // 44 Temperature
     columns_m.addColumnValue("rmsDensity", beam.get_rmsDensity());  // 45 RMS number density
-    columns_m.addColumnValue("nBins", beam.getCurrentNBins());
+    columns_m.addColumnValue("nBins", reportedBinCount);
 
     if (pc->hasSpin()) {
         const Vector_t<double, 3> meanPol = pc->getMeanPol();

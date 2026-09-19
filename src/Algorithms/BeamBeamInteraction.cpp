@@ -7,7 +7,8 @@
 
 #include "AbsBeamline/BeamBeam.h"
 #include "Algorithms/OrbitThreader.h"
-#include "PartBunch/BinnedFieldSolver.h"
+#include "SpaceCharge/BeamBeamFieldServices.h"
+#include "SpaceCharge/SpaceChargeSolver.h"
 #include "Utilities/BeamBeamWindowAnimation.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
@@ -46,7 +47,7 @@ ElementInteractionResult BeamBeamInteraction::execute(
         case ElementInteractionPhase::SelfField:
             return ElementInteractionResult{computeSelfFields(context)};
         case ElementInteractionPhase::AfterEmission:
-            gatherFieldsToWitnessContainers(context.bunch, message);
+            gatherFieldsToWitnessContainers(context, message);
             logDiagnostics(context.bunch);
             return {};
         case ElementInteractionPhase::Diagnostics:
@@ -66,36 +67,39 @@ bool BeamBeamInteraction::suppressesDefaultSelfField() const noexcept {
 
 bool BeamBeamInteraction::computeSelfFields(ElementInteractionContext& context) {
     if (context.sourceOrbitThreader == nullptr || context.referenceToBeamCSTrafo == nullptr
-        || context.beamToReferenceCSTrafo == nullptr) {
+        || context.beamToReferenceCSTrafo == nullptr || context.spaceChargeSolver == nullptr
+        || context.spaceChargeContext == nullptr) {
         throw OpalException(
                 "BeamBeamInteraction::computeSelfFields",
-                "The self-field phase requires an orbit threader and both beam-frame "
-                "coordinate transforms.");
+                "The self-field phase requires an orbit threader, transforms and solver.");
     }
-
-    Inform localMessage("BeamBeamInteraction::computeSelfFields ");
-    Inform& message    = context.message != nullptr ? *context.message : localMessage;
-    PartBunch_t& bunch = context.bunch;
-
-    checkInRegion(context);
+    auto& bunch       = context.bunch;
+    auto& fields      = context.spaceChargeSolver->beamBeamFields();
+    const auto source = bunch.getParticleContainer();
+    // Bounds are needed in solve axes, but solver calls own R/P/E/B frame conversion.
+    context.referenceToBeamCSTrafo->transformBunchTo(source->R.getView(), source->getLocalNum());
+    source->markMomentsDirty();
+    try {
+        checkInRegion(context, fields);
+    } catch (...) {
+        context.beamToReferenceCSTrafo->transformBunchTo(
+                source->R.getView(), source->getLocalNum());
+        source->markMomentsDirty();
+        throw;
+    }
+    context.beamToReferenceCSTrafo->transformBunchTo(source->R.getView(), source->getLocalNum());
+    source->markMomentsDirty();
     if (state_m.state != BEAMBEAM::WindowState::Active) {
         referenceToBeamCSTrafo_m.reset();
-        // Once the placed BeamBeam element has been identified, this interaction owns the
-        // complete space-charge policy: no ordinary source-only solve is allowed before or after
-        // the fixed interaction window.
-        const bool handled = state_m.geometry.has_value();
-        if (handled) {
-            transformFieldsToReferenceFrame(*context.beamToReferenceCSTrafo, bunch, message);
-        }
-        return handled;
+        // Once discovered, the placed element owns the complete self-field policy.
+        return state_m.geometry.has_value();
     }
-
     referenceToBeamCSTrafo_m = *context.referenceToBeamCSTrafo;
-    computeWindowSelfFields(*context.beamToReferenceCSTrafo, bunch, message);
+    computeWindowSelfFields(context, fields);
     return true;
 }
 
-void BeamBeamInteraction::checkInRegion(ElementInteractionContext& context) {
+void BeamBeamInteraction::checkInRegion(ElementInteractionContext& context, FieldServices& fields) {
     if (state_m.state == BEAMBEAM::WindowState::Completed) {
         return;
     }
@@ -146,7 +150,7 @@ void BeamBeamInteraction::checkInRegion(ElementInteractionContext& context) {
         return;
     }
     if (leavingWindow) {
-        leaveWindow(bunch, message);
+        leaveWindow(bunch, message, fields);
     }
 
     if (diagnostics_m.frameObserved) {
@@ -239,12 +243,12 @@ void BeamBeamInteraction::enterWindow(
         const BEAMBEAM::ActualGeometry& geometry, PartBunch_t& bunch, Inform& message) {
     state_m.state            = BEAMBEAM::WindowState::Active;
     state_m.geometry         = geometry;
-    state_m.savedFieldDomain = bunch.saveFieldDomainState();
+    const auto& domain       = bunch.cartesianDomain();
+    state_m.savedFieldDomain = SavedFieldDomainState{
+            domain.origin(), domain.lower(), domain.upper(), domain.spacing()};
     transverseMeshLower_m.reset();
     transverseMeshUpper_m.reset();
     diagnostics_m.entryRhoSnapshotDumped = false;
-    bunch.clearBeamBeamWindowVisualizationTail();
-    applyWindowConfig(geometry, bunch);
 
     if (gmsg != nullptr) {
         std::ostringstream diagnostics;
@@ -283,66 +287,71 @@ void BeamBeamInteraction::enterWindow(
 }
 
 void BeamBeamInteraction::applyWindowConfig(
-        const BEAMBEAM::ActualGeometry& geometry, PartBunch_t& bunch) const {
-    const bool copyModel     = BEAMBEAM::copyTimeReached(bunch.getT(), geometry.config.copyTime);
-    const double fieldBeginS = BEAMBEAM::fieldWindowBegin(geometry.interactionPointS);
-    const double fieldEndS   = BEAMBEAM::fieldWindowEnd(geometry.interactionPointS);
-    bunch.setBeamBeamWindowConfig(
-            BEAMBEAM::fieldWindowLength, geometry.interactionPointS, fieldBeginS, fieldEndS,
-            copyModel);
+        const BEAMBEAM::ActualGeometry& geometry, PartBunch_t& bunch, FieldServices& fields,
+        bool captureChargeDensity) const {
+    fields.configure(
+            opalx::spacecharge::BeamBeamSolvePolicy{
+                    true, BEAMBEAM::copyTimeReached(bunch.getT(), geometry.config.copyTime),
+                    captureChargeDensity});
 }
 
 std::optional<double> BeamBeamInteraction::performWindowEntryTransition(
-        const BEAMBEAM::ActualGeometry& geometry, const ippl::Vector<double, 3>& physicalRMin,
-        const ippl::Vector<double, 3>& physicalRMax, PartBunch_t& bunch) {
+        ElementInteractionContext& context, FieldServices& fields) {
     if (diagnostics_m.entryRhoSnapshotDumped) {
         return std::nullopt;
     }
-    if (!BEAMBEAM::copyTimeReached(bunch.getT(), geometry.config.copyTime)) {
+    const auto& geometry = *state_m.geometry;
+    if (!BEAMBEAM::copyTimeReached(context.bunch.getT(), geometry.config.copyTime)) {
         diagnostics_m.entryRhoSnapshotDumped = true;
         return std::nullopt;
     }
-
     IpplTimings::startTimer(entryTransitionTimer_m);
-    if (bunch.hasBinning()) {
-        // Keep the interaction marker active for the binned diagnostic solve, but force the
-        // physical-primary-only model on the pre-enlarged mesh. The binned solver uses this
-        // marker to measure deposited charge without imposing that reduction on ordinary
-        // self-field steps.
-        bunch.setBeamBeamWindowConfig(
-                BEAMBEAM::fieldWindowLength, geometry.interactionPointS,
-                BEAMBEAM::fieldWindowBegin(geometry.interactionPointS),
-                BEAMBEAM::fieldWindowEnd(geometry.interactionPointS),
-                /*copyModel=*/false);
-    } else {
-        // Preserve the legacy pre-enlarge solve exactly; that path already records rho.sum().
-        bunch.clearBeamBeamWindowConfig();
+    auto& bunch = context.bunch;
+    auto source = bunch.getParticleContainer();
+    // Establish a primary-only diagnostic domain in solve axes. Retaining a fixed domain
+    // avoids migrating reference-frame witnesses through the source-frame mesh.
+    context.referenceToBeamCSTrafo->transformBunchTo(source->R.getView(), source->getLocalNum());
+    source->computeMinMaxR();
+    auto lower = source->getMinR();
+    auto upper = source->getMaxR();
+    context.beamToReferenceCSTrafo->transformBunchTo(source->R.getView(), source->getLocalNum());
+    source->markMomentsDirty();
+    const double padding = fields.configuration().grid.boundingBoxIncreasePercent / 100.0;
+    std::array<double, 3> low{}, high{};
+    for (unsigned d = 0; d < 3; ++d) {
+        const double span = std::max(upper[d] - lower[d], 1.0e-6);
+        low[d]            = lower[d] - span * padding;
+        high[d]           = upper[d] + span * padding;
+        if (low[d] >= high[d]) {
+            low[d] -= 0.5e-6;
+            high[d] += 0.5e-6;
+        }
     }
-    bunch.computeSelfFields();
-    if (!bunch.hasLastDepositedChargeBeforeBackground()) {
-        IpplTimings::stopTimer(entryTransitionTimer_m);
+    bunch.getBunchStateHandler()->clearFixedCartesianDomain();
+    bunch.getBunchStateHandler()->setFixedCartesianDomain(low, high);
+    fields.configure(opalx::spacecharge::BeamBeamSolvePolicy{true, false, true});
+    context.spaceChargeSolver->solve(*context.spaceChargeContext);
+    const auto charge = fields.depositedCharge();
+    if (!charge.has_value()) {
         throw OpalException(
                 "BeamBeamInteraction::performWindowEntryTransition",
-                "Missing deposited-charge diagnostics for the pre-enlarge BeamBeam solve.");
+                "Missing measured deposited charge for the pre-enlarge solve.");
     }
-
-    const double referenceCharge = std::abs(bunch.getLastDepositedChargeBeforeBackground());
-    dumpTransitionSnapshot("before_interaction_window_mesh_enlarge", bunch);
-    applyWindowConfig(geometry, bunch);
-    bunch.setPhysicalBounds(physicalRMin, physicalRMax);
+    dumpTransitionSnapshot("before_interaction_window_mesh_enlarge", bunch, fields);
     diagnostics_m.entryRhoSnapshotDumped = true;
     IpplTimings::stopTimer(entryTransitionTimer_m);
-    return referenceCharge;
+    return std::abs(*charge);
 }
 
-void BeamBeamInteraction::validateCopiedCharge(double referenceCharge, PartBunch_t& bunch) const {
-    if (!bunch.hasLastDepositedChargeBeforeBackground()) {
+void BeamBeamInteraction::validateCopiedCharge(
+        double referenceCharge, FieldServices& fields) const {
+    const auto charge = fields.depositedCharge();
+    if (!charge.has_value()) {
         throw OpalException(
                 "BeamBeamInteraction::validateCopiedCharge",
-                "Missing deposited-charge diagnostics for the enlarged BeamBeam solve.");
+                "Missing measured deposited charge for the enlarged solve.");
     }
-
-    const double enlargedCharge = std::abs(bunch.getLastDepositedChargeBeforeBackground());
+    const double enlargedCharge = std::abs(*charge);
     const double expectedCharge = 2.0 * referenceCharge;
     const double tolerance      = std::max(1.0e-18, 1.0e-2 * expectedCharge);
     if (std::abs(enlargedCharge - expectedCharge) > tolerance) {
@@ -354,32 +363,46 @@ void BeamBeamInteraction::validateCopiedCharge(double referenceCharge, PartBunch
 }
 
 void BeamBeamInteraction::dumpTransitionSnapshot(
-        const std::string& snapshotKind, PartBunch_t& bunch) {
+        const std::string& snapshotKind, PartBunch_t& bunch, FieldServices& fields) {
     IpplTimings::startTimer(transitionDumpTimer_m);
-    auto headers = bunch.buildScalarDumpHeaders(snapshotKind);
-    bunch.getFieldSolver()->dumpScalField("RHO", "collwin_vis", headers);
+    std::vector<std::string> headers;
+    const auto add = [&headers](const std::string& key, const auto& value) {
+        std::ostringstream line;
+        line << std::setprecision(12) << key << "=" << value;
+        headers.push_back(line.str());
+    };
+    const auto& domain = fields.domain();
+    const auto source  = bunch.getParticleContainer();
+    add("coordinate_frame", "beam_local");
+    add("global_step", bunch.getGlobalTrackStep());
+    add("time", bunch.getT());
+    add("path_length_s", source->get_sPos());
+    add("snapshot_kind", snapshotKind);
+    add("interaction_window_active", 1);
+    add("mesh_origin", domain.origin());
+    add("mesh_spacing", domain.spacing());
+    add("field_domain_rmin", domain.lower());
+    add("field_domain_rmax", domain.upper());
+    add("particle_total_num", bunch.getTotalNumAllContainers());
+    add("particle_total_charge", source->getTotalCharge());
+    if (state_m.geometry.has_value()) {
+        add("interaction_point_s", state_m.geometry->interactionPointS);
+        add("interaction_point_local_z", state_m.geometry->interactionPointS - source->get_sPos());
+    }
+    fields.dumpChargeDensity("collwin_vis", headers);
     IpplTimings::stopTimer(transitionDumpTimer_m);
 }
 
-void BeamBeamInteraction::leaveWindow(PartBunch_t& bunch, Inform& message) {
+void BeamBeamInteraction::leaveWindow(PartBunch_t& bunch, Inform& message, FieldServices& fields) {
     state_m.state                        = BEAMBEAM::WindowState::Completed;
     diagnostics_m.entryRhoSnapshotDumped = false;
-
-    if (state_m.geometry.has_value()) {
-        const auto& geometry = *state_m.geometry;
-        bunch.setBeamBeamWindowVisualizationTail(
-                geometry.interactionPointS, BEAMBEAM::fieldWindowBegin(geometry.interactionPointS),
-                BEAMBEAM::fieldWindowEnd(geometry.interactionPointS),
-                postWindowVisualizationSteps_m);
-    }
-
+    bunch.getBunchStateHandler()->clearFixedCartesianDomain();
+    fields.configure(std::nullopt);
     if (state_m.savedFieldDomain.has_value()) {
-        bunch.restoreFieldDomainState(*state_m.savedFieldDomain);
-        bunch.calcBeamParameters();
+        const auto& saved = *state_m.savedFieldDomain;
+        bunch.cartesianDomain().setGeometry(saved.lower, saved.upper, saved.spacing, saved.origin);
         state_m.savedFieldDomain.reset();
     }
-
-    bunch.clearBeamBeamWindowConfig();
     transverseMeshLower_m.reset();
     transverseMeshUpper_m.reset();
     logDiagnostics(bunch, true);
@@ -414,25 +437,52 @@ void BeamBeamInteraction::transformWitnessPositionsToSourceFrame(
             witnessToBeamCSTrafo.transformBunchFrom(
                     container->R.getView(), container->getLocalNum());
         }
+        container->markMomentsDirty();
     }
     Kokkos::fence();
 }
 
 void BeamBeamInteraction::updateWindowMesh(
-        const CoordinateSystemTrafo& referenceToBeamCSTrafo, PartBunch_t& bunch) {
+        const CoordinateSystemTrafo& referenceToBeamCSTrafo, PartBunch_t& bunch,
+        FieldServices& fields) {
     PAssert(state_m.geometry.has_value());
     const auto& geometry               = *state_m.geometry;
     const double sourceS               = bunch.getParticleContainer(0)->get_sPos();
     const double interactionPointBeamZ = geometry.interactionPointS - sourceS;
 
     // Particle coordinates are container-local. Express passive witnesses in the source frame
-    // while reusing PartBunch's established all-container bounding-box calculation. The routine
-    // already performs the distributed min/max operations and applies BOXINCR; witnesses affect
-    // only the mesh envelope and remain excluded from charge deposition.
+    // for distributed min/max operations and BOXINCR padding. Only configured witnesses
+    // affect this envelope; they remain excluded from charge deposition.
+    const auto source = bunch.getParticleContainer();
+    referenceToBeamCSTrafo.transformBunchTo(source->R.getView(), source->getLocalNum());
+    source->markMomentsDirty();
     transformWitnessPositionsToSourceFrame(referenceToBeamCSTrafo, bunch, true);
     try {
         Vector_t<double, 3> lower(0.0), upper(0.0);
-        bunch.computeBoundsForFieldSolve(lower, upper);
+        bool first         = true;
+        const auto include = [&](const auto& container) {
+            if (!container || container->getTotalNum() == 0) return;
+            container->computeMinMaxR();
+            const auto minR = container->getMinR();
+            const auto maxR = container->getMaxR();
+            for (unsigned d = 0; d < 3; ++d) {
+                lower[d] = first ? minR[d] : std::min(lower[d], minR[d]);
+                upper[d] = first ? maxR[d] : std::max(upper[d], maxR[d]);
+            }
+            first = false;
+        };
+        include(source);
+        for (const auto index : geometry.config.witnessContainers) {
+            if (index > 0 && index < bunch.getNumParticleContainers()) {
+                include(bunch.getParticleContainer(index));
+            }
+        }
+        const double padding = fields.configuration().grid.boundingBoxIncreasePercent / 100.0;
+        for (unsigned d = 0; d < 3; ++d) {
+            const double span = std::max(upper[d] - lower[d], 1.0e-6);
+            lower[d] -= span * padding;
+            upper[d] += span * padding;
+        }
         const Vector_t<double, 3> aggregateLower = lower;
         const Vector_t<double, 3> aggregateUpper = upper;
 
@@ -485,84 +535,57 @@ void BeamBeamInteraction::updateWindowMesh(
                                / ((upper[1] - lower[1]) / static_cast<double>(bunch.nr_m[1] - 1))
                     << "), container_bounds:" << containerBounds.str() << endl;
 
-        bunch.enableBeamBeamWindowMesh(
-                interactionPointBeamZ, BEAMBEAM::fieldWindowLength, lower, upper);
+        lower[2] = interactionPointBeamZ - 0.5 * BEAMBEAM::fieldWindowLength;
+        upper[2] = interactionPointBeamZ + 0.5 * BEAMBEAM::fieldWindowLength;
+        bunch.getBunchStateHandler()->clearFixedCartesianDomain();
+        bunch.getBunchStateHandler()->setFixedCartesianDomain(
+                {lower[0], lower[1], lower[2]}, {upper[0], upper[1], upper[2]});
     } catch (...) {
         transformWitnessPositionsToSourceFrame(referenceToBeamCSTrafo, bunch, false);
+        referenceToBeamCSTrafo.transformBunchFrom(source->R.getView(), source->getLocalNum());
+        source->markMomentsDirty();
         throw;
     }
     transformWitnessPositionsToSourceFrame(referenceToBeamCSTrafo, bunch, false);
+    referenceToBeamCSTrafo.transformBunchFrom(source->R.getView(), source->getLocalNum());
+    source->markMomentsDirty();
 }
 
 void BeamBeamInteraction::computeWindowSelfFields(
-        const CoordinateSystemTrafo& beamToReferenceCSTrafo, PartBunch_t& bunch, Inform& message) {
+        ElementInteractionContext& context, FieldServices& fields) {
     IpplTimings::startTimer(windowTimer_m);
-    PAssert(state_m.geometry.has_value());
+    auto& bunch          = context.bunch;
     const auto& geometry = *state_m.geometry;
-
+    Inform localMessage("BeamBeamInteraction::computeWindowSelfFields ");
+    Inform& message            = context.message ? *context.message : localMessage;
+    const auto referenceCharge = performWindowEntryTransition(context, fields);
+    applyWindowConfig(geometry, bunch, fields, referenceCharge.has_value());
     IpplTimings::startTimer(meshSetupTimer_m);
-    Vector_t<double, 3> physicalRMin(0.0), physicalRMax(0.0);
-    bunch.calcBeamParameters();
-    bunch.get_bounds(physicalRMin, physicalRMax);
+    updateWindowMesh(*context.referenceToBeamCSTrafo, bunch, fields);
     IpplTimings::stopTimer(meshSetupTimer_m);
-
-    const std::optional<double> preEnlargePrimaryCharge =
-            performWindowEntryTransition(geometry, physicalRMin, physicalRMax, bunch);
-    applyWindowConfig(geometry, bunch);
-
-    IpplTimings::startTimer(meshSetupTimer_m);
-    PAssert(referenceToBeamCSTrafo_m.has_value());
-    updateWindowMesh(*referenceToBeamCSTrafo_m, bunch);
-    IpplTimings::stopTimer(meshSetupTimer_m);
-
     IpplTimings::startTimer(selfFieldTimer_m);
-    bunch.computeSelfFields();
+    context.spaceChargeSolver->solve(*context.spaceChargeContext);
     IpplTimings::stopTimer(selfFieldTimer_m);
-    if (preEnlargePrimaryCharge.has_value()
-        && BEAMBEAM::copyTimeReached(bunch.getT(), geometry.config.copyTime)) {
-        validateCopiedCharge(*preEnlargePrimaryCharge, bunch);
+    if (referenceCharge.has_value()) {
+        validateCopiedCharge(*referenceCharge, fields);
+        dumpTransitionSnapshot("after_interaction_window_mesh_enlarge", bunch, fields);
     }
-    if (preEnlargePrimaryCharge.has_value()) {
-        dumpTransitionSnapshot("after_interaction_window_mesh_enlarge", bunch);
-    }
-    bunch.setPhysicalBounds(physicalRMin, physicalRMax);
-
-    IpplTimings::startTimer(transformBackTimer_m);
-    transformFieldsToReferenceFrame(beamToReferenceCSTrafo, bunch, message);
-    IpplTimings::stopTimer(transformBackTimer_m);
     if (!BEAMBEAM::sourceCollectiveKickEnabled(geometry.config)) {
-        auto source = bunch.getParticleContainer(0);
-        if (source != nullptr) {
-            source->E = 0.0;
-            source->B = 0.0;
-            Kokkos::fence();
-        }
+        auto source = bunch.getParticleContainer();
+        source->E   = 0.0;
+        source->B   = 0.0;
+        Kokkos::fence();
         message << level4
-                << "BBRIGID: suppressed the BeamBeam collective kick on source container[0]; "
-                   "the solved mesh field remains available to witness containers."
+                << "BBRIGID: suppressed source collective kick; mesh retained for witnesses."
                 << endl;
     }
-    message << level5 << "Compute self fields on BeamBeam-window mesh done." << endl;
     bunch.calcBeamParameters();
     IpplTimings::stopTimer(windowTimer_m);
 }
 
-void BeamBeamInteraction::transformFieldsToReferenceFrame(
-        const CoordinateSystemTrafo& beamToReferenceCSTrafo, PartBunch_t& bunch,
-        Inform& message) const {
-    const size_t nLocal = bunch.getParticleContainer()->getLocalNum();
-    beamToReferenceCSTrafo.transformBunchTo(bunch.getParticleContainer()->R.getView(), nLocal);
-    message << level5 << "Transform particle positions back to reference coordinate system done."
-            << endl;
-    beamToReferenceCSTrafo.rotateBunchTo(bunch.getParticleContainer()->E.getView(), nLocal);
-    message << level5 << "Rotate E fields back to reference coordinate system done." << endl;
-    beamToReferenceCSTrafo.rotateBunchTo(bunch.getParticleContainer()->B.getView(), nLocal);
-    message << level5
-            << "Rotate B fields back to reference coordinate system done. ComputeSelfFields done."
-            << endl;
-}
-
-void BeamBeamInteraction::gatherFieldsToWitnessContainers(PartBunch_t& bunch, Inform& message) {
+void BeamBeamInteraction::gatherFieldsToWitnessContainers(
+        ElementInteractionContext& context, Inform& message) {
+    auto& bunch = context.bunch;
     IpplTimings::startTimer(witnessGatherTimer_m);
     if (state_m.state != BEAMBEAM::WindowState::Active || !state_m.geometry.has_value()) {
         IpplTimings::stopTimer(witnessGatherTimer_m);
@@ -582,14 +605,14 @@ void BeamBeamInteraction::gatherFieldsToWitnessContainers(PartBunch_t& bunch, In
                 "not available for the current step.");
     }
 
-    auto* solver = bunch.getFieldSolver();
-    if (solver == nullptr) {
+    if (context.spaceChargeSolver == nullptr) {
         IpplTimings::stopTimer(witnessGatherTimer_m);
         throw OpalException(
                 "BeamBeamInteraction::gatherFieldsToWitnessContainers",
                 "BeamBeam witness containers require an active field solver.");
     }
 
+    auto& fields             = context.spaceChargeSolver->beamBeamFields();
     const size_t nContainers = bunch.getNumParticleContainers();
     const auto source        = bunch.getParticleContainer();
     const double sourceS     = source->get_sPos();
@@ -642,10 +665,11 @@ void BeamBeamInteraction::gatherFieldsToWitnessContainers(PartBunch_t& bunch, In
         // has been transformed into the source-field frame; every rank participates because
         // the globally-empty case was rejected above. ParticleContainer::update migrates all
         // registered witness attributes together and leaves the solved source mesh unchanged.
+        container->updateLayout(fields.domain().layout(), fields.domain().mesh());
         container->update();
         container->markMomentsDirty();
 
-        solver->gatherCurrentFieldsToContainer(bunch, *container);
+        fields.gatherFields(*container);
         Kokkos::fence();
         const size_t nLocalAfterRedistribution = container->getLocalNum();
         witnessToBeamCSTrafo.transformBunchFrom(container->R.getView(), nLocalAfterRedistribution);

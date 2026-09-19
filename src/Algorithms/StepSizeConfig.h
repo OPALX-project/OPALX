@@ -29,6 +29,11 @@
 
 class StepSizeConfig {
 public:
+    struct ResumePosition {
+        std::size_t segment;
+        unsigned long long stepsCompletedInSegment;
+    };
+
     StepSizeConfig();
 
     StepSizeConfig(const StepSizeConfig& right);
@@ -50,6 +55,15 @@ public:
     void reverseDirection();
 
     StepSizeConfig& advanceToPos(double spos);
+
+    /// Advance to the zero-based configuration index; the size selects the end iterator.
+    StepSizeConfig& advanceToIndex(std::size_t index);
+
+    /// Select and validate the segment position stored in a checkpoint.
+    StepSizeConfig& advanceToResumePosition(const ResumePosition& position);
+
+    /// Return the zero-based current index; the size denotes the end iterator.
+    std::size_t getCurrentIndex();
 
     StepSizeConfig& operator++();
 

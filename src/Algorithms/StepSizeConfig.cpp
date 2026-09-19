@@ -47,6 +47,41 @@ StepSizeConfig& StepSizeConfig::advanceToPos(double spos) {
     return *this;
 }
 
+StepSizeConfig& StepSizeConfig::advanceToIndex(std::size_t index) {
+    if (index > configurations_m.size()) {
+        throw OpalException(
+                "StepSizeConfig::advanceToIndex", "configuration index is out of range");
+    }
+    it_m = configurations_m.begin();
+    std::advance(it_m, static_cast<container_t::difference_type>(index));
+    return *this;
+}
+
+StepSizeConfig& StepSizeConfig::advanceToResumePosition(const ResumePosition& position) {
+    advanceToIndex(position.segment);
+
+    if (reachedEnd()) {
+        if (position.stepsCompletedInSegment != 0) {
+            throw OpalException(
+                    "StepSizeConfig::advanceToResumePosition",
+                    "checkpoint has a nonzero step offset at the end of the tracking schedule");
+        }
+        return *this;
+    }
+
+    if (position.stepsCompletedInSegment >= getNumSteps()) {
+        throw OpalException(
+                "StepSizeConfig::advanceToResumePosition",
+                "checkpoint step offset is outside the selected tracking segment");
+    }
+
+    return *this;
+}
+
+std::size_t StepSizeConfig::getCurrentIndex() {
+    return static_cast<std::size_t>(std::distance(configurations_m.begin(), it_m));
+}
+
 StepSizeConfig& StepSizeConfig::operator++() {
     if (reachedEnd()) {
         throw OpalException(

@@ -18,6 +18,9 @@
 
 class BeamBeam;
 class BeamBeamWindowAnimation;
+namespace opalx::spacecharge {
+    class BeamBeamFieldServices;
+}
 
 /**
  * @brief Stateful, element-scoped execution of the BeamBeam collective interaction.
@@ -39,13 +42,17 @@ public:
     bool suppressesDefaultSelfField() const noexcept override;
 
 private:
+    using FieldServices = opalx::spacecharge::BeamBeamFieldServices;
+    struct SavedFieldDomainState {
+        Vector_t<double, 3> origin, lower, upper, spacing;
+    };
     struct LongitudinalExtent {
         double tail = 0.0;
         double head = 0.0;
     };
 
     bool computeSelfFields(ElementInteractionContext& context);
-    void checkInRegion(ElementInteractionContext& context);
+    void checkInRegion(ElementInteractionContext& context, FieldServices& fields);
     std::optional<BEAMBEAM::ActualGeometry> detectWindow(
             ElementInteractionContext& context, const ippl::Vector<double, 3>& rmin,
             const ippl::Vector<double, 3>& rmax);
@@ -54,25 +61,24 @@ private:
             const ippl::Vector<double, 3>& rmax) const;
 
     void enterWindow(const BEAMBEAM::ActualGeometry& geometry, PartBunch_t& bunch, Inform& message);
-    void leaveWindow(PartBunch_t& bunch, Inform& message);
-    void applyWindowConfig(const BEAMBEAM::ActualGeometry& geometry, PartBunch_t& bunch) const;
+    void leaveWindow(PartBunch_t& bunch, Inform& message, FieldServices& fields);
+    void applyWindowConfig(
+            const BEAMBEAM::ActualGeometry& geometry, PartBunch_t& bunch, FieldServices& fields,
+            bool captureChargeDensity = false) const;
     std::optional<double> performWindowEntryTransition(
-            const BEAMBEAM::ActualGeometry& geometry, const ippl::Vector<double, 3>& physicalRMin,
-            const ippl::Vector<double, 3>& physicalRMax, PartBunch_t& bunch);
-    void validateCopiedCharge(double referenceCharge, PartBunch_t& bunch) const;
-    void dumpTransitionSnapshot(const std::string& snapshotKind, PartBunch_t& bunch);
+            ElementInteractionContext& context, FieldServices& fields);
+    void validateCopiedCharge(double referenceCharge, FieldServices& fields) const;
+    void dumpTransitionSnapshot(
+            const std::string& snapshotKind, PartBunch_t& bunch, FieldServices& fields);
 
-    void computeWindowSelfFields(
-            const CoordinateSystemTrafo& beamToReferenceCSTrafo, PartBunch_t& bunch,
-            Inform& message);
-    void updateWindowMesh(const CoordinateSystemTrafo& referenceToBeamCSTrafo, PartBunch_t& bunch);
+    void computeWindowSelfFields(ElementInteractionContext& context, FieldServices& fields);
+    void updateWindowMesh(
+            const CoordinateSystemTrafo& referenceToBeamCSTrafo, PartBunch_t& bunch,
+            FieldServices& fields);
     void transformWitnessPositionsToSourceFrame(
             const CoordinateSystemTrafo& referenceToBeamCSTrafo, PartBunch_t& bunch,
             bool toSourceFrame) const;
-    void gatherFieldsToWitnessContainers(PartBunch_t& bunch, Inform& message);
-    void transformFieldsToReferenceFrame(
-            const CoordinateSystemTrafo& beamToReferenceCSTrafo, PartBunch_t& bunch,
-            Inform& message) const;
+    void gatherFieldsToWitnessContainers(ElementInteractionContext& context, Inform& message);
 
     void logDiagnostics(PartBunch_t& bunch, bool force = false);
     void renderWindowFrame(
@@ -88,7 +94,7 @@ private:
     IpplTimings::TimerRef witnessGatherTimer_m;
     IpplTimings::TimerRef transitionDumpTimer_m;
 
-    BEAMBEAM::Runtime<PartBunch_t::SavedFieldDomainState> state_m;
+    BEAMBEAM::Runtime<SavedFieldDomainState> state_m;
     BEAMBEAM::Diagnostics diagnostics_m;
     std::optional<Vector_t<double, 3>> transverseMeshLower_m;
     std::optional<Vector_t<double, 3>> transverseMeshUpper_m;

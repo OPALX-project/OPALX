@@ -31,10 +31,6 @@
 #include "Attributes/Attributes.h"
 #include "Distribution/Distribution.h"
 #include "Manager/BaseManager.h"
-#include "Manager/PicManager.h"
-#include "PartBunch/FieldContainer.hpp"
-#include "PartBunch/FieldSolver.hpp"
-#include "PartBunch/LoadBalancer.hpp"
 #include "PartBunch/ParticleContainer.hpp"
 #include "Random/Distribution.h"
 #include "Random/InverseTransformSampling.h"
@@ -65,7 +61,6 @@ enum class DistributionType : short {
 };
 
 using ParticleContainer_t = ParticleContainer<double, 3>;
-using FieldContainer_t    = FieldContainer<double, 3>;
 
 class Distribution : public Definition {
 public:
@@ -125,8 +120,8 @@ public:
 
     Matrix_t correlationMatrix_m;
 
-    bool emitting_m = false;  /// Distribution is an emitted, and is currently
-                              /// emitting, rather than an injected, beam.
+    /// True if particles are emitted over time; false if injected at initialization.
+    bool emitting_m = false;
 
     double getTEmission() const;
     void setTEmission(double tEmission);

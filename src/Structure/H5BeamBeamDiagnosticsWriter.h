@@ -1,7 +1,7 @@
 #ifndef OPAL_H5_BEAMBEAM_DIAGNOSTICS_WRITER_H
 #define OPAL_H5_BEAMBEAM_DIAGNOSTICS_WRITER_H
 
-#include "PartBunch/FieldContainer.hpp"
+#include "Manager/datatypes.h"
 
 #include "H5hut.h"
 

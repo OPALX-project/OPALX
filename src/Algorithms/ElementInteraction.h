@@ -11,6 +11,10 @@
 class CoordinateSystemTrafo;
 class Inform;
 class OrbitThreader;
+namespace opalx::spacecharge {
+    class SpaceChargeSolver;
+    class SpaceChargeSolveContext;
+}  // namespace opalx::spacecharge
 
 /**
  * @brief Stable integration points at which a runtime element interaction may act.
@@ -42,11 +46,11 @@ enum class ElementInteractionPhase {
  * `bunch` is always available; the pointer members are optional services whose
  * validity depends on the dispatched phase.
  *
- * During `SelfField`, the primary-particle positions have already been rotated
- * from the reference-path frame into the instantaneous beam frame. The two
- * coordinate transformations describe this rotation and its inverse; the
- * inverse is used to return positions and computed fields to the reference
- * frame after the solve. The orbit threader supports lookup of placed elements
+ * During `SelfField`, particles remain in tracker axes. The space-charge solver
+ * owns the temporary solve-frame transformation and restores R/P/E/B before
+ * returning. Interactions may temporarily transform positions to determine their
+ * domain, but must restore them before invoking the solver. The orbit threader
+ * supports lookup of placed elements
  * at the current longitudinal location, and `endOfLine` lets an interaction
  * report an out-of-range lookup to the tracker.
  *
@@ -61,7 +65,7 @@ struct ElementInteractionContext {
     /// Source reference-orbit lookup; supplied during `SelfField`.
     OrbitThreader* sourceOrbitThreader = nullptr;
 
-    /// Reference-path to beam-frame rotation already applied before `SelfField`.
+    /// Reference-path to beam-frame rotation; not yet applied during `SelfField`.
     const CoordinateSystemTrafo* referenceToBeamCSTrafo = nullptr;
 
     /// Inverse beam-frame to reference-path transformation for solve results.
@@ -72,6 +76,12 @@ struct ElementInteractionContext {
 
     /// Optional mutable tracker flag for an orbit-threader out-of-range result.
     bool* endOfLine = nullptr;
+
+    /// Run-lifetime solver, available during SelfField and AfterEmission.
+    opalx::spacecharge::SpaceChargeSolver* spaceChargeSolver = nullptr;
+
+    /// Borrowed per-step state; only valid during SelfField.
+    const opalx::spacecharge::SpaceChargeSolveContext* spaceChargeContext = nullptr;
 };
 
 /** @brief Result flags accumulated across one generic interaction dispatch. */

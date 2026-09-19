@@ -103,10 +103,8 @@ namespace {
     }
 }  // namespace
 
-EmittedFromFile::EmittedFromFile(
-        std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-        Distribution_t* opalDist)
-    : SamplingBase(pc, fc, opalDist) {
+EmittedFromFile::EmittedFromFile(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist)
+    : SamplingBase(pc, opalDist) {
     filename_m      = opalDist->getFilename();
     emissionSteps_m = opalDist->getEmissionSteps();
     if (filename_m.empty()) {
@@ -120,9 +118,8 @@ EmittedFromFile::EmittedFromFile(
 }
 
 EmittedFromFile::EmittedFromFile(
-        std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-        const std::string& filename)
-    : SamplingBase(pc, fc), filename_m(filename) {
+        std::shared_ptr<ParticleContainer_t> pc, const std::string& filename)
+    : SamplingBase(pc), filename_m(filename) {
     if (filename_m.empty()) {
         throw OpalException("EmittedFromFile::EmittedFromFile", "Filename must not be empty.");
     }
