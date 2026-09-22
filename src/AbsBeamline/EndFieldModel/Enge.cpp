@@ -72,81 +72,81 @@ namespace endfieldmodel {
             hn[i] = hN(config, x, i);
         double exp_h0 = exp(hn[0]);
         double gn     = 0;
-        for (size_t i = 0; i < EngeConfig::q_m[n].size(); ++i) {
-            double gnj = EngeConfig::q_m[n][i][0] * exp_h0;
-            for (size_t j = 1; j < EngeConfig::q_m[n][i].size(); ++j)
-                gnj *= gsl_sf_pow_int(hn[j], EngeConfig::q_m[n][i][j]);
+        for (size_t i = 0; i < _h[n].size(); ++i) {
+            double gnj = _h[n][i][0] * exp_h0;
+            for (size_t j = 1; j < _h[n][i].size(); ++j)
+                gnj *= gsl_sf_pow_int(hn[j], _h[n][i][j]);
             gn += gnj;
         }
         return gn;
     }
 
-    // q_m[i][j][k]; urk, 3d vector
+    // _q[i][j][k]; urk, 3d vector
     //              i indexes the derivative of f;
     //              j indexes the element in f derivative
     //              k indexes the derivative of g
     // this will quickly become grotesque
-    std::vector<std::vector<std::vector<int> > > EngeConfig::q_m;
-    std::vector<std::vector<std::vector<int> > > EngeConfig::h_m;
+    std::vector<std::vector<std::vector<int> > > Enge::_q;
+    std::vector<std::vector<std::vector<int> > > Enge::_h;
     void Enge::setEngeDiffIndices(size_t n) {
-        if (EngeConfig::q_m.size() == 0) {
-            EngeConfig::q_m.push_back(std::vector<std::vector<int> >(1, std::vector<int>(3)));
-            EngeConfig::q_m[0][0][0] = +1;  // f_0 = 1*g^(-1)
-            EngeConfig::q_m[0][0][1] = -1;
-            EngeConfig::q_m[0][0][2] = 0;
+        if (_q.size() == 0) {
+            _q.push_back(std::vector<std::vector<int> >(1, std::vector<int>(3)));
+            _q[0][0][0] = +1;  // f_0 = 1*g^(-1)
+            _q[0][0][1] = -1;
+            _q[0][0][2] = 0;
         }
 
-        for (size_t i = EngeConfig::q_m.size(); i < n + 1; ++i) {
-            EngeConfig::q_m.push_back(std::vector<std::vector<int> >());
-            for (size_t j = 0; j < EngeConfig::q_m[i - 1].size(); ++j) {
-                size_t k_max = EngeConfig::q_m[i - 1][j].size();
-                std::vector<int> new_vec(EngeConfig::q_m[i - 1][j]);
+        for (size_t i = _q.size(); i < n + 1; ++i) {
+            _q.push_back(std::vector<std::vector<int> >());
+            for (size_t j = 0; j < _q[i - 1].size(); ++j) {
+                size_t k_max = _q[i - 1][j].size();
+                std::vector<int> new_vec(_q[i - 1][j]);
                 // derivative of g^-n0 = -n0*g^(-n0-1)*g(1)
                 new_vec[0] *= new_vec[1];  //  alpha *= g(0) power
                 new_vec[1] -= 1;           // g(0) power -= 1
                 new_vec[2] += 1;           // g(1) power += 1
-                EngeConfig::q_m[i].push_back(new_vec);
+                _q[i].push_back(new_vec);
                 for (size_t k = 2; k < k_max; ++k) {  //  0 is alpha; 1 is g(0)
                     // derivative of g(k)^nk = nk g(k+1) g(k)^(nk-1)
-                    if (EngeConfig::q_m[i - 1][j][k] > 0) {
-                        std::vector<int> new_vec(EngeConfig::q_m[i - 1][j]);
+                    if (_q[i - 1][j][k] > 0) {
+                        std::vector<int> new_vec(_q[i - 1][j]);
                         if (k == k_max - 1) new_vec.push_back(0);  // need enough coefficients
                         new_vec[0] *= new_vec[k];
                         new_vec[k] -= 1;
                         new_vec[k + 1] += 1;
-                        EngeConfig::q_m[i].push_back(new_vec);
+                        _q[i].push_back(new_vec);
                     }
                 }
             }
         }
 
-        if (EngeConfig::q_m.size() == 0) {
+        if (_h.size() == 0) {
             // first one is special case (1+e^h dealt with explicitly)
-            EngeConfig::q_m.push_back(std::vector<std::vector<int> >());
+            _h.push_back(std::vector<std::vector<int> >());
             // second is (1*e^h h'^1)
-            EngeConfig::q_m.push_back(std::vector<std::vector<int> >());
-            EngeConfig::q_m[1].push_back(std::vector<int>(2, 1));
+            _h.push_back(std::vector<std::vector<int> >());
+            _h[1].push_back(std::vector<int>(2, 1));
         }
-        for (size_t i = EngeConfig::q_m.size(); i < n + 1; ++i) {
-            EngeConfig::q_m.push_back(std::vector<std::vector<int> >());
-            for (size_t j = 0; j < EngeConfig::q_m[i - 1].size(); ++j) {
+        for (size_t i = _h.size(); i < n + 1; ++i) {
+            _h.push_back(std::vector<std::vector<int> >());
+            for (size_t j = 0; j < _h[i - 1].size(); ++j) {
                 // d/dx k0 e^g g(1)^k1 ... g(n)^kn ... = k0 e^g g(1)^(k1+1) ... g(n)^kn
                 //                              + SUM_n k0 kn e^g ... g(n)^(kn-1) g(n-1)
-                std::vector<int> new_vec(EngeConfig::q_m[i - 1][j]);
+                std::vector<int> new_vec(_h[i - 1][j]);
                 new_vec[1] += 1;
-                EngeConfig::q_m[i].push_back(new_vec);
-                for (size_t k = 1; k < EngeConfig::q_m[i - 1][j].size(); ++k) {
-                    if (EngeConfig::q_m[i - 1][j][k] > 0) {
-                        std::vector<int> new_vec(EngeConfig::q_m[i - 1][j]);
-                        if (k == EngeConfig::q_m[i - 1][j].size() - 1) new_vec.push_back(0);
+                _h[i].push_back(new_vec);
+                for (size_t k = 1; k < _h[i - 1][j].size(); ++k) {
+                    if (_h[i - 1][j][k] > 0) {
+                        std::vector<int> new_vec(_h[i - 1][j]);
+                        if (k == _h[i - 1][j].size() - 1) new_vec.push_back(0);
                         new_vec[0] *= new_vec[k];
                         new_vec[k] -= 1;
                         new_vec[k + 1] += 1;
-                        EngeConfig::q_m[i].push_back(new_vec);
+                        _h[i].push_back(new_vec);
                     }
                 }
             }
-            EngeConfig::q_m[i] = CompactVector(EngeConfig::q_m[i]);
+            _h[i] = CompactVector(_h[i]);
         }
     }
 
