@@ -39,6 +39,7 @@ enum class ElementType : unsigned short {
     BEAMLINE,
     COLLIMATOR,
     DRIFT,
+    FIELDMAP,
     LASER,
     MARKER,
     MONITOR,

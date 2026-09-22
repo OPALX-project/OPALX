@@ -31,6 +31,7 @@ const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
         {ElementType::BEAMLINE, "Beamline"},
         {ElementType::COLLIMATOR, "Collimator"},
         {ElementType::DRIFT, "Drift"},
+        {ElementType::FIELDMAP, "Fieldmap"},
         {ElementType::LASER, "Laser"},
         {ElementType::MARKER, "Marker"},
         {ElementType::MONITOR, "Monitor"},
