@@ -3,6 +3,7 @@ set (_SRCS
     ConstantEFieldCavityRep.cpp
     ConstantFocusingRep.cpp
     DriftRep.cpp
+    FieldmapElementRep.cpp
     LaserRep.cpp
     MarkerRep.cpp
     MonitorRep.cpp
@@ -20,6 +21,7 @@ set (HDRS
     ConstantEFieldCavityRep.h
     ConstantFocusingRep.h
     DriftRep.h
+    FieldmapElementRep.h
     LaserRep.h
     MarkerRep.h
     MonitorRep.h

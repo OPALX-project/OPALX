@@ -25,6 +25,7 @@
 #include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/Drift.h"
+#include "AbsBeamline/FieldmapElement.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Laser.h"
 #include "AbsBeamline/Marker.h"
@@ -65,6 +66,8 @@ void DefaultVisitor::visitConstantEFieldCavity(const ConstantEFieldCavity& cav) 
 void DefaultVisitor::visitCollimator(const Collimator& coll) { applyDefault(coll); }
 
 void DefaultVisitor::visitDrift(const Drift& drf) { applyDefault(drf); }
+
+void DefaultVisitor::visitFieldmapElement(const FieldmapElement& fm) { applyDefault(fm); }
 
 void DefaultVisitor::visitLaser(const Laser& laser) { applyDefault(laser); }
 

@@ -40,6 +40,7 @@
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/ConstantFocusing.h"
 #include "AbsBeamline/Drift.h"
+#include "AbsBeamline/FieldmapElement.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Laser.h"
 #include "AbsBeamline/Marker.h"
@@ -151,6 +152,9 @@ public:
 
     /// @brief Apply the algorithm to a drift.
     virtual void visitDrift(const Drift&);
+
+    /// @brief Apply the algorithm to a field-map-driven element.
+    virtual void visitFieldmapElement(const FieldmapElement&);
 
     /// @brief Reject laser tracking until dedicated laser tracking is implemented.
     virtual void visitLaser(const Laser&);
@@ -357,6 +361,10 @@ inline void ParallelTracker::visitCollimator(const Collimator& coll) {
 
 inline void ParallelTracker::visitDrift(const Drift& drift) {
     itsOpalBeamline_m.visit(drift, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitFieldmapElement(const FieldmapElement& fm) {
+    itsOpalBeamline_m.visit(fm, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitMonitor(const Monitor& monitor) {

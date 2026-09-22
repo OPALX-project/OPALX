@@ -1,5 +1,6 @@
 #include "Structure/MeshGenerator.h"
 #include "AbsBeamline/Multipole.h"
+#include "AbsBeamline/FieldmapElement.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
@@ -49,6 +50,18 @@ bool MeshGenerator::getTransverseSupport(const ElementBase& element, double& min
         double verticalRadius   = 0.0;
         if (solenoid == nullptr
             || !solenoid->getSupportEnvelope(horizontalRadius, verticalRadius)) {
+            return false;
+        }
+        minor = verticalRadius;
+        major = horizontalRadius;
+        return true;
+    }
+
+    if (element.getType() == ElementType::FIELDMAP) {
+        const auto* fm          = dynamic_cast<const FieldmapElement*>(&element);
+        double horizontalRadius = 0.0;
+        double verticalRadius   = 0.0;
+        if (fm == nullptr || !fm->getSupportEnvelope(horizontalRadius, verticalRadius)) {
             return false;
         }
         minor = verticalRadius;
@@ -106,6 +119,16 @@ void MeshGenerator::add(const ElementBase& element) {
             }
         }
         mesh.type_m = SOLENOID;
+    } else if (element.getType() == ElementType::FIELDMAP) {
+        // The element's local frame is the map's frame, so the drawn body starts at the
+        // map's own field start rather than at zero.
+        double end = 0.0;
+        element.getFieldExtent(start, end);
+        double minor = driftMinor_m;
+        double major = driftMajor_m;
+        getTransverseSupport(element, minor, major);
+        mesh        = getTube(end - start, 0.7 * minor, 0.7 * major, minor, major);
+        mesh.type_m = DRIFT;
     } else if (element.getType() == ElementType::DRIFT) {
         if (!hasDriftReference_m) {
             return;
