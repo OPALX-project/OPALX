@@ -139,7 +139,7 @@ public:
      *
      * @param pc Particle container
      */
-    void applyField(std::shared_ptr<ParticleContainer_t> pc, double) override;
+    void applyField(std::shared_ptr<ParticleContainer_t> pc, double, double) override;
 
     /**
      * @brief Apply the RF-scaled dynamic field map to all particles.

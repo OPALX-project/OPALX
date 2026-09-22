@@ -277,7 +277,7 @@ void Astra1DDynamic::freeMap() {
  * @param pc Particle container
  * @param scale Scaling factor for the field (currently not used)
  */
-void Astra1DDynamic::applyField(std::shared_ptr<ParticleContainer_t> pc, double) {
+void Astra1DDynamic::applyField(std::shared_ptr<ParticleContainer_t> pc, double, double) {
     // Local copies of member variables for use in the lambda function
     const double zbegin = zbegin_m;
     const double zend   = zend_m;

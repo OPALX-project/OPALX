@@ -86,6 +86,7 @@ public:
     void visitCollimator(const Collimator&) override {}
     void visitConstantEFieldCavity(const ConstantEFieldCavity&) override {}
     void visitDrift(const Drift&) override {}
+    void visitFieldmapElement(const FieldmapElement&) override {}
     void visitFlaggedElmPtr(const FlaggedElmPtr&) override {}
     void visitLaser(const Laser&) override {}
     void visitMarker(const Marker&) override {}

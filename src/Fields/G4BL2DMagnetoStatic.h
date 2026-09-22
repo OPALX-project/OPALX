@@ -120,7 +120,9 @@ public:
      * @param pc Particle container
      * @param scale Scaling factor applied to the field
      */
-    void applyField(std::shared_ptr<ParticleContainer_t> pc, double scale = 1.0) override;
+    void applyField(
+            std::shared_ptr<ParticleContainer_t> pc, double scale = 1.0,
+            double escale = 1.0) override;
 
 private:
     /**

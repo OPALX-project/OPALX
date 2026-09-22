@@ -205,7 +205,7 @@ void FM2DDynamic::freeMap() {
  * @param pc Particle container
  * param scale Scaling factor for the field (currently not used)
  */
-void FM2DDynamic::applyField(std::shared_ptr<ParticleContainer_t> pc, double) {
+void FM2DDynamic::applyField(std::shared_ptr<ParticleContainer_t> pc, double, double) {
     // Local copies of member variables for use in the lambda function
     double zbegin  = zbegin_m;
     double zend    = zend_m;

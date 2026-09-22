@@ -32,7 +32,7 @@
 #include "Fields/FM2DDynamic.h"
 #include "Fields/FM2DMagnetoStatic.h"
 #include "Fields/G4BL2DMagnetoStatic.h"
-#include "Fields/G4BL3DMagnetoStatic.h"
+#include "Fields/G4BL3DGrid.h"
 
 #include "Physics/Physics.h"
 #include "Utilities/GeneralOpalException.h"
@@ -129,12 +129,12 @@ Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/, bool zRever
                 return (*position.first).second.Map;
                 break;
 
-            case TG4BL3DMagnetoStatic:
+            case TG4BL3DGrid:
                 position = FieldmapDictionary.insert(
                         std::make_pair(
                                 Filename,
                                 FieldmapDescription(
-                                        TG4BL3DMagnetoStatic, new G4BL3DMagnetoStatic(Filename))));
+                                        TG4BL3DGrid, new G4BL3DGrid(Filename))));
                 return (*position.first).second.Map;
                 break;
 
@@ -351,7 +351,7 @@ MapType Fieldmap::readHeader(std::string Filename) {
             return TG4BL2DMagnetoStatic;
         }
         if (section == "grid") {
-            return TG4BL3DMagnetoStatic;
+            return TG4BL3DGrid;
         }
     }
 
