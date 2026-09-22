@@ -379,6 +379,7 @@ namespace {
 
         ASSERT_NE(bunch->getFieldSolver(), nullptr);
         EXPECT_EQ(bunch->getFieldSolver()->getGreensFunction(), "INTEGRATED");
+
     }
 
     TEST_F(BinnedFieldSolverSmokeTest, P3MOpenAndPeriodicUseSameSolverWrapperAndSelectedLayoutBC) {
@@ -397,6 +398,19 @@ namespace {
 
             createParticles(2, /*pzMin=*/0.1, /*pzMax=*/0.2);
             EXPECT_NO_THROW(bunch->computeSelfFields());
+        }
+    }
+
+    // Verify that open (non-P3M) solvers do not impose periodic particle BCs
+    TEST_F(BinnedFieldSolverSmokeTest, OpenSolver_UsesNoParticleBC) {
+        // Use OPEN solver with standard greens function
+        ASSERT_NO_THROW(rebuildOpenBunchWithGreensFunction("STANDARD"));
+        ASSERT_NE(bunch->getFieldSolver(), nullptr);
+        // Solver type should be OPEN (not P3M)
+        EXPECT_EQ(bunch->getFieldSolver()->getStype(), "OPEN");
+        // All particle BCs should be NO (open) for non-periodic boundaries
+        for (const auto bc : pc->getPL().getParticleBC()) {
+            EXPECT_EQ(bc, ippl::BC::NO);
         }
     }
 
