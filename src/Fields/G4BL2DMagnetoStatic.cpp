@@ -267,7 +267,8 @@ void G4BL2DMagnetoStatic::freeMap() {
  * @param pc Particle container
  * @param scale Scaling factor applied to the field
  */
-void G4BL2DMagnetoStatic::applyField(std::shared_ptr<ParticleContainer_t> pc, double scale) {
+void G4BL2DMagnetoStatic::applyField(
+        std::shared_ptr<ParticleContainer_t> pc, double scale, double) {
     // Local copies of member variables for use in the lambda function
     double zbegin  = zbegin_m;
     double zend    = zend_m;

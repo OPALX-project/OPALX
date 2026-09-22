@@ -34,7 +34,7 @@ enum MapType {
     T3DMagnetoStaticH5Block,
     T3DDynamicH5Block,
     TG4BL2DMagnetoStatic,
-    TG4BL3DMagnetoStatic
+    TG4BL3DGrid
 };
 
 enum SwapType {
@@ -125,7 +125,18 @@ public:
      * @param pc Particle container
      * @param scale Scaling factor applied to the field (default 1.0)
      */
-    virtual void applyField(std::shared_ptr<ParticleContainer_t> pc, double scale = 1.0) = 0;
+    /**
+     * @brief Add this map's field to every particle.
+     *
+     * @param pc     the particles
+     * @param scale  multiplier on the magnetic field
+     * @param escale multiplier on the electric field, for the maps that carry one. Kept
+     *               separate because G4beamline scales the two independently, with
+     *               current/normB for the magnetic field and gradient/normE for the
+     *               electric one. Readers with only one field ignore it.
+     */
+    virtual void applyField(
+            std::shared_ptr<ParticleContainer_t> pc, double scale = 1.0, double escale = 1.0) = 0;
 
     /**
      * @brief Get the field strength at a given point.

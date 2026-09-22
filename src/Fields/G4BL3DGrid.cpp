@@ -1,5 +1,5 @@
 //
-// Class G4BL3DMagnetoStatic
+// Class G4BL3DGrid
 //   Reader for G4beamline `grid` field maps.
 //
 // Copyright (c) 2026, Paul Scherrer Institut, Villigen PSI, Switzerland
@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with OPALX. If not, see <https://www.gnu.org/licenses/>.
 //
-#include "Fields/G4BL3DMagnetoStatic.h"
+#include "Fields/G4BL3DGrid.h"
 #include "Fields/G4BLMapSyntax.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
@@ -32,7 +32,7 @@ using G4BLMapSyntax::firstToken;
 using G4BLMapSyntax::keyValues;
 using G4BLMapSyntax::nextLine;
 
-G4BL3DMagnetoStatic::G4BL3DMagnetoStatic(std::string aFilename)
+G4BL3DGrid::G4BL3DGrid(std::string aFilename)
     : Fieldmap(aFilename),
       xbegin_m(0.0),
       xend_m(0.0),
@@ -46,32 +46,35 @@ G4BL3DMagnetoStatic::G4BL3DMagnetoStatic(std::string aFilename)
       num_gridpx_m(0),
       num_gridpy_m(0),
       num_gridpz_m(0),
-      fieldScale_m(1.0) {
-    Type        = TG4BL3DMagnetoStatic;
-    normalize_m = false;  // absolute Tesla, so the element's scale is a plain multiplier
+      fieldScale_m(1.0),
+      efieldScale_m(1.0),
+      hasEField_m(false) {
+    Type        = TG4BL3DGrid;
+    normalize_m = false;  // absolute units, so the element's scales are plain multipliers
 
     readHeaderOnly();
 }
 
-G4BL3DMagnetoStatic::~G4BL3DMagnetoStatic() { freeMap(); }
+G4BL3DGrid::~G4BL3DGrid() { freeMap(); }
 
-void G4BL3DMagnetoStatic::readHeaderOnly() {
+void G4BL3DGrid::readHeaderOnly() {
     std::ifstream in(Filename_m.c_str());
     if (!in.good()) {
         noFieldmapWarning();
         throw GeneralOpalException(
-                "G4BL3DMagnetoStatic::readHeaderOnly",
+                "G4BL3DGrid::readHeaderOnly",
                 "Could not open fieldmap '" + Filename_m + "'");
     }
 
     std::string line;
     if (!nextLine(in, line)) {
         throw GeneralOpalException(
-                "G4BL3DMagnetoStatic::readHeaderOnly", "Fieldmap '" + Filename_m + "' is empty");
+                "G4BL3DGrid::readHeaderOnly", "Fieldmap '" + Filename_m + "' is empty");
     }
 
     // ---- optional `param` line ------------------------------------------
     fieldScale_m        = 1.0;
+    efieldScale_m       = 1.0;
     std::string keyword = firstToken(line);
     if (keyword == "param") {
         const std::map<std::string, std::string> pairs = keyValues(line);
@@ -84,7 +87,7 @@ void G4BL3DMagnetoStatic::readHeaderOnly() {
                 return std::stod(entry->second);
             } catch (const std::exception&) {
                 throw GeneralOpalException(
-                        "G4BL3DMagnetoStatic::readHeaderOnly", "Could not read " + key + "='"
+                        "G4BL3DGrid::readHeaderOnly", "Could not read " + key + "='"
                                                                        + entry->second + "' in '"
                                                                        + Filename_m + "'");
             }
@@ -97,15 +100,29 @@ void G4BL3DMagnetoStatic::readHeaderOnly() {
         const double current = optional("current", 1.0);
         if (current == 0.0) {
             throw GeneralOpalException(
-                    "G4BL3DMagnetoStatic::readHeaderOnly",
+                    "G4BL3DGrid::readHeaderOnly",
                     "The 'param' line of '" + Filename_m
                             + "' sets current=0, which G4beamline would divide by");
         }
         fieldScale_m = normB / current;
 
+        // The electric field has its own pair of keys and is scaled entirely separately:
+        // G4beamline evaluates E * normE * gradient_placement / gradient_file, the same
+        // shape as the magnetic one but with normE and gradient in place of normB and
+        // current. Fold the file's own half in here too.
+        const double normE    = optional("normE", 1.0);
+        const double gradient = optional("gradient", 1.0);
+        if (gradient == 0.0) {
+            throw GeneralOpalException(
+                    "G4BL3DGrid::readHeaderOnly",
+                    "The 'param' line of '" + Filename_m
+                            + "' sets gradient=0, which G4beamline would divide by");
+        }
+        efieldScale_m = normE / gradient;
+
         if (!nextLine(in, line)) {
             throw GeneralOpalException(
-                    "G4BL3DMagnetoStatic::readHeaderOnly",
+                    "G4BL3DGrid::readHeaderOnly",
                     "Fieldmap '" + Filename_m + "' has no section after its 'param' line");
         }
         keyword = firstToken(line);
@@ -114,7 +131,7 @@ void G4BL3DMagnetoStatic::readHeaderOnly() {
     // ---- `grid` line -----------------------------------------------------
     if (keyword != "grid") {
         throw GeneralOpalException(
-                "G4BL3DMagnetoStatic::readHeaderOnly",
+                "G4BL3DGrid::readHeaderOnly",
                 "Expected a 'grid' section in '" + Filename_m + "', found '" + keyword + "'");
     }
 
@@ -123,14 +140,14 @@ void G4BL3DMagnetoStatic::readHeaderOnly() {
         const auto entry = grid.find(key);
         if (entry == grid.end()) {
             throw GeneralOpalException(
-                    "G4BL3DMagnetoStatic::readHeaderOnly",
+                    "G4BL3DGrid::readHeaderOnly",
                     "The 'grid' line of '" + Filename_m + "' has no " + key);
         }
         try {
             return std::stod(entry->second);
         } catch (const std::exception&) {
             throw GeneralOpalException(
-                    "G4BL3DMagnetoStatic::readHeaderOnly",
+                    "G4BL3DGrid::readHeaderOnly",
                     "Could not read " + key + "='" + entry->second + "' in '" + Filename_m + "'");
         }
     };
@@ -147,12 +164,12 @@ void G4BL3DMagnetoStatic::readHeaderOnly() {
 
     if (num_gridpx_m < 2 || num_gridpy_m < 2 || num_gridpz_m < 2) {
         throw GeneralOpalException(
-                "G4BL3DMagnetoStatic::readHeaderOnly",
+                "G4BL3DGrid::readHeaderOnly",
                 "'" + Filename_m + "' needs at least 2 grid points in each of x, y and z");
     }
     if (dX <= 0.0 || dY <= 0.0 || dZ <= 0.0) {
         throw GeneralOpalException(
-                "G4BL3DMagnetoStatic::readHeaderOnly",
+                "G4BL3DGrid::readHeaderOnly",
                 "'" + Filename_m + "' has a non-positive dX, dY or dZ");
     }
 
@@ -170,7 +187,7 @@ void G4BL3DMagnetoStatic::readHeaderOnly() {
     // message says what is wrong rather than "unexpected line".
     if (!nextLine(in, line)) {
         throw GeneralOpalException(
-                "G4BL3DMagnetoStatic::readHeaderOnly",
+                "G4BL3DGrid::readHeaderOnly",
                 "Fieldmap '" + Filename_m + "' has no section after its 'grid' line");
     }
     const std::string section = firstToken(line);
@@ -184,12 +201,12 @@ void G4BL3DMagnetoStatic::readHeaderOnly() {
             reason = "expected a 'data' section, found '" + section + "'";
         }
         throw GeneralOpalException(
-                "G4BL3DMagnetoStatic::readHeaderOnly",
+                "G4BL3DGrid::readHeaderOnly",
                 "In fieldmap '" + Filename_m + "': " + reason);
     }
 }
 
-void G4BL3DMagnetoStatic::readMap() {
+void G4BL3DGrid::readMap() {
     if (FieldstrengthBz_m.extent(0) != 0) {
         return;
     }
@@ -203,10 +220,14 @@ void G4BL3DMagnetoStatic::readMap() {
     auto By = FieldstrengthBy_m.view_host();
     auto Bz = FieldstrengthBz_m.view_host();
 
+    // Left empty unless the file turns out to carry an electric field, at which point the
+    // storage is allocated and these are pointed at it.
+    typename Kokkos::DualView<double*>::t_host Ex, Ey, Ez;
+
     std::ifstream in(Filename_m.c_str());
     if (!in.good()) {
         throw GeneralOpalException(
-                "G4BL3DMagnetoStatic::readMap", "Could not reopen fieldmap '" + Filename_m + "'");
+                "G4BL3DGrid::readMap", "Could not reopen fieldmap '" + Filename_m + "'");
     }
 
     // Skip forward to just past the `data` line. readHeaderOnly() has already checked that
@@ -232,7 +253,7 @@ void G4BL3DMagnetoStatic::readMap() {
         const int i    = static_cast<int>(std::lround(f));
         if (i < 0 || i >= n || std::abs(f - i) > 0.25) {
             throw GeneralOpalException(
-                    "G4BL3DMagnetoStatic::readMap",
+                    "G4BL3DGrid::readMap",
                     "Row " + std::to_string(row) + " of '" + file + "' has " + axis + " = "
                             + std::to_string(value)
                             + " m, which is not on the grid declared by the 'grid' line");
@@ -251,7 +272,7 @@ void G4BL3DMagnetoStatic::readMap() {
                 reason = "unexpected line '" + line + "' inside the data block";
             }
             throw GeneralOpalException(
-                    "G4BL3DMagnetoStatic::readMap", "In fieldmap '" + Filename_m + "': " + reason);
+                    "G4BL3DGrid::readMap", "In fieldmap '" + Filename_m + "': " + reason);
         }
 
         ++row;
@@ -259,38 +280,44 @@ void G4BL3DMagnetoStatic::readMap() {
         double x = 0.0, y = 0.0, z = 0.0, bx = 0.0, by = 0.0, bz = 0.0;
         if (!(values >> x >> y >> z >> bx >> by >> bz)) {
             throw GeneralOpalException(
-                    "G4BL3DMagnetoStatic::readMap",
+                    "G4BL3DGrid::readMap",
                     "Row " + std::to_string(row) + " of '" + Filename_m
                             + "' does not hold at least six numbers (x y z Bx By Bz)");
         }
 
         // G4beamline also writes a nine-column form, x y z Bx By Bz Ex Ey Ez -- the muE4
-        // quadrupole map qsm01a_210_track.g4blmap is one. This element is magnetostatic, so
-        // an electric field cannot be carried: accept the columns only when they are zero,
-        // and say so plainly rather than dropping a real field in silence.
+        // quadrupole map qsm01a_210_track.g4blmap is one, and the MUH2 separator is one
+        // that actually uses the columns.
         double ex = 0.0, ey = 0.0, ez = 0.0;
         if (values >> ex) {
             if (!(values >> ey >> ez)) {
                 throw GeneralOpalException(
-                        "G4BL3DMagnetoStatic::readMap",
+                        "G4BL3DGrid::readMap",
                         "Row " + std::to_string(row) + " of '" + Filename_m
                                 + "' has between seven and eight numbers; the G4beamline grid "
                                   "format is six (x y z Bx By Bz) or nine with Ex Ey Ez");
             }
-            if (ex != 0.0 || ey != 0.0 || ez != 0.0) {
-                throw GeneralOpalException(
-                        "G4BL3DMagnetoStatic::readMap",
-                        "Row " + std::to_string(row) + " of '" + Filename_m
-                                + "' carries a non-zero electric field. This reader is "
-                                  "magnetostatic and would silently discard it.");
-            }
             std::string extra;
             if (values >> extra) {
                 throw GeneralOpalException(
-                        "G4BL3DMagnetoStatic::readMap", "Row " + std::to_string(row) + " of '"
+                        "G4BL3DGrid::readMap", "Row " + std::to_string(row) + " of '"
                                                                 + Filename_m
                                                                 + "' has more than nine numbers");
             }
+        }
+
+        // Allocate the electric field only once a non-zero value turns up. Every point read
+        // before that had a zero electric field, and a Kokkos view starts zeroed, so the
+        // points already passed need no going back over. Most nine-column maps in practice
+        // are all zeros and never get here.
+        if (!hasEField_m && (ex != 0.0 || ey != 0.0 || ez != 0.0)) {
+            FieldstrengthEx_m = Kokkos::DualView<double*>("FieldstrengthEx", size);
+            FieldstrengthEy_m = Kokkos::DualView<double*>("FieldstrengthEy", size);
+            FieldstrengthEz_m = Kokkos::DualView<double*>("FieldstrengthEz", size);
+            Ex                = FieldstrengthEx_m.view_host();
+            Ey                = FieldstrengthEy_m.view_host();
+            Ez                = FieldstrengthEz_m.view_host();
+            hasEField_m       = true;
         }
 
         const int ix = index1D(x * Units::mm2m, xbegin_m, hx_m, num_gridpx_m, "x", Filename_m, row);
@@ -300,7 +327,7 @@ void G4BL3DMagnetoStatic::readMap() {
         const size_t index = (static_cast<size_t>(ix) * num_gridpy_m + iy) * num_gridpz_m + iz;
         if (seen[index]) {
             throw GeneralOpalException(
-                    "G4BL3DMagnetoStatic::readMap",
+                    "G4BL3DGrid::readMap",
                     "Row " + std::to_string(row) + " of '" + Filename_m
                             + "' repeats a grid point already given earlier in the file");
         }
@@ -310,11 +337,18 @@ void G4BL3DMagnetoStatic::readMap() {
         Bx(index) = fieldScale_m * bx;
         By(index) = fieldScale_m * by;
         Bz(index) = fieldScale_m * bz;
+
+        if (hasEField_m) {
+            // The file is in MV/m; OPALX works in V/m.
+            Ex(index) = efieldScale_m * Units::MVpm2Vpm * ex;
+            Ey(index) = efieldScale_m * Units::MVpm2Vpm * ey;
+            Ez(index) = efieldScale_m * Units::MVpm2Vpm * ez;
+        }
     }
 
     if (filled != size) {
         throw GeneralOpalException(
-                "G4BL3DMagnetoStatic::readMap",
+                "G4BL3DGrid::readMap",
                 "Fieldmap '" + Filename_m + "' holds " + std::to_string(filled) + " of the "
                         + std::to_string(size) + " grid points its 'grid' line declares");
     }
@@ -325,15 +359,29 @@ void G4BL3DMagnetoStatic::readMap() {
     FieldstrengthBy_m.sync<typename decltype(FieldstrengthBy_m)::t_dev::device_type>();
     FieldstrengthBz_m.modify<typename decltype(FieldstrengthBz_m)::host_mirror_space>();
     FieldstrengthBz_m.sync<typename decltype(FieldstrengthBz_m)::t_dev::device_type>();
+
+    if (hasEField_m) {
+        FieldstrengthEx_m.modify<typename decltype(FieldstrengthEx_m)::host_mirror_space>();
+        FieldstrengthEx_m.sync<typename decltype(FieldstrengthEx_m)::t_dev::device_type>();
+        FieldstrengthEy_m.modify<typename decltype(FieldstrengthEy_m)::host_mirror_space>();
+        FieldstrengthEy_m.sync<typename decltype(FieldstrengthEy_m)::t_dev::device_type>();
+        FieldstrengthEz_m.modify<typename decltype(FieldstrengthEz_m)::host_mirror_space>();
+        FieldstrengthEz_m.sync<typename decltype(FieldstrengthEz_m)::t_dev::device_type>();
+    }
 }
 
-void G4BL3DMagnetoStatic::freeMap() {
+void G4BL3DGrid::freeMap() {
     FieldstrengthBx_m = Kokkos::DualView<double*>();
     FieldstrengthBy_m = Kokkos::DualView<double*>();
     FieldstrengthBz_m = Kokkos::DualView<double*>();
+    FieldstrengthEx_m = Kokkos::DualView<double*>();
+    FieldstrengthEy_m = Kokkos::DualView<double*>();
+    FieldstrengthEz_m = Kokkos::DualView<double*>();
+    hasEField_m       = false;
 }
 
-void G4BL3DMagnetoStatic::applyField(std::shared_ptr<ParticleContainer_t> pc, double scale) {
+void G4BL3DGrid::applyField(
+        std::shared_ptr<ParticleContainer_t> pc, double scale, double escale) {
     // Members copied to locals; the device kernel must not capture `this`.
     const double xbegin = xbegin_m, xend = xend_m;
     const double ybegin = ybegin_m, yend = yend_m;
@@ -350,7 +398,7 @@ void G4BL3DMagnetoStatic::applyField(std::shared_ptr<ParticleContainer_t> pc, do
     const size_t nLocal = pc->getLocalNum();
 
     Kokkos::parallel_for(
-            "G4BL3DMagnetoStatic::applyField", nLocal, KOKKOS_LAMBDA(const size_t i) {
+            "G4BL3DGrid::applyField", nLocal, KOKKOS_LAMBDA(const size_t i) {
                 const Vector_t<double, 3>& R = Rview(i);
                 if (R(0) >= xbegin && R(0) < xend && R(1) >= ybegin && R(1) < yend && R(2) >= zbegin
                     && R(2) < zend) {
@@ -361,10 +409,35 @@ void G4BL3DMagnetoStatic::applyField(std::shared_ptr<ParticleContainer_t> pc, do
                     Bview(i) += scale * tmpB;
                 }
             });
+
+    if (!hasEField_m) {
+        return;
+    }
+
+    // Separate kernel rather than a branch inside the one above: the views only exist when
+    // there is an electric field, so they cannot be captured unconditionally.
+    Kokkos::View<const double*> Ex_device = FieldstrengthEx_m.view_device();
+    Kokkos::View<const double*> Ey_device = FieldstrengthEy_m.view_device();
+    Kokkos::View<const double*> Ez_device = FieldstrengthEz_m.view_device();
+
+    auto Eview = pc->E.getView();
+
+    Kokkos::parallel_for(
+            "G4BL3DGrid::applyEField", nLocal, KOKKOS_LAMBDA(const size_t i) {
+                const Vector_t<double, 3>& R = Rview(i);
+                if (R(0) >= xbegin && R(0) < xend && R(1) >= ybegin && R(1) < yend && R(2) >= zbegin
+                    && R(2) < zend) {
+                    Vector_t<double, 3> tmpE = 0.0;
+                    interpolate(
+                            R, tmpE, Ex_device, Ey_device, Ez_device, xbegin, ybegin, zbegin, hx,
+                            hy, hz, nx, ny, nz);
+                    Eview(i) += escale * tmpE;
+                }
+            });
 }
 
-bool G4BL3DMagnetoStatic::getFieldstrength(
-        const Vector_t<double, 3>& R, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) const {
+bool G4BL3DGrid::getFieldstrength(
+        const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& B) const {
     if (!isInside(R)) {
         return true;
     }
@@ -373,21 +446,28 @@ bool G4BL3DMagnetoStatic::getFieldstrength(
             Kokkos::View<const double*>(FieldstrengthBy_m.view_host()),
             Kokkos::View<const double*>(FieldstrengthBz_m.view_host()), xbegin_m, ybegin_m,
             zbegin_m, hx_m, hy_m, hz_m, num_gridpx_m, num_gridpy_m, num_gridpz_m);
+    if (hasEField_m) {
+        interpolate(
+                R, E, Kokkos::View<const double*>(FieldstrengthEx_m.view_host()),
+                Kokkos::View<const double*>(FieldstrengthEy_m.view_host()),
+                Kokkos::View<const double*>(FieldstrengthEz_m.view_host()), xbegin_m, ybegin_m,
+                zbegin_m, hx_m, hy_m, hz_m, num_gridpx_m, num_gridpy_m, num_gridpz_m);
+    }
     return false;
 }
 
-bool G4BL3DMagnetoStatic::getFieldDerivative(
+bool G4BL3DGrid::getFieldDerivative(
         const Vector_t<double, 3>& /*R*/, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/,
         const DiffDirection& /*dir*/) const {
-    throw GeneralOpalException("G4BL3DMagnetoStatic::getFieldDerivative", "not implemented");
+    throw GeneralOpalException("G4BL3DGrid::getFieldDerivative", "not implemented");
 }
 
-void G4BL3DMagnetoStatic::getFieldDimensions(double& zBegin, double& zEnd) const {
+void G4BL3DGrid::getFieldDimensions(double& zBegin, double& zEnd) const {
     zBegin = zbegin_m;
     zEnd   = zend_m;
 }
 
-void G4BL3DMagnetoStatic::getFieldDimensions(
+void G4BL3DGrid::getFieldDimensions(
         double& xIni, double& xFinal, double& yIni, double& yFinal, double& zIni,
         double& zFinal) const {
     xIni   = xbegin_m;
@@ -398,22 +478,25 @@ void G4BL3DMagnetoStatic::getFieldDimensions(
     zFinal = zend_m;
 }
 
-void G4BL3DMagnetoStatic::swap() {
+void G4BL3DGrid::swap() {
     // The grid line carries its own axes, so there is nothing to swap.
 }
 
-void G4BL3DMagnetoStatic::getInfo(Inform* msg) {
-    (*msg) << Filename_m << " (G4beamline grid, 3D magnetostatic); x= " << xbegin_m << " .. "
+void G4BL3DGrid::getInfo(Inform* msg) {
+    // Deliberately says neither magnetostatic nor electric: getInfo() is called from the
+    // element's initialise(), which runs before goOnline() reads the data, and nothing in
+    // the header says whether the electric columns are there or what is in them.
+    (*msg) << Filename_m << " (G4beamline grid, 3D static); x= " << xbegin_m << " .. "
            << xend_m << " m; y= " << ybegin_m << " .. " << yend_m << " m; z= " << zbegin_m << " .. "
            << zend_m << " m; " << num_gridpx_m << " x " << num_gridpy_m << " x " << num_gridpz_m
            << " points;" << endl;
 }
 
-double G4BL3DMagnetoStatic::getFrequency() const {
-    throw GeneralOpalException("G4BL3DMagnetoStatic::getFrequency", "not implemented");
+double G4BL3DGrid::getFrequency() const {
+    throw GeneralOpalException("G4BL3DGrid::getFrequency", "not implemented");
     return 0.0;
 }
 
-void G4BL3DMagnetoStatic::setFrequency(double /*freq*/) {
-    throw GeneralOpalException("G4BL3DMagnetoStatic::setFrequency", "not implemented");
+void G4BL3DGrid::setFrequency(double /*freq*/) {
+    throw GeneralOpalException("G4BL3DGrid::setFrequency", "not implemented");
 }

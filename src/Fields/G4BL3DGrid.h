@@ -1,5 +1,5 @@
 //
-// Class G4BL3DMagnetoStatic
+// Class G4BL3DGrid
 //   Reader for G4beamline `grid` field maps.
 //
 // Copyright (c) 2026, Paul Scherrer Institut, Villigen PSI, Switzerland
@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPALX. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef OPALX_FIELDMAPG4BL3DMAGNETOSTATIC_HH
-#define OPALX_FIELDMAPG4BL3DMAGNETOSTATIC_HH
+#ifndef OPALX_FIELDMAPG4BL3DGRID_HH
+#define OPALX_FIELDMAPG4BL3DGRID_HH
 
 #include "Fields/Fieldmap.h"
 
@@ -26,7 +26,7 @@
 #include <string>
 
 /**
- * @class G4BL3DMagnetoStatic
+ * @class G4BL3DGrid
  * @brief Reader for G4beamline `grid` field maps: a cartesian box of B values.
  *
  * @code
@@ -35,7 +35,15 @@
  * data
  * <nX*nY*nZ rows of: x y z Bx By Bz>
  * @endcode
- * Positions are in mm, field values in Tesla, and the field is interpolated trilinearly.
+ * Positions are in mm and magnetic values in Tesla, interpolated trilinearly.
+ *
+ * @note Rows may also carry three more columns, x y z Bx By Bz Ex Ey Ez, which is how
+ *       G4beamline writes a map that has an electric field as well. Those are in MV/m and
+ *       are converted to V/m on load. The two fields are scaled independently, as in
+ *       G4beamline: normB and current for the magnetic one, normE and gradient for the
+ *       electric one. Storage for the electric field is only allocated once a non-zero
+ *       value actually turns up, so the many nine-column maps whose Ex Ey Ez are all zero
+ *       cost nothing extra.
  *
  * @note Rows are indexed by the x, y and z they carry, not by their position in the file.
  *       A missing, repeated or off-grid row is an error rather than a silent shift of the
@@ -50,7 +58,7 @@
  *       are large -- the muE4 ASR61 dipole is 830k rows and 56 MB -- so unlike the 2D reader
  *       this one does not parse twice.
  */
-class G4BL3DMagnetoStatic : public Fieldmap {
+class G4BL3DGrid : public Fieldmap {
 public:
     /**
      * @brief Trilinear interpolation of the field at @p R.
@@ -63,6 +71,21 @@ public:
             const Vector_t<double, 3>& R, Vector_t<double, 3>& B,
             const Kokkos::View<const double*>& Bx, const Kokkos::View<const double*>& By,
             const Kokkos::View<const double*>& Bz, const double xbegin, const double ybegin,
+            const double zbegin, const double hx, const double hy, const double hz, const int nx,
+            const int ny, const int nz) {
+        interpolate(R, B, Bx, By, Bz, xbegin, ybegin, zbegin, hx, hy, hz, nx, ny, nz);
+    }
+
+    /**
+     * @brief Trilinear interpolation of any of the stored vector fields at @p R.
+     *
+     * The magnetic and the electric field sit on the same grid, so they share the weights
+     * and this one function serves both. Adds into @p out; the caller does the bounds check.
+     */
+    KOKKOS_INLINE_FUNCTION static void interpolate(
+            const Vector_t<double, 3>& R, Vector_t<double, 3>& out,
+            const Kokkos::View<const double*>& Vx, const Kokkos::View<const double*>& Vy,
+            const Kokkos::View<const double*>& Vz, const double xbegin, const double ybegin,
             const double zbegin, const double hx, const double hy, const double hz, const int nx,
             const int ny, const int nz) {
         const double fx = (R(0) - xbegin) / hx;
@@ -92,9 +115,9 @@ public:
             const int cz       = corner & 1;
             const double w     = (cx ? wx : 1.0 - wx) * (cy ? wy : 1.0 - wy) * (cz ? wz : 1.0 - wz);
             const size_t index = base + cx * sx + cy * sy + cz;
-            B(0) += w * Bx(index);
-            B(1) += w * By(index);
-            B(2) += w * Bz(index);
+            out(0) += w * Vx(index);
+            out(1) += w * Vy(index);
+            out(2) += w * Vz(index);
         }
     }
 
@@ -135,12 +158,17 @@ public:
                && r(2) >= zbegin_m && r(2) < zend_m;
     }
 
-    void applyField(std::shared_ptr<ParticleContainer_t> pc, double scale = 1.0) override;
+    void applyField(
+            std::shared_ptr<ParticleContainer_t> pc, double scale = 1.0,
+            double escale = 1.0) override;
+
+    /// @brief Did the file actually carry a non-zero electric field?
+    bool hasEField() const { return hasEField_m; }
 
 private:
     /// @param aFilename Path to the map file.
-    explicit G4BL3DMagnetoStatic(std::string aFilename);
-    ~G4BL3DMagnetoStatic();
+    explicit G4BL3DGrid(std::string aFilename);
+    ~G4BL3DGrid();
 
     void readMap() override;
     void freeMap() override;
@@ -148,10 +176,16 @@ private:
     /// @brief Parse the header: the optional `param` line and the `grid` line.
     void readHeaderOnly();
 
-    /// @brief Field components [T], indexed (ix * nY + iy) * nZ + iz.
+    /// @brief Magnetic field components [T], indexed (ix * nY + iy) * nZ + iz.
     Kokkos::DualView<double*> FieldstrengthBx_m;
     Kokkos::DualView<double*> FieldstrengthBy_m;
     Kokkos::DualView<double*> FieldstrengthBz_m;
+
+    /// @brief Electric field components [V/m], same indexing. Empty unless the file
+    ///        turned out to carry a non-zero electric field.
+    Kokkos::DualView<double*> FieldstrengthEx_m;
+    Kokkos::DualView<double*> FieldstrengthEy_m;
+    Kokkos::DualView<double*> FieldstrengthEz_m;
 
     /// @brief Box bounds [m].
     double xbegin_m;
@@ -171,10 +205,17 @@ private:
     int num_gridpy_m;
     int num_gridpz_m;
 
-    /// @brief Field scale from the file's own `param` line, normB / current.
+    /// @brief Magnetic scale from the file's own `param` line, normB / current.
     double fieldScale_m;
+
+    /// @brief Electric scale from the file's own `param` line, normE / gradient.
+    double efieldScale_m;
+
+    /// @brief Set once a non-zero electric field value is read, which is also when the
+    ///        electric field storage is allocated.
+    bool hasEField_m;
 
     friend class Fieldmap;
 };
 
-#endif  // OPALX_FIELDMAPG4BL3DMAGNETOSTATIC_HH
+#endif  // OPALX_FIELDMAPG4BL3DGRID_HH
