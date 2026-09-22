@@ -172,22 +172,6 @@ private:
     unsigned long long boundaryControlStride_m = 1;
     double boundaryStepDt_m                    = 0;  ///< Accepted/trial collective substep cap [s].
     unsigned long long boundaryTrials_m = 0, boundaryRejected_m = 0;
-    /** Complete the first drift and field gathering at a common physical midpoint.
-     * A register-only endpoint trial decides collective subdivision before any
-     * momentum kick, reference update, emission or loss is committed. Rejected
-     * first drifts are reversed on the solver's current particle ownership.
-     */
-    void prepareBoundaryStep(
-            BorisPusher&, const std::vector<std::shared_ptr<OrbitThreader>>&, boris_step::Control&);
-    bool boundaryCrossed(double dt);
-    void reverseTrialDrift(double dt);
-    /// Internal candidate-selection policy; the public two-argument API is unchanged.
-    void forEachElementInBunchFrame(
-            const std::vector<std::shared_ptr<OrbitThreader>>& oths,
-            const std::function<
-                    void(const std::shared_ptr<ElementBase>&,
-                         const std::shared_ptr<ParticleContainer_t>&)>& func,
-            bool spatialCandidates);
     SpaceChargeFieldUpdate spaceChargeFieldUpdate_m =
             SpaceChargeFieldUpdate::MIDPOINT;  ///< Self-field time centering for bunch tracking.
     DataSink* itsDataSink_m;  ///< Borrowed beam statistics and phase-space output sink.
@@ -360,6 +344,32 @@ public:
             const std::function<
                     void(const std::shared_ptr<ElementBase>&,
                          const std::shared_ptr<ParticleContainer_t>&)>& func);
+
+    /**
+     * @brief Internal boundary-controlled device tracking helpers.
+     *
+     * These entry points remain implementation details, but are public because
+     * CUDA extended lambdas require a public enclosing member function. Keep
+     * their state private and revisit this interface when the kernels are moved
+    * to namespace-scope functors.
+    */
+    /** Complete the first drift and field gathering at a common physical midpoint.
+     * A register-only endpoint trial decides collective subdivision before any
+     * momentum kick, reference update, emission or loss is committed. Rejected
+     * first drifts are reversed on the solver's current particle ownership.
+     */
+    void prepareBoundaryStep(
+            BorisPusher&, const std::vector<std::shared_ptr<OrbitThreader>>&, boris_step::Control&);
+    bool boundaryCrossed(double dt);
+    void reverseTrialDrift(double dt);
+
+    /// Internal candidate-selection policy; the public two-argument API is unchanged.
+    void forEachElementInBunchFrame(
+            const std::vector<std::shared_ptr<OrbitThreader>>& oths,
+            const std::function<
+                    void(const std::shared_ptr<ElementBase>&,
+                         const std::shared_ptr<ParticleContainer_t>&)>& func,
+            bool spatialCandidates);
 
     /// @brief Mark particles outside the transverse aperture of each nearby element.
     /// @param oths Per-container orbit threaders used for element queries.
