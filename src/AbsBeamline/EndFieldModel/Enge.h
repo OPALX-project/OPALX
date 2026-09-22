@@ -42,7 +42,8 @@ namespace endfieldmodel {
  *
  *  \f$f(x) = 1/(1+exp(h(x-x0)))+1/(1+exp(h(-x-x0)))-1\f$.
  *
- *  where h is a polynomial in x/lambda with polynomial coefficients a
+ *  where h is a polynomial in x/lambda with polynomial coefficients a. Also
+ *  use g(x) = 1+exp(h)
  */
 
 
@@ -50,6 +51,12 @@ struct EngeConfig {
     std::vector<double> a_m;
     double lambda_m = 0.0;
     double x0_m = 0.0;
+
+    constexpr int max_derivative_m = 12;
+    /** Indexes the derivatives of enge in terms of g */
+    static std::vector<std::vector<std::vector<int> > > q_m;
+    /** Indexes the derivatives of g in terms of h */
+    static std::vector<std::vector<std::vector<int> > > h_m;
 };
 
 class Enge : public EndFieldModel {
@@ -181,19 +188,15 @@ private:
     Enge& operator=(const Enge& enge);
     EngeConfig config_m;
 
-    /** Indexes the derivatives of enge in terms of g */
-    static std::vector<std::vector<std::vector<int> > > _q;
-    /** Indexes the derivatives of g in terms of h */
-    static std::vector<std::vector<std::vector<int> > > _h;
 };
 
 void Enge::setMaximumDerivative(size_t n) { Enge::setEngeDiffIndices(n); }
 
 double Enge::function(double x, int n) const { return getDoubleEnge(config_m, x, n); }
 
-std::vector<std::vector<int> > Enge::getQIndex(int n) { return _q[n]; }
+std::vector<std::vector<int> > Enge::getQIndex(int n) { return EngeConfig::q_m[n]; }
 
-std::vector<std::vector<int> > Enge::getHIndex(int n) { return _h[n]; }
+std::vector<std::vector<int> > Enge::getHIndex(int n) { return EngeConfig::h_m[n]; }
 
 double Enge::getDoubleEnge(const EngeConfig& config, double x, int n) {
     if (n == 0) {
