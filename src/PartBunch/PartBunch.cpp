@@ -146,6 +146,10 @@ PartBunch<T, Dim>::PartBunch(
         containers[i]->Sp  = static_cast<short>(
                 ParticleProperties::getParticleType(beams[i]->getParticleName()));
     }
+    // Ensure particle boundary conditions are correctly set for open fields
+    for (auto& pc : this->getParticleContainers()) {
+        pc->setupBCs(particleBC);
+    }
 
     // Pre-allocate per-rank capacity without bumping localNum_m. Subsequent emission /
     // distribution loaders call createParticles() to fill the buffer non-destructively.
