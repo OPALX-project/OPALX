@@ -351,8 +351,8 @@ public:
      * These entry points remain implementation details, but are public because
      * CUDA extended lambdas require a public enclosing member function. Keep
      * their state private and revisit this interface when the kernels are moved
-    * to namespace-scope functors.
-    */
+     * to namespace-scope functors.
+     */
     /** Complete the first drift and field gathering at a common physical midpoint.
      * A register-only endpoint trial decides collective subdivision before any
      * momentum kick, reference update, emission or loss is committed. Rejected
