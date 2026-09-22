@@ -348,8 +348,9 @@ namespace opalx::spacecharge {
          * @param origin Physical origin of the charge-density grid.
          */
         KOKKOS_FUNCTION static void gatherFromEField(
-                size_t n, Vector3D_t fsR, const VectorView_t& e, Vector3D_t invDr, int nghost,
-                const ippl::NDIndex<3U>& lDom, VectorGridView3D_t eField, Vector3D_t origin);
+                size_t n, const Vector3D_t& fsR, const VectorView_t& e, const Vector3D_t& invDr,
+                int nghost, const ippl::NDIndex<3U>& lDom, const VectorGridView3D_t& eField,
+                const Vector3D_t& origin);
 
         /**
          * @brief Kokkos function that unboosts a particle's e efield from the beam
@@ -393,7 +394,7 @@ namespace opalx::spacecharge {
          * @param z Longtiduninal coordinate.
          */
         KOKKOS_FUNCTION static Vector3D_t gather2D(
-                VectorGridView3D_t eField, const ippl::Vector<T, 3U>& wlo,
+                const VectorGridView3D_t& eField, const ippl::Vector<T, 3U>& wlo,
                 const ippl::Vector<T, 3U>& whi, int x, int y, int z);
 
         /**
@@ -409,7 +410,7 @@ namespace opalx::spacecharge {
          * @param charge The charge to deposit.
          */
         KOKKOS_FUNCTION static void scatter2D(
-                ScalarGridView3D_t rho, const ippl::Vector<T, 3U>& wlo,
+                const ScalarGridView3D_t& rho, const ippl::Vector<T, 3U>& wlo,
                 const ippl::Vector<T, 3U>& whi, int x, int y, int z, T charge);
 
         /**
@@ -425,7 +426,7 @@ namespace opalx::spacecharge {
          * @param charge The charge to deposit.
          */
         KOKKOS_FUNCTION static void scatter3D(
-                ScalarGridView3D_t rho, const ippl::Vector<T, 3U>& wlo,
+                const ScalarGridView3D_t& rho, const ippl::Vector<T, 3U>& wlo,
                 const ippl::Vector<T, 3U>& whi, int x, int y, int z, T charge);
 
         /**
