@@ -96,9 +96,11 @@ PartBunch<T, Dim>::PartBunch(
     this->setBCHandler(std::make_shared<BCHandler_t>(OPALFieldSolver_m->constructBCHandler()));
 
     // Open P3M must not wrap particles at the temporary mesh boundary.
-    bool isAllPeriodic = this->getBCHandler()->isAll(BCHandler_t::PERIODIC);
-    m << level5 << "* FieldContainer set to isAllPeriodic = " << isAllPeriodic << endl;
-    const ippl::BC particleBC = (useP3M && !isAllPeriodic) ? ippl::BC::NO : ippl::BC::PERIODIC;
+bool isAllPeriodic = this->getBCHandler()->isAll(BCHandler_t::PERIODIC);
+  m << level5 << "* FieldContainer set to isAllPeriodic = " << isAllPeriodic << endl;
+  // Use non-periodic particle boundary conditions when any field BC is non-periodic (OPEN or DIRICHLET).
+  // This applies to both P3M and regular solvers.
+  const ippl::BC particleBC = isAllPeriodic ? ippl::BC::PERIODIC : ippl::BC::NO;
 
     //      set stuff for pre_run i.e. warmup
     //      this will be reset when the correct computational

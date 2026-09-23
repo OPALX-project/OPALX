@@ -381,6 +381,26 @@ namespace {
         EXPECT_EQ(bunch->getFieldSolver()->getGreensFunction(), "INTEGRATED");
     }
 
+    // Verify that particles are not wrapped when field BC is OPEN (non-P3M case).
+    TEST_F(BinnedFieldSolverSmokeTest, OpenSolver_ParticlesDoNotWrap) {
+        for (const auto& [boundary, expectedParticleBC] :
+             {std::pair{"PERIODIC", ippl::BC::PERIODIC}, std::pair{"OPEN", ippl::BC::NO}}) {
+            ASSERT_NO_THROW(rebuildP3MBunch(boundary));
+            ASSERT_NE(bunch->getFieldSolver(), nullptr);
+            EXPECT_EQ(bunch->getFieldSolver()->getStype(), "P3M");
+            EXPECT_TRUE((std::holds_alternative<FFTTruncatedGreenSolver_t<double, 3>>(
+                    bunch->getFieldSolver()->getSolver())));
+            EXPECT_DOUBLE_EQ(bunch->getFieldSolver()->getP3MCutoff(), 0.25);
+            ASSERT_TRUE(pc->hasP3MLayout());
+            for (const auto bc : pc->getP3MLayout().getParticleBC()) {
+                EXPECT_EQ(bc, expectedParticleBC);
+            }
+            createParticles(2, /*pzMin=*/0.1, /*pzMax=*/0.2);
+            EXPECT_NO_THROW(bunch->computeSelfFields());
+        }
+    }
+
+    // Existing test for P3M boundary conditions and layout BC consistency.
     TEST_F(BinnedFieldSolverSmokeTest, P3MOpenAndPeriodicUseSameSolverWrapperAndSelectedLayoutBC) {
         for (const auto& [boundary, expectedParticleBC] :
              {std::pair{"PERIODIC", ippl::BC::PERIODIC}, std::pair{"OPEN", ippl::BC::NO}}) {
