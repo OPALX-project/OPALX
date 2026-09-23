@@ -26,152 +26,191 @@
  */
 
 #include <cmath>
+#include <sstream>
 
 #include "Utilities/GSLCompat.h"
+#include "Utilities/OpalException.h"
 
 #include "AbsBeamline/EndFieldModel/Enge.h"
 
 namespace endfieldmodel {
+Kokkos::View<int**> EngeConfig::gIndices[EngeConfig::max_derivative];
+Kokkos::View<int**> EngeConfig::hIndices[EngeConfig::max_derivative];
 
-    // Use
-    // d^n E/dx^n = a_n1m1 F(n1) g(m1) + a_n2m1m2 F(n2) g(m1)g(m2)+...
-    // where
-    double Enge::getEnge(const EngeConfig& config, double x, int n) {
-        std::vector<std::vector<int> > qt = getQIndex(n);
-        std::vector<double> g;
-        double e(0.);
-        for (size_t i = 0; i < qt.size(); ++i) {
-            double ei(qt[i][0]);
-            for (size_t j = 1; j < qt[i].size(); ++j) {
-                if (j > g.size()) g.push_back(gN(config, x, j - 1));
-                ei *= gsl_sf_pow_int(g[j - 1], qt[i][j]);
-            }
-            if (ei != ei) ei = 0;  // div 0, usually g == 0 and index < 0
-            e += ei;
-        }
-        return e;
+// Use
+// d^n E/dx^n = a_n1m1 F(n1) g(m1) + a_n2m1m2 F(n2) g(m1)g(m2)+...
+// where
+double Enge::getEnge(const EngeConfig& config, double x, int n) {
+    Kokkos::View<int**> qt = EngeConfig::gIndices[n];
+    Kokkos::View<double*> gNVec("gN", n+1);
+    for (size_t i = 0; i < gNVec.size(); ++i) {
+        gNVec(i) = gN(config, x, i);
     }
-
-    // h     = a_0+a_1 (x/w)+a_2 (x/w)^2+a_3 (x/w)^3+...+a_m (x/w)^m
-    // h^(n) = d^nh/dx^n = sum^m_{i=n} a_i x^{i-n}/w^i i!/n!
-    double Enge::hN(const EngeConfig& config, double x, int n) {
-        double hn = 0;
-        // optimise by precalculating factor
-        for (unsigned int i = n; i < config.a_m.size(); i++)
-            hn += config.a_m[i] / gsl_sf_pow_int(config.lambda_m, i) * gsl_sf_pow_int(x, i - n) * gsl_sf_fact(i)
-                  / gsl_sf_fact(i - n);
-        return hn;
-    }
-
-    // g     = 1+exp(h)
-    // g^(n) = d^ng/dx^n
-    double Enge::gN(const EngeConfig& config, double x, int n) {
-        if (n == 0) return 1 + exp(hN(config, x, 0));  // special case
-        std::vector<double> hn(n + 1);
-        for (int i = 0; i <= n; i++)
-            hn[i] = hN(config, x, i);
-        double exp_h0 = exp(hn[0]);
-        double gn     = 0;
-        for (size_t i = 0; i < _h[n].size(); ++i) {
-            double gnj = _h[n][i][0] * exp_h0;
-            for (size_t j = 1; j < _h[n][i].size(); ++j)
-                gnj *= gsl_sf_pow_int(hn[j], _h[n][i][j]);
-            gn += gnj;
+    double e = 0;
+    for (size_t i = 0; i < qt.extent(0); ++i) {
+        double ei(qt(i, 0));
+        for (size_t j = 1; j < qt.extent(1); ++j) {
+          double de = gsl_sf_pow_int(gNVec(j-1), qt(i, j));
+          ei *= de;
         }
-        return gn;
+        if (ei != ei) ei = 0;  // div 0, usually g == 0 and index < 0
+        e += ei;
     }
+    return e;
+}
 
-    // _q[i][j][k]; urk, 3d vector
-    //              i indexes the derivative of f;
-    //              j indexes the element in f derivative
-    //              k indexes the derivative of g
-    // this will quickly become grotesque
-    std::vector<std::vector<std::vector<int> > > Enge::_q;
-    std::vector<std::vector<std::vector<int> > > Enge::_h;
-    void Enge::setEngeDiffIndices(size_t n) {
-        if (_q.size() == 0) {
-            _q.push_back(std::vector<std::vector<int> >(1, std::vector<int>(3)));
-            _q[0][0][0] = +1;  // f_0 = 1*g^(-1)
-            _q[0][0][1] = -1;
-            _q[0][0][2] = 0;
+
+// h     = a_0+a_1 (x/w)+a_2 (x/w)^2+a_3 (x/w)^3+...+a_m (x/w)^m
+// h^(n) = d^nh/dx^n = sum^m_{i=n} a_i x^{i-n}/w^i i!/n!
+double Enge::hN(const EngeConfig& config, double x, int n) {
+    double hn = 0;
+    // optimise by precalculating factor
+    for (unsigned int i = n; i < config.a_m.size(); i++)
+        hn += config.a_m[i] / gsl_sf_pow_int(config.lambda_m, i) * gsl_sf_pow_int(x, i - n) * gsl_sf_fact(i)
+              / gsl_sf_fact(i - n);
+    return hn;
+}
+
+// g     = 1+exp(h)
+// g^(n) = d^ng/dx^n
+double Enge::gN(const EngeConfig& config, double x, int n) {
+    if (n == 0) return 1 + exp(hN(config, x, 0));  // special case
+    std::vector<double> hn(n + 1);
+    for (int i = 0; i <= n; i++)
+        hn[i] = hN(config, x, i);
+    double exp_h0 = exp(hn[0]);
+    double gn     = 0;
+    for (size_t i = 0; i < EngeConfig::hIndices[n].extent(0); ++i) {
+        double gnj = EngeConfig::hIndices[n](i, 0) * exp_h0;
+        for (size_t j = 1; j < EngeConfig::hIndices[n].extent(1); ++j)
+            gnj *= gsl_sf_pow_int(hn[j], EngeConfig::hIndices[n](i, j));
+        gn += gnj;
+    }
+    return gn;
+}
+
+// q_m[i][j][k]; urk, 3d vector
+//              i indexes the derivative of f;
+//              j indexes the element in f derivative
+//              k indexes the derivative of g
+// this will quickly become grotesque
+std::vector<std::vector<std::vector<int> > > Enge::q_m;
+std::vector<std::vector<std::vector<int> > > Enge::h_m;
+
+void Enge::copyVectorToView(const std::vector< std::vector<int> >& src, Kokkos::View<int**>& dest) {
+    // find the size of src
+    size_t row = src.size();
+    // number of columns can be different for each row - but dest must be square
+    size_t col = 0;
+    for (size_t i = 0; i < src.size(); ++i) {
+        col = std::max(col, src[i].size());
+    }
+    Kokkos::resize(dest, row, col);
+    for (size_t i = 0; i < row; ++i) {
+        for (size_t j = 0; j < src[i].size(); ++j) {
+            dest(i, j) = src[i][j]; // copy across data
         }
+        for (size_t j = src[i].size(); j < col; ++j) {
+            dest(i, j) = 0; // pad with 0s
+        }
+    }
+}
 
-        for (size_t i = _q.size(); i < n + 1; ++i) {
-            _q.push_back(std::vector<std::vector<int> >());
-            for (size_t j = 0; j < _q[i - 1].size(); ++j) {
-                size_t k_max = _q[i - 1][j].size();
-                std::vector<int> new_vec(_q[i - 1][j]);
-                // derivative of g^-n0 = -n0*g^(-n0-1)*g(1)
-                new_vec[0] *= new_vec[1];  //  alpha *= g(0) power
-                new_vec[1] -= 1;           // g(0) power -= 1
-                new_vec[2] += 1;           // g(1) power += 1
-                _q[i].push_back(new_vec);
-                for (size_t k = 2; k < k_max; ++k) {  //  0 is alpha; 1 is g(0)
-                    // derivative of g(k)^nk = nk g(k+1) g(k)^(nk-1)
-                    if (_q[i - 1][j][k] > 0) {
-                        std::vector<int> new_vec(_q[i - 1][j]);
-                        if (k == k_max - 1) new_vec.push_back(0);  // need enough coefficients
-                        new_vec[0] *= new_vec[k];
-                        new_vec[k] -= 1;
-                        new_vec[k + 1] += 1;
-                        _q[i].push_back(new_vec);
-                    }
+void Enge::setEngeDiffIndices(size_t n) {
+    if (n > EngeConfig::max_derivative) {
+        throw OpalException("Derivative cannot be more than max derivative", "Enge::setEngeDiffIndices");
+    }
+    size_t preset = q_m.size();
+    if (preset == 0) {
+        q_m.push_back(std::vector<std::vector<int> >(1, std::vector<int>(3)));
+        q_m[0][0][0] = +1;  // f_0 = 1*g^(-1)
+        q_m[0][0][1] = -1;
+        q_m[0][0][2] = 0;
+    }
+    for (size_t i = q_m.size(); i < n + 1; ++i) {
+        q_m.push_back(std::vector<std::vector<int> >());
+        for (size_t j = 0; j < q_m[i - 1].size(); ++j) {
+            size_t k_max = q_m[i - 1][j].size();
+            std::vector<int> new_vec(q_m[i - 1][j]);
+            // derivative of g^-n0 = -n0*g^(-n0-1)*g(1)
+            new_vec[0] *= new_vec[1];  //  alpha *= g(0) power
+            new_vec[1] -= 1;           // g(0) power -= 1
+            new_vec[2] += 1;           // g(1) power += 1
+            q_m[i].push_back(new_vec);
+            for (size_t k = 2; k < k_max; ++k) {  //  0 is alpha; 1 is g(0)
+                // derivative of g(k)^nk = nk g(k+1) g(k)^(nk-1)
+                if (q_m[i - 1][j][k] > 0) {
+                    std::vector<int> new_vec(q_m[i - 1][j]);
+                    if (k == k_max - 1) new_vec.push_back(0);  // need enough coefficients
+                    new_vec[0] *= new_vec[k];
+                    new_vec[k] -= 1;
+                    new_vec[k + 1] += 1;
+                    q_m[i].push_back(new_vec);
                 }
             }
         }
+    }
+    for (size_t i = preset; i < n + 1; ++i) {
+        copyVectorToView(q_m[i], EngeConfig::gIndices[i]);
+    }
 
-        if (_h.size() == 0) {
-            // first one is special case (1+e^h dealt with explicitly)
-            _h.push_back(std::vector<std::vector<int> >());
-            // second is (1*e^h h'^1)
-            _h.push_back(std::vector<std::vector<int> >());
-            _h[1].push_back(std::vector<int>(2, 1));
-        }
-        for (size_t i = _h.size(); i < n + 1; ++i) {
-            _h.push_back(std::vector<std::vector<int> >());
-            for (size_t j = 0; j < _h[i - 1].size(); ++j) {
-                // d/dx k0 e^g g(1)^k1 ... g(n)^kn ... = k0 e^g g(1)^(k1+1) ... g(n)^kn
-                //                              + SUM_n k0 kn e^g ... g(n)^(kn-1) g(n-1)
-                std::vector<int> new_vec(_h[i - 1][j]);
-                new_vec[1] += 1;
-                _h[i].push_back(new_vec);
-                for (size_t k = 1; k < _h[i - 1][j].size(); ++k) {
-                    if (_h[i - 1][j][k] > 0) {
-                        std::vector<int> new_vec(_h[i - 1][j]);
-                        if (k == _h[i - 1][j].size() - 1) new_vec.push_back(0);
-                        new_vec[0] *= new_vec[k];
-                        new_vec[k] -= 1;
-                        new_vec[k + 1] += 1;
-                        _h[i].push_back(new_vec);
-                    }
+    if (h_m.size() == 0) {
+        // first one is special case (1+e^h dealt with explicitly)
+        h_m.push_back(std::vector<std::vector<int> >());
+        // second is (1*e^h h'^1)
+        h_m.push_back(std::vector<std::vector<int> >());
+        h_m[1].push_back(std::vector<int>(2, 1));
+    }
+    for (size_t i = h_m.size(); i < n + 1; ++i) {
+        h_m.push_back(std::vector<std::vector<int> >());
+        for (size_t j = 0; j < h_m[i - 1].size(); ++j) {
+            // d/dx k0 e^g g(1)^k1 ... g(n)^kn ... = k0 e^g g(1)^(k1+1) ... g(n)^kn
+            //                              + SUM_n k0 kn e^g ... g(n)^(kn-1) g(n-1)
+            std::vector<int> new_vec(h_m[i - 1][j]);
+            new_vec[1] += 1;
+            h_m[i].push_back(new_vec);
+            for (size_t k = 1; k < h_m[i - 1][j].size(); ++k) {
+                if (h_m[i - 1][j][k] > 0) {
+                    std::vector<int> new_vec(h_m[i - 1][j]);
+                    if (k == h_m[i - 1][j].size() - 1) new_vec.push_back(0);
+                    new_vec[0] *= new_vec[k];
+                    new_vec[k] -= 1;
+                    new_vec[k + 1] += 1;
+                    h_m[i].push_back(new_vec);
                 }
             }
-            _h[i] = CompactVector(_h[i]);
         }
+        h_m[i] = CompactVector(h_m[i]);
     }
+    for (size_t i = preset; i < n + 1; ++i) {
+        copyVectorToView(h_m[i], EngeConfig::hIndices[i]);
+    }
+}
 
-    Enge::Enge(const std::vector<double> a, double x0, double lambda) {
-        setEngeDiffIndices(10);
-        config_m.a_m = a;
-        config_m.x0_m = x0;
-        config_m.lambda_m = lambda;
-    }
+Enge::Enge(const std::vector<double> a, double x0, double lambda) {
+    setEngeDiffIndices(10);
+    config_m.a_m = a;
+    config_m.x0_m = x0;
+    config_m.lambda_m = lambda;
+}
 
-    Enge* Enge::clone() const {
-        Enge* myclone = new Enge(config_m.a_m, config_m.x0_m, config_m.lambda_m);
-        return myclone;
-    }
+Enge* Enge::clone() const {
+    Enge* myclone = new Enge(config_m.a_m, config_m.x0_m, config_m.lambda_m);
+    return myclone;
+}
 
-    void Enge::rescale(double scaleFactor) {
-        config_m.x0_m *= scaleFactor;
-        config_m.lambda_m *= scaleFactor;
-    }
+void Enge::rescale(double scaleFactor) {
+    config_m.x0_m *= scaleFactor;
+    config_m.lambda_m *= scaleFactor;
+}
 
-    std::ostream& Enge::print(std::ostream& out) const {
-        out << "Enge function l=" << config_m.lambda_m << " x0=" << config_m.x0_m << " c=";
-        for (auto ai : config_m.a_m) {
-            out << ai << " ";
-        }
-        return out;
+std::ostream& Enge::print(std::ostream& out) const {
+    out << "Enge function l=" << config_m.lambda_m << " x0=" << config_m.x0_m << " c=";
+    for (auto ai : config_m.a_m) {
+        out << ai << " ";
     }
+    return out;
+}
+
+
 }  // namespace endfieldmodel
