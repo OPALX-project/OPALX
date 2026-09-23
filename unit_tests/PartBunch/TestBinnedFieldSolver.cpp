@@ -527,8 +527,21 @@ namespace {
                     EXPECT_DOUBLE_EQ(dstHost(localI, localJ, localK)[1], 1000.0 + base);
                     EXPECT_DOUBLE_EQ(dstHost(localI, localJ, localK)[2], 2000.0 + base);
                 }
-            }
         }
     }
+
+    // New test to verify particle BC is NO for open field solver (non-P3M)
+    TEST_F(BinnedFieldSolverSmokeTest, OpenSolver_NonPeriodicParticleBC) {
+        // Build an open solver bunch (non-P3M)
+        ASSERT_NO_THROW(rebuildOpenBunchWithGreensFunction("STANDARD"));
+        ASSERT_NE(bunch->getParticleContainer(), nullptr);
+        auto pc = bunch->getParticleContainer();
+        // All particle BCs should be NO (no periodic wrapping)
+        for (const auto bc : pc->getParticleBC()) {
+            EXPECT_EQ(bc, ippl::BC::NO);
+        }
+    }
+
+}  // namespace
 
 }  // namespace
