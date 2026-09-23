@@ -22,26 +22,23 @@
       "cacheVariables": {
         "BUILD_SHARED_LIBS": "ON",
         "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_POSITION_INDEPENDENT_CODE": "ON",
+        "CMAKE_CXX_STANDARD": "20",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-        "Kokkos_VERSION_DEFAULT": "4.7.02",
-        "Heffte_VERSION_DEFAULT": "2.4.0",
-        "PLATFORMS": "SERIAL",
-        "OPALX_PLATFORMS": "SERIAL",
+        "Kokkos_VERSION_DEFAULT": "git.5.2.2",
+        "Heffte_VERSION_DEFAULT": "git.v2.4.1",
+        "IPPL_PLATFORMS": "SERIAL",
+        "IPPL_ENABLE_FFT": "ON",
+        "IPPL_ENABLE_ALPINE": "ON",
+        "IPPL_ENABLE_ESPIF": "ON",
+        "IPPL_ENABLE_COSMOLOGY": "ON",
+        "IPPL_ENABLE_COLLISIONS": "ON",
+        "IPPL_ENABLE_FEL": "ON",
+        "IPPL_ENABLE_UNIT_TESTS": "OFF",
+        "OPALX_PLATFORMS": "OPENMP",
         "OPALX_USE_STANDARD_FOLDERS": "ON",
         "OPALX_ENABLE_TESTS": "OFF",
         "OPALX_ENABLE_UNIT_TESTS": "OFF"
-      }
-    },
-    {
-      "name": "fetch",
-      "displayName": "ForceDownload",
-      "description": "Always downloads dependencies by using git prefix in version",
-      "inherits": [
-        "default"
-      ],
-      "cacheVariables": {
-        "Kokkos_VERSION": "git.4.7.02",
-        "Heffte_VERSION": "git.v2.4.1"
       }
     },
     {
@@ -73,13 +70,10 @@
         "release-testing"
       ],
       "cacheVariables": {
-        "MPIEXEC_PREFLAGS": "--gpus-per-task=1;/user-environment/wrapper-mpi.sh",
-        "OPALX_PLATFORMS": "SERIAL;CUDA",
-        "PLATFORMS": "SERIAL;CUDA",
         "CMAKE_CUDA_ARCHITECTURES": "90",
         "MPIEXEC_EXECUTABLE": "/usr/bin/srun",
-        "Kokkos_VERSION_DEFAULT": "4.7",
-        "Heffte_VERSION_DEFAULT": "2.4.1"
+        "MPIEXEC_PREFLAGS": "--gpus-per-task=1;/user-environment/wrapper-mpi.sh",
+        "OPALX_PLATFORMS": "CUDA;SERIAL"
       }
     },
     {
@@ -90,17 +84,13 @@
         "release-testing"
       ],
       "cacheVariables": {
-        "MPIEXEC_PREFLAGS": "--gpus-per-node=4;/user-environment/wrapper-mpi.sh",
-        "OPALX_PLATFORMS": "HIP;SERIAL",
-        "PLATFORMS": "HIP;SERIAL",
-        "Heffte_ENABLE_ROCM": "ON",
         "CMAKE_HIP_ARCHITECTURES": "gfx942",
-        "AMDGPU_TARGETS": "gfx942",
-        "GPU_TARGETS": "gfx942",
         "MPIEXEC_EXECUTABLE": "/usr/bin/srun",
-        "CMAKE_POSITION_INDEPENDENT_CODE": "ON",
-        "CMAKE_CXX_STANDARD": "20",
-        "BUILD_SHARED_LIBS": "ON"
+        "MPIEXEC_PREFLAGS": "--gpus-per-task=1;/user-environment/wrapper-mpi.sh",
+        "IPPL_PLATFORMS": "HIP;SERIAL",
+        "Kokkos_ARCH_AMD_GFX942_APU": "ON",
+        "KOKKOS_AMDGPU_OPTIONS": "--offload-arch=gfx942:sramecc+:xnack+",
+        "CMAKE_CXX_FLAGS": "--offload-arch=gfx942:sramecc+:xnack+"
       }
     }
   ]
