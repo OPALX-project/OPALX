@@ -4,8 +4,12 @@
 #include "SpaceCharge/CartesianPIC3D/ParticleBinTraversal.h"
 #include "Utilities/OpalException.h"
 
+#include <algorithm>
 #include <array>
+#include <cmath>
+#include <functional>
 #include <memory>
+#include <vector>
 
 namespace opalx::spacecharge {
     namespace {
@@ -30,8 +34,8 @@ namespace opalx::spacecharge {
                 mesh_m = std::make_unique<Mesh_t<3>>(
                         indexDomain, Vector_t<double, 3>(0.125), Vector_t<double, 3>(0.0));
                 layout_m = std::make_unique<FieldLayout_t<3>>(
-                        MPI_COMM_WORLD, indexDomain, std::array<bool, 3>{false, false, false},
-                        true);
+                        MPI_COMM_WORLD, indexDomain,
+                        std::array<bool, 3>{false, false, ippl::Comm->size() > 1}, true);
                 particles_m = std::make_unique<Container>(*mesh_m, *layout_m);
                 particles_m->setBunchStateHandler(std::make_shared<BunchStateHandler>());
                 particles_m->createParticles(8);
@@ -102,6 +106,49 @@ namespace opalx::spacecharge {
             EXPECT_TRUE(prepared.beforeMerge.has_value());
             EXPECT_TRUE(prepared.afterMerge.has_value());
             EXPECT_EQ(prepared.afterMerge->particleCounts.size(), prepared.mergedBinCount);
+        }
+
+        TEST_F(ParticleBinTraversalTest, SelectionsPartitionParticlesAndPreserveMoments) {
+            auto momentum = Kokkos::create_mirror_view_and_copy(
+                    Kokkos::HostSpace(), particles_m->P.getView());
+            for (std::size_t i = 0; i < particles_m->getLocalNum(); ++i) {
+                momentum(i)[2] = (i % 2 == 0 ? 0.8 : 0.1) + 0.1 * ippl::Comm->rank();
+                momentum(i)[0] = 2.0 * momentum(i)[2];
+                momentum(i)[1] = -momentum(i)[2];
+            }
+            Kokkos::deep_copy(particles_m->P.getView(), momentum);
+
+            ParticleBinTraversal plan(*particles_m, config(false));
+            (void)plan.prepareBins(false);
+            std::vector<bool> visited(particles_m->getLocalNum(), false);
+            while (const auto unit = plan.nextNonemptyBin()) {
+                const auto selection = unit->indexedSelection;
+                const auto hash =
+                        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), selection.hash());
+                std::array<double, 4> expected{};
+                for (auto i = selection.policy().begin(); i < selection.policy().end(); ++i) {
+                    const auto index = static_cast<std::size_t>(hash(i));
+                    EXPECT_LT(index, visited.size());
+                    if (index >= visited.size()) continue;
+                    EXPECT_FALSE(visited[index]);
+                    visited[index] = true;
+                    const auto p   = momentum(index);
+                    for (unsigned d = 0; d < 3; ++d)
+                        expected[d] += p[d];
+                    expected[3] += std::sqrt(1.0 + p.dot(p));
+                }
+                for (double& component : expected) {
+                    ippl::Comm->allreduce(component, 1, std::plus<double>());
+                    component /= static_cast<double>(unit->globalParticleCount);
+                }
+                for (unsigned d = 0; d < 3; ++d) {
+                    EXPECT_NEAR(unit->meanMomentum[d], expected[d], 1.0e-13);
+                }
+                EXPECT_NEAR(unit->gamma, expected[3], 1.0e-13);
+            }
+            EXPECT_TRUE(std::all_of(visited.begin(), visited.end(), [](bool seen) {
+                return seen;
+            }));
         }
 
     }  // namespace
