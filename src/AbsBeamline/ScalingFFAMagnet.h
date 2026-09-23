@@ -358,12 +358,16 @@ private:
             const Vector_t<double, 5>& Rcyl,
             Vector_t<double, 3>& B);
 
-    KOKKOS_INLINE_FUNCTION static void getCylindricalCoordinates(const ScalingFFAMagnetConfig& config, const Vector_t<double, 3> Ri, Vector_t<double, 5>& Rcyli);
+    KOKKOS_INLINE_FUNCTION static void getCylindricalCoordinates(
+            const ScalingFFAMagnetConfig& config,
+            const Vector_t<double, 3> Ri,
+            Vector_t<double, 5>& Rcyli);
 
-    KOKKOS_INLINE_FUNCTION static void rotateBfield(const ScalingFFAMagnetConfig& config,
-                                                    const Vector_t<double, 5>& Rcyli,
-                                                    const Vector_t<double, 3>& Bcyli,
-                                                    Vector_t<double, 3>& Bi);
+    KOKKOS_INLINE_FUNCTION static void rotateBfield(
+            const ScalingFFAMagnetConfig& config,
+            const Vector_t<double, 5>& Rcyli,
+            const Vector_t<double, 3>& Bcyli,
+            Vector_t<double, 3>& Bi);
 
     /** Copy constructor */
     ScalingFFAMagnet(const ScalingFFAMagnet& right);

@@ -44,18 +44,20 @@ namespace endfieldmodel {
  *
  *  where h is a polynomial in x/lambda with polynomial coefficients a
  */
-
-
 struct EngeConfig {
     std::vector<double> a_m;
     double lambda_m = 0.0;
     double x0_m = 0.0;
+    static constexpr int max_derivative = 12;
+    /** gIndices is used for calculating derivatives. */
+    static Kokkos::View<int**> gIndices[max_derivative];
+    static Kokkos::View<int**> hIndices[max_derivative];
 };
 
 class Enge : public EndFieldModel {
 public:
     /** Default constructor */
-    Enge() { setEngeDiffIndices(10); }
+    Enge() { setEngeDiffIndices(EngeConfig::max_derivative); }
     /** Builds Enge function with parameters a_0, a_1, ..., lambda and x0.
      *
      *  Note that this class is in the inner loop of tracking, so many function
@@ -145,6 +147,8 @@ public:
      *  Please call setEngeDiffIndices(n) before calling if n > max_index
      */
     static double getEnge(const EngeConfig& config, double x, int n);
+    static double getEngeView(const EngeConfig& config, double x, int n);
+    static double getEngeVec(const EngeConfig& config, double x, int n);
 
     /** Returns \f$Enge(x-x0) + Enge(-x-x0)-1\f$ and its derivatives */
     static inline double  getDoubleEnge(const EngeConfig& config, double x, int n);
@@ -176,24 +180,27 @@ public:
     /** Return the indices for calculating the nth derivative of g(x) ito h(x) */
     inline static std::vector<std::vector<int> > getHIndex(int n);
 
+    static void copyVectorToView(const std::vector< std::vector<int> >& src, Kokkos::View<int**>& dest);
+
 private:
     Enge(const Enge& enge);
     Enge& operator=(const Enge& enge);
     EngeConfig config_m;
 
+    static constexpr int max_derivative = 12;
     /** Indexes the derivatives of enge in terms of g */
-    static std::vector<std::vector<std::vector<int> > > _q;
+    static std::vector<std::vector<std::vector<int> > > q_m;
     /** Indexes the derivatives of g in terms of h */
-    static std::vector<std::vector<std::vector<int> > > _h;
+    static std::vector<std::vector<std::vector<int> > > h_m;
 };
 
 void Enge::setMaximumDerivative(size_t n) { Enge::setEngeDiffIndices(n); }
 
 double Enge::function(double x, int n) const { return getDoubleEnge(config_m, x, n); }
 
-std::vector<std::vector<int> > Enge::getQIndex(int n) { return _q[n]; }
+std::vector<std::vector<int> > Enge::getQIndex(int n) { return q_m[n]; }
 
-std::vector<std::vector<int> > Enge::getHIndex(int n) { return _h[n]; }
+std::vector<std::vector<int> > Enge::getHIndex(int n) { return h_m[n]; }
 
 double Enge::getDoubleEnge(const EngeConfig& config, double x, int n) {
     if (n == 0) {

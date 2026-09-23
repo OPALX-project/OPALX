@@ -128,3 +128,11 @@ TEST_F(TestEnge, GNTest) {
                 << " for " << i << "^th derivative";
     }
 }
+
+TEST_F(TestEnge, PrintTest) {
+    endfieldmodel::Enge enge = endfieldmodel::Enge({1, 2}, 1.0, 0.5);
+    enge.setMaximumDerivative(12);
+    enge.print(std::cout);
+    std::cout << std::endl;
+}
+
