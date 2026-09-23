@@ -114,6 +114,8 @@ For the release mode, use `Release` instead of `Debug` as the argument for `-DBU
 
 - Use -DBUILD_TYPE=Release for optimized builds.
 - ARCH is required for CUDA builds so OPALX can configure Kokkos properly.
+- Distributed GPU space-charge solves require GPU-aware MPI. FFT communication and field
+  mirroring pass device buffers directly to MPI; field mirroring has no host-staging fallback.
 - All IPPL/Kokkos flags (FFT, solvers, tests, ALPINE, `Kokkos_ARCH_*`, etc.) are now set automatically.
 
 #### Further Options
