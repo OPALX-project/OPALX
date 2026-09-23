@@ -531,4 +531,14 @@ namespace {
         }
     }
 
+TEST_F(BinnedFieldSolverSmokeTest, OpenSolver_ParticleBCIsNo) {
+    // Build an open solver bunch
+    ASSERT_NO_THROW(rebuildOpenBunchWithGreensFunction("STANDARD"));
+    // Verify particle BC is NO (no periodic wrapping)
+    const auto& bcs = pc->getLayout().getParticleBC();
+    for (auto bc : bcs) {
+        EXPECT_EQ(bc, ippl::BC::NO);
+    }
+}
+
 }  // namespace
