@@ -121,8 +121,8 @@ add_subdirectory (ValueDefinitions)
 include(${PROJECT_SOURCE_DIR}/cmake/PlatformOptions.cmake)
 
 target_link_libraries(opalx PUBLIC
-    MPI::MPI_CXX
     IPPL::ippl
+    MPI::MPI_CXX
     H5hut
     ${HDF5_LIBRARIES}
     ZLIB::ZLIB
