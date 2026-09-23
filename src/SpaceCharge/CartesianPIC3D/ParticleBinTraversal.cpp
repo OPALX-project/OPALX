@@ -63,37 +63,31 @@ namespace opalx::spacecharge {
         const size_type localCount    = bins_m->getNPartInBin(binIndex, false);
         const auto policy             = bins_m->getBinIterationPolicy(binIndex);
         const auto hash               = bins_m->getHashArray();
-        const auto momentum           = particles_m.P.getView();
+        const ParticleMeshFieldTransfer::Hash::const_type readOnlyHash = hash;
+        using MomentumView = ParticleContainer::particle_position_type::view_type;
+        const MomentumView::const_type momentum = particles_m.P.getView();
 
-        ippl::Vector<double, 3> localMomentumSum(0.0);
+        ippl::Vector<double, 4> momentSums(0.0);
         Kokkos::parallel_reduce(
-                "ParticleBinTraversal::meanMomentum", policy,
-                KOKKOS_LAMBDA(const size_type index, ippl::Vector<double, 3>& sum) {
-                    sum += momentum(hash(index));
+                "ParticleBinTraversal::moments", policy,
+                KOKKOS_LAMBDA(const size_type index, ippl::Vector<double, 4>& sum) {
+                    const ippl::Vector<double, 3> p = momentum(readOnlyHash(index));
+                    for (unsigned dimension = 0; dimension < 3; ++dimension) {
+                        sum[dimension] += p[dimension];
+                    }
+                    sum[3] += Kokkos::sqrt(1.0 + p.dot(p));
                 },
-                localMomentumSum);
+                momentSums);
 
-        double localGammaSum = 0.0;
-        Kokkos::parallel_reduce(
-                "ParticleBinTraversal::meanGamma", policy,
-                KOKKOS_LAMBDA(const size_type index, double& sum) {
-                    const ippl::Vector<double, 3> p = momentum(hash(index));
-                    sum += Kokkos::sqrt(1.0 + p.dot(p));
-                },
-                localGammaSum);
-
-        // Normalize only after the MPI reductions so every rank uses the same global mean
+        // Normalize only after the MPI reduction so every rank uses the same global mean
         // momentum and gamma for this bin's rest-frame solve.
-        ippl::Comm->allreduce(localMomentumSum, 1, std::plus<ippl::Vector<double, 3>>());
-        ippl::Vector<double, 3> globalMomentumSum = localMomentumSum;
-        ippl::Comm->allreduce(localGammaSum, 1, std::plus<double>());
+        ippl::Comm->allreduce(momentSums.begin(), 4, std::plus<double>());
 
         std::array<double, 3> meanMomentum{};
         for (unsigned dimension = 0; dimension < 3; ++dimension) {
-            meanMomentum[dimension] =
-                    globalMomentumSum[dimension] / static_cast<double>(globalCount);
+            meanMomentum[dimension] = momentSums[dimension] / static_cast<double>(globalCount);
         }
-        const double gamma = localGammaSum / static_cast<double>(globalCount);
+        const double gamma = momentSums[3] / static_cast<double>(globalCount);
         if (gamma <= 0.0) {
             throw OpalException(
                     "ParticleBinTraversal::nextNonemptyBin",
