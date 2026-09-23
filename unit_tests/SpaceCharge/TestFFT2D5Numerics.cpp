@@ -25,7 +25,8 @@
 #include "Ippl.h"
 #include "Lines/Line.h"
 #include "PartBunch/PartBunch.h"
-#include "PartBunch/Solve2d5.h"
+#include "SpaceCharge/FFT2D5/FFT2D5Algorithm.h"
+#include "SpaceCharge/SpaceChargeConfigBuilder.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
@@ -33,6 +34,7 @@
 #include "Utility/Inform.h"
 
 namespace {
+    using namespace opalx::spacecharge;
 
     constexpr bool VerboseTest = false;
 
@@ -55,7 +57,7 @@ namespace {
     };
 
     using PartBunch_t         = PartBunch<double, 3>;
-    using Solve2d5_t          = Solve2d5<double>;
+    using Solve2d5_t          = FFT2D5Algorithm;
     using ParticleContainer_t = PartBunch_t::ParticleContainer_t;
     using Point_t             = ippl::Vector<double, 3>;
 
@@ -64,12 +66,12 @@ namespace {
         explicit Info(const Kind kind) : kind_m(kind) {}
 
         void initialise(
-                const PartBunch_t& partBunch, const Field_t<3>& rho,
-                const Solve2d5<double>::LineDensityView_t& lineDensity,
-                const Solve2d5<double>::LineDensityView_t& lineDensityGradient,
+                std::span<ParticleContainer_t* const> particles, const Field_t<3>& rho,
+                const FFT2D5Algorithm::LineDensityView_t& lineDensity,
+                const FFT2D5Algorithm::LineDensityView_t& lineDensityGradient,
                 const VField_t<T, 3>& eField) {
-            if (auto& pcs = partBunch.getParticleContainers(); !pcs.empty()) {
-                auto& pc  = pcs.front();
+            if (!particles.empty()) {
+                auto* pc  = particles.front();
                 r_m       = Solve2d5_t::VectorView_t("fsr", pc->R.getParticleCount());
                 p_m       = Solve2d5_t::VectorView_t("fsp", pc->R.getParticleCount());
                 e_m       = Solve2d5_t::VectorView_t("e", pc->R.getParticleCount());
@@ -87,8 +89,8 @@ namespace {
         }
 
         KOKKOS_FUNCTION void frenetSerretScatter(
-                const size_t n, const Solve2d5<double>::Vector3D_t& r,
-                const Solve2d5<double>::Vector3D_t& p, const bool invalid) const {
+                const size_t n, const FFT2D5Algorithm::Vector3D_t& r,
+                const FFT2D5Algorithm::Vector3D_t& p, const bool invalid) const {
             if (kind_m == Kind::FrenetSerretScatter) {
                 r_m[n]       = r;
                 p_m[n]       = p;
@@ -97,8 +99,8 @@ namespace {
         }
 
         KOKKOS_FUNCTION void boostToBeam(
-                const size_t n, const Solve2d5<double>::Vector3D_t& r,
-                const Solve2d5<double>::Vector3D_t& p, const bool invalid) const {
+                const size_t n, const FFT2D5Algorithm::Vector3D_t& r,
+                const FFT2D5Algorithm::Vector3D_t& p, const bool invalid) const {
             if (kind_m == Kind::BoostToBeam) {
                 r_m[n]       = r;
                 p_m[n]       = p;
@@ -151,8 +153,8 @@ namespace {
         }
 
         KOKKOS_FUNCTION void frenetSerretGather(
-                const size_t n, const Solve2d5<double>::Vector3D_t& r,
-                const Solve2d5<double>::Vector3D_t& p, const bool invalid) const {
+                const size_t n, const FFT2D5Algorithm::Vector3D_t& r,
+                const FFT2D5Algorithm::Vector3D_t& p, const bool invalid) const {
             if (kind_m == Kind::FrenetSerretGather) {
                 r_m[n]       = r;
                 p_m[n]       = p;
@@ -161,8 +163,8 @@ namespace {
         }
 
         KOKKOS_FUNCTION void gatherEField(
-                const size_t n, const Solve2d5<double>::Vector3D_t& e,
-                const Solve2d5<double>::Vector3D_t& b, const bool invalid) const {
+                const size_t n, const FFT2D5Algorithm::Vector3D_t& e,
+                const FFT2D5Algorithm::Vector3D_t& b, const bool invalid) const {
             if (kind_m == Kind::GatherEField) {
                 e_m[n]       = e;
                 b_m[n]       = b;
@@ -171,8 +173,8 @@ namespace {
         }
 
         KOKKOS_FUNCTION void deboostFromBeam(
-                const size_t n, const Solve2d5<double>::Vector3D_t& e,
-                const Solve2d5<double>::Vector3D_t& b, const bool invalid) const {
+                const size_t n, const FFT2D5Algorithm::Vector3D_t& e,
+                const FFT2D5Algorithm::Vector3D_t& b, const bool invalid) const {
             if (kind_m == Kind::Deboosted) {
                 e_m[n]       = e;
                 b_m[n]       = b;
@@ -181,8 +183,8 @@ namespace {
         }
 
         KOKKOS_FUNCTION void longitudinalField(
-                const size_t n, const Solve2d5<double>::Vector3D_t& e,
-                const Solve2d5<double>::Vector3D_t& b, const bool invalid) const {
+                const size_t n, const FFT2D5Algorithm::Vector3D_t& e,
+                const FFT2D5Algorithm::Vector3D_t& b, const bool invalid) const {
             if (kind_m == Kind::LongitudinalField) {
                 e_m[n]       = e;
                 b_m[n]       = b;
@@ -191,8 +193,8 @@ namespace {
         }
 
         KOKKOS_FUNCTION void labFrameFields(
-                const size_t n, const Solve2d5<double>::Vector3D_t& e,
-                const Solve2d5<double>::Vector3D_t& b, const bool invalid) const {
+                const size_t n, const FFT2D5Algorithm::Vector3D_t& e,
+                const FFT2D5Algorithm::Vector3D_t& b, const bool invalid) const {
             if (kind_m == Kind::LabFrameFields) {
                 e_m[n]       = e;
                 b_m[n]       = b;
@@ -292,8 +294,7 @@ namespace {
             fsCmd_m->setNY(ny);
             fsCmd_m->setNZ(nz);
             fsCmd_m->setParallelDimensions(true, true, true);
-            fsCmd_m->setFieldSolverCmdType();
-            fsCmd_m->setDomainDecomposition();
+            fsCmd_m->execute();
 
             dataSink_m     = std::make_shared<DataSink>();
             beam_m         = std::make_shared<Beam>();
@@ -307,12 +308,15 @@ namespace {
                     /*beams=*/std::vector{testBeam},
                     /*totalParticlesPerBeam=*/std::vector{kDefaultNParticles},
                     /*lbt=*/1.0,
-                    /*integration_method=*/"LF2", fsCmd_m.get(), dataSink_m.get());
+                    /*integration_method=*/"LF2",
+                    makeCartesianDomainConfig(buildSpaceChargeConfig(*fsCmd_m, {})));
             pc_m = bunch_m->getParticleContainer();
         }
 
         void TearDown() override {
             // Ensure device allocations can be freed between tests.
+            solver_m.reset();
+            pc_m.reset();
             bunch_m.reset();
             dataSink_m.reset();
             fsCmd_m.reset();
@@ -378,7 +382,20 @@ namespace {
             return std::make_tuple(r, p);
         }
 
+        SpaceChargeSolveContext context() const {
+            SpaceChargeStepState step;
+            step.timeStep = bunch_m->getdT();
+            step.mpiSize  = ippl::Comm->size();
+            return SpaceChargeSolveContext(activity_m, step);
+        }
+
         void rebuildBunch() {
+            solver_m.reset();
+            pc_m.reset();
+            if (fsCmd_m->getType() == "FFT2D5") {
+                fsCmd_m->setParallelDimensions(false, false, false);
+            }
+            fsCmd_m->execute();
             Beam* testBeam = Beam::find("UNNAMED_BEAM");
             bunch_m        = std::make_shared<PartBunch_t>(
                     /*qi=*/std::vector{1.0},
@@ -386,9 +403,14 @@ namespace {
                     /*beams=*/std::vector{testBeam},
                     /*totalParticlesPerBeam=*/std::vector{kDefaultNParticles},
                     /*lbt=*/1.0,
-                    /*integration_method=*/"LF2", fsCmd_m.get(), dataSink_m.get());
-            pc_m = bunch_m->getParticleContainer();
-            bunch_m->getFieldSolver()->orbitThreadersReady();
+                    /*integration_method=*/"LF2",
+                    makeCartesianDomainConfig(buildSpaceChargeConfig(*fsCmd_m, {})));
+            pc_m        = bunch_m->getParticleContainer();
+            auto config = std::get<FFT2D5Config>(buildSpaceChargeConfig(*fsCmd_m, {}));
+            const std::array particles{pc_m.get()};
+            solver_m = std::make_unique<FFT2D5Algorithm>(
+                    config, particles, bunch_m->getBunchStateHandler());
+            solver_m->ensureInitialized();
         }
 
         static void makeReferencePathFile(
@@ -406,9 +428,9 @@ namespace {
                 throw std::runtime_error("Failed to open file: " + fileName.string());
             }
             // The header
-            file << "#    1 – s    2 – Rx    3 - Ry    4 - Rz    5 - Px    6 - Py    7 - Pz    "
+            file << "#    1 - s    2 - Rx    3 - Ry    4 - Rz    5 - Px    6 - Py    7 - Pz    "
                     "8 - Efx    9 - Efy    10 - Efz    11 - Bfx    12 - Bfy    13 - Bfz    "
-                    "14 – Ekin   15 - t"
+                    "14 - Ekin   15 - t"
                  << std::endl;
             // The lines
             for (auto& point : points) {
@@ -662,6 +684,8 @@ namespace {
             }
         }
 
+        std::array<std::uint8_t, 1> activity_m{1};
+        std::unique_ptr<FFT2D5Algorithm> solver_m;
         std::shared_ptr<TestableFieldSolverCmd> fsCmd_m;
         std::shared_ptr<DataSink> dataSink_m;
         std::shared_ptr<Beam> beam_m;
@@ -689,7 +713,8 @@ namespace {
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setParallelDimensions(false, false, true);
 
-        EXPECT_THROW(fsCmd_m->execute(), OpalException);
+        EXPECT_NO_THROW(fsCmd_m->execute());
+        EXPECT_THROW((void)buildSpaceChargeConfig(*fsCmd_m, {}), OpalException);
     }
 
     TEST_F(TestSolve2d5, Configuration_BinningRejected) {
@@ -697,31 +722,18 @@ namespace {
         fsCmd_m->setBinsName("UNUSED_BINNING");
         fsCmd_m->setParallelDimensions(false, false, false);
 
-        EXPECT_THROW(fsCmd_m->execute(), OpalException);
+        EXPECT_NO_THROW(fsCmd_m->execute());
+        EXPECT_THROW((void)buildSpaceChargeConfig(*fsCmd_m, {}), OpalException);
     }
 
     TEST_F(TestSolve2d5, Configuration_MultipleRanksRejected) {
         if (ippl::Comm->size() == 1) {
             GTEST_SKIP() << "This validation requires multiple MPI ranks.";
         }
-
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setParallelDimensions(false, false, false);
-        try {
-            fsCmd_m->execute();
-            FAIL() << "Expected FFT2D5 input validation to reject multiple MPI ranks.";
-        } catch (const OpalException& exception) {
-            const std::string& message = exception.what();
-            EXPECT_NE(message.find("exactly one MPI rank"), std::string::npos);
-        }
-
-        try {
-            rebuildBunch();
-            FAIL() << "Expected FFT2D5 construction to reject multiple MPI ranks.";
-        } catch (const OpalException& exception) {
-            const std::string& message = exception.what();
-            EXPECT_NE(message.find("exactly one MPI rank"), std::string::npos);
-        }
+        EXPECT_NO_THROW(fsCmd_m->execute());
+        EXPECT_THROW((void)buildSpaceChargeConfig(*fsCmd_m, {}), OpalException);
     }
 
     TEST_F(TestSolve2d5, LoadReferencePath_ReadFail) {
@@ -737,7 +749,7 @@ namespace {
                 "data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}, {0, 0, 3}});
         fsCmd_m->setType("FFT2D5");
         ASSERT_NO_THROW(rebuildBunch());
-        auto* solver     = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver     = solver_m.get();
         auto hostRefPath = Kokkos::create_mirror_view(solver->getReferencePath());
         Kokkos::deep_copy(hostRefPath, solver->getReferencePath());
         EXPECT_EQ(hostRefPath.size(), 4);
@@ -761,7 +773,7 @@ namespace {
         fsCmd_m->setType("FFT2D5");
         fsCmd_m->setRefPathFileName("Specified_DesignPath.dat");
         ASSERT_NO_THROW(rebuildBunch());
-        auto* solver     = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver     = solver_m.get();
         auto hostRefPath = Kokkos::create_mirror_view(solver->getReferencePath());
         Kokkos::deep_copy(hostRefPath, solver->getReferencePath());
         EXPECT_EQ(hostRefPath.size(), 4);
@@ -784,7 +796,7 @@ namespace {
                 "data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}, {0, 0, 3}});
         fsCmd_m->setType("FFT2D5");
         ASSERT_NO_THROW(rebuildBunch());
-        const auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        const auto* solver = solver_m.get();
         EXPECT_EQ(solver->getNumSlices(), nz);
         ASSERT_FALSE(solver->getSliceMesh() == nullptr);
         EXPECT_EQ(solver->getSliceMesh()->getGridsize(0), 8);
@@ -803,32 +815,25 @@ namespace {
                 "data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}, {0, 0, 3}});
         fsCmd_m->setType("FFT2D5");
         ASSERT_NO_THROW(rebuildBunch());
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
-        EXPECT_NO_THROW(solver->scatterToGrid(*bunch_m));
+        auto* solver = solver_m.get();
+        EXPECT_NO_THROW(solver->scatterToGrid(context()));
     }
 
     TEST_F(TestSolve2d5, ToFrenetSerret_ShortReferencePath) {
         makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}});
         fsCmd_m->setType("FFT2D5");
-        rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
-        createParticles({{1, 2, 3}}, {{4, 5, 6}});
-        const auto info = solver->createDiagnostic<Info>(Info::Kind::FrenetSerretScatter);
-        solver->scatterToGrid<Info>(*bunch_m, *info);
-        auto [r, p] = getParticles();
-        ASSERT_EQ(r.size(), 1);
-        ASSERT_EQ(p.size(), 1);
-        expectParticle(0, r, p, {1, 2, 3}, {4, 5, 6});
+        fsCmd_m->setClosedRing(false);
+        EXPECT_THROW(rebuildBunch(), OpalException);
     }
 
     TEST_F(TestSolve2d5, ToFrenetSerret_TrivialReferencePath) {
         makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 1}});
         fsCmd_m->setType("FFT2D5");
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{0, 0, 0}, {0, 0, 0.5}, {0, 0, 1}}, {{0, 0, 1}, {0, 0, 1}, {0, 0, 1}});
         const auto info = solver->createDiagnostic<Info>(Info::Kind::FrenetSerretScatter);
-        solver->scatterToGrid<Info>(*bunch_m, *info);
+        solver->scatterToGrid<Info>(context(), *info);
         auto [r, p] = info->getParticles();
         ASSERT_EQ(r.size(), 3);
         ASSERT_EQ(p.size(), 3);
@@ -841,10 +846,10 @@ namespace {
         makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}});
         fsCmd_m->setType("FFT2D5");
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{0, 0, 2}}, {{0, 0, 1}});
         const auto info = solver->createDiagnostic<Info>(Info::Kind::FrenetSerretScatter);
-        solver->scatterToGrid<Info>(*bunch_m, *info);
+        solver->scatterToGrid<Info>(context(), *info);
         auto [r, p] = info->getParticles();
         ASSERT_EQ(r.size(), 1);
         ASSERT_EQ(p.size(), 1);
@@ -856,10 +861,10 @@ namespace {
                 "data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 1}, {1, 0, 2}, {0, 0, 3}});
         fsCmd_m->setType("FFT2D5");
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{2, 0, 2}}, {{0, 0, 1}});
         const auto info = solver->createDiagnostic<Info>(Info::Kind::FrenetSerretScatter);
-        solver->scatterToGrid<Info>(*bunch_m, *info);
+        solver->scatterToGrid<Info>(context(), *info);
         auto [r, p] = info->getParticles();
         ASSERT_EQ(r.size(), 1);
         ASSERT_EQ(p.size(), 1);
@@ -871,10 +876,10 @@ namespace {
                 "data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 0}, {0, 0, 1}, {1, 0, 2}});
         fsCmd_m->setType("FFT2D5");
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{0, 0, 2}}, {{0, 0, 1}});
         const auto info = solver->createDiagnostic<Info>(Info::Kind::FrenetSerretScatter);
-        solver->scatterToGrid<Info>(*bunch_m, *info);
+        solver->scatterToGrid<Info>(context(), *info);
         auto [r, p] = info->getParticles();
         ASSERT_EQ(r.size(), 1);
         ASSERT_EQ(p.size(), 1);
@@ -885,10 +890,10 @@ namespace {
         makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 3}});
         fsCmd_m->setType("FFT2D5");
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{0, 0.5, 2}}, {{0.001, 0.002, 0.577}});
         const auto info = solver->createDiagnostic<Info>(Info::Kind::BoostToBeam);
-        solver->scatterToGrid<Info>(*bunch_m, *info);
+        solver->scatterToGrid<Info>(context(), *info);
         auto [r, p] = info->getParticles();
         ASSERT_EQ(r.size(), 1);
         expectParticle(0, r, p, {0, 0.5, 2.0}, {0.001, 0.002, 0.0});
@@ -898,12 +903,12 @@ namespace {
         makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 3}});
         fsCmd_m->setType("FFT2D5");
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles(
                 {{0, 0.5, 2}, {0, 0, 2}}, {{0.001, 0.002, 0.577}, {0.001, 0.002, 0.577}},
                 {false, true});
         const auto info = solver->createDiagnostic<Info>(Info::Kind::BoostToBeam);
-        solver->scatterToGrid<Info>(*bunch_m, *info);
+        solver->scatterToGrid<Info>(context(), *info);
         auto [r, p] = info->getParticles();
         ASSERT_EQ(r.size(), 2);
         expectParticle(0, r, p, {0, 0.5, 2.0}, {0.001, 0.002, 0.0});
@@ -919,10 +924,10 @@ namespace {
         fsCmd_m->setPipeSizeX(6);
         fsCmd_m->setPipeSizeY(6);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{0, 0, 3}}, {{0, 0, 0}});
         const auto info = solver->createDiagnostic<Info>(Info::Kind::ScatterCharge);
-        solver->scatterToGrid<Info>(*bunch_m, *info);
+        solver->scatterToGrid<Info>(context(), *info);
         expectChargeDensity(
                 info->rhoView_m, {{6, 6, 6, 0.00520833},
                                   {6, 6, 7, 0.00520833},
@@ -945,10 +950,10 @@ namespace {
         fsCmd_m->setPipeSizeY(6);
         fsCmd_m->setClosedRing(true);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{0, 0, 0}}, {{0, 0, 0}});
         const auto info = solver->createDiagnostic<Info>(Info::Kind::ScatterCharge);
-        solver->scatterToGrid<Info>(*bunch_m, *info);
+        solver->scatterToGrid<Info>(context(), *info);
         expectChargeDensity(
                 info->rhoView_m, {{6, 6, 0, 0.00520833},
                                   {6, 6, 1, 0.00520833},
@@ -971,10 +976,10 @@ namespace {
         fsCmd_m->setPipeSizeY(6);
         fsCmd_m->setClosedRing(true);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{0, 0, 6}}, {{0, 0, 0}});
         const auto info = solver->createDiagnostic<Info>(Info::Kind::ScatterCharge);
-        solver->scatterToGrid<Info>(*bunch_m, *info);
+        solver->scatterToGrid<Info>(context(), *info);
         expectChargeDensity(
                 info->rhoView_m, {{6, 6, 12, 0.00520833},
                                   {6, 6, 13, 0.00520833},
@@ -996,10 +1001,10 @@ namespace {
         fsCmd_m->setPipeSizeX(6);
         fsCmd_m->setPipeSizeY(6);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{0, 0, 3}}, {{0, 0, 0}});
         const auto info = solver->createDiagnostic<Info>(Info::Kind::ScatterChargeDensity);
-        solver->scatterToGrid<Info>(*bunch_m, *info);
+        solver->scatterToGrid<Info>(context(), *info);
         expectChargeDensity(
                 info->rhoView_m, {{6, 6, 6, 1.00000},
                                   {6, 6, 7, 1.00000},
@@ -1022,10 +1027,10 @@ namespace {
         fsCmd_m->setPipeSizeY(6);
         fsCmd_m->setClosedRing(true);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{0, 0, 0}}, {{0, 0, 0}});
         const auto info = solver->createDiagnostic<Info>(Info::Kind::ScatterChargeDensity);
-        solver->scatterToGrid<Info>(*bunch_m, *info);
+        solver->scatterToGrid<Info>(context(), *info);
         expectChargeDensity(
                 info->rhoView_m, {{6, 6, 12, 1.00000},
                                   {6, 6, 1, 1.00000},
@@ -1048,10 +1053,10 @@ namespace {
         fsCmd_m->setPipeSizeY(6);
         fsCmd_m->setClosedRing(true);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{0, 0, 6}}, {{0, 0, 0}});
         const auto info = solver->createDiagnostic<Info>(Info::Kind::ScatterChargeDensity);
-        solver->scatterToGrid<Info>(*bunch_m, *info);
+        solver->scatterToGrid<Info>(context(), *info);
         expectChargeDensity(
                 info->rhoView_m, {{6, 6, 12, 1.00000},
                                   {6, 6, 1, 1.00000},
@@ -1073,9 +1078,9 @@ namespace {
         fsCmd_m->setPipeSizeX(6);
         fsCmd_m->setPipeSizeY(6);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{0, 0, 3}}, {{0, 0, 0}});
-        solver->scatterToGrid(*bunch_m);
+        solver->scatterToGrid(context());
         const auto totalInfo = solver->createDiagnostic<Info>(Info::Kind::TotalDensity);
         solver->calculateLineDensity<Info>(*totalInfo);
         expectLineDensity(totalInfo->lineDensityView_m, {0, 0, 0, 0, 0, 0, 4, 4, 0, 0, 0, 0, 0, 0});
@@ -1090,9 +1095,9 @@ namespace {
         fsCmd_m->setPipeSizeX(6);
         fsCmd_m->setPipeSizeY(6);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{0, 0, 3}}, {{0, 0, 0}});
-        solver->scatterToGrid(*bunch_m);
+        solver->scatterToGrid(context());
         const auto lineInfo = solver->createDiagnostic<Info>(Info::Kind::LineDensity);
         solver->calculateLineDensity<Info>(*lineInfo);
         expectLineDensity(lineInfo->lineDensityView_m, {0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0});
@@ -1107,9 +1112,9 @@ namespace {
         fsCmd_m->setPipeSizeX(6);
         fsCmd_m->setPipeSizeY(6);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{0, 0, 3}}, {{0, 0, 0}});
-        solver->scatterToGrid(*bunch_m);
+        solver->scatterToGrid(context());
         const auto lineInfo = solver->createDiagnostic<Info>(Info::Kind::LineDensityGradient);
         solver->calculateLineDensity<Info>(*lineInfo);
         expectLineDensity(
@@ -1126,9 +1131,9 @@ namespace {
         fsCmd_m->setPipeSizeY(6);
         fsCmd_m->setClosedRing(false);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{0, 0, 5}}, {{0, 0, 0}});
-        solver->scatterToGrid(*bunch_m);
+        solver->scatterToGrid(context());
         const auto lineInfo = solver->createDiagnostic<Info>(Info::Kind::LineDensity);
         solver->calculateLineDensity<Info>(*lineInfo);
         expectLineDensity(lineInfo->lineDensityView_m, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0});
@@ -1144,9 +1149,9 @@ namespace {
         fsCmd_m->setPipeSizeY(6);
         fsCmd_m->setClosedRing(true);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{0, 0, 5.5}}, {{0, 0, 0}});
-        solver->scatterToGrid(*bunch_m);
+        solver->scatterToGrid(context());
         const auto lineInfo = solver->createDiagnostic<Info>(Info::Kind::LineDensity);
         solver->calculateLineDensity<Info>(*lineInfo);
         expectLineDensity(lineInfo->lineDensityView_m, {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0});
@@ -1161,9 +1166,9 @@ namespace {
         fsCmd_m->setPipeSizeX(6);
         fsCmd_m->setPipeSizeY(6);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{0, 0, 3}}, {{0, 0, 0}});
-        solver->scatterToGrid(*bunch_m);
+        solver->scatterToGrid(context());
         const auto info = solver->createDiagnostic<Info>(Info::Kind::EField);
         solver->solvePoissons<Info>(*info);
         expectEField(
@@ -1182,12 +1187,12 @@ namespace {
         fsCmd_m->setPipeSizeX(6);
         fsCmd_m->setPipeSizeY(6);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{0, 0, 2}}, {{0, 0, 1}});
-        solver->scatterToGrid(*bunch_m);
+        solver->scatterToGrid(context());
         solver->solvePoissons();
         const auto info = solver->createDiagnostic<Info>(Info::Kind::FrenetSerretGather);
-        solver->gatherFromGrid<Info>(*bunch_m, *info);
+        solver->gatherFromGrid<Info>(context(), *info);
         auto [r, p] = info->getParticles();
         ASSERT_EQ(r.size(), 1);
         ASSERT_EQ(p.size(), 1);
@@ -1203,12 +1208,12 @@ namespace {
         fsCmd_m->setPipeSizeX(6);
         fsCmd_m->setPipeSizeY(6);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{2, 0, 3}, {-2, 0, 3}}, {{0, 0, 0}, {0, 0, 0}});
-        solver->scatterToGrid(*bunch_m);
+        solver->scatterToGrid(context());
         solver->solvePoissons();
         const auto gatherInfo = solver->createDiagnostic<Info>(Info::Kind::GatherEField);
-        solver->gatherFromGrid<Info>(*bunch_m, *gatherInfo);
+        solver->gatherFromGrid<Info>(context(), *gatherInfo);
         auto [e, b] = gatherInfo->getParticleFields();
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
@@ -1225,12 +1230,12 @@ namespace {
         fsCmd_m->setPipeSizeX(6);
         fsCmd_m->setPipeSizeY(6);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{2, 0, 3}, {-2, 0, 3}}, {{0, 0, 0}, {0, 0, 0}});
-        solver->scatterToGrid(*bunch_m);
+        solver->scatterToGrid(context());
         solver->solvePoissons();
         const auto info = solver->createDiagnostic<Info>(Info::Kind::Deboosted);
-        solver->gatherFromGrid<Info>(*bunch_m, *info);
+        solver->gatherFromGrid<Info>(context(), *info);
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
@@ -1247,12 +1252,12 @@ namespace {
         fsCmd_m->setPipeSizeX(6);
         fsCmd_m->setPipeSizeY(6);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{2, 0, 3}, {-2, 0, 3}}, {{0, 0, 1}, {0, 0, 1}});
-        solver->scatterToGrid(*bunch_m);
+        solver->scatterToGrid(context());
         solver->solvePoissons();
         const auto info = solver->createDiagnostic<Info>(Info::Kind::Deboosted);
-        solver->gatherFromGrid<Info>(*bunch_m, *info);
+        solver->gatherFromGrid<Info>(context(), *info);
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
@@ -1269,15 +1274,15 @@ namespace {
         fsCmd_m->setPipeSizeX(6);
         fsCmd_m->setPipeSizeY(6);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{2, 0, 3}, {-2, 0, 3}}, {{0, 0, 1}, {0, 0, 1}});
-        solver->scatterToGrid(*bunch_m);
+        solver->scatterToGrid(context());
         solver->solvePoissons();
         const auto lineInfo = solver->createDiagnostic<Info>(Info::Kind::LineDensityGradient);
         solver->calculateLineDensity<Info>(*lineInfo);
         expectLineDensity(lineInfo->lineDensityGradientView_m, {});
         const auto info = solver->createDiagnostic<Info>(Info::Kind::LongitudinalField);
-        solver->gatherFromGrid<Info>(*bunch_m, *info);
+        solver->gatherFromGrid<Info>(context(), *info);
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
@@ -1296,13 +1301,13 @@ namespace {
         fsCmd_m->setPipeSizeX(6);
         fsCmd_m->setPipeSizeY(6);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{2, 0, 3}, {-2, 0, 3}}, {{0, 0, 1}, {0, 0, 1}});
-        solver->scatterToGrid(*bunch_m);
+        solver->scatterToGrid(context());
         solver->solvePoissons();
         solver->calculateLineDensity();
         const auto info = solver->createDiagnostic<Info>(Info::Kind::LabFrameFields);
-        solver->gatherFromGrid<Info>(*bunch_m, *info);
+        solver->gatherFromGrid<Info>(context(), *info);
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
@@ -1321,15 +1326,15 @@ namespace {
         fsCmd_m->setPipeSizeX(6);
         fsCmd_m->setPipeSizeY(6);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles(
                 {{2, 0, 3}, {-2, 0, 3}, {-2, 0, 3}}, {{0, 0, 1}, {0, 0, 1}, {0, 0, 1}},
                 {false, false, true});
-        solver->scatterToGrid(*bunch_m);
+        solver->scatterToGrid(context());
         solver->solvePoissons();
         solver->calculateLineDensity();
         const auto info = solver->createDiagnostic<Info>(Info::Kind::LabFrameFields);
-        solver->gatherFromGrid<Info>(*bunch_m, *info);
+        solver->gatherFromGrid<Info>(context(), *info);
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 3);
         ASSERT_EQ(b.size(), 3);
@@ -1349,13 +1354,13 @@ namespace {
         fsCmd_m->setPipeSizeX(6);
         fsCmd_m->setPipeSizeY(6);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{4, 0, 3}, {-4, 0, 3}}, {{0, 0, 1}, {0, 0, 1}});
-        solver->scatterToGrid(*bunch_m);
+        solver->scatterToGrid(context());
         solver->solvePoissons();
         solver->calculateLineDensity();
         const auto info = solver->createDiagnostic<Info>(Info::Kind::LabFrameFields);
-        solver->gatherFromGrid<Info>(*bunch_m, *info);
+        solver->gatherFromGrid<Info>(context(), *info);
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
@@ -1372,13 +1377,13 @@ namespace {
         fsCmd_m->setPipeSizeX(6);
         fsCmd_m->setPipeSizeY(6);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{0, 4, 3}, {0, -4, 3}}, {{0, 0, 1}, {0, 0, 1}});
-        solver->scatterToGrid(*bunch_m);
+        solver->scatterToGrid(context());
         solver->solvePoissons();
         solver->calculateLineDensity();
         const auto info = solver->createDiagnostic<Info>(Info::Kind::LabFrameFields);
-        solver->gatherFromGrid<Info>(*bunch_m, *info);
+        solver->gatherFromGrid<Info>(context(), *info);
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
@@ -1395,13 +1400,13 @@ namespace {
         fsCmd_m->setPipeSizeX(6);
         fsCmd_m->setPipeSizeY(6);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{0, 0, -1}, {0, 0, 7}}, {{0, 0, 1}, {0, 0, 1}});
-        solver->scatterToGrid(*bunch_m);
+        solver->scatterToGrid(context());
         solver->solvePoissons();
         solver->calculateLineDensity();
         const auto info = solver->createDiagnostic<Info>(Info::Kind::LabFrameFields);
-        solver->gatherFromGrid<Info>(*bunch_m, *info);
+        solver->gatherFromGrid<Info>(context(), *info);
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
@@ -1419,9 +1424,9 @@ namespace {
         fsCmd_m->setPipeSizeY(6);
         fsCmd_m->setClosedRing(true);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{2, 0, 5}, {-2, 0, 5}, {0, 0, 0}}, {{0, 0, 1}, {0, 0, 1}, {0, 0, 1}});
-        solver->scatterToGrid(*bunch_m);
+        solver->scatterToGrid(context());
         const auto efieldInfo = solver->createDiagnostic<Info>(Info::Kind::EField);
         solver->solvePoissons<Info>(*efieldInfo);
         expectEField(efieldInfo->eFieldView_m, {});
@@ -1429,7 +1434,7 @@ namespace {
         solver->calculateLineDensity<Info>(*lineInfo);
         expectLineDensity(lineInfo->lineDensityGradientView_m, {});
         const auto info = solver->createDiagnostic<Info>(Info::Kind::LabFrameFields);
-        solver->gatherFromGrid<Info>(*bunch_m, *info);
+        solver->gatherFromGrid<Info>(context(), *info);
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 3);
         ASSERT_EQ(b.size(), 3);
@@ -1450,9 +1455,9 @@ namespace {
         fsCmd_m->setPipeSizeY(6);
         fsCmd_m->setClosedRing(false);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{2, 0, 5}, {-2, 0, 5}, {0, 0, 0}}, {{0, 0, 1}, {0, 0, 1}, {0, 0, 1}});
-        solver->scatterToGrid(*bunch_m);
+        solver->scatterToGrid(context());
         const auto efieldInfo = solver->createDiagnostic<Info>(Info::Kind::EField);
         solver->solvePoissons<Info>(*efieldInfo);
         expectEField(efieldInfo->eFieldView_m, {});
@@ -1460,7 +1465,7 @@ namespace {
         solver->calculateLineDensity<Info>(*lineInfo);
         expectLineDensity(lineInfo->lineDensityGradientView_m, {});
         const auto info = solver->createDiagnostic<Info>(Info::Kind::LabFrameFields);
-        solver->gatherFromGrid<Info>(*bunch_m, *info);
+        solver->gatherFromGrid<Info>(context(), *info);
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 3);
         ASSERT_EQ(b.size(), 3);
@@ -1482,13 +1487,13 @@ namespace {
         fsCmd_m->setBeamRadius(0.5);
         fsCmd_m->setPipeMode("CIRCULAR");
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{2, 0, 3}, {-2, 0, 3}}, {{0, 0, 1}, {0, 0, 1}});
-        solver->scatterToGrid(*bunch_m);
+        solver->scatterToGrid(context());
         solver->solvePoissons();
         solver->calculateLineDensity();
         const auto info = solver->createDiagnostic<Info>(Info::Kind::LabFrameFields);
-        solver->gatherFromGrid<Info>(*bunch_m, *info);
+        solver->gatherFromGrid<Info>(context(), *info);
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
@@ -1509,13 +1514,13 @@ namespace {
         fsCmd_m->setBeamRadius(0.5);
         fsCmd_m->setPipeMode("PLATES");
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{2, 0, 3}, {-2, 0, 3}}, {{0, 0, 1}, {0, 0, 1}});
-        solver->scatterToGrid(*bunch_m);
+        solver->scatterToGrid(context());
         solver->solvePoissons();
         solver->calculateLineDensity();
         const auto info = solver->createDiagnostic<Info>(Info::Kind::LabFrameFields);
-        solver->gatherFromGrid<Info>(*bunch_m, *info);
+        solver->gatherFromGrid<Info>(context(), *info);
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
@@ -1528,52 +1533,15 @@ namespace {
     TEST_F(TestSolve2d5, LoadReferencePath_Empty) {
         makeReferencePathFile("data/unit_test_DesignPath.dat", {});
         fsCmd_m->setType("FFT2D5");
-        fsCmd_m->setNX(12);
-        fsCmd_m->setNY(12);
-        fsCmd_m->setNZ(12);
-        fsCmd_m->setPipeSizeX(6);
-        fsCmd_m->setPipeSizeY(6);
         fsCmd_m->setClosedRing(false);
-        ASSERT_NO_THROW(rebuildBunch());
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
-        EXPECT_EQ(solver->getReferencePath().size(), 0);
-        createParticles({{2, 0, 3}, {-2, 0, 3}}, {{0, 0, 1}, {0, 0, 1}});
-        solver->scatterToGrid(*bunch_m);
-        solver->solvePoissons();
-        solver->calculateLineDensity();
-        const auto info = solver->createDiagnostic<Info>(Info::Kind::LabFrameFields);
-        solver->gatherFromGrid<Info>(*bunch_m, *info);
-        auto [e, b] = info->getParticleFields();
-        ASSERT_EQ(e.size(), 2);
-        ASSERT_EQ(b.size(), 2);
-        expectParticleFields(0, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
-        expectParticleFields(1, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
+        EXPECT_THROW(rebuildBunch(), OpalException);
     }
 
     TEST_F(TestSolve2d5, LoadReferencePath_EmptyClosedRing) {
         makeReferencePathFile("data/unit_test_DesignPath.dat", {});
         fsCmd_m->setType("FFT2D5");
-        fsCmd_m->setNX(12);
-        fsCmd_m->setNY(12);
-        fsCmd_m->setNZ(12);
-        fsCmd_m->setPipeSizeX(6);
-        fsCmd_m->setPipeSizeY(6);
         fsCmd_m->setClosedRing(true);
-        ASSERT_NO_THROW(rebuildBunch());
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
-        EXPECT_EQ(solver->getReferencePath().size(), 0);
-        createParticles({{2, 0, 3}, {-2, 0, 3}}, {{0, 0, 1}, {0, 0, 1}});
-        solver->scatterToGrid(*bunch_m);
-        solver->solvePoissons();
-        solver->calculateLineDensity();
-        fsCmd_m->setClosedRing(false);
-        const auto info = solver->createDiagnostic<Info>(Info::Kind::LabFrameFields);
-        solver->gatherFromGrid<Info>(*bunch_m, *info);
-        auto [e, b] = info->getParticleFields();
-        ASSERT_EQ(e.size(), 2);
-        ASSERT_EQ(b.size(), 2);
-        expectParticleFields(0, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
-        expectParticleFields(1, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
+        EXPECT_THROW(rebuildBunch(), OpalException);
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_NoParticles) {
@@ -1585,12 +1553,12 @@ namespace {
         fsCmd_m->setPipeSizeX(6);
         fsCmd_m->setPipeSizeY(6);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
-        solver->scatterToGrid(*bunch_m);
+        auto* solver = solver_m.get();
+        solver->scatterToGrid(context());
         solver->solvePoissons();
         solver->calculateLineDensity();
         const auto info = solver->createDiagnostic<Info>(Info::Kind::LabFrameFields);
-        solver->gatherFromGrid<Info>(*bunch_m, *info);
+        solver->gatherFromGrid<Info>(context(), *info);
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 0);
         ASSERT_EQ(b.size(), 0);
@@ -1606,9 +1574,9 @@ namespace {
         fsCmd_m->setPipeSizeY(6);
         fsCmd_m->setClosedRing(true);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles({{2, 0, 5}, {-2, 0, 5}, {0, 0, 0}}, {{0, 0, 1}, {0, 0, 1}, {0, 0, 1}});
-        solver->runSolver();
+        (void)solver->solve(context());
         // Check the fields through the original particle bunch object
         auto& pc         = *bunch_m->getParticleContainers().front();
         const auto eHost = pc.E.getHostMirror();
@@ -1848,10 +1816,10 @@ namespace {
         fsCmd_m->setPipeSizeY(0.02);
         fsCmd_m->setClosedRing(false);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles(kvR, kvP);
         const auto info = solver->createDiagnostic<Info>(Info::Kind::ScatterCharge);
-        solver->doRunSolver<Info>(*info);
+        solver->doRunSolver<Info>(context(), *info);
         // Check the charge distribution
         expectTotalCharge(info->rhoView_m, bunch_m->dt_m, {0.0, 0.0, 100.0, 0.0, 0.0}, 1e-6);
     }
@@ -1866,10 +1834,10 @@ namespace {
         fsCmd_m->setPipeSizeY(0.02);
         fsCmd_m->setClosedRing(false);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles(kvR, kvP);
         const auto info = solver->createDiagnostic<Info>(Info::Kind::ScatterChargeDensity);
-        solver->doRunSolver<Info>(*info);
+        solver->doRunSolver<Info>(context(), *info);
         // Check the charge distribution
         constexpr double vol = 0.002 * 0.002 * 0.01;
         expectTotalChargeDensity(info->rhoView_m, {0.0, 0.0, 100.0 / vol, 0.0, 0.0}, 1e2);
@@ -1885,10 +1853,10 @@ namespace {
         fsCmd_m->setPipeSizeY(0.02);
         fsCmd_m->setClosedRing(false);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles(kvR, kvP);
         const auto info = solver->createDiagnostic<Info>(Info::Kind::Potential);
-        solver->doRunSolver<Info>(*info);
+        solver->doRunSolver<Info>(context(), *info);
         // Check the charge density
         expectPotential(               //i, j, k, phi
                 info->rhoView_m, {{5, 5, 2, 963538234764917},
@@ -1907,10 +1875,10 @@ namespace {
         fsCmd_m->setPipeSizeY(0.02);
         fsCmd_m->setClosedRing(false);
         rebuildBunch();
-        auto* solver = dynamic_cast<Solve2d5_t*>(bunch_m->getFieldSolver());
+        auto* solver = solver_m.get();
         createParticles(kvR, kvP);
         const auto info = solver->createDiagnostic<Info>(Info::Kind::EField);
-        solver->doRunSolver<Info>(*info);
+        solver->doRunSolver<Info>(context(), *info);
         // Check the charge density
         expectEField(               //i, j, k, Ex,                  Ey,                   Ez
                 info->eFieldView_m, {{5, 5, 2, 22636807214983288.0, 3856068046813647.5,   0.0},
