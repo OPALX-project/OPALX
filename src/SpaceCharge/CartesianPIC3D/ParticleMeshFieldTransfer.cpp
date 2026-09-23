@@ -81,10 +81,10 @@ namespace opalx::spacecharge {
 
     void ParticleMeshFieldTransfer::reflectPositions(
             PositionAttribute& positions, const Selection& selection, double planeZ) const {
-        const auto positionView  = positions.getView();
-        const RangePolicy policy = selection.policy();
-        const Hash hash          = selection.hash();
-        const bool useHash       = selection.kind() == Selection::Kind::Indexed;
+        const auto positionView     = positions.getView();
+        const RangePolicy policy    = selection.policy();
+        const Hash::const_type hash = selection.hash();
+        const bool useHash          = selection.kind() == Selection::Kind::Indexed;
 
         Kokkos::parallel_for(
                 "ParticleMeshFieldTransfer::reflectImagePositions", policy,
@@ -99,9 +99,9 @@ namespace opalx::spacecharge {
             ParticleContainer& particles, const Selection& selection) const {
         const auto chargeView = particles.getQView();
         if (particles.getQMStorageMode() == ParticleContainer::QMStorageMode::Attributes) {
-            const RangePolicy policy = selection.policy();
-            const Hash hash          = selection.hash();
-            const bool useHash       = selection.kind() == Selection::Kind::Indexed;
+            const RangePolicy policy    = selection.policy();
+            const Hash::const_type hash = selection.hash();
+            const bool useHash          = selection.kind() == Selection::Kind::Indexed;
             Kokkos::parallel_for(
                     "ParticleMeshFieldTransfer::flipSelectedChargeSigns", policy,
                     KOKKOS_LAMBDA(const size_type selectionIndex) {

@@ -97,7 +97,7 @@ namespace opalx::spacecharge {
             }
 
         private:
-            View charge_m;
+            typename View::const_type charge_m;
             bool perParticle_m;
         };
     }  // namespace detail

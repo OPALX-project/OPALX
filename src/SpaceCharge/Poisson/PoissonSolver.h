@@ -104,6 +104,7 @@ namespace opalx::spacecharge {
             parameters.add("use_heffte_defaults", false);
             parameters.add("use_pencils", true);
             parameters.add("use_reorder", false);
+            // GPU deployments must provide MPI support for device pointers.
             parameters.add("use_gpu_aware", true);
             parameters.add("comm", ippl::p2p_pl);
             parameters.add("r2c_direction", 0);

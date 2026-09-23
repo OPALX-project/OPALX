@@ -31,12 +31,13 @@ namespace opalx::spacecharge {
         const double gammaMinusOne = gammaBin - 1.0;
         const double gammaOverCSq  = gammaBin / (Physics::c * Physics::c);
 
-        const VectorField& sourceField = fieldStorage.electricField();
-        VectorField& electricTotal     = fieldStorage.accumulatedElectricField();
-        VectorField& magneticTotal     = fieldStorage.accumulatedMagneticField();
-        auto sourceView                = sourceField.getView();
-        auto electricTotalView         = electricTotal.getView();
-        auto magneticTotalView         = magneticTotal.getView();
+        const VectorField& sourceField     = fieldStorage.electricField();
+        VectorField& electricTotal         = fieldStorage.accumulatedElectricField();
+        VectorField& magneticTotal         = fieldStorage.accumulatedMagneticField();
+        using ReadOnlyFieldView            = VectorField::view_type::const_type;
+        const ReadOnlyFieldView sourceView = sourceField.getView();
+        auto electricTotalView             = electricTotal.getView();
+        auto magneticTotalView             = magneticTotal.getView();
 
         if (policy.sourceRule == FieldSourceRule::Direct) {
             ippl::parallel_for(
@@ -71,9 +72,9 @@ namespace opalx::spacecharge {
         opalx::detail::mirrorField(sourceField, mirroredField, 2);
         IpplTimings::stopTimer(mirrorFieldTimer);
 
-        auto mirroredView       = mirroredField.getView();
-        const int flipAxis      = 2;
-        const int flipAxisValue = flipAxis;
+        const ReadOnlyFieldView mirroredView = mirroredField.getView();
+        const int flipAxis                   = 2;
+        const int flipAxisValue              = flipAxis;
         ippl::parallel_for(
                 "RelativisticFieldComposer::accumulateShiftedGreenImageZ",
                 sourceField.getFieldRangePolicy(),

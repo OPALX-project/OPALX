@@ -18,6 +18,8 @@ namespace opalx::spacecharge {
      *
      * Deposition temporarily uses @c dt as the charge weight. Image deposition also reflects @c R
      * and negates @c Q. These particle attributes are restored on success.
+     * Use the default execution instance for selections. Synchronize before host access or
+     * consumption on another execution instance.
      */
     class ParticleMeshFieldTransfer final {
     public:
@@ -42,7 +44,7 @@ namespace opalx::spacecharge {
         /**
          * @brief Selects a contiguous range or maps policy indices through a hash.
          *
-         * An indexed hash is borrowed and becomes invalid after particle migration.
+         * The hash handle is shared; its indices must be rebuilt after particle migration.
          */
         struct Selection {
             enum class Kind { Direct, Indexed };
@@ -52,14 +54,17 @@ namespace opalx::spacecharge {
                 return Selection(Kind::Direct, RangePolicy(begin, end), Hash());
             }
 
-            /** @brief Select policy indices and map each one through @p hash. */
-            [[nodiscard]] static Selection indexed(const RangePolicy& policy, const Hash& hash) {
+            /**
+             * @brief Select policy indices and map each one through @p hash.
+             * @note Selected entries must be unique indices in [0, local particle count).
+             */
+            [[nodiscard]] static Selection indexed(const RangePolicy& policy, Hash hash) {
                 return Selection(Kind::Indexed, policy, hash);
             }
 
             [[nodiscard]] Kind kind() const { return kind_m; }
             [[nodiscard]] const RangePolicy& policy() const { return policy_m; }
-            [[nodiscard]] const Hash& hash() const { return hash_m; }
+            [[nodiscard]] Hash hash() const { return hash_m; }
 
         private:
             Selection(Kind kind, RangePolicy policy, Hash hash)
