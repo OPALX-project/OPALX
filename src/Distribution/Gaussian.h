@@ -46,15 +46,12 @@ public:
      * @brief Constructor for the Gaussian sampler.
      *
      * @param pc Shared pointer to the particle container.
-     * @param fc Shared pointer to the field container.
      * @param opalDist Borrowed distribution object.
      */
-    Gaussian(
-            std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-            Distribution_t* opalDist);
+    Gaussian(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist);
 
     /**
-     * @brief Constructor for the Gaussian sampler without field container and distribution object.
+     * @brief Constructor for the Gaussian sampler without a distribution object.
      * @param pc Shared pointer to the particle container.
      * @param sigmaR Standard deviation for position distribution.
      * @param sigmaP Standard deviation for momentum distribution.

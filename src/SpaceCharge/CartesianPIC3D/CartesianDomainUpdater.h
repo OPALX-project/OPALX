@@ -1,0 +1,89 @@
+/**
+ * @file CartesianDomainUpdater.h
+ * @brief CartesianPIC3D geometry, migration, and redistribution updates.
+ */
+
+#ifndef OPALX_SPACE_CHARGE_CARTESIAN_DOMAIN_UPDATER_H
+#define OPALX_SPACE_CHARGE_CARTESIAN_DOMAIN_UPDATER_H
+
+#include "PartBunch/BunchStateHandler.h"
+#include "PartBunch/ParticleContainer.hpp"
+#include "SpaceCharge/CartesianPIC3D/CartesianPIC3DFieldStorage.h"
+#include "SpaceCharge/SpaceChargeConfig.h"
+#include "SpaceCharge/SpaceChargeSolveContext.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <span>
+#include <vector>
+
+namespace opalx::spacecharge {
+
+    class PoissonSolver;
+
+    /** @brief Coordinate frame used to compute the next particle and mesh domain. */
+    enum class DomainCoordinateFrame { Beam, Reference };
+
+    /** @brief Axis-aligned domain bounds in metres in the selected coordinate frame. */
+    struct CartesianBounds {
+        ippl::Vector<double, 3> lower{0.0};
+        ippl::Vector<double, 3> upper{0.0};
+    };
+
+    /** @brief Owns Cartesian mesh geometry, particle migration, and ORB scheduling. */
+    class CartesianDomainUpdater final {
+    public:
+        using ParticleContainer = ::ParticleContainer<double, 3>;
+        using FieldStorage      = CartesianPIC3DFieldStorage<double, 3>;
+        using Orb               = ippl::OrthogonalRecursiveBisection<Field<double, 3>, double>;
+        using FixedDomain       = BunchStateHandler::FixedCartesianDomainState;
+
+        CartesianDomainUpdater(
+                CartesianPIC3DConfig config, std::span<ParticleContainer* const> particles);
+
+        CartesianDomainUpdater(const CartesianDomainUpdater&)            = delete;
+        CartesianDomainUpdater& operator=(const CartesianDomainUpdater&) = delete;
+
+        /**
+         * @brief Update geometry and ownership for one solve phase.
+         *
+         * Beam-frame updates use only the first (primary) container. Reference-frame updates place
+         * all containers on one tracker-frame layout. Fixed bounds apply only in the beam frame.
+         *
+         * @return Whether ORB changed the particle decomposition.
+         */
+        [[nodiscard]] bool updateForSolve(
+                DomainCoordinateFrame frame, const SpaceChargeSolveContext& context,
+                const DirichletPlaneConfig& dirichletPlane, const FixedDomain* fixedDomain,
+                FieldStorage& fieldStorage, PoissonSolver& poissonSolver);
+
+    private:
+        [[nodiscard]] CartesianBounds computeBounds(bool primaryOnly);
+        void updateLayoutsAndMigrate(FieldStorage& fieldStorage, bool primaryOnly);
+        void updateMoments(bool primaryOnly);
+        [[nodiscard]] bool isRedistributionBlocked(
+                std::span<const std::uint8_t> trackingActive) const;
+        [[nodiscard]] bool loadIsImbalanced(double threshold);
+        [[nodiscard]] FieldStorage::Extents targetExtents(
+                const DirichletPlaneConfig& dirichletPlane) const;
+        void extendImageBounds(
+                CartesianBounds& bounds, const DirichletPlaneConfig& dirichletPlane) const;
+        void expandBounds(
+                CartesianBounds& bounds, bool applyEmissionStretch, double emittedFraction,
+                std::size_t longitudinalExtent) const;
+        void updateMeshGeometry(const CartesianBounds& bounds, FieldStorage& fieldStorage) const;
+        [[nodiscard]] bool isRedistributionDue(std::size_t step) const;
+        [[nodiscard]] bool redistribute(
+                const SpaceChargeSolveContext& context, FieldStorage& fieldStorage);
+        [[nodiscard]] ParticleContainer& primary() const { return *particles_m.front(); }
+
+        CartesianPIC3DConfig config_m;
+        std::vector<ParticleContainer*> particles_m;
+        Orb orb_m;
+        std::vector<int> rankFlags_m;
+        bool poissonRebuildRequired_m = false;
+    };
+
+}  // namespace opalx::spacecharge
+
+#endif  // OPALX_SPACE_CHARGE_CARTESIAN_DOMAIN_UPDATER_H

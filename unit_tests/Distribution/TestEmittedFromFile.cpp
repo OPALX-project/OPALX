@@ -37,9 +37,6 @@ protected:
             domain[i] = ippl::Index(nr[i]);
         }
 
-        auto fc = std::make_shared<FieldContainer_t>(
-                hr, rmin, rmax, decomp, domain, origin, isAllPeriodic_m);
-
         Mesh_t<3> mesh(domain, hr, origin);
         FieldLayout_t<3> fl(MPI_COMM_WORLD, domain, decomp, isAllPeriodic_m);
 
@@ -108,8 +105,7 @@ TEST_F(EmittedFromFileTest, ParsesOldOpalDumpAndProvidesReferenceMomentum) {
     writeOldOpalDump();
     allocate(4);
 
-    auto fc = std::shared_ptr<FieldContainer_t>();
-    EmittedFromFile sampler(pc, fc, tempFilename);
+    EmittedFromFile sampler(pc, tempFilename);
     sampler.setEmissionOffsets(
             Vector_t<double, 3>(0.0, 0.0, 0.0), Vector_t<double, 3>(0.01, 0.02, 0.03), 0.0, "NONE");
 
@@ -133,8 +129,7 @@ TEST_F(EmittedFromFileTest, ReconstructsOldOpalEmissionWindowFromBins) {
     writeMultiBinOldOpalDump();
     allocate(4);
 
-    auto fc = std::shared_ptr<FieldContainer_t>();
-    EmittedFromFile sampler(pc, fc, tempFilename);
+    EmittedFromFile sampler(pc, tempFilename);
     sampler.setEmissionOffsets(Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0), 0.0, "NONE");
 
     size_t requested = 0;
@@ -150,8 +145,7 @@ TEST_F(EmittedFromFileTest, EmitsSortedRecordsWithFractionalDtAndHalfStepDrift) 
     writeCountHeaderDump();
     allocate(4);
 
-    auto fc = std::shared_ptr<FieldContainer_t>();
-    EmittedFromFile sampler(pc, fc, tempFilename);
+    EmittedFromFile sampler(pc, tempFilename);
     sampler.setEmissionOffsets(
             Vector_t<double, 3>(0.1, 0.2, 0.3), Vector_t<double, 3>(0.0), 0.0, "NONE");
 
@@ -202,8 +196,7 @@ TEST_F(EmittedFromFileTest, HonorsRequestedParticleLimitBeforeSorting) {
     writeCountHeaderDump();
     allocate(4);
 
-    auto fc = std::shared_ptr<FieldContainer_t>();
-    EmittedFromFile sampler(pc, fc, tempFilename);
+    EmittedFromFile sampler(pc, tempFilename);
     sampler.setEmissionOffsets(Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0), 0.0, "NONE");
 
     size_t requested = 2;
@@ -223,8 +216,7 @@ TEST_F(EmittedFromFileTest, RejectsOverdueBirthTimesInsteadOfPreAgingParticles) 
     writeCountHeaderDump();
     allocate(4);
 
-    auto fc = std::shared_ptr<FieldContainer_t>();
-    EmittedFromFile sampler(pc, fc, tempFilename);
+    EmittedFromFile sampler(pc, tempFilename);
     sampler.setEmissionOffsets(Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0), 0.0, "NONE");
 
     size_t requested = 0;
@@ -238,8 +230,7 @@ TEST_F(EmittedFromFileTest, RejectsUnsupportedEmissionModel) {
     writeOldOpalDump();
     allocate(4);
 
-    auto fc = std::shared_ptr<FieldContainer_t>();
-    EmittedFromFile sampler(pc, fc, tempFilename);
+    EmittedFromFile sampler(pc, tempFilename);
     sampler.setEmissionOffsets(Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0), 0.0, "ASTRA");
 
     size_t requested = 0;

@@ -89,6 +89,8 @@ public:
         }
     }
 
+    BCType operator[](unsigned dimension) const { return bcs_m[dimension]; }
+
     /**
      * @brief Return `true` if every stored BC equals `bc_type`.
      *
@@ -105,8 +107,7 @@ public:
     /**
      * @brief Check whether all stored BCs are equal (all the same value).
      *
-     * This function is necesary, since current IPPL does not support mixed BCs,
-     * so this consistency check validates user input.
+     * Solver-specific validation decides which combinations are supported.
      *
      * @return `true` when every element in the internal array equals the first
      * element.
