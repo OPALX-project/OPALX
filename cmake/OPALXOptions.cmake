@@ -209,8 +209,7 @@ endif()
 set(IPPL_ENABLE_FFT     ON  CACHE BOOL "" FORCE)
 set(IPPL_ENABLE_SOLVERS ON  CACHE BOOL "" FORCE)
 set(IPPL_PLATFORMS "${OPALX_PLATFORMS}" CACHE STRING "" FORCE)
-#set(IPPL_ENABLE_ALPINE  OFF CACHE BOOL "" FORCE)
-#set(IPPL_ENABLE_TESTS   OFF CACHE BOOL "" FORCE)
+set(IPPL_USE_STANDARD_FOLDERS ${OPALX_USE_STANDARD_FOLDERS})
 
 # -----------------------------------------------------------------------------
 # Other OPALX options
