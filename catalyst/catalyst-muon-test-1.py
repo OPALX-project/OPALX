@@ -36,9 +36,9 @@ renderView1.Set(
 # create a new 'XML MultiBlock Data Reader'
 # Stand-in for the live 'MUON' particle channel. Under Catalyst this reader is
 # replaced by the in-situ Conduit channel with the same registrationName.
-muon_particles = XMLPartitionedDataSetCollectionReader(
+muon_particles = XMLMultiBlockDataReader(
     registrationName='MUON',
-    FileName=['/home/biddisco/temp/muon/MUON_snapshot/MUON_snapshot.vtpc'])
+    FileName=['/home/biddisco/temp/muon/MUON_snapshot/MUON_snapshot.vtm'])
 
 # create a new 'Extract Block'
 extractBlock1 = ExtractBlock(registrationName='ExtractBlock1', Input=muon_particles)
