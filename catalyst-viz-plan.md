@@ -244,6 +244,40 @@ Status: **pending** (slimmed; only after Phase 2 lands)
 
 ---
 
+## Future: In-situ configuration via OPALX input file
+
+Status: **not started — plan needed**
+
+A colleague requested the ability to activate in-situ visualization and
+select which particles / fields to export via the OPALX input file,
+rather than environment variables.
+
+The mesh-centric refactor makes this straightforward:
+- `addMeshChannel` / `addArray` / `addParticleChannel` are already
+  declarative and composable — selecting a subset of fields is just
+  fewer `addArray` calls.
+- Per-array `UpdatePolicy` (Always / Static / Manual) is already in the
+  API; no new mechanism needed for per-field control.
+- Multi-bunch is already supported; mapping `PARTICLES = {BEAM1, BEAM2}`
+  to the existing container loop is trivial.
+- The registration code is isolated in `ParallelTracker.cpp` (planned to
+  move into `InSituManager`); swapping `getenv()` calls for `OpalData`
+  parsed values is a configuration-source change, not architecture.
+
+Rough effort: half a day to a day. The refactor did the hard part; the
+parser wiring is mechanical.
+
+- [ ] Plan the input-file syntax (e.g. `INSITU, ENABLE=TRUE,
+      FIELDS={E_self,rho}, PARTICLES=ALL, LIVE_FREQ=5,
+      DUMP_SNAPSHOT=64;`) using the existing OPALX command parser.
+- [ ] Add a config struct stored in `OpalData`, read in `ParallelTracker`
+      / `InSituManager` instead of static `getenv` lambdas.
+- [ ] Forward IPPL env vars (`IPPL_CATALYST_VIS`, `IPPL_CATALYST_PNG`,
+      etc.) from the input file through a `CatalystAdaptor` constructor
+      overload, or keep as fallbacks.
+
+---
+
 ## Risks
 
 - **Channel renames break every existing script/extractor.** Requires a

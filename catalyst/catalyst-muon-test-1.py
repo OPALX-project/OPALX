@@ -34,11 +34,14 @@ renderView1.Set(
 # ----------------------------------------------------------------
 
 # create a new 'XML MultiBlock Data Reader'
-ippl_particles_electrons = XMLMultiBlockDataReader(registrationName='electrons', FileName=['/home/biddisco/temp/muon/electrons_snapshot.vtm'])
-ippl_particles_electrons.PointArrayStatus = ['RankID', 'ParticleIDs', 'position', 'dt', 'Phi', 'Bin', 'P', 'E', 'B', 'InvalidMask', 'BunchOrigin', 'BunchRotRow0', 'BunchRotRow1', 'BunchRotRow2', 'BunchInvOrigin', 'BunchInvRotRow0', 'BunchInvRotRow1', 'BunchInvRotRow2']
+# Stand-in for the live 'MUON' particle channel. Under Catalyst this reader is
+# replaced by the in-situ Conduit channel with the same registrationName.
+muon_particles = XMLPartitionedDataSetCollectionReader(
+    registrationName='MUON',
+    FileName=['/home/biddisco/temp/muon/MUON_snapshot/MUON_snapshot.vtpc'])
 
 # create a new 'Extract Block'
-extractBlock1 = ExtractBlock(registrationName='ExtractBlock1', Input=ippl_particles_electrons)
+extractBlock1 = ExtractBlock(registrationName='ExtractBlock1', Input=muon_particles)
 extractBlock1.Set(
     Assembly='Hierarchy',
     Selectors=['//block_transform'],
@@ -58,10 +61,10 @@ annotateTime1 = AnnotateTime(registrationName='AnnotateTime1')
 annotateTime1.Format = 'Time: {time:07.1f}'
 
 # create a new 'Extract Block'
-extractBlock2 = ExtractBlock(registrationName='ExtractBlock2', Input=ippl_particles_electrons)
+extractBlock2 = ExtractBlock(registrationName='ExtractBlock2', Input=muon_particles)
 extractBlock2.Set(
     Assembly='Hierarchy',
-    Selectors=['/Root/block_main'],
+    Selectors=['//block_main'],
 )
 
 # create a new 'Programmable Filter'
@@ -249,11 +252,11 @@ except ValueError:
     _snapshot_step = 0
 
 if _snapshot_step > 0:
-    ext = CreateExtractor('VTPC', ippl_particles_electrons,
-                          registrationName='Snapshot_electrons')
+    ext = CreateExtractor('VTPC', muon_particles,
+                          registrationName='Snapshot_MUON')
     ext.Trigger = 'Time Step'
     ext.Trigger.Frequency = _snapshot_step
-    ext.Writer.FileName = 'electrons_snapshot/{timestep:06d}.vtpc'
+    ext.Writer.FileName = 'MUON_snapshot/{timestep:06d}.vtpc'
 
 # ----------------------------------------------------------------
 # Per-timestep behaviour
@@ -269,7 +272,7 @@ options.EnableCatalystLive = 1
 
 # Execute every timestep so OPALX_CATALYST_DUMP_SNAPSHOT is interpreted as the
 # simulation iteration. Individual extractor frequencies still throttle writes.
-options.GlobalTrigger.Frequency = 1
+options.GlobalTrigger.Frequency = 5
 
 # init the 'Time Step' selected for 'CatalystLiveTrigger'
 options.CatalystLiveTrigger.Frequency = 5
