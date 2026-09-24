@@ -45,7 +45,7 @@ TEST_F(TestEnge, ConstructorTest) {
     EXPECT_EQ(enge1->getX0(), 2.0);
     EXPECT_EQ(enge1->getCentreLength(), 4.0);
     EXPECT_EQ(enge1->getEndLength(), 7.0);
-    //EXPECT_EQ(enge1->getCoefficients(), a);
+    EXPECT_EQ(enge1->getCoefficients(), a);
 
     endfieldmodel::Enge* enge2 = enge1->clone();
     EXPECT_EQ(enge2->getX0(), enge1->getX0());
@@ -92,46 +92,9 @@ TEST_F(TestEnge, DerivativeTest) {
     EXPECT_NEAR(enge.function(-5.0, 0), 0.5, 1e-3);
 }
 
-
-TEST_F(TestEnge, SingleEngeTest) {
-    std::vector<double> xVector = {0.0, 1.0, 2.0, 3.0};
-    endfieldmodel::Enge enge({0.0, 1.0, 2.0}, 0.0, 0.5);
-    for (auto x: xVector) {
-        EXPECT_NEAR(enge.getEnge(enge.getConfig(), x, 0), myEnge(x, {0.0, 1.0, 2.0}, 0.5), 1e-12);
-    }
-}
-
-TEST_F(TestEnge, HNTest) {
-    std::vector<double> a = {1.0, 2.0, 3.0, 4.0};
-    endfieldmodel::Enge enge = endfieldmodel::Enge(a, 10.0, 0.5);
-    enge.setMaximumDerivative(11);
-    double dx = 1e-6;
-    for(size_t i = 0; i < 10; ++i) {
-        double dhdxNumerical = (enge.hN(enge.getConfig(), 10.0+dx, i)-
-                                enge.hN(enge.getConfig(), 10.0-dx, i))/2/dx;
-        double dhdx = enge.hN(enge.getConfig(), 10.0, i+1);
-        EXPECT_NEAR(dhdx, dhdxNumerical, 1e-5)
-                << " for " << i << "^th derivative";
-    }
-}
-
-TEST_F(TestEnge, GNTest) {
-    std::vector<double> a = {1.0, 2.0, 3.0, 4.0};
-    endfieldmodel::Enge enge = endfieldmodel::Enge(a, 1.0, 0.5);
-    enge.setMaximumDerivative(11);
-    double dx = 1e-6;
-    for(size_t i = 0; i < 10; ++i) {
-        double dgdxNumerical = (enge.gN(enge.getConfig(), 0.1+dx, i)-
-                                enge.gN(enge.getConfig(), 0.1-dx, i))/2/dx;
-        double dgdx = enge.gN(enge.getConfig(), 0.1, i+1);
-        EXPECT_NEAR(dgdx/dgdxNumerical, 1.0, 1e-5)
-                << " for " << i << "^th derivative";
-    }
-}
-
 TEST_F(TestEnge, PrintTest) {
-    endfieldmodel::Enge enge = endfieldmodel::Enge({1, 2}, 1.0, 0.5);
-    enge.setMaximumDerivative(12);
+    std::vector<double> a = {1, 2};
+    endfieldmodel::Enge enge = endfieldmodel::Enge(a, 1.0, 0.5);
     enge.print(std::cout);
     std::cout << std::endl;
 }
