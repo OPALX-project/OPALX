@@ -455,10 +455,6 @@ void ParallelTracker::execute() {
     preparationState.finish();
 
 #ifdef IPPL_ENABLE_CATALYST
-    // Labels of registered Catalyst field channels; used to force a host copy on
-    // each Catalyst step (otherwise IPPL caches the first timestep).
-    std::vector<std::string> catalystFieldLabels;
-
     // Field-channel export is opt-in because IPPL's default PNG extractors also
     // consume registered field channels, which conflicts with user state scripts
     // that want to bind the same channels. Set OPALX_CATALYST_FIELDS=ON to export.
@@ -471,58 +467,65 @@ void ParallelTracker::execute() {
         return val == "ON" || val == "1" || val == "TRUE" || val == "YES";
     }();
 
-    {
-        // Keep the particle container alive as an lvalue; MakeVisRegistryRuntimePtr only binds
-        // lvalue arguments, so a temporary shared_ptr would silently create an empty registry.
-        auto particleContainer        = itsBunch_m->getParticleContainer();
-        auto runtime_vis_registry     = ippl::MakeVisRegistryRuntimePtr("electrons", particleContainer);
-        auto runtime_steer_registry   = ippl::MakeVisRegistryRuntimePtr();
+    // Particle channel handles — needed to update transforms each step.
+    std::vector<ippl::ParticleChannelHandle> catalystParticleHandles;
 
-        // Register mesh fields for in-situ visualization.
+    {
+        auto particleContainer = itsBunch_m->getParticleContainer();
+
+        // Register mesh fields (one Conduit channel per mesh, multiple arrays)
         if (exportCatalystFields) {
             auto fcontainer = itsBunch_m->getFieldContainer();
             if (fcontainer) {
-                runtime_vis_registry->add("E_self", fcontainer->getE());
-                catalystFieldLabels.push_back("E_self");
+                auto meshCh = cat_vis.addMeshChannel<3>(
+                    "bunch_mesh",
+                    fcontainer->getMesh(),
+                    fcontainer->getFL(),
+                    fcontainer->getE().getNghost());
 
+                meshCh.addArray("E_self", fcontainer->getE());
                 if (auto btmp = fcontainer->getTempBField()) {
-                    runtime_vis_registry->add("B_self", *btmp);
-                    catalystFieldLabels.push_back("B_self");
+                    meshCh.addArray("B_self", *btmp);
                 }
-
-                runtime_vis_registry->add("rho", fcontainer->getRho());
-                catalystFieldLabels.push_back("rho");
-
+                meshCh.addArray("rho", fcontainer->getRho());
                 if (itsBunch_m->getFieldSolver() && itsBunch_m->getFieldSolverType() == "CG") {
-                    runtime_vis_registry->add("phi", fcontainer->getPhi());
-                    catalystFieldLabels.push_back("phi");
+                    meshCh.addArray("phi", fcontainer->getPhi());
                 }
-
-                runtime_vis_registry->add("E_external", fcontainer->getExternalE());
-                catalystFieldLabels.push_back("E_external");
-                runtime_vis_registry->add("B_external", fcontainer->getExternalB());
-                catalystFieldLabels.push_back("B_external");
+                meshCh.addArray("E_external", fcontainer->getExternalE());
+                meshCh.addArray("B_external", fcontainer->getExternalB());
             }
         }
 
-        // Register the single-point transform channel before Initialize() so the
-        // pipeline script knows to create a proxy for it.
-        const auto& toLab0 = itsBunch_m->getParticleContainer()->getToLabTrafo();
-        const auto invToLab0 = toLab0.inverted();
+        // Register particle channels — one per container (supports multi-bunch).
+        // Each gets its own transform for bunch-frame visualization.
         auto rowsFromMatrix = [](const matrix3x3_t& m) {
             return std::array<Vector_t<double, 3>, 3>{
                 Vector_t<double, 3>(m(0, 0), m(0, 1), m(0, 2)),
                 Vector_t<double, 3>(m(1, 0), m(1, 1), m(1, 2)),
                 Vector_t<double, 3>(m(2, 0), m(2, 1), m(2, 2))};
         };
-        ippl::TransformData td0;
-        td0.origin    = toLab0.getOrigin();
-        td0.rows      = rowsFromMatrix(toLab0.getRotationMatrix());
-        td0.invOrigin = invToLab0.getOrigin();
-        td0.invRows   = rowsFromMatrix(invToLab0.getRotationMatrix());
-        cat_vis.addTransformChannel("electrons", td0);
 
-        cat_vis.Initialize(runtime_vis_registry, runtime_steer_registry);
+        const auto& containers = itsBunch_m->getParticleContainers();
+        for (size_t i = 0; i < containers.size(); ++i) {
+            if (!containers[i])
+                continue;
+            const auto& toLab = containers[i]->getToLabTrafo();
+            const auto invToLab = toLab.inverted();
+            ippl::TransformData td;
+            td.origin    = toLab.getOrigin();
+            td.rows      = rowsFromMatrix(toLab.getRotationMatrix());
+            td.invOrigin = invToLab.getOrigin();
+            td.invRows   = rowsFromMatrix(invToLab.getRotationMatrix());
+
+            auto name = itsBunch_m->getParticleName(i);
+            if (name.empty())
+                name = "bunch_" + std::to_string(i);
+            catalystParticleHandles.push_back(
+                cat_vis.addParticleChannel(name, *containers[i]).setTransform(td));
+        }
+
+        auto steerReg = ippl::MakeVisRegistryRuntimePtr();
+        cat_vis.Initialize(steerReg);
     }
 #endif
 
@@ -724,20 +727,11 @@ void ParallelTracker::execute() {
                         // Sample beamline element fields onto the bunch mesh so they can be
                         // exported as Catalyst field channels.
                         sampleExternalFieldsToMesh(oths);
-
-                        // Force a host copy of every registered time-varying field channel;
-                        // without this IPPL re-uses the data from the first Catalyst step.
-                        for (const auto& label : catalystFieldLabels) {
-                            cat_vis.rememberNow(label);
-                        }
+                        // No rememberNow needed — Always policy copies every Execute().
                     }
 
-                    // Publish the current bunch-frame transform as a single-point polydata
-                    // channel so ParaView can transform geometry into the bunch frame (or,
-                    // with the inverse matrix, particles into lab coordinates).
-                    const auto& toLab = itsBunch_m->getParticleContainer()->getToLabTrafo();
-                    const auto invToLab = toLab.inverted();
-
+                    // Update the bunch-frame transform on each particle channel
+                    // so ParaView can transform geometry into the bunch frame.
                     auto rowsFromMatrix = [](const matrix3x3_t& m) {
                         return std::array<Vector_t<double, 3>, 3>{
                             Vector_t<double, 3>(m(0, 0), m(0, 1), m(0, 2)),
@@ -745,13 +739,20 @@ void ParallelTracker::execute() {
                             Vector_t<double, 3>(m(2, 0), m(2, 1), m(2, 2))};
                     };
 
-                    ippl::TransformData td;
-                    td.origin    = toLab.getOrigin();
-                    td.rows      = rowsFromMatrix(toLab.getRotationMatrix());
-                    td.invOrigin = invToLab.getOrigin();
-                    td.invRows   = rowsFromMatrix(invToLab.getRotationMatrix());
+                    const auto& containers = itsBunch_m->getParticleContainers();
+                    for (size_t i = 0; i < catalystParticleHandles.size() && i < containers.size(); ++i) {
+                        if (!catalystParticleHandles[i] || !containers[i])
+                            continue;
+                        const auto& toLab = containers[i]->getToLabTrafo();
+                        const auto invToLab = toLab.inverted();
+                        ippl::TransformData td;
+                        td.origin    = toLab.getOrigin();
+                        td.rows      = rowsFromMatrix(toLab.getRotationMatrix());
+                        td.invOrigin = invToLab.getOrigin();
+                        td.invRows   = rowsFromMatrix(invToLab.getRotationMatrix());
+                        catalystParticleHandles[i].setTransform(td);
+                    }
 
-                    cat_vis.addTransformChannel("electrons", td);
                     cat_vis.Execute(step, step);
                 }
             }
