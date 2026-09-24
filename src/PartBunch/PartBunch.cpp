@@ -98,7 +98,7 @@ PartBunch<T, Dim>::PartBunch(
     // Open P3M must not wrap particles at the temporary mesh boundary.
     bool isAllPeriodic = this->getBCHandler()->isAll(BCHandler_t::PERIODIC);
     m << level5 << "* FieldContainer set to isAllPeriodic = " << isAllPeriodic << endl;
-    const ippl::BC particleBC = (useP3M && !isAllPeriodic) ? ippl::BC::NO : ippl::BC::PERIODIC;
+    const ippl::BC particleBC = (!isAllPeriodic) ? ippl::BC::NO : ippl::BC::PERIODIC;
 
     //      set stuff for pre_run i.e. warmup
     //      this will be reset when the correct computational
