@@ -19,6 +19,7 @@
 #include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
 #include "Elements/OpalAsymmetricEnge.h"
 #include "AbsBeamline/EndFieldModel/AsymmetricEnge.h"
+#include "AbsBeamline/EndFieldModel/Enge.h"
 
 TEST(TestOpalAsymmetricEnge, TestSetup) {
     // Make the UI
@@ -39,11 +40,13 @@ TEST(TestOpalAsymmetricEnge, TestSetup) {
     endfieldmodel::AsymmetricEngeConfig config = enge->getConfig();
     EXPECT_EQ(config.engeStart_m.x0_m, 7.0);
     EXPECT_EQ(config.engeStart_m.lambda_m, 8.0);
-    EXPECT_EQ(config.engeStart_m.a_m, std::vector<double>({101.0, 3.0, 4.0}));
+    EXPECT_EQ(endfieldmodel::Enge::makeVector(config.engeStart_m.a_m),
+              std::vector<double>({101.0, 3.0, 4.0}));
 
     EXPECT_EQ(config.engeEnd_m.x0_m, 9.0);
     EXPECT_EQ(config.engeEnd_m.lambda_m, 11.0);
-    EXPECT_EQ(config.engeEnd_m.a_m, std::vector<double>({12.0, 17.0, 21.0}));
+    EXPECT_EQ(endfieldmodel::Enge::makeVector(config.engeEnd_m.a_m),
+              std::vector<double>({12.0, 17.0, 21.0}));
 
 }
 

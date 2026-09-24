@@ -28,66 +28,12 @@
 #include <cmath>
 #include <sstream>
 
-#include "Utilities/GSLCompat.h"
 #include "Utilities/OpalException.h"
 
 #include "AbsBeamline/EndFieldModel/Enge.h"
 
 namespace endfieldmodel {
-Kokkos::View<int**> EngeConfig::gIndices[EngeConfig::max_derivative];
-Kokkos::View<int**> EngeConfig::hIndices[EngeConfig::max_derivative];
 
-// Use
-// d^n E/dx^n = a_n1m1 F(n1) g(m1) + a_n2m1m2 F(n2) g(m1)g(m2)+...
-// where
-double Enge::getEnge(const EngeConfig& config, double x, int n) {
-    Kokkos::View<int**> qt = EngeConfig::gIndices[n];
-    Kokkos::View<double*> gNVec("gN", n+1);
-    for (size_t i = 0; i < gNVec.size(); ++i) {
-        gNVec(i) = gN(config, x, i);
-    }
-    double e = 0;
-    for (size_t i = 0; i < qt.extent(0); ++i) {
-        double ei(qt(i, 0));
-        for (size_t j = 1; j < qt.extent(1); ++j) {
-          double de = gsl_sf_pow_int(gNVec(j-1), qt(i, j));
-          ei *= de;
-        }
-        if (ei != ei) ei = 0;  // div 0, usually g == 0 and index < 0
-        e += ei;
-    }
-    return e;
-}
-
-
-// h     = a_0+a_1 (x/w)+a_2 (x/w)^2+a_3 (x/w)^3+...+a_m (x/w)^m
-// h^(n) = d^nh/dx^n = sum^m_{i=n} a_i x^{i-n}/w^i i!/n!
-double Enge::hN(const EngeConfig& config, double x, int n) {
-    double hn = 0;
-    // optimise by precalculating factor
-    for (unsigned int i = n; i < config.a_m.size(); i++)
-        hn += config.a_m[i] / gsl_sf_pow_int(config.lambda_m, i) * gsl_sf_pow_int(x, i - n) * gsl_sf_fact(i)
-              / gsl_sf_fact(i - n);
-    return hn;
-}
-
-// g     = 1+exp(h)
-// g^(n) = d^ng/dx^n
-double Enge::gN(const EngeConfig& config, double x, int n) {
-    if (n == 0) return 1 + exp(hN(config, x, 0));  // special case
-    std::vector<double> hn(n + 1);
-    for (int i = 0; i <= n; i++)
-        hn[i] = hN(config, x, i);
-    double exp_h0 = exp(hn[0]);
-    double gn     = 0;
-    for (size_t i = 0; i < EngeConfig::hIndices[n].extent(0); ++i) {
-        double gnj = EngeConfig::hIndices[n](i, 0) * exp_h0;
-        for (size_t j = 1; j < EngeConfig::hIndices[n].extent(1); ++j)
-            gnj *= gsl_sf_pow_int(hn[j], EngeConfig::hIndices[n](i, j));
-        gn += gnj;
-    }
-    return gn;
-}
 
 // q_m[i][j][k]; urk, 3d vector
 //              i indexes the derivative of f;
@@ -106,18 +52,41 @@ void Enge::copyVectorToView(const std::vector< std::vector<int> >& src, Kokkos::
         col = std::max(col, src[i].size());
     }
     Kokkos::resize(dest, row, col);
+    auto host = Kokkos::create_mirror_view(dest);
     for (size_t i = 0; i < row; ++i) {
         for (size_t j = 0; j < src[i].size(); ++j) {
-            dest(i, j) = src[i][j]; // copy across data
+            host(i, j) = src[i][j]; // copy across data
         }
         for (size_t j = src[i].size(); j < col; ++j) {
-            dest(i, j) = 0; // pad with 0s
+            host(i, j) = 0; // pad with 0s
         }
     }
+    Kokkos::deep_copy(dest, host);
 }
 
+Kokkos::View<double*> Enge::makeView(const std::vector<double>& src,
+                                     const std::string& label) {
+    Kokkos::View<double*> out = Kokkos::View<double*>(label, src.size());
+    auto host = Kokkos::create_mirror_view(out);
+    for(size_t i = 0; i < src.size(); ++i) {
+        host(i) = src[i];
+    }
+    Kokkos::deep_copy(out, host);
+    return out;
+}
+
+std::vector<double> Enge::makeVector(const Kokkos::View<double*>& src) {
+    std::vector<double> a(src.extent(0));
+    auto host = Kokkos::create_mirror_view(src);
+    for (size_t i = 0; i < a.size(); ++i) {
+        a[i] =  host(i);
+    }
+    return a;
+}
+
+
 void Enge::setEngeDiffIndices(size_t n) {
-    if (n > EngeConfig::max_derivative) {
+    if (n > config_m.max_derivative) {
         throw OpalException("Derivative cannot be more than max derivative", "Enge::setEngeDiffIndices");
     }
     size_t preset = q_m.size();
@@ -151,7 +120,8 @@ void Enge::setEngeDiffIndices(size_t n) {
         }
     }
     for (size_t i = preset; i < n + 1; ++i) {
-        copyVectorToView(q_m[i], EngeConfig::gIndices[i]);
+        config_m.gIndices[i] = Kokkos::View<int**>("gIndex", 1, 1);
+        copyVectorToView(q_m[i], config_m.gIndices[i]);
     }
 
     if (h_m.size() == 0) {
@@ -183,16 +153,26 @@ void Enge::setEngeDiffIndices(size_t n) {
         h_m[i] = CompactVector(h_m[i]);
     }
     for (size_t i = preset; i < n + 1; ++i) {
-        copyVectorToView(h_m[i], EngeConfig::hIndices[i]);
+        copyVectorToView(h_m[i], config_m.hIndices[i]);
     }
+    config_m.gNVec = Kokkos::View<double*>("gN", config_m.max_derivative+1);
+    config_m.hNVec = Kokkos::View<double*>("hN", config_m.max_derivative+1);
 }
 
 Enge::Enge(const std::vector<double> a, double x0, double lambda) {
+    setEngeDiffIndices(10);
+    config_m.a_m = makeView(a, "EngeCoefficients");
+    config_m.x0_m = x0;
+    config_m.lambda_m = lambda;
+}
+
+Enge::Enge(Kokkos::View<double*> a, double x0, double lambda) {
     setEngeDiffIndices(10);
     config_m.a_m = a;
     config_m.x0_m = x0;
     config_m.lambda_m = lambda;
 }
+
 
 Enge* Enge::clone() const {
     Enge* myclone = new Enge(config_m.a_m, config_m.x0_m, config_m.lambda_m);
@@ -206,10 +186,14 @@ void Enge::rescale(double scaleFactor) {
 
 std::ostream& Enge::print(std::ostream& out) const {
     out << "Enge function l=" << config_m.lambda_m << " x0=" << config_m.x0_m << " c=";
-    for (auto ai : config_m.a_m) {
-        out << ai << " ";
+    for (size_t i = 0; i < config_m.a_m.extent(0); ++i) {
+        out <<  config_m.a_m[i] << " ";
     }
     return out;
+}
+
+std::vector<double> Enge::getCoefficients() const {
+    return makeVector(config_m.a_m);
 }
 
 
