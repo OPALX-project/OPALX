@@ -66,24 +66,28 @@ void Enge::copyVectorToView(const std::vector< std::vector<int> >& src, Kokkos::
 
 Kokkos::View<double*> Enge::makeView(const std::vector<double>& src,
                                      const std::string& label) {
-    Kokkos::View<double*> out = Kokkos::View<double*>(label, src.size());
-    auto host = Kokkos::create_mirror_view(out);
+    auto host = Kokkos::View<double*, Kokkos::HostSpace>(label, src.size());
     for(size_t i = 0; i < src.size(); ++i) {
         host(i) = src[i];
     }
+    auto out = Kokkos::create_mirror_view(Kokkos::CudaSpace{}, host);
     Kokkos::deep_copy(out, host);
+    Kokkos::fence();
+    auto hostTmp = Kokkos::create_mirror_view(out);
+    Kokkos::deep_copy(hostTmp, out);
+    double xTmp = Kokkos::subview(hostTmp, 0)();
     return out;
 }
 
 std::vector<double> Enge::makeVector(const Kokkos::View<double*>& src) {
     std::vector<double> a(src.extent(0));
     auto host = Kokkos::create_mirror_view(src);
+    Kokkos::deep_copy(host, src);
     for (size_t i = 0; i < a.size(); ++i) {
         a[i] =  host(i);
     }
     return a;
 }
-
 
 void Enge::setEngeDiffIndices(size_t n) {
     if (n > config_m.max_derivative) {
@@ -119,10 +123,6 @@ void Enge::setEngeDiffIndices(size_t n) {
             }
         }
     }
-    for (size_t i = preset; i < n + 1; ++i) {
-        config_m.gIndices[i] = Kokkos::View<int**>("gIndex", 1, 1);
-        copyVectorToView(q_m[i], config_m.gIndices[i]);
-    }
 
     if (h_m.size() == 0) {
         // first one is special case (1+e^h dealt with explicitly)
@@ -152,22 +152,29 @@ void Enge::setEngeDiffIndices(size_t n) {
         }
         h_m[i] = CompactVector(h_m[i]);
     }
-    for (size_t i = preset; i < n + 1; ++i) {
+    for (size_t i = 0; i < n + 1; ++i) {
+        config_m.gIndices[i] = Kokkos::View<int**>("gIndex", 1, 1);
+        copyVectorToView(q_m[i], config_m.gIndices[i]);
+    }
+    for (size_t i = 0; i < n + 1; ++i) {
+        config_m.hIndices[i] = Kokkos::View<int**>("hIndex", 1, 1);
         copyVectorToView(h_m[i], config_m.hIndices[i]);
     }
     config_m.gNVec = Kokkos::View<double*>("gN", config_m.max_derivative+1);
     config_m.hNVec = Kokkos::View<double*>("hN", config_m.max_derivative+1);
+    Kokkos::fence();
 }
 
 Enge::Enge(const std::vector<double> a, double x0, double lambda) {
-    setEngeDiffIndices(10);
+    setEngeDiffIndices(EngeConfig::max_derivative);
     config_m.a_m = makeView(a, "EngeCoefficients");
     config_m.x0_m = x0;
     config_m.lambda_m = lambda;
+
 }
 
 Enge::Enge(Kokkos::View<double*> a, double x0, double lambda) {
-    setEngeDiffIndices(10);
+    setEngeDiffIndices(EngeConfig::max_derivative);
     config_m.a_m = a;
     config_m.x0_m = x0;
     config_m.lambda_m = lambda;
@@ -186,8 +193,9 @@ void Enge::rescale(double scaleFactor) {
 
 std::ostream& Enge::print(std::ostream& out) const {
     out << "Enge function l=" << config_m.lambda_m << " x0=" << config_m.x0_m << " c=";
-    for (size_t i = 0; i < config_m.a_m.extent(0); ++i) {
-        out <<  config_m.a_m[i] << " ";
+    std::vector<double> coefficients = getCoefficients();
+    for (size_t i = 0; i < coefficients.size(); ++i) {
+        out <<  coefficients[i] << " ";
     }
     return out;
 }

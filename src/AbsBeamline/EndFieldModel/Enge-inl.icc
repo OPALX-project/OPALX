@@ -18,7 +18,7 @@ double Enge::function(double x, int n) const {
     function(xView, n, valueView);
     Kokkos::fence("Function calculation");
     double value(0);
-    auto element = Kokkos::subview(valueView, 0, 0);
+    auto element = Kokkos::subview(valueView, 0, n);
     Kokkos::deep_copy(value, element);
     return value;
 }
@@ -64,7 +64,7 @@ void Enge::functionHost(
     Kokkos::parallel_for(
         "Enge::functionHost()", count, KOKKOS_LAMBDA(const size_t i) {
             for (int j = 0; j < n+1; ++j)
-                values(i, j) = functionDevice(config, xView(i), i);
+                values(i, j) = functionDevice(config, xView(i), j);
         });
 }
 
@@ -78,7 +78,7 @@ double Enge::functionDevice(const EngeConfig& config, double x, int n) {
 // where
 double Enge::getEnge(const EngeConfig& config, double x, int n) {
     Kokkos::View<int**> qt = config.gIndices[n];
-    for (size_t i = 0; i < config.gNVec.size(); ++i) {
+    for (size_t i = 0; i < config.max_derivative; ++i) {
         config.gNVec(i) = gN(config, x, i);
     }
     double e = 0;
