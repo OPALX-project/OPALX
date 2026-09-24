@@ -11551,7 +11551,7 @@
         <Element index="0" value=""/>
       </Property>
       <Property name="Script" id="17996.Script" number_of_elements="1">
-        <Element index="0" value="INVERSE = True # parameter passed into the filter body&#xa;import os&#xa;&#xa;_filter_script = os.environ.get(&#xa;&#x27;BUNCH_TRANSFORM_FILTER&#x27;,&#x27;/home/biddisco/src/opalx/master/catalyst/bunch_transform_filter.py&#x27;)&#xa;_filter_ns = {&#x27;self&#x27;: self, &#x27;INVERSE&#x27;: INVERSE}&#xa;with open(_filter_script) as _fh:&#xa;    exec(compile(_fh.read(), _filter_script, &#x27;exec&#x27;), _filter_ns)"/>
+        <Element index="0" value="INVERSE = True # parameter passed into the filter body&#xa;import os&#xa;&#xa;_filter_script = os.environ.get(&#xa;&#x27;BUNCH_TRANSFORM_FILTER&#x27;,&#x27;/home/biddisco/src/opalx/insitu/catalyst/bunch_transform_filter.py&#x27;)&#xa;_filter_ns = {&#x27;self&#x27;: self, &#x27;INVERSE&#x27;: INVERSE}&#xa;with open(_filter_script) as _fh:&#xa;    exec(compile(_fh.read(), _filter_script, &#x27;exec&#x27;), _filter_ns)"/>
       </Property>
       <Property name="TimestepValues" id="17996.TimestepValues"/>
       <Property name="UpdateExtentScript" id="17996.UpdateExtentScript" number_of_elements="1">
@@ -11560,11 +11560,11 @@
     </Proxy>
     <Proxy group="sources" type="XMLMultiBlockDataReader" id="17974" servers="1">
       <Property name="FileName" id="17974.FileName" number_of_elements="1">
-        <Element index="0" value="/home/biddisco/temp/muon/electrons_snapshot.vtm"/>
+        <Element index="0" value="/home/biddisco/temp/muon/MUON_snapshot/MUON_snapshot.vtm"/>
         <Domain name="files" id="17974.FileName.files"/>
       </Property>
       <Property name="FileNameInfo" id="17974.FileNameInfo" number_of_elements="1">
-        <Element index="0" value="/home/biddisco/temp/muon/electrons_snapshot.vtm"/>
+        <Element index="0" value="/home/biddisco/temp/muon/MUON_snapshot/MUON_snapshot.vtm"/>
       </Property>
       <Property name="TimestepValues" id="17974.TimestepValues" number_of_elements="1">
         <Element index="0" value="5"/>
@@ -13491,7 +13491,7 @@
       <Item id="17985" name="ExtractBlock1" logname="ExtractBlock1"/>
       <Item id="18273" name="ExtractBlock2" logname="ExtractBlock2"/>
       <Item id="17996" name="ProgrammableFilter1" logname="ProgrammableFilter1"/>
-      <Item id="17974" name="ippl_particles_electrons" logname="ippl_particles_electrons"/>
+      <Item id="17974" name="MUON" logname="MUON"/>
       <Item id="17962" name="mue4_analytical_ElementPositions.vtm" logname="mue4_analytical_ElementPositions.vtm"/>
     </ProxyCollection>
     <ProxyCollection name="timekeeper">
