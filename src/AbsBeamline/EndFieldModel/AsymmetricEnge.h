@@ -125,7 +125,15 @@ private:
 };
 
 double AsymmetricEnge::function(double x, int n) const {
-    return functionDevice(config_m, x, n);
+    Kokkos::View<double*> xView("tmpX", 1);
+    Kokkos::deep_copy(xView, x);
+    Kokkos::View<double**> valueView("tmpY", 1, n+1);
+    function(xView, n, valueView);
+    Kokkos::fence("Function calculation");
+    double value(0);
+    auto element = Kokkos::subview(valueView, 0, n);
+    Kokkos::deep_copy(value, element);
+    return value;
 }
 
 void AsymmetricEnge::function(const Kokkos::View<double*>& xView,
@@ -139,24 +147,25 @@ void AsymmetricEnge::functionHost(
             const Kokkos::View<double*>& xView,
             const int n,
             Kokkos::View<double**>& values) {
-    const size_t count = xView.size();
+    const size_t count = xView.extent(0);
     Kokkos::parallel_for(
         "AsymmetricEnge::functionHost()", count, KOKKOS_LAMBDA(const size_t i) {
-            for (int j = 0; j < n; ++j)
-                values(i, j) = functionDevice(config, xView(i), i);
+            for (int j = 0; j < n+1; ++j)
+                values(i, j) = functionDevice(config, xView(i), j);
     });
 }
 
 double AsymmetricEnge::functionDevice(const AsymmetricEngeConfig& config, double x, int n) {
-    EngeConfig cStart = config.engeStart_m;
-    EngeConfig cEnd = config.engeEnd_m;
     if (n == 0) {
-        return (Enge::getEnge(cStart, -x - cStart.x0_m, n) + Enge::getEnge(cEnd, x - cEnd.x0_m, n))-1;
+        return (Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n) +
+                Enge::getEnge(config.engeEnd_m, x - config.engeEnd_m.x0_m, n))-1;
     } else {
         if (n % 2 == 1)
-            return -Enge::getEnge(cStart, -x - cStart.x0_m, n) + Enge::getEnge(cEnd, x - cEnd.x0_m, n);
+            return -Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n) +
+                    Enge::getEnge(config.engeEnd_m, x - config.engeEnd_m.x0_m, n);
         else
-            return Enge::getEnge(cStart, -x - cStart.x0_m, n) + Enge::getEnge(cEnd, x - cEnd.x0_m, n);
+            return Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n) +
+                   Enge::getEnge(config.engeEnd_m, x - config.engeEnd_m.x0_m, n);
     }
 }
 double AsymmetricEnge::getX0Start() const { return config_m.engeStart_m.x0_m; }
@@ -170,9 +179,8 @@ void AsymmetricEnge::setX0End(double x0) { config_m.engeEnd_m.x0_m = x0; }
 AsymmetricEnge* AsymmetricEnge::clone() const { return new AsymmetricEnge(*this); }
 
 void AsymmetricEnge::setMaximumDerivative(size_t n) {
-    //config_m.engeStart_m.setEngeDiffIndices(n);
-    //config_m.engeEnd_m.setEngeDiffIndices(n);
-    throw("This fails");
+    Enge::setEngeDiffIndices(n, config_m.engeStart_m);
+    Enge::setEngeDiffIndices(n, config_m.engeEnd_m);
 }
 
 double AsymmetricEnge::getCentreLength() const {

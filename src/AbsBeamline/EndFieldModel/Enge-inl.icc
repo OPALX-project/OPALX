@@ -54,7 +54,7 @@ void Enge::functionHost(
             const Kokkos::View<double*>& xView,
             const int n,
             Kokkos::View<double**>& values) {
-    const size_t count = xView.size();
+    const size_t count = xView.extent(0);
     if (values.extent(0) != xView.extent(0)) {
         throw OpalException("values extent did not match x extent", "Enge::functionHost");
     }

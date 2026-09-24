@@ -176,6 +176,7 @@ public:
      *  calculate the differential up to order n.
      */
     void setEngeDiffIndices(size_t n);
+    static void setEngeDiffIndices(size_t n, EngeConfig& config);
 
     /** Return the indices for calculating the nth derivative of Enge ito g(x) */
     inline static std::vector<std::vector<int> > getQIndex(int n);

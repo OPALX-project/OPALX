@@ -12,6 +12,7 @@ AsymmetricEnge::AsymmetricEnge(
     config_m.engeEnd_m.a_m = Enge::makeView(aEnd, "AsymmetricEngeEnd");
     config_m.engeEnd_m.x0_m = x0End;
     config_m.engeEnd_m.lambda_m = lambdaEnd;
+    setMaximumDerivative(EngeConfig::max_derivative);
 }
 
 void AsymmetricEnge::rescale(double scaleFactor) {
