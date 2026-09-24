@@ -1,12 +1,11 @@
 # script-version: 2.0
 # Catalyst state for visualising the OPALX field channels exported via IPPL.
 #
-# Channels consumed (only available when OPALX_CATALYST_FIELDS=ON):
-#   ippl_vField_E_self      - space-charge electric field (bunch mesh)
-#   ippl_vField_B_self      - space-charge magnetic field (bunch mesh)
-#   ippl_vField_E_external  - beamline element electric field sampled on mesh
-#   ippl_vField_B_external  - beamline element magnetic field sampled on mesh
-#   ippl_sField_rho         - charge density on the bunch mesh
+# In the new mesh-centric channel model, all fields on the bunch mesh are
+# published as a single Conduit channel named "bunch_mesh" (type "mesh")
+# with multiple cell-data arrays: E_self, B_self, rho, phi, E_external,
+# B_external.  This script binds to that single channel and selects
+# arrays by name for visualization.
 #
 # Run in-situ with IPPL_CATALYST_PNG=OFF so this script is the sole consumer of
 # the field channels; otherwise IPPL's per-channel png_ext_*field.py extractors
@@ -37,31 +36,31 @@ renderView1.Set(
 )
 
 # ----------------------------------------------------------------
-# Field channel stand-ins (substituted by live Conduit channels in-situ)
-# The *_snapshot files can be generated with OPALX_CATALYST_DUMP_SNAPSHOT=N
-# using the particle pipeline, which registers the same channels.
+# Mesh channel stand-in (substituted by live Conduit channel in-situ).
+# All field arrays (E_self, B_self, rho, E_external, B_external, phi)
+# are cell data on this single uniform grid source.
+#
+# For offline development, snapshot VTI files can be generated with
+# OPALX_CATALYST_DUMP_SNAPSHOT=N using the field pipeline.
 # ----------------------------------------------------------------
-ippl_vField_E_self = XMLImageDataReader(
-    registrationName='ippl_vField_E_self',
-    FileName=['/home/biddisco/temp/muon/ippl_vField_E_self_snapshot/ippl_vField_E_self_snapshot_0_0.vti'])
-ippl_vField_B_self = XMLImageDataReader(
-    registrationName='ippl_vField_B_self',
-    FileName=['/home/biddisco/temp/muon/ippl_vField_B_self_snapshot/ippl_vField_B_self_snapshot_0_0.vti'])
-ippl_vField_E_external = XMLImageDataReader(
-    registrationName='ippl_vField_E_external',
-    FileName=['/home/biddisco/temp/muon/ippl_vField_E_external_snapshot/ippl_vField_E_external_snapshot_0_0.vti'])
-ippl_vField_B_external = XMLImageDataReader(
-    registrationName='ippl_vField_B_external',
-    FileName=['/home/biddisco/temp/muon/ippl_vField_B_external_snapshot/ippl_vField_B_external_snapshot_0_0.vti'])
-ippl_sField_rho = XMLImageDataReader(
-    registrationName='ippl_sField_rho',
-    FileName=['/home/biddisco/temp/muon/ippl_sField_rho_snapshot/ippl_sField_rho_snapshot_0_0.vti'])
+bunch_mesh = XMLImageDataReader(
+    registrationName='bunch_mesh',
+    FileName=['/home/biddisco/temp/muon/bunch_mesh_snapshot/bunch_mesh_snapshot_0_0.vti'])
+# Select all field arrays by default (cell data)
+bunch_mesh.CellArrayStatus = ['E_self', 'B_self', 'rho', 'E_external', 'B_external', 'RankID']
+
+# MergeBlocks to flatten per-rank partitions into a single dataset
+bunch_merged = MergeBlocks(registrationName='bunch_mesh.MergedBlocks',
+                           Input=bunch_mesh)
+bunch_merged.MergePartitionsOnly = 1
 
 # ----------------------------------------------------------------
 # External B field: horizontal slice coloured by magnitude
 # ----------------------------------------------------------------
 b_external_cd2pd = CellDatatoPointData(registrationName='BExternalCD2PD',
-                                       Input=ippl_vField_B_external)
+                                       Input=bunch_merged)
+b_external_cd2pd.CellDataArraytoprocess = ['B_external']
+
 b_external_slice = Slice(registrationName='BExternalSlice', Input=b_external_cd2pd)
 b_external_slice.SliceType = 'Plane'
 b_external_slice.SliceType.Normal = [0.0, 1.0, 0.0]
@@ -87,7 +86,9 @@ b_external_LUTColorBar.Visibility = 1
 # External E field: vertical slice coloured by magnitude
 # ----------------------------------------------------------------
 e_external_cd2pd = CellDatatoPointData(registrationName='EExternalCD2PD',
-                                       Input=ippl_vField_E_external)
+                                       Input=bunch_merged)
+e_external_cd2pd.CellDataArraytoprocess = ['E_external']
+
 e_external_slice = Slice(registrationName='EExternalSlice', Input=e_external_cd2pd)
 e_external_slice.SliceType = 'Plane'
 e_external_slice.SliceType.Normal = [1.0, 0.0, 0.0]
@@ -110,9 +111,9 @@ e_external_LUTColorBar.Set(
 e_external_LUTColorBar.Visibility = 1
 
 # ----------------------------------------------------------------
-# Snapshot extractors for offline script development
+# Snapshot extractor for offline script development
 # ----------------------------------------------------------------
-# OPALX_CATALYST_DUMP_SNAPSHOT=N creates data extractors that write on iteration N
+# OPALX_CATALYST_DUMP_SNAPSHOT=N creates a data extractor that writes on iteration N
 # (and every Nth iteration after that). Set to 0 or unset to disable.
 _snapshot_step = 0
 try:
@@ -121,18 +122,10 @@ except ValueError:
     _snapshot_step = 0
 
 if _snapshot_step > 0:
-    _snapshot_sources = [
-        ('ippl_vField_E_self', ippl_vField_E_self),
-        ('ippl_vField_B_self', ippl_vField_B_self),
-        ('ippl_vField_E_external', ippl_vField_E_external),
-        ('ippl_vField_B_external', ippl_vField_B_external),
-        ('ippl_sField_rho', ippl_sField_rho),
-    ]
-    for name, src in _snapshot_sources:
-        ext = CreateExtractor('VTPD', src, registrationName=f'Snapshot_{name}')
-        ext.Trigger = 'Time Step'
-        ext.Trigger.Frequency = _snapshot_step
-        ext.Writer.FileName = f'{name}_snapshot/{{timestep:06d}}.vtpd'
+    ext = CreateExtractor('VTPD', bunch_mesh, registrationName='Snapshot_bunch_mesh')
+    ext.Trigger = 'Time Step'
+    ext.Trigger.Frequency = _snapshot_step
+    ext.Writer.FileName = 'bunch_mesh_snapshot/{timestep:06d}.vtpd'
 
 # ----------------------------------------------------------------
 # Per-timestep behaviour

@@ -34,7 +34,7 @@ renderView1.Set(
 # ----------------------------------------------------------------
 
 # create a new 'XML MultiBlock Data Reader'
-ippl_particles_electrons = XMLMultiBlockDataReader(registrationName='ippl_particles_electrons', FileName=['/home/biddisco/temp/muon/electrons_snapshot.vtm'])
+ippl_particles_electrons = XMLMultiBlockDataReader(registrationName='electrons', FileName=['/home/biddisco/temp/muon/electrons_snapshot.vtm'])
 ippl_particles_electrons.PointArrayStatus = ['RankID', 'ParticleIDs', 'position', 'dt', 'Phi', 'Bin', 'P', 'E', 'B', 'InvalidMask', 'BunchOrigin', 'BunchRotRow0', 'BunchRotRow1', 'BunchRotRow2', 'BunchInvOrigin', 'BunchInvRotRow0', 'BunchInvRotRow1', 'BunchInvRotRow2']
 
 # create a new 'Extract Block'
@@ -75,7 +75,7 @@ programmableFilter1.Set(
 import os
 
 _filter_script = os.environ.get(
-'BUNCH_TRANSFORM_FILTER','/home/biddisco/src/opalx/master/catalyst/bunch_transform_filter.py')
+'BUNCH_TRANSFORM_FILTER','/home/biddisco/src/opalx/insitu/catalyst/bunch_transform_filter.py')
 _filter_ns = {'self': self, 'INVERSE': INVERSE}
 with open(_filter_script) as _fh:
     exec(compile(_fh.read(), _filter_script, 'exec'), _filter_ns)""",
