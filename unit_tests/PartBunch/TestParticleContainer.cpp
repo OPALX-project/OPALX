@@ -116,6 +116,20 @@ namespace {
         }
     }
 
+    // New test for non-P3M (spatial) layout particle BC propagation
+    TEST_F(ParticleContainerTest, SpatialLayoutUsesSelectedParticleBoundaryCondition) {
+        auto periodic = makeContainer(PC_t::LayoutType::Spatial, ippl::BC::PERIODIC);
+        auto open     = makeContainer(PC_t::LayoutType::Spatial, ippl::BC::NO);
+
+        // Spatial layout does not have P3M overlap, check particle BC directly via layout
+        for (const auto bc : periodic->getPL().getParticleBC()) {
+            EXPECT_EQ(bc, ippl::BC::PERIODIC);
+        }
+        for (const auto bc : open->getPL().getParticleBC()) {
+            EXPECT_EQ(bc, ippl::BC::NO);
+        }
+    }
+
     // ================================================================
     // Charge / Mass – SingleValue mode
     // ================================================================
