@@ -90,7 +90,11 @@ std::vector<double> Enge::makeVector(const Kokkos::View<double*>& src) {
 }
 
 void Enge::setEngeDiffIndices(size_t n) {
-    if (n > config_m.max_derivative) {
+    setEngeDiffIndices(n, config_m);
+}
+
+void Enge::setEngeDiffIndices(size_t n, EngeConfig& config) {
+    if (n > config.max_derivative) {
         throw OpalException("Derivative cannot be more than max derivative", "Enge::setEngeDiffIndices");
     }
     size_t preset = q_m.size();
@@ -153,15 +157,15 @@ void Enge::setEngeDiffIndices(size_t n) {
         h_m[i] = CompactVector(h_m[i]);
     }
     for (size_t i = 0; i < n + 1; ++i) {
-        config_m.gIndices[i] = Kokkos::View<int**>("gIndex", 1, 1);
-        copyVectorToView(q_m[i], config_m.gIndices[i]);
+        config.gIndices[i] = Kokkos::View<int**>("gIndex", 1, 1);
+        copyVectorToView(q_m[i], config.gIndices[i]);
     }
     for (size_t i = 0; i < n + 1; ++i) {
-        config_m.hIndices[i] = Kokkos::View<int**>("hIndex", 1, 1);
-        copyVectorToView(h_m[i], config_m.hIndices[i]);
+        config.hIndices[i] = Kokkos::View<int**>("hIndex", 1, 1);
+        copyVectorToView(h_m[i], config.hIndices[i]);
     }
-    config_m.gNVec = Kokkos::View<double*>("gN", config_m.max_derivative+1);
-    config_m.hNVec = Kokkos::View<double*>("hN", config_m.max_derivative+1);
+    config.gNVec = Kokkos::View<double*>("gN", config.max_derivative+1);
+    config.hNVec = Kokkos::View<double*>("hN", config.max_derivative+1);
     Kokkos::fence();
 }
 
