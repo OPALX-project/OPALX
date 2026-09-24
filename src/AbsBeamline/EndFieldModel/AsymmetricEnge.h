@@ -77,7 +77,7 @@ public:
                                  Kokkos::View<double**>& values) const override;
 
     /** Host side static wrapper */
-    static KOKKOS_INLINE_FUNCTION void functionHost(
+    static inline void functionHost(
             const AsymmetricEngeConfig& config,
             const Kokkos::View<double*>& xView,
             const int n,
@@ -159,7 +159,6 @@ double AsymmetricEnge::functionDevice(const AsymmetricEngeConfig& config, double
             return Enge::getEnge(cStart, -x - cStart.x0_m, n) + Enge::getEnge(cEnd, x - cEnd.x0_m, n);
     }
 }
-
 double AsymmetricEnge::getX0Start() const { return config_m.engeStart_m.x0_m; }
 
 double AsymmetricEnge::getX0End() const { return config_m.engeEnd_m.x0_m; }
@@ -170,7 +169,11 @@ void AsymmetricEnge::setX0End(double x0) { config_m.engeEnd_m.x0_m = x0; }
 
 AsymmetricEnge* AsymmetricEnge::clone() const { return new AsymmetricEnge(*this); }
 
-void AsymmetricEnge::setMaximumDerivative(size_t n) { Enge::setEngeDiffIndices(n); }
+void AsymmetricEnge::setMaximumDerivative(size_t n) {
+    //config_m.engeStart_m.setEngeDiffIndices(n);
+    //config_m.engeEnd_m.setEngeDiffIndices(n);
+    throw("This fails");
+}
 
 double AsymmetricEnge::getCentreLength() const {
     return config_m.engeStart_m.x0_m + config_m.engeEnd_m.x0_m;
@@ -179,6 +182,7 @@ double AsymmetricEnge::getCentreLength() const {
 double AsymmetricEnge::getEndLength() const {
     return config_m.engeStart_m.lambda_m + config_m.engeEnd_m.lambda_m;
 }
+
 }  // namespace endfieldmodel
 
 #endif

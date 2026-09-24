@@ -1,0 +1,126 @@
+//#include "Utilities/GSLCompat.h"
+namespace endfieldmodel {
+
+KOKKOS_INLINE_FUNCTION double gsl_sf_fact_kokkos(unsigned int n) {
+    double result = 1.0;
+    for (unsigned int i = 2; i <= n; ++i) {
+        result *= i;
+    }
+return result;
+}
+
+void Enge::setMaximumDerivative(size_t n) { Enge::setEngeDiffIndices(n); }
+
+double Enge::function(double x, int n) const {
+    Kokkos::View<double*> xView("tmpX", 1);
+    Kokkos::deep_copy(xView, x);
+    Kokkos::View<double**> valueView("tmpY", 1, n+1);
+    function(xView, n, valueView);
+    Kokkos::fence("Function calculation");
+    double value(0);
+    auto element = Kokkos::subview(valueView, 0, 0);
+    Kokkos::deep_copy(value, element);
+    return value;
+}
+
+std::vector<std::vector<int> > Enge::getQIndex(int n) { return q_m[n]; }
+
+std::vector<std::vector<int> > Enge::getHIndex(int n) { return h_m[n]; }
+
+double Enge::getDoubleEnge(const EngeConfig& config, double x, int n) {
+    if (n == 0) {
+        return -1+(getEnge(config, x - config.x0_m, n) + getEnge(config, -x - config.x0_m, n));
+    } else {
+        if (n % 2 == 1)
+            return + getEnge(config, x - config.x0_m, n) - getEnge(config, -x - config.x0_m, n);
+        else
+            return + getEnge(config, x - config.x0_m, n) + getEnge(config, -x - config.x0_m, n);
+    }
+}
+
+double Enge::getCentreLength() const { return config_m.x0_m * 2.0; }
+
+double Enge::getEndLength() const { return config_m.lambda_m; }
+/// ...
+void Enge::function(const Kokkos::View<double*>& xView,
+              const int n,
+              Kokkos::View<double**>& values) const {
+    EngeConfig config = config_m;
+    Enge::functionHost(config, xView, n, values);
+}
+
+void Enge::functionHost(
+            const EngeConfig& config,
+            const Kokkos::View<double*>& xView,
+            const int n,
+            Kokkos::View<double**>& values) {
+    const size_t count = xView.size();
+    if (values.extent(0) != xView.extent(0)) {
+        throw OpalException("values extent did not match x extent", "Enge::functionHost");
+    }
+    if (values.extent(1) != size_t(n+1) || n < 0) {
+        throw OpalException("values extent should be n + 1", "Enge::functionHost");
+    }
+    Kokkos::parallel_for(
+        "Enge::functionHost()", count, KOKKOS_LAMBDA(const size_t i) {
+            for (int j = 0; j < n+1; ++j)
+                values(i, j) = functionDevice(config, xView(i), i);
+        });
+}
+
+
+double Enge::functionDevice(const EngeConfig& config, double x, int n) {
+    return getDoubleEnge(config, x, n);
+}
+
+// Use
+// d^n E/dx^n = a_n1m1 F(n1) g(m1) + a_n2m1m2 F(n2) g(m1)g(m2)+...
+// where
+double Enge::getEnge(const EngeConfig& config, double x, int n) {
+    Kokkos::View<int**> qt = config.gIndices[n];
+    for (size_t i = 0; i < config.gNVec.size(); ++i) {
+        config.gNVec(i) = gN(config, x, i);
+    }
+    double e = 0;
+    for (size_t i = 0; i < qt.extent(0); ++i) {
+        double ei(qt(i, 0));
+        for (size_t j = 1; j < qt.extent(1); ++j) {
+          double de = Kokkos::pow(config.gNVec(j-1), qt(i, j));
+          ei *= de;
+        }
+        if (ei != ei) ei = 0;  // div 0, usually g == 0 and index < 0
+        e += ei;
+    }
+    return e;
+}
+
+
+// h     = a_0+a_1 (x/w)+a_2 (x/w)^2+a_3 (x/w)^3+...+a_m (x/w)^m
+// h^(n) = d^nh/dx^n = sum^m_{i=n} a_i x^{i-n}/w^i i!/n!
+double Enge::hN(const EngeConfig& config, double x, int n) {
+    double hn = 0;
+    // optimise by precalculating factor
+    for (unsigned int i = n; i < config.a_m.size(); i++)
+        hn += config.a_m(i) / Kokkos::pow(config.lambda_m, i) * Kokkos::pow(x, i - n) * gsl_sf_fact_kokkos(i)
+              / gsl_sf_fact_kokkos(i - n);
+    return hn;
+}
+
+// g     = 1+exp(h)
+// g^(n) = d^ng/dx^n
+double Enge::gN(const EngeConfig& config, double x, int n) {
+    if (n == 0) return 1 + exp(hN(config, x, 0));  // special case
+    for (int i = 0; i <= n; i++)
+        config.hNVec(i) = hN(config, x, i);
+    double exp_h0 = exp(config.hNVec(0));
+    double gn     = 0;
+    for (size_t i = 0; i < config.hIndices[n].extent(0); ++i) {
+        double gnj = config.hIndices[n](i, 0) * exp_h0;
+        for (size_t j = 1; j < config.hIndices[n].extent(1); ++j)
+            gnj *= Kokkos::pow(config.hNVec(j), config.hIndices[n](i, j));
+        gn += gnj;
+    }
+    return gn;
+}
+
+}  // namespace endfieldmodel

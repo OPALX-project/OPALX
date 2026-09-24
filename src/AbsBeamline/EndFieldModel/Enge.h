@@ -33,6 +33,7 @@
 
 #include "AbsBeamline/EndFieldModel/CompactVector.h"
 #include "AbsBeamline/EndFieldModel/EndFieldModel.h"
+#include "Utilities/OpalException.h"
 
 namespace endfieldmodel {
 
@@ -45,13 +46,16 @@ namespace endfieldmodel {
  *  where h is a polynomial in x/lambda with polynomial coefficients a
  */
 struct EngeConfig {
-    std::vector<double> a_m;
+    Kokkos::View<double*> a_m;
     double lambda_m = 0.0;
     double x0_m = 0.0;
-    static constexpr int max_derivative = 12;
+    static const int max_derivative = 12;
     /** gIndices is used for calculating derivatives. */
-    static Kokkos::View<int**> gIndices[max_derivative];
-    static Kokkos::View<int**> hIndices[max_derivative];
+    Kokkos::View<int**> gIndices[12];
+    Kokkos::View<int**> hIndices[12];
+    /** workspace for derivative calculation */
+    Kokkos::View<double*> gNVec;
+    Kokkos::View<double*> hNVec;
 };
 
 class Enge : public EndFieldModel {
@@ -64,7 +68,8 @@ public:
      *  calls are _not_ checked for correct indexing. Call setMaximumDerivative
      *  before use.
      */
-    Enge(std::vector<double> a, double x0, double lambda);
+    Enge(const std::vector<double> a, double x0, double lambda);
+    Enge(Kokkos::View<double*> a, double x0, double lambda);
 
     /** Destructor - no mallocs, so does nothing */
     ~Enge() = default;
@@ -93,7 +98,7 @@ public:
                   Kokkos::View<double**>& values) const override;
 
     /** Host side static wrapper */
-    static KOKKOS_INLINE_FUNCTION void functionHost(
+    static inline void functionHost(
             const EngeConfig& config,
             const Kokkos::View<double*>& xView,
             const int n,
@@ -116,10 +121,10 @@ public:
     std::ostream& print(std::ostream& out) const override;
 
     /** Returns the enge polynomial coefficients (a_i) */
-    [[nodiscard]] std::vector<double> getCoefficients() const { return config_m.a_m; }
+    [[nodiscard]] std::vector<double> getCoefficients() const;
 
     /** Sets the enge polynomial coefficients (a_i) */
-    void setCoefficients(std::vector<double> a) { config_m.a_m = a; }
+    void setCoefficients(std::vector<double> a) { config_m.a_m = makeView(a, "EngeCoefficients"); }
 
     /** Returns the value of lambda */
     [[nodiscard]] double getLambda() const { return config_m.lambda_m; }
@@ -146,33 +151,31 @@ public:
      *
      *  Please call setEngeDiffIndices(n) before calling if n > max_index
      */
-    static double getEnge(const EngeConfig& config, double x, int n);
-    static double getEngeView(const EngeConfig& config, double x, int n);
-    static double getEngeVec(const EngeConfig& config, double x, int n);
+    static KOKKOS_INLINE_FUNCTION double getEnge(const EngeConfig& config, double x, int n);
 
     /** Returns \f$Enge(x-x0) + Enge(-x-x0)-1\f$ and its derivatives */
-    static inline double  getDoubleEnge(const EngeConfig& config, double x, int n);
+    static KOKKOS_INLINE_FUNCTION double  getDoubleEnge(const EngeConfig& config, double x, int n);
 
     /** Returns \f$h(x)\f$ or its \f$n^{th}\f$ derivative.
      *
      *  Here \f$h(x) = a_0 + a_1 x/\lambda + a_2 x^2/lambda^2 + \ldots \f$
      *  Please call setEngeDiffIndices(n) before calling if n > max_index
      */
-    static double hN(const EngeConfig& config, double x, int n);
+    static KOKKOS_INLINE_FUNCTION double hN(const EngeConfig& config, double x, int n);
 
     /** Returns \f$g(x)\f$ or its \f$n^{th}\f$ derivative.
      *
      *  Here \f$g(x) = 1+exp(h(x))\f$.
      *  Please call setEngeDiffIndices(n) before calling if n > max_index
      */
-    static double gN(const EngeConfig& config, double x, int n);
+    static KOKKOS_INLINE_FUNCTION double gN(const EngeConfig& config, double x, int n);
 
     /** Recursively calculate the indices for Enge and H
      *
      *  This will calculate the indices for Enge and H that are required to
      *  calculate the differential up to order n.
      */
-    static void setEngeDiffIndices(size_t n);
+    void setEngeDiffIndices(size_t n);
 
     /** Return the indices for calculating the nth derivative of Enge ito g(x) */
     inline static std::vector<std::vector<int> > getQIndex(int n);
@@ -182,68 +185,24 @@ public:
 
     static void copyVectorToView(const std::vector< std::vector<int> >& src, Kokkos::View<int**>& dest);
 
+    static Kokkos::View<double*> makeView(const std::vector<double>& src, const std::string& label);
+    static std::vector<double> makeVector(const Kokkos::View<double*>& src);
+
 private:
     Enge(const Enge& enge);
     Enge& operator=(const Enge& enge);
     EngeConfig config_m;
 
-    static constexpr int max_derivative = 12;
     /** Indexes the derivatives of enge in terms of g */
     static std::vector<std::vector<std::vector<int> > > q_m;
     /** Indexes the derivatives of g in terms of h */
     static std::vector<std::vector<std::vector<int> > > h_m;
 };
 
-void Enge::setMaximumDerivative(size_t n) { Enge::setEngeDiffIndices(n); }
-
-double Enge::function(double x, int n) const { return getDoubleEnge(config_m, x, n); }
-
-std::vector<std::vector<int> > Enge::getQIndex(int n) { return q_m[n]; }
-
-std::vector<std::vector<int> > Enge::getHIndex(int n) { return h_m[n]; }
-
-double Enge::getDoubleEnge(const EngeConfig& config, double x, int n) {
-    if (n == 0) {
-        return -1+(getEnge(config, x - config.x0_m, n) + getEnge(config, -x - config.x0_m, n));
-    } else {
-        if (n % 2 == 1)
-            return + getEnge(config, x - config.x0_m, n) - getEnge(config, -x - config.x0_m, n);
-        else
-            return + getEnge(config, x - config.x0_m, n) + getEnge(config, -x - config.x0_m, n);
-    }
-}
-
-double Enge::getCentreLength() const { return config_m.x0_m * 2.0; }
-
-double Enge::getEndLength() const { return config_m.lambda_m; }
-
-void Enge::function(const Kokkos::View<double*>& xView,
-              const int n,
-              Kokkos::View<double**>& values) const {
-    EngeConfig config = config_m;
-    Enge::functionHost(config, xView, n, values);
-}
-
-
-void Enge::functionHost(
-            const EngeConfig& config,
-            const Kokkos::View<double*>& xView,
-            const int n,
-            Kokkos::View<double**>& values) {
-    const size_t count = xView.size();
-    Kokkos::parallel_for(
-        "Enge::functionHost()", count, KOKKOS_LAMBDA(const size_t i) {
-            for (int j = 0; j < n; ++j)
-                values(i, j) = functionDevice(config, xView(i), i);
-        });
-}
-
-
-double Enge::functionDevice(const EngeConfig& config, double x, int n) {
-    return getDoubleEnge(config, x, n);
-}
 
 
 }  // namespace endfieldmodel
+
+#include "AbsBeamline/EndFieldModel/Enge-inl.icc"
 
 #endif
