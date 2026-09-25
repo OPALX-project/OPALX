@@ -45,6 +45,7 @@ using Vector = ippl::Vector<T, Dim>;
 using size_type = ippl::detail::size_type;
 
 #include <algorithm>
+#include <cfenv>
 #include <cmath>
 #include <iostream>
 #include <numeric>
@@ -782,6 +783,53 @@ TEST_F(BinningTest, AdaptBinsDoFullRebin) {
         totalInBins += adaptBins->getNPartInBin(b);
     }
     EXPECT_EQ(totalInBins, bunch->getLocalNum());
+}
+
+TEST_F(BinningTest, ColdGammaBinningIsFiniteAndRepeatableWithoutChangingMomentum) {
+    createParticlesUniformP(32, 2, 0.073, 0.073);
+    using GammaSelector = ParticleBinning::GammaSelector<Container_t>;
+    using GammaBins     = ParticleBinning::AdaptBins<Container_t, GammaSelector>;
+    for (bin_index_type maximum : {1, 8}) {
+        GammaBins bins(*bunch, GammaSelector(2), maximum, 1., 1., 0.1, "COLD_GAMMA");
+        for (double pz : {0.073, 0.2, 0.073}) {
+            SCOPED_TRACE(maximum);
+            SCOPED_TRACE(pz);
+            const ippl::Vector<double, 3> initialMomentum(0., 0., pz);
+            Kokkos::deep_copy(bunch->P.getView(), initialMomentum);
+            bins.initLimits();
+            ASSERT_DOUBLE_EQ(bins.getBinWidth(), 0.);
+            std::feclearexcept(FE_DIVBYZERO | FE_INVALID);
+            bins.assignBinsToParticles();
+            Kokkos::fence();
+            EXPECT_EQ(std::fetestexcept(FE_DIVBYZERO | FE_INVALID), 0);
+
+            // The full retry workflow must rebuild counts and index selection
+            // correctly after an earlier solve at a different constant gamma.
+            bins.doFullRebin(maximum);
+            bins.sortContainerByBin();
+            EXPECT_EQ(bins.getCurrentBinCount(), maximum);
+            EXPECT_EQ(bins.getNPartInBin(0), bunch->getLocalNum());
+            EXPECT_EQ(bins.getNPartInBin(0, true), bunch->getTotalNum());
+            for (bin_index_type bin = 1; bin < maximum; ++bin)
+                EXPECT_EQ(bins.getNPartInBin(bin, true), 0u);
+            auto binHost =
+                    Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), bunch->Bin.getView());
+            auto pHost =
+                    Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), bunch->P.getView());
+            auto hashHost =
+                    Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), bins.getHashArray());
+            std::vector<size_type> indices;
+            for (size_type i = 0; i < bunch->getLocalNum(); ++i) {
+                EXPECT_EQ(binHost(i), 0);
+                for (unsigned d = 0; d < 3; ++d)
+                    EXPECT_DOUBLE_EQ(pHost(i)[d], initialMomentum[d]);
+                indices.push_back(hashHost(i));
+            }
+            std::sort(indices.begin(), indices.end());
+            for (size_type i = 0; i < indices.size(); ++i)
+                EXPECT_EQ(indices[i], i);
+        }
+    }
 }
 
 TEST_F(BinningTest, AdaptBinsGlobalHistogramSumsToTotal) {

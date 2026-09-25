@@ -59,20 +59,30 @@ public:
     /// Print the line.
     virtual void print(std::ostream& stream) const;
 
+protected:
+    /// Exemplar constructor for LINE-compatible sequence statements.
+    Line(const char* keyword, const char* help);
+
+    // Clone constructor for LINE-compatible sequence statements.
+    Line(const std::string& name, Line* parent);
+
+    /// Parse a LINE-compatible definition.
+    void parseDefinition(Statement& stat, bool allowModifiers);
+
+    /// Return the keyword used when printing this sequence.
+    virtual const char* getSequenceKeyword() const;
+
+    // Return the embedded OPALX beam line.
+    // The result is the ideal line.
+    virtual FlaggedBeamline* fetchLine() const;
+
 private:
     // Not implemented.
     Line(const Line&);
     void operator=(const Line&);
 
-    // Clone constructor.
-    Line(const std::string& name, Line* parent);
-
-    // Return the embedded OPALX beam line.
-    // The result it the ideal line.
-    virtual FlaggedBeamline* fetchLine() const;
-
     // Parse sub-list.
-    void parseList(Statement&);
+    void parseList(Statement&, bool allowModifiers);
 
     // Replace references to elements.
     virtual void replace(Object* oldObject, Object* newObject);

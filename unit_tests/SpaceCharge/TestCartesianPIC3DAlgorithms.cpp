@@ -10,6 +10,7 @@
 #include <array>
 #include <cmath>
 #include <cstdio>
+#include <limits>
 #include <memory>
 
 namespace opalx::spacecharge {
@@ -243,6 +244,116 @@ namespace opalx::spacecharge {
             pose.rotateBunchTo(baseline.particles.E.getView(), baseline.particles.getLocalNum());
             pose.rotateBunchTo(baseline.particles.B.getView(), baseline.particles.getLocalNum());
             expectFieldsEqual(rotated.particles, baseline.particles);
+        }
+
+        TEST_F(CartesianPIC3DAlgorithmsTest,
+               DynamicSolveFrameTranslationPreservesFieldsAndDoesNotRequirePathHistory) {
+            for (auto backend : {PoissonSolverType::None, PoissonSolverType::Open}) {
+                SCOPED_TRACE(static_cast<int>(backend));
+                auto values                 = config();
+                values.backend              = backend;
+                values.repartitionFrequency = 0;
+                values.binning.emplace();
+                values.binning->maximumBins            = 1;
+                values.binning->adaptive               = false;
+                values.grid.boundingBoxIncreasePercent = 50.;
+                // Same physical particles, with no image plane or fixed domain.
+                // Only the solver coordinate origin differs between these runs.
+                // pz=3/4 gives gamma=5/4, so the bin's longitudinal mesh
+                // stretch also preserves the exactly representable geometry.
+                Run centred(values, {}, Vector(0.0, 0.0, 0.75));
+                Run translated(values, {}, Vector(0.0, 0.0, 0.75));
+                // Each span is 15/1024 m. Fifty-percent padding on both sides
+                // yields a 30/1024 m span and exactly binary spacing 2/1024 m
+                // on 16 nodes. Particle positions and mesh origins then remain
+                // exactly representable at both solver origins, isolating
+                // translation invariance from the conditioning test below.
+                const std::array<Vector, 4> initial{
+                        Vector(-8., -7., 8.) / 1024., Vector(7., 8., 23.) / 1024.,
+                        Vector(-4., 4., 13.) / 1024., Vector(3., -3., 18.) / 1024.};
+                for (auto* run : {&centred, &translated}) {
+                    auto positions = run->particles.R.getHostMirror();
+                    for (std::size_t i = 0; i < initial.size(); ++i)
+                        positions(i) = initial[i];
+                    Kokkos::deep_copy(run->particles.R.getView(), positions);
+                    run->particles.markMomentsDirty();
+                    run->particles.updateMoments();
+                }
+                const double pathTranslation = 825.;
+                const CoordinateSystemTrafo solveToTracker(
+                        Vector(0.0, 0.0, pathTranslation), Quaternion(1.0, 0.0, 0.0, 0.0));
+                const auto originalR = Kokkos::create_mirror_view_and_copy(
+                        Kokkos::HostSpace(), centred.particles.R.getView());
+                const auto originalP = Kokkos::create_mirror_view_and_copy(
+                        Kokkos::HostSpace(), centred.particles.P.getView());
+                for (std::size_t step = 0; step < 2; ++step) {
+                    SCOPED_TRACE(step);
+                    const auto expectedSolves = backend == PoissonSolverType::Open ? 1u : 0u;
+                    EXPECT_EQ(centred.solve(step).backendSolves, expectedSolves);
+                    EXPECT_EQ(
+                            translated.solve(step, {solveToTracker.inverted(), solveToTracker})
+                                    .backendSolves,
+                            expectedSolves);
+                    expectFieldsEqual(translated.particles, centred.particles);
+                    const auto centredR = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), centred.particles.R.getView());
+                    const auto restoredR = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), translated.particles.R.getView());
+                    const auto restoredP = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), translated.particles.P.getView());
+                    for (std::size_t i = 0; i < centred.particles.getLocalNum(); ++i) {
+                        for (unsigned d = 0; d < 3; ++d) {
+                            EXPECT_DOUBLE_EQ(centredR(i)[d], originalR(i)[d]);
+                            EXPECT_DOUBLE_EQ(restoredP(i)[d], originalP(i)[d]);
+                            EXPECT_DOUBLE_EQ(restoredR(i)[d], originalR(i)[d]);
+                        }
+                    }
+                }
+            }
+        }
+
+        TEST_F(CartesianPIC3DAlgorithmsTest,
+               CentredNoOpSolveAvoidsQuantizationFromLargePathTranslation) {
+            auto values                 = config();
+            values.backend              = PoissonSolverType::None;
+            values.repartitionFrequency = 0;
+            Run centred(values, {}, Vector(0.0, 0.0, 0.073));
+            Run translated(values, {}, Vector(0.0, 0.0, 0.073));
+            auto originalR = centred.particles.R.getHostMirror();
+            Kokkos::deep_copy(originalR, centred.particles.R.getView());
+            for (std::size_t i = 0; i < centred.particles.getLocalNum(); ++i)
+                originalR(i)[2] = (static_cast<double>(i) - 1.5) * 1e-12;
+            for (auto* run : {&centred, &translated}) {
+                Kokkos::deep_copy(run->particles.R.getView(), originalR);
+                run->particles.markMomentsDirty();
+                run->particles.updateMoments();
+            }
+            const double pathTranslation = 825.;
+            const double coordinateSpacing =
+                    std::nextafter(pathTranslation, std::numeric_limits<double>::infinity())
+                    - pathTranslation;
+            const CoordinateSystemTrafo solveToTracker(
+                    Vector(0.0, 0.0, pathTranslation), Quaternion(1.0, 0.0, 0.0, 0.0));
+            EXPECT_EQ(centred.solve().backendSolves, 0u);
+            EXPECT_EQ(
+                    translated.solve(0, {solveToTracker.inverted(), solveToTracker}).backendSolves,
+                    0u);
+            const auto centredR = Kokkos::create_mirror_view_and_copy(
+                    Kokkos::HostSpace(), centred.particles.R.getView());
+            const auto restoredR = Kokkos::create_mirror_view_and_copy(
+                    Kokkos::HostSpace(), translated.particles.R.getView());
+            double maximumError = 0;
+            for (std::size_t i = 0; i < centred.particles.getLocalNum(); ++i) {
+                for (unsigned d = 0; d < 3; ++d)
+                    EXPECT_DOUBLE_EQ(centredR(i)[d], originalR(i)[d]);
+                maximumError = std::max(maximumError, std::abs(restoredR(i)[2] - originalR(i)[2]));
+            }
+            // Adding a picometre offset to 825 m quantizes it on that coordinate's
+            // binary grid. The subsequent subtraction is exact (Sterbenz lemma).
+            // This checks the known conditioning loss directly, with no field
+            // comparison or relaxed field tolerance at that ill-conditioned scale.
+            EXPECT_LE(maximumError, 0.5 * coordinateSpacing);
+            EXPECT_GT(maximumError, coordinateSpacing / 16);
         }
 
         TEST_F(CartesianPIC3DAlgorithmsTest, TrivialP3MPrimaryPreservesSecondaryAndResumesSolving) {
