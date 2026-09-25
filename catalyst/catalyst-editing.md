@@ -43,9 +43,9 @@ Build the state so the export works as-is (zero hand-edits - verified with
 this ParaView build):
 
 1. Load placeholder file data for every catalyst channel, naming each
-   stand-in reader exactly like the channel (e.g.
-   `ippl_particles_electrons`) - the runtime substitution is automatic (2b).
-   The `.vtm` geometry reader keeps its normal name.
+   stand-in reader exactly like the channel (e.g. `MUON` for the particle
+   bunch, `bunch_mesh` for the field grid) - the runtime substitution is
+   automatic (2b). The `.vtm` geometry reader keeps its normal name.
 2. Build the pipeline and looks you want. Two don'ts:
    - Never touch the stand-in reader's block-selection / array checkboxes:
      defaults load everything, and only *modified* properties are traced.
@@ -96,9 +96,9 @@ No conditional adapter is needed. Under Catalyst, `paraview.simple` replaces
 channel producer (a `Conduit` source, because ippl publishes conduit
 blueprint channels). So the same line
 
-    ippl_particles_electrons = XMLMultiBlockDataReader(
-        registrationName='ippl_particles_electrons',
-        FileName=['/home/biddisco/temp/muon/electrons_snapshot.vtm'])
+    muon_particles = XMLMultiBlockDataReader(
+        registrationName='MUON',
+        FileName=['/home/biddisco/temp/muon/MUON_snapshot/MUON_snapshot.vtm'])
 
 reads the snapshot file when run in the GUI/pvpython (the offline stand-in)
 and silently binds the live channel during a catalyst run. The substituted
@@ -109,6 +109,11 @@ downstream (`ExtractBlock` selectors like `//block_main` and
 `//block_transform`, the programmable filter, displays, LUTs, bars) is shared
 verbatim, because the selectors only match block *names*.
 
+The same mechanism works for field channels: a reader with
+`registrationName='bunch_mesh'` is replaced by the live mesh channel.
+The combined script (`catalyst-muon-combined.py`) uses this to bind both
+`MUON` (particles) and `bunch_mesh` (fields) in the same state.
+
 So: build and iterate in the GUI on the snapshot + `.vtm`, then run the
 identical script in-situ. Note the geometry side needs no stand-in at all:
 the `.vtm` is a file in both contexts, which is why
@@ -118,19 +123,64 @@ the `.vtm` is a file in both contexts, which is why
 
 The adapter above is only as good as the stand-in file. Do not try to
 reconstruct the channel data by hand - capture it from a real catalyst run.
-The scripts register data extractors controlled by `OPALX_CATALYST_DUMP_SNAPSHOT`:
+The state scripts register data extractors controlled by
+`OPALX_CATALYST_DUMP_SNAPSHOT`:
 
 - Set `OPALX_CATALYST_DUMP_SNAPSHOT=N` to write the stand-in on iteration `N`
   (and every `N` iterations after that). Set it to `0` or unset it to disable.
-- For the particle pipeline (`catalyst-muon-test-1.py`) the extractor writes
-  `datasets/electrons_snapshot/{timestep:06d}.vtpc`.
-- For the field pipeline (`catalyst-muon-fields.py`, also set
-  `OPALX_CATALYST_FIELDS=ON`) the extractors write
-  `datasets/ippl_<field>_snapshot/{timestep:06d}.vtpd`.
+- The particle extractor (in `catalyst-muon-test-1.py` and
+  `catalyst-muon-combined.py`) writes
+  `MUON_snapshot/{timestep:06d}.vtpc` (a `vtkPartitionedDataSetCollection`
+  with blocks `block_main`, `block_help`, `block_transform`).
+- The field extractor (in `catalyst-muon-combined.py`, requires
+  `OPALX_CATALYST_FIELDS=ON`) writes
+  `bunch_mesh_snapshot/{timestep:06d}.vtpd` (a `vtkPartitionedDataSet`
+  containing the uniform grid with all field arrays as cell data).
 
 The scripts execute the pipeline every timestep so that `N` is interpreted as
-a simulation iteration rather than a pipeline invocation count. Move or rename
-the produced files as needed for your offline stand-in paths.
+the simulation iteration rather than the pipeline invocation count. Move or
+rename the produced files as needed for your offline stand-in paths.
+
+**Generating snapshots for offline editing of the combined script:**
+
+Run a short simulation with both channels and snapshot enabled. Use
+`pipeline_default.py` (the generic IPPL script) so the state scripts don't
+conflict with the snapshot extractors:
+
+    cd /home/biddisco/temp/muon
+
+    OPALX_CATALYST_FIELDS=ON \
+    OPALX_CATALYST_DUMP_SNAPSHOT=64 \
+    CATALYST_PIPELINE_PATH=/home/biddisco/build/opalx-catalyst/_deps/ippl-build/share/ippl/catalyst_scripts/pipeline_default.py \
+    IPPL_CATALYST_VIS=ON IPPL_CATALYST_LIVE=OFF IPPL_CATALYST_STEER=OFF \
+    IPPL_CATALYST_PNG=OFF IPPL_CATALYST_VTK=OFF IPPL_CATALYST_VERBOSITY=5 \
+    IPPL_CATALYST_PROXY_OPTION=OFF \
+    CATALYST_IMPLEMENTATION_PATHS=/home/biddisco/build/paraview/lib/catalyst \
+    CATALYST_IMPLEMENTATION_NAME=paraview \
+    mpirun -n 1 /home/biddisco/build/opalx-catalyst/bin/opalx ./mue4_analytical.in --info 2
+
+This writes both `MUON_snapshot/MUON_snapshot_000064.vtpc` and
+`bunch_mesh_snapshot/bunch_mesh_snapshot_000064.vtpd` (plus their
+subdirectories). For a particle-only snapshot, omit `OPALX_CATALYST_FIELDS=ON`.
+
+**Creating a VTM stand-in from a VTPC snapshot:**
+
+`catalyst-muon-test-1.py` and `catalyst-muon-combined.py` use
+`XMLMultiBlockDataReader` (`.vtm`) as the offline stand-in because the PVSM
+was originally authored with that reader type. To create a `.vtm` wrapper
+around a `.vtpc` snapshot, copy the VTPC file and its subdirectory to a
+stable location, then write a small `.vtm` that references the block files
+by name. The block names (`block_main`, `block_help`, `block_transform`)
+match exactly between the old `vtkMultiBlockDataSet` and the new
+`vtkPartitionedDataSetCollection` formats, so all `ExtractBlock` selectors
+(`//block_transform`, `/Root/block_main`, `//block_main`) work unchanged.
+
+**Note on VTPD field snapshots:**
+
+The `bunch_mesh` channel arrives as `vtkImageData` (a uniform grid). The
+VTPD snapshot is a `vtkPartitionedDataSet` containing one image data
+partition per MPI rank. The combined script uses `MergeBlocks` to flatten
+these into a single dataset before slicing.
 
 ## 3. Catalyst Live: tweak while the simulation runs
 
@@ -165,18 +215,30 @@ Two gotchas learned the hard way:
 - Readers expose `FieldArrayStatus` separately from `CellArrayStatus`; if a
   field-data array does not show up, enable it explicitly on the reader proxy.
 
-## 5. Anatomy of the state script - where each knob lives
+## 5. Anatomy of the state scripts - where each knob lives
 
-In `catalyst/catalyst-muon-test-1.py`:
+Three state scripts are provided in `catalyst/`:
+
+| Script | Channels | Description |
+|--------|----------|-------------|
+| `catalyst-muon-test-1.py` | `MUON` (particles only) | Geometry + particles, the original workflow |
+| `catalyst-muon-fields.py` | `bunch_mesh` (fields only) | E/B field slices through the mesh |
+| `catalyst-muon-combined.py` | `MUON` + `bunch_mesh` | Both particles and fields in one scene |
+
+All three follow the same structure:
 
 - Camera / view: `renderView1.Set(CameraPosition=..., CameraFocalPoint=...,
   CameraViewUp=..., CameraParallelScale=...)` near the top. `CameraParallelScale`
   is the zoom (smaller = closer). The `_DisableFirstRenderCameraReset()` call
   keeps ParaView from reframing on the first Show.
-- Sources: `PVTrivialProducer(registrationName='ippl_particles_electrons')` is
-  the catalyst channel input; `ExtractBlock` selectors pull `//block_main`
+- Particle source: `XMLMultiBlockDataReader(registrationName='MUON')` is the
+  catalyst channel input; `ExtractBlock` selectors pull `//block_main`
   (bunch) and `//block_transform` (pose) out of it.
-- Geometry: the `XMLMultiBlockDataReader` on the `.vtm`.
+- Field source (combined/fields only): `XMLImageDataReader(registrationName='bunch_mesh')`
+  reads the uniform grid; `MergeBlocks` flattens per-rank partitions; `Slice`
+  creates 2D cuts through the mesh for visualization.
+- Geometry: the `XMLMultiBlockDataReader` on the `.vtm` (not a Catalyst
+  channel; reads from file in both contexts).
 - Filter wiring: `ProgrammableFilter(Input=[geometry, transform_extract])`.
 - Display properties: the `Show(...)` + `Display.Set(...)` blocks
   (Representation, ColorArrayName, Opacity, GaussianRadius...).
@@ -253,10 +315,14 @@ in every VTK version - field data does.
 Parameters the scripts read at load time, so you can change behavior without
 editing:
 
-- `CATALYST_PIPELINE_PATH` - the state script catalyst loads.
-- `CATALYST_EXTRACTOR_SCRIPT_electrons` - overrides ippl's default per-channel
-  extractor (the default `png_ext_particle.py` currently fails on import:
-  `catalystSubroutines` is not on `sys.path`).
+- `CATALYST_PIPELINE_PATH` - the state script catalyst loads. Choose
+  `catalyst-muon-test-1.py` (particles only), `catalyst-muon-fields.py`
+  (fields only), or `catalyst-muon-combined.py` (both).
+- `OPALX_CATALYST_FIELDS` - set to `ON`/`1`/`TRUE`/`YES` to have OPALX
+  register the `bunch_mesh` field channel in addition to particle channels.
+  Required for `catalyst-muon-fields.py` and `catalyst-muon-combined.py`.
+- `OPALX_CATALYST_DUMP_SNAPSHOT` - set to `N` to write channel snapshots
+  on iteration `N` (and every `N` after). See section 2c for details.
 - `IPPL_CATALYST_PNG` - ippl's C++ side only accepts exactly `ON`; the state
   script's own guard accepts `1/ON/TRUE/YES`. Watch the spelling.
 - `IPPL_CATALYST_VTK=ON` - dump channel data to files; great for building
@@ -264,11 +330,23 @@ editing:
 - `BUNCH_TRANSFORM_FILTER` / `BUNCH_TRANSFORM_INVERSE` - override the filter
   body location / transform direction.
 
-Run template:
+Run template (particles only):
 
-    export CATALYST_PIPELINE_PATH=.../catalyst/catalyst-muon-test-1.py
+    export CATALYST_PIPELINE_PATH=/home/biddisco/src/opalx/insitu/catalyst/catalyst-muon-test-1.py
     IPPL_CATALYST_VIS=ON IPPL_CATALYST_LIVE=OFF IPPL_CATALYST_STEER=OFF \
     IPPL_CATALYST_PNG=1 IPPL_CATALYST_VTK=OFF IPPL_CATALYST_VERBOSITY=0 \
+    IPPL_CATALYST_PROXY_OPTION=OFF \
+    CATALYST_IMPLEMENTATION_PATHS=/home/biddisco/build/paraview/lib/catalyst \
+    CATALYST_IMPLEMENTATION_NAME=paraview \
+    /home/biddisco/build/opalx-catalyst/bin/opalx ./mue4_analytical.in --info 2
+
+Run template (fields + particles combined):
+
+    export CATALYST_PIPELINE_PATH=/home/biddisco/src/opalx/insitu/catalyst/catalyst-muon-combined.py
+    OPALX_CATALYST_FIELDS=ON \
+    IPPL_CATALYST_VIS=ON IPPL_CATALYST_LIVE=OFF IPPL_CATALYST_STEER=OFF \
+    IPPL_CATALYST_PNG=OFF IPPL_CATALYST_VTK=OFF IPPL_CATALYST_VERBOSITY=5 \
+    IPPL_CATALYST_PROXY_OPTION=OFF \
     CATALYST_IMPLEMENTATION_PATHS=/home/biddisco/build/paraview/lib/catalyst \
     CATALYST_IMPLEMENTATION_NAME=paraview \
     /home/biddisco/build/opalx-catalyst/bin/opalx ./mue4_analytical.in --info 2
@@ -288,39 +366,44 @@ Run template:
 
 ## 10. Field channels
 
-When `OPALX_CATALYST_FIELDS=ON` is set, OPALX exports the following mesh
-channels in addition to the particle channel(s):
+When `OPALX_CATALYST_FIELDS=ON` is set, OPALX exports a single mesh channel
+named `bunch_mesh` (type `"mesh"`) in addition to the particle channel(s).
+All field arrays live as cell data on this one uniform grid:
 
-| Conduit channel          | Label      | Type   | Contents                                            |
-|--------------------------|------------|--------|-----------------------------------------------------|
-| `ippl_vField_E_self`     | `E_self`   | vector | Space-charge electric field (`FieldContainer::E_m`) |
-| `ippl_vField_B_self`     | `B_self`   | vector | Space-charge magnetic field (`Btmp_m`)              |
-| `ippl_sField_rho`        | `rho`      | scalar | Charge density                                      |
-| `ippl_sField_phi`        | `phi`      | scalar | Electrostatic potential (CG solver only)            |
-| `ippl_vField_E_external` | `E_external`| vector| Beamline element electric field sampled on the mesh |
-| `ippl_vField_B_external` | `B_external`| vector| Beamline element magnetic field sampled on the mesh |
+| Array        | Type   | Contents                                            |
+|--------------|--------|-----------------------------------------------------|
+| `E_self`     | vector | Space-charge electric field (`FieldContainer::E_m`) |
+| `B_self`     | vector | Space-charge magnetic field (`Btmp_m`)              |
+| `rho`        | scalar | Charge density                                      |
+| `phi`        | scalar | Electrostatic potential (CG solver only)            |
+| `E_external` | vector | Beamline element electric field sampled on the mesh |
+| `B_external` | vector | Beamline element magnetic field sampled on the mesh |
 
-`catalyst/catalyst-muon-fields.py` is a dedicated state script that consumes
-these channels and renders slices of the external E/B fields. Use it with
-`IPPL_CATALYST_PNG=OFF`; otherwise IPPL's built-in per-channel PNG extractors
-grab the same channels and the state script cannot bind them.
+Two state scripts consume this channel:
 
-Run template for the field pipeline:
+- `catalyst/catalyst-muon-fields.py` - fields only (E/B slices).
+- `catalyst/catalyst-muon-combined.py` - fields + particles in one scene.
 
-    export CATALYST_PIPELINE_PATH=/home/biddisco/src/opalx/master/catalyst/catalyst-muon-fields.py
+Use either with `IPPL_CATALYST_PNG=OFF`; otherwise IPPL's built-in per-channel
+PNG extractors grab the same channels and the state script cannot bind them.
+
+Run template for the combined pipeline:
+
+    export CATALYST_PIPELINE_PATH=/home/biddisco/src/opalx/insitu/catalyst/catalyst-muon-combined.py
     OPALX_CATALYST_FIELDS=ON \
     IPPL_CATALYST_VIS=ON IPPL_CATALYST_LIVE=OFF IPPL_CATALYST_STEER=OFF \
-    IPPL_CATALYST_PNG=OFF IPPL_CATALYST_VTK=OFF IPPL_CATALYST_VERBOSITY=0 \
+    IPPL_CATALYST_PNG=OFF IPPL_CATALYST_VTK=OFF IPPL_CATALYST_VERBOSITY=5 \
     IPPL_CATALYST_PROXY_OPTION=OFF \
     CATALYST_IMPLEMENTATION_PATHS=/home/biddisco/build/paraview/lib/catalyst \
     CATALYST_IMPLEMENTATION_NAME=paraview \
     /home/biddisco/build/opalx-catalyst/bin/opalx ./mue4_analytical.in --info 2
 
-The field channels arrive as `vtkImageData`. For offline development, dump a
+The field channel arrives as `vtkImageData`. For offline development, dump a
 stand-in snapshot from any run that registers the channels:
 
     OPALX_CATALYST_DUMP_SNAPSHOT=64 ...
 
-This writes the snapshot files under `datasets/` once the run reaches iteration
-64. Move/rename them to the paths referenced by the `XMLImageDataReader` or
-`XMLMultiBlockDataReader` stand-ins in the script.
+This writes `bunch_mesh_snapshot/{timestep:06d}.vtpd` once the run reaches
+iteration 64. The `.vtpd` is a `vtkPartitionedDataSet` containing one image
+data partition per MPI rank; `MergeBlocks` in the combined script flattens
+these into a single dataset for slicing.
