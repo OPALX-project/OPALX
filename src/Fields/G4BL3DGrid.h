@@ -61,31 +61,23 @@
 class G4BL3DGrid : public Fieldmap {
 public:
     /**
-     * @brief Trilinear interpolation of the field at @p R.
-     *
-     * Shared by the host and device paths so the two cannot drift apart. Adds into @p B.
-     * The caller is responsible for the bounds check; a point on or past the last grid
-     * plane in any axis has no cell to interpolate in.
-     */
-    KOKKOS_INLINE_FUNCTION static void computeField(
-            const Vector_t<double, 3>& R, Vector_t<double, 3>& B,
-            const Kokkos::View<const double*>& Bx, const Kokkos::View<const double*>& By,
-            const Kokkos::View<const double*>& Bz, const double xbegin, const double ybegin,
-            const double zbegin, const double hx, const double hy, const double hz, const int nx,
-            const int ny, const int nz) {
-        interpolate(R, B, Bx, By, Bz, xbegin, ybegin, zbegin, hx, hy, hz, nx, ny, nz);
-    }
-
-    /**
      * @brief Trilinear interpolation of any of the stored vector fields at @p R.
      *
      * The magnetic and the electric field sit on the same grid, so they share the weights
-     * and this one function serves both. Adds into @p out; the caller does the bounds check.
+     * and this one function serves both. Adds into @p out. The caller is responsible for the
+     * bounds check; a point on or past the last grid plane in any axis has no cell to
+     * interpolate in.
+     *
+     * @note Templated on the view type, like FM2DMagnetoStatic::computeField(), so that the
+     *       same code takes the device views in applyField() and the host views in
+     *       getFieldstrength(). A fixed Kokkos::View<const double*> parameter lives in the
+     *       default memory space, which is device memory on GPU builds, and a host view
+     *       cannot be converted to it.
      */
+    template <class ViewType>
     KOKKOS_INLINE_FUNCTION static void interpolate(
-            const Vector_t<double, 3>& R, Vector_t<double, 3>& out,
-            const Kokkos::View<const double*>& Vx, const Kokkos::View<const double*>& Vy,
-            const Kokkos::View<const double*>& Vz, const double xbegin, const double ybegin,
+            const Vector_t<double, 3>& R, Vector_t<double, 3>& out, const ViewType& Vx,
+            const ViewType& Vy, const ViewType& Vz, const double xbegin, const double ybegin,
             const double zbegin, const double hx, const double hy, const double hz, const int nx,
             const int ny, const int nz) {
         const double fx = (R(0) - xbegin) / hx;

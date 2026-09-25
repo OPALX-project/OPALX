@@ -403,7 +403,7 @@ void G4BL3DGrid::applyField(
                 if (R(0) >= xbegin && R(0) < xend && R(1) >= ybegin && R(1) < yend && R(2) >= zbegin
                     && R(2) < zend) {
                     Vector_t<double, 3> tmpB = 0.0;
-                    computeField(
+                    interpolate(
                             R, tmpB, Bx_device, By_device, Bz_device, xbegin, ybegin, zbegin, hx,
                             hy, hz, nx, ny, nz);
                     Bview(i) += scale * tmpB;
@@ -441,17 +441,16 @@ bool G4BL3DGrid::getFieldstrength(
     if (!isInside(R)) {
         return true;
     }
-    computeField(
-            R, B, Kokkos::View<const double*>(FieldstrengthBx_m.view_host()),
-            Kokkos::View<const double*>(FieldstrengthBy_m.view_host()),
-            Kokkos::View<const double*>(FieldstrengthBz_m.view_host()), xbegin_m, ybegin_m,
-            zbegin_m, hx_m, hy_m, hz_m, num_gridpx_m, num_gridpy_m, num_gridpz_m);
+    // Host views: this runs on the host. interpolate() is templated so they need no conversion.
+    interpolate(
+            R, B, FieldstrengthBx_m.view_host(), FieldstrengthBy_m.view_host(),
+            FieldstrengthBz_m.view_host(), xbegin_m, ybegin_m, zbegin_m, hx_m, hy_m, hz_m,
+            num_gridpx_m, num_gridpy_m, num_gridpz_m);
     if (hasEField_m) {
         interpolate(
-                R, E, Kokkos::View<const double*>(FieldstrengthEx_m.view_host()),
-                Kokkos::View<const double*>(FieldstrengthEy_m.view_host()),
-                Kokkos::View<const double*>(FieldstrengthEz_m.view_host()), xbegin_m, ybegin_m,
-                zbegin_m, hx_m, hy_m, hz_m, num_gridpx_m, num_gridpy_m, num_gridpz_m);
+                R, E, FieldstrengthEx_m.view_host(), FieldstrengthEy_m.view_host(),
+                FieldstrengthEz_m.view_host(), xbegin_m, ybegin_m, zbegin_m, hx_m, hy_m, hz_m,
+                num_gridpx_m, num_gridpy_m, num_gridpz_m);
     }
     return false;
 }
