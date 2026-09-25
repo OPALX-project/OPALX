@@ -24,6 +24,7 @@
 #include "Utilities/Options.h"
 #include "Utility/Inform.h"
 
+#include <array>
 #include <bit>
 #include <cstdlib>
 #include <filesystem>
@@ -1015,7 +1016,12 @@ TEST_F(OrbitThreaderTest, MembershipReusePreservesUncachedSubstepsExactly) {
         SCOPED_TRACE(method);
         ExternalFieldRayTracker tracker(
                 beamline, particle, ExternalFieldRayTracker::parseIntegrationMethod(method));
-        for (const auto [z, dt] : {std::pair{0.0, 4.e-11}, {0.006, -4.e-11}, {0.003, 4.e-12}}) {
+        const std::array<std::pair<double, double>, 3> cases{{
+                {0.0, 4.e-11},
+                {0.006, -4.e-11},
+                {0.003, 4.e-12},
+        }};
+        for (const auto& [z, dt] : cases) {
             SCOPED_TRACE(z);
             for (const double momentum : {0.9, 1.1}) {
                 ExternalFieldRayTracker::State initial, expected, actual;
