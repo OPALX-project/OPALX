@@ -21,7 +21,23 @@
 #include "AbsBeamline/EndFieldModel/AsymmetricEnge.h"
 #include "AbsBeamline/EndFieldModel/Enge.h"
 
-TEST(TestOpalAsymmetricEnge, TestSetup) {
+
+class TestOpalAsymmetricEnge : public testing::Test {
+public:
+    TestOpalAsymmetricEnge() {
+    }
+
+    static void SetUpTestSuite() {
+        Kokkos::initialize();
+    }
+    static void TearDownTestSuite() {
+        endfieldmodel::EndFieldModelManager::clearEFMManager();
+        Kokkos::fence();
+        Kokkos::finalize();
+    }
+};
+
+TEST_F(TestOpalAsymmetricEnge, TestSetup) {
     // Make the UI
     OpalAsymmetricEnge ui;
     // Set the attributes
@@ -47,6 +63,5 @@ TEST(TestOpalAsymmetricEnge, TestSetup) {
     EXPECT_EQ(config.engeEnd_m.lambda_m, 11.0);
     EXPECT_EQ(endfieldmodel::Enge::makeVector(config.engeEnd_m.a_m),
               std::vector<double>({12.0, 17.0, 21.0}));
-
 }
 

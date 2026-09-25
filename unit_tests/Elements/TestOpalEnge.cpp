@@ -20,7 +20,24 @@
 #include "Elements/OpalEnge.h"
 #include "AbsBeamline/EndFieldModel/Enge.h"
 
-TEST(TestOpalEnge, TestSetup) {
+
+class TestOpalEnge : public testing::Test {
+public:
+    TestOpalEnge() {
+    }
+
+    static void SetUpTestSuite() {
+        Kokkos::initialize();
+    }
+    static void TearDownTestSuite() {
+        endfieldmodel::EndFieldModelManager::clearEFMManager();
+        Kokkos::fence();
+        Kokkos::finalize();
+    }
+};
+
+
+TEST_F(TestOpalEnge, TestSetup) {
     // Make the UI
     OpalEnge ui;
     // Set the attributes

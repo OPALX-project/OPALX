@@ -70,12 +70,9 @@ Kokkos::View<double*> Enge::makeView(const std::vector<double>& src,
     for(size_t i = 0; i < src.size(); ++i) {
         host(i) = src[i];
     }
-    auto out = Kokkos::create_mirror_view(Kokkos::CudaSpace{}, host);
+    auto out = Kokkos::create_mirror_view(Kokkos::DefaultExecutionSpace{}, host);
     Kokkos::deep_copy(out, host);
     Kokkos::fence();
-    auto hostTmp = Kokkos::create_mirror_view(out);
-    Kokkos::deep_copy(hostTmp, out);
-    double xTmp = Kokkos::subview(hostTmp, 0)();
     return out;
 }
 
