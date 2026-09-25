@@ -23,6 +23,28 @@
 
 using Vector = device_external::Vector;
 
+namespace {
+    struct MagneticFieldKernel {
+        device_external::Lattice device;
+        Kokkos::View<Vector*> points;
+        Kokkos::View<Vector*> fields;
+
+        KOKKOS_INLINE_FUNCTION void operator()(int i) const {
+            fields(i) = device.magnetic(points(i));
+        }
+    };
+
+    struct SupportKernel {
+        Kokkos::View<const device_external::Element*> elements;
+        Kokkos::View<Vector*> points;
+        Kokkos::View<int*> flags;
+
+        KOKKOS_INLINE_FUNCTION void operator()(int i) const {
+            flags(i) = elements(0).contains(points(i));
+        }
+    };
+}  // namespace
+
 class DeviceExternalFieldTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
@@ -257,9 +279,7 @@ TEST_F(DeviceExternalFieldTest, DeviceFieldsMatchPlacedHostBendsWithFringesAndMu
         for (unsigned i = 0; i < 7; ++i)
             input(i) = frame.transformFrom(local[i]);
         Kokkos::deep_copy(points, input);
-        Kokkos::parallel_for(
-                "test spatial field", 7,
-                KOKKOS_LAMBDA(int i) { fields(i) = device.magnetic(points(i)); });
+        Kokkos::parallel_for("test spatial field", 7, MagneticFieldKernel{device, points, fields});
         const auto output = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), fields);
         for (unsigned i = 0; i < 7; ++i) {
             Vector electric(0), expected(0);
@@ -327,9 +347,7 @@ TEST_F(DeviceExternalFieldTest, UniformRFCavityGeometryUsesItsWidthAndRejectsMag
     input(7)   = Vector(0.1, 0.01, 0.05);
     Kokkos::deep_copy(points, input);
     Kokkos::View<int*> flags("RF support flags", 8);
-    Kokkos::parallel_for(
-            "RF support check", 8,
-            KOKKOS_LAMBDA(int i) { flags(i) = device.elements(0).contains(points(i)); });
+    Kokkos::parallel_for("RF support check", 8, SupportKernel{device.elements, points, flags});
     const auto actual = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), flags);
     for (int i = 0; i < 8; ++i)
         EXPECT_EQ(bool(actual(i)), cavity.isInside(input(i)));
