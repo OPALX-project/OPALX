@@ -9,6 +9,12 @@ about the OPALX field architecture on `origin/master` (PR #555,
 `45e126f3a8e7`) and how to extend the Catalyst layer to visualize **external**
 element fields (field maps and analytic models).
 
+**Planned restructuring** (section 5): merge the self-field mesh into the
+particle multimesh, rename channels to `particle_bunch_0/1/...`, and rename
+blocks to `particles`, `boundingbox`, `transform`, `mesh`. This makes each
+bunch fully self-contained — consistent with the design goal stated in
+IPPL commit `1a89ca349ca6`.
+
 ---
 
 ## 1. Field architecture after the PR #555 refactor
@@ -380,39 +386,206 @@ line 395-400. Tighter orbit-tracker-based culling can be added later.
 
 ---
 
-## 5. Implementation phases
+## 5. Channel restructuring
 
-### Phase 1 (now): Rebase + ExternalFieldsOnBunchMesh
+### 5.1 Background: why mesh and particles were separate
 
-1. **Rebase `catalyst-viz-v2-jb` onto `origin/master` (`45e126f3a8e7`)**
+The `e2230386699a` refactor (Sep 24) created `MeshChannelT<Dim>` and
+`ParticleChannel` as independent classes with different Conduit layouts.
+The mesh was kept in a separate channel as a **code structure artifact**,
+not by design intent. Three weeks earlier, commit `1a89ca349ca6` (Sep 4)
+had deliberately **embedded the transform into the particle multimesh**
+with the stated goal: "This keeps each bunch self-contained: particles,
+helper box, and transform travel together as one dataset collection."
+
+The mesh was never merged because `MeshChannelT` was a new general-purpose
+class and nobody implemented the merge path — not because it was
+considered and rejected. The IPPL demos (PenningTrap by SKlapproth
+`6776302453d3`, FEL by SKlapproth `c559dcae4f20`) both used the old flat
+registry API with no separate mesh channel concept at all.
+
+### 5.2 New structure: one multimesh per bunch
+
+Merging the self-field mesh into the particle multimesh so each bunch is
+fully self-contained — particles, bounding box, transform, and mesh all
+travel together as one Conduit channel.
+
+**Channel naming:** `particle_bunch_0`, `particle_bunch_1`, ...
+(indexed by particle container, not simulation-specific names like
+`MUON`).
+
+**Block naming** (dropping the redundant `block_` prefix):
+
+| Old | New | Content |
+|-----|-----|---------|
+| `block_main` | `particles` | Particle positions, IDs, attributes |
+| `block_help` | `boundingbox` | 2×2×2 uniform grid covering particle domain |
+| `block_transform` | `transform` | Single-point mesh with origin/rotation vectors |
+| *(separate channel)* | `mesh` | Self-field PIC grid (E_self, B_self, rho, phi, ...) |
+
+**Conduit structure after restructuring:**
+```
+catalyst/channels/particle_bunch_0
+  type = "multimesh"
+  assembly/particles   = "particles"
+  assembly/boundingbox = "boundingbox"
+  assembly/transform   = "transform"
+  assembly/mesh        = "mesh"
+
+  data/particles/
+    coordsets/p_explicit_coords/   (explicit points: x, y, z)
+    topologies/p_unstructured_topo (point cells)
+    fields/position, RankID, ParticleIDs, <user attrs>
+
+  data/boundingbox/
+    coordsets/bound_helper_coords/ (uniform, 2x2x2)
+    topologies/bound_helper_topo
+
+  data/transform/
+    coordsets/tf_coords/           (single point)
+    topologies/tf_topo
+    fields/BunchOrigin, BunchRotRow0, ..., BunchInvRotRow2
+
+  data/mesh/                       ← was separate "bunch_mesh" channel
+    coordsets/cart_uniform_coords/ (uniform grid, per-rank partition)
+    topologies/fmesh_topo
+    fields/E_self, B_self, rho, phi, <per-element ext fields>, RankID
+```
+
+### 5.3 IPPL API change: `MeshChannelT` basePath
+
+**Approach B** (simplest): add a `basePath` parameter to `MeshChannelT`
+so it writes into `catalyst/channels/particle_bunch_0/data/mesh/` instead
+of `catalyst/channels/mesh/`. `MeshChannelT` and `ParticleChannel` stay
+independent classes. The particle channel's init fn adds
+`assembly/mesh = "mesh"` to the Conduit node. Init order: particle
+channel first (creates the multimesh node), then the mesh block writes
+into `data/mesh/`.
+
+```cpp
+// ParallelTracker.cpp (after restructuring)
+auto pcHandle = cat_vis.addParticleChannel("particle_bunch_0", pc);
+pcHandle.setTransform(td);
+
+// Mesh block writes into the same multimesh
+auto meshCh = cat_vis.addMeshBlock("particle_bunch_0", "mesh",
+                                    domain.mesh(), domain.layout(), nghost);
+meshCh.addArray("E_self", fs.electricField());
+meshCh.addArray("rho", fs.chargeDensity());
+// ...
+```
+
+### 5.4 `pipeline_default.py` dispatch change
+
+Currently dispatches on `ctype`:
+- `"multimesh"` → `ExtractBlock` for particles, helper, transform
+- `"mesh"` → `MergeBlocks` + `CellDatatoPointData` + `ResampleToImage`
+
+After restructuring, all channels are `"multimesh"`. The script needs a
+new path: "multimesh that contains a mesh block → extract the mesh block,
+apply mesh pipeline (`MergeBlocks` + `Cell2Point`); extract particle
+block, apply particle pipeline."
+
+### 5.5 VTK extract format change
+
+Currently:
+- `bunch_mesh` (type `mesh`) → `.vtpd` (Partitioned Dataset)
+- `MUON` (type `multimesh`) → `.vtpc` (Partitioned Dataset Collection)
+
+After:
+- `particle_bunch_0` (type `multimesh`) → one `.vtpc` for everything
+- The mesh block is inside the `.vtpc`, not a separate `.vtpd`
+- Offline workflow: instead of separate `.vti` + `.vtpc` snapshots,
+  there's one `.vtpc` per bunch per step
+
+### 5.6 Parallel data flow
+
+Each rank contributes its particles + its mesh partition as separate
+blocks in the multimesh. ParaView's Catalyst connector collects these
+and creates:
+
+```
+particle_bunch_0 (vtkPartitionedDataSetCollection):
+  block "particles"   → vtkPDS, N partitions (vtkUnstructuredGrid — points)
+  block "boundingbox" → vtkPDS, N partitions (vtkImageData — 2x2x2)
+  block "transform"   → vtkPDS, N partitions (vtkUnstructuredGrid — point)
+  block "mesh"        → vtkPDS, N partitions (vtkImageData — local PIC grid)
+```
+
+`MergeBlocks(MergePartitionsOnly=1)` already flattens per-rank
+partitions into a single dataset for visualization. Multi-rank testing
+is required to verify this works correctly with the merged structure.
+
+### 5.7 What does NOT break
+
+- IPPL core mechanism — persistent mirrors, `UpdatePolicy`,
+  `GeometryPolicy` (to be added) work regardless of channel grouping
+- `ParticleAttribBase::prepareConduitNode/updateConduitData` — particle
+  attribute serialization is independent of channel structure
+- `OrbitThreader` active set — independent of visualization
+- Self-field access chain (after rebase) — `spaceChargeSolver_m →
+  algorithm → fieldStorage` is independent of channel grouping
+- `ElementVizRegistry` design — can work with either separate or merged
+  channels
+- Conduit blueprint compliance — multimesh with mixed topology types
+  (unstructured points + uniform grid) is valid; each block is an
+  independent mesh
+
+---
+
+## 6. Implementation phases
+
+### Phase 1 (now): Rebase + restructure + ExternalFieldsOnBunchMesh
+
+**Step 1: IPPL branch (`catalyst-viz-dev`) — independent of OPALX**
+
+1. Block renaming: `block_main` → `particles`, `block_help` →
+   `boundingbox`, `block_transform` → `transform`.
+2. Add `basePath` parameter to `MeshChannelT` so it can write into a
+   multimesh `data/mesh/` path instead of a top-level channel.
+3. Add `addMeshBlock(parentName, blockName, mesh, layout, nghost)` to
+   `CatalystAdaptor` — registers a mesh block within an existing
+   particle channel's multimesh.
+4. Add `GeometryPolicy` enum (`Dynamic`/`Static`) to `Channel.h`,
+   `MeshChannelT` constructor parameter. Skip geometry update in
+   `execute()` when `Static`. Default `Dynamic` preserves current
+   behavior.
+
+**Step 2: OPALX rebase onto `origin/master` (`45e126f3a8e7`)**
    - Fix self-field export: replace `getFieldContainer()` with access
      through `spaceChargeSolver_m` → algorithm → field storage.
    - Add public accessors on `SpaceChargeSolver` and
      `CartesianPIC3DAlgorithm` (or a `vizFields()` callback).
-   - Drop `E_external` / `B_external` from the bunch mesh channel
-     (they no longer exist as separate `ippl::Field`s on the PIC mesh).
+   - Drop `E_external` / `B_external` from the mesh (they no longer
+     exist as separate `ippl::Field`s on the PIC mesh).
 
-2. **Add `ElementVizRegistry`**
-   - Owns `ippl::Field<Vector_t, 3>` objects on the bunch mesh, one per
-     element with a field.
-   - `registerElements()`: iterate beamline, create fields, register as
-     arrays on the bunch mesh channel (or a separate `external_fields`
-     channel).
-   - `sampleDynamic()`: iterate active elements, sample
-     `getFieldstrength(R, E, B)` at each local grid point, zero outside
-     bounds. Called every step.
+**Step 3: OPALX channel restructuring + ElementVizRegistry**
+   - Rename channel `MUON` → `particle_bunch_0` (indexed by container).
+   - Merge self-field mesh into the multimesh as `data/mesh/` block
+     via `addMeshBlock()`.
+   - Add `ElementVizRegistry`:
+     - Owns `ippl::Field<Vector_t, 3>` objects on the bunch mesh, one
+       per element with a field.
+     - `registerElements()`: iterate beamline, create fields, register
+       as arrays on the mesh block.
+     - `sampleDynamic()`: iterate active elements, sample
+       `getFieldstrength(R, E, B)` at each local grid point, zero
+       outside bounds. Called every step.
 
-3. **Update Python state script**
-   - `catalyst-muon-combined.py`: drop `E_external`/`B_external` from
-     `bunch_mesh` channel bindings.
-   - Add bindings for new per-element external field arrays (or the
-     `external_fields` channel).
+**Step 4: Python state scripts**
+   - `catalyst-muon-combined.py`: update `registrationName` to
+     `particle_bunch_0`, selectors to `//particles`, `//boundingbox`,
+     `//transform`, `//mesh`.
+   - Drop `E_external`/`B_external` bindings.
+   - Add per-element external field bindings.
+   - Update `pipeline_default.py` dispatch for merged multimesh
+     (extract mesh block, apply mesh pipeline).
 
-4. **Add `GeometryPolicy` to IPPL** (viz-only, for future use)
-   - `Channel.h`: new enum, `MeshChannelT` constructor parameter.
-   - `Channel.hpp`: skip geometry update in `execute()` when
-     `GeometryPolicy::Static`.
-   - Default `Dynamic` preserves current behavior.
+**Step 5: Multi-rank testing**
+   - Verify merged structure works correctly across N ranks.
+   - Verify `MergeBlocks(MergePartitionsOnly=1)` flattens both particle
+     and mesh partitions.
+   - Verify bounding box and transform are consistent across ranks.
 
 ### Phase 2 (future): ExternalFieldsOnElementMesh
 
@@ -441,34 +614,42 @@ line 395-400. Tighter orbit-tracker-based culling can be added later.
 
 ---
 
-## 6. What needs to change in the existing code (Phase 1)
+## 7. What needs to change in the existing code (Phase 1)
 
 | File | Change |
 |------|--------|
+| IPPL `Channel.h` | Block renaming, `GeometryPolicy` enum, `MeshChannelT` basePath parameter. |
+| IPPL `Channel.hpp` | Block renaming, skip geometry update when `GeometryPolicy::Static`. |
+| IPPL `CatalystAdaptor.h` | `addMeshBlock(parentName, blockName, ...)` declaration. |
+| IPPL `CatalystAdaptor.hpp` | `addMeshBlock()` implementation; block renaming in particle init/execute fns. |
+| IPPL `pipeline_default.py` | Dispatch for merged multimesh (extract mesh block + mesh pipeline). |
 | `ParallelTracker.h` | Add `ElementVizRegistry elementVizRegistry_m;` Add `#include` for registry header. |
+| `ParallelTracker.cpp` (channel names) | `MUON` → `particle_bunch_0`; merge mesh via `addMeshBlock()`. |
 | `ParallelTracker.cpp` (self-field) | Replace `getFieldContainer()` with `spaceChargeSolver_m` → algorithm → `CartesianPIC3DFieldStorage`. Need public accessors on `SpaceChargeSolver` and `CartesianPIC3DAlgorithm`. |
-| `ParallelTracker.cpp` (external fields) | Remove `E_external`/`B_external` from `bunch_mesh` channel. Call `elementVizRegistry_m.registerElements(...)` before tracking loop. Call `elementVizRegistry_m.sampleDynamic(...)` inside loop before `cat_vis.Execute()`. |
+| `ParallelTracker.cpp` (external fields) | Remove `E_external`/`B_external` from mesh block. Call `elementVizRegistry_m.registerElements(...)` before tracking loop. Call `elementVizRegistry_m.sampleDynamic(...)` inside loop before `cat_vis.Execute()`. |
 | `SpaceCharge/SpaceChargeSolver.h` | Add `CartesianPIC3DFieldStorage& fieldStorage()` public accessor (or `vizFields()` callback). |
 | `SpaceCharge/CartesianPIC3D/CartesianPIC3DAlgorithm.h` | Add `CartesianPIC3DFieldStorage& fieldStorage()` public accessor. |
 | **NEW** `catalyst/ElementVizRegistry.h` | Registry class declaration. |
 | **NEW** `catalyst/ElementVizRegistry.cpp` | Registry class implementation — field ownership, registration, sampling. |
-| `catalyst/catalyst-muon-combined.py` | Drop `E_external`/`B_external`. Add per-element external field bindings. |
-| IPPL `Channel.h` | Add `GeometryPolicy` enum, `MeshChannelT` constructor parameter. |
-| IPPL `Channel.hpp` | Skip geometry update in `execute()` when `GeometryPolicy::Static`. |
+| `catalyst/catalyst-muon-combined.py` | `registrationName='particle_bunch_0'`, selectors `//particles`/`//boundingbox`/`//transform`/`//mesh`. Drop `E_external`/`B_external`. Add per-element external field bindings. |
+| `catalyst/catalyst-muon-test-1.py` | Same renaming. |
+| `catalyst/catalyst-muon-fields.py` | Update or merge into combined script. |
+| `catalyst/catalyst-editing.md` | Update channel names, block names, snapshot instructions. |
 
 ---
 
-## 7. Open questions
+## 8. Open questions
 
 1. **Access to `CartesianPIC3DFieldStorage`:** The solver → algorithm →
    field storage chain is private. We need public accessors, or
    alternatively a `vizFields()` callback interface that the Catalyst
    adaptor calls. The latter avoids exposing internal solver types.
 
-2. **External fields on separate channel vs. additional arrays on
-   `bunch_mesh`:** A separate `external_fields` channel (same mesh,
-   different Conduit channel) is cleaner for ParaView pipeline
-   separation. Decide during implementation.
+2. **External fields on mesh block vs. separate arrays:** External
+   element fields are sampled onto the bunch mesh and added as arrays
+   on the `data/mesh/` block. Alternatively, a separate `data/external/`
+   block could be used for cleaner ParaView pipeline separation. Decide
+   during implementation.
 
 3. **RF fieldmap amplitude (Phase 2):** If we export the grid as `Static`
    and the amplitude as a separate small channel, the Python script
@@ -480,7 +661,9 @@ line 395-400. Tighter orbit-tracker-based culling can be added later.
    this is not an issue. The self-field PIC mesh is decomposed and
    already handled by the existing `MergeBlocks` logic in the Python
    script. External fields on the bunch mesh are also decomposed and
-   follow the same `MergeBlocks` path.
+   follow the same `MergeBlocks` path. **Multi-rank testing is required**
+   to verify the merged multimesh structure (particles + mesh in one
+   channel) works correctly across N ranks.
 
 5. **Sampling cost:** For ExternalFieldsOnBunchMesh, the per-step cost
    is `N_active_elements × N_local_grid_points` calls to
@@ -491,7 +674,7 @@ line 395-400. Tighter orbit-tracker-based culling can be added later.
 
 ---
 
-## 8. References
+## 9. References
 
 - PR #555 (`45e126f3a8e7`): "Big FieldSolver refactor" — deleted
   `FieldContainer.hpp`, `BinnedFieldSolver`, `FieldSolver`, moved PIC
@@ -506,3 +689,13 @@ line 395-400. Tighter orbit-tracker-based culling can be added later.
   symmetric (`isInside()` checks `sqrt(r(0)² + r(1)²) < rend_m`).
 - `OrbitThreader.cpp:126`, `IndexMap.cpp:115`: Active element set
   computation for culling elements far from the bunch.
+- IPPL commit `1a89ca349ca6` (Sep 4): "Embed bunch transform as a block
+  in the particle multimesh" — design goal: "This keeps each bunch
+  self-contained: particles, helper box, and transform travel together
+  as one dataset collection."
+- IPPL commit `e2230386699a` (Sep 24): "mesh-centric channel API" —
+  created `MeshChannelT` and `ParticleChannel` as separate classes.
+  Mesh kept separate as code structure artifact, not by design intent.
+- IPIL demos: PenningTrap `6776302453d3` (SKlapproth), FEL
+  `c559dcae4f20` (SKlapproth) — both used old flat registry API,
+  migrated to channel API in `e2230386699a`.
