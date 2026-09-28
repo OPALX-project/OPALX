@@ -4,6 +4,7 @@ set (_SRCS
     CavityAutophaser.cpp
     DefaultVisitor.cpp
     DistributionMoments.cpp
+    ElementVizRegistry.cpp
     Flagger.cpp
     IndexMap.cpp
     OrbitThreader.cpp
@@ -24,6 +25,7 @@ set (HDRS
     CavityAutophaser.h
     DefaultVisitor.h
     DistributionMoments.h
+    ElementVizRegistry.h
     Flagger.h
     IndexMap.h
     OrbitThreader.h

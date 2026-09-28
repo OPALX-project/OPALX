@@ -67,6 +67,7 @@
 #include "Stream/InSitu/CatalystAdaptor.h"
 #include "SpaceCharge/CartesianPIC3D/CartesianPIC3DAlgorithm.h"
 #include "SpaceCharge/CartesianPIC3D/CartesianPIC3DFieldStorage.h"
+#include "Algorithms/ElementVizRegistry.h"
 #endif
 
 extern Inform* gmsg;
@@ -524,6 +525,24 @@ void ParallelTracker::execute() {
 
         auto steerReg = ippl::MakeVisRegistryRuntimePtr();
         cat_vis.Initialize(steerReg);
+
+        // Register external element fields on the bunch mesh (ExternalFieldsOnBunchMesh).
+        // Each element with a field gets an E_ext_<name> array on the mesh block.
+        if (exportCatalystFields) {
+            elementVizRegistry_m = std::make_unique<opalx::ElementVizRegistry>();
+            elementVizRegistry_m->createFields(itsOpalBeamline_m, *itsBunch_m);
+            if (elementVizRegistry_m->size() > 0) {
+                auto& domain = itsBunch_m->cartesianDomain();
+                auto meshCh = cat_vis.addMeshBlock<3>(
+                    "particle_bunch_0", "mesh",
+                    domain.mesh(), domain.layout(), 1,
+                    /*useGhostMasks=*/false);
+                elementVizRegistry_m->forEachField(
+                    [&meshCh](const std::string& name, auto& field) {
+                        meshCh.addArray(name, field);
+                    });
+            }
+        }
     }
 #endif
 
@@ -742,6 +761,17 @@ void ParallelTracker::execute() {
                         td.invOrigin = invToLab.getOrigin();
                         td.invRows   = rowsFromMatrix(invToLab.getRotationMatrix());
                         catalystParticleHandles[i].setTransform(td);
+                    }
+
+                    // Sample external element fields onto the bunch mesh
+                    // (ExternalFieldsOnBunchMesh — always correct, resampled per step).
+                    if (elementVizRegistry_m) {
+                        Vector_t<double, 3> rmin(0.0), rmax(0.0);
+                        if (itsBunch_m->getTotalNumAllContainers() > 0) {
+                            computeInitialBounds(rmin, rmax);
+                        }
+                        elementVizRegistry_m->sampleDynamic(
+                            itsOpalBeamline_m, *itsBunch_m, rmin, rmax);
                     }
 
                     cat_vis.Execute(step, step);
