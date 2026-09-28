@@ -60,6 +60,10 @@ namespace opalx::spacecharge {
 
         [[nodiscard]] SpaceChargeSolveResult solve(const SpaceChargeSolveContext& context) override;
 
+        /** @brief Borrowed access to persistent PIC fields for visualization. */
+        [[nodiscard]] FieldStorage& fieldStorage() { return *fieldStorage_m; }
+        [[nodiscard]] const FieldStorage& fieldStorage() const { return *fieldStorage_m; }
+
     private:
         enum class PassKind { Primary, PrimaryAndImage, Image, ShiftedImage };
 
