@@ -501,48 +501,43 @@ void ParallelTracker::execute() {
             auto name = "particle_bunch_" + std::to_string(i);
             auto handle = cat_vis.addParticleChannel(name, *containers[i]).setTransform(td);
             catalystParticleHandles.push_back(handle);
+        }
 
-            // Register self-field mesh as a block inside this particle multimesh
-            // so each bunch is self-contained (particles + boundingbox + transform + mesh).
-            if (exportCatalystFields && i == 0 && spaceChargeSolver_m != nullptr) {
+        // Register a single mesh block inside the first particle multimesh
+        // so each bunch is self-contained (particles + boundingbox + transform + mesh).
+        // Self-fields (if solver active) and external element fields are added
+        // as arrays on this one mesh block.
+        if (exportCatalystFields) {
+            auto& domain = itsBunch_m->cartesianDomain();
+            auto meshCh = cat_vis.addMeshBlock<3>(
+                "particle_bunch_0", "mesh",
+                domain.mesh(), domain.layout(),
+                /*nghost=*/1, /*useGhostMasks=*/false);
+
+            // Self-fields from the space-charge solver (if active)
+            if (spaceChargeSolver_m != nullptr) {
                 auto* algo = dynamic_cast<opalx::spacecharge::CartesianPIC3DAlgorithm*>(
                     &spaceChargeSolver_m->algorithm());
                 if (algo) {
                     auto& fs = algo->fieldStorage();
-                    auto meshCh = cat_vis.addMeshBlock(
-                        name, "mesh",
-                        fs.mesh(),
-                        fs.layout(),
-                        fs.electricField().getNghost());
-
                     meshCh.addArray("E_self", fs.electricField());
                     meshCh.addArray("rho", fs.chargeDensity());
                     // B_self, phi available via accumulatedMagneticField(), potential()
                     // but require solver-type checks. Add as needed.
                 }
             }
+
+            // External element fields sampled onto the bunch mesh
+            elementVizRegistry_m = std::make_unique<opalx::ElementVizRegistry>();
+            elementVizRegistry_m->createFields(itsOpalBeamline_m, *itsBunch_m);
+            elementVizRegistry_m->forEachField(
+                [&meshCh](const std::string& name, auto& field) {
+                    meshCh.addArray(name, field);
+                });
         }
 
         auto steerReg = ippl::MakeVisRegistryRuntimePtr();
         cat_vis.Initialize(steerReg);
-
-        // Register external element fields on the bunch mesh (ExternalFieldsOnBunchMesh).
-        // Each element with a field gets an E_ext_<name> array on the mesh block.
-        if (exportCatalystFields) {
-            elementVizRegistry_m = std::make_unique<opalx::ElementVizRegistry>();
-            elementVizRegistry_m->createFields(itsOpalBeamline_m, *itsBunch_m);
-            if (elementVizRegistry_m->size() > 0) {
-                auto& domain = itsBunch_m->cartesianDomain();
-                auto meshCh = cat_vis.addMeshBlock<3>(
-                    "particle_bunch_0", "mesh",
-                    domain.mesh(), domain.layout(), 1,
-                    /*useGhostMasks=*/false);
-                elementVizRegistry_m->forEachField(
-                    [&meshCh](const std::string& name, auto& field) {
-                        meshCh.addArray(name, field);
-                    });
-            }
-        }
     }
 #endif
 

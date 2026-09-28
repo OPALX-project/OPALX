@@ -30,10 +30,12 @@ namespace opalx {
             }
 
             ElementField ef;
-            ef.name    = "E_ext_" + element->getName();
+            ef.name    = element->getName();
             ef.element = element;
-            ef.field.initialize(domain.mesh(), domain.layout(), nghost);
-            ef.field = 0.0;
+            ef.E.initialize(domain.mesh(), domain.layout(), nghost);
+            ef.E = 0.0;
+            ef.B.initialize(domain.mesh(), domain.layout(), nghost);
+            ef.B = 0.0;
 
             elementFields_m.push_back(std::move(ef));
         }
@@ -63,23 +65,16 @@ namespace opalx {
         const auto& toLab = pc->getToLabTrafo();
         const double t    = bunch.getT();
 
+        static bool firstSample = true;
+        int totalNonZero = 0;
+
         for (auto& ef : elementFields_m) {
-            // Zero the field before accumulating.
-            ef.field = 0.0;
+            // Zero both fields before accumulating.
+            ef.E = 0.0;
+            ef.B = 0.0;
 
             const auto& element = ef.element;
             if (!element)
-                continue;
-
-            // Skip elements whose longitudinal bounds don't overlap the bunch.
-            // Element bounds are in element-local coordinates; we compare
-            // against the bunch bounding box in the reference frame.
-            // This is a coarse cull — the per-point apply() does exact bounds.
-            double zBegin = 0.0, zEnd = 0.0;
-            element->getFieldExtent(zBegin, zEnd);
-            const double elemZMin = zBegin;
-            const double elemZMax = zEnd;
-            if (elemZMax < bunchBBoxMin[2] || elemZMin > bunchBBoxMax[2])
                 continue;
 
             // Transform from reference frame to element-local CS.
@@ -88,9 +83,12 @@ namespace opalx {
                      * (beamline.getCSTrafoLab2Local(element) * toLab));
             const CoordinateSystemTrafo localToRefCSTrafo = refToLocalCSTrafo.inverted();
 
-            auto view = ef.field.getView();
-            auto host = Kokkos::create_mirror_view(view);
+            auto Eview = ef.E.getView();
+            auto Bview = ef.B.getView();
+            auto Ehost = Kokkos::create_mirror_view(Eview);
+            auto Bhost = Kokkos::create_mirror_view(Bview);
 
+            int nonZero = 0;
             for (int i = localND[0].first() + nghost; i <= localND[0].last() + nghost; ++i) {
                 const double x = (i - nghost) * h[0] + origin[0];
                 for (int j = localND[1].first() + nghost; j <= localND[1].last() + nghost; ++j) {
@@ -107,12 +105,51 @@ namespace opalx {
                         element->apply(localR, Vector_t<double, 3>(0.0), t, localE, localB);
 
                         const Vector_t<double, 3> refE = localToRefCSTrafo.rotateTo(localE);
-                        host(i, j, k) = refE;
+                        const Vector_t<double, 3> refB = localToRefCSTrafo.rotateTo(localB);
+                        Ehost(i, j, k) = refE;
+                        Bhost(i, j, k) = refB;
+                        if (refE(0) != 0.0 || refE(1) != 0.0 || refE(2) != 0.0
+                            || refB(0) != 0.0 || refB(1) != 0.0 || refB(2) != 0.0)
+                            ++nonZero;
                     }
                 }
             }
 
-            Kokkos::deep_copy(view, host);
+            if (firstSample && nonZero == 0) {
+                double zBegin = 0.0, zEnd = 0.0;
+                element->getFieldExtent(zBegin, zEnd);
+                std::cerr << "ElementVizRegistry: '" << ef.name << "' (type="
+                          << element->getTypeString()
+                          << ") produced 0 non-zero points."
+                          << " Field extent: [" << zBegin << ", " << zEnd << "]"
+                          << " Mesh z: [" << origin[2] << ", "
+                          << origin[2] + (localND[2].last() + 1) * h[2] << "]"
+                          << std::endl;
+                // Debug: sample centre of mesh in element-local coords
+                const double cx = 0.5 * ((localND[0].first() + localND[0].last())) * h[0] + origin[0];
+                const double cy = 0.5 * ((localND[1].first() + localND[1].last())) * h[1] + origin[1];
+                const double cz = 0.5 * ((localND[2].first() + localND[2].last())) * h[2] + origin[2];
+                const Vector_t<double, 3> centreRef(cx, cy, cz);
+                const Vector_t<double, 3> centreLocal = refToLocalCSTrafo.transformTo(centreRef);
+                std::cerr << "  Mesh centre ref=(" << cx << ", " << cy << ", " << cz << ")"
+                          << " -> local=(" << centreLocal(0) << ", " << centreLocal(1) << ", " << centreLocal(2) << ")"
+                          << " elemLen=" << element->getGeometry().getElementLength()
+                          << std::endl;
+                Vector_t<double, 3> testE(0.0), testB(0.0);
+                element->apply(centreLocal, Vector_t<double, 3>(0.0), t, testE, testB);
+                std::cerr << "  apply at mesh centre: E=(" << testE(0) << ", " << testE(1) << ", " << testE(2)
+                          << ") B=(" << testB(0) << ", " << testB(1) << ", " << testB(2) << ")" << std::endl;
+            }
+
+            totalNonZero += nonZero;
+            Kokkos::deep_copy(Eview, Ehost);
+            Kokkos::deep_copy(Bview, Bhost);
+        }
+
+        firstSample = false;
+        if (totalNonZero == 0 && !elementFields_m.empty()) {
+            // All elements produced zero — likely the bunch mesh doesn't
+            // overlap any element field region in the reference frame.
         }
     }
 

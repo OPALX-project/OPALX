@@ -54,7 +54,8 @@ namespace opalx {
         template <typename Fn>
         void forEachField(Fn&& fn) {
             for (auto& ef : elementFields_m) {
-                fn(ef.name, ef.field);
+                fn("E_ext_" + ef.name, ef.E);
+                fn("B_ext_" + ef.name, ef.B);
             }
         }
 
@@ -84,7 +85,8 @@ namespace opalx {
         struct ElementField {
             std::string name;
             std::shared_ptr<ElementBase> element;
-            VectorField field;
+            VectorField E;  ///< Electric field sampled on bunch mesh
+            VectorField B;  ///< Magnetic field sampled on bunch mesh
         };
 
         std::vector<ElementField> elementFields_m;
