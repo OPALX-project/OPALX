@@ -37,7 +37,7 @@
 namespace {
     using namespace opalx::spacecharge;
 
-    constexpr bool VerboseTest = true;
+    constexpr bool VerboseTest = false;
 
     class TestableFieldSolverCmd final : public FieldSolverCmd {
     public:
@@ -1173,10 +1173,10 @@ namespace {
         const auto info = solver->createDiagnostic<Info>(Info::Kind::EField);
         solver->solvePoissons<Info>(*info);
         expectEField(
-                info->eFieldView_m, {{1, 1, 6, -3.250090326e9, -3.250090326e9, 0},
-                                     {2, 1, 6, -3.218709596e9, -3.896406064e9, 0},
-                                     {4, 4, 6, -7.214724490e9, -7.214724490e9, 0},
-                                     {4, 8, 6, -10.565567441e9, 6.311498630e9, 0}});
+                info->eFieldView_m, {{1, 1, 6, -3247760580, -3247760580, 0},
+                                     {2, 1, 6, -3173949541, -3967148560, 0},
+                                     {4, 4, 6, -6995720024, -6995720024, 0},
+                                     {4, 8, 6, -10571642669, 5851278346, 0}});
     }
 
     TEST_F(TestSolve2d5, ToFrenetSerretGather_Simple) {
@@ -1239,8 +1239,8 @@ namespace {
         auto [e, b] = gatherInfo->getParticleFields();
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
-        expectParticleFields(0, e, b, {8.987817751e9, 0, 0}, {0, 0, 0}, 1e3);
-        expectParticleFields(1, e, b, {-8.987817751e9, 0, 0}, {0, 0, 0}, 1e3);
+        expectParticleFields(0, e, b, {4516811045, 0, 0}, {0, 0, 0}, 1e3);
+        expectParticleFields(1, e, b, {-4516811045, 0, 0}, {0, 0, 0}, 1e3);
     }
 
     TEST_F(TestSolve2d5, Deboost_TwoStationaryParticles) {
@@ -1261,8 +1261,8 @@ namespace {
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
-        expectParticleFields(0, e, b, {8.987817751e9, 0, 0}, {0, 0, 0}, 1e3);
-        expectParticleFields(1, e, b, {-8.987817751e9, 0, 0}, {0, 0, 0}, 1e3);
+        expectParticleFields(0, e, b, {4516811045, 0, 0}, {0, 0, 0}, 1e3);
+        expectParticleFields(1, e, b, {-4516811045, 0, 0}, {0, 0, 0}, 1e3);
     }
 
     TEST_F(TestSolve2d5, Deboost_TwoRelativisticParticles) {
@@ -1283,8 +1283,8 @@ namespace {
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
-        expectParticleFields(0, e, b, {12.710693760e9, 0, 0}, {0, -29.9801, 0}, 1e3, 1e-4);
-        expectParticleFields(1, e, b, {-12.710693760e9, 0, 0}, {0, 29.9801, 0}, 1e3, 1e-4);
+        expectParticleFields(0, e, b, {6387735439, 0, 0}, {0, -15.066459, 0}, 1e3, 1e-4);
+        expectParticleFields(1, e, b, {-6387735439, 0, 0}, {0, 15.066459, 0}, 1e3, 1e-4);
     }
 
     TEST_F(TestSolve2d5, LongitudinalField_Simple) {
@@ -1309,9 +1309,9 @@ namespace {
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
         expectParticleFields(
-                0, e, b, {12.710693760e9, 0, 57.160829398e9}, {0, -29.9801, 0}, 1e3, 1e-4);
+                0, e, b, {6387735439, 0, 57.160829398e9}, {0, -15.06645, 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-12.710693760e9, 0, 57.160829398e9}, {0, 29.9801, 0}, 1e3, 1e-4);
+                1, e, b, {-6387735439, 0, 57.160829398e9}, {0, 15.06645, 0}, 1e3, 1e-4);
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_Simple) {
@@ -1334,9 +1334,9 @@ namespace {
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
         expectParticleFields(
-                0, e, b, {12.710693760e9, 0, 57.160829398e9}, {0, -29.9801, 0}, 1e3, 1e-4);
+                0, e, b, {6387735439, 0, 57.160829398e9}, {0, -15.06645, 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-12.710693760e9, 0, 57.160829398e9}, {0, 29.9801, 0}, 1e3, 1e-4);
+                1, e, b, {-6387735439, 0, 57.160829398e9}, {0, 15.06645, 0}, 1e3, 1e-4);
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_SimpleInvalid) {
@@ -1361,9 +1361,9 @@ namespace {
         ASSERT_EQ(e.size(), 3);
         ASSERT_EQ(b.size(), 3);
         expectParticleFields(
-                0, e, b, {12.710693760e9, 0, 57.160829398e9}, {0, -29.9801, 0}, 1e3, 1e-4);
+                0, e, b, {6387735439, 0, 57.160829398e9}, {0, -15.06645, 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-12.710693760e9, 0, 57.160829398e9}, {0, 29.9801, 0}, 1e3, 1e-4);
+                1, e, b, {-6387735439, 0, 57.160829398e9}, {0, 15.06645, 0}, 1e3, 1e-4);
         expectParticleFields(2, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
     }
 
@@ -1461,9 +1461,9 @@ namespace {
         ASSERT_EQ(e.size(), 3);
         ASSERT_EQ(b.size(), 3);
         expectParticleFields(
-                0, e, b, {12.710693760e9, 0, 28.580515699e9}, {0, -29.9801, 0}, 1e6, 1e-4);
+                0, e, b, {6387735439, 0, 28.580515699e9}, {0, -15.06645, 0}, 1e6, 1e-4);
         expectParticleFields(
-                1, e, b, {-12.710693760e9, 0, 28.580515699e9}, {0, 29.9801, 0}, 1e6, 1e-4);
+                1, e, b, {-6387735439, 0, 28.580515699e9}, {0, 15.06645, 0}, 1e6, 1e-4);
         expectParticleFields(2, e, b, {0, 0, 28.580515699e9}, {0, 0, 0}, 1e6, 1e-4);
     }
 
@@ -1492,9 +1492,9 @@ namespace {
         ASSERT_EQ(e.size(), 3);
         ASSERT_EQ(b.size(), 3);
         expectParticleFields(
-                0, e, b, {12.710693760e9, 0, 57.160829398e9}, {0, -29.9801, 0}, 1e6, 1e-4);
+                0, e, b, {6387735439, 0, 57.160829398e9}, {0, -15.06645, 0}, 1e6, 1e-4);
         expectParticleFields(
-                1, e, b, {-12.710693760e9, 0, 57.160829398e9}, {0, 29.9801, 0}, 1e6, 1e-4);
+                1, e, b, {-6387735439, 0, 57.160829398e9}, {0, 15.06645, 0}, 1e6, 1e-4);
         expectParticleFields(2, e, b, {0, 0, 0}, {0, 0, 0}, 1e6, 1e-4);
     }
 
@@ -1520,9 +1520,9 @@ namespace {
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
         expectParticleFields(
-                0, e, b, {12.710693760e9, 0, 50.688114128e9}, {0, -29.9801, 0}, 1e3, 1e-4);
+                0, e, b, {6387735439, 0, 50.688114128e9}, {0, -15.06645, 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-12.710693760e9, 0, 50.688114128e9}, {0, 29.9801, 0}, 1e3, 1e-4);
+                1, e, b, {-6387735439, 0, 50.688114128e9}, {0, 15.06645, 0}, 1e3, 1e-4);
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_Plates) {
@@ -1547,9 +1547,9 @@ namespace {
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
         expectParticleFields(
-                0, e, b, {12.710693760e9, 0, 55.030260593e9}, {0, -29.9801, 0}, 1e3, 1e-4);
+                0, e, b, {6387735439, 0, 55.030260593e9}, {0, -15.06645, 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-12.710693760e9, 0, 55.030260593e9}, {0, 29.9801, 0}, 1e3, 1e-4);
+                1, e, b, {-6387735439, 0, 55.030260593e9}, {0, 15.06645, 0}, 1e3, 1e-4);
     }
 
     TEST_F(TestSolve2d5, LoadReferencePath_Empty) {
@@ -1605,20 +1605,20 @@ namespace {
         const auto bHost = pc.B.getHostMirror();
         Kokkos::deep_copy(eHost, pc.E.getView());
         Kokkos::deep_copy(bHost, pc.B.getView());
-        EXPECT_NEAR(eHost(0).data_m[0], 12.710693760e9, 1e6);
+        EXPECT_NEAR(eHost(0).data_m[0], 6387735439, 1e6);
         EXPECT_NEAR(eHost(0).data_m[1], 0, 1e6);
         EXPECT_NEAR(eHost(0).data_m[2], 28.580515699e9, 1e6);
-        EXPECT_NEAR(eHost(1).data_m[0], -12.710693760e9, 1e6);
+        EXPECT_NEAR(eHost(1).data_m[0], -6387735439, 1e6);
         EXPECT_NEAR(eHost(1).data_m[1], 0, 1e6);
         EXPECT_NEAR(eHost(1).data_m[2], 28.580515699e9, 1e6);
         EXPECT_NEAR(eHost(2).data_m[0], 0, 1e6);
         EXPECT_NEAR(eHost(2).data_m[1], 0, 1e6);
         EXPECT_NEAR(eHost(2).data_m[2], 28.580515699e9, 1e6);
         EXPECT_NEAR(bHost(0).data_m[0], 0, 1e-4);
-        EXPECT_NEAR(bHost(0).data_m[1], -29.9801, 1e-4);
+        EXPECT_NEAR(bHost(0).data_m[1], -15.06645, 1e-4);
         EXPECT_NEAR(bHost(0).data_m[2], 0, 1e-4);
         EXPECT_NEAR(bHost(1).data_m[0], 0, 1e-4);
-        EXPECT_NEAR(bHost(1).data_m[1], 29.9801, 1e-4);
+        EXPECT_NEAR(bHost(1).data_m[1], 15.06645, 1e-4);
         EXPECT_NEAR(bHost(1).data_m[2], 0, 1e-4);
         EXPECT_NEAR(bHost(2).data_m[0], 0, 1e-4);
         EXPECT_NEAR(bHost(2).data_m[1], 0, 1e-4);
@@ -1881,10 +1881,10 @@ namespace {
         solver->doRunSolver<Info>(context(), *info);
         // Check the charge density
         expectPotential(               //i, j, k, phi
-                info->rhoView_m, {{5, 5, 2, 963538234764917},
-                                     {5, 6, 2, 947474778602442.75},
-                                     {4, 6, 2, 954504662037936.12},
-                                     {6, 7, 2, 948706293379785}}, 10.0);
+                info->rhoView_m, {{5, 5, 2, 958298665305089},
+                                     {5, 6, 2, 941032164219868},
+                                     {4, 6, 2, 952163878215342},
+                                     {6, 7, 2, 944373262094347}}, 10.0);
     }
 
     TEST_F(TestSolve2d5, KvBeam_ElectricField) {
@@ -1903,10 +1903,10 @@ namespace {
         solver->doRunSolver<Info>(context(), *info);
         // Check the charge density
         expectEField(               //i, j, k, Ex,                  Ey,                   Ez
-                info->eFieldView_m, {{5, 5, 2, 22636807214983288.0, 3856068046813647.5,   0.0},
-                                     {5, 6, 2, -927805928809394.75, 6103969523576944.0,   0.0},
-                                     {4, 6, 2, -5967249946832035.0, 12198160561896932.0,  0.0},
-                                     {6, 7, 2, 12256750350007952.0, 20338717682993576.0,  0.0}});
+                info->eFieldView_m, {{5, 5, 2, 9705590713980844.0, 50237049591750.0,   0.0},
+                                     {5, 6, 2, -2575537500134781.0, 5432574680440094.0,   0.0},
+                                     {4, 6, 2, -7704908191557375.0, 7462324259532344.0,  0.0},
+                                     {6, 7, 2, 6038921094378281.0, 9106068557928282.0,  0.0}});
     }
 
     void makeChargeDensity(FFT2D5Poisson::ScalarField2_t& chargeDensity) {
@@ -1954,7 +1954,7 @@ namespace {
                                 0.0406,  0.0384, 0.0327, 0.0231, 0.0251, 0.0229, 0.0355, 0.0345,
                                 0.0299,  0.0236, 0.0175, 0.0194};
 
-    void verifyGreensFunction12x12(
+    void verifyPoissonResults(
             const FFT2D5Poisson::ScalarField2_t& greensFn2,
             const FFT2D5Poisson::ComplexField2_t& greensTr2,
             const FFT2D5Poisson::ScalarField2_t& potential2,
@@ -2042,12 +2042,8 @@ namespace {
         for (size_t i = 0; i < 6; ++i) {
             for (size_t j = 0; j < 6; ++j) {
                 SCOPED_TRACE(std::format("i = {}, j = {}, index={}", i, j, j * 6 + i));
-                ASSERT_NEAR(
-                        eHost(i + nGhostE, j + nGhostE).data_m[0],
-                        ExpectedEx[j * 6 + i], 2e-2);
-                ASSERT_NEAR(
-                        eHost(i + nGhostE, j + nGhostE).data_m[1],
-                        ExpectedEy[j * 6 + i], 2e-2);
+                ASSERT_NEAR(eHost(i + nGhostE, j + nGhostE).data_m[0], ExpectedEx[j * 6 + i], 2e-2);
+                ASSERT_NEAR(eHost(i + nGhostE, j + nGhostE).data_m[1], ExpectedEy[j * 6 + i], 2e-2);
             }
         }
     }
@@ -2065,7 +2061,7 @@ namespace {
         FFT2D5Poisson poisson;
         poisson.solve(rho, e);
         // Verify the Green's function
-        verifyGreensFunction12x12(
+        verifyPoissonResults(
                 poisson.getGreensFn(), poisson.getGreensFnTr(), poisson.getDoubledRho(), rho, e);
     }
 }  // namespace

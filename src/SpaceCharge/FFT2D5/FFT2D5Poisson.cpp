@@ -171,8 +171,7 @@ void FFT2D5Poisson::determineField(const ScalarField2_t& potential, VectorField2
                 "FFT2D5Poisson::determineField", "Phi ghost cells must be greater than zero");
     }
     if (nx <= 2 || ny <= 2) {
-        throw OpalException(
-                "FFT2D5Poisson::determineField", "Domain must be larger than 2x2");
+        throw OpalException("FFT2D5Poisson::determineField", "Domain must be larger than 2x2");
     }
     // Extrapolate the boundary cells into the ghost cells
     Kokkos::parallel_for(
