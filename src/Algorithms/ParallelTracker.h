@@ -80,6 +80,10 @@ namespace opalx::spacecharge {
     class SpaceChargeSolver;
 }  // namespace opalx::spacecharge
 
+#ifdef IPPL_ENABLE_CATALYST
+namespace opalx { class ElementVizRegistry; }
+#endif
+
 /**
  * @brief Implements the main time-based simulation loop for parallel tracking.
  *
@@ -185,6 +189,10 @@ private:
     bool globalEOL_m;                ///< End-of-line flag (e.g. orbit threader out of bounds).
     double sStart_m;                 ///< Path-length start position for the track (m).
     double ringPeriod_m;             ///< One-turn path length for RING, or zero for LINE.
+
+#ifdef IPPL_ENABLE_CATALYST
+    std::unique_ptr<opalx::ElementVizRegistry> elementVizRegistry_m;
+#endif
 
     /** Step-size segments: s-stop, dt, and steps per segment. */
     StepSizeConfig stepSizes_m;

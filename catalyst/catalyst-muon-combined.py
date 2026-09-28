@@ -1,21 +1,21 @@
 # script-version: 2.0
-# Combined Catalyst state: particle bunch (MUON) + field slices (bunch_mesh).
+# Combined Catalyst state: particle bunch + self-field mesh slices.
 #
-# When OPALX_CATALYST_FIELDS=ON, OPALX registers two channels:
-#   - "bunch_mesh"  (type "mesh")      — uniform grid with E_self, B_self, rho,
-#                                        phi, E_external, B_external as cell data
-#   - "MUON"        (type "multimesh") — particle block_main + block_transform
+# OPALX registers one channel per particle container:
+#   - "particle_bunch_0" (type "multimesh") — self-contained:
+#       data/particles    — particle positions, IDs, attributes
+#       data/boundingbox  — 2x2x2 bounding box
+#       data/transform    — bunch-to-lab transform
+#       data/mesh         — self-field PIC grid (E_self, rho, E_ext_*)
 #
-# This script visualises both: field slices through the mesh + particle point
-# gaussian coloured by B, with the accelerator geometry overlaid.
+# This script visualises both: field slices through the mesh block +
+# particle point gaussian coloured by B, with the accelerator geometry overlaid.
 #
 # Offline stand-ins:
-#   - Fields:  /home/biddisco/temp/muon/bunch_mesh_snapshot/bunch_mesh_snapshot_0_0.vti
-#   - Particles: /home/biddisco/temp/muon/MUON_snapshot/MUON_snapshot.vtm
+#   - Particles+Fields: /home/biddisco/temp/muon/particle_bunch_0_snapshot/particle_bunch_0_snapshot.vtpc
 #
-# Under Catalyst the XMLImageDataReader (registrationName='bunch_mesh') and
-# XMLMultiBlockDataReader (registrationName='MUON') are replaced by the live
-# Conduit channels automatically.
+# Under Catalyst the XMLMultiBlockDataReader (registrationName='particle_bunch_0')
+# is replaced by the live Conduit channel automatically.
 import os
 
 import paraview
@@ -42,86 +42,61 @@ renderView1.Set(
 )
 
 # =========================================================================
-# Field channel: bunch_mesh
+# Particle + mesh channel: particle_bunch_0
 # =========================================================================
-bunch_mesh = XMLImageDataReader(
-    registrationName='bunch_mesh',
-    FileName=['/home/biddisco/temp/muon/bunch_mesh_snapshot/bunch_mesh_snapshot_0_0.vti'])
-bunch_mesh.CellArrayStatus = ['E_self', 'B_self', 'rho', 'E_external', 'B_external', 'RankID']
+particle_bunch_0 = XMLMultiBlockDataReader(
+    registrationName='particle_bunch_0',
+    FileName=['/home/biddisco/temp/muon/particle_bunch_0_snapshot/particle_bunch_0_snapshot.vtpc'])
+
+# Extract the mesh block (self-field PIC grid)
+mesh_block = ExtractBlock(registrationName='MeshBlock', Input=particle_bunch_0)
+mesh_block.Set(
+    Assembly='Hierarchy',
+    Selectors=['//mesh'],
+)
 
 # MergeBlocks to flatten per-rank partitions into a single dataset
-bunch_merged = MergeBlocks(registrationName='bunch_mesh.MergedBlocks',
-                           Input=bunch_mesh)
-bunch_merged.MergePartitionsOnly = 1
+mesh_merged = MergeBlocks(registrationName='mesh.MergedBlocks',
+                          Input=mesh_block)
+mesh_merged.MergePartitionsOnly = 1
 
 # ----------------------------------------------------------------
-# External B field: horizontal slice coloured by magnitude
+# Self-field E: horizontal slice coloured by magnitude
 # ----------------------------------------------------------------
-b_external_cd2pd = CellDatatoPointData(registrationName='BExternalCD2PD',
-                                       Input=bunch_merged)
-b_external_cd2pd.CellDataArraytoprocess = ['B_external']
+e_self_cd2pd = CellDatatoPointData(registrationName='ESelfCD2PD',
+                                   Input=mesh_merged)
+e_self_cd2pd.CellDataArraytoprocess = ['E_self']
 
-b_external_slice = Slice(registrationName='BExternalSlice', Input=b_external_cd2pd)
-b_external_slice.SliceType = 'Plane'
-b_external_slice.SliceType.Normal = [0.0, 1.0, 0.0]
-b_external_slice.SliceType.Origin = [0.0, 0.0, 0.0]
+e_self_slice = Slice(registrationName='ESelfSlice', Input=e_self_cd2pd)
+e_self_slice.SliceType = 'Plane'
+e_self_slice.SliceType.Normal = [0.0, 1.0, 0.0]
+e_self_slice.SliceType.Origin = [0.0, 0.0, 0.0]
 
-b_external_sliceDisplay = Show(b_external_slice, renderView1, 'GeometryRepresentation')
-b_external_sliceDisplay.Representation = 'Surface'
-b_external_sliceDisplay.ColorArrayName = ['POINTS', 'B_external']
-b_external_sliceDisplay.Opacity = 0.5
+e_self_sliceDisplay = Show(e_self_slice, renderView1, 'GeometryRepresentation')
+e_self_sliceDisplay.Representation = 'Surface'
+e_self_sliceDisplay.ColorArrayName = ['POINTS', 'E_self']
+e_self_sliceDisplay.Opacity = 0.5
 
-b_external_LUT = GetColorTransferFunction('B_external')
-b_external_LUT.Set(AutomaticRescaleRangeMode='Grow and update every timestep')
-b_external_LUTColorBar = GetScalarBar(b_external_LUT, renderView1)
-b_external_LUTColorBar.Set(
+e_self_LUT = GetColorTransferFunction('E_self')
+e_self_LUT.Set(AutomaticRescaleRangeMode='Grow and update every timestep')
+e_self_LUTColorBar = GetScalarBar(e_self_LUT, renderView1)
+e_self_LUTColorBar.Set(
     WindowLocation='Upper Right Corner',
-    Title='B_external',
+    Title='E_self',
     ComponentTitle='Magnitude',
     AllowOverlappingLabels=1,
 )
-b_external_LUTColorBar.Visibility = 1
-
-# ----------------------------------------------------------------
-# External E field: vertical slice coloured by magnitude
-# ----------------------------------------------------------------
-e_external_cd2pd = CellDatatoPointData(registrationName='EExternalCD2PD',
-                                       Input=bunch_merged)
-e_external_cd2pd.CellDataArraytoprocess = ['E_external']
-
-e_external_slice = Slice(registrationName='EExternalSlice', Input=e_external_cd2pd)
-e_external_slice.SliceType = 'Plane'
-e_external_slice.SliceType.Normal = [1.0, 0.0, 0.0]
-e_external_slice.SliceType.Origin = [0.0, 0.0, 0.0]
-
-e_external_sliceDisplay = Show(e_external_slice, renderView1, 'GeometryRepresentation')
-e_external_sliceDisplay.Representation = 'Surface'
-e_external_sliceDisplay.ColorArrayName = ['POINTS', 'E_external']
-e_external_sliceDisplay.Opacity = 0.5
-
-e_external_LUT = GetColorTransferFunction('E_external')
-e_external_LUT.Set(AutomaticRescaleRangeMode='Grow and update every timestep')
-e_external_LUTColorBar = GetScalarBar(e_external_LUT, renderView1)
-e_external_LUTColorBar.Set(
-    WindowLocation='Lower Right Corner',
-    Title='E_external',
-    ComponentTitle='Magnitude',
-    AllowOverlappingLabels=1,
-)
-e_external_LUTColorBar.Visibility = 1
+e_self_LUTColorBar.Visibility = 1
 
 # =========================================================================
-# Particle channel: MUON
+# Particle blocks: extract transform + particles
 # =========================================================================
-muon_particles = XMLMultiBlockDataReader(
-    registrationName='MUON',
-    FileName=['/home/biddisco/temp/muon/MUON_snapshot/MUON_snapshot.vtm'])
 
 # Extract the transform block (Input 1 for the programmable filter)
-extractBlock1 = ExtractBlock(registrationName='ExtractBlock1', Input=muon_particles)
+extractBlock1 = ExtractBlock(registrationName='ExtractBlock1', Input=particle_bunch_0)
 extractBlock1.Set(
     Assembly='Hierarchy',
-    Selectors=['//block_transform'],
+    Selectors=['//transform'],
 )
 
 # Accelerator geometry (unchanged file source, not a Catalyst channel)
@@ -140,10 +115,10 @@ annotateTime1 = AnnotateTime(registrationName='AnnotateTime1')
 annotateTime1.Format = 'Time: {time:07.1f}'
 
 # Extract the main particle block
-extractBlock2 = ExtractBlock(registrationName='ExtractBlock2', Input=muon_particles)
+extractBlock2 = ExtractBlock(registrationName='ExtractBlock2', Input=particle_bunch_0)
 extractBlock2.Set(
     Assembly='Hierarchy',
-    Selectors=['//block_main'],
+    Selectors=['//particles'],
 )
 
 # Programmable Filter: transform particles to lab frame
@@ -271,17 +246,11 @@ except ValueError:
     _snapshot_step = 0
 
 if _snapshot_step > 0:
-    ext_p = CreateExtractor('VTPC', muon_particles,
-                            registrationName='Snapshot_MUON')
+    ext_p = CreateExtractor('VTPC', particle_bunch_0,
+                            registrationName='Snapshot_particle_bunch_0')
     ext_p.Trigger = 'Time Step'
     ext_p.Trigger.Frequency = _snapshot_step
-    ext_p.Writer.FileName = 'MUON_snapshot/{timestep:06d}.vtpc'
-
-    ext_f = CreateExtractor('VTPD', bunch_mesh,
-                            registrationName='Snapshot_bunch_mesh')
-    ext_f.Trigger = 'Time Step'
-    ext_f.Trigger.Frequency = _snapshot_step
-    ext_f.Writer.FileName = 'bunch_mesh_snapshot/{timestep:06d}.vtpd'
+    ext_p.Writer.FileName = 'particle_bunch_0_snapshot/{timestep:06d}.vtpc'
 
 # ----------------------------------------------------------------
 # PNG extractor
@@ -301,7 +270,7 @@ pNG1.Writer.Set(
 def catalyst_execute(info):
     # Rescale LUTs to current data range (fields move significantly)
     bLUT.RescaleTransferFunctionToDataRange()
-    e_external_LUT.RescaleTransferFunctionToDataRange()
+    e_self_LUT.RescaleTransferFunctionToDataRange()
 
 # ----------------------------------------------------------------
 # Catalyst options
