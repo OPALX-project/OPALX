@@ -2,7 +2,7 @@ include:
   - local: "ci/cscs/common.yml"
 
 variables:
-  CUDA_UENV: "/capstor/store/cscs/cscs/public/uenvs/opal-x-gh200-mpich-gcc-2026-08-04-cuda-13.1.1.squashfs"
+  CUDA_UENV: "/ritom/scratch/cscs/biddisco/opal-x-gh200-mpich-gcc-2026-09-23.squashfs"
   WITH_UENV_VIEW: "default"
   WRAPPER: "/user-environment/wrapper-mpi.sh"
   SCRATCH: "/capstor/scratch/cscs/biddisco"
@@ -20,6 +20,7 @@ variables:
   image: "${CUDA_UENV}"
   variables:
     SLURM_JOB_NUM_NODES: 1
+    SLURM_TIMELIMIT: "0:30:00"
   before_script:
     - !reference [.pr-number-extractor, before_script]
     - export BUILD_PATH=$(pwd)/$BUILD_DIR
@@ -44,6 +45,8 @@ variables:
     - ls -l $BUILD_PATH/bin/opalx
     - echo "Build directory size (before cleanup):" $(du -sh $BUILD_PATH | cut -f1)
     - find $BUILD_PATH -name \*.o -delete
+    - find $BUILD_PATH/bin -type f -exec strip {} +
+    - find $BUILD_PATH/lib -type f -exec strip {} +
     - echo "Build directory size (cleaned for artefacts):" $(du -sh $BUILD_PATH | cut -f1)
   artifacts:
     paths:
