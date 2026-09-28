@@ -350,7 +350,8 @@ namespace opalx::spacecharge {
                     KOKKOS_LAMBDA(const size_t i, const size_t j) {
                         rho2d(i, j) *= 1 / Physics::epsilon_0;
                     });
-            s.solver->solve();
+            //s.solver->solve();
+            s.solver2->solve(*s.chargeDensity, *s.electricField);
             Kokkos::fence();
             diagnostic.potential(rho2d, z + nGhost);
             auto e2d = s.electricField->getView();
@@ -502,9 +503,9 @@ namespace opalx::spacecharge {
         ippl::Vector<int, Dim> args;
         if (makeWeights(fsR, origin, invDr, nghost, lDom, eField, whi, wlo, args)) {
             if constexpr (ScatterLongitudinally) {
-                // e(n) = gather3D(eField, wlo, whi, args[0], args[1], args[2]);
-                e(n) = gather2D(eField, wlo, whi, args[0], args[1], args[2] - 1)
-                       + gather2D(eField, wlo, whi, args[0], args[1], args[2]);
+                e(n) = gather3D(eField, wlo, whi, args[0], args[1], args[2]);
+                //e(n) = gather2D(eField, wlo, whi, args[0], args[1], args[2] - 1)
+                //       + gather2D(eField, wlo, whi, args[0], args[1], args[2]);
             } else {
                 e(n) = gather2D(eField, wlo, whi, args[0], args[1], args[2]);
             }

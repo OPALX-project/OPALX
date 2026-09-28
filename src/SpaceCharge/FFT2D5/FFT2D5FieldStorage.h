@@ -23,6 +23,7 @@
 
 #include "Manager/datatypes.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
+#include "SpaceCharge/FFT2D5/FFT2D5Poisson.h"
 
 #include <cstddef>
 #include <memory>
@@ -54,6 +55,7 @@ namespace opalx::spacecharge {
             std::unique_ptr<VectorField2> electricField;
             std::unique_ptr<ScalarField2> chargeDensity;
             std::unique_ptr<OpenSolver2> solver;
+            std::unique_ptr<FFT2D5Poisson> solver2;
         };
 
         FFT2D5FieldStorage(const FFT2D5Config& config, double pathLength);
