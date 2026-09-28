@@ -22,8 +22,8 @@
 #define OPALX_SPACE_CHARGE_FFT2D5_FIELD_STORAGE_H
 
 #include "Manager/datatypes.h"
-#include "SpaceCharge/SpaceChargeConfig.h"
 #include "SpaceCharge/FFT2D5/FFT2D5Poisson.h"
+#include "SpaceCharge/SpaceChargeConfig.h"
 
 #include <cstddef>
 #include <memory>
