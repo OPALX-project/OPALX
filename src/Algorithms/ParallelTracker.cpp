@@ -475,27 +475,9 @@ void ParallelTracker::execute() {
     {
         auto particleContainer = itsBunch_m->getParticleContainer();
 
-        // Register mesh fields (one Conduit channel per mesh, multiple arrays)
-        if (exportCatalystFields && spaceChargeSolver_m != nullptr) {
-            auto* algo = dynamic_cast<opalx::spacecharge::CartesianPIC3DAlgorithm*>(
-                &spaceChargeSolver_m->algorithm());
-            if (algo) {
-                auto& fs = algo->fieldStorage();
-                auto meshCh = cat_vis.addMeshChannel<3>(
-                    "bunch_mesh",
-                    fs.mesh(),
-                    fs.layout(),
-                    fs.electricField().getNghost());
-
-                meshCh.addArray("E_self", fs.electricField());
-                meshCh.addArray("rho", fs.chargeDensity());
-                // B_self, phi available via accumulatedMagneticField(), potential()
-                // but require solver-type checks. Add as needed.
-            }
-        }
-
         // Register particle channels — one per container (supports multi-bunch).
         // Each gets its own transform for bunch-frame visualization.
+        // Channel names are generic: particle_bunch_0, particle_bunch_1, ...
         auto rowsFromMatrix = [](const matrix3x3_t& m) {
             return std::array<Vector_t<double, 3>, 3>{
                 Vector_t<double, 3>(m(0, 0), m(0, 1), m(0, 2)),
@@ -515,11 +497,29 @@ void ParallelTracker::execute() {
             td.invOrigin = invToLab.getOrigin();
             td.invRows   = rowsFromMatrix(invToLab.getRotationMatrix());
 
-            auto name = itsBunch_m->getParticleName(i);
-            if (name.empty())
-                name = "bunch_" + std::to_string(i);
-            catalystParticleHandles.push_back(
-                cat_vis.addParticleChannel(name, *containers[i]).setTransform(td));
+            auto name = "particle_bunch_" + std::to_string(i);
+            auto handle = cat_vis.addParticleChannel(name, *containers[i]).setTransform(td);
+            catalystParticleHandles.push_back(handle);
+
+            // Register self-field mesh as a block inside this particle multimesh
+            // so each bunch is self-contained (particles + boundingbox + transform + mesh).
+            if (exportCatalystFields && i == 0 && spaceChargeSolver_m != nullptr) {
+                auto* algo = dynamic_cast<opalx::spacecharge::CartesianPIC3DAlgorithm*>(
+                    &spaceChargeSolver_m->algorithm());
+                if (algo) {
+                    auto& fs = algo->fieldStorage();
+                    auto meshCh = cat_vis.addMeshBlock(
+                        name, "mesh",
+                        fs.mesh(),
+                        fs.layout(),
+                        fs.electricField().getNghost());
+
+                    meshCh.addArray("E_self", fs.electricField());
+                    meshCh.addArray("rho", fs.chargeDensity());
+                    // B_self, phi available via accumulatedMagneticField(), potential()
+                    // but require solver-type checks. Add as needed.
+                }
+            }
         }
 
         auto steerReg = ippl::MakeVisRegistryRuntimePtr();
