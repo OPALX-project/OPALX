@@ -34,17 +34,18 @@ renderView1.Set(
 # ----------------------------------------------------------------
 
 # create a new 'XML MultiBlock Data Reader'
-# Stand-in for the live 'MUON' particle channel. Under Catalyst this reader is
-# replaced by the in-situ Conduit channel with the same registrationName.
-muon_particles = XMLMultiBlockDataReader(
-    registrationName='MUON',
-    FileName=['/home/biddisco/temp/muon/MUON_snapshot/MUON_snapshot.vtm'])
+# Stand-in for the live 'particle_bunch_0' particle channel. Under Catalyst
+# this reader is replaced by the in-situ Conduit channel with the same
+# registrationName.
+particle_bunch_0 = XMLMultiBlockDataReader(
+    registrationName='particle_bunch_0',
+    FileName=['/home/biddisco/temp/muon/particle_bunch_0_snapshot/particle_bunch_0_snapshot.vtpc'])
 
 # create a new 'Extract Block'
-extractBlock1 = ExtractBlock(registrationName='ExtractBlock1', Input=muon_particles)
+extractBlock1 = ExtractBlock(registrationName='ExtractBlock1', Input=particle_bunch_0)
 extractBlock1.Set(
     Assembly='Hierarchy',
-    Selectors=['//block_transform'],
+    Selectors=['//transform'],
 )
 
 # create a new 'XML MultiBlock Data Reader'
@@ -61,10 +62,10 @@ annotateTime1 = AnnotateTime(registrationName='AnnotateTime1')
 annotateTime1.Format = 'Time: {time:07.1f}'
 
 # create a new 'Extract Block'
-extractBlock2 = ExtractBlock(registrationName='ExtractBlock2', Input=muon_particles)
+extractBlock2 = ExtractBlock(registrationName='ExtractBlock2', Input=particle_bunch_0)
 extractBlock2.Set(
     Assembly='Hierarchy',
-    Selectors=['//block_main'],
+    Selectors=['//particles'],
 )
 
 # create a new 'Programmable Filter'
@@ -252,11 +253,11 @@ except ValueError:
     _snapshot_step = 0
 
 if _snapshot_step > 0:
-    ext = CreateExtractor('VTPC', muon_particles,
-                          registrationName='Snapshot_MUON')
+    ext = CreateExtractor('VTPC', particle_bunch_0,
+                          registrationName='Snapshot_particle_bunch_0')
     ext.Trigger = 'Time Step'
     ext.Trigger.Frequency = _snapshot_step
-    ext.Writer.FileName = 'MUON_snapshot/{timestep:06d}.vtpc'
+    ext.Writer.FileName = 'particle_bunch_0_snapshot/{timestep:06d}.vtpc'
 
 # ----------------------------------------------------------------
 # Per-timestep behaviour

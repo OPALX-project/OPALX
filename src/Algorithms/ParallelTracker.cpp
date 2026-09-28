@@ -67,6 +67,7 @@
 #include "Stream/InSitu/CatalystAdaptor.h"
 #include "SpaceCharge/CartesianPIC3D/CartesianPIC3DAlgorithm.h"
 #include "SpaceCharge/CartesianPIC3D/CartesianPIC3DFieldStorage.h"
+#include "Algorithms/ElementVizRegistry.h"
 #endif
 
 extern Inform* gmsg;
@@ -475,27 +476,9 @@ void ParallelTracker::execute() {
     {
         auto particleContainer = itsBunch_m->getParticleContainer();
 
-        // Register mesh fields (one Conduit channel per mesh, multiple arrays)
-        if (exportCatalystFields && spaceChargeSolver_m != nullptr) {
-            auto* algo = dynamic_cast<opalx::spacecharge::CartesianPIC3DAlgorithm*>(
-                &spaceChargeSolver_m->algorithm());
-            if (algo) {
-                auto& fs = algo->fieldStorage();
-                auto meshCh = cat_vis.addMeshChannel<3>(
-                    "bunch_mesh",
-                    fs.mesh(),
-                    fs.layout(),
-                    fs.electricField().getNghost());
-
-                meshCh.addArray("E_self", fs.electricField());
-                meshCh.addArray("rho", fs.chargeDensity());
-                // B_self, phi available via accumulatedMagneticField(), potential()
-                // but require solver-type checks. Add as needed.
-            }
-        }
-
         // Register particle channels — one per container (supports multi-bunch).
         // Each gets its own transform for bunch-frame visualization.
+        // Channel names are generic: particle_bunch_0, particle_bunch_1, ...
         auto rowsFromMatrix = [](const matrix3x3_t& m) {
             return std::array<Vector_t<double, 3>, 3>{
                 Vector_t<double, 3>(m(0, 0), m(0, 1), m(0, 2)),
@@ -515,11 +498,42 @@ void ParallelTracker::execute() {
             td.invOrigin = invToLab.getOrigin();
             td.invRows   = rowsFromMatrix(invToLab.getRotationMatrix());
 
-            auto name = itsBunch_m->getParticleName(i);
-            if (name.empty())
-                name = "bunch_" + std::to_string(i);
-            catalystParticleHandles.push_back(
-                cat_vis.addParticleChannel(name, *containers[i]).setTransform(td));
+            auto name = "particle_bunch_" + std::to_string(i);
+            auto handle = cat_vis.addParticleChannel(name, *containers[i]).setTransform(td);
+            catalystParticleHandles.push_back(handle);
+        }
+
+        // Register a single mesh block inside the first particle multimesh
+        // so each bunch is self-contained (particles + boundingbox + transform + mesh).
+        // Self-fields (if solver active) and external element fields are added
+        // as arrays on this one mesh block.
+        if (exportCatalystFields) {
+            auto& domain = itsBunch_m->cartesianDomain();
+            auto meshCh = cat_vis.addMeshBlock<3>(
+                "particle_bunch_0", "mesh",
+                domain.mesh(), domain.layout(),
+                /*nghost=*/1, /*useGhostMasks=*/false);
+
+            // Self-fields from the space-charge solver (if active)
+            if (spaceChargeSolver_m != nullptr) {
+                auto* algo = dynamic_cast<opalx::spacecharge::CartesianPIC3DAlgorithm*>(
+                    &spaceChargeSolver_m->algorithm());
+                if (algo) {
+                    auto& fs = algo->fieldStorage();
+                    meshCh.addArray("E_self", fs.electricField());
+                    meshCh.addArray("rho", fs.chargeDensity());
+                    // B_self, phi available via accumulatedMagneticField(), potential()
+                    // but require solver-type checks. Add as needed.
+                }
+            }
+
+            // External element fields sampled onto the bunch mesh
+            elementVizRegistry_m = std::make_unique<opalx::ElementVizRegistry>();
+            elementVizRegistry_m->createFields(itsOpalBeamline_m, *itsBunch_m);
+            elementVizRegistry_m->forEachField(
+                [&meshCh](const std::string& name, auto& field) {
+                    meshCh.addArray(name, field);
+                });
         }
 
         auto steerReg = ippl::MakeVisRegistryRuntimePtr();
@@ -742,6 +756,17 @@ void ParallelTracker::execute() {
                         td.invOrigin = invToLab.getOrigin();
                         td.invRows   = rowsFromMatrix(invToLab.getRotationMatrix());
                         catalystParticleHandles[i].setTransform(td);
+                    }
+
+                    // Sample external element fields onto the bunch mesh
+                    // (ExternalFieldsOnBunchMesh — always correct, resampled per step).
+                    if (elementVizRegistry_m) {
+                        Vector_t<double, 3> rmin(0.0), rmax(0.0);
+                        if (itsBunch_m->getTotalNumAllContainers() > 0) {
+                            computeInitialBounds(rmin, rmax);
+                        }
+                        elementVizRegistry_m->sampleDynamic(
+                            itsOpalBeamline_m, *itsBunch_m, rmin, rmax);
                     }
 
                     cat_vis.Execute(step, step);
