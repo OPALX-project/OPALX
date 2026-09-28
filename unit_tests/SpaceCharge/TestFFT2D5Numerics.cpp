@@ -26,6 +26,7 @@
 #include "Lines/Line.h"
 #include "PartBunch/PartBunch.h"
 #include "SpaceCharge/FFT2D5/FFT2D5Algorithm.h"
+#include "SpaceCharge/FFT2D5/FFT2D5Poisson.h"
 #include "SpaceCharge/SpaceChargeConfigBuilder.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
@@ -36,9 +37,9 @@
 namespace {
     using namespace opalx::spacecharge;
 
-    constexpr bool VerboseTest = false;
+    constexpr bool VerboseTest = true;
 
-    class TestableFieldSolverCmd : public FieldSolverCmd {
+    class TestableFieldSolverCmd final : public FieldSolverCmd {
     public:
         void setType(const std::string& t) {
             Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::TYPE], t);
@@ -445,7 +446,7 @@ namespace {
         }
 
         static void expectParticle(
-                size_t index, const std::vector<Vector_t<double, 3>>& rs,
+                const size_t index, const std::vector<Vector_t<double, 3>>& rs,
                 const std::vector<Vector_t<double, 3>>& ps, const Vector_t<double, 3>& r,
                 const Vector_t<double, 3>& p, const double tolerance = 1e-6) {
             SCOPED_TRACE("Index = " + std::to_string(index));
@@ -1199,6 +1200,27 @@ namespace {
         expectParticle(0, r, p, {-0.7071068, 0, 1.7071068}, {-0.7071068, 0, 0.7071068});
     }
 
+    TEST_F(TestSolve2d5, GatherEField_OneParticle) {
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        fsCmd_m->setType("FFT2D5");
+        fsCmd_m->setNX(12);
+        fsCmd_m->setNY(12);
+        fsCmd_m->setNZ(12);
+        fsCmd_m->setPipeSizeX(6);
+        fsCmd_m->setPipeSizeY(6);
+        rebuildBunch();
+        auto* solver = solver_m.get();
+        createParticles({{0.1, 0, 3}}, {{0, 0, 0}});
+        solver->scatterToGrid(context());
+        solver->solvePoissons();
+        const auto gatherInfo = solver->createDiagnostic<Info>(Info::Kind::GatherEField);
+        solver->gatherFromGrid<Info>(context(), *gatherInfo);
+        auto [e, b] = gatherInfo->getParticleFields();
+        ASSERT_EQ(e.size(), 1);
+        ASSERT_EQ(b.size(), 1);
+        expectParticleFields(0, e, b, {0, 0, 0}, {0, 0, 0}, 1e3);
+    }
+
     TEST_F(TestSolve2d5, GatherEField_TwoParticles) {
         makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
@@ -1885,5 +1907,165 @@ namespace {
                                      {5, 6, 2, -927805928809394.75, 6103969523576944.0,   0.0},
                                      {4, 6, 2, -5967249946832035.0, 12198160561896932.0,  0.0},
                                      {6, 7, 2, 12256750350007952.0, 20338717682993576.0,  0.0}});
+    }
+
+    void makeChargeDensity(FFT2D5Poisson::ScalarField2_t& chargeDensity) {
+        // Fill with a delta function
+        auto hostView = chargeDensity.getHostMirror();
+        auto nGhost   = chargeDensity.getNghost();
+        Kokkos::deep_copy(hostView, 0.0);
+        hostView(nGhost, nGhost) = 1.0;
+        Kokkos::deep_copy(chargeDensity.getView(), hostView);
+    }
+
+    const std::array ExpectedGreens12x12{
+            0.0000,  0.0000,  -0.1103, -0.1748, -0.2206, -0.2561, -0.2853, -0.2561, -0.2206,
+            -0.1748, -0.1103, 0.0000,  0.0000,  -0.0552, -0.1281, -0.1832, -0.2255, -0.2600,
+            -0.2875, -0.2600, -0.2255, -0.1832, -0.1281, -0.0552, -0.1103, -0.1281, -0.1655,
+            -0.2032, -0.2386, -0.2685, -0.2933, -0.2685, -0.2386, -0.2032, -0.1655, -0.1281,
+            -0.1748, -0.1832, -0.2032, -0.2206, -0.2432, -0.2668, -0.2875, -0.2668, -0.2432,
+            -0.2206, -0.2032, -0.1832, -0.2206, -0.2255, -0.2386, -0.2432, -0.2758, -0.2933,
+            -0.3092, -0.2933, -0.2758, -0.2432, -0.2386, -0.2255, -0.2561, -0.2600, -0.2685,
+            -0.2668, -0.2933, -0.3127, -0.3300, -0.3127, -0.2933, -0.2668, -0.2685, -0.2600,
+            -0.2853, -0.2875, -0.2933, -0.2875, -0.3092, -0.3300, -0.3471, -0.3300, -0.3092,
+            -0.2875, -0.2933, -0.2875, -0.2561, -0.2600, -0.2685, -0.2668, -0.2933, -0.3127,
+            -0.3300, -0.3127, -0.2933, -0.2668, -0.2685, -0.2600, -0.2206, -0.2255, -0.2386,
+            -0.2432, -0.2758, -0.2933, -0.3092, -0.2933, -0.2758, -0.2432, -0.2386, -0.2255,
+            -0.1748, -0.1832, -0.2032, -0.2206, -0.2432, -0.2668, -0.2875, -0.2668, -0.2432,
+            -0.2206, -0.2032, -0.1832, -0.1103, -0.1281, -0.1655, -0.2032, -0.2386, -0.2685,
+            -0.2933, -0.2685, -0.2386, -0.2032, -0.1655, -0.1281, 0.0000,  -0.0552, -0.1281,
+            -0.1832, -0.2255, -0.2600, -0.2875, -0.2600, -0.2255, -0.1832, -0.1281, -0.0552};
+
+    const std::array ExpectedPotential6x6{
+            0.0000,  0.0000,  -0.1103, -0.1748, -0.2206, -0.2561, 0.0000,  -0.0552, -0.1281,
+            -0.1832, -0.2255, -0.2600, -0.1103, -0.1281, -0.1655, -0.2032, -0.2386, -0.2685,
+            -0.1748, -0.1832, -0.2032, -0.2206, -0.2432, -0.2668, -0.2206, -0.2255, -0.2386,
+            -0.2432, -0.2758, -0.2933, -0.2561, -0.2600, -0.2685, -0.2668, -0.2933, -0.3127};
+
+    const std::array ExpectedEx{-0.0000, 0.0551, 0.0874, 0.0551, 0.0406, 0.0355, 0.0552, 0.0640,
+                                0.0640,  0.0487, 0.0384, 0.0345, 0.0178, 0.0276, 0.0376, 0.0365,
+                                0.0327,  0.0299, 0.0084, 0.0142, 0.0187, 0.0200, 0.0231, 0.0236,
+                                0.0049,  0.0090, 0.0088, 0.0186, 0.0251, 0.0175, 0.0039, 0.0062,
+                                0.0034,  0.0124, 0.0229, 0.0194};
+
+    const std::array ExpectedEy{-0.0000, 0.0552, 0.0178, 0.0084, 0.0049, 0.0039, 0.0551, 0.0640,
+                                0.0276,  0.0142, 0.0090, 0.0062, 0.0874, 0.0640, 0.0376, 0.0187,
+                                0.0088,  0.0034, 0.0551, 0.0487, 0.0365, 0.0200, 0.0186, 0.0124,
+                                0.0406,  0.0384, 0.0327, 0.0231, 0.0251, 0.0229, 0.0355, 0.0345,
+                                0.0299,  0.0236, 0.0175, 0.0194};
+
+    void verifyGreensFunction12x12(
+            const FFT2D5Poisson::ScalarField2_t& greensFn2,
+            const FFT2D5Poisson::ComplexField2_t& greensTr2,
+            const FFT2D5Poisson::ScalarField2_t& potential2,
+            const FFT2D5Poisson::ScalarField2_t& potential,
+            const FFT2D5Poisson::VectorField2_t& electric) {
+        const auto mesh           = greensFn2.get_mesh();
+        const auto greens2Host    = greensFn2.getHostMirror();
+        const auto greensTr2Host  = greensTr2.getHostMirror();
+        const auto potential2Host = potential2.getHostMirror();
+        const auto potentialHost  = potential.getHostMirror();
+        const auto eHost          = electric.getHostMirror();
+        Kokkos::deep_copy(greens2Host, greensFn2.getView());
+        Kokkos::deep_copy(greensTr2Host, greensTr2.getView());
+        Kokkos::deep_copy(potential2Host, potential2.getView());
+        Kokkos::deep_copy(potentialHost, potential.getView());
+        Kokkos::deep_copy(eHost, electric.getView());
+        const auto nGhost2          = greensFn2.getNghost();
+        const auto nGhostTr2        = greensTr2.getNghost();
+        const auto nGhostPotential2 = potential2.getNghost();
+        const auto nGhostPotential  = potential.getNghost();
+        const auto nGhostE          = electric.getNghost();
+        // Print
+        if (VerboseTest) {
+            for (size_t j = 0; j < mesh.getGridsize(1); ++j) {
+                std::cout << j << ": ";
+                for (size_t i = 0; i < mesh.getGridsize(0); ++i) {
+                    std::cout << greensFn2(i + nGhost2, j + nGhost2) << " ";
+                }
+                std::cout << std::endl;
+            }
+        }
+        // Check grid and contents
+        ASSERT_EQ(mesh.getGridsize(0), 12);
+        ASSERT_EQ(mesh.getGridsize(1), 12);
+        for (size_t i = 0; i < 12; ++i) {
+            for (size_t j = 0; j < 12; ++j) {
+                SCOPED_TRACE(std::format("i = {}, j = {}, index={}", i, j, j * 12 + i));
+                ASSERT_NEAR(
+                        greens2Host(i + nGhost2, j + nGhost2), ExpectedGreens12x12[j * 12 + i],
+                        2e-2);
+            }
+        }
+        // Check transform
+        double totalGreens = 0.0;
+        for (size_t j = 0; j < mesh.getGridsize(1); ++j) {
+            for (size_t i = 0; i < mesh.getGridsize(0); ++i) {
+                totalGreens += greensFn2(i + nGhost2, j + nGhost2);
+            }
+        }
+        auto imagG0 = greensTr2Host(nGhostTr2, nGhostTr2).imag();
+        auto realG0 = greensTr2Host(nGhostTr2, nGhostTr2).real();
+        ASSERT_NEAR(totalGreens, realG0 * 144, 1e-4);
+        ASSERT_NEAR(imagG0, 0.0, 1e-4);
+        // Print the potential
+        if (VerboseTest) {
+            for (size_t j = 0; j < mesh.getGridsize(1); ++j) {
+                std::cout << j << ": ";
+                for (size_t i = 0; i < mesh.getGridsize(0); ++i) {
+                    std::cout << potential2Host(i + nGhostPotential2, j + nGhostPotential2) << " ";
+                }
+                std::cout << std::endl;
+            }
+        }
+        // Find the maximum error between the potential and the original Greens function
+        double maxError = 0.0;
+        for (size_t j = 0; j < mesh.getGridsize(1); ++j) {
+            for (size_t i = 0; i < mesh.getGridsize(0); ++i) {
+                auto diff = std::abs(
+                        potential2Host(i + nGhostPotential2, j + nGhostPotential2)
+                        - greens2Host(i + nGhost2, j + nGhost2));
+                maxError = std::max(maxError, diff);
+            }
+        }
+        ASSERT_NEAR(maxError, 0.0, 1e-12);
+        // Now verify the potential result
+        for (size_t i = 0; i < 6; ++i) {
+            for (size_t j = 0; j < 6; ++j) {
+                SCOPED_TRACE(std::format("i = {}, j = {}, index={}", i, j, j * 6 + i));
+                ASSERT_NEAR(
+                        potentialHost(i + nGhostPotential, j + nGhostPotential),
+                        ExpectedPotential6x6[j * 6 + i], 2e-2);
+            }
+        }
+        // Now verify the E result
+        for (size_t i = 0; i < 6; ++i) {
+            for (size_t j = 0; j < 6; ++j) {
+                SCOPED_TRACE(std::format("i = {}, j = {}, index={}", i, j, j * 6 + i));
+                ASSERT_NEAR(
+                        eHost(i + nGhostE, j + nGhostE).data_m[0],
+                        ExpectedEx[j * 6 + i], 2e-2);
+                ASSERT_NEAR(
+                        eHost(i + nGhostE, j + nGhostE).data_m[1],
+                        ExpectedEy[j * 6 + i], 2e-2);
+            }
+        }
+    }
+
+    TEST_F(TestSolve2d5, Poisson_Simple) {
+        // Make a charge density
+        const FFT2D5Poisson::NDIndex2_t domain{6, 6};
+        FFT2D5Poisson::Mesh2_t mesh{domain, {1.0, 1.0}, {0, 0}};
+        FFT2D5Poisson::Layout2_t layout{MPI_COMM_WORLD, domain, {false, false}};
+        FFT2D5Poisson::ScalarField2_t rho{mesh, layout};
+        makeChargeDensity(rho);
+        // Make an electric field object
+        FFT2D5Poisson::VectorField2_t e{mesh, layout};
+        // Solve the poisson equation
+        FFT2D5Poisson poisson;
+        poisson.solve(rho, e);
+        // Verify the Green's function
+        verifyGreensFunction12x12(
+                poisson.getGreensFn(), poisson.getGreensFnTr(), poisson.getDoubledRho(), rho, e);
     }
 }  // namespace

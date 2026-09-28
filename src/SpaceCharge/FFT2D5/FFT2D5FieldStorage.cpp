@@ -19,7 +19,6 @@
  */
 
 #include "SpaceCharge/FFT2D5/FFT2D5FieldStorage.h"
-
 #include "Utilities/OpalException.h"
 
 #include <array>
@@ -105,6 +104,7 @@ namespace opalx::spacecharge {
             slice.chargeDensity = std::make_unique<ScalarField2>(sliceMesh_m, sliceLayout_m);
             slice.solver        = std::make_unique<OpenSolver2>(
                     *slice.electricField, *slice.chargeDensity, solverParameters_m);
+            slice.solver2       = std::make_unique<FFT2D5Poisson>();
         }
     }
 
