@@ -248,20 +248,6 @@ public:
     /// @return global number of newly marked particles (allreduced) - collective call.
     size_t applyElementApertures(const std::vector<std::shared_ptr<OrbitThreader>>& oths);
 
-#ifdef IPPL_ENABLE_CATALYST
-    /**
-     * @brief Sample the external fields of beamline elements onto the bunch mesh.
-     *
-     * Fills the FieldContainer's externalE/externalB fields by querying the
-     * orbit threader for elements near the local mesh subdomain and calling
-     * ElementBase::apply() at each cell centre. The result is published as a
-     * Catalyst channel for in-situ visualization.
-     *
-     * @param oths Per-container orbit threaders used for element queries.
-     */
-    void sampleExternalFieldsToMesh(const std::vector<std::shared_ptr<OrbitThreader>>& oths);
-#endif
-
     /// @brief Emit macroparticles from configured samplers per container.
     /// @param t  Bunch time (s).
     /// @param dt Global time step (s).

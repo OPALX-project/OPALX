@@ -55,6 +55,10 @@ namespace opalx::spacecharge {
         [[nodiscard]] std::size_t backendSolveCount() const { return backendSolveCount_m; }
         [[nodiscard]] std::size_t redistributionCount() const { return redistributionCount_m; }
 
+        /** @brief Borrowed access to the underlying algorithm for visualization. */
+        [[nodiscard]] SpaceChargeAlgorithm& algorithm() { return *algorithm_m; }
+        [[nodiscard]] const SpaceChargeAlgorithm& algorithm() const { return *algorithm_m; }
+
     private:
         std::unique_ptr<SpaceChargeAlgorithm> algorithm_m;
         std::size_t particleContainerCount_m = 0;

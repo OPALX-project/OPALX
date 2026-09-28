@@ -65,6 +65,8 @@
 
 #ifdef IPPL_ENABLE_CATALYST
 #include "Stream/InSitu/CatalystAdaptor.h"
+#include "SpaceCharge/CartesianPIC3D/CartesianPIC3DAlgorithm.h"
+#include "SpaceCharge/CartesianPIC3D/CartesianPIC3DFieldStorage.h"
 #endif
 
 extern Inform* gmsg;
@@ -474,25 +476,21 @@ void ParallelTracker::execute() {
         auto particleContainer = itsBunch_m->getParticleContainer();
 
         // Register mesh fields (one Conduit channel per mesh, multiple arrays)
-        if (exportCatalystFields) {
-            auto fcontainer = itsBunch_m->getFieldContainer();
-            if (fcontainer) {
+        if (exportCatalystFields && spaceChargeSolver_m != nullptr) {
+            auto* algo = dynamic_cast<opalx::spacecharge::CartesianPIC3DAlgorithm*>(
+                &spaceChargeSolver_m->algorithm());
+            if (algo) {
+                auto& fs = algo->fieldStorage();
                 auto meshCh = cat_vis.addMeshChannel<3>(
                     "bunch_mesh",
-                    fcontainer->getMesh(),
-                    fcontainer->getFL(),
-                    fcontainer->getE().getNghost());
+                    fs.mesh(),
+                    fs.layout(),
+                    fs.electricField().getNghost());
 
-                meshCh.addArray("E_self", fcontainer->getE());
-                if (auto btmp = fcontainer->getTempBField()) {
-                    meshCh.addArray("B_self", *btmp);
-                }
-                meshCh.addArray("rho", fcontainer->getRho());
-                if (itsBunch_m->getFieldSolver() && itsBunch_m->getFieldSolverType() == "CG") {
-                    meshCh.addArray("phi", fcontainer->getPhi());
-                }
-                meshCh.addArray("E_external", fcontainer->getExternalE());
-                meshCh.addArray("B_external", fcontainer->getExternalB());
+                meshCh.addArray("E_self", fs.electricField());
+                meshCh.addArray("rho", fs.chargeDensity());
+                // B_self, phi available via accumulatedMagneticField(), potential()
+                // but require solver-type checks. Add as needed.
             }
         }
 
@@ -723,13 +721,6 @@ void ParallelTracker::execute() {
                 }();
                 const auto step = itsBunch_m->getGlobalTrackStep();
                 if (step % liveFreq == 0) {
-                    if (exportCatalystFields) {
-                        // Sample beamline element fields onto the bunch mesh so they can be
-                        // exported as Catalyst field channels.
-                        sampleExternalFieldsToMesh(oths);
-                        // No rememberNow needed — Always policy copies every Execute().
-                    }
-
                     // Update the bunch-frame transform on each particle channel
                     // so ParaView can transform geometry into the bunch frame.
                     auto rowsFromMatrix = [](const matrix3x3_t& m) {
@@ -1053,111 +1044,6 @@ void ParallelTracker::computeExternalFields(
 
     IpplTimings::stopTimer(fieldEvaluationTimer_m);
 }
-
-#ifdef IPPL_ENABLE_CATALYST
-/**
- * @copybrief ParallelTracker::sampleExternalFieldsToMesh
- */
-void ParallelTracker::sampleExternalFieldsToMesh(
-        const std::vector<std::shared_ptr<OrbitThreader>>& oths) {
-    Inform m("ParallelTracker::sampleExternalFieldsToMesh");
-
-    auto fc = itsBunch_m->getFieldContainer();
-    if (!fc) {
-        m << level4 << "No FieldContainer; skipping external field sampling." << endl;
-        return;
-    }
-
-    auto pc = itsBunch_m->getParticleContainer(0);
-    if (!pc || !pc->getReference()) {
-        m << level4 << "No primary particle container; skipping external field sampling." << endl;
-        return;
-    }
-
-    auto& externalE = fc->getExternalE();
-    auto& externalB = fc->getExternalB();
-
-    // Zero the fields before accumulating element contributions.
-    externalE = 0.0;
-    externalB = 0.0;
-
-    const auto& mesh   = fc->getMesh();
-    const auto& origin = mesh.getOrigin();
-    const auto& h      = mesh.getMeshSpacing();
-
-    const int nghost = externalE.getNghost();
-    const auto owned = externalE.getOwned();
-
-    // Local mesh z-extent in the reference frame, used for the element query.
-    const double zmin = origin[2] + owned[2].first() * h[2];
-    const double zmax = origin[2] + (owned[2].last() + 1) * h[2];
-
-    // Gather elements whose longitudinal window may overlap the local mesh.
-    std::set<std::shared_ptr<ElementBase>> elements;
-    try {
-        if (!oths.empty() && oths[0]) {
-            const double centre = pc->get_sPos() + 0.5 * (zmin + zmax);
-            elements            = oths[0]->query(centre, zmax - zmin);
-        } else {
-            elements = itsOpalBeamline_m.getElements();
-        }
-    } catch (IndexMap::OutOfBounds&) {
-        m << level4 << "Orbit threader query out-of-bounds; skipping external field sampling."
-          << endl;
-        return;
-    }
-
-    if (elements.empty()) {
-        return;
-    }
-
-    const auto& toLab = pc->getToLabTrafo();
-    const double t    = itsBunch_m->getT();
-
-    auto Eview = externalE.getView();
-    auto Bview = externalB.getView();
-    auto Ehost = Kokkos::create_mirror_view(Eview);
-    auto Bhost = Kokkos::create_mirror_view(Bview);
-    Kokkos::deep_copy(Ehost, Eview);
-    Kokkos::deep_copy(Bhost, Bview);
-
-    for (const auto& element : elements) {
-        if (!element) {
-            continue;
-        }
-
-        const CoordinateSystemTrafo refToLocalCSTrafo =
-                (itsOpalBeamline_m.getMisalignment(element)
-                 * (itsOpalBeamline_m.getCSTrafoLab2Local(element) * toLab));
-        const CoordinateSystemTrafo localToRefCSTrafo = refToLocalCSTrafo.inverted();
-
-        for (int i = owned[0].first() + nghost; i <= owned[0].last() + nghost; ++i) {
-            const double x = (i - nghost) * h[0] + origin[0];
-            for (int j = owned[1].first() + nghost; j <= owned[1].last() + nghost; ++j) {
-                const double y = (j - nghost) * h[1] + origin[1];
-                for (int k = owned[2].first() + nghost; k <= owned[2].last() + nghost; ++k) {
-                    const double z = (k - nghost) * h[2] + origin[2];
-
-                    const Vector_t<double, 3> refPoint(x, y, z);
-                    const Vector_t<double, 3> localR = refToLocalCSTrafo.transformTo(refPoint);
-
-                    Vector_t<double, 3> localE(0.0);
-                    Vector_t<double, 3> localB(0.0);
-                    element->apply(localR, Vector_t<double, 3>(0.0), t, localE, localB);
-
-                    Ehost(i, j, k) += localToRefCSTrafo.rotateTo(localE);
-                    Bhost(i, j, k) += localToRefCSTrafo.rotateTo(localB);
-                }
-            }
-        }
-    }
-
-    Kokkos::deep_copy(Eview, Ehost);
-    Kokkos::deep_copy(Bview, Bhost);
-    m << level4 << "Sampled external E/B fields onto mesh (" << elements.size() << " elements)."
-      << endl;
-}
-#endif
 
 /**
  * @copybrief ParallelTracker::forEachElementInBunchFrame
