@@ -350,8 +350,11 @@ namespace opalx::spacecharge {
                     KOKKOS_LAMBDA(const size_t i, const size_t j) {
                         rho2d(i, j) *= 1 / Physics::epsilon_0;
                     });
-            // s.solver->solve();
+#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
+            s.solver->solve();
+#else
             s.solver2->solve(*s.chargeDensity, *s.electricField);
+#endif
             Kokkos::fence();
             diagnostic.potential(rho2d, z + nGhost);
             auto e2d = s.electricField->getView();
