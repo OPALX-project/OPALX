@@ -28,8 +28,10 @@
 #ifndef OPALX_FFT2D5SOLVER_H
 #define OPALX_FFT2D5SOLVER_H
 
+// clang-format off
 #include "Ippl.h"
 #include "FFT/FFT.h"
+// clang-format on
 
 class FFT2D5Poisson {
 public:

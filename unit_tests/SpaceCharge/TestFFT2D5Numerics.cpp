@@ -1172,11 +1172,19 @@ namespace {
         solver->scatterToGrid(context());
         const auto info = solver->createDiagnostic<Info>(Info::Kind::EField);
         solver->solvePoissons<Info>(*info);
+#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
         expectEField(
-                info->eFieldView_m, {{1, 1, 6, -3247760580, -3247760580, 0},
-                                     {2, 1, 6, -3173949541, -3967148560, 0},
-                                     {4, 4, 6, -6995720024, -6995720024, 0},
-                                     {4, 8, 6, -10571642669, 5851278346, 0}});
+                info->eFieldView_m, {{1, 1, 6, -3250090326, -3250090326, 0},
+                                     {2, 1, 6, -3218709596, -3896406064, 0},
+                                     {4, 4, 6, -7214724490, -7214724490, 0},
+                                     {4, 8, 6, -10565567441, 6311498630, 0}});
+#else
+        expectEField(
+            info->eFieldView_m, {{1, 1, 6, -3247760580, -3247760580, 0},
+                                 {2, 1, 6, -3173949541, -3967148560, 0},
+                                 {4, 4, 6, -6995720024, -6995720024, 0},
+                                 {4, 8, 6, -10571642669, 5851278346, 0}});
+#endif
     }
 
     TEST_F(TestSolve2d5, ToFrenetSerretGather_Simple) {
@@ -1239,8 +1247,13 @@ namespace {
         auto [e, b] = gatherInfo->getParticleFields();
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
+#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
+        expectParticleFields(0, e, b, {4493908875, 0, 0}, {0, 0, 0}, 1e3);
+        expectParticleFields(1, e, b, {-4493908875, 0, 0}, {0, 0, 0}, 1e3);
+#else
         expectParticleFields(0, e, b, {4516811045, 0, 0}, {0, 0, 0}, 1e3);
         expectParticleFields(1, e, b, {-4516811045, 0, 0}, {0, 0, 0}, 1e3);
+#endif
     }
 
     TEST_F(TestSolve2d5, Deboost_TwoStationaryParticles) {
@@ -1261,8 +1274,13 @@ namespace {
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
+#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
+        expectParticleFields(0, e, b, {4493908875, 0, 0}, {0, 0, 0}, 1e3);
+        expectParticleFields(1, e, b, {-4493908875, 0, 0}, {0, 0, 0}, 1e3);
+#else
         expectParticleFields(0, e, b, {4516811045, 0, 0}, {0, 0, 0}, 1e3);
         expectParticleFields(1, e, b, {-4516811045, 0, 0}, {0, 0, 0}, 1e3);
+#endif
     }
 
     TEST_F(TestSolve2d5, Deboost_TwoRelativisticParticles) {
@@ -1283,8 +1301,13 @@ namespace {
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
+#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
+        expectParticleFields(0, e, b, {6355346880, 0, 0}, {0, -14.990066, 0}, 1e3, 1e-4);
+        expectParticleFields(1, e, b, {-6355346880, 0, 0}, {0, 14.990066, 0}, 1e3, 1e-4);
+#else
         expectParticleFields(0, e, b, {6387735439, 0, 0}, {0, -15.066459, 0}, 1e3, 1e-4);
         expectParticleFields(1, e, b, {-6387735439, 0, 0}, {0, 15.066459, 0}, 1e3, 1e-4);
+#endif
     }
 
     TEST_F(TestSolve2d5, LongitudinalField_Simple) {
@@ -1308,10 +1331,17 @@ namespace {
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
+#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
         expectParticleFields(
-                0, e, b, {6387735439, 0, 57.160829398e9}, {0, -15.06645, 0}, 1e3, 1e-4);
+                0, e, b, {6355346880, 0, 57.160829398e9}, {0, -14.990066, 0}, 1e3, 1e-4);
+        expectParticleFields(
+                1, e, b, {-6355346880, 0, 57.160829398e9}, {0, 14.990066, 0}, 1e3, 1e-4);
+#else
+        expectParticleFields(
+            0, e, b, {6387735439, 0, 57.160829398e9}, {0, -15.06645, 0}, 1e3, 1e-4);
         expectParticleFields(
                 1, e, b, {-6387735439, 0, 57.160829398e9}, {0, 15.06645, 0}, 1e3, 1e-4);
+#endif
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_Simple) {
@@ -1333,10 +1363,17 @@ namespace {
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
+#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
+        expectParticleFields(
+                0, e, b, {6355346880, 0, 57.160829398e9}, {0, -14.990066, 0}, 1e3, 1e-4);
+        expectParticleFields(
+                1, e, b, {-6355346880, 0, 57.160829398e9}, {0, 14.990066, 0}, 1e3, 1e-4);
+#else
         expectParticleFields(
                 0, e, b, {6387735439, 0, 57.160829398e9}, {0, -15.06645, 0}, 1e3, 1e-4);
         expectParticleFields(
                 1, e, b, {-6387735439, 0, 57.160829398e9}, {0, 15.06645, 0}, 1e3, 1e-4);
+#endif
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_SimpleInvalid) {
@@ -1360,11 +1397,19 @@ namespace {
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 3);
         ASSERT_EQ(b.size(), 3);
+#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
+        expectParticleFields(
+                0, e, b, {6355346880, 0, 57.160829398e9}, {0, -14.990066, 0}, 1e3, 1e-4);
+        expectParticleFields(
+                1, e, b, {-6355346880, 0, 57.160829398e9}, {0, 14.990066, 0}, 1e3, 1e-4);
+        expectParticleFields(2, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
+#else
         expectParticleFields(
                 0, e, b, {6387735439, 0, 57.160829398e9}, {0, -15.06645, 0}, 1e3, 1e-4);
         expectParticleFields(
                 1, e, b, {-6387735439, 0, 57.160829398e9}, {0, 15.06645, 0}, 1e3, 1e-4);
         expectParticleFields(2, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
+#endif
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_SimpleOutOfBoundsX) {
@@ -1460,11 +1505,19 @@ namespace {
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 3);
         ASSERT_EQ(b.size(), 3);
+#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
+        expectParticleFields(
+                0, e, b, {6355346880, 0, 28.580515699e9}, {0, -14.990066, 0}, 1e6, 1e-4);
+        expectParticleFields(
+                1, e, b, {-6355346880, 0, 28.580515699e9}, {0, 14.990066, 0}, 1e6, 1e-4);
+        expectParticleFields(2, e, b, {0, 0, 28.580515699e9}, {0, 0, 0}, 1e6, 1e-4);
+#else
         expectParticleFields(
                 0, e, b, {6387735439, 0, 28.580515699e9}, {0, -15.06645, 0}, 1e6, 1e-4);
         expectParticleFields(
                 1, e, b, {-6387735439, 0, 28.580515699e9}, {0, 15.06645, 0}, 1e6, 1e-4);
         expectParticleFields(2, e, b, {0, 0, 28.580515699e9}, {0, 0, 0}, 1e6, 1e-4);
+#endif
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_OpenRing) {
@@ -1491,11 +1544,19 @@ namespace {
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 3);
         ASSERT_EQ(b.size(), 3);
+#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
+        expectParticleFields(
+                0, e, b, {6355346880, 0, 57.160829398e9}, {0, -14.990066, 0}, 1e6, 1e-4);
+        expectParticleFields(
+                1, e, b, {-6355346880, 0, 57.160829398e9}, {0, 14.990066, 0}, 1e6, 1e-4);
+        expectParticleFields(2, e, b, {0, 0, 0}, {0, 0, 0}, 1e6, 1e-4);
+#else
         expectParticleFields(
                 0, e, b, {6387735439, 0, 57.160829398e9}, {0, -15.06645, 0}, 1e6, 1e-4);
         expectParticleFields(
                 1, e, b, {-6387735439, 0, 57.160829398e9}, {0, 15.06645, 0}, 1e6, 1e-4);
         expectParticleFields(2, e, b, {0, 0, 0}, {0, 0, 0}, 1e6, 1e-4);
+#endif
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_Pipe) {
@@ -1519,10 +1580,17 @@ namespace {
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
+#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
+        expectParticleFields(
+                0, e, b, {6355346880, 0, 50.688114128e9}, {0, -14.990066, 0}, 1e3, 1e-4);
+        expectParticleFields(
+                1, e, b, {-6355346880, 0, 50.688114128e9}, {0, 14.990066, 0}, 1e3, 1e-4);
+#else
         expectParticleFields(
                 0, e, b, {6387735439, 0, 50.688114128e9}, {0, -15.06645, 0}, 1e3, 1e-4);
         expectParticleFields(
                 1, e, b, {-6387735439, 0, 50.688114128e9}, {0, 15.06645, 0}, 1e3, 1e-4);
+#endif
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_Plates) {
@@ -1546,10 +1614,17 @@ namespace {
         auto [e, b] = info->getParticleFields();
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
+#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
+        expectParticleFields(
+                0, e, b, {6355346880, 0, 55.030260593e9}, {0, -14.990066, 0}, 1e3, 1e-4);
+        expectParticleFields(
+                1, e, b, {-6355346880, 0, 55.030260593e9}, {0, 14.990066, 0}, 1e3, 1e-4);
+#else
         expectParticleFields(
                 0, e, b, {6387735439, 0, 55.030260593e9}, {0, -15.06645, 0}, 1e3, 1e-4);
         expectParticleFields(
                 1, e, b, {-6387735439, 0, 55.030260593e9}, {0, 15.06645, 0}, 1e3, 1e-4);
+#endif
     }
 
     TEST_F(TestSolve2d5, LoadReferencePath_Empty) {
@@ -1605,6 +1680,26 @@ namespace {
         const auto bHost = pc.B.getHostMirror();
         Kokkos::deep_copy(eHost, pc.E.getView());
         Kokkos::deep_copy(bHost, pc.B.getView());
+#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
+        EXPECT_NEAR(eHost(0).data_m[0], 6355346880, 1e6);
+        EXPECT_NEAR(eHost(0).data_m[1], 0, 1e6);
+        EXPECT_NEAR(eHost(0).data_m[2], 28.580515699e9, 1e6);
+        EXPECT_NEAR(eHost(1).data_m[0], -6355346880, 1e6);
+        EXPECT_NEAR(eHost(1).data_m[1], 0, 1e6);
+        EXPECT_NEAR(eHost(1).data_m[2], 28.580515699e9, 1e6);
+        EXPECT_NEAR(eHost(2).data_m[0], 0, 1e6);
+        EXPECT_NEAR(eHost(2).data_m[1], 0, 1e6);
+        EXPECT_NEAR(eHost(2).data_m[2], 28.580515699e9, 1e6);
+        EXPECT_NEAR(bHost(0).data_m[0], 0, 1e-4);
+        EXPECT_NEAR(bHost(0).data_m[1], -14.990066, 1e-4);
+        EXPECT_NEAR(bHost(0).data_m[2], 0, 1e-4);
+        EXPECT_NEAR(bHost(1).data_m[0], 0, 1e-4);
+        EXPECT_NEAR(bHost(1).data_m[1], 14.990066, 1e-4);
+        EXPECT_NEAR(bHost(1).data_m[2], 0, 1e-4);
+        EXPECT_NEAR(bHost(2).data_m[0], 0, 1e-4);
+        EXPECT_NEAR(bHost(2).data_m[1], 0, 1e-4);
+        EXPECT_NEAR(bHost(2).data_m[2], 0, 1e-4);
+#else
         EXPECT_NEAR(eHost(0).data_m[0], 6387735439, 1e6);
         EXPECT_NEAR(eHost(0).data_m[1], 0, 1e6);
         EXPECT_NEAR(eHost(0).data_m[2], 28.580515699e9, 1e6);
@@ -1623,6 +1718,7 @@ namespace {
         EXPECT_NEAR(bHost(2).data_m[0], 0, 1e-4);
         EXPECT_NEAR(bHost(2).data_m[1], 0, 1e-4);
         EXPECT_NEAR(bHost(2).data_m[2], 0, 1e-4);
+#endif
     }
 
     const std::vector<Vector_t<double, 3>> kvR{
@@ -1879,12 +1975,20 @@ namespace {
         createParticles(kvR, kvP);
         const auto info = solver->createDiagnostic<Info>(Info::Kind::Potential);
         solver->doRunSolver<Info>(context(), *info);
-        // Check the charge density
+        // Check the potential
+#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
+        expectPotential(               //i, j, k, phi
+                info->rhoView_m, {{5, 5, 2, 963538234764917},
+                                     {5, 6, 2, 947474778602442},
+                                     {4, 6, 2, 954504662037936},
+                                     {6, 7, 2, 948706293379785}}, 10.0);
+#else
         expectPotential(               //i, j, k, phi
                 info->rhoView_m, {{5, 5, 2, 958298665305089},
                                      {5, 6, 2, 941032164219868},
                                      {4, 6, 2, 952163878215342},
                                      {6, 7, 2, 944373262094347}}, 10.0);
+#endif
     }
 
     TEST_F(TestSolve2d5, KvBeam_ElectricField) {
@@ -1901,12 +2005,20 @@ namespace {
         createParticles(kvR, kvP);
         const auto info = solver->createDiagnostic<Info>(Info::Kind::EField);
         solver->doRunSolver<Info>(context(), *info);
-        // Check the charge density
+        // Check the electric field
+#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
+        expectEField(               //i, j, k, Ex,                  Ey,                   Ez
+                info->eFieldView_m, {{5, 5, 2, 22636807214983296.0, 3856068046813640.0,   0.0},
+                                     {5, 6, 2, -927805928809393.0, 6103969523576953.0,   0.0},
+                                     {4, 6, 2, -5967249946832036.0, 12198160561896936.0,  0.0},
+                                     {6, 7, 2, 12256750350007952.0, 20338717682993576.0,  0.0}});
+#else
         expectEField(               //i, j, k, Ex,                  Ey,                   Ez
                 info->eFieldView_m, {{5, 5, 2, 9705590713980844.0, 50237049591750.0,   0.0},
                                      {5, 6, 2, -2575537500134781.0, 5432574680440094.0,   0.0},
                                      {4, 6, 2, -7704908191557375.0, 7462324259532344.0,  0.0},
                                      {6, 7, 2, 6038921094378281.0, 9106068557928282.0,  0.0}});
+#endif
     }
 
     void makeChargeDensity(FFT2D5Poisson::ScalarField2_t& chargeDensity) {
