@@ -57,6 +57,7 @@ TEST_F(TestOpalScalingFFAMagnet, UserInterface) {
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::HEIGHT], 12);
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::LAYOUT_START], 13);
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::AZIMUTHAL_EXTENT], 14);
+    Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::LAYOUT_END], 15);
     // Update the magnet
     EXPECT_NO_THROW(ui.update());
     // Check the values
@@ -76,6 +77,7 @@ TEST_F(TestOpalScalingFFAMagnet, UserInterface) {
     // phistart is the (MAGNET_START + LENGTH/2)/R0 [radians]
     EXPECT_NEAR(ffa->getPhiStart()*ffa->getR0(), 13+0.5, 1e-12);
     EXPECT_NEAR(ffa->getAzimuthalExtent()*ffa->getR0(), 14, 1e-12);
+    EXPECT_NEAR(ffa->getPhiEnd()*ffa->getR0(), 15, 1e-12);
 }
 
 TEST_F(TestOpalScalingFFAMagnet, CentreLength) {

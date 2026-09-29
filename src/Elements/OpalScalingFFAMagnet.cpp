@@ -196,7 +196,7 @@ void OpalScalingFFAMagnet::update() {
     if (itsAttr[LAYOUT_END]) {
         phi_end = Attributes::getReal(itsAttr[LAYOUT_END]) / r0Abs;
     }
-    magnet->setPhiStart(phi_end);
+    magnet->setPhiEnd(phi_end);
     // get azimuthal extent in radians; this is just the bounding box
     if (itsAttr[AZIMUTHAL_EXTENT]) {
         if (Attributes::getReal(itsAttr[AZIMUTHAL_EXTENT]) < 0.0) {
