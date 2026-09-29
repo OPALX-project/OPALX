@@ -26,7 +26,7 @@ namespace {
     };
 
     const Entry entries[] = {
-            {"SCALE", &FieldmapElementRep::getScale, &FieldmapElementRep::setScale},
+            {"BSCALE", &FieldmapElementRep::getBScale, &FieldmapElementRep::setBScale},
             {"ESCALE", &FieldmapElementRep::getEScale, &FieldmapElementRep::setEScale},
             {0, 0, 0}};
 }  // namespace

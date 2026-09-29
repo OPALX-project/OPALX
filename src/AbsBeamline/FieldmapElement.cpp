@@ -58,7 +58,7 @@ FieldmapElement::FieldmapElement(const FieldmapElement& right)
     : ElementBase(right),
       filename_m(right.filename_m),
       fieldmap_m(right.fieldmap_m),
-      scale_m(right.scale_m),
+      bscale_m(right.bscale_m),
       escale_m(right.escale_m),
       isZReversed_m(right.isZReversed_m),
       startField_m(right.startField_m),
@@ -71,7 +71,7 @@ FieldmapElement::FieldmapElement(const std::string& name)
     : ElementBase(name),
       filename_m(""),
       fieldmap_m(nullptr),
-      scale_m(1.0),
+      bscale_m(1.0),
       escale_m(1.0),
       isZReversed_m(false),
       startField_m(0.0),
@@ -87,7 +87,7 @@ void FieldmapElement::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     if (fieldmap_m == nullptr) {
         return;
     }
-    fieldmap_m->applyField(pc, scale_m, escale_m);
+    fieldmap_m->applyField(pc, bscale_m, escale_m);
 }
 
 void FieldmapElement::apply(
@@ -107,7 +107,7 @@ void FieldmapElement::apply(
 
     // The two scales are separate because G4beamline scales the two fields separately. A
     // map carrying only one of them leaves the other temporary at zero.
-    B += scale_m * tmpB;
+    B += bscale_m * tmpB;
     E += escale_m * tmpE;
 }
 
@@ -131,7 +131,7 @@ bool FieldmapElement::applyToReferenceParticle(
         return false;
     }
 
-    B += scale_m * tmpB;
+    B += bscale_m * tmpB;
     E += escale_m * tmpE;
     return false;
 }
@@ -314,9 +314,9 @@ void FieldmapElement::setFieldMapFN(const std::string& fn) { filename_m = fn; }
 
 const std::string& FieldmapElement::getFieldMapFN() const { return filename_m; }
 
-void FieldmapElement::setScale(double scale) { scale_m = scale; }
+void FieldmapElement::setBScale(double bscale) { bscale_m = bscale; }
 
-double FieldmapElement::getScale() const { return scale_m; }
+double FieldmapElement::getBScale() const { return bscale_m; }
 
 void FieldmapElement::setEScale(double escale) { escale_m = escale; }
 

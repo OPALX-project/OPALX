@@ -34,7 +34,7 @@ public:
     /// The attributes of class OpalFieldmapElement.
     enum {
         FMAPFN = COMMON,  // The field map filename.
-        SCALE,            // Plain multiplier on the tabulated magnetic field.
+        BSCALE,           // Plain multiplier on the tabulated magnetic field.
         ESCALE,           // Plain multiplier on the tabulated electric field.
         ZREVERSE,         // Read the field map back to front.
         SIZE

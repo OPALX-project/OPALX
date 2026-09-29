@@ -133,8 +133,7 @@ Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/, bool zRever
                 position = FieldmapDictionary.insert(
                         std::make_pair(
                                 Filename,
-                                FieldmapDescription(
-                                        TG4BL3DGrid, new G4BL3DGrid(Filename))));
+                                FieldmapDescription(TG4BL3DGrid, new G4BL3DGrid(Filename))));
                 return (*position.first).second.Map;
                 break;
 

@@ -4,7 +4,7 @@
  *
  * Tests cover:
  * - The element's box comes from the map's extent, not from the deck
- * - The field is the map's field, times SCALE
+ * - The field is the map's field, times BSCALE
  * - Leaving the map transversely means no field, and is NOT a loss
  * - A genuine aperture hit still is a loss
  * - markOutsideAperture gates on the field window, not on [0, L]
@@ -159,15 +159,15 @@ TEST_F(FieldmapElementTest, BoxComesFromTheMap) {
     EXPECT_NEAR(v, 0.040, 1e-12);
 }
 
-// The field is the map's field, and SCALE is a plain multiplier on it -- not a normalised
+// The field is the map's field, and BSCALE is a plain multiplier on it -- not a normalised
 // strength. The G4beamline reader stores absolute Tesla, so 1.0 gives the tabulated value back.
-TEST_F(FieldmapElementTest, FieldIsTheMapTimesScale) {
-    const auto file = track(mapPath("_scale.g4blmap"));
+TEST_F(FieldmapElementTest, FieldIsTheMapTimesBScale) {
+    const auto file = track(mapPath("_bscale.g4blmap"));
     writeUniformCylinderMap(file, 0.0, 11, 100.0, 5, 10.0, 0.25);
 
-    FieldmapElementRep element("FM_SCALE");
+    FieldmapElementRep element("FM_BSCALE");
     element.setFieldMapFN(file);
-    element.setScale(2.0);
+    element.setBScale(2.0);
     element.initialise(nullptr);
     Fieldmap::readMap(file);
 
@@ -178,7 +178,7 @@ TEST_F(FieldmapElementTest, FieldIsTheMapTimesScale) {
 
     EXPECT_NEAR(B(0), 0.0, 1e-12);
     EXPECT_NEAR(B(1), 0.0, 1e-12);
-    EXPECT_NEAR(B(2), 0.5, 1e-12);  // 0.25 T x SCALE 2
+    EXPECT_NEAR(B(2), 0.5, 1e-12);  // 0.25 T x BSCALE 2
 
     // apply() accumulates, like every other element.
     element.apply(R, P, 0.0, E, B);
