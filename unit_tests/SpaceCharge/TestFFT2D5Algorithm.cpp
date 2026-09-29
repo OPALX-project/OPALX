@@ -82,7 +82,7 @@ namespace opalx::spacecharge {
                     config(FFT2D5LongitudinalFieldMode::Open), particles, bunchState_m);
             EXPECT_FALSE(solver.initialized());
 
-            Co  `ordinateFrameTransforms frames{trackerToSolve_m, solveToTracker_m};
+            CoordinateFrameTransforms frames{trackerToSolve_m, solveToTracker_m};
             SpaceChargeStepState step{
                     0, 0.0, 1.0e-12, false, 1.0, ippl::Comm->size(), std::move(frames)};
             const std::array<std::uint8_t, 1> activity{1};
