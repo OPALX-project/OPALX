@@ -26,17 +26,17 @@ OpalFieldmapElement::OpalFieldmapElement()
               SIZE, "FIELDMAP",
               "The \"FIELDMAP\" element defines an element whose field is a tabulated map.") {
     itsAttr[FMAPFN] = Attributes::makeString("FMAPFN", "Field map filename");
-    itsAttr[SCALE]  = Attributes::makeReal(
-            "SCALE",
+    itsAttr[BSCALE] = Attributes::makeReal(
+            "BSCALE",
             "Multiplier applied to the tabulated magnetic field. This is a plain factor, not "
-             "a normalised strength: the G4beamline readers store absolute Tesla and do not "
-             "normalise, so 1 reproduces the map as written. Same quantity as the current= "
-             "given where the map is placed in a G4beamline input.",
+            "a normalised strength: the G4beamline readers store absolute Tesla and do not "
+            "normalise, so 1 reproduces the map as written. Same quantity as the current= "
+            "given where the map is placed in a G4beamline input.",
             1.0);
     itsAttr[ESCALE] = Attributes::makeReal(
             "ESCALE",
             "Multiplier applied to the tabulated electric field, for a map that carries one. "
-            "Separate from SCALE because G4beamline scales the two fields independently: "
+            "Separate from BSCALE because G4beamline scales the two fields independently: "
             "current and normB for the magnetic field, gradient and normE for the electric "
             "one. Same quantity as the gradient= given where the map is placed. No effect on "
             "a map with no electric field.",
@@ -109,7 +109,7 @@ void OpalFieldmapElement::update() {
     // loaded in FieldmapElement::initialise(). That runs on the tracked clone before the
     // element list is sorted and before PlacementResolver, so every consumer still sees it.
     fm->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));
-    fm->setScale(Attributes::getReal(itsAttr[SCALE]));
+    fm->setBScale(Attributes::getReal(itsAttr[BSCALE]));
     fm->setEScale(Attributes::getReal(itsAttr[ESCALE]));
     fm->setIsZReversed(Attributes::getBool(itsAttr[ZREVERSE]));
 

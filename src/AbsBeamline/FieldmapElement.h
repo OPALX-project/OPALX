@@ -156,14 +156,14 @@ public:
      * not normalise, so a scale of 1 reproduces the map as written. It is the same quantity
      * as the `current=` given where the map is placed in a G4beamline input.
      */
-    void setScale(double scale);
+    void setBScale(double bscale);
 
-    double getScale() const;
+    double getBScale() const;
 
     /**
      * @brief Set the plain multiplier applied to the tabulated electric field.
      *
-     * Separate from setScale() because G4beamline scales the two fields independently:
+     * Separate from setBScale() because G4beamline scales the two fields independently:
      * `current` and `normB` for the magnetic field, `gradient` and `normE` for the electric
      * one. This is the same quantity as the `gradient=` given where the map is placed. It
      * has no effect on a map that carries no electric field.
@@ -195,7 +195,7 @@ private:
     Fieldmap* fieldmap_m;
 
     /// Plain multiplier on the tabulated magnetic field.
-    double scale_m;
+    double bscale_m;
 
     /// Plain multiplier on the tabulated electric field.
     double escale_m;

@@ -62,8 +62,7 @@ void G4BL3DGrid::readHeaderOnly() {
     if (!in.good()) {
         noFieldmapWarning();
         throw GeneralOpalException(
-                "G4BL3DGrid::readHeaderOnly",
-                "Could not open fieldmap '" + Filename_m + "'");
+                "G4BL3DGrid::readHeaderOnly", "Could not open fieldmap '" + Filename_m + "'");
     }
 
     std::string line;
@@ -87,9 +86,8 @@ void G4BL3DGrid::readHeaderOnly() {
                 return std::stod(entry->second);
             } catch (const std::exception&) {
                 throw GeneralOpalException(
-                        "G4BL3DGrid::readHeaderOnly", "Could not read " + key + "='"
-                                                                       + entry->second + "' in '"
-                                                                       + Filename_m + "'");
+                        "G4BL3DGrid::readHeaderOnly", "Could not read " + key + "='" + entry->second
+                                                              + "' in '" + Filename_m + "'");
             }
         };
 
@@ -201,8 +199,7 @@ void G4BL3DGrid::readHeaderOnly() {
             reason = "expected a 'data' section, found '" + section + "'";
         }
         throw GeneralOpalException(
-                "G4BL3DGrid::readHeaderOnly",
-                "In fieldmap '" + Filename_m + "': " + reason);
+                "G4BL3DGrid::readHeaderOnly", "In fieldmap '" + Filename_m + "': " + reason);
     }
 }
 
@@ -300,9 +297,8 @@ void G4BL3DGrid::readMap() {
             std::string extra;
             if (values >> extra) {
                 throw GeneralOpalException(
-                        "G4BL3DGrid::readMap", "Row " + std::to_string(row) + " of '"
-                                                                + Filename_m
-                                                                + "' has more than nine numbers");
+                        "G4BL3DGrid::readMap", "Row " + std::to_string(row) + " of '" + Filename_m
+                                                       + "' has more than nine numbers");
             }
         }
 
@@ -380,8 +376,7 @@ void G4BL3DGrid::freeMap() {
     hasEField_m       = false;
 }
 
-void G4BL3DGrid::applyField(
-        std::shared_ptr<ParticleContainer_t> pc, double scale, double escale) {
+void G4BL3DGrid::applyField(std::shared_ptr<ParticleContainer_t> pc, double scale, double escale) {
     // Members copied to locals; the device kernel must not capture `this`.
     const double xbegin = xbegin_m, xend = xend_m;
     const double ybegin = ybegin_m, yend = yend_m;
@@ -485,10 +480,10 @@ void G4BL3DGrid::getInfo(Inform* msg) {
     // Deliberately says neither magnetostatic nor electric: getInfo() is called from the
     // element's initialise(), which runs before goOnline() reads the data, and nothing in
     // the header says whether the electric columns are there or what is in them.
-    (*msg) << Filename_m << " (G4beamline grid, 3D static); x= " << xbegin_m << " .. "
-           << xend_m << " m; y= " << ybegin_m << " .. " << yend_m << " m; z= " << zbegin_m << " .. "
-           << zend_m << " m; " << num_gridpx_m << " x " << num_gridpy_m << " x " << num_gridpz_m
-           << " points;" << endl;
+    (*msg) << Filename_m << " (G4beamline grid, 3D static); x= " << xbegin_m << " .. " << xend_m
+           << " m; y= " << ybegin_m << " .. " << yend_m << " m; z= " << zbegin_m << " .. " << zend_m
+           << " m; " << num_gridpx_m << " x " << num_gridpy_m << " x " << num_gridpz_m << " points;"
+           << endl;
 }
 
 double G4BL3DGrid::getFrequency() const {
