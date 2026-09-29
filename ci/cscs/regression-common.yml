@@ -151,6 +151,9 @@
         echo "Skipping opal-live-doc push for feature branch $CI_COMMIT_REF_NAME"
       else
         mkdir -p ~/.ssh
+        timeout 10 bash -c 'cat < /dev/null > /dev/tcp/gitea.psi.ch/22' \
+          && echo "Pre-flight check: gitea.psi.ch port 22 is reachable" \
+          || echo "ERROR: gitea.psi.ch port 22 is UNREACHABLE from this node (SSH egress blocked?)"
         KEY_FILE=~/.ssh/opal_live_doc_key
         python3 - "$PSI_GIT_SSHKEY" > "$KEY_FILE" <<'PY'
       import re, sys
@@ -173,22 +176,26 @@
           echo "ERROR: Could not validate SSH private key"
           exit 1
         fi
-        ssh-keyscan -t rsa,ecdsa,ed25519 gitea.psi.ch >> ~/.ssh/known_hosts 2>/dev/null
-        export GIT_SSH_COMMAND="ssh -i $KEY_FILE -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes -o BatchMode=yes"
+        if ssh-keyscan -T 10 -t rsa,ecdsa,ed25519 gitea.psi.ch >> ~/.ssh/known_hosts; then
+          echo "ssh-keyscan: added gitea.psi.ch host keys to known_hosts"
+        else
+          echo "WARNING: ssh-keyscan failed to reach gitea.psi.ch - SSH connectivity may be blocked"
+        fi
+        export GIT_SSH_COMMAND="ssh -i $KEY_FILE -o ConnectTimeout=10 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes -o BatchMode=yes"
         git config --global user.email "opalx-ci@cscs.ch"
         git config --global user.name "OPALX CI"
-        if git clone --depth 1 --filter=blob:none --no-checkout --branch master git@gitea.psi.ch:AMAS/opal-live-doc.git opal-live-doc; then
+        if timeout 120 git clone --progress --depth 1 --filter=blob:none --no-checkout --branch master git@gitea.psi.ch:AMAS/opal-live-doc.git opal-live-doc; then
           cd opal-live-doc
           git sparse-checkout init --cone
           git sparse-checkout set docs/opalx-regression-test/
-          git checkout
+          git checkout --progress
            # Helper that (re)creates the commit for this architecture on top of
           # the currently checked-out origin/master.  It is invoked at the start
           # of the loop and again after every failed push so that we never
           # leave an abandoned commit behind and the master overview page is
           # always rebuilt from the latest state of all architectures.
           regenerate_and_commit() {
-            git fetch origin master
+            git fetch --progress origin master
             git reset --hard origin/master
             mkdir -p docs/opalx-regression-test
             cp -r $CI_PROJECT_DIR/regression-results-$BUILD_ARCH/* docs/opalx-regression-test/
@@ -210,7 +217,7 @@
 
           for attempt in 1 2 3 4 5; do
             regenerate_and_commit
-            if git push origin master; then
+            if timeout 300 git push --progress origin master; then
               echo "Push succeeded on attempt $attempt"
               break
             fi
@@ -222,7 +229,8 @@
             sleep $((attempt * 5))
           done
         else
-          echo "WARNING: clone failed, cannot push regression results"
+          echo "WARNING: clone of opal-live-doc failed (exit $?), cannot push regression results"
+          echo "Hint: if the pre-flight check or ssh-keyscan above reported errors, SSH access to gitea.psi.ch is blocked from the compute node"
         fi
       fi
   artifacts:
