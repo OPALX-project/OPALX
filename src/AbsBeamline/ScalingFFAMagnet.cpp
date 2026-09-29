@@ -178,7 +178,6 @@ void ScalingFFAMagnet::setupEndField() const {
     efm_m = efmMan->getEndFieldModel(endFieldName_m);
     efm_m->rescale(1.0 / getR0());
     config_m.phiStart_m  = config_m.phiStart_m + efm_m->getCentreLength() * 0.5;
-    config_m.phiEnd_m = config_m.phiStart_m + efm_m->getCentreLength() * 0.5;
     if (config_m.azimuthalExtent_m < 0.0) {
         config_m.azimuthalExtent_m  = efm_m->getEndLength() * 5. + efm_m->getCentreLength() * 0.5;
     }
