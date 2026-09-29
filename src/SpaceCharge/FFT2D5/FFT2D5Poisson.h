@@ -54,6 +54,19 @@ public:
     const ComplexField2_t& getGreensFnTr() const { return greensFnTr_m; }
     const ScalarField2_t& getDoubledRho() const { return doubledRho_m; }
 
+    // Constants
+    static constexpr size_t X = 0;
+    static constexpr size_t Y = 1;
+    static constexpr size_t Z = 2;
+
+    // Helpers
+    void initialiseViews(const ScalarField2_t& chargeDensity);
+    void makeGreensFn();
+    void placeChargeDensity(const ScalarField2_t& chargeDensity);
+    void performConvolution();
+    void extractPotential(ScalarField2_t& potential);
+    void determineField(const ScalarField2_t& potential, VectorField2_t& electricField);
+
 private:
     size_t nx2_{};
     size_t ny2_{};
@@ -70,19 +83,6 @@ private:
     ComplexField2_t greensFnTr_m;
     std::unique_ptr<FFT_t> fft_m;
     ippl::ParameterList params_m;
-
-    // Helpers
-    void initialiseViews(const ScalarField2_t& chargeDensity);
-    void makeGreensFn();
-    void placeChargeDensity(const ScalarField2_t& chargeDensity);
-    void performConvolution();
-    void extractPotential(ScalarField2_t& potential);
-    void determineField(const ScalarField2_t& potential, VectorField2_t& electricField);
-
-    // Constants
-    static constexpr size_t X = 0;
-    static constexpr size_t Y = 1;
-    static constexpr size_t Z = 2;
 };
 
 #endif  // OPALX_FFT2D5SOLVER_H

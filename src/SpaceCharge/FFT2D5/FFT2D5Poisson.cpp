@@ -93,8 +93,8 @@ void FFT2D5Poisson::makeGreensFn() {
                 // Wrap indices into physical displacement
                 const size_t ix = i <= nx2 / 2 ? i : nx2 - i;
                 const size_t iy = j <= ny2 / 2 ? j : ny2 - j;
-                const double x  = ix * dr[X];
-                const double y  = iy * dr[Y];
+                const double x  = ix * dr[0];
+                const double y  = iy * dr[1];
                 const double r  = Kokkos::sqrt(x * x + y * y);
                 if (r > 0.0) {
                     greensFn(i + nGhost, j + nGhost) = -Kokkos::log(r) / (2.0 * M_PI);

@@ -364,30 +364,11 @@ namespace {
             Kokkos::fence();
         }
 
-        [[nodiscard]] std::tuple<std::vector<Vector_t<double, 3>>, std::vector<Vector_t<double, 3>>>
-        getParticles() const {
-            const auto R_host       = pc_m->R.getHostMirror();
-            const auto P_host       = pc_m->P.getHostMirror();
-            const auto invalid_host = pc_m->InvalidMask.getHostMirror();
-            Kokkos::deep_copy(R_host, pc_m->R.getView());
-            Kokkos::deep_copy(P_host, pc_m->P.getView());
-            Kokkos::deep_copy(invalid_host, pc_m->InvalidMask.getView());
-            std::vector<Vector_t<double, 3>> r;
-            std::vector<Vector_t<double, 3>> p;
-            for (size_t i = 0; i < R_host.extent(0); ++i) {
-                if (!invalid_host(i)) {
-                    r.push_back(R_host(i));
-                    p.push_back(P_host(i));
-                }
-            }
-            return std::make_tuple(r, p);
-        }
-
         SpaceChargeSolveContext context() const {
             SpaceChargeStepState step;
             step.timeStep = bunch_m->getdT();
             step.mpiSize  = ippl::Comm->size();
-            return SpaceChargeSolveContext(activity_m, step);
+            return {activity_m, step};
         }
 
         void rebuildBunch() {
@@ -1180,10 +1161,10 @@ namespace {
                                      {4, 8, 6, -10565567441, 6311498630, 0}});
 #else
         expectEField(
-            info->eFieldView_m, {{1, 1, 6, -3247760580, -3247760580, 0},
-                                 {2, 1, 6, -3173949541, -3967148560, 0},
-                                 {4, 4, 6, -6995720024, -6995720024, 0},
-                                 {4, 8, 6, -10571642669, 5851278346, 0}});
+                info->eFieldView_m, {{1, 1, 6, -3247760580, -3247760580, 0},
+                                     {2, 1, 6, -3173949541, -3967148560, 0},
+                                     {4, 4, 6, -6995720024, -6995720024, 0},
+                                     {4, 8, 6, -10571642669, 5851278346, 0}});
 #endif
     }
 
@@ -1338,7 +1319,7 @@ namespace {
                 1, e, b, {-6355346880, 0, 57.160829398e9}, {0, 14.990066, 0}, 1e3, 1e-4);
 #else
         expectParticleFields(
-            0, e, b, {6387735439, 0, 57.160829398e9}, {0, -15.06645, 0}, 1e3, 1e-4);
+                0, e, b, {6387735439, 0, 57.160829398e9}, {0, -15.06645, 0}, 1e3, 1e-4);
         expectParticleFields(
                 1, e, b, {-6387735439, 0, 57.160829398e9}, {0, 15.06645, 0}, 1e3, 1e-4);
 #endif
@@ -2072,7 +2053,9 @@ namespace {
             const FFT2D5Poisson::ScalarField2_t& potential2,
             const FFT2D5Poisson::ScalarField2_t& potential,
             const FFT2D5Poisson::VectorField2_t& electric) {
-        const auto mesh           = greensFn2.get_mesh();
+        const auto& mesh          = greensFn2.get_mesh();
+        const auto nx2            = static_cast<size_t>(mesh.getGridsize(0));
+        const auto ny2            = static_cast<size_t>(mesh.getGridsize(1));
         const auto greens2Host    = greensFn2.getHostMirror();
         const auto greensTr2Host  = greensTr2.getHostMirror();
         const auto potential2Host = potential2.getHostMirror();
@@ -2090,17 +2073,17 @@ namespace {
         const auto nGhostE          = electric.getNghost();
         // Print
         if (VerboseTest) {
-            for (size_t j = 0; j < mesh.getGridsize(1); ++j) {
+            for (size_t j = 0; j < ny2; ++j) {
                 std::cout << j << ": ";
-                for (size_t i = 0; i < mesh.getGridsize(0); ++i) {
+                for (size_t i = 0; i < nx2; ++i) {
                     std::cout << greensFn2(i + nGhost2, j + nGhost2) << " ";
                 }
                 std::cout << std::endl;
             }
         }
         // Check grid and contents
-        ASSERT_EQ(mesh.getGridsize(0), 12);
-        ASSERT_EQ(mesh.getGridsize(1), 12);
+        ASSERT_EQ(nx2, 12);
+        ASSERT_EQ(ny2, 12);
         for (size_t i = 0; i < 12; ++i) {
             for (size_t j = 0; j < 12; ++j) {
                 SCOPED_TRACE(std::format("i = {}, j = {}, index={}", i, j, j * 12 + i));
@@ -2111,9 +2094,9 @@ namespace {
         }
         // Check transform
         double totalGreens = 0.0;
-        for (size_t j = 0; j < mesh.getGridsize(1); ++j) {
-            for (size_t i = 0; i < mesh.getGridsize(0); ++i) {
-                totalGreens += greensFn2(i + nGhost2, j + nGhost2);
+        for (size_t j = 0; j < ny2; ++j) {
+            for (size_t i = 0; i < nx2; ++i) {
+                totalGreens += greens2Host(i + nGhost2, j + nGhost2);
             }
         }
         auto imagG0 = greensTr2Host(nGhostTr2, nGhostTr2).imag();
@@ -2122,9 +2105,9 @@ namespace {
         ASSERT_NEAR(imagG0, 0.0, 1e-4);
         // Print the potential
         if (VerboseTest) {
-            for (size_t j = 0; j < mesh.getGridsize(1); ++j) {
+            for (size_t j = 0; j < ny2; ++j) {
                 std::cout << j << ": ";
-                for (size_t i = 0; i < mesh.getGridsize(0); ++i) {
+                for (size_t i = 0; i < nx2; ++i) {
                     std::cout << potential2Host(i + nGhostPotential2, j + nGhostPotential2) << " ";
                 }
                 std::cout << std::endl;
@@ -2132,8 +2115,8 @@ namespace {
         }
         // Find the maximum error between the potential and the original Greens function
         double maxError = 0.0;
-        for (size_t j = 0; j < mesh.getGridsize(1); ++j) {
-            for (size_t i = 0; i < mesh.getGridsize(0); ++i) {
+        for (size_t j = 0; j < ny2; ++j) {
+            for (size_t i = 0; i < nx2; ++i) {
                 auto diff = std::abs(
                         potential2Host(i + nGhostPotential2, j + nGhostPotential2)
                         - greens2Host(i + nGhost2, j + nGhost2));
