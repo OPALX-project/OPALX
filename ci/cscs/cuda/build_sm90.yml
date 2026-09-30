@@ -31,6 +31,7 @@ variables:
       CC=gcc CXX=g++ ctest -V -S $CI_PROJECT_DIR/ci/cscs/dashboard-configure-build.cmake
       -DCTEST_SITE="$CTEST_SITE"
       -DPRESET=alps-gh200
+      -DOPALX_DIAG_DESUL_HEADERS=ON
       -DCDASH_LABEL=$CDASH_LABEL
       -DBUILD_TYPE=$BUILD_TYPE
       -DBUILD_DIR=$BUILD_PATH
