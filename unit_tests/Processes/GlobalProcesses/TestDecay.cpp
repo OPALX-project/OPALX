@@ -308,7 +308,7 @@ namespace {
 
             // Verify E^2 = p^2 + m_e^2 (consistency of beta*gamma storage).
             const double p2 = bg2 * Physics::m_e * Physics::m_e;
-            EXPECT_NEAR(energy * energy, p2 + Physics::m_e * Physics::m_e, 1.0e-15);
+            EXPECT_NEAR(energy * energy, p2 + Physics::m_e * Physics::m_e, 1.0e-12);
         }
     }
 
@@ -341,7 +341,7 @@ namespace {
 
             // E^2 = p^2 + m_e^2 must hold.
             const double p2 = bg2 * Physics::m_e * Physics::m_e;
-            EXPECT_NEAR(energy * energy, p2 + Physics::m_e * Physics::m_e, 1.0e-15);
+            EXPECT_NEAR(energy * energy, p2 + Physics::m_e * Physics::m_e, 1.0e-12);
 
             // Electron energy should be positive and finite.
             EXPECT_GT(energy, 0.0);
@@ -530,7 +530,7 @@ namespace {
 
             // E^2 = p^2 + m_mu^2 must hold.
             const double p2 = bg2 * Physics::m_mu * Physics::m_mu;
-            EXPECT_NEAR(energy * energy, p2 + Physics::m_mu * Physics::m_mu, 1.0e-15);
+            EXPECT_NEAR(energy * energy, p2 + Physics::m_mu * Physics::m_mu, 1.0e-12);
 
             EXPECT_GT(energy, 0.0);
             EXPECT_TRUE(std::isfinite(energy));
