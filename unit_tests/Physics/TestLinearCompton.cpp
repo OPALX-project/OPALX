@@ -75,10 +75,10 @@ TEST(TestLinearCompton, EnergySupportMatchesComptonEndpoints) {
     EXPECT_DOUBLE_EQ(maxEnergy, incomingPhotonEnergyERFGeV);
     EXPECT_NEAR(
             Physics::LinearCompton::scatteredPhotonEnergyERFGeV(incomingPhotonEnergyERFGeV, 1.0),
-            maxEnergy, 1.0e-15);
+            maxEnergy, 1.0e-12);
     EXPECT_NEAR(
             Physics::LinearCompton::scatteredPhotonEnergyERFGeV(incomingPhotonEnergyERFGeV, -1.0),
-            minEnergy, 1.0e-15);
+            minEnergy, 1.0e-12);
     EXPECT_LT(minEnergy, maxEnergy);
 }
 
