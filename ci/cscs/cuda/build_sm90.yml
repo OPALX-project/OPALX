@@ -45,8 +45,11 @@ variables:
     - ls -l $BUILD_PATH/bin/opalx
     - echo "Build directory size (before cleanup):" $(du -sh $BUILD_PATH | cut -f1)
     - find $BUILD_PATH -name \*.o -delete
-    - find $BUILD_PATH/bin -type f -exec strip {} +
-    - find $BUILD_PATH/lib -type f -exec strip {} +
+    - |
+      if [ "$BUILD_TYPE" = "Release" ]; then
+        find "$BUILD_PATH/bin" -type f -exec strip {} +
+        find "$BUILD_PATH/lib" -type f -exec strip {} +
+      fi
     - echo "Build directory size (cleaned for artefacts):" $(du -sh $BUILD_PATH | cut -f1)
   artifacts:
     paths:
