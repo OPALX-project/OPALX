@@ -13,6 +13,10 @@
  * - Rejection of extend* / points sections
  * - ZREVERSE rejected (cylinder maps only)
  * - getFieldDerivative / getFrequency / setFrequency throw
+ * - Nine-column rows (x y z Bx By Bz Ex Ey Ez): accepted, and all-zero E allocates no storage
+ * - Electric field read in MV/m and returned in V/m, exact on a linear field
+ * - normB/current and normE/gradient scale the two fields independently; gradient=0 rejected
+ * - Seven- or eight-column rows rejected
  */
 
 #include "Fields/Fieldmap.h"

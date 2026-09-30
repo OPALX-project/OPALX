@@ -26,7 +26,8 @@ class Fieldmap;
 
 /**
  * @class FieldmapElement
- * @brief A straight element whose field comes entirely from a magnetostatic field map.
+ * @brief A straight element whose field comes entirely from a static field map: magnetic,
+ *        electric, or both.
  *
  * Unlike SBEND, RBEND or QUADRUPOLE, this element has no analytic field of its own and
  * derives nothing from the input file: the map supplies the field, and the map's own extent
@@ -72,8 +73,9 @@ public:
      * @param R Position in the element's local frame, which is the map's frame.
      * @param P Momentum (unused).
      * @param t Time (unused, the map is static).
-     * @param E Electric field (untouched, the map is magnetostatic).
-     * @param B Magnetic field, accumulated into.
+     * @param E Electric field [V/m], accumulated into: the map's electric field times ESCALE.
+     *          Unchanged for a map that carries no electric field.
+     * @param B Magnetic field [T], accumulated into: the map's magnetic field times BSCALE.
      */
     virtual void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
@@ -142,11 +144,13 @@ public:
     const std::string& getFieldMapFN() const;
 
     /**
-     * @brief Set the plain multiplier applied to the tabulated magnetic field.
+     * @brief Set the multiplier applied to the tabulated magnetic field.
      *
-     * This is not a normalised strength: the G4beamline readers store absolute Tesla and do
-     * not normalise, so a scale of 1 reproduces the map as written. It is the same quantity
-     * as the `current=` given where the map is placed in a G4beamline input.
+     * What the value means depends on the map. The G4beamline readers store absolute Tesla
+     * and do not normalise, so a scale of 1 reproduces the map as written; it is the same
+     * quantity as the `current=` given where the map is placed in a G4beamline input. The
+     * OPAL 2D and ASTRA 1D readers normalise the on-axis peak to 1 T unless the map's header
+     * turns that off, so for those maps the scale is the peak field in Tesla.
      */
     void setBScale(double bscale);
 

@@ -10,7 +10,7 @@
  * - The geometry starts where the map starts, so markOutsideAperture gates on the field
  *   window, not on [0, L]
  * - getSupportEnvelope: aperture first, map extent second, false for a 1D map
- * - Non-magnetostatic maps are rejected
+ * - Time-dependent (RF) maps are rejected
  * - Type name and field extent
  */
 

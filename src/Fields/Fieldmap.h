@@ -120,12 +120,6 @@ public:
     /* ========================================================================== */
     /* =========================== Field Functions=============================== */
     /**
-     * @brief Apply the FM to all the particles
-     *
-     * @param pc Particle container
-     * @param scale Scaling factor applied to the field (default 1.0)
-     */
-    /**
      * @brief Add this map's field to every particle.
      *
      * @param pc     the particles
@@ -134,6 +128,7 @@ public:
      *               separate because G4beamline scales the two independently, with
      *               current/normB for the magnetic field and gradient/normE for the
      *               electric one. Readers with only one field ignore it.
+     * @note The time-dependent readers (Astra1DDynamic, FM2DDynamic) ignore both scales.
      */
     virtual void applyField(
             std::shared_ptr<ParticleContainer_t> pc, double scale = 1.0, double escale = 1.0) = 0;
@@ -142,8 +137,10 @@ public:
      * @brief Get the field strength at a given point.
      *
      * @param R Position [m] relative to the field map origin.
-     * @param E Output Electric field [MV/m].
-     * @param B Output Magnetic field [T].
+     * @param E Output electric field [V/m]. A map normalised on load (the default for the
+     *          OPAL and ASTRA RF maps) has a peak of 1 MV/m, returned as 1e6 V/m.
+     * @param B Output magnetic field [T]. A normalised OPAL or ASTRA magnetostatic map has
+     *          an on-axis peak of 1 T.
      * @return true if R is outside of the field map, false otherwise.
      */
     virtual bool getFieldstrength(

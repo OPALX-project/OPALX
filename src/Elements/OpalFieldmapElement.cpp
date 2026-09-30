@@ -28,10 +28,11 @@ OpalFieldmapElement::OpalFieldmapElement()
     itsAttr[FMAPFN] = Attributes::makeString("FMAPFN", "Field map filename");
     itsAttr[BSCALE] = Attributes::makeReal(
             "BSCALE",
-            "Multiplier applied to the tabulated magnetic field. This is a plain factor, not "
-            "a normalised strength: the G4beamline readers store absolute Tesla and do not "
-            "normalise, so 1 reproduces the map as written. Same quantity as the current= "
-            "given where the map is placed in a G4beamline input.",
+            "Multiplier applied to the tabulated magnetic field. G4beamline maps are read in "
+            "absolute Tesla, so 1 reproduces the map as written; this is the current= given "
+            "where the map is placed in a G4beamline input. OPAL and ASTRA maps are normalised "
+            "to an on-axis peak of 1 T unless their header turns that off; for them BSCALE is "
+            "the peak field in Tesla.",
             1.0);
     itsAttr[ESCALE] = Attributes::makeReal(
             "ESCALE",
