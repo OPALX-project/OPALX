@@ -7,7 +7,8 @@
  * - The field is the map's field, times BSCALE
  * - Leaving the map transversely means no field, and is NOT a loss
  * - A genuine aperture hit still is a loss
- * - markOutsideAperture gates on the field window, not on [0, L]
+ * - The geometry starts where the map starts, so markOutsideAperture gates on the field
+ *   window, not on [0, L]
  * - getSupportEnvelope: aperture first, map extent second, false for a 1D map
  * - Non-magnetostatic maps are rejected
  * - Type name and field extent
@@ -151,6 +152,10 @@ TEST_F(FieldmapElementTest, BoxComesFromTheMap) {
     EXPECT_NEAR(zBegin, 0.100, 1e-12);
     EXPECT_NEAR(zEnd, 0.600, 1e-12);
     EXPECT_NEAR(element.getGeometry().getElementLength(), 0.500, 1e-12);
+    // The body starts where the map starts, not at the local origin.
+    EXPECT_NEAR(element.getGeometry().getStartZ(), 0.100, 1e-12);
+    EXPECT_NEAR(element.getGeometry().getEdgeToBegin().getOrigin()(2), 0.100, 1e-12);
+    EXPECT_NEAR(element.getGeometry().getEdgeToEnd().getOrigin()(2), 0.600, 1e-12);
 
     EXPECT_TRUE(element.hasTransverseExtent());
     double h = 0.0, v = 0.0;
@@ -313,9 +318,9 @@ TEST_F(FieldmapElementTest, SelectionFollowsTheOffsetFieldWindow) {
     EXPECT_FALSE(element.isInside(Vector_t<double, 3>(0.0, 0.0, 0.8)));
 }
 
-// markOutsideAperture gates on the field window [zBegin, zEnd), not on the body window [0, L]
-// that ElementBase assumes. The two differ whenever the map's z range does not start at zero,
-// and this map starts at 200 mm.
+// markOutsideAperture gates on the field window [zBegin, zEnd), not on [0, L]. The two differ
+// whenever the map's z range does not start at zero, and this map starts at 200 mm. The check is
+// ElementBase's, which reads the start from the geometry.
 TEST_F(FieldmapElementTest, ScrapingFollowsTheOffsetFieldWindow) {
     const auto file = track(mapPath("_scrape.g4blmap"));
     writeUniformCylinderMap(file, 200.0, 11, 50.0, 5, 10.0, 0.25);  // z = 200 .. 700 mm

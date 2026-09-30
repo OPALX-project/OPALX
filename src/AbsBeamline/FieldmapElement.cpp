@@ -136,47 +136,6 @@ bool FieldmapElement::applyToReferenceParticle(
     return false;
 }
 
-size_t FieldmapElement::markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) {
-    if (!pc || !getFlagDeleteOnTransverseExit()) {
-        return 0;
-    }
-    const size_t nLocal = pc->getLocalNum();
-    if (nLocal == 0) {
-        return 0;
-    }
-
-    // ElementBase gates on the body window [0, L]. This element's local frame is the map's
-    // frame, so the field window is [startField_m, endField_m) and is offset from [0, L]
-    // whenever the map's z range does not start at zero. Gate on the field window instead.
-    const double zBegin = startField_m;
-    const double zEnd   = endField_m;
-
-    // Members copied to locals; the device kernel must not capture `this`.
-    const ApertureType type = aperture_m.first;
-    const double xLimit     = aperture_m.second[0];
-    const double yLimit     = aperture_m.second[1];
-
-    auto Rview   = pc->R.getView();
-    auto invalid = pc->InvalidMask.getView();
-
-    size_t localMarked = 0;
-    Kokkos::parallel_reduce(
-            "FieldmapElement::markOutsideAperture", nLocal,
-            KOKKOS_LAMBDA(const size_t i, size_t& count) {
-                const bool inZ = Rview(i)[2] >= zBegin && Rview(i)[2] < zEnd;
-                const bool hit = inZ
-                                 && !ApertureHelper::isInsideAperture(
-                                         Rview(i)[0], Rview(i)[1], type, xLimit, yLimit);
-                const bool newlyMarked = hit && !invalid(i);
-                invalid(i)             = invalid(i) || hit;
-                count += newlyMarked ? 1 : 0;
-            },
-            localMarked);
-    Kokkos::fence();
-
-    return localMarked;
-}
-
 /* ============================== Functions ================================= */
 void FieldmapElement::accept(BeamlineVisitor& visitor) const {
     visitor.visitFieldmapElement(*this);
@@ -215,6 +174,8 @@ void FieldmapElement::initialise(PartBunch_t* bunch) {
     // before goOnline() reads the data.
     fieldmap_m->getFieldDimensions(startField_m, endField_m);
     getGeometry().setElementLength(endField_m - startField_m);
+    // The local frame is the map's frame, so the body starts where the map's z range starts.
+    getGeometry().setStartZ(startField_m);
 
     // Three of the five readers throw here: a one-dimensional map has no transverse extent
     // at all, because its off-axis field is an expansion about the axis rather than a
@@ -267,9 +228,8 @@ void FieldmapElement::getFieldExtent(double& zBegin, double& zEnd) const {
 }
 
 BoundingBox FieldmapElement::getBoundingBoxInLabCoords() const {
-    // ElementBase builds this from the geometry's entrance and exit edges, i.e. the body
-    // window [0, L]. Use the field window instead, for the same reason markOutsideAperture
-    // does: the two coincide only when the map's z range starts at zero.
+    // Overridden only to narrow the box to the map's transverse extent. The z range is the
+    // field window, which is the same as the geometry's [startZ, startZ + L].
     double x = aperture_m.second[0];
     double y = aperture_m.second[1];
     if (hasTransverseExtent_m) {
