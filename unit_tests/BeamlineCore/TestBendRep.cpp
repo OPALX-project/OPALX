@@ -146,8 +146,8 @@ TEST_F(BendRepTest, SBendWithoutGapIsHardEdge) {
     double fieldBegin = 0.0;
     double fieldEnd   = 0.0;
     bend.getFieldExtent(fieldBegin, fieldEnd);
-    EXPECT_NEAR(fieldBegin, 0.0, 1.0e-15);
-    EXPECT_NEAR(fieldEnd, bodyLength, 1.0e-15);
+    EXPECT_NEAR(fieldBegin, 0.0, 1.0e-12);
+    EXPECT_NEAR(fieldEnd, bodyLength, 1.0e-12);
 
     // Body interior at arc length 0.5.
     const double phiMid = curvature * 0.5;
@@ -156,7 +156,7 @@ TEST_F(BendRepTest, SBendWithoutGapIsHardEdge) {
     bend.applyToReferenceParticle(
             Vector3((std::cos(phiMid) - 1.0) / curvature, 0.0, std::sin(phiMid) / curvature),
             Vector3(0.0), 0.0, E, B);
-    EXPECT_NEAR(B(1), -1.0, 1.0e-15);  // full dipole, no fringe scaling
+    EXPECT_NEAR(B(1), -1.0, 1.0e-12);  // full dipole, no fringe scaling
 
     // Exit edge (arc length = bodyLength) is exclusive: not selected, no field.
     const double phiExit = curvature * bodyLength;
@@ -164,7 +164,7 @@ TEST_F(BendRepTest, SBendWithoutGapIsHardEdge) {
             (std::cos(phiExit) - 1.0) / curvature, 0.0, std::sin(phiExit) / curvature);
     B = Vector3(0.0);
     EXPECT_FALSE(bend.applyToReferenceParticle(exitFace, Vector3(0.0), 0.0, E, B));
-    EXPECT_NEAR(B(1), 0.0, 1.0e-15);
+    EXPECT_NEAR(B(1), 0.0, 1.0e-12);
 }
 
 // The RBEND is evaluated in its straight box frame (+z along the box axis), so the

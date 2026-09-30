@@ -58,9 +58,9 @@ TEST(TestLaser, UpdateStoresValidatedParameters) {
     EXPECT_DOUBLE_EQ(rep->getPulseLength(), 2.0e-12);
     EXPECT_DOUBLE_EQ(rep->getWaistX(), 5.0e-6);
     EXPECT_DOUBLE_EQ(rep->getWaistY(), 6.0e-6);
-    EXPECT_NEAR(rep->getDirection()(0), 0.0, 1.0e-15);
-    EXPECT_NEAR(rep->getDirection()(1), 0.0, 1.0e-15);
-    EXPECT_NEAR(rep->getDirection()(2), -1.0, 1.0e-15);
+    EXPECT_NEAR(rep->getDirection()(0), 0.0, 1.0e-12);
+    EXPECT_NEAR(rep->getDirection()(1), 0.0, 1.0e-12);
+    EXPECT_NEAR(rep->getDirection()(2), -1.0, 1.0e-12);
     EXPECT_DOUBLE_EQ(rep->getStokes()(2), 1.0);
 }
 

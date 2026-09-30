@@ -19,6 +19,7 @@ variables:
   image: "${ROCM6_3_UENV}"
   variables:
     SLURM_JOB_NUM_NODES: 1
+    SLURM_TIMELIMIT: "00:45:00"
   before_script:
     - !reference [.pr-number-extractor, before_script]
     - export BUILD_PATH=$(pwd)/$BUILD_DIR
@@ -38,7 +39,6 @@ variables:
       -DBUILD_DIR=$BUILD_PATH
       -DBUILD_ARCH=$BUILD_ARCH
       -DIPPL_GIT_TAG=master
-      -DKokkos_ARCH_FLAG=Kokkos_ARCH_AMD_GFX942_APU
       -DKokkos_ENABLE_DEBUG_BOUNDS_CHECK=OFF
       -DKokkos_ENABLE_DEBUG_DUALVIEW_MODIFY_CHECK=OFF
       -DMPIEXEC_EXECUTABLE=/usr/bin/srun
@@ -48,6 +48,8 @@ variables:
     - ls -l $BUILD_PATH/bin/opalx
     - echo "Build directory size (before cleanup):" $(du -sh $BUILD_PATH | cut -f1)
     - find $BUILD_PATH -name \*.o -delete
+    - find $BUILD_PATH/bin -type f -exec strip {} +
+    - find $BUILD_PATH/lib -type f -exec strip {} +
     - echo "Build directory size (cleaned for artefacts):" $(du -sh $BUILD_PATH | cut -f1)
   artifacts:
     paths:
