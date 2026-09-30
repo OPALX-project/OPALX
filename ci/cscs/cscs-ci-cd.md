@@ -70,6 +70,13 @@ the local copy is `BUILD_DIR/desul-header-diagnostic.log`. No objects or depende
 files are generated, and a diagnostic failure does not replace the build result.
 No GPU execution is required. This diagnostic does not change header precedence.
 
+OPALX gives the fetched Kokkos core target's bundled system headers (including
+Desul and mdspan) precedence over broad dependency include prefixes. This keeps
+the headers consistent when a uenv also contains an older Kokkos installation.
+The ordering propagates to OPALX executables and unit tests, preserves system
+header treatment, and applies only to the build tree. Imported Kokkos targets
+and installed OPALX exports are left unchanged.
+
 To run the probe in the same uenv after configuring a Ninja build:
 
 ```sh
@@ -79,7 +86,7 @@ python3 ci/cscs/diagnose_desul_headers.py BUILD_DIR
 Its tests use temporary header fixtures and a C++ preprocessor, without OPALX:
 
 ```sh
-python3 -m unittest discover -s ci/cscs/tests -p 'test_diagnose_desul_headers.py' -v
+python3 -m unittest discover -s ci/cscs/tests -v
 ```
 
 ### Directory structure of CSCS CI/CD testing
