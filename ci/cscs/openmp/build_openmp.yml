@@ -2,7 +2,7 @@ include:
   - local: "ci/cscs/common.yml"
 
 variables:
-  EIGER_UENV: "prgenv-gnu/25.6:v2"
+  EIGER_UENV: "/ritom/scratch/cscs/biddisco/opal-x-zen2-mpich-gcc-2026-09-23.squashfs"
   WITH_UENV_VIEW: "default"
   SCRATCH: "/capstor/scratch/cscs/biddisco"
   SRUN_FLAGS: "--uenv=${EIGER_UENV};--view=${WITH_UENV_VIEW};--repo=$SCRATCH/.uenv-images-ci-eiger;$WRAPPER"
@@ -39,7 +39,6 @@ variables:
       -DIPPL_GIT_TAG=master
       -DKokkos_ENABLE_DEBUG_BOUNDS_CHECK=OFF
       -DKokkos_ENABLE_DEBUG_DUALVIEW_MODIFY_CHECK=OFF
-      -DKokkos_VERSION=git.4.7.02
       -DMPIEXEC_EXECUTABLE=/usr/bin/srun
       -DMPIEXEC_PREFLAGS="$SRUN_FLAGS"
       -DMPIEXEC_MAX_NUMPROCS=4
