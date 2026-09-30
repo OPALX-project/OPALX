@@ -3,7 +3,7 @@ include:
   - local: "ci/cscs/regression-common.yml"
 
 variables:
-  CUDA_UENV: "/capstor/store/cscs/cscs/public/uenvs/opal-x-gh200-mpich-gcc-2026-04-14.squashfs"
+  CUDA_UENV: "/ritom/scratch/cscs/biddisco/opal-x-gh200-mpich-gcc-2026-09-30.squashfs"
   BUILD_ARCH: "gpu-cuda-gh200"
   REGTEST_CONFIG: "cuda.conf"
   CTEST_SITE: "Daint gh200 CUDA 13.1.1"
