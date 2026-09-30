@@ -177,9 +177,9 @@ void FieldmapElement::initialise(PartBunch_t* bunch) {
     // The local frame is the map's frame, so the body starts where the map's z range starts.
     getGeometry().setStartZ(startField_m);
 
-    // Three of the five readers throw here: a one-dimensional map has no transverse extent
-    // at all, because its off-axis field is an expansion about the axis rather than a
-    // tabulated box.
+    // Of the maps this element accepts, only the ASTRA 1D one throws here: a one-dimensional
+    // map has no transverse extent at all, because its off-axis field is an expansion about
+    // the axis rather than a tabulated box.
     hasTransverseExtent_m = false;
     try {
         double xIni = 0.0, xFinal = 0.0, yIni = 0.0, yFinal = 0.0, zIni = 0.0, zFinal = 0.0;

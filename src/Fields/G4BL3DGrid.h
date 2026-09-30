@@ -27,7 +27,8 @@
 
 /**
  * @class G4BL3DGrid
- * @brief Reader for G4beamline `grid` field maps: a cartesian box of B values.
+ * @brief Reader for G4beamline `grid` field maps: a cartesian box of B values, and of E
+ *        values when the file has them.
  *
  * @code
  * param current=1.
