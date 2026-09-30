@@ -123,9 +123,7 @@ namespace opalx::spacecharge {
                         EXPECT_NEAR(
                                 actualE(i)[d], expectedE(i)[d],
                                 1.0e-9 * std::max(1.0, std::abs(expectedE(i)[d])));
-                        EXPECT_NEAR(
-                                actualB(i)[d], expectedB(i)[d], 
-                                1.0e-9 * std::max(1.0, std::abs(expectedB(i)[d])));
+                        EXPECT_NEAR(actualB(i)[d], expectedB(i)[d], 1.0e-12);
                     }
                 }
             }
