@@ -93,6 +93,36 @@ ctest_configure(RETURN_VALUE configure_result)
 # --- submit configure results immediately, so they reach CDash even if the
 # build later hangs and the job is killed by the SLURM timelimit ---
 ctest_submit(PARTS Configure)
+
+# Optional GH200 include probe. Run before compilation so its report survives a
+# build failure; diagnostic failures must not replace the normal build result.
+if(OPALX_DIAG_DESUL_HEADERS AND configure_result EQUAL 0)
+  find_program(DIAGNOSTIC_PYTHON NAMES python3)
+  if(DIAGNOSTIC_PYTHON)
+    execute_process(
+      COMMAND "${DIAGNOSTIC_PYTHON}"
+              "${CTEST_SOURCE_DIRECTORY}/ci/cscs/diagnose_desul_headers.py"
+              "${CTEST_BINARY_DIRECTORY}"
+      RESULT_VARIABLE diagnostic_result
+      OUTPUT_VARIABLE diagnostic_output
+      ERROR_VARIABLE diagnostic_error
+      TIMEOUT 150
+    )
+    set(diagnostic_report "${diagnostic_output}\n${diagnostic_error}\nDiagnostic exit status: ${diagnostic_result}\n")
+  else()
+    set(diagnostic_report "Desul header diagnostic unavailable: python3 was not found.\n")
+  endif()
+  set(diagnostic_file "${CTEST_BINARY_DIRECTORY}/desul-header-diagnostic.log")
+  file(WRITE "${diagnostic_file}" "${diagnostic_report}")
+  message("${diagnostic_report}")
+  list(APPEND CTEST_NOTES_FILES "${diagnostic_file}")
+  ctest_submit(
+    PARTS Notes
+    RETURN_VALUE diagnostic_submit_result
+    CAPTURE_CMAKE_ERROR diagnostic_submit_error
+  )
+endif()
+
 ctest_build(RETURN_VALUE build_result)
 
 # --- fail if any test failed ---
