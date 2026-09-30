@@ -40,9 +40,9 @@ class Fieldmap;
  *       This is forced by Fieldmap::applyField(), which reads the particle positions
  *       directly and takes no offset.
  *
- * @note Because of that, a map whose z range does not start at zero has its field window
- *       offset from the body window [0, L] that ElementBase assumes. markOutsideAperture()
- *       and getBoundingBoxInLabCoords() are overridden to use the field window instead.
+ * @note Because of that, a map whose z range does not start at zero has its body offset
+ *       from the local origin. initialise() stores that offset with Geometry::setStartZ(), so
+ *       the geometry's edges and ElementBase's aperture check cover the map's z range.
  *
  * @note Placement is restricted to the 6D lab pose. ELEMEDGE positions an element by path
  *       length along the reference orbit, which needs the element's length along that orbit;
@@ -90,14 +90,6 @@ public:
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
-    /**
-     * @brief Mark particles inside the field window but outside the transverse aperture.
-     *
-     * Overridden because ElementBase gates on the body window [0, L], which is offset from
-     * the field window whenever the map's z range does not start at zero.
-     */
-    virtual size_t markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) override;
-
     /* ============================== Functions ================================= */
     /// @brief Apply visitor to FieldmapElement.
     virtual void accept(BeamlineVisitor&) const override;
@@ -126,7 +118,7 @@ public:
     virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     /**
-     * @brief Lab-frame bounding box, built from the field window rather than [0, L].
+     * @brief Lab-frame bounding box, narrowed transversely to the map's own extent.
      */
     virtual BoundingBox getBoundingBoxInLabCoords() const override;
 

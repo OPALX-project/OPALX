@@ -212,13 +212,13 @@ size_t ElementBase::markOutsideAperture(const std::shared_ptr<ParticleContainer_
     }
 
     // The aperture is a geometric property of the element body, so gate on the
-    // geometric extent [0, L] (element-local frame), consistent with
-    // applyToReferenceParticle() below. The field-support window
-    // (getFieldExtent) can be narrower or offset from the body -- e.g. Solenoid
+    // geometric extent [startZ, startZ + L] (element-local frame), consistent with
+    // applyToReferenceParticle() below. startZ is 0 except for FIELDMAP. The field-support
+    // window (getFieldExtent) can be narrower or offset from the body -- e.g. Solenoid
     // returns its field-map range and Monitor a plane-centered window -- which
     // would leave part of the body unchecked.
-    const double zBegin = 0.0;
-    const double zEnd   = getGeometry().getElementLength();
+    const double zBegin = getGeometry().getStartZ();
+    const double zEnd   = zBegin + getGeometry().getElementLength();
 
     // Members copied to locals; the device kernel must not capture `this`.
     const ApertureType type = aperture_m.first;
@@ -251,7 +251,8 @@ size_t ElementBase::markOutsideAperture(const std::shared_ptr<ParticleContainer_
 bool ElementBase::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
-    if (R(2) >= 0.0 && R(2) < getGeometry().getElementLength()) {
+    const double zBegin = getGeometry().getStartZ();
+    if (R(2) >= zBegin && R(2) < zBegin + getGeometry().getElementLength()) {
         if (!ApertureHelper::isInsideAperture(R, aperture_m)) {
             return true;
         }
