@@ -1,3 +1,18 @@
+//
+// Copyright (c) 2008 - 2026, Paul Scherrer Institut, Villigen PSI, Switzerland
+//
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 /**
  * @file FFT2D5FieldStorage.h
  * @brief Owns persistent 3D staging fields and the FFT2D5 slice solver array.
@@ -6,8 +21,9 @@
 #ifndef OPALX_SPACE_CHARGE_FFT2D5_FIELD_STORAGE_H
 #define OPALX_SPACE_CHARGE_FFT2D5_FIELD_STORAGE_H
 
-#include "Manager/BaseManager.h"
+#include "Ippl.h"
 #include "Manager/datatypes.h"
+#include "SpaceCharge/FFT2D5/FFT2D5Poisson.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
 
 #include <cstddef>
@@ -40,6 +56,7 @@ namespace opalx::spacecharge {
             std::unique_ptr<VectorField2> electricField;
             std::unique_ptr<ScalarField2> chargeDensity;
             std::unique_ptr<OpenSolver2> solver;
+            std::unique_ptr<FFT2D5Poisson> solver2;
         };
 
         FFT2D5FieldStorage(const FFT2D5Config& config, double pathLength);
