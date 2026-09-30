@@ -128,6 +128,10 @@ target_link_libraries(opalx PUBLIC
     ZLIB::ZLIB
 )
 
+# Keep fetched Kokkos's bundled headers ahead of broad dependency prefixes.
+include(PreferFetchedKokkosHeaders)
+opalx_prefer_fetched_kokkos_headers(opalx)
+
 target_include_directories(opalx PRIVATE
   ${HDF5_INCLUDE_DIR}
   ${H5HUT_INCLUDE_DIR}
