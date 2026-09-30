@@ -28,7 +28,7 @@ variables:
     - env | sort | grep CI
   script:
     - >-
-      ctest -V -S $CI_PROJECT_DIR/ci/cscs/dashboard-configure-build.cmake
+      CC=gcc CXX=g++ ctest -V -S $CI_PROJECT_DIR/ci/cscs/dashboard-configure-build.cmake
       -DCTEST_SITE="$CTEST_SITE"
       -DPRESET=alps-gh200
       -DCDASH_LABEL=$CDASH_LABEL
