@@ -47,9 +47,9 @@ namespace opalx::spacecharge {
         void forOwnedCells(Field& field, Function function) {
             const auto owned = field.getLayout().getLocalNDIndex();
             const int ghost  = field.getNghost();
-            for (int i = 0; i < owned[0].length(); ++i) {
-                for (int j = 0; j < owned[1].length(); ++j) {
-                    for (int k = 0; k < owned[2].length(); ++k) {
+            for (int i = 0; i < static_cast<int>(owned[0].length()); ++i) {
+                for (int j = 0; j < static_cast<int>(owned[1].length()); ++j) {
+                    for (int k = 0; k < static_cast<int>(owned[2].length()); ++k) {
                         function(
                                 i + ghost, j + ghost, k + ghost, i + owned[0].first(),
                                 j + owned[1].first(), k + owned[2].first());
