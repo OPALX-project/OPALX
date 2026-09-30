@@ -2,9 +2,18 @@
 
 #include "SpaceCharge/Poisson/PoissonSolver.h"
 
+#include "FFT/Backend/Heffte.h"
+
+#if defined(KOKKOS_ENABLE_CUDA)
+#include <cuda_runtime_api.h>
+#elif defined(KOKKOS_ENABLE_HIP)
+#include <hip/hip_runtime_api.h>
+#endif
+
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <iostream>
 #include <limits>
 
 namespace opalx::spacecharge {
@@ -85,6 +94,95 @@ namespace opalx::spacecharge {
         }
 
         /**
+         * @brief Isolate external FFT calls from asynchronous copies and report GPU errors.
+         *
+         * Device-wide synchronization is intentional in these diagnostic tests: it removes
+         * stream ordering as a variable without changing the existing IPPL-path tests.
+         * Check the launch error before another API call can obscure its origin.
+         */
+        ::testing::AssertionResult synchronizeDirectProbe(const char* stage) {
+#if defined(KOKKOS_ENABLE_CUDA)
+            const auto launch     = cudaGetLastError();
+            const auto completion = cudaDeviceSynchronize();
+            if (launch != cudaSuccess || completion != cudaSuccess) {
+                return ::testing::AssertionFailure()
+                       << stage << ": CUDA launch=" << cudaGetErrorString(launch)
+                       << ", synchronization=" << cudaGetErrorString(completion);
+            }
+#elif defined(KOKKOS_ENABLE_HIP)
+            const auto launch     = hipGetLastError();
+            const auto completion = hipDeviceSynchronize();
+            if (launch != hipSuccess || completion != hipSuccess) {
+                return ::testing::AssertionFailure()
+                       << stage << ": HIP launch=" << hipGetErrorString(launch)
+                       << ", synchronization=" << hipGetErrorString(completion);
+            }
+#else
+            Kokkos::fence(stage);
+#endif
+            return ::testing::AssertionSuccess();
+        }
+
+        /**
+         * @brief Check HeFFTe directly, bypassing IPPL's field copies and transform wrapper.
+         *
+         * Use the same backend, options, default stream, persistent workspace and x-fast
+         * layout as the IPPL R2C path. Only buffer initialization and synchronization differ.
+         * Independent amplitudes distinguish a transform failure from a scaling failure.
+         */
+        void checkDirectHeffteForward(heffte::scale scaling) {
+            using Backend     = FFT::heffteBackend;
+            using DirectFFT   = heffte::fft3d_r2c<Backend, long long>;
+            using MemorySpace = RealField::memory_space;
+            const char* mode  = scaling == heffte::scale::none ? "none" : "full";
+            SCOPED_TRACE(mode);
+            ASSERT_TRUE(synchronizeDirectProbe("before direct HeFFTe plan"));
+            const heffte::box3d<long long> inbox(
+                    {0, 0, 0}, {paddedSize - 1, paddedSize - 1, paddedSize - 1});
+            const heffte::box3d<long long> outbox(
+                    {0, 0, 0}, {paddedSize / 2, paddedSize - 1, paddedSize - 1});
+            DirectFFT plan(
+                    inbox, outbox, 0, MPI_COMM_WORLD,
+                    ippl::fft::makeHeffteOptions<Backend>(detail::commonFftParameters()));
+            ASSERT_EQ(plan.size_inbox(), static_cast<long long>(paddedCellCount));
+            ASSERT_EQ(plan.size_outbox(), (paddedSize / 2 + 1) * paddedSize * paddedSize);
+            EXPECT_DOUBLE_EQ(plan.get_scale_factor(heffte::scale::full), 1.0 / paddedCellCount);
+            Kokkos::View<double*, MemorySpace> input("direct_fft_input", plan.size_inbox());
+            Kokkos::View<Complex*, MemorySpace> output("direct_fft_output", plan.size_outbox());
+            DirectFFT::buffer_container<Complex> workspace(plan.size_workspace());
+            auto hostInput = Kokkos::create_mirror_view(input);
+            for (std::size_t i = 0; i < hostInput.extent(0); ++i) {
+                hostInput(i) = 2.0 + cosineMode(static_cast<int>(i % paddedSize));
+            }
+            Kokkos::deep_copy(input, hostInput);
+            ASSERT_TRUE(synchronizeDirectProbe("before direct HeFFTe forward"));
+            plan.forward(input.data(), output.data(), workspace.data(), scaling);
+            ASSERT_TRUE(synchronizeDirectProbe("after direct HeFFTe forward"));
+            const auto actual = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), output);
+            std::cout << "Direct HeFFTe scale::" << mode
+                      << ": plan full factor=" << plan.get_scale_factor(heffte::scale::full)
+                      << ", DC=" << actual(0) << ", mode=" << actual(paddedSize / 4) << std::endl;
+
+            // Compare order-one values for both modes. No relative comparison of the
+            // two transforms: a shared error must not make this diagnostic pass.
+            const double divisor   = scaling == heffte::scale::none ? paddedCellCount : 1.0;
+            double maximumError    = 0.0;
+            std::size_t worstIndex = 0;
+            for (std::size_t i = 0; i < actual.extent(0); ++i) {
+                const Complex expected(i == 0 ? 2.0 : (i == paddedSize / 4 ? 0.5 : 0.0), 0.0);
+                const double error = magnitude(actual(i) / divisor - expected);
+                if (!std::isfinite(error) || error > maximumError) {
+                    maximumError =
+                            std::isfinite(error) ? error : std::numeric_limits<double>::infinity();
+                    worstIndex = i;
+                }
+            }
+            EXPECT_LE(maximumError, tolerance)
+                    << "Direct HeFFTe scale::" << mode << " at flat spectrum index " << worstIndex
+                    << ", actual=" << actual(worstIndex) << ", comparison divisor=" << divisor;
+        }
+
+        /**
          * @brief Reproduce the FFT setup of the rotated CartesianPIC3D algorithm test.
          *
          * OPEN/HOCKNEY pads the physical 16^3 grid to 32^3, shortening x to 17 for R2C.
@@ -130,6 +228,50 @@ namespace opalx::spacecharge {
                         << "This regression reproduces the one-rank CartesianPIC3D FFT layout.";
             }
         };
+
+        TEST_F(FFTNormalizationTest, DirectHeffteForwardWithoutNormalization) {
+            ASSERT_NO_FATAL_FAILURE(checkDirectHeffteForward(heffte::scale::none));
+        }
+
+        TEST_F(FFTNormalizationTest, DirectHeffteForwardWithFullNormalization) {
+            ASSERT_NO_FATAL_FAILURE(checkDirectHeffteForward(heffte::scale::full));
+        }
+
+#if defined(KOKKOS_ENABLE_CUDA) && defined(Heffte_ENABLE_CUDA)
+        TEST_F(FFTNormalizationTest, CudaScalingKernelAppliesNormalization) {
+            ASSERT_TRUE(synchronizeDirectProbe("before standalone CUDA scaling"));
+            // HeFFTe scales a complex spectrum as twice as many real entries. Exercise
+            // that exact kernel size independently of FFT plans and field copies.
+            // This probes scale_data itself, even when a build enables MAGMA scaling.
+            constexpr long long count = 2LL * (paddedSize / 2 + 1) * paddedSize * paddedSize;
+            Kokkos::View<double*, Kokkos::CudaSpace> values("cuda_fft_scale_probe", count);
+            auto host = Kokkos::create_mirror_view(values);
+            for (long long i = 0; i < count; ++i) {
+                host(i) = paddedCellCount * (1.0 + i % 4) * (i % 2 == 0 ? 1.0 : -1.0);
+            }
+            Kokkos::deep_copy(values, host);
+            ASSERT_TRUE(synchronizeDirectProbe("before HeFFTe CUDA scale_data launch"));
+            heffte::cuda::scale_data<double, long long>(
+                    nullptr, count, values.data(), 1.0 / paddedCellCount);
+            ASSERT_TRUE(synchronizeDirectProbe("after HeFFTe CUDA scale_data launch"));
+            Kokkos::deep_copy(host, values);
+            double maximumError  = 0.0;
+            long long worstIndex = 0;
+            for (long long i = 0; i < count; ++i) {
+                const double expected = (1.0 + i % 4) * (i % 2 == 0 ? 1.0 : -1.0);
+                const double error    = std::abs(host(i) - expected);
+                if (!std::isfinite(error) || error > maximumError) {
+                    maximumError =
+                            std::isfinite(error) ? error : std::numeric_limits<double>::infinity();
+                    worstIndex = i;
+                }
+            }
+            std::cout << "HeFFTe CUDA scale_data: first=" << host(0) << ", last=" << host(count - 1)
+                      << ", max error=" << maximumError << std::endl;
+            EXPECT_LE(maximumError, tolerance) << "Standalone CUDA scaling at scalar index "
+                                               << worstIndex << ", actual=" << host(worstIndex);
+        }
+#endif
 
         TEST_F(FFTNormalizationTest, ForwardPreservesAbsoluteFourierAmplitudes) {
             HockneyFFT fields;
