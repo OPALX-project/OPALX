@@ -216,8 +216,6 @@ namespace opalx::spacecharge {
         template <typename DiagnosticPolicy>
         std::unique_ptr<DiagnosticPolicy> createDiagnostic(NullDiagnostic::Kind kind);
 
-        // CUDA requires enclosing functions of device lambdas to be public.
-
         /**
          * @brief Kokkos kernel that deposits a single particle's charge onto
          * the three-dimensional charge grid.  See implementation for more details.
