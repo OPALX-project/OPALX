@@ -48,7 +48,7 @@ jobs:
           mkdir -p build_hip
           cd build_hip
           cmake .. \
-            -DBUILD_TYPE=Debug \
+            -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_PREFIX_PATH=/opt/rocm \
             -DCMAKE_CXX_COMPILER=hipcc \
             -DPLATFORMS=HIP \
