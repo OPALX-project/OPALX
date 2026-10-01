@@ -123,12 +123,14 @@ cmake .. \
     -DARCH=AMPERE80
 ```
 
-For the release mode, use `Release` instead of `Debug` as the argument for `-DCMAKE_BUILD_TYPE`. For other GPUs use the correct flag for their corresponding architecture. For example, for P100 or GTX 1080 with Pascal61 architecture on Merlin login node, use `-DARCH=PASCAL61` instead of `-DARCH=AMPERE80`.
+For the release mode, use `Release` instead of `Debug` as the argument for `-DCMAKE_BUILD_TYPE`. For other GPUs use the correct flag for their corresponding architecture. For example, for P100 or GTX 1080 with Pascal61 architecture on Merlin login node, use `-DARCH=PASCAL61` instead of `-DARCH=AMPERE80`. 
 
 #### Notes:
 
-- Use `-DCMAKE_BUILD_TYPE=Release` for optimized builds.
+- Use -DCMAKE_BUILD_TYPE=Release for optimized builds.
 - ARCH is required for CUDA builds so OPALX can configure Kokkos properly.
+- Distributed GPU space-charge solves require GPU-aware MPI. FFT communication and field
+  mirroring pass device buffers directly to MPI; field mirroring has no host-staging fallback.
 - All IPPL/Kokkos flags (FFT, solvers, tests, ALPINE, `Kokkos_ARCH_*`, etc.) are now set automatically.
 
 #### Further Options
