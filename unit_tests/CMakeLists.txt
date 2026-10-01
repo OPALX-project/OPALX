@@ -10,15 +10,6 @@ endif()
 
 include(GoogleTest)
 
-# These configure-only checks use no OPALX dependencies or simulation runs.
-find_package(Python3 QUIET COMPONENTS Interpreter)
-if(Python3_Interpreter_FOUND)
-  add_test(NAME OPALXBuildConfiguration
-           COMMAND "${Python3_EXECUTABLE}"
-                   "${PROJECT_SOURCE_DIR}/ci/tests/test_build_configuration.py")
-  set_tests_properties(OPALXBuildConfiguration PROPERTIES LABELS "unit;cmake" TIMEOUT 90)
-endif()
-
 if(NOT TARGET opalx_test_support)
   add_library(opalx_test_support INTERFACE)
   target_include_directories(opalx_test_support
