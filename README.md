@@ -206,4 +206,17 @@ ulimit -c unlimited
 srun ./opalx DriftTest-1.in  --info 10 --kokkos-map-device-id-by=mpi_rank
 ```
 
+## Building OpalX on CSCS Alps machines
+On CSCS alps clusters, we use a `uenv` to contain all the liobraries/dependencies that we need. Load a uenv using the following examples (check for newer uenvs once these are out of date), and then run cmake as usual. The default view of the uenv should setup `CMAKE_PREFIX_PATH` for the libs you need when compiling opalx/ippl
+```bash
+# daint gh200
+uenv start /capstor/store/cscs/cscs/public/uenvs/opal-x-gh200-mpich-gcc-2026-10-01.squashfs
+
+# Beverin mi300
+uenv start /capstor/store/cscs/cscs/public/uenvs/opal-x-mi300-mpich-gcc-llvm-2026-10-01.squashfs
+
+# Eiger Zen2 AMD nodes
+uenv start /capstor/store/cscs/cscs/public/uenvs/opal-x-zen2-mpich-gcc-2026-10-01.squashfs
+```
+
 The documentation has been moved to the [OPAL Landing Page](https://amas.pages.psi.ch/opal/).
