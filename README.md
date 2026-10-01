@@ -78,7 +78,7 @@ Building OPALX without multi-threading (only MPI):
 ```bash
 mkdir build_serial && cd build_serial
 cmake .. \
-    -DBUILD_TYPE=Debug \
+    -DCMAKE_BUILD_TYPE=Debug \
     -DPLATFORMS=SERIAL
 ```
 
@@ -87,7 +87,7 @@ and for multi-threading with OpenMP:
 ```bash
 mkdir build_openmp && cd build_openmp
 cmake .. \
-    -DBUILD_TYPE=Debug \
+    -DCMAKE_BUILD_TYPE=Debug \
     -DPLATFORMS=OPENMP
 ```
 
@@ -103,16 +103,16 @@ For example, for A100 with Amper80 Architecture (Gwendolen), and the debug mode,
 
 ```bash
 cmake .. \
-    -DBUILD_TYPE=Debug \
+    -DCMAKE_BUILD_TYPE=Debug \
     -DPLATFORMS=CUDA \
     -DARCH=AMPERE80
 ```
 
-For the release mode, use `Release` instead of `Debug` as the argument for `-DBUILD_TYPE`. For other GPUs use the correct flag for their corresponding architecture. For example, for P100 or GTX 1080 with Pascal61 architecture on Merlin login node, use `-DARCH=PASCAL61` instead of `-DARCH=AMPERE80`. 
+For the release mode, use `Release` instead of `Debug` as the argument for `-DCMAKE_BUILD_TYPE`. For other GPUs use the correct flag for their corresponding architecture. For example, for P100 or GTX 1080 with Pascal61 architecture on Merlin login node, use `-DARCH=PASCAL61` instead of `-DARCH=AMPERE80`. 
 
 #### Notes:
 
-- Use -DBUILD_TYPE=Release for optimized builds.
+- Use -DCMAKE_BUILD_TYPE=Release for optimized builds.
 - ARCH is required for CUDA builds so OPALX can configure Kokkos properly.
 - All IPPL/Kokkos flags (FFT, solvers, tests, ALPINE, `Kokkos_ARCH_*`, etc.) are now set automatically.
 
