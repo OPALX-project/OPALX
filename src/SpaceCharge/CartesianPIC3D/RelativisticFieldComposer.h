@@ -60,6 +60,8 @@ namespace opalx::spacecharge {
          *
          * ShiftedGreenImageZ mirrors the field in z and applies image-field component signs first.
          * Contributions are added in call order.
+         * @note Enqueues work on the default execution instance; synchronize before host access
+         * or consumption on another execution instance.
          */
         void accumulate(FieldStorage& fieldStorage, const Policy& policy) const;
 

@@ -3,7 +3,7 @@ include:
   - local: "ci/cscs/regression-common.yml"
 
 variables:
-  EIGER_UENV: "prgenv-gnu/25.6:v2"
+  EIGER_UENV: "/ritom/scratch/cscs/biddisco/opal-x-zen2-mpich-gcc-2026-10-01.squashfs"
   BUILD_ARCH: "cpu-zen2-openmp"
   REGTEST_CONFIG: "openmp.conf"
   CTEST_SITE: "Eiger OpenMP"
@@ -19,6 +19,10 @@ variables:
     - .baremetal-runner-eiger-zen2
   variables:
     SLURM_CPUS_PER_TASK: 64
+    # the .f7t-runner base class forces SLURM_TIMELIMIT=00:15:00 which beats
+    # the value in .opalx-regression-common via extends merge order; defining
+    # it here (closer to the job) gives it precedence
+    SLURM_TIMELIMIT: "0:30:00"
 
 # ---------------------------------------------------------
 # openmp regression release
