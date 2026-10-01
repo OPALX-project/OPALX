@@ -12,18 +12,6 @@
 # ~~~
 # -----------------------------------------------------------------------------
 #
-# -----------------------------------------------------------------------------
-# Build type (user-facing)
-# -----------------------------------------------------------------------------
-# CMAKE_BUILD_TYPE (including an existing cache value) takes precedence. Retain
-# BUILD_TYPE only as a fallback for legacy commands and default to Release.
-set(BUILD_TYPE "Release" CACHE STRING "Legacy fallback when CMAKE_BUILD_TYPE is empty")
-get_property(_opalx_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-if(NOT _opalx_multi_config AND "${CMAKE_BUILD_TYPE}" STREQUAL "")
-    set(CMAKE_BUILD_TYPE "${BUILD_TYPE}" CACHE STRING
-        "Build type: Debug, Release, RelWithDebInfo, MinSizeRel" FORCE)
-endif()
-unset(_opalx_multi_config)
 
 # -----------------------------------------------------------------------------
 # Unit Test (user-facing)
