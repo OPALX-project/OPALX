@@ -36,7 +36,7 @@ jobs:
           mkdir -p build_openmp
           cd build_openmp
           cmake .. \
-            -DBUILD_TYPE=Debug \
+            -DCMAKE_BUILD_TYPE=Debug \
             -DPLATFORMS=OPENMP \
             -DOPALX_ENABLE_UNIT_TESTS=ON
 
