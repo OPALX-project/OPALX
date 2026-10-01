@@ -89,7 +89,9 @@ TEST_F(ExperimentalBoundarySampleTest, FullPopulationAndNestedMembershipAreDeter
         EXPECT_TRUE(selected(id, 1));
         for (unsigned bit = 1; bit < 64; ++bit) {
             const auto stride = UINT64_C(1) << bit;
-            if (selected(id, stride)) EXPECT_TRUE(selected(id, stride / 2));
+            if (selected(id, stride)) {
+                EXPECT_TRUE(selected(id, stride / 2));
+            }
         }
     }
     EXPECT_TRUE(selected(std::numeric_limits<std::uint64_t>::max(), 1));

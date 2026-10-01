@@ -284,8 +284,9 @@ TEST_F(PassiveRingProbeTest, CollectiveErrorsRejectDuplicatesInvalidTimesAndExis
     EXPECT_THROW(
             recorder.observe(pc, std::numeric_limits<double>::quiet_NaN()), std::runtime_error);
     EXPECT_THROW(recorder.observe(nullptr, 2), std::runtime_error);
-    if (ippl::Comm->size() > 1)
+    if (ippl::Comm->size() > 1) {
         EXPECT_THROW(recorder.observe(pc, 2 + ippl::Comm->rank()), std::runtime_error);
+    }
     populate(pc, 1, 1, false, true);
     EXPECT_THROW(recorder.observe(pc, 2), std::runtime_error);
 }

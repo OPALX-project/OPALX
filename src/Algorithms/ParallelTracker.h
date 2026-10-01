@@ -127,7 +127,7 @@ public:
     void setSpaceChargeFieldUpdate(SpaceChargeFieldUpdate update) {
         spaceChargeFieldUpdate_m = update;
     }
-    virtual void visitCyclotronSector(const CyclotronSector& sector) {
+    void visitCyclotronSector(const CyclotronSector& sector) override {
         itsOpalBeamline_m.visit(sector, *this, *itsBunch_m);
     }
 
@@ -248,57 +248,57 @@ public:
 
     /// @brief Visit the full beamline (iterates elements into OpalBeamline). Overrides
     /// DefaultVisitor.
-    virtual void visitBeamline(const Beamline&);
+    void visitBeamline(const Beamline&) override;
 
     /// @brief Visit a generic element using the base tracker behavior.
-    virtual void visitElementBase(const ElementBase&);
+    void visitElementBase(const ElementBase&) override;
 
     /// @brief Apply the algorithm to a constant E-field cavity.
-    virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&);
+    void visitConstantEFieldCavity(const ConstantEFieldCavity&) override;
 
     /// @brief Apply the algorithm to a constant linear focusing element.
-    virtual void visitConstantFocusing(const ConstantFocusing&);
+    void visitConstantFocusing(const ConstantFocusing&) override;
     /// @brief Apply the algorithm to a collimator.
-    virtual void visitCollimator(const Collimator&);
+    void visitCollimator(const Collimator&) override;
 
     /// @brief Apply the algorithm to a drift.
-    virtual void visitDrift(const Drift&);
+    void visitDrift(const Drift&) override;
 
     /// @brief Reject laser tracking until dedicated laser tracking is implemented.
-    virtual void visitLaser(const Laser&);
+    void visitLaser(const Laser&) override;
 
     /// @brief Apply the algorithm to a monitor.
-    virtual void visitMonitor(const Monitor&);
+    void visitMonitor(const Monitor&) override;
 
     /// @brief Apply the algorithm to a marker.
-    virtual void visitMarker(const Marker&);
+    void visitMarker(const Marker&) override;
 
     /// @brief Apply the algorithm to a multipole.
-    virtual void visitMultipole(const Multipole&);
+    void visitMultipole(const Multipole&) override;
 
     /// @brief Apply the algorithm to a multipole (templated type).
-    virtual void visitMultipoleT(const MultipoleT&);
+    void visitMultipoleT(const MultipoleT&) override;
 
     /// @brief Apply the algorithm to a rectangular bend.
-    virtual void visitRBend(const RBend&);
+    void visitRBend(const RBend&) override;
 
     /// @brief Apply the algorithm to an RF cavity.
-    virtual void visitRFCavity(const RFCavity&);
+    void visitRFCavity(const RFCavity&) override;
 
     /// @brief Register and initialise an analytic time-dependent RF cavity.
     void visitVariableRFCavity(const VariableRFCavity&) override;
 
     /// @brief Apply the algorithm to a sector bend.
-    virtual void visitSBend(const SBend&);
+    void visitSBend(const SBend&) override;
 
     /// @brief Apply the algorithm to a traveling wave cavity.
-    virtual void visitTravelingWave(const TravelingWave&);
+    void visitTravelingWave(const TravelingWave&) override;
 
     /// @brief Apply the algorithm to a solenoid.
-    virtual void visitSolenoid(const Solenoid&);
+    void visitSolenoid(const Solenoid&) override;
 
     /// @brief Run the main tracking loop until all step-size segments complete.
-    virtual void execute();
+    void execute() override;
 
     /**
      * @brief Boris half-kick using E, B and per-particle dt on one container.
