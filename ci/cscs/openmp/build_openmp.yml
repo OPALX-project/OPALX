@@ -22,6 +22,8 @@ variables:
   before_script:
     - !reference [.pr-number-extractor, before_script]
     - export BUILD_PATH=$(pwd)/$BUILD_DIR
+    - mkdir -p "$BUILD_PATH"
+    - cp "$CI_PROJECT_DIR/ci/cscs/test-library-wrapper.sh" "$BUILD_PATH/test-library-wrapper.sh"
     - pwd
     - env | sort | grep CI
     - export CC=gcc
@@ -40,7 +42,7 @@ variables:
       -DKokkos_ENABLE_DEBUG_BOUNDS_CHECK=OFF
       -DKokkos_ENABLE_DEBUG_DUALVIEW_MODIFY_CHECK=OFF
       -DMPIEXEC_EXECUTABLE=/usr/bin/srun
-      -DMPIEXEC_PREFLAGS="$SRUN_FLAGS"
+      -DMPIEXEC_PREFLAGS="${SRUN_FLAGS};/bin/bash;${BUILD_PATH}/test-library-wrapper.sh"
       -DMPIEXEC_MAX_NUMPROCS=4
     - ninja -C $BUILD_PATH opalx opalx_exe
     - ls -l $BUILD_PATH/bin/opalx
