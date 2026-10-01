@@ -10,6 +10,28 @@
 #include <string>
 #include <vector>
 
+namespace {
+    // Namespace-level functors avoid CUDA extended-lambda restrictions inside
+    // non-public GoogleTest TestBody methods while preserving device execution.
+    struct BoundaryHashKernel {
+        Kokkos::View<std::uint64_t*> ids, hashes;
+
+        KOKKOS_INLINE_FUNCTION void operator()(std::size_t i) const {
+            hashes(i) = experimental_boundary::hash(ids(i));
+        }
+    };
+
+    struct BoundarySelectionKernel {
+        Kokkos::View<std::int64_t*> ids;
+        Kokkos::View<int*> indices, flags;
+        std::uint64_t stride;
+
+        KOKKOS_INLINE_FUNCTION void operator()(std::size_t i) const {
+            flags(indices(i)) = experimental_boundary::selected(ids(i), stride) ? 1 : 0;
+        }
+    };
+}  // namespace
+
 class ExperimentalBoundarySampleTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
@@ -53,8 +75,7 @@ TEST_F(ExperimentalBoundarySampleTest, FixedHashAnchorsPreserveAllIdBits) {
         host(i) = anchors[i][0];
     Kokkos::deep_copy(ids, host);
     Kokkos::parallel_for(
-            "boundary sample hash anchors", anchors.size(),
-            KOKKOS_LAMBDA(std::size_t i) { hashes(i) = experimental_boundary::hash(ids(i)); });
+            "boundary sample hash anchors", anchors.size(), BoundaryHashKernel{ids, hashes});
     const auto result = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), hashes);
     for (std::size_t i = 0; i < anchors.size(); ++i) {
         EXPECT_EQ(experimental_boundary::hash(anchors[i][0]), anchors[i][1]);
@@ -115,9 +136,8 @@ TEST_F(ExperimentalBoundarySampleTest, DeviceSelectionSurvivesReorderingAndRankO
             Kokkos::deep_copy(indices, indexHost);
             Kokkos::deep_copy(flags, 0);
             Kokkos::parallel_for(
-                    "partitioned boundary sample", owned.size(), KOKKOS_LAMBDA(std::size_t i) {
-                        flags(indices(i)) = experimental_boundary::selected(ids(i), stride) ? 1 : 0;
-                    });
+                    "partitioned boundary sample", owned.size(),
+                    BoundarySelectionKernel{ids, indices, flags, stride});
             const auto flagHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), flags);
             std::vector<int> global(population);
             MPI_Allreduce(

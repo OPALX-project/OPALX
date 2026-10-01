@@ -10,6 +10,88 @@
 using Vector = boris_midpoint::Vector;
 using State  = boris_midpoint::State;
 
+namespace {
+    // Namespace-level functors avoid CUDA extended-lambda restrictions inside
+    // non-public GoogleTest TestBody methods while preserving device execution.
+    struct ElectricMidpointKernel {
+        Kokkos::View<State*> results;
+        Kokkos::View<Vector*> samples, liveP;
+        Vector start;
+        double dt, mass, gradient;
+
+        KOKKOS_INLINE_FUNCTION void operator()(int i) const {
+            const Vector midpoint = boris_midpoint::halfDrift(start, liveP(i), dt);
+            samples(i)            = midpoint;
+            const Vector electric(gradient * midpoint(0), -0.5 * gradient * midpoint(1), 0);
+            results(i) =
+                    boris_midpoint::endpoint(midpoint, liveP(i), electric, Vector(0), dt, mass, 1);
+        }
+    };
+
+    struct CombinedFieldKernel {
+        Kokkos::View<State*> results;
+        Vector midpoint, initialP, electric, magnetic;
+        double dt, mass;
+
+        KOKKOS_INLINE_FUNCTION void operator()(int i) const {
+            results(i) = boris_midpoint::endpoint(
+                    midpoint, initialP, electric, magnetic, dt, mass, i == 0 ? 1. : -1.);
+        }
+    };
+
+    struct RollbackMidpointKernel {
+        Kokkos::View<Vector*> restored;
+        Vector initialP;
+        double initialDt;
+
+        KOKKOS_INLINE_FUNCTION void operator()(int i) const {
+            Vector position = i == 0 ? Vector(1e-6, -2e-6, 3e-6) : Vector(1, -2, 3);
+            for (unsigned trial = 0; trial < 32; ++trial) {
+                const double dt = Kokkos::ldexp(initialDt, -static_cast<int>(trial));
+                // Use the existing tracker's scaled-position first push. The trial
+                // endpoint must not overwrite this live midpoint or its momentum.
+                Vector midpoint = position / (Physics::c * dt);
+                BorisPusher().push(midpoint, initialP, dt);
+                midpoint *= Physics::c * dt;
+                const State rejected = boris_midpoint::endpoint(
+                        midpoint, initialP, Vector(1e5, -2e5, 0), Vector(0, 0.8, 0), dt,
+                        9.382720813e8, 1.);
+                (void)rejected;
+                position = boris_midpoint::halfDrift(midpoint, initialP, -dt);
+            }
+            restored(i) = position;
+        }
+    };
+
+    struct RotatedMidpointKernel {
+        Kokkos::View<State*> results;
+        Vector start, initialP, selfE, externalE, selfB, externalB;
+        Vector transformedR, transformedP, transformedE, transformedB;
+
+        KOKKOS_INLINE_FUNCTION void operator()(int i) const {
+            const Vector r = i == 0 ? start : transformedR;
+            const Vector p = i == 0 ? initialP : transformedP;
+            const Vector e = i == 0 ? Vector(selfE + externalE) : transformedE;
+            const Vector b = i == 0 ? Vector(selfB + externalB) : transformedB;
+            results(i)     = boris_midpoint::endpoint(
+                    boris_midpoint::halfDrift(r, p, 5e-10), p, e, b, 5e-10, 9.382720813e8, 1.);
+        }
+    };
+
+    struct MagneticAndNeutralKernel {
+        Kokkos::View<State*> results;
+        Vector midpoint, p;
+        double dt, mass, magnetic;
+
+        KOKKOS_INLINE_FUNCTION void operator()(int i) const {
+            const double charge   = i == 0 ? 1. : (i == 1 ? -1. : 0.);
+            const Vector electric = i == 2 ? Vector(1e5, -2e5, 3e4) : Vector(0);
+            results(i)            = boris_midpoint::endpoint(
+                    midpoint, p, electric, Vector(0, magnetic, 0), dt, mass, charge);
+        }
+    };
+}  // namespace
+
 class BorisMidpointTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
@@ -27,13 +109,8 @@ TEST_F(BorisMidpointTest, PositionDependentElectricFieldUsesTheActualHalfDrift) 
     Kokkos::View<Vector*> samples("sample positions", 1), liveP("unchanged momentum", 1);
     Kokkos::deep_copy(liveP, initialP);
     Kokkos::parallel_for(
-            "electric midpoint test", 1, KOKKOS_LAMBDA(int i) {
-                const Vector midpoint = boris_midpoint::halfDrift(start, liveP(i), dt);
-                samples(i)            = midpoint;
-                const Vector electric(gradient * midpoint(0), -0.5 * gradient * midpoint(1), 0);
-                results(i) = boris_midpoint::endpoint(
-                        midpoint, liveP(i), electric, Vector(0), dt, mass, 1);
-            });
+            "electric midpoint test", 1,
+            ElectricMidpointKernel{results, samples, liveP, start, dt, mass, gradient});
     const auto result     = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), results);
     const auto sampled    = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), samples);
     const auto preserved  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), liveP);
@@ -61,10 +138,8 @@ TEST_F(BorisMidpointTest, CombinedSelfAndExternalFieldsMatchIndependentRotation)
     const double dt = 5e-10, mass = 9.382720813e8;
     Kokkos::View<State*> results("combined field trials", 2);
     Kokkos::parallel_for(
-            "combined field test", 2, KOKKOS_LAMBDA(int i) {
-                results(i) = boris_midpoint::endpoint(
-                        midpoint, initialP, electric, magnetic, dt, mass, i == 0 ? 1. : -1.);
-            });
+            "combined field test", 2,
+            CombinedFieldKernel{results, midpoint, initialP, electric, magnetic, dt, mass});
     const auto result = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), results);
     for (unsigned i = 0; i < 2; ++i) {
         const double charge         = i == 0 ? 1. : -1.;
@@ -94,23 +169,7 @@ TEST_F(BorisMidpointTest, RejectedTrialUndoesOnlyUncommittedHalfDrift) {
     const double initialDt = 1e-9;
     Kokkos::View<Vector*> restored("rejected half drifts", 2);
     Kokkos::parallel_for(
-            "rollback midpoint test", 2, KOKKOS_LAMBDA(int i) {
-                Vector position = i == 0 ? Vector(1e-6, -2e-6, 3e-6) : Vector(1, -2, 3);
-                for (unsigned trial = 0; trial < 32; ++trial) {
-                    const double dt = Kokkos::ldexp(initialDt, -static_cast<int>(trial));
-                    // Use the existing tracker's scaled-position first push. The trial
-                    // endpoint must not overwrite this live midpoint or its momentum.
-                    Vector midpoint = position / (Physics::c * dt);
-                    BorisPusher().push(midpoint, initialP, dt);
-                    midpoint *= Physics::c * dt;
-                    const State rejected = boris_midpoint::endpoint(
-                            midpoint, initialP, Vector(1e5, -2e5, 0), Vector(0, 0.8, 0), dt,
-                            9.382720813e8, 1.);
-                    (void)rejected;
-                    position = boris_midpoint::halfDrift(midpoint, initialP, -dt);
-                }
-                restored(i) = position;
-            });
+            "rollback midpoint test", 2, RollbackMidpointKernel{restored, initialP, initialDt});
     const auto result = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), restored);
     for (unsigned i = 0; i < 2; ++i) {
         const Vector initial = i == 0 ? Vector(1e-6, -2e-6, 3e-6) : Vector(1, -2, 3);
@@ -135,14 +194,10 @@ TEST_F(BorisMidpointTest, RotatingTheFrameRotatesBothFieldContributions) {
     const Vector transformedB = frame.rotateFrom(selfB) + frame.rotateFrom(externalB);
     Kokkos::View<State*> results("rotated trials", 2);
     Kokkos::parallel_for(
-            "rotated midpoint test", 2, KOKKOS_LAMBDA(int i) {
-                const Vector r = i == 0 ? start : transformedR;
-                const Vector p = i == 0 ? initialP : transformedP;
-                const Vector e = i == 0 ? Vector(selfE + externalE) : transformedE;
-                const Vector b = i == 0 ? Vector(selfB + externalB) : transformedB;
-                results(i)     = boris_midpoint::endpoint(
-                        boris_midpoint::halfDrift(r, p, 5e-10), p, e, b, 5e-10, 9.382720813e8, 1.);
-            });
+            "rotated midpoint test", 2,
+            RotatedMidpointKernel{
+                    results, start, initialP, selfE, externalE, selfB, externalB, transformedR,
+                    transformedP, transformedE, transformedB});
     const auto result     = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), results);
     const Vector position = frame.transformFrom(result(0).position);
     const Vector momentum = frame.rotateFrom(result(0).momentum);
@@ -157,12 +212,8 @@ TEST_F(BorisMidpointTest, MagneticEnergyAndZeroChargeDriftMatchAnalyticResults) 
     const double dt = 1e-10, mass = 9.382720813e8, magnetic = 0.8;
     Kokkos::View<State*> results("magnetic and neutral trials", 3);
     Kokkos::parallel_for(
-            "magnetic and neutral test", 3, KOKKOS_LAMBDA(int i) {
-                const double charge   = i == 0 ? 1. : (i == 1 ? -1. : 0.);
-                const Vector electric = i == 2 ? Vector(1e5, -2e5, 3e4) : Vector(0);
-                results(i)            = boris_midpoint::endpoint(
-                        midpoint, p, electric, Vector(0, magnetic, 0), dt, mass, charge);
-            });
+            "magnetic and neutral test", 3,
+            MagneticAndNeutralKernel{results, midpoint, p, dt, mass, magnetic});
     const auto result = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), results);
     for (unsigned i = 0; i < 3; ++i) {
         const double charge = i == 0 ? 1. : (i == 1 ? -1. : 0.);

@@ -10,6 +10,28 @@
 namespace {
     using namespace passive_probe;
 
+    // Namespace-level functors avoid CUDA extended-lambda restrictions inside
+    // non-public GoogleTest TestBody methods while preserving device execution.
+    struct PassiveObservationKernel {
+        Kokkos::View<State*> states;
+        Kokkos::View<Sample*> samples;
+        Kokkos::View<Status*> statuses;
+        Plane plane;
+
+        KOKKOS_INLINE_FUNCTION void operator()(unsigned i) const {
+            State state;
+            Sample sample;
+            const Endpoint before{plane.origin - Vector(0, 0, 0.1), Vector(0, 0, 1), 4.57e-6};
+            const Endpoint after{
+                    plane.origin + Vector(0, 0, 0.1 * (i + 1)), Vector(0, 0, 1),
+                    4.57e-6 + (i == 3 ? 3.25e-22 : 1e-9)};
+            update(plane, state, before, sample);
+            statuses(i) = update(plane, state, after, sample, i != 4);
+            states(i)   = state;
+            samples(i)  = sample;
+        }
+    };
+
     void expectEndpoint(const Endpoint& actual, const Endpoint& expected) {
         EXPECT_DOUBLE_EQ(actual.time, expected.time);
         for (unsigned d = 0; d < 3; ++d) {
@@ -266,18 +288,8 @@ TEST_F(PassiveProbeTest, DeviceAndHostObservationsAgree) {
     Kokkos::View<Status*> statuses("passive statuses", count);
     const Plane plane{Vector(0.2, -0.4, 0.5), Vector(0, 0, 2), 1e-9};
     Kokkos::parallel_for(
-            "passive accepted endpoints", count, KOKKOS_LAMBDA(unsigned i) {
-                State state;
-                Sample sample;
-                const Endpoint before{plane.origin - Vector(0, 0, 0.1), Vector(0, 0, 1), 4.57e-6};
-                const Endpoint after{
-                        plane.origin + Vector(0, 0, 0.1 * (i + 1)), Vector(0, 0, 1),
-                        4.57e-6 + (i == 3 ? 3.25e-22 : 1e-9)};
-                update(plane, state, before, sample);
-                statuses(i) = update(plane, state, after, sample, i != 4);
-                states(i)   = state;
-                samples(i)  = sample;
-            });
+            "passive accepted endpoints", count,
+            PassiveObservationKernel{states, samples, statuses, plane});
     const auto stateHost  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), states);
     const auto sampleHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), samples);
     const auto statusHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), statuses);
