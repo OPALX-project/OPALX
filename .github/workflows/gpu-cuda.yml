@@ -51,7 +51,7 @@ jobs:
           mkdir -p build_cuda
           cd build_cuda
           cmake .. \
-            -DBUILD_TYPE=Debug \
+            -DCMAKE_BUILD_TYPE=Debug \
             -DPLATFORMS=CUDA \
             -DARCH=AMPERE80 \
             -DOPALX_ENABLE_UNIT_TESTS=ON
