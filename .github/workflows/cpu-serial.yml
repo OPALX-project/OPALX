@@ -36,7 +36,7 @@ jobs:
           mkdir -p build_serial
           cd build_serial
           cmake .. \
-            -DBUILD_TYPE=Debug \
+            -DCMAKE_BUILD_TYPE=Debug \
             -DPLATFORMS=SERIAL \
             -DOPALX_ENABLE_UNIT_TESTS=ON
 
