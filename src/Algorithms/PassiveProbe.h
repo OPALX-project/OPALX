@@ -3,8 +3,8 @@
 #define OPALX_PASSIVE_PROBE_H
 
 #include <Kokkos_Core.hpp>
+#include <Kokkos_NumericTraits.hpp>
 #include <cstdint>
-#include <limits>
 #include "OPALTypes.h"
 
 /** @brief Passive, directed plane observations of accepted particle endpoints.
@@ -138,8 +138,7 @@ namespace passive_probe {
             const double direction = dot(candidate.crossing.momentum, normal);
             if (!Kokkos::isfinite(direction)) return Status::InvalidInput;
             if (direction > 0) {
-                if (state.turns == std::numeric_limits<std::uint64_t>::max())
-                    return Status::TurnOverflow;
+                if (state.turns == Kokkos::finite_max_v<std::uint64_t>) return Status::TurnOverflow;
                 candidate.turn = state.turns + 1;
                 sample         = candidate;
                 state.turns    = candidate.turn;

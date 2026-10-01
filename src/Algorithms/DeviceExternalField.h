@@ -2,6 +2,7 @@
 #ifndef OPALX_DEVICE_EXTERNAL_FIELD_H
 #define OPALX_DEVICE_EXTERNAL_FIELD_H
 
+#include <Kokkos_NumericTraits.hpp>
 #include <limits>
 #include <memory>
 #include <set>
@@ -144,8 +145,7 @@ namespace device_external {
                 const double h       = Kokkos::ldexp(dt, -static_cast<int>(depth));
                 const double scale =
                         Kokkos::fmax(1., Kokkos::sqrt(dot(state.position, state.position)));
-                const double floor =
-                        64 * std::numeric_limits<double>::epsilon() * scale / Physics::c;
+                const double floor = 64 * Kokkos::epsilon_v<double> * scale / Physics::c;
                 const bool resolved =
                         Kokkos::abs(h) <= Kokkos::fmax(1e-12 * Kokkos::abs(dt), floor);
                 bool split  = !resolved && Kokkos::abs(h) > maximumStep;

@@ -77,13 +77,23 @@ cd OPALX/tools
 
 ### Setting up cmake
 
+For single-configuration generators, use `-DCMAKE_BUILD_TYPE=Debug` (or
+`Release`, `RelWithDebInfo`, `MinSizeRel`). A nonempty `CMAKE_BUILD_TYPE`, including
+an existing cached value, takes precedence over the legacy `BUILD_TYPE` option.
+If it is empty, `BUILD_TYPE` supplies the value, defaulting to `Release`.
+When reconfiguring an existing build, change `CMAKE_BUILD_TYPE` directly; changing
+only `BUILD_TYPE` does not override it. Clear `CMAKE_BUILD_TYPE` with
+`-DCMAKE_BUILD_TYPE=` to use the legacy fallback again. Multi-configuration
+generators select the configuration at build time with
+`cmake --build <dir> --config Debug`; OPALX does not force a single build type for them.
+
 #### cmake command for CPU build
 
 Building OPALX without multi-threading (only MPI):
 ```bash
 mkdir build_serial && cd build_serial
 cmake .. \
-    -DBUILD_TYPE=Debug \
+    -DCMAKE_BUILD_TYPE=Debug \
     -DPLATFORMS=SERIAL
 ```
 
@@ -92,7 +102,7 @@ and for multi-threading with OpenMP:
 ```bash
 mkdir build_openmp && cd build_openmp
 cmake .. \
-    -DBUILD_TYPE=Debug \
+    -DCMAKE_BUILD_TYPE=Debug \
     -DPLATFORMS=OPENMP
 ```
 
@@ -108,16 +118,16 @@ For example, for A100 with Amper80 Architecture (Gwendolen), and the debug mode,
 
 ```bash
 cmake .. \
-    -DBUILD_TYPE=Debug \
+    -DCMAKE_BUILD_TYPE=Debug \
     -DPLATFORMS=CUDA \
     -DARCH=AMPERE80
 ```
 
-For the release mode, use `Release` instead of `Debug` as the argument for `-DBUILD_TYPE`. For other GPUs use the correct flag for their corresponding architecture. For example, for P100 or GTX 1080 with Pascal61 architecture on Merlin login node, use `-DARCH=PASCAL61` instead of `-DARCH=AMPERE80`. 
+For the release mode, use `Release` instead of `Debug` as the argument for `-DCMAKE_BUILD_TYPE`. For other GPUs use the correct flag for their corresponding architecture. For example, for P100 or GTX 1080 with Pascal61 architecture on Merlin login node, use `-DARCH=PASCAL61` instead of `-DARCH=AMPERE80`.
 
 #### Notes:
 
-- Use -DBUILD_TYPE=Release for optimized builds.
+- Use `-DCMAKE_BUILD_TYPE=Release` for optimized builds.
 - ARCH is required for CUDA builds so OPALX can configure Kokkos properly.
 - All IPPL/Kokkos flags (FFT, solvers, tests, ALPINE, `Kokkos_ARCH_*`, etc.) are now set automatically.
 

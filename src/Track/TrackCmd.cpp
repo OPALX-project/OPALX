@@ -244,7 +244,8 @@ void TrackCmd::execute() {
     if (!itsAttr[INITIALORBIT].defaultUsed()) {
         if (beams.size() != 1 || OpalData::getInstance()->inRestartRun() || zstart != 0)
             throw OpalException("INITIALORBIT", "Requires one beam, a fresh run and ZSTART=0.");
-        const auto& initial = CofCmd::findResult(Attributes::getString(itsAttr[INITIALORBIT]));
+        const std::string initialOrbitName = Attributes::getString(itsAttr[INITIALORBIT]);
+        const auto& initial                = CofCmd::findResult(initialOrbitName);
         if (!beam->hasExplicitEnergy())
             throw OpalException("INITIALORBIT", "BEAM must specify the same energy as COF.");
         initial.validate(
