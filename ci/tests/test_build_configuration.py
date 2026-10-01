@@ -47,25 +47,26 @@ file(WRITE "${CMAKE_BINARY_DIR}/configurations.txt" "${CMAKE_CONFIGURATION_TYPES
 
     def test_initial_selection(self):
         cases = (
-            ("default", "Release", ()),
-            ("empty", "Release", ("-DCMAKE_BUILD_TYPE=",)),
+            ("default", "RelWithDebInfo", ()),
+            ("empty", "RelWithDebInfo", ("-DCMAKE_BUILD_TYPE=",)),
             ("standard-debug", "Debug", ("-DCMAKE_BUILD_TYPE=Debug",)),
-            ("legacy", "RelWithDebInfo", ("-DBUILD_TYPE=RelWithDebInfo",)),
-            ("conflict", "Debug", ("-DCMAKE_BUILD_TYPE=Debug", "-DBUILD_TYPE=Release")),
+            ("standard-release", "Release", ("-DCMAKE_BUILD_TYPE=Release",)),
+            ("legacy-ignored", "RelWithDebInfo", ("-DBUILD_TYPE=Debug",)),
+            ("standard-with-legacy", "Debug", ("-DCMAKE_BUILD_TYPE=Debug", "-DBUILD_TYPE=Release")),
         )
         for name, expected, options in cases:
             with self.subTest(case=name):
                 self.assertEqual(self.configure(name, *options), expected)
 
     def test_reconfigure_preserves_standard_type_until_explicitly_changed(self):
-        self.assertEqual(self.configure("reuse", "-DBUILD_TYPE=Debug"), "Debug")
+        self.assertEqual(self.configure("reuse", "-DCMAKE_BUILD_TYPE=Debug"), "Debug")
         self.assertEqual(self.configure("reuse"), "Debug")
         self.assertEqual(self.configure("reuse", "-DBUILD_TYPE=Release"), "Debug")
         self.assertEqual(self.configure("reuse", "-DCMAKE_BUILD_TYPE=MinSizeRel"), "MinSizeRel")
-        self.assertEqual(self.configure("reuse", "-DCMAKE_BUILD_TYPE="), "Release")
+        self.assertEqual(self.configure("reuse", "-DCMAKE_BUILD_TYPE="), "RelWithDebInfo")
 
     def test_existing_release_cache_can_switch_to_debug(self):
-        self.assertEqual(self.configure("dashboard"), "Release")
+        self.assertEqual(self.configure("dashboard", "-DCMAKE_BUILD_TYPE=Release"), "Release")
         self.assertEqual(self.configure("dashboard", "-DCMAKE_BUILD_TYPE=Debug"), "Debug")
         self.assertEqual(self.configure("dashboard"), "Debug")
 
@@ -73,8 +74,8 @@ file(WRITE "${CMAKE_BINARY_DIR}/configurations.txt" "${CMAKE_CONFIGURATION_TYPES
     def test_multi_config_does_not_force_single_build_type(self):
         for name, options, expected in (
             ("multi-default", (), ""),
-            ("multi-legacy", ("-DBUILD_TYPE=Release",), ""),
-            ("multi-standard", ("-DCMAKE_BUILD_TYPE=Debug", "-DBUILD_TYPE=Release"), "Debug"),
+            ("multi-legacy-ignored", ("-DBUILD_TYPE=Release",), ""),
+            ("multi-standard", ("-DCMAKE_BUILD_TYPE=Debug",), "Debug"),
         ):
             with self.subTest(case=name):
                 self.assertEqual(self.configure(name, *options, generator="Ninja Multi-Config"), expected)

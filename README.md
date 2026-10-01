@@ -78,13 +78,11 @@ cd OPALX/tools
 ### Setting up cmake
 
 For single-configuration generators, use `-DCMAKE_BUILD_TYPE=Debug` (or
-`Release`, `RelWithDebInfo`, `MinSizeRel`). A nonempty `CMAKE_BUILD_TYPE`, including
-an existing cached value, takes precedence over the legacy `BUILD_TYPE` option.
-If it is empty, `BUILD_TYPE` supplies the value, defaulting to `Release`.
-When reconfiguring an existing build, change `CMAKE_BUILD_TYPE` directly; changing
-only `BUILD_TYPE` does not override it. Clear `CMAKE_BUILD_TYPE` with
-`-DCMAKE_BUILD_TYPE=` to use the legacy fallback again. Multi-configuration
-generators select the configuration at build time with
+`Release`, `RelWithDebInfo`, `MinSizeRel`). When no build type is specified, OPALX
+defaults to `RelWithDebInfo`. An existing cached value is preserved until changed
+with `-DCMAKE_BUILD_TYPE=<type>`; setting `-DCMAKE_BUILD_TYPE=` restores the default.
+The former `BUILD_TYPE` option has been removed; use `CMAKE_BUILD_TYPE` instead.
+Multi-configuration generators select the configuration at build time with
 `cmake --build <dir> --config Debug`; OPALX does not force a single build type for them.
 
 #### cmake command for CPU build
