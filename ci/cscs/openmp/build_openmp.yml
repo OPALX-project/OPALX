@@ -2,7 +2,7 @@ include:
   - local: "ci/cscs/common.yml"
 
 variables:
-  EIGER_UENV: "/ritom/scratch/cscs/biddisco/opal-x-zen2-mpich-gcc-2026-09-23.squashfs"
+  EIGER_UENV: "/ritom/scratch/cscs/biddisco/opal-x-zen2-mpich-gcc-2026-10-01.squashfs"
   WITH_UENV_VIEW: "default"
   SCRATCH: "/capstor/scratch/cscs/biddisco"
   SRUN_FLAGS: "--uenv=${EIGER_UENV};--view=${WITH_UENV_VIEW};--repo=$SCRATCH/.uenv-images-ci-eiger;$WRAPPER"
@@ -10,7 +10,7 @@ variables:
   CTEST_SITE: "Eiger OpenMP"
 
 # ---------------------------------------------------------
-# Common settings for openmp builds
+# Common settings for builds
 # this uses a uenv loaded by the uenv-runner and then cmake to build
 # ---------------------------------------------------------
 .opalx-build-openmp-common:
@@ -22,12 +22,8 @@ variables:
   before_script:
     - !reference [.pr-number-extractor, before_script]
     - export BUILD_PATH=$(pwd)/$BUILD_DIR
-    - mkdir -p "$BUILD_PATH"
-    - cp "$CI_PROJECT_DIR/ci/cscs/test-library-wrapper.sh" "$BUILD_PATH/test-library-wrapper.sh"
     - pwd
     - env | sort | grep CI
-    - export CC=gcc
-    - export CXX=g++
   script:
     - >-
       ctest -V -S $CI_PROJECT_DIR/ci/cscs/dashboard-configure-build.cmake
@@ -42,12 +38,17 @@ variables:
       -DKokkos_ENABLE_DEBUG_BOUNDS_CHECK=OFF
       -DKokkos_ENABLE_DEBUG_DUALVIEW_MODIFY_CHECK=OFF
       -DMPIEXEC_EXECUTABLE=/usr/bin/srun
-      -DMPIEXEC_PREFLAGS="${SRUN_FLAGS};/bin/bash;${BUILD_PATH}/test-library-wrapper.sh"
+      -DMPIEXEC_PREFLAGS="$SRUN_FLAGS"
       -DMPIEXEC_MAX_NUMPROCS=4
     - ninja -C $BUILD_PATH opalx opalx_exe
     - ls -l $BUILD_PATH/bin/opalx
     - echo "Build directory size (before cleanup):" $(du -sh $BUILD_PATH | cut -f1)
     - find $BUILD_PATH -name \*.o -delete
+    - |
+      if [ "$BUILD_TYPE" = "Release" ]; then
+        find "$BUILD_PATH/bin" -type f -exec strip {} +
+        find "$BUILD_PATH/lib" -type f -exec strip {} +
+      fi
     - echo "Build directory size (cleaned for artefacts):" $(du -sh $BUILD_PATH | cut -f1)
   artifacts:
     paths:
@@ -55,7 +56,7 @@ variables:
     expire_in: 1 day
 
 # ---------------------------------------------------------
-# openmp build debug
+# build debug
 # ---------------------------------------------------------
 opalx-build-openmp-debug:
   extends: .opalx-build-openmp-common
@@ -64,7 +65,7 @@ opalx-build-openmp-debug:
     BUILD_TYPE: Debug
 
 # ---------------------------------------------------------
-# openmp build release
+# build release
 # ---------------------------------------------------------
 opalx-build-openmp-release:
   extends: .opalx-build-openmp-common

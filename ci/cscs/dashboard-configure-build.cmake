@@ -36,8 +36,6 @@ string(APPEND CTEST_CONFIGURE_COMMAND " -S${CTEST_SOURCE_DIRECTORY}")
 string(APPEND CTEST_CONFIGURE_COMMAND " -B${CTEST_BINARY_DIRECTORY}")
 string(APPEND CTEST_CONFIGURE_COMMAND " -G${CTEST_CMAKE_GENERATOR}")
 string(APPEND CTEST_CONFIGURE_COMMAND " --preset=${PRESET}")
-# OPALX derives CMAKE_BUILD_TYPE from its public BUILD_TYPE option.
-string(APPEND CTEST_CONFIGURE_COMMAND " -DBUILD_TYPE=${BUILD_TYPE}")
 string(APPEND CTEST_CONFIGURE_COMMAND " -DCMAKE_BUILD_TYPE=${BUILD_TYPE}")
 string(APPEND CTEST_CONFIGURE_COMMAND " -DCMAKE_BUILD_RPATH_USE_ORIGIN=ON")
 string(APPEND CTEST_CONFIGURE_COMMAND " -DOPALX_USE_STANDARD_FOLDERS=ON")
@@ -94,7 +92,7 @@ message("Final CTest configure command: ${CTEST_CONFIGURE_COMMAND}")
 ctest_configure(RETURN_VALUE configure_result)
 # --- submit configure results immediately, so they reach CDash even if the
 # build later hangs and the job is killed by the SLURM timelimit ---
-ctest_submit(PARTS Configure)
+#ctest_submit(PARTS Configure)
 ctest_build(RETURN_VALUE build_result)
 
 # --- fail if any test failed ---

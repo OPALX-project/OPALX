@@ -10,7 +10,7 @@ variables:
   CTEST_SITE: "Beverin mi300 ROCm 6.3.3"
 
 # ---------------------------------------------------------
-# Common settings for rocm builds
+# Common settings for builds
 # this uses a uenv loaded by the uenv-runner and then cmake to build
 # ---------------------------------------------------------
 .opalx-build-rocm-common:
@@ -60,7 +60,7 @@ variables:
     expire_in: 1 day
 
 # ---------------------------------------------------------
-# rocm build debug
+# build debug
 # ---------------------------------------------------------
 opalx-build-rocm6_3-debug:
   extends: .opalx-build-rocm-common
@@ -69,7 +69,7 @@ opalx-build-rocm6_3-debug:
     BUILD_TYPE: Debug
 
 # ---------------------------------------------------------
-# rocm build release
+# build release
 # ---------------------------------------------------------
 opalx-build-rocm6_3-release:
   extends: .opalx-build-rocm-common
