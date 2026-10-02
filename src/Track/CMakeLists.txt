@@ -1,4 +1,5 @@
 set (_SRCS
+    CofCmd.cpp
     Track.cpp
     TrackCmd.cpp
     TrackEnd.cpp
@@ -7,6 +8,7 @@ set (_SRCS
     )
 
 set (HDRS
+    CofCmd.h
     TrackCmd.h
     TrackEnd.h
     Track.h

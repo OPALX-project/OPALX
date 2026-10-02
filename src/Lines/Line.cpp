@@ -35,6 +35,7 @@
 #include "Expressions/TFunction2.h"
 #include "Lines/LineTemplate.h"
 #include "Lines/Replacer.h"
+#include "Lines/Ring.h"
 #include "OpalParser/Statement.h"
 #include "Utilities/Options.h"
 #include "Utilities/ParseError.h"
@@ -62,10 +63,11 @@ namespace {
 }  // namespace
 
 Line::Line()
-    : BeamSequence(
-              SIZE, "LINE",
-              "The \"LINE\" statement defines a beamline list.\n"
-              "\t<name> : line = (<list>)") {
+    : Line("LINE",
+           "The \"LINE\" statement defines a beamline list.\n"
+           "\t<name> : line = (<list>)") {}
+
+Line::Line(const char* keyword, const char* help) : BeamSequence(SIZE, keyword, help) {
     itsAttr[TYPE] = Attributes::makeString("TYPE", "Design type");
 
     itsAttr[LENGTH] = Attributes::makeReal("L", "Total length of line in m");
@@ -94,7 +96,7 @@ Line::Line()
     itsAttr[PSI] =
             Attributes::makeReal("PSI", "The rotation about the z-axis of the particle source", 0);
 
-    setElement(new FlaggedBeamline("LINE"));
+    setElement(new FlaggedBeamline(keyword));
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -132,7 +134,9 @@ Object* Line::makeTemplate(const std::string& name, TokenStream& is, Statement& 
     }
 }
 
-void Line::parse(Statement& stat) {
+void Line::parse(Statement& stat) { parseDefinition(stat, true); }
+
+void Line::parseDefinition(Statement& stat, bool allowModifiers) {
     static const TFunction2<double, double> plus = {"+", 4, AttAdd};
 
     // Check for delimiters.
@@ -143,7 +147,7 @@ void Line::parse(Statement& stat) {
     OpalData::getInstance()->apply(OpalData::ClearReference());
 
     // Parse the line list.
-    parseList(stat);
+    parseList(stat, allowModifiers);
 
     // Insert the begin and end markers.
     FlaggedBeamline* line = fetchLine();
@@ -249,7 +253,7 @@ void Line::parse(Statement& stat) {
 }
 
 void Line::print(std::ostream& os) const {
-    os << getOpalName() << ":LINE=(";
+    os << getOpalName() << ':' << getSequenceKeyword() << "=(";
     const FlaggedBeamline* line = fetchLine();
     bool seen                   = false;
 
@@ -270,22 +274,32 @@ void Line::print(std::ostream& os) const {
 
 FlaggedBeamline* Line::fetchLine() const { return dynamic_cast<FlaggedBeamline*>(getElement()); }
 
-void Line::parseList(Statement& stat) {
+const char* Line::getSequenceKeyword() const { return "LINE"; }
+
+void Line::parseList(Statement& stat, bool allowModifiers) {
     FlaggedBeamline* line = fetchLine();
 
     do {
         // Reversed member ?
         bool rev = stat.delimiter('-');
+        if (rev && !allowModifiers) {
+            throw ParseError("Ring::parseList()", "RING members cannot be reflected.");
+        }
 
         // Repetition count.
         int repeat = 1;
-        if (stat.integer(repeat)) parseDelimiter(stat, '*');
+        if (stat.integer(repeat)) {
+            if (!allowModifiers) {
+                throw ParseError("Ring::parseList()", "RING members cannot be repeated.");
+            }
+            parseDelimiter(stat, '*');
+        }
 
         // List member.
         if (stat.delimiter('(')) {
             // Anonymous sub-line is expanded immediately.
             Line nestedLine;
-            nestedLine.parseList(stat);
+            nestedLine.parseList(stat, allowModifiers);
             FlaggedBeamline* subLine = nestedLine.fetchLine();
 
             while (repeat-- > 0) {
@@ -321,10 +335,12 @@ void Line::parseList(Statement& stat) {
                         0);  // std::shared_ptr<Object>(obj->makeInstance(name, stat, 0));
             }
 
-            if (Element* elem = dynamic_cast<Element*>(obj)) {
+            if (dynamic_cast<Ring*>(obj)) {
+                throw ParseError(
+                        "Line::parseList()", "A RING cannot be nested in a LINE or another RING.");
+            } else if (Element* elem = dynamic_cast<Element*>(obj)) {
                 while (repeat-- > 0) {
-                    ElementBase* base = elem->getElement();
-                    FlaggedElmPtr member(base, rev);
+                    FlaggedElmPtr member(ElmPtr(elem->getElementPtr()), rev);
                     line->push_back(member);
                 }
 

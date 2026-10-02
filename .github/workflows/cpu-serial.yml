@@ -28,7 +28,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            build-essential cmake git lcov \
+            build-essential gfortran cmake git lcov \
             libopenmpi-dev openmpi-bin gcovr
 
       - name: Configure CMake
@@ -79,7 +79,7 @@ jobs:
       - name: Install MPI runtime
         run: |
           sudo apt-get update
-          sudo apt-get install -y libopenmpi-dev openmpi-bin
+          sudo apt-get install -y libopenmpi-dev openmpi-bin libgfortran5
 
       - name: Download binary
         uses: actions/download-artifact@v4
