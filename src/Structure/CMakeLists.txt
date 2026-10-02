@@ -48,6 +48,7 @@ set (HDRS
     H5Writer.h
     MeshGenerator.h
     LBalWriter.h
+    LinearTransferMap.h
     LossDataSink.h
     StatBaseWriter.h
     StatWriter.h

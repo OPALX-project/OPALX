@@ -55,6 +55,7 @@ namespace {
         DAUGHTERBEAM,     // Name of the beam that receives decay daughter particles
         POLARIZATION,     // Initial polarization vector P (rest-frame, lab-frame axes)
         ORBITTHREADER,    // Construct an independent reference-orbit threader
+        TUNEINITIAL,      // Spectral launch triples, independent of bunch distribution.
         SIZE
     };
 }  // namespace
@@ -70,7 +71,10 @@ Beam::Beam()
             {"PHOTON", "ELECTRON", "POSITRON", "MUON", "PION", "PROTON", "ANTIPROTON", "DEUTERON",
              "HMINUS", "H2P", "ALPHA", "CARBON", "XENON", "URANIUM"});
 
-    itsAttr[MASS] = Attributes::makeReal("MASS", "Particle rest mass [GeV]");
+    itsAttr[MASS]        = Attributes::makeReal("MASS", "Particle rest mass [GeV]");
+    itsAttr[TUNEINITIAL] = Attributes::makeRealArray(
+            "TUNEINITIAL",
+            "Repeated spectral launches: kinetic energy [GeV], radius [m], radial momentum [mc].");
 
     itsAttr[CHARGE] = Attributes::makeReal("CHARGE", "Particle charge in proton charges");
 
@@ -340,6 +344,10 @@ bool Beam::hasExplicitEnergy() const { return itsAttr[GAMMA] || itsAttr[ENERGY] 
 
 bool Beam::usesIndependentOrbitThreader() const {
     return Attributes::getBool(itsAttr[ORBITTHREADER]);
+}
+
+std::vector<double> Beam::getTuneInitial() const {
+    return Attributes::getRealArray(itsAttr[TUNEINITIAL]);
 }
 
 double Beam::getChargePerParticle() const {

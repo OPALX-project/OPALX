@@ -127,6 +127,22 @@ namespace {
         EXPECT_FALSE(beam.usesIndependentOrbitThreader());
     }
 
+    TEST_F(BeamPhotonTest, TuneInitialAndOrbitThreaderAttributesRemainIndependent) {
+        Beam beam;
+        const std::vector<double> launch{0.5, 1.2, 0.03};
+        ASSERT_NE(beam.findAttribute("TUNEINITIAL"), nullptr);
+        ASSERT_NE(beam.findAttribute("ORBITTHREADER"), nullptr);
+
+        EXPECT_TRUE(beam.getTuneInitial().empty());
+        Attributes::setRealArray(*beam.findAttribute("TUNEINITIAL"), launch);
+        EXPECT_TRUE(beam.usesIndependentOrbitThreader());
+        EXPECT_EQ(beam.getTuneInitial(), launch);
+
+        Attributes::setBool(*beam.findAttribute("ORBITTHREADER"), false);
+        EXPECT_FALSE(beam.usesIndependentOrbitThreader());
+        EXPECT_EQ(beam.getTuneInitial(), launch);
+    }
+
     class BeamPolarizationTest : public BeamPhotonTest {
     protected:
         void setPolarization(Beam& beam, const std::vector<double>& pol) {

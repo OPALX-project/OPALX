@@ -62,6 +62,8 @@ namespace opalx::spacecharge {
          * MirroredPrimaryZ uses same-charge parity (+Ex,+Ey,-Ez); callers provide the copied
          * source momentum with reversed pz. Both retain the supplied transverse momentum.
          * Contributions are added in call order.
+         * @note Enqueues work on the default execution instance; synchronize before host access
+         * or consumption on another execution instance.
          */
         void accumulate(FieldStorage& fieldStorage, const Policy& policy) const;
 

@@ -7,8 +7,8 @@
 //
 // GPU + MPI aware: packs and unpacks on device via Kokkos::parallel_for, and
 // uses ippl::Comm->isend / ippl::Comm->recv which hand device pointers to the
-// MPI implementation when CUDA-aware MPI is available. No host staging in the
-// common path.
+// MPI implementation. GPU execution requires GPU-aware MPI; this path has no
+// host-staging fallback.
 //
 // Intended use: after a shifted-Green's-function Poisson solve, mirror the
 // resulting potential / E-field across the cathode plane to obtain the image
@@ -70,8 +70,8 @@ namespace opalx {
             const int P          = ippl::Comm->size();
             const int r          = ippl::Comm->rank();
 
-            auto srcView = src.getView();
-            auto dstView = dst.getView();
+            typename view_type::const_type srcView = src.getView();
+            auto dstView                           = dst.getView();
 
             // Generic callers retain deterministic zeroing of ghosts and any residual cells.
             // A full-domain out-of-place reflection overwrites every owned destination cell and
@@ -175,7 +175,7 @@ namespace opalx {
                                 idx[axis_c]      = static_cast<size_t>(k_shift) - idx[axis_c];
                                 dstView(i, j, k) = srcView(idx[0], idx[1], idx[2]);
                             });
-                    Kokkos::fence();
+                    Kokkos::fence("mirrorField: complete local reflection");
                 }
             }
 
