@@ -288,6 +288,12 @@ void ParallelTracker::execute() {
     // Build per-run behavior through the generic element interaction contract.
     // The tracker does not inspect concrete element types here.
     elementInteractions_m.initialize(itsOpalBeamline_m.getElements());
+    if (elementInteractions_m.size() != 0 && (ringPeriod_m > 0.0 || requestedTurns_m != 0)) {
+        throw OpalException(
+                "ParallelTracker::execute",
+                "BEAMBEAM supports one interaction in a single-pass LINE only; "
+                "RING/TURNS tracking cannot reuse a completed collective interaction.");
+    }
 
     // Select the minimal time step from the configuration
     double minTimeStep = stepSizes_m.getMinTimeStep();

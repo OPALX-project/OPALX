@@ -6,18 +6,23 @@
 #include "AbsBeamline/BeamBeamDefinitions.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/ElementInteractionManager.h"
+#include "Algorithms/ParallelTracker.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/BeamBeamRep.h"
 #include "BeamlineCore/DriftRep.h"
+#include "Beamlines/FlaggedBeamline.h"
 #include "PartBunch/PartBunch.h"
 #include "SpaceCharge/CartesianPIC3D/CartesianDomainUpdater.h"
 #include "SpaceCharge/Poisson/PoissonSolver.h"
 #include "SpaceCharge/SpaceChargeConfigBuilder.h"
+#include "SpaceCharge/SpaceChargeSolver.h"
 #include "Structure/Beam.h"
 #include "Structure/FieldSolverCmd.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 
 #include <cstdint>
+#include <fstream>
 #include <memory>
 #include <string>
 #include <variant>
@@ -238,6 +243,85 @@ namespace {
         ASSERT_EQ(witnesses.size(), 2u);
         EXPECT_EQ(witnesses[0], 1u);
         EXPECT_EQ(witnesses[1], 2u);
+    }
+
+    TEST_F(BeamBeamPartBunchTest, RejectsMultipleInteractionsWithoutPartialState) {
+        auto first  = std::make_shared<BeamBeamRep>("BB1");
+        auto second = std::make_shared<BeamBeamRep>("BB2");
+        auto drift  = std::make_shared<DriftRep>("D");
+        ElementInteractionManager manager;
+        manager.initialize({first});
+        ASSERT_EQ(manager.size(), 1u);
+        try {
+            manager.initialize({first, drift, second});
+            FAIL() << "Multiple BeamBeam interactions must be rejected";
+        } catch (const OpalException& error) {
+            EXPECT_NE(error.what().find("Only one"), std::string::npos);
+            EXPECT_NE(error.what().find("BB1"), std::string::npos);
+            EXPECT_NE(error.what().find("BB2"), std::string::npos);
+        }
+        EXPECT_EQ(manager.size(), 0u);
+        EXPECT_FALSE(manager.freezesFieldMesh());
+        EXPECT_FALSE(manager.suppressesDefaultSelfField());
+        EXPECT_NO_THROW(manager.initialize({second, drift}));
+        EXPECT_EQ(manager.size(), 1u);
+    }
+
+    TEST_F(BeamBeamPartBunchTest, RejectsDistinctInteractionOccurrencesWithSameName) {
+        auto first  = std::make_shared<BeamBeamRep>("BB");
+        auto second = std::make_shared<BeamBeamRep>("BB");
+        ElementInteractionManager manager;
+        EXPECT_THROW(manager.initialize({first, second}), OpalException);
+        EXPECT_EQ(manager.size(), 0u);
+    }
+
+    TEST_F(BeamBeamPartBunchTest, OrdinaryLatticeDoesNotAcquireInteractionRestrictions) {
+        ElementInteractionManager manager;
+        manager.initialize(
+                {std::make_shared<DriftRep>("D1"), std::make_shared<DriftRep>("D2"), nullptr});
+        EXPECT_EQ(manager.size(), 0u);
+        EXPECT_FALSE(manager.suppressesDefaultSelfField());
+    }
+
+    TEST_F(BeamBeamPartBunchTest, RejectsRingAndTurnsBeforeAnyFieldSolve) {
+        // Lattice preparation reads the input when writing its 3D diagnostic.
+        const auto inputBefore  = OpalData::getInstance()->getInputFn();
+        const std::string input = "beambeam_scope_guard.opal";
+        if (ippl::Comm->rank() == 0) {
+            std::ofstream file(input);
+            file << "BB: BEAMBEAM, L=0.02, ELEMEDGE=0.0;\nL: LINE=(BB);\n";
+        }
+        ippl::Comm->barrier();
+        OpalData::getInstance()->storeInputFn(input);
+        class UnexpectedSolve : public sc::SpaceChargeAlgorithm {
+        public:
+            sc::SpaceChargeSolveResult solve(const sc::SpaceChargeSolveContext&) override {
+                ADD_FAILURE() << "Unsupported tracking must fail before a field solve";
+                return {};
+            }
+        };
+        for (const bool ring : {false, true}) {
+            auto bunch   = makeBunch();
+            auto element = std::make_shared<BeamBeamRep>("BB");
+            element->getGeometry().setElementLength(0.02);
+            element->setAttribute("ELEMEDGE", 0.0);
+            FlaggedBeamline line;
+            line.append(FlaggedElmPtr(ElmPtr(element)));
+            sc::SpaceChargeSolver solver(std::make_unique<UnexpectedSolve>(), 1);
+            DataSink sink;
+            ParallelTracker tracker(
+                    line, *bunch, solver, {}, &sink, false, {1}, 0.0, {0.02}, {1.0e-12}, {}, false,
+                    0, 0.0, {0, 0}, ring ? 0.02 : 0.0);
+            if (!ring) tracker.setRequestedTurns(2);
+            try {
+                tracker.execute();
+                FAIL() << "Repeated-passage configuration must be rejected";
+            } catch (const OpalException& error) {
+                EXPECT_NE(error.what().find("single-pass LINE"), std::string::npos) << error.what();
+            }
+        }
+        OpalData::getInstance()->storeInputFn(inputBefore);
+        if (ippl::Comm->rank() == 0) std::remove(input.c_str());
     }
 
     TEST_F(BeamBeamPartBunchTest, RigidSourceOnlyDisablesSourceCollectiveKick) {
