@@ -6,19 +6,29 @@
 #include "Algorithms/ElementInteractionManager.h"
 
 #include "AbsBeamline/ElementBase.h"
+#include "Utilities/OpalException.h"
 
 void ElementInteractionManager::initialize(const std::set<std::shared_ptr<ElementBase>>& elements) {
     clear();
-    entries_m.reserve(elements.size());
+    std::vector<Entry> prepared;
     for (const auto& element : elements) {
         if (!element) {
             continue;
         }
         auto interaction = element->createInteraction();
         if (interaction) {
-            entries_m.push_back(Entry{element, std::move(interaction)});
+            if (!prepared.empty()) {
+                throw OpalException(
+                        "ElementInteractionManager::initialize",
+                        "Only one stateful collective interaction (BEAMBEAM) is supported per "
+                        "tracking run; found '" + prepared.front().element->getName() + "' and '"
+                                + element->getName() + "'. Use a single BeamBeam element in a "
+                                                       "single-pass LINE.");
+            }
+            prepared.push_back(Entry{element, std::move(interaction)});
         }
     }
+    entries_m = std::move(prepared);
 }
 
 void ElementInteractionManager::clear() { entries_m.clear(); }

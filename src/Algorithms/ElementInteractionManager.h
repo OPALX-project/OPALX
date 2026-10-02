@@ -23,7 +23,16 @@ class ElementBase;
  */
 class ElementInteractionManager {
 public:
-    /** @brief Rebuild interactions for one prepared runtime beamline. */
+    /**
+     * @brief Rebuild the interaction for one prepared runtime beamline.
+     *
+     * At most one stateful interaction is supported: it owns the complete
+     * self-field policy, including suppression after completion. Reject a second
+     * occurrence (even with the same name) instead of silently dispatching only
+     * the first. On failure the manager is empty, with no partially installed state.
+     * Ordinary elements without an interaction are unrestricted.
+     * @throws OpalException if more than one element creates an interaction.
+     */
     void initialize(const std::set<std::shared_ptr<ElementBase>>& elements);
 
     /** @brief Remove all per-run interactions and their state. */
