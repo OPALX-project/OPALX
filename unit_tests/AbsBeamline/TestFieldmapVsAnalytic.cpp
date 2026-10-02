@@ -32,6 +32,7 @@
 
 extern Inform* gmsg;
 
+#include <algorithm>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -71,7 +72,10 @@ namespace {
             for (int iy = 0; iy < g.ny; ++iy) {
                 for (int iz = 0; iz < g.nz; ++iz) {
                     const double xmm = g.xAt(ix), ymm = g.yAt(iy), zmm = g.zAt(iz);
-                    const Vector_t<double, 3> R(xmm * 1e-3, ymm * 1e-3, zmm * 1e-3);
+                    // Multipole's field stops just before z = L, so the last plane is
+                    // sampled just inside the exit. The map still records it at z = L.
+                    const double z = std::min(zmm * 1e-3, std::nextafter(kLength, 0.0));
+                    const Vector_t<double, 3> R(xmm * 1e-3, ymm * 1e-3, z);
                     Vector_t<double, 3> E(0.0), B(0.0);
                     element.apply(R, P, 0.0, E, B);
                     f << xmm << " " << ymm << " " << zmm << " " << B(0) << " " << B(1) << " "

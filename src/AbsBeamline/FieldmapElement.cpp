@@ -227,6 +227,12 @@ void FieldmapElement::getFieldExtent(double& zBegin, double& zEnd) const {
     zEnd   = endField_m;
 }
 
+bool FieldmapElement::isInsideBody(const Vector_t<double, 3>& r) const {
+    const double zBegin = getGeometry().getStartZ();
+    return r(2) >= zBegin && r(2) < zBegin + getGeometry().getElementLength()
+           && ApertureHelper::isInsideAperture(r, aperture_m);
+}
+
 BoundingBox FieldmapElement::getBoundingBoxInLabCoords() const {
     // Overridden only to narrow the box to the map's transverse extent. The z range is the
     // field window, which is the same as the geometry's [startZ, startZ + L].

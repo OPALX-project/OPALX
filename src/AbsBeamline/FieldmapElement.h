@@ -120,6 +120,16 @@ public:
     virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     /**
+     * @brief Nominal body containment over [startZ, startZ + L) instead of [0, L).
+     *
+     * ElementBase::isInsideBody() assumes the body starts at z = 0. This element's body
+     * starts where the map's z range starts (see Geometry::setStartZ() in initialise()).
+     * @param r Position [m] in the element's local frame, which is the map's frame.
+     * @return Whether the point is inside the map's z range and the transverse aperture.
+     */
+    virtual bool isInsideBody(const Vector_t<double, 3>& r) const override;
+
+    /**
      * @brief Lab-frame bounding box, narrowed transversely to the map's own extent.
      */
     virtual BoundingBox getBoundingBoxInLabCoords() const override;
