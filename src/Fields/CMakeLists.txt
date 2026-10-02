@@ -1,4 +1,5 @@
 set (_SRCS
+    CyclotronSectorFieldMap.cpp
 
     # Fieldmaps
     Fieldmap.cpp
@@ -40,6 +41,7 @@ add_subdirectory (Interpolation)
 
 
 set (HDRS
+    CyclotronSectorFieldMap.h
     
     # Fieldmaps
     Fieldmap.h

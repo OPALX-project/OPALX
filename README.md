@@ -55,6 +55,11 @@ cuda/12.8.1
 
 Other dependencies are fetched and installed in the opalx installation.
 
+A Fortran compiler (for example `gfortran`) is also required. Reference
+BLAS/LAPACK and LAPACKE 3.12.1 are fetched with a pinned archive checksum;
+no separate LAPACK installation is needed. Select a non-default compiler with
+`-DCMAKE_Fortran_COMPILER=/path/to/compiler`.
+
 ```
 ippl/3.2.0
 hdf5/1.10.8_slurm  
@@ -71,6 +76,14 @@ cd OPALX/tools
 ```
 
 ### Setting up cmake
+
+For single-configuration generators, use `-DCMAKE_BUILD_TYPE=Debug` (or
+`Release`, `RelWithDebInfo`, `MinSizeRel`). When no build type is specified, OPALX
+defaults to `RelWithDebInfo`. An existing cached value is preserved until changed
+with `-DCMAKE_BUILD_TYPE=<type>`; setting `-DCMAKE_BUILD_TYPE=` restores the default.
+The former `BUILD_TYPE` option has been removed; use `CMAKE_BUILD_TYPE` instead.
+Multi-configuration generators select the configuration at build time with
+`cmake --build <dir> --config Debug`; OPALX does not force a single build type for them.
 
 #### cmake command for CPU build
 

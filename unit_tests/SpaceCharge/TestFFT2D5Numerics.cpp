@@ -365,25 +365,6 @@ namespace {
             Kokkos::fence();
         }
 
-        [[nodiscard]] std::tuple<std::vector<Vector_t<double, 3>>, std::vector<Vector_t<double, 3>>>
-        getParticles() const {
-            const auto R_host       = pc_m->R.getHostMirror();
-            const auto P_host       = pc_m->P.getHostMirror();
-            const auto invalid_host = pc_m->InvalidMask.getHostMirror();
-            Kokkos::deep_copy(R_host, pc_m->R.getView());
-            Kokkos::deep_copy(P_host, pc_m->P.getView());
-            Kokkos::deep_copy(invalid_host, pc_m->InvalidMask.getView());
-            std::vector<Vector_t<double, 3>> r;
-            std::vector<Vector_t<double, 3>> p;
-            for (size_t i = 0; i < R_host.extent(0); ++i) {
-                if (!invalid_host(i)) {
-                    r.push_back(R_host(i));
-                    p.push_back(P_host(i));
-                }
-            }
-            return std::make_tuple(r, p);
-        }
-
         SpaceChargeSolveContext context() const {
             SpaceChargeStepState step;
             step.timeStep = bunch_m->getdT();

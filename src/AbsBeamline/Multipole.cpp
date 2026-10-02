@@ -247,7 +247,9 @@ void Multipole::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     const size_t nLocal = pc->getLocalNum();
 
     // Local variables that are copied into the kernel
-    double elemLength = getGeometry().getElementLength();
+    double elemLength               = getGeometry().getElementLength();
+    const ApertureType apertureType = aperture_m.first;
+    const double apertureX = aperture_m.second[0], apertureY = aperture_m.second[1];
 
     // Capture member variables by value for the kernel
     auto normalComponents = NormalComponents;
@@ -258,8 +260,10 @@ void Multipole::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     // Kernel launch over all particles
     Kokkos::parallel_for(
             "Multipole::apply()", nLocal, KOKKOS_LAMBDA(const size_t i) {
-                // Check bounds
-                if (Rview(i)(2) > 0 && Rview(i)(2) <= elemLength) {
+                // Match isInside(): entrance-inclusive, exit-exclusive support.
+                if (Rview(i)(2) >= 0 && Rview(i)(2) < elemLength
+                    && ApertureHelper::isInsideAperture(
+                            Rview(i)(0), Rview(i)(1), apertureType, apertureX, apertureY)) {
                     Vector_t<double, 3> Ef(0.0), Bf(0.0);
                     // Compute field at particle position
                     computeField(
@@ -285,7 +289,7 @@ void Multipole::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     // Check bounds
-    if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return;
+    if (R(2) < 0.0 || R(2) >= getGeometry().getElementLength()) return;
     if (!ApertureHelper::isInsideAperture(R, aperture_m)) {
         return;
     }
@@ -309,7 +313,7 @@ bool Multipole::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     // Check bounds
-    if (R(2) < 0.0 || R(2) > getGeometry().getElementLength()) return false;
+    if (R(2) < 0.0 || R(2) >= getGeometry().getElementLength()) return false;
     if (!ApertureHelper::isInsideAperture(R, aperture_m)) {
         return true;
     }
@@ -604,7 +608,7 @@ void Multipole::getFieldExtent(double& zBegin, double& zEnd) const {
 
 ElementType Multipole::getType() const { return ElementType::MULTIPOLE; }
 
-// isInside() is inherited from ElementBase (field extent [0, L] + transverse aperture).
+// isInside() is inherited from ElementBase (field extent [0, L) + transverse aperture).
 
 bool Multipole::isFocusing(int component) const {
     if (component < 0)

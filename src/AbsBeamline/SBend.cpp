@@ -53,6 +53,8 @@ void SBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     double zBegin = 0.0;
     double zEnd   = 0.0;
     getFieldExtent(zBegin, zEnd);
+    const ApertureType apertureType = aperture_m.first;
+    const double apertureX = aperture_m.second[0], apertureY = aperture_m.second[1];
 
     // Coefficients, fringe geometry and edge-focusing built once on the host and captured by value.
     const BendFieldModel::FieldInputs inputs = makeFieldInputs();
@@ -63,7 +65,10 @@ void SBend::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
                 const Vector_t<double, 3> arc = GeometryHelper::toBendArcCoords(
                         Rview(i), inputs.curvature, inputs.bodyLength);
 
-                if (arc(2) < zBegin || arc(2) > zEnd) {
+                // Match isInsideArc(): entrance belongs to this support, exit does not.
+                if (arc(2) < zBegin || arc(2) >= zEnd
+                    || !ApertureHelper::isInsideAperture(
+                            arc(0), arc(1), apertureType, apertureX, apertureY)) {
                     return;  // return this particle's lambda
                 }
 

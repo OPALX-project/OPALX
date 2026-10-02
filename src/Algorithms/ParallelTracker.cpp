@@ -18,11 +18,13 @@
  * along with OPAL. If not, see https://www.gnu.org/licenses/.
  */
 #include "Algorithms/ParallelTracker.h"
+#include "AbsBeamline/VariableRFCavity.h"
 
 #include <algorithm>
 #include <array>
 #include <cfloat>
 #include <cmath>
+#include <cstdlib>
 #include <fstream>
 #include <functional>
 #include <iomanip>
@@ -32,7 +34,12 @@
 #include <string>
 #include <vector>
 
+#include "Algorithms/BorisMidpoint.h"
+#include "Algorithms/DirectedTurnCounter.h"
+#include "Algorithms/ExperimentalBoundarySample.h"
 #include "Algorithms/Matrix.h"
+#include "Algorithms/PassiveRingProbe.h"
+#include "Algorithms/TrackReferenceStep.h"
 #include "BasicActions/DumpEMFields.h"
 
 #include "AbstractObjects/OpalData.h"
@@ -63,6 +70,22 @@
 
 extern Inform* gmsg;
 
+namespace {
+    std::string getRingProgressString(double pathLength, double circumference) {
+        const double completedTurns = std::floor(pathLength / circumference);
+        double pathInTurn           = std::fmod(pathLength, circumference);
+        if (pathInTurn < 0.0) {
+            pathInTurn += circumference;
+        }
+        const double angleDegrees = 360.0 * pathInTurn / circumference;
+
+        std::ostringstream progress;
+        progress << "Turn " << static_cast<long long>(completedTurns) + 1
+                 << ", angle=" << std::fixed << std::setprecision(3) << angleDegrees << " [deg]";
+        return progress.str();
+    }
+}  // namespace
+
 // --- Constructors ---
 
 /**
@@ -77,6 +100,7 @@ ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
       globalEOL_m(false),
       sStart_m(0.0),
+      ringPeriod_m(0.0),
       dtCurrentTrack_m(0.0),
       restarting_m(false),
       restartGlobalStep_m(0),
@@ -99,7 +123,7 @@ ParallelTracker::ParallelTracker(
         const std::vector<double>& sStop, const std::vector<double>& dt,
         const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers,
         bool restarting, unsigned long long restartGlobalStep, double restartDt,
-        StepSizeConfig::ResumePosition restartPosition)
+        StepSizeConfig::ResumePosition restartPosition, double ringPeriod)
     : Tracker(beamline, bunch, revBeam, false),
       itsDataSink_m(ds),
       spaceChargeSolver_m(&spaceChargeSolver),
@@ -108,6 +132,7 @@ ParallelTracker::ParallelTracker(
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
       globalEOL_m(false),
       sStart_m(sStart),
+      ringPeriod_m(ringPeriod),
       dtCurrentTrack_m(0.0),
       emittingSamplers_m(emittingSamplers),
       restarting_m(restarting),
@@ -192,6 +217,7 @@ void ParallelTracker::visitBeamline(const Beamline& bl) {
  */
 void ParallelTracker::execute() {
     Inform m("ParallelTracker::execute");
+    terminalStepDt_m      = 0;
     auto preparationState = OpalData::getInstance()->enterPreparationState();
     StepSizeConfig::ResumePosition restartPosition{0, 0};
     if (restarting_m) {
@@ -250,10 +276,20 @@ void ParallelTracker::execute() {
     itsOpalBeamline_m.activateElements();
     m << level3 << "Activated all beamline elements." << endl;
 
+    if (!tuneInitial_m.empty()) {
+        if (ippl::Comm->size() != 1 || itsBunch_m->getNumParticleContainers() != 1)
+            throw OpalException("SpectralTunes", "Spectral tunes require one rank and one beam.");
+        SpectralTunes::run(
+                itsOpalBeamline_m, *itsBunch_m->getParticleContainer(0)->getReference(),
+                tuneInitial_m, tuneSettings_m, OpalData::getInstance()->getInputBasename());
+        return;
+    }
+
     // A fresh run derives each reference pose from its initial distribution. A restart must keep
     // the per-container reference pose and reference-to-lab transform stored in the checkpoint.
     const auto& particleContainers = itsBunch_m->getParticleContainers();
     if (!restarting_m) {
+        if (initialOrbit_m) itsBunch_m->setT(initialOrbit_m->time);
         CoordinateSystemTrafo beamlineToLab = itsOpalBeamline_m.getCSTrafoLab2Local().inverted();
         for (size_t ci = 0; ci < particleContainers.size(); ++ci) {
             const auto& pc = particleContainers[ci];
@@ -264,6 +300,15 @@ void ParallelTracker::execute() {
                 throw OpalException(
                         "ParallelTracker::execute",
                         "Particle container has null PartData reference during lab-frame init.");
+            }
+            if (initialOrbit_m) {
+                // Generated particles already carry orbit-local positions and full momenta.
+                // Change their frame once; preserve the solved reference independently of
+                // finite-sample centroid offsets. Subsequent kernels use the normal frame path.
+                pc->setToLabTrafo(initialOrbit_m->frame().inverted());
+                pc->getRefPartR() = initialOrbit_m->position;
+                pc->getRefPartP() = initialOrbit_m->momentum;
+                continue;
             }
             pc->setToLabTrafo(beamlineToLab);
 
@@ -368,8 +413,38 @@ void ParallelTracker::execute() {
     // the full pass (autophasing, design energy, geometry dumps); the rest build only
     // their own map and reuse that shared element state, so the design beam threads first.
     const size_t nContainers = itsBunch_m->getNumParticleContainers();
+    if (requestedTurns_m) {
+        if (nContainers != 1)
+            throw OpalException(
+                    "ParallelTracker", "Localized TURNS requires one particle container.");
+        m << level1 << "TURNS: directed return counting with ordinary device Boris tracking."
+          << endl;
+        for (const auto& samplers : emittingSamplers_m)
+            for (const auto& sampler : samplers)
+                if (sampler && !sampler->isEmissionDone(itsBunch_m->getT()))
+                    throw OpalException(
+                            "ParallelTracker",
+                            "Localized TURNS does not yet support ongoing emission.");
+        for (const auto& element : itsOpalBeamline_m.getElements()) {
+            const auto type = element->getType();
+            if (type != ElementType::DRIFT && type != ElementType::MARKER
+                && type != ElementType::MONITOR && type != ElementType::MULTIPOLE
+                && type != ElementType::SBEND && type != ElementType::RBEND
+                && type != ElementType::SOLENOID && type != ElementType::CYCLOTRONSECTOR
+                && dynamic_cast<const VariableRFCavity*>(element.get()) == nullptr)
+                throw OpalException(
+                        "ParallelTracker",
+                        "Localized TURNS requires supported magnetic elements or "
+                        "VARIABLE_RF_CAVITY; unsupported element "
+                                + element->getName());
+        }
+    }
     std::vector<std::shared_ptr<OrbitThreader>> oths(nContainers);
     bool designBeamAssigned = false;
+    std::vector<std::unique_ptr<DirectedTurnCounter>> turnCounters(nContainers);
+    if (kineticEnergyStop_m > 0 && (!hasCyclotronGaps() || nContainers != 1))
+        throw OpalException(
+                "ParallelTracker", "EKINSTOP requires the single-container cyclotron gap path.");
     for (size_t ci = 0; ci < nContainers; ++ci) {
         const auto& pc = itsBunch_m->getParticleContainer(ci);
         if (!pc || !pc->getReference()) {
@@ -377,18 +452,106 @@ void ParallelTracker::execute() {
         }
 
         const bool isDesignBeam = !designBeamAssigned;
-        designBeamAssigned      = true;
-        oths[ci]                = std::make_shared<OrbitThreader>(
+        if (kineticEnergyStop_m > 0
+            && (std::sqrt(1 + dot(pc->getRefPartP(), pc->getRefPartP())) - 1)
+                               * pc->getReference()->getM()
+                       >= kineticEnergyStop_m)
+            throw OpalException(
+                    "ParallelTracker", "EKINSTOP must exceed the launch kinetic energy.");
+        if (requestedTurns_m || kineticEnergyStop_m > 0) {
+            turnCounters[ci] =
+                    std::make_unique<DirectedTurnCounter>(pc->getRefPartR(), pc->getRefPartP());
+        }
+        designBeamAssigned = true;
+        oths[ci]           = std::make_shared<OrbitThreader>(
                 *pc->getReference(), pc->getRefPartR(), pc->getRefPartP(), pc->get_sPos(),
                 -rmin(2),            // Negative minimum z bound
                 itsBunch_m->getT(),  // Current bunch time
                 minTimeStep,
                 stepSizes_m,        // Step size configuration
                 itsOpalBeamline_m,  // OpalBeamline object
-                isDesignBeam);
+                isDesignBeam, ringPeriod_m);
         oths[ci]->execute();
     }
     m << level4 << "Orbit threader execution done." << endl;
+    // Spatial field selection belongs to compatible ring geometry, not to TURNS
+    // or to a solver's ability to repeat an uncommitted midpoint solve.
+    // General field-map/RF paths retain their existing device element kernels.
+    bool emitted = true;
+    for (const auto& samplers : emittingSamplers_m)
+        for (const auto& sampler : samplers)
+            if (sampler && !sampler->isEmissionDone(itsBunch_m->getT())) emitted = false;
+    spatialRing_m = ringPeriod_m > 0 && !hasCyclotronGaps()
+                    && device_external::Builder::supports(itsOpalBeamline_m);
+    // Checkpoints currently persist the ordinary step duration, not a pending
+    // subdivision schedule. Keep fresh checkpoint runs and their restarts on
+    // the same fixed-step integration path.
+    boundaryControlled_m =
+            spatialRing_m && allowBoundaryControl_m && nContainers == 1 && !restarting_m
+            && Options::checkpointFreq <= 0
+            && !itsBunch_m->getBunchStateHandler()->fixedCartesianDomain().has_value() && emitted
+            && !particleContainers.front()->hasSpin() && stepSizes_m.getdT() > 0;
+    if (spatialRing_m) {
+        deviceRingFields_m = device_external::Builder::build(itsOpalBeamline_m);
+    }
+    if (boundaryControlled_m) {
+        // Explicit sandbox experiment only. Rank zero chooses the same immutable
+        // ID predicate for all ranks; ordinary runs retain every particle.
+        if (ippl::Comm->rank() == 0)
+            boundaryControlStride_m = experimental_boundary::parseStride(
+                    std::getenv("OPALX_TEST_BOUNDARY_CONTROL_STRIDE"));
+        MPI_Bcast(
+                &boundaryControlStride_m, 1, MPI_UNSIGNED_LONG_LONG, 0,
+                ippl::Comm->getCommunicator());
+        if (boundaryControlStride_m == 0)
+            throw OpalException(
+                    "ParallelTracker::execute",
+                    "OPALX_TEST_BOUNDARY_CONTROL_STRIDE must be 0 or an unsigned power of two.");
+        m << level1 << "Ring boundary control: synchronized ordinary Boris/PIC substeps." << endl;
+        if (boundaryControlStride_m > 1) {
+            const auto pc                    = itsBunch_m->getParticleContainer();
+            const auto ids                   = pc->ID.getView();
+            const auto stride                = boundaryControlStride_m;
+            unsigned long long localSelected = 0, totalSelected = 0;
+            Kokkos::parallel_reduce(
+                    "Boris::countBoundarySample", pc->getLocalNum(),
+                    KOKKOS_LAMBDA(size_t i, unsigned long long& count) {
+                        if (experimental_boundary::selected(ids(i), stride)) ++count;
+                    },
+                    localSelected);
+            ippl::Comm->allreduce(localSelected, totalSelected, 1, std::plus<unsigned long long>());
+            m << level1 << "EXPERIMENTAL boundary sample: stride=" << stride
+              << ", selected=" << totalSelected << ", reference=always; full bunch PIC/Boris."
+              << endl;
+        }
+    } else if (spatialRing_m) {
+        m << level1
+          << "Ring tracking: spatial device field selection with fixed ordinary Boris/PIC steps. "
+          << "Boundary refinement is disabled by:"
+          << (Options::checkpointFreq > 0 ? " checkpoint output;" : "")
+          << (restarting_m ? " checkpoint restart;" : "")
+          << (!allowBoundaryControl_m ? " solver, binning, or image-charge configuration;" : "")
+          << (nContainers != 1 ? " multiple particle containers;" : "")
+          << (itsBunch_m->getBunchStateHandler()->fixedCartesianDomain().has_value()
+                      ? " fixed Cartesian domain;"
+                      : "")
+          << (!emitted ? " ongoing emission;" : "")
+          << (particleContainers.front()->hasSpin() ? " spin tracking;" : "")
+          << (stepSizes_m.getdT() <= 0 ? " nonpositive timestep;" : "") << endl;
+    }
+
+    // Passive diagnostics only read accepted endpoint states. In particular,
+    // their ID selection must never select particles for boundary refinement.
+    // The first milestone is restricted to fresh supported bare rings; the
+    // cyclotron and collective-field integration infrastructure is untouched.
+    auto passiveProbes = PassiveRingProbe::fromEnvironment(
+            spatialRing_m && bareTracking_m && nContainers == 1 && !restarting_m && emitted
+            && !particleContainers.front()->hasSpin() && stepSizes_m.getdT() > 0);
+    if (passiveProbes) {
+        passiveProbes->observe(particleContainers.front(), itsBunch_m->getT());
+        m << level1 << "Passive ring probes: accepted endpoint interpolation; tracking unchanged."
+          << endl;
+    }
 
     // Stop timing for the OrbitThreader section
     IpplTimings::stopTimer(OrbThreader_m);
@@ -461,7 +624,26 @@ void ParallelTracker::execute() {
         // Inner loop over the number of steps for the current configuration
         m << level2 << "Starting track with dt = " << Util::getTimeString(dtCurrentTrack_m)
           << ", track steps = " << step << " to " << trackSteps << "." << endl;
+        std::optional<boris_step::Control> boundarySchedule;
+        double boundaryNominalStart = 0;
         while (stepsCompletedInSegment < stepsInSegment) {
+            if (boundaryControlled_m) {
+                if (!boundarySchedule || boundarySchedule->done()) {
+                    const auto refR = particleContainers.front()->getRefPartR();
+                    const auto refP = particleContainers.front()->getRefPartP();
+                    // The supported ring solve frame is centred on the
+                    // tracking origin; it has no accumulated-path translation.
+                    const double coordinateScale = euclidean_norm(refR);
+                    const double floor           = boris_step::positionTimeFloor(
+                            coordinateScale,
+                            Physics::c * euclidean_norm(refP) / Util::getGamma(refP));
+                    boundarySchedule.emplace(dtCurrentTrack_m, floor);
+                    boundaryNominalStart = itsBunch_m->getT();
+                }
+                boundaryStepDt_m = boundarySchedule->step();
+                terminalStepDt_m = 0;
+                changeDT();
+            }
             step = itsBunch_m->getGlobalTrackStep();
             if (!itsBunch_m->anyPcActive()) {
                 m << level4 << "No active particle containers; ending inner track segment." << endl;
@@ -475,51 +657,95 @@ void ParallelTracker::execute() {
             // bounds immediately after first emission) must not persist across steps.
             globalEOL_m = false;
 
-            // First half of the time integration
-            timeIntegration1(pusher);
-            m << level4 << "timeIntegration1 done at step " << step << "." << endl;
-            itsBunch_m->updateAllParticleMoments();
-            m << level5 << "Particle moments updated after timeIntegration1." << endl;
+            if (requestedTurns_m && turnCounters.front()->count() == requestedTurns_m - 1) {
+                // Trial only the replicated reference on rank zero. Publish failures and
+                // the accepted duration before any rank enters the particle kernels.
+                const double duration =
+                        track_reference::collectiveTerminalStep(ippl::Comm->getCommunicator(), [&] {
+                            const auto& pc = particleContainers.front();
+                            const track_reference::State start{
+                                    pc->getRefPartR(), pc->getRefPartP()};
+                            return turnCounters.front()->terminalStep(
+                                    requestedTurns_m, start.position, itsBunch_m->getdT(),
+                                    [&](double dt) {
+                                        return track_reference::advanceInBeamline(
+                                                itsOpalBeamline_m, *pc->getReference(), start, dt,
+                                                itsBunch_m->getT() + dt, false);
+                                    });
+                        });
+                if (duration < itsBunch_m->getdT()) {
+                    terminalStepDt_m = duration;
+                    if (boundaryControlled_m) {
+                        const auto refP = particleContainers.front()->getRefPartP();
+                        boundarySchedule.emplace(
+                                duration,
+                                boris_step::positionTimeFloor(
+                                        euclidean_norm(particleContainers.front()->getRefPartR()),
+                                        Physics::c * euclidean_norm(refP) / Util::getGamma(refP)));
+                        boundaryNominalStart = itsBunch_m->getT();
+                        boundaryStepDt_m     = duration;
+                    }
+                    changeDT();  // Global clock and per-particle dt before the first half drift.
+                }
+            }
 
-            // Reset E and B fields
-            resetFields();
-            m << level4 << "E and B fields reset at step " << step << "." << endl;
+            if (boundaryControlled_m) {
+                prepareBoundaryStep(pusher, oths, *boundarySchedule);
+            } else {
+                // Historical OPAL evaluated the self-field at R_n and carried the gathered
+                // per-particle field through the first half drift. Keep this as an explicit
+                // compatibility mode; the default evaluates the field at R_{n+1/2} below.
+                if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::PRESTEP) {
+                    resetFields();
+                    m << level4 << "E and B fields reset before the first half drift at step "
+                      << step << "." << endl;
+                    computeSpaceChargeFields();
+                    m << level4 << "Pre-step space charge field computation done at step " << step
+                      << "." << endl;
+                }
 
-            // std::cout << "local num: " << itsBunch_m->getLocalNum() << std::endl;
+                // First half of the time integration
+                timeIntegration1(pusher);
+                m << level4 << "timeIntegration1 done at step " << step << "." << endl;
+                itsBunch_m->updateAllParticleMoments();
+                m << level5 << "Particle moments updated after timeIntegration1." << endl;
 
-            // Space charge field computation
-            // if (itsBunch_m->getLocalNum() > 1) {
-            // Otherwise no interaction, can skip (and for some reason seg-fault...)
-            computeSpaceChargeFields();
-            m << level4 << "Space charge field computation done at step " << step << "." << endl;
-            //}
+                if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::MIDPOINT) {
+                    resetFields();
+                    m << level4 << "E and B fields reset at step " << step << "." << endl;
+                    computeSpaceChargeFields();
+                    m << level4 << "Midpoint space charge field computation done at step " << step
+                      << "." << endl;
+                }
 
-            // Emission is placed BETWEEN space-charge and external-field evaluation
-            // to match the legacy OPAL ordering (ParallelTTracker): newly emitted
-            // particles experience external fields in their creation step.
-            selectDT();
+                // Emission is placed BETWEEN space-charge and external-field evaluation
+                // to match the legacy OPAL ordering (ParallelTTracker): newly emitted
+                // particles experience external fields in their creation step.
+                selectDT();
 
-            // Reset per-particle dt for all existing particles BEFORE emission, so that
-            // newly emitted particles retain their fractional dt (sampled in generateUniformDisk).
-            setTime();
-            m << level5 << "Set time view of particle bunch to dt = "
-              << Util::getTimeString(itsBunch_m->getdT()) << "." << endl;
+                // Reset per-particle dt for all existing particles BEFORE emission, so that
+                // newly emitted particles retain their fractional dt (sampled in
+                // generateUniformDisk).
+                setTime();
+                m << level5 << "Set time view of particle bunch to dt = "
+                  << Util::getTimeString(itsBunch_m->getdT()) << "." << endl;
 
-            // Emit particles from time-dependent (emitting) sources (R set in REFERENCE frame).
-            // New particles receive a fractional per-particle dt ∈ (0, dt) from the sampler.
-            emitFromEmissionSources(itsBunch_m->getT(), itsBunch_m->getdT());
-            m << level4 << "Emit particles from emission sources done at step " << step << "."
-              << endl;
-            // Old OPAL reselects the global dt after emission. On the final emission step this
-            // switches getdT() back to the track step before external fields, reference update, and
-            // time increment, while per-particle fractional dt values remain untouched.
-            selectDT();
-            itsBunch_m->updateAllParticleMoments();
-            m << level5 << "Particle moments updated after emission." << endl;
+                // Emit particles from time-dependent (emitting) sources (R set in REFERENCE frame).
+                // New particles receive a fractional per-particle dt ∈ (0, dt) from the sampler.
+                emitFromEmissionSources(itsBunch_m->getT(), itsBunch_m->getdT());
+                m << level4 << "Emit particles from emission sources done at step " << step << "."
+                  << endl;
+                // Old OPAL reselects the global dt after emission. On the final emission step this
+                // switches getdT() back to the track step before external fields, reference update,
+                // and time increment, while per-particle fractional dt values remain untouched.
+                selectDT();
+                itsBunch_m->updateAllParticleMoments();
+                m << level5 << "Particle moments updated after emission." << endl;
 
-            // External field computation
-            computeExternalFields(oths);
-            m << level4 << "External field computation done at step " << step << "." << endl;
+                // External field computation
+                computeExternalFields(oths);
+                m << level4 << "External field computation done at step " << step << "." << endl;
+            }
 
             // Thomas-BMT spin precession using the lab-frame E, B at the particle.
             // No-op for containers that have not registered the Pol attribute.
@@ -549,7 +775,12 @@ void ParallelTracker::execute() {
             }
 
             // Update the bunch time
-            itsBunch_m->incrementT();
+            if (boundaryControlled_m) {
+                boundarySchedule->accept();
+                itsBunch_m->setT(boundaryNominalStart + boundarySchedule->elapsed());
+            } else {
+                itsBunch_m->incrementT();
+            }
             m << level5 << "Incremented bunch time to " << Util::getTimeString(itsBunch_m->getT())
               << "." << endl;
 
@@ -599,6 +830,11 @@ void ParallelTracker::execute() {
 
             // if (hasEndOfLineReached(globalBoundingBox)) break;
 
+            // Observe after acceptance and loss processing. These endpoint
+            // records cannot feed back into fields, the pusher or its schedule.
+            if (passiveProbes)
+                passiveProbes->observe(particleContainers.front(), itsBunch_m->getT());
+
             // Dump phase space and statistics at configured intervals
             bool const psDump = Options::psDumpFreq > 0
                                 && ((itsBunch_m->getGlobalTrackStep() % Options::psDumpFreq) + 1
@@ -623,7 +859,7 @@ void ParallelTracker::execute() {
 
             // Increment the global track step counter at the end of the step
             itsBunch_m->incTrackSteps();
-            ++stepsCompletedInSegment;
+            if (!boundaryControlled_m || boundarySchedule->done()) ++stepsCompletedInSegment;
             m << level5 << "Track steps incremented." << endl;
 
             // Check if active containers have reached the end of the current step size
@@ -641,7 +877,19 @@ void ParallelTracker::execute() {
                 m << level4 << "Calculated drift per time step (container " << i
                   << "): " << Util::getLengthString(driftPerTimeStep) << "." << endl;
 
-                if (std::abs(stepSizes_m.getSStop() - pc->get_sPos()) < 0.5 * driftPerTimeStep) {
+                if (requestedTurns_m || kineticEnergyStop_m > 0) {
+                    if (turnCounters[i]->update(pc->getRefPartR(), pc->getRefPartP())) {
+                        m << level1 << "* RING container " << i << ": completed directed turn "
+                          << turnCounters[i]->count() << ", path length = " << pc->get_sPos()
+                          << " m." << endl;
+                    }
+                    if ((requestedTurns_m && turnCounters[i]->count() >= requestedTurns_m)
+                        || energyTargetReached_m) {
+                        itsBunch_m->setPcAtSStop(i);
+                    }
+                } else if (
+                        std::abs(stepSizes_m.getSStop() - pc->get_sPos())
+                        < 0.5 * driftPerTimeStep) {
                     m << level2
                       << "Approaching end of current step size configuration for container " << i
                       << " (sStop = " << Util::getLengthString(stepSizes_m.getSStop())
@@ -653,7 +901,7 @@ void ParallelTracker::execute() {
             const bool segmentComplete =
                     !itsBunch_m->anyPcActive() || stepsCompletedInSegment == stepsInSegment;
 
-            if (Options::checkpointFreq > 0
+            if (Options::checkpointFreq > 0 && (!boundaryControlled_m || boundarySchedule->done())
                 && itsBunch_m->getGlobalTrackStep() % Options::checkpointFreq == 0) {
                 const std::size_t nextSegment = segmentComplete ? segmentIndex + 1 : segmentIndex;
                 const unsigned long long nextSegmentSteps =
@@ -683,6 +931,20 @@ void ParallelTracker::execute() {
         ++segmentIndex;
         stepsCompletedInSegment = 0;
     }
+    if (kineticEnergyStop_m > 0 && !energyTargetReached_m)
+        throw OpalException(
+                "ParallelTracker::execute",
+                "EKINSTOP was not reached within MAXSTEPS or field bounds.");
+    if (requestedTurns_m) {
+        for (const auto& counter : turnCounters) {
+            if (counter && counter->count() < requestedTurns_m) {
+                throw OpalException(
+                        "ParallelTracker::execute",
+                        "RING did not complete requested directed turns within MAXSTEPS or field "
+                        "bounds.");
+            }
+        }
+    }
     bool const psDump = Options::psDumpFreq > 0
                         && (((itsBunch_m->getGlobalTrackStep() - 1) % Options::psDumpFreq) + 1
                             != Options::psDumpFreq);
@@ -696,6 +958,8 @@ void ParallelTracker::execute() {
         *gmsg << level2 << "* Dump phase space of last step" << endl;
     }
 
+    *gmsg << level1 << "Boris boundary trials=" << boundaryTrials_m
+          << ", rejected=" << boundaryRejected_m << endl;
     itsOpalBeamline_m.switchElementsOff();
 
     // Ensure all Kokkos operations are complete
@@ -718,10 +982,119 @@ void ParallelTracker::execute() {
 
 // --- PIC integration and fields ---
 
+bool ParallelTracker::hasCyclotronGaps() {
+    for (const auto& element : itsOpalBeamline_m.getElements())
+        if (auto* cavity = dynamic_cast<RFCavity*>(element.get()))
+            if (cavity->isCyclotronGap()) return true;
+    return false;
+}
+
+double ParallelTracker::advanceCyclotronGaps(
+        Vector_t<double, 3>& r, Vector_t<double, 3>& p, double t, double dt, double mass,
+        bool report) {
+    const auto all = itsOpalBeamline_m.getElements();
+    std::vector<std::shared_ptr<ElementBase>> gaps;
+    for (const auto& element : all) {
+        auto* cavity = dynamic_cast<RFCavity*>(element.get());
+        if (cavity && cavity->isCyclotronGap())
+            gaps.push_back(element);
+        else if (element->getType() != ElementType::CYCLOTRONSECTOR)
+            throw OpalException(
+                    "ParallelTracker",
+                    "The initial SINGLEGAP path supports cyclotron sectors and gaps only.");
+    }
+    const BorisPusher pusher;
+    std::sort(gaps.begin(), gaps.end(), [](const auto& a, const auto& b) {
+        return a->getName() < b->getName();
+    });
+    auto magneticAdvance = [&](Vector_t<double, 3>& x, Vector_t<double, 3>& v, double h) {
+        x += (0.5 * h * Physics::c / std::sqrt(1 + dot(v, v))) * v;
+        Vector_t<double, 3> e(0), b(0);
+        bool supported = false;
+        for (const auto& element : all) {
+            if (element->getType() != ElementType::CYCLOTRONSECTOR) continue;
+            const auto& transform = itsOpalBeamline_m.getCSTrafoLab2Local(element);
+            Vector_t<double, 3> localE(0), localB(0);
+            const auto localR = transform.transformTo(x);
+            supported         = supported || element->isInside(localR);
+            element->apply(localR, transform.rotateTo(v), t, localE, localB);
+            b += transform.rotateFrom(localB);
+        }
+        if (!supported)
+            throw OpalException(
+                    "ParallelTracker", "SINGLEGAP trajectory left cyclotron field support.");
+        pusher.kick(x, v, e, b, h, mass, 1);
+        x += (0.5 * h * Physics::c / std::sqrt(1 + dot(v, v))) * v;
+    };
+    // Each accepted gap is excluded for the remainder of this step. Root finding
+    // places the state on its nonnegative side, preventing a duplicate next step.
+    std::set<ElementBase*> visited;
+    double remaining = dt;
+    while (remaining > 0) {
+        auto endR = r, endP = p;
+        magneticAdvance(endR, endP, remaining);
+        double earliest = remaining;
+        std::shared_ptr<ElementBase> selected;
+        for (const auto& element : gaps) {
+            if (visited.count(element.get())) continue;
+            const auto& transform = itsOpalBeamline_m.getCSTrafoLab2Local(element);
+            if (!(transform.transformTo(r)[2] < 0) || transform.transformTo(endR)[2] < 0) continue;
+            double low = 0, high = remaining;
+            // Resolve to ~1e-12 of a step; no tolerance loosening of orbit comparisons.
+            for (int iteration = 0; iteration < 40; ++iteration) {
+                const double mid = 0.5 * (low + high);
+                auto trialR = r, trialP = p;
+                magneticAdvance(trialR, trialP, mid);
+                if (transform.transformTo(trialR)[2] < 0)
+                    low = mid;
+                else
+                    high = mid;
+            }
+            auto trialR = r, trialP = p;
+            magneticAdvance(trialR, trialP, high);
+            auto* cavity = static_cast<RFCavity*>(element.get());
+            if (cavity->gapSupports(transform.transformTo(trialR)[0]) && high <= earliest) {
+                earliest = high;
+                selected = element;
+            }
+        }
+        if (!selected) {
+            r = endR;
+            p = endP;
+            return dt;
+        }
+        magneticAdvance(r, p, earliest);
+        t += earliest;
+        remaining -= earliest;
+        const auto& transform = itsOpalBeamline_m.getCSTrafoLab2Local(selected);
+        auto localP           = transform.rotateTo(p);
+        auto* cavity          = static_cast<RFCavity*>(selected.get());
+        if (!cavity->applyGapKick(transform.transformTo(r)[0], t, mass, localP))
+            throw OpalException("ParallelTracker", "Unsupported or unphysical SINGLEGAP kick.");
+        p = transform.rotateFrom(localP);
+        visited.insert(selected.get());
+        if (report)
+            *gmsg << level2 << "Cyclotron gap " << selected->getName() << " t=" << t
+                  << " s K=" << (std::sqrt(1 + dot(p, p)) - 1) * mass * 1e-6 << " MeV" << endl;
+        if (kineticEnergyStop_m > 0
+            && (std::sqrt(1 + dot(p, p)) - 1) * mass >= kineticEnergyStop_m) {
+            if (report) {
+                energyTargetReached_m = true;
+                *gmsg << level1 << "EKINSTOP reached after complete gap kick "
+                      << selected->getName() << " at t=" << t
+                      << " s; K=" << (std::sqrt(1 + dot(p, p)) - 1) * mass * 1e-6 << " MeV" << endl;
+            }
+            return dt - remaining;
+        }
+    }
+    return dt;
+}
+
 /**
  * @copybrief ParallelTracker::timeIntegration1
  */
 void ParallelTracker::timeIntegration1(BorisPusher& pusher) {
+    if (hasCyclotronGaps()) return;  // Localized RF gap path owns both drifts.
     Inform m("ParallelTracker::timeIntegration1");
     IpplTimings::startTimer(timeIntegrationTimer1_m);
     const size_t n = itsBunch_m->getNumParticleContainers();
@@ -743,6 +1116,53 @@ void ParallelTracker::timeIntegration1(BorisPusher& pusher) {
  * @copybrief ParallelTracker::timeIntegration2
  */
 void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
+    if (hasCyclotronGaps()) {
+        if (ippl::Comm->size() != 1 || itsBunch_m->getNumParticleContainers() != 1
+            || itsBunch_m->getTotalNumAllContainers() != 1)
+            throw OpalException(
+                    "ParallelTracker",
+                    "SINGLEGAP requires one particle, one container, one rank and TYPE=NONE field "
+                    "solver.");
+        auto pc = itsBunch_m->getParticleContainer();
+        if (pc->hasSpin() || pc->getReference()->getQ() != 1 || restarting_m
+            || std::abs(pc->getReference()->getM() / (Physics::m_p * 1e9) - 1) > 1e-12)
+            throw OpalException(
+                    "ParallelTracker",
+                    "SINGLEGAP requires an unpolarized positive proton and does not support "
+                    "restart.");
+        auto r = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+        auto p = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->P.getView());
+        const auto& toLab            = pc->getToLabTrafo();
+        Vector_t<double, 3> position = toLab.transformTo(r(0)), momentum = toLab.rotateTo(p(0));
+        const double requestedDt = itsBunch_m->getdT();
+        double actualDt          = requestedDt;
+        if (kineticEnergyStop_m > 0) {
+            // Establish the reference's stopping time before incrementT(). Keep
+            // the ordinary post-step frame update, publishing this pending state
+            // there. The physical particle is advanced independently below.
+            pendingReferenceR_m = pc->getRefPartR();
+            pendingReferenceP_m = pc->getRefPartP();
+            actualDt            = advanceCyclotronGaps(
+                    pendingReferenceR_m, pendingReferenceP_m, itsBunch_m->getT(), requestedDt,
+                    pc->getReference()->getM(), true);
+            pendingEnergyReference_m = true;
+        }
+        advanceCyclotronGaps(
+                position, momentum, itsBunch_m->getT(), itsBunch_m->getdT(),
+                pc->getReference()->getM(), false);
+        if (energyTargetReached_m) {
+            // Only the terminal step changes dt; subsequent steps are disabled
+            // after writing diagnostics. No fractional RF impulse is introduced.
+            itsBunch_m->setdT(actualDt);
+            pc->dt = actualDt;
+        }
+        r(0) = toLab.transformFrom(position);
+        p(0) = toLab.rotateFrom(momentum);
+        Kokkos::deep_copy(pc->R.getView(), r);
+        Kokkos::deep_copy(pc->P.getView(), p);
+        pc->markMomentsDirty();
+        return;
+    }
     // Legacy note: cathode transport/emission was sequenced after space charge so that
     // the first step of newborn particles omits space-charges; multi-container emission
     // is handled separately in execute().
@@ -791,8 +1211,15 @@ opalx::spacecharge::CoordinateFrameTransforms ParallelTracker::makeSpaceChargeFr
     }
 
     const Quaternion alignment = getQuaternion(meanMomentum, Vector_t<double, 3>(0, 0, 1));
+    // Eligible bare NONE ring solves have no fixed/image boundary. Keep their
+    // particles near the tracking origin
+    // instead of translating a microscopic bunch by the ever-growing sPos;
+    // that round trip quantizes R and biases repeated boundary trials.
+    // All other configurations, including PIC and cyclotron tracking, retain
+    // the established longitudinal origin.
+    const double originZ = boundaryControlled_m ? 0.0 : primary->get_sPos();
     const CoordinateSystemTrafo solveToTracker(
-            Vector_t<double, 3>(0, 0, primary->get_sPos()), alignment.conjugate());
+            Vector_t<double, 3>(0, 0, originZ), alignment.conjugate());
     return {solveToTracker.inverted(), solveToTracker};
 }
 
@@ -891,6 +1318,9 @@ void ParallelTracker::computeSpaceChargeFields() {
  */
 void ParallelTracker::computeExternalFields(
         const std::vector<std::shared_ptr<OrbitThreader>>& oths) {
+    // Event integration evaluates fields spatially at each substep, without the
+    // coasting threader's path-length index. No continuous RF impulse is added.
+    if (hasCyclotronGaps()) return;
     IpplTimings::startTimer(fieldEvaluationTimer_m);
     Inform msg("ParallelTracker ", *gmsg);
 
@@ -902,18 +1332,29 @@ void ParallelTracker::computeExternalFields(
     // from where particles are emitted. It can happen that particles land behind the source plane
     // because e.g. of space-charge kicks. Particles with negative z momentum located behind R0Z
     // (with a certain threshold) are then removed from the simulation.
-    const size_t nSourceMarked = markBackwardParticlesAtSourcePlane();
+    const size_t nSourceMarked = boundaryControlled_m ? 0 : markBackwardParticlesAtSourcePlane();
     if (nSourceMarked > 0) {
         deleteInvalidParticles(
                 true, msg, "backward source-plane particles during external-field evaluation");
     }
 
     forEachElementInBunchFrame(
-            oths, [](const std::shared_ptr<ElementBase>& element,
-                     const std::shared_ptr<ParticleContainer_t>& pc) {
-                // Apply element to this iteration's particle container.
-                element->apply(pc);
-            });
+            oths,
+            [this](const std::shared_ptr<ElementBase>& element,
+                   const std::shared_ptr<ParticleContainer_t>& pc) {
+                // Trial steps must not append monitor records.
+                if (!spatialRing_m || element->getType() != ElementType::MONITOR)
+                    element->apply(pc);
+            },
+            spatialRing_m);
+
+    if (spatialRing_m && !boundaryControlled_m) {
+        // Monitors predict a crossing during dt; unlike field support, their
+        // selection must include nearby planes outside the current midpoint.
+        forEachElementInBunchFrame(oths, [](const auto& element, const auto& pc) {
+            if (element->getType() == ElementType::MONITOR) element->apply(pc);
+        });
+    }
 
     IpplTimings::stopTimer(fieldEvaluationTimer_m);
 }
@@ -926,6 +1367,15 @@ void ParallelTracker::forEachElementInBunchFrame(
         const std::function<void(
                 const std::shared_ptr<ElementBase>&, const std::shared_ptr<ParticleContainer_t>&)>&
                 func) {
+    forEachElementInBunchFrame(oths, func, false);
+}
+
+void ParallelTracker::forEachElementInBunchFrame(
+        const std::vector<std::shared_ptr<OrbitThreader>>& oths,
+        const std::function<void(
+                const std::shared_ptr<ElementBase>&, const std::shared_ptr<ParticleContainer_t>&)>&
+                func,
+        bool spatialCandidates) {
     const size_t nContainers = itsBunch_m->getNumParticleContainers();
     for (size_t ci = 0; ci < nContainers; ++ci) {
         if (!itsBunch_m->isPcActive(ci)) {
@@ -960,27 +1410,60 @@ void ParallelTracker::forEachElementInBunchFrame(
         // approximation: local-Z adds linearly to the path length s (exact only for a straight
         // reference path).
         IndexMap::value_t elements;
-        try {
-            const double centre = pc->get_sPos() + 0.5 * (rmax(2) + rmin(2));
-            elements            = oths[ci]->query(centre, rmax(2) - rmin(2));
-        } catch (IndexMap::OutOfBounds& e) {
-            globalEOL_m = true;
-            continue;
-        }
+        if (spatialCandidates) {
+            // Conservative spatial candidate set for curved trajectories. The
+            // existing per-element device kernels apply their exact support test.
+            const auto all     = itsOpalBeamline_m.getElements();
+            const auto lattice = deviceRingFields_m;
+            Kokkos::View<int*> active("Boris::activeElements", all.size());
+            const auto r      = pc->R.getView();
+            const auto& frame = pc->getToLabTrafo();
+            const device_external::Rigid toLab{frame.getOrigin(), frame.getRotationMatrix()};
+            Kokkos::parallel_for(
+                    "Boris::spatialCandidates", pc->getLocalNum(), KOKKOS_LAMBDA(size_t i) {
+                        const auto lab = toLab.pointTo(r(i));
+                        for (size_t j = 0; j < lattice.elements.extent(0); ++j)
+                            if (lattice.elements(j).contains(lab))
+                                Kokkos::atomic_exchange(&active(j), 1);
+                    });
+            auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), active);
+            // Element application and frame changes operate on local particles
+            // only. Keep these flags local: this pointer-ordered element set
+            // has no common index across MPI ranks. The timestep decision is
+            // separately collective in boundaryCrossed().
+            size_t j = 0;
+            for (const auto& element : all) {
+                if (host(j++)) elements.insert(element);
+            }
+        } else
+            try {
+                const double centre = pc->get_sPos() + 0.5 * (rmax(2) + rmin(2));
+                elements            = oths[ci]->query(centre, rmax(2) - rmin(2));
+            } catch (IndexMap::OutOfBounds& e) {
+                globalEOL_m = true;
+                continue;
+            }
 
-        // Iterate over all elements.
-        IndexMap::value_t::const_iterator it        = elements.begin();
-        const IndexMap::value_t::const_iterator end = elements.end();
-        for (; it != end; ++it) {
+        // Frame round trips do not commute exactly in floating point. For the
+        // bare analytic-ring benchmark, use prepared occurrence order rather
+        // than allocation-dependent shared_ptr order. Include aperture/monitor
+        // callbacks: they also transform the live arrays. Other configurations
+        // retain their existing order, including cyclotron and charged tracking.
+        const auto ordered =
+                spatialRing_m && bareTracking_m
+                        ? device_external::orderedCandidates(itsOpalBeamline_m, elements)
+                        : std::vector<std::shared_ptr<ElementBase>>(
+                                  elements.begin(), elements.end());
+        for (const auto& element : ordered) {
             CoordinateSystemTrafo refToLocalCSTrafo =
-                    (itsOpalBeamline_m.getMisalignment((*it))
-                     * (itsOpalBeamline_m.getCSTrafoLab2Local((*it)) * pc->getToLabTrafo()));
+                    (itsOpalBeamline_m.getMisalignment(element)
+                     * (itsOpalBeamline_m.getCSTrafoLab2Local(element) * pc->getToLabTrafo()));
 
             CoordinateSystemTrafo localToRefCSTrafo = refToLocalCSTrafo.inverted();
 
             pc->transformBunch(refToLocalCSTrafo);
 
-            func(*it, pc);
+            func(element, pc);
 
             pc->transformBunch(localToRefCSTrafo);
         }
@@ -992,6 +1475,8 @@ void ParallelTracker::forEachElementInBunchFrame(
  */
 size_t ParallelTracker::applyElementApertures(
         const std::vector<std::shared_ptr<OrbitThreader>>& oths) {
+    // The restricted sector/gap path checks its own field support during stepping.
+    if (hasCyclotronGaps()) return 0;
     size_t localMarked = 0;
     forEachElementInBunchFrame(
             oths, [&localMarked](
@@ -1176,6 +1661,130 @@ size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
     return static_cast<size_t>(globalTotalMarked);
 }
 
+/** Trial support checks use the same total midpoint E/B as the eventual kick.
+ * No particle is kicked here. All flags are reduced before choosing a shared dt.
+ */
+bool ParallelTracker::boundaryCrossed(double dt) {
+    const auto pc     = itsBunch_m->getParticleContainer();
+    const auto& frame = pc->getToLabTrafo();
+    const device_external::Rigid toLab{frame.getOrigin(), frame.getRotationMatrix()};
+    const auto lattice = deviceRingFields_m;
+    const auto r = pc->R.getView(), p = pc->P.getView();
+    const auto e = pc->E.getView(), b = pc->B.getView();
+    const auto ids           = pc->ID.getView();
+    const auto controlStride = boundaryControlStride_m;
+    const double mass = pc->getReference()->getM(), charge = pc->getReference()->getQ();
+    int local = 0, localInvalid = 0;
+    Kokkos::parallel_reduce(
+            "Boris::supportTrial", pc->getLocalNum(),
+            KOKKOS_LAMBDA(size_t i, int& crossed, int& invalid) {
+                const auto start = boris_midpoint::halfDrift(r(i), p(i), -dt);
+                const auto end = boris_midpoint::endpoint(r(i), p(i), e(i), b(i), dt, mass, charge);
+                const auto labStart    = toLab.pointTo(start);
+                const auto labMidpoint = toLab.pointTo(r(i));
+                const auto labEnd      = toLab.pointTo(end.position);
+                bool finite            = Kokkos::isfinite(dot(p(i), p(i)))
+                              && Kokkos::isfinite(dot(end.momentum, end.momentum));
+                for (unsigned d = 0; d < 3; ++d) {
+                    finite = finite && Kokkos::isfinite(r(i)(d)) && Kokkos::isfinite(p(i)(d))
+                             && Kokkos::isfinite(e(i)(d)) && Kokkos::isfinite(b(i)(d))
+                             && Kokkos::isfinite(labStart(d)) && Kokkos::isfinite(labMidpoint(d))
+                             && Kokkos::isfinite(labEnd(d)) && Kokkos::isfinite(end.momentum(d));
+                }
+                if (!finite) {
+                    ++invalid;
+                    return;
+                }
+                if (!experimental_boundary::selected(ids(i), controlStride)) return;
+                if (lattice.differentSupport(labStart, labMidpoint)
+                    || lattice.differentSupport(labStart, labEnd))
+                    ++crossed;
+            },
+            Kokkos::Sum<int>(local), Kokkos::Sum<int>(localInvalid));
+    int invalid = 0;
+    ippl::Comm->allreduce(localInvalid, invalid, 1, std::plus<int>());
+    if (invalid)
+        throw OpalException(
+                "ParallelTracker::boundaryCrossed",
+                "Nonfinite particle state or fields in a Boris midpoint trial.");
+    // The existing collective trial wrapper publishes a root-only exception
+    // before any rank enters the final reduction. Encode the Boolean as 1/2
+    // because that wrapper validates a finite, strictly positive result.
+    const double referenceCrossing =
+            track_reference::collectiveTerminalStep(ippl::Comm->getCommunicator(), [&] {
+                const auto r0  = pc->getRefPartR();
+                const auto rm  = boris_midpoint::halfDrift(r0, pc->getRefPartP(), dt);
+                const auto end = track_reference::advanceInBeamline(
+                        itsOpalBeamline_m, *pc->getReference(), {r0, pc->getRefPartP()}, dt,
+                        itsBunch_m->getT() + dt, false);
+                for (unsigned d = 0; d < 3; ++d)
+                    if (!std::isfinite(r0(d)) || !std::isfinite(rm(d))
+                        || !std::isfinite(end.position(d)) || !std::isfinite(end.momentum(d)))
+                        throw std::runtime_error(
+                                "Nonfinite reference state in a Boris midpoint trial");
+                const auto initial = itsOpalBeamline_m.getElements(r0);
+                return initial != itsOpalBeamline_m.getElements(rm)
+                                       || initial != itsOpalBeamline_m.getElements(end.position)
+                               ? 2.
+                               : 1.;
+            });
+    if (ippl::Comm->rank() == 0 && referenceCrossing == 2.) ++local;
+    int global = 0;
+    ippl::Comm->allreduce(local, global, 1, std::plus<int>());
+    return global != 0;
+}
+
+/** Undo only an uncommitted first drift. PIC may have migrated particles, so
+ * reconstruct on current ownership from midpoint R and unchanged P, never from
+ * index-matched scratch views. Solver frame roundoff is not exactly reversible.
+ */
+void ParallelTracker::reverseTrialDrift(double dt) {
+    const auto pc = itsBunch_m->getParticleContainer();
+    const auto r = pc->R.getView(), p = pc->P.getView();
+    Kokkos::parallel_for(
+            "Boris::rejectHalfDrift", pc->getLocalNum(),
+            KOKKOS_LAMBDA(size_t i) { r(i) = boris_midpoint::halfDrift(r(i), p(i), -dt); });
+    Kokkos::fence();
+    pc->markMomentsDirty();
+}
+
+void ParallelTracker::prepareBoundaryStep(
+        BorisPusher& pusher, const std::vector<std::shared_ptr<OrbitThreader>>& oths,
+        boris_step::Control& schedule) {
+    for (;;) {
+        ++boundaryTrials_m;
+        boundaryStepDt_m = schedule.step();
+        changeDT();
+        if (schedule.canSplit() && boundaryStepDt_m > deviceRingFields_m.maximumStep) {
+            ++boundaryRejected_m;
+            schedule.split();
+            continue;
+        }
+        if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::PRESTEP) {
+            resetFields();
+            computeSpaceChargeFields();
+        }
+        timeIntegration1(pusher);
+        itsBunch_m->updateAllParticleMoments();
+        if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::MIDPOINT) {
+            resetFields();
+            computeSpaceChargeFields();
+        }
+        computeExternalFields(oths);
+        const bool crossed = boundaryCrossed(boundaryStepDt_m);
+        if (!schedule.canSplit() || !crossed) {
+            // Commit passive diagnostics exactly once at the accepted midpoint.
+            forEachElementInBunchFrame(oths, [](const auto& element, const auto& pc) {
+                if (element->getType() == ElementType::MONITOR) element->apply(pc);
+            });
+            return;
+        }
+        reverseTrialDrift(boundaryStepDt_m);
+        ++boundaryRejected_m;
+        schedule.split();
+    }
+}
+
 /**
  * @copybrief ParallelTracker::resetFields
  */
@@ -1354,6 +1963,8 @@ void ParallelTracker::selectDT() {
     if (hasEmissionDt) {
         selectedDt = emissionDt;
     }
+    if (terminalStepDt_m > 0) selectedDt = std::min(selectedDt, terminalStepDt_m);
+    if (boundaryStepDt_m > 0) selectedDt = std::min(selectedDt, boundaryStepDt_m);
     itsBunch_m->setdT(selectedDt);
 }
 
@@ -1469,9 +2080,8 @@ void ParallelTracker::updateReference(const BorisPusher& pusher) {
 /**
  * @copybrief ParallelTracker::updateReferenceParticles
  */
-void ParallelTracker::updateReferenceParticles(const BorisPusher& pusher) {
-    const double dt          = std::min(itsBunch_m->getT(), itsBunch_m->getdT());
-    const double scaleFactor = Physics::c * dt;
+void ParallelTracker::updateReferenceParticles(const BorisPusher& /*pusher*/) {
+    const double dt = std::min(itsBunch_m->getT(), itsBunch_m->getdT());
 
     const size_t n = itsBunch_m->getNumParticleContainers();
     for (size_t i = 0; i < n; ++i) {
@@ -1484,39 +2094,28 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& pusher) {
         }
         auto& pc                = *pcPtr;
         const PartData& refKick = *pc.getReference();
-        Vector_t<double, 3> Ef(0.0), Bf(0.0);
-
-        pc.getRefPartR() /= scaleFactor;
-        pusher.push(pc.getRefPartR(), pc.getRefPartP(), dt);
-        pc.getRefPartR() *= scaleFactor;
-
-        IndexMap::value_t elements           = itsOpalBeamline_m.getElements(pc.getRefPartR());
-        IndexMap::value_t::const_iterator it = elements.begin();
-        const IndexMap::value_t::const_iterator end = elements.end();
-
-        for (; it != end; ++it) {
-            const CoordinateSystemTrafo& refToLocalCSTrafo =
-                    itsOpalBeamline_m.getCSTrafoLab2Local((*it));
-
-            Vector_t<double, 3> localR = refToLocalCSTrafo.transformTo(pc.getRefPartR());
-            Vector_t<double, 3> localP = refToLocalCSTrafo.rotateTo(pc.getRefPartP());
-            Vector_t<double, 3> localE(0.0), localB(0.0);
-
-            if ((*it)->applyToReferenceParticle(
-                        localR, localP, itsBunch_m->getT() - 0.5 * dt, localE, localB)) {
-                *gmsg << level1 << "The reference particle hit an element" << endl;
-                globalEOL_m = true;
+        if (hasCyclotronGaps()) {
+            if (pendingEnergyReference_m) {
+                pc.getRefPartR()         = pendingReferenceR_m;
+                pc.getRefPartP()         = pendingReferenceP_m;
+                pendingEnergyReference_m = false;
+                continue;
             }
-
-            Ef += refToLocalCSTrafo.rotateFrom(localE);
-            Bf += refToLocalCSTrafo.rotateFrom(localB);
+            advanceCyclotronGaps(
+                    pc.getRefPartR(), pc.getRefPartP(), itsBunch_m->getT() - dt, dt, refKick.getM(),
+                    true);
+            continue;
         }
-
-        pusher.kick(pc.getRefPartR(), pc.getRefPartP(), Ef, Bf, dt, refKick.getM(), refKick.getQ());
-
-        pc.getRefPartR() /= scaleFactor;
-        pusher.push(pc.getRefPartR(), pc.getRefPartP(), dt);
-        pc.getRefPartR() *= scaleFactor;
+        const auto advance = track_reference::advanceInBeamline;
+        const auto end =
+                advance(itsOpalBeamline_m, refKick, {pc.getRefPartR(), pc.getRefPartP()}, dt,
+                        itsBunch_m->getT(), true);
+        pc.getRefPartR() = end.position;
+        pc.getRefPartP() = end.momentum;
+        if (end.hitMaterial) {
+            *gmsg << level1 << "The reference particle hit an element" << endl;
+            globalEOL_m = true;
+        }
     }
 }
 
@@ -1668,9 +2267,14 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
         if (printStepInfo) {
             *gmsg << level1 << "* " << myt2.time() << " "
                   << "Step " << std::setw(6) << globalStep << " "
-                  << "container[" << ci << "] "
-                  << "at " << Util::getLengthString(sPos) << ", "
-                  << "t= " << Util::getTimeString(itsBunch_m->getT()) << ", "
+                  << "container[" << ci << "] ";
+            if (ringPeriod_m > 0.0 && !requestedTurns_m && kineticEnergyStop_m == 0
+                && !hasCyclotronGaps()) {
+                *gmsg << getRingProgressString(sPos, ringPeriod_m) << ", ";
+            } else {
+                *gmsg << "at " << Util::getLengthString(sPos) << ", ";
+            }
+            *gmsg << "t= " << Util::getTimeString(itsBunch_m->getT()) << ", "
                   << "E=" << Util::getEnergyString(pc->getMeanKineticEnergy()) << endl;
         }
         anyLogged = true;
