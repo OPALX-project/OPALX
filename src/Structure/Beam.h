@@ -113,6 +113,8 @@ public:
      * primary beam's design-orbit element map instead of threading its own reference particle.
      */
     bool usesIndependentOrbitThreader() const;
+    /// Repeated spectral launches: kinetic GeV, radius m, radial momentum / mc.
+    std::vector<double> getTuneInitial() const;
 
     /// Update the BEAM data.
     virtual void update();

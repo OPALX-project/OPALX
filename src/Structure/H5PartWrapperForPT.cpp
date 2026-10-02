@@ -239,9 +239,9 @@ void H5PartWrapperForPT::writeHeader() {
     WRITESTRINGFILEATTRIB(file_m, "qUnit", "C");
 
     if (Options::ebDump) {
-        WRITESTRINGFILEATTRIB(file_m, "ExUnit", "MV/m");
-        WRITESTRINGFILEATTRIB(file_m, "EyUnit", "MV/m");
-        WRITESTRINGFILEATTRIB(file_m, "EzUnit", "MV/m");
+        WRITESTRINGFILEATTRIB(file_m, "ExUnit", "V/m");
+        WRITESTRINGFILEATTRIB(file_m, "EyUnit", "V/m");
+        WRITESTRINGFILEATTRIB(file_m, "EzUnit", "V/m");
 
         WRITESTRINGFILEATTRIB(file_m, "BxUnit", "T");
         WRITESTRINGFILEATTRIB(file_m, "ByUnit", "T");

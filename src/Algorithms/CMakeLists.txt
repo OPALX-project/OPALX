@@ -8,8 +8,17 @@ set (_SRCS
     ElementInteractionManager.cpp
     Flagger.cpp
     IndexMap.cpp
+    ExternalFieldRayTracker.cpp
+    DeviceExternalField.cpp
+    PassiveRingProbe.cpp
+    OneTurnMap.cpp
+    ClosedOrbitSolver.cpp
+    LinearMapEigenAnalysis.cpp
+    LinearTransferMapBuilder.cpp
+    SpectralTunes.cpp
     OrbitThreader.cpp
     ParallelTracker.cpp
+    TrackReferenceStep.cpp
     PartData.cpp
     PolynomialTimeDependence.cpp
     SplineTimeDependence.cpp
@@ -25,14 +34,29 @@ set (HDRS
     AbstractTracker.h
     BeamBeamInteraction.h
     CavityAutophaser.h
+    CompensatedSum.h
+    RungeKuttaTableau.h
     DefaultVisitor.h
     DistributionMoments.h
     ElementInteraction.h
     ElementInteractionManager.h
     Flagger.h
     IndexMap.h
+    ExternalFieldRayTracker.h
+    DeviceExternalField.h
+    PassiveProbe.h
+    PassiveRingProbe.h
+    OneTurnMap.h
+    ClosedOrbitSolver.h
+    LinearMapEigenAnalysis.h
+    LinearTransferMapBuilder.h
+    SpectralTunes.h
+    LinearTransferMap.h
     OrbitThreader.h
+    OrbitThreaderDiagnostics.h
     ParallelTracker.h
+    ClosedOrbitInitialState.h
+    TrackReferenceStep.h
     PartData.h
     PolynomialTimeDependence.h
     SplineTimeDependence.h

@@ -44,3 +44,6 @@ build_*
 !sandbox/track12particles/opalx/timed/first_kick_field_scan.json
 coverage_html/
 .idea
+__pycache__/
+*.pyc
+sandbox
