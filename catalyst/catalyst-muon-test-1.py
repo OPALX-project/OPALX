@@ -79,7 +79,7 @@ programmableFilter1.Set(
 import os
 
 _filter_script = os.environ.get(
-'BUNCH_TRANSFORM_FILTER','/home/biddisco/src/opalx/insitu/catalyst/bunch_transform_filter.py')
+'BUNCH_TRANSFORM_FILTER','/home/biddisco/src/opalx/insitu/catalyst/paraview/bunch_transform_filter.py')
 _filter_ns = {'self': self, 'INVERSE': INVERSE}
 with open(_filter_script) as _fh:
     exec(compile(_fh.read(), _filter_script, 'exec'), _filter_ns)""",

@@ -40,11 +40,14 @@ except NameError:
     INVERSE = os.environ.get('BUNCH_TRANSFORM_INVERSE', '1') not in ('0', 'false', 'False')
 
 # ---------------------------------------------------------------------------
-# Debug logging
+# Debug logging (set BUNCH_TRANSFORM_DEBUG=1 to enable)
 # ---------------------------------------------------------------------------
+_DBG = os.environ.get('BUNCH_TRANSFORM_DEBUG', '') not in ('', '0', 'false', 'False')
 _DBG_FILE = "/tmp/bunch_transform_filter_debug.txt"
 
 def _dbg(msg):
+    if not _DBG:
+        return
     with open(_DBG_FILE, "a") as f:
         f.write(msg + "\n")
 
@@ -222,17 +225,17 @@ def _transform_dataset(dataset, origin, R, path=""):
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
-#_dbg("=" * 60)
+_dbg("=" * 60)
 input0 = self.GetInputDataObject(0, 0)
 input1 = self.GetInputDataObject(0, 1)
 #_inspect_input(0, input0)
 #_inspect_input(1, input1)
 
 origin, R = _read_transform(input1)
-#_dbg(f"Transform origin: {origin}")
-#_dbg(f"Transform rotation rows:\n{R}")
+_dbg(f"Transform origin: {origin}")
+_dbg(f"Transform rotation rows:\n{R}")
 
 output = self.GetOutput()
 output.DeepCopy(input0)
 _transform_dataset(output, origin, R, "out")
-#_dbg("Output generated")
+_dbg("Output generated")
