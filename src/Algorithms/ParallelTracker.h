@@ -266,7 +266,7 @@ public:
     void visitDrift(const Drift&) override;
 
     /// @brief Apply the algorithm to a field-map-driven element.
-    virtual void visitFieldmapElement(const FieldmapElement&);
+    void visitFieldmapElement(const FieldmapElement&) override;
 
     /// @brief Reject laser tracking until dedicated laser tracking is implemented.
     void visitLaser(const Laser&) override;
