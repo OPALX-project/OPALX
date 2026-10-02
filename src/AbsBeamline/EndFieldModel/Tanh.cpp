@@ -30,11 +30,10 @@
 #include "Utilities/GSLCompat.h"
 #include "Utilities/GeneralOpalException.h"
 
-#include "AbsBeamline/EndFieldModel/Tanh.h"
 #include "AbsBeamline/EndFieldModel/CompactVector.h"
+#include "AbsBeamline/EndFieldModel/Tanh.h"
 
 namespace endfieldmodel {
-
 
     Tanh* Tanh::clone() const { return new Tanh(*this); }
 
@@ -87,7 +86,8 @@ namespace endfieldmodel {
         }
         for (size_t derivative = 0; derivative <= n; ++derivative) {
             for (const auto& term : tdi_m[derivative]) {
-                config_m.coefficients_m[derivative * (config_m.maxDerivative_m + 2) + term[1]] = term[0];
+                config_m.coefficients_m[derivative * (config_m.maxDerivative_m + 2) + term[1]] =
+                        term[0];
             }
         }
     }

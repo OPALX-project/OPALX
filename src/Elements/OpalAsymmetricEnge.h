@@ -7,7 +7,7 @@
 /** OpalEnge provides user interface information for the Enge and AsymmetricEnge objects
  */
 class OpalAsymmetricEnge : public OpalElement {
-  public:
+public:
     /** enum maps string to integer value for UI definitions */
     enum {
         X0_START = COMMON,
@@ -16,7 +16,7 @@ class OpalAsymmetricEnge : public OpalElement {
         X0_END,
         LAMBDA_END,
         COEFFICIENTS_END,
-        SIZE // size of the enum
+        SIZE  // size of the enum
     };
 
     /** Default constructor initialises UI parameters. */
@@ -26,17 +26,17 @@ class OpalAsymmetricEnge : public OpalElement {
     virtual ~OpalAsymmetricEnge() = default;
 
     /** Inherited copy constructor */
-    virtual OpalAsymmetricEnge *clone(const std::string &name);
+    virtual OpalAsymmetricEnge* clone(const std::string& name);
 
     /** Update the ScalingFFA with new parameters from UI parser */
     virtual void update();
 
-  private:
+private:
     // Not implemented.
-    OpalAsymmetricEnge(const OpalAsymmetricEnge &);
-    OpalAsymmetricEnge& operator=(const OpalAsymmetricEnge &);
+    OpalAsymmetricEnge(const OpalAsymmetricEnge&);
+    OpalAsymmetricEnge& operator=(const OpalAsymmetricEnge&);
 
     // Clone constructor.
-    OpalAsymmetricEnge(const std::string &name, OpalAsymmetricEnge *parent);
+    OpalAsymmetricEnge(const std::string& name, OpalAsymmetricEnge* parent);
 };
-#endif // OPAL_OPALASYMMETRICENGE_H
+#endif  // OPAL_OPALASYMMETRICENGE_H

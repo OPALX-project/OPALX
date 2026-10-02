@@ -32,7 +32,4 @@
 #include <map>
 #include <sstream>
 
-
-namespace endfieldmodel {
-
-}  // namespace endfieldmodel
+namespace endfieldmodel {}  // namespace endfieldmodel

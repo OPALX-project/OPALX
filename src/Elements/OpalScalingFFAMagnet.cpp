@@ -24,75 +24,76 @@
 #include "Physics/Units.h"
 #include "Utilities/OpalException.h"
 
-OpalScalingFFAMagnet::OpalScalingFFAMagnet() :
-    OpalElement(SIZE, "SCALINGFFAMAGNET",
-                "The \"ScalingFFAMagnet\" element defines a FFA scaling magnet.") {
+OpalScalingFFAMagnet::OpalScalingFFAMagnet()
+    : OpalElement(
+              SIZE, "SCALINGFFAMAGNET",
+              "The \"ScalingFFAMagnet\" element defines a FFA scaling magnet.") {
+    itsAttr[B0] = Attributes::makeReal("B0", "The nominal dipole field of the magnet [T].");
 
-    itsAttr[B0] = Attributes::makeReal
-        ("B0", "The nominal dipole field of the magnet [T].");
+    itsAttr[R0] = Attributes::makeReal("R0", "Radial scale [m].");
 
-    itsAttr[R0] = Attributes::makeReal
-        ("R0", "Radial scale [m].");
+    itsAttr[FIELD_INDEX] = Attributes::makeReal("FIELD_INDEX", "The scaling magnet field index.");
 
-    itsAttr[FIELD_INDEX] = Attributes::makeReal
-        ("FIELD_INDEX", "The scaling magnet field index.");
+    itsAttr[TAN_DELTA] = Attributes::makeReal(
+            "TAN_DELTA", "Tangent of the spiral angle; set to 0 to make a radial sector magnet.");
 
-    itsAttr[TAN_DELTA] = Attributes::makeReal
-        ("TAN_DELTA", "Tangent of the spiral angle; set to 0 to make a radial sector magnet.");
+    itsAttr[MAX_Y_POWER] = Attributes::makeReal(
+            "MAX_Y_POWER",
+            "The maximum power in y that will be considered in the field expansion.");
 
-    itsAttr[MAX_Y_POWER] = Attributes::makeReal
-        ("MAX_Y_POWER", "The maximum power in y that will be considered in the field expansion.");
+    itsAttr[END_FIELD_MODEL] = Attributes::makeString(
+            "END_FIELD_MODEL",
+            "Names the end field model of the magnet, giving the field magnitude along a line of "
+            "constant radius. If blank, uses the 'END_LENGTH' and 'CENTRE_LENGTH' or 'L' "
+            "parameters and a tanh model. If 'END_FIELD_MODEL' is not blank, OpalX will seek "
+            "an END_FIELD_MODEL corresponding to the name defined in this string.");
 
-    itsAttr[END_FIELD_MODEL] = Attributes::makeString
-        ("END_FIELD_MODEL",
-         "Names the end field model of the magnet, giving the field magnitude along a line of "
-         "constant radius. If blank, uses the 'END_LENGTH' and 'CENTRE_LENGTH' or 'L' "
-         "parameters and a tanh model. If 'END_FIELD_MODEL' is not blank, OpalX will seek "
-         "an END_FIELD_MODEL corresponding to the name defined in this string.");
+    itsAttr[END_LENGTH] = Attributes::makeReal(
+            "END_LENGTH",
+            "The end length of the spiral FFA [m]. This determines the fringe field taper");
 
-    itsAttr[END_LENGTH] = Attributes::makeReal
-        ("END_LENGTH", "The end length of the spiral FFA [m]. This determines the fringe field taper");
+    itsAttr[LENGTH] = Attributes::makeReal(
+            "L",
+            "The centre length of the spiral FFA, if END_FIELD_MODEL is not defined [m]. If"
+            "END_FIELD_MODEL is defined, by default for placement purposes the element length"
+            "will be calculated using the END_FIELD_MODEL; this parameter overrides that"
+            "value. In this case it will not affect the field generated but it will affect"
+            "the placement of subsequent elements");
 
-    itsAttr[LENGTH] = Attributes::makeReal
-        ("L", "The centre length of the spiral FFA, if END_FIELD_MODEL is not defined [m]. If"
-              "END_FIELD_MODEL is defined, by default for placement purposes the element length"
-              "will be calculated using the END_FIELD_MODEL; this parameter overrides that"
-              "value. In this case it will not affect the field generated but it will affect"
-              "the placement of subsequent elements");
+    itsAttr[CENTRE_LENGTH] = Attributes::makeReal("CENTRE_LENGTH", "Synonym for L [m].");
 
-    itsAttr[CENTRE_LENGTH] = Attributes::makeReal
-        ("CENTRE_LENGTH", "Synonym for L [m].");
+    itsAttr[RADIAL_NEG_EXTENT] = Attributes::makeReal(
+            "RADIAL_NEG_EXTENT",
+            "Particles are considered outside the tracking region if "
+            "radius is less than R0-RADIAL_NEG_EXTENT relative to the FFA centre [m].",
+            1);
 
-    itsAttr[RADIAL_NEG_EXTENT] = Attributes::makeReal
-        ("RADIAL_NEG_EXTENT",
-         "Particles are considered outside the tracking region if "
-         "radius is less than R0-RADIAL_NEG_EXTENT relative to the FFA centre [m].", 1);
+    itsAttr[RADIAL_POS_EXTENT] = Attributes::makeReal(
+            "RADIAL_POS_EXTENT",
+            "Particles are considered outside the tracking region if "
+            "radius is greater than R0+RADIAL_POS_EXTENT relative to the FFA centre [m].",
+            1);
 
-    itsAttr[RADIAL_POS_EXTENT] = Attributes::makeReal
-        ("RADIAL_POS_EXTENT",
-         "Particles are considered outside the tracking region if "
-         "radius is greater than R0+RADIAL_POS_EXTENT relative to the FFA centre [m].", 1);
+    itsAttr[HEIGHT] = Attributes::makeReal(
+            "HEIGHT",
+            "Full height of the magnet. Particles moving more than height/2. "
+            "off the midplane (either above or below) are out of the aperture [m].");
 
-    itsAttr[HEIGHT] = Attributes::makeReal
-        ("HEIGHT",
-         "Full height of the magnet. Particles moving more than height/2. "
-         "off the midplane (either above or below) are out of the aperture [m].");
+    itsAttr[LAYOUT_START] = Attributes::makeReal(
+            "LAYOUT_START",
+            "Determines the distance, along the line of r=r0, to the central "
+            "portion of the magnet field relative to the ELEMEDGE/position "
+            "coordinate. Default is 0 [m].");
 
-    itsAttr[LAYOUT_START] = Attributes::makeReal
-        ("LAYOUT_START",
-         "Determines the distance, along the line of r=r0, to the central "
-         "portion of the magnet field relative to the ELEMEDGE/position "
-         "coordinate. Default is 0 [m].");
+    itsAttr[LAYOUT_END] = Attributes::makeReal(
+            "LAYOUT_END",
+            "Determines the distance, along the line of r=r0, to the end of the "
+            "magnet for the purposes of placing the next element. Default is L [m].");
 
-    itsAttr[LAYOUT_END] = Attributes::makeReal
-        ("LAYOUT_END",
-         "Determines the distance, along the line of r=r0, to the end of the "
-         "magnet for the purposes of placing the next element. Default is L [m].");
-
-    itsAttr[AZIMUTHAL_EXTENT] = Attributes::makeReal
-        ("AZIMUTHAL_EXTENT",
-         "The field will be assumed zero if particles have S more than AZIMUTHAL_EXTENT "
-         "from the magnet centre. Default is CENTRE_LENGTH/2.+5.*END_LENGTH [m].");
+    itsAttr[AZIMUTHAL_EXTENT] = Attributes::makeReal(
+            "AZIMUTHAL_EXTENT",
+            "The field will be assumed zero if particles have S more than AZIMUTHAL_EXTENT "
+            "from the magnet centre. Default is CENTRE_LENGTH/2.+5.*END_LENGTH [m].");
 
     registerOwnership();
 
@@ -101,30 +102,28 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet() :
     setElement(magnet);
 }
 
-OpalScalingFFAMagnet::OpalScalingFFAMagnet(const std::string& name,
-                                             OpalScalingFFAMagnet* parent):
-    OpalElement(name, parent) {
+OpalScalingFFAMagnet::OpalScalingFFAMagnet(const std::string& name, OpalScalingFFAMagnet* parent)
+    : OpalElement(name, parent) {
     ScalingFFAMagnet* magnet = new ScalingFFAMagnet(name);
     magnet->setEndField(std::make_shared<endfieldmodel::Tanh>(1., 1., 1));
     setElement(magnet);
 }
 
-OpalScalingFFAMagnet::~OpalScalingFFAMagnet() {
-}
+OpalScalingFFAMagnet::~OpalScalingFFAMagnet() {}
 
-OpalScalingFFAMagnet *OpalScalingFFAMagnet::clone(const std::string& name) {
+OpalScalingFFAMagnet* OpalScalingFFAMagnet::clone(const std::string& name) {
     return new OpalScalingFFAMagnet(name, this);
 }
 
 void OpalScalingFFAMagnet::setupDefaultEndField() {
     ScalingFFAMagnet* magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
     // get centre length and end length in metres
-    double end_length = Attributes::getReal(itsAttr[END_LENGTH]);
+    double end_length    = Attributes::getReal(itsAttr[END_LENGTH]);
     double centre_length = 0.0;
     if (itsAttr[LENGTH]) {
-        centre_length = Attributes::getReal(itsAttr[LENGTH])/2.;
+        centre_length = Attributes::getReal(itsAttr[LENGTH]) / 2.;
     } else {
-        centre_length = Attributes::getReal(itsAttr[CENTRE_LENGTH])/2.;
+        centre_length = Attributes::getReal(itsAttr[CENTRE_LENGTH]) / 2.;
     }
     auto endField = std::make_shared<endfieldmodel::Tanh>();
     endField->setLambda(end_length);
@@ -134,14 +133,13 @@ void OpalScalingFFAMagnet::setupDefaultEndField() {
     std::string endName = "__opal_internal__" + getOpalName();
     magnet->setEndFieldName(endName);
     endfieldmodel::EndFieldModelManager::getEFMManager()->setEndFieldModel(endName, endField);
-
 }
 
 void OpalScalingFFAMagnet::setupNamedEndField() {
     if (!itsAttr[END_FIELD_MODEL]) {
         return;
     }
-    std::string name = Attributes::getString(itsAttr[END_FIELD_MODEL]);
+    std::string name         = Attributes::getString(itsAttr[END_FIELD_MODEL]);
     ScalingFFAMagnet* magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
     magnet->setEndFieldName(name);
 }
@@ -151,13 +149,13 @@ void OpalScalingFFAMagnet::update() {
     ScalingFFAMagnet* magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
     // use L = r0*theta; we define the magnet into length for UI but into angles
     // internally; and use m as external default unit
-    double r0Abs = std::abs(Attributes::getReal(itsAttr[R0]));
+    double r0Abs    = std::abs(Attributes::getReal(itsAttr[R0]));
     double r0Signed = Attributes::getReal(itsAttr[R0]);
     magnet->setR0(r0Signed);
     magnet->setDipoleConstant(Attributes::getReal(itsAttr[B0]));
     if (itsAttr[APERT]) {
-        throw OpalException("OpalScalingFFAMagnet::update()",
-                            "SCALINGFFAMAGNET does not use APERTURE command");
+        throw OpalException(
+                "OpalScalingFFAMagnet::update()", "SCALINGFFAMAGNET does not use APERTURE command");
     }
 
     // dimensionless quantities
@@ -168,14 +166,14 @@ void OpalScalingFFAMagnet::update() {
 
     // get rmin and rmax bounding box edge
     if (!itsAttr[RADIAL_NEG_EXTENT]) {
-        throw OpalException("OpalScalingFFAMagnet::update()",
-                            "RADIAL_NEG_EXTENT needs to be defined");
+        throw OpalException(
+                "OpalScalingFFAMagnet::update()", "RADIAL_NEG_EXTENT needs to be defined");
     }
     double rmin = r0Abs - Attributes::getReal(itsAttr[RADIAL_NEG_EXTENT]);
 
     if (!itsAttr[RADIAL_POS_EXTENT]) {
-        throw OpalException("OpalScalingFFAMagnet::update()",
-                            "RADIAL_POS_EXTENT needs to be defined");
+        throw OpalException(
+                "OpalScalingFFAMagnet::update()", "RADIAL_POS_EXTENT needs to be defined");
     }
     double rmax = r0Abs + Attributes::getReal(itsAttr[RADIAL_POS_EXTENT]);
     magnet->setRMin(rmin);
@@ -183,7 +181,7 @@ void OpalScalingFFAMagnet::update() {
 
     // we store maximum vertical displacement (which is half the height)
     double height = Attributes::getReal(itsAttr[HEIGHT]);
-    magnet->setVerticalExtent(height/2.);
+    magnet->setVerticalExtent(height / 2.);
 
     // get start of the magnet element in radians
     // setPhiStart sets the position of the 0 point of the endFieldModel, which
@@ -200,17 +198,16 @@ void OpalScalingFFAMagnet::update() {
     // get azimuthal extent in radians; this is just the bounding box
     if (itsAttr[AZIMUTHAL_EXTENT]) {
         if (Attributes::getReal(itsAttr[AZIMUTHAL_EXTENT]) < 0.0) {
-            throw OpalException("OpalScalingFFAMagnet::update()",
-                                "AZIMUTHAL_EXTENT must be > 0.0");
+            throw OpalException("OpalScalingFFAMagnet::update()", "AZIMUTHAL_EXTENT must be > 0.0");
         }
         magnet->setAzimuthalExtent(Attributes::getReal(itsAttr[AZIMUTHAL_EXTENT]) / r0Abs);
     } else {
-        magnet->setAzimuthalExtent(-1); // flag for setupEndField
+        magnet->setAzimuthalExtent(-1);  // flag for setupEndField
     }
     if (itsAttr[END_FIELD_MODEL]) {
         setupNamedEndField();
     } else {
-        setupDefaultEndField();    
+        setupDefaultEndField();
     }
     magnet->initialise();
     setElement(magnet);

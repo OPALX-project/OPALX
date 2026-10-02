@@ -56,9 +56,9 @@ namespace endfieldmodel {
          *  @param x: returns d^n f(x)/dx^n
          *  @param n: the derivative
          */
-        virtual void function(const Kokkos::View<double*>& xView,
-                              const int n,
-                              Kokkos::View<double**>& values) const = 0;
+        virtual void function(
+                const Kokkos::View<double*>& xView, const int n,
+                Kokkos::View<double**>& values) const = 0;
 
         /** Return the nominal flat top length of the magnet
          */
@@ -86,23 +86,22 @@ namespace endfieldmodel {
          *  endfieldmodel should return f(x*scaleFactor)
          */
         virtual void rescale(double scaleFactor) = 0;
+
     private:
     };
 
-inline void EndFieldModel::function(const Kokkos::View<double*>& xView,
-                              const int n,
-                              Kokkos::View<double**>& values) const {
-    auto xHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), xView);
-    auto valuesHost = Kokkos::create_mirror_view(values);
-    for (size_t point = 0; point < xHost.extent(0); ++point) {
-        for (int order = 0; order < n; ++order) {
-            valuesHost(point, order) = function(xHost(point), order);
+    inline void EndFieldModel::function(
+            const Kokkos::View<double*>& xView, const int n, Kokkos::View<double**>& values) const {
+        auto xHost      = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), xView);
+        auto valuesHost = Kokkos::create_mirror_view(values);
+        for (size_t point = 0; point < xHost.extent(0); ++point) {
+            for (int order = 0; order < n; ++order) {
+                valuesHost(point, order) = function(xHost(point), order);
+            }
         }
+        Kokkos::deep_copy(values, valuesHost);
     }
-    Kokkos::deep_copy(values, valuesHost);
-}
 
 }  // namespace endfieldmodel
-
 
 #endif

@@ -34,66 +34,66 @@
 #include <vector>
 
 namespace endfieldmodel {
-std::vector<std::vector<int> > CompactVector(std::vector<std::vector<int> > vec);
+    std::vector<std::vector<int> > CompactVector(std::vector<std::vector<int> > vec);
 
-/// CompactVector helper function, used for sorting
-bool GreaterThan(std::vector<int> v1, std::vector<int> v2);
+    /// CompactVector helper function, used for sorting
+    bool GreaterThan(std::vector<int> v1, std::vector<int> v2);
 
-/** Return a == b if a and b are same size and a[i] == b[i] for all i.
- *
- *  The following operations must be defined for TEMP_ITER it:
- *    - ++it prefix increment operator
- *    - (*it) (that is unary *, i.e. dereference operator)
- *    - it1 != it2 not equals operator
- *    - (*it1) != (*it2) not equals operator of dereferenced object
- *
- *  Call like e.g. \n
- *      std::vector<int> a,b;\n
- *      bool test_equal = IterableEquality(a.begin(), a.end(), b.begin(),
- *                        b.end());\n
- *
- *  Can give a segmentation fault if a.begin() is not between a.begin() and
- *  a.end() (inclusive)
- */
-template <class TEMP_ITER>
-bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end);
+    /** Return a == b if a and b are same size and a[i] == b[i] for all i.
+     *
+     *  The following operations must be defined for TEMP_ITER it:
+     *    - ++it prefix increment operator
+     *    - (*it) (that is unary *, i.e. dereference operator)
+     *    - it1 != it2 not equals operator
+     *    - (*it1) != (*it2) not equals operator of dereferenced object
+     *
+     *  Call like e.g. \n
+     *      std::vector<int> a,b;\n
+     *      bool test_equal = IterableEquality(a.begin(), a.end(), b.begin(),
+     *                        b.end());\n
+     *
+     *  Can give a segmentation fault if a.begin() is not between a.begin() and
+     *  a.end() (inclusive)
+     */
+    template <class TEMP_ITER>
+    bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end);
 
-/** Return a == b if a and b are same size and a[i] == b[i] for all i.
- *
- *  The following operations must be defined for TEMP_ITER it:
- *    - ++it prefix increment operator
- *    - (*it) (that is unary *, i.e. dereference operator)
- *    - it1 != it2 not equals operator
- *    - (*it1) != (*it2) not equals operator of dereferenced object
- *
- *  Call like e.g. \n
- *      std::vector<int> a,b;\n
- *      bool test_equal = IterableEquality(a.begin(), a.end(), b.begin(),
- *                        b.end());\n
- *
- *  Can give a segmentation fault if a.begin() is not between a.begin() and
- *  a.end() (inclusive)
- */
-template <class TEMP_ITER>
-bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end);
+    /** Return a == b if a and b are same size and a[i] == b[i] for all i.
+     *
+     *  The following operations must be defined for TEMP_ITER it:
+     *    - ++it prefix increment operator
+     *    - (*it) (that is unary *, i.e. dereference operator)
+     *    - it1 != it2 not equals operator
+     *    - (*it1) != (*it2) not equals operator of dereferenced object
+     *
+     *  Call like e.g. \n
+     *      std::vector<int> a,b;\n
+     *      bool test_equal = IterableEquality(a.begin(), a.end(), b.begin(),
+     *                        b.end());\n
+     *
+     *  Can give a segmentation fault if a.begin() is not between a.begin() and
+     *  a.end() (inclusive)
+     */
+    template <class TEMP_ITER>
+    bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end);
 
-template <class TEMP_CLASS>
-bool IterableEquality(const TEMP_CLASS& a, const TEMP_CLASS& b) {
-    return IterableEquality(a.begin(), a.end(), b.begin(), b.end());
-}
-
-template <class TEMP_ITER>
-bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end) {
-    TEMP_ITER a_it = a_begin;
-    TEMP_ITER b_it = b_begin;
-    while (a_it != a_end && b_it != b_end) {
-        if (*a_it != *b_it) return false;
-        ++a_it;
-        ++b_it;
+    template <class TEMP_CLASS>
+    bool IterableEquality(const TEMP_CLASS& a, const TEMP_CLASS& b) {
+        return IterableEquality(a.begin(), a.end(), b.begin(), b.end());
     }
-    if (a_it != a_end || b_it != b_end) return false;
-    return true;
-}
+
+    template <class TEMP_ITER>
+    bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end) {
+        TEMP_ITER a_it = a_begin;
+        TEMP_ITER b_it = b_begin;
+        while (a_it != a_end && b_it != b_end) {
+            if (*a_it != *b_it) return false;
+            ++a_it;
+            ++b_it;
+        }
+        if (a_it != a_end || b_it != b_end) return false;
+        return true;
+    }
 
 }  // namespace endfieldmodel
 

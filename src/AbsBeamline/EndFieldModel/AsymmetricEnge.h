@@ -37,159 +37,154 @@
 
 namespace endfieldmodel {
 
-/** Calculate the AsymmetricEnge function (e.g. for multipole end fields).
- *
- *  AsymmetricEnge function is given by\n
- *  \f$T(x) = (tanh( (x+x0)/\lambda )-tanh( (x-x0)/\lambda ))/2\f$\n
- *  The derivatives of tanh(x) are given by\n
- *  \f$d^p tanh(x)/dx^p = \sum_q I_{pq} tanh^{q}(x)\f$\n
- *  where \f$I_{pq}\f$ are calculated using some recursion relation. Using these
- *  expressions, one can calculate a recursion relation for higher order
- *  derivatives and hence calculate analytical derivatives at arbitrary order.
- */
-struct AsymmetricEngeConfig {
-    EngeConfig engeStart_m;
-    EngeConfig engeEnd_m;
-};
-
-class AsymmetricEnge : public EndFieldModel {
-public:
-    /** Default constructor */
-    AsymmetricEnge() = default;
-    /** Constructor taking enge parameters */
-    AsymmetricEnge(
-            const std::vector<double> aStart, double x0Start, double lambdaStart,
-            const std::vector<double> aEnd, double x0End, double lambdaEnd);
-
-    /** Inheritable copy constructor. We take a deep copy of the engeStart
-     *  and engeEnd
+    /** Calculate the AsymmetricEnge function (e.g. for multipole end fields).
+     *
+     *  AsymmetricEnge function is given by\n
+     *  \f$T(x) = (tanh( (x+x0)/\lambda )-tanh( (x-x0)/\lambda ))/2\f$\n
+     *  The derivatives of tanh(x) are given by\n
+     *  \f$d^p tanh(x)/dx^p = \sum_q I_{pq} tanh^{q}(x)\f$\n
+     *  where \f$I_{pq}\f$ are calculated using some recursion relation. Using these
+     *  expressions, one can calculate a recursion relation for higher order
+     *  derivatives and hence calculate analytical derivatives at arbitrary order.
      */
-    inline AsymmetricEnge* clone() const;
+    struct AsymmetricEngeConfig {
+        EngeConfig engeStart_m;
+        EngeConfig engeEnd_m;
+    };
 
-    /** Print a human-readable description of the end field model */
-    std::ostream& print(std::ostream& out) const;
+    class AsymmetricEnge : public EndFieldModel {
+    public:
+        /** Default constructor */
+        AsymmetricEnge() = default;
+        /** Constructor taking enge parameters */
+        AsymmetricEnge(
+                const std::vector<double> aStart, double x0Start, double lambdaStart,
+                const std::vector<double> aEnd, double x0End, double lambdaEnd);
 
-    /** Return the value of enge at some point x */
-    inline double function(double x, int n) const;
+        /** Inheritable copy constructor. We take a deep copy of the engeStart
+         *  and engeEnd
+         */
+        inline AsymmetricEnge* clone() const;
 
-    inline virtual void function(const Kokkos::View<double*>& xView,
-                                 const int n,
-                                 Kokkos::View<double**>& values) const override;
+        /** Print a human-readable description of the end field model */
+        std::ostream& print(std::ostream& out) const;
 
-    /** Host side static wrapper */
-    static inline void functionHost(
-            const AsymmetricEngeConfig& config,
-            const Kokkos::View<double*>& xView,
-            const int n,
-            Kokkos::View<double**>& values);
+        /** Return the value of enge at some point x */
+        inline double function(double x, int n) const;
 
-    static KOKKOS_INLINE_FUNCTION double functionDevice(
-        const AsymmetricEngeConfig& config, double x, int n);
+        inline virtual void function(
+                const Kokkos::View<double*>& xView, const int n,
+                Kokkos::View<double**>& values) const override;
 
+        /** Host side static wrapper */
+        static inline void functionHost(
+                const AsymmetricEngeConfig& config, const Kokkos::View<double*>& xView, const int n,
+                Kokkos::View<double**>& values);
 
-    /** Centre length is the average of x0End and x0Start */
-    inline double getCentreLength() const;
+        static KOKKOS_INLINE_FUNCTION double functionDevice(
+                const AsymmetricEngeConfig& config, double x, int n);
 
-    /** End length is the average of lambdaEnd and lambdaStart */
-    inline double getEndLength() const;
+        /** Centre length is the average of x0End and x0Start */
+        inline double getCentreLength() const;
 
-    /** Return x0Start, offset of the start Enge */
-    inline double getX0Start() const;
+        /** End length is the average of lambdaEnd and lambdaStart */
+        inline double getEndLength() const;
 
-    /** Set x0Start, offset of the start Enge */
-    inline void setX0Start(double x0);
+        /** Return x0Start, offset of the start Enge */
+        inline double getX0Start() const;
 
-    /** Return x0End, offset of the end Enge */
-    inline double getX0End() const;
+        /** Set x0Start, offset of the start Enge */
+        inline void setX0Start(double x0);
 
-    /** Set x0End, offset of the end Enge */
-    inline void setX0End(double x0);
+        /** Return x0End, offset of the end Enge */
+        inline double getX0End() const;
 
-    /** Return x0Start, offset of the start Enge */
-    inline double getLambdaStart() const {return config_m.engeStart_m.lambda_m;}
+        /** Set x0End, offset of the end Enge */
+        inline void setX0End(double x0);
 
-    /** Return x0End, offset of the end Enge */
-    inline double getLambdaEnd() const {return config_m.engeEnd_m.lambda_m;}
+        /** Return x0Start, offset of the start Enge */
+        inline double getLambdaStart() const { return config_m.engeStart_m.lambda_m; }
 
-    /** Setup the Enge recursion for derivatives */
-    inline void setMaximumDerivative(size_t n);
+        /** Return x0End, offset of the end Enge */
+        inline double getLambdaEnd() const { return config_m.engeEnd_m.lambda_m; }
 
-    /** Rescale the Enge to a new length scale */
-    void rescale(double scaleFactor);
+        /** Setup the Enge recursion for derivatives */
+        inline void setMaximumDerivative(size_t n);
 
-    AsymmetricEngeConfig getConfig() const {return config_m;}
+        /** Rescale the Enge to a new length scale */
+        void rescale(double scaleFactor);
 
-private:
-    AsymmetricEnge(const AsymmetricEnge& rhs) = default;
-    AsymmetricEngeConfig config_m;
-};
+        AsymmetricEngeConfig getConfig() const { return config_m; }
 
-double AsymmetricEnge::function(double x, int n) const {
-    Kokkos::View<double*> xView("tmpX", 1);
-    Kokkos::deep_copy(xView, x);
-    Kokkos::View<double**> valueView("tmpY", 1, n+1);
-    function(xView, n, valueView);
-    Kokkos::fence("Function calculation");
-    double value(0);
-    auto element = Kokkos::subview(valueView, 0, n);
-    Kokkos::deep_copy(value, element);
-    return value;
-}
+    private:
+        AsymmetricEnge(const AsymmetricEnge& rhs) = default;
+        AsymmetricEngeConfig config_m;
+    };
 
-void AsymmetricEnge::function(const Kokkos::View<double*>& xView,
-              const int n,
-              Kokkos::View<double**>& values) const  {
-    functionHost(config_m, xView, n, values);
-}
-
-void AsymmetricEnge::functionHost(
-            const AsymmetricEngeConfig& config,
-            const Kokkos::View<double*>& xView,
-            const int n,
-            Kokkos::View<double**>& values) {
-    const size_t count = xView.extent(0);
-    Kokkos::parallel_for(
-        "AsymmetricEnge::functionHost()", count, KOKKOS_LAMBDA(const size_t i) {
-            for (int j = 0; j < n+1; ++j)
-                values(i, j) = functionDevice(config, xView(i), j);
-    });
-}
-
-double AsymmetricEnge::functionDevice(const AsymmetricEngeConfig& config, double x, int n) {
-    if (n == 0) {
-        return (Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n) +
-                Enge::getEnge(config.engeEnd_m, x - config.engeEnd_m.x0_m, n))-1;
-    } else {
-        if (n % 2 == 1)
-            return -Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n) +
-                    Enge::getEnge(config.engeEnd_m, x - config.engeEnd_m.x0_m, n);
-        else
-            return Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n) +
-                   Enge::getEnge(config.engeEnd_m, x - config.engeEnd_m.x0_m, n);
+    double AsymmetricEnge::function(double x, int n) const {
+        Kokkos::View<double*> xView("tmpX", 1);
+        Kokkos::deep_copy(xView, x);
+        Kokkos::View<double**> valueView("tmpY", 1, n + 1);
+        function(xView, n, valueView);
+        Kokkos::fence("Function calculation");
+        double value(0);
+        auto element = Kokkos::subview(valueView, 0, n);
+        Kokkos::deep_copy(value, element);
+        return value;
     }
-}
-double AsymmetricEnge::getX0Start() const { return config_m.engeStart_m.x0_m; }
 
-double AsymmetricEnge::getX0End() const { return config_m.engeEnd_m.x0_m; }
+    void AsymmetricEnge::function(
+            const Kokkos::View<double*>& xView, const int n, Kokkos::View<double**>& values) const {
+        functionHost(config_m, xView, n, values);
+    }
 
-void AsymmetricEnge::setX0Start(double x0) { config_m.engeStart_m.x0_m = x0; }
+    void AsymmetricEnge::functionHost(
+            const AsymmetricEngeConfig& config, const Kokkos::View<double*>& xView, const int n,
+            Kokkos::View<double**>& values) {
+        const size_t count = xView.extent(0);
+        Kokkos::parallel_for(
+                "AsymmetricEnge::functionHost()", count, KOKKOS_LAMBDA(const size_t i) {
+                    for (int j = 0; j < n + 1; ++j)
+                        values(i, j) = functionDevice(config, xView(i), j);
+                });
+    }
 
-void AsymmetricEnge::setX0End(double x0) { config_m.engeEnd_m.x0_m = x0; }
+    double AsymmetricEnge::functionDevice(const AsymmetricEngeConfig& config, double x, int n) {
+        if (n == 0) {
+            return (Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n)
+                    + Enge::getEnge(config.engeEnd_m, x - config.engeEnd_m.x0_m, n))
+                   - 1;
+        } else {
+            if (n % 2 == 1)
+                return -Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n)
+                       + Enge::getEnge(config.engeEnd_m, x - config.engeEnd_m.x0_m, n);
+            else
+                return Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n)
+                       + Enge::getEnge(config.engeEnd_m, x - config.engeEnd_m.x0_m, n);
+        }
+    }
+    double AsymmetricEnge::getX0Start() const { return config_m.engeStart_m.x0_m; }
 
-AsymmetricEnge* AsymmetricEnge::clone() const { return new AsymmetricEnge(*this); }
+    double AsymmetricEnge::getX0End() const { return config_m.engeEnd_m.x0_m; }
 
-void AsymmetricEnge::setMaximumDerivative(size_t n) {
-    Enge::setEngeDiffIndices(n, config_m.engeStart_m);
-    Enge::setEngeDiffIndices(n, config_m.engeEnd_m);
-}
+    void AsymmetricEnge::setX0Start(double x0) { config_m.engeStart_m.x0_m = x0; }
 
-double AsymmetricEnge::getCentreLength() const {
-    return config_m.engeStart_m.x0_m + config_m.engeEnd_m.x0_m;
-}
+    void AsymmetricEnge::setX0End(double x0) { config_m.engeEnd_m.x0_m = x0; }
 
-double AsymmetricEnge::getEndLength() const {
-    return config_m.engeStart_m.lambda_m + config_m.engeEnd_m.lambda_m;
-}
+    AsymmetricEnge* AsymmetricEnge::clone() const { return new AsymmetricEnge(*this); }
+
+    void AsymmetricEnge::setMaximumDerivative(size_t n) {
+        Enge::setEngeDiffIndices(n, config_m.engeStart_m);
+        Enge::setEngeDiffIndices(n, config_m.engeEnd_m);
+    }
+
+    double AsymmetricEnge::getCentreLength() const {
+        return config_m.engeStart_m.x0_m + config_m.engeEnd_m.x0_m;
+    }
+
+    double AsymmetricEnge::getEndLength() const {
+        return config_m.engeStart_m.lambda_m + config_m.engeEnd_m.lambda_m;
+    }
 
 }  // namespace endfieldmodel
 

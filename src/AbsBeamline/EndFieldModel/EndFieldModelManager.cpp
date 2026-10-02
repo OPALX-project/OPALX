@@ -32,42 +32,43 @@
 #include "Utilities/GeneralOpalException.h"
 
 namespace endfieldmodel {
-std::shared_ptr<EndFieldModelManager> EndFieldModelManager::globalEFM_m;
+    std::shared_ptr<EndFieldModelManager> EndFieldModelManager::globalEFM_m;
 
-std::shared_ptr<EndFieldModel> EndFieldModelManager::getEndFieldModel(const std::string& name) {
-    if (efmMap_m.find(name) == efmMap_m.end()) {
-        throw OpalException("EndFieldModelManager::getEndFieldModel", "Could not find model '"+name+"'");
+    std::shared_ptr<EndFieldModel> EndFieldModelManager::getEndFieldModel(const std::string& name) {
+        if (efmMap_m.find(name) == efmMap_m.end()) {
+            throw OpalException(
+                    "EndFieldModelManager::getEndFieldModel",
+                    "Could not find model '" + name + "'");
+        }
+        return efmMap_m[name];
     }
-    return efmMap_m[name];
-}
 
-std::shared_ptr<EndFieldModelManager> EndFieldModelManager::getEFMManager() {
+    std::shared_ptr<EndFieldModelManager> EndFieldModelManager::getEFMManager() {
         if (globalEFM_m) {
             return globalEFM_m;
         }
         globalEFM_m = std::make_shared<EndFieldModelManager>();
         return globalEFM_m;
-}
-
-void EndFieldModelManager::setEndFieldModel(const std::string& name,
-                      const std::shared_ptr<EndFieldModel>& efm) {
-    efmMap_m[name] = efm;
-}
-
-std::string EndFieldModelManager::getName(const std::shared_ptr<EndFieldModel>& efm) const {
-    for (auto it = efmMap_m.begin(); it != efmMap_m.end(); ++it) {
-        if ((*it).second == efm) {
-            return (*it).first;
-        }
     }
-    throw OpalException("EndFieldModelManager::getName",
-                        "Could not find end field model in name look up");
-}
 
-void EndFieldModelManager::clearEFMManager() {
-    globalEFM_m->efmMap_m.clear();
-    globalEFM_m.reset();
-}
+    void EndFieldModelManager::setEndFieldModel(
+            const std::string& name, const std::shared_ptr<EndFieldModel>& efm) {
+        efmMap_m[name] = efm;
+    }
 
+    std::string EndFieldModelManager::getName(const std::shared_ptr<EndFieldModel>& efm) const {
+        for (auto it = efmMap_m.begin(); it != efmMap_m.end(); ++it) {
+            if ((*it).second == efm) {
+                return (*it).first;
+            }
+        }
+        throw OpalException(
+                "EndFieldModelManager::getName", "Could not find end field model in name look up");
+    }
+
+    void EndFieldModelManager::clearEFMManager() {
+        globalEFM_m->efmMap_m.clear();
+        globalEFM_m.reset();
+    }
 
 }  // namespace endfieldmodel

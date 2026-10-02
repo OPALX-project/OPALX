@@ -59,9 +59,10 @@ class Solenoid;
 class ScalingFFAMagnet;
 class Offset;
 namespace endfieldmodel {
-  class Tanh;
+    class Tanh;
 }
-template <class EFM> class VerticalFFAMagnet;
+template <class EFM>
+class VerticalFFAMagnet;
 class Probe;
 
 class BeamlineVisitor {
