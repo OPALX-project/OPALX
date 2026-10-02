@@ -7,8 +7,8 @@
 // OPAL is licensed under GNU GPL version 3.
 //
 
-#include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/VerticalFFAMagnet.h"
+#include "AbsBeamline/BeamlineVisitor.h"
 #include "Utilities/GeneralOpalException.h"
 
 #include <cmath>
@@ -40,7 +40,7 @@ template <class EFM>
 void VerticalFFAMagnet<EFM>::initialise() {
     calculateDfCoefficients();
     endField_m.setMaximumDerivative(config_m.maxOrder_m + 1);
-    //config_m.endField_m = endField_m.getDeviceData();
+    // config_m.endField_m = endField_m.getDeviceData();
     straightGeometry_m.setElementLength(config_m.bbLength_m);  // length = phi r
 }
 
@@ -51,13 +51,19 @@ void VerticalFFAMagnet<EFM>::initialise(PartBunch_t* bunch) {
 }
 
 template <class EFM>
-void VerticalFFAMagnet<EFM>::finalise() { RefPartBunch_m = nullptr; }
+void VerticalFFAMagnet<EFM>::finalise() {
+    RefPartBunch_m = nullptr;
+}
 
 template <class EFM>
-Geometry& VerticalFFAMagnet<EFM>::getGeometry() { return straightGeometry_m; }
+Geometry& VerticalFFAMagnet<EFM>::getGeometry() {
+    return straightGeometry_m;
+}
 
 template <class EFM>
-const Geometry& VerticalFFAMagnet<EFM>::getGeometry() const { return straightGeometry_m; }
+const Geometry& VerticalFFAMagnet<EFM>::getGeometry() const {
+    return straightGeometry_m;
+}
 
 template <class EFM>
 void VerticalFFAMagnet<EFM>::accept(BeamlineVisitor& visitor) const {
@@ -65,7 +71,8 @@ void VerticalFFAMagnet<EFM>::accept(BeamlineVisitor& visitor) const {
 }
 
 template <class EFM>
-bool VerticalFFAMagnet<EFM>::getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const {
+bool VerticalFFAMagnet<EFM>::getFieldValue(
+        const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const {
     return getFieldValue(config_m, R, B);
 }
 
@@ -84,7 +91,8 @@ void VerticalFFAMagnet<EFM>::calculateDfCoefficients() {
         std::vector<double> coefficients(oldCoefficients.size() + 2, 0);
         // j indexes the derivative of f_0
         for (size_t j = 0; j < oldCoefficients.size(); ++j) {
-            coefficients[j] += -1. / (n) / (n - 1) * config_m.k_m * config_m.k_m * oldCoefficients[j];
+            coefficients[j] +=
+                    -1. / (n) / (n - 1) * config_m.k_m * config_m.k_m * oldCoefficients[j];
             coefficients[j + 2] += -1. / (n) / (n - 1) * oldCoefficients[j];
         }
         dfCoefficients_m[n] = coefficients;
@@ -94,8 +102,7 @@ void VerticalFFAMagnet<EFM>::calculateDfCoefficients() {
     }
     for (size_t n = 0; n < dfCoefficients_m.size(); ++n) {
         for (size_t i = 0; i < dfCoefficients_m[n].size(); ++i) {
-            config_m.dfCoefficients_m[
-                    n * (VerticalFFAMagnetConfig<EFM>::MaxOrder + 1) + i] =
+            config_m.dfCoefficients_m[n * (VerticalFFAMagnetConfig<EFM>::MaxOrder + 1) + i] =
                     dfCoefficients_m[n][i];
         }
     }
@@ -105,7 +112,7 @@ template <class EFM>
 void VerticalFFAMagnet<EFM>::setEndField(EFM endField) {
     endField_m = endField;
     endField_m.setMaximumDerivative(config_m.maxOrder_m + 1);
-    //config_m.endField_m = endField_m.getDeviceData();
+    // config_m.endField_m = endField_m.getDeviceData();
 }
 
 template <class EFM>
@@ -116,7 +123,7 @@ void VerticalFFAMagnet<EFM>::setMaxOrder(size_t maxOrder) {
                 "GPU-compatible field expansions are limited to order 20");
     }
     endField_m.setMaximumDerivative(maxOrder + 1);
-    //config_m.endField_m = endField_m.getDeviceData();
+    // config_m.endField_m = endField_m.getDeviceData();
     config_m.maxOrder_m = maxOrder;
 }
 

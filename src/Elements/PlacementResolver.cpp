@@ -188,8 +188,8 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
             || element->getType() == ElementType::RBEND3D) {
             // Bend: its own frame is already set (Phase 2); here we only advance the running frame
             // across it so the following elements are placed correctly.
-            double thisLength = element->getGeometry().getChordLength();
-            double bendAngle  = element->getGeometry().getBendAngle();
+            double thisLength          = element->getGeometry().getChordLength();
+            double bendAngle           = element->getGeometry().getBendAngle();
             double rotationAngleAboutZ = element->getRotationAboutZ();
             Quaternion_t rotationAboutZ(
                     cos(0.5 * rotationAngleAboutZ),

@@ -59,14 +59,16 @@ OpalVerticalFFAMagnet::OpalVerticalFFAMagnet()
 
     registerOwnership();
 
-    VerticalFFAMagnet<endfieldmodel::Tanh>* magnet = new VerticalFFAMagnet<endfieldmodel::Tanh>("VerticalFFAMagnet");
+    VerticalFFAMagnet<endfieldmodel::Tanh>* magnet =
+            new VerticalFFAMagnet<endfieldmodel::Tanh>("VerticalFFAMagnet");
     magnet->setEndField(endfieldmodel::Tanh(1., 1., 1));
     setElement(magnet);
 }
 
 OpalVerticalFFAMagnet::OpalVerticalFFAMagnet(const std::string& name, OpalVerticalFFAMagnet* parent)
     : OpalElement(name, parent) {
-    VerticalFFAMagnet<endfieldmodel::Tanh>* magnet = new VerticalFFAMagnet<endfieldmodel::Tanh>(name);
+    VerticalFFAMagnet<endfieldmodel::Tanh>* magnet =
+            new VerticalFFAMagnet<endfieldmodel::Tanh>(name);
     magnet->setEndField(endfieldmodel::Tanh(1., 1., 1));
     setElement(magnet);
 }
@@ -78,7 +80,8 @@ OpalVerticalFFAMagnet* OpalVerticalFFAMagnet::clone(const std::string& name) {
 }
 
 void OpalVerticalFFAMagnet::update() {
-    VerticalFFAMagnet<endfieldmodel::Tanh>* magnet = dynamic_cast<VerticalFFAMagnet<endfieldmodel::Tanh>*>(getElement());
+    VerticalFFAMagnet<endfieldmodel::Tanh>* magnet =
+            dynamic_cast<VerticalFFAMagnet<endfieldmodel::Tanh>*>(getElement());
     magnet->setB0(Attributes::getReal(itsAttr[B0]));
     int maxOrder = floor(Attributes::getReal(itsAttr[MAX_HORIZONTAL_POWER]));
     magnet->setMaxOrder(maxOrder);
@@ -90,12 +93,12 @@ void OpalVerticalFFAMagnet::update() {
 
     // get centre length and end length in radians
     endfieldmodel::Tanh endField = magnet->getEndField();
-    double end_length             = Attributes::getReal(itsAttr[END_LENGTH]) * Units::m2mm;
-    double centre_length          = Attributes::getReal(itsAttr[CENTRE_LENGTH]) * Units::m2mm;
+    double end_length            = Attributes::getReal(itsAttr[END_LENGTH]) * Units::m2mm;
+    double centre_length         = Attributes::getReal(itsAttr[CENTRE_LENGTH]) * Units::m2mm;
     endField.setLambda(end_length);
     // x0 is the distance between B=0.5*B0 and B=B0 i.e. half the centre length
     endField.setX0(centre_length / 2.);
-    //endField.setTanhDiffIndices(maxOrder + 2);
+    // endField.setTanhDiffIndices(maxOrder + 2);
     magnet->setEndField(endField);
     magnet->initialise();
     // setElement(magnet);

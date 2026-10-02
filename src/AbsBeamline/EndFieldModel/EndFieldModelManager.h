@@ -35,10 +35,10 @@
 
 namespace endfieldmodel {
 
-class EndFieldModel;
+    class EndFieldModel;
 
-/** Singleton class to handle global register of EndFieldModels */
-class EndFieldModelManager {
+    /** Singleton class to handle global register of EndFieldModels */
+    class EndFieldModelManager {
     public:
         EndFieldModelManager()  = default;
         ~EndFieldModelManager() = default;
@@ -69,8 +69,7 @@ class EndFieldModelManager {
          *  map, it is overwritten with the new value.
          *  @param efm: shared_ptr to the EndFieldModel.
          */
-        void setEndFieldModel(const std::string& name,
-                              const std::shared_ptr<EndFieldModel>& efm);
+        void setEndFieldModel(const std::string& name, const std::shared_ptr<EndFieldModel>& efm);
 
         /** Get the name corresponding to a given EndFieldModel
          *
@@ -85,8 +84,7 @@ class EndFieldModelManager {
     private:
         std::map<std::string, std::shared_ptr<EndFieldModel> > efmMap_m;
         static std::shared_ptr<EndFieldModelManager> globalEFM_m;
-
-};
+    };
 
 }  // namespace endfieldmodel
 

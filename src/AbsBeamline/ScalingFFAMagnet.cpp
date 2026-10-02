@@ -28,16 +28,15 @@
 #include <cmath>
 
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "PartBunch/PartBunch.h"
 #include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
+#include "PartBunch/PartBunch.h"
 #include "Utilities/GeneralOpalException.h"
 
 extern Inform* gmsg;
 
 ScalingFFAMagnet::ScalingFFAMagnet(const std::string& name)
-    : ElementBase(name), planarArcGeometry_m(Geometry::makeSBend(1., 1.)) {
-}
+    : ElementBase(name), planarArcGeometry_m(Geometry::makeSBend(1., 1.)) {}
 
 ScalingFFAMagnet::ScalingFFAMagnet(const ScalingFFAMagnet& right)
     : ElementBase(right),
@@ -49,7 +48,7 @@ ScalingFFAMagnet::ScalingFFAMagnet(const ScalingFFAMagnet& right)
 }
 
 ScalingFFAMagnet* ScalingFFAMagnet::clone() const {
-    auto* magnet = new ScalingFFAMagnet(*this);
+    auto* magnet  = new ScalingFFAMagnet(*this);
     magnet->efm_m = efm_m;
     magnet->initialise();
     return magnet;
@@ -60,8 +59,8 @@ void ScalingFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     getFieldValue(config_m, efm_m, pc);
 }
 
-void ScalingFFAMagnet::getCylindricalCoordinates(const Vector_t<double, 3>& R,
-                                                 Vector_t<double, 5>& Rcyl) {
+void ScalingFFAMagnet::getCylindricalCoordinates(
+        const Vector_t<double, 3>& R, Vector_t<double, 5>& Rcyl) {
     getCylindricalCoordinates(config_m, R, Rcyl);
 }
 
@@ -74,15 +73,16 @@ void ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<doub
     rotateBfield(config_m, Rffa, Bcyl, B);
 }
 
-void ScalingFFAMagnet::getFieldValueCylindrical(const Vector_t<double, 3>& Rcyl, Vector_t<double, 3>& Bcyl) const {
+void ScalingFFAMagnet::getFieldValueCylindrical(
+        const Vector_t<double, 3>& Rcyl, Vector_t<double, 3>& Bcyl) const {
     Kokkos::View<double*, Kokkos::HostSpace> derivatives(
             "single_derivatives", config_m.maxOrder_m + 1);
     Vector_t<double, 5> Rffa;
     Rffa[0] = Rcyl[0];
     Rffa[1] = Rcyl[1];
     Rffa[2] = Rcyl[2];
-    Rffa[3] = std::abs(Rcyl[0]/config_m.r0_m); // rnorm
-    Rffa[4] = Rcyl[2]-config_m.tanDelta_m * std::log(Rffa[3])-config_m.phiStart_m; // phispiral
+    Rffa[3] = std::abs(Rcyl[0] / config_m.r0_m);                                        // rnorm
+    Rffa[4] = Rcyl[2] - config_m.tanDelta_m * std::log(Rffa[3]) - config_m.phiStart_m;  // phispiral
     for (size_t i = 0; i <= config_m.maxOrder_m; ++i)
         derivatives(i) = efm_m->function(Rffa[4], i);
     getFieldValueCylindricalImpl(config_m, derivatives, Rffa, Bcyl);
@@ -120,8 +120,8 @@ void ScalingFFAMagnet::apply(
 
 void ScalingFFAMagnet::calculateDfCoefficients() {
     dfCoefficients_m    = std::vector<std::vector<double> >(config_m.maxOrder_m + 1);
-    dfCoefficients_m[0] = std::vector<double>(1, 1.);  // f_0 = 1.*0th derivative
-    for (size_t n = 0; n < config_m.maxOrder_m; n += 2) {       // n indexes the power in z
+    dfCoefficients_m[0] = std::vector<double>(1, 1.);      // f_0 = 1.*0th derivative
+    for (size_t n = 0; n < config_m.maxOrder_m; n += 2) {  // n indexes the power in z
         dfCoefficients_m[n + 1] = std::vector<double>(dfCoefficients_m[n].size() + 1, 0);
         for (size_t i = 0; i < dfCoefficients_m[n].size(); ++i) {  // i indexes the derivative
             dfCoefficients_m[n + 1][i + 1] = dfCoefficients_m[n][i] / (n + 1);
@@ -131,14 +131,14 @@ void ScalingFFAMagnet::calculateDfCoefficients() {
         }
         dfCoefficients_m[n + 2] = std::vector<double>(dfCoefficients_m[n].size() + 2, 0);
         for (size_t i = 0; i < dfCoefficients_m[n].size(); ++i) {  // i indexes the derivative
-            dfCoefficients_m[n + 2][i] =
-                    -(config_m.k_m - n) * (config_m.k_m - n) / (n + 1) * dfCoefficients_m[n][i] / (n + 2);
+            dfCoefficients_m[n + 2][i] = -(config_m.k_m - n) * (config_m.k_m - n) / (n + 1)
+                                         * dfCoefficients_m[n][i] / (n + 2);
         }
         for (size_t i = 0; i < dfCoefficients_m[n + 1].size(); ++i) {  // i indexes the derivative
-            dfCoefficients_m[n + 2][i] +=
-                    2 * (config_m.k_m - n) * config_m.tanDelta_m * dfCoefficients_m[n + 1][i] / (n + 2);
-            dfCoefficients_m[n + 2][i + 1] -=
-                    (1 + config_m.tanDelta_m * config_m.tanDelta_m) * dfCoefficients_m[n + 1][i] / (n + 2);
+            dfCoefficients_m[n + 2][i] += 2 * (config_m.k_m - n) * config_m.tanDelta_m
+                                          * dfCoefficients_m[n + 1][i] / (n + 2);
+            dfCoefficients_m[n + 2][i + 1] -= (1 + config_m.tanDelta_m * config_m.tanDelta_m)
+                                              * dfCoefficients_m[n + 1][i] / (n + 2);
         }
     }
     for (size_t i = 0; i < ScalingFFAMagnetConfig::CoefficientCount; ++i) {
@@ -175,14 +175,14 @@ void ScalingFFAMagnet::setupEndField() const {
         return;
     }
     auto efmMan = endfieldmodel::EndFieldModelManager::getEFMManager();
-    efm_m = efmMan->getEndFieldModel(endFieldName_m);
+    efm_m       = efmMan->getEndFieldModel(endFieldName_m);
     efm_m->rescale(1.0 / getR0());
-    config_m.phiStart_m  = config_m.phiStart_m + efm_m->getCentreLength() * 0.5;
+    config_m.phiStart_m = config_m.phiStart_m + efm_m->getCentreLength() * 0.5;
     if (config_m.azimuthalExtent_m < 0.0) {
-        config_m.azimuthalExtent_m  = efm_m->getEndLength() * 5. + efm_m->getCentreLength() * 0.5;
+        config_m.azimuthalExtent_m = efm_m->getEndLength() * 5. + efm_m->getCentreLength() * 0.5;
     }
-    planarArcGeometry_m = Geometry::makeSBend(config_m.r0_m * config_m.phiEnd_m, 1/config_m.r0_m);
-    efmInitialised_m = true;
+    planarArcGeometry_m = Geometry::makeSBend(config_m.r0_m * config_m.phiEnd_m, 1 / config_m.r0_m);
+    efmInitialised_m    = true;
 }
 
 void ScalingFFAMagnet::getFieldExtent(double& zBegin, double& zEnd) const {
@@ -192,9 +192,9 @@ void ScalingFFAMagnet::getFieldExtent(double& zBegin, double& zEnd) const {
 }
 
 void ScalingFFAMagnet::getZMin(double& zBegin) const {
-    double beginPhi = -config_m.azimuthalExtent_m + efm_m->getCentreLength()/2.0;
-    if (beginPhi < -M_PI/2) {
-        beginPhi = -M_PI/2;
+    double beginPhi = -config_m.azimuthalExtent_m + efm_m->getCentreLength() / 2.0;
+    if (beginPhi < -M_PI / 2) {
+        beginPhi = -M_PI / 2;
     }
     Vector_t<double, 3> cylBegin = {config_m.rMax_m, 0.0, beginPhi};
     Vector_t<double, 3> cartBegin;
@@ -202,11 +202,10 @@ void ScalingFFAMagnet::getZMin(double& zBegin) const {
     zBegin = cartBegin[2];
 }
 
-
 void ScalingFFAMagnet::getZMax(double& zEnd) const {
-    double endPhi = config_m.azimuthalExtent_m + efm_m->getCentreLength()/2.0;
-    if (endPhi < -M_PI/2) {
-        endPhi = M_PI/2;
+    double endPhi = config_m.azimuthalExtent_m + efm_m->getCentreLength() / 2.0;
+    if (endPhi < -M_PI / 2) {
+        endPhi = M_PI / 2;
     }
     Vector_t<double, 3> cylEnd = {config_m.rMax_m, 0.0, endPhi};
     Vector_t<double, 3> cartEnd;
@@ -214,10 +213,9 @@ void ScalingFFAMagnet::getZMax(double& zEnd) const {
     zEnd = cartEnd[2];
 }
 
-
-void ScalingFFAMagnet::getCartesianCoordinates(const Vector_t<double, 3>& Rcyl,
-                                               Vector_t<double, 3>& Rcart) const {
-    Rcart[0] = Rcyl[0]*std::cos(Rcyl[2])-config_m.r0_m;
+void ScalingFFAMagnet::getCartesianCoordinates(
+        const Vector_t<double, 3>& Rcyl, Vector_t<double, 3>& Rcart) const {
+    Rcart[0] = Rcyl[0] * std::cos(Rcyl[2]) - config_m.r0_m;
     Rcart[1] = Rcyl[1];
-    Rcart[2] = Rcyl[0]*std::sin(Rcyl[2]);
+    Rcart[2] = Rcyl[0] * std::sin(Rcyl[2]);
 }

@@ -24,8 +24,7 @@
  *
  *  Defines three parameters - field map name, units for field, length for field
  */
-class OpalScalingFFAMagnet: public OpalElement {
-
+class OpalScalingFFAMagnet : public OpalElement {
 public:
     /** enum maps string to integer value for UI definitions */
     enum {
@@ -43,7 +42,7 @@ public:
         LAYOUT_START,
         LAYOUT_END,
         AZIMUTHAL_EXTENT,
-        SIZE // size of the enum
+        SIZE  // size of the enum
     };
 
     /** Default constructor initialises UI parameters. */
@@ -60,8 +59,8 @@ public:
 
 private:
     // Not implemented.
-    OpalScalingFFAMagnet(const OpalScalingFFAMagnet& );
-    void operator=(const OpalScalingFFAMagnet& );
+    OpalScalingFFAMagnet(const OpalScalingFFAMagnet&);
+    void operator=(const OpalScalingFFAMagnet&);
 
     // Clone constructor.
     OpalScalingFFAMagnet(const std::string& name, OpalScalingFFAMagnet* parent);
@@ -70,5 +69,4 @@ private:
     void setupDefaultEndField();
 };
 
-#endif // OPAL_OPALSCALINGFFAMAGNET_H
-
+#endif  // OPAL_OPALSCALINGFFAMAGNET_H
