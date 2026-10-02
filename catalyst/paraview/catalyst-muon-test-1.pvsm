@@ -11558,16 +11558,64 @@
         <Element index="0" value=""/>
       </Property>
     </Proxy>
-    <Proxy group="sources" type="XMLMultiBlockDataReader" id="17974" servers="1">
-      <Property name="FileName" id="17974.FileName" number_of_elements="1">
-        <Element index="0" value="/home/biddisco/temp/muon/MUON_snapshot/MUON_snapshot.vtm"/>
+    <Proxy group="sources" type="XMLPartitionedDataSetCollectionReader" id="17974" servers="1">
+      <Property name="FileName" id="17974.FileName" number_of_elements="25">
+        <Element index="0" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/000150.vtpc"/>
+        <Element index="1" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/000300.vtpc"/>
+        <Element index="2" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/000450.vtpc"/>
+        <Element index="3" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/000600.vtpc"/>
+        <Element index="4" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/000750.vtpc"/>
+        <Element index="5" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/000900.vtpc"/>
+        <Element index="6" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/001050.vtpc"/>
+        <Element index="7" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/001200.vtpc"/>
+        <Element index="8" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/001350.vtpc"/>
+        <Element index="9" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/001500.vtpc"/>
+        <Element index="10" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/001650.vtpc"/>
+        <Element index="11" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/001800.vtpc"/>
+        <Element index="12" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/001950.vtpc"/>
+        <Element index="13" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/002100.vtpc"/>
+        <Element index="14" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/002250.vtpc"/>
+        <Element index="15" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/002400.vtpc"/>
+        <Element index="16" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/002550.vtpc"/>
+        <Element index="17" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/002700.vtpc"/>
+        <Element index="18" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/002850.vtpc"/>
+        <Element index="19" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/003000.vtpc"/>
+        <Element index="20" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/003150.vtpc"/>
+        <Element index="21" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/003300.vtpc"/>
+        <Element index="22" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/003450.vtpc"/>
+        <Element index="23" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/003600.vtpc"/>
+        <Element index="24" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/003750.vtpc"/>
         <Domain name="files" id="17974.FileName.files"/>
       </Property>
       <Property name="FileNameInfo" id="17974.FileNameInfo" number_of_elements="1">
-        <Element index="0" value="/home/biddisco/temp/muon/MUON_snapshot/MUON_snapshot.vtm"/>
+        <Element index="0" value="/home/biddisco/temp/muon/datasets/particle_bunch_0_snapshot/000150.vtpc"/>
       </Property>
-      <Property name="TimestepValues" id="17974.TimestepValues" number_of_elements="1">
-        <Element index="0" value="5"/>
+      <Property name="TimestepValues" id="17974.TimestepValues" number_of_elements="25">
+        <Element index="0" value="150"/>
+        <Element index="1" value="300"/>
+        <Element index="2" value="450"/>
+        <Element index="3" value="600"/>
+        <Element index="4" value="750"/>
+        <Element index="5" value="900"/>
+        <Element index="6" value="1050"/>
+        <Element index="7" value="1200"/>
+        <Element index="8" value="1350"/>
+        <Element index="9" value="1500"/>
+        <Element index="10" value="1650"/>
+        <Element index="11" value="1800"/>
+        <Element index="12" value="1950"/>
+        <Element index="13" value="2100"/>
+        <Element index="14" value="2250"/>
+        <Element index="15" value="2400"/>
+        <Element index="16" value="2550"/>
+        <Element index="17" value="2700"/>
+        <Element index="18" value="2850"/>
+        <Element index="19" value="3000"/>
+        <Element index="20" value="3150"/>
+        <Element index="21" value="3300"/>
+        <Element index="22" value="3450"/>
+        <Element index="23" value="3600"/>
+        <Element index="24" value="3750"/>
       </Property>
       <Property name="AssemblySelectors" id="17974.AssemblySelectors" number_of_elements="1">
         <Element index="0" value="/"/>
@@ -12565,7 +12613,7 @@
         <Element index="1" value="665"/>
       </Property>
       <Property name="ViewTime" id="18557.ViewTime" number_of_elements="1">
-        <Element index="0" value="5"/>
+        <Element index="0" value="150"/>
         <Domain name="range" id="18557.ViewTime.range"/>
       </Property>
       <Property name="VolumeAnisotropy" id="18557.VolumeAnisotropy" number_of_elements="1">
@@ -13291,7 +13339,7 @@
         <Element index="1" value="665"/>
       </Property>
       <Property name="ViewTime" id="18844.ViewTime" number_of_elements="1">
-        <Element index="0" value="5"/>
+        <Element index="0" value="150"/>
         <Domain name="range" id="18844.ViewTime.range"/>
       </Property>
       <Property name="VolumeAnisotropy" id="18844.VolumeAnisotropy" number_of_elements="1">
