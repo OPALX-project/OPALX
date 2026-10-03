@@ -1,0 +1,12 @@
+opalx/input/*.emittedfromfile
+results/*.json
+opalx/*.h5
+opalx/*.out
+opalx/*_3D.opal
+opalx/*_DesignPath.dat
+opalx/*_ElementPositions.*
+opalx/*.stat
+opalx/*.lbal
+opalx/*.mem
+opalx/data/
+python/__pycache__/

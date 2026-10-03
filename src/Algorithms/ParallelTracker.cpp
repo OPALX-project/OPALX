@@ -64,6 +64,8 @@
 #include "Utilities/Options.h"
 #include "Utilities/Timer.h"
 #include "Utilities/Util.h"
+#include "Utility/PAssert.h"
+#include "ValueDefinitions/RealVariable.h"
 
 #include "AbsBeamline/PluginElement.h"
 #include "AbsBeamline/VerticalFFAMagnet.h"
@@ -71,6 +73,21 @@
 extern Inform* gmsg;
 
 namespace {
+
+    bool shouldDumpSpaceChargeFieldH5(long long step) {
+        const char* value = std::getenv("OPALX_SC_FIELD_H5_STEPS");
+        if (value == nullptr || value[0] == '\0') {
+            return false;
+        }
+
+        try {
+            const long long maxStep = std::stoll(value);
+            return step <= maxStep;
+        } catch (...) {
+            return true;
+        }
+    }
+
     std::string getRingProgressString(double pathLength, double circumference) {
         const double completedTurns = std::floor(pathLength / circumference);
         double pathInTurn           = std::fmod(pathLength, circumference);
@@ -268,6 +285,16 @@ void ParallelTracker::execute() {
         restoreCavityPhases();
     }
 
+    // Build per-run behavior through the generic element interaction contract.
+    // The tracker does not inspect concrete element types here.
+    elementInteractions_m.initialize(itsOpalBeamline_m.getElements());
+    if (elementInteractions_m.size() != 0 && (ringPeriod_m > 0.0 || requestedTurns_m != 0)) {
+        throw OpalException(
+                "ParallelTracker::execute",
+                "BEAMBEAM supports one interaction in a single-pass LINE only; "
+                "RING/TURNS tracking cannot reuse a completed collective interaction.");
+    }
+
     // Select the minimal time step from the configuration
     double minTimeStep = stepSizes_m.getMinTimeStep();
     m << level3 << "Selected minimum time step from configuration: " << minTimeStep << endl;
@@ -440,6 +467,12 @@ void ParallelTracker::execute() {
         }
     }
     std::vector<std::shared_ptr<OrbitThreader>> oths(nContainers);
+    if (nContainers > 0 && !itsBunch_m->usesIndependentOrbitThreader(0)) {
+        throw OpalException(
+                "ParallelTracker::execute",
+                "Primary container 0 must construct the design OrbitThreader; "
+                "ORBITTHREADER=FALSE is supported only for secondary beams.");
+    }
     bool designBeamAssigned = false;
     std::vector<std::unique_ptr<DirectedTurnCounter>> turnCounters(nContainers);
     if (kineticEnergyStop_m > 0 && (!hasCyclotronGaps() || nContainers != 1))
@@ -448,6 +481,11 @@ void ParallelTracker::execute() {
     for (size_t ci = 0; ci < nContainers; ++ci) {
         const auto& pc = itsBunch_m->getParticleContainer(ci);
         if (!pc || !pc->getReference()) {
+            continue;
+        }
+        if (!itsBunch_m->usesIndependentOrbitThreader(ci)) {
+            m << level2 << "Container " << ci
+              << " will reuse the primary design OrbitThreader element map." << endl;
             continue;
         }
 
@@ -472,6 +510,16 @@ void ParallelTracker::execute() {
                 itsOpalBeamline_m,  // OpalBeamline object
                 isDesignBeam, ringPeriod_m);
         oths[ci]->execute();
+    }
+    if (oths.empty() || !oths[0]) {
+        throw OpalException(
+                "ParallelTracker::execute",
+                "The primary particle container requires an OrbitThreader.");
+    }
+    for (size_t ci = 1; ci < nContainers; ++ci) {
+        if (!oths[ci] && itsBunch_m->getParticleContainer(ci)) {
+            oths[ci] = oths[0];
+        }
     }
     m << level4 << "Orbit threader execution done." << endl;
     // Spatial field selection belongs to compatible ring geometry, not to TURNS
@@ -699,7 +747,7 @@ void ParallelTracker::execute() {
                     resetFields();
                     m << level4 << "E and B fields reset before the first half drift at step "
                       << step << "." << endl;
-                    computeSpaceChargeFields();
+                    computeSpaceChargeFields(*oths[0]);
                     m << level4 << "Pre-step space charge field computation done at step " << step
                       << "." << endl;
                 }
@@ -707,16 +755,25 @@ void ParallelTracker::execute() {
                 // First half of the time integration
                 timeIntegration1(pusher);
                 m << level4 << "timeIntegration1 done at step " << step << "." << endl;
+                const size_t nSourceMarkedAfterPush = markBackwardParticlesAtSourcePlane();
+                if (nSourceMarkedAfterPush > 0) {
+                    deleteInvalidParticles(
+                            true, m, "backward source-plane particles after first push");
+                }
                 itsBunch_m->updateAllParticleMoments();
                 m << level5 << "Particle moments updated after timeIntegration1." << endl;
 
                 if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::MIDPOINT) {
                     resetFields();
                     m << level4 << "E and B fields reset at step " << step << "." << endl;
-                    computeSpaceChargeFields();
+                    computeSpaceChargeFields(*oths[0]);
                     m << level4 << "Midpoint space charge field computation done at step " << step
                       << "." << endl;
                 }
+                ElementInteractionContext diagnosticsContext{*itsBunch_m};
+                diagnosticsContext.message = &m;
+                elementInteractions_m.execute(
+                        ElementInteractionPhase::Diagnostics, diagnosticsContext);
 
                 // Emission is placed BETWEEN space-charge and external-field evaluation
                 // to match the legacy OPAL ordering (ParallelTTracker): newly emitted
@@ -735,6 +792,16 @@ void ParallelTracker::execute() {
                 emitFromEmissionSources(itsBunch_m->getT(), itsBunch_m->getdT());
                 m << level4 << "Emit particles from emission sources done at step " << step << "."
                   << endl;
+                ElementInteractionContext afterEmissionContext{*itsBunch_m};
+                afterEmissionContext.message           = &m;
+                afterEmissionContext.spaceChargeSolver = spaceChargeSolver_m;
+                elementInteractions_m.execute(
+                        ElementInteractionPhase::AfterEmission, afterEmissionContext);
+                const size_t nSourceMarkedAfterEmission = markBackwardParticlesAtSourcePlane();
+                if (nSourceMarkedAfterEmission > 0) {
+                    deleteInvalidParticles(
+                            true, m, "backward source-plane particles after emission");
+                }
                 // Old OPAL reselects the global dt after emission. On the final emission step this
                 // switches getdT() back to the track step before external fields, reference update,
                 // and time increment, while per-particle fractional dt values remain untouched.
@@ -755,6 +822,10 @@ void ParallelTracker::execute() {
             // Second half of the time integration
             timeIntegration2(pusher);
             m << level4 << "timeIntegration2 done at step " << step << "." << endl;
+            const size_t nSourceMarkedAfterStep = markBackwardParticlesAtSourcePlane();
+            if (nSourceMarkedAfterStep > 0) {
+                deleteInvalidParticles(true, m, "backward source-plane particles");
+            }
             itsBunch_m->updateAllParticleMoments();
             m << level5 << "Particle moments updated after timeIntegration2." << endl;
 
@@ -1271,13 +1342,17 @@ ParallelTracker::SpaceChargeEmissionProgress ParallelTracker::spaceChargeEmissio
  * - Inside the selected algorithm: temporary solver-specific frames are restored on success.
  * - After transform back: @f$R@f$, @f$E@f$, @f$B@f$ in the reference frame again.
  */
-void ParallelTracker::computeSpaceChargeFields() {
+void ParallelTracker::computeSpaceChargeFields(OrbitThreader& sourceOth) {
     Inform m("ParallelTracker::computeSpaceChargeFields");
     if (spaceChargeSolver_m == nullptr) {
         throw OpalException(
                 "ParallelTracker::computeSpaceChargeFields",
                 "No space-charge solver is available. Use TYPE=NONE for a configured no-op "
                 "solver.");
+    }
+
+    if (elementInteractions_m.suppressesDefaultSelfField()) {
+        return;
     }
 
     const size_t totalParticles = itsBunch_m->getTotalNumAllContainers();
@@ -1308,9 +1383,52 @@ void ParallelTracker::computeSpaceChargeFields() {
             emission.fraction,
             ippl::Comm->size(),
             frames};
-    SpaceChargeSolveContext context(spaceChargeContainerActivity_m, std::move(stepState));
-    spaceChargeSolver_m->solve(context);
+    SpaceChargeSolveContext context(spaceChargeContainerActivity_m, stepState);
+
+    // Collective elements use a reference-local fixed domain. Its source R must only rotate;
+    // adding s would translate it twice relative to that domain. Ordinary solves retain master's
+    // translated frame above, including the absolute cathode/image-plane coordinate convention.
+    const CoordinateSystemTrafo interactionToBeam(
+            Vector_t<double, 3>(0.0), frames.trackerToSolve.getRotation());
+    const CoordinateFrameTransforms interactionFrames{
+            interactionToBeam, interactionToBeam.inverted()};
+    stepState.frames = interactionFrames;
+    SpaceChargeSolveContext interactionSolveContext(
+            spaceChargeContainerActivity_m, std::move(stepState));
+    ElementInteractionContext interactionContext{*itsBunch_m};
+    interactionContext.sourceOrbitThreader    = &sourceOth;
+    interactionContext.referenceToBeamCSTrafo = &interactionFrames.trackerToSolve;
+    interactionContext.beamToReferenceCSTrafo = &interactionFrames.solveToTracker;
+    interactionContext.message                = &m;
+    interactionContext.endOfLine              = &globalEOL_m;
+    interactionContext.spaceChargeSolver      = spaceChargeSolver_m;
+    interactionContext.spaceChargeContext     = &interactionSolveContext;
+    const auto interactionResult =
+            elementInteractions_m.execute(ElementInteractionPhase::SelfField, interactionContext);
+    if (!interactionResult.selfFieldHandled) {
+        spaceChargeSolver_m->solve(context);
+        dumpSpaceChargePrimaryFieldH5();
+    }
     m << level3 << "Compute space-charge fields done." << endl;
+}
+
+void ParallelTracker::dumpSpaceChargePrimaryFieldH5() const {
+    if (!itsDataSink_m || !itsBunch_m) {
+        return;
+    }
+
+    const long long step = itsBunch_m->getGlobalTrackStep();
+    if (!shouldDumpSpaceChargeFieldH5(step)) {
+        return;
+    }
+
+    const size_t nContainers = itsBunch_m->getNumParticleContainers();
+    std::vector<std::array<Vector_t<double, 3>, 2>> fdByContainer(nContainers);
+    for (auto& fields : fdByContainer) {
+        fields[0] = Vector_t<double, 3>(0.0);
+        fields[1] = Vector_t<double, 3>(0.0);
+    }
+    itsDataSink_m->dumpH5(*itsBunch_m, fdByContainer);
 }
 
 /**
@@ -1762,13 +1880,13 @@ void ParallelTracker::prepareBoundaryStep(
         }
         if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::PRESTEP) {
             resetFields();
-            computeSpaceChargeFields();
+            computeSpaceChargeFields(*oths[0]);
         }
         timeIntegration1(pusher);
         itsBunch_m->updateAllParticleMoments();
         if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::MIDPOINT) {
             resetFields();
-            computeSpaceChargeFields();
+            computeSpaceChargeFields(*oths[0]);
         }
         computeExternalFields(oths);
         const bool crossed = boundaryCrossed(boundaryStepDt_m);

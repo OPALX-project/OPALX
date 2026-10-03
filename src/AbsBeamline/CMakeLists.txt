@@ -7,6 +7,7 @@ add_subdirectory(EndFieldModel)
 set(_SRCS
     CyclotronSector.cpp
     AttributeSet.cpp
+    BeamBeam.cpp
     BeamlineVisitor.cpp
     Collimator.cpp
     ConstantEFieldCavity.cpp
@@ -36,6 +37,8 @@ set(_SRCS
 set(_HDRS
     CyclotronSector.h
     AttributeSet.h
+    BeamBeam.h
+    BeamBeamDefinitions.h
     BeamlineVisitor.h
     Collimator.h
     ConstantEFieldCavity.h

@@ -63,6 +63,7 @@
 #include "ValueDefinitions/StringConstant.h"
 
 // Element commands.
+#include "Elements/OpalBeamBeam.h"
 #include "Elements/OpalCavity.h"
 #include "Elements/OpalCollimator.h"
 #include "Elements/OpalConstantEFieldCavity.h"
@@ -145,6 +146,7 @@ namespace {
         opal->create(new OpalTrimCoil());
         opal->create(new OpalCollimator());
         opal->create(new OpalDrift());
+        opal->create(new OpalBeamBeam());
         opal->create(new OpalLaser());
         opal->create(new OpalMonitor());
         opal->create(new OpalMarker());

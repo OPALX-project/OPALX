@@ -1,0 +1,198 @@
+{
+  "primary": {
+    "random_macroparticles": 100000,
+    "tensor_shape": [32, 32, 64],
+    "cutoff_sigma": 3.0
+  },
+  "mesh_nz": 128,
+  "cases": [
+    {
+      "name": "square20_n32_random",
+      "primary_model": "random",
+      "aperture": "RECTANGLE(4.0e-5, 4.0e-5)",
+      "full_x_m": 4.0e-5,
+      "full_y_m": 4.0e-5,
+      "nx": 32,
+      "ny": 32
+    },
+    {
+      "name": "square20_n64_random",
+      "primary_model": "random",
+      "aperture": "RECTANGLE(4.0e-5, 4.0e-5)",
+      "full_x_m": 4.0e-5,
+      "full_y_m": 4.0e-5,
+      "nx": 64,
+      "ny": 64
+    },
+    {
+      "name": "square20_n128_random",
+      "primary_model": "random",
+      "aperture": "RECTANGLE(4.0e-5, 4.0e-5)",
+      "full_x_m": 4.0e-5,
+      "full_y_m": 4.0e-5,
+      "nx": 128,
+      "ny": 128
+    },
+    {
+      "name": "square20_n32_tensor",
+      "primary_model": "tensor",
+      "aperture": "RECTANGLE(4.0e-5, 4.0e-5)",
+      "full_x_m": 4.0e-5,
+      "full_y_m": 4.0e-5,
+      "nx": 32,
+      "ny": 32
+    },
+    {
+      "name": "square20_n64_tensor",
+      "primary_model": "tensor",
+      "aperture": "RECTANGLE(4.0e-5, 4.0e-5)",
+      "full_x_m": 4.0e-5,
+      "full_y_m": 4.0e-5,
+      "nx": 64,
+      "ny": 64
+    },
+    {
+      "name": "square20_n128_tensor",
+      "primary_model": "tensor",
+      "aperture": "RECTANGLE(4.0e-5, 4.0e-5)",
+      "full_x_m": 4.0e-5,
+      "full_y_m": 4.0e-5,
+      "nx": 128,
+      "ny": 128
+    },
+    {
+      "name": "square40_n128_tensor",
+      "primary_model": "tensor",
+      "aperture": "RECTANGLE(8.0e-5, 8.0e-5)",
+      "full_x_m": 8.0e-5,
+      "full_y_m": 8.0e-5,
+      "nx": 128,
+      "ny": 128
+    },
+    {
+      "name": "rect40x20_n128x64_tensor",
+      "primary_model": "tensor",
+      "aperture": "RECTANGLE(8.0e-5, 4.0e-5)",
+      "full_x_m": 8.0e-5,
+      "full_y_m": 4.0e-5,
+      "nx": 128,
+      "ny": 64
+    },
+    {
+      "name": "circle20_n64_random",
+      "primary_model": "random",
+      "aperture": "CIRCLE(2.0e-5)",
+      "full_x_m": 2.0e-5,
+      "full_y_m": 2.0e-5,
+      "nx": 64,
+      "ny": 64
+    },
+    {
+      "name": "circle20_n64_tensor",
+      "primary_model": "tensor",
+      "aperture": "CIRCLE(2.0e-5)",
+      "full_x_m": 2.0e-5,
+      "full_y_m": 2.0e-5,
+      "nx": 64,
+      "ny": 64
+    },
+    {
+      "name": "circle40_n64_random",
+      "primary_model": "random",
+      "aperture": "CIRCLE(4.0e-5)",
+      "full_x_m": 4.0e-5,
+      "full_y_m": 4.0e-5,
+      "nx": 64,
+      "ny": 64
+    },
+    {
+      "name": "circle40_n64_tensor",
+      "primary_model": "tensor",
+      "aperture": "CIRCLE(4.0e-5)",
+      "full_x_m": 4.0e-5,
+      "full_y_m": 4.0e-5,
+      "nx": 64,
+      "ny": 64
+    },
+    {
+      "name": "production_rect_1024x128_fixed400k",
+      "primary_model": "fixed",
+      "aperture": "RECTANGLE(2.4e-3, 2.4e-4)",
+      "full_x_m": 2.4e-3,
+      "full_y_m": 2.4e-4,
+      "nx": 1024,
+      "ny": 128,
+      "manufactured_cutoff_sigma": 3.0
+    },
+    {
+      "name": "production_rect_1536x192_fixed400k",
+      "primary_model": "fixed",
+      "aperture": "RECTANGLE(2.4e-3, 2.4e-4)",
+      "full_x_m": 2.4e-3,
+      "full_y_m": 2.4e-4,
+      "nx": 1536,
+      "ny": 192,
+      "manufactured_cutoff_sigma": 3.0
+    },
+    {
+      "name": "production_rect_2048x256_fixed400k",
+      "primary_model": "fixed",
+      "aperture": "RECTANGLE(2.4e-3, 2.4e-4)",
+      "full_x_m": 2.4e-3,
+      "full_y_m": 2.4e-4,
+      "nx": 2048,
+      "ny": 256,
+      "manufactured_cutoff_sigma": 3.0
+    },
+    {
+      "name": "production_rect_2304x288_fixed400k",
+      "primary_model": "fixed",
+      "aperture": "RECTANGLE(2.4e-3, 2.4e-4)",
+      "full_x_m": 2.4e-3,
+      "full_y_m": 2.4e-4,
+      "nx": 2304,
+      "ny": 288,
+      "manufactured_cutoff_sigma": 3.0
+    },
+    {
+      "name": "production_rect_2560x320_fixed400k",
+      "primary_model": "fixed",
+      "aperture": "RECTANGLE(2.4e-3, 2.4e-4)",
+      "full_x_m": 2.4e-3,
+      "full_y_m": 2.4e-4,
+      "nx": 2560,
+      "ny": 320,
+      "manufactured_cutoff_sigma": 3.0
+    },
+    {
+      "name": "production_rect_2688x336_fixed400k",
+      "primary_model": "fixed",
+      "aperture": "RECTANGLE(2.4e-3, 2.4e-4)",
+      "full_x_m": 2.4e-3,
+      "full_y_m": 2.4e-4,
+      "nx": 2688,
+      "ny": 336,
+      "manufactured_cutoff_sigma": 3.0
+    },
+    {
+      "name": "production_rect_3072x384_fixed400k",
+      "primary_model": "fixed",
+      "aperture": "RECTANGLE(2.4e-3, 2.4e-4)",
+      "full_x_m": 2.4e-3,
+      "full_y_m": 2.4e-4,
+      "nx": 3072,
+      "ny": 384,
+      "manufactured_cutoff_sigma": 3.0
+    },
+    {
+      "name": "production_rect_4096x256_fixed400k",
+      "primary_model": "fixed",
+      "aperture": "RECTANGLE(2.4e-3, 2.4e-4)",
+      "full_x_m": 2.4e-3,
+      "full_y_m": 2.4e-4,
+      "nx": 4096,
+      "ny": 256,
+      "manufactured_cutoff_sigma": 3.0
+    }
+  ]
+}

@@ -86,7 +86,7 @@
         "release-testing"
       ],
       "cacheVariables": {
-        "CMAKE_HIP_ARCHITECTURES": "gfx942", 
+        "CMAKE_HIP_ARCHITECTURES": "gfx942",
         "MPIEXEC_EXECUTABLE": "/usr/bin/srun",
         "MPIEXEC_PREFLAGS": "--gpus-per-task=1;/user-environment/wrapper-mpi.sh",
         "Kokkos_ARCH_AMD_GFX942_APU": "ON",

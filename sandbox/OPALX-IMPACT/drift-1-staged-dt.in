@@ -1,0 +1,48 @@
+TITLE, string="Gaussian bunch drift test comparison IMPACT staged DT";
+OPTION, SEED = 42;
+
+REAL Edes    = 0.001; // GeV
+REAL CURRENT = 0.01;  // A
+REAL N       = 16;
+REAL n_parts = 8*N*N*N;
+REAL gamma   = (Edes+PMASS)/PMASS;
+REAL beta    = sqrt(1-(1/gamma^2));
+REAL gambet  = gamma*beta;
+REAL P0      = gamma*beta*PMASS;
+
+D1: DRIFT, ELEMEDGE = 0.0, L = 1.0;
+
+L1: LINE = (D1);
+
+FS1: FIELDSOLVER, TYPE=OPEN,
+    NX=N, NY=N, NZ=N,
+    PARFFTX=TRUE, PARFFTY=TRUE, PARFFTZ=FALSE,
+    BCFFTX=OPEN, BCFFTY=OPEN, BCFFTZ=OPEN,
+    BBOXINCR = 1, GREENSF = STANDARD;
+
+// CUTOFFX = 4.0, CUTOFFY = 4.0, CUTOFFLONG = 4.0;
+
+Dist1: DISTRIBUTION, TYPE=GAUSS,
+    SIGMAX=5e-3,  SIGMAY=5e-3,  SIGMAZ=5e-3,
+    SIGMAPX=1e-12, SIGMAPY=1e-12, SIGMAPZ=1e-12,
+    NPARTDIST = n_parts;
+
+ES1: EMISSIONSOURCE, DISTRIBUTION = Dist1;
+
+mySources: EMISSIONSOURCELIST = (ES1);
+
+Beam1: BEAM, PARTICLE = PROTON, CHARGE = 1.0,
+       PC = P0, SOURCES = mySources,
+       NALLOC = n_parts, BCHARGE = 1.0e-8;
+
+// Same nominal integration time as drift-1.in:
+//   500*1e-10 + 1000*5e-11 = 1.0e-7 s.
+// The factor-of-two change exercises OPALX staged DT/MAXSTEPS handling.
+TRACK, LINE = L1, BEAM = Beam1,
+    MAXSTEPS = {500, 1000},
+    ZSTOP = 1.0,
+    DT = {1.0e-10, 5.0e-11};
+ RUN, METHOD = "PARALLEL", FIELDSOLVER = Fs1;
+ENDTRACK;
+
+STOP;

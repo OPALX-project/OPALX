@@ -1,4 +1,5 @@
 set (_SRCS
+    BeamBeamWindowAnimation.cpp
     ArithmeticError.cpp
     CLRangeError.cpp
     ExpressionRandom.cpp
@@ -25,6 +26,7 @@ set (_SRCS
     )
 
 set (HDRS
+    BeamBeamWindowAnimation.h
     ArithmeticError.h
     CLRangeError.h
     ElementList.h

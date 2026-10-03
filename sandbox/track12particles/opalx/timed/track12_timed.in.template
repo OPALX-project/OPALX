@@ -1,0 +1,151 @@
+OPTION, PSDUMPFREQ = 1;
+OPTION, C0PSDUMPFREQ = 0;
+OPTION, STATDUMPFREQ = 0;
+OPTION, STEPINFOFQ = 100;
+OPTION, BOUNDPDESTROY = 1.0e9;
+OPTION, VERSION = 10900;
+OPTION, ASCIIDUMP = FALSE;
+OPTION, EBDUMP = FALSE;
+OPTION, IDEALIZED = TRUE;
+OPTION, SEED = @SEED@;
+
+TITLE, STRING = "Exact-timed 12-particle CAIN trajectory comparison";
+
+// The six e-/e+ pairs are artificial right-going CAIN test particles. Their
+// individual ct values are birth times, not twelve simultaneous z offsets.
+// The first empty step activates the mirrored primary before pair 1 is born.
+// With dt = 1.8 um/c, every CAIN birth and output sample lies on this OPALX
+// time grid, so the trajectory comparison requires no time interpolation.
+REAL primary_kinetic_energy = 0.245;
+REAL primary_gamma = (primary_kinetic_energy + EMASS) / EMASS;
+REAL primary_beta = sqrt(1.0 - 1.0 / (primary_gamma^2));
+
+REAL primary_sigma_xy = 1.944325075701e-6;
+REAL primary_sigma_z = 0.6e-3;
+REAL primary_electrons_per_bunch = 1.25e10;
+REAL primary_macroparticles = @PRIMARY_MACROPARTICLES@;
+REAL elementary_charge = 1.602176634e-19;
+REAL primary_bunch_charge = primary_electrons_per_bunch * elementary_charge;
+
+REAL n_witness_per_species = 6;
+REAL witness_bunch_charge = n_witness_per_species * elementary_charge;
+
+REAL bb_length = 8.0e-3;
+REAL bb_ip_s = 0.5 * bb_length;
+REAL cain_ct_first = -0.9e-3;
+REAL cain_ct_step = 1.8e-6;
+REAL track_dt = cain_ct_step / CLIGHT;
+REAL pair_t0 = -cain_ct_first / CLIGHT + track_dt;
+
+// At the first birth the physical, right-going primary is centered on the
+// right-going witness. Reflection about the element midpoint supplies the
+// oncoming bunch whose leading 3-sigma edge touches pair 1.
+REAL primary_source_r0z = bb_ip_s + cain_ct_first - primary_beta * CLIGHT * track_dt;
+REAL n_steps = 1501;
+REAL MESH_NX = @NX@;
+REAL MESH_NY = @NY@;
+REAL MESH_NZ = @NZ@;
+
+IP1: BEAMBEAM,
+    L = bb_length,
+    ELEMEDGE = 0.0,
+    BBRIGID = TRUE,
+    VISUALIZE = FALSE,
+    COPY_TIME = 1.0e-30,
+    WITNESS_CONTAINERS = "1,2",
+    // APERTURE is only the physical acceptance. The numerical field domain is
+    // the non-shrinking primary-plus-witness envelope with an aspect-ratio floor.
+    APERTURE = "RECTANGLE(2.4e-3, 2.4e-4)",
+    DELETEONTRANSVERSEEXIT = FALSE;
+
+TRACK12_LINE: LINE = (IP1);
+
+SOURCEBINNING: BINNING,
+    MAXBINS = 1,
+    DESIREDWIDTH = 0.1,
+    BINNINGALPHA = 1.0,
+    BINNINGBETA = 1.0,
+    PARAMETER = "VELOCITYZ",
+    ADAPTIVEBINNING = FALSE,
+    DUMPBINSFILE = "NONE",
+    TABLEPRINTFREQ = 0;
+
+FS1: FIELDSOLVER,
+    TYPE = OPEN,
+    BINS = "SOURCEBINNING",
+    NX = MESH_NX, NY = MESH_NY, NZ = MESH_NZ,
+    PARFFTX = TRUE, PARFFTY = TRUE, PARFFTZ = TRUE,
+    BCFFTX = OPEN, BCFFTY = OPEN, BCFFTZ = OPEN,
+    BBOXINCR = 1,
+    // The relativistic binning stretches dz by gamma in the source rest frame.
+    GREENSF = INTEGRATED;
+
+DIST_PRIMARY_ELECTRONS: DISTRIBUTION,
+    TYPE = FROMFILE,
+    FNAME = "input/primary_fixed.fromfile",
+    NPARTDIST = primary_macroparticles;
+
+DIST_WITNESS_ELECTRONS: DISTRIBUTION,
+    TYPE = EMITTEDFROMFILE,
+    FNAME = "input/track12_electrons.emittedfromfile",
+    EMITTED = TRUE,
+    // The first-to-last birth interval contains exactly 833 CAIN intervals.
+    // EMISSIONSTEPS controls the sampler timestep and therefore must be 833,
+    // not the 1501 total tracking steps.
+    EMISSIONSTEPS = 833,
+    NPARTDIST = n_witness_per_species;
+
+DIST_WITNESS_POSITRONS: DISTRIBUTION,
+    TYPE = EMITTEDFROMFILE,
+    FNAME = "input/track12_positrons.emittedfromfile",
+    EMITTED = TRUE,
+    EMISSIONSTEPS = 833,
+    NPARTDIST = n_witness_per_species;
+
+SOURCE_PRIMARY_ELECTRONS: EMISSIONSOURCE,
+    DISTRIBUTION = DIST_PRIMARY_ELECTRONS,
+    R0Z = primary_source_r0z;
+SOURCE_WITNESS_ELECTRONS: EMISSIONSOURCE,
+    DISTRIBUTION = DIST_WITNESS_ELECTRONS,
+    T0 = pair_t0,
+    R0Z = bb_ip_s;
+SOURCE_WITNESS_POSITRONS: EMISSIONSOURCE,
+    DISTRIBUTION = DIST_WITNESS_POSITRONS,
+    T0 = pair_t0,
+    R0Z = bb_ip_s;
+
+PRIMARY_ELECTRON_SOURCES: EMISSIONSOURCELIST = (SOURCE_PRIMARY_ELECTRONS);
+WITNESS_ELECTRON_SOURCES: EMISSIONSOURCELIST = (SOURCE_WITNESS_ELECTRONS);
+WITNESS_POSITRON_SOURCES: EMISSIONSOURCELIST = (SOURCE_WITNESS_POSITRONS);
+
+PRIMARY_ELECTRONS: BEAM,
+    PARTICLE = ELECTRON,
+    NALLOC = primary_macroparticles,
+    BCHARGE = primary_bunch_charge,
+    SOURCES = PRIMARY_ELECTRON_SOURCES;
+
+WITNESS_ELECTRONS: BEAM,
+    PARTICLE = ELECTRON,
+    ORBITTHREADER = FALSE,
+    NALLOC = n_witness_per_species,
+    BCHARGE = witness_bunch_charge,
+    SOURCES = WITNESS_ELECTRON_SOURCES;
+
+WITNESS_POSITRONS: BEAM,
+    PARTICLE = POSITRON,
+    ORBITTHREADER = FALSE,
+    NALLOC = n_witness_per_species,
+    BCHARGE = witness_bunch_charge,
+    SOURCES = WITNESS_POSITRON_SOURCES;
+
+TRACK,
+    LINE = TRACK12_LINE,
+    BEAMS = {PRIMARY_ELECTRONS, WITNESS_ELECTRONS, WITNESS_POSITRONS},
+    MAXSTEPS = n_steps,
+    ZSTART = 0.0,
+    ZSTOP = bb_length,
+    DT = track_dt;
+RUN, METHOD = "PARALLEL", FIELDSOLVER = FS1;
+ENDTRACK;
+
+QUIT;

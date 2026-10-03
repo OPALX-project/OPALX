@@ -26,6 +26,7 @@
 #include "Algorithms/BorisStepControl.h"
 #include "Algorithms/ClosedOrbitInitialState.h"
 #include "Algorithms/DeviceExternalField.h"
+#include "Algorithms/ElementInteractionManager.h"
 #include "Algorithms/SpectralTunes.h"
 #include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/Tracker.h"
@@ -44,6 +45,7 @@
 #include "Algorithms/IndexMap.h"
 #include "Algorithms/OrbitThreader.h"
 
+#include "AbsBeamline/BeamBeam.h"
 #include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/ConstantFocusing.h"
@@ -69,6 +71,7 @@
 #include <functional>
 #include <list>
 #include <memory>
+#include <optional>
 #include <tuple>
 #include <vector>
 
@@ -180,9 +183,11 @@ private:
     opalx::spacecharge::DirichletPlaneConfig dirichletPlane_m;
     std::vector<std::uint8_t> spaceChargeContainerActivity_m;
     OpalBeamline itsOpalBeamline_m;  ///< Cloned field elements and coordinate transforms.
-    bool globalEOL_m;                ///< End-of-line flag (e.g. orbit threader out of bounds).
-    double sStart_m;                 ///< Path-length start position for the track (m).
-    double ringPeriod_m;             ///< One-turn path length for RING, or zero for LINE.
+    /// Generic per-run behavior created by placed elements.
+    ElementInteractionManager elementInteractions_m;
+    bool globalEOL_m;     ///< End-of-line flag (e.g. orbit threader out of bounds).
+    double sStart_m;      ///< Path-length start position for the track (m).
+    double ringPeriod_m;  ///< One-turn path length for RING, or zero for LINE.
 
     /** Step-size segments: s-stop, dt, and steps per segment. */
     StepSizeConfig stepSizes_m;
@@ -264,6 +269,9 @@ public:
     /// @brief Apply the algorithm to a drift.
     void visitDrift(const Drift&) override;
 
+    /// @brief Apply the algorithm to a BeamBeam interaction element.
+    virtual void visitBeamBeam(const BeamBeam&);
+
     /// @brief Reject laser tracking until dedicated laser tracking is implemented.
     void visitLaser(const Laser&) override;
 
@@ -328,7 +336,7 @@ public:
 
     /** @brief Build the current tracker-frame context and dispatch the configured space-charge
      * solve. */
-    void computeSpaceChargeFields();
+    void computeSpaceChargeFields(OrbitThreader& sourceOth);
 
     /// @brief Apply external fields from elements intersecting each active container.
     /// @param oths Per-container orbit threaders (one per distinct species; same-species
@@ -459,6 +467,8 @@ private:
      */
     void computeInitialBounds(Vector_t<double, 3>& rmin, Vector_t<double, 3>& rmax);
 
+    void dumpSpaceChargePrimaryFieldH5() const;
+
     /**
      * @brief Log reference state for each container at track start.
      * @param m Inform stream for log output.
@@ -502,6 +512,10 @@ inline void ParallelTracker::visitCollimator(const Collimator& coll) {
 
 inline void ParallelTracker::visitDrift(const Drift& drift) {
     itsOpalBeamline_m.visit(drift, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitBeamBeam(const BeamBeam& beamBeam) {
+    itsOpalBeamline_m.visit(beamBeam, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitMonitor(const Monitor& monitor) {

@@ -121,7 +121,7 @@ cmake .. \
     -DARCH=AMPERE80
 ```
 
-For the release mode, use `Release` instead of `Debug` as the argument for `-DCMAKE_BUILD_TYPE`. For other GPUs use the correct flag for their corresponding architecture. For example, for P100 or GTX 1080 with Pascal61 architecture on Merlin login node, use `-DARCH=PASCAL61` instead of `-DARCH=AMPERE80`. 
+For the release mode, use `Release` instead of `Debug` as the argument for `-DCMAKE_BUILD_TYPE`. For other GPUs use the correct flag for their corresponding architecture. For example, for P100 or GTX 1080 with Pascal61 architecture on Merlin login node, use `-DARCH=PASCAL61` instead of `-DARCH=AMPERE80`.
 
 #### Notes:
 

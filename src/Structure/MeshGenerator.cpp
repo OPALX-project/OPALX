@@ -210,6 +210,9 @@ void MeshGenerator::add(const ElementBase& element) {
             case ElementType::SOLENOID:
                 mesh.type_m = SOLENOID;
                 break;
+            case ElementType::BEAMBEAM:
+                mesh.type_m = BEAMBEAM;
+                break;
             default:
                 mesh.type_m = OTHER;
         }
@@ -469,6 +472,7 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << indent << indent << indent << "('RFCavity', (1.0, 1.0, 0.0)),\n";
     out << indent << indent << indent << indent << "('TravelingWave', (0.0, 0.6, 0.0)),\n";
     out << indent << indent << indent << indent << "('Drift', (0.0, 0.0, 1.0)),\n";
+    out << indent << indent << indent << indent << "('BeamBeam', (0.0, 0.7, 0.9)),\n";
     out << indent << indent << indent << "]\n";
     out << indent << indent << indent << "present = []\n";
     out << indent << indent << indent << "for label, color in legend:\n";
@@ -590,6 +594,7 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << "lookup_table.append([1.0, 1.0, 0.0, 1.0])\n";
     out << indent << "lookup_table.append([0.0, 0.6, 0.0, 1.0])\n";
     out << indent << "lookup_table.append([0.0, 0.0, 1.0, 1.0])\n\n";
+    out << indent << "lookup_table.append([0.0, 0.7, 0.9, 1.0])\n\n";
 
     out << indent << "decodeVertices()\n\n";
 
@@ -654,6 +659,7 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << "lookup_table.append([1.0, 1.0, 0.0])\n";
     out << indent << "lookup_table.append([0.0, 0.6, 0.0])\n";
     out << indent << "lookup_table.append([0.0, 0.0, 1.0])\n\n";
+    out << indent << "lookup_table.append([0.0, 0.7, 0.9])\n\n";
 
     out << indent << "decodeVertices()\n\n";
 
