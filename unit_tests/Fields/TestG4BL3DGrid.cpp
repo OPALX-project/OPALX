@@ -17,6 +17,7 @@
  * - Electric field read in MV/m and returned in V/m, exact on a linear field
  * - normB/current and normE/gradient scale the two fields independently; gradient=0 rejected
  * - Seven- or eight-column rows rejected
+ * - A map too large for memory stops with a message naming the map
  */
 
 #include "Fields/Fieldmap.h"
@@ -518,4 +519,25 @@ TEST_F(G4BL3DGridTest, SevenColumnRowIsRejected) {
     }
     Fieldmap::getFieldmap(file, false, false);
     EXPECT_THROW(Fieldmap::readMap(file), GeneralOpalException);
+}
+
+// A grid this large needs 8e15 bytes per field component, more than any machine has, so the
+// allocation fails. The error has to name the map and say what to do about it.
+TEST_F(G4BL3DGridTest, MapTooLargeForMemoryIsRejectedWithAClearMessage) {
+    const auto file = path();
+    {
+        std::ofstream f(file);
+        f << "grid X0=0 Y0=0 Z0=0 nX=100000 nY=100000 nZ=100000 dX=1 dY=1 dZ=1\n";
+        f << "data\n";
+    }
+    ASSERT_NE(Fieldmap::getFieldmap(file, false, false), nullptr);
+    try {
+        Fieldmap::readMap(file);
+        FAIL() << "expected a throw";
+    } catch (const GeneralOpalException& e) {
+        const std::string message = e.what();
+        EXPECT_NE(message.find("does not fit in memory"), std::string::npos) << message;
+        EXPECT_NE(message.find(file), std::string::npos) << message;
+        EXPECT_NE(message.find("fewer MPI ranks per node"), std::string::npos) << message;
+    }
 }
