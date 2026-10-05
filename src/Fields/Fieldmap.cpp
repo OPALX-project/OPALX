@@ -40,6 +40,8 @@
 
 #include "H5hut.h"
 
+#include <Kokkos_Core.hpp>
+
 #include <filesystem>
 
 #include <cctype>
@@ -49,9 +51,26 @@
 #include <iomanip>
 #include <ios>
 #include <iostream>
+#include <new>
 #include <sstream>
 
 namespace fs = std::filesystem;
+
+namespace {
+    /// Stop with a message that names the map and says what to do. `failure` is the text of
+    /// the allocation error, which says how much memory was asked for and where.
+    [[noreturn]] void throwOutOfMemory(const std::string& filename, const std::string& failure) {
+        throw GeneralOpalException(
+                "Fieldmap::readMap",
+                "Field map '" + filename + "' does not fit in memory. Loading it failed with:\n  "
+                        + failure
+                        + "\nEvery MPI rank holds its own copy of the map, and GPU builds keep "
+                          "one copy on the CPU and one on the GPU.\nTo make it fit, do one of:\n"
+                          "  - use a coarser grid or a smaller box for this map,\n"
+                          "  - run fewer MPI ranks per node,\n"
+                          "  - run on nodes with more memory.");
+    }
+}  // namespace
 
 #define REGISTER_PARSE_TYPE(X)            \
     template <>                           \
@@ -362,7 +381,22 @@ void Fieldmap::readMap(std::string Filename) {
             FieldmapDictionary.find(Filename);
     if (position != FieldmapDictionary.end())
         if (!(*position).second.read) {
-            (*position).second.Map->readMap();
+            // A failed allocation is turned into a message that names the map. freeMap()
+            // first releases whatever was allocated before the failure.
+            try {
+                (*position).second.Map->readMap();
+            }
+#if KOKKOS_VERSION >= 50200
+            // Kokkos 5.2 and later throw this, which is not a std::bad_alloc.
+            catch (const Kokkos::Experimental::BadAlloc& e) {
+                (*position).second.Map->freeMap();
+                throwOutOfMemory(Filename, e.what());
+            }
+#endif
+            catch (const std::bad_alloc& e) {
+                (*position).second.Map->freeMap();
+                throwOutOfMemory(Filename, e.what());
+            }
             (*position).second.read = true;
         }
 }
