@@ -59,7 +59,7 @@ namespace opalx::spacecharge {
         };
 
         FFT2D5FieldStorage(const FFT2D5Config& config, double pathLength);
-        ~FFT2D5FieldStorage();
+        ~FFT2D5FieldStorage() = default;
 
         FFT2D5FieldStorage(const FFT2D5FieldStorage&)            = delete;
         FFT2D5FieldStorage& operator=(const FFT2D5FieldStorage&) = delete;

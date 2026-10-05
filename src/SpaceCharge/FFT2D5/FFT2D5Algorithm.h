@@ -373,7 +373,7 @@ namespace opalx::spacecharge {
          * @param fsR The particle position in Frenet-Serret coordinates
          * @param e Particle E fields.
          * @param invDr Inverse grid spacing in each spatial dimension.
-         * @param nghost Number of ghost cells surrounding the local grid domain.
+         * @param nGhost Number of ghost cells surrounding the local grid domain.
          * @param lDom Local domain of the charge-density grid.
          * @param eField Electric field grid from the Poisson solver.
          * @param origin Physical origin of the charge-density grid.
@@ -381,7 +381,7 @@ namespace opalx::spacecharge {
         template <bool ScatterLongitudinally>
         KOKKOS_FUNCTION static void gatherFromEField(
                 size_t n, const Vector3D_t& fsR, const VectorView_t& e, const Vector3D_t& invDr,
-                int nghost, const ippl::NDIndex<3U>& lDom, const VectorGridView3D_t& eField,
+                int nGhost, const ippl::NDIndex<3U>& lDom, const VectorGridView3D_t& eField,
                 const Vector3D_t& origin);
 
         /**
