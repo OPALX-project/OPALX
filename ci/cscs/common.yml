@@ -13,7 +13,7 @@ include:
       else
         export CDASH_LABEL="$CI_COMMIT_REF_SLUG"
       fi
-    - echo "CDASH_LABEL=$CDASH_LABEL"
+    - echo "CDASH_LABEL=$CDASH_LABEL (from CI_COMMIT_REF_NAME $CI_COMMIT_REF_NAME)"
 
 stages:
   - opalx_build

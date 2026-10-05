@@ -19,6 +19,8 @@
 
 #ifndef OPAL_Track_HH
 #define OPAL_Track_HH
+#include <optional>
+#include "Algorithms/ClosedOrbitInitialState.h"
 #include "Algorithms/PartData.h"
 #include "PartBunch/PartBunch.h"
 #include "Steppers/Steppers.h"
@@ -68,6 +70,16 @@ public:
     /// The ellapsed time of the beam can be used to propper
     /// start the beam when created in a cavity i.e. without emission
     double t0_m;
+    /** Optional kinetic-energy stop [GeV]; zero disables it (SINGLEGAP RING only).
+     * Explicit input must be positive and finite. RUN transfers it to the tracker
+     * in eV; it is incompatible with explicit TURNS, restart or multiple DT segments.
+     * The first qualifying complete kick ends tracking, not a nominal turn or
+     * an artificial interpolation of the RF energy increment.
+     */
+    double kineticEnergyStopGeV = 0;
+
+    /// Independent snapshot selected by TRACK INITIALORBIT.
+    std::optional<ClosedOrbitInitialState> initialOrbit;
 
     /// Maximal number of timesteps
     std::vector<unsigned long long> localTimeSteps;
@@ -83,9 +95,6 @@ public:
 
     /// The ID of time integrator
     Steppers::TimeIntegrator timeIntegrator;
-
-    /// Trunction order for map tracking
-    int truncOrder;
 
     /// The names of beams selected on the enclosing TRACK command.
     /// (If RUN::BEAM is omitted, TrackRun resolves from this list.)

@@ -53,7 +53,7 @@ namespace opalx::spacecharge {
 
         // updateLayout() reallocates Kokkos views. Complete work using the previous field storage
         // before any of those device allocations can be released.
-        Kokkos::fence();
+        Kokkos::fence("CartesianPIC3DFieldStorage: release old layout storage");
         electricField_m.updateLayout(layout());
         chargeDensity_m.updateLayout(layout());
         if (potentialInitialized_m) {

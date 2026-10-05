@@ -206,7 +206,7 @@ namespace opalx::spacecharge {
     void PoissonSolver::rebuildAfterLayoutChange(PoissonFieldBinding fields) {
         requireCommonFields(fields, "PoissonSolver::rebuildAfterLayoutChange");
         // Finish work using the old extents before rebuilding fields and FFT plans.
-        Kokkos::fence();
+        Kokkos::fence("PoissonSolver: rebuild fields and FFT plans");
         rebuildImpl(fields);
         fields_m = fields;
     }

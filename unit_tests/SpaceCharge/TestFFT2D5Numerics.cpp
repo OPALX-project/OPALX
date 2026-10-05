@@ -15,6 +15,8 @@
 //
 
 #include <gtest/gtest.h>
+#include <algorithm>
+#include <cmath>
 #include <csignal>
 #include <filesystem>
 #include <memory>
@@ -1700,6 +1702,59 @@ namespace {
         EXPECT_NEAR(bHost(2).data_m[1], 0, 1e-4);
         EXPECT_NEAR(bHost(2).data_m[2], 0, 1e-4);
 #endif
+    }
+
+    TEST_F(TestSolve2d5, MainApiMatchesDirectStagesForScatterAndBoundaryModes) {
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        fsCmd_m->setType("FFT2D5");
+        fsCmd_m->setNX(12);
+        fsCmd_m->setNY(12);
+        fsCmd_m->setNZ(12);
+        fsCmd_m->setPipeSizeX(6);
+        fsCmd_m->setPipeSizeY(6);
+
+        for (const bool scatterLongitudinally : {false, true}) {
+            for (const bool closedRing : {false, true}) {
+                SCOPED_TRACE(
+                        testing::Message() << "scatterLongitudinally=" << scatterLongitudinally
+                                           << ", closedRing=" << closedRing);
+                fsCmd_m->setScatterLongitudinally(scatterLongitudinally);
+                fsCmd_m->setClosedRing(closedRing);
+                rebuildBunch();
+                createParticles(
+                        {{2, 0, 5.9}, {-2, 0, 0.1}, {0, 0, 3}}, {{0, 0, 1}, {0, 0, 1}, {0, 0, 1}});
+
+                // Exercise the library entry before the direct stage calls in an isolated run.
+                const auto result = solver_m->solve(context());
+                EXPECT_EQ(result.backendSolves, 12u);
+                const auto apiE = Kokkos::create_mirror(pc_m->E.getView());
+                const auto apiB = Kokkos::create_mirror(pc_m->B.getView());
+                Kokkos::deep_copy(apiE, pc_m->E.getView());
+                Kokkos::deep_copy(apiB, pc_m->B.getView());
+
+                clearSelfFields(*pc_m);
+                solver_m->scatterToGrid(context());
+                solver_m->solvePoissons();
+                solver_m->calculateLineDensity();
+                solver_m->gatherFromGrid(context());
+                const auto directE = pc_m->E.getHostMirror();
+                const auto directB = pc_m->B.getHostMirror();
+                Kokkos::deep_copy(directE, pc_m->E.getView());
+                Kokkos::deep_copy(directB, pc_m->B.getView());
+                for (size_t particle = 0; particle < 3; ++particle) {
+                    for (unsigned dimension = 0; dimension < 3; ++dimension) {
+                        const auto expectedE = directE(particle)[dimension];
+                        const auto expectedB = directB(particle)[dimension];
+                        EXPECT_NEAR(
+                                apiE(particle)[dimension], expectedE,
+                                1e-10 * std::max(1.0, std::abs(expectedE)));
+                        EXPECT_NEAR(
+                                apiB(particle)[dimension], expectedB,
+                                1e-10 * std::max(1.0, std::abs(expectedB)));
+                    }
+                }
+            }
+        }
     }
 
     const std::vector<Vector_t<double, 3>> kvR{
