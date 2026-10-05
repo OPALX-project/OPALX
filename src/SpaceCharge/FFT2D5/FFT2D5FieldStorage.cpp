@@ -108,8 +108,6 @@ namespace opalx::spacecharge {
         }
     }
 
-    FFT2D5FieldStorage::~FFT2D5FieldStorage() = default;
-
     void FFT2D5FieldStorage::solveSlice(std::size_t sliceIndex) {
         slices_m.at(sliceIndex).solver->solve();
     }

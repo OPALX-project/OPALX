@@ -54,30 +54,30 @@ namespace opalx::spacecharge {
             Algorithm::ScalarView_t dt_m;
             Algorithm::BooleanView_t invalid_m;
             InverseSpacing invDr_m;
-            int nghost_m;
+            int nGhost_m;
             ippl::NDIndex<3U> lDom_m;
             Algorithm::ScalarGridView3D_t rho_m;
             Algorithm::Vector3D_t origin_m;
             DiagnosticPolicy diagnostic_m;
 
-            KOKKOS_INLINE_FUNCTION void operator()(const size_t n) const {
+            KOKKOS_FUNCTION void operator()(const size_t n) const {
                 Algorithm::doScatterToGrid<ScatterLongitudinally>(
-                        n, r_m, p_m, ref_m, meanPs_m, dt_m, invalid_m, invDr_m, nghost_m, lDom_m,
+                        n, r_m, p_m, ref_m, meanPs_m, dt_m, invalid_m, invDr_m, nGhost_m, lDom_m,
                         rho_m, origin_m, diagnostic_m);
             }
         };
 
         /** @brief Fold deposited ghost charge into the opposite end of a closed ring. */
         struct ScatterBoundariesFunctor {
-            Algorithm::ScalarGridView3D_t rho_m;
+            Algorithm::ScalarGridView3D_t rhoView_m;
             size_t firstRealZ_m;
             size_t lastRealZ_m;
 
-            KOKKOS_INLINE_FUNCTION void operator()(const size_t i, const size_t j) const {
-                rho_m(i, j, firstRealZ_m) += rho_m(i, j, lastRealZ_m + 1);
-                rho_m(i, j, lastRealZ_m) += rho_m(i, j, firstRealZ_m - 1);
-                rho_m(i, j, lastRealZ_m + 1)  = 0;
-                rho_m(i, j, firstRealZ_m - 1) = 0;
+            KOKKOS_FUNCTION void operator()(const size_t i, const size_t j) const {
+                rhoView_m(i, j, firstRealZ_m) += rhoView_m(i, j, lastRealZ_m + 1);
+                rhoView_m(i, j, lastRealZ_m) += rhoView_m(i, j, firstRealZ_m - 1);
+                rhoView_m(i, j, lastRealZ_m + 1)  = 0;
+                rhoView_m(i, j, firstRealZ_m - 1) = 0;
             }
         };
 
@@ -86,20 +86,19 @@ namespace opalx::spacecharge {
             Algorithm::ScalarGridView3D_t rho_m;
             Algorithm::T scale_m;
 
-            KOKKOS_INLINE_FUNCTION void operator()(
-                    const size_t i, const size_t j, const size_t k) const {
+            KOKKOS_FUNCTION void operator()(const size_t i, const size_t j, const size_t k) const {
                 rho_m(i, j, k) /= scale_m;
             }
         };
 
         /** @brief Sum the charge density over one transverse slice. */
         struct SliceDensitySumFunctor {
-            Algorithm::ScalarGridView3D_t rho_m;
+            Algorithm::ScalarGridView3D_t rho3d_m;
             size_t k_m;
 
-            KOKKOS_INLINE_FUNCTION void operator()(
+            KOKKOS_FUNCTION void operator()(
                     const size_t i, const size_t j, Algorithm::T& localSum) const {
-                localSum += rho_m(i, j, k_m);
+                localSum += rho3d_m(i, j, k_m);
             }
         };
 
@@ -109,7 +108,7 @@ namespace opalx::spacecharge {
             Algorithm::T dx_m;
             Algorithm::T dy_m;
 
-            KOKKOS_INLINE_FUNCTION void operator()(const size_t k) const {
+            KOKKOS_FUNCTION void operator()(const size_t k) const {
                 lineDensity_m(k) *= dx_m * dy_m;
             }
         };
@@ -121,7 +120,7 @@ namespace opalx::spacecharge {
             size_t firstRealCell_m;
             Algorithm::T dz_m;
 
-            KOKKOS_INLINE_FUNCTION void operator()(const size_t k) const {
+            KOKKOS_FUNCTION void operator()(const size_t k) const {
                 gradient_m(k) = (lineDensity_m(k + firstRealCell_m + 1)
                                  - lineDensity_m(k + firstRealCell_m - 1))
                                 / (2.0 * dz_m);
@@ -130,10 +129,10 @@ namespace opalx::spacecharge {
 
         /** @brief Apply the electrostatic coupling constant before a slice solve. */
         struct PoissonCouplingFunctor {
-            Algorithm::ScalarGridView2D_t rho_m;
+            Algorithm::ScalarGridView2D_t rho2d_m;
 
-            KOKKOS_INLINE_FUNCTION void operator()(const size_t i, const size_t j) const {
-                rho_m(i, j) *= 1 / Physics::epsilon_0;
+            KOKKOS_FUNCTION void operator()(const size_t i, const size_t j) const {
+                rho2d_m(i, j) *= 1 / Physics::epsilon_0;
             }
         };
 
@@ -143,7 +142,7 @@ namespace opalx::spacecharge {
             Algorithm::VectorGridView3D_t e3d_m;
             size_t z_m;
 
-            KOKKOS_INLINE_FUNCTION void operator()(const size_t i, const size_t j) const {
+            KOKKOS_FUNCTION void operator()(const size_t i, const size_t j) const {
                 e3d_m(i, j, z_m)[0] = e2d_m(i, j)[0];
                 e3d_m(i, j, z_m)[1] = e2d_m(i, j)[1];
                 e3d_m(i, j, z_m)[2] = 0.0;
@@ -153,31 +152,31 @@ namespace opalx::spacecharge {
         /** @brief Set longitudinal field ghosts to periodic copies or zero for an open path. */
         template <bool ClosedRing>
         struct FieldGhostsFunctor {
-            Algorithm::VectorGridView3D_t e_m;
+            Algorithm::VectorGridView3D_t e3d_m;
             size_t leftGhost_m;
             size_t rightGhost_m;
 
-            KOKKOS_INLINE_FUNCTION void operator()(const size_t i, const size_t j) const {
+            KOKKOS_FUNCTION void operator()(const size_t i, const size_t j) const {
                 if constexpr (ClosedRing) {
-                    e_m(i, j, leftGhost_m)[0]  = e_m(i, j, rightGhost_m - 1)[0];
-                    e_m(i, j, leftGhost_m)[1]  = e_m(i, j, rightGhost_m - 1)[1];
-                    e_m(i, j, leftGhost_m)[2]  = e_m(i, j, rightGhost_m - 1)[2];
-                    e_m(i, j, rightGhost_m)[0] = e_m(i, j, leftGhost_m + 1)[0];
-                    e_m(i, j, rightGhost_m)[1] = e_m(i, j, leftGhost_m + 1)[1];
-                    e_m(i, j, rightGhost_m)[2] = e_m(i, j, leftGhost_m + 1)[2];
+                    e3d_m(i, j, leftGhost_m)[0]  = e3d_m(i, j, rightGhost_m - 1)[0];
+                    e3d_m(i, j, leftGhost_m)[1]  = e3d_m(i, j, rightGhost_m - 1)[1];
+                    e3d_m(i, j, leftGhost_m)[2]  = e3d_m(i, j, rightGhost_m - 1)[2];
+                    e3d_m(i, j, rightGhost_m)[0] = e3d_m(i, j, leftGhost_m + 1)[0];
+                    e3d_m(i, j, rightGhost_m)[1] = e3d_m(i, j, leftGhost_m + 1)[1];
+                    e3d_m(i, j, rightGhost_m)[2] = e3d_m(i, j, leftGhost_m + 1)[2];
                 } else {
-                    e_m(i, j, leftGhost_m)[0]  = 0;
-                    e_m(i, j, leftGhost_m)[1]  = 0;
-                    e_m(i, j, leftGhost_m)[2]  = 0;
-                    e_m(i, j, rightGhost_m)[0] = 0;
-                    e_m(i, j, rightGhost_m)[1] = 0;
-                    e_m(i, j, rightGhost_m)[2] = 0;
+                    e3d_m(i, j, leftGhost_m)[0]  = 0;
+                    e3d_m(i, j, leftGhost_m)[1]  = 0;
+                    e3d_m(i, j, leftGhost_m)[2]  = 0;
+                    e3d_m(i, j, rightGhost_m)[0] = 0;
+                    e3d_m(i, j, rightGhost_m)[1] = 0;
+                    e3d_m(i, j, rightGhost_m)[2] = 0;
                 }
             }
         };
 
         /** @brief Gather slice fields and transform the particle fields back to lab coordinates. */
-        template <typename DiagnosticPolicy, typename InverseSpacing>
+        template <bool ScatterLongitudinally, typename DiagnosticPolicy, typename InverseSpacing>
         struct GatherFromGridFunctor {
             Algorithm::VectorView_t r_m;
             Algorithm::VectorView_t p_m;
@@ -188,7 +187,7 @@ namespace opalx::spacecharge {
             Algorithm::VectorView_t b_m;
             Algorithm::BooleanView_t invalid_m;
             InverseSpacing invDr_m;
-            int nghost_m;
+            int nGhost_m;
             ippl::NDIndex<3U> lDom_m;
             Algorithm::VectorGridView3D_t eField_m;
             Algorithm::Vector3D_t origin_m;
@@ -196,10 +195,10 @@ namespace opalx::spacecharge {
             Algorithm::LineDensityView_t lineDensityGradient_m;
             DiagnosticPolicy diagnostic_m;
 
-            KOKKOS_INLINE_FUNCTION void operator()(const size_t n) const {
-                Algorithm::doGatherFromGrid(
+            KOKKOS_FUNCTION void operator()(const size_t n) const {
+                Algorithm::doGatherFromGrid<ScatterLongitudinally>(
                         n, r_m, p_m, ref_m, beamGamma_m, beamBeta_m, e_m, b_m, invalid_m, invDr_m,
-                        nghost_m, lDom_m, eField_m, origin_m, gBy4PiEpsilon0_m,
+                        nGhost_m, lDom_m, eField_m, origin_m, gBy4PiEpsilon0_m,
                         lineDensityGradient_m, diagnostic_m);
             }
         };
@@ -264,14 +263,14 @@ namespace opalx::spacecharge {
                             "Solve2d5::scatterToGrid::scatter", pc->getLocalNum(),
                             fft2d5_detail::ScatterToGridFunctor<
                                     true, DiagnosticPolicy, decltype(invDr)>{
-                                    r, p, ref, meanPs, dt, invalid, invDr, nghost, lDom, rhoView,
+                                    r, p, ref, meanPs, dt, invalid, invDr, nGhost, lDom, rhoView,
                                     origin, diagnostic});
                 } else {
                     Kokkos::parallel_for(
                             "Solve2d5::scatterToGrid::scatter", pc->getLocalNum(),
                             fft2d5_detail::ScatterToGridFunctor<
                                     false, DiagnosticPolicy, decltype(invDr)>{
-                                    r, p, ref, meanPs, dt, invalid, invDr, nghost, lDom, rhoView,
+                                    r, p, ref, meanPs, dt, invalid, invDr, nGhost, lDom, rhoView,
                                     origin, diagnostic});
                 }
                 Kokkos::fence();
@@ -502,9 +501,9 @@ namespace opalx::spacecharge {
                     "Solve2d5::solvePoissons::coupling",
                     Policy({0, 0}, {rho2d.extent(0), rho2d.extent(1)}),
                     fft2d5_detail::PoissonCouplingFunctor{rho2d});
-// CHECK           fieldStorage_m->solveSlice(z);
+            fieldStorage_m->solveSlice(z);
 
-            #if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
+#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
             s.solver->solve();
 #else
             s.solver2->solve(*s.chargeDensity, *s.electricField);
@@ -577,26 +576,21 @@ namespace opalx::spacecharge {
                 const T gBy4PiEpsilon0 = g / (4 * Physics::pi * Physics::epsilon_0);
                 if (config_m.scatterLongitudinally) {
                     Kokkos::parallel_for(
-                            "Solve2d5::gatherFromGrid", pc->getLocalNum(),
-                            KOKKOS_LAMBDA(const size_t n) {
-                                doGatherFromGrid<true>(
-                                        n, r, p, ref, gammaB, betaB, e, b, invalid, invDr, nGhost,
-                                        lDom, eField, origin, gBy4PiEpsilon0, lineDensityGradient,
-                                        diagnostic);
-                            });
+                            "Solver2d5::GatherFromGrid", pc->getLocalNum(),
+                            fft2d5_detail::GatherFromGridFunctor<
+                                    true, DiagnosticPolicy, decltype(invDr)>{
+                                    r, p, ref, gammaB, betaB, e, b, invalid, invDr, nGhost, lDom,
+                                    eField, origin, gBy4PiEpsilon0, lineDensityGradient,
+                                    diagnostic});
                 } else {
                     Kokkos::parallel_for(
-                            "Solve2d5::gatherFromGrid", pc->getLocalNum(),
-                            KOKKOS_LAMBDA(const size_t n) {
-                                doGatherFromGrid<false>(
-                                        n, r, p, ref, gammaB, betaB, e, b, invalid, invDr, nGhost,
-                                        lDom, eField, origin, gBy4PiEpsilon0, lineDensityGradient,
-                                        diagnostic);
-                            });
+                            "Solver2d5::GatherFromGrid", pc->getLocalNum(),
+                            fft2d5_detail::GatherFromGridFunctor<
+                                    false, DiagnosticPolicy, decltype(invDr)>{
+                                    r, p, ref, gammaB, betaB, e, b, invalid, invDr, nGhost, lDom,
+                                    eField, origin, gBy4PiEpsilon0, lineDensityGradient,
+                                    diagnostic});
                 }
-                fft2d5_detail::GatherFromGridFunctor<DiagnosticPolicy, decltype(invDr)>{
-                    r, p, ref, gammaB, betaB, e, b, invalid, invDr, nghost, lDom,
-                    eField, origin, gBy4PiEpsilon0, lineDensityGradient, diagnostic});
                 Kokkos::fence();
             }
         }
@@ -646,8 +640,6 @@ namespace opalx::spacecharge {
         if (makeWeights(fsR, origin, invDr, nGhost, lDom, eField, whi, wlo, args)) {
             if constexpr (ScatterLongitudinally) {
                 e(n) = gather3D(eField, wlo, whi, args[0], args[1], args[2]);
-                // e(n) = gather2D(eField, wlo, whi, args[0], args[1], args[2] - 1)
-                //        + gather2D(eField, wlo, whi, args[0], args[1], args[2]);
             } else {
                 e(n) = gather2D(eField, wlo, whi, args[0], args[1], args[2]);
             }
