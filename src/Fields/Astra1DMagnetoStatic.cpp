@@ -264,7 +264,8 @@ void Astra1DMagnetoStatic::freeMap() {
  *
  * @param pc Particle container
  */
-void Astra1DMagnetoStatic::applyField(std::shared_ptr<ParticleContainer_t> pc, double scale) {
+void Astra1DMagnetoStatic::applyField(
+        std::shared_ptr<ParticleContainer_t> pc, double scale, double) {
     const double zbegin = zbegin_m;
     const double zend   = zend_m;
     const double length = length_m;
