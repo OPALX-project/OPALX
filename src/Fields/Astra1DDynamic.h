@@ -223,7 +223,7 @@ public:
      *
      * @param pc Particle container
      */
-    void applyField(std::shared_ptr<ParticleContainer_t> pc, double) override;
+    void applyField(std::shared_ptr<ParticleContainer_t> pc, double, double) override;
 
     /**
      * @brief Apply RF-scaled Astra1DDynamic field to all particles.

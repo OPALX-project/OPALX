@@ -24,13 +24,25 @@
 
 extern Inform* gmsg;
 
+bool ElementBase::isInsideBody(const Vector_t<double, 3>& r) const {
+    const auto& geometry = getGeometry();
+    const auto local     = geometry.kind() == GeometryKind::SBend
+                                   ? GeometryHelper::toBendArcCoords(
+                                         r, geometry.getCurvature(), geometry.getElementLength())
+                                   : r;
+    return local(2) >= 0.0 && local(2) < geometry.getElementLength()
+           && ApertureHelper::isInsideAperture(local, aperture_m);
+}
+
 const std::vector<double> ElementBase::defaultAperture_m = std::vector<double>({1e6, 1e6});
 
 const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
         {ElementType::ANY, "Any"},
+        {ElementType::CYCLOTRONSECTOR, "CyclotronSector"},
         {ElementType::BEAMLINE, "Beamline"},
         {ElementType::COLLIMATOR, "Collimator"},
         {ElementType::DRIFT, "Drift"},
+        {ElementType::FIELDMAP, "Fieldmap"},
         {ElementType::LASER, "Laser"},
         {ElementType::MARKER, "Marker"},
         {ElementType::MONITOR, "Monitor"},
@@ -41,7 +53,6 @@ const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
         {ElementType::SBEND, "SBEND"},
         {ElementType::RBEND, "RBEND"},
         {ElementType::RBEND3D, "RBEND3D"},
-        {ElementType::RING, "Ring"},
         {ElementType::SOURCE, "SOURCE"},
         {ElementType::SOLENOID, "SOLENOID"},
         {ElementType::PROBE, "Probe"},
@@ -61,6 +72,7 @@ ElementBase::ElementBase(const ElementBase& right)
       RefPartBunch_m(nullptr),
       online_m(right.online_m),
       elementID(right.elementID),
+      beamlineMembership_m(right.beamlineMembership_m),
       userAttribs(right.userAttribs),
       positionIsFixed(right.positionIsFixed),
       elementPosition_m(right.elementPosition_m),
@@ -76,6 +88,7 @@ ElementBase::ElementBase(const std::string& name)
       RefPartBunch_m(nullptr),
       online_m(false),
       elementID(name),
+      beamlineMembership_m(),
       userAttribs(),
       positionIsFixed(false),
       elementPosition_m(0.0),
@@ -89,6 +102,49 @@ ElementBase::~ElementBase() {}
 const std::string& ElementBase::getName() const { return elementID; }
 
 void ElementBase::setName(const std::string& name) { elementID = name; }
+
+const BeamlineMembership& ElementBase::getBeamlineMembership() const {
+    return beamlineMembership_m;
+}
+
+BeamlineTopology ElementBase::getBeamlineTopology() const { return beamlineMembership_m.topology; }
+
+const std::string& ElementBase::getBeamlineOwnerName() const {
+    return beamlineMembership_m.ownerName;
+}
+
+bool ElementBase::hasLinearTransferMaps() const { return !linearTransferMaps_m.empty(); }
+
+const std::vector<LinearTransferMap>& ElementBase::getLinearTransferMaps() const {
+    return linearTransferMaps_m;
+}
+
+void ElementBase::addLinearTransferMap(LinearTransferMap map) {
+    linearTransferMaps_m.push_back(std::move(map));
+}
+
+void ElementBase::clearLinearTransferMaps() { linearTransferMaps_m.clear(); }
+
+bool ElementBase::isOverlapping() const { return isOverlapping_m; }
+
+void ElementBase::setOverlapping(const bool overlapping) { isOverlapping_m = overlapping; }
+
+void ElementBase::setBeamlineMembership(BeamlineTopology topology, std::string ownerName) {
+    if (topology == BeamlineTopology::RING && ownerName.empty()) {
+        throw GeneralOpalException(
+                "ElementBase::setBeamlineMembership()",
+                "RING membership requires a non-empty owner name");
+    }
+    if (topology == BeamlineTopology::LINE && !ownerName.empty()) {
+        throw GeneralOpalException(
+                "ElementBase::setBeamlineMembership()",
+                "LINE membership cannot have an owner name");
+    }
+
+    beamlineMembership_m = {topology, std::move(ownerName)};
+}
+
+void ElementBase::clearBeamlineMembership() { beamlineMembership_m = {}; }
 
 void ElementBase::setOutputFN(const std::string fn) { outputfn_m = fn; }
 
@@ -212,13 +268,13 @@ size_t ElementBase::markOutsideAperture(const std::shared_ptr<ParticleContainer_
     }
 
     // The aperture is a geometric property of the element body, so gate on the
-    // geometric extent [0, L] (element-local frame), consistent with
-    // applyToReferenceParticle() below. The field-support window
-    // (getFieldExtent) can be narrower or offset from the body -- e.g. Solenoid
+    // geometric extent [startZ, startZ + L] (element-local frame), consistent with
+    // applyToReferenceParticle() below. startZ is 0 except for FIELDMAP. The field-support
+    // window (getFieldExtent) can be narrower or offset from the body -- e.g. Solenoid
     // returns its field-map range and Monitor a plane-centered window -- which
     // would leave part of the body unchecked.
-    const double zBegin = 0.0;
-    const double zEnd   = getGeometry().getElementLength();
+    const double zBegin = getGeometry().getStartZ();
+    const double zEnd   = zBegin + getGeometry().getElementLength();
 
     // Members copied to locals; the device kernel must not capture `this`.
     const ApertureType type = aperture_m.first;
@@ -251,7 +307,8 @@ size_t ElementBase::markOutsideAperture(const std::shared_ptr<ParticleContainer_
 bool ElementBase::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
-    if (R(2) >= 0.0 && R(2) < getGeometry().getElementLength()) {
+    const double zBegin = getGeometry().getStartZ();
+    if (R(2) >= zBegin && R(2) < zBegin + getGeometry().getElementLength()) {
         if (!ApertureHelper::isInsideAperture(R, aperture_m)) {
             return true;
         }

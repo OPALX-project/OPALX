@@ -58,7 +58,10 @@ public:
     /** Visitor dispatch */
     void accept(BeamlineVisitor& visitor) const override;
 
-    /** Apply the field to all particles in the container */
+    /** Apply the field at the common Boris midpoint t + dt/2 [s].
+     * Amplitude [MV/m], integrated frequency [MHz s], and phase [rad]
+     * are evaluated on the host; the additive field kernel runs on the device.
+     */
     void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     /** Calculate the field at a given position
@@ -111,6 +114,13 @@ public:
         zBegin = 0.0;
         zEnd   = getGeometry().getElementLength();
     }
+
+    /** Rectangular field support in local metres: z in [0,L),
+     * |x| <= WIDTH/2 and |y| <= HEIGHT/2. Transverse faces are included.
+     * WIDTH/HEIGHT define the RF support; the generic APERTURE retains its
+     * separate role in tracking loss checks.
+     */
+    bool isInside(const Vector_t<double, 3>& r) const override;
 
     /** Get the amplitude at a given time
      *
@@ -221,8 +231,9 @@ KOKKOS_INLINE_FUNCTION bool VariableRFCavity::computeField(
     if (R[2] < 0.0 || R[2] >= length) {
         return false;
     }
-    E[2] += E0 * Kokkos::sin(Physics::two_pi * integralF + phi);
     const bool outsideAperture = Kokkos::abs(R[0]) > halfWidth || Kokkos::abs(R[1]) > halfHeight;
+    if (outsideAperture) return true;
+    E[2] += E0 * Kokkos::sin(Physics::two_pi * integralF + phi);
     return outsideAperture;
 }
 

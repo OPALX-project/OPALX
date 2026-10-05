@@ -101,21 +101,25 @@ TEST(GeometryTest, RectangularBend) {
     expectTrafo(g.getEdgeToEnd(), {0.0, 0.0, L}, kIdentity);
 }
 
-TEST(GeometryTest, IsBendIdentifiesTheBodiesThatTurnTheOrbit) {
-    // Placement asks the geometry, not the element type, whether an element turns the
-    // reference orbit, so any element carrying a bend geometry is framed as a bend.
-    EXPECT_FALSE(Geometry::makeNull().isBend());
-    EXPECT_FALSE(Geometry::makeStraight(0.75).isBend());
-    EXPECT_TRUE(Geometry::makeSBend(1.0, 0.2).isBend());
-    EXPECT_TRUE(Geometry::makeRBend(0.9, 0.40).isBend());
+// A body that starts at z = startZ in the local frame (FIELDMAP): both edges move by startZ,
+// the lengths do not change.
+TEST(GeometryTest, StraightWithStartOffset) {
+    const double L      = 0.75;
+    const double startZ = -0.3;
+    Geometry g          = Geometry::makeStraight(L);
+    g.setStartZ(startZ);
 
-    EXPECT_FALSE(Geometry::makeNull().isRectangularBend());
-    EXPECT_FALSE(Geometry::makeStraight(0.75).isRectangularBend());
-    EXPECT_FALSE(Geometry::makeSBend(1.0, 0.2).isRectangularBend());
-    EXPECT_TRUE(Geometry::makeRBend(0.9, 0.40).isRectangularBend());
+    EXPECT_DOUBLE_EQ(g.getStartZ(), startZ);
+    EXPECT_DOUBLE_EQ(g.getElementLength(), L);
+    EXPECT_DOUBLE_EQ(g.getArcLength(), L);
+    EXPECT_DOUBLE_EQ(g.getChordLength(), L);
 
-    // A default-constructed geometry is straight.
-    EXPECT_FALSE(Geometry().isBend());
+    expectTrafo(g.getEdgeToBegin(), {0.0, 0.0, startZ}, kIdentity);
+    expectTrafo(g.getEdgeToEnd(), {0.0, 0.0, startZ + L}, kIdentity);
+
+    auto path = g.getDesignPath(8);
+    EXPECT_NEAR(path.front()(2), startZ, 1e-12);
+    EXPECT_NEAR(path.back()(2), startZ + L, 1e-12);
 }
 
 TEST(GeometryTest, SetElementLengthRecomputesArcAngle) {

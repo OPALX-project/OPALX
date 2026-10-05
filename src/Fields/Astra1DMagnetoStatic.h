@@ -73,7 +73,7 @@ public:
         B(2) += bz - bzpp * RR2 / 4.0;
     }
 
-    void applyField(std::shared_ptr<ParticleContainer_t> pc, double scale) override;
+    void applyField(std::shared_ptr<ParticleContainer_t> pc, double scale, double) override;
 
 private:
     Astra1DMagnetoStatic(const std::string& filename);
