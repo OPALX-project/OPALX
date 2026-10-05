@@ -50,6 +50,7 @@
 #include "AbsBeamline/CyclotronSector.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/FieldmapElement.h"
 #include "AbsBeamline/Laser.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
@@ -263,6 +264,9 @@ public:
 
     /// @brief Apply the algorithm to a drift.
     void visitDrift(const Drift&) override;
+
+    /// @brief Apply the algorithm to a field-map-driven element.
+    void visitFieldmapElement(const FieldmapElement&) override;
 
     /// @brief Reject laser tracking until dedicated laser tracking is implemented.
     void visitLaser(const Laser&) override;
@@ -502,6 +506,10 @@ inline void ParallelTracker::visitCollimator(const Collimator& coll) {
 
 inline void ParallelTracker::visitDrift(const Drift& drift) {
     itsOpalBeamline_m.visit(drift, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitFieldmapElement(const FieldmapElement& fm) {
+    itsOpalBeamline_m.visit(fm, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitMonitor(const Monitor& monitor) {

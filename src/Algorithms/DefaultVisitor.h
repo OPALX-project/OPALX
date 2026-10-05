@@ -56,6 +56,7 @@ public:
 
     /// Apply the algorithm to a drift space.
     void visitDrift(const Drift&) override;
+    void visitFieldmapElement(const FieldmapElement&) override;
 
     /// Apply the algorithm to a laser.
     void visitLaser(const Laser&) override;
