@@ -12,7 +12,7 @@
   variables:
     SLURM_JOB_NUM_NODES: 1
     SLURM_NTASKS: 1
-    SLURM_TIMELIMIT: "0:30:00"
+    SLURM_TIMELIMIT: "0:45:00"
     SCRATCH: "/capstor/scratch/cscs/biddisco"
   before_script:
     - !reference [.pr-number-extractor, before_script]
