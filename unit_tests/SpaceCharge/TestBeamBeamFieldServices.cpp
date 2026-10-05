@@ -187,6 +187,148 @@ namespace opalx::spacecharge {
             EXPECT_THROW(solver.solve(context), OpalException);
         }
 
+        // Deterministic tensor-product Gaussian quadrature: no RNG, files or HDF5.
+        // The rest-frame spherical Gaussian has sigma=1 mm and Q=1 pC.
+        // Lab z is contracted by gamma=2; E_perp=gamma E'_perp,
+        // E_z=E'_z and B=beta zhat x E/c. A 3% bound covers PIC quadrature,
+        // finite mesh and interpolation errors, not cross-backend roundoff.
+        TEST_F(BeamBeamFieldServicesTest, GaussianFieldsAndPassiveWitnessGather) {
+            using Container             = ::ParticleContainer<double, 3>;
+            constexpr unsigned samples  = 32;
+            constexpr std::size_t count = samples * samples * samples;
+            constexpr double sigma = 1.0e-3, charge = 1.0e-12, gamma = 2.0;
+            const double beta = std::sqrt(1.0 - 1.0 / (gamma * gamma));
+            CartesianDomainConfig3D domainConfig;
+            domainConfig.meshSize      = {48, 48, 48};
+            domainConfig.decomposition = {true, true, true};
+            CartesianDomain<double, 3> domain(domainConfig);
+            auto storage = std::make_unique<CartesianPIC3DFieldStorage<double, 3>>(domain);
+            auto state   = std::make_shared<BunchStateHandler>();
+            Container primary(domain.mesh(), domain.layout());
+            Container witness(domain.mesh(), domain.layout());
+            primary.setBunchStateHandler(state);
+            witness.setBunchStateHandler(state);
+            primary.setQ(charge / count);
+            primary.setM(Physics::m_e);
+            // Deliberately large witness charge: it must never enter deposition.
+            witness.setQ(100.0 * charge);
+            witness.setM(Physics::m_e);
+            const std::size_t rank = ippl::Comm->rank(), ranks = ippl::Comm->size();
+            const std::size_t begin = count * rank / ranks, end = count * (rank + 1) / ranks;
+            primary.createParticles(end - begin);
+            std::array<double, samples> nodes{};
+            for (unsigned i = 0; i < samples; ++i) {
+                const double probability = (i + 0.5) / samples;
+                double lo = -8.0, hi = 8.0;
+                for (unsigned iteration = 0; iteration < 60; ++iteration) {
+                    const double mid = 0.5 * (lo + hi);
+                    if (0.5 * (1.0 + std::erf(mid / std::sqrt(2.0))) < probability)
+                        lo = mid;
+                    else
+                        hi = mid;
+                }
+                nodes[i] = sigma * 0.5 * (lo + hi);
+            }
+            auto r  = primary.R.getHostMirror();
+            auto p  = primary.P.getHostMirror();
+            auto dt = primary.dt.getHostMirror();
+            for (std::size_t global = begin; global < end; ++global) {
+                const auto i = global - begin;
+                r(i)         = Vector_t<double, 3>(
+                        nodes[global % samples], nodes[(global / samples) % samples],
+                        nodes[global / (samples * samples)] / gamma);
+                p(i)  = Vector_t<double, 3>(0.0, 0.0, gamma * beta);
+                dt(i) = 1.0e-12;
+            }
+            Kokkos::deep_copy(primary.R.getView(), r);
+            Kokkos::deep_copy(primary.P.getView(), p);
+            Kokkos::deep_copy(primary.dt.getView(), dt);
+            primary.markMomentsDirty();
+            primary.updateMoments();
+
+            CartesianPIC3DConfig config;
+            config.backend                      = PoissonSolverType::Open;
+            config.grid.meshSize                = domainConfig.meshSize;
+            config.grid.decomposition           = domainConfig.decomposition;
+            config.binning                      = BinningConfig{};
+            config.binning->maximumBins         = 1;
+            config.binning->adaptive            = false;
+            config.binning->tablePrintFrequency = 0;
+            DataSink sink;
+            SpaceChargeSolver solver(
+                    std::make_unique<CartesianPIC3DAlgorithm>(
+                            config, std::vector<Container*>{&primary, &witness}, std::move(storage),
+                            &sink, state),
+                    2);
+            state->setFixedCartesianDomain({-0.008, -0.008, -0.004}, {0.008, 0.008, 0.004});
+            SpaceChargeStepState step;
+            step.timeStep = 1.0e-12;
+            step.mpiSize  = ranks;
+            const std::array<std::uint8_t, 2> activity{1, 1};
+            SpaceChargeSolveContext context(activity, step);
+            auto& services = solver.beamBeamFields();
+            services.configure(BeamBeamSolvePolicy{true, false});
+            solver.solve(context);
+
+            // Birth after the solve, initially on rank zero only. All ranks must
+            // migrate/gather even if they own no witnesses before or after migration.
+            constexpr unsigned probes = 8;
+            witness.createParticles(rank == 0 ? probes : 0);
+            auto wr = witness.R.getHostMirror();
+            for (unsigned i = 0; i < witness.getLocalNum(); ++i) {
+                wr(i) = Vector_t<double, 3>(
+                        (i & 1 ? 1 : -1) * 2.5e-3, (i & 2 ? 1 : -1) * 1.5e-3,
+                        (i & 4 ? 1 : -1) * 0.5e-3);
+            }
+            Kokkos::deep_copy(witness.R.getView(), wr);
+            Kokkos::deep_copy(witness.P.getView(), Vector_t<double, 3>(0.0));
+            witness.updateLayout(services.domain().layout(), services.domain().mesh());
+            witness.update();
+            services.gatherFields(witness);
+            EXPECT_EQ(witness.getTotalNum(), probes);
+            ASSERT_TRUE(services.depositedCharge().has_value());
+            EXPECT_NEAR(*services.depositedCharge(), charge, charge * 1.0e-12);
+
+            // A second solve with populated, charged witnesses still deposits only c0.
+            solver.solve(context);
+            EXPECT_NEAR(*services.depositedCharge(), charge, charge * 1.0e-12);
+            services.gatherFields(witness);
+            const auto positions = snapshot(witness.R.getView());
+            const auto electric  = snapshot(witness.E.getView());
+            const auto magnetic  = snapshot(witness.B.getView());
+            double errorE = 0.0, normE = 0.0, errorB = 0.0, normB = 0.0;
+            for (std::size_t i = 0; i < witness.getLocalNum(); ++i) {
+                auto rest = positions(i);
+                rest[2] *= gamma;
+                const double radius = std::sqrt(dot(rest, rest));
+                const double u      = radius / (std::sqrt(2.0) * sigma);
+                const double enclosed =
+                        std::erf(u) - 2.0 * u * std::exp(-u * u) / std::sqrt(Physics::pi);
+                Vector_t<double, 3> expectedE =
+                        rest
+                        * (charge * enclosed
+                           / (4.0 * Physics::pi * Physics::epsilon_0 * radius * radius * radius));
+                expectedE[0] *= gamma;
+                expectedE[1] *= gamma;
+                const Vector_t<double, 3> expectedB(
+                        -beta * expectedE[1] / Physics::c, beta * expectedE[0] / Physics::c, 0.0);
+                for (unsigned d = 0; d < 3; ++d) {
+                    EXPECT_TRUE(std::isfinite(electric(i)[d]));
+                    EXPECT_TRUE(std::isfinite(magnetic(i)[d]));
+                    errorE += std::pow(electric(i)[d] - expectedE[d], 2);
+                    normE += expectedE[d] * expectedE[d];
+                    errorB += std::pow(magnetic(i)[d] - expectedB[d], 2);
+                    normB += expectedB[d] * expectedB[d];
+                }
+            }
+            std::array<double, 4> local{errorE, normE, errorB, normB}, global{};
+            ippl::Comm->allreduce(local.data(), global.data(), global.size(), std::plus<double>());
+            ASSERT_GT(global[1], 0.0);
+            ASSERT_GT(global[3], 0.0);
+            EXPECT_LT(std::sqrt(global[0] / global[1]), 0.03);
+            EXPECT_LT(std::sqrt(global[2] / global[3]), 0.03);
+        }
+
         TEST_F(BeamBeamFieldServicesTest, MirrorFieldZHandlesNonSlab3DDecomposition) {
             if (ippl::Comm->size() != 4) {
                 GTEST_SKIP() << "This mirror-field decomposition check is defined for 4 MPI ranks.";

@@ -1547,6 +1547,33 @@ namespace {
         ASSERT_EQ(b.size(), 0);
     }
 
+    TEST_F(TestSolve2d5, ClearSelfFieldsOverwritesDeviceValues) {
+        createParticles({{2, 0, 5}, {-2, 0, 5}, {0, 0, 0}}, {{0, 0, 1}, {0, 0, 1}, {0, 0, 1}});
+        Kokkos::deep_copy(pc_m->E.getView(), Point_t(1.0, 2.0, 3.0));
+        Kokkos::deep_copy(pc_m->B.getView(), Point_t(4.0, 5.0, 6.0));
+        const auto rBefore = Kokkos::create_mirror(pc_m->R.getView());
+        const auto pBefore = Kokkos::create_mirror(pc_m->P.getView());
+        Kokkos::deep_copy(rBefore, pc_m->R.getView());
+        Kokkos::deep_copy(pBefore, pc_m->P.getView());
+
+        clearSelfFields(*pc_m);
+
+        const auto e = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc_m->E.getView());
+        const auto b = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc_m->B.getView());
+        const auto r = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc_m->R.getView());
+        const auto p = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc_m->P.getView());
+        ASSERT_EQ(e.extent(0), 3u);
+        ASSERT_EQ(b.extent(0), 3u);
+        for (std::size_t i = 0; i < e.extent(0); ++i) {
+            for (unsigned d = 0; d < 3; ++d) {
+                EXPECT_DOUBLE_EQ(e(i)[d], 0.0);
+                EXPECT_DOUBLE_EQ(b(i)[d], 0.0);
+                EXPECT_DOUBLE_EQ(r(i)[d], rBefore(i)[d]);
+                EXPECT_DOUBLE_EQ(p(i)[d], pBefore(i)[d]);
+            }
+        }
+    }
+
     TEST_F(TestSolve2d5, LabFrameFields_MainApi) {
         makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
