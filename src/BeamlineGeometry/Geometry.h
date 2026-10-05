@@ -46,9 +46,13 @@ enum class GeometryKind : unsigned char { Null, Straight, SBend, RBend };
  *
  * @note A GeometryKind tag selects straight / planar-arc / rectangular-bend /
  *       null behaviour. For straight and null geometries the edge transforms are
- *       the identity at the entrance and a +z shift to the exit. For bends they
+ *       a +z shift to the entrance and a further +z shift to the exit. For bends they
  *       reproduce the planar-arc and rectangular-bend pole-face frames of the
  *       former geometry subclasses, expressed directly as CoordinateSystemTrafo.
+ *
+ * @note The entrance face sits at z = getStartZ() in the element's local frame. This is 0 for
+ *       every element except FIELDMAP, whose local frame is its field map's frame and whose
+ *       body therefore starts where the map's z range starts.
  */
 class Geometry {
 public:
@@ -77,6 +81,10 @@ public:
     /// Design / body length (straight body length for rectangular bends).
     double getElementLength() const { return len_m; }
     void setElementLength(double length);
+    /// z of the entrance face in the element's local frame. The body covers
+    /// [getStartZ(), getStartZ() + getElementLength()] along z.
+    double getStartZ() const { return startZ_m; }
+    void setStartZ(double z) { startZ_m = z; }
     ///@}
 
     /// @name Bend parameters
@@ -97,12 +105,12 @@ public:
 
     /// @name Edge transforms (single source of truth for placement)
     ///@{
-    /// Entrance-frame to entrance-edge transform. The stored frame IS the entrance face for
-    /// every kind, so this is always the identity.
+    /// Local-frame to entrance-edge transform: a +z shift by getStartZ(), so the identity
+    /// for every element whose local frame is its entrance face.
     CoordinateSystemTrafo getEdgeToBegin() const;
-    /// Entrance-frame to exit-edge transform: a pure +z shift for a straight body (straight
-    /// element, rectangular-bend box, null); the arc-end frame turned by the full bend angle
-    /// for a sector bend.
+    /// Local-frame to exit-edge transform: getEdgeToBegin() followed by a pure +z shift for a
+    /// straight body (straight element, rectangular-bend box, null), or by the arc-end frame
+    /// turned by the full bend angle for a sector bend.
     CoordinateSystemTrafo getEdgeToEnd() const;
     ///@}
 
@@ -113,6 +121,7 @@ private:
 
     GeometryKind kind_m    = GeometryKind::Straight;
     double len_m           = 0.0;  ///< design / body length
+    double startZ_m        = 0.0;  ///< z of the entrance face in the element's local frame
     double h_m             = 0.0;  ///< curvature (SBend)
     double angle_m         = 0.0;  ///< bend angle (SBend: h*len; RBend: full angle)
     double entranceAngle_m = 0.0;  ///< entrance pole-face angle

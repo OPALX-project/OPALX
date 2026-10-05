@@ -180,6 +180,9 @@ public:
     /// true if in follow-up track
     bool hasPriorTrack();
 
+    /// Process output policy: standalone COF runs produce only explicit OUTPUT files.
+    bool hasCofRun = false, hasTrackingRun = false;
+
     /// true if in follow-up track
     void setPriorTrack(const bool& value = true);
 

@@ -3,6 +3,7 @@ set (_SRCS
     Line.cpp
     LineTemplate.cpp
     Replacer.cpp
+    Ring.cpp
     Sequence.cpp
     SequenceMember.cpp
     SequenceParser.cpp
@@ -14,6 +15,7 @@ set (HDRS
     Line.h
     LineTemplate.h
     Replacer.h
+    Ring.h
     Sequence.h
     SequenceMember.h
     SequenceParser.h
