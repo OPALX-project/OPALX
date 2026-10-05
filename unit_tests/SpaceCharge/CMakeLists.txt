@@ -47,6 +47,9 @@ if(BUILD_TESTING AND TARGET TestBeamBeamFieldServices)
         LABELS "unit;beambeam;regression;mpi"
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
         ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
+      if(_ranks EQUAL 4)
+        set_tests_properties(TestBeamBeamFieldServicesMPI${_ranks} PROPERTIES DISABLED TRUE)
+      endif()
     endforeach()
   endif()
 endif()

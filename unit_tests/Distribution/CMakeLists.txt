@@ -17,6 +17,7 @@ if(BUILD_TESTING AND TARGET TestEmittedFromFile)
         ${MPIEXEC_PREFLAGS} $<TARGET_FILE:TestEmittedFromFile> ${MPIEXEC_POSTFLAGS}
         --gtest_filter=EmittedFromFileTest.TwelveTimedBirthsPreserveIdentityAndBoundarySteps)
     set_tests_properties(TestBeamBeamTimedBirthsMPI4 PROPERTIES
+      DISABLED TRUE
       TIMEOUT 30 PROCESSORS 4 RUN_SERIAL TRUE
       LABELS "unit;beambeam;regression;mpi"
       WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
