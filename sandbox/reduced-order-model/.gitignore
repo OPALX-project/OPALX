@@ -1,4 +1,0 @@
-outputs/
-__pycache__/
-.plot-cache/
-!a100_convergence_study.json

@@ -1,7 +1,0 @@
-data/
-*.h5
-*.lbal
-*.out
-*.stat
-timing.dat
-runs/
