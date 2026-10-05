@@ -1,8 +1,12 @@
 # BeamBeam physics model and validation
 
-This is the authoritative description of the gamma--gamma BeamBeam model and
-its validation. Historical derivations, superseded scans, and generated
-publication assets are retained under [`attic/`](attic/README.md). The
+This document consolidates the gamma--gamma BeamBeam physics/validation record
+and the former sandbox README's environment, archive and provenance notes.
+The numerical tables retain the historical configurations and results; they are
+not the outcomes of the new coarse local defaults. Current numbered experiments,
+launcher options and helper checks are documented in [Experiments.md](Experiments.md).
+Historical derivations, superseded scans and generated publication assets are
+preserved in the local cleanup archives described in section 5. The
 chronological engineering record remains in
 [`../BEAMBEAM_REDESIGN_STATE.md`](../BEAMBEAM_REDESIGN_STATE.md).
 
@@ -166,7 +170,7 @@ at the nanometre-scale accumulated numerical level.
 ## 3. Manufactured solution
 
 The authoritative independent reference is
-[`reduced-order-model/`](reduced-order-model/README.md). It represents two
+[`experiment-1/`](Experiments.md). It represents two
 unchanging, uniformly moving anisotropic Gaussian primary bunches. The IP is at
 the origin, their centroids move in opposite longitudinal directions, and the
 witnesses do not generate fields.
@@ -222,8 +226,7 @@ three-sigma-truncated manufactured trajectory to 0.6004% relative L2 in x and
 with mean 0.94860. This is the principal current physics validation of OPALX.
 
 Reproduction instructions for local analysis and remote A100 data generation
-are in [`reduced-order-model/opalx/README.md`](reduced-order-model/opalx/README.md)
-and [`track12particles/opalx/README.md`](track12particles/opalx/README.md).
+are in the [experiment index](Experiments.md), experiments 1 and 2.
 
 ## 4. CAIN solution
 
@@ -231,11 +234,11 @@ CAIN provides two distinct datasets with different roles:
 
 | dataset | contents | role |
 |---|---:|---|
-| `track-e-p/fort98.txt` | 1,297 electrons + 1,297 positrons | production timed pair population and input-format validation |
-| `TestParticleOrbit.dat` | 6 artificial electrons + 6 artificial positrons | exact-timed trajectory comparison on the CAIN output grid |
+| `experiment-3/inputs/fort98.txt` | 1,297 electrons + 1,297 positrons | production timed pair population and input-format validation |
+| `experiment-2/inputs/TestParticleOrbit.dat` | 6 artificial electrons + 6 artificial positrons | exact-timed trajectory comparison on the CAIN output grid |
 
 The conversion and emission contract for the full dataset is maintained in
-[`cain-opalx-reduced-order-model/`](cain-opalx-reduced-order-model/README.md).
+[`experiment-3/`](Experiments.md).
 CAIN species 2 maps to electrons and species 3 to positrons. Paired particles
 have matching creation coordinates and times. Their statistical weights are
 retained in the conversion manifest but are deliberately not used for witness
@@ -274,3 +277,59 @@ The next production step is to run the 32 cm, 15 cm-radius element with the
 full 1,297 + 1,297 timed CAIN witness population, then repeat the necessary
 time-, aperture-, mesh-, and primary-sampling convergence checks before drawing
 physics conclusions from the pair losses or trajectories.
+
+## 5. Environment, scientific checks and provenance
+
+### Local environment and execution
+
+Use the shared OPALX Python environment, `~/.venv-h6`, or set `OPALX_PYTHON`
+when invoking a numbered experiment's `run.sh`. The environment includes NumPy,
+pandas, matplotlib, h5py and SciPy; older visualization utilities additionally
+use Pillow, PyVista/VTK and imageio. The environment recipe is in
+[VENV.md](../VENV.md). The redundant `requirements-h6.txt` has been removed.
+
+The launchers create unique directories below each experiment's `results/`,
+set run-local plotting caches, run OPALX and analyze the output. The
+[experiment index](Experiments.md) is the single operational index; do not use
+the pre-renaming commands from archived READMEs. OPALX–IMPACT was restored
+unchanged and retains its original layout.
+
+Short automated merge-gate coverage belongs to gtest and regression-tests-x,
+not these scientific output directories. Optional Python helper checks and
+the current local study commands are listed in the experiment index. The
+retained historical field and MPI study drivers can also be inspected with:
+
+```bash
+~/.venv-h6/bin/python \
+  sandbox/experiment-1/scripts/run_manufactured_regression.py --help
+~/.venv-h6/bin/python \
+  sandbox/experiment-2/scripts/run_witness_gather_mpi_regression.py --help
+```
+
+The new `run.sh --merlin6` interface is intentionally not implemented yet.
+For any future Merlin run, preserve its submitted Slurm script, scheduler and
+application logs, timing files, exact inputs and manifests in its result tree.
+Local coarse/smoke runs do not replace convergence or cross-architecture evidence.
+
+### Cleanup archives and retained results
+
+The 2026-10-03 cleanup archives are local files under
+`../tmp/sandbox-cleanup-20261003/` (relative to this document):
+
+| Archive | Contents |
+|---|---|
+| `sandbox-category4.tar.gz` | Removed tracked historical studies and generated clutter, including pre-existing local edits |
+| `root-beambeam-examples.tar.gz` | The retired BeamBeam-1/2 input decks and three root-level H5 outputs |
+| `obsolete-ignored-outputs.tar.gz` | Removed attic and other retired ignored outputs; also the subsequently restored OPALX–IMPACT outputs |
+
+Archive contents were verified against their original file hashes before
+removal. Adjacent manifests record the relevant paths and hashes. These archives
+are local recovery copies, not published backups or runtime dependencies.
+
+Results related to the remaining experiments were retained byte-for-byte under
+their `results/legacy/` directories. Their old paths and README instructions
+are historical provenance. The scientific note remains in
+[note/bb-note.tex](note/bb-note.tex), with links to its retained figure assets.
+Keep generated outputs out of Git and retain exact inputs, numerical settings,
+source/executable hashes and logs for accepted results. OPALX field values are
+interpreted as V/m and T, as described in the units discussion above.

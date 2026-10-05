@@ -142,7 +142,6 @@ For the release mode, use `Release` instead of `Debug` as the argument for `-DCM
 | `IPPL_ENABLE_TEST` | OFF | Disables IPPL tests; corresponds to IPPL_ENABLE_TESTS OFF in IPPL default features. |
 | `OPALX_ENABLE_UNIT_TESTS` | OFF | Disables building unit tests using GoogleTest. |
 | `OPALX_ENABLE_EXAMPLES` | OFF | Disables building the Example module. |
-| `OPALX_ENABLE_TESTS` | OFF | Disables building integration tests in the test/ directory. |
 | `OPALX_ENABLE_COVERAGE` | OFF | Disables code coverage instrumentation. |
 | `OPALX_ENABLE_HIP_PROFILER` | OFF | Enables the HIP Systems Profiler on HIP builds and adds the corresponding compile definition. |
 | `OPALX_ENABLE_NSYS_PROFILER` | OFF | Disables Nvidia Nsight Systems Profiler; requires CUDA platform and adds compile definition -DOPALX_ENABLE_NSYS_PROFILER. |

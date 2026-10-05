@@ -240,7 +240,7 @@ with positive $p_z$ and half with negative $p_z$.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.90\textwidth]
-    {../track-e-p/data/pair_momentum_time_histogram.png}
+    {../experiment-4/results/legacy/track-e-p/data/pair_momentum_time_histogram.png}
   \caption{CAIN production-pair creation-time distribution.  The upper panel
   shows the identical electron and positron time spectra; the lower panel
   verifies zero pair-wise time difference for all 1,297 pairs.}
@@ -250,7 +250,7 @@ with positive $p_z$ and half with negative $p_z$.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.92\textwidth]
-    {../track-e-p/data/pair_momentum_directions.png}
+    {../experiment-4/results/legacy/track-e-p/data/pair_momentum_directions.png}
   \caption{Direction distributions of the CAIN production witnesses.  The
   broad angular support is important for the field-mesh coverage and aperture
   studies: the witness population is not a narrow paraxial beam.}
@@ -348,7 +348,7 @@ two MPI ranks.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.92\textwidth]{../reduced-order-model/outputs/comparison-two-source/3sigma_physical_and_copied_field_comparison.png}
+  \includegraphics[width=0.92\textwidth]{../experiment-1/results/legacy/outputs/comparison-two-source/3sigma_physical_and_copied_field_comparison.png}
   \caption{Representative three-$\sigma_z$ comparison of the OPALX
   physical-plus-mirrored field with the independent anisotropic Gaussian
   manufactured solution.}
@@ -495,7 +495,7 @@ a smaller error.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.96\textwidth]{../track12particles/opalx/timed/a100_mesh_8da5b9e83_1rank/pair4_field_and_kick_convergence.png}
+  \includegraphics[width=0.96\textwidth]{../experiment-2/results/legacy/opalx/timed/a100_mesh_8da5b9e83_1rank/pair4_field_and_kick_convergence.png}
   \caption{Pair-4 electric-field and first-kick convergence toward the
   three-sigma-truncated manufactured source.  The first three coarse points and
   last four fine points are fitted separately.}
@@ -526,7 +526,7 @@ model or convention and must not be tuned away in OPALX.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\textwidth]{../track12particles/opalx/timed/a100_4rank_400k_4096x256x128_twofield_816d11ff8/results/track12_cain_vs_opalx.png}
+  \includegraphics[width=\textwidth]{../experiment-2/results/legacy/opalx/timed/a100_4rank_400k_4096x256x128_twofield_816d11ff8/results/track12_cain_vs_opalx.png}
   \caption{Latest four-A100 Track-12 comparison.  CAIN is shown at left, OPALX
   with exact timed births in the centre, and the three-sigma-truncated rigid
   two-Gaussian manufactured solution at right.}
@@ -719,6 +719,55 @@ revision and do not reuse input or manifest files from a different mesh.  For
 new studies, use the current branch tip and record the resulting revision in
 the run manifest.
 
+\subsection{Numbered experiment layout}
+
+The workspace is now organized below \path{sandbox/} as follows:
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+  \toprule
+  Directory & Purpose \\
+  \midrule
+  \path{experiment-1} & Independent anisotropic Gaussian fields and OPALX
+    field comparisons. \\
+  \path{experiment-2} & Exact-timed six-electron plus six-positron CAIN
+    trajectory comparison. \\
+  \path{experiment-3} & Conversion and exact timed emission of the full
+    1,297-electron plus 1,297-positron CAIN population. \\
+  \path{experiment-4} & Production geometry, interaction lifecycle, and
+    optional cylinder and field diagnostics. \\
+  \bottomrule
+\end{tabularx}
+\end{center}
+Each experiment contains \path{inputs/}, \path{scripts/}, \path{results/},
+and a \path{run.sh} launcher.  Shared launchers and the optional legacy
+spherical-model helper remain in \path{sandbox/scripts/}; the note remains in
+\path{sandbox/note/}.  The independent historical \path{sandbox/OPALX-IMPACT/}
+study is unchanged and is not part of the numbered launcher interface.
+The current operational index is \path{sandbox/Experiments.md}.
+
+\begin{lstlisting}[style=commands]
+sandbox/experiment-1/run.sh
+sandbox/experiment-2/run.sh
+sandbox/experiment-3/run.sh
+sandbox/experiment-4/run.sh
+\end{lstlisting}
+
+These launchers use at most four CPU threads and create a fresh
+\path{results/local-.../} directory containing inputs, logs, analysis products,
+and a run manifest.  The local profiles are workflow checks, not reproductions
+of the historical fine-grid numbers quoted in this note.  In particular,
+experiment 4 defaults to a primary-only lifecycle smoke test; \code{--full}
+selects the full-witness production deck.  The common \code{--merlin6} option
+is not implemented; the older remote helpers below are retained for reference,
+not a validated replacement for that interface.
+
+Retained historical figures and comparison products are under each experiment's
+\path{results/legacy/} tree.  The recent disk cleanup removed selected old
+primary snapshots and field dumps, but preserved witness trajectories, figures,
+and comparison tables.  Analyses requiring the deleted raw diagnostics must
+regenerate them.  The quoted numerical results and physics discussion have not
+been revised by this directory-layout update.
+
 \subsection{Figure provenance}
 
 Table~\ref{tab:figure-provenance} maps every figure in this note to its source
@@ -730,7 +779,7 @@ or generating program.  Figure~\ref{fig:geometry} is native TikZ in this
   \caption{Programs and principal output files for the figures in this note.}
   \label{tab:figure-provenance}
   \small
-  \begin{tabularx}{\textwidth}{@{}p{12mm}p{44mm}X@{}}
+  \begin{tabularx}{\textwidth}{@{}p{12mm}p{46mm}X@{}}
     \toprule
     Figure & Program or source & Output used by this note \\
     \midrule
@@ -757,25 +806,33 @@ or generating program.  Figure~\ref{fig:geometry} is native TikZ in this
 
 \subsection{CAIN pair data and Figures~\ref{fig:cain-times}--\ref{fig:cain-directions}}
 
-The full CAIN pair table is \code{sandbox/track-e-p/fort98.txt}.  Convert it to
+The full CAIN pair table is \path{sandbox/experiment-3/inputs/fort98.txt}.
+The Track-12 reference is \path{sandbox/experiment-2/inputs/TestParticleOrbit.dat}.
+Convert the full table to
 separate OPALX electron and positron files while retaining the individual
 creation times, then make the statistical tables and figures as follows:
 
 \begin{lstlisting}[style=commands]
-cd sandbox/track-e-p
-$HOME/.venv-h6/bin/python convert_fort98_to_fromfile.py \
-  fort98.txt --add-time -o .
-$HOME/.venv-h6/bin/python analyze_pair_momenta.py \
-  --electron-file gamma_gamma_electrons-t.fromfile \
-  --positron-file gamma_gamma_positrons-t.fromfile \
-  --output-dir data --plot
-cd ../..
+OUT=sandbox/experiment-4/results/pair-input-analysis
+mkdir -p "$OUT/input"
+$HOME/.venv-h6/bin/python \
+  sandbox/experiment-4/scripts/convert_fort98_to_fromfile.py \
+  sandbox/experiment-3/inputs/fort98.txt --add-time -o "$OUT/input"
+$HOME/.venv-h6/bin/python \
+  sandbox/experiment-4/scripts/analyze_pair_momenta.py \
+  --electron-file "$OUT/input/gamma_gamma_electrons-t.fromfile" \
+  --positron-file "$OUT/input/gamma_gamma_positrons-t.fromfile" \
+  --output-dir "$OUT" --plot
 \end{lstlisting}
 
-The second command writes the two PNG files used in this note, CSV summaries, a
+The analysis command writes new versions of the two PNG files used in this note,
+CSV summaries, a
 representative pair-geometry plot, and a multipage PDF.  Species pairing is by
 row order from the CAIN event table; the conversion should therefore be rerun
 whenever \code{fort98.txt} changes.
+The note continues to include the preserved figures under
+\path{experiment-4/results/legacy/track-e-p/data}; generating new figures does
+not silently replace those historical assets.
 
 \clearpage
 \subsection{Independent manufactured solution}
@@ -787,15 +844,15 @@ $d/\sigma_z=3,2,1,0$ and run its focused tests with
 
 \begin{lstlisting}[style=commands]
 $HOME/.venv-h6/bin/python \
-  sandbox/reduced-order-model/python/rigid_two_gaussian_fields.py
+  sandbox/experiment-1/scripts/rigid_two_gaussian_fields.py
 $HOME/.venv-h6/bin/python -m unittest \
-  sandbox/reduced-order-model/python/test_rigid_two_gaussian_fields.py \
-  sandbox/reduced-order-model/python/test_fixed_primary_fromfile.py
+  sandbox/experiment-1/scripts/test_rigid_two_gaussian_fields.py \
+  sandbox/experiment-1/scripts/test_fixed_primary_fromfile.py
 \end{lstlisting}
 
-Within \code{sandbox/reduced-order-model}, the field tables, summary JSON, and
-overview plot are written below \path{outputs/fields}; the authoritative inputs
-are in \path{parameters.json}.  Electric fields are
+Within \path{sandbox/experiment-1}, the field tables, summary JSON, and
+overview plot are written below \path{results/fields}; the authoritative inputs
+are in \path{inputs/parameters.json}.  Electric fields are
 in \si{\volt\per\metre}, magnetic fields in tesla, positions in metres, and
 momenta in $m_ec$ units.
 
@@ -805,16 +862,17 @@ field after mirroring:
 
 \begin{lstlisting}[style=commands]
 $HOME/.venv-h6/bin/python \
-  sandbox/reduced-order-model/python/make_opalx_field_cases.py --run
+  sandbox/experiment-1/scripts/make_opalx_field_cases.py --run
 $HOME/.venv-h6/bin/python \
-  sandbox/reduced-order-model/python/compare_opalx_fields.py \
+  sandbox/experiment-1/scripts/compare_opalx_fields.py \
   --cases 3sigma --step 1 \
   --source-model physical-and-copied \
   --output-dir \
-    sandbox/reduced-order-model/outputs/comparison-two-source
+    sandbox/experiment-1/results/comparison-two-source
 \end{lstlisting}
 
-The default generator uses 400,000 primary macroparticles, a
+This standalone generator (unlike the coarse \path{run.sh} profile) defaults
+to 400,000 primary macroparticles, a
 $64\times64\times128$ field mesh, and a $101\times201$ passive-probe grid.  The
 odd probe dimensions place a sample exactly at the IP.  \code{Step\#0} is the
 physical bunch alone; \code{Step\#1} is the physical-plus-mirrored field.  The
@@ -840,12 +898,15 @@ SRC=/psi/home/adelmann/opalx-dev/opalx-a100-5a354101f
 cd "$SRC"
 git status --short
 git rev-parse HEAD
-cmake --build build-a100 -j20
+cmake --build build-a100 -j4
 grep CMAKE_BUILD_TYPE build-a100/CMakeCache.txt
 OPALX="$SRC/build-a100/src/opalx"
 test -x "$OPALX"
 \end{lstlisting}
 
+The checkout path above identifies the historical campaign, not a newly
+verified remote checkout.  For the relocated commands below, select a checkout
+containing the numbered experiment layout and verify its build path first.
 The intended configuration is Release with CUDA and Ampere-80 support.  If the
 existing build directory is unavailable, it must be configured with the
 Merlin site dependency prefixes before the build command above; those paths
@@ -863,8 +924,9 @@ checks completion.  It copies scheduler output into \code{RUN\_ROOT/slurm}.
 cd "$SRC"
 RUN_ROOT=/psi/home/adelmann/opalx-dev/\
 bb-manufactured-$(git rev-parse --short HEAD)-$(date -u +%Y%m%dT%H%M%SZ)
-sandbox/reduced-order-model/merlin/submit_a100_convergence.sh \
-  --run-root "$RUN_ROOT" --repo-root "$SRC" --opalx "$OPALX"
+sandbox/experiment-1/scripts/merlin/submit_a100_convergence.sh \
+  --run-root "$RUN_ROOT" --repo-root "$SRC" --opalx "$OPALX" \
+  --omp-threads 1
 squeue -M gmerlin6
 \end{lstlisting}
 
@@ -879,7 +941,7 @@ before plotting:
 
 \begin{lstlisting}[style=commands]
 $HOME/.venv-h6/bin/python \
-  sandbox/reduced-order-model/python/fetch_and_plot_a100_convergence.py \
+  sandbox/experiment-1/scripts/fetch_and_plot_a100_convergence.py \
   --remote-host merlin6 --remote-run-root "$RUN_ROOT"
 \end{lstlisting}
 
@@ -896,26 +958,23 @@ directory:
 \begin{lstlisting}[style=commands]
 cd "$SRC"
 PY=python3
-TIMED=sandbox/track12particles/opalx/timed
-$PY "$TIMED/prepare_timed_track12.py" \
-  --primary-macroparticles 400000 \
-  --nx 4096 --ny 256 --nz 128
-
+TIMED=sandbox/experiment-2/scripts
 RUN_ROOT=/psi/home/adelmann/opalx-dev/\
 track12-4096x256x128-4rank-$(git rev-parse --short HEAD)-\
 $(date -u +%Y%m%dT%H%M%SZ)
-mkdir -p "$RUN_ROOT/production/results"
-cp "$TIMED/track12_timed.in" "$RUN_ROOT/production/"
-cp -R "$TIMED/input" "$RUN_ROOT/production/"
-cp "$TIMED/results/preparation_manifest.json" \
-  "$RUN_ROOT/production/results/"
+$PY "$TIMED/prepare_timed_track12.py" \
+  --output-dir "$RUN_ROOT/production" \
+  --primary-macroparticles 400000 \
+  --nx 4096 --ny 256 --nz 128
 
 "$TIMED/merlin/submit_track12_a100.sh" submit \
   --run-root "$RUN_ROOT" --opalx "$OPALX" \
-  --mpi-ranks 4 --omp-threads 4 --production-time 10:00:00
+  --mpi-ranks 4 --omp-threads 1 --production-time 10:00:00
 squeue -M gmerlin6
 \end{lstlisting}
 
+The example uses one CPU thread per rank to respect the four-CPU limit;
+historical timing results must not be attributed to this changed thread count.
 The launcher first submits a three-step smoke test and submits the 1,501-step
 calculation with an \code{afterok} dependency.  The actual OPALX command uses
 \code{mpiexec -n 4}, \code{--info 1}, and
@@ -929,10 +988,10 @@ Fetch the finished witnesses to the local machine and regenerate
 Figure~\ref{fig:track12} and all comparison tables with
 
 \begin{lstlisting}[style=commands]
-DEST=sandbox/track12particles/opalx/timed/\
+DEST=sandbox/experiment-2/results/\
 a100_4rank_400k_4096x256x128_current
 $HOME/.venv-h6/bin/python \
-  sandbox/track12particles/opalx/timed/fetch_and_compare_a100.py \
+  sandbox/experiment-2/scripts/fetch_and_compare_a100.py \
   --host merlin6 --remote-dir "$RUN_ROOT/production" \
   --destination "$DEST"
 \end{lstlisting}
@@ -949,10 +1008,10 @@ For already-fetched field-probe cases, regenerate the convergence CSV and plot
 without rerunning OPALX:
 
 \begin{lstlisting}[style=commands]
-OUT=sandbox/track12particles/opalx/timed/\
+OUT=sandbox/experiment-2/results/legacy/opalx/timed/\
 a100_mesh_8da5b9e83_1rank
 $HOME/.venv-h6/bin/python \
-  sandbox/track12particles/opalx/timed/scan_first_kick_fields.py \
+  sandbox/experiment-2/scripts/scan_first_kick_fields.py \
   --analyze-only --output-dir "$OUT" \
   --fixed-primary "$OUT/input/primary_fixed.fromfile"
 \end{lstlisting}
@@ -972,10 +1031,10 @@ The final paper draft is compiled from the repository root with
 cd sandbox/note
 latexmk -pdf -interaction=nonstopmode -halt-on-error bb-note.tex
 cd ../..
-cp sandbox/note/bb-note.pdf output/pdf/bb-note.pdf
 \end{lstlisting}
 
-All referenced PNG files must exist before compilation.  The PDF should then
+The PDF remains at \path{sandbox/note/bb-note.pdf}; no duplicate output copy
+is needed.  All referenced PNG files must exist before compilation.  The PDF should then
 be rendered page-by-page and inspected for clipped listings, tables, figures,
 and equations.
 

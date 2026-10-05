@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstdio>
 #include <fstream>
+#include <iomanip>
 #include <memory>
 
 #include "Distribution/EmittedFromFile.h"
@@ -243,6 +244,55 @@ TEST_F(EmittedFromFileTest, PreservesExplicitBirthSpacetimeAndFractionalFirstSte
     sampler.emitParticles(1.1e-12, 0.2e-12);
     EXPECT_EQ(globalParticleCount(), static_cast<size_t>(2));
     EXPECT_TRUE(sampler.isEmissionDone(1.3e-12));
+}
+
+// Each identity must be born exactly once, including births exactly at a step
+// boundary (zero fractional dt). Validate on every rank, not only rank one.
+TEST_F(EmittedFromFileTest, TwelveTimedBirthsPreserveIdentityAndBoundarySteps) {
+    constexpr double step = 1e-12;
+    const std::array<double, 12> births{0.0,  0.25, 1.0, 1.25, 1.5, 2.0,
+                                        2.25, 2.5,  3.0, 3.25, 3.5, 4.0};
+    {
+        std::ofstream out(tempFilename);
+        ASSERT_TRUE(out.is_open());
+        out << "12\nx y z px py pz birth_time\n" << std::setprecision(17);
+        for (std::size_t i = 0; i < births.size(); ++i)
+            out << (i + 1) * 1e-3 << " 0 0.002 0 0 0.4 " << births[i] * step << '\n';
+    }
+    allocate(12);
+    EmittedFromFile sampler(pc, tempFilename);
+    sampler.setEmissionOffsets(Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0), 0.0, "NONE");
+    size_t requested = 12;
+    sampler.generateParticles(requested, nr);
+    ASSERT_EQ(requested, 12u);
+    std::array<int, 12> localIdentities{}, globalIdentities{};
+    for (unsigned interval = 0; interval < 4; ++interval) {
+        const auto before = pc->getLocalNum();
+        sampler.emitParticles(interval * step, step);
+        EXPECT_EQ(globalParticleCount(), 3u * (interval + 1));
+        const auto r  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+        const auto p  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->P.getView());
+        const auto dt = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->dt.getView());
+        for (std::size_t i = before; i < pc->getLocalNum(); ++i) {
+            const int identity = static_cast<int>(std::lround(r(i)[0] / 1e-3)) - 1;
+            EXPECT_GE(identity, 0);
+            EXPECT_LT(identity, 12);
+            if (identity < 0 || identity >= 12) continue;
+            ++localIdentities[identity];
+            const double fractional = (interval + 1) * step - births[identity] * step;
+            EXPECT_NEAR(dt(i), fractional, 1e-27);
+            EXPECT_DOUBLE_EQ(p(i)[2], 0.4);
+            EXPECT_NEAR(
+                    r(i)[2], 0.002 + 0.5 * Physics::c * fractional * 0.4 / std::sqrt(1.16), 1e-15);
+        }
+    }
+    EXPECT_TRUE(sampler.isEmissionDone(4 * step));
+    sampler.emitParticles(4 * step, step);
+    EXPECT_EQ(globalParticleCount(), 12u);
+    MPI_Allreduce(
+            localIdentities.data(), globalIdentities.data(), 12, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    for (const auto count : globalIdentities)
+        EXPECT_EQ(count, 1);
 }
 
 TEST_F(EmittedFromFileTest, HonorsRequestedParticleLimitBeforeSorting) {

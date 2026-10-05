@@ -74,6 +74,10 @@ jobs:
           - Drift-1-fromfile
           - Drift-4-multi-emit-open
           - FodoCell-fromfile
+          - BeamBeam-OffsetKick
+          - BeamBeam-TimedBirths
+          - BeamBeam-WitnessMPI
+          - BeamBeam-RigidSource
 
     steps:
       - name: Install MPI runtime
@@ -101,14 +105,21 @@ jobs:
           mkdir -p "$RUN_DIR"
           find "$TEST_DIR" -maxdepth 1 -type f -exec cp {} "$RUN_DIR/" \;
           cd "$RUN_DIR"
-          mpirun -np 1 "$GITHUB_WORKSPACE/bin/opalx" ${{ matrix.test }}.in --info 2
+          if [[ "${{ matrix.test }}" == BeamBeam-* ]]; then
+            # These existing-architecture launchers select the witness/primary
+            # stat file verbatim. MPI cases use at most four ranks, one thread each.
+            export OPALX_EXE_PATH="$GITHUB_WORKSPACE/bin"
+            timeout 30s bash "${{ matrix.test }}.local"
+          else
+            mpirun -np 1 "$GITHUB_WORKSPACE/bin/opalx" ${{ matrix.test }}.in --info 2
+          fi
 
       - name: Compare stat output to reference (${{ matrix.test }})
         env:
           TEST_NAME: ${{ matrix.test }}
         run: |
           python3 << 'PYEOF'
-          import sys, os
+          import sys, os, math
 
           test = os.environ['TEST_NAME']
 
@@ -157,17 +168,34 @@ jobs:
           ref_cols, ref_rows = parse_sdds(f'regression-tests-x/RegressionTests/{test}/reference/{test}.stat')
           got_cols, got_rows = parse_sdds(f'run_{test}/{test}.stat')
           checks = parse_rt(f'regression-tests-x/RegressionTests/{test}/{test}.rt')
+          with open(f'regression-tests-x/RegressionTests/{test}/{test}.rt') as f:
+              absolute = '[tolerance: absolute]' in f.readline()
+          if not checks or not ref_rows or not got_rows:
+              raise ValueError('A regression requires assertions and nonempty outputs')
+          if absolute and len(ref_rows) != len(got_rows):
+              raise ValueError('Incomplete trajectory: output/reference row counts differ')
 
           print(f'Checking {len(checks)} assertion(s) from {test}.rt ({len(got_rows)} time steps)')
           failed = False
           for col, agg, tol in checks:
+              rv = [float(row[ref_cols.index(col)]) for row in ref_rows]
+              gv = [float(row[got_cols.index(col)]) for row in got_rows]
+              if not all(math.isfinite(v) for v in rv + gv):
+                  raise ValueError(f'Nonfinite checked column: {col}')
               r = stat_value(ref_cols, ref_rows, col, agg)
               g = stat_value(got_cols, got_rows, col, agg)
-              rel_err = abs(g - r) / (abs(r) + 1e-30)
-              status = 'PASS' if rel_err < tol else 'FAIL'
+              if absolute:
+                  # Match NightlyBuildX StatTest: last absolute error, or
+                  # sqrt(sum(pointwise squared errors))/N for its 'avg' mode.
+                  error = (abs(g - r) if agg == 'last' else
+                           math.sqrt(sum((a-b)**2 for a, b in zip(gv, rv))) / len(rv))
+              else:
+                  error = abs(g - r) / (abs(r) + 1e-30)
+              status = 'PASS' if error < tol else 'FAIL'
               if status == 'FAIL':
                   failed = True
-              print(f'  [{status}] {col} ({agg}): ref={r:.15e}  got={g:.15e}  rel_err={rel_err:.2e}  tol={tol:.0e}')
+              mode = 'abs' if absolute else 'rel'
+              print(f'  [{status}] {col} ({agg}): ref={r:.15e}  got={g:.15e}  {mode}_err={error:.2e}  tol={tol:.0e}')
 
           sys.exit(1 if failed else 0)
           PYEOF
