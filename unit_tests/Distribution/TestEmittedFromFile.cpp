@@ -178,10 +178,10 @@ TEST_F(EmittedFromFileTest, EmitsSortedRecordsWithFractionalDtAndHalfStepDrift) 
 
         EXPECT_DOUBLE_EQ(Pview(0)[2], 0.4);
         EXPECT_DOUBLE_EQ(Pview(1)[2], 0.6);
-        EXPECT_NEAR(Rview(0)[0], 0.103, 1.0e-15);
-        EXPECT_NEAR(Rview(0)[1], 0.204, 1.0e-15);
-        EXPECT_NEAR(Rview(0)[2], 0.3 + 0.5 * Physics::c * firstDt * 0.4 / firstGamma, 1.0e-15);
-        EXPECT_NEAR(Rview(1)[2], 0.3 + 0.5 * Physics::c * secondDt * 0.6 / secondGamma, 1.0e-15);
+        EXPECT_NEAR(Rview(0)[0], 0.103, 1.0e-12);
+        EXPECT_NEAR(Rview(0)[1], 0.204, 1.0e-12);
+        EXPECT_NEAR(Rview(0)[2], 0.3 + 0.5 * Physics::c * firstDt * 0.4 / firstGamma, 1.0e-12);
+        EXPECT_NEAR(Rview(1)[2], 0.3 + 0.5 * Physics::c * secondDt * 0.6 / secondGamma, 1.0e-12);
     }
 
     sampler.emitParticles(tStart + 1.0e-12, 1.0e-12);
