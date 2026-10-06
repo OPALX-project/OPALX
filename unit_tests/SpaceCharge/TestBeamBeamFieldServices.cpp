@@ -193,13 +193,22 @@ namespace opalx::spacecharge {
         // E_z=E'_z and B=beta zhat x E/c. A 3% bound covers PIC quadrature,
         // finite mesh and interpolation errors, not cross-backend roundoff.
         TEST_F(BeamBeamFieldServicesTest, GaussianFieldsAndPassiveWitnessGather) {
-            using Container             = ::ParticleContainer<double, 3>;
-            constexpr unsigned samples  = 32;
+            using Container = ::ParticleContainer<double, 3>;
+#ifdef OPALX_DEVICE_COMPILATION
+            constexpr unsigned samples = 32, meshCells = 48;
+            constexpr double halfWidth = 0.008;
+#else
+            // Keep CPU Debug regression cost small: 8x fewer mesh cells at the
+            // original spacing, with fewer quadrature particles. The box contains
+            // every quadrature node and witness; it does not clip or renormalize charge.
+            constexpr unsigned samples = 24, meshCells = 24;
+            constexpr double halfWidth = 0.004;
+#endif
             constexpr std::size_t count = samples * samples * samples;
             constexpr double sigma = 1.0e-3, charge = 1.0e-12, gamma = 2.0;
             const double beta = std::sqrt(1.0 - 1.0 / (gamma * gamma));
             CartesianDomainConfig3D domainConfig;
-            domainConfig.meshSize      = {48, 48, 48};
+            domainConfig.meshSize      = {meshCells, meshCells, meshCells};
             domainConfig.decomposition = {true, true, true};
             CartesianDomain<double, 3> domain(domainConfig);
             auto storage = std::make_unique<CartesianPIC3DFieldStorage<double, 3>>(domain);
@@ -260,7 +269,9 @@ namespace opalx::spacecharge {
                             config, std::vector<Container*>{&primary, &witness}, std::move(storage),
                             &sink, state),
                     2);
-            state->setFixedCartesianDomain({-0.008, -0.008, -0.004}, {0.008, 0.008, 0.004});
+            state->setFixedCartesianDomain(
+                    {-halfWidth, -halfWidth, -halfWidth / gamma},
+                    {halfWidth, halfWidth, halfWidth / gamma});
             SpaceChargeStepState step;
             step.timeStep = 1.0e-12;
             step.mpiSize  = ranks;
@@ -325,6 +336,8 @@ namespace opalx::spacecharge {
             ippl::Comm->allreduce(local.data(), global.data(), global.size(), std::plus<double>());
             ASSERT_GT(global[1], 0.0);
             ASSERT_GT(global[3], 0.0);
+            RecordProperty("relative_l2_E", std::sqrt(global[0] / global[1]));
+            RecordProperty("relative_l2_B", std::sqrt(global[2] / global[3]));
             EXPECT_LT(std::sqrt(global[0] / global[1]), 0.03);
             EXPECT_LT(std::sqrt(global[2] / global[3]), 0.03);
         }
