@@ -77,9 +77,7 @@ namespace opalx::spacecharge {
           mesh_m(domain_m, spacing_m, origin_m),
           layout_m(MPI_COMM_WORLD, domain_m, std::array<bool, 3>{false, false, false}, true),
           sliceDomain_m(makeDomain2(meshSize_m)),
-          sliceMesh_m(
-                  sliceDomain_m, Vector2(spacing_m[0], spacing_m[1]),
-                  Vector2(origin_m[0], origin_m[1])),
+          sliceMesh_m(sliceDomain_m, Vector2(spacing_m[0], spacing_m[1]), Vector2(0, 0)),
           sliceLayout_m(MPI_COMM_WORLD, sliceDomain_m, std::array<bool, 2>{false, false}) {
         if (!(pathLength > 0.0)) {
             throw OpalException(
@@ -103,7 +101,7 @@ namespace opalx::spacecharge {
             slice.electricField = std::make_unique<VectorField2>(sliceMesh_m, sliceLayout_m);
             slice.chargeDensity = std::make_unique<ScalarField2>(sliceMesh_m, sliceLayout_m);
 #if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
-            slice.solver        = std::make_unique<OpenSolver2>(
+            slice.solver = std::make_unique<OpenSolver2>(
                     *slice.electricField, *slice.chargeDensity, solverParameters_m);
 #else
             slice.solver2 = std::make_unique<FFT2D5Poisson>();
