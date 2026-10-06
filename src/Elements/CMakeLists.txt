@@ -8,6 +8,7 @@ set (_SRCS
     OpalTravelingWave.cpp
     OpalBend.cpp
     OpalDrift.cpp
+    OpalFieldmapElement.cpp
     OpalElement.cpp
     OpalLaser.cpp
     OpalMonitor.cpp
@@ -39,6 +40,7 @@ set (HDRS
     OpalConstantFocusing.h
     OpalCyclotronSector.h
     OpalDrift.h
+    OpalFieldmapElement.h
     OpalElement.h
     OpalMonitor.h
     OpalMarker.h

@@ -13,6 +13,7 @@ set(_SRCS
     ConstantEFieldCavity.cpp
     ConstantFocusing.cpp
     Drift.cpp
+    FieldmapElement.cpp
     ElementBase.cpp
     Laser.cpp
     Marker.cpp
@@ -44,6 +45,7 @@ set(_HDRS
     ConstantEFieldCavity.h
     ConstantFocusing.h
     Drift.h
+    FieldmapElement.h
     ElementBase.h
     Laser.h
     Marker.h

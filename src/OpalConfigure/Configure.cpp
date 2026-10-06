@@ -70,6 +70,7 @@
 #include "Elements/OpalConstantFocusing.h"
 #include "Elements/OpalCyclotronSector.h"
 #include "Elements/OpalDrift.h"
+#include "Elements/OpalFieldmapElement.h"
 #include "Elements/OpalLaser.h"
 #include "Elements/OpalMarker.h"
 #include "Elements/OpalMonitor.h"
@@ -155,6 +156,7 @@ namespace {
         opal->create(new OpalQuadrupole());
         opal->create(new OpalRBend());
         opal->create(new OpalSBend());
+        opal->create(new OpalFieldmapElement());
         opal->create(new OpalSolenoid());
         opal->create(new Line());
         opal->create(new Ring());
