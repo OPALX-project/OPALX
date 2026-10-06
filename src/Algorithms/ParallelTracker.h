@@ -184,6 +184,9 @@ public:
 
     /// @brief Apply the algorithm to a solenoid.
     virtual void visitSolenoid(const Solenoid&);
+    virtual void visitEnge(const endfieldmodel::Enge&);
+    virtual void visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&);
+    virtual void visitTanh(const endfieldmodel::Tanh&);
 
     /// @brief Run the main tracking loop until all step-size segments complete.
     virtual void execute();
@@ -402,5 +405,11 @@ inline void ParallelTracker::visitTravelingWave(const TravelingWave& tw) {
 inline void ParallelTracker::visitSolenoid(const Solenoid& so) {
     itsOpalBeamline_m.visit(so, *this, *itsBunch_m);
 }
+
+inline void ParallelTracker::visitEnge(const endfieldmodel::Enge&) {}
+
+inline void ParallelTracker::visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) {}
+
+inline void ParallelTracker::visitTanh(const endfieldmodel::Tanh&) {}
 
 #endif  // OPALX_ParallelTracker_HH

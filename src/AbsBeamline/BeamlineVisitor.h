@@ -58,12 +58,14 @@ class SBend;
 class Solenoid;
 class ScalingFFAMagnet;
 class Offset;
-namespace endfieldmodel {
-    class Tanh;
-}
-template <class EFM>
 class VerticalFFAMagnet;
 class Probe;
+
+namespace endfieldmodel {
+    class Enge;
+    class Tanh;
+    class AsymmetricEnge;
+}
 
 class BeamlineVisitor {
 public:
@@ -90,6 +92,15 @@ public:
 
     /// Apply the algorithm to a drift space.
     virtual void visitDrift(const Drift&) = 0;
+
+    /// Apply the algorithm to a drift space.
+    virtual void visitEnge(const endfieldmodel::Enge&) = 0;
+
+    /// Apply the algorithm to a drift space.
+    virtual void visitTanh(const endfieldmodel::Tanh&) = 0;
+
+    /// Apply the algorithm to a drift space.
+    virtual void visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) = 0;
 
     /// Apply the algorithm to a laser element.
     virtual void visitLaser(const Laser&) = 0;
@@ -130,7 +141,7 @@ public:
     virtual void visitTravelingWave(const TravelingWave&) = 0;
 
     /// Apply the algorithm to a vertical FFA magnet.
-    virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet<endfieldmodel::Tanh>&) = 0;
+    virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet&) = 0;
 
     /// Apply the algorithm to a Probe.
     virtual void visitProbe(const Probe&) = 0;

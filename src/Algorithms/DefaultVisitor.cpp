@@ -67,6 +67,11 @@ void DefaultVisitor::visitCollimator(const Collimator& coll) { applyDefault(coll
 
 void DefaultVisitor::visitDrift(const Drift& drf) { applyDefault(drf); }
 
+void DefaultVisitor::visitEnge(const endfieldmodel::Enge&) {  }
+void DefaultVisitor::visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) {  }
+void DefaultVisitor::visitTanh(const endfieldmodel::Tanh&) {  }
+
+
 void DefaultVisitor::visitLaser(const Laser& laser) { applyDefault(laser); }
 
 void DefaultVisitor::visitMarker(const Marker& mark) { applyDefault(mark); }
@@ -89,7 +94,7 @@ void DefaultVisitor::visitTravelingWave(const TravelingWave& trw) { applyDefault
 
 void DefaultVisitor::visitScalingFFAMagnet(const ScalingFFAMagnet& spiral) { applyDefault(spiral); }
 
-void DefaultVisitor::visitVerticalFFAMagnet(const VerticalFFAMagnet<endfieldmodel::Tanh>& mag) { applyDefault(mag); }
+void DefaultVisitor::visitVerticalFFAMagnet(const VerticalFFAMagnet& mag) { applyDefault(mag); }
 
 void DefaultVisitor::visitVariableRFCavity(const VariableRFCavity& cavity) { applyDefault(cavity); }
 

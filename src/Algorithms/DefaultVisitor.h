@@ -57,6 +57,11 @@ public:
     /// Apply the algorithm to a drift space.
     void visitDrift(const Drift&) override;
 
+    /// Apply the algorithm to a drift space.
+    void visitEnge(const endfieldmodel::Enge&) override;
+    void visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) override;
+    void visitTanh(const endfieldmodel::Tanh&) override;
+
     /// Apply the algorithm to a laser.
     void visitLaser(const Laser&) override;
 
@@ -94,7 +99,7 @@ public:
     void visitScalingFFAMagnet(const ScalingFFAMagnet& spiral) override;
 
     /// Apply the algorithm to a vertical FFA magnet.
-    void visitVerticalFFAMagnet(const VerticalFFAMagnet<endfieldmodel::Tanh>&) override;
+    void visitVerticalFFAMagnet(const VerticalFFAMagnet&) override;
 
     /// Apply the algorithm to a variable RF cavity.
     void visitVariableRFCavity(const VariableRFCavity&) override;

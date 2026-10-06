@@ -85,6 +85,11 @@
 #include "Elements/OpalVariableRFCavity.h"
 #include "Elements/OpalVerticalFFAMagnet.h"
 
+// EndFieldModels
+#include "Elements/OpalEnge.h"
+#include "Elements/OpalTanh.h"
+#include "Elements/OpalAsymmetricEnge.h"
+
 // Structure-related commands.
 #include "Lines/EmissionSourceList.h"
 #include "Lines/Line.h"
@@ -157,6 +162,10 @@ namespace {
         opal->create(new OpalSplineTimeDependence());
         opal->create(new OpalMultipoleT());
         opal->create(new OpalVariableRFCavity());
+
+        opal->create(new OpalEnge());
+        opal->create(new OpalTanh());
+        opal->create(new OpalAsymmetricEnge());
     }
 };  // namespace
 
