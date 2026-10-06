@@ -81,6 +81,10 @@ namespace endfieldmodel {
          */
         std::string getName(const std::shared_ptr<EndFieldModel>& efm) const;
 
+        /** Return a string in lower case (apparently not in stl)
+         */
+        static std::string toLower(const std::string& astring);
+
     private:
         std::map<std::string, std::shared_ptr<EndFieldModel> > efmMap_m;
         static std::shared_ptr<EndFieldModelManager> globalEFM_m;

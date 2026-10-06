@@ -35,12 +35,13 @@ namespace endfieldmodel {
     std::shared_ptr<EndFieldModelManager> EndFieldModelManager::globalEFM_m;
 
     std::shared_ptr<EndFieldModel> EndFieldModelManager::getEndFieldModel(const std::string& name) {
-        if (efmMap_m.find(name) == efmMap_m.end()) {
+        std::string lowName = toLower(name);
+        if (efmMap_m.find(lowName) == efmMap_m.end()) {
             throw OpalException(
                     "EndFieldModelManager::getEndFieldModel",
                     "Could not find model '" + name + "'");
         }
-        return efmMap_m[name];
+        return efmMap_m[lowName];
     }
 
     std::shared_ptr<EndFieldModelManager> EndFieldModelManager::getEFMManager() {
@@ -53,7 +54,7 @@ namespace endfieldmodel {
 
     void EndFieldModelManager::setEndFieldModel(
             const std::string& name, const std::shared_ptr<EndFieldModel>& efm) {
-        efmMap_m[name] = efm;
+        efmMap_m[toLower(name)] = efm;
     }
 
     std::string EndFieldModelManager::getName(const std::shared_ptr<EndFieldModel>& efm) const {
@@ -69,6 +70,12 @@ namespace endfieldmodel {
     void EndFieldModelManager::clearEFMManager() {
         globalEFM_m->efmMap_m.clear();
         globalEFM_m.reset();
+    }
+
+    std::string EndFieldModelManager::toLower(const std::string& astring) {
+        std::string stringout = astring;
+        std::transform(stringout.begin(), stringout.end(), stringout.begin(), ::tolower);
+        return stringout;
     }
 
 }  // namespace endfieldmodel

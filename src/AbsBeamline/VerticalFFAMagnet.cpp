@@ -13,12 +13,11 @@
 
 #include <cmath>
 
-template <class EFM>
-VerticalFFAMagnet<EFM>::VerticalFFAMagnet(const std::string& name)
+
+VerticalFFAMagnet::VerticalFFAMagnet(const std::string& name)
     : ElementBase(name), straightGeometry_m(Geometry::makeStraight(1.)) {}
 
-template <class EFM>
-VerticalFFAMagnet<EFM>::VerticalFFAMagnet(const VerticalFFAMagnet& right)
+VerticalFFAMagnet::VerticalFFAMagnet(const VerticalFFAMagnet& right)
     : ElementBase(right),
       config_m(right.config_m),
       endField_m(right.endField_m),
@@ -26,58 +25,49 @@ VerticalFFAMagnet<EFM>::VerticalFFAMagnet(const VerticalFFAMagnet& right)
     RefPartBunch_m = right.RefPartBunch_m;
 }
 
-template <class EFM>
-VerticalFFAMagnet<EFM>::~VerticalFFAMagnet() {}
+VerticalFFAMagnet::~VerticalFFAMagnet() {}
 
-template <class EFM>
-ElementBase* VerticalFFAMagnet<EFM>::clone() const {
+ElementBase* VerticalFFAMagnet::clone() const {
     VerticalFFAMagnet* magnet = new VerticalFFAMagnet(*this);
     magnet->initialise();
     return magnet;
 }
 
-template <class EFM>
-void VerticalFFAMagnet<EFM>::initialise() {
+void VerticalFFAMagnet::initialise() {
     calculateDfCoefficients();
-    endField_m.setMaximumDerivative(config_m.maxOrder_m + 1);
+    endField_m->setMaximumDerivative(config_m.maxOrder_m + 1);
     // config_m.endField_m = endField_m.getDeviceData();
     straightGeometry_m.setElementLength(config_m.bbLength_m);  // length = phi r
 }
 
-template <class EFM>
-void VerticalFFAMagnet<EFM>::initialise(PartBunch_t* bunch) {
+void VerticalFFAMagnet::initialise(PartBunch_t* bunch) {
     RefPartBunch_m = bunch;
     initialise();
 }
 
-template <class EFM>
-void VerticalFFAMagnet<EFM>::finalise() {
+void VerticalFFAMagnet::finalise() {
     RefPartBunch_m = nullptr;
 }
 
-template <class EFM>
-Geometry& VerticalFFAMagnet<EFM>::getGeometry() {
+Geometry& VerticalFFAMagnet::getGeometry() {
     return straightGeometry_m;
 }
 
-template <class EFM>
-const Geometry& VerticalFFAMagnet<EFM>::getGeometry() const {
+
+const Geometry& VerticalFFAMagnet::getGeometry() const {
     return straightGeometry_m;
 }
 
-template <class EFM>
-void VerticalFFAMagnet<EFM>::accept(BeamlineVisitor& visitor) const {
+void VerticalFFAMagnet::accept(BeamlineVisitor& visitor) const {
     visitor.visitVerticalFFAMagnet(*this);
 }
 
-template <class EFM>
-bool VerticalFFAMagnet<EFM>::getFieldValue(
+bool VerticalFFAMagnet::getFieldValue(
         const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const {
     return getFieldValue(config_m, R, B);
 }
 
-template <class EFM>
-void VerticalFFAMagnet<EFM>::calculateDfCoefficients() {
+void VerticalFFAMagnet::calculateDfCoefficients() {
     dfCoefficients_m    = std::vector<std::vector<double> >(config_m.maxOrder_m + 1);
     dfCoefficients_m[0] = std::vector<double>(1, 1.);
     if (config_m.maxOrder_m > 0) {
@@ -97,34 +87,30 @@ void VerticalFFAMagnet<EFM>::calculateDfCoefficients() {
         }
         dfCoefficients_m[n] = coefficients;
     }
-    for (size_t i = 0; i < VerticalFFAMagnetConfig<EFM>::CoefficientCount; ++i) {
+    for (size_t i = 0; i < VerticalFFAMagnetConfig::CoefficientCount; ++i) {
         config_m.dfCoefficients_m[i] = 0.;
     }
     for (size_t n = 0; n < dfCoefficients_m.size(); ++n) {
         for (size_t i = 0; i < dfCoefficients_m[n].size(); ++i) {
-            config_m.dfCoefficients_m[n * (VerticalFFAMagnetConfig<EFM>::MaxOrder + 1) + i] =
+            config_m.dfCoefficients_m[n * (VerticalFFAMagnetConfig::MaxOrder + 1) + i] =
                     dfCoefficients_m[n][i];
         }
     }
 }
 
-template <class EFM>
-void VerticalFFAMagnet<EFM>::setEndField(EFM endField) {
+void VerticalFFAMagnet::setEndField(std::shared_ptr<endfieldmodel::EndFieldModel> endField) {
     endField_m = endField;
-    endField_m.setMaximumDerivative(config_m.maxOrder_m + 1);
-    // config_m.endField_m = endField_m.getDeviceData();
+    endField_m->setMaximumDerivative(config_m.maxOrder_m + 1);
 }
 
-template <class EFM>
-void VerticalFFAMagnet<EFM>::setMaxOrder(size_t maxOrder) {
-    if (maxOrder > VerticalFFAMagnetConfig<EFM>::MaxOrder) {
+void VerticalFFAMagnet::setMaxOrder(size_t maxOrder) {
+    if (maxOrder > VerticalFFAMagnetConfig::MaxOrder) {
         throw GeneralOpalException(
                 "VerticalFFAMagnet::setMaxOrder",
                 "GPU-compatible field expansions are limited to order 20");
     }
-    endField_m.setMaximumDerivative(maxOrder + 1);
+    endField_m->setMaximumDerivative(maxOrder + 1);
     // config_m.endField_m = endField_m.getDeviceData();
     config_m.maxOrder_m = maxOrder;
 }
 
-template class VerticalFFAMagnet<endfieldmodel::Tanh>;

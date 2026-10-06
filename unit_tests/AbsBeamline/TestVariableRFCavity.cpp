@@ -68,9 +68,12 @@ public:
     void visitSBend(const SBend&) override {}
     void visitSolenoid(const Solenoid&) override {}
     void visitTravelingWave(const TravelingWave&) override {}
-    void visitVerticalFFAMagnet(const VerticalFFAMagnet<endfieldmodel::Tanh>&) override {}
+    void visitVerticalFFAMagnet(const VerticalFFAMagnet&) override {}
     void visitProbe(const Probe&) override {}
     void visitVariableRFCavity(const VariableRFCavity&) override {}
+    void visitEnge(const endfieldmodel::Enge&) {  }
+    void visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) {  }
+    void visitTanh(const endfieldmodel::Tanh&) {  }
 
     // Test helpers
 

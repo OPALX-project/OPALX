@@ -17,7 +17,6 @@
 
 /** VerticalFFA field calculation data
  */
-template <class EFM>
 struct VerticalFFAMagnetConfig {
     static constexpr size_t MaxOrder         = 20;
     static constexpr size_t CoefficientCount = (MaxOrder + 1) * (MaxOrder + 1);
@@ -29,7 +28,6 @@ struct VerticalFFAMagnetConfig {
     double zPosExtent_m = 0.;  // extent upwards from the midplane
     double halfWidth_m  = 0.;  // extent in either +x or -x
     double bbLength_m   = 0.;
-    EFM endField_m;
     Kokkos::Array<double, CoefficientCount> dfCoefficients_m{};
 };
 
@@ -38,7 +36,6 @@ struct VerticalFFAMagnetConfig {
  *  VerticalFFAMagnet makes a rectangular bending magnet with a dipole field
  *  that has a dependence like B0 exp(mz)
  */
-template <class EFM>  // EndFieldModel
 class VerticalFFAMagnet : public ElementBase {
 public:
     /** Construct a new VerticalFFAMagnet
@@ -94,8 +91,9 @@ public:
      *  This is a static function so that it can call the GPU
      */
     static void getFieldValue(
-            const VerticalFFAMagnetConfig<EFM>& config,
-            const std::shared_ptr<ParticleContainer_t>& pc);
+        const VerticalFFAMagnetConfig& config,
+        const std::shared_ptr<endfieldmodel::EndFieldModel> endField,
+        const std::shared_ptr<ParticleContainer_t>& pc);
 
     /** Calculate the field at some arbitrary position in cartesian coordinates
      *
@@ -105,7 +103,7 @@ public:
      *  \returns true if particle is outside the field map, else false
      */
     KOKKOS_INLINE_FUNCTION static bool getFieldValue(
-            const VerticalFFAMagnetConfig<EFM>& config, const Vector_t<double, 3>& R,
+            const VerticalFFAMagnetConfig& config, const Vector_t<double, 3>& R,
             Vector_t<double, 3>& B);
 
     /** Initialise the VerticalFFAMagnet
@@ -147,14 +145,14 @@ public:
      *  Returns the fringe field model; VerticalFFAMagnet retains ownership of
      *  the returned memory.
      */
-    EFM getEndField() const { return endField_m; }
+    std::shared_ptr<endfieldmodel::EndFieldModel> getEndField() const { return endField_m; }
 
     /** Set the fringe field
      *
      * - endField: the new fringe field; VerticalFFAMagnet takes ownership of
      *   the memory associated with endField.
      */
-    void setEndField(EFM endField);
+    void setEndField(std::shared_ptr<endfieldmodel::EndFieldModel> endField);
 
     /** Get the maximum power of x used in the off-midplane expansion;
      */
@@ -220,30 +218,24 @@ private:
 
     VerticalFFAMagnet& operator=(const VerticalFFAMagnet& rhs);
     Geometry straightGeometry_m{Geometry::makeStraight(1.)};
-    VerticalFFAMagnetConfig<EFM> config_m;
-    EFM endField_m;
+    VerticalFFAMagnetConfig config_m;
+    std::shared_ptr<endfieldmodel::EndFieldModel> endField_m;
     std::vector<std::vector<double> > dfCoefficients_m;
 };
 
-extern template class VerticalFFAMagnet<endfieldmodel::Tanh>;
-
-template <class EFM>
-void VerticalFFAMagnet<EFM>::setNegativeVerticalExtent(double negativeExtent) {
+void VerticalFFAMagnet::setNegativeVerticalExtent(double negativeExtent) {
     config_m.zNegExtent_m = negativeExtent;
 }
 
-template <class EFM>
-void VerticalFFAMagnet<EFM>::setPositiveVerticalExtent(double positiveExtent) {
+void VerticalFFAMagnet::setPositiveVerticalExtent(double positiveExtent) {
     config_m.zPosExtent_m = positiveExtent;
 }
 
-template <class EFM>
-void VerticalFFAMagnet<EFM>::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
-    getFieldValue(config_m, pc);
+void VerticalFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+    getFieldValue(config_m, endField_m, pc);
 }
 
-template <class EFM>
-void VerticalFFAMagnet<EFM>::apply(
+void VerticalFFAMagnet::apply(
         const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
     auto Rview                              = pc->R.getView();
@@ -253,45 +245,45 @@ void VerticalFFAMagnet<EFM>::apply(
     apply(R, P, t, E, B);
 }
 
-template <class EFM>
-void VerticalFFAMagnet<EFM>::apply(
+void VerticalFFAMagnet::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double&,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
     getFieldValue(R, B);
 }
 
-template <class EFM>
-std::vector<std::vector<double> > VerticalFFAMagnet<EFM>::getDfCoefficients() const {
+std::vector<std::vector<double> > VerticalFFAMagnet::getDfCoefficients() const {
     return dfCoefficients_m;
 }
 
-template <class EFM>
-void VerticalFFAMagnet<EFM>::getFieldValue(
-        const VerticalFFAMagnetConfig<EFM>& config,
+inline void VerticalFFAMagnet::getFieldValue(
+        const VerticalFFAMagnetConfig& config,
+        const std::shared_ptr<endfieldmodel::EndFieldModel> endField,
         const std::shared_ptr<ParticleContainer_t>& pc) {
     const Kokkos::View<Vector_t<double, 3>*> R = pc->R.getView();
     const Kokkos::View<Vector_t<double, 3>*> B = pc->B.getView();
     const size_t count                         = pc->getLocalNum();
+    Kokkos::View<double*> zRel("zRel", count);
+    Kokkos::View<double**> derivatives("derivatives", count, config.maxOrder_m + 1);
+    double zOffset = endField->getCentreLength()/2.0;
     Kokkos::parallel_for(
-            "VerticalFFAMagnet<>::getFieldValue()", count,
+            "VerticalFFAMagnet::zRel", count, KOKKOS_LAMBDA(const size_t i) {
+                zRel(i) = R(i)[2]-zOffset;
+    });
+    endField->function(zRel, config.maxOrder_m + 1, derivatives);
+    Kokkos::parallel_for(
+            "VerticalFFAMagnet::getFieldValue()", count,
             KOKKOS_LAMBDA(const size_t i) { getFieldValue(config, R(i), B(i)); });
 }
 
-template <class EFM>
-KOKKOS_INLINE_FUNCTION bool VerticalFFAMagnet<EFM>::getFieldValue(
-        const VerticalFFAMagnetConfig<EFM>& config_m, const Vector_t<double, 3>& R,
+KOKKOS_INLINE_FUNCTION bool VerticalFFAMagnet::getFieldValue(
+        const VerticalFFAMagnetConfig& config_m, const Vector_t<double, 3>& R,
         Vector_t<double, 3>& B) {
     if (Kokkos::abs(R[0]) > config_m.halfWidth_m || R[2] < 0. || R[2] > config_m.bbLength_m
         || R[1] < -config_m.zNegExtent_m || R[1] > config_m.zPosExtent_m) {
         return true;
     }
-    Kokkos::Array<double, VerticalFFAMagnetConfig<EFM>::MaxOrder + 2> fringeDerivatives{};
-    double zRel = R[2] - config_m.bbLength_m / 2.;  // z relative to centre of magnet
-    for (size_t i = 0; i < config_m.maxOrder_m + 2; ++i) {
-        // fringeDerivatives[i] = config_m.endField_m.function(xView, i);  // d^i_phi f
-    }
-
-    Kokkos::Array<double, VerticalFFAMagnetConfig<EFM>::MaxOrder + 1> x_n{};  // x^n
+    Kokkos::Array<double, VerticalFFAMagnetConfig::MaxOrder + 2> derivatives{}; // BUG!
+    Kokkos::Array<double, VerticalFFAMagnetConfig::MaxOrder + 1> x_n{};  // x^n
     x_n[0] = 1.;                                                              // x^0
     for (size_t i = 1; i <= config_m.maxOrder_m; ++i) {
         x_n[i] = x_n[i - 1] * R[0];
@@ -299,14 +291,14 @@ KOKKOS_INLINE_FUNCTION bool VerticalFFAMagnet<EFM>::getFieldValue(
 
     // note that the last element is always 0, because dfCoefficients_m is
     // of size maxOrder_m+1. This leads to better Maxwellianness in testing.
-    Kokkos::Array<double, VerticalFFAMagnetConfig<EFM>::MaxOrder + 2> f_n{};
-    Kokkos::Array<double, VerticalFFAMagnetConfig<EFM>::MaxOrder + 1> dz_f_n{};
+    Kokkos::Array<double, VerticalFFAMagnetConfig::MaxOrder + 2> f_n{};
+    Kokkos::Array<double, VerticalFFAMagnetConfig::MaxOrder + 1> dz_f_n{};
     for (size_t n = 0; n <= config_m.maxOrder_m; ++n) {
         for (size_t i = 0; i <= n; ++i) {
             const double coefficient =
-                    config_m.dfCoefficients_m[n * (VerticalFFAMagnetConfig<EFM>::MaxOrder + 1) + i];
-            f_n[n] += coefficient * fringeDerivatives[i];
-            dz_f_n[n] += coefficient * fringeDerivatives[i + 1];
+                    config_m.dfCoefficients_m[n * (VerticalFFAMagnetConfig::MaxOrder + 1) + i];
+            f_n[n] += coefficient * derivatives[i];
+            dz_f_n[n] += coefficient * derivatives[i + 1];
         }
     }
     double bref = config_m.Bz_m * Kokkos::exp(config_m.k_m * R[1]);
