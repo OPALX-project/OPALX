@@ -270,7 +270,7 @@ public:
     void visitDrift(const Drift&) override;
 
     /// @brief Apply the algorithm to a BeamBeam interaction element.
-    virtual void visitBeamBeam(const BeamBeam&);
+    void visitBeamBeam(const BeamBeam&) override;
 
     /// @brief Reject laser tracking until dedicated laser tracking is implemented.
     void visitLaser(const Laser&) override;
