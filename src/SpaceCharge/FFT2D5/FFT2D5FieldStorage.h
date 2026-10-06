@@ -37,7 +37,7 @@
 // course.  The two versions produce results that are different by a few percent, most
 // likely due to the E field calculation (Fourier domain for IPPL, central differences
 // for FFT2D5).  The FFT2D5 version does have an extensive test case.
-#define OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER true
+#define OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER false
 
 namespace opalx::spacecharge {
 

@@ -785,8 +785,8 @@ namespace {
         ASSERT_FALSE(solver->getSliceMesh() == nullptr);
         EXPECT_EQ(solver->getSliceMesh()->getGridsize(0), 8);
         EXPECT_EQ(solver->getSliceMesh()->getGridsize(1), 9);
-        EXPECT_EQ(solver->getSliceMesh()->getOrigin()[0], -0.5);
-        EXPECT_EQ(solver->getSliceMesh()->getOrigin()[1], -0.5);
+        EXPECT_EQ(solver->getSliceMesh()->getOrigin()[0], 0);
+        EXPECT_EQ(solver->getSliceMesh()->getOrigin()[1], 0);
         EXPECT_DOUBLE_EQ(solver->getSliceMesh()->getMeshSpacing()[0], 0.125);
         EXPECT_NEAR(solver->getSliceMesh()->getMeshSpacing()[1], 0.111111, 1e-6);
         ASSERT_FALSE(solver->getSliceLayout() == nullptr);
