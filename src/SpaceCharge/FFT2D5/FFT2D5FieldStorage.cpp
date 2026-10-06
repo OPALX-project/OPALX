@@ -102,14 +102,22 @@ namespace opalx::spacecharge {
         for (Slice& slice : slices_m) {
             slice.electricField = std::make_unique<VectorField2>(sliceMesh_m, sliceLayout_m);
             slice.chargeDensity = std::make_unique<ScalarField2>(sliceMesh_m, sliceLayout_m);
+#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
             slice.solver        = std::make_unique<OpenSolver2>(
                     *slice.electricField, *slice.chargeDensity, solverParameters_m);
+#else
             slice.solver2 = std::make_unique<FFT2D5Poisson>();
+#endif
         }
     }
 
-    void FFT2D5FieldStorage::solveSlice(std::size_t sliceIndex) {
+    void FFT2D5FieldStorage::solveSlice(std::size_t sliceIndex) const {
+#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
         slices_m.at(sliceIndex).solver->solve();
+#else
+        auto& slice = slices_m[sliceIndex];
+        slice.solver2->solve(*slice.chargeDensity, *slice.electricField);
+#endif
     }
 
 }  // namespace opalx::spacecharge

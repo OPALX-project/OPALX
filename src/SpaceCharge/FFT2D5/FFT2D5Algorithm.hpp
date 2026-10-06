@@ -502,12 +502,6 @@ namespace opalx::spacecharge {
                     Policy({0, 0}, {rho2d.extent(0), rho2d.extent(1)}),
                     fft2d5_detail::PoissonCouplingFunctor{rho2d});
             fieldStorage_m->solveSlice(z);
-
-#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
-            s.solver->solve();
-#else
-            s.solver2->solve(*s.chargeDensity, *s.electricField);
-#endif
             Kokkos::fence();
             diagnostic.potential(rho2d, z + nGhost);
             auto e2d = s.electricField->getView();
