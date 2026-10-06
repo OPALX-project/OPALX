@@ -166,17 +166,6 @@ public:
         return div_elements[0] + div_elements[1] + div_elements[2];
     }
 
-    void printCoefficients() {
-        std::vector<std::vector<double> > coeff = sector_m->getDfCoefficients();
-        std::cout << "Coefficients" << std::endl;
-        for (size_t n = 0; n < coeff.size(); ++n) {
-            for (size_t i = 0; i < coeff[n].size(); ++i) {
-                std::cout << coeff[n][i] << " ";
-            }
-            std::cout << std::endl;
-        }
-    }
-
     bool printLine(Vector_t<double, 3> posCyl, double aux, std::ofstream& fout, double maxwell_tolerance) {
         double r = posCyl[0];
         double y = posCyl[1];
@@ -332,11 +321,15 @@ TEST_F(ScalingFFAMagnetTest, DFCoefficientsTest) {
       {+25./2.*3./4., 0., +1./2.*3./4.+25./6./4., 0., +1./6./4.}, // n = 4
     };
     std::vector< std::vector<double> > coeffs = sector_m->getDfCoefficients();
-    ASSERT_GE(coeffs.size(), (size_t)5);
+    ASSERT_GE(coeffs.size(), (size_t)21);
     for (size_t n = 0; n < 5; ++n) {
-        ASSERT_EQ(coeffs[n].size(), n+1);
+        ASSERT_EQ(coeffs[n].size(), 21);
         for (size_t i = 0; i < coeffs[n].size(); ++i) {
-            EXPECT_NEAR(coeffs[n][i], ref[n][i], 1e-9) << " n: " << n << " i: " << i;
+            if (i <= n) {
+                EXPECT_NEAR(coeffs[n][i], ref[n][i], 1e-9) << " n: " << n << " i: " << i;
+            } else {
+                EXPECT_NEAR(coeffs[n][i], 0, 1e-9) << " n: " << n << " i: " << i;
+            }
         }
     }
 }
@@ -356,11 +349,15 @@ TEST_F(ScalingFFAMagnetTest, DFCoefficientsTanDeltaTest) {
       {+25./2.*3./4., -25./6./4.*2.*3.*2.-10.*3/4., -999., -999., -999.}, // n = 4
     };
     std::vector< std::vector<double> > coeffs = sector_m->getDfCoefficients();
-    ASSERT_GE(coeffs.size(), (size_t)4);
+    ASSERT_GE(coeffs.size(), (size_t)21);
     for (size_t n = 0; n < 4; ++n) {
-        ASSERT_EQ(coeffs[n].size(), n+1);
+        ASSERT_EQ(coeffs[n].size(), 21);
         for (size_t i = 0; i < coeffs[n].size(); ++i) {
-            EXPECT_NEAR(coeffs[n][i], ref[n][i], 1e-9) << " n: " << n << " i: " << i;
+            if (i <= n) {
+                EXPECT_NEAR(coeffs[n][i], ref[n][i], 1e-9) << " n: " << n << " i: " << i;
+            } else {
+                EXPECT_NEAR(coeffs[n][i], 0, 1e-9) << " n: " << n << " i: " << i;
+            }
         }
     }
 }
