@@ -519,6 +519,8 @@ inline void ParallelTracker::visitDrift(const Drift& drift) {
 
 inline void ParallelTracker::visitBeamBeam(const BeamBeam& beamBeam) {
     itsOpalBeamline_m.visit(beamBeam, *this, *itsBunch_m);
+}
+
 inline void ParallelTracker::visitFieldmapElement(const FieldmapElement& fm) {
     itsOpalBeamline_m.visit(fm, *this, *itsBunch_m);
 }
