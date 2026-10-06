@@ -1,4 +1,5 @@
 set (_SRCS
+    BoxRep.cpp
     CollimatorRep.cpp
     ConstantEFieldCavityRep.cpp
     ConstantFocusingRep.cpp
@@ -17,6 +18,7 @@ set (_SRCS
     )
 
 set (HDRS
+    BoxRep.h
     CollimatorRep.h
     ConstantEFieldCavityRep.h
     ConstantFocusingRep.h

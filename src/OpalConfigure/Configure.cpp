@@ -64,6 +64,7 @@
 
 // Element commands.
 #include "Elements/OpalCavity.h"
+#include "Elements/OpalBox.h"
 #include "Elements/OpalCollimator.h"
 #include "Elements/OpalConstantEFieldCavity.h"
 #include "Elements/OpalConstantFocusing.h"
@@ -144,6 +145,7 @@ namespace {
         opal->create(new OpalConstantFocusing());
         opal->create(new OpalCyclotronSector());
         opal->create(new OpalTrimCoil());
+        opal->create(new OpalBox());
         opal->create(new OpalCollimator());
         opal->create(new OpalDrift());
         opal->create(new OpalLaser());
