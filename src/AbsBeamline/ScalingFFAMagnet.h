@@ -312,9 +312,6 @@ public:
      */
     void setVerticalExtent(double verticalExtent) { config_m.verticalExtent_m = verticalExtent; }
 
-    /** Return the calculated df coefficients */
-    std::vector<std::vector<double> > getDfCoefficients() const { return dfCoefficients_m; }
-
     /** setupEndField does some end field and geometry set-up
      *
      *  This is normally called just before the magnet is placed; can only set
@@ -338,6 +335,8 @@ public:
     ElementType getElementType() const { return ElementType::SBEND; }
     std::string getTypeString() const { return "SBEND"; }
     ElementType getType() const { return ElementType::SBEND; }
+
+    std::vector<std::vector<double> >  getDfCoefficients() const;
 
 private:
     /** Calculate the df coefficients, ready for field generation
@@ -373,7 +372,6 @@ private:
     mutable std::shared_ptr<endfieldmodel::EndFieldModel> efm_m;
     mutable std::string endFieldName_m;
     mutable bool efmInitialised_m = false;
-    std::vector<std::vector<double> > dfCoefficients_m;
 };
 
 inline void ScalingFFAMagnet::getFieldValue(
@@ -385,7 +383,7 @@ inline void ScalingFFAMagnet::getFieldValue(
     const Kokkos::View<Vector_t<double, 3>*> B = pc->B.getView();
     const Kokkos::View<Vector_t<double, 5>*> Rcyl("Rcyl", count);
     const Kokkos::View<Vector_t<double, 3>*> Bcyl("Bcyl", count);
-    ;
+
     Kokkos::View<double**> derivatives("derivatives", count, config.maxOrder_m + 1);
     Kokkos::parallel_for(
             "ScalingFFAMagnet::getFieldValue()", count,

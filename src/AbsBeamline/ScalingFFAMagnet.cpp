@@ -42,8 +42,7 @@ ScalingFFAMagnet::ScalingFFAMagnet(const ScalingFFAMagnet& right)
     : ElementBase(right),
       planarArcGeometry_m(right.planarArcGeometry_m),
       config_m(right.config_m),
-      endFieldName_m(right.endFieldName_m),
-      dfCoefficients_m(right.dfCoefficients_m) {
+      endFieldName_m(right.endFieldName_m) {
     RefPartBunch_m = right.RefPartBunch_m;
 }
 
@@ -119,35 +118,35 @@ void ScalingFFAMagnet::apply(
 }
 
 void ScalingFFAMagnet::calculateDfCoefficients() {
-    dfCoefficients_m    = std::vector<std::vector<double> >(config_m.maxOrder_m + 1);
-    dfCoefficients_m[0] = std::vector<double>(1, 1.);      // f_0 = 1.*0th derivative
+    std::vector<std::vector<double> > dfVec = std::vector<std::vector<double> >(config_m.maxOrder_m + 1);
+    dfVec[0] = std::vector<double>(1, 1.);      // f_0 = 1.*0th derivative
     for (size_t n = 0; n < config_m.maxOrder_m; n += 2) {  // n indexes the power in z
-        dfCoefficients_m[n + 1] = std::vector<double>(dfCoefficients_m[n].size() + 1, 0);
-        for (size_t i = 0; i < dfCoefficients_m[n].size(); ++i) {  // i indexes the derivative
-            dfCoefficients_m[n + 1][i + 1] = dfCoefficients_m[n][i] / (n + 1);
+        dfVec[n + 1] = std::vector<double>(dfVec[n].size() + 1, 0);
+        for (size_t i = 0; i < dfVec[n].size(); ++i) {  // i indexes the derivative
+            dfVec[n + 1][i + 1] = dfVec[n][i] / (n + 1);
         }
         if (n + 1 == config_m.maxOrder_m) {
             break;
         }
-        dfCoefficients_m[n + 2] = std::vector<double>(dfCoefficients_m[n].size() + 2, 0);
-        for (size_t i = 0; i < dfCoefficients_m[n].size(); ++i) {  // i indexes the derivative
-            dfCoefficients_m[n + 2][i] = -(config_m.k_m - n) * (config_m.k_m - n) / (n + 1)
-                                         * dfCoefficients_m[n][i] / (n + 2);
+        dfVec[n + 2] = std::vector<double>(dfVec[n].size() + 2, 0);
+        for (size_t i = 0; i < dfVec[n].size(); ++i) {  // i indexes the derivative
+            dfVec[n + 2][i] = -(config_m.k_m - n) * (config_m.k_m - n) / (n + 1)
+                                         * dfVec[n][i] / (n + 2);
         }
-        for (size_t i = 0; i < dfCoefficients_m[n + 1].size(); ++i) {  // i indexes the derivative
-            dfCoefficients_m[n + 2][i] += 2 * (config_m.k_m - n) * config_m.tanDelta_m
-                                          * dfCoefficients_m[n + 1][i] / (n + 2);
-            dfCoefficients_m[n + 2][i + 1] -= (1 + config_m.tanDelta_m * config_m.tanDelta_m)
-                                              * dfCoefficients_m[n + 1][i] / (n + 2);
+        for (size_t i = 0; i < dfVec[n + 1].size(); ++i) {  // i indexes the derivative
+            dfVec[n + 2][i] += 2 * (config_m.k_m - n) * config_m.tanDelta_m
+                                          * dfVec[n + 1][i] / (n + 2);
+            dfVec[n + 2][i + 1] -= (1 + config_m.tanDelta_m * config_m.tanDelta_m)
+                                              * dfVec[n + 1][i] / (n + 2);
         }
     }
     for (size_t i = 0; i < ScalingFFAMagnetConfig::CoefficientCount; ++i) {
         config_m.dfCoefficients_m[i] = 0.;
     }
-    for (size_t n = 0; n < dfCoefficients_m.size(); ++n) {
-        for (size_t i = 0; i < dfCoefficients_m[n].size(); ++i) {
+    for (size_t n = 0; n < dfVec.size(); ++n) {
+        for (size_t i = 0; i < dfVec[n].size(); ++i) {
             config_m.dfCoefficients_m[n * (ScalingFFAMagnetConfig::MaxOrder + 1) + i] =
-                    dfCoefficients_m[n][i];
+                    dfVec[n][i];
         }
     }
 }
@@ -219,3 +218,17 @@ void ScalingFFAMagnet::getCartesianCoordinates(
     Rcart[1] = Rcyl[1];
     Rcart[2] = Rcyl[0] * std::sin(Rcyl[2]);
 }
+
+std::vector<std::vector<double> >
+ScalingFFAMagnet::getDfCoefficients() const {
+    std::vector<std::vector<double> > dfCoefficients(config_m.MaxOrder + 1);
+    for (size_t n = 0; n < config_m.MaxOrder + 1; ++n) {
+        dfCoefficients[n] = std::vector<double>(config_m.MaxOrder + 1);
+        for (size_t i = 0; i < config_m.MaxOrder + 1; ++i) {
+            dfCoefficients[n][i] =
+                config_m.dfCoefficients_m[n * (ScalingFFAMagnetConfig::MaxOrder + 1) + i];
+        }
+    }
+    return dfCoefficients;
+}
+
