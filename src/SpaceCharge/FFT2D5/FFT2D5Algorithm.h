@@ -30,15 +30,6 @@
 
 class BunchStateHandler;
 
-// Set the switch to true to select the IPPL 2D Poisson solver, false to select the
-// FFT2D5's 2D Poisson solver.
-// FFT2D5 has its own version which does not contain all the baggage the IPPL version
-// has and was thus easier to reason about during development.  It may also provide
-// the basis for the sine transform solver for the grounded boundary conditions in due
-// course.  The two versions produce results that are different by a few percent, most
-// likely due to the E field calculation (Fourier domain for IPPL, central differences
-// for FFT2D5).  The FFT2D5 version does have an extensive test case.
-#define OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER true
 
 namespace opalx::spacecharge {
 
