@@ -106,6 +106,9 @@ public:
     /// True if PC, ENERGY, or GAMMA was explicitly provided by the user.
     bool hasExplicitEnergy() const;
 
+    /// Repeated spectral launches: kinetic GeV, radius m, radial momentum / mc.
+    std::vector<double> getTuneInitial() const;
+
     /// Update the BEAM data.
     virtual void update();
 

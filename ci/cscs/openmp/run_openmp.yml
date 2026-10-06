@@ -2,7 +2,7 @@ include:
   - local: "ci/cscs/common.yml"
 
 variables:
-  EIGER_UENV: "prgenv-gnu/25.6:v2"
+  EIGER_UENV: "/ritom/scratch/cscs/biddisco/opal-x-zen2-mpich-gcc-2026-10-01.squashfs"
   WITH_UENV_VIEW: "default"
   WRAPPER: ""
   SCRATCH: "/capstor/scratch/cscs/biddisco"
@@ -19,7 +19,7 @@ variables:
   extends: [.baremetal-runner-eiger-zen2]
   variables:
     SLURM_JOB_NUM_NODES: 1
-    SLURM_TIMELIMIT: "0:15:00"
+    SLURM_TIMELIMIT: "0:45:00"
   before_script:
     - !reference [.pr-number-extractor, before_script]
     - pwd

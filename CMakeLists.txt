@@ -8,11 +8,9 @@ cmake_minimum_required(VERSION 3.24)
 # ------------------------------------------------------------------------------
 cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 
-# but disable c++20 module scanning until we have better support for it this
-# seems to cause some problems when using gcc@14
-if(POLICY CMP0155)
-  cmake_policy(SET CMP0155 OLD)
-endif()
+# OPALX does not use C++20 modules. Disable scanning explicitly instead of
+# selecting deprecated CMP0155 behavior (scanning also caused GCC 14 problems).
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
 # ------------------------------------------------------------------------------
 # Project declaration and version
