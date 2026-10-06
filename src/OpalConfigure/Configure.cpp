@@ -63,8 +63,8 @@
 #include "ValueDefinitions/StringConstant.h"
 
 // Element commands.
-#include "Elements/OpalCavity.h"
 #include "Elements/OpalBox.h"
+#include "Elements/OpalCavity.h"
 #include "Elements/OpalCollimator.h"
 #include "Elements/OpalConstantEFieldCavity.h"
 #include "Elements/OpalConstantFocusing.h"
