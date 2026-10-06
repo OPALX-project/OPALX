@@ -101,6 +101,27 @@ TEST(GeometryTest, RectangularBend) {
     expectTrafo(g.getEdgeToEnd(), {0.0, 0.0, L}, kIdentity);
 }
 
+// A body that starts at z = startZ in the local frame (FIELDMAP): both edges move by startZ,
+// the lengths do not change.
+TEST(GeometryTest, StraightWithStartOffset) {
+    const double L      = 0.75;
+    const double startZ = -0.3;
+    Geometry g          = Geometry::makeStraight(L);
+    g.setStartZ(startZ);
+
+    EXPECT_DOUBLE_EQ(g.getStartZ(), startZ);
+    EXPECT_DOUBLE_EQ(g.getElementLength(), L);
+    EXPECT_DOUBLE_EQ(g.getArcLength(), L);
+    EXPECT_DOUBLE_EQ(g.getChordLength(), L);
+
+    expectTrafo(g.getEdgeToBegin(), {0.0, 0.0, startZ}, kIdentity);
+    expectTrafo(g.getEdgeToEnd(), {0.0, 0.0, startZ + L}, kIdentity);
+
+    auto path = g.getDesignPath(8);
+    EXPECT_NEAR(path.front()(2), startZ, 1e-12);
+    EXPECT_NEAR(path.back()(2), startZ + L, 1e-12);
+}
+
 TEST(GeometryTest, SetElementLengthRecomputesArcAngle) {
     Geometry g = Geometry::makeSBend(1.0, 0.2);  // angle = 0.2
     EXPECT_DOUBLE_EQ(g.getBendAngle(), 0.2);
