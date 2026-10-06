@@ -46,6 +46,7 @@ class FlaggedElmPtr;
 class Collimator;
 class Drift;
 class BeamBeam;
+class FieldmapElement;
 class Laser;
 class Marker;
 class Monitor;
@@ -93,6 +94,8 @@ public:
     // Keep a default no-op so adding BeamBeam does not make existing specialized
     // visitors abstract. Visitors that handle BeamBeam explicitly override this.
     virtual void visitBeamBeam(const BeamBeam&) {}
+    /// Apply the algorithm to a field-map-driven element.
+    virtual void visitFieldmapElement(const FieldmapElement&) = 0;
 
     /// Apply the algorithm to a laser element.
     virtual void visitLaser(const Laser&) = 0;
