@@ -10,7 +10,6 @@
       "name": "testing",
       "hidden": true,
       "cacheVariables": {
-        "OPALX_ENABLE_TESTS": "ON",
         "OPALX_ENABLE_UNIT_TESTS": "ON"
       }
     },
@@ -38,7 +37,6 @@
         "IPPL_ENABLE_UNIT_TESTS": "OFF",
         "OPALX_PLATFORMS": "OPENMP",
         "OPALX_USE_STANDARD_FOLDERS": "ON",
-        "OPALX_ENABLE_TESTS": "OFF",
         "OPALX_ENABLE_UNIT_TESTS": "OFF"
       }
     },
