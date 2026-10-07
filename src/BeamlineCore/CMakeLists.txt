@@ -1,8 +1,10 @@
 set (_SRCS
+    BoxRep.cpp
     CollimatorRep.cpp
     ConstantEFieldCavityRep.cpp
     ConstantFocusingRep.cpp
     DriftRep.cpp
+    FieldmapElementRep.cpp
     LaserRep.cpp
     MarkerRep.cpp
     MonitorRep.cpp
@@ -16,10 +18,12 @@ set (_SRCS
     )
 
 set (HDRS
+    BoxRep.h
     CollimatorRep.h
     ConstantEFieldCavityRep.h
     ConstantFocusingRep.h
     DriftRep.h
+    FieldmapElementRep.h
     LaserRep.h
     MarkerRep.h
     MonitorRep.h

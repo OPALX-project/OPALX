@@ -158,30 +158,32 @@ std::vector<Vector_t<double, 3>> Geometry::getDesignPath(std::size_t minSamples)
         const double alpha =
                 (samples > 1) ? static_cast<double>(i) / static_cast<double>(samples - 1) : 0.0;
         const double s = sBegin + alpha * (sEnd - sBegin);
-        path.emplace_back(framePosition(s));
+        path.emplace_back(framePosition(s) + Vector_t<double, 3>({0.0, 0.0, startZ_m}));
     }
 
     return path;
 }
 
 CoordinateSystemTrafo Geometry::getEdgeToBegin() const {
-    // The stored (global-to-local) frame IS the element's geometrical entrance face for every
-    // kind (sector bend: entrance tangent; rectangular bend: box/chord face; straight body:
-    // entrance edge), so the entrance-edge transform is always the identity.
-    return identityTrafo(Vector_t<double, 3>({0.0, 0.0, 0.0}));
+    // For every element except FIELDMAP the stored (global-to-local) frame IS the geometrical
+    // entrance face (sector bend: entrance tangent; rectangular bend: box/chord face; straight
+    // body: entrance edge) and startZ_m is 0, so this is the identity. A FIELDMAP element's
+    // local frame is its map's frame, so its entrance face sits at z = startZ_m.
+    return identityTrafo(Vector_t<double, 3>({0.0, 0.0, startZ_m}));
 }
 
 CoordinateSystemTrafo Geometry::getEdgeToEnd() const {
-    // Transform from the entrance face (the stored frame) to the exit face of the body. A
-    // straight body — straight element, rectangular-bend box, or null — has parallel faces, so
-    // this is a pure +z shift by the body length. A sector bend's body curves, so its exit face
-    // sits at the arc end (framePosition(len)) with the tangent turned by the full bend angle.
+    // Transform from the local frame to the exit face of the body: first getEdgeToBegin() to
+    // reach the entrance face, then from the entrance face to the exit face. A straight body —
+    // straight element, rectangular-bend box, or null — has parallel faces, so that second step
+    // is a pure +z shift by the body length. A sector bend's body curves, so its exit face sits
+    // at the arc end (framePosition(len)) with the tangent turned by the full bend angle.
     // (The reference orbit meets an RBend's faces at half the bend angle, but that orbit tangent
     // is not part of the body edge geometry.)
     switch (kind_m) {
         case GeometryKind::SBend:
-            return frameTrafo(framePosition(len_m), -h_m * len_m);
+            return frameTrafo(framePosition(len_m), -h_m * len_m) * getEdgeToBegin();
         default:  // Straight, RBend, Null: exit face parallel to the entrance face
-            return identityTrafo(Vector_t<double, 3>({0.0, 0.0, len_m}));
+            return identityTrafo(Vector_t<double, 3>({0.0, 0.0, len_m})) * getEdgeToBegin();
     }
 }

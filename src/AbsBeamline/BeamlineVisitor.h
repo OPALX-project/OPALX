@@ -43,8 +43,10 @@ class Beamline;
 class FlaggedElmPtr;
 
 // Specific element classes interacting with a BeamlineVisitor
+class Box;
 class Collimator;
 class Drift;
+class FieldmapElement;
 class Laser;
 class Marker;
 class Monitor;
@@ -79,6 +81,9 @@ public:
     /// Apply the algorithm to a constant E-field cavity element.
     virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&) = 0;
 
+    /// Apply the algorithm to a box absorber.
+    virtual void visitBox(const Box&) = 0;
+
     /// Apply the algorithm to a collimator.
     virtual void visitCollimator(const Collimator&) = 0;
 
@@ -87,6 +92,9 @@ public:
 
     /// Apply the algorithm to a drift space.
     virtual void visitDrift(const Drift&) = 0;
+
+    /// Apply the algorithm to a field-map-driven element.
+    virtual void visitFieldmapElement(const FieldmapElement&) = 0;
 
     /// Apply the algorithm to a laser element.
     virtual void visitLaser(const Laser&) = 0;

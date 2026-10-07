@@ -63,12 +63,14 @@
 #include "ValueDefinitions/StringConstant.h"
 
 // Element commands.
+#include "Elements/OpalBox.h"
 #include "Elements/OpalCavity.h"
 #include "Elements/OpalCollimator.h"
 #include "Elements/OpalConstantEFieldCavity.h"
 #include "Elements/OpalConstantFocusing.h"
 #include "Elements/OpalCyclotronSector.h"
 #include "Elements/OpalDrift.h"
+#include "Elements/OpalFieldmapElement.h"
 #include "Elements/OpalLaser.h"
 #include "Elements/OpalMarker.h"
 #include "Elements/OpalMonitor.h"
@@ -143,6 +145,7 @@ namespace {
         opal->create(new OpalConstantFocusing());
         opal->create(new OpalCyclotronSector());
         opal->create(new OpalTrimCoil());
+        opal->create(new OpalBox());
         opal->create(new OpalCollimator());
         opal->create(new OpalDrift());
         opal->create(new OpalLaser());
@@ -153,6 +156,7 @@ namespace {
         opal->create(new OpalQuadrupole());
         opal->create(new OpalRBend());
         opal->create(new OpalSBend());
+        opal->create(new OpalFieldmapElement());
         opal->create(new OpalSolenoid());
         opal->create(new Line());
         opal->create(new Ring());

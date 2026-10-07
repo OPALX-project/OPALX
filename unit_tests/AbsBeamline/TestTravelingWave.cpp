@@ -97,7 +97,7 @@ public:
     bool isInside(const Vector_t<double, 3>&) const override { return !outOfBounds_; }
 
     // --- required no-op implementations ---
-    void applyField(std::shared_ptr<ParticleContainer_t>, double = 1.0) override {}
+    void applyField(std::shared_ptr<ParticleContainer_t>, double = 1.0, double = 1.0) override {}
     bool getFieldDerivative(
             const Vector_t<double, 3>&, Vector_t<double, 3>&, Vector_t<double, 3>&,
             const DiffDirection&) const override {
