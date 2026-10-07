@@ -35,12 +35,9 @@ public:
         MAX_Y_POWER,
         END_FIELD_MODEL,
         END_LENGTH,
-        CENTRE_LENGTH,
         RADIAL_NEG_EXTENT,
         RADIAL_POS_EXTENT,
         HEIGHT,
-        LAYOUT_START,
-        LAYOUT_END,
         AZIMUTHAL_EXTENT,
         SIZE  // size of the enum
     };

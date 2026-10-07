@@ -15,6 +15,7 @@
 #include "Elements/PlacementResolver.h"
 
 #include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/ScalingFFAMagnet.h"
 #include "Algorithms/Quaternion.hpp"
 #include "BeamlineGeometry/Geometry.h"
 #include "Utilities/OpalException.h"
@@ -96,7 +97,13 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
                 continue;  // already placed by Phase 1 (Mode A)
             }
 
-            // This pass only frames bends; every other element is placed in Phase 3.
+            if (element->getType() == ElementType::SCALINGFFAMAGNET) {
+                auto ffa = std::dynamic_pointer_cast<ScalingFFAMagnet>(element);
+                resolveFFAElemEdge(ffa, endPriorPathLength, currentCoordTrafo);
+                continue; // ffa element is now placed
+            }
+
+            // Rest of the method frames bends; every other element is placed in Phase 3.
             if (element->getType() != ElementType::SBEND && element->getType() != ElementType::RBEND
                 && element->getType() != ElementType::RBEND3D) {
                 continue;
@@ -184,8 +191,8 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
         Vector_t<double, 3> beginThis3D(0, 0, beginThisPathLength - endPriorPathLength);
 
         Vector_t<double, 3> endThis3D;
-        if (element->getType() == ElementType::SBEND || element->getType() == ElementType::RBEND
-            || element->getType() == ElementType::RBEND3D) {
+        if (element->getType() == ElementType::SBEND || element->getType() == ElementType::RBEND ||
+            element->getType() == ElementType::RBEND3D || element->getType() == ElementType::SCALINGFFAMAGNET) {
             // Bend: its own frame is already set (Phase 2); here we only advance the running frame
             // across it so the following elements are placed correctly.
             double thisLength          = element->getGeometry().getChordLength();
@@ -228,4 +235,43 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
 
         element->fixPosition();
     }
+
+}
+
+void PlacementResolver::resolveFFAElemEdge(std::shared_ptr<ScalingFFAMagnet> ffa,
+                                           double& endPriorPathLength,
+                                           CoordinateSystemTrafo& currentCoordTrafo) {
+    if (!ffa) {
+        throw OpalException("FFA was not found during placement",
+                            "PlacementResolver::resolveFFAElemEdge");
+    }
+    double sPosition = ffa->getElementPosition();
+    double r0 = ffa->getR0();
+    double length = ffa->getGeometry().getArcLength();
+    double phiMid = (sPosition+length/2.0)/r0;
+    double phiEnd = (sPosition+length)/r0;
+
+    // The FFA is placed with respect to FFA centre
+    // if r0 is positive we bend to the left/anticlockwise (negative x direction)
+    // if r0 is negative we bend to the right/clockwise = positive x direction
+    ippl::Vector<double, 3> startPosition = {r0*cos(phiMid)-r0, 0.0, r0*sin(phiMid)};
+    matrix3x3_t rotation;
+    rotation(0, 0) = cos(phiMid);
+    rotation(2, 0) = -sin(phiMid);
+    rotation(1, 1) = 1.0;
+    rotation(0, 2) = sin(phiMid);
+    rotation(2, 2) = cos(phiMid);
+    ffa->setCSTrafoGlobal2Local(CoordinateSystemTrafo(startPosition, (Quaternion)rotation));
+
+    // Update the end position
+    ippl::Vector<double, 3> endPosition = {r0*cos(phiEnd)-r0, 0.0, r0*sin(phiEnd)};
+    matrix3x3_t rotationOut;
+    rotationOut(0, 0) = cos(phiEnd);
+    rotationOut(2, 0) = -sin(phiEnd);
+    rotationOut(1, 1) = 1.0;
+    rotationOut(0, 2) = sin(phiEnd);
+    rotationOut(2, 2) = cos(phiEnd);
+
+    endPriorPathLength = sPosition+length;
+    currentCoordTrafo = CoordinateSystemTrafo(startPosition, (Quaternion)rotationOut);
 }

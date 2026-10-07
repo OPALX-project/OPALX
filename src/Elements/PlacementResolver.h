@@ -18,6 +18,8 @@
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Utilities/ElementList.h"
 
+class ScalingFFAMagnet;
+
 /**
  * @class PlacementResolver
  * @brief Resolves every beamline element's global-to-local transform in one place.
@@ -41,6 +43,18 @@ public:
      * @param labFrame  the beamline lab-to-entry transform (OpalBeamline::coordTransformationTo_m)
      */
     static void resolve(ElementList& elements, const CoordinateSystemTrafo& labFrame);
+    /**
+     * @brief Resolve the transform for an element placed on a circle
+     * @param element: element to place in ffa mode; it is an error if ffa is empty
+     * @param endPriorPathLength: update the s-position of the placement pointer
+     * @param currentCoordTrafo: update the transformation of the placement point
+     *
+     * The element will be placed on a circle of ffa R0, with start
+     * ffa->getPosition() and length ffa->getArcLength().
+     */
+    static void resolveFFAElemEdge(std::shared_ptr<ScalingFFAMagnet> ffa,
+                                   double& endPriorPathLength,
+                                   CoordinateSystemTrafo& currentCoordTrafo);
 };
 
 #endif  // OPALX_PlacementResolver_HH

@@ -63,7 +63,6 @@ struct ScalingFFAMagnetConfig {
     double rMin_m             = 0.;  // minimum radius
     double rMax_m             = 0.;  // maximum radius
     double phiStart_m         = 0.;  // offsets this element
-    double phiEnd_m           = 0.;  // used for placement of next element
     double azimuthalExtent_m  = 0.;  // maximum distance used for field calculation
     double verticalExtent_m   = 0.;  // maximum allowed distance from the midplane
     const double fp_tolerance = 1e-18;
@@ -111,7 +110,8 @@ public:
     static void getFieldValue(
             const ScalingFFAMagnetConfig& config,
             const std::shared_ptr<endfieldmodel::EndFieldModel> endField,
-            const std::shared_ptr<ParticleContainer_t> pc);
+            const Kokkos::View<Vector_t<double, 3>*> R,
+            const Kokkos::View<Vector_t<double, 3>*> B);
 
     /** Calculate the field at some arbitrary position in cartesian coordinates
      *
@@ -270,14 +270,6 @@ public:
      */
     void setPhiStart(double phiStart) { config_m.phiStart_m = phiStart; }
 
-    /** Get the offset of the magnet end from the start
-     */
-    double getPhiEnd() const { return config_m.phiEnd_m; }
-
-    /** Set the offset of the magnet end from the start
-     */
-    void setPhiEnd(double phiEnd) { config_m.phiEnd_m = phiEnd; }
-
     /** Get the maximum radius
      */
     double getRMin() const { return config_m.rMin_m; }
@@ -332,9 +324,9 @@ public:
     /** Return the end field name. */
     std::string getEndFieldName() const { return endFieldName_m; }
 
-    ElementType getElementType() const { return ElementType::SBEND; }
-    std::string getTypeString() const { return "SBEND"; }
-    ElementType getType() const { return ElementType::SBEND; }
+    ElementType getElementType() const { return ElementType::SCALINGFFAMAGNET; }
+    std::string getTypeString() const { return "SCALINGFFAMAGNET"; }
+    ElementType getType() const { return ElementType::SCALINGFFAMAGNET; }
 
     std::vector<std::vector<double> >  getDfCoefficients() const;
 
@@ -377,14 +369,14 @@ private:
 inline void ScalingFFAMagnet::getFieldValue(
         const ScalingFFAMagnetConfig& config,
         const std::shared_ptr<endfieldmodel::EndFieldModel> endField,
-        const std::shared_ptr<ParticleContainer_t> pc) {
-    const size_t count                         = pc->getLocalNum();
-    const Kokkos::View<Vector_t<double, 3>*> R = pc->R.getView();
-    const Kokkos::View<Vector_t<double, 3>*> B = pc->B.getView();
+        const Kokkos::View<Vector_t<double, 3>*> R,
+        const Kokkos::View<Vector_t<double, 3>*> B) {
+    const size_t count                         = R.size();
     const Kokkos::View<Vector_t<double, 5>*> Rcyl("Rcyl", count);
     const Kokkos::View<Vector_t<double, 3>*> Bcyl("Bcyl", count);
 
-    Kokkos::View<double**> derivatives("derivatives", count, config.maxOrder_m + 1);
+
+    Kokkos::View<double**> derivatives("derivatives", count, config.maxOrder_m + 2);
     Kokkos::parallel_for(
             "ScalingFFAMagnet::getFieldValue()", count,
             KOKKOS_LAMBDA(const size_t i) { getCylindricalCoordinates(config, R(i), Rcyl(i)); });
@@ -410,7 +402,7 @@ void ScalingFFAMagnet::getCylindricalCoordinates(
     double r          = Kokkos::sqrt((Ri[0] + config.r0_m) * (Ri[0] + config.r0_m) + Ri[2] * Ri[2]);
     double normRadius = Kokkos::abs(r / config.r0_m);
     double g          = config.tanDelta_m * Kokkos::log(normRadius);
-    double phi = Kokkos::atan2(Ri[2], (Ri[0] + config.r0_m) / Kokkos::copysign(1.0, config.r0_m));
+    double phi = Kokkos::atan2(Ri[2], (Ri[0] + config.r0_m) * Kokkos::copysign(1.0, config.r0_m));
     double phiSpiral = phi - g - config.phiStart_m;
     Rcyli[0]         = r;
     // angle between y-axis and position vector in anticlockwise direction
