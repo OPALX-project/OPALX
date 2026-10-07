@@ -44,12 +44,14 @@
 #include "Algorithms/IndexMap.h"
 #include "Algorithms/OrbitThreader.h"
 
+#include "AbsBeamline/Box.h"
 #include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/ConstantFocusing.h"
 #include "AbsBeamline/CyclotronSector.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/FieldmapElement.h"
 #include "AbsBeamline/Laser.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
@@ -258,11 +260,17 @@ public:
 
     /// @brief Apply the algorithm to a constant linear focusing element.
     void visitConstantFocusing(const ConstantFocusing&) override;
+    /// @brief Apply the algorithm to a box absorber.
+    void visitBox(const Box&) override;
+
     /// @brief Apply the algorithm to a collimator.
     void visitCollimator(const Collimator&) override;
 
     /// @brief Apply the algorithm to a drift.
     void visitDrift(const Drift&) override;
+
+    /// @brief Apply the algorithm to a field-map-driven element.
+    void visitFieldmapElement(const FieldmapElement&) override;
 
     /// @brief Reject laser tracking until dedicated laser tracking is implemented.
     void visitLaser(const Laser&) override;
@@ -496,12 +504,20 @@ inline void ParallelTracker::visitConstantFocusing(const ConstantFocusing& focus
     itsOpalBeamline_m.visit(focusing, *this, *itsBunch_m);
 }
 
+inline void ParallelTracker::visitBox(const Box& box) {
+    itsOpalBeamline_m.visit(box, *this, *itsBunch_m);
+}
+
 inline void ParallelTracker::visitCollimator(const Collimator& coll) {
     itsOpalBeamline_m.visit(coll, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitDrift(const Drift& drift) {
     itsOpalBeamline_m.visit(drift, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitFieldmapElement(const FieldmapElement& fm) {
+    itsOpalBeamline_m.visit(fm, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitMonitor(const Monitor& monitor) {

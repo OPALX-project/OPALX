@@ -38,8 +38,10 @@ class ConstChannel;
 enum class ElementType : unsigned short {
     ANY,
     BEAMLINE,
+    BOX,
     COLLIMATOR,
     DRIFT,
+    FIELDMAP,
     LASER,
     MARKER,
     MONITOR,
@@ -425,8 +427,9 @@ public:
      * Called by ParallelTracker::applyElementApertures with the bunch in the
      * element-local frame. ORs into InvalidMask and never clears existing
      * marks; the tracker's end-of-step deletion flushes all marks. The
-     * z-window is [zBegin, zEnd) from getGeometry().getElemLength(), since the
-     * aperture is a geometric property of the element.
+     * z-window is [startZ, startZ + L) from getGeometry().getStartZ() and
+     * getGeometry().getElementLength(), since the aperture is a geometric property of the
+     * element.
      * No-op when getFlagDeleteOnTransverseExit() is false.
      *
      * @return local number of newly marked particles
