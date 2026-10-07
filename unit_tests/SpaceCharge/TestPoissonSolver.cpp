@@ -197,6 +197,21 @@ namespace opalx::spacecharge {
                 fillCharge(fields);
                 solver->solve({}, {.suppressFieldDump = true});
                 expectElectricField(fields, ordinary);
+
+                // After a spacing change, IPPL itself must replace the cached shifted kernel.
+                fillCharge(fields);
+                solver->solve(shifted, {.suppressFieldDump = true});
+                const auto spacing = fields.mesh().getMeshSpacing();
+                fields.mesh().setMeshSpacing(
+                        Vector_t<double, 3>(1.1 * spacing[0], 1.2 * spacing[1], spacing[2]));
+                Fields freshFields(domain);
+                freshFields.initializeFields(selected.type);
+                auto fresh = makePoissonSolver(selected.config(), binding(freshFields));
+                fillCharge(fields);
+                fillCharge(freshFields);
+                solver->solve({}, {.suppressFieldDump = true});
+                fresh->solve({}, {.suppressFieldDump = true});
+                expectElectricField(fields, snapshot(freshFields.electricField().getView()));
             }
         }
 

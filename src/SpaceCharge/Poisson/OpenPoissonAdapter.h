@@ -25,16 +25,11 @@ namespace opalx::spacecharge {
 
     protected:
         void solveImpl(const PoissonSolveRequest& request) override {
-            if (request.hasShiftedGreenFunction()) {
-                backend_m->shiftedGreensFunction(*request.greenFunctionShift);
-                backend_m->solve();
-                backend_m->greensFunction();
-            } else {
-                backend_m->solve();
-            }
+            kernelRestore_m.solve(*backend_m, request);
         }
         void rebuildImpl(PoissonFieldBinding fields) override {
             auto& backend   = backend_m.emplace();
+            kernelRestore_m = detail::DeferredKernelRestore(fields.chargeDensity);
             auto parameters = detail::commonFftParameters();
             parameters.add("output_type", NativeBackend::SOL_AND_GRAD);
             parameters.add("algorithm", NativeBackend::HOCKNEY);
@@ -57,6 +52,7 @@ namespace opalx::spacecharge {
 
         using NativeBackend = OpenSolver_t<double, 3>;
         std::optional<NativeBackend> backend_m;
+        detail::DeferredKernelRestore kernelRestore_m;
     };
 
 }  // namespace opalx::spacecharge

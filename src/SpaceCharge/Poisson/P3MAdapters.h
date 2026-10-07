@@ -6,8 +6,12 @@
  * 1e-9. The mesh RHS is already divided by epsilon_0; the particle stage uses raw charges,
  * so only its native force constant contains epsilon_0. The particle contribution is added
  * to E in the Cartesian solve axes after the final mesh-to-particle gather.
- * An open Dirichlet image pass uses the full STANDARD shifted Coulomb mesh kernel;
- * the short-range particle correction is applied only once, to the real bunch.
+ *
+ * The open Dirichlet image pass uses the full STANDARD shifted Coulomb mesh kernel, regularized
+ * below h_min/2, with no short-range correction for image charges. The image field is therefore
+ * mesh-resolved: for particles within about one cell of the plane it has STANDARD OPEN accuracy,
+ * while real-bunch interactions keep P3M short-range accuracy. The short-range correction is
+ * applied once, to the real bunch.
  */
 
 #ifndef OPALX_SPACE_CHARGE_P3M_ADAPTERS_H
@@ -41,21 +45,11 @@ namespace opalx::spacecharge {
 
     protected:
         void solveImpl(const PoissonSolveRequest& request) override {
-            if (!request.hasShiftedGreenFunction()) {
-                backend_m->solve();
-                return;
-            }
-            backend_m->shiftedGreensFunction(*request.greenFunctionShift);
-            try {
-                backend_m->solve();
-            } catch (...) {
-                backend_m->greensFunction();
-                throw;
-            }
-            backend_m->greensFunction();
+            kernelRestore_m.solve(*backend_m, request);
         }
         void rebuildImpl(PoissonFieldBinding fields) override {
             auto& backend          = backend_m.emplace();
+            kernelRestore_m        = detail::DeferredKernelRestore(fields.chargeDensity);
             const bool allPeriodic = std::all_of(
                     config_m.boundaryConditions.begin(), config_m.boundaryConditions.end(),
                     [](FieldBoundaryCondition boundary) {
@@ -83,6 +77,7 @@ namespace opalx::spacecharge {
 
         using NativeBackend = FFTTruncatedGreenSolver_t<double, 3>;
         std::optional<NativeBackend> backend_m;
+        detail::DeferredKernelRestore kernelRestore_m;
     };
 
     namespace detail {
