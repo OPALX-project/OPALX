@@ -19,7 +19,6 @@
 #include <cmath>
 #include <csignal>
 #include <filesystem>
-#include <format>
 #include <memory>
 #include <random>
 #include <string>
@@ -2142,7 +2141,9 @@ namespace {
         ASSERT_EQ(ny2, 12);
         for (size_t i = 0; i < 12; ++i) {
             for (size_t j = 0; j < 12; ++j) {
-                SCOPED_TRACE(std::format("i = {}, j = {}, index={}", i, j, j * 12 + i));
+                SCOPED_TRACE(
+                        ::testing::Message()
+                        << "i = " << i << ", j = " << j << ", index=" << (j * 12 + i));
                 ASSERT_NEAR(
                         greens2Host(i + nGhost2, j + nGhost2), ExpectedGreens12x12[j * 12 + i],
                         2e-2);
@@ -2183,7 +2184,9 @@ namespace {
         // Now verify the potential result
         for (size_t i = 0; i < 6; ++i) {
             for (size_t j = 0; j < 6; ++j) {
-                SCOPED_TRACE(std::format("i = {}, j = {}, index={}", i, j, j * 6 + i));
+                SCOPED_TRACE(
+                        ::testing::Message()
+                        << "i = " << i << ", j = " << j << ", index=" << (j * 6 + i));
                 ASSERT_NEAR(
                         potentialHost(i + nGhostPotential, j + nGhostPotential),
                         ExpectedPotential6x6[j * 6 + i], 2e-2);
@@ -2192,7 +2195,9 @@ namespace {
         // Now verify the E result
         for (size_t i = 0; i < 6; ++i) {
             for (size_t j = 0; j < 6; ++j) {
-                SCOPED_TRACE(std::format("i = {}, j = {}, index={}", i, j, j * 6 + i));
+                SCOPED_TRACE(
+                        ::testing::Message()
+                        << "i = " << i << ", j = " << j << ", index=" << (j * 6 + i));
                 ASSERT_NEAR(eHost(i + nGhostE, j + nGhostE).data_m[0], ExpectedEx[j * 6 + i], 2e-2);
                 ASSERT_NEAR(eHost(i + nGhostE, j + nGhostE).data_m[1], ExpectedEy[j * 6 + i], 2e-2);
             }
