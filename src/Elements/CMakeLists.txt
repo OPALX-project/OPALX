@@ -1,5 +1,6 @@
 set (_SRCS
     OpalCavity.cpp
+    OpalBox.cpp
     OpalCollimator.cpp
     OpalConstantEFieldCavity.cpp
     OpalConstantFocusing.cpp
@@ -33,6 +34,7 @@ set (HDRS
     PlacementResolver.h
     OpalBend.h
     OpalCavity.h
+    OpalBox.h
     OpalCollimator.h
     OpalConstantEFieldCavity.h
     OpalConstantFocusing.h
