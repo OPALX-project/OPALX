@@ -109,6 +109,8 @@ namespace opalx::spacecharge {
         }
     }
 
+    FFT2D5FieldStorage::~FFT2D5FieldStorage() = default;
+
     void FFT2D5FieldStorage::solveSlice(std::size_t sliceIndex) const {
 #if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
         slices_m.at(sliceIndex).solver->solve();
