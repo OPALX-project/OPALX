@@ -100,18 +100,13 @@ namespace opalx::spacecharge {
         }
 
         // Publish dependent storage together only after path loading and allocation succeed.
-        auto referencePath =
+        referencePath_m =
                 std::make_unique<ReferencePath>(ReferencePath::load(config_m.referencePathFile));
-        auto fieldStorage = std::make_unique<FFT2D5FieldStorage>(config_m, referencePath->length());
-        LineDensityView_t lineDensity(
-                "FFT2D5LineDensity", fieldStorage->slices().size() + LineDensityGhostCells);
-        LineDensityView_t lineDensityGradient(
-                "FFT2D5LineDensityGradient", fieldStorage->slices().size());
-
-        referencePath_m       = std::move(referencePath);
-        fieldStorage_m        = std::move(fieldStorage);
-        lineDensity_m         = std::move(lineDensity);
-        lineDensityGradient_m = std::move(lineDensityGradient);
+        fieldStorage_m = std::make_unique<FFT2D5FieldStorage>(config_m, referencePath_m->length());
+        lineDensity_m  = LineDensityView_t(
+                "FFT2D5LineDensity", fieldStorage_m->slices().size() + LineDensityGhostCells);
+        lineDensityGradient_m =
+                LineDensityView_t("FFT2D5LineDensityGradient", fieldStorage_m->slices().size());
     }
 
 }  // namespace opalx::spacecharge

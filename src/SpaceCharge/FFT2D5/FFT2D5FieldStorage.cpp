@@ -1,10 +1,24 @@
+//
+// Copyright (c) 2008 - 2026, Paul Scherrer Institut, Villigen PSI, Switzerland
+//
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 /**
  * @file FFT2D5FieldStorage.cpp
  * @brief Implements persistent FFT2D5 field and slice-solver construction.
  */
 
 #include "SpaceCharge/FFT2D5/FFT2D5FieldStorage.h"
-
 #include "Utilities/OpalException.h"
 
 #include <array>
@@ -63,9 +77,7 @@ namespace opalx::spacecharge {
           mesh_m(domain_m, spacing_m, origin_m),
           layout_m(MPI_COMM_WORLD, domain_m, std::array<bool, 3>{false, false, false}, true),
           sliceDomain_m(makeDomain2(meshSize_m)),
-          sliceMesh_m(
-                  sliceDomain_m, Vector2(spacing_m[0], spacing_m[1]),
-                  Vector2(origin_m[0], origin_m[1])),
+          sliceMesh_m(sliceDomain_m, Vector2(spacing_m[0], spacing_m[1]), Vector2(0, 0)),
           sliceLayout_m(MPI_COMM_WORLD, sliceDomain_m, std::array<bool, 2>{false, false}) {
         if (!(pathLength > 0.0)) {
             throw OpalException(
@@ -88,15 +100,24 @@ namespace opalx::spacecharge {
         for (Slice& slice : slices_m) {
             slice.electricField = std::make_unique<VectorField2>(sliceMesh_m, sliceLayout_m);
             slice.chargeDensity = std::make_unique<ScalarField2>(sliceMesh_m, sliceLayout_m);
-            slice.solver        = std::make_unique<OpenSolver2>(
+#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
+            slice.solver = std::make_unique<OpenSolver2>(
                     *slice.electricField, *slice.chargeDensity, solverParameters_m);
+#else
+            slice.solver2 = std::make_unique<FFT2D5Poisson>();
+#endif
         }
     }
 
     FFT2D5FieldStorage::~FFT2D5FieldStorage() = default;
 
-    void FFT2D5FieldStorage::solveSlice(std::size_t sliceIndex) {
+    void FFT2D5FieldStorage::solveSlice(std::size_t sliceIndex) const {
+#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
         slices_m.at(sliceIndex).solver->solve();
+#else
+        auto& slice = slices_m[sliceIndex];
+        slice.solver2->solve(*slice.chargeDensity, *slice.electricField);
+#endif
     }
 
 }  // namespace opalx::spacecharge
