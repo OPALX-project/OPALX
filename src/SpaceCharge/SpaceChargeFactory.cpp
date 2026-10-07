@@ -5,6 +5,9 @@
 #include "PartBunch/PartBunch.h"
 #include "SpaceCharge/CartesianPIC3D/CartesianPIC3DAlgorithm.h"
 #include "SpaceCharge/FFT2D5/FFT2D5Algorithm.h"
+#ifdef OPALX_ENABLE_BH
+#include "SpaceCharge/BarnesHut/BarnesHutAlgorithm.h"
+#endif
 #include "Utilities/OpalException.h"
 
 #include <utility>
@@ -32,7 +35,7 @@ namespace opalx::spacecharge {
         // dispatch instead: if there are more backends in the future, we could come back to
         // std::visit and try to debug it properly.
         static_assert(
-                std::variant_size_v<SpaceChargeConfig> == 2, "Add construction for this algorithm");
+                std::variant_size_v<SpaceChargeConfig> == 3, "Add construction for this algorithm");
         std::unique_ptr<SpaceChargeAlgorithm> algorithm;
         if (auto* selected = std::get_if<CartesianPIC3DConfig>(&config)) {
             if (selected->backend == PoissonSolverType::ConjugateGradient) {
@@ -45,6 +48,16 @@ namespace opalx::spacecharge {
                     std::make_unique<CartesianPIC3DFieldStorage<double, 3>>(
                             bunch.cartesianDomain()),
                     dataSink, bunchState);
+        } else if (auto* barnesHut = std::get_if<BarnesHutConfig>(&config)) {
+#ifdef OPALX_ENABLE_BH
+            algorithm = std::make_unique<BarnesHutAlgorithm>(
+                    std::move(*barnesHut), particles, bunchState);
+#else
+            static_cast<void>(barnesHut);
+            throw OpalException(
+                    "makeSpaceChargeSolver",
+                    "FIELDSOLVER TYPE=BH requires OPALX built with -DOPALX_ENABLE_BH=ON.");
+#endif
         } else {
             algorithm = std::make_unique<FFT2D5Algorithm>(
                     std::get<FFT2D5Config>(std::move(config)), particles, bunchState);

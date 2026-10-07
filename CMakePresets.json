@@ -79,6 +79,20 @@
       }
     },
     {
+      "name": "alps-gh200-bh",
+      "displayName": "Alps-GH200-BarnesHut",
+      "description": "Alps GH200 with CUDA plus the Barnes-Hut space-charge solver (release+testing)",
+      "inherits": [
+        "alps-gh200"
+      ],
+      "cacheVariables": {
+        "OPALX_ENABLE_BH": "ON",
+        "OPALX_ENABLE_UNIT_TESTS": "ON",
+        "CSTONE_WITH_GPU_AWARE_MPI": "ON",
+        "CMAKE_CXX_COMPILER": "g++"
+      }
+    },
+    {
       "name": "alps-mi300",
       "displayName": "Alps-mi300-defaults",
       "description": "Settings for Alps MI300 with HIP (release+testing)",

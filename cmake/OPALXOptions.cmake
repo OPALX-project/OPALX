@@ -212,6 +212,25 @@ set(IPPL_PLATFORMS "${OPALX_PLATFORMS}" CACHE STRING "" FORCE)
 set(IPPL_USE_STANDARD_FOLDERS ${OPALX_USE_STANDARD_FOLDERS})
 
 # -----------------------------------------------------------------------------
+# Barnes-Hut space-charge solver (FIELDSOLVER TYPE=BH)
+#
+# Builds IPPL's gridless N-body module (cstone + ryoanji) and the OPALX
+# BarnesHutAlgorithm. The module selects its backend from IPPL_PLATFORMS
+# (CUDA -> GPU, otherwise CPU/OpenMP); SYCL is not supported by cstone/ryoanji.
+# -----------------------------------------------------------------------------
+option(OPALX_ENABLE_BH "Enable the Barnes-Hut space-charge solver (IPPL NBody module)" OFF)
+message(STATUS "🔧 Barnes-Hut space-charge solver (OPALX_ENABLE_BH): ${OPALX_ENABLE_BH}")
+if(OPALX_ENABLE_BH)
+  if("SYCL" IN_LIST OPALX_PLATFORMS)
+    message(FATAL_ERROR "OPALX_ENABLE_BH is not supported with the SYCL platform.")
+  endif()
+  if("HIP" IN_LIST OPALX_PLATFORMS)
+    message(FATAL_ERROR "OPALX_ENABLE_BH is untested with HIP; use CUDA or a host platform.")
+  endif()
+  set(IPPL_ENABLE_NBODY ON CACHE BOOL "" FORCE)
+endif()
+
+# -----------------------------------------------------------------------------
 # Other OPALX options
 # -----------------------------------------------------------------------------
 

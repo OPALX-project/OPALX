@@ -134,6 +134,15 @@ target_include_directories(opalx PRIVATE
   ZLIB::ZLIB
 )
 
+if(OPALX_ENABLE_BH)
+  if(NOT TARGET ippl::nbody)
+    message(FATAL_ERROR "OPALX_ENABLE_BH=ON but IPPL did not provide ippl::nbody. "
+                        "Use an IPPL revision with the NBody module.")
+  endif()
+  target_link_libraries(opalx PUBLIC ippl::nbody)
+  target_compile_definitions(opalx PUBLIC OPALX_ENABLE_BH)
+endif()
+
 # CLI executable
 add_executable(opalx_exe Main.cpp)
 target_link_libraries(opalx_exe PUBLIC opalx)

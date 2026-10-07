@@ -37,6 +37,7 @@ namespace opalx::spacecharge {
                 case FieldSolverCmdType::P3M:
                     return PoissonSolverType::P3M;
                 case FieldSolverCmdType::FFT2D5:
+                case FieldSolverCmdType::BH:
                     break;
             }
             throw OpalException(
@@ -146,6 +147,11 @@ namespace opalx::spacecharge {
             }
             return false;
         }
+
+        /** @brief Gridless BH: NX/NY/NZ only size the inert PartBunch domain and may be omitted. */
+        BarnesHutConfig buildBarnesHutConfig(
+                const FieldSolverCmd& fieldSolver,
+                const std::vector<std::vector<EmissionSource*>>& emissionSources);
 
         std::optional<BinningConfig> buildBinningConfig(const BinningCmd* command) {
             if (command == nullptr) {
@@ -276,6 +282,50 @@ namespace opalx::spacecharge {
             return values;
         }
 
+        BarnesHutConfig buildBarnesHutConfig(
+                const FieldSolverCmd& fieldSolver,
+                const std::vector<std::vector<EmissionSource*>>& emissionSources) {
+            const char* where = "SpaceChargeConfigBuilder::build";
+            const auto binsName = fieldSolver.getBinsName();
+            if (!binsName.empty() && binsName != "NONE") {
+                throw OpalException(
+                        where, "TYPE=BH computes the whole-bunch electrostatic field and does not "
+                               "support BINS.");
+            }
+            const auto boundaries = convertBoundaryConditions(fieldSolver.constructBCHandler());
+            if (!std::all_of(boundaries.begin(), boundaries.end(), [](auto boundary) {
+                    return boundary == FieldBoundaryCondition::Open;
+                })) {
+                throw OpalException(where, "TYPE=BH supports only OPEN boundaries (BCFFTX/Y/Z).");
+            }
+            if (buildDirichletPlaneConfig(emissionSources).enabled()) {
+                throw OpalException(
+                        where, "TYPE=BH does not support Dirichlet planes (ZEROFACE_R0Z or "
+                               "SHIFTED_GREENS_FUNCTION).");
+            }
+            if (Options::useQMAttributes) {
+                throw OpalException(
+                        where, "TYPE=BH requires QM_MODE=SINGLE (one charge per container).");
+            }
+
+            BarnesHutConfig values;
+            const std::array<double, 3> mesh{
+                    fieldSolver.getNX(), fieldSolver.getNY(), fieldSolver.getNZ()};
+            const std::array<const char*, 3> names{"NX", "NY", "NZ"};
+            for (unsigned d = 0; d < 3; ++d) {
+                if (mesh[d] != 0.0) {
+                    values.grid.meshSize[d] = convertMeshSize(mesh[d], names[d]);
+                }
+            }
+            const auto decomposition = fieldSolver.getDomainDecomposition();
+            values.grid.decomposition = {decomposition[0], decomposition[1], decomposition[2]};
+            values.grid.boundingBoxIncreasePercent = fieldSolver.getBoxIncr();
+            values.theta                           = fieldSolver.getBHTheta();
+            values.softening                       = fieldSolver.getBHSoftening();
+            values.leafBasedSoftening              = fieldSolver.getBHLeafBasedSoftening();
+            return values;
+        }
+
     }  // namespace
 
     SpaceChargeConfig buildSpaceChargeConfig(
@@ -286,6 +336,11 @@ namespace opalx::spacecharge {
             throw OpalException(
                     "SpaceChargeConfigBuilder::build",
                     "FIELDSOLVER TYPE=CG is recognized but not implemented.");
+        }
+        if (solverType == FieldSolverCmdType::BH) {
+            SpaceChargeConfig config = buildBarnesHutConfig(fieldSolver, emissionSources);
+            validateSpaceChargeConfig(config);
+            return config;
         }
 
         const std::array<std::size_t, 3> meshSize{

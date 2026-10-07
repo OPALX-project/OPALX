@@ -25,5 +25,8 @@ target_sources(opalx PRIVATE ${_SRCS} ${_PRIVATE_HDRS})
 add_subdirectory (Poisson)
 add_subdirectory (FFT2D5)
 add_subdirectory (CartesianPIC3D)
+if (OPALX_ENABLE_BH)
+    add_subdirectory (BarnesHut)
+endif ()
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/SpaceCharge")

@@ -30,7 +30,15 @@
 
 #include "Ippl.h"
 
-enum class FieldSolverCmdType : short { NONE = -1, FFT = 0, OPEN = 1, CG = 2, P3M = 3, FFT2D5 = 4 };
+enum class FieldSolverCmdType : short {
+    NONE   = -1,
+    FFT    = 0,
+    OPEN   = 1,
+    CG     = 2,
+    P3M    = 3,
+    FFT2D5 = 4,
+    BH     = 5
+};
 
 // The attributes of class FieldSolverCmd.
 namespace FIELDSOLVER {
@@ -56,6 +64,9 @@ namespace FIELDSOLVER {
         PIPESIZEY,     // Size of the pipe in meters in the vertical direction [FFT2D5 only]
         REFPATHFNAME,  // Reference path file name [FFT2D5 only]
         SCATTERLONGITUDINALLY,  // Scatter charge between longitudinal slices [FFT2D5 only]
+        BHTHETA,                // Barnes-Hut multipole acceptance angle [BH only]
+        BHSOFTENING,            // Barnes-Hut Plummer-like softening length in metres [BH only]
+        BHLEAFH,                // Use the octree leaf size as per-particle softening [BH only]
         SIZE
     };
 }
@@ -121,6 +132,9 @@ public:
     double getPipeSizeX() const;
     double getPipeSizeY() const;
     std::string getRefPathFileName() const;
+    double getBHTheta() const;
+    double getBHSoftening() const;
+    bool getBHLeafBasedSoftening() const;
     void setPipeMode(const std::string& pipeMode);
     void setBeamRadius(double beamRadius);
     void setClosedRing(bool closedRing);
@@ -128,6 +142,9 @@ public:
     void setPipeSizeX(double pipeSizeX);
     void setPipeSizeY(double pipeSizeY);
     void setRefPathFileName(const std::string& refPathFileName);
+    void setBHTheta(double theta);
+    void setBHSoftening(double softening);
+    void setBHLeafBasedSoftening(bool enabled);
 
 private:
     // Not implemented.

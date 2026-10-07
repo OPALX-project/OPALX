@@ -189,5 +189,43 @@ namespace opalx::spacecharge {
             }
         }
 
+        TEST(SpaceChargeConfigBuilderTest, BuildsBarnesHutWithoutMeshAndRejectsUnsupportedModes) {
+            TestableFieldSolverCmd command;
+            command.setType("BH");
+            EXPECT_EQ(command.getFieldSolverCmdType(), FieldSolverCmdType::BH);
+            // BHSOFTENING defaults to zero, which the self pair cannot evaluate.
+            EXPECT_THROW((void)buildSpaceChargeConfig(command, {}), OpalException);
+            command.setBHSoftening(1.0e-6);
+            command.setBHTheta(0.3);
+            const auto config = std::get<BarnesHutConfig>(buildSpaceChargeConfig(command, {}));
+            EXPECT_DOUBLE_EQ(config.theta, 0.3);
+            EXPECT_DOUBLE_EQ(config.softening, 1.0e-6);
+            EXPECT_FALSE(config.leafBasedSoftening);
+            EXPECT_EQ(config.grid.meshSize, (std::array<std::size_t, 3>{8, 8, 8}));
+
+            command.setBHSoftening(0.0);
+            command.setBHLeafBasedSoftening(true);
+            EXPECT_NO_THROW((void)buildSpaceChargeConfig(command, {}));
+
+            command.setBHTheta(1.5);
+            EXPECT_THROW((void)buildSpaceChargeConfig(command, {}), OpalException);
+            command.setBHTheta(0.5);
+            command.setNX(8.5);
+            EXPECT_THROW((void)buildSpaceChargeConfig(command, {}), OpalException);
+        }
+
+        TEST(SpaceChargeConfigTest, ValidatesBarnesHutValues) {
+            BarnesHutConfig config;
+            config.softening = 1.0e-6;
+            EXPECT_NO_THROW(validateSpaceChargeConfig(SpaceChargeConfig(config)));
+            config.bucketSizeFocus = 0;
+            EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(config)), OpalException);
+            config.bucketSizeFocus = 64;
+            config.softening       = -1.0;
+            EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(config)), OpalException);
+            config.softening = std::numeric_limits<double>::infinity();
+            EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(config)), OpalException);
+        }
+
     }  // namespace
 }  // namespace opalx::spacecharge

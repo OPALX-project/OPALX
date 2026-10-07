@@ -103,7 +103,22 @@ namespace opalx::spacecharge {
         std::string referencePathFile;
     };
 
-    using SpaceChargeConfig = std::variant<CartesianPIC3DConfig, FFT2D5Config>;
+    /**
+     * @brief Complete runtime configuration for the gridless Barnes-Hut solver (TYPE=BH).
+     *
+     * Open boundaries, whole bunch, electrostatic (gamma = 1, B = 0) like unbinned CartesianPIC3D.
+     * The Cartesian @c grid is not used by the solve; it only sizes the inert PartBunch domain.
+     */
+    struct BarnesHutConfig {
+        CartesianGridConfig grid;
+        double theta     = 0.5;    ///< Multipole acceptance angle in (0, 1].
+        double softening = 0.0;    ///< Uniform softening length h in metres.
+        bool leafBasedSoftening = false;  ///< Use the octree leaf edge as per-particle h.
+        std::size_t bucketSize      = 0;   ///< cstone global-tree bucket size; 0 = automatic.
+        std::size_t bucketSizeFocus = 64;  ///< cstone focus-tree bucket size.
+    };
+
+    using SpaceChargeConfig = std::variant<CartesianPIC3DConfig, FFT2D5Config, BarnesHutConfig>;
 
     /** @brief Reject unsupported or inconsistent Poisson settings. */
     void validatePoissonSolverConfig(const PoissonSolverConfig& config);

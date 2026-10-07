@@ -93,7 +93,16 @@ add_definitions (-DNOCTAssert)
 
 # Allow user to specify branch/tag, default to master. Numeric release versions such as
 # 3.2.0 are accepted as shorthand for IPPL-3.2.0.
-set(IPPL_GIT_TAG "master" CACHE STRING "Branch, tag, commit, or release version for IPPL (default: master)")
+# The Barnes-Hut solver needs the NBody module, which lives on the ippl-bh fork for now.
+if(OPALX_ENABLE_BH)
+    set(_opalx_ippl_default_repository "https://github.com/tischwab0911/ippl-bh.git")
+    set(_opalx_ippl_default_tag "opalx-bh")
+else()
+    set(_opalx_ippl_default_repository "https://github.com/IPPL-framework/ippl.git")
+    set(_opalx_ippl_default_tag "master")
+endif()
+set(IPPL_GIT_REPOSITORY "${_opalx_ippl_default_repository}" CACHE STRING "Git repository for IPPL")
+set(IPPL_GIT_TAG "${_opalx_ippl_default_tag}" CACHE STRING "Branch, tag, commit, or release version for IPPL")
 set(_opalx_ippl_fetch_ref "${IPPL_GIT_TAG}")
 if("${_opalx_ippl_fetch_ref}" MATCHES "^[0-9]+(\\.[0-9]+)*$")
     set(_opalx_ippl_fetch_ref "IPPL-${_opalx_ippl_fetch_ref}")
@@ -110,6 +119,7 @@ if("${_opalx_ippl_fetch_ref}" STREQUAL "${IPPL_GIT_TAG}")
 else()
     message(STATUS "Fetching IPPL ref: ${_opalx_ippl_fetch_ref} (from IPPL_GIT_TAG=${IPPL_GIT_TAG})")
 endif()
+message(STATUS "IPPL repository: ${IPPL_GIT_REPOSITORY}")
 message(STATUS "IPPL shallow fetch: ${_opalx_ippl_git_shallow}")
 
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -119,7 +129,7 @@ message(STATUS "Build type is: ${CMAKE_BUILD_TYPE}")
 
 FetchContent_Declare(
     IPPL
-    GIT_REPOSITORY https://github.com/IPPL-framework/ippl.git
+    GIT_REPOSITORY "${IPPL_GIT_REPOSITORY}"
     GIT_TAG "${_opalx_ippl_fetch_ref}"
     GIT_SHALLOW ${_opalx_ippl_git_shallow}
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE

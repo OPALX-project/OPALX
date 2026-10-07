@@ -42,7 +42,7 @@ FieldSolverCmd::FieldSolverCmd()
               "The \"FIELDSOLVER\" statement defines data for a the field solver") {
     itsAttr[FIELDSOLVER::TYPE] = Attributes::makePredefinedString(
             "TYPE", "Name of the attached field solver.",
-            {"NONE", "FFT", "P3M", "OPEN", "CG", "FFT2D5"});
+            {"NONE", "FFT", "P3M", "OPEN", "CG", "FFT2D5", "BH"});
 
     itsAttr[FIELDSOLVER::BINS] = Attributes::makeString(
             "BINS", "Name of BINNING definition to be used, or NONE for no binning.", "NONE");
@@ -99,6 +99,19 @@ FieldSolverCmd::FieldSolverCmd()
             "PIPESIZEY", "Beam pipe vertical size in metres [FFT2D5 only]", 1.0);
     itsAttr[FIELDSOLVER::REFPATHFNAME] =
             Attributes::makeString("REFPATHFNAME", "Reference path file name [FFT2D5 only]", "");
+
+    // Attributes for the gridless Barnes-Hut solver
+    itsAttr[FIELDSOLVER::BHTHETA] = Attributes::makeReal(
+            "BHTHETA", "Barnes-Hut multipole acceptance angle in (0, 1] [BH only]", 0.5);
+    itsAttr[FIELDSOLVER::BHSOFTENING] = Attributes::makeReal(
+            "BHSOFTENING",
+            "Barnes-Hut softening length h in m; pairs closer than 2h interact as if 2h apart. "
+            "Required unless BHLEAFH=TRUE [BH only]",
+            0.0);
+    itsAttr[FIELDSOLVER::BHLEAFH] = Attributes::makeBool(
+            "BHLEAFH",
+            "TRUE to use each particle's octree leaf edge length as its softening [BH only]",
+            false);
 
     // \todo does not work   registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -211,11 +224,31 @@ void FieldSolverCmd::setRefPathFileName(const std::string& refPathFileName) {
     Attributes::setString(itsAttr[FIELDSOLVER::REFPATHFNAME], refPathFileName);
 }
 
+double FieldSolverCmd::getBHTheta() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::BHTHETA]);
+}
+double FieldSolverCmd::getBHSoftening() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::BHSOFTENING]);
+}
+bool FieldSolverCmd::getBHLeafBasedSoftening() const {
+    return Attributes::getBool(itsAttr[FIELDSOLVER::BHLEAFH]);
+}
+void FieldSolverCmd::setBHTheta(const double theta) {
+    Attributes::setReal(itsAttr[FIELDSOLVER::BHTHETA], theta);
+}
+void FieldSolverCmd::setBHSoftening(const double softening) {
+    Attributes::setReal(itsAttr[FIELDSOLVER::BHSOFTENING], softening);
+}
+void FieldSolverCmd::setBHLeafBasedSoftening(const bool enabled) {
+    Attributes::setBool(itsAttr[FIELDSOLVER::BHLEAFH], enabled);
+}
+
 FieldSolverCmdType FieldSolverCmd::getFieldSolverCmdType() const {
     static const std::map<std::string, FieldSolverCmdType> types = {
             {"NONE", FieldSolverCmdType::NONE}, {"FFT", FieldSolverCmdType::FFT},
             {"P3M", FieldSolverCmdType::P3M},   {"OPEN", FieldSolverCmdType::OPEN},
-            {"CG", FieldSolverCmdType::CG},     {"FFT2D5", FieldSolverCmdType::FFT2D5}};
+            {"CG", FieldSolverCmdType::CG},     {"FFT2D5", FieldSolverCmdType::FFT2D5},
+            {"BH", FieldSolverCmdType::BH}};
     const auto found = types.find(getType());
     if (found == types.end()) {
         throw OpalException("FieldSolverCmd::getFieldSolverCmdType", "Unknown or missing TYPE.");
@@ -249,6 +282,12 @@ Inform& FieldSolverCmd::printInfo(Inform& os) const {
        << "* NZ           " << Attributes::getReal(itsAttr[FIELDSOLVER::NZ]) << '\n'
        << "* BBOXINCR     " << Attributes::getReal(itsAttr[FIELDSOLVER::BBOXINCR]) << '\n'
        << "* GREENSF      " << Attributes::getString(itsAttr[FIELDSOLVER::GREENSF]) << endl;
+
+    if (getType() == "BH") {
+        os << "* BHTHETA      " << getBHTheta() << '\n'
+           << "* BHSOFTENING  " << getBHSoftening() << " [m]" << '\n'
+           << "* BHLEAFH      " << (getBHLeafBasedSoftening() ? "TRUE" : "FALSE") << endl;
+    }
 
     if (getType() == "P3M") {
         const double cutoff = getP3MCutoff();

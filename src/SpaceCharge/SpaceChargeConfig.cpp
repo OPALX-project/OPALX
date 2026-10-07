@@ -138,6 +138,32 @@ namespace opalx::spacecharge {
             }
         }
 
+        void validateBarnesHut(const BarnesHutConfig& config) {
+            validateGrid(config.grid);
+            if (!std::isfinite(config.theta) || !(config.theta > 0.0) || config.theta > 1.0) {
+                throw OpalException(
+                        "validateSpaceChargeConfig", "BHTHETA must lie in the interval (0, 1].");
+            }
+            if (!std::isfinite(config.softening) || config.softening < 0.0) {
+                throw OpalException(
+                        "validateSpaceChargeConfig", "BHSOFTENING must be finite and >= 0.");
+            }
+            // The P2P kernel evaluates the self pair with r = 2h; h = 0 turns it into 0/0.
+            if (!config.leafBasedSoftening && !(config.softening > 0.0)) {
+                throw OpalException(
+                        "validateSpaceChargeConfig",
+                        "TYPE=BH requires BHSOFTENING > 0 (e.g. a fraction of the mean "
+                        "inter-particle distance) or BHLEAFH=TRUE.");
+            }
+            if (config.bucketSizeFocus == 0
+                || config.bucketSizeFocus > std::numeric_limits<unsigned>::max()
+                || config.bucketSize > std::numeric_limits<unsigned>::max()) {
+                throw OpalException(
+                        "validateSpaceChargeConfig",
+                        "Barnes-Hut bucket sizes must be positive and fit in an unsigned int.");
+            }
+        }
+
     }  // namespace
 
     PoissonSolverConfig makePoissonSolverConfig(const CartesianPIC3DConfig& config) {
@@ -207,6 +233,8 @@ namespace opalx::spacecharge {
                         validateCartesian(selected);
                     } else if constexpr (std::is_same_v<Config, FFT2D5Config>) {
                         validateFFT2D5(selected);
+                    } else if constexpr (std::is_same_v<Config, BarnesHutConfig>) {
+                        validateBarnesHut(selected);
                     } else {
                         static_assert(
                                 std::is_same_v<Config, void>, "Add validation for this algorithm");

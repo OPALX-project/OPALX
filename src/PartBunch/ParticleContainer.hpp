@@ -274,12 +274,25 @@ public:
     }
 
     void update() {
+        if (decompositionOwnedExternally_m) {
+            throw OpalException(
+                    "ParticleContainer::update",
+                    "The particle decomposition is owned by the Barnes-Hut space-charge solver; "
+                    "the Cartesian spatial layout is stale and must not redistribute particles.");
+        }
         if (overlapLayout_m) {
             overlapLayout_m->update(*this);
         } else {
             spatialLayout_m->update(*this);
         }
     }
+
+    /**
+     * @brief Record that an algorithm other than the IPPL spatial layout distributes this
+     * container's particles across ranks (Barnes-Hut copy-back). update() then throws.
+     */
+    void setDecompositionOwnedExternally(bool owned) { decompositionOwnedExternally_m = owned; }
+    bool isDecompositionOwnedExternally() const { return decompositionOwnedExternally_m; }
 
     void setBunchStateHandler(std::shared_ptr<BunchStateHandler> handler) {
         // We only keep the slot: per-container flags own their own sync, so
@@ -799,6 +812,24 @@ public:
         }
     }
 
+    /**
+     * @brief Resize the local particle set to exactly @p numParticles slots.
+     *
+     * For space-charge algorithms that own the decomposition and rewrite every attribute of the
+     * local set afterwards (Barnes-Hut copy-back). Growing keeps existing data and may reallocate;
+     * new slots hold fresh IDs and otherwise unspecified values. Shrinking drops trailing slots.
+     *
+     * @note Collective: refreshes the global count on every rank.
+     */
+    void replaceLocalCount(size_type numParticles) {
+        const size_type local = this->getLocalNum();
+        if (numParticles < local) {
+            this->setLocalNum(numParticles);
+        }
+        this->create(numParticles > local ? numParticles - local : 0, true);
+        markMomentsDirty();
+    }
+
     void allocateParticles(size_type numParticles) {
         Inform m("ParticleContainer::allocateParticles");
 
@@ -977,6 +1008,9 @@ private:
 
     // Whether the spin attribute is registered on this container.
     bool spinEnabled_m = false;
+
+    /// Set when Barnes-Hut owns the decomposition; forbids update() (see update()).
+    bool decompositionOwnedExternally_m = false;
 
     // Reference particle information
     Vector_t<double, Dim> refPartR_m;
