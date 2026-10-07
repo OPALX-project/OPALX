@@ -34,7 +34,8 @@ EmissionSource::EmissionSource()
             "SHIFTED_GREENS_FUNCTION",
             "Enforce Dirichlet BCs (0 potential) in xy plane at R0Z via a shifted Green's "
             "function instead of explicit image charges. Mutually exclusive with ZEROFACE_R0Z. "
-            "Requires the OPEN field solver. Active for ZEROFACE_MAXSTEPS steps (0 = unlimited).",
+            "Requires TYPE=OPEN or TYPE=P3M with OPEN domain boundaries. P3M uses a full "
+            "STANDARD image kernel. Active for ZEROFACE_MAXSTEPS steps (0 = unlimited).",
             false);
 
     itsAttr[ZEROFACEPLANEDUMP] = Attributes::makeReal(

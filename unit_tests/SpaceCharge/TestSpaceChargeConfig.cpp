@@ -1,9 +1,12 @@
 #include <gtest/gtest.h>
 #include <limits>
 
+#include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
+#include "Distribution/Distribution.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
 #include "SpaceCharge/SpaceChargeConfigBuilder.h"
+#include "Structure/EmissionSource.h"
 #include "Structure/FieldSolverCmd.h"
 #include "Utilities/OpalException.h"
 
@@ -14,6 +17,19 @@ namespace opalx::spacecharge {
         public:
             void setType(const std::string& type) {
                 Attributes::setPredefinedString(itsAttr[FIELDSOLVER::TYPE], type);
+            }
+            void setCutoff(double cutoff) {
+                Attributes::setReal(itsAttr[FIELDSOLVER::P3MRCUT], cutoff);
+            }
+        };
+
+        class TestableEmissionSource : public EmissionSource {
+        public:
+            void enableShiftedPlane(double planeZ, int maximumSteps) {
+                Attributes::setString(itsAttr[DISTRIBUTION], "P3M_PLANE_TEST_DISTRIBUTION");
+                Attributes::setBool(itsAttr[SHIFTED_GREENS_FUNCTION], true);
+                Attributes::setReal(itsAttr[R0Z], planeZ);
+                Attributes::setReal(itsAttr[ZEROFACE_MAXSTEPS], maximumSteps);
             }
         };
 
@@ -54,6 +70,47 @@ namespace opalx::spacecharge {
             config                = p3mConfig(FieldBoundaryCondition::Open);
             config.dirichletPlane = {.kind = DirichletPlaneType::ImageCharge};
             EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(config)), OpalException);
+        }
+
+        TEST(SpaceChargeConfigTest, P3MShiftedPlaneRequiresOpenUnbinnedDomain) {
+            for (auto green : {GreenFunctionType::Standard, GreenFunctionType::Integrated}) {
+                auto config           = p3mConfig(FieldBoundaryCondition::Open);
+                config.greenFunction  = green;
+                config.dirichletPlane = {.kind = DirichletPlaneType::ShiftedGreen, .planeZ = 0.2};
+                EXPECT_NO_THROW(validateSpaceChargeConfig(config));
+                EXPECT_EQ(
+                        makeCartesianDomainConfig(config).layoutType,
+                        ParticleLayoutType::SpatialOverlap);
+                config.boundaryConditions.fill(FieldBoundaryCondition::Periodic);
+                EXPECT_THROW(validateSpaceChargeConfig(config), OpalException);
+                config.boundaryConditions.fill(FieldBoundaryCondition::Open);
+                config.binning.emplace();
+                EXPECT_THROW(validateSpaceChargeConfig(config), OpalException);
+                config.binning.reset();
+                config.dirichletPlane.planeDumpFrequency = 1;
+                EXPECT_THROW(validateSpaceChargeConfig(config), OpalException);
+            }
+        }
+
+        TEST(SpaceChargeConfigBuilderTest, BuildsP3MShiftedSourcePlane) {
+            Distribution distribution;
+            OpalData::getInstance()->define(distribution.clone("P3M_PLANE_TEST_DISTRIBUTION"));
+            TestableFieldSolverCmd command;
+            command.setType("P3M");
+            command.setCutoff(0.025);
+            command.setNX(16);
+            command.setNY(16);
+            command.setNZ(16);
+            TestableEmissionSource source;
+            source.enableShiftedPlane(0.125, 7);
+            const auto config =
+                    std::get<CartesianPIC3DConfig>(buildSpaceChargeConfig(command, {{&source}}));
+            OpalData::getInstance()->erase("P3M_PLANE_TEST_DISTRIBUTION");
+            EXPECT_EQ(config.backend, PoissonSolverType::P3M);
+            EXPECT_EQ(config.dirichletPlane.kind, DirichletPlaneType::ShiftedGreen);
+            EXPECT_DOUBLE_EQ(config.dirichletPlane.planeZ, 0.125);
+            EXPECT_EQ(config.dirichletPlane.maximumSteps, 7u);
+            EXPECT_DOUBLE_EQ(config.p3mCutoff, 0.025);
         }
 
         TEST(SpaceChargeConfigTest, DerivesIndependentFFT2D5Domain) {

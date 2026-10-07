@@ -6,6 +6,8 @@
  * 1e-9. The mesh RHS is already divided by epsilon_0; the particle stage uses raw charges,
  * so only its native force constant contains epsilon_0. The particle contribution is added
  * to E in the Cartesian solve axes after the final mesh-to-particle gather.
+ * An open Dirichlet image pass uses the full STANDARD shifted Coulomb mesh kernel;
+ * the short-range particle correction is applied only once, to the real bunch.
  */
 
 #ifndef OPALX_SPACE_CHARGE_P3M_ADAPTERS_H
@@ -38,7 +40,20 @@ namespace opalx::spacecharge {
         [[nodiscard]] double couplingConstant() const override { return 1.0 / Physics::epsilon_0; }
 
     protected:
-        void solveImpl(const PoissonSolveRequest&) override { backend_m->solve(); }
+        void solveImpl(const PoissonSolveRequest& request) override {
+            if (!request.hasShiftedGreenFunction()) {
+                backend_m->solve();
+                return;
+            }
+            backend_m->shiftedGreensFunction(*request.greenFunctionShift);
+            try {
+                backend_m->solve();
+            } catch (...) {
+                backend_m->greensFunction();
+                throw;
+            }
+            backend_m->greensFunction();
+        }
         void rebuildImpl(PoissonFieldBinding fields) override {
             auto& backend          = backend_m.emplace();
             const bool allPeriodic = std::all_of(
@@ -53,12 +68,13 @@ namespace opalx::spacecharge {
             parameters.add("regularization_cutoff", 1.0e-9);
             parameters.add(
                     "boundary_type", allPeriodic ? NativeBackend::PERIODIC : NativeBackend::OPEN);
+            capabilities_m.supportsShiftedGreenFunction = !allPeriodic;
             backend.mergeParameters(parameters);
             detail::bindFields(backend, fields);
         }
 
     private:
-        static constexpr PoissonSolverCapabilities capabilities_m{
+        PoissonSolverCapabilities capabilities_m{
                 .normalizeChargeByCellVolume    = true,
                 .subtractNeutralizingBackground = false,
                 .debugDumpChargeBeforeSolve     = true,
