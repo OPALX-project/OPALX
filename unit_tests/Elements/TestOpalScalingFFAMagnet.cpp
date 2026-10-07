@@ -55,9 +55,7 @@ TEST_F(TestOpalScalingFFAMagnet, UserInterface) {
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::RADIAL_NEG_EXTENT], 10);
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::RADIAL_POS_EXTENT], 11);
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::HEIGHT], 12);
-    Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::LAYOUT_START], 13);
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::AZIMUTHAL_EXTENT], 14);
-    Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::LAYOUT_END], 15);
     // Update the magnet
     EXPECT_NO_THROW(ui.update());
     // Check the values
@@ -74,34 +72,8 @@ TEST_F(TestOpalScalingFFAMagnet, UserInterface) {
     EXPECT_NEAR(ffa->getRMin(), ffa->getR0()-10, 1e-12);
     EXPECT_NEAR(ffa->getRMax(), ffa->getR0()+11, 1e-12);
     EXPECT_NEAR(ffa->getVerticalExtent()*2.0, 12, 1e-12);
-    // phistart is the (MAGNET_START + LENGTH/2)/R0 [radians]
-    EXPECT_NEAR(ffa->getPhiStart()*ffa->getR0(), 13+0.5, 1e-12);
+    EXPECT_NEAR(ffa->getPhiStart()*ffa->getR0(), 0.5, 1e-12);
     EXPECT_NEAR(ffa->getAzimuthalExtent()*ffa->getR0(), 14, 1e-12);
-    EXPECT_NEAR(ffa->getPhiEnd()*ffa->getR0(), 15, 1e-12);
-}
-
-TEST_F(TestOpalScalingFFAMagnet, CentreLength) {
-    OpalScalingFFAMagnet ui1;
-    Attributes::setReal(ui1.itsAttr[OpalElement::LENGTH], 2.0);
-    Attributes::setReal(ui1.itsAttr[OpalScalingFFAMagnet::R0], 4.0);
-    EXPECT_NO_THROW(ui1.update());
-    auto* ffa1 = dynamic_cast<ScalingFFAMagnet*>(ui1.getElement());
-    EXPECT_NEAR(ffa1->getEndField()->getCentreLength(), 2.0/4.0, 1e-12);
-
-    OpalScalingFFAMagnet ui2;
-    Attributes::setReal(ui2.itsAttr[OpalScalingFFAMagnet::CENTRE_LENGTH], 3.0);
-    Attributes::setReal(ui2.itsAttr[OpalScalingFFAMagnet::R0], 4.0);
-    EXPECT_NO_THROW(ui2.update());
-    auto* ffa2 = dynamic_cast<ScalingFFAMagnet*>(ui2.getElement());
-    EXPECT_NEAR(ffa2->getEndField()->getCentreLength(), 3.0/4.0, 1e-12);
-
-    OpalScalingFFAMagnet ui3;
-    Attributes::setReal(ui3.itsAttr[OpalElement::LENGTH], 5.0); // should take this value
-    Attributes::setReal(ui3.itsAttr[OpalScalingFFAMagnet::CENTRE_LENGTH], 4.0); // not this value
-    Attributes::setReal(ui3.itsAttr[OpalScalingFFAMagnet::R0], 4.0);
-    EXPECT_NO_THROW(ui3.update());
-    auto* ffa3 = dynamic_cast<ScalingFFAMagnet*>(ui3.getElement());
-    EXPECT_NEAR(ffa3->getEndField()->getCentreLength(), 5.0/4.0, 1e-12);
 }
 
 TEST_F(TestOpalScalingFFAMagnet, Aperture) {

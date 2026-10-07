@@ -63,7 +63,6 @@ public:
         sector_m->setFieldIndex(15);
         sector_m->setMaxOrder(10);
         sector_m->setPhiStart(psi0_m);
-        sector_m->setPhiEnd(psi0_m*4.);
         sector_m->setAzimuthalExtent(Physics::pi);
         sector_m->setVerticalExtent(1.); // 1 m
         sector_m->initialise();
@@ -227,7 +226,6 @@ TEST_F(ScalingFFAMagnetTest, ConstructorTest) {
     test->setEndField(tanh);
     test->setMaxOrder(++i);
     test->setPhiStart(++i);
-    test->setPhiEnd(++i);
     test->setRMin(++i);
     test->setRMax(++i);
     test->setAzimuthalExtent(++i);
@@ -252,7 +250,6 @@ TEST_F(ScalingFFAMagnetTest, ConstructorTest) {
         ++i;
         EXPECT_EQ(test->getMaxOrder(), ++i);
         EXPECT_NEAR(test->getPhiStart(), ++i, 1e-9);
-        EXPECT_NEAR(test->getPhiEnd(), ++i, 1e-9);
         EXPECT_NEAR(test->getRMin(), ++i, 1e-9);
         EXPECT_NEAR(test->getRMax(), ++i, 1e-9);
         EXPECT_NEAR(test->getAzimuthalExtent(), ++i, 1e-9);

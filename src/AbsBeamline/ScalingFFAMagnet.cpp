@@ -55,7 +55,7 @@ ScalingFFAMagnet* ScalingFFAMagnet::clone() const {
 
 void ScalingFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     // Kernel launch over all particles
-    getFieldValue(config_m, efm_m, pc);
+    getFieldValue(config_m, efm_m, pc->R.getView(), pc->B.getView());
 }
 
 void ScalingFFAMagnet::getCylindricalCoordinates(
@@ -64,12 +64,17 @@ void ScalingFFAMagnet::getCylindricalCoordinates(
 }
 
 void ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const {
-    Vector_t<double, 5> Rffa;
-    Vector_t<double, 3> Bcyl;
-    getCylindricalCoordinates(config_m, R, Rffa);
-    Vector_t<double, 3> Rcyl = {Rffa[0], Rffa[1], Rffa[2]};
-    getFieldValueCylindrical(Rcyl, Bcyl);
-    rotateBfield(config_m, Rffa, Bcyl, B);
+    Kokkos::View<Vector_t<double, 3>*> Rdevice("Rtmp", 1);
+    Kokkos::View<Vector_t<double, 3>*> Bdevice("Btmp", 1);
+    auto Rhost = Kokkos::create_mirror_view(Rdevice);
+    auto Bhost = Kokkos::create_mirror_view(Bdevice);
+    Rhost(0) = R;
+    Bhost(0) = B;
+    Kokkos::deep_copy(Rdevice, Rhost);
+    Kokkos::deep_copy(Bdevice, Bhost);
+    getFieldValue(config_m, efm_m, Rdevice, Bdevice);
+    Kokkos::deep_copy(Bhost, Bdevice);
+    B = Bhost(0);
 }
 
 void ScalingFFAMagnet::getFieldValueCylindrical(
@@ -82,8 +87,9 @@ void ScalingFFAMagnet::getFieldValueCylindrical(
     Rffa[2] = Rcyl[2];
     Rffa[3] = std::abs(Rcyl[0] / config_m.r0_m);                                        // rnorm
     Rffa[4] = Rcyl[2] - config_m.tanDelta_m * std::log(Rffa[3]) - config_m.phiStart_m;  // phispiral
-    for (size_t i = 0; i <= config_m.maxOrder_m; ++i)
+    for (size_t i = 0; i <= config_m.maxOrder_m; ++i) {
         derivatives(i) = efm_m->function(Rffa[4], i);
+    }
     getFieldValueCylindricalImpl(config_m, derivatives, Rffa, Bcyl);
 }
 
@@ -175,12 +181,12 @@ void ScalingFFAMagnet::setupEndField() const {
     }
     auto efmMan = endfieldmodel::EndFieldModelManager::getEFMManager();
     efm_m       = efmMan->getEndFieldModel(endFieldName_m);
-    efm_m->rescale(1.0 / getR0());
+    efm_m->rescale(1.0 / std::abs(getR0()));
     config_m.phiStart_m = config_m.phiStart_m + efm_m->getCentreLength() * 0.5;
     if (config_m.azimuthalExtent_m < 0.0) {
         config_m.azimuthalExtent_m = efm_m->getEndLength() * 5. + efm_m->getCentreLength() * 0.5;
     }
-    planarArcGeometry_m = Geometry::makeSBend(config_m.r0_m * config_m.phiEnd_m, 1 / config_m.r0_m);
+    planarArcGeometry_m = Geometry::makeSBend(efm_m->getCentreLength(), 1 / config_m.r0_m);
     efmInitialised_m    = true;
 }
 
