@@ -49,7 +49,7 @@ namespace endfieldmodel {
         Kokkos::View<double*> a_m;
         double lambda_m                 = 0.0;
         double x0_m                     = 0.0;
-        static const int max_derivative = 12;
+        static constexpr int max_derivative = 12;
         /** gIndices is used for calculating derivatives. */
         Kokkos::View<int**> gIndices[12];
         Kokkos::View<int**> hIndices[12];
@@ -61,7 +61,7 @@ namespace endfieldmodel {
     class Enge : public EndFieldModel {
     public:
         /** Default constructor */
-        Enge() { setEngeDiffIndices(EngeConfig::max_derivative); }
+        Enge() {}
         /** Builds Enge function with parameters a_0, a_1, ..., lambda and x0.
          *
          *  Note that this class is in the inner loop of tracking, so many function
@@ -72,10 +72,10 @@ namespace endfieldmodel {
         Enge(Kokkos::View<double*> a, double x0, double lambda);
 
         /** Destructor - no mallocs, so does nothing */
-        ~Enge() = default;
+        ~Enge();
 
         /** Inheritable copy constructor - no mallocs, so does nothing */
-        [[nodiscard]] Enge* clone() const;
+        Enge* clone() const;
 
         /** Rescale so Enge(x) -> Enge(scaleFactor*x)
          *
@@ -84,7 +84,7 @@ namespace endfieldmodel {
         void rescale(double scaleFactor);
 
         /** Return the value of enge(x+x0) + enge(-x-x0) at some point x */
-        [[nodiscard]] inline double function(double x, int n) const;
+        inline double function(double x, int n) const;
 
         /** GPU-aware version of function
          *
@@ -111,16 +111,16 @@ namespace endfieldmodel {
                 const EngeConfig& config, double x, int n);
 
         /** Nominal end length is lambda */
-        [[nodiscard]] inline double getEndLength() const;
+        inline double getEndLength() const;
 
         /** Nominal centre length is x0/2 */
-        [[nodiscard]] inline double getCentreLength() const;
+        inline double getCentreLength() const;
 
         /** Print human-readable version of enge */
         std::ostream& print(std::ostream& out) const override;
 
         /** Returns the enge polynomial coefficients (a_i) */
-        [[nodiscard]] std::vector<double> getCoefficients() const;
+        std::vector<double> getCoefficients() const;
 
         /** Sets the enge polynomial coefficients (a_i) */
         void setCoefficients(std::vector<double> a) {
@@ -128,13 +128,13 @@ namespace endfieldmodel {
         }
 
         /** Returns the value of lambda */
-        [[nodiscard]] double getLambda() const { return config_m.lambda_m; }
+        double getLambda() const { return config_m.lambda_m; }
 
         /** Sets the value of lambda */
         inline void setLambda(double lambda) { config_m.lambda_m = lambda; }
 
         /** Returns the value of x0 */
-        [[nodiscard]] double getX0() const { return config_m.x0_m; }
+        double getX0() const { return config_m.x0_m; }
 
         /** Sets the value of x0 */
         inline void setX0(double x0) { config_m.x0_m = x0; }
@@ -192,6 +192,12 @@ namespace endfieldmodel {
         static Kokkos::View<double*> makeView(
                 const std::vector<double>& src, const std::string& label);
         static std::vector<double> makeVector(const Kokkos::View<double*>& src);
+
+        void initialise();
+
+        /** Release Kokkos allocations */
+        void finalise();
+        static void releaseEngeConfig(EngeConfig& config);
 
     private:
         Enge(const Enge& enge);

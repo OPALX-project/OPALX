@@ -5,14 +5,17 @@ namespace endfieldmodel {
     AsymmetricEnge::AsymmetricEnge(
             const std::vector<double> aStart, double x0Start, double lambdaStart,
             const std::vector<double> aEnd, double x0End, double lambdaEnd) {
-        config_m.engeStart_m.a_m      = Enge::makeView(aStart, "AsymmetricEngeStart");
+        if (aStart.size()) {
+            config_m.engeStart_m.a_m      = Enge::makeView(aStart, "AsymmetricEngeStart");
+        }
         config_m.engeStart_m.x0_m     = x0Start;
         config_m.engeStart_m.lambda_m = lambdaStart;
         // x0 is held in this
-        config_m.engeEnd_m.a_m      = Enge::makeView(aEnd, "AsymmetricEngeEnd");
+        if (aEnd.size()) {
+            config_m.engeEnd_m.a_m      = Enge::makeView(aEnd, "AsymmetricEngeEnd");
+        }
         config_m.engeEnd_m.x0_m     = x0End;
         config_m.engeEnd_m.lambda_m = lambdaEnd;
-        setMaximumDerivative(EngeConfig::max_derivative);
     }
 
     void AsymmetricEnge::rescale(double scaleFactor) {
@@ -36,4 +39,10 @@ namespace endfieldmodel {
         }
         return out;
     }
+
+    void AsymmetricEnge::finalise() {
+        Enge::releaseEngeConfig(config_m.engeStart_m);
+        Enge::releaseEngeConfig(config_m.engeEnd_m);
+    }
+
 }  // namespace endfieldmodel

@@ -27,7 +27,12 @@
 OpalScalingFFAMagnet::OpalScalingFFAMagnet()
     : OpalElement(
               SIZE, "SCALINGFFAMAGNET",
-              "The \"ScalingFFAMagnet\" element defines a FFA scaling magnet.") {
+              "The \"ScalingFFAMagnet\" element defines a FFA scaling magnet. Placement note: "
+              "Because FFAs are normally circular, ScalingFFAMagnet elements that are placed "
+              "using ELEMEDGE will be placed on a circle of radius R0 with ELEMEDGE = 0.0 "
+              "corresponding to (x, y, z) = (0, 0, 0). If R0 is positive, the placements "
+              "will have an anticlockwise arrangement; the ring curves towards the negative x "
+              "direction. If R0 is negative placements will have a clockwise arrangement.") {
     itsAttr[B0] = Attributes::makeReal("B0", "The nominal dipole field of the magnet [T].");
 
     itsAttr[R0] = Attributes::makeReal("R0", "Radial scale [m].");
@@ -44,21 +49,20 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet()
     itsAttr[END_FIELD_MODEL] = Attributes::makeString(
             "END_FIELD_MODEL",
             "Names the end field model of the magnet, giving the field magnitude along a line of "
-            "constant radius. If blank, uses the 'END_LENGTH' and 'CENTRE_LENGTH' or 'L' "
-            "parameters and a tanh model. If 'END_FIELD_MODEL' is not blank, OpalX will seek "
+            "constant radius. If blank, uses the 'END_LENGTH' and 'L' parameters to construct a  "
+            "tanh model. If 'END_FIELD_MODEL' is not blank, OpalX will seek "
             "an END_FIELD_MODEL corresponding to the name defined in this string.");
 
     itsAttr[END_LENGTH] = Attributes::makeReal(
             "END_LENGTH",
-            "The end length of the spiral FFA [m]. This determines the fringe field taper");
+            "The end length of the spiral FFA, if END_FIELD_MODEL is not defined  [m]. This "
+            "determines the fringe field taper if no "
+            "END_FIELD_MODEL is defined. Ignored if END_FIELD_MODEL is defined.");
 
     itsAttr[LENGTH] = Attributes::makeReal(
             "L",
             "The centre length of the spiral FFA, if END_FIELD_MODEL is not defined [m]. If"
-            "END_FIELD_MODEL is defined, by default for placement purposes the element length"
-            "will be calculated using the END_FIELD_MODEL; this parameter overrides that"
-            "value. In this case it will not affect the field generated but it will affect"
-            "the placement of subsequent elements");
+            "END_FIELD_MODEL is defined, LENGTH is taken from the END_FIELD_MODEL.");
 
     itsAttr[RADIAL_NEG_EXTENT] = Attributes::makeReal(
             "RADIAL_NEG_EXTENT",

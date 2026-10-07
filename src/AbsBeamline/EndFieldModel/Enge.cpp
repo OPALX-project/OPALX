@@ -42,6 +42,8 @@ namespace endfieldmodel {
     std::vector<std::vector<std::vector<int> > > Enge::q_m;
     std::vector<std::vector<std::vector<int> > > Enge::h_m;
 
+    Enge::~Enge() {finalise();}
+
     void Enge::copyVectorToView(
             const std::vector<std::vector<int> >& src, Kokkos::View<int**>& dest) {
         // find the size of src
@@ -65,6 +67,9 @@ namespace endfieldmodel {
     }
 
     Kokkos::View<double*> Enge::makeView(const std::vector<double>& src, const std::string& label) {
+        if (src.size() == 0) {
+            return Kokkos::View<double*>();
+        }
         auto host = Kokkos::View<double*, Kokkos::HostSpace>(label, src.size());
         for (size_t i = 0; i < src.size(); ++i) {
             host(i) = src[i];
@@ -165,14 +170,12 @@ namespace endfieldmodel {
     }
 
     Enge::Enge(const std::vector<double> a, double x0, double lambda) {
-        setEngeDiffIndices(EngeConfig::max_derivative);
         config_m.a_m      = makeView(a, "EngeCoefficients");
         config_m.x0_m     = x0;
         config_m.lambda_m = lambda;
     }
 
     Enge::Enge(Kokkos::View<double*> a, double x0, double lambda) {
-        setEngeDiffIndices(EngeConfig::max_derivative);
         config_m.a_m      = a;
         config_m.x0_m     = x0;
         config_m.lambda_m = lambda;
@@ -198,5 +201,23 @@ namespace endfieldmodel {
     }
 
     std::vector<double> Enge::getCoefficients() const { return makeVector(config_m.a_m); }
+
+    void Enge::initialise() {
+         setEngeDiffIndices(EngeConfig::max_derivative);
+    }
+
+    void Enge::finalise() {
+        releaseEngeConfig(config_m);
+    }
+
+    void Enge::releaseEngeConfig(EngeConfig& config) {
+        config.gNVec = Kokkos::View<double*>();
+        config.hNVec = Kokkos::View<double*>();
+        config.a_m = Kokkos::View<double*>();
+        for (size_t i = 0; i < config.max_derivative; ++i) {
+            config.gIndices[i] = Kokkos::View<int**>();
+            config.hIndices[i] = Kokkos::View<int**>();
+        }
+    }
 
 }  // namespace endfieldmodel

@@ -106,7 +106,10 @@ void ScalingFFAMagnet::initialise(PartBunch_t* bunch) {
     initialise();
 }
 
-void ScalingFFAMagnet::finalise() { RefPartBunch_m = nullptr; }
+void ScalingFFAMagnet::finalise() {
+    efm_m->finalise();
+    RefPartBunch_m = nullptr;
+}
 
 Geometry& ScalingFFAMagnet::getGeometry() { return planarArcGeometry_m; }
 
@@ -182,7 +185,8 @@ void ScalingFFAMagnet::setupEndField() const {
     auto efmMan = endfieldmodel::EndFieldModelManager::getEFMManager();
     efm_m       = efmMan->getEndFieldModel(endFieldName_m);
     efm_m->rescale(1.0 / std::abs(getR0()));
-    config_m.phiStart_m = config_m.phiStart_m + efm_m->getCentreLength() * 0.5;
+    efm_m->initialise();
+    config_m.phiStart_m = config_m.phiStart_m;
     if (config_m.azimuthalExtent_m < 0.0) {
         config_m.azimuthalExtent_m = efm_m->getEndLength() * 5. + efm_m->getCentreLength() * 0.5;
     }
@@ -236,5 +240,15 @@ ScalingFFAMagnet::getDfCoefficients() const {
         }
     }
     return dfCoefficients;
+}
+
+void ScalingFFAMagnet::goOnline(const double& kineticEnergy) {
+    ElementBase::goOnline(kineticEnergy);
+    initialise();
+}
+
+void ScalingFFAMagnet::goOffline() {
+    ElementBase::goOffline();
+    finalise();
 }
 
