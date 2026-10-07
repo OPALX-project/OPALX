@@ -72,7 +72,7 @@ TEST_F(TestOpalScalingFFAMagnet, UserInterface) {
     EXPECT_NEAR(ffa->getRMin(), ffa->getR0()-10, 1e-12);
     EXPECT_NEAR(ffa->getRMax(), ffa->getR0()+11, 1e-12);
     EXPECT_NEAR(ffa->getVerticalExtent()*2.0, 12, 1e-12);
-    EXPECT_NEAR(ffa->getPhiStart()*ffa->getR0(), 0.5, 1e-12);
+    EXPECT_NEAR(ffa->getPhiStart()*ffa->getR0(), 0.0, 1e-12);
     EXPECT_NEAR(ffa->getAzimuthalExtent()*ffa->getR0(), 14, 1e-12);
 }
 

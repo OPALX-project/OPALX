@@ -40,6 +40,11 @@ namespace endfieldmodel {
         return out;
     }
 
+    void AsymmetricEnge::initialise() {
+         Enge::setEngeDiffIndices(EngeConfig::max_derivative, config_m.engeStart_m);
+         Enge::setEngeDiffIndices(EngeConfig::max_derivative, config_m.engeEnd_m);
+    }
+
     void AsymmetricEnge::finalise() {
         Enge::releaseEngeConfig(config_m.engeStart_m);
         Enge::releaseEngeConfig(config_m.engeEnd_m);

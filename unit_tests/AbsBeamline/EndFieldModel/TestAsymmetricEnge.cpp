@@ -33,18 +33,21 @@ public:
 TEST_F(TestAsymmetricEnge, ConstructorTest) {
     //x0, lambda, max_index
     endfieldmodel::Enge enge0;
+    enge0.initialise();
     EXPECT_EQ(enge0.getCentreLength(), 0.0);
     EXPECT_EQ(enge0.getEndLength(), 0.0);
 
     std::vector<double> a0 = {5, 6};
     std::vector<double> a1 = {4, 8};
     auto enge1 = std::make_shared<endfieldmodel::AsymmetricEnge>(a0, 2, 7, a1, 3, 9);
+    enge1->initialise();
     EXPECT_EQ(enge1->getX0Start(), 2.0);
     EXPECT_EQ(enge1->getLambdaStart(), 7.0);
     EXPECT_EQ(enge1->getX0End(), 3.0);
     EXPECT_EQ(enge1->getLambdaEnd(), 9.0);
 
     endfieldmodel::AsymmetricEnge* enge2 = enge1->clone();
+    enge2->initialise();
     EXPECT_EQ(enge1->getX0Start(), 2.0);
     EXPECT_EQ(enge1->getLambdaStart(), 7.0);
     EXPECT_EQ(enge1->getX0End(), 3.0);
@@ -65,12 +68,15 @@ TEST_F(TestAsymmetricEnge, DerivativeTest) {
     endfieldmodel::AsymmetricEnge enge(aS, x0S, lambdaS, aE, x0E, lambdaE);
     endfieldmodel::Enge engeS(aS, x0S, lambdaS);
     endfieldmodel::Enge engeE(aE, x0E, lambdaE);
+    enge.initialise();
+    engeS.initialise();
+    engeE.initialise();
 
     for (double x = -10.0; x < 10.1; x += 0.5) {
-        std::cerr << x << "          ";
-        std::cerr << enge.function(x, 0) << "             ";
-        std::cerr << engeS.function(x, 0) << "             ";
-        std::cerr << engeE.function(x, 0) << "             ";
+        std::cerr << x << "          " << std::flush;
+        std::cerr << enge.function(x, 0) << "             " << std::flush;
+        std::cerr << engeS.function(x, 0) << "             " << std::flush;
+        std::cerr << engeE.function(x, 0) << "             " << std::flush;
         std::cerr << std::endl;
     }
 
