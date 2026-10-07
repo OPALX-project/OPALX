@@ -12,6 +12,7 @@
 #include "AbsBeamline/ElementBase.h"
 #include "Fields/Astra1DDynamic.h"
 #include "Fields/FM2DDynamic.h"
+#include "Fields/FM3DDynamic.h"
 #include "Fields/Fieldmap.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
@@ -144,13 +145,15 @@ void RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
 
     if (auto* dynamicFieldmap = dynamic_cast<FM2DDynamic*>(fieldmap_m)) {
         dynamicFieldmap->applyRFField(pc, electricScale, magneticScale, startField, endField);
+    } else if (auto* dynamic3DFieldmap = dynamic_cast<FM3DDynamic*>(fieldmap_m)) {
+        dynamic3DFieldmap->applyRFField(pc, electricScale, magneticScale, startField, endField);
     } else if (auto* astraFieldmap = dynamic_cast<Astra1DDynamic*>(fieldmap_m)) {
         astraFieldmap->applyRFField(pc, electricScale, magneticScale, startField, endField);
     } else {
         throw GeneralOpalException(
                 "RFCavity::apply",
-                "RFCavity particle application currently requires an FM2DDynamic or Astra1DDynamic "
-                "field map.");
+                "RFCavity particle application currently requires an FM2DDynamic, FM3DDynamic or "
+                "Astra1DDynamic field map.");
     }
 }
 
