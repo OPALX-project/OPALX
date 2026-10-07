@@ -103,10 +103,10 @@ namespace opalx::spacecharge {
         referencePath_m =
                 std::make_unique<ReferencePath>(ReferencePath::load(config_m.referencePathFile));
         fieldStorage_m = std::make_unique<FFT2D5FieldStorage>(config_m, referencePath_m->length());
-        lineDensity_m = LineDensityView_t(
+        lineDensity_m  = LineDensityView_t(
                 "FFT2D5LineDensity", fieldStorage_m->slices().size() + LineDensityGhostCells);
-        lineDensityGradient_m = LineDensityView_t(
-                "FFT2D5LineDensityGradient", fieldStorage_m->slices().size());
+        lineDensityGradient_m =
+                LineDensityView_t("FFT2D5LineDensityGradient", fieldStorage_m->slices().size());
     }
 
 }  // namespace opalx::spacecharge
