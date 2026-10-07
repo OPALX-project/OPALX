@@ -87,6 +87,12 @@ namespace endfieldmodel {
          */
         virtual void rescale(double scaleFactor) = 0;
 
+        /** Initialise before tracking starts */
+        virtual void initialise() {}
+
+        /** Clean up at the end of tracking (before deallocation) */
+        virtual void finalise() {}
+
     private:
     };
 

@@ -195,6 +195,12 @@ public:
     /** Finalise the ScalingFFAMagnet - sets bunch to nullptr */
     void finalise() override;
 
+    /** calls finalise() */
+    void goOffline();
+
+    /** call initialise() */
+    void goOnline(const double& kineticEnergy);
+
     /** Get the field extent
      *
      *  \param zBegin sets start z coordinate in the local coordinate system of

@@ -116,6 +116,8 @@ namespace endfieldmodel {
 
         AsymmetricEngeConfig getConfig() const { return config_m; }
 
+        /** Release Kokkos allocations */
+        void finalise();
     private:
         AsymmetricEnge(const AsymmetricEnge& rhs) = default;
         AsymmetricEngeConfig config_m;
