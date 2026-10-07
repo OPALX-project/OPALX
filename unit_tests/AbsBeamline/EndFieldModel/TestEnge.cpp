@@ -42,12 +42,14 @@ TEST_F(TestEnge, ConstructorTest) {
 
     std::vector<double> a = {5, 6};
     auto enge1 = std::make_shared<endfieldmodel::Enge>(a, 2, 7);
+    enge1->initialise();
     EXPECT_EQ(enge1->getX0(), 2.0);
     EXPECT_EQ(enge1->getCentreLength(), 4.0);
     EXPECT_EQ(enge1->getEndLength(), 7.0);
     EXPECT_EQ(enge1->getCoefficients(), a);
 
     endfieldmodel::Enge* enge2 = enge1->clone();
+    enge2->initialise();
     EXPECT_EQ(enge2->getX0(), enge1->getX0());
     EXPECT_EQ(enge2->getCentreLength(), enge1->getCentreLength());
     EXPECT_EQ(enge2->getCoefficients(), enge2->getCoefficients());
@@ -73,6 +75,7 @@ TEST_F(TestEnge, DerivativeTest) {
     double lambda = 0.5;
     std::vector<double> engeA = {0.0, 1.0, 0.0};
     endfieldmodel::Enge enge(engeA, x0, lambda);
+    enge.initialise();
     for (auto x: xVector) {
         double yTest = enge.function(x, 0);
         double yRef = -1 + myEnge(x-x0, engeA, lambda)
@@ -95,6 +98,7 @@ TEST_F(TestEnge, DerivativeTest) {
 TEST_F(TestEnge, PrintTest) {
     std::vector<double> a = {1, 2};
     endfieldmodel::Enge enge = endfieldmodel::Enge(a, 1.0, 0.5);
+    enge.initialise();
     enge.print(std::cout);
     std::cout << std::endl;
 }

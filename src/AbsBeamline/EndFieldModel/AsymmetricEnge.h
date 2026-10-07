@@ -116,6 +116,9 @@ namespace endfieldmodel {
 
         AsymmetricEngeConfig getConfig() const { return config_m; }
 
+        /** Make Kokkos allocations */
+        void initialise();
+
         /** Release Kokkos allocations */
         void finalise();
     private:
