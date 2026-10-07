@@ -12,7 +12,7 @@
   variables:
     SLURM_JOB_NUM_NODES: 1
     SLURM_NTASKS: 1
-    SLURM_TIMELIMIT: "0:30:00"
+    SLURM_TIMELIMIT: "0:45:00"
     SCRATCH: "/capstor/scratch/cscs/biddisco"
   before_script:
     - !reference [.pr-number-extractor, before_script]
@@ -125,6 +125,10 @@
     - which mpirun
 
     - echo "=== Run regression and unit tests via NightlyBuildX ==="
+    # run_tests exits non-zero when tests fail. Capture the exit code so the
+    # results are still pushed to opal-live-doc below; the job is failed with
+    # the captured code at the end of the script.
+    - export REGTEST_EXIT=0
     - >-
       OPALX_SRC_DIR=$CI_PROJECT_DIR
       bash nightlybuildx/scripts/run_tests
@@ -137,9 +141,10 @@
       --unit-tests
       --no-gpl
       --publish-dir=$CI_PROJECT_DIR/regression-results-$BUILD_ARCH
+      || export REGTEST_EXIT=$?
 
-    - echo "=== Regression tests finished ==="
-    - find $CI_PROJECT_DIR/regression-results-$BUILD_ARCH -type f | sort
+    - echo "=== Regression tests finished (run_tests exit code $REGTEST_EXIT) ==="
+    - find $CI_PROJECT_DIR/regression-results-$BUILD_ARCH -type f | sort || true
 
     - echo "=== Push regression results to opal-live-doc ==="
     - |
@@ -233,7 +238,14 @@
           echo "Hint: if the pre-flight check or ssh-keyscan above reported errors, SSH access to gitea.psi.ch is blocked from the compute node"
         fi
       fi
+
+    - |
+      if [ "$REGTEST_EXIT" -ne 0 ]; then
+        echo "ERROR: NightlyBuildX run_tests failed (exit code $REGTEST_EXIT); regression results were pushed, failing job"
+        exit "$REGTEST_EXIT"
+      fi
   artifacts:
+    when: always
     paths:
       - regression-results-$BUILD_ARCH
     expire_in: 1 week

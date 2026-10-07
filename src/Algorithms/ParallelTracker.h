@@ -22,6 +22,11 @@
 #ifndef OPALX_ParallelTracker_HH
 #define OPALX_ParallelTracker_HH
 
+#include <optional>
+#include "Algorithms/BorisStepControl.h"
+#include "Algorithms/ClosedOrbitInitialState.h"
+#include "Algorithms/DeviceExternalField.h"
+#include "Algorithms/SpectralTunes.h"
 #include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/Tracker.h"
 #include "Steppers/BorisPusher.h"
@@ -39,11 +44,14 @@
 #include "Algorithms/IndexMap.h"
 #include "Algorithms/OrbitThreader.h"
 
+#include "AbsBeamline/Box.h"
 #include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/ConstantFocusing.h"
+#include "AbsBeamline/CyclotronSector.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/FieldmapElement.h"
 #include "AbsBeamline/Laser.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
@@ -55,6 +63,7 @@
 #include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/TravelingWave.h"
+#include "AbsBeamline/VariableRFCavity.h"
 #include "Beamlines/Beamline.h"
 #include "Distribution/SamplingBase.hpp"
 #include "Elements/OpalBeamline.h"
@@ -78,7 +87,95 @@ namespace opalx::spacecharge {
  *       ParallelTracker::execute().
  */
 class ParallelTracker : public Tracker {
+public:
+    /// Position within drift-kick-drift at which the particle self-field is evaluated.
+    enum class SpaceChargeFieldUpdate {
+        MIDPOINT,  ///< Solve after the first half drift (default OPALX ordering).
+        PRESTEP    ///< Solve before the first half drift (historical OPAL ordering).
+    };
+
+    /// Place the generated bunch in the solved orbit frame, preserving local spread.
+    void setInitialOrbit(const ClosedOrbitInitialState& state) { initialOrbit_m = state; }
+
+    /// Select a separate serial two-ray spectral diagnostic instead of bunch tracking.
+    void setSpectralTunes(std::vector<double> initial, SpectralTunes::Settings settings) {
+        tuneInitial_m  = std::move(initial);
+        tuneSettings_m = settings;
+    }
+    /// Stop at the localized Nth forward reference return (single container,
+    /// supported magnetic/RF elements, no ongoing emission). The complete bunch
+    /// advances to that reference event time; individual particles need not close.
+    /// Turn counting is independent of the ordinary device Boris/PIC integration.
+    /// Compatible bare analytic rings share boundary-controlled substeps so all
+    /// particles reach each midpoint together. COF/reference remain host-side.
+    /// This changes rounding and edge truncation errors from the legacy kernels,
+    /// while retaining the energy-conserving magnetic Boris rotation. Boundary
+    /// refinement excludes spin. Immutable field descriptors are uploaded once; particle data
+    /// stay in device views. Supports drifts, passive elements, analytic bends,
+    /// dipoles, quadrupoles and ideal VariableRFCavity elements. Shared boundary
+    /// retries are restricted to bare (NONE solver) tracking; PIC retains the
+    /// ordinary step sequence independently of any diagnostic probe selection.
+    /// Checkpoint/restart and solver configurations that cannot repeat midpoint
+    /// trials retain fixed Boris/PIC steps with spatial field selection.
+    void setRequestedTurns(unsigned long long turns) { requestedTurns_m = turns; }
+    /** Reference kinetic-energy target [eV]; zero disables. Stop after a full RF
+     * kick, never by clipping its energy gain. TRACK validates positive finite
+     * input and compatible RING controls; execute() checks launch and model.
+     */
+    void setKineticEnergyStop(double energy) { kineticEnergyStop_m = energy; }
+    /** Select the self-field evaluation point. This changes temporal discretization only;
+     * deposition, field solver, and Boris kick are unchanged.
+     */
+    void setSpaceChargeFieldUpdate(SpaceChargeFieldUpdate update) {
+        spaceChargeFieldUpdate_m = update;
+    }
+    void visitCyclotronSector(const CyclotronSector& sector) override {
+        itsOpalBeamline_m.visit(sector, *this, *itsBunch_m);
+    }
+
 private:
+    friend class TrackRun;
+    bool bareTracking_m =
+            false;  ///< NONE backend; diagnostic eligibility is independent of retries.
+    bool allowBoundaryControl_m =
+            true;  ///< Restrict retries to bare, undiagnosed Cartesian solves.
+    std::optional<ClosedOrbitInitialState> initialOrbit_m;
+    std::vector<double> tuneInitial_m;
+    SpectralTunes::Settings tuneSettings_m;
+    bool hasCyclotronGaps();
+    /** Host-only event integration for the initial one-proton RF milestone.
+     * R/P are in the tracking frame, t/dt in seconds. Splits Boris steps at
+     * directed gap-plane roots and applies full kicks in time order. Field
+     * queries use spatial support, not the threader's nominal closed orbit.
+     * Assumes distinct gap planes and a single unpolarized median-plane proton.
+     * The caller must choose dt small enough to bracket each crossing without
+     * an intervening recrossing of the same plane. Particle E/B diagnostic views
+     * are not populated by this event path; only positions/momenta are advanced.
+     * @return Elapsed time [s], equal to dt unless EKINSTOP is met at a gap.
+     * On target completion the outgoing state is immediately after that complete
+     * kick; the remainder magnetic drift is deliberately omitted. With report=true
+     * the reference marks energyTargetReached_m and emits the terminal diagnostic.
+     */
+    double advanceCyclotronGaps(
+            Vector_t<double, 3>& r, Vector_t<double, 3>& p, double t, double dt, double mass,
+            bool report);
+    double kineticEnergyStop_m = 0;      ///< Optional reference kinetic-energy target [eV].
+    bool energyTargetReached_m = false;  ///< Latched only by the reference's complete kick.
+    /// Energy-mode reference is precomputed so the final bunch clock uses its substep.
+    bool pendingEnergyReference_m = false;
+    Vector_t<double, 3> pendingReferenceR_m, pendingReferenceP_m;
+    unsigned long long requestedTurns_m = 0;
+    device_external::Lattice
+            deviceRingFields_m;  ///< Geometry for device field selection and trial support checks.
+    bool spatialRing_m =
+            false;  ///< Select analytic ring fields by physical position, independent of retries.
+    bool boundaryControlled_m = false;
+    /// Internal subset experiment; one selects every particle (ordinary default).
+    unsigned long long boundaryControlStride_m = 1;
+    double boundaryStepDt_m                    = 0;  ///< Accepted/trial collective substep cap [s].
+    unsigned long long boundaryTrials_m = 0, boundaryRejected_m = 0;
+    SpaceChargeFieldUpdate spaceChargeFieldUpdate_m =
+            SpaceChargeFieldUpdate::MIDPOINT;  ///< Self-field time centering for bunch tracking.
     DataSink* itsDataSink_m;  ///< Borrowed beam statistics and phase-space output sink.
     opalx::spacecharge::SpaceChargeSolver*
             spaceChargeSolver_m;  ///< Borrowed run-lifetime space-charge solver.
@@ -87,11 +184,13 @@ private:
     OpalBeamline itsOpalBeamline_m;  ///< Cloned field elements and coordinate transforms.
     bool globalEOL_m;                ///< End-of-line flag (e.g. orbit threader out of bounds).
     double sStart_m;                 ///< Path-length start position for the track (m).
+    double ringPeriod_m;             ///< One-turn path length for RING, or zero for LINE.
 
     /** Step-size segments: s-stop, dt, and steps per segment. */
     StepSizeConfig stepSizes_m;
 
-    double dtCurrentTrack_m;  ///< Global @f$\Delta t@f$ for the current track segment.
+    double dtCurrentTrack_m;      ///< Global @f$\Delta t@f$ for the current track segment.
+    double terminalStepDt_m = 0;  ///< Positive final-turn cap [s]; zero means no cap.
     std::vector<std::vector<std::shared_ptr<SamplingBase>>>
             emittingSamplers_m;  ///< Per-container emitters.
     bool restarting_m;           ///< Preserve state loaded from a checkpoint at startup.
@@ -133,6 +232,7 @@ public:
      * @param restartGlobalStep Completed global integration steps restored from a checkpoint.
      * @param restartDt         Time step stored in the checkpoint.
      * @param restartPosition   Saved step-size segment and completed steps within that segment.
+     * @param ringPeriod        One-turn path length for periodic RING lookup; zero for LINE.
      */
     explicit ParallelTracker(
             const Beamline& bl, PartBunch_t& bunch,
@@ -142,61 +242,71 @@ public:
             const std::vector<double>& sStop, const std::vector<double>& dt,
             const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers = {},
             bool restarting = false, unsigned long long restartGlobalStep = 0,
-            double restartDt = 0.0, StepSizeConfig::ResumePosition restartPosition = {0, 0});
+            double restartDt = 0.0, StepSizeConfig::ResumePosition restartPosition = {0, 0},
+            double ringPeriod = 0.0);
 
     /// @brief Destructor; releases tracker resources.
     virtual ~ParallelTracker();
 
     /// @brief Visit the full beamline (iterates elements into OpalBeamline). Overrides
     /// DefaultVisitor.
-    virtual void visitBeamline(const Beamline&);
+    void visitBeamline(const Beamline&) override;
 
     /// @brief Visit a generic element using the base tracker behavior.
-    virtual void visitElementBase(const ElementBase&);
+    void visitElementBase(const ElementBase&) override;
 
     /// @brief Apply the algorithm to a constant E-field cavity.
-    virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&);
+    void visitConstantEFieldCavity(const ConstantEFieldCavity&) override;
 
     /// @brief Apply the algorithm to a constant linear focusing element.
-    virtual void visitConstantFocusing(const ConstantFocusing&);
+    void visitConstantFocusing(const ConstantFocusing&) override;
+    /// @brief Apply the algorithm to a box absorber.
+    void visitBox(const Box&) override;
+
     /// @brief Apply the algorithm to a collimator.
-    virtual void visitCollimator(const Collimator&);
+    void visitCollimator(const Collimator&) override;
 
     /// @brief Apply the algorithm to a drift.
-    virtual void visitDrift(const Drift&);
+    void visitDrift(const Drift&) override;
+
+    /// @brief Apply the algorithm to a field-map-driven element.
+    void visitFieldmapElement(const FieldmapElement&) override;
 
     /// @brief Reject laser tracking until dedicated laser tracking is implemented.
-    virtual void visitLaser(const Laser&);
+    void visitLaser(const Laser&) override;
 
     /// @brief Apply the algorithm to a monitor.
-    virtual void visitMonitor(const Monitor&);
+    void visitMonitor(const Monitor&) override;
 
     /// @brief Apply the algorithm to a marker.
-    virtual void visitMarker(const Marker&);
+    void visitMarker(const Marker&) override;
 
     /// @brief Apply the algorithm to a multipole.
-    virtual void visitMultipole(const Multipole&);
+    void visitMultipole(const Multipole&) override;
 
     /// @brief Apply the algorithm to a multipole (templated type).
-    virtual void visitMultipoleT(const MultipoleT&);
+    void visitMultipoleT(const MultipoleT&) override;
 
     /// @brief Apply the algorithm to a rectangular bend.
-    virtual void visitRBend(const RBend&);
+    void visitRBend(const RBend&) override;
 
     /// @brief Apply the algorithm to an RF cavity.
-    virtual void visitRFCavity(const RFCavity&);
+    void visitRFCavity(const RFCavity&) override;
+
+    /// @brief Register and initialise an analytic time-dependent RF cavity.
+    void visitVariableRFCavity(const VariableRFCavity&) override;
 
     /// @brief Apply the algorithm to a sector bend.
-    virtual void visitSBend(const SBend&);
+    void visitSBend(const SBend&) override;
 
     /// @brief Apply the algorithm to a traveling wave cavity.
-    virtual void visitTravelingWave(const TravelingWave&);
+    void visitTravelingWave(const TravelingWave&) override;
 
     /// @brief Apply the algorithm to a solenoid.
-    virtual void visitSolenoid(const Solenoid&);
+    void visitSolenoid(const Solenoid&) override;
 
     /// @brief Run the main tracking loop until all step-size segments complete.
-    virtual void execute();
+    void execute() override;
 
     /**
      * @brief Boris half-kick using E, B and per-particle dt on one container.
@@ -242,6 +352,32 @@ public:
             const std::function<
                     void(const std::shared_ptr<ElementBase>&,
                          const std::shared_ptr<ParticleContainer_t>&)>& func);
+
+    /**
+     * @brief Internal boundary-controlled device tracking helpers.
+     *
+     * These entry points remain implementation details, but are public because
+     * CUDA extended lambdas require a public enclosing member function. Keep
+     * their state private and revisit this interface when the kernels are moved
+     * to namespace-scope functors.
+     */
+    /** Complete the first drift and field gathering at a common physical midpoint.
+     * A register-only endpoint trial decides collective subdivision before any
+     * momentum kick, reference update, emission or loss is committed. Rejected
+     * first drifts are reversed on the solver's current particle ownership.
+     */
+    void prepareBoundaryStep(
+            BorisPusher&, const std::vector<std::shared_ptr<OrbitThreader>>&, boris_step::Control&);
+    bool boundaryCrossed(double dt);
+    void reverseTrialDrift(double dt);
+
+    /// Internal candidate-selection policy; the public two-argument API is unchanged.
+    void forEachElementInBunchFrame(
+            const std::vector<std::shared_ptr<OrbitThreader>>& oths,
+            const std::function<
+                    void(const std::shared_ptr<ElementBase>&,
+                         const std::shared_ptr<ParticleContainer_t>&)>& func,
+            bool spatialCandidates);
 
     /// @brief Mark particles outside the transverse aperture of each nearby element.
     /// @param oths Per-container orbit threaders used for element queries.
@@ -368,12 +504,20 @@ inline void ParallelTracker::visitConstantFocusing(const ConstantFocusing& focus
     itsOpalBeamline_m.visit(focusing, *this, *itsBunch_m);
 }
 
+inline void ParallelTracker::visitBox(const Box& box) {
+    itsOpalBeamline_m.visit(box, *this, *itsBunch_m);
+}
+
 inline void ParallelTracker::visitCollimator(const Collimator& coll) {
     itsOpalBeamline_m.visit(coll, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitDrift(const Drift& drift) {
     itsOpalBeamline_m.visit(drift, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitFieldmapElement(const FieldmapElement& fm) {
+    itsOpalBeamline_m.visit(fm, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitMonitor(const Monitor& monitor) {
@@ -398,6 +542,10 @@ inline void ParallelTracker::visitRBend(const RBend& bend) {
 
 inline void ParallelTracker::visitRFCavity(const RFCavity& as) {
     itsOpalBeamline_m.visit(as, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitVariableRFCavity(const VariableRFCavity& cavity) {
+    itsOpalBeamline_m.visit(cavity, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitSBend(const SBend& bend) {

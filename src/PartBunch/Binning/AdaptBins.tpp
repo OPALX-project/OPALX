@@ -140,8 +140,11 @@ namespace ParticleBinning {
         bin_view_type binIndex       = getBinView();
 
         IpplTimings::startTimer(bAssignUniformBinsT);
-        if (bunch_m.getLocalNum() <= 1) {
-            msg << level4 << "Too few bins, assigning all bins to index 0." << endl;
+        // A cold beam has a zero selector span. Assign its particles directly
+        // instead of forming 1/0 and converting (x-xMin)*infinity to a bin index.
+        // A requested single bin needs no division even for a finite span.
+        if (bunch_m.getLocalNum() <= 1 || currentBins_m == 1 || xMax_m == xMin_m) {
+            msg << level4 << "Single-bin or collapsed selector range; assigning bin 0." << endl;
             Kokkos::deep_copy(binIndex, 0);
             IpplTimings::stopTimer(bAssignUniformBinsT);
             return;

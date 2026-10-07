@@ -6,7 +6,6 @@
 #ifndef OPALX_SPACE_CHARGE_FFT2D5_FIELD_STORAGE_H
 #define OPALX_SPACE_CHARGE_FFT2D5_FIELD_STORAGE_H
 
-#include "Manager/BaseManager.h"
 #include "Manager/datatypes.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
 
@@ -43,6 +42,7 @@ namespace opalx::spacecharge {
         };
 
         FFT2D5FieldStorage(const FFT2D5Config& config, double pathLength);
+        ~FFT2D5FieldStorage();
 
         FFT2D5FieldStorage(const FFT2D5FieldStorage&)            = delete;
         FFT2D5FieldStorage& operator=(const FFT2D5FieldStorage&) = delete;
@@ -59,6 +59,14 @@ namespace opalx::spacecharge {
         [[nodiscard]] ScalarField3& chargeDensity() { return chargeDensity_m; }
         [[nodiscard]] VectorField3& electricField() { return electricField_m; }
         [[nodiscard]] std::vector<Slice>& slices() { return slices_m; }
+
+        /**
+         * @brief Solve a physical slice using its already scaled charge density.
+         * @param sliceIndex Zero-based slice index, excluding the 3D field's ghost cells.
+         * @note Native solver construction, execution, and destruction are compiled together
+         * to keep CUDA kernel stubs and their device registration in the same translation unit.
+         */
+        void solveSlice(std::size_t sliceIndex);
 
     private:
         std::array<std::size_t, 3> meshSize_m;
