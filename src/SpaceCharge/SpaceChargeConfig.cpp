@@ -90,16 +90,23 @@ namespace opalx::spacecharge {
                         "The load-balancing threshold must not be negative.");
             }
             validatePoissonSolverConfig(makePoissonSolverConfig(config));
-            if (config.backend == PoissonSolverType::P3M
-                && (config.binning.has_value() || config.dirichletPlane.enabled())) {
-                throw OpalException(
-                        "validateSpaceChargeConfig",
-                        "P3M does not support binning or Dirichlet planes.");
+            if (config.backend == PoissonSolverType::P3M && config.binning.has_value()) {
+                throw OpalException("validateSpaceChargeConfig", "P3M does not support binning.");
             }
-            if (config.dirichletPlane.enabled() && config.backend != PoissonSolverType::Open) {
+            const bool p3mShiftedPlane =
+                    config.backend == PoissonSolverType::P3M
+                    && config.dirichletPlane.kind == DirichletPlaneType::ShiftedGreen
+                    && std::all_of(
+                            config.boundaryConditions.begin(), config.boundaryConditions.end(),
+                            [](FieldBoundaryCondition boundary) {
+                                return boundary == FieldBoundaryCondition::Open;
+                            });
+            if (config.dirichletPlane.enabled() && config.backend != PoissonSolverType::Open
+                && !p3mShiftedPlane) {
                 throw OpalException(
                         "validateSpaceChargeConfig",
-                        "Dirichlet planes require the OPEN Poisson backend.");
+                        "Dirichlet planes require TYPE=OPEN, or TYPE=P3M with OPEN domain "
+                        "boundaries and SHIFTED_GREENS_FUNCTION.");
             }
             if (config.dirichletPlane.planeDumpFrequency != 0 && config.binning.has_value()) {
                 throw OpalException(

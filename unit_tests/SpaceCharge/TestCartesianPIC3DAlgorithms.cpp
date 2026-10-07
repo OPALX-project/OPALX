@@ -51,7 +51,14 @@ namespace opalx::spacecharge {
                         const CartesianPIC3DConfig& config, const CoordinateSystemTrafo& pose = {},
                         Vector momentum = Vector(0.0))
                     : domain(makeCartesianDomainConfig(config)),
-                      particles(domain.mesh(), domain.layout()),
+                      particles(
+                              domain.mesh(), domain.layout(), false,
+                              config.backend == PoissonSolverType::P3M
+                                      ? Particles::LayoutType::SpatialOverlap
+                                      : Particles::LayoutType::Spatial,
+                              config.p3mCutoff,
+                              config.backend == PoissonSolverType::P3M ? ippl::BC::NO
+                                                                       : ippl::BC::PERIODIC),
                       secondary(domain.mesh(), domain.layout()) {
                     particles.setBunchStateHandler(state);
                     secondary.setBunchStateHandler(state);
@@ -158,6 +165,79 @@ namespace opalx::spacecharge {
                     change += std::abs(planeE(i)[2] - directE(i)[2]);
                 }
                 EXPECT_GT(change, 1.0e-6);
+            }
+        }
+
+        TEST_F(CartesianPIC3DAlgorithmsTest, P3MAddsFullImageAndRealParticleCorrectionOnce) {
+            auto p3mConfig           = config();
+            p3mConfig.backend        = PoissonSolverType::P3M;
+            p3mConfig.p3mCutoff      = 0.001;
+            auto openConfig          = config();
+            openConfig.greenFunction = GreenFunctionType::Standard;
+            for (double planeZ : {0.0, 0.125}) {
+                p3mConfig.dirichletPlane = {
+                        .kind         = DirichletPlaneType::ShiftedGreen,
+                        .planeZ       = planeZ,
+                        .maximumSteps = 2};
+                openConfig.dirichletPlane = p3mConfig.dirichletPlane;
+                Run p3mImage(p3mConfig), openImage(openConfig);
+                auto p3mDirectConfig            = p3mConfig;
+                auto openDirectConfig           = openConfig;
+                p3mDirectConfig.dirichletPlane  = {};
+                openDirectConfig.dirichletPlane = {};
+                Run p3mDirect(p3mDirectConfig), openDirect(openDirectConfig);
+                for (Run* run : {&p3mImage, &p3mDirect, &openImage, &openDirect}) {
+                    auto positions = run->particles.R.getHostMirror();
+                    Kokkos::deep_copy(positions, run->particles.R.getView());
+                    positions(1) = positions(0) + Vector(0.0002, 0.0001, 0.0001);
+                    for (std::size_t i = 0; i < run->particles.getLocalNum(); ++i)
+                        positions(i)[2] += planeZ;
+                    Kokkos::deep_copy(run->particles.R.getView(), positions);
+                    run->particles.updateMoments();
+                }
+
+                for (std::size_t step : {0u, 1u}) {
+                    EXPECT_EQ(p3mImage.solve(step).backendSolves, 2u);
+                    EXPECT_EQ(openImage.solve(step).backendSolves, 2u);
+                    EXPECT_EQ(p3mDirect.solve(step).backendSolves, 1u);
+                    EXPECT_EQ(openDirect.solve(step).backendSolves, 1u);
+                    EXPECT_EQ(p3mImage.domain.layoutExtents(), p3mConfig.grid.meshSize);
+                    auto p3mE = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), p3mImage.particles.E.getView());
+                    auto p3mDirectE = Kokkos::create_mirror(p3mDirect.particles.E.getView());
+                    Kokkos::deep_copy(p3mDirectE, p3mDirect.particles.E.getView());
+                    auto openE = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), openImage.particles.E.getView());
+                    auto openDirectE = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), openDirect.particles.E.getView());
+                    double imageNorm = 0.0;
+                    for (std::size_t i = 0; i < p3mImage.particles.getLocalNum(); ++i) {
+                        for (unsigned d = 0; d < 3; ++d) {
+                            const double image = openE(i)[d] - openDirectE(i)[d];
+                            imageNorm += image * image;
+                            EXPECT_NEAR(
+                                    p3mE(i)[d] - p3mDirectE(i)[d], image,
+                                    1.0e-9 * std::max(1.0, std::abs(image)));
+                        }
+                    }
+                    EXPECT_GT(imageNorm, 1.0e-6);
+
+                    // Ensure this fixture would detect a lost or repeated particle correction.
+                    Kokkos::deep_copy(p3mDirect.particles.E.getView(), Vector(0.0));
+                    P3MShortRangeInteraction(p3mConfig.p3mCutoff).apply(p3mDirect.particles);
+                    auto particleE = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), p3mDirect.particles.E.getView());
+                    double particleNorm = 0.0;
+                    for (std::size_t i = 0; i < p3mDirect.particles.getLocalNum(); ++i)
+                        particleNorm += particleE(i).dot(particleE(i));
+                    EXPECT_GT(particleNorm, 1.0e-6);
+                    Kokkos::deep_copy(p3mDirect.particles.E.getView(), p3mDirectE);
+                }
+                for (std::size_t step : {2u, 3u}) {
+                    EXPECT_EQ(p3mImage.solve(step).backendSolves, 1u);
+                    EXPECT_EQ(p3mDirect.solve(step).backendSolves, 1u);
+                    expectFieldsEqual(p3mImage.particles, p3mDirect.particles);
+                }
             }
         }
 
