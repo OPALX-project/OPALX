@@ -14,31 +14,31 @@ OpalAsymmetricEnge::OpalAsymmetricEnge()
               "The \"ASYMMETRIC_ENGE\" element defines an enge field fall off for"
               "plugging into analytical field models. The Asymmetric version"
               "has different parameters for the start and end of the field.") {
-    itsAttr[X0_START] = Attributes::makeReal(
-            "X0_START", "Offset of the central region of the enge element from the start.");
-    itsAttr[LAMBDA_START] =
-            Attributes::makeReal("LAMBDA_START", "Scales the field rise at the element entrance.");
-    itsAttr[COEFFICIENTS_START] = Attributes::makeRealArray(
-            "COEFFICIENTS_START",
+    itsAttr[START_HALF_LENGTH] = Attributes::makeReal(
+            "START_HALF_LENGTH", "Offset of the central region of the enge element from the start.");
+    itsAttr[START_FRINGE_LENGTH] =
+            Attributes::makeReal("START_FRINGE_LENGTH", "E-fold length at the element entrance.");
+    itsAttr[START_COEFFICIENTS] = Attributes::makeRealArray(
+            "START_COEFFICIENTS",
             "Polynomial coefficients for the Enge function at the element entrance.");
-    itsAttr[X0_END] = Attributes::makeReal(
-            "X0_END", "Offset of the central region of the enge function element from the end.");
-    itsAttr[LAMBDA_END] =
-            Attributes::makeReal("LAMBDA_END", "Scales the field rise at the element exit.");
-    itsAttr[COEFFICIENTS_END] = Attributes::makeRealArray(
-            "COEFFICIENTS_END",
+    itsAttr[END_HALF_LENGTH] = Attributes::makeReal(
+            "END_HALF_LENGTH", "Offset of the central region of the enge function element from the end.");
+    itsAttr[END_FRINGE_LENGTH] =
+            Attributes::makeReal("END_FRINGE_LENGTH", "E-fold length at the element exit.");
+    itsAttr[END_COEFFICIENTS] = Attributes::makeRealArray(
+            "END_COEFFICIENTS",
             "Polynomial coefficients for the Enge function at the element exit.");
     registerOwnership();
 }
 
 void OpalAsymmetricEnge::update() {
     // getOpalName() comes from AbstractObjects/Object.h
-    double x0Start                = Attributes::getReal(itsAttr[X0_START]);
-    double lambdaStart            = Attributes::getReal(itsAttr[LAMBDA_START]);
-    std::vector<double> aVecStart = Attributes::getRealArray(itsAttr[COEFFICIENTS_START]);
-    double x0End                  = Attributes::getReal(itsAttr[X0_END]);
-    double lambdaEnd              = Attributes::getReal(itsAttr[LAMBDA_END]);
-    std::vector<double> aVecEnd   = Attributes::getRealArray(itsAttr[COEFFICIENTS_END]);
+    double x0Start                = Attributes::getReal(itsAttr[START_HALF_LENGTH]);
+    double lambdaStart            = Attributes::getReal(itsAttr[START_FRINGE_LENGTH]);
+    std::vector<double> aVecStart = Attributes::getRealArray(itsAttr[START_COEFFICIENTS]);
+    double x0End                  = Attributes::getReal(itsAttr[END_HALF_LENGTH]);
+    double lambdaEnd              = Attributes::getReal(itsAttr[END_FRINGE_LENGTH]);
+    std::vector<double> aVecEnd   = Attributes::getRealArray(itsAttr[END_COEFFICIENTS]);
 
     auto efm = std::make_shared<endfieldmodel::AsymmetricEnge>(
             aVecStart, x0Start, lambdaStart, aVecEnd, x0End, lambdaEnd);

@@ -271,6 +271,7 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
         nextR = r_m / (Physics::c * dt_m);
         integrator_m.push(nextR, p_m, dt_m);
         nextR = nextR * Physics::c * dt_m;
+        std::cerr << "ORBITTHREADER " << nextR << " " << p_m << std::endl;
 
         if (activeSet.empty()
             && (pathLengthRange_m.isOutside(pathLength_m)

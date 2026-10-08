@@ -51,7 +51,7 @@ TEST_F(TestOpalScalingFFAMagnet, UserInterface) {
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::TAN_DELTA], 5);
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::MAX_Y_POWER], 6);
     //Attributes::setString(ui.itsAttr[OpalScalingFFAMagnet::END_FIELD_MODEL], "");
-    Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::END_LENGTH], 8);
+    Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::FRINGE_LENGTH], 8);
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::RADIAL_NEG_EXTENT], 10);
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::RADIAL_POS_EXTENT], 11);
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::HEIGHT], 12);
@@ -100,7 +100,7 @@ TEST_F(TestOpalScalingFFAMagnet, AzimuthalExtentDefault) {
     OpalScalingFFAMagnet ui;
     Attributes::setReal(ui.itsAttr[OpalElement::LENGTH], 1);
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::R0], 19);
-    Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::END_LENGTH], 8);
+    Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::FRINGE_LENGTH], 8);
     ui.update();
     auto* ffa = dynamic_cast<ScalingFFAMagnet*>(ui.getElement());
     EXPECT_TRUE(ffa);

@@ -34,7 +34,7 @@ public:
         TAN_DELTA,
         MAX_Y_POWER,
         END_FIELD_MODEL,
-        END_LENGTH,
+        FRINGE_LENGTH,
         RADIAL_NEG_EXTENT,
         RADIAL_POS_EXTENT,
         HEIGHT,
