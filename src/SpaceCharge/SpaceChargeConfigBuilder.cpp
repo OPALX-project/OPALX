@@ -343,8 +343,20 @@ namespace opalx::spacecharge {
                                                     : values.grid.decomposition;
         values.boundaryConditions = convertBoundaryConditions(fieldSolver.constructBCHandler());
         values.greenFunction      = convertGreenFunction(fieldSolver.getGreensFunction());
-        values.p3mCutoff          = fieldSolver.getP3MCutoff();
-        values.binning            = buildBinningConfig(fieldSolver.getBinningCmd());
+        if (fieldSolver.hasP3MCutoff() && fieldSolver.hasP3MCutoffCells()) {
+            throw OpalException(
+                    "buildSpaceChargeConfig",
+                    "FIELDSOLVER sets both RCUT and RCUT_CELLS. Set RCUT for a fixed P3M cutoff "
+                    "in metres or RCUT_CELLS for a cutoff in units of the largest mesh spacing, "
+                    "not both.");
+        }
+        values.p3mCutoff = fieldSolver.getP3MCutoff();
+        // Without RCUT, P3M ties its cutoff to the mesh (RCUT_CELLS, default 2).
+        const bool meshTiedCutoff =
+                fieldSolver.hasP3MCutoffCells()
+                || (values.backend == PoissonSolverType::P3M && !fieldSolver.hasP3MCutoff());
+        values.p3mCutoffCells = meshTiedCutoff ? fieldSolver.getP3MCutoffCells() : 0.0;
+        values.binning        = buildBinningConfig(fieldSolver.getBinningCmd());
         values.repartitionFrequency =
                 Options::repartFreq > 0 ? static_cast<std::size_t>(Options::repartFreq) : 0;
         values.loadBalancingThreshold = Options::loadBalancingThreshold;

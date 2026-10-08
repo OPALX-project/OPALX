@@ -76,7 +76,16 @@ FieldSolverCmd::FieldSolverCmd()
             {"STANDARD", "INTEGRATED"}, "INTEGRATED");
 
     itsAttr[FIELDSOLVER::P3MRCUT] = Attributes::makeReal(
-            "RCUT", "P3M particle-particle cutoff radius in m (ALPHA is derived as 2/RCUT).", 0.0);
+            "RCUT",
+            "Fixed P3M particle-particle cutoff radius in m (ALPHA = 2/RCUT); excludes "
+            "RCUT_CELLS.",
+            0.0);
+
+    itsAttr[FIELDSOLVER::P3MRCUTCELLS] = Attributes::makeReal(
+            "RCUT_CELLS",
+            "P3M cutoff in units of the largest mesh spacing, updated with the mesh (ALPHA = "
+            "2/cutoff); used unless RCUT is given.",
+            2.0);
 
     itsAttr[FIELDSOLVER::BBOXINCR] =
             Attributes::makeReal("BBOXINCR", "Increase of bounding box in % ", 2.0);
@@ -137,6 +146,16 @@ std::string FieldSolverCmd::getGreensFunction() const {
 
 double FieldSolverCmd::getP3MCutoff() const {
     return Attributes::getReal(itsAttr[FIELDSOLVER::P3MRCUT]);
+}
+
+double FieldSolverCmd::getP3MCutoffCells() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::P3MRCUTCELLS]);
+}
+
+bool FieldSolverCmd::hasP3MCutoff() const { return !itsAttr[FIELDSOLVER::P3MRCUT].defaultUsed(); }
+
+bool FieldSolverCmd::hasP3MCutoffCells() const {
+    return !itsAttr[FIELDSOLVER::P3MRCUTCELLS].defaultUsed();
 }
 
 BCHandler<3> FieldSolverCmd::constructBCHandler() const {
@@ -251,9 +270,14 @@ Inform& FieldSolverCmd::printInfo(Inform& os) const {
        << "* GREENSF      " << Attributes::getString(itsAttr[FIELDSOLVER::GREENSF]) << endl;
 
     if (getType() == "P3M") {
-        const double cutoff = getP3MCutoff();
-        os << "* RCUT         " << cutoff << " [m]" << '\n'
-           << "* ALPHA        " << 2.0 / cutoff << " [1/m]" << endl;
+        if (hasP3MCutoff()) {
+            const double cutoff = getP3MCutoff();
+            os << "* RCUT         " << cutoff << " [m]" << '\n'
+               << "* ALPHA        " << 2.0 / cutoff << " [1/m]" << endl;
+        } else {
+            os << "* RCUT_CELLS   " << getP3MCutoffCells() << " [largest mesh spacing]" << '\n'
+               << "* ALPHA        2/RCUT, updated with the mesh" << endl;
+        }
     }
 
     if (Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTX])) {
