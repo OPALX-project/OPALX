@@ -9,6 +9,7 @@ set(_SRCS
     AttributeSet.cpp
     BeamBeam.cpp
     BeamlineVisitor.cpp
+    Box.cpp
     Collimator.cpp
     ConstantEFieldCavity.cpp
     ConstantFocusing.cpp
@@ -41,6 +42,7 @@ set(_HDRS
     BeamBeam.h
     BeamBeamDefinitions.h
     BeamlineVisitor.h
+    Box.h
     Collimator.h
     ConstantEFieldCavity.h
     ConstantFocusing.h
