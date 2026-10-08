@@ -10,12 +10,12 @@ class OpalAsymmetricEnge : public OpalElement {
 public:
     /** enum maps string to integer value for UI definitions */
     enum {
-        X0_START = COMMON,
-        LAMBDA_START,
-        COEFFICIENTS_START,
-        X0_END,
-        LAMBDA_END,
-        COEFFICIENTS_END,
+        START_HALF_LENGTH = COMMON,
+        START_FRINGE_LENGTH,
+        START_COEFFICIENTS,
+        END_HALF_LENGTH,
+        END_FRINGE_LENGTH,
+        END_COEFFICIENTS,
         SIZE  // size of the enum
     };
 

@@ -539,6 +539,20 @@ double magnitude(Vector_t<double, 3> x) {
     return x[0]*x[0]+x[1]*x[1]+x[2]*x[2];
 }
 
+TEST_F(ScalingFFAMagnetTest, isInsideTest) {
+    Vector_t<double, 3> pos({r0_m*(std::cos(2.*psi0_m)-1.),
+                             0.09,
+                             r0_m*std::sin(2.*psi0_m)});
+    sector_m->setVerticalExtent(0.1);
+    EXPECT_TRUE(sector_m->isInside(pos));
+    pos[1] = -0.09;
+    EXPECT_TRUE(sector_m->isInside(pos));
+    pos[1] = -0.11;
+    EXPECT_FALSE(sector_m->isInside(pos));
+    pos[1] = 0.11;
+    EXPECT_FALSE(sector_m->isInside(pos));
+}
+
 TEST_F(ScalingFFAMagnetTest, VerticalBoundingBoxTest) {
     sector_m->setVerticalExtent(0.1);
     Vector_t<double, 3> mom, E, B;

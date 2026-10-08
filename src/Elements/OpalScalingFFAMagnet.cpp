@@ -44,18 +44,19 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet()
 
     itsAttr[MAX_Y_POWER] = Attributes::makeReal(
             "MAX_Y_POWER",
-            "The maximum power in y that will be considered in the field expansion.");
+            "The maximum power in y that will be considered in the field expansion (default 3).",
+            3);
 
     itsAttr[END_FIELD_MODEL] = Attributes::makeString(
             "END_FIELD_MODEL",
             "Names the end field model of the magnet, giving the field magnitude along a line of "
-            "constant radius. If blank, uses the 'END_LENGTH' and 'L' parameters to construct a  "
+            "constant radius. If blank, uses the 'FRINGE_LENGTH' and 'L' parameters to construct a  "
             "tanh model. If 'END_FIELD_MODEL' is not blank, OpalX will seek "
             "an END_FIELD_MODEL corresponding to the name defined in this string.");
 
-    itsAttr[END_LENGTH] = Attributes::makeReal(
-            "END_LENGTH",
-            "The end length of the spiral FFA, if END_FIELD_MODEL is not defined  [m]. This "
+    itsAttr[FRINGE_LENGTH] = Attributes::makeReal(
+            "FRINGE_LENGTH",
+            "The fringe field e-fold length of the spiral FFA, if END_FIELD_MODEL is not defined [m]. This "
             "determines the fringe field taper if no "
             "END_FIELD_MODEL is defined. Ignored if END_FIELD_MODEL is defined.");
 
@@ -79,12 +80,12 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet()
     itsAttr[HEIGHT] = Attributes::makeReal(
             "HEIGHT",
             "Full height of the magnet. Particles moving more than height/2. "
-            "off the midplane (either above or below) are out of the aperture [m].");
+            "off the midplane (either above or below) are out of the aperture [m].", 1);
 
     itsAttr[AZIMUTHAL_EXTENT] = Attributes::makeReal(
             "AZIMUTHAL_EXTENT",
             "The field will be assumed zero if particles have S more than AZIMUTHAL_EXTENT "
-            "from the magnet centre. Default is CENTRE_LENGTH/2.+5.*END_LENGTH [m].");
+            "from the magnet centre. Default is CENTRE_LENGTH/2.+5.*FRINGE_LENGTH [m].");
 
     registerOwnership();
 
@@ -109,7 +110,7 @@ OpalScalingFFAMagnet* OpalScalingFFAMagnet::clone(const std::string& name) {
 void OpalScalingFFAMagnet::setupDefaultEndField() {
     ScalingFFAMagnet* magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
     // get centre length and end length in metres
-    double end_length    = Attributes::getReal(itsAttr[END_LENGTH]);
+    double end_length    = Attributes::getReal(itsAttr[FRINGE_LENGTH]);
     double x0 = Attributes::getReal(itsAttr[LENGTH]) / 2.;
     auto endField = std::make_shared<endfieldmodel::Tanh>();
     endField->setLambda(end_length);
@@ -153,16 +154,7 @@ void OpalScalingFFAMagnet::update() {
     magnet->setMaxOrder(maxOrder);
 
     // get rmin and rmax bounding box edge
-    if (!itsAttr[RADIAL_NEG_EXTENT]) {
-        throw OpalException(
-                "OpalScalingFFAMagnet::update()", "RADIAL_NEG_EXTENT needs to be defined");
-    }
     double rmin = r0Abs - Attributes::getReal(itsAttr[RADIAL_NEG_EXTENT]);
-
-    if (!itsAttr[RADIAL_POS_EXTENT]) {
-        throw OpalException(
-                "OpalScalingFFAMagnet::update()", "RADIAL_POS_EXTENT needs to be defined");
-    }
     double rmax = r0Abs + Attributes::getReal(itsAttr[RADIAL_POS_EXTENT]);
     magnet->setRMin(rmin);
     magnet->setRMax(rmax);
@@ -178,7 +170,7 @@ void OpalScalingFFAMagnet::update() {
         }
         magnet->setAzimuthalExtent(Attributes::getReal(itsAttr[AZIMUTHAL_EXTENT]) / r0Abs);
     } else {
-        magnet->setAzimuthalExtent(-1);  // flag for setupEndField
+        magnet->setAzimuthalExtent(-1);  // leave it for setupEndField
     }
     if (itsAttr[END_FIELD_MODEL]) {
         setupNamedEndField();

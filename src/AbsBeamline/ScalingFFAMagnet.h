@@ -101,6 +101,9 @@ public:
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
+    bool applyToReferenceParticle(
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override {apply(R, P, t, E, B); return false;}
     /** Calculate the field for particles in the container
      *
      *  \param pc the set of particles for which the field is calculated
@@ -158,7 +161,7 @@ public:
      *  coordinates. If r0 is negative a bend to the right is described i.e.
      *  clockwise coordinates.
      */
-    void getCylindricalCoordinates(const Vector_t<double, 3>& R, Vector_t<double, 5>& Rcyl);
+    void getCylindricalCoordinates(const Vector_t<double, 3>& R, Vector_t<double, 5>& Rcyl) const;
 
     /** Transform to cartesian coordinates
      *
@@ -335,6 +338,8 @@ public:
     ElementType getType() const { return ElementType::SCALINGFFAMAGNET; }
 
     std::vector<std::vector<double> >  getDfCoefficients() const;
+
+    bool isInside(const Vector_t<double, 3>& r) const;
 
 private:
     /** Calculate the df coefficients, ready for field generation

@@ -24,13 +24,13 @@ TEST(TestOpalTanh, TestSetup) {
     // Make the UI
     OpalTanh ui;
     // Set the attributes
-    Attributes::setReal(ui.itsAttr[OpalTanh::X0], 4);
-    Attributes::setReal(ui.itsAttr[OpalTanh::LAMBDA], 2);
+    Attributes::setReal(ui.itsAttr[OpalTanh::LENGTH], 4);
+    Attributes::setReal(ui.itsAttr[OpalTanh::FRINGE_LENGTH], 2);
     ui.update();
     auto efmMan = endfieldmodel::EndFieldModelManager::getEFMManager();
     EXPECT_NO_THROW(efmMan->getEndFieldModel("TANH"));
     auto efm = efmMan->getEndFieldModel("TANH");
-    EXPECT_EQ(efm->getCentreLength(), 8.0);
+    EXPECT_EQ(efm->getCentreLength(), 4.0);
     EXPECT_EQ(efm->getEndLength(), 2.0);
 }
 

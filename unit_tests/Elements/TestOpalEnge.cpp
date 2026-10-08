@@ -41,15 +41,15 @@ TEST_F(TestOpalEnge, TestSetup) {
     // Make the UI
     OpalEnge ui;
     // Set the attributes
-    Attributes::setReal(ui.itsAttr[OpalEnge::X0], 4);
-    Attributes::setReal(ui.itsAttr[OpalEnge::LAMBDA], 2);
+    Attributes::setReal(ui.itsAttr[OpalEnge::LENGTH], 4);
+    Attributes::setReal(ui.itsAttr[OpalEnge::FRINGE_LENGTH], 2);
     Attributes::setRealArray(ui.itsAttr[OpalEnge::COEFFICIENTS], {0.0, 1.0, 2.0});
     ui.update();
     auto efmMan = endfieldmodel::EndFieldModelManager::getEFMManager();
     EXPECT_NO_THROW(efmMan->getEndFieldModel("ENGE"));
     auto efm = efmMan->getEndFieldModel("ENGE");
     auto enge = std::dynamic_pointer_cast<endfieldmodel::Enge, endfieldmodel::EndFieldModel>(efm);
-    EXPECT_EQ(efm->getCentreLength(), 8.0);
+    EXPECT_EQ(efm->getCentreLength(), 4.0);
     EXPECT_EQ(efm->getEndLength(), 2.0);
     EXPECT_EQ(enge->getCoefficients(), std::vector<double>({0.0, 1.0, 2.0}));
 }

@@ -41,12 +41,12 @@ TEST_F(TestOpalAsymmetricEnge, TestSetup) {
     // Make the UI
     OpalAsymmetricEnge ui;
     // Set the attributes
-    Attributes::setReal(ui.itsAttr[OpalAsymmetricEnge::X0_START], 7);
-    Attributes::setReal(ui.itsAttr[OpalAsymmetricEnge::LAMBDA_START], 8);
-    Attributes::setRealArray(ui.itsAttr[OpalAsymmetricEnge::COEFFICIENTS_START], {101.0, 3.0, 4.0});
-    Attributes::setReal(ui.itsAttr[OpalAsymmetricEnge::X0_END], 9);
-    Attributes::setReal(ui.itsAttr[OpalAsymmetricEnge::LAMBDA_END], 11);
-    Attributes::setRealArray(ui.itsAttr[OpalAsymmetricEnge::COEFFICIENTS_END], {12.0, 17.0, 21.0});
+    Attributes::setReal(ui.itsAttr[OpalAsymmetricEnge::START_HALF_LENGTH], 7);
+    Attributes::setReal(ui.itsAttr[OpalAsymmetricEnge::START_FRINGE_LENGTH], 8);
+    Attributes::setRealArray(ui.itsAttr[OpalAsymmetricEnge::START_COEFFICIENTS], {101.0, 3.0, 4.0});
+    Attributes::setReal(ui.itsAttr[OpalAsymmetricEnge::END_HALF_LENGTH], 9);
+    Attributes::setReal(ui.itsAttr[OpalAsymmetricEnge::END_FRINGE_LENGTH], 11);
+    Attributes::setRealArray(ui.itsAttr[OpalAsymmetricEnge::END_COEFFICIENTS], {12.0, 17.0, 21.0});
     ui.update();
     auto efmMan = endfieldmodel::EndFieldModelManager::getEFMManager();
     EXPECT_NO_THROW(efmMan->getEndFieldModel("ASYMMETRIC_ENGE"));

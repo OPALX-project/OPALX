@@ -59,7 +59,7 @@ void ScalingFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
 }
 
 void ScalingFFAMagnet::getCylindricalCoordinates(
-        const Vector_t<double, 3>& R, Vector_t<double, 5>& Rcyl) {
+        const Vector_t<double, 3>& R, Vector_t<double, 5>& Rcyl) const {
     getCylindricalCoordinates(config_m, R, Rcyl);
 }
 
@@ -119,6 +119,25 @@ void ScalingFFAMagnet::accept(BeamlineVisitor& visitor) const {
     visitor.visitScalingFFAMagnet(*this);
     setupEndField();
 }
+
+bool ScalingFFAMagnet::isInside(const Vector_t<double, 3>& rCart) const {
+    Vector_t<double, 5> rCyl;
+    getCylindricalCoordinates(rCart, rCyl);
+    double r          = rCyl[0];
+    double z          = rCyl[1];
+    double phiSpiral  = rCyl[4];
+    if (r < config_m.rMin_m || r > config_m.rMax_m) {
+        return false;
+    }
+    if (phiSpiral < -config_m.azimuthalExtent_m || phiSpiral > config_m.azimuthalExtent_m) {
+        return false;
+    }
+    if (z < -config_m.verticalExtent_m || z > config_m.verticalExtent_m) {
+        return false;
+    }
+    return true;
+}
+
 
 void ScalingFFAMagnet::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,

@@ -10,8 +10,8 @@ class OpalTanh : public OpalElement {
 public:
     /** enum maps string to integer value for UI definitions */
     enum {
-        X0 = COMMON,
-        LAMBDA,
+        LENGTH = COMMON,
+        FRINGE_LENGTH,
         SIZE  // size of the enum
     };
 
