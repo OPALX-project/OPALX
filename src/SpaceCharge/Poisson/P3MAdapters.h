@@ -45,7 +45,14 @@ namespace opalx::spacecharge {
 
     protected:
         void solveImpl(const PoissonSolveRequest& request) override {
+            // Separate the long-range truncated-Green solve from the shifted image solve; both
+            // include any Green's function rebuild they trigger.
+            static IpplTimings::TimerRef meshTimer  = IpplTimings::getTimer("P3M: mesh solve");
+            static IpplTimings::TimerRef imageTimer = IpplTimings::getTimer("P3M: image solve");
+            const auto timer = request.hasShiftedGreenFunction() ? imageTimer : meshTimer;
+            IpplTimings::startTimer(timer);
             kernelRestore_m.solve(*backend_m, request);
+            IpplTimings::stopTimer(timer);
         }
         void rebuildImpl(PoissonFieldBinding fields) override {
             auto& backend          = backend_m.emplace();
