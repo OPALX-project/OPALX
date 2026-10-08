@@ -148,7 +148,8 @@ namespace opalx::spacecharge {
     }  // namespace
 
     PoissonSolverConfig makePoissonSolverConfig(const CartesianPIC3DConfig& config) {
-        return {config.backend, config.greenFunction, config.p3mCutoff, config.boundaryConditions};
+        return {config.backend, config.greenFunction, config.p3mCutoff, config.boundaryConditions,
+                config.p3mCutoffCells};
     }
 
     void validatePoissonSolverConfig(const PoissonSolverConfig& config) {
@@ -197,12 +198,16 @@ namespace opalx::spacecharge {
             && config.greenFunction != GreenFunctionType::Integrated) {
             throw OpalException("validateSpaceChargeConfig", "Unknown open Green function.");
         }
-        if (!std::isfinite(config.p3mCutoff)
-            || (config.type == PoissonSolverType::P3M ? config.p3mCutoff <= 0.0
-                                                      : config.p3mCutoff != 0.0)) {
+        const bool fixedCutoff = config.p3mCutoff != 0.0;
+        const bool meshCutoff  = config.p3mCutoffCells != 0.0;
+        if (!std::isfinite(config.p3mCutoff) || !std::isfinite(config.p3mCutoffCells)
+            || config.p3mCutoff < 0.0 || config.p3mCutoffCells < 0.0
+            || (config.type == PoissonSolverType::P3M ? fixedCutoff == meshCutoff
+                                                      : fixedCutoff || meshCutoff)) {
             throw OpalException(
                     "validateSpaceChargeConfig",
-                    "P3M requires a finite positive cutoff; other backends require no cutoff.");
+                    "P3M requires exactly one finite positive cutoff, RCUT in metres or "
+                    "RCUT_CELLS in mesh spacings; other backends require neither.");
         }
     }
 
@@ -238,8 +243,9 @@ namespace opalx::spacecharge {
                                     return boundary == FieldBoundaryCondition::Periodic;
                                 });
                         if (selected.backend == PoissonSolverType::P3M) {
-                            domain.layoutType    = ParticleLayoutType::SpatialOverlap;
-                            domain.overlapCutoff = selected.p3mCutoff;
+                            domain.layoutType         = ParticleLayoutType::SpatialOverlap;
+                            domain.overlapCutoff      = selected.p3mCutoff;
+                            domain.overlapCutoffCells = selected.p3mCutoffCells;
                         }
                     }
                 },

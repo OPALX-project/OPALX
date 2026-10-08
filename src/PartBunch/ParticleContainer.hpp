@@ -273,6 +273,15 @@ public:
         }
     }
 
+    /**
+     * @brief Update the overlap layout and its P3M cutoff together.
+     * @param overlapCutoff Cutoff in metres, checked against the new rank regions; it takes
+     * effect at the next update().
+     */
+    void updateLayout(FieldLayout_t<Dim>& FL, Mesh_t<Dim>& mesh, T overlapCutoff) {
+        getP3MLayout().updateLayout(FL, mesh, overlapCutoff);
+    }
+
     void update() {
         if (overlapLayout_m) {
             overlapLayout_m->update(*this);

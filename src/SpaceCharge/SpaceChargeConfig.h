@@ -33,6 +33,8 @@ namespace opalx::spacecharge {
         std::array<FieldBoundaryCondition, 3> boundaryConditions{
                 FieldBoundaryCondition::Open, FieldBoundaryCondition::Open,
                 FieldBoundaryCondition::Open};
+        /** @brief P3M cutoff in largest mesh spacings; exclusive with a nonzero p3mCutoff. */
+        double p3mCutoffCells = 0.0;
     };
 
     /** @brief Cartesian mesh extents, MPI decomposition, and particle-bound margin. */
@@ -79,7 +81,12 @@ namespace opalx::spacecharge {
                 FieldBoundaryCondition::Open, FieldBoundaryCondition::Open,
                 FieldBoundaryCondition::Open};
         GreenFunctionType greenFunction = GreenFunctionType::Integrated;
-        double p3mCutoff                = 0.0;  ///< P3M cutoff radius in metres.
+        double p3mCutoff                = 0.0;  ///< Fixed P3M cutoff radius in metres.
+        /**
+         * @brief P3M cutoff in units of the largest mesh spacing, re-evaluated at every mesh
+         * update; exclusive with a nonzero p3mCutoff.
+         */
+        double p3mCutoffCells = 0.0;
         std::optional<BinningConfig> binning;
         std::size_t repartitionFrequency = 0;  ///< Steps between ORB checks; zero disables them.
         /** @brief Per-rank count deviation, divided by global count, that triggers ORB. */

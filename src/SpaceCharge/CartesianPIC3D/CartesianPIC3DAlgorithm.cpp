@@ -70,7 +70,7 @@ namespace opalx::spacecharge {
         poissonSolver_m = makePoissonSolver(
                 makePoissonSolverConfig(config_m), makePoissonFieldBinding(*fieldStorage_m));
         if (config_m.backend == PoissonSolverType::P3M) {
-            shortRangeInteraction_m.emplace(config.p3mCutoff);
+            shortRangeInteraction_m.emplace();
         }
         // Plan the backend now; runtime diagnostic numbering begins with the first physical solve.
         poissonSolver_m->warmup();
@@ -338,6 +338,10 @@ namespace opalx::spacecharge {
         stretchedSpacing[2] *= gamma;
 
         PoissonSolveRequest poissonRequest;
+        if (primary_m->hasP3MLayout()) {
+            // The mesh split follows the cutoff the domain updater gave the overlap layout.
+            poissonRequest.p3mCutoff = primary_m->getP3MLayout().getCutoff();
+        }
         if (policy.shiftedGreen) {
             const auto origin = mesh.getOrigin();
             const int longitudinalExtent =
@@ -362,6 +366,9 @@ namespace opalx::spacecharge {
           << ", suppressFieldDump=" << (policy.suppressFieldDump ? 1 : 0);
         if (poissonRequest.hasShiftedGreenFunction()) {
             m << ", plane=" << planeZ << ", shift_z=" << (*poissonRequest.greenFunctionShift)[2];
+        }
+        if (poissonRequest.p3mCutoff.has_value()) {
+            m << ", rcut=" << *poissonRequest.p3mCutoff;
         }
         m << endl;
 

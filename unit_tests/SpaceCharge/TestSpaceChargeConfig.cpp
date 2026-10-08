@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 #include <limits>
+#include <memory>
+#include <utility>
 
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
@@ -52,6 +54,36 @@ namespace opalx::spacecharge {
             SpaceChargeConfig periodic = p3mConfig(FieldBoundaryCondition::Periodic);
             validateSpaceChargeConfig(periodic);
             EXPECT_TRUE(makeCartesianDomainConfig(periodic).periodicParticleBoundary);
+        }
+
+        TEST(SpaceChargeConfigTest, ValidatesP3MCutoffModes) {
+            auto config           = p3mConfig(FieldBoundaryCondition::Open);
+            config.p3mCutoff      = 0.0;
+            config.p3mCutoffCells = 2.0;
+            EXPECT_NO_THROW(validateSpaceChargeConfig(SpaceChargeConfig(config)));
+            const CartesianDomainConfig3D domain = makeCartesianDomainConfig(config);
+            EXPECT_DOUBLE_EQ(domain.overlapCutoff, 0.0);
+            EXPECT_DOUBLE_EQ(domain.overlapCutoffCells, 2.0);
+            EXPECT_DOUBLE_EQ(makePoissonSolverConfig(config).p3mCutoffCells, 2.0);
+
+            for (const auto& [cutoff, cells] :
+                 {std::pair{0.025, 2.0}, std::pair{0.0, -1.0},
+                  std::pair{0.0, std::numeric_limits<double>::infinity()}}) {
+                config.p3mCutoff      = cutoff;
+                config.p3mCutoffCells = cells;
+                EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(config)), OpalException);
+            }
+            config.backend        = PoissonSolverType::Open;
+            config.p3mCutoff      = 0.0;
+            config.p3mCutoffCells = 2.0;
+            EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(config)), OpalException);
+
+            // The mesh-tied cutoff is the multiple of the largest spacing.
+            EXPECT_DOUBLE_EQ(
+                    resolveOverlapCutoff<3>(0.0, 2.0, std::array<double, 3>{0.1, 0.4, 0.2}), 0.8);
+            EXPECT_DOUBLE_EQ(
+                    resolveOverlapCutoff<3>(0.025, 0.0, std::array<double, 3>{0.1, 0.4, 0.2}),
+                    0.025);
         }
 
         TEST(SpaceChargeConfigTest, RejectsInvalidP3MCombinations) {

@@ -175,7 +175,7 @@ namespace opalx::spacecharge {
             particles.E = Vector_t<double, 3>(0.0);
             particles.update();
 
-            P3MShortRangeInteraction interaction(setup.overlapCutoff);
+            P3MShortRangeInteraction interaction;
             interaction.apply(particles);
             const auto electric =
                     Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), particles.E.getView());

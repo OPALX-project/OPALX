@@ -27,6 +27,8 @@ namespace opalx::spacecharge {
     struct PoissonSolveRequest {
         /** @brief Green-function displacement in metres in the current mesh axes. */
         std::optional<ippl::Vector<double, 3>> greenFunctionShift;
+        /** @brief P3M cutoff in metres for this solve; absent keeps the current split. */
+        std::optional<double> p3mCutoff;
 
         [[nodiscard]] bool hasShiftedGreenFunction() const {
             return greenFunctionShift.has_value();
