@@ -40,6 +40,7 @@ enum class ElementType : unsigned short {
     ANY,
     BEAMLINE,
     BEAMBEAM,
+    BOX,
     COLLIMATOR,
     DRIFT,
     FIELDMAP,

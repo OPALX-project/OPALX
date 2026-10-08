@@ -51,6 +51,9 @@ public:
     /// Apply the algorithm to a constant E-field cavity element.
     void visitConstantEFieldCavity(const ConstantEFieldCavity&) override;
 
+    /// Apply the algorithm to a box absorber.
+    void visitBox(const Box&) override;
+
     /// Apply the algorithm to a collimator.
     void visitCollimator(const Collimator&) override;
 

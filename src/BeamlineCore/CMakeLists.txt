@@ -1,5 +1,6 @@
 set (_SRCS
     BeamBeamRep.cpp
+    BoxRep.cpp
     CollimatorRep.cpp
     ConstantEFieldCavityRep.cpp
     ConstantFocusingRep.cpp
@@ -19,6 +20,7 @@ set (_SRCS
 
 set (HDRS
     BeamBeamRep.h
+    BoxRep.h
     CollimatorRep.h
     ConstantEFieldCavityRep.h
     ConstantFocusingRep.h

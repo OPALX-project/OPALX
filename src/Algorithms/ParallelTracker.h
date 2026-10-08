@@ -46,6 +46,7 @@
 #include "Algorithms/OrbitThreader.h"
 
 #include "AbsBeamline/BeamBeam.h"
+#include "AbsBeamline/Box.h"
 #include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/ConstantFocusing.h"
@@ -264,6 +265,9 @@ public:
 
     /// @brief Apply the algorithm to a constant linear focusing element.
     void visitConstantFocusing(const ConstantFocusing&) override;
+    /// @brief Apply the algorithm to a box absorber.
+    void visitBox(const Box&) override;
+
     /// @brief Apply the algorithm to a collimator.
     void visitCollimator(const Collimator&) override;
 
@@ -507,6 +511,10 @@ inline void ParallelTracker::visitConstantEFieldCavity(const ConstantEFieldCavit
 
 inline void ParallelTracker::visitConstantFocusing(const ConstantFocusing& focusing) {
     itsOpalBeamline_m.visit(focusing, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitBox(const Box& box) {
+    itsOpalBeamline_m.visit(box, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitCollimator(const Collimator& coll) {

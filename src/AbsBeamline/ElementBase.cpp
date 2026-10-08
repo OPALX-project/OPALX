@@ -43,6 +43,7 @@ const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
         {ElementType::CYCLOTRONSECTOR, "CyclotronSector"},
         {ElementType::BEAMLINE, "Beamline"},
         {ElementType::BEAMBEAM, "BeamBeam"},
+        {ElementType::BOX, "Box"},
         {ElementType::COLLIMATOR, "Collimator"},
         {ElementType::DRIFT, "Drift"},
         {ElementType::FIELDMAP, "Fieldmap"},
