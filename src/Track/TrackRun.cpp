@@ -16,6 +16,8 @@
 //
 #include "Track/TrackRun.h"
 
+#include "AbsBeamline/RFCavity.h"
+#include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/ParallelTracker.h"
 
 #include "AbstractObjects/BeamSequence.h"
@@ -65,6 +67,11 @@
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPT.h"
 
+#include "SpaceCharge/SpaceChargeConfig.h"
+#include "SpaceCharge/SpaceChargeConfigBuilder.h"
+#include "SpaceCharge/SpaceChargeFactory.h"
+#include "SpaceCharge/SpaceChargeSolver.h"
+
 #include "BuildInfo.h"
 #include "Utility/Inform.h"
 #include "changes.h"
@@ -78,6 +85,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
+#include <limits>
 #include <memory>
 #include <vector>
 
@@ -167,6 +175,11 @@ namespace TRACKRUN {
         FIELDSOLVER,       // The field solver attached
         BOUNDARYGEOMETRY,  // The boundary geometry
         TRACKBACK,         // In case we run the beam backwards
+        SPECTRALTUNES,     // Independent serial two-ray diagnostic.
+        TUNESAMPLE,        // Fixed sampling stride.
+        TUNEINTEGRATOR,    // Integrator shared with map rays, without map building.
+        TUNESECTOR,        // Launch chart (centre and radial entrance plane).
+        SCFIELDUPDATE,     // Time within a drift-kick-drift step at which self-fields are solved.
         SIZE
     };
 }  // namespace TRACKRUN
@@ -181,6 +194,8 @@ TrackRun::TrackRun()
     : Action(TRACKRUN::SIZE, "RUN",
              "The \"RUN\" sub-command tracks the defined particles through "
              "the given lattice."),
+      bunch_m(nullptr),
+      spaceChargeSolver_m(nullptr),
       itsTracker_m(nullptr),
       fs_m(nullptr),
       ds_m(nullptr),
@@ -192,9 +207,27 @@ TrackRun::TrackRun()
 
     itsAttr[TRACKRUN::TURNS] = Attributes::makeReal(
             "TURNS",
-            "Number of turns to be tracked; Number of neighboring bunches to be tracked in "
-            "cyclotron.",
+            "Optional directed-return limit for RING tracking. When omitted, TRACK uses its "
+            "ZSTOP/MAXSTEPS schedule. Explicit values must be positive integers and use "
+            "ordinary device Boris/PIC transport; supported bare analytic rings use synchronized "
+            "boundary steps. In "
+            "SPECTRALTUNES mode, TURNS is the nominal analysis interval and defaults to 1.",
             1.0);
+    itsAttr[TRACKRUN::SPECTRALTUNES] = Attributes::makeBool(
+            "SPECTRALTUNES",
+            "Run serial two-ray coasting Lomb tune analysis instead of bunch tracking.", false);
+    itsAttr[TRACKRUN::TUNESAMPLE] =
+            Attributes::makeReal("TUNESAMPLE", "Sample every N tune steps.", 50);
+    itsAttr[TRACKRUN::TUNEINTEGRATOR] = Attributes::makePredefinedString(
+            "TUNEINTEGRATOR", "External-field integrator for spectral rays only.",
+            {"BORIS", "LF2", "RK4", "DOP853"}, "RK4");
+    itsAttr[TRACKRUN::TUNESECTOR] = Attributes::makeString(
+            "TUNESECTOR", "Sector defining tune launch plane and centre.", "SM0");
+    itsAttr[TRACKRUN::SCFIELDUPDATE] = Attributes::makePredefinedString(
+            "SCFIELDUPDATE",
+            "Space-charge field evaluation point: MIDPOINT uses positions after the first half "
+            "drift; PRESTEP reproduces historical OPAL by solving before that drift.",
+            {"MIDPOINT", "PRESTEP"}, "MIDPOINT");
 
     itsAttr[TRACKRUN::FIELDSOLVER] =
             Attributes::makeString("FIELDSOLVER", "Field solver to be used.");
@@ -211,6 +244,8 @@ TrackRun::TrackRun()
 
 TrackRun::TrackRun(const std::string& name, TrackRun* parent)
     : Action(name, parent),
+      bunch_m(nullptr),
+      spaceChargeSolver_m(nullptr),
       itsTracker_m(nullptr),
       fs_m(nullptr),
       ds_m(nullptr),
@@ -237,11 +272,17 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
     }
 }
 
-TrackRun::~TrackRun() {}
+TrackRun::~TrackRun() {
+    // Solvers borrow particle containers and must be destroyed before their owner.
+    itsTracker_m.reset();
+    spaceChargeSolver_m.reset();
+    bunch_m.reset();
+}
 
 TrackRun* TrackRun::clone(const std::string& name) { return new TrackRun(name, this); }
 
 void TrackRun::execute() {
+    OpalData::getInstance()->hasTrackingRun = true;
     const int currentVersion = ((buildinfo::version_major * 100) + buildinfo::version_minor) * 100;
 
     if (Options::version < currentVersion) {
@@ -392,6 +433,36 @@ void TrackRun::execute() {
         }
     }
 
+    // Parser-owned commands are consumed once. Runtime solver objects retain only this
+    // immutable snapshot and never borrow FieldSolverCmd or EmissionSource objects.
+    auto spaceChargeConfig =
+            opalx::spacecharge::buildSpaceChargeConfig(*fs_m, emissionSourcesLists);
+    opalx::spacecharge::DirichletPlaneConfig dirichletPlane;
+    bool retrySafeBareTracking = false;
+    if (const auto* cartesian =
+                std::get_if<opalx::spacecharge::CartesianPIC3DConfig>(&spaceChargeConfig)) {
+        dirichletPlane = cartesian->dirichletPlane;
+        // Boundary retries belong to the bare analytic-ring benchmark. A
+        // diagnostic particle selection must never impose retries of the
+        // collective PIC solve. Keep non-NONE backends on the ordinary path.
+        // Even NONE may traverse the binning adapter, so exclude stateful
+        // binning/diagnostics and repartitioning from retry eligibility.
+        const auto& bin          = cartesian->binning;
+        const bool retrySafeBins = !bin
+                                   || (!bin->adaptive && bin->maximumBins == 1
+                                       && (bin->dumpFile.empty() || bin->dumpFrequency == 0)
+                                       && bin->tablePrintFrequency == 0);
+        retrySafeBareTracking = retrySafeBins && cartesian->repartitionFrequency == 0
+                                && cartesian->backend == opalx::spacecharge::PoissonSolverType::None
+                                && !dirichletPlane.enabled();
+#ifdef OPALX_FIELD_DEBUG
+        // Unbinned backend field dumps are numbered by attempted solve.
+        if (!bin) retrySafeBareTracking = false;
+#endif
+    }
+    const auto cartesianDomainConfig =
+            opalx::spacecharge::makeCartesianDomainConfig(spaceChargeConfig);
+
     /*
     Need the following units for mass and charge:
     - Charge per macro particle in [C], this should be macrocharge_m or q_m in the bunch.
@@ -409,7 +480,7 @@ void TrackRun::execute() {
         totalParticlesPerBeam[i] = computeTotalAllocationForBunch(b, emissionSourcesLists[i]);
     }
 
-    // Create PartBunch (PIC Manager) with multiple particle containers
+    // Create PartBunch with multiple particle containers.
     bunch_m = std::make_unique<bunch_type>(
             macrocharges,                     // Macro charge [C]
             macromasses,                      // Macro Mass [GeV]
@@ -417,8 +488,7 @@ void TrackRun::execute() {
             totalParticlesPerBeam,            // Per-beam particle counts for allocation
             Options::loadBalancingThreshold,  // Load balancing threshold
             "LF2",                            // Integrator
-            fs_m,                             // Fieldsolver
-            ds_m);                            // Data sink
+            cartesianDomainConfig);           // Cartesian domain and particle-layout setup
 
     // Validate container setup produced by constructor
     const auto& particleContainers = bunch_m->getParticleContainers();
@@ -432,7 +502,7 @@ void TrackRun::execute() {
     wireDaughterContainers(beams);
 
     // BC handler
-    *gmsg << level2 << *(bunch_m->getBCHandler()) << endl;
+    *gmsg << level2 << fs_m->constructBCHandler() << endl;
 
     setupBoundaryGeometry();
 
@@ -481,16 +551,16 @@ void TrackRun::execute() {
                     emissionSourcesLists[i], beams[i], emittingSamplersList[i], i);
         }
     }
-    configureImageChargeFromSources(emissionSourcesLists);
+    spaceChargeSolver_m =
+            opalx::spacecharge::makeSpaceChargeSolver(std::move(spaceChargeConfig), *bunch_m, ds_m);
 
     if (!isRestart) {
-        // Reset the field solver with correct hr_m based on the distribution.
+        // Refresh the initial particle statistics after distribution setup.
         bunch_m->setCharge();
         bunch_m->setMass();
     }
 
-    // Calculate extents and update moments for each container
-    bunch_m->bunchUpdate();
+    bunch_m->updateAllParticleMoments();
     bunch_m->print(*gmsg);
 
     // Set ZStart, ZStop, and dT
@@ -516,13 +586,153 @@ void TrackRun::execute() {
        findPhasesForMaxEnergy();
 
     */
+    Track::block->use->prepareForTracking();
+
+    // Solver configuration now belongs to RUN, not PartBunch. Preserve the
+    // SINGLEGAP restriction here, including gaps inside nested beamlines.
+    if (fs_m->getType() != "NONE") {
+        struct GapValidator : DefaultVisitor {
+            using DefaultVisitor::DefaultVisitor;
+            void visitRFCavity(const RFCavity& cavity) override {
+                if (cavity.isCyclotronGap())
+                    throw OpalException(
+                            "TrackRun::execute", "SINGLEGAP requires TYPE=NONE field solver.");
+            }
+        } validator(*Track::block->use->fetchLine(), false, false);
+        validator.execute();
+    }
+
+    auto maxSteps = Track::block->localTimeSteps;
+    auto sStop    = Track::block->zstop;
+    const bool isRing =
+            Track::block->use->fetchLine()->getBeamlineTopology() == BeamlineTopology::RING;
+    const double ringPeriod = isRing ? Track::block->use->getLength() : 0.0;
+    if (isRing && (!(ringPeriod > 0.0) || !std::isfinite(ringPeriod))) {
+        throw OpalException("TrackRun::execute", "A RING requires a positive circumference.");
+    }
+    unsigned long long directedTurns = 0;
+    const double kineticStop         = Track::block->kineticEnergyStopGeV;
+    if (kineticStop > 0) {
+        if (!isRing || isRestart || !itsAttr[TRACKRUN::TURNS].defaultUsed()
+            || Track::block->dT.size() != 1 || maxSteps.size() != 1 || sStop.size() != 1
+            || !(Track::block->dT.front() > 0))
+            throw OpalException(
+                    "TrackRun::execute",
+                    "EKINSTOP requires a non-restarted RING, one positive DT segment and no "
+                    "explicit TURNS.");
+        sStop.front() = std::numeric_limits<double>::max();
+    }
+    if (!itsAttr[TRACKRUN::TURNS].defaultUsed() && isRing
+        && !Attributes::getBool(itsAttr[TRACKRUN::SPECTRALTUNES])) {
+        const double requestedTurns = Attributes::getReal(itsAttr[TRACKRUN::TURNS]);
+        const double roundedTurns   = std::round(requestedTurns);
+        if (!std::isfinite(requestedTurns)
+            || requestedTurns >= static_cast<double>(std::numeric_limits<unsigned long long>::max())
+            || requestedTurns < 1.0 || std::abs(requestedTurns - roundedTurns) > 1.0e-12) {
+            throw OpalException(
+                    "TrackRun::execute", "TURNS must be a positive integer for a RING.");
+        }
+        if (Track::block->dT.size() != 1 || maxSteps.size() != 1 || sStop.size() != 1) {
+            throw OpalException(
+                    "TrackRun::execute",
+                    "RING tracking with explicit TURNS currently requires one DT/MAXSTEPS/ZSTOP "
+                    "segment.");
+        }
+
+        const auto turns = static_cast<unsigned long long>(roundedTurns);
+        if (beams.size() != 1)
+            throw OpalException("TrackRun::execute", "Localized TURNS requires one beam.");
+        if (isRestart) {
+            throw OpalException(
+                    "TrackRun::execute",
+                    "Explicit RING TURNS restart requires persisted return-plane counters and is "
+                    "not supported yet.");
+        }
+        directedTurns                = turns;
+        const double beta            = Track::block->reference.getBeta();
+        const double distancePerStep = Physics::c * std::abs(Track::block->dT.front()) * beta;
+        if (!(distancePerStep > 0.0)) {
+            throw OpalException(
+                    "TrackRun::execute",
+                    "A RING tracked with TURNS requires positive circumference, DT, and "
+                    "reference velocity.");
+        }
+
+        const double pathLength     = roundedTurns * ringPeriod;
+        const double estimatedSteps = std::ceil(pathLength / distancePerStep);
+        const double safetySteps    = 2.0 * estimatedSteps + 100.0;
+        if (!std::isfinite(safetySteps)
+            || safetySteps >= static_cast<double>(std::numeric_limits<unsigned long long>::max())) {
+            throw OpalException("TrackRun::execute", "RING TURNS step budget overflows.");
+        }
+
+        sStop.front()    = std::numeric_limits<double>::max();
+        maxSteps.front() = std::max(maxSteps.front(), static_cast<unsigned long long>(safetySteps));
+        *gmsg << level1 << "* RING " << Track::block->use->getOpalName() << ": tracking " << turns
+              << " directed turns; nominal circumference for step-budget estimate = " << ringPeriod
+              << " m." << endl;
+    }
+
     itsTracker_m = std::make_unique<ParallelTracker>(
-            *Track::block->use->fetchLine(), *bunch_m, ds_m, false, Track::block->localTimeSteps,
-            Track::block->zstart, Track::block->zstop, Track::block->dT, emittingSamplersList,
+            *Track::block->use->fetchLine(), *bunch_m, *spaceChargeSolver_m, dirichletPlane, ds_m,
+            false, maxSteps, Track::block->zstart, sStop, Track::block->dT, emittingSamplersList,
             isRestart, static_cast<unsigned long long>(restartMetadata.globalTrackStep),
             restartMetadata.dt,
             StepSizeConfig::ResumePosition{
-                    restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment});
+                    restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment},
+            ringPeriod);
+    if (Track::block->initialOrbit) {
+        if (beams.size() != 1 || isRestart || Attributes::getBool(itsAttr[TRACKRUN::SPECTRALTUNES]))
+            throw OpalException(
+                    "INITIALORBIT", "Requires one fresh beam and ordinary particle tracking.");
+        Track::block->initialOrbit->validate(
+                Track::block->use->getOpalName(), beams.front()->getParticleName(),
+                beams.front()->getReference());
+        for (const auto& samplers : emittingSamplersList)
+            for (const auto& sampler : samplers)
+                if (!sampler->isEmissionDone(Track::block->initialOrbit->time))
+                    throw OpalException("INITIALORBIT", "Ongoing emission is not supported.");
+        static_cast<ParallelTracker*>(itsTracker_m.get())
+                ->setInitialOrbit(*Track::block->initialOrbit);
+    }
+    // Other solver configurations retain the ordinary unsplit integration sequence.
+    static_cast<ParallelTracker*>(itsTracker_m.get())->bareTracking_m = fs_m->getType() == "NONE";
+    static_cast<ParallelTracker*>(itsTracker_m.get())->allowBoundaryControl_m =
+            retrySafeBareTracking;
+    static_cast<ParallelTracker*>(itsTracker_m.get())->setRequestedTurns(directedTurns);
+    static_cast<ParallelTracker*>(itsTracker_m.get())->setKineticEnergyStop(kineticStop * 1e9);
+    static_cast<ParallelTracker*>(itsTracker_m.get())
+            ->setSpaceChargeFieldUpdate(
+                    Attributes::getString(itsAttr[TRACKRUN::SCFIELDUPDATE]) == "PRESTEP"
+                            ? ParallelTracker::SpaceChargeFieldUpdate::PRESTEP
+                            : ParallelTracker::SpaceChargeFieldUpdate::MIDPOINT);
+    if (Attributes::getBool(itsAttr[TRACKRUN::SPECTRALTUNES])) {
+        const double turns  = Attributes::getReal(itsAttr[TRACKRUN::TURNS]);
+        const double sample = Attributes::getReal(itsAttr[TRACKRUN::TUNESAMPLE]);
+        const auto initial  = beams.front()->getTuneInitial();
+        if (!isRing || isRestart || kineticStop > 0 || beams.size() != 1
+            || fs_m->getType() != "NONE" || beams.front()->getParticleName() != "PROTON"
+            || Track::block->dT.size() != 1 || initial.empty() || initial.size() % 3
+            || !(turns >= 1 && turns <= 100000 && turns == std::floor(turns))
+            || !(sample >= 1 && sample <= 100000 && sample == std::floor(sample))
+            || Track::block->stepsPerTurn <= 0 || !(Track::block->dT.front() > 0)
+            || !beams.front()->getGlobalProcessNames().empty())
+            throw OpalException(
+                    "TrackRun",
+                    "SPECTRALTUNES requires non-restarted proton RING, one beam/DT, "
+                    "FIELDSOLVER=NONE, TUNEINITIAL triples and positive integer TURNS/TUNESAMPLE.");
+        SpectralTunes::Settings settings;
+        settings.turns        = static_cast<unsigned>(turns);
+        settings.sampleEvery  = static_cast<unsigned>(sample);
+        settings.stepsPerTurn = Track::block->stepsPerTurn;
+        settings.dt           = Track::block->dT.front();
+        settings.sector       = Attributes::getString(itsAttr[TRACKRUN::TUNESECTOR]);
+        settings.integrator   = ExternalFieldRayTracker::parseIntegrationMethod(
+                Attributes::getString(itsAttr[TRACKRUN::TUNEINTEGRATOR]));
+        if (size_t(settings.turns) * settings.stepsPerTurn > Track::block->localTimeSteps.front())
+            throw OpalException("TrackRun", "Spectral tune steps exceed TRACK MAXSTEPS.");
+        static_cast<ParallelTracker*>(itsTracker_m.get())->setSpectralTunes(initial, settings);
+    }
     itsTracker_m->execute();
 
     /*
@@ -657,7 +867,7 @@ void TrackRun::wireDaughterContainers(const std::vector<Beam*>& beams) {
             if (decayProc) {
                 requireUnitMacroWeight(*beams[daughterIdx], "daughter");
                 // A muon daughter (e.g. from pion decay) receives a per-particle
-                // polarization from the decay, so its container must have spin storage —
+                // polarization from the decay, so its container must have spin storage -
                 // which is enabled by setting POLARIZATION on the daughter muon BEAM.
                 const ParticleType daughterType =
                         ParticleProperties::getParticleType(beams[daughterIdx]->getParticleName());
@@ -711,7 +921,6 @@ void TrackRun::setupDistributionsAndSamplers(
 
     // Common containers / parameters used by all samplers.
     auto pc               = bunch_m->getParticleContainer(index);
-    auto fc               = bunch_m->getFieldContainer();
     Vector_t<int, Dim> nr = bunch_m->nr_m;
     const double avrgpz   = beam->getMomentum() / beam->getMass();
 
@@ -731,6 +940,11 @@ void TrackRun::setupDistributionsAndSamplers(
         // PC/ENERGY/GAMMA would be silently ignored, so forbid the combination.
         const bool usesFileMomentum = opalDist->getType() == DistributionType::FROMFILE
                                       || opalDist->getType() == DistributionType::EMITTEDFROMFILE;
+        if (usesFileMomentum && Track::block->initialOrbit)
+            throw OpalException(
+                    "INITIALORBIT",
+                    "FROMFILE/EMITTEDFROMFILE use absolute coordinates; use an orbit-local "
+                    "generated distribution.");
         if (usesFileMomentum) {
             if (beam->hasExplicitEnergy()) {
                 throw OpalException(
@@ -756,25 +970,25 @@ void TrackRun::setupDistributionsAndSamplers(
         std::shared_ptr<SamplingBase> sampler;
         switch (opalDist->getType()) {
             case DistributionType::UNIFORM:
-                sampler = std::make_shared<Uniform>(pc, fc, opalDist);
+                sampler = std::make_shared<Uniform>(pc, opalDist);
                 break;
             case DistributionType::GAUSS:
-                sampler = std::make_shared<Gaussian>(pc, fc, opalDist);
+                sampler = std::make_shared<Gaussian>(pc, opalDist);
                 break;
             case DistributionType::MULTIVARIATEGAUSS:
-                sampler = std::make_shared<MultiVariateGaussian>(pc, fc, opalDist);
+                sampler = std::make_shared<MultiVariateGaussian>(pc, opalDist);
                 break;
             case DistributionType::FLATTOP:
-                sampler = std::make_shared<FlatTop>(pc, fc, opalDist);
+                sampler = std::make_shared<FlatTop>(pc, opalDist);
                 break;
             case DistributionType::OPALFLATTOP:
-                sampler = std::make_shared<OpalFlatTop>(pc, fc, opalDist);
+                sampler = std::make_shared<OpalFlatTop>(pc, opalDist);
                 break;
             case DistributionType::FROMFILE:
-                sampler = std::make_shared<FromFile>(pc, fc, opalDist);
+                sampler = std::make_shared<FromFile>(pc, opalDist);
                 break;
             case DistributionType::EMITTEDFROMFILE:
-                sampler = std::make_shared<EmittedFromFile>(pc, fc, opalDist);
+                sampler = std::make_shared<EmittedFromFile>(pc, opalDist);
                 break;
             default:
                 throw OpalException("Distribution::create", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
@@ -835,115 +1049,6 @@ void TrackRun::setupDistributionsAndSamplers(
 
     *gmsg << level2 << "* Particle sampling / sampler setup for all emission sources done." << endl;
     IpplTimings::stopTimer(samplingTime);
-}
-
-void TrackRun::configureImageChargeFromSources(
-        const std::vector<std::vector<EmissionSource*>>& emissionSourcesLists) {
-    bool enableImageCharge   = false;
-    bool enableShiftedGreens = false;
-    double zPlane            = 0.0;
-    int dumpFrequency        = 0;
-    int maxSteps             = 0;
-    size_t numZeroFaceR0Z    = 0;
-    size_t numShiftedGreens  = 0;
-
-    for (const auto& sourceList : emissionSourcesLists) {
-        for (const auto* src : sourceList) {
-            if (!src) {
-                continue;
-            }
-
-            const bool srcZeroFace        = src->getZeroFaceR0Z();
-            const bool srcShifted         = src->getShiftedGreensFunction();
-            const int sourceDumpFrequency = src->getZeroFacePlaneDumpFrequency();
-
-            // Mutual exclusion within a single EMISSIONSOURCE.
-            if (srcZeroFace && srcShifted) {
-                throw OpalException(
-                        "TrackRun::configureImageChargeFromSources",
-                        "ZEROFACE_R0Z and SHIFTED_GREENS_FUNCTION are mutually exclusive on "
-                        "the same EMISSIONSOURCE. Enable exactly one.");
-            }
-
-            if (!srcZeroFace && !srcShifted) {
-                if (sourceDumpFrequency > 0) {
-                    throw OpalException(
-                            "TrackRun::configureImageChargeFromSources",
-                            "ZEROFACEPLANEDUMP > 0 requires ZEROFACE_R0Z=true on the same "
-                            "EMISSIONSOURCE. (Dumping is not supported for "
-                            "SHIFTED_GREENS_FUNCTION since the computational domain may be "
-                            "far from R0Z.)");
-                }
-                continue;
-            }
-
-            if (srcZeroFace) {
-                ++numZeroFaceR0Z;
-                enableImageCharge = true;
-                zPlane            = src->getR0()[2];
-                dumpFrequency     = sourceDumpFrequency;
-                maxSteps          = src->getZerofaceMaxSteps();
-            } else {
-                // srcShifted
-                ++numShiftedGreens;
-                enableShiftedGreens = true;
-                zPlane              = src->getR0()[2];
-                // Dumping is unsupported for the shifted path (see comment above).
-                if (sourceDumpFrequency > 0) {
-                    throw OpalException(
-                            "TrackRun::configureImageChargeFromSources",
-                            "ZEROFACEPLANEDUMP > 0 is not supported with "
-                            "SHIFTED_GREENS_FUNCTION=true (the computational domain may be "
-                            "far from R0Z, making the interpolated plane dump meaningless).");
-                }
-                maxSteps = src->getZerofaceMaxSteps();
-            }
-        }
-    }
-
-    if (numZeroFaceR0Z > 1) {
-        throw OpalException(
-                "TrackRun::configureImageChargeFromSources",
-                "Cannot have more than one emission source with ZEROFACE_R0Z=true, since image "
-                "charge computation is only implemented for one plane.");
-    }
-    if (numShiftedGreens > 1) {
-        throw OpalException(
-                "TrackRun::configureImageChargeFromSources",
-                "Cannot have more than one emission source with SHIFTED_GREENS_FUNCTION=true, "
-                "since the shifted Green's function correction is only implemented for one plane.");
-    }
-    if (enableImageCharge && enableShiftedGreens) {
-        throw OpalException(
-                "TrackRun::configureImageChargeFromSources",
-                "Cannot have ZEROFACE_R0Z=true on one EMISSIONSOURCE and "
-                "SHIFTED_GREENS_FUNCTION=true on another; the two Dirichlet-correction paths "
-                "are mutually exclusive at the run level.");
-    }
-
-    // SHIFTED_GREENS_FUNCTION requires the OPEN field solver. We inspect the
-    // FIELDSOLVER definition via the cached FieldSolverCmd (fs_m, set earlier
-    // in execute()) — the BinnedFieldSolver type is only forward-declared via
-    // PartBunch.h here so we cannot call bunch_m->getFieldSolver()->getStype()
-    // directly without pulling in the full template definition.
-    // The runtime guard inside FieldSolver::runShiftedOpenSolver will also throw,
-    // but catching the misconfiguration here gives the user a cleaner error.
-    if (enableShiftedGreens) {
-        const std::string solverType = fs_m ? fs_m->getType() : std::string("(unknown)");
-        if (solverType != "OPEN") {
-            throw OpalException(
-                    "TrackRun::configureImageChargeFromSources",
-                    "SHIFTED_GREENS_FUNCTION=true requires FIELDSOLVER TYPE=OPEN (got '"
-                            + solverType + "').");
-        }
-    }
-
-    bunch_m->setImageChargeConfiguration(enableImageCharge, zPlane);
-    bunch_m->setShiftedGreensConfiguration(enableShiftedGreens, zPlane);
-    bunch_m->setZeroFacePlaneDumpFrequency(enableImageCharge ? dumpFrequency : 0);
-    // Both Dirichlet paths share the ZEROFACE_MAXSTEPS step budget.
-    const bool anyDirichletActive = enableImageCharge || enableShiftedGreens;
-    bunch_m->setZerofaceMaxSteps(anyDirichletActive ? maxSteps : 0);
 }
 
 Inform& TrackRun::print(Inform& os) const {

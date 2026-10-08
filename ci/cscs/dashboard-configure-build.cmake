@@ -90,10 +90,15 @@ message("Final CTest configure command: ${CTEST_CONFIGURE_COMMAND}")
 
 # --- configure & build ---
 ctest_configure(RETURN_VALUE configure_result)
+# --- submit configure results immediately, so they reach CDash even if the
+# build later hangs and the job is killed by the SLURM timelimit ---
+#ctest_submit(PARTS Configure)
 ctest_build(RETURN_VALUE build_result)
 
 # --- fail if any test failed ---
-# note that we don't submit, if all is ok, because the test phase will submit anyway
+# configure results were already submitted above; on failure also submit the
+# build results so errors are visible on CDash immediately (the test phase
+# submits everything else when it succeeds)
 if(configure_result OR build_result)
   # submit configure + build results
   ctest_submit()

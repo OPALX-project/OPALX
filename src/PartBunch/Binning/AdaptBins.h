@@ -361,6 +361,9 @@ namespace ParticleBinning {
          * - Sets the current number of bins to nBins (usually 128 for the fine histogram).
          * - Assigns uniform bins to particles based on the new limits and bin count.
          * - (Re-)initializes the local **and** global histogram based on the new bins.
+         * A constant selector (for example a cold beam's GAMMAZ) assigns every
+         * particle to bin zero without adding momentum spread or changing the
+         * requested uniform histogram size. This avoids division by zero.
          *
          * @param nBins The new number of bins to use for rebinning.
          * @param recalculateLimits If true, the limits are recalculated based on the current
