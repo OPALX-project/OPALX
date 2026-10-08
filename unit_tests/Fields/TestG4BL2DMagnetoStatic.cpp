@@ -511,7 +511,8 @@ TEST_F(G4BL2DMagnetoStaticTest, MissingBrIsZero) {
 // Test: unsupported G4beamline constructs are rejected with a clear error
 // ===========================================================================
 TEST_F(G4BL2DMagnetoStaticTest, UnsupportedConstructsThrow) {
-    // 3D cartesian `grid` map
+    // A 3D cartesian `grid` map is no longer this reader's business: it is handled by
+    // G4BL3DGrid. Check it is routed there rather than rejected.
     {
         const std::string path = tmpFile("grid.g4blmap");
         std::ofstream f(path);
@@ -520,7 +521,7 @@ TEST_F(G4BL2DMagnetoStaticTest, UnsupportedConstructsThrow) {
         f << "data\n";
         f << "-1.0e+01\t-1.0e+01\t-1.0e+01\t0.0\t0.0\t0.0\n";
         f.close();
-        EXPECT_THROW(Fieldmap::getFieldmap(path), GeneralOpalException);
+        EXPECT_EQ(Fieldmap::readHeader(path), TG4BL3DGrid);
     }
 
     // one-point-per-row `data` block inside a cylinder map

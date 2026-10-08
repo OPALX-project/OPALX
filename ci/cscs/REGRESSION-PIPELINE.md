@@ -234,6 +234,7 @@ export PATH=$(pwd)/ci-bin:$PATH
 ### 12. Run Regression and Unit Tests
 
 ```bash
+export REGTEST_EXIT=0
 OPALX_SRC_DIR=$CI_PROJECT_DIR \
 bash nightlybuildx/scripts/run_tests \
   --config=$CI_PROJECT_DIR/ci/cscs/config/$REGTEST_CONFIG \
@@ -244,21 +245,31 @@ bash nightlybuildx/scripts/run_tests \
   --reg-tests \
   --unit-tests \
   --no-gpl \
-  --publish-dir=$CI_PROJECT_DIR/regression-results-$BUILD_ARCH
+  --publish-dir=$CI_PROJECT_DIR/regression-results-$BUILD_ARCH \
+  || export REGTEST_EXIT=$?
 ```
 
 This runs both unit tests (`ctest -L unit`) and regression tests
 (`run-reg-tests.py`) using the pre-built opalx binary. The `--no-gpl` flag
 selects matplotlib instead of gnuplot for comparison plots.
 
+`run_tests` exits non-zero when tests fail. The exit code is captured in
+`REGTEST_EXIT` instead of aborting the job, so the results are listed and
+pushed to opal-live-doc even for failing runs. The job is failed with the
+captured code at the end of the script (see below).
+
 ### 13. Collect Artifacts
 
 ```yaml
 artifacts:
+  when: always
   paths:
     - regression-results-$BUILD_ARCH
   expire_in: 1 week
 ```
+
+Artifacts are uploaded `when: always` because the job is intentionally
+failed after publishing when tests failed.
 
 ### 14. Push Results to opal-live-doc
 
@@ -274,6 +285,10 @@ pipeline pushes results to `git@gitea.psi.ch:AMAS/opal-live-doc.git`:
    concurrent pushes from different architectures.
 
 If `PSI_GIT_SSHKEY` is not set, the push is skipped (useful for testing).
+
+The push runs even when regression tests failed. After the push (or a
+skipped push), the job re-raises the captured `REGTEST_EXIT` code so the
+pipeline is still marked failed.
 
 ## NightlyBuildX Config Files
 
@@ -326,6 +341,9 @@ CI the allocation already exists. The `--no-salloc` flag disables this path.
 
 NightlyBuildX `run-reg-tests.py` exits non-zero when
 `totalNrPassed != totalNrTests`, so CI fails when regression tests fail.
+The pipeline captures this exit code in `REGTEST_EXIT`, pushes the results
+to opal-live-doc regardless, and exits with the captured code at the end of
+the job so failing runs are still published and still marked failed.
 
 ### `OPALX_SRC_DIR`
 
