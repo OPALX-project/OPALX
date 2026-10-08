@@ -71,7 +71,9 @@ PartBunch<T, Dim>::PartBunch(
 
     const bool useOverlap =
             domainConfig.layoutType == opalx::spacecharge::ParticleLayoutType::SpatialOverlap;
-    const T overlapCutoff = domainConfig.overlapCutoff;
+    const T overlapCutoff = opalx::spacecharge::resolveOverlapCutoff<Dim>(
+            domainConfig.overlapCutoff, domainConfig.overlapCutoffCells,
+            cartesianDomain_m->spacing());
     if (useOverlap && !(overlapCutoff > T(0))) {
         throw OpalException(
                 "PartBunch::PartBunch",

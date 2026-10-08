@@ -56,7 +56,8 @@ namespace opalx::spacecharge {
                               config.backend == PoissonSolverType::P3M
                                       ? Particles::LayoutType::SpatialOverlap
                                       : Particles::LayoutType::Spatial,
-                              config.p3mCutoff,
+                              resolveOverlapCutoff<3>(
+                                      config.p3mCutoff, config.p3mCutoffCells, domain.spacing()),
                               config.backend == PoissonSolverType::P3M ? ippl::BC::NO
                                                                        : ippl::BC::PERIODIC),
                       secondary(domain.mesh(), domain.layout()) {
@@ -224,7 +225,7 @@ namespace opalx::spacecharge {
 
                     // Ensure this fixture would detect a lost or repeated particle correction.
                     Kokkos::deep_copy(p3mDirect.particles.E.getView(), Vector(0.0));
-                    P3MShortRangeInteraction(p3mConfig.p3mCutoff).apply(p3mDirect.particles);
+                    P3MShortRangeInteraction().apply(p3mDirect.particles);
                     auto particleE = Kokkos::create_mirror_view_and_copy(
                             Kokkos::HostSpace(), p3mDirect.particles.E.getView());
                     double particleNorm = 0.0;
@@ -238,6 +239,57 @@ namespace opalx::spacecharge {
                     EXPECT_EQ(p3mDirect.solve(step).backendSolves, 1u);
                     expectFieldsEqual(p3mImage.particles, p3mDirect.particles);
                 }
+            }
+        }
+
+        TEST_F(CartesianPIC3DAlgorithmsTest, MeshTiedP3MCutoffMatchesEquivalentFixedCutoff) {
+            auto meshConfig           = config();
+            meshConfig.backend        = PoissonSolverType::P3M;
+            meshConfig.p3mCutoffCells = 2.0;
+            Run meshTied(meshConfig);
+
+            // Bring two particles within the cutoff, then rescale the bunch so that the second
+            // step changes the mesh spacing, the cutoff, and alpha on the live mesh solver.
+            auto place = [](Particles& particles, double scale) {
+                auto positions = particles.R.getHostMirror();
+                Kokkos::deep_copy(positions, particles.R.getView());
+                positions(1) = positions(0) + Vector(0.0002, 0.0001, 0.0001);
+                for (std::size_t i = 0; i < particles.getLocalNum(); ++i)
+                    positions(i) *= scale;
+                Kokkos::deep_copy(particles.R.getView(), positions);
+                particles.updateMoments();
+            };
+            // Beam-frame cutoff from the particle bounds, as CartesianDomainUpdater derives it.
+            auto beamFrameCutoff = [&](Particles& particles) {
+                auto positions = Kokkos::create_mirror_view_and_copy(
+                        Kokkos::HostSpace(), particles.R.getView());
+                const double relativeIncrement = meshConfig.grid.boundingBoxIncreasePercent / 100.0;
+                double largestSpacing          = 0.0;
+                for (unsigned d = 0; d < 3; ++d) {
+                    double lower = positions(0)[d];
+                    double upper = positions(0)[d];
+                    for (std::size_t i = 1; i < particles.getLocalNum(); ++i) {
+                        lower = std::min(lower, positions(i)[d]);
+                        upper = std::max(upper, positions(i)[d]);
+                    }
+                    const double span = (upper - lower) * (1.0 + 2.0 * relativeIncrement);
+                    largestSpacing    = std::max(
+                            largestSpacing,
+                            span / static_cast<double>(meshConfig.grid.meshSize[d] - 1));
+                }
+                return meshConfig.p3mCutoffCells * largestSpacing;
+            };
+
+            for (const auto& [step, scale] : {std::pair{0u, 1.0}, std::pair{1u, 0.5}}) {
+                place(meshTied.particles, scale);
+                auto fixedConfig           = meshConfig;
+                fixedConfig.p3mCutoffCells = 0.0;
+                fixedConfig.p3mCutoff      = beamFrameCutoff(meshTied.particles);
+                Run fixed(fixedConfig);
+                place(fixed.particles, scale);
+                meshTied.solve(step);
+                fixed.solve(0);
+                expectFieldsEqual(meshTied.particles, fixed.particles);
             }
         }
 

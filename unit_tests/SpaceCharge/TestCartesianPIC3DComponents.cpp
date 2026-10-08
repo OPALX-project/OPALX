@@ -15,6 +15,7 @@
 #include "Utilities/OpalException.h"
 #include "Utility/Inform.h"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdio>
@@ -108,6 +109,85 @@ namespace opalx::spacecharge {
             for (const ippl::BC boundary : open.getP3MLayout().getParticleBC()) {
                 EXPECT_EQ(boundary, ippl::BC::NO);
             }
+        }
+
+        TEST_F(CartesianPIC3DComponentsTest, MeshTiedP3MCutoffFollowsLargestSpacing) {
+            auto domainConfig               = storage();
+            domainConfig.layoutType         = ParticleLayoutType::SpatialOverlap;
+            domainConfig.overlapCutoffCells = 2.0;
+            CartesianDomain<double, 3> domain(domainConfig);
+            // The mesh-tied cutoff keeps the default placeholder domain.
+            EXPECT_DOUBLE_EQ(domain.lower()[0], -3.0);
+            EXPECT_DOUBLE_EQ(domain.upper()[0], 3.0);
+            const double initialCutoff = resolveOverlapCutoff<3>(
+                    domainConfig.overlapCutoff, domainConfig.overlapCutoffCells, domain.spacing());
+            EXPECT_DOUBLE_EQ(initialCutoff, 2.0 * 6.0 / 8.0);
+
+            CartesianPIC3DFieldStorage<double, 3> workspace(domain);
+            workspace.initializeFields(PoissonSolverType::None);
+            auto bunchState = std::make_shared<BunchStateHandler>();
+            using Container = ::ParticleContainer<double, 3>;
+            Container particles(
+                    domain.mesh(), domain.layout(), false, Container::LayoutType::SpatialOverlap,
+                    initialCutoff, ippl::BC::NO);
+            particles.setBunchStateHandler(bunchState);
+            particles.createParticles(2);
+            particles.setM(Physics::m_e);
+            Kokkos::deep_copy(particles.P.getView(), Vector_t<double, 3>(0.0));
+            auto placeParticles = [&](double scale) {
+                auto positions = particles.R.getHostMirror();
+                // Mild anisotropy: the cutoff of two x spacings stays below half of every region.
+                positions(0) = scale * Vector_t<double, 3>(-0.5, -0.4, -0.3);
+                positions(1) = scale * Vector_t<double, 3>(0.5, 0.4, 0.3);
+                Kokkos::deep_copy(particles.R.getView(), positions);
+            };
+            std::vector<Container*> particleContainers{&particles};
+
+            PoissonSolverConfig poissonConfig;
+            poissonConfig.type = PoissonSolverType::None;
+            auto poisson       = makePoissonSolver(
+                    poissonConfig, {&workspace.chargeDensity(), &workspace.electricField()});
+
+            CartesianPIC3DConfig values;
+            values.backend            = PoissonSolverType::P3M;
+            values.grid.meshSize      = domainConfig.meshSize;
+            values.grid.decomposition = domainConfig.decomposition;
+            values.p3mCutoffCells     = domainConfig.overlapCutoffCells;
+            CartesianDomainUpdater updater(values, particleContainers);
+            SpaceChargeStepState step;
+            const std::array<std::uint8_t, 1> activity{1};
+            SpaceChargeSolveContext context(activity, step);
+
+            auto expectCutoffFollowsSpacing = [&]() {
+                double largestSpacing = 0.0;
+                for (unsigned dimension = 0; dimension < 3; ++dimension) {
+                    largestSpacing =
+                            std::max(largestSpacing, domain.mesh().getMeshSpacing()[dimension]);
+                }
+                EXPECT_DOUBLE_EQ(particles.getP3MLayout().getCutoff(), 2.0 * largestSpacing);
+                return particles.getP3MLayout().getCutoff();
+            };
+
+            placeParticles(1.0);
+            EXPECT_FALSE(updater.updateForSolve(
+                    DomainCoordinateFrame::Beam, context, {}, nullptr, workspace, *poisson));
+            const double wideCutoff = expectCutoffFollowsSpacing();
+            EXPECT_NE(wideCutoff, initialCutoff);
+
+            // Shrinking the bunch tenfold shrinks the cutoff with it. The old cutoff exceeds half
+            // the new region, so it must never be checked against the new layout.
+            placeParticles(0.1);
+            EXPECT_FALSE(updater.updateForSolve(
+                    DomainCoordinateFrame::Beam, context, {}, nullptr, workspace, *poisson));
+            EXPECT_NEAR(expectCutoffFollowsSpacing(), 0.1 * wideCutoff, 1.0e-12 * wideCutoff);
+
+            // Reference-frame layouts only migrate particles and use the smallest spacing.
+            EXPECT_FALSE(updater.updateForSolve(
+                    DomainCoordinateFrame::Reference, context, {}, nullptr, workspace, *poisson));
+            const auto& spacing = domain.mesh().getMeshSpacing();
+            EXPECT_DOUBLE_EQ(
+                    particles.getP3MLayout().getCutoff(),
+                    2.0 * std::min({spacing[0], spacing[1], spacing[2]}));
         }
 
         TEST_F(CartesianPIC3DComponentsTest, FixedDomainOverridesStretchingAndReturnsToFollowing) {

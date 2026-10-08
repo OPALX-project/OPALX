@@ -75,7 +75,7 @@ namespace opalx::spacecharge {
         }
         updateMeshGeometry(bounds, fieldStorage);
 
-        updateLayoutsAndMigrate(fieldStorage, beamFrame);
+        updateLayoutsAndMigrate(fieldStorage, frame);
         updateMoments(beamFrame);
 
         bool redistributed = false;
@@ -126,14 +126,55 @@ namespace opalx::spacecharge {
     }
 
     void CartesianDomainUpdater::updateLayoutsAndMigrate(
-            FieldStorage& fieldStorage, bool primaryOnly) {
+            FieldStorage& fieldStorage, DomainCoordinateFrame frame) {
+        const bool primaryOnly = frame == DomainCoordinateFrame::Beam;
+        // A mesh-tied P3M cutoff follows the spacing just set by updateMeshGeometry(). Passing it
+        // with the layout update checks the new cutoff against the new rank regions only.
+        const bool meshTiedCutoff = config_m.p3mCutoffCells > 0.0;
+        double cutoff             = 0.0;
+        if (meshTiedCutoff) {
+            const auto& spacing = fieldStorage.mesh().getMeshSpacing();
+            const double requested =
+                    primaryOnly ? resolveOverlapCutoff<3>(0.0, config_m.p3mCutoffCells, spacing)
+                                : config_m.p3mCutoffCells
+                                          * std::min({spacing[0], spacing[1], spacing[2]});
+            // An anisotropic mesh, such as the stretched longitudinal domain during emission,
+            // can make the requested cutoff wider than a rank region. A smaller cutoff keeps the
+            // P3M split exact but lets mesh errors grow, as alpha * h_max exceeds 2 / RCUT_CELLS.
+            cutoff = std::min(requested, largestFittingCutoff(fieldStorage));
+            if (primaryOnly && cutoff < requested && !cutoffReductionReported_m) {
+                Inform m("CartesianDomainUpdater::updateLayoutsAndMigrate");
+                m << level1 << "Reducing the mesh-tied P3M cutoff from " << requested << " m to "
+                  << cutoff << " m, half the smallest rank region; mesh accuracy is reduced while "
+                  << "this lasts. Further reductions are not reported." << endl;
+                cutoffReductionReported_m = true;
+            }
+        }
         const std::size_t last = primaryOnly ? 1 : particles_m.size();
         for (std::size_t index = 0; index < last; ++index) {
             ParticleContainer& particles = *particles_m[index];
-            particles.updateLayout(fieldStorage.layout(), fieldStorage.mesh());
+            if (meshTiedCutoff && particles.hasP3MLayout()) {
+                particles.updateLayout(fieldStorage.layout(), fieldStorage.mesh(), cutoff);
+            } else {
+                particles.updateLayout(fieldStorage.layout(), fieldStorage.mesh());
+            }
             particles.update();
             particles.markMomentsDirty();
         }
+    }
+
+    double CartesianDomainUpdater::largestFittingCutoff(FieldStorage& fieldStorage) const {
+        const auto& localDomain = fieldStorage.layout().getLocalNDIndex();
+        const auto& spacing     = fieldStorage.mesh().getMeshSpacing();
+        double halfRegion       = std::numeric_limits<double>::max();
+        for (unsigned dimension = 0; dimension < 3; ++dimension) {
+            halfRegion = std::min(
+                    halfRegion, 0.5 * static_cast<double>(localDomain[dimension].length())
+                                        * spacing[dimension]);
+        }
+        ippl::Comm->allreduce(&halfRegion, 1, std::less<double>());
+        // Stay clear of round-off in the layout's own region lengths.
+        return halfRegion * (1.0 - 1.0e-12);
     }
 
     void CartesianDomainUpdater::updateMoments(bool primaryOnly) {
@@ -278,7 +319,7 @@ namespace opalx::spacecharge {
 
         // ORB may mutate the layout even when it reports ordinary failure.
         fieldStorage.updateFieldLayoutsAfterLayoutChange();
-        updateLayoutsAndMigrate(fieldStorage, true);
+        updateLayoutsAndMigrate(fieldStorage, DomainCoordinateFrame::Beam);
         if (!succeeded) {
             m << level2 << "ORB load balancing failed; retaining the resulting valid layout."
               << endl;

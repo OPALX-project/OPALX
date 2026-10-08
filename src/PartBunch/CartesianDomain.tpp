@@ -89,7 +89,9 @@ namespace opalx::spacecharge {
     typename CartesianDomain<T, Dim>::Vector CartesianDomain<T, Dim>::initialLength(
             const CartesianDomainConfig<T, Dim>& config) {
         Vector length(T(6));
-        if (config.layoutType == ParticleLayoutType::SpatialOverlap) {
+        // A mesh-tied cutoff fits this default domain whenever it fits the runtime one.
+        if (config.layoutType == ParticleLayoutType::SpatialOverlap
+            && !(config.overlapCutoffCells > T(0))) {
             if (!(config.overlapCutoff > T(0))) {
                 throw OpalException(
                         "CartesianDomain::initialLength",
