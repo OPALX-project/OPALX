@@ -300,7 +300,7 @@ namespace opalx::spacecharge {
         }
 
         TEST_F(BarnesHutAlgorithmTest, DirectSumTiny) {
-            // Few particles end up in very few leaves, so nearly every interaction is P2P.
+            // Fewer particles than the direct-sum limit (64 per rank).
             BunchSpec spec;
             spec.globalCount = 48;
             Run run(config(2.0e-5), spec);
@@ -310,12 +310,67 @@ namespace opalx::spacecharge {
             expectConserved(before, after);
             const auto reference = directSum(before, kCharge, 2.0e-5);
             const double error   = rmsRelativeError(after, reference);
-            EXPECT_LT(error, ippl::Comm->size() == 1 ? 1.0e-10 : 5.0e-3);
+            // The direct sum evaluates the reference kernel; only summation order differs.
+            EXPECT_LT(error, 1.0e-10);
+            EXPECT_EQ(run.algorithm->statistics().directSolves, 1u);
             for (const Record& r : after) {
                 EXPECT_EQ(r.b[0], 0.0);
                 EXPECT_EQ(r.b[1], 0.0);
                 EXPECT_EQ(r.b[2], 0.0);
             }
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, SmallAndShrinkingBunchesMatchDirectSum) {
+            // Below 64 particles per rank the algorithm falls back to ryoanji's direct sum, which
+            // uses the reference kernel exactly; above it Barnes-Hut must cope with small trees.
+            const std::size_t directLimit = 64 * static_cast<std::size_t>(ippl::Comm->size());
+            auto check = [&](Run& run, std::size_t count, const std::vector<Record>& before) {
+                const auto after = gatherAll(run.particles);
+                expectConserved(before, after);
+                const double error = rmsRelativeError(after, directSum(before, kCharge, 2.0e-5));
+                if (ippl::Comm->rank() == 0) {
+                    std::printf("[BH] N=%zu %s rms relative error=%.3e\n", count,
+                                count < directLimit ? "direct" : "tree", error);
+                }
+                EXPECT_LT(error, count < directLimit ? 1.0e-10 : 5.0e-3);
+            };
+
+            for (std::size_t count : {2u, 9u, 48u, 65u, 300u, 1000u}) {
+                SCOPED_TRACE(count);
+                BunchSpec spec;
+                spec.globalCount = count;
+                Run run(config(2.0e-5), spec);
+                const auto before = gatherAll(run.particles);
+                EXPECT_EQ(run.solve().backendSolves, 1u);
+                check(run, count, before);
+                const auto& stats = run.algorithm->statistics();
+                EXPECT_EQ(stats.directSolves, count < directLimit ? 1u : 0u);
+                EXPECT_EQ(stats.solves, count < directLimit ? 0u : 1u);
+            }
+
+            // Shrink from a tree-sized bunch to 20 particles (every 20th ID survives).
+            BunchSpec spec;
+            spec.globalCount = std::max<std::size_t>(400, 2 * directLimit);
+            Run run(config(2.0e-5), spec);
+            (void)run.solve();
+            EXPECT_EQ(run.algorithm->statistics().solves, 1u);
+            const std::int64_t stride = static_cast<std::int64_t>(spec.globalCount / 20);
+            {
+                auto ID      = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), run.particles.ID.getView());
+                auto invalid = Kokkos::create_mirror_view_and_copy(
+                        Kokkos::HostSpace(), run.particles.InvalidMask.getView());
+                for (std::size_t i = 0; i < run.particles.getLocalNum(); ++i) {
+                    // IDs are 0..N-1 (rank + size * i over the round-robin fill); keep 20 of them.
+                    invalid(i) = ID(i) % stride != 0 || ID(i) >= 20 * stride;
+                }
+                Kokkos::deep_copy(run.particles.InvalidMask.getView(), invalid);
+                (void)run.particles.deleteInvalidParticles();
+            }
+            ASSERT_EQ(run.particles.getTotalNum(), 20u);
+            const auto before = gatherAll(run.particles);
+            EXPECT_EQ(run.solve().backendSolves, 1u);
+            check(run, 20, before);
+            EXPECT_EQ(run.algorithm->statistics().directSolves, 1u);
         }
 
         TEST_F(BarnesHutAlgorithmTest, DirectSumMediumConvergesWithTheta) {
@@ -378,9 +433,13 @@ namespace opalx::spacecharge {
             spec.globalCount = 200000;
             spec.sigma       = Vector(1.0e-3, 1.0e-3, 2.0e-3);
 
+            // The CIC/FFT reference converges to the Coulomb field as the mesh is refined, so the
+            // BH-vs-OPEN difference must shrink with resolution, not merely stay small.
+            std::vector<double> differences;
+            for (std::size_t mesh : {32u, 64u}) {
             CartesianPIC3DConfig pic;
             pic.backend            = PoissonSolverType::Open;
-            pic.grid.meshSize      = {32, 32, 32};
+            pic.grid.meshSize      = {mesh, mesh, mesh};
             pic.grid.decomposition = {false, false, true};
             CartesianDomain<double, 3> domain(makeCartesianDomainConfig(pic));
             auto state = std::make_shared<BunchStateHandler>();
@@ -434,11 +493,14 @@ namespace opalx::spacecharge {
                 }
                 const double difference = std::sqrt(num / den);
                 if (ippl::Comm->rank() == 0) {
-                    std::printf("[BH] BH vs OPEN FFT (32^3) rms relative difference=%.3e\n",
-                                difference);
+                    std::printf("[BH] BH vs OPEN FFT (%zu^3) rms relative difference=%.3e\n",
+                                mesh, difference);
                 }
-                EXPECT_LT(difference, 5.0e-2);
+                differences.push_back(difference);
             }
+            }
+            EXPECT_LT(differences[1], differences[0]) << "the gap must shrink with the mesh size";
+            EXPECT_LT(differences[1], 5.0e-2);
         }
 
         TEST_F(BarnesHutAlgorithmTest, ReplacesFieldsAndPreservesOtherContainers) {

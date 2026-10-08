@@ -45,6 +45,7 @@ namespace opalx::spacecharge {
             std::size_t solves          = 0;  ///< Completed Barnes-Hut solves.
             std::size_t inPlacePacks    = 0;  ///< Solves that reused the owned slots.
             std::size_t containerBuilds = 0;  ///< Constructions of the Barnes-Hut container.
+            std::size_t directSolves    = 0;  ///< Small-bunch solves done by direct summation.
         };
 
         BarnesHutAlgorithm(

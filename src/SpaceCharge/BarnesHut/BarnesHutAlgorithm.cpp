@@ -15,6 +15,8 @@
 #include "NBody/NBodySolver.hpp"
 #include "NBody/core/BHFieldLists.hpp"
 #include "NBody/wrappers/NBodyKokkosView.hpp"
+#include "ryoanji/interface/multipole_holder.cuh"
+#include "ryoanji/nbody/traversal_cpu.hpp"
 
 #include "Physics/Physics.h"
 #include "Utility/IpplTimings.h"
@@ -26,9 +28,11 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <mpi.h>
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace opalx::spacecharge {
     namespace {
@@ -46,6 +50,10 @@ namespace opalx::spacecharge {
         constexpr unsigned kSupportedAttributeCount = 9;
 
         constexpr unsigned kMinimumBucketSize = 64;
+
+        /// Below this many particles per rank (on average) cstone cannot give every rank a share
+        /// of the octree; such bunches use ryoanji's direct sum instead (cost O(N^2), N small).
+        constexpr unsigned long long kDirectSumParticlesPerRank = 64;
 
         /// Wait for raw CUDA (cstone/ryoanji, default stream) and Kokkos work alike.
         void synchronizeDevice() {
@@ -191,6 +199,106 @@ namespace opalx::spacecharge {
             Kokkos::fence();
         }
 
+        /**
+         * @brief Softened Coulomb field by ryoanji's direct sum, for bunches too small to split
+         * into a balanced octree. Particles do not migrate.
+         *
+         * ryoanji::directSum is single-process: every rank gathers all (r, |q|, h) and evaluates
+         * its own slice of targets against all sources with the same P2P kernel as the
+         * Barnes-Hut traversal. The GPU variant has no prefactor, so G and the charge sign are
+         * applied here, exactly as in the copy-back.
+         */
+        void directSumFields(
+                BarnesHutAlgorithm::ParticleContainer& particles, double chargeScale,
+                double softening, double prefactor) {
+            const size_type nLocal = particles.getLocalNum();
+            const auto R           = particles.R.getView();
+            const auto dtView      = particles.dt.getView();
+
+            // Pack (x, y, z, |q|, h) per local particle and gather them on every rank.
+            constexpr int kValues = 5;
+            Kokkos::View<double*> local("BarnesHutAlgorithm::directLocal", kValues * nLocal);
+            Kokkos::parallel_for(
+                    "BarnesHutAlgorithm::directPack", nLocal, KOKKOS_LAMBDA(const size_type i) {
+                        local(kValues * i)     = R(i)[0];
+                        local(kValues * i + 1) = R(i)[1];
+                        local(kValues * i + 2) = R(i)[2];
+                        local(kValues * i + 3) = chargeScale * dtView(i);
+                        local(kValues * i + 4) = softening;
+                    });
+            const auto localHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), local);
+
+            MPI_Comm comm   = ippl::Comm->getCommunicator();
+            const int ranks = ippl::Comm->size();
+            const int count = static_cast<int>(kValues * nLocal);
+            std::vector<int> counts(ranks), offsets(ranks, 0);
+            MPI_Allgather(&count, 1, MPI_INT, counts.data(), 1, MPI_INT, comm);
+            for (int r = 1; r < ranks; ++r) {
+                offsets[r] = offsets[r - 1] + counts[r - 1];
+            }
+            std::vector<double> gathered(
+                    static_cast<std::size_t>(offsets.back() + counts.back()));
+            MPI_Allgatherv(
+                    localHost.data(), count, MPI_DOUBLE, gathered.data(), counts.data(),
+                    offsets.data(), MPI_DOUBLE, comm);
+
+            // ryoanji wants one array per component; this rank's particles are a contiguous slice.
+            const std::size_t nAll  = gathered.size() / kValues;
+            const std::size_t first = static_cast<std::size_t>(offsets[ippl::Comm->rank()]) / kValues;
+            std::array<std::vector<double>, kValues> columns;
+            for (auto& column : columns) {
+                column.resize(nAll);
+            }
+            for (std::size_t j = 0; j < nAll; ++j) {
+                for (int c = 0; c < kValues; ++c) {
+                    columns[c][j] = gathered[kValues * j + c];
+                }
+            }
+            using HostUnmanaged = Kokkos::View<const double*, Kokkos::HostSpace,
+                                               Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
+            std::array<Kokkos::View<double*>, kValues> device;
+            for (int c = 0; c < kValues; ++c) {
+                device[c] = Kokkos::View<double*>("BarnesHutAlgorithm::directSource", nAll);
+                Kokkos::deep_copy(device[c], HostUnmanaged(columns[c].data(), nAll));
+            }
+            // Outputs accumulate (+=); the views are zero-initialised.
+            Kokkos::View<double*> potential("BarnesHutAlgorithm::directP", nAll);
+            Kokkos::View<double*> ax("BarnesHutAlgorithm::directAx", nAll);
+            Kokkos::View<double*> ay("BarnesHutAlgorithm::directAy", nAll);
+            Kokkos::View<double*> az("BarnesHutAlgorithm::directAz", nAll);
+            Kokkos::fence();
+
+            // The collectives above include every rank; a rank without targets stops here. The
+            // GPU kernel sizes its grid as (last - first - 1) / threads + 1, which wraps around
+            // for an empty range and launches an enormous grid.
+            if (nLocal == 0) {
+                return;
+            }
+            const ryoanji::Vec3<double> unusedBox{1.0, 1.0, 1.0};  // numShells = 0: open
+#if defined(USE_CUDA)
+            ryoanji::directSum<double>(
+                    first, first + nLocal, nAll, unusedBox, 0, device[0].data(), device[1].data(),
+                    device[2].data(), device[3].data(), device[4].data(), potential.data(),
+                    ax.data(), ay.data(), az.data());
+#else
+            // The CPU variant evaluates every target; only this rank's slice is used below.
+            ryoanji::directSum(
+                    device[0].data(), device[1].data(), device[2].data(), device[4].data(),
+                    device[3].data(), static_cast<cstone::LocalIndex>(nAll), 1.0f, unusedBox, 0,
+                    ax.data(), ay.data(), az.data(), potential.data());
+#endif
+            synchronizeDevice();
+
+            auto E = particles.E.getView();
+            Kokkos::parallel_for(
+                    "BarnesHutAlgorithm::directUnpack", nLocal, KOKKOS_LAMBDA(const size_type i) {
+                        const size_type j = first + i;
+                        E(i) = Vector_t<double, 3>(
+                                prefactor * ax(j), prefactor * ay(j), prefactor * az(j));
+                    });
+            Kokkos::fence();
+        }
+
     }  // namespace
 
     class BarnesHutAlgorithm::Impl {
@@ -206,7 +314,9 @@ namespace opalx::spacecharge {
         std::shared_ptr<const BunchStateHandler> bunchState_m;
         std::unique_ptr<BHContainer> bh_m;
         std::unique_ptr<BHSolver> solver_m;
-        unsigned bucketSize_m = 0;
+        unsigned bucketSize_m      = 0;
+        unsigned bucketSizeFocus_m = 0;
+        bool usingDirectSum_m      = false;
         Statistics statistics_m;
 
     private:
@@ -249,21 +359,41 @@ namespace opalx::spacecharge {
     }
 
     void BarnesHutAlgorithm::Impl::ensureContainer(const std::array<double, 6>& bounds) {
-        const int nRanks = ippl::Comm->size();
-        const auto total = static_cast<unsigned long long>(primary_m->getTotalNum());
+        const int nRanks       = ippl::Comm->size();
+        const auto ranks       = static_cast<unsigned long long>(nRanks);
+        const auto total       = static_cast<unsigned long long>(primary_m->getTotalNum());
+        const auto perRank     = std::max<unsigned long long>(1, total / ranks);
+
+        // ryoanji starts every traversal at node 1, the first child of the root, so the focus tree
+        // must not consist of the root leaf alone: keep the focus bucket well below the per-rank
+        // particle count.
+        const auto configuredFocus = static_cast<unsigned>(config_m.bucketSizeFocus);
+        const unsigned bucketSizeFocus = static_cast<unsigned>(std::min<unsigned long long>(
+                configuredFocus, std::max<unsigned long long>(1, perRank / 8)));
+
+        // cstone assigns whole global-tree leaves to ranks; with fewer leaves than ranks some ranks
+        // own nothing and the first sync's focus-tree convergence loop never terminates. Small
+        // bunches therefore get a global bucket of at most a quarter of the per-rank count.
         unsigned bucketSize =
                 config_m.bucketSize != 0
                         ? static_cast<unsigned>(config_m.bucketSize)
-                        : std::max<unsigned>(
-                                kMinimumBucketSize,
-                                static_cast<unsigned>(
-                                        total / (100ull * static_cast<unsigned long long>(nRanks))));
+                        : static_cast<unsigned>(std::min<unsigned long long>(
+                                std::max<unsigned long long>(kMinimumBucketSize, total / (100ull * ranks)),
+                                std::max<unsigned long long>(1, perRank / 4)));
+        bucketSize = std::max(bucketSize, bucketSizeFocus);  // cstone: bucketSize >= focus
 
-        // The global-tree bucket size is fixed per cstone domain. Emission can grow the bunch by
-        // orders of magnitude; rebuild once the automatic size is far off. All particles live in
-        // the OPALX container between solves, so a rebuild loses no state.
+        // Bucket sizes are fixed per cstone domain. Emission can grow the bunch by orders of
+        // magnitude and losses can shrink it; rebuild when the sizes are far off or the trees would
+        // degenerate. All particles live in the OPALX container between solves, so a rebuild
+        // loses no state.
         const bool rebuild =
-                bh_m != nullptr && config_m.bucketSize == 0 && bucketSize > 4 * bucketSize_m;
+                bh_m != nullptr
+                && ((config_m.bucketSize == 0
+                     && (bucketSize > 4 * bucketSize_m || 4 * bucketSize < bucketSize_m))
+                    || total <= bucketSizeFocus_m
+                    || (bucketSizeFocus != bucketSizeFocus_m
+                        && (bucketSizeFocus >= 2 * bucketSizeFocus_m
+                            || bucketSizeFocus == configuredFocus)));
         if (bh_m != nullptr && !rebuild) {
             return;
         }
@@ -279,8 +409,8 @@ namespace opalx::spacecharge {
         // cstone refits open boxes on every sync, but on the first sync a rank without particles
         // contributes the constructor box to the global extent; seed it with the true bounds.
         bh_m = std::make_unique<BHContainer>(
-                ippl::Comm->rank(), nRanks, bucketSize,
-                static_cast<unsigned>(config_m.bucketSizeFocus), static_cast<float>(config_m.theta),
+                ippl::Comm->rank(), nRanks, bucketSize, bucketSizeFocus,
+                static_cast<float>(config_m.theta),
                 box,
                 std::array<BoundaryType, 3>{
                         BoundaryType::cubic_open, BoundaryType::cubic_open,
@@ -297,7 +427,8 @@ namespace opalx::spacecharge {
         params.theta     = static_cast<float>(config_m.theta);
         params.numShells = 0;
         solver_m         = std::make_unique<BHSolver>(*bh_m, params);
-        bucketSize_m     = bucketSize;
+        bucketSize_m      = bucketSize;
+        bucketSizeFocus_m = bucketSizeFocus;
         ++statistics_m.containerBuilds;
     }
 
@@ -390,7 +521,40 @@ namespace opalx::spacecharge {
             throw OpalException(
                     "BarnesHutAlgorithm::solve", "Particle positions are not finite.");
         }
-        if (extent > 0.0) {
+        const auto total = static_cast<unsigned long long>(primary_m->getTotalNum());
+        const auto directLimit =
+                kDirectSumParticlesPerRank * static_cast<unsigned long long>(ippl::Comm->size());
+        const bool useDirectSum = extent > 0.0 && total < directLimit;
+        if (useDirectSum != usingDirectSum_m && extent > 0.0) {
+            Inform m("BarnesHutAlgorithm");
+            if (useDirectSum) {
+                m << level1 << "WARNING: TYPE=BH uses a direct O(N^2) sum instead of Barnes-Hut: "
+                  << total << " particles are fewer than " << kDirectSumParticlesPerRank
+                  << " per rank (" << directLimit << " on " << ippl::Comm->size()
+                  << " ranks). Switching to Barnes-Hut once the bunch is larger." << endl;
+            } else {
+                m << level2 << "TYPE=BH switches from the direct sum to Barnes-Hut at " << total
+                  << " particles." << endl;
+            }
+            usingDirectSum_m = useDirectSum;
+        }
+
+        if (useDirectSum) {
+            static IpplTimings::TimerRef directTimer = IpplTimings::getTimer("bh.directSum");
+            IpplTimings::startTimer(directTimer);
+            // Leaf-based softening has no tree here; a negligible floor only defuses the self pair.
+            const double softening =
+                    config_m.softening > 0.0 ? config_m.softening : 1.0e-9 * extent;
+            const double charge = primary_m->getChargePerParticle();
+            const double prefactor =
+                    (charge < 0.0 ? 1.0 : -1.0) / (4.0 * Physics::pi * Physics::epsilon_0);
+            directSumFields(
+                    *primary_m, std::abs(charge) / context.stepState().timeStep, softening,
+                    prefactor);
+            IpplTimings::stopTimer(directTimer);
+            ++statistics_m.directSolves;
+            result.backendSolves = 1;
+        } else if (extent > 0.0) {
             IpplTimings::startTimer(packTimer);
             ensureContainer(bounds);
             const size_type nLocal = primary_m->getLocalNum();
