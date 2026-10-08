@@ -30,6 +30,7 @@
 #include <limits>
 #include <mpi.h>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -299,6 +300,38 @@ namespace opalx::spacecharge {
             Kokkos::fence();
         }
 
+        /** @brief Local field and charge statistics of the primary after a solve. */
+        struct FieldStatistics {
+            double nonFinite = 0.0;  ///< Particles with a non-finite field component.
+            double maxField  = 0.0;  ///< Largest |E| in V/m.
+            double sumDt     = 0.0;  ///< Sum of dt_i; total source charge is |Q| sum(dt_i) / dt_step.
+        };
+
+        FieldStatistics globalFieldStatistics(BarnesHutAlgorithm::ParticleContainer& particles) {
+            const auto E           = particles.E.getView();
+            const auto dt          = particles.dt.getView();
+            const size_type nLocal = particles.getLocalNum();
+            double nonFinite = 0.0, maxE2 = 0.0, sumDt = 0.0;
+            Kokkos::parallel_reduce(
+                    "BarnesHutAlgorithm::fieldStatistics", nLocal,
+                    KOKKOS_LAMBDA(const size_type i, double& bad, double& m, double& s) {
+                        const double e2 = E(i)[0] * E(i)[0] + E(i)[1] * E(i)[1] + E(i)[2] * E(i)[2];
+                        if (!Kokkos::isfinite(e2)) {
+                            bad += 1.0;
+                        } else if (e2 > m) {
+                            m = e2;
+                        }
+                        s += dt(i);
+                    },
+                    nonFinite, Kokkos::Max<double>(maxE2), sumDt);
+            FieldStatistics global;
+            ippl::Comm->allreduce(nonFinite, global.nonFinite, 1, std::plus<double>());
+            ippl::Comm->allreduce(maxE2, global.maxField, 1, std::greater<double>());
+            ippl::Comm->allreduce(sumDt, global.sumDt, 1, std::plus<double>());
+            global.maxField = std::sqrt(global.maxField);
+            return global;
+        }
+
     }  // namespace
 
     class BarnesHutAlgorithm::Impl {
@@ -326,6 +359,7 @@ namespace opalx::spacecharge {
         void pack(BHLocalIndex offset, size_type nLocal, double timeStep);
         void synchronize();
         void copyBack();
+        void verifySolve(const SpaceChargeSolveContext& context, size_type totalBefore);
     };
 
     void BarnesHutAlgorithm::Impl::checkPreconditions(const SpaceChargeSolveContext& context) const {
@@ -443,7 +477,7 @@ namespace opalx::spacecharge {
         // After a copy-back the owned slots already belong to this rank's particle set; when the
         // count is unchanged they are overwritten in place and the next sync only moves particles
         // that crossed a space-filling-curve boundary.
-        if (statistics_m.solves > 0 && bh_m->getLocalNum() == n) {
+        if (statistics_m.solves > 0 && bh_m->getLocalNum() == n && !config_m.repackEverySolve) {
             ++statistics_m.inPlacePacks;
             return bh_m->startIndex();
         }
@@ -511,6 +545,7 @@ namespace opalx::spacecharge {
             return result;
         }
         checkPreconditions(context);
+        const size_type totalBefore = primary_m->getTotalNum();
 
         enterSolveFrame(context.stepState().frames, *primary_m);
 
@@ -585,8 +620,50 @@ namespace opalx::spacecharge {
         }
         // All particles coincide otherwise: the softened field vanishes and E stays zero.
 
+        if (result.backendSolves > 0) {
+            verifySolve(context, totalBefore);
+        }
+
         leaveSolveFrame(context.stepState().frames, *primary_m);
         return result;
+    }
+
+    void BarnesHutAlgorithm::Impl::verifySolve(
+            const SpaceChargeSolveContext& context, size_type totalBefore) {
+        // A failed halo/layout construction in cstone does not raise an error; it shows up as lost
+        // or duplicated particles and absurd fields. Stop the run instead of tracking garbage.
+        const char* where = "BarnesHutAlgorithm::solve";
+        if (primary_m->getTotalNum() != totalBefore) {
+            throw OpalException(
+                    where, "The Barnes-Hut redistribution changed the particle count from "
+                                   + std::to_string(totalBefore) + " to "
+                                   + std::to_string(primary_m->getTotalNum())
+                                   + ". This indicates an inconsistent domain decomposition.");
+        }
+        const FieldStatistics stats = globalFieldStatistics(*primary_m);
+        if (stats.nonFinite > 0.0) {
+            throw OpalException(
+                    where, "Barnes-Hut produced non-finite fields for "
+                                   + std::to_string(static_cast<long long>(stats.nonFinite))
+                                   + " particles.");
+        }
+        // No pair can exceed k q_j / (2h)^2 with the softened kernel, so k sum|q| / (2h)^2 bounds
+        // |E| for the exact sum; multipole errors are orders of magnitude smaller. Leaf-based
+        // softening has no single h, so only the uniform case is bounded.
+        if (!config_m.leafBasedSoftening && config_m.softening > 0.0) {
+            const double totalCharge = std::abs(primary_m->getChargePerParticle()) * stats.sumDt
+                                       / context.stepState().timeStep;
+            const double coulomb     = 1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
+            const double bound =
+                    2.0 * coulomb * totalCharge / (4.0 * config_m.softening * config_m.softening);
+            if (stats.maxField > bound) {
+                std::ostringstream message;
+                message << "Barnes-Hut field |E| = " << stats.maxField
+                        << " V/m exceeds the softened Coulomb bound " << bound
+                        << " V/m. This indicates an inconsistent domain decomposition.";
+                throw OpalException(where, message.str());
+            }
+        }
     }
 
     BarnesHutAlgorithm::BarnesHutAlgorithm(

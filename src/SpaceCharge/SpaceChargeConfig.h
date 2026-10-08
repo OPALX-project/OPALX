@@ -116,6 +116,9 @@ namespace opalx::spacecharge {
         bool leafBasedSoftening = false;  ///< Use the octree leaf edge as per-particle h.
         std::size_t bucketSize      = 0;   ///< cstone global-tree bucket size; 0 = automatic.
         std::size_t bucketSizeFocus = 64;  ///< cstone focus-tree bucket size.
+        /// Testing only (not an input attribute): rebuild the Barnes-Hut particle set with
+        /// destroy + create on every solve instead of overwriting unchanged slots in place.
+        bool repackEverySolve = false;
     };
 
     using SpaceChargeConfig = std::variant<CartesianPIC3DConfig, FFT2D5Config, BarnesHutConfig>;

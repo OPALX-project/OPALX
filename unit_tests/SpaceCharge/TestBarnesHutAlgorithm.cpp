@@ -164,6 +164,18 @@ namespace opalx::spacecharge {
             Kokkos::fence();
         }
 
+        /** @brief Displacement that depends only on the particle ID, not on its local slot. */
+        void driftById(Particles& particles, double shift) {
+            auto R        = particles.R.getView();
+            const auto ID = particles.ID.getView();
+            Kokkos::parallel_for(
+                    "driftById", particles.getLocalNum(), KOKKOS_LAMBDA(const std::size_t i) {
+                        R(i)[0] += shift * (static_cast<double>(ID(i) % 3) - 1.0);
+                        R(i)[2] += shift;
+                    });
+            Kokkos::fence();
+        }
+
         double norm(const double* v) { return std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]); }
 
         /** @brief sqrt(sum |E - E_ref|^2 / sum |E_ref|^2) over all particles. */
@@ -332,7 +344,8 @@ namespace opalx::spacecharge {
                     std::printf("[BH] N=%zu %s rms relative error=%.3e\n", count,
                                 count < directLimit ? "direct" : "tree", error);
                 }
-                EXPECT_LT(error, count < directLimit ? 1.0e-10 : 5.0e-3);
+                // Tree limit ~2.5x the measured 3.95e-4: an accuracy regression must fail here.
+                EXPECT_LT(error, count < directLimit ? 1.0e-10 : 1.0e-3);
             };
 
             for (std::size_t count : {2u, 9u, 48u, 65u, 300u, 1000u}) {
@@ -389,7 +402,10 @@ namespace opalx::spacecharge {
                 if (ippl::Comm->rank() == 0) {
                     std::printf("[BH] theta=%.2f rms relative error=%.3e\n", theta, error);
                 }
-                EXPECT_LT(error, theta >= 0.7 ? 2.0e-2 : 5.0e-3);
+                // Limits ~2x the measured errors (1.49e-3, 3.60e-4, 3.99e-5 on 1 and 4 ranks), so an
+                // accuracy regression of BH against the direct sum fails this test.
+                const double limit = theta >= 0.7 ? 3.0e-3 : (theta >= 0.5 ? 8.0e-4 : 1.0e-4);
+                EXPECT_LT(error, limit);
                 EXPECT_LT(error, previous);
                 previous = error;
             }
@@ -624,7 +640,11 @@ namespace opalx::spacecharge {
                     EXPECT_GT(minimum, 0u) << "Barnes-Hut should spread particles over all ranks";
                 }
                 const auto reference = directSum(before, kCharge, 1.0e-6);
-                EXPECT_LT(rmsRelativeError(after, reference), 5.0e-3);
+                const double error = rmsRelativeError(after, reference);
+                if (ippl::Comm->rank() == 0) {
+                    std::printf("[BH] grow from one rank: rms relative error=%.3e\n", error);
+                }
+                EXPECT_LT(error, 1.0e-3);  // measured 3.5e-4 / 3.9e-4
             }
         }
 
@@ -730,6 +750,95 @@ namespace opalx::spacecharge {
                             maxMoved, spec.globalCount, stats.inPlacePacks, stats.solves);
             }
             EXPECT_LT(maxMoved, spec.globalCount / 20);
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, RepackEveryStepMatchesInPlace) {
+            // The destroy + create path on a container that already has halos (taken whenever the
+            // local count changes, e.g. during emission) must give the same fields as the in-place
+            // path that IncrementalMigrationOverManySolves exercises.
+            BunchSpec spec;
+            spec.globalCount   = 20000;
+            auto repackConfig  = config();
+            repackConfig.repackEverySolve = true;
+            Run inPlace(config(), spec), repacked(repackConfig, spec);
+            for (std::size_t step = 0; step < 30; ++step) {
+                SCOPED_TRACE(step);
+                driftById(inPlace.particles, 2.0e-6);
+                driftById(repacked.particles, 2.0e-6);
+                ASSERT_EQ(inPlace.solve().backendSolves, 1u);
+                ASSERT_EQ(repacked.solve().backendSolves, 1u);
+                const auto a = gatherAll(inPlace.particles);
+                const auto b = gatherAll(repacked.particles);
+                ASSERT_EQ(a.size(), spec.globalCount);
+                ASSERT_EQ(b.size(), spec.globalCount);
+                double scale = 0.0, worst = 0.0;
+                for (std::size_t i = 0; i < a.size(); ++i) {
+                    ASSERT_EQ(a[i].id, b[i].id) << "particle sets differ";
+                    scale = std::max(scale, norm(a[i].e));
+                    for (unsigned d = 0; d < 3; ++d) {
+                        ASSERT_EQ(a[i].r[d], b[i].r[d]);
+                        ASSERT_TRUE(std::isfinite(b[i].e[d]));
+                        worst = std::max(worst, std::abs(a[i].e[d] - b[i].e[d]));
+                    }
+                }
+                // Not bit-identical: destroyed slots still enter cstone's bounding box, so the trees
+                // differ slightly. Deviations must stay far below the BH error (~3.6e-4 rms).
+                ASSERT_LT(worst, 1.0e-5 * scale) << "repacked fields deviate from in-place fields";
+            }
+            EXPECT_EQ(repacked.algorithm->statistics().inPlacePacks, 0u);
+            EXPECT_GT(inPlace.algorithm->statistics().inPlacePacks, 0u);
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, GrowsEveryStepLikeEmission) {
+            // Emission-like: every rank adds particles at a thin "cathode" layer each step while the
+            // bunch drifts away from it, so every solve takes the destroy + create path on a
+            // container with halos and the bounding box keeps growing.
+            BunchSpec spec;
+            spec.globalCount = 2000;
+            Run run(config(), spec);
+            BunchSpec layer   = spec;
+            layer.sigma       = Vector(1.0e-3, 1.5e-3, 1.0e-6);
+            layer.center      = Vector(0.0, 0.0, spec.center[2] - 4.0 * spec.sigma[2]);
+            const std::size_t rank = ippl::Comm->rank(), size = ippl::Comm->size();
+            const std::size_t perStepGlobal = 40;
+            std::uint64_t nextGlobal = spec.globalCount;
+            for (std::size_t step = 0; step < 40; ++step) {
+                SCOPED_TRACE(step);
+                driftById(run.particles, 2.0e-5);
+                // Round-robin share of this step's new particles, with fractional dt like emission.
+                std::vector<std::uint64_t> mine;
+                for (std::uint64_t k = nextGlobal + rank; k < nextGlobal + perStepGlobal; k += size) {
+                    mine.push_back(k);
+                }
+                nextGlobal += perStepGlobal;
+                const std::size_t offset = run.particles.getLocalNum();
+                run.particles.createParticles(mine.size());
+                auto R  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), run.particles.R.getView());
+                auto dt = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), run.particles.dt.getView());
+                for (std::size_t i = 0; i < mine.size(); ++i) {
+                    R(offset + i)  = positionFor(layer, mine[i]);
+                    dt(offset + i) = kTimeStep * (0.05 + 0.95 * uniform(mine[i], 41));
+                }
+                Kokkos::deep_copy(run.particles.R.getView(), R);
+                Kokkos::deep_copy(run.particles.dt.getView(), dt);
+
+                const auto before = gatherAll(run.particles);
+                ASSERT_EQ(run.solve().backendSolves, 1u);
+                ASSERT_EQ(run.particles.getTotalNum(), nextGlobal);
+                const auto after = gatherAll(run.particles);
+                expectConserved(before, after);
+                for (const Record& r : after) {
+                    ASSERT_TRUE(std::isfinite(r.e[0]) && std::isfinite(r.e[1]) && std::isfinite(r.e[2]));
+                }
+                if (step % 10 == 9) {
+                    const double error = rmsRelativeError(after, directSum(before, kCharge, 1.0e-6));
+                    if (ippl::Comm->rank() == 0) {
+                        std::printf("[BH] emission-like step %zu N=%zu rms relative error=%.3e\n",
+                                    step, static_cast<std::size_t>(nextGlobal), error);
+                    }
+                    ASSERT_LT(error, 1.0e-3);  // measured 2.8-3.0e-4
+                }
+            }
         }
 
         TEST_F(BarnesHutAlgorithmTest, RebuildsContainerWhenBunchGrowsAndMatchesFreshSolve) {
