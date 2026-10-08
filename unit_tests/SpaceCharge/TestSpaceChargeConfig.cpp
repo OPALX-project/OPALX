@@ -23,6 +23,9 @@ namespace opalx::spacecharge {
             void setCutoff(double cutoff) {
                 Attributes::setReal(itsAttr[FIELDSOLVER::P3MRCUT], cutoff);
             }
+            void setCutoffCells(double cells) {
+                Attributes::setReal(itsAttr[FIELDSOLVER::P3MRCUTCELLS], cells);
+            }
         };
 
         class TestableEmissionSource : public EmissionSource {
@@ -251,7 +254,10 @@ namespace opalx::spacecharge {
             command.setNY(8);
             command.setNZ(8);
             EXPECT_NO_THROW(command.execute());
-            EXPECT_THROW((void)buildSpaceChargeConfig(command, {}), OpalException);
+            // Without RCUT, P3M ties its cutoff to the mesh with the default RCUT_CELLS = 2.
+            const auto p3m = std::get<CartesianPIC3DConfig>(buildSpaceChargeConfig(command, {}));
+            EXPECT_DOUBLE_EQ(p3m.p3mCutoff, 0.0);
+            EXPECT_DOUBLE_EQ(p3m.p3mCutoffCells, 2.0);
             command.setType("OPEN");
             EXPECT_EQ(command.getFieldSolverCmdType(), FieldSolverCmdType::OPEN);
             const auto snapshot =
@@ -262,6 +268,45 @@ namespace opalx::spacecharge {
                     std::get<CartesianPIC3DConfig>(buildSpaceChargeConfig(command, {}))
                             .grid.meshSize[0],
                     16u);
+        }
+
+        TEST(SpaceChargeConfigBuilderTest, SelectsOneP3MCutoffMode) {
+            auto makeCommand = [](const std::string& type) {
+                auto command = std::make_unique<TestableFieldSolverCmd>();
+                command->setType(type);
+                command->setNX(8);
+                command->setNY(8);
+                command->setNZ(8);
+                return command;
+            };
+
+            auto fixed = makeCommand("P3M");
+            fixed->setCutoff(0.025);
+            const auto fixedConfig =
+                    std::get<CartesianPIC3DConfig>(buildSpaceChargeConfig(*fixed, {}));
+            EXPECT_DOUBLE_EQ(fixedConfig.p3mCutoff, 0.025);
+            EXPECT_DOUBLE_EQ(fixedConfig.p3mCutoffCells, 0.0);
+
+            auto meshTied = makeCommand("P3M");
+            meshTied->setCutoffCells(3.0);
+            const auto meshTiedConfig =
+                    std::get<CartesianPIC3DConfig>(buildSpaceChargeConfig(*meshTied, {}));
+            EXPECT_DOUBLE_EQ(meshTiedConfig.p3mCutoff, 0.0);
+            EXPECT_DOUBLE_EQ(meshTiedConfig.p3mCutoffCells, 3.0);
+
+            auto both = makeCommand("P3M");
+            both->setCutoff(0.025);
+            both->setCutoffCells(2.0);
+            EXPECT_THROW((void)buildSpaceChargeConfig(*both, {}), OpalException);
+
+            // Other solvers ignore the RCUT_CELLS default but reject an explicit value.
+            auto open = makeCommand("OPEN");
+            EXPECT_DOUBLE_EQ(
+                    std::get<CartesianPIC3DConfig>(buildSpaceChargeConfig(*open, {}))
+                            .p3mCutoffCells,
+                    0.0);
+            open->setCutoffCells(2.0);
+            EXPECT_THROW((void)buildSpaceChargeConfig(*open, {}), OpalException);
         }
 
         TEST(SpaceChargeConfigBuilderTest, RejectsInvalidMeshValuesBeforeIntegerConversion) {

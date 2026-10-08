@@ -48,6 +48,7 @@ namespace FIELDSOLVER {
         BCFFTZ,        // Poisson-domain boundary in z
         GREENSF,       // Green function for OPEN; P3M selects its kernel internally
         P3MRCUT,       // P3M particle-particle cutoff radius [m]
+        P3MRCUTCELLS,  // P3M cutoff in units of the largest mesh spacing
         BBOXINCR,      // how much the boundingbox is increased
         PIPEMODE,      // One of OPEN, CIRCULAR, PLATES, NONE [FFT2D5 only]
         BEAMR,         // Beam radius in metres [FFT2D5 only]
@@ -79,6 +80,11 @@ public:
     BinningCmd* getBinningCmd() const;
     std::string getGreensFunction() const;
     double getP3MCutoff() const;
+    /// P3M cutoff in units of the largest mesh spacing (default 2 when RCUT is not given).
+    double getP3MCutoffCells() const;
+    /// Whether RCUT or RCUT_CELLS was set in the input, rather than left at its default.
+    bool hasP3MCutoff() const;
+    bool hasP3MCutoffCells() const;
 
     /// Returns solver boundary conditions handler object.
     BCHandler<3> constructBCHandler() const;
