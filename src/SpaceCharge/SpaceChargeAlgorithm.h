@@ -12,6 +12,8 @@
 
 namespace opalx::spacecharge {
 
+    class BeamBeamFieldServices;
+
     /** @brief Work completed by one space-charge update. */
     struct SpaceChargeSolveResult {
         std::size_t backendSolves   = 0;  ///< Completed Poisson backend calls.
@@ -36,6 +38,9 @@ namespace opalx::spacecharge {
          */
         [[nodiscard]] virtual SpaceChargeSolveResult solve(
                 const SpaceChargeSolveContext& context) = 0;
+
+        /** @brief Optional Cartesian field reuse required by BeamBeam interactions. */
+        [[nodiscard]] virtual BeamBeamFieldServices* beamBeamFields() { return nullptr; }
     };
 
 }  // namespace opalx::spacecharge

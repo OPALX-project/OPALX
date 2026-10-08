@@ -11,6 +11,7 @@ set (HDRS
     )
 
 set (_PRIVATE_HDRS
+    BeamBeamFieldServices.h
     SpaceChargeAlgorithm.h
     SpaceChargeSolver.h
     SpaceChargeFrames.h

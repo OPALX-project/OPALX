@@ -106,6 +106,13 @@ public:
     /// True if PC, ENERGY, or GAMMA was explicitly provided by the user.
     bool hasExplicitEnergy() const;
 
+    /**
+     * @brief Whether this beam constructs an independent reference-orbit threader.
+     *
+     * Temporary multi-beam control. When false, the corresponding particle container reuses the
+     * primary beam's design-orbit element map instead of threading its own reference particle.
+     */
+    bool usesIndependentOrbitThreader() const;
     /// Repeated spectral launches: kinetic GeV, radius m, radial momentum / mc.
     std::vector<double> getTuneInitial() const;
 

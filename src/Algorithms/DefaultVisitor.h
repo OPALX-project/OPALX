@@ -61,6 +61,9 @@ public:
     void visitDrift(const Drift&) override;
     void visitFieldmapElement(const FieldmapElement&) override;
 
+    /// Apply the algorithm to a beam-beam interaction element.
+    void visitBeamBeam(const BeamBeam&) override;
+
     /// Apply the algorithm to a laser.
     void visitLaser(const Laser&) override;
 

@@ -13,6 +13,7 @@ set (_SRCS
   H5FileSpace.cpp
   H5PartWrapper.cpp
   H5PartWrapperForPT.cpp
+  H5BeamBeamDiagnosticsWriter.cpp
   MonitorStatisticsWriter.cpp
   IpplInfoWrapper.cpp
   H5Writer.cpp
@@ -40,6 +41,7 @@ set (HDRS
     FieldSolverCmd.h
     BinningCmd.h
     H5PartWrapperForPT.h
+    H5BeamBeamDiagnosticsWriter.h
     H5PartWrapper.h
     IpplInfoWrapper.h
     MonitorStatisticsWriter.h

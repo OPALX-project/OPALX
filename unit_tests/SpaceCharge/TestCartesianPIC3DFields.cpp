@@ -154,6 +154,16 @@ namespace opalx::spacecharge {
             EXPECT_DOUBLE_EQ(mirrored(ghost, ghost, ghost)[0], -source(ghost, ghost, mirroredK)[0]);
             EXPECT_DOUBLE_EQ(mirrored(ghost, ghost, ghost)[1], -source(ghost, ghost, mirroredK)[1]);
             EXPECT_DOUBLE_EQ(mirrored(ghost, ghost, ghost)[2], source(ghost, ghost, mirroredK)[2]);
+
+            composer.clearAccumulation(fields);
+            policy.sourceRule = FieldSourceRule::MirroredPrimaryZ;
+            composer.accumulate(fields, policy);
+            Kokkos::fence();
+            const auto copied = Kokkos::create_mirror_view_and_copy(
+                    Kokkos::HostSpace(), fields.accumulatedElectricField().getView());
+            EXPECT_DOUBLE_EQ(copied(ghost, ghost, ghost)[0], source(ghost, ghost, mirroredK)[0]);
+            EXPECT_DOUBLE_EQ(copied(ghost, ghost, ghost)[1], source(ghost, ghost, mirroredK)[1]);
+            EXPECT_DOUBLE_EQ(copied(ghost, ghost, ghost)[2], -source(ghost, ghost, mirroredK)[2]);
         }
 
         TEST_F(CartesianPIC3DFieldsTest, P3MShortRangeProducesFinitePairField) {
