@@ -201,10 +201,17 @@ namespace opalx::spacecharge {
             EXPECT_DOUBLE_EQ(config.theta, 0.3);
             EXPECT_DOUBLE_EQ(config.softening, 1.0e-6);
             EXPECT_FALSE(config.leafBasedSoftening);
+            EXPECT_FALSE(config.directSum);
             EXPECT_EQ(config.grid.meshSize, (std::array<std::size_t, 3>{8, 8, 8}));
+
+            command.setBHDirectSum(true);
+            EXPECT_TRUE(std::get<BarnesHutConfig>(buildSpaceChargeConfig(command, {})).directSum);
 
             command.setBHSoftening(0.0);
             command.setBHLeafBasedSoftening(true);
+            // The direct sum has no octree leaves to soften with.
+            EXPECT_THROW((void)buildSpaceChargeConfig(command, {}), OpalException);
+            command.setBHDirectSum(false);
             EXPECT_NO_THROW((void)buildSpaceChargeConfig(command, {}));
 
             command.setBHTheta(1.5);

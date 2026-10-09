@@ -112,6 +112,11 @@ FieldSolverCmd::FieldSolverCmd()
             "BHLEAFH",
             "TRUE to use each particle's octree leaf edge length as its softening [BH only]",
             false);
+    itsAttr[FIELDSOLVER::BHDIRECT] = Attributes::makeBool(
+            "BHDIRECT",
+            "TRUE to evaluate the field by direct O(N^2) summation with the same softened kernel "
+            "(and image charges) instead of the octree; for reference runs [BH only]",
+            false);
 
     // \todo does not work   registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -233,6 +238,9 @@ double FieldSolverCmd::getBHSoftening() const {
 bool FieldSolverCmd::getBHLeafBasedSoftening() const {
     return Attributes::getBool(itsAttr[FIELDSOLVER::BHLEAFH]);
 }
+bool FieldSolverCmd::getBHDirectSum() const {
+    return Attributes::getBool(itsAttr[FIELDSOLVER::BHDIRECT]);
+}
 void FieldSolverCmd::setBHTheta(const double theta) {
     Attributes::setReal(itsAttr[FIELDSOLVER::BHTHETA], theta);
 }
@@ -241,6 +249,9 @@ void FieldSolverCmd::setBHSoftening(const double softening) {
 }
 void FieldSolverCmd::setBHLeafBasedSoftening(const bool enabled) {
     Attributes::setBool(itsAttr[FIELDSOLVER::BHLEAFH], enabled);
+}
+void FieldSolverCmd::setBHDirectSum(const bool enabled) {
+    Attributes::setBool(itsAttr[FIELDSOLVER::BHDIRECT], enabled);
 }
 
 FieldSolverCmdType FieldSolverCmd::getFieldSolverCmdType() const {
@@ -286,7 +297,8 @@ Inform& FieldSolverCmd::printInfo(Inform& os) const {
     if (getType() == "BH") {
         os << "* BHTHETA      " << getBHTheta() << '\n'
            << "* BHSOFTENING  " << getBHSoftening() << " [m]" << '\n'
-           << "* BHLEAFH      " << (getBHLeafBasedSoftening() ? "TRUE" : "FALSE") << endl;
+           << "* BHLEAFH      " << (getBHLeafBasedSoftening() ? "TRUE" : "FALSE") << '\n'
+           << "* BHDIRECT     " << (getBHDirectSum() ? "TRUE" : "FALSE") << endl;
     }
 
     if (getType() == "P3M") {

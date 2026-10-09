@@ -107,6 +107,7 @@ namespace opalx::spacecharge {
      * @brief Complete runtime configuration for the gridless Barnes-Hut solver (TYPE=BH).
      *
      * Open boundaries, whole bunch, electrostatic (gamma = 1, B = 0) like unbinned CartesianPIC3D.
+     * A Dirichlet plane is represented exactly by image charges (method of images).
      * The Cartesian @c grid is not used by the solve; it only sizes the inert PartBunch domain.
      */
     struct BarnesHutConfig {
@@ -114,6 +115,11 @@ namespace opalx::spacecharge {
         double theta     = 0.5;    ///< Multipole acceptance angle in (0, 1].
         double softening = 0.0;    ///< Uniform softening length h in metres.
         bool leafBasedSoftening = false;  ///< Use the octree leaf edge as per-particle h.
+        /// BHDIRECT: always evaluate the softened field by direct O(N^2) summation (reference
+        /// runs); otherwise only bunches below 64 particles per rank use it.
+        bool directSum = false;
+        /// Grounded plane modelled by image charges (ZEROFACE_R0Z / SHIFTED_GREENS_FUNCTION).
+        DirichletPlaneConfig dirichletPlane;
         std::size_t bucketSize      = 0;   ///< cstone global-tree bucket size; 0 = automatic.
         std::size_t bucketSizeFocus = 64;  ///< cstone focus-tree bucket size.
         /// Testing only (not an input attribute): rebuild the Barnes-Hut particle set with

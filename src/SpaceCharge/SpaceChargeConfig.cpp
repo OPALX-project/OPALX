@@ -140,6 +140,12 @@ namespace opalx::spacecharge {
 
         void validateBarnesHut(const BarnesHutConfig& config) {
             validateGrid(config.grid);
+            validateDirichletPlane(config.dirichletPlane);
+            if (config.dirichletPlane.planeDumpFrequency != 0) {
+                throw OpalException(
+                        "validateSpaceChargeConfig",
+                        "TYPE=BH has no mesh potential; ZEROFACEPLANEDUMP is not supported.");
+            }
             if (!std::isfinite(config.theta) || !(config.theta > 0.0) || config.theta > 1.0) {
                 throw OpalException(
                         "validateSpaceChargeConfig", "BHTHETA must lie in the interval (0, 1].");
@@ -154,6 +160,13 @@ namespace opalx::spacecharge {
                         "validateSpaceChargeConfig",
                         "TYPE=BH requires BHSOFTENING > 0 (e.g. a fraction of the mean "
                         "inter-particle distance) or BHLEAFH=TRUE.");
+            }
+            // The direct sum has no octree, hence no leaf size to soften with.
+            if (config.directSum && config.leafBasedSoftening) {
+                throw OpalException(
+                        "validateSpaceChargeConfig",
+                        "BHDIRECT=TRUE needs a uniform BHSOFTENING > 0; BHLEAFH=TRUE has no leaves "
+                        "without the octree.");
             }
             if (config.bucketSizeFocus == 0
                 || config.bucketSizeFocus > std::numeric_limits<unsigned>::max()

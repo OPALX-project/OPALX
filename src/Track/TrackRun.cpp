@@ -439,6 +439,11 @@ void TrackRun::execute() {
             opalx::spacecharge::buildSpaceChargeConfig(*fs_m, emissionSourcesLists);
     opalx::spacecharge::DirichletPlaneConfig dirichletPlane;
     bool retrySafeBareTracking = false;
+    // The tracker deletes particles that fall back behind the plane (markBackwardParticles...).
+    if (const auto* barnesHut =
+                std::get_if<opalx::spacecharge::BarnesHutConfig>(&spaceChargeConfig)) {
+        dirichletPlane = barnesHut->dirichletPlane;
+    }
     if (const auto* cartesian =
                 std::get_if<opalx::spacecharge::CartesianPIC3DConfig>(&spaceChargeConfig)) {
         dirichletPlane = cartesian->dirichletPlane;

@@ -126,21 +126,24 @@ namespace opalx::spacecharge {
             return all;
         }
 
-        /** @brief Reference field of the softened Coulomb sum used by the ryoanji P2P kernel. */
-        std::vector<std::array<double, 3>> directSum(
-                const std::vector<Record>& particles, double charge, double softening) {
+        /**
+         * @brief Reference field of the softened Coulomb sum used by the ryoanji P2P kernel, at
+         * @p targets from @p sources (source charge = charge * dt / kTimeStep).
+         */
+        std::vector<std::array<double, 3>> softenedField(
+                const std::vector<Record>& targets, const std::vector<Record>& sources,
+                double charge, double softening) {
             const double h2 = 4.0 * softening * softening;
-            std::vector<std::array<double, 3>> field(particles.size(), {0.0, 0.0, 0.0});
+            std::vector<std::array<double, 3>> field(targets.size(), {0.0, 0.0, 0.0});
 #pragma omp parallel for schedule(static)
-            for (std::size_t i = 0; i < particles.size(); ++i) {
+            for (std::size_t i = 0; i < targets.size(); ++i) {
                 double acc[3] = {0.0, 0.0, 0.0};
-                for (std::size_t j = 0; j < particles.size(); ++j) {
+                for (const Record& src : sources) {
                     const double dx[3] = {
-                            particles[i].r[0] - particles[j].r[0],
-                            particles[i].r[1] - particles[j].r[1],
-                            particles[i].r[2] - particles[j].r[2]};
+                            targets[i].r[0] - src.r[0], targets[i].r[1] - src.r[1],
+                            targets[i].r[2] - src.r[2]};
                     const double r2 = std::max(dx[0] * dx[0] + dx[1] * dx[1] + dx[2] * dx[2], h2);
-                    const double q  = charge * particles[j].dt / kTimeStep;
+                    const double q  = charge * src.dt / kTimeStep;
                     const double w  = q / (r2 * std::sqrt(r2));
                     for (unsigned d = 0; d < 3; ++d) {
                         acc[d] += w * dx[d];
@@ -151,6 +154,11 @@ namespace opalx::spacecharge {
                 }
             }
             return field;
+        }
+
+        std::vector<std::array<double, 3>> directSum(
+                const std::vector<Record>& particles, double charge, double softening) {
+            return softenedField(particles, particles, charge, softening);
         }
 
         /** @brief Small deterministic displacement of every local particle. */
@@ -174,6 +182,20 @@ namespace opalx::spacecharge {
                         R(i)[2] += shift;
                     });
             Kokkos::fence();
+        }
+
+        /** @brief Reference field with a grounded plane: every particle has a mirror image
+         * (z' = 2 planeZ - z, opposite charge) that acts as a source only. */
+        std::vector<std::array<double, 3>> directSumWithImages(
+                const std::vector<Record>& particles, double charge, double softening, double planeZ) {
+            std::vector<Record> sources = particles;
+            for (const Record& r : particles) {
+                Record image = r;
+                image.r[2]   = 2.0 * planeZ - r.r[2];
+                image.dt     = -r.dt;  // the source charge is charge * dt / kTimeStep
+                sources.push_back(image);
+            }
+            return softenedField(particles, sources, charge, softening);
         }
 
         double norm(const double* v) { return std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]); }
@@ -273,8 +295,10 @@ namespace opalx::spacecharge {
                     particles.markMomentsDirty();
                 }
 
-                SpaceChargeSolveResult solve(CoordinateFrameTransforms frames = {}) {
+                SpaceChargeSolveResult solve(
+                        CoordinateFrameTransforms frames = {}, std::size_t stepIndex = 0) {
                     SpaceChargeStepState step;
+                    step.step     = stepIndex;
                     step.timeStep = kTimeStep;
                     step.mpiSize  = ippl::Comm->size();
                     step.frames   = frames;
@@ -332,6 +356,34 @@ namespace opalx::spacecharge {
             }
         }
 
+        TEST_F(BarnesHutAlgorithmTest, ForcedDirectSumMatchesReference) {
+            // BHDIRECT: a bunch far above the fallback limit is still summed directly, with and
+            // without image charges, and never enters the tree.
+            BunchSpec spec;
+            spec.globalCount = 4000;
+            spec.variableDt  = true;
+            for (bool images : {false, true}) {
+                SCOPED_TRACE(images);
+                auto values      = config(2.0e-5);
+                values.directSum = true;
+                const double planeZ = spec.center[2] - 2.0 * spec.sigma[2];
+                if (images) {
+                    values.dirichletPlane = {.kind   = DirichletPlaneType::ImageCharge,
+                                             .planeZ = planeZ};
+                }
+                Run run(values, spec);
+                const auto before = gatherAll(run.particles);
+                EXPECT_EQ(run.solve().backendSolves, 1u);
+                const auto after = gatherAll(run.particles);
+                expectConserved(before, after);
+                const auto reference = images ? directSumWithImages(before, kCharge, 2.0e-5, planeZ)
+                                              : directSum(before, kCharge, 2.0e-5);
+                EXPECT_LT(rmsRelativeError(after, reference), 1.0e-10);
+                EXPECT_EQ(run.algorithm->statistics().directSolves, 1u);
+                EXPECT_EQ(run.algorithm->statistics().solves, 0u);
+            }
+        }
+
         TEST_F(BarnesHutAlgorithmTest, SmallAndShrinkingBunchesMatchDirectSum) {
             // Below 64 particles per rank the algorithm falls back to ryoanji's direct sum, which
             // uses the reference kernel exactly; above it Barnes-Hut must cope with small trees.
@@ -384,6 +436,146 @@ namespace opalx::spacecharge {
             EXPECT_EQ(run.solve().backendSolves, 1u);
             check(run, 20, before);
             EXPECT_EQ(run.algorithm->statistics().directSolves, 1u);
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, ImageChargesMatchDirectSumWithMirrors) {
+            // Grounded plane 2 sigma_z behind the bunch centre (image field ~8% of the self-field,
+            // a few particles lie behind it, so mirrors mix into the bunch tail) and 5 sigma_z
+            // behind it (no particle behind the plane; reals and mirrors share only cells that
+            // straddle the plane). The reference treats both identically. The direct-sum path
+            // (48 particles) uses the reference kernel exactly; the tree path must stay at the
+            // usual BH accuracy. Only real particles may come back to OPALX.
+            for (double planeOffset : {2.0, 5.0}) {
+                for (std::size_t count : {48u, 4000u}) {
+                    SCOPED_TRACE(count);
+                    SCOPED_TRACE(planeOffset);
+                    BunchSpec spec;
+                    spec.globalCount = count;
+                    spec.variableDt  = true;
+                    auto values      = config(2.0e-5);
+                    values.dirichletPlane = {
+                            .kind   = DirichletPlaneType::ImageCharge,
+                            .planeZ = spec.center[2] - planeOffset * spec.sigma[2]};
+                    Run run(values, spec);
+                    const auto before = gatherAll(run.particles);
+                    EXPECT_EQ(run.solve().backendSolves, 1u);
+                    const auto after = gatherAll(run.particles);
+                    expectConserved(before, after);
+                    const double error = rmsRelativeError(
+                            after, directSumWithImages(before, kCharge, 2.0e-5,
+                                                       values.dirichletPlane.planeZ));
+                    // The image field must actually matter: without mirrors the field is different.
+                    const double withoutImages =
+                            rmsRelativeError(after, directSum(before, kCharge, 2.0e-5));
+                    const bool direct = count < 64 * static_cast<std::size_t>(ippl::Comm->size());
+                    if (ippl::Comm->rank() == 0) {
+                        std::printf("[BH] images plane=%.0f sigma_z N=%zu %s rms relative error=%.3e"
+                                    " (vs no images %.3e)\n",
+                                    planeOffset, count, direct ? "direct" : "tree", error,
+                                    withoutImages);
+                    }
+                    // Tree measured 3.7e-4 (2 sigma_z) and 4.8e-4 (5 sigma_z), at the image-free
+                    // level (3.6e-4); without dipole multipoles 3.1e-3 at 2 sigma_z.
+                    EXPECT_LT(error, direct ? 1.0e-10 : 1.0e-3);
+                    EXPECT_GT(withoutImages, planeOffset < 3.0 ? 1.0e-2 : 2.0e-3);
+                    EXPECT_EQ(run.algorithm->statistics().dipoleSolves, direct ? 0u : 1u);
+                }
+            }
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, ImageChargeErrorScalesWithTheta) {
+            // Cells mixing reals and mirrors converge like the image-free case once their dipole
+            // is kept (measured 1.64e-3, 3.75e-4, 3.49e-5; DirectSumMediumConvergesWithTheta:
+            // 1.49e-3, 3.60e-4, 3.99e-5), so the image-free limits apply. Without the dipole the
+            // error fell only like theta^2 (5.99e-3, 3.10e-3, 1.01e-3).
+            BunchSpec spec;
+            spec.globalCount = 4000;
+            spec.variableDt  = true;
+            const double planeZ = spec.center[2] - 2.0 * spec.sigma[2];
+            double previous     = 1.0;
+            for (double theta : {0.7, 0.5, 0.3}) {
+                SCOPED_TRACE(theta);
+                auto values           = config(2.0e-5, theta);
+                values.dirichletPlane = {.kind = DirichletPlaneType::ImageCharge, .planeZ = planeZ};
+                Run run(values, spec);
+                const auto before = gatherAll(run.particles);
+                (void)run.solve();
+                const auto after   = gatherAll(run.particles);
+                const double error = rmsRelativeError(
+                        after, directSumWithImages(before, kCharge, 2.0e-5, planeZ));
+                if (ippl::Comm->rank() == 0) {
+                    std::printf("[BH] images theta=%.2f rms relative error=%.3e\n", theta, error);
+                }
+                EXPECT_LT(error, theta >= 0.7 ? 3.0e-3 : (theta >= 0.5 ? 8.0e-4 : 1.0e-4));
+                EXPECT_LT(error, previous);
+                previous = error;
+            }
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, GroundedPlaneHasNoTangentialField) {
+            // Particles placed exactly on the plane see no tangential field: every charge and its
+            // mirror contribute equal and opposite E_x, E_y there. The normal field is non-zero.
+            BunchSpec spec;
+            spec.globalCount = 4000;
+            const double planeZ = spec.center[2] - 4.0 * spec.sigma[2];
+            auto values         = config(2.0e-5);
+            values.dirichletPlane = {.kind = DirichletPlaneType::ShiftedGreen, .planeZ = planeZ};
+            Run run(values, spec);
+            // Move every 10th global particle onto the plane (by ID, any rank layout).
+            {
+                auto R  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), run.particles.R.getView());
+                auto ID = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), run.particles.ID.getView());
+                for (std::size_t i = 0; i < run.particles.getLocalNum(); ++i) {
+                    if (ID(i) % 10 == 0) {
+                        R(i)[2] = planeZ;
+                    }
+                }
+                Kokkos::deep_copy(run.particles.R.getView(), R);
+            }
+            (void)run.solve();
+            double tangential = 0.0, normal = 0.0;
+            std::size_t onPlane = 0;
+            for (const Record& r : gatherAll(run.particles)) {
+                if (r.r[2] != planeZ) {
+                    continue;
+                }
+                ++onPlane;
+                tangential += r.e[0] * r.e[0] + r.e[1] * r.e[1];
+                normal += r.e[2] * r.e[2];
+            }
+            ASSERT_EQ(onPlane, spec.globalCount / 10);
+            ASSERT_GT(normal, 0.0);
+            if (ippl::Comm->rank() == 0) {
+                std::printf("[BH] grounded plane: rms E_t / rms E_n = %.3e\n",
+                            std::sqrt(tangential / normal));
+            }
+            // Measured 1.85e-6 (1 rank).
+            EXPECT_LT(std::sqrt(tangential / normal), 5.0e-6);
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, ImageChargesExpireAfterMaximumSteps) {
+            BunchSpec spec;
+            spec.globalCount = 2000;
+            auto values      = config(2.0e-5);
+            values.dirichletPlane = {.kind         = DirichletPlaneType::ImageCharge,
+                                     .planeZ       = spec.center[2] - 4.0 * spec.sigma[2],
+                                     .maximumSteps = 2};
+            Run run(values, spec);
+            for (std::size_t step = 0; step < 4; ++step) {
+                SCOPED_TRACE(step);
+                const auto before = gatherAll(run.particles);
+                ASSERT_EQ(run.solve({}, step).backendSolves, 1u);
+                const auto after = gatherAll(run.particles);
+                expectConserved(before, after);
+                const auto reference =
+                        step < 2 ? directSumWithImages(before, kCharge, 2.0e-5,
+                                                       values.dirichletPlane.planeZ)
+                                 : directSum(before, kCharge, 2.0e-5);
+                EXPECT_LT(rmsRelativeError(after, reference), 1.0e-3);
+            }
+            // Dipole multipoles only while the images are active, quadrupoles after expiry.
+            EXPECT_EQ(run.algorithm->statistics().solves, 4u);
+            EXPECT_EQ(run.algorithm->statistics().dipoleSolves, 2u);
         }
 
         TEST_F(BarnesHutAlgorithmTest, DirectSumMediumConvergesWithTheta) {

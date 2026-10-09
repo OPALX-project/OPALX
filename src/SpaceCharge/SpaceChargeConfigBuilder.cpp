@@ -298,11 +298,6 @@ namespace opalx::spacecharge {
                 })) {
                 throw OpalException(where, "TYPE=BH supports only OPEN boundaries (BCFFTX/Y/Z).");
             }
-            if (buildDirichletPlaneConfig(emissionSources).enabled()) {
-                throw OpalException(
-                        where, "TYPE=BH does not support Dirichlet planes (ZEROFACE_R0Z or "
-                               "SHIFTED_GREENS_FUNCTION).");
-            }
             if (Options::useQMAttributes) {
                 throw OpalException(
                         where, "TYPE=BH requires QM_MODE=SINGLE (one charge per container).");
@@ -323,6 +318,10 @@ namespace opalx::spacecharge {
             values.theta                           = fieldSolver.getBHTheta();
             values.softening                       = fieldSolver.getBHSoftening();
             values.leafBasedSoftening              = fieldSolver.getBHLeafBasedSoftening();
+            values.directSum                       = fieldSolver.getBHDirectSum();
+            // ZEROFACE_R0Z and SHIFTED_GREENS_FUNCTION describe the same grounded plane; Barnes-Hut
+            // models both with image charges.
+            values.dirichletPlane = buildDirichletPlaneConfig(emissionSources);
             return values;
         }
 

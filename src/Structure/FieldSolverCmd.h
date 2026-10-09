@@ -67,6 +67,7 @@ namespace FIELDSOLVER {
         BHTHETA,                // Barnes-Hut multipole acceptance angle [BH only]
         BHSOFTENING,            // Barnes-Hut Plummer-like softening length in metres [BH only]
         BHLEAFH,                // Use the octree leaf size as per-particle softening [BH only]
+        BHDIRECT,               // Direct O(N^2) summation instead of the tree [BH only]
         SIZE
     };
 }
@@ -135,6 +136,7 @@ public:
     double getBHTheta() const;
     double getBHSoftening() const;
     bool getBHLeafBasedSoftening() const;
+    bool getBHDirectSum() const;
     void setPipeMode(const std::string& pipeMode);
     void setBeamRadius(double beamRadius);
     void setClosedRing(bool closedRing);
@@ -145,6 +147,7 @@ public:
     void setBHTheta(double theta);
     void setBHSoftening(double softening);
     void setBHLeafBasedSoftening(bool enabled);
+    void setBHDirectSum(bool enabled);
 
 private:
     // Not implemented.
