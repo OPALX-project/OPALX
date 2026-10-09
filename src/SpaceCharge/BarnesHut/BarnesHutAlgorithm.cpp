@@ -64,9 +64,7 @@ namespace opalx::spacecharge {
         /// Wait for raw CUDA (cstone/ryoanji, default stream) and Kokkos work alike.
         void synchronizeDevice() {
             Kokkos::fence();
-#if defined(USE_CUDA)
-            syncGpu();
-#endif
+            ippl::nbody::syncExec();
         }
 
         BarnesHutAlgorithm::ParticleContainer& requirePrimary(
