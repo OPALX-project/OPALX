@@ -8,6 +8,7 @@ set(_SRCS
     CyclotronSector.cpp
     AttributeSet.cpp
     BeamlineVisitor.cpp
+    Box.cpp
     Collimator.cpp
     ConstantEFieldCavity.cpp
     ConstantFocusing.cpp
@@ -38,6 +39,7 @@ set(_HDRS
     CyclotronSector.h
     AttributeSet.h
     BeamlineVisitor.h
+    Box.h
     Collimator.h
     ConstantEFieldCavity.h
     ConstantFocusing.h
