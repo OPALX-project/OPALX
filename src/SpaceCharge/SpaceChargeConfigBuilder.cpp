@@ -321,6 +321,11 @@ namespace opalx::spacecharge {
                         "SpaceChargeConfigBuilder::build",
                         "FFT2D5 does not support Dirichlet planes.");
             }
+            if (Options::loadBalancingPairWeight > 0.0) {
+                throw OpalException(
+                        "buildSpaceChargeConfig",
+                        "LOADBALANCINGPAIRWEIGHT above 0 requires FIELDSOLVER TYPE=P3M.");
+            }
             FFT2D5Config values;
             values.grid                  = grid;
             values.longitudinalFieldMode = convertFFT2D5Mode(fieldSolver.getPipeMode());
@@ -359,8 +364,9 @@ namespace opalx::spacecharge {
         values.binning        = buildBinningConfig(fieldSolver.getBinningCmd());
         values.repartitionFrequency =
                 Options::repartFreq > 0 ? static_cast<std::size_t>(Options::repartFreq) : 0;
-        values.loadBalancingThreshold = Options::loadBalancingThreshold;
-        values.dirichletPlane         = buildDirichletPlaneConfig(emissionSources);
+        values.loadBalancingThreshold  = Options::loadBalancingThreshold;
+        values.loadBalancingPairWeight = Options::loadBalancingPairWeight;
+        values.dirichletPlane          = buildDirichletPlaneConfig(emissionSources);
 
         SpaceChargeConfig config = std::move(values);
         validateSpaceChargeConfig(config);
