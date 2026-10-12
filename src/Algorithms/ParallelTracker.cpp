@@ -747,7 +747,8 @@ void ParallelTracker::execute() {
                 m << level4 << "External field computation done at step " << step << "." << endl;
             }
 
-            // Thomas-BMT spin precession using the lab-frame E, B at the particle.
+            // Thomas-BMT spin precession using E, B at the particle (bunch-frame axes, like
+            // P and Pol).
             // No-op for containers that have not registered the Pol attribute.
             evolveSpinTBMT();
             m << level5 << "Spin T-BMT update done at step " << step << "." << endl;
@@ -2123,8 +2124,8 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& /*pusher*/) {
  * @copybrief ParallelTracker::updateRefToLabCSTrafo
  */
 void ParallelTracker::updateRefToLabCSTrafo() {
-    // Transform reference position to lab, but only rotate the momentum vector.
-    // Momentum is a direction/axis and must not be translated.
+    // Map the lab-frame reference position and momentum into the current bunch frame, then
+    // move and turn the bunch frame onto them. Momentum is only rotated, not translated.
     const double bunchDT = itsBunch_m->getdT();
     const size_t n       = itsBunch_m->getNumParticleContainers();
     for (size_t i = 0; i < n; ++i) {
