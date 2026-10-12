@@ -83,7 +83,7 @@ public:
         }
 
         // Sub-stepping for large rotations: split phi into N steps of size <= maxAngle_m.
-        // Rodrigues' formula is exact at any angle, but float precision and the
+        // Rodrigues' formula is exact at any angle, but rounding and the
         // assumption of constant Omega across the step degrade for large phi.
         const int nSub       = static_cast<int>(Kokkos::ceil(phi / maxAngle_m));
         const double dphi    = phi / static_cast<double>(nSub);
@@ -102,9 +102,9 @@ public:
             S = cosDphi * S + sinDphi * axisCrossS + (1.0 - cosDphi) * axisDotS * axis;
         }
 
-        Pol[0] = static_cast<float>(S[0]);
-        Pol[1] = static_cast<float>(S[1]);
-        Pol[2] = static_cast<float>(S[2]);
+        Pol[0] = S[0];
+        Pol[1] = S[1];
+        Pol[2] = S[2];
     }
 };
 
