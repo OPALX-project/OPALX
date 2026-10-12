@@ -14,28 +14,23 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 
-#include "Attributes/Attributes.h"
-#include "gtest/gtest.h"
 #include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
-#include "Elements/OpalEnge.h"
 #include "AbsBeamline/EndFieldModel/Enge.h"
-
+#include "Attributes/Attributes.h"
+#include "Elements/OpalEnge.h"
+#include "gtest/gtest.h"
 
 class TestOpalEnge : public testing::Test {
 public:
-    TestOpalEnge() {
-    }
+    TestOpalEnge() {}
 
-    static void SetUpTestSuite() {
-        Kokkos::initialize();
-    }
+    static void SetUpTestSuite() { Kokkos::initialize(); }
     static void TearDownTestSuite() {
         endfieldmodel::EndFieldModelManager::clearEFMManager();
         Kokkos::fence();
         Kokkos::finalize();
     }
 };
-
 
 TEST_F(TestOpalEnge, TestSetup) {
     // Make the UI
@@ -47,10 +42,9 @@ TEST_F(TestOpalEnge, TestSetup) {
     ui.update();
     auto efmMan = endfieldmodel::EndFieldModelManager::getEFMManager();
     EXPECT_NO_THROW(efmMan->getEndFieldModel("ENGE"));
-    auto efm = efmMan->getEndFieldModel("ENGE");
+    auto efm  = efmMan->getEndFieldModel("ENGE");
     auto enge = std::dynamic_pointer_cast<endfieldmodel::Enge, endfieldmodel::EndFieldModel>(efm);
     EXPECT_EQ(efm->getCentreLength(), 4.0);
     EXPECT_EQ(efm->getEndLength(), 2.0);
     EXPECT_EQ(enge->getCoefficients(), std::vector<double>({0.0, 1.0, 2.0}));
 }
-
