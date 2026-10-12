@@ -67,7 +67,7 @@ namespace endfieldmodel {
     class Enge;
     class Tanh;
     class AsymmetricEnge;
-}
+}  // namespace endfieldmodel
 
 class BeamlineVisitor {
 public:
