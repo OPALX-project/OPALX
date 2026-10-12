@@ -91,9 +91,9 @@ public:
      *  This is a static function so that it can call the GPU
      */
     static void getFieldValue(
-        const VerticalFFAMagnetConfig& config,
-        const std::shared_ptr<endfieldmodel::EndFieldModel> endField,
-        const std::shared_ptr<ParticleContainer_t>& pc);
+            const VerticalFFAMagnetConfig& config,
+            const std::shared_ptr<endfieldmodel::EndFieldModel> endField,
+            const std::shared_ptr<ParticleContainer_t>& pc);
 
     /** Calculate the field at some arbitrary position in cartesian coordinates
      *
@@ -264,11 +264,10 @@ inline void VerticalFFAMagnet::getFieldValue(
     const size_t count                         = pc->getLocalNum();
     Kokkos::View<double*> zRel("zRel", count);
     Kokkos::View<double**> derivatives("derivatives", count, config.maxOrder_m + 1);
-    double zOffset = endField->getCentreLength()/2.0;
+    double zOffset = endField->getCentreLength() / 2.0;
     Kokkos::parallel_for(
-            "VerticalFFAMagnet::zRel", count, KOKKOS_LAMBDA(const size_t i) {
-                zRel(i) = R(i)[2]-zOffset;
-    });
+            "VerticalFFAMagnet::zRel", count,
+            KOKKOS_LAMBDA(const size_t i) { zRel(i) = R(i)[2] - zOffset; });
     endField->function(zRel, config.maxOrder_m + 1, derivatives);
     Kokkos::parallel_for(
             "VerticalFFAMagnet::getFieldValue()", count,
@@ -282,9 +281,9 @@ KOKKOS_INLINE_FUNCTION bool VerticalFFAMagnet::getFieldValue(
         || R[1] < -config_m.zNegExtent_m || R[1] > config_m.zPosExtent_m) {
         return true;
     }
-    Kokkos::Array<double, VerticalFFAMagnetConfig::MaxOrder + 2> derivatives{}; // BUG!
-    Kokkos::Array<double, VerticalFFAMagnetConfig::MaxOrder + 1> x_n{};  // x^n
-    x_n[0] = 1.;                                                              // x^0
+    Kokkos::Array<double, VerticalFFAMagnetConfig::MaxOrder + 2> derivatives{};  // BUG!
+    Kokkos::Array<double, VerticalFFAMagnetConfig::MaxOrder + 1> x_n{};          // x^n
+    x_n[0] = 1.;                                                                 // x^0
     for (size_t i = 1; i <= config_m.maxOrder_m; ++i) {
         x_n[i] = x_n[i - 1] * R[0];
     }

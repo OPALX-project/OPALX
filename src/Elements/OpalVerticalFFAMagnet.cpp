@@ -90,10 +90,10 @@ void OpalVerticalFFAMagnet::update() {
     magnet->setWidth(Attributes::getReal(itsAttr[WIDTH]));
 
     // get centre length and end length in radians
-    double end_length            = Attributes::getReal(itsAttr[END_LENGTH]);
-    double centre_length         = Attributes::getReal(itsAttr[CENTRE_LENGTH]);
+    double end_length    = Attributes::getReal(itsAttr[END_LENGTH]);
+    double centre_length = Attributes::getReal(itsAttr[CENTRE_LENGTH]);
     auto endField =
-        std::make_shared<endfieldmodel::Tanh>(centre_length/2.0, end_length, maxOrder);
+            std::make_shared<endfieldmodel::Tanh>(centre_length / 2.0, end_length, maxOrder);
     magnet->setEndField(endField);
     magnet->initialise();
 }

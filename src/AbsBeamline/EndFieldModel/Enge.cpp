@@ -42,7 +42,7 @@ namespace endfieldmodel {
     std::vector<std::vector<std::vector<int> > > Enge::q_m;
     std::vector<std::vector<std::vector<int> > > Enge::h_m;
 
-    Enge::~Enge() {finalise();}
+    Enge::~Enge() { finalise(); }
 
     void Enge::copyVectorToView(
             const std::vector<std::vector<int> >& src, Kokkos::View<int**>& dest) {
@@ -202,18 +202,14 @@ namespace endfieldmodel {
 
     std::vector<double> Enge::getCoefficients() const { return makeVector(config_m.a_m); }
 
-    void Enge::initialise() {
-         setEngeDiffIndices(EngeConfig::max_derivative);
-    }
+    void Enge::initialise() { setEngeDiffIndices(EngeConfig::max_derivative); }
 
-    void Enge::finalise() {
-        releaseEngeConfig(config_m);
-    }
+    void Enge::finalise() { releaseEngeConfig(config_m); }
 
     void Enge::releaseEngeConfig(EngeConfig& config) {
         config.gNVec = Kokkos::View<double*>();
         config.hNVec = Kokkos::View<double*>();
-        config.a_m = Kokkos::View<double*>();
+        config.a_m   = Kokkos::View<double*>();
         for (size_t i = 0; i < config.max_derivative; ++i) {
             config.gIndices[i] = Kokkos::View<int**>();
             config.hIndices[i] = Kokkos::View<int**>();

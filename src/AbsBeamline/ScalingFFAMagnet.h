@@ -103,7 +103,10 @@ public:
 
     bool applyToReferenceParticle(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override {apply(R, P, t, E, B); return false;}
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override {
+        apply(R, P, t, E, B);
+        return false;
+    }
     /** Calculate the field for particles in the container
      *
      *  \param pc the set of particles for which the field is calculated
@@ -113,8 +116,7 @@ public:
     static void getFieldValue(
             const ScalingFFAMagnetConfig& config,
             const std::shared_ptr<endfieldmodel::EndFieldModel> endField,
-            const Kokkos::View<Vector_t<double, 3>*> R,
-            const Kokkos::View<Vector_t<double, 3>*> B);
+            const Kokkos::View<Vector_t<double, 3>*> R, const Kokkos::View<Vector_t<double, 3>*> B);
 
     /** Calculate the field at some arbitrary position in cartesian coordinates
      *
@@ -337,7 +339,7 @@ public:
     std::string getTypeString() const { return "SCALINGFFAMAGNET"; }
     ElementType getType() const { return ElementType::SCALINGFFAMAGNET; }
 
-    std::vector<std::vector<double> >  getDfCoefficients() const;
+    std::vector<std::vector<double> > getDfCoefficients() const;
 
     bool isInside(const Vector_t<double, 3>& r) const;
 
@@ -380,12 +382,10 @@ private:
 inline void ScalingFFAMagnet::getFieldValue(
         const ScalingFFAMagnetConfig& config,
         const std::shared_ptr<endfieldmodel::EndFieldModel> endField,
-        const Kokkos::View<Vector_t<double, 3>*> R,
-        const Kokkos::View<Vector_t<double, 3>*> B) {
-    const size_t count                         = R.size();
+        const Kokkos::View<Vector_t<double, 3>*> R, const Kokkos::View<Vector_t<double, 3>*> B) {
+    const size_t count = R.size();
     const Kokkos::View<Vector_t<double, 5>*> Rcyl("Rcyl", count);
     const Kokkos::View<Vector_t<double, 3>*> Bcyl("Bcyl", count);
-
 
     Kokkos::View<double**> derivatives("derivatives", count, config.maxOrder_m + 2);
     Kokkos::parallel_for(

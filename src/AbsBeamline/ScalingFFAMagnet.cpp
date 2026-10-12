@@ -68,8 +68,8 @@ void ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<doub
     Kokkos::View<Vector_t<double, 3>*> Bdevice("Btmp", 1);
     auto Rhost = Kokkos::create_mirror_view(Rdevice);
     auto Bhost = Kokkos::create_mirror_view(Bdevice);
-    Rhost(0) = R;
-    Bhost(0) = B;
+    Rhost(0)   = R;
+    Bhost(0)   = B;
     Kokkos::deep_copy(Rdevice, Rhost);
     Kokkos::deep_copy(Bdevice, Bhost);
     getFieldValue(config_m, efm_m, Rdevice, Bdevice);
@@ -123,9 +123,9 @@ void ScalingFFAMagnet::accept(BeamlineVisitor& visitor) const {
 bool ScalingFFAMagnet::isInside(const Vector_t<double, 3>& rCart) const {
     Vector_t<double, 5> rCyl;
     getCylindricalCoordinates(rCart, rCyl);
-    double r          = rCyl[0];
-    double z          = rCyl[1];
-    double phiSpiral  = rCyl[4];
+    double r         = rCyl[0];
+    double z         = rCyl[1];
+    double phiSpiral = rCyl[4];
     if (r < config_m.rMin_m || r > config_m.rMax_m) {
         return false;
     }
@@ -138,7 +138,6 @@ bool ScalingFFAMagnet::isInside(const Vector_t<double, 3>& rCart) const {
     return true;
 }
 
-
 void ScalingFFAMagnet::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
@@ -146,8 +145,9 @@ void ScalingFFAMagnet::apply(
 }
 
 void ScalingFFAMagnet::calculateDfCoefficients() {
-    std::vector<std::vector<double> > dfVec = std::vector<std::vector<double> >(config_m.maxOrder_m + 1);
-    dfVec[0] = std::vector<double>(1, 1.);      // f_0 = 1.*0th derivative
+    std::vector<std::vector<double> > dfVec =
+            std::vector<std::vector<double> >(config_m.maxOrder_m + 1);
+    dfVec[0] = std::vector<double>(1, 1.);                 // f_0 = 1.*0th derivative
     for (size_t n = 0; n < config_m.maxOrder_m; n += 2) {  // n indexes the power in z
         dfVec[n + 1] = std::vector<double>(dfVec[n].size() + 1, 0);
         for (size_t i = 0; i < dfVec[n].size(); ++i) {  // i indexes the derivative
@@ -158,14 +158,14 @@ void ScalingFFAMagnet::calculateDfCoefficients() {
         }
         dfVec[n + 2] = std::vector<double>(dfVec[n].size() + 2, 0);
         for (size_t i = 0; i < dfVec[n].size(); ++i) {  // i indexes the derivative
-            dfVec[n + 2][i] = -(config_m.k_m - n) * (config_m.k_m - n) / (n + 1)
-                                         * dfVec[n][i] / (n + 2);
+            dfVec[n + 2][i] =
+                    -(config_m.k_m - n) * (config_m.k_m - n) / (n + 1) * dfVec[n][i] / (n + 2);
         }
         for (size_t i = 0; i < dfVec[n + 1].size(); ++i) {  // i indexes the derivative
-            dfVec[n + 2][i] += 2 * (config_m.k_m - n) * config_m.tanDelta_m
-                                          * dfVec[n + 1][i] / (n + 2);
-            dfVec[n + 2][i + 1] -= (1 + config_m.tanDelta_m * config_m.tanDelta_m)
-                                              * dfVec[n + 1][i] / (n + 2);
+            dfVec[n + 2][i] +=
+                    2 * (config_m.k_m - n) * config_m.tanDelta_m * dfVec[n + 1][i] / (n + 2);
+            dfVec[n + 2][i + 1] -=
+                    (1 + config_m.tanDelta_m * config_m.tanDelta_m) * dfVec[n + 1][i] / (n + 2);
         }
     }
     for (size_t i = 0; i < ScalingFFAMagnetConfig::CoefficientCount; ++i) {
@@ -173,8 +173,7 @@ void ScalingFFAMagnet::calculateDfCoefficients() {
     }
     for (size_t n = 0; n < dfVec.size(); ++n) {
         for (size_t i = 0; i < dfVec[n].size(); ++i) {
-            config_m.dfCoefficients_m[n * (ScalingFFAMagnetConfig::MaxOrder + 1) + i] =
-                    dfVec[n][i];
+            config_m.dfCoefficients_m[n * (ScalingFFAMagnetConfig::MaxOrder + 1) + i] = dfVec[n][i];
         }
     }
 }
@@ -248,14 +247,13 @@ void ScalingFFAMagnet::getCartesianCoordinates(
     Rcart[2] = Rcyl[0] * std::sin(Rcyl[2]);
 }
 
-std::vector<std::vector<double> >
-ScalingFFAMagnet::getDfCoefficients() const {
+std::vector<std::vector<double> > ScalingFFAMagnet::getDfCoefficients() const {
     std::vector<std::vector<double> > dfCoefficients(config_m.MaxOrder + 1);
     for (size_t n = 0; n < config_m.MaxOrder + 1; ++n) {
         dfCoefficients[n] = std::vector<double>(config_m.MaxOrder + 1);
         for (size_t i = 0; i < config_m.MaxOrder + 1; ++i) {
             dfCoefficients[n][i] =
-                config_m.dfCoefficients_m[n * (ScalingFFAMagnetConfig::MaxOrder + 1) + i];
+                    config_m.dfCoefficients_m[n * (ScalingFFAMagnetConfig::MaxOrder + 1) + i];
         }
     }
     return dfCoefficients;
@@ -270,4 +268,3 @@ void ScalingFFAMagnet::goOffline() {
     ElementBase::goOffline();
     finalise();
 }
-

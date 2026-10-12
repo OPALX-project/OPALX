@@ -50,13 +50,15 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet()
     itsAttr[END_FIELD_MODEL] = Attributes::makeString(
             "END_FIELD_MODEL",
             "Names the end field model of the magnet, giving the field magnitude along a line of "
-            "constant radius. If blank, uses the 'FRINGE_LENGTH' and 'L' parameters to construct a  "
+            "constant radius. If blank, uses the 'FRINGE_LENGTH' and 'L' parameters to construct a "
+            " "
             "tanh model. If 'END_FIELD_MODEL' is not blank, OpalX will seek "
             "an END_FIELD_MODEL corresponding to the name defined in this string.");
 
     itsAttr[FRINGE_LENGTH] = Attributes::makeReal(
             "FRINGE_LENGTH",
-            "The fringe field e-fold length of the spiral FFA, if END_FIELD_MODEL is not defined [m]. This "
+            "The fringe field e-fold length of the spiral FFA, if END_FIELD_MODEL is not defined "
+            "[m]. This "
             "determines the fringe field taper if no "
             "END_FIELD_MODEL is defined. Ignored if END_FIELD_MODEL is defined.");
 
@@ -80,7 +82,8 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet()
     itsAttr[HEIGHT] = Attributes::makeReal(
             "HEIGHT",
             "Full height of the magnet. Particles moving more than height/2. "
-            "off the midplane (either above or below) are out of the aperture [m].", 1);
+            "off the midplane (either above or below) are out of the aperture [m].",
+            1);
 
     itsAttr[AZIMUTHAL_EXTENT] = Attributes::makeReal(
             "AZIMUTHAL_EXTENT",
@@ -110,9 +113,9 @@ OpalScalingFFAMagnet* OpalScalingFFAMagnet::clone(const std::string& name) {
 void OpalScalingFFAMagnet::setupDefaultEndField() {
     ScalingFFAMagnet* magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
     // get centre length and end length in metres
-    double end_length    = Attributes::getReal(itsAttr[FRINGE_LENGTH]);
-    double x0 = Attributes::getReal(itsAttr[LENGTH]) / 2.;
-    auto endField = std::make_shared<endfieldmodel::Tanh>();
+    double end_length = Attributes::getReal(itsAttr[FRINGE_LENGTH]);
+    double x0         = Attributes::getReal(itsAttr[LENGTH]) / 2.;
+    auto endField     = std::make_shared<endfieldmodel::Tanh>();
     endField->setLambda(end_length);
     // x0 is the distance between B=0.5*B0 and B=B0 i.e. half the centre length
     endField->setX0(x0);
