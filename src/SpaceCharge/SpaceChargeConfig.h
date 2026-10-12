@@ -91,6 +91,11 @@ namespace opalx::spacecharge {
         std::size_t repartitionFrequency = 0;  ///< Steps between ORB checks; zero disables them.
         /** @brief Per-rank count deviation, divided by global count, that triggers ORB. */
         double loadBalancingThreshold = 0.05;
+        /**
+         * @brief Share in [0, 1] of the ORB weight that follows the P3M pair count; the rest
+         * follows the particle count. Values above zero require the P3M backend.
+         */
+        double loadBalancingPairWeight = 0.0;
         DirichletPlaneConfig dirichletPlane;
 
         [[nodiscard]] const std::array<bool, 3>& layoutDecomposition() const {

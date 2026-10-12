@@ -107,6 +107,25 @@ namespace opalx::spacecharge {
             EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(config)), OpalException);
         }
 
+        TEST(SpaceChargeConfigTest, PairWeightNeedsP3MAndUnitRange) {
+            auto config = p3mConfig(FieldBoundaryCondition::Open);
+            for (const double weight : {0.0, 0.5, 1.0}) {
+                config.loadBalancingPairWeight = weight;
+                EXPECT_NO_THROW(validateSpaceChargeConfig(SpaceChargeConfig(config)));
+            }
+            for (const double weight : {-0.1, 1.5, std::numeric_limits<double>::quiet_NaN()}) {
+                config.loadBalancingPairWeight = weight;
+                EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(config)), OpalException);
+            }
+
+            config.backend                 = PoissonSolverType::Open;
+            config.p3mCutoff               = 0.0;
+            config.loadBalancingPairWeight = 0.0;
+            EXPECT_NO_THROW(validateSpaceChargeConfig(SpaceChargeConfig(config)));
+            config.loadBalancingPairWeight = 0.5;
+            EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(config)), OpalException);
+        }
+
         TEST(SpaceChargeConfigTest, P3MShiftedPlaneRequiresOpenUnbinnedDomain) {
             for (auto green : {GreenFunctionType::Standard, GreenFunctionType::Integrated}) {
                 auto config           = p3mConfig(FieldBoundaryCondition::Open);

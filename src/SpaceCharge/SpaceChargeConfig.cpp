@@ -89,6 +89,17 @@ namespace opalx::spacecharge {
                         "validateSpaceChargeConfig",
                         "The load-balancing threshold must not be negative.");
             }
+            if (!(config.loadBalancingPairWeight >= 0.0 && config.loadBalancingPairWeight <= 1.0)) {
+                throw OpalException(
+                        "validateSpaceChargeConfig",
+                        "LOADBALANCINGPAIRWEIGHT must be in the range [0, 1].");
+            }
+            if (config.loadBalancingPairWeight > 0.0 && config.backend != PoissonSolverType::P3M) {
+                throw OpalException(
+                        "validateSpaceChargeConfig",
+                        "LOADBALANCINGPAIRWEIGHT above 0 weights ORB by P3M pair counts and "
+                        "requires FIELDSOLVER TYPE=P3M.");
+            }
             validatePoissonSolverConfig(makePoissonSolverConfig(config));
             if (config.backend == PoissonSolverType::P3M && config.binning.has_value()) {
                 throw OpalException("validateSpaceChargeConfig", "P3M does not support binning.");
