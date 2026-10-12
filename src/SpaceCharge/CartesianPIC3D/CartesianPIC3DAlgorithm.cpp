@@ -5,12 +5,17 @@
 
 #include "SpaceCharge/CartesianPIC3D/CartesianPIC3DAlgorithm.h"
 
+#include "AbstractObjects/OpalData.h"
 #include "PartBunch/BunchStateHandler.h"
 #include "Structure/DataSink.h"
+#include "Structure/H5BeamBeamDiagnosticsWriter.h"
 #include "Utilities/OpalException.h"
 
+#include <filesystem>
+#include <fstream>
 #include <iomanip>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <utility>
 
@@ -76,6 +81,135 @@ namespace opalx::spacecharge {
         poissonSolver_m->warmup();
     }
 
+    void CartesianPIC3DAlgorithm::configure(std::optional<BeamBeamSolvePolicy> policy) {
+        if (policy.has_value()
+            && (config_m.backend != PoissonSolverType::Open || config_m.dirichletPlane.enabled())) {
+            throw OpalException(
+                    "CartesianPIC3DAlgorithm::configure",
+                    "BeamBeam requires OPEN without a Dirichlet-plane model.");
+        }
+        beamBeamPolicy_m = policy;
+        if (!policy.has_value() || !policy->captureChargeDensity) {
+            chargeSnapshot_m.reset();
+        }
+    }
+
+    void CartesianPIC3DAlgorithm::gatherFields(ParticleContainer& target) {
+        if (!beamBeamPolicy_m.has_value() || !bunchState_m->fixedCartesianDomain().has_value()) {
+            throw OpalException(
+                    "CartesianPIC3DAlgorithm::gatherFields",
+                    "BeamBeam witness gathering requires an active fixed-domain solve.");
+        }
+        relativisticFieldComposer_m.gatherAccumulated(
+                particleMeshTransfer_m, target.E, target.B, target.R, *fieldStorage_m);
+    }
+
+    void CartesianPIC3DAlgorithm::dumpChargeDensity(
+            const std::string& prefix, const std::vector<std::string>& headers) {
+        if (ippl::Comm->size() != 1) {
+            return;
+        }
+        if (!chargeSnapshot_m.has_value()) {
+            throw OpalException(
+                    "CartesianPIC3DAlgorithm::dumpChargeDensity",
+                    "Charge-density diagnostics require captureChargeDensity on the preceding "
+                    "solve.");
+        }
+        auto& rho          = *chargeSnapshot_m;
+        const auto owned   = rho.getLayout().getLocalNDIndex();
+        const int halo     = rho.getNghost();
+        const auto origin  = fieldStorage_m->mesh().getOrigin();
+        const auto spacing = fieldStorage_m->mesh().getMeshSpacing();
+        if (Options::enableHDF5 && !Options::asciidump) {
+            H5BeamBeamDiagnosticsWriter::StepMetadata metadata;
+            metadata.globalStep          = static_cast<long long>(diagnosticStep_m);
+            metadata.time                = diagnosticTime_m;
+            metadata.pathLengthS         = primary_m->get_sPos();
+            metadata.particleTotalNum    = static_cast<long long>(primary_m->getTotalNum());
+            metadata.particleTotalCharge = primary_m->getTotalCharge();
+            metadata.fieldStage          = "normalized_primary_rho_before_solve";
+            for (unsigned d = 0; d < 3; ++d) {
+                metadata.shape[d]   = static_cast<h5_int64_t>(fieldStorage_m->layoutExtents()[d]);
+                metadata.origin[d]  = origin[d];
+                metadata.spacing[d] = spacing[d];
+                metadata.particleMeanR[d] = primary_m->getMeanR()[d];
+            }
+            metadata.particleMeanR[2] += metadata.pathLengthS;
+            metadata.particleMeanS = metadata.particleMeanR[2];
+            for (const auto& header : headers) {
+                const auto equals = header.find('=');
+                if (equals == std::string::npos) continue;
+                const std::string key = header.substr(0, equals);
+                std::string value     = header.substr(equals + 1);
+                if (key == "coordinate_frame")
+                    metadata.coordinateFrame = value;
+                else if (key == "snapshot_kind")
+                    metadata.snapshotKind = value;
+                else if (key == "interaction_window_active") {
+                    metadata.interactionWindowActive = value == "1" || value == "TRUE";
+                } else {
+                    for (auto& character : value) {
+                        if (character == '(' || character == ')' || character == ',')
+                            character = ' ';
+                    }
+                    std::istringstream input(value);
+                    if (key == "global_step")
+                        input >> metadata.globalStep;
+                    else if (key == "time")
+                        input >> metadata.time;
+                    else if (key == "path_length_s")
+                        input >> metadata.pathLengthS;
+                    else if (key == "interaction_point_s")
+                        input >> metadata.interactionPointS;
+                    else if (key == "interaction_point_local_z")
+                        input >> metadata.interactionPointLocalZ;
+                    else if (key == "particle_total_num")
+                        input >> metadata.particleTotalNum;
+                    else if (key == "particle_total_charge")
+                        input >> metadata.particleTotalCharge;
+                    else if (key == "ip_element_s_range") {
+                        input >> metadata.beamBeamSRange[0] >> metadata.beamBeamSRange[1];
+                    }
+                }
+            }
+            const auto filename = H5BeamBeamDiagnosticsWriter::makeOutputFileName(
+                    OpalData::getInstance()->getInputBasename(), "RHO", "scalar", prefix);
+            H5BeamBeamDiagnosticsWriter::writeScalarQuantity(
+                    filename, prefix.empty() ? "RHO" : prefix, metadata, rho);
+            return;
+        }
+        const auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), rho.getView());
+        std::ostringstream name;
+        name << "data/" << OpalData::getInstance()->getInputBasename() << "-RHO_scalar";
+        if (!prefix.empty()) name << '-' << prefix;
+        name << '-' << std::setfill('0') << std::setw(6) << diagnosticSolveCount_m << ".dat";
+        std::filesystem::create_directories(std::filesystem::path(name.str()).parent_path());
+        std::ofstream output(name.str());
+        if (!output) {
+            throw OpalException(
+                    "CartesianPIC3DAlgorithm::dumpChargeDensity",
+                    "Cannot open charge-density diagnostic output.");
+        }
+        output << std::setprecision(17) << "# RHO scalar data on grid\n"
+               << "# origin= " << origin << " h= " << spacing << " nghosts=" << halo << '\n';
+        for (const auto& header : headers) {
+            output << "# " << header << '\n';
+        }
+        output << "# field_stage=normalized_primary_rho_before_solve\n";
+        output << "# i j k x[m] y[m] z[m] normalized_rho\n";
+        for (int i = 0; i < owned[0].length(); ++i) {
+            for (int j = 0; j < owned[1].length(); ++j) {
+                for (int k = 0; k < owned[2].length(); ++k) {
+                    output << i << ' ' << j << ' ' << k << ' '
+                           << origin[0] + (owned[0].first() + i) * spacing[0] << ' '
+                           << origin[1] + (owned[1].first() + j) * spacing[1] << ' '
+                           << origin[2] + (owned[2].first() + k) * spacing[2] << ' '
+                           << host(i + halo, j + halo, k + halo) << '\n';
+                }
+            }
+        }
+    }
+
     CartesianPIC3DAlgorithm::SolvePlan CartesianPIC3DAlgorithm::makeSolvePlan(
             std::size_t step) const {
         SolvePlan plan;
@@ -130,10 +264,24 @@ namespace opalx::spacecharge {
 
     SpaceChargeSolveResult CartesianPIC3DAlgorithm::solve(const SpaceChargeSolveContext& context) {
         SpaceChargeSolveResult result;
+        diagnosticStep_m = context.stepState().step;
+        ++diagnosticSolveCount_m;
+        diagnosticTime_m = context.stepState().time;
+        chargeSnapshot_m.reset();
+        depositedCharge_m.reset();
+        if (beamBeamPolicy_m.has_value()) {
+            depositedCharge_m = 0.0;
+            relativisticFieldComposer_m.clearAccumulation(*fieldStorage_m);
+        }
         const SolvePlan plan = makeSolvePlan(context.stepState().step);
 
         const auto& fixedState = bunchState_m->fixedCartesianDomain();
         const bool fixedDomain = fixedState.has_value();
+        if (beamBeamPolicy_m.has_value() && beamBeamPolicy_m->copyActive && !fixedDomain) {
+            throw OpalException(
+                    "CartesianPIC3DAlgorithm::solve",
+                    "A copied BeamBeam primary requires a fixed domain symmetric about the IP.");
+        }
         if (fixedDomain) {
             if (config_m.backend != PoissonSolverType::Open) {
                 throw OpalException(
@@ -145,7 +293,10 @@ namespace opalx::spacecharge {
                         "CartesianPIC3DAlgorithm::solve",
                         "A fixed Cartesian domain does not support Dirichlet planes.");
             }
-            if (config_m.repartitionFrequency != 0) {
+            // BeamBeam freezes its interaction mesh for source/copy composition and witness
+            // gathers. The domain updater already suppresses ORB for every fixed-domain call;
+            // keep the configured frequency intact for ordinary solves outside this policy.
+            if (config_m.repartitionFrequency != 0 && !beamBeamPolicy_m.has_value()) {
                 throw OpalException(
                         "CartesianPIC3DAlgorithm::solve",
                         "ORB redistribution must be disabled while a fixed Cartesian domain is "
@@ -181,6 +332,10 @@ namespace opalx::spacecharge {
             const SpaceChargeSolveContext& context, const SolvePlan& plan,
             SpaceChargeSolveResult& result) {
         Inform m("CartesianPIC3DAlgorithm::solveInBeamFrame");
+        if (beamBeamPolicy_m.has_value()) {
+            // Layout refresh may have reallocated accumulators since entry to solve().
+            relativisticFieldComposer_m.clearAccumulation(*fieldStorage_m);
+        }
         const auto& poissonCapabilities = poissonSolver_m->capabilities();
         if (poissonCapabilities.isNoOp) {
             m << level5 << "Skipping scatter/gather and space-charge computation for NONE solver."
@@ -190,6 +345,10 @@ namespace opalx::spacecharge {
 
         // The global count handles early-emission ranks that own no particles.
         if (primary_m->getTotalNum() <= 1) {
+            return;
+        }
+        if (beamBeamPolicy_m.has_value() && !beamBeamPolicy_m->primaryActive
+            && !beamBeamPolicy_m->copyActive) {
             return;
         }
         // Deposition restores dt by dividing dt*Q by Q, so reject zero charge first.
@@ -236,7 +395,7 @@ namespace opalx::spacecharge {
             SpaceChargeSolveResult& result) {
         result.reportedBins = 1;
 
-        const bool accumulatePasses = plan.passCount > 1;
+        const bool accumulatePasses = plan.passCount > 1 || beamBeamPolicy_m.has_value();
         if (accumulatePasses) {
             relativisticFieldComposer_m.clearAccumulation(*fieldStorage_m);
         }
@@ -320,10 +479,17 @@ namespace opalx::spacecharge {
             normalization.normalizeByCellVolume = capabilities.normalizeChargeByCellVolume;
             normalization.subtractNeutralizingBackground =
                     capabilities.subtractNeutralizingBackground;
+            double measuredCharge = 0.0;
             particleMeshTransfer_m.depositCharge(
                     *primary_m, *fieldStorage_m, policy.depositKind,
                     ParticleMeshTransfer::Selection::direct(0, primary_m->getLocalNum()),
-                    normalization, policy.imagePolicy);
+                    normalization, policy.imagePolicy,
+                    beamBeamPolicy_m.has_value() ? &measuredCharge : nullptr);
+            if (beamBeamPolicy_m.has_value()) {
+                *depositedCharge_m += measuredCharge
+                                      * (static_cast<int>(beamBeamPolicy_m->primaryActive)
+                                         + static_cast<int>(beamBeamPolicy_m->copyActive));
+            }
         } else {
             depositChargeForBin(context, *unit, policy);
         }
@@ -365,6 +531,10 @@ namespace opalx::spacecharge {
         }
         m << endl;
 
+        if (beamBeamPolicy_m.has_value() && beamBeamPolicy_m->captureChargeDensity) {
+            // OPEN writes its potential into rho. Preserve only explicitly requested snapshots.
+            chargeSnapshot_m.emplace(fieldStorage_m->chargeDensity().deepCopy());
+        }
         poissonSolver_m->solve(poissonRequest, {.suppressFieldDump = policy.suppressFieldDump});
         ++result.backendSolves;
 
@@ -372,7 +542,7 @@ namespace opalx::spacecharge {
             dumpDirichletPlaneDiagnosticsIfRequested(context, "legacy", planeZ);
         }
 
-        if (unit == nullptr && plan.passCount == 1) {
+        if (unit == nullptr && plan.passCount == 1 && !beamBeamPolicy_m.has_value()) {
             relativisticFieldComposer_m.gatherElectrostatic(
                     particleMeshTransfer_m, primary_m->E, primary_m->R, *fieldStorage_m);
         } else {
@@ -386,7 +556,15 @@ namespace opalx::spacecharge {
 
             // Shifted Green reuses the real-charge RHS. Its image sign enters through field
             // reflection and component signs here; negating rho would invert the image twice.
-            relativisticFieldComposer_m.accumulate(*fieldStorage_m, compositionPolicy);
+            if (!beamBeamPolicy_m.has_value() || beamBeamPolicy_m->primaryActive) {
+                relativisticFieldComposer_m.accumulate(*fieldStorage_m, compositionPolicy);
+            }
+            if (beamBeamPolicy_m.has_value() && beamBeamPolicy_m->copyActive) {
+                // Same charge and transverse velocity; reflect only z and longitudinal velocity.
+                compositionPolicy.meanMomentum[2] = -compositionPolicy.meanMomentum[2];
+                compositionPolicy.sourceRule      = FieldSourceRule::MirroredPrimaryZ;
+                relativisticFieldComposer_m.accumulate(*fieldStorage_m, compositionPolicy);
+            }
         }
 
         if (unit != nullptr) {
@@ -440,9 +618,16 @@ namespace opalx::spacecharge {
         normalization.normalizeByCellVolume          = capabilities.normalizeChargeByCellVolume;
         normalization.subtractNeutralizingBackground = capabilities.subtractNeutralizingBackground;
 
+        double measuredCharge = 0.0;
         particleMeshTransfer_m.depositCharge(
                 *primary_m, *fieldStorage_m, pass.depositKind, unit.depositSelection(),
-                normalization, pass.imagePolicy);
+                normalization, pass.imagePolicy,
+                beamBeamPolicy_m.has_value() ? &measuredCharge : nullptr);
+        if (beamBeamPolicy_m.has_value()) {
+            *depositedCharge_m += measuredCharge
+                                  * (static_cast<int>(beamBeamPolicy_m->primaryActive)
+                                     + static_cast<int>(beamBeamPolicy_m->copyActive));
+        }
     }
 
     void CartesianPIC3DAlgorithm::dumpBinSnapshot(

@@ -525,6 +525,10 @@ void Distribution::setAttributes() {
 }
 
 void Distribution::setDist() {
+    // Most distribution types are injected. Reset this state on every setup so
+    // a reused definition cannot retain an earlier emitted configuration.
+    emitting_m = false;
+
     // set distribution type
     setDistType();
 

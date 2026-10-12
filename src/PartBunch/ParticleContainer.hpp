@@ -739,6 +739,38 @@ public:
     }
 
     /**
+     * @brief Mark every particle in this container as invalid.
+     *
+     * Deletion is intentionally deferred to deleteInvalidParticles(). The returned
+     * count includes only particles that were not already marked, summed over all
+     * MPI ranks.
+     *
+     * @return Global number of newly marked particles.
+     */
+    size_type markAllParticlesInvalid() {
+        const size_type nLocal = this->getLocalNum();
+        auto invalid           = InvalidMask.getView();
+
+        size_type localMarkedNum = 0;
+        Kokkos::parallel_reduce(
+                "ParticleContainer::markAllParticlesInvalid", nLocal,
+                KOKKOS_LAMBDA(const size_type i, size_type& count) {
+                    const bool newlyMarked = !invalid(i);
+                    invalid(i)             = true;
+                    count += newlyMarked ? 1 : 0;
+                },
+                localMarkedNum);
+        Kokkos::fence();
+
+        size_type globalMarkedNum = 0;
+        ippl::Comm->allreduce(localMarkedNum, globalMarkedNum, 1, std::plus<size_type>());
+        if (globalMarkedNum > 0) {
+            markMomentsDirty();
+        }
+        return globalMarkedNum;
+    }
+
+    /**
      * @brief Create/allocate a specified number of particles.
      *
      * This function creates a given number of particles in the container. It's a wrapper around the

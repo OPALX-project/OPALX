@@ -538,8 +538,9 @@ TEST_F(BinningTest, HistogramAssignmentOperator) {
 }
 
 struct FillPolicyHistogram1 {
-    using Histo_t   = ParticleBinning::Histogram<size_type, bin_index_type, value_type, true>;
-    using view_type = decltype(std::declval<Histo_t>().getHistogram().view_device());
+    using Histo_t = ParticleBinning::Histogram<size_type, bin_index_type, value_type, true>;
+    // Device functors must own the view, not a reference to the host-side handle.
+    using view_type = Histo_t::dview_type;
     view_type dView;
 
     FillPolicyHistogram1(view_type v) : dView(v) {}
@@ -634,7 +635,7 @@ TEST_F(BinningTest, HistogramMergeBins) {
 
 struct FillPolicyHistogram2 {
     using Histo_t   = ParticleBinning::Histogram<size_type, bin_index_type, value_type, true>;
-    using view_type = decltype(std::declval<Histo_t>().getHistogram().view_device());
+    using view_type = Histo_t::dview_type;
     view_type dView;
 
     FillPolicyHistogram2(view_type v) : dView(v) {}

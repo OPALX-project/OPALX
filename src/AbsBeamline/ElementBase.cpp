@@ -13,6 +13,8 @@
 //
 #include "AbsBeamline/ElementBase.h"
 
+#include "Algorithms/ElementInteraction.h"
+
 #include "Channels/Channel.h"
 #include "PartBunch/PartBunch.h"
 #include "Utilities/LogicalError.h"
@@ -40,6 +42,7 @@ const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
         {ElementType::ANY, "Any"},
         {ElementType::CYCLOTRONSECTOR, "CyclotronSector"},
         {ElementType::BEAMLINE, "Beamline"},
+        {ElementType::BEAMBEAM, "BeamBeam"},
         {ElementType::BOX, "Box"},
         {ElementType::COLLIMATOR, "Collimator"},
         {ElementType::DRIFT, "Drift"},
@@ -211,6 +214,8 @@ ElementBase* ElementBase::copyStructure() {
         return clone();
     }
 }
+
+std::unique_ptr<ElementInteraction> ElementBase::createInteraction() const { return nullptr; }
 
 void ElementBase::makeSharable() { shareFlag = true; }
 

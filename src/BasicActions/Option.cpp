@@ -62,6 +62,7 @@ namespace {
         SEED,
         TELL,
         PSDUMPFREQ,
+        C0PSDUMPFREQ,
         STATDUMPFREQ,
         CHECKPOINTFREQ,
         STEPINFOFQ,
@@ -141,6 +142,13 @@ Option::Option()
             "i.e. dump data when step%psDumpFreq==0; 0 disables phase space dumps. "
             "Its default value is 10.",
             psDumpFreq);
+
+    itsAttr[C0PSDUMPFREQ] = Attributes::makeReal(
+            "C0PSDUMPFREQ",
+            "Optional phase-space dump frequency for particle container 0. "
+            "A negative value follows PSDUMPFREQ; zero disables container-0 HDF5 dumps. "
+            "Positive values are checked on global PSDUMPFREQ dump steps.",
+            c0PsDumpFreq);
 
     itsAttr[STATDUMPFREQ] = Attributes::makeReal(
             "STATDUMPFREQ",
@@ -421,6 +429,7 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setBool(itsAttr[WARN], warn);
     Attributes::setReal(itsAttr[SEED], seed);
     Attributes::setReal(itsAttr[PSDUMPFREQ], psDumpFreq);
+    Attributes::setReal(itsAttr[C0PSDUMPFREQ], c0PsDumpFreq);
     Attributes::setReal(itsAttr[STATDUMPFREQ], statDumpFreq);
     Attributes::setReal(itsAttr[CHECKPOINTFREQ], checkpointFreq);
     Attributes::setReal(itsAttr[STEPINFOFQ], stepInfoFreq);
@@ -575,6 +584,10 @@ void Option::execute() {
         if (psDumpFreq < 0) {
             throw OpalException("Option::execute", "PSDUMPFREQ must be non-negative.");
         }
+    }
+
+    if (itsAttr[C0PSDUMPFREQ]) {
+        c0PsDumpFreq = int(Attributes::getReal(itsAttr[C0PSDUMPFREQ]));
     }
 
     if (itsAttr[STATDUMPFREQ]) {

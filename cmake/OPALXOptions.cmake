@@ -212,7 +212,6 @@ set(IPPL_USE_STANDARD_FOLDERS ${OPALX_USE_STANDARD_FOLDERS})
 
 option(BUILD_SHARED_LIBS "Build OPALX as a shared library" OFF)
 option(OPALX_ENABLE_EXAMPLES "Enable building the Example module" OFF)
-option(OPALX_ENABLE_TESTS "Build integration tests in test/ directory" OFF)
 option(OPALX_ENABLE_COVERAGE "Enable code coverage" OFF)
 option(OPALX_ENABLE_NSYS_PROFILER "Enable Nvidia Nsys Profiler" OFF)
 option(OPALX_ENABLE_SANITIZER "Enable sanitizer(s)" OFF)
