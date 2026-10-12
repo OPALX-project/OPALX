@@ -75,16 +75,16 @@ namespace endfieldmodel {
         ~Enge();
 
         /** Inheritable copy constructor - no mallocs, so does nothing */
-        Enge* clone() const;
+        Enge* clone() const override;
 
         /** Rescale so Enge(x) -> Enge(scaleFactor*x)
          *
          *  Sets x0 to scaleFactor*x0 and lambda to scaleFactor*lambda
          */
-        void rescale(double scaleFactor);
+        void rescale(double scaleFactor) override;
 
         /** Return the value of enge(x+x0) + enge(-x-x0) at some point x */
-        inline double function(double x, int n) const;
+        inline double function(double x, int n) const override;
 
         /** GPU-aware version of function
          *
@@ -111,10 +111,10 @@ namespace endfieldmodel {
                 const EngeConfig& config, double x, int n);
 
         /** Nominal end length is lambda */
-        inline double getEndLength() const;
+        inline double getEndLength() const override;
 
         /** Nominal centre length is x0/2 */
-        inline double getCentreLength() const;
+        inline double getCentreLength() const override;
 
         /** Print human-readable version of enge */
         std::ostream& print(std::ostream& out) const override;
@@ -140,7 +140,7 @@ namespace endfieldmodel {
         inline void setX0(double x0) { config_m.x0_m = x0; }
 
         /** Calls setEngeDiffIndices to set the maximum derivative */
-        inline void setMaximumDerivative(size_t n);
+        inline void setMaximumDerivative(size_t n) override;
 
         /** Get a copy of the Config object */
         inline EngeConfig getConfig() const { return config_m; }
@@ -193,10 +193,10 @@ namespace endfieldmodel {
                 const std::vector<double>& src, const std::string& label);
         static std::vector<double> makeVector(const Kokkos::View<double*>& src);
 
-        void initialise();
+        void initialise() override;
 
         /** Release Kokkos allocations */
-        void finalise();
+        void finalise() override;
         static void releaseEngeConfig(EngeConfig& config);
 
     private:

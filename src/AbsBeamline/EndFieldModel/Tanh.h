@@ -70,7 +70,7 @@ namespace endfieldmodel {
 
         endfieldmodel::Tanh& operator=(const endfieldmodel::Tanh& rhs) = default;
 
-        double function(double x, int n) const;
+        double function(double x, int n) const override;
 
         /** Device-callable evaluation using coefficients prepared on the host. */
         static KOKKOS_INLINE_FUNCTION double functionDevice(
@@ -122,7 +122,7 @@ namespace endfieldmodel {
         void setMaximumDerivative(size_t n) override;
 
         /** Rescale the endfield */
-        void rescale(double scalefactor);
+        void rescale(double scalefactor) override;
 
         /** Create a double tanh function
          *
