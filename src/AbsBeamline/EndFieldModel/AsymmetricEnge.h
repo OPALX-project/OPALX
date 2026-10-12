@@ -121,6 +121,7 @@ namespace endfieldmodel {
 
         /** Release Kokkos allocations */
         void finalise() override;
+
     private:
         AsymmetricEnge(const AsymmetricEnge& rhs) = default;
         AsymmetricEngeConfig config_m;
@@ -154,7 +155,8 @@ namespace endfieldmodel {
                 });
     }
 
-    KOKKOS_INLINE_FUNCTION double AsymmetricEnge::functionDevice(const AsymmetricEngeConfig& config, double x, int n) {
+    KOKKOS_INLINE_FUNCTION double AsymmetricEnge::functionDevice(
+            const AsymmetricEngeConfig& config, double x, int n) {
         if (n == 0) {
             return (Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n)
                     + Enge::getEnge(config.engeEnd_m, x - config.engeEnd_m.x0_m, n))

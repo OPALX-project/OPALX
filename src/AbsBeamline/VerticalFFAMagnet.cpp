@@ -13,7 +13,6 @@
 
 #include <cmath>
 
-
 VerticalFFAMagnet::VerticalFFAMagnet(const std::string& name)
     : ElementBase(name), straightGeometry_m(Geometry::makeStraight(1.)) {}
 
@@ -45,25 +44,17 @@ void VerticalFFAMagnet::initialise(PartBunch_t* bunch) {
     initialise();
 }
 
-void VerticalFFAMagnet::finalise() {
-    RefPartBunch_m = nullptr;
-}
+void VerticalFFAMagnet::finalise() { RefPartBunch_m = nullptr; }
 
-Geometry& VerticalFFAMagnet::getGeometry() {
-    return straightGeometry_m;
-}
+Geometry& VerticalFFAMagnet::getGeometry() { return straightGeometry_m; }
 
-
-const Geometry& VerticalFFAMagnet::getGeometry() const {
-    return straightGeometry_m;
-}
+const Geometry& VerticalFFAMagnet::getGeometry() const { return straightGeometry_m; }
 
 void VerticalFFAMagnet::accept(BeamlineVisitor& visitor) const {
     visitor.visitVerticalFFAMagnet(*this);
 }
 
-bool VerticalFFAMagnet::getFieldValue(
-        const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const {
+bool VerticalFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const {
     return getFieldValue(config_m, R, B);
 }
 
@@ -113,4 +104,3 @@ void VerticalFFAMagnet::setMaxOrder(size_t maxOrder) {
     // config_m.endField_m = endField_m.getDeviceData();
     config_m.maxOrder_m = maxOrder;
 }
-

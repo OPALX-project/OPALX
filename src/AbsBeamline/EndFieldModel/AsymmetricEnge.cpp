@@ -33,13 +33,13 @@ namespace endfieldmodel {
             const std::vector<double> aStart, double x0Start, double lambdaStart,
             const std::vector<double> aEnd, double x0End, double lambdaEnd) {
         if (aStart.size()) {
-            config_m.engeStart_m.a_m      = Enge::makeView(aStart, "AsymmetricEngeStart");
+            config_m.engeStart_m.a_m = Enge::makeView(aStart, "AsymmetricEngeStart");
         }
         config_m.engeStart_m.x0_m     = x0Start;
         config_m.engeStart_m.lambda_m = lambdaStart;
         // x0 is held in this
         if (aEnd.size()) {
-            config_m.engeEnd_m.a_m      = Enge::makeView(aEnd, "AsymmetricEngeEnd");
+            config_m.engeEnd_m.a_m = Enge::makeView(aEnd, "AsymmetricEngeEnd");
         }
         config_m.engeEnd_m.x0_m     = x0End;
         config_m.engeEnd_m.lambda_m = lambdaEnd;
@@ -68,8 +68,8 @@ namespace endfieldmodel {
     }
 
     void AsymmetricEnge::initialise() {
-         Enge::setEngeDiffIndices(EngeConfig::max_derivative, config_m.engeStart_m);
-         Enge::setEngeDiffIndices(EngeConfig::max_derivative, config_m.engeEnd_m);
+        Enge::setEngeDiffIndices(EngeConfig::max_derivative, config_m.engeStart_m);
+        Enge::setEngeDiffIndices(EngeConfig::max_derivative, config_m.engeEnd_m);
     }
 
     void AsymmetricEnge::finalise() {

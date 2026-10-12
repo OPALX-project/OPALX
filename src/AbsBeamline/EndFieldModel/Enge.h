@@ -47,8 +47,8 @@ namespace endfieldmodel {
      */
     struct EngeConfig {
         Kokkos::View<double*> a_m;
-        double lambda_m                 = 0.0;
-        double x0_m                     = 0.0;
+        double lambda_m                     = 0.0;
+        double x0_m                         = 0.0;
         static constexpr int max_derivative = 12;
         /** gIndices is used for calculating derivatives. */
         Kokkos::View<int**> gIndices[12];

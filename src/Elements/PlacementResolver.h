@@ -52,9 +52,9 @@ public:
      * The element will be placed on a circle of ffa R0, with start
      * ffa->getPosition() and length ffa->getArcLength().
      */
-    static void resolveFFAElemEdge(std::shared_ptr<ScalingFFAMagnet> ffa,
-                                   double& endPriorPathLength,
-                                   CoordinateSystemTrafo& currentCoordTrafo);
+    static void resolveFFAElemEdge(
+            std::shared_ptr<ScalingFFAMagnet> ffa, double& endPriorPathLength,
+            CoordinateSystemTrafo& currentCoordTrafo);
 };
 
 #endif  // OPALX_PlacementResolver_HH

@@ -12,8 +12,10 @@ OpalEnge::OpalEnge()
               SIZE, "ENGE",
               "The \"ENGE\" element defines an enge field fall off for plugging"
               "into analytical field models.") {
-    itsAttr[LENGTH] = Attributes::makeReal("LENGTH", "Length of the central region of the enge element [m].");
-    itsAttr[FRINGE_LENGTH]       = Attributes::makeReal("FRINGE_LENGTH", "E-fold length of the fringe field [m].");
+    itsAttr[LENGTH] =
+            Attributes::makeReal("LENGTH", "Length of the central region of the enge element [m].");
+    itsAttr[FRINGE_LENGTH] =
+            Attributes::makeReal("FRINGE_LENGTH", "E-fold length of the fringe field [m].");
     itsAttr[COEFFICIENTS] = Attributes::makeRealArray(
             "COEFFICIENTS", "Polynomial coefficients for the Enge function.");
     registerOwnership();
@@ -21,7 +23,7 @@ OpalEnge::OpalEnge()
 
 void OpalEnge::update() {
     // getOpalName() comes from AbstractObjects/Object.h
-    double x0                = Attributes::getReal(itsAttr[LENGTH])/2.0;
+    double x0                = Attributes::getReal(itsAttr[LENGTH]) / 2.0;
     double lambda            = Attributes::getReal(itsAttr[FRINGE_LENGTH]);
     std::vector<double> aVec = Attributes::getRealArray(itsAttr[COEFFICIENTS]);
 
