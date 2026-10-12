@@ -154,7 +154,7 @@ namespace endfieldmodel {
                     }
                 }
             }
-            h_m[i] = CompactVector(h_m[i]);
+            h_m[i] = compactVector(h_m[i]);
         }
         for (size_t i = 0; i < n + 1; ++i) {
             config.gIndices[i] = Kokkos::View<int**>("gIndex", 1, 1);
