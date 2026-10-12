@@ -330,8 +330,8 @@ public:
 
     /// @brief Thomas-BMT spin precession across all active containers that store Pol.
     /// Must be called after external + space-charge fields have been accumulated and
-    /// before the momentum kick (so E, B at the particle are the lab-frame fields the
-    /// particle sees during this step).
+    /// before the momentum kick (so E, B at the particle are the fields the particle sees
+    /// during this step). P, E, B and Pol are all along the bunch-frame axes.
     void evolveSpinTBMT();
 
     /** @brief Build the current tracker-frame context and dispatch the configured space-charge

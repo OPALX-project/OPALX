@@ -171,9 +171,9 @@ public:
     /// particle deletion mask (indicates which particles are deleted every timestep)
     ippl::ParticleAttrib<bool> InvalidMask;
 
-    /// Per-particle polarization vector P (rest-frame Pauli expectation values along
-    /// lab-frame axes; |Pol| in [0, 1]). Registered only when spinEnabled_m is true.
-    /// Storage is float to halve memory; kernels should compute in double and cast.
+    /// Per-particle polarization vector (rest-frame Pauli expectation values along the same
+    /// axes as P, i.e. the bunch frame; |Pol| in [0, 1]). Registered only when spinEnabled_m
+    /// is true. Storage is float to halve memory; kernels should compute in double and cast.
     ippl::ParticleAttrib<spin_vector_type> Pol;
 
     /// Returns true when per-particle spin storage was enabled at construction
@@ -227,13 +227,16 @@ public:
 
     void setupBCs(ippl::BC particleBC) { this->setParticleBC(particleBC); }
 
-    /// Apply coordinate transform to local particles: translate R, rotate P, E, B.
+    /// Apply coordinate transform to local particles: translate R, rotate P, E, B and Pol.
     void transformBunch(const CoordinateSystemTrafo& trafo) {
         const size_t nLoc = this->getLocalNum();
         trafo.transformBunchTo(this->R.getView(), nLoc);
         trafo.rotateBunchTo(this->P.getView(), nLoc);
         trafo.rotateBunchTo(this->E.getView(), nLoc);
         trafo.rotateBunchTo(this->B.getView(), nLoc);
+        if (spinEnabled_m) {
+            trafo.rotateBunchTo(this->Pol.getView(), nLoc);
+        }
         markMomentsDirty();
     }
     SpatialLayout_t& getPL() {
