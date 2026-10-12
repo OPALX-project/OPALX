@@ -64,7 +64,7 @@ namespace endfieldmodel {
         /** Inheritable copy constructor. We take a deep copy of the engeStart
          *  and engeEnd
          */
-        inline AsymmetricEnge* clone() const;
+        inline AsymmetricEnge* clone() const override;
 
         /** Print a human-readable description of the end field model */
         std::ostream& print(std::ostream& out) const;
@@ -85,10 +85,10 @@ namespace endfieldmodel {
                 const AsymmetricEngeConfig& config, double x, int n);
 
         /** Centre length is the average of x0End and x0Start */
-        inline double getCentreLength() const;
+        inline double getCentreLength() const override;
 
         /** End length is the average of lambdaEnd and lambdaStart */
-        inline double getEndLength() const;
+        inline double getEndLength() const override;
 
         /** Return x0Start, offset of the start Enge */
         inline double getX0Start() const;
@@ -109,18 +109,18 @@ namespace endfieldmodel {
         inline double getLambdaEnd() const { return config_m.engeEnd_m.lambda_m; }
 
         /** Setup the Enge recursion for derivatives */
-        inline void setMaximumDerivative(size_t n);
+        inline void setMaximumDerivative(size_t n) override;
 
         /** Rescale the Enge to a new length scale */
-        void rescale(double scaleFactor);
+        void rescale(double scaleFactor) override;
 
         AsymmetricEngeConfig getConfig() const { return config_m; }
 
         /** Make Kokkos allocations */
-        void initialise();
+        void initialise() override;
 
         /** Release Kokkos allocations */
-        void finalise();
+        void finalise() override;
     private:
         AsymmetricEnge(const AsymmetricEnge& rhs) = default;
         AsymmetricEngeConfig config_m;
@@ -154,7 +154,7 @@ namespace endfieldmodel {
                 });
     }
 
-    double AsymmetricEnge::functionDevice(const AsymmetricEngeConfig& config, double x, int n) {
+    KOKKOS_INLINE_FUNCTION double AsymmetricEnge::functionDevice(const AsymmetricEngeConfig& config, double x, int n) {
         if (n == 0) {
             return (Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n)
                     + Enge::getEnge(config.engeEnd_m, x - config.engeEnd_m.x0_m, n))
