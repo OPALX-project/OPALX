@@ -53,7 +53,7 @@
  *    Pol must be unchanged.
  *  - **SpinTBMTPusherTest::PreservesMagnitudeOverManySteps** — drives 1000
  *    rotations under uniform @f$B_z@f$ and checks that @f$|\vec P|@f$ stays
- *    1 to float-storage precision, validating that the Rodrigues form does
+ *    1 to double precision, validating that the Rodrigues form does
  *    not let @f$|\vec P|@f$ drift across many steps.
  */
 
@@ -110,7 +110,7 @@ TEST_F(SpinTBMTPusherTest, PrecessesAtCorrectFrequencyInStaticBz) {
     const Vector_t<double, 3> B{0.0, 0.0, 1.0};  // 1 T
     const double dt = 1.0e-12;                   // 1 ps
 
-    ippl::Vector<float, 3> Pol{1.0f, 0.0f, 0.0f};
+    ippl::Vector<double, 3> Pol{1.0, 0.0, 0.0};
 
     SpinTBMTPusher pusher;
     pusher.evolve(Pol, P, E, B, dt, mass_mu_eV, charge_mu, anom_mu);
@@ -127,10 +127,10 @@ TEST_F(SpinTBMTPusherTest, PrecessesAtCorrectFrequencyInStaticBz) {
     // |Pol| must remain 1.
     const double mag2 = static_cast<double>(Pol[0]) * Pol[0] + static_cast<double>(Pol[1]) * Pol[1]
                         + static_cast<double>(Pol[2]) * Pol[2];
-    EXPECT_NEAR(std::sqrt(mag2), 1.0, 1.0e-6);
+    EXPECT_NEAR(std::sqrt(mag2), 1.0, 1.0e-14);
 
     // z-component must remain 0 (rotation is about z).
-    EXPECT_NEAR(static_cast<double>(Pol[2]), 0.0, 1.0e-7);
+    EXPECT_NEAR(static_cast<double>(Pol[2]), 0.0, 1.0e-15);
 }
 
 TEST_F(SpinTBMTPusherTest, NoEvolutionWhenPolParallelToBAndNoE) {
@@ -140,14 +140,14 @@ TEST_F(SpinTBMTPusherTest, NoEvolutionWhenPolParallelToBAndNoE) {
     const Vector_t<double, 3> B{0.0, 0.0, 1.0};
     const double dt = 1.0e-9;
 
-    ippl::Vector<float, 3> Pol{0.0f, 0.0f, 1.0f};
+    ippl::Vector<double, 3> Pol{0.0, 0.0, 1.0};
 
     SpinTBMTPusher pusher;
     pusher.evolve(Pol, P, E, B, dt, mass_mu_eV, charge_mu, anom_mu);
 
     EXPECT_NEAR(static_cast<double>(Pol[0]), 0.0, 1.0e-12);
     EXPECT_NEAR(static_cast<double>(Pol[1]), 0.0, 1.0e-12);
-    EXPECT_NEAR(static_cast<double>(Pol[2]), 1.0, 1.0e-7);
+    EXPECT_NEAR(static_cast<double>(Pol[2]), 1.0, 1.0e-15);
 }
 
 TEST_F(SpinTBMTPusherTest, NoEvolutionWhenFieldsAreZero) {
@@ -156,14 +156,14 @@ TEST_F(SpinTBMTPusherTest, NoEvolutionWhenFieldsAreZero) {
     const Vector_t<double, 3> B{0.0, 0.0, 0.0};
     const double dt = 1.0e-9;
 
-    ippl::Vector<float, 3> Pol{1.0f, 0.0f, 0.0f};
+    ippl::Vector<double, 3> Pol{1.0, 0.0, 0.0};
 
     SpinTBMTPusher pusher;
     pusher.evolve(Pol, P, E, B, dt, mass_mu_eV, charge_mu, anom_mu);
 
-    EXPECT_FLOAT_EQ(Pol[0], 1.0f);
-    EXPECT_FLOAT_EQ(Pol[1], 0.0f);
-    EXPECT_FLOAT_EQ(Pol[2], 0.0f);
+    EXPECT_DOUBLE_EQ(Pol[0], 1.0);
+    EXPECT_DOUBLE_EQ(Pol[1], 0.0);
+    EXPECT_DOUBLE_EQ(Pol[2], 0.0);
 }
 
 TEST_F(SpinTBMTPusherTest, PreservesMagnitudeOverManySteps) {
@@ -172,12 +172,12 @@ TEST_F(SpinTBMTPusherTest, PreservesMagnitudeOverManySteps) {
     const Vector_t<double, 3> B{0.0, 0.0, 1.0};
     const double dt = 1.0e-12;
 
-    ippl::Vector<float, 3> Pol{1.0f, 0.0f, 0.0f};
+    ippl::Vector<double, 3> Pol{1.0, 0.0, 0.0};
     SpinTBMTPusher pusher;
     for (int i = 0; i < 1000; ++i) {
         pusher.evolve(Pol, P, E, B, dt, mass_mu_eV, charge_mu, anom_mu);
     }
     const double mag2 = static_cast<double>(Pol[0]) * Pol[0] + static_cast<double>(Pol[1]) * Pol[1]
                         + static_cast<double>(Pol[2]) * Pol[2];
-    EXPECT_NEAR(std::sqrt(mag2), 1.0, 1.0e-5);
+    EXPECT_NEAR(std::sqrt(mag2), 1.0, 1.0e-12);
 }

@@ -117,11 +117,10 @@ public:
     /// View types of Q and M values
     using qm_view_type = typename ippl::ParticleAttrib<double>::view_type;
 
-    /// Per-particle polarization vector type: 3D vector in single precision, |Pol| in [0, 1].
-    /// Polarization observables are typically ~1% accurate, so `float` storage is sufficient and
-    /// halves the memory footprint versus the codebase's standard `double` attributes. Dynamics
-    /// kernels should still compute in `double` and cast back on store.
-    using spin_vector_type = ippl::Vector<float, 3>;
+    /// Per-particle polarization vector type: 3D vector in double precision, |Pol| in [0, 1].
+    /// Double, like R and P, because Pol is rotated with every frame change (transformBunch)
+    /// and float storage would round it again at each rotation.
+    using spin_vector_type = ippl::Vector<double, 3>;
 
 public:
     /// Charge view in [Cb].
@@ -173,7 +172,7 @@ public:
 
     /// Per-particle polarization vector (rest-frame Pauli expectation values along the same
     /// axes as P, i.e. the bunch frame; |Pol| in [0, 1]). Registered only when spinEnabled_m
-    /// is true. Storage is float to halve memory; kernels should compute in double and cast.
+    /// is true.
     ippl::ParticleAttrib<spin_vector_type> Pol;
 
     /// Returns true when per-particle spin storage was enabled at construction
