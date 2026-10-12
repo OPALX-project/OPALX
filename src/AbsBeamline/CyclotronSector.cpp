@@ -76,8 +76,9 @@ BoundingBox CyclotronSector::getBoundingBoxInLabCoords() const {
     for (double x : {-outer, outer})
         for (double z : {-outer, outer})
             for (double y : {vmin, vmax})
-                corners.push_back(getCSTrafoGlobal2Local().transformFrom(
-                        Vector_t<double, 3>(x - radius, y, z)));
+                corners.push_back(
+                        getCSTrafoGlobal2Local().transformFrom(
+                                Vector_t<double, 3>(x - radius, y, z)));
     return BoundingBox::getBoundingBox(corners);
 }
 void CyclotronSector::apply(
