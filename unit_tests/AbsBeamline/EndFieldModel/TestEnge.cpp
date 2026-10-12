@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 
-
 #include "AbsBeamline/EndFieldModel/Enge.h"
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
@@ -22,26 +21,21 @@
 
 class TestEnge : public testing::Test {
 public:
-    TestEnge() {
-    }
+    TestEnge() {}
 
-    static void SetUpTestSuite() {
-        Kokkos::initialize();
-    }
-    static void TearDownTestSuite() {
-        Kokkos::finalize();
-    }
+    static void SetUpTestSuite() { Kokkos::initialize(); }
+    static void TearDownTestSuite() { Kokkos::finalize(); }
 };
 
 TEST_F(TestEnge, ConstructorTest) {
-    //x0, lambda, max_index
+    // x0, lambda, max_index
     endfieldmodel::Enge enge0;
     EXPECT_EQ(enge0.getX0(), 0.0);
     EXPECT_EQ(enge0.getLambda(), 0.0);
     EXPECT_EQ(enge0.getCoefficients().size(), 0);
 
     std::vector<double> a = {5, 6};
-    auto enge1 = std::make_shared<endfieldmodel::Enge>(a, 2, 7);
+    auto enge1            = std::make_shared<endfieldmodel::Enge>(a, 2, 7);
     enge1->initialise();
     EXPECT_EQ(enge1->getX0(), 2.0);
     EXPECT_EQ(enge1->getCentreLength(), 4.0);
@@ -57,37 +51,35 @@ TEST_F(TestEnge, ConstructorTest) {
 }
 
 double myEnge(double x, std::vector<double> a, double lambda) {
-    double deltaX = x/lambda;
-    double xPow = 1.0;
-    double p = 0.0;
+    double deltaX = x / lambda;
+    double xPow   = 1.0;
+    double p      = 0.0;
     for (size_t i = 0; i < a.size(); ++i) {
-        p += a[i]*xPow;
+        p += a[i] * xPow;
         xPow *= deltaX;
     }
-    double enge = 1/(1.0+exp(p));
+    double enge = 1 / (1.0 + exp(p));
     return enge;
 }
 
 TEST_F(TestEnge, DerivativeTest) {
     std::vector<double> xVector = {-5.5, -5.0, -3.0, 0.0, 3.0, 5.0, 5.5};
-    double dx = 1e-4;
-    double x0 = 5.0;
-    double lambda = 0.5;
-    std::vector<double> engeA = {0.0, 1.0, 0.0};
+    double dx                   = 1e-4;
+    double x0                   = 5.0;
+    double lambda               = 0.5;
+    std::vector<double> engeA   = {0.0, 1.0, 0.0};
     endfieldmodel::Enge enge(engeA, x0, lambda);
     enge.initialise();
-    for (auto x: xVector) {
+    for (auto x : xVector) {
         double yTest = enge.function(x, 0);
-        double yRef = -1 + myEnge(x-x0, engeA, lambda)
-                        + myEnge(-x-x0, engeA, lambda);
+        double yRef  = -1 + myEnge(x - x0, engeA, lambda) + myEnge(-x - x0, engeA, lambda);
         EXPECT_NEAR(yTest, yRef, 1e-12) << x << " " << yTest << " " << yRef;
         for (size_t n = 1; n < 5; ++n) {
-            double yP = enge.function(x+dx, n-1);
-            double yM = enge.function(x-dx, n-1);
+            double yP     = enge.function(x + dx, n - 1);
+            double yM     = enge.function(x - dx, n - 1);
             double dyTest = enge.function(x, n);
-            double dyRef = (yP-yM)/2/dx;
-            EXPECT_NEAR(dyTest, dyRef, 1e-3) << x << " "<< n << " * "
-                                             << dyTest << " " << dyRef;
+            double dyRef  = (yP - yM) / 2 / dx;
+            EXPECT_NEAR(dyTest, dyRef, 1e-3) << x << " " << n << " * " << dyTest << " " << dyRef;
         }
     }
     EXPECT_NEAR(enge.function(0.0, 0), 1.0, 1e-3);
@@ -96,10 +88,9 @@ TEST_F(TestEnge, DerivativeTest) {
 }
 
 TEST_F(TestEnge, PrintTest) {
-    std::vector<double> a = {1, 2};
+    std::vector<double> a    = {1, 2};
     endfieldmodel::Enge enge = endfieldmodel::Enge(a, 1.0, 0.5);
     enge.initialise();
     enge.print(std::cout);
     std::cout << std::endl;
 }
-

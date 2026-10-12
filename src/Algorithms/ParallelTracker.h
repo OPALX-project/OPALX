@@ -565,7 +565,6 @@ inline void ParallelTracker::visitScalingFFAMagnet(const ScalingFFAMagnet& ffa) 
     itsOpalBeamline_m.visit(ffa, *this, *itsBunch_m);
 }
 
-
 inline void ParallelTracker::visitTravelingWave(const TravelingWave& tw) {
     itsOpalBeamline_m.visit(tw, *this, *itsBunch_m);
 }

@@ -14,11 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 
-#include "Attributes/Attributes.h"
-#include "gtest/gtest.h"
 #include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
-#include "Elements/OpalTanh.h"
 #include "AbsBeamline/EndFieldModel/Tanh.h"
+#include "Attributes/Attributes.h"
+#include "Elements/OpalTanh.h"
+#include "gtest/gtest.h"
 
 TEST(TestOpalTanh, TestSetup) {
     // Make the UI
@@ -33,4 +33,3 @@ TEST(TestOpalTanh, TestSetup) {
     EXPECT_EQ(efm->getCentreLength(), 4.0);
     EXPECT_EQ(efm->getEndLength(), 2.0);
 }
-

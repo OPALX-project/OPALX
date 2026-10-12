@@ -50,7 +50,7 @@ TEST_F(TestOpalScalingFFAMagnet, UserInterface) {
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::FIELD_INDEX], 4);
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::TAN_DELTA], 5);
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::MAX_Y_POWER], 6);
-    //Attributes::setString(ui.itsAttr[OpalScalingFFAMagnet::END_FIELD_MODEL], "");
+    // Attributes::setString(ui.itsAttr[OpalScalingFFAMagnet::END_FIELD_MODEL], "");
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::FRINGE_LENGTH], 8);
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::RADIAL_NEG_EXTENT], 10);
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::RADIAL_POS_EXTENT], 11);
@@ -62,18 +62,18 @@ TEST_F(TestOpalScalingFFAMagnet, UserInterface) {
     auto* ffa = dynamic_cast<ScalingFFAMagnet*>(ui.getElement());
     ASSERT_TRUE(ffa);
     ffa->setupEndField();
-    EXPECT_NEAR(ffa->getEndField()->getCentreLength(), 1.0/ffa->getR0(), 1e-12);
+    EXPECT_NEAR(ffa->getEndField()->getCentreLength(), 1.0 / ffa->getR0(), 1e-12);
     EXPECT_NEAR(ffa->getDipoleConstant(), 2.0, 1e-12);
     EXPECT_NEAR(ffa->getR0(), 19.0, 1e-12);
     EXPECT_NEAR(ffa->getFieldIndex(), 4, 1e-12);
     EXPECT_NEAR(ffa->getTanDelta(), 5, 1e-12);
     EXPECT_EQ(ffa->getMaxOrder(), 6);
-    EXPECT_NEAR(ffa->getEndField()->getEndLength(), 8/ffa->getR0(), 1e-12);
-    EXPECT_NEAR(ffa->getRMin(), ffa->getR0()-10, 1e-12);
-    EXPECT_NEAR(ffa->getRMax(), ffa->getR0()+11, 1e-12);
-    EXPECT_NEAR(ffa->getVerticalExtent()*2.0, 12, 1e-12);
-    EXPECT_NEAR(ffa->getPhiStart()*ffa->getR0(), 0.0, 1e-12);
-    EXPECT_NEAR(ffa->getAzimuthalExtent()*ffa->getR0(), 14, 1e-12);
+    EXPECT_NEAR(ffa->getEndField()->getEndLength(), 8 / ffa->getR0(), 1e-12);
+    EXPECT_NEAR(ffa->getRMin(), ffa->getR0() - 10, 1e-12);
+    EXPECT_NEAR(ffa->getRMax(), ffa->getR0() + 11, 1e-12);
+    EXPECT_NEAR(ffa->getVerticalExtent() * 2.0, 12, 1e-12);
+    EXPECT_NEAR(ffa->getPhiStart() * ffa->getR0(), 0.0, 1e-12);
+    EXPECT_NEAR(ffa->getAzimuthalExtent() * ffa->getR0(), 14, 1e-12);
 }
 
 TEST_F(TestOpalScalingFFAMagnet, Aperture) {
@@ -84,7 +84,7 @@ TEST_F(TestOpalScalingFFAMagnet, Aperture) {
 
 TEST_F(TestOpalScalingFFAMagnet, EndFieldModel) {
     std::string endName = "TestEndField";
-    auto endField = std::make_shared<endfieldmodel::Tanh>(22.0, 3.0, 5);
+    auto endField       = std::make_shared<endfieldmodel::Tanh>(22.0, 3.0, 5);
     endfieldmodel::EndFieldModelManager::getEFMManager()->setEndFieldModel(endName, endField);
 
     OpalScalingFFAMagnet ui;
@@ -93,7 +93,7 @@ TEST_F(TestOpalScalingFFAMagnet, EndFieldModel) {
     EXPECT_NO_THROW(ui.update());
     auto* ffa = dynamic_cast<ScalingFFAMagnet*>(ui.getElement());
     ffa->setupEndField();
-    EXPECT_NEAR(ffa->getEndField()->getCentreLength()/2, 22.0/ffa->getR0(), 1e-12);
+    EXPECT_NEAR(ffa->getEndField()->getCentreLength() / 2, 22.0 / ffa->getR0(), 1e-12);
 }
 
 TEST_F(TestOpalScalingFFAMagnet, AzimuthalExtentDefault) {
@@ -107,5 +107,5 @@ TEST_F(TestOpalScalingFFAMagnet, AzimuthalExtentDefault) {
     ffa->setupEndField();
 
     // default azimuthal extent is (endlength*5 + centrelength*0.5)/r0
-    EXPECT_NEAR(ffa->getAzimuthalExtent(), (5*8+0.5)/ffa->getR0(), 1e-12);
+    EXPECT_NEAR(ffa->getAzimuthalExtent(), (5 * 8 + 0.5) / ffa->getR0(), 1e-12);
 }

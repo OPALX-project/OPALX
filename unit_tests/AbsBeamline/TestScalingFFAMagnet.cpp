@@ -16,21 +16,20 @@
 //
 #include "AbsBeamline/EndFieldModel/Tanh.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
-#include "Physics/Physics.h"
 #include "AbstractObjects/OpalData.h"
+#include "Physics/Physics.h"
 
 #include "gtest/gtest.h"
 
 #include <algorithm>
-#include <vector>
 #include <cmath>
 #include <fstream>
 #include <sstream>
+#include <vector>
 
-class ScalingFFAMagnetTest: public ::testing::Test {
+class ScalingFFAMagnetTest : public ::testing::Test {
 public:
-    ScalingFFAMagnetTest(): sector_m(nullptr), fout_m() {
-    }
+    ScalingFFAMagnetTest() : sector_m(nullptr), fout_m() {}
 
     static void SetUpTestSuite() {
         int argc    = 0;
@@ -50,37 +49,37 @@ public:
         ippl::finalize();
     }
 
-    void SetUp( ) {
+    void SetUp() {
         sector_m = new ScalingFFAMagnet("test");
         // characteristic length is R*dphi => 0.6545 m
-        std::shared_ptr<endfieldmodel::Tanh> tanh = std::make_shared<endfieldmodel::Tanh>(psi0_m, psi0_m/5., 20);
+        std::shared_ptr<endfieldmodel::Tanh> tanh =
+                std::make_shared<endfieldmodel::Tanh>(psi0_m, psi0_m / 5., 20);
         sector_m->setEndField(tanh);
-        sector_m->setTanDelta(std::tan(Physics::pi/4.));
+        sector_m->setTanDelta(std::tan(Physics::pi / 4.));
         sector_m->setR0(r0_m);
         sector_m->setRMin(0.);
-        sector_m->setRMax(r0_m*2.);
+        sector_m->setRMax(r0_m * 2.);
         sector_m->setDipoleConstant(1.);
         sector_m->setFieldIndex(15);
         sector_m->setMaxOrder(10);
         sector_m->setPhiStart(psi0_m);
         sector_m->setAzimuthalExtent(Physics::pi);
-        sector_m->setVerticalExtent(1.); // 1 m
+        sector_m->setVerticalExtent(1.);  // 1 m
         sector_m->initialise();
     }
 
-    void TearDown( ) {
+    void TearDown() {
         delete sector_m;
         sector_m = nullptr;
     }
 
-    ~ScalingFFAMagnetTest() {
-    }
+    ~ScalingFFAMagnetTest() {}
 
     ScalingFFAMagnet* sector_m;
     std::ofstream fout_m;
-    double r0_m = 24; // m
-    double magnetLength_m = 0.63; // m
-    double psi0_m = magnetLength_m*2*Physics::pi/r0_m; // radians
+    double r0_m           = 24;                                       // m
+    double magnetLength_m = 0.63;                                     // m
+    double psi0_m         = magnetLength_m * 2 * Physics::pi / r0_m;  // radians
 
     Vector_t<double, 3> getB(Vector_t<double, 3> pos) {
         Vector_t<double, 3> mom, B, E;
@@ -93,8 +92,8 @@ public:
         Vector_t<double, 3> mom({0., 0., 0.});
         Vector_t<double, 3> E({0., 0., 0.});
         Vector_t<double, 3> BUpper({0., 0., 0.});
-        double t = 0;
-        double derivative = 0;
+        double t                     = 0;
+        double derivative            = 0;
         Vector_t<double, 3> posUpper = pos;
         posUpper[j] += delta;
         if (isCartesian) {
@@ -110,7 +109,7 @@ public:
         } else {
             sector_m->getFieldValueCylindrical(posLower, BLower);
         }
-        derivative = (BUpper[i]-BLower[i])/(posUpper[j]-posLower[j]);
+        derivative = (BUpper[i] - BLower[i]) / (posUpper[j] - posLower[j]);
         return derivative;
     }
 
@@ -126,12 +125,12 @@ public:
     Vector_t<double, 3> getCurlBCart(Vector_t<double, 3> posCart, Vector_t<double, 3> delta) {
         Vector_t<double, 3> curlElements({0., 0., 0.});
         // dB_x/dx ~ (B_x(x+dx) - B_x(x-dx))/2/dx
-        curlElements[0] += getDBDu(2, 1, posCart, delta[1], true); // dBz/dy
-        curlElements[0] -= getDBDu(1, 2, posCart, delta[2], true); // dBy/dz
-        curlElements[1] += getDBDu(0, 2, posCart, delta[2], true); // dBx/dz
-        curlElements[1] -= getDBDu(2, 0, posCart, delta[0], true); // dBz/dx
-        curlElements[2] += getDBDu(1, 0, posCart, delta[0], true); // dBy/dx
-        curlElements[2] -= getDBDu(0, 1, posCart, delta[1], true); // dBx/dy
+        curlElements[0] += getDBDu(2, 1, posCart, delta[1], true);  // dBz/dy
+        curlElements[0] -= getDBDu(1, 2, posCart, delta[2], true);  // dBy/dz
+        curlElements[1] += getDBDu(0, 2, posCart, delta[2], true);  // dBx/dz
+        curlElements[1] -= getDBDu(2, 0, posCart, delta[0], true);  // dBz/dx
+        curlElements[2] += getDBDu(1, 0, posCart, delta[0], true);  // dBy/dx
+        curlElements[2] -= getDBDu(0, 1, posCart, delta[1], true);  // dBx/dy
         return curlElements;
     }
 
@@ -141,15 +140,15 @@ public:
         Vector_t<double, 3> B({0., 0., 0.});
         sector_m->getFieldValueCylindrical(posCyl, B);
 
-        curlElements[0] += getDBDu(2, 1, posCyl, delta[1], false); // dBphi/dz
-        curlElements[0] -= getDBDu(1, 2, posCyl, delta[2], false)/posCyl[0]; // 1/r*dBz/dphi
+        curlElements[0] += getDBDu(2, 1, posCyl, delta[1], false);              // dBphi/dz
+        curlElements[0] -= getDBDu(1, 2, posCyl, delta[2], false) / posCyl[0];  // 1/r*dBz/dphi
 
-        curlElements[1] += getDBDu(2, 0, posCyl, delta[0], false); // dBphi/dr
-        curlElements[1] -= getDBDu(0, 2, posCyl, delta[2], false)/posCyl[0]; // dBr/dphi/r
-        curlElements[1] += B[2]/posCyl[0]; // Bphi/r
+        curlElements[1] += getDBDu(2, 0, posCyl, delta[0], false);              // dBphi/dr
+        curlElements[1] -= getDBDu(0, 2, posCyl, delta[2], false) / posCyl[0];  // dBr/dphi/r
+        curlElements[1] += B[2] / posCyl[0];                                    // Bphi/r
 
-        curlElements[2] += getDBDu(0, 1, posCyl, delta[1], false); // dBr/dz
-        curlElements[2] -= getDBDu(1, 0, posCyl, delta[0], false); // dBz/dr
+        curlElements[2] += getDBDu(0, 1, posCyl, delta[1], false);  // dBr/dz
+        curlElements[2] -= getDBDu(1, 0, posCyl, delta[0], false);  // dBz/dr
 
         return curlElements;
     }
@@ -158,19 +157,20 @@ public:
         Vector_t<double, 3> B({0., 0., 0.});
         Vector_t<double, 3> div_elements({0., 0., 0.});
         sector_m->getFieldValueCylindrical(posCyl, B);
-        div_elements[0] = B[0]/posCyl[0] + getDBDu(0, 0, posCyl, delta[0], false);
+        div_elements[0] = B[0] / posCyl[0] + getDBDu(0, 0, posCyl, delta[0], false);
         div_elements[1] = getDBDu(1, 1, posCyl, delta[1], false);
-        div_elements[2] = getDBDu(2, 2, posCyl, delta[2], false)/posCyl[0];
+        div_elements[2] = getDBDu(2, 2, posCyl, delta[2], false) / posCyl[0];
         // dB_x/dx ~ (B_x(x+dx) - B_x(x-dx))/2/dx
         return div_elements[0] + div_elements[1] + div_elements[2];
     }
 
-    bool printLine(Vector_t<double, 3> posCyl, double aux, std::ofstream& fout, double maxwell_tolerance) {
-        double r = posCyl[0];
-        double y = posCyl[1];
+    bool printLine(
+            Vector_t<double, 3> posCyl, double aux, std::ofstream& fout, double maxwell_tolerance) {
+        double r   = posCyl[0];
+        double y   = posCyl[1];
         double phi = posCyl[2];
-        double x = r * (1 - std::cos(phi));
-        double z = r * std::sin(phi);
+        double x   = r * (1 - std::cos(phi));
+        double z   = r * std::sin(phi);
         Vector_t<double, 3> posCart({x, y, z});
         Vector_t<double, 3> mom({0., 0., 0.});
         Vector_t<double, 3> E({0., 0., 0.});
@@ -179,25 +179,26 @@ public:
         double t = 0;
         sector_m->getFieldValueCylindrical(posCyl, B);
         sector_m->apply(posCart, mom, t, E, BCart);
-        double delta = y/1000.;
+        double delta = y / 1000.;
         if (delta > 1e-3 or delta < 1e-9) {
             delta = 1e-3;
         }
-        double divBCyl =  getDivBCyl(posCyl, Vector_t<double, 3>({delta, delta, delta/r0_m}));
-        Vector_t<double, 3> curlBCyl = getCurlBCyl(posCyl, Vector_t<double, 3>({delta, delta, delta/r0_m})); //curlBCyl[0] should be cancelled by 2nd term
+        double divBCyl = getDivBCyl(posCyl, Vector_t<double, 3>({delta, delta, delta / r0_m}));
+        Vector_t<double, 3> curlBCyl = getCurlBCyl(
+                posCyl, Vector_t<double, 3>(
+                                {delta, delta,
+                                 delta / r0_m}));  // curlBCyl[0] should be cancelled by 2nd term
         double divBCart = getDivBCart(posCart, Vector_t<double, 3>({delta, delta, delta}));
-        Vector_t<double, 3> curlBCart = getCurlBCart(posCart, Vector_t<double, 3>({delta, delta, delta})); //curlBCyl[0] should be cancelled by 2nd term
+        Vector_t<double, 3> curlBCart = getCurlBCart(
+                posCart,
+                Vector_t<double, 3>(
+                        {delta, delta, delta}));  // curlBCyl[0] should be cancelled by 2nd term
         std::stringstream ssout;
-        ssout << "order " << sector_m->getMaxOrder()
-             << " (x,y,z)  " << x << "    " << y << "    " << z
-             << " (r,phi) " << r << "    " << phi
-             << " B(r,z,phi) " << B[0] << "    " << B[1] << "    " << B[2]
-             << " DivB_Cyl: " << divBCyl
-             << " CurlB_Cyl: " << curlBCyl
-             << " B(x,y,z) " << BCart[0] << "    " << BCart[1] << "    " << BCart[2]
-             << " DivB_Cart: " << divBCart
-             << " CurlB_Cart: " << curlBCart
-             << " Aux: " << aux;
+        ssout << "order " << sector_m->getMaxOrder() << " (x,y,z)  " << x << "    " << y << "    "
+              << z << " (r,phi) " << r << "    " << phi << " B(r,z,phi) " << B[0] << "    " << B[1]
+              << "    " << B[2] << " DivB_Cyl: " << divBCyl << " CurlB_Cyl: " << curlBCyl
+              << " B(x,y,z) " << BCart[0] << "    " << BCart[1] << "    " << BCart[2]
+              << " DivB_Cart: " << divBCart << " CurlB_Cart: " << curlBCart << " Aux: " << aux;
         fout << ssout.str() << std::endl;
         bool passtest = divBCart < maxwell_tolerance;
         // for (size_t i = 0; i < 3; ++i) {
@@ -220,8 +221,8 @@ TEST_F(ScalingFFAMagnetTest, ConstructorTest) {
     test->setFieldIndex(++i);
     test->setDipoleConstant(++i);
     test->setR0(++i);
-    double x = ++i;
-    x = ++i;
+    double x                                  = ++i;
+    x                                         = ++i;
     std::shared_ptr<endfieldmodel::Tanh> tanh = std::make_shared<endfieldmodel::Tanh>(x, x, i);
     test->setEndField(tanh);
     test->setMaxOrder(++i);
@@ -235,15 +236,14 @@ TEST_F(ScalingFFAMagnetTest, ConstructorTest) {
     magnets[0] = test;
     magnets[1] = dynamic_cast<ScalingFFAMagnet*>(test->clone());
     for (size_t j = 0; j < magnets.size(); ++j) {
-        i = 0;
+        i    = 0;
         test = magnets[j];
         EXPECT_NEAR(test->getTanDelta(), ++i, 1e-9);
         EXPECT_EQ(test->getFieldIndex(), ++i);
         EXPECT_NEAR(test->getDipoleConstant(), ++i, 1e-9);
         EXPECT_NEAR(test->getR0(), ++i, 1e-9);
         ++i;
-        EXPECT_NEAR(test->getEndField()->function(x, 0),
-                    tanh->function(x, 0), 1e-9);
+        EXPECT_NEAR(test->getEndField()->function(x, 0), tanh->function(x, 0), 1e-9);
         if (j == 1) {
             break;
         }
@@ -256,24 +256,25 @@ TEST_F(ScalingFFAMagnetTest, ConstructorTest) {
         EXPECT_NEAR(test->getVerticalExtent(), ++i, 1e-9);
     }
 
-    std::shared_ptr<endfieldmodel::Tanh> tanh2 = std::make_shared<endfieldmodel::Tanh>(-10., -10., 10);
+    std::shared_ptr<endfieldmodel::Tanh> tanh2 =
+            std::make_shared<endfieldmodel::Tanh>(-10., -10., 10);
     magnets[0]->setEndField(tanh2);
-    EXPECT_NEAR(magnets[0]->getEndField()->function(10., 0),
-                tanh2->function(10., 0), 1e-9);
+    EXPECT_NEAR(magnets[0]->getEndField()->function(10., 0), tanh2->function(10., 0), 1e-9);
     delete magnets[0];
     delete magnets[1];
 }
 
 TEST_F(ScalingFFAMagnetTest, CylindricalCoordinatesTest) {
-    for (auto r0: {10.0, -10.0}) {
+    for (auto r0 : {10.0, -10.0}) {
         sector_m->setR0(r0);
         for (double i = -3.99; i < 3.99; i += 0.5) {
-            for (auto rtest: {r0*0.9, r0*1.0, r0*1.1}) {
-                double phi = i/8.0*2*M_PI;
+            for (auto rtest : {r0 * 0.9, r0 * 1.0, r0 * 1.1}) {
+                double phi = i / 8.0 * 2 * M_PI;
                 Vector_t<double, 5> Rcyl;
                 // This describes an arc bending to the left for positive r and
                 // to the right for negative r
-                Vector_t<double, 3> R({rtest*(std::cos(phi))-r0, 0., std::abs(rtest)*std::sin(phi)});
+                Vector_t<double, 3> R(
+                        {rtest * (std::cos(phi)) - r0, 0., std::abs(rtest) * std::sin(phi)});
                 sector_m->getCylindricalCoordinates(R, Rcyl);
                 EXPECT_NEAR(Rcyl[0], std::abs(rtest), 1e-6);
                 EXPECT_NEAR(Rcyl[2], phi, 1e-6);
@@ -284,20 +285,21 @@ TEST_F(ScalingFFAMagnetTest, CylindricalCoordinatesTest) {
 
 TEST_F(ScalingFFAMagnetTest, PlacementTest) {
     // test that when we are X0 from the centre, we get By = 0.5*B0
-    double centre_length = dynamic_cast<endfieldmodel::Tanh*>(sector_m->getEndField().get())->getX0();
-    for (double r0 = -r0_m; r0 < 1.5*r0_m; r0 += r0_m*2) {
-        for (double phi_start = 0.; phi_start < psi0_m*3.1; phi_start += psi0_m/2.) {
+    double centre_length =
+            dynamic_cast<endfieldmodel::Tanh*>(sector_m->getEndField().get())->getX0();
+    for (double r0 = -r0_m; r0 < 1.5 * r0_m; r0 += r0_m * 2) {
+        for (double phi_start = 0.; phi_start < psi0_m * 3.1; phi_start += psi0_m / 2.) {
             sector_m->setR0(r0);
-            sector_m->setPhiStart(phi_start+centre_length);
+            sector_m->setPhiStart(phi_start + centre_length);
             for (double i = 0.; i < 1.01; i += 0.5) {
-                double phi = i*centre_length*2+phi_start;
+                double phi = i * centre_length * 2 + phi_start;
                 Vector_t<double, 3> mom, E, B;
                 double t = 0;
-                Vector_t<double, 3> posCart({r0*(std::cos(phi)-1), 0., std::abs(r0)*std::sin(phi)});
+                Vector_t<double, 3> posCart(
+                        {r0 * (std::cos(phi) - 1), 0., std::abs(r0) * std::sin(phi)});
                 sector_m->apply(posCart, mom, t, E, B);
-                double byTest = 1-std::abs(i-0.5); // 0.5, 1.0, 0.5
-                EXPECT_NEAR(B[1], byTest, 1e-3) << " for r0 " << r0_m
-                                                << " phi_start " << phi_start
+                double byTest = 1 - std::abs(i - 0.5);  // 0.5, 1.0, 0.5
+                EXPECT_NEAR(B[1], byTest, 1e-3) << " for r0 " << r0_m << " phi_start " << phi_start
                                                 << " and phi test " << phi;
             }
         }
@@ -311,13 +313,14 @@ TEST_F(ScalingFFAMagnetTest, DFCoefficientsTest) {
     sector_m->initialise();
     // hard coded - calculated by hand
     double ref[5][5] = {
-      {1.,    -999.,  -999.,  -999., -999.}, // n = 0
-      {0.,       1.,  -999.,  -999., -999.}, // n = 1
-      {-25./2.,   0., -1./2.,  -999., -999.}, // n = 2
-      {0.,   -25./6.,     0., -1./6., -999.}, // n = 3
-      {+25./2.*3./4., 0., +1./2.*3./4.+25./6./4., 0., +1./6./4.}, // n = 4
+            {1., -999., -999., -999., -999.},         // n = 0
+            {0., 1., -999., -999., -999.},            // n = 1
+            {-25. / 2., 0., -1. / 2., -999., -999.},  // n = 2
+            {0., -25. / 6., 0., -1. / 6., -999.},     // n = 3
+            {+25. / 2. * 3. / 4., 0., +1. / 2. * 3. / 4. + 25. / 6. / 4., 0.,
+             +1. / 6. / 4.},  // n = 4
     };
-    std::vector< std::vector<double> > coeffs = sector_m->getDfCoefficients();
+    std::vector<std::vector<double> > coeffs = sector_m->getDfCoefficients();
     ASSERT_GE(coeffs.size(), (size_t)21);
     for (size_t n = 0; n < 5; ++n) {
         ASSERT_EQ(coeffs[n].size(), 21);
@@ -333,19 +336,20 @@ TEST_F(ScalingFFAMagnetTest, DFCoefficientsTest) {
 
 TEST_F(ScalingFFAMagnetTest, DFCoefficientsTanDeltaTest) {
     sector_m->setTanDelta(2.0);
-    sector_m->setMaxOrder(4); // BUG - max order is 1 to high
+    sector_m->setMaxOrder(4);  // BUG - max order is 1 to high
     sector_m->setFieldIndex(5);
     sector_m->initialise();
     // hard coded - calculated by hand
     double ref[5][5] = {
-      {1.,    -999.,  -999.,  -999., -999.}, // n = 0
-      {0.,       1.,  -999.,  -999., -999.}, // n = 1
-      {-25./2.,   10.*2./2., -5./2.,  -999., -999.}, // n = 2
-      {0.,   -25./6.,  +10./3., -5./6., -999.}, // n = 3
-      // i gave up at 4 - head exploding
-      {+25./2.*3./4., -25./6./4.*2.*3.*2.-10.*3/4., -999., -999., -999.}, // n = 4
+            {1., -999., -999., -999., -999.},                    // n = 0
+            {0., 1., -999., -999., -999.},                       // n = 1
+            {-25. / 2., 10. * 2. / 2., -5. / 2., -999., -999.},  // n = 2
+            {0., -25. / 6., +10. / 3., -5. / 6., -999.},         // n = 3
+            // i gave up at 4 - head exploding
+            {+25. / 2. * 3. / 4., -25. / 6. / 4. * 2. * 3. * 2. - 10. * 3 / 4., -999., -999.,
+             -999.},  // n = 4
     };
-    std::vector< std::vector<double> > coeffs = sector_m->getDfCoefficients();
+    std::vector<std::vector<double> > coeffs = sector_m->getDfCoefficients();
     ASSERT_GE(coeffs.size(), (size_t)21);
     for (size_t n = 0; n < 4; ++n) {
         ASSERT_EQ(coeffs[n].size(), 21);
@@ -364,54 +368,55 @@ TEST_F(ScalingFFAMagnetTest, TanhTest) {
     std::cout << "d(tanh(x))/dx\nn anal calc" << std::endl;
     for (size_t order = 0; order < 5; ++order) {
         double analyticalDerivative = sector_m->getEndField()->function(-psi0_m, order);
-        if (std::abs(numericalDerivative)+std::abs(analyticalDerivative) > 1e-3) {
-            EXPECT_NEAR(analyticalDerivative, numericalDerivative, std::abs(analyticalDerivative)*1e-3);
+        if (std::abs(numericalDerivative) + std::abs(analyticalDerivative) > 1e-3) {
+            EXPECT_NEAR(
+                    analyticalDerivative, numericalDerivative,
+                    std::abs(analyticalDerivative) * 1e-3);
         }
-        std::cout << order << " " << analyticalDerivative << " " << numericalDerivative << std::endl;
-        numericalDerivative = sector_m->getEndField()->function(-psi0_m*0.9999, order)-
-                              sector_m->getEndField()->function(-psi0_m*1.0001, order);
-        numericalDerivative /= -psi0_m*0.9999 + psi0_m*1.0001;
+        std::cout << order << " " << analyticalDerivative << " " << numericalDerivative
+                  << std::endl;
+        numericalDerivative = sector_m->getEndField()->function(-psi0_m * 0.9999, order)
+                              - sector_m->getEndField()->function(-psi0_m * 1.0001, order);
+        numericalDerivative /= -psi0_m * 0.9999 + psi0_m * 1.0001;
     }
 }
 
 TEST_F(ScalingFFAMagnetTest, BatchedTanhMatchesScalarEvaluation) {
-    constexpr size_t pointCount = 3;
+    constexpr size_t pointCount   = 3;
     constexpr int derivativeCount = 6;
     endfieldmodel::Tanh tanh(psi0_m, psi0_m / 5., derivativeCount - 1);
     Kokkos::View<double*> points("tanh_points", pointCount);
-    Kokkos::View<double**> derivatives(
-            "tanh_derivatives", pointCount, derivativeCount);
+    Kokkos::View<double**> derivatives("tanh_derivatives", pointCount, derivativeCount);
     auto pointsHost = Kokkos::create_mirror_view(points);
-    pointsHost(0) = -psi0_m;
-    pointsHost(1) = 0.;
-    pointsHost(2) = psi0_m;
+    pointsHost(0)   = -psi0_m;
+    pointsHost(1)   = 0.;
+    pointsHost(2)   = psi0_m;
     Kokkos::deep_copy(points, pointsHost);
 
     tanh.function(points, derivativeCount, derivatives);
-    auto derivativesHost =
-            Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), derivatives);
+    auto derivativesHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), derivatives);
     for (size_t point = 0; point < pointCount; ++point) {
         for (int order = 0; order < derivativeCount; ++order) {
             const double expected = tanh.function(pointsHost(point), order);
             // Host GSL/libm and GPU Kokkos transcendental implementations differ
             // slightly; cancellation in even derivatives amplifies that difference.
-            EXPECT_NEAR(derivativesHost(point, order), expected,
-                        std::max(5.e-9, std::abs(expected) * 1.e-11));
+            EXPECT_NEAR(
+                    derivativesHost(point, order), expected,
+                    std::max(5.e-9, std::abs(expected) * 1.e-11));
         }
     }
 }
 
 TEST_F(ScalingFFAMagnetTest, RejectsExpansionBeyondDeviceStorage) {
-    EXPECT_THROW(sector_m->setMaxOrder(ScalingFFAMagnetConfig::MaxOrder + 1),
-                 GeneralOpalException);
+    EXPECT_THROW(sector_m->setMaxOrder(ScalingFFAMagnetConfig::MaxOrder + 1), GeneralOpalException);
 }
 
 TEST_F(ScalingFFAMagnetTest, BTwoDTest) {
     std::ofstream fout("/tmp/b_twod.out");
     bool passtest = true;
     for (double y = 0.; y < 0.025; y += 0.015) {
-        for (double r = r0_m; r < r0_m+1; r += 0.02) {
-            for (double psi = -2.*psi0_m; psi < 4.00001*psi0_m; psi += psi0_m/5.) {
+        for (double r = r0_m; r < r0_m + 1; r += 0.02) {
+            for (double psi = -2. * psi0_m; psi < 4.00001 * psi0_m; psi += psi0_m / 5.) {
                 passtest &= printLine(Vector_t<double, 3>({r, y, psi}), 0., fout, 1e-1);
             }
         }
@@ -423,46 +428,50 @@ TEST_F(ScalingFFAMagnetTest, ConvergenceYTest) {
     std::ofstream fout("/tmp/convergence_y.out");
     bool passtest = true;
     for (double y = 0.00001; y < 0.02; y *= 2.) {
-        passtest &= printLine(Vector_t<double, 3>({r0_m, y, 2.*psi0_m}), 0., fout, 1e-3);
+        passtest &= printLine(Vector_t<double, 3>({r0_m, y, 2. * psi0_m}), 0., fout, 1e-3);
     }
     for (double y = 0.051; y < 0.1; y += 0.002) {
-        passtest &= printLine(Vector_t<double, 3>({r0_m, y, 2.*psi0_m}), 0., fout, 1e-3);
+        passtest &= printLine(Vector_t<double, 3>({r0_m, y, 2. * psi0_m}), 0., fout, 1e-3);
     }
     EXPECT_TRUE(passtest);
 }
 
 TEST_F(ScalingFFAMagnetTest, ConvergenceOrderTest) {
     for (double r0sign = -1.0; r0sign < 2.0; r0sign += 2.0) {
-        for (double y = 0.5; y > 0.2; y /= 10.) { // 50 cm off midplane
+        for (double y = 0.5; y > 0.2; y /= 10.) {  // 50 cm off midplane
             std::cout << "order y     B   divB      |curlB|       curlB" << std::endl;
             std::vector<double> divBVec(13);
             std::vector<double> curlBVec(13);
-            double delta = y/100.;
+            double delta = y / 100.;
             for (size_t i = 0; i < divBVec.size(); ++i) {
                 sector_m->setMaxOrder(i);
                 sector_m->initialise();
-                sector_m->setR0(r0sign*r0_m);
-                Vector_t<double, 3> pos({r0sign*r0_m*(std::cos(2*psi0_m)-1), y, r0_m*std::sin(2*psi0_m)});
-                Vector_t<double, 5> posCyl({r0_m, y, 2*psi0_m});
+                sector_m->setR0(r0sign * r0_m);
+                Vector_t<double, 3> pos(
+                        {r0sign * r0_m * (std::cos(2 * psi0_m) - 1), y,
+                         r0_m * std::sin(2 * psi0_m)});
+                Vector_t<double, 5> posCyl({r0_m, y, 2 * psi0_m});
                 double divB = getDivBCart(pos, Vector_t<double, 3>({delta, delta, delta}));
-                Vector_t<double, 3> curlB = getCurlBCart(pos, Vector_t<double, 3>({delta, delta, delta}));
-                Vector_t<double, 3> curlBCyl = getCurlBCyl(posCyl, Vector_t<double, 3>({delta, delta, delta/r0_m}));
+                Vector_t<double, 3> curlB =
+                        getCurlBCart(pos, Vector_t<double, 3>({delta, delta, delta}));
+                Vector_t<double, 3> curlBCyl =
+                        getCurlBCyl(posCyl, Vector_t<double, 3>({delta, delta, delta / r0_m}));
                 Vector_t<double, 3> B = getB(pos);
                 Vector_t<double, 3> Bcyl;
                 sector_m->getFieldValueCylindrical(posCyl, Bcyl);
-                double curlBMag = std::sqrt(curlB[0]*curlB[0] + curlB[1]*curlB[1] + curlB[2]*curlB[2]);
-                divB = std::abs(divB);
-                divBVec[i] = divB;
+                double curlBMag =
+                        std::sqrt(curlB[0] * curlB[0] + curlB[1] * curlB[1] + curlB[2] * curlB[2]);
+                divB        = std::abs(divB);
+                divBVec[i]  = divB;
                 curlBVec[i] = curlBMag;
-                std::cout << i << "     " << y << "    " << B << " " << Bcyl << "     " << divB << "           "
-                          << curlBMag << " " << curlB << " " << curlBCyl << std::endl;
+                std::cout << i << "     " << y << "    " << B << " " << Bcyl << "     " << divB
+                          << "           " << curlBMag << " " << curlB << " " << curlBCyl
+                          << std::endl;
                 if (i > 1 && i % 2 == 1) {
-                    EXPECT_LT(divBVec[i], divBVec[i-2]) << " with i "
-                                                        << i << std::endl;
+                    EXPECT_LT(divBVec[i], divBVec[i - 2]) << " with i " << i << std::endl;
                 }
                 if (i > 1 && i % 2 == 0) {
-                    EXPECT_LT(curlBVec[i], curlBVec[i-2]) << " with i "
-                                                        << i << std::endl;
+                    EXPECT_LT(curlBVec[i], curlBVec[i - 2]) << " with i " << i << std::endl;
                 }
             }
             std::cout << std::endl;
@@ -472,16 +481,16 @@ TEST_F(ScalingFFAMagnetTest, ConvergenceOrderTest) {
 }
 
 TEST_F(ScalingFFAMagnetTest, ConvergenceOrderHackedTest) {
-    double y = 0.05;
+    double y         = 0.05;
     bool cylindrical = false;
-    int maxOrder = 10;
+    int maxOrder     = 10;
     // nb: if tan delta is 0., convergence reached at i = 7
-    for (double td = 0.0; td < 1.1; td += 10.2) { // 50 cm off midplane
+    for (double td = 0.0; td < 1.1; td += 10.2) {  // 50 cm off midplane
         std::cout << "order y     B     divB     |curlB|     curlB" << std::endl;
 
         std::vector<double> divBVec(maxOrder);
         std::vector<double> curlBVec(maxOrder);
-        double delta = y/100.;
+        double delta = y / 100.;
         for (size_t i = 0; i < divBVec.size(); ++i) {
             sector_m->setTanDelta(td);
             sector_m->setR0(-3.0);
@@ -491,30 +500,30 @@ TEST_F(ScalingFFAMagnetTest, ConvergenceOrderHackedTest) {
             Vector_t<double, 3> B, pos, curlB;
             double divB;
             if (cylindrical) {
-                pos = Vector_t<double, 5>({3.0, y, psi0_m*2});
+                pos = Vector_t<double, 5>({3.0, y, psi0_m * 2});
                 sector_m->getFieldValueCylindrical(pos, B);
-                divB = getDivBCyl(pos, Vector_t<double, 3>({delta, delta, delta/3.}));
-                curlB = getCurlBCyl(pos, Vector_t<double, 3>({delta, delta, delta/3.}));
+                divB  = getDivBCyl(pos, Vector_t<double, 3>({delta, delta, delta / 3.}));
+                curlB = getCurlBCyl(pos, Vector_t<double, 3>({delta, delta, delta / 3.}));
             } else {
-                pos = Vector_t<double, 3>({3.0*(std::cos(psi0_m*2)-1), y, 3.0*std::sin(psi0_m*2)});
+                pos = Vector_t<double, 3>(
+                        {3.0 * (std::cos(psi0_m * 2) - 1), y, 3.0 * std::sin(psi0_m * 2)});
                 sector_m->apply(pos, pos, divBVec[0], B, B);
-                divB = getDivBCart(pos, Vector_t<double, 3>({delta, delta, delta}));
+                divB  = getDivBCart(pos, Vector_t<double, 3>({delta, delta, delta}));
                 curlB = getCurlBCart(pos, Vector_t<double, 3>({delta, delta, delta}));
             }
-            double curlBMag = std::sqrt(curlB[0]*curlB[0] + curlB[1]*curlB[1] + curlB[2]*curlB[2]);
-            divB = std::abs(divB);
-            divBVec[i] = divB;
+            double curlBMag =
+                    std::sqrt(curlB[0] * curlB[0] + curlB[1] * curlB[1] + curlB[2] * curlB[2]);
+            divB        = std::abs(divB);
+            divBVec[i]  = divB;
             curlBVec[i] = curlBMag;
-            std::cout << i << "     " << pos << "    " << y << "    " << B << "     " << divB << "           "
-                      << curlBMag << "          " << curlB << std::endl;
+            std::cout << i << "     " << pos << "    " << y << "    " << B << "     " << divB
+                      << "           " << curlBMag << "          " << curlB << std::endl;
 
             if (i > 1 && i % 2 == 1) {
-                EXPECT_LT(divBVec[i], divBVec[i-2]) << " with i "
-                                                    << i << std::endl;
+                EXPECT_LT(divBVec[i], divBVec[i - 2]) << " with i " << i << std::endl;
             }
             if (i > 1 && i % 2 == 0) {
-                EXPECT_LT(curlBVec[i], curlBVec[i-2]) << " with i "
-                                                    << i << std::endl;
+                EXPECT_LT(curlBVec[i], curlBVec[i - 2]) << " with i " << i << std::endl;
             }
         }
         std::cout << std::endl;
@@ -522,27 +531,26 @@ TEST_F(ScalingFFAMagnetTest, ConvergenceOrderHackedTest) {
     sector_m->setMaxOrder(10);
 }
 
-
 TEST_F(ScalingFFAMagnetTest, ConvergenceEndLengthTest) {
     std::ofstream fout("/tmp/convergence_endlength.out");
     bool passtest = true;
     for (double endLength = 1.; endLength < 10.1; endLength += 1.) {
-        std::shared_ptr<endfieldmodel::Tanh> tanh = std::make_shared<endfieldmodel::Tanh>(psi0_m, psi0_m/endLength, 20);
+        std::shared_ptr<endfieldmodel::Tanh> tanh =
+                std::make_shared<endfieldmodel::Tanh>(psi0_m, psi0_m / endLength, 20);
         sector_m->setEndField(tanh);
         sector_m->initialise();
-        passtest &= printLine(Vector_t<double, 3>({r0_m, 0.05, 2.*psi0_m}), psi0_m/endLength*r0_m, fout, 1e-3);
+        passtest &= printLine(
+                Vector_t<double, 3>({r0_m, 0.05, 2. * psi0_m}), psi0_m / endLength * r0_m, fout,
+                1e-3);
     }
     EXPECT_TRUE(passtest);
 }
 
-double magnitude(Vector_t<double, 3> x) {
-    return x[0]*x[0]+x[1]*x[1]+x[2]*x[2];
-}
+double magnitude(Vector_t<double, 3> x) { return x[0] * x[0] + x[1] * x[1] + x[2] * x[2]; }
 
 TEST_F(ScalingFFAMagnetTest, isInsideTest) {
-    Vector_t<double, 3> pos({r0_m*(std::cos(2.*psi0_m)-1.),
-                             0.09,
-                             r0_m*std::sin(2.*psi0_m)});
+    Vector_t<double, 3> pos(
+            {r0_m * (std::cos(2. * psi0_m) - 1.), 0.09, r0_m * std::sin(2. * psi0_m)});
     sector_m->setVerticalExtent(0.1);
     EXPECT_TRUE(sector_m->isInside(pos));
     pos[1] = -0.09;
@@ -557,66 +565,65 @@ TEST_F(ScalingFFAMagnetTest, VerticalBoundingBoxTest) {
     sector_m->setVerticalExtent(0.1);
     Vector_t<double, 3> mom, E, B;
     double t = 0;
-    Vector_t<double, 3> pos({r0_m*(std::cos(2.*psi0_m)-1.),
-                             0.09,
-                             r0_m*std::sin(2.*psi0_m)});
+    Vector_t<double, 3> pos(
+            {r0_m * (std::cos(2. * psi0_m) - 1.), 0.09, r0_m * std::sin(2. * psi0_m)});
 
     B = 0.0;
     sector_m->apply(pos, mom, t, E, B);
     EXPECT_NE(magnitude(B), 0.0);
     pos[1] = 0.11;
-    B = 0.0;
+    B      = 0.0;
     sector_m->apply(pos, mom, t, E, B);
     EXPECT_EQ(magnitude(B), 0.0);
     pos[1] = -0.11;
-    B = 0.0;
+    B      = 0.0;
     sector_m->apply(pos, mom, t, E, B);
     EXPECT_EQ(magnitude(B), 0.0);
     pos[1] = -0.09;
-    B = 0.0;
+    B      = 0.0;
     sector_m->apply(pos, mom, t, E, B);
     EXPECT_NE(magnitude(B), 0.0);
 }
 
 TEST_F(ScalingFFAMagnetTest, RadialBoundingBoxTest) {
-    sector_m->setRMin(r0_m-0.1);
+    sector_m->setRMin(r0_m - 0.1);
     Vector_t<double, 3> mom, E, B;
-    double t = 0;
-    double r1 = r0_m-0.09;
-    Vector_t<double, 3> pos1({r1*std::cos(psi0_m)-r0_m, 0.0, r1*std::sin(psi0_m)});
+    double t  = 0;
+    double r1 = r0_m - 0.09;
+    Vector_t<double, 3> pos1({r1 * std::cos(psi0_m) - r0_m, 0.0, r1 * std::sin(psi0_m)});
     B = 0.0;
     sector_m->apply(pos1, mom, t, E, B);
     EXPECT_NE(magnitude(B), 0.0);
 
-    double r2 = r0_m-0.11;
-    Vector_t<double, 3> pos2({r2*std::cos(psi0_m)-r0_m, 0.0, r2*std::sin(psi0_m)});
+    double r2 = r0_m - 0.11;
+    Vector_t<double, 3> pos2({r2 * std::cos(psi0_m) - r0_m, 0.0, r2 * std::sin(psi0_m)});
     B = 0.0;
     sector_m->apply(pos2, mom, t, E, B);
     EXPECT_EQ(magnitude(B), 0.0);
 
-    sector_m->setRMax(r0_m+0.1);
-    double r3 = r0_m+0.09;
-    Vector_t<double, 3> pos3({r3*std::cos(psi0_m)-r0_m, 0.0, r3*std::sin(psi0_m)});
+    sector_m->setRMax(r0_m + 0.1);
+    double r3 = r0_m + 0.09;
+    Vector_t<double, 3> pos3({r3 * std::cos(psi0_m) - r0_m, 0.0, r3 * std::sin(psi0_m)});
     B = 0.0;
     sector_m->apply(pos3, mom, t, E, B);
     EXPECT_NE(magnitude(B), 0.0);
 
-    double r4 = r0_m+0.11;
-    Vector_t<double, 3> pos4({r4*std::cos(psi0_m)-r0_m, 0.0, r4*std::sin(psi0_m)});
+    double r4 = r0_m + 0.11;
+    Vector_t<double, 3> pos4({r4 * std::cos(psi0_m) - r0_m, 0.0, r4 * std::sin(psi0_m)});
     B = 0.0;
     sector_m->apply(pos4, mom, t, E, B);
     EXPECT_EQ(magnitude(B), 0.0);
 }
 
 TEST_F(ScalingFFAMagnetTest, AzimuthalBoundingBoxTest) {
-    sector_m->setAzimuthalExtent(psi0_m*0.5);
-    sector_m->setPhiStart(psi0_m*3.);
+    sector_m->setAzimuthalExtent(psi0_m * 0.5);
+    sector_m->setPhiStart(psi0_m * 3.);
     Vector_t<double, 3> mom, E, B;
-    double t = 0;
-    double phi[] = {2.49*psi0_m, 2.51*psi0_m, 3.49*psi0_m, 3.51*psi0_m};
+    double t        = 0;
+    double phi[]    = {2.49 * psi0_m, 2.51 * psi0_m, 3.49 * psi0_m, 3.51 * psi0_m};
     bool inBounds[] = {false, true, true, false};
-    for(size_t i = 0; i < 4; ++i) {
-        Vector_t<double, 3> pos({r0_m*(std::cos(phi[i])-1), 0,  r0_m*std::sin(phi[i])});
+    for (size_t i = 0; i < 4; ++i) {
+        Vector_t<double, 3> pos({r0_m * (std::cos(phi[i]) - 1), 0, r0_m * std::sin(phi[i])});
         B = 0.0;
         sector_m->apply(pos, mom, t, E, B);
         EXPECT_EQ(magnitude(B) != 0.0, inBounds[i]) << i << " " << pos;

@@ -91,9 +91,9 @@
 #include "Lines/Ring.h"
 
 // EndFieldModels
+#include "Elements/OpalAsymmetricEnge.h"
 #include "Elements/OpalEnge.h"
 #include "Elements/OpalTanh.h"
-#include "Elements/OpalAsymmetricEnge.h"
 
 // Structure-related commands.
 #include "Lines/EmissionSourceList.h"

@@ -14,22 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 
-#include "Attributes/Attributes.h"
-#include "gtest/gtest.h"
-#include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
-#include "Elements/OpalAsymmetricEnge.h"
 #include "AbsBeamline/EndFieldModel/AsymmetricEnge.h"
+#include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
 #include "AbsBeamline/EndFieldModel/Enge.h"
-
+#include "Attributes/Attributes.h"
+#include "Elements/OpalAsymmetricEnge.h"
+#include "gtest/gtest.h"
 
 class TestOpalAsymmetricEnge : public testing::Test {
 public:
-    TestOpalAsymmetricEnge() {
-    }
+    TestOpalAsymmetricEnge() {}
 
-    static void SetUpTestSuite() {
-        Kokkos::initialize();
-    }
+    static void SetUpTestSuite() { Kokkos::initialize(); }
     static void TearDownTestSuite() {
         endfieldmodel::EndFieldModelManager::clearEFMManager();
         Kokkos::fence();
@@ -51,17 +47,19 @@ TEST_F(TestOpalAsymmetricEnge, TestSetup) {
     auto efmMan = endfieldmodel::EndFieldModelManager::getEFMManager();
     EXPECT_NO_THROW(efmMan->getEndFieldModel("ASYMMETRIC_ENGE"));
     auto efm = efmMan->getEndFieldModel("ASYMMETRIC_ENGE");
-    auto enge = std::dynamic_pointer_cast<endfieldmodel::AsymmetricEnge,
-                                          endfieldmodel::EndFieldModel>(efm);
+    auto enge =
+            std::dynamic_pointer_cast<endfieldmodel::AsymmetricEnge, endfieldmodel::EndFieldModel>(
+                    efm);
     endfieldmodel::AsymmetricEngeConfig config = enge->getConfig();
     EXPECT_EQ(config.engeStart_m.x0_m, 7.0);
     EXPECT_EQ(config.engeStart_m.lambda_m, 8.0);
-    EXPECT_EQ(endfieldmodel::Enge::makeVector(config.engeStart_m.a_m),
-              std::vector<double>({101.0, 3.0, 4.0}));
+    EXPECT_EQ(
+            endfieldmodel::Enge::makeVector(config.engeStart_m.a_m),
+            std::vector<double>({101.0, 3.0, 4.0}));
 
     EXPECT_EQ(config.engeEnd_m.x0_m, 9.0);
     EXPECT_EQ(config.engeEnd_m.lambda_m, 11.0);
-    EXPECT_EQ(endfieldmodel::Enge::makeVector(config.engeEnd_m.a_m),
-              std::vector<double>({12.0, 17.0, 21.0}));
+    EXPECT_EQ(
+            endfieldmodel::Enge::makeVector(config.engeEnd_m.a_m),
+            std::vector<double>({12.0, 17.0, 21.0}));
 }
-
