@@ -114,7 +114,7 @@ namespace endfieldmodel {
                     tdi_m[i].push_back(new_vec2);
                 }
             }
-            tdi_m[i] = CompactVector(tdi_m[i]);
+            tdi_m[i] = compactVector(tdi_m[i]);
         }
     }
 

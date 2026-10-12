@@ -34,10 +34,10 @@
 #include <vector>
 
 namespace endfieldmodel {
-    std::vector<std::vector<int> > CompactVector(std::vector<std::vector<int> > vec);
+    std::vector<std::vector<int> > compactVector(std::vector<std::vector<int> > vec);
 
     /// CompactVector helper function, used for sorting
-    bool GreaterThan(std::vector<int> v1, std::vector<int> v2);
+    bool greaterThan(std::vector<int> v1, std::vector<int> v2);
 
     /** Return a == b if a and b are same size and a[i] == b[i] for all i.
      *
@@ -56,7 +56,7 @@ namespace endfieldmodel {
      *  a.end() (inclusive)
      */
     template <class TEMP_ITER>
-    bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end);
+    bool iterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end);
 
     /** Return a == b if a and b are same size and a[i] == b[i] for all i.
      *
@@ -75,15 +75,15 @@ namespace endfieldmodel {
      *  a.end() (inclusive)
      */
     template <class TEMP_ITER>
-    bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end);
+    bool iterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end);
 
     template <class TEMP_CLASS>
-    bool IterableEquality(const TEMP_CLASS& a, const TEMP_CLASS& b) {
+    bool iterableEquality(const TEMP_CLASS& a, const TEMP_CLASS& b) {
         return IterableEquality(a.begin(), a.end(), b.begin(), b.end());
     }
 
     template <class TEMP_ITER>
-    bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end) {
+    bool iterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end) {
         TEMP_ITER a_it = a_begin;
         TEMP_ITER b_it = b_begin;
         while (a_it != a_end && b_it != b_end) {
