@@ -164,8 +164,10 @@ namespace endfieldmodel {
             config.hIndices[i] = Kokkos::View<int**>("hIndex", 1, 1);
             copyVectorToView(h_m[i], config.hIndices[i]);
         }
-        config.gNVec = Kokkos::View<double*>("gN", config.max_derivative + 1);
-        config.hNVec = Kokkos::View<double*>("hN", config.max_derivative + 1);
+        config.workspace.gNVec = Kokkos::View<double*>("gN", config.max_derivative + 1);
+        config.workspace.hNVec = Kokkos::View<double*>("hN", config.max_derivative + 1);
+        config.workspace.engeLow = Kokkos::View<double*>("engeLow", config.max_derivative + 1);
+        config.workspace.engeHigh = Kokkos::View<double*>("engeHigh", config.max_derivative + 1);
         Kokkos::fence();
     }
 
@@ -207,8 +209,10 @@ namespace endfieldmodel {
     void Enge::finalise() { releaseEngeConfig(config_m); }
 
     void Enge::releaseEngeConfig(EngeConfig& config) {
-        config.gNVec = Kokkos::View<double*>();
-        config.hNVec = Kokkos::View<double*>();
+        config.workspace.gNVec = Kokkos::View<double*>();
+        config.workspace.hNVec = Kokkos::View<double*>();
+        config.workspace.engeLow = Kokkos::View<double*>();
+        config.workspace.engeHigh = Kokkos::View<double*>();
         config.a_m   = Kokkos::View<double*>();
         for (size_t i = 0; i < config.max_derivative; ++i) {
             config.gIndices[i] = Kokkos::View<int**>();
