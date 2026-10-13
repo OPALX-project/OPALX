@@ -27,6 +27,7 @@
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/EndFieldModel/Tanh.h"
 #include "AbsBeamline/FieldmapElement.h"
 #include "AbsBeamline/Laser.h"
 #include "AbsBeamline/Marker.h"
@@ -69,6 +70,12 @@ void DefaultVisitor::visitBox(const Box& box) { applyDefault(box); }
 void DefaultVisitor::visitCollimator(const Collimator& coll) { applyDefault(coll); }
 
 void DefaultVisitor::visitDrift(const Drift& drf) { applyDefault(drf); }
+
+void DefaultVisitor::visitEnge(const endfieldmodel::Enge&) {}
+
+void DefaultVisitor::visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) {}
+
+void DefaultVisitor::visitTanh(const endfieldmodel::Tanh&) {}
 
 void DefaultVisitor::visitFieldmapElement(const FieldmapElement& fm) { applyDefault(fm); }
 
