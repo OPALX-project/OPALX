@@ -12,6 +12,7 @@ cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 # selecting deprecated CMP0155 behavior (scanning also caused GCC 14 problems).
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
+message("ROGERS TEST DEBUG ${CMAKE_BUILD_TYPE}")
 # ------------------------------------------------------------------------------
 # Project declaration and version
 # ------------------------------------------------------------------------------

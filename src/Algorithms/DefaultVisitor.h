@@ -61,6 +61,11 @@ public:
     void visitDrift(const Drift&) override;
     void visitFieldmapElement(const FieldmapElement&) override;
 
+    /// Apply the algorithm to a drift space.
+    void visitEnge(const endfieldmodel::Enge&) override;
+    void visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) override;
+    void visitTanh(const endfieldmodel::Tanh&) override;
+
     /// Apply the algorithm to a laser.
     void visitLaser(const Laser&) override;
 
