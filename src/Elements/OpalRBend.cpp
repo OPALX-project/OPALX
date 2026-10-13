@@ -43,15 +43,10 @@ OpalRBend* OpalRBend::clone(const std::string& name) { return new OpalRBend(name
 void OpalRBend::update() {
     OpalElement::update();
 
-    // E1/E2 pole-face rotations are not wired into the OPALX-native bend geometry/field yet, so
-    // reject them explicitly rather than silently ignoring them.
-    if (!itsAttr[E1].defaultUsed() || !itsAttr[E2].defaultUsed()) {
-        throw OpalException(
-                "OpalRBend::update",
-                getOpalName()
-                        + ": pole-face rotations (E1, E2) are not yet implemented in the "
-                          "OPALX-native bend port. Remove E1/E2 from the element definition.");
-    }
+    // Explicit pole-face angles, design energy or a profile select OPAL-T compatibility. An
+    // ordinary native RBEND keeps its existing box field and FINT correction.
+    const bool legacy = itsAttr[FMAPFN] || itsAttr[DESIGNENERGY] || !itsAttr[E1].defaultUsed()
+                        || !itsAttr[E2].defaultUsed();
 
     // Define geometry. L is the straight body (box) length — the placed hardware, and the
     // chord of the design orbit. The orbit arc through the box is longer,
@@ -62,6 +57,28 @@ void OpalRBend::update() {
     Geometry& geometry = static_cast<Geometry&>(bend->getGeometry());
     geometry.setElementLength(length);
     geometry.setBendAngle(angle);
+    geometry.setLegacyRBend(legacy);
+    const double e1 = Attributes::getReal(itsAttr[E1]);
+    if (legacy) {
+        if (!std::isfinite(length) || length <= 0.0 || !std::isfinite(angle) || !itsAttr[ANGLE]
+            || std::abs(angle) >= Physics::pi || !std::isfinite(e1)
+            || std::abs(e1) >= 0.5 * Physics::pi || std::abs(angle - e1) >= 0.5 * Physics::pi)
+            throw OpalException("OpalRBend::update", getOpalName()
+                + ": legacy RBEND requires L > 0, ANGLE, and entrance/exit angles strictly between -pi/2 and pi/2.");
+        if (!itsAttr[E2].defaultUsed()
+            && (!std::isfinite(Attributes::getReal(itsAttr[E2]))
+                || std::abs(Attributes::getReal(itsAttr[E2]) - (angle - e1)) > 1e-12))
+            throw OpalException("OpalRBend::update", getOpalName()
+                + ": rectangular pole faces require E2 = ANGLE - E1; omit E2 to derive it.");
+        for (int attr : {K0, K0S, K1, K1S, K2, K2S, K3, K3S, FINT})
+            if (!itsAttr[attr].defaultUsed())
+                throw OpalException("OpalRBend::update", getOpalName()
+                    + ": the legacy profile supports an ANGLE-calibrated dipole only; multipoles, K0/K0S and explicit FINT cannot be combined with it.");
+        geometry.setEntranceAngle(e1);
+        geometry.setExitAngle(angle - e1);
+    }
+    if (itsAttr[H1] || itsAttr[H2])
+        throw OpalException("OpalRBend::update", "Curved pole faces H1/H2 are not supported.");
 
     // Define field. With L the box (chord) length, the design radius is
     // rho = L / (2 sin(angle/2)), so the default dipole strength is
@@ -82,7 +99,7 @@ void OpalRBend::update() {
 
     // Set the bend angle.
     if (itsAttr[ANGLE]) {
-        if (bend->isPositioned() && angle < 0.0) {
+        if (!legacy && bend->isPositioned() && angle < 0.0) {
             angle = -angle;
 
             Quaternion rotAboutZ(0, 0, 0, 1);
@@ -97,18 +114,32 @@ void OpalRBend::update() {
 
     // Energy in eV.
     if (itsAttr[DESIGNENERGY]) {
-        // bend->setDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]) * Units::MeV2eV, false);
-        throw OpalException(
-                "OpalRBend::update",
-                "DESIGNENERGY is not supported yet for the OPALX-native RBEND port.");
+        const double energy = Attributes::getReal(itsAttr[DESIGNENERGY]);
+        if (!std::isfinite(energy) || energy <= 0.0)
+            throw OpalException("OpalRBend::update", "DESIGNENERGY must be positive and finite.");
+        bend->setDesignEnergy(energy * Units::MeV2eV, false);
+    } else if (legacy) {
+        throw OpalException("OpalRBend::update", "Legacy RBEND requires DESIGNENERGY in MeV.");
     }
 
-    if (itsAttr[GAP])
-        throw OpalException(
-                "OpalRBend::update", "GAP is not supported; specify HGAP (the half gap) instead.");
+    const bool hasGap  = !itsAttr[GAP].defaultUsed();
+    const bool hasHgap = !itsAttr[HGAP].defaultUsed();
+    if (hasGap && hasHgap)
+        throw OpalException("OpalRBend::update", "Specify GAP or HGAP, not both.");
+    double fullGap =
+            hasGap ? Attributes::getReal(itsAttr[GAP]) : 2.0 * Attributes::getReal(itsAttr[HGAP]);
+    if (!std::isfinite(fullGap) || fullGap < 0.0)
+        throw OpalException("OpalRBend::update", "The pole gap must be finite and nonnegative.");
     // gap_m stores the full gap; HGAP is the half gap, so double it.
-    bend->setFullGap(2.0 * Attributes::getReal(itsAttr[HGAP]));
+    bend->setFullGap(fullGap);
     bend->setFringeIntegral(Attributes::getReal(itsAttr[FINT]));
+    bend->setLegacyFieldMap(
+            legacy ? (itsAttr[FMAPFN] ? Attributes::getString(itsAttr[FMAPFN])
+                                      : "1DPROFILE1-DEFAULT")
+                   : "");
+    if (legacy && !bend->usesLegacyFieldMap())
+        throw OpalException("OpalRBend::update", "Legacy FMAPFN cannot be empty.");
+    if (legacy && fullGap == 0.0) fullGap = bend->getFullGap();
 
     // Transverse aperture. The vertical half-aperture is the pole gap HGAP; the horizontal
     // one comes from HAPERT or from APERTURE, never from both. OpalElement::update() has
@@ -120,7 +151,7 @@ void OpalRBend::update() {
     // set even when the deck omits it; only defaultUsed() tells the two apart.
     const bool hasApert  = !itsAttr[APERT].defaultUsed();
     const bool hasHapert = !itsAttr[HAPERT].defaultUsed();
-    const double hgap    = Attributes::getReal(itsAttr[HGAP]);
+    const double hgap    = 0.5 * fullGap;
     const double hapert  = Attributes::getReal(itsAttr[HAPERT]);
 
     if (hasApert && hasHapert) {

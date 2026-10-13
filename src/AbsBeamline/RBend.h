@@ -89,6 +89,7 @@ public:
     /// @brief Set the full vertical pole gap (GAP), scaling the Enge fringe profile.
     /// @param gap The full vertical pole gap.
     void setFullGap(double gap);
+    double getFullGap() const { return gap_m; }
 
     /// @brief Set the pole-face field integral (FINT) used by the vertical edge focusing.
     /// @param fringeIntegral The pole-face field integral.
@@ -102,6 +103,19 @@ public:
     /// @brief Get the design energy.
     /// @return The design energy in eV.
     double getDesignEnergy() const override;
+
+    /// Enable the OPAL-T rectangular geometry and read a 1DProfile1 map.
+    /// An empty filename disables compatibility mode. File dimensions are cm.
+    void setLegacyFieldMap(const std::string& filename);
+    bool usesLegacyFieldMap() const { return legacy_m.enabled; }
+    /// Calibrate the profile for the design particle (rest energy eV, charge e).
+    /// Also used by field-level tests independently of a PartBunch.
+    void initialiseLegacyField(double mass, double charge);
+    /// Track the design orbit for legacy ELEMEDGE placement (host initialization only).
+    /// Use the initialization time step to preserve OPAL-T's sampled endpoint convention.
+    void initialiseLegacyReferencePath(double mass, double charge, double timeStep);
+    /// Path length used by downstream placement; physical pole-face geometry is unchanged.
+    double getPlacementPathLength() const;
 
     /// @brief Store the normal/skew multipole coefficients into the device views
     ///        read by apply()/computeFieldHost().
@@ -137,14 +151,12 @@ private:
     /// @return The design-orbit curvature.
     double referenceCurvature() const;
 
-    /// @brief Angle between the design orbit and the entrance pole face (angle/2 + E1),
-    ///        for the edge focusing.
-    /// @note The box faces are perpendicular to the box axis, so the orbit meets them at
-    ///       half the bend angle plus any explicit pole-face rotation.
+    /// @brief Native model entrance angle (half the bend angle), for edge focusing.
+    /// @note The legacy profile obtains focusing directly from its fringe field.
     /// @return The entrance edge angle.
     double edgeAngleEntrance() const;
 
-    /// @brief Angle between the design orbit and the exit pole face (angle/2 + E2).
+    /// @brief Native model exit angle (half the bend angle).
     /// @return The exit edge angle.
     double edgeAngleExit() const;
 
@@ -171,6 +183,9 @@ private:
 
     /// Whether the design energy may still be changed.
     bool designEnergyChangeable_m;
+    LegacyRBendField::Inputs legacy_m;
+    std::string legacyFilename_m;
+    double legacyPlacementLength_m = -1.0;
 };
 
 inline void RBend::setFullGap(double gap) { gap_m = std::abs(gap); }
