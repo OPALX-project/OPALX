@@ -145,7 +145,7 @@ namespace {
         }
 
         /// Set the same polarization vector on every particle in the container.
-        void setUniformPolarization(std::shared_ptr<PC_t>& pc, const std::array<float, 3>& pol) {
+        void setUniformPolarization(std::shared_ptr<PC_t>& pc, const std::array<double, 3>& pol) {
             using spin_t        = typename PC_t::spin_vector_type;
             auto Pol_host       = pc->Pol.getHostMirror();
             const std::size_t n = pc->getLocalNum();
@@ -168,7 +168,7 @@ namespace {
             muons->setM(Physics::m_mu);
             electrons->setM(Physics::m_e);
             createParticlesAtRest(muons, nMuons);
-            setUniformPolarization(muons, {0.0f, 0.0f, static_cast<float>(polMag)});
+            setUniformPolarization(muons, {0.0, 0.0, polMag});
 
             Options::seed = 20260515;
             // Timestep chosen so all muons decay within one step; we test the angular

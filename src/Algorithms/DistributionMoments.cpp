@@ -300,8 +300,8 @@ void DistributionMoments::computeMinMaxPosition(
 // computePolarizationMoments -- per-component mean + RMS of the spin vector
 // ---------------------------------------------------------------------------
 void DistributionMoments::computePolarizationMoments(
-        ippl::ParticleAttrib<ippl::Vector<float, 3>>::view_type Polview, size_t Np, size_t Nlocal) {
-    // Pol is stored as float to save memory; reduce in double and cast on read.
+        ippl::ParticleAttrib<ippl::Vector<double, 3>>::view_type Polview, size_t Np,
+        size_t Nlocal) {
     // Np is the global particle count (>= 1, guarded by the caller); it normalizes
     // both sums and sums-of-squares so the result matches R/P moment conventions.
     Np = (Np == 0) ? 1 : Np;
@@ -311,9 +311,9 @@ void DistributionMoments::computePolarizationMoments(
     Kokkos::parallel_reduce(
             "computePolarizationMoments", Nlocal,
             KOKKOS_LAMBDA(const size_t k, SumArray<6>& upd) {
-                const double px = static_cast<double>(Polview(k)[0]);
-                const double py = static_cast<double>(Polview(k)[1]);
-                const double pz = static_cast<double>(Polview(k)[2]);
+                const double px = Polview(k)[0];
+                const double py = Polview(k)[1];
+                const double pz = Polview(k)[2];
                 upd.data[0] += px;
                 upd.data[1] += py;
                 upd.data[2] += pz;
