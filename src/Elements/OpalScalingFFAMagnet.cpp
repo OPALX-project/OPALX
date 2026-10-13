@@ -39,8 +39,14 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet()
 
     itsAttr[FIELD_INDEX] = Attributes::makeReal("FIELD_INDEX", "The scaling magnet field index.");
 
+    itsAttr[LENGTH] = Attributes::makeReal(
+            "L",
+            "The centre length of the spiral FFA, if END_FIELD_MODEL is not defined [m]. If"
+            "END_FIELD_MODEL is defined, LENGTH is taken from the END_FIELD_MODEL.");
+
     itsAttr[TAN_DELTA] = Attributes::makeReal(
-            "TAN_DELTA", "Tangent of the spiral angle; set to 0 to make a radial sector magnet.");
+            "TAN_DELTA", "Tangent of the spiral angle; set to 0 to make a radial sector magnet.",
+            0.0);
 
     itsAttr[MAX_Y_POWER] = Attributes::makeReal(
             "MAX_Y_POWER",
@@ -51,7 +57,6 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet()
             "END_FIELD_MODEL",
             "Names the end field model of the magnet, giving the field magnitude along a line of "
             "constant radius. If blank, uses the 'FRINGE_LENGTH' and 'L' parameters to construct a "
-            " "
             "tanh model. If 'END_FIELD_MODEL' is not blank, OpalX will seek "
             "an END_FIELD_MODEL corresponding to the name defined in this string.");
 
@@ -60,12 +65,8 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet()
             "The fringe field e-fold length of the spiral FFA, if END_FIELD_MODEL is not defined "
             "[m]. This "
             "determines the fringe field taper if no "
-            "END_FIELD_MODEL is defined. Ignored if END_FIELD_MODEL is defined.");
-
-    itsAttr[LENGTH] = Attributes::makeReal(
-            "L",
-            "The centre length of the spiral FFA, if END_FIELD_MODEL is not defined [m]. If"
-            "END_FIELD_MODEL is defined, LENGTH is taken from the END_FIELD_MODEL.");
+            "END_FIELD_MODEL is defined. Ignored if END_FIELD_MODEL is defined.",
+            0.1);
 
     itsAttr[RADIAL_NEG_EXTENT] = Attributes::makeReal(
             "RADIAL_NEG_EXTENT",
@@ -132,7 +133,10 @@ void OpalScalingFFAMagnet::setupNamedEndField() {
     }
     std::string name         = Attributes::getString(itsAttr[END_FIELD_MODEL]);
     ScalingFFAMagnet* magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
+    auto endField            = std::make_shared<endfieldmodel::Tanh>();
     magnet->setEndFieldName(name);
+    // make sure the EFM is cleared
+    magnet->setEndField(endField);
     magnet->setPhiStart(0.0);
 }
 
@@ -153,7 +157,10 @@ void OpalScalingFFAMagnet::update() {
     // dimensionless quantities
     magnet->setFieldIndex(Attributes::getReal(itsAttr[FIELD_INDEX]));
     magnet->setTanDelta(Attributes::getReal(itsAttr[TAN_DELTA]));
-    int maxOrder = std::floor(Attributes::getReal(itsAttr[MAX_Y_POWER]));
+    int maxOrder = 3;
+    if (itsAttr[MAX_Y_POWER]) {
+        maxOrder = std::floor(Attributes::getReal(itsAttr[MAX_Y_POWER]));
+    }
     magnet->setMaxOrder(maxOrder);
 
     // get rmin and rmax bounding box edge
@@ -180,6 +187,5 @@ void OpalScalingFFAMagnet::update() {
     } else {
         setupDefaultEndField();
     }
-    magnet->initialise();
     setElement(magnet);
 }
