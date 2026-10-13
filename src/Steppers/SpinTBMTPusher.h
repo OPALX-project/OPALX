@@ -35,7 +35,8 @@ public:
 
     /// Per-particle Thomas-BMT update.
     ///
-    /// Inputs (all lab-frame, in OPALX conventions):
+    /// Inputs (all along the same Cartesian axes as Pol, in OPALX conventions; the
+    /// tracker passes bunch-frame P, E, B and Pol):
     ///   P       : momentum in beta*gamma (dimensionless)
     ///   Ef, Bf  : electric and magnetic field at the particle position [V/m, T]
     ///   dt      : timestep [s]
@@ -43,14 +44,16 @@ public:
     ///   charge  : particle charge [C]
     ///   anom    : magnetic moment anomaly G = (g - 2) / 2 [dimensionless]
     /// In/out:
-    ///   Pol     : polarization 3-vector (rest-frame Pauli expectations along lab axes,
+    ///   Pol     : polarization 3-vector (rest-frame Pauli expectations along those axes,
     ///             |Pol| in [0, 1]). Updated in place.
     template <typename SpinVec>
     KOKKOS_INLINE_FUNCTION void evolve(
             SpinVec& Pol, const Vector_t<double, 3>& P, const Vector_t<double, 3>& Ef,
             const Vector_t<double, 3>& Bf, const double& dt, const double& mass,
             const double& charge, const double& anom) const {
-        // Thomas-BMT angular velocity vector Omega in the lab frame, lab time:
+        // Thomas-BMT angular velocity vector Omega from lab-frame E, B and lab time, written
+        // along the axes of the inputs (Omega is built from dot and cross products only, so
+        // any fixed rotation of P, E, B and Pol together gives the same result):
         //   Omega = -(q/m) [ (G + 1/gamma) B
         //                    - (G gamma / (gamma+1)) (beta . B) beta
         //                    - (G + 1/(gamma+1)) (beta x E) / c ]
@@ -80,7 +83,7 @@ public:
         }
 
         // Sub-stepping for large rotations: split phi into N steps of size <= maxAngle_m.
-        // Rodrigues' formula is exact at any angle, but float precision and the
+        // Rodrigues' formula is exact at any angle, but rounding and the
         // assumption of constant Omega across the step degrade for large phi.
         const int nSub       = static_cast<int>(Kokkos::ceil(phi / maxAngle_m));
         const double dphi    = phi / static_cast<double>(nSub);
@@ -99,9 +102,9 @@ public:
             S = cosDphi * S + sinDphi * axisCrossS + (1.0 - cosDphi) * axisDotS * axis;
         }
 
-        Pol[0] = static_cast<float>(S[0]);
-        Pol[1] = static_cast<float>(S[1]);
-        Pol[2] = static_cast<float>(S[2]);
+        Pol[0] = S[0];
+        Pol[1] = S[1];
+        Pol[2] = S[2];
     }
 };
 

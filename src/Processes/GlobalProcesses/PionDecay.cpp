@@ -8,7 +8,7 @@ void PionDecay::createDaughterParticles(
         const Kokkos::View<ippl::Vector<double, 3>*>& parentR,
         const Kokkos::View<ippl::Vector<double, 3>*>& parentP,
         const Kokkos::View<double*>& parentDt,
-        const Kokkos::View<ippl::Vector<float, 3>*>& /*parentPol*/) {
+        const Kokkos::View<ippl::Vector<double, 3>*>& /*parentPol*/) {
     using pc_size_type = ippl::detail::size_type;
 
     auto dR  = daughterPC_m->R.getView();
@@ -17,7 +17,7 @@ void PionDecay::createDaughterParticles(
 
     // Daughter muon polarization view (empty unallocated View when daughter has no Pol).
     const bool daughterHasSpin = daughterPC_m->hasSpin();
-    using PolView_t            = Kokkos::View<ippl::Vector<float, 3>*>;
+    using PolView_t            = Kokkos::View<ippl::Vector<double, 3>*>;
     PolView_t dPol;
     if (daughterHasSpin) {
         dPol = daughterPC_m->Pol.getView();
@@ -107,9 +107,9 @@ void PionDecay::createDaughterParticles(
                 // rest-frame unit vector is the correct lab-frame polarization vector.
                 if (daughterHasSpin) {
                     const double inv = helicitySign / pFixed;
-                    dPol(idx)[0]     = static_cast<float>(pxRF * inv);
-                    dPol(idx)[1]     = static_cast<float>(pyRF * inv);
-                    dPol(idx)[2]     = static_cast<float>(pzRF * inv);
+                    dPol(idx)[0]     = pxRF * inv;
+                    dPol(idx)[1]     = pyRF * inv;
+                    dPol(idx)[2]     = pzRF * inv;
                 }
 
                 pool.free_state(gen);
