@@ -103,6 +103,9 @@ public:
     void visitVerticalFFAMagnet(const VerticalFFAMagnet&) override {}
     void visitProbe(const Probe&) override {}
     void visitVariableRFCavity(const VariableRFCavity&) override {}
+    void visitEnge(const endfieldmodel::Enge&) {}
+    void visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) {}
+    void visitTanh(const endfieldmodel::Tanh&) {}
 
     // Test helper functions
     double fieldAtT(const Vector_t<double, 3>& pos, const double t) {
