@@ -27,16 +27,19 @@ namespace endfieldmodel {
 
     std::vector<std::vector<int> > Enge::getHIndex(int n) { return h_m[n]; }
 
-    KOKKOS_INLINE_FUNCTION double Enge::getDoubleEnge(const EngeConfig& config, double x, int n) {
-        if (n == 0) {
-            return -1
-                   + (getEnge(config, x - config.x0_m, n) + getEnge(config, -x - config.x0_m, n));
-        } else {
+    KOKKOS_INLINE_FUNCTION double Enge::getDoubleEnge(const EngeConfig& config, double x, int n, Kokkos::View<double*> values) {
+        Kokkos::View<double*> engeLow = config.workspace.engeLow;
+        Kokkos::View<double*> engeHigh = config.workspace.engeHigh;
+        getEnge(config, x - config.x0_m, n, engeLow);
+        getEnge(config, -x - config.x0_m, n, engeHigh);
+        values(0) =  -1 + (engeLow(n) + engeHigh(n));
+        for (int i = 1; i <= n; ++i) {
             if (n % 2 == 1)
-                return +getEnge(config, x - config.x0_m, n) - getEnge(config, -x - config.x0_m, n);
+                values(i) = +engeLow(n) - engeHigh(n);
             else
-                return +getEnge(config, x - config.x0_m, n) + getEnge(config, -x - config.x0_m, n);
+                values(i) = +engeLow(n) + engeHigh(n);
         }
+        return values(n);
     }
 
     double Enge::getCentreLength() const { return config_m.x0_m * 2.0; }
@@ -61,34 +64,45 @@ namespace endfieldmodel {
         }
         Kokkos::parallel_for(
                 "Enge::functionHost()", count, KOKKOS_LAMBDA(const size_t i) {
-                    for (int j = 0; j < n + 1; ++j)
-                        values(i, j) = functionDevice(config, xView(i), j);
+                    Kokkos::View<double*> thisvalues = Kokkos::subview(values, i, Kokkos::ALL);
+                    functionDevice(config, xView(i), n, thisvalues);
                 });
     }
 
-    KOKKOS_INLINE_FUNCTION double Enge::functionDevice(const EngeConfig& config, double x, int n) {
-        return getDoubleEnge(config, x, n);
+    KOKKOS_INLINE_FUNCTION double Enge::functionDevice(const EngeConfig& config, double x, int n, Kokkos::View<double*> values) {
+        return getDoubleEnge(config, x, n, values);
+    }
+
+    KOKKOS_INLINE_FUNCTION void Enge::setupWorkspace(const EngeConfig& config, double x, int n) {
+        for (int i = 0; i <= n; i++) {
+            config.workspace.hNVec(i) = hN(config, x, i);
+        }
+        config.workspace.exp_h0() = exp(config.workspace.hNVec(0));
+        for (int i = 0; i <= n; ++i) {
+            config.workspace.gNVec(i) = gN(config, x, i);
+        }
     }
 
     // Use
     // d^n E/dx^n = a_n1m1 F(n1) g(m1) + a_n2m1m2 F(n2) g(m1)g(m2)+...
     // where
-    KOKKOS_INLINE_FUNCTION double Enge::getEnge(const EngeConfig& config, double x, int n) {
-        Kokkos::View<int**> qt = config.gIndices[n];
-        for (size_t i = 0; i < config.max_derivative; ++i) {
-            config.gNVec(i) = gN(config, x, i);
-        }
-        double e = 0;
-        for (size_t i = 0; i < qt.extent(0); ++i) {
-            double ei(qt(i, 0));
-            for (size_t j = 1; j < qt.extent(1); ++j) {
-                double de = Kokkos::pow(config.gNVec(j - 1), qt(i, j));
-                ei *= de;
+    KOKKOS_INLINE_FUNCTION double Enge::getEnge(const EngeConfig& config, double x, int n, Kokkos::View<double*>& values) {
+        setupWorkspace(config, x, n);
+        for (int k = 0; k <= n; ++k) {
+            Kokkos::View<int**> qt = config.gIndices[k];
+            double e = 0;
+            for (size_t i = 0; i < qt.extent(0); ++i) {
+                double ei(qt(i, 0));
+                for (size_t j = 1; j < qt.extent(1); ++j) {
+                    double de = Kokkos::pow(config.workspace.gNVec(j - 1), qt(i, j));
+                    ei *= de;
+                }
+                if (ei != ei) ei = 0;  // div 0, usually g == 0 and index < 0
+                e += ei;
             }
-            if (ei != ei) ei = 0;  // div 0, usually g == 0 and index < 0
-            e += ei;
+            values(k) = e;
         }
-        return e;
+        return values(n);
     }
 
     // h     = a_0+a_1 (x/w)+a_2 (x/w)^2+a_3 (x/w)^3+...+a_m (x/w)^m
@@ -104,16 +118,13 @@ namespace endfieldmodel {
 
     // g     = 1+exp(h)
     // g^(n) = d^ng/dx^n
-    KOKKOS_INLINE_FUNCTION double Enge::gN(const EngeConfig& config, double x, int n) {
-        if (n == 0) return 1 + exp(hN(config, x, 0));  // special case
-        for (int i = 0; i <= n; i++)
-            config.hNVec(i) = hN(config, x, i);
-        double exp_h0 = exp(config.hNVec(0));
+    KOKKOS_INLINE_FUNCTION double Enge::gN(const EngeConfig& config, double /*x*/, int n) {
+        if (n == 0) return 1 + config.workspace.exp_h0();  // special case
         double gn     = 0;
         for (size_t i = 0; i < config.hIndices[n].extent(0); ++i) {
-            double gnj = config.hIndices[n](i, 0) * exp_h0;
+            double gnj = config.hIndices[n](i, 0) * config.workspace.exp_h0();
             for (size_t j = 1; j < config.hIndices[n].extent(1); ++j)
-                gnj *= Kokkos::pow(config.hNVec(j), config.hIndices[n](i, j));
+                gnj *= Kokkos::pow(config.workspace.hNVec(j), config.hIndices[n](i, j));
             gn += gnj;
         }
         return gn;

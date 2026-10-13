@@ -157,17 +157,19 @@ namespace endfieldmodel {
 
     KOKKOS_INLINE_FUNCTION double AsymmetricEnge::functionDevice(
             const AsymmetricEngeConfig& config, double x, int n) {
+        Kokkos::View<double*> engeLow = config.engeStart_m.workspace.engeLow;
+        Kokkos::View<double*> engeHigh = config.engeEnd_m.workspace.engeHigh;
         if (n == 0) {
-            return (Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n)
-                    + Enge::getEnge(config.engeEnd_m, x - config.engeEnd_m.x0_m, n))
+            return (Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n, engeLow)
+                    + Enge::getEnge(config.engeEnd_m, x - config.engeEnd_m.x0_m, n, engeHigh))
                    - 1;
         } else {
             if (n % 2 == 1)
-                return -Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n)
-                       + Enge::getEnge(config.engeEnd_m, x - config.engeEnd_m.x0_m, n);
+                return -Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n, engeLow)
+                       + Enge::getEnge(config.engeEnd_m, x - config.engeEnd_m.x0_m, n, engeHigh);
             else
-                return Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n)
-                       + Enge::getEnge(config.engeEnd_m, x - config.engeEnd_m.x0_m, n);
+                return Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n, engeLow)
+                       + Enge::getEnge(config.engeEnd_m, x - config.engeEnd_m.x0_m, n, engeHigh);
         }
     }
     double AsymmetricEnge::getX0Start() const { return config_m.engeStart_m.x0_m; }
