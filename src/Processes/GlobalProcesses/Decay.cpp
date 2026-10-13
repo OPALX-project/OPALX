@@ -60,7 +60,7 @@ size_t Decay::apply(
     if (daughterPC_m) {
         /* Phase 2: Gather kinematics of decayed parents into compact views. */
         // parentPolView is empty for containers not tracking spin.
-        Kokkos::View<ippl::Vector<float, 3>*> parentPolView;
+        Kokkos::View<ippl::Vector<double, 3>*> parentPolView;
         if (pc.hasSpin()) {
             parentPolView = pc.Pol.getView();
         }
@@ -116,7 +116,7 @@ Decay::DecayedParentViews Decay::collectDecayedParents(
         ippl::detail::size_type nLocal, ippl::detail::size_type localDestroyNum,
         Kokkos::View<bool*> decayed, Kokkos::View<ippl::Vector<double, 3>*> Rview,
         Kokkos::View<ippl::Vector<double, 3>*> Pview, Kokkos::View<double*> dtView,
-        Kokkos::View<ippl::Vector<float, 3>*> PolView) {
+        Kokkos::View<ippl::Vector<double, 3>*> PolView) {
     using pc_size_type = ippl::detail::size_type;
 
     Kokkos::View<pc_size_type*> compactIdx("Decay::compactIdx", nLocal);
@@ -137,7 +137,7 @@ Decay::DecayedParentViews Decay::collectDecayedParents(
             Kokkos::View<ippl::Vector<double, 3>*>("Decay::parentR", localDestroyNum),
             Kokkos::View<ippl::Vector<double, 3>*>("Decay::parentP", localDestroyNum),
             Kokkos::View<double*>("Decay::parentDt", localDestroyNum),
-            Kokkos::View<ippl::Vector<float, 3>*>(
+            Kokkos::View<ippl::Vector<double, 3>*>(
                     "Decay::parentPol", hasPol ? localDestroyNum : 0)};
 
     Kokkos::parallel_for(
