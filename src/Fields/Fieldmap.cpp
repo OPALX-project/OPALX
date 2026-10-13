@@ -17,7 +17,6 @@
 #include "Fields/FM1DProfile1.h"
 #include "Fields/FM1DProfile2.h"
 #include "Fields/FM2DElectroStatic.h"
-#include "Fields/FM3DDynamic.h"
 #include "Fields/FM3DH5Block.h"
 #include "Fields/FM3DH5BlockBase.h"
 #include "Fields/FM3DH5Block_nonscale.h"
@@ -31,6 +30,7 @@
 #include "Fields/Astra1DMagnetoStatic.h"
 #include "Fields/FM2DDynamic.h"
 #include "Fields/FM2DMagnetoStatic.h"
+#include "Fields/FM3DDynamic.h"
 #include "Fields/G4BL2DMagnetoStatic.h"
 #include "Fields/G4BL3DGrid.h"
 
@@ -163,6 +163,13 @@ Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/, bool zRever
                                 FieldmapDescription(T2DDynamic, new FM2DDynamic(Filename))));
                 return (*position.first).second.Map;
                 break;
+
+            case T3DDynamic:
+                position = FieldmapDictionary.insert(
+                        std::make_pair(
+                                Filename,
+                                FieldmapDescription(T3DDynamic, new FM3DDynamic(Filename))));
+                return (*position.first).second.Map;
 
             case TAstraDynamic:
                 // if (fast) {

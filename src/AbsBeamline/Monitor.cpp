@@ -94,7 +94,7 @@ void Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     auto hM  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Mview);
 
     const bool hasSpin = pc->hasSpin();
-    using SpinHostView = Kokkos::View<ippl::Vector<float, 3>*, Kokkos::HostSpace>;
+    using SpinHostView = Kokkos::View<ippl::Vector<double, 3>*, Kokkos::HostSpace>;
     SpinHostView hPol;
     if (hasSpin) {
         auto Polview = pc->Pol.getView();
@@ -188,7 +188,7 @@ void Monitor::driftToCorrectPositionAndSave(
     auto hM  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Mview);
 
     const bool hasSpin = pc->hasSpin();
-    using SpinHostView = Kokkos::View<ippl::Vector<float, 3>*, Kokkos::HostSpace>;
+    using SpinHostView = Kokkos::View<ippl::Vector<double, 3>*, Kokkos::HostSpace>;
     SpinHostView hPol;
     if (hasSpin) {
         auto Polview = pc->Pol.getView();
