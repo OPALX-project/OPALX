@@ -68,6 +68,20 @@ size_t Decay::apply(
                 nLocal, localDestroyNum, decayed, pc.R.getView(), pc.P.getView(), pc.dt.getView(),
                 parentPolView);
 
+        /* Each container stores R, P and Pol in its own bunch frame (toLabTrafo.transformTo
+         * maps it to the lab). Move the gathered parent copies into the daughter's frame. */
+        const CoordinateSystemTrafo& parentToLab   = pc.getToLabTrafo();
+        const CoordinateSystemTrafo& daughterToLab = daughterPC_m->getToLabTrafo();
+        parentToLab.transformBunchTo(parents.R, localDestroyNum);
+        daughterToLab.transformBunchFrom(parents.R, localDestroyNum);
+        parentToLab.rotateBunchTo(parents.P, localDestroyNum);
+        daughterToLab.rotateBunchFrom(parents.P, localDestroyNum);
+        if (parents.Pol.extent(0) > 0) {
+            parentToLab.rotateBunchTo(parents.Pol, localDestroyNum);
+            daughterToLab.rotateBunchFrom(parents.Pol, localDestroyNum);
+        }
+        Kokkos::fence();
+
         /* Phase 3: Create daughters — subclass-specific momentum sampling. */
         // createParticles() is non-destructive and warns if the daughter buffer must grow.
         const pc_size_type oldDaughterLocal = daughterPC_m->getLocalNum();

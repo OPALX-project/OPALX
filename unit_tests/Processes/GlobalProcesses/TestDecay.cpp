@@ -7,6 +7,8 @@
 #include <memory>
 #include <utility>
 
+#include "Algorithms/CoordinateSystemTrafo.h"
+#include "Algorithms/Quaternion.hpp"
 #include "Ippl.h"
 #include "PartBunch/ParticleContainer.hpp"
 #include "Physics/MuonDecay.h"
@@ -270,6 +272,59 @@ namespace {
             EXPECT_DOUBLE_EQ(eR_host(i)[1], muR_host(i)[1]);
             EXPECT_DOUBLE_EQ(eR_host(i)[2], muR_host(i)[2]);
         }
+    }
+
+    // Each container stores R and P in its own bunch frame, and getToLabTrafo().transformTo
+    // maps that frame to the lab. A daughter must start at its parent's lab position, moving
+    // in its parent's lab direction, written in the daughter container's own frame.
+    TEST_F(DecayTest, DaughterUsesItsOwnContainerFrame) {
+        constexpr size_t nPart = 2000;
+        auto muons             = makeContainer();
+        auto electrons         = makeContainer(ParticleType::ELECTRON);
+        muons->setM(Physics::m_mu);
+        electrons->setM(Physics::m_e);
+        createParticlesWithPositions(muons, nPart, 5.0);
+
+        // Parent frame: shifted and turned by 0.4 rad about y. Daughter frame: the lab.
+        const CoordinateSystemTrafo parentToLab(
+                ippl::Vector<double, 3>(0.3, -0.2, 1.5),
+                Quaternion(std::cos(0.2), 0.0, std::sin(0.2), 0.0));
+        muons->setToLabTrafo(parentToLab);
+
+        auto muR_host = muons->R.getHostMirror();
+        Kokkos::deep_copy(muR_host, muons->R.getView());
+
+        Options::seed = 4242;
+        MuonDecay decay(1.0e-12, 0, Physics::m_mu, -1);
+        decay.setDaughterContainer(electrons, Physics::m_e);
+        ASSERT_EQ(decay.apply(*muons, 1.0, 0, 0), nPart);
+        ASSERT_EQ(electrons->getLocalNum(), nPart);
+
+        auto eR_host = electrons->R.getHostMirror();
+        auto eP_host = electrons->P.getHostMirror();
+        Kokkos::deep_copy(eR_host, electrons->R.getView());
+        Kokkos::deep_copy(eP_host, electrons->P.getView());
+
+        ippl::Vector<double, 3> meanP(0.0);
+        for (size_t i = 0; i < nPart; ++i) {
+            const ippl::Vector<double, 3> expected = parentToLab.transformTo(muR_host(i));
+            for (unsigned k = 0; k < 3; ++k) {
+                EXPECT_NEAR(eR_host(i)[k], expected[k], 1e-10) << "particle " << i;
+            }
+            meanP += eP_host(i);
+        }
+
+        // The muons move with beta*gamma = 5 along their own z, so the electrons go forward
+        // and their mean momentum points along the parent's z axis as seen in the lab.
+        const ippl::Vector<double, 3> parentZ =
+                parentToLab.rotateTo(ippl::Vector<double, 3>(0.0, 0.0, 1.0));
+        double along = 0.0, norm2 = 0.0;
+        for (unsigned k = 0; k < 3; ++k) {
+            along += meanP[k] * parentZ[k];
+            norm2 += meanP[k] * meanP[k];
+        }
+        const double cosAngle = along / std::sqrt(norm2);
+        EXPECT_GT(cosAngle, std::cos(0.05));
     }
 
     TEST_F(DecayTest, DaughterMomentumIsPhysicalForRestMuons) {
