@@ -680,8 +680,7 @@ CheckpointFile::Metadata CheckpointFile::read(const std::string& fileName, PartB
                 auto polHost    = pc->Pol.getHostMirror();
                 for (std::size_t i = 0; i < localCount; ++i) {
                     polHost(i) = typename PartBunch_t::ParticleContainer_t::spin_vector_type{
-                            static_cast<float>(polx[i]), static_cast<float>(poly[i]),
-                            static_cast<float>(polz[i])};
+                            polx[i], poly[i], polz[i]};
                 }
                 Kokkos::deep_copy(pc->Pol.getView(), polHost);
             }

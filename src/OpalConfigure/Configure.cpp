@@ -81,6 +81,7 @@
 #include "Elements/OpalQuadrupole.h"
 #include "Elements/OpalRBend.h"
 #include "Elements/OpalSBend.h"
+#include "Elements/OpalScalingFFAMagnet.h"
 #include "Elements/OpalSinusoidalTimeDependence.h"
 #include "Elements/OpalSolenoid.h"
 #include "Elements/OpalSplineTimeDependence.h"
@@ -88,6 +89,11 @@
 #include "Elements/OpalVariableRFCavity.h"
 #include "Elements/OpalVerticalFFAMagnet.h"
 #include "Lines/Ring.h"
+
+// EndFieldModels
+#include "Elements/OpalAsymmetricEnge.h"
+#include "Elements/OpalEnge.h"
+#include "Elements/OpalTanh.h"
 
 // Structure-related commands.
 #include "Lines/EmissionSourceList.h"
@@ -156,6 +162,7 @@ namespace {
         opal->create(new OpalQuadrupole());
         opal->create(new OpalRBend());
         opal->create(new OpalSBend());
+        opal->create(new OpalScalingFFAMagnet());
         opal->create(new OpalFieldmapElement());
         opal->create(new OpalSolenoid());
         opal->create(new Line());
@@ -166,6 +173,10 @@ namespace {
         opal->create(new OpalSplineTimeDependence());
         opal->create(new OpalMultipoleT());
         opal->create(new OpalVariableRFCavity());
+
+        opal->create(new OpalEnge());
+        opal->create(new OpalTanh());
+        opal->create(new OpalAsymmetricEnge());
     }
 };  // namespace
 
