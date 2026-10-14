@@ -15,8 +15,8 @@
 #include "Elements/PlacementResolver.h"
 
 #include "AbsBeamline/ElementBase.h"
-#include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbsBeamline/RBend.h"
+#include "AbsBeamline/ScalingFFAMagnet.h"
 #include "Algorithms/Quaternion.hpp"
 #include "BeamlineGeometry/Geometry.h"
 #include "Utilities/OpalException.h"
@@ -160,12 +160,13 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
             //  - RBEND/RBEND3D: a straight box, so its entrance face frame is the box frame — +z
             //    along the chord, half the bend angle off the incoming orbit tangent. It does NOT
             //    coincide with the orbit tangent. RBend::apply gates on the box z, uniform dipole.
-            // A legacy RBEND instead uses E1 for its face normal; its chord length already
-            // accounts for this rotation. Only this element's own frame is set here; the running
-            // frame handed to the next element (currentCoordTrafo) is advanced separately below.
+            // An RBEND with explicit pole-face angles uses E1 for its face normal; its chord length
+            // already accounts for this rotation. Only this element's own frame is set here; the
+            // running frame handed to the next element (currentCoordTrafo) is advanced separately
+            // below.
             const bool isRectangular = element->getType() == ElementType::RBEND
                                        || element->getType() == ElementType::RBEND3D;
-            const double entranceAngle = element->getGeometry().isLegacyRBend()
+            const double entranceAngle = element->getGeometry().hasPoleFaceAngles()
                                                  ? element->getGeometry().getEntranceAngle()
                                                  : 0.5 * bendAngle;
             const Quaternion_t entryFrameRotation =

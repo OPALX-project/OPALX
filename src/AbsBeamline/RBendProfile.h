@@ -1,15 +1,15 @@
 // Copyright (c) 2026, Paul Scherrer Institut, Villigen PSI, Switzerland
 // SPDX-License-Identifier: GPL-3.0-or-later
-#ifndef OPALX_LEGACY_RBEND_FIELD_H
-#define OPALX_LEGACY_RBEND_FIELD_H
+#ifndef OPALX_RBEND_PROFILE_H
+#define OPALX_RBEND_PROFILE_H
 
 #include <Kokkos_Core.hpp>
 #include "VectorMath.h"
 
-/// Value-only representation of OPAL-T's 1DProfile1 rectangular dipole.
+/// Value-only representation of a 1DProfile1 rectangular dipole field.
 /// Parsing and strength calibration happen on the host; tracking uses this same
 /// analytic evaluator on the host and device, without GSL or host pointers.
-namespace LegacyRBendField {
+namespace RBendProfile {
     constexpr int maximumOrder = 15;
     struct Profile {
         int order                             = 5;
@@ -72,5 +72,5 @@ namespace LegacyRBendField {
                 0.0, in.amplitude * (v.f - 0.5 * v.second * r(1) * r(1)),
                 in.amplitude * v.first * r(1));
     }
-}  // namespace LegacyRBendField
+}  // namespace RBendProfile
 #endif

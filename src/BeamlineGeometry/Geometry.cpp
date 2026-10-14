@@ -90,7 +90,7 @@ double Geometry::getArcLength() const {
             return 0.0;
         case GeometryKind::RBend: {
             const double ha    = halfAngle();
-            const double chord = legacyRBend_m ? len_m / std::cos(ha - entranceAngle_m) : len_m;
+            const double chord = poleFaceAngles_m ? len_m / std::cos(ha - entranceAngle_m) : len_m;
             return (ha == 0.0) ? chord : chord * ha / std::sin(ha);
         }
         default:  // Straight, SBend
@@ -134,7 +134,7 @@ void Geometry::setCurvature(double curvature) {
 }
 
 Vector_t<double, 3> Geometry::framePosition(double s) const {
-    if (kind_m == GeometryKind::RBend && legacyRBend_m && len_m > 0.0) {
+    if (kind_m == GeometryKind::RBend && poleFaceAngles_m && len_m > 0.0) {
         const double phi = angle_m * s / len_m;
         if (std::abs(angle_m) < 1e-14)
             return Vector_t<double, 3>(s * std::tan(entranceAngle_m), 0.0, s);
@@ -183,7 +183,7 @@ CoordinateSystemTrafo Geometry::getEdgeToBegin() const {
 }
 
 CoordinateSystemTrafo Geometry::getEdgeToEnd() const {
-    if (kind_m == GeometryKind::RBend && legacyRBend_m)
+    if (kind_m == GeometryKind::RBend && poleFaceAngles_m)
         return identityTrafo(framePosition(len_m)) * getEdgeToBegin();
     // Transform from the local frame to the exit face of the body: first getEdgeToBegin() to
     // reach the entrance face, then from the entrance face to the exit face. A straight body —

@@ -15,7 +15,7 @@
 #define OPALX_BendFieldModel_HH
 
 #include <Kokkos_Core.hpp>
-#include "AbsBeamline/LegacyRBendField.h"
+#include "AbsBeamline/RBendProfile.h"
 #include "VectorMath.h"
 
 /**
@@ -152,16 +152,16 @@ namespace BendFieldModel {
      * @brief Pure-value inputs for one bend field evaluation inside Kokkos kernel.
      */
     struct FieldInputs {
-        double dipoleNormal;              ///< normal dipole B0 (normal[0])
-        double dipoleSkew;                ///< skew dipole (skew[0])
-        double quadNormal;                ///< normal quadrupole (normal[1])
-        double quadSkew;                  ///< skew quadrupole (skew[1])
-        double bodyLength;                ///< magnet body length (arc length)
-        double curvature;                 ///< reference-path curvature h (0 for a straight body)
-        double profileGap;                ///< Enge full gap (GAP); 0 => hard edge
-        double entryEdgeCoefficient;      ///< distributed vertical edge-focusing (entry)
-        double exitEdgeCoefficient;       ///< distributed vertical edge-focusing (exit)
-        LegacyRBendField::Inputs legacy;  ///< Optional OPAL-T rectangular profile.
+        double dipoleNormal;           ///< normal dipole B0 (normal[0])
+        double dipoleSkew;             ///< skew dipole (skew[0])
+        double quadNormal;             ///< normal quadrupole (normal[1])
+        double quadSkew;               ///< skew quadrupole (skew[1])
+        double bodyLength;             ///< magnet body length (arc length)
+        double curvature;              ///< reference-path curvature h (0 for a straight body)
+        double profileGap;             ///< Enge full gap (GAP); 0 => hard edge
+        double entryEdgeCoefficient;   ///< distributed vertical edge-focusing (entry)
+        double exitEdgeCoefficient;    ///< distributed vertical edge-focusing (exit)
+        RBendProfile::Inputs profile;  ///< Optional 1DProfile1 field data.
     };
 
     /**
@@ -177,7 +177,7 @@ namespace BendFieldModel {
      */
     KOKKOS_INLINE_FUNCTION Vector_t<double, 3> bendField(
             const Vector_t<double, 3>& arc, const FieldInputs& in) {
-        if (in.legacy.enabled) return LegacyRBendField::field(arc, in.legacy);
+        if (in.profile.enabled) return RBendProfile::field(arc, in.profile);
         const double x = arc(0);
         const double y = arc(1);
         const double z = arc(2);

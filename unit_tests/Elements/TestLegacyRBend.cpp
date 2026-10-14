@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include <filesystem>
 #include <fstream>
-#include "AbsBeamline/LegacyRBendField.h"
+#include "AbsBeamline/RBendProfile.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/DriftRep.h"
 #include "BeamlineCore/RBendRep.h"
@@ -83,7 +83,7 @@ TEST_F(LegacyRBendTest, ParserConvertsCentimetresAndUsesMapGap) {
     EXPECT_NEAR(b.getGeometry().getChordLength(), 0.3 / std::cos(angle / 2), 1e-14);
     EXPECT_NEAR(b.getGeometry().getArcLength(), 0.3 * angle / std::sin(angle), 1e-14);
     auto clone = std::unique_ptr<ElementBase>(b.clone());
-    EXPECT_EQ(dynamic_cast<RBend&>(*clone).usesLegacyFieldMap(), true);
+    EXPECT_EQ(dynamic_cast<RBend&>(*clone).hasFieldMap(), true);
     EXPECT_DOUBLE_EQ(clone->getGeometry().getEntranceAngle(), 0.0);
     clone->setDesignEnergy(1e6);
     EXPECT_DOUBLE_EQ(clone->getDesignEnergy(), energy);
@@ -96,11 +96,11 @@ TEST_F(LegacyRBendTest, ReferencePathMatchesLegacyFringePlacementAndClones) {
             auto el = element(sign * angle, e1);
             el->update();
             auto& bend = dynamic_cast<RBend&>(*el->getElement());
-            bend.initialiseLegacyField(electronMass, -1.0);
+            bend.initialiseField(electronMass, -1.0);
             EXPECT_THROW(bend.getPlacementPathLength(), OpalException);
             const auto idealLength = bend.getGeometry().getArcLength();
             const auto idealChord  = bend.getGeometry().getChordLength();
-            bend.initialiseLegacyReferencePath(electronMass, -1.0, 1e-13);
+            bend.initialiseReferencePath(electronMass, -1.0, 1e-13);
             // Independent OPAL 2024.1 AWA benchmark, reconstructed from the
             // printed D2 and TDC positions, at the same initialization step.
             const double expected = e1 == 0.0 ? .30594858 : .30590490;
@@ -112,9 +112,9 @@ TEST_F(LegacyRBendTest, ReferencePathMatchesLegacyFringePlacementAndClones) {
                     dynamic_cast<RBend&>(*clone).getPlacementPathLength(),
                     bend.getPlacementPathLength());
             const double first = bend.getPlacementPathLength();
-            bend.initialiseLegacyReferencePath(electronMass, -1.0, 1e-13);
+            bend.initialiseReferencePath(electronMass, -1.0, 1e-13);
             EXPECT_DOUBLE_EQ(bend.getPlacementPathLength(), first);
-            bend.initialiseLegacyField(electronMass, -1.0);
+            bend.initialiseField(electronMass, -1.0);
             EXPECT_THROW(bend.getPlacementPathLength(), OpalException);
         }
 }
@@ -130,8 +130,8 @@ TEST_F(LegacyRBendTest, DoglegPlacesCavityAtLegacyPositionWithoutChangingPhase) 
     b2->setElementPosition(2.431686);
     for (auto bend : {b1, b2}) {
         auto& b = dynamic_cast<RBend&>(*bend);
-        b.initialiseLegacyField(electronMass, -1.0);
-        b.initialiseLegacyReferencePath(electronMass, -1.0, 1e-13);
+        b.initialiseField(electronMass, -1.0);
+        b.initialiseReferencePath(electronMass, -1.0, 1e-13);
     }
     auto cavity = std::make_shared<RFCavityRep>("TDC");
     cavity->setElementPosition(3.335485);
@@ -157,9 +157,9 @@ TEST_F(LegacyRBendTest, NativePlacementLengthAndInvalidLegacyTimeStep) {
     auto el = element();
     el->update();
     auto& bend = dynamic_cast<RBend&>(*el->getElement());
-    bend.initialiseLegacyField(electronMass, -1.0);
-    EXPECT_THROW(bend.initialiseLegacyReferencePath(electronMass, -1.0, 0.0), OpalException);
-    EXPECT_THROW(bend.initialiseLegacyReferencePath(electronMass, -1.0, -1e-13), OpalException);
+    bend.initialiseField(electronMass, -1.0);
+    EXPECT_THROW(bend.initialiseReferencePath(electronMass, -1.0, 0.0), OpalException);
+    EXPECT_THROW(bend.initialiseReferencePath(electronMass, -1.0, -1e-13), OpalException);
 }
 
 TEST_F(LegacyRBendTest, GapAliasKeepsNativeModelAndItsAperture) {
@@ -175,8 +175,8 @@ TEST_F(LegacyRBendTest, GapAliasKeepsNativeModelAndItsAperture) {
     b.update();
     auto& ar = dynamic_cast<RBend&>(*a.getElement());
     auto& br = dynamic_cast<RBend&>(*b.getElement());
-    EXPECT_FALSE(ar.usesLegacyFieldMap());
-    EXPECT_FALSE(ar.getGeometry().isLegacyRBend());
+    EXPECT_FALSE(ar.hasFieldMap());
+    EXPECT_FALSE(ar.getGeometry().hasPoleFaceAngles());
     EXPECT_EQ(ar.getAperture(), br.getAperture());
     for (double z : {-.05, 0., .15, .3, .35})
         for (int d = 0; d < 3; ++d)
@@ -187,12 +187,12 @@ TEST_F(LegacyRBendTest, CalibrationUsesSpeciesChargeAndDesignEnergy) {
     auto el = element();
     el->update();
     auto& b = dynamic_cast<RBend&>(*el->getElement());
-    b.initialiseLegacyField(electronMass, -1);
+    b.initialiseField(electronMass, -1);
     double electronField = field(b, 0, 0, .1)(1);
-    b.initialiseLegacyField(electronMass, 1);
+    b.initialiseField(electronMass, 1);
     EXPECT_DOUBLE_EQ(field(b, 0, 0, .1)(1), -electronField);
     constexpr double protonMass = 938272088.16;
-    b.initialiseLegacyField(protonMass, 1);
+    b.initialiseField(protonMass, 1);
     EXPECT_NEAR(
             field(b, 0, 0, .1)(1) / (-electronField),
             std::sqrt((energy + 2 * protonMass) / (energy + 2 * electronMass)), 1e-12);
@@ -206,7 +206,7 @@ TEST_F(LegacyRBendTest, GapAndHgapScaleTheSameProfile) {
     b->update();
     for (auto* el : {a.get(), b.get()}) {
         auto& bend = dynamic_cast<RBend&>(*el->getElement());
-        bend.initialiseLegacyField(electronMass, -1);
+        bend.initialiseField(electronMass, -1);
         double start, end;
         bend.getFieldExtent(start, end);
         EXPECT_DOUBLE_EQ(start, -0.5);
@@ -240,7 +240,7 @@ TEST_F(LegacyRBendTest, RejectsMalformedOrUnsupportedMaps) {
 }
 
 TEST_F(LegacyRBendTest, ProfileDerivativesAndDeviceEvaluation) {
-    LegacyRBendField::Inputs in;
+    RBendProfile::Inputs in;
     in.enabled        = true;
     in.length         = 0.3;
     in.gap            = 0.05;
@@ -250,7 +250,7 @@ TEST_F(LegacyRBendTest, ProfileDerivativesAndDeviceEvaluation) {
         p->coefficients[0] = 0;
         p->coefficients[1] = 2;
     }
-    auto v = LegacyRBendField::profile(0, in.gap, in.entrance);
+    auto v = RBendProfile::profile(0, in.gap, in.entrance);
     EXPECT_DOUBLE_EQ(v.f, 0.5);
     EXPECT_DOUBLE_EQ(v.first, -10.0);
     EXPECT_DOUBLE_EQ(v.second, 0.0);
@@ -258,17 +258,17 @@ TEST_F(LegacyRBendTest, ProfileDerivativesAndDeviceEvaluation) {
     Kokkos::View<Vec*> values("fringe", 2);
     Kokkos::parallel_for(
             "legacy fringe test", 2, KOKKOS_LAMBDA(int i) {
-                values(i) = LegacyRBendField::field(Vec(0, 0.001, i == 0 ? 0.0 : 0.3), in);
+                values(i) = RBendProfile::field(Vec(0, 0.001, i == 0 ? 0.0 : 0.3), in);
             });
     auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), values);
     EXPECT_DOUBLE_EQ(host(0)(1), 1.0);
     EXPECT_NEAR(host(0)(2), 0.02, 1e-15);
     EXPECT_NEAR(host(1)(2), -0.02, 1e-15);
-    LegacyRBendField::Profile p;
+    RBendProfile::Profile p;
     constexpr double z = .013, h = 1e-6;
-    auto a = LegacyRBendField::profile(z - h, .05, p);
-    auto b = LegacyRBendField::profile(z, .05, p);
-    auto c = LegacyRBendField::profile(z + h, .05, p);
+    auto a = RBendProfile::profile(z - h, .05, p);
+    auto b = RBendProfile::profile(z, .05, p);
+    auto c = RBendProfile::profile(z + h, .05, p);
     EXPECT_NEAR(b.first, (c.f - a.f) / (2 * h), 1e-7);
     EXPECT_NEAR(b.second, (c.first - a.first) / (2 * h), 1e-5);
 }
@@ -279,7 +279,7 @@ TEST_F(LegacyRBendTest, CalibratedFieldTracksBothBendSignsAndBothEntranceAngles)
             auto el = element(sign * angle, e1);
             el->update();
             auto& bend = dynamic_cast<RBend&>(*el->getElement());
-            bend.initialiseLegacyField(electronMass, -1);
+            bend.initialiseField(electronMass, -1);
             const double betaGamma = std::sqrt(energy * (energy + 2 * electronMass)) / electronMass;
             Vec p                  = betaGamma * Vec(std::sin(e1), 0, std::cos(e1));
             Vec r(-.25 * std::tan(e1), 0, -.25);
@@ -303,9 +303,9 @@ TEST_F(LegacyRBendTest, DefaultProfileAndRepeatedInitialisation) {
     Attributes::setString(*el->findAttribute("FMAPFN"), "1DPROFILE1-DEFAULT");
     el->update();
     auto& b = dynamic_cast<RBend&>(*el->getElement());
-    b.initialiseLegacyField(electronMass, -1);
+    b.initialiseField(electronMass, -1);
     auto first = field(b, 0, .001, .02);
-    b.initialiseLegacyField(electronMass, -1);
+    b.initialiseField(electronMass, -1);
     auto second = field(b, 0, .001, .02);
     for (int d = 0; d < 3; ++d)
         EXPECT_DOUBLE_EQ(first(d), second(d));
@@ -317,7 +317,7 @@ TEST_F(LegacyRBendTest, PlacementUsesE1AndPreservesDownstreamReferenceTangent) {
             auto bend = std::make_shared<RBendRep>("B");
             auto& g   = bend->getGeometry();
             g         = Geometry::makeRBend(.3, sign * angle);
-            g.setLegacyRBend(true);
+            g.setPoleFaceAnglesEnabled(true);
             g.setEntranceAngle(e1);
             bend->setElementPosition(1.0);
             auto drift = std::make_shared<DriftRep>("D");
@@ -337,4 +337,130 @@ TEST_F(LegacyRBendTest, PlacementUsesE1AndPreservesDownstreamReferenceTangent) {
                     origin(2), 1 + g.getChordLength() * std::cos(angle / 2) + .4 * std::cos(angle),
                     1e-13);
         }
+}
+
+TEST_F(LegacyRBendTest, PoleFaceAnglesDoNotSelectAProfileOrRequireDesignEnergy) {
+    for (bool useExit : {false, true}) {
+        OpalRBend el;
+        Attributes::setReal(*el.findAttribute("L"), .3);
+        Attributes::setReal(*el.findAttribute("ANGLE"), angle);
+        Attributes::setReal(*el.findAttribute("ELEMEDGE"), 0.0);
+        Attributes::setReal(*el.findAttribute(useExit ? "E2" : "E1"), useExit ? angle : 0.0);
+        Attributes::setReal(*el.findAttribute("K1"), .2);
+        Attributes::setReal(*el.findAttribute("FINT"), .4);
+        ASSERT_NO_THROW(el.update());
+        auto& bend = dynamic_cast<RBend&>(*el.getElement());
+        EXPECT_FALSE(bend.hasFieldMap());
+        EXPECT_DOUBLE_EQ(bend.getDesignEnergy(), 0.0);
+        EXPECT_TRUE(bend.getGeometry().hasPoleFaceAngles());
+        EXPECT_DOUBLE_EQ(bend.getGeometry().getEntranceAngle(), 0.0);
+        EXPECT_DOUBLE_EQ(bend.getGeometry().getExitAngle(), angle);
+        EXPECT_NEAR(bend.getGeometry().getArcLength(), .3 * angle / std::sin(angle), 1e-14);
+        EXPECT_DOUBLE_EQ(bend.getPlacementPathLength(), bend.getGeometry().getArcLength());
+    }
+}
+
+TEST_F(LegacyRBendTest, PoleFaceAnglesChangeStandardEdgeFocusing) {
+    OpalRBend el;
+    Attributes::setReal(*el.findAttribute("L"), .3);
+    Attributes::setReal(*el.findAttribute("ANGLE"), angle);
+    Attributes::setReal(*el.findAttribute("E1"), 0.0);
+    Attributes::setReal(*el.findAttribute("GAP"), .05);
+    Attributes::setReal(*el.findAttribute("FINT"), 0.0);
+    Attributes::setReal(*el.findAttribute("ELEMEDGE"), 0.0);
+    el.update();
+    auto& bend = dynamic_cast<RBend&>(*el.getElement());
+    bend.setB(1.0);
+    EXPECT_NEAR(field(bend, 0.0, .001, 0.0)(0), 0.0, 1e-15);
+    EXPECT_GT(std::abs(field(bend, 0.0, .001, .3)(0)), 1e-5);
+}
+
+TEST_F(LegacyRBendTest, DesignEnergyOnlyCalibratesTheStandardField) {
+    OpalRBend el;
+    Attributes::setReal(*el.findAttribute("L"), .3);
+    Attributes::setReal(*el.findAttribute("ANGLE"), angle);
+    Attributes::setReal(*el.findAttribute("ELEMEDGE"), 0.0);
+    Attributes::setReal(*el.findAttribute("DESIGNENERGY"), 42.411);
+    el.update();
+    auto& bend = dynamic_cast<RBend&>(*el.getElement());
+    EXPECT_FALSE(bend.hasFieldMap());
+    EXPECT_FALSE(bend.getGeometry().hasPoleFaceAngles());
+    EXPECT_DOUBLE_EQ(bend.getGeometry().getChordLength(), .3);
+    bend.setReferenceMomentum(100e6);
+    bend.setB(1.0);
+    bend.initialiseField(electronMass, 1.0);
+    const double expected = std::sqrt(energy * (energy + 2 * electronMass)) / 100e6;
+    EXPECT_NEAR(field(bend, 0.0, 0.0, .15)(1), expected, 1e-14);
+    bend.initialiseField(electronMass, 1.0);
+    EXPECT_NEAR(field(bend, 0.0, 0.0, .15)(1), expected, 1e-14);
+    auto clone = std::unique_ptr<ElementBase>(bend.clone());
+    EXPECT_NEAR(field(dynamic_cast<RBend&>(*clone), 0.0, 0.0, .15)(1), expected, 1e-14);
+}
+
+TEST_F(LegacyRBendTest, ProfileWithoutDesignEnergyUsesReferenceMomentum) {
+    OpalRBend el;
+    Attributes::setReal(*el.findAttribute("L"), .3);
+    Attributes::setReal(*el.findAttribute("ANGLE"), angle);
+    Attributes::setReal(*el.findAttribute("E1"), 0.0);
+    Attributes::setReal(*el.findAttribute("ELEMEDGE"), 0.0);
+    Attributes::setString(*el.findAttribute("FMAPFN"), filename);
+    ASSERT_NO_THROW(el.update());
+    auto& bend = dynamic_cast<RBend&>(*el.getElement());
+    EXPECT_TRUE(bend.hasFieldMap());
+    EXPECT_DOUBLE_EQ(bend.getDesignEnergy(), 0.0);
+    bend.setReferenceMomentum(std::sqrt(energy * (energy + 2 * electronMass)));
+    bend.initialiseField(electronMass, -1.0);
+    bend.initialiseReferencePath(electronMass, -1.0, 1e-13);
+    auto explicitEnergy = element();
+    explicitEnergy->update();
+    auto& reference = dynamic_cast<RBend&>(*explicitEnergy->getElement());
+    reference.initialiseField(electronMass, -1.0);
+    reference.initialiseReferencePath(electronMass, -1.0, 1e-13);
+    EXPECT_DOUBLE_EQ(field(bend, 0.0, .001, .1)(1), field(reference, 0.0, .001, .1)(1));
+    EXPECT_DOUBLE_EQ(bend.getPlacementPathLength(), reference.getPlacementPathLength());
+}
+
+TEST_F(LegacyRBendTest, ProfileDoesNotChangeDefaultPoleFaceGeometry) {
+    OpalRBend el;
+    Attributes::setReal(*el.findAttribute("L"), .3);
+    Attributes::setReal(*el.findAttribute("ANGLE"), angle);
+    Attributes::setReal(*el.findAttribute("ELEMEDGE"), 0.0);
+    Attributes::setString(*el.findAttribute("FMAPFN"), filename);
+    el.update();
+    auto& bend = dynamic_cast<RBend&>(*el.getElement());
+    EXPECT_TRUE(bend.hasFieldMap());
+    EXPECT_FALSE(bend.getGeometry().hasPoleFaceAngles());
+    EXPECT_DOUBLE_EQ(bend.getGeometry().getChordLength(), .3);
+    EXPECT_DOUBLE_EQ(bend.getGeometry().getEntranceAngle(), .5 * angle);
+    EXPECT_DOUBLE_EQ(bend.getGeometry().getExitAngle(), .5 * angle);
+    const auto chord = bend.getGeometry().getChordLength();
+    bend.setFieldMap("");
+    EXPECT_FALSE(bend.hasFieldMap());
+    EXPECT_DOUBLE_EQ(bend.getGeometry().getChordLength(), chord);
+}
+
+TEST_F(LegacyRBendTest, ProfilePreservesPositionedNegativeBendConvention) {
+    OpalRBend standard, mapped;
+    for (auto* el : {&standard, &mapped}) {
+        Attributes::setReal(*el->findAttribute("L"), .3);
+        Attributes::setReal(*el->findAttribute("ANGLE"), -angle);
+        Attributes::setReal(*el->findAttribute("ELEMEDGE"), 0.0);
+    }
+    Attributes::setString(*mapped.findAttribute("FMAPFN"), filename);
+    standard.update();
+    mapped.update();
+    standard.getElement()->fixPosition();
+    mapped.getElement()->fixPosition();
+    standard.update();
+    mapped.update();
+    const auto& a = standard.getElement()->getGeometry();
+    const auto& b = mapped.getElement()->getGeometry();
+    EXPECT_DOUBLE_EQ(a.getBendAngle(), b.getBendAngle());
+    EXPECT_DOUBLE_EQ(a.getEntranceAngle(), b.getEntranceAngle());
+    EXPECT_DOUBLE_EQ(a.getExitAngle(), b.getExitAngle());
+    EXPECT_DOUBLE_EQ(a.getChordLength(), b.getChordLength());
+    const auto da = standard.getElement()->getCSTrafoGlobal2Local().rotateFrom(Vec(1, 0, 0));
+    const auto db = mapped.getElement()->getCSTrafoGlobal2Local().rotateFrom(Vec(1, 0, 0));
+    for (int d = 0; d < 3; ++d)
+        EXPECT_DOUBLE_EQ(da(d), db(d));
 }
