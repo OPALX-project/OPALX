@@ -129,24 +129,25 @@ public:
     /* ========================================================================== */
 private:
     /**
-     * @brief Computes the E and B field at position R
+     * @brief Adds the multipole field at position R to B
      *
-     * @note Is called inside the kernel launched by Multipole::apply()
+     * With z = x + iy and the stored coefficients kn = normal(n), ks = skew(n), every order
+     * n < MAX_MP_ORDER adds Bx += kn Im(z^n) - ks Re(z^n) and By += kn Re(z^n) + ks Im(z^n).
+     *
+     * @note Used by both the particle kernel in apply() (device views) and computeFieldHost()
+     *       (host copies), so particles and the reference particle see the same field.
      *
      * @param R Position
-     * @param E Reference to electric field
-     * @param B Reference to magnetic field
-     * @param NormalComponents View of normal components
-     * @param SkewComponents View of skew components
-     * @param max_NormalComponent Max order of normal components
-     * @param max_SkewComponent Max order of skew components
+     * @param B Magnetic field, added to
+     * @param normal View of normal components
+     * @param skew View of skew components
+     * @param maxNormal Number of normal components
+     * @param maxSkew Number of skew components
      */
-    KOKKOS_INLINE_FUNCTION
-    static void computeField(
-            Vector_t<double, 3> R, Vector_t<double, 3>& E, Vector_t<double, 3>& B,
-            const Kokkos::View<double*> NormalComponents,
-            const Kokkos::View<double*> SkewComponents, int max_NormalComponent,
-            int max_SkewComponent);
+    template <class ViewType>
+    KOKKOS_INLINE_FUNCTION static void computeField(
+            const Vector_t<double, 3>& R, Vector_t<double, 3>& B, const ViewType& normal,
+            const ViewType& skew, int maxNormal, int maxSkew);
 
     /**
      * @brief Computes the E and B field at position R of the reference particle
