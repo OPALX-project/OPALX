@@ -22,6 +22,15 @@ namespace {
     constexpr double energy       = 42.411e6;
     constexpr double angle        = 20.0 * Physics::pi / 180.0;
 
+    struct ProfileFieldFunctor {
+        Kokkos::View<Vec*> values;
+        RBendProfile::Inputs inputs;
+
+        KOKKOS_INLINE_FUNCTION void operator()(const int i) const {
+            values(i) = RBendProfile::field(Vec(0, 0.001, i == 0 ? 0.0 : 0.3), inputs);
+        }
+    };
+
     class RBendSettingsTest : public testing::Test {
     protected:
         static void SetUpTestSuite() {
@@ -256,10 +265,7 @@ TEST_F(RBendSettingsTest, ProfileDerivativesAndDeviceEvaluation) {
     EXPECT_DOUBLE_EQ(v.second, 0.0);
     // At the entrance Bz = -B0 F' y, at exit Bz = B0 F' y.
     Kokkos::View<Vec*> values("fringe", 2);
-    Kokkos::parallel_for(
-            "legacy fringe test", 2, KOKKOS_LAMBDA(int i) {
-                values(i) = RBendProfile::field(Vec(0, 0.001, i == 0 ? 0.0 : 0.3), in);
-            });
+    Kokkos::parallel_for("RBEND profile field test", 2, ProfileFieldFunctor{values, in});
     auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), values);
     EXPECT_DOUBLE_EQ(host(0)(1), 1.0);
     EXPECT_NEAR(host(0)(2), 0.02, 1e-15);
