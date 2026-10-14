@@ -104,16 +104,22 @@ public:
     /// @return The design energy in eV.
     double getDesignEnergy() const override;
 
-    /// Enable the OPAL-T rectangular geometry and read a 1DProfile1 map.
-    /// An empty filename disables compatibility mode. File dimensions are cm.
-    void setLegacyFieldMap(const std::string& filename);
-    bool usesLegacyFieldMap() const { return legacy_m.enabled; }
-    /// Calibrate the profile for the design particle (rest energy eV, charge e).
+    /// Read a 1DProfile1 field profile; an empty filename uses the standard field.
+    /// File dimensions are cm. This does not change geometry or design energy.
+    void setFieldMap(const std::string& filename);
+    bool hasFieldMap() const { return profile_m.enabled; }
+    /// Reference momentum in eV/c used when DESIGNENERGY is omitted.
+    void setReferenceMomentum(double momentum) {
+        referenceMomentum_m = momentum;
+        fieldScale_m        = 1.0;
+        placementLength_m   = -1.0;
+    }
+    /// Calibrate the configured field for the design particle (rest energy eV, charge e).
     /// Also used by field-level tests independently of a PartBunch.
-    void initialiseLegacyField(double mass, double charge);
-    /// Track the design orbit for legacy ELEMEDGE placement (host initialization only).
+    void initialiseField(double mass, double charge);
+    /// Track the profile design orbit for ELEMEDGE placement (host initialization only).
     /// Use the initialization time step to preserve OPAL-T's sampled endpoint convention.
-    void initialiseLegacyReferencePath(double mass, double charge, double timeStep);
+    void initialiseReferencePath(double mass, double charge, double timeStep);
     /// Path length used by downstream placement; physical pole-face geometry is unchanged.
     double getPlacementPathLength() const;
 
@@ -152,7 +158,7 @@ private:
     double referenceCurvature() const;
 
     /// @brief Native model entrance angle (half the bend angle), for edge focusing.
-    /// @note The legacy profile obtains focusing directly from its fringe field.
+    /// @note A supplied profile obtains focusing directly from its fringe field.
     /// @return The entrance edge angle.
     double edgeAngleEntrance() const;
 
@@ -183,9 +189,12 @@ private:
 
     /// Whether the design energy may still be changed.
     bool designEnergyChangeable_m;
-    LegacyRBendField::Inputs legacy_m;
-    std::string legacyFilename_m;
-    double legacyPlacementLength_m = -1.0;
+    double referenceMomentum_m = 0.0;
+    double fieldScale_m        = 1.0;
+    double calibrationMomentum(double mass) const;
+    RBendProfile::Inputs profile_m;
+    std::string profileFilename_m;
+    double placementLength_m = -1.0;
 };
 
 inline void RBend::setFullGap(double gap) { gap_m = std::abs(gap); }

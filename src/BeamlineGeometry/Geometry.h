@@ -95,10 +95,10 @@ public:
     void setEntranceAngle(double angle) { entranceAngle_m = angle; }
     double getExitAngle() const { return exitAngle_m; }
     void setExitAngle(double angle) { exitAngle_m = angle; }
-    /// OPAL-T rectangular geometry: L is the normal separation of the parallel
-    /// faces, E1 is the incoming orbit angle to their normal (not an extra tilt).
-    void setLegacyRBend(bool enabled) { legacyRBend_m = enabled; }
-    bool isLegacyRBend() const { return legacyRBend_m; }
+    /// Explicit rectangular pole-face angles: L is the normal face separation,
+    /// and E1 is the incoming orbit angle to the entrance normal.
+    void setPoleFaceAnglesEnabled(bool enabled) { poleFaceAngles_m = enabled; }
+    bool hasPoleFaceAngles() const { return poleFaceAngles_m; }
     /// Sample the local design path from entrance to exit.
     std::vector<Vector_t<double, 3>> getDesignPath(std::size_t minSamples = 32) const;
     ///@}
@@ -126,7 +126,7 @@ private:
     double angle_m         = 0.0;  ///< bend angle (SBend: h*len; RBend: full angle)
     double entranceAngle_m = 0.0;  ///< entrance pole-face angle
     double exitAngle_m     = 0.0;  ///< exit pole-face angle
-    bool legacyRBend_m     = false;
+    bool poleFaceAngles_m  = false;
 };
 
 /**
