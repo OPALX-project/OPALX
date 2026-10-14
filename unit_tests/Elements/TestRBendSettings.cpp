@@ -22,7 +22,7 @@ namespace {
     constexpr double energy       = 42.411e6;
     constexpr double angle        = 20.0 * Physics::pi / 180.0;
 
-    class LegacyRBendTest : public testing::Test {
+    class RBendSettingsTest : public testing::Test {
     protected:
         static void SetUpTestSuite() {
             int argc    = 0;
@@ -38,7 +38,7 @@ namespace {
         }
         std::string filename;
         void SetUp() override {
-            filename = "legacy-rbend-"
+            filename = "rbend-settings-"
                        + std::string(testing::UnitTest::GetInstance()->current_test_info()->name())
                        + ".map";
             std::ofstream(filename) << "1DProfile1 1 1 5\n-25 0 15 0\n-15 0 25 0\n0\n2\n0\n2\n";
@@ -69,7 +69,7 @@ namespace {
     };
 }  // namespace
 
-TEST_F(LegacyRBendTest, ParserConvertsCentimetresAndUsesMapGap) {
+TEST_F(RBendSettingsTest, ParserConvertsCentimetresAndUsesMapGap) {
     auto el = element();
     el->update();
     auto& b = dynamic_cast<RBend&>(*el->getElement());
@@ -89,7 +89,7 @@ TEST_F(LegacyRBendTest, ParserConvertsCentimetresAndUsesMapGap) {
     EXPECT_DOUBLE_EQ(clone->getDesignEnergy(), energy);
 }
 
-TEST_F(LegacyRBendTest, ReferencePathMatchesLegacyFringePlacementAndClones) {
+TEST_F(RBendSettingsTest, ReferencePathMatchesLegacyFringePlacementAndClones) {
     awaProfile();
     for (double sign : {-1.0, 1.0})
         for (double e1 : {0.0, sign * angle}) {
@@ -119,7 +119,7 @@ TEST_F(LegacyRBendTest, ReferencePathMatchesLegacyFringePlacementAndClones) {
         }
 }
 
-TEST_F(LegacyRBendTest, DoglegPlacesCavityAtLegacyPositionWithoutChangingPhase) {
+TEST_F(RBendSettingsTest, DoglegPlacesCavityAtLegacyPositionWithoutChangingPhase) {
     awaProfile();
     auto first = element(-angle, 0.0), second = element(angle, angle);
     first->update();
@@ -150,7 +150,7 @@ TEST_F(LegacyRBendTest, DoglegPlacesCavityAtLegacyPositionWithoutChangingPhase) 
     EXPECT_DOUBLE_EQ(cavity->getPhasem(), phase);
 }
 
-TEST_F(LegacyRBendTest, NativePlacementLengthAndInvalidLegacyTimeStep) {
+TEST_F(RBendSettingsTest, NativePlacementLengthAndInvalidLegacyTimeStep) {
     RBendRep native;
     native.getGeometry() = Geometry::makeRBend(.3, angle);
     EXPECT_DOUBLE_EQ(native.getPlacementPathLength(), native.getGeometry().getArcLength());
@@ -162,7 +162,7 @@ TEST_F(LegacyRBendTest, NativePlacementLengthAndInvalidLegacyTimeStep) {
     EXPECT_THROW(bend.initialiseReferencePath(electronMass, -1.0, -1e-13), OpalException);
 }
 
-TEST_F(LegacyRBendTest, GapAliasKeepsNativeModelAndItsAperture) {
+TEST_F(RBendSettingsTest, GapAliasKeepsNativeModelAndItsAperture) {
     OpalRBend a, b;
     for (auto* p : {&a, &b}) {
         Attributes::setReal(*p->findAttribute("L"), .3);
@@ -183,7 +183,7 @@ TEST_F(LegacyRBendTest, GapAliasKeepsNativeModelAndItsAperture) {
             EXPECT_DOUBLE_EQ(field(ar, .01, .001, z)(d), field(br, .01, .001, z)(d));
 }
 
-TEST_F(LegacyRBendTest, CalibrationUsesSpeciesChargeAndDesignEnergy) {
+TEST_F(RBendSettingsTest, CalibrationUsesSpeciesChargeAndDesignEnergy) {
     auto el = element();
     el->update();
     auto& b = dynamic_cast<RBend&>(*el->getElement());
@@ -198,7 +198,7 @@ TEST_F(LegacyRBendTest, CalibrationUsesSpeciesChargeAndDesignEnergy) {
             std::sqrt((energy + 2 * protonMass) / (energy + 2 * electronMass)), 1e-12);
 }
 
-TEST_F(LegacyRBendTest, GapAndHgapScaleTheSameProfile) {
+TEST_F(RBendSettingsTest, GapAndHgapScaleTheSameProfile) {
     auto a = element(), b = element();
     Attributes::setReal(*a->findAttribute("GAP"), 0.10);
     Attributes::setReal(*b->findAttribute("HGAP"), 0.05);
@@ -219,7 +219,7 @@ TEST_F(LegacyRBendTest, GapAndHgapScaleTheSameProfile) {
     EXPECT_THROW(a->update(), OpalException);
 }
 
-TEST_F(LegacyRBendTest, RejectsInconsistentFacesAndUnsupportedProfileOptions) {
+TEST_F(RBendSettingsTest, RejectsInconsistentFacesAndUnsupportedProfileOptions) {
     auto el = element();
     Attributes::setReal(*el->findAttribute("E2"), 0.0);
     EXPECT_THROW(el->update(), OpalException);
@@ -229,7 +229,7 @@ TEST_F(LegacyRBendTest, RejectsInconsistentFacesAndUnsupportedProfileOptions) {
     EXPECT_THROW(el->update(), OpalException);
 }
 
-TEST_F(LegacyRBendTest, RejectsMalformedOrUnsupportedMaps) {
+TEST_F(RBendSettingsTest, RejectsMalformedOrUnsupportedMaps) {
     for (const std::string contents :
          {"3DDynamic FALSE\n", "1DProfile1 99 1 5\n",
           "1DProfile1 1 1 -5\n-25 0 15 0\n-15 0 25 0\n0\n2\n0\n2\n",
@@ -239,7 +239,7 @@ TEST_F(LegacyRBendTest, RejectsMalformedOrUnsupportedMaps) {
     }
 }
 
-TEST_F(LegacyRBendTest, ProfileDerivativesAndDeviceEvaluation) {
+TEST_F(RBendSettingsTest, ProfileDerivativesAndDeviceEvaluation) {
     RBendProfile::Inputs in;
     in.enabled        = true;
     in.length         = 0.3;
@@ -273,7 +273,7 @@ TEST_F(LegacyRBendTest, ProfileDerivativesAndDeviceEvaluation) {
     EXPECT_NEAR(b.second, (c.first - a.first) / (2 * h), 1e-5);
 }
 
-TEST_F(LegacyRBendTest, CalibratedFieldTracksBothBendSignsAndBothEntranceAngles) {
+TEST_F(RBendSettingsTest, CalibratedFieldTracksBothBendSignsAndBothEntranceAngles) {
     for (double sign : {-1.0, 1.0})
         for (double e1 : {0.0, sign * angle}) {
             auto el = element(sign * angle, e1);
@@ -298,7 +298,7 @@ TEST_F(LegacyRBendTest, CalibratedFieldTracksBothBendSignsAndBothEntranceAngles)
         }
 }
 
-TEST_F(LegacyRBendTest, DefaultProfileAndRepeatedInitialisation) {
+TEST_F(RBendSettingsTest, DefaultProfileAndRepeatedInitialisation) {
     auto el = element();
     Attributes::setString(*el->findAttribute("FMAPFN"), "1DPROFILE1-DEFAULT");
     el->update();
@@ -311,7 +311,7 @@ TEST_F(LegacyRBendTest, DefaultProfileAndRepeatedInitialisation) {
         EXPECT_DOUBLE_EQ(first(d), second(d));
 }
 
-TEST_F(LegacyRBendTest, PlacementUsesE1AndPreservesDownstreamReferenceTangent) {
+TEST_F(RBendSettingsTest, PlacementUsesE1AndPreservesDownstreamReferenceTangent) {
     for (double sign : {-1.0, 1.0})
         for (double e1 : {0.0, sign * angle}) {
             auto bend = std::make_shared<RBendRep>("B");
@@ -339,7 +339,7 @@ TEST_F(LegacyRBendTest, PlacementUsesE1AndPreservesDownstreamReferenceTangent) {
         }
 }
 
-TEST_F(LegacyRBendTest, PoleFaceAnglesDoNotSelectAProfileOrRequireDesignEnergy) {
+TEST_F(RBendSettingsTest, PoleFaceAnglesDoNotSelectAProfileOrRequireDesignEnergy) {
     for (bool useExit : {false, true}) {
         OpalRBend el;
         Attributes::setReal(*el.findAttribute("L"), .3);
@@ -360,7 +360,7 @@ TEST_F(LegacyRBendTest, PoleFaceAnglesDoNotSelectAProfileOrRequireDesignEnergy) 
     }
 }
 
-TEST_F(LegacyRBendTest, PoleFaceAnglesChangeStandardEdgeFocusing) {
+TEST_F(RBendSettingsTest, PoleFaceAnglesChangeStandardEdgeFocusing) {
     OpalRBend el;
     Attributes::setReal(*el.findAttribute("L"), .3);
     Attributes::setReal(*el.findAttribute("ANGLE"), angle);
@@ -375,7 +375,7 @@ TEST_F(LegacyRBendTest, PoleFaceAnglesChangeStandardEdgeFocusing) {
     EXPECT_GT(std::abs(field(bend, 0.0, .001, .3)(0)), 1e-5);
 }
 
-TEST_F(LegacyRBendTest, DesignEnergyOnlyCalibratesTheStandardField) {
+TEST_F(RBendSettingsTest, DesignEnergyOnlyCalibratesTheStandardField) {
     OpalRBend el;
     Attributes::setReal(*el.findAttribute("L"), .3);
     Attributes::setReal(*el.findAttribute("ANGLE"), angle);
@@ -397,7 +397,7 @@ TEST_F(LegacyRBendTest, DesignEnergyOnlyCalibratesTheStandardField) {
     EXPECT_NEAR(field(dynamic_cast<RBend&>(*clone), 0.0, 0.0, .15)(1), expected, 1e-14);
 }
 
-TEST_F(LegacyRBendTest, ProfileWithoutDesignEnergyUsesReferenceMomentum) {
+TEST_F(RBendSettingsTest, ProfileWithoutDesignEnergyUsesReferenceMomentum) {
     OpalRBend el;
     Attributes::setReal(*el.findAttribute("L"), .3);
     Attributes::setReal(*el.findAttribute("ANGLE"), angle);
@@ -420,7 +420,7 @@ TEST_F(LegacyRBendTest, ProfileWithoutDesignEnergyUsesReferenceMomentum) {
     EXPECT_DOUBLE_EQ(bend.getPlacementPathLength(), reference.getPlacementPathLength());
 }
 
-TEST_F(LegacyRBendTest, ProfileDoesNotChangeDefaultPoleFaceGeometry) {
+TEST_F(RBendSettingsTest, ProfileDoesNotChangeDefaultPoleFaceGeometry) {
     OpalRBend el;
     Attributes::setReal(*el.findAttribute("L"), .3);
     Attributes::setReal(*el.findAttribute("ANGLE"), angle);
@@ -439,7 +439,7 @@ TEST_F(LegacyRBendTest, ProfileDoesNotChangeDefaultPoleFaceGeometry) {
     EXPECT_DOUBLE_EQ(bend.getGeometry().getChordLength(), chord);
 }
 
-TEST_F(LegacyRBendTest, ProfilePreservesPositionedNegativeBendConvention) {
+TEST_F(RBendSettingsTest, ProfilePreservesPositionedNegativeBendConvention) {
     OpalRBend standard, mapped;
     for (auto* el : {&standard, &mapped}) {
         Attributes::setReal(*el->findAttribute("L"), .3);
