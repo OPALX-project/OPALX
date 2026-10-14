@@ -504,7 +504,7 @@ void CofCmd::execute() {
     const std::array arrayAttributes{
             std::make_pair(FDSTEP, &s.solver.finiteDifferenceSteps),
             std::make_pair(SCALES, &s.solver.scales)};
-    for (const auto item : arrayAttributes) {
+    for (const auto& item : arrayAttributes) {
         if (!itsAttr[item.first].defaultUsed()) {
             const auto values = Attributes::getRealArray(itsAttr[item.first]);
             require(values.size() == 4, "FDSTEP and SCALES require exactly four values.");
