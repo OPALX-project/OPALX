@@ -32,6 +32,7 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include "VectorMath.h"
 
 namespace endfieldmodel {
 
@@ -48,18 +49,27 @@ namespace endfieldmodel {
          *  @param x: returns d^n f(x)/dx^n
          *  @param n: the derivative
          */
-        virtual double function(double x, int n) const = 0;
+        [[nodiscard]] virtual double function(double x, int n) const = 0;
+
+        /** GPU-aware version of function
+         *
+         *  @param x: returns d^n f(x)/dx^n
+         *  @param n: the derivative
+         */
+        virtual void function(
+                const Kokkos::View<double*>& xView, const int n,
+                Kokkos::View<double**>& values) const = 0;
 
         /** Return the nominal flat top length of the magnet
          */
-        virtual double getCentreLength() const = 0;
+        [[nodiscard]] virtual double getCentreLength() const = 0;
 
         /** Return the nominal end field length of the magnet
          */
-        virtual double getEndLength() const = 0;
+        [[nodiscard]] virtual double getEndLength() const = 0;
 
         /** Inheritable copy constructor - returns a deep copy of the EndFieldModel */
-        virtual EndFieldModel* clone() const = 0;
+        [[nodiscard]] virtual EndFieldModel* clone() const = 0;
 
         /** Set the maximum derivative that will be required to be calculated
          *
@@ -77,96 +87,25 @@ namespace endfieldmodel {
          */
         virtual void rescale(double scaleFactor) = 0;
 
-        /** Look up the EndFieldModel that has a given name
-         *
-         *  @param name: name of the EndFieldModel
-         *
-         *  @returns shared_ptr to the appropriate EndFieldModel.
-         *  @throws GeneralOpalException if name is not recognised
-         */
-        static std::shared_ptr<EndFieldModel> getEndFieldModel(std::string name);
+        /** Initialise before tracking starts */
+        virtual void initialise() {}
 
-        /** Add a value to the lookup table
-         *
-         *  @param name: name of the EndFieldModel. If name already exists in the
-         *  map, it is overwritten with the new value.
-         *  @param efm: shared_ptr to the EndFieldModel.
-         */
-        static void setEndFieldModel(std::string name, std::shared_ptr<EndFieldModel> efm);
-
-        /** Get the name corresponding to a given EndFieldModel
-         *
-         *  @param efm: EndFieldModel to lookup
-         *
-         *  @returns name corresponding to the EndFieldModel. Note that this
-         *  just does a dumb loop over the stored map values; so O(N).
-         *  @throws GeneralOpalException if efm is not recognised
-         */
-        static std::string getName(std::shared_ptr<EndFieldModel> efm);
+        /** Clean up at the end of tracking (before deallocation) */
+        virtual void finalise() {}
 
     private:
-        static std::map<std::string, std::shared_ptr<EndFieldModel> > efm_map;
     };
 
-    std::vector<std::vector<int> > CompactVector(std::vector<std::vector<int> > vec);
-
-    /// CompactVector helper function, used for sorting
-    bool GreaterThan(std::vector<int> v1, std::vector<int> v2);
-
-    /** Return a == b if a and b are same size and a[i] == b[i] for all i.
-     *
-     *  The following operations must be defined for TEMP_ITER it:
-     *    - ++it prefix increment operator
-     *    - (*it) (that is unary *, i.e. dereference operator)
-     *    - it1 != it2 not equals operator
-     *    - (*it1) != (*it2) not equals operator of dereferenced object
-     *
-     *  Call like e.g. \n
-     *      std::vector<int> a,b;\n
-     *      bool test_equal = IterableEquality(a.begin(), a.end(), b.begin(),
-     *                        b.end());\n
-     *
-     *  Can give a segmentation fault if a.begin() is not between a.begin() and
-     *  a.end() (inclusive)
-     */
-    template <class TEMP_ITER>
-    bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end);
-
-    /** Return a == b if a and b are same size and a[i] == b[i] for all i.
-     *
-     *  The following operations must be defined for TEMP_ITER it:
-     *    - ++it prefix increment operator
-     *    - (*it) (that is unary *, i.e. dereference operator)
-     *    - it1 != it2 not equals operator
-     *    - (*it1) != (*it2) not equals operator of dereferenced object
-     *
-     *  Call like e.g. \n
-     *      std::vector<int> a,b;\n
-     *      bool test_equal = IterableEquality(a.begin(), a.end(), b.begin(),
-     *                        b.end());\n
-     *
-     *  Can give a segmentation fault if a.begin() is not between a.begin() and
-     *  a.end() (inclusive)
-     */
-    template <class TEMP_ITER>
-    bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end);
-
-    template <class TEMP_CLASS>
-    bool IterableEquality(const TEMP_CLASS& a, const TEMP_CLASS& b) {
-        return IterableEquality(a.begin(), a.end(), b.begin(), b.end());
-    }
-
-    template <class TEMP_ITER>
-    bool IterableEquality(TEMP_ITER a_begin, TEMP_ITER a_end, TEMP_ITER b_begin, TEMP_ITER b_end) {
-        TEMP_ITER a_it = a_begin;
-        TEMP_ITER b_it = b_begin;
-        while (a_it != a_end && b_it != b_end) {
-            if (*a_it != *b_it) return false;
-            ++a_it;
-            ++b_it;
+    inline void EndFieldModel::function(
+            const Kokkos::View<double*>& xView, const int n, Kokkos::View<double**>& values) const {
+        auto xHost      = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), xView);
+        auto valuesHost = Kokkos::create_mirror_view(values);
+        for (size_t point = 0; point < xHost.extent(0); ++point) {
+            for (int order = 0; order < n; ++order) {
+                valuesHost(point, order) = function(xHost(point), order);
+            }
         }
-        if (a_it != a_end || b_it != b_end) return false;
-        return true;
+        Kokkos::deep_copy(values, valuesHost);
     }
 
 }  // namespace endfieldmodel

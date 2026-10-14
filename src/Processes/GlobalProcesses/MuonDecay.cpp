@@ -8,7 +8,7 @@ void MuonDecay::createDaughterParticles(
         const Kokkos::View<ippl::Vector<double, 3>*>& parentR,
         const Kokkos::View<ippl::Vector<double, 3>*>& parentP,
         const Kokkos::View<double*>& parentDt,
-        const Kokkos::View<ippl::Vector<float, 3>*>& parentPol) {
+        const Kokkos::View<ippl::Vector<double, 3>*>& parentPol) {
     using pc_size_type = ippl::detail::size_type;
 
     auto dR  = daughterPC_m->R.getView();

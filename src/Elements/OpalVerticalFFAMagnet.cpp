@@ -60,14 +60,15 @@ OpalVerticalFFAMagnet::OpalVerticalFFAMagnet()
     registerOwnership();
 
     VerticalFFAMagnet* magnet = new VerticalFFAMagnet("VerticalFFAMagnet");
-    magnet->setEndField(new endfieldmodel::Tanh(1., 1., 1));
+
+    magnet->setEndField(std::make_shared<endfieldmodel::Tanh>(1., 1., 1));
     setElement(magnet);
 }
 
 OpalVerticalFFAMagnet::OpalVerticalFFAMagnet(const std::string& name, OpalVerticalFFAMagnet* parent)
     : OpalElement(name, parent) {
     VerticalFFAMagnet* magnet = new VerticalFFAMagnet(name);
-    magnet->setEndField(new endfieldmodel::Tanh(1., 1., 1));
+    magnet->setEndField(std::make_shared<endfieldmodel::Tanh>(1., 1., 1));
     setElement(magnet);
 }
 
@@ -89,13 +90,10 @@ void OpalVerticalFFAMagnet::update() {
     magnet->setWidth(Attributes::getReal(itsAttr[WIDTH]));
 
     // get centre length and end length in radians
-    endfieldmodel::Tanh* endField = dynamic_cast<endfieldmodel::Tanh*>(magnet->getEndField());
-    double end_length             = Attributes::getReal(itsAttr[END_LENGTH]) * Units::m2mm;
-    double centre_length          = Attributes::getReal(itsAttr[CENTRE_LENGTH]) * Units::m2mm;
-    endField->setLambda(end_length);
-    // x0 is the distance between B=0.5*B0 and B=B0 i.e. half the centre length
-    endField->setX0(centre_length / 2.);
-    endField->setTanhDiffIndices(maxOrder + 2);
+    double end_length    = Attributes::getReal(itsAttr[END_LENGTH]);
+    double centre_length = Attributes::getReal(itsAttr[CENTRE_LENGTH]);
+    auto endField =
+            std::make_shared<endfieldmodel::Tanh>(centre_length / 2.0, end_length, maxOrder);
+    magnet->setEndField(endField);
     magnet->initialise();
-    // setElement(magnet);
 }
