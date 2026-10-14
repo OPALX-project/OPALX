@@ -105,6 +105,35 @@ namespace opalx::spacecharge {
             return global;
         }
 
+        /**
+         * @brief Barnes-Hut domain for the axis-aligned bounds @p limits (fixed boundaries).
+         *
+         * The box is fitted to the sources instead of being a cube, so cstone's mixed-dimension
+         * SFC keys give axes shorter than the longest one fewer key bits and the octree cells of
+         * flat or long bunches stay close to cubic; a near-cubic box keeps all bits. Axes shorter
+         * than 2^-(maxTreeLevel - 1) of the longest one, including the zero extent of a flat
+         * bunch, are widened about their centre: the keys cannot resolve them anyway, and every
+         * axis must keep at least one key bit.
+         */
+        cstone::Box<double> fittedBox(const std::array<double, 6>& limits) {
+            constexpr unsigned maxLevel = cstone::maxTreeLevel<BHContainer::KeyType>{};
+            const double longest =
+                    std::max({limits[1] - limits[0], limits[3] - limits[2], limits[5] - limits[4]});
+            const double shortest = std::ldexp(longest, -static_cast<int>(maxLevel - 1));
+            std::array<double, 6> box = limits;
+            for (unsigned d = 0; d < 3; ++d) {
+                if (box[2 * d + 1] - box[2 * d] < shortest) {
+                    const double centre = 0.5 * (box[2 * d] + box[2 * d + 1]);
+                    box[2 * d]          = centre - 0.5 * shortest;
+                    box[2 * d + 1]      = centre + 0.5 * shortest;
+                }
+            }
+            using cstone::BoundaryType;
+            return cstone::Box<double>(
+                    box[0], box[1], box[2], box[3], box[4], box[5], BoundaryType::fixed,
+                    BoundaryType::fixed, BoundaryType::fixed);
+        }
+
         size_type countMarkedForDeletion(BarnesHutAlgorithm::ParticleContainer& particles) {
             const auto invalid     = particles.InvalidMask.getView();
             const size_type nLocal = particles.getLocalNum();
@@ -426,6 +455,7 @@ namespace opalx::spacecharge {
         void checkPreconditions(const SpaceChargeSolveContext& context) const;
         [[nodiscard]] bool imagesActive(std::size_t step) const;
         void ensureContainer(const std::array<double, 6>& bounds, unsigned long long total);
+        void updateDomainBox(const std::array<double, 6>& bounds);
         void ensureSolver(bool images);
         BHLocalIndex prepareSlots(size_type nSlots);
         void pack(BHLocalIndex offset, size_type nLocal, double timeStep, bool images);
@@ -514,21 +544,16 @@ namespace opalx::spacecharge {
 
         solver_m.reset();
         bh_m.reset();
-        // Same cube cstone's cubic_open refit produces; avoids zero-extent axes (flat bunches).
-        const double side = std::max({bounds[1] - bounds[0], bounds[3] - bounds[2],
-                                      bounds[5] - bounds[4]});
-        const std::array<double, 6> box{bounds[0], bounds[0] + side, bounds[2], bounds[2] + side,
-                                        bounds[4], bounds[4] + side};
-        using cstone::BoundaryType;
-        // cstone refits open boxes on every sync, but on the first sync a rank without particles
-        // contributes the constructor box to the global extent; seed it with the true bounds.
+        // Fixed boundaries: cstone keeps the box that updateDomainBox() sets before every sync
+        // (an open box would be refitted without the guard against zero-extent axes).
+        const cstone::Box<double> box = fittedBox(bounds);
         bh_m = std::make_unique<BHContainer>(
                 ippl::Comm->rank(), nRanks, bucketSize, bucketSizeFocus,
                 static_cast<float>(config_m.theta),
-                box,
-                std::array<BoundaryType, 3>{
-                        BoundaryType::cubic_open, BoundaryType::cubic_open,
-                        BoundaryType::cubic_open},
+                std::array<double, 6>{box.xmin(), box.xmax(), box.ymin(), box.ymax(), box.zmin(),
+                                      box.zmax()},
+                std::array<cstone::BoundaryType, 3>{
+                        box.boundaryX(), box.boundaryY(), box.boundaryZ()},
                 ippl::Comm->getCommunicator());
         bh_m->setUniformH(config_m.softening);
         bh_m->setLeafBasedH(config_m.leafBasedSoftening);
@@ -536,6 +561,26 @@ namespace opalx::spacecharge {
         bucketSize_m      = bucketSize;
         bucketSizeFocus_m = bucketSizeFocus;
         ++statistics_m.containerBuilds;
+    }
+
+    void BarnesHutAlgorithm::Impl::updateDomainBox(const std::array<double, 6>& bounds) {
+        // As cstone refits open boxes: grow at once, shrink by at most 5 % of the previous edge
+        // per side and solve, so a contracting bunch does not reshuffle the keys every step.
+        constexpr double shrinkLimit = 0.05;
+        const cstone::Box<double>& previous = bh_m->box();
+        const double lower[3] = {previous.xmin(), previous.ymin(), previous.zmin()};
+        const double upper[3] = {previous.xmax(), previous.ymax(), previous.zmax()};
+        std::array<double, 6> limits{};
+        for (unsigned d = 0; d < 3; ++d) {
+            const double edge = upper[d] - lower[d];
+            limits[2 * d]     = std::min(bounds[2 * d], lower[d] + shrinkLimit * edge);
+            limits[2 * d + 1] = std::max(bounds[2 * d + 1], upper[d] - shrinkLimit * edge);
+        }
+        bh_m->setBox(fittedBox(limits));
+
+        constexpr unsigned maxLevel = cstone::maxTreeLevel<BHContainer::KeyType>{};
+        const auto bits             = bh_m->box().getBoxDimBits(maxLevel);
+        statistics_m.keyBits        = {bits[0], bits[1], bits[2]};
     }
 
     void BarnesHutAlgorithm::Impl::ensureSolver(bool images) {
@@ -713,6 +758,7 @@ namespace opalx::spacecharge {
                 sourceBounds[5]     = std::max(bounds[5], 2.0 * planeZ - bounds[4]);
             }
             ensureContainer(sourceBounds, images ? 2 * total : total);
+            updateDomainBox(sourceBounds);
             ensureSolver(images);
             const size_type nLocal    = primary_m->getLocalNum();
             const BHLocalIndex offset = prepareSlots(images ? 2 * nLocal : nLocal);

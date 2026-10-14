@@ -396,8 +396,9 @@ namespace opalx::spacecharge {
                     std::printf("[BH] N=%zu %s rms relative error=%.3e\n", count,
                                 count < directLimit ? "direct" : "tree", error);
                 }
-                // Tree limit ~2.5x the measured 3.95e-4: an accuracy regression must fail here.
-                EXPECT_LT(error, count < directLimit ? 1.0e-10 : 1.0e-3);
+                // Tree limit ~3x the largest measured error (1.71e-4, N=1000 on 4 ranks): an
+                // accuracy regression must fail here.
+                EXPECT_LT(error, count < directLimit ? 1.0e-10 : 5.0e-4);
             };
 
             for (std::size_t count : {2u, 9u, 48u, 65u, 300u, 1000u}) {
@@ -474,9 +475,9 @@ namespace opalx::spacecharge {
                                     planeOffset, count, direct ? "direct" : "tree", error,
                                     withoutImages);
                     }
-                    // Tree measured 3.7e-4 (2 sigma_z) and 4.8e-4 (5 sigma_z), at the image-free
-                    // level (3.6e-4); without dipole multipoles 3.1e-3 at 2 sigma_z.
-                    EXPECT_LT(error, direct ? 1.0e-10 : 1.0e-3);
+                    // Tree measured 1.68e-4 (2 sigma_z) and 2.60e-4 (5 sigma_z), at the image-free
+                    // level (1.87e-4); without dipole multipoles 3.1e-3 at 2 sigma_z (cubic domain).
+                    EXPECT_LT(error, direct ? 1.0e-10 : 7.0e-4);
                     EXPECT_GT(withoutImages, planeOffset < 3.0 ? 1.0e-2 : 2.0e-3);
                     EXPECT_EQ(run.algorithm->statistics().dipoleSolves, direct ? 0u : 1u);
                 }
@@ -485,9 +486,9 @@ namespace opalx::spacecharge {
 
         TEST_F(BarnesHutAlgorithmTest, ImageChargeErrorScalesWithTheta) {
             // Cells mixing reals and mirrors converge like the image-free case once their dipole
-            // is kept (measured 1.64e-3, 3.75e-4, 3.49e-5; DirectSumMediumConvergesWithTheta:
-            // 1.49e-3, 3.60e-4, 3.99e-5), so the image-free limits apply. Without the dipole the
-            // error fell only like theta^2 (5.99e-3, 3.10e-3, 1.01e-3).
+            // is kept (measured 7.90e-4, 1.68e-4, 1.61e-5; DirectSumMediumConvergesWithTheta:
+            // 7.68e-4, 1.87e-4, 1.84e-5), so the image-free limits apply. Without the dipole the
+            // error fell only like theta^2 (5.99e-3, 3.10e-3, 1.01e-3, cubic domain).
             BunchSpec spec;
             spec.globalCount = 4000;
             spec.variableDt  = true;
@@ -506,7 +507,7 @@ namespace opalx::spacecharge {
                 if (ippl::Comm->rank() == 0) {
                     std::printf("[BH] images theta=%.2f rms relative error=%.3e\n", theta, error);
                 }
-                EXPECT_LT(error, theta >= 0.7 ? 3.0e-3 : (theta >= 0.5 ? 8.0e-4 : 1.0e-4));
+                EXPECT_LT(error, theta >= 0.7 ? 2.0e-3 : (theta >= 0.5 ? 5.0e-4 : 5.0e-5));
                 EXPECT_LT(error, previous);
                 previous = error;
             }
@@ -549,8 +550,8 @@ namespace opalx::spacecharge {
                 std::printf("[BH] grounded plane: rms E_t / rms E_n = %.3e\n",
                             std::sqrt(tangential / normal));
             }
-            // Measured 1.85e-6 (1 rank).
-            EXPECT_LT(std::sqrt(tangential / normal), 5.0e-6);
+            // Measured 1.02e-7 on 1 and 4 ranks (1.85e-6 with the cubic domain).
+            EXPECT_LT(std::sqrt(tangential / normal), 3.0e-7);
         }
 
         TEST_F(BarnesHutAlgorithmTest, ImageChargesExpireAfterMaximumSteps) {
@@ -594,13 +595,91 @@ namespace opalx::spacecharge {
                 if (ippl::Comm->rank() == 0) {
                     std::printf("[BH] theta=%.2f rms relative error=%.3e\n", theta, error);
                 }
-                // Limits ~2x the measured errors (1.49e-3, 3.60e-4, 3.99e-5 on 1 and 4 ranks), so an
-                // accuracy regression of BH against the direct sum fails this test.
-                const double limit = theta >= 0.7 ? 3.0e-3 : (theta >= 0.5 ? 8.0e-4 : 1.0e-4);
+                // Limits ~2.5x the measured errors (7.68e-4, 1.87e-4, 1.84e-5 on 1 and 4 ranks;
+                // 1.49e-3, 3.60e-4, 3.99e-5 with the cubic domain), so an accuracy regression of
+                // BH against the direct sum fails this test.
+                const double limit = theta >= 0.7 ? 2.0e-3 : (theta >= 0.5 ? 5.0e-4 : 5.0e-5);
                 EXPECT_LT(error, limit);
                 EXPECT_LT(error, previous);
                 previous = error;
             }
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, StretchedBunchesUseMixedDimensionKeys) {
+            // The Barnes-Hut domain is the bunch's bounding box, not a cube: for a pancake
+            // (drift4m-like, 1 mm x 1 mm x 10 um) and a needle the short axes get fewer SFC key
+            // bits, so the octree cells stay close to cubic. Accuracy must stay at the usual BH
+            // level against the direct sum.
+            struct Case {
+                const char* name;
+                Vector sigma;
+            };
+            for (const Case& c : {Case{"pancake", Vector(1.0e-3, 1.0e-3, 1.0e-5)},
+                                  Case{"needle", Vector(1.0e-5, 1.0e-5, 1.0e-3)}}) {
+                SCOPED_TRACE(c.name);
+                BunchSpec spec;
+                spec.globalCount = 4000;
+                spec.variableDt  = true;
+                spec.sigma       = c.sigma;
+                Run run(config(1.0e-6), spec);
+                const auto before = gatherAll(run.particles);
+                ASSERT_EQ(run.solve().backendSolves, 1u);
+                const auto after = gatherAll(run.particles);
+                expectConserved(before, after);
+                const double error = rmsRelativeError(after, directSum(before, kCharge, 1.0e-6));
+                const auto& bits   = run.algorithm->statistics().keyBits;
+                if (ippl::Comm->rank() == 0) {
+                    std::printf("[BH] %s key bits (%u, %u, %u) rms relative error=%.3e\n", c.name,
+                                bits[0], bits[1], bits[2], error);
+                }
+                EXPECT_EQ(run.algorithm->statistics().solves, 1u);
+                // sigma ratio 100: about log2(100) ~ 6-7 key bits fewer on each short axis; the
+                // long axes keep (nearly) all of them.
+                const unsigned most = std::max({bits[0], bits[1], bits[2]});
+                for (unsigned d = 0; d < 3; ++d) {
+                    if (c.sigma[d] < 1.0e-4) {
+                        EXPECT_LE(bits[d] + 5, most) << "axis " << d;
+                    } else {
+                        EXPECT_GE(bits[d] + 1, most) << "axis " << d;
+                    }
+                }
+                // Measured (1 and 4 ranks): pancake bits (21, 21, 14) 1.16e-4, needle (14, 14, 21)
+                // 7.43e-5.
+                EXPECT_LT(error, 3.0e-4);
+            }
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, ZeroThicknessSheetMatchesDirectSum) {
+            // All particles in one plane z = const: the zero-extent axis is widened to the
+            // smallest extent the keys can carry (one key bit) instead of breaking the box.
+            BunchSpec spec;
+            spec.globalCount = 4000;
+            spec.sigma       = Vector(1.0e-3, 1.5e-3, 0.0);
+            Run run(config(2.0e-5), spec);
+            const auto before = gatherAll(run.particles);
+            for (const Record& r : before) {
+                ASSERT_EQ(r.r[2], spec.center[2]);
+            }
+            ASSERT_EQ(run.solve().backendSolves, 1u);
+            const auto after = gatherAll(run.particles);
+            expectConserved(before, after);
+            const double error = rmsRelativeError(after, directSum(before, kCharge, 2.0e-5));
+            const auto& bits   = run.algorithm->statistics().keyBits;
+            if (ippl::Comm->rank() == 0) {
+                std::printf("[BH] sheet key bits (%u, %u, %u) rms relative error=%.3e\n", bits[0],
+                            bits[1], bits[2], error);
+            }
+            EXPECT_EQ(run.algorithm->statistics().solves, 1u);
+            EXPECT_EQ(bits[2], 1u);
+            // In-plane sources only: the normal component vanishes up to rounding of the
+            // expansion centres.
+            double normal = 0.0, total = 0.0;
+            for (const Record& r : after) {
+                normal += r.e[2] * r.e[2];
+                total += r.e[0] * r.e[0] + r.e[1] * r.e[1] + r.e[2] * r.e[2];
+            }
+            EXPECT_LT(std::sqrt(normal / total), 1.0e-8);
+            EXPECT_LT(error, 2.5e-4);  // measured 8.1e-5 (1 rank) / 7.5e-5 (4 ranks)
         }
 
         TEST_F(BarnesHutAlgorithmTest, UniformSphereMatchesAnalyticField) {
@@ -836,7 +915,7 @@ namespace opalx::spacecharge {
                 if (ippl::Comm->rank() == 0) {
                     std::printf("[BH] grow from one rank: rms relative error=%.3e\n", error);
                 }
-                EXPECT_LT(error, 1.0e-3);  // measured 3.5e-4 / 3.9e-4
+                EXPECT_LT(error, 8.0e-4);  // measured 1.83e-4 / 3.19e-4
             }
         }
 
@@ -1028,7 +1107,7 @@ namespace opalx::spacecharge {
                         std::printf("[BH] emission-like step %zu N=%zu rms relative error=%.3e\n",
                                     step, static_cast<std::size_t>(nextGlobal), error);
                     }
-                    ASSERT_LT(error, 1.0e-3);  // measured 2.8-3.0e-4
+                    ASSERT_LT(error, 4.0e-4);  // measured 8.4e-5 - 1.48e-4
                 }
             }
         }

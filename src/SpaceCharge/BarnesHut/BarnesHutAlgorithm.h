@@ -9,6 +9,7 @@
 #include "SpaceCharge/SpaceChargeAlgorithm.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
 
+#include <array>
 #include <cstddef>
 #include <memory>
 #include <span>
@@ -47,6 +48,8 @@ namespace opalx::spacecharge {
             std::size_t containerBuilds = 0;  ///< Constructions of the Barnes-Hut container.
             std::size_t directSolves    = 0;  ///< Small-bunch solves done by direct summation.
             std::size_t dipoleSolves    = 0;  ///< Barnes-Hut solves with dipole multipoles (images).
+            /// SFC key bits per axis of the last Barnes-Hut domain (fewer on short axes).
+            std::array<unsigned, 3> keyBits{};
         };
 
         BarnesHutAlgorithm(
