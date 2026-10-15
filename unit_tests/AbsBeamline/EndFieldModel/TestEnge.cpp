@@ -70,16 +70,25 @@ TEST_F(TestEnge, DerivativeTest) {
     std::vector<double> engeA   = {0.0, 1.0, 0.0};
     endfieldmodel::Enge enge(engeA, x0, lambda);
     enge.initialise();
+    Kokkos::View<double*> xDevice("x", 1);
+    auto xHost = Kokkos::create_mirror_view(xDevice);
+    Kokkos::View<double**> yDevice("y", 1, 5);
     for (auto x : xVector) {
         double yTest = enge.function(x, 0);
         double yRef  = -1 + myEnge(x - x0, engeA, lambda) + myEnge(-x - x0, engeA, lambda);
+        xHost(0) = x;
+        Kokkos::deep_copy(xDevice, xHost);
+        enge.function(xDevice, 4, yDevice);
+        auto yHost = Kokkos::create_mirror_view(yDevice);
         EXPECT_NEAR(yTest, yRef, 1e-12) << x << " " << yTest << " " << yRef;
+        EXPECT_NEAR(yHost(0, 0), yRef, 1e-12) << x << " " << yTest << " " << yRef;
         for (size_t n = 1; n < 5; ++n) {
             double yP     = enge.function(x + dx, n - 1);
             double yM     = enge.function(x - dx, n - 1);
             double dyTest = enge.function(x, n);
             double dyRef  = (yP - yM) / 2 / dx;
             EXPECT_NEAR(dyTest, dyRef, 1e-3) << x << " " << n << " * " << dyTest << " " << dyRef;
+            EXPECT_NEAR(yHost(0, n), dyRef, 1e-3) << x << " " << n << " * " << yHost(0, n) << " " << dyRef;;
         }
     }
     EXPECT_NEAR(enge.function(0.0, 0), 1.0, 1e-3);

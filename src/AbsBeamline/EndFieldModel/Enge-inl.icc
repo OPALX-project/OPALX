@@ -27,21 +27,6 @@ namespace endfieldmodel {
 
     std::vector<std::vector<int> > Enge::getHIndex(int n) { return h_m[n]; }
 
-    KOKKOS_INLINE_FUNCTION double Enge::getDoubleEnge(const EngeConfig& config, double x, int n, Kokkos::View<double*> values) {
-        Kokkos::View<double*> engeLow = config.workspace.engeLow;
-        Kokkos::View<double*> engeHigh = config.workspace.engeHigh;
-        getEnge(config, x - config.x0_m, n, engeLow);
-        getEnge(config, -x - config.x0_m, n, engeHigh);
-        values(0) =  -1 + (engeLow(n) + engeHigh(n));
-        for (int i = 1; i <= n; ++i) {
-            if (n % 2 == 1)
-                values(i) = +engeLow(n) - engeHigh(n);
-            else
-                values(i) = +engeLow(n) + engeHigh(n);
-        }
-        return values(n);
-    }
-
     double Enge::getCentreLength() const { return config_m.x0_m * 2.0; }
 
     double Enge::getEndLength() const { return config_m.lambda_m; }
@@ -57,10 +42,10 @@ namespace endfieldmodel {
             Kokkos::View<double**>& values) {
         const size_t count = xView.extent(0);
         if (values.extent(0) != xView.extent(0)) {
-            throw OpalException("values extent did not match x extent", "Enge::functionHost");
+            throw OpalException("Enge::functionHost", "values extent did not match x extent");
         }
         if (values.extent(1) != size_t(n + 1) || n < 0) {
-            throw OpalException("values extent should be n + 1", "Enge::functionHost");
+            throw OpalException("Enge::functionHost", "values extent should be n + 1");
         }
         Kokkos::parallel_for(
                 "Enge::functionHost()", count, KOKKOS_LAMBDA(const size_t i) {
@@ -69,8 +54,18 @@ namespace endfieldmodel {
                 });
     }
 
-    KOKKOS_INLINE_FUNCTION double Enge::functionDevice(const EngeConfig& config, double x, int n, Kokkos::View<double*> values) {
-        return getDoubleEnge(config, x, n, values);
+    KOKKOS_INLINE_FUNCTION void Enge::functionDevice(const EngeConfig& config, double x, int n, Kokkos::View<double*> values) {
+        Kokkos::View<double*> engeLow = config.workspace.engeLow;
+        Kokkos::View<double*> engeHigh = config.workspace.engeHigh;
+        getEnge(config, x - config.x0_m, n, engeLow);
+        getEnge(config, -x - config.x0_m, n, engeHigh);
+        values(0) =  -1 + (engeLow(0) + engeHigh(0));
+        for (int i = 1; i <= n; ++i) {
+            if (i % 2 == 1)
+                values(i) = +engeLow(i) - engeHigh(i);
+            else
+                values(i) = +engeLow(i) + engeHigh(i);
+        }
     }
 
     KOKKOS_INLINE_FUNCTION void Enge::setupWorkspace(const EngeConfig& config, double x, int n) {
