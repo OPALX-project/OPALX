@@ -18,6 +18,7 @@
 #ifndef SDDSWRITERCOLUMN_H
 #define SDDSWRITERCOLUMN_H
 
+#include <ios>
 #include <ostream>
 #include <string>
 #include <tuple>
