@@ -158,11 +158,11 @@ namespace endfieldmodel {
 
     KOKKOS_INLINE_FUNCTION void AsymmetricEnge::functionDevice(
             const AsymmetricEngeConfig& config, double x, int n, Kokkos::View<double*> values) {
-        Kokkos::View<double*> engeLow = config.engeStart_m.workspace.engeLow;
+        Kokkos::View<double*> engeLow  = config.engeStart_m.workspace.engeLow;
         Kokkos::View<double*> engeHigh = config.engeEnd_m.workspace.engeHigh;
         Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n, engeLow);
         Enge::getEnge(config.engeEnd_m, x - config.engeEnd_m.x0_m, n, engeHigh);
-        values(0) =  -1 + (engeLow(0) + engeHigh(0));
+        values(0) = -1 + (engeLow(0) + engeHigh(0));
         for (int i = 1; i <= n; ++i) {
             if (i % 2 == 1)
                 values(i) = -engeLow(i) + engeHigh(i);

@@ -76,7 +76,7 @@ TEST_F(TestEnge, DerivativeTest) {
     for (auto x : xVector) {
         double yTest = enge.function(x, 0);
         double yRef  = -1 + myEnge(x - x0, engeA, lambda) + myEnge(-x - x0, engeA, lambda);
-        xHost(0) = x;
+        xHost(0)     = x;
         Kokkos::deep_copy(xDevice, xHost);
         enge.function(xDevice, 4, yDevice);
         auto yHost = Kokkos::create_mirror_view(yDevice);
@@ -88,7 +88,9 @@ TEST_F(TestEnge, DerivativeTest) {
             double dyTest = enge.function(x, n);
             double dyRef  = (yP - yM) / 2 / dx;
             EXPECT_NEAR(dyTest, dyRef, 1e-3) << x << " " << n << " * " << dyTest << " " << dyRef;
-            EXPECT_NEAR(yHost(0, n), dyRef, 1e-3) << x << " " << n << " * " << yHost(0, n) << " " << dyRef;;
+            EXPECT_NEAR(yHost(0, n), dyRef, 1e-3)
+                    << x << " " << n << " * " << yHost(0, n) << " " << dyRef;
+            ;
         }
     }
     EXPECT_NEAR(enge.function(0.0, 0), 1.0, 1e-3);
