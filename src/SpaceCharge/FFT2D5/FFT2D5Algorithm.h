@@ -57,7 +57,7 @@ namespace opalx::spacecharge {
     public:
         using T                       = double;
         static constexpr unsigned Dim = 3;
-        using ParticleContainer       = ParticleContainer<double>;
+        using ParticleContainer       = ::ParticleContainer<double>;
         using LongitudinalFieldMode   = FFT2D5LongitudinalFieldMode;
         using OpenSolver2D_t          = ippl::FFTOpenPoissonSolver<VField_t<T, 2U>, Field_t<2U>>;
         using Mesh3D_t                = ippl::UniformCartesian<T, 3U>;

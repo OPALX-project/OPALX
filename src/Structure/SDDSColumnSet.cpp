@@ -16,6 +16,9 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Structure/SDDSColumnSet.h"
+#include "Utilities/OpalException.h"
+
+#include <utility>
 
 void SDDSColumnSet::addColumn(
         const std::string& name, const std::string& type, const std::string& unit,
