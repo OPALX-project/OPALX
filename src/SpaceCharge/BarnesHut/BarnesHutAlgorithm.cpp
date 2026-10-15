@@ -56,6 +56,13 @@ namespace opalx::spacecharge {
         /// of the octree; such bunches use ryoanji's direct sum instead (cost O(N^2), N small).
         constexpr unsigned long long kDirectSumParticlesPerRank = 64;
 
+        /// A new Barnes-Hut box extends this fraction of the source extent beyond the sources on
+        /// every side: room for the bunch to grow before the box has to be resized.
+        constexpr double kBoxMargin = 0.05;
+
+        /// The box keeps its size while no edge exceeds a refit by more than this fraction.
+        constexpr double kBoxSlack = 0.25;
+
         /// Image charges of a grounded plane travel through the Barnes-Hut container as sources
         /// and are told apart from real particles by this bit in the 64-bit ID payload (OPALX IDs
         /// are non-negative).
@@ -132,6 +139,17 @@ namespace opalx::spacecharge {
             return cstone::Box<double>(
                     box[0], box[1], box[2], box[3], box[4], box[5], BoundaryType::fixed,
                     BoundaryType::fixed, BoundaryType::fixed);
+        }
+
+        /// fittedBox() of the source bounds widened by kBoxMargin on every side.
+        cstone::Box<double> domainBox(const std::array<double, 6>& bounds) {
+            std::array<double, 6> limits = bounds;
+            for (unsigned d = 0; d < 3; ++d) {
+                const double margin = kBoxMargin * (bounds[2 * d + 1] - bounds[2 * d]);
+                limits[2 * d] -= margin;
+                limits[2 * d + 1] += margin;
+            }
+            return fittedBox(limits);
         }
 
         size_type countMarkedForDeletion(BarnesHutAlgorithm::ParticleContainer& particles) {
@@ -455,11 +473,11 @@ namespace opalx::spacecharge {
         void checkPreconditions(const SpaceChargeSolveContext& context) const;
         [[nodiscard]] bool imagesActive(std::size_t step) const;
         void ensureContainer(const std::array<double, 6>& bounds, unsigned long long total);
-        void updateDomainBox(const std::array<double, 6>& bounds);
+        void updateDomainBox(const std::array<double, 6>& bounds, unsigned long long total);
         void ensureSolver(bool images);
         BHLocalIndex prepareSlots(size_type nSlots);
         void pack(BHLocalIndex offset, size_type nLocal, double timeStep, bool images);
-        void synchronize();
+        void synchronize(bool newDomain);
         void copyBack();
         void verifySolve(
                 const SpaceChargeSolveContext& context, size_type totalBefore, bool images);
@@ -542,11 +560,13 @@ namespace opalx::spacecharge {
             return;
         }
 
+        static IpplTimings::TimerRef buildTimer = IpplTimings::getTimer("bh.newContainer");
+        IpplTimings::startTimer(buildTimer);
         solver_m.reset();
         bh_m.reset();
         // Fixed boundaries: cstone keeps the box that updateDomainBox() sets before every sync
         // (an open box would be refitted without the guard against zero-extent axes).
-        const cstone::Box<double> box = fittedBox(bounds);
+        const cstone::Box<double> box = domainBox(bounds);
         bh_m = std::make_unique<BHContainer>(
                 ippl::Comm->rank(), nRanks, bucketSize, bucketSizeFocus,
                 static_cast<float>(config_m.theta),
@@ -561,26 +581,52 @@ namespace opalx::spacecharge {
         bucketSize_m      = bucketSize;
         bucketSizeFocus_m = bucketSizeFocus;
         ++statistics_m.containerBuilds;
+        synchronizeDevice();
+        IpplTimings::stopTimer(buildTimer);
     }
 
-    void BarnesHutAlgorithm::Impl::updateDomainBox(const std::array<double, 6>& bounds) {
-        // As cstone refits open boxes: grow at once, shrink by at most 5 % of the previous edge
-        // per side and solve, so a contracting bunch does not reshuffle the keys every step.
-        constexpr double shrinkLimit = 0.05;
-        const cstone::Box<double>& previous = bh_m->box();
-        const double lower[3] = {previous.xmin(), previous.ymin(), previous.zmin()};
-        const double upper[3] = {previous.xmax(), previous.ymax(), previous.zmax()};
-        std::array<double, 6> limits{};
+    void BarnesHutAlgorithm::Impl::updateDomainBox(
+            const std::array<double, 6>& bounds, unsigned long long total) {
+        // cstone updates its trees incrementally, which is only valid while the box keeps its
+        // size: the box follows the sources by moving, and a resize rebuilds the domain (a resized
+        // box in the old domain left ranks without particles and hung the traversal).
+        constexpr unsigned maxLevel        = cstone::maxTreeLevel<BHContainer::KeyType>{};
+        const cstone::Box<double> fitted   = domainBox(bounds);
+        const cstone::Box<double> previous = bh_m->box();
+        const double lower[3]    = {previous.xmin(), previous.ymin(), previous.zmin()};
+        const double edge[3]     = {previous.lx(), previous.ly(), previous.lz()};
+        const double refitted[3] = {fitted.lx(), fitted.ly(), fitted.lz()};
+        bool sizeFits = true, contained = true;
         for (unsigned d = 0; d < 3; ++d) {
-            const double edge = upper[d] - lower[d];
-            limits[2 * d]     = std::min(bounds[2 * d], lower[d] + shrinkLimit * edge);
-            limits[2 * d + 1] = std::max(bounds[2 * d + 1], upper[d] - shrinkLimit * edge);
+            const double extent = bounds[2 * d + 1] - bounds[2 * d];
+            sizeFits = sizeFits && extent <= edge[d]
+                       && edge[d] <= (1.0 + kBoxSlack) * refitted[d];
+            contained = contained && lower[d] <= bounds[2 * d]
+                        && bounds[2 * d + 1] <= lower[d] + edge[d];
         }
-        bh_m->setBox(fittedBox(limits));
 
-        constexpr unsigned maxLevel = cstone::maxTreeLevel<BHContainer::KeyType>{};
-        const auto bits             = bh_m->box().getBoxDimBits(maxLevel);
-        statistics_m.keyBits        = {bits[0], bits[1], bits[2]};
+        if (!sizeFits) {
+            solver_m.reset();
+            bh_m.reset();
+            ensureContainer(bounds, total);  // with domainBox(bounds)
+            ++statistics_m.boxRebuilds;
+        } else if (!contained) {
+            // Same size, centred on the sources.
+            std::array<double, 6> moved{};
+            for (unsigned d = 0; d < 3; ++d) {
+                const double centre = 0.5 * (bounds[2 * d] + bounds[2 * d + 1]);
+                moved[2 * d]        = centre - 0.5 * edge[d];
+                moved[2 * d + 1]    = centre + 0.5 * edge[d];
+            }
+            using cstone::BoundaryType;
+            bh_m->setBox(cstone::Box<double>(
+                    moved[0], moved[1], moved[2], moved[3], moved[4], moved[5], BoundaryType::fixed,
+                    BoundaryType::fixed, BoundaryType::fixed));
+            ++statistics_m.boxMoves;
+        }
+
+        const auto bits      = bh_m->box().getBoxDimBits(maxLevel);
+        statistics_m.keyBits = {bits[0], bits[1], bits[2]};
     }
 
     void BarnesHutAlgorithm::Impl::ensureSolver(bool images) {
@@ -603,9 +649,13 @@ namespace opalx::spacecharge {
         params.theta      = static_cast<float>(config_m.theta);
         params.numShells  = 0;
         params.multipoles = wanted;
+        static IpplTimings::TimerRef solverTimer = IpplTimings::getTimer("bh.newSolver");
+        IpplTimings::startTimer(solverTimer);
         solver_m.reset();
         solver_m      = std::make_unique<BHSolver>(*bh_m, params);
         solverOrder_m = wanted;
+        synchronizeDevice();
+        IpplTimings::stopTimer(solverTimer);
     }
 
     BHLocalIndex BarnesHutAlgorithm::Impl::prepareSlots(size_type nSlots) {
@@ -645,9 +695,12 @@ namespace opalx::spacecharge {
                 config_m.dirichletPlane.planeZ);
     }
 
-    void BarnesHutAlgorithm::Impl::synchronize() {
-        static IpplTimings::TimerRef syncTimer = IpplTimings::getTimer("bh.syncGrav");
+    void BarnesHutAlgorithm::Impl::synchronize(bool newDomain) {
+        // A new domain converges its trees from scratch; its syncs are timed separately.
+        static IpplTimings::TimerRef keptTimer = IpplTimings::getTimer("bh.syncGrav");
+        static IpplTimings::TimerRef newTimer  = IpplTimings::getTimer("bh.syncGrav.new");
         static IpplTimings::TimerRef haloTimer = IpplTimings::getTimer("bh.haloCharge");
+        const IpplTimings::TimerRef syncTimer  = newDomain ? newTimer : keptTimer;
 
         IpplTimings::startTimer(syncTimer);
         ippl::nbody::syncGravBH<Precision, Conserved, Dependent>(*bh_m);
@@ -677,9 +730,14 @@ namespace opalx::spacecharge {
     }
 
     SpaceChargeSolveResult BarnesHutAlgorithm::Impl::solve(const SpaceChargeSolveContext& context) {
+        static IpplTimings::TimerRef domainTimer   = IpplTimings::getTimer("bh.domain");
         static IpplTimings::TimerRef packTimer     = IpplTimings::getTimer("bh.pack");
         static IpplTimings::TimerRef solveTimer    = IpplTimings::getTimer("bh.solve");
         static IpplTimings::TimerRef copyBackTimer = IpplTimings::getTimer("bh.copyBack");
+        // Solves on a domain built in the same call (first solve, rebuilds) are timed separately.
+        static IpplTimings::TimerRef packNewTimer     = IpplTimings::getTimer("bh.pack.new");
+        static IpplTimings::TimerRef solveNewTimer    = IpplTimings::getTimer("bh.solve.new");
+        static IpplTimings::TimerRef copyBackNewTimer = IpplTimings::getTimer("bh.copyBack.new");
 
         SpaceChargeSolveResult result;
         // Equivalent to clearSelfFields() without ParticleAttrib::operator=, whose extended-lambda
@@ -749,7 +807,8 @@ namespace opalx::spacecharge {
             ++statistics_m.directSolves;
             result.backendSolves = 1;
         } else if (extent > 0.0) {
-            IpplTimings::startTimer(packTimer);
+            IpplTimings::startTimer(domainTimer);
+            const std::size_t buildsBefore     = statistics_m.containerBuilds;
             std::array<double, 6> sourceBounds = bounds;
             if (images) {
                 // The mirrored bunch extends the source region beyond the plane.
@@ -758,16 +817,20 @@ namespace opalx::spacecharge {
                 sourceBounds[5]     = std::max(bounds[5], 2.0 * planeZ - bounds[4]);
             }
             ensureContainer(sourceBounds, images ? 2 * total : total);
-            updateDomainBox(sourceBounds);
+            updateDomainBox(sourceBounds, images ? 2 * total : total);
             ensureSolver(images);
+            IpplTimings::stopTimer(domainTimer);
+            const bool newDomain = statistics_m.containerBuilds != buildsBefore;
+
+            IpplTimings::startTimer(newDomain ? packNewTimer : packTimer);
             const size_type nLocal    = primary_m->getLocalNum();
             const BHLocalIndex offset = prepareSlots(images ? 2 * nLocal : nLocal);
             pack(offset, nLocal, context.stepState().timeStep, images);
-            IpplTimings::stopTimer(packTimer);
+            IpplTimings::stopTimer(newDomain ? packNewTimer : packTimer);
 
-            synchronize();
+            synchronize(newDomain);
 
-            IpplTimings::startTimer(solveTimer);
+            IpplTimings::startTimer(newDomain ? solveNewTimer : solveTimer);
             try {
                 solver_m->runSolver(/*warmup=*/true);
             } catch (const std::runtime_error& error) {
@@ -777,11 +840,11 @@ namespace opalx::spacecharge {
                                 + " Increase FIELDSOLVER BHTHETA to shorten the traversal.");
             }
             synchronizeDevice();
-            IpplTimings::stopTimer(solveTimer);
+            IpplTimings::stopTimer(newDomain ? solveNewTimer : solveTimer);
 
-            IpplTimings::startTimer(copyBackTimer);
+            IpplTimings::startTimer(newDomain ? copyBackNewTimer : copyBackTimer);
             copyBack();
-            IpplTimings::stopTimer(copyBackTimer);
+            IpplTimings::stopTimer(newDomain ? copyBackNewTimer : copyBackTimer);
 
             ++statistics_m.solves;
             if (solverOrder_m == ippl::nbody::MultipoleOrder::DipoleQuadrupole) {

@@ -48,6 +48,10 @@ namespace opalx::spacecharge {
             std::size_t containerBuilds = 0;  ///< Constructions of the Barnes-Hut container.
             std::size_t directSolves    = 0;  ///< Small-bunch solves done by direct summation.
             std::size_t dipoleSolves    = 0;  ///< Barnes-Hut solves with dipole multipoles (images).
+            /// Container rebuilds for a resized box (also counted in containerBuilds).
+            std::size_t boxRebuilds = 0;
+            /// Solves whose box was shifted, at unchanged size, to follow the sources.
+            std::size_t boxMoves = 0;
             /// SFC key bits per axis of the last Barnes-Hut domain (fewer on short axes).
             std::array<unsigned, 3> keyBits{};
         };

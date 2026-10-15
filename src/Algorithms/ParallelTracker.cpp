@@ -1309,7 +1309,12 @@ void ParallelTracker::computeSpaceChargeFields() {
             ippl::Comm->size(),
             frames};
     SpaceChargeSolveContext context(spaceChargeContainerActivity_m, std::move(stepState));
+    // Whole solve of the selected algorithm (frames, deposition or tree, field), for comparisons.
+    static IpplTimings::TimerRef solveTimer = IpplTimings::getTimer("SpaceCharge solve");
+    IpplTimings::startTimer(solveTimer);
     spaceChargeSolver_m->solve(context);
+    Kokkos::fence();
+    IpplTimings::stopTimer(solveTimer);
     m << level3 << "Compute space-charge fields done." << endl;
 }
 
