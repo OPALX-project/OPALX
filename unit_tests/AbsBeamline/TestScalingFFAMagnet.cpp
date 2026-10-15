@@ -224,6 +224,7 @@ TEST_F(ScalingFFAMagnetTest, ConstructorTest) {
     double x                                  = ++i;
     x                                         = ++i;
     std::shared_ptr<endfieldmodel::Tanh> tanh = std::make_shared<endfieldmodel::Tanh>(x, x, i);
+    tanh->initialise();
     test->setEndField(tanh);
     test->setMaxOrder(++i);
     test->setPhiStart(++i);
@@ -258,6 +259,7 @@ TEST_F(ScalingFFAMagnetTest, ConstructorTest) {
 
     std::shared_ptr<endfieldmodel::Tanh> tanh2 =
             std::make_shared<endfieldmodel::Tanh>(-10., -10., 10);
+    tanh2->initialise();
     magnets[0]->setEndField(tanh2);
     EXPECT_NEAR(magnets[0]->getEndField()->function(10., 0), tanh2->function(10., 0), 1e-9);
     delete magnets[0];
@@ -287,6 +289,8 @@ TEST_F(ScalingFFAMagnetTest, PlacementTest) {
     // test that when we are X0 from the centre, we get By = 0.5*B0
     double centre_length =
             dynamic_cast<endfieldmodel::Tanh*>(sector_m->getEndField().get())->getX0();
+    sector_m->getEndField()->initialise();
+    sector_m->getEndField()->print(std::cerr) << std::endl;
     for (double r0 = -r0_m; r0 < 1.5 * r0_m; r0 += r0_m * 2) {
         for (double phi_start = 0.; phi_start < psi0_m * 3.1; phi_start += psi0_m / 2.) {
             sector_m->setR0(r0);
