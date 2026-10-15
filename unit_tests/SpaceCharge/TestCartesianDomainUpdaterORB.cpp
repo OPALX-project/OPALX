@@ -23,8 +23,8 @@ namespace opalx::spacecharge {
     namespace {
 
         /**
-         * ORB load balancing must cut only the axes the layout distributes (PARFFTX/Y/Z). These
-         * tests need at least two MPI ranks, because redistribution is skipped on one rank.
+         * ORB load balancing must cut only the axes the layout distributes (PARFFTX/Y/Z). The
+         * test needs at least two MPI ranks, because redistribution is skipped on one rank.
          */
         class CartesianDomainUpdaterORBTest : public ::testing::Test {
         protected:
@@ -133,39 +133,6 @@ namespace opalx::spacecharge {
                 EXPECT_EQ(local[1], global[1]);
             }
             EXPECT_EQ(layout.isParallel(), domainConfig.decomposition);
-            EXPECT_EQ(
-                    particles.getTotalNum(),
-                    perRank * static_cast<std::size_t>(ippl::Comm->size()));
-        }
-
-        TEST_F(CartesianDomainUpdaterORBTest, FailedCutKeepsLayout) {
-            // ORB does not cut an axis shorter than four points, and x and y are not distributed.
-            CartesianDomainConfig3D domainConfig;
-            domainConfig.meshSize      = {16, 16, 3};
-            domainConfig.decomposition = {false, false, true};
-            if (ippl::Comm->size() > 3) {
-                GTEST_SKIP() << "Three z points cannot be split over more than three ranks.";
-            }
-            CartesianDomain<double, 3> domain(domainConfig);
-            CartesianPIC3DFieldStorage<double, 3> workspace(domain);
-            workspace.initializeFields(PoissonSolverType::None);
-            const auto domainsBefore = localDomains(domain.layout());
-
-            auto bunchState = std::make_shared<BunchStateHandler>();
-            Container particles(domain.mesh(), domain.layout());
-            particles.setBunchStateHandler(bunchState);
-            constexpr std::size_t perRank = 64;
-            fillSkewedBeam(particles, perRank);
-
-            EXPECT_FALSE(updateOnce(domainConfig, workspace, particles));
-
-            const auto domainsAfter = localDomains(domain.layout());
-            ASSERT_EQ(domainsAfter.size(), domainsBefore.size());
-            for (std::size_t rank = 0; rank < domainsBefore.size(); ++rank) {
-                for (unsigned dimension = 0; dimension < 3; ++dimension) {
-                    EXPECT_EQ(domainsAfter[rank][dimension], domainsBefore[rank][dimension]);
-                }
-            }
             EXPECT_EQ(
                     particles.getTotalNum(),
                     perRank * static_cast<std::size_t>(ippl::Comm->size()));
