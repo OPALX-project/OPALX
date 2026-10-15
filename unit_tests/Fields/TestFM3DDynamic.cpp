@@ -183,7 +183,7 @@ TEST_F(FM3DDynamicTest, NormalizesToInterpolatedOnaxisPeakAndIncludesFinalPlane)
 }
 
 TEST_F(FM3DDynamicTest, OnaxisSamplingAlsoWorksAtGridNodesAndTransverseUpperFace) {
-    for (const auto bounds : {std::pair{-0.03, 0.03}, std::pair{-0.06, 0.0}}) {
+    for (const auto& bounds : {std::pair{-0.03, 0.03}, std::pair{-0.06, 0.0}}) {
         auto* map = load(writeMap(
                 std::to_string(bounds.first) + ".map", "TRUE", analyticField, bounds.first,
                 bounds.second));
