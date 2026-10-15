@@ -23,8 +23,11 @@ namespace opalx::spacecharge {
     namespace {
 
         /**
-         * ORB load balancing must cut only the axes the layout distributes (PARFFTX/Y/Z). The
-         * test needs at least two MPI ranks, because redistribution is skipped on one rank.
+         * ORB load balancing must cut only the axes the layout distributes (PARFFTX/Y/Z).
+         *
+         * ORB runs only on two or more ranks. CI runs this test on one rank (NUM_PROCS 1), where
+         * it checks that a z-only layout survives a full updateForSolve with ORB due but skipped;
+         * the ORB cut itself is not executed there. Run it with `mpirun -n 2` to check the cut.
          */
         class CartesianDomainUpdaterORBTest : public ::testing::Test {
         protected:
@@ -45,12 +48,6 @@ namespace opalx::spacecharge {
                 std::remove("cartesian_domain_updater_orb.stat");
                 std::remove("cartesian_domain_updater_orb.lbal");
                 ippl::finalize();
-            }
-
-            void SetUp() override {
-                if (ippl::Comm->size() < 2) {
-                    GTEST_SKIP() << "ORB redistribution needs at least two MPI ranks.";
-                }
             }
 
             /**
@@ -124,7 +121,12 @@ namespace opalx::spacecharge {
             constexpr std::size_t perRank = 256;
             fillSkewedBeam(particles, perRank);
 
-            ASSERT_TRUE(updateOnce(domainConfig, workspace, particles));
+            const bool redistributed = updateOnce(domainConfig, workspace, particles);
+            if (ippl::Comm->size() < 2) {
+                EXPECT_FALSE(redistributed) << "ORB must not run on one rank.";
+            } else {
+                ASSERT_TRUE(redistributed);
+            }
 
             const auto& layout = domain.layout();
             const auto& global = layout.getDomain();
