@@ -93,7 +93,7 @@ TEST_F(TestAsymmetricEnge, DerivativeTest) {
             double yP     = enge.function(x + dx, n - 1);
             double yM     = enge.function(x - dx, n - 1);
             double dyTest = enge.function(x, n);
-            double dyRef = (yP - yM) / 2 / dx;
+            double dyRef  = (yP - yM) / 2 / dx;
             EXPECT_NEAR(dyTest, dyRef, 1e-6) << " at x " << x << " n " << n;
             EXPECT_NEAR(yHost(0, n), dyRef, 1e-6) << " at x " << x << " n " << n;
         }

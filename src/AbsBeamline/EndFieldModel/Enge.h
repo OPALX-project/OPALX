@@ -160,10 +160,12 @@ namespace endfieldmodel {
          *
          *  Please call setEngeDiffIndices(n) before calling if n > max_index
          */
-        static KOKKOS_INLINE_FUNCTION double getEnge(const EngeConfig& config, double x, int n, Kokkos::View<double*>& values);
+        static KOKKOS_INLINE_FUNCTION double getEnge(
+                const EngeConfig& config, double x, int n, Kokkos::View<double*>& values);
 
         /** Setup Enge workspace for an Enge & derivatives calculation */
-        static KOKKOS_INLINE_FUNCTION void setupWorkspace(const EngeConfig& config, double x, int n);
+        static KOKKOS_INLINE_FUNCTION void setupWorkspace(
+                const EngeConfig& config, double x, int n);
 
         /** Returns \f$h(x)\f$ or its \f$n^{th}\f$ derivative.
          *
