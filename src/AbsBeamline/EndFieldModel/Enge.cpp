@@ -97,6 +97,12 @@ namespace endfieldmodel {
             throw OpalException(
                     "Enge::setEngeDiffIndices", "Derivative cannot be more than max derivative");
         }
+        setEngeDiffIndicesQM(n);
+        setEngeDiffIndicesHM(n);
+        setEngeDiffIndicesKokkos(n, config);
+    }
+
+    void Enge::setEngeDiffIndicesQM(size_t n) {
         size_t preset = q_m.size();
         if (preset == 0) {
             q_m.push_back(std::vector<std::vector<int> >(1, std::vector<int>(3)));
@@ -127,7 +133,9 @@ namespace endfieldmodel {
                 }
             }
         }
+    }
 
+    void Enge::setEngeDiffIndicesHM(size_t n) {
         if (h_m.size() == 0) {
             // first one is special case (1+e^h dealt with explicitly)
             h_m.push_back(std::vector<std::vector<int> >());
@@ -156,6 +164,9 @@ namespace endfieldmodel {
             }
             h_m[i] = compactVector(h_m[i]);
         }
+    }
+
+    void Enge::setEngeDiffIndicesKokkos(size_t n, EngeConfig& config) {
         for (size_t i = 0; i < n + 1; ++i) {
             config.gIndices[i] = Kokkos::View<int**>("gIndex", 1, 1);
             copyVectorToView(q_m[i], config.gIndices[i]);

@@ -195,13 +195,19 @@ namespace endfieldmodel {
         /** Return the indices for calculating the nth derivative of g(x) ito h(x) */
         inline static std::vector<std::vector<int> > getHIndex(int n);
 
+        /** Helper function for making 2D view from stl vectors */
         static void copyVectorToView(
                 const std::vector<std::vector<int> >& src, Kokkos::View<int**>& dest);
 
+        /** Helper function for making from stl vector */
         static Kokkos::View<double*> makeView(
                 const std::vector<double>& src, const std::string& label);
+        /** Helper function for making stl vector from view */
         static std::vector<double> makeVector(const Kokkos::View<double*>& src);
 
+        /** Initialise checks that one time setup is done for e.g. initialising
+         *  coefficients for derivative calculation
+         */
         void initialise() override;
 
         /** Release Kokkos allocations */
@@ -212,6 +218,10 @@ namespace endfieldmodel {
         Enge(const Enge& enge);
         Enge& operator=(const Enge& enge);
         EngeConfig config_m;
+
+        static void setEngeDiffIndicesQM(size_t n);
+        static void setEngeDiffIndicesHM(size_t n);
+        static void setEngeDiffIndicesKokkos(size_t n, EngeConfig& config);
 
         /** Indexes the derivatives of enge in terms of g */
         static std::vector<std::vector<std::vector<int> > > q_m;
