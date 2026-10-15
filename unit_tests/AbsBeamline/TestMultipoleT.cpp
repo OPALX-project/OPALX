@@ -16,7 +16,6 @@
 
 #include <csignal>
 #include <memory>
-#include <new>
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/MultipoleT.h"
 #include "AbstractObjects/OpalData.h"
@@ -34,7 +33,7 @@ class TestMultipoleT : public testing::Test, public MultipoleT, public BeamlineV
 public:
     TestMultipoleT() : MultipoleT("Magnet") {}
 
-    class TestableFieldSolverCmd : public FieldSolverCmd {
+    class TestableFieldSolverCmd final : public FieldSolverCmd {
     public:
         void setType(const std::string& t) {
             Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::TYPE], t);
@@ -105,9 +104,9 @@ public:
     void visitVerticalFFAMagnet(const VerticalFFAMagnet&) override {}
     void visitProbe(const Probe&) override {}
     void visitVariableRFCavity(const VariableRFCavity&) override {}
-    void visitEnge(const endfieldmodel::Enge&) {}
-    void visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) {}
-    void visitTanh(const endfieldmodel::Tanh&) {}
+    void visitEnge(const endfieldmodel::Enge&) override {}
+    void visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) override {}
+    void visitTanh(const endfieldmodel::Tanh&) override {}
 
     // Test helper functions
     double fieldAtT(const Vector_t<double, 3>& pos, const double t) {
@@ -242,6 +241,7 @@ TEST_F(TestMultipoleT, OddApis) {
     EXPECT_NO_THROW(getFieldExtent(a, b));
     EXPECT_DOUBLE_EQ(a, 0.0);
     EXPECT_DOUBLE_EQ(b, 4.0);
+    EXPECT_EQ(getType(), ElementType::MULTIPOLET);
 }
 
 TEST_F(TestMultipoleT, ApplySingleParticleThrowsForMultiContainerBunch) {
@@ -259,8 +259,8 @@ TEST_F(TestMultipoleT, ApplySingleParticleThrowsForMultiContainerBunch) {
     Beam* testBeam      = Beam::find("UNNAMED_BEAM");
     ASSERT_NE(testBeam, nullptr);
     const auto bunch = std::make_shared<PartBunch_t>(
-            std::vector<double>{1.0e-9, 2.0e-9}, std::vector<double>{0.511e-3, 0.938},
-            std::vector<Beam*>{testBeam, testBeam}, std::vector<size_t>{1, 1}, 1.0, "LF2",
+            std::vector{1.0e-9, 2.0e-9}, std::vector{0.511e-3, 0.938},
+            std::vector{testBeam, testBeam}, std::vector<size_t>{1, 1}, 1.0, "LF2",
             opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});
     ASSERT_EQ(bunch->getNumParticleContainers(), 2u);
 
