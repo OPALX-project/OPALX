@@ -230,8 +230,7 @@ namespace {
                 qHost(i)   = (ci + 1.0) * 1.0e-12 + i * 1.0e-15;
                 mHost(i)   = (ci + 1.0) * 0.1 + i * 1.0e-3;
                 polHost(i) = Bunch::ParticleContainer_t::spin_vector_type{
-                        static_cast<float>(0.1 * i), static_cast<float>(0.2 * i),
-                        static_cast<float>(1.0 - 0.1 * i)};
+                        0.1 * i, 0.2 * i, 1.0 - 0.1 * i};
             }
             Kokkos::deep_copy(pc->getQView(), qHost);
             Kokkos::deep_copy(pc->getMView(), mHost);
@@ -256,9 +255,9 @@ namespace {
             for (std::size_t i = 0; i < pc->getLocalNum(); ++i) {
                 EXPECT_DOUBLE_EQ(q(i), (ci + 1.0) * 1.0e-12 + i * 1.0e-15);
                 EXPECT_DOUBLE_EQ(mass(i), (ci + 1.0) * 0.1 + i * 1.0e-3);
-                EXPECT_FLOAT_EQ(pol(i)[0], static_cast<float>(0.1 * i));
-                EXPECT_FLOAT_EQ(pol(i)[1], static_cast<float>(0.2 * i));
-                EXPECT_FLOAT_EQ(pol(i)[2], static_cast<float>(1.0 - 0.1 * i));
+                EXPECT_DOUBLE_EQ(pol(i)[0], 0.1 * i);
+                EXPECT_DOUBLE_EQ(pol(i)[1], 0.2 * i);
+                EXPECT_DOUBLE_EQ(pol(i)[2], 1.0 - 0.1 * i);
             }
         }
     }

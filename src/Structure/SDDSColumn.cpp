@@ -18,8 +18,8 @@
 #include "Structure/SDDSColumn.h"
 #include "Utilities/OpalException.h"
 
+#include <array>
 #include <iomanip>
-#include <list>
 #include <variant>
 
 SDDSColumn::SDDSColumn(
@@ -30,12 +30,12 @@ SDDSColumn::SDDSColumn(
       writeFlags_m(flags),
       writePrecision_m(prec),
       set_m(false) {
-    std::list<std::ios_base::fmtflags> numericalBase(
-            {std::ios_base::dec, std::ios_base::hex, std::ios_base::oct});
-    std::list<std::ios_base::fmtflags> floatFormat(
-            {std::ios_base::fixed, std::ios_base::scientific});
-    std::list<std::ios_base::fmtflags> adjustmentFlags(
-            {std::ios_base::internal, std::ios_base::left, std::ios_base::right});
+    constexpr std::array<std::ios_base::fmtflags, 3> numericalBase{
+            std::ios_base::dec, std::ios_base::hex, std::ios_base::oct};
+    constexpr std::array<std::ios_base::fmtflags, 2> floatFormat{
+            std::ios_base::fixed, std::ios_base::scientific};
+    constexpr std::array<std::ios_base::fmtflags, 3> adjustmentFlags{
+            std::ios_base::internal, std::ios_base::left, std::ios_base::right};
 
     // This code ensures that for each group of flags only one flag is given
     for (std::ios_base::fmtflags flag : numericalBase) {

@@ -89,8 +89,9 @@ double Geometry::getArcLength() const {
         case GeometryKind::Null:
             return 0.0;
         case GeometryKind::RBend: {
-            const double ha = halfAngle();
-            return (ha == 0.0) ? len_m : len_m * ha / std::sin(ha);
+            const double ha    = halfAngle();
+            const double chord = poleFaceAngles_m ? len_m / std::cos(ha - entranceAngle_m) : len_m;
+            return (ha == 0.0) ? chord : chord * ha / std::sin(ha);
         }
         default:  // Straight, SBend
             return len_m;
@@ -133,6 +134,15 @@ void Geometry::setCurvature(double curvature) {
 }
 
 Vector_t<double, 3> Geometry::framePosition(double s) const {
+    if (kind_m == GeometryKind::RBend && poleFaceAngles_m && len_m > 0.0) {
+        const double phi = angle_m * s / len_m;
+        if (std::abs(angle_m) < 1e-14)
+            return Vector_t<double, 3>(s * std::tan(entranceAngle_m), 0.0, s);
+        const double radius = getArcLength() / angle_m;
+        return GeometryHelper::rotateAboutY(
+                Vector_t<double, 3>(radius * (std::cos(phi) - 1.0), 0.0, radius * std::sin(phi)),
+                entranceAngle_m);
+    }
     if (kind_m == GeometryKind::SBend && h_m != 0.0) {
         const double phi = h_m * s;
         return Vector_t<double, 3>({(std::cos(phi) - 1.0) / h_m, 0.0, std::sin(phi) / h_m});
@@ -173,6 +183,8 @@ CoordinateSystemTrafo Geometry::getEdgeToBegin() const {
 }
 
 CoordinateSystemTrafo Geometry::getEdgeToEnd() const {
+    if (kind_m == GeometryKind::RBend && poleFaceAngles_m)
+        return identityTrafo(framePosition(len_m)) * getEdgeToBegin();
     // Transform from the local frame to the exit face of the body: first getEdgeToBegin() to
     // reach the entrance face, then from the entrance face to the exit face. A straight body —
     // straight element, rectangular-bend box, or null — has parallel faces, so that second step
