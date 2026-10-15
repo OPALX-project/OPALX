@@ -90,17 +90,42 @@ TEST(BendFieldModel, FringeAmplitudeCombinesTwoFaces) {
     EXPECT_NEAR(outside.value, 0.0, 1.0e-6);
 }
 
-// Edge kick: with FINT = 0 the psi correction vanishes, leaving -h tan(E).
-TEST(BendFieldModel, EdgeKickReducesToTanWithoutFint) {
-    const double h = 0.5, E = 0.2;
-    EXPECT_NEAR(
-            BendFieldModel::edgeVerticalKickCoefficient(h, 0.02, 0.0, E), -h * std::tan(E),
-            1.0e-12);
+// The Maxwell field supplies the geometric edge kick, including for tilted faces.
+TEST(BendFieldModel, NoAdditionalEdgeKickWithoutFint) {
+    for (double h : {-0.5, 0.0, 0.5})
+        for (double E : {-0.2, 0.0, 0.2})
+            EXPECT_DOUBLE_EQ(BendFieldModel::edgeVerticalKickCoefficient(h, 0.02, 0.0, E), 0.0);
+}
 
-    // A finite FINT shifts the effective edge angle by psi = h*HGAP*FINT*(1+sin^2E)/cosE.
-    const double hgap = 0.02, fint = 0.5;
-    const double psi = h * hgap * fint * (1.0 + std::sin(E) * std::sin(E)) / std::cos(E);
+// Sector bends use E=0: their existing FINT correction must be preserved.
+TEST(BendFieldModel, SectorEdgeCorrectionIsUnchanged) {
+    for (double h : {-0.5, 0.5})
+        EXPECT_NEAR(
+                BendFieldModel::edgeVerticalKickCoefficient(h, 0.02, 0.5, 0.0),
+                h * std::tan(h * 0.02 * 0.5), 1e-15);
+}
+
+// Independent numerical benchmarks for the corrected-minus-geometric kick.
+TEST(BendFieldModel, FiniteGapEdgeCorrectionHasExpectedStrengthAndSign) {
     EXPECT_NEAR(
-            BendFieldModel::edgeVerticalKickCoefficient(h, hgap, fint, E), -h * std::tan(E - psi),
-            1.0e-12);
+            BendFieldModel::edgeVerticalKickCoefficient(0.5, 0.02, 0.5, 0.2), 0.0027575441963336444,
+            1e-14);
+    EXPECT_NEAR(
+            BendFieldModel::edgeVerticalKickCoefficient(-0.5, 0.02, 0.5, -0.2),
+            0.0027575441963336444, 1e-14);
+    EXPECT_DOUBLE_EQ(BendFieldModel::edgeVerticalKickCoefficient(0.5, 0.0, 0.5, 0.2), 0.0);
+}
+
+TEST(BendFieldModel, ZeroFintRetainsMaxwellFringeFieldWithoutAdditionalHorizontalField) {
+    BendFieldModel::FieldInputs in{};
+    in.dipoleNormal         = 1.0;
+    in.bodyLength           = 0.3;
+    in.profileGap           = gap;
+    in.entryEdgeCoefficient = BendFieldModel::edgeVerticalKickCoefficient(0.5, gap / 2, 0.0, 0.2);
+    in.exitEdgeCoefficient  = in.entryEdgeCoefficient;
+    for (double z : {0.0, in.bodyLength}) {
+        const auto field = BendFieldModel::bendField(Vector_t<double, 3>(0.0, 1e-6, z), in);
+        EXPECT_DOUBLE_EQ(field(0), 0.0);
+        EXPECT_GT(std::abs(field(2)), 0.0);
+    }
 }
