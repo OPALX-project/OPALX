@@ -219,15 +219,9 @@ KOKKOS_INLINE_FUNCTION
 Vector_t<double, 3> MultipoleTBase::rotateFrame(
         const Vector_t<double, 3>& R, const MultipoleTConfig& config) {
     Vector_t<double, 3> R1(3), R2(3);
-    /** Apply two 2D rotation matrices to coordinate vector
-     * Rotate around central axis => skew fields
-     * Rotate azimuthally => entrance angle
-     */
-    // 1st rotation
     R1[0] = R[0] * std::cos(config.rotation_m) + R[1] * std::sin(config.rotation_m);
     R1[1] = -R[0] * std::sin(config.rotation_m) + R[1] * std::cos(config.rotation_m);
     R1[2] = R[2];
-    // 2nd rotation
     R2[0] = R1[2] * std::sin(config.entranceAngle_m) + R1[0] * std::cos(config.entranceAngle_m);
     R2[1] = R1[1];
     R2[2] = R1[2] * std::cos(config.entranceAngle_m) - R1[0] * std::sin(config.entranceAngle_m);
