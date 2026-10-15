@@ -95,7 +95,7 @@ namespace endfieldmodel {
     void Enge::setEngeDiffIndices(size_t n, EngeConfig& config) {
         if (n > config.max_derivative) {
             throw OpalException(
-                    "Derivative cannot be more than max derivative", "Enge::setEngeDiffIndices");
+                    "Enge::setEngeDiffIndices", "Derivative cannot be more than max derivative");
         }
         size_t preset = q_m.size();
         if (preset == 0) {

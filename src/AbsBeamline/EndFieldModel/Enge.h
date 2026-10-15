@@ -61,8 +61,8 @@ namespace endfieldmodel {
         double x0_m                         = 0.0;
         static constexpr int max_derivative = 12;
         /** gIndices is used for calculating derivatives. */
-        Kokkos::View<int**> gIndices[12];
-        Kokkos::View<int**> hIndices[12];
+        Kokkos::View<int**> gIndices[max_derivative];
+        Kokkos::View<int**> hIndices[max_derivative];
         EngeWorkspace workspace;
     };
 
@@ -115,7 +115,7 @@ namespace endfieldmodel {
          *  @param x: returns d^n f(x)/dx^n
          *  @param n: the derivative
          */
-        static KOKKOS_INLINE_FUNCTION double functionDevice(
+        static KOKKOS_INLINE_FUNCTION void functionDevice(
                 const EngeConfig& config, double x, int n, Kokkos::View<double*> values);
 
         /** Nominal end length is lambda */
@@ -161,10 +161,6 @@ namespace endfieldmodel {
          *  Please call setEngeDiffIndices(n) before calling if n > max_index
          */
         static KOKKOS_INLINE_FUNCTION double getEnge(const EngeConfig& config, double x, int n, Kokkos::View<double*>& values);
-
-        /** Returns \f$Enge(x-x0) + Enge(-x-x0)-1\f$ and its derivatives */
-        static KOKKOS_INLINE_FUNCTION double getDoubleEnge(
-                const EngeConfig& config, double x, int n, Kokkos::View<double*> values);
 
         /** Setup Enge workspace for an Enge & derivatives calculation */
         static KOKKOS_INLINE_FUNCTION void setupWorkspace(const EngeConfig& config, double x, int n);
