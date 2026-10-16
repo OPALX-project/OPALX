@@ -112,11 +112,16 @@ namespace endfieldmodel {
 
         /** Potentially device-side function call
          *
+         *  @param config: configuration
          *  @param x: returns d^n f(x)/dx^n
-         *  @param n: the derivative
+         *  @param n: order of derivative
+         *  @param values: Kokkos::View<double*> of length n+1
+         *
+         *  I couldn't figure out the type of values so I just make it a template
          */
+        template <class C>
         static KOKKOS_INLINE_FUNCTION void functionDevice(
-                const EngeConfig& config, double x, int n, Kokkos::View<double*> values);
+                const EngeConfig& config, double x, int n, C values);
 
         /** Nominal end length is lambda */
         inline double getEndLength() const override;

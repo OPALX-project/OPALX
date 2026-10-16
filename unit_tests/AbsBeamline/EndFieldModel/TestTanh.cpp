@@ -59,8 +59,7 @@ TEST_F(TestTanh, FunctionTest) {
         EXPECT_NEAR(fCalculated, fEstimated, 1e-4);
     }
 }
-// error in GPU land - trying to access HOST memory from DEVICE (or vice
-// versa). Sort it out in the morning.
+
 TEST_F(TestTanh, FunctionGpuTest) {
     endfieldmodel::Tanh tanh1(5, 1, 6);
     tanh1.initialise();
