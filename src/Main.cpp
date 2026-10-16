@@ -33,11 +33,11 @@ extern "C" {
 #include "Structure/CheckpointFile.h"
 #include "Utilities/Timer.h"
 
+#include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
 #include "BasicActions/Option.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
-#include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
 
 #include "BuildInfo.h"
 

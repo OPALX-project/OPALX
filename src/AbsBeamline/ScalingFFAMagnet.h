@@ -437,7 +437,7 @@ void ScalingFFAMagnet::getFieldValueCylindrical(
     double z          = rCyl[1];
     double normRadius = rCyl[3];
     double phiSpiral  = rCyl[4];
-    B = {0.0, 0.0, 0.0};
+    B                 = {0.0, 0.0, 0.0};
     if (r < config.rMin_m || r > config.rMax_m) {
         return;
     }
