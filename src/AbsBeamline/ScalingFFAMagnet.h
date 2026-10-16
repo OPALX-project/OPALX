@@ -175,15 +175,6 @@ public:
      */
     void getCartesianCoordinates(const Vector_t<double, 3>& Rcyl, Vector_t<double, 3>& Rcart) const;
 
-    /** Calculate the field at some arbitrary position in cylindrical coordinates
-     *
-     *  \param R position in the local coordinate system of the bend, in
-     *           cylindrical polar coordinates defined like (r, y, phi)
-     *  \param B calculated magnetic field defined like (Br, By, Bphi)
-     *  \returns true if particle is outside the field map, else false
-     */
-    void getFieldValueCylindrical(const Vector_t<double, 3>& Rcyl, Vector_t<double, 3>& B) const;
-
     /** Initialise the ScalingFFAMagnet
      *
      *  \param bunch the global bunch object

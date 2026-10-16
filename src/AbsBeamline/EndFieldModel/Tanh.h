@@ -73,9 +73,14 @@ namespace endfieldmodel {
 
         double function(double x, int n) const override;
 
-        /** Device-callable evaluation using coefficients prepared on the host. */
+        /** Device-callable evaluation using coefficients prepared on the host.
+         *
+         *  I use a template instantiation because I can't figure out what type
+         *  values should be (Kokkos::View<double*> fails at runtime).
+         */
+        template <class C>
         static KOKKOS_INLINE_FUNCTION void functionDevice(
-                const TanhConfig& config, double x, int n, Kokkos::View<double*> values);
+                const TanhConfig& config, double x, int n, C values);
 
         void function(
                 const Kokkos::View<double*>& xView, const int& maxDerivative,
@@ -171,9 +176,10 @@ namespace endfieldmodel {
         Tanh::functionHost(config_m, xView, maxDerivative, derivatives);
     }
 
+    template <class C>
     KOKKOS_INLINE_FUNCTION
     void Tanh::functionDevice(
-            const TanhConfig& config, double x, int n, Kokkos::View<double*> values) {
+            const TanhConfig& config, double x, int n, C values) {
         const double tanhPositive = Kokkos::tanh((x + config.x0_m) / config.lambda_m);
         const double tanhNegative = Kokkos::tanh((x - config.x0_m) / config.lambda_m);
         double positivePower      = 1;

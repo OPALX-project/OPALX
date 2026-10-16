@@ -80,6 +80,7 @@ TEST_F(TestEnge, DerivativeTest) {
         Kokkos::deep_copy(xDevice, xHost);
         enge.function(xDevice, 4, yDevice);
         auto yHost = Kokkos::create_mirror_view(yDevice);
+        Kokkos::deep_copy(yHost, yDevice);
         EXPECT_NEAR(yTest, yRef, 1e-12) << x << " " << yTest << " " << yRef;
         EXPECT_NEAR(yHost(0, 0), yRef, 1e-12) << x << " " << yTest << " " << yRef;
         for (size_t n = 1; n < 5; ++n) {

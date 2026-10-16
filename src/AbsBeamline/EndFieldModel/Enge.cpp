@@ -44,6 +44,18 @@ namespace endfieldmodel {
 
     Enge::~Enge() { finalise(); }
 
+    double Enge::function(double x, int n) const {
+        Kokkos::View<double*> xView("efm::Enge::tmpX", 1);
+        Kokkos::deep_copy(xView, x);
+        Kokkos::View<double**> valueView("efm::Enge::tmpY", 1, n + 1);
+        function(xView, n, valueView);
+        Kokkos::fence("Enge::function Function calculation");
+        double value(0);
+        auto element = Kokkos::subview(valueView, 0, n);
+        Kokkos::deep_copy(value, element);
+        return value;
+    }
+
     void Enge::copyVectorToView(
             const std::vector<std::vector<int> >& src, Kokkos::View<int**>& dest) {
         // find the size of src

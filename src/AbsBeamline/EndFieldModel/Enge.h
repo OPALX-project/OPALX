@@ -92,7 +92,7 @@ namespace endfieldmodel {
         void rescale(double scaleFactor) override;
 
         /** Return the value of enge(x+x0) + enge(-x-x0) at some point x */
-        inline double function(double x, int n) const override;
+        double function(double x, int n) const override;
 
         /** GPU-aware version of function
          *

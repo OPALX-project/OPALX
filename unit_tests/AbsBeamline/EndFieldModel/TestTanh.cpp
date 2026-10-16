@@ -63,12 +63,13 @@ TEST_F(TestTanh, FunctionTest) {
 // versa). Sort it out in the morning.
 TEST_F(TestTanh, FunctionGpuTest) {
     endfieldmodel::Tanh tanh1(5, 1, 6);
+    tanh1.initialise();
     Kokkos::View<double*> xgpu("xgpu", 2);
     auto xhost = Kokkos::create_mirror_view(xgpu);
     xhost(0)   = -5.0;
     xhost(1)   = 5.0;
     Kokkos::deep_copy(xgpu, xhost);  // target, source
-    Kokkos::View<double**> derivativesgpu("d", 2, 4);
+    Kokkos::View<double**> derivativesgpu("d", 2, 5);
 
     tanh1.function(xgpu, 4, derivativesgpu);
 
