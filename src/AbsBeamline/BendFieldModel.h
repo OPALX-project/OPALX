@@ -129,14 +129,16 @@ namespace BendFieldModel {
     }
 
     /**
-     * @brief Vertical edge-focusing kick coefficient with the FINT correction.
+     * @brief Additional vertical kick coefficient for the finite-gap FINT correction.
      *
      * @f[
-     *   k_y = -h \tan(E - \psi), \qquad
+     *   \Delta k_y = h [\tan E - \tan(E - \psi)], \qquad
      *   \psi = h\,\tfrac{g}{2}\,\mathrm{FINT}\,\frac{1 + \sin^2 E}{\cos E},
      * @f]
-     * with signed curvature @f$h@f$. The caller distributes it over the fringe as
-     * @f$B_x \mathrel{+}= (B_0/h)\,k_y\,F'\,y@f$.
+     * The Maxwell fringe field already supplies the geometric edge focusing.
+     * This coefficient adds only its finite-gap correction and vanishes for FINT = 0.
+     * With signed curvature @f$h@f$, the caller distributes it over the fringe as
+     * @f$B_x \mathrel{+}= (B_0/h)\,\Delta k_y\,F'\,y@f$.
      */
     KOKKOS_INLINE_FUNCTION double edgeVerticalKickCoefficient(
             const double curvature, const double halfGap, const double fringeIntegral,
@@ -145,7 +147,7 @@ namespace BendFieldModel {
         const double safeCos = (Kokkos::abs(cosE) > 1.0e-6) ? cosE : Kokkos::copysign(1.0e-6, cosE);
         const double sinE    = Kokkos::sin(edgeAngle);
         const double psi     = curvature * halfGap * fringeIntegral * (1.0 + sinE * sinE) / safeCos;
-        return -curvature * Kokkos::tan(edgeAngle - psi);
+        return curvature * (Kokkos::tan(edgeAngle) - Kokkos::tan(edgeAngle - psi));
     }
 
     /**
@@ -171,7 +173,7 @@ namespace BendFieldModel {
      * s is the longitudinal coordinate (entrance at 0, exit at @p bodyLength). The
      * dipole and multipoles are scaled by the Enge amplitude F, the source-free
      * fringe corrections @f$-\tfrac12 B_0 F'' y^2@f$ and @f$B_0 F' y@f$ are added,
-     * and the vertical edge focusing is distributed over the fringe as
+     * and the additional finite-gap correction is distributed over the fringe as
      * @f$B_x \mathrel{+}= c\,F'\,y@f$. With @c profileGap = 0 this reduces to the
      * hard-edge field (F = 1 inside, edge terms 0).
      */
@@ -202,7 +204,7 @@ namespace BendFieldModel {
         B(0) -= scale * in.quadSkew * x;
         B(1) += scale * in.quadSkew * y;
 
-        // Vertical edge focusing distributed over the fringe ramp.
+        // Finite-gap correction to the Maxwell edge focusing, distributed over the fringe ramp.
         const double edgeCoefficient =
                 (fringe.activeFace == 0) ? in.entryEdgeCoefficient : -in.exitEdgeCoefficient;
         B(0) += edgeCoefficient * dScale * y;
