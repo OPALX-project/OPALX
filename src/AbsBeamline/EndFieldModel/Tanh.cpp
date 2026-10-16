@@ -42,7 +42,8 @@ namespace endfieldmodel {
     }
 
     std::ostream& Tanh::print(std::ostream& out) const {
-        out << "Tanh model with centre length: " << getX0() << " end length: " << getLambda();
+        out << "Tanh end field model with centre length: " << getX0()
+            << " end length: " << getLambda();
         return out;
     }
 
