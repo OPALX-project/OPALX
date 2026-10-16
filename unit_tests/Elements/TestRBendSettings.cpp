@@ -366,7 +366,7 @@ TEST_F(RBendSettingsTest, PoleFaceAnglesDoNotSelectAProfileOrRequireDesignEnergy
     }
 }
 
-TEST_F(RBendSettingsTest, PoleFaceAnglesChangeStandardEdgeFocusing) {
+TEST_F(RBendSettingsTest, ZeroFintKeepsMaxwellFocusingWithoutAdditionalEdgeField) {
     OpalRBend el;
     Attributes::setReal(*el.findAttribute("L"), .3);
     Attributes::setReal(*el.findAttribute("ANGLE"), angle);
@@ -377,8 +377,11 @@ TEST_F(RBendSettingsTest, PoleFaceAnglesChangeStandardEdgeFocusing) {
     el.update();
     auto& bend = dynamic_cast<RBend&>(*el.getElement());
     bend.setB(1.0);
-    EXPECT_NEAR(field(bend, 0.0, .001, 0.0)(0), 0.0, 1e-15);
-    EXPECT_GT(std::abs(field(bend, 0.0, .001, .3)(0)), 1e-5);
+    for (double z : {0.0, .3}) {
+        const auto b = field(bend, 0.0, .001, z);
+        EXPECT_NEAR(b(0), 0.0, 1e-15);
+        EXPECT_GT(std::abs(b(2)), 1e-5);
+    }
 }
 
 TEST_F(RBendSettingsTest, DesignEnergyOnlyCalibratesTheStandardField) {
