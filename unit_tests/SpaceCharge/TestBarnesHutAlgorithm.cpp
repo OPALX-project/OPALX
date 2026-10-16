@@ -14,13 +14,16 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <map>
 #include <memory>
 #include <numeric>
+#include <optional>
 #include <set>
+#include <string>
 #include <vector>
 
 // Tests for the Barnes-Hut space-charge algorithm. They run on any rank count: particle sets are
@@ -63,6 +66,9 @@ namespace opalx::spacecharge {
             Vector sigma{1.0e-3, 1.5e-3, 3.0e-3};  ///< rms sizes or sphere radius in x
             Vector center{0.0, 0.0, 0.02};
             bool variableDt = false;  ///< dt in (0.5, 1] * kTimeStep like emitted particles
+            double transverseMomentum   = 0.01;  ///< rms px, py (beta gamma)
+            double longitudinalMomentum = 1.0;   ///< pz (beta gamma)
+            double momentumSpread       = 0.0;   ///< relative rms spread of pz
         };
 
         Vector positionFor(const BunchSpec& spec, std::uint64_t k) {
@@ -81,6 +87,12 @@ namespace opalx::spacecharge {
                     spec.center[0] + radius * sinT * std::cos(phi),
                     spec.center[1] + radius * sinT * std::sin(phi),
                     spec.center[2] + radius * cosT);
+        }
+
+        Vector momentumFor(const BunchSpec& spec, std::uint64_t k) {
+            return Vector(
+                    spec.transverseMomentum * normal(k, 21), spec.transverseMomentum * normal(k, 22),
+                    spec.longitudinalMomentum * (1.0 + spec.momentumSpread * normal(k, 23)));
         }
 
         /** @brief Host copy of one particle, gathered from every rank. */
@@ -184,6 +196,17 @@ namespace opalx::spacecharge {
             Kokkos::fence();
         }
 
+        /** @brief Apply @p f to every local position on the host. */
+        template <class F>
+        void transformPositions(Particles& particles, F f) {
+            auto R = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), particles.R.getView());
+            for (std::size_t i = 0; i < particles.getLocalNum(); ++i) {
+                f(R(i));
+            }
+            Kokkos::deep_copy(particles.R.getView(), R);
+            particles.markMomentsDirty();
+        }
+
         /** @brief Reference field with a grounded plane: every particle has a mirror image
          * (z' = 2 planeZ - z, opposite charge) that acts as a source only. */
         std::vector<std::array<double, 3>> directSumWithImages(
@@ -196,6 +219,181 @@ namespace opalx::spacecharge {
                 sources.push_back(image);
             }
             return softenedField(particles, sources, charge, softening);
+        }
+
+        using Fields = std::vector<std::array<double, 3>>;
+
+        /**
+         * @brief Reference of binned CartesianPIC3D with one bin: the softened field of the bunch
+         * with z stretched by gamma = <sqrt(1 + p^2)> (and of its images mirrored at the stretched
+         * plane), boosted with v = c <p> / gamma; image charges move the other way and enter B
+         * with the opposite sign.
+         */
+        struct RestFrameReference {
+            Fields e, b;
+            double gamma = 1.0;
+        };
+
+        /** @brief Mean gamma = <sqrt(1 + p^2)> and v = c <p> / gamma of @p particles. */
+        double meanRestFrame(const std::vector<Record>& particles, double v[3]) {
+            const double n = static_cast<double>(particles.size());
+            double meanP[3] = {0.0, 0.0, 0.0}, gamma = 0.0;
+            for (const Record& r : particles) {
+                for (unsigned d = 0; d < 3; ++d) {
+                    meanP[d] += r.p[d] / n;
+                }
+                gamma += std::sqrt(1.0 + r.p[0] * r.p[0] + r.p[1] * r.p[1] + r.p[2] * r.p[2]) / n;
+            }
+            for (unsigned d = 0; d < 3; ++d) {
+                v[d] = Physics::c * meanP[d] / gamma;
+            }
+            return gamma;
+        }
+
+        /** @brief Boost the rest-frame field of all sources @p all (and of the image charges
+         * alone, @p image, which enter B with the opposite sign) to the lab frame. */
+        RestFrameReference boostReference(
+                const std::vector<Record>& particles, const Fields& all, const Fields& image) {
+            double v[3];
+            const double gamma = meanRestFrame(particles, v);
+            const double speed = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+            RestFrameReference result;
+            result.gamma = gamma;
+            result.e.resize(particles.size());
+            result.b.resize(particles.size());
+            for (std::size_t i = 0; i < particles.size(); ++i) {
+                double along = 0.0;
+                for (unsigned d = 0; d < 3; ++d) {
+                    along += speed > 0.0 ? all[i][d] * v[d] / speed : 0.0;
+                }
+                double moving[3];
+                for (unsigned d = 0; d < 3; ++d) {
+                    const double unit = speed > 0.0 ? v[d] / speed : 0.0;
+                    result.e[i][d]    = gamma * all[i][d] - (gamma - 1.0) * along * unit;
+                    moving[d]         = all[i][d] - 2.0 * image[i][d];
+                }
+                const double scale = gamma / (Physics::c * Physics::c);
+                result.b[i]        = {scale * (v[1] * moving[2] - v[2] * moving[1]),
+                                      scale * (v[2] * moving[0] - v[0] * moving[2]),
+                                      scale * (v[0] * moving[1] - v[1] * moving[0])};
+            }
+            return result;
+        }
+
+        RestFrameReference restFrameDirectSum(
+                const std::vector<Record>& particles, double charge, double softening,
+                std::optional<double> planeZ = std::nullopt) {
+            double v[3];
+            const double gamma = meanRestFrame(particles, v);
+            std::vector<Record> stretched = particles, images;
+            for (Record& r : stretched) {
+                r.r[2] *= gamma;
+            }
+            if (planeZ.has_value()) {
+                for (const Record& r : stretched) {
+                    Record image = r;
+                    image.r[2]   = 2.0 * gamma * *planeZ - r.r[2];
+                    image.dt     = -r.dt;
+                    images.push_back(image);
+                }
+            }
+            std::vector<Record> sources = stretched;
+            sources.insert(sources.end(), images.begin(), images.end());
+            const Fields all = softenedField(stretched, sources, charge, softening);
+            const Fields image = images.empty() ? Fields(particles.size(), {0.0, 0.0, 0.0})
+                                                : softenedField(stretched, images, charge, softening);
+            return boostReference(particles, all, image);
+        }
+
+        /**
+         * @brief Continuum field of the Gaussian bunch of @p spec (total charge @p total) at the
+         * particles, in its rest frame (z stretched by gamma) and boosted to the lab frame. With
+         * @p planeZ the grounded plane adds the image Gaussian (opposite charge, centre mirrored
+         * at the stretched plane), which enters B with the opposite sign.
+         *
+         * E_i(x) = k Q x_i / sqrt(2 pi) int_0^inf du exp(-sum_j x_j^2 / (2 (s_j^2 + u)))
+         *          / ((s_i^2 + u) prod_j sqrt(s_j^2 + u)), with u = e^t and the trapezoidal rule
+         * in t (the integrand decays exponentially at both ends).
+         */
+        RestFrameReference gaussianContinuum(
+                const std::vector<Record>& particles, const BunchSpec& spec, double total,
+                std::optional<double> planeZ = std::nullopt) {
+            double v[3];
+            const double gamma = meanRestFrame(particles, v);
+            const double s2[3] = {
+                    spec.sigma[0] * spec.sigma[0], spec.sigma[1] * spec.sigma[1],
+                    gamma * gamma * spec.sigma[2] * spec.sigma[2]};
+            const double smallest = std::min({s2[0], s2[1], s2[2]});
+            const double largest  = std::max({s2[0], s2[1], s2[2]});
+            const double first = std::log(smallest) - 25.0, last = std::log(largest) + 40.0;
+            const int steps    = static_cast<int>((last - first) / 0.05);
+            const double dt    = (last - first) / steps;
+            const double scale = kCoulomb * total / std::sqrt(2.0 * Physics::pi);
+            // Field of the Gaussian at offset x from its centre (rest frame).
+            const auto gaussian = [&](const double x[3], double field[3]) {
+                double integral[3] = {0.0, 0.0, 0.0};
+                for (int k = 0; k <= steps; ++k) {
+                    const double u      = std::exp(first + k * dt);
+                    const double weight = (k == 0 || k == steps) ? 0.5 : 1.0;
+                    double exponent = 0.0, product = 1.0;
+                    for (unsigned d = 0; d < 3; ++d) {
+                        exponent += x[d] * x[d] / (2.0 * (s2[d] + u));
+                        product *= std::sqrt(s2[d] + u);
+                    }
+                    const double f = weight * u * std::exp(-exponent) / product;
+                    for (unsigned d = 0; d < 3; ++d) {
+                        integral[d] += f / (s2[d] + u);
+                    }
+                }
+                for (unsigned d = 0; d < 3; ++d) {
+                    field[d] = scale * x[d] * integral[d] * dt;
+                }
+            };
+            Fields all(particles.size()), image(particles.size(), {0.0, 0.0, 0.0});
+#pragma omp parallel for schedule(static)
+            for (std::size_t i = 0; i < particles.size(); ++i) {
+                const double z = gamma * particles[i].r[2], centre = gamma * spec.center[2];
+                const double x[3] = {
+                        particles[i].r[0] - spec.center[0], particles[i].r[1] - spec.center[1],
+                        z - centre};
+                double real[3];
+                gaussian(x, real);
+                for (unsigned d = 0; d < 3; ++d) {
+                    all[i][d] = real[d];
+                }
+                if (planeZ.has_value()) {
+                    const double mirrored[3] = {x[0], x[1], z - (2.0 * gamma * *planeZ - centre)};
+                    double field[3];
+                    gaussian(mirrored, field);
+                    for (unsigned d = 0; d < 3; ++d) {
+                        image[i][d] = -field[d];
+                        all[i][d] -= field[d];
+                    }
+                }
+            }
+            return boostReference(particles, all, image);
+        }
+
+        Fields fieldsOf(const std::vector<Record>& records, double (Record::*member)[3]) {
+            Fields result(records.size());
+            for (std::size_t i = 0; i < records.size(); ++i) {
+                for (unsigned d = 0; d < 3; ++d) {
+                    result[i][d] = (records[i].*member)[d];
+                }
+            }
+            return result;
+        }
+
+        /** @brief sqrt(sum |a - b|^2 / sum |b|^2). */
+        double rmsRelativeDifference(const Fields& a, const Fields& b) {
+            double num = 0.0, den = 0.0;
+            for (std::size_t i = 0; i < a.size(); ++i) {
+                for (unsigned d = 0; d < 3; ++d) {
+                    num += (a[i][d] - b[i][d]) * (a[i][d] - b[i][d]);
+                    den += b[i][d] * b[i][d];
+                }
+            }
+            return std::sqrt(num / den);
         }
 
         double norm(const double* v) { return std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]); }
@@ -285,7 +483,7 @@ namespace opalx::spacecharge {
                     for (std::size_t i = 0; i < mine.size(); ++i) {
                         const std::uint64_t k = mine[i];
                         R(offset + i)         = positionFor(spec, k);
-                        P(offset + i) = Vector(0.01 * normal(k, 21), 0.01 * normal(k, 22), 1.0);
+                        P(offset + i)         = momentumFor(spec, k);
                         dt(offset + i) =
                                 spec.variableDt ? kTimeStep * (0.5 + 0.5 * uniform(k, 31)) : kTimeStep;
                     }
@@ -305,6 +503,77 @@ namespace opalx::spacecharge {
                     return algorithm->solve(SpaceChargeSolveContext(activity, step));
                 }
             };
+
+            static BarnesHutConfig restFrameConfig(double softening = 2.0e-5, double theta = 0.5) {
+                BarnesHutConfig result = config(softening, theta);
+                result.restFrame       = true;
+                return result;
+            }
+
+            /// Like expectConserved, but z may differ by the rounding of the rest-frame stretch.
+            static void expectConservedUpToStretch(
+                    const std::vector<Record>& before, const std::vector<Record>& after) {
+                ASSERT_EQ(before.size(), after.size());
+                for (std::size_t i = 0; i < before.size(); ++i) {
+                    ASSERT_EQ(before[i].id, after[i].id) << "particle set changed";
+                    EXPECT_EQ(before[i].dt, after[i].dt);
+                    for (unsigned d = 0; d < 3; ++d) {
+                        EXPECT_NEAR(before[i].r[d], after[i].r[d], 1.0e-15);
+                        EXPECT_EQ(before[i].p[d], after[i].p[d]);
+                    }
+                }
+            }
+
+            /**
+             * @brief E and B of binned CartesianPIC3D (OPEN, one bin) on a @p mesh^3 grid for the
+             * particle set of @p spec, sorted by ID like gatherAll().
+             */
+            static std::vector<Record> binnedOpenFields(
+                    const BunchSpec& spec, std::size_t mesh, DirichletPlaneConfig plane) {
+                CartesianPIC3DConfig pic;
+                pic.backend            = PoissonSolverType::Open;
+                pic.grid.meshSize      = {mesh, mesh, mesh};
+                pic.grid.decomposition = {false, false, true};
+                pic.dirichletPlane     = plane;
+                pic.binning.emplace();
+                pic.binning->maximumBins = 1;
+                pic.binning->adaptive    = false;
+                CartesianDomain<double, 3> domain(makeCartesianDomainConfig(pic));
+                auto state = std::make_shared<BunchStateHandler>();
+                Particles reference(domain.mesh(), domain.layout());
+                reference.setBunchStateHandler(state);
+                DataSink sink;
+                // Same IDs (rank + size * i) and particles as Run::fill.
+                const std::size_t rank = ippl::Comm->rank(), size = ippl::Comm->size();
+                std::vector<std::uint64_t> mine;
+                for (std::size_t k = rank; k < spec.globalCount; k += size) {
+                    mine.push_back(k);
+                }
+                reference.createParticles(mine.size());
+                reference.setQ(kCharge);
+                reference.setM(Physics::m_e);
+                auto R = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), reference.R.getView());
+                auto P = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), reference.P.getView());
+                for (std::size_t i = 0; i < mine.size(); ++i) {
+                    R(i) = positionFor(spec, mine[i]);
+                    P(i) = momentumFor(spec, mine[i]);
+                }
+                Kokkos::deep_copy(reference.R.getView(), R);
+                Kokkos::deep_copy(reference.P.getView(), P);
+                Kokkos::deep_copy(reference.dt.getView(), kTimeStep);
+                reference.updateMoments();
+                const std::array containers{&reference};
+                CartesianPIC3DAlgorithm open(
+                        pic, containers,
+                        std::make_unique<CartesianPIC3DFieldStorage<double, 3>>(domain), &sink,
+                        state);
+                const std::array<std::uint8_t, 1> activity{1};
+                SpaceChargeStepState step;
+                step.timeStep = kTimeStep;
+                step.mpiSize  = ippl::Comm->size();
+                (void)open.solve(SpaceChargeSolveContext(activity, step));
+                return gatherAll(reference);
+            }
 
             static void expectConserved(const std::vector<Record>& before, const std::vector<Record>& after) {
                 ASSERT_EQ(before.size(), after.size());
@@ -396,7 +665,7 @@ namespace opalx::spacecharge {
                     std::printf("[BH] N=%zu %s rms relative error=%.3e\n", count,
                                 count < directLimit ? "direct" : "tree", error);
                 }
-                // Tree limit ~3x the largest measured error (1.71e-4, N=1000 on 4 ranks): an
+                // Tree limit ~3x the largest measured error (1.49e-4, N=1000 on 4 ranks): an
                 // accuracy regression must fail here.
                 EXPECT_LT(error, count < directLimit ? 1.0e-10 : 5.0e-4);
             };
@@ -475,8 +744,9 @@ namespace opalx::spacecharge {
                                     planeOffset, count, direct ? "direct" : "tree", error,
                                     withoutImages);
                     }
-                    // Tree measured 1.68e-4 (2 sigma_z) and 2.60e-4 (5 sigma_z), at the image-free
-                    // level (1.87e-4); without dipole multipoles 3.1e-3 at 2 sigma_z (cubic domain).
+                    // Tree measured 2.21e-4 (2 sigma_z) and 2.70e-4 (5 sigma_z), near the
+                    // image-free level (1.73e-4); without dipole multipoles 3.1e-3 at 2 sigma_z
+                    // (cubic domain).
                     EXPECT_LT(error, direct ? 1.0e-10 : 7.0e-4);
                     EXPECT_GT(withoutImages, planeOffset < 3.0 ? 1.0e-2 : 2.0e-3);
                     EXPECT_EQ(run.algorithm->statistics().dipoleSolves, direct ? 0u : 1u);
@@ -486,8 +756,8 @@ namespace opalx::spacecharge {
 
         TEST_F(BarnesHutAlgorithmTest, ImageChargeErrorScalesWithTheta) {
             // Cells mixing reals and mirrors converge like the image-free case once their dipole
-            // is kept (measured 7.90e-4, 1.68e-4, 1.61e-5; DirectSumMediumConvergesWithTheta:
-            // 7.68e-4, 1.87e-4, 1.84e-5), so the image-free limits apply. Without the dipole the
+            // is kept (measured 9.11e-4, 2.21e-4, 2.06e-5; DirectSumMediumConvergesWithTheta:
+            // 7.28e-4, 1.73e-4, 1.64e-5), so the image-free limits apply. Without the dipole the
             // error fell only like theta^2 (5.99e-3, 3.10e-3, 1.01e-3, cubic domain).
             BunchSpec spec;
             spec.globalCount = 4000;
@@ -550,7 +820,7 @@ namespace opalx::spacecharge {
                 std::printf("[BH] grounded plane: rms E_t / rms E_n = %.3e\n",
                             std::sqrt(tangential / normal));
             }
-            // Measured 1.02e-7 on 1 and 4 ranks (1.85e-6 with the cubic domain).
+            // Measured 3.66e-8 on 1 and 4 ranks (1.85e-6 with the cubic domain).
             EXPECT_LT(std::sqrt(tangential / normal), 3.0e-7);
         }
 
@@ -595,7 +865,7 @@ namespace opalx::spacecharge {
                 if (ippl::Comm->rank() == 0) {
                     std::printf("[BH] theta=%.2f rms relative error=%.3e\n", theta, error);
                 }
-                // Limits ~2.5x the measured errors (7.68e-4, 1.87e-4, 1.84e-5 on 1 and 4 ranks;
+                // Limits ~2.5x the measured errors (7.28e-4, 1.73e-4, 1.64e-5 on 1 and 4 ranks;
                 // 1.49e-3, 3.60e-4, 3.99e-5 with the cubic domain), so an accuracy regression of
                 // BH against the direct sum fails this test.
                 const double limit = theta >= 0.7 ? 2.0e-3 : (theta >= 0.5 ? 5.0e-4 : 5.0e-5);
@@ -643,10 +913,306 @@ namespace opalx::spacecharge {
                         EXPECT_GE(bits[d] + 1, most) << "axis " << d;
                     }
                 }
-                // Measured (1 and 4 ranks): pancake bits (21, 21, 14) 1.16e-4, needle (14, 14, 21)
-                // 7.43e-5.
+                // Measured (1 and 4 ranks): pancake bits (21, 21, 14) 1.05e-4, needle (14, 14, 21)
+                // 6.49e-5.
                 EXPECT_LT(error, 3.0e-4);
             }
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, StretchedBunchesOverManySolves) {
+            // drift4m: a 1000-particle pancake solved step after step on several ranks. The first
+            // sync converges cstone's trees from scratch, later ones update them incrementally on
+            // the mixed-dimension keys.
+            struct Case {
+                const char* name;
+                Vector sigma;
+            };
+            for (const Case& c : {Case{"pancake", Vector(1.0e-3, 1.0e-3, 1.0e-5)},
+                                  Case{"needle", Vector(1.0e-5, 1.0e-5, 1.0e-3)}}) {
+                SCOPED_TRACE(c.name);
+                BunchSpec spec;
+                spec.globalCount = 1000;
+                spec.sigma       = c.sigma;
+                Run run(config(1.0e-6), spec);
+                const std::size_t steps = 20;
+                for (std::size_t step = 0; step < steps; ++step) {
+                    SCOPED_TRACE(step);
+                    driftById(run.particles, 2.0e-6);
+                    ASSERT_EQ(run.solve().backendSolves, 1u);
+                    ASSERT_EQ(run.particles.getTotalNum(), spec.globalCount);
+                }
+                const auto& stats = run.algorithm->statistics();
+                EXPECT_EQ(stats.solves, steps);
+                const auto records = gatherAll(run.particles);
+                const double error = rmsRelativeError(records, directSum(records, kCharge, 1.0e-6));
+                if (ippl::Comm->rank() == 0) {
+                    std::printf("[BH] %s over %zu solves: key bits (%u, %u, %u) rms relative "
+                                "error=%.3e\n",
+                                c.name, steps, stats.keyBits[0], stats.keyBits[1],
+                                stats.keyBits[2], error);
+                }
+                // Measured (1 / 4 ranks): pancake 4.3e-5 / 5.9e-5, needle 3.4e-5 / 7.6e-5.
+                EXPECT_LT(error, 3.0e-4);
+            }
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, DriftingPancakeKeepsItsKeyLayout) {
+            // drift4m: the bunch moves 18 mm per step, ~1000 times its length, through a fixed
+            // solve frame. The box moves along at its size and keeps the domain and key bits.
+            BunchSpec spec;
+            spec.globalCount = 1000;
+            spec.sigma       = Vector(1.0e-3, 1.0e-3, 1.0e-5);
+            spec.center      = Vector(0.0, 0.0, 0.009);
+            Run run(config(1.0e-6), spec);
+            const std::size_t steps = 10;
+            std::array<unsigned, 3> first{};
+            for (std::size_t step = 0; step < steps; ++step) {
+                SCOPED_TRACE(step);
+                if (step > 0) {
+                    transformPositions(run.particles, [](Vector& r) { r[2] += 0.018; });
+                }
+                ASSERT_EQ(run.solve().backendSolves, 1u);
+                if (step == 0) {
+                    first = run.algorithm->statistics().keyBits;
+                    EXPECT_GE(first[0], first[2] + 6);
+                }
+                EXPECT_EQ(run.algorithm->statistics().keyBits, first);
+            }
+            const auto& stats = run.algorithm->statistics();
+            EXPECT_EQ(stats.solves, steps);
+            EXPECT_EQ(stats.containerBuilds, 1u);
+            EXPECT_EQ(stats.boxRebuilds, 0u);
+            EXPECT_EQ(stats.boxMoves, steps - 1);
+            const auto records = gatherAll(run.particles);
+            const double error = rmsRelativeError(records, directSum(records, kCharge, 1.0e-6));
+            if (ippl::Comm->rank() == 0) {
+                std::printf("[BH] drifting pancake: rms relative error=%.3e\n", error);
+            }
+            EXPECT_LT(error, 3.0e-4);  // measured 8.5e-5 (1 rank) / 1.16e-4 (4 ranks)
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, BoxFollowsADriftWithinItsMargin) {
+            // A drift within the margin (SwissFEL booster, BHBOXMARGIN 0.5) must still move the box
+            // at every solve; a resting box let keys slide and left overfull leaves.
+            BunchSpec spec;
+            spec.globalCount = 1000;
+            spec.sigma       = Vector(1.0e-3, 1.0e-3, 1.0e-5);
+            spec.center      = Vector(0.0, 0.0, 0.009);
+            auto values      = config(1.0e-6);
+            values.boxMargin = 0.5;  // ~3 sigma of room per side, ~15 drift steps
+            Run run(values, spec);
+            const std::size_t steps = 10;
+            for (std::size_t step = 0; step < steps; ++step) {
+                SCOPED_TRACE(step);
+                if (step > 0) {
+                    transformPositions(run.particles, [](Vector& r) { r[2] += 2.0e-6; });
+                }
+                ASSERT_EQ(run.solve().backendSolves, 1u);
+            }
+            const auto& stats = run.algorithm->statistics();
+            EXPECT_EQ(stats.containerBuilds, 1u);
+            EXPECT_EQ(stats.boxRebuilds, 0u);
+            EXPECT_EQ(stats.boxMoves, steps - 1);
+            const auto records = gatherAll(run.particles);
+            const double error = rmsRelativeError(records, directSum(records, kCharge, 1.0e-6));
+            if (ippl::Comm->rank() == 0) {
+                std::printf("[BH] drift within the box margin: %zu moves, rms relative error=%.3e\n",
+                            stats.boxMoves, error);
+            }
+            EXPECT_LT(error, 3.0e-4);  // as DriftingPancakeKeepsItsKeyLayout
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, LengtheningPancakeRebuildsItsDomain) {
+            // The bunch stretches from 10 um to 1 mm in z: the box grows, the key bits per axis
+            // change, and every resize rebuilds the domain.
+            BunchSpec spec;
+            spec.globalCount = 1000;
+            spec.sigma       = Vector(1.0e-3, 1.0e-3, 1.0e-5);
+            Run run(config(1.0e-6), spec);
+            const double centreZ   = spec.center[2];
+            const std::size_t steps = 15;
+            std::array<unsigned, 3> first{};
+            for (std::size_t step = 0; step < steps; ++step) {
+                SCOPED_TRACE(step);
+                if (step > 0) {
+                    // x1.39 per step: 100 times longer after 14 steps.
+                    transformPositions(run.particles, [centreZ](Vector& r) {
+                        r[2] = centreZ + 1.389 * (r[2] - centreZ);
+                    });
+                }
+                ASSERT_EQ(run.solve().backendSolves, 1u);
+                if (step == 0) {
+                    first = run.algorithm->statistics().keyBits;
+                }
+            }
+            const auto& stats = run.algorithm->statistics();
+            EXPECT_EQ(stats.solves, steps);
+            EXPECT_GE(first[0], first[2] + 6);
+            EXPECT_GE(stats.keyBits[2] + 1, stats.keyBits[0]);
+            EXPECT_EQ(stats.boxRebuilds, steps - 1);  // outgrows the box every step
+            const auto records = gatherAll(run.particles);
+            const double error = rmsRelativeError(records, directSum(records, kCharge, 1.0e-6));
+
+            // A rebuilt domain must be as accurate as a new one for the final bunch.
+            Run fresh(config(1.0e-6), spec);
+            transformPositions(fresh.particles, [centreZ](Vector& r) {
+                r[2] = centreZ + std::pow(1.389, 14) * (r[2] - centreZ);
+            });
+            (void)fresh.solve();
+            const auto freshRecords = gatherAll(fresh.particles);
+            const double freshError =
+                    rmsRelativeError(freshRecords, directSum(freshRecords, kCharge, 1.0e-6));
+            if (ippl::Comm->rank() == 0) {
+                std::printf("[BH] lengthening pancake: key bits (%u, %u, %u) -> (%u, %u, %u), %zu "
+                            "rebuilds, rms relative error=%.3e (fresh domain %.3e)\n",
+                            first[0], first[1], first[2], stats.keyBits[0], stats.keyBits[1],
+                            stats.keyBits[2], stats.boxRebuilds, error, freshError);
+            }
+            EXPECT_LT(std::abs(error - freshError), 0.25 * freshError);
+            // Measured 3.28e-4 (1 rank) / 3.99e-4 (4 ranks): 1000 particles in a round bunch.
+            EXPECT_LT(error, 8.0e-4);
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, MixedPrecisionMatchesTheReference) {
+            // BHPRECISION=MIXED: double coordinates (R, P, dt and ID come back exactly), float
+            // charges, softening, multipoles and accelerations. The field error must stay at the
+            // tree level, without and with the rest frame and near image charges (second pass).
+            BunchSpec spec;
+            spec.globalCount          = 4000;
+            spec.variableDt           = true;
+            spec.longitudinalMomentum = std::sqrt(3.0);
+            const double planeZ       = spec.center[2] - 2.0 * spec.sigma[2];
+            for (bool restFrame : {false, true}) {
+                SCOPED_TRACE(restFrame);
+                auto values      = restFrame ? restFrameConfig() : config(2.0e-5);
+                values.precision = BarnesHutPrecision::Mixed;
+                if (restFrame) {
+                    values.dirichletPlane = {.kind = DirichletPlaneType::ShiftedGreen, .planeZ = planeZ};
+                }
+                Run run(values, spec);
+                const auto before = gatherAll(run.particles);
+                EXPECT_EQ(run.solve().backendSolves, 1u);
+                const auto after = gatherAll(run.particles);
+                double errorE = 0.0, errorB = 0.0;
+                if (restFrame) {
+                    expectConservedUpToStretch(before, after);
+                    const auto reference = restFrameDirectSum(before, kCharge, 2.0e-5, planeZ);
+                    errorE = rmsRelativeDifference(fieldsOf(after, &Record::e), reference.e);
+                    errorB = rmsRelativeDifference(fieldsOf(after, &Record::b), reference.b);
+                    EXPECT_EQ(run.algorithm->statistics().imagePasses, 1u);
+                } else {
+                    expectConserved(before, after);
+                    errorE = rmsRelativeError(after, directSum(before, kCharge, 2.0e-5));
+                }
+                if (ippl::Comm->rank() == 0) {
+                    std::printf("[BH] mixed precision%s: rms relative error E=%.3e B=%.3e\n",
+                                restFrame ? " (rest frame, near images)" : "", errorE, errorB);
+                }
+                // Double precision measured 1.4e-4 / 1.7e-4 for these bunches; float adds ~1e-6.
+                EXPECT_LT(errorE, 5.0e-4);
+                EXPECT_LT(errorB, 5.0e-4);
+            }
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, BoxMarginAndSlackSetTheRebuildCount) {
+            // Bunch length x1.389 (or /1.389) per solve, 14 solves. Growth rebuilds: every step for
+            // margin 0.05, every third for 0.5; shrink rebuilds: every step for slack 0.25, every
+            // third for 1.0. Accuracy as for a fresh domain.
+            struct Case {
+                double margin, slack, factor;
+                std::size_t growth, shrink;
+            };
+            for (const Case& c : {Case{0.05, 0.25, 1.389, 14, 0}, Case{0.5, 0.25, 1.389, 4, 0},
+                                  Case{0.05, 0.25, 1.0 / 1.389, 0, 14},
+                                  Case{0.05, 1.0, 1.0 / 1.389, 0, 4}}) {
+                SCOPED_TRACE(c.margin);
+                SCOPED_TRACE(c.slack);
+                SCOPED_TRACE(c.factor);
+                BunchSpec spec;
+                spec.globalCount = 1000;
+                spec.sigma       = Vector(1.0e-3, 1.0e-3, c.factor > 1.0 ? 1.0e-5 : 1.0e-3);
+                auto values      = config(1.0e-6);
+                values.boxMargin = c.margin;
+                values.boxSlack  = c.slack;
+                Run run(values, spec);
+                const double centreZ = spec.center[2];
+                for (std::size_t step = 0; step < 15; ++step) {
+                    if (step > 0) {
+                        transformPositions(run.particles, [centreZ, &c](Vector& r) {
+                            r[2] = centreZ + c.factor * (r[2] - centreZ);
+                        });
+                    }
+                    ASSERT_EQ(run.solve().backendSolves, 1u);
+                }
+                const auto& stats = run.algorithm->statistics();
+                EXPECT_EQ(stats.boxRebuilds - stats.boxShrinkRebuilds, c.growth);
+                EXPECT_EQ(stats.boxShrinkRebuilds, c.shrink);
+                EXPECT_EQ(stats.containerBuilds, 1 + c.growth + c.shrink);
+                EXPECT_NE(run.algorithm->runSummary().find("BHBOXMARGIN"), std::string::npos);
+                const auto records = gatherAll(run.particles);
+                const double error = rmsRelativeError(records, directSum(records, kCharge, 1.0e-6));
+                if (ippl::Comm->rank() == 0) {
+                    std::printf("[BH] box margin %.2f slack %.2f, length x%.3f per solve: %zu "
+                                "growth + %zu shrink rebuilds, rms relative error=%.3e\n",
+                                c.margin, c.slack, c.factor,
+                                stats.boxRebuilds - stats.boxShrinkRebuilds,
+                                stats.boxShrinkRebuilds, error);
+                }
+                // Same accuracy as LengtheningPancakeRebuildsItsDomain (3.3e-4 / 4.0e-4).
+                EXPECT_LT(error, 8.0e-4);
+            }
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, DriftingPancakeLosesAnOutlier) {
+            // drift4m step 25: a far outlier is lost and the box shrinks to the remaining bunch,
+            // which rebuilds the domain.
+            BunchSpec spec;
+            spec.globalCount = 1000;
+            spec.sigma       = Vector(1.0e-3, 1.0e-3, 1.0e-5);
+            spec.center      = Vector(0.0, 0.0, 0.009);
+            Run run(config(1.0e-6), spec);
+            {
+                // Global particle 0 (rank 0) sits 8 sigma below the bunch in y.
+                auto R  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), run.particles.R.getView());
+                auto ID = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), run.particles.ID.getView());
+                for (std::size_t i = 0; i < run.particles.getLocalNum(); ++i) {
+                    if (ID(i) == 0) {
+                        R(i)[1] = -8.0e-3;
+                    }
+                }
+                Kokkos::deep_copy(run.particles.R.getView(), R);
+                run.particles.markMomentsDirty();
+            }
+            const std::size_t steps = 10;
+            for (std::size_t step = 0; step < steps; ++step) {
+                SCOPED_TRACE(step);
+                if (step > 0) {
+                    transformPositions(run.particles, [](Vector& r) { r[2] += 0.018; });
+                }
+                if (step == 5) {
+                    auto ID      = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), run.particles.ID.getView());
+                    auto invalid = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), run.particles.InvalidMask.getView());
+                    for (std::size_t i = 0; i < run.particles.getLocalNum(); ++i) {
+                        invalid(i) = ID(i) == 0;
+                    }
+                    Kokkos::deep_copy(run.particles.InvalidMask.getView(), invalid);
+                    (void)run.particles.deleteInvalidParticles();
+                    ASSERT_EQ(run.particles.getTotalNum(), spec.globalCount - 1);
+                }
+                ASSERT_EQ(run.solve().backendSolves, 1u);
+            }
+            const auto& stats = run.algorithm->statistics();
+            EXPECT_EQ(stats.solves, steps);
+            EXPECT_EQ(stats.boxRebuilds, 1u);  // after the outlier is gone
+            const auto records = gatherAll(run.particles);
+            const double error = rmsRelativeError(records, directSum(records, kCharge, 1.0e-6));
+            if (ippl::Comm->rank() == 0) {
+                std::printf("[BH] drifting pancake losing an outlier: %zu box rebuilds, %zu moves, "
+                            "rms relative error=%.3e\n",
+                            stats.boxRebuilds, stats.boxMoves, error);
+            }
+            EXPECT_LT(error, 3.0e-4);  // measured 8.5e-5 (1 rank) / 1.16e-4 (4 ranks)
         }
 
         TEST_F(BarnesHutAlgorithmTest, ZeroThicknessSheetMatchesDirectSum) {
@@ -679,7 +1245,7 @@ namespace opalx::spacecharge {
                 total += r.e[0] * r.e[0] + r.e[1] * r.e[1] + r.e[2] * r.e[2];
             }
             EXPECT_LT(std::sqrt(normal / total), 1.0e-8);
-            EXPECT_LT(error, 2.5e-4);  // measured 8.1e-5 (1 rank) / 7.5e-5 (4 ranks)
+            EXPECT_LT(error, 2.5e-4);  // measured 8.0e-5 (1 rank) / 7.9e-5 (4 ranks)
         }
 
         TEST_F(BarnesHutAlgorithmTest, UniformSphereMatchesAnalyticField) {
@@ -915,7 +1481,7 @@ namespace opalx::spacecharge {
                 if (ippl::Comm->rank() == 0) {
                     std::printf("[BH] grow from one rank: rms relative error=%.3e\n", error);
                 }
-                EXPECT_LT(error, 8.0e-4);  // measured 1.83e-4 / 3.19e-4
+                EXPECT_LT(error, 8.0e-4);  // measured 1.73e-4 / 3.25e-4
             }
         }
 
@@ -1107,7 +1673,7 @@ namespace opalx::spacecharge {
                         std::printf("[BH] emission-like step %zu N=%zu rms relative error=%.3e\n",
                                     step, static_cast<std::size_t>(nextGlobal), error);
                     }
-                    ASSERT_LT(error, 4.0e-4);  // measured 8.4e-5 - 1.48e-4
+                    ASSERT_LT(error, 4.0e-4);  // measured 5.4e-6 - 1.26e-4
                 }
             }
         }
@@ -1161,6 +1727,352 @@ namespace opalx::spacecharge {
                 }
             }
             EXPECT_LT(std::sqrt(num / den), 1.0e-3);
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, RestFrameAtRestMatchesElectrostatic) {
+            // A bunch at rest has gamma = 1 and v = 0: the rest-frame solve must reproduce the
+            // electrostatic solve bit for bit, with B = 0, on the direct-sum and the tree path.
+            for (std::size_t count : {48u, 2000u}) {
+                SCOPED_TRACE(count);
+                BunchSpec spec;
+                spec.globalCount          = count;
+                spec.transverseMomentum   = 0.0;
+                spec.longitudinalMomentum = 0.0;
+                Run plain(config(2.0e-5), spec), rest(restFrameConfig(), spec);
+                EXPECT_EQ(plain.solve().backendSolves, 1u);
+                EXPECT_EQ(rest.solve().backendSolves, 1u);
+                const auto a = gatherAll(plain.particles);
+                const auto b = gatherAll(rest.particles);
+                ASSERT_EQ(a.size(), b.size());
+                for (std::size_t i = 0; i < a.size(); ++i) {
+                    ASSERT_EQ(a[i].id, b[i].id);
+                    for (unsigned d = 0; d < 3; ++d) {
+                        EXPECT_EQ(a[i].r[d], b[i].r[d]);
+                        EXPECT_EQ(a[i].e[d], b[i].e[d]);
+                        EXPECT_EQ(b[i].b[d], 0.0);
+                    }
+                }
+                EXPECT_EQ(rest.algorithm->statistics().restFrameSolves, 1u);
+                EXPECT_EQ(rest.algorithm->statistics().gamma, 1.0);
+                EXPECT_EQ(plain.algorithm->statistics().restFrameSolves, 0u);
+            }
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, RestFrameMatchesBoostedDirectSum) {
+            // gamma ~ 5 with momentum spread: E and B against the boosted rest-frame direct sum,
+            // on the direct-sum path (small bunch and BHDIRECT, exact kernel) and the tree path.
+            BunchSpec spec;
+            spec.transverseMomentum   = 0.05;
+            spec.longitudinalMomentum = std::sqrt(24.0);
+            spec.momentumSpread       = 0.05;
+            spec.variableDt           = true;
+            for (std::size_t count : {48u, 4000u}) {
+                for (bool forcedDirect : {false, true}) {
+                    if (count == 48u && forcedDirect) {
+                        continue;
+                    }
+                    SCOPED_TRACE(count);
+                    SCOPED_TRACE(forcedDirect);
+                    spec.globalCount = count;
+                    auto values      = restFrameConfig();
+                    values.directSum = forcedDirect;
+                    Run run(values, spec);
+                    const auto before = gatherAll(run.particles);
+                    EXPECT_EQ(run.solve().backendSolves, 1u);
+                    const auto after = gatherAll(run.particles);
+                    expectConservedUpToStretch(before, after);
+                    const auto reference = restFrameDirectSum(before, kCharge, 2.0e-5);
+                    const double errorE  = rmsRelativeDifference(fieldsOf(after, &Record::e), reference.e);
+                    const double errorB  = rmsRelativeDifference(fieldsOf(after, &Record::b), reference.b);
+                    const bool direct =
+                            forcedDirect || count < 64 * static_cast<std::size_t>(ippl::Comm->size());
+                    if (ippl::Comm->rank() == 0) {
+                        std::printf("[BH] rest frame gamma=%.4f N=%zu %s rms relative error "
+                                    "E=%.3e B=%.3e\n",
+                                    reference.gamma, count, direct ? "direct" : "tree", errorE,
+                                    errorB);
+                    }
+                    EXPECT_NEAR(run.algorithm->statistics().gamma, reference.gamma,
+                                1.0e-12 * reference.gamma);
+                    EXPECT_EQ(run.algorithm->statistics().restFrameSolves, 1u);
+                    // Tree measured E 1.41e-4, B 1.39e-4 (1 and 4 ranks).
+                    EXPECT_LT(errorE, direct ? 1.0e-10 : 5.0e-4);
+                    EXPECT_LT(errorB, direct ? 1.0e-10 : 5.0e-4);
+                }
+            }
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, RestFrameImagesNearAndFar) {
+            // gamma ~ 2. Near plane (2 sigma_z behind): images are tree sources, a second pass gives
+            // their field. Far plane (50 mm): one quadrupole, checked against BHDIRECT. Measured:
+            // near E 1.67e-4, B 1.58e-4; far E 1.21e-4, B 1.17e-4; quadrupole error 1.4e-5 (E),
+            // 1.4e-4 (B) of the image field.
+            BunchSpec spec;
+            spec.globalCount          = 4000;
+            spec.variableDt           = true;
+            spec.longitudinalMomentum = std::sqrt(3.0);
+            for (double planeZ : {spec.center[2] - 2.0 * spec.sigma[2], spec.center[2] - 0.05}) {
+                const bool far = planeZ < spec.center[2] - 0.01;
+                for (bool forcedDirect : {true, false}) {
+                    SCOPED_TRACE(planeZ);
+                    SCOPED_TRACE(forcedDirect);
+                    auto values           = restFrameConfig();
+                    values.directSum      = forcedDirect;
+                    values.dirichletPlane = {.kind = DirichletPlaneType::ShiftedGreen, .planeZ = planeZ};
+                    Run run(values, spec);
+                    const auto before = gatherAll(run.particles);
+                    EXPECT_EQ(run.solve().backendSolves, 1u);
+                    const auto after = gatherAll(run.particles);
+                    expectConservedUpToStretch(before, after);
+                    const auto reference = restFrameDirectSum(before, kCharge, 2.0e-5, planeZ);
+                    const auto unmirrored = restFrameDirectSum(before, kCharge, 2.0e-5);
+                    const Fields e = fieldsOf(after, &Record::e), b = fieldsOf(after, &Record::b);
+                    const double errorE = rmsRelativeDifference(e, reference.e);
+                    const double errorB = rmsRelativeDifference(b, reference.b);
+                    // Share of the image charges in the reference fields.
+                    const double imageE = rmsRelativeDifference(unmirrored.e, reference.e);
+                    const double imageB = rmsRelativeDifference(unmirrored.b, reference.b);
+                    if (ippl::Comm->rank() == 0) {
+                        std::printf("[BH] rest-frame images %s plane %s: rms relative error "
+                                    "E=%.3e B=%.3e (image share E=%.3e B=%.3e)\n",
+                                    far ? "far" : "near", forcedDirect ? "direct" : "tree", errorE,
+                                    errorB, imageE, imageB);
+                    }
+                    const auto& stats = run.algorithm->statistics();
+                    EXPECT_EQ(stats.farImageSolves, far ? 1u : 0u);
+                    EXPECT_EQ(stats.imagePasses, far ? 0u : 1u);
+                    EXPECT_EQ(stats.dipoleSolves, (far || forcedDirect) ? 0u : 1u);
+                    EXPECT_GT(imageE, far ? 1.0e-4 : 5.0e-2);  // the plane must matter
+                    if (forcedDirect && !far) {
+                        EXPECT_LT(errorE, 1.0e-10);
+                        EXPECT_LT(errorB, 1.0e-10);
+                    } else if (forcedDirect) {
+                        EXPECT_LT(errorE, 1.0e-3 * imageE);
+                        EXPECT_LT(errorB, 1.0e-3 * imageB);
+                    } else {
+                        EXPECT_LT(errorE, 5.0e-4);
+                        EXPECT_LT(errorB, 5.0e-4);
+                    }
+                }
+            }
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, RestFrameAgreesWithBinnedOpenFFT) {
+            // BH and binned OPEN (one bin) against the boosted continuum field of the Gaussian (and
+            // its image behind a shifted-Green plane): both within 2-3 % (graininess, sampling); a
+            // wrong gamma, velocity or B sign would be O(1).
+            BunchSpec spec;
+            spec.globalCount          = 200000;
+            spec.sigma                = Vector(1.0e-3, 1.0e-3, 2.0e-3);
+            spec.transverseMomentum   = 0.05;
+            spec.longitudinalMomentum = std::sqrt(24.0);
+            spec.momentumSpread       = 0.02;
+            const double planeZ       = spec.center[2] - 2.0 * spec.sigma[2];
+            for (bool withPlane : {false, true}) {
+                SCOPED_TRACE(withPlane);
+                const DirichletPlaneConfig plane =
+                        withPlane ? DirichletPlaneConfig{.kind   = DirichletPlaneType::ShiftedGreen,
+                                                         .planeZ = planeZ}
+                                  : DirichletPlaneConfig{};
+                // h = 1e-4 m is about one rest-frame mean spacing (9.2e-5 m) of this bunch.
+                auto values           = restFrameConfig(1.0e-4);
+                values.dirichletPlane = plane;
+                Run bh(values, spec);
+                const auto particles = gatherAll(bh.particles);
+                (void)bh.solve();
+                const auto continuum = gaussianContinuum(
+                        particles, spec, kCharge * spec.globalCount,
+                        withPlane ? std::optional<double>(planeZ) : std::nullopt);
+                const auto bhRecords  = gatherAll(bh.particles);
+                const auto picRecords = binnedOpenFields(spec, 64, plane);
+                ASSERT_EQ(bhRecords.size(), particles.size());
+                ASSERT_EQ(picRecords.size(), particles.size());
+                double errors[2][2];  // [BH, OPEN][E, B]
+                const std::vector<Record>* records[2] = {&bhRecords, &picRecords};
+                for (unsigned m = 0; m < 2; ++m) {
+                    for (std::size_t i = 0; i < particles.size(); ++i) {
+                        ASSERT_EQ((*records[m])[i].id, particles[i].id);
+                    }
+                    errors[m][0] = rmsRelativeDifference(fieldsOf(*records[m], &Record::e), continuum.e);
+                    errors[m][1] = rmsRelativeDifference(fieldsOf(*records[m], &Record::b), continuum.b);
+                }
+                if (ippl::Comm->rank() == 0) {
+                    std::printf("[BH] rest frame vs continuum (%s): BH h=1e-4 E=%.3e B=%.3e, binned "
+                                "OPEN 64^3 E=%.3e B=%.3e\n",
+                                withPlane ? "shifted Green" : "no plane", errors[0][0], errors[0][1],
+                                errors[1][0], errors[1][1]);
+                }
+                // Without plane measured BH 3.17e-2, OPEN 1.91e-2 (diagnostic test).
+                for (unsigned m = 0; m < 2; ++m) {
+                    EXPECT_LT(errors[m][0], 5.0e-2);
+                    EXPECT_LT(errors[m][1], 5.0e-2);
+                }
+            }
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, RelativeSofteningFollowsTheRestFrameSpacing) {
+            // BHSOFTENINGREL must equal BHSOFTENING with h = factor x rest-frame mean spacing: a
+            // Gaussian at rest, at gamma ~ 5 (spacing x gamma^(1/3)), and a sheet (2D spacing).
+            struct Case {
+                const char* name;
+                double pz, thickness;
+            };
+            for (const Case& c : {Case{"at rest", 0.0, 3.0e-3}, Case{"gamma 5", std::sqrt(24.0), 3.0e-3},
+                                  Case{"sheet", 0.0, 0.0}}) {
+                SCOPED_TRACE(c.name);
+                BunchSpec spec;
+                spec.globalCount          = 4000;
+                spec.sigma                = Vector(1.0e-3, 1.5e-3, c.thickness);
+                spec.transverseMomentum   = 0.0;
+                spec.longitudinalMomentum = c.pz;
+                auto relative              = c.pz > 0.0 ? restFrameConfig() : config(2.0e-5);
+                relative.softening         = 0.0;
+                relative.relativeSoftening = 0.5;
+                Run run(relative, spec);
+                const auto before = gatherAll(run.particles);
+                (void)run.solve();
+                const double h = run.algorithm->statistics().softening;
+
+                // Host reference of the spacing.
+                double v[3];
+                const double gamma = meanRestFrame(before, v);
+                const double n     = static_cast<double>(before.size());
+                std::array<double, 3> edge{};
+                for (unsigned d = 0; d < 3; ++d) {
+                    const double scale = d == 2 ? gamma : 1.0;
+                    double sum = 0.0, sum2 = 0.0;
+                    for (const Record& r : before) {
+                        sum += scale * r.r[d];
+                        sum2 += scale * r.r[d] * scale * r.r[d];
+                    }
+                    const double mean = sum / n;
+                    edge[d] = std::sqrt(2.0 * Physics::pi * std::max(0.0, sum2 / n - mean * mean));
+                }
+                std::sort(edge.begin(), edge.end());
+                double spacing = 0.0;
+                for (unsigned thin = 0; thin < 3; ++thin) {
+                    double volume = 1.0;
+                    for (unsigned d = thin; d < 3; ++d) {
+                        volume *= edge[d];
+                    }
+                    spacing = std::pow(volume / n, 1.0 / (3.0 - thin));
+                    if (edge[thin] > 0.0 && edge[thin] >= spacing) {
+                        break;
+                    }
+                }
+                if (ippl::Comm->rank() == 0) {
+                    std::printf("[BH] relative softening %s: spacing %.3e m, h = %.3e m\n", c.name,
+                                spacing, h);
+                }
+                EXPECT_NEAR(h, 0.5 * spacing, 1.0e-9 * spacing);
+
+                auto fixed      = relative;
+                fixed.softening = h;
+                fixed.relativeSoftening = 0.0;
+                Run reference(fixed, spec);
+                (void)reference.solve();
+                const auto a = gatherAll(run.particles);
+                const auto b = gatherAll(reference.particles);
+                ASSERT_EQ(a.size(), b.size());
+                for (std::size_t i = 0; i < a.size(); ++i) {
+                    for (unsigned d = 0; d < 3; ++d) {
+                        EXPECT_EQ(a[i].e[d], b[i].e[d]);
+                        EXPECT_EQ(a[i].b[d], b[i].b[d]);
+                    }
+                }
+            }
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, DISABLED_SolveTimeVsSoftening) {
+            // Diagnostic: 262144 particles, h from 1/4 to 4 spacings, leaf-based h, both
+            // precisions; the tree does not depend on h. BHSTATS prints the counts per solve.
+            BunchSpec spec;
+            spec.globalCount   = 262144;
+            spec.sigma         = Vector(1.0e-3, 1.0e-3, 3.0e-3);
+            const double volume = std::pow(2.0 * Physics::pi, 1.5) * spec.sigma[0] * spec.sigma[1]
+                                  * spec.sigma[2];
+            const double spacing = std::cbrt(volume / spec.globalCount);
+            struct Case {
+                double factor;  // h in mean spacings; 0 = leaf-based
+                BarnesHutPrecision precision;
+            };
+            const auto D = BarnesHutPrecision::Double, M = BarnesHutPrecision::Mixed;
+            for (const Case& c : {Case{0.25, D}, Case{0.5, D}, Case{1.0, D}, Case{2.0, D},
+                                  Case{4.0, D}, Case{0.0, D}, Case{0.5, M}, Case{1.0, M}}) {
+                auto values                = config(c.factor > 0.0 ? c.factor * spacing : 0.0);
+                values.leafBasedSoftening  = c.factor == 0.0;
+                values.precision           = c.precision;
+                values.traversalStatistics = true;
+                Run run(values, spec);
+                (void)run.solve();  // builds the domain
+                constexpr int repeats = 5;
+                const auto start      = std::chrono::steady_clock::now();
+                for (int r = 0; r < repeats; ++r) {
+                    (void)run.solve();
+                }
+                const double seconds =
+                        std::chrono::duration<double>(std::chrono::steady_clock::now() - start)
+                                .count()
+                        / repeats;
+                if (ippl::Comm->rank() == 0) {
+                    std::printf("[BH] solve time %s, h = %s: %.2f ms per solve\n",
+                                c.precision == M ? "MIXED " : "DOUBLE",
+                                c.factor > 0.0 ? (std::to_string(c.factor) + " spacings").c_str()
+                                               : "leaf-based",
+                                1e3 * seconds);
+                }
+            }
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, DISABLED_RestFrameAgainstGaussianContinuum) {
+            // Diagnostic: BH (several h) and binned OPEN (several meshes) against the boosted
+            // continuum field. Measured, needle 1 x 1 x 10 mm (spacing 9.2e-5 m): BH h = 1e-5 ..
+            // 2e-4 -> 10.6, 7.5, 4.6, 3.2, 2.8 % (~h^-1/2); OPEN 32^3, 64^3, 128^3 -> 3.3, 1.9,
+            // 2.8 %. 1 x 1 x 2 mm: BH 5.7, 4.0, 2.4, 1.7, 2.5 %; OPEN 3.4, 1.7, 2.3 %. B as E.
+            for (double sigmaZ : {2.0e-3, 0.4e-3}) {
+                BunchSpec spec;
+                spec.globalCount          = 200000;
+                spec.sigma                = Vector(1.0e-3, 1.0e-3, sigmaZ);
+                spec.transverseMomentum   = 0.05;
+                spec.longitudinalMomentum = std::sqrt(24.0);
+                spec.momentumSpread       = 0.02;
+                Run sample(restFrameConfig(), spec);
+                const auto particles = gatherAll(sample.particles);
+                const auto continuum =
+                        gaussianContinuum(particles, spec, kCharge * spec.globalCount);
+                const double volume = std::pow(2.0 * Physics::pi, 1.5) * spec.sigma[0]
+                                      * spec.sigma[1] * continuum.gamma * spec.sigma[2];
+                const double spacing = std::cbrt(volume / spec.globalCount);
+                if (ippl::Comm->rank() == 0) {
+                    std::printf("[BH] continuum: lab sigma_z=%.1e m, gamma=%.3f, rest-frame mean "
+                                "spacing %.2e m\n",
+                                sigmaZ, continuum.gamma, spacing);
+                }
+                const auto report = [&](const char* label, const std::vector<Record>& records) {
+                    ASSERT_EQ(records.size(), particles.size());
+                    const double errorE =
+                            rmsRelativeDifference(fieldsOf(records, &Record::e), continuum.e);
+                    const double errorB =
+                            rmsRelativeDifference(fieldsOf(records, &Record::b), continuum.b);
+                    if (ippl::Comm->rank() == 0) {
+                        std::printf("[BH] continuum: %-22s rms relative error E=%.3e B=%.3e\n",
+                                    label, errorE, errorB);
+                    }
+                };
+                for (double softening : {1.0e-5, 2.0e-5, 5.0e-5, 1.0e-4, 2.0e-4}) {
+                    Run bh(restFrameConfig(softening), spec);
+                    (void)bh.solve();
+                    char label[64];
+                    std::snprintf(label, sizeof(label), "BH h=%.0e (%.2f sp)", softening,
+                                  softening / spacing);
+                    report(label, gatherAll(bh.particles));
+                }
+                for (std::size_t mesh : {32u, 64u, 128u}) {
+                    char label[64];
+                    std::snprintf(label, sizeof(label), "OPEN %zu^3", mesh);
+                    report(label, binnedOpenFields(spec, mesh, DirichletPlaneConfig{}));
+                }
+            }
         }
 
     }  // namespace

@@ -6,6 +6,7 @@
 #include "SpaceCharge/CartesianPIC3D/RelativisticFieldComposer.h"
 #include "Physics/Physics.h"
 #include "SpaceCharge/CartesianPIC3D/FieldMirror.hpp"
+#include "SpaceCharge/RestFrame.h"
 #include "Utilities/OpalException.h"
 
 namespace opalx::spacecharge {
@@ -17,19 +18,8 @@ namespace opalx::spacecharge {
 
     void RelativisticFieldComposer::accumulate(
             FieldStorage& fieldStorage, const Policy& policy) const {
-        const double gammaBin   = policy.gamma;
-        const double bFieldSign = policy.magneticSign;
-        const double invGamma   = (gammaBin > 0.0) ? (1.0 / gammaBin) : 0.0;
-        Vector meanMomentum(0.0);
-        for (unsigned dimension = 0; dimension < 3; ++dimension) {
-            meanMomentum[dimension] = policy.meanMomentum[dimension];
-        }
-
-        const Vector velocity      = Physics::c * meanMomentum * invGamma;
-        const double velocityNorm  = Kokkos::sqrt(velocity.dot(velocity));
-        const Vector velocityUnit  = (velocityNorm > 0.0) ? (velocity / velocityNorm) : Vector(0.0);
-        const double gammaMinusOne = gammaBin - 1.0;
-        const double gammaOverCSq  = gammaBin / (Physics::c * Physics::c);
+        const double bFieldSign    = policy.magneticSign;
+        const RestFrameBoost boost = RestFrameBoost::fromMoments(policy.meanMomentum, policy.gamma);
 
         const VectorField& sourceField     = fieldStorage.electricField();
         VectorField& electricTotal         = fieldStorage.accumulatedElectricField();
@@ -44,13 +34,9 @@ namespace opalx::spacecharge {
                     "RelativisticFieldComposer::accumulateDirect",
                     sourceField.getFieldRangePolicy(),
                     KOKKOS_LAMBDA(const ippl::RangePolicy<3>::index_array_type& idx) {
-                        Vector electricPrime                 = apply(sourceView, idx);
-                        const double electricDotVelocityUnit = electricPrime.dot(velocityUnit);
-                        Vector electricLab =
-                                gammaBin * electricPrime
-                                - gammaMinusOne * electricDotVelocityUnit * velocityUnit;
-                        Vector magneticLab =
-                                bFieldSign * gammaOverCSq * cross(velocity, electricPrime);
+                        const Vector electricPrime = apply(sourceView, idx);
+                        const Vector electricLab   = boost.electric(electricPrime);
+                        const Vector magneticLab   = boost.magnetic(electricPrime, bFieldSign);
                         Vector accumulatedElectric = apply(electricTotalView, idx);
                         Vector accumulatedMagnetic = apply(magneticTotalView, idx);
                         accumulatedElectric += electricLab;
@@ -86,10 +72,8 @@ namespace opalx::spacecharge {
                         }
                     }
 
-                    const double electricDotVelocityUnit = electricPrime.dot(velocityUnit);
-                    Vector electricLab                   = gammaBin * electricPrime
-                                         - gammaMinusOne * electricDotVelocityUnit * velocityUnit;
-                    Vector magneticLab = bFieldSign * gammaOverCSq * cross(velocity, electricPrime);
+                    const Vector electricLab = boost.electric(electricPrime);
+                    const Vector magneticLab = boost.magnetic(electricPrime, bFieldSign);
                     Vector accumulatedElectric = apply(electricTotalView, idx);
                     Vector accumulatedMagnetic = apply(magneticTotalView, idx);
                     accumulatedElectric += electricLab;

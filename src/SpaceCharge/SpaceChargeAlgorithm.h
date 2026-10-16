@@ -9,6 +9,7 @@
 #include "SpaceCharge/SpaceChargeSolveContext.h"
 
 #include <cstddef>
+#include <string>
 
 namespace opalx::spacecharge {
 
@@ -36,6 +37,9 @@ namespace opalx::spacecharge {
          */
         [[nodiscard]] virtual SpaceChargeSolveResult solve(
                 const SpaceChargeSolveContext& context) = 0;
+
+        /** @brief Algorithm-specific counters for the end-of-run log; empty if there are none. */
+        [[nodiscard]] virtual std::string runSummary() const { return {}; }
     };
 
 }  // namespace opalx::spacecharge

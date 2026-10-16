@@ -117,6 +117,33 @@ FieldSolverCmd::FieldSolverCmd()
             "TRUE to evaluate the field by direct O(N^2) summation with the same softened kernel "
             "(and image charges) instead of the octree; for reference runs [BH only]",
             false);
+    itsAttr[FIELDSOLVER::BHSOFTENINGREL] = Attributes::makeReal(
+            "BHSOFTENINGREL",
+            "Softening h as a multiple of the mean particle spacing in the solve (rest) frame, "
+            "recomputed every solve from the rms sizes; replaces BHSOFTENING when > 0 [BH only]",
+            0.0);
+    itsAttr[FIELDSOLVER::BHBOXMARGIN] = Attributes::makeReal(
+            "BHBOXMARGIN",
+            "Margin per side of a newly built Barnes-Hut domain box, as a fraction of the bunch "
+            "extent on that axis; the bunch can grow by 1 + 2 BHBOXMARGIN before the domain is "
+            "rebuilt [BH only]",
+            0.05);
+    itsAttr[FIELDSOLVER::BHBOXSLACK] = Attributes::makeReal(
+            "BHBOXSLACK",
+            "The Barnes-Hut domain is rebuilt with a smaller box once its box exceeds a refit by "
+            "more than this fraction on some axis [BH only]",
+            0.25);
+    itsAttr[FIELDSOLVER::BHSTATS] = Attributes::makeBool(
+            "BHSTATS",
+            "TRUE to print the Barnes-Hut interaction counts (P2P, M2P) of every solve and to time "
+            "the traversal stages (bh.groups, bh.upsweep, bh.compute); costs a few collectives per "
+            "solve [BH only]",
+            false);
+    itsAttr[FIELDSOLVER::BHPRECISION] = Attributes::makePredefinedString(
+            "BHPRECISION",
+            "Barnes-Hut precision: DOUBLE everywhere, or MIXED (double coordinates; float charges, "
+            "softening, multipoles and accelerations) [BH only]",
+            {"DOUBLE", "MIXED"}, "DOUBLE");
 
     // \todo does not work   registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -241,6 +268,21 @@ bool FieldSolverCmd::getBHLeafBasedSoftening() const {
 bool FieldSolverCmd::getBHDirectSum() const {
     return Attributes::getBool(itsAttr[FIELDSOLVER::BHDIRECT]);
 }
+double FieldSolverCmd::getBHRelativeSoftening() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::BHSOFTENINGREL]);
+}
+double FieldSolverCmd::getBHBoxMargin() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::BHBOXMARGIN]);
+}
+double FieldSolverCmd::getBHBoxSlack() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::BHBOXSLACK]);
+}
+bool FieldSolverCmd::getBHStatistics() const {
+    return Attributes::getBool(itsAttr[FIELDSOLVER::BHSTATS]);
+}
+std::string FieldSolverCmd::getBHPrecision() const {
+    return Attributes::getString(itsAttr[FIELDSOLVER::BHPRECISION]);
+}
 void FieldSolverCmd::setBHTheta(const double theta) {
     Attributes::setReal(itsAttr[FIELDSOLVER::BHTHETA], theta);
 }
@@ -252,6 +294,21 @@ void FieldSolverCmd::setBHLeafBasedSoftening(const bool enabled) {
 }
 void FieldSolverCmd::setBHDirectSum(const bool enabled) {
     Attributes::setBool(itsAttr[FIELDSOLVER::BHDIRECT], enabled);
+}
+void FieldSolverCmd::setBHRelativeSoftening(const double factor) {
+    Attributes::setReal(itsAttr[FIELDSOLVER::BHSOFTENINGREL], factor);
+}
+void FieldSolverCmd::setBHBoxMargin(const double margin) {
+    Attributes::setReal(itsAttr[FIELDSOLVER::BHBOXMARGIN], margin);
+}
+void FieldSolverCmd::setBHBoxSlack(const double slack) {
+    Attributes::setReal(itsAttr[FIELDSOLVER::BHBOXSLACK], slack);
+}
+void FieldSolverCmd::setBHStatistics(const bool enabled) {
+    Attributes::setBool(itsAttr[FIELDSOLVER::BHSTATS], enabled);
+}
+void FieldSolverCmd::setBHPrecision(const std::string& precision) {
+    Attributes::setPredefinedString(itsAttr[FIELDSOLVER::BHPRECISION], precision);
 }
 
 FieldSolverCmdType FieldSolverCmd::getFieldSolverCmdType() const {
@@ -298,7 +355,12 @@ Inform& FieldSolverCmd::printInfo(Inform& os) const {
         os << "* BHTHETA      " << getBHTheta() << '\n'
            << "* BHSOFTENING  " << getBHSoftening() << " [m]" << '\n'
            << "* BHLEAFH      " << (getBHLeafBasedSoftening() ? "TRUE" : "FALSE") << '\n'
-           << "* BHDIRECT     " << (getBHDirectSum() ? "TRUE" : "FALSE") << endl;
+           << "* BHDIRECT     " << (getBHDirectSum() ? "TRUE" : "FALSE") << '\n'
+           << "* BHSOFTENINGREL " << getBHRelativeSoftening() << " [spacings]" << '\n'
+           << "* BHBOXMARGIN  " << getBHBoxMargin() << '\n'
+           << "* BHBOXSLACK   " << getBHBoxSlack() << '\n'
+           << "* BHSTATS      " << (getBHStatistics() ? "TRUE" : "FALSE") << '\n'
+           << "* BHPRECISION  " << getBHPrecision() << endl;
     }
 
     if (getType() == "P3M") {

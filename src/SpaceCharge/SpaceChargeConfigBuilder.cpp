@@ -286,11 +286,13 @@ namespace opalx::spacecharge {
                 const FieldSolverCmd& fieldSolver,
                 const std::vector<std::vector<EmissionSource*>>& emissionSources) {
             const char* where = "SpaceChargeConfigBuilder::build";
-            const auto binsName = fieldSolver.getBinsName();
-            if (!binsName.empty() && binsName != "NONE") {
+            // One bin holding every particle is one rest-frame solve of the whole bunch.
+            const std::optional<BinningConfig> binning =
+                    buildBinningConfig(fieldSolver.getBinningCmd());
+            if (binning.has_value() && binning->maximumBins != 1) {
                 throw OpalException(
-                        where, "TYPE=BH computes the whole-bunch electrostatic field and does not "
-                               "support BINS.");
+                        where, "TYPE=BH supports BINS only with MAXBINS=1 (one rest-frame solve "
+                               "of the whole bunch); energy binning is not implemented.");
             }
             const auto boundaries = convertBoundaryConditions(fieldSolver.constructBCHandler());
             if (!std::all_of(boundaries.begin(), boundaries.end(), [](auto boundary) {
@@ -317,8 +319,15 @@ namespace opalx::spacecharge {
             values.grid.boundingBoxIncreasePercent = fieldSolver.getBoxIncr();
             values.theta                           = fieldSolver.getBHTheta();
             values.softening                       = fieldSolver.getBHSoftening();
+            values.relativeSoftening               = fieldSolver.getBHRelativeSoftening();
+            values.boxMargin                       = fieldSolver.getBHBoxMargin();
+            values.boxSlack                        = fieldSolver.getBHBoxSlack();
+            values.traversalStatistics             = fieldSolver.getBHStatistics();
+            values.precision = fieldSolver.getBHPrecision() == "MIXED" ? BarnesHutPrecision::Mixed
+                                                                         : BarnesHutPrecision::Double;
             values.leafBasedSoftening              = fieldSolver.getBHLeafBasedSoftening();
             values.directSum                       = fieldSolver.getBHDirectSum();
+            values.restFrame                       = binning.has_value();
             // ZEROFACE_R0Z and SHIFTED_GREENS_FUNCTION describe the same grounded plane; Barnes-Hut
             // models both with image charges.
             values.dirichletPlane = buildDirichletPlaneConfig(emissionSources);

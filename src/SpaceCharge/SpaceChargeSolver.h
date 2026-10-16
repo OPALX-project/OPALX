@@ -54,6 +54,7 @@ namespace opalx::spacecharge {
         [[nodiscard]] int reportedBinCount() const { return reportedBinCount_m; }
         [[nodiscard]] std::size_t backendSolveCount() const { return backendSolveCount_m; }
         [[nodiscard]] std::size_t redistributionCount() const { return redistributionCount_m; }
+        [[nodiscard]] std::string runSummary() const { return algorithm_m->runSummary(); }
 
     private:
         std::unique_ptr<SpaceChargeAlgorithm> algorithm_m;

@@ -24,6 +24,9 @@ namespace opalx::spacecharge {
     enum class GreenFunctionType : std::uint8_t { Standard, Integrated };
     enum class BinningVariable : std::uint8_t { VelocityZ, PositionZ, MomentumZ, GammaZ };
     enum class FFT2D5LongitudinalFieldMode : std::uint8_t { Open, Cylindrical, Plates, None };
+    /// IPPL NBody precision policy of TYPE=BH: Double = all double; Mixed = double coordinates,
+    /// float charges, softening, multipoles and accelerations.
+    enum class BarnesHutPrecision : std::uint8_t { Double, Mixed };
 
     /** @brief Backend-independent settings for a 3D Poisson solve. */
     struct PoissonSolverConfig {
@@ -106,7 +109,8 @@ namespace opalx::spacecharge {
     /**
      * @brief Complete runtime configuration for the gridless Barnes-Hut solver (TYPE=BH).
      *
-     * Open boundaries, whole bunch, electrostatic (gamma = 1, B = 0) like unbinned CartesianPIC3D.
+     * Open boundaries, whole bunch, electrostatic (gamma = 1, B = 0) like unbinned CartesianPIC3D;
+     * with @c restFrame one Lorentz-boosted rest-frame solve like CartesianPIC3D with MAXBINS=1.
      * A Dirichlet plane is represented exactly by image charges (method of images).
      * The Cartesian @c grid is not used by the solve; it only sizes the inert PartBunch domain.
      */
@@ -114,10 +118,27 @@ namespace opalx::spacecharge {
         CartesianGridConfig grid;
         double theta     = 0.5;    ///< Multipole acceptance angle in (0, 1].
         double softening = 0.0;    ///< Uniform softening length h in metres.
+        /// BHSOFTENINGREL: if > 0, h = this factor times the mean particle spacing in the solve
+        /// (rest) frame, recomputed every solve; replaces @c softening.
+        double relativeSoftening = 0.0;
+        /// BHBOXMARGIN: a new domain box extends this fraction of the source extent beyond the
+        /// sources on every side, so the bunch can grow by 1 + 2 boxMargin before a rebuild.
+        double boxMargin = 0.05;
+        /// BHBOXSLACK: the box keeps its size while no edge exceeds a refit by more than this
+        /// fraction; a larger box is rebuilt smaller.
+        double boxSlack = 0.25;
+        /// BHSTATS: print the interaction counts of every solve ([bh.stats]) and time the
+        /// traversal stages; diagnostics only.
+        bool traversalStatistics = false;
+        /// BHPRECISION: IPPL NBody precision policy of the tree and the traversal.
+        BarnesHutPrecision precision = BarnesHutPrecision::Double;
         bool leafBasedSoftening = false;  ///< Use the octree leaf edge as per-particle h.
         /// BHDIRECT: always evaluate the softened field by direct O(N^2) summation (reference
         /// runs); otherwise only bunches below 64 particles per rank use it.
         bool directSum = false;
+        /// BINS with MAXBINS=1: solve in the rest frame of the bunch (z stretched by the mean
+        /// gamma) and boost E and B to the lab frame. The softening is a rest-frame length.
+        bool restFrame = false;
         /// Grounded plane modelled by image charges (ZEROFACE_R0Z / SHIFTED_GREENS_FUNCTION).
         DirichletPlaneConfig dirichletPlane;
         std::size_t bucketSize      = 0;   ///< cstone global-tree bucket size; 0 = automatic.

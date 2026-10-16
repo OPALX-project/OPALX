@@ -68,6 +68,11 @@ namespace FIELDSOLVER {
         BHSOFTENING,            // Barnes-Hut Plummer-like softening length in metres [BH only]
         BHLEAFH,                // Use the octree leaf size as per-particle softening [BH only]
         BHDIRECT,               // Direct O(N^2) summation instead of the tree [BH only]
+        BHSOFTENINGREL,         // Softening in rest-frame mean particle spacings [BH only]
+        BHBOXMARGIN,            // Domain box margin per side, fraction of the extent [BH only]
+        BHBOXSLACK,             // Box oversize tolerated before it is refitted [BH only]
+        BHSTATS,                // Per-solve interaction counts and stage timers [BH only]
+        BHPRECISION,            // DOUBLE or MIXED NBody precision policy [BH only]
         SIZE
     };
 }
@@ -137,6 +142,11 @@ public:
     double getBHSoftening() const;
     bool getBHLeafBasedSoftening() const;
     bool getBHDirectSum() const;
+    double getBHRelativeSoftening() const;
+    double getBHBoxMargin() const;
+    double getBHBoxSlack() const;
+    bool getBHStatistics() const;
+    std::string getBHPrecision() const;
     void setPipeMode(const std::string& pipeMode);
     void setBeamRadius(double beamRadius);
     void setClosedRing(bool closedRing);
@@ -148,6 +158,11 @@ public:
     void setBHSoftening(double softening);
     void setBHLeafBasedSoftening(bool enabled);
     void setBHDirectSum(bool enabled);
+    void setBHRelativeSoftening(double factor);
+    void setBHBoxMargin(double margin);
+    void setBHBoxSlack(double slack);
+    void setBHStatistics(bool enabled);
+    void setBHPrecision(const std::string& precision);
 
 private:
     // Not implemented.

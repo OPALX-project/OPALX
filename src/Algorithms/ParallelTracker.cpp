@@ -67,6 +67,7 @@
 
 #include "AbsBeamline/PluginElement.h"
 #include "AbsBeamline/VerticalFFAMagnet.h"
+#include <chrono>
 
 extern Inform* gmsg;
 
@@ -968,6 +969,10 @@ void ParallelTracker::execute() {
     if (spaceChargeSolver_m != nullptr) {
         m << level2 << "Total FieldSolver calls: " << spaceChargeSolver_m->backendSolveCount()
           << endl;
+        const std::string summary = spaceChargeSolver_m->runSummary();
+        if (!summary.empty()) {
+            m << level2 << summary << endl;
+        }
     }
     if (ippl::Comm->size() > 1) {
         m << level2 << "Total binary repartitions: " << spaceChargeSolver_m->redistributionCount()
@@ -1311,11 +1316,17 @@ void ParallelTracker::computeSpaceChargeFields() {
     SpaceChargeSolveContext context(spaceChargeContainerActivity_m, std::move(stepState));
     // Whole solve of the selected algorithm (frames, deposition or tree, field), for comparisons.
     static IpplTimings::TimerRef solveTimer = IpplTimings::getTimer("SpaceCharge solve");
+    const auto solveStart = std::chrono::steady_clock::now();
     IpplTimings::startTimer(solveTimer);
     spaceChargeSolver_m->solve(context);
     Kokkos::fence();
     IpplTimings::stopTimer(solveTimer);
-    m << level3 << "Compute space-charge fields done." << endl;
+    const double solveSeconds =
+            std::chrono::duration<double>(std::chrono::steady_clock::now() - solveStart).count();
+    // One line per solve for per-step cost profiles (--info 3).
+    m << level3 << "Compute space-charge fields done: step " << step << ", s = "
+      << itsBunch_m->getParticleContainer(0)->get_sPos() << " m, " << totalParticles
+      << " particles, " << solveSeconds << " s." << endl;
 }
 
 /**

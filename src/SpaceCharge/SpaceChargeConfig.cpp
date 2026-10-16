@@ -154,19 +154,40 @@ namespace opalx::spacecharge {
                 throw OpalException(
                         "validateSpaceChargeConfig", "BHSOFTENING must be finite and >= 0.");
             }
+            if (!std::isfinite(config.boxMargin) || config.boxMargin < 0.0
+                || !std::isfinite(config.boxSlack) || config.boxSlack < 0.0) {
+                throw OpalException(
+                        "validateSpaceChargeConfig",
+                        "BHBOXMARGIN and BHBOXSLACK must be finite and >= 0.");
+            }
+            if (config.precision != BarnesHutPrecision::Double
+                && config.precision != BarnesHutPrecision::Mixed) {
+                throw OpalException("validateSpaceChargeConfig", "Unknown BHPRECISION.");
+            }
+            if (!std::isfinite(config.relativeSoftening) || config.relativeSoftening < 0.0) {
+                throw OpalException(
+                        "validateSpaceChargeConfig", "BHSOFTENINGREL must be finite and >= 0.");
+            }
             // The P2P kernel evaluates the self pair with r = 2h; h = 0 turns it into 0/0.
-            if (!config.leafBasedSoftening && !(config.softening > 0.0)) {
+            if (!config.leafBasedSoftening && !(config.softening > 0.0)
+                && !(config.relativeSoftening > 0.0)) {
                 throw OpalException(
                         "validateSpaceChargeConfig",
                         "TYPE=BH requires BHSOFTENING > 0 (e.g. a fraction of the mean "
-                        "inter-particle distance) or BHLEAFH=TRUE.");
+                        "inter-particle distance), BHSOFTENINGREL > 0 or BHLEAFH=TRUE.");
+            }
+            if (config.leafBasedSoftening && config.relativeSoftening > 0.0) {
+                throw OpalException(
+                        "validateSpaceChargeConfig",
+                        "BHLEAFH=TRUE and BHSOFTENINGREL > 0 are alternative softenings; set "
+                        "only one.");
             }
             // The direct sum has no octree, hence no leaf size to soften with.
             if (config.directSum && config.leafBasedSoftening) {
                 throw OpalException(
                         "validateSpaceChargeConfig",
-                        "BHDIRECT=TRUE needs a uniform BHSOFTENING > 0; BHLEAFH=TRUE has no leaves "
-                        "without the octree.");
+                        "BHDIRECT=TRUE needs a uniform BHSOFTENING > 0 or BHSOFTENINGREL > 0; "
+                        "BHLEAFH=TRUE has no leaves without the octree.");
             }
             if (config.bucketSizeFocus == 0
                 || config.bucketSizeFocus > std::numeric_limits<unsigned>::max()
