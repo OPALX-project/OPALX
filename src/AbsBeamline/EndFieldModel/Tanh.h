@@ -31,6 +31,7 @@
 #include <iostream>
 #include <vector>
 
+#include "Utilities/OpalException.h"
 #include "AbsBeamline/EndFieldModel/EndFieldModel.h"
 
 namespace endfieldmodel {
@@ -211,6 +212,12 @@ namespace endfieldmodel {
             const TanhConfig& config, const Kokkos::View<double*>& xView, const int& maxDerivative,
             Kokkos::View<double**>& derivatives) {
         const size_t count = xView.size();
+       if (derivatives.extent(0) != xView.extent(0)) {
+            throw OpalException("Enge::functionHost", "values extent did not match x extent");
+        }
+        if (derivatives.extent(1) != size_t(maxDerivative + 1) || maxDerivative < 0) {
+            throw OpalException("Enge::functionHost", "values extent should be n + 1");
+        }
         Kokkos::parallel_for(
                 "Tanh::function", count, KOKKOS_LAMBDA(const size_t i) {
                     auto values = Kokkos::subview(derivatives, i, Kokkos::ALL);
