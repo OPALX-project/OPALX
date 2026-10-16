@@ -132,7 +132,7 @@ namespace endfieldmodel {
 
         /** Sets the enge polynomial coefficients (a_i) */
         void setCoefficients(std::vector<double> a) {
-            config_m.a_m = makeView(a, "EngeCoefficients");
+            config_m.a_m = makeView(a, "efm::Enge::a_m");
         }
 
         /** Returns the value of lambda */

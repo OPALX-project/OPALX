@@ -37,6 +37,7 @@ extern "C" {
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
+#include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
 
 #include "BuildInfo.h"
 
@@ -570,7 +571,7 @@ int main(int argc, char* argv[]) {
 
         ippl::Comm->barrier();
         Fieldmap::clearDictionary();
-
+        endfieldmodel::EndFieldModelManager::clearEFMManager();
         // \todo we should not need this OpalData::deleteInstance();
 
         delete gmsg;

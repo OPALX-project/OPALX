@@ -65,7 +65,7 @@ namespace endfieldmodel {
         Tanh(const Tanh& rhs);
 
         /** Destructor (no mallocs so does nothing) */
-        ~Tanh() = default;
+        ~Tanh();
         /** Inherited copy constructor. */
         Tanh* clone() const override;
 
@@ -144,6 +144,7 @@ namespace endfieldmodel {
 
         /** Do some setup */
         void initialise() override;
+        void finalise() override;
 
         /** Print summary of the Tanh model to out */
         std::ostream& print(std::ostream& out) const override;

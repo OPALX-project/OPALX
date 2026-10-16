@@ -93,14 +93,14 @@ OpalScalingFFAMagnet::OpalScalingFFAMagnet()
 
     registerOwnership();
 
-    ScalingFFAMagnet* magnet = new ScalingFFAMagnet("ScalingFFAMagnet");
-    magnet->setEndField(std::make_shared<endfieldmodel::Tanh>(1., 1., 1));
+    auto magnet = std::make_shared<ScalingFFAMagnet>("SCALINGFFAMAGNET");
     setElement(magnet);
+    magnet->setEndField(std::make_shared<endfieldmodel::Tanh>(1., 1., 1));
 }
 
 OpalScalingFFAMagnet::OpalScalingFFAMagnet(const std::string& name, OpalScalingFFAMagnet* parent)
     : OpalElement(name, parent) {
-    ScalingFFAMagnet* magnet = new ScalingFFAMagnet(name);
+    auto magnet = std::make_shared<ScalingFFAMagnet>("SCALINGFFAMAGNET");
     magnet->setEndField(std::make_shared<endfieldmodel::Tanh>(1., 1., 1));
     setElement(magnet);
 }
@@ -112,7 +112,7 @@ OpalScalingFFAMagnet* OpalScalingFFAMagnet::clone(const std::string& name) {
 }
 
 void OpalScalingFFAMagnet::setupDefaultEndField() {
-    ScalingFFAMagnet* magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
+    auto magnet = dynamic_pointer_cast<ScalingFFAMagnet>(getElementPtr());
     // get centre length and end length in metres
     double end_length = Attributes::getReal(itsAttr[FRINGE_LENGTH]);
     double x0         = Attributes::getReal(itsAttr[LENGTH]) / 2.;
@@ -120,7 +120,6 @@ void OpalScalingFFAMagnet::setupDefaultEndField() {
     endField->setLambda(end_length);
     // x0 is the distance between B=0.5*B0 and B=B0 i.e. half the centre length
     endField->setX0(x0);
-    magnet->setEndField(endField);
     std::string endName = "__opal_internal__" + getOpalName();
     magnet->setEndFieldName(endName);
     magnet->setPhiStart(0.0);
@@ -131,9 +130,9 @@ void OpalScalingFFAMagnet::setupNamedEndField() {
     if (!itsAttr[END_FIELD_MODEL]) {
         return;
     }
-    std::string name         = Attributes::getString(itsAttr[END_FIELD_MODEL]);
-    ScalingFFAMagnet* magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
-    auto endField            = std::make_shared<endfieldmodel::Tanh>();
+    std::string name = Attributes::getString(itsAttr[END_FIELD_MODEL]);
+    auto magnet      = dynamic_pointer_cast<ScalingFFAMagnet>(getElementPtr());
+    auto endField    = std::make_shared<endfieldmodel::Tanh>();
     magnet->setEndFieldName(name);
     // make sure the EFM is cleared
     magnet->setEndField(endField);
@@ -142,7 +141,7 @@ void OpalScalingFFAMagnet::setupNamedEndField() {
 
 void OpalScalingFFAMagnet::update() {
     OpalElement::update();
-    ScalingFFAMagnet* magnet = dynamic_cast<ScalingFFAMagnet*>(getElement());
+    auto magnet = dynamic_pointer_cast<ScalingFFAMagnet>(getElementPtr());
     // use L = r0*theta; we define the magnet into length for UI but into angles
     // internally; and use m as external default unit
     double r0Abs    = std::abs(Attributes::getReal(itsAttr[R0]));
