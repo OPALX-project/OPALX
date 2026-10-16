@@ -168,22 +168,22 @@ namespace endfieldmodel {
 
     void Enge::setEngeDiffIndicesKokkos(size_t n, EngeConfig& config) {
         for (size_t i = 0; i < n + 1; ++i) {
-            config.gIndices[i] = Kokkos::View<int**>("gIndex", 1, 1);
+            config.gIndices[i] = Kokkos::View<int**>("efm::Enge::gIndex", 1, 1);
             copyVectorToView(q_m[i], config.gIndices[i]);
         }
         for (size_t i = 0; i < n + 1; ++i) {
-            config.hIndices[i] = Kokkos::View<int**>("hIndex", 1, 1);
+            config.hIndices[i] = Kokkos::View<int**>("efm::Enge::hIndex", 1, 1);
             copyVectorToView(h_m[i], config.hIndices[i]);
         }
-        config.workspace.gNVec    = Kokkos::View<double*>("gN", config.max_derivative + 1);
-        config.workspace.hNVec    = Kokkos::View<double*>("hN", config.max_derivative + 1);
-        config.workspace.engeLow  = Kokkos::View<double*>("engeLow", config.max_derivative + 1);
-        config.workspace.engeHigh = Kokkos::View<double*>("engeHigh", config.max_derivative + 1);
+        config.workspace.gNVec    = Kokkos::View<double*>("efm::Enge::gN", config.max_derivative + 1);
+        config.workspace.hNVec    = Kokkos::View<double*>("efm::Enge::hN", config.max_derivative + 1);
+        config.workspace.engeLow  = Kokkos::View<double*>("efm::Enge::engeLow", config.max_derivative + 1);
+        config.workspace.engeHigh = Kokkos::View<double*>("efm::Enge::engeHigh", config.max_derivative + 1);
         Kokkos::fence();
     }
 
     Enge::Enge(const std::vector<double> a, double x0, double lambda) {
-        config_m.a_m      = makeView(a, "EngeCoefficients");
+        config_m.a_m      = makeView(a, "efm::Enge::EngeCoefficients");
         config_m.x0_m     = x0;
         config_m.lambda_m = lambda;
     }
