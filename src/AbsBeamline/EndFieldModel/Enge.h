@@ -45,17 +45,25 @@ namespace endfieldmodel {
      *
      *  where h is a polynomial in x/lambda with polynomial coefficients a
      */
+
+    /** workspace for derivative calculation */
+    struct EngeWorkspace {
+        Kokkos::View<double> exp_h0;
+        Kokkos::View<double*> gNVec;
+        Kokkos::View<double*> hNVec;
+        Kokkos::View<double*> engeLow;
+        Kokkos::View<double*> engeHigh;
+    };
+    /** GPU-ready configuration data */
     struct EngeConfig {
         Kokkos::View<double*> a_m;
         double lambda_m                     = 0.0;
         double x0_m                         = 0.0;
         static constexpr int max_derivative = 12;
         /** gIndices is used for calculating derivatives. */
-        Kokkos::View<int**> gIndices[12];
-        Kokkos::View<int**> hIndices[12];
-        /** workspace for derivative calculation */
-        Kokkos::View<double*> gNVec;
-        Kokkos::View<double*> hNVec;
+        Kokkos::View<int**> gIndices[max_derivative];
+        Kokkos::View<int**> hIndices[max_derivative];
+        EngeWorkspace workspace;
     };
 
     class Enge : public EndFieldModel {
@@ -84,7 +92,7 @@ namespace endfieldmodel {
         void rescale(double scaleFactor) override;
 
         /** Return the value of enge(x+x0) + enge(-x-x0) at some point x */
-        inline double function(double x, int n) const override;
+        double function(double x, int n) const override;
 
         /** GPU-aware version of function
          *
@@ -104,11 +112,16 @@ namespace endfieldmodel {
 
         /** Potentially device-side function call
          *
+         *  @param config: configuration
          *  @param x: returns d^n f(x)/dx^n
-         *  @param n: the derivative
+         *  @param n: order of derivative
+         *  @param values: Kokkos::View<double*> of length n+1
+         *
+         *  I couldn't figure out the type of values so I just make it a template
          */
-        static KOKKOS_INLINE_FUNCTION double functionDevice(
-                const EngeConfig& config, double x, int n);
+        template <class C>
+        static KOKKOS_INLINE_FUNCTION void functionDevice(
+                const EngeConfig& config, double x, int n, C values);
 
         /** Nominal end length is lambda */
         inline double getEndLength() const override;
@@ -124,7 +137,7 @@ namespace endfieldmodel {
 
         /** Sets the enge polynomial coefficients (a_i) */
         void setCoefficients(std::vector<double> a) {
-            config_m.a_m = makeView(a, "EngeCoefficients");
+            config_m.a_m = makeView(a, "efm::Enge::a_m");
         }
 
         /** Returns the value of lambda */
@@ -152,10 +165,11 @@ namespace endfieldmodel {
          *
          *  Please call setEngeDiffIndices(n) before calling if n > max_index
          */
-        static KOKKOS_INLINE_FUNCTION double getEnge(const EngeConfig& config, double x, int n);
+        static KOKKOS_INLINE_FUNCTION double getEnge(
+                const EngeConfig& config, double x, int n, Kokkos::View<double*>& values);
 
-        /** Returns \f$Enge(x-x0) + Enge(-x-x0)-1\f$ and its derivatives */
-        static KOKKOS_INLINE_FUNCTION double getDoubleEnge(
+        /** Setup Enge workspace for an Enge & derivatives calculation */
+        static KOKKOS_INLINE_FUNCTION void setupWorkspace(
                 const EngeConfig& config, double x, int n);
 
         /** Returns \f$h(x)\f$ or its \f$n^{th}\f$ derivative.
@@ -186,13 +200,19 @@ namespace endfieldmodel {
         /** Return the indices for calculating the nth derivative of g(x) ito h(x) */
         inline static std::vector<std::vector<int> > getHIndex(int n);
 
+        /** Helper function for making 2D view from stl vectors */
         static void copyVectorToView(
                 const std::vector<std::vector<int> >& src, Kokkos::View<int**>& dest);
 
+        /** Helper function for making from stl vector */
         static Kokkos::View<double*> makeView(
                 const std::vector<double>& src, const std::string& label);
+        /** Helper function for making stl vector from view */
         static std::vector<double> makeVector(const Kokkos::View<double*>& src);
 
+        /** Initialise checks that one time setup is done for e.g. initialising
+         *  coefficients for derivative calculation
+         */
         void initialise() override;
 
         /** Release Kokkos allocations */
@@ -203,6 +223,10 @@ namespace endfieldmodel {
         Enge(const Enge& enge);
         Enge& operator=(const Enge& enge);
         EngeConfig config_m;
+
+        static void setEngeDiffIndicesQM(size_t n);
+        static void setEngeDiffIndicesHM(size_t n);
+        static void setEngeDiffIndicesKokkos(size_t n, EngeConfig& config);
 
         /** Indexes the derivatives of enge in terms of g */
         static std::vector<std::vector<std::vector<int> > > q_m;

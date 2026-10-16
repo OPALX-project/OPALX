@@ -33,6 +33,7 @@ public:
         gmsg = new Inform(nullptr, -1);
     }
     static void TearDownTestSuite() {
+        endfieldmodel::EndFieldModelManager::clearEFMManager();
         delete gmsg;
         gmsg = nullptr;
         ippl::finalize();
@@ -74,6 +75,7 @@ TEST_F(TestOpalScalingFFAMagnet, UserInterface) {
     EXPECT_NEAR(ffa->getVerticalExtent() * 2.0, 12, 1e-12);
     EXPECT_NEAR(ffa->getPhiStart() * ffa->getR0(), 0.0, 1e-12);
     EXPECT_NEAR(ffa->getAzimuthalExtent() * ffa->getR0(), 14, 1e-12);
+    ffa->finalise();
 }
 
 TEST_F(TestOpalScalingFFAMagnet, Aperture) {
@@ -102,6 +104,7 @@ TEST_F(TestOpalScalingFFAMagnet, AzimuthalExtentDefault) {
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::R0], 19);
     Attributes::setReal(ui.itsAttr[OpalScalingFFAMagnet::FRINGE_LENGTH], 8);
     ui.update();
+
     auto* ffa = dynamic_cast<ScalingFFAMagnet*>(ui.getElement());
     EXPECT_TRUE(ffa);
     ffa->setupEndField();

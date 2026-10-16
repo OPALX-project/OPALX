@@ -42,14 +42,14 @@ ScalingFFAMagnet::ScalingFFAMagnet(const ScalingFFAMagnet& right)
     : ElementBase(right),
       planarArcGeometry_m(right.planarArcGeometry_m),
       config_m(right.config_m),
-      endFieldName_m(right.endFieldName_m) {
+      efm_m(right.efm_m),
+      endFieldName_m(right.endFieldName_m),
+      efmInitialised_m(right.efmInitialised_m) {
     RefPartBunch_m = right.RefPartBunch_m;
 }
 
 ScalingFFAMagnet* ScalingFFAMagnet::clone() const {
-    auto* magnet  = new ScalingFFAMagnet(*this);
-    magnet->efm_m = efm_m;
-    magnet->initialise();
+    auto* magnet = new ScalingFFAMagnet(*this);
     return magnet;
 }
 
@@ -77,22 +77,6 @@ void ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<doub
     B = Bhost(0);
 }
 
-void ScalingFFAMagnet::getFieldValueCylindrical(
-        const Vector_t<double, 3>& Rcyl, Vector_t<double, 3>& Bcyl) const {
-    Kokkos::View<double*, Kokkos::HostSpace> derivatives(
-            "single_derivatives", config_m.maxOrder_m + 1);
-    Vector_t<double, 5> Rffa;
-    Rffa[0] = Rcyl[0];
-    Rffa[1] = Rcyl[1];
-    Rffa[2] = Rcyl[2];
-    Rffa[3] = std::abs(Rcyl[0] / config_m.r0_m);                                        // rnorm
-    Rffa[4] = Rcyl[2] - config_m.tanDelta_m * std::log(Rffa[3]) - config_m.phiStart_m;  // phispiral
-    for (size_t i = 0; i <= config_m.maxOrder_m; ++i) {
-        derivatives(i) = efm_m->function(Rffa[4], i);
-    }
-    getFieldValueCylindricalImpl(config_m, derivatives, Rffa, Bcyl);
-}
-
 void ScalingFFAMagnet::initialise() {
     calculateDfCoefficients();
     setupEndField();
@@ -109,6 +93,11 @@ void ScalingFFAMagnet::initialise(PartBunch_t* bunch) {
 void ScalingFFAMagnet::finalise() {
     efm_m->finalise();
     RefPartBunch_m = nullptr;
+}
+
+void ScalingFFAMagnet::setEndField(std::shared_ptr<endfieldmodel::EndFieldModel> endField) {
+    efm_m            = endField;
+    efmInitialised_m = false;
 }
 
 Geometry& ScalingFFAMagnet::getGeometry() { return planarArcGeometry_m; }
@@ -201,14 +190,16 @@ void ScalingFFAMagnet::setupEndField() const {
         return;
     }
     auto efmMan = endfieldmodel::EndFieldModelManager::getEFMManager();
-    efm_m       = efmMan->getEndFieldModel(endFieldName_m);
-    efm_m->rescale(1.0 / std::abs(getR0()));
+    auto efm    = efmMan->getEndFieldModel(endFieldName_m);
+    efm_m       = std::shared_ptr<endfieldmodel::EndFieldModel>(efm->clone());
+    efm_m->rescale(1.0 / std::abs(getR0()));  // efm_m is now in radians
     efm_m->initialise();
     config_m.phiStart_m = config_m.phiStart_m;
     if (config_m.azimuthalExtent_m < 0.0) {
         config_m.azimuthalExtent_m = efm_m->getEndLength() * 5. + efm_m->getCentreLength() * 0.5;
     }
-    planarArcGeometry_m = Geometry::makeSBend(efm_m->getCentreLength(), 1 / config_m.r0_m);
+    double sLength      = efm_m->getCentreLength() * config_m.r0_m;
+    planarArcGeometry_m = Geometry::makeSBend(sLength, 1 / config_m.r0_m);
     efmInitialised_m    = true;
 }
 

@@ -44,6 +44,18 @@ namespace endfieldmodel {
 
     Enge::~Enge() { finalise(); }
 
+    double Enge::function(double x, int n) const {
+        Kokkos::View<double*> xView("efm::Enge::tmpX", 1);
+        Kokkos::deep_copy(xView, x);
+        Kokkos::View<double**> valueView("efm::Enge::tmpY", 1, n + 1);
+        function(xView, n, valueView);
+        Kokkos::fence("Enge::function Function calculation");
+        double value(0);
+        auto element = Kokkos::subview(valueView, 0, n);
+        Kokkos::deep_copy(value, element);
+        return value;
+    }
+
     void Enge::copyVectorToView(
             const std::vector<std::vector<int> >& src, Kokkos::View<int**>& dest) {
         // find the size of src
@@ -95,8 +107,14 @@ namespace endfieldmodel {
     void Enge::setEngeDiffIndices(size_t n, EngeConfig& config) {
         if (n > config.max_derivative) {
             throw OpalException(
-                    "Derivative cannot be more than max derivative", "Enge::setEngeDiffIndices");
+                    "Enge::setEngeDiffIndices", "Derivative cannot be more than max derivative");
         }
+        setEngeDiffIndicesQM(n);
+        setEngeDiffIndicesHM(n);
+        setEngeDiffIndicesKokkos(n, config);
+    }
+
+    void Enge::setEngeDiffIndicesQM(size_t n) {
         size_t preset = q_m.size();
         if (preset == 0) {
             q_m.push_back(std::vector<std::vector<int> >(1, std::vector<int>(3)));
@@ -127,7 +145,9 @@ namespace endfieldmodel {
                 }
             }
         }
+    }
 
+    void Enge::setEngeDiffIndicesHM(size_t n) {
         if (h_m.size() == 0) {
             // first one is special case (1+e^h dealt with explicitly)
             h_m.push_back(std::vector<std::vector<int> >());
@@ -156,21 +176,28 @@ namespace endfieldmodel {
             }
             h_m[i] = compactVector(h_m[i]);
         }
+    }
+
+    void Enge::setEngeDiffIndicesKokkos(size_t n, EngeConfig& config) {
         for (size_t i = 0; i < n + 1; ++i) {
-            config.gIndices[i] = Kokkos::View<int**>("gIndex", 1, 1);
+            config.gIndices[i] = Kokkos::View<int**>("efm::Enge::gIndex", 1, 1);
             copyVectorToView(q_m[i], config.gIndices[i]);
         }
         for (size_t i = 0; i < n + 1; ++i) {
-            config.hIndices[i] = Kokkos::View<int**>("hIndex", 1, 1);
+            config.hIndices[i] = Kokkos::View<int**>("efm::Enge::hIndex", 1, 1);
             copyVectorToView(h_m[i], config.hIndices[i]);
         }
-        config.gNVec = Kokkos::View<double*>("gN", config.max_derivative + 1);
-        config.hNVec = Kokkos::View<double*>("hN", config.max_derivative + 1);
+        config.workspace.gNVec = Kokkos::View<double*>("efm::Enge::gN", config.max_derivative + 1);
+        config.workspace.hNVec = Kokkos::View<double*>("efm::Enge::hN", config.max_derivative + 1);
+        config.workspace.engeLow =
+                Kokkos::View<double*>("efm::Enge::engeLow", config.max_derivative + 1);
+        config.workspace.engeHigh =
+                Kokkos::View<double*>("efm::Enge::engeHigh", config.max_derivative + 1);
         Kokkos::fence();
     }
 
     Enge::Enge(const std::vector<double> a, double x0, double lambda) {
-        config_m.a_m      = makeView(a, "EngeCoefficients");
+        config_m.a_m      = makeView(a, "efm::Enge::EngeCoefficients");
         config_m.x0_m     = x0;
         config_m.lambda_m = lambda;
     }
@@ -207,9 +234,11 @@ namespace endfieldmodel {
     void Enge::finalise() { releaseEngeConfig(config_m); }
 
     void Enge::releaseEngeConfig(EngeConfig& config) {
-        config.gNVec = Kokkos::View<double*>();
-        config.hNVec = Kokkos::View<double*>();
-        config.a_m   = Kokkos::View<double*>();
+        config.workspace.gNVec    = Kokkos::View<double*>();
+        config.workspace.hNVec    = Kokkos::View<double*>();
+        config.workspace.engeLow  = Kokkos::View<double*>();
+        config.workspace.engeHigh = Kokkos::View<double*>();
+        config.a_m                = Kokkos::View<double*>();
         for (size_t i = 0; i < config.max_derivative; ++i) {
             config.gIndices[i] = Kokkos::View<int**>();
             config.hIndices[i] = Kokkos::View<int**>();

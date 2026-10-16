@@ -164,8 +164,8 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
             // already accounts for this rotation. Only this element's own frame is set here; the
             // running frame handed to the next element (currentCoordTrafo) is advanced separately
             // below.
-            const bool isRectangular = element->getType() == ElementType::RBEND
-                                       || element->getType() == ElementType::RBEND3D;
+            const bool isRectangular   = element->getType() == ElementType::RBEND
+                                         || element->getType() == ElementType::RBEND3D;
             const double entranceAngle = element->getGeometry().hasPoleFaceAngles()
                                                  ? element->getGeometry().getEntranceAngle()
                                                  : 0.5 * bendAngle;
@@ -263,19 +263,20 @@ void PlacementResolver::resolveFFAElemEdge(
     double sPosition = ffa->getElementPosition();
     double r0        = ffa->getR0();
     double length    = ffa->getGeometry().getArcLength();
-    double phiMid    = (sPosition + length / 2.0) / r0;
+    double phiStart  = sPosition / r0;
     double phiEnd    = (sPosition + length) / r0;
+    ffa->setPhiStart(length / 2.0 / r0);
 
     // The FFA is placed with respect to FFA centre
     // if r0 is positive we bend to the left/anticlockwise (negative x direction)
     // if r0 is negative we bend to the right/clockwise = positive x direction
-    ippl::Vector<double, 3> startPosition = {r0 * cos(phiMid) - r0, 0.0, r0 * sin(phiMid)};
+    ippl::Vector<double, 3> startPosition = {r0 * cos(phiStart) - r0, 0.0, r0 * sin(phiStart)};
     matrix3x3_t rotation;
-    rotation(0, 0) = cos(phiMid);
-    rotation(2, 0) = -sin(phiMid);
+    rotation(0, 0) = cos(phiStart);
+    rotation(2, 0) = -sin(phiStart);
     rotation(1, 1) = 1.0;
-    rotation(0, 2) = sin(phiMid);
-    rotation(2, 2) = cos(phiMid);
+    rotation(0, 2) = sin(phiStart);
+    rotation(2, 2) = cos(phiStart);
     ffa->setCSTrafoGlobal2Local(CoordinateSystemTrafo(startPosition, (Quaternion)rotation));
 
     // Update the end position

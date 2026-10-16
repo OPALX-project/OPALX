@@ -31,6 +31,7 @@
 #include <iostream>
 #include <vector>
 
+#include "Utilities/OpalException.h"
 #include "AbsBeamline/EndFieldModel/EndFieldModel.h"
 
 namespace endfieldmodel {
@@ -51,6 +52,7 @@ namespace endfieldmodel {
         static constexpr size_t maxDerivative_m    = 21;
         static constexpr size_t coefficientCount_m = (maxDerivative_m + 1) * (maxDerivative_m + 2);
         Kokkos::Array<int, coefficientCount_m> coefficients_m{};
+        Kokkos::View<double*> lambdaPower_m;
     };
 
     class Tanh : public EndFieldModel {
@@ -61,10 +63,10 @@ namespace endfieldmodel {
         Tanh() = default;
 
         /** Copy constructor */
-        Tanh(const Tanh& rhs) = default;
+        Tanh(const Tanh& rhs);
 
         /** Destructor (no mallocs so does nothing) */
-        ~Tanh() = default;
+        ~Tanh();
         /** Inherited copy constructor. */
         Tanh* clone() const override;
 
@@ -72,9 +74,14 @@ namespace endfieldmodel {
 
         double function(double x, int n) const override;
 
-        /** Device-callable evaluation using coefficients prepared on the host. */
-        static KOKKOS_INLINE_FUNCTION double functionDevice(
-                const TanhConfig& config, double x, int n);
+        /** Device-callable evaluation using coefficients prepared on the host.
+         *
+         *  I use a template instantiation because I can't figure out what type
+         *  values should be (Kokkos::View<double*> fails at runtime).
+         */
+        template <class C>
+        static KOKKOS_INLINE_FUNCTION void functionDevice(
+                const TanhConfig& config, double x, int n, C values);
 
         void function(
                 const Kokkos::View<double*>& xView, const int& maxDerivative,
@@ -113,7 +120,10 @@ namespace endfieldmodel {
         inline double getX0() const { return config_m.x0_m; }
 
         /** Set lambda (end length) */
-        inline void setLambda(double lambda) { config_m.lambda_m = lambda; }
+        inline void setLambda(double lambda) {
+            config_m.lambda_m = lambda;
+            initialise();
+        }
 
         /** Set x0 (flat top length) */
         inline void setX0(double x0) { config_m.x0_m = x0; }
@@ -141,6 +151,10 @@ namespace endfieldmodel {
                 const Kokkos::View<double*>& xView, const int maxDerivative,
                 Kokkos::View<double**>& derivatives) const override;
 
+        /** Do some setup */
+        void initialise() override;
+        void finalise() override;
+
         /** Print summary of the Tanh model to out */
         std::ostream& print(std::ostream& out) const override;
 
@@ -163,24 +177,29 @@ namespace endfieldmodel {
         Tanh::functionHost(config_m, xView, maxDerivative, derivatives);
     }
 
+    template <class C>
     KOKKOS_INLINE_FUNCTION
-    double Tanh::functionDevice(const TanhConfig& config, double x, int n) {
+    void Tanh::functionDevice(
+            const TanhConfig& config, double x, int n, C values) {
         const double tanhPositive = Kokkos::tanh((x + config.x0_m) / config.lambda_m);
         const double tanhNegative = Kokkos::tanh((x - config.x0_m) / config.lambda_m);
-        double positivePower      = 1.;
-        double negativePower      = 1.;
-        double result             = 0.;
-        double lambdaPower        = 1.;
-        for (int i = 0; i < n; ++i) {
-            lambdaPower *= config.lambda_m;
+        double positivePower      = 1;
+        double negativePower      = 1;
+        for (int d = 0; d <= n; ++d) {
+            values(d) = 0.0;
         }
         for (int power = 0; power <= n + 1; ++power) {
-            const int coefficient = config.coefficients_m[n * (config.maxDerivative_m + 2) + power];
-            result += static_cast<double>(coefficient) * (positivePower - negativePower);
+            for (int d = 0; d <= n; ++d) {
+                const int coefficient =
+                        config.coefficients_m[d * (config.maxDerivative_m + 2) + power];
+                values(d) += static_cast<double>(coefficient) * (positivePower - negativePower);
+            }
             positivePower *= tanhPositive;
             negativePower *= tanhNegative;
         }
-        return result / (2. * lambdaPower);
+        for (int d = 0; d <= n; ++d) {
+            values(d) /= (2. * config.lambdaPower_m(d));
+        }
     }
 
     inline void Tanh::function(
@@ -193,12 +212,17 @@ namespace endfieldmodel {
             const TanhConfig& config, const Kokkos::View<double*>& xView, const int& maxDerivative,
             Kokkos::View<double**>& derivatives) {
         const size_t count = xView.size();
+       if (derivatives.extent(0) != xView.extent(0)) {
+            throw OpalException("Enge::functionHost", "values extent did not match x extent");
+        }
+        if (derivatives.extent(1) != size_t(maxDerivative + 1) || maxDerivative < 0) {
+            throw OpalException("Enge::functionHost", "values extent should be n + 1");
+        }
         Kokkos::parallel_for(
                 "Tanh::function", count, KOKKOS_LAMBDA(const size_t i) {
-                    for (int order = 0; order < maxDerivative; ++order) {
-                        double x              = xView(i);
-                        derivatives(i, order) = Tanh::functionDevice(config, x, order);
-                    }
+                    auto values = Kokkos::subview(derivatives, i, Kokkos::ALL);
+                    double x    = xView(i);
+                    Tanh::functionDevice(config, x, maxDerivative, values);
                 });
     }
 

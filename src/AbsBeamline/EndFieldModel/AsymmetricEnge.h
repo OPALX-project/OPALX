@@ -81,8 +81,9 @@ namespace endfieldmodel {
                 const AsymmetricEngeConfig& config, const Kokkos::View<double*>& xView, const int n,
                 Kokkos::View<double**>& values);
 
-        static KOKKOS_INLINE_FUNCTION double functionDevice(
-                const AsymmetricEngeConfig& config, double x, int n);
+        static KOKKOS_INLINE_FUNCTION void functionDevice(
+                const AsymmetricEngeConfig& config, double x, int n,
+                Kokkos::View<double*> thisvalues);
 
         /** Centre length is the average of x0End and x0Start */
         inline double getCentreLength() const override;
@@ -150,24 +151,23 @@ namespace endfieldmodel {
         const size_t count = xView.extent(0);
         Kokkos::parallel_for(
                 "AsymmetricEnge::functionHost()", count, KOKKOS_LAMBDA(const size_t i) {
-                    for (int j = 0; j < n + 1; ++j)
-                        values(i, j) = functionDevice(config, xView(i), j);
+                    Kokkos::View<double*> thisValues = Kokkos::subview(values, i, Kokkos::ALL);
+                    functionDevice(config, xView(i), n, thisValues);
                 });
     }
 
-    KOKKOS_INLINE_FUNCTION double AsymmetricEnge::functionDevice(
-            const AsymmetricEngeConfig& config, double x, int n) {
-        if (n == 0) {
-            return (Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n)
-                    + Enge::getEnge(config.engeEnd_m, x - config.engeEnd_m.x0_m, n))
-                   - 1;
-        } else {
-            if (n % 2 == 1)
-                return -Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n)
-                       + Enge::getEnge(config.engeEnd_m, x - config.engeEnd_m.x0_m, n);
+    KOKKOS_INLINE_FUNCTION void AsymmetricEnge::functionDevice(
+            const AsymmetricEngeConfig& config, double x, int n, Kokkos::View<double*> values) {
+        Kokkos::View<double*> engeLow  = config.engeStart_m.workspace.engeLow;
+        Kokkos::View<double*> engeHigh = config.engeEnd_m.workspace.engeHigh;
+        Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n, engeLow);
+        Enge::getEnge(config.engeEnd_m, x - config.engeEnd_m.x0_m, n, engeHigh);
+        values(0) = -1 + (engeLow(0) + engeHigh(0));
+        for (int i = 1; i <= n; ++i) {
+            if (i % 2 == 1)
+                values(i) = -engeLow(i) + engeHigh(i);
             else
-                return Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n)
-                       + Enge::getEnge(config.engeEnd_m, x - config.engeEnd_m.x0_m, n);
+                values(i) = +engeLow(i) + engeHigh(i);
         }
     }
     double AsymmetricEnge::getX0Start() const { return config_m.engeStart_m.x0_m; }

@@ -59,7 +59,7 @@ struct ScalingFFAMagnetConfig {
     double tanDelta_m         = 0.;
     double k_m                = 0.;
     double Bz_m               = 0.;
-    double r0_m               = 0.;
+    double r0_m               = 1.;
     double rMin_m             = 0.;  // minimum radius
     double rMax_m             = 0.;  // maximum radius
     double phiStart_m         = 0.;  // offsets this element
@@ -175,15 +175,6 @@ public:
      */
     void getCartesianCoordinates(const Vector_t<double, 3>& Rcyl, Vector_t<double, 3>& Rcart) const;
 
-    /** Calculate the field at some arbitrary position in cylindrical coordinates
-     *
-     *  \param R position in the local coordinate system of the bend, in
-     *           cylindrical polar coordinates defined like (r, y, phi)
-     *  \param B calculated magnetic field defined like (Br, By, Bphi)
-     *  \returns true if particle is outside the field map, else false
-     */
-    void getFieldValueCylindrical(const Vector_t<double, 3>& Rcyl, Vector_t<double, 3>& B) const;
-
     /** Initialise the ScalingFFAMagnet
      *
      *  \param bunch the global bunch object
@@ -263,7 +254,7 @@ public:
      *
      * - endField: the new fringe field.
      */
-    void setEndField(std::shared_ptr<endfieldmodel::EndFieldModel> endField) { efm_m = endField; }
+    void setEndField(std::shared_ptr<endfieldmodel::EndFieldModel> endField);
 
     /** Get the maximum power of y modelled in the off-midplane expansion;
      */
@@ -355,11 +346,6 @@ private:
 
     void getZMax(double& zEnd) const;
 
-    template <class DerivativeContainer>
-    KOKKOS_INLINE_FUNCTION static void getFieldValueCylindricalImpl(
-            const ScalingFFAMagnetConfig& config, const DerivativeContainer& derivatives,
-            const Vector_t<double, 5>& Rcyl, Vector_t<double, 3>& B);
-
     KOKKOS_INLINE_FUNCTION static void getCylindricalCoordinates(
             const ScalingFFAMagnetConfig& config, const Vector_t<double, 3> Ri,
             Vector_t<double, 5>& Rcyli);
@@ -428,27 +414,21 @@ void ScalingFFAMagnet::rotateBfield(
         const ScalingFFAMagnetConfig& config, const Vector_t<double, 5>& Rcyli,
         const Vector_t<double, 3>& Bcyli, Vector_t<double, 3>& Bi) {
     double phi = Rcyli[2];
-    Bi[1] += Bcyli[1];
-    Bi[0] += Kokkos::copysign(1.0, config.r0_m)
-             * (Bcyli[0] * Kokkos::cos(phi) - Bcyli[2] * Kokkos::sin(phi));
-    Bi[2] += Bcyli[0] * Kokkos::sin(phi) + Bcyli[2] * Kokkos::cos(phi);
+    Bi[1]      = Bcyli[1];
+    Bi[0]      = Kokkos::copysign(1.0, config.r0_m)
+                 * (Bcyli[0] * Kokkos::cos(phi) - Bcyli[2] * Kokkos::sin(phi));
+    Bi[2]      = Bcyli[0] * Kokkos::sin(phi) + Bcyli[2] * Kokkos::cos(phi);
 }
 
 KOKKOS_INLINE_FUNCTION
 void ScalingFFAMagnet::getFieldValueCylindrical(
         const ScalingFFAMagnetConfig& config, const Kokkos::View<double*>& derivatives,
         const Vector_t<double, 5>& rCyl, Vector_t<double, 3>& B) {
-    getFieldValueCylindricalImpl(config, derivatives, rCyl, B);
-}
-
-template <class DerivativeContainer>
-KOKKOS_INLINE_FUNCTION void ScalingFFAMagnet::getFieldValueCylindricalImpl(
-        const ScalingFFAMagnetConfig& config, const DerivativeContainer& derivatives,
-        const Vector_t<double, 5>& rCyl, Vector_t<double, 3>& B) {
     double r          = rCyl[0];
     double z          = rCyl[1];
     double normRadius = rCyl[3];
     double phiSpiral  = rCyl[4];
+    B                 = {0.0, 0.0, 0.0};
     if (r < config.rMin_m || r > config.rMax_m) {
         return;
     }

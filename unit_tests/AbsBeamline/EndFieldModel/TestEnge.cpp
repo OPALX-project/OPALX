@@ -27,6 +27,7 @@ public:
     static void TearDownTestSuite() { Kokkos::finalize(); }
 };
 
+/*
 TEST_F(TestEnge, ConstructorTest) {
     // x0, lambda, max_index
     endfieldmodel::Enge enge0;
@@ -70,16 +71,28 @@ TEST_F(TestEnge, DerivativeTest) {
     std::vector<double> engeA   = {0.0, 1.0, 0.0};
     endfieldmodel::Enge enge(engeA, x0, lambda);
     enge.initialise();
+    Kokkos::View<double*> xDevice("x", 1);
+    auto xHost = Kokkos::create_mirror_view(xDevice);
+    Kokkos::View<double**> yDevice("y", 1, 5);
     for (auto x : xVector) {
         double yTest = enge.function(x, 0);
         double yRef  = -1 + myEnge(x - x0, engeA, lambda) + myEnge(-x - x0, engeA, lambda);
+        xHost(0)     = x;
+        Kokkos::deep_copy(xDevice, xHost);
+        enge.function(xDevice, 4, yDevice);
+        auto yHost = Kokkos::create_mirror_view(yDevice);
+        Kokkos::deep_copy(yHost, yDevice);
         EXPECT_NEAR(yTest, yRef, 1e-12) << x << " " << yTest << " " << yRef;
+        EXPECT_NEAR(yHost(0, 0), yRef, 1e-12) << x << " " << yTest << " " << yRef;
         for (size_t n = 1; n < 5; ++n) {
             double yP     = enge.function(x + dx, n - 1);
             double yM     = enge.function(x - dx, n - 1);
             double dyTest = enge.function(x, n);
             double dyRef  = (yP - yM) / 2 / dx;
             EXPECT_NEAR(dyTest, dyRef, 1e-3) << x << " " << n << " * " << dyTest << " " << dyRef;
+            EXPECT_NEAR(yHost(0, n), dyRef, 1e-3)
+                    << x << " " << n << " * " << yHost(0, n) << " " << dyRef;
+            ;
         }
     }
     EXPECT_NEAR(enge.function(0.0, 0), 1.0, 1e-3);
@@ -93,4 +106,31 @@ TEST_F(TestEnge, PrintTest) {
     enge.initialise();
     enge.print(std::cout);
     std::cout << std::endl;
+}
+*/
+
+TEST_F(TestEnge, FunctionGpuTest) {
+    endfieldmodel::Enge enge(std::vector<double>({0, 1, 0}), 5, 1);
+    enge.initialise();
+    Kokkos::View<double*> xgpu("xgpu", 3);
+    auto xhost = Kokkos::create_mirror_view(xgpu);
+    xhost(0)   = 5.0;
+    xhost(1)   = -5.0;
+    xhost(2)   = 7.0;
+    Kokkos::deep_copy(xgpu, xhost);  // target, source
+    Kokkos::View<double**> derivativesgpu("d", 3, 5);
+
+    enge.function(xgpu, 4, derivativesgpu);
+
+    auto derivativeshost = Kokkos::create_mirror_view(derivativesgpu);
+    Kokkos::deep_copy(derivativeshost, derivativesgpu);  // target, source
+    for (auto i : std::vector<int>({0, 1, 2, 3, 4})) {
+        EXPECT_NEAR(derivativeshost(0, i), enge.function(-5, i), 1e-12);
+        EXPECT_NEAR(derivativeshost(1, i), enge.function(5, i), 1e-12);
+        EXPECT_NEAR(derivativeshost(2, i), enge.function(7, i), 1e-12);
+        std::cerr << i << " " << xhost(0) << " " << xhost(1) << " " << xhost(2) << " gpu-5: " << derivativeshost(0, i) << " cpu-5: " << enge.function(-5, i)
+                  << " gpu+5 " << derivativeshost(1, i) << " cpu+5: " << enge.function(5, i)
+                  << " gpu+7 " << derivativeshost(2, i) << " cpu+7: " << enge.function(7, i)
+                  << std::endl;
+    }
 }

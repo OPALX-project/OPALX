@@ -68,8 +68,10 @@ namespace endfieldmodel {
     }
 
     void EndFieldModelManager::clearEFMManager() {
-        globalEFM_m->efmMap_m.clear();
-        globalEFM_m.reset();
+        if (globalEFM_m) {
+            globalEFM_m->efmMap_m.clear();
+            globalEFM_m.reset();
+        }
     }
 
     std::string EndFieldModelManager::toLower(const std::string& astring) {

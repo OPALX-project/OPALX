@@ -21,6 +21,7 @@
 #include "gtest/gtest.h"
 
 TEST(TestOpalTanh, TestSetup) {
+    Kokkos::initialize();
     // Make the UI
     OpalTanh ui;
     // Set the attributes
@@ -32,4 +33,6 @@ TEST(TestOpalTanh, TestSetup) {
     auto efm = efmMan->getEndFieldModel("TANH");
     EXPECT_EQ(efm->getCentreLength(), 4.0);
     EXPECT_EQ(efm->getEndLength(), 2.0);
+    efm->finalise();
+    Kokkos::finalize();
 }

@@ -11,33 +11,9 @@ namespace endfieldmodel {
 
     void Enge::setMaximumDerivative(size_t n) { Enge::setEngeDiffIndices(n); }
 
-    double Enge::function(double x, int n) const {
-        Kokkos::View<double*> xView("tmpX", 1);
-        Kokkos::deep_copy(xView, x);
-        Kokkos::View<double**> valueView("tmpY", 1, n + 1);
-        function(xView, n, valueView);
-        Kokkos::fence("Function calculation");
-        double value(0);
-        auto element = Kokkos::subview(valueView, 0, n);
-        Kokkos::deep_copy(value, element);
-        return value;
-    }
-
     std::vector<std::vector<int> > Enge::getQIndex(int n) { return q_m[n]; }
 
     std::vector<std::vector<int> > Enge::getHIndex(int n) { return h_m[n]; }
-
-    KOKKOS_INLINE_FUNCTION double Enge::getDoubleEnge(const EngeConfig& config, double x, int n) {
-        if (n == 0) {
-            return -1
-                   + (getEnge(config, x - config.x0_m, n) + getEnge(config, -x - config.x0_m, n));
-        } else {
-            if (n % 2 == 1)
-                return +getEnge(config, x - config.x0_m, n) - getEnge(config, -x - config.x0_m, n);
-            else
-                return +getEnge(config, x - config.x0_m, n) + getEnge(config, -x - config.x0_m, n);
-        }
-    }
 
     double Enge::getCentreLength() const { return config_m.x0_m * 2.0; }
 
@@ -51,44 +27,67 @@ namespace endfieldmodel {
 
     void Enge::functionHost(
             const EngeConfig& config, const Kokkos::View<double*>& xView, const int n,
-            Kokkos::View<double**>& values) {
+            Kokkos::View<double**>& derivatives) {
         const size_t count = xView.extent(0);
-        if (values.extent(0) != xView.extent(0)) {
-            throw OpalException("values extent did not match x extent", "Enge::functionHost");
+        if (derivatives.extent(0) != xView.extent(0)) {
+            throw OpalException("Enge::functionHost", "derivatives extent did not match x extent");
         }
-        if (values.extent(1) != size_t(n + 1) || n < 0) {
-            throw OpalException("values extent should be n + 1", "Enge::functionHost");
+        if (derivatives.extent(1) != size_t(n + 1) || n < 0) {
+            throw OpalException("Enge::functionHost", "derivatives extent should be n + 1");
         }
         Kokkos::parallel_for(
                 "Enge::functionHost()", count, KOKKOS_LAMBDA(const size_t i) {
-                    for (int j = 0; j < n + 1; ++j)
-                        values(i, j) = functionDevice(config, xView(i), j);
+                    auto values = Kokkos::subview(derivatives, i, Kokkos::ALL);
+                    double x = xView(i);
+                    Enge::functionDevice(config, x, n, values);
                 });
     }
 
-    KOKKOS_INLINE_FUNCTION double Enge::functionDevice(const EngeConfig& config, double x, int n) {
-        return getDoubleEnge(config, x, n);
+    template <class C>
+    KOKKOS_INLINE_FUNCTION void Enge::functionDevice(const EngeConfig& config, double x, int n, C values) {
+        Kokkos::View<double*> engeLow = config.workspace.engeLow;
+        Kokkos::View<double*> engeHigh = config.workspace.engeHigh;
+        getEnge(config, x - config.x0_m, n, engeLow);
+        getEnge(config, -x - config.x0_m, n, engeHigh);
+        values(0) =  -1 + (engeLow(0) + engeHigh(0));
+        for (int i = 1; i <= n; ++i) {
+            if (i % 2 == 1)
+                values(i) = +engeLow(i) - engeHigh(i);
+            else
+                values(i) = +engeLow(i) + engeHigh(i);
+        }
+    }
+
+    KOKKOS_INLINE_FUNCTION void Enge::setupWorkspace(const EngeConfig& config, double x, int n) {
+        for (int i = 0; i <= n; i++) {
+            config.workspace.hNVec(i) = hN(config, x, i);
+        }
+        config.workspace.exp_h0() = exp(config.workspace.hNVec(0));
+        for (int i = 0; i <= n; ++i) {
+            config.workspace.gNVec(i) = gN(config, x, i);
+        }
     }
 
     // Use
     // d^n E/dx^n = a_n1m1 F(n1) g(m1) + a_n2m1m2 F(n2) g(m1)g(m2)+...
     // where
-    KOKKOS_INLINE_FUNCTION double Enge::getEnge(const EngeConfig& config, double x, int n) {
-        Kokkos::View<int**> qt = config.gIndices[n];
-        for (size_t i = 0; i < config.max_derivative; ++i) {
-            config.gNVec(i) = gN(config, x, i);
-        }
-        double e = 0;
-        for (size_t i = 0; i < qt.extent(0); ++i) {
-            double ei(qt(i, 0));
-            for (size_t j = 1; j < qt.extent(1); ++j) {
-                double de = Kokkos::pow(config.gNVec(j - 1), qt(i, j));
-                ei *= de;
+    KOKKOS_INLINE_FUNCTION double Enge::getEnge(const EngeConfig& config, double x, int n, Kokkos::View<double*>& values) {
+        setupWorkspace(config, x, n);
+        for (int k = 0; k <= n; ++k) {
+            Kokkos::View<int**> qt = config.gIndices[k];
+            double e = 0;
+            for (size_t i = 0; i < qt.extent(0); ++i) {
+                double ei(qt(i, 0));
+                for (size_t j = 1; j < qt.extent(1); ++j) {
+                    double de = Kokkos::pow(config.workspace.gNVec(j - 1), qt(i, j));
+                    ei *= de;
+                }
+                if (ei != ei) ei = 0;  // div 0, usually g == 0 and index < 0
+                e += ei;
             }
-            if (ei != ei) ei = 0;  // div 0, usually g == 0 and index < 0
-            e += ei;
+            values(k) = e;
         }
-        return e;
+        return values(n);
     }
 
     // h     = a_0+a_1 (x/w)+a_2 (x/w)^2+a_3 (x/w)^3+...+a_m (x/w)^m
@@ -104,16 +103,13 @@ namespace endfieldmodel {
 
     // g     = 1+exp(h)
     // g^(n) = d^ng/dx^n
-    KOKKOS_INLINE_FUNCTION double Enge::gN(const EngeConfig& config, double x, int n) {
-        if (n == 0) return 1 + exp(hN(config, x, 0));  // special case
-        for (int i = 0; i <= n; i++)
-            config.hNVec(i) = hN(config, x, i);
-        double exp_h0 = exp(config.hNVec(0));
+    KOKKOS_INLINE_FUNCTION double Enge::gN(const EngeConfig& config, double /*x*/, int n) {
+        if (n == 0) return 1 + config.workspace.exp_h0();  // special case
         double gn     = 0;
         for (size_t i = 0; i < config.hIndices[n].extent(0); ++i) {
-            double gnj = config.hIndices[n](i, 0) * exp_h0;
+            double gnj = config.hIndices[n](i, 0) * config.workspace.exp_h0();
             for (size_t j = 1; j < config.hIndices[n].extent(1); ++j)
-                gnj *= Kokkos::pow(config.hNVec(j), config.hIndices[n](i, j));
+                gnj *= Kokkos::pow(config.workspace.hNVec(j), config.hIndices[n](i, j));
             gn += gnj;
         }
         return gn;

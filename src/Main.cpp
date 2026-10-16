@@ -33,6 +33,7 @@ extern "C" {
 #include "Structure/CheckpointFile.h"
 #include "Utilities/Timer.h"
 
+#include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
 #include "BasicActions/Option.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
@@ -570,7 +571,7 @@ int main(int argc, char* argv[]) {
 
         ippl::Comm->barrier();
         Fieldmap::clearDictionary();
-
+        endfieldmodel::EndFieldModelManager::clearEFMManager();
         // \todo we should not need this OpalData::deleteInstance();
 
         delete gmsg;

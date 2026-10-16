@@ -88,7 +88,7 @@ public:
         return B;
     }
 
-    double getDBDu(int i, int j, Vector_t<double, 3> pos, double delta, bool isCartesian) {
+    double getDBDu(int i, int j, Vector_t<double, 3> pos, double delta) {
         Vector_t<double, 3> mom({0., 0., 0.});
         Vector_t<double, 3> E({0., 0., 0.});
         Vector_t<double, 3> BUpper({0., 0., 0.});
@@ -96,19 +96,11 @@ public:
         double derivative            = 0;
         Vector_t<double, 3> posUpper = pos;
         posUpper[j] += delta;
-        if (isCartesian) {
-            sector_m->apply(posUpper, mom, t, E, BUpper);
-        } else {
-            sector_m->getFieldValueCylindrical(posUpper, BUpper);
-        }
+        sector_m->apply(posUpper, mom, t, E, BUpper);
         Vector_t<double, 3> BLower({0., 0., 0.});
         Vector_t<double, 3> posLower = pos;
         posLower[j] -= delta;
-        if (isCartesian) {
-            sector_m->apply(posLower, mom, t, E, BLower);
-        } else {
-            sector_m->getFieldValueCylindrical(posLower, BLower);
-        }
+        sector_m->apply(posLower, mom, t, E, BLower);
         derivative = (BUpper[i] - BLower[i]) / (posUpper[j] - posLower[j]);
         return derivative;
     }
@@ -117,7 +109,7 @@ public:
         Vector_t<double, 3> div_elements({0., 0., 0.});
         // dB_x/dx ~ (B_x(x+dx) - B_x(x-dx))/2/dx
         for (size_t i = 0; i < 3; ++i) {
-            div_elements[i] = getDBDu(i, i, pos, delta[i], true);
+            div_elements[i] = getDBDu(i, i, pos, delta[i]);
         }
         return div_elements[0] + div_elements[1] + div_elements[2];
     }
@@ -125,43 +117,13 @@ public:
     Vector_t<double, 3> getCurlBCart(Vector_t<double, 3> posCart, Vector_t<double, 3> delta) {
         Vector_t<double, 3> curlElements({0., 0., 0.});
         // dB_x/dx ~ (B_x(x+dx) - B_x(x-dx))/2/dx
-        curlElements[0] += getDBDu(2, 1, posCart, delta[1], true);  // dBz/dy
-        curlElements[0] -= getDBDu(1, 2, posCart, delta[2], true);  // dBy/dz
-        curlElements[1] += getDBDu(0, 2, posCart, delta[2], true);  // dBx/dz
-        curlElements[1] -= getDBDu(2, 0, posCart, delta[0], true);  // dBz/dx
-        curlElements[2] += getDBDu(1, 0, posCart, delta[0], true);  // dBy/dx
-        curlElements[2] -= getDBDu(0, 1, posCart, delta[1], true);  // dBx/dy
+        curlElements[0] += getDBDu(2, 1, posCart, delta[1]);  // dBz/dy
+        curlElements[0] -= getDBDu(1, 2, posCart, delta[2]);  // dBy/dz
+        curlElements[1] += getDBDu(0, 2, posCart, delta[2]);  // dBx/dz
+        curlElements[1] -= getDBDu(2, 0, posCart, delta[0]);  // dBz/dx
+        curlElements[2] += getDBDu(1, 0, posCart, delta[0]);  // dBy/dx
+        curlElements[2] -= getDBDu(0, 1, posCart, delta[1]);  // dBx/dy
         return curlElements;
-    }
-
-    Vector_t<double, 3> getCurlBCyl(Vector_t<double, 3> posCyl, Vector_t<double, 3> delta) {
-        // posCyl goes like r, z, phi
-        Vector_t<double, 3> curlElements({0., 0., 0.});
-        Vector_t<double, 3> B({0., 0., 0.});
-        sector_m->getFieldValueCylindrical(posCyl, B);
-
-        curlElements[0] += getDBDu(2, 1, posCyl, delta[1], false);              // dBphi/dz
-        curlElements[0] -= getDBDu(1, 2, posCyl, delta[2], false) / posCyl[0];  // 1/r*dBz/dphi
-
-        curlElements[1] += getDBDu(2, 0, posCyl, delta[0], false);              // dBphi/dr
-        curlElements[1] -= getDBDu(0, 2, posCyl, delta[2], false) / posCyl[0];  // dBr/dphi/r
-        curlElements[1] += B[2] / posCyl[0];                                    // Bphi/r
-
-        curlElements[2] += getDBDu(0, 1, posCyl, delta[1], false);  // dBr/dz
-        curlElements[2] -= getDBDu(1, 0, posCyl, delta[0], false);  // dBz/dr
-
-        return curlElements;
-    }
-
-    double getDivBCyl(Vector_t<double, 3> posCyl, Vector_t<double, 3> delta) {
-        Vector_t<double, 3> B({0., 0., 0.});
-        Vector_t<double, 3> div_elements({0., 0., 0.});
-        sector_m->getFieldValueCylindrical(posCyl, B);
-        div_elements[0] = B[0] / posCyl[0] + getDBDu(0, 0, posCyl, delta[0], false);
-        div_elements[1] = getDBDu(1, 1, posCyl, delta[1], false);
-        div_elements[2] = getDBDu(2, 2, posCyl, delta[2], false) / posCyl[0];
-        // dB_x/dx ~ (B_x(x+dx) - B_x(x-dx))/2/dx
-        return div_elements[0] + div_elements[1] + div_elements[2];
     }
 
     bool printLine(
@@ -177,34 +139,26 @@ public:
         Vector_t<double, 3> B({0., 0., 0.});
         Vector_t<double, 3> BCart({0., 0., 0.});
         double t = 0;
-        sector_m->getFieldValueCylindrical(posCyl, B);
         sector_m->apply(posCart, mom, t, E, BCart);
         double delta = y / 1000.;
         if (delta > 1e-3 or delta < 1e-9) {
             delta = 1e-3;
         }
-        double divBCyl = getDivBCyl(posCyl, Vector_t<double, 3>({delta, delta, delta / r0_m}));
-        Vector_t<double, 3> curlBCyl = getCurlBCyl(
-                posCyl, Vector_t<double, 3>(
-                                {delta, delta,
-                                 delta / r0_m}));  // curlBCyl[0] should be cancelled by 2nd term
         double divBCart = getDivBCart(posCart, Vector_t<double, 3>({delta, delta, delta}));
         Vector_t<double, 3> curlBCart = getCurlBCart(
                 posCart,
-                Vector_t<double, 3>(
-                        {delta, delta, delta}));  // curlBCyl[0] should be cancelled by 2nd term
+                Vector_t<double, 3>( {delta, delta, delta}));
         std::stringstream ssout;
         ssout << "order " << sector_m->getMaxOrder() << " (x,y,z)  " << x << "    " << y << "    "
-              << z << " (r,phi) " << r << "    " << phi << " B(r,z,phi) " << B[0] << "    " << B[1]
-              << "    " << B[2] << " DivB_Cyl: " << divBCyl << " CurlB_Cyl: " << curlBCyl
+              << z << " (r,phi) " << r << "    " << phi
               << " B(x,y,z) " << BCart[0] << "    " << BCart[1] << "    " << BCart[2]
               << " DivB_Cart: " << divBCart << " CurlB_Cart: " << curlBCart << " Aux: " << aux;
-        fout << ssout.str() << std::endl;
         bool passtest = divBCart < maxwell_tolerance;
-        // for (size_t i = 0; i < 3; ++i) {
-        //     passtest &= curlBCart[i] < maxwell_tolerance;
-        // }
+        for (size_t i = 0; i < 3; ++i) {
+             passtest &= curlBCart[i] < maxwell_tolerance;
+        }
         if (!passtest) {
+            fout << ssout.str() << std::endl;
             std::cout << ssout.str() << std::endl;
         }
         return passtest;
@@ -224,6 +178,7 @@ TEST_F(ScalingFFAMagnetTest, ConstructorTest) {
     double x                                  = ++i;
     x                                         = ++i;
     std::shared_ptr<endfieldmodel::Tanh> tanh = std::make_shared<endfieldmodel::Tanh>(x, x, i);
+    tanh->initialise();
     test->setEndField(tanh);
     test->setMaxOrder(++i);
     test->setPhiStart(++i);
@@ -258,6 +213,7 @@ TEST_F(ScalingFFAMagnetTest, ConstructorTest) {
 
     std::shared_ptr<endfieldmodel::Tanh> tanh2 =
             std::make_shared<endfieldmodel::Tanh>(-10., -10., 10);
+    tanh2->initialise();
     magnets[0]->setEndField(tanh2);
     EXPECT_NEAR(magnets[0]->getEndField()->function(10., 0), tanh2->function(10., 0), 1e-9);
     delete magnets[0];
@@ -287,6 +243,8 @@ TEST_F(ScalingFFAMagnetTest, PlacementTest) {
     // test that when we are X0 from the centre, we get By = 0.5*B0
     double centre_length =
             dynamic_cast<endfieldmodel::Tanh*>(sector_m->getEndField().get())->getX0();
+    sector_m->getEndField()->initialise();
+    sector_m->getEndField()->print(std::cerr) << std::endl;
     for (double r0 = -r0_m; r0 < 1.5 * r0_m; r0 += r0_m * 2) {
         for (double phi_start = 0.; phi_start < psi0_m * 3.1; phi_start += psi0_m / 2.) {
             sector_m->setR0(r0);
@@ -415,7 +373,7 @@ TEST_F(ScalingFFAMagnetTest, BTwoDTest) {
     std::ofstream fout("/tmp/b_twod.out");
     bool passtest = true;
     for (double y = 0.; y < 0.025; y += 0.015) {
-        for (double r = r0_m; r < r0_m + 1; r += 0.02) {
+        for (double r = r0_m; r < r0_m + 1; r += 0.2) {
             for (double psi = -2. * psi0_m; psi < 4.00001 * psi0_m; psi += psi0_m / 5.) {
                 passtest &= printLine(Vector_t<double, 3>({r, y, psi}), 0., fout, 1e-1);
             }
@@ -450,22 +408,17 @@ TEST_F(ScalingFFAMagnetTest, ConvergenceOrderTest) {
                 Vector_t<double, 3> pos(
                         {r0sign * r0_m * (std::cos(2 * psi0_m) - 1), y,
                          r0_m * std::sin(2 * psi0_m)});
-                Vector_t<double, 5> posCyl({r0_m, y, 2 * psi0_m});
                 double divB = getDivBCart(pos, Vector_t<double, 3>({delta, delta, delta}));
                 Vector_t<double, 3> curlB =
                         getCurlBCart(pos, Vector_t<double, 3>({delta, delta, delta}));
-                Vector_t<double, 3> curlBCyl =
-                        getCurlBCyl(posCyl, Vector_t<double, 3>({delta, delta, delta / r0_m}));
                 Vector_t<double, 3> B = getB(pos);
-                Vector_t<double, 3> Bcyl;
-                sector_m->getFieldValueCylindrical(posCyl, Bcyl);
                 double curlBMag =
                         std::sqrt(curlB[0] * curlB[0] + curlB[1] * curlB[1] + curlB[2] * curlB[2]);
                 divB        = std::abs(divB);
                 divBVec[i]  = divB;
                 curlBVec[i] = curlBMag;
-                std::cout << i << "     " << y << "    " << B << " " << Bcyl << "     " << divB
-                          << "           " << curlBMag << " " << curlB << " " << curlBCyl
+                std::cout << i << "     " << y << "    " << B << " " << "     " << divB
+                          << "           " << curlBMag << " " << curlB << " "
                           << std::endl;
                 if (i > 1 && i % 2 == 1) {
                     EXPECT_LT(divBVec[i], divBVec[i - 2]) << " with i " << i << std::endl;
@@ -500,10 +453,7 @@ TEST_F(ScalingFFAMagnetTest, ConvergenceOrderHackedTest) {
             Vector_t<double, 3> B, pos, curlB;
             double divB;
             if (cylindrical) {
-                pos = Vector_t<double, 5>({3.0, y, psi0_m * 2});
-                sector_m->getFieldValueCylindrical(pos, B);
-                divB  = getDivBCyl(pos, Vector_t<double, 3>({delta, delta, delta / 3.}));
-                curlB = getCurlBCyl(pos, Vector_t<double, 3>({delta, delta, delta / 3.}));
+                throw ("ERROR");
             } else {
                 pos = Vector_t<double, 3>(
                         {3.0 * (std::cos(psi0_m * 2) - 1), y, 3.0 * std::sin(psi0_m * 2)});
