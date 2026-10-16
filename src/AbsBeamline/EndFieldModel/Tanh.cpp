@@ -63,9 +63,13 @@ namespace endfieldmodel {
         xHost(0)     = x;
         Kokkos::deep_copy(xDevice, xHost);
         auto yDevice = Kokkos::View<double**>("efm::Tanh::yDevice", 1, n + 1);
+        auto lHost   = Kokkos::create_mirror_view(config_m.lambdaPower_m);
+        Kokkos::deep_copy(lHost, config_m.lambdaPower_m);
+
         function(xDevice, n, yDevice);
         auto yHost = Kokkos::create_mirror_view(yDevice);
-        Kokkos::deep_copy(yDevice, yHost);
+        Kokkos::deep_copy(yHost, yDevice);
+
         double value = yHost(0, n);
         return value;
     }

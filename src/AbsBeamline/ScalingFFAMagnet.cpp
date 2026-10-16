@@ -77,22 +77,6 @@ void ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<doub
     B = Bhost(0);
 }
 
-void ScalingFFAMagnet::getFieldValueCylindrical(
-        const Vector_t<double, 3>& Rcyl, Vector_t<double, 3>& Bcyl) const {
-    Kokkos::View<double*, Kokkos::HostSpace> derivatives(
-            "single_derivatives", config_m.maxOrder_m + 1);
-    Vector_t<double, 5> Rffa;
-    Rffa[0] = Rcyl[0];
-    Rffa[1] = Rcyl[1];
-    Rffa[2] = Rcyl[2];
-    Rffa[3] = std::abs(Rcyl[0] / config_m.r0_m);                                        // rnorm
-    Rffa[4] = Rcyl[2] - config_m.tanDelta_m * std::log(Rffa[3]) - config_m.phiStart_m;  // phispiral
-    for (size_t i = 0; i <= config_m.maxOrder_m; ++i) {
-        derivatives(i) = efm_m->function(Rffa[4], i);
-    }
-    getFieldValueCylindrical(config_m, derivatives, Rffa, Bcyl);
-}
-
 void ScalingFFAMagnet::initialise() {
     calculateDfCoefficients();
     setupEndField();
