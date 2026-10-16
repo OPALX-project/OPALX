@@ -114,7 +114,10 @@ namespace endfieldmodel {
         inline double getX0() const { return config_m.x0_m; }
 
         /** Set lambda (end length) */
-        inline void setLambda(double lambda) { config_m.lambda_m = lambda; initialise(); }
+        inline void setLambda(double lambda) {
+            config_m.lambda_m = lambda;
+            initialise();
+        }
 
         /** Set x0 (flat top length) */
         inline void setX0(double x0) { config_m.x0_m = x0; }
@@ -169,7 +172,8 @@ namespace endfieldmodel {
     }
 
     KOKKOS_INLINE_FUNCTION
-    void Tanh::functionDevice(const TanhConfig& config, double x, int n, Kokkos::View<double*> values) {
+    void Tanh::functionDevice(
+            const TanhConfig& config, double x, int n, Kokkos::View<double*> values) {
         const double tanhPositive = Kokkos::tanh((x + config.x0_m) / config.lambda_m);
         const double tanhNegative = Kokkos::tanh((x - config.x0_m) / config.lambda_m);
         double positivePower      = 1;
@@ -179,7 +183,8 @@ namespace endfieldmodel {
         }
         for (int power = 0; power <= n + 1; ++power) {
             for (int d = 0; d <= n; ++d) {
-                const int coefficient = config.coefficients_m[d * (config.maxDerivative_m + 2) + power];
+                const int coefficient =
+                        config.coefficients_m[d * (config.maxDerivative_m + 2) + power];
                 values(d) += static_cast<double>(coefficient) * (positivePower - negativePower);
             }
             positivePower *= tanhPositive;
@@ -203,7 +208,7 @@ namespace endfieldmodel {
         Kokkos::parallel_for(
                 "Tanh::function", count, KOKKOS_LAMBDA(const size_t i) {
                     auto values = Kokkos::subview(derivatives, i, Kokkos::ALL);
-                    double x              = xView(i);
+                    double x    = xView(i);
                     Tanh::functionDevice(config, x, maxDerivative, values);
                 });
     }

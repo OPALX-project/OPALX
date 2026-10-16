@@ -38,7 +38,7 @@ namespace endfieldmodel {
     Tanh* Tanh::clone() const { return new Tanh(*this); }
 
     Tanh::~Tanh() {
-        config_m.lambdaPower_m = Kokkos::View<double*>(); // deallocation
+        config_m.lambdaPower_m = Kokkos::View<double*>();  // deallocation
     }
 
     std::ostream& Tanh::print(std::ostream& out) const {
@@ -55,17 +55,14 @@ namespace endfieldmodel {
         initialise();
     }
 
-    Tanh::Tanh(const Tanh& rhs) : config_m(rhs.config_m) {
-        initialise();
-    }
-
+    Tanh::Tanh(const Tanh& rhs) : config_m(rhs.config_m) { initialise(); }
 
     double Tanh::function(double x, int n) const {
         auto xDevice = Kokkos::View<double*>("efm::Tanh::xDevice", 1);
-        auto xHost = Kokkos::create_mirror_view(xDevice);
+        auto xHost   = Kokkos::create_mirror_view(xDevice);
         xHost(0)     = x;
         Kokkos::deep_copy(xDevice, xHost);
-        auto yDevice = Kokkos::View<double**>("efm::Tanh::yDevice", 1, n+1);
+        auto yDevice = Kokkos::View<double**>("efm::Tanh::yDevice", 1, n + 1);
         function(xDevice, n, yDevice);
         auto yHost = Kokkos::create_mirror_view(yDevice);
         Kokkos::deep_copy(yDevice, yHost);
@@ -129,17 +126,16 @@ namespace endfieldmodel {
     }
 
     void Tanh::initialise() {
-        config_m.lambdaPower_m = Kokkos::View<double*>("efm::Tanh::lambdaPower", config_m.maxDerivative_m);
+        config_m.lambdaPower_m =
+                Kokkos::View<double*>("efm::Tanh::lambdaPower", config_m.maxDerivative_m);
         auto lHost = Kokkos::create_mirror_view(config_m.lambdaPower_m);
-        lHost[0] = 1.0;
+        lHost[0]   = 1.0;
         for (size_t i = 1; i < config_m.maxDerivative_m; ++i) {
-            lHost(i) = lHost(i-1)*config_m.lambda_m;
+            lHost(i) = lHost(i - 1) * config_m.lambda_m;
         }
         Kokkos::deep_copy(config_m.lambdaPower_m, lHost);
     }
 
-    void Tanh::finalise() {
-        config_m.lambdaPower_m = Kokkos::View<double*>();
-    }
+    void Tanh::finalise() { config_m.lambdaPower_m = Kokkos::View<double*>(); }
 
 }  // namespace endfieldmodel
