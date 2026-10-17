@@ -25,9 +25,14 @@
 #include "AbstractObjects/OpalData.h"
 #include "AbstractObjects/ValueDefinition.h"
 #include "Attributes/Attributes.h"
+#include "BasicActions/Call.h"
+#include "BasicActions/Option.h"
+#include "OpalParser/MacroCmd.h"
+#include "OpalParser/MacroStream.h"
 #include "OpalParser/CompoundStatement.h"
 #include "OpalParser/IfStatement.h"
 #include "OpalParser/WhileStatement.h"
+#include "Track/TrackCmd.h"
 
 #include <cmath>
 #include <ctime>
@@ -116,6 +121,18 @@ void OpalParser::parse(Statement& stat) const {
 }
 
 void OpalParser::execute(Object* object, const std::string& name) const {
+    if (Options::parseOnly) {
+        // Only input-processing commands may execute. In particular, do not update
+        // simulation definitions: element updates can load maps and create output.
+        // OpalData::update only invalidates expressions in this mode.
+        OpalData::getInstance()->update();
+        if (dynamic_cast<Call*>(object) || dynamic_cast<Option*>(object)
+            || dynamic_cast<MacroCmd*>(object) || dynamic_cast<TrackCmd*>(object)) {
+            object->execute();
+        }
+        return;
+    }
+
     // Trace execution.
     if (Options::mtrace && object->shouldTrace()) {
         double time = double(clock()) / double(CLOCKS_PER_SEC);
@@ -453,6 +470,8 @@ void OpalParser::parseBracketList(char close, Statement& stat) {
 
         token = readToken();
     }
+    if (Options::parseOnly)
+        throw ParseError("OpalParser::parseBracketList", "Unclosed bracket in input.");
 }
 
 void OpalParser::parseTokenList(Statement& stat) {
@@ -473,6 +492,8 @@ void OpalParser::parseTokenList(Statement& stat) {
 
         token = readToken();
     }
+    if (Options::parseOnly && token.isEOF())
+        throw ParseError("OpalParser::parseTokenList", "Statement is not terminated by ';'.");
 }
 
 Token OpalParser::readToken() {
@@ -545,6 +566,8 @@ Statement* OpalParser::readStatement(TokenStream* is) const {
                     parseTokenList(*stat);
                 }
             }
+            if (Options::parseOnly && token.isEOF())
+                throw ParseError("OpalParser::readStatement", "Statement is not terminated by ';'.");
             stat->start();
         } else if (token.isDel(';')) {
             // Skip empty statement.
@@ -561,6 +584,12 @@ Statement* OpalParser::readStatement(TokenStream* is) const {
             throw ParseError("OpalParser::readStatement()", "Command should begin with a <name>.");
         }
     } catch (ParseError& ex) {
+        if (Options::parseOnly) {
+            Inform errorMsg("Error", std::cerr);
+            if (stat) stat->printWhere(errorMsg, false);
+            delete stat;
+            throw;
+        }
         *ippl::Error << "\n*** Parse error detected by function \""
                      << "OpalParser::readStatement()"
                      << "\"\n";
@@ -611,8 +640,20 @@ void OpalParser::run() const {
 }
 
 void OpalParser::run(TokenStream* is) const {
-    inputStack.push_back(std::shared_ptr<TokenStream>(is));
-    run();
+    // Macro/compound buffers are already owned by their statements and may be
+    // reused (for example by WHILE). Validation must not delete those buffers
+    // when a nested parse returns. File streams retain their existing ownership.
+    if (Options::parseOnly && dynamic_cast<MacroStream*>(is)) {
+        inputStack.emplace_back(is, [](TokenStream*) {});
+    } else {
+        inputStack.push_back(std::shared_ptr<TokenStream>(is));
+    }
+    try {
+        run();
+    } catch (...) {
+        inputStack.pop_back();
+        throw;
+    }
     inputStack.pop_back();
 }
 
