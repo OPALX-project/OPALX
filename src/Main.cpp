@@ -168,6 +168,7 @@ namespace OPALXMAIN {
         *ippl::Info << "   --version-full           : Print the version of opal with additional "
                        "informations.\n";
         *ippl::Info << "   --git-revision           : Print the revision hash of the repository.\n";
+        *ippl::Info << "   --parse-only             : Validate input syntax without simulation.\n";
         *ippl::Info << "   --input <fname>          : Specifies the input file <fname>.\n";
         *ippl::Info << "   --restart [<fname>]      : Restart from checkpoint file <fname>.\n";
         //*ippl::printHelp();
@@ -179,6 +180,22 @@ namespace OPALXMAIN {
 
 int main(int argc, char* argv[]) {
     ippl::initialize(argc, argv);
+    // Establish the mode before startup input or output housekeeping. Respect
+    // option values, which may themselves happen to be named "--parse-only".
+    for (int i = 1; i < argc; ++i) {
+        const std::string arg(argv[i]);
+        if (arg == "--input" || arg == "--help-command" || arg == "--info"
+            || arg == "--overallocate") {
+            ++i;
+        } else if (arg == "--parse-only") {
+            Options::parseOnly = true;
+        }
+    }
+    if (Options::parseOnly) {
+        // Syntax diagnostics must remain visible with IPPL's default --info 0.
+        ippl::Info->setOutputLevel(1);
+        ippl::Error->setOutputLevel(1);
+    }
     {
         gmsg         = new Inform("OPAL-X");
         namespace fs = std::filesystem;
@@ -190,7 +207,7 @@ int main(int argc, char* argv[]) {
         static IpplTimings::TimerRef mainTimer = IpplTimings::getTimer("mainTimer");
         IpplTimings::startTimer(mainTimer);
 
-        if (ippl::Comm->rank() == 0) remove("errormsg.txt");
+        if (!Options::parseOnly && ippl::Comm->rank() == 0) remove("errormsg.txt");
 
         const OpalParser parser;
 
@@ -201,7 +218,7 @@ int main(int argc, char* argv[]) {
 
         OpalData* opal = OpalData::getInstance();
 
-        if (ippl::Comm->rank() == 0) {
+        if (!Options::parseOnly && ippl::Comm->rank() == 0) {
             if (!fs::exists(opal->getAuxiliaryOutputDirectory())) {
                 std::error_code error_code;
                 if (!fs::create_directory(opal->getAuxiliaryOutputDirectory(), error_code)) {
@@ -211,7 +228,7 @@ int main(int argc, char* argv[]) {
             }
         }
         ippl::Comm->barrier();
-        if (!fs::is_directory(opal->getAuxiliaryOutputDirectory())) {
+        if (!Options::parseOnly && !fs::is_directory(opal->getAuxiliaryOutputDirectory())) {
             std::cerr << "unable to create directory; aborting" << std::endl;
             abort();
         }
@@ -224,9 +241,10 @@ int main(int argc, char* argv[]) {
             // Read startup file.
             FileStream::setEcho(Options::echo);
 
-            char* startup           = getenv("HOME");
-            std::filesystem::path p = strncat(startup, "/init.opal", 20);
-            if (startup != nullptr && fs::is_regular_file(p)) {
+            const char* home = getenv("HOME");
+            const std::string startup = home ? (fs::path(home) / "init.opal").string() : "";
+            const fs::path p(startup);
+            if (!startup.empty() && fs::is_regular_file(p)) {
                 FileStream::setEcho(false);
                 FileStream* is;
 
@@ -344,6 +362,8 @@ int main(int argc, char* argv[]) {
                         std::cout << Util::getGitRevision() << std::endl;
                     }
                     exit(0);
+                } else if (argStr == "--parse-only") {
+                    continue;
                 } else if (argStr == std::string("--input")) {
                     if (ii + 1 >= argc || std::string(argv[ii + 1]).front() == '-') {
                         *gmsg << "Missing input filename after --input" << endl;
@@ -407,7 +427,7 @@ int main(int argc, char* argv[]) {
 
             opal->storeInputFn(fname);
 
-            if (opal->inRestartRun()) {
+            if (!Options::parseOnly && opal->inRestartRun()) {
                 if (restartFileName.empty()) {
                     restartFileName = CheckpointFile::defaultPath(opal->getInputBasename());
                 }
@@ -425,6 +445,8 @@ int main(int argc, char* argv[]) {
                 is = new FileStream(fname);
             } catch (...) {
                 is = 0;
+                if (Options::parseOnly)
+                    throw OpalException("main", "Cannot open input file '" + fname + "'.");
                 *gmsg << "Input file '" << fname << "' not found." << endl;
             }
 
@@ -432,9 +454,12 @@ int main(int argc, char* argv[]) {
                 *gmsg << "* Reading input stream '" << fname << "'" << endl;
                 parser.run(is);
                 *gmsg << "* End of input stream '" << fname << "'" << endl;
+                if (Options::parseOnly)
+                    std::cout << "Syntax validation succeeded (simulation commands skipped)."
+                              << std::endl;
             }
 
-            if (ippl::Comm->rank() == 0) {
+            if (!Options::parseOnly && ippl::Comm->rank() == 0) {
                 std::ifstream errormsg("errormsg.txt");
                 if (errormsg.good()) {
                     char buffer[256];
@@ -563,7 +588,7 @@ int main(int argc, char* argv[]) {
 
         IpplTimings::print();
 
-        if (!opal->hasCofRun || opal->hasTrackingRun)
+        if (!Options::parseOnly && (!opal->hasCofRun || opal->hasTrackingRun))
             IpplTimings::print(
                     std::string("timing.dat"),
                     OpalData::getInstance()->getProblemCharacteristicValues());

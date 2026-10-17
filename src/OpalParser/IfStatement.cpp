@@ -24,6 +24,7 @@
 #include "OpalParser/Parser.h"
 #include "OpalParser/Token.h"
 #include "OpalParser/TokenStream.h"
+#include "Utilities/Options.h"
 #include "Utilities/ParseError.h"
 
 #include "Utility/IpplInfo.h"
@@ -55,11 +56,17 @@ IfStatement::IfStatement(const Parser& parser, TokenStream& is)
             token = is.readToken();
         }
 
+        if (Options::parseOnly && level != 0)
+            throw ParseError("IfStatement", "IF condition is missing ')'.");
         then_block = parser.readStatement(&is);
+        if (Options::parseOnly && !then_block)
+            throw ParseError("IfStatement", "IF requires a statement.");
         token      = is.readToken();
 
         if (!token.isEOF() && token.isKey("ELSE")) {
             else_block = parser.readStatement(&is);
+            if (Options::parseOnly && !else_block)
+                throw ParseError("IfStatement", "ELSE requires a statement.");
         } else {
             is.putBack(token);
         }
