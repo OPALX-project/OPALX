@@ -162,6 +162,10 @@ Dependency version/ref options:
 | `Kokkos_VERSION` | `5.2.0` | Kokkos version requested by IPPL. A plain version asks CMake to use an installed Kokkos of that version or newer; use `git.<tag>`, `git.<branch>`, or `git.<sha>` to request a source checkout ref. |
 | `Heffte_VERSION` | `2.4.0` | Heffte version requested by IPPL when FFT support is enabled. A plain version asks CMake to use an installed Heffte of that version or newer; use `git.<tag>`, `git.<branch>`, or `git.<sha>` to request a source checkout ref. |
 
+Known local build issue: see the [IPPL ORB API mismatch report](docs/dependency-issues/ippl-orb-api.md)
+for exact dependency revisions, the local workaround, its single-rank validation
+results, and the unresolved axis-mask contract.
+
 Enable flags with `-D<FLAG>=ON` during CMake configuration.
 
 ### Compilation
