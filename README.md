@@ -162,6 +162,10 @@ Dependency version/ref options:
 | `Kokkos_VERSION` | `5.2.0` | Kokkos version requested by IPPL. A plain version asks CMake to use an installed Kokkos of that version or newer; use `git.<tag>`, `git.<branch>`, or `git.<sha>` to request a source checkout ref. |
 | `Heffte_VERSION` | `2.4.0` | Heffte version requested by IPPL when FFT support is enabled. A plain version asks CMake to use an installed Heffte of that version or newer; use `git.<tag>`, `git.<branch>`, or `git.<sha>` to request a source checkout ref. |
 
+Known local build issue: see the [IPPL ORB API mismatch report](docs/dependency-issues/ippl-orb-api.md)
+for exact dependency revisions, the local workaround, its single-rank validation
+results, and the unresolved axis-mask contract.
+
 Enable flags with `-D<FLAG>=ON` during CMake configuration.
 
 ### Compilation
@@ -220,3 +224,36 @@ srun ./opalx DriftTest-1.in  --info 10 --kokkos-map-device-id-by=mpi_rank
 ```
 
 The documentation has been moved to the [OPAL Landing Page](https://amas.pages.psi.ch/opal/).
+
+## Input syntax validation
+
+Use the existing executable to check input without running a simulation:
+
+```bash
+/path/to/opalx --parse-only --input lattice.in
+```
+
+A positional filename also works: `opalx --parse-only lattice.in`.
+Success prints `Syntax validation succeeded` and returns exit status 0; input errors
+return a nonzero status with OPALX diagnostics.
+
+This mode uses OPALX's command and attribute parsers, retains definitions and
+assignments, follows `CALL` includes, and parses `TRACK`/`RUN`/`ENDTRACK` blocks.
+It processes `~/init.opal` in the same mode. Input-processing options and invoked
+macros still execute; simulation commands, shell commands, and field dumps do
+not. It creates no simulation output directories or timing files and preserves
+any existing `errormsg.txt`.
+
+Validation covers the input path selected by the existing conditional, loop, and
+macro semantics. Untaken branches, uncalled macros, and statements after
+`STOP`/`QUIT` are not fully validated. Loops retain their normal termination
+behavior. This is not a field-map availability, physical consistency, or runtime
+validity check; those checks belong to the subsequent simulation workflow.
+Some reference and value checks remain inherent in OPALX's attribute parsing.
+The executable still requires its normal build and runtime dependencies.
+
+The isolated CLI integration tests can be run with:
+
+```bash
+ctest --test-dir build_serial -R '^ParseOnlyCLI$' --output-on-failure
+```

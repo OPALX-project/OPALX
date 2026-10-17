@@ -20,6 +20,8 @@
 #include "OpalParser/CompoundStatement.h"
 #include "AbstractObjects/OpalData.h"
 #include "OpalParser/Parser.h"
+#include "Utilities/Options.h"
+#include "Utilities/ParseError.h"
 
 // class CompoundStatement
 // ------------------------------------------------------------------------
@@ -44,6 +46,8 @@ CompoundStatement::CompoundStatement(TokenStream& is) : Statement("", 0), tokens
         tokens->append(token);
         token = is.readToken();
     }
+    if (Options::parseOnly)
+        throw ParseError("CompoundStatement", "Compound statement is missing '}'.");
 }
 
 CompoundStatement::~CompoundStatement() {}
