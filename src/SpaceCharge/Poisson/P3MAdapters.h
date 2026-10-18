@@ -170,8 +170,12 @@ namespace opalx::spacecharge {
          * stretched by gamma; both stages use the layout cutoff as the rest-frame cutoff. Since
          * the rest-frame distance is never shorter than the lab distance, the lab-frame search
          * cells and halos already contain every rest-frame pair inside the cutoff. Charges are
-         * Lorentz invariant and enter unscaled. Ghost entries, stored after the local ones, are
-         * transformed too. The caller converts the returned field to lab-frame E and B.
+         * Lorentz invariant and enter unscaled. The caller converts the returned field to
+         * lab-frame E and B.
+         *
+         * Ghost particles sit after the local ones in the attribute storage, beyond the local
+         * range that getView() covers, so the positions are read through the attribute over its
+         * full storage size, as the IPPL pair kernel reads them.
          *
          * @return Rest-frame electric field, valid on [0, local count) until the next call.
          * @throws OpalException if @p gamma is not finite or below 1.
@@ -185,8 +189,8 @@ namespace opalx::spacecharge {
             const double cutoff =
                     requireCutoff(particles, "P3MShortRangeInteraction::computeRestFrameField");
 
-            const VectorView labPositions = particles.R.getView();
-            const std::size_t entries     = labPositions.extent(0);
+            const auto& labPositions  = particles.R;
+            const std::size_t entries = labPositions.size();
             if (restFramePositions_m.extent(0) < entries) {
                 Kokkos::realloc(Kokkos::WithoutInitializing, restFramePositions_m, entries);
                 Kokkos::realloc(Kokkos::WithoutInitializing, restFrameField_m, entries);
