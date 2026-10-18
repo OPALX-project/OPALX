@@ -100,11 +100,30 @@ namespace opalx::spacecharge {
 
             config = p3mConfig(FieldBoundaryCondition::Open);
             config.binning.emplace();
+            config.binning->maximumBins = 128;
             EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(config)), OpalException);
 
             config                = p3mConfig(FieldBoundaryCondition::Open);
             config.dirichletPlane = {.kind = DirichletPlaneType::ImageCharge};
             EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(config)), OpalException);
+        }
+
+        TEST(SpaceChargeConfigTest, P3MAcceptsOnlySingleBin) {
+            for (auto boundary : {FieldBoundaryCondition::Open, FieldBoundaryCondition::Periodic}) {
+                auto config = p3mConfig(boundary);
+                config.binning.emplace();
+                for (bool adaptive : {true, false}) {
+                    config.binning->adaptive    = adaptive;
+                    config.binning->maximumBins = 1;
+                    EXPECT_NO_THROW(validateSpaceChargeConfig(SpaceChargeConfig(config)));
+                    for (std::size_t bins : {2u, 128u}) {
+                        config.binning->maximumBins = bins;
+                        EXPECT_THROW(
+                                validateSpaceChargeConfig(SpaceChargeConfig(config)),
+                                OpalException);
+                    }
+                }
+            }
         }
 
         TEST(SpaceChargeConfigTest, PairWeightNeedsP3MAndUnitRange) {
@@ -126,7 +145,7 @@ namespace opalx::spacecharge {
             EXPECT_THROW(validateSpaceChargeConfig(SpaceChargeConfig(config)), OpalException);
         }
 
-        TEST(SpaceChargeConfigTest, P3MShiftedPlaneRequiresOpenUnbinnedDomain) {
+        TEST(SpaceChargeConfigTest, P3MShiftedPlaneRequiresOpenDomainAndSingleBin) {
             for (auto green : {GreenFunctionType::Standard, GreenFunctionType::Integrated}) {
                 auto config           = p3mConfig(FieldBoundaryCondition::Open);
                 config.greenFunction  = green;
@@ -139,9 +158,13 @@ namespace opalx::spacecharge {
                 EXPECT_THROW(validateSpaceChargeConfig(config), OpalException);
                 config.boundaryConditions.fill(FieldBoundaryCondition::Open);
                 config.binning.emplace();
+                config.binning->maximumBins = 128;
+                EXPECT_THROW(validateSpaceChargeConfig(config), OpalException);
+                config.binning->maximumBins = 1;
+                EXPECT_NO_THROW(validateSpaceChargeConfig(config));
+                config.dirichletPlane.planeDumpFrequency = 1;
                 EXPECT_THROW(validateSpaceChargeConfig(config), OpalException);
                 config.binning.reset();
-                config.dirichletPlane.planeDumpFrequency = 1;
                 EXPECT_THROW(validateSpaceChargeConfig(config), OpalException);
             }
         }
