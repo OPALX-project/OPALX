@@ -9,6 +9,7 @@
 #include "Utilities/OpalException.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <functional>
 #include <limits>
@@ -81,6 +82,17 @@ namespace opalx::spacecharge {
             ippl::Comm->allreduce(&extremes[1], 1, std::plus<double>());
             const double mean = extremes[1] / static_cast<double>(ippl::Comm->size());
             return mean > 0.0 ? extremes[0] / mean : 0.0;
+        }
+
+        /**
+         * @brief Axes ORB must not cut: those the layout does not distribute over MPI ranks.
+         *
+         * The layout carries the decomposition it was last built with (PARFFTX/Y/Z, or the
+         * longitudinal rebuild decomposition after a mesh resize), so ORB keeps that decomposition.
+         */
+        std::array<bool, 3> orbForbiddenAxes(const ippl::FieldLayout<3>& layout) {
+            const std::array<bool, 3> parallel = layout.isParallel();
+            return {!parallel[0], !parallel[1], !parallel[2]};
         }
 
     }  // namespace
@@ -382,7 +394,7 @@ namespace opalx::spacecharge {
     }
 
     void CartesianDomainUpdater::applyRepartition(FieldStorage& fieldStorage) {
-        // ORB may mutate the layout even when it reports ordinary failure.
+        poissonRebuildRequired_m = true;
         fieldStorage.updateFieldLayoutsAfterLayoutChange();
         updateLayoutsAndMigrate(fieldStorage, DomainCoordinateFrame::Beam);
     }
@@ -395,20 +407,22 @@ namespace opalx::spacecharge {
         }
 
         const std::size_t localBefore = primary().getLocalNum();
+        auto& layout                  = fieldStorage.layout();
         orb_m                         = Orb();
-        orb_m.initialize(fieldStorage.layout(), fieldStorage.mesh(), fieldStorage.chargeDensity());
-        poissonRebuildRequired_m = true;
-        const bool succeeded = orb_m.binaryRepartition(primary().R, fieldStorage.layout(), false);
-
-        applyRepartition(fieldStorage);
-        if (!succeeded) {
-            m << level2 << "ORB load balancing failed; retaining the resulting valid layout."
-              << endl;
+        orb_m.initialize(layout, fieldStorage.mesh(), fieldStorage.chargeDensity());
+        // ORB changes the layout only after its domains pass validation, so a failed
+        // repartition leaves fields, particles, and the Poisson solver valid.
+        if (!orb_m.binaryRepartition(primary().R, layout, false, orbForbiddenAxes(layout))) {
+            m << level2 << "ORB load balancing failed along the distributed axes "
+              << "(PARFFTX/Y/Z); keeping the current layout." << endl;
             return false;
         }
 
+        applyRepartition(fieldStorage);
+
         m << level2 << "ORB load balancing done. Rank 0: " << localBefore << " -> "
-          << primary().getLocalNum() << " particles in primary container." << endl;
+          << primary().getLocalNum() << " particles in primary container, local domain "
+          << layout.getLocalNDIndex() << "." << endl;
         return true;
     }
 
@@ -444,36 +458,34 @@ namespace opalx::spacecharge {
                 hostDomains.data(), hostDomains.data() + hostDomains.extent(0));
         const double fitBefore = largestFittingCutoff(fieldStorage);
 
-        poissonRebuildRequired_m = true;
-        const bool succeeded =
-                orb_m.binaryRepartition(primary().R, layout, /*isFirstRepartition=*/true);
+        // ORB changes the layout only after its domains pass validation, so a failed
+        // repartition leaves fields, particles, and the Poisson solver valid.
+        if (!orb_m.binaryRepartition(
+                    primary().R, layout, /*isFirstRepartition=*/true, orbForbiddenAxes(layout))) {
+            m << level2 << "ORB load balancing failed along the distributed axes "
+              << "(PARFFTX/Y/Z); keeping the current layout." << endl;
+            return false;
+        }
 
         // Pair weights shrink the regions in the dense core. A cut that no longer fits the P3M
         // cutoff would reduce a mesh-tied cutoff for every rank or abort with a fixed one, so it
         // is replaced by the particle-count cut, which today's runs would have used.
         const double requestedCutoff = resolveOverlapCutoff<3>(
                 config_m.p3mCutoff, config_m.p3mCutoffCells, fieldStorage.mesh().getMeshSpacing());
-        if (succeeded) {
-            const double fitAfter = largestFittingCutoff(fieldStorage);
-            if (fitAfter < requestedCutoff && fitAfter < fitBefore) {
-                layout.updateLayout(previousDomains);
-                if (!pairWeightFallbackReported_m) {
-                    m << level1 << "The pair-weighted ORB cut leaves rank regions too small for "
-                      << "the P3M cutoff " << requestedCutoff << " m (largest fitting cutoff "
-                      << fitAfter << " m); using the particle-count cut instead. Further "
-                      << "fallbacks are not reported." << endl;
-                    pairWeightFallbackReported_m = true;
-                }
-                return redistribute(context, fieldStorage);
+        const double fitAfter = largestFittingCutoff(fieldStorage);
+        if (fitAfter < requestedCutoff && fitAfter < fitBefore) {
+            layout.updateLayout(previousDomains);
+            if (!pairWeightFallbackReported_m) {
+                m << level1 << "The pair-weighted ORB cut leaves rank regions too small for "
+                  << "the P3M cutoff " << requestedCutoff << " m (largest fitting cutoff "
+                  << fitAfter << " m); using the particle-count cut instead. Further "
+                  << "fallbacks are not reported." << endl;
+                pairWeightFallbackReported_m = true;
             }
+            return redistribute(context, fieldStorage);
         }
 
         applyRepartition(fieldStorage);
-        if (!succeeded) {
-            m << level2 << "ORB load balancing failed; retaining the resulting valid layout."
-              << endl;
-            return false;
-        }
 
         const double weightRatioAfter = maxOverMean(depositPairWeight(fieldStorage));
         const double countRatioAfter  = maxOverMean(static_cast<double>(primary().getLocalNum()));
