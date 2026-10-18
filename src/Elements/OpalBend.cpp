@@ -50,7 +50,7 @@ OpalBend::OpalBend(const char* name, const char* help) : OpalElement(SIZE, name,
     itsAttr[STEPSIZE] = Attributes::makeReal("STEPSIZE", "Step-size to use for integration");
     itsAttr[FMAPFN]   = Attributes::makeString("FMAPFN", "Filename for the fieldmap");
     itsAttr[GAP] =
-            Attributes::makeReal("GAP", "Not supported; specify HGAP (the half gap) instead");
+            Attributes::makeReal("GAP", "Full pole gap in m (RBEND); mutually exclusive with HGAP");
     itsAttr[HAPERT] = Attributes::makeReal(
             "HAPERT",
             "Half aperture in the bend plane, i.e. horizontal (m). Requires HGAP > 0 "
