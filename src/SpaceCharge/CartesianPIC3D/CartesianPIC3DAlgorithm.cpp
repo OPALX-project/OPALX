@@ -9,6 +9,7 @@
 #include "Structure/DataSink.h"
 #include "Utilities/OpalException.h"
 
+#include <algorithm>
 #include <iomanip>
 #include <optional>
 #include <string>
@@ -280,6 +281,9 @@ namespace opalx::spacecharge {
           << ", stype=" << poissonSolver_m->name() << endl;
 
         binStats_m.clear();
+        // Multi-bin P3M would need one rest-frame particle pass per bin with charges masked to
+        // that bin; ghost bin indices are stale after prepareBins and would need a halo refresh.
+        std::optional<FieldCompositionPolicy> particleRestFrame;
         while (const std::optional<ParticleBinType> unit =
                        particleBinTraversal_m->nextNonemptyBin()) {
             m << level4 << "binIndex=" << static_cast<int>(unit->ordinal)
@@ -291,6 +295,16 @@ namespace opalx::spacecharge {
                             static_cast<unsigned long long>(unit->globalParticleCount),
                             unit->gamma});
 
+            if (shortRangeInteraction_m.has_value()) {
+                if (particleRestFrame.has_value()) {
+                    throw OpalException(
+                            "CartesianPIC3DAlgorithm::solveBinned",
+                            "The P3M short-range correction supports a single bin only.");
+                }
+                particleRestFrame = FieldCompositionPolicy{
+                        .meanMomentum = unit->meanMomentum, .gamma = unit->gamma};
+            }
+
             for (std::size_t index = 0; index < plan.passCount; ++index) {
                 solvePass(context, plan, &*unit, plan.passes[index], result);
             }
@@ -298,6 +312,14 @@ namespace opalx::spacecharge {
 
         relativisticFieldComposer_m.gatherAccumulated(
                 particleMeshTransfer_m, primary_m->E, primary_m->B, primary_m->R, *fieldStorage_m);
+        // Add particle fields after the final gather so replacement gathering cannot erase them.
+        // Image charges receive no short-range correction, as in the whole-bunch solve.
+        if (particleRestFrame.has_value()) {
+            relativisticFieldComposer_m.addParticleContribution(
+                    shortRangeInteraction_m->computeRestFrameField(
+                            *primary_m, particleRestFrame->gamma),
+                    primary_m->E, primary_m->B, primary_m->getLocalNum(), *particleRestFrame);
+        }
         if (config_m.binning->tablePrintFrequency > 0
             && step % static_cast<long long>(config_m.binning->tablePrintFrequency) == 0) {
             printBinStatsTable();
@@ -340,7 +362,28 @@ namespace opalx::spacecharge {
         PoissonSolveRequest poissonRequest;
         if (primary_m->hasP3MLayout()) {
             // The mesh split follows the cutoff the domain updater gave the overlap layout.
-            poissonRequest.p3mCutoff = primary_m->getP3MLayout().getCutoff();
+            const double cutoff      = primary_m->getP3MLayout().getCutoff();
+            poissonRequest.p3mCutoff = cutoff;
+            // The rest-frame solve keeps the lab cutoff, so a long gamma*hz can leave the mesh
+            // split coarser than alpha*h = 1 and than the lab mesh would.
+            if (unit != nullptr && !warnedRestFrameP3MResolution_m && cutoff > 0.0) {
+                const double alpha = 2.0 / cutoff;
+                const double labLargest =
+                        std::max({originalSpacing[0], originalSpacing[1], originalSpacing[2]});
+                const double restLargest =
+                        std::max({stretchedSpacing[0], stretchedSpacing[1], stretchedSpacing[2]});
+                if (alpha * restLargest > std::max(1.0, alpha * labLargest)) {
+                    warnedRestFrameP3MResolution_m = true;
+                    Inform warning("CartesianPIC3DAlgorithm::solvePass");
+                    warning << level1
+                            << "The bin rest-frame mesh spacing gamma*hz = " << stretchedSpacing[2]
+                            << " m gives alpha*h = " << alpha * restLargest
+                            << " for the P3M cutoff " << cutoff
+                            << " m; mesh accuracy is reduced. Increase NZ by about gamma = "
+                            << gamma << " for a near-isotropic rest-frame mesh. Further "
+                            << "occurrences are not reported." << endl;
+                }
+            }
         }
         if (policy.shiftedGreen) {
             const auto origin = mesh.getOrigin();

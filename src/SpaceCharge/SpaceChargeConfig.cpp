@@ -101,8 +101,12 @@ namespace opalx::spacecharge {
                         "requires FIELDSOLVER TYPE=P3M.");
             }
             validatePoissonSolverConfig(makePoissonSolverConfig(config));
-            if (config.backend == PoissonSolverType::P3M && config.binning.has_value()) {
-                throw OpalException("validateSpaceChargeConfig", "P3M does not support binning.");
+            if (config.backend == PoissonSolverType::P3M && config.binning.has_value()
+                && config.binning->maximumBins != 1) {
+                throw OpalException(
+                        "validateSpaceChargeConfig",
+                        "P3M supports BINS only with MAXBINS=1 (single-bin rest-frame "
+                        "correction); multi-bin P3M is not implemented yet.");
             }
             const bool p3mShiftedPlane =
                     config.backend == PoissonSolverType::P3M

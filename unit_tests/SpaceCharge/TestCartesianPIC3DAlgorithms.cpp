@@ -7,11 +7,13 @@
 #include "Structure/DataSink.h"
 #include "Utilities/Options.h"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdio>
 #include <limits>
 #include <memory>
+#include <utility>
 
 namespace opalx::spacecharge {
     namespace {
@@ -138,6 +140,74 @@ namespace opalx::spacecharge {
                     }
                 }
             }
+
+            static double largestComponent(const Kokkos::View<Vector*, Kokkos::HostSpace>& view) {
+                double largest = 0.0;
+                for (std::size_t i = 0; i < view.extent(0); ++i) {
+                    for (unsigned d = 0; d < 3; ++d) {
+                        largest = std::max(largest, std::abs(view(i)[d]));
+                    }
+                }
+                return largest;
+            }
+
+            // Overlap layouts sort particles by cell, so pair particles of two runs by position.
+            static void expectFieldsEqualByPosition(Particles& actual, Particles& expected) {
+                ASSERT_EQ(actual.getLocalNum(), expected.getLocalNum());
+                const std::size_t count = actual.getLocalNum();
+                auto host               = [count](const auto& attribute) {
+                    Kokkos::View<Vector*, Kokkos::HostSpace> result("host", count);
+                    Kokkos::deep_copy(
+                            result,
+                            Kokkos::subview(
+                                    attribute.getView(), std::make_pair(std::size_t{0}, count)));
+                    return result;
+                };
+                const auto actualR = host(actual.R), expectedR = host(expected.R);
+                const auto actualE = host(actual.E), expectedE = host(expected.E);
+                const auto actualB = host(actual.B), expectedB = host(expected.B);
+                const double magneticScale = largestComponent(expectedB);
+                for (std::size_t i = 0; i < count; ++i) {
+                    std::size_t match = count;
+                    for (std::size_t j = 0; j < count; ++j) {
+                        const Vector offset = actualR(i) - expectedR(j);
+                        if (std::sqrt(offset.dot(offset)) < 1.0e-12) {
+                            match = j;
+                        }
+                    }
+                    ASSERT_LT(match, count) << "No particle at the position of particle " << i;
+                    for (unsigned d = 0; d < 3; ++d) {
+                        EXPECT_TRUE(std::isfinite(actualE(i)[d]));
+                        EXPECT_NEAR(
+                                actualE(i)[d], expectedE(match)[d],
+                                1.0e-9 * std::max(1.0, std::abs(expectedE(match)[d])));
+                        EXPECT_NEAR(
+                                actualB(i)[d], expectedB(match)[d],
+                                1.0e-9 * std::max(std::abs(expectedB(match)[d]), magneticScale));
+                    }
+                }
+            }
+
+            // Moves particle 1 within the P3M cutoff of particle 0, then shifts the bunch in z.
+            static void placeClosePair(Particles& particles, double zShift) {
+                auto positions = particles.R.getHostMirror();
+                Kokkos::deep_copy(positions, particles.R.getView());
+                positions(1) = positions(0) + Vector(0.0002, 0.0001, 0.0001);
+                for (std::size_t i = 0; i < particles.getLocalNum(); ++i)
+                    positions(i)[2] += zShift;
+                Kokkos::deep_copy(particles.R.getView(), positions);
+                particles.updateMoments();
+            }
+
+            static CartesianPIC3DConfig singleBinP3MConfig() {
+                auto result      = config();
+                result.backend   = PoissonSolverType::P3M;
+                result.p3mCutoff = 0.001;
+                result.binning.emplace();
+                result.binning->maximumBins = 1;
+                result.binning->adaptive    = false;
+                return result;
+            }
         };
 
         TEST_F(CartesianPIC3DAlgorithmsTest, ShiftedGreenWorksWithEitherKernelWithoutBinning) {
@@ -238,6 +308,161 @@ namespace opalx::spacecharge {
                     EXPECT_EQ(p3mImage.solve(step).backendSolves, 1u);
                     EXPECT_EQ(p3mDirect.solve(step).backendSolves, 1u);
                     expectFieldsEqual(p3mImage.particles, p3mDirect.particles);
+                }
+            }
+        }
+
+        TEST_F(CartesianPIC3DAlgorithmsTest, P3MSingleBinAtRestMatchesUnbinnedP3M) {
+            const auto binnedConfig = singleBinP3MConfig();
+            auto wholeConfig        = binnedConfig;
+            wholeConfig.binning.reset();
+            Run whole(wholeConfig), binned(binnedConfig);
+            for (Run* run : {&whole, &binned})
+                placeClosePair(run->particles, 0.0);
+
+            for (std::size_t step : {0u, 1u}) {
+                EXPECT_EQ(whole.solve(step).backendSolves, 1u);
+                EXPECT_EQ(binned.solve(step).backendSolves, 1u);
+                expectFieldsEqualByPosition(binned.particles, whole.particles);
+            }
+
+            // Ensure this fixture would detect a lost or repeated particle correction.
+            Kokkos::deep_copy(whole.particles.E.getView(), Vector(0.0));
+            P3MShortRangeInteraction().apply(whole.particles);
+            auto particleE = Kokkos::create_mirror_view_and_copy(
+                    Kokkos::HostSpace(), whole.particles.E.getView());
+            double particleNorm = 0.0;
+            for (std::size_t i = 0; i < whole.particles.getLocalNum(); ++i)
+                particleNorm += particleE(i).dot(particleE(i));
+            EXPECT_GT(particleNorm, 1.0e-6);
+        }
+
+        TEST_F(CartesianPIC3DAlgorithmsTest, P3MSingleBinFollowsBoostedCoulomb) {
+            auto values          = singleBinP3MConfig();
+            values.grid.meshSize = {32, 32, 32};
+            // pz = 4/3 gives gamma = 5/3 and v = 0.8 c along z.
+            const double gamma = 5.0 / 3.0;
+            Run run(values, {}, Vector(0.0, 0.0, 4.0 / 3.0));
+
+            // A close pair, dominated by its short-range term, and two distant particles that
+            // interact through the mesh only. The rest-frame mesh keeps alpha * h near 0.5.
+            const std::array<Vector, 4> placed{
+                    Vector(0.0, 0.0, 0.010), Vector(0.0001, 0.00005, 0.0101),
+                    Vector(-0.002, 0.0015, 0.008), Vector(0.0018, -0.002, 0.0125)};
+            auto positions = run.particles.R.getHostMirror();
+            for (std::size_t i = 0; i < placed.size(); ++i)
+                positions(i) = placed[i];
+            Kokkos::deep_copy(run.particles.R.getView(), positions);
+            run.particles.markMomentsDirty();
+            run.particles.updateMoments();
+
+            EXPECT_EQ(run.solve().backendSolves, 1u);
+
+            const auto finalR = Kokkos::create_mirror_view_and_copy(
+                    Kokkos::HostSpace(), run.particles.R.getView());
+            const auto electric = Kokkos::create_mirror_view_and_copy(
+                    Kokkos::HostSpace(), run.particles.E.getView());
+            const auto magnetic = Kokkos::create_mirror_view_and_copy(
+                    Kokkos::HostSpace(), run.particles.B.getView());
+            const double coulomb =
+                    run.particles.getChargePerParticle() / (4.0 * Physics::pi * Physics::epsilon_0);
+            const Vector velocity(0.0, 0.0, 0.8 * Physics::c);
+            ASSERT_EQ(run.particles.getLocalNum(), placed.size());
+            for (std::size_t i = 0; i < placed.size(); ++i) {
+                // Coulomb field of every other particle in the bunch rest frame, boosted to lab.
+                Vector expected(0.0);
+                for (const Vector& source : placed) {
+                    Vector rest = finalR(i) - source;
+                    rest[2] *= gamma;
+                    const double r = std::sqrt(rest.dot(rest));
+                    if (r < 1.0e-9) {
+                        continue;
+                    }
+                    const Vector restField = (coulomb / (r * r * r)) * rest;
+                    expected += Vector(gamma * restField[0], gamma * restField[1], restField[2]);
+                }
+                const double scale = std::sqrt(expected.dot(expected));
+                const Vector expectedB =
+                        (1.0 / (Physics::c * Physics::c)) * cross(velocity, Vector(electric(i)));
+                const double scaleB = std::sqrt(expectedB.dot(expectedB));
+                EXPECT_GT(scaleB, 0.0);
+                for (unsigned d = 0; d < 3; ++d) {
+                    EXPECT_NEAR(electric(i)[d], expected[d], 0.03 * scale)
+                            << "particle " << i << ", component " << d;
+                    EXPECT_NEAR(magnetic(i)[d], expectedB[d], 1.0e-9 * scaleB);
+                }
+            }
+        }
+
+        TEST_F(CartesianPIC3DAlgorithmsTest, P3MSingleBinShiftedImageMatchesOpenImage) {
+            // pz = 3/4 gives gamma = 5/4, so the image shift and field conversion are boosted.
+            const Vector momentum(0.0, 0.0, 0.75);
+            auto p3mConfig           = singleBinP3MConfig();
+            auto openConfig          = config();
+            openConfig.greenFunction = GreenFunctionType::Standard;
+            openConfig.binning       = p3mConfig.binning;
+            for (double planeZ : {0.0, 0.125}) {
+                p3mConfig.dirichletPlane = {
+                        .kind         = DirichletPlaneType::ShiftedGreen,
+                        .planeZ       = planeZ,
+                        .maximumSteps = 2};
+                openConfig.dirichletPlane       = p3mConfig.dirichletPlane;
+                auto p3mDirectConfig            = p3mConfig;
+                auto openDirectConfig           = openConfig;
+                p3mDirectConfig.dirichletPlane  = {};
+                openDirectConfig.dirichletPlane = {};
+                Run p3mImage(p3mConfig, {}, momentum), openImage(openConfig, {}, momentum);
+                Run p3mDirect(p3mDirectConfig, {}, momentum),
+                        openDirect(openDirectConfig, {}, momentum);
+                for (Run* run : {&p3mImage, &p3mDirect, &openImage, &openDirect})
+                    placeClosePair(run->particles, planeZ);
+
+                for (std::size_t step : {0u, 1u}) {
+                    EXPECT_EQ(p3mImage.solve(step).backendSolves, 2u);
+                    EXPECT_EQ(openImage.solve(step).backendSolves, 2u);
+                    EXPECT_EQ(p3mDirect.solve(step).backendSolves, 1u);
+                    EXPECT_EQ(openDirect.solve(step).backendSolves, 1u);
+                    auto host = [](const auto& attribute) {
+                        return Kokkos::create_mirror_view_and_copy(
+                                Kokkos::HostSpace(), attribute.getView());
+                    };
+                    const auto p3mE = host(p3mImage.particles.E), p3mB = host(p3mImage.particles.B);
+                    const auto p3mDirectE  = host(p3mDirect.particles.E),
+                               p3mDirectB  = host(p3mDirect.particles.B);
+                    const auto openE       = host(openImage.particles.E),
+                               openB       = host(openImage.particles.B);
+                    const auto openDirectE = host(openDirect.particles.E),
+                               openDirectB = host(openDirect.particles.B);
+
+                    // The image is mesh-resolved in both backends; P3M adds its particle term to
+                    // the real bunch once, so it cancels in the image-minus-direct difference.
+                    double electricNorm = 0.0, magneticScale = 0.0;
+                    for (std::size_t i = 0; i < p3mImage.particles.getLocalNum(); ++i) {
+                        for (unsigned d = 0; d < 3; ++d) {
+                            const double imageE = openE(i)[d] - openDirectE(i)[d];
+                            electricNorm += imageE * imageE;
+                            magneticScale = std::max(
+                                    magneticScale, std::abs(openB(i)[d] - openDirectB(i)[d]));
+                        }
+                    }
+                    EXPECT_GT(electricNorm, 1.0e-6);
+                    EXPECT_GT(magneticScale, 0.0);
+                    for (std::size_t i = 0; i < p3mImage.particles.getLocalNum(); ++i) {
+                        for (unsigned d = 0; d < 3; ++d) {
+                            const double imageE = openE(i)[d] - openDirectE(i)[d];
+                            const double imageB = openB(i)[d] - openDirectB(i)[d];
+                            EXPECT_NEAR(
+                                    p3mE(i)[d] - p3mDirectE(i)[d], imageE,
+                                    1.0e-9 * std::max(1.0, std::abs(imageE)));
+                            EXPECT_NEAR(
+                                    p3mB(i)[d] - p3mDirectB(i)[d], imageB, 1.0e-8 * magneticScale);
+                        }
+                    }
+                }
+                for (std::size_t step : {2u, 3u}) {
+                    EXPECT_EQ(p3mImage.solve(step).backendSolves, 1u);
+                    EXPECT_EQ(p3mDirect.solve(step).backendSolves, 1u);
+                    expectFieldsEqualByPosition(p3mImage.particles, p3mDirect.particles);
                 }
             }
         }
