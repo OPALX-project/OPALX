@@ -365,23 +365,26 @@ namespace opalx::spacecharge {
             const double cutoff      = primary_m->getP3MLayout().getCutoff();
             poissonRequest.p3mCutoff = cutoff;
             // The rest-frame solve keeps the lab cutoff, so a long gamma*hz can leave the mesh
-            // split coarser than alpha*h = 1 and than the lab mesh would.
+            // split coarser than alpha*h = 1. Report only a coarsening by at least a factor of
+            // two, so a small early boost does not use up the single report.
             if (unit != nullptr && !warnedRestFrameP3MResolution_m && cutoff > 0.0) {
                 const double alpha = 2.0 / cutoff;
                 const double labLargest =
                         std::max({originalSpacing[0], originalSpacing[1], originalSpacing[2]});
                 const double restLargest =
                         std::max({stretchedSpacing[0], stretchedSpacing[1], stretchedSpacing[2]});
-                if (alpha * restLargest > std::max(1.0, alpha * labLargest)) {
+                const double coarsening = restLargest / labLargest;
+                if (coarsening >= 2.0 && alpha * restLargest > 1.0) {
                     warnedRestFrameP3MResolution_m = true;
                     Inform warning("CartesianPIC3DAlgorithm::solvePass");
                     warning << level1
                             << "The bin rest-frame mesh spacing gamma*hz = " << stretchedSpacing[2]
-                            << " m gives alpha*h = " << alpha * restLargest
-                            << " for the P3M cutoff " << cutoff
-                            << " m; mesh accuracy is reduced. Increase NZ by about gamma = "
-                            << gamma << " for a near-isotropic rest-frame mesh. Further "
-                            << "occurrences are not reported." << endl;
+                            << " m is " << coarsening
+                            << " times the largest lab-frame spacing, giving alpha*h = "
+                            << alpha * restLargest << " for the P3M cutoff " << cutoff
+                            << " m; mesh accuracy is reduced. Increase NZ by about this factor "
+                            << "for a near-isotropic rest-frame mesh. Further occurrences are "
+                            << "not reported." << endl;
                 }
             }
         }
