@@ -10,6 +10,11 @@
  * so only its native force constant contains epsilon_0. The particle contribution is added
  * to E in the Cartesian solve axes after the final mesh-to-particle gather.
  *
+ * With single-bin binning both stages work in the bin rest frame: the mesh stage on a z spacing
+ * stretched by gamma, the particle stage on separations (dx, dy, gamma dz). The cutoff keeps its
+ * value in metres and is the rest-frame cutoff. The particle field is then Lorentz-converted
+ * to lab E and B like the mesh field.
+ *
  * The open Dirichlet image pass uses the full STANDARD shifted Coulomb mesh kernel, regularized
  * below h_min/2, with no short-range correction for image charges. The image field is therefore
  * mesh-resolved: for particles within about one cell of the plane it has STANDARD OPEN accuracy,
@@ -28,6 +33,8 @@
 #include "Utilities/OpalException.h"
 
 #include <algorithm>
+#include <cmath>
+#include <cstddef>
 #include <utility>
 
 namespace opalx::spacecharge {
@@ -148,24 +155,79 @@ namespace opalx::spacecharge {
     class P3MShortRangeInteraction final {
     public:
         using ParticleContainer = ::ParticleContainer<double, 3>;
+        using VectorView        = typename ParticleContainer::particle_position_type::view_type;
 
+        /** @brief Adds the electrostatic short-range field to @c particles.E. */
         void apply(ParticleContainer& particles) const {
-            if (!particles.hasP3MLayout()) {
+            const double cutoff = requireCutoff(particles, "P3MShortRangeInteraction::apply");
+            solvePairs(particles, particles.E, particles.R, cutoff);
+        }
+
+        /**
+         * @brief Computes the short-range field in the rest frame of a bunch moving along solve z.
+         *
+         * Pair separations become (dx, dy, gamma dz), matching the mesh stage, whose z spacing is
+         * stretched by gamma; both stages use the layout cutoff as the rest-frame cutoff. Since
+         * the rest-frame distance is never shorter than the lab distance, the lab-frame search
+         * cells and halos already contain every rest-frame pair inside the cutoff. Charges are
+         * Lorentz invariant and enter unscaled. Ghost entries, stored after the local ones, are
+         * transformed too. The caller converts the returned field to lab-frame E and B.
+         *
+         * @return Rest-frame electric field, valid on [0, local count) until the next call.
+         * @throws OpalException if @p gamma is not finite or below 1.
+         */
+        const VectorView& computeRestFrameField(ParticleContainer& particles, double gamma) {
+            if (!std::isfinite(gamma) || gamma < 1.0) {
                 throw OpalException(
-                        "P3MShortRangeInteraction::apply",
-                        "P3M requires ParticleSpatialOverlapLayout.");
+                        "P3MShortRangeInteraction::computeRestFrameField",
+                        "The rest-frame gamma must be finite and at least 1.");
+            }
+            const double cutoff =
+                    requireCutoff(particles, "P3MShortRangeInteraction::computeRestFrameField");
+
+            const VectorView labPositions = particles.R.getView();
+            const std::size_t entries     = labPositions.extent(0);
+            if (restFramePositions_m.extent(0) < entries) {
+                Kokkos::realloc(Kokkos::WithoutInitializing, restFramePositions_m, entries);
+                Kokkos::realloc(Kokkos::WithoutInitializing, restFrameField_m, entries);
+            }
+            const VectorView restPositions = restFramePositions_m;
+            const VectorView restField     = restFrameField_m;
+            using Vector                   = typename VectorView::value_type;
+            Kokkos::parallel_for(
+                    "P3MShortRangeInteraction::boostPositions",
+                    Kokkos::RangePolicy<typename VectorView::execution_space>(0, entries),
+                    KOKKOS_LAMBDA(const std::size_t index) {
+                        Vector position = labPositions(index);
+                        position[2] *= gamma;
+                        restPositions(index) = position;
+                        restField(index)     = Vector(0.0);
+                    });
+
+            solvePairs(particles, restFrameField_m, restFramePositions_m, cutoff);
+            return restFrameField_m;
+        }
+
+    private:
+        static double requireCutoff(const ParticleContainer& particles, const char* caller) {
+            if (!particles.hasP3MLayout()) {
+                throw OpalException(caller, "P3M requires ParticleSpatialOverlapLayout.");
             }
             const double cutoff = particles.getP3MLayout().getCutoff();
             if (!(cutoff > 0.0)) {
-                throw OpalException(
-                        "P3MShortRangeInteraction::apply",
-                        "The P3M cutoff radius must be positive.");
+                throw OpalException(caller, "The P3M cutoff radius must be positive.");
             }
+            return cutoff;
+        }
 
+        template <typename VectorAttribute>
+        static void solvePairs(
+                ParticleContainer& particles, VectorAttribute& field,
+                const VectorAttribute& positions, double cutoff) {
             using ContainerView = detail::P3MContainerView<ParticleContainer>;
             using ChargeView    = detail::P3MChargeView<typename ParticleContainer::qm_view_type>;
             using Interaction   = ippl::TruncatedGreenParticleInteraction<
-                      ContainerView, typename ParticleContainer::particle_position_type, ChargeView>;
+                      ContainerView, VectorAttribute, ChargeView>;
 
             ContainerView container(particles);
             ChargeView charge(
@@ -180,9 +242,12 @@ namespace opalx::spacecharge {
             parameters.add("force_constant", -1.0 / (4.0 * Physics::pi * Physics::epsilon_0));
             parameters.add("regularization_cutoff", 1.0e-9);
 
-            Interaction interaction(container, particles.E, particles.R, charge, parameters);
+            Interaction interaction(container, field, positions, charge, parameters);
             interaction.solve();
         }
+
+        VectorView restFramePositions_m{"P3M rest-frame positions", 0};
+        VectorView restFrameField_m{"P3M rest-frame field", 0};
     };
 
 }  // namespace opalx::spacecharge
