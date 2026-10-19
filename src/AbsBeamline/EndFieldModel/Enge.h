@@ -48,22 +48,21 @@ namespace endfieldmodel {
 
     /** workspace for derivative calculation */
     struct EngeWorkspace {
-        Kokkos::View<double> exp_h0;
-        Kokkos::View<double*> gNVec;
-        Kokkos::View<double*> hNVec;
-        Kokkos::View<double*> engeLow;
-        Kokkos::View<double*> engeHigh;
+        static constexpr int max_derivative = 12;
+        double exp_h0;
+        double gNVec[max_derivative];
+        double hNVec[max_derivative];
+        double enge[max_derivative];
     };
     /** GPU-ready configuration data */
     struct EngeConfig {
+        static constexpr int max_derivative = 12;
         Kokkos::View<double*> a_m;
         double lambda_m                     = 0.0;
         double x0_m                         = 0.0;
-        static constexpr int max_derivative = 12;
         /** gIndices is used for calculating derivatives. */
         Kokkos::View<int**> gIndices[max_derivative];
         Kokkos::View<int**> hIndices[max_derivative];
-        EngeWorkspace workspace;
     };
 
     class Enge : public EndFieldModel {
@@ -166,11 +165,11 @@ namespace endfieldmodel {
          *  Please call setEngeDiffIndices(n) before calling if n > max_index
          */
         static KOKKOS_INLINE_FUNCTION double getEnge(
-                const EngeConfig& config, double x, int n, Kokkos::View<double*>& values);
+                const EngeConfig& config, double x, int n, EngeWorkspace& ws);
 
         /** Setup Enge workspace for an Enge & derivatives calculation */
         static KOKKOS_INLINE_FUNCTION void setupWorkspace(
-                const EngeConfig& config, double x, int n);
+                const EngeConfig& config, double x, int n, EngeWorkspace& ws);
 
         /** Returns \f$h(x)\f$ or its \f$n^{th}\f$ derivative.
          *
@@ -184,7 +183,7 @@ namespace endfieldmodel {
          *  Here \f$g(x) = 1+exp(h(x))\f$.
          *  Please call setEngeDiffIndices(n) before calling if n > max_index
          */
-        static KOKKOS_INLINE_FUNCTION double gN(const EngeConfig& config, double x, int n);
+        static KOKKOS_INLINE_FUNCTION double gN(const EngeConfig& config, int n, EngeWorkspace& ws);
 
         /** Recursively calculate the indices for Enge and H
          *
