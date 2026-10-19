@@ -139,6 +139,35 @@ namespace opalx::spacecharge {
                 ParticleMeshTransfer::GatherMode::Replace);
     }
 
+    void RelativisticFieldComposer::gatherConverted(
+            ParticleMeshTransfer& particleMeshTransfer, VectorAttribute& electricDestination,
+            VectorAttribute& magneticDestination, const PositionAttribute& positions,
+            FieldStorage& fieldStorage, std::size_t localCount, const Policy& policy) const {
+        if (policy.sourceRule != FieldSourceRule::Direct) {
+            throw OpalException(
+                    "RelativisticFieldComposer::gatherConverted",
+                    "Per-particle conversion supports only the direct source rule.");
+        }
+        particleMeshTransfer.gatherVector(
+                electricDestination, fieldStorage.electricField(), positions,
+                ParticleMeshTransfer::GatherMode::Replace);
+
+        const LorentzBoost boost = LorentzBoost::from(policy);
+        auto electricView        = electricDestination.getView();
+        auto magneticView        = magneticDestination.getView();
+        Kokkos::parallel_for(
+                "RelativisticFieldComposer::convertGathered",
+                Kokkos::RangePolicy<Kokkos::DefaultExecutionSpace>(0, localCount),
+                KOKKOS_LAMBDA(const std::size_t index) {
+                    const Vector electricRest = electricView(index);
+                    Vector electricLab;
+                    Vector magneticLab;
+                    boost.toLab(electricRest, electricLab, magneticLab);
+                    electricView(index) = electricLab;
+                    magneticView(index) = magneticLab;
+                });
+    }
+
     void RelativisticFieldComposer::gatherAccumulated(
             ParticleMeshTransfer& particleMeshTransfer, VectorAttribute& electricDestination,
             VectorAttribute& magneticDestination, const PositionAttribute& positions,

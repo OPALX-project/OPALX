@@ -153,7 +153,8 @@ namespace opalx::spacecharge {
                         "active.");
             }
         }
-        clearSelfFields(*primary_m);
+        // Every path replaces the primary E and B. Gathers overwrite them, so only the paths that
+        // gather nothing (or only E) zero them, instead of clearing up front on every solve.
         // Skip trivial self-fields before a collapsed domain can violate P3M's overlap cutoff.
         // Fixed bounds remain valid and must still be applied.
         if (fixedDomain || primary_m->getTotalNum() > 1) {
@@ -165,6 +166,8 @@ namespace opalx::spacecharge {
             solveInBeamFrame(context, plan, result);
 
             leaveSolveFrame(context.stepState().frames, *primary_m);
+        } else {
+            clearSelfFields(*primary_m);
         }
         if (fixedDomain) {
             // Retain the beam-frame layout for reuse and refresh the restored primary moments.
@@ -186,11 +189,13 @@ namespace opalx::spacecharge {
         if (poissonCapabilities.isNoOp) {
             m << level5 << "Skipping scatter/gather and space-charge computation for NONE solver."
               << endl;
+            clearSelfFields(*primary_m);
             return;
         }
 
         // The global count handles early-emission ranks that own no particles.
         if (primary_m->getTotalNum() <= 1) {
+            clearSelfFields(*primary_m);
             return;
         }
         // Deposition restores dt by dividing dt*Q by Q, so reject zero charge first.
@@ -240,6 +245,9 @@ namespace opalx::spacecharge {
         const bool accumulatePasses = plan.passCount > 1;
         if (accumulatePasses) {
             relativisticFieldComposer_m.clearAccumulation(*fieldStorage_m);
+        } else {
+            // The electrostatic gather replaces only E; this lab-frame solve has no B.
+            primary_m->B = Vector_t<double, 3>(0.0);
         }
         for (std::size_t index = 0; index < plan.passCount; ++index) {
             solvePass(context, plan, nullptr, plan.passes[index], result);
@@ -274,7 +282,17 @@ namespace opalx::spacecharge {
         result.reportedBins = prepared.mergedBinCount == config_m.binning->maximumBins
                                       ? 1
                                       : static_cast<int>(prepared.mergedBinCount);
-        relativisticFieldComposer_m.clearAccumulation(*fieldStorage_m);
+        // One bin with one direct pass has a single rest-frame field. Gathering it once and
+        // converting per particle replaces the mesh accumulators and the second (B) gather;
+        // gathering and the Lorentz conversion are both linear, so only rounding differs.
+        const PassProperties firstPass =
+                passProperties(plan.passes[0], plan.activeDirichletPlane.planeZ, true);
+        const bool convertOnParticles = prepared.mergedBinCount == 1 && plan.passCount == 1
+                                        && firstPass.sourceRule == FieldSourceRule::Direct;
+        std::optional<FieldCompositionPolicy> singleBinComposition;
+        if (!convertOnParticles) {
+            relativisticFieldComposer_m.clearAccumulation(*fieldStorage_m);
+        }
 
         Inform m("CartesianPIC3DAlgorithm::solveBinned");
         m << level4 << "Iteration mode=binned, nBins=" << static_cast<int>(prepared.mergedBinCount)
@@ -305,13 +323,29 @@ namespace opalx::spacecharge {
                         .meanMomentum = unit->meanMomentum, .gamma = unit->gamma};
             }
 
+            if (convertOnParticles) {
+                singleBinComposition = FieldCompositionPolicy{
+                        .meanMomentum = unit->meanMomentum,
+                        .gamma        = unit->gamma,
+                        .magneticSign = firstPass.magneticSign};
+            }
             for (std::size_t index = 0; index < plan.passCount; ++index) {
-                solvePass(context, plan, &*unit, plan.passes[index], result);
+                solvePass(context, plan, &*unit, plan.passes[index], result, !convertOnParticles);
             }
         }
 
-        relativisticFieldComposer_m.gatherAccumulated(
-                particleMeshTransfer_m, primary_m->E, primary_m->B, primary_m->R, *fieldStorage_m);
+        // The mesh spacing is back to the lab-frame value here, as the gather requires.
+        if (!convertOnParticles) {
+            relativisticFieldComposer_m.gatherAccumulated(
+                    particleMeshTransfer_m, primary_m->E, primary_m->B, primary_m->R,
+                    *fieldStorage_m);
+        } else if (singleBinComposition.has_value()) {
+            relativisticFieldComposer_m.gatherConverted(
+                    particleMeshTransfer_m, primary_m->E, primary_m->B, primary_m->R,
+                    *fieldStorage_m, primary_m->getLocalNum(), *singleBinComposition);
+        } else {
+            clearSelfFields(*primary_m);
+        }
         // Add particle fields after the final gather so replacement gathering cannot erase them.
         // Image charges receive no short-range correction, as in the whole-bunch solve.
         if (particleRestFrame.has_value()) {
@@ -328,7 +362,8 @@ namespace opalx::spacecharge {
 
     void CartesianPIC3DAlgorithm::solvePass(
             const SpaceChargeSolveContext& context, const SolvePlan& plan,
-            const ParticleBinType* unit, PassKind pass, SpaceChargeSolveResult& result) {
+            const ParticleBinType* unit, PassKind pass, SpaceChargeSolveResult& result,
+            bool accumulateOnMesh) {
         const double planeZ         = plan.activeDirichletPlane.planeZ;
         const PassProperties policy = passProperties(pass, planeZ, unit != nullptr);
 
@@ -428,7 +463,7 @@ namespace opalx::spacecharge {
         if (unit == nullptr && plan.passCount == 1) {
             relativisticFieldComposer_m.gatherElectrostatic(
                     particleMeshTransfer_m, primary_m->E, primary_m->R, *fieldStorage_m);
-        } else {
+        } else if (accumulateOnMesh) {
             RelativisticFieldComposerType::Policy compositionPolicy;
             if (unit != nullptr) {
                 compositionPolicy.meanMomentum = unit->meanMomentum;
@@ -451,15 +486,16 @@ namespace opalx::spacecharge {
             const SpaceChargeSolveContext& context, const ParticleBinType& unit,
             const PassProperties& pass) {
         Inform m("CartesianPIC3DAlgorithm::depositChargeForBin");
-        const auto& indexedSelection = unit.indexedSelection;
-        const auto& selectionPolicy  = indexedSelection.policy();
-        const auto& hash             = indexedSelection.hash();
+        using SelectionKind          = ParticleMeshTransfer::Selection::Kind;
+        const auto& selectionPolicy  = unit.selection.policy();
+        const auto& hash             = unit.selection.hash();
+        const bool indexed           = unit.selection.kind() == SelectionKind::Indexed;
         const std::size_t begin      = static_cast<std::size_t>(selectionPolicy.begin());
         const std::size_t end        = static_cast<std::size_t>(selectionPolicy.end());
         const std::size_t hashExtent = static_cast<std::size_t>(hash.extent(0));
         const std::size_t localCount = primary_m->getLocalNum();
 
-        if (end > hashExtent) {
+        if (indexed && end > hashExtent) {
             throw OpalException(
                     "CartesianPIC3DAlgorithm::depositChargeForBin",
                     "Bin scatter policy exceeds its hash extent.");

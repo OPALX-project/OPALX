@@ -100,9 +100,11 @@ namespace opalx::spacecharge {
         void solveBinned(
                 const SpaceChargeSolveContext& context, const SolvePlan& plan,
                 SpaceChargeSolveResult& result);
+        /** @param accumulateOnMesh False leaves the rest-frame field for gatherConverted(). */
         void solvePass(
                 const SpaceChargeSolveContext& context, const SolvePlan& plan,
-                const ParticleBinType* unit, PassKind pass, SpaceChargeSolveResult& result);
+                const ParticleBinType* unit, PassKind pass, SpaceChargeSolveResult& result,
+                bool accumulateOnMesh = true);
         void depositChargeForBin(
                 const SpaceChargeSolveContext& context, const ParticleBinType& unit,
                 const PassProperties& pass);

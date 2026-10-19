@@ -217,60 +217,8 @@ void PartBunch<T, Dim>::calcBeamParameters() {
 
     using view_type = ippl::ParticleAttrib<Vector_t<double, 3>>::view_type;
     view_type Rview = pc->R.getView();
-    view_type Pview = pc->P.getView();
     this->getParticleContainer()->updateMoments();
     m << level5 << "Moments updated." << endl;
-
-    ////////////////////////////////////
-    //// Calculate Moments of R and P //
-    ////////////////////////////////////
-
-    using MomentsVec = ippl::Vector<double, 2 * Dim>;
-    using MomentsMat = ippl::Vector<MomentsVec, 2 * Dim>;
-
-    MomentsVec loc_centroid(0.0);
-    MomentsMat loc_moment(MomentsVec(0.0));
-
-    MomentsVec centroid(0.0);
-    MomentsMat moment(MomentsVec(0.0));
-
-    for (unsigned i = 0; i < 2 * Dim; ++i) {
-        const size_t nLocal = pc->getLocalNum();
-        Kokkos::parallel_reduce(
-                "calc moments of particle distr.", nLocal,
-                KOKKOS_LAMBDA(
-                        const size_t k, double& cent, double& mom0, double& mom1, double& mom2,
-                        double& mom3, double& mom4, double& mom5) {
-                    double part[2 * Dim];
-                    part[0] = Rview(k)[0];
-                    part[1] = Pview(k)[0];
-                    part[2] = Rview(k)[1];
-                    part[3] = Pview(k)[1];
-                    part[4] = Rview(k)[2];
-                    part[5] = Pview(k)[2];
-
-                    cent += part[i];
-                    mom0 += part[i] * part[0];
-                    mom1 += part[i] * part[1];
-                    mom2 += part[i] * part[2];
-                    mom3 += part[i] * part[3];
-                    mom4 += part[i] * part[4];
-                    mom5 += part[i] * part[5];
-                },
-                Kokkos::Sum<T>(loc_centroid[i]), Kokkos::Sum<T>(loc_moment[i][0]),
-                Kokkos::Sum<T>(loc_moment[i][1]), Kokkos::Sum<T>(loc_moment[i][2]),
-                Kokkos::Sum<T>(loc_moment[i][3]), Kokkos::Sum<T>(loc_moment[i][4]),
-                Kokkos::Sum<T>(loc_moment[i][5]));
-        Kokkos::fence();
-    }
-    m << level5 << "Local moments calculated." << endl;
-
-    moment   = loc_moment;
-    centroid = loc_centroid;
-    ippl::Comm->allreduce(moment, 1, std::plus<MomentsMat>());
-    ippl::Comm->allreduce(centroid, 1, std::plus<MomentsVec>());
-    ippl::Comm->barrier();
-    m << level5 << "Global moments calculated." << endl;
 
     ippl::Vector<double, Dim> rmax_loc(0.0);
     ippl::Vector<double, Dim> rmin_loc(0.0);

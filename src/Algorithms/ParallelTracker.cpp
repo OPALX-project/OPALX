@@ -84,6 +84,29 @@ namespace {
                  << ", angle=" << std::fixed << std::setprecision(3) << angleDegrees << " [deg]";
         return progress.str();
     }
+
+    /**
+     * @brief Global mean of P over a container, as DistributionMoments defines getMeanP().
+     *
+     * The space-charge frame only needs this direction, so it is reduced on its own instead of
+     * refreshing the full moment set every solve. Collective.
+     */
+    Vector_t<double, 3> globalMeanMomentum(ParticleContainer<double, 3>& particles) {
+        const auto P = particles.P.getView();
+        double sums[3] = {0.0, 0.0, 0.0};
+        Kokkos::parallel_reduce(
+                "globalMeanMomentum", particles.getLocalNum(),
+                KOKKOS_LAMBDA(const size_t i, double& px, double& py, double& pz) {
+                    px += P(i)[0];
+                    py += P(i)[1];
+                    pz += P(i)[2];
+                },
+                Kokkos::Sum<double>(sums[0]), Kokkos::Sum<double>(sums[1]),
+                Kokkos::Sum<double>(sums[2]));
+        ippl::Comm->allreduce(sums, 3, std::plus<double>());
+        const double total = std::max(1.0, static_cast<double>(particles.getTotalNum()));
+        return Vector_t<double, 3>(sums[0] / total, sums[1] / total, sums[2] / total);
+    }
 }  // namespace
 
 // --- Constructors ---
@@ -707,8 +730,6 @@ void ParallelTracker::execute() {
                 // First half of the time integration
                 timeIntegration1(pusher);
                 m << level4 << "timeIntegration1 done at step " << step << "." << endl;
-                itsBunch_m->updateAllParticleMoments();
-                m << level5 << "Particle moments updated after timeIntegration1." << endl;
 
                 if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::MIDPOINT) {
                     resetFields();
@@ -739,8 +760,6 @@ void ParallelTracker::execute() {
                 // switches getdT() back to the track step before external fields, reference update,
                 // and time increment, while per-particle fractional dt values remain untouched.
                 selectDT();
-                itsBunch_m->updateAllParticleMoments();
-                m << level5 << "Particle moments updated after emission." << endl;
 
                 // External field computation
                 computeExternalFields(oths);
@@ -756,8 +775,6 @@ void ParallelTracker::execute() {
             // Second half of the time integration
             timeIntegration2(pusher);
             m << level4 << "timeIntegration2 done at step " << step << "." << endl;
-            itsBunch_m->updateAllParticleMoments();
-            m << level5 << "Particle moments updated after timeIntegration2." << endl;
 
             // Apply global processes (e.g. decay) and mark afftected particles for deletion
             const size_t nProcessMarked = applyGlobalProcesses(itsBunch_m->getdT());
@@ -1197,7 +1214,7 @@ opalx::spacecharge::CoordinateFrameTransforms ParallelTracker::makeSpaceChargeFr
         const {
     constexpr double momentumTolerance = 1e-12;
     const auto primary                 = itsBunch_m->getParticleContainer();
-    Vector_t<double, 3> meanMomentum   = primary->getMeanP();
+    Vector_t<double, 3> meanMomentum   = globalMeanMomentum(*primary);
     double momentumLengthSquared       = dot(meanMomentum, meanMomentum);
 
     // The bunch mean can vanish with zero or one particle, or on an empty MPI rank. Prefer the
@@ -1289,7 +1306,6 @@ void ParallelTracker::computeSpaceChargeFields() {
         return;
     }
 
-    itsBunch_m->calcBeamParameters();
     const auto frames   = makeSpaceChargeFrameTransforms();
     const auto emission = spaceChargeEmissionProgress();
 
@@ -2258,7 +2274,6 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
         if (!pc || pc->getTotalNum() == 0) {
             continue;
         }
-        pc->updateMoments();
         const double sPos = pc->get_sPos();
         if (std::isnan(sPos) || std::isinf(sPos)) {
             throw OpalException(
@@ -2266,6 +2281,8 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
                     "invalid path length s for particle container " + std::to_string(ci));
         }
         if (printStepInfo) {
+            // Only the step line reads moments here; writePhaseSpace refreshes its own.
+            pc->updateMoments();
             *gmsg << level1 << "* " << myt2.time() << " "
                   << "Step " << std::setw(6) << globalStep << " "
                   << "container[" << ci << "] ";
@@ -2354,6 +2371,8 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
     }
 
     if (psDump && itsBunch_m->getTotalNumAllContainers() > 0) {
+        // The H5 header stores the cached bunch extent, which the solve no longer refreshes.
+        itsBunch_m->calcBeamParameters();
         itsDataSink_m->dumpH5(*itsBunch_m, fdByContainer);
 
         /*

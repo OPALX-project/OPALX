@@ -832,8 +832,9 @@ namespace opalx::spacecharge {
                 EXPECT_EQ(algorithm.solve(context).backendSolves, 0u);
                 EXPECT_EQ(primary.getTotalNum(), primaryCount);
                 EXPECT_EQ(secondary.getTotalNum(), 16u);
-                EXPECT_FALSE(primary.isMomentsDirty());
-                EXPECT_FALSE(secondary.isMomentsDirty());
+                // Migration only marks moments dirty; their readers refresh them on demand.
+                EXPECT_TRUE(primary.isMomentsDirty());
+                EXPECT_TRUE(secondary.isMomentsDirty());
                 const auto restoredR = Kokkos::create_mirror_view_and_copy(
                         Kokkos::HostSpace(), primary.R.getView());
                 const auto restoredP = Kokkos::create_mirror_view_and_copy(

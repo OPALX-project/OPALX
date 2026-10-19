@@ -49,13 +49,14 @@ namespace opalx::spacecharge {
             if (coversAllLocalParticles) {
                 return Selection::direct(0, localParticleCount);
             }
-            return indexedSelection;
+            return selection;
         }
 
         std::size_t ordinal           = 0;
         size_type localParticleCount  = 0;
         size_type globalParticleCount = 0;
-        Selection indexedSelection;
+        /// Indexed through the bin-sorted hash, or direct in storage order for a single bin.
+        Selection selection;
         bool coversAllLocalParticles = false;
         std::array<double, 3> meanMomentum{};
         double gamma = 1.0;
@@ -65,7 +66,8 @@ namespace opalx::spacecharge {
      * @brief Prepares and traverses globally nonempty bins through AdaptBins.
      *
      * Call prepareBins() once per solve, then call nextNonemptyBin() collectively until it returns
-     * @c std::nullopt.
+     * @c std::nullopt. With MAXBINS = 1 the single bin holds every particle in storage order, so
+     * the limits, histogram, and bin sort are skipped unless a bin snapshot is requested.
      */
     class ParticleBinTraversal final {
     public:
@@ -94,12 +96,18 @@ namespace opalx::spacecharge {
     private:
         [[nodiscard]] BinConfigurationSnapshot hostSnapshot() const;
         [[nodiscard]] std::unique_ptr<AdaptBins> makeBins();
+        /** @brief Reduce the local bin sums over ranks and form the bin's solve unit. */
+        [[nodiscard]] static Unit makeUnit(
+                std::size_t ordinal, size_type localCount, size_type globalCount,
+                Selection selection, bool coversAllLocalParticles,
+                ippl::Vector<double, 4> momentSums);
 
         ParticleContainer& particles_m;
         BinningConfig config_m;
         std::unique_ptr<AdaptBins> bins_m;
         bin_index_type nextBin_m = 0;
         bool prepared_m          = false;
+        bool singleBin_m         = false;
     };
 
 }  // namespace opalx::spacecharge
