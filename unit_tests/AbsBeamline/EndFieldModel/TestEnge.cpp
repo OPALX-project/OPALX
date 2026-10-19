@@ -126,7 +126,8 @@ TEST_F(TestEnge, FunctionGpuTest) {
         EXPECT_NEAR(derivativeshost(0, i), enge.function(5, i), 1e-12);
         EXPECT_NEAR(derivativeshost(1, i), enge.function(-5, i), 1e-12);
         EXPECT_NEAR(derivativeshost(2, i), enge.function(7, i), 1e-12);
-        std::cout << i << " " << xhost(0) << " " << xhost(1) << " " << xhost(2) << " gpu-5: " << derivativeshost(0, i) << " cpu-5: " << enge.function(-5, i)
+        std::cout << i << " " << xhost(0) << " " << xhost(1) << " " << xhost(2)
+                  << " gpu-5: " << derivativeshost(0, i) << " cpu-5: " << enge.function(-5, i)
                   << " gpu+5 " << derivativeshost(1, i) << " cpu+5: " << enge.function(5, i)
                   << " gpu+7 " << derivativeshost(2, i) << " cpu+7: " << enge.function(7, i)
                   << std::endl;

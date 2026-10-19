@@ -31,8 +31,8 @@
 #include <iostream>
 #include <vector>
 
-#include "Utilities/OpalException.h"
 #include "AbsBeamline/EndFieldModel/EndFieldModel.h"
+#include "Utilities/OpalException.h"
 
 namespace endfieldmodel {
 
@@ -178,8 +178,7 @@ namespace endfieldmodel {
     }
 
     template <class C>
-    KOKKOS_INLINE_FUNCTION
-    void Tanh::functionDevice(
+    KOKKOS_INLINE_FUNCTION void Tanh::functionDevice(
             const TanhConfig& config, double x, int n, C values) {
         const double tanhPositive = Kokkos::tanh((x + config.x0_m) / config.lambda_m);
         const double tanhNegative = Kokkos::tanh((x - config.x0_m) / config.lambda_m);
@@ -212,7 +211,7 @@ namespace endfieldmodel {
             const TanhConfig& config, const Kokkos::View<double*>& xView, const int& maxDerivative,
             Kokkos::View<double**>& derivatives) {
         const size_t count = xView.size();
-       if (derivatives.extent(0) != xView.extent(0)) {
+        if (derivatives.extent(0) != xView.extent(0)) {
             throw OpalException("Enge::functionHost", "values extent did not match x extent");
         }
         if (derivatives.extent(1) != size_t(maxDerivative + 1) || maxDerivative < 0) {
