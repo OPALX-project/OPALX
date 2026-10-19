@@ -162,9 +162,9 @@ namespace endfieldmodel {
         Enge::getEnge(config.engeStart_m, -x - config.engeStart_m.x0_m, n, wsLow);
         EngeWorkspace wsHigh;
         Enge::getEnge(config.engeEnd_m, x - config.engeEnd_m.x0_m, n, wsHigh);
-        double* engeLow = wsLow.enge;
+        double* engeLow  = wsLow.enge;
         double* engeHigh = wsHigh.enge;
-        values(0) = -1 + (engeLow[0] + engeHigh[0]);
+        values(0)        = -1 + (engeLow[0] + engeHigh[0]);
         for (int i = 1; i <= n; ++i) {
             if (i % 2 == 1)
                 values(i) = -engeLow[i] + engeHigh[i];

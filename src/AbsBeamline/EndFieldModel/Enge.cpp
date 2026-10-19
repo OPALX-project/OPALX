@@ -228,7 +228,7 @@ namespace endfieldmodel {
     void Enge::finalise() { releaseEngeConfig(config_m); }
 
     void Enge::releaseEngeConfig(EngeConfig& config) {
-        config.a_m                = Kokkos::View<double*>();
+        config.a_m = Kokkos::View<double*>();
         for (size_t i = 0; i < config.max_derivative; ++i) {
             config.gIndices[i] = Kokkos::View<int**>();
             config.hIndices[i] = Kokkos::View<int**>();

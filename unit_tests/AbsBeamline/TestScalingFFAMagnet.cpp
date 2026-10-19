@@ -145,17 +145,16 @@ public:
             delta = 1e-3;
         }
         double divBCart = getDivBCart(posCart, Vector_t<double, 3>({delta, delta, delta}));
-        Vector_t<double, 3> curlBCart = getCurlBCart(
-                posCart,
-                Vector_t<double, 3>( {delta, delta, delta}));
+        Vector_t<double, 3> curlBCart =
+                getCurlBCart(posCart, Vector_t<double, 3>({delta, delta, delta}));
         std::stringstream ssout;
         ssout << "order " << sector_m->getMaxOrder() << " (x,y,z)  " << x << "    " << y << "    "
-              << z << " (r,phi) " << r << "    " << phi
-              << " B(x,y,z) " << BCart[0] << "    " << BCart[1] << "    " << BCart[2]
-              << " DivB_Cart: " << divBCart << " CurlB_Cart: " << curlBCart << " Aux: " << aux;
+              << z << " (r,phi) " << r << "    " << phi << " B(x,y,z) " << BCart[0] << "    "
+              << BCart[1] << "    " << BCart[2] << " DivB_Cart: " << divBCart
+              << " CurlB_Cart: " << curlBCart << " Aux: " << aux;
         bool passtest = divBCart < maxwell_tolerance;
         for (size_t i = 0; i < 3; ++i) {
-             passtest &= curlBCart[i] < maxwell_tolerance;
+            passtest &= curlBCart[i] < maxwell_tolerance;
         }
         if (!passtest) {
             fout << ssout.str() << std::endl;
@@ -351,7 +350,7 @@ TEST_F(ScalingFFAMagnetTest, BatchedTanhMatchesScalarEvaluation) {
     pointsHost(2)   = psi0_m;
     Kokkos::deep_copy(points, pointsHost);
 
-    tanh.function(points, derivativeCount, derivatives);
+    tanh.function(points, derivativeCount - 1, derivatives);
     auto derivativesHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), derivatives);
     for (size_t point = 0; point < pointCount; ++point) {
         for (int order = 0; order < derivativeCount; ++order) {
@@ -418,8 +417,7 @@ TEST_F(ScalingFFAMagnetTest, ConvergenceOrderTest) {
                 divBVec[i]  = divB;
                 curlBVec[i] = curlBMag;
                 std::cout << i << "     " << y << "    " << B << " " << "     " << divB
-                          << "           " << curlBMag << " " << curlB << " "
-                          << std::endl;
+                          << "           " << curlBMag << " " << curlB << " " << std::endl;
                 if (i > 1 && i % 2 == 1) {
                     EXPECT_LT(divBVec[i], divBVec[i - 2]) << " with i " << i << std::endl;
                 }
@@ -453,7 +451,7 @@ TEST_F(ScalingFFAMagnetTest, ConvergenceOrderHackedTest) {
             Vector_t<double, 3> B, pos, curlB;
             double divB;
             if (cylindrical) {
-                throw ("ERROR");
+                throw("ERROR");
             } else {
                 pos = Vector_t<double, 3>(
                         {3.0 * (std::cos(psi0_m * 2) - 1), y, 3.0 * std::sin(psi0_m * 2)});
