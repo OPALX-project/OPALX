@@ -14,6 +14,7 @@
 #include <limits>
 #include <memory>
 #include <utility>
+#include <vector>
 
 namespace opalx::spacecharge {
     namespace {
@@ -126,8 +127,9 @@ namespace opalx::spacecharge {
                         Kokkos::HostSpace(), actual.B.getView());
                 auto expectedB = Kokkos::create_mirror_view_and_copy(
                         Kokkos::HostSpace(), expected.B.getView());
-                // These serial tests retain particle order through migration and their single-bin
-                // hash.
+                // Spatial layouts on one rank keep the particle order through migration and the
+                // single-bin hash. Compare overlap-layout (P3M) runs with
+                // expectFieldsEqualByPosition() instead.
                 for (std::size_t i = 0; i < actual.getLocalNum(); ++i) {
                     for (unsigned d = 0; d < 3; ++d) {
                         EXPECT_TRUE(std::isfinite(actualE(i)[d]));
@@ -151,39 +153,70 @@ namespace opalx::spacecharge {
                 return largest;
             }
 
-            // Overlap layouts sort particles by cell, so pair particles of two runs by position.
-            static void expectFieldsEqualByPosition(Particles& actual, Particles& expected) {
-                ASSERT_EQ(actual.getLocalNum(), expected.getLocalNum());
+            template <typename Attribute>
+            static Kokkos::View<Vector*, Kokkos::HostSpace> localHostCopy(
+                    const Attribute& attribute, std::size_t count) {
+                Kokkos::View<Vector*, Kokkos::HostSpace> result("host", count);
+                Kokkos::deep_copy(
+                        result,
+                        Kokkos::subview(
+                                attribute.getView(), std::make_pair(std::size_t{0}, count)));
+                return result;
+            }
+
+            /**
+             * @brief Index of the particle of @p expected at the position of each local particle
+             * of @p actual.
+             *
+             * Overlap layouts sort particles by cell. A threaded or GPU sort can order particles
+             * that share a cell differently in each run, so P3M runs are paired by position.
+             * @return Empty, with a recorded failure, if the particle counts or positions differ.
+             */
+            static std::vector<std::size_t> matchByPosition(
+                    Particles& actual, Particles& expected) {
                 const std::size_t count = actual.getLocalNum();
-                auto host               = [count](const auto& attribute) {
-                    Kokkos::View<Vector*, Kokkos::HostSpace> result("host", count);
-                    Kokkos::deep_copy(
-                            result,
-                            Kokkos::subview(
-                                    attribute.getView(), std::make_pair(std::size_t{0}, count)));
-                    return result;
-                };
-                const auto actualR = host(actual.R), expectedR = host(expected.R);
-                const auto actualE = host(actual.E), expectedE = host(expected.E);
-                const auto actualB = host(actual.B), expectedB = host(expected.B);
-                const double magneticScale = largestComponent(expectedB);
+                if (expected.getLocalNum() != count) {
+                    ADD_FAILURE() << "The runs hold " << count << " and " << expected.getLocalNum()
+                                  << " particles.";
+                    return {};
+                }
+                const auto actualR   = localHostCopy(actual.R, count);
+                const auto expectedR = localHostCopy(expected.R, count);
+                std::vector<std::size_t> match(count, count);
                 for (std::size_t i = 0; i < count; ++i) {
-                    std::size_t match = count;
                     for (std::size_t j = 0; j < count; ++j) {
                         const Vector offset = actualR(i) - expectedR(j);
                         if (std::sqrt(offset.dot(offset)) < 1.0e-12) {
-                            match = j;
+                            match[i] = j;
                         }
                     }
-                    ASSERT_LT(match, count) << "No particle at the position of particle " << i;
+                    if (match[i] == count) {
+                        ADD_FAILURE() << "No particle at the position of particle " << i;
+                        return {};
+                    }
+                }
+                return match;
+            }
+
+            static void expectFieldsEqualByPosition(Particles& actual, Particles& expected) {
+                const auto match = matchByPosition(actual, expected);
+                ASSERT_EQ(match.size(), actual.getLocalNum());
+                const std::size_t count    = match.size();
+                const auto actualE         = localHostCopy(actual.E, count),
+                           expectedE       = localHostCopy(expected.E, count);
+                const auto actualB         = localHostCopy(actual.B, count),
+                           expectedB       = localHostCopy(expected.B, count);
+                const double magneticScale = largestComponent(expectedB);
+                for (std::size_t i = 0; i < count; ++i) {
+                    const std::size_t j = match[i];
                     for (unsigned d = 0; d < 3; ++d) {
                         EXPECT_TRUE(std::isfinite(actualE(i)[d]));
                         EXPECT_NEAR(
-                                actualE(i)[d], expectedE(match)[d],
-                                1.0e-9 * std::max(1.0, std::abs(expectedE(match)[d])));
+                                actualE(i)[d], expectedE(j)[d],
+                                1.0e-9 * std::max(1.0, std::abs(expectedE(j)[d])));
                         EXPECT_NEAR(
-                                actualB(i)[d], expectedB(match)[d],
-                                1.0e-9 * std::max(std::abs(expectedB(match)[d]), magneticScale));
+                                actualB(i)[d], expectedB(j)[d],
+                                1.0e-9 * std::max(std::abs(expectedB(j)[d]), magneticScale));
                     }
                 }
             }
@@ -281,13 +314,23 @@ namespace opalx::spacecharge {
                             Kokkos::HostSpace(), openImage.particles.E.getView());
                     auto openDirectE = Kokkos::create_mirror_view_and_copy(
                             Kokkos::HostSpace(), openDirect.particles.E.getView());
+                    const std::size_t count = p3mImage.particles.getLocalNum();
+                    const auto toP3MDirect =
+                            matchByPosition(p3mImage.particles, p3mDirect.particles);
+                    const auto toOpen = matchByPosition(p3mImage.particles, openImage.particles);
+                    const auto toOpenDirect =
+                            matchByPosition(p3mImage.particles, openDirect.particles);
+                    ASSERT_EQ(toP3MDirect.size(), count);
+                    ASSERT_EQ(toOpen.size(), count);
+                    ASSERT_EQ(toOpenDirect.size(), count);
                     double imageNorm = 0.0;
-                    for (std::size_t i = 0; i < p3mImage.particles.getLocalNum(); ++i) {
+                    for (std::size_t i = 0; i < count; ++i) {
                         for (unsigned d = 0; d < 3; ++d) {
-                            const double image = openE(i)[d] - openDirectE(i)[d];
+                            const double image =
+                                    openE(toOpen[i])[d] - openDirectE(toOpenDirect[i])[d];
                             imageNorm += image * image;
                             EXPECT_NEAR(
-                                    p3mE(i)[d] - p3mDirectE(i)[d], image,
+                                    p3mE(i)[d] - p3mDirectE(toP3MDirect[i])[d], image,
                                     1.0e-9 * std::max(1.0, std::abs(image)));
                         }
                     }
@@ -307,7 +350,7 @@ namespace opalx::spacecharge {
                 for (std::size_t step : {2u, 3u}) {
                     EXPECT_EQ(p3mImage.solve(step).backendSolves, 1u);
                     EXPECT_EQ(p3mDirect.solve(step).backendSolves, 1u);
-                    expectFieldsEqual(p3mImage.particles, p3mDirect.particles);
+                    expectFieldsEqualByPosition(p3mImage.particles, p3mDirect.particles);
                 }
             }
         }
@@ -427,35 +470,50 @@ namespace opalx::spacecharge {
                                 Kokkos::HostSpace(), attribute.getView());
                     };
                     const auto p3mE = host(p3mImage.particles.E), p3mB = host(p3mImage.particles.B);
-                    const auto p3mDirectE  = host(p3mDirect.particles.E),
-                               p3mDirectB  = host(p3mDirect.particles.B);
-                    const auto openE       = host(openImage.particles.E),
-                               openB       = host(openImage.particles.B);
-                    const auto openDirectE = host(openDirect.particles.E),
-                               openDirectB = host(openDirect.particles.B);
+                    const auto p3mDirectE   = host(p3mDirect.particles.E),
+                               p3mDirectB   = host(p3mDirect.particles.B);
+                    const auto openE        = host(openImage.particles.E),
+                               openB        = host(openImage.particles.B);
+                    const auto openDirectE  = host(openDirect.particles.E),
+                               openDirectB  = host(openDirect.particles.B);
+                    const std::size_t count = p3mImage.particles.getLocalNum();
+                    const auto toP3MDirect =
+                            matchByPosition(p3mImage.particles, p3mDirect.particles);
+                    const auto toOpen = matchByPosition(p3mImage.particles, openImage.particles);
+                    const auto toOpenDirect =
+                            matchByPosition(p3mImage.particles, openDirect.particles);
+                    ASSERT_EQ(toP3MDirect.size(), count);
+                    ASSERT_EQ(toOpen.size(), count);
+                    ASSERT_EQ(toOpenDirect.size(), count);
 
                     // The image is mesh-resolved in both backends; P3M adds its particle term to
                     // the real bunch once, so it cancels in the image-minus-direct difference.
                     double electricNorm = 0.0, magneticScale = 0.0;
-                    for (std::size_t i = 0; i < p3mImage.particles.getLocalNum(); ++i) {
+                    for (std::size_t i = 0; i < count; ++i) {
                         for (unsigned d = 0; d < 3; ++d) {
-                            const double imageE = openE(i)[d] - openDirectE(i)[d];
+                            const double imageE =
+                                    openE(toOpen[i])[d] - openDirectE(toOpenDirect[i])[d];
                             electricNorm += imageE * imageE;
                             magneticScale = std::max(
-                                    magneticScale, std::abs(openB(i)[d] - openDirectB(i)[d]));
+                                    magneticScale,
+                                    std::abs(
+                                            openB(toOpen[i])[d] - openDirectB(toOpenDirect[i])[d]));
                         }
                     }
                     EXPECT_GT(electricNorm, 1.0e-6);
                     EXPECT_GT(magneticScale, 0.0);
-                    for (std::size_t i = 0; i < p3mImage.particles.getLocalNum(); ++i) {
+                    for (std::size_t i = 0; i < count; ++i) {
                         for (unsigned d = 0; d < 3; ++d) {
-                            const double imageE = openE(i)[d] - openDirectE(i)[d];
-                            const double imageB = openB(i)[d] - openDirectB(i)[d];
+                            const double imageE =
+                                    openE(toOpen[i])[d] - openDirectE(toOpenDirect[i])[d];
+                            const double imageB =
+                                    openB(toOpen[i])[d] - openDirectB(toOpenDirect[i])[d];
                             EXPECT_NEAR(
-                                    p3mE(i)[d] - p3mDirectE(i)[d], imageE,
+                                    p3mE(i)[d] - p3mDirectE(toP3MDirect[i])[d], imageE,
                                     1.0e-9 * std::max(1.0, std::abs(imageE)));
                             EXPECT_NEAR(
-                                    p3mB(i)[d] - p3mDirectB(i)[d], imageB, 1.0e-8 * magneticScale);
+                                    p3mB(i)[d] - p3mDirectB(toP3MDirect[i])[d], imageB,
+                                    1.0e-8 * magneticScale);
                         }
                     }
                 }
@@ -514,7 +572,7 @@ namespace opalx::spacecharge {
                 place(fixed.particles, scale);
                 meshTied.solve(step);
                 fixed.solve(0);
-                expectFieldsEqual(meshTied.particles, fixed.particles);
+                expectFieldsEqualByPosition(meshTied.particles, fixed.particles);
             }
         }
 
