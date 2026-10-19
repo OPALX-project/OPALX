@@ -149,8 +149,8 @@ namespace opalx::spacecharge {
         }
         updateMeshGeometry(bounds, fieldStorage);
 
+        // No moment refresh here: nothing in the solve reads them, and their readers refresh.
         updateLayoutsAndMigrate(fieldStorage, frame);
-        updateMoments(beamFrame);
 
         bool redistributed = false;
         if (!fixed && beamFrame && isRedistributionDue(context.stepState().step)) {

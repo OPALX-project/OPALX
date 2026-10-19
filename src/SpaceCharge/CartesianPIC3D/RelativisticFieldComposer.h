@@ -111,6 +111,17 @@ namespace opalx::spacecharge {
                 ParticleMeshTransfer& particleMeshTransfer, VectorAttribute& destination,
                 const PositionAttribute& positions, FieldStorage& fieldStorage) const;
 
+        /**
+         * @brief Replace particle E/B with one gathered rest-frame field, converted per particle.
+         *
+         * Equivalent to accumulate() followed by gatherAccumulated() for a single Direct
+         * contribution, because CIC gathering and the Lorentz conversion are both linear. It
+         * gathers one vector field instead of two and needs no mesh accumulators.
+         */
+        void gatherConverted(
+                ParticleMeshTransfer& particleMeshTransfer, VectorAttribute& electricDestination,
+                VectorAttribute& magneticDestination, const PositionAttribute& positions,
+                FieldStorage& fieldStorage, std::size_t localCount, const Policy& policy) const;
         /** @brief Replace particle E/B with gathered accumulated fields. */
         void gatherAccumulated(
                 ParticleMeshTransfer& particleMeshTransfer, VectorAttribute& electricDestination,

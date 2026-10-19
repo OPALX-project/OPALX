@@ -254,7 +254,8 @@ namespace opalx::spacecharge {
                     workspace, *poisson));
             EXPECT_EQ(workspace.layoutExtents(), domainConfig.meshSize);
             EXPECT_EQ(domain.decomposition(), domainConfig.decomposition);
-            EXPECT_FALSE(particles->isMomentsDirty());
+            // Migration only marks moments dirty; their readers refresh them on demand.
+            EXPECT_TRUE(particles->isMomentsDirty());
             EXPECT_FALSE(secondary->isMomentsDirty());
             for (unsigned dimension = 0; dimension < 3; ++dimension) {
                 EXPECT_DOUBLE_EQ(domain.lower()[dimension], fixedLower[dimension]);
@@ -267,12 +268,12 @@ namespace opalx::spacecharge {
                     DomainCoordinateFrame::Beam, context, {}, nullptr, workspace, *poisson));
             EXPECT_NE(domain.lower()[0], fixedLower[0]);
             EXPECT_NE(domain.upper()[0], fixedUpper[0]);
-            EXPECT_FALSE(particles->isMomentsDirty());
+            EXPECT_TRUE(particles->isMomentsDirty());
             EXPECT_TRUE(secondary->isMomentsDirty());
 
             EXPECT_FALSE(updater.updateForSolve(
                     DomainCoordinateFrame::Reference, context, {}, nullptr, workspace, *poisson));
-            EXPECT_FALSE(secondary->isMomentsDirty());
+            EXPECT_TRUE(secondary->isMomentsDirty());
         }
 
         TEST_F(CartesianPIC3DComponentsTest, CartesianAlgorithmRetainsAndClearsFixedMesh) {
@@ -343,7 +344,7 @@ namespace opalx::spacecharge {
             EXPECT_EQ(followingResult.backendSolves, 1u);
             EXPECT_NE(fieldObserver->lower()[0], fixedLower[0]);
             EXPECT_NE(fieldObserver->upper()[0], fixedUpper[0]);
-            EXPECT_FALSE(particles->isMomentsDirty());
+            EXPECT_TRUE(particles->isMomentsDirty());
         }
 
     }  // namespace

@@ -108,6 +108,39 @@ namespace opalx::spacecharge {
             EXPECT_EQ(prepared.afterMerge->particleCounts.size(), prepared.mergedBinCount);
         }
 
+        TEST_F(ParticleBinTraversalTest, SingleBinUsesStorageOrderWithoutSorting) {
+            BinningConfig single = config(false);
+            single.maximumBins   = 1;
+            ParticleBinTraversal plan(*particles_m, single);
+            const BinPreparationResult prepared = plan.prepareBins(false);
+            EXPECT_EQ(prepared.mergedBinCount, 1u);
+            EXPECT_FALSE(prepared.beforeMerge.has_value());
+
+            const auto unit = plan.nextNonemptyBin();
+            ASSERT_TRUE(unit.has_value());
+            EXPECT_EQ(unit->selection.kind(), ParticleBin::Selection::Kind::Direct);
+            EXPECT_TRUE(unit->coversAllLocalParticles);
+            EXPECT_EQ(unit->localParticleCount, particles_m->getLocalNum());
+            EXPECT_EQ(unit->globalParticleCount, particles_m->getTotalNum());
+
+            // SetUp gives p = (0, 0, 0.1 k) for k = 1..8 over all ranks.
+            double meanPz = 0.0;
+            double gamma  = 0.0;
+            for (int k = 1; k <= 8; ++k) {
+                meanPz += 0.1 * k / 8.0;
+                gamma += std::sqrt(1.0 + 0.01 * k * k) / 8.0;
+            }
+            EXPECT_NEAR(unit->meanMomentum[0], 0.0, 1.0e-15);
+            EXPECT_NEAR(unit->meanMomentum[2], meanPz, 1.0e-13);
+            EXPECT_NEAR(unit->gamma, gamma, 1.0e-13);
+            EXPECT_FALSE(plan.nextNonemptyBin().has_value());
+
+            // A requested snapshot needs the histogram, so it takes the full binning path.
+            const BinPreparationResult dumped = plan.prepareBins(true);
+            EXPECT_TRUE(dumped.beforeMerge.has_value());
+            EXPECT_EQ(dumped.mergedBinCount, 1u);
+        }
+
         TEST_F(ParticleBinTraversalTest, SelectionsPartitionParticlesAndPreserveMoments) {
             auto momentum = Kokkos::create_mirror_view_and_copy(
                     Kokkos::HostSpace(), particles_m->P.getView());
@@ -122,7 +155,7 @@ namespace opalx::spacecharge {
             (void)plan.prepareBins(false);
             std::vector<bool> visited(particles_m->getLocalNum(), false);
             while (const auto unit = plan.nextNonemptyBin()) {
-                const auto selection = unit->indexedSelection;
+                const auto selection = unit->selection;
                 const auto hash =
                         Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), selection.hash());
                 std::array<double, 4> expected{};
