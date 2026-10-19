@@ -1,3 +1,22 @@
+/**
+ * @file TestCartesianPIC3DComponents.cpp
+ * @brief Tests of the CartesianPIC3D domain, its updater, and the fixed-domain mode.
+ *
+ * Covers:
+ * - `CartesianDomain` changes its layout extents in place, so the mesh and layout objects that
+ *   particles and fields refer to stay valid; a rebuild with unchanged extents is skipped, and
+ *   `setGeometry()` updates bounds, spacing, and origin.
+ * - A P3M overlap domain is sized from the cutoff and passes the periodic or open particle
+ *   boundary on to the overlap layout.
+ * - A mesh-tied P3M cutoff (`RCUT_CELLS`) follows the largest mesh spacing as the bunch grows and
+ *   shrinks; reference-frame updates use the smallest spacing.
+ * - A fixed Cartesian domain set through `BunchStateHandler` replaces the moving mesh bounds, and
+ *   the mesh follows the bunch again once it is cleared, both in `CartesianDomainUpdater` and in
+ *   a full `CartesianPIC3DAlgorithm` solve.
+ *
+ * All tests run on one rank with an 8^3 mesh.
+ */
+
 #include <gtest/gtest.h>
 
 #include "AbstractObjects/OpalData.h"

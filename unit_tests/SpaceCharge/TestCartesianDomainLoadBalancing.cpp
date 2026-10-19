@@ -1,3 +1,22 @@
+/**
+ * @file TestCartesianDomainLoadBalancing.cpp
+ * @brief Four-rank tests of pair-weighted ORB load balancing for P3M
+ * (`OPTION, LOADBALANCINGPAIRWEIGHT`).
+ *
+ * The P3M short-range work grows with the number of particle pairs inside the cutoff, not with
+ * the particle count, so a dense cluster can overload one rank even when every rank holds the
+ * same number of particles. The test bunch is a uniform lattice plus a dense cluster with 11 % of
+ * the particles but most of the pairs. Covers:
+ * - Weighting ORB by pair counts spreads the pairs more evenly over the ranks than a cut by
+ *   particle count, at the cost of less even particle counts; no particle is lost.
+ * - If the pair-weighted cut would leave a rank region narrower than twice the P3M cutoff, the
+ *   updater falls back to the cut by particle count and keeps the full cutoff.
+ *
+ * The tests need exactly four ranks (two ORB levels) and are skipped otherwise, so CTest only
+ * runs them on one rank. Run them by hand from the build directory:
+ * `mpirun -n 4 ./unit_tests/SpaceCharge/TestCartesianDomainLoadBalancing`
+ */
+
 #include <gtest/gtest.h>
 
 #include "AbstractObjects/OpalData.h"

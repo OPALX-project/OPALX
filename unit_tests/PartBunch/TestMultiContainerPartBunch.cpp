@@ -2,6 +2,11 @@
  * @file TestMultiContainerPartBunch.cpp
  * @brief Unit tests for multi-container PartBunch construction, indexed access,
  *        aggregation, and DataSink diagnostic contracts (stems, fdext sizing).
+ *
+ * The construction tests also check the P3M overlap layouts: a mesh-tied cutoff
+ * (`RCUT_CELLS`) that does not fit the rank regions is reduced when the bunch is built, as the
+ * runtime domain update does, and a cutoff that fits is kept. The space-charge factory tests
+ * check that the configured Cartesian algorithm is built and that FFT2D5 defers its setup.
  */
 
 #include <gtest/gtest.h>

@@ -1,3 +1,17 @@
+/**
+ * @file TestP3MRestFrameParallel.cpp
+ * @brief Two-rank test of the P3M short-range field in the bunch rest frame.
+ *
+ * A close particle pair is placed across the boundary between two ranks, so each rank owns one
+ * particle and sees the other only as a ghost copy. On each rank, the lab-frame and the
+ * rest-frame short-range fields are compared with the analytic pair field. The rest-frame check
+ * fails if only the local positions, and not the ghost positions, are stretched by gamma.
+ *
+ * The test needs exactly two ranks and is skipped otherwise, so CTest only runs it on one rank.
+ * Run it by hand from the build directory:
+ * `mpirun -n 2 ./unit_tests/SpaceCharge/TestP3MRestFrameParallel`
+ */
+
 #include <gtest/gtest.h>
 
 #include "PartBunch/BunchStateHandler.h"

@@ -1,3 +1,22 @@
+/**
+ * @file TestPoissonSolver.cpp
+ * @brief Tests of the `PoissonSolver` adapters that wrap the IPPL Poisson backends.
+ *
+ * Most tests loop over every backend: NONE (open and periodic boundaries), the periodic FFT,
+ * OPEN with the STANDARD and the INTEGRATED Green function, and P3M with open and periodic
+ * boundaries. Covers:
+ * - The factory builds each adapter with the expected name and capabilities, and every backend
+ *   except NONE returns a nonzero field for a test charge.
+ * - After a shifted-Green (image) solve, the next ordinary solve uses the unshifted kernel again,
+ *   also when the mesh spacing changes in between.
+ * - After a layout change, a rebuilt adapter gives the same field as a newly built one.
+ * - Requests a backend cannot serve are rejected before any field is modified.
+ * - The P3M image field equals the STANDARD OPEN image field while the mesh spacing changes.
+ * - Invalid configurations, field bindings, and mismatched adapter types are rejected.
+ *
+ * All tests run on one rank.
+ */
+
 #include <gtest/gtest.h>
 
 #include "PartBunch/CartesianDomain.h"

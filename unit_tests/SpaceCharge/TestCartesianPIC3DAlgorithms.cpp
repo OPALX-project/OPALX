@@ -1,3 +1,30 @@
+/**
+ * @file TestCartesianPIC3DAlgorithms.cpp
+ * @brief End-to-end tests of `CartesianPIC3DAlgorithm::solve()` with the NONE, OPEN, and P3M
+ * backends.
+ *
+ * Each test runs complete space-charge solves for a small bunch of four electrons on a 16^3 mesh
+ * and checks the particle E and B fields that come out. Covers:
+ * - Dirichlet planes: a shifted-Green plane gives the same fields with and without a single bin
+ *   and with either Green function; after `ZEROFACE_MAXSTEPS`, both plane types return to the
+ *   plain solve and mesh.
+ * - P3M with a shifted-Green plane: the image field equals the STANDARD OPEN image, and the
+ *   short-range correction is added once, to the real bunch only.
+ * - P3M with one bin (`MAXBINS=1`): at rest it reproduces the unbinned P3M solve; a moving pair
+ *   follows the Lorentz-boosted Coulomb field with B = v x E / c^2; the shifted-Green image of a
+ *   moving bunch still equals the OPEN image.
+ * - A mesh-tied P3M cutoff (`RCUT_CELLS`) gives the same fields as the equivalent fixed cutoff,
+ *   also after the mesh spacing changes.
+ * - Solve frames: rotated and translated frames give the same fields and restore R and P; a large
+ *   path translation changes positions only by the expected round-off.
+ * - Bookkeeping: E and B keep their allocations, other containers are left untouched, and a P3M
+ *   solve with fewer than two primary particles is skipped without blocking later solves.
+ *
+ * The fixture builds a primary and a secondary particle container, the field storage, and the
+ * algorithm on one rank. P3M sorts particles by cell, so the single-bin P3M tests compare runs
+ * particle by particle at matching positions.
+ */
+
 #include <gtest/gtest.h>
 
 #include "AbstractObjects/OpalData.h"
