@@ -11,6 +11,7 @@
 #include "SpaceCharge/CartesianPIC3D/CartesianPIC3DFieldStorage.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
 #include "SpaceCharge/SpaceChargeSolveContext.h"
+#include "Utility/IpplTimings.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -111,6 +112,12 @@ namespace opalx::spacecharge {
         std::vector<ParticleContainer*> particles_m;
         Orb orb_m;
         std::vector<int> rankFlags_m;
+        /// Whole updateForSolve(): bounds, mesh geometry, migration, ORB and solver rebuild.
+        IpplTimings::TimerRef domainTimer_m = IpplTimings::getTimer("SC: domain update");
+        /// ORB decision and repartition, including the migration onto the new layout.
+        IpplTimings::TimerRef repartitionTimer_m = IpplTimings::getTimer("SC: repartition");
+        /// Poisson solver rebuild after a layout change (FFT plans, Green's function, warm-up).
+        IpplTimings::TimerRef rebuildTimer_m = IpplTimings::getTimer("SC: solver rebuild");
         bool poissonRebuildRequired_m     = false;
         bool cutoffReductionReported_m    = false;
         bool pairWeightFallbackReported_m = false;

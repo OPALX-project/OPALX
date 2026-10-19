@@ -117,6 +117,7 @@ namespace opalx::spacecharge {
             DomainCoordinateFrame frame, const SpaceChargeSolveContext& context,
             const DirichletPlaneConfig& dirichletPlane, const FixedDomain* fixedDomain,
             FieldStorage& fieldStorage, PoissonSolver& poissonSolver) {
+        IpplTimings::startTimer(domainTimer_m);
         const bool beamFrame = frame == DomainCoordinateFrame::Beam;
         const bool fixed     = fixedDomain != nullptr;
         const FieldStorage::Extents extents =
@@ -154,19 +155,24 @@ namespace opalx::spacecharge {
 
         bool redistributed = false;
         if (!fixed && beamFrame && isRedistributionDue(context.stepState().step)) {
+            IpplTimings::startTimer(repartitionTimer_m);
             redistributed = config_m.loadBalancingPairWeight > 0.0
                                     ? redistributeByPairWeight(context, fieldStorage)
                                     : loadIsImbalanced(config_m.loadBalancingThreshold)
                                               && redistribute(context, fieldStorage);
+            IpplTimings::stopTimer(repartitionTimer_m);
         }
 
         if (poissonRebuildRequired_m) {
+            IpplTimings::startTimer(rebuildTimer_m);
             poissonSolver.rebuildAfterLayoutChange(poissonFields(fieldStorage));
+            IpplTimings::stopTimer(rebuildTimer_m);
             poissonRebuildRequired_m = false;
         }
         if (redistributed) {
             ippl::Comm->barrier();
         }
+        IpplTimings::stopTimer(domainTimer_m);
         return redistributed;
     }
 

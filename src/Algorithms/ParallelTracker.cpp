@@ -128,12 +128,7 @@ ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
       restarting_m(false),
       restartGlobalStep_m(0),
       restartDt_m(0.0),
-      restartPosition_m({0, 0}),
-      timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
-      timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
-      fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
-      PluginElemTimer_m(IpplTimings::getTimer("PluginElements")),
-      OrbThreader_m(IpplTimings::getTimer("OrbThreader")) {}
+      restartPosition_m({0, 0}) {}
 
 /**
  * @brief Construct tracker with bunch, data sink, z-segments, and optional emitters.
@@ -161,11 +156,7 @@ ParallelTracker::ParallelTracker(
       restarting_m(restarting),
       restartGlobalStep_m(restartGlobalStep),
       restartDt_m(restartDt),
-      restartPosition_m(restartPosition),
-      timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
-      timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
-      fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
-      OrbThreader_m(IpplTimings::getTimer("OrbThreader")) {
+      restartPosition_m(restartPosition) {
     for (unsigned int i = 0; i < sStop.size(); ++i) {
         stepSizes_m.push_back(dt[i], sStop[i], maxSteps[i]);
     }
@@ -719,10 +710,7 @@ void ParallelTracker::execute() {
                 // per-particle field through the first half drift. Keep this as an explicit
                 // compatibility mode; the default evaluates the field at R_{n+1/2} below.
                 if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::PRESTEP) {
-                    resetFields();
-                    m << level4 << "E and B fields reset before the first half drift at step "
-                      << step << "." << endl;
-                    computeSpaceChargeFields();
+                    updateSpaceChargeFields();
                     m << level4 << "Pre-step space charge field computation done at step " << step
                       << "." << endl;
                 }
@@ -732,9 +720,7 @@ void ParallelTracker::execute() {
                 m << level4 << "timeIntegration1 done at step " << step << "." << endl;
 
                 if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::MIDPOINT) {
-                    resetFields();
-                    m << level4 << "E and B fields reset at step " << step << "." << endl;
-                    computeSpaceChargeFields();
+                    updateSpaceChargeFields();
                     m << level4 << "Midpoint space charge field computation done at step " << step
                       << "." << endl;
                 }
@@ -742,6 +728,7 @@ void ParallelTracker::execute() {
                 // Emission is placed BETWEEN space-charge and external-field evaluation
                 // to match the legacy OPAL ordering (ParallelTTracker): newly emitted
                 // particles experience external fields in their creation step.
+                IpplTimings::startTimer(emissionTimer_m);
                 selectDT();
 
                 // Reset per-particle dt for all existing particles BEFORE emission, so that
@@ -760,6 +747,7 @@ void ParallelTracker::execute() {
                 // switches getdT() back to the track step before external fields, reference update,
                 // and time increment, while per-particle fractional dt values remain untouched.
                 selectDT();
+                IpplTimings::stopTimer(emissionTimer_m);
 
                 // External field computation
                 computeExternalFields(oths);
@@ -804,7 +792,9 @@ void ParallelTracker::execute() {
 
             // Update reference particle
             if (itsBunch_m->getT() > 0.0) {
+                IpplTimings::startTimer(referenceFrameTimer_m);
                 updateReference(pusher);
+                IpplTimings::stopTimer(referenceFrameTimer_m);
                 m << level4 << "Updated reference particle at step " << step << "." << endl;
             }
 
@@ -818,6 +808,7 @@ void ParallelTracker::execute() {
                   << "." << endl;
             }
 
+            IpplTimings::startTimer(particleLossTimer_m);
             // Enforce the transverse aperture of every nearby element (collective call).
             size_t nStepMarked = applyElementApertures(oths);
             if (nStepMarked > 0) {
@@ -845,6 +836,7 @@ void ParallelTracker::execute() {
                         true, m,
                         "transverse aperture / " + std::to_string(sigmas) + "-sigma boundary");
             }
+            IpplTimings::stopTimer(particleLossTimer_m);
 
             // if (hasEndOfLineReached(globalBoundingBox)) break;
 
@@ -860,6 +852,7 @@ void ParallelTracker::execute() {
             bool const statDump = Options::statDumpFreq > 0
                                   && ((itsBunch_m->getGlobalTrackStep() % Options::statDumpFreq) + 1
                                       == Options::statDumpFreq);
+            IpplTimings::startTimer(stepDiagnosticsTimer_m);
             dumpStats(step, psDump, statDump);
 
             if (Options::printRankDistrFreq > 0
@@ -874,6 +867,7 @@ void ParallelTracker::execute() {
                     pc->printRankLoadInfo("container[" + std::to_string(i) + "]");
                 }
             }
+            IpplTimings::stopTimer(stepDiagnosticsTimer_m);
 
             // Increment the global track step counter at the end of the step
             itsBunch_m->incTrackSteps();
@@ -1281,6 +1275,16 @@ ParallelTracker::SpaceChargeEmissionProgress ParallelTracker::spaceChargeEmissio
 }
 
 /**
+ * @copybrief ParallelTracker::updateSpaceChargeFields
+ */
+void ParallelTracker::updateSpaceChargeFields() {
+    IpplTimings::startTimer(spaceChargeTimer_m);
+    resetFields();
+    computeSpaceChargeFields();
+    IpplTimings::stopTimer(spaceChargeTimer_m);
+}
+
+/**
  * @copybrief ParallelTracker::computeSpaceChargeFields
  *
  * @par Frame of reference
@@ -1478,11 +1482,17 @@ void ParallelTracker::forEachElementInBunchFrame(
 
             CoordinateSystemTrafo localToRefCSTrafo = refToLocalCSTrafo.inverted();
 
+            // Each round trip rewrites R, P, E and B of the whole container, so the frame
+            // changes can cost more than the element work between them.
+            IpplTimings::startTimer(elementFrameTimer_m);
             pc->transformBunch(refToLocalCSTrafo);
+            IpplTimings::stopTimer(elementFrameTimer_m);
 
             func(element, pc);
 
+            IpplTimings::startTimer(elementFrameTimer_m);
             pc->transformBunch(localToRefCSTrafo);
+            IpplTimings::stopTimer(elementFrameTimer_m);
         }
     }
 }
@@ -1778,14 +1788,12 @@ void ParallelTracker::prepareBoundaryStep(
             continue;
         }
         if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::PRESTEP) {
-            resetFields();
-            computeSpaceChargeFields();
+            updateSpaceChargeFields();
         }
         timeIntegration1(pusher);
         itsBunch_m->updateAllParticleMoments();
         if (spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::MIDPOINT) {
-            resetFields();
-            computeSpaceChargeFields();
+            updateSpaceChargeFields();
         }
         computeExternalFields(oths);
         const bool crossed = boundaryCrossed(boundaryStepDt_m);
