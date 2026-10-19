@@ -16,6 +16,7 @@
 #include "SpaceCharge/SpaceChargeAlgorithm.h"
 #include "SpaceCharge/SpaceChargeConfig.h"
 #include "SpaceCharge/SpaceChargeFrames.h"
+#include "Utility/IpplTimings.h"
 
 #include <array>
 #include <cstdint>
@@ -127,6 +128,13 @@ namespace opalx::spacecharge {
         ParticleMeshTransfer particleMeshTransfer_m;
         RelativisticFieldComposerType relativisticFieldComposer_m;
         std::vector<BinStatsRow> binStats_m;
+        // Phases of one solve, nested in the tracker's "Space charge" timer. The IPPL scatter,
+        // gather and Solve timers nest in "SC: deposit", "SC: gather" and the pass in between.
+        IpplTimings::TimerRef frameTimer_m   = IpplTimings::getTimer("SC: frames");
+        IpplTimings::TimerRef binTimer_m     = IpplTimings::getTimer("SC: bins");
+        IpplTimings::TimerRef depositTimer_m = IpplTimings::getTimer("SC: deposit");
+        IpplTimings::TimerRef composeTimer_m = IpplTimings::getTimer("SC: compose");
+        IpplTimings::TimerRef gatherTimer_m  = IpplTimings::getTimer("SC: gather");
         bool warnedPlaneDumpParallelUnsupported_m = false;
         bool warnedRestFrameP3MResolution_m       = false;
     };

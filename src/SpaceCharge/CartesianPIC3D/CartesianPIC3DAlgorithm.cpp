@@ -158,14 +158,18 @@ namespace opalx::spacecharge {
         // Skip trivial self-fields before a collapsed domain can violate P3M's overlap cutoff.
         // Fixed bounds remain valid and must still be applied.
         if (fixedDomain || primary_m->getTotalNum() > 1) {
+            IpplTimings::startTimer(frameTimer_m);
             enterSolveFrame(context.stepState().frames, *primary_m);
+            IpplTimings::stopTimer(frameTimer_m);
             result.redistributions += domainUpdater_m.updateForSolve(
                     DomainCoordinateFrame::Beam, context, plan.activeDirichletPlane,
                     fixedDomain ? &*fixedState : nullptr, *fieldStorage_m, *poissonSolver_m);
 
             solveInBeamFrame(context, plan, result);
 
+            IpplTimings::startTimer(frameTimer_m);
             leaveSolveFrame(context.stepState().frames, *primary_m);
+            IpplTimings::stopTimer(frameTimer_m);
         } else {
             clearSelfFields(*primary_m);
         }
@@ -253,9 +257,11 @@ namespace opalx::spacecharge {
             solvePass(context, plan, nullptr, plan.passes[index], result);
         }
         if (accumulatePasses) {
+            IpplTimings::startTimer(gatherTimer_m);
             relativisticFieldComposer_m.gatherAccumulated(
                     particleMeshTransfer_m, primary_m->E, primary_m->B, primary_m->R,
                     *fieldStorage_m);
+            IpplTimings::stopTimer(gatherTimer_m);
         }
         // Add particle fields after the final gather so replacement gathering cannot erase them.
         if (shortRangeInteraction_m.has_value()) {
@@ -272,7 +278,9 @@ namespace opalx::spacecharge {
                 && !config_m.binning->dumpFile.empty() && config_m.binning->dumpFrequency > 0
                 && step % static_cast<long long>(config_m.binning->dumpFrequency) == 0;
 
+        IpplTimings::startTimer(binTimer_m);
         const BinPreparationResult prepared = particleBinTraversal_m->prepareBins(captureSnapshots);
+        IpplTimings::stopTimer(binTimer_m);
         if (prepared.beforeMerge.has_value()) {
             dumpBinSnapshot(context, *prepared.beforeMerge, true);
         }
@@ -302,8 +310,13 @@ namespace opalx::spacecharge {
         // Multi-bin P3M would need one rest-frame particle pass per bin with charges masked to
         // that bin; ghost bin indices are stale after prepareBins and would need a halo refresh.
         std::optional<FieldCompositionPolicy> particleRestFrame;
-        while (const std::optional<ParticleBinType> unit =
-                       particleBinTraversal_m->nextNonemptyBin()) {
+        for (;;) {
+            IpplTimings::startTimer(binTimer_m);
+            const std::optional<ParticleBinType> unit = particleBinTraversal_m->nextNonemptyBin();
+            IpplTimings::stopTimer(binTimer_m);
+            if (!unit.has_value()) {
+                break;
+            }
             m << level4 << "binIndex=" << static_cast<int>(unit->ordinal)
               << " nPartGlobal=" << static_cast<unsigned long long>(unit->globalParticleCount)
               << " gammaBin=" << std::setprecision(10) << unit->gamma << endl;
@@ -335,6 +348,7 @@ namespace opalx::spacecharge {
         }
 
         // The mesh spacing is back to the lab-frame value here, as the gather requires.
+        IpplTimings::startTimer(gatherTimer_m);
         if (!convertOnParticles) {
             relativisticFieldComposer_m.gatherAccumulated(
                     particleMeshTransfer_m, primary_m->E, primary_m->B, primary_m->R,
@@ -346,6 +360,7 @@ namespace opalx::spacecharge {
         } else {
             clearSelfFields(*primary_m);
         }
+        IpplTimings::stopTimer(gatherTimer_m);
         // Add particle fields after the final gather so replacement gathering cannot erase them.
         // Image charges receive no short-range correction, as in the whole-bunch solve.
         if (particleRestFrame.has_value()) {
@@ -368,6 +383,7 @@ namespace opalx::spacecharge {
         const PassProperties policy = passProperties(pass, planeZ, unit != nullptr);
 
         const auto& capabilities = poissonSolver_m->capabilities();
+        IpplTimings::startTimer(depositTimer_m);
         if (unit == nullptr) {
             ParticleMeshTransfer::ChargeNormalization normalization;
             normalization.timeStep              = context.stepState().timeStep;
@@ -384,6 +400,7 @@ namespace opalx::spacecharge {
         } else {
             depositChargeForBin(context, *unit, policy);
         }
+        IpplTimings::stopTimer(depositTimer_m);
 
         fieldStorage_m->electricField() = 0.0;
         auto& mesh                      = fieldStorage_m->mesh();
@@ -461,8 +478,10 @@ namespace opalx::spacecharge {
         }
 
         if (unit == nullptr && plan.passCount == 1) {
+            IpplTimings::startTimer(gatherTimer_m);
             relativisticFieldComposer_m.gatherElectrostatic(
                     particleMeshTransfer_m, primary_m->E, primary_m->R, *fieldStorage_m);
+            IpplTimings::stopTimer(gatherTimer_m);
         } else if (accumulateOnMesh) {
             RelativisticFieldComposerType::Policy compositionPolicy;
             if (unit != nullptr) {
@@ -474,7 +493,9 @@ namespace opalx::spacecharge {
 
             // Shifted Green reuses the real-charge RHS. Its image sign enters through field
             // reflection and component signs here; negating rho would invert the image twice.
+            IpplTimings::startTimer(composeTimer_m);
             relativisticFieldComposer_m.accumulate(*fieldStorage_m, compositionPolicy);
+            IpplTimings::stopTimer(composeTimer_m);
         }
 
         if (unit != nullptr) {

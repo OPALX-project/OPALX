@@ -199,12 +199,27 @@ private:
     StepSizeConfig::ResumePosition restartPosition_m;  ///< Saved schedule segment and offset.
 
     // --- Timers ---
-    IpplTimings::TimerRef timeIntegrationTimer1_m;
-    IpplTimings::TimerRef timeIntegrationTimer2_m;
-    IpplTimings::TimerRef fieldEvaluationTimer_m;
-    IpplTimings::TimerRef WakeFieldTimer_m;
-    IpplTimings::TimerRef PluginElemTimer_m;
-    IpplTimings::TimerRef OrbThreader_m;
+    // The step phases below do not overlap and together cover one tracking step. Sub-timers
+    // (element frame changes, the "SC:" solver phases and the IPPL scatter/gather/Solve timers)
+    // run nested inside them, so they must not be added to the phase totals.
+    IpplTimings::TimerRef timeIntegrationTimer1_m = IpplTimings::getTimer("TIntegration1");
+    /// Field reset and the space-charge solve, including its frame changes and domain update.
+    IpplTimings::TimerRef spaceChargeTimer_m = IpplTimings::getTimer("Space charge");
+    /// Step selection, per-particle dt reset and emission from the emission sources.
+    IpplTimings::TimerRef emissionTimer_m = IpplTimings::getTimer("Emission");
+    /// External fields of the nearby elements, including the element frame round trips.
+    IpplTimings::TimerRef fieldEvaluationTimer_m = IpplTimings::getTimer("External field eval");
+    IpplTimings::TimerRef timeIntegrationTimer2_m = IpplTimings::getTimer("TIntegration2");
+    /// Reference-particle push and the move of the bunch frame onto it (rewrites R, P, E, B).
+    IpplTimings::TimerRef referenceFrameTimer_m = IpplTimings::getTimer("Reference frame");
+    /// Aperture checks, the BOUNDPDESTROY test and the deletion of marked particles.
+    IpplTimings::TimerRef particleLossTimer_m = IpplTimings::getTimer("Particle loss");
+    /// Step information line, statistics and phase-space dumps, rank load report.
+    IpplTimings::TimerRef stepDiagnosticsTimer_m = IpplTimings::getTimer("Step diagnostics");
+    /// Bunch round trips into element frames; nested in External field eval and Particle loss.
+    IpplTimings::TimerRef elementFrameTimer_m = IpplTimings::getTimer("Element frames");
+    IpplTimings::TimerRef PluginElemTimer_m   = IpplTimings::getTimer("PluginElements");
+    IpplTimings::TimerRef OrbThreader_m       = IpplTimings::getTimer("OrbThreader");
 
 public:
     /**
@@ -346,6 +361,9 @@ public:
     /** @brief Build the current tracker-frame context and dispatch the configured space-charge
      * solve. */
     void computeSpaceChargeFields();
+
+    /// @brief Reset E and B and run the space-charge solve under the "Space charge" timer.
+    void updateSpaceChargeFields();
 
     /// @brief Apply external fields from elements intersecting each active container.
     /// @param oths Per-container orbit threaders (one per distinct species; same-species
