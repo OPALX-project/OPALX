@@ -1,3 +1,23 @@
+/**
+ * @file TestCartesianPIC3DFields.cpp
+ * @brief Tests of the CartesianPIC3D parts that move charges and fields between particles and
+ * the mesh, and of the P3M short-range field.
+ *
+ * Covers:
+ * - `ParticleMeshFieldTransfer`: depositing a bunch together with its image charges restores R,
+ *   dt, and Q afterwards, and gathering a uniform mesh field returns it unchanged.
+ * - `RelativisticFieldComposer`: at gamma = 1 a direct source passes through unchanged with
+ *   B = 0, and the shifted-Green source is mirrored in z with the image signs.
+ * - `P3MShortRangeInteraction`: the lab-frame pair field is finite and nonzero. The rest-frame
+ *   field matches the analytic erfc pair field at the separation (dx, dy, gamma dz), is exactly
+ *   zero for a pair inside the lab cutoff but outside the rest-frame cutoff, and equals the
+ *   lab-frame field at gamma = 1.
+ * - `RelativisticFieldComposer::addParticleContribution`: per-particle fields get the same
+ *   Lorentz conversion as mesh fields, including B = sign * v x E / c^2.
+ *
+ * Each test builds only the objects it needs on an 8^3 mesh on one rank; no Poisson solve runs.
+ */
+
 #include <gtest/gtest.h>
 
 #include "PartBunch/BunchStateHandler.h"

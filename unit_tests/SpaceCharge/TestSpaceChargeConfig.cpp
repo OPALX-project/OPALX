@@ -1,3 +1,27 @@
+/**
+ * @file TestSpaceChargeConfig.cpp
+ * @brief Tests of space-charge input validation and of the conversion from input commands to the
+ * runtime configuration.
+ *
+ * `SpaceChargeConfigTest` calls `validateSpaceChargeConfig` and the domain helpers directly on
+ * configuration structs:
+ * - P3M: overlap particle layout and boundary mode, exactly one cutoff mode (`RCUT` or
+ *   `RCUT_CELLS`), rejected combinations, binning only with `MAXBINS=1`, and a shifted-Green
+ *   Dirichlet plane only with open boundaries.
+ * - `LOADBALANCINGPAIRWEIGHT` must lie in [0, 1] and needs P3M when it is above 0.
+ * - The boundary conditions each Poisson backend accepts, unsupported Dirichlet-plane
+ *   combinations, invalid enum values, and the separate FFT2D5 domain.
+ * - A shifted-Green plane works with or without binning and with either Green function.
+ *
+ * `SpaceChargeConfigBuilderTest` starts from parsed `FIELDSOLVER` and `EMISSIONSOURCE` commands:
+ * the P3M shifted source plane, the choice between `RCUT` and `RCUT_CELLS` (by default a
+ * mesh-tied cutoff of two cells), early rejection of `TYPE=CG` and of invalid mesh sizes, and
+ * leaving compatibility checks to the validation step.
+ *
+ * The tests use configuration structs and command objects only; no particles or fields are
+ * created.
+ */
+
 #include <gtest/gtest.h>
 #include <limits>
 #include <memory>
