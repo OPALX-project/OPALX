@@ -416,8 +416,8 @@ void ScalingFFAMagnet::rotateBfield(
     double phi = Rcyli[2];
     Bi[1]      = Bcyli[1];
     Bi[0]      = Kokkos::copysign(1.0, config.r0_m)
-                 * (Bcyli[0] * Kokkos::cos(phi) - Bcyli[2] * Kokkos::sin(phi));
-    Bi[2]      = Bcyli[0] * Kokkos::sin(phi) + Bcyli[2] * Kokkos::cos(phi);
+            * (Bcyli[0] * Kokkos::cos(phi) - Bcyli[2] * Kokkos::sin(phi));
+    Bi[2] = Bcyli[0] * Kokkos::sin(phi) + Bcyli[2] * Kokkos::cos(phi);
 }
 
 KOKKOS_INLINE_FUNCTION
