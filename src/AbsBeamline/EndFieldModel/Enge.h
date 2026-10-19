@@ -61,8 +61,8 @@ namespace endfieldmodel {
         double lambda_m                     = 0.0;
         double x0_m                         = 0.0;
         /** gIndices is used for calculating derivatives. */
-        Kokkos::View<int**> gIndices[max_derivative];
-        Kokkos::View<int**> hIndices[max_derivative];
+        Kokkos::View<int**> gIndices[max_derivative+1];
+        Kokkos::View<int**> hIndices[max_derivative+1];
     };
 
     class Enge : public EndFieldModel {
