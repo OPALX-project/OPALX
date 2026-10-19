@@ -65,16 +65,10 @@ namespace opalx::spacecharge {
          * Beam-frame updates handle only the primary container. A mesh-tied P3M cutoff is set
          * from the largest spacing there, since the pair stage runs on these layouts. Reference
          * frame layouts only migrate particles and use the smallest spacing instead. Either value
-         * is reduced to the largest cutoff that fits every rank region, see largestFittingCutoff().
+         * is reduced to the largest cutoff that fits every rank region, see
+         * CartesianDomain::largestFittingOverlapCutoff().
          */
         void updateLayoutsAndMigrate(FieldStorage& fieldStorage, DomainCoordinateFrame frame);
-        /**
-         * @brief Largest overlap cutoff in metres that fits every rank region.
-         *
-         * The overlap layout requires the cutoff to be at most half the local region length in
-         * every dimension on every rank. Collective; all ranks obtain the same value.
-         */
-        [[nodiscard]] double largestFittingCutoff(FieldStorage& fieldStorage) const;
         void updateMoments(bool primaryOnly);
         [[nodiscard]] bool isRedistributionBlocked(
                 std::span<const std::uint8_t> trackingActive) const;

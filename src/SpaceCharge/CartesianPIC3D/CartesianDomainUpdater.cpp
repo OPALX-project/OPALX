@@ -217,7 +217,7 @@ namespace opalx::spacecharge {
             // An anisotropic mesh, such as the stretched longitudinal domain during emission,
             // can make the requested cutoff wider than a rank region. A smaller cutoff keeps the
             // P3M split exact but lets mesh errors grow, as alpha * h_max exceeds 2 / RCUT_CELLS.
-            cutoff = std::min(requested, largestFittingCutoff(fieldStorage));
+            cutoff = std::min(requested, fieldStorage.domain().largestFittingOverlapCutoff());
             if (primaryOnly && cutoff < requested && !cutoffReductionReported_m) {
                 Inform m("CartesianDomainUpdater::updateLayoutsAndMigrate");
                 m << level1 << "Reducing the mesh-tied P3M cutoff from " << requested << " m to "
@@ -237,20 +237,6 @@ namespace opalx::spacecharge {
             particles.update();
             particles.markMomentsDirty();
         }
-    }
-
-    double CartesianDomainUpdater::largestFittingCutoff(FieldStorage& fieldStorage) const {
-        const auto& localDomain = fieldStorage.layout().getLocalNDIndex();
-        const auto& spacing     = fieldStorage.mesh().getMeshSpacing();
-        double halfRegion       = std::numeric_limits<double>::max();
-        for (unsigned dimension = 0; dimension < 3; ++dimension) {
-            halfRegion = std::min(
-                    halfRegion, 0.5 * static_cast<double>(localDomain[dimension].length())
-                                        * spacing[dimension]);
-        }
-        ippl::Comm->allreduce(&halfRegion, 1, std::less<double>());
-        // Stay clear of round-off in the layout's own region lengths.
-        return halfRegion * (1.0 - 1.0e-12);
     }
 
     void CartesianDomainUpdater::updateMoments(bool primaryOnly) {
@@ -456,7 +442,7 @@ namespace opalx::spacecharge {
         const auto hostDomains = layout.getHostLocalDomains();
         const std::vector<ippl::NDIndex<3>> previousDomains(
                 hostDomains.data(), hostDomains.data() + hostDomains.extent(0));
-        const double fitBefore = largestFittingCutoff(fieldStorage);
+        const double fitBefore = fieldStorage.domain().largestFittingOverlapCutoff();
 
         // ORB changes the layout only after its domains pass validation, so a failed
         // repartition leaves fields, particles, and the Poisson solver valid.
@@ -472,7 +458,7 @@ namespace opalx::spacecharge {
         // is replaced by the particle-count cut, which today's runs would have used.
         const double requestedCutoff = resolveOverlapCutoff<3>(
                 config_m.p3mCutoff, config_m.p3mCutoffCells, fieldStorage.mesh().getMeshSpacing());
-        const double fitAfter = largestFittingCutoff(fieldStorage);
+        const double fitAfter = fieldStorage.domain().largestFittingOverlapCutoff();
         if (fitAfter < requestedCutoff && fitAfter < fitBefore) {
             layout.updateLayout(previousDomains);
             if (!pairWeightFallbackReported_m) {

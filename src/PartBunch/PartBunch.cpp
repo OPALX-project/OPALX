@@ -71,9 +71,14 @@ PartBunch<T, Dim>::PartBunch(
 
     const bool useOverlap =
             domainConfig.layoutType == opalx::spacecharge::ParticleLayoutType::SpatialOverlap;
-    const T overlapCutoff = opalx::spacecharge::resolveOverlapCutoff<Dim>(
+    T overlapCutoff = opalx::spacecharge::resolveOverlapCutoff<Dim>(
             domainConfig.overlapCutoff, domainConfig.overlapCutoffCells,
             cartesianDomain_m->spacing());
+    // A mesh-tied cutoff follows the placeholder spacing, which can exceed half a rank region
+    // when an axis has few cells per rank. The runtime update replaces it before the first solve.
+    if (useOverlap && domainConfig.overlapCutoffCells > T(0)) {
+        overlapCutoff = std::min(overlapCutoff, cartesianDomain_m->largestFittingOverlapCutoff());
+    }
     if (useOverlap && !(overlapCutoff > T(0))) {
         throw OpalException(
                 "PartBunch::PartBunch",
