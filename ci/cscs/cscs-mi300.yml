@@ -4,29 +4,41 @@ include:
   - local: "ci/cscs/rocm/run_rocm-6.3.yml"
   - local: "ci/cscs/rocm/regression_rocm-6.3.yml"
 
-# Temporary PR #300 investigation: build Debug once, then run only the isolated
-# Gaussian MPI2 case, first with the inherited IPC setting and then with IPC off.
-# Do not reduce coverage on master, other PRs, or other architectures.
-.mi300-normal-coverage:
+# Temporary PR #300 investigation: repeat the isolated Gaussian comparison and
+# restore the full matrix with IPC disabled. Keep the diagnostic baseline intact.
+# Other refs and architectures retain their normal environment and coverage.
+.mi300-ipc-disabled-coverage:
   rules:
     - if: '$CI_COMMIT_REF_NAME == "__CSCSCI__pr300"'
-      when: never
+      # A failed diagnostic must not suppress the full-suite/regression jobs.
+      when: always
+      variables: &mi300-ipc-disabled-env
+        MPICH_GPU_IPC_ENABLED: "0"
+        OPALX_BEAMBEAM_DIAGNOSTICS: "1"
+        MI300_TEST_SUFFIX: "-ipc-disabled"
+        # The nominal one-rank jobs also launch explicitly registered MPI2 tests.
+        SLURM_CPUS_PER_TASK: "4"
+        OMP_NUM_THREADS: "1"
+        OMP_PROC_BIND: "false"
     - when: on_success
 
-opalx-build-rocm6_3-release:
-  rules: !reference [.mi300-normal-coverage, rules]
-
 opalx-test-rocm6_3-debug-1-rank:
-  rules: !reference [.mi300-normal-coverage, rules]
+  rules: !reference [.mi300-ipc-disabled-coverage, rules]
 
 opalx-test-rocm6_3-release-1-rank:
-  rules: !reference [.mi300-normal-coverage, rules]
+  rules: !reference [.mi300-ipc-disabled-coverage, rules]
 
 opalx-test-rocm6_3-release-4-ranks:
-  rules: !reference [.mi300-normal-coverage, rules]
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "__CSCSCI__pr300"'
+      when: always
+      variables:
+        <<: *mi300-ipc-disabled-env
+        SLURM_CPUS_PER_TASK: "1"
+    - when: on_success
 
 opalx-regression-rocm6_3-mi300-release:
-  rules: !reference [.mi300-normal-coverage, rules]
+  rules: !reference [.mi300-ipc-disabled-coverage, rules]
 
 opalx-diagnostic-mi300-gaussian-mpi2:
   extends: .opalx-test-rocm-common

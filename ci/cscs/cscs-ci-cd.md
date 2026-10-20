@@ -16,11 +16,23 @@ Clicking on the Tick/Cross will take you to the pipeline information page where 
 
 ### Temporary PR #300 MI300 diagnostics
 
-For the verified CSCS mirror ref `__CSCSCI__pr300`, `cscs-mi300.yml` keeps the
-Debug build and replaces the normal MI300 test/regression jobs with
-`opalx-diagnostic-mi300-gaussian-mpi2`. Release is not built for this diagnostic
-pipeline. Other refs, master, GitHub Actions and the other CSCS architectures
-retain their normal coverage. Remove this temporary override before merging.
+For the verified CSCS mirror ref `__CSCSCI__pr300`, `cscs-mi300.yml` runs
+`opalx-diagnostic-mi300-gaussian-mpi2` alongside the normal Debug/Release builds,
+three unit-test jobs and Release regression job. The full-suite jobs set
+`MPICH_GPU_IPC_ENABLED=0`; the diagnostic baseline retains its inherited setting.
+Other refs, master, GitHub Actions and the other CSCS architectures retain their
+normal environment and coverage. Remove or reassess this temporary override
+before merging.
+
+Full-suite jobs depend only on their build artifacts and use `when: always` on
+PR #300, so a failed diagnostic does not suppress them. Unit-test CDash names
+end in `-ipc-disabled`. The normal test selection and existing disabled tests
+are unchanged; there is no Gaussian-only filter in the full suite. These jobs
+allocate four CPUs total and use one OpenMP thread per rank, and enable the same
+Gaussian phase markers. Nominal one-rank jobs retain enough CPUs to launch the
+explicit MPI2 registrations; the four-rank job uses one CPU per rank.
+The regression job uses the existing NightlyBuildX
+architecture without changing its test inputs or reference tolerances.
 
 The diagnostic job requests two MPI ranks and two CPUs per rank (four CPUs in
 total), with one OpenMP thread per rank. It runs only
@@ -32,8 +44,9 @@ existing `TestBeamBeamFieldServicesMPI2` CTest registration, in fresh processes:
 
 Both results are submitted to separate `GaussianMPI2-inherited-ipc` and
 `GaussianMPI2-ipc-disabled` CDash entries and retained as XML/log artifacts under
-`build-<sha>-debug/mi300-diagnostics/`. Either failure makes the job fail; this
-is diagnostic coverage, not a full green MI300 validation.
+`build-<sha>-debug/mi300-diagnostics/`. Either failure makes the diagnostic job
+fail, even if the separate IPC-disabled full suite passes. A passing IPC-disabled
+suite does not establish that the default IPC-enabled configuration is fixed.
 
 `OPALX_BEAMBEAM_DIAGNOSTICS=1` enables rank-tagged phase markers, MPI version,
 selected environment variables and Kokkos execution-space configuration. These
