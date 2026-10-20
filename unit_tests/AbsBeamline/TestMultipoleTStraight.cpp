@@ -585,9 +585,7 @@ TEST_F(TestMultipoleTStraight, FieldAtSingleParticlePosition) {
     EXPECT_EQ(E[2], 0.0);
 }
 
-TEST_F(TestMultipoleTStraight, IsInside) {
-    EXPECT_TRUE(isInside({0, 0, 0}));
-}
+TEST_F(TestMultipoleTStraight, IsInside) { EXPECT_TRUE(isInside({0, 0, 0})); }
 
 TEST_F(TestMultipoleTStraight, ApplyToReferenceParticle1) {
     // Make the bunch
@@ -632,4 +630,3 @@ TEST_F(TestMultipoleTStraight, ApplyToReferenceParticle2) {
     Vector_t<double, 3> E{}, B{};
     EXPECT_FALSE(applyToReferenceParticle(hostR(0), Vector_t<double, 3>{}, 0.0, E, B));
 }
-
