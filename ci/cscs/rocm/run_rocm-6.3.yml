@@ -34,7 +34,8 @@ variables:
     - find $BUILD_PATH -type f -name "CTestTestfile.cmake" -exec sed -i "s|$CACHE_DIR|$BUILD_PATH|g" {} \;
     - find $BUILD_PATH -type f -name "DartConfiguration.tcl" -exec sed -i "s|$CACHE_DIR|$BUILD_PATH|g" {} \;
     # reset custom build name for cdash
-    - export CTEST_BUILD_NAME="${CDASH_LABEL}-${BUILD_ARCH}-${BUILD_TYPE}-${TEST_INFO}"
+    - echo "MPICH_GPU_IPC_ENABLED=${MPICH_GPU_IPC_ENABLED:-<unset>}"
+    - export CTEST_BUILD_NAME="${CDASH_LABEL}-${BUILD_ARCH}-${BUILD_TYPE}-${TEST_INFO}${MI300_TEST_SUFFIX:-}"
     - find $BUILD_PATH -type f -name \*.xml -exec sed -i "s|BuildName=.*|BuildName=\"${CTEST_BUILD_NAME}\"|g" {} \;
     # ctest should now have valid file paths, (use srun to launch with uenv setup)
     - ctest -V --output-on-failure --timeout 60 $TEST_ARGS -S $CI_PROJECT_DIR/ci/cscs/dashboard-test.cmake
