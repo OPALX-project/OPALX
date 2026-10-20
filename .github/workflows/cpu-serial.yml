@@ -74,10 +74,12 @@ jobs:
           - Drift-1-fromfile
           - Drift-4-multi-emit-open
           - FodoCell-fromfile
-          - BeamBeam-OffsetKick
-          - BeamBeam-TimedBirths
-          - BeamBeam-WitnessMPI
-          - BeamBeam-RigidSource
+          # Temporarily disabled: these inputs exist on regression-tests-x/pr-300,
+          # but not on its default branch cloned below. Re-enable after integration.
+          # - BeamBeam-OffsetKick
+          # - BeamBeam-TimedBirths
+          # - BeamBeam-WitnessMPI
+          # - BeamBeam-RigidSource
 
     steps:
       - name: Install MPI runtime
