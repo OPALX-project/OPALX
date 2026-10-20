@@ -517,16 +517,14 @@ void Fieldmap::getLine(std::ifstream& in, int& lines_read, std::string& buffer) 
 
     do {
         ++lines_read;
-        in.getline(buffer_m, READ_BUFFER_LENGTH);
-
-        buffer = std::string(buffer_m);
+        std::getline(in, buffer);
 
         size_t comment = buffer.find("#");
         buffer         = buffer.substr(0, comment);
 
         lastof  = buffer.find_last_of(alpha_numeric);
         firstof = buffer.find_first_of(alpha_numeric);
-    } while (!in.eof() && lastof == std::string::npos);
+    } while (in.good() && lastof == std::string::npos);
 
     if (firstof != std::string::npos) {
         buffer = buffer.substr(firstof, lastof - firstof + 1);
@@ -534,10 +532,9 @@ void Fieldmap::getLine(std::ifstream& in, int& lines_read, std::string& buffer) 
 }
 
 bool Fieldmap::interpreteEOF(std::ifstream& in) {
-    while (!in.eof()) {
+    std::string buffer;
+    while (std::getline(in, buffer)) {
         ++lines_read_m;
-        in.getline(buffer_m, READ_BUFFER_LENGTH);
-        std::string buffer(buffer_m);
         size_t comment = buffer.find_first_of("#");
         buffer         = buffer.substr(0, comment);
         size_t lasto   = buffer.find_first_of(alpha_numeric);
@@ -777,4 +774,3 @@ std::string Fieldmap::alpha_numeric(
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-+\211");
 std::map<std::string, Fieldmap::FieldmapDescription> Fieldmap::FieldmapDictionary =
         std::map<std::string, Fieldmap::FieldmapDescription>();
-char Fieldmap::buffer_m[READ_BUFFER_LENGTH];
