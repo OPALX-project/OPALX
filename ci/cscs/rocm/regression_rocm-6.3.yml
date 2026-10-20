@@ -18,7 +18,9 @@ variables:
     - .opalx-regression-common
     - .baremetal-runner-beverin-mi300
   variables:
-    SLURM_CPUS_PER_TASK: 8
+    SLURM_CPUS_PER_TASK: 4
+    OMP_NUM_THREADS: "1"
+    OMP_PROC_BIND: "false"
     # the .f7t-runner base class sets SLURM_TIMELIMIT=00:15:00 which beats
     # the value in .opalx-regression-common via extends merge order; defining
     # it here (closer to the job) gives it precedence

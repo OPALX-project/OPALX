@@ -14,46 +14,46 @@ Clicking on the Tick/Cross will take you to the pipeline information page where 
 * what the commands run and output generated at each step is/was
 * which tests passed failed and what error messages appear
 
-### Temporary PR #300 MI300 diagnostics
+### MI300 GPU IPC workaround
 
-For the verified CSCS mirror ref `__CSCSCI__pr300`, `cscs-mi300.yml` runs
-`opalx-diagnostic-mi300-gaussian-mpi2` alongside the normal Debug/Release builds,
-three unit-test jobs and Release regression job. The full-suite jobs set
-`MPICH_GPU_IPC_ENABLED=0`; the diagnostic baseline retains its inherited setting.
-Other refs, master, GitHub Actions and the other CSCS architectures retain their
-normal environment and coverage. Remove or reassess this temporary override
-before merging.
+`cscs-mi300.yml` sets `MPICH_GPU_IPC_ENABLED=0` for all refs in the MI300
+pipeline, including master and PRs. This disables the Cray MPICH GPU IPC path
+as a platform workaround; it does not change the physics model, meshes,
+particle counts or assertion tolerances. It may affect communication performance.
+The setting is not applied to GH200, CPU/OpenMP or GitHub Actions pipelines.
 
-Full-suite jobs depend only on their build artifacts and use `when: always` on
-PR #300, so a failed diagnostic does not suppress them. Unit-test CDash names
-end in `-ipc-disabled`. The normal test selection and existing disabled tests
-are unchanged; there is no Gaussian-only filter in the full suite. These jobs
-allocate four CPUs total and use one OpenMP thread per rank, and enable the same
-Gaussian phase markers. Nominal one-rank jobs retain enough CPUs to launch the
-explicit MPI2 registrations; the four-rank job uses one CPU per rank.
-The regression job uses the existing NightlyBuildX
-architecture without changing its test inputs or reference tolerances.
+On Beverin MI300A with the `prgenv-gnu/25.07-6.3.3:v12` uenv, Cray MPICH
+8.1.32.110 and `HSA_XNACK=1`, the isolated two-rank
+`BeamBeamFieldServicesTest.GaussianFieldsAndPassiveWitnessGather` failed with
+SIGBUS twice under inherited IPC settings and passed twice with IPC disabled.
+The final markers were before solver construction/FFT warmup returned, before
+the first physics solve or witness gathering. These observations implicate an
+IPC-sensitive communication/memory interaction, but do not prove which library
+or operation is responsible. See the repeated
+[baseline failure](https://my.cdash.org/tests/540997605) and
+[IPC-disabled pass](https://my.cdash.org/tests/540997606).
 
-The diagnostic job requests two MPI ranks and two CPUs per rank (four CPUs in
-total), with one OpenMP thread per rank. It runs only
-`BeamBeamFieldServicesTest.GaussianFieldsAndPassiveWitnessGather` through the
-existing `TestBeamBeamFieldServicesMPI2` CTest registration, in fresh processes:
+At commit `cd128ab10`, the IPC-disabled full Debug and both Release unit jobs
+each passed 134 enabled tests (two existing tests disabled), and the regression
+job succeeded. See the [Debug results](https://my.cdash.org/builds/4348643) and
+[complete validation pipeline](https://gitlab.com/cscs-ci/ci-testing/webhook-ci/mirrors/6151408209445194/694321096757982/-/pipelines/2969182428).
+That historical pipeline includes the deliberately failing baseline diagnostic.
 
-1. Preserve the inherited MPI/IPC environment.
-2. Set only `MPICH_GPU_IPC_ENABLED=0` and repeat, even if the first run crashes.
+The normal six-job matrix, standard CDash names and normal failure propagation
+are retained: two builds, three unit-test jobs and the Release regression job.
+There are no PR-specific rules, Gaussian-only filters or extra diagnostic runs.
+Test jobs retain the validated four-CPU allocation and one OpenMP thread per
+rank. Nominal one-rank jobs allocate four CPUs to accommodate explicit MPI2
+registrations; the four-rank job allocates one CPU per rank. Test selection and
+the existing disabled tests are unchanged.
 
-Both results are submitted to separate `GaussianMPI2-inherited-ipc` and
-`GaussianMPI2-ipc-disabled` CDash entries and retained as XML/log artifacts under
-`build-<sha>-debug/mi300-diagnostics/`. Either failure makes the diagnostic job
-fail, even if the separate IPC-disabled full suite passes. A passing IPC-disabled
-suite does not establish that the default IPC-enabled configuration is fixed.
-
-`OPALX_BEAMBEAM_DIAGNOSTICS=1` enables rank-tagged phase markers, MPI version,
-selected environment variables and Kokkos execution-space configuration. These
-markers add no fences or barriers: an after-marker means the host call returned,
-not necessarily that asynchronous GPU work finished. The mesh, particles,
-physical model and assertion tolerances are unchanged. Locally, the CTest script
-can be exercised with `-DOPALX_DIAGNOSTIC_SUBMIT=OFF` to avoid uploading results.
+Reassess this workaround after MPI/ROCm/uenv upgrades: compare the isolated
+Gaussian MPI2 case with inherited IPC versus `MPICH_GPU_IPC_ENABLED=0`, then
+validate the full unit/regression matrix before removing the setting. Optional
+`OPALX_BEAMBEAM_DIAGNOSTICS=1` still enables rank-tagged test phase markers and
+MPI/device information, but is not enabled by CI. These markers add no fences
+or barriers, so an after-marker does not establish GPU completion. Passing with
+IPC disabled does not establish that the default IPC configuration is fixed.
 
 ### Which PRs are tested
 All PRs submitted to IPPL **via the IPPL github repo** (ie not via forks) will be tested automatically - this is possible since only authorized github accounts are allowed to push branches and create PRs from the IPPL repo directly. 
