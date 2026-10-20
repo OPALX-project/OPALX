@@ -114,6 +114,21 @@ namespace {
         EXPECT_THROW(beam.execute(), OpalException);
     }
 
+    // A DAUGHTERBEAM has no GAMMA/ENERGY/PC and no SOURCES. Beam::execute must accept it;
+    // TrackRun requires SOURCES on every beam that is not a DAUGHTERBEAM.
+    TEST_F(BeamPhotonTest, BeamWithoutEnergyOrSourcesParses) {
+        Beam beam;
+        setParticle(beam, "ELECTRON");
+        setNALLOC(beam, 1.0);
+
+        EXPECT_NO_THROW(beam.execute());
+        EXPECT_FALSE(beam.hasExplicitEnergy());
+        EXPECT_FALSE(beam.hasEmissionSources());
+
+        setSources(beam, "src");
+        EXPECT_TRUE(beam.hasEmissionSources());
+    }
+
     class BeamPolarizationTest : public BeamPhotonTest {
     protected:
         void setPolarization(Beam& beam, const std::vector<double>& pol) {
