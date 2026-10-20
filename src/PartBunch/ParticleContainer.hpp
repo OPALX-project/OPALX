@@ -117,11 +117,10 @@ public:
     /// View types of Q and M values
     using qm_view_type = typename ippl::ParticleAttrib<double>::view_type;
 
-    /// Per-particle polarization vector type: 3D vector in single precision, |Pol| in [0, 1].
-    /// Polarization observables are typically ~1% accurate, so `float` storage is sufficient and
-    /// halves the memory footprint versus the codebase's standard `double` attributes. Dynamics
-    /// kernels should still compute in `double` and cast back on store.
-    using spin_vector_type = ippl::Vector<float, 3>;
+    /// Per-particle polarization vector type: 3D vector in double precision, |Pol| in [0, 1].
+    /// Double, like R and P, because Pol is rotated with every frame change (transformBunch)
+    /// and float storage would round it again at each rotation.
+    using spin_vector_type = ippl::Vector<double, 3>;
 
 public:
     /// Charge view in [Cb].
@@ -171,9 +170,9 @@ public:
     /// particle deletion mask (indicates which particles are deleted every timestep)
     ippl::ParticleAttrib<bool> InvalidMask;
 
-    /// Per-particle polarization vector P (rest-frame Pauli expectation values along
-    /// lab-frame axes; |Pol| in [0, 1]). Registered only when spinEnabled_m is true.
-    /// Storage is float to halve memory; kernels should compute in double and cast.
+    /// Per-particle polarization vector (rest-frame Pauli expectation values along the same
+    /// axes as P, i.e. the bunch frame; |Pol| in [0, 1]). Registered only when spinEnabled_m
+    /// is true.
     ippl::ParticleAttrib<spin_vector_type> Pol;
 
     /// Returns true when per-particle spin storage was enabled at construction
@@ -227,13 +226,16 @@ public:
 
     void setupBCs(ippl::BC particleBC) { this->setParticleBC(particleBC); }
 
-    /// Apply coordinate transform to local particles: translate R, rotate P, E, B.
+    /// Apply coordinate transform to local particles: translate R, rotate P, E, B and Pol.
     void transformBunch(const CoordinateSystemTrafo& trafo) {
         const size_t nLoc = this->getLocalNum();
         trafo.transformBunchTo(this->R.getView(), nLoc);
         trafo.rotateBunchTo(this->P.getView(), nLoc);
         trafo.rotateBunchTo(this->E.getView(), nLoc);
         trafo.rotateBunchTo(this->B.getView(), nLoc);
+        if (spinEnabled_m) {
+            trafo.rotateBunchTo(this->Pol.getView(), nLoc);
+        }
         markMomentsDirty();
     }
     SpatialLayout_t& getPL() {
@@ -542,8 +544,12 @@ public:
     /// @brief Set local-to-lab coordinate transformation.
     void setToLabTrafo(const CoordinateSystemTrafo& toLabTrafo) { toLabTrafo_m = toLabTrafo; }
 
-    /// @brief Advance reference/lab transform state and map bunch accordingly.
-    void updateRefToLabCSTrafo(double bunchDT) {
+    /**
+     * @brief Advance reference/lab transform state and map bunch accordingly.
+     * @return The frame change applied to the bunch (old bunch frame to new bunch frame), so
+     *   containers that use this container's reference can apply the same change.
+     */
+    CoordinateSystemTrafo updateRefToLabCSTrafo(double bunchDT) {
         Vector_t<double, 3> R = toLabTrafo_m.transformFrom(refPartR_m);
         Vector_t<double, 3> P = toLabTrafo_m.rotateFrom(refPartP_m);
 
@@ -554,6 +560,38 @@ public:
         CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));
         transformBunch(update);
         toLabTrafo_m = toLabTrafo_m * update.inverted();
+        return update;
+    }
+
+    /**
+     * @brief Take over another container's reference particle, frame and path length.
+     *
+     * Used for a decay daughter container, which has no reference particle of its own. The
+     * particles are not moved; use this only when both containers already share a frame or
+     * this container is empty.
+     *
+     * @param root Container whose reference particle this container uses.
+     */
+    void copyReferenceOf(const ParticleContainer& root) {
+        refPartR_m   = root.refPartR_m;
+        refPartP_m   = root.refPartP_m;
+        toLabTrafo_m = root.toLabTrafo_m;
+        sPos_m       = root.sPos_m;
+    }
+
+    /**
+     * @brief Follow a frame change of the container whose reference particle this one uses.
+     *
+     * Applies @p update (the value returned by @p root's updateRefToLabCSTrafo, or the
+     * identity) to this container's particles, then copies @p root's reference particle,
+     * frame and path length. The particles' lab positions do not change.
+     *
+     * @param root Container whose reference particle this container uses.
+     * @param update Frame change @p root applied to its own particles in this step.
+     */
+    void followFrameOf(const ParticleContainer& root, const CoordinateSystemTrafo& update) {
+        transformBunch(update);
+        copyReferenceOf(root);
     }
 
     /// @brief Apply a fractional Boris step and update reference/lab transform state.

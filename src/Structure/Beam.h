@@ -113,6 +113,11 @@ public:
      * primary beam's design-orbit element map instead of threading its own reference particle.
      */
     bool usesIndependentOrbitThreader() const;
+
+    /// True if SOURCES was set. TrackRun requires it on every beam that is not another
+    /// beam's DAUGHTERBEAM and rejects it on one.
+    bool hasEmissionSources() const;
+
     /// Repeated spectral launches: kinetic GeV, radius m, radial momentum / mc.
     std::vector<double> getTuneInitial() const;
 

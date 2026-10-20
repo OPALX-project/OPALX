@@ -320,8 +320,8 @@ void ParallelTracker::execute() {
         CoordinateSystemTrafo beamlineToLab = itsOpalBeamline_m.getCSTrafoLab2Local().inverted();
         for (size_t ci = 0; ci < particleContainers.size(); ++ci) {
             const auto& pc = particleContainers[ci];
-            if (!pc) {
-                continue;
+            if (!pc || itsBunch_m->isFollower(ci)) {
+                continue;  // a decay daughter container takes its root's reference below
             }
             if (!pc->getReference()) {
                 throw OpalException(
@@ -403,6 +403,9 @@ void ParallelTracker::execute() {
     } else {
         stepSizes_m.advanceToIndex(restartPosition.segment);
     }
+    // Decay daughter containers use their root's reference particle, frame and path length.
+    // Copy them after the start search, and after a restart in case the checkpoint differs.
+    copyFollowerReferences();
 
     if (stepSizes_m.reachedEnd()) {
         *gmsg << level1 << "* Checkpoint is already at the end of the configured tracking "
@@ -480,8 +483,8 @@ void ParallelTracker::execute() {
                 "ParallelTracker", "EKINSTOP requires the single-container cyclotron gap path.");
     for (size_t ci = 0; ci < nContainers; ++ci) {
         const auto& pc = itsBunch_m->getParticleContainer(ci);
-        if (!pc || !pc->getReference()) {
-            continue;
+        if (!pc || !pc->getReference() || itsBunch_m->isFollower(ci)) {
+            continue;  // a decay daughter container uses its root's orbit, set below
         }
         if (!itsBunch_m->usesIndependentOrbitThreader(ci)) {
             m << level2 << "Container " << ci
@@ -517,8 +520,15 @@ void ParallelTracker::execute() {
                 "The primary particle container requires an OrbitThreader.");
     }
     for (size_t ci = 1; ci < nContainers; ++ci) {
-        if (!oths[ci] && itsBunch_m->getParticleContainer(ci)) {
+        if (!itsBunch_m->isFollower(ci) && !oths[ci] && itsBunch_m->getParticleContainer(ci)) {
             oths[ci] = oths[0];
+        }
+    }
+    // Resolve independent roots first, including roots sharing the primary map,
+    // so daughters also work when their root appears later in the container list.
+    for (size_t ci = 0; ci < nContainers; ++ci) {
+        if (itsBunch_m->isFollower(ci)) {
+            oths[ci] = oths[itsBunch_m->getPcRoot(ci)];
         }
     }
     m << level4 << "Orbit threader execution done." << endl;
@@ -814,7 +824,8 @@ void ParallelTracker::execute() {
                 m << level4 << "External field computation done at step " << step << "." << endl;
             }
 
-            // Thomas-BMT spin precession using the lab-frame E, B at the particle.
+            // Thomas-BMT spin precession using E, B at the particle (bunch-frame axes, like
+            // P and Pol).
             // No-op for containers that have not registered the Pol attribute.
             evolveSpinTBMT();
             m << level5 << "Spin T-BMT update done at step " << step << "." << endl;
@@ -1684,6 +1695,12 @@ size_t ParallelTracker::applyGlobalProcesses(double dt) {
             }
         }
     }
+    // A decay may have put the first particles into an empty daughter container. Switch it on
+    // now, so its particles take part in the next step's first push. nMarked is the global
+    // count, so every rank does the same.
+    if (nMarked > 0) {
+        itsBunch_m->refreshPcActiveAfterEmit();
+    }
     return nMarked;
 }
 
@@ -2203,7 +2220,9 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& /*pusher*/) {
 
     const size_t n = itsBunch_m->getNumParticleContainers();
     for (size_t i = 0; i < n; ++i) {
-        if (!itsBunch_m->isPcActive(i)) {
+        // A decay daughter container has no reference particle of its own. Its root keeps
+        // moving while any of its daughter containers is tracked, even when the root is empty.
+        if (itsBunch_m->isFollower(i) || !itsBunch_m->referenceMoves(i)) {
             continue;
         }
         auto pcPtr = itsBunch_m->getParticleContainer(i);
@@ -2241,17 +2260,48 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& /*pusher*/) {
  * @copybrief ParallelTracker::updateRefToLabCSTrafo
  */
 void ParallelTracker::updateRefToLabCSTrafo() {
-    // Transform reference position to lab, but only rotate the momentum vector.
-    // Momentum is a direction/axis and must not be translated.
+    // Map the lab-frame reference position and momentum into the current bunch frame, then
+    // move and turn the bunch frame onto them. Momentum is only rotated, not translated.
     const double bunchDT = itsBunch_m->getdT();
     const size_t n       = itsBunch_m->getNumParticleContainers();
+    std::vector<CoordinateSystemTrafo> updates(n);  // identity unless the container moved
     for (size_t i = 0; i < n; ++i) {
-        if (!itsBunch_m->isPcActive(i)) {
+        if (itsBunch_m->isFollower(i) || !itsBunch_m->referenceMoves(i)) {
             continue;
         }
         auto pc = itsBunch_m->getParticleContainer(i);
         if (pc) {
-            pc->updateRefToLabCSTrafo(bunchDT);
+            updates[i] = pc->updateRefToLabCSTrafo(bunchDT);
+        }
+    }
+    // Decay daughter containers take the same frame change as their root, active or not, so
+    // daughters created in this step end up in the root's new frame too.
+    for (size_t i = 0; i < n; ++i) {
+        if (!itsBunch_m->isFollower(i)) {
+            continue;
+        }
+        const size_t root = itsBunch_m->getPcRoot(i);
+        auto pc           = itsBunch_m->getParticleContainer(i);
+        auto rootPc       = itsBunch_m->getParticleContainer(root);
+        if (pc && rootPc) {
+            pc->followFrameOf(*rootPc, updates[root]);
+        }
+    }
+}
+
+/**
+ * @copybrief ParallelTracker::copyFollowerReferences
+ */
+void ParallelTracker::copyFollowerReferences() {
+    const size_t n = itsBunch_m->getNumParticleContainers();
+    for (size_t i = 0; i < n; ++i) {
+        if (!itsBunch_m->isFollower(i)) {
+            continue;
+        }
+        auto pc     = itsBunch_m->getParticleContainer(i);
+        auto rootPc = itsBunch_m->getParticleContainer(itsBunch_m->getPcRoot(i));
+        if (pc && rootPc) {
+            pc->copyReferenceOf(*rootPc);
         }
     }
 }
@@ -2293,7 +2343,7 @@ void ParallelTracker::findStartPositions(const BorisPusher& pusher) {
         updateReferenceParticles(pusher);
 
         for (size_t i = 0; i < containers.size(); ++i) {
-            if (!containers[i]) {
+            if (!containers[i] || itsBunch_m->isFollower(i)) {
                 continue;
             }
             Vector_t<double, 3> dR = containers[i]->getRefPartR() - oldRs[i];
@@ -2312,8 +2362,9 @@ void ParallelTracker::findStartPositions(const BorisPusher& pusher) {
                 const double sTarget    = stepSizesCopy.getSStop();
                 const double tauPrimary = (sTarget - primary->get_sPos()) / speed;
                 itsBunch_m->setT(itsBunch_m->getT() + tauPrimary);
-                for (const auto& pc : containers) {
-                    if (!pc) {
+                for (size_t i = 0; i < containers.size(); ++i) {
+                    const auto& pc = containers[i];
+                    if (!pc || itsBunch_m->isFollower(i)) {
                         continue;
                     }
                     Vector_t<double, 3> pv =
@@ -2334,8 +2385,9 @@ void ParallelTracker::findStartPositions(const BorisPusher& pusher) {
             const double sTarget    = sStart_m;
             const double tauPrimary = (sTarget - primary->get_sPos()) / speed;
             itsBunch_m->setT(itsBunch_m->getT() + tauPrimary);
-            for (const auto& pc : containers) {
-                if (!pc) {
+            for (size_t i = 0; i < containers.size(); ++i) {
+                const auto& pc = containers[i];
+                if (!pc || itsBunch_m->isFollower(i)) {
                     continue;
                 }
                 Vector_t<double, 3> pv =

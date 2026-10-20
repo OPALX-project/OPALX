@@ -52,6 +52,7 @@ enum class ElementType : unsigned short {
     RFCAVITY,
     TRAVELINGWAVE,
     SBEND,
+    SCALINGFFAMAGNET,
     RBEND,
     RBEND3D,
     PROBE,

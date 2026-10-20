@@ -9,6 +9,7 @@
 #include "Utilities/OpalException.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <functional>
 #include <limits>
@@ -19,6 +20,17 @@ namespace opalx::spacecharge {
 
         PoissonFieldBinding poissonFields(CartesianDomainUpdater::FieldStorage& storage) {
             return {&storage.chargeDensity(), &storage.electricField()};
+        }
+
+        /**
+         * @brief Axes ORB must not cut: those the layout does not distribute over MPI ranks.
+         *
+         * The layout carries the decomposition it was last built with (PARFFTX/Y/Z, or the
+         * longitudinal rebuild decomposition after a mesh resize), so ORB keeps that decomposition.
+         */
+        std::array<bool, 3> orbForbiddenAxes(const ippl::FieldLayout<3>& layout) {
+            const std::array<bool, 3> parallel = layout.isParallel();
+            return {!parallel[0], !parallel[1], !parallel[2]};
         }
 
     }  // namespace
@@ -271,22 +283,24 @@ namespace opalx::spacecharge {
         }
 
         const std::size_t localBefore = primary().getLocalNum();
+        auto& layout                  = fieldStorage.layout();
         orb_m                         = Orb();
-        orb_m.initialize(fieldStorage.layout(), fieldStorage.mesh(), fieldStorage.chargeDensity());
-        poissonRebuildRequired_m = true;
-        const bool succeeded = orb_m.binaryRepartition(primary().R, fieldStorage.layout(), false);
-
-        // ORB may mutate the layout even when it reports ordinary failure.
-        fieldStorage.updateFieldLayoutsAfterLayoutChange();
-        updateLayoutsAndMigrate(fieldStorage, true);
-        if (!succeeded) {
-            m << level2 << "ORB load balancing failed; retaining the resulting valid layout."
-              << endl;
+        orb_m.initialize(layout, fieldStorage.mesh(), fieldStorage.chargeDensity());
+        // ORB changes the layout only after its domains pass validation, so a failed
+        // repartition leaves fields, particles, and the Poisson solver valid.
+        if (!orb_m.binaryRepartition(primary().R, layout, false, orbForbiddenAxes(layout))) {
+            m << level2 << "ORB load balancing failed along the distributed axes "
+              << "(PARFFTX/Y/Z); keeping the current layout." << endl;
             return false;
         }
 
+        poissonRebuildRequired_m = true;
+        fieldStorage.updateFieldLayoutsAfterLayoutChange();
+        updateLayoutsAndMigrate(fieldStorage, true);
+
         m << level2 << "ORB load balancing done. Rank 0: " << localBefore << " -> "
-          << primary().getLocalNum() << " particles in primary container." << endl;
+          << primary().getLocalNum() << " particles in primary container, local domain "
+          << layout.getLocalNDIndex() << "." << endl;
         return true;
     }
 
