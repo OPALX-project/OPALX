@@ -436,6 +436,14 @@ private:
     void updateRefToLabCSTrafo();
 
     /**
+     * @brief Copy each decay daughter container's root reference particle, frame and path
+     *   length into it, without moving particles.
+     * @note Used after the reference particles are set up; during tracking the daughter
+     *   containers follow their root in updateRefToLabCSTrafo().
+     */
+    void copyFollowerReferences();
+
+    /**
      * @brief Write phase space and/or statistics when flags request it.
      * @param step     Step index (reserved for diagnostics; may be unused in body).
      * @param psDump   If true, write phase-space snapshot when applicable.

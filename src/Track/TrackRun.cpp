@@ -54,6 +54,7 @@
 #include "Processes/GlobalProcesses/MuonDecay.h"
 #include "Processes/GlobalProcesses/PionDecay.h"
 
+#include "Track/DecayChain.h"
 #include "Track/Track.h"
 
 #include "Utilities/OpalException.h"
@@ -355,6 +356,50 @@ void TrackRun::execute() {
                     "rejected during tracking.");
         }
     }
+    // Decay chains: a beam named as another beam's DAUGHTERBEAM uses the reference particle of
+    // the first beam of its chain. It has no momentum and no emission sources of its own.
+    {
+        std::vector<std::string> daughterNames;
+        std::vector<bool> hasDecay;
+        for (const auto* b : beams) {
+            daughterNames.push_back(b->getDaughterBeamName());
+            const std::vector<std::string> processes = b->getGlobalProcessNames();
+            hasDecay.push_back(
+                    std::find(processes.begin(), processes.end(), "DECAY") != processes.end());
+        }
+        decayRoots_m = resolveDecayRoots(beamNames, daughterNames, hasDecay);
+    }
+    // The tracker uses the first beam to find the start position, for autophasing, monitors
+    // and the space-charge frame.
+    if (decayRoots_m[0] != 0) {
+        throw OpalException(
+                "TrackRun::execute",
+                "The first beam in BEAMS (\"" + beamNames[0]
+                        + "\") receives decay daughters (DAUGHTERBEAM of another beam). List beam "
+                          "\""
+                        + beamNames[decayRoots_m[0]] + "\" first.");
+    }
+    for (size_t i = 0; i < beams.size(); ++i) {
+        if (decayRoots_m[i] == i) {
+            continue;
+        }
+        if (beams[i]->hasExplicitEnergy()) {
+            throw OpalException(
+                    "TrackRun::execute",
+                    "\"GAMMA\", \"ENERGY\" and \"PC\" are not allowed on beam \"" + beamNames[i]
+                            + "\": it receives decay daughters (DAUGHTERBEAM of another beam) and "
+                              "uses the reference particle of beam \""
+                            + beamNames[decayRoots_m[i]] + "\".");
+        }
+        if (beams[i]->hasEmissionSources()) {
+            throw OpalException(
+                    "TrackRun::execute",
+                    "\"SOURCES\" is not allowed on beam \"" + beamNames[i]
+                            + "\": it receives particles only from decays (DAUGHTERBEAM of "
+                              "another beam).");
+        }
+    }
+
     *gmsg << level1 << "* RUN resolved beams: ";
     for (size_t i = 0; i < beamNames.size(); ++i) {
         *gmsg << beamNames[i] << (i + 1 < beamNames.size() ? ", " : "");
@@ -393,14 +438,20 @@ void TrackRun::execute() {
               << " particles per macro particle: " << part_per_macro_ratio << endl
               << endl;
 
-        EmissionSourceList* esl = EmissionSourceList::find(b->getEmissionSourceListName());
-        const auto& sources     = esl->fetchSources();
-        if (sources.empty()) {
-            throw OpalException(
-                    "TrackRun::execute", "Emission sources list for beam '" + beamNames[i]
-                                                 + "' must contain at least one EMISSIONSOURCE.");
+        if (decayRoots_m[i] != i) {
+            // A decay daughter beam gets particles only from the decay.
+            emissionSourcesLists.emplace_back();
+        } else {
+            EmissionSourceList* esl = EmissionSourceList::find(b->getEmissionSourceListName());
+            const auto& sources     = esl->fetchSources();
+            if (sources.empty()) {
+                throw OpalException(
+                        "TrackRun::execute",
+                        "Emission sources list for beam '" + beamNames[i]
+                                + "' must contain at least one EMISSIONSOURCE.");
+            }
+            emissionSourcesLists.emplace_back(sources.begin(), sources.end());
         }
-        emissionSourcesLists.emplace_back(sources.begin(), sources.end());
 
         globalProcessesLists[i] = makeGlobalProcessesForBeam(*b, i);
     }
@@ -848,14 +899,9 @@ void TrackRun::wireDaughterContainers(const std::vector<Beam*>& beams) {
             continue;
         }
 
-        // Find the container index whose beam name matches DAUGHTERBEAM.
+        // Find the container index whose beam name matches DAUGHTERBEAM (resolveDecayRoots has
+        // already checked that it exists).
         auto it = std::find(beamNames.begin(), beamNames.end(), daughterName);
-        if (it == beamNames.end()) {
-            throw OpalException(
-                    "TrackRun::wireDaughterContainers",
-                    "DAUGHTERBEAM=\"" + daughterName + "\" on beam \"" + beamNames[i]
-                            + "\" does not match any beam in the TRACK.");
-        }
         const std::size_t daughterIdx =
                 static_cast<std::size_t>(std::distance(beamNames.begin(), it));
 
@@ -883,6 +929,17 @@ void TrackRun::wireDaughterContainers(const std::vector<Beam*>& beams) {
                       << "\" to daughter beam \"" << daughterName << "\" (container " << daughterIdx
                       << ")." << endl;
             }
+        }
+    }
+
+    // Decay daughter containers use the reference particle, frame, path length and orbit of
+    // the first container of their decay chain.
+    for (std::size_t i = 0; i < beams.size(); ++i) {
+        bunch_m->setPcRoot(i, decayRoots_m[i]);
+        if (decayRoots_m[i] != i) {
+            *gmsg << level2 << "* Beam \"" << beamNames[i]
+                  << "\" uses the reference particle of beam \"" << beamNames[decayRoots_m[i]]
+                  << "\"." << endl;
         }
     }
 }
