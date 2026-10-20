@@ -113,7 +113,7 @@ OpalScalingFFAMagnet* OpalScalingFFAMagnet::clone(const std::string& name) {
 
 void OpalScalingFFAMagnet::setupDefaultEndField() {
     auto element = getElementPtr();
-    auto magnet = dynamic_pointer_cast<ScalingFFAMagnet, ElementBase>(element);
+    auto magnet  = dynamic_pointer_cast<ScalingFFAMagnet, ElementBase>(element);
     // get centre length and end length in metres
     double end_length = Attributes::getReal(itsAttr[FRINGE_LENGTH]);
     double x0         = Attributes::getReal(itsAttr[LENGTH]) / 2.;
