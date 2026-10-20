@@ -15,12 +15,21 @@
 #include "Elements/PlacementResolver.h"
 
 #include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/RBend.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
 #include "Algorithms/Quaternion.hpp"
 #include "BeamlineGeometry/Geometry.h"
 #include "Utilities/OpalException.h"
 
 #include <cmath>
+
+namespace {
+    double placementPathLength(const ElementBase& element) {
+        if (const auto* bend = dynamic_cast<const RBend*>(&element))
+            return bend->getPlacementPathLength();
+        return element.getGeometry().getArcLength();
+    }
+}  // namespace
 
 /**
  * @brief Give every element its global -> local (lab -> entrance) transform.
@@ -114,7 +123,7 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
             Vector_t<double, 3> beginThis3D(0, 0, beginThisPathLength - endPriorPathLength);
             double thisLength = element->getGeometry().getChordLength();
             double bendAngle  = element->getGeometry().getBendAngle();
-            double arcLength  = element->getGeometry().getArcLength();
+            double arcLength  = placementPathLength(*element);
 
             // Roll about z: tilts the bend plane (e.g. a vertical bend rolls the axis out of x-z).
             double rotationAngleAboutZ = element->getRotationAboutZ();
@@ -151,12 +160,18 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
             //  - RBEND/RBEND3D: a straight box, so its entrance face frame is the box frame — +z
             //    along the chord, half the bend angle off the incoming orbit tangent. It does NOT
             //    coincide with the orbit tangent. RBend::apply gates on the box z, uniform dipole.
-            // E1/E2 pole-face rotations are rejected at parse time, so there is no face tilt to
-            // add. Only this element's own frame is set here; the running frame handed to the next
-            // element (currentCoordTrafo) is advanced separately below.
+            // An RBEND with explicit pole-face angles uses E1 for its face normal; its chord length
+            // already accounts for this rotation. Only this element's own frame is set here; the
+            // running frame handed to the next element (currentCoordTrafo) is advanced separately
+            // below.
             const bool isRectangular = element->getGeometry().isRectangularBend();
+            const double entranceAngle = element->getGeometry().hasPoleFaceAngles()
+                                                 ? element->getGeometry().getEntranceAngle()
+                                                 : 0.5 * bendAngle;
             const Quaternion_t entryFrameRotation =
-                    isRectangular ? halfRotationAboutAxis
+                    isRectangular ? Quaternion_t(
+                                            cos(0.5 * entranceAngle),
+                                            sin(0.5 * entranceAngle) * effectiveRotationAxis)
                                   : Quaternion_t(1.0, Vector_t<double, 3>(0, 0, 0));
 
             // Map prev-exit -> this entrance frame, and prev-exit -> this exit frame.
@@ -209,7 +224,7 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
             Quaternion halfRotationAboutAxis(
                     cos(0.25 * bendAngle), sin(0.25 * bendAngle) * effectiveRotationAxis);
 
-            const double arcLength = element->getGeometry().getArcLength();
+            const double arcLength = placementPathLength(*element);
 
             // Exit point via the chord, then advance the running frame and path length (by arc).
             endThis3D =
