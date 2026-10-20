@@ -13,6 +13,8 @@
 #include <array>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
+#include <iostream>
 #include <memory>
 #include <vector>
 
@@ -193,7 +195,41 @@ namespace opalx::spacecharge {
         // E_z=E'_z and B=beta zhat x E/c. A 3% bound covers PIC quadrature,
         // finite mesh and interpolation errors, not cross-backend roundoff.
         TEST_F(BeamBeamFieldServicesTest, GaussianFieldsAndPassiveWitnessGather) {
-            using Container = ::ParticleContainer<double, 3>;
+            using Container        = ::ParticleContainer<double, 3>;
+            const bool diagnostics = std::getenv("OPALX_BEAMBEAM_DIAGNOSTICS") != nullptr;
+            // Logging only: do not add fences/barriers that could mask the asynchronous fault.
+            // An "after" marker means the host call returned, not that GPU work completed.
+            const auto phase = [diagnostics](const char* name) {
+                if (diagnostics) {
+                    std::fprintf(stderr, "[Gaussian rank %d] %s\n", ippl::Comm->rank(), name);
+                    std::fflush(stderr);
+                }
+            };
+            phase("begin");
+            if (diagnostics) {
+                char version[MPI_MAX_LIBRARY_VERSION_STRING];
+                int length = 0;
+                MPI_Get_library_version(version, &length);
+                std::fprintf(
+                        stderr, "[Gaussian rank %d] MPI: %.*s\n", ippl::Comm->rank(), length,
+                        version);
+                for (const char* name :
+                     {"MPICH_GPU_SUPPORT_ENABLED", "MPICH_GPU_IPC_ENABLED", "HSA_XNACK",
+                      "ROCR_VISIBLE_DEVICES", "HIP_VISIBLE_DEVICES", "SLURM_LOCALID",
+                      "KOKKOS_DEVICE_ID"}) {
+                    const char* value = std::getenv(name);
+                    std::fprintf(
+                            stderr, "[Gaussian rank %d] %s=%s\n", ippl::Comm->rank(), name,
+                            value ? value : "<unset>");
+                }
+                Kokkos::DefaultExecutionSpace().print_configuration(std::cerr, true);
+#ifdef KOKKOS_ENABLE_HIP
+                std::fprintf(
+                        stderr, "[Gaussian rank %d] HIP device=%d\n", ippl::Comm->rank(),
+                        Kokkos::HIP().hip_device());
+#endif
+                std::fflush(stderr);
+            }
 #ifdef OPALX_DEVICE_COMPILATION
             constexpr unsigned samples = 32, meshCells = 48;
             constexpr double halfWidth = 0.008;
@@ -210,6 +246,7 @@ namespace opalx::spacecharge {
             CartesianDomainConfig3D domainConfig;
             domainConfig.meshSize      = {meshCells, meshCells, meshCells};
             domainConfig.decomposition = {true, true, true};
+            phase("before domain/storage/containers");
             CartesianDomain<double, 3> domain(domainConfig);
             auto storage = std::make_unique<CartesianPIC3DFieldStorage<double, 3>>(domain);
             auto state   = std::make_shared<BunchStateHandler>();
@@ -224,7 +261,9 @@ namespace opalx::spacecharge {
             witness.setM(Physics::m_e);
             const std::size_t rank = ippl::Comm->rank(), ranks = ippl::Comm->size();
             const std::size_t begin = count * rank / ranks, end = count * (rank + 1) / ranks;
+            phase("before primary allocation");
             primary.createParticles(end - begin);
+            phase("after primary allocation");
             std::array<double, samples> nodes{};
             for (unsigned i = 0; i < samples; ++i) {
                 const double probability = (i + 0.5) / samples;
@@ -249,11 +288,13 @@ namespace opalx::spacecharge {
                 p(i)  = Vector_t<double, 3>(0.0, 0.0, gamma * beta);
                 dt(i) = 1.0e-12;
             }
+            phase("before primary upload/moments");
             Kokkos::deep_copy(primary.R.getView(), r);
             Kokkos::deep_copy(primary.P.getView(), p);
             Kokkos::deep_copy(primary.dt.getView(), dt);
             primary.markMomentsDirty();
             primary.updateMoments();
+            phase("after primary upload/moments");
 
             CartesianPIC3DConfig config;
             config.backend                      = PoissonSolverType::Open;
@@ -264,11 +305,13 @@ namespace opalx::spacecharge {
             config.binning->adaptive            = false;
             config.binning->tablePrintFrequency = 0;
             DataSink sink;
+            phase("before solver construction/FFT warmup");
             SpaceChargeSolver solver(
                     std::make_unique<CartesianPIC3DAlgorithm>(
                             config, std::vector<Container*>{&primary, &witness}, std::move(storage),
                             &sink, state),
                     2);
+            phase("after solver construction/FFT warmup");
             state->setFixedCartesianDomain(
                     {-halfWidth, -halfWidth, -halfWidth / gamma},
                     {halfWidth, halfWidth, halfWidth / gamma});
@@ -279,34 +322,48 @@ namespace opalx::spacecharge {
             SpaceChargeSolveContext context(activity, step);
             auto& services = solver.beamBeamFields();
             services.configure(BeamBeamSolvePolicy{true, false});
+            phase("before first solve");
             solver.solve(context);
+
+            phase("after first solve");
 
             // Birth after the solve, initially on rank zero only. All ranks must
             // migrate/gather even if they own no witnesses before or after migration.
             constexpr unsigned probes = 8;
+            phase("before witness allocation");
             witness.createParticles(rank == 0 ? probes : 0);
+            phase("after witness allocation");
             auto wr = witness.R.getHostMirror();
             for (unsigned i = 0; i < witness.getLocalNum(); ++i) {
                 wr(i) = Vector_t<double, 3>(
                         (i & 1 ? 1 : -1) * 2.5e-3, (i & 2 ? 1 : -1) * 1.5e-3,
                         (i & 4 ? 1 : -1) * 0.5e-3);
             }
+            phase("before witness upload/layout");
             Kokkos::deep_copy(witness.R.getView(), wr);
             Kokkos::deep_copy(witness.P.getView(), Vector_t<double, 3>(0.0));
             witness.updateLayout(services.domain().layout(), services.domain().mesh());
+            phase("before witness migration");
             witness.update();
+            phase("after witness migration / before first gather");
             services.gatherFields(witness);
+            phase("after first gather");
             EXPECT_EQ(witness.getTotalNum(), probes);
             ASSERT_TRUE(services.depositedCharge().has_value());
             EXPECT_NEAR(*services.depositedCharge(), charge, charge * 1.0e-12);
 
             // A second solve with populated, charged witnesses still deposits only c0.
+            phase("before second solve");
             solver.solve(context);
+            phase("after second solve");
             EXPECT_NEAR(*services.depositedCharge(), charge, charge * 1.0e-12);
+            phase("before second gather");
             services.gatherFields(witness);
+            phase("after second gather / before host snapshots");
             const auto positions = snapshot(witness.R.getView());
             const auto electric  = snapshot(witness.E.getView());
             const auto magnetic  = snapshot(witness.B.getView());
+            phase("after host snapshots");
             double errorE = 0.0, normE = 0.0, errorB = 0.0, normB = 0.0;
             for (std::size_t i = 0; i < witness.getLocalNum(); ++i) {
                 auto rest = positions(i);
@@ -333,13 +390,16 @@ namespace opalx::spacecharge {
                 }
             }
             std::array<double, 4> local{errorE, normE, errorB, normB}, global{};
+            phase("before error reduction");
             ippl::Comm->allreduce(local.data(), global.data(), global.size(), std::plus<double>());
+            phase("after error reduction");
             ASSERT_GT(global[1], 0.0);
             ASSERT_GT(global[3], 0.0);
             RecordProperty("relative_l2_E", std::sqrt(global[0] / global[1]));
             RecordProperty("relative_l2_B", std::sqrt(global[2] / global[3]));
             EXPECT_LT(std::sqrt(global[0] / global[1]), 0.03);
             EXPECT_LT(std::sqrt(global[2] / global[3]), 0.03);
+            phase("checks complete / before teardown");
         }
 
         TEST_F(BeamBeamFieldServicesTest, MirrorFieldZHandlesNonSlab3DDecomposition) {

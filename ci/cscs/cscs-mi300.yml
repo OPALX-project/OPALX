@@ -3,3 +3,56 @@ include:
   - local: "ci/cscs/rocm/build_rocm-6.3.yml"
   - local: "ci/cscs/rocm/run_rocm-6.3.yml"
   - local: "ci/cscs/rocm/regression_rocm-6.3.yml"
+
+# Temporary PR #300 investigation: build Debug once, then run only the isolated
+# Gaussian MPI2 case, first with the inherited IPC setting and then with IPC off.
+# Do not reduce coverage on master, other PRs, or other architectures.
+.mi300-normal-coverage:
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "__CSCSCI__pr300"'
+      when: never
+    - when: on_success
+
+opalx-build-rocm6_3-release:
+  rules: !reference [.mi300-normal-coverage, rules]
+
+opalx-test-rocm6_3-debug-1-rank:
+  rules: !reference [.mi300-normal-coverage, rules]
+
+opalx-test-rocm6_3-release-1-rank:
+  rules: !reference [.mi300-normal-coverage, rules]
+
+opalx-test-rocm6_3-release-4-ranks:
+  rules: !reference [.mi300-normal-coverage, rules]
+
+opalx-regression-rocm6_3-mi300-release:
+  rules: !reference [.mi300-normal-coverage, rules]
+
+opalx-diagnostic-mi300-gaussian-mpi2:
+  extends: .opalx-test-rocm-common
+  needs: ["opalx-build-rocm6_3-debug"]
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "__CSCSCI__pr300"'
+      when: on_success
+    - when: never
+  variables:
+    SLURM_NTASKS: 2
+    SLURM_CPUS_PER_TASK: 2
+    SLURM_TIMELIMIT: "0:10:00"
+    BUILD_DIR: "build-$CI_COMMIT_SHORT_SHA-debug"
+    BUILD_TYPE: Debug
+  script:
+    - CACHE_DIR=$(grep "CMAKE_CACHEFILE_DIR:INTERNAL=" "$BUILD_PATH/CMakeCache.txt" | cut -d'=' -f2)
+    - export LD_LIBRARY_PATH="$BUILD_PATH/lib:$LD_LIBRARY_PATH"
+    - export HSA_XNACK=1
+    - find "$BUILD_PATH" -type f -name "CTestTestfile.cmake" -exec sed -i "s|$CACHE_DIR|$BUILD_PATH|g" {} \;
+    - ctest -VV -S "$CI_PROJECT_DIR/ci/cscs/mi300-beambeam-diagnostics.cmake"
+      -DCTEST_SITE="$CTEST_SITE"
+      -DCDASH_LABEL="$CDASH_LABEL"
+      -DBUILD_DIR="$BUILD_PATH"
+      -DBUILD_TYPE="$BUILD_TYPE"
+  artifacts:
+    when: always
+    paths:
+      - $BUILD_DIR/mi300-diagnostics/
+    expire_in: 1 week

@@ -14,6 +14,34 @@ Clicking on the Tick/Cross will take you to the pipeline information page where 
 * what the commands run and output generated at each step is/was
 * which tests passed failed and what error messages appear
 
+### Temporary PR #300 MI300 diagnostics
+
+For the verified CSCS mirror ref `__CSCSCI__pr300`, `cscs-mi300.yml` keeps the
+Debug build and replaces the normal MI300 test/regression jobs with
+`opalx-diagnostic-mi300-gaussian-mpi2`. Release is not built for this diagnostic
+pipeline. Other refs, master, GitHub Actions and the other CSCS architectures
+retain their normal coverage. Remove this temporary override before merging.
+
+The diagnostic job requests two MPI ranks and two CPUs per rank (four CPUs in
+total), with one OpenMP thread per rank. It runs only
+`BeamBeamFieldServicesTest.GaussianFieldsAndPassiveWitnessGather` through the
+existing `TestBeamBeamFieldServicesMPI2` CTest registration, in fresh processes:
+
+1. Preserve the inherited MPI/IPC environment.
+2. Set only `MPICH_GPU_IPC_ENABLED=0` and repeat, even if the first run crashes.
+
+Both results are submitted to separate `GaussianMPI2-inherited-ipc` and
+`GaussianMPI2-ipc-disabled` CDash entries and retained as XML/log artifacts under
+`build-<sha>-debug/mi300-diagnostics/`. Either failure makes the job fail; this
+is diagnostic coverage, not a full green MI300 validation.
+
+`OPALX_BEAMBEAM_DIAGNOSTICS=1` enables rank-tagged phase markers, MPI version,
+selected environment variables and Kokkos execution-space configuration. These
+markers add no fences or barriers: an after-marker means the host call returned,
+not necessarily that asynchronous GPU work finished. The mesh, particles,
+physical model and assertion tolerances are unchanged. Locally, the CTest script
+can be exercised with `-DOPALX_DIAGNOSTIC_SUBMIT=OFF` to avoid uploading results.
+
 ### Which PRs are tested
 All PRs submitted to IPPL **via the IPPL github repo** (ie not via forks) will be tested automatically - this is possible since only authorized github accounts are allowed to push branches and create PRs from the IPPL repo directly. 
 
