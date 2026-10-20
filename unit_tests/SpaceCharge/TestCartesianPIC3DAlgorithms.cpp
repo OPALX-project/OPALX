@@ -559,13 +559,19 @@ namespace opalx::spacecharge {
             Run meshTied(meshConfig);
 
             // Bring two particles within the cutoff, then rescale the bunch so that the second
-            // step changes the mesh spacing, the cutoff, and alpha on the live mesh solver.
-            auto place = [](Particles& particles, double scale) {
+            // step changes the mesh spacing, the cutoff, and alpha on the live mesh solver. The P3M
+            // solve sorts particles by cell, and a threaded sort returns particles that share a
+            // cell in any order. The particles are identical, so write the whole position set
+            // instead of moving one index relative to another.
+            auto start = localHostCopy(meshTied.particles.R, meshTied.particles.getLocalNum());
+            start(1)   = start(0) + Vector(0.0002, 0.0001, 0.0001);
+            auto place = [&start](Particles& particles, double scale) {
                 auto positions = particles.R.getHostMirror();
                 Kokkos::deep_copy(positions, particles.R.getView());
-                positions(1) = positions(0) + Vector(0.0002, 0.0001, 0.0001);
-                for (std::size_t i = 0; i < particles.getLocalNum(); ++i)
+                for (std::size_t i = 0; i < particles.getLocalNum(); ++i) {
+                    positions(i) = start(i);
                     positions(i) *= scale;
+                }
                 Kokkos::deep_copy(particles.R.getView(), positions);
                 particles.updateMoments();
             };
