@@ -429,9 +429,9 @@ void ParallelTracker::execute() {
             const auto type = element->getType();
             if (type != ElementType::DRIFT && type != ElementType::MARKER
                 && type != ElementType::MONITOR && type != ElementType::MULTIPOLE
-                && type != ElementType::MULTIPOLET
-                && type != ElementType::SBEND && type != ElementType::RBEND
-                && type != ElementType::SOLENOID && type != ElementType::CYCLOTRONSECTOR
+                && type != ElementType::MULTIPOLET && type != ElementType::SBEND
+                && type != ElementType::RBEND && type != ElementType::SOLENOID
+                && type != ElementType::CYCLOTRONSECTOR
                 && dynamic_cast<const VariableRFCavity*>(element.get()) == nullptr)
                 throw OpalException(
                         "ParallelTracker",
