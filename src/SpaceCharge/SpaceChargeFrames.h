@@ -20,11 +20,15 @@ namespace opalx::spacecharge {
     }
 
     /** @brief Apply a spatial transform to R and rotate normalized momentum P into the same axes.
+     *  @note Pol is rotated too, because leaveSolveFrame() rotates it back via transformBunch().
      */
     inline void enterSolveFrame(
             const CoordinateFrameTransforms& frames, SpaceChargeParticleContainer& particles) {
         frames.trackerToSolve.transformBunchTo(particles.R.getView(), particles.getLocalNum());
         frames.trackerToSolve.rotateBunchTo(particles.P.getView(), particles.getLocalNum());
+        if (particles.hasSpin()) {
+            frames.trackerToSolve.rotateBunchTo(particles.Pol.getView(), particles.getLocalNum());
+        }
         particles.markMomentsDirty();
     }
 

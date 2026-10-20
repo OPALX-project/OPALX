@@ -1,5 +1,6 @@
 set (_SRCS
     OpalBeamBeam.cpp
+    OpalAsymmetricEnge.cpp
     OpalCavity.cpp
     OpalBox.cpp
     OpalCollimator.cpp
@@ -11,6 +12,7 @@ set (_SRCS
     OpalDrift.cpp
     OpalFieldmapElement.cpp
     OpalElement.cpp
+    OpalEnge.cpp
     OpalLaser.cpp
     OpalMonitor.cpp
     OpalMarker.cpp
@@ -19,6 +21,7 @@ set (_SRCS
     OpalQuadrupole.cpp
     OpalRBend.cpp
     OpalSBend.cpp
+    OpalScalingFFAMagnet.cpp
     OpalSolenoid.cpp
     OpalBeamline.cpp
     PlacementResolver.cpp
@@ -27,11 +30,13 @@ set (_SRCS
     OpalPolynomialTimeDependence.cpp
     OpalSplineTimeDependence.cpp
     OpalSinusoidalTimeDependence.cpp
+    OpalTanh.cpp
     OpalVariableRFCavity.cpp
 )
 
 set (HDRS
     OpalBeamBeam.h
+    OpalAsymmetricEnge.h
     OpalBeamline.h
     PlacementResolver.h
     OpalBend.h
@@ -44,6 +49,7 @@ set (HDRS
     OpalDrift.h
     OpalFieldmapElement.h
     OpalElement.h
+    OpalEnge.h
     OpalMonitor.h
     OpalMarker.h
     OpalMultipole.h
@@ -51,6 +57,7 @@ set (HDRS
     OpalQuadrupole.h
     OpalRBend.h
     OpalSBend.h
+    OpalScalingFFAMagnet.h
     OpalSource.h
     OpalSolenoid.h
     OpalTravelingWave.h
@@ -60,6 +67,7 @@ set (HDRS
     OpalPolynomialTimeDependence.h
     OpalSplineTimeDependence.h
     OpalSinusoidalTimeDependence.h
+    OpalTanh.h
     OpalVariableRFCavity.h
 )
 

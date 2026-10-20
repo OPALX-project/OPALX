@@ -106,6 +106,10 @@ private:
     size_t computeTotalAllocationForBunch(
             Beam* beam, const std::vector<EmissionSource*>& sources) const;
 
+    /// For each beam (TRACK BEAMS order), the beam whose reference particle it uses: its own
+    /// index, or for a decay daughter beam the first beam of its decay chain.
+    std::vector<std::size_t> decayRoots_m;
+
     using bunch_type = PartBunch_t;
 
     // The destructor preserves the borrowed-particle lifetime contract: tracker, space-charge

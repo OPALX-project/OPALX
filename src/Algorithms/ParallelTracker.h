@@ -306,11 +306,20 @@ public:
     /// @brief Apply the algorithm to a sector bend.
     void visitSBend(const SBend&) override;
 
+    /// @brief Null op, as everywhere. Why does this exist?
+    void visitScalingFFAMagnet(const ScalingFFAMagnet&) override;
+
     /// @brief Apply the algorithm to a traveling wave cavity.
     void visitTravelingWave(const TravelingWave&) override;
 
     /// @brief Apply the algorithm to a solenoid.
     void visitSolenoid(const Solenoid&) override;
+
+    void visitEnge(const endfieldmodel::Enge&) override;
+
+    void visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) override;
+
+    void visitTanh(const endfieldmodel::Tanh&) override;
 
     /// @brief Run the main tracking loop until all step-size segments complete.
     void execute() override;
@@ -337,8 +346,8 @@ public:
 
     /// @brief Thomas-BMT spin precession across all active containers that store Pol.
     /// Must be called after external + space-charge fields have been accumulated and
-    /// before the momentum kick (so E, B at the particle are the lab-frame fields the
-    /// particle sees during this step).
+    /// before the momentum kick (so E, B at the particle are the fields the particle sees
+    /// during this step). P, E, B and Pol are all along the bunch-frame axes.
     void evolveSpinTBMT();
 
     /** @brief Build the current tracker-frame context and dispatch the configured space-charge
@@ -432,6 +441,14 @@ private:
 
     /// @brief Refresh each container's reference-to-lab transform from current state.
     void updateRefToLabCSTrafo();
+
+    /**
+     * @brief Copy each decay daughter container's root reference particle, frame and path
+     *   length into it, without moving particles.
+     * @note Used after the reference particles are set up; during tracking the daughter
+     *   containers follow their root in updateRefToLabCSTrafo().
+     */
+    void copyFollowerReferences();
 
     /**
      * @brief Write phase space and/or statistics when flags request it.
@@ -565,6 +582,10 @@ inline void ParallelTracker::visitSBend(const SBend& bend) {
     itsOpalBeamline_m.visit(bend, *this, *itsBunch_m);
 }
 
+inline void ParallelTracker::visitScalingFFAMagnet(const ScalingFFAMagnet& ffa) {
+    itsOpalBeamline_m.visit(ffa, *this, *itsBunch_m);
+}
+
 inline void ParallelTracker::visitTravelingWave(const TravelingWave& tw) {
     itsOpalBeamline_m.visit(tw, *this, *itsBunch_m);
 }
@@ -572,5 +593,11 @@ inline void ParallelTracker::visitTravelingWave(const TravelingWave& tw) {
 inline void ParallelTracker::visitSolenoid(const Solenoid& so) {
     itsOpalBeamline_m.visit(so, *this, *itsBunch_m);
 }
+
+inline void ParallelTracker::visitEnge(const endfieldmodel::Enge&) {}
+
+inline void ParallelTracker::visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) {}
+
+inline void ParallelTracker::visitTanh(const endfieldmodel::Tanh&) {}
 
 #endif  // OPALX_ParallelTracker_HH

@@ -64,6 +64,11 @@ public:
     /// Apply the algorithm to a beam-beam interaction element.
     void visitBeamBeam(const BeamBeam&) override;
 
+    /// Apply the algorithm to a drift space.
+    void visitEnge(const endfieldmodel::Enge&) override;
+    void visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) override;
+    void visitTanh(const endfieldmodel::Tanh&) override;
+
     /// Apply the algorithm to a laser.
     void visitLaser(const Laser&) override;
 

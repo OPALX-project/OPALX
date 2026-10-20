@@ -111,6 +111,10 @@ PartBunch<T, Dim>::PartBunch(
     const auto& containers = this->getParticleContainers();
     particleNames_m.resize(containers.size());
     independentOrbitThreader_m.resize(containers.size());
+    pcRoot_m.resize(containers.size());
+    for (size_t i = 0; i < containers.size(); ++i) {
+        pcRoot_m[i] = i;  // independent until TrackRun links decay chains
+    }
     for (size_t i = 0; i < containers.size(); ++i) {
         containers[i]->setQ(qi[i]);
         containers[i]->setM(mi[i]);
