@@ -18,8 +18,11 @@ variables:
   extends: [.baremetal-runner-beverin-mi300]
   variables:
     SLURM_JOB_NUM_NODES: 1
-    SLURM_CPUS_PER_TASK: 8
+    # Nominal one-rank jobs also launch explicitly registered MPI2 tests.
+    SLURM_CPUS_PER_TASK: 4
     SLURM_TIMELIMIT: "0:45:00"
+    OMP_NUM_THREADS: "1"
+    OMP_PROC_BIND: "false"
   before_script:
     - !reference [.pr-number-extractor, before_script]
     - pwd
@@ -35,7 +38,7 @@ variables:
     - find $BUILD_PATH -type f -name "DartConfiguration.tcl" -exec sed -i "s|$CACHE_DIR|$BUILD_PATH|g" {} \;
     # reset custom build name for cdash
     - echo "MPICH_GPU_IPC_ENABLED=${MPICH_GPU_IPC_ENABLED:-<unset>}"
-    - export CTEST_BUILD_NAME="${CDASH_LABEL}-${BUILD_ARCH}-${BUILD_TYPE}-${TEST_INFO}${MI300_TEST_SUFFIX:-}"
+    - export CTEST_BUILD_NAME="${CDASH_LABEL}-${BUILD_ARCH}-${BUILD_TYPE}-${TEST_INFO}"
     - find $BUILD_PATH -type f -name \*.xml -exec sed -i "s|BuildName=.*|BuildName=\"${CTEST_BUILD_NAME}\"|g" {} \;
     # ctest should now have valid file paths, (use srun to launch with uenv setup)
     - ctest -V --output-on-failure --timeout 60 $TEST_ARGS -S $CI_PROJECT_DIR/ci/cscs/dashboard-test.cmake
@@ -80,6 +83,7 @@ opalx-test-rocm6_3-release-4-ranks:
   extends: .opalx-test-rocm-common
   variables:
     SLURM_NTASKS: 4
+    SLURM_CPUS_PER_TASK: 1
     BUILD_DIR: "build-$CI_COMMIT_SHORT_SHA-release"
     BUILD_TYPE: Release
     TEST_INFO: "4-ranks"
