@@ -18,6 +18,7 @@
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utility/Inform.h"
+#include "ValueDefinitions/RealVariable.h"
 
 #include <cmath>
 #include <tuple>
@@ -434,13 +435,19 @@ TEST_F(OpalBeamlinePlacementTest, SBendRejectsPoleFaceAngleE1) {
     EXPECT_THROW(sbend.update(), OpalException);
 }
 
-TEST_F(OpalBeamlinePlacementTest, RBendRejectsPoleFaceAngleE2) {
+TEST_F(OpalBeamlinePlacementTest, RBendDerivesEntranceAngleFromE2) {
+    [[maybe_unused]] static auto* p0Owner = new RealVariable();
     OpalRBend rbend;
     Attributes::setReal(*rbend.findAttribute("L"), 0.5);
     Attributes::setReal(*rbend.findAttribute("ELEMEDGE"), 0.0);
     Attributes::setReal(*rbend.findAttribute("ANGLE"), 0.3);
     Attributes::setReal(*rbend.findAttribute("E2"), 0.05);
-    EXPECT_THROW(rbend.update(), OpalException);
+    ASSERT_NO_THROW(rbend.update());
+    auto& bend = dynamic_cast<RBend&>(*rbend.getElement());
+    EXPECT_FALSE(bend.hasFieldMap());
+    EXPECT_DOUBLE_EQ(bend.getDesignEnergy(), 0.0);
+    EXPECT_DOUBLE_EQ(bend.getGeometry().getEntranceAngle(), 0.25);
+    EXPECT_DOUBLE_EQ(bend.getGeometry().getExitAngle(), 0.05);
 }
 
 TEST_F(OpalBeamlinePlacementTest, RejectsMixedPlacementConventions) {
