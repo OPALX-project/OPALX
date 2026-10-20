@@ -164,7 +164,7 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
             // already accounts for this rotation. Only this element's own frame is set here; the
             // running frame handed to the next element (currentCoordTrafo) is advanced separately
             // below.
-            const bool isRectangular = element->getGeometry().isRectangularBend();
+            const bool isRectangular   = element->getGeometry().isRectangularBend();
             const double entranceAngle = element->getGeometry().hasPoleFaceAngles()
                                                  ? element->getGeometry().getEntranceAngle()
                                                  : 0.5 * bendAngle;
