@@ -1,8 +1,6 @@
 #ifndef OPALX_FIELDMAP_HH
 #define OPALX_FIELDMAP_HH
 
-#define READ_BUFFER_LENGTH 256
-
 #include <map>
 #include <string>
 #include <vector>
@@ -318,7 +316,6 @@ private:
         static const char* name;
     };
 
-    static char buffer_m[READ_BUFFER_LENGTH];
     static std::string alpha_numeric;
 
     struct FieldmapDescription {
