@@ -195,8 +195,7 @@ TEST_F(DeviceExternalFieldTest, ThinMagnetDeviceImpulseEnergyAndSpectators) {
     OpalBeamline lattice;
     MultipoleRep magnet("thin");
     magnet.getGeometry().setElementLength(0.003);
-    // Multipole's existing n=0 setter stores half its argument.
-    magnet.setNormalComponent(0, 1.6);
+    magnet.setNormalComponent(0, 0.8);
     ASSERT_DOUBLE_EQ(magnet.getNormalComponent(0), 0.8);
     magnet.setAperture(ApertureType::RECTANGULAR, {0.02, 0.02});
     magnet.setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector(0, 0, 0.01), Quaternion()));
