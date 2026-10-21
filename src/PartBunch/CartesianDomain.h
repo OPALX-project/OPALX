@@ -55,6 +55,13 @@ namespace opalx::spacecharge {
         [[nodiscard]] bool periodic() const { return periodic_m; }
         [[nodiscard]] const ippl::NDIndex<Dim>& indexDomain() const { return indexDomain_m; }
         [[nodiscard]] Extents layoutExtents() const;
+        /**
+         * @brief Largest overlap cutoff in metres that fits every rank region.
+         *
+         * The overlap layout requires the cutoff to be at most half the local region length in
+         * every dimension on every rank. Collective; all ranks obtain the same value.
+         */
+        [[nodiscard]] T largestFittingOverlapCutoff() const;
 
         bool rebuildGlobalLayoutInPlace(
                 const Extents& extents, const std::array<bool, Dim>& decomposition);
