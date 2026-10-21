@@ -1,5 +1,5 @@
 //
-// Unit tests for BeamBeam HDF5 diagnostics metadata normalization.
+// Unit tests for BeamBeam HDF5 diagnostics metadata and collective I/O.
 //
 
 #include <gtest/gtest.h>
@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <limits>
 #include <type_traits>
 
@@ -179,15 +180,49 @@ namespace {
         fields.chargeDensity() = 1.0;
         const auto name        = (directory / "corrupted.h5").string();
         H5BeamBeamDiagnosticsWriter::writeScalarQuantity(name, "rho", {}, fields.chargeDensity());
-        if (ippl::Comm->rank() == 0) {
-            std::ofstream corrupt(name);
-            corrupt << "not an HDF5 file";
+        const auto backup = directory / "valid.h5";
+        // A valid signature alone is not sufficient: also reject a truncated header.
+        for (const std::string& damaged :
+             {std::string("not an HDF5 file"), std::string("\211HDF\r\n\032\n", 8)}) {
+            if (ippl::Comm->rank() == 0) {
+                std::filesystem::copy_file(
+                        name, backup, std::filesystem::copy_options::overwrite_existing);
+                std::ofstream corrupt(name, std::ios::binary);
+                corrupt << damaged;
+            }
+            ippl::Comm->barrier();
+            H5E_auto2_t handler = nullptr;
+            void* handlerData   = nullptr;
+            EXPECT_GE(H5Eget_auto2(H5E_DEFAULT, &handler, &handlerData), 0);
+            const auto openFiles = H5Fget_obj_count(H5F_OBJ_ALL, H5F_OBJ_FILE);
+            EXPECT_THROW(
+                    H5BeamBeamDiagnosticsWriter::writeScalarQuantity(
+                            name, "rho", {}, fields.chargeDensity()),
+                    OpalException);
+            EXPECT_THROW(
+                    H5BeamBeamDiagnosticsWriter::writeVectorQuantity(
+                            name, "E", {}, fields.electricField()),
+                    OpalException);
+            H5E_auto2_t restoredHandler = nullptr;
+            void* restoredHandlerData   = nullptr;
+            EXPECT_GE(H5Eget_auto2(H5E_DEFAULT, &restoredHandler, &restoredHandlerData), 0);
+            EXPECT_EQ(restoredHandler, handler);
+            EXPECT_EQ(restoredHandlerData, handlerData);
+            EXPECT_EQ(H5Fget_obj_count(H5F_OBJ_ALL, H5F_OBJ_FILE), openFiles);
+            if (ippl::Comm->rank() == 0) {
+                std::ifstream rejected(name, std::ios::binary);
+                const std::string contents{
+                        std::istreambuf_iterator<char>(rejected), std::istreambuf_iterator<char>()};
+                EXPECT_EQ(contents, damaged);  // No silent truncation/replacement on failure.
+                rejected.close();
+                std::filesystem::copy_file(
+                        backup, name, std::filesystem::copy_options::overwrite_existing);
+            }
+            ippl::Comm->barrier();
+            EXPECT_NO_THROW(
+                    H5BeamBeamDiagnosticsWriter::writeScalarQuantity(
+                            name, "rho", {}, fields.chargeDensity()));
         }
-        ippl::Comm->barrier();
-        EXPECT_THROW(
-                H5BeamBeamDiagnosticsWriter::writeScalarQuantity(
-                        name, "rho", {}, fields.chargeDensity()),
-                OpalException);
     }
 
     TEST_F(BeamBeamDiagnosticsIOTest, VectorAndTwoStageOutputsPreserveValues) {

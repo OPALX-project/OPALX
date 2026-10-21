@@ -17,6 +17,10 @@
  * and snapshot kind, with a new HDF5 step per call. The first successful write
  * to a filename in this process replaces existing output; later writes append.
  * Use a distinct filename for a distinct run within the same process.
+ * Existing append targets are checked read-only on rank zero before collective
+ * H5hut open, avoiding an upstream failed-open reporting bug for corrupt files.
+ * Rejected files are not replaced or truncated. This check is not a guarantee
+ * against concurrent external changes to the file between validation and open.
  *
  * Values are written verbatim: this writer applies no field scaling or coordinate
  * transformation. Current BeamBeam rho is the last bin's normalized primary
