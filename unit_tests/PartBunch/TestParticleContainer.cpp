@@ -613,6 +613,40 @@ namespace {
         EXPECT_NEAR(Pol[2], 1.0, 1e-14);
     }
 
+    TEST_F(ParticleContainerTest, FollowFrameOf_KeepsLabPositionsAndCopiesRoot) {
+        Options::useQMAttributes = false;
+        // Root: one particle on its reference, which is off the origin and turned.
+        const Vector_t<double, 3> refR(0.01, 0.0, 0.02), refP(0.1, 0.05, 0.4);
+        auto root = makeSpinParticle(
+                makeContainer(PC_t::LayoutType::Spatial, ippl::BC::PERIODIC, true), refR, refP,
+                Vector_t<double, 3>(0, 0, 1));
+        root->setRefPartR(refR);
+        root->setRefPartP(refP);
+        root->set_sPos(1.0);
+
+        // Follower: a decay daughter somewhere else, in the same (lab) frame as the root.
+        const Vector_t<double, 3> R0(0.03, -0.02, 0.05), P0(-0.02, 0.1, 0.3);
+        auto follower = makeSpinParticle(
+                makeContainer(PC_t::LayoutType::Spatial, ippl::BC::PERIODIC, true), R0, P0,
+                Vector_t<double, 3>(0, 0, 1));
+
+        follower->followFrameOf(*root, root->updateRefToLabCSTrafo(1e-12));
+
+        const CoordinateSystemTrafo& toLab = follower->getToLabTrafo();
+        const Vector_t<double, 3> labR     = toLab.transformTo(firstOf(follower->R));
+        const Vector_t<double, 3> labP     = toLab.rotateTo(firstOf(follower->P));
+        const Vector_t<double, 3> probe(0.3, -0.7, 1.1);
+        for (unsigned d = 0; d < 3; ++d) {
+            EXPECT_NEAR(labR[d], R0[d], 1e-15) << "component " << d;
+            EXPECT_NEAR(labP[d], P0[d], 1e-15) << "component " << d;
+            EXPECT_EQ(toLab.transformTo(probe)[d], root->getToLabTrafo().transformTo(probe)[d]);
+            EXPECT_EQ(follower->getRefPartR()[d], root->getRefPartR()[d]);
+            EXPECT_EQ(follower->getRefPartP()[d], root->getRefPartP()[d]);
+        }
+        EXPECT_EQ(follower->get_sPos(), root->get_sPos());
+        EXPECT_GT(std::abs(firstOf(follower->R)[0] - R0[0]), 1e-3);  // the frame did change
+    }
+
     TEST_F(ParticleContainerTest, EnterLeaveSolveFrame_KeepsPol) {
         Options::useQMAttributes = false;
         const Vector_t<double, 3> Pol0(0.0, 0.6, 0.8);

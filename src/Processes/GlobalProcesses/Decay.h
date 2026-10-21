@@ -39,6 +39,9 @@ public:
      *
      * @note When set, decayed particles spawn a daughter in @p daughterPC.
      *   When not set (default), decayed particles are marked for deletion.
+     * @note Daughters are written with the parent's bunch-frame coordinates. This is correct
+     *   because @p daughterPC uses the parent's reference particle and frame (TrackRun links
+     *   them, ParallelTracker keeps them equal).
      */
     void setDaughterContainer(
             std::shared_ptr<ParticleContainer<double, 3>> daughterPC, double daughterMassGeV);
