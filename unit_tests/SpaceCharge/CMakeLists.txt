@@ -35,23 +35,18 @@ if(BUILD_TESTING AND TARGET TestBeamBeamFieldServices)
   set_tests_properties(TestBeamBeamFieldServices PROPERTIES
     TIMEOUT 30 LABELS "unit;beambeam;regression"
     ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
-  # Exercise empty-local witness ownership and the non-slab mirror case in CI,
-  # not just in manually launched validation. Reuse the same gtest executable.
+  # Exercise empty-local witness ownership on two ranks. The previously disabled
+  # MPI4 registration was removed; see ci/cscs/cscs-ci-cd.md, BeamBeam rank coverage.
   if(MPIEXEC_EXECUTABLE)
-    foreach(_ranks IN ITEMS 2 4)
-      add_test(NAME TestBeamBeamFieldServicesMPI${_ranks}
-        COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${_ranks}
-          ${MPIEXEC_PREFLAGS} $<TARGET_FILE:TestBeamBeamFieldServices>
-          ${MPIEXEC_POSTFLAGS})
-      set_tests_properties(TestBeamBeamFieldServicesMPI${_ranks} PROPERTIES
-        TIMEOUT 30 PROCESSORS ${_ranks} RUN_SERIAL TRUE
-        LABELS "unit;beambeam;regression;mpi"
-        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-        ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
-      if(_ranks EQUAL 4)
-        set_tests_properties(TestBeamBeamFieldServicesMPI${_ranks} PROPERTIES DISABLED TRUE)
-      endif()
-    endforeach()
+    add_test(NAME TestBeamBeamFieldServicesMPI2
+      COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 2
+        ${MPIEXEC_PREFLAGS} $<TARGET_FILE:TestBeamBeamFieldServices>
+        ${MPIEXEC_POSTFLAGS})
+    set_tests_properties(TestBeamBeamFieldServicesMPI2 PROPERTIES
+      TIMEOUT 30 PROCESSORS 2 RUN_SERIAL TRUE
+      LABELS "unit;beambeam;regression;mpi"
+      WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+      ENVIRONMENT "OMP_NUM_THREADS=1;OMP_PROC_BIND=false")
   endif()
 endif()
 add_opalx_test(TestPoissonSolver USE_GTEST_MAIN RUN_SERIAL)
