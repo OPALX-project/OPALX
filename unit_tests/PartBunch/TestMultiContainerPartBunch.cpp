@@ -2,6 +2,11 @@
  * @file TestMultiContainerPartBunch.cpp
  * @brief Unit tests for multi-container PartBunch construction, indexed access,
  *        aggregation, and DataSink diagnostic contracts (stems, fdext sizing).
+ *
+ * The construction tests also check the P3M overlap layouts: a mesh-tied cutoff
+ * (`RCUT_CELLS`) that does not fit the rank regions is reduced when the bunch is built, as the
+ * runtime domain update does, and a cutoff that fits is kept. The space-charge factory tests
+ * check that the configured Cartesian algorithm is built and that FFT2D5 defers its setup.
  */
 
 #include <gtest/gtest.h>
@@ -196,6 +201,51 @@ namespace {
                         std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam}, 1.0, "LF2",
                         storageConfig)),
                 OpalException);
+    }
+
+    // A mesh-tied cutoff follows the 6 m placeholder domain set at construction, before the
+    // runtime geometry exists, so it must be reduced to fit the rank regions as at runtime.
+    TEST_F(MultiContainerPartBunchTest, Constructor_ReducesMeshTiedCutoffToFitRankRegions) {
+        opalx::spacecharge::CartesianDomainConfig3D overlapConfig;
+        overlapConfig.layoutType         = opalx::spacecharge::ParticleLayoutType::SpatialOverlap;
+        overlapConfig.overlapCutoffCells = 5.0;
+        // Five 0.75 m cells exceed half of the 6 m domain on every rank count.
+        const double requested = 5.0 * 6.0 / 8.0;
+
+        std::shared_ptr<PartBunch_t> overlapBunch;
+        ASSERT_NO_THROW(
+                overlapBunch = std::make_shared<PartBunch_t>(
+                        std::vector<double>{q0_m, q1_m}, std::vector<double>{m0_m, m1_m},
+                        std::vector<Beam*>{testBeam, testBeam},
+                        std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam}, 1.0, "LF2",
+                        overlapConfig));
+
+        const auto& domain      = overlapBunch->cartesianDomain();
+        const auto& localDomain = domain.layout().getLocalNDIndex();
+        const auto& spacing     = domain.mesh().getMeshSpacing();
+        const double firstCutoff =
+                overlapBunch->getParticleContainer(0)->getP3MLayout().getCutoff();
+        EXPECT_LT(firstCutoff, requested);
+        for (unsigned dimension = 0; dimension < 3; ++dimension) {
+            EXPECT_LE(firstCutoff, 0.5 * localDomain[dimension].length() * spacing[dimension]);
+        }
+        if (ippl::Comm->size() == 1) {
+            EXPECT_NEAR(firstCutoff, 3.0, 1.0e-9);
+        }
+        EXPECT_DOUBLE_EQ(
+                overlapBunch->getParticleContainer(1)->getP3MLayout().getCutoff(), firstCutoff);
+    }
+
+    TEST_F(MultiContainerPartBunchTest, Constructor_KeepsMeshTiedCutoffThatFits) {
+        opalx::spacecharge::CartesianDomainConfig3D overlapConfig;
+        overlapConfig.layoutType         = opalx::spacecharge::ParticleLayoutType::SpatialOverlap;
+        overlapConfig.overlapCutoffCells = 1.0;
+
+        const auto overlapBunch = std::make_shared<PartBunch_t>(
+                std::vector<double>{q0_m}, std::vector<double>{m0_m}, std::vector<Beam*>{testBeam},
+                std::vector<size_t>{kParticlesPerBeam}, 1.0, "LF2", overlapConfig);
+        EXPECT_DOUBLE_EQ(
+                overlapBunch->getParticleContainer()->getP3MLayout().getCutoff(), 6.0 / 8.0);
     }
 
     TEST_F(MultiContainerPartBunchTest, TotalNumAllContainers_SumsBoth) {
