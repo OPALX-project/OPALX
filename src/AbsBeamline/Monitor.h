@@ -87,7 +87,8 @@ public:
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
 
 private:
-    void driftToCorrectPositionAndSave(const Vector_t<double, 3>& R, const Vector_t<double, 3>& P);
+    void driftToCorrectPositionAndSave(
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, double crossingTime);
 
     Monitor& operator=(const Monitor&) = delete;
 

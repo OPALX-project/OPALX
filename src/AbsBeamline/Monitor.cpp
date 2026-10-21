@@ -148,7 +148,7 @@ void Monitor::apply(
 }
 
 void Monitor::driftToCorrectPositionAndSave(
-        const Vector_t<double, 3>& refR, const Vector_t<double, 3>& refP) {
+        const Vector_t<double, 3>& refR, const Vector_t<double, 3>& refP, double crossingTime) {
     if (lossDs_m == nullptr || RefPartBunch_m == nullptr) {
         return;
     }
@@ -200,8 +200,6 @@ void Monitor::driftToCorrectPositionAndSave(
     const bool qmAreAttributes =
             (pc->getQMStorageMode() == ParticleContainer_t::QMStorageMode::Attributes);
 
-    const double particleTime = RefPartBunch_m->getT();
-
     for (size_t i = 0; i < nLoc; ++i) {
         const Vector_t<double, 3> globalR = hR(i);
         const Vector_t<double, 3> globalP = hP(i);
@@ -226,9 +224,9 @@ void Monitor::driftToCorrectPositionAndSave(
             const Vector_t<double, 3> pol(
                     static_cast<double>(hPol(i)[0]), static_cast<double>(hPol(i)[1]),
                     static_cast<double>(hPol(i)[2]));
-            lossDs_m->addParticle(OpalParticle(id, localR, globalP, particleTime, q, m, pol));
+            lossDs_m->addParticle(OpalParticle(id, localR, globalP, crossingTime, q, m, pol));
         } else {
-            lossDs_m->addParticle(OpalParticle(id, localR, globalP, particleTime, q, m));
+            lossDs_m->addParticle(OpalParticle(id, localR, globalP, crossingTime, q, m));
         }
     }
 }
@@ -277,7 +275,8 @@ bool Monitor::applyToReferenceParticle(
                 time, pc->get_sPos() + ds, RefPartBunch_m->getGlobalTrackStep());
 
         if (type_m == CollectionType::TEMPORAL) {
-            driftToCorrectPositionAndSave(R, P);
+            // The drifted snapshot and its particle records share the reference crossing time.
+            driftToCorrectPositionAndSave(R, P, time);
 
             auto stats = lossDs_m->computeStatistics(1);
             if (!stats.empty()) {

@@ -1,6 +1,6 @@
 /**
  * \file TestMonitor.cpp
- * \brief Unit tests for lightweight Monitor behavior.
+ * \brief Unit tests for Monitor behavior and temporal sampling.
  *
  * This test suite validates basic Monitor behavior using:
  *  - a minimal concrete Monitor implementation
@@ -29,6 +29,10 @@
  *    - applyToReferenceParticle() returns false without a reference bunch
  *    - goOffline() is safe before a LossDataSink is created
  *
+ * 5. Temporal sampling
+ *    - particle timestamps and mean time agree with the reference crossing time
+ *    - drifted positions match an analytic field-free snapshot
+ *
  * ---------------------------------------------------------------------------
  * Notes
  * ---------------------------------------------------------------------------
@@ -36,9 +40,8 @@
  * - Monitor is field-free. The dummy field exists only to satisfy the abstract
  *   Component interface in the concrete test class.
  *
- * - These tests intentionally avoid file-output checks. They focus on behavior
- *   that can be verified without constructing a full PartBunch/ParticleContainer
- *   tracking setup.
+ * - Sampling uses a small PartBunch and an in-memory sink, without file output
+ *   or a full tracker.
  */
 
 #include <gtest/gtest.h>
@@ -50,6 +53,10 @@
 #include "BeamlineGeometry/Geometry.h"
 #undef private
 
+#include "Structure/Beam.h"
+
+#include <array>
+#include <cmath>
 #include <memory>
 
 // ---------------------------------------------------------------------------
@@ -73,6 +80,8 @@ public:
 
     void setLength(double length) { geom_.setElementLength(length); }
 
+    void attachBunch(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
+
 private:
     Geometry geom_;
     Plane plane_ = OFF;
@@ -87,9 +96,16 @@ protected:
         int argc    = 0;
         char** argv = nullptr;
         ippl::initialize(argc, argv);
+        gmsg = new Inform(nullptr, -1);
     }
 
-    static void TearDownTestSuite() { ippl::finalize(); }
+    static void TearDownTestSuite() {
+        delete gmsg;
+        gmsg = nullptr;
+        ippl::finalize();
+    }
+
+    void TearDown() override { Monitor::statFileEntries_sm.clear(); }
 };
 
 // ---------------------------------------------------------------------------
@@ -230,4 +246,71 @@ TEST_F(MonitorTest, GoOfflineWithoutLossDataSinkIsSafe) {
     TestMonitor monitor;
 
     EXPECT_NO_THROW(monitor.goOffline());
+}
+
+TEST_F(MonitorTest, TemporalSamplesUseReferenceCrossingTime) {
+    Beam exemplar;
+    Beam* beam                = Beam::find("UNNAMED_BEAM");
+    const double dt           = 1.0e-10;
+    const double endTime      = 10.0 * dt;
+    const double midpointTime = endTime - 0.5 * dt;
+    const Vector_t<double, 3> momentum(0.0, 0.0, 2.0);
+    const double speed                  = Physics::c * 2.0 / std::sqrt(5.0);
+    const std::array<double, 2> offsets = {-2.0e-4, 2.0e-4};
+
+    PartBunch_t bunch(
+            {Physics::q_e}, {0.00051099895}, {beam}, {offsets.size()}, 1.0, "LF2",
+            opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});
+    bunch.setdT(dt);
+    bunch.setT(endTime);
+    bunch.setGlobalTrackStep(1);
+    auto pc = bunch.getParticleContainer();
+    pc->set_sPos(1.0);  // Avoid the pre-tracking crossing guard.
+    pc->createParticles(offsets.size());
+
+    // Cover crossings before, at, and after the particle timestep endpoint.
+    for (const double fraction : {0.25, 0.5, 0.75}) {
+        SCOPED_TRACE(fraction);
+        const double crossingTime       = midpointTime + fraction * dt;
+        const double referenceMidpointZ = -fraction * speed * dt;
+        auto positions                  = pc->R.getHostMirror();
+        auto momenta                    = pc->P.getHostMirror();
+        auto ids                        = pc->ID.getHostMirror();
+        for (size_t i = 0; i < offsets.size(); ++i) {
+            // Analytic endpoint state for a particle at offsets[i] at crossingTime.
+            positions(i) = Vector_t<double, 3>(
+                    1.0e-3, -2.0e-3, offsets[i] + speed * (endTime - crossingTime));
+            momenta(i) = momentum;
+            ids(i)     = i;
+        }
+        Kokkos::deep_copy(pc->R.getView(), positions);
+        Kokkos::deep_copy(pc->P.getView(), momenta);
+        Kokkos::deep_copy(pc->ID.getView(), ids);
+
+        TestMonitor monitor;
+        monitor.attachBunch(&bunch);
+        monitor.setCollectionType(CollectionType::TEMPORAL);
+        // Empty output name suppresses save(), retaining records for inspection.
+        monitor.lossDs_m = std::make_unique<LossDataSink>();
+        monitor.goOnline(0.0);
+        Vector_t<double, 3> electric(0.0), magnetic(0.0);
+        EXPECT_FALSE(monitor.applyToReferenceParticle(
+                Vector_t<double, 3>(0.0, 0.0, referenceMidpointZ), momentum, midpointTime, electric,
+                magnetic));
+
+        ASSERT_EQ(monitor.lossDs_m->particles_m.size(), offsets.size());
+        for (size_t i = 0; i < offsets.size(); ++i) {
+            const auto& sample = monitor.lossDs_m->particles_m[i];
+            EXPECT_NEAR(sample.getTime(), crossingTime, 1.0e-22);
+            EXPECT_NEAR(sample.getX(), 1.0e-3, 1.0e-14);
+            EXPECT_NEAR(sample.getY(), -2.0e-3, 1.0e-14);
+            EXPECT_NEAR(sample.getZ(), offsets[i], 1.0e-14);
+        }
+        const auto stats = monitor.lossDs_m->computeStatistics(1);
+        ASSERT_EQ(stats.size(), 1u);
+        EXPECT_NEAR(stats.begin()->refTime_m, crossingTime, 1.0e-22);
+        EXPECT_NEAR(stats.begin()->tmean_m, crossingTime, 1.0e-22);
+        EXPECT_NEAR(stats.begin()->trms_m, 0.0, 1.0e-22);
+        EXPECT_DOUBLE_EQ(bunch.getT(), endTime);
+    }
 }
