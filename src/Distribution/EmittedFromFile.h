@@ -110,7 +110,9 @@ public:
     /**
      * @brief Returns the mean initial position used by the tracker.
      *
-     * @return The mean selected file position plus the emission-source R0.
+     * @return For explicit-birth records, the mean selected file position plus
+     * emission-source R0. For the legacy format, R0 itself (the emission plane),
+     * without adding the mean transverse file offsets.
      */
     Vector_t<double, 3> getInitialReferencePosition() const override { return initialRefR_m; }
 

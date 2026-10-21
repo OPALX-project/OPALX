@@ -55,6 +55,7 @@ namespace BEAMBEAM {
      * @brief Static BeamBeam configuration derived from the element attributes.
      */
     struct Config {
+        /// Request optional rank-zero ASCII animation during geometric overlap.
         bool visualize = false;
         /**
          * Suppress the BeamBeam collective kick on physical source container 0.
@@ -64,7 +65,9 @@ namespace BEAMBEAM {
          * This switch does not suppress ordinary tracking or external fields.
          */
         bool rigidSource = false;
+        /// Simulation-time threshold [s]; missing or zero disables copied fields.
         std::optional<double> copyTime;
+        /// Passive secondary-container indices; container zero is the physical primary.
         std::vector<std::size_t> witnessContainers;
     };
 
@@ -133,10 +136,15 @@ namespace BEAMBEAM {
      * anchor because no ELEMEDGE coordinate exists.
      */
     struct ActualGeometry {
+        /// Geometric element midpoint in reference path coordinate s [m].
         double interactionPointS = 0.0;
-        double beginS            = 0.0;
-        double endS              = 0.0;
-        double length            = 0.0;
+        /// Placed entrance in reference s [m].
+        double beginS = 0.0;
+        /// Placed exit in reference s [m].
+        double endS = 0.0;
+        /// Geometric length [m], distinct from fieldWindowLength.
+        double length = 0.0;
+        /// Input policy captured for this placement.
         Config config;
     };
 
@@ -227,9 +235,13 @@ namespace BEAMBEAM {
      */
     template <class SavedFieldDomainState>
     struct Runtime {
+        /// Single-pass lifecycle; Completed is not reactivated in this run.
         WindowState state = WindowState::Inactive;
+        /// Last detected placed interaction geometry, if available.
         std::optional<ActualGeometry> geometry;
+        /// Domain geometry saved before entering the fixed-window solve.
         std::optional<SavedFieldDomainState> savedFieldDomain;
+        /// Whether physical and mirrored primary longitudinal envelopes overlap.
         bool sourceBunchesOverlap = false;
     };
 
@@ -240,7 +252,9 @@ namespace BEAMBEAM {
      * from the physics/runtime lifecycle.
      */
     struct Diagnostics {
-        bool frameObserved          = false;
+        /// Whether visualization is requested for the current geometric overlap.
+        bool frameObserved = false;
+        /// Whether the one-time entry diagnostic/charge-reference stage has been handled.
         bool entryRhoSnapshotDumped = false;
     };
 

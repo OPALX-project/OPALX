@@ -1,6 +1,6 @@
 //
 // Class BeamBeamRep
-//   Representation for a drift space.
+//   Geometric representation of a collective beam-beam element.
 //
 // Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
@@ -21,32 +21,39 @@
 #include "AbsBeamline/BeamBeam.h"
 #include "BeamlineGeometry/Geometry.h"
 
+/**
+ * @brief Concrete BeamBeam placement with straight-line geometry.
+ *
+ * Owns the geometric length and supports cloning/channel access. Collective
+ * fields are evaluated by the per-run BeamBeamInteraction, not by this geometry.
+ */
 class BeamBeamRep : public BeamBeam {
 public:
     /// Constructor with given name.
+    /// @param name Placed element name.
     explicit BeamBeamRep(const std::string& name);
 
+    /// Construct an unnamed placement.
     BeamBeamRep();
-    BeamBeamRep(const BeamBeamRep&);
+    /// Copy the element and its geometry, not per-run interaction state.
+    /// @param right Source placement.
+    BeamBeamRep(const BeamBeamRep& right);
     virtual ~BeamBeamRep();
 
-    /// Return clone.
-    //  Return an identical deep copy of the element.
-    virtual ElementBase* clone() const;
+    /// @return An identical deep copy of the element; ownership transfers to the caller.
+    ElementBase* clone() const override;
 
-    /// Construct a read/write channel.
-    //  This method constructs a Channel permitting read/write access to
-    //  the attribute [b]aKey[/b] and returns it.
-    //  If the attribute does not exist, it returns nullptr.
-    virtual Channel* getChannel(const std::string& aKey, bool = false);
+    /// Construct a read/write channel for aKey via the base element's channel interface.
+    /// @param aKey Attribute name.
+    /// @param create Whether the base interface may create a missing channel.
+    /// @return A caller-owned channel, or nullptr if the attribute is unknown.
+    Channel* getChannel(const std::string& aKey, bool create = false) override;
 
-    /// Get geometry.
-    //  Version for non-constant object.
-    virtual Geometry& getGeometry();
+    /// @return Borrowed mutable geometry, valid for the element lifetime.
+    Geometry& getGeometry() override;
 
-    /// Get geometry.
-    //  Version for constant object.
-    virtual const Geometry& getGeometry() const;
+    /// @return Borrowed immutable geometry, valid for the element lifetime.
+    const Geometry& getGeometry() const override;
 
 private:
     // Not implemented.

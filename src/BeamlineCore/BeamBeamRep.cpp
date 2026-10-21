@@ -1,6 +1,6 @@
 //
 // Class BeamBeamRep
-//   Representation for a drift space.
+//   Geometric representation of a collective beam-beam element.
 //
 // Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
@@ -16,17 +16,6 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "BeamlineCore/BeamBeamRep.h"
-#include "Channels/IndirectChannel.h"
-
-namespace {
-    struct Entry {
-        const char* name;
-        double (BeamBeamRep::*get)() const;
-        void (BeamBeamRep::*set)(double);
-    };
-
-    const Entry entries[] = {{0, 0, 0}};
-}  // namespace
 
 BeamBeamRep::BeamBeamRep() : BeamBeam(), geometry() {}
 
@@ -39,12 +28,6 @@ BeamBeamRep::~BeamBeamRep() {}
 ElementBase* BeamBeamRep::clone() const { return new BeamBeamRep(*this); }
 
 Channel* BeamBeamRep::getChannel(const std::string& aKey, bool create) {
-    for (const Entry* entry = entries; entry->name != 0; ++entry) {
-        if (aKey == entry->name) {
-            return new IndirectChannel<BeamBeamRep>(*this, entry->get, entry->set);
-        }
-    }
-
     return ElementBase::getChannel(aKey, create);
 }
 

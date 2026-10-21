@@ -32,6 +32,8 @@ namespace opalx::spacecharge {
  */
 class BeamBeamInteraction final : public ElementInteraction {
 public:
+    /// Construct inactive per-run state without opening diagnostic output.
+    /// @param element Borrowed placement/configuration; must outlive this interaction.
     explicit BeamBeamInteraction(const BeamBeam& element);
     ~BeamBeamInteraction() override;
 
@@ -90,7 +92,6 @@ private:
     IpplTimings::TimerRef entryTransitionTimer_m;
     IpplTimings::TimerRef meshSetupTimer_m;
     IpplTimings::TimerRef selfFieldTimer_m;
-    IpplTimings::TimerRef transformBackTimer_m;
     IpplTimings::TimerRef witnessGatherTimer_m;
     IpplTimings::TimerRef transitionDumpTimer_m;
 
@@ -104,7 +105,8 @@ private:
     std::optional<bool> lastDiagnosticCopyActive_m;
     std::optional<bool> lastDiagnosticSourceOverlap_m;
     std::optional<std::string> lastDiagnosticSignature_m;
-    static constexpr int postWindowVisualizationSteps_m = 4;
+    /// Rank-zero animation is allocated only on the first requested frame.
+    bool windowAnimationFailed_m = false;
     std::unique_ptr<BeamBeamWindowAnimation> windowAnimation_m;
 };
 

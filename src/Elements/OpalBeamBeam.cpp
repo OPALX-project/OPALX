@@ -1,6 +1,6 @@
 //
 // Class OpalBeamBeam
-//   The class of OPAL drift spaces.
+//   Input-language definition of collective beam-beam elements.
 //
 // Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
@@ -127,7 +127,7 @@ OpalBeamBeam::OpalBeamBeam()
 
     registerOwnership();
 
-    setElement(new BeamBeamRep("DRIFT"));
+    setElement(new BeamBeamRep("BEAMBEAM"));
 }
 
 OpalBeamBeam::OpalBeamBeam(const std::string& name, OpalBeamBeam* parent)
