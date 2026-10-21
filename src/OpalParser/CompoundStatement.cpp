@@ -50,7 +50,8 @@ CompoundStatement::~CompoundStatement() {}
 
 void CompoundStatement::execute(const Parser& parser) {
     auto stream = std::make_unique<MacroStream>(buffer_name);
-    for (Token token : tokens) stream->append(token);
+    for (Token token : tokens)
+        stream->append(token);
     stream->start();
     parser.run(stream.release());
 }

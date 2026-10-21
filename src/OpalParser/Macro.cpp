@@ -74,7 +74,8 @@ void Macro::parseActuals(Statement& stat) {
                 closing.push_back('}');
             } else if (token.isDel(')') || token.isDel(']') || token.isDel('}')) {
                 if (!token.isDel(closing.back())) {
-                    throw ParseError("Macro::parseActuals()", "Mismatched MACRO argument delimiter.");
+                    throw ParseError(
+                            "Macro::parseActuals()", "Mismatched MACRO argument delimiter.");
                 }
                 closing.pop_back();
                 if (closing.empty()) {
@@ -99,7 +100,8 @@ void Macro::parseFormals(Statement& stat) {
         do {
             std::string form = Expressions::parseString(stat, "Expected formal argument name.");
             if (std::find(formals.begin(), formals.end(), form) != formals.end()) {
-                throw ParseError("Macro::parseFormals()", "Duplicate MACRO formal argument: " + form);
+                throw ParseError(
+                        "Macro::parseFormals()", "Duplicate MACRO formal argument: " + form);
             }
             formals.push_back(form);
         } while (stat.delimiter(','));
