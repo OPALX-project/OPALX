@@ -141,6 +141,7 @@ namespace opalx::spacecharge {
         RelativisticFieldComposerType relativisticFieldComposer_m;
         std::vector<BinStatsRow> binStats_m;
         bool warnedPlaneDumpParallelUnsupported_m = false;
+        bool warnedRestFrameP3MResolution_m       = false;
         std::optional<BeamBeamSolvePolicy> beamBeamPolicy_m;
         std::optional<double> depositedCharge_m;
         std::size_t diagnosticStep_m       = 0;
