@@ -39,11 +39,6 @@ namespace G4BLMapSyntax {
      *
      * Strips '#' comments and surrounding whitespace, and skips lines left empty.
      *
-     * @note This deliberately does not use Fieldmap::getLine(). That reads through a 256
-     *       character buffer (READ_BUFFER_LENGTH), while a cylinder data row is nR values
-     *       wide -- about 660 characters for the muE4 WSX map -- and would be silently
-     *       truncated.
-     *
      * @return false at end of file.
      */
     inline bool nextLine(std::istream& in, std::string& line) {
