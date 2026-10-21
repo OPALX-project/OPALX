@@ -10,6 +10,24 @@
 
 namespace opalx::spacecharge {
 
+    LorentzBoost LorentzBoost::from(const FieldCompositionPolicy& policy) {
+        LorentzBoost boost;
+        const double invGamma = (policy.gamma > 0.0) ? (1.0 / policy.gamma) : 0.0;
+        Vector meanMomentum(0.0);
+        for (unsigned dimension = 0; dimension < 3; ++dimension) {
+            meanMomentum[dimension] = policy.meanMomentum[dimension];
+        }
+
+        boost.velocity            = Physics::c * meanMomentum * invGamma;
+        const double velocityNorm = Kokkos::sqrt(boost.velocity.dot(boost.velocity));
+        boost.velocityUnit =
+                (velocityNorm > 0.0) ? Vector(boost.velocity / velocityNorm) : Vector(0.0);
+        boost.gamma          = policy.gamma;
+        boost.gammaMinusOne  = policy.gamma - 1.0;
+        boost.magneticFactor = policy.magneticSign * (policy.gamma / (Physics::c * Physics::c));
+        return boost;
+    }
+
     void RelativisticFieldComposer::clearAccumulation(FieldStorage& fieldStorage) const {
         fieldStorage.accumulatedElectricField() = 0.0;
         fieldStorage.accumulatedMagneticField() = 0.0;
@@ -17,19 +35,7 @@ namespace opalx::spacecharge {
 
     void RelativisticFieldComposer::accumulate(
             FieldStorage& fieldStorage, const Policy& policy) const {
-        const double gammaBin   = policy.gamma;
-        const double bFieldSign = policy.magneticSign;
-        const double invGamma   = (gammaBin > 0.0) ? (1.0 / gammaBin) : 0.0;
-        Vector meanMomentum(0.0);
-        for (unsigned dimension = 0; dimension < 3; ++dimension) {
-            meanMomentum[dimension] = policy.meanMomentum[dimension];
-        }
-
-        const Vector velocity      = Physics::c * meanMomentum * invGamma;
-        const double velocityNorm  = Kokkos::sqrt(velocity.dot(velocity));
-        const Vector velocityUnit  = (velocityNorm > 0.0) ? (velocity / velocityNorm) : Vector(0.0);
-        const double gammaMinusOne = gammaBin - 1.0;
-        const double gammaOverCSq  = gammaBin / (Physics::c * Physics::c);
+        const LorentzBoost boost = LorentzBoost::from(policy);
 
         const VectorField& sourceField     = fieldStorage.electricField();
         VectorField& electricTotal         = fieldStorage.accumulatedElectricField();
@@ -44,13 +50,10 @@ namespace opalx::spacecharge {
                     "RelativisticFieldComposer::accumulateDirect",
                     sourceField.getFieldRangePolicy(),
                     KOKKOS_LAMBDA(const ippl::RangePolicy<3>::index_array_type& idx) {
-                        Vector electricPrime                 = apply(sourceView, idx);
-                        const double electricDotVelocityUnit = electricPrime.dot(velocityUnit);
-                        Vector electricLab =
-                                gammaBin * electricPrime
-                                - gammaMinusOne * electricDotVelocityUnit * velocityUnit;
-                        Vector magneticLab =
-                                bFieldSign * gammaOverCSq * cross(velocity, electricPrime);
+                        const Vector electricPrime = apply(sourceView, idx);
+                        Vector electricLab;
+                        Vector magneticLab;
+                        boost.toLab(electricPrime, electricLab, magneticLab);
                         Vector accumulatedElectric = apply(electricTotalView, idx);
                         Vector accumulatedMagnetic = apply(magneticTotalView, idx);
                         accumulatedElectric += electricLab;
@@ -86,16 +89,45 @@ namespace opalx::spacecharge {
                         }
                     }
 
-                    const double electricDotVelocityUnit = electricPrime.dot(velocityUnit);
-                    Vector electricLab                   = gammaBin * electricPrime
-                                         - gammaMinusOne * electricDotVelocityUnit * velocityUnit;
-                    Vector magneticLab = bFieldSign * gammaOverCSq * cross(velocity, electricPrime);
+                    Vector electricLab;
+                    Vector magneticLab;
+                    boost.toLab(electricPrime, electricLab, magneticLab);
                     Vector accumulatedElectric = apply(electricTotalView, idx);
                     Vector accumulatedMagnetic = apply(magneticTotalView, idx);
                     accumulatedElectric += electricLab;
                     accumulatedMagnetic += magneticLab;
                     apply(electricTotalView, idx) = accumulatedElectric;
                     apply(magneticTotalView, idx) = accumulatedMagnetic;
+                });
+    }
+
+    void RelativisticFieldComposer::addParticleContribution(
+            const VectorView& electricRest, VectorAttribute& electricDestination,
+            VectorAttribute& magneticDestination, std::size_t localCount,
+            const Policy& policy) const {
+        if (policy.sourceRule != FieldSourceRule::Direct) {
+            throw OpalException(
+                    "RelativisticFieldComposer::addParticleContribution",
+                    "Particle contributions support only the direct source rule.");
+        }
+        if (electricRest.extent(0) < localCount) {
+            throw OpalException(
+                    "RelativisticFieldComposer::addParticleContribution",
+                    "The rest-frame particle field is shorter than the local particle count.");
+        }
+        const LorentzBoost boost            = LorentzBoost::from(policy);
+        const VectorView::const_type source = electricRest;
+        auto electricView                   = electricDestination.getView();
+        auto magneticView                   = magneticDestination.getView();
+        Kokkos::parallel_for(
+                "RelativisticFieldComposer::addParticleContribution",
+                Kokkos::RangePolicy<Kokkos::DefaultExecutionSpace>(0, localCount),
+                KOKKOS_LAMBDA(const std::size_t index) {
+                    Vector electricLab;
+                    Vector magneticLab;
+                    boost.toLab(source(index), electricLab, magneticLab);
+                    electricView(index) += electricLab;
+                    magneticView(index) += magneticLab;
                 });
     }
 
