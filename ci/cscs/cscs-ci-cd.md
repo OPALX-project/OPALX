@@ -44,8 +44,8 @@ are retained: two builds, three unit-test jobs and the Release regression job.
 There are no PR-specific rules, Gaussian-only filters or extra diagnostic runs.
 Test jobs retain the validated four-CPU allocation and one OpenMP thread per
 rank. Nominal one-rank jobs allocate four CPUs to accommodate explicit MPI2
-registrations; the four-rank job allocates one CPU per rank. Test selection and
-the existing disabled tests are unchanged.
+registrations; the four-rank job allocates one CPU per rank. The IPC workaround
+does not filter tests; the separate BeamBeam registration cleanup is described below.
 
 Reassess this workaround after MPI/ROCm/uenv upgrades: compare the isolated
 Gaussian MPI2 case with inherited IPC versus `MPICH_GPU_IPC_ENABLED=0`, then
@@ -54,6 +54,51 @@ validate the full unit/regression matrix before removing the setting. Optional
 MPI/device information, but is not enabled by CI. These markers add no fences
 or barriers, so an after-marker does not establish GPU completion. Passing with
 IPC disabled does not establish that the default IPC configuration is fixed.
+
+### BeamBeam rank coverage
+
+On 2026-10-21, the explicitly four-rank CTest registrations
+`TestBeamBeamTimedBirthsMPI4` and `TestBeamBeamFieldServicesMPI4` were removed.
+They had been disabled since 2026-10-05 (commit `0047fa17a`) at the maintainer's
+request to exclude four-rank unit tests. Removing these inactive registrations
+makes that test-scope decision explicit instead of carrying permanently disabled
+entries in every CTest/CDash report. It does not turn a failing executed test
+into a pass, nor establish four-rank correctness.
+
+This cleanup is independent of the MI300 GPU IPC workaround and the GH200
+`opal-live-doc` publication timeout. Neither is evidence that four-rank physics
+is incorrect. No solver code, numerical tolerances, MPI algorithms or existing
+CSCS job allocations are changed.
+
+The retained coverage and its limitations are:
+
+- `TestEmittedFromFile` still checks twelve timed births, exactly-once identity,
+  timestep-boundary births, fractional first timesteps and half-step drift.
+  Its dedicated four-rank launch is no longer registered.
+- `TestBeamBeamFieldServices` and `TestBeamBeamFieldServicesMPI2` retain the
+  overlap symmetry and Gaussian electric/magnetic field checks, passive witness
+  gathering and empty-local witness ownership. With the default test process
+  count of one, these provide one- and two-rank coverage.
+- `MirrorFieldZHandlesNonSlab3DDecomposition` requires an irregular four-rank
+  layout. Its source is retained for manual diagnostics, but it skips at one or
+  two ranks. **The default CTest suite therefore does not validate this layout.**
+
+These are CTest registration changes, not a global ban on four-rank execution:
+`OPALX_DEFAULT_TEST_PROCS` remains configurable, and CSCS job names/allocations
+are not proof of the rank count used by each test. Inspect the actual CTest
+commands when reporting rank coverage. For a deliberate four-rank revalidation,
+run the retained executables in a suitable allocation with one OpenMP thread
+per rank (and the documented IPC setting on MI300):
+
+```sh
+OMP_NUM_THREADS=1 OMP_PROC_BIND=false mpiexec -n 4 build_openmp/bin/TestEmittedFromFile \
+  --gtest_filter=EmittedFromFileTest.TwelveTimedBirthsPreserveIdentityAndBoundarySteps
+OMP_NUM_THREADS=1 OMP_PROC_BIND=false mpiexec -n 4 build_openmp/bin/TestBeamBeamFieldServices
+```
+
+Restore automated four-rank registrations only after explicitly deciding to
+maintain that coverage and validating the launcher, resources and complete
+four-rank checks on the intended backends.
 
 ### Which PRs are tested
 All PRs submitted to IPPL **via the IPPL github repo** (ie not via forks) will be tested automatically - this is possible since only authorized github accounts are allowed to push branches and create PRs from the IPPL repo directly. 
