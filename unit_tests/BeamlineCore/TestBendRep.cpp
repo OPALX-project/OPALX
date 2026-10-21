@@ -279,8 +279,7 @@ TEST_F(BendRepTest, DeviceAndHostHardEdgeFieldsUseIdenticalSpatialSupport) {
         rectangular.getGeometry().setElementLength(1.);
         rectangular.setB(-1.);
         multipole.getGeometry().setElementLength(1.);
-        // The normal dipole setter stores half its argument.
-        multipole.setNormalComponent(0, -2.);
+        multipole.setNormalComponent(0, -1.);
         ElementBase& element = kind == 0   ? static_cast<ElementBase&>(sector)
                                : kind == 1 ? static_cast<ElementBase&>(rectangular)
                                            : static_cast<ElementBase&>(multipole);
@@ -331,4 +330,55 @@ TEST_F(BendRepTest, DeviceAndHostHardEdgeFieldsUseIdenticalSpatialSupport) {
             }
         }
     }
+}
+
+// Particles (Multipole::apply on a container) and the reference particle
+// (applyToReferenceParticle) must see the same MULTIPOLE field for every order up to decapole,
+// normal and skew. The particle kernel used to handle only dipole and quadrupole.
+TEST_F(BendRepTest, MultipoleParticleAndReferenceFieldsAgreeUpToDecapole) {
+    ippl::NDIndex<3> domain;
+    for (unsigned d = 0; d < 3; ++d)
+        domain[d] = ippl::Index(8);
+    ippl::UniformCartesian<double, 3> mesh(domain, Vector3(0.25), Vector3(-1));
+    std::array<bool, 3> decomp{true, true, true};
+    ippl::FieldLayout<3> layout(MPI_COMM_WORLD, domain, decomp, false);
+
+    const Vector3 point(0.03, -0.02, 0.4);
+    for (int order = 0; order < 5; ++order) {
+        SCOPED_TRACE(order);
+        MultipoleRep multipole("multipole");
+        multipole.getGeometry().setElementLength(1.);
+        multipole.setAperture(ApertureType::RECTANGULAR, {1., 1.});
+        multipole.setNormalComponent(order, 0.7 + order);
+        multipole.setSkewComponent(order, 0.3 + order);
+
+        auto pc = std::make_shared<ParticleContainer_t>(mesh, layout);
+        pc->setBunchStateHandler(std::make_shared<BunchStateHandler>());
+        pc->allocateParticles(1);
+        pc->createParticles(1);
+        Kokkos::deep_copy(pc->R.getView(), point);
+        Kokkos::deep_copy(pc->E.getView(), Vector3(0.0));
+        Kokkos::deep_copy(pc->B.getView(), Vector3(0.0));
+        multipole.apply(pc);
+        const auto b = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->B.getView());
+
+        Vector3 refE(0.0), refB(0.0);
+        EXPECT_FALSE(multipole.applyToReferenceParticle(point, Vector3(0, 0, 1), 0., refE, refB));
+        EXPECT_GT(std::abs(refB(0)) + std::abs(refB(1)), 0.0);
+        for (unsigned d = 0; d < 3; ++d) {
+            EXPECT_NEAR(b(0)(d), refB(d), 1e-15) << "component " << d;
+        }
+    }
+
+    // Pure normal sextupole KN[2] = k2: By = k2 (x^2 - y^2) / 2, Bx = k2 x y.
+    MultipoleRep sextupole("sextupole");
+    sextupole.getGeometry().setElementLength(1.);
+    sextupole.setAperture(ApertureType::RECTANGULAR, {1., 1.});
+    const double k2 = 4.0;
+    sextupole.setNormalComponent(2, k2);
+    Vector3 E(0.0), B(0.0);
+    sextupole.applyToReferenceParticle(point, Vector3(0, 0, 1), 0., E, B);
+    const double x = point(0), y = point(1);
+    EXPECT_NEAR(B(0), k2 * x * y, 1e-15);
+    EXPECT_NEAR(B(1), 0.5 * k2 * (x * x - y * y), 1e-15);
 }
