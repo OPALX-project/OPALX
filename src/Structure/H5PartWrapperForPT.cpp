@@ -500,7 +500,7 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch, size_t particleContai
     }
     WRITE_TIMED_DATA(Float64, file_m, "q", f64buffer);
 
-    auto idViewDevice = bunch->getParticleContainer()->ID.getView();
+    auto idViewDevice = pc->ID.getView();
     auto idView       = Kokkos::create_mirror_view(idViewDevice);
     copyToHost(idView, idViewDevice);
 
