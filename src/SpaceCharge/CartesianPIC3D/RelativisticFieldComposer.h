@@ -10,6 +10,7 @@
 #include "SpaceCharge/CartesianPIC3D/ParticleMeshFieldTransfer.h"
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <type_traits>
 
@@ -34,6 +35,33 @@ namespace opalx::spacecharge {
     static_assert(std::is_trivially_copyable_v<FieldCompositionPolicy>);
 
     /**
+     * @brief Converts a rest-frame electric field to lab-frame E and B for one boost.
+     *
+     * The rest frame moves with @c velocity in Cartesian solve axes. The electric field
+     * perpendicular to it scales with gamma, the parallel one is unchanged, and
+     * B = sign * gamma / c^2 * v x E'. Mesh and particle contributions share this conversion.
+     */
+    struct LorentzBoost final {
+        using Vector = ippl::Vector<double, 3>;
+
+        Vector velocity{0.0};
+        Vector velocityUnit{0.0};
+        double gamma          = 1.0;
+        double gammaMinusOne  = 0.0;
+        double magneticFactor = 0.0;
+
+        [[nodiscard]] static LorentzBoost from(const FieldCompositionPolicy& policy);
+
+        KOKKOS_INLINE_FUNCTION void toLab(
+                const Vector& electricRest, Vector& electricLab, Vector& magneticLab) const {
+            const double electricDotVelocityUnit = electricRest.dot(velocityUnit);
+            electricLab =
+                    gamma * electricRest - gammaMinusOne * electricDotVelocityUnit * velocityUnit;
+            magneticLab = magneticFactor * cross(velocity, electricRest);
+        }
+    };
+
+    /**
      * @brief Converts and accumulates backend fields in Cartesian solve axes, then gathers them.
      *
      * Fields and particle data are borrowed; persistent scratch lives in
@@ -47,6 +75,7 @@ namespace opalx::spacecharge {
         using VectorField          = typename FieldStorage::VectorField;
         using PositionAttribute    = typename ParticleMeshTransfer::PositionAttribute;
         using VectorAttribute      = typename ParticleMeshTransfer::VectorAttribute;
+        using VectorView           = typename VectorAttribute::view_type;
         using Policy               = FieldCompositionPolicy;
 
         // CUDA requires functions enclosing device lambdas to be public.
@@ -66,6 +95,18 @@ namespace opalx::spacecharge {
          * or consumption on another execution instance.
          */
         void accumulate(FieldStorage& fieldStorage, const Policy& policy) const;
+
+        /**
+         * @brief Lorentz-convert per-particle rest-frame fields and add them to particle E/B.
+         *
+         * Used for particle-particle contributions, which bypass the mesh accumulators and must
+         * be added after the final gather. Only the Direct source rule applies.
+         * @param electricRest Rest-frame electric field, valid on [0, @p localCount).
+         */
+        void addParticleContribution(
+                const VectorView& electricRest, VectorAttribute& electricDestination,
+                VectorAttribute& magneticDestination, std::size_t localCount,
+                const Policy& policy) const;
 
         /** @brief Replace a particle electric field with gathered backend values. */
         void gatherElectrostatic(

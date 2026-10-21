@@ -17,10 +17,11 @@ void MuonDecay::createDaughterParticles(
 
     const auto pool           = randPool_m;
     const double daughterMass = daughterMassGeV_m;
-    // V-A asymmetry sign: +1 for mu-, -1 for mu+. Set in Decay::apply from the
-    // parent container's reference charge.
+    // V-A asymmetry sign: +1 for mu+ (the positron goes preferentially along the muon
+    // spin), -1 for mu- (the electron goes against it). parentChargeSign_m is set in the
+    // Decay constructor from the parent container's reference charge.
     const int chargeSign  = parentChargeSign_m;
-    const double asymSign = (chargeSign < 0) ? +1.0 : -1.0;
+    const double asymSign = (chargeSign > 0) ? +1.0 : -1.0;
 
     /* Kinematics of mu -> e + nu_e + nu_mu (three-body decay).
      *
