@@ -1,16 +1,30 @@
 #include "Utilities/BeamBeamWindowAnimation.h"
+#include "Utilities/OpalException.h"
 
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
 #include <iostream>
 #include <utility>
 
 BeamBeamWindowAnimation::BeamBeamWindowAnimation(const std::string& outputPath, std::size_t width)
-    : dump_m(outputPath),
-      width_m(std::max<std::size_t>(width, 3)),
+    : width_m(std::max<std::size_t>(width, 3)),
       firstFrame_m(true),
       frameId_m(0),
-      prevLineCount_m(0) {}
+      prevLineCount_m(0) {
+    const auto parent = std::filesystem::path(outputPath).parent_path();
+    std::error_code error;
+    if (!parent.empty()) {
+        std::filesystem::create_directories(parent, error);
+    }
+    if (!error) {
+        dump_m.open(outputPath);
+    }
+    if (error || !dump_m) {
+        throw OpalException(
+                "BeamBeamWindowAnimation", "Cannot open animation output: " + outputPath);
+    }
+}
 
 void BeamBeamWindowAnimation::render(
         double bunchCenterS, double meshBeginS, double meshEndS, double beamBeamWindowBeginS,
@@ -251,14 +265,13 @@ void BeamBeamWindowAnimation::writeToTerminal(const std::vector<std::string>& li
 }
 
 void BeamBeamWindowAnimation::writeToFile(const std::vector<std::string>& lines) {
-    if (!dump_m.is_open()) {
-        return;
-    }
-
     dump_m << "FRAME " << frameId_m++ << '\n';
     for (const auto& line : lines) {
         dump_m << line << '\n';
     }
     dump_m << '\n';
     dump_m.flush();
+    if (!dump_m) {
+        throw OpalException("BeamBeamWindowAnimation", "Cannot write animation output.");
+    }
 }

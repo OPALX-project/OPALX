@@ -1,16 +1,88 @@
 #include "Structure/H5BeamBeamDiagnosticsWriter.h"
 
 #include "Utilities/OpalException.h"
-#include "Utility/PAssert.h"
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
+#include <cstdio>
 #include <filesystem>
 #include <limits>
 #include <set>
+#include <utility>
 
 namespace {
     constexpr char kWhere[] = "H5BeamBeamDiagnosticsWriter";
+
+    // HDF5 operations are collective for this writer. Make reported failures
+    // uniform before unwinding handles, so peers do not enter the next write.
+    void requireCollectively(bool success, const std::string& operation) {
+        int failed    = success ? 0 : 1;
+        int anyFailed = 0;
+        MPI_Allreduce(&failed, &anyFailed, 1, MPI_INT, MPI_MAX, ippl::Comm->getCommunicator());
+        if (anyFailed) {
+            throw OpalException(kWhere, operation + " failed on at least one MPI rank.");
+        }
+    }
+
+    template <typename Handle, auto Close>
+    class ScopedH5Handle {
+    public:
+        explicit ScopedH5Handle(Handle value) : value_m(value) {}
+        ScopedH5Handle(const ScopedH5Handle&)            = delete;
+        ScopedH5Handle& operator=(const ScopedH5Handle&) = delete;
+        ~ScopedH5Handle() noexcept {
+            if (close() != H5_SUCCESS) {
+                std::fputs("H5BeamBeamDiagnosticsWriter: handle cleanup failed.\n", stderr);
+            }
+        }
+        Handle get() const { return value_m; }
+        Handle release() { return std::exchange(value_m, 0); }
+        h5_err_t close() {
+            const auto value = release();
+            return value ? Close(value) : H5_SUCCESS;
+        }
+
+    private:
+        Handle value_m;
+    };
+
+    using ScopedFile       = ScopedH5Handle<h5_file_t, H5CloseFile>;
+    using ScopedProperties = ScopedH5Handle<h5_prop_t, H5CloseProp>;
+
+    h5_file_t openDiagnosticFile(const std::string& fileName, bool truncate) {
+        bool prepared = true;
+        if (ippl::Comm->rank() == 0) {
+            const std::filesystem::path outputPath(fileName);
+            const auto parent = outputPath.parent_path();
+            std::error_code error;
+            if (!parent.empty()) {
+                std::filesystem::create_directories(parent, error);
+            }
+            if (!error && truncate) {
+                std::filesystem::remove(outputPath, error);
+            }
+            prepared = !error;
+        }
+        requireCollectively(prepared, "Preparing diagnostic output " + fileName);
+
+        const h5_prop_t props = H5CreateFileProp();
+        const bool validProps = static_cast<std::intptr_t>(props) > 0;
+        ScopedProperties properties(validProps ? props : 0);
+        requireCollectively(validProps, "H5CreateFileProp");
+        MPI_Comm comm = ippl::Comm->getCommunicator();
+        requireCollectively(
+                H5SetPropFileMPIOCollective(props, &comm) == H5_SUCCESS,
+                "H5SetPropFileMPIOCollective");
+
+        const h5_file_t file =
+                H5OpenFile(fileName.c_str(), truncate ? H5_O_WRONLY : H5_O_APPENDONLY, props);
+        const bool validFile = static_cast<std::intptr_t>(file) > 0;
+        ScopedFile opened(validFile ? file : 0);
+        requireCollectively(validFile, "H5OpenFile " + fileName);
+        requireCollectively(properties.close() == H5_SUCCESS, "H5CloseProp");
+        return opened.release();
+    }
 
     std::set<std::string>& initializedQuantityFiles() {
         static std::set<std::string> files;
@@ -21,33 +93,7 @@ namespace {
         auto& initialized = initializedQuantityFiles();
         isFirstWrite      = initialized.find(fileName) == initialized.end();
 
-        if (ippl::Comm->rank() == 0) {
-            std::filesystem::path outputPath(fileName);
-            const std::filesystem::path parent = outputPath.parent_path();
-            if (!parent.empty()) {
-                std::filesystem::create_directories(parent);
-            }
-            if (isFirstWrite && std::filesystem::exists(outputPath)) {
-                std::filesystem::remove(outputPath);
-            }
-        }
-        ippl::Comm->barrier();
-
-        h5_prop_t props = H5CreateFileProp();
-        MPI_Comm comm   = ippl::Comm->getCommunicator();
-        h5_err_t h5err  = H5SetPropFileMPIOCollective(props, &comm);
-#if defined(NDEBUG)
-        (void)h5err;
-#endif
-        PAssert(h5err != H5_ERR);
-
-        const h5_int32_t flags = isFirstWrite ? H5_O_WRONLY : H5_O_APPENDONLY;
-        h5_file_t file         = H5OpenFile(fileName.c_str(), flags, props);
-        PAssert(file != (h5_file_t)H5_ERR);
-        H5CloseProp(props);
-
-        initialized.insert(fileName);
-        return file;
+        return openDiagnosticFile(fileName, isFirstWrite);
     }
 
     // Keep the Kokkos flatten kernels outside H5BeamBeamDiagnosticsWriter's
@@ -118,14 +164,18 @@ H5BeamBeamDiagnosticsWriter::H5BeamBeamDiagnosticsWriter(const std::string& file
     open();
 }
 
-H5BeamBeamDiagnosticsWriter::~H5BeamBeamDiagnosticsWriter() { close(); }
+H5BeamBeamDiagnosticsWriter::~H5BeamBeamDiagnosticsWriter() {
+    // All ranks must release the writer before MPI finalization. Explicit close()
+    // reports errors; destruction only performs best-effort nonthrowing cleanup.
+    ScopedFile cleanup(std::exchange(file_m, 0));
+}
 
 void H5BeamBeamDiagnosticsWriter::close() {
     preparedStep_m.reset();
     if (file_m) {
         ippl::Comm->barrier();
-        reportOnError(H5CloseFile(file_m), "close");
-        file_m = 0;
+        const auto file = std::exchange(file_m, 0);
+        reportOnError(H5CloseFile(file), "close");
     }
 }
 
@@ -166,13 +216,15 @@ void H5BeamBeamDiagnosticsWriter::writeScalarQuantity(
         const std::string& fileName, const std::string& fieldName, const StepMetadata& meta,
         const Field_t<3>& field) {
     bool isFirstWrite = false;
-    h5_file_t file    = openQuantityFile(fileName, isFirstWrite);
+    ScopedFile handle(openQuantityFile(fileName, isFirstWrite));
+    const h5_file_t file = handle.get();
 
     if (isFirstWrite) {
         writeHeader(file);
     }
 
     const h5_ssize_t step = isFirstWrite ? 0 : H5GetNumSteps(file);
+    requireCollectively(step >= 0, "H5GetNumSteps");
     reportOnError(H5SetStep(file, step), "H5SetStep");
     writeStepMetadata(file, meta);
 
@@ -181,20 +233,23 @@ void H5BeamBeamDiagnosticsWriter::writeScalarQuantity(
     writeScalarField(file, fieldName, data, localIndex, meta.origin, meta.spacing);
 
     ippl::Comm->barrier();
-    reportOnError(H5CloseFile(file), "close scalar quantity");
+    reportOnError(handle.close(), "close scalar quantity");
+    initializedQuantityFiles().insert(fileName);
 }
 
 void H5BeamBeamDiagnosticsWriter::writeVectorQuantity(
         const std::string& fileName, const std::string& fieldName, const StepMetadata& meta,
         const VField_t<double, 3>& field) {
     bool isFirstWrite = false;
-    h5_file_t file    = openQuantityFile(fileName, isFirstWrite);
+    ScopedFile handle(openQuantityFile(fileName, isFirstWrite));
+    const h5_file_t file = handle.get();
 
     if (isFirstWrite) {
         writeHeader(file);
     }
 
     const h5_ssize_t step = isFirstWrite ? 0 : H5GetNumSteps(file);
+    requireCollectively(step >= 0, "H5GetNumSteps");
     reportOnError(H5SetStep(file, step), "H5SetStep");
     writeStepMetadata(file, meta);
 
@@ -206,7 +261,8 @@ void H5BeamBeamDiagnosticsWriter::writeVectorQuantity(
     writeVectorField(file, fieldName, x, y, z, localIndex, meta.origin, meta.spacing);
 
     ippl::Comm->barrier();
-    reportOnError(H5CloseFile(file), "close vector quantity");
+    reportOnError(handle.close(), "close vector quantity");
+    initializedQuantityFiles().insert(fileName);
 }
 
 void H5BeamBeamDiagnosticsWriter::beginStep(
@@ -252,11 +308,7 @@ void H5BeamBeamDiagnosticsWriter::endStep(
 }
 
 void H5BeamBeamDiagnosticsWriter::reportOnError(h5_int64_t rc, const char* where) {
-    if (rc == H5_SUCCESS) {
-        return;
-    }
-
-    throw OpalException(kWhere, std::string(where) + " failed with H5 rc=" + std::to_string(rc));
+    requireCollectively(rc == H5_SUCCESS, where);
 }
 
 std::vector<h5_float64_t> H5BeamBeamDiagnosticsWriter::flattenScalarField(
@@ -315,29 +367,7 @@ void H5BeamBeamDiagnosticsWriter::open() {
         return;
     }
 
-    if (ippl::Comm->rank() == 0) {
-        std::filesystem::path outputPath(fileName_m);
-        const std::filesystem::path parent = outputPath.parent_path();
-        if (!parent.empty()) {
-            std::filesystem::create_directories(parent);
-        }
-        if (std::filesystem::exists(outputPath)) {
-            std::filesystem::remove(outputPath);
-        }
-    }
-    ippl::Comm->barrier();
-
-    h5_prop_t props = H5CreateFileProp();
-    MPI_Comm comm   = ippl::Comm->getCommunicator();
-    h5_err_t h5err  = H5SetPropFileMPIOCollective(props, &comm);
-#if defined(NDEBUG)
-    (void)h5err;
-#endif
-    PAssert(h5err != H5_ERR);
-
-    file_m = H5OpenFile(fileName_m.c_str(), H5_O_WRONLY, props);
-    PAssert(file_m != (h5_file_t)H5_ERR);
-    H5CloseProp(props);
+    file_m = openDiagnosticFile(fileName_m, true);
 }
 
 void H5BeamBeamDiagnosticsWriter::writeHeader() {

@@ -22,6 +22,8 @@
 #include "Utilities/Options.h"
 
 #include <cstdint>
+#include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <memory>
 #include <string>
@@ -234,6 +236,44 @@ namespace {
         ElementInteractionContext context{*bunch};
         const auto result = manager.execute(ElementInteractionPhase::Diagnostics, context);
         EXPECT_FALSE(result.selfFieldHandled);
+    }
+
+    TEST_F(BeamBeamPartBunchTest, ConstructingInteractionDoesNotTouchAnimationOutput) {
+        // Each rank uses a private directory, including when run manually with MPI2.
+        const auto previous = std::filesystem::current_path();
+        char pattern[]      = "beambeam-animation-XXXXXX";
+        const char* path    = mkdtemp(pattern);
+        ASSERT_NE(path, nullptr);
+        const auto directory = previous / path;
+        struct Cleanup {
+            std::filesystem::path previous, directory;
+            ~Cleanup() {
+                std::error_code error;
+                std::filesystem::current_path(previous, error);
+                std::filesystem::remove_all(directory, error);
+            }
+        } cleanup{previous, directory};
+        std::filesystem::current_path(directory);
+        std::filesystem::create_directory("data");
+        const std::string file = "data/collision_ascii_frames.txt";
+        {
+            std::ofstream output(file);
+            output << "retained output\n";
+        }
+        BeamBeamRep element("BB");
+        {
+            auto interaction = element.createInteraction();
+        }
+        std::ifstream input(file);
+        std::string line;
+        std::getline(input, line);
+        EXPECT_EQ(line, "retained output");
+        input.close();
+        std::filesystem::remove(file);
+        {
+            auto interaction = element.createInteraction();
+        }
+        EXPECT_FALSE(std::filesystem::exists(file));
     }
 
     TEST_F(BeamBeamPartBunchTest, WitnessContainerMaskDecodesConfiguredContainers) {

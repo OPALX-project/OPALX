@@ -59,6 +59,7 @@
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/BoundingBox.h"
 #include "Structure/CheckpointFile.h"
+#include "Utilities/DiagnosticOutput.h"
 #include "Utilities/LogicalError.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
@@ -73,20 +74,6 @@
 extern Inform* gmsg;
 
 namespace {
-
-    bool shouldDumpSpaceChargeFieldH5(long long step) {
-        const char* value = std::getenv("OPALX_SC_FIELD_H5_STEPS");
-        if (value == nullptr || value[0] == '\0') {
-            return false;
-        }
-
-        try {
-            const long long maxStep = std::stoll(value);
-            return step <= maxStep;
-        } catch (...) {
-            return true;
-        }
-    }
 
     std::string getRingProgressString(double pathLength, double circumference) {
         const double completedTurns = std::floor(pathLength / circumference);
@@ -1429,7 +1416,8 @@ void ParallelTracker::dumpSpaceChargePrimaryFieldH5() const {
     }
 
     const long long step = itsBunch_m->getGlobalTrackStep();
-    if (!shouldDumpSpaceChargeFieldH5(step)) {
+    if (!opalx::diagnostics::spaceChargeFieldDumpRequested(
+                std::getenv("OPALX_SC_FIELD_H5_STEPS"), step)) {
         return;
     }
 

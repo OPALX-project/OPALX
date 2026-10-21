@@ -50,6 +50,9 @@ public:
      *
      * @param outputPath Path of the ASCII frame dump written for offline rendering.
      * @param width Number of ASCII columns used for the longitudinal display.
+     * @pre Construct only on the output rank when visualization is requested.
+     * Existing output is truncated; missing parent directories are created.
+     * @throws OpalException If the output cannot be opened.
      */
     explicit BeamBeamWindowAnimation(
             const std::string& outputPath = "data/collision_ascii_frames.txt",
@@ -70,6 +73,7 @@ public:
      * @param mirroredBeamActive True if the mirrored virtual bunch should be shown.
      * @param useFrozenBeamBeamWindowMesh True if the longitudinal mesh is fixed
      * over the beam-beam window, false if it is bunch-following.
+     * @throws OpalException If writing or flushing the frame dump fails.
      */
     void render(
             double bunchCenterS, double meshBeginS, double meshEndS, double beamBeamWindowBeginS,

@@ -11,40 +11,64 @@
 #include <vector>
 
 /**
- * @brief Write BeamBeam field diagnostics to a single HDF5 file.
+ * @brief Collective HDF5 output of caller-supplied BeamBeam mesh diagnostics.
  *
- * This writer is intentionally narrow in scope:
- * - one file per run
- * - one HDF5 step per BeamBeam-triggered diagnostic event
- * - scalar charge density, scalar potential, and electric-field components
- *   on the field mesh
+ * The production BeamBeam path uses writeScalarQuantity(): one file per quantity
+ * and snapshot kind, with a new HDF5 step per call. The first successful write
+ * to a filename in this process replaces existing output; later writes append.
+ * Use a distinct filename for a distinct run within the same process.
  *
- * The charge density is captured before the solver coupling constant is applied,
- * while the scalar potential and electric field are written after the solve.
- * To preserve that timing without duplicating higher-level file logic in
- * PartBunch, the writer exposes a small two-stage API: beginStep() caches the
- * physical charge density, and endStep() writes the full step once the solve
- * outputs are available.
+ * Values are written verbatim: this writer applies no field scaling or coordinate
+ * transformation. Current BeamBeam rho is the last bin's normalized primary
+ * deposition before the Poisson solve, not physical C/m^3 and not the virtual
+ * copy. ParticleMeshFieldTransfer applies couplingConstant/(dt*gamma), with
+ * additional cell-volume normalization where required by the backend. The
+ * producer records this convention in StepMetadata::fieldStage.
+ *
+ * The separate instance API owns one file: beginStep() caches the supplied rho,
+ * then endStep() writes rho, phi and Ex/Ey/Ez. Its caller is responsible for
+ * supplying a consistent frame and documenting the units/scaling of each field.
+ *
+ * File open/write/close operations are collective on ippl::Comm; every rank must
+ * call in the same order with matching filenames/metadata. Reported I/O failures
+ * are synchronized before throwing OpalException. Destroy/close all writers on
+ * all ranks before MPI finalization. Explicit close() reports failures; destructor
+ * cleanup is nonthrowing and reports failures to stderr. Not thread-safe.
  */
 class H5BeamBeamDiagnosticsWriter {
 public:
+    /// Metadata copied without frame conversion; coordinates below are in metres.
     struct StepMetadata {
+        /// Global tracking-step index (not the sequential HDF5 step index).
         long long globalStep = 0;
-        double time          = 0.0;
-        double pathLengthS   = 0.0;
+        /// Simulation time [s].
+        double time = 0.0;
+        /// Reference-particle path coordinate s [m].
+        double pathLengthS = 0.0;
 
+        /// Global owned-grid dimensions, excluding halos.
         std::array<h5_int64_t, 3> shape = {0, 0, 0};
-        std::array<double, 3> origin    = {0.0, 0.0, 0.0};
-        std::array<double, 3> spacing   = {0.0, 0.0, 0.0};
-        std::string coordinateFrame     = "beam";
-        std::string snapshotKind        = "active_beambeam";
+        /// Mesh origin in coordinateFrame [m].
+        std::array<double, 3> origin = {0.0, 0.0, 0.0};
+        /// Mesh spacing in coordinateFrame [m].
+        std::array<double, 3> spacing = {0.0, 0.0, 0.0};
+        /// Producer-defined axes label; the writer does not transform values.
+        std::string coordinateFrame = "beam";
+        /// Producer-defined event label, e.g. before/after window enlargement.
+        std::string snapshotKind = "active_beambeam";
 
-        bool interactionWindowActive         = false;
-        double interactionPointS             = 0.0;
-        double interactionPointLocalZ        = 0.0;
+        /// Whether the collective interaction window is active at this event.
+        bool interactionWindowActive = false;
+        /// Interaction point in the reference path coordinate s [m].
+        double interactionPointS = 0.0;
+        /// Interaction point in the diagnostic mesh's local z coordinate [m].
+        double interactionPointLocalZ = 0.0;
+        /// Geometric element start/end in reference s [m], not the fixed solve window.
         std::array<double, 2> beamBeamSRange = {0.0, 0.0};
 
+        /// Global number of physical primary macroparticles (excluding virtual copy/witnesses).
         long long particleTotalNum = 0;
+        /// Signed physical primary charge [C], excluding virtual copy/witnesses.
         double particleTotalCharge = 0.0;
         /**
          * @brief Bunch centroid in the diagnostic coordinate frame [m].
@@ -66,12 +90,18 @@ public:
          */
         double particleMeanS = 0.0;
 
+        /// Producer-defined normalization/solve-stage label for interpreting field values.
         std::string fieldStage = "";
     };
 
+    /// Collectively create/truncate fileName, creating missing parent directories.
+    /// @param fileName Output path shared by every participating rank.
     explicit H5BeamBeamDiagnosticsWriter(const std::string& fileName);
+    /// Collectively release an open file without throwing; prefer explicit close().
     ~H5BeamBeamDiagnosticsWriter();
 
+    /// Collectively close the file and discard pending data; idempotent after closing.
+    /// @throws OpalException On a reported HDF5 close error.
     void close();
 
     /**
@@ -83,22 +113,54 @@ public:
      * centroid. That makes the table appear to advance at roughly
      * @f$2\beta c@f$. The writer fixes only that recognizable legacy value and
      * otherwise preserves the caller-provided physical centroid.
+     * @param meta Producer metadata, including the reference path and bunch centroid.
+     * @return Corrected physical s [m], or the original value if no legacy match exists.
      */
     static double normalizeParticleMeanS(const StepMetadata& meta);
 
+    /**
+     * @brief Form data/basename-what_type[-tag].h5 without opening it.
+     * @param basename Input/run basename.
+     * @param what Quantity label, e.g. RHO.
+     * @param type Scalar/vector label.
+     * @param tag Optional event suffix; empty omits it.
+     * @return Relative output path.
+     */
     static std::string makeOutputFileName(
             const std::string& basename, const std::string& what, const std::string& type,
             const std::string& tag);
 
+    /**
+     * @brief Collectively append one scalar grid and metadata, then close the file.
+     * @param fileName Output path, consistently used on every rank.
+     * @param fieldName HDF5 field name.
+     * @param meta Frame, mesh and interpretation metadata.
+     * @param field Distributed scalar grid; only owned cells are written, without scaling.
+     * @throws OpalException On reported file preparation or HDF5 errors.
+     */
     static void writeScalarQuantity(
             const std::string& fileName, const std::string& fieldName, const StepMetadata& meta,
             const Field_t<3>& field);
 
+    /** @copydoc writeScalarQuantity
+     * @details Writes the three components of a distributed vector grid.
+     */
     static void writeVectorQuantity(
             const std::string& fileName, const std::string& fieldName, const StepMetadata& meta,
             const VField_t<double, 3>& field);
 
+    /**
+     * @brief Cache owned rho cells and metadata for the next endStep(), replacing any pending step.
+     * @param meta Frame/mesh metadata shared by rho, phi and E.
+     * @param rhoDensity Caller-normalized rho; no unit conversion is performed.
+     */
     void beginStep(const StepMetadata& meta, const Field_t<3>& rhoDensity);
+    /**
+     * @brief Collectively write the cached rho and current solve outputs to the instance file.
+     * @param phiField Potential on the same mesh/layout as the cached rho.
+     * @param efield Electric field on that mesh/layout, in the caller's convention.
+     * @throws OpalException If beginStep() was not called or HDF5 reports an error.
+     */
     void endStep(const Field_t<3>& phiField, const VField_t<double, 3>& efield);
 
 private:

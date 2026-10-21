@@ -1,6 +1,6 @@
 //
 // Class OpalBeamBeam
-//   The class of OPAL drift spaces.
+//   Input-language definition of collective beam-beam elements.
 //
 // Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
@@ -20,6 +20,15 @@
 
 #include "Elements/OpalElement.h"
 
+/**
+ * @brief Parse BEAMBEAM attributes and update the placed BeamBeamRep.
+ *
+ * COPY_TIME is a simulation time in seconds; zero disables the virtual mirrored
+ * primary. BBRIGID suppresses only the physical primary's collective kick, not
+ * external fields or witness gathering. WITNESS_CONTAINERS selects passive
+ * secondary containers. VISUALIZE enables optional rank-zero ASCII output.
+ * See BeamBeam and BEAMBEAM::Config for scope and numerical-window semantics.
+ */
 class OpalBeamBeam : public OpalElement {
 public:
     enum {
@@ -38,14 +47,15 @@ public:
     virtual ~OpalBeamBeam();
 
     /// Make clone.
-    virtual OpalBeamBeam* clone(const std::string& name);
+    /// @param name Name for the cloned input definition.
+    /// @return Caller-owned definition with its own BeamBeamRep.
+    OpalBeamBeam* clone(const std::string& name) override;
 
-    /// Test for drift.
-    //  Return true.
+    /// @return True: this input definition represents a BEAMBEAM element.
     virtual bool isBeamBeam() const;
 
-    /// Update the embedded CLASSIC drift.
-    virtual void update();
+    /// Validate input attributes and update the embedded BeamBeamRep.
+    void update() override;
 
 private:
     // Not implemented.

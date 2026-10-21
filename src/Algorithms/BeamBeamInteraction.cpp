@@ -30,11 +30,9 @@ BeamBeamInteraction::BeamBeamInteraction(const BeamBeam& element)
       entryTransitionTimer_m(IpplTimings::getTimer("BB entry trans")),
       meshSetupTimer_m(IpplTimings::getTimer("BB mesh setup")),
       selfFieldTimer_m(IpplTimings::getTimer("BB self fields")),
-      transformBackTimer_m(IpplTimings::getTimer("BB transform back")),
       witnessGatherTimer_m(IpplTimings::getTimer("BB witness gather")),
       transitionDumpTimer_m(IpplTimings::getTimer("BB transition dump")),
-      state_m(),
-      windowAnimation_m(std::make_unique<BeamBeamWindowAnimation>()) {}
+      state_m() {}
 
 BeamBeamInteraction::~BeamBeamInteraction() = default;
 
@@ -776,7 +774,7 @@ void BeamBeamInteraction::logDiagnostics(PartBunch_t& bunch, bool force) {
 
 void BeamBeamInteraction::renderWindowFrame(
         double bunchTailS, double bunchHeadS, const BEAMBEAM::ActualGeometry& geometry) {
-    if (ippl::Comm->rank() != 0) {
+    if (ippl::Comm->rank() != 0 || windowAnimationFailed_m) {
         return;
     }
 
@@ -788,8 +786,18 @@ void BeamBeamInteraction::renderWindowFrame(
     const double meshEndS =
             useFrozenWindowMesh ? BEAMBEAM::fieldWindowEnd(geometry.interactionPointS) : bunchHeadS;
 
-    windowAnimation_m->render(
-            bunchCenterS, meshBeginS, meshEndS, geometry.beginS, geometry.endS,
-            geometry.interactionPointS, state_m.state == BEAMBEAM::WindowState::Active,
-            useFrozenWindowMesh);
+    try {
+        if (!windowAnimation_m) {
+            windowAnimation_m = std::make_unique<BeamBeamWindowAnimation>();
+        }
+        windowAnimation_m->render(
+                bunchCenterS, meshBeginS, meshEndS, geometry.beginS, geometry.endS,
+                geometry.interactionPointS, state_m.state == BEAMBEAM::WindowState::Active,
+                useFrozenWindowMesh);
+    } catch (const OpalException& error) {
+        // Optional rank-local output must not strand other ranks in the next solve.
+        std::cerr << "BeamBeam visualization disabled: " << error.what() << '\n';
+        windowAnimationFailed_m = true;
+        windowAnimation_m.reset();
+    }
 }
