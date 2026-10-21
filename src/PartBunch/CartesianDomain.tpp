@@ -10,6 +10,8 @@
 
 #include <Kokkos_Core.hpp>
 
+#include <algorithm>
+#include <functional>
 #include <limits>
 
 namespace opalx::spacecharge {
@@ -41,6 +43,21 @@ namespace opalx::spacecharge {
             extents[dimension] = static_cast<std::size_t>(domain[dimension].length());
         }
         return extents;
+    }
+
+    template <typename T, unsigned Dim>
+    T CartesianDomain<T, Dim>::largestFittingOverlapCutoff() const {
+        const auto& localDomain = layout_m.getLocalNDIndex();
+        const auto& spacing     = mesh_m.getMeshSpacing();
+        T halfRegion            = std::numeric_limits<T>::max();
+        for (unsigned dimension = 0; dimension < Dim; ++dimension) {
+            halfRegion = std::min(
+                    halfRegion,
+                    T(0.5) * static_cast<T>(localDomain[dimension].length()) * spacing[dimension]);
+        }
+        ippl::Comm->allreduce(&halfRegion, 1, std::less<T>());
+        // Stay clear of round-off in the layout's own region lengths.
+        return halfRegion * (T(1) - T(1.0e-12));
     }
 
     template <typename T, unsigned Dim>
@@ -89,7 +106,9 @@ namespace opalx::spacecharge {
     typename CartesianDomain<T, Dim>::Vector CartesianDomain<T, Dim>::initialLength(
             const CartesianDomainConfig<T, Dim>& config) {
         Vector length(T(6));
-        if (config.layoutType == ParticleLayoutType::SpatialOverlap) {
+        // A mesh-tied cutoff keeps the default length; PartBunch reduces it to fit the regions.
+        if (config.layoutType == ParticleLayoutType::SpatialOverlap
+            && !(config.overlapCutoffCells > T(0))) {
             if (!(config.overlapCutoff > T(0))) {
                 throw OpalException(
                         "CartesianDomain::initialLength",
