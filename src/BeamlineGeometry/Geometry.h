@@ -196,10 +196,13 @@ namespace GeometryHelper {
             return Vector_t<double, 3>(exitLocalX, entry(1), bodyLength + exitLocalZ);
         }
 
-        // Inside the curved body: radial offset and arc length from the phase.
+        // Inside the curved body: radial offset and arc length from the phase. The distance to
+        // the centre of curvature grows toward +x for curvature > 0 and toward -x for
+        // curvature < 0, so multiply by the sign of the radius to keep x along local +x.
         const double radius = 1.0 / curvature;
+        const double sign   = (radius >= 0.0) ? 1.0 : -1.0;
         const double s      = referencePhase(entry, curvature) / curvature;
-        const double radial = Kokkos::hypot(entry(0) + radius, entry(2)) - Kokkos::abs(radius);
+        const double radial = sign * Kokkos::hypot(entry(0) + radius, entry(2)) - radius;
         return Vector_t<double, 3>(radial, entry(1), s);
     }
 
