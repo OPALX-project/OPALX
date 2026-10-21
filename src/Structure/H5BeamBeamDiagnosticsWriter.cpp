@@ -50,6 +50,31 @@ namespace {
     using ScopedFile       = ScopedH5Handle<h5_file_t, H5CloseFile>;
     using ScopedProperties = ScopedH5Handle<h5_prop_t, H5CloseProp>;
 
+    bool canAppendDiagnosticFile(const std::string& fileName) {
+        std::error_code error;
+        const bool exists = std::filesystem::exists(fileName, error);
+        if (error || !exists) {
+            // Preserve H5hut's append-or-create behavior for missing files.
+            return !error;
+        }
+
+        // H5hut's failed-open message indexes H5_O_MODES with flags & 0xff.
+        // MPIO collective (0x40) plus append (0x08) indexes past its nine entries,
+        // so a corrupt file can crash before H5OpenFile returns an error handle.
+        // Validate existing append targets with native HDF5 on rank zero first.
+        // Use a full open, not just a signature check, to reject truncated headers.
+        // H5E_BEGIN_TRY restores the caller's error handler after the probe.
+        bool valid = false;
+        H5E_BEGIN_TRY {
+            const hid_t file = H5Fopen(fileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+            if (file >= 0) {
+                valid = H5Fclose(file) >= 0;
+            }
+        }
+        H5E_END_TRY;
+        return valid;
+    }
+
     h5_file_t openDiagnosticFile(const std::string& fileName, bool truncate) {
         bool prepared = true;
         if (ippl::Comm->rank() == 0) {
@@ -65,6 +90,12 @@ namespace {
             prepared = !error;
         }
         requireCollectively(prepared, "Preparing diagnostic output " + fileName);
+
+        // This probe is noncollective; every rank must agree before entering H5hut.
+        if (!truncate) {
+            const bool valid = ippl::Comm->rank() != 0 || canAppendDiagnosticFile(fileName);
+            requireCollectively(valid, "Validating HDF5 diagnostic append target " + fileName);
+        }
 
         const h5_prop_t props = H5CreateFileProp();
         const bool validProps = static_cast<std::intptr_t>(props) > 0;
