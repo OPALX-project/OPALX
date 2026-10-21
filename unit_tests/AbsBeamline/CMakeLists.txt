@@ -22,5 +22,6 @@ add_opalx_test(TestVariableRFCavity USE_GTEST_MAIN)
 add_opalx_test(TestRFCavity USE_GTEST_MAIN)
 add_opalx_test(TestTravelingWave USE_GTEST_MAIN)
 add_opalx_test(TestMonitor USE_GTEST_MAIN)
+add_opalx_test(TestOutputPlane USE_GTEST_MAIN)
 
 add_subdirectory(EndFieldModel)
