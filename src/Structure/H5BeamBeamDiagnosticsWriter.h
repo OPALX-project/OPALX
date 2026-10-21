@@ -19,6 +19,9 @@
  * Use a distinct filename for a distinct run within the same process.
  * Existing append targets are checked read-only on rank zero before collective
  * H5hut open, avoiding an upstream failed-open reporting bug for corrupt files.
+ * On HDF5 >= 1.14.5 the probe temporarily pauses error-stack recording as well
+ * as printing, avoiding a GH200/HDF5 2.2.0 assertion on corrupt input. Return
+ * codes are still checked; the caller's pause state and error handler are restored.
  * Rejected files are not replaced or truncated. This check is not a guarantee
  * against concurrent external changes to the file between validation and open.
  *

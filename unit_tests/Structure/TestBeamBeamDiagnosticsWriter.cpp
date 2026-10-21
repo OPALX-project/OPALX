@@ -194,21 +194,38 @@ namespace {
             H5E_auto2_t handler = nullptr;
             void* handlerData   = nullptr;
             EXPECT_GE(H5Eget_auto2(H5E_DEFAULT, &handler, &handlerData), 0);
+#if H5_VERSION_GE(1, 14, 5)
+            bool pausedBefore = false;
+            EXPECT_GE(H5Eis_paused(H5E_DEFAULT, &pausedBefore), 0);
+#endif
             const auto openFiles = H5Fget_obj_count(H5F_OBJ_ALL, H5F_OBJ_FILE);
             EXPECT_THROW(
                     H5BeamBeamDiagnosticsWriter::writeScalarQuantity(
                             name, "rho", {}, fields.chargeDensity()),
                     OpalException);
+#if H5_VERSION_GE(1, 14, 5)
+            // The GH200 workaround must suppress recording, not merely printing.
+            // Check before another HDF5 API call can clear the error stack.
+            EXPECT_EQ(H5Eget_num(H5E_DEFAULT), 0);
+#endif
             EXPECT_THROW(
                     H5BeamBeamDiagnosticsWriter::writeVectorQuantity(
                             name, "E", {}, fields.electricField()),
                     OpalException);
+#if H5_VERSION_GE(1, 14, 5)
+            EXPECT_EQ(H5Eget_num(H5E_DEFAULT), 0);
+#endif
             H5E_auto2_t restoredHandler = nullptr;
             void* restoredHandlerData   = nullptr;
             EXPECT_GE(H5Eget_auto2(H5E_DEFAULT, &restoredHandler, &restoredHandlerData), 0);
             EXPECT_EQ(restoredHandler, handler);
             EXPECT_EQ(restoredHandlerData, handlerData);
             EXPECT_EQ(H5Fget_obj_count(H5F_OBJ_ALL, H5F_OBJ_FILE), openFiles);
+#if H5_VERSION_GE(1, 14, 5)
+            bool pausedAfter = false;
+            EXPECT_GE(H5Eis_paused(H5E_DEFAULT, &pausedAfter), 0);
+            EXPECT_EQ(pausedAfter, pausedBefore);
+#endif
             if (ippl::Comm->rank() == 0) {
                 std::ifstream rejected(name, std::ios::binary);
                 const std::string contents{
@@ -224,6 +241,47 @@ namespace {
                             name, "rho", {}, fields.chargeDensity()));
         }
     }
+
+// HDF5 error-stack pause/resume was introduced in 1.14.5. Older installations
+// still exercise the corrupt-file rejection and callback restoration above.
+#if H5_VERSION_GE(1, 14, 5)
+    TEST_F(BeamBeamDiagnosticsIOTest, AppendProbePreservesNestedErrorStackPause) {
+        using namespace opalx::spacecharge;
+        CartesianDomain<double, 3> domain(config());
+        CartesianPIC3DFieldStorage<double, 3> fields(domain);
+        fields.initializeFields(PoissonSolverType::None);
+        fields.chargeDensity() = 1.0;
+        const auto name        = (directory / "paused.h5").string();
+        H5BeamBeamDiagnosticsWriter::writeScalarQuantity(name, "rho", {}, fields.chargeDensity());
+
+        bool paused = true;
+        // Do not return early on just one rank before the collective writes.
+        EXPECT_GE(H5Eis_paused(H5E_DEFAULT, &paused), 0);
+        EXPECT_FALSE(paused);
+        EXPECT_GE(H5Epause_stack(H5E_DEFAULT), 0);
+        // A successful append must not resume the caller's surrounding pause.
+        EXPECT_NO_THROW(
+                H5BeamBeamDiagnosticsWriter::writeScalarQuantity(
+                        name, "rho", {}, fields.chargeDensity()));
+        EXPECT_GE(H5Eis_paused(H5E_DEFAULT, &paused), 0);
+        EXPECT_TRUE(paused);
+
+        if (ippl::Comm->rank() == 0) {
+            std::ofstream corrupt(name, std::ios::binary);
+            corrupt << "not an HDF5 file";
+        }
+        ippl::Comm->barrier();
+        EXPECT_THROW(
+                H5BeamBeamDiagnosticsWriter::writeScalarQuantity(
+                        name, "rho", {}, fields.chargeDensity()),
+                OpalException);
+        EXPECT_GE(H5Eis_paused(H5E_DEFAULT, &paused), 0);
+        EXPECT_TRUE(paused);
+        EXPECT_GE(H5Eresume_stack(H5E_DEFAULT), 0);
+        EXPECT_GE(H5Eis_paused(H5E_DEFAULT, &paused), 0);
+        EXPECT_FALSE(paused);  // No leaked extra pause after success or rejection.
+    }
+#endif
 
     TEST_F(BeamBeamDiagnosticsIOTest, VectorAndTwoStageOutputsPreserveValues) {
         using namespace opalx::spacecharge;
