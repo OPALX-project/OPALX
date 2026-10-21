@@ -31,6 +31,7 @@ set (_SRCS
     OpalSinusoidalTimeDependence.cpp
     OpalTanh.cpp
     OpalVariableRFCavity.cpp
+    OpalOutputPlane.cpp
 )
 
 set (HDRS
@@ -67,6 +68,7 @@ set (HDRS
     OpalSinusoidalTimeDependence.h
     OpalTanh.h
     OpalVariableRFCavity.h
+    OpalOutputPlane.h
 )
 
 target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
