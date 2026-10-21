@@ -46,7 +46,8 @@ void MacroCmd::execute() {
         throw ParseError("MacroCmd::execute()", "A MACRO template cannot be executed directly.");
     }
     auto stream = std::make_unique<MacroStream>(getOpalName());
-    for (Token token : body) stream->append(token);
+    for (Token token : body)
+        stream->append(token);
     stream->start();
     // Parser::run takes ownership; the stored tokens remain reusable.
     itsParser->run(stream.release());
@@ -62,7 +63,7 @@ Object* MacroCmd::makeInstance(
     }
 
     // Substitute the actual arguments.
-    auto macro = std::make_unique<MacroCmd>(name, this);
+    auto macro       = std::make_unique<MacroCmd>(name, this);
     macro->itsParser = parser;
     for (const Token& token : body) {
         bool found = false;
