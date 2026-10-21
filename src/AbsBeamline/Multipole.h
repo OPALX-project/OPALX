@@ -11,18 +11,20 @@ constexpr int MAX_MP_ORDER = 5;
  * @brief Interface for general multipole.
  *
  * Class Multipole defines the abstract interface for magnetic multipoles.
- * The order n of multipole components runs from 1 to N and is dynamically
- * adjusted. It is connected with the number of poles by the following table:
+ * With normal(n) and skew(n) the stored components, the field is
+ * By + i Bx = sum over n of (normal(n) - i skew(n)) (x + i y)^n:
  *
- * | Order (n) | Name                |
- * |-----------|---------------------|
- * | 1         | dipole              |
- * | 2         | quadrupole          |
- * | 3         | sextupole           |
- * | 4         | octupole            |
- * | 5         | decapole            |
+ * | n | Name       |
+ * |---|------------|
+ * | 0 | dipole     |
+ * | 1 | quadrupole |
+ * | 2 | sextupole  |
+ * | 3 | octupole   |
+ * | 4 | decapole   |
  *
- * Units for multipole strengths are Teslas / m^(n-1).
+ * Orders up to n = MAX_MP_ORDER - 1 (decapole) are used. The setters store the given
+ * strength divided by n!, so normal(n) is in T/m^n. The MULTIPOLE input (OpalMultipole)
+ * does not allow a dipole, because the element is placed as a straight element.
  */
 
 class Multipole : public ElementBase {
@@ -35,7 +37,7 @@ public:
     /* ========================================================================== */
     /* =========================== Multipole Expansion ========================== */
 
-    // @note n=0 corresponds to the dipol, n=1 to the quadrupole, etc...
+    // @note n = 0 is the dipole, n = 1 the quadrupole, up to n = 4 the decapole.
 
     // @returns n-th normal component of the multipole expansion
     double getNormalComponent(int n) const;

@@ -279,8 +279,7 @@ TEST_F(BendRepTest, DeviceAndHostHardEdgeFieldsUseIdenticalSpatialSupport) {
         rectangular.getGeometry().setElementLength(1.);
         rectangular.setB(-1.);
         multipole.getGeometry().setElementLength(1.);
-        // The normal dipole setter stores half its argument.
-        multipole.setNormalComponent(0, -2.);
+        multipole.setNormalComponent(0, -1.);
         ElementBase& element = kind == 0   ? static_cast<ElementBase&>(sector)
                                : kind == 1 ? static_cast<ElementBase&>(rectangular)
                                            : static_cast<ElementBase&>(multipole);
