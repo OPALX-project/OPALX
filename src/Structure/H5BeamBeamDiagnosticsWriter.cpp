@@ -63,13 +63,26 @@ namespace {
         // so a corrupt file can crash before H5OpenFile returns an error handle.
         // Validate existing append targets with native HDF5 on rank zero first.
         // Use a full open, not just a signature check, to reject truncated headers.
-        // H5E_BEGIN_TRY restores the caller's error handler after the probe.
+        // H5E_BEGIN_TRY only suppresses printing, not error-stack construction.
+        // The latter asserts in H5E__push_stack on GH200 with HDF5 2.2.0 for a
+        // corrupt append target. Where supported, pause recording too: this
+        // probe only needs the return codes, not the discarded HDF5 diagnostics.
+        // Pause/resume is nestable and preserves a caller's existing pause.
+        // Older installed HDF5 versions retain the printing-only fallback.
         bool valid = false;
         H5E_BEGIN_TRY {
-            const hid_t file = H5Fopen(fileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-            if (file >= 0) {
-                valid = H5Fclose(file) >= 0;
+#if H5_VERSION_GE(1, 14, 5)
+            if (H5Epause_stack(H5E_DEFAULT) >= 0) {
+#endif
+                const hid_t file = H5Fopen(fileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+                if (file >= 0) {
+                    valid = H5Fclose(file) >= 0;
+                }
+#if H5_VERSION_GE(1, 14, 5)
+                // Resume even when the probe failed; keep restoration failures fatal.
+                valid = H5Eresume_stack(H5E_DEFAULT) >= 0 && valid;
             }
+#endif
         }
         H5E_END_TRY;
         return valid;
