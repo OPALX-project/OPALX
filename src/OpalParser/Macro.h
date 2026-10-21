@@ -61,10 +61,13 @@ public:
 
     /// Parse actual arguments.
     //  Expects parse pointer in the statement to be set on the first argument.
+    //  Only commas outside (), [] and {} separate nonempty arguments.
+    //  Throws ParseError for missing/mismatched delimiters or empty arguments.
     virtual void parseActuals(Statement&);
 
     /// Parse formal arguments.
     //  Expects parse pointer in the statement to be set on the first argument.
+    //  Formal names must be unique; duplicate names throw ParseError.
     virtual void parseFormals(Statement&);
 
 protected:
