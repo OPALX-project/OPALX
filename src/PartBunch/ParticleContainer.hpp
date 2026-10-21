@@ -544,8 +544,12 @@ public:
     /// @brief Set local-to-lab coordinate transformation.
     void setToLabTrafo(const CoordinateSystemTrafo& toLabTrafo) { toLabTrafo_m = toLabTrafo; }
 
-    /// @brief Advance reference/lab transform state and map bunch accordingly.
-    void updateRefToLabCSTrafo(double bunchDT) {
+    /**
+     * @brief Advance reference/lab transform state and map bunch accordingly.
+     * @return The frame change applied to the bunch (old bunch frame to new bunch frame), so
+     *   containers that use this container's reference can apply the same change.
+     */
+    CoordinateSystemTrafo updateRefToLabCSTrafo(double bunchDT) {
         Vector_t<double, 3> R = toLabTrafo_m.transformFrom(refPartR_m);
         Vector_t<double, 3> P = toLabTrafo_m.rotateFrom(refPartP_m);
 
@@ -556,6 +560,38 @@ public:
         CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));
         transformBunch(update);
         toLabTrafo_m = toLabTrafo_m * update.inverted();
+        return update;
+    }
+
+    /**
+     * @brief Take over another container's reference particle, frame and path length.
+     *
+     * Used for a decay daughter container, which has no reference particle of its own. The
+     * particles are not moved; use this only when both containers already share a frame or
+     * this container is empty.
+     *
+     * @param root Container whose reference particle this container uses.
+     */
+    void copyReferenceOf(const ParticleContainer& root) {
+        refPartR_m   = root.refPartR_m;
+        refPartP_m   = root.refPartP_m;
+        toLabTrafo_m = root.toLabTrafo_m;
+        sPos_m       = root.sPos_m;
+    }
+
+    /**
+     * @brief Follow a frame change of the container whose reference particle this one uses.
+     *
+     * Applies @p update (the value returned by @p root's updateRefToLabCSTrafo, or the
+     * identity) to this container's particles, then copies @p root's reference particle,
+     * frame and path length. The particles' lab positions do not change.
+     *
+     * @param root Container whose reference particle this container uses.
+     * @param update Frame change @p root applied to its own particles in this step.
+     */
+    void followFrameOf(const ParticleContainer& root, const CoordinateSystemTrafo& update) {
+        transformBunch(update);
+        copyReferenceOf(root);
     }
 
     /// @brief Apply a fractional Boris step and update reference/lab transform state.
