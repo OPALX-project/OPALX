@@ -33,13 +33,9 @@ MarkerRep::~MarkerRep() {}
 
 ElementBase* MarkerRep::clone() const { return new MarkerRep(*this); }
 
-NullField& MarkerRep::getField() { return field; }
+Geometry& MarkerRep::getGeometry() { return geometry; }
 
-const NullField& MarkerRep::getField() const { return field; }
-
-NullGeometry& MarkerRep::getGeometry() { return geometry; }
-
-const NullGeometry& MarkerRep::getGeometry() const { return geometry; }
+const Geometry& MarkerRep::getGeometry() const { return geometry; }
 
 double MarkerRep::getArcLength() const { return 0.0; }
 

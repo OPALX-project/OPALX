@@ -17,7 +17,7 @@ OPALX uses GitHub Actions for required and non-required pull request checks. The
 
 - `Check clang-format`: checks the formatting of changed source and unit test files in the pull request using clang-format 21.1.8. This check is **not required**.
 
-See [IPPL's formatting documentation](https://github.com/IPPL-framework/ippl/blob/master/doc/extras/CodeFormattingSetup.md) for instructions on setting up pre-commit hooks.
+See [IPPL's formatting documentation](https://ippl-framework.github.io/Manual/sections/for-developers/workflow/index.html#automatic-code-formatting) for instructions on setting up pre-commit hooks.
 
 ### Compilation
 
@@ -39,7 +39,7 @@ See [IPPL's formatting documentation](https://github.com/IPPL-framework/ippl/blo
 
 ## Manual and Documentation
 
-[OPALX documentation](https://opalx-project.github.io/Manual/)
+[OPALX documentation](https://opalx-project.github.io/opalx-manual)
 
 ## Dependencies
 
@@ -54,6 +54,11 @@ cuda/12.8.1
 ```
 
 Other dependencies are fetched and installed in the opalx installation.
+
+A Fortran compiler (for example `gfortran`) is also required. Reference
+BLAS/LAPACK and LAPACKE 3.12.1 are fetched with a pinned archive checksum;
+no separate LAPACK installation is needed. Select a non-default compiler with
+`-DCMAKE_Fortran_COMPILER=/path/to/compiler`.
 
 ```
 ippl/3.2.0
@@ -72,13 +77,21 @@ cd OPALX/tools
 
 ### Setting up cmake
 
+For single-configuration generators, use `-DCMAKE_BUILD_TYPE=Debug` (or
+`Release`, `RelWithDebInfo`, `MinSizeRel`). When no build type is specified, OPALX
+defaults to `RelWithDebInfo`. An existing cached value is preserved until changed
+with `-DCMAKE_BUILD_TYPE=<type>`; setting `-DCMAKE_BUILD_TYPE=` restores the default.
+The former `BUILD_TYPE` option has been removed; use `CMAKE_BUILD_TYPE` instead.
+Multi-configuration generators select the configuration at build time with
+`cmake --build <dir> --config Debug`; OPALX does not force a single build type for them.
+
 #### cmake command for CPU build
 
 Building OPALX without multi-threading (only MPI):
 ```bash
 mkdir build_serial && cd build_serial
 cmake .. \
-    -DBUILD_TYPE=Debug \
+    -DCMAKE_BUILD_TYPE=Debug \
     -DPLATFORMS=SERIAL
 ```
 
@@ -87,7 +100,7 @@ and for multi-threading with OpenMP:
 ```bash
 mkdir build_openmp && cd build_openmp
 cmake .. \
-    -DBUILD_TYPE=Debug \
+    -DCMAKE_BUILD_TYPE=Debug \
     -DPLATFORMS=OPENMP
 ```
 
@@ -103,17 +116,19 @@ For example, for A100 with Amper80 Architecture (Gwendolen), and the debug mode,
 
 ```bash
 cmake .. \
-    -DBUILD_TYPE=Debug \
+    -DCMAKE_BUILD_TYPE=Debug \
     -DPLATFORMS=CUDA \
     -DARCH=AMPERE80
 ```
 
-For the release mode, use `Release` instead of `Debug` as the argument for `-DBUILD_TYPE`. For other GPUs use the correct flag for their corresponding architecture. For example, for P100 or GTX 1080 with Pascal61 architecture on Merlin login node, use `-DARCH=PASCAL61` instead of `-DARCH=AMPERE80`. 
+For the release mode, use `Release` instead of `Debug` as the argument for `-DCMAKE_BUILD_TYPE`. For other GPUs use the correct flag for their corresponding architecture. For example, for P100 or GTX 1080 with Pascal61 architecture on Merlin login node, use `-DARCH=PASCAL61` instead of `-DARCH=AMPERE80`. 
 
 #### Notes:
 
-- Use -DBUILD_TYPE=Release for optimized builds.
+- Use -DCMAKE_BUILD_TYPE=Release for optimized builds.
 - ARCH is required for CUDA builds so OPALX can configure Kokkos properly.
+- Distributed GPU space-charge solves require GPU-aware MPI. FFT communication and field
+  mirroring pass device buffers directly to MPI; field mirroring has no host-staging fallback.
 - All IPPL/Kokkos flags (FFT, solvers, tests, ALPINE, `Kokkos_ARCH_*`, etc.) are now set automatically.
 
 #### Further Options
@@ -144,7 +159,7 @@ Dependency version/ref options:
 | Flag | Default | Description |
 |------|---------|-------------|
 | `IPPL_GIT_TAG` | `master` | IPPL branch, tag, commit, or release version to fetch. Numeric release shorthand such as `3.2.0` is resolved to `IPPL-3.2.0`. |
-| `Kokkos_VERSION` | `5.1.1` | Kokkos version requested by IPPL. A plain version asks CMake to use an installed Kokkos of that version or newer; use `git.<tag>`, `git.<branch>`, or `git.<sha>` to request a source checkout ref. |
+| `Kokkos_VERSION` | `5.2.0` | Kokkos version requested by IPPL. A plain version asks CMake to use an installed Kokkos of that version or newer; use `git.<tag>`, `git.<branch>`, or `git.<sha>` to request a source checkout ref. |
 | `Heffte_VERSION` | `2.4.0` | Heffte version requested by IPPL when FFT support is enabled. A plain version asks CMake to use an installed Heffte of that version or newer; use `git.<tag>`, `git.<branch>`, or `git.<sha>` to request a source checkout ref. |
 
 Enable flags with `-D<FLAG>=ON` during CMake configuration.

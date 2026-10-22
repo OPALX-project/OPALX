@@ -69,7 +69,7 @@ public:
     void computeMinMaxPosition(
             ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Rview, size_t Nlcoal);
     void computePolarizationMoments(
-            ippl::ParticleAttrib<ippl::Vector<float, 3>>::view_type Polview, size_t Np,
+            ippl::ParticleAttrib<ippl::Vector<double, 3>>::view_type Polview, size_t Np,
             size_t Nlocal);
     void computeMeanKineticEnergy();
     void computeDebyeLength(

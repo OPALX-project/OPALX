@@ -131,10 +131,9 @@ void DistributionMoments::computeMoments(
     }
 
     // Short-circuit: nothing has mutated R or P since the last compute.
-    // Every caller that mutates particle state is required to call
-    // markMomentsDirty(), including PartBunch::bunchUpdate(), which calls
-    // pc->markMomentsDirty() immediately after IPPL's pc->update() so that
-    // domain-decomposition / particle migration is also covered.
+    // Every caller that mutates particle state is required to call markMomentsDirty(). The PIC
+    // particle-domain adapter does so immediately after IPPL migration, covering changes in
+    // domain decomposition as well as physics updates.
     if (!slot->momentsDirty) {
         return;
     }
@@ -201,6 +200,7 @@ void DistributionMoments::computeMoments(
             },
             Kokkos::Sum<SumMatrix6x6>(loc_cent), Kokkos::Sum<SumMatrix6x6>(loc_ncent),
             Kokkos::Sum<double>(loc_std_ekin));
+    Kokkos::fence();
 
     SumMatrix6x6 glob_cent, glob_ncent;
     ippl::Comm->allreduce(&loc_cent.data[0][0], &glob_cent.data[0][0], 36, std::plus<double>());
@@ -300,8 +300,8 @@ void DistributionMoments::computeMinMaxPosition(
 // computePolarizationMoments -- per-component mean + RMS of the spin vector
 // ---------------------------------------------------------------------------
 void DistributionMoments::computePolarizationMoments(
-        ippl::ParticleAttrib<ippl::Vector<float, 3>>::view_type Polview, size_t Np, size_t Nlocal) {
-    // Pol is stored as float to save memory; reduce in double and cast on read.
+        ippl::ParticleAttrib<ippl::Vector<double, 3>>::view_type Polview, size_t Np,
+        size_t Nlocal) {
     // Np is the global particle count (>= 1, guarded by the caller); it normalizes
     // both sums and sums-of-squares so the result matches R/P moment conventions.
     Np = (Np == 0) ? 1 : Np;
@@ -311,9 +311,9 @@ void DistributionMoments::computePolarizationMoments(
     Kokkos::parallel_reduce(
             "computePolarizationMoments", Nlocal,
             KOKKOS_LAMBDA(const size_t k, SumArray<6>& upd) {
-                const double px = static_cast<double>(Polview(k)[0]);
-                const double py = static_cast<double>(Polview(k)[1]);
-                const double pz = static_cast<double>(Polview(k)[2]);
+                const double px = Polview(k)[0];
+                const double py = Polview(k)[1];
+                const double pz = Polview(k)[2];
                 upd.data[0] += px;
                 upd.data[1] += py;
                 upd.data[2] += pz;

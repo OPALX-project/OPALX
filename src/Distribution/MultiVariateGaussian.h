@@ -21,8 +21,10 @@ using Matrix_t      = ippl::Vector<ippl::Vector<double, 6>, 6>;
  * This class generates particles following a multivariate Gaussian distribution
  * using Cholesky factorization and inverse transformation sampling.
  *
- * Given covariance matrix cov_m = [ Cov(R0,R0), Cov(R0,P0), Cov(R0,R1), Cov(R0,P1), ...]
- * whose values are read from opalDist_m->correlationMatrix_m.
+ * The covariance matrix cov_m = [ Cov(R0,R0), Cov(R0,P0), Cov(R0,R1), Cov(R0,P1), ...]
+ * is built from the dimensionless correlation matrix opalDist_m->correlationMatrix_m
+ * and the per-coordinate sigmas via Cov(i,j) = Corr(i,j) * sigma_i * sigma_j.
+ *
  * First, the Cholesky factorization is computed cov_m = L_m * L_m^T
  * Then, normally distribution particles R=P~N(0,I) are transformed to multivariate using L_m.
  */
@@ -32,12 +34,9 @@ public:
      * @brief Constructor for MultiVariateGaussian.
      *
      * @param pc Shared pointer to the particle container.
-     * @param fc Shared pointer to the field container.
      * @param opalDist Borrowed distribution.
      */
-    MultiVariateGaussian(
-            std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-            Distribution_t* opalDist);
+    MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist);
 
     /**
      * @brief Constructor for MultiVariateGaussian with specified parameters.
@@ -179,8 +178,8 @@ private:
     /**
      * @brief Flag to exactly fix the mean R and P of particles after sampling.
      */
-    bool fixMeanR_m;
-    bool fixMeanP_m;
+    bool fixMeanR_m = true;
+    bool fixMeanP_m = true;
 };
 
 #endif  // IPPL_MULTI_VARIATE_GAUSSIAN_H

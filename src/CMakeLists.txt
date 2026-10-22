@@ -35,7 +35,8 @@ endif()
 
 set(OPALX_COMPILE_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
 set(OPALX_COMPILE_LINE "${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
-set(OPALX_COMPILE_OPTIONS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}}")
+string(TOUPPER "${CMAKE_BUILD_TYPE}" OPALX_BUILD_TYPE_UPPER)
+set(OPALX_COMPILE_OPTIONS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${OPALX_BUILD_TYPE_UPPER}}")
 set(OPALX_BUGREPORT "https://github.com/OPALX-project/OPALX/issues")
 set(OPALX_VERSION_MAJOR_VALUE "${PROJECT_VERSION_MAJOR}")
 set(OPALX_VERSION_MINOR_VALUE "${PROJECT_VERSION_MINOR}")
@@ -53,8 +54,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/BuildInfo.h.in
 # Build the main executable target: opalx
 # ------------------------------------------------------------------
 
-add_library(opalx
-        AbsBeamline/MultipoleTConfig.h)
+add_library(opalx)
 target_sources(opalx PRIVATE changes.cpp)
 
 target_compile_features(opalx PUBLIC cxx_std_20)
@@ -90,8 +90,7 @@ target_include_directories(
   PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 
-target_sources(opalx PUBLIC changes.cpp)
-#
+# Subdirectories
 add_subdirectory (AbsBeamline)
 add_subdirectory (AbstractObjects)
 add_subdirectory (Algorithms)
@@ -112,6 +111,7 @@ add_subdirectory (OpalParser)
 add_subdirectory (PartBunch)
 add_subdirectory (Physics)
 add_subdirectory (Processes)
+add_subdirectory (SpaceCharge)
 add_subdirectory (Steppers)
 add_subdirectory (Structure)
 add_subdirectory (Tables)
@@ -128,6 +128,7 @@ target_link_libraries(opalx PUBLIC
     ${HDF5_LIBRARIES}
     ZLIB::ZLIB
 )
+target_link_libraries(opalx PRIVATE OPALX::lapacke)
 
 target_include_directories(opalx PRIVATE
   ${HDF5_INCLUDE_DIR}
@@ -137,6 +138,7 @@ target_include_directories(opalx PRIVATE
 
 # CLI executable
 add_executable(opalx_exe Main.cpp)
+target_compile_definitions(opalx_exe PRIVATE OPALX_BUILD_CONFIG="$<CONFIG>")
 target_link_libraries(opalx_exe PUBLIC opalx)
 target_include_directories(opalx_exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 

@@ -33,12 +33,9 @@ public:
      * @brief Constructor for EmittedFromFile.
      *
      * @param pc Shared pointer to ParticleContainer.
-     * @param fc Shared pointer to FieldContainer.
      * @param opalDist Borrowed Distribution.
      */
-    EmittedFromFile(
-            std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-            Distribution_t* opalDist);
+    EmittedFromFile(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist);
 
     /**
      * @brief Convenience constructor that takes the filename directly.
@@ -47,12 +44,9 @@ public:
      * Distribution object is unnecessary.
      *
      * @param pc Shared pointer to ParticleContainer.
-     * @param fc Shared pointer to FieldContainer.
      * @param filename Path to the emitted particle file.
      */
-    EmittedFromFile(
-            std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-            const std::string& filename);
+    EmittedFromFile(std::shared_ptr<ParticleContainer_t> pc, const std::string& filename);
 
     /**
      * @brief Reads the selected file records and builds the birth-time inventory.
@@ -77,6 +71,16 @@ public:
      */
     bool isEmissionDone(double /*t*/) const override {
         return inventoryBuilt_m && nextGlobalIndex_m >= records_m.size();
+    }
+
+    /// @copydoc SamplingBase::getEmittedFraction
+    double getEmittedFraction() const override {
+        if (!inventoryBuilt_m || records_m.empty()) {
+            return 0.0;
+        }
+        return std::clamp(
+                static_cast<double>(nextGlobalIndex_m) / static_cast<double>(records_m.size()), 0.0,
+                1.0);
     }
 
     /**
@@ -152,12 +156,14 @@ private:
      * @brief Raw row parsed from an old-OPAL emitted distribution dump.
      */
     struct RawRecord {
-        double x        = 0.0;  ///< Horizontal position from the file.
-        double px       = 0.0;  ///< Horizontal momentum offset from the file.
-        double y        = 0.0;  ///< Vertical position from the file.
-        double py       = 0.0;  ///< Vertical momentum offset from the file.
-        double fileTime = 0.0;  ///< Old-OPAL pre-emission time column.
-        double pz       = 0.0;  ///< Longitudinal momentum offset from the file.
+        double x        = 0.0;    ///< Horizontal position from the file.
+        double px       = 0.0;    ///< Horizontal momentum offset from the file.
+        double y        = 0.0;    ///< Vertical position from the file.
+        double py       = 0.0;    ///< Vertical momentum offset from the file.
+        double fileTime = 0.0;    ///< Old-OPAL pre-emission time column.
+        double pz       = 0.0;    ///< Longitudinal momentum offset from the file.
+        size_t bin      = 0;      ///< Optional old-OPAL emission bin number.
+        bool hasBin     = false;  ///< True if the optional bin number was present.
     };
 
     /**

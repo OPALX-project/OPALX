@@ -21,6 +21,7 @@
 #include "Ippl.h"
 
 #include "AbstractObjects/OpalData.h"
+#include "Algorithms/LinearTransferMapBuilder.h"
 #include "Attributes/Attributes.h"
 #include "OpalParser/FileStream.h"
 #include "Utilities/ExpressionRandom.h"
@@ -32,6 +33,8 @@
 
 #include "Utilities/BiMap.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <ctime>
 #include <iostream>
@@ -60,7 +63,9 @@ namespace {
         TELL,
         PSDUMPFREQ,
         STATDUMPFREQ,
+        CHECKPOINTFREQ,
         STEPINFOFQ,
+        PRINTRANKDISTRFQ,
         PSDUMPEACHTURN,
         PSDUMPFRAME,
         SPTDUMPFREQ,
@@ -71,6 +76,7 @@ namespace {
         REMOTEPARTDEL,
         RHODUMP,
         EBDUMP,
+        RANKDUMP,
         CSRDUMP,
         AUTOPHASE,
         NUMBLOCKS,
@@ -80,6 +86,10 @@ namespace {
         RNGTYPE,
         ENABLEHDF5,
         ENABLEVTK,
+        ENABLELINEARTRANSFERMAPS,
+        LINEARTRANSFERMAPRICHARDSON,
+        LINEARTRANSFERMAPSTEPS,
+        LINEARTRANSFERMAPINTEGRATOR,
         ASCIIDUMP,
         BOUNDPDESTROY,
         BEAMHALOBOUNDARY,
@@ -95,6 +105,8 @@ namespace {
         COMPUTEPERCENTILES,
         QM_MODE,
         AGGRESSIVE_STATE_SYNC,
+        LOADBALANCINGTHRESHOLD,
+        LOADBALANCINGPAIRWEIGHT,
         SIZE
     };
 }  // namespace
@@ -127,21 +139,35 @@ Option::Option()
     itsAttr[PSDUMPFREQ] = Attributes::makeReal(
             "PSDUMPFREQ",
             "The frequency to dump the phase space, "
-            "i.e.dump data when step%psDumpFreq==0, its default value is 10.",
+            "i.e. dump data when step%psDumpFreq==0; 0 disables phase space dumps. "
+            "Its default value is 10.",
             psDumpFreq);
 
     itsAttr[STATDUMPFREQ] = Attributes::makeReal(
             "STATDUMPFREQ",
             "The frequency to dump statistical data "
             "(e.g. RMS beam quantities), i.e. dump data when step%statDumpFreq == 0, "
-            "its default value is 10.",
+            "0 disables statistical dumps. Its default value is 10.",
             statDumpFreq);
+
+    itsAttr[CHECKPOINTFREQ] = Attributes::makeReal(
+            "CHECKPOINTFREQ",
+            "The frequency to write a restart checkpoint after completed integration steps, "
+            "i.e. checkpoint when GlobalTrackStep % CHECKPOINTFREQ == 0. "
+            "A value of 0 disables checkpointing. Its default value is 0.",
+            checkpointFreq);
 
     itsAttr[STEPINFOFQ] = Attributes::makeReal(
             "STEPINFOFQ",
             "The frequency to print per-step tracking status lines. "
             "A value of 0 disables these status lines; its default value is 1.",
             stepInfoFreq);
+
+    itsAttr[PRINTRANKDISTRFQ] = Attributes::makeReal(
+            "PRINTRANKDISTRFQ",
+            "The frequency to print per-rank particle distribution tables. "
+            "A value of 0 disables these tables; its default value is 0.",
+            printRankDistrFreq);
 
     itsAttr[PSDUMPEACHTURN] = Attributes::makeBool(
             "PSDUMPEACHTURN",
@@ -224,6 +250,12 @@ Option::Option()
             "E and B field at each particle is also dumped into the H5 file)",
             ebDump);
 
+    itsAttr[RANKDUMP] = Attributes::makeBool(
+            "RANKDUMP",
+            "If true, the current MPI rank for each particle is dumped into the H5 file. "
+            "Default: false.",
+            rankDump);
+
     itsAttr[CSRDUMP] = Attributes::makeBool(
             "CSRDUMP",
             "If true, the csr E field, line density "
@@ -277,6 +309,31 @@ Option::Option()
 
     itsAttr[ENABLEVTK] = Attributes::makeBool(
             "ENABLEVTK", "If true, writing of VTK files are enabled", enableVTK);
+
+    itsAttr[ENABLELINEARTRANSFERMAPS] = Attributes::makeBool(
+            "ENABLELINEARTRANSFERMAPS",
+            "If true, calculate first-order external-field transfer maps during design-orbit "
+            "threading.",
+            enableLinearTransferMaps);
+
+    itsAttr[LINEARTRANSFERMAPRICHARDSON] = Attributes::makeReal(
+            "LINEARTRANSFERMAPRICHARDSON",
+            "Richardson levels (integer 0..4). Zero retains centered differences; each level "
+            "adds twelve rays per segment. This does not change ray integration order.",
+            linearTransferMapRichardsonLevels);
+    itsAttr[LINEARTRANSFERMAPSTEPS] = Attributes::makeRealArray(
+            "LINEARTRANSFERMAPSTEPS",
+            "Six positive starting perturbations in (x,x',y,y',zeta,delta); positions in metres, "
+            "slopes and delta dimensionless. The delta amplitude must be less than one.");
+    Attributes::setRealArray(
+            itsAttr[LINEARTRANSFERMAPSTEPS],
+            std::vector<double>(linearTransferMapSteps.begin(), linearTransferMapSteps.end()));
+    itsAttr[LINEARTRANSFERMAPINTEGRATOR] = Attributes::makePredefinedString(
+            "LINEARTRANSFERMAPINTEGRATOR",
+            "Integrator for map reference and shadow rays only: BORIS (alias LF2), "
+            "fixed-step RK4 or fixed-step DOP853 (eighth-order formula, no adaptive controller). "
+            "Independent of Richardson differentiation; does not change particle TRACK.",
+            {"BORIS", "LF2", "RK4", "DOP853"}, linearTransferMapIntegrator);
 
     itsAttr[ASCIIDUMP] = Attributes::makeBool(
             "ASCIIDUMP", "If true, some of the elements dump in ASCII instead of HDF5", asciidump);
@@ -340,11 +397,25 @@ Option::Option()
     itsAttr[AGGRESSIVE_STATE_SYNC] = Attributes::makeBool(
             "AGGRESSIVE_STATE_SYNC",
             "If true, every mutation of the shared BunchStateHandler flags "
-            "(moments-dirty, unitless-positions, emitting-now, first-repartition) "
+            "(moments-dirty, unitless-positions, emitting-now) "
             "performs an MPI allreduce so that all ranks converge to the same "
             "value. Guards against rank-local divergence at the cost of an extra "
             "collective on every state change. Default: false.",
             aggressiveStateSync);
+
+    itsAttr[LOADBALANCINGTHRESHOLD] = Attributes::makeReal(
+            "LOADBALANCINGTHRESHOLD",
+            "The threshold for triggering load balancing. If the ratio difference of particles in "
+            "a rank exceeds this threshold, load balancing will be triggered. Default is 0.05 "
+            "(5%). This threshold is only tested every `repartFreq` steps.",
+            loadBalancingThreshold);
+
+    itsAttr[LOADBALANCINGPAIRWEIGHT] = Attributes::makeReal(
+            "LOADBALANCINGPAIRWEIGHT",
+            "Share of the ORB load-balancing weight that follows the P3M particle-particle pair "
+            "count; the rest follows the particle count. 0 balances particle counts only, 1 pair "
+            "counts only. Values above 0 require the P3M field solver. Default is 0.",
+            loadBalancingPairWeight);
 
     registerOwnership(AttributeHandler::STATEMENT);
 
@@ -359,7 +430,9 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setReal(itsAttr[SEED], seed);
     Attributes::setReal(itsAttr[PSDUMPFREQ], psDumpFreq);
     Attributes::setReal(itsAttr[STATDUMPFREQ], statDumpFreq);
+    Attributes::setReal(itsAttr[CHECKPOINTFREQ], checkpointFreq);
     Attributes::setReal(itsAttr[STEPINFOFQ], stepInfoFreq);
+    Attributes::setReal(itsAttr[PRINTRANKDISTRFQ], printRankDistrFreq);
     Attributes::setBool(itsAttr[PSDUMPEACHTURN], psDumpEachTurn);
     Attributes::setPredefinedString(itsAttr[PSDUMPFRAME], getDumpFrameString(psDumpFrame));
     Attributes::setReal(itsAttr[SPTDUMPFREQ], sptDumpFreq);
@@ -372,6 +445,7 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setReal(itsAttr[REBINFREQ], rebinFreq);
     Attributes::setBool(itsAttr[RHODUMP], rhoDump);
     Attributes::setBool(itsAttr[EBDUMP], ebDump);
+    Attributes::setBool(itsAttr[RANKDUMP], rankDump);
     Attributes::setBool(itsAttr[CSRDUMP], csrDump);
     Attributes::setReal(itsAttr[AUTOPHASE], autoPhase);
     Attributes::setBool(itsAttr[CZERO], cZero);
@@ -382,6 +456,13 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setReal(itsAttr[NLHS], nLHS);
     Attributes::setBool(itsAttr[ENABLEHDF5], enableHDF5);
     Attributes::setBool(itsAttr[ENABLEVTK], enableVTK);
+    Attributes::setBool(itsAttr[ENABLELINEARTRANSFERMAPS], enableLinearTransferMaps);
+    Attributes::setReal(itsAttr[LINEARTRANSFERMAPRICHARDSON], linearTransferMapRichardsonLevels);
+    Attributes::setRealArray(
+            itsAttr[LINEARTRANSFERMAPSTEPS],
+            std::vector<double>(linearTransferMapSteps.begin(), linearTransferMapSteps.end()));
+    Attributes::setPredefinedString(
+            itsAttr[LINEARTRANSFERMAPINTEGRATOR], linearTransferMapIntegrator);
     Attributes::setBool(itsAttr[ASCIIDUMP], asciidump);
     Attributes::setReal(itsAttr[BOUNDPDESTROY], boundpDestroy);
     Attributes::setReal(itsAttr[BEAMHALOBOUNDARY], beamHaloBoundary);
@@ -395,6 +476,8 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setString(
             itsAttr[QM_MODE], useQMAttributes ? std::string("ATTRIBUTES") : std::string("SINGLE"));
     Attributes::setBool(itsAttr[AGGRESSIVE_STATE_SYNC], aggressiveStateSync);
+    Attributes::setReal(itsAttr[LOADBALANCINGTHRESHOLD], loadBalancingThreshold);
+    Attributes::setReal(itsAttr[LOADBALANCINGPAIRWEIGHT], loadBalancingPairWeight);
 }
 
 Option::~Option() {}
@@ -402,18 +485,44 @@ Option::~Option() {}
 Option* Option::clone(const std::string& name) { return new Option(name, this); }
 
 void Option::execute() {
+    // Validate the complete map configuration before publishing any of its globals.
+    LinearTransferMapBuilder::Settings mapSettings;
+    const double levels = Attributes::getReal(itsAttr[LINEARTRANSFERMAPRICHARDSON]);
+    if (!std::isfinite(levels) || levels < 0.0 || std::floor(levels) != levels
+        || levels > LinearTransferMapBuilder::Settings::maximumRichardsonLevels)
+        throw OpalException(
+                "Option::execute",
+                "LINEARTRANSFERMAPRICHARDSON must be an integer from 0 through 4.");
+    mapSettings.richardsonLevels = static_cast<unsigned>(levels);
+    const auto steps             = Attributes::getRealArray(itsAttr[LINEARTRANSFERMAPSTEPS]);
+    if (steps.size() != 6)
+        throw OpalException(
+                "Option::execute", "LINEARTRANSFERMAPSTEPS requires exactly six values.");
+    std::copy(steps.begin(), steps.end(), mapSettings.finiteDifferenceSteps.begin());
+    mapSettings.integrationMethod = ExternalFieldRayTracker::parseIntegrationMethod(
+            Attributes::getString(itsAttr[LINEARTRANSFERMAPINTEGRATOR]));
+    mapSettings.validate();
+
     // Store the option flags.
-    echo                  = Attributes::getBool(itsAttr[ECHO]);
-    info                  = Attributes::getBool(itsAttr[INFO]);
-    mtrace                = Attributes::getBool(itsAttr[TRACE]);
-    warn                  = Attributes::getBool(itsAttr[WARN]);
-    psDumpEachTurn        = Attributes::getBool(itsAttr[PSDUMPEACHTURN]);
-    remotePartDel         = Attributes::getReal(itsAttr[REMOTEPARTDEL]);
-    rhoDump               = Attributes::getBool(itsAttr[RHODUMP]);
-    ebDump                = Attributes::getBool(itsAttr[EBDUMP]);
-    csrDump               = Attributes::getBool(itsAttr[CSRDUMP]);
-    enableHDF5            = Attributes::getBool(itsAttr[ENABLEHDF5]);
-    enableVTK             = Attributes::getBool(itsAttr[ENABLEVTK]);
+    echo           = Attributes::getBool(itsAttr[ECHO]);
+    info           = Attributes::getBool(itsAttr[INFO]);
+    mtrace         = Attributes::getBool(itsAttr[TRACE]);
+    warn           = Attributes::getBool(itsAttr[WARN]);
+    psDumpEachTurn = Attributes::getBool(itsAttr[PSDUMPEACHTURN]);
+    remotePartDel  = Attributes::getReal(itsAttr[REMOTEPARTDEL]);
+    rhoDump        = Attributes::getBool(itsAttr[RHODUMP]);
+    ebDump         = Attributes::getBool(itsAttr[EBDUMP]);
+    rankDump       = Attributes::getBool(itsAttr[RANKDUMP]);
+    csrDump        = Attributes::getBool(itsAttr[CSRDUMP]);
+    enableHDF5     = Attributes::getBool(itsAttr[ENABLEHDF5]);
+    enableVTK      = Attributes::getBool(itsAttr[ENABLEVTK]);
+
+    enableLinearTransferMaps          = Attributes::getBool(itsAttr[ENABLELINEARTRANSFERMAPS]);
+    linearTransferMapRichardsonLevels = mapSettings.richardsonLevels;
+    linearTransferMapSteps            = mapSettings.finiteDifferenceSteps;
+    linearTransferMapIntegrator =
+            ExternalFieldRayTracker::integrationMethodName(mapSettings.integrationMethod);
+
     idealized             = Attributes::getBool(itsAttr[IDEALIZED]);
     asciidump             = Attributes::getBool(itsAttr[ASCIIDUMP]);
     version               = Attributes::getReal(itsAttr[VERSION]);
@@ -435,6 +544,23 @@ void Option::execute() {
     }
 
     aggressiveStateSync = Attributes::getBool(itsAttr[AGGRESSIVE_STATE_SYNC]);
+
+    // Set threshold and check if in the valid range [0, 1]
+    loadBalancingThreshold = Attributes::getReal(itsAttr[LOADBALANCINGTHRESHOLD]);
+    if (loadBalancingThreshold < 0.0 || loadBalancingThreshold > 1.0) {
+        throw OpalException(
+                "Option::execute",
+                "LOADBALANCINGTHRESHOLD must be in the range [0, 1]. Current value: "
+                        + std::to_string(loadBalancingThreshold));
+    }
+
+    loadBalancingPairWeight = Attributes::getReal(itsAttr[LOADBALANCINGPAIRWEIGHT]);
+    if (!(loadBalancingPairWeight >= 0.0 && loadBalancingPairWeight <= 1.0)) {
+        throw OpalException(
+                "Option::execute",
+                "LOADBALANCINGPAIRWEIGHT must be in the range [0, 1]. Current value: "
+                        + std::to_string(loadBalancingPairWeight));
+    }
 
     /// note: rangen is used only for the random number generator in the OPAL language
     ///       not for the distributions
@@ -463,17 +589,33 @@ void Option::execute() {
 
     if (itsAttr[PSDUMPFREQ]) {
         psDumpFreq = int(Attributes::getReal(itsAttr[PSDUMPFREQ]));
-        if (psDumpFreq == 0) psDumpFreq = std::numeric_limits<int>::max();
+        if (psDumpFreq < 0) {
+            throw OpalException("Option::execute", "PSDUMPFREQ must be non-negative.");
+        }
     }
 
     if (itsAttr[STATDUMPFREQ]) {
         statDumpFreq = int(Attributes::getReal(itsAttr[STATDUMPFREQ]));
-        if (statDumpFreq == 0) statDumpFreq = std::numeric_limits<int>::max();
+        if (statDumpFreq < 0) {
+            throw OpalException("Option::execute", "STATDUMPFREQ must be non-negative.");
+        }
+    }
+
+    if (itsAttr[CHECKPOINTFREQ]) {
+        checkpointFreq = int(Attributes::getReal(itsAttr[CHECKPOINTFREQ]));
+        if (checkpointFreq < 0) {
+            throw OpalException("Option::execute", "CHECKPOINTFREQ must be non-negative.");
+        }
     }
 
     if (itsAttr[STEPINFOFQ]) {
         stepInfoFreq = int(Attributes::getReal(itsAttr[STEPINFOFQ]));
         if (stepInfoFreq < 0) stepInfoFreq = 0;
+    }
+
+    if (itsAttr[PRINTRANKDISTRFQ]) {
+        printRankDistrFreq = int(Attributes::getReal(itsAttr[PRINTRANKDISTRFQ]));
+        if (printRankDistrFreq < 0) printRankDistrFreq = 0;
     }
 
     if (itsAttr[SPTDUMPFREQ]) {

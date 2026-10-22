@@ -40,7 +40,11 @@ namespace Options {
 
     int statDumpFreq = 10;
 
+    int checkpointFreq = 0;
+
     int stepInfoFreq = 1;
+
+    int printRankDistrFreq = 0;
 
     bool psDumpEachTurn = false;
 
@@ -66,6 +70,8 @@ namespace Options {
 
     bool ebDump = false;
 
+    bool rankDump = false;
+
     bool csrDump = false;
 
     int autoPhase = 6;
@@ -83,6 +89,11 @@ namespace Options {
     bool enableHDF5 = true;
 
     bool enableVTK = true;
+
+    bool enableLinearTransferMaps              = false;
+    unsigned linearTransferMapRichardsonLevels = 0;
+    std::array<double, 6> linearTransferMapSteps{1.e-3, 1.e-3, 1.e-3, 1.e-3, 1.e-3, 1.e-3};
+    std::string linearTransferMapIntegrator = "BORIS";
 
     bool asciidump = false;
 
@@ -109,5 +120,9 @@ namespace Options {
     bool useQMAttributes = false;  // corresponds to QM_MODE=SINGLE
 
     bool aggressiveStateSync = false;
+
+    double loadBalancingThreshold = 0.05;  // Default threshold for triggering load balancing
+
+    double loadBalancingPairWeight = 0.0;
 
 }  // namespace Options

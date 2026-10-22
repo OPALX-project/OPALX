@@ -34,10 +34,6 @@ protected:
             domain[i] = ippl::Index(this->nr[i]);
         }
 
-        // Create FieldContainer
-        fc = std::make_shared<FieldContainer_t>(
-                hr, rmin, rmax, decomp, domain, origin, this->isAllPeriodic_m);
-
         // Create mesh and fieldlayout
         Mesh_t<3> mesh(domain, hr, origin);
         FieldLayout_t<3> fl(MPI_COMM_WORLD, domain, decomp, this->isAllPeriodic_m);
@@ -54,7 +50,6 @@ protected:
     }
 
     std::shared_ptr<ParticleContainer<double, 3>> pc;
-    std::shared_ptr<FieldContainer_t> fc;
     std::shared_ptr<BunchStateHandler> bunchStateHandler;
     ippl::Vector<int, 3> nr;
     bool isAllPeriodic_m = true;
@@ -259,8 +254,6 @@ TEST_F(FlatTopTest, CountEnteringParticles_NoDomainDecomp) {
             /*sigmaTFall=*/1.0,
             /*sigmaTRise=*/1.0, cutoff,
             /*tPulseLengthFWHM=*/10.0, sigmaR);
-
-    sampler.setWithDomainDecomp(false);
 
     // total number of particles to emit over whole pulse
     const size_t totalN = 100000;

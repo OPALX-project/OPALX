@@ -50,7 +50,6 @@ public:
         FMAPFN,         // File name containing on-axis field.
         GAP,            // Full gap of magnet.
         HAPERT,         // Horizontal aperture of magnet.
-        ROTATION,       // Magnet rotation about z axis.
         DESIGNENERGY,   // the design energy of the particles
         GREATERTHANPI,  // Boolean flag set to true if bend angle is greater
                         // than 180 degrees.

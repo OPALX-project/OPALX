@@ -29,19 +29,15 @@ extern Inform* gmsg;
 
 Drift::Drift() : Drift("") {}
 
-Drift::Drift(const Drift& right) : Component(right), nSlices_m(right.nSlices_m) {}
+Drift::Drift(const Drift& right) : ElementBase(right), nSlices_m(right.nSlices_m) {}
 
-Drift::Drift(const std::string& name) : Component(name), nSlices_m(1) {}
+Drift::Drift(const std::string& name) : ElementBase(name), nSlices_m(1) {}
 
 Drift::~Drift() {}
 
 void Drift::accept(BeamlineVisitor& visitor) const { visitor.visitDrift(*this); }
 
-void Drift::initialise(PartBunch_t* bunch, double& startField, double& endField) {
-    endField       = startField + getElementLength();
-    RefPartBunch_m = bunch;
-    startField_m   = startField;
-}
+void Drift::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
 
 // set the number of slices for map tracking
 void Drift::setNSlices(const std::size_t& nSlices) { nSlices_m = nSlices; }
@@ -51,11 +47,10 @@ std::size_t Drift::getNSlices() const { return nSlices_m; }
 
 void Drift::finalise() {}
 
-bool Drift::bends() const { return false; }
-
-void Drift::getFieldExtend(double& zBegin, double& zEnd) const {
-    zBegin = startField_m;
-    zEnd   = startField_m + getElementLength();
+void Drift::getFieldExtent(double& zBegin, double& zEnd) const {
+    // Local-chart field-support interval (a drift carries no field; report the body span).
+    zBegin = 0.0;
+    zEnd   = getGeometry().getElementLength();
 }
 
 ElementType Drift::getType() const { return ElementType::DRIFT; }

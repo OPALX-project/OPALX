@@ -118,6 +118,12 @@ public:
     std::set<SetStatistics> computeStatistics(unsigned int numSets);
 
 private:
+    friend class Monitor;
+
+    /** Remove monitor HDF5 records from the checkpoint step onward. */
+    static void rewindH5ToGlobalTrackStep(
+            const std::string& fileName, long long checkpointGlobalTrackStep);
+
     void writeFileAttribString(const char* attribute, const char* value);
     void writeStepAttribFloat64(const char* attribute, const h5_float64_t* value, h5_int64_t size);
     void writeStepAttribInt64(const char* attribute, const h5_int64_t* value, h5_int64_t size);

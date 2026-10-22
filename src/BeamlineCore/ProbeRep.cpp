@@ -25,16 +25,14 @@ namespace {
         void (ProbeRep::*set)(double);
     };
 
-    static const Entry entries[] = {
-            {"L", &ProbeRep::getElementLength, &ProbeRep::setElementLength}, {0, 0, 0}};
+    static const Entry entries[] = {{0, 0, 0}};
 }  // namespace
 
-ProbeRep::ProbeRep() : Probe(), field(), geometry(), active(true) {}
+ProbeRep::ProbeRep() : Probe(), geometry(), active(true) {}
 
-ProbeRep::ProbeRep(const ProbeRep& right)
-    : Probe(right), field(), geometry(right.geometry), active(true) {}
+ProbeRep::ProbeRep(const ProbeRep& right) : Probe(right), geometry(right.geometry), active(true) {}
 
-ProbeRep::ProbeRep(const std::string& name) : Probe(name), field(), geometry(), active(true) {}
+ProbeRep::ProbeRep(const std::string& name) : Probe(name), geometry(), active(true) {}
 
 ProbeRep::~ProbeRep() {}
 
@@ -50,12 +48,8 @@ Channel* ProbeRep::getChannel(const std::string& aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
-NullField& ProbeRep::getField() { return field; }
+Geometry& ProbeRep::getGeometry() { return geometry; }
 
-const NullField& ProbeRep::getField() const { return field; }
-
-StraightGeometry& ProbeRep::getGeometry() { return geometry; }
-
-const StraightGeometry& ProbeRep::getGeometry() const { return geometry; }
+const Geometry& ProbeRep::getGeometry() const { return geometry; }
 
 void ProbeRep::setActive(bool flag) { active = flag; }

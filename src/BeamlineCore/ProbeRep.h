@@ -19,8 +19,7 @@
 #define OPALX_ProbeRep_HH
 
 #include "AbsBeamline/Probe.h"
-#include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/NullField.h"
+#include "BeamlineGeometry/Geometry.h"
 
 class ProbeRep : public Probe {
 public:
@@ -41,36 +40,25 @@ public:
     //  If the attribute does not exist, it returns nullptr.
     virtual Channel* getChannel(const std::string& aKey, bool = false);
 
-    /// Get field.
-    //  Version for non-constant object.
-    virtual NullField& getField();
-
-    /// Get field.
-    //  Version for constant object.
-    virtual const NullField& getField() const;
-
     /// Get geometry.
     //  Return the element geometry.
     //  Version for non-constant object.
     /// Get geometry.
     //  Return the element geometry.
     //  Version for non-constant object.
-    virtual StraightGeometry& getGeometry();
+    virtual Geometry& getGeometry();
 
     /// Get geometry.
     //  Return the element geometry
     //  Version for constant object.
-    virtual const StraightGeometry& getGeometry() const;
+    virtual const Geometry& getGeometry() const;
 
     /// Set active flag.
     virtual void setActive(bool = true);
 
 protected:
-    /// The zero magnetic field.
-    NullField field;
-
     /// The probe's geometry.
-    StraightGeometry geometry;
+    Geometry geometry;
 
     /// The active/inactive flag.
     bool active;

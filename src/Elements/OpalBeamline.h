@@ -1,6 +1,6 @@
 //
 // Class OpalBeamline
-//   :FIXME: add class description
+//   Runtime tracking elements, placement, field selection and transfer-map views.
 //
 // Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
@@ -18,26 +18,47 @@
 #ifndef OPAL_BEAMLINE_H
 #define OPAL_BEAMLINE_H
 
-#include <map>
 #include <memory>
 #include <set>
 #include <string>
+#include <vector>
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "PartBunch/PartBunch.h"
 
 #include "AbsBeamline/Marker.h"
-#include "BeamlineGeometry/PlacedElement.h"
 #include "Beamlines/Beamline.h"
-#include "Utilities/BeamlineFieldElement.h"
+#include "Utilities/ElementList.h"
 
 #include "Algorithms/CoordinateSystemTrafo.h"
 
 #include "OPALTypes.h"
 
-class ParticleMatterInteractionHandler;
 class BoundaryGeometry;
 
+/**
+ * @brief Borrowed view of one element-owned transfer-map copy.
+ *
+ * The shared element pointer keeps the occurrence alive, but does not stabilize its
+ * map vector. Appending, clearing or recalculating maps can invalidate @c map.
+ * For a shared-owner segment, @c element is one representative owner, not the full
+ * owner set. Copy the LinearTransferMap value if it must survive recalculation.
+ */
+struct ElementTransferMapRef {
+    /// Lifetime handle to the occurrence containing this particular map copy.
+    std::shared_ptr<const ElementBase> element;
+    /// Non-owning pointer into ElementBase::getLinearTransferMaps().
+    const LinearTransferMap* map{nullptr};
+};
+
+/**
+ * @brief Placed runtime lattice used for external-field queries and map attachment.
+ *
+ * visit() clones concrete sequence occurrences into a flattened element list.
+ * These clones retain logical BeamlineMembership, but start without calculated maps
+ * or overlap flags. Nominal body ownership and field-support selection remain separate;
+ * neither is inferred from that membership tag or from an element's name.
+ */
 class OpalBeamline {
 public:
     OpalBeamline();
@@ -45,13 +66,19 @@ public:
     ~OpalBeamline();
 
     void activateElements();
-    std::set<std::shared_ptr<Component>> getElements(const Vector_t<double, 3>& x);
+    /// Select runtime elements whose isInside() support contains lab position x [m].
+    /// Includes aperture checks; selection does not imply a nonzero field or body ownership.
+    std::set<std::shared_ptr<ElementBase>> getElements(const Vector_t<double, 3>& x);
+
+    /// Nominal body owners at lab position x [m], using ElementBase::isInsideBody().
+    /// Used for map attachment; never use this set to restrict fringe-field evaluation.
+    std::set<std::shared_ptr<ElementBase>> getBodyElements(const Vector_t<double, 3>& x) const;
 
     /**
      * Get all elements in the beamline, regardless of their position.
-     * @return Set of shared pointers to all elements in the beamline.
+     * @return Set of shared pointers to all runtime elements, not a reference-path ordering.
      */
-    std::set<std::shared_ptr<Component>> getElements();
+    std::set<std::shared_ptr<ElementBase>> getElements();
 
     Vector_t<double, 3> transformTo(const Vector_t<double, 3>& r) const;
     Vector_t<double, 3> transformFrom(const Vector_t<double, 3>& r) const;
@@ -59,46 +86,22 @@ public:
     Vector_t<double, 3> rotateFrom(const Vector_t<double, 3>& r) const;
 
     Vector_t<double, 3> transformToLocalCS(
-            const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
     Vector_t<double, 3> transformFromLocalCS(
-            const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
     Vector_t<double, 3> rotateToLocalCS(
-            const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
     Vector_t<double, 3> rotateFromLocalCS(
-            const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+            const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
 
-    /**
-     * @brief Return the placed-element view used by the bridge stage.
-     *
-     * This is the beamline-facing access point to the geometric placement
-     * record. It keeps nominal placement, local correction, and port geometry
-     * together while the legacy runtime still stores them on ElementBase.
-     */
-    PlacedElement getPlacedElement(const std::shared_ptr<Component>& comp) const;
-
-    /**
-     * @brief Return the nominal rigid placement transform \f$T_i\f$.
-     *
-     * In the language of the placement note, this is the nominal rigid
-     * placement transform from the parent/reference base into the element body
-     * frame. During the bridge stage this remains identical to the legacy
-     * lab-to-local transform storage.
-     */
-    CoordinateSystemTrafo getCSTrafoLab2Local(const std::shared_ptr<Component>& comp) const;
+    /// Return the element's nominal body transform (global→local).
+    CoordinateSystemTrafo getCSTrafoLab2Local(const std::shared_ptr<ElementBase>& comp) const;
     CoordinateSystemTrafo getCSTrafoLab2Local() const;
-    CoordinateSystemTrafo getMisalignment(const std::shared_ptr<Component>& comp) const;
-    CoordinateSystemTrafo getNominalEntryTransform(const std::shared_ptr<Component>& comp) const;
-    CoordinateSystemTrafo getNominalExitTransform(const std::shared_ptr<Component>& comp) const;
+    CoordinateSystemTrafo getMisalignment(const std::shared_ptr<ElementBase>& comp) const;
+    CoordinateSystemTrafo getNominalEntryTransform(const std::shared_ptr<ElementBase>& comp) const;
+    CoordinateSystemTrafo getNominalExitTransform(const std::shared_ptr<ElementBase>& comp) const;
 
-    double getStart(const Vector_t<double, 3>&) const;
-    double getEnd(const Vector_t<double, 3>&) const;
-
-    void switchElements(
-            const double&, const double&, const double& kineticEnergy,
-            const bool& nomonitors = false);
     void switchElementsOff();
-
-    ParticleMatterInteractionHandler* getParticleMatterInteractionHandler(const unsigned int&);
 
     BoundaryGeometry* getBoundaryGeometry(const unsigned int&);
 
@@ -113,7 +116,6 @@ public:
     void visit(const T&, BeamlineVisitor&, PartBunch_t&);
 
     void prepareSections();
-    void positionElementRelative(std::shared_ptr<ElementBase>);
     void compute3DLattice();
     void save3DLattice();
     void save3DInput();
@@ -122,70 +124,59 @@ public:
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
-    FieldList getElementByType(ElementType);
+    ElementList getElementByType(ElementType);
+
+    /**
+     * @brief Return an ordered view of all element-owned linear transfer maps.
+     *
+     * The element remains the owner of each attached map copy. Results are ordered by entrance
+     * path length; a segment attached to several overlapping elements is returned only once.
+     * Unowned intervals are not included here, even if a neighbouring field tail is present.
+     * OrbitThreader composes the complete ordered segment list, including those intervals.
+     *
+     * Deduplication uses LinearTransferMap::segment, not names: IDs must belong to the
+     * same calculation. Unassigned IDs (max(size_t)) are not deduplicated. Ties in entrance
+     * path length are ordered by attachment ordinal and then element name.
+     * Returned pointers borrow map-vector storage; see ElementTransferMapRef for lifetime.
+     * To obtain the complete product, use OrbitThreader::getCombinedLinearTransferMap()
+     * rather than multiplying this possibly incomplete view.
+     */
+    std::vector<ElementTransferMapRef> getLinearTransferMapsInReferenceOrder() const;
 
     void swap(OpalBeamline& rhs);
     void merge(OpalBeamline& rhs);
 
 private:
-    using PlacementAssembly = std::map<const ElementBase*, PlacedElement>;
-
     /**
-     * @brief Update the nominal rigid placement transform of one element.
+     * @brief Place ELEMEDGE-positioned elements along the reference path.
      *
-     * This is the write-side bridge from the legacy beamline assembly code to
-     * the new placement vocabulary. The stored quantity is the nominal rigid
-     * placement transform \f$T_i\f$; local survey or misalignment corrections
-     * remain on the element and are not composed here.
+     * An element placed with `ELEMEDGE` is stored only as a path-length position
+     * `s` (plus an optional roll about the beam axis); its lab-frame pose is not
+     * known until the full lattice is sorted by `s`. This setup-stage pass walks
+     * the sorted elements once, accumulates the running reference-path transform
+     * (including bends), and writes each element's nominal rigid placement
+     * \f$T_i\f$. Elements already fixed in place by a 6D pose (X, Y, Z, THETA,
+     * PHI, PSI) are skipped.
      */
-    void setNominalPlacement(
-            const std::shared_ptr<ElementBase>& element, const CoordinateSystemTrafo& parentToBody);
+    void placeElementsAlongReferencePath();
 
-    /**
-     * @brief Refresh the beamline-owned placed-element assembly record.
-     *
-     * Beamline assembly owns a snapshot of the geometric placement records used
-     * by placement/export queries. This keeps the assembled placement model
-     * distinct from the legacy storage that still lives on ElementBase during
-     * the bridge stage.
-     */
-    void storePlacedElement(const std::shared_ptr<ElementBase>& element);
-
-    /**
-     * @brief Compile legacy reference-order placement into explicit nominal poses.
-     *
-     * This setup-stage bridge consumes the compatibility placement encoded via
-     * `ELEMEDGE` and converts it once into nominal rigid placement transforms
-     * \f$T_i\f$ stored on the elements. Existing callers may still invoke
-     * `compute3DLattice()`, but new code should treat this as a setup
-     * conversion, not as a runtime geometry query.
-     */
-    void compileCompatibilityPlacement();
-
-    FieldList elements_m;
-    PlacementAssembly placementAssembly_m;
+    ElementList elements_m;
     bool prepared_m;
-    bool compatibilityPlacementCompiled_m;
+    bool referencePathPlacementCompiled_m;
 
     CoordinateSystemTrafo coordTransformationTo_m;
 };
 
 template <class T>
 inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t& bunch) {
-    Inform msg("OPAL ");
-    double startField = 0.0;
-    double endField   = 0.0;
     std::shared_ptr<T> elptr(dynamic_cast<T*>(element.clone()));
 
-    positionElementRelative(elptr);
-
-    if (elptr->isElementPositionSet()) startField = elptr->getElementPosition();
-
-    elptr->initialise(&bunch, startField, endField);
-    elements_m.push_back(BeamlineFieldElement(elptr, startField, endField));
-    placementAssembly_m.insert_or_assign(elptr.get(), elptr->getPlacedElement());
+    // Placement (both 6D-pose and ELEMEDGE) is resolved later, in one pass, by
+    // placeElementsAlongReferencePath() during prepareSections().
+    elptr->initialise(&bunch);
+    elements_m.push_back(elptr);
     prepared_m                       = false;
-    compatibilityPlacementCompiled_m = false;
+    referencePathPlacementCompiled_m = false;
 }
 
 template <>
@@ -208,37 +199,29 @@ inline Vector_t<double, 3> OpalBeamline::rotateFrom(const Vector_t<double, 3>& r
     return coordTransformationTo_m.rotateFrom(r);
 }
 
+inline CoordinateSystemTrafo OpalBeamline::getCSTrafoLab2Local(
+        const std::shared_ptr<ElementBase>& comp) const {
+    return comp->getCSTrafoGlobal2Local();
+}
+
 inline Vector_t<double, 3> OpalBeamline::transformToLocalCS(
-        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
-    return getPlacedElement(comp).getNominalBodyTransform().transformTo(r);
+        const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const {
+    return getCSTrafoLab2Local(comp).transformTo(r);
 }
 
 inline Vector_t<double, 3> OpalBeamline::transformFromLocalCS(
-        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
-    return getPlacedElement(comp).getNominalBodyTransform().transformFrom(r);
+        const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const {
+    return getCSTrafoLab2Local(comp).transformFrom(r);
 }
 
 inline Vector_t<double, 3> OpalBeamline::rotateToLocalCS(
-        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
-    return getPlacedElement(comp).getNominalBodyTransform().rotateTo(r);
+        const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const {
+    return getCSTrafoLab2Local(comp).rotateTo(r);
 }
 
 inline Vector_t<double, 3> OpalBeamline::rotateFromLocalCS(
-        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
-    return getPlacedElement(comp).getNominalBodyTransform().rotateFrom(r);
-}
-
-inline PlacedElement OpalBeamline::getPlacedElement(const std::shared_ptr<Component>& comp) const {
-    const auto found = placementAssembly_m.find(comp.get());
-    if (found != placementAssembly_m.end()) {
-        return found->second;
-    }
-    return comp->getPlacedElement();
-}
-
-inline CoordinateSystemTrafo OpalBeamline::getCSTrafoLab2Local(
-        const std::shared_ptr<Component>& comp) const {
-    return getPlacedElement(comp).getNominalBodyTransform();
+        const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const {
+    return getCSTrafoLab2Local(comp).rotateFrom(r);
 }
 
 inline CoordinateSystemTrafo OpalBeamline::getCSTrafoLab2Local() const {
@@ -246,18 +229,18 @@ inline CoordinateSystemTrafo OpalBeamline::getCSTrafoLab2Local() const {
 }
 
 inline CoordinateSystemTrafo OpalBeamline::getMisalignment(
-        const std::shared_ptr<Component>& comp) const {
-    return getPlacedElement(comp).getMisalignment().getNominalToActual();
+        const std::shared_ptr<ElementBase>& comp) const {
+    return comp->getMisalignment();
 }
 
 inline CoordinateSystemTrafo OpalBeamline::getNominalEntryTransform(
-        const std::shared_ptr<Component>& comp) const {
-    return getPlacedElement(comp).getNominalEntryTransform();
+        const std::shared_ptr<ElementBase>& comp) const {
+    return comp->getGeometry().getEdgeToBegin() * getCSTrafoLab2Local(comp);
 }
 
 inline CoordinateSystemTrafo OpalBeamline::getNominalExitTransform(
-        const std::shared_ptr<Component>& comp) const {
-    return getPlacedElement(comp).getNominalExitTransform();
+        const std::shared_ptr<ElementBase>& comp) const {
+    return comp->getGeometry().getEdgeToEnd() * getCSTrafoLab2Local(comp);
 }
 
 #endif  // OPAL_BEAMLINE_H

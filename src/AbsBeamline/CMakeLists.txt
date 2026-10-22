@@ -5,12 +5,15 @@ add_subdirectory(EndFieldModel)
 
 # List local source and header files
 set(_SRCS
+    CyclotronSector.cpp
     AttributeSet.cpp
     BeamlineVisitor.cpp
-    BendBase.cpp
-    Component.cpp
+    Box.cpp
+    Collimator.cpp
     ConstantEFieldCavity.cpp
+    ConstantFocusing.cpp
     Drift.cpp
+    FieldmapElement.cpp
     ElementBase.cpp
     Laser.cpp
     Marker.cpp
@@ -21,7 +24,6 @@ set(_SRCS
     MultipoleTStraight.cpp
     MultipoleTCurvedConstRadius.cpp
     RFCavity.cpp
-    Ring.cpp
     ScalingFFAMagnet.cpp        
     Solenoid.cpp
     TravelingWave.cpp
@@ -34,12 +36,15 @@ set(_SRCS
 )
 
 set(_HDRS
+    CyclotronSector.h
     AttributeSet.h
     BeamlineVisitor.h
-    BendBase.h
-    Component.h
+    Box.h
+    Collimator.h
     ConstantEFieldCavity.h
+    ConstantFocusing.h
     Drift.h
+    FieldmapElement.h
     ElementBase.h
     Laser.h
     Marker.h
@@ -52,7 +57,6 @@ set(_HDRS
     TravelingWave.h
     SpecificElementVisitor.h
     ScalingFFAMagnet.h
-    Ring.h
     Solenoid.h
     VerticalFFAMagnet.h
     Probe.h
@@ -60,6 +64,7 @@ set(_HDRS
     RBend.h
     SBend.h
     VariableRFCavity.h
+    MultipoleTConfig.h
 )
 
 # Add local include directory

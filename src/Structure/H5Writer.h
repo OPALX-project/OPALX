@@ -34,6 +34,8 @@ public:
 
     double getLastPosition();
 
+    void rewindToTime(double checkpointTime, double timeStep);
+
     /** \brief Dumps Phase Space to H5 file.
      *
      * \param beam The beam.
@@ -69,9 +71,6 @@ public:
             double elevation, bool local, size_t particleContainerIndex = 0);
 
 private:
-    /// Timer to track particle data/H5 file write time.
-    IpplTimings::TimerRef H5PartTimer_m;
-
     H5PartWrapper* h5wrapper_m;
 
     /// Current record, or time step, of H5 file.
@@ -85,5 +84,9 @@ inline void H5Writer::changeH5Wrapper(H5PartWrapper* h5wrapper) { h5wrapper_m = 
 inline void H5Writer::storeCavityInformation() { h5wrapper_m->storeCavityInformation(); }
 
 inline double H5Writer::getLastPosition() { return h5wrapper_m->getLastPosition(); }
+
+inline void H5Writer::rewindToTime(double checkpointTime, double timeStep) {
+    h5wrapper_m->rewindToTime(checkpointTime, timeStep);
+}
 
 #endif

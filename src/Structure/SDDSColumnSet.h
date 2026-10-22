@@ -21,6 +21,8 @@
 #include "Structure/SDDSColumn.h"
 #include "Utilities/OpalException.h"
 
+#include <cstddef>
+#include <ios>
 #include <map>
 #include <ostream>
 #include <string>
@@ -46,7 +48,7 @@ public:
 
 private:
     std::vector<SDDSColumn> columns_m;
-    std::map<std::string, size_t> name2idx_m;
+    std::map<std::string, std::size_t> name2idx_m;
 };
 
 inline SDDSColumnSet::SDDSColumnSet() {}

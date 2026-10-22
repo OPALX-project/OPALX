@@ -30,8 +30,10 @@ extern "C" {
 #include "OpalConfigure/Configure.h"
 #include "OpalParser/FileStream.h"
 #include "OpalParser/OpalParser.h"
+#include "Structure/CheckpointFile.h"
 #include "Utilities/Timer.h"
 
+#include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
 #include "BasicActions/Option.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
@@ -48,8 +50,16 @@ extern "C" {
 
 #include "Utilities/GSLCompat.h"
 
+#include <cstdint>
 #include <filesystem>
 #include <system_error>
+#include <vector>
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include <cstring>
 #include <iomanip>
@@ -59,6 +69,25 @@ extern "C" {
 extern Inform* gmsg;
 
 namespace OPALXMAIN {
+    // Prefer the loaded executable to argv[0], which may be a PATH name or symlink.
+    std::string executablePath() {
+        std::error_code error;
+#ifdef __APPLE__
+        std::uint32_t size = 0;
+        _NSGetExecutablePath(nullptr, &size);
+        std::vector<char> buffer(size);
+        if (_NSGetExecutablePath(buffer.data(), &size) == 0) {
+            const auto path = std::filesystem::canonical(buffer.data(), error);
+            return error ? std::string(buffer.data()) : path.string();
+        }
+#elif defined(__linux__)
+        const auto path = std::filesystem::read_symlink("/proc/self/exe", error);
+        if (!error) return path.string();
+#endif
+        const auto arguments = OpalData::getInstance()->getArguments();
+        return arguments.empty() ? "unknown" : arguments.front() + " (invocation)";
+    }
+
     void printStdoutHeader() {
         OPALTimer::Timer simtimer;
         std::string dateStr(simtimer.date());
@@ -95,6 +124,24 @@ namespace OPALXMAIN {
               << buildinfo::bugreport << "\n"
               << endl;
         *gmsg << "Time: " << timeStr << " date: " << dateStr << "\n" << endl;
+        *gmsg << "* Executable: " << executablePath() << '\n'
+              << "* Build configuration: " << OPALX_BUILD_CONFIG << '\n'
+              << "* Compiler: " << buildinfo::compile_line << '\n'
+              << "* CMake C++ flags (configure-time): " << buildinfo::compile_options << '\n'
+              << "* MPI ranks: " << ippl::Comm->size() << '\n';
+#ifdef NDEBUG
+        *gmsg << "* C++ assertions: disabled (NDEBUG)\n";
+#else
+        *gmsg << "* C++ assertions: enabled\n";
+#endif
+#ifdef _OPENMP
+        *gmsg << "* OpenMP max threads: " << omp_get_max_threads()
+              << "; dynamic teams: " << omp_get_dynamic() << '\n';
+#else
+        *gmsg << "* OpenMP: disabled\n";
+#endif
+        *gmsg << "* Kokkos host concurrency: " << Kokkos::HostSpace::execution_space().concurrency()
+              << '\n';
 
         // Check which host device is being used
         *gmsg << "* Host:   " << Kokkos::HostSpace::execution_space::name() << endl;
@@ -104,7 +151,7 @@ namespace OPALXMAIN {
 #ifdef KOKKOS_ENABLE_CUDA
         *gmsg << "* Device: " << Kokkos::Cuda::name() << endl << endl;
 #elif defined(KOKKOS_ENABLE_HIP)
-        *gmsg << "* Device: " << Kokkos::Experimental::HIP::name() << endl << endl;
+        *gmsg << "* Device: " << Kokkos::HIP::name() << endl << endl;
 #elif defined(KOKKOS_ENABLE_OPENMP)
         *gmsg << "* Device: " << Kokkos::OpenMP::name() << endl << endl;
 #else
@@ -123,8 +170,7 @@ namespace OPALXMAIN {
                        "informations.\n";
         *ippl::Info << "   --git-revision           : Print the revision hash of the repository.\n";
         *ippl::Info << "   --input <fname>          : Specifies the input file <fname>.\n";
-        *ippl::Info << "   --restart <n>            : Performes a restart from step <n>.\n";
-        *ippl::Info << "   --restartfn <fname>      : Uses the file <fname> to restart from.\n";
+        *ippl::Info << "   --restart [<fname>]      : Restart from checkpoint file <fname>.\n";
         //*ippl::printHelp();
         *ippl::Info << "   --help-command <command> : Display the help for the command <command>\n";
         *ippl::Info << "   --help                   : Display this command-line summary.\n";
@@ -209,6 +255,25 @@ int main(int argc, char* argv[]) {
                 OPALXMAIN::printHelp();
                 exit(1);
             }
+            const auto optionConsumesArgument = [](const std::string& option) {
+                return option == "--help-command" || option == "--input" || option == "--info"
+                       || option == "--overallocate";
+            };
+
+            const auto hasLaterInputArgument = [&](int first) {
+                for (int jj = first; jj < argc; ++jj) {
+                    const std::string arg(argv[jj]);
+                    if (optionConsumesArgument(arg)) {
+                        ++jj;
+                    } else if (arg == "--restart") {
+                        continue;
+                    } else if (!arg.empty() && arg.front() != '-') {
+                        return true;
+                    }
+                }
+                return false;
+            };
+
             int inputFileArgument = -1;
             std::string fname;
             std::string restartFileName;
@@ -281,18 +346,30 @@ int main(int argc, char* argv[]) {
                     }
                     exit(0);
                 } else if (argStr == std::string("--input")) {
+                    if (ii + 1 >= argc || std::string(argv[ii + 1]).front() == '-') {
+                        *gmsg << "Missing input filename after --input" << endl;
+                        OPALXMAIN::printHelp();
+                        exit(1);
+                    }
+                    if (inputFileArgument != -1) {
+                        *gmsg << "Multiple input files specified" << endl;
+                        OPALXMAIN::printHelp();
+                        exit(1);
+                    }
                     ++ii;
                     inputFileArgument = ii;
                     continue;
-                } else if (
-                        argStr == std::string("-restart") || argStr == std::string("--restart")) {
+                } else if (argStr == std::string("--restart")) {
                     opal->setRestartRun();
-                    opal->setRestartStep(atoi(argv[++ii]));
-                    continue;
-                } else if (
-                        argStr == std::string("-restartfn")
-                        || argStr == std::string("--restartfn")) {
-                    restartFileName = std::string(argv[++ii]);
+                    opal->setOpenMode(OpalData::OpenMode::APPEND);
+                    if (ii + 1 < argc) {
+                        const std::string nextArg(argv[ii + 1]);
+                        if (!nextArg.empty() && nextArg.front() != '-'
+                            && (inputFileArgument != -1 || hasLaterInputArgument(ii + 2))) {
+                            restartFileName = nextArg;
+                            ++ii;
+                        }
+                    }
                     continue;
                 } else if (argStr == std::string("--info")) {
                     ++ii;
@@ -301,8 +378,12 @@ int main(int argc, char* argv[]) {
                     ++ii;
                     continue;
                 } else {
-                    if (inputFileArgument == -1 && (ii == 1 || ii + 1 == argc)
-                        && argv[ii][0] != '-') {
+                    if (!argStr.empty() && argStr.front() != '-') {
+                        if (inputFileArgument != -1) {
+                            *gmsg << "Multiple input files specified" << endl;
+                            OPALXMAIN::printHelp();
+                            exit(1);
+                        }
                         inputFileArgument = ii;
                         continue;
                     } else {
@@ -329,10 +410,10 @@ int main(int argc, char* argv[]) {
 
             if (opal->inRestartRun()) {
                 if (restartFileName.empty()) {
-                    restartFileName = opal->getInputBasename() + std::string(".h5");
+                    restartFileName = CheckpointFile::defaultPath(opal->getInputBasename());
                 }
                 if (!fs::exists(restartFileName)) {
-                    *ippl::Info << "Restart file '" << restartFileName << "' doesn't exist!"
+                    *ippl::Info << "Checkpoint file '" << restartFileName << "' doesn't exist!"
                                 << endl;
                     exit(1);
                 }
@@ -483,13 +564,14 @@ int main(int argc, char* argv[]) {
 
         IpplTimings::print();
 
-        IpplTimings::print(
-                std::string("timing.dat"),
-                OpalData::getInstance()->getProblemCharacteristicValues());
+        if (!opal->hasCofRun || opal->hasTrackingRun)
+            IpplTimings::print(
+                    std::string("timing.dat"),
+                    OpalData::getInstance()->getProblemCharacteristicValues());
 
         ippl::Comm->barrier();
         Fieldmap::clearDictionary();
-
+        endfieldmodel::EndFieldModelManager::clearEFMManager();
         // \todo we should not need this OpalData::deleteInstance();
 
         delete gmsg;

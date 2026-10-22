@@ -18,6 +18,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
+#include "Structure/FieldSolverCmd.h"
 #include "gtest/gtest.h"
 
 class TestMultipoleTCurvedConstRadius : public testing::Test, public MultipoleT {
@@ -76,8 +77,7 @@ public:
         Kokkos::fence();
         // Register the bunch with the element
         bunch->setT(0.0);
-        double startField, endField;
-        initialise(bunch.get(), startField, endField);
+        initialise(bunch.get());
         // Get the fields
         apply(pc);
         // Return the fields
@@ -114,8 +114,7 @@ public:
         Kokkos::fence();
         // Register the bunch with the element
         bunch->setT(0.0);
-        double startField, endField;
-        initialise(bunch.get(), startField, endField);
+        initialise(bunch.get());
         // Get the fields
         apply(pc);
         // Return the fields
@@ -205,7 +204,8 @@ public:
                 /*qi=*/std::vector{1.0}, /*mi=*/std::vector{1.0},
                 /*beams=*/std::vector<Beam*>{opBeam},
                 /*totalParticlesPerBeam=*/std::vector<size_t>{numParticles},
-                /*lbt=*/1.0, /*integration_method=*/"LF2", fsCmdBase_m.get(), dataSink_m.get());
+                /*lbt=*/1.0, /*integration_method=*/"LF2",
+                opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});
         bunch->getParticleContainer()->createParticles(numParticles);
         return bunch;
     }

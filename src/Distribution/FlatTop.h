@@ -7,6 +7,7 @@
 #define IPPL_FLAT_TOP_H
 
 #include <Kokkos_Random.hpp>
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include "Distribution.h"
@@ -35,27 +36,9 @@ public:
     /**
      * @brief Constructor for FlatTop.
      * @param pc Shared pointer to ParticleContainer.
-     * @param fc Shared pointer to FieldContainer.
      * @param opalDist Borrowed Distribution.
      */
-    FlatTop(std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-            Distribution_t* opalDist);
-
-    /**
-     * @brief Constructor for FlatTop.
-     *
-     * @param pc Shared pointer to ParticleContainer.
-     * @param fc Shared pointer to FieldContainer.
-     * @param emitting Flag indicating whether the distribution is emitting.
-     * @param sigmaTFall Standard deviation of fall in flat-top profile.
-     * @param sigmaTRise Standard deviation of rise in flat-top profile.
-     * @param cutoff Cutoff multiplier for position distribution R.
-     * @param tPulseLengthFWHM Time length of the pulse in FWHM.
-     * @param sigmaR Standard deviation for position distribution.
-     */
-    FlatTop(std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-            bool emitting, double sigmaTFall, double sigmaTRise, Vector_t<double, 3> cutoff,
-            double tPulseLengthFWHM, Vector_t<double, 3> sigmaR);
+    FlatTop(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist);
 
     /**
      * @brief Constructor for FlatTop.
@@ -86,12 +69,6 @@ public:
     void testEmitParticles(size_type nsteps, double dt) override;
 
     /**
-     * @brief Sets whether to use domain decomposition.
-     * @param withDomainDecomp Boolean flag for domain decomposition.
-     */
-    void setWithDomainDecomp(bool withDomainDecomp) override;
-
-    /**
      * @brief Sets the total area of the distribution.
      */
     void setDistArea(double distArea) { distArea_m = distArea; }
@@ -110,6 +87,9 @@ public:
     /// @copydoc SamplingBase::isEmissionDone
     bool isEmissionDone(double t) const override { return (t - t0_m) >= emissionTime_m; }
 
+    /// @copydoc SamplingBase::getEmittedFraction
+    double getEmittedFraction() const override;
+
 private:
     using size_type = ippl::detail::size_type;
     GeneratorPool rand_pool_m;      ///< Random number generator pool.
@@ -123,10 +103,8 @@ private:
     double riseTime_m;              ///< Time duration for the rise phase.
     bool emitting_m;                ///< Flag for particle emission status.
     size_type totalN_m;             ///< Total number of particles.
-    bool withDomainDecomp_m;        ///< Flag for domain decomposition.
+    size_t totalEmitted_m = 0;      ///< Cumulative number of particles emitted globally.
     double emissionTime_m;          ///< Total emission time.
-    Vector_t<double, 3> nr_m;       ///< Number of grid points per direction.
-    Vector_t<double, 3> hr_m;       ///< Grid spacing.
     Vector_t<double, 3> sigmaR_m;
 
     /**
@@ -155,12 +133,6 @@ public:
      * @param dt Global timestep; used to sample fractional per-particle dt.
      */
     void generateUniformDisk(size_type nlocal, size_t nNew, double dt);
-
-    /**
-     * @brief Sets the number of grid points per direction.
-     * @param nr Vector specifying the number of grid points.
-     */
-    void setNr(Vector_t<double, 3> nr);
 
     /**
      * @brief Generates particles with a given number and grid configuration.
@@ -192,12 +164,6 @@ public:
      * @return Integrated result.
      */
     double integrateTrapezoidal(double x1, double x2, double y1, double y2);
-
-    /**
-     * @brief Initializes the domain decomposition.
-     * @param BoxIncr Box increment factor.
-     */
-    void initDomainDecomp(double BoxIncr) override;
 
     /**
      * @brief Counts the number of particles entering per rank in a given time interval.

@@ -60,7 +60,7 @@ TEST_F(TestOpalMultipoleT, UserInterface) {
     // Check the values
     auto* myMagnet = dynamic_cast<MultipoleT*>(ui.getElement());
     EXPECT_TRUE(myMagnet);
-    EXPECT_NEAR(myMagnet->getElementLength(), 4.1, 1e-6);
+    EXPECT_NEAR(myMagnet->getGeometry().getElementLength(), 4.1, 1e-6);
     auto tp = myMagnet->getTransProfile();
     EXPECT_EQ(tp.size(), MultipoleTConfig::NumPoles);
     EXPECT_NEAR(tp[0], 0.2, 1e-6);
@@ -119,6 +119,8 @@ TEST_F(TestOpalMultipoleT, UserInterfaceClone) {
     Attributes::setBool(ui.itsAttr[OpalMultipoleT::VARRADIUS], false);
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ENTRYOFFSET], 0.0);
     Attributes::setUpperCaseString(ui.itsAttr[OpalMultipoleT::SCALING_MODEL], "Scaling");
+    // A non-builtin (cloned) element must be placed, otherwise update() rejects it.
+    Attributes::setReal(*ui.findAttribute("ELEMEDGE"), 0.0);
     // Make the clone
     std::unique_ptr<OpalMultipoleT> uiClone{ui.clone("Clone")};
     // Update the magnet
@@ -126,7 +128,7 @@ TEST_F(TestOpalMultipoleT, UserInterfaceClone) {
     // Check the values
     auto* myMagnet = dynamic_cast<MultipoleT*>(uiClone->getElement());
     EXPECT_TRUE(myMagnet);
-    EXPECT_NEAR(myMagnet->getElementLength(), 4.1, 1e-6);
+    EXPECT_NEAR(myMagnet->getGeometry().getElementLength(), 4.1, 1e-6);
     auto tp = myMagnet->getTransProfile();
     EXPECT_EQ(tp.size(), 6);
     EXPECT_NEAR(tp[0], 0.2, 1e-6);

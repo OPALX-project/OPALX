@@ -10,21 +10,17 @@
 #include "SamplingBase.hpp"
 #include "Utilities/OpalException.h"
 
-OpalFlatTop::OpalFlatTop(
-        std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-        Distribution_t* opalDist)
-    : SamplingBase(pc, fc, opalDist),
+OpalFlatTop::OpalFlatTop(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist)
+    : SamplingBase(pc, opalDist),
       rand_pool_m(determineRandInit()),
       host_rng_m(determineHostSeed()) {
     setParameters(opalDist);
 }
-
 OpalFlatTop::OpalFlatTop(
-        std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-        bool emitting, double sigmaTFall, double sigmaTRise, Vector_t<double, 3> cutoff,
-        double tPulseLengthFWHM, Vector_t<double, 3> sigmaR, double ftOscAmplitude,
-        double ftOscPeriods)
-    : SamplingBase(pc, fc), rand_pool_m(determineRandInit()), host_rng_m(determineHostSeed()) {
+        std::shared_ptr<ParticleContainer_t> pc, bool emitting, double sigmaTFall,
+        double sigmaTRise, Vector_t<double, 3> cutoff, double tPulseLengthFWHM,
+        Vector_t<double, 3> sigmaR, double ftOscAmplitude, double ftOscPeriods)
+    : SamplingBase(pc), rand_pool_m(determineRandInit()), host_rng_m(determineHostSeed()) {
     setInternalVariables(
             emitting, sigmaTFall, sigmaTRise, cutoff, tPulseLengthFWHM, sigmaR, ftOscAmplitude,
             ftOscPeriods);
@@ -57,24 +53,19 @@ void OpalFlatTop::setParameters(Distribution_t* opalDist) {
 
     emissionSteps_m = opalDist->getEmissionSteps();
     opalDist->setTEmission(emissionTime_m);
-
-    if (fc_m) {
-        fc_m->setDecomp({false, false, true});
-    }
 }
 
 void OpalFlatTop::setInternalVariables(
         bool emitting, double sigmaTFall, double sigmaTRise, Vector_t<double, 3> cutoff,
         double tPulseLengthFWHM, Vector_t<double, 3> sigmaR, double ftOscAmplitude,
         double ftOscPeriods) {
-    emitting_m         = emitting;
-    sigmaTFall_m       = sigmaTFall;
-    sigmaTRise_m       = sigmaTRise;
-    cutoffR_m          = cutoff;
-    sigmaR_m           = sigmaR;
-    ftOscAmplitude_m   = ftOscAmplitude;
-    ftOscPeriods_m     = ftOscPeriods;
-    withDomainDecomp_m = false;
+    emitting_m       = emitting;
+    sigmaTFall_m     = sigmaTFall;
+    sigmaTRise_m     = sigmaTRise;
+    cutoffR_m        = cutoff;
+    sigmaR_m         = sigmaR;
+    ftOscAmplitude_m = ftOscAmplitude;
+    ftOscPeriods_m   = ftOscPeriods;
 
     fallTime_m = sigmaTFall_m * cutoffR_m[2];
     flattopTime_m =
@@ -91,7 +82,7 @@ void OpalFlatTop::setInternalVariables(
 }
 
 void OpalFlatTop::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) {
-    nr_m = nr;
+    static_cast<void>(nr);
 
     if (!emitting_m) {
         throw OpalException(
@@ -199,7 +190,7 @@ double OpalFlatTop::toBirthTime(double opalPulseTime) const {
 
 Vector_t<double, 3> OpalFlatTop::getInitialReferenceMomentum() const {
     if (emissionModel_m == "ASTRA") {
-        return Vector_t<double, 3>({0.0, 0.0, 0.5 * euclidean_norm(P0_m)});
+        return P0_m + Vector_t<double, 3>({0.0, 0.0, 0.5 * emissionMomentumMagnitude_m});
     }
     return P0_m;
 }
@@ -332,7 +323,7 @@ void OpalFlatTop::generateLocalParticles(
     const Vector_t<double, 3> sigmaR = sigmaR_m;
     const Vector_t<double, 3> R0     = R0_m;
     const Vector_t<double, 3> P0     = P0_m;
-    const double pTot                = euclidean_norm(P0);
+    const double pTot                = emissionMomentumMagnitude_m;
     const bool useAstra              = emissionModel_m == "ASTRA";
     const bool useNone               = emissionModel_m == "NONE";
     if (!useAstra && !useNone) {
@@ -357,9 +348,9 @@ void OpalFlatTop::generateLocalParticles(
                     const double rand2 = generator.drand(0.0, 1.0);
                     const double phi   = 2.0 * Kokkos::acos(Kokkos::sqrt(rand1));
                     const double angle = twoPi * rand2;
-                    p[0]               = pTot * Kokkos::sin(phi) * Kokkos::cos(angle);
-                    p[1]               = pTot * Kokkos::sin(phi) * Kokkos::sin(angle);
-                    p[2]               = pTot * Kokkos::fabs(Kokkos::cos(phi));
+                    p[0] += pTot * Kokkos::sin(phi) * Kokkos::cos(angle);
+                    p[1] += pTot * Kokkos::sin(phi) * Kokkos::sin(angle);
+                    p[2] += pTot * Kokkos::fabs(Kokkos::cos(phi));
                 }
                 randPool.free_state(generator);
 
@@ -378,34 +369,6 @@ void OpalFlatTop::generateLocalParticles(
             });
     Kokkos::fence();
     pc_m->markMomentsDirty();
-}
-
-void OpalFlatTop::initDomainDecomp(double BoxIncr) {
-    if (!fc_m) {
-        return;
-    }
-
-    auto* mesh = &fc_m->getMesh();
-    auto* FL   = &fc_m->getFL();
-    ippl::Vector<double, 3> o;
-    ippl::Vector<double, 3> e;
-    const double tol = 1e-15;
-    o[0]             = -sigmaR_m[0] - tol;
-    e[0]             = sigmaR_m[0] + tol;
-    o[1]             = -sigmaR_m[1] - tol;
-    e[1]             = sigmaR_m[1] + tol;
-    o[2]             = 0.0 - tol;
-    e[2]             = Physics::c * emissionTime_m + tol;
-
-    const ippl::Vector<double, 3> l = e - o;
-    hr_m                            = (1.0 + BoxIncr / 100.0) * (l / nr_m);
-    mesh->setMeshSpacing(hr_m);
-    mesh->setOrigin(o - 0.5 * hr_m * BoxIncr / 100.0);
-    pc_m->getLayout().updateLayout(*FL, *mesh);
-}
-
-void OpalFlatTop::setWithDomainDecomp(bool withDomainDecomp) {
-    withDomainDecomp_m = withDomainDecomp;
 }
 
 void OpalFlatTop::setBirthTimesForTest(std::vector<double> birthTimes) {

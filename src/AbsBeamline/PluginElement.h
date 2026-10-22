@@ -21,10 +21,16 @@
 
 #include <memory>
 #include <string>
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 
 class LossDataSink;
-class PluginElement : public Component {
+
+struct Point {
+    double x;
+    double y;
+};
+
+class PluginElement : public ElementBase {
 public:
     /// Constructor with given name.
     explicit PluginElement(const std::string& name);
@@ -35,22 +41,18 @@ public:
     virtual ~PluginElement();
 
     ///@{ Pure virtual implementation of Component
-    virtual void initialise(
-            PartBunch_t* bunch, double& startField, double& endField) override;  // not used?
-    void initialise(PartBunch_t* bunch);  // replacement for virtual initialise
-    virtual void finalise() final;        // final since virtual hook doFinalise
-    virtual void goOffline() final;       // final since virtual hook doGoOffline
-    virtual bool bends() const override;
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
+    virtual void initialise(PartBunch_t* bunch) override;
+    virtual void finalise() final;   // final since virtual hook doFinalise
+    virtual void goOffline() final;  // final since virtual hook doGoOffline
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
+    /// Plugin elements select over their body; their narrow getFieldExtent() window is for the
+    /// orbit-threader time-step check only, so isInside() is overridden to not use it.
+    virtual bool isInside(const Vector_t<double, 3>& r) const override;
     ///@}
     ///@{ Virtual implementation of Component
-    virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
-    virtual bool apply(
-            const size_t& i, const double& t, Vector_t<double, 3>& E,
-            Vector_t<double, 3>& B) override;
-
-    virtual bool apply(
+    virtual void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 

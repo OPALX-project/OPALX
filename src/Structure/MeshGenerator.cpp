@@ -1,10 +1,13 @@
 #include "Structure/MeshGenerator.h"
+#include "AbsBeamline/FieldmapElement.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
 #include "Utilities/Util.h"
 
+#include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <vector>
@@ -12,6 +15,12 @@
 extern Inform* gmsg;
 
 namespace {
+    constexpr double unboundedApertureHalfSize = 1.0e6;
+
+    bool isBoundedMeshHalfSize(const double value) {
+        return std::isfinite(value) && value > 0.0 && value < unboundedApertureHalfSize;
+    }
+
     void appendMesh(MeshData& target, const MeshData& source) {
         const unsigned int offset = target.vertices_m.size();
         target.vertices_m.insert(
@@ -56,20 +65,34 @@ bool MeshGenerator::getTransverseSupport(const ElementBase& element, double& min
         return true;
     }
 
+    if (element.getType() == ElementType::FIELDMAP) {
+        const auto* fm          = dynamic_cast<const FieldmapElement*>(&element);
+        double horizontalRadius = 0.0;
+        double verticalRadius   = 0.0;
+        if (fm == nullptr || !fm->getSupportEnvelope(horizontalRadius, verticalRadius)) {
+            return false;
+        }
+        minor = verticalRadius;
+        major = horizontalRadius;
+        return true;
+    }
+
     if (element.getType() == ElementType::DRIFT) {
         return false;
     }
 
     const auto apert = element.getAperture();
-    if (apert.second.size() < 3) {
+    if (apert.second.size() < 2) {
         return false;
     }
 
     switch (apert.first) {
         case ApertureType::RECTANGULAR:
-        case ApertureType::CONIC_RECTANGULAR:
         case ApertureType::ELLIPTICAL:
-        case ApertureType::CONIC_ELLIPTICAL:
+            if (!isBoundedMeshHalfSize(apert.second[0])
+                || !isBoundedMeshHalfSize(apert.second[1])) {
+                return false;
+            }
             minor = apert.second[0];
             major = apert.second[1];
             return true;
@@ -88,7 +111,25 @@ void MeshGenerator::add(const ElementBase& element) {
     double start = 0.0;
 
     MeshData mesh;
-    if (element.getType() == ElementType::SBEND || element.getType() == ElementType::RBEND) {
+    if (element.getType() == ElementType::SBEND) {
+        const auto aperture      = element.getAperture();
+        const Geometry& geometry = element.getGeometry();
+        // Unbounded tracking apertures do not describe a drawable magnet body.
+        // Reuse the representative support, or a 50 mm display-only half-size.
+        double horizontalHalfSize = hasDriftReference_m ? driftMinor_m : 0.05;
+        double verticalHalfSize   = hasDriftReference_m ? driftMajor_m : 0.05;
+        if ((aperture.first == ApertureType::RECTANGULAR
+             || aperture.first == ApertureType::ELLIPTICAL)
+            && aperture.second.size() >= 2 && isBoundedMeshHalfSize(aperture.second[0])
+            && isBoundedMeshHalfSize(aperture.second[1])) {
+            horizontalHalfSize = aperture.second[0];
+            verticalHalfSize   = aperture.second[1];
+        }
+        mesh = getSBend(
+                geometry.getArcLength(), geometry.getCurvature(), horizontalHalfSize,
+                verticalHalfSize);
+        mesh.type_m = DIPOLE;
+    } else if (element.getType() == ElementType::RBEND) {
         // const Bend2D* dipole = static_cast<const Bend2D*>(&element);
         // mesh = dipole->getSurfaceMesh();
         mesh.type_m = DIPOLE;
@@ -97,9 +138,9 @@ void MeshGenerator::add(const ElementBase& element) {
         // mesh = dipole->getSurfaceMesh();
         mesh.type_m = DIPOLE;
     } else if (element.getType() == ElementType::SOLENOID) {
-        double end = 0.0;
-        element.getElementDimensions(start, end);
-        mesh = getCylinder(end - start, driftMinor_m, driftMajor_m, 1.0);
+        start      = 0.0;
+        double end = element.getGeometry().getElementLength();
+        mesh       = getCylinder(end - start, driftMinor_m, driftMajor_m, 1.0);
         {
             double minor = 0.0;
             double major = 0.0;
@@ -108,13 +149,23 @@ void MeshGenerator::add(const ElementBase& element) {
             }
         }
         mesh.type_m = SOLENOID;
+    } else if (element.getType() == ElementType::FIELDMAP) {
+        // The element's local frame is the map's frame, so the drawn body starts at the
+        // map's own field start rather than at zero.
+        double end = 0.0;
+        element.getFieldExtent(start, end);
+        double minor = driftMinor_m;
+        double major = driftMajor_m;
+        getTransverseSupport(element, minor, major);
+        mesh        = getTube(end - start, 0.7 * minor, 0.7 * major, minor, major);
+        mesh.type_m = DRIFT;
     } else if (element.getType() == ElementType::DRIFT) {
         if (!hasDriftReference_m) {
             return;
         }
-        double end = 0.0;
-        element.getElementDimensions(start, end);
-        mesh = getTube(
+        start      = 0.0;
+        double end = element.getGeometry().getElementLength();
+        mesh       = getTube(
                 end - start, 0.7 * driftMinor_m, 0.7 * driftMajor_m, driftMinor_m, driftMajor_m);
         mesh.type_m = DRIFT;
     } else {
@@ -122,33 +173,36 @@ void MeshGenerator::add(const ElementBase& element) {
         if (element.getType() == ElementType::RFCAVITY
             || element.getType() == ElementType::TRAVELINGWAVE) {
             start = 0.0;
-            end   = element.getElementLength();
+            end   = element.getGeometry().getElementLength();
         } else {
-            element.getElementDimensions(start, end);
+            start = 0.0;
+            end   = element.getGeometry().getElementLength();
         }
         length     = end - start;
         auto apert = element.getAperture();
 
-        switch (apert.first) {
-            case ApertureType::RECTANGULAR:
-            case ApertureType::CONIC_RECTANGULAR:
-                mesh = getBox(length, apert.second[0], apert.second[1], apert.second[2]);
-                break;
-            case ApertureType::ELLIPTICAL:
-            case ApertureType::CONIC_ELLIPTICAL:
-                if (element.getType() == ElementType::MULTIPOLE
-                    && static_cast<const Multipole*>(&element)->getMaxNormalComponentIndex() == 2) {
-                    mesh = getQuadrupole(length, apert.second[0], apert.second[1], apert.second[2]);
-                } else if (element.getType() == ElementType::RFCAVITY) {
-                    mesh = getRFCavity(length, apert.second[0], apert.second[1]);
-                } else if (element.getType() == ElementType::TRAVELINGWAVE) {
-                    mesh = getTravelingWave(length, apert.second[0], apert.second[1]);
-                } else {
-                    mesh = getCylinder(length, apert.second[0], apert.second[1], apert.second[2]);
-                }
-                break;
-            default:
-                return;
+        if (apert.second.size() >= 2 && isBoundedMeshHalfSize(apert.second[0])
+            && isBoundedMeshHalfSize(apert.second[1])) {
+            switch (apert.first) {
+                case ApertureType::RECTANGULAR:
+                    mesh = getBox(length, apert.second[0], apert.second[1], 1.0);
+                    break;
+                case ApertureType::ELLIPTICAL:
+                    if (element.getType() == ElementType::MULTIPOLE
+                        && static_cast<const Multipole*>(&element)->getMaxNormalComponentIndex()
+                                   == 2) {
+                        mesh = getQuadrupole(length, apert.second[0], apert.second[1], 1.0);
+                    } else if (element.getType() == ElementType::RFCAVITY) {
+                        mesh = getRFCavity(length, apert.second[0], apert.second[1]);
+                    } else if (element.getType() == ElementType::TRAVELINGWAVE) {
+                        mesh = getTravelingWave(length, apert.second[0], apert.second[1]);
+                    } else {
+                        mesh = getCylinder(length, apert.second[0], apert.second[1], 1.0);
+                    }
+                    break;
+                default:
+                    break;
+            }
         }
 
         switch (element.getType()) {
@@ -184,9 +238,8 @@ void MeshGenerator::add(const ElementBase& element) {
         }
     }
 
-    const CoordinateSystemTrafo trafo =
-            element.getPlacedElement().getNominalBodyTransform().inverted();
-    Vector_t<double, 3> z = trafo.rotateTo(Vector_t<double, 3>(0, 0, 1));
+    const CoordinateSystemTrafo trafo = element.getCSTrafoGlobal2Local().inverted();
+    Vector_t<double, 3> z             = trafo.rotateTo(Vector_t<double, 3>(0, 0, 1));
     for (unsigned int i = 0; i < mesh.vertices_m.size(); ++i) {
         mesh.vertices_m[i] = trafo.transformTo(mesh.vertices_m[i]) + start * z;
     }
@@ -253,7 +306,7 @@ void MeshGenerator::write(const std::string& fname) {
         for (unsigned int i = 0; i < triangles.size(); ++i) {
             out << triangles[i](0) << ", " << triangles[i](1) << ", " << triangles[i](2) << ", ";
         }
-        out.seekp(-2, std::ios_base::end);
+        if (!triangles.empty()) out.seekp(-2, std::ios_base::end);
         out << "], ";
     }
     out.seekp(-2, std::ios_base::end);
@@ -1243,6 +1296,80 @@ MeshData MeshGenerator::getTube(
                 Vector_t<unsigned int, 3>(bottomInner, topInner, bottomInnerNext));
         mesh.triangles_m.push_back(
                 Vector_t<unsigned int, 3>(bottomInnerNext, topInner, topInnerNext));
+    }
+
+    return mesh;
+}
+
+MeshData MeshGenerator::getSBend(
+        const double arcLength, const double curvature, const double horizontalHalfSize,
+        const double verticalHalfSize) {
+    if (std::abs(curvature) <= 1.0e-15) {
+        return getBox(arcLength, horizontalHalfSize, verticalHalfSize, 1.0);
+    }
+
+    const double bendAngle = curvature * arcLength;
+    const auto angularSegments =
+            static_cast<unsigned int>(std::ceil(std::abs(bendAngle) / (Physics::pi / 36.0)));
+    const auto lengthSegments = static_cast<unsigned int>(std::ceil(std::abs(arcLength) / 0.25));
+    const unsigned int longitudinalSegments =
+            std::max(4u, std::max(angularSegments, lengthSegments));
+
+    MeshData mesh;
+    mesh.vertices_m.reserve(4 * (longitudinalSegments + 1));
+    mesh.triangles_m.reserve(8 * longitudinalSegments + 4);
+
+    for (unsigned int i = 0; i <= longitudinalSegments; ++i) {
+        const double s =
+                arcLength * static_cast<double>(i) / static_cast<double>(longitudinalSegments);
+        const double phi     = curvature * s;
+        const double centerX = (std::cos(phi) - 1.0) / curvature;
+        const double centerZ = std::sin(phi) / curvature;
+        const double radialX = std::cos(phi);
+        const double radialZ = std::sin(phi);
+
+        mesh.vertices_m.emplace_back(
+                centerX + horizontalHalfSize * radialX, verticalHalfSize,
+                centerZ + horizontalHalfSize * radialZ);
+        mesh.vertices_m.emplace_back(
+                centerX - horizontalHalfSize * radialX, verticalHalfSize,
+                centerZ - horizontalHalfSize * radialZ);
+        mesh.vertices_m.emplace_back(
+                centerX - horizontalHalfSize * radialX, -verticalHalfSize,
+                centerZ - horizontalHalfSize * radialZ);
+        mesh.vertices_m.emplace_back(
+                centerX + horizontalHalfSize * radialX, -verticalHalfSize,
+                centerZ + horizontalHalfSize * radialZ);
+
+        if (i > 0) {
+            const unsigned int previous = 4 * (i - 1);
+            const unsigned int current  = 4 * i;
+            for (unsigned int corner = 0; corner < 4; ++corner) {
+                const unsigned int next = (corner + 1) % 4;
+                mesh.triangles_m.emplace_back(previous + corner, previous + next, current + corner);
+                mesh.triangles_m.emplace_back(current + corner, previous + next, current + next);
+            }
+        }
+    }
+
+    mesh.triangles_m.emplace_back(0u, 2u, 1u);
+    mesh.triangles_m.emplace_back(0u, 3u, 2u);
+    const unsigned int end = 4 * longitudinalSegments;
+    mesh.triangles_m.emplace_back(end, end + 1, end + 2);
+    mesh.triangles_m.emplace_back(end, end + 2, end + 3);
+
+    for (unsigned int i = 0; i < longitudinalSegments; ++i) {
+        const double s0 =
+                arcLength * static_cast<double>(i) / static_cast<double>(longitudinalSegments);
+        const double s1 =
+                arcLength * static_cast<double>(i + 1) / static_cast<double>(longitudinalSegments);
+        mesh.decorations_m.emplace_back(
+                Vector_t<double, 3>(
+                        (std::cos(curvature * s0) - 1.0) / curvature, 0.0,
+                        std::sin(curvature * s0) / curvature),
+                Vector_t<double, 3>(
+                        (std::cos(curvature * s1) - 1.0) / curvature, 0.0,
+                        std::sin(curvature * s1) / curvature));
     }
 
     return mesh;

@@ -60,7 +60,6 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Algorithms/Tracker.h"
-#include "Fields/BMultipoleField.h"
 #include "Utilities/OpalException.h"
 
 // FIXME Remove headers and dynamic_cast in readOneBunchFromFile
@@ -98,14 +97,16 @@ void Tracker::addToBunch(const OpalParticle& /*part*/) {
 //~ itsBunch_m = &bunch;
 //~ }
 
-void Tracker::visitComponent(const Component& comp) {
+void Tracker::visitElementBase(const ElementBase& comp) {
     if (itsBunch_m == nullptr || itsBunch_m->getParticleContainer() == nullptr
         || itsBunch_m->getParticleContainer()->getReference() == nullptr) {
         throw OpalException(
-                "Tracker::visitComponent",
+                "Tracker::visitElementBase",
                 "Missing particle reference data in active particle container.");
     }
-    comp.trackBunch(
-            *itsBunch_m, *itsBunch_m->getParticleContainer()->getReference(), back_beam,
-            back_track);
+    // No element type reaches this catch-all: every concrete element is handled by a
+    // dedicated visit method. An element landing here has no tracking model.
+    throw OpalException(
+            "Tracker::visitElementBase",
+            "No tracking model for element \"" + comp.getName() + "\".");
 }

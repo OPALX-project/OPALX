@@ -22,9 +22,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "AbsBeamline/Component.h"
-#include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/BDipoleField.h"
+#include "AbsBeamline/ElementBase.h"
 
 // Class Corrector
 // ------------------------------------------------------------------------
@@ -32,7 +30,7 @@
 //  Class Corrector defines the abstract interface for closed orbit
 //  correctors.
 
-class Corrector : public Component {
+class Corrector : public ElementBase {
 public:
     /// Plane selection.
     enum Plane {
@@ -56,41 +54,25 @@ public:
     /// Apply a visitor to Corrector.
     virtual void accept(BeamlineVisitor&) const;
 
-    /// Return the corrector field.
-    //  Version for non-constant object.
-    virtual BDipoleField& getField() = 0;
-
-    /// Return the corrector field.
-    //  Version for constant object.
-    virtual const BDipoleField& getField() const = 0;
-
-    /// Return the corrector geometry.
-    virtual StraightGeometry& getGeometry() = 0;
-
-    /// Return the corrector geometry. Version for const object.
-    virtual const StraightGeometry& getGeometry() const = 0;
-
     /// Return the plane on which the corrector acts.
     virtual Plane getPlane() const = 0;
 
-    virtual bool apply(
+    virtual void apply(
             const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
-    virtual bool apply(
+    virtual void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B);
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField);
+    virtual void initialise(PartBunch_t* bunch);
 
     virtual void goOnline(const double& kineticEnergy);
 
     virtual void finalise();
 
-    virtual bool bends() const;
-
     virtual ElementType getType() const;
 
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const;
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const;
 
     void setKickX(double k);
 

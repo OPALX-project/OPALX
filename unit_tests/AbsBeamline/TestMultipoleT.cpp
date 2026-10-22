@@ -82,9 +82,12 @@ public:
     // Overrides of BeamlineVisitor
     void execute() override {}
     void visitBeamline(const Beamline&) override {}
-    void visitComponent(const Component&) override {}
+    void visitElementBase(const ElementBase&) override {}
+    void visitBox(const Box&) override {}
+    void visitCollimator(const Collimator&) override {}
     void visitConstantEFieldCavity(const ConstantEFieldCavity&) override {}
     void visitDrift(const Drift&) override {}
+    void visitFieldmapElement(const FieldmapElement&) override {}
     void visitFlaggedElmPtr(const FlaggedElmPtr&) override {}
     void visitLaser(const Laser&) override {}
     void visitMarker(const Marker&) override {}
@@ -94,13 +97,15 @@ public:
     void visitRBend(const RBend&) override {}
     void visitRFCavity(const RFCavity&) override {}
     void visitScalingFFAMagnet(const ScalingFFAMagnet&) override {}
-    void visitRing(const Ring&) override {}
     void visitSBend(const SBend&) override {}
     void visitSolenoid(const Solenoid&) override {}
     void visitTravelingWave(const TravelingWave&) override {}
     void visitVerticalFFAMagnet(const VerticalFFAMagnet&) override {}
     void visitProbe(const Probe&) override {}
     void visitVariableRFCavity(const VariableRFCavity&) override {}
+    void visitEnge(const endfieldmodel::Enge&) {}
+    void visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) {}
+    void visitTanh(const endfieldmodel::Tanh&) {}
 
     // Test helper functions
     double fieldAtT(const Vector_t<double, 3>& pos, const double t) {
@@ -177,14 +182,6 @@ TEST_F(TestMultipoleT, TimeDependency) {
     EXPECT_NEAR(fieldAtT({0.0, 0.0, 2.0}, 2.0), 1.0, 1e-6);
 }
 
-// Does the bends API return the correct value
-TEST_F(TestMultipoleT, Bends) {
-    setBendAngle(0, false);
-    EXPECT_FALSE(bends());
-    setBendAngle(1, false);
-    EXPECT_TRUE(bends());
-}
-
 // Check that an exception if thrown for configuration that is not supported.
 TEST_F(TestMultipoleT, ConfigurationValidation) {
     // Set up the magnet
@@ -200,18 +197,11 @@ TEST_F(TestMultipoleT, ConfigurationValidation) {
 
 // Tests for the few remaining API functions are collected here
 TEST_F(TestMultipoleT, OddApis) {
-    // The field object API which currently always returns a dummy object
-    MultipoleT* magnet = this;
-    auto* field        = &magnet->getField();
-    EXPECT_NE(field, nullptr);
-    auto* constField = &const_cast<const MultipoleT*>(magnet)->getField();
-    EXPECT_NE(constField, nullptr);
-    EXPECT_EQ(field, constField);
     // The field-support interval follows the body length.
     EXPECT_NO_THROW(finalise());
     setElementLength(4.0);
     double a = -1.0, b = -1.0;
-    EXPECT_NO_THROW(getFieldExtend(a, b));
+    EXPECT_NO_THROW(getFieldExtent(a, b));
     EXPECT_DOUBLE_EQ(a, 0.0);
     EXPECT_DOUBLE_EQ(b, 4.0);
 }
@@ -233,13 +223,10 @@ TEST_F(TestMultipoleT, ApplySingleParticleThrowsForMultiContainerBunch) {
     const auto bunch = std::make_shared<PartBunch_t>(
             std::vector<double>{1.0e-9, 2.0e-9}, std::vector<double>{0.511e-3, 0.938},
             std::vector<Beam*>{testBeam, testBeam}, std::vector<size_t>{1, 1}, 1.0, "LF2",
-            fsCmd.get(), dataSink.get());
+            opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});
     ASSERT_EQ(bunch->getNumParticleContainers(), 2u);
 
-    // Register bunch and verify per-particle apply() rejects ambiguous container context.
-    double startField = 0.0;
-    double endField   = 0.0;
-    initialise(bunch.get(), startField, endField);
-    Vector_t<double, 3> E{}, B{};
-    EXPECT_THROW(apply(0, 0.0, E, B), OpalException);
+    // Register bunch; the per-particle-index apply() was removed, so only check that
+    // a multi-container bunch can be registered.
+    initialise(bunch.get());
 }

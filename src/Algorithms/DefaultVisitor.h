@@ -43,7 +43,7 @@ public:
     /// Apply the algorithm to the top-level beamline.
     void execute() override;
 
-    void visitComponent(const Component&) override;
+    void visitElementBase(const ElementBase&) override;
 
     /// Apply the algorithm to a beam line.
     void visitBeamline(const Beamline&) override;
@@ -51,8 +51,20 @@ public:
     /// Apply the algorithm to a constant E-field cavity element.
     void visitConstantEFieldCavity(const ConstantEFieldCavity&) override;
 
+    /// Apply the algorithm to a box absorber.
+    void visitBox(const Box&) override;
+
+    /// Apply the algorithm to a collimator.
+    void visitCollimator(const Collimator&) override;
+
     /// Apply the algorithm to a drift space.
     void visitDrift(const Drift&) override;
+    void visitFieldmapElement(const FieldmapElement&) override;
+
+    /// Apply the algorithm to a drift space.
+    void visitEnge(const endfieldmodel::Enge&) override;
+    void visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) override;
+    void visitTanh(const endfieldmodel::Tanh&) override;
 
     /// Apply the algorithm to a laser.
     void visitLaser(const Laser&) override;
@@ -74,9 +86,6 @@ public:
 
     /// Apply the algorithm to a rectangular bend.
     void visitRBend(const RBend&) override;
-
-    /// Apply the algorithm to a Ring.
-    void visitRing(const Ring&) override;
 
     /// Apply the algorithm to a sector bend.
     void visitSBend(const SBend&) override;

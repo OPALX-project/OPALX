@@ -18,8 +18,9 @@
 #ifndef OPALX_RFCavity_HH
 #define OPALX_RFCavity_HH
 
-#include "AbsBeamline/Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Algorithms/AbstractTimeDependence.h"
+#include "Fields/CyclotronRFProfile.h"
 #include "Physics/Physics.h"
 
 #include "Utilities/BiMap.h"
@@ -31,8 +32,46 @@ class Fieldmap;
 
 enum class CavityType : unsigned short { SW, SGSW };
 
-class RFCavity : public Component {
+/** @brief RF physics shared by RFCavityRep: continuous fields or discrete gaps.
+ * STANDING uses the existing field-map apply() path. SINGLEGAP is configured by
+ * OpalCavity through configureCyclotronGap(); it stores a shared radial voltage
+ * profile and a value-type kick model. In that mode apply() deliberately adds no
+ * fields and isInside() returns false: ParallelTracker must detect and integrate
+ * the oriented gap event. Calling only the ordinary field API does not accelerate
+ * a particle through a SINGLEGAP cavity.
+ *
+ * The concrete RFCavityRep still supplies geometry/cloning as for existing RF
+ * elements. The cyclotron extension does not add another Rep subclass.
+ */
+class RFCavity : public ElementBase {
 public:
+    /** Configure the static SINGLEGAP model before tracking. Geometry uses local
+     * x in [RMIN,RMAX] [m] along the gap and local z=0 as its directed plane.
+     * The ordinary element pose supplies all translations and rotations.
+     */
+    void configureCyclotronGap(
+            const std::string& filename, double rmin, double rmax, const CyclotronRFKick& kick);
+    bool isCyclotronGap() const { return static_cast<bool>(cyclotronProfile_m); }
+    /// Clear the discrete model before a parser reconfiguration to another type.
+    void clearCyclotronGap() { cyclotronProfile_m.reset(); }
+    /// Inclusive local-x profile support [m]; not a global machine-radius check.
+    bool gapSupports(double x) const { return x >= gapMin_m && x <= gapMax_m; }
+    /** Apply a full static proton kick in gap-local coordinates.
+     * @pre isCyclotronGap() is true and the caller has localized a positive z crossing.
+     * @param x Local coordinate along the gap [m].
+     * @param t Absolute RF time [s].
+     * @param mass Proton rest energy [eV].
+     * @param[in,out] p Local mechanical momentum [beta*gamma].
+     * @return False for out-of-support, non-median-plane or unphysical states.
+     */
+    bool applyGapKick(double x, double t, double mass, Vector_t<double, 3>& p) const {
+        return cyclotronKick_m.apply(
+                cyclotronProfile_m->host, (x - gapMin_m) / (gapMax_m - gapMin_m), t, mass, p);
+    }
+    /// Discrete gaps never contribute to continuous field lookup or apertures.
+    bool isInsideBody(const Vector_t<double, 3>& r) const override {
+        return !isCyclotronGap() && ElementBase::isInsideBody(r);
+    }
     /// Constructor with given name.
     explicit RFCavity(const std::string& name);
 
@@ -93,13 +132,9 @@ public:
             const double& p0, const double& t0, const double& dt, const double& q,
             const double& mass, std::ofstream* out = nullptr);
 
-    virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
-    virtual bool apply(
-            const size_t& i, const double& t, Vector_t<double, 3>& E,
-            Vector_t<double, 3>& B) override;
-
-    virtual bool apply(
+    virtual void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
@@ -107,7 +142,7 @@ public:
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    virtual void initialise(PartBunch_t* bunch) override;
 
     virtual void initialise(
             PartBunch_t* bunch, std::shared_ptr<AbstractTimeDependence> freq_atd,
@@ -115,8 +150,6 @@ public:
             std::shared_ptr<AbstractTimeDependence> phase_atd);
 
     virtual void finalise() override;
-
-    virtual bool bends() const override;
 
     virtual void goOnline(const double& kineticEnergy) override;
 
@@ -164,9 +197,9 @@ public:
      * \f$[z_\mathrm{field}^{\mathrm{begin}}, z_\mathrm{field}^{\mathrm{end}}]\f$
      * on which the RF field map is defined. In the placement redesign this may
      * differ from the nominal body extent returned by
-     * `getElementDimensions()`.
+     * the geometry body interval [0, L].
      */
-    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
+    virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
 
@@ -187,13 +220,8 @@ public:
      *
      * The body length is the placed hardware extent configured on the cavity
      * geometry. It is independent of the field-support extent returned by
-     * `getFieldExtend()`.
+     * `getFieldExtent()`.
      */
-    virtual double getElementLength() const override;
-    virtual void getElementDimensions(double& begin, double& end) const override;
-
-    virtual CoordinateSystemTrafo getEdgeToBegin() const override;
-    virtual CoordinateSystemTrafo getEdgeToEnd() const override;
 
 protected:
     std::shared_ptr<AbstractTimeDependence> phaseTD_m;
@@ -221,6 +249,9 @@ protected:
     double endField_m;   /**< end point of field support(m)*/
 
 private:
+    std::shared_ptr<const CyclotronRFProfile> cyclotronProfile_m;
+    CyclotronRFKick cyclotronKick_m;
+    double gapMin_m = 0, gapMax_m = 0;
     CavityType type_m;
 
     static const BiMap<CavityType, std::string> bmCavityTypeString_s;
@@ -383,16 +414,5 @@ inline void RFCavity::setFrequencyModel(std::shared_ptr<AbstractTimeDependence> 
 inline void RFCavity::setFrequencyModelName(std::string name) { frequencyName_m = name; }
 
 inline std::string RFCavity::getFrequencyModelName() { return frequencyName_m; }
-
-inline CoordinateSystemTrafo RFCavity::getEdgeToBegin() const {
-    CoordinateSystemTrafo ret(Vector_t<double, 3>({0, 0, 0}), Quaternion(1, 0, 0, 0));
-    return ret;
-}
-
-inline CoordinateSystemTrafo RFCavity::getEdgeToEnd() const {
-    CoordinateSystemTrafo ret(
-            Vector_t<double, 3>({0, 0, getElementLength()}), Quaternion(1, 0, 0, 0));
-    return ret;
-}
 
 #endif  // OPALX_RFCavity_HH

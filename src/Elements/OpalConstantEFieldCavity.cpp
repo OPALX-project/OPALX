@@ -38,7 +38,7 @@ void OpalConstantEFieldCavity::update() {
         double exMV   = Attributes::getReal(itsAttr[EX]);
         double eyMV   = Attributes::getReal(itsAttr[EY]);
         double ezMV   = Attributes::getReal(itsAttr[EZ]);
-        rep->setElementLength(length);
+        rep->getGeometry().setElementLength(length);
         rep->setEx(exMV * Units::MVpm2Vpm);
         rep->setEy(eyMV * Units::MVpm2Vpm);
         rep->setEz(ezMV * Units::MVpm2Vpm);

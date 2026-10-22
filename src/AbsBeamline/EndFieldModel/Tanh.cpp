@@ -28,85 +28,119 @@
 #include <cmath>
 
 #include "Utilities/GSLCompat.h"
+#include "Utilities/GeneralOpalException.h"
 
+#include "AbsBeamline/EndFieldModel/CompactVector.h"
 #include "AbsBeamline/EndFieldModel/Tanh.h"
 
 namespace endfieldmodel {
 
-    std::vector<std::vector<std::vector<int> > > Tanh::_tdi;
-
-    Tanh::Tanh(double x0, double lambda, int max_index) : _x0(x0), _lambda(lambda) {
-        setTanhDiffIndices(max_index);
-    }
-
-    Tanh::~Tanh() {}
-
     Tanh* Tanh::clone() const { return new Tanh(*this); }
 
-    double Tanh::getTanh(double x, int n) const {
-        if (n == 0) return tanh((x + _x0) / _lambda);
-        double t      = 0;
-        double lam_n  = gsl_sf_pow_int(_lambda, n);
-        double tanh_x = tanh((x + _x0) / _lambda);
-        for (size_t i = 0; i < _tdi[n].size(); i++)
-            t += 1. / lam_n * static_cast<double>(_tdi[n][i][0])
-                 * gsl_sf_pow_int(tanh_x, _tdi[n][i][1]);
-        return t;
+    Tanh::~Tanh() {
+        config_m.lambdaPower_m = Kokkos::View<double*>();  // deallocation
     }
 
-    double Tanh::getNegTanh(double x, int n) const {
-        if (n == 0) return tanh((x - _x0) / _lambda);
-        double t      = 0;
-        double lam_n  = gsl_sf_pow_int(_lambda, n);
-        double tanh_x = tanh((x - _x0) / _lambda);
-        for (size_t i = 0; i < _tdi[n].size(); i++)
-            t += 1. / lam_n * static_cast<double>(_tdi[n][i][0])
-                 * gsl_sf_pow_int(tanh_x, _tdi[n][i][1]);
-        return t;
+    std::ostream& Tanh::print(std::ostream& out) const {
+        out << "Tanh end field model with centre length: " << getX0()
+            << " end length: " << getLambda();
+        return out;
     }
 
-    double Tanh::function(double x, int n) const { return (getTanh(x, n) - getNegTanh(x, n)) / 2.; }
+    std::vector<std::vector<std::vector<int> > > Tanh::tdi_m;
 
-    void Tanh::setMaximumDerivative(size_t n) { setTanhDiffIndices(n); }
+    Tanh::Tanh(double x0, double lambda, int max_index) {
+        setX0(x0);
+        setLambda(lambda);
+        setMaximumDerivative(max_index);
+        initialise();
+    }
+
+    Tanh::Tanh(const Tanh& rhs) : config_m(rhs.config_m) { initialise(); }
+
+    double Tanh::function(double x, int n) const {
+        auto xDevice = Kokkos::View<double*>("efm::Tanh::xDevice", 1);
+        auto xHost   = Kokkos::create_mirror_view(xDevice);
+        xHost(0)     = x;
+        Kokkos::deep_copy(xDevice, xHost);
+        auto yDevice = Kokkos::View<double**>("efm::Tanh::yDevice", 1, n + 1);
+        auto lHost   = Kokkos::create_mirror_view(config_m.lambdaPower_m);
+        Kokkos::deep_copy(lHost, config_m.lambdaPower_m);
+
+        function(xDevice, n, yDevice);
+        auto yHost = Kokkos::create_mirror_view(yDevice);
+        Kokkos::deep_copy(yHost, yDevice);
+
+        double value = yHost(0, n);
+        return value;
+    }
+
+    void Tanh::setMaximumDerivative(size_t n) {
+        if (n > config_m.maxDerivative_m) {
+            throw GeneralOpalException(
+                    "Tanh::setMaximumDerivative",
+                    "GPU-compatible tanh derivatives are limited to order 21");
+        }
+        setTanhDiffIndices(n);
+        for (size_t i = 0; i < config_m.coefficientCount_m; ++i) {
+            config_m.coefficients_m[i] = 0;
+        }
+        for (size_t derivative = 0; derivative <= n; ++derivative) {
+            for (const auto& term : tdi_m[derivative]) {
+                config_m.coefficients_m[derivative * (config_m.maxDerivative_m + 2) + term[1]] =
+                        term[0];
+            }
+        }
+    }
 
     void Tanh::setTanhDiffIndices(size_t n) {
-        _tdi.reserve(n + 1);
-        if (_tdi.size() == 0) {
-            _tdi.push_back(std::vector<std::vector<int> >(1, std::vector<int>(2)));
-            _tdi[0][0][0] = 1;  // 1*tanh(x) - third index is redundant
-            _tdi[0][0][1] = 1;
+        tdi_m.reserve(n + 1);
+        if (tdi_m.size() == 0) {
+            tdi_m.push_back(std::vector<std::vector<int> >(1, std::vector<int>(2)));
+            tdi_m[0][0][0] = 1;  // 1*tanh(x) - third index is redundant
+            tdi_m[0][0][1] = 1;
         }
-        for (size_t i = _tdi.size(); i < n + 1; ++i) {
-            _tdi.push_back(std::vector<std::vector<int> >());
-            for (size_t j = 0; j < _tdi[i - 1].size(); ++j) {
-                int value = _tdi[i - 1][j][1];
+        for (size_t i = tdi_m.size(); i < n + 1; ++i) {
+            tdi_m.push_back(std::vector<std::vector<int> >());
+            for (size_t j = 0; j < tdi_m[i - 1].size(); ++j) {
+                int value = tdi_m[i - 1][j][1];
                 if (value != 0) {
-                    std::vector<int> new_vec(_tdi[i - 1][j]);
+                    std::vector<int> new_vec(tdi_m[i - 1][j]);
                     new_vec[0] *= value;
                     new_vec[1] -= 1;
-                    _tdi[i].push_back(new_vec);
-                    std::vector<int> new_vec2(_tdi[i - 1][j]);
+                    tdi_m[i].push_back(new_vec);
+                    std::vector<int> new_vec2(tdi_m[i - 1][j]);
                     new_vec2[0] *= -value;
                     new_vec2[1] += 1;
-                    _tdi[i].push_back(new_vec2);
+                    tdi_m[i].push_back(new_vec2);
                 }
             }
-            _tdi[i] = CompactVector(_tdi[i]);
+            tdi_m[i] = compactVector(tdi_m[i]);
         }
     }
 
     std::vector<std::vector<int> > Tanh::getTanhDiffIndices(size_t n) {
         setTanhDiffIndices(n);
-        return _tdi[n];
+        return tdi_m[n];
     }
 
     void Tanh::rescale(double scaleFactor) {
-        _x0 *= scaleFactor;
-        _lambda *= scaleFactor;
+        config_m.x0_m *= scaleFactor;
+        config_m.lambda_m *= scaleFactor;
+        initialise();
     }
 
-    std::ostream& Tanh::print(std::ostream& out) const {
-        out << "Tanh model with centre length: " << _x0 << " end length: " << _lambda;
-        return out;
+    void Tanh::initialise() {
+        config_m.lambdaPower_m =
+                Kokkos::View<double*>("efm::Tanh::lambdaPower", config_m.maxDerivative_m);
+        auto lHost = Kokkos::create_mirror_view(config_m.lambdaPower_m);
+        lHost[0]   = 1.0;
+        for (size_t i = 1; i < config_m.maxDerivative_m; ++i) {
+            lHost(i) = lHost(i - 1) * config_m.lambda_m;
+        }
+        Kokkos::deep_copy(config_m.lambdaPower_m, lHost);
     }
+
+    void Tanh::finalise() { config_m.lambdaPower_m = Kokkos::View<double*>(); }
+
 }  // namespace endfieldmodel

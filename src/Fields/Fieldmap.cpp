@@ -17,7 +17,6 @@
 #include "Fields/FM1DProfile1.h"
 #include "Fields/FM1DProfile2.h"
 #include "Fields/FM2DElectroStatic.h"
-#include "Fields/FM3DDynamic.h"
 #include "Fields/FM3DH5Block.h"
 #include "Fields/FM3DH5BlockBase.h"
 #include "Fields/FM3DH5Block_nonscale.h"
@@ -31,12 +30,17 @@
 #include "Fields/Astra1DMagnetoStatic.h"
 #include "Fields/FM2DDynamic.h"
 #include "Fields/FM2DMagnetoStatic.h"
+#include "Fields/FM3DDynamic.h"
+#include "Fields/G4BL2DMagnetoStatic.h"
+#include "Fields/G4BL3DGrid.h"
 
 #include "Physics/Physics.h"
 #include "Utilities/GeneralOpalException.h"
 #include "Utilities/Util.h"
 
 #include "H5hut.h"
+
+#include <Kokkos_Core.hpp>
 
 #include <filesystem>
 
@@ -47,9 +51,26 @@
 #include <iomanip>
 #include <ios>
 #include <iostream>
+#include <new>
 #include <sstream>
 
 namespace fs = std::filesystem;
+
+namespace {
+    /// Stop with a message that names the map and says what to do. `failure` is the text of
+    /// the allocation error, which says how much memory was asked for and where.
+    [[noreturn]] void throwOutOfMemory(const std::string& filename, const std::string& failure) {
+        throw GeneralOpalException(
+                "Fieldmap::readMap",
+                "Field map '" + filename + "' does not fit in memory. Loading it failed with:\n  "
+                        + failure
+                        + "\nEvery MPI rank holds its own copy of the map, and GPU builds keep "
+                          "one copy on the CPU and one on the GPU.\nTo make it fit, do one of:\n"
+                          "  - use a coarser grid or a smaller box for this map,\n"
+                          "  - run fewer MPI ranks per node,\n"
+                          "  - run on nodes with more memory.");
+    }
+}  // namespace
 
 #define REGISTER_PARSE_TYPE(X)            \
     template <>                           \
@@ -67,13 +88,25 @@ namespace fs = std::filesystem;
  *
  * @param Filename Absolute path to the fieldmap file.
  * @param fast Not implemented. Previously attempted to load a "fast" version.
+ * @param zReverse Load the map mirrored in z with the longitudinal component
+ * negated. Only G4beamline cylinder maps support this; the other readers throw
+ * when it is set.
  * @return Fieldmap* Pointer to the managed fieldmap instance.
  */
-Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/) {
+Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/, bool zReverse) {
     std::map<std::string, FieldmapDescription>::iterator position =
             FieldmapDictionary.find(Filename);
     /// Found matching entry?
     if (position != FieldmapDictionary.end()) {
+        // The cache is keyed on the filename alone, so the same file cannot be
+        // held in two orientations at once.
+        if ((*position).second.Map->isZReversed() != zReverse) {
+            throw GeneralOpalException(
+                    "Fieldmap::getFieldmap()",
+                    "Fieldmap \"" + Filename
+                            + "\" is already loaded with the opposite ZREVERSE setting. The same "
+                              "file cannot be used in both orientations in one run");
+        }
         (*position).second.RefCounter++;
         /// Return fieldmap pointer
         return (*position).second.Map;
@@ -82,6 +115,13 @@ Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/) {
         std::pair<std::map<std::string, FieldmapDescription>::iterator, bool> position;
         /// Determine fieldmap type
         type = readHeader(Filename);
+
+        if (zReverse && type != TG4BL2DMagnetoStatic) {
+            throw GeneralOpalException(
+                    "Fieldmap::getFieldmap()",
+                    "ZREVERSE is only supported for G4beamline cylinder field maps, not for \""
+                            + Filename + "\"");
+        }
         /**
          * @brief Based on type:
          * - Create new fieldmap object by parsing the fieldmap file
@@ -99,6 +139,23 @@ Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/) {
                 return (*position.first).second.Map;
                 break;
 
+            case TG4BL2DMagnetoStatic:
+                position = FieldmapDictionary.insert(
+                        std::make_pair(
+                                Filename, FieldmapDescription(
+                                                  TG4BL2DMagnetoStatic,
+                                                  new G4BL2DMagnetoStatic(Filename, zReverse))));
+                return (*position.first).second.Map;
+                break;
+
+            case TG4BL3DGrid:
+                position = FieldmapDictionary.insert(
+                        std::make_pair(
+                                Filename,
+                                FieldmapDescription(TG4BL3DGrid, new G4BL3DGrid(Filename))));
+                return (*position.first).second.Map;
+                break;
+
             case T2DDynamic:
                 position = FieldmapDictionary.insert(
                         std::make_pair(
@@ -106,6 +163,13 @@ Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/) {
                                 FieldmapDescription(T2DDynamic, new FM2DDynamic(Filename))));
                 return (*position.first).second.Map;
                 break;
+
+            case T3DDynamic:
+                position = FieldmapDictionary.insert(
+                        std::make_pair(
+                                Filename,
+                                FieldmapDescription(T3DDynamic, new FM3DDynamic(Filename))));
+                return (*position.first).second.Map;
 
             case TAstraDynamic:
                 // if (fast) {
@@ -295,6 +359,27 @@ MapType Fieldmap::readHeader(std::string Filename) {
         }
     }
 
+    /**
+     * G4beamline maps carry no descriptor. They open with an optional `param`
+     * line followed by the section keyword that names the grid type, so look
+     * for that keyword instead of a magic number.
+     */
+    if (std::strcmp(magicnumber, "para") == 0 || std::strcmp(magicnumber, "cyli") == 0
+        || std::strcmp(magicnumber, "grid") == 0) {
+        std::string section = buffer.substr(0, buffer.find_first_of(" \t"));
+        while (section == "param" && !File.eof()) {
+            getLine(File, lines_read_m, buffer);
+            section = buffer.substr(0, buffer.find_first_of(" \t"));
+        }
+
+        if (section == "cylinder") {
+            return TG4BL2DMagnetoStatic;
+        }
+        if (section == "grid") {
+            return TG4BL3DGrid;
+        }
+    }
+
     return UNKNOWN;
 }
 
@@ -303,7 +388,22 @@ void Fieldmap::readMap(std::string Filename) {
             FieldmapDictionary.find(Filename);
     if (position != FieldmapDictionary.end())
         if (!(*position).second.read) {
-            (*position).second.Map->readMap();
+            // A failed allocation is turned into a message that names the map. freeMap()
+            // first releases whatever was allocated before the failure.
+            try {
+                (*position).second.Map->readMap();
+            }
+#if KOKKOS_VERSION >= 50200
+            // Kokkos 5.2 and later throw this, which is not a std::bad_alloc.
+            catch (const Kokkos::Experimental::BadAlloc& e) {
+                (*position).second.Map->freeMap();
+                throwOutOfMemory(Filename, e.what());
+            }
+#endif
+            catch (const std::bad_alloc& e) {
+                (*position).second.Map->freeMap();
+                throwOutOfMemory(Filename, e.what());
+            }
             (*position).second.read = true;
         }
 }
@@ -417,16 +517,14 @@ void Fieldmap::getLine(std::ifstream& in, int& lines_read, std::string& buffer) 
 
     do {
         ++lines_read;
-        in.getline(buffer_m, READ_BUFFER_LENGTH);
-
-        buffer = std::string(buffer_m);
+        std::getline(in, buffer);
 
         size_t comment = buffer.find("#");
         buffer         = buffer.substr(0, comment);
 
         lastof  = buffer.find_last_of(alpha_numeric);
         firstof = buffer.find_first_of(alpha_numeric);
-    } while (!in.eof() && lastof == std::string::npos);
+    } while (in.good() && lastof == std::string::npos);
 
     if (firstof != std::string::npos) {
         buffer = buffer.substr(firstof, lastof - firstof + 1);
@@ -434,10 +532,9 @@ void Fieldmap::getLine(std::ifstream& in, int& lines_read, std::string& buffer) 
 }
 
 bool Fieldmap::interpreteEOF(std::ifstream& in) {
-    while (!in.eof()) {
+    std::string buffer;
+    while (std::getline(in, buffer)) {
         ++lines_read_m;
-        in.getline(buffer_m, READ_BUFFER_LENGTH);
-        std::string buffer(buffer_m);
         size_t comment = buffer.find_first_of("#");
         buffer         = buffer.substr(0, comment);
         size_t lasto   = buffer.find_first_of(alpha_numeric);
@@ -677,4 +774,3 @@ std::string Fieldmap::alpha_numeric(
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-+\211");
 std::map<std::string, Fieldmap::FieldmapDescription> Fieldmap::FieldmapDictionary =
         std::map<std::string, Fieldmap::FieldmapDescription>();
-char Fieldmap::buffer_m[READ_BUFFER_LENGTH];

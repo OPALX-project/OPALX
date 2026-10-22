@@ -110,7 +110,7 @@ Distribution::Distribution()
       avrgpz_m(0.0) {
     itsAttr[DISTRIBUTION::TYPE] = Attributes::makePredefinedString(
             "TYPE", "Distribution type.",
-            {"GAUSS", "MULTIVARIATEGAUSS", "FLATTOP", "OPALFLATTOP", "FROMFILE",
+            {"UNIFORM", "GAUSS", "MULTIVARIATEGAUSS", "FLATTOP", "OPALFLATTOP", "FROMFILE",
              "EMITTEDFROMFILE"});
 
     itsAttr[DISTRIBUTION::FNAME] =
@@ -246,6 +246,9 @@ Inform& Distribution::printInfo(Inform& os) const {
         os << "* In restart. Distribution read in from .h5 file." << endl;
     } else {
         switch (distrTypeT_m) {
+            case DistributionType::UNIFORM:
+                printDistUniform(os);
+                break;
             case DistributionType::GAUSS:
                 printDistGauss(os);
                 break;
@@ -271,6 +274,18 @@ Inform& Distribution::printInfo(Inform& os) const {
        << endl;
 
     return os;
+}
+
+void Distribution::setDistParametersUniform() {
+    setSigmaR_m();
+    for (unsigned d = 0; d < 3; ++d) {
+        if (sigmaR_m[d] <= 0.0) {
+            throw OpalException(
+                    "Distribution::setDistParametersUniform",
+                    "UNIFORM requires SIGMAX, SIGMAY and SIGMAZ to be greater than zero.");
+        }
+    }
+    avrgpz_m = 0.0;
 }
 
 void Distribution::setAvrgPz(double avrgpz) { avrgpz_m = avrgpz; }
@@ -322,7 +337,6 @@ void Distribution::setDistParametersMultiVariateGauss() {
     cutoffR_m = 3.;
     cutoffP_m = 3.;
 
-    // initialize the covariance matrix to identity
     for (unsigned int i = 0; i < 6; ++i) {
         for (unsigned int j = 0; j < 6; ++j) {
             if (i == j)
@@ -332,26 +346,20 @@ void Distribution::setDistParametersMultiVariateGauss() {
         }
     }
 
-    // set diagonal elements first
     setSigmaR_m();
     setSigmaP_m();
-
-    for (unsigned int i = 0; i < 3; ++i) {
-        correlationMatrix_m[2 * i][2 * i]         = sigmaR_m[i] * sigmaR_m[i];
-        correlationMatrix_m[2 * i + 1][2 * i + 1] = sigmaP_m[i] * sigmaP_m[i];
-    }
 
     std::vector<double> cr = Attributes::getRealArray(itsAttr[DISTRIBUTION::CORR]);
 
     if (!cr.empty()) {
-        // read off-diagonal correlation matrix from input file
+        // read off-diagonal correlation coefficients from input file
         if (cr.size() == 15) {
-            *gmsg << "* Use r to specify correlations" << endl;
+            *gmsg << "* Using CORR to specify off-diagonal correlation coefficients" << endl;
             unsigned int k = 0;
             for (unsigned int i = 0; i < 5; ++i) {
                 for (unsigned int j = i + 1; j < 6; ++j, ++k) {
-                    correlationMatrix_m[j][i] = cr.at(k) * cr.at(k);
-                    correlationMatrix_m[i][j] = correlationMatrix_m[j][i];  // impose symmetry
+                    correlationMatrix_m[j][i] = cr.at(k);
+                    correlationMatrix_m[i][j] = cr.at(k);  // impose symmetry
                 }
             }
         } else {
@@ -442,6 +450,12 @@ void Distribution::printDistGauss(Inform& os) const {
     os << "* SIGMAPZ    = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
 }
 
+void Distribution::printDistUniform(Inform& os) const {
+    os << "* Distribution type: UNIFORM" << endl;
+    os << "* Uniform ellipsoid semi-axes [m]: " << sigmaR_m << endl;
+    os << "* Cold momentum: P = (0, 0, " << avrgpz_m << ") [Beta Gamma]" << endl;
+}
+
 void Distribution::printDistMultiVariateGauss(Inform& os) const {
     os << "* Distribution type: MULTIVARIATEGAUSS" << endl;
     os << "* " << endl;
@@ -452,7 +466,7 @@ void Distribution::printDistMultiVariateGauss(Inform& os) const {
     os << "* SIGMAPY    = " << sigmaP_m[1] << " [Beta Gamma]" << endl;
     os << "* SIGMAPZ    = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
 
-    os << "* input cov matrix = ";
+    os << "* input correlation matrix = ";
     for (unsigned int i = 0; i < 6; ++i) {
         for (unsigned int j = 0; j < 6; ++j) {
             os << correlationMatrix_m[i][j] << " ";
@@ -513,8 +527,18 @@ void Distribution::setAttributes() {
 void Distribution::setDist() {
     // set distribution type
     setDistType();
+
+    // This flag is used for every distribution type during checkpoint restart
+    // validation. Initialize it from the input before dispatching to the
+    // type-specific setup; otherwise non-flat-top distributions leave it
+    // indeterminate.
+    emitting_m = Attributes::getBool(itsAttr[DISTRIBUTION::EMITTED]);
+
     // set distribution parameters
     switch (distrTypeT_m) {
+        case DistributionType::UNIFORM:
+            setDistParametersUniform();
+            break;
         case DistributionType::GAUSS:
             setDistParametersGauss();
             break;
@@ -526,8 +550,13 @@ void Distribution::setDist() {
             setDistParametersFlatTop();
             break;
         case DistributionType::FROMFILE:
-        case DistributionType::EMITTEDFROMFILE:
             // File-based distributions read their records in the sampler class.
+            break;
+        case DistributionType::EMITTEDFROMFILE:
+            // The file stores sampled particle birth times, but not necessarily the full old-OPAL
+            // emission window. Parse the flat-top timing attributes when present so the sampler can
+            // reconstruct the original phase shift.
+            setDistParametersFlatTop();
             break;
         default:
             throw OpalException("Distribution Param", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
@@ -537,6 +566,7 @@ void Distribution::setDist() {
 void Distribution::setDistType() {
     static const std::map<std::string, DistributionType> typeStringToDistType_s = {
             {"NODIST", DistributionType::NODIST},
+            {"UNIFORM", DistributionType::UNIFORM},
             {"GAUSS", DistributionType::GAUSS},
             {"MULTIVARIATEGAUSS", DistributionType::MULTIVARIATEGAUSS},
             {"FLATTOP", DistributionType::FLATTOP},
