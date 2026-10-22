@@ -18,17 +18,17 @@
 // ------------------------------------------------------------------------
 
 #include "OpalParser/CompoundStatement.h"
-#include "AbstractObjects/OpalData.h"
+#include <memory>
+#include "OpalParser/MacroStream.h"
 #include "OpalParser/Parser.h"
 
 // class CompoundStatement
 // ------------------------------------------------------------------------
 
-CompoundStatement::CompoundStatement(TokenStream& is) : Statement("", 0), tokens(0) {
+CompoundStatement::CompoundStatement(TokenStream& is) : Statement("", 0), tokens() {
     Token token = is.readToken();
     buffer_name = token.getFile();
     stat_line   = token.getLine();
-    tokens      = std::make_shared<MacroStream>(token.getFile());
 
     // Skip opening brace.
     int level = 1;
@@ -41,7 +41,7 @@ CompoundStatement::CompoundStatement(TokenStream& is) : Statement("", 0), tokens
             if (--level == 0) return;
         }
 
-        tokens->append(token);
+        tokens.push_back(token);
         token = is.readToken();
     }
 }
@@ -49,6 +49,9 @@ CompoundStatement::CompoundStatement(TokenStream& is) : Statement("", 0), tokens
 CompoundStatement::~CompoundStatement() {}
 
 void CompoundStatement::execute(const Parser& parser) {
-    tokens->start();
-    parser.run(&*tokens);
+    auto stream = std::make_unique<MacroStream>(buffer_name);
+    for (Token token : tokens)
+        stream->append(token);
+    stream->start();
+    parser.run(stream.release());
 }
