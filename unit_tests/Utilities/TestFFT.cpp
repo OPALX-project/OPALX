@@ -8,8 +8,8 @@
  *
  * \test FFTTest::ComplexFFT_Identity
  * Tests FFT of a constant signal. Verifies basic FFT functionality for
- * complex data. A constant signal should transform to a DC component in
- * the frequency domain.
+ * complex data. A constant signal should transform to a DC component equal
+ * to \f$n\f$ times the constant, with all other components zero.
  *
  * \test FFTTest::RealFFT_Transform
  * Tests forward FFT for real-valued data. Verifies that real input data is
@@ -73,19 +73,29 @@ protected:
 };
 
 TEST_F(FFTTest, ComplexFFT_Identity) {
-    // Test FFT of a constant signal
-    std::vector<std::complex<double>> data(8, std::complex<double>(1.0, 0.0));
+    // Constant signal 1 + 0i: interleaved as [Re_0, Im_0, Re_1, Im_1, ...]
+    const size_t n = 8;
+    std::vector<double> data(2 * n);
+    for (size_t i = 0; i < n; ++i) {
+        data[2 * i]     = 1.0;
+        data[2 * i + 1] = 0.0;
+    }
 
-    // Create a copy for FFT
-    std::vector<std::complex<double>> fft_data = data;
+    gsl_fft_complex_wavetable* wavetable = gsl_fft_complex_wavetable_alloc(n);
+    gsl_fft_complex_workspace* workspace = gsl_fft_complex_workspace_alloc(n);
 
-    // Perform FFT (using the internal fft function)
-    // Note: This tests the internal implementation
-    // For GSL-compatible interface, we'd use gsl_fft_complex_forward
+    gsl_fft_complex_forward(data.data(), 1, n, wavetable, workspace);
 
-    // Simple test: constant signal should have DC component only
-    // (This is a simplified test - actual FFT would require the internal function)
-    EXPECT_EQ(data.size(), 8);
+    // Only the DC component is non-zero and equals n (forward is unnormalized)
+    EXPECT_NEAR(data[0], static_cast<double>(n), 1e-10);
+    EXPECT_NEAR(data[1], 0.0, 1e-10);
+    for (size_t i = 1; i < n; ++i) {
+        EXPECT_NEAR(data[2 * i], 0.0, 1e-10);
+        EXPECT_NEAR(data[2 * i + 1], 0.0, 1e-10);
+    }
+
+    gsl_fft_complex_wavetable_free(wavetable);
+    gsl_fft_complex_workspace_free(workspace);
 }
 
 TEST_F(FFTTest, RealFFT_Transform) {
