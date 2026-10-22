@@ -77,6 +77,9 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
         return;
     }
 
+    // The sampler expects strictly positive cutoffs (in units of sigma). "No cut" is
+    // expressed as a very large value, e.g. std::numeric_limits<double>::max(), which
+    // is what Distribution::setDistParametersGauss substitutes for a zero input cutoff.
     for (unsigned d = 0; d < 3; ++d) {
         if (!(cutoffR_m[d] > 0.0) || !(cutoffP_m[d] > 0.0)) {
             throw OpalException(

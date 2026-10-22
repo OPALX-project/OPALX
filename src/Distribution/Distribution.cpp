@@ -43,6 +43,7 @@
 #include <cmath>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <map>
 #include <numeric>
 
@@ -322,13 +323,22 @@ void Distribution::setDistParametersGauss() {
             std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFY])),
             std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFLONG])));
 
+    // As in OPAL, a (numerically) zero cutoff means "no cut" for CUTOFFX, CUTOFFY,
+    // CUTOFFPX, CUTOFFPY and CUTOFFPZ. CUTOFFLONG is excluded: |z| <= 0 would reject
+    // every sample (OPAL loops forever in that case), so it must be positive.
+    constexpr double smallestCutoff = 1e-12;
     for (unsigned d = 0; d < 3; ++d) {
-        if (cutoffR_m[d] <= 0.0 || cutoffP_m[d] <= 0.0) {
-            throw OpalException(
-                    "Distribution::setDistParametersGauss",
-                    "CUTOFFX, CUTOFFY, CUTOFFLONG, CUTOFFPX, CUTOFFPY and CUTOFFPZ must be "
-                    "greater than zero.");
+        if (d != 2 && cutoffR_m[d] < smallestCutoff) {
+            cutoffR_m[d] = std::numeric_limits<double>::max();
         }
+        if (cutoffP_m[d] < smallestCutoff) {
+            cutoffP_m[d] = std::numeric_limits<double>::max();
+        }
+    }
+    if (cutoffR_m[2] < smallestCutoff) {
+        throw OpalException(
+                "Distribution::setDistParametersGauss",
+                "CUTOFFLONG must be greater than zero (a zero cutoff would reject all samples).");
     }
 
     setSigmaR_m();

@@ -2,6 +2,7 @@
 #include <mpi.h>
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <memory>
 
 #include "Attributes/Attributes.h"
@@ -332,6 +333,56 @@ TEST_F(GaussianTest, meanP_and_steddevP) {
     EXPECT_NEAR(sigmaP[0], sigmaP_ref[0] * ellipticalCutMarginalSd(cutoffP[0]), tol);
     EXPECT_NEAR(sigmaP[1], sigmaP_ref[1] * ellipticalCutMarginalSd(cutoffP[1]), tol);
     EXPECT_NEAR(sigmaP[2], sigmaP_ref[2] * truncatedNormalSd(cutoffP[2]), tol);
+}
+
+// A very large cutoff (what Distribution substitutes for CUTOFF* = 0, as in OPAL)
+// disables the truncation: the sample is an untruncated normal.
+TEST_F(GaussianTest, largeCutoffDisablesTruncation) {
+    const Vector_t<double, 3> sigmaR = 1.0;
+    const Vector_t<double, 3> sigmaP = 1.0;
+    const double avrgpz              = 0.0;
+    const double noCut               = std::numeric_limits<double>::max();
+    const Vector_t<double, 3> cutoffR(noCut, noCut, 3.0);
+    const Vector_t<double, 3> cutoffP(noCut, noCut, noCut);
+    Gaussian sampler(pc, sigmaR, sigmaP, avrgpz, cutoffR, false, cutoffP);
+
+    size_t total_nparticles = 100000;
+    preallocateParticleCapacity(pc, total_nparticles);
+    sampler.generateParticles(total_nparticles, nr);
+
+    auto r = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+    auto p = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->P.getView());
+    double locMax[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, globMax[6];
+    for (size_t i = 0; i < pc->getLocalNum(); ++i) {
+        for (unsigned d = 0; d < 3; ++d) {
+            locMax[d]     = std::max(locMax[d], std::abs(r(i)[d]));
+            locMax[3 + d] = std::max(locMax[3 + d], std::abs(p(i)[d]));
+        }
+        EXPECT_TRUE(std::isfinite(r(i)[0]) && std::isfinite(r(i)[1]) && std::isfinite(p(i)[2]));
+    }
+    MPI_Allreduce(locMax, globMax, 6, MPI_DOUBLE, MPI_MAX, ippl::Comm->getCommunicator());
+
+    // P(|x| > 3 sigma) = 2.7e-3, i.e. ~270 of 1e5 samples lie beyond the former cut;
+    // P(|x| > 5 sigma) = 5.7e-7, so the untruncated maximum stays below 5.5 sigma.
+    for (unsigned d : {0u, 1u, 3u, 4u, 5u}) {
+        EXPECT_GT(globMax[d], 3.0);
+        EXPECT_LT(globMax[d], 5.5);
+    }
+    EXPECT_LE(globMax[2], cutoffR[2]);  // z keeps its per-axis cut
+
+    auto Rview = pc->R.getView();
+    auto Pview = pc->P.getView();
+    double meanR[3], meanP[3], sdR[3], sdP[3];
+    computeMean(Rview, pc->getLocalNum(), total_nparticles, meanR);
+    computeMean(Pview, pc->getLocalNum(), total_nparticles, meanP);
+    computeStdDev(Rview, pc->getLocalNum(), total_nparticles, meanR, sdR);
+    computeStdDev(Pview, pc->getLocalNum(), total_nparticles, meanP, sdP);
+    const double tol = 4.0 / std::sqrt(2.0 * total_nparticles);
+    EXPECT_NEAR(sdR[0], 1.0, tol);
+    EXPECT_NEAR(sdR[1], 1.0, tol);
+    EXPECT_NEAR(sdP[0], 1.0, tol);
+    EXPECT_NEAR(sdP[1], 1.0, tol);
+    EXPECT_NEAR(sdP[2], 1.0, tol);
 }
 
 // Without the phase-space adjustment the sampled means are only statistically zero
