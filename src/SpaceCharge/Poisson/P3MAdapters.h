@@ -235,7 +235,7 @@ namespace opalx::spacecharge {
 
             ContainerView container(particles);
             ChargeView charge(
-                    particles.getQView(),
+                    particles.getQStorageView(),
                     particles.getQMStorageMode() == ParticleContainer::QMStorageMode::Attributes);
 
             ippl::ParameterList parameters;
