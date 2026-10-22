@@ -136,9 +136,14 @@ public:
      *           cylindrical polar coordinates defined like (r, y, phi)
      *  \param B calculated magnetic field defined like (Br, By, Bphi)
      *  \returns true if particle is outside the field map, else false
+     *
+     *  The function is templated because we can't determine at compile time what
+     *  is the output of a Kokkos subview (it depends on the number of threads).
+     *  See the code in getFieldValue(...)
      */
+    template <class C>
     KOKKOS_INLINE_FUNCTION static void getFieldValueCylindrical(
-            const ScalingFFAMagnetConfig& config, const Kokkos::View<double*>& derivatives,
+            const ScalingFFAMagnetConfig& config, const C& derivatives,
             const Vector_t<double, 5>& Rcyl, Vector_t<double, 3>& B);
 
     /** Calculate the field at some arbitrary position in cylindrical coordinates
@@ -370,12 +375,11 @@ inline void ScalingFFAMagnet::getFieldValue(
         const std::shared_ptr<endfieldmodel::EndFieldModel> endField,
         const Kokkos::View<Vector_t<double, 3>*> R, const Kokkos::View<Vector_t<double, 3>*> B) {
     const size_t count = R.size();
-    const Kokkos::View<Vector_t<double, 5>*> Rcyl("Rcyl", count);
-    const Kokkos::View<Vector_t<double, 3>*> Bcyl("Bcyl", count);
-
+    Kokkos::View<Vector_t<double, 5>*> Rcyl("Rcyl", count);
+    Kokkos::View<Vector_t<double, 3>*> Bcyl("Bcyl", count);
     Kokkos::View<double**> derivatives("derivatives", count, config.maxOrder_m + 2);
     Kokkos::parallel_for(
-            "ScalingFFAMagnet::getFieldValue()", count,
+            "ScalingFFAMagnet::getCylindricalCoordinates()", count,
             KOKKOS_LAMBDA(const size_t i) { getCylindricalCoordinates(config, R(i), Rcyl(i)); });
     Kokkos::View<double*> phiSpiral("phiSpiral", count);
     Kokkos::parallel_for(
@@ -385,7 +389,7 @@ inline void ScalingFFAMagnet::getFieldValue(
     endField->function(phiSpiral, config.maxOrder_m + 1, derivatives);
     Kokkos::parallel_for(
             "ScalingFFAMagnet::getFieldValue()", count, KOKKOS_LAMBDA(const size_t i) {
-                Kokkos::View<double*> derivatives_i = Kokkos::subview(derivatives, i, Kokkos::ALL);
+                auto derivatives_i = Kokkos::subview(derivatives, i, Kokkos::ALL);
                 getFieldValueCylindrical(config, derivatives_i, Rcyl(i), Bcyl(i));
                 rotateBfield(config, Rcyl(i), Bcyl(i), B(i));
             });
@@ -420,10 +424,10 @@ void ScalingFFAMagnet::rotateBfield(
     Bi[2] = Bcyli[0] * Kokkos::sin(phi) + Bcyli[2] * Kokkos::cos(phi);
 }
 
-KOKKOS_INLINE_FUNCTION
-void ScalingFFAMagnet::getFieldValueCylindrical(
-        const ScalingFFAMagnetConfig& config, const Kokkos::View<double*>& derivatives,
-        const Vector_t<double, 5>& rCyl, Vector_t<double, 3>& B) {
+template <class C>
+KOKKOS_INLINE_FUNCTION void ScalingFFAMagnet::getFieldValueCylindrical(
+        const ScalingFFAMagnetConfig& config, const C& derivatives, const Vector_t<double, 5>& rCyl,
+        Vector_t<double, 3>& B) {
     double r          = rCyl[0];
     double z          = rCyl[1];
     double normRadius = rCyl[3];
