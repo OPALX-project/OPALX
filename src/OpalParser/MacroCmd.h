@@ -3,7 +3,7 @@
 //
 //   This class parses the MACRO command.
 //   Encapsulate the buffer for the ``archetypes'' of all macros.
-//   The macro is stored as a MacroStream.  For execution, first the
+//   The macro is stored as tokens. For execution, first the
 //   parameters are replaced, then the resulting stream is sent to the parser.
 //
 // Copyright (c) 2008 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
@@ -24,10 +24,9 @@
 #define OPALX_MacroCmd_HH
 
 #include <iosfwd>
-#include <memory>
 #include <string>
+#include <vector>
 #include "OpalParser/Macro.h"
-#include "OpalParser/MacroStream.h"
 
 // Class MacroCmd
 // ------------------------------------------------------------------------
@@ -56,11 +55,11 @@ private:
     MacroCmd(const MacroCmd&);
     void operator=(const MacroCmd&);
 
-    // The stream of tokens representing the macro command.
-    std::shared_ptr<MacroStream> body;
+    // Stored tokens are independent of the parser-owned execution stream.
+    std::vector<Token> body;
 
     // Pointer to the parser to be used in execution.
-    const Parser* itsParser;
+    const Parser* itsParser{nullptr};
 };
 
 #endif  // OPALX_MacroCmd_HH
