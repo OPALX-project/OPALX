@@ -28,7 +28,6 @@
 #include "BasicActions/Call.h"
 #include "BasicActions/Option.h"
 #include "OpalParser/MacroCmd.h"
-#include "OpalParser/MacroStream.h"
 #include "OpalParser/CompoundStatement.h"
 #include "OpalParser/IfStatement.h"
 #include "OpalParser/WhileStatement.h"
@@ -42,6 +41,7 @@
 #include <new>
 #include "OpalParser/SimpleStatement.h"
 #include "OpalParser/Token.h"
+#include "OpalParser/TokenStream.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/ParseError.h"
@@ -395,6 +395,9 @@ void OpalParser::parseMacro(const std::string& macName, Statement& stat) const {
     // Skip argument list.
     int par_level = 1;
     while (true) {
+        if (stat.atEnd()) {
+            throw ParseError("OpalParser::parseMacro()", "MACRO argument list is not closed.");
+        }
         if (stat.delimiter('(')) {
             ++par_level;
         } else if (stat.delimiter(')')) {
@@ -428,14 +431,8 @@ void OpalParser::parseMacro(const std::string& macName, Statement& stat) const {
         if (Object* macro = OpalData::getInstance()->find(macName)) {
             // Backtrack to first argument.
             stat.restore();
-            Object* instance = 0;
-            try {
-                instance = macro->makeInstance(macName, stat, this);
-                execute(instance, macName);
-            } catch (...) {
-                delete instance;
-                throw;
-            }
+            std::unique_ptr<Object> instance(macro->makeInstance(macName, stat, this));
+            execute(instance.get(), macName);
         } else {
             throw ParseError("OpalParser::parseMacro()", "Macro \"" + macName + "\" is unknown.");
         }
@@ -613,7 +610,7 @@ Statement* OpalParser::readStatement(TokenStream* is) const {
 
 void OpalParser::run() const {
     stopFlag = false;
-    while (Statement* stat = readStatement(&*inputStack.back())) {
+    while (std::unique_ptr<Statement> stat{readStatement(&*inputStack.back())}) {
         try {
             // The dispatch via Statement::execute() allows a special
             // treatment of structured statements.
@@ -634,20 +631,13 @@ void OpalParser::run() const {
             MPI_Abort(MPI_COMM_WORLD, -100);
         }
 
-        delete stat;
         if (stopFlag) break;
     }
 }
 
 void OpalParser::run(TokenStream* is) const {
-    // Macro/compound buffers are already owned by their statements and may be
-    // reused (for example by WHILE). Validation must not delete those buffers
-    // when a nested parse returns. File streams retain their existing ownership.
-    if (Options::parseOnly && dynamic_cast<MacroStream*>(is)) {
-        inputStack.emplace_back(is, [](TokenStream*) {});
-    } else {
-        inputStack.push_back(std::shared_ptr<TokenStream>(is));
-    }
+    // Callers transfer ownership, including fresh macro/compound streams.
+    inputStack.push_back(std::shared_ptr<TokenStream>(is));
     try {
         run();
     } catch (...) {
