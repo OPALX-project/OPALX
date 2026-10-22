@@ -21,17 +21,14 @@
 
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/OpalData.h"
+#include "Algorithms/PartData.h"
 #include "Attributes/Attributes.h"
-#include "Expressions/SAutomatic.h"
-#include "Expressions/SRefExpr.h"
 #include "Physics/ParticleProperties.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Options.h"
 
 #include <cmath>
-#include <iterator>
 
 using namespace Expressions;
 
@@ -331,7 +328,7 @@ double Beam::getCharge() const { return Attributes::getReal(itsAttr[CHARGE]); }
 
 double Beam::getMass() const { return Attributes::getReal(itsAttr[MASS]); }
 
-double Beam::getMomentum() const { return reference.getP() / 1.e9; }
+double Beam::getMomentum() const { return reference.getP() * Units::eV2GeV; }
 
 std::string Beam::getParticleName() const { return Attributes::getString(itsAttr[PARTICLE]); }
 
@@ -421,8 +418,7 @@ void Beam::print(std::ostream& os) const {
        << "* PARTICLE    " << Attributes::getString(itsAttr[PARTICLE]) << '\n'
        << "* REST MASS   " << Attributes::getReal(itsAttr[MASS]) << " [GeV]\n"
        << "* CHARGE      " << (charge > 0 ? '+' : '-') << "e * " << std::abs(charge) << " \n"
-       << "* MOMENTUM    " << reference.getP() << " [eV/c]\n"
-       << "* MOMENTUM    " << Attributes::getReal(itsAttr[PC]) << " [GeV/c]\n"
+       << "* MOMENTUM    " << getMomentum() << " [GeV/c]\n"
        << "* BCHARGE     " << Attributes::getReal(itsAttr[BCHARGE]) << " [C]\n"
        << "* NALLOC      " << Attributes::getReal(itsAttr[NALLOC]) << '\n';
     os << "* ********************************************************************************** "
