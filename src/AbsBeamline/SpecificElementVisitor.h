@@ -20,6 +20,7 @@
 
 #include <list>
 
+#include "AbsBeamline/BeamBeam.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/ConstantEFieldCavity.h"
@@ -112,6 +113,9 @@ public:
 
     /// Apply the algorithm to a drift.
     virtual void visitDrift(const Drift&);
+
+    /// Apply the algorithm to a beam-beam interaction element.
+    virtual void visitBeamBeam(const BeamBeam&);
 
     /// Apply the algorithm to a laser.
     virtual void visitLaser(const Laser&);
@@ -267,6 +271,11 @@ void SpecificElementVisitor<ELEM>::visitConstantFocusing(const ConstantFocusing&
 template <class ELEM>
 void SpecificElementVisitor<ELEM>::visitDrift(const Drift& element) {
     CastsTrait<ELEM, Drift>::apply(allElementsOfTypeE, element);
+}
+
+template <class ELEM>
+void SpecificElementVisitor<ELEM>::visitBeamBeam(const BeamBeam& element) {
+    CastsTrait<ELEM, BeamBeam>::apply(allElementsOfTypeE, element);
 }
 
 template <class ELEM>

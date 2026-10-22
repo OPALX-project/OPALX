@@ -6,6 +6,7 @@
 #ifndef OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_ALGORITHM_H
 #define OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_ALGORITHM_H
 
+#include "SpaceCharge/BeamBeamFieldServices.h"
 #include "SpaceCharge/CartesianPIC3D/CartesianDomainUpdater.h"
 #include "SpaceCharge/CartesianPIC3D/CartesianPIC3DFieldStorage.h"
 #include "SpaceCharge/CartesianPIC3D/ParticleBinTraversal.h"
@@ -44,7 +45,8 @@ namespace opalx::spacecharge {
      * Particle containers, the data sink, and bunch state are borrowed. Field storage, the Poisson
      * solver, and orchestration helpers are owned.
      */
-    class CartesianPIC3DAlgorithm final : public SpaceChargeAlgorithm {
+    class CartesianPIC3DAlgorithm final : public SpaceChargeAlgorithm,
+                                          public BeamBeamFieldServices {
     public:
         using ParticleContainer             = ::ParticleContainer<double, 3>;
         using FieldStorage                  = CartesianPIC3DFieldStorage<double, 3>;
@@ -59,6 +61,19 @@ namespace opalx::spacecharge {
                 std::shared_ptr<const BunchStateHandler> bunchState);
 
         [[nodiscard]] SpaceChargeSolveResult solve(const SpaceChargeSolveContext& context) override;
+
+        [[nodiscard]] BeamBeamFieldServices* beamBeamFields() override { return this; }
+        void configure(std::optional<BeamBeamSolvePolicy> policy) override;
+        [[nodiscard]] const CartesianPIC3DConfig& configuration() const override {
+            return config_m;
+        }
+        [[nodiscard]] Domain& domain() override { return fieldStorage_m->domain(); }
+        void gatherFields(ParticleContainer& target) override;
+        [[nodiscard]] std::optional<double> depositedCharge() const override {
+            return depositedCharge_m;
+        }
+        void dumpChargeDensity(
+                const std::string& prefix, const std::vector<std::string>& headers) override;
 
     private:
         enum class PassKind { Primary, PrimaryAndImage, Image, ShiftedImage };
@@ -127,6 +142,12 @@ namespace opalx::spacecharge {
         std::vector<BinStatsRow> binStats_m;
         bool warnedPlaneDumpParallelUnsupported_m = false;
         bool warnedRestFrameP3MResolution_m       = false;
+        std::optional<BeamBeamSolvePolicy> beamBeamPolicy_m;
+        std::optional<double> depositedCharge_m;
+        std::size_t diagnosticStep_m       = 0;
+        std::size_t diagnosticSolveCount_m = 0;
+        double diagnosticTime_m            = 0.0;
+        std::optional<FieldStorage::ScalarField> chargeSnapshot_m;
     };
 
 }  // namespace opalx::spacecharge

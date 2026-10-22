@@ -45,5 +45,11 @@ coverage_html/
 .idea
 __pycache__/
 *.pyc
-sandbox
-
+# Scientific experiment sources are versioned; generated runs stay local.
+/sandbox/experiment-*/results/
+/sandbox/results/*
+/sandbox/note/*
+!/sandbox/note/bb-note.tex
+!/sandbox/note/bb-note.pdf
+!/sandbox/experiment-*/inputs/*.json
+!/sandbox/experiment-2/inputs/TestParticleOrbit.dat

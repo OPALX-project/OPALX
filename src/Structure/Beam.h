@@ -106,6 +106,14 @@ public:
     /// True if PC, ENERGY, or GAMMA was explicitly provided by the user.
     bool hasExplicitEnergy() const;
 
+    /**
+     * @brief Whether this beam constructs an independent reference-orbit threader.
+     *
+     * Temporary multi-beam control. When false, the corresponding particle container reuses the
+     * primary beam's design-orbit element map instead of threading its own reference particle.
+     */
+    bool usesIndependentOrbitThreader() const;
+
     /// True if SOURCES was set. TrackRun requires it on every beam that is not another
     /// beam's DAUGHTERBEAM and rejects it on one.
     bool hasEmissionSources() const;
