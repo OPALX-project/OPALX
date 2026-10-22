@@ -70,6 +70,9 @@ private:
     std::vector<bool> pcActive_m;   ///< Per-container: participate in this track segment.
     std::vector<bool> pcAtSStop_m;  ///< Per-container: frozen at current s-stop until next segment.
     std::vector<std::string> particleNames_m;  ///< Per-container beam particle names.
+    /// Per-container index of the container whose reference particle it uses: its own index,
+    /// or for a decay daughter container the first container of its decay chain.
+    std::vector<size_t> pcRoot_m;
 
     std::vector<double> qi_m;  ///< Charge per macroparticle [C], one entry per container.
     std::vector<double> mi_m;  ///< Mass per macroparticle [GeV], one entry per container.
@@ -158,6 +161,37 @@ public:
 
     /// @brief After emission: reactivate non-empty containers not marked at s-stop.
     void refreshPcActiveAfterEmit();
+
+    /// @brief Make container @p i use the reference particle of container @p root.
+    void setPcRoot(size_t i, size_t root) {
+        if (i < pcRoot_m.size() && root < pcRoot_m.size()) {
+            pcRoot_m[i] = root;
+        }
+    }
+
+    /// @param i Container index.
+    /// @return Index of the container whose reference particle container @p i uses.
+    size_t getPcRoot(size_t i) const { return i < pcRoot_m.size() ? pcRoot_m[i] : i; }
+
+    /// @param i Container index.
+    /// @return Whether container @p i is a decay daughter container that uses another
+    ///   container's reference particle, frame, path length and orbit.
+    bool isFollower(size_t i) const { return getPcRoot(i) != i; }
+
+    /// @param i Container index.
+    /// @return Whether the reference particle of container @p i must be advanced: it is
+    ///   active, or a container that uses its reference particle is active.
+    bool referenceMoves(size_t i) const {
+        if (isPcActive(i)) {
+            return true;
+        }
+        for (size_t f = 0; f < pcRoot_m.size(); ++f) {
+            if (f != i && pcRoot_m[f] == i && isPcActive(f)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /// @return True if any container is active.
     bool anyPcActive() const {

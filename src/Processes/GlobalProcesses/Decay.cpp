@@ -68,6 +68,10 @@ size_t Decay::apply(
                 nLocal, localDestroyNum, decayed, pc.R.getView(), pc.P.getView(), pc.dt.getView(),
                 parentPolView);
 
+        /* The daughter container follows the parent's reference particle and shares its
+         * frame (ParallelTracker copies the root's frame into every follower), so the parent
+         * copies need no frame change. */
+
         /* Phase 3: Create daughters — subclass-specific momentum sampling. */
         // createParticles() is non-destructive and warns if the daughter buffer must grow.
         const pc_size_type oldDaughterLocal = daughterPC_m->getLocalNum();

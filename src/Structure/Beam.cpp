@@ -21,17 +21,14 @@
 
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/OpalData.h"
+#include "Algorithms/PartData.h"
 #include "Attributes/Attributes.h"
-#include "Expressions/SAutomatic.h"
-#include "Expressions/SRefExpr.h"
 #include "Physics/ParticleProperties.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Options.h"
 
 #include <cmath>
-#include <iterator>
 
 using namespace Expressions;
 
@@ -77,11 +74,14 @@ Beam::Beam()
 
     itsAttr[CHARGE] = Attributes::makeReal("CHARGE", "Particle charge in proton charges");
 
-    itsAttr[ENERGY] = Attributes::makeReal("ENERGY", "Particle energy [GeV]");
+    itsAttr[ENERGY] = Attributes::makeReal(
+            "ENERGY", "Particle energy [GeV]. Not allowed on another beam's DAUGHTERBEAM.");
 
-    itsAttr[PC] = Attributes::makeReal("PC", "Particle momentum [GeV/c]");
+    itsAttr[PC] = Attributes::makeReal(
+            "PC", "Particle momentum [GeV/c]. Not allowed on another beam's DAUGHTERBEAM.");
 
-    itsAttr[GAMMA] = Attributes::makeReal("GAMMA", "ENERGY / MASS");
+    itsAttr[GAMMA] = Attributes::makeReal(
+            "GAMMA", "ENERGY / MASS. Not allowed on another beam's DAUGHTERBEAM.");
 
     itsAttr[BCURRENT] =
             Attributes::makeReal("BCURRENT", "Legacy, unused in OPALX. Use BCHARGE instead.");
@@ -94,13 +94,19 @@ Beam::Beam()
             Attributes::makeReal("NALLOC", "Allocation size (macroparticles) for this beam");
 
     itsAttr[SOURCES] = Attributes::makeString(
-            "SOURCES", "Name of the emission sources list (EMISSIONSOURCELIST).");
+            "SOURCES",
+            "Name of the emission sources list (EMISSIONSOURCELIST). Required, except on "
+            "another beam's DAUGHTERBEAM, where it is not allowed.");
 
     itsAttr[GLOBALPROCESSES] = Attributes::makeUpperCaseStringArray(
             "GLOBALPROCESSES", "Global physics processes active for this beam.");
 
     itsAttr[DAUGHTERBEAM] = Attributes::makeString(
-            "DAUGHTERBEAM", "Name of the BEAM that receives decay daughter particles.");
+            "DAUGHTERBEAM",
+            "Name of the BEAM that receives this beam's decay daughters (needs "
+            "GLOBALPROCESSES = {\"DECAY\"}). That BEAM gets particles only from the decay and "
+            "uses this beam's reference particle, so it must not set GAMMA, ENERGY, PC or "
+            "SOURCES.");
 
     itsAttr[POLARIZATION] = Attributes::makeRealArray(
             "POLARIZATION",
@@ -201,8 +207,8 @@ void Beam::execute() {
         return;
     }
 
-    // Beam-only validation: each non-photon beam must specify its EMISSIONSOURCELIST.
-    (void)getEmissionSourceListName();
+    // SOURCES is checked by TrackRun: only there is it known whether this beam is another
+    // beam's DAUGHTERBEAM (which must not set SOURCES).
 
     // Currently supported global process names (extend as new processes are implemented).
     for (const std::string& name : getGlobalProcessNames()) {
@@ -241,11 +247,8 @@ void Beam::validatePolarization() const {
     const ParticleType pType = ParticleProperties::getParticleType(getParticleName());
     if (pType != ParticleType::MUON) {
         throw OpalException(
-                "Beam::execute()",
-                "\"POLARIZATION\" is only supported for PARTICLE=MUON; got \""
-                        + getParticleName()
-                        + "\". For muons produced by PionDecay, leave POLARIZATION unset — "
-                          "the daughter polarization is determined by the pion decay.");
+                "Beam::execute()", "\"POLARIZATION\" is only supported for PARTICLE=MUON; got \""
+                                           + getParticleName() + "\".");
     }
     const double pMag2 = pol[0] * pol[0] + pol[1] * pol[1] + pol[2] * pol[2];
     if (pMag2 > 1.0 + 1.0e-12) {
@@ -325,7 +328,7 @@ double Beam::getCharge() const { return Attributes::getReal(itsAttr[CHARGE]); }
 
 double Beam::getMass() const { return Attributes::getReal(itsAttr[MASS]); }
 
-double Beam::getMomentum() const { return reference.getP() / 1.e9; }
+double Beam::getMomentum() const { return reference.getP() * Units::eV2GeV; }
 
 std::string Beam::getParticleName() const { return Attributes::getString(itsAttr[PARTICLE]); }
 
@@ -334,6 +337,8 @@ bool Beam::isPhoton() const { return itsAttr[PARTICLE] && getParticleName() == p
 double Beam::getFrequency() const { return Attributes::getReal(itsAttr[BFREQ]); }
 
 bool Beam::hasExplicitEnergy() const { return itsAttr[GAMMA] || itsAttr[ENERGY] || itsAttr[PC]; }
+
+bool Beam::hasEmissionSources() const { return itsAttr[SOURCES]; }
 
 std::vector<double> Beam::getTuneInitial() const {
     return Attributes::getRealArray(itsAttr[TUNEINITIAL]);
@@ -413,8 +418,7 @@ void Beam::print(std::ostream& os) const {
        << "* PARTICLE    " << Attributes::getString(itsAttr[PARTICLE]) << '\n'
        << "* REST MASS   " << Attributes::getReal(itsAttr[MASS]) << " [GeV]\n"
        << "* CHARGE      " << (charge > 0 ? '+' : '-') << "e * " << std::abs(charge) << " \n"
-       << "* MOMENTUM    " << reference.getP() << " [eV/c]\n"
-       << "* MOMENTUM    " << Attributes::getReal(itsAttr[PC]) << " [GeV/c]\n"
+       << "* MOMENTUM    " << getMomentum() << " [GeV/c]\n"
        << "* BCHARGE     " << Attributes::getReal(itsAttr[BCHARGE]) << " [C]\n"
        << "* NALLOC      " << Attributes::getReal(itsAttr[NALLOC]) << '\n';
     os << "* ********************************************************************************** "

@@ -1,3 +1,22 @@
+/**
+ * @file TestPoissonSolver.cpp
+ * @brief Tests of the `PoissonSolver` adapters that wrap the IPPL Poisson backends.
+ *
+ * Most tests loop over every backend: NONE (open and periodic boundaries), the periodic FFT,
+ * OPEN with the STANDARD and the INTEGRATED Green function, and P3M with open and periodic
+ * boundaries. Covers:
+ * - The factory builds each adapter with the expected name and capabilities, and every backend
+ *   except NONE returns a nonzero field for a test charge.
+ * - After a shifted-Green (image) solve, the next ordinary solve uses the unshifted kernel again,
+ *   also when the mesh spacing changes in between.
+ * - After a layout change, a rebuilt adapter gives the same field as a newly built one.
+ * - Requests a backend cannot serve are rejected before any field is modified.
+ * - The P3M image field equals the STANDARD OPEN image field while the mesh spacing changes.
+ * - Invalid configurations, field bindings, and mismatched adapter types are rejected.
+ *
+ * All tests run on one rank.
+ */
+
 #include <gtest/gtest.h>
 
 #include "PartBunch/CartesianDomain.h"
@@ -22,6 +41,12 @@ namespace opalx::spacecharge {
             PoissonSolverType type;
             FieldBoundaryCondition boundary;
             GreenFunctionType green = GreenFunctionType::Integrated;
+
+            bool supportsShifted() const {
+                return type == PoissonSolverType::Open
+                       || (type == PoissonSolverType::P3M
+                           && boundary == FieldBoundaryCondition::Open);
+            }
 
             PoissonSolverConfig config() const {
                 PoissonSolverConfig result;
@@ -130,7 +155,7 @@ namespace opalx::spacecharge {
                 EXPECT_EQ(solver->name(), none ? "NONE" : periodic ? "FFT" : open ? "OPEN" : "P3M");
                 const auto& caps = solver->capabilities();
                 EXPECT_EQ(caps.isNoOp, none);
-                EXPECT_EQ(caps.supportsShiftedGreenFunction, open);
+                EXPECT_EQ(caps.supportsShiftedGreenFunction, selected.supportsShifted());
                 EXPECT_TRUE(caps.normalizeChargeByCellVolume);
                 EXPECT_EQ(caps.subtractNeutralizingBackground, none || periodic);
                 EXPECT_EQ(caps.debugDumpChargeBeforeSolve, !none);
@@ -162,10 +187,9 @@ namespace opalx::spacecharge {
         }
 
         TEST_F(PoissonSolverTest, RestoresOrdinaryKernelAfterShiftedSolve) {
-            for (auto green : {GreenFunctionType::Standard, GreenFunctionType::Integrated}) {
-                SCOPED_TRACE(static_cast<int>(green));
-                const BackendCase selected{
-                        PoissonSolverType::Open, FieldBoundaryCondition::Open, green};
+            for (const auto& selected : cases) {
+                if (!selected.supportsShifted()) continue;
+                SCOPED_TRACE(static_cast<int>(selected.type));
                 CartesianDomain<double, 3> domain(storage(selected));
                 Fields fields(domain);
                 fields.initializeFields(selected.type);
@@ -192,6 +216,21 @@ namespace opalx::spacecharge {
                 fillCharge(fields);
                 solver->solve({}, {.suppressFieldDump = true});
                 expectElectricField(fields, ordinary);
+
+                // After a spacing change, IPPL itself must replace the cached shifted kernel.
+                fillCharge(fields);
+                solver->solve(shifted, {.suppressFieldDump = true});
+                const auto spacing = fields.mesh().getMeshSpacing();
+                fields.mesh().setMeshSpacing(
+                        Vector_t<double, 3>(1.1 * spacing[0], 1.2 * spacing[1], spacing[2]));
+                Fields freshFields(domain);
+                freshFields.initializeFields(selected.type);
+                auto fresh = makePoissonSolver(selected.config(), binding(freshFields));
+                fillCharge(fields);
+                fillCharge(freshFields);
+                solver->solve({}, {.suppressFieldDump = true});
+                fresh->solve({}, {.suppressFieldDump = true});
+                expectElectricField(fields, snapshot(freshFields.electricField().getView()));
             }
         }
 
@@ -208,7 +247,7 @@ namespace opalx::spacecharge {
                      {std::array<std::size_t, 3>{8, 8, 16}, std::array<std::size_t, 3>{8, 8, 8}}) {
                     fillCharge(fields);
                     PoissonSolveRequest request;
-                    if (selected.type == PoissonSolverType::Open) {
+                    if (selected.supportsShifted()) {
                         request.greenFunctionShift = Vector_t<double, 3>(0.0, 0.0, 0.25);
                     }
                     solver->solve(request, {.suppressFieldDump = true});
@@ -232,7 +271,7 @@ namespace opalx::spacecharge {
 
         TEST_F(PoissonSolverTest, RejectsUnsupportedRequestsBeforeModifyingFields) {
             for (const auto& selected : cases) {
-                if (selected.type == PoissonSolverType::Open) continue;
+                if (selected.supportsShifted()) continue;
                 SCOPED_TRACE(static_cast<int>(selected.type));
                 CartesianDomain<double, 3> domain(storage(selected));
                 Fields fields(domain);
@@ -250,6 +289,39 @@ namespace opalx::spacecharge {
                     EXPECT_DOUBLE_EQ(after(i, j, k), rho(i, j, k));
                 });
                 expectElectricField(fields, electric, true);
+            }
+        }
+
+        TEST_F(PoissonSolverTest, P3MImageMatchesStandardOpenAfterSpacingChanges) {
+            const BackendCase open{
+                    PoissonSolverType::Open, FieldBoundaryCondition::Open,
+                    GreenFunctionType::Standard};
+            CartesianDomain<double, 3> domain(storage(open));
+            Fields reference(domain);
+            reference.initializeFields(open.type);
+            auto openSolver = makePoissonSolver(open.config(), binding(reference));
+            for (auto green : {GreenFunctionType::Standard, GreenFunctionType::Integrated}) {
+                const BackendCase p3m{PoissonSolverType::P3M, FieldBoundaryCondition::Open, green};
+                Fields fields(domain);
+                fields.initializeFields(p3m.type);
+                auto solver = makePoissonSolver(p3m.config(), binding(fields));
+                for (double spacing : {0.125, 0.1, 0.125}) {
+                    fields.mesh().setMeshSpacing(
+                            Vector_t<double, 3>(spacing, 1.2 * spacing, spacing));
+                    fillCharge(fields);
+                    solver->solve({}, {.suppressFieldDump = true});
+                    const auto ordinary = snapshot(fields.electricField().getView());
+                    PoissonSolveRequest request;
+                    request.greenFunctionShift = Vector_t<double, 3>(0.03, -0.02, 0.7);
+                    fillCharge(fields);
+                    fillCharge(reference);
+                    solver->solve(request, {.suppressFieldDump = true});
+                    openSolver->solve(request, {.suppressFieldDump = true});
+                    expectElectricField(fields, snapshot(reference.electricField().getView()));
+                    fillCharge(fields);
+                    solver->solve({}, {.suppressFieldDump = true});
+                    expectElectricField(fields, ordinary);
+                }
             }
         }
 
