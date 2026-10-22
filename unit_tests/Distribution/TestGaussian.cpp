@@ -164,6 +164,17 @@ static void preallocateParticleCapacity(
     pc->allocateParticles(maxLocalNum);
 }
 
+/// Device lambdas cannot live in TEST_F bodies (TestBody is private), so the kernel is a free function.
+template <typename RView, typename PView>
+void setFirstParticle(RView r, PView p, double rValue, double pValue) {
+    Kokkos::parallel_for(
+            1, KOKKOS_LAMBDA(const int i) {
+                r(i) = rValue;
+                p(i) = pValue;
+            });
+    Kokkos::fence();
+}
+
 TEST_F(GaussianTest, meanR_stddevR) {
     const Vector_t<double, 3> sigmaR_ref = 0.5;
     const Vector_t<double, 3> sigmaP_ref = 1.0;
@@ -319,14 +330,7 @@ TEST_F(GaussianTest, ZeroWidthAxesPreserveCountOffsetsAndFiniteMomenta) {
 TEST_F(GaussianTest, ZeroWidthAppendPreservesExistingParticlesAndCutoff) {
     preallocateParticleCapacity(pc, 10003);
     pc->createParticles(1);
-    auto existing  = pc->R.getView();
-    auto existingP = pc->P.getView();
-    Kokkos::parallel_for(
-            1, KOKKOS_LAMBDA(const int i) {
-                existing(i)  = 17.0;
-                existingP(i) = 23.0;
-            });
-    Kokkos::fence();
+    setFirstParticle(pc->R.getView(), pc->P.getView(), 17.0, 23.0);
     const Vector_t<double, 3> sigma(0.0, 2e-3, 0.0);
     Gaussian sampler(pc, sigma, Vector_t<double, 3>(0.0), 0.0, Vector_t<double, 3>(2.0), false);
     size_t requested = 10001;
