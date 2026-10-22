@@ -35,8 +35,10 @@ namespace {
         std::vector<std::complex<double>> result(n);
         for (size_t k = 0; k < n; ++k) {
             for (size_t j = 0; j < n; ++j) {
-                const double phase = -2.0 * M_PI * static_cast<double>(j * k)
-                                     / static_cast<double>(n);
+                // Reduce j*k modulo n before forming the angle; this keeps the
+                // phase small and the round-off at the 1e-15 level for n ~ 1e3.
+                const double phase =
+                        -2.0 * M_PI * static_cast<double>((j * k) % n) / static_cast<double>(n);
                 result[k] += x[j] * std::polar(1.0, phase);
             }
         }
@@ -119,14 +121,14 @@ namespace FFT {
         // frequency has both real and imaginary components.
         data[0] = complex_data[0].real();
         if (n > 1) {
-            size_t half = n / 2;
+            size_t half               = n / 2;
             const size_t last_complex = (n % 2 == 0) ? half - 1 : half;
             for (size_t i = 1; i <= last_complex; ++i) {
-                data[2 * i - 1] = complex_data[i].real();
-                data[2 * i]     = complex_data[i].imag();
+                data[(2 * i - 1) * stride] = complex_data[i].real();
+                data[(2 * i) * stride]     = complex_data[i].imag();
             }
             if (n % 2 == 0) {
-                data[n - 1] = complex_data[half].real();
+                data[(n - 1) * stride] = complex_data[half].real();
             }
         }
     }
@@ -217,6 +219,9 @@ inline gsl_fft_halfcomplex_workspace* gsl_fft_halfcomplex_workspace_alloc(size_t
 }
 
 /// \brief Inverse transform from halfcomplex packed data.
+/// \details Follows GSL: the inverse includes the 1/n normalization, so
+/// gsl_fft_real_transform followed by gsl_fft_halfcomplex_inverse returns the
+/// original data.
 /// \param data Input/Output: packed spectrum overwritten with real sequence.
 /// \param stride Input: element stride in \p data.
 /// \param n Input: number of samples.
@@ -227,27 +232,26 @@ inline void gsl_fft_halfcomplex_transform(
         gsl_fft_halfcomplex_workspace* /* workspace */) {
     // Inverse FFT for halfcomplex data (packed format)
     // Convert halfcomplex to complex, perform inverse FFT, convert back
+    if (n == 0) return;
     std::vector<std::complex<double>> complex_data(n);
     complex_data[0] = std::complex<double>(data[0], 0.0);
 
-    size_t half = n / 2;
+    size_t half               = n / 2;
     const size_t last_complex = (n % 2 == 0) ? half - 1 : half;
     for (size_t i = 1; i <= last_complex; ++i) {
-        complex_data[i]     = std::complex<double>(data[2 * i - 1], data[2 * i]);
+        complex_data[i] = std::complex<double>(data[(2 * i - 1) * stride], data[(2 * i) * stride]);
         complex_data[n - i] = std::conj(complex_data[i]);
     }
     if (n % 2 == 0) {
-        complex_data[half] = std::complex<double>(data[n - 1], 0.0);
+        complex_data[half] = std::complex<double>(data[(n - 1) * stride], 0.0);
     }
 
-    // Inverse FFT (GSL convention: scale by n)
-    // Our ifft scales by 1/n, so we multiply by n to get n scaling
+    // Inverse FFT, normalized by 1/n as in GSL's gsl_fft_halfcomplex_inverse.
     ifft(complex_data);
-    double scale = static_cast<double>(n);
 
     // Convert back to real
     for (size_t i = 0; i < n; ++i) {
-        data[i * stride] = complex_data[i].real() * scale;
+        data[i * stride] = complex_data[i].real();
     }
 }
 
@@ -340,7 +344,7 @@ inline void gsl_fft_complex_forward(
     }
 }
 
-/// \brief Inverse complex FFT (GSL scaling: multiplies by \f$n\f$).
+/// \brief Inverse complex FFT (GSL convention: normalized by \f$1/n\f$).
 /// \details Input/output layout is interleaved: \f$[Re_0, Im_0, Re_1, Im_1, ...]\f$.
 /// \param data Input/Output: interleaved complex spectrum overwritten with signal.
 /// \param stride Input: complex element stride.
@@ -354,13 +358,12 @@ inline void gsl_fft_complex_inverse(
     for (size_t i = 0; i < n; ++i) {
         complex_data[i] = std::complex<double>(data[2 * i * stride], data[(2 * i + 1) * stride]);
     }
-    // GSL convention: inverse FFT scales by n (not 1/n like standard FFT)
-    // Our ifft scales by 1/n, so we multiply by n to get n scaling
+    // GSL convention: gsl_fft_complex_forward followed by gsl_fft_complex_inverse
+    // returns the original data, i.e. the inverse carries the 1/n factor.
     ifft(complex_data);
-    double scale = static_cast<double>(n);
     for (size_t i = 0; i < n; ++i) {
-        data[2 * i * stride]       = complex_data[i].real() * scale;
-        data[(2 * i + 1) * stride] = complex_data[i].imag() * scale;
+        data[2 * i * stride]       = complex_data[i].real();
+        data[(2 * i + 1) * stride] = complex_data[i].imag();
     }
 }
 
@@ -384,7 +387,7 @@ inline void gsl_fft_complex_radix2_forward(double* data, size_t stride, size_t n
     gsl_fft_complex_workspace_free(ws);
 }
 
-/// \brief Radix-2 inverse complex FFT (GSL scaling, allocates temporaries).
+/// \brief Radix-2 inverse complex FFT (normalized by \f$1/n\f$, allocates temporaries).
 /// \param data Input/Output: interleaved complex spectrum overwritten with signal.
 /// \param stride Input: complex element stride.
 /// \param n Input: number of complex samples.

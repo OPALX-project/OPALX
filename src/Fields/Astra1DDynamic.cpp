@@ -210,10 +210,10 @@ void Astra1DDynamic::readMap() {
     // The original OPAL code used gsl_fft_real_transform here. With the bundled
     // Utilities/GSLFFT.h this used to give wrong coefficients, because M is
     // usually not a power of two (e.g. 802 = 2 * 401) and the radix-2 FFT did
-    // not handle odd lengths (fixed in #408). With the fix, the FFT path yields
-    // the same coefficients and fields, but only the first accuracy_m harmonics
-    // are needed, so this truncated DFT is faster (0.35 ms vs 0.61 ms for the
-    // TravelingWave test map).
+    // not handle odd lengths (fixed in PR #629, see #408). With the fix, the
+    // FFT path yields the same coefficients and fields, but only the first
+    // accuracy_m harmonics are needed, so this truncated DFT is faster
+    // (0.35 ms vs 0.61 ms for the TravelingWave test map).
     const int M = 2 * num_gridpz_m;
 
     double a0 = 0.0;
