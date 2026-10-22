@@ -106,6 +106,10 @@ public:
     /// True if PC, ENERGY, or GAMMA was explicitly provided by the user.
     bool hasExplicitEnergy() const;
 
+    /// True if SOURCES was set. TrackRun requires it on every beam that is not another
+    /// beam's DAUGHTERBEAM and rejects it on one.
+    bool hasEmissionSources() const;
+
     /// Repeated spectral launches: kinetic GeV, radius m, radial momentum / mc.
     std::vector<double> getTuneInitial() const;
 
