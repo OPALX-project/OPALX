@@ -10,7 +10,6 @@
 #include "SpaceCharge/CartesianPIC3D/ParticleMeshFieldTransfer.h"
 
 #include <array>
-#include <cstddef>
 #include <cstdint>
 #include <type_traits>
 
@@ -39,7 +38,7 @@ namespace opalx::spacecharge {
      *
      * The rest frame moves with @c velocity in Cartesian solve axes. The electric field
      * perpendicular to it scales with gamma, the parallel one is unchanged, and
-     * B = sign * gamma / c^2 * v x E'. Mesh and particle contributions share this conversion.
+     * B = sign * gamma / c^2 * v x E'.
      */
     struct LorentzBoost final {
         using Vector = ippl::Vector<double, 3>;
@@ -75,7 +74,6 @@ namespace opalx::spacecharge {
         using VectorField          = typename FieldStorage::VectorField;
         using PositionAttribute    = typename ParticleMeshTransfer::PositionAttribute;
         using VectorAttribute      = typename ParticleMeshTransfer::VectorAttribute;
-        using VectorView           = typename VectorAttribute::view_type;
         using Policy               = FieldCompositionPolicy;
 
         // CUDA requires functions enclosing device lambdas to be public.
@@ -93,18 +91,6 @@ namespace opalx::spacecharge {
          * or consumption on another execution instance.
          */
         void accumulate(FieldStorage& fieldStorage, const Policy& policy) const;
-
-        /**
-         * @brief Lorentz-convert per-particle rest-frame fields and add them to particle E/B.
-         *
-         * Used for particle-particle contributions, which bypass the mesh accumulators and must
-         * be added after the final gather. Only the Direct source rule applies.
-         * @param electricRest Rest-frame electric field, valid on [0, @p localCount).
-         */
-        void addParticleContribution(
-                const VectorView& electricRest, VectorAttribute& electricDestination,
-                VectorAttribute& magneticDestination, std::size_t localCount,
-                const Policy& policy) const;
 
         /** @brief Replace a particle electric field with gathered backend values. */
         void gatherElectrostatic(
