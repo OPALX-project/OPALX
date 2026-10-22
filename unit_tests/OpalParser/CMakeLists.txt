@@ -1,3 +1,5 @@
+add_opalx_test(TestMacro LABELS parser)
+
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(BUILD_TESTING AND Python3_Interpreter_FOUND)
   add_test(NAME ParseOnlyCLI

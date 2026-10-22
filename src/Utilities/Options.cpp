@@ -125,4 +125,6 @@ namespace Options {
 
     double loadBalancingThreshold = 0.05;  // Default threshold for triggering load balancing
 
+    double loadBalancingPairWeight = 0.0;
+
 }  // namespace Options

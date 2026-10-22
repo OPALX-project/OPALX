@@ -753,3 +753,29 @@ TEST_F(Astra1DDynamicTest, ComputeRFFieldOutsideFieldmapRange) {
     EXPECT_NEAR(B[1], 5.0, 1e-12);
     EXPECT_NEAR(B[2], 6.0, 1e-12);
 }
+// ===========================================================================
+// Test: a line of 256 or more characters is read like any other line
+// ===========================================================================
+// Fieldmap::getLine used to read through a 256 character buffer. A longer line set the
+// stream's fail flag, and the next read then looped forever without reaching end of file.
+TEST_F(Astra1DDynamicTest, LongHeaderLineIsRead) {
+    const std::string fname = tmpFile("long_line.map");
+    {
+        std::ofstream f(fname);
+        f << "AstraDynamic 8 TRUE # " << std::string(300, 'x') << "\n";
+        f << "100.0\n";
+        for (int i = 0; i < 5; ++i) {
+            f << 0.025 * i << " 1.0\n";
+        }
+    }
+
+    auto* fm = dynamic_cast<Astra1DDynamic*>(Fieldmap::getFieldmap(fname));
+    ASSERT_NE(fm, nullptr);
+    Fieldmap::readMap(fname);
+
+    EXPECT_NEAR(fm->getFrequency(), 100.0 * Physics::two_pi * Units::MHz2Hz, 1e-6);
+    double zBegin = 0.0, zEnd = 0.0;
+    fm->getFieldDimensions(zBegin, zEnd);
+    EXPECT_NEAR(zBegin, 0.0, 1e-12);
+    EXPECT_NEAR(zEnd, 0.1, 1e-12);
+}
