@@ -4,6 +4,7 @@
 #include <cmath>
 #include <memory>
 
+#include "Attributes/Attributes.h"
 #include "Distribution/Gaussian.h"
 #include "Ippl.h"
 #include "PartBunch/BunchStateHandler.h"
@@ -20,7 +21,10 @@ protected:
 
     static void TearDownTestSuite() { ippl::finalize(); }
 
-    void SetUp() override {
+    void SetUp() override { resetContainer(); }
+
+    // Each collapsed-axis case needs an empty container without reinitializing MPI/Kokkos.
+    void resetContainer() {
         // Minimal 3D grid parameters
         nr                             = 32;
         ippl::Vector<double, 3> rmin   = -4.0;
@@ -259,4 +263,122 @@ TEST_F(GaussianTest, meanP_and_steddevP) {
     EXPECT_NEAR(sigmaP[0], sigmaP_ref[0], 1e-2);
     EXPECT_NEAR(sigmaP[1], sigmaP_ref[1], 1e-2);
     EXPECT_NEAR(sigmaP[2], sigmaP_ref[2], 1e-2);
+}
+
+// Exercise every collapsed-axis combination, including a point bunch and
+// N < MPI ranks. Inspect device-generated values through an explicit mirror.
+TEST_F(GaussianTest, ZeroWidthAxesPreserveCountOffsetsAndFiniteMomenta) {
+    for (unsigned mask = 1; mask < 8; ++mask) {
+        for (size_t requested : {size_t(1), size_t(10001)}) {
+            SCOPED_TRACE(
+                    ::testing::Message() << "collapsed-axis mask=" << mask << ", N=" << requested);
+            resetContainer();
+            Vector_t<double, 3> sigma(1e-3);
+            for (unsigned d = 0; d < 3; ++d)
+                if (mask & (1u << d)) sigma[d] = 0.0;
+            Gaussian sampler(pc, sigma, Vector_t<double, 3>(0.0), 0.25, Vector_t<double, 3>(4.0));
+            const Vector_t<double, 3> offset(0.01, -0.02, 0.03);
+            const Vector_t<double, 3> momentumOffset(0.02, -0.01, 0.03);
+            sampler.setEmissionOffsets(offset, momentumOffset, 0.0);
+            preallocateParticleCapacity(pc, requested);
+            sampler.generateParticles(requested, nr);
+            size_t local = pc->getLocalNum(), total = 0;
+            ippl::Comm->allreduce(&local, &total, 1, std::plus<size_t>());
+            EXPECT_EQ(total, requested);
+            const size_t nranks = static_cast<size_t>(ippl::Comm->size());
+            const size_t rank   = static_cast<size_t>(ippl::Comm->rank());
+            EXPECT_EQ(local, requested / nranks + (rank < requested % nranks ? 1u : 0u));
+            auto r = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+            auto p = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->P.getView());
+            for (size_t i = 0; i < local; ++i) {
+                for (unsigned d = 0; d < 3; ++d) {
+                    EXPECT_TRUE(std::isfinite(r(i)[d]));
+                    EXPECT_TRUE(std::isfinite(p(i)[d]));
+                    EXPECT_EQ(p(i)[d], (d == 2 ? 0.25 : 0.0) + momentumOffset[d]);
+                    if (mask & (1u << d)) EXPECT_EQ(r(i)[d], offset[d]);
+                }
+            }
+            double mean[3];
+            auto rv = pc->R.getView();
+            computeMean(rv, local, requested, mean);
+            // 1e-14 m accommodates floating-point summation of the source offsets.
+            for (unsigned d = 0; d < 3; ++d)
+                EXPECT_NEAR(mean[d], offset[d], 1e-14);
+            if (requested > 1) {
+                double sd[3];
+                computeStdDev(rv, local, requested, mean, sd);
+                for (unsigned d = 0; d < 3; ++d)
+                    // A 5% width band is wider than the ~0.7% sampling uncertainty
+                    // for N=10001, but excludes a collapsed or incorrectly scaled axis.
+                    if (!(mask & (1u << d))) EXPECT_NEAR(sd[d], sigma[d], 5e-5);
+            }
+        }
+    }
+}
+
+TEST_F(GaussianTest, ZeroWidthAppendPreservesExistingParticlesAndCutoff) {
+    preallocateParticleCapacity(pc, 10003);
+    pc->createParticles(1);
+    pc->R = 17.0;
+    pc->P = 23.0;
+    const Vector_t<double, 3> sigma(0.0, 2e-3, 0.0);
+    Gaussian sampler(pc, sigma, Vector_t<double, 3>(0.0), 0.0, Vector_t<double, 3>(2.0), false);
+    size_t requested = 10001;
+    sampler.generateParticles(requested, nr);
+    auto r = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+    auto p = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->P.getView());
+    for (unsigned d = 0; d < 3; ++d) {
+        EXPECT_EQ(r(0)[d], 17.0);
+        EXPECT_EQ(p(0)[d], 23.0);
+    }
+    for (size_t i = 1; i < pc->getLocalNum(); ++i) {
+        EXPECT_EQ(r(i)[0], 0.0);
+        EXPECT_EQ(r(i)[2], 0.0);
+        EXPECT_TRUE(std::isfinite(r(i)[1]));
+        EXPECT_LE(std::abs(r(i)[1]), 4e-3);
+    }
+    size_t local = pc->getLocalNum(), total = 0;
+    ippl::Comm->allreduce(&local, &total, 1, std::plus<size_t>());
+    EXPECT_EQ(total, requested + static_cast<size_t>(ippl::Comm->size()));
+}
+
+TEST_F(GaussianTest, OmittedSpatialWidthsCollapseWithoutSuppressingMomentumSpread) {
+    Distribution distribution;
+    Attributes::setPredefinedString(*distribution.findAttribute("TYPE"), "GAUSS");
+    const Vector_t<double, 3> sigmaP(0.02, 0.03, 0.04);
+    Attributes::setReal(*distribution.findAttribute("SIGMAPX"), sigmaP[0]);
+    Attributes::setReal(*distribution.findAttribute("SIGMAPY"), sigmaP[1]);
+    Attributes::setReal(*distribution.findAttribute("SIGMAPZ"), sigmaP[2]);
+    distribution.execute();
+    for (unsigned d = 0; d < 3; ++d)
+        EXPECT_EQ(distribution.getSigmaR()[d], 0.0);
+
+    Gaussian sampler(pc, &distribution);
+    sampler.setAvrgpz(0.25);
+    const Vector_t<double, 3> offset(0.01, -0.02, 0.03);
+    const Vector_t<double, 3> momentumOffset(0.02, -0.01, 0.03);
+    sampler.setEmissionOffsets(offset, momentumOffset, 0.0);
+    size_t requested = 10001;
+    preallocateParticleCapacity(pc, requested);
+    sampler.generateParticles(requested, nr);
+
+    const size_t local = pc->getLocalNum();
+    auto r             = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+    auto p             = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->P.getView());
+    for (size_t i = 0; i < local; ++i) {
+        for (unsigned d = 0; d < 3; ++d) {
+            EXPECT_EQ(r(i)[d], offset[d]);
+            EXPECT_TRUE(std::isfinite(p(i)[d]));
+        }
+    }
+    double meanP[3], sdP[3];
+    auto pv = pc->P.getView();
+    computeMean(pv, local, requested, meanP);
+    computeStdDev(pv, local, requested, meanP, sdP);
+    for (unsigned d = 0; d < 3; ++d) {
+        const double expected = momentumOffset[d] + (d == 2 ? 0.25 : 0.0);
+        // Five standard errors for the mean; 5% for the sampled standard deviation.
+        EXPECT_NEAR(meanP[d], expected, 5.0 * sigmaP[d] / std::sqrt(double(requested)));
+        EXPECT_NEAR(sdP[d], sigmaP[d], 0.05 * sigmaP[d]);
+    }
 }
