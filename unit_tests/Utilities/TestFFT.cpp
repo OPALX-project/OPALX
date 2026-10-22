@@ -24,6 +24,10 @@
  * Tests real -> halfcomplex -> real round trip for odd \f$n\f$, including the
  * packing of the last complex bin and the \f$1/n\f$ normalized inverse.
  *
+ * \test FFTTest::HalfcomplexTransform_Unnormalized
+ * Tests that gsl_fft_halfcomplex_transform is the unnormalized backward
+ * transform, as in GSL, so real -> halfcomplex transform returns \f$n\,x\f$.
+ *
  * \test FFTTest::RealFFT_StridedRoundTrip
  * Tests that forward and inverse real transforms honour the stride argument
  * on both input and output and leave interleaved elements untouched.
@@ -155,6 +159,30 @@ TEST_F(FFTTest, RealFFT_OddLengthRoundTrip) {
     // GSL's halfcomplex inverse is normalized, so the original data comes back.
     for (size_t i = 0; i < n; ++i) {
         EXPECT_NEAR(transformed[i], original[i], 1e-10);
+    }
+
+    gsl_fft_real_wavetable_free(real_wavetable);
+    gsl_fft_real_workspace_free(real_workspace);
+    gsl_fft_halfcomplex_wavetable_free(hc_wavetable);
+    gsl_fft_halfcomplex_workspace_free(hc_workspace);
+}
+
+TEST_F(FFTTest, HalfcomplexTransform_Unnormalized) {
+    const size_t n = 6;
+    std::vector<double> original{0.5, 1.5, -2.0, 0.25, 3.0, -1.0};
+    std::vector<double> transformed = original;
+
+    gsl_fft_real_wavetable* real_wavetable = gsl_fft_real_wavetable_alloc(n);
+    gsl_fft_real_workspace* real_workspace = gsl_fft_real_workspace_alloc(n);
+    gsl_fft_real_transform(transformed.data(), 1, n, real_wavetable, real_workspace);
+
+    gsl_fft_halfcomplex_wavetable* hc_wavetable = gsl_fft_halfcomplex_wavetable_alloc(n);
+    gsl_fft_halfcomplex_workspace* hc_workspace = gsl_fft_halfcomplex_workspace_alloc(n);
+    gsl_fft_halfcomplex_transform(transformed.data(), 1, n, hc_wavetable, hc_workspace);
+
+    // GSL's halfcomplex transform is the backward transform without 1/n.
+    for (size_t i = 0; i < n; ++i) {
+        EXPECT_NEAR(transformed[i], static_cast<double>(n) * original[i], 1e-10);
     }
 
     gsl_fft_real_wavetable_free(real_wavetable);

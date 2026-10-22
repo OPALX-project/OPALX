@@ -218,10 +218,11 @@ inline gsl_fft_halfcomplex_workspace* gsl_fft_halfcomplex_workspace_alloc(size_t
     return w;
 }
 
-/// \brief Inverse transform from halfcomplex packed data.
-/// \details Follows GSL: the inverse includes the 1/n normalization, so
-/// gsl_fft_real_transform followed by gsl_fft_halfcomplex_inverse returns the
-/// original data.
+/// \brief Backward transform from halfcomplex packed data.
+/// \details Follows GSL: this transform is not normalized, so
+/// gsl_fft_real_transform followed by gsl_fft_halfcomplex_transform returns
+/// \f$n\f$ times the original data. Use gsl_fft_halfcomplex_inverse for the
+/// \f$1/n\f$ normalized inverse.
 /// \param data Input/Output: packed spectrum overwritten with real sequence.
 /// \param stride Input: element stride in \p data.
 /// \param n Input: number of samples.
@@ -230,8 +231,8 @@ inline gsl_fft_halfcomplex_workspace* gsl_fft_halfcomplex_workspace_alloc(size_t
 inline void gsl_fft_halfcomplex_transform(
         double* data, size_t stride, size_t n, gsl_fft_halfcomplex_wavetable* /* wavetable */,
         gsl_fft_halfcomplex_workspace* /* workspace */) {
-    // Inverse FFT for halfcomplex data (packed format)
-    // Convert halfcomplex to complex, perform inverse FFT, convert back
+    // Backward FFT for halfcomplex data (packed format)
+    // Convert halfcomplex to complex, perform backward FFT, convert back
     if (n == 0) return;
     std::vector<std::complex<double>> complex_data(n);
     complex_data[0] = std::complex<double>(data[0], 0.0);
@@ -246,12 +247,13 @@ inline void gsl_fft_halfcomplex_transform(
         complex_data[half] = std::complex<double>(data[(n - 1) * stride], 0.0);
     }
 
-    // Inverse FFT, normalized by 1/n as in GSL's gsl_fft_halfcomplex_inverse.
+    // Backward FFT: ifft scales by 1/n, so multiply by n to undo it as in GSL.
     ifft(complex_data);
+    const double scale = static_cast<double>(n);
 
     // Convert back to real
     for (size_t i = 0; i < n; ++i) {
-        data[i * stride] = complex_data[i].real();
+        data[i * stride] = complex_data[i].real() * scale;
     }
 }
 
@@ -263,7 +265,10 @@ inline void gsl_fft_halfcomplex_wavetable_free(gsl_fft_halfcomplex_wavetable* w)
 /// \param w Input: workspace to release (can be null).
 inline void gsl_fft_halfcomplex_workspace_free(gsl_fft_halfcomplex_workspace* w) { delete w; }
 
-/// \brief Alias for halfcomplex inverse transform.
+/// \brief Inverse transform from halfcomplex packed data.
+/// \details Follows GSL: the backward transform followed by the \f$1/n\f$
+/// normalization, so gsl_fft_real_transform followed by
+/// gsl_fft_halfcomplex_inverse returns the original data.
 /// \param data Input/Output: packed spectrum overwritten with real sequence.
 /// \param stride Input: element stride in \p data.
 /// \param n Input: number of samples.
@@ -273,6 +278,10 @@ inline void gsl_fft_halfcomplex_inverse(
         double* data, size_t stride, size_t n, gsl_fft_halfcomplex_wavetable* wavetable,
         gsl_fft_halfcomplex_workspace* workspace) {
     gsl_fft_halfcomplex_transform(data, stride, n, wavetable, workspace);
+    const double norm = 1.0 / static_cast<double>(n);
+    for (size_t i = 0; i < n; ++i) {
+        data[i * stride] *= norm;
+    }
 }
 
 /// \brief Allow real workspace to be used with halfcomplex (compat helper).
@@ -286,7 +295,7 @@ inline void gsl_fft_halfcomplex_inverse(
         gsl_fft_real_workspace* /* workspace */) {
     gsl_fft_halfcomplex_wavetable* hc_w  = gsl_fft_halfcomplex_wavetable_alloc(n);
     gsl_fft_halfcomplex_workspace* hc_ws = gsl_fft_halfcomplex_workspace_alloc(n);
-    gsl_fft_halfcomplex_transform(data, stride, n, hc_w, hc_ws);
+    gsl_fft_halfcomplex_inverse(data, stride, n, hc_w, hc_ws);
     gsl_fft_halfcomplex_wavetable_free(hc_w);
     gsl_fft_halfcomplex_workspace_free(hc_ws);
 }
