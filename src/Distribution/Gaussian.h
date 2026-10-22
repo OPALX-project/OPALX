@@ -37,6 +37,8 @@ using Dist_t        = ippl::random::NormalDistribution<double, 3>;
  *   - longitudinal:         |z| <= CutoffR[2] and |pz| <= CutoffP[2]
  * Note that an independent per-axis truncation (a box) yields different
  * rms values and emittances than the elliptical cut (see issue #165).
+ * All cutoffs must be positive; a very large value (e.g. the maximum double,
+ * used by Distribution for a zero input cutoff, as in OPAL) disables the cut.
  *
  * If fixMeanR is set (default), the sampled phase space is adjusted as in
  * OPAL's adjustPhaseSpace: the means of x, y, z, px and py are shifted to
