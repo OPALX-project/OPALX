@@ -9,13 +9,10 @@
  * @brief Constructs a Gaussian sampler.
  *
  * @param pc Shared pointer to the particle container.
- * @param fc Shared pointer to the field container.
  * @param opalDist Borrowed distribution object.
  */
-Gaussian::Gaussian(
-        std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-        Distribution_t* opalDist)
-    : SamplingBase(pc, fc, opalDist) {
+Gaussian::Gaussian(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist)
+    : SamplingBase(pc, opalDist) {
     samperTimer_m = IpplTimings::getTimer("Sampling");
     initRandomPool();
     setSigmaP(opalDist->getSigmaP());
@@ -83,10 +80,12 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     Vector_t<double, 3> rmax = cutoffR_m;
 
     for (int i = 0; i < 3; i++) {
-        mu[i]   = 0.0;
-        sd[i]   = sigmaR_m[i];
-        rmin(i) = (rmin(i) + mu[i]) * sigmaR_m[i];
-        rmax(i) = (rmax(i) + mu[i]) * sigmaR_m[i];
+        mu[i] = 0.0;
+        // A collapsed axis is a point mass, not a normal PDF with sigma=0.
+        // Sample a finite dummy coordinate and project it out below.
+        sd[i]   = sigmaR_m[i] == 0.0 ? 1.0 : sigmaR_m[i];
+        rmin(i) = sigmaR_m[i] == 0.0 ? -1.0 : (rmin(i) + mu[i]) * sigmaR_m[i];
+        rmax(i) = sigmaR_m[i] == 0.0 ? 1.0 : (rmax(i) + mu[i]) * sigmaR_m[i];
     }
 
     const double par[6] = {mu[0], sd[0], mu[1], sd[1], mu[2], sd[2]};
@@ -116,6 +115,17 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     auto Rview = Kokkos::subview(RviewFull, std::make_pair(nlocalCurrent, nlocalCurrent + nlocal));
 
     sampling.generate(Rview, rand_pool64);
+
+    const auto sigmaR = sigmaR_m;
+    if (sigmaR[0] == 0.0 || sigmaR[1] == 0.0 || sigmaR[2] == 0.0) {
+        Kokkos::parallel_for(
+                "Gaussian_collapse_zero_width_axes", nlocal, KOKKOS_LAMBDA(const size_t k) {
+                    for (unsigned d = 0; d < 3; ++d) {
+                        if (sigmaR[d] == 0.0) Rview(k)[d] = 0.0;
+                    }
+                });
+        Kokkos::fence();
+    }
 
     if (fixMeanR_m) {
         double meanR[3], loc_meanR[3];

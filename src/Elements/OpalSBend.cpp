@@ -17,11 +17,12 @@
 //
 #include "Elements/OpalSBend.h"
 #include <cmath>
+#include <string>
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/SBendRep.h"
-#include "Fields/BMultipoleField.h"
 #include "Physics/Physics.h"
+#include "Physics/Units.h"
 #include "Utilities/OpalException.h"
 
 OpalSBend::OpalSBend()
@@ -42,57 +43,48 @@ OpalSBend* OpalSBend::clone(const std::string& name) { return new OpalSBend(name
 void OpalSBend::update() {
     OpalElement::update();
 
+    // E1/E2 pole-face rotations are not wired into the OPALX-native bend geometry/field yet, so
+    // reject them explicitly rather than silently ignoring them.
+    if (!itsAttr[E1].defaultUsed() || !itsAttr[E2].defaultUsed()) {
+        throw OpalException(
+                "OpalSBend::update",
+                getOpalName()
+                        + ": pole-face rotations (E1, E2) are not yet implemented in the "
+                          "OPALX-native bend port. Remove E1/E2 from the element definition.");
+    }
+
     // Define geometry.
-    SBendRep* bend              = dynamic_cast<SBendRep*>(getElement());
-    double length               = Attributes::getReal(itsAttr[LENGTH]);
-    double angle                = Attributes::getReal(itsAttr[ANGLE]);
-    double e1                   = Attributes::getReal(itsAttr[E1]);
-    double e2                   = Attributes::getReal(itsAttr[E2]);
-    PlanarArcGeometry& geometry = bend->getGeometry();
+    SBendRep* bend     = dynamic_cast<SBendRep*>(getElement());
+    double length      = Attributes::getReal(itsAttr[LENGTH]);
+    double angle       = Attributes::getReal(itsAttr[ANGLE]);
+    Geometry& geometry = static_cast<Geometry&>(bend->getGeometry());
 
     if (length) {
-        geometry = PlanarArcGeometry(length, angle / length);
+        geometry = Geometry::makeSBend(length, angle / length);
     } else {
-        geometry = PlanarArcGeometry(angle);
+        geometry = Geometry::makeSBend(0.0, 0.0);
+        geometry.setBendAngle(angle);
     }
-    // Define number of slices for map tracking
-    bend->setNSlices(Attributes::getReal(itsAttr[NSLICES]));
-
-    // Define pole face angles.
-    bend->setEntryFaceRotation(Attributes::getReal(itsAttr[E1]));
-    bend->setExitFaceRotation(Attributes::getReal(itsAttr[E2]));
-    bend->setEntryFaceCurvature(Attributes::getReal(itsAttr[H1]));
-    bend->setExitFaceCurvature(Attributes::getReal(itsAttr[H2]));
-
-    // Define integration parameters.
-    bend->setSlices(Attributes::getReal(itsAttr[SLICES]));
-    bend->setStepsize(Attributes::getReal(itsAttr[STEPSIZE]));
-
-    // Define field.
+    // Define field. MAD length convention: L is the design-orbit arc length, so the
+    // default dipole strength is the arc curvature k0 = angle / L = 1 / rho. This matches
+    // the geometry above (makeSBend treats L as the arc), so the field bends the orbit on
+    // exactly the placed arc at any angle. (The legacy chord form 2 sin(angle/2) / L
+    // belonged to the OPAL convention where L was the chord.)
     double factor = OpalData::getInstance()->getP0() / Physics::c;
-    BMultipoleField field;
-    double k0  = itsAttr[K0] ? Attributes::getReal(itsAttr[K0])
-                 : length    ? 2 * sin(angle / 2) / length
-                             : angle;
-    double k0s = itsAttr[K0S] ? Attributes::getReal(itsAttr[K0S]) : 0.0;
-    // JMJ 4/10/2000: above line replaced
-    //     length ? angle / length : angle;
-    //  to avoid closed orbit created by SBEND with defalt K0.
-    field.setNormalComponent(0, factor * k0);
-    field.setSkewComponent(0, factor * Attributes::getReal(itsAttr[K0S]));
-    field.setNormalComponent(1, factor * Attributes::getReal(itsAttr[K1]));
-    field.setSkewComponent(1, factor * Attributes::getReal(itsAttr[K1S]));
-    field.setNormalComponent(2, factor * Attributes::getReal(itsAttr[K2]) / 2.0);
-    field.setSkewComponent(2, factor * Attributes::getReal(itsAttr[K2S]) / 2.0);
-    field.setNormalComponent(3, factor * Attributes::getReal(itsAttr[K3]) / 6.0);
-    field.setSkewComponent(3, factor * Attributes::getReal(itsAttr[K3S]) / 6.0);
-    bend->setField(field);
+    double k0 = itsAttr[K0] ? Attributes::getReal(itsAttr[K0]) : length ? angle / length : angle;
+    const std::vector<double> normal = {
+            factor * k0, factor * Attributes::getReal(itsAttr[K1]),
+            factor * Attributes::getReal(itsAttr[K2]) / 2.0,
+            factor * Attributes::getReal(itsAttr[K3]) / 6.0};
+    const std::vector<double> skew = {
+            factor * Attributes::getReal(itsAttr[K0S]), factor * Attributes::getReal(itsAttr[K1S]),
+            factor * Attributes::getReal(itsAttr[K2S]) / 2.0,
+            factor * Attributes::getReal(itsAttr[K3S]) / 6.0};
+    bend->setFieldComponents(normal, skew);
 
     // Set field amplitude or bend angle.
     if (itsAttr[ANGLE]) {
         if (bend->isPositioned() && angle < 0.0) {
-            e1    = -e1;
-            e2    = -e2;
             angle = -angle;
 
             Quaternion rotAboutZ(0, 0, 0, 1);
@@ -102,57 +94,88 @@ void OpalSBend::update() {
                     CoordinateSystemTrafo(g2l.getOrigin(), rotAboutZ * g2l.getRotation()));
             bend->fixPosition();
         }
-        bend->setBendAngle(angle);
-    } else {
-        bend->setFieldAmplitude(k0, k0s);
+        geometry.setBendAngle(angle);
     }
 
     if (itsAttr[GREATERTHANPI])
         throw OpalException("OpalSBend::update", "GREATERTHANPI not supportet any more");
 
-    if (itsAttr[ROTATION])
-        throw OpalException(
-                "OpalSBend::update", "ROTATION not supportet any more; use PSI instead");
-
-    if (itsAttr[FMAPFN])
-        bend->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));
-    else if (bend->getName() != "SBEND") {
-        bend->setFieldMapFN("1DPROFILE1-DEFAULT");
-    }
-
-    bend->setEntranceAngle(e1);
-    bend->setExitAngle(e2);
-
     // Units are eV.
     if (itsAttr[DESIGNENERGY]) {
-        bend->setDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]), false);
+        // bend->setDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]) * Units::MeV2eV, false);
+        throw OpalException(
+                "OpalSBend::update",
+                "DESIGNENERGY is not supported yet for the OPALX-native SBEND port.");
     }
 
-    bend->setFullGap(Attributes::getReal(itsAttr[GAP]));
-
-    if (itsAttr[APERT])
+    if (itsAttr[GAP])
         throw OpalException(
-                "OpalSBend::update", "APERTURE in SBEND not supported; use GAP and HAPERT instead");
+                "OpalSBend::update", "GAP is not supported; specify HGAP (the half gap) instead.");
+    // gap_m stores the full gap; HGAP is the half gap, so double it.
+    bend->setFullGap(2.0 * Attributes::getReal(itsAttr[HGAP]));
+    bend->setFringeIntegral(Attributes::getReal(itsAttr[FINT]));
 
-    if (itsAttr[HAPERT]) {
-        double hapert = Attributes::getReal(itsAttr[HAPERT]);
-        bend->setAperture(ApertureType::RECTANGULAR, std::vector<double>({hapert, hapert, 1.0}));
+    // Transverse aperture. The vertical half-aperture is the pole gap HGAP; the horizontal
+    // one comes from HAPERT or from APERTURE, never from both. OpalElement::update() has
+    // already installed either the APERTURE string (full widths, halved by getApert()) or
+    // the 1e6 default, so this block only adds the gap and rejects the combinations that
+    // have no physical meaning.
+    //
+    // "Given" means written in the deck. HAPERT has a default, so itsAttr[HAPERT] reads as
+    // set even when the deck omits it; only defaultUsed() tells the two apart.
+    const bool hasApert  = !itsAttr[APERT].defaultUsed();
+    const bool hasHapert = !itsAttr[HAPERT].defaultUsed();
+    const double hgap    = Attributes::getReal(itsAttr[HGAP]);
+    const double hapert  = Attributes::getReal(itsAttr[HAPERT]);
+
+    if (hasApert && hasHapert) {
+        throw OpalException(
+                "OpalSBend::update",
+                getOpalName()
+                        + ": APERTURE and HAPERT cannot both be given. APERTURE sets both "
+                          "half-apertures, HAPERT only the horizontal one.");
+    }
+    if ((hasApert || hasHapert) && hgap <= 0.0) {
+        throw OpalException(
+                "OpalSBend::update",
+                getOpalName()
+                        + ": HAPERT/APERTURE requires a positive HGAP; the vertical aperture "
+                          "is the half gap.");
+    }
+    if (hasHapert && hapert <= 0.0) {
+        throw OpalException("OpalSBend::update", getOpalName() + ": HAPERT must be positive.");
+    }
+
+    auto aperture = bend->getAperture();
+    if (hasApert) {
+        // Keep the deck's own shape and half-widths, but the chamber cannot be taller than
+        // the poles it sits between. Equality is fine: flush with the pole faces.
+        if (aperture.second[1] > hgap) {
+            throw OpalException(
+                    "OpalSBend::update",
+                    getOpalName() + ": vertical half-aperture " + std::to_string(aperture.second[1])
+                            + " m exceeds the half gap HGAP = " + std::to_string(hgap) + " m.");
+        }
+    } else if (hgap > 0.0) {
+        // Flat poles above and below, a flat side wall left and right. Without HAPERT the
+        // horizontal half-width stays at the 1e6 default, i.e. vertical scraping only.
+        aperture.first     = ApertureType::RECTANGULAR;
+        aperture.second[1] = hgap;
+        if (hasHapert) {
+            aperture.second[0] = hapert;
+        }
+        bend->setAperture(aperture.first, aperture.second);
     }
 
     if (itsAttr[LENGTH])
-        bend->setLength(Attributes::getReal(itsAttr[LENGTH]));
+        bend->getGeometry().setElementLength(Attributes::getReal(itsAttr[LENGTH]));
     else
-        bend->setLength(0.0);
+        bend->getGeometry().setElementLength(0.0);
 
     if (itsAttr[WAKEF]) {
         throw OpalException(
                 "OpalSBend::update", "WAKEF is not supported yet for the OPALX-native SBEND port.");
     }
-
-    if (itsAttr[K1])
-        bend->setK1(Attributes::getReal(itsAttr[K1]));
-    else
-        bend->setK1(0.0);
 
     if (itsAttr[PARTICLEMATTERINTERACTION]) {
         throw OpalException(

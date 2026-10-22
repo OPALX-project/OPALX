@@ -20,6 +20,7 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <limits>
@@ -37,15 +38,23 @@ extern Inform* gmsg;
 
 const double IndexMap::oneMinusEpsilon_m = 1.0 - std::numeric_limits<double>::epsilon();
 namespace {
-    void insertFlags(std::vector<double>& flags, std::shared_ptr<Component> element);
+    void insertFlags(std::vector<double>& flags, std::shared_ptr<ElementBase> element);
 }
 
 IndexMap::IndexMap()
     : mapRange2Element_m(),
       mapElement2Range_m(),
-      referencePathModel_m(),
-      referencePathModelDirty_m(false),
-      totalPathLength_m(0.0) {}
+      totalPathLength_m(0.0),
+      periodOrigin_m(0.0),
+      period_m(0.0) {}
+
+void IndexMap::setPeriod(double origin, double period) {
+    if (!(period > 0.0) || !std::isfinite(origin) || !std::isfinite(period)) {
+        throw OpalException("IndexMap::setPeriod", "period must be finite and positive");
+    }
+    periodOrigin_m = origin;
+    period_m       = period;
+}
 
 void IndexMap::print(std::ostream& out) const {
     if (mapRange2Element_m.empty()) return;
@@ -72,8 +81,41 @@ void IndexMap::print(std::ostream& out) const {
 }
 
 IndexMap::value_t IndexMap::query(key_t::first_type s, key_t::second_type ds) {
-    const double lowerLimit = s - ds;  //(ds < s? s - ds: 0);
-    const double upperLimit = std::min(totalPathLength_m, s + ds);
+    if (ds < 0.0) {
+        throw OutOfBounds("IndexMap::query", "query half-width must not be negative");
+    }
+    if (period_m == 0.0) {
+        return queryRange(s - ds, s + ds);
+    }
+
+    if (2.0 * ds >= period_m) {
+        value_t elements;
+        for (const auto& entry : mapRange2Element_m) {
+            const auto& rangeElements = entry.second;
+            elements.insert(rangeElements.begin(), rangeElements.end());
+        }
+        return elements;
+    }
+
+    const double lower        = s - ds;
+    const double upper        = s + ds;
+    const double wrappedLower = wrap(lower);
+    const double wrappedUpper = wrap(upper);
+    const auto lowerTurn = static_cast<long long>(std::floor((lower - periodOrigin_m) / period_m));
+    const auto upperTurn = static_cast<long long>(std::floor((upper - periodOrigin_m) / period_m));
+
+    if (lowerTurn == upperTurn && wrappedLower <= wrappedUpper) {
+        return queryRange(wrappedLower, wrappedUpper);
+    }
+
+    value_t elements = queryRange(wrappedLower, periodOrigin_m + period_m);
+    value_t head     = queryRange(periodOrigin_m, wrappedUpper);
+    elements.insert(head.begin(), head.end());
+    return elements;
+}
+
+IndexMap::value_t IndexMap::queryRange(double lowerLimit, double upperLimit) {
+    upperLimit = std::min(totalPathLength_m, upperLimit);
     value_t elementSet;
 
     map_t::reverse_iterator rit = mapRange2Element_m.rbegin();
@@ -81,14 +123,20 @@ IndexMap::value_t IndexMap::query(key_t::first_type s, key_t::second_type ds) {
         throw OutOfBounds("IndexMap::query", "out of bounds");
     }
 
-    map_t::iterator it        = mapRange2Element_m.begin();
+    // Start the scan at the first entry that can overlap [lowerLimit, upperLimit]. Entries before
+    // lower_bound have begin < lowerLimit; step back over those still reaching into the interval.
+    map_t::iterator it        = mapRange2Element_m.lower_bound(key_t{lowerLimit, lowerLimit});
     const map_t::iterator end = mapRange2Element_m.end();
+    while (it != mapRange2Element_m.begin() && std::prev(it)->first.end > lowerLimit) {
+        --it;
+    }
 
     for (; it != end; ++it) {
         const double low  = (*it).first.begin;
         const double high = (*it).first.end;
 
-        if (lowerLimit < high && upperLimit >= low) break;
+        if (upperLimit < low) return elementSet;  // all following entries begin even later
+        if (lowerLimit < high) break;
     }
 
     if (it == end) return elementSet;
@@ -108,61 +156,75 @@ IndexMap::value_t IndexMap::query(key_t::first_type s, key_t::second_type ds) {
     return elementSet;
 }
 
+double IndexMap::wrap(double s) const {
+    double offset = std::fmod(s - periodOrigin_m, period_m);
+    if (offset < 0.0) {
+        offset += period_m;
+    }
+    return periodOrigin_m + offset;
+}
+
+long long IndexMap::getTurnNumber(double s) const {
+    if (period_m == 0.0) {
+        throw OpalException("IndexMap::getTurnNumber", "map is not periodic");
+    }
+    return static_cast<long long>(std::floor((s - periodOrigin_m) / period_m));
+}
+
+double IndexMap::getPhase(double s) const {
+    if (period_m == 0.0) {
+        throw OpalException("IndexMap::getPhase", "map is not periodic");
+    }
+    const double twoPi = 2.0 * std::acos(-1.0);
+    return twoPi * (wrap(s) - periodOrigin_m) / period_m;
+}
+
 void IndexMap::add(key_t::first_type initialS, key_t::second_type finalS, const value_t& val) {
     if (initialS > finalS) {
         std::swap(initialS, finalS);
     }
+    if (initialS == finalS) return;
     key_t key{initialS, finalS * oneMinusEpsilon_m};
 
+    // Boundary-resolved reference integration can produce many adjacent steps with the same
+    // support set. Coalesce those intervals without merging separate visits across a gap.
+    if (!mapRange2Element_m.empty()) {
+        const auto last = std::prev(mapRange2Element_m.end());
+        if (last->second == val && almostEqual(initialS, last->first.end / oneMinusEpsilon_m)) {
+            key.begin = last->first.begin;
+            mapRange2Element_m.erase(last);
+        }
+    }
+
     mapRange2Element_m.insert(std::pair<key_t, value_t>(key, val));
-    totalPathLength_m         = (*mapRange2Element_m.rbegin()).first.end;
-    referencePathModelDirty_m = true;
+    totalPathLength_m = (*mapRange2Element_m.rbegin()).first.end;
 
-    value_t::iterator setIt        = val.begin();
-    const value_t::iterator setEnd = val.end();
-
-    for (; setIt != setEnd; ++setIt) {
-        if (mapElement2Range_m.find(*setIt) == mapElement2Range_m.end()) {
-            mapElement2Range_m.insert(std::make_pair(*setIt, key));
-        } else {
-            auto itpair = mapElement2Range_m.equal_range(*setIt);
-
-            bool extendedExisting = false;
-            for (auto it = itpair.first; it != itpair.second; ++it) {
-                key_t& currentRange = it->second;
-
-                if (almostEqual(key.begin, currentRange.end / oneMinusEpsilon_m)) {
-                    currentRange.end = key.end;
-                    extendedExisting = true;
-                    break;
-                }
-            }
-            if (!extendedExisting) {
-                mapElement2Range_m.insert(std::make_pair(*setIt, key));
+    // Build each element's first-crossing range in the reverse map. The reference orbit threads
+    // through an element over several consecutive steps, each a separate add(); merge them into
+    // one contiguous interval. A non-contiguous add for a known element means the orbit
+    // re-entered it (ring); the first crossing is kept and the new range is only recorded in
+    // mapRange2Element_m, which query() reads.
+    for (value_t::iterator setIt = val.begin(); setIt != val.end(); ++setIt) {
+        auto res = mapElement2Range_m.insert(std::make_pair(*setIt, key));
+        if (!res.second) {
+            key_t& currentRange = res.first->second;
+            if (almostEqual(initialS, currentRange.end / oneMinusEpsilon_m)) {
+                currentRange.end = key.end;  // extend the element's contiguous range
             }
         }
     }
 }
 
-void IndexMap::tidyUp(double zstop) {
+void IndexMap::tidyUp(double sStop) {
     map_t::reverse_iterator rit = mapRange2Element_m.rbegin();
 
-    if (rit != mapRange2Element_m.rend() && (*rit).second.empty() && zstop > (*rit).first.begin) {
-        key_t key{(*rit).first.begin, zstop};
+    if (rit != mapRange2Element_m.rend() && (*rit).second.empty() && sStop > (*rit).first.begin) {
+        key_t key{(*rit).first.begin, sStop};
         value_t val;
 
         mapRange2Element_m.erase(std::next(rit).base());
         mapRange2Element_m.insert(std::pair<key_t, value_t>(key, val));
-        referencePathModelDirty_m = true;
     }
-}
-
-void IndexMap::rebuildReferencePathModel() const {
-    referencePathModel_m.clear();
-    for (const auto& [range, elements] : mapRange2Element_m) {
-        referencePathModel_m.addSegment(ReferencePathSegment(range.begin, range.end, elements));
-    }
-    referencePathModelDirty_m = false;
 }
 
 enum elements {
@@ -192,12 +254,26 @@ void IndexMap::saveSDDS(double initialPathLength) const {
     // to the file, where
     // s_i is the start of the range and
     // s_f is the end of the range.
-    for (const auto& segment : getReferencePathModel().getSegments()) {
-        const auto& sectorElements = segment.getActiveElements();
+    // Each range-map entry {range, elements} is one sector of the reference path. On a ring
+    // only the first turn is written: the reverse map holds first-crossing ranges only, so a
+    // sector containing an element whose stored range ends before the sector begins is a
+    // re-entry (second turn) — stop there.
+    for (const auto& [range, sectorElements] : mapRange2Element_m) {
         if (sectorElements.empty()) continue;
 
-        double sectorBegin = segment.getBegin();
-        double sectorEnd   = segment.getEnd();
+        const bool reentered =
+                std::any_of(sectorElements.begin(), sectorElements.end(), [&](const auto& element) {
+                    return mapElement2Range_m.at(element).end < range.begin;
+                });
+        if (reentered && period_m <= 0.0) {
+            *gmsg << level2
+                  << "* IndexMap: ring detected (element re-entered at s = " << range.begin
+                  << " m); the element position file contains the first pass only" << endl;
+            break;
+        }
+
+        double sectorBegin = range.begin;
+        double sectorEnd   = range.end;
 
         std::vector<std::tuple<double, std::vector<double>, std::string> > currentSector(4);
         std::get<0>(currentSector[0]) = sectorBegin;
@@ -211,20 +287,7 @@ void IndexMap::saveSDDS(double initialPathLength) const {
         }
 
         for (auto element : sectorElements) {
-            auto elementPassages = mapElement2Range_m.equal_range(element);
-            auto passage         = elementPassages.first;
-            auto end             = elementPassages.second;
-            for (; passage != end; ++passage) {
-                const auto& elementRange = (*passage).second;
-                double elementBegin      = elementRange.begin;
-                double elementEnd        = elementRange.end;
-
-                if (elementBegin <= sectorBegin && elementEnd >= sectorEnd) {
-                    break;
-                }
-            }
-
-            const auto& elementRange = (*passage).second;
+            const auto& elementRange = mapElement2Range_m.at(element);
             if (elementRange.begin < sectorBegin) {
                 ::insertFlags(std::get<1>(currentSector[0]), element);
                 std::get<2>(currentSector[0]) += element->getName() + ", ";
@@ -271,8 +334,13 @@ void IndexMap::saveSDDS(double initialPathLength) const {
         if (i == numEntries) continue;
 
         unsigned int j = ++i;
-        while (std::get<0>(sectors[j]) < range.end) {
+        while (j < numEntries && std::get<0>(sectors[j]) < range.end) {
             ++j;
+        }
+        // Bound fix since we can go beyond the range when threading through
+        // elements multiple times
+        if (j == numEntries) {
+            --j;
         }
 
         double length = range.end - range.begin;
@@ -310,7 +378,7 @@ void IndexMap::saveSDDS(double initialPathLength) const {
 }
 
 namespace {
-    void insertFlags(std::vector<double>& flags, std::shared_ptr<Component> element) {
+    void insertFlags(std::vector<double>& flags, std::shared_ptr<ElementBase> element) {
         switch (element->getType()) {
             case ElementType::MULTIPOLE: {
                 const Multipole* mult = static_cast<const Multipole*>(element.get());
@@ -342,6 +410,7 @@ namespace {
                 flags[SOLENOID] = 1;
                 break;
             case ElementType::CONSTANTEFIELDCAVITY:
+            case ElementType::CONSTANTFOCUSING:
                 flags[OTHER] = 1;
                 break;
             default:
@@ -351,39 +420,13 @@ namespace {
     }
 }  // namespace
 
-IndexMap::key_t IndexMap::getRange(
-        const IndexMap::value_t::value_type& element, double position) const {
-    double minDistance = std::numeric_limits<double>::max();
-    key_t range{0.0, 0.0};
-    const std::pair<invertedMap_t::const_iterator, invertedMap_t::const_iterator> its =
-            mapElement2Range_m.equal_range(element);
-    if (std::distance(its.first, its.second) == 0)
+IndexMap::key_t IndexMap::getRange(const IndexMap::value_t::value_type& element) const {
+    invertedMap_t::const_iterator it = mapElement2Range_m.find(element);
+    if (it == mapElement2Range_m.end()) {
         throw OpalException(
                 "IndexMap::getRange()", "Element \"" + element->getName() + "\" not registered");
-
-    for (invertedMap_t::const_iterator it = its.first; it != its.second; ++it) {
-        double distance = std::min(
-                std::abs((*it).second.begin - position), std::abs((*it).second.end - position));
-        if (distance < minDistance) {
-            minDistance = distance;
-            range       = (*it).second;
-        }
     }
-
-    return range;
-}
-
-IndexMap::value_t IndexMap::getTouchingElements(const IndexMap::key_t& range) const {
-    map_t::const_iterator it        = mapRange2Element_m.begin();
-    const map_t::const_iterator end = mapRange2Element_m.end();
-    value_t touchingElements;
-
-    for (; it != end; ++it) {
-        if (almostEqual(it->first.begin, range.begin) || almostEqual(it->first.end, range.end))
-            touchingElements.insert((it->second).begin(), (it->second).end());
-    }
-
-    return touchingElements;
+    return it->second;
 }
 
 bool IndexMap::almostEqual(double x, double y) {

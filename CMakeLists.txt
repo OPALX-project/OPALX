@@ -8,11 +8,9 @@ cmake_minimum_required(VERSION 3.24)
 # ------------------------------------------------------------------------------
 cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 
-# but disable c++20 module scanning until we have better support for it this
-# seems to cause some problems when using gcc@14
-if(POLICY CMP0155)
-  cmake_policy(SET CMP0155 OLD)
-endif()
+# OPALX does not use C++20 modules. Disable scanning explicitly instead of
+# selecting deprecated CMP0155 behavior (scanning also caused GCC 14 problems).
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
 # ------------------------------------------------------------------------------
 # Project declaration and version
@@ -118,18 +116,37 @@ endif()
 # Debug: This tells the compiler to replace occurrences of ${<DIR>} with <x> in
 # debug info and error messages.
 # ------------------------------------------------------------------------------
-# add_compile_options(
-# $<$<COMPILE_LANG_AND_ID:C,Clang,AppleClang,GNU>:-ffile-prefix-map=${CMAKE_SOURCE_DIR}=.>
-# $<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang,GNU>:-ffile-prefix-map=${CMAKE_SOURCE_DIR}=.>)
+if(NOT DEFINED KEEP_ABSOLUTE_PATHS_FOR_DEBUGGER)
+add_compile_options(
+  $<$<COMPILE_LANG_AND_ID:C,Clang,AppleClang,GNU>:-ffile-prefix-map=${CMAKE_SOURCE_DIR}=.>
+  $<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang,GNU>:-ffile-prefix-map=${CMAKE_SOURCE_DIR}=.>)
 
-# if(DEFINED FETCHCONTENT_BASE_DIR) add_compile_options(
-# $<$<COMPILE_LANG_AND_ID:C,Clang,AppleClang,GNU>:-ffile-prefix-map=${FETCHCONTENT_BASE_DIR}=.3p>
-# $<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang,GNU>:-ffile-prefix-map=${FETCHCONTENT_BASE_DIR}=.3p>
-# ) endif()
+if(DEFINED FETCHCONTENT_BASE_DIR)
+  add_compile_options(
+    $<$<COMPILE_LANG_AND_ID:C,Clang,AppleClang,GNU>:-ffile-prefix-map=${FETCHCONTENT_BASE_DIR}=.3p>
+    $<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang,GNU>:-ffile-prefix-map=${FETCHCONTENT_BASE_DIR}=.3p>
+  )
+endif()
+endif()
 
 # ------------------------------------------------------------------------------
 # Define sources for project
 # ------------------------------------------------------------------------------
+# IPPL's CMakeLists.txt (via FetchContent) may unset CMAKE_RUNTIME_OUTPUT_DIRECTORY
+# when IPPL_USE_STANDARD_FOLDERS is OFF. Re-apply our output directories here
+# so that opalx_exe lands in ${PROJECT_BINARY_DIR}/bin as expected.
+if(OPALX_USE_STANDARD_FOLDERS)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY
+      ${PROJECT_BINARY_DIR}/bin
+      CACHE PATH "Single Directory for all Executables." FORCE)
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY
+      ${PROJECT_BINARY_DIR}/lib
+      CACHE PATH "Single Directory for all Libraries." FORCE)
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY
+      ${PROJECT_BINARY_DIR}/lib
+      CACHE PATH "Single Directory for all static libraries." FORCE)
+endif()
+
 add_subdirectory(src)
 
 include_directories(${CMAKE_SOURCE_DIR}/src ${OPALX_INCLUDE_DIR})

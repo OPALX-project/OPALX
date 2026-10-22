@@ -4,6 +4,11 @@
 #include "PartBunch/BunchStateHandler.h"
 #include "Utilities/Options.h"
 
+#include "Utilities/OpalException.h"
+
+#include <array>
+#include <limits>
+
 class BunchStateHandlerTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
@@ -25,11 +30,6 @@ TEST_F(BunchStateHandlerTest, RegisterContainerReturnsFreshSlot) {
     ASSERT_TRUE(s);
     EXPECT_FALSE(s->unitlessPositions);
     EXPECT_TRUE(s->momentsDirty);  // default is dirty so first compute runs
-}
-
-TEST_F(BunchStateHandlerTest, BunchWideFirstRepartitionDefault) {
-    BunchStateHandler h;
-    EXPECT_TRUE(h.isFirstRepartition());
 }
 
 TEST_F(BunchStateHandlerTest, UnitlessPositionsToggle) {
@@ -62,17 +62,6 @@ TEST_F(BunchStateHandlerTest, MomentsDirtyLifecycle) {
     s->markMomentsDirty();
     s->markMomentsDirty();
     EXPECT_TRUE(s->momentsDirty);
-}
-
-TEST_F(BunchStateHandlerTest, FirstRepartition) {
-    BunchStateHandler h;
-    EXPECT_TRUE(h.isFirstRepartition());
-
-    h.setFirstRepartition(false);
-    EXPECT_FALSE(h.isFirstRepartition());
-
-    h.setFirstRepartition(true);
-    EXPECT_TRUE(h.isFirstRepartition());
 }
 
 TEST_F(BunchStateHandlerTest, PerContainerSlotsAreIndependent) {
@@ -108,6 +97,66 @@ TEST_F(BunchStateHandlerTest, SlotLifetimeFollowsCallerOwnership) {
     }
     // Last strong ref released: slot is destroyed, handler's weak_ptr expires.
     EXPECT_TRUE(observer.expired());
+}
+
+TEST_F(BunchStateHandlerTest, FixedCartesianDomainValidatesAndPersistsExactBounds) {
+    BunchStateHandler h;
+    const std::array<double, 3> lower{-1.0, -2.0, -3.0};
+    const std::array<double, 3> upper{1.0, 2.0, 3.0};
+
+    EXPECT_FALSE(h.fixedCartesianDomain().has_value());
+    h.setFixedCartesianDomain(lower, upper);
+    ASSERT_TRUE(h.fixedCartesianDomain().has_value());
+    EXPECT_EQ(h.fixedCartesianDomain()->lower, lower);
+    EXPECT_EQ(h.fixedCartesianDomain()->upper, upper);
+    EXPECT_NO_THROW(h.setFixedCartesianDomain(lower, upper));
+
+    EXPECT_THROW(
+            h.setFixedCartesianDomain(lower, std::array<double, 3>{1.0, 2.0, 4.0}), OpalException);
+    h.clearFixedCartesianDomain();
+    EXPECT_FALSE(h.fixedCartesianDomain().has_value());
+    EXPECT_NO_THROW(h.setFixedCartesianDomain(lower, std::array<double, 3>{1.0, 2.0, 4.0}));
+}
+
+TEST_F(BunchStateHandlerTest, FixedCartesianDomainRejectsInvalidBounds) {
+    BunchStateHandler h;
+    const std::array<double, 3> lower{-1.0, -2.0, -3.0};
+    const std::array<double, 3> upper{1.0, 2.0, 3.0};
+
+    auto equal = upper;
+    equal[1]   = lower[1];
+    EXPECT_THROW(h.setFixedCartesianDomain(lower, equal), OpalException);
+
+    auto reversed = upper;
+    reversed[2]   = lower[2] - 1.0;
+    EXPECT_THROW(h.setFixedCartesianDomain(lower, reversed), OpalException);
+
+    auto infinite = upper;
+    infinite[0]   = std::numeric_limits<double>::infinity();
+    EXPECT_THROW(h.setFixedCartesianDomain(lower, infinite), OpalException);
+
+    auto nan = lower;
+    nan[0]   = std::numeric_limits<double>::quiet_NaN();
+    EXPECT_THROW(h.setFixedCartesianDomain(nan, upper), OpalException);
+    EXPECT_FALSE(h.fixedCartesianDomain().has_value());
+}
+
+TEST_F(BunchStateHandlerTest, FixedCartesianDomainIsIndependentOfContainerFlags) {
+    BunchStateHandler h;
+    auto first  = h.registerContainer();
+    auto second = h.registerContainer();
+    first->markMomentsClean();
+    second->setUnitlessPositions(true);
+
+    h.setFixedCartesianDomain({-1.0, -1.0, -1.0}, {1.0, 1.0, 1.0});
+    EXPECT_FALSE(first->momentsDirty);
+    EXPECT_FALSE(first->unitlessPositions);
+    EXPECT_TRUE(second->momentsDirty);
+    EXPECT_TRUE(second->unitlessPositions);
+
+    h.clearFixedCartesianDomain();
+    EXPECT_FALSE(first->momentsDirty);
+    EXPECT_TRUE(second->unitlessPositions);
 }
 
 // -----------------------------------------------------------------------------
@@ -173,23 +222,6 @@ TEST_F(BunchStateHandlerTest, AggressiveSync_UnitlessPositionsConverge) {
     const bool isLast = (ippl::Comm->rank() == ippl::Comm->size() - 1);
     s->setUnitlessPositions(isLast);
     EXPECT_TRUE(s->unitlessPositions);
-}
-
-TEST_F(BunchStateHandlerTest, AggressiveSync_FirstRepartitionConverge) {
-    if (ippl::Comm->size() < 2) {
-        GTEST_SKIP() << "Requires at least 2 MPI ranks to exercise divergent setter calls.";
-    }
-
-    Options::aggressiveStateSync = true;
-    BunchStateHandler h;
-    ASSERT_TRUE(h.isFirstRepartition());
-
-    // Every rank except rank 0 tries to mark first-repartition done; rank 0
-    // still reports true. OR wins => first-repartition remains true everywhere
-    // (the conservative choice: do not skip first-time init until all ranks
-    // agree it is done).
-    h.setFirstRepartition(ippl::Comm->rank() != 0 ? false : true);
-    EXPECT_TRUE(h.isFirstRepartition());
 }
 
 TEST_F(BunchStateHandlerTest, AggressiveSync_OffDoesNotSynchronize) {

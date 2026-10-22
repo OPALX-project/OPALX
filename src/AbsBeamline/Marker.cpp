@@ -24,24 +24,20 @@
 // Class Marker
 // ------------------------------------------------------------------------
 
-Marker::Marker() : Component() {}
+Marker::Marker() : ElementBase() {}
 
-Marker::Marker(const Marker& right) : Component(right) {}
+Marker::Marker(const Marker& right) : ElementBase(right) {}
 
-Marker::Marker(const std::string& name) : Component(name) {}
+Marker::Marker(const std::string& name) : ElementBase(name) {}
 
 Marker::~Marker() {}
 
 void Marker::accept(BeamlineVisitor& visitor) const { visitor.visitMarker(*this); }
 
-void Marker::initialise(PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
-    RefPartBunch_m = bunch;
-}
+void Marker::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
 
 void Marker::finalise() {}
 
-bool Marker::bends() const { return false; }
-
-void Marker::getFieldExtend(double& /*zBegin*/, double& /*zEnd*/) const {}
+void Marker::getFieldExtent(double& /*zBegin*/, double& /*zEnd*/) const {}
 
 ElementType Marker::getType() const { return ElementType::MARKER; }

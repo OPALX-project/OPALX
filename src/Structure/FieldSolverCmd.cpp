@@ -1,8 +1,8 @@
 //
 // Class FieldSolverCmd
 //   The class for the OPAL FIELDSOLVER command.
-//   A FieldSolverCmd definition is used by most physics commands to define the
-//   particle charge and the reference momentum, together with some other data.
+//   Stores parsed mesh, boundary, and algorithm attributes. SpaceCharge owns
+//   their conversion and solver compatibility validation.
 //
 // Copyright (c) 200x - 2022, Paul Scherrer Institut, Villigen PSI, Switzerland
 //
@@ -42,7 +42,7 @@ FieldSolverCmd::FieldSolverCmd()
               "The \"FIELDSOLVER\" statement defines data for a the field solver") {
     itsAttr[FIELDSOLVER::TYPE] = Attributes::makePredefinedString(
             "TYPE", "Name of the attached field solver.",
-            {"NONE", "FFT", "OPEN", "CG"});  // removed, since not implemented: "P3M"
+            {"NONE", "FFT", "P3M", "OPEN", "CG", "FFT2D5"});
 
     itsAttr[FIELDSOLVER::BINS] = Attributes::makeString(
             "BINS", "Name of BINNING definition to be used, or NONE for no binning.", "NONE");
@@ -61,20 +61,53 @@ FieldSolverCmd::FieldSolverCmd()
             Attributes::makeBool("PARFFTZ", "True, dimension 2 i.e z is parallelized", true);
 
     itsAttr[FIELDSOLVER::BCFFTX] = Attributes::makePredefinedString(
-            "BCFFTX", "Boundary conditions in x.", {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN");
+            "BCFFTX", "Poisson-domain boundary in x; Dirichlet planes are configured separately.",
+            {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN");
 
     itsAttr[FIELDSOLVER::BCFFTY] = Attributes::makePredefinedString(
-            "BCFFTY", "Boundary conditions in y.", {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN");
+            "BCFFTY", "Poisson-domain boundary in y.", {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN");
 
     itsAttr[FIELDSOLVER::BCFFTZ] = Attributes::makePredefinedString(
-            "BCFFTZ", "Boundary conditions in z.", {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN");
+            "BCFFTZ", "Poisson-domain boundary in z; distinct from a Dirichlet plane.",
+            {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN");
 
     itsAttr[FIELDSOLVER::GREENSF] = Attributes::makePredefinedString(
-            "GREENSF", "Which Greensfunction to be used.", {"STANDARD", "INTEGRATED"},
-            "INTEGRATED");
+            "GREENSF", "Green function for TYPE=OPEN; TYPE=P3M selects its kernel internally.",
+            {"STANDARD", "INTEGRATED"}, "INTEGRATED");
+
+    itsAttr[FIELDSOLVER::P3MRCUT] = Attributes::makeReal(
+            "RCUT",
+            "Fixed P3M particle-particle cutoff radius in m (ALPHA = 2/RCUT); excludes "
+            "RCUT_CELLS.",
+            0.0);
+
+    itsAttr[FIELDSOLVER::P3MRCUTCELLS] = Attributes::makeReal(
+            "RCUT_CELLS",
+            "P3M cutoff in units of the largest mesh spacing, updated with the mesh (ALPHA = "
+            "2/cutoff); used unless RCUT is given.",
+            2.0);
 
     itsAttr[FIELDSOLVER::BBOXINCR] =
             Attributes::makeReal("BBOXINCR", "Increase of bounding box in % ", 2.0);
+
+    // Attributes for FFT2D5 mode
+    itsAttr[FIELDSOLVER::PIPEMODE] = Attributes::makePredefinedString(
+            "PIPEMODE",
+            "Longitudinal-field geometry model; transverse Poisson slices remain open [FFT2D5].",
+            {"OPEN", "CIRCULAR", "PLATES", "NONE"}, "OPEN");
+    itsAttr[FIELDSOLVER::BEAMR] =
+            Attributes::makeReal("BEAMR", "Beam radius in metres [FFT2D5 only]", 1.0);
+    itsAttr[FIELDSOLVER::CLOSEDRING] =
+            Attributes::makeBool("CLOSEDRING", "TRUE if the ring is closed [FFT2D5 only]", false);
+    itsAttr[FIELDSOLVER::SCATTERLONGITUDINALLY] = Attributes::makeBool(
+            "SCATTERLONGITUDINALLY",
+            "TRUE to scatter charge longitudinally across slices [FFT2D5 only]", true);
+    itsAttr[FIELDSOLVER::PIPESIZEX] = Attributes::makeReal(
+            "PIPESIZEX", "Beam pipe horizontal size in metres [FFT2D5 only]", 1.0);
+    itsAttr[FIELDSOLVER::PIPESIZEY] = Attributes::makeReal(
+            "PIPESIZEY", "Beam pipe vertical size in metres [FFT2D5 only]", 1.0);
+    itsAttr[FIELDSOLVER::REFPATHFNAME] =
+            Attributes::makeString("REFPATHFNAME", "Reference path file name [FFT2D5 only]", "");
 
     // \todo does not work   registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -88,10 +121,7 @@ FieldSolverCmd* FieldSolverCmd::clone(const std::string& name) {
     return new FieldSolverCmd(name, this);
 }
 
-void FieldSolverCmd::execute() {
-    setFieldSolverCmdType();
-    update();
-}
+void FieldSolverCmd::execute() { update(); }
 
 FieldSolverCmd* FieldSolverCmd::find(const std::string& name) {
     FieldSolverCmd* fs = dynamic_cast<FieldSolverCmd*>(OpalData::getInstance()->find(name));
@@ -102,10 +132,30 @@ FieldSolverCmd* FieldSolverCmd::find(const std::string& name) {
     return fs;
 }
 
-std::string FieldSolverCmd::getType() { return Attributes::getString(itsAttr[FIELDSOLVER::TYPE]); }
+std::string FieldSolverCmd::getType() const {
+    return Attributes::getString(itsAttr[FIELDSOLVER::TYPE]);
+}
 
 std::string FieldSolverCmd::getBinsName() const {
     return Attributes::getString(itsAttr[FIELDSOLVER::BINS]);
+}
+
+std::string FieldSolverCmd::getGreensFunction() const {
+    return Attributes::getString(itsAttr[FIELDSOLVER::GREENSF]);
+}
+
+double FieldSolverCmd::getP3MCutoff() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::P3MRCUT]);
+}
+
+double FieldSolverCmd::getP3MCutoffCells() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::P3MRCUTCELLS]);
+}
+
+bool FieldSolverCmd::hasP3MCutoff() const { return !itsAttr[FIELDSOLVER::P3MRCUT].defaultUsed(); }
+
+bool FieldSolverCmd::hasP3MCutoffCells() const {
+    return !itsAttr[FIELDSOLVER::P3MRCUTCELLS].defaultUsed();
 }
 
 BCHandler<3> FieldSolverCmd::constructBCHandler() const {
@@ -115,19 +165,6 @@ BCHandler<3> FieldSolverCmd::constructBCHandler() const {
             BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTX])),
             BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTY])),
             BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTZ])));
-
-    /// \todo remove this restriction when more BC configurations are implemented
-    /**
-     * Add an additional check weather the boundary conditions are valid, which
-     * currently means either OPEN or PERIODIC in all dimensions.
-     */
-    if (!boundary_conditions.isAllEqual()) {
-        throw OpalException(
-                "PartBunch::PartBunch",
-                "Currently only uniform boundary conditions in all "
-                "dimensions are supported! Please set all "
-                "dimensions to either OPEN or PERIODIC.");
-    }
 
     return boundary_conditions;
 }
@@ -148,31 +185,68 @@ double FieldSolverCmd::getBoxIncr() const {
     return Attributes::getReal(itsAttr[FIELDSOLVER::BBOXINCR]);
 }
 
-void FieldSolverCmd::update() {
-    if (itsAttr[FIELDSOLVER::TYPE]) {
-        fsName_m = getType();
-    }
+void FieldSolverCmd::update() {}
+
+std::string FieldSolverCmd::getPipeMode() const {
+    return Attributes::getString(itsAttr[FIELDSOLVER::PIPEMODE]);
+}
+double FieldSolverCmd::getBeamRadius() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::BEAMR]);
+}
+bool FieldSolverCmd::getClosedRing() const {
+    return Attributes::getBool(itsAttr[FIELDSOLVER::CLOSEDRING]);
+}
+bool FieldSolverCmd::getScatterLongitudinally() const {
+    return Attributes::getBool(itsAttr[FIELDSOLVER::SCATTERLONGITUDINALLY]);
+}
+double FieldSolverCmd::getPipeSizeX() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::PIPESIZEX]);
+}
+double FieldSolverCmd::getPipeSizeY() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::PIPESIZEY]);
+}
+std::string FieldSolverCmd::getRefPathFileName() const {
+    return Attributes::getString(itsAttr[FIELDSOLVER::REFPATHFNAME]);
+}
+void FieldSolverCmd::setPipeMode(const std::string& pipeMode) {
+    Attributes::setPredefinedString(itsAttr[FIELDSOLVER::PIPEMODE], pipeMode);
+}
+void FieldSolverCmd::setBeamRadius(const double beamRadius) {
+    Attributes::setReal(itsAttr[FIELDSOLVER::BEAMR], beamRadius);
+}
+void FieldSolverCmd::setClosedRing(const bool closedRing) {
+    Attributes::setBool(itsAttr[FIELDSOLVER::CLOSEDRING], closedRing);
+}
+void FieldSolverCmd::setScatterLongitudinally(const bool val) {
+    Attributes::setBool(itsAttr[FIELDSOLVER::SCATTERLONGITUDINALLY], val);
+}
+void FieldSolverCmd::setPipeSizeX(const double pipeSizeX) {
+    Attributes::setReal(itsAttr[FIELDSOLVER::PIPESIZEX], pipeSizeX);
+}
+void FieldSolverCmd::setPipeSizeY(const double pipeSizeY) {
+    Attributes::setReal(itsAttr[FIELDSOLVER::PIPESIZEY], pipeSizeY);
+}
+void FieldSolverCmd::setRefPathFileName(const std::string& refPathFileName) {
+    Attributes::setString(itsAttr[FIELDSOLVER::REFPATHFNAME], refPathFileName);
 }
 
-void FieldSolverCmd::setFieldSolverCmdType() {
-    static const std::map<std::string, FieldSolverCmdType> stringType_s = {
-            {"NONE", FieldSolverCmdType::NONE},
-            {"FFT", FieldSolverCmdType::FFT},
-            {"OPEN", FieldSolverCmdType::OPEN},
-            {"CG", FieldSolverCmdType::CG}};
-
-    fsName_m = getType();
-
-    if (fsName_m.empty()) {
-        throw OpalException(
-                "FieldSolverCmd::setFieldSolverCmdType",
-                "The attribute \"TYPE\" isn't set for \"FIELDSOLVER\"!");
-    } else {
-        fsType_m = stringType_s.at(fsName_m);
+FieldSolverCmdType FieldSolverCmd::getFieldSolverCmdType() const {
+    static const std::map<std::string, FieldSolverCmdType> types = {
+            {"NONE", FieldSolverCmdType::NONE}, {"FFT", FieldSolverCmdType::FFT},
+            {"P3M", FieldSolverCmdType::P3M},   {"OPEN", FieldSolverCmdType::OPEN},
+            {"CG", FieldSolverCmdType::CG},     {"FFT2D5", FieldSolverCmdType::FFT2D5}};
+    const auto found = types.find(getType());
+    if (found == types.end()) {
+        throw OpalException("FieldSolverCmd::getFieldSolverCmdType", "Unknown or missing TYPE.");
     }
+    return found->second;
 }
 
-bool FieldSolverCmd::hasValidSolver() { return false; }
+ippl::Vector<bool, 3> FieldSolverCmd::getDomainDecomposition() const {
+    return {Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTX]),
+            Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTY]),
+            Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTZ])};
+}
 
 BinningCmd* FieldSolverCmd::getBinningCmd() const {
     const std::string binsName = getBinsName();
@@ -187,13 +261,24 @@ Inform& FieldSolverCmd::printInfo(Inform& os) const {
        << endl;
     os << "* FIELDSOLVER  " << getOpalName() << '\n'
        << "* BINS         " << getBinsName() << '\n'
-       << "* TYPE         " << fsName_m << '\n'
+       << "* TYPE         " << getType() << '\n'
        << "* RANKS        " << ippl::Comm->size() << '\n'
        << "* NX           " << Attributes::getReal(itsAttr[FIELDSOLVER::NX]) << '\n'
        << "* NY           " << Attributes::getReal(itsAttr[FIELDSOLVER::NY]) << '\n'
        << "* NZ           " << Attributes::getReal(itsAttr[FIELDSOLVER::NZ]) << '\n'
        << "* BBOXINCR     " << Attributes::getReal(itsAttr[FIELDSOLVER::BBOXINCR]) << '\n'
        << "* GREENSF      " << Attributes::getString(itsAttr[FIELDSOLVER::GREENSF]) << endl;
+
+    if (getType() == "P3M") {
+        if (hasP3MCutoff()) {
+            const double cutoff = getP3MCutoff();
+            os << "* RCUT         " << cutoff << " [m]" << '\n'
+               << "* ALPHA        " << 2.0 / cutoff << " [1/m]" << endl;
+        } else {
+            os << "* RCUT_CELLS   " << getP3MCutoffCells() << " [largest mesh spacing]" << '\n'
+               << "* ALPHA        2/RCUT, updated with the mesh" << endl;
+        }
+    }
 
     if (Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTX])) {
         os << "* XDIM         parallel  " << endl;

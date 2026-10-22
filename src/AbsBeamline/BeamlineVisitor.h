@@ -34,15 +34,19 @@
 #define OPALX_BeamlineVisitor_HH
 
 // Generic element classes interacting with a BeamlineVisitor.
-class Component;
+class ElementBase;
 class ConstantEFieldCavity;
+class ConstantFocusing;
 
 // Beam line structure classes.
 class Beamline;
 class FlaggedElmPtr;
 
 // Specific element classes interacting with a BeamlineVisitor
+class Box;
+class Collimator;
 class Drift;
+class FieldmapElement;
 class Laser;
 class Marker;
 class Monitor;
@@ -52,13 +56,18 @@ class RBend;
 class RFCavity;
 class VariableRFCavity;
 class TravelingWave;
-class Ring;
 class SBend;
 class Solenoid;
 class ScalingFFAMagnet;
 class Offset;
 class VerticalFFAMagnet;
 class Probe;
+
+namespace endfieldmodel {
+    class Enge;
+    class Tanh;
+    class AsymmetricEnge;
+}  // namespace endfieldmodel
 
 class BeamlineVisitor {
 public:
@@ -71,14 +80,36 @@ public:
     /// Apply the algorithm to a beam line.
     virtual void visitBeamline(const Beamline&) = 0;
 
-    /// Apply the algorithm to an arbitrary component.
-    virtual void visitComponent(const Component&) = 0;
+    /// Apply the algorithm to an arbitrary element.
+    virtual void visitElementBase(const ElementBase&) = 0;
+    virtual void visitCyclotronSector(const class CyclotronSector&);
 
     /// Apply the algorithm to a constant E-field cavity element.
     virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&) = 0;
 
+    /// Apply the algorithm to a box absorber.
+    virtual void visitBox(const Box&) = 0;
+
+    /// Apply the algorithm to a collimator.
+    virtual void visitCollimator(const Collimator&) = 0;
+
+    /// Apply the algorithm to a constant linear focusing element.
+    virtual void visitConstantFocusing(const ConstantFocusing& focusing);
+
     /// Apply the algorithm to a drift space.
     virtual void visitDrift(const Drift&) = 0;
+
+    /// Apply the algorithm to a drift space.
+    virtual void visitEnge(const endfieldmodel::Enge&) = 0;
+
+    /// Apply the algorithm to a drift space.
+    virtual void visitTanh(const endfieldmodel::Tanh&) = 0;
+
+    /// Apply the algorithm to a drift space.
+    virtual void visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) = 0;
+
+    /// Apply the algorithm to a field-map-driven element.
+    virtual void visitFieldmapElement(const FieldmapElement&) = 0;
 
     /// Apply the algorithm to a laser element.
     virtual void visitLaser(const Laser&) = 0;
@@ -108,9 +139,6 @@ public:
     virtual void visitVariableRFCavity(const VariableRFCavity&) = 0;
 
     virtual void visitScalingFFAMagnet(const ScalingFFAMagnet&) = 0;
-
-    /// Apply the algorithm to a Ring element.
-    virtual void visitRing(const Ring&) = 0;
 
     /// Apply the algorithm to a sector bend.
     virtual void visitSBend(const SBend&) = 0;

@@ -8,7 +8,7 @@ void PionDecay::createDaughterParticles(
         const Kokkos::View<ippl::Vector<double, 3>*>& parentR,
         const Kokkos::View<ippl::Vector<double, 3>*>& parentP,
         const Kokkos::View<double*>& parentDt,
-        const Kokkos::View<ippl::Vector<float, 3>*>& /*parentPol*/) {
+        const Kokkos::View<ippl::Vector<double, 3>*>& /*parentPol*/) {
     using pc_size_type = ippl::detail::size_type;
 
     auto dR  = daughterPC_m->R.getView();
@@ -17,7 +17,7 @@ void PionDecay::createDaughterParticles(
 
     // Daughter muon polarization view (empty unallocated View when daughter has no Pol).
     const bool daughterHasSpin = daughterPC_m->hasSpin();
-    using PolView_t            = Kokkos::View<ippl::Vector<float, 3>*>;
+    using PolView_t            = Kokkos::View<ippl::Vector<double, 3>*>;
     PolView_t dPol;
     if (daughterHasSpin) {
         dPol = daughterPC_m->Pol.getView();
@@ -101,15 +101,32 @@ void PionDecay::createDaughterParticles(
                 dP(idx)[2]             = pzLab / daughterMass;
                 dDt(idx)               = parentDt(j);
 
-                // Daughter muon polarization: full helicity along its rest-frame momentum.
-                // The boost from pion rest frame to lab is along the muon's rest-frame
-                // momentum, so the spin component along that axis is invariant — the
-                // rest-frame unit vector is the correct lab-frame polarization vector.
+                // Daughter muon spin. In the pion rest frame the spin 4-vector is h (p/m, (E/m) n),
+                // n the muon direction. Boost it to the lab, then take the spin
+                // in the muon rest frame reached from the lab by one pure boost (what Pol holds).
                 if (daughterHasSpin) {
-                    const double inv = helicitySign / pFixed;
-                    dPol(idx)[0]     = static_cast<float>(pxRF * inv);
-                    dPol(idx)[1]     = static_cast<float>(pyRF * inv);
-                    dPol(idx)[2]     = static_cast<float>(pzRF * inv);
+                    const double sT = helicitySign * pFixed / md;
+                    const double sN = helicitySign * eDaughter / (md * pFixed);
+                    double sTLab    = sT;
+                    double sxLab    = sN * pxRF;
+                    double syLab    = sN * pyRF;
+                    double szLab    = sN * pzRF;
+                    if (beta2 > 0.0) {
+                        const double betaDotS = betaX * sxLab + betaY * syLab + betaZ * szLab;
+                        const double factor   = (gamma - 1.0) * betaDotS / beta2 + gamma * sT;
+                        sTLab                 = gamma * (sT + betaDotS);
+                        sxLab += factor * betaX;
+                        syLab += factor * betaY;
+                        szLab += factor * betaZ;
+                    }
+                    // Spin in the muon rest frame: s = S - S^0 / (gamma_mu + 1) u, u = p_lab / m.
+                    const double gammaMu = Kokkos::sqrt(
+                            1.0 + dP(idx)[0] * dP(idx)[0] + dP(idx)[1] * dP(idx)[1]
+                            + dP(idx)[2] * dP(idx)[2]);
+                    const double k = sTLab / (gammaMu + 1.0);
+                    dPol(idx)[0]   = sxLab - k * dP(idx)[0];
+                    dPol(idx)[1]   = syLab - k * dP(idx)[1];
+                    dPol(idx)[2]   = szLab - k * dP(idx)[2];
                 }
 
                 pool.free_state(gen);

@@ -27,6 +27,11 @@ OpalSolenoid::OpalSolenoid()
     itsAttr[DKS]    = Attributes::makeReal("DKS", "Normalised solenoid strength error in m**(-1)");
     itsAttr[FMAPFN] = Attributes::makeString("FMAPFN", "Solenoid field map filename ");
     itsAttr[FAST]   = Attributes::makeBool("FAST", "Faster but less accurate", true);
+    itsAttr[ZREVERSE] = Attributes::makeBool(
+            "ZREVERSE",
+            "Read the field map back to front: mirror it in z and negate Bz, which is what "
+            "turning the magnet around does. Only G4beamline cylinder maps support it.",
+            false);
 
     registerOwnership();
 
@@ -50,9 +55,10 @@ void OpalSolenoid::update() {
     double Bz = Attributes::getReal(itsAttr[KS]) * OpalData::getInstance()->getP0() / Physics::c;
     bool fast = Attributes::getBool(itsAttr[FAST]);
 
-    sol->setElementLength(length);
+    sol->getGeometry().setElementLength(length);
     sol->setFieldMapFN(Attributes::getString(itsAttr[FMAPFN]));
     sol->setFast(fast);
+    sol->setIsZReversed(Attributes::getBool(itsAttr[ZREVERSE]));
     sol->setBz(Bz);
     sol->setKS(Attributes::getReal(itsAttr[KS]));
     sol->setDKS(Attributes::getReal(itsAttr[DKS]));

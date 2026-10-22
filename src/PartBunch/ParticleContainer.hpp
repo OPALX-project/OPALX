@@ -6,13 +6,15 @@
 #include <cmath>
 #include <cstddef>
 #include <functional>
+#include <iomanip>
 #include <memory>
+#include <numeric>
 #include <string>
 #include <vector>
 
 #include "Manager/BaseManager.h"
 
-#include "PartBunch/FieldContainer.hpp"
+#include "PartBunch/ParticleContainerTypes.h"
 
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/DistributionMoments.h"
@@ -24,6 +26,19 @@
 #include "Utilities/Options.h"
 
 #include "Physics/Physics.h"
+
+// ParticleSpatialOverlapLayout.hpp currently includes IPPL's Alpine example ParticleContainer,
+// whose global class name collides with OPALX's container. The layout itself does not depend on
+// that example type, so suppress only that application header while including the IPPL layout.
+#ifndef IPPL_PARTICLE_CONTAINER_H
+#define OPALX_SUPPRESS_IPPL_ALPINE_PARTICLE_CONTAINER
+#define IPPL_PARTICLE_CONTAINER_H
+#endif
+#include "Particle/ParticleSpatialOverlapLayout.h"
+#ifdef OPALX_SUPPRESS_IPPL_ALPINE_PARTICLE_CONTAINER
+#undef IPPL_PARTICLE_CONTAINER_H
+#undef OPALX_SUPPRESS_IPPL_ALPINE_PARTICLE_CONTAINER
+#endif
 
 // #include <Kokkos_Core.hpp>
 
@@ -61,7 +76,8 @@ using size_type = ippl::detail::size_type;
 template <typename T, unsigned Dim = 3>
 class ParticleContainer
     : public ippl::ParticleBase<
-              ippl::ParticleSpatialLayout<T, Dim>, Kokkos::DefaultExecutionSpace::memory_space> {
+              ippl::ParticleSpatialLayout<T, Dim, ippl::UniformCartesian<T, Dim>>,
+              Kokkos::DefaultExecutionSpace::memory_space> {
     /**
      * @brief Alias for the `ippl::ParticleBase` specialization this container inherits from.
      *
@@ -74,7 +90,8 @@ class ParticleContainer
      * `Base::create()`.
      */
     using Base = ippl::ParticleBase<
-            ippl::ParticleSpatialLayout<T, Dim>, Kokkos::DefaultExecutionSpace::memory_space>;
+            ippl::ParticleSpatialLayout<T, Dim, ippl::UniformCartesian<T, Dim>>,
+            Kokkos::DefaultExecutionSpace::memory_space>;
 
 private:
     /**
@@ -87,6 +104,11 @@ private:
     using Base::destroy;
 
 public:
+    using SpatialLayout_t = ippl::ParticleSpatialLayout<T, Dim, ippl::UniformCartesian<T, Dim>>;
+    using P3MLayout_t = ippl::ParticleSpatialOverlapLayout<T, Dim, ippl::UniformCartesian<T, Dim>>;
+
+    enum class LayoutType { Spatial, SpatialOverlap };
+
     enum class QMStorageMode { SingleValue, Attributes };
 
     /// Defines which type to use as a particle bin.
@@ -95,11 +117,10 @@ public:
     /// View types of Q and M values
     using qm_view_type = typename ippl::ParticleAttrib<double>::view_type;
 
-    /// Per-particle polarization vector type: 3D vector in single precision, |Pol| in [0, 1].
-    /// Polarization observables are typically ~1% accurate, so `float` storage is sufficient and
-    /// halves the memory footprint versus the codebase's standard `double` attributes. Dynamics
-    /// kernels should still compute in `double` and cast back on store.
-    using spin_vector_type = ippl::Vector<float, 3>;
+    /// Per-particle polarization vector type: 3D vector in double precision, |Pol| in [0, 1].
+    /// Double, like R and P, because Pol is rotated with every frame change (transformBunch)
+    /// and float storage would round it again at each rotation.
+    using spin_vector_type = ippl::Vector<double, 3>;
 
 public:
     /// Charge view in [Cb].
@@ -149,17 +170,26 @@ public:
     /// particle deletion mask (indicates which particles are deleted every timestep)
     ippl::ParticleAttrib<bool> InvalidMask;
 
-    /// Per-particle polarization vector P (rest-frame Pauli expectation values along
-    /// lab-frame axes; |Pol| in [0, 1]). Registered only when spinEnabled_m is true.
-    /// Storage is float to halve memory; kernels should compute in double and cast.
+    /// Per-particle polarization vector (rest-frame Pauli expectation values along the same
+    /// axes as P, i.e. the bunch frame; |Pol| in [0, 1]). Registered only when spinEnabled_m
+    /// is true.
     ippl::ParticleAttrib<spin_vector_type> Pol;
 
     /// Returns true when per-particle spin storage was enabled at construction
     /// (enabled per beam when the BEAM has POLARIZATION set).
     bool hasSpin() const { return spinEnabled_m; }
 
-    ParticleContainer(Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL, bool spinEnabled = false)
-        : pl_m(FL, mesh),
+    ParticleContainer(
+            Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL, bool spinEnabled = false,
+            LayoutType layoutType = LayoutType::Spatial, T overlapCutoff = 0.0,
+            ippl::BC particleBC = ippl::BC::PERIODIC)
+        : spatialLayout_m(
+                  layoutType == LayoutType::Spatial ? std::make_unique<SpatialLayout_t>(FL, mesh)
+                                                    : nullptr),
+          overlapLayout_m(
+                  layoutType == LayoutType::SpatialOverlap
+                          ? std::make_unique<P3MLayout_t>(FL, mesh, overlapCutoff)
+                          : nullptr),
           qmStorageMode_m(
                   Options::useQMAttributes ? QMStorageMode::Attributes
                                            : QMStorageMode::SingleValue),
@@ -167,9 +197,9 @@ public:
           QView_m("ParticleContainer::QView_m", 1),
           MView_m("ParticleContainer::MView_m", 1),
           spinEnabled_m(spinEnabled) {
-        this->initialize(pl_m);
+        this->initialize(getPL());
         registerAttributes();
-        setupBCs();
+        setupBCs(particleBC);
         Kokkos::deep_copy(QView_m, 0.0);
         Kokkos::deep_copy(MView_m, 0.0);
     }
@@ -194,17 +224,73 @@ public:
         }
     }
 
-    void setupBCs() { setBCAllPeriodic(); }
+    void setupBCs(ippl::BC particleBC) { this->setParticleBC(particleBC); }
 
-    /// Apply coordinate transform to local particles: translate R, rotate P, E, B.
+    /// Apply coordinate transform to local particles: translate R, rotate P, E, B and Pol.
     void transformBunch(const CoordinateSystemTrafo& trafo) {
         const size_t nLoc = this->getLocalNum();
         trafo.transformBunchTo(this->R.getView(), nLoc);
         trafo.rotateBunchTo(this->P.getView(), nLoc);
         trafo.rotateBunchTo(this->E.getView(), nLoc);
         trafo.rotateBunchTo(this->B.getView(), nLoc);
+        if (spinEnabled_m) {
+            trafo.rotateBunchTo(this->Pol.getView(), nLoc);
+        }
+        markMomentsDirty();
     }
-    PLayout_t<T, Dim>& getPL() { return pl_m; }
+    SpatialLayout_t& getPL() {
+        return overlapLayout_m ? static_cast<SpatialLayout_t&>(*overlapLayout_m) : *spatialLayout_m;
+    }
+
+    const SpatialLayout_t& getPL() const {
+        return overlapLayout_m ? static_cast<const SpatialLayout_t&>(*overlapLayout_m)
+                               : *spatialLayout_m;
+    }
+
+    bool hasP3MLayout() const { return overlapLayout_m != nullptr; }
+
+    P3MLayout_t& getP3MLayout() {
+        if (!overlapLayout_m) {
+            throw OpalException(
+                    "ParticleContainer::getP3MLayout",
+                    "The particle container does not use ParticleSpatialOverlapLayout.");
+        }
+        return *overlapLayout_m;
+    }
+
+    const P3MLayout_t& getP3MLayout() const {
+        if (!overlapLayout_m) {
+            throw OpalException(
+                    "ParticleContainer::getP3MLayout",
+                    "The particle container does not use ParticleSpatialOverlapLayout.");
+        }
+        return *overlapLayout_m;
+    }
+
+    void updateLayout(FieldLayout_t<Dim>& FL, Mesh_t<Dim>& mesh) {
+        if (overlapLayout_m) {
+            overlapLayout_m->updateLayout(FL, mesh);
+        } else {
+            spatialLayout_m->updateLayout(FL, mesh);
+        }
+    }
+
+    /**
+     * @brief Update the overlap layout and its P3M cutoff together.
+     * @param overlapCutoff Cutoff in metres, checked against the new rank regions; it takes
+     * effect at the next update().
+     */
+    void updateLayout(FieldLayout_t<Dim>& FL, Mesh_t<Dim>& mesh, T overlapCutoff) {
+        getP3MLayout().updateLayout(FL, mesh, overlapCutoff);
+    }
+
+    void update() {
+        if (overlapLayout_m) {
+            overlapLayout_m->update(*this);
+        } else {
+            spatialLayout_m->update(*this);
+        }
+    }
 
     void setBunchStateHandler(std::shared_ptr<BunchStateHandler> handler) {
         // We only keep the slot: per-container flags own their own sync, so
@@ -467,8 +553,12 @@ public:
     /// @brief Set local-to-lab coordinate transformation.
     void setToLabTrafo(const CoordinateSystemTrafo& toLabTrafo) { toLabTrafo_m = toLabTrafo; }
 
-    /// @brief Advance reference/lab transform state and map bunch accordingly.
-    void updateRefToLabCSTrafo(double bunchDT) {
+    /**
+     * @brief Advance reference/lab transform state and map bunch accordingly.
+     * @return The frame change applied to the bunch (old bunch frame to new bunch frame), so
+     *   containers that use this container's reference can apply the same change.
+     */
+    CoordinateSystemTrafo updateRefToLabCSTrafo(double bunchDT) {
         Vector_t<double, 3> R = toLabTrafo_m.transformFrom(refPartR_m);
         Vector_t<double, 3> P = toLabTrafo_m.rotateFrom(refPartP_m);
 
@@ -479,6 +569,38 @@ public:
         CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));
         transformBunch(update);
         toLabTrafo_m = toLabTrafo_m * update.inverted();
+        return update;
+    }
+
+    /**
+     * @brief Take over another container's reference particle, frame and path length.
+     *
+     * Used for a decay daughter container, which has no reference particle of its own. The
+     * particles are not moved; use this only when both containers already share a frame or
+     * this container is empty.
+     *
+     * @param root Container whose reference particle this container uses.
+     */
+    void copyReferenceOf(const ParticleContainer& root) {
+        refPartR_m   = root.refPartR_m;
+        refPartP_m   = root.refPartP_m;
+        toLabTrafo_m = root.toLabTrafo_m;
+        sPos_m       = root.sPos_m;
+    }
+
+    /**
+     * @brief Follow a frame change of the container whose reference particle this one uses.
+     *
+     * Applies @p update (the value returned by @p root's updateRefToLabCSTrafo, or the
+     * identity) to this container's particles, then copies @p root's reference particle,
+     * frame and path length. The particles' lab positions do not change.
+     *
+     * @param root Container whose reference particle this container uses.
+     * @param update Frame change @p root applied to its own particles in this step.
+     */
+    void followFrameOf(const ParticleContainer& root, const CoordinateSystemTrafo& update) {
+        transformBunch(update);
+        copyReferenceOf(root);
     }
 
     /// @brief Apply a fractional Boris step and update reference/lab transform state.
@@ -625,9 +747,9 @@ public:
         if (nLocal == 0 && this->getTotalNum() == 0) return 0;
         if (sigmasAway <= 0.0) return 0;
 
-        // Force fresh moments: cached values from bunchUpdate may not reflect the exact
-        // particle state at this point (emission/migration ordering can shift R between
-        // the last bunchUpdate and this call). Safety-critical deletion always recomputes.
+        // Force fresh moments: cached values may not reflect the exact particle state at this
+        // point because emission or migration can shift R between statistics updates.
+        // Safety-critical deletion always recomputes.
         markMomentsDirty();
         updateMoments();
 
@@ -745,6 +867,84 @@ public:
         m << level4 << std::setw(32) << "Size of underlying view:" << this->R.size() << endl;
     }
 
+    void printRankLoadInfo(const std::string& label = "") const {
+        const int nranks = ippl::Comm->size();
+        const int rank   = ippl::Comm->rank();
+        const int root   = 0;
+
+        std::vector<size_type> localParticles(static_cast<size_t>(nranks), 0);
+        std::vector<size_type> localCapacity(static_cast<size_t>(nranks), 0);
+        std::vector<size_type> rankParticles(static_cast<size_t>(nranks), 0);
+        std::vector<size_type> rankCapacity(static_cast<size_t>(nranks), 0);
+
+        localParticles[static_cast<size_t>(rank)] = this->getLocalNum();
+        localCapacity[static_cast<size_t>(rank)]  = this->R.size();
+
+        ippl::Comm->reduce(
+                localParticles.data(), rankParticles.data(), nranks, std::plus<size_type>(), root);
+        ippl::Comm->reduce(
+                localCapacity.data(), rankCapacity.data(), nranks, std::plus<size_type>(), root);
+
+        if (rank != root) {
+            return;
+        }
+
+        const size_type totalParticles =
+                std::accumulate(rankParticles.begin(), rankParticles.end(), size_type{0});
+        const size_type totalCapacity =
+                std::accumulate(rankCapacity.begin(), rankCapacity.end(), size_type{0});
+
+        auto percent = [](size_type value, size_type total) {
+            return total > 0 ? 100.0 * static_cast<double>(value) / static_cast<double>(total)
+                             : 0.0;
+        };
+        auto localRatioPercent = [](size_type numerator, size_type denominator) {
+            return denominator > 0 ? 100.0 * static_cast<double>(numerator)
+                                             / static_cast<double>(denominator)
+                                   : 0.0;
+        };
+
+        Inform m("ParticleContainer::printRankLoadInfo", root);
+        constexpr int labelWidth = 24;
+        constexpr int colWidth   = 12;
+
+        m << level2 << "Particle load by rank";
+        if (!label.empty()) {
+            m << " (" << label << ")";
+        }
+        m << endl;
+        m << level2 << std::left << std::setw(labelWidth) << "Metric";
+        for (int r = 0; r < nranks; ++r) {
+            m << " | " << std::right << std::setw(colWidth) << ("Rank " + std::to_string(r));
+        }
+        m << endl;
+
+        m << level2 << std::left << std::setw(labelWidth) << "Particles [%]" << std::fixed
+          << std::setprecision(2);
+        for (int r = 0; r < nranks; ++r) {
+            m << " | " << std::right << std::setw(colWidth)
+              << percent(rankParticles[static_cast<size_t>(r)], totalParticles);
+        }
+        m << endl;
+
+        m << level2 << std::left << std::setw(labelWidth) << "Allocated memory [%]" << std::fixed
+          << std::setprecision(2);
+        for (int r = 0; r < nranks; ++r) {
+            m << " | " << std::right << std::setw(colWidth)
+              << percent(rankCapacity[static_cast<size_t>(r)], totalCapacity);
+        }
+        m << endl;
+
+        m << level2 << std::left << std::setw(labelWidth) << "Overallocation [%]" << std::fixed
+          << std::setprecision(2);
+        for (int r = 0; r < nranks; ++r) {
+            const auto i = static_cast<size_t>(r);
+            m << " | " << std::right << std::setw(colWidth)
+              << localRatioPercent(rankCapacity[i], rankParticles[i]);
+        }
+        m << endl;
+    }
+
     /**
      * @brief Delete particles currently marked in InvalidMask.
      *
@@ -801,9 +1001,8 @@ public:
     }
 
 private:
-    void setBCAllPeriodic() { this->setParticleBC(ippl::BC::PERIODIC); }
-
-    PLayout_t<T, Dim> pl_m;
+    std::unique_ptr<SpatialLayout_t> spatialLayout_m;
+    std::unique_ptr<P3MLayout_t> overlapLayout_m;
 
     QMStorageMode qmStorageMode_m = QMStorageMode::SingleValue;
 

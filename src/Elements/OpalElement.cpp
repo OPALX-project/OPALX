@@ -50,11 +50,6 @@ OpalElement::OpalElement(int size, const char* name, const char* help)
     itsAttr[PARTICLEMATTERINTERACTION] = Attributes::makeString(
             "PARTICLEMATTERINTERACTION", "Defines the particle mater interaction handler");
 
-    itsAttr[ORIGIN] = Attributes::makeRealArray("ORIGIN", "The location of the element");
-
-    itsAttr[ORIENTATION] = Attributes::makeRealArray(
-            "ORIENTATION", "The Tait-Bryan angles for the orientation of the element");
-
     itsAttr[X] = Attributes::makeReal("X", "The x-coordinate of the location of the element", 0);
 
     itsAttr[Y] = Attributes::makeReal("Y", "The y-coordinate of the location of the element", 0);
@@ -102,7 +97,7 @@ OpalElement::~OpalElement() {}
 
 std::pair<ApertureType, std::vector<double>> OpalElement::getApert() const {
     std::pair<ApertureType, std::vector<double>> retvalue(
-            ApertureType::ELLIPTICAL, std::vector<double>({0.5, 0.5, 1.0}));
+            ApertureType::ELLIPTICAL, std::vector<double>({1e6, 1e6}));
     if (!itsAttr[APERT]) {
         return retvalue;
     }
@@ -121,41 +116,26 @@ std::pair<ApertureType, std::vector<double>> OpalElement::getApert() const {
 
     const double width2HalfWidth = 0.5;
 
-    auto validateConicScale = [&](double scale, const std::string& arguments) {
-        if (!(scale > 0.0)) {
-            throw OpalException(
-                    "OpalElement::getApert()", "invalid conic aperture scale in '" + arguments
-                                                       + "': expected positive real value");
-        }
+    // Conic apertures (extra scale argument) are currently disabled.
+    auto rejectConic = [&](const std::string& arguments) {
+        throw OpalException(
+                "OpalElement::getApert()", "conic apertures are not supported: '" + arguments
+                                                   + "' has a taper scale argument");
     };
 
     if (std::regex_search(aperture, match, square)) {
         std::string arguments = match[1];
-        if (!std::regex_search(arguments, match, twoArguments)) {
-            retvalue.first = ApertureType::RECTANGULAR;
+        if (std::regex_search(arguments, match, twoArguments)) {
+            rejectConic(arguments);
+        }
+        retvalue.first = ApertureType::RECTANGULAR;
 
-            try {
-                retvalue.second[0] = width2HalfWidth * std::stod(arguments);
-                retvalue.second[1] = retvalue.second[0];
-            } catch (const std::exception& ex) {
-                throw OpalException(
-                        "OpalElement::getApert()",
-                        "could not convert '" + arguments + "' to double");
-            }
-
-        } else {
-            retvalue.first = ApertureType::CONIC_RECTANGULAR;
-
-            try {
-                retvalue.second[0] = width2HalfWidth * std::stod(match[1]);
-                retvalue.second[1] = retvalue.second[0];
-                retvalue.second[2] = std::stod(match[2]);
-            } catch (const std::exception& ex) {
-                throw OpalException(
-                        "OpalElement::getApert()",
-                        "could not convert '" + arguments + "' to doubles");
-            }
-            validateConicScale(retvalue.second[2], arguments);
+        try {
+            retvalue.second[0] = width2HalfWidth * std::stod(arguments);
+            retvalue.second[1] = retvalue.second[0];
+        } catch (const std::exception& ex) {
+            throw OpalException(
+                    "OpalElement::getApert()", "could not convert '" + arguments + "' to double");
         }
 
         return retvalue;
@@ -163,36 +143,21 @@ std::pair<ApertureType, std::vector<double>> OpalElement::getApert() const {
 
     if (std::regex_search(aperture, match, rectangle)) {
         std::string arguments = match[1];
+        if (std::regex_search(arguments, match, threeArguments)) {
+            rejectConic(arguments);
+        }
+        retvalue.first = ApertureType::RECTANGULAR;
 
-        if (!std::regex_search(arguments, match, threeArguments)) {
-            retvalue.first = ApertureType::RECTANGULAR;
+        try {
+            size_t sz = 0;
 
-            try {
-                size_t sz = 0;
+            retvalue.second[0] = width2HalfWidth * std::stod(arguments, &sz);
+            sz                 = arguments.find_first_of(",", sz) + 1;
+            retvalue.second[1] = width2HalfWidth * std::stod(arguments.substr(sz));
 
-                retvalue.second[0] = width2HalfWidth * std::stod(arguments, &sz);
-                sz                 = arguments.find_first_of(",", sz) + 1;
-                retvalue.second[1] = width2HalfWidth * std::stod(arguments.substr(sz));
-
-            } catch (const std::exception& ex) {
-                throw OpalException(
-                        "OpalElement::getApert()",
-                        "could not convert '" + arguments + "' to doubles");
-            }
-
-        } else {
-            retvalue.first = ApertureType::CONIC_RECTANGULAR;
-
-            try {
-                retvalue.second[0] = width2HalfWidth * std::stod(match[1]);
-                retvalue.second[1] = width2HalfWidth * std::stod(match[2]);
-                retvalue.second[2] = std::stod(match[3]);
-            } catch (const std::exception& ex) {
-                throw OpalException(
-                        "OpalElement::getApert()",
-                        "could not convert '" + arguments + "' to doubles");
-            }
-            validateConicScale(retvalue.second[2], arguments);
+        } catch (const std::exception& ex) {
+            throw OpalException(
+                    "OpalElement::getApert()", "could not convert '" + arguments + "' to doubles");
         }
 
         return retvalue;
@@ -200,31 +165,17 @@ std::pair<ApertureType, std::vector<double>> OpalElement::getApert() const {
 
     if (std::regex_search(aperture, match, circle)) {
         std::string arguments = match[1];
-        if (!std::regex_search(arguments, match, twoArguments)) {
-            retvalue.first = ApertureType::ELLIPTICAL;
+        if (std::regex_search(arguments, match, twoArguments)) {
+            rejectConic(arguments);
+        }
+        retvalue.first = ApertureType::ELLIPTICAL;
 
-            try {
-                retvalue.second[0] = width2HalfWidth * std::stod(arguments);
-                retvalue.second[1] = retvalue.second[0];
-            } catch (const std::exception& ex) {
-                throw OpalException(
-                        "OpalElement::getApert()",
-                        "could not convert '" + arguments + "' to double");
-            }
-
-        } else {
-            retvalue.first = ApertureType::CONIC_ELLIPTICAL;
-
-            try {
-                retvalue.second[0] = width2HalfWidth * std::stod(match[1]);
-                retvalue.second[1] = retvalue.second[0];
-                retvalue.second[2] = std::stod(match[2]);
-            } catch (const std::exception& ex) {
-                throw OpalException(
-                        "OpalElement::getApert()",
-                        "could not convert '" + arguments + "' to doubles");
-            }
-            validateConicScale(retvalue.second[2], arguments);
+        try {
+            retvalue.second[0] = width2HalfWidth * std::stod(arguments);
+            retvalue.second[1] = retvalue.second[0];
+        } catch (const std::exception& ex) {
+            throw OpalException(
+                    "OpalElement::getApert()", "could not convert '" + arguments + "' to double");
         }
 
         return retvalue;
@@ -232,36 +183,21 @@ std::pair<ApertureType, std::vector<double>> OpalElement::getApert() const {
 
     if (std::regex_search(aperture, match, ellipse)) {
         std::string arguments = match[1];
+        if (std::regex_search(arguments, match, threeArguments)) {
+            rejectConic(arguments);
+        }
+        retvalue.first = ApertureType::ELLIPTICAL;
 
-        if (!std::regex_search(arguments, match, threeArguments)) {
-            retvalue.first = ApertureType::ELLIPTICAL;
+        try {
+            size_t sz = 0;
 
-            try {
-                size_t sz = 0;
+            retvalue.second[0] = width2HalfWidth * std::stod(arguments, &sz);
+            sz                 = arguments.find_first_of(",", sz) + 1;
+            retvalue.second[1] = width2HalfWidth * std::stod(arguments.substr(sz));
 
-                retvalue.second[0] = width2HalfWidth * std::stod(arguments, &sz);
-                sz                 = arguments.find_first_of(",", sz) + 1;
-                retvalue.second[1] = width2HalfWidth * std::stod(arguments.substr(sz));
-
-            } catch (const std::exception& ex) {
-                throw OpalException(
-                        "OpalElement::getApert()",
-                        "could not convert '" + arguments + "' to doubles");
-            }
-
-        } else {
-            retvalue.first = ApertureType::CONIC_ELLIPTICAL;
-
-            try {
-                retvalue.second[0] = width2HalfWidth * std::stod(match[1]);
-                retvalue.second[1] = width2HalfWidth * std::stod(match[2]);
-                retvalue.second[2] = std::stod(match[3]);
-            } catch (const std::exception& ex) {
-                throw OpalException(
-                        "OpalElement::getApert()",
-                        "could not convert '" + arguments + "' to doubles");
-            }
-            validateConicScale(retvalue.second[2], arguments);
+        } catch (const std::exception& ex) {
+            throw OpalException(
+                    "OpalElement::getApert()", "could not convert '" + arguments + "' to doubles");
         }
 
         return retvalue;
@@ -442,56 +378,65 @@ void OpalElement::printMultipoleStrength(
     }
 }
 
+void OpalElement::validatePlacement(bool hasElemEdge, bool has6DPose) const {
+    // OpalData::update() calls update() on every object in the directory, including
+    // the unmodified builtin prototype whose attributes are all unset. Only validate
+    // real (cloned) element instances.
+    if (isBuiltin()) {
+        return;
+    }
+
+    if (hasElemEdge && has6DPose) {
+        throw OpalException(
+                "OpalElement::update",
+                getOpalName()
+                        + ": placement is over-specified. Use EITHER ELEMEDGE (with an "
+                          "optional PSI roll) OR a 6D lab-frame pose (X, Y, Z, THETA, PHI, "
+                          "PSI), not both.");
+    }
+    if (!hasElemEdge && !has6DPose) {
+        throw OpalException(
+                "OpalElement::update",
+                getOpalName()
+                        + ": placement is under-specified. Specify either ELEMEDGE (with an "
+                          "optional PSI roll) or a 6D lab-frame pose (X, Y, Z, THETA, PHI, "
+                          "PSI). PSI alone is not a placement.");
+    }
+}
+
 void OpalElement::update() {
     ElementBase* base = getElement();
 
     auto apert = getApert();
     base->setAperture(apert.first, apert.second);
 
-    if (itsAttr[ORIGIN] || itsAttr[ORIENTATION]) {
-        std::vector<double> ori = Attributes::getRealArray(itsAttr[ORIGIN]);
-        std::vector<double> dir = Attributes::getRealArray(itsAttr[ORIENTATION]);
-        Vector_t<double, 3> origin(0.0);
-        Quaternion rotation;
+    // An element is placed by exactly one of two methods:
+    //   Mode A (6D lab-frame pose): X, Y, Z, PSI, PHI, THETA give an absolute pose.
+    //           It is resolved here and the element is fixed in place immediately.
+    //   Mode B (ELEMEDGE): position along the reference path length s, with an
+    //           optional PSI roll about the beam axis. The element is left
+    //           unpositioned so OpalBeamline can place it relative to the reference
+    //           path once the full, s-sorted lattice is known.
+    // PSI is shared between both modes (z-Euler angle in Mode A, roll in Mode B), so
+    // it is excluded from the 6D-pose test below.
+    const bool hasElemEdge = bool(itsAttr[ELEMEDGE]);
+    const bool has6DPose   = !itsAttr[X].defaultUsed() || !itsAttr[Y].defaultUsed()
+                           || !itsAttr[Z].defaultUsed() || !itsAttr[THETA].defaultUsed()
+                           || !itsAttr[PHI].defaultUsed();
+    const bool hasPsi = !itsAttr[PSI].defaultUsed();
 
-        if (dir.size() == 3) {
-            Quaternion rotTheta(std::cos(0.5 * dir[0]), 0, std::sin(0.5 * dir[0]), 0);
-            Quaternion rotPhi(std::cos(0.5 * dir[1]), std::sin(0.5 * dir[1]), 0, 0);
-            Quaternion rotPsi(std::cos(0.5 * dir[2]), 0, 0, std::sin(0.5 * dir[2]));
-            rotation = rotTheta * (rotPhi * rotPsi);
-        } else {
-            if (itsAttr[ORIENTATION]) {
-                throw OpalException(
-                        "OpalElement::update",
-                        "Parameter orientation is array of 3 values (theta, phi, psi);\n"
-                                + std::to_string(dir.size()) + " values provided");
-            }
+    validatePlacement(hasElemEdge, has6DPose);
+
+    if (hasElemEdge) {
+        // Mode B: leave unpositioned for deferred reference-path placement.
+        base->setElementPosition(Attributes::getReal(itsAttr[ELEMEDGE]));
+        if (hasPsi) {
+            base->setRotationAboutZ(Attributes::getReal(itsAttr[PSI]));
         }
-
-        if (ori.size() == 3) {
-            origin = Vector_t<double, 3>(ori[0], ori[1], ori[2]);
-        } else {
-            if (itsAttr[ORIGIN]) {
-                throw OpalException(
-                        "OpalElement::update", "Parameter origin is array of 3 values (x, y, z);\n"
-                                                       + std::to_string(ori.size())
-                                                       + " values provided");
-            }
-        }
-
-        CoordinateSystemTrafo global2local(origin, rotation.conjugate());
-        base->setCSTrafoGlobal2Local(global2local);
-        base->fixPosition();
-
-    } else if (
-            !itsAttr[PSI].defaultUsed() && itsAttr[X].defaultUsed() && itsAttr[Y].defaultUsed()
-            && itsAttr[Z].defaultUsed() && itsAttr[THETA].defaultUsed()
-            && itsAttr[PHI].defaultUsed()) {
-        base->setRotationAboutZ(Attributes::getReal(itsAttr[PSI]));
-    } else if (
-            !itsAttr[X].defaultUsed() || !itsAttr[Y].defaultUsed() || !itsAttr[Z].defaultUsed()
-            || !itsAttr[THETA].defaultUsed() || !itsAttr[PHI].defaultUsed()
-            || !itsAttr[PSI].defaultUsed()) {
+    } else {
+        // Mode A: record the global-to-local pose. The element stays unpositioned; the single
+        // PlacementResolver (OpalBeamline) composes it with the lab frame and fixes it once the
+        // whole lattice is known, so both placement modes resolve in one place.
         const Vector_t<double, 3> origin(
                 Attributes::getReal(itsAttr[X]), Attributes::getReal(itsAttr[Y]),
                 Attributes::getReal(itsAttr[Z]));
@@ -507,8 +452,7 @@ void OpalElement::update() {
 
         CoordinateSystemTrafo global2local(origin, rotation.conjugate());
         base->setCSTrafoGlobal2Local(global2local);
-        base->fixPosition();
-        base->setRotationAboutZ(Attributes::getReal(itsAttr[PSI]));
+        base->setRotationAboutZ(psi);
     }
 
     Vector_t<double, 3> misalignmentShift(
@@ -524,8 +468,6 @@ void OpalElement::update() {
     CoordinateSystemTrafo misalignment(misalignmentShift, misalignmentRotation.conjugate());
 
     base->setMisalignment(misalignment);
-
-    if (itsAttr[ELEMEDGE]) base->setElementPosition(Attributes::getReal(itsAttr[ELEMEDGE]));
 
     base->setFlagDeleteOnTransverseExit(Attributes::getBool(itsAttr[DELETEONTRANSVERSEEXIT]));
 }

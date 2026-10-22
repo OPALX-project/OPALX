@@ -7,7 +7,6 @@
 #include "PartBunch/BunchStateHandler.h"
 
 using ParticleContainer_t = ParticleContainer<double, 3>;
-using FieldContainer_t    = FieldContainer<double, 3>;
 using Distribution_t      = Distribution;
 
 using view_type = typename ippl::detail::ViewType<Vector_t<double, 3>, 1>::view_type;
@@ -15,14 +14,16 @@ using view_type = typename ippl::detail::ViewType<Vector_t<double, 3>, 1>::view_
 class SamplingBase {
 protected:
     std::shared_ptr<ParticleContainer_t> pc_m;
-    std::shared_ptr<FieldContainer_t> fc_m;
     Distribution_t* opalDist_m = nullptr;
     std::string samplingMethod_m;
-    /// Emission source offset: position R0, momentum P0, start time t0 (applied in sample step).
+    /// Emission-source state passed in by TrackRun. R0 and P0 are final offsets:
+    /// samplers generate their mathematical shape first, then add these offsets during sampling.
     Vector_t<double, 3> R0_m    = 0.0;
     Vector_t<double, 3> P0_m    = 0.0;
     double t0_m                 = 0.0;
     std::string emissionModel_m = "NONE";
+    /// Source EKIN converted to beta*gamma; used as the ASTRA half-sphere radius.
+    double emissionMomentumMagnitude_m = 0.0;
 
     /// Initial polarization vector P applied to every particle this sampler creates.
     /// Rest-frame Pauli expectations along lab-frame axes; |Pol| in [0, 1].
@@ -33,13 +34,8 @@ protected:
     bool hasEmittedOnce_m = false;
 
 public:
-    SamplingBase(
-            std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-            Distribution_t* dist)
-        : pc_m(pc), fc_m(fc), opalDist_m(dist) {}
-
-    SamplingBase(std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc)
-        : pc_m(pc), fc_m(fc) {}
+    SamplingBase(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* dist)
+        : pc_m(pc), opalDist_m(dist) {}
 
     SamplingBase(std::shared_ptr<ParticleContainer_t> pc) : pc_m(pc) {}
 
@@ -47,11 +43,12 @@ public:
 
     void setEmissionOffsets(
             ippl::Vector<double, 3> R0, ippl::Vector<double, 3> P0, double t0,
-            const std::string& emissionModel = "NONE") {
-        R0_m            = R0;
-        P0_m            = P0;
-        t0_m            = t0;
-        emissionModel_m = emissionModel;
+            const std::string& emissionModel = "NONE", double emissionMomentumMagnitude = 0.0) {
+        R0_m                        = R0;
+        P0_m                        = P0;
+        t0_m                        = t0;
+        emissionModel_m             = emissionModel;
+        emissionMomentumMagnitude_m = emissionMomentumMagnitude;
     }
 
     void setInitialPolarization(const ippl::Vector<double, 3>& pol) { initialPol_m = pol; }
@@ -64,11 +61,11 @@ public:
         if (count == 0 || !pc_m->hasSpin()) {
             return;
         }
-        auto Polview  = pc_m->Pol.getView();
-        using spin_t  = typename ParticleContainer_t::spin_vector_type;
-        const auto px = static_cast<float>(initialPol_m[0]);
-        const auto py = static_cast<float>(initialPol_m[1]);
-        const auto pz = static_cast<float>(initialPol_m[2]);
+        auto Polview    = pc_m->Pol.getView();
+        using spin_t    = typename ParticleContainer_t::spin_vector_type;
+        const double px = initialPol_m[0];
+        const double py = initialPol_m[1];
+        const double pz = initialPol_m[2];
         Kokkos::parallel_for(
                 "SamplingBase::fillPolarization", count,
                 KOKKOS_LAMBDA(const size_t k) { Polview(startIdx + k) = spin_t{px, py, pz}; });
@@ -87,6 +84,9 @@ public:
         (void)t;
         return hasEmittedOnce_m;
     }
+
+    /// @brief Fraction of this sampler's total inventory already emitted.
+    virtual double getEmittedFraction() const { return 1.0; }
 
     /// @brief Optional tracker time shift needed before the first emitted particles are born.
     virtual double getGlobalTimeShift() const { return 0.0; }
@@ -113,10 +113,6 @@ public:
 
     // testEmitParticles is purely made for testing and should be removed
     virtual void testEmitParticles(size_t /*nsteps*/, double /*dt*/) {}
-
-    virtual void initDomainDecomp(double /*BoxIncr*/) {}
-
-    virtual void setWithDomainDecomp(bool /*withDomainDecomp*/) {}
 
     /**
      * @brief Computes the number of particles this rank should emit so that the global

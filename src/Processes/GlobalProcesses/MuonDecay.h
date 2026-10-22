@@ -27,7 +27,7 @@ public:
             const Kokkos::View<ippl::Vector<double, 3>*>& parentR,
             const Kokkos::View<ippl::Vector<double, 3>*>& parentP,
             const Kokkos::View<double*>& parentDt,
-            const Kokkos::View<ippl::Vector<float, 3>*>& parentPol) override;
+            const Kokkos::View<ippl::Vector<double, 3>*>& parentPol) override;
 };
 
 #endif

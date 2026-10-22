@@ -29,15 +29,20 @@
 
 class StepSizeConfig {
 public:
+    struct ResumePosition {
+        std::size_t segment;
+        unsigned long long stepsCompletedInSegment;
+    };
+
     StepSizeConfig();
 
     StepSizeConfig(const StepSizeConfig& right);
 
     void operator=(const StepSizeConfig&) = delete;
 
-    void push_back(double dt, double zstop, unsigned long numSteps);
+    void push_back(double dt, double sStop, unsigned long numSteps);
 
-    void sortAscendingZStop();
+    void sortAscendingSStop();
 
     void resetIterator();
 
@@ -51,15 +56,24 @@ public:
 
     StepSizeConfig& advanceToPos(double spos);
 
+    /// Advance to the zero-based configuration index; the size selects the end iterator.
+    StepSizeConfig& advanceToIndex(std::size_t index);
+
+    /// Select and validate the segment position stored in a checkpoint.
+    StepSizeConfig& advanceToResumePosition(const ResumePosition& position);
+
+    /// Return the zero-based current index; the size denotes the end iterator.
+    std::size_t getCurrentIndex();
+
     StepSizeConfig& operator++();
 
     StepSizeConfig& operator--();
 
-    void shiftZStopRight(double front);
+    void shiftSStopRight(double front);
 
     double getdT() const;
 
-    double getZStop() const;
+    double getSStop() const;
 
     unsigned long getNumSteps() const;
 
@@ -69,7 +83,7 @@ public:
 
     double getMinTimeStep() const;
 
-    double getFinalZStop() const;
+    double getFinalSStop() const;
 
     Inform& print(Inform& out) const;
     void printDirect(Inform& out) const;
@@ -93,8 +107,8 @@ inline StepSizeConfig::StepSizeConfig() : configurations_m(), it_m(configuration
 inline StepSizeConfig::StepSizeConfig(const StepSizeConfig& right)
     : configurations_m(right.configurations_m), it_m(configurations_m.begin()) {}
 
-inline void StepSizeConfig::push_back(double dt, double zstop, unsigned long numSteps) {
-    configurations_m.push_back(std::make_tuple(dt, zstop, numSteps));
+inline void StepSizeConfig::push_back(double dt, double sStop, unsigned long numSteps) {
+    configurations_m.push_back(std::make_tuple(dt, sStop, numSteps));
 }
 
 inline void StepSizeConfig::resetIterator() { it_m = configurations_m.begin(); }

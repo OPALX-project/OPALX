@@ -1,10 +1,17 @@
 set (_SRCS
+    OpalAsymmetricEnge.cpp
     OpalCavity.cpp
+    OpalBox.cpp
+    OpalCollimator.cpp
     OpalConstantEFieldCavity.cpp
+    OpalConstantFocusing.cpp
+    OpalCyclotronSector.cpp
     OpalTravelingWave.cpp
     OpalBend.cpp
     OpalDrift.cpp
+    OpalFieldmapElement.cpp
     OpalElement.cpp
+    OpalEnge.cpp
     OpalLaser.cpp
     OpalMonitor.cpp
     OpalMarker.cpp
@@ -13,24 +20,34 @@ set (_SRCS
     OpalQuadrupole.cpp
     OpalRBend.cpp
     OpalSBend.cpp
+    OpalScalingFFAMagnet.cpp
     OpalSolenoid.cpp
     OpalBeamline.cpp
-    OpalRingDefinition.cpp      
+    PlacementResolver.cpp
     OpalVerticalFFAMagnet.cpp
     OpalProbe.cpp
     OpalPolynomialTimeDependence.cpp
     OpalSplineTimeDependence.cpp
     OpalSinusoidalTimeDependence.cpp
+    OpalTanh.cpp
     OpalVariableRFCavity.cpp
 )
 
 set (HDRS
+    OpalAsymmetricEnge.h
     OpalBeamline.h
+    PlacementResolver.h
     OpalBend.h
     OpalCavity.h
+    OpalBox.h
+    OpalCollimator.h
     OpalConstantEFieldCavity.h
+    OpalConstantFocusing.h
+    OpalCyclotronSector.h
     OpalDrift.h
+    OpalFieldmapElement.h
     OpalElement.h
+    OpalEnge.h
     OpalMonitor.h
     OpalMarker.h
     OpalMultipole.h
@@ -38,16 +55,17 @@ set (HDRS
     OpalQuadrupole.h
     OpalRBend.h
     OpalSBend.h
+    OpalScalingFFAMagnet.h
     OpalSource.h
     OpalSolenoid.h
     OpalTravelingWave.h
-    OpalRingDefinition.h
     OpalLaser.h
     OpalVerticalFFAMagnet.h
     OpalProbe.h
     OpalPolynomialTimeDependence.h
     OpalSplineTimeDependence.h
     OpalSinusoidalTimeDependence.h
+    OpalTanh.h
     OpalVariableRFCavity.h
 )
 

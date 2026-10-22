@@ -36,9 +36,6 @@ protected:
             domain[i] = ippl::Index(this->nr[i]);
         }
 
-        fc = std::make_shared<FieldContainer_t>(
-                hr, rmin, rmax, decomp, domain, origin, this->isAllPeriodic_m);
-
         Mesh_t<3> mesh(domain, hr, origin);
         FieldLayout_t<3> fl(MPI_COMM_WORLD, domain, decomp, this->isAllPeriodic_m);
         pc = std::make_shared<ParticleContainer<double, 3>>(mesh, fl);
@@ -55,7 +52,6 @@ protected:
     }
 
     std::shared_ptr<ParticleContainer<double, 3>> pc;
-    std::shared_ptr<FieldContainer_t> fc;
     std::shared_ptr<BunchStateHandler> bunchStateHandler;
     ippl::Vector<int, 3> nr;
     bool isAllPeriodic_m = true;
@@ -65,7 +61,7 @@ TEST_F(OpalFlatTopTest, BuildsSortedInventoryWithExactSizeAndEmissionBounds) {
     const Vector_t<double, 3> sigmaR = {0.5, 0.5, 0.0};
     const Vector_t<double, 3> cutoff = {4.0, 4.0, 4.0};
     OpalFlatTop sampler(
-            pc, fc,
+            pc,
             /*emitting=*/true,
             /*sigmaTFall=*/0.15,
             /*sigmaTRise=*/0.25, cutoff,
@@ -93,7 +89,7 @@ TEST_F(OpalFlatTopTest, EmitsAllInventoryWithVariableDtAndNoRemainderLoss) {
     const Vector_t<double, 3> sigmaR = {0.5, 0.5, 0.0};
     const Vector_t<double, 3> cutoff = {4.0, 4.0, 4.0};
     OpalFlatTop sampler(
-            pc, fc,
+            pc,
             /*emitting=*/true,
             /*sigmaTFall=*/0.1,
             /*sigmaTRise=*/0.1, cutoff,
@@ -124,7 +120,7 @@ TEST_F(OpalFlatTopTest, RejectsOverdueBirthTimesInsteadOfPreAgingParticles) {
     const Vector_t<double, 3> sigmaR = {0.5, 0.5, 0.0};
     const Vector_t<double, 3> cutoff = {4.0, 4.0, 4.0};
     OpalFlatTop sampler(
-            pc, fc,
+            pc,
             /*emitting=*/true,
             /*sigmaTFall=*/1.0e-12,
             /*sigmaTRise=*/1.0e-12, cutoff,
@@ -146,7 +142,7 @@ TEST_F(OpalFlatTopTest, UsesStoredBirthTimesForParticleDtAndZCorrection) {
     const Vector_t<double, 3> sigmaR = {0.5, 0.5, 0.0};
     const Vector_t<double, 3> cutoff = {4.0, 4.0, 4.0};
     OpalFlatTop sampler(
-            pc, fc,
+            pc,
             /*emitting=*/true,
             /*sigmaTFall=*/1.0e-12,
             /*sigmaTRise=*/1.0e-12, cutoff,
@@ -201,22 +197,60 @@ TEST_F(OpalFlatTopTest, ProvidesOldOpalInitialReferenceMomentum) {
     const Vector_t<double, 3> sigmaR = {0.5, 0.5, 0.0};
     const Vector_t<double, 3> cutoff = {4.0, 4.0, 4.0};
     OpalFlatTop sampler(
-            pc, fc,
+            pc,
             /*emitting=*/true,
             /*sigmaTFall=*/1.0e-12,
             /*sigmaTRise=*/1.0e-12, cutoff,
             /*tPulseLengthFWHM=*/4.0e-12, sigmaR);
 
     const Vector_t<double, 3> P0 = {0.01, 0.02, 0.1};
+
+    // The following corresponds to: R0=0, P0=P0, t0=0, emissionModel="NONE",
+    // emissionMomentumMagnitude=0.0
     sampler.setEmissionOffsets(0.0, P0, 0.0, "NONE");
+
+    // Basic check for P0 existence
     EXPECT_TRUE(sampler.hasInitialReferenceMomentum());
     EXPECT_DOUBLE_EQ(sampler.getInitialReferenceMomentum()[0], P0[0]);
     EXPECT_DOUBLE_EQ(sampler.getInitialReferenceMomentum()[1], P0[1]);
     EXPECT_DOUBLE_EQ(sampler.getInitialReferenceMomentum()[2], P0[2]);
 
+    // Now check for ASTRA
     sampler.setEmissionOffsets(0.0, P0, 0.0, "ASTRA");
+
+    // Since ASTRA is only scaled by emissionMomentumMagnitude, P0 still needs to be additive
     const Vector_t<double, 3> refP = sampler.getInitialReferenceMomentum();
-    EXPECT_DOUBLE_EQ(refP[0], 0.0);
-    EXPECT_DOUBLE_EQ(refP[1], 0.0);
-    EXPECT_DOUBLE_EQ(refP[2], 0.5 * std::sqrt(dot(P0, P0)));
+    EXPECT_DOUBLE_EQ(refP[0], P0[0]);
+    EXPECT_DOUBLE_EQ(refP[1], P0[1]);
+    EXPECT_DOUBLE_EQ(refP[2], P0[2]);  // 0.5 * std::sqrt(dot(P0, P0)));
+
+    const double emissionMomentumMagnitude = 0.035;
+    sampler.setEmissionOffsets(0.0, P0, 0.0, "ASTRA", emissionMomentumMagnitude);
+
+    const Vector_t<double, 3> astraRefP = sampler.getInitialReferenceMomentum();
+    EXPECT_DOUBLE_EQ(astraRefP[0], P0[0]);
+    EXPECT_DOUBLE_EQ(astraRefP[1], P0[1]);
+    EXPECT_DOUBLE_EQ(astraRefP[2], P0[2] + 0.5 * emissionMomentumMagnitude);
+
+    const size_t nranks         = static_cast<size_t>(std::max(1, ippl::Comm->size()));
+    const size_t totalParticles = 4 * nranks;
+    pc->allocateParticles(totalParticles / nranks + 2 * nranks + 16);
+    sampler.setBirthTimesForTest(std::vector<double>(totalParticles, 0.0));
+
+    sampler.emitParticles(0.0, 1.0e-12);
+
+    EXPECT_EQ(globalLocalNum(), totalParticles);
+
+    auto PviewDevice = pc->P.getView();
+    auto Pview       = Kokkos::create_mirror_view(PviewDevice);
+    Kokkos::deep_copy(Pview, PviewDevice);
+
+    ASSERT_EQ(pc->getLocalNum(), totalParticles / nranks);
+    for (size_t i = 0; i < pc->getLocalNum(); ++i) {
+        const Vector_t<double, 3> astraKick = Pview(i) - P0;
+        const double kickMagnitude          = std::sqrt(dot(astraKick, astraKick));
+
+        EXPECT_NEAR(kickMagnitude, emissionMomentumMagnitude, 1.0e-14);
+        EXPECT_GE(astraKick[2], -1.0e-15);
+    }
 }

@@ -3,12 +3,14 @@ set (_SRCS
   EmissionSource.cpp
   BoundingBox.cpp
   BoundaryGeometry.cpp
+  CheckpointFile.cpp
   BinConfigWriter.cpp
   DirichletPlaneWriter.cpp
   DataSink.cpp
   ElementPositionWriter.cpp
   FieldSolverCmd.cpp
   BinningCmd.cpp
+  H5FileSpace.cpp
   H5PartWrapper.cpp
   H5PartWrapperForPT.cpp
   MonitorStatisticsWriter.cpp
@@ -29,6 +31,7 @@ set (HDRS
     Beam.h
     EmissionSource.h
     BoundaryGeometry.h
+    CheckpointFile.h
     BoundingBox.h
     BinConfigWriter.h
     DirichletPlaneWriter.h
@@ -43,6 +46,7 @@ set (HDRS
     H5Writer.h
     MeshGenerator.h
     LBalWriter.h
+    LinearTransferMap.h
     LossDataSink.h
     StatBaseWriter.h
     StatWriter.h

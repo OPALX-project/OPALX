@@ -22,9 +22,13 @@
 //
 #include "Algorithms/DefaultVisitor.h"
 
+#include "AbsBeamline/Box.h"
+#include "AbsBeamline/Collimator.h"
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/EndFieldModel/Tanh.h"
+#include "AbsBeamline/FieldmapElement.h"
 #include "AbsBeamline/Laser.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
@@ -33,7 +37,6 @@
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/RFCavity.h"
-#include "AbsBeamline/Ring.h"
 #include "AbsBeamline/SBend.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbsBeamline/Solenoid.h"
@@ -56,13 +59,25 @@ void DefaultVisitor::execute() {
     itsLine.accept(*this);
 }
 
-void DefaultVisitor::visitComponent(const Component& comp) { applyDefault(comp); }
+void DefaultVisitor::visitElementBase(const ElementBase& comp) { applyDefault(comp); }
 
 void DefaultVisitor::visitConstantEFieldCavity(const ConstantEFieldCavity& cav) {
     applyDefault(cav);
 }
 
+void DefaultVisitor::visitBox(const Box& box) { applyDefault(box); }
+
+void DefaultVisitor::visitCollimator(const Collimator& coll) { applyDefault(coll); }
+
 void DefaultVisitor::visitDrift(const Drift& drf) { applyDefault(drf); }
+
+void DefaultVisitor::visitEnge(const endfieldmodel::Enge&) {}
+
+void DefaultVisitor::visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) {}
+
+void DefaultVisitor::visitTanh(const endfieldmodel::Tanh&) {}
+
+void DefaultVisitor::visitFieldmapElement(const FieldmapElement& fm) { applyDefault(fm); }
 
 void DefaultVisitor::visitLaser(const Laser& laser) { applyDefault(laser); }
 
@@ -75,8 +90,6 @@ void DefaultVisitor::visitMultipole(const Multipole& mult) { applyDefault(mult);
 void DefaultVisitor::visitMultipoleT(const MultipoleT& multT) { applyDefault(multT); }
 
 void DefaultVisitor::visitRBend(const RBend& bend) { applyDefault(bend); }
-
-void DefaultVisitor::visitRing(const Ring& ring) { applyDefault(ring); }
 
 void DefaultVisitor::visitRFCavity(const RFCavity& cav) { applyDefault(cav); }
 

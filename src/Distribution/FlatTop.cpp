@@ -1,4 +1,5 @@
 #include "FlatTop.h"
+#include <mpi.h>
 #include <cmath>
 #include <memory>
 #include "Distribution.h"
@@ -7,21 +8,10 @@
 using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
 using Dist_t        = ippl::random::NormalDistribution<double, 3>;
 
-FlatTop::FlatTop(
-        std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-        Distribution_t* opalDist)
-    : SamplingBase(pc, fc, opalDist), rand_pool_m(determineRandInit()) {
+FlatTop::FlatTop(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opalDist)
+    : SamplingBase(pc, opalDist), rand_pool_m(determineRandInit()) {
     setParameters(opalDist);
 }
-
-FlatTop::FlatTop(
-        std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-        bool emitting, double sigmaTFall, double sigmaTRise, Vector_t<double, 3> cutoff,
-        double tPulseLengthFWHM, Vector_t<double, 3> sigmaR)
-    : SamplingBase(pc, fc), rand_pool_m(determineRandInit()) {
-    setInternalVariables(emitting, sigmaTFall, sigmaTRise, cutoff, tPulseLengthFWHM, sigmaR);
-}
-
 FlatTop::FlatTop(
         std::shared_ptr<ParticleContainer_t> pc, bool emitting, double sigmaTFall,
         double sigmaTRise, Vector_t<double, 3> cutoff, double tPulseLengthFWHM,
@@ -29,8 +19,6 @@ FlatTop::FlatTop(
     : SamplingBase(pc), rand_pool_m(determineRandInit()) {
     setInternalVariables(emitting, sigmaTFall, sigmaTRise, cutoff, tPulseLengthFWHM, sigmaR);
 }
-
-void FlatTop::setWithDomainDecomp(bool withDomainDecomp) { withDomainDecomp_m = withDomainDecomp; }
 
 size_t FlatTop::determineRandInit() {
     extern Inform* gmsg;
@@ -50,15 +38,13 @@ void FlatTop::setParameters(Distribution_t* opalDist) {
             opalDist_m->getCutoffR(), opalDist->getTPulseLengthFWHM(), opalDist_m->getSigmaR());
 
     opalDist_m->setTEmission(emissionTime_m);
-
-    // make sure only z direction is decomposed
-    fc_m->setDecomp({false, false, true});
 }
 
 void FlatTop::setInternalVariables(
         bool emitting, double sigmaTFall, double sigmaTRise, Vector_t<double, 3> cutoff,
         double tPulseLengthFWHM, Vector_t<double, 3> sigmaR) {
-    emitting_m = emitting;
+    emitting_m     = emitting;
+    totalEmitted_m = 0;
     // time span of fall is [0, riseTime, riseTime+flattopTime, fallTime+flattopTime+riseTime ]
     sigmaTFall_m = sigmaTFall;
     sigmaTRise_m = sigmaTRise;
@@ -95,10 +81,11 @@ void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew, double dt) {
     view_type Pview         = pc_m->P.getView();
     auto dtView             = pc_m->dt.getView();
 
-    double pi                  = Physics::pi;
-    Vector_t<double, 3> sigmaR = sigmaR_m;
-    Vector_t<double, 3> R0     = R0_m;
-    Vector_t<double, 3> P0     = P0_m;
+    double pi                              = Physics::pi;
+    Vector_t<double, 3> sigmaR             = sigmaR_m;
+    Vector_t<double, 3> R0                 = R0_m;
+    Vector_t<double, 3> P0                 = P0_m;
+    const double emissionMomentumMagnitude = emissionMomentumMagnitude_m;
 
     auto range = Kokkos::RangePolicy<>(nlocal, nlocal + nNew);
 
@@ -126,11 +113,10 @@ void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew, double dt) {
             });
 
     // Momentum sampling depends on the emission model chosen in EMISSIONSOURCE.
-    // BEAM reference momentum (avrgpz) is intentionally NOT applied:
-    // for emitted beams only the thermal energy matters (old OPAL behavior).
+    // P0 is a final offset. For ASTRA, EKIN supplies the half-sphere magnitude.
     if (emissionModel_m == "ASTRA") {
         // ASTRA: 3D isotropic thermal emission on forward half-sphere.
-        const double pTot = euclidean_norm(P0);
+        const double pTot = emissionMomentumMagnitude;
         Kokkos::parallel_for(
                 "unitDisk_P_astra", range, KOKKOS_LAMBDA(const size_t j) {
                     auto generator = rand_pool.get_state();
@@ -141,9 +127,9 @@ void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew, double dt) {
                     double phi   = 2.0 * Kokkos::acos(Kokkos::sqrt(rand1));
                     double theta = 2.0 * pi * rand2;
 
-                    Pview(j)[0] = pTot * Kokkos::sin(phi) * Kokkos::cos(theta);
-                    Pview(j)[1] = pTot * Kokkos::sin(phi) * Kokkos::sin(theta);
-                    Pview(j)[2] = pTot * Kokkos::fabs(Kokkos::cos(phi));
+                    Pview(j)[0] = P0[0] + pTot * Kokkos::sin(phi) * Kokkos::cos(theta);
+                    Pview(j)[1] = P0[1] + pTot * Kokkos::sin(phi) * Kokkos::sin(theta);
+                    Pview(j)[2] = P0[2] + pTot * Kokkos::fabs(Kokkos::cos(phi));
                 });
     } else {
         // NONE: all "thermal" momentum applied in z direction.
@@ -178,10 +164,8 @@ void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew, double dt) {
     Kokkos::fence();
 }
 
-void FlatTop::setNr(Vector_t<double, 3> nr) { nr_m = nr; }
-
 void FlatTop::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) {
-    setNr(nr);
+    static_cast<void>(nr);
 
     // initial allocation is similar for both emitting and non-emitting cases
     allocateParticles(numberOfParticles);
@@ -219,6 +203,15 @@ double FlatTop::FlatTopProfile(double t) {
         return 0.;
 }
 
+double FlatTop::getEmittedFraction() const {
+    if (totalN_m == 0) {
+        return 1.0;
+    }
+
+    return std::clamp(
+            static_cast<double>(totalEmitted_m) / static_cast<double>(totalN_m), 0.0, 1.0);
+}
+
 size_t FlatTop::computeNlocalUniformly(size_t nglobal) {
     // Use ippl::Comm so we match the communicator used for allocation in TrackRun (maxLocalNum).
     const int nranks = ippl::Comm->size();
@@ -237,27 +230,6 @@ size_t FlatTop::computeNlocalUniformly(size_t nglobal) {
 
 double FlatTop::integrateTrapezoidal(double x1, double x2, double y1, double y2) {
     return 0.5 * (y1 + y2) * fabs(x2 - x1);
-}
-
-void FlatTop::initDomainDecomp(double BoxIncr) {
-    auto* mesh                 = &fc_m->getMesh();
-    auto* FL                   = &fc_m->getFL();
-    Vector_t<double, 3> sigmaR = sigmaR_m;
-    ippl::Vector<double, 3> o;
-    ippl::Vector<double, 3> e;
-    double tol = 1e-15;  // enlarge grid by tol to avoid missing particles on boundaries
-    o[0]       = -sigmaR[0] - tol;
-    e[0]       = sigmaR[0] + tol;
-    o[1]       = -sigmaR[1] - tol;
-    e[1]       = sigmaR[1] + tol;
-    o[2]       = 0.0 - tol;
-    e[2]       = Physics::c * emissionTime_m + tol;
-
-    ippl::Vector<double, 3> l = e - o;
-    hr_m                      = (1.0 + BoxIncr / 100.) * (l / nr_m);
-    mesh->setMeshSpacing(hr_m);
-    mesh->setOrigin(o - 0.5 * hr_m * BoxIncr / 100.);
-    pc_m->getLayout().updateLayout(*FL, *mesh);
 }
 
 FlatTop::size_type FlatTop::countEnteringParticlesPerRank(double t0, double tf) {
@@ -348,7 +320,8 @@ FlatTop::size_type FlatTop::countEnteringParticlesPerRank(double t0, double tf) 
 }
 
 void FlatTop::allocateParticles(size_t numberOfParticles) {
-    totalN_m = numberOfParticles;
+    totalN_m       = numberOfParticles;
+    totalEmitted_m = 0;
 
     // Initial allocation is now handled centrally in TrackRun / PartBunch via the
     // bunch's total particle count. Here we only record the desired total number
@@ -378,6 +351,14 @@ void FlatTop::emitParticles(double t, double dt) {
     // Note that createParticles can be safely called with nNew=0 (no-op), but it NEEDS to be
     // called, since other ranks might have != 0 leading to a MPI_Allreduce.
     pc_m->createParticles(nNew);
+    unsigned long localNew  = static_cast<unsigned long>(nNew);
+    unsigned long globalNew = 0;
+    MPI_Allreduce(
+            &localNew, &globalNew, 1, MPI_UNSIGNED_LONG, MPI_SUM, ippl::Comm->getCommunicator());
+    // The emitting mesh stretch uses the global emitted fraction. Emission is partitioned across
+    // ranks, so using only nNew would make each rank report a different source progress and would
+    // make the space-charge mesh rank-dependent.
+    totalEmitted_m += static_cast<size_t>(globalNew);
 
     // Generate new particles on uniform disc (sample into [nlocal, nlocal+nNew)).
     // Each particle receives a fractional per-particle dt for sub-timestep spreading.

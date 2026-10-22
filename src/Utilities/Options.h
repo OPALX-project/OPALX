@@ -21,6 +21,7 @@
 
 #include "Utilities/ExpressionRandom.h"
 
+#include <array>
 #include <string>
 
 enum class DumpFrame : unsigned short { GLOBAL, BUNCH_MEAN, REFERENCE };
@@ -50,14 +51,23 @@ namespace Options {
     /// The current random seed.
     extern int seed;
 
-    /// The frequency to dump the phase space, i.e.dump data when step%psDumpFreq==0
+    /// The frequency to dump the phase space, i.e. dump data when
+    /// step%psDumpFreq==0; 0 disables phase space dumps.
     extern int psDumpFreq;
 
-    /// The frequency to dump statistical values, e.e. dump data when step%statDumpFreq==0
+    /// The frequency to dump statistical values, i.e. dump data when
+    /// step%statDumpFreq==0; 0 disables statistical dumps.
     extern int statDumpFreq;
+
+    /// The frequency to write a restart checkpoint after completed integration steps;
+    /// 0 disables checkpointing.
+    extern int checkpointFreq;
 
     /// The frequency to print per-step tracking status lines; 0 disables them.
     extern int stepInfoFreq;
+
+    /// The frequency to print per-rank particle distribution tables; 0 disables them.
+    extern int printRankDistrFreq;
 
     /// phase space dump flag for OPAL-cycl
     //  if true, dump phase space after each turn
@@ -105,6 +115,8 @@ namespace Options {
 
     extern bool ebDump;
 
+    extern bool rankDump;
+
     extern bool csrDump;
 
     // the number of refinements of the search range for the phase with maximum energy
@@ -131,6 +143,18 @@ namespace Options {
 
     /// If true VTK files are written
     extern bool enableVTK;
+
+    /// Enable reference sampling, element map attachment and combined-map stdout diagnostics
+    /// during design-orbit threading (default false); secondary species do not overwrite them.
+    extern bool enableLinearTransferMaps;
+    /// Additional perturbation-size Richardson levels (0..4, default 0), not DT refinement.
+    extern unsigned linearTransferMapRichardsonLevels;
+    /// Starting amplitudes in (x,x',y,y',zeta,delta) coordinates, each defaulting to 1e-3.
+    /// Metres for x,y,zeta; dimensionless for slopes and relative momentum deviation delta.
+    extern std::array<double, 6> linearTransferMapSteps;
+    /// Ray integrator shared by map-enabled reference and perturbed rays: BORIS (default),
+    /// RK4 or DOP853. Fixed nominal DT; does not select the production bunch integrator.
+    extern std::string linearTransferMapIntegrator;
 
     extern bool asciidump;
 
@@ -166,6 +190,15 @@ namespace Options {
     /// collective on every state change has a noticeable cost in tight loops; enable
     /// it only for debugging or in contexts where rank-local divergence is possible.
     extern bool aggressiveStateSync;
+
+    /// The threshold for triggering load balancing. If the ratio difference of particles in a rank
+    /// exceeds this threshold, load balancing will be triggered. Default is 0.05 (5%). This
+    /// threshold is only tested every `repartFreq` steps.
+    extern double loadBalancingThreshold;
+
+    /// Share of the ORB weight that follows the P3M pair count instead of the particle count, in
+    /// [0, 1]. Default is 0 (particle counts only).
+    extern double loadBalancingPairWeight;
 }  // namespace Options
 
 #endif  // OPAL_Options_HH

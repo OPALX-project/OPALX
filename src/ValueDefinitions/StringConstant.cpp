@@ -42,7 +42,8 @@ StringConstant::StringConstant()
     // no string constant should be defined for them
 
     // Element / TYPE
-    CREATE_STRINGCONSTANT("RING");
+    // RING is registered as a beam-sequence keyword. String attributes still
+    // accept the non-string RING object name as the literal value "RING".
     CREATE_STRINGCONSTANT("CARBONCYCL");
     CREATE_STRINGCONSTANT("CYCIAE");
     CREATE_STRINGCONSTANT("AVFEQ");
@@ -135,6 +136,7 @@ StringConstant::StringConstant()
 
     // FieldSolver / FSTYPE
     CREATE_STRINGCONSTANT("FFT");
+    CREATE_STRINGCONSTANT("P3M");
     /// \todo find a better way to say open solver! (Issue #158)
     // CREATE_STRINGCONSTANT("OPEN"); // already exists as BC!
     CREATE_STRINGCONSTANT("CG");

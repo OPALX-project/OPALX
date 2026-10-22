@@ -1,14 +1,5 @@
 set (_SRCS
-    # Default Field Classes - DO NOT REMOVE
-    BDipoleField.cpp
-    BMultipoleField.cpp
-    ConstBField.cpp
-    ConstBzField.cpp
-    ConstEzField.cpp
-    EMField.cpp
-    NullField.cpp
-    StaticElectricField.cpp
-    StaticMagneticField.cpp
+    CyclotronSectorFieldMap.cpp
 
     # Fieldmaps
     Fieldmap.cpp
@@ -16,6 +7,9 @@ set (_SRCS
     Astra1DMagnetoStatic.cpp
     FM2DMagnetoStatic.cpp
     FM2DDynamic.cpp
+    FM3DDynamic.cpp
+    G4BL2DMagnetoStatic.cpp
+    G4BL3DGrid.cpp
 
     # To be ported from OPAL
     #FM3DH5BlockBase.cpp
@@ -24,7 +18,6 @@ set (_SRCS
     #FM3DMagnetoStaticH5Block.cpp
     #FM3DMagnetoStatic.cpp
     #FM3DMagnetoStaticExtended.cpp
-    #FM3DDynamic.cpp
     #FM2DElectroStatic.cpp
     #FM1DDynamic.cpp
     #FM1DDynamic_fast.cpp
@@ -48,18 +41,7 @@ add_subdirectory (Interpolation)
 
 
 set (HDRS
-    # Default Field Classes - DO NOT REMOVE
-    BDipoleField.h
-    BMultipoleField.h
-    ConstBField.h
-    ConstBzField.h
-    ConstEzField.h
-    EMField.h
-    StaticElectricField.h
-    StaticMagneticField.h
-    NullField.h
-    AcceleratingField.h
-    OscillatingField.h
+    CyclotronSectorFieldMap.h
     
     # Fieldmaps
     Fieldmap.h
@@ -68,9 +50,12 @@ set (HDRS
     Astra1DMagnetoStatic.h
     FM2DMagnetoStatic.h
     FM2DDynamic.h
+    FM3DDynamic.h
+    G4BL2DMagnetoStatic.h
+    G4BL3DGrid.h
+    G4BLMapSyntax.h
     
     # To be ported from OPAL
-    #FM3DDynamic.h
     #FM3DH5BlockBase.h
     #FM3DH5Block.h
     #FM3DH5Block_nonscale.h

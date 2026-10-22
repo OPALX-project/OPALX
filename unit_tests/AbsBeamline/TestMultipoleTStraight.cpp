@@ -20,6 +20,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
+#include "Structure/FieldSolverCmd.h"
 #include "gtest/gtest.h"
 
 class TestMultipoleTStraight : public testing::Test, public MultipoleT {
@@ -78,8 +79,7 @@ public:
         Kokkos::fence();
         // Register the bunch with the element
         bunch->setT(0.0);
-        double startField, endField;
-        initialise(bunch.get(), startField, endField);
+        initialise(bunch.get());
         // Get the fields
         apply(pc);
         // Return the fields
@@ -116,8 +116,7 @@ public:
         Kokkos::fence();
         // Register the bunch with the element
         bunch->setT(0.0);
-        double startField, endField;
-        initialise(bunch.get(), startField, endField);
+        initialise(bunch.get());
         // Get the fields
         apply(pc);
         // Return the fields
@@ -206,7 +205,8 @@ public:
                 /*qi=*/std::vector{1.0}, /*mi=*/std::vector{1.0},
                 /*beams=*/std::vector<Beam*>{opBeam},
                 /*totalParticlesPerBeam=*/std::vector<size_t>{numParticles},
-                /*lbt=*/1.0, /*integration_method=*/"LF2", fsCmdBase_m.get(), dataSink_m.get());
+                /*lbt=*/1.0, /*integration_method=*/"LF2",
+                opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});
         bunch->getParticleContainer()->createParticles(numParticles);
         return bunch;
     }
@@ -573,11 +573,10 @@ TEST_F(TestMultipoleTStraight, FieldAtSingleParticlePosition) {
     Kokkos::fence();
     // Register the bunch with the element
     bunch->setT(0.0);
-    double startField, endField;
-    initialise(bunch.get(), startField, endField);
-    // Get the fields
+    initialise(bunch.get());
+    // Get the fields at the particle position via the position overload
     Vector_t<double, 3> E{}, B{};
-    apply(0, 0.0, E, B);
+    apply(hostR(0), Vector_t<double, 3>{}, 0.0, E, B);
     // Check the field
     const auto val = std::hypot(B[0], B[1], B[2]);
     EXPECT_NEAR(val, dipoleField, 1e-2);

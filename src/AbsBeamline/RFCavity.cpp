@@ -9,9 +9,10 @@
 
 #include <filesystem>
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Component.h"
+#include "AbsBeamline/ElementBase.h"
 #include "Fields/Astra1DDynamic.h"
 #include "Fields/FM2DDynamic.h"
+#include "Fields/FM3DDynamic.h"
 #include "Fields/Fieldmap.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
@@ -39,7 +40,7 @@ const BiMap<CavityType, std::string> RFCavity::bmCavityTypeString_s = []() {
 RFCavity::RFCavity() : RFCavity("") {}
 
 RFCavity::RFCavity(const RFCavity& right)
-    : Component(right),
+    : ElementBase(right),
       phaseTD_m(right.phaseTD_m),
       phaseName_m(right.phaseName_m),
       amplitudeTD_m(right.amplitudeTD_m),
@@ -70,10 +71,15 @@ RFCavity::RFCavity(const RFCavity& right)
       RNormal_m(nullptr),
       VrNormal_m(nullptr),
       DvDr_m(nullptr),
-      num_points_m(right.num_points_m) {}
+      num_points_m(right.num_points_m) {
+    cyclotronProfile_m = right.cyclotronProfile_m;
+    cyclotronKick_m    = right.cyclotronKick_m;
+    gapMin_m           = right.gapMin_m;
+    gapMax_m           = right.gapMax_m;
+}
 
 RFCavity::RFCavity(const std::string& name)
-    : Component(name),
+    : ElementBase(name),
       phaseTD_m(nullptr),
       amplitudeTD_m(nullptr),
       frequencyTD_m(nullptr),
@@ -115,7 +121,8 @@ void RFCavity::accept(BeamlineVisitor& visitor) const { visitor.visitRFCavity(*t
  * @note TODO: Check if getFieldstrength(R, tmpE, tmpB) returns 0 outside of RF cavity to skip if
  * statement
  */
-bool RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+void RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+    if (isCyclotronGap()) return;
     // RF parameters (copied to device)
     double freq  = frequency_m;
     double scale = scale_m + scaleError_m;
@@ -138,48 +145,37 @@ bool RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
 
     if (auto* dynamicFieldmap = dynamic_cast<FM2DDynamic*>(fieldmap_m)) {
         dynamicFieldmap->applyRFField(pc, electricScale, magneticScale, startField, endField);
+    } else if (auto* dynamic3DFieldmap = dynamic_cast<FM3DDynamic*>(fieldmap_m)) {
+        dynamic3DFieldmap->applyRFField(pc, electricScale, magneticScale, startField, endField);
     } else if (auto* astraFieldmap = dynamic_cast<Astra1DDynamic*>(fieldmap_m)) {
         astraFieldmap->applyRFField(pc, electricScale, magneticScale, startField, endField);
     } else {
         throw GeneralOpalException(
                 "RFCavity::apply",
-                "RFCavity particle application currently requires an FM2DDynamic or Astra1DDynamic "
-                "field map.");
+                "RFCavity particle application currently requires an FM2DDynamic, FM3DDynamic or "
+                "Astra1DDynamic field map.");
     }
-
-    return false;
 }
 
-bool RFCavity::apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
-    auto Rview                              = pc->R.getView();
-    auto Pview                              = pc->P.getView();
-
-    const Vector_t<double, 3> R = Rview(i);
-    const Vector_t<double, 3> P = Pview(i);
-
-    return apply(R, P, t, E, B);
-}
-
-bool RFCavity::apply(
+void RFCavity::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    if (isCyclotronGap()) return;
     if (R(2) >= startField_m && R(2) < endField_m) {
         Vector_t<double, 3> tmpE({0.0, 0.0, 0.0}), tmpB({0.0, 0.0, 0.0});
 
         bool outOfBounds = fieldmap_m->getFieldstrength(R, tmpE, tmpB);
-        if (outOfBounds) return getFlagDeleteOnTransverseExit();
+        if (outOfBounds) return;
 
         E += (scale_m + scaleError_m) * std::cos(frequency_m * t + phase_m + phaseError_m) * tmpE;
         B -= (scale_m + scaleError_m) * std::sin(frequency_m * t + phase_m + phaseError_m) * tmpB;
     }
-    return false;
 }
 
 bool RFCavity::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    if (isCyclotronGap()) return false;
     if (R(2) >= startField_m && R(2) < endField_m) {
         Vector_t<double, 3> tmpE({0.0, 0.0, 0.0}), tmpB({0.0, 0.0, 0.0});
 
@@ -192,7 +188,11 @@ bool RFCavity::applyToReferenceParticle(
     return false;
 }
 
-void RFCavity::initialise(PartBunch_t* bunch, double& startField, double& endField) {
+void RFCavity::initialise(PartBunch_t* bunch) {
+    if (isCyclotronGap()) {
+        RefPartBunch_m = bunch;
+        return;
+    }
     startField_m = endField_m = 0.0;
     if (bunch == nullptr) {
         return;
@@ -226,9 +226,6 @@ void RFCavity::initialise(PartBunch_t* bunch, double& startField, double& endFie
         }
         frequency_m = fieldmap_m->getFrequency();
     }
-    const double bodyBegin = startField;
-    startField             = bodyBegin + startField_m;
-    endField               = bodyBegin + endField_m;
 }
 
 // In current version ,this function reads in the cavity voltage profile data from file.
@@ -274,21 +271,40 @@ void RFCavity::initialise(
 
 void RFCavity::finalise() {}
 
-bool RFCavity::bends() const { return false; }
-
 void RFCavity::goOnline(const double&) {
+    if (isCyclotronGap()) {
+        online_m = true;
+        return;
+    }
     Fieldmap::readMap(filename_m);
 
     online_m = true;
 }
 
 void RFCavity::goOffline() {
+    if (isCyclotronGap()) {
+        online_m = false;
+        return;
+    }
     Fieldmap::freeMap(filename_m);
 
     online_m = false;
 }
 
 void RFCavity::setRmin(double rmin) { rmin_m = rmin; }
+
+void RFCavity::configureCyclotronGap(
+        const std::string& filename, double rmin, double rmax, const CyclotronRFKick& kick) {
+    kick.validate();
+    if (!std::isfinite(rmin) || !std::isfinite(rmax) || rmin < 0 || rmax <= rmin)
+        throw OpalException("RFCavity::configureCyclotronGap", "Invalid gap support [m].");
+    auto profile       = std::make_shared<CyclotronRFProfile>(filename);
+    cyclotronProfile_m = std::move(profile);
+    cyclotronKick_m    = kick;
+    gapMin_m           = rmin;
+    gapMax_m           = rmax;
+    autophaseVeto_m    = true;
+}
 
 void RFCavity::setRmax(double rmax) { rmax_m = rmax; }
 
@@ -473,7 +489,7 @@ double RFCavity::spline(double z, double* za) {
     return splint;
 }
 
-void RFCavity::getFieldExtend(double& zBegin, double& zEnd) const {
+void RFCavity::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = startField_m;
     zEnd   = endField_m;
 }
@@ -706,16 +722,10 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(
 }
 
 bool RFCavity::isInside(const Vector_t<double, 3>& r) const {
-    if (fieldmap_m != nullptr && isInsideTransverse(r)) {
+    if (isCyclotronGap()) return false;
+    if (fieldmap_m != nullptr && ApertureHelper::isInsideAperture(r, aperture_m)) {
         return fieldmap_m->isInside(r);
     }
 
     return false;
-}
-
-double RFCavity::getElementLength() const { return ElementBase::getElementLength(); }
-
-void RFCavity::getElementDimensions(double& begin, double& end) const {
-    begin = 0.0;
-    end   = getElementLength();
 }

@@ -1,15 +1,19 @@
 set (_SRCS
+    EndFieldModelManager.cpp
     EndFieldModel.cpp
     Enge.cpp
     Tanh.cpp 
     AsymmetricEnge.cpp
+    CompactVector.cpp
     )
 
 set (HDRS
+    EndFieldModelManager.h
     EndFieldModel.h
     Enge.h
     Tanh.h
     AsymmetricEnge.h
+    CompactVector.h
     )
 
 # Add local include directory

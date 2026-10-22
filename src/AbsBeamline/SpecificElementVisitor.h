@@ -23,12 +23,12 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/ConstantEFieldCavity.h"
+#include "AbsBeamline/ConstantFocusing.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Cyclotron.h"
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
-#include "AbsBeamline/FlexibleCollimator.h"
 #include "AbsBeamline/Laser.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
@@ -40,7 +40,6 @@
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/RFCavity.h"
-#include "AbsBeamline/Ring.h"
 #include "AbsBeamline/SBend.h"
 #include "AbsBeamline/SBend3D.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
@@ -90,8 +89,8 @@ public:
     /// Apply the algorithm to a collimator.
     virtual void visitCCollimator(const CCollimator&);
 
-    /// Apply the algorithm to an arbitrary component.
-    virtual void visitComponent(const Component&);
+    /// Apply the algorithm to an arbitrary element.
+    virtual void visitElementBase(const ElementBase&);
 
     /// Apply the algorithm to a closed orbit corrector.
     virtual void visitCorrector(const Corrector&);
@@ -105,6 +104,12 @@ public:
     /// Apply the algorithm to a constant E-field cavity element.
     virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&);
 
+    /**
+     * @brief Collect a constant linear focusing element when it matches `ELEM`.
+     * @param element Element considered by the visitor.
+     */
+    virtual void visitConstantFocusing(const ConstantFocusing& element);
+
     /// Apply the algorithm to a drift.
     virtual void visitDrift(const Drift&);
 
@@ -113,9 +118,6 @@ public:
 
     /// Apply the algorithm to a FlaggedElmPtr.
     virtual void visitFlaggedElmPtr(const FlaggedElmPtr&);
-
-    /// Apply the algorithm to a flexible collimator
-    virtual void visitFlexibleCollimator(const FlexibleCollimator&);
 
     /// Apply the algorithm to a marker.
     virtual void visitMarker(const Marker&);
@@ -149,9 +151,6 @@ public:
 
     /// Apply the algorithm to a RF cavity.
     virtual void visitRFCavity(const RFCavity&);
-
-    /// Apply the algorithm to a ring.
-    virtual void visitRing(const Ring&);
 
     /// Apply the algorithm to a sector bend.
     virtual void visitSBend(const SBend&);
@@ -236,8 +235,8 @@ void SpecificElementVisitor<ELEM>::visitCCollimator(const CCollimator& element) 
 }
 
 template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitComponent(const Component& element) {
-    CastsTrait<ELEM, Component>::apply(allElementsOfTypeE, element);
+void SpecificElementVisitor<ELEM>::visitElementBase(const ElementBase& element) {
+    CastsTrait<ELEM, ElementBase>::apply(allElementsOfTypeE, element);
 }
 
 template <class ELEM>
@@ -261,6 +260,11 @@ void SpecificElementVisitor<ELEM>::visitConstantEFieldCavity(const ConstantEFiel
 }
 
 template <class ELEM>
+void SpecificElementVisitor<ELEM>::visitConstantFocusing(const ConstantFocusing& element) {
+    CastsTrait<ELEM, ConstantFocusing>::apply(allElementsOfTypeE, element);
+}
+
+template <class ELEM>
 void SpecificElementVisitor<ELEM>::visitDrift(const Drift& element) {
     CastsTrait<ELEM, Drift>::apply(allElementsOfTypeE, element);
 }
@@ -274,11 +278,6 @@ template <class ELEM>
 void SpecificElementVisitor<ELEM>::visitFlaggedElmPtr(const FlaggedElmPtr& element) {
     const ElementBase* wrappedElement = element.getElement();
     wrappedElement->accept(*this);
-}
-
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitFlexibleCollimator(const FlexibleCollimator& element) {
-    CastsTrait<ELEM, FlexibleCollimator>::apply(allElementsOfTypeE, element);
 }
 
 template <class ELEM>
@@ -336,11 +335,6 @@ void SpecificElementVisitor<ELEM>::visitRBend3D(const RBend3D& element) {
 template <class ELEM>
 void SpecificElementVisitor<ELEM>::visitRFCavity(const RFCavity& element) {
     CastsTrait<ELEM, RFCavity>::apply(allElementsOfTypeE, element);
-}
-
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitRing(const Ring& element) {
-    CastsTrait<ELEM, Ring>::apply(allElementsOfTypeE, element);
 }
 
 template <class ELEM>
