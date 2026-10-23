@@ -503,7 +503,7 @@ protected:
     void SetUp() override {
         cavity.setCavityType("IDEAL");
         cavity.getGeometry().setElementLength(0.2);
-        cavity.setAmplitudem(1.0);
+        cavity.setAmplitudem(5.0);
         cavity.setFrequencym(Physics::two_pi * 100.e6);
         cavity.setPhasem(0.0);
         cavity.setAperture(ApertureType::RECTANGULAR, {0.1, 0.05});
@@ -522,7 +522,7 @@ protected:
     std::shared_ptr<Beam> beam;
 };
 
-TEST_F(IdealRFCavityTest, VoltagePhaseAndVariableRFConvention) {
+TEST_F(IdealRFCavityTest, GradientPhaseAndVariableRFConvention) {
     VariableRFCavity variable;
     variable.setLength(0.2);
     variable.setWidth(0.2);
@@ -586,7 +586,7 @@ TEST_F(IdealRFCavityTest, DeviceHostReferenceBoundariesAndMidpoint) {
 }
 
 TEST_F(IdealRFCavityTest, ReferenceExcludesErrorsAndClonePreservesMode) {
-    cavity.setAmplitudeError(0.2);
+    cavity.setAmplitudeError(1.0);
     cavity.setPhaseError(Physics::pi);
     std::unique_ptr<ElementBase> copy(cavity.clone());
     auto* cloned = dynamic_cast<RFCavityRep*>(copy.get());
@@ -625,7 +625,7 @@ TEST_F(IdealRFCavityTest, InputValidationAndDefaultMode) {
     }
 }
 
-TEST_F(IdealRFCavityTest, AutophaseAndDCIntegratedVoltage) {
+TEST_F(IdealRFCavityTest, AutophaseAndDCGradientTimesLength) {
     const auto bunch = makeBunch(1);
     cavity.initialise(bunch.get());
     const auto ref       = bunch->getParticleContainer()->getReference();
@@ -635,7 +635,9 @@ TEST_F(IdealRFCavityTest, AutophaseAndDCIntegratedVoltage) {
     cavity.setFrequencym(0.);
     const auto dc     = cavity.trackOnAxisParticle(p0, 0., 1.e-13, ref->getQ(), mass);
     const double gain = (std::sqrt(1. + dc.first * dc.first) - 1.) * mass - kinetic;
-    EXPECT_NEAR(gain, ref->getQ() * cavity.getAmplitudem(), 5.e-4);
+    EXPECT_NEAR(
+            gain, ref->getQ() * cavity.getAmplitudem() * cavity.getGeometry().getElementLength(),
+            5.e-4);
     cavity.setFrequencym(Physics::two_pi * 100.e6);
     cavity.setPhasem(0.37);
     const double phase = cavity.getAutoPhaseEstimate(kinetic, 0., ref->getQ(), mass);
@@ -672,7 +674,7 @@ TEST_F(IdealRFCavityTest, FullAutophaserRespectsVetoAndFindsCrest) {
     const auto bunch = makeBunch(1);
     auto rf          = std::make_shared<RFCavityRep>(cavity);
     rf->getGeometry().setElementLength(0.002);
-    rf->setAmplitudem(0.1);
+    rf->setAmplitudem(50.0);
     rf->initialise(bunch.get());
     const auto ref       = bunch->getParticleContainer()->getReference();
     const double mass    = ref->getM() * Units::eV2MeV;
@@ -702,7 +704,7 @@ TEST_F(IdealRFCavityTest, FullAutophaserRespectsVetoAndFindsCrest) {
     EXPECT_GT(optimum, energyAt(phase + 0.2));
 }
 
-TEST_F(IdealRFCavityTest, FullAutophaserAdjustsIntegratedVoltageToDesignEnergy) {
+TEST_F(IdealRFCavityTest, FullAutophaserAdjustsGradientToDesignEnergy) {
     const auto bunch = makeBunch(1);
     auto rf          = std::make_shared<RFCavityRep>(cavity);
     rf->getGeometry().setElementLength(0.002);
@@ -717,9 +719,36 @@ TEST_F(IdealRFCavityTest, FullAutophaserAdjustsIntegratedVoltageToDesignEnergy) 
     CavityAutophaser automatic(*ref, rf);
     const double phase = automatic.getPhaseAtMaxEnergy({0., 0., 0.}, {0., 0., p0}, 0., 1.e-13);
     EXPECT_TRUE(std::isfinite(phase));
-    EXPECT_GT(rf->getAmplitudem(), 0.1);
-    EXPECT_LT(rf->getAmplitudem(), 0.3);
+    EXPECT_GT(rf->getAmplitudem(), 50.0);
+    EXPECT_LT(rf->getAmplitudem(), 150.0);
     const auto result        = rf->trackOnAxisParticle(p0, 0., 1.e-13, ref->getQ(), mass);
     const double finalEnergy = (std::sqrt(1. + result.first * result.first) - 1.) * mass;
     EXPECT_NEAR(finalEnergy, 10.2, 1.e-6);
+}
+
+TEST_F(IdealRFCavityTest, FieldAmplitudeIndependentOfLength) {
+    const auto bunch = makeBunch(1);
+    const auto pc    = bunch->getParticleContainer();
+    bunch->setT(-1.e-9);
+    bunch->setdT(2.e-9);  // The device midpoint is t=0.
+    Kokkos::deep_copy(pc->R.getView(), Vector_t<double, 3>{0., 0., 0.1});
+    for (double length : {0.2, 0.4}) {
+        cavity.getGeometry().setElementLength(length);
+        cavity.initialise(bunch.get());
+        double begin = -1., end = -1.;
+        cavity.getFieldExtent(begin, end);
+        EXPECT_DOUBLE_EQ(begin, 0.);
+        EXPECT_DOUBLE_EQ(end, length);
+        Vector_t<double, 3> hostE(0), refE(0), b(0);
+        cavity.apply({0., 0., 0.1}, {}, 0., hostE, b);
+        EXPECT_FALSE(cavity.applyToReferenceParticle({0., 0., 0.1}, {}, 0., refE, b));
+        Kokkos::deep_copy(pc->E.getView(), Vector_t<double, 3>(0));
+        cavity.apply(pc);
+        const auto fields =
+                Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->E.getView());
+        // VOLT=5 MV/m sets the field directly; length only sets spatial support.
+        EXPECT_DOUBLE_EQ(hostE[2], 5.e6);
+        EXPECT_DOUBLE_EQ(refE[2], 5.e6);
+        EXPECT_DOUBLE_EQ(fields(0)[2], 5.e6);
+    }
 }

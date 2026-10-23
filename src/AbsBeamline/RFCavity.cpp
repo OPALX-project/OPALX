@@ -151,7 +151,7 @@ void RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
         const auto apertureType = aperture_m.first;
         const auto ax           = aperture_m.second[0];
         const auto ay           = aperture_m.second[1];
-        const double ez         = electricScale * Units::MVpm2Vpm / length;
+        const double ez         = electricScale * Units::MVpm2Vpm;
         Kokkos::parallel_for(
                 "RFCavity::ideal", pc->getLocalNum(), KOKKOS_LAMBDA(size_t i) {
                     if (R(i)[2] >= 0.0 && R(i)[2] < length
@@ -181,7 +181,7 @@ void RFCavity::apply(
     if (isCyclotronGap()) return;
     if (isIdeal()) {
         if (isInside(R))
-            E[2] += (scale_m + scaleError_m) * Units::MVpm2Vpm / getGeometry().getElementLength()
+            E[2] += (scale_m + scaleError_m) * Units::MVpm2Vpm
                     * std::cos(frequency_m * t + phase_m + phaseError_m);
         return;
     }
@@ -204,8 +204,7 @@ bool RFCavity::applyToReferenceParticle(
         if (R[2] < 0.0 || R[2] >= getGeometry().getElementLength()) return false;
         if (!ApertureHelper::isInsideAperture(R, aperture_m)) return true;
         // Reference tracking deliberately excludes DVOLT and DLAG, as for mapped cavities.
-        E[2] += scale_m * Units::MVpm2Vpm / getGeometry().getElementLength()
-                * std::cos(frequency_m * t + phase_m);
+        E[2] += scale_m * Units::MVpm2Vpm * std::cos(frequency_m * t + phase_m);
         return false;
     }
     if (R(2) >= startField_m && R(2) < endField_m) {
