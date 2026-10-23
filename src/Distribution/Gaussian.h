@@ -31,6 +31,11 @@ using Dist_t        = ippl::random::NormalDistribution<double, 3>;
  *
  * Here, R is sampled in a bounded domains R \in [-CutoffR*SigmaR, CutoffR*SigmaR]^3
  * and corrected by translation to ensure mean = [0,0,0].
+ * A zero spatial sigma (in metres) represents an exact point mass on that axis.
+ * Its auxiliary sampling coordinate has finite bounds and is projected to zero
+ * on the device before mean correction and source offsets. No physical spread
+ * is introduced. When all spatial widths are positive, the sampling path and
+ * random draws are unchanged. No additional MPI collectives are required.
  *
  * @param numberOfParticles The total number of particles to generate.
  * @param nr The number of grid points in each dimension (not used here).
