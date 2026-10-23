@@ -131,9 +131,9 @@ endif()
 # -----------------------------------------------------------------------------
 
 set(OPALX_KOKKOS_ARCHITECTURES
-    HOPPER90 AMPERE80 AMPERE86 AMPERE87 VOLTA70 VOLTA72 PASCAL61 PASCAL60 ADA102
+    HOPPER90 AMPERE80 AMPERE86 AMPERE87 VOLTA70 VOLTA72 PASCAL61 PASCAL60 ADA89
     BLACKWELL100 BLACKWELL103 BLACKWELL120 BLACKWELL121
-    AMD_GFX1101 AMD_GFX1151 AMD_GFX1152
+    AMD_GFX90A AMD_GFX942 AMD_GFX942_APU AMD_GFX1101 AMD_GFX1151 AMD_GFX1152
     BDW SKX CNL ZEN ZEN2 ZEN3 ARM80 ARM81
     INTEL_GEN9 INTEL_GEN11 INTEL_GEN12LP INTEL_DG1 INTEL_XEHP INTEL_PVC)
 
@@ -150,6 +150,19 @@ endforeach()
 if(NOT ARCH AND Kokkos_ARCH_FLAG)
     string(REGEX REPLACE "^Kokkos_ARCH_" "" ARCH "${Kokkos_ARCH_FLAG}")
     set(ARCH "${ARCH}" CACHE STRING "" FORCE)
+endif()
+
+# Validate the requested architecture against the supported set so that
+# misspelled or raw ROCm/CUDA names (e.g. gfx90a instead of AMD_GFX90A)
+# fail loudly instead of silently creating a bogus Kokkos_ARCH_<name> cache
+# variable that is never consumed by Kokkos.
+if(ARCH AND NOT ARCH IN_LIST OPALX_KOKKOS_ARCHITECTURES)
+    string(REPLACE ";" ", " _opalx_supported_archs "${OPALX_KOKKOS_ARCHITECTURES}")
+    message(FATAL_ERROR
+        "ARCH='${ARCH}' is not a supported Kokkos architecture. "
+        "Supported values are: ${_opalx_supported_archs}. "
+        "See https://kokkos.org/kokkos-core-wiki/get-started/configuration-guide.html#gpu-architectures "
+        "for the architectures supported by Kokkos.")
 endif()
 
 # Enable selected arch (if provided)
