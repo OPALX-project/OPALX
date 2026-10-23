@@ -210,6 +210,7 @@ void Astra1DMagnetoStatic::readMap() {
     const double norm = normalize_m ? Bz_max : 1.0;
 
     // Compute Fourier coefficients explicitly from the mirrored periodic samples.
+    // See Astra1DDynamic::readMap for why this is preferred over the FFT path.
     const int M = 2 * num_gridpz_m;
 
     double a0 = 0.0;
