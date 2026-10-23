@@ -138,8 +138,6 @@ For the release mode, use `Release` instead of `Debug` as the argument for `-DCM
 | `OPALX_USE_INSTALLED_HDF5` | OFF | Disables the use of system-built HDF5 dependency. |
 | `OPALX_USE_INSTALLED_H5HUT` | OFF |  Disables the use of system-built H5hut dependency. |
 | `OPALX_USE_INSTALLED_GTEST` | OFF |  Disables the use of system-built GoogleTest dependency. |
-| `IPPL_ENABLE_ALPINE` | OFF | Disables Alpine features in IPPL by default; set IPPL_ENABLE_ALPINE to ON to enable. |
-| `IPPL_ENABLE_TEST` | OFF | Disables IPPL tests; corresponds to IPPL_ENABLE_TESTS OFF in IPPL default features. |
 | `OPALX_ENABLE_UNIT_TESTS` | OFF | Disables building unit tests using GoogleTest. |
 | `OPALX_ENABLE_EXAMPLES` | OFF | Disables building the Example module. |
 | `OPALX_ENABLE_TESTS` | OFF | Disables building integration tests in the test/ directory. |
@@ -152,6 +150,10 @@ For the release mode, use `Release` instead of `Debug` as the argument for `-DCM
 | `OPALX_ENABLE_SCRIPTS` | OFF | Disables generation of job script templates for benchmarks/tests. |
 | `OPALX_FIELD_DEBUG` | OFF | Disables FieldSolver field-dump debug code; emits field dumps during simulation when enabled. |
 | `OPALX_USE_KOKKOS_MATH_CONSTANTS` | ON | Sources `Physics.h` mathematical constants such as `pi`, `e`, and `log10e` from `Kokkos::numbers`; turn OFF to use literal fallback values. |
+
+IPPL-side feature settings (for example `IPPL_ENABLE_TESTS` or
+`IPPL_ENABLE_ALPINE`) are set by the OPALX CMake presets and forwarded to
+the IPPL build; they are not independent OPALX build options.
 
 Dependency version/ref options:
 
