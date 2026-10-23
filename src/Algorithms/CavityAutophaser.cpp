@@ -113,8 +113,8 @@ double CavityAutophaser::getPhaseAtMaxEnergy(
                         "length of cavity " + element->getName() + " is zero");
             }
 
-            amplitude =
-                    2 * (designEnergy - initialEnergy) / (std::abs(itsReference_m.getQ()) * length);
+            amplitude = 2 * (designEnergy - initialEnergy)
+                        / (std::abs(itsReference_m.getQ()) * (element->isIdeal() ? 1.0 : length));
 
             element->setAmplitudem(amplitude);
 
@@ -167,8 +167,8 @@ double CavityAutophaser::getPhaseAtMaxEnergy(
                     << "corresp. in Astra = " << AstraPhase * Units::rad2deg << " [deg],\n"
                     << "E = " << finalEnergy << " [MeV], "
                     << "phi_nom = " << originalPhase * Units::rad2deg << " [deg]\n"
-                    << "Ez_0 = " << amplitude << " [MV/m]"
-                    << "\n"
+                    << (element->isIdeal() ? "V_0 = " : "Ez_0 = ") << amplitude
+                    << (element->isIdeal() ? " [MV]" : " [MV/m]") << "\n"
                     << "time = " << (t + tErr) * Units::s2ns << " [ns], dt = " << dt * Units::s2ps
                     << " [ps]" << endl;
 
@@ -189,8 +189,8 @@ double CavityAutophaser::getPhaseAtMaxEnergy(
                     << "corresp. in Astra = " << AstraPhase * Units::rad2deg << " [deg],\n"
                     << "E = " << finalEnergy << " [MeV], "
                     << "phi_nom = " << originalPhase * Units::rad2deg << " [deg]\n"
-                    << "Ez_0 = " << amplitude << " [MV/m]"
-                    << "\n"
+                    << (element->isIdeal() ? "V_0 = " : "Ez_0 = ") << amplitude
+                    << (element->isIdeal() ? " [MV]" : " [MV/m]") << "\n"
                     << "time = " << (t + tErr) * Units::s2ns << " [ns], dt = " << dt * Units::s2ps
                     << " [ps]" << endl;
         if (!isDCGun) {
