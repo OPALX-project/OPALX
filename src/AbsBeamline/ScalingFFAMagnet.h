@@ -179,7 +179,7 @@ public:
      *
      *  \param bunch the global bunch object
      */
-    void initialise(PartBunch_t* bunch);
+    void initialise(PartBunch_t* bunch) override;
 
     /** Initialise the ScalingFFAMagnet
      *
@@ -192,10 +192,10 @@ public:
     void finalise() override;
 
     /** calls finalise() */
-    void goOffline();
+    void goOffline() override;
 
     /** call initialise() */
-    void goOnline(const double& kineticEnergy);
+    void goOnline(const double& kineticEnergy) override;
 
     /** Get the field extent
      *
@@ -328,11 +328,11 @@ public:
 
     ElementType getElementType() const { return ElementType::SCALINGFFAMAGNET; }
     std::string getTypeString() const { return "SCALINGFFAMAGNET"; }
-    ElementType getType() const { return ElementType::SCALINGFFAMAGNET; }
+    ElementType getType() const override { return ElementType::SCALINGFFAMAGNET; }
 
     std::vector<std::vector<double> > getDfCoefficients() const;
 
-    bool isInside(const Vector_t<double, 3>& r) const;
+    bool isInside(const Vector_t<double, 3>& r) const override;
 
 private:
     /** Calculate the df coefficients, ready for field generation
