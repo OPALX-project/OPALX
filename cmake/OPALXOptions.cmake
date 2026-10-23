@@ -187,7 +187,10 @@ endif()
 
 # Validate architecture configuration for non-CUDA backends
 if("HIP" IN_LIST OPALX_PLATFORMS)
-    if(ARCH MATCHES "^AMD_GFX([0-9A-Fa-f]+)$")
+    # Accept both plain AMD_GFX<hex> names and Kokkos variants with a
+    # suffix (e.g. AMD_GFX942_APU for MI300A): the hex part selects the
+    # gfx target and any suffix is ignored for CMAKE_HIP_ARCHITECTURES.
+    if(ARCH MATCHES "^AMD_GFX([0-9A-Fa-f]+)")
         string(TOLOWER "gfx${CMAKE_MATCH_1}" _opalx_hip_architecture)
         set(CMAKE_HIP_ARCHITECTURES "${_opalx_hip_architecture}" CACHE STRING
             "HIP GPU architecture (auto-derived from ARCH=${ARCH})" FORCE)
