@@ -21,6 +21,8 @@
 #include "Track/TrackParser.h"
 #include "Track/TrackEnd.h"
 #include "Track/TrackRun.h"
+#include "Utilities/Options.h"
+#include "Utilities/ParseError.h"
 
 TrackParser::TrackParser() : trackDirectory() {
     trackDirectory.insert("ENDTRACK", new TrackEnd());
@@ -30,3 +32,20 @@ TrackParser::TrackParser() : trackDirectory() {
 TrackParser::~TrackParser() {}
 
 Object* TrackParser::find(const std::string& name) const { return trackDirectory.find(name); }
+
+void TrackParser::execute(Object* object, const std::string& name) const {
+    if (Options::parseOnly && dynamic_cast<TrackEnd*>(object)) {
+        ended = true;
+        stop();
+        return;
+    }
+    OpalParser::execute(object, name);
+}
+
+void TrackParser::runParseOnly() const {
+    ended = false;
+    OpalParser::run();
+    if (Options::parseOnly && !ended) {
+        throw ParseError("TrackParser::runParseOnly", "TRACK block is missing ENDTRACK.");
+    }
+}

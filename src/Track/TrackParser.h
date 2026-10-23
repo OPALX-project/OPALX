@@ -28,8 +28,12 @@ class TrackParser : public OpalParser {
 public:
     TrackParser();
     virtual ~TrackParser();
+    /// Read one validation-only TRACK block, requiring ENDTRACK.
+    void runParseOnly() const;
 
 protected:
+    void execute(Object*, const std::string&) const override;
+
     /// Find object by name in the track command directory.
     virtual Object* find(const std::string&) const;
 
@@ -40,6 +44,7 @@ private:
 
     // The sub-command directory.
     Directory trackDirectory;
+    mutable bool ended = false;
 };
 
 #endif  // OPAL_TrackParser_HH

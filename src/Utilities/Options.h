@@ -27,6 +27,9 @@
 enum class DumpFrame : unsigned short { GLOBAL, BUNCH_MEAN, REFERENCE };
 
 namespace Options {
+    /// Parse input without executing simulation or output commands (CLI only).
+    extern bool parseOnly;
+
     /// Echo flag.
     //  If true, print an input echo.
     extern bool echo;
