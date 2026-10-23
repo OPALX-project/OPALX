@@ -219,7 +219,6 @@ option(OPALX_ENABLE_SANITIZER "Enable sanitizer(s)" OFF)
 option(OPALX_USE_ALTERNATIVE_VARIANT
        "Use modified variant implementation (required for CUDA 12.2 + GCC 12.3.0)" OFF)
 option(OPALX_USE_STANDARD_FOLDERS "Put all generated binaries in bin/lib folders" OFF)
-option(OPALX_SKIP_FAILING_TESTS "Do not build/test tests that are currently marked as failing" OFF)
 option(OPALX_ENABLE_SCRIPTS "Generate job script templates for some benchmarks/tests" OFF)
 option(OPALX_FIELD_DEBUG "Enable FieldSolver field-dump debug code" OFF)
 option(OPALX_USE_KOKKOS_MATH_CONSTANTS "Use Kokkos mathematical constants in Physics.h" ON)
@@ -236,9 +235,6 @@ if(OPALX_USE_KOKKOS_MATH_CONSTANTS)
 else()
   colour_message(STATUS ${Cyan} "ℹ️  Kokkos math constants disabled (using literal constants in Physics.h)")
 endif()
-
-# Keep high-signal toggles visible in configure output.
-message(STATUS "🔧 Skip failing tests (OPALX_SKIP_FAILING_TESTS): ${OPALX_SKIP_FAILING_TESTS}")
 
 # "Build OPALX as a shared library (ON) or static library (OFF)" OFF) 
 if(OPALX_DYL)

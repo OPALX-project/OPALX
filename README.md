@@ -149,7 +149,6 @@ For the release mode, use `Release` instead of `Debug` as the argument for `-DCM
 | `OPALX_ENABLE_SANITIZER` | OFF | Disables sanitizer tools (e.g., AddressSanitizer). |
 | `OPALX_USE_ALTERNATIVE_VARIANT` | OFF | Disables modified variant implementation; required for CUDA 12.2 + GCC 12.3.0 compatibility. |
 | `OPALX_USE_STANDARD_FOLDERS` | OFF | Places generated binaries and libraries under the build tree `bin/` and `lib/` folders. |
-| `OPALX_SKIP_FAILING_TESTS` | OFF | Skips building and running tests that are currently marked as failing. |
 | `OPALX_ENABLE_SCRIPTS` | OFF | Disables generation of job script templates for benchmarks/tests. |
 | `OPALX_FIELD_DEBUG` | OFF | Disables FieldSolver field-dump debug code; emits field dumps during simulation when enabled. |
 | `OPALX_USE_KOKKOS_MATH_CONSTANTS` | ON | Sources `Physics.h` mathematical constants such as `pi`, `e`, and `log10e` from `Kokkos::numbers`; turn OFF to use literal fallback values. |
