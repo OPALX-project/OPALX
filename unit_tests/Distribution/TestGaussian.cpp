@@ -350,8 +350,8 @@ TEST_F(GaussianTest, largeCutoffDisablesTruncation) {
     preallocateParticleCapacity(pc, total_nparticles);
     sampler.generateParticles(total_nparticles, nr);
 
-    auto r = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
-    auto p = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->P.getView());
+    auto r           = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+    auto p           = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->P.getView());
     double locMax[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, globMax[6];
     for (size_t i = 0; i < pc->getLocalNum(); ++i) {
         for (unsigned d = 0; d < 3; ++d) {
