@@ -88,6 +88,7 @@
 #include <iomanip>
 #include <limits>
 #include <memory>
+#include <sstream>
 #include <vector>
 
 #include <unistd.h>
@@ -912,6 +913,17 @@ void TrackRun::wireDaughterContainers(const std::vector<Beam*>& beams) {
             auto* decayProc = dynamic_cast<Decay*>(proc.get());
             if (decayProc) {
                 requireUnitMacroWeight(*beams[daughterIdx], "daughter");
+                const double parentCharge   = beams[i]->getCharge();
+                const double daughterCharge = beams[daughterIdx]->getCharge();
+                if (daughterCharge != parentCharge) {
+                    std::ostringstream msg;
+                    msg << "Daughter beam \"" << daughterName
+                        << "\" has CHARGE = " << daughterCharge << ", but its parent beam \""
+                        << beamNames[i] << "\" has CHARGE = " << parentCharge
+                        << ". A decay keeps the charge: set the same CHARGE on both beams (for "
+                           "mu+ -> e+, CHARGE = +1 on the ELECTRON beam).";
+                    throw OpalException("TrackRun::wireDaughterContainers", msg.str());
+                }
                 // A muon daughter (e.g. from pion decay) receives a per-particle
                 // polarization from the decay, so its container must have spin storage -
                 // which is enabled by setting POLARIZATION on the daughter muon BEAM.
