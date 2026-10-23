@@ -755,8 +755,8 @@ void ParallelTracker::execute() {
                 m << level4 << "External field computation done at step " << step << "." << endl;
             }
 
-            // Thomas-BMT spin precession using E, B at the particle (bunch-frame axes, like
-            // P and Pol).
+            // First half of the Thomas-BMT spin rotation (momentum before the kick);
+            // timeIntegration2 does the second half after the kick.
             // No-op for containers that have not registered the Pol attribute.
             evolveSpinTBMT();
             m << level5 << "Spin T-BMT update done at step " << step << "." << endl;
@@ -1188,6 +1188,9 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
             continue;
         }
         kickParticles(pusher, *pc);
+        if (pc->hasSpin()) {
+            evolveSpinHalfStep(*pc);  // second half of the spin rotation, momentum after the kick
+        }
         pushParticles(pusher, *pc);
         pc->dt = itsBunch_m->getdT();
     }
@@ -1904,27 +1907,30 @@ void ParallelTracker::evolveSpinTBMT() {
         if (!pc || !pc->hasSpin()) {
             continue;
         }
-
-        const PartData& ref = *pc->getReference();
-        const double mass   = ref.getM();
-        const double charge = ref.getQ();
-        const double anom   = ref.getAnomaly();
-
-        auto Polview = pc->Pol.getView();
-        auto Pview   = pc->P.getView();
-        auto Efview  = pc->E.getView();
-        auto Bfview  = pc->B.getView();
-        auto dtview  = pc->dt.getView();
-
-        SpinTBMTPusher spinPusher;
-        Kokkos::parallel_for(
-                "evolveSpinTBMT", pc->getLocalNum(), KOKKOS_LAMBDA(const size_t j) {
-                    spinPusher.evolve(
-                            Polview(j), Pview(j), Efview(j), Bfview(j), dtview(j), mass, charge,
-                            anom);
-                });
-        Kokkos::fence();
+        evolveSpinHalfStep(*pc);
     }
+}
+
+void ParallelTracker::evolveSpinHalfStep(PartBunch_t::ParticleContainer_t& pc) {
+    const PartData& ref = *pc.getReference();
+    const double mass   = ref.getM();
+    const double charge = ref.getQ();
+    const double anom   = ref.getAnomaly();
+
+    auto Polview = pc.Pol.getView();
+    auto Pview   = pc.P.getView();
+    auto Efview  = pc.E.getView();
+    auto Bfview  = pc.B.getView();
+    auto dtview  = pc.dt.getView();
+
+    SpinTBMTPusher spinPusher;
+    Kokkos::parallel_for(
+            "evolveSpinHalfStep", pc.getLocalNum(), KOKKOS_LAMBDA(const size_t j) {
+                spinPusher.evolve(
+                        Polview(j), Pview(j), Efview(j), Bfview(j), 0.5 * dtview(j), mass, charge,
+                        anom);
+            });
+    Kokkos::fence();
 }
 
 // --- Helpers (beamline, dt, bounds, I/O) ---
