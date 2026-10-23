@@ -1,6 +1,4 @@
 //
-// Cubic Spline Interpolation to replace GSL spline
-//
 // Copyright (c) 2023, Paul Scherrer Institute, Villigen PSI, Switzerland
 // All rights reserved
 //
@@ -82,6 +80,8 @@ public:
     ElementBase* clone() const override;
     /** Accept a beamline visitor */
     void accept(BeamlineVisitor& visitor) const override;
+    /** @return The element type (ElementType::MULTIPOLET). */
+    ElementType getType() const override;
     /** Return the cell geometry */
     Geometry& getGeometry() override;
     /** Return the cell geometry */
@@ -173,6 +173,10 @@ public:
     void setElementLength(double length);
     /** Get the length of the magnet */
     double getLength() const { return config_m.length_m; }
+    /** Make the generic ElementBase aperture setter visible alongside the MultipoleT one,
+     *  which would otherwise hide it by name.
+     */
+    using ElementBase::setAperture;
     /** Set the aperture dimensions \n
      * This element only supports a rectangular aperture
      * \param vertAp -> Vertical aperture length
@@ -201,14 +205,31 @@ public:
     void setBoundingBoxLength(double boundingBoxLength);
     /** Return the longitudinal field-support extent.
      *
-     *  For the current MultipoleT implementation the field support is defined
-     *  on the full local body interval
-     *  latexmath:[z \in [0, L)].
+     *  The body interval latexmath:[[0, L]] plus the reach of the tanh fringe past each
+     *  pole face, measured along the design arc. A hard edge (zero fringe lengths) gives
+     *  the plain body extent.
      */
     void getFieldExtent(double& zBegin, double& zEnd) const override {
-        zBegin = 0.0;
-        zEnd   = getGeometry().getElementLength();
+        zBegin = -MultipoleTBase::FringeReach * config_m.fringeLambdaLeft_m;
+        zEnd   = getGeometry().getElementLength()
+               + MultipoleTBase::FringeReach * config_m.fringeLambdaRight_m;
     }
+
+    /** Return true if the point is inside the field support and the aperture.
+     *
+     *  Both are measured along the design arc, so a curved MultipoleT stays selected as
+     *  the orbit curves through it, the same way SBend does.
+     */
+    bool isInside(const Vector_t<double, 3>& r) const override;
+    /** Mark every particle that leaves the aperture inside the body, in arc coordinates */
+    size_t markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    /** Apply the field to the reference particle.
+     *
+     *  @return true if the particle is outside the aperture inside the field extent.
+     */
+    bool applyToReferenceParticle(
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     void setScalingName(const std::string& name);
     std::string getScalingName() const { return scalingName_m; }
@@ -221,6 +242,8 @@ protected:
     MultipoleTConfig config_m;
 
     void chooseImplementation();
+    /** Map an entrance-frame point to arc coordinates (radial offset, y, arc length) */
+    Vector_t<double, 3> bendCoords(const Vector_t<double, 3>& r) const;
     double getScaling(double t) const;
     void validateConfiguration() const;
 
