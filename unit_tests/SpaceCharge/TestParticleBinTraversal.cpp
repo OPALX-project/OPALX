@@ -2,6 +2,7 @@
 
 #include "PartBunch/BunchStateHandler.h"
 #include "SpaceCharge/CartesianPIC3D/ParticleBinTraversal.h"
+#include "SpaceCharge/CartesianPIC3D/RelativisticFieldComposer.h"
 #include "Utilities/OpalException.h"
 
 #include <algorithm>
@@ -149,6 +150,36 @@ namespace opalx::spacecharge {
             EXPECT_TRUE(std::all_of(visited.begin(), visited.end(), [](bool seen) {
                 return seen;
             }));
+        }
+
+        TEST_F(ParticleBinTraversalTest, SingleWarmBinCMUsesGlobalMomentsWithEmptyRank) {
+            auto p = particles_m->P.getHostMirror();
+            auto r = particles_m->R.getHostMirror();
+            for (std::size_t i = 0; i < particles_m->getLocalNum(); ++i) {
+                p(i) = Vector_t<double, 3>(i % 2 == 0 ? 0.3 : -0.3, 0, 12);
+                r(i) = Vector_t<double, 3>(0.25, 0.25, 0.25);
+            }
+            Kokkos::deep_copy(particles_m->P.getView(), p);
+            Kokkos::deep_copy(particles_m->R.getView(), r);
+            particles_m->update();
+            auto values        = config(false);
+            values.maximumBins = 1;
+            ParticleBinTraversal plan(*particles_m, values);
+            (void)plan.prepareBins(false);
+            const auto unit = plan.nextNonemptyBin();
+            ASSERT_TRUE(unit.has_value());
+            EXPECT_EQ(unit->globalParticleCount, 8u * ippl::Comm->size());
+            if (ippl::Comm->size() == 2 && ippl::Comm->rank() == 1)
+                EXPECT_EQ(unit->localParticleCount, 0u);
+            const double g = std::sqrt(145.09);
+            EXPECT_NEAR(unit->gamma, g, 1e-12);
+            EXPECT_NEAR(unit->meanMomentum[0], 0, 1e-14);
+            EXPECT_NEAR(unit->meanMomentum[2], 12, 1e-13);
+            const auto policy =
+                    FieldCompositionPolicy::centreOfMomentum(unit->meanMomentum, unit->gamma);
+            EXPECT_NEAR(policy.gamma, g / std::sqrt(1.09), 1e-11);
+            EXPECT_NEAR(LorentzBoost::from(policy).velocity[2] / Physics::c, 12 / g, 1e-14);
+            EXPECT_FALSE(plan.nextNonemptyBin().has_value());
         }
 
     }  // namespace

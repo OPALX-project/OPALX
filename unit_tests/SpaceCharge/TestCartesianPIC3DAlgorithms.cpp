@@ -911,5 +911,51 @@ namespace opalx::spacecharge {
             }
         }
 
+        TEST_F(CartesianPIC3DAlgorithmsTest, SingleBinOpenWarmSolveMatchesConsistentColdFrame) {
+            for (int sample = 0; sample < 6; ++sample) {
+                SCOPED_TRACE(sample);
+                auto setup = config();
+                // Isolate frame/density consistency from cancellation in cuboid-integrated
+                // Green functions on this tiny, highly anisotropic synthetic mesh.
+                // Also exercise the integrated backend with a zero-mean warm bunch, whose
+                // exact unit stretch avoids that unrelated kernel conditioning sensitivity.
+                setup.greenFunction =
+                        sample >= 3 ? GreenFunctionType::Integrated : GreenFunctionType::Standard;
+                setup.binning.emplace();
+                setup.binning->maximumBins = 1;
+                setup.binning->adaptive    = false;
+                const double balancedPz    = sample >= 4 ? 15.0 : 12.0;
+                const double smallBulkPz   = sample == 5 ? 1e-12 : 0.0;
+                const Vector p0            = sample == 0   ? Vector(0.3, 0, 12)
+                                             : sample == 1 ? Vector(0, 0, 8)
+                                                           : Vector(0, 0, -balancedPz + smallBulkPz);
+                const Vector p1            = sample == 0   ? Vector(-0.3, 0, 12)
+                                             : sample == 1 ? Vector(0, 0, 16)
+                                                           : Vector(0, 0, balancedPz + smallBulkPz);
+                const Vector mean          = (p0 + p1) / 2.0;
+                const double g = (std::sqrt(1 + p0.dot(p0)) + std::sqrt(1 + p1.dot(p1))) / 2.0;
+                const double invariant = g * g - mean.dot(mean);
+                Run warm(setup), cold(setup, {}, mean / std::sqrt(invariant));
+                auto momenta = warm.particles.P.getHostMirror();
+                for (std::size_t i = 0; i < warm.particles.getLocalNum(); ++i)
+                    momenta(i) = i % 2 == 0 ? p0 : p1;
+                Kokkos::deep_copy(warm.particles.P.getView(), momenta);
+                warm.particles.markMomentsDirty();
+                warm.particles.updateMoments();
+                EXPECT_EQ(warm.solve().backendSolves, 1u);
+                EXPECT_EQ(cold.solve().backendSolves, 1u);
+                expectFieldsEqual(warm.particles, cold.particles);
+            }
+        }
+
+        TEST_F(CartesianPIC3DAlgorithmsTest, SingleBinOpenRejectsMisalignedStretch) {
+            auto setup = config();
+            setup.binning.emplace();
+            setup.binning->maximumBins = 1;
+            setup.binning->adaptive    = false;
+            Run tilted(setup, {}, Vector(0.1, 0, 1));
+            EXPECT_THROW(tilted.solve(), OpalException);
+        }
+
     }  // namespace
 }  // namespace opalx::spacecharge

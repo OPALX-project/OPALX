@@ -356,5 +356,131 @@ namespace opalx::spacecharge {
                     OpalException);
         }
 
+        TEST_F(CartesianPIC3DFieldsTest, CentreOfMomentumPreservesVelocityAndFourMomentum) {
+            using V = Vector_t<double, 3>;
+            const std::array<std::array<V, 2>, 5> samples{
+                    {{V(0, 0, 12), V(0, 0, 12)},
+                     {V(0.3, 0, 12), V(-0.3, 0, 12)},
+                     {V(0, 0, 8), V(0, 0, 16)},
+                     {V(0, 0, -12), V(0, 0, 12)},
+                     {V(1.3, -0.7, 12), V(1.7, -0.3, 8)}}};
+            for (const auto& sample : samples) {
+                const V mean        = (sample[0] + sample[1]) / 2.0;
+                const double energy = (std::sqrt(1 + sample[0].dot(sample[0]))
+                                       + std::sqrt(1 + sample[1].dot(sample[1])))
+                                      / 2.0;
+                const auto policy = FieldCompositionPolicy::centreOfMomentum(
+                        {mean[0], mean[1], mean[2]}, energy);
+                const auto boost = LorentzBoost::from(policy);
+                const V beta     = mean / energy;
+                EXPECT_NEAR(boost.gamma * boost.gamma * (1 - beta.dot(beta)), 1.0, 1e-12);
+                V totalRestMomentum(0.0);
+                for (const auto& p : sample) {
+                    totalRestMomentum +=
+                            p + (boost.gamma - 1) * p.dot(boost.velocityUnit) * boost.velocityUnit
+                            - boost.gamma * std::sqrt(1 + p.dot(p)) * beta;
+                }
+                for (unsigned d = 0; d < 3; ++d) {
+                    EXPECT_NEAR(boost.velocity[d] / Physics::c, beta[d], 1e-15);
+                    EXPECT_NEAR(totalRestMomentum[d], 0.0, 1e-12);
+                }
+                const V restE(1.3, -0.7, 0.4);
+                V e, b;
+                boost.toLab(restE, e, b);
+                const V cb = Physics::c * b;
+                EXPECT_NEAR(e.dot(e) - cb.dot(cb), restE.dot(restE), 1e-10);
+                EXPECT_NEAR(e.dot(cb), 0.0, 1e-10);
+                const V force    = e + cross(beta, cb);
+                const V parallel = restE.dot(boost.velocityUnit) * boost.velocityUnit;
+                const V expected = parallel + (restE - parallel) / boost.gamma;
+                for (unsigned d = 0; d < 3; ++d)
+                    EXPECT_NEAR(force[d], expected[d], 1e-12);
+            }
+        }
+
+        TEST_F(CartesianPIC3DFieldsTest, StationaryWarmCMHasExactUnitBoost) {
+            const double meanGamma = std::sqrt(226.0);  // Equal populations with pz = +/-15.
+            const auto policy      = FieldCompositionPolicy::centreOfMomentum({0, 0, 0}, meanGamma);
+            const auto boost       = LorentzBoost::from(policy);
+            EXPECT_EQ(policy.gamma, 1.0);
+            EXPECT_DOUBLE_EQ(policy.meanParticleGamma, meanGamma);
+            const Vector_t<double, 3> restE(1.3, -0.7, 0.4);
+            Vector_t<double, 3> e, b;
+            boost.toLab(restE, e, b);
+            for (unsigned d = 0; d < 3; ++d) {
+                EXPECT_DOUBLE_EQ(boost.velocity[d], 0.0);
+                EXPECT_DOUBLE_EQ(e[d], restE[d]);
+                EXPECT_DOUBLE_EQ(b[d], 0.0);
+            }
+            for (const double meanPz : {1e-12, 1e-9}) {
+                SCOPED_TRACE(meanPz);
+                const auto nearRest =
+                        FieldCompositionPolicy::centreOfMomentum({0, 0, meanPz}, meanGamma);
+                // These velocities are too small for gamma-1 to be representable in binary64.
+                EXPECT_EQ(nearRest.gamma, 1.0);
+                EXPECT_DOUBLE_EQ(nearRest.meanParticleGamma, meanGamma);
+                EXPECT_NEAR(
+                        LorentzBoost::from(nearRest).velocity[2] / Physics::c, meanPz / meanGamma,
+                        1e-24);
+            }
+        }
+
+        TEST_F(CartesianPIC3DFieldsTest, CentreOfMomentumRejectsInvalidMoments) {
+            EXPECT_THROW(
+                    static_cast<void>(FieldCompositionPolicy::centreOfMomentum({0, 0, 2}, 1)),
+                    OpalException);
+            EXPECT_THROW(
+                    static_cast<void>(FieldCompositionPolicy::centreOfMomentum({0, 0, 0}, 0.5)),
+                    OpalException);
+            EXPECT_THROW(
+                    static_cast<void>(FieldCompositionPolicy::centreOfMomentum(
+                            {0, 0, std::numeric_limits<double>::infinity()}, 2)),
+                    OpalException);
+            EXPECT_THROW(
+                    static_cast<void>(FieldCompositionPolicy::centreOfMomentum(
+                            {0, 0, 0}, std::numeric_limits<double>::quiet_NaN())),
+                    OpalException);
+        }
+
+        TEST_F(CartesianPIC3DFieldsTest, CMChargeNormalizationConservesChargeOnStretchedCells) {
+            Options::useQMAttributes = false;
+            CartesianDomain<double, 3> domain(storage());
+            CartesianPIC3DFieldStorage<double, 3> fields(domain);
+            fields.initializeFields(PoissonSolverType::Open);
+            using Container = ::ParticleContainer<double, 3>;
+            Container particles(domain.mesh(), domain.layout());
+            particles.setBunchStateHandler(std::make_shared<BunchStateHandler>());
+            particles.createParticles(2);
+            particles.setQ(2e-15);
+            Kokkos::deep_copy(particles.R.getView(), (domain.lower() + domain.upper()) / 2.0);
+            Kokkos::deep_copy(particles.dt.getView(), 1e-12);
+            const double g   = std::sqrt(1 + 0.3 * 0.3 + 12 * 12);
+            const auto frame = FieldCompositionPolicy::centreOfMomentum({0, 0, 12}, g);
+            ParticleMeshFieldTransfer transfer;
+            ParticleMeshFieldTransfer::ChargeNormalization normalization;
+            normalization.timeStep              = 1e-12;
+            normalization.gamma                 = frame.gamma;
+            normalization.selectedCharge        = 4e-15;
+            normalization.couplingConstant      = 1.0;
+            normalization.normalizeByCellVolume = true;
+            transfer.depositCharge(
+                    particles, fields, ParticleMeshFieldTransfer::DepositKind::Primary,
+                    ParticleMeshFieldTransfer::Selection::direct(0, 2), normalization, {});
+            const auto h                = fields.spacing();
+            const double restCellVolume = h[0] * h[1] * h[2] * frame.gamma;
+            EXPECT_NEAR(fields.chargeDensity().sum() * restCellVolume, 4e-15, 4e-27);
+            const double densitySum = fields.chargeDensity().sum();
+            normalization.gamma     = 1.0;
+            transfer.depositCharge(
+                    particles, fields, ParticleMeshFieldTransfer::DepositKind::Primary,
+                    ParticleMeshFieldTransfer::Selection::direct(0, 2), normalization, {});
+            EXPECT_NEAR(
+                    densitySum * frame.gamma, fields.chargeDensity().sum(),
+                    std::abs(fields.chargeDensity().sum()) * 1e-12);
+            const auto dt = Kokkos::create_mirror_view_and_copy(
+                    Kokkos::HostSpace(), particles.dt.getView());
+            EXPECT_DOUBLE_EQ(dt(0), 1e-12);
+        }
+
     }  // namespace
 }  // namespace opalx::spacecharge

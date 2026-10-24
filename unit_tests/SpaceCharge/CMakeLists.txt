@@ -6,6 +6,9 @@ add_opalx_test(TestFFT2D5Algorithm USE_GTEST_MAIN RUN_SERIAL)
 add_opalx_test(TestFFT2D5Numerics USE_GTEST_MAIN RUN_SERIAL)
 add_opalx_test(TestSpaceChargeSolver USE_GTEST_MAIN RUN_SERIAL)
 add_opalx_test(TestParticleBinTraversal USE_GTEST_MAIN RUN_SERIAL)
+add_opalx_test(TestSingleBinCMParallel SOURCES TestParticleBinTraversal.cpp
+    ARGS --gtest_filter=ParticleBinTraversalTest.SingleWarmBinCMUsesGlobalMomentsWithEmptyRank
+    USE_GTEST_MAIN RUN_SERIAL NUM_PROCS 2 REQUIRE_MPI)
 add_opalx_test(TestCartesianPIC3DComponents USE_GTEST_MAIN RUN_SERIAL)
 add_opalx_test(TestCartesianDomainLoadBalancing USE_GTEST_MAIN RUN_SERIAL)
 add_opalx_test(TestCartesianDomainUpdaterORB USE_GTEST_MAIN RUN_SERIAL)

@@ -91,6 +91,10 @@ namespace opalx::spacecharge {
         [[nodiscard]] SolvePlan makeSolvePlan(std::size_t step) const;
         [[nodiscard]] static PassProperties passProperties(
                 PassKind pass, double planeZ, bool binned);
+        /** @brief Select the CM frame only for aligned, single-bin OPEN solves without images.
+         * Other configurations retain their existing representative-frame approximation. */
+        [[nodiscard]] FieldCompositionPolicy compositionForBin(
+                const ParticleBinType& unit, const SolvePlan& plan) const;
         void solveInBeamFrame(
                 const SpaceChargeSolveContext& context, const SolvePlan& plan,
                 SpaceChargeSolveResult& result);
@@ -102,10 +106,11 @@ namespace opalx::spacecharge {
                 SpaceChargeSolveResult& result);
         void solvePass(
                 const SpaceChargeSolveContext& context, const SolvePlan& plan,
-                const ParticleBinType* unit, PassKind pass, SpaceChargeSolveResult& result);
+                const ParticleBinType* unit, PassKind pass, SpaceChargeSolveResult& result,
+                const FieldCompositionPolicy* binFrame = nullptr);
         void depositChargeForBin(
                 const SpaceChargeSolveContext& context, const ParticleBinType& unit,
-                const PassProperties& pass);
+                const PassProperties& pass, double boostGamma);
         void dumpBinSnapshot(
                 const SpaceChargeSolveContext& context, const BinConfigurationSnapshot& snapshot,
                 bool beforeMerge) const;

@@ -23,13 +23,28 @@ namespace opalx::spacecharge {
      * @brief Lorentz-conversion settings for one backend-field contribution.
      *
      * Mean momentum uses beta-gamma units in Cartesian solve axes. @c magneticSign is independent
-     * of the field reflection selected by @c sourceRule.
+     * of the field reflection selected by @c sourceRule. A positive @c meanParticleGamma
+     * supplies the velocity denominator independently of the field/mesh boost @c gamma.
+     * Its zero default preserves the legacy momentum/gamma convention for other paths.
      */
     struct FieldCompositionPolicy final {
         std::array<double, 3> meanMomentum{};
         double gamma               = 1.0;
         double magneticSign        = 1.0;
         FieldSourceRule sourceRule = FieldSourceRule::Direct;
+        double meanParticleGamma   = 0.0;
+
+        /**
+         * @brief Frozen electrostatic centre-of-momentum frame for equal-weight particles.
+         * @param momentum Physical mean P/(mc) in solve axes.
+         * @param meanGamma Mean particle sqrt(1+|P/(mc)|^2), not the bulk boost gamma.
+         * @return beta = momentum/meanGamma, gamma = meanGamma/sqrt(meanGamma^2-|momentum|^2).
+         * @note The caller must align its mesh stretch with the returned velocity. This does
+         * not model internal rest-frame currents or resynchronize moving warm particles.
+         * @throws OpalException for nonfinite or physically inconsistent moments.
+         */
+        [[nodiscard]] static FieldCompositionPolicy centreOfMomentum(
+                const std::array<double, 3>& momentum, double meanGamma);
     };
 
     static_assert(std::is_trivially_copyable_v<FieldCompositionPolicy>);

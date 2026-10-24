@@ -8,11 +8,41 @@
 #include "SpaceCharge/CartesianPIC3D/FieldMirror.hpp"
 #include "Utilities/OpalException.h"
 
+#include <algorithm>
+#include <cmath>
+#include <limits>
+
 namespace opalx::spacecharge {
+
+    FieldCompositionPolicy FieldCompositionPolicy::centreOfMomentum(
+            const std::array<double, 3>& momentum, double meanGamma) {
+        const double norm      = std::hypot(momentum[0], momentum[1], momentum[2]);
+        const double coldGamma = std::hypot(1.0, norm);
+        // A small negative energy gap can result from the existing parallel averages. Only
+        // admit their binary64 roundoff; do not clip the measured moments or invariant.
+        const double roundoff =
+                64.0 * std::numeric_limits<double>::epsilon() * std::max(meanGamma, coldGamma);
+        const double invariant = 1.0 + (meanGamma - coldGamma) * (meanGamma + coldGamma);
+        if (!std::isfinite(meanGamma) || !std::isfinite(norm) || meanGamma < 1.0
+            || meanGamma + roundoff < coldGamma || !std::isfinite(invariant) || invariant <= 0.0) {
+            throw OpalException(
+                    "FieldCompositionPolicy::centreOfMomentum",
+                    "The mean particle energy and momentum do not define a physical CM frame.");
+        }
+        FieldCompositionPolicy result;
+        result.meanMomentum = momentum;
+        // Equivalent to G/sqrt(D), using G^2 = D + |mean(p)|^2. This keeps gamma >= 1
+        // for stationary and nearly stationary warm bunches without clipping moments.
+        result.gamma             = std::hypot(1.0, norm / std::sqrt(invariant));
+        result.meanParticleGamma = meanGamma;
+        return result;
+    }
 
     LorentzBoost LorentzBoost::from(const FieldCompositionPolicy& policy) {
         LorentzBoost boost;
-        const double invGamma = (policy.gamma > 0.0) ? (1.0 / policy.gamma) : 0.0;
+        const double velocityGamma =
+                policy.meanParticleGamma > 0.0 ? policy.meanParticleGamma : policy.gamma;
+        const double invGamma = (velocityGamma > 0.0) ? (1.0 / velocityGamma) : 0.0;
         Vector meanMomentum(0.0);
         for (unsigned dimension = 0; dimension < 3; ++dimension) {
             meanMomentum[dimension] = policy.meanMomentum[dimension];

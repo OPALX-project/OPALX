@@ -10,6 +10,7 @@
 #include "Utilities/OpalException.h"
 
 #include <algorithm>
+#include <cmath>
 #include <iomanip>
 #include <optional>
 #include <string>
@@ -127,6 +128,23 @@ namespace opalx::spacecharge {
                         .label        = "shifted-green"};
         }
         throw OpalException("CartesianPIC3DAlgorithm::passProperties", "Unknown solve pass.");
+    }
+
+    FieldCompositionPolicy CartesianPIC3DAlgorithm::compositionForBin(
+            const ParticleBinType& unit, const SolvePlan& plan) const {
+        if (config_m.backend != PoissonSolverType::Open || config_m.binning->maximumBins != 1
+            || plan.activeDirichletPlane.enabled()) {
+            return {.meanMomentum = unit.meanMomentum, .gamma = unit.gamma};
+        }
+        const auto& p = unit.meanMomentum;
+        // The tracker aligns the whole-bunch mean with solve z. Its quaternion has a 1e-12
+        // angular identity threshold; allow twice that residual, not a physical bin tilt.
+        if (std::hypot(p[0], p[1]) > 2.0e-12 * std::max(1.0, std::abs(p[2]))) {
+            throw OpalException(
+                    "CartesianPIC3DAlgorithm::compositionForBin",
+                    "Single-bin OPEN CM space charge requires the mean momentum along solve z.");
+        }
+        return FieldCompositionPolicy::centreOfMomentum(p, unit.gamma);
     }
 
     SpaceChargeSolveResult CartesianPIC3DAlgorithm::solve(const SpaceChargeSolveContext& context) {
@@ -286,14 +304,20 @@ namespace opalx::spacecharge {
         std::optional<FieldCompositionPolicy> particleRestFrame;
         while (const std::optional<ParticleBinType> unit =
                        particleBinTraversal_m->nextNonemptyBin()) {
+            const auto frame = compositionForBin(*unit, plan);
+            if (step == 0 && frame.meanParticleGamma > 0.0) {
+                m << level2 << "Single-bin OPEN bulk frame: centre of momentum, mean gamma="
+                  << frame.meanParticleGamma << ", boost gamma=" << frame.gamma << endl;
+            }
             m << level4 << "binIndex=" << static_cast<int>(unit->ordinal)
               << " nPartGlobal=" << static_cast<unsigned long long>(unit->globalParticleCount)
-              << " gammaBin=" << std::setprecision(10) << unit->gamma << endl;
+              << " gammaBin=" << std::setprecision(10) << frame.gamma
+              << " meanParticleGamma=" << unit->gamma << endl;
             binStats_m.push_back(
                     BinStatsRow{
                             static_cast<long long>(unit->ordinal),
                             static_cast<unsigned long long>(unit->globalParticleCount),
-                            unit->gamma});
+                            frame.gamma});
 
             if (shortRangeInteraction_m.has_value()) {
                 if (particleRestFrame.has_value()) {
@@ -301,12 +325,11 @@ namespace opalx::spacecharge {
                             "CartesianPIC3DAlgorithm::solveBinned",
                             "The P3M short-range correction supports a single bin only.");
                 }
-                particleRestFrame = FieldCompositionPolicy{
-                        .meanMomentum = unit->meanMomentum, .gamma = unit->gamma};
+                particleRestFrame = frame;
             }
 
             for (std::size_t index = 0; index < plan.passCount; ++index) {
-                solvePass(context, plan, &*unit, plan.passes[index], result);
+                solvePass(context, plan, &*unit, plan.passes[index], result, &frame);
             }
         }
 
@@ -328,9 +351,13 @@ namespace opalx::spacecharge {
 
     void CartesianPIC3DAlgorithm::solvePass(
             const SpaceChargeSolveContext& context, const SolvePlan& plan,
-            const ParticleBinType* unit, PassKind pass, SpaceChargeSolveResult& result) {
+            const ParticleBinType* unit, PassKind pass, SpaceChargeSolveResult& result,
+            const FieldCompositionPolicy* binFrame) {
         const double planeZ         = plan.activeDirichletPlane.planeZ;
         const PassProperties policy = passProperties(pass, planeZ, unit != nullptr);
+        FieldCompositionPolicy compositionPolicy =
+                binFrame == nullptr ? FieldCompositionPolicy{} : *binFrame;
+        const double gamma = compositionPolicy.gamma;
 
         const auto& capabilities = poissonSolver_m->capabilities();
         if (unit == nullptr) {
@@ -347,14 +374,13 @@ namespace opalx::spacecharge {
                     ParticleMeshTransfer::Selection::direct(0, primary_m->getLocalNum()),
                     normalization, policy.imagePolicy);
         } else {
-            depositChargeForBin(context, *unit, policy);
+            depositChargeForBin(context, *unit, policy, gamma);
         }
 
         fieldStorage_m->electricField() = 0.0;
         auto& mesh                      = fieldStorage_m->mesh();
         const auto originalSpacing      = mesh.getMeshSpacing();
         auto stretchedSpacing           = originalSpacing;
-        const double gamma              = unit == nullptr ? 1.0 : unit->gamma;
 
         // Stretch z by gamma for the bin-rest-frame solve, following the legacy convention.
         stretchedSpacing[2] *= gamma;
@@ -429,11 +455,6 @@ namespace opalx::spacecharge {
             relativisticFieldComposer_m.gatherElectrostatic(
                     particleMeshTransfer_m, primary_m->E, primary_m->R, *fieldStorage_m);
         } else {
-            RelativisticFieldComposerType::Policy compositionPolicy;
-            if (unit != nullptr) {
-                compositionPolicy.meanMomentum = unit->meanMomentum;
-                compositionPolicy.gamma        = unit->gamma;
-            }
             compositionPolicy.magneticSign = policy.magneticSign;
             compositionPolicy.sourceRule   = policy.sourceRule;
 
@@ -449,7 +470,7 @@ namespace opalx::spacecharge {
 
     void CartesianPIC3DAlgorithm::depositChargeForBin(
             const SpaceChargeSolveContext& context, const ParticleBinType& unit,
-            const PassProperties& pass) {
+            const PassProperties& pass, double boostGamma) {
         Inform m("CartesianPIC3DAlgorithm::depositChargeForBin");
         const auto& indexedSelection = unit.indexedSelection;
         const auto& selectionPolicy  = indexedSelection.policy();
@@ -486,7 +507,7 @@ namespace opalx::spacecharge {
         const auto& capabilities = poissonSolver_m->capabilities();
         ParticleMeshTransfer::ChargeNormalization normalization;
         normalization.timeStep = context.stepState().timeStep;
-        normalization.gamma    = unit.gamma;
+        normalization.gamma    = boostGamma;
         normalization.selectedCharge =
                 primary_m->getChargePerParticle() * static_cast<double>(unit.globalParticleCount);
         normalization.couplingConstant               = poissonSolver_m->couplingConstant();
