@@ -27,9 +27,9 @@
 #include "Attributes/Attributes.h"
 #include "BasicActions/Call.h"
 #include "BasicActions/Option.h"
-#include "OpalParser/MacroCmd.h"
 #include "OpalParser/CompoundStatement.h"
 #include "OpalParser/IfStatement.h"
+#include "OpalParser/MacroCmd.h"
 #include "OpalParser/WhileStatement.h"
 #include "Track/TrackCmd.h"
 
@@ -564,7 +564,8 @@ Statement* OpalParser::readStatement(TokenStream* is) const {
                 }
             }
             if (Options::parseOnly && token.isEOF())
-                throw ParseError("OpalParser::readStatement", "Statement is not terminated by ';'.");
+                throw ParseError(
+                        "OpalParser::readStatement", "Statement is not terminated by ';'.");
             stat->start();
         } else if (token.isDel(';')) {
             // Skip empty statement.
