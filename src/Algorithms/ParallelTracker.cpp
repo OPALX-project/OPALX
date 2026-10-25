@@ -710,15 +710,39 @@ void ParallelTracker::execute() {
 
             // Localize the reference terminal event before the PIC predictor and
             // gather, so every particle and self-field uses the accepted duration.
-            if (kineticEnergyStop_m > 0 && hasCyclotronGaps()
-                && !(bareTracking_m && ippl::Comm->size() == 1
-                     && itsBunch_m->getTotalNumAllContainers() == 1)) {
-                const auto pc       = particleContainers.front();
-                pendingReferenceR_m = pc->getRefPartR();
-                pendingReferenceP_m = pc->getRefPartP();
-                const double actual = advanceCyclotronGaps(
-                        pendingReferenceR_m, pendingReferenceP_m, itsBunch_m->getT(),
-                        itsBunch_m->getdT(), pc->getReference()->getM(), true);
+            if (kineticEnergyStop_m > 0 && hasCyclotronGaps()) {
+                const auto pc = particleContainers.front();
+                // Trial only on root, then publish success/failure before any
+                // rank enters PIC or particle collectives. A failed trial must
+                // flush previously accepted probe endpoints on every rank.
+                const double actual = track_reference::collectiveTerminalStep(
+                        ippl::Comm->getCommunicator(),
+                        [&] {
+                            pendingReferenceR_m = pc->getRefPartR();
+                            pendingReferenceP_m = pc->getRefPartP();
+                            return advanceCyclotronGaps(
+                                    pendingReferenceR_m, pendingReferenceP_m, itsBunch_m->getT(),
+                                    itsBunch_m->getdT(), pc->getReference()->getM(), true);
+                        },
+                        [&] {
+                            if (cyclotronRecorder) cyclotronRecorder->save();
+                        });
+                // All ranks use the same outgoing reference state, terminal
+                // decision and duration, including the one-particle host path.
+                double reference[7]{};
+                if (ippl::Comm->rank() == 0) {
+                    for (unsigned d = 0; d < 3; ++d) {
+                        reference[d]     = pendingReferenceR_m(d);
+                        reference[3 + d] = pendingReferenceP_m(d);
+                    }
+                    reference[6] = energyTargetReached_m ? 1. : 0.;
+                }
+                MPI_Bcast(reference, 7, MPI_DOUBLE, 0, ippl::Comm->getCommunicator());
+                for (unsigned d = 0; d < 3; ++d) {
+                    pendingReferenceR_m(d) = reference[d];
+                    pendingReferenceP_m(d) = reference[3 + d];
+                }
+                energyTargetReached_m    = reference[6] != 0;
                 pendingEnergyReference_m = true;
                 if (actual < itsBunch_m->getdT()) {
                     terminalStepDt_m = actual;
@@ -1091,7 +1115,7 @@ bool ParallelTracker::hasCyclotronGaps() {
 
 double ParallelTracker::advanceCyclotronGaps(
         Vector_t<double, 3>& r, Vector_t<double, 3>& p, double t, double dt, double mass,
-        bool report) {
+        bool report, bool terminalEndpoint, unsigned long long frameSteps) {
     const auto all = itsOpalBeamline_m.getElements();
     std::vector<std::shared_ptr<ElementBase>> gaps;
     for (const auto& element : all) {
@@ -1161,20 +1185,27 @@ double ParallelTracker::advanceCyclotronGaps(
             *gmsg << level2 << "Cyclotron gap " << gaps[j]->getName() << " t=" << time
                   << " s K=" << (std::sqrt(1 + dot(momentum, momentum)) - 1) * mass * 1e-6 << " MeV"
                   << endl;
-        if (kineticEnergyStop_m > 0
+        // Only the reference owns EKINSTOP. An off-reference physical particle
+        // may exceed the target earlier and must still finish the common step,
+        // exactly like particles transported by the device EventPolicy.
+        if (report && kineticEnergyStop_m > 0
             && (std::sqrt(1 + dot(momentum, momentum)) - 1) * mass >= kineticEnergyStop_m) {
-            if (report) {
-                energyTargetReached_m = true;
-                *gmsg << level1 << "EKINSTOP reached after complete gap kick " << gaps[j]->getName()
-                      << " at t=" << time
-                      << " s; K=" << (std::sqrt(1 + dot(momentum, momentum)) - 1) * mass * 1e-6
-                      << " MeV" << endl;
-            }
+            energyTargetReached_m = true;
+            *gmsg << level1 << "EKINSTOP reached after complete gap kick " << gaps[j]->getName()
+                  << " at t=" << time
+                  << " s; K=" << (std::sqrt(1 + dot(momentum, momentum)) - 1) * mass * 1e-6
+                  << " MeV" << endl;
             return true;
         }
         return false;
     };
-    return rf_event::advance(r, p, t, dt, mass, policy).duration;
+    const auto result =
+            rf_event::advance(r, p, t, dt, mass, policy, nullptr, terminalEndpoint, frameSteps);
+    if (!result.success)
+        throw OpalException(
+                "ParallelTracker",
+                "Invalid SINGLEGAP event step or terminal roundoff accumulation.");
+    return result.duration;
 }
 
 /**
@@ -1217,9 +1248,8 @@ void ParallelTracker::timeIntegration1(BorisPusher& pusher) {
  * @copybrief ParallelTracker::timeIntegration2
  */
 void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
-    // Preserve the established single-particle event endpoint convention. At an
-    // RF impulse a sub-ulp arrival difference can otherwise place the particle
-    // on the opposite side of the reference's terminal discontinuity.
+    // Retain host transport for a bare single particle. EKINSTOP duration and
+    // the inclusive terminal RF endpoint are shared with the device bunch path.
     if (hasCyclotronGaps() && bareTracking_m && ippl::Comm->size() == 1
         && itsBunch_m->getNumParticleContainers() == 1
         && itsBunch_m->getTotalNumAllContainers() == 1) {
@@ -1241,27 +1271,13 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
         const auto& toLab            = pc->getToLabTrafo();
         Vector_t<double, 3> position = toLab.transformTo(r(0)), momentum = toLab.rotateTo(p(0));
         const double requestedDt = itsBunch_m->getdT();
-        double actualDt          = requestedDt;
-        if (kineticEnergyStop_m > 0) {
-            // Establish the reference's stopping time before incrementT(). Keep
-            // the ordinary post-step frame update, publishing this pending state
-            // there. The physical particle is advanced independently below.
-            pendingReferenceR_m = pc->getRefPartR();
-            pendingReferenceP_m = pc->getRefPartP();
-            actualDt            = advanceCyclotronGaps(
-                    pendingReferenceR_m, pendingReferenceP_m, itsBunch_m->getT(), requestedDt,
-                    pc->getReference()->getM(), true);
-            pendingEnergyReference_m = true;
-        }
+        // The preliminary reference trial has already selected the common
+        // duration. Include its terminal endpoint even if a coordinate round trip
+        // places this otherwise coincident particle a few ulps before the plane.
         advanceCyclotronGaps(
-                position, momentum, itsBunch_m->getT(), itsBunch_m->getdT(),
-                pc->getReference()->getM(), false);
-        if (energyTargetReached_m) {
-            // Only the terminal step changes dt; subsequent steps are disabled
-            // after writing diagnostics. No fractional RF impulse is introduced.
-            itsBunch_m->setdT(actualDt);
-            pc->dt = actualDt;
-        }
+                position, momentum, itsBunch_m->getT(), requestedDt, pc->getReference()->getM(),
+                false, energyTargetReached_m,
+                static_cast<unsigned long long>(itsBunch_m->getGlobalTrackStep()) + 1);
         r(0) = toLab.transformFrom(position);
         p(0) = toLab.rotateFrom(momentum);
         Kokkos::deep_copy(pc->R.getView(), r);
@@ -1320,7 +1336,12 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
                    b = pc->B.getView();
         const device_external::Rigid frame{toLab.getOrigin(), toLab.getRotationMatrix()};
         const double time = itsBunch_m->getT(), mass = pc->getReference()->getM();
-        const bool charged = !bareTracking_m;
+        const bool charged          = !bareTracking_m;
+        const bool terminalEndpoint = energyTargetReached_m;
+        // The common clock includes every accepted reference-frame composition;
+        // accumulation depends on their count, not on the timestep duration.
+        const auto frameSteps =
+                static_cast<unsigned long long>(itsBunch_m->getGlobalTrackStep()) + 1;
         const bool predicted =
                 charged && spaceChargeFieldUpdate_m == SpaceChargeFieldUpdate::MIDPOINT;
         Kokkos::View<rf_event::Diagnostic*> diagnostics("cyclotron_failures", pc->getLocalNum());
@@ -1339,10 +1360,10 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
                     const bool ok  = charged ? lattice.advanceWithSelfFields(
                                                       position, momentum, frame.vectorTo(e(i)),
                                                       frame.vectorTo(b(i)), time, actualDt, mass,
-                                                      &diagnostic)
+                                                      &diagnostic, terminalEndpoint, frameSteps)
                                              : lattice.advance(
                                                       position, momentum, time, actualDt, mass,
-                                                      &diagnostic);
+                                                      &diagnostic, terminalEndpoint, frameSteps);
                     diagnostics(i) = diagnostic;
                     if (!ok) {
                         ++failed;

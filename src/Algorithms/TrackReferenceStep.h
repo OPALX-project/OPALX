@@ -3,6 +3,7 @@
 #define OPALX_TRACK_REFERENCE_STEP_H
 
 #include <mpi.h>
+#include <Kokkos_NumericTraits.hpp>
 #include <algorithm>
 #include <cmath>
 #include <functional>
@@ -49,11 +50,38 @@ namespace rf_event {
      * modify r/p before a later failure. Policies must keep trial transport free
      * of irreversible side effects. The algorithm owns no allocations or
      * collectives; host policies may allocate their visited storage.
+     *
+     * terminalEndpoint opts into a right-closed final RF event after the reference
+     * has met EKINSTOP. Independent host/device/frame arithmetic can leave a
+     * coincident particle just before that plane. Only a clearly upstream,
+     * approaching particle whose final signed distance is within 64*N*epsilon*L
+     * receives the full endpoint kick. Here N=max(1,frameSteps) counts accepted
+     * frame updates including this final step, and L=max(1 m, |r_d|, |endR_d|)
+     * over laboratory components d. Each step performs drift, rigid-frame round
+     * trips and plane subtraction; the factor 64 conservatively budgets their
+     * accumulated arithmetic error to first order, assuming 64*N*epsilon << 1
+     * (a nonfinite factor or factor >=1 is rejected). Arrivals within this
+     * allowance are numerically unresolved and receive a complete kick by the
+     * terminal convention; this can include a physically later particle within
+     * the allowance. Crossings beyond the allowance are excluded.
+     * This allowance describes numerical endpoint resolution, not magnetic/PIC
+     * discretization error or a bound on integration accuracy. It grows with the
+     * number of frame updates even if dt shrinks. Ordinary steps keep strict
+     * crossing signs. The caller must stop after this terminal step; no position
+     * projection, extra drift, fractional impulse or persistent visit state is used.
      */
     template <class Policy>
     KOKKOS_INLINE_FUNCTION Result
     advance(Vector& r, Vector& p, double time, double dt, double mass, Policy& policy,
-            Diagnostic* diagnostic = nullptr) {
+            Diagnostic* diagnostic = nullptr, bool terminalEndpoint = false,
+            unsigned long long frameSteps = 1) {
+        const double accumulatedRoundoff =
+                64 * Kokkos::epsilon_v<double> * static_cast<double>(frameSteps ? frameSteps : 1);
+        if (terminalEndpoint
+            && (!Kokkos::isfinite(accumulatedRoundoff) || !(accumulatedRoundoff < 1))) {
+            if (diagnostic) diagnostic->set(Failure::InvalidStep, r, p, time);
+            return {false, 0};
+        }
         double remaining = dt;
         while (remaining > 0) {
             Vector endR = r, endP = p;
@@ -65,9 +93,22 @@ namespace rf_event {
             int selected    = -1;
             for (size_t j = 0; j < policy.count(); ++j) {
                 if (policy.visited(j)) continue;
-                if (!(policy.distance(j, r) < 0) || policy.distance(j, endR) < 0) continue;
+                const double startDistance = policy.distance(j, r);
+                const double endDistance   = policy.distance(j, endR);
+                double scale               = 1.;
+                if (terminalEndpoint)
+                    for (unsigned d = 0; d < 3; ++d)
+                        scale = Kokkos::fmax(
+                                scale, Kokkos::fmax(Kokkos::abs(r(d)), Kokkos::abs(endR(d))));
+                const double roundoff      = terminalEndpoint ? accumulatedRoundoff * scale : 0;
+                const bool roundedEndpoint = terminalEndpoint && startDistance < -roundoff
+                                             && endDistance < 0 && endDistance >= -roundoff
+                                             && endDistance > startDistance;
+                if (!(startDistance < 0) || (endDistance < 0 && !roundedEndpoint)) continue;
                 double low = 0, high = remaining;
-                for (int iteration = 0; iteration < 40; ++iteration) {
+                // A roundoff-short endpoint is accepted at the common final time;
+                // a real bracket retains the existing forty-iteration localization.
+                for (int iteration = 0; iteration < (roundedEndpoint ? 0 : 40); ++iteration) {
                     const double mid = 0.5 * (low + high);
                     Vector trialR = r, trialP = p;
                     if (!policy.magnetic(trialR, trialP, mid, time, mass)) {
@@ -219,8 +260,16 @@ namespace track_reference {
 
     /** Run a side-effect-free event search on rank zero and broadcast its duration
      * or diagnostic before any particle kernels/collectives execute. All ranks
-     * must call together; failures become OpalException on every rank.
+     * must call together; failures become OpalException on every rank. If given,
+     * onFailure runs on every rank after the diagnostic broadcast and before
+     * throwing. This allows collective flushing of already accepted probe hits
+     * when a terminal reference trial fails, without recording trial states.
      */
     double collectiveTerminalStep(MPI_Comm, const std::function<double()>& search);
+
+    /// Internal overload for collective accepted-output cleanup after a failed trial.
+    double collectiveTerminalStep(
+            MPI_Comm, const std::function<double()>& search,
+            const std::function<void()>& onFailure);
 }  // namespace track_reference
 #endif
