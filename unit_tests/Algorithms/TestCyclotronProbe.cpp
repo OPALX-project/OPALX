@@ -328,6 +328,47 @@ TEST_F(CyclotronProbeTest, AsciiEmptyRanksMigrationFramesAndTurnGroups) {
     }
 }
 
+TEST_F(CyclotronProbeTest, CapacityGrowthPreservesArmedHistoryAndNewParticleIds) {
+    Options::asciidump = false;
+    const auto c       = config("growth");
+    auto pc            = container();
+    position(pc, -1, 1);
+    const auto ids = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->ID.getView());
+    std::int64_t expectedId = ippl::Comm->rank() == 0 ? ids(0) : 0;
+    MPI_Bcast(&expectedId, 1, MPI_INT64_T, 0, ippl::Comm->getCommunicator());
+    CyclotronProbeRecorder recorder({c});
+    recorder.initialize({pc});
+    recorder.observe(pc, 0, 0, 0);
+
+    // Grow registered history after arming a particle. Reallocation must keep
+    // its previous endpoint; new IDs must initialize without inventing a hit.
+    const auto oldCapacity = pc->R.size();
+    pc->createParticles(ippl::Comm->rank() == 0 ? oldCapacity + 1 : 0);
+    if (ippl::Comm->rank() == 0) EXPECT_GT(pc->R.size(), oldCapacity);
+    position(pc, 1, 1);
+    recorder.observe(pc, 2e-9, 0, 0);
+    recorder.save();
+
+    h5_prop_t props = H5CreateFileProp();
+    auto comm       = ippl::Comm->getCommunicator();
+    H5SetPropFileMPIOCollective(props, &comm);
+    auto file = H5OpenFile((c.output + ".h5").c_str(), H5_O_RDONLY, props);
+    H5CloseProp(props);
+    ASSERT_NE(file, static_cast<h5_file_t>(H5_ERR));
+    EXPECT_EQ(H5GetNumSteps(file), 1);
+    ASSERT_EQ(H5SetStep(file, 0), H5_SUCCESS);
+    // Read the global count before setting a one-particle view on every rank.
+    EXPECT_EQ(H5PartGetNumParticles(file), 1);
+    ASSERT_EQ(H5PartSetView(file, 0, 0), H5_SUCCESS);
+    h5_int64_t readId = -1;
+    EXPECT_EQ(H5PartReadDataInt64(file, "id", &readId), H5_SUCCESS);
+    EXPECT_EQ(readId, expectedId);
+    double time = 0;
+    EXPECT_EQ(H5PartReadDataFloat64(file, "time", &time), H5_SUCCESS);
+    EXPECT_NEAR(time, 1e-9, 1e-24);
+    H5CloseFile(file);
+}
+
 TEST_F(CyclotronProbeTest, CollectiveErrorsAndFreshOutputGuard) {
     Options::asciidump = true;
     auto c             = config("errors");

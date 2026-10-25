@@ -48,6 +48,10 @@
  *    - rewind physically compacts discarded steps
  *    - repeated rewind and append cycles do not grow the file
  *
+ * 9. Rank-local idle-sink cleanup (also run by TestLossDataSinkMPI)
+ *    - normal destruction and exception unwinding require no peer participation
+ *    - ASCII and HDF5-configured sinks that have not opened files are covered
+ *
  * ---------------------------------------------------------------------------
  * Notes
  * ---------------------------------------------------------------------------
@@ -243,6 +247,53 @@ namespace {
     private:
         bool oldComputePercentiles_m = false;
     };
+
+    TEST_F(LossDataSinkTest, EmptySinkDestructionIsRankLocal) {
+        const MPI_Comm comm = ippl::Comm->getCommunicator();
+        const int rank      = ippl::Comm->rank();
+        // Rank 1 waits for a message, not a collective. A destructor barrier
+        // would deadlock before rank 0 can send the completion token.
+        for (const bool hdf5 : {false, true}) {
+            int completed = 0;
+            if (rank == 0) {
+                {
+                    LossDataSink sink(hdf5 ? "test_idle_h5_sink" : "test_idle_ascii_sink", hdf5);
+                }
+                completed = 1;
+                if (ippl::Comm->size() > 1) {
+                    MPI_Send(&completed, 1, MPI_INT, 1, 817, comm);
+                }
+            } else if (rank == 1) {
+                MPI_Recv(&completed, 1, MPI_INT, 0, 817, comm, MPI_STATUS_IGNORE);
+            }
+            if (rank < 2) EXPECT_EQ(completed, 1);
+        }
+    }
+
+    TEST_F(LossDataSinkTest, EmptySinkUnwindingIsRankLocal) {
+        const MPI_Comm comm = ippl::Comm->getCommunicator();
+        const int rank      = ippl::Comm->rank();
+        for (const bool hdf5 : {false, true}) {
+            int caught = 0;
+            if (rank == 0) {
+                try {
+                    LossDataSink sink(
+                            hdf5 ? "test_unwind_h5_sink" : "test_unwind_ascii_sink", hdf5);
+                    throw std::runtime_error("rank-local probe failure");
+                } catch (const std::runtime_error& error) {
+                    caught = std::string(error.what()) == "rank-local probe failure";
+                }
+                if (ippl::Comm->size() > 1) {
+                    MPI_Send(&caught, 1, MPI_INT, 1, 818, comm);
+                }
+            } else if (rank == 1) {
+                // The peer must receive the original exception's completion
+                // token without entering a destructor or cleanup collective.
+                MPI_Recv(&caught, 1, MPI_INT, 0, 818, comm, MPI_STATUS_IGNORE);
+            }
+            if (rank < 2) EXPECT_EQ(caught, 1);
+        }
+    }
 
     TEST_F(LossDataSinkTest, AddParticleRejectsTurnInformationAfterPlainParticle) {
         LossDataSink sink;
