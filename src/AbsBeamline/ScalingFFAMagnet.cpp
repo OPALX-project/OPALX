@@ -55,7 +55,8 @@ ScalingFFAMagnet* ScalingFFAMagnet::clone() const {
 
 void ScalingFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     // Kernel launch over all particles
-    getFieldValue(config_m, efm_m, pc->R.getView(), pc->B.getView());
+    scaling_ffa_detail::FieldEvaluator::evaluate(
+            config_m, efm_m, pc->R.getView(), pc->B.getView(), true);
 }
 
 void ScalingFFAMagnet::getCylindricalCoordinates(
@@ -130,7 +131,9 @@ bool ScalingFFAMagnet::isInside(const Vector_t<double, 3>& rCart) const {
 void ScalingFFAMagnet::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
-    getFieldValue(R, B);
+    Vector_t<double, 3> contribution(0.);
+    getFieldValue(R, contribution);
+    B += contribution;
 }
 
 void ScalingFFAMagnet::calculateDfCoefficients() {

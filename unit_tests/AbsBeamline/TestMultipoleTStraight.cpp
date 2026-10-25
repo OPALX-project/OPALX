@@ -15,6 +15,7 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 
+#include <array>
 #include <vector>
 #include "AbsBeamline/MultipoleT.h"
 #include "AbstractObjects/OpalData.h"
@@ -629,4 +630,64 @@ TEST_F(TestMultipoleTStraight, ApplyToReferenceParticle2) {
     initialise(bunch.get());
     Vector_t<double, 3> E{}, B{};
     EXPECT_FALSE(applyToReferenceParticle(hostR(0), Vector_t<double, 3>{}, 0.0, E, B));
+}
+
+TEST_F(TestMultipoleTStraight, AnalyticFringeFieldsAgreeForParticlesAndReferenceOutsideTheBody) {
+    constexpr double length = .5, lambda = .05, gradient = 1.8046482322261885, x = .01;
+    constexpr std::array<double, 5> z = {-.2, 0., .25, .5, .7};
+    setBendAngle(0., false);
+    setElementLength(length);
+    setFringeField(length / 2, lambda, lambda);
+    setAperture(2., 2.);
+    ElementBase::setAperture(ApertureType::RECTANGULAR, {1., 1.});
+    setTransProfile({0., gradient});
+    setMaxOrder(5, 10);
+    setRotation(0.);
+    setEntranceAngle(0.);
+    const auto bunch = makeBunch(z.size());
+    const auto pc    = bunch->getParticleContainer();
+    auto positions   = Kokkos::create_mirror_view(pc->R.getView());
+    for (std::size_t i = 0; i < z.size(); ++i)
+        positions(i) = Vector_t<double, 3>(x, 0., z[i]);
+    Kokkos::deep_copy(pc->R.getView(), positions);
+    Kokkos::deep_copy(pc->B.getView(), Vector_t<double, 3>(0.));
+    Kokkos::deep_copy(pc->E.getView(), Vector_t<double, 3>(0.));
+    bunch->setT(0.);
+    initialise(bunch.get());
+    apply(pc);  // Actual particle-view kernel, including host/device data movement.
+    const auto fields = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->B.getView());
+
+    // At y=0, a pure quadrupole has Bx=Bz=0 and By=g*x*S(z), with g [T/m],
+    // x,z,L,lambda [m], and S(z)=[tanh(z/lambda)-tanh((z-L)/lambda)]/2.
+    // This independent analytic envelope checks absolute normalization and the
+    // nonzero tails outside [0,L], which a body-only support would truncate.
+    for (std::size_t i = 0; i < z.size(); ++i) {
+        const double envelope =
+                .5 * (std::tanh(z[i] / lambda) - std::tanh((z[i] - length) / lambda));
+        const Vector_t<double, 3> expected(0., gradient * x * envelope, 0.);
+        Vector_t<double, 3> scalarE(0.), scalarB(0.), referenceE(0.), referenceB(0.);
+        apply(positions(i), Vector_t<double, 3>(0., 0., 1.), 0., scalarE, scalarB);
+        EXPECT_TRUE(isInside(positions(i)));
+        EXPECT_FALSE(applyToReferenceParticle(
+                positions(i), Vector_t<double, 3>(0., 0., 1.), 0., referenceE, referenceB));
+        for (unsigned d = 0; d < 3; ++d) {
+            // 1e-14 T is below 6e-13 relative error at the 0.018 T peak;
+            // it separates arithmetic parity from the much larger fringe tail.
+            EXPECT_NEAR(fields(i)(d), expected(d), 1e-14) << "z=" << z[i] << ", component=" << d;
+            EXPECT_NEAR(scalarB(d), expected(d), 1e-14) << "z=" << z[i] << ", component=" << d;
+            EXPECT_NEAR(referenceB(d), expected(d), 1e-14) << "z=" << z[i] << ", component=" << d;
+            EXPECT_DOUBLE_EQ(scalarE(d), 0.);
+            EXPECT_DOUBLE_EQ(referenceE(d), 0.);
+        }
+    }
+    // Reference support is half-open and extends six fringe lengths past each
+    // pole face: [-0.3,0.8) m for these settings. Outside it the element is passive.
+    for (double outside : {-.31, .81}) {
+        Vector_t<double, 3> e(0.), b(0.);
+        const Vector_t<double, 3> position(x, 0., outside);
+        EXPECT_FALSE(isInside(position));
+        EXPECT_FALSE(applyToReferenceParticle(position, Vector_t<double, 3>(0., 0., 1.), 0., e, b));
+        for (unsigned d = 0; d < 3; ++d)
+            EXPECT_DOUBLE_EQ(b(d), 0.);
+    }
 }
