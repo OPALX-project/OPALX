@@ -43,6 +43,7 @@
 #include <cmath>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <map>
 #include <numeric>
 
@@ -309,23 +310,36 @@ void Distribution::setDistParametersGauss() {
      * In case of DistributionType::MATCHEDGAUSS we only need to set the cutoff parameters
      */
 
-    cutoffR_m = 3.;
-    cutoffP_m = 3.;
-    /*
-    cutoffP_m = ippl::Vector<double, 3>(Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFPX]),
-                         Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFPY]),
-                         Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFPZ]));
+    // Cutoffs in units of sigma. As in OPAL, the transverse cutoffs define an
+    // ellipse in (x, y) and in (px, py) while the longitudinal cutoffs are
+    // applied per axis (see Gaussian sampler).
+    cutoffP_m = ippl::Vector<double, 3>(
+            std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFPX])),
+            std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFPY])),
+            std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFPZ])));
 
+    cutoffR_m = ippl::Vector<double, 3>(
+            std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFX])),
+            std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFY])),
+            std::abs(Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFLONG])));
 
-    cutoffR_m = ippl::Vector<double, 3>(Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFX]),
-                         Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFY]),
-                         Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFLONG]));
-    */
-
-    // if (std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAR])) > 0.0) {
-    //     cutoffR_m[0] = Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFR]);
-    //     cutoffR_m[1] = Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFR]);
-    // }
+    // As in OPAL, a (numerically) zero cutoff means "no cut" for CUTOFFX, CUTOFFY,
+    // CUTOFFPX, CUTOFFPY and CUTOFFPZ. CUTOFFLONG is excluded: |z| <= 0 would reject
+    // every sample (OPAL loops forever in that case), so it must be positive.
+    constexpr double smallestCutoff = 1e-12;
+    for (unsigned d = 0; d < 3; ++d) {
+        if (d != 2 && cutoffR_m[d] < smallestCutoff) {
+            cutoffR_m[d] = std::numeric_limits<double>::max();
+        }
+        if (cutoffP_m[d] < smallestCutoff) {
+            cutoffP_m[d] = std::numeric_limits<double>::max();
+        }
+    }
+    if (cutoffR_m[2] < smallestCutoff) {
+        throw OpalException(
+                "Distribution::setDistParametersGauss",
+                "CUTOFFLONG must be greater than zero (a zero cutoff would reject all samples).");
+    }
 
     setSigmaR_m();
     setSigmaP_m();
@@ -448,6 +462,12 @@ void Distribution::printDistGauss(Inform& os) const {
     os << "* SIGMAPX    = " << sigmaP_m[0] << " [Beta Gamma]" << endl;
     os << "* SIGMAPY    = " << sigmaP_m[1] << " [Beta Gamma]" << endl;
     os << "* SIGMAPZ    = " << sigmaP_m[2] << " [Beta Gamma]" << endl;
+    os << "* CUTOFFX    = " << cutoffR_m[0] << " [units of SIGMAX]" << endl;
+    os << "* CUTOFFY    = " << cutoffR_m[1] << " [units of SIGMAY]" << endl;
+    os << "* CUTOFFLONG = " << cutoffR_m[2] << " [units of SIGMAZ]" << endl;
+    os << "* CUTOFFPX   = " << cutoffP_m[0] << " [units of SIGMAPX]" << endl;
+    os << "* CUTOFFPY   = " << cutoffP_m[1] << " [units of SIGMAPY]" << endl;
+    os << "* CUTOFFPZ   = " << cutoffP_m[2] << " [units of SIGMAPZ]" << endl;
 }
 
 void Distribution::printDistUniform(Inform& os) const {

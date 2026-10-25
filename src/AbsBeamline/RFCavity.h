@@ -30,9 +30,11 @@
 
 class Fieldmap;
 
-enum class CavityType : unsigned short { SW, SGSW };
+enum class CavityType : unsigned short { SW, SGSW, IDEAL };
 
 /** @brief RF physics shared by RFCavityRep: continuous fields or discrete gaps.
+ * IDEAL uses Ez [MV/m]=VOLT*cos(omega*t+LAG) on [0,L), with VOLT in MV/m,
+ * L in m and LAG in radians. It has no magnetic or fringe field.
  * STANDING uses the existing field-map apply() path. SINGLEGAP is configured by
  * OpalCavity through configureCyclotronGap(); it stores a shared radial voltage
  * profile and a value-type kick model. In that mode apply() deliberately adds no
@@ -51,6 +53,9 @@ public:
      */
     void configureCyclotronGap(
             const std::string& filename, double rmin, double rmax, const CyclotronRFKick& kick);
+    /// Uniform hard-edge longitudinal RF field, with VOLT in MV/m and cosine phase.
+    bool isIdeal() const { return type_m == CavityType::IDEAL; }
+    void validateIdeal() const;
     bool isCyclotronGap() const { return static_cast<bool>(cyclotronProfile_m); }
     /// Clear the discrete model before a parser reconfiguration to another type.
     void clearCyclotronGap() { cyclotronProfile_m.reset(); }
