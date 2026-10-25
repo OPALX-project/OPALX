@@ -584,3 +584,49 @@ TEST_F(TestMultipoleTStraight, FieldAtSingleParticlePosition) {
     EXPECT_EQ(E[1], 0.0);
     EXPECT_EQ(E[2], 0.0);
 }
+
+TEST_F(TestMultipoleTStraight, IsInside) { EXPECT_TRUE(isInside({0, 0, 0})); }
+
+TEST_F(TestMultipoleTStraight, ApplyToReferenceParticle1) {
+    // Make the bunch
+    const auto bunch = makeBunch(1);
+    const auto pc    = bunch->getParticleContainer();
+    // Create the local views and data
+    std::vector<Vector_t<double, 3>> localR(1);
+    const auto hostR = Kokkos::create_mirror_view(pc->R.getView());
+    const auto hostB = Kokkos::create_mirror_view(pc->B.getView());
+    // Set the particle position
+    localR[0] = {0, 0, 0};
+    hostR(0)  = curvilinearToGlobal(localR[0], {0, 0, 0}, 4.4);
+    Kokkos::deep_copy(pc->R.getView(), hostR);
+    pc->setQ(pc->getChargePerParticle());
+    ippl::Comm->barrier();
+    Kokkos::fence();
+    // Register the bunch with the element
+    bunch->setT(0.0);
+    initialise(bunch.get());
+    Vector_t<double, 3> E{}, B{};
+    EXPECT_FALSE(applyToReferenceParticle(hostR(0), Vector_t<double, 3>{}, 0.0, E, B));
+}
+
+TEST_F(TestMultipoleTStraight, ApplyToReferenceParticle2) {
+    // Make the bunch
+    const auto bunch = makeBunch(1);
+    const auto pc    = bunch->getParticleContainer();
+    // Create the local views and data
+    std::vector<Vector_t<double, 3>> localR(1);
+    const auto hostR = Kokkos::create_mirror_view(pc->R.getView());
+    const auto hostB = Kokkos::create_mirror_view(pc->B.getView());
+    // Set the particle position
+    localR[0] = {0, 0, 0};
+    hostR(0)  = curvilinearToGlobal(localR[0], {0, 0, 0}, 1);
+    Kokkos::deep_copy(pc->R.getView(), hostR);
+    pc->setQ(pc->getChargePerParticle());
+    ippl::Comm->barrier();
+    Kokkos::fence();
+    // Register the bunch with the element
+    bunch->setT(0.0);
+    initialise(bunch.get());
+    Vector_t<double, 3> E{}, B{};
+    EXPECT_FALSE(applyToReferenceParticle(hostR(0), Vector_t<double, 3>{}, 0.0, E, B));
+}
