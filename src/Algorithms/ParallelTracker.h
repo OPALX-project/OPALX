@@ -57,6 +57,7 @@
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
+#include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/SBend.h"
@@ -64,6 +65,7 @@
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/TravelingWave.h"
 #include "AbsBeamline/VariableRFCavity.h"
+#include "Algorithms/CyclotronProbeRecorder.h"
 #include "Beamlines/Beamline.h"
 #include "Distribution/SamplingBase.hpp"
 #include "Elements/OpalBeamline.h"
@@ -133,7 +135,13 @@ public:
         itsOpalBeamline_m.visit(sector, *this, *itsBunch_m);
     }
 
+    /// Register global diagnostics separately from field/placement elements.
+    void visitProbe(const Probe& probe) override {
+        cyclotronProbes_m.push_back(CyclotronProbeRecorder::configuration(probe));
+    }
+
 private:
+    std::vector<CyclotronProbeRecorder::Config> cyclotronProbes_m;
     friend class TrackRun;
     bool bareTracking_m =
             false;  ///< NONE backend; diagnostic eligibility is independent of retries.
@@ -143,6 +151,7 @@ private:
     std::vector<double> tuneInitial_m;
     SpectralTunes::Settings tuneSettings_m;
     bool hasCyclotronGaps();
+    std::optional<device_external::CyclotronLattice> cyclotronBunchLattice_m;
     /** Host-only event integration for the initial one-proton RF milestone.
      * R/P are in the tracking frame, t/dt in seconds. Splits Boris steps at
      * directed gap-plane roots and applies full kicks in time order. Field

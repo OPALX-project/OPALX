@@ -9,6 +9,7 @@ set (_SRCS
     ExternalFieldRayTracker.cpp
     DeviceExternalField.cpp
     PassiveRingProbe.cpp
+    CyclotronProbeRecorder.cpp
     OneTurnMap.cpp
     ClosedOrbitSolver.cpp
     LinearMapEigenAnalysis.cpp
@@ -40,6 +41,8 @@ set (HDRS
     ExternalFieldRayTracker.h
     DeviceExternalField.h
     PassiveProbe.h
+    CyclotronProbe.h
+    CyclotronProbeRecorder.h
     PassiveRingProbe.h
     OneTurnMap.h
     ClosedOrbitSolver.h

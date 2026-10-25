@@ -4,34 +4,6 @@
 #include "PartBunch/PartBunch.h"
 #include "Utilities/OpalException.h"
 
-namespace {
-    /** @brief Common scalar/device field formula in the sector entrance frame.
-     * grid contains F, dF/dr, dF/dtheta in SI units. Here dt is angular grid
-     * spacing [rad], not a time step, and p is a position [m], not momentum.
-     * Bounds are checked before interpolation. Contributions are added to b [T].
-     * The legacy (x,y,z)->(x,-z,y) rotation makes By positive for positive map F.
-     */
-    template <class V, class C>
-    KOKKOS_INLINE_FUNCTION void field(
-            const V& grid, const C& coils, double rmin, double dr, double dt, int nr, int nt,
-            double radius, double angle, double vmin, double vmax, double scale,
-            const Vector_t<double, 3>& p, Vector_t<double, 3>& b) {
-        const double x = p[0] + radius, z = p[2], r = Kokkos::sqrt(x * x + z * z);
-        const double theta = Kokkos::atan2(z, x);
-        if (theta < 0 || theta >= angle || r < rmin || r > rmin + (nr - 1) * dr || p[1] < vmin
-            || p[1] > vmax)
-            return;
-        const double u = (r - rmin) / dr, v = theta / dt;
-        double by = scale * CyclotronSectorFieldMap::interpolate(grid, 0, u, v, nr, nt);
-        double br = scale * p[1] * CyclotronSectorFieldMap::interpolate(grid, 1, u, v, nr, nt);
-        double bt = scale * p[1] / r * CyclotronSectorFieldMap::interpolate(grid, 2, u, v, nr, nt);
-        for (size_t i = 0; i < coils.extent(0); ++i)
-            coils(i).add(r, p[1], br, by);
-        b[0] += br * x / r - bt * z / r;
-        b[1] += by;
-        b[2] += br * z / r + bt * x / r;
-    }
-}  // namespace
 void CyclotronSector::configure(
         std::shared_ptr<const CyclotronSectorFieldMap> input, int symmetry, double low, double high,
         double factor, const std::vector<CyclotronTrimCoil>& models) {
@@ -84,8 +56,9 @@ BoundingBox CyclotronSector::getBoundingBoxInLabCoords() const {
 void CyclotronSector::apply(
         const Vector_t<double, 3>& r, const Vector_t<double, 3>&, const double&,
         Vector_t<double, 3>&, Vector_t<double, 3>& b) {
-    field(map->host, hostCoils, map->rmin, map->dr, map->dtheta, map->nr, map->nt, radius, angle,
-          vmin, vmax, scale, r, b);
+    cyclotron_field::field(
+            map->host, hostCoils, map->rmin, map->dr, map->dtheta, map->nr, map->nt, radius, angle,
+            vmin, vmax, scale, r, b);
 }
 void CyclotronSector::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     const auto grid = map->data;
@@ -96,6 +69,7 @@ void CyclotronSector::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     const int nr = map->nr, nt = map->nt;
     Kokkos::parallel_for(
             "CyclotronSector::apply", pc->getLocalNum(), KOKKOS_LAMBDA(size_t i) {
-                field(grid, trim, rmin, dr, dt, nr, nt, rm, a, lo, hi, f, r(i), b(i));
+                cyclotron_field::field(
+                        grid, trim, rmin, dr, dt, nr, nt, rm, a, lo, hi, f, r(i), b(i));
             });
 }

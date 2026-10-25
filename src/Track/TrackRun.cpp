@@ -640,20 +640,6 @@ void TrackRun::execute() {
     */
     Track::block->use->prepareForTracking();
 
-    // Solver configuration now belongs to RUN, not PartBunch. Preserve the
-    // SINGLEGAP restriction here, including gaps inside nested beamlines.
-    if (fs_m->getType() != "NONE") {
-        struct GapValidator : DefaultVisitor {
-            using DefaultVisitor::DefaultVisitor;
-            void visitRFCavity(const RFCavity& cavity) override {
-                if (cavity.isCyclotronGap())
-                    throw OpalException(
-                            "TrackRun::execute", "SINGLEGAP requires TYPE=NONE field solver.");
-            }
-        } validator(*Track::block->use->fetchLine(), false, false);
-        validator.execute();
-    }
-
     auto maxSteps = Track::block->localTimeSteps;
     auto sStop    = Track::block->zstop;
     const bool isRing =
