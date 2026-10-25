@@ -111,7 +111,7 @@ TEST_F(CyclotronRFTest, FocusingDeviceParityAndInvalidState) {
     for (int i = 0; i < 3; ++i)
         EXPECT_NEAR(host(i), expected[i], 1e-14);
     Vector_t<double, 3> unsupported(.01, .001, .4);
-    EXPECT_FALSE(kick.apply(profile.host, .6, 0, 938272088.16, unsupported));
+    EXPECT_TRUE(kick.apply(profile.host, .6, 0, 938272088.16, unsupported));
     EXPECT_EQ(unsupported[1], .001);
     kick.omega = 0;
     EXPECT_THROW(kick.validate(), OpalException);

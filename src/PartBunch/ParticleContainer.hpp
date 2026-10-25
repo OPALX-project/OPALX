@@ -17,6 +17,7 @@
 #include "PartBunch/ParticleContainerTypes.h"
 
 #include "Algorithms/CoordinateSystemTrafo.h"
+#include "Algorithms/CyclotronProbe.h"
 #include "Algorithms/DistributionMoments.h"
 #include "Algorithms/PartData.h"
 #include "Algorithms/Quaternion.hpp"
@@ -179,6 +180,25 @@ public:
     /// (enabled per beam when the BEAM has POLARIZATION set).
     bool hasSpin() const { return spinEnabled_m; }
 
+    /** Optional diagnostic storage; IPPL migrates and sorts it with R/P/ID.
+     * Histories remain in laboratory coordinates when the tracking frame changes.
+     * Reused/new particle slots are recognized by their stable ID in update().
+     */
+    ParticleAttrib<cyclotron_probe::State>& probeHistory(std::size_t index) {
+        while (probeHistories_m.size() <= index) {
+            auto attribute = std::make_unique<ParticleAttrib<cyclotron_probe::State>>();
+            this->addAttribute(*attribute);
+            attribute->resize(this->R.size());
+            Kokkos::deep_copy(attribute->getView(), cyclotron_probe::State{});
+            probeHistories_m.push_back(std::move(attribute));
+        }
+        return *probeHistories_m[index];
+    }
+
+private:
+    std::vector<std::unique_ptr<ParticleAttrib<cyclotron_probe::State>>> probeHistories_m;
+
+public:
     ParticleContainer(
             Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL, bool spinEnabled = false,
             LayoutType layoutType = LayoutType::Spatial, T overlapCutoff = 0.0,
