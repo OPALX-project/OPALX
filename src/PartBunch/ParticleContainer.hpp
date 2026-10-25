@@ -847,6 +847,15 @@ public:
                     eView(idx)          = Vector_t<double, Dim>(0.0);
                     bView(idx)          = Vector_t<double, Dim>(0.0);
                 });
+        // A reused slot still holds the spin of a deleted particle. Pol exists only with spin.
+        if (spinEnabled_m) {
+            auto polView = Pol.getView();
+            Kokkos::parallel_for(
+                    "ParticleContainer::createParticles::resetPol", numParticles,
+                    KOKKOS_LAMBDA(const size_type i) {
+                        polView(oldLocalNum + i) = spin_vector_type(0.0);
+                    });
+        }
         Kokkos::fence();
 
         // Pretty print numParticles, newCapacity and new totalNum + localNum after creation
