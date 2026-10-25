@@ -25,6 +25,12 @@ protected:
     static void TearDownTestSuite() { ippl::finalize(); }
 
     void SetUp() override {
+        pc           = makeContainer(false);
+        tempFilename = "emittedfromfile_test_input.dat";
+    }
+
+    /// Container on the test mesh; @p spin turns on the per-particle polarization Pol.
+    std::shared_ptr<ParticleContainer<double, 3>> makeContainer(bool spin) {
         nr                             = 8;
         ippl::Vector<double, 3> rmin   = -1.0;
         ippl::Vector<double, 3> rmax   = 1.0;
@@ -40,10 +46,10 @@ protected:
         Mesh_t<3> mesh(domain, hr, origin);
         FieldLayout_t<3> fl(MPI_COMM_WORLD, domain, decomp, isAllPeriodic_m);
 
-        pc                = std::make_shared<ParticleContainer<double, 3>>(mesh, fl);
+        auto container    = std::make_shared<ParticleContainer<double, 3>>(mesh, fl, spin);
         bunchStateHandler = std::make_shared<BunchStateHandler>();
-        pc->setBunchStateHandler(bunchStateHandler);
-        tempFilename = "emittedfromfile_test_input.dat";
+        container->setBunchStateHandler(bunchStateHandler);
+        return container;
     }
 
     void TearDown() override {
@@ -190,6 +196,30 @@ TEST_F(EmittedFromFileTest, EmitsSortedRecordsWithFractionalDtAndHalfStepDrift) 
 
     sampler.emitParticles(tStart + 2.0e-12, 1.0e-12);
     EXPECT_EQ(globalParticleCount(), static_cast<size_t>(3));
+}
+
+TEST_F(EmittedFromFileTest, EmittedParticlesGetBeamPolarization) {
+    pc = makeContainer(/*spin=*/true);
+    writeCountHeaderDump();
+    allocate(4);
+
+    EmittedFromFile sampler(pc, tempFilename);
+    sampler.setEmissionOffsets(Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0), 0.0, "NONE");
+    sampler.setInitialPolarization({0.0, 0.0, 1.0});
+
+    size_t requested = 0;
+    sampler.generateParticles(requested, nr);
+    const double tStart = -sampler.getGlobalTimeShift();
+    sampler.emitParticles(tStart, 1.0e-12);
+    sampler.emitParticles(tStart + 1.0e-12, 1.0e-12);
+    ASSERT_EQ(globalParticleCount(), static_cast<size_t>(3));
+
+    auto pol = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->Pol.getView());
+    for (size_t i = 0; i < pc->getLocalNum(); ++i) {
+        EXPECT_DOUBLE_EQ(pol(i)[0], 0.0) << "particle " << i;
+        EXPECT_DOUBLE_EQ(pol(i)[1], 0.0) << "particle " << i;
+        EXPECT_DOUBLE_EQ(pol(i)[2], 1.0) << "particle " << i;
+    }
 }
 
 TEST_F(EmittedFromFileTest, HonorsRequestedParticleLimitBeforeSorting) {

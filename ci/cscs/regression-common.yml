@@ -189,11 +189,34 @@
         export GIT_SSH_COMMAND="ssh -i $KEY_FILE -o ConnectTimeout=10 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes -o BatchMode=yes"
         git config --global user.email "opalx-ci@cscs.ch"
         git config --global user.name "OPALX CI"
-        if timeout 120 git clone --progress --depth 1 --filter=blob:none --no-checkout --branch master git@gitea.psi.ch:AMAS/opal-live-doc.git opal-live-doc; then
+        # Publish from the persistent opal-live-doc checkout on /capstor when
+        # available: the per-attempt fetch+reset inside regenerate_and_commit
+        # performs the incremental update in place, and the whole cycle is
+        # serialized across concurrently publishing jobs via flock.  If the
+        # persistent checkout is missing, fall back to a fresh arch-specific
+        # sparse clone as before.
+        LIVE_DOC=/capstor/store/cscs/cscs/public/opal-live-doc
+        if [ -d "$LIVE_DOC/.git" ]; then
+          exec 9>"$LIVE_DOC.lock"
+          flock -x -w 900 9 || { echo "ERROR: opal-live-doc publish lock timed out"; exit 1; }
+          git -C "$LIVE_DOC" sparse-checkout disable
+          cd "$LIVE_DOC"
+          READY=yes
+        elif timeout 120 git clone --progress --depth 1 --filter=blob:none --no-checkout --branch master git@gitea.psi.ch:AMAS/opal-live-doc.git opal-live-doc; then
           cd opal-live-doc
-          git sparse-checkout init --cone
-          git sparse-checkout set docs/opalx-regression-test/
+          # Fallback fresh clone: the full results tree is >170k files
+          # (~6 GiB), so materialize only this architecture's subtree plus
+          # the small overview index tree the overview rebuild needs.
+          git sparse-checkout set --no-cone \
+            "/docs/opalx-regression-test/overview/" \
+            "**/$BUILD_ARCH/"
           git checkout --progress
+          READY=yes
+        else
+          echo "WARNING: clone of opal-live-doc failed (exit $?), cannot push regression results"
+          echo "Hint: if the pre-flight check or ssh-keyscan above reported errors, SSH access to gitea.psi.ch is blocked from the compute node"
+        fi
+        if [ "$READY" = yes ]; then
            # Helper that (re)creates the commit for this architecture on top of
           # the currently checked-out origin/master.  It is invoked at the start
           # of the loop and again after every failed push so that we never
@@ -232,10 +255,7 @@
             fi
             echo "WARNING: push failed on attempt $attempt (likely concurrent update), retrying..."
             sleep $((attempt * 5))
-          done
-        else
-          echo "WARNING: clone of opal-live-doc failed (exit $?), cannot push regression results"
-          echo "Hint: if the pre-flight check or ssh-keyscan above reported errors, SSH access to gitea.psi.ch is blocked from the compute node"
+           done
         fi
       fi
 

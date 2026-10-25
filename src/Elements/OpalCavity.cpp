@@ -29,8 +29,13 @@
 OpalCavity::OpalCavity()
     : OpalElement(SIZE, "RFCAVITY", "The \"RFCAVITY\" element defines an RF cavity."),
       obgeo_m(nullptr) {
-    itsAttr[VOLT]     = Attributes::makeReal("VOLT", "RF voltage in MV");
-    itsAttr[DVOLT]    = Attributes::makeReal("DVOLT", "RF voltage error in MV");
+    itsAttr[TYPE] = Attributes::makePredefinedString(
+            "TYPE",
+            "RF cavity model: mapped STANDING (default), mapped SINGLEGAP, or uniform IDEAL.",
+            {"STANDING", "SINGLEGAP", "IDEAL"});
+    itsAttr[VOLT] = Attributes::makeReal(
+            "VOLT", "Peak RF electric field in MV/m (STANDING/IDEAL); voltage in MV (SINGLEGAP)");
+    itsAttr[DVOLT]    = Attributes::makeReal("DVOLT", "Peak RF electric field error in MV/m");
     itsAttr[FREQ]     = Attributes::makeReal("FREQ", "RF frequency in MHz");
     itsAttr[LAG]      = Attributes::makeReal("LAG", "Phase lag (rad)");
     itsAttr[DLAG]     = Attributes::makeReal("DLAG", "Phase lag error (rad)");
@@ -134,6 +139,8 @@ void OpalCavity::update() {
     rfc->setPhaseModelName(Attributes::getString(itsAttr[PHASE_MODEL]));
     rfc->setAmplitudeModelName(Attributes::getString(itsAttr[AMPLITUDE_MODEL]));
     rfc->setFrequencyModelName(Attributes::getString(itsAttr[FREQUENCY_MODEL]));
+
+    rfc->validateIdeal();
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(rfc);
