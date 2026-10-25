@@ -48,6 +48,26 @@ using ParticleAttrib = ippl::ParticleAttrib<T>;
 
 using size_type = ippl::detail::size_type;
 
+namespace cyclotron_probe::detail {
+    using History = ippl::ParticleAttrib<State>;
+
+    /** Keep attribute destruction and its virtual CUDA methods in libopalx.
+     * An inline default deleter can instantiate a competing attribute vtable in
+     * executable consumers of ParticleContainer, selecting unregistered kernels.
+     */
+    struct HistoryDeleter {
+        void operator()(History* history) const;
+    };
+
+    using HistoryPtr = std::unique_ptr<History, HistoryDeleter>;
+
+    /// Construct storage in the same library module as its CUDA kernels.
+    HistoryPtr makeHistory();
+
+    /// Initialize registered storage, preserving the existing allocation semantics.
+    void initializeHistory(History& history, size_type capacity);
+}  // namespace cyclotron_probe::detail
+
 #include "Processes/GlobalProcesses/GlobalProcess.h"
 
 /**
@@ -186,17 +206,16 @@ public:
      */
     ParticleAttrib<cyclotron_probe::State>& probeHistory(std::size_t index) {
         while (probeHistories_m.size() <= index) {
-            auto attribute = std::make_unique<ParticleAttrib<cyclotron_probe::State>>();
+            auto attribute = cyclotron_probe::detail::makeHistory();
             this->addAttribute(*attribute);
-            attribute->resize(this->R.size());
-            Kokkos::deep_copy(attribute->getView(), cyclotron_probe::State{});
+            cyclotron_probe::detail::initializeHistory(*attribute, this->R.size());
             probeHistories_m.push_back(std::move(attribute));
         }
         return *probeHistories_m[index];
     }
 
 private:
-    std::vector<std::unique_ptr<ParticleAttrib<cyclotron_probe::State>>> probeHistories_m;
+    std::vector<cyclotron_probe::detail::HistoryPtr> probeHistories_m;
 
 public:
     ParticleContainer(

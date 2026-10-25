@@ -15,6 +15,17 @@
 
 #undef doDEBUG
 
+namespace cyclotron_probe::detail {
+    void HistoryDeleter::operator()(History* history) const { delete history; }
+
+    HistoryPtr makeHistory() { return HistoryPtr(new History()); }
+
+    void initializeHistory(History& history, size_type capacity) {
+        history.resize(capacity);
+        Kokkos::deep_copy(history.getView(), State{});
+    }
+}  // namespace cyclotron_probe::detail
+
 /**
  * @copybrief PartBunch::PartBunch
  */

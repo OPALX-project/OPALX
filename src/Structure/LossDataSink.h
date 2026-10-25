@@ -87,9 +87,12 @@ namespace std {
 }  // namespace std
 enum class CollectionType : unsigned short { SPATIAL = 0, TEMPORAL };
 
-/*
-  - In the destructor we do ALL the file handling
-  - h5hut_mode_m defines h5hut or ASCII
+/** @brief Collect particle records and write them through collective save().
+ *
+ * save() closes output files and synchronizes successful writes. Destruction of
+ * an idle sink does not communicate, so it is safe during rank-local unwinding.
+ * The fallback close of a still-open parallel HDF5 file remains collective:
+ * rank-local exceptions during an active save require coordinated error handling.
  */
 class LossDataSink {
 public:

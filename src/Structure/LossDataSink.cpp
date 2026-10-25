@@ -606,10 +606,8 @@ LossDataSink::~LossDataSink() noexcept(false) {
     if (H5file_m) {
         closeFile();
     }
-
-    if (ippl::Comm != nullptr) {
-        ippl::Comm->barrier();
-    }
+    // save() closes and synchronizes successful writes explicitly. An idle
+    // sink must also be destructible on just one rank during exception unwinding.
 }
 
 void LossDataSink::openH5(h5_int32_t mode) {
