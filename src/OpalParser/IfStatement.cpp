@@ -61,7 +61,7 @@ IfStatement::IfStatement(const Parser& parser, TokenStream& is)
         then_block = parser.readStatement(&is);
         if (Options::parseOnly && !then_block)
             throw ParseError("IfStatement", "IF requires a statement.");
-        token      = is.readToken();
+        token = is.readToken();
 
         if (!token.isEOF() && token.isKey("ELSE")) {
             else_block = parser.readStatement(&is);

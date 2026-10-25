@@ -242,7 +242,7 @@ int main(int argc, char* argv[]) {
             // Read startup file.
             FileStream::setEcho(Options::echo);
 
-            const char* home = getenv("HOME");
+            const char* home          = getenv("HOME");
             const std::string startup = home ? (fs::path(home) / "init.opal").string() : "";
             const fs::path p(startup);
             if (!startup.empty() && fs::is_regular_file(p)) {
