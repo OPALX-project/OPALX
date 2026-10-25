@@ -5,11 +5,13 @@
 #include <limits>
 #include <sstream>
 #include "Algorithms/CyclotronProbeRecorder.h"
+#include "Algorithms/TrackReferenceStep.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/ProbeRep.h"
 #include "Elements/OpalProbe.h"
 #include "PartBunch/ParticleContainer.hpp"
 #include "Structure/LossDataSink.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "ValueDefinitions/RealVariable.h"
 #include "gtest/gtest.h"
@@ -328,6 +330,47 @@ TEST_F(CyclotronProbeTest, AsciiEmptyRanksMigrationFramesAndTurnGroups) {
     }
 }
 
+TEST_F(CyclotronProbeTest, CapacityGrowthPreservesArmedHistoryAndNewParticleIds) {
+    Options::asciidump = false;
+    const auto c       = config("growth");
+    auto pc            = container();
+    position(pc, -1, 1);
+    const auto ids = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->ID.getView());
+    std::int64_t expectedId = ippl::Comm->rank() == 0 ? ids(0) : 0;
+    MPI_Bcast(&expectedId, 1, MPI_INT64_T, 0, ippl::Comm->getCommunicator());
+    CyclotronProbeRecorder recorder({c});
+    recorder.initialize({pc});
+    recorder.observe(pc, 0, 0, 0);
+
+    // Grow registered history after arming a particle. Reallocation must keep
+    // its previous endpoint; new IDs must initialize without inventing a hit.
+    const auto oldCapacity = pc->R.size();
+    pc->createParticles(ippl::Comm->rank() == 0 ? oldCapacity + 1 : 0);
+    if (ippl::Comm->rank() == 0) EXPECT_GT(pc->R.size(), oldCapacity);
+    position(pc, 1, 1);
+    recorder.observe(pc, 2e-9, 0, 0);
+    recorder.save();
+
+    h5_prop_t props = H5CreateFileProp();
+    auto comm       = ippl::Comm->getCommunicator();
+    H5SetPropFileMPIOCollective(props, &comm);
+    auto file = H5OpenFile((c.output + ".h5").c_str(), H5_O_RDONLY, props);
+    H5CloseProp(props);
+    ASSERT_NE(file, static_cast<h5_file_t>(H5_ERR));
+    EXPECT_EQ(H5GetNumSteps(file), 1);
+    ASSERT_EQ(H5SetStep(file, 0), H5_SUCCESS);
+    // Read the global count before setting a one-particle view on every rank.
+    EXPECT_EQ(H5PartGetNumParticles(file), 1);
+    ASSERT_EQ(H5PartSetView(file, 0, 0), H5_SUCCESS);
+    h5_int64_t readId = -1;
+    EXPECT_EQ(H5PartReadDataInt64(file, "id", &readId), H5_SUCCESS);
+    EXPECT_EQ(readId, expectedId);
+    double time = 0;
+    EXPECT_EQ(H5PartReadDataFloat64(file, "time", &time), H5_SUCCESS);
+    EXPECT_NEAR(time, 1e-9, 1e-24);
+    H5CloseFile(file);
+}
+
 TEST_F(CyclotronProbeTest, CollectiveErrorsAndFreshOutputGuard) {
     Options::asciidump = true;
     auto c             = config("errors");
@@ -432,4 +475,65 @@ TEST_F(CyclotronProbeTest, RepeatedFlushAppendsHitsAndRetainsCumulativeSummaries
         total += row[0];
     EXPECT_EQ(total, 2);
     EXPECT_EQ(rows(c.output + ".peaks").size(), 2u);
+}
+
+TEST_F(CyclotronProbeTest, FailedCollectiveReferenceTrialFlushesOnlyAcceptedProbeHits) {
+    Options::asciidump = true;
+    const auto c       = config("reference-trial-failure");
+    auto pc            = container();
+    position(pc, -1, 1);
+    CyclotronProbeRecorder recorder({c});
+    recorder.initialize({pc});
+    recorder.observe(pc, 0, 0, 4);
+    position(pc, 1, 1);
+    recorder.observe(pc, 2e-9, 0, 4);
+    // The accepted crossing is still buffered. Only root executes a reference
+    // trial; all ranks, including empty ranks, must flush before seeing its
+    // error. This is the production failure-cleanup overload used by TRACK.
+    int trials = 0, flushes = 0;
+    EXPECT_THROW(
+            track_reference::collectiveTerminalStep(
+                    ippl::Comm->getCommunicator(),
+                    [&]() -> double {
+                        ++trials;
+                        throw OpalException("SINGLEGAP", "Unphysical reference RF kick");
+                    },
+                    [&] {
+                        ++flushes;
+                        recorder.save();
+                    }),
+            OpalException);
+    EXPECT_EQ(trials, ippl::Comm->rank() == 0 ? 1 : 0);
+    EXPECT_EQ(flushes, 1);
+    if (ippl::Comm->rank() == 0) {
+        const auto hits = rows(c.output + ".loss");
+        EXPECT_EQ(hits.size(), 1u);
+        if (hits.size() == 1) {
+            EXPECT_EQ(hits.front().size(), 10u);
+            if (hits.front().size() == 10) {
+                EXPECT_EQ(hits.front()[7], 4);
+                EXPECT_NEAR(hits.front()[9], 1e-9, 1e-24);
+            }
+        }
+        double total = 0;
+        for (const auto& row : rows(c.output + ".hist"))
+            total += row[0];
+        EXPECT_EQ(total, 1);
+    }
+    // Successful trials do not flush and a repeat explicit save cannot duplicate
+    // the accepted hit. A failed, unobserved trial never becomes a new endpoint.
+    EXPECT_DOUBLE_EQ(
+            track_reference::collectiveTerminalStep(
+                    ippl::Comm->getCommunicator(),
+                    [] {
+                        return 1e-9;
+                    },
+                    [&] {
+                        ++flushes;
+                        recorder.save();
+                    }),
+            1e-9);
+    EXPECT_EQ(flushes, 1);
+    recorder.save();
+    if (ippl::Comm->rank() == 0) EXPECT_EQ(rows(c.output + ".loss").size(), 1u);
 }

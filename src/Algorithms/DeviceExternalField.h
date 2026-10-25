@@ -164,10 +164,15 @@ namespace device_external {
          * The shared event search operates on copies, so a failed particle leaves
          * its live state intact. The caller owns bunch-level failure handling.
          * No allocations/collectives; at most 64 gap descriptors on this path.
+         * terminalEndpoint includes a roundoff-short final gap crossing only
+         * after the reference has completed its EKINSTOP kick. frameSteps is the
+         * accepted global step count including this final step; rf_event::advance
+         * uses it only for accumulated frame-arithmetic endpoint resolution.
          */
         KOKKOS_INLINE_FUNCTION bool advance(
                 Vector& position, Vector& momentum, double time, double dt, double mass,
-                rf_event::Diagnostic* diagnostic = nullptr) const {
+                rf_event::Diagnostic* diagnostic = nullptr, bool terminalEndpoint = false,
+                unsigned long long frameSteps = 1) const {
             if (gaps.extent(0) > 64 || !(dt >= 0)) {
                 if (diagnostic)
                     diagnostic->set(rf_event::Failure::InvalidStep, position, momentum, time);
@@ -175,7 +180,10 @@ namespace device_external {
             }
             Vector r = position, p = momentum;
             EventPolicy policy{*this};
-            if (!rf_event::advance(r, p, time, dt, mass, policy, diagnostic).success) return false;
+            if (!rf_event::advance(
+                         r, p, time, dt, mass, policy, diagnostic, terminalEndpoint, frameSteps)
+                         .success)
+                return false;
             position = r;
             momentum = p;
             return true;
@@ -187,10 +195,11 @@ namespace device_external {
          */
         KOKKOS_INLINE_FUNCTION bool advanceWithSelfFields(
                 Vector& r, Vector& p, const Vector& e, const Vector& b, double t, double dt,
-                double mass, rf_event::Diagnostic* diagnostic = nullptr) const {
+                double mass, rf_event::Diagnostic* diagnostic = nullptr,
+                bool terminalEndpoint = false, unsigned long long frameSteps = 1) const {
             Vector x = r, v = p;
             BorisPusher().kick(x, v, e, b, .5 * dt, mass, 1);
-            if (!advance(x, v, t, dt, mass, diagnostic)) return false;
+            if (!advance(x, v, t, dt, mass, diagnostic, terminalEndpoint, frameSteps)) return false;
             BorisPusher().kick(x, v, e, b, .5 * dt, mass, 1);
             r = x;
             p = v;

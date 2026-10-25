@@ -152,8 +152,8 @@ private:
     SpectralTunes::Settings tuneSettings_m;
     bool hasCyclotronGaps();
     std::optional<device_external::CyclotronLattice> cyclotronBunchLattice_m;
-    /** Host-only event integration for the initial one-proton RF milestone.
-     * R/P are in the tracking frame, t/dt in seconds. Splits Boris steps at
+    /** Host-only event integration for the reference and a bare single proton.
+     * R/P are in the laboratory frame, t/dt in seconds. Splits Boris steps at
      * directed gap-plane roots and applies full kicks in time order. Field
      * queries use spatial support, not the threader's nominal closed orbit.
      * Assumes distinct gap planes and a single unpolarized median-plane proton.
@@ -164,10 +164,16 @@ private:
      * On target completion the outgoing state is immediately after that complete
      * kick; the remainder magnetic drift is deliberately omitted. With report=true
      * the reference marks energyTargetReached_m and emits the terminal diagnostic.
+     * Physical particles (report=false) finish the entire supplied duration even
+     * if their own energy exceeds the reference target at an earlier gap.
+     * terminalEndpoint applies the shared roundoff-inclusive final endpoint policy
+     * to physical particles after that reference stop, never to reference trials.
+     * frameSteps counts accepted frame updates including this step; it budgets
+     * accumulated coordinate arithmetic in the terminal-only rf_event allowance.
      */
     double advanceCyclotronGaps(
             Vector_t<double, 3>& r, Vector_t<double, 3>& p, double t, double dt, double mass,
-            bool report);
+            bool report, bool terminalEndpoint = false, unsigned long long frameSteps = 1);
     double kineticEnergyStop_m = 0;      ///< Optional reference kinetic-energy target [eV].
     bool energyTargetReached_m = false;  ///< Latched only by the reference's complete kick.
     /// Energy-mode reference is precomputed so the final bunch clock uses its substep.

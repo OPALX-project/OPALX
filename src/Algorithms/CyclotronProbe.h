@@ -25,7 +25,14 @@ namespace cyclotron_probe {
         Vector start = Vector(0.0), end = Vector(0.0);
     };
 
-    /// Trivially copyable particle attribute: migrated/sorted with its owner.
+    /** @brief Crossing memory for one particle at one cyclotron probe.
+     * The two directed observers retain previous endpoints and arming state for
+     * interpolation in either crossing direction. id identifies the particle when
+     * an array slot is reused; passages counts accepted segment crossings.
+     * This trivially copyable record is stored in an IPPL particle attribute so
+     * sorting and MPI migration carry the previous endpoints with their owner.
+     * Each probe needs an independent history because its segment and crossings differ.
+     */
     struct State {
         passive_probe::State forward, reverse;
         std::int64_t id = -1;
