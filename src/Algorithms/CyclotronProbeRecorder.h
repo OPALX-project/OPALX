@@ -11,6 +11,18 @@
 class Probe;
 class LossDataSink;
 
+namespace cyclotron_probe::detail {
+    /** Internal compact device-to-host payload, without host-only ownership.
+     * Namespace scope keeps captured View value types accessible to NVCC extended
+     * device lambdas. Recorder state and output ownership remain private.
+     */
+    struct Hit {
+        Sample sample;
+        std::int64_t id = -1;
+        double charge = 0, mass = 0;
+    };
+}  // namespace cyclotron_probe::detail
+
 /** @brief Passive, collective recorder for global cyclotron PROBE segments.
  *
  * Histories live in optional particle attributes, so migration and compaction
@@ -43,12 +55,7 @@ public:
     void save();
 
 private:
-    struct Hit {
-        cyclotron_probe::Sample sample;
-        std::int64_t id = -1;
-        double charge = 0, mass = 0;
-    };
-    Kokkos::View<Hit*> hits_m;
+    Kokkos::View<cyclotron_probe::detail::Hit*> hits_m;
     Kokkos::View<std::size_t> count_m{"PROBE hit count"};
     struct Diagnostic {
         Config config;

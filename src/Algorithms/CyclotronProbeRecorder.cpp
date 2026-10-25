@@ -115,7 +115,8 @@ void CyclotronProbeRecorder::observe(
     const auto origin   = pc->getToLabTrafo().getOrigin();
     const auto rotation = pc->getToLabTrafo().getRotationMatrix();
     if (hits_m.extent(0) < pc->getLocalNum())
-        hits_m = Kokkos::View<Hit*>("PROBE compact hits", pc->getLocalNum());
+        hits_m = Kokkos::View<cyclotron_probe::detail::Hit*>(
+                "PROBE compact hits", pc->getLocalNum());
     for (std::size_t j = 0; j < diagnostics_m.size(); ++j) {
         auto& diagnostic   = diagnostics_m[j];
         const auto segment = diagnostic.config.segment;
@@ -137,7 +138,7 @@ void CyclotronProbeRecorder::observe(
                             cyclotron_probe::update(segment, states(i), ids(i), endpoint, sample);
                     if (status == cyclotron_probe::Status::Crossing) {
                         const auto index = Kokkos::atomic_fetch_add(&count(), std::size_t(1));
-                        hits(index)      = Hit{
+                        hits(index)      = cyclotron_probe::detail::Hit{
                                 sample, ids(i), charge(sharedQM ? 0 : i), mass(sharedQM ? 0 : i)};
                     } else if (
                             status != cyclotron_probe::Status::Initialized

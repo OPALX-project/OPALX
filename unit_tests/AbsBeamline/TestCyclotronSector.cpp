@@ -247,102 +247,110 @@ TEST_F(CyclotronTest, SpatialSelectionRestoresOmittedDeviceFieldAndPreservesOthe
         }
 }
 
+namespace {
+    // NVCC extended lambdas require an accessible enclosing function; GoogleTest's
+    // generated TestBody is private. Keep the real device kernels in a free helper.
+    void checkDeviceBunchTransport(const std::string& filename) {
+        const auto rfFile = filename + ".rf";
+        {
+            std::ofstream out(rfFile);
+            out << "2\n0 1 0\n1 1 0\n";
+        }
+        CyclotronSector sector("zero");
+        sector.configure(CyclotronSectorFieldMap::read(filename), 8, -.05, .05, 0, {});
+        RFCavityRep cavity("gap");
+        const double mass = 938272088.16, dt = 1e-11, time = 2e-9;
+        cavity.configureCyclotronGap(
+                rfFile, .001, 1, CyclotronRFKick{847000, Physics::two_pi * 50.65e6, 0, 0, .999});
+        device_external::CyclotronLattice lattice;
+        lattice.sectors = decltype(lattice.sectors)("sectors", 1);
+        lattice.gaps    = decltype(lattice.gaps)("gaps", 1);
+        auto sectors    = Kokkos::create_mirror_view(lattice.sectors);
+        auto gaps       = Kokkos::create_mirror_view(lattice.gaps);
+        const CoordinateSystemTrafo identity;
+        const device_external::Rigid frame{identity.getOrigin(), identity.getRotationMatrix()};
+        const Vector_t<double, 3> start(.02, .001, .25), momentum(.01, .002, .4);
+        const CoordinateSystemTrafo plane(Vector_t<double, 3>(0, 0, .2502), Quaternion());
+        sectors(0) = {frame, sector.deviceField()};
+        gaps(0)    = {{plane.getOrigin(), plane.getRotationMatrix()}, cavity.deviceGap()};
+        Kokkos::deep_copy(lattice.sectors, sectors);
+        Kokkos::deep_copy(lattice.gaps, gaps);
+        Kokkos::View<Vector_t<double, 3>*> result("result", 2);
+        Kokkos::View<int*> accepted("accepted", 2);
+        const size_t count = ippl::Comm->rank() == 0 ? 2 : 0;
+        Kokkos::parallel_for(
+                "bunch event test", count, KOKKOS_LAMBDA(size_t i) {
+                    auto r = start, p = momentum;
+                    r(2) -= i * .0001;
+                    accepted(i) = lattice.advance(r, p, time, dt, mass);
+                    result(i)   = p;
+                });
+        auto host          = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), result);
+        auto ok            = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), accepted);
+        const double gamma = std::sqrt(1 + dot(momentum, momentum));
+        for (size_t i = 0; i < count; ++i) {
+            ASSERT_EQ(ok(i), 1);
+            const double arrival  = (.0002 + i * .0001) * gamma / (Physics::c * momentum(2));
+            const double expected = 847000 * std::cos(Physics::two_pi * 50.65e6 * (time + arrival));
+            EXPECT_NEAR((std::sqrt(1 + dot(host(i), host(i))) - gamma) * mass, expected, 5e-7);
+            EXPECT_EQ(host(i)(1), momentum(1));
+            EXPECT_EQ(host(i)(0), momentum(0));
+        }
+        // Frozen uniform self-field split equals a full momentum impulse without RF.
+        lattice.gaps = decltype(lattice.gaps)("no gaps", 0);
+        const Vector_t<double, 3> electric(0, 1000, 0);
+        Kokkos::parallel_for(
+                "self field test", count, KOKKOS_LAMBDA(size_t i) {
+                    auto r = start, p = momentum;
+                    accepted(i) = lattice.advanceWithSelfFields(
+                            r, p, electric, Vector_t<double, 3>(0), time, dt, mass);
+                    result(i) = p;
+                });
+        Kokkos::deep_copy(host, result);
+        Kokkos::deep_copy(ok, accepted);
+        for (size_t i = 0; i < count; ++i) {
+            ASSERT_EQ(ok(i), 1);
+            EXPECT_NEAR(host(i)(1), momentum(1) + dt * Physics::c / mass * 1000, 1e-16);
+        }
+        // Failures are transactional and distinguish support, input and RF causes.
+        Kokkos::parallel_for(
+                "support diagnostics", count, KOKKOS_LAMBDA(size_t i) {
+                    auto r = start, p = momentum;
+                    r(1) = 1;
+                    rf_event::Diagnostic diagnostic;
+                    const bool ok = lattice.advance(r, p, time, dt, mass, &diagnostic);
+                    accepted(i)   = ok;
+                    result(i)     = Vector_t<double, 3>(int(diagnostic.failure), r(1), p(1));
+                });
+        Kokkos::deep_copy(host, result);
+        Kokkos::deep_copy(ok, accepted);
+        for (size_t i = 0; i < count; ++i) {
+            EXPECT_EQ(ok(i), 0);
+            EXPECT_EQ(host(i)(0), 1);
+            EXPECT_EQ(host(i)(1), 1);
+            EXPECT_EQ(host(i)(2), momentum(1));
+        }
+        lattice.gaps               = decltype(lattice.gaps)("invalid kick gap", 1);
+        gaps(0).field.kick.voltage = -1e12;
+        Kokkos::deep_copy(lattice.gaps, gaps);
+        Kokkos::parallel_for(
+                "kick diagnostics", count, KOKKOS_LAMBDA(size_t i) {
+                    auto r = start, p = momentum;
+                    rf_event::Diagnostic diagnostic;
+                    accepted(i) = lattice.advance(r, p, time, dt, mass, &diagnostic);
+                    result(i)   = Vector_t<double, 3>(int(diagnostic.failure), diagnostic.gap, 0);
+                });
+        Kokkos::deep_copy(host, result);
+        Kokkos::deep_copy(ok, accepted);
+        for (size_t i = 0; i < count; ++i) {
+            EXPECT_EQ(ok(i), 0);
+            EXPECT_EQ(host(i)(0), 2);
+            EXPECT_EQ(host(i)(1), 0);
+        }
+        std::filesystem::remove(rfFile);
+    }
+}  // namespace
+
 TEST_F(CyclotronTest, DeviceBunchTransportUsesIndividualArrivalTimesAndThreeDimensionalEnergy) {
-    const auto rfFile = filename + ".rf";
-    {
-        std::ofstream out(rfFile);
-        out << "2\n0 1 0\n1 1 0\n";
-    }
-    CyclotronSector sector("zero");
-    sector.configure(CyclotronSectorFieldMap::read(filename), 8, -.05, .05, 0, {});
-    RFCavityRep cavity("gap");
-    const double mass = 938272088.16, dt = 1e-11, time = 2e-9;
-    cavity.configureCyclotronGap(
-            rfFile, .001, 1, CyclotronRFKick{847000, Physics::two_pi * 50.65e6, 0, 0, .999});
-    device_external::CyclotronLattice lattice;
-    lattice.sectors = decltype(lattice.sectors)("sectors", 1);
-    lattice.gaps    = decltype(lattice.gaps)("gaps", 1);
-    auto sectors    = Kokkos::create_mirror_view(lattice.sectors);
-    auto gaps       = Kokkos::create_mirror_view(lattice.gaps);
-    const CoordinateSystemTrafo identity;
-    const device_external::Rigid frame{identity.getOrigin(), identity.getRotationMatrix()};
-    const Vector_t<double, 3> start(.02, .001, .25), momentum(.01, .002, .4);
-    const CoordinateSystemTrafo plane(Vector_t<double, 3>(0, 0, .2502), Quaternion());
-    sectors(0) = {frame, sector.deviceField()};
-    gaps(0)    = {{plane.getOrigin(), plane.getRotationMatrix()}, cavity.deviceGap()};
-    Kokkos::deep_copy(lattice.sectors, sectors);
-    Kokkos::deep_copy(lattice.gaps, gaps);
-    Kokkos::View<Vector_t<double, 3>*> result("result", 2);
-    Kokkos::View<int*> accepted("accepted", 2);
-    const size_t count = ippl::Comm->rank() == 0 ? 2 : 0;
-    Kokkos::parallel_for(
-            "bunch event test", count, KOKKOS_LAMBDA(size_t i) {
-                auto r = start, p = momentum;
-                r(2) -= i * .0001;
-                accepted(i) = lattice.advance(r, p, time, dt, mass);
-                result(i)   = p;
-            });
-    auto host          = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), result);
-    auto ok            = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), accepted);
-    const double gamma = std::sqrt(1 + dot(momentum, momentum));
-    for (size_t i = 0; i < count; ++i) {
-        ASSERT_EQ(ok(i), 1);
-        const double arrival  = (.0002 + i * .0001) * gamma / (Physics::c * momentum(2));
-        const double expected = 847000 * std::cos(Physics::two_pi * 50.65e6 * (time + arrival));
-        EXPECT_NEAR((std::sqrt(1 + dot(host(i), host(i))) - gamma) * mass, expected, 5e-7);
-        EXPECT_EQ(host(i)(1), momentum(1));
-        EXPECT_EQ(host(i)(0), momentum(0));
-    }
-    // Frozen uniform self-field split equals a full momentum impulse without RF.
-    lattice.gaps = decltype(lattice.gaps)("no gaps", 0);
-    const Vector_t<double, 3> electric(0, 1000, 0);
-    Kokkos::parallel_for(
-            "self field test", count, KOKKOS_LAMBDA(size_t i) {
-                auto r = start, p = momentum;
-                accepted(i) = lattice.advanceWithSelfFields(
-                        r, p, electric, Vector_t<double, 3>(0), time, dt, mass);
-                result(i) = p;
-            });
-    Kokkos::deep_copy(host, result);
-    Kokkos::deep_copy(ok, accepted);
-    for (size_t i = 0; i < count; ++i) {
-        ASSERT_EQ(ok(i), 1);
-        EXPECT_NEAR(host(i)(1), momentum(1) + dt * Physics::c / mass * 1000, 1e-16);
-    }
-    // Failures are transactional and distinguish support, input and RF causes.
-    Kokkos::parallel_for(
-            "support diagnostics", count, KOKKOS_LAMBDA(size_t i) {
-                auto r = start, p = momentum;
-                r(1) = 1;
-                rf_event::Diagnostic diagnostic;
-                const bool ok = lattice.advance(r, p, time, dt, mass, &diagnostic);
-                accepted(i)   = ok;
-                result(i)     = Vector_t<double, 3>(int(diagnostic.failure), r(1), p(1));
-            });
-    Kokkos::deep_copy(host, result);
-    Kokkos::deep_copy(ok, accepted);
-    for (size_t i = 0; i < count; ++i) {
-        EXPECT_EQ(ok(i), 0);
-        EXPECT_EQ(host(i)(0), 1);
-        EXPECT_EQ(host(i)(1), 1);
-        EXPECT_EQ(host(i)(2), momentum(1));
-    }
-    lattice.gaps               = decltype(lattice.gaps)("invalid kick gap", 1);
-    gaps(0).field.kick.voltage = -1e12;
-    Kokkos::deep_copy(lattice.gaps, gaps);
-    Kokkos::parallel_for(
-            "kick diagnostics", count, KOKKOS_LAMBDA(size_t i) {
-                auto r = start, p = momentum;
-                rf_event::Diagnostic diagnostic;
-                accepted(i) = lattice.advance(r, p, time, dt, mass, &diagnostic);
-                result(i)   = Vector_t<double, 3>(int(diagnostic.failure), diagnostic.gap, 0);
-            });
-    Kokkos::deep_copy(host, result);
-    Kokkos::deep_copy(ok, accepted);
-    for (size_t i = 0; i < count; ++i) {
-        EXPECT_EQ(ok(i), 0);
-        EXPECT_EQ(host(i)(0), 2);
-        EXPECT_EQ(host(i)(1), 0);
-    }
-    std::filesystem::remove(rfFile);
+    checkDeviceBunchTransport(filename);
 }
