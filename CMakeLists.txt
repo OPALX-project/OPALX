@@ -96,7 +96,6 @@ include(CTest)
 include(Messages)
 include(CompilerOptions)
 include(Dependencies)
-include(FailingTests)
 
 # ------------------------------------------------------------------------------
 # Deprecated vars
