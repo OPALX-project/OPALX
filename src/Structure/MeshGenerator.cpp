@@ -1,4 +1,5 @@
 #include "Structure/MeshGenerator.h"
+#include "AbsBeamline/ElementTypeTable.h"
 #include "AbsBeamline/FieldmapElement.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
@@ -23,53 +24,6 @@ namespace {
 
     bool isBoundedMeshHalfSize(const double value) {
         return std::isfinite(value) && value > 0.0 && value < unboundedApertureHalfSize;
-    }
-
-    std::string elementTypeToString(ElementType type) {
-        switch (type) {
-            case ElementType::ANY:
-                return "ANY";
-            case ElementType::BEAMLINE:
-                return "BEAMLINE";
-            case ElementType::COLLIMATOR:
-                return "COLLIMATOR";
-            case ElementType::DRIFT:
-                return "DRIFT";
-            case ElementType::LASER:
-                return "LASER";
-            case ElementType::MARKER:
-                return "MARKER";
-            case ElementType::MONITOR:
-                return "MONITOR";
-            case ElementType::MULTIPOLE:
-                return "MULTIPOLE";
-            case ElementType::MULTIPOLET:
-                return "MULTIPOLET";
-            case ElementType::RFCAVITY:
-                return "RFCAVITY";
-            case ElementType::TRAVELINGWAVE:
-                return "TRAVELINGWAVE";
-            case ElementType::SBEND:
-                return "SBEND";
-            case ElementType::RBEND:
-                return "RBEND";
-            case ElementType::RBEND3D:
-                return "RBEND3D";
-            case ElementType::PROBE:
-                return "PROBE";
-            case ElementType::VACUUM:
-                return "VACUUM";
-            case ElementType::SOLENOID:
-                return "SOLENOID";
-            case ElementType::SOURCE:
-                return "SOURCE";
-            case ElementType::CONSTANTEFIELDCAVITY:
-                return "CONSTANTEFIELDCAVITY";
-            case ElementType::CONSTANTFOCUSING:
-                return "CONSTANTFOCUSING";
-            default:
-                return "OTHER";
-        }
     }
 
     std::string jsonEscape(const std::string& s) {
@@ -326,7 +280,7 @@ void MeshGenerator::add(const ElementBase& element) {
 void MeshGenerator::describe(const ElementBase& element) {
     ElementDescription desc;
     desc.name           = element.getName();
-    desc.type           = elementTypeToString(element.getType());
+    desc.type           = opalx::viz::machineName(element.getType());
     desc.length         = element.getGeometry().getElementLength();
     desc.hasTransverse  = false;
     desc.transverseKind = "";

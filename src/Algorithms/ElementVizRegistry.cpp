@@ -1,6 +1,7 @@
 #include "Algorithms/ElementVizRegistry.h"
 
 #include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/ElementTypeTable.h"
 #include "Algorithms/Matrix.h"
 #include "Elements/OpalBeamline.h"
 #include "PartBunch/PartBunch.h"
@@ -21,13 +22,8 @@ namespace opalx {
 
             const auto type = element->getType();
             // Skip elements that carry no field.
-            if (type == ElementType::DRIFT || type == ElementType::MARKER
-                || type == ElementType::MONITOR || type == ElementType::COLLIMATOR
-                || type == ElementType::LASER || type == ElementType::PROBE
-                || type == ElementType::VACUUM || type == ElementType::SOURCE
-                || type == ElementType::ANY) {
+            if (!viz::carriesField(type))
                 continue;
-            }
 
             ElementField ef;
             ef.name    = element->getName();

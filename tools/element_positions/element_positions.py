@@ -114,26 +114,28 @@ ETYPE_COLORS = {
 # Category mapping
 # -----------------------------------------------------------------------------
 
+_CATEGORIES = {
+    'SOLENOID': 'Solenoids',
+    'DRIFT': 'Drifts',
+    'MONITOR': 'Monitors',
+    'SBEND': 'Bends',
+    'RBEND': 'Bends',
+    'RBEND3D': 'Bends',
+    'COLLIMATOR': 'Collimators',
+    'RFCAVITY': 'Cavities',
+    'TRAVELINGWAVE': 'Cavities',
+    'CONSTANTEFIELDCAVITY': 'Cavities',
+}
+
+
 def category_of(element):
     """Return the visualization category for an element description."""
     etype = element['type']
-    if etype == 'SOLENOID':
-        return 'Solenoids'
-    if etype == 'DRIFT':
-        return 'Drifts'
-    if etype == 'MONITOR':
-        return 'Monitors'
     if etype in ('MULTIPOLE', 'MULTIPOLET'):
         if element.get('multipole_order') == 2:
             return 'Quadrupoles'
         return 'Multipoles'
-    if etype in ('SBEND', 'RBEND', 'RBEND3D'):
-        return 'Bends'
-    if etype == 'COLLIMATOR':
-        return 'Collimators'
-    if etype in ('RFCAVITY', 'TRAVELINGWAVE', 'CONSTANTEFIELDCAVITY'):
-        return 'Cavities'
-    return 'Other'
+    return _CATEGORIES.get(etype, 'Other')
 
 
 # -----------------------------------------------------------------------------

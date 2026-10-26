@@ -44,6 +44,7 @@ set(_HDRS
     ConstantEFieldCavity.h
     ConstantFocusing.h
     Drift.h
+    ElementTypeTable.h
     FieldmapElement.h
     ElementBase.h
     Laser.h
