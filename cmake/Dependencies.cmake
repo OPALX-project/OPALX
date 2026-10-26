@@ -113,9 +113,6 @@ else()
 endif()
 message(STATUS "IPPL shallow fetch: ${_opalx_ippl_git_shallow}")
 
-if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose build type" FORCE)
-endif()
 message(STATUS "Build type is: ${CMAKE_BUILD_TYPE}")
 
 FetchContent_Declare(
