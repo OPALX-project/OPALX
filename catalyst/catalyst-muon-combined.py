@@ -239,18 +239,12 @@ element_typePWF = GetOpacityTransferFunction('element_type')
 # =========================================================================
 # Snapshot extractors for offline script development
 # =========================================================================
-_snapshot_step = 0
-try:
-    _snapshot_step = int(os.environ.get('OPALX_CATALYST_DUMP_SNAPSHOT', '0'))
-except ValueError:
-    _snapshot_step = 0
-
-if _snapshot_step > 0:
-    ext_p = CreateExtractor('VTPC', particle_bunch_0,
-                            registrationName='Snapshot_particle_bunch_0')
-    ext_p.Trigger = 'Time Step'
-    ext_p.Trigger.Frequency = _snapshot_step
-    ext_p.Writer.FileName = 'particle_bunch_0_snapshot/{timestep:06d}.vtpc'
+_snapshot_script = os.environ.get(
+'CATALYST_SNAPSHOT_SCRIPT','/home/biddisco/src/opalx/insitu/catalyst/paraview/snapshot_extractor.py')
+with open(_snapshot_script) as _fh:
+    exec(compile(_fh.read(), _snapshot_script, 'exec'),
+         {'source': particle_bunch_0, 'name': 'particle_bunch_0',
+          'CreateExtractor': CreateExtractor})
 
 # ----------------------------------------------------------------
 # PNG extractor

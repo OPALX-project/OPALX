@@ -21,6 +21,7 @@ simulation through IPPL's Catalyst adaptor (`catalyst_execute` entry point).
 |---|---|---|
 | `BUNCH_TRANSFORM_INVERSE` | `1` | `0` transforms lab -> bunch, `1` bunch -> lab |
 | `BUNCH_TRANSFORM_FILTER` | repo path | Path to `bunch_transform_filter.py`, used by state-script loaders |
+| `CATALYST_SNAPSHOT_SCRIPT` | repo path | Path to `snapshot_extractor.py`, used by state-script loaders |
 | `BUNCH_TRANSFORM_DEBUG` | unset | `1` appends per-execution diagnostics to `/tmp/bunch_transform_filter_debug.txt` |
 | `OPALX_CATALYST_DUMP_SNAPSHOT` | `0` | `N` creates a VTPC snapshot extractor writing on iteration `N` and every `N`th after |
 | `OPALX_CATALYST_LIVE_FREQ` | `1` | Throttles Catalyst live updates to every `N`th tracking step |

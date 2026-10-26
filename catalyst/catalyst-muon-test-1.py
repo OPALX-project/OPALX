@@ -244,20 +244,12 @@ pNG1.Writer.Set(
 # ----------------------------------------------------------------
 # Snapshot extractor for offline script development
 # ----------------------------------------------------------------
-# OPALX_CATALYST_DUMP_SNAPSHOT=N creates a data extractor that writes on iteration N
-# (and every Nth iteration after that). Set to 0 or unset to disable.
-_snapshot_step = 0
-try:
-    _snapshot_step = int(os.environ.get('OPALX_CATALYST_DUMP_SNAPSHOT', '0'))
-except ValueError:
-    _snapshot_step = 0
-
-if _snapshot_step > 0:
-    ext = CreateExtractor('VTPC', particle_bunch_0,
-                          registrationName='Snapshot_particle_bunch_0')
-    ext.Trigger = 'Time Step'
-    ext.Trigger.Frequency = _snapshot_step
-    ext.Writer.FileName = 'particle_bunch_0_snapshot/{timestep:06d}.vtpc'
+_snapshot_script = os.environ.get(
+'CATALYST_SNAPSHOT_SCRIPT','/home/biddisco/src/opalx/insitu/catalyst/paraview/snapshot_extractor.py')
+with open(_snapshot_script) as _fh:
+    exec(compile(_fh.read(), _snapshot_script, 'exec'),
+         {'source': particle_bunch_0, 'name': 'particle_bunch_0',
+          'CreateExtractor': CreateExtractor})
 
 # ----------------------------------------------------------------
 # Per-timestep behaviour
