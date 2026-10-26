@@ -29,11 +29,10 @@ install(
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/BuildInfo.h
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/opalx)
 
-# Install the OPALX library together with the fetched reference LAPACKE:
-# the static opalx archive references LAPACKE symbols, so consumers of
-# the installed library need the matching archive from the install tree.
+# Install the OPALX library. The fetched Reference-LAPACK installs its own
+# liblapacke.a, liblapack.a and libblas.a into the same lib directory.
 install(
-  TARGETS opalx lapacke
+  TARGETS opalx
   EXPORT OPALXTargets
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}      # shared libs
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}      # static libs

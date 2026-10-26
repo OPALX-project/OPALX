@@ -113,8 +113,6 @@ else()
 endif()
 message(STATUS "IPPL shallow fetch: ${_opalx_ippl_git_shallow}")
 
-message(STATUS "Build type is: ${CMAKE_BUILD_TYPE}")
-
 FetchContent_Declare(
     IPPL
     GIT_REPOSITORY https://github.com/IPPL-framework/ippl.git

@@ -577,3 +577,32 @@ TEST_F(ScalingFFAMagnetTest, AzimuthalBoundingBoxTest) {
         EXPECT_EQ(magnitude(B) != 0.0, inBounds[i]) << i << " " << pos;
     }
 }
+
+TEST_F(ScalingFFAMagnetTest, ParticleFieldAddsToExistingField) {
+    // ParallelTracker applies overlapping elements one after another to the same B view, so the
+    // particle kernel must add its field, and leave B unchanged where this magnet has no field.
+    const Vector_t<double, 3> existing({0.1, -0.2, 0.3});
+    const Vector_t<double, 3> inside(
+            {r0_m * (std::cos(psi0_m) - 1), 0.01, r0_m * std::sin(psi0_m)});
+    const Vector_t<double, 3> outside(  // r = 3 r0 > rMax = 2 r0
+            {r0_m * (3. * std::cos(psi0_m) - 1), 0.01, 3. * r0_m * std::sin(psi0_m)});
+    Vector_t<double, 3> expected(0.0);
+    sector_m->getFieldValue(inside, expected);
+    ASSERT_GT(magnitude(expected), 0.1);
+
+    Kokkos::View<Vector_t<double, 3>*> R("R", 2), B("B", 2);
+    auto Rhost = Kokkos::create_mirror_view(R);
+    auto Bhost = Kokkos::create_mirror_view(B);
+    Rhost(0)   = inside;
+    Rhost(1)   = outside;
+    Bhost(0)   = existing;
+    Bhost(1)   = existing;
+    Kokkos::deep_copy(R, Rhost);
+    Kokkos::deep_copy(B, Bhost);
+    ScalingFFAMagnet::getFieldValue(sector_m->getConfig(), sector_m->getEndField(), R, B);
+    Kokkos::deep_copy(Bhost, B);
+    for (size_t d = 0; d < 3; ++d) {
+        EXPECT_NEAR(Bhost(0)[d], existing[d] + expected[d], 1e-12) << d;
+        EXPECT_EQ(Bhost(1)[d], existing[d]) << d;
+    }
+}
