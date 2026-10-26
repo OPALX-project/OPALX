@@ -106,6 +106,8 @@
         echo "ERROR: Could not validate SSH private key"
         exit 1
       fi
+      # The public key is not secret; it is printed so it can be added to a repository as a deploy key.
+      echo "Public key: $(ssh-keygen -y -f "$KEY_FILE" < /dev/null)"
       echo "Key fingerprint: $(ssh-keygen -l -f "$KEY_FILE")"
       if ssh-keyscan -T 10 -t rsa,ecdsa,ed25519 gitea.psi.ch >> ~/.ssh/known_hosts; then
         echo "ssh-keyscan: added gitea.psi.ch host keys to known_hosts"
@@ -124,7 +126,7 @@
       rm -rf opalx-regression
       if ! timeout 120 git clone --depth 1 --filter=blob:none --no-checkout --branch "$RESULTS_TOOLS_REF" "$RESULTS_REPO" opalx-regression; then
         echo "ERROR: the key in PSI_GIT_SSHKEY cannot read $RESULTS_REPO."
-        echo "Give its public key (ssh-keygen -y -f KEY) write access to AMAS/opalx-regression, e.g. as a deploy key."
+        echo "Add the public key printed above to AMAS/opalx-regression as a deploy key with write access."
         exit 1
       fi
       git -C opalx-regression sparse-checkout init --cone
