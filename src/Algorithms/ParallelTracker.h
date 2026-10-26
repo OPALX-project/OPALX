@@ -337,11 +337,15 @@ public:
     /// @brief Second half: kick then push all active containers.
     void timeIntegration2(BorisPusher& pusher);
 
-    /// @brief Thomas-BMT spin precession across all active containers that store Pol.
-    /// Must be called after external + space-charge fields have been accumulated and
-    /// before the momentum kick (so E, B at the particle are the fields the particle sees
-    /// during this step). P, E, B and Pol are all along the bunch-frame axes.
+    /// @brief First half of the Thomas-BMT spin rotation for all active containers that store
+    /// Pol, with the momentum before the kick. timeIntegration2 does the second half with the
+    /// momentum after the kick, so the spin update is second order in dt. Call after the
+    /// external and space-charge fields at the half-step position have been accumulated.
     void evolveSpinTBMT();
+
+    /// @brief Rotate Pol of every particle in @p pc by half its own dt (Thomas-BMT), with the
+    /// current P, E and B. P, E, B and Pol are all along the bunch-frame axes.
+    void evolveSpinHalfStep(PartBunch_t::ParticleContainer_t& pc);
 
     /** @brief Build the current tracker-frame context and dispatch the configured space-charge
      * solve. */

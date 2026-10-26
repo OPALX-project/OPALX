@@ -55,9 +55,9 @@
  *    rotations under uniform @f$B_z@f$ and checks that @f$|\vec P|@f$ stays
  *    1 to double precision, validating that the Rodrigues form does
  *    not let @f$|\vec P|@f$ drift across many steps.
- *  - **SpinTBMTPusherTest::LargeStepIsSplitAndKeepsExactAngle** — a muon at
- *    @f$\gamma = 1.1@f$ moving along a uniform @f$B_z@f$, with one step long
- *    enough (2.3 rad) that the pusher splits it into 24 sub-steps. The spin
+ *  - **SpinTBMTPusherTest::LargeStepKeepsExactAngle** — a muon at
+ *    @f$\gamma = 1.1@f$ moving along a uniform @f$B_z@f$, with one long step
+ *    (2.3 rad). The spin
  *    must end at @f$(\cos\phi, \sin\phi, 0)@f$ with
  *    @f$\phi = (1 + a_\mu)\,\omega_c\,\Delta t@f$ (the @f$\vec\beta\cdot\vec B@f$
  *    term reduces @f$G + 1/\gamma@f$ to @f$(1 + G)/\gamma@f$ here).
@@ -188,12 +188,11 @@ TEST_F(SpinTBMTPusherTest, PreservesMagnitudeOverManySteps) {
     EXPECT_NEAR(std::sqrt(mag2), 1.0, 1.0e-12);
 }
 
-TEST_F(SpinTBMTPusherTest, LargeStepIsSplitAndKeepsExactAngle) {
+TEST_F(SpinTBMTPusherTest, LargeStepKeepsExactAngle) {
     // mu- at gamma = 1.1 moving along a uniform B_z: v || B, so
     //   Omega = (|q|/m) (1 + G) / gamma * B, along +z for q < 0.
-    // dt = 3 ns gives phi = 2.3 rad, above maxAngle_m = 0.1 rad, so evolve() splits the step
-    // into ceil(phi / 0.1) = 24 sub-rotations. Rodrigues is exact for constant Omega, so the
-    // split must give exactly the single rotation by phi.
+    // dt = 3 ns gives phi = 2.3 rad. Rodrigues is exact for constant Omega, so one step must
+    // give exactly the rotation by phi.
     const double gamma = 1.1;
     const Vector_t<double, 3> P{0.0, 0.0, std::sqrt(gamma * gamma - 1.0)};
     const Vector_t<double, 3> E{0.0, 0.0, 0.0};
@@ -201,7 +200,7 @@ TEST_F(SpinTBMTPusherTest, LargeStepIsSplitAndKeepsExactAngle) {
     const double dt = 3.0e-9;
 
     const double phi = (1.0 + anom_mu) * cyclotronFreq(1.0, gamma) * dt;
-    ASSERT_GT(phi, 20.0 * SpinTBMTPusher::maxAngle_m);
+    ASSERT_GT(phi, 2.0);
 
     ippl::Vector<double, 3> Pol{1.0, 0.0, 0.0};
     SpinTBMTPusher pusher;
