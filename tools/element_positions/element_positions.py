@@ -29,17 +29,23 @@ beam actually sees:
 
 * Bends are swept along their design path using the aperture cross-section
   (rectangle or ellipse).
-* Solenoids are drawn as hollow tubes so the bore is visible.
+* Solenoids and drifts are drawn as hollow tubes — box tubes for rectangular
+  apertures, cylinders for circular/elliptical ones — so the bore and the
+  vacuum chamber are visible.
 
 Use ``--simple-geometry`` to fall back to faster schematic shapes (circular bend
 tubes and solid solenoids).
 
 Elements whose transverse extent is unset or absurd (the 1e6 m "infinite
-aperture" default, e.g. for MONITORs) are clamped to a representative radius:
-the user-supplied --clamp-radius if given, otherwise the reference_transverse
-radius that opalx derived from the beamline (half the transverse support of the
-first element that has one), otherwise 0.1 m. Clamped elements carry a
-``clamped`` field-data flag.
+aperture" default, e.g. for MONITORs) are clamped to representative
+semi-axes: the user-supplied --clamp-radius if given, otherwise the median
+bounded transverse extent among the beamline's non-solenoid elements (a
+typical bore aperture, preserving its aspect ratio), otherwise the
+reference_transverse semi-axes that opalx derived from the beamline,
+otherwise 0.1 m. Drifts additionally cap each semi-axis at that beam-tube
+scale so placeholder "open" apertures (e.g. rectangle(2.0, 0.21)) do not
+stretch the tube into a plate. Clamped elements carry a ``clamped``
+field-data flag.
 
 Requires numpy and pyvista.
 
@@ -173,12 +179,10 @@ def effective_transverse(element, args, reference):
     if args.no_clamp and transverse is not None:
         return (transverse['semi_x'], transverse['semi_y']), False
     if args.clamp_radius is not None:
-        radius = args.clamp_radius
-    elif reference is not None:
-        radius = 0.5 * (reference[0] + reference[1])
-    else:
-        radius = 0.1
-    return (radius, radius), True
+        return (args.clamp_radius, args.clamp_radius), True
+    if reference is not None:
+        return (reference[0], reference[1]), True
+    return (0.1, 0.1), True
 
 
 # -----------------------------------------------------------------------------
@@ -390,8 +394,24 @@ def hollow_tube(length, semi_x, semi_y, inner_scale=0.45, z0=0.0, n=32):
     return sweep_profile(path, loops, caps=False)
 
 
-def box(length, semi_x, semi_y):
-    return pv.Box(bounds=[-semi_x, semi_x, -semi_y, semi_y, 0.0, length])
+def hollow_rectangular_loop(outer_semi_x, outer_semi_y, inner_scale=0.45):
+    """Return outer and inner rectangular loops for a hollow box tube.
+
+    The inner loop is reversed so that its winding is opposite to the outer
+    loop, which keeps the side-surface normals consistent.
+    """
+    outer = rectangular_loop(outer_semi_x, outer_semi_y)
+    inner = rectangular_loop(
+        inner_scale * outer_semi_x, inner_scale * outer_semi_y
+    )[::-1]
+    return [outer, inner]
+
+
+def hollow_rectangular_tube(length, semi_x, semi_y, inner_scale=0.45, z0=0.0):
+    """Open hollow rectangular tube along local z."""
+    path = np.array([[0.0, 0.0, z0], [0.0, 0.0, z0 + length]])
+    loops = hollow_rectangular_loop(semi_x, semi_y, inner_scale)
+    return sweep_profile(path, loops, caps=False)
 
 
 def build_quadrupole(length, semi_x, semi_y):
@@ -569,17 +589,29 @@ class OpalXMultipoleSource(OpalXElementSource):
 
 
 class OpalXDriftSource(OpalXElementSource):
-    """Drift / collimator / stop: cylinder or rectangular box from aperture."""
+    """Drift / collimator / stop: hollow tube using the aperture shape.
+
+    Rectangular apertures draw a box tube, circular/elliptical ones a
+    cylinder. Each semi-axis is capped at the beam-tube scale so
+    placeholder "open" apertures (e.g. rectangle(2.0, 0.21)) do not
+    stretch the tube into a plate.
+    """
 
     def execute(self):
         (semi_x, semi_y), clamped = self._effective_transverse()
         length = self.element.get('length', 0.0)
         if length <= 0.0:
             return None
-        if self.element.get('transverse', {}).get('kind') == 'rectangular':
-            mesh = box(length, semi_x, semi_y)
+        raw_x, raw_y = semi_x, semi_y
+        if not self.args.no_clamp:
+            cap_x, cap_y = self.reference if self.reference is not None else (0.1, 0.1)
+            semi_x = min(semi_x, cap_x)
+            semi_y = min(semi_y, cap_y)
+        clamped = bool(clamped or semi_x != raw_x or semi_y != raw_y)
+        if (self.element.get('transverse') or {}).get('kind') == 'rectangular':
+            mesh = hollow_rectangular_tube(length, semi_x, semi_y)
         else:
-            mesh = cylinder(length, semi_x, semi_y, capped=self.args.capped)
+            mesh = hollow_tube(length, semi_x, semi_y)
         mesh = place(mesh, self.element)
         return self._add_metadata(mesh, clamped)
 
@@ -728,7 +760,7 @@ def main(argv=None):
     parser.add_argument(
         '--capped',
         action='store_true',
-        help='close the ends of drift tubes, bends, and generic elements '
+        help='close the ends of bends and generic elements '
         '(default: open tubes so the beam vacuum is visible)',
     )
     parser.add_argument(
@@ -753,6 +785,25 @@ def main(argv=None):
     reference = data.get('reference_transverse')
     if reference is not None:
         reference = (reference['semi_x'], reference['semi_y'])
+
+    # Representative bore semi-axes: the median bounded transverse extent
+    # among the machine's aperture-bearing elements. Solenoids report outer
+    # support envelopes and drifts/collimators report slit definitions with
+    # placeholder "open" axes, so all three are excluded. Unset-aperture
+    # elements are clamped to this so they render as beam-pipe-sized tubes;
+    # the opalx reference is only a fallback.
+    bores = [
+        e['transverse']
+        for e in data['elements']
+        if e.get('type') not in ('SOLENOID', 'DRIFT', 'COLLIMATOR')
+        and isinstance(e.get('transverse'), dict)
+        and 0.0 < e['transverse'].get('semi_x', 0.0) <= args.clamp_threshold
+        and 0.0 < e['transverse'].get('semi_y', 0.0) <= args.clamp_threshold
+    ]
+    if bores:
+        semi_xs = sorted(t['semi_x'] for t in bores)
+        semi_ys = sorted(t['semi_y'] for t in bores)
+        reference = (semi_xs[len(semi_xs) // 2], semi_ys[len(semi_ys) // 2])
 
     if args.color_by_etype:
         group_colors = ETYPE_COLORS

@@ -118,8 +118,11 @@ bool MeshGenerator::getTransverseSupport(const ElementBase& element, double& min
                 || !isBoundedMeshHalfSize(apert.second[1])) {
                 return false;
             }
-            minor = apert.second[0];
-            major = apert.second[1];
+            // Convention shared with the solenoid/fieldmap branches above and
+            // the tube factories: major is the horizontal (x) semi-axis,
+            // minor the vertical (y) one.
+            minor = apert.second[1];
+            major = apert.second[0];
             return true;
         default:
             return false;
@@ -141,8 +144,8 @@ void MeshGenerator::add(const ElementBase& element) {
         const Geometry& geometry = element.getGeometry();
         // Unbounded tracking apertures do not describe a drawable magnet body.
         // Reuse the representative support, or a 50 mm display-only half-size.
-        double horizontalHalfSize = hasDriftReference_m ? driftMinor_m : 0.05;
-        double verticalHalfSize   = hasDriftReference_m ? driftMajor_m : 0.05;
+        double horizontalHalfSize = hasDriftReference_m ? driftMajor_m : 0.05;
+        double verticalHalfSize   = hasDriftReference_m ? driftMinor_m : 0.05;
         if ((aperture.first == ApertureType::RECTANGULAR
              || aperture.first == ApertureType::ELLIPTICAL)
             && aperture.second.size() >= 2 && isBoundedMeshHalfSize(aperture.second[0])
@@ -185,13 +188,24 @@ void MeshGenerator::add(const ElementBase& element) {
         mesh        = getTube(end - start, 0.7 * minor, 0.7 * major, minor, major);
         mesh.type_m = DRIFT;
     } else if (element.getType() == ElementType::DRIFT) {
-        if (!hasDriftReference_m) {
+        // Prefer the drift's own bounded aperture so the tube matches the
+        // real bore, capped per axis at the representative support so
+        // placeholder "open" apertures (e.g. rectangle(2.0, 0.21)) do not
+        // stretch the tube into a plate.
+        double minor = driftMinor_m;
+        double major = driftMajor_m;
+        const auto apert = element.getAperture();
+        if (apert.second.size() >= 2 && isBoundedMeshHalfSize(apert.second[0])
+            && isBoundedMeshHalfSize(apert.second[1])) {
+            major = std::min(apert.second[0], major);
+            minor = std::min(apert.second[1], minor);
+        }
+        if (minor <= 0.0 || major <= 0.0) {
             return;
         }
         start      = 0.0;
         double end = element.getGeometry().getElementLength();
-        mesh       = getTube(
-                end - start, 0.7 * driftMinor_m, 0.7 * driftMajor_m, driftMinor_m, driftMajor_m);
+        mesh       = getTube(end - start, 0.7 * minor, 0.7 * major, minor, major);
         mesh.type_m = DRIFT;
     } else {
         double end, length;
