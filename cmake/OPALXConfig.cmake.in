@@ -2,15 +2,6 @@
 
 include(CMakeFindDependencyMacro)
 
-# Link prerequisites for the installed OPALX library:
-#   - MPI is found through find_dependency below.
-#   - The fetched reference LAPACKE (double-precision, built via
-#     FetchContent from Reference-LAPACK 3.12.1) is installed alongside
-#     libopalx and exported in OPALXTargets.cmake, so its symbols
-#     resolve from the install tree.
-#   - HDF5, H5hut, and ZLIB are fetched at build time and are not
-#     exported; consumers must provide compatible libraries from the
-#     toolchain environment used for the build.
 find_dependency(MPI REQUIRED)
 
 # -----------------------------------------------------------------------------
