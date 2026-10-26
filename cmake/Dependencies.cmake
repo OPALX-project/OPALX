@@ -92,9 +92,9 @@ endif()
 # Disable compile time assert (used by IPPL)
 add_definitions (-DNOCTAssert)
 
-# Allow user to specify branch/tag, default to master. Numeric release versions such as
-# 3.2.0 are accepted as shorthand for IPPL-3.2.0.
-set(IPPL_GIT_TAG "master" CACHE STRING "Branch, tag, commit, or release version for IPPL (default: master)")
+# Allow user to specify branch/tag, default to 3.4.0. Numeric release versions such as
+# 3.4.0 are accepted as shorthand for IPPL-3.4.0 and master refers to current IPPL master.
+set(IPPL_GIT_TAG "3.4.0" CACHE STRING "Branch, tag, commit, or release version for IPPL (default: 3.4.0)")
 set(_opalx_ippl_fetch_ref "${IPPL_GIT_TAG}")
 if("${_opalx_ippl_fetch_ref}" MATCHES "^[0-9]+(\\.[0-9]+)*$")
     set(_opalx_ippl_fetch_ref "IPPL-${_opalx_ippl_fetch_ref}")
@@ -113,9 +113,6 @@ else()
 endif()
 message(STATUS "IPPL shallow fetch: ${_opalx_ippl_git_shallow}")
 
-if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose build type" FORCE)
-endif()
 message(STATUS "Build type is: ${CMAKE_BUILD_TYPE}")
 
 FetchContent_Declare(
