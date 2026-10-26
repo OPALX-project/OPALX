@@ -101,36 +101,6 @@ namespace opalx::spacecharge {
                 });
     }
 
-    void RelativisticFieldComposer::addParticleContribution(
-            const VectorView& electricRest, VectorAttribute& electricDestination,
-            VectorAttribute& magneticDestination, std::size_t localCount,
-            const Policy& policy) const {
-        if (policy.sourceRule != FieldSourceRule::Direct) {
-            throw OpalException(
-                    "RelativisticFieldComposer::addParticleContribution",
-                    "Particle contributions support only the direct source rule.");
-        }
-        if (electricRest.extent(0) < localCount) {
-            throw OpalException(
-                    "RelativisticFieldComposer::addParticleContribution",
-                    "The rest-frame particle field is shorter than the local particle count.");
-        }
-        const LorentzBoost boost            = LorentzBoost::from(policy);
-        const VectorView::const_type source = electricRest;
-        auto electricView                   = electricDestination.getView();
-        auto magneticView                   = magneticDestination.getView();
-        Kokkos::parallel_for(
-                "RelativisticFieldComposer::addParticleContribution",
-                Kokkos::RangePolicy<Kokkos::DefaultExecutionSpace>(0, localCount),
-                KOKKOS_LAMBDA(const std::size_t index) {
-                    Vector electricLab;
-                    Vector magneticLab;
-                    boost.toLab(source(index), electricLab, magneticLab);
-                    electricView(index) += electricLab;
-                    magneticView(index) += magneticLab;
-                });
-    }
-
     void RelativisticFieldComposer::gatherElectrostatic(
             ParticleMeshTransfer& particleMeshTransfer, VectorAttribute& destination,
             const PositionAttribute& positions, FieldStorage& fieldStorage) const {
