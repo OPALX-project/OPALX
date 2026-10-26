@@ -131,9 +131,9 @@ endif()
 # -----------------------------------------------------------------------------
 
 set(OPALX_KOKKOS_ARCHITECTURES
-    HOPPER90 AMPERE80 AMPERE86 AMPERE87 VOLTA70 VOLTA72 PASCAL61 PASCAL60 ADA102
+    HOPPER90 AMPERE80 AMPERE86 AMPERE87 VOLTA70 VOLTA72 PASCAL61 PASCAL60 ADA89
     BLACKWELL100 BLACKWELL103 BLACKWELL120 BLACKWELL121
-    AMD_GFX1101 AMD_GFX1151 AMD_GFX1152
+    AMD_GFX90A AMD_GFX942 AMD_GFX942_APU AMD_GFX1101 AMD_GFX1151 AMD_GFX1152
     BDW SKX CNL ZEN ZEN2 ZEN3 ARM80 ARM81
     INTEL_GEN9 INTEL_GEN11 INTEL_GEN12LP INTEL_DG1 INTEL_XEHP INTEL_PVC)
 
@@ -150,6 +150,19 @@ endforeach()
 if(NOT ARCH AND Kokkos_ARCH_FLAG)
     string(REGEX REPLACE "^Kokkos_ARCH_" "" ARCH "${Kokkos_ARCH_FLAG}")
     set(ARCH "${ARCH}" CACHE STRING "" FORCE)
+endif()
+
+# Validate the requested architecture against the supported set so that
+# misspelled or raw ROCm/CUDA names (e.g. gfx90a instead of AMD_GFX90A)
+# fail loudly instead of silently creating a bogus Kokkos_ARCH_<name> cache
+# variable that is never consumed by Kokkos.
+if(ARCH AND NOT ARCH IN_LIST OPALX_KOKKOS_ARCHITECTURES)
+    string(REPLACE ";" ", " _opalx_supported_archs "${OPALX_KOKKOS_ARCHITECTURES}")
+    message(FATAL_ERROR
+        "ARCH='${ARCH}' is not a supported Kokkos architecture. "
+        "Supported values are: ${_opalx_supported_archs}. "
+        "See https://kokkos.org/kokkos-core-wiki/get-started/configuration-guide.html#gpu-architectures "
+        "for the architectures supported by Kokkos.")
 endif()
 
 # Enable selected arch (if provided)
@@ -174,7 +187,10 @@ endif()
 
 # Validate architecture configuration for non-CUDA backends
 if("HIP" IN_LIST OPALX_PLATFORMS)
-    if(ARCH MATCHES "^AMD_GFX([0-9A-Fa-f]+)$")
+    # Accept both plain AMD_GFX<hex> names and Kokkos variants with a
+    # suffix (e.g. AMD_GFX942_APU for MI300A): the hex part selects the
+    # gfx target and any suffix is ignored for CMAKE_HIP_ARCHITECTURES.
+    if(ARCH MATCHES "^AMD_GFX([0-9A-Fa-f]+)")
         string(TOLOWER "gfx${CMAKE_MATCH_1}" _opalx_hip_architecture)
         set(CMAKE_HIP_ARCHITECTURES "${_opalx_hip_architecture}" CACHE STRING
             "HIP GPU architecture (auto-derived from ARCH=${ARCH})" FORCE)
@@ -219,7 +235,6 @@ option(OPALX_ENABLE_SANITIZER "Enable sanitizer(s)" OFF)
 option(OPALX_USE_ALTERNATIVE_VARIANT
        "Use modified variant implementation (required for CUDA 12.2 + GCC 12.3.0)" OFF)
 option(OPALX_USE_STANDARD_FOLDERS "Put all generated binaries in bin/lib folders" OFF)
-option(OPALX_SKIP_FAILING_TESTS "Do not build/test tests that are currently marked as failing" OFF)
 option(OPALX_ENABLE_SCRIPTS "Generate job script templates for some benchmarks/tests" OFF)
 option(OPALX_FIELD_DEBUG "Enable FieldSolver field-dump debug code" OFF)
 option(OPALX_USE_KOKKOS_MATH_CONSTANTS "Use Kokkos mathematical constants in Physics.h" ON)
@@ -236,9 +251,6 @@ if(OPALX_USE_KOKKOS_MATH_CONSTANTS)
 else()
   colour_message(STATUS ${Cyan} "ℹ️  Kokkos math constants disabled (using literal constants in Physics.h)")
 endif()
-
-# Keep high-signal toggles visible in configure output.
-message(STATUS "🔧 Skip failing tests (OPALX_SKIP_FAILING_TESTS): ${OPALX_SKIP_FAILING_TESTS}")
 
 # "Build OPALX as a shared library (ON) or static library (OFF)" OFF) 
 if(OPALX_DYL)
