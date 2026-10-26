@@ -7,5 +7,8 @@ add_opalx_test(TestDirichletPlaneWriter USE_GTEST_MAIN)
 add_opalx_test(TestLaser USE_GTEST_MAIN)
 add_opalx_test(TestBeam USE_GTEST_MAIN)
 add_opalx_test(TestLossDataSink USE_GTEST_MAIN)
+add_opalx_test(TestLossDataSinkMPI
+              SOURCES TestLossDataSink.cpp NUM_PROCS 2 TIMEOUT 60 USE_GTEST_MAIN
+              ARGS --gtest_filter=LossDataSinkTest.EmptySinkDestructionIsRankLocal:LossDataSinkTest.EmptySinkUnwindingIsRankLocal:LossDataSinkTest.AsciiCreationDecisionIsCollectiveAcrossFileViews:LossDataSinkTest.OutputInspectionFailureIsCollective)
 add_opalx_test(TestCheckpointFile USE_GTEST_MAIN)
 add_opalx_test(TestMeshGenerator USE_GTEST_MAIN)

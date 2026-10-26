@@ -69,6 +69,10 @@ struct ScalingFFAMagnetConfig {
     Kokkos::Array<double, CoefficientCount> dfCoefficients_m{};
 };
 
+namespace scaling_ffa_detail {
+    struct FieldEvaluator;
+}
+
 class ScalingFFAMagnet : public ElementBase {
 public:
     /** Construct a new ScalingFFAMagnet
@@ -83,19 +87,24 @@ public:
     /** Inheritable copy constructor */
     ScalingFFAMagnet* clone() const override;
 
-    /** Calculate the field for particles in the container
+    /** Add this element's field to each particle's magnetic-field accumulator.
      *
-     *  \param pc the set of particles for which the field is calculated
+     * Positions are local Cartesian coordinates [m] and magnetic fields are [T].
+     * Existing contributions are preserved, including outside this element's
+     * support, where its own contribution is zero. The electric field is unchanged.
+     * This superposition contract matches the scalar/reference apply path.
+     * \param pc the particle container holding positions and field accumulators
      */
     void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
-    /** Calculate the field at some arbitrary position
+    /** Add this element's local Cartesian magnetic field to B.
      *
-     *  \param R position in the local coordinate system of the bend
-     *  \param P not used
-     *  \param t not used
-     *  \param E not used
-     *  \param B calculated magnetic field
+     * Outside support this adds zero, preserving other elements' contributions.
+     * \param R local Cartesian position [m]
+     * \param P not used
+     * \param t not used
+     * \param E electric-field accumulator [V/m], unchanged
+     * \param B magnetic-field accumulator [T], incremented by this element
      */
     void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
@@ -107,11 +116,14 @@ public:
         apply(R, P, t, E, B);
         return false;
     }
-    /** Calculate the field for particles in the container
+    /** Replace B with this element's field for the supplied local positions.
      *
-     *  \param pc the set of particles for which the field is calculated
-     *
-     *  This is a static function so that it can call the GPU
+     * Unlike apply(), this raw getter overwrites every output, including zero
+     * outside support. It shares the same device calculation as accumulation.
+     * \param config field parameters in SI units (angles in radians)
+     * \param endField azimuthal fringe-field model
+     * \param R local Cartesian positions [m] in device-accessible memory
+     * \param B local Cartesian magnetic fields [T], overwritten
      */
     static void getFieldValue(
             const ScalingFFAMagnetConfig& config,
@@ -146,12 +158,9 @@ public:
             const ScalingFFAMagnetConfig& config, const C& derivatives,
             const Vector_t<double, 5>& Rcyl, Vector_t<double, 3>& B);
 
-    /** Calculate the field at some arbitrary position in cylindrical coordinates
-     *
-     *  \param R position in the local coordinate system of the bend, in
-     *           CHECK cartesian polar coordinates defined like (r, y, phi)
-     *  \param B CARTESIAN??? calculated magnetic field defined like (Br, By, Bphi)
-     *  \returns true if particle is outside the field map, else false
+    /** Replace B with this element's local Cartesian magnetic field.
+     * \param R local Cartesian position [m]
+     * \param B local Cartesian magnetic field [T], overwritten, zero outside support
      */
     void getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const;
 
@@ -340,6 +349,8 @@ public:
     bool isInside(const Vector_t<double, 3>& r) const override;
 
 private:
+    friend struct scaling_ffa_detail::FieldEvaluator;
+
     /** Calculate the df coefficients, ready for field generation
      *
      *  Must be called following any update to the the field parameters, in
@@ -370,17 +381,42 @@ private:
     mutable bool efmInitialised_m = false;
 };
 
+namespace scaling_ffa_detail {
+    /** Internal shared launcher for raw lookup and element superposition.
+     * The uniform flag changes only the final Cartesian field store [T]. No
+     * additional view, kernel launch, transformation or support test is needed.
+     * The launcher is namespace scoped because NVCC extended device lambdas
+     * cannot be enclosed by a private class member function.
+     */
+    struct FieldEvaluator {
+        static void evaluate(
+                const ScalingFFAMagnetConfig& config,
+                const std::shared_ptr<endfieldmodel::EndFieldModel> endField,
+                const Kokkos::View<Vector_t<double, 3>*> R,
+                const Kokkos::View<Vector_t<double, 3>*> B, bool accumulate);
+    };
+}  // namespace scaling_ffa_detail
+
 inline void ScalingFFAMagnet::getFieldValue(
         const ScalingFFAMagnetConfig& config,
         const std::shared_ptr<endfieldmodel::EndFieldModel> endField,
         const Kokkos::View<Vector_t<double, 3>*> R, const Kokkos::View<Vector_t<double, 3>*> B) {
+    scaling_ffa_detail::FieldEvaluator::evaluate(config, endField, R, B, false);
+}
+
+inline void scaling_ffa_detail::FieldEvaluator::evaluate(
+        const ScalingFFAMagnetConfig& config,
+        const std::shared_ptr<endfieldmodel::EndFieldModel> endField,
+        const Kokkos::View<Vector_t<double, 3>*> R, const Kokkos::View<Vector_t<double, 3>*> B,
+        bool accumulate) {
     const size_t count = R.size();
     Kokkos::View<Vector_t<double, 5>*> Rcyl("Rcyl", count);
     Kokkos::View<Vector_t<double, 3>*> Bcyl("Bcyl", count);
     Kokkos::View<double**> derivatives("derivatives", count, config.maxOrder_m + 2);
     Kokkos::parallel_for(
-            "ScalingFFAMagnet::getCylindricalCoordinates()", count,
-            KOKKOS_LAMBDA(const size_t i) { getCylindricalCoordinates(config, R(i), Rcyl(i)); });
+            "ScalingFFAMagnet::getCylindricalCoordinates()", count, KOKKOS_LAMBDA(const size_t i) {
+                ScalingFFAMagnet::getCylindricalCoordinates(config, R(i), Rcyl(i));
+            });
     Kokkos::View<double*> phiSpiral("phiSpiral", count);
     Kokkos::parallel_for(
             "ScalingFFAMagnet::phiSpiral", count, KOKKOS_LAMBDA(const size_t i) {
@@ -390,8 +426,14 @@ inline void ScalingFFAMagnet::getFieldValue(
     Kokkos::parallel_for(
             "ScalingFFAMagnet::getFieldValue()", count, KOKKOS_LAMBDA(const size_t i) {
                 auto derivatives_i = Kokkos::subview(derivatives, i, Kokkos::ALL);
-                getFieldValueCylindrical(config, derivatives_i, Rcyl(i), Bcyl(i));
-                rotateBfield(config, Rcyl(i), Bcyl(i), B(i));
+                ScalingFFAMagnet::getFieldValueCylindrical(config, derivatives_i, Rcyl(i), Bcyl(i));
+                Vector_t<double, 3> contribution;
+                ScalingFFAMagnet::rotateBfield(config, Rcyl(i), Bcyl(i), contribution);
+                if (accumulate) {
+                    B(i) += contribution;
+                } else {
+                    B(i) = contribution;
+                }
             });
 }
 

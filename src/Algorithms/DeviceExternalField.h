@@ -8,34 +8,67 @@
 #include <set>
 #include <vector>
 #include "AbsBeamline/BendFieldModel.h"
+#include "AbsBeamline/CyclotronSector.h"
 #include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/RFCavity.h"
 #include "Algorithms/CompensatedSum.h"
+#include "Algorithms/TrackReferenceStep.h"
 #include "Steppers/BorisPusher.h"
+#include "Utilities/ElementList.h"
 
 class OpalBeamline;
 
-/** Internal device geometry for analytic ring elements. Geometry and
- * coefficients are uploaded once. Production ParallelTracker uses these
- * descriptors only to select spatial field candidates and test support changes;
- * fields and particle updates use its ordinary element kernels and Boris/PIC
+/** Internal field-candidate selection and device geometry for ring elements.
+ * Analytic geometry and coefficients are uploaded once. Mapped cyclotron
+ * candidates are selected separately on the host using their native geometry;
+ * this does not extend Builder eligibility. Production ParallelTracker uses
+ * analytic descriptors only to select spatial field candidates and test support
+ * changes; fields and particle updates use its ordinary element kernels and Boris/PIC
  * sequence. Positions [m], momenta p/(mc), time [s], mass energy [eV], B [T].
- * The independent external-only transport helpers remain a unit-test oracle;
- * they are not called by production particle tracking. Aperture-loss ownership
- * remains a separate tracking operation.
+ * Analytic external-only transport helpers remain a unit-test oracle. The separate
+ * CyclotronLattice capability transports production mapped-sector/thin-gap particles. Aperture-loss
+ * ownership remains a separate tracking operation.
  */
 namespace device_external {
     using Vector = Vector_t<double, 3>;
 
     /** Return selected occurrences in the beamline's prepared order.
-     * Host-only ordering for the bare analytic-ring callbacks: repeated frame
-     * transformations must not depend on allocated element addresses. Selection
-     * remains set-valued; distinct same-name occurrences are preserved, while a
+     * Host-only ordering for spatial analytic-ring and mapped cyclotron callbacks:
+     * repeated frame transformations must not depend on allocated element
+     * addresses. Selection remains set-valued; distinct same-name occurrences
+     * are preserved, while a
      * repeated pointer is applied once. Unknown candidates throw rather than
      * silently omitting a field. Does not change geometry, field formulas,
      * descriptor indices, or the legacy ordering used by other tracking modes.
      */
     std::vector<std::shared_ptr<ElementBase>> orderedCandidates(
             OpalBeamline&, const std::set<std::shared_ptr<ElementBase>>&);
+
+    /** @brief Could a tracking-frame AABB intersect a cyclotron angular wedge?
+     *
+     * Host-side conservative selection using the current bunch bounds [m]. For
+     * sector angle 0<a<=pi and local X=x+Rm, the wedge lies in z>=0 and
+     * sin(a)*X-cos(a)*z>=0. Reject only when every transformed corner violates a
+     * half-plane. The 64 epsilon scale margin broadens candidates only; native
+     * device field kernels retain radial/vertical bounds and half-open seams.
+     * Invalid bounds/geometry conservatively retain the candidate.
+     */
+    bool cyclotronSectorMayIntersect(
+            const Geometry&, const CoordinateSystemTrafo& toLocal, const Vector& minimum,
+            const Vector& maximum);
+
+    /** @brief Replace mapped cyclotron membership using current spatial bounds.
+     *
+     * A periodic path index describes the threader's first orbit, not every
+     * TRACK midpoint or particle orbit. Preserve all non-cyclotron candidates;
+     * select supplied sectors using the same misaligned transform as ordinary
+     * element callbacks. Bounds are already on the host, so selection requires
+     * no particle copies or additional MPI collectives. This host capability is
+     * independent of analytic Builder::supports and introduces no descriptors.
+     */
+    std::set<std::shared_ptr<ElementBase>> selectCyclotronCandidates(
+            const ElementList& sectors, const CoordinateSystemTrafo& toLab, const Vector& minimum,
+            const Vector& maximum, std::set<std::shared_ptr<ElementBase>> mapped);
 
     /// Device value representation of CoordinateSystemTrafo (parent -> local).
     struct Rigid {
@@ -52,6 +85,125 @@ namespace device_external {
         }
         KOKKOS_INLINE_FUNCTION Vector vectorFrom(const Vector& p) const {
             return prod_vector_transpose(rotation, p);
+        }
+    };
+
+    /** Explicit mapped-cyclotron capability, separate from analytic Builder.
+     * Descriptors borrow immutable device map storage and perform no host calls.
+     * Positions [m], momenta p/(mc), mass rest energy [eV]; laboratory SI fields.
+     * Native sector kernels retain exact radial/vertical/angular support.
+     * Magnetic/self-field kicks assume charge +1. Production tracking restricts
+     * this capability to unpolarized positive protons, without restart.
+     */
+    struct MappedCyclotronSector {
+        Rigid frame;
+        CyclotronSector::DeviceField field;
+    };
+    struct CyclotronGap {
+        Rigid frame;
+        RFCavity::DeviceGap field;
+    };
+    struct CyclotronLattice {
+        Kokkos::View<MappedCyclotronSector*> sectors;
+        Kokkos::View<CyclotronGap*> gaps;
+        /// Drift-kick-drift in the spatial magnetic map; no self fields or RF.
+        KOKKOS_INLINE_FUNCTION bool magnetic(Vector& r, Vector& p, double dt, double mass) const {
+            Vector x = r, v = p;
+            x += (0.5 * dt * Physics::c / Kokkos::sqrt(1 + dot(v, v))) * v;
+            Vector b(0);
+            bool supported = false;
+            for (size_t j = 0; j < sectors.extent(0); ++j) {
+                const auto& sector = sectors(j);
+                Vector localB(0);
+                supported = sector.field.add(sector.frame.pointTo(x), localB) || supported;
+                b += sector.frame.vectorFrom(localB);
+            }
+            if (!supported) return false;
+            BorisPusher().kick(x, v, Vector(0), b, dt, mass, 1);
+            x += (0.5 * dt * Physics::c / Kokkos::sqrt(1 + dot(v, v))) * v;
+            r = x;
+            p = v;
+            return true;
+        }
+
+        /// Device policy: one visit per gap, no per-particle energy-target stop.
+        struct EventPolicy {
+            const CyclotronLattice& lattice;
+            unsigned long long visitedMask = 0;
+            KOKKOS_INLINE_FUNCTION size_t count() const { return lattice.gaps.extent(0); }
+            KOKKOS_INLINE_FUNCTION bool magnetic(
+                    Vector& r, Vector& p, double dt, double, double mass) const {
+                return lattice.magnetic(r, p, dt, mass);
+            }
+            KOKKOS_INLINE_FUNCTION double distance(size_t j, const Vector& r) const {
+                return lattice.gaps(j).frame.pointTo(r)(2);
+            }
+            KOKKOS_INLINE_FUNCTION bool supports(size_t j, const Vector& r) const {
+                const auto& gap = lattice.gaps(j);
+                return gap.field.supports(gap.frame.pointTo(r)(0));
+            }
+            KOKKOS_INLINE_FUNCTION bool kick(
+                    size_t j, const Vector& r, Vector& p, double t, double mass) const {
+                const auto& gap = lattice.gaps(j);
+                auto localP     = gap.frame.vectorTo(p);
+                if (!gap.field.apply(gap.frame.pointTo(r)(0), t, mass, localP)) return false;
+                p = gap.frame.vectorFrom(localP);
+                return true;
+            }
+            KOKKOS_INLINE_FUNCTION bool visited(size_t j) const {
+                return visitedMask & (1ULL << j);
+            }
+            KOKKOS_INLINE_FUNCTION void markVisited(size_t j) { visitedMask |= 1ULL << j; }
+            KOKKOS_INLINE_FUNCTION bool accepted(
+                    size_t, const Vector&, const Vector&, double) const {
+                return false;
+            }
+        };
+
+        /** Magnetic transport with independently timed thin RF kicks.
+         * The shared event search operates on copies, so a failed particle leaves
+         * its live state intact. The caller owns bunch-level failure handling.
+         * No allocations/collectives; at most 64 gap descriptors on this path.
+         * terminalEndpoint includes a roundoff-short final gap crossing only
+         * after the reference has completed its EKINSTOP kick. frameSteps is the
+         * accepted global step count including this final step; rf_event::advance
+         * uses it only for accumulated frame-arithmetic endpoint resolution.
+         */
+        KOKKOS_INLINE_FUNCTION bool advance(
+                Vector& position, Vector& momentum, double time, double dt, double mass,
+                rf_event::Diagnostic* diagnostic = nullptr, bool terminalEndpoint = false,
+                unsigned long long frameSteps = 1) const {
+            if (gaps.extent(0) > 64 || !(dt >= 0)) {
+                if (diagnostic)
+                    diagnostic->set(rf_event::Failure::InvalidStep, position, momentum, time);
+                return false;
+            }
+            Vector r = position, p = momentum;
+            EventPolicy policy{*this};
+            if (!rf_event::advance(
+                         r, p, time, dt, mass, policy, diagnostic, terminalEndpoint, frameSteps)
+                         .success)
+                return false;
+            position = r;
+            momentum = p;
+            return true;
+        }
+
+        /** Frozen gathered self fields [V/m,T], split into Boris half kicks.
+         * PIC prediction, solve/gather, and accepted duration belong to the tracker.
+         * This thin-gap approximation does not solve self fields inside RF events.
+         */
+        KOKKOS_INLINE_FUNCTION bool advanceWithSelfFields(
+                Vector& r, Vector& p, const Vector& e, const Vector& b, double t, double dt,
+                double mass, rf_event::Diagnostic* diagnostic = nullptr,
+                bool terminalEndpoint = false, unsigned long long frameSteps = 1) const {
+            Vector x = r, v = p;
+            BorisPusher().kick(x, v, e, b, .5 * dt, mass, 1);
+            if (!advance(x, v, t, dt, mass, diagnostic, terminalEndpoint, frameSteps)) return false;
+            BorisPusher().kick(x, v, e, b, .5 * dt, mass, 1);
+            r = x;
+            p = v;
+            return true;
         }
     };
 
