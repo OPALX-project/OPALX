@@ -644,18 +644,19 @@ void ParallelTracker::execute() {
     // Particle channel handles — needed to update transforms each step.
     std::vector<ippl::ParticleChannelHandle> catalystParticleHandles;
 
+    auto rowsFromMatrix = [](const matrix3x3_t& m) {
+        return std::array<Vector_t<double, 3>, 3>{
+            Vector_t<double, 3>(m(0, 0), m(0, 1), m(0, 2)),
+            Vector_t<double, 3>(m(1, 0), m(1, 1), m(1, 2)),
+            Vector_t<double, 3>(m(2, 0), m(2, 1), m(2, 2))};
+    };
+
     {
         auto particleContainer = itsBunch_m->getParticleContainer();
 
         // Register particle channels — one per container (supports multi-bunch).
         // Each gets its own transform for bunch-frame visualization.
         // Channel names are generic: particle_bunch_0, particle_bunch_1, ...
-        auto rowsFromMatrix = [](const matrix3x3_t& m) {
-            return std::array<Vector_t<double, 3>, 3>{
-                Vector_t<double, 3>(m(0, 0), m(0, 1), m(0, 2)),
-                Vector_t<double, 3>(m(1, 0), m(1, 1), m(1, 2)),
-                Vector_t<double, 3>(m(2, 0), m(2, 1), m(2, 2))};
-        };
 
         const auto& containers = itsBunch_m->getParticleContainers();
         for (size_t i = 0; i < containers.size(); ++i) {
@@ -982,12 +983,6 @@ void ParallelTracker::execute() {
                 if (step % liveFreq == 0) {
                     // Update the bunch-frame transform on each particle channel
                     // so ParaView can transform geometry into the bunch frame.
-                    auto rowsFromMatrix = [](const matrix3x3_t& m) {
-                        return std::array<Vector_t<double, 3>, 3>{
-                            Vector_t<double, 3>(m(0, 0), m(0, 1), m(0, 2)),
-                            Vector_t<double, 3>(m(1, 0), m(1, 1), m(1, 2)),
-                            Vector_t<double, 3>(m(2, 0), m(2, 1), m(2, 2))};
-                    };
 
                     const auto& containers = itsBunch_m->getParticleContainers();
                     for (size_t i = 0; i < catalystParticleHandles.size() && i < containers.size(); ++i) {
