@@ -1,7 +1,7 @@
 # OPALX Regression Test Pipeline
 
 This document describes the CSCS CI/CD regression test pipeline for OPALX: the file layout,
-every step of the job, how a run is published to the results site, and how to debug failures.
+every step of the job, how a run is published to the results site, and how to debug failures. 
 
 ## Overview
 
@@ -110,8 +110,9 @@ Every step prints a `=== <step> ===` marker in the job log.
    `$BUILD_PATH`, as the unit test stages (`run_*.yml`) do.
 8. **PSI Gitea key.** `PSI_GIT_SSHKEY` (base64 or PEM with whitespace removed) is written to
    `~/.ssh/psi_gitea_key` and checked with `ssh-keygen`. The job fails without it, because
-   the tools come from the private results repository. The log shows the key's fingerprint
-   and Gitea's greeting, which names the key and says whether it is a user or a deploy key.
+   the tools come from the private results repository. The log shows the public key, its
+   fingerprint and Gitea's greeting, which names the key and says whether it is a user or a
+   deploy key.
 9. **Tools.** A sparse, blob-filtered clone of `tools/` of `RESULTS_REPO` at
    `RESULTS_TOOLS_REF` (default `main`). If the key cannot read the repository, the job stops
    here. A `git push --dry-run` of a new branch then checks write access; without it the log
@@ -173,9 +174,8 @@ Artifacts (`when: always`, one week): `regression-results-$BUILD_ARCH`, the pack
 2. **`libippl.so: cannot open shared object file`**: the ctest path fix failed. Check that
    `CACHE_DIR` was read from `CMakeCache.txt`.
 3. **`the key in PSI_GIT_SSHKEY cannot read ...`**: the key has no access to
-   AMAS/opalx-regression. Gitea's greeting just above names the key. Add its public key
-   (`ssh-keygen -y -f KEY`) to the repository as a deploy key with write access, or set a new
-   key.
+   AMAS/opalx-regression. Gitea's greeting just above names the key. Add the public key that
+   step 8 printed to the repository as a deploy key with write access, or set a new key.
 4. **`the key can read but not push`**: a deploy key without write access, or a user without
    write permission on the repository.
 5. **`ctest wrote no unit.xml`**: ctest is older than 3.21, or not the one from the tools
