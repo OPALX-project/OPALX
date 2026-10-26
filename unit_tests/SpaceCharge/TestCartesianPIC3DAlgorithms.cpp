@@ -10,9 +10,11 @@
  *   plain solve and mesh.
  * - P3M with a shifted-Green plane: the image field equals the STANDARD OPEN image, and the
  *   short-range correction is added once, to the real bunch only.
- * - P3M with one bin (`MAXBINS=1`): at rest it reproduces the unbinned P3M solve; a moving pair
- *   follows the Lorentz-boosted Coulomb field with B = v x E / c^2; the shifted-Green image of a
- *   moving bunch still equals the OPEN image.
+ * - Binned P3M: with one bin at rest it reproduces the unbinned P3M solve; a moving pair follows
+ *   the Lorentz-boosted Coulomb field with B = v x E / c^2. With two bins, a close pair across
+ *   the bins follows the Coulomb field of each source boosted with its own velocity. The
+ *   shifted-Green image of a bunch with two energies equals the OPEN image with one and with two
+ *   bins.
  * - A mesh-tied P3M cutoff (`RCUT_CELLS`) gives the same fields as the equivalent fixed cutoff,
  *   also after the mesh spacing changes.
  * - Solve frames: rotated and translated frames give the same fields and restore R and P; a large
@@ -21,7 +23,7 @@
  *   solve with fewer than two primary particles is skipped without blocking later solves.
  *
  * The fixture builds a primary and a secondary particle container, the field storage, and the
- * algorithm on one rank. P3M sorts particles by cell, so the single-bin P3M tests compare runs
+ * algorithm on one rank. P3M sorts particles by cell, so the binned P3M tests compare runs
  * particle by particle at matching positions.
  */
 
@@ -259,14 +261,24 @@ namespace opalx::spacecharge {
                 particles.updateMoments();
             }
 
-            static CartesianPIC3DConfig singleBinP3MConfig() {
+            static CartesianPIC3DConfig binnedP3MConfig(std::size_t maximumBins) {
                 auto result      = config();
                 result.backend   = PoissonSolverType::P3M;
                 result.p3mCutoff = 0.001;
                 result.binning.emplace();
-                result.binning->maximumBins = 1;
+                result.binning->maximumBins = maximumBins;
                 result.binning->adaptive    = false;
                 return result;
+            }
+
+            static void setLongitudinalMomenta(
+                    Particles& particles, const std::array<double, 4>& momenta) {
+                auto momentum = particles.P.getHostMirror();
+                for (std::size_t i = 0; i < momenta.size(); ++i)
+                    momentum(i) = Vector(0.0, 0.0, momenta[i]);
+                Kokkos::deep_copy(particles.P.getView(), momentum);
+                particles.markMomentsDirty();
+                particles.updateMoments();
             }
         };
 
@@ -383,7 +395,7 @@ namespace opalx::spacecharge {
         }
 
         TEST_F(CartesianPIC3DAlgorithmsTest, P3MSingleBinAtRestMatchesUnbinnedP3M) {
-            const auto binnedConfig = singleBinP3MConfig();
+            const auto binnedConfig = binnedP3MConfig(1);
             auto wholeConfig        = binnedConfig;
             wholeConfig.binning.reset();
             Run whole(wholeConfig), binned(binnedConfig);
@@ -408,7 +420,7 @@ namespace opalx::spacecharge {
         }
 
         TEST_F(CartesianPIC3DAlgorithmsTest, P3MSingleBinFollowsBoostedCoulomb) {
-            auto values          = singleBinP3MConfig();
+            auto values          = binnedP3MConfig(1);
             values.grid.meshSize = {32, 32, 32};
             // pz = 4/3 gives gamma = 5/3 and v = 0.8 c along z.
             const double gamma = 5.0 / 3.0;
@@ -464,90 +476,154 @@ namespace opalx::spacecharge {
             }
         }
 
-        TEST_F(CartesianPIC3DAlgorithmsTest, P3MSingleBinShiftedImageMatchesOpenImage) {
-            // pz = 3/4 gives gamma = 5/4, so the image shift and field conversion are boosted.
-            const Vector momentum(0.0, 0.0, 0.75);
-            auto p3mConfig           = singleBinP3MConfig();
-            auto openConfig          = config();
-            openConfig.greenFunction = GreenFunctionType::Standard;
-            openConfig.binning       = p3mConfig.binning;
-            for (double planeZ : {0.0, 0.125}) {
-                p3mConfig.dirichletPlane = {
-                        .kind         = DirichletPlaneType::ShiftedGreen,
-                        .planeZ       = planeZ,
-                        .maximumSteps = 2};
-                openConfig.dirichletPlane       = p3mConfig.dirichletPlane;
-                auto p3mDirectConfig            = p3mConfig;
-                auto openDirectConfig           = openConfig;
-                p3mDirectConfig.dirichletPlane  = {};
-                openDirectConfig.dirichletPlane = {};
-                Run p3mImage(p3mConfig, {}, momentum), openImage(openConfig, {}, momentum);
-                Run p3mDirect(p3mDirectConfig, {}, momentum),
-                        openDirect(openDirectConfig, {}, momentum);
-                for (Run* run : {&p3mImage, &p3mDirect, &openImage, &openDirect})
-                    placeClosePair(run->particles, planeZ);
+        TEST_F(CartesianPIC3DAlgorithmsTest, P3MTwoBinsFollowPerSourceBoostedCoulomb) {
+            auto values          = binnedP3MConfig(2);
+            values.grid.meshSize = {32, 32, 32};
+            Run run(values);
 
-                for (std::size_t step : {0u, 1u}) {
-                    EXPECT_EQ(p3mImage.solve(step).backendSolves, 2u);
-                    EXPECT_EQ(openImage.solve(step).backendSolves, 2u);
-                    EXPECT_EQ(p3mDirect.solve(step).backendSolves, 1u);
-                    EXPECT_EQ(openDirect.solve(step).backendSolves, 1u);
-                    auto host = [](const auto& attribute) {
-                        return Kokkos::create_mirror_view_and_copy(
-                                Kokkos::HostSpace(), attribute.getView());
-                    };
-                    const auto p3mE = host(p3mImage.particles.E), p3mB = host(p3mImage.particles.B);
-                    const auto p3mDirectE   = host(p3mDirect.particles.E),
-                               p3mDirectB   = host(p3mDirect.particles.B);
-                    const auto openE        = host(openImage.particles.E),
-                               openB        = host(openImage.particles.B);
-                    const auto openDirectE  = host(openDirect.particles.E),
-                               openDirectB  = host(openDirect.particles.B);
-                    const std::size_t count = p3mImage.particles.getLocalNum();
-                    const auto toP3MDirect =
-                            matchByPosition(p3mImage.particles, p3mDirect.particles);
-                    const auto toOpen = matchByPosition(p3mImage.particles, openImage.particles);
-                    const auto toOpenDirect =
-                            matchByPosition(p3mImage.particles, openDirect.particles);
-                    ASSERT_EQ(toP3MDirect.size(), count);
-                    ASSERT_EQ(toOpen.size(), count);
-                    ASSERT_EQ(toOpenDirect.size(), count);
+            // The close pair 0-1 spans both bins: pz = 3/4 and 4/3 give gamma = 5/4 and 5/3.
+            // Each bin holds a single momentum, so the mesh has no velocity mismatch and the
+            // near field tests that each source enters with its own gamma and velocity.
+            const std::array<Vector, 4> placed{
+                    Vector(0.0, 0.0, 0.010), Vector(0.0001, 0.00005, 0.0101),
+                    Vector(-0.002, 0.0015, 0.008), Vector(0.0018, -0.002, 0.0125)};
+            auto positions = run.particles.R.getHostMirror();
+            for (std::size_t i = 0; i < placed.size(); ++i)
+                positions(i) = placed[i];
+            Kokkos::deep_copy(run.particles.R.getView(), positions);
+            setLongitudinalMomenta(run.particles, {0.75, 4.0 / 3.0, 0.75, 4.0 / 3.0});
 
-                    // The image is mesh-resolved in both backends; P3M adds its particle term to
-                    // the real bunch once, so it cancels in the image-minus-direct difference.
-                    double electricNorm = 0.0, magneticScale = 0.0;
-                    for (std::size_t i = 0; i < count; ++i) {
-                        for (unsigned d = 0; d < 3; ++d) {
-                            const double imageE =
-                                    openE(toOpen[i])[d] - openDirectE(toOpenDirect[i])[d];
-                            electricNorm += imageE * imageE;
-                            magneticScale = std::max(
-                                    magneticScale,
-                                    std::abs(
-                                            openB(toOpen[i])[d] - openDirectB(toOpenDirect[i])[d]));
-                        }
+            EXPECT_EQ(run.solve().backendSolves, 2u);
+
+            auto host = [](const auto& attribute) {
+                return Kokkos::create_mirror_view_and_copy(
+                        Kokkos::HostSpace(), attribute.getView());
+            };
+            const auto finalR = host(run.particles.R), finalP = host(run.particles.P);
+            const auto electric = host(run.particles.E), magnetic = host(run.particles.B);
+            const double coulomb =
+                    run.particles.getChargePerParticle() / (4.0 * Physics::pi * Physics::epsilon_0);
+            ASSERT_EQ(run.particles.getLocalNum(), placed.size());
+            for (std::size_t i = 0; i < placed.size(); ++i) {
+                // Coulomb field of every other particle in its own rest frame, boosted to lab.
+                Vector expectedE(0.0), expectedB(0.0);
+                for (std::size_t j = 0; j < placed.size(); ++j) {
+                    if (j == i) {
+                        continue;
                     }
-                    EXPECT_GT(electricNorm, 1.0e-6);
-                    EXPECT_GT(magneticScale, 0.0);
-                    for (std::size_t i = 0; i < count; ++i) {
-                        for (unsigned d = 0; d < 3; ++d) {
-                            const double imageE =
-                                    openE(toOpen[i])[d] - openDirectE(toOpenDirect[i])[d];
-                            const double imageB =
-                                    openB(toOpen[i])[d] - openDirectB(toOpenDirect[i])[d];
-                            EXPECT_NEAR(
-                                    p3mE(i)[d] - p3mDirectE(toP3MDirect[i])[d], imageE,
-                                    1.0e-9 * std::max(1.0, std::abs(imageE)));
-                            EXPECT_NEAR(
-                                    p3mB(i)[d] - p3mDirectB(toP3MDirect[i])[d], imageB,
-                                    1.0e-8 * magneticScale);
-                        }
-                    }
+                    const double gamma = std::sqrt(1.0 + finalP(j).dot(finalP(j)));
+                    Vector rest        = finalR(i) - finalR(j);
+                    rest[2] *= gamma;
+                    const double r         = std::sqrt(rest.dot(rest));
+                    const Vector restField = (coulomb / (r * r * r)) * rest;
+                    const Vector field(gamma * restField[0], gamma * restField[1], restField[2]);
+                    const Vector velocity = (Physics::c / gamma) * Vector(finalP(j));
+                    expectedE += field;
+                    expectedB += (1.0 / (Physics::c * Physics::c)) * cross(velocity, field);
                 }
-                for (std::size_t step : {2u, 3u}) {
-                    EXPECT_EQ(p3mImage.solve(step).backendSolves, 1u);
-                    EXPECT_EQ(p3mDirect.solve(step).backendSolves, 1u);
-                    expectFieldsEqualByPosition(p3mImage.particles, p3mDirect.particles);
+                const double scaleE = std::sqrt(expectedE.dot(expectedE));
+                const double scaleB = std::sqrt(expectedB.dot(expectedB));
+                EXPECT_GT(scaleB, 0.0);
+                for (unsigned d = 0; d < 3; ++d) {
+                    EXPECT_NEAR(electric(i)[d], expectedE[d], 0.03 * scaleE)
+                            << "particle " << i << ", component " << d;
+                    EXPECT_NEAR(magnetic(i)[d], expectedB[d], 0.03 * scaleB)
+                            << "particle " << i << ", component " << d;
+                }
+            }
+        }
+
+        TEST_F(CartesianPIC3DAlgorithmsTest, P3MBinnedShiftedImageMatchesOpenImage) {
+            // pz = 3/4 and 4/3 give gamma = 5/4 and 5/3, so the image shift and field conversion
+            // are boosted; with two bins each bin gets its own boost and image pass.
+            const std::array<double, 4> momenta{0.75, 4.0 / 3.0, 0.75, 4.0 / 3.0};
+            for (std::size_t bins : {1u, 2u}) {
+                auto p3mConfig           = binnedP3MConfig(bins);
+                auto openConfig          = config();
+                openConfig.greenFunction = GreenFunctionType::Standard;
+                openConfig.binning       = p3mConfig.binning;
+                for (double planeZ : {0.0, 0.125}) {
+                    p3mConfig.dirichletPlane = {
+                            .kind         = DirichletPlaneType::ShiftedGreen,
+                            .planeZ       = planeZ,
+                            .maximumSteps = 2};
+                    openConfig.dirichletPlane       = p3mConfig.dirichletPlane;
+                    auto p3mDirectConfig            = p3mConfig;
+                    auto openDirectConfig           = openConfig;
+                    p3mDirectConfig.dirichletPlane  = {};
+                    openDirectConfig.dirichletPlane = {};
+                    Run p3mImage(p3mConfig), openImage(openConfig);
+                    Run p3mDirect(p3mDirectConfig), openDirect(openDirectConfig);
+                    for (Run* run : {&p3mImage, &p3mDirect, &openImage, &openDirect}) {
+                        setLongitudinalMomenta(run->particles, momenta);
+                        placeClosePair(run->particles, planeZ);
+                    }
+
+                    for (std::size_t step : {0u, 1u}) {
+                        EXPECT_EQ(p3mImage.solve(step).backendSolves, 2 * bins);
+                        EXPECT_EQ(openImage.solve(step).backendSolves, 2 * bins);
+                        EXPECT_EQ(p3mDirect.solve(step).backendSolves, bins);
+                        EXPECT_EQ(openDirect.solve(step).backendSolves, bins);
+                        auto host = [](const auto& attribute) {
+                            return Kokkos::create_mirror_view_and_copy(
+                                    Kokkos::HostSpace(), attribute.getView());
+                        };
+                        const auto p3mE         = host(p3mImage.particles.E),
+                                   p3mB         = host(p3mImage.particles.B);
+                        const auto p3mDirectE   = host(p3mDirect.particles.E),
+                                   p3mDirectB   = host(p3mDirect.particles.B);
+                        const auto openE        = host(openImage.particles.E),
+                                   openB        = host(openImage.particles.B);
+                        const auto openDirectE  = host(openDirect.particles.E),
+                                   openDirectB  = host(openDirect.particles.B);
+                        const std::size_t count = p3mImage.particles.getLocalNum();
+                        const auto toP3MDirect =
+                                matchByPosition(p3mImage.particles, p3mDirect.particles);
+                        const auto toOpen =
+                                matchByPosition(p3mImage.particles, openImage.particles);
+                        const auto toOpenDirect =
+                                matchByPosition(p3mImage.particles, openDirect.particles);
+                        ASSERT_EQ(toP3MDirect.size(), count);
+                        ASSERT_EQ(toOpen.size(), count);
+                        ASSERT_EQ(toOpenDirect.size(), count);
+
+                        // The image is mesh-resolved in both backends; P3M adds its particle term
+                        // to the real bunch once, so it cancels in the image-minus-direct
+                        // difference.
+                        double electricNorm = 0.0, magneticScale = 0.0;
+                        for (std::size_t i = 0; i < count; ++i) {
+                            for (unsigned d = 0; d < 3; ++d) {
+                                const double imageE =
+                                        openE(toOpen[i])[d] - openDirectE(toOpenDirect[i])[d];
+                                electricNorm += imageE * imageE;
+                                magneticScale = std::max(
+                                        magneticScale, std::abs(
+                                                               openB(toOpen[i])[d]
+                                                               - openDirectB(toOpenDirect[i])[d]));
+                            }
+                        }
+                        EXPECT_GT(electricNorm, 1.0e-6);
+                        EXPECT_GT(magneticScale, 0.0);
+                        for (std::size_t i = 0; i < count; ++i) {
+                            for (unsigned d = 0; d < 3; ++d) {
+                                const double imageE =
+                                        openE(toOpen[i])[d] - openDirectE(toOpenDirect[i])[d];
+                                const double imageB =
+                                        openB(toOpen[i])[d] - openDirectB(toOpenDirect[i])[d];
+                                EXPECT_NEAR(
+                                        p3mE(i)[d] - p3mDirectE(toP3MDirect[i])[d], imageE,
+                                        1.0e-9 * std::max(1.0, std::abs(imageE)));
+                                EXPECT_NEAR(
+                                        p3mB(i)[d] - p3mDirectB(toP3MDirect[i])[d], imageB,
+                                        1.0e-8 * magneticScale);
+                            }
+                        }
+                    }
+                    for (std::size_t step : {2u, 3u}) {
+                        EXPECT_EQ(p3mImage.solve(step).backendSolves, bins);
+                        EXPECT_EQ(p3mDirect.solve(step).backendSolves, bins);
+                        expectFieldsEqualByPosition(p3mImage.particles, p3mDirect.particles);
+                    }
                 }
             }
         }

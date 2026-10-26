@@ -8,12 +8,14 @@
  * request carries it to the mesh stage, whose IPPL backend rebuilds its kernel when alpha
  * changes. The mesh RHS is already divided by epsilon_0; the particle stage uses raw charges,
  * so only its native force constant contains epsilon_0. The particle contribution is added
- * to E in the Cartesian solve axes after the final mesh-to-particle gather.
+ * to E, and with binning also to B, in the Cartesian solve axes after the final
+ * mesh-to-particle gather.
  *
- * With single-bin binning both stages work in the bin rest frame: the mesh stage on a z spacing
- * stretched by gamma, the particle stage on separations (dx, dy, gamma dz). The cutoff keeps its
- * value in metres and is the rest-frame cutoff. The particle field is then Lorentz-converted
- * to lab E and B like the mesh field.
+ * With binning, the mesh stage solves each bin in the bin rest frame on a z spacing stretched by
+ * the bin gamma. The particle stage splits the Ewald sum in the rest frame of each source particle
+ * instead, with the particle's own momentum, and adds lab-frame E and B directly, so only the
+ * long-range field carries the bin velocity. The cutoff keeps its value in metres and is the
+ * rest-frame cutoff in both stages.
  *
  * The open Dirichlet image pass uses the full STANDARD shifted Coulomb mesh kernel, regularized
  * below h_min/2, with no short-range correction for image charges. The image field is therefore
@@ -38,6 +40,9 @@
 #include <utility>
 
 namespace opalx::spacecharge {
+
+    /// Radius below which both P3M stages replace the singular Coulomb term by a linear core [m].
+    inline constexpr double p3mRegularizationCutoff = 1.0e-9;
 
     /** @brief Adapts the 3D mesh contribution of P3M; particle interactions remain in Cartesian
      * PIC. */
@@ -91,7 +96,7 @@ namespace opalx::spacecharge {
             parameters.add("output_type", NativeBackend::GRAD);
             parameters.add("alpha", 2.0 / cutoff_m);
             parameters.add("force_constant", -1.0 / (4.0 * Physics::pi));
-            parameters.add("regularization_cutoff", 1.0e-9);
+            parameters.add("regularization_cutoff", p3mRegularizationCutoff);
             parameters.add(
                     "boundary_type", allPeriodic ? NativeBackend::PERIODIC : NativeBackend::OPEN);
             capabilities_m.supportsShiftedGreenFunction = !allPeriodic;
@@ -144,6 +149,18 @@ namespace opalx::spacecharge {
             typename View::const_type charge_m;
             bool perParticle_m;
         };
+
+        /**
+         * @brief Read-only view over the full storage of @p attribute.
+         *
+         * Overlap layouts store ghost particles after the local ones, beyond the local range that
+         * getView() covers.
+         */
+        template <typename Attribute>
+        typename Attribute::view_type::const_type storageView(const Attribute& attribute) {
+            return typename Attribute::view_type::const_type(
+                    attribute.getView().data(), attribute.size());
+        }
     }  // namespace detail
 
     /**
@@ -164,52 +181,78 @@ namespace opalx::spacecharge {
         }
 
         /**
-         * @brief Computes the short-range field in the rest frame of a bunch moving along solve z.
+         * @brief Adds the short-range lab-frame E and B of every source moving with its own
+         * velocity.
          *
-         * Pair separations become (dx, dy, gamma dz), matching the mesh stage, whose z spacing is
-         * stretched by gamma; both stages use the layout cutoff as the rest-frame cutoff. Since
-         * the rest-frame distance is never shorter than the lab distance, the lab-frame search
-         * cells and halos already contain every rest-frame pair inside the cutoff. Charges are
-         * Lorentz invariant and enter unscaled. The caller converts the returned field to
-         * lab-frame E and B.
+         * The Ewald split is taken in the rest frame of each source j with momentum
+         * u_j = gamma_j beta_j. For a target i at the lab-frame separation r from j at equal lab
+         * time, the rest-frame distance is s^2 = r^2 + (u_j . r)^2, and the lab fields are
+         * E = q_j gamma_j g(alpha s) r / (4 pi epsilon_0 s^3), with
+         * g(x) = erfc(x) + 2 x exp(-x^2) / sqrt(pi), and B = u_j x E / (gamma_j c): the
+         * short-range part of the field of a uniformly moving charge (Jackson, Classical
+         * Electrodynamics, 3rd ed., Sec. 11.10). The binned mesh stage supplies the long-range
+         * part with the bin velocity. At rest the field reduces to apply(), and with a common
+         * momentum along z to the bin rest-frame field (dx, dy, gamma dz) Lorentz-converted to
+         * the lab.
          *
-         * Ghost particles sit after the local ones in the attribute storage, beyond the local
-         * range that getView() covers, so the positions are read through the attribute over its
-         * full storage size, as the IPPL pair kernel reads them.
-         *
-         * @return Rest-frame electric field, valid on [0, local count) until the next call.
-         * @throws OpalException if @p gamma is not finite or below 1.
+         * Pairs with s >= cutoff are skipped; since s >= |r|, the lab-frame search cells and halos
+         * contain every remaining pair. Positions, momenta, and charges are read over the full
+         * storage, ghosts included, and must be in the frame the layout was built in. The fields
+         * are added to the local particles' E and B.
          */
-        const VectorView& computeRestFrameField(ParticleContainer& particles, double gamma) {
-            if (!std::isfinite(gamma) || gamma < 1.0) {
-                throw OpalException(
-                        "P3MShortRangeInteraction::computeRestFrameField",
-                        "The rest-frame gamma must be finite and at least 1.");
-            }
+        static void addMovingSourceField(ParticleContainer& particles) {
             const double cutoff =
-                    requireCutoff(particles, "P3MShortRangeInteraction::computeRestFrameField");
+                    requireCutoff(particles, "P3MShortRangeInteraction::addMovingSourceField");
+            using Vector = typename VectorView::value_type;
+            using Charge = detail::P3MChargeView<typename ParticleContainer::qm_view_type>;
 
-            const auto& labPositions  = particles.R;
-            const std::size_t entries = labPositions.size();
-            if (restFramePositions_m.extent(0) < entries) {
-                Kokkos::realloc(Kokkos::WithoutInitializing, restFramePositions_m, entries);
-                Kokkos::realloc(Kokkos::WithoutInitializing, restFrameField_m, entries);
-            }
-            const VectorView restPositions = restFramePositions_m;
-            const VectorView restField     = restFrameField_m;
-            using Vector                   = typename VectorView::value_type;
-            Kokkos::parallel_for(
-                    "P3MShortRangeInteraction::boostPositions",
-                    Kokkos::RangePolicy<typename VectorView::execution_space>(0, entries),
-                    KOKKOS_LAMBDA(const std::size_t index) {
-                        Vector position = labPositions(index);
-                        position[2] *= gamma;
-                        restPositions(index) = position;
-                        restField(index)     = Vector(0.0);
+            static IpplTimings::TimerRef timer = IpplTimings::getTimer("P3M: PP moving src");
+            IpplTimings::startTimer(timer);
+            const auto positions = detail::storageView(particles.R);
+            const auto momenta   = detail::storageView(particles.P);
+            const Charge charge(
+                    particles.getQStorageView(),
+                    particles.getQMStorageMode() == ParticleContainer::QMStorageMode::Attributes);
+            const auto electric         = particles.E.getView();
+            const auto magnetic         = particles.B.getView();
+            const double cutoffSquared  = cutoff * cutoff;
+            const double alpha          = 2.0 / cutoff;
+            const double coulomb        = 1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
+            const double regularization = p3mRegularizationCutoff;
+            const double inverseLight   = 1.0 / Physics::c;
+            const double twoOverSqrtPi  = 2.0 / std::sqrt(Physics::pi);
+            particles.getP3MLayout().template forEachPair<Kokkos::DefaultExecutionSpace>(
+                    KOKKOS_LAMBDA(const std::size_t& i, const std::size_t& j) {
+                        const Vector separation = positions(i) - positions(j);
+                        const double labSquared = separation.dot(separation);
+                        if (labSquared >= cutoffSquared || labSquared == 0.0) {
+                            return;
+                        }
+                        const Vector momentum    = momenta(j);
+                        const double along       = momentum.dot(separation);
+                        const double restSquared = labSquared + along * along;
+                        if (restSquared >= cutoffSquared) {
+                            return;
+                        }
+                        const double rest     = Kokkos::sqrt(restSquared);
+                        const double x        = alpha * rest;
+                        const double gaussian = twoOverSqrtPi * x * Kokkos::exp(-x * x);
+                        const double cube     = restSquared * rest;
+                        // Same linear core as the IPPL pair kernel, continuous at the radius.
+                        const double radial =
+                                rest < regularization
+                                        ? 1.0 / (regularization * regularization * regularization)
+                                                  - (Kokkos::erf(x) - gaussian) / cube
+                                        : (Kokkos::erfc(x) + gaussian) / cube;
+                        const double gamma = Kokkos::sqrt(1.0 + momentum.dot(momentum));
+                        const Vector e     = (coulomb * charge(j) * gamma * radial) * separation;
+                        const Vector b     = (inverseLight / gamma) * cross(momentum, e);
+                        for (unsigned d = 0; d < 3; ++d) {
+                            Kokkos::atomic_add(&electric(i)[d], e[d]);
+                            Kokkos::atomic_add(&magnetic(i)[d], b[d]);
+                        }
                     });
-
-            solvePairs(particles, restFrameField_m, restFramePositions_m, cutoff);
-            return restFrameField_m;
+            IpplTimings::stopTimer(timer);
         }
 
     private:
@@ -235,7 +278,7 @@ namespace opalx::spacecharge {
 
             ContainerView container(particles);
             ChargeView charge(
-                    particles.getQView(),
+                    particles.getQStorageView(),
                     particles.getQMStorageMode() == ParticleContainer::QMStorageMode::Attributes);
 
             ippl::ParameterList parameters;
@@ -244,14 +287,11 @@ namespace opalx::spacecharge {
             // The mesh path scatters charge divided by epsilon_0. This particle path uses raw
             // charge, so its Coulomb coefficient carries epsilon_0 explicitly.
             parameters.add("force_constant", -1.0 / (4.0 * Physics::pi * Physics::epsilon_0));
-            parameters.add("regularization_cutoff", 1.0e-9);
+            parameters.add("regularization_cutoff", p3mRegularizationCutoff);
 
             Interaction interaction(container, field, positions, charge, parameters);
             interaction.solve();
         }
-
-        VectorView restFramePositions_m{"P3M rest-frame positions", 0};
-        VectorView restFrameField_m{"P3M rest-frame field", 0};
     };
 
 }  // namespace opalx::spacecharge
