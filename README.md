@@ -61,7 +61,7 @@ no separate LAPACK installation is needed. Select a non-default compiler with
 `-DCMAKE_Fortran_COMPILER=/path/to/compiler`.
 
 ```
-ippl/3.2.0
+ippl/3.4.0
 hdf5/1.10.8_slurm  
 H5hut/2.0.0rc6_slurm  
 gtest/1.13.0-1
@@ -159,7 +159,7 @@ Dependency version/ref options:
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `IPPL_GIT_TAG` | `master` | IPPL branch, tag, commit, or release version to fetch. Numeric release shorthand such as `3.2.0` is resolved to `IPPL-3.2.0`. |
+| `IPPL_GIT_TAG` | `3.4.0` | IPPL branch, tag, commit, or release version to fetch. Numeric release shorthand such as `3.4.0` is resolved to `IPPL-3.4.0` and `master` refers to the current IPPL master. |
 | `Kokkos_VERSION` | `5.2.0` | Kokkos version requested by IPPL. A plain version asks CMake to use an installed Kokkos of that version or newer; use `git.<tag>`, `git.<branch>`, or `git.<sha>` to request a source checkout ref. |
 | `Heffte_VERSION` | `2.4.0` | Heffte version requested by IPPL when FFT support is enabled. A plain version asks CMake to use an installed Heffte of that version or newer; use `git.<tag>`, `git.<branch>`, or `git.<sha>` to request a source checkout ref. |
 
