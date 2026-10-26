@@ -51,6 +51,24 @@ function(configure_cuda_architectures_from_kokkos_arch)
         return()
     endif()
 
+    # Guard against silently deriving a bogus compute capability from a
+    # non-NVIDIA architecture: AMD_GFX1152 with PLATFORMS=CUDA would set
+    # CMAKE_CUDA_ARCHITECTURES=1152 and a CPU name like ZEN3 would set 3.
+    set(_opalx_nvidia_arch_prefixes HOPPER AMPERE VOLTA PASCAL ADA BLACKWELL)
+    set(_opalx_arch_is_nvidia FALSE)
+    foreach(_prefix IN LISTS _opalx_nvidia_arch_prefixes)
+        if(ARCH MATCHES "^${_prefix}")
+            set(_opalx_arch_is_nvidia TRUE)
+        endif()
+    endforeach()
+    if(NOT _opalx_arch_is_nvidia)
+        message(FATAL_ERROR
+            "❌ CUDA is enabled in OPALX_PLATFORMS, but ARCH=${ARCH} is not an NVIDIA GPU "
+            "architecture. Combining PLATFORMS=CUDA with an AMD, CPU, or Intel architecture "
+            "is a backend mismatch. Use an NVIDIA ARCH such as HOPPER90, AMPERE80, or "
+            "BLACKWELL120, or select a matching backend with -DPLATFORMS=HIP/OPENMP.")
+    endif()
+
     # Extract trailing digits from ARCH using regex
     # This works for HOPPER90, AMPERE80, VOLTA70, etc.
     string(REGEX MATCH "[0-9]+$" CUDA_CAPABILITY "${ARCH}")

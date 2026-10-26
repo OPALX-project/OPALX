@@ -52,11 +52,9 @@ jobs:
             -DCMAKE_PREFIX_PATH=/opt/rocm \
             -DCMAKE_CXX_COMPILER=hipcc \
             -DPLATFORMS=HIP \
-            -DARCH=gfx90a \
+            -DARCH=AMD_GFX90A \
             -DAMDGPU_TARGETS=gfx90a \
-            -DCMAKE_HIP_ARCHITECTURES=gfx90a \
             -DCMAKE_HIP_FLAGS=--offload-arch=gfx90a \
-            -DKokkos_ARCH_AMD_GFX90A=ON \
             -DOPALX_ENABLE_UNIT_TESTS=ON
 
       - name: Build
