@@ -288,6 +288,7 @@ void OpalFlatTop::emitParticles(double t, double dt) {
     pc_m->createParticles(static_cast<size_type>(nNew));
 
     generateLocalParticles(nlocalBefore, nextGlobalIndex_m + localOffset, nNew, t, dt);
+    fillPolarization(nlocalBefore, nNew);
     nextGlobalIndex_m = globalEnd;
 }
 
