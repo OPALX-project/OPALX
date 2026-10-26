@@ -48,7 +48,7 @@ python element_positions.py data/mue4_analytical_ElementPositions.json \
 |--------|-------------|
 | `json` | Input `<base>_ElementPositions.json` from OPAL-X. |
 | `--out <path>` | Output `.vtm` path (default: `<json stem>.vtm`). |
-| `--clamp-radius <m>` | Radius used for elements with unset/infinite apertures. Defaults to `reference_transverse` from the JSON. |
+| `--clamp-scale <factor>` | Multiplier of the estimated beam-tube semi-axes used to clamp elements with unset/infinite apertures (default 1.0). |
 | `--clamp-threshold <m>` | Semi-axes larger than this are treated as unset (default: 10). |
 | `--no-clamp` | Draw unset apertures at their raw size. |
 | `--simple-geometry` | Use schematic geometry: circular bend tubes and solid solenoids. |

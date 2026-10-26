@@ -37,15 +37,14 @@ Use ``--simple-geometry`` to fall back to faster schematic shapes (circular bend
 tubes and solid solenoids).
 
 Elements whose transverse extent is unset or absurd (the 1e6 m "infinite
-aperture" default, e.g. for MONITORs) are clamped to representative
-semi-axes: the user-supplied --clamp-radius if given, otherwise the median
-bounded transverse extent among the beamline's non-solenoid elements (a
-typical bore aperture, preserving its aspect ratio), otherwise the
-reference_transverse semi-axes that opalx derived from the beamline,
-otherwise 0.1 m. Drifts additionally cap each semi-axis at that beam-tube
-scale so placeholder "open" apertures (e.g. rectangle(2.0, 0.21)) do not
-stretch the tube into a plate. Clamped elements carry a ``clamped``
-field-data flag.
+aperture" default, e.g. for MONITORs) are clamped to the beam-tube
+semi-axes: --clamp-scale (default 1.0) times the median bounded
+transverse extent among the beamline's aperture-bearing elements (a
+typical bore aperture), falling back to the reference_transverse
+semi-axes that opalx derived from the beamline, then to 0.1 m. Drifts
+additionally cap each semi-axis at that beam-tube scale so placeholder
+"open" apertures (e.g. rectangle(2.0, 0.21)) do not stretch the tube
+into a plate. Clamped elements carry a ``clamped`` field-data flag.
 
 Requires numpy and pyvista.
 
@@ -54,7 +53,7 @@ Examples
     python element_positions.py data/mue4_analytical_ElementPositions.json
     python element_positions.py data/mue4_analytical_ElementPositions.json --show
     python element_positions.py ... --simple-geometry
-    python element_positions.py ... --clamp-radius 0.15 --hide Monitors --hide Bends
+    python element_positions.py ... --clamp-scale 1.5 --hide Monitors --hide Bends
 """
 
 import argparse
@@ -166,6 +165,13 @@ def place(mesh, element):
 # Aperture clamping
 # -----------------------------------------------------------------------------
 
+def beam_tube_semis(args, reference):
+    """The clamp target: --clamp-scale times the beam-tube reference."""
+    if reference is not None:
+        return (args.clamp_scale * reference[0], args.clamp_scale * reference[1])
+    return (0.1 * args.clamp_scale, 0.1 * args.clamp_scale)
+
+
 def effective_transverse(element, args, reference):
     """Return ((semi_x, semi_y), clamped) applying the clamp policy."""
     transverse = element.get('transverse')
@@ -178,11 +184,7 @@ def effective_transverse(element, args, reference):
         return (transverse['semi_x'], transverse['semi_y']), False
     if args.no_clamp and transverse is not None:
         return (transverse['semi_x'], transverse['semi_y']), False
-    if args.clamp_radius is not None:
-        return (args.clamp_radius, args.clamp_radius), True
-    if reference is not None:
-        return (reference[0], reference[1]), True
-    return (0.1, 0.1), True
+    return beam_tube_semis(args, reference), True
 
 
 # -----------------------------------------------------------------------------
@@ -604,10 +606,11 @@ class OpalXDriftSource(OpalXElementSource):
             return None
         raw_x, raw_y = semi_x, semi_y
         if not self.args.no_clamp:
-            cap_x, cap_y = self.reference if self.reference is not None else (0.1, 0.1)
+            cap_x, cap_y = beam_tube_semis(self.args, self.reference)
+            raw_x, raw_y = semi_x, semi_y
             semi_x = min(semi_x, cap_x)
             semi_y = min(semi_y, cap_y)
-        clamped = bool(clamped or semi_x != raw_x or semi_y != raw_y)
+            clamped = bool(clamped or semi_x != raw_x or semi_y != raw_y)
         if (self.element.get('transverse') or {}).get('kind') == 'rectangular':
             mesh = hollow_rectangular_tube(length, semi_x, semi_y)
         else:
@@ -738,10 +741,11 @@ def main(argv=None):
     parser.add_argument('json', help='path to <base>_ElementPositions.json written by opalx')
     parser.add_argument('--out', help='output .vtm path (default: <json stem>.vtm)')
     parser.add_argument(
-        '--clamp-radius',
+        '--clamp-scale',
         type=float,
-        help='radius [m] for elements without a physical transverse extent '
-        '(default: reference_transverse from the json, else 0.1)',
+        default=1.0,
+        help='multiplier applied to the estimated beam-tube semi-axes when '
+        'clamping unset or absurd apertures (default: 1.0)',
     )
     parser.add_argument(
         '--clamp-threshold',
