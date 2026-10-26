@@ -151,9 +151,11 @@ For the release mode, use `Release` instead of `Debug` as the argument for `-DCM
 | `OPALX_FIELD_DEBUG` | OFF | Disables FieldSolver field-dump debug code; emits field dumps during simulation when enabled. |
 | `OPALX_USE_KOKKOS_MATH_CONSTANTS` | ON | Sources `Physics.h` mathematical constants such as `pi`, `e`, and `log10e` from `Kokkos::numbers`; turn OFF to use literal fallback values. |
 
-IPPL-side feature settings (for example `IPPL_ENABLE_TESTS` or
-`IPPL_ENABLE_ALPINE`) are set by the OPALX CMake presets and forwarded to
-the IPPL build; they are not independent OPALX build options.
+IPPL options such as `IPPL_ENABLE_TESTS` and `IPPL_ENABLE_ALPINE` are not OPALX
+options: given on the command line or by a preset, they reach the IPPL build
+unchanged, and otherwise IPPL's defaults apply (both OFF). OPALX itself always sets
+`IPPL_ENABLE_FFT` and `IPPL_ENABLE_SOLVERS` to ON and `IPPL_PLATFORMS` to
+`OPALX_PLATFORMS`.
 
 Dependency version/ref options:
 
