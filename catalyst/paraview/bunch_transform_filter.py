@@ -18,6 +18,12 @@ That block can be provided in one of two ways:
      the block containing BunchOrigin automatically.
 
 Input 0 is always the dataset you want to transform (geometry or particles).
+
+Environment variables:
+  BUNCH_TRANSFORM_INVERSE : 0|1 transform direction (default 1, bunch -> lab)
+  BUNCH_TRANSFORM_FILTER  : path to this script, set by state-script loaders
+  BUNCH_TRANSFORM_DEBUG   : 0|1 append per-execution diagnostics to
+                            /tmp/bunch_transform_filter_debug.txt (default 0)
 """
 
 from paraview.numpy_support import vtk_to_numpy, numpy_to_vtk
@@ -75,6 +81,8 @@ def _list_arrays(dataset, indent="  "):
 
 
 def _inspect_input(idx, dataset, indent=""):
+    if not _DBG:
+        return
     _dbg(f"{indent}Input {idx}: {_type_name(dataset)}")
     if dataset is None:
         return
@@ -228,8 +236,8 @@ def _transform_dataset(dataset, origin, R, path=""):
 _dbg("=" * 60)
 input0 = self.GetInputDataObject(0, 0)
 input1 = self.GetInputDataObject(0, 1)
-#_inspect_input(0, input0)
-#_inspect_input(1, input1)
+_inspect_input(0, input0)
+_inspect_input(1, input1)
 
 origin, R = _read_transform(input1)
 _dbg(f"Transform origin: {origin}")
