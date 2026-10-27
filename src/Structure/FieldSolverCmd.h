@@ -73,6 +73,7 @@ namespace FIELDSOLVER {
         BHBOXSLACK,             // Box oversize tolerated before it is refitted [BH only]
         BHSTATS,                // Per-solve interaction counts and stage timers [BH only]
         BHPRECISION,            // DOUBLE or MIXED NBody precision policy [BH only]
+        BHRELATIVISTIC,         // AUTO or FRAME source velocities [BH only]
         SIZE
     };
 }
@@ -147,6 +148,7 @@ public:
     double getBHBoxSlack() const;
     bool getBHStatistics() const;
     std::string getBHPrecision() const;
+    std::string getBHRelativistic() const;
     void setPipeMode(const std::string& pipeMode);
     void setBeamRadius(double beamRadius);
     void setClosedRing(bool closedRing);
@@ -163,6 +165,7 @@ public:
     void setBHBoxSlack(double slack);
     void setBHStatistics(bool enabled);
     void setBHPrecision(const std::string& precision);
+    void setBHRelativistic(const std::string& mode);
 
 private:
     // Not implemented.

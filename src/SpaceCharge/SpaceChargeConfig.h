@@ -107,10 +107,20 @@ namespace opalx::spacecharge {
     };
 
     /**
+     * @brief How TYPE=BH treats the motion of the sources.
+     *
+     * - Static: electrostatic field of the solve-frame positions, B = 0 (unbinned CartesianPIC3D).
+     * - Frame: one solve in the rest frame of the bunch (z stretched by the mean gamma), boosted
+     *   to E and B (CartesianPIC3D with MAXBINS=1).
+     */
+    enum class BarnesHutKinematics { Static, Frame };
+
+    /**
      * @brief Complete runtime configuration for the gridless Barnes-Hut solver (TYPE=BH).
      *
      * Open boundaries, whole bunch, electrostatic (gamma = 1, B = 0) like unbinned CartesianPIC3D;
-     * with @c restFrame one Lorentz-boosted rest-frame solve like CartesianPIC3D with MAXBINS=1.
+     * with BarnesHutKinematics::Frame one Lorentz-boosted rest-frame solve like CartesianPIC3D with
+     * MAXBINS=1.
      * A Dirichlet plane is represented exactly by image charges (method of images).
      * The Cartesian @c grid is not used by the solve; it only sizes the inert PartBunch domain.
      */
@@ -136,9 +146,9 @@ namespace opalx::spacecharge {
         /// BHDIRECT: always evaluate the softened field by direct O(N^2) summation (reference
         /// runs); otherwise only bunches below 64 particles per rank use it.
         bool directSum = false;
-        /// BINS with MAXBINS=1: solve in the rest frame of the bunch (z stretched by the mean
-        /// gamma) and boost E and B to the lab frame. The softening is a rest-frame length.
-        bool restFrame = false;
+        /// Source velocities (BHRELATIVISTIC, AUTO follows BINS). With Frame the softening is a
+        /// rest-frame length.
+        BarnesHutKinematics kinematics = BarnesHutKinematics::Static;
         /// Grounded plane modelled by image charges (ZEROFACE_R0Z / SHIFTED_GREENS_FUNCTION).
         DirichletPlaneConfig dirichletPlane;
         std::size_t bucketSize      = 0;   ///< cstone global-tree bucket size; 0 = automatic.

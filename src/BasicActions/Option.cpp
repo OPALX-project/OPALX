@@ -64,6 +64,7 @@ namespace {
         PSDUMPFREQ,
         STATDUMPFREQ,
         CHECKPOINTFREQ,
+        SLICEDUMPFREQ,
         STEPINFOFQ,
         PRINTRANKDISTRFQ,
         PSDUMPEACHTURN,
@@ -155,6 +156,13 @@ Option::Option()
             "i.e. checkpoint when GlobalTrackStep % CHECKPOINTFREQ == 0. "
             "A value of 0 disables checkpointing. Its default value is 0.",
             checkpointFreq);
+
+    itsAttr[SLICEDUMPFREQ] = Attributes::makeReal(
+            "SLICEDUMPFREQ",
+            "The frequency to write the central-slice parameters of the bunch (energy spread, "
+            "emittances, sizes for several slice counts, and the peak current) to <input>.slice, "
+            "i.e. when GlobalTrackStep % SLICEDUMPFREQ == 0. 0 (default) disables them.",
+            sliceDumpFreq);
 
     itsAttr[STEPINFOFQ] = Attributes::makeReal(
             "STEPINFOFQ",
@@ -423,6 +431,7 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setReal(itsAttr[PSDUMPFREQ], psDumpFreq);
     Attributes::setReal(itsAttr[STATDUMPFREQ], statDumpFreq);
     Attributes::setReal(itsAttr[CHECKPOINTFREQ], checkpointFreq);
+    Attributes::setReal(itsAttr[SLICEDUMPFREQ], sliceDumpFreq);
     Attributes::setReal(itsAttr[STEPINFOFQ], stepInfoFreq);
     Attributes::setReal(itsAttr[PRINTRANKDISTRFQ], printRankDistrFreq);
     Attributes::setBool(itsAttr[PSDUMPEACHTURN], psDumpEachTurn);
@@ -588,6 +597,13 @@ void Option::execute() {
         checkpointFreq = int(Attributes::getReal(itsAttr[CHECKPOINTFREQ]));
         if (checkpointFreq < 0) {
             throw OpalException("Option::execute", "CHECKPOINTFREQ must be non-negative.");
+        }
+    }
+
+    if (itsAttr[SLICEDUMPFREQ]) {
+        sliceDumpFreq = int(Attributes::getReal(itsAttr[SLICEDUMPFREQ]));
+        if (sliceDumpFreq < 0) {
+            throw OpalException("Option::execute", "SLICEDUMPFREQ must be non-negative.");
         }
     }
 

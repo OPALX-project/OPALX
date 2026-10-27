@@ -441,6 +441,8 @@ private:
      * @param statDump Forwarded to writePhaseSpace when logging occurs.
      */
     void dumpStats(long long step, bool psDump, bool statDump);
+    /// OPTION SLICEDUMPFREQ: central-slice parameters of the first non-empty container.
+    void dumpSlices();
 
     /// @brief Accept beamline visitor, prepare sections, compute and save 3D lattice.
     void prepareSections();

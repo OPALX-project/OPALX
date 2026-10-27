@@ -30,7 +30,7 @@ namespace opalx::spacecharge {
      * r_j|^2, (h_i + h_j)^2)^{3/2} in V/m in the solve frame, gamma = 1 and B = 0. Other
      * containers keep their E/B.
      *
-     * With BarnesHutConfig::restFrame (BINS with MAXBINS=1) it matches CartesianPIC3D with one
+     * With BarnesHutKinematics::Frame (BINS with MAXBINS=1) it matches CartesianPIC3D with one
      * bin instead: the field is solved in the rest frame of the bunch (z stretched by the mean
      * gamma) and boosted to E and B, image charges with the opposite B sign. Image charges far
      * from the bunch in the rest frame are evaluated as one quadrupole.

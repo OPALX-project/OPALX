@@ -234,21 +234,28 @@ namespace opalx::spacecharge {
             EXPECT_THROW((void)buildSpaceChargeConfig(command, {}), OpalException);
         }
 
-        TEST(SpaceChargeConfigBuilderTest, BuildsBarnesHutRestFrameOnlyForOneBin) {
-            // BINS with MAXBINS=1 is one rest-frame solve of the whole bunch; more bins would be
-            // energy binning, which TYPE=BH does not implement.
+        TEST(SpaceChargeConfigBuilderTest, BuildsBarnesHutKinematicsFromBinsAndBHRELATIVISTIC) {
+            // AUTO follows BINS: none is electrostatic, one bin is one rest-frame solve; more bins
+            // would be energy binning, which TYPE=BH does not implement. FRAME overrides BINS.
             TestableFieldSolverCmd command;
             command.setType("BH");
             command.setBHSoftening(1.0e-6);
-            EXPECT_FALSE(std::get<BarnesHutConfig>(buildSpaceChargeConfig(command, {})).restFrame);
+            const auto kinematics = [&command] {
+                return std::get<BarnesHutConfig>(buildSpaceChargeConfig(command, {})).kinematics;
+            };
+            EXPECT_EQ(kinematics(), BarnesHutKinematics::Static);
             defineBinning("BH_ONE_BIN", 1);
             defineBinning("BH_TWO_BINS", 2);
             command.setBinsName("BH_ONE_BIN");
-            EXPECT_TRUE(std::get<BarnesHutConfig>(buildSpaceChargeConfig(command, {})).restFrame);
+            EXPECT_EQ(kinematics(), BarnesHutKinematics::Frame);
             command.setBinsName("BH_TWO_BINS");
             EXPECT_THROW((void)buildSpaceChargeConfig(command, {}), OpalException);
+            command.setBHRelativistic("FRAME");
+            EXPECT_THROW((void)buildSpaceChargeConfig(command, {}), OpalException);
             command.setBinsName("NONE");
-            EXPECT_FALSE(std::get<BarnesHutConfig>(buildSpaceChargeConfig(command, {})).restFrame);
+            EXPECT_EQ(kinematics(), BarnesHutKinematics::Frame);
+            command.setBHRelativistic("AUTO");
+            EXPECT_EQ(kinematics(), BarnesHutKinematics::Static);
         }
 
         TEST(SpaceChargeConfigBuilderTest, BuildsBarnesHutRelativeSoftening) {

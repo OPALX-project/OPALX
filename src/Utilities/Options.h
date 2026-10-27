@@ -63,6 +63,9 @@ namespace Options {
     /// 0 disables checkpointing.
     extern int checkpointFreq;
 
+    /// The frequency to write central-slice beam parameters (<input>.slice); 0 disables them.
+    extern int sliceDumpFreq;
+
     /// The frequency to print per-step tracking status lines; 0 disables them.
     extern int stepInfoFreq;
 

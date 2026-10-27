@@ -42,6 +42,8 @@ namespace Options {
 
     int checkpointFreq = 0;
 
+    int sliceDumpFreq = 0;
+
     int stepInfoFreq = 1;
 
     int printRankDistrFreq = 0;

@@ -327,7 +327,9 @@ namespace opalx::spacecharge {
                                                                          : BarnesHutPrecision::Double;
             values.leafBasedSoftening              = fieldSolver.getBHLeafBasedSoftening();
             values.directSum                       = fieldSolver.getBHDirectSum();
-            values.restFrame                       = binning.has_value();
+            if (fieldSolver.getBHRelativistic() == "FRAME" || binning.has_value()) {
+                values.kinematics = BarnesHutKinematics::Frame;
+            }
             // ZEROFACE_R0Z and SHIFTED_GREENS_FUNCTION describe the same grounded plane; Barnes-Hut
             // models both with image charges.
             values.dirichletPlane = buildDirichletPlaneConfig(emissionSources);

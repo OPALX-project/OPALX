@@ -506,7 +506,7 @@ namespace opalx::spacecharge {
 
             static BarnesHutConfig restFrameConfig(double softening = 2.0e-5, double theta = 0.5) {
                 BarnesHutConfig result = config(softening, theta);
-                result.restFrame       = true;
+                result.kinematics      = BarnesHutKinematics::Frame;
                 return result;
             }
 
@@ -820,8 +820,12 @@ namespace opalx::spacecharge {
                 std::printf("[BH] grounded plane: rms E_t / rms E_n = %.3e\n",
                             std::sqrt(tangential / normal));
             }
-            // Measured 3.66e-8 on 1 and 4 ranks (1.85e-6 with the cubic domain).
-            EXPECT_LT(std::sqrt(tangential / normal), 3.0e-7);
+            // The tangential field cancels exactly only where a source cell and its mirror get the
+            // same multipole decision; otherwise the residual is at the tree-error level. Measured
+            // 9.83e-6 (4 ranks) with compact target groups (cstone group split fix, 2026-10-16);
+            // 3.66e-8 before, when unsplit groups in mixed-dimension boxes made almost every
+            // near interaction P2P (1.85e-6 with the cubic domain).
+            EXPECT_LT(std::sqrt(tangential / normal), 2.5e-5);
         }
 
         TEST_F(BarnesHutAlgorithmTest, ImageChargesExpireAfterMaximumSteps) {
@@ -1245,7 +1249,10 @@ namespace opalx::spacecharge {
                 total += r.e[0] * r.e[0] + r.e[1] * r.e[1] + r.e[2] * r.e[2];
             }
             EXPECT_LT(std::sqrt(normal / total), 1.0e-8);
-            EXPECT_LT(error, 2.5e-4);  // measured 8.0e-5 (1 rank) / 7.9e-5 (4 ranks)
+            // Measured 2.79e-4 (4 ranks) since cstone splits target groups in mixed-dimension
+            // boxes (2026-10-16); before, groups were never split there (64 SFC-consecutive
+            // particles, wide boxes, mostly P2P) and the error was 8.0e-5 / 7.9e-5.
+            EXPECT_LT(error, 7.0e-4);
         }
 
         TEST_F(BarnesHutAlgorithmTest, UniformSphereMatchesAnalyticField) {

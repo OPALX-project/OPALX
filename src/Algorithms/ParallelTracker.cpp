@@ -844,6 +844,10 @@ void ParallelTracker::execute() {
                                   && ((itsBunch_m->getGlobalTrackStep() % Options::statDumpFreq) + 1
                                       == Options::statDumpFreq);
             dumpStats(step, psDump, statDump);
+            if (Options::sliceDumpFreq > 0
+                && itsBunch_m->getGlobalTrackStep() % Options::sliceDumpFreq == 0) {
+                dumpSlices();
+            }
 
             if (Options::printRankDistrFreq > 0
                 && (itsBunch_m->getGlobalTrackStep() % Options::printRankDistrFreq) + 1
@@ -2298,6 +2302,186 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
 
     if (anyLogged || statDump) {
         writePhaseSpace(step, psDump, statDump);
+    }
+}
+
+namespace {
+    /// Sums over the particles with |z - zc| < halfWidth (a central slice), one Kokkos reduction:
+    /// n, gamma, gamma^2, dz, dz^2, dz gamma, then x, x^2, px, px^2, x px and the same for y.
+    template <class View>
+    struct CentralSliceSums {
+        using value_type = double[];
+        using size_type  = std::size_t;
+        static constexpr unsigned count = 16;
+        unsigned value_count = count;
+        View R, P;
+        double zc, halfWidth;
+
+        KOKKOS_INLINE_FUNCTION void operator()(const size_type i, value_type sum) const {
+            const double dz = R(i)[2] - zc;
+            if (Kokkos::fabs(dz) >= halfWidth) {
+                return;
+            }
+            const double g = Kokkos::sqrt(1.0 + P(i)[0] * P(i)[0] + P(i)[1] * P(i)[1]
+                                          + P(i)[2] * P(i)[2]);
+            const double v[count] = {1.0,       g,           g * g,       dz,
+                                     dz * dz,   dz * g,      R(i)[0],     R(i)[0] * R(i)[0],
+                                     P(i)[0],   P(i)[0] * P(i)[0],        R(i)[0] * P(i)[0],
+                                     R(i)[1],   R(i)[1] * R(i)[1],        P(i)[1],
+                                     P(i)[1] * P(i)[1],     R(i)[1] * P(i)[1]};
+            for (unsigned k = 0; k < count; ++k) {
+                sum[k] += v[k];
+            }
+        }
+        KOKKOS_INLINE_FUNCTION void init(value_type sum) const {
+            for (unsigned k = 0; k < count; ++k) {
+                sum[k] = 0.0;
+            }
+        }
+        KOKKOS_INLINE_FUNCTION void join(value_type dst, const value_type src) const {
+            for (unsigned k = 0; k < count; ++k) {
+                dst[k] += src[k];
+            }
+        }
+    };
+
+    /// Local count, sum z, sum z^2 and sum gamma.
+    template <class View>
+    void bunchMoments(const View& R, const View& P, std::size_t n, double (&out)[4]) {
+        Kokkos::parallel_reduce(
+                "ParallelTracker::dumpSlices::moments", Kokkos::RangePolicy<std::size_t>(0, n),
+                KOKKOS_LAMBDA(const std::size_t i, double& c, double& z, double& z2, double& g) {
+                    c += 1.0;
+                    z += R(i)[2];
+                    z2 += R(i)[2] * R(i)[2];
+                    g += Kokkos::sqrt(1.0 + P(i)[0] * P(i)[0] + P(i)[1] * P(i)[1]
+                                      + P(i)[2] * P(i)[2]);
+                },
+                out[0], out[1], out[2], out[3]);
+    }
+
+    /// Local particle counts in nBins bins of binWidth from zLow.
+    template <class View>
+    std::vector<double> zProfile(const View& R, std::size_t n, double zLow, double binWidth,
+                                 int nBins) {
+        Kokkos::View<double*> counts("ParallelTracker::dumpSlices::counts", nBins);
+        Kokkos::parallel_for(
+                "ParallelTracker::dumpSlices::profile", Kokkos::RangePolicy<std::size_t>(0, n),
+                KOKKOS_LAMBDA(const std::size_t i) {
+                    const int b = static_cast<int>(Kokkos::floor((R(i)[2] - zLow) / binWidth));
+                    if (b >= 0 && b < nBins) {
+                        Kokkos::atomic_add(&counts(b), 1.0);
+                    }
+                });
+        auto host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), counts);
+        return std::vector<double>(host.data(), host.data() + nBins);
+    }
+
+    double centredVariance(double n, double sum, double sumSq) {
+        return n > 0.0 ? std::max(0.0, sumSq / n - (sum / n) * (sum / n)) : 0.0;
+    }
+
+    double centredCovariance(double n, double sumA, double sumB, double sumAB) {
+        return n > 0.0 ? sumAB / n - (sumA / n) * (sumB / n) : 0.0;
+    }
+}  // namespace
+
+/**
+ * @copybrief ParallelTracker::dumpSlices
+ *
+ * Central slice as in Lucas et al., Sci. Rep. 16:2629 (2026): the particles within w/2 of the
+ * mean z, at the current time, for slice widths w = L/M with L = 2 sqrt(3) sigma_z (the full
+ * length of a flat top) and M = 10, 20, 50, 100, 200. A converged slice energy spread is
+ * independent of M; the second energy spread removes the linear chirp within the slice. The
+ * peak current is the maximum of the current profile in bins of L/100.
+ */
+void ParallelTracker::dumpSlices() {
+    const auto& containers = itsBunch_m->getParticleContainers();
+    auto it = std::find_if(containers.begin(), containers.end(),
+                           [](const auto& pc) { return pc && pc->getTotalNum() > 1; });
+    if (it == containers.end()) {
+        return;
+    }
+    auto& pc         = *it;
+    const auto R     = pc->R.getView();
+    const auto P     = pc->P.getView();
+    const auto nLoc  = static_cast<std::size_t>(pc->getLocalNum());
+    using Policy     = Kokkos::RangePolicy<std::size_t>;
+    using Sums       = CentralSliceSums<std::decay_t<decltype(R)>>;
+
+    // Mean and rms of z and the mean gamma over the whole bunch.
+    double local[4] = {0.0, 0.0, 0.0, 0.0}, total[4];
+    bunchMoments(R, P, nLoc, local);
+    ippl::Comm->allreduce(local[0], total[0], 4, std::plus<double>());
+    const double n      = total[0];
+    const double zc     = total[1] / n;
+    const double sigmaZ = std::sqrt(centredVariance(n, total[1], total[2]));
+    const double gamma  = total[3] / n;
+    const double length = 2.0 * std::sqrt(3.0) * sigmaZ;
+    if (!(length > 0.0)) {
+        return;
+    }
+
+    // Energies of the represented particles: m c^2 of one elementary-charge carrier.
+    const double q      = std::abs(pc->getChargePerParticle());
+    const double mc2eV  = q > 0.0 ? pc->getMassPerParticle() * 1e9 * Physics::q_e / q
+                                  : pc->getMassPerParticle() * 1e9;
+    const double beta   = std::sqrt(std::max(0.0, 1.0 - 1.0 / (gamma * gamma)));
+
+    // Current profile over +-3 sigma_z in bins of L/100.
+    const double binWidth = length / 100.0;
+    const int nBins       = static_cast<int>(std::ceil(6.0 * sigmaZ / binWidth));
+    const double zLow     = zc - 0.5 * nBins * binWidth;
+    const std::vector<double> localProfile = zProfile(R, nLoc, zLow, binWidth, nBins);
+    std::vector<double> profile(nBins);
+    ippl::Comm->allreduce(localProfile[0], profile[0], nBins, std::plus<double>());
+    const double peakCurrent =
+            q * *std::max_element(profile.begin(), profile.end()) * beta * Physics::c / binWidth;
+
+    std::ostringstream row;
+    row << std::scientific << std::setprecision(8) << itsBunch_m->getGlobalTrackStep() << " "
+        << itsBunch_m->getT() * 1e9 << " " << zc << " " << gamma << " " << sigmaZ << " "
+        << length << " " << peakCurrent;
+    constexpr std::array<int, 5> sliceCounts = {10, 20, 50, 100, 200};
+    for (const int m : sliceCounts) {
+        const Sums sums{Sums::count, R, P, zc, 0.5 * length / m};
+        double localSums[Sums::count], s[Sums::count];
+        Kokkos::parallel_reduce("ParallelTracker::dumpSlices::slice", Policy(0, nLoc), sums,
+                                localSums);
+        ippl::Comm->allreduce(localSums[0], s[0], Sums::count, std::plus<double>());
+        const double ns       = s[0];
+        const double varG     = centredVariance(ns, s[1], s[2]);
+        const double varZ     = centredVariance(ns, s[3], s[4]);
+        const double covZG    = centredCovariance(ns, s[3], s[1], s[5]);
+        const double varGflat = varZ > 0.0 ? std::max(0.0, varG - covZG * covZG / varZ) : varG;
+        auto emittance        = [&](int k) {
+            const double xx = centredVariance(ns, s[k], s[k + 1]);
+            const double pp = centredVariance(ns, s[k + 2], s[k + 3]);
+            const double xp = centredCovariance(ns, s[k], s[k + 2], s[k + 4]);
+            return std::sqrt(std::max(0.0, xx * pp - xp * xp));
+        };
+        row << " " << m << " " << ns << " " << std::sqrt(varG) * mc2eV * 1e-3 << " "
+            << std::sqrt(varGflat) * mc2eV * 1e-3 << " " << emittance(6) << " " << emittance(11)
+            << " " << std::sqrt(centredVariance(ns, s[6], s[7])) << " "
+            << std::sqrt(centredVariance(ns, s[11], s[12]));
+    }
+
+    if (ippl::Comm->rank() == 0) {
+        // A new run starts the file; a restart (--restart) appends to it.
+        static bool firstDump  = true;
+        const std::string path = OpalData::getInstance()->getInputBasename() + ".slice";
+        const bool truncate    = firstDump && !OpalData::getInstance()->inRestartRun();
+        const bool fresh       = truncate || !std::ifstream(path).good();
+        firstDump              = false;
+        std::ofstream out(path, truncate ? std::ios::trunc : std::ios::app);
+        if (fresh) {
+            out << "# central-slice parameters (OPTION SLICEDUMPFREQ, ParallelTracker::dumpSlices)\n"
+                << "# step t[ns] z_mean[m] gamma_mean sigma_z[m] L=2sqrt(3)sigma_z[m] I_peak[A]"
+                << ", then for M = 10 20 50 100 200 (slice width L/M):\n"
+                << "#   M n_slice sigma_E[keV] sigma_E_dechirped[keV] eps_nx[m] eps_ny[m] "
+                   "sigma_x[m] sigma_y[m]\n";
+        }
+        out << row.str() << "\n";
     }
 }
 

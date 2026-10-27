@@ -23,16 +23,24 @@
 #include "Utility/IpplTimings.h"
 
 #include <Kokkos_Core.hpp>
+#if defined(KOKKOS_ENABLE_CUDA)
+#include <cuda_runtime_api.h>
+#endif
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <exception>
 #include <limits>
 #include <mpi.h>
 #include <optional>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -717,6 +725,244 @@ namespace opalx::spacecharge {
             return global;
         }
 
+        /// BHSTATS: the live Kokkos allocations in device memory of this rank, from the Kokkos
+        /// Tools allocation callbacks. They are registered by the first solver with BHSTATS unless
+        /// a Kokkos tool is loaded; allocations made before that are not seen.
+        struct KokkosDeviceAllocations {
+            std::unordered_map<const void*, std::pair<std::string, std::uint64_t>> live;
+            std::uint64_t bytes = 0;
+            bool active         = false;
+        };
+
+        KokkosDeviceAllocations& kokkosDeviceAllocations() {
+            static KokkosDeviceAllocations allocations;
+            return allocations;
+        }
+
+        bool isDeviceSpace(const Kokkos_Profiling_SpaceHandle& space) {
+            return std::strcmp(space.name, "Host") != 0
+                   && std::strstr(space.name, "HostPinned") == nullptr;
+        }
+
+        void onKokkosAllocate(const Kokkos_Profiling_SpaceHandle space, const char* label,
+                              const void* ptr, const std::uint64_t size) {
+            if (!isDeviceSpace(space)) {
+                return;
+            }
+            KokkosDeviceAllocations& a = kokkosDeviceAllocations();
+            a.live[ptr]                = {label, size};
+            a.bytes += size;
+        }
+
+        void onKokkosDeallocate(const Kokkos_Profiling_SpaceHandle space, const char*,
+                                const void* ptr, const std::uint64_t) {
+            if (!isDeviceSpace(space)) {
+                return;
+            }
+            KokkosDeviceAllocations& a = kokkosDeviceAllocations();
+            const auto it              = a.live.find(ptr);
+            if (it == a.live.end()) {
+                return;  // allocated before the callbacks were registered
+            }
+            a.bytes -= it->second.second;
+            a.live.erase(it);
+        }
+
+        void trackKokkosDeviceAllocations() {
+            KokkosDeviceAllocations& a = kokkosDeviceAllocations();
+            if (a.active || Kokkos::Tools::profileLibraryLoaded()) {
+                return;
+            }
+            Kokkos::Tools::Experimental::set_allocate_data_callback(onKokkosAllocate);
+            Kokkos::Tools::Experimental::set_deallocate_data_callback(onKokkosDeallocate);
+            a.active = true;
+        }
+
+        /// Device memory in use on this rank's GPU (all allocations, CUDA context included), in GB.
+        double deviceUsedGB() {
+#if defined(KOKKOS_ENABLE_CUDA)
+            std::size_t free = 0, total = 0;
+            if (cudaMemGetInfo(&free, &total) == cudaSuccess) {
+                return static_cast<double>(total - free) / 1073741824.0;
+            }
+#endif
+            return 0.0;
+        }
+
+        /// Memory of the device's default stream-ordered pool (cudaMallocAsync, used by cstone for
+        /// sort and tree-build temporaries), in GB: {reserved, used, release threshold}.
+        /// OPALX_BH_TRIM_POOL=1 trims the pool to zero first (diagnostic).
+        std::array<double, 3> asyncPoolGB() {
+            std::array<double, 3> gb{};
+#if defined(KOKKOS_ENABLE_CUDA)
+            int device = 0;
+            cudaMemPool_t pool{};
+            if (cudaGetDevice(&device) != cudaSuccess
+                || cudaDeviceGetDefaultMemPool(&pool, device) != cudaSuccess) {
+                return gb;
+            }
+            static const bool trim = [] {
+                const char* value = std::getenv("OPALX_BH_TRIM_POOL");
+                return value != nullptr && std::strcmp(value, "1") == 0;
+            }();
+            if (trim) {
+                cudaDeviceSynchronize();
+                cudaMemPoolTrimTo(pool, 0);
+            }
+            const cudaMemPoolAttr attributes[3] = {cudaMemPoolAttrReservedMemCurrent,
+                                                   cudaMemPoolAttrUsedMemCurrent,
+                                                   cudaMemPoolAttrReleaseThreshold};
+            for (int i = 0; i < 3; ++i) {
+                std::uint64_t bytes = 0;
+                if (cudaMemPoolGetAttribute(pool, attributes[i], &bytes) == cudaSuccess) {
+                    gb[i] = static_cast<double>(bytes) / 1073741824.0;
+                }
+            }
+#endif
+            return gb;
+        }
+
+        /**
+         * BHSTATS: where the device memory of every rank is, after one solve. One [bh.mem] line per
+         * rank (up to 16 ranks; beyond, the ranks with the least and the most memory), and the
+         * largest live Kokkos allocations of the rank with the most memory as [bh.mem.top].
+         * opal: capacity of the OPAL-X particle attributes; bh: reserved buffers of the BH
+         * container; kokkos: all live Kokkos device allocations (opal included when they were
+         * allocated after the first BHSTATS solver); other: the rest (cstone domain, multipoles,
+         * MPI, CUDA context), of which pool is held by the cudaMallocAsync pool. Collective.
+         */
+        void printMemoryReport(unsigned long long step, double devStart, std::size_t opalLocal,
+                               std::size_t opalCapacity, std::size_t opalBytes,
+                               std::size_t bhSlots, std::size_t bhBytes) {
+            constexpr double GB              = 1073741824.0;
+            const KokkosDeviceAllocations& a = kokkosDeviceAllocations();
+            const std::array<double, 3> pool = asyncPoolGB();
+            const double dev                 = deviceUsedGB();
+            const double kokkos              = a.active ? static_cast<double>(a.bytes) / GB : 0.0;
+            const double bh                  = static_cast<double>(bhBytes) / GB;
+            constexpr int nValues            = 11;
+            const double local[nValues]      = {dev,
+                                                devStart,
+                                                kokkos,
+                                                static_cast<double>(opalBytes) / GB,
+                                                static_cast<double>(opalLocal),
+                                                static_cast<double>(opalCapacity),
+                                                bh,
+                                                static_cast<double>(bhSlots),
+                                                pool[0],
+                                                pool[1],
+                                                pool[2]};
+            const MPI_Comm comm = ippl::Comm->getCommunicator();
+            const int rank      = ippl::Comm->rank();
+            const int ranks     = ippl::Comm->size();
+            std::vector<double> all(rank == 0 ? static_cast<std::size_t>(nValues * ranks) : 0);
+            MPI_Gather(local, nValues, MPI_DOUBLE, all.data(), nValues, MPI_DOUBLE, 0, comm);
+
+            struct {
+                double value;
+                int rank;
+            } mine{dev, rank}, top{};
+            MPI_Allreduce(&mine, &top, 1, MPI_DOUBLE_INT, MPI_MAXLOC, comm);
+
+            if (rank == 0) {
+                std::vector<int> shown;
+                if (ranks <= 16) {
+                    for (int r = 0; r < ranks; ++r) {
+                        shown.push_back(r);
+                    }
+                } else {
+                    int least = 0;
+                    for (int r = 1; r < ranks; ++r) {
+                        least = all[nValues * r] < all[nValues * least] ? r : least;
+                    }
+                    shown = {least, top.rank};
+                }
+                for (const int r : shown) {
+                    const double* v = &all[static_cast<std::size_t>(nValues * r)];
+                    std::printf("[bh.mem] step=%llu rank=%d dev=%.2f devStart=%.2f kokkos=%.2f "
+                                "opal=%.2f (local %.3fM cap %.3fM) bh=%.2f (slots %.3fM) "
+                                "other=%.2f pool=%.2f (used %.2f threshold %.3g) GB\n",
+                                step, r, v[0], v[1], v[2], v[3], v[4] / 1e6, v[5] / 1e6, v[6],
+                                v[7] / 1e6, v[0] - v[2] - v[6], v[8], v[9], v[10]);
+                }
+                std::fflush(stdout);
+            }
+            if (rank == top.rank && a.active) {
+                std::unordered_map<std::string, std::uint64_t> byLabel;
+                for (const auto& [ptr, allocation] : a.live) {
+                    byLabel[allocation.first] += allocation.second;
+                }
+                std::vector<std::pair<std::string, std::uint64_t>> sorted(
+                        byLabel.begin(), byLabel.end());
+                std::sort(sorted.begin(), sorted.end(),
+                          [](const auto& x, const auto& y) { return x.second > y.second; });
+                std::ostringstream line;
+                line << "[bh.mem.top] step=" << step << " rank=" << rank << " allocations="
+                     << a.live.size();
+                for (std::size_t i = 0; i < std::min<std::size_t>(sorted.size(), 6); ++i) {
+                    line << " " << sorted[i].first << "="
+                         << static_cast<double>(sorted[i].second) / GB;
+                }
+                std::printf("%s GB\n", line.str().c_str());
+                std::fflush(stdout);
+            }
+        }
+
+        /// Stage timers of one solve, in the order SolveTimeReport prints them.
+        constexpr std::array<const char*, 15> kSolveTimers = {
+                "bh.restFrame", "bh.domain",   "bh.syncGrav",  "bh.syncGrav.new", "bh.haloCharge",
+                "bh.pack",      "bh.pack.new", "bh.groups",    "bh.upsweep",      "bh.compute",
+                "bh.imagePass", "bh.copyBack", "bh.copyBack.new", "bh.farImages", "bh.directSum"};
+
+        /**
+         * BHSTATS: wall time of every stage of one solve, maximum over ranks, as one line on rank 0.
+         * IpplTimings keeps every measurement, so the stages are the measurements added since
+         * construction (the IPPL traversal stages included). Collective: all ranks must print().
+         */
+        class SolveTimeReport {
+        public:
+            SolveTimeReport() : start_m(MPI_Wtime()) {
+                for (std::size_t i = 0; i < kSolveTimers.size(); ++i) {
+                    timers_m[i] = IpplTimings::getTimer(kSolveTimers[i]);
+                    counts_m[i] = IpplTimings::getMeasurementCount(timers_m[i]);
+                }
+            }
+
+            void print(unsigned long long step, unsigned long long particles, double gamma,
+                       double softening, bool images) const {
+                std::array<double, kSolveTimers.size() + 1> local{}, global{};
+                for (std::size_t i = 0; i < kSolveTimers.size(); ++i) {
+                    const std::vector<double>& m = IpplTimings::getMeasurements(timers_m[i]);
+                    for (std::size_t j = counts_m[i]; j < m.size(); ++j) {
+                        local[i] += m[j];
+                    }
+                }
+                local.back() = MPI_Wtime() - start_m;
+                MPI_Allreduce(local.data(), global.data(), static_cast<int>(local.size()),
+                              MPI_DOUBLE, MPI_MAX, ippl::Comm->getCommunicator());
+                if (ippl::Comm->rank() != 0) {
+                    return;
+                }
+                // pack.new / copyBack.new / syncGrav.new: this solve built the domain.
+                const bool newDomain =
+                        IpplTimings::getMeasurementCount(timers_m[6]) > counts_m[6];
+                std::printf("[bh.time] step=%llu N=%llu gamma=%.5g h=%.4g images=%d new=%d "
+                            "total=%.4f restFrame=%.4f domain=%.4f sync=%.4f halo=%.4f "
+                            "pack=%.4f groups=%.4f upsweep=%.4f traverse=%.4f imagePass=%.4f "
+                            "copyBack=%.4f farImages=%.4f direct=%.4f\n",
+                            step, particles, gamma, softening, images ? 1 : 0, newDomain ? 1 : 0,
+                            global.back(), global[0], global[1], global[2] + global[3], global[4],
+                            global[5] + global[6], global[7], global[8], global[9], global[10],
+                            global[11] + global[12], global[13], global[14]);
+                std::fflush(stdout);
+            }
+
+        private:
+            double start_m;
+            std::array<IpplTimings::TimerRef, kSolveTimers.size()> timers_m{};
+            std::array<std::size_t, kSolveTimers.size()> counts_m{};
+        };
+
     }  // namespace
 
     /// Precision-independent interface of the implementation (BHPRECISION picks the policy).
@@ -739,7 +985,11 @@ namespace opalx::spacecharge {
         PrecisionImpl(
                 BarnesHutConfig config, ParticleContainer& primary,
                 std::shared_ptr<const BunchStateHandler> bunchState)
-            : config_m(std::move(config)), primary_m(&primary), bunchState_m(std::move(bunchState)) {}
+            : config_m(std::move(config)), primary_m(&primary), bunchState_m(std::move(bunchState)) {
+            if (config_m.traversalStatistics) {
+                trackKokkosDeviceAllocations();
+            }
+        }
 
         SpaceChargeSolveResult solve(const SpaceChargeSolveContext& context) override;
         [[nodiscard]] const Statistics& statistics() const override { return statistics_m; }
@@ -754,6 +1004,20 @@ namespace opalx::spacecharge {
         unsigned bucketSize_m      = 0;
         unsigned bucketSizeFocus_m = 0;
         bool usingDirectSum_m      = false;
+        std::string memoryTrace_m;  // BHSTATS: device memory at the stages of this solve
+        bool newDomainSolve_m = false;  // this solve built a new cstone domain
+
+        /// BHSTATS: record the device memory in use (after a device sync) at @p stage of this
+        /// solve; printed as [bh.mem.trace] with the memory report.
+        void traceMemory(const char* stage) {
+            if (!config_m.traversalStatistics) {
+                return;
+            }
+            Kokkos::fence("BarnesHutAlgorithm::traceMemory");
+            char entry[64];
+            std::snprintf(entry, sizeof(entry), " %s=%.2f", stage, deviceUsedGB());
+            memoryTrace_m += entry;
+        }
         bool imagesWereActive_m    = false;
         bool imagesWereFar_m       = false;
         double softening_m         = 0.0;  ///< Uniform h of the current solve.
@@ -762,7 +1026,8 @@ namespace opalx::spacecharge {
     private:
         void checkPreconditions(const SpaceChargeSolveContext& context) const;
         [[nodiscard]] bool imagesActive(std::size_t step) const;
-        void ensureContainer(const std::array<double, 6>& bounds, unsigned long long total);
+        void ensureContainer(const std::array<double, 6>& bounds, unsigned long long total,
+                             bool newDomain = false);
         void updateDomainBox(const std::array<double, 6>& bounds, unsigned long long total);
         void ensureSolver(bool images);
         BHLocalIndex prepareSlots(size_type nSlots);
@@ -820,7 +1085,7 @@ namespace opalx::spacecharge {
 
     template <class Precision>
     void BarnesHutAlgorithm::PrecisionImpl<Precision>::ensureContainer(
-            const std::array<double, 6>& bounds, unsigned long long total) {
+            const std::array<double, 6>& bounds, unsigned long long total, bool newDomain) {
         // total counts every Barnes-Hut source, including image charges.
         const int nRanks       = ippl::Comm->size();
         const auto ranks       = static_cast<unsigned long long>(nRanks);
@@ -847,8 +1112,8 @@ namespace opalx::spacecharge {
         // Bucket sizes are fixed per cstone domain. Emission can grow the bunch by orders of
         // magnitude and losses can shrink it; rebuild when the sizes are far off or the trees would
         // degenerate. All particles live in the OPALX container between solves, so a rebuild
-        // loses no state.
-        const bool rebuild =
+        // loses no state. newDomain: updateDomainBox() resizes the box.
+        const bool bucketsOff =
                 bh_m != nullptr
                 && ((config_m.bucketSize == 0
                      && (bucketSize > 4 * bucketSize_m || 4 * bucketSize < bucketSize_m))
@@ -856,30 +1121,35 @@ namespace opalx::spacecharge {
                     || (bucketSizeFocus != bucketSizeFocus_m
                         && (bucketSizeFocus >= 2 * bucketSizeFocus_m
                             || bucketSizeFocus == configuredFocus)));
-        if (bh_m != nullptr && !rebuild) {
+        if (bh_m != nullptr && !bucketsOff && !newDomain) {
             return;
         }
 
         static IpplTimings::TimerRef buildTimer = IpplTimings::getTimer("bh.newContainer");
         IpplTimings::startTimer(buildTimer);
-        if (rebuild) {
+        if (bucketsOff) {
             ++statistics_m.bucketRebuilds;
         }
-        solver_m.reset();
-        bh_m.reset();
         // Fixed boundaries: cstone keeps the box that updateDomainBox() sets before every sync
         // (an open box would be refitted without the guard against zero-extent axes).
         const cstone::Box<double> box = domainBox(bounds, config_m.boxMargin);
-        bh_m = std::make_unique<BHContainer>(
-                ippl::Comm->rank(), nRanks, bucketSize, bucketSizeFocus,
-                static_cast<float>(config_m.theta),
-                std::array<double, 6>{box.xmin(), box.xmax(), box.ymin(), box.ymax(), box.zmin(),
-                                      box.zmax()},
-                std::array<cstone::BoundaryType, 3>{
-                        box.boundaryX(), box.boundaryY(), box.boundaryZ()},
-                ippl::Comm->getCommunicator());
-        bh_m->setUniformH(softening_m);
-        bh_m->setLeafBasedH(config_m.leafBasedSoftening);
+        if (bh_m != nullptr) {
+            // A new cstone domain in the existing container: its buffers, and the solver with
+            // its multipole buffers, are kept. Freeing them grew the device memory at every
+            // rebuild (GPU-aware MPI retains freed buffers it mapped, see resetDomain()).
+            bh_m->resetDomain(bucketSize, bucketSizeFocus, static_cast<float>(config_m.theta), box);
+        } else {
+            bh_m = std::make_unique<BHContainer>(
+                    ippl::Comm->rank(), nRanks, bucketSize, bucketSizeFocus,
+                    static_cast<float>(config_m.theta),
+                    std::array<double, 6>{box.xmin(), box.xmax(), box.ymin(), box.ymax(),
+                                          box.zmin(), box.zmax()},
+                    std::array<cstone::BoundaryType, 3>{
+                            box.boundaryX(), box.boundaryY(), box.boundaryZ()},
+                    ippl::Comm->getCommunicator());
+            bh_m->setUniformH(softening_m);
+            bh_m->setLeafBasedH(config_m.leafBasedSoftening);
+        }
 
         bucketSize_m      = bucketSize;
         bucketSizeFocus_m = bucketSizeFocus;
@@ -908,9 +1178,9 @@ namespace opalx::spacecharge {
         }
 
         if (outgrown || oversized) {
-            solver_m.reset();
-            bh_m.reset();
-            ensureContainer(bounds, total);  // with domainBox(bounds, boxMargin)
+            traceMemory("rebuild");
+            ensureContainer(bounds, total, /*newDomain=*/true);  // with domainBox(bounds, boxMargin)
+            traceMemory("built");
             ++statistics_m.boxRebuilds;
             statistics_m.boxShrinkRebuilds += outgrown ? 0 : 1;
         } else {
@@ -949,7 +1219,8 @@ namespace opalx::spacecharge {
         using ippl::nbody::MultipoleOrder;
         const MultipoleOrder wanted =
                 images ? MultipoleOrder::DipoleQuadrupole : MultipoleOrder::Quadrupole;
-        // The solver refers to the container: ensureContainer() drops both on a rebuild.
+        // The solver refers to the container, which lives as long as this algorithm: a domain
+        // rebuild keeps both.
         if (solver_m != nullptr && solverOrder_m == wanted) {
             return;
         }
@@ -962,6 +1233,9 @@ namespace opalx::spacecharge {
         params.theta      = static_cast<float>(config_m.theta);
         params.numShells  = 0;
         params.multipoles = wanted;
+        // --info 3: per-solve consistency checks of the sources ([bh.check]); a failed traversal
+        // reports them regardless.
+        params.checks = ippl::Info->getOutputLevel() >= 3;
         static IpplTimings::TimerRef solverTimer = IpplTimings::getTimer("bh.newSolver");
         IpplTimings::startTimer(solverTimer);
         solver_m.reset();
@@ -1052,6 +1326,8 @@ namespace opalx::spacecharge {
             throw OpalException(
                     "BarnesHutAlgorithm::solve",
                     std::string(error.what())
+                            + (newDomainSolve_m ? " This solve built a new domain."
+                                                : " This solve kept the previous domain.")
                             + " Increase FIELDSOLVER BHTHETA to shorten the traversal.");
         }
         synchronizeDevice();
@@ -1103,6 +1379,12 @@ namespace opalx::spacecharge {
         }
         checkPreconditions(context);
         const size_type totalBefore = primary_m->getTotalNum();
+        std::optional<SolveTimeReport> timeReport;
+        double devStart = 0.0;
+        if (config_m.traversalStatistics) {
+            timeReport.emplace();
+            devStart = deviceUsedGB();
+        }
 
         enterSolveFrame(context.stepState().frames, *primary_m);
 
@@ -1110,9 +1392,10 @@ namespace opalx::spacecharge {
         // the bunch, unchanged charges (the rho / gamma of CartesianPIC3D), boost afterwards.
         static IpplTimings::TimerRef restFrameTimer = IpplTimings::getTimer("bh.restFrame");
         const std::array<double, 6> labBounds = globalBounds(*primary_m);
+        const bool relativistic = config_m.kinematics == BarnesHutKinematics::Frame;
         RestFrameBoost boost;
         ZStretch stretch;
-        if (config_m.restFrame) {
+        if (relativistic) {
             IpplTimings::startTimer(restFrameTimer);
             boost   = restFrameOf(primary_m->P.getView(), primary_m->getLocalNum());
             stretch = ZStretch{0.5 * (labBounds[4] + labBounds[5]), boost.gamma};
@@ -1148,7 +1431,7 @@ namespace opalx::spacecharge {
         }
         // In the rest frame the images recede with 2 gamma times the distance to the plane; far
         // ones are one quadrupole instead of sources, which keeps the box around the bunch.
-        const bool farImages = images && config_m.restFrame && extent > 0.0
+        const bool farImages = images && relativistic && extent > 0.0
                                && imagesAreFar(bounds, planeZ, config_m.theta);
         if (images && farImages != imagesWereFar_m) {
             Inform m("BarnesHutAlgorithm");
@@ -1215,6 +1498,7 @@ namespace opalx::spacecharge {
             ensureSolver(sourceImages);
             IpplTimings::stopTimer(domainTimer);
             const bool newDomain = statistics_m.containerBuilds != buildsBefore;
+            newDomainSolve_m     = newDomain;
 
             IpplTimings::startTimer(newDomain ? packNewTimer : packTimer);
             const size_type nLocal    = primary_m->getLocalNum();
@@ -1222,11 +1506,14 @@ namespace opalx::spacecharge {
             pack(offset, nLocal, context.stepState().timeStep, sourceImages, planeZ, stretch);
             IpplTimings::stopTimer(newDomain ? packNewTimer : packTimer);
 
+            traceMemory("packed");
             synchronize(newDomain);
+            traceMemory("synced");
 
             IpplTimings::startTimer(newDomain ? solveNewTimer : solveTimer);
             traverse();
             IpplTimings::stopTimer(newDomain ? solveNewTimer : solveTimer);
+            traceMemory("traversed");
 
             SlotField allSources;
             if (imageField) {
@@ -1239,6 +1526,7 @@ namespace opalx::spacecharge {
             IpplTimings::startTimer(newDomain ? copyBackNewTimer : copyBackTimer);
             copyBack(stretch, allSources);
             IpplTimings::stopTimer(newDomain ? copyBackNewTimer : copyBackTimer);
+            traceMemory("copied");
 
             ++statistics_m.solves;
             if (solverOrder_m == ippl::nbody::MultipoleOrder::DipoleQuadrupole) {
@@ -1256,7 +1544,7 @@ namespace opalx::spacecharge {
                 IpplTimings::stopTimer(farTimer);
                 ++statistics_m.farImageSolves;
             }
-            if (config_m.restFrame) {
+            if (relativistic) {
                 IpplTimings::startTimer(restFrameTimer);
                 boostToLab(*primary_m, boost);
                 IpplTimings::stopTimer(restFrameTimer);
@@ -1266,6 +1554,24 @@ namespace opalx::spacecharge {
         }
 
         leaveSolveFrame(context.stepState().frames, *primary_m);
+        if (timeReport) {
+            timeReport->print(static_cast<unsigned long long>(context.stepState().step), total,
+                              boost.gamma, softening_m, images);
+            std::size_t opalBytes = 0;
+            primary_m->forAllAttributes([&opalBytes]<typename Attribute>(Attribute& attribute) {
+                opalBytes += attribute->packedSize(attribute->size());
+            });
+            printMemoryReport(static_cast<unsigned long long>(context.stepState().step), devStart,
+                              primary_m->getLocalNum(), primary_m->R.size(), opalBytes,
+                              bh_m ? bh_m->nWithHalos() : 0, bh_m ? bh_m->reservedBytes() : 0);
+            if (ippl::Comm->size() <= 16 && !memoryTrace_m.empty()) {
+                std::printf("[bh.mem.trace] step=%llu rank=%d%s GB\n",
+                            static_cast<unsigned long long>(context.stepState().step),
+                            ippl::Comm->rank(), memoryTrace_m.c_str());
+                std::fflush(stdout);
+            }
+        }
+        memoryTrace_m.clear();
         return result;
     }
 
@@ -1351,8 +1657,36 @@ namespace opalx::spacecharge {
 
     BarnesHutAlgorithm::~BarnesHutAlgorithm() = default;
 
+    namespace {
+        // An exception thrown on some ranks only (a failed GPU allocation, an exhausted traversal
+        // stack) leaves the other ranks in the next collective, and unwinding then blocks in the
+        // collective MPI_Win_free of the particle layout: the run hangs without a message, which
+        // only rank 0 would print. With several ranks, report the error on the rank that saw it
+        // and abort the job instead.
+        [[noreturn]] void abortOnRank(const std::string& where, const std::string& what) {
+            int rank = -1;
+            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+            std::fprintf(stderr, "*** TYPE=BH rank %d: %s: %s\n*** Aborting all ranks.\n", rank,
+                         where.c_str(), what.c_str());
+            std::fflush(stderr);
+            MPI_Abort(MPI_COMM_WORLD, 1);
+            std::abort();
+        }
+    }  // namespace
+
     SpaceChargeSolveResult BarnesHutAlgorithm::solve(const SpaceChargeSolveContext& context) {
-        return impl_m->solve(context);
+        int ranks = 1;
+        MPI_Comm_size(MPI_COMM_WORLD, &ranks);
+        if (ranks == 1) {
+            return impl_m->solve(context);
+        }
+        try {
+            return impl_m->solve(context);
+        } catch (const OpalException& error) {
+            abortOnRank(error.where(), error.what());
+        } catch (const std::exception& error) {
+            abortOnRank("BarnesHutAlgorithm::solve", error.what());
+        }
     }
 
     const BarnesHutAlgorithm::Statistics& BarnesHutAlgorithm::statistics() const {

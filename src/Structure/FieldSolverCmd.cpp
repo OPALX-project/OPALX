@@ -144,6 +144,12 @@ FieldSolverCmd::FieldSolverCmd()
             "Barnes-Hut precision: DOUBLE everywhere, or MIXED (double coordinates; float charges, "
             "softening, multipoles and accelerations) [BH only]",
             {"DOUBLE", "MIXED"}, "DOUBLE");
+    itsAttr[FIELDSOLVER::BHRELATIVISTIC] = Attributes::makePredefinedString(
+            "BHRELATIVISTIC",
+            "Barnes-Hut source velocities: FRAME boosts one rest-frame solve with the mean "
+            "momentum (like one energy bin); AUTO follows BINS: none is electrostatic, MAXBINS=1 "
+            "is FRAME [BH only]",
+            {"AUTO", "FRAME"}, "AUTO");
 
     // \todo does not work   registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -283,6 +289,9 @@ bool FieldSolverCmd::getBHStatistics() const {
 std::string FieldSolverCmd::getBHPrecision() const {
     return Attributes::getString(itsAttr[FIELDSOLVER::BHPRECISION]);
 }
+std::string FieldSolverCmd::getBHRelativistic() const {
+    return Attributes::getString(itsAttr[FIELDSOLVER::BHRELATIVISTIC]);
+}
 void FieldSolverCmd::setBHTheta(const double theta) {
     Attributes::setReal(itsAttr[FIELDSOLVER::BHTHETA], theta);
 }
@@ -309,6 +318,9 @@ void FieldSolverCmd::setBHStatistics(const bool enabled) {
 }
 void FieldSolverCmd::setBHPrecision(const std::string& precision) {
     Attributes::setPredefinedString(itsAttr[FIELDSOLVER::BHPRECISION], precision);
+}
+void FieldSolverCmd::setBHRelativistic(const std::string& mode) {
+    Attributes::setPredefinedString(itsAttr[FIELDSOLVER::BHRELATIVISTIC], mode);
 }
 
 FieldSolverCmdType FieldSolverCmd::getFieldSolverCmdType() const {
@@ -360,7 +372,8 @@ Inform& FieldSolverCmd::printInfo(Inform& os) const {
            << "* BHBOXMARGIN  " << getBHBoxMargin() << '\n'
            << "* BHBOXSLACK   " << getBHBoxSlack() << '\n'
            << "* BHSTATS      " << (getBHStatistics() ? "TRUE" : "FALSE") << '\n'
-           << "* BHPRECISION  " << getBHPrecision() << endl;
+           << "* BHPRECISION  " << getBHPrecision() << '\n'
+           << "* BHRELATIVISTIC " << getBHRelativistic() << endl;
     }
 
     if (getType() == "P3M") {
