@@ -1,23 +1,27 @@
 # OPALX Regression Test Pipeline
 
-This document describes the CSCS CI/CD regression test pipeline for OPALX.
-It covers the architecture, file layout, every step in the pipeline, key
-workarounds, and how to resume work or debug failures.
+This document describes the CSCS CI/CD regression test pipeline for OPALX: the file layout,
+every step of the job, how a run is published to the results site, and how to debug failures. 
 
 ## Overview
 
-The regression pipeline runs **after the build and unit-test stages** on
-every PR and on master. It uses the pre-built **release** artifact, clones
-the NightlyBuildX scripts and regression-tests-x repo, and runs the full
-regression test suite via the NightlyBuildX `run_tests` driver.
+The regression job runs **after the build stage** on every PR and on master. It uses the
+pre-built **release** artifact and runs the OPALX unit tests (`ctest -L unit`) and every test of
+regression-tests-x with `tools/regtest.sh` from the results repository
+[AMAS/opalx-regression](https://gitea.psi.ch/AMAS/opalx-regression). Runs of master and of PRs
+are pushed to that repository, whose Pages build shows them at
+https://amas.pages.psi.ch/opalx-regression/results/. The repository's README describes the run
+format and the tools in detail.
 
 Three architectures are supported:
 
-| CI target | Architecture string | Runner | UENV |
-|-----------|--------------------|--------|------|
-| OpenMP (Eiger Zen2) | `cpu-zen2-openmp` | `.baremetal-runner-eiger-zen2` | `prgenv-gnu/25.6:v2` |
-| GH200 (Daint) | `gpu-cuda-gh200` | `.baremetal-runner-daint-gh200` | CUDA 13.1.1 squashfs |
-| MI300 (Beverin) | `gpu-rocm-mi300` | `.baremetal-runner-beverin-mi300` | `prgenv-gnu/25.07-6.3.3:v12` |
+| CI target | Architecture name on the site | Runner |
+|-----------|-------------------------------|--------|
+| OpenMP (Eiger Zen2) | `cpu-zen2-openmp` | `.baremetal-runner-eiger-zen2` |
+| GH200 (Daint) | `gpu-cuda-gh200` | `.baremetal-runner-daint-gh200` |
+| MI300 (Beverin) | `gpu-rocm-mi300` | `.baremetal-runner-beverin-mi300` |
+
+The uenv of each target is set in its `build_*.yml` and `regression_*.yml`.
 
 ## File Layout
 
@@ -28,372 +32,167 @@ ci/cscs/
 ├── cscs-gh200.yml                    # Entry point: includes build + run + regression
 ├── cscs-mi300.yml                    # Entry point: includes build + run + regression
 ├── regression-common.yml             # Shared regression job template (.opalx-regression-common)
-├── regression-test-mpirun-wrapper    # mpirun → srun translation script
-├── config/
-│   ├── openmp.conf                   # NightlyBuildX config for OpenMP
-│   ├── cuda.conf                     # NightlyBuildX config for CUDA/GH200
-│   └── rocm.conf                     # NightlyBuildX config for ROCm/MI300
+├── regression-test-mpirun-wrapper    # Launcher: "-np N" -> srun with the job's uenv
 ├── openmp/
-│   ├── build_openmp.yml              # Build stage (pre-existing)
-│   ├── run_openmp.yml                # Unit test stage (pre-existing)
+│   ├── build_openmp.yml              # Build stage
+│   ├── run_openmp.yml                # Unit test stage (CDash)
 │   └── regression_openmp.yml         # Regression job definition
 ├── cuda/
-│   ├── build_sm90.yml                # Build stage (pre-existing)
-│   ├── run_sm90.yml                  # Unit test stage (pre-existing)
-│   └── regression_sm90.yml           # Regression job definition
+│   ├── build_sm90.yml
+│   ├── run_sm90.yml
+│   └── regression_sm90.yml
 └── rocm/
-    ├── build_rocm-6.3.yml            # Build stage (pre-existing)
-    ├── run_rocm-6.3.yml              # Unit test stage (pre-existing)
-    └── regression_rocm-6.3.yml       # Regression job definition
+    ├── build_rocm-6.3.yml
+    ├── run_rocm-6.3.yml
+    └── regression_rocm-6.3.yml
 ```
 
-## Stage Ordering
+## Stages and Entry Points
 
-Defined in `common.yml`:
+`common.yml` defines the stages `opalx_build`, `opalx_test` and `opalx_regression`. Regression
+jobs depend only on the release build (via `needs:`), so they start as soon as the build
+finishes, even if unit test stages are still running.
 
-```yaml
-stages:
-  - opalx_build
-  - opalx_test
-  - opalx_regression
-```
-
-Regression jobs depend only on the release build (via `needs:`), so they
-can start as soon as the build finishes, even if unit tests are still
-running.
-
-## Entry Point Includes
-
-Each architecture entry point includes three files:
-
-```yaml
-# cscs-openmp.yml
-include:
-  - local: "ci/cscs/openmp/build_openmp.yml"
-  - local: "ci/cscs/openmp/run_openmp.yml"
-  - local: "ci/cscs/openmp/regression_openmp.yml"
-```
-
-The CSCS admin console points at these entry point files. The names
-`cscs-openmp`, `cscs-gh200`, and `cscs-mi300` are the pipeline names used
-with `cscs-ci run`.
+Each entry point (`cscs-openmp.yml`, `cscs-gh200.yml`, `cscs-mi300.yml`) includes the build, run
+and regression files of its architecture. The CSCS admin console points at these files.
 
 ## Architecture-Specific Regression Files
 
 Each `regression_<arch>.yml` defines:
 
-- `BUILD_ARCH` — the architecture string used for directories and display
-- `REGTEST_CONFIG` — the NightlyBuildX config file under `ci/cscs/config/`
-- `CTEST_SITE` — diagnostic site name
-- `SRUN_ARGS` — srun arguments (uenv, view, repo, GPU flags)
-- `WRAPPER` — optional MPI wrapper binary path (CUDA only)
-- The runner to use (`.baremetal-runner-*`)
-- `SLURM_CPUS_PER_TASK` per architecture
-- A single job (e.g. `opalx-regression-openmp-release`) that:
-  - Extends the common template + arch runner
-  - `needs: ["opalx-build-<arch>-release"]`
-  - Sets `BUILD_DIR: "build-$CI_COMMIT_SHORT_SHA-release"`
+- `BUILD_ARCH`: the architecture name on the results site. The site compares runs of the same
+  name over time, so change it only together with the site (see "Names" in the results
+  repository README).
+- `CTEST_SITE`: diagnostic site name.
+- `SRUN_ARGS`: srun arguments (uenv, view, repo, GPU flags) used by the launcher wrapper.
+- `WRAPPER`: optional MPI wrapper binary path (CUDA only).
+- The runner (`.baremetal-runner-*`) and `SLURM_CPUS_PER_TASK`.
+- A single job (e.g. `opalx-regression-openmp-release`) that extends the common template and
+  the runner, `needs: ["opalx-build-<arch>-release"]` and sets
+  `BUILD_DIR: "build-$CI_COMMIT_SHORT_SHA-release"`.
 
-## The mpirun → srun Wrapper
+## The Launcher Wrapper
 
 **File:** `ci/cscs/regression-test-mpirun-wrapper`
 
-The regression test `.local` scripts (committed in regression-tests-x) call
-`mpirun -np N <opalx> <args>`. On CSCS systems we must use `srun` with uenv
-flags instead. This wrapper intercepts `mpirun`, extracts `-np N`, and
-translates it to:
+`regtest.sh` starts every regression test with the command given by `--launcher`, here
+`regression-test-mpirun-wrapper -np {ranks}`. `{ranks}` is 1, as in the `.local` scripts of
+regression-tests-x. The wrapper turns `-np N` into
 
 ```bash
-srun ${SRUN_ARGS} ${WRAPPER} env MALLOC_CHECK_=0 GLIBC_TUNABLES=glibc.malloc.tcache_count=0 -n N <args>
+srun ${SRUN_ARGS} -n N ${WRAPPER} env MALLOC_CHECK_=0 GLIBC_TUNABLES=glibc.malloc.tcache_count=0 <opalx> <test>.in --info 2
 ```
 
-The wrapper is copied to `ci-bin/mpirun` and prepended to `PATH` so that
-all `.local` scripts use it transparently.
+so each test runs inside the job's allocation with the uenv. The unit tests use the srun
+command the build configured into ctest (`MPIEXEC_EXECUTABLE`, `MPIEXEC_PREFLAGS`).
 
-## Step-by-Step Pipeline Execution
+## Step-by-Step Job Execution
 
-The shared template `.opalx-regression-common` in `regression-common.yml`
-executes the following steps:
+The shared template `.opalx-regression-common` in `regression-common.yml` runs these steps.
+Every step prints a `=== <step> ===` marker in the job log.
 
-### 1. PR Number Extraction
+1. **PR number extraction.** `.pr-number-extractor` from `common.yml` sets `CDASH_LABEL`.
+2. **Build path.** `BUILD_PATH=$(pwd)/$BUILD_DIR`.
+3. **Publish branch.** CSCS CI runs PRs as merge pipelines with refs like `__CSCSCI__pr508`.
+   These become `pr-508`, `master` stays `master`, and any other branch gets an empty
+   `OPALX_PUBLISH_BRANCH` (tested, not published).
+4. **PR title.** For `pr-<N>` the title is fetched from the GitHub API (no token, the repo is
+   public) and appended: `pr-527 Fix remaining OPALX and external dependency warnings`.
+5. **Run branch name.** `RUN_BRANCH` is the publish branch (or the ref name) with every
+   character outside `[A-Za-z0-9._-]` replaced by `_`, the rule NightlyBuildX used, so new
+   runs join the runs imported from opal-live-doc:
+   `pr-508 CI/CD and regression testing fixes at CSCS` becomes
+   `pr-508_CI_CD_and_regression_testing_fixes_at_CSCS`. The site shows underscores as spaces.
+6. **Build artifact.** Lists `$BUILD_PATH/bin/` and adds `$BUILD_PATH/lib` to
+   `LD_LIBRARY_PATH`.
+7. **ctest paths.** `CTestTestfile.cmake` and `DartConfiguration.tcl` contain the build job's
+   working directory (e.g. `f7t/1/.../build-89e66c54-release`); `sed` rewrites it to
+   `$BUILD_PATH`, as the unit test stages (`run_*.yml`) do.
+8. **PSI Gitea key.** `PSI_GIT_SSHKEY` (base64 or PEM with whitespace removed) is written to
+   `~/.ssh/psi_gitea_key` and checked with `ssh-keygen`. The job fails without it, because
+   the tools come from the private results repository. The log shows the public key, its
+   fingerprint and Gitea's greeting, which names the key and says whether it is a user or a
+   deploy key.
+9. **Tools.** A sparse, blob-filtered clone of `tools/` of `RESULTS_REPO` at
+   `RESULTS_TOOLS_REF` (default `main`). If the key cannot read the repository, the job stops
+   here. A `git push --dry-run` of a new branch then checks write access; without it the log
+   warns that publishing will fail.
+10. **Python and ctest.** The tools need Python 3.9 or newer, and ctest 3.21 or newer for its
+    JUnit report; SLES 15's system python3 is 3.6. A micromamba environment with `python` and
+    `cmake` from conda-forge is kept at `$SCRATCH/opalx-regtest-tools-$(uname -m)` and rebuilt
+    when it is missing or Python cannot import `site`. Only `PATH` changes: the environment's
+    binaries find their libraries by RPATH, so srun, git and ssh keep the system libraries.
+11. **regression-tests-x.** Shallow clone of `master`.
+12. **Tests.** One call:
 
-Uses the `.pr-number-extractor` from `common.yml` to set `CDASH_LABEL`
-(e.g., `PR-508`).
+    ```bash
+    bash opalx-regression/tools/regtest.sh --arch "$BUILD_ARCH" --build "$BUILD_PATH" \
+      --source "$CI_PROJECT_DIR" --tests regression-tests-x --branch "$RUN_BRANCH" \
+      --launcher "$CI_PROJECT_DIR/ci/cscs/regression-test-mpirun-wrapper -np {ranks}" \
+      --timeout 1200 --out "$RESULTS_DIR"
+    ```
 
-### 2. Build Path Setup
+    It runs `ctest -L unit`, then every test directory with `<name>.in`, a reference `.stat`
+    and no `disabled` file, each in a copy under `TMPDIR` (set to `$CI_PROJECT_DIR/regtest-tmp`
+    on scratch). It applies the `.rt` checks to the new and the reference `.stat` files and
+    writes `runs/<RUN_BRANCH>/<BUILD_ARCH>/<run_id>/` with `run.json` and `series.json.gz`.
+    `--source` is needed because `CMakeCache.txt` names the build job's checkout. A test that
+    runs longer than 1200 s (the NightlyBuildX limit) counts as crashed. The exit code (0
+    passed, 3 tests failed, other values errors) is kept in `REGTEST_EXIT`.
+13. **Publish.** For master and PRs, `publish_run.sh <run dir> $RESULTS_REPO` clones only that
+    run directory, commits it and pushes to `main`, rebasing and retrying up to 5 times if
+    another job pushed first. The site's `index.json` is written by the Pages build, so
+    concurrent jobs cannot conflict. Feature branches are not published; their run is in the
+    job artifacts.
+14. **Job status.** The job exits with `REGTEST_EXIT`, so a run with failing tests is published
+    and the job still fails.
 
-```bash
-export BUILD_PATH=$(pwd)/$BUILD_DIR
-# e.g. BUILD_PATH=/capstor/.../build-89e66c54-release
-```
-
-### 3. Publish Branch Normalization
-
-CSCS CI creates merge pipelines with refs like `__CSCSCI__pr508`. These are
-normalized:
-
-- `__CSCSCI__pr527` → `pr-527`
-- `master` → `master`
-- anything else → empty (skip push)
-
-### 4. PR Title Fetch from GitHub
-
-If `OPALX_PUBLISH_BRANCH` matches `pr-<number>`, the pipeline fetches the PR
-title from the GitHub API (no token needed, repos are public):
-
-```bash
-curl -fsSL "https://api.github.com/repos/OPALX-project/OPALX/pulls/${PR_NUM}" \
-  | python3 -c "import json,sys; print(json.load(sys.stdin)['title'])"
-```
-
-The result is appended: `pr-527 Fix remaining OPALX and external dependency warnings`.
-This full string is passed to `run_tests --opalx-branch="..."`. NightlyBuildX
-sanitizes it for directory names but writes the full string to
-`branch-name.txt` for display in the overview HTML.
-
-### 5. Verify Release Build Artifact
-
-```bash
-ls -l $BUILD_PATH/bin/
-export LD_LIBRARY_PATH=$BUILD_PATH/lib:$LD_LIBRARY_PATH
-export MALLOC_CHECK_=0
-```
-
-### 6. Fix ctest Paths (Build → Test Directory)
-
-The build artifacts contain `CTestTestfile.cmake` and `DartConfiguration.tcl`
-with hardcoded paths from the build job's working directory (e.g.,
-`f7t/1/.../build-89e66c54-release`). The test job runs in a different
-directory (e.g., `f7t/6/...`). Without fixing, ctest uses stale paths and
-test executables can't find `libippl.so`.
-
-```bash
-CACHE_DIR=$(grep "CMAKE_CACHEFILE_DIR:INTERNAL=" $BUILD_PATH/CMakeCache.txt | cut -d'=' -f2)
-find $BUILD_PATH -type f -name "CTestTestfile.cmake" -exec sed -i "s|$CACHE_DIR|$BUILD_PATH|g" {} \;
-find $BUILD_PATH -type f -name "DartConfiguration.tcl" -exec sed -i "s|$CACHE_DIR|$BUILD_PATH|g" {} \;
-```
-
-This is the same fix used by the regular unit-test pipeline
-(`run_openmp.yml`, `run_sm90.yml`, `run_rocm-6.3.yml`).
-
-### 7. Install NightlyBuildX Tools (matplotlib, pandoc, xsltproc, perl)
-
-A persistent conda environment is created at
-`$SCRATCH/nightlybuildx-tools-$(uname -m)` using micromamba. The check
-verifies not just that binaries exist, but that Python can actually import
-`site` (to catch corrupted environments from uenv updates):
-
-```bash
-if [ ! -x "$TOOLS_ENV/bin/python3" ] || ! "$TOOLS_ENV/bin/python3" -c "import site" 2>/dev/null || ...; then
-    rm -rf "$TOOLS_ENV"
-    # download micromamba, create environment with python matplotlib pandoc libxslt perl
-fi
-```
-
-If the environment is broken, it is deleted and recreated from scratch.
-
-### 8. Clone NightlyBuildX
-
-```bash
-git clone --depth 1 --branch alps-regression-testing https://github.com/OPALX-project/NightlyBuildX.git nightlybuildx
-```
-
-The `alps-regression-testing` branch is a work-in-progress branch that adds
-ALPS/CSCS-friendly options to NightlyBuildX:
-
-- `--no-salloc` — skip the `salloc` wrapper when already inside a SLURM
-  allocation.
-- Standard-folder aware `--opalx-build-dir` — detects `bin/opalx` as well as
-  `src/opalx`.
-- Robust OPALX revision detection via `OPALX_SRC_DIR`.
-- `run-reg-tests.py` exits non-zero when tests fail.
-
-Once verified, this branch will be proposed back to NightlyBuildX via a PR.
-
-### 9. Pass `--no-salloc` to `run_tests`
-
-The NightlyBuildX `run_tests` script tries to use `salloc` when running
-locally, but inside CSCS CI the allocation already exists. The `--no-salloc`
-flag disables the salloc wrapper.
-
-### 10. Provide `OPALX_SRC_DIR` for Revision Detection
-
-Because the regression runner uses a pre-built binary from a GitLab artifact,
-the OPALX source directory is not in the fixed relative location that
-NightlyBuildX expects. Setting `OPALX_SRC_DIR=$CI_PROJECT_DIR` lets it read the
-git revision from the actual checkout.
-
-### 11. Install mpirun → srun Wrapper
-
-```bash
-cp $CI_PROJECT_DIR/ci/cscs/regression-test-mpirun-wrapper ci-bin/mpirun
-chmod +x ci-bin/mpirun
-export PATH=$(pwd)/ci-bin:$PATH
-```
-
-### 12. Run Regression and Unit Tests
-
-```bash
-export REGTEST_EXIT=0
-OPALX_SRC_DIR=$CI_PROJECT_DIR \
-bash nightlybuildx/scripts/run_tests \
-  --config=$CI_PROJECT_DIR/ci/cscs/config/$REGTEST_CONFIG \
-  --opalx-exe-path=$BUILD_PATH/bin \
-  --opalx-build-dir=$BUILD_PATH \
-  --opalx-branch="${OPALX_PUBLISH_BRANCH:-$CI_COMMIT_REF_NAME}" \
-  --no-salloc \
-  --reg-tests \
-  --unit-tests \
-  --no-gpl \
-  --publish-dir=$CI_PROJECT_DIR/regression-results-$BUILD_ARCH \
-  || export REGTEST_EXIT=$?
-```
-
-This runs both unit tests (`ctest -L unit`) and regression tests
-(`run-reg-tests.py`) using the pre-built opalx binary. The `--no-gpl` flag
-selects matplotlib instead of gnuplot for comparison plots.
-
-`run_tests` exits non-zero when tests fail. The exit code is captured in
-`REGTEST_EXIT` instead of aborting the job, so the results are listed and
-pushed to opal-live-doc even for failing runs. The job is failed with the
-captured code at the end of the script (see below).
-
-### 13. Collect Artifacts
-
-```yaml
-artifacts:
-  when: always
-  paths:
-    - regression-results-$BUILD_ARCH
-  expire_in: 1 week
-```
-
-Artifacts are uploaded `when: always` because the job is intentionally
-failed after publishing when tests failed.
-
-### 14. Push Results to opal-live-doc
-
-If `PSI_GIT_SSHKEY` is set and `OPALX_PUBLISH_BRANCH` is non-empty, the
-pipeline pushes results to `git@gitea.psi.ch:AMAS/opal-live-doc.git`:
-
-1. Reconstruct the SSH private key from the `PSI_GIT_SSHKEY` environment
-   variable (which may be base64 or PEM with whitespace removed).
-2. Clone `opal-live-doc` with sparse checkout of `docs/opalx-regression-test/`.
-3. Copy regression results into the repo.
-4. Re-render the overview HTML using `run_tests --do-not-compile-run`.
-5. Commit and push to `master`, with up to 5 retry attempts to handle
-   concurrent pushes from different architectures.
-
-If `PSI_GIT_SSHKEY` is not set, the push is skipped (useful for testing).
-
-The push runs even when regression tests failed. After the push (or a
-skipped push), the job re-raises the captured `REGTEST_EXIT` code so the
-pipeline is still marked failed.
-
-## NightlyBuildX Config Files
-
-Located at `ci/cscs/config/`:
-
-```bash
-# openmp.conf
-branch="master"
-regtests_branch="master"
-architecture="cpu-zen2-openmp"
-do_unittests='yes'
-```
-
-```bash
-# cuda.conf
-branch="master"
-regtests_branch="master"
-architecture="gpu-cuda-gh200"
-do_unittests='yes'
-```
-
-```bash
-# rocm.conf
-branch="master"
-regtests_branch="master"
-architecture="gpu-rocm-mi300"
-do_unittests='yes'
-```
+Artifacts (`when: always`, one week): `regression-results-$BUILD_ARCH`, the packed run.
 
 ## Key Workarounds and Their Reasons
 
-### mpirun → srun wrapper
-
-The `.local` scripts in regression-tests-x call `mpirun -np N`. On CSCS we
-must use `srun` with uenv flags. The wrapper translates one to the other
-without modifying the regression-tests-x repo.
-
-### ctest path fixing
-
-Build artifacts contain hardcoded paths from the build runner's working
-directory. The test runner uses a different path. Without `sed` rewriting,
-test executables launched via `srun` can't find shared libraries.
-
-### `--no-salloc`
-
-NightlyBuildX `run_tests` tries to allocate via `salloc`, but inside CSCS
-CI the allocation already exists. The `--no-salloc` flag disables this path.
-
-### `run-reg-tests.py` exit code
-
-NightlyBuildX `run-reg-tests.py` exits non-zero when
-`totalNrPassed != totalNrTests`, so CI fails when regression tests fail.
-The pipeline captures this exit code in `REGTEST_EXIT`, pushes the results
-to opal-live-doc regardless, and exits with the captured code at the end of
-the job so failing runs are still published and still marked failed.
-
-### `OPALX_SRC_DIR`
-
-The pre-built binary is not located next to the OPALX source tree, so the
-revision detection heuristic fails. `OPALX_SRC_DIR=$CI_PROJECT_DIR` points it
-at the actual GitLab checkout.
-
-### NightlyBuildX tools environment validation
-
-A cached conda environment can become broken when the uenv is updated. The
-check runs `python3 -c "import site"` to verify the environment is
-functional, not just that the binary exists.
+- **ctest path fixing.** Without it, test executables launched via srun cannot find
+  `libippl.so` (step 7).
+- **`--source`.** `regtest.sh` takes branch and commit from git; the build artifact's
+  `CMakeCache.txt` points at a checkout that does not exist in this job.
+- **Launcher wrapper.** Starts each test with srun and the uenv without changing
+  regression-tests-x.
+- **Captured exit code.** Failing runs are still published and the job is still failed.
+- **Tools environment validation.** A cached conda environment can break when the uenv or
+  the scratch file system changes; importing `site` catches that, not only a missing binary.
 
 ## External Repositories
 
 | Repository | Branch | Purpose |
 |-----------|--------|---------|
-| `https://github.com/OPALX-project/NightlyBuildX.git` | `alps-regression-testing` | Scripts: `run_tests`, `run-reg-tests.py`, `OpalRegressionTests/`, HTML templates |
-| `https://github.com/OPALX-project/regression-tests-x.git` | `master` | Regression test input files, `.local` scripts, reference data |
-| `git@gitea.psi.ch:AMAS/opal-live-doc.git` | `master` | Published results website (GitLab Pages at `amas.pages.psi.ch`) |
+| `https://github.com/OPALX-project/regression-tests-x.git` | `master` | Test inputs, reference `.stat` files, `.rt` checks |
+| `git@gitea.psi.ch:AMAS/opalx-regression.git` | `main` | `tools/` (`regtest.sh`, `run_suite.py`, `pack_run.py`, `publish_run.sh`) and the published runs under `data/runs/`; Pages site at `amas.pages.psi.ch/opalx-regression` |
 
 ## Debugging Tips
 
-1. **Check job logs for the echo markers** — every step starts with
-   `=== <step name> ===` to quickly locate where failures occur.
-
-2. **`libippl.so: cannot open shared object file`** — the ctest path fix
-   (step 6) is missing or failed. Check that `CACHE_DIR` was correctly
-   extracted from `CMakeCache.txt`.
-
-3. **`Fatal Python error: init_import_site` / `unknown encoding`** — the
-   cached NightlyBuildX tools environment is corrupted. Delete
-   `$SCRATCH/nightlybuildx-tools-$(uname -m)` or let the CI recreate it
-   (the check should catch this automatically).
-
-4. **`cmake` binary not found in tests** — this was a build/test uenv mount
-   point mismatch. Fixed in `demos/alpine/CMakeLists.txt` by replacing
-   `${CMAKE_COMMAND} -P` with `bash -c` for the `LandauDampingInit` fixture.
-
-5. **YAML parse errors in GitLab** — ensure `echo` lines containing `: `
-   are single-quoted, and multi-line commands use `>-` block scalars.
-
-6. **Push failures to opal-live-doc** — the pipeline retries up to 5 times
-   with increasing backoff. If all fail, check the SSH key in
-   `PSI_GIT_SSHKEY` and that `gitea.psi.ch` is reachable.
+1. **Find the step** by its `=== <step> ===` marker.
+2. **`libippl.so: cannot open shared object file`**: the ctest path fix failed. Check that
+   `CACHE_DIR` was read from `CMakeCache.txt`.
+3. **`the key in PSI_GIT_SSHKEY cannot read ...`**: the key has no access to
+   AMAS/opalx-regression. Gitea's greeting just above names the key. Add the public key that
+   step 8 printed to the repository as a deploy key with write access, or set a new key.
+4. **`the key can read but not push`**: a deploy key without write access, or a user without
+   write permission on the repository.
+5. **`ctest wrote no unit.xml`**: ctest is older than 3.21, or not the one from the tools
+   environment. The `ctest --version` line of step 10 shows which one ran.
+6. **`Fatal Python error: init_import_site` / `unknown encoding`**: the tools environment is
+   corrupted. Delete `$SCRATCH/opalx-regtest-tools-$(uname -m)`; the next job recreates it.
+7. **A test shows as crashed** on the site: its log tail is on the run page. Exit code -9
+   means it hit the 1200 s timeout.
+8. **YAML parse errors in GitLab**: quote `echo` lines containing `: ` and use `>-` block
+   scalars for multi-line commands.
 
 ## Remaining TODOs
 
 - [ ] Switch regression jobs from all PRs to **master-only** once fully verified
-- [ ] Open a PR from `alps-regression-testing` back to NightlyBuildX main
-- [ ] Increase `SLURM_TIMELIMIT` from 30 min if timeouts occur
+- [ ] Increase `SLURM_TIMELIMIT` from 45 min if timeouts occur
 - [ ] Review concurrency/resource usage of regression jobs if needed
-- [ ] Ensure `PSI_GIT_SSHKEY` is set as a CI/CD variable for the push step
+- [ ] Check that the OPALX commit of a PR run (HEAD of the `__CSCSCI__` merge pipeline
+      checkout) links to a commit that GitHub knows
+- [ ] Delete the old NightlyBuildX environment `$SCRATCH/nightlybuildx-tools-*` once no
+      pipeline uses it
