@@ -391,7 +391,10 @@ inline void ScalingFFAMagnet::getFieldValue(
             "ScalingFFAMagnet::getFieldValue()", count, KOKKOS_LAMBDA(const size_t i) {
                 auto derivatives_i = Kokkos::subview(derivatives, i, Kokkos::ALL);
                 getFieldValueCylindrical(config, derivatives_i, Rcyl(i), Bcyl(i));
-                rotateBfield(config, Rcyl(i), Bcyl(i), B(i));
+                // Add rather than assign: overlapping elements superpose their fields in B.
+                Vector_t<double, 3> Bi;
+                rotateBfield(config, Rcyl(i), Bcyl(i), Bi);
+                B(i) += Bi;
             });
 }
 
