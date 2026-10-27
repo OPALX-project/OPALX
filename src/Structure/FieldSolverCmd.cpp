@@ -156,9 +156,16 @@ FieldSolverCmd::FieldSolverCmd()
     itsAttr[FIELDSOLVER::BHRELATIVISTIC] = Attributes::makePredefinedString(
             "BHRELATIVISTIC",
             "Barnes-Hut source velocities: FRAME boosts one rest-frame solve with the mean "
-            "momentum (like one energy bin); AUTO follows BINS: none is electrostatic, MAXBINS=1 "
-            "is FRAME [BH only]",
-            {"AUTO", "FRAME"}, "AUTO");
+            "momentum (like one energy bin); PARTICLE gives every source the field of a charge "
+            "moving with its own velocity (no bins); AUTO follows BINS: none "
+            "is electrostatic, MAXBINS=1 is FRAME, MAXBINS>1 is PARTICLE [BH only]",
+            {"AUTO", "FRAME", "PARTICLE"}, "AUTO");
+    itsAttr[FIELDSOLVER::BHTHETAV] = Attributes::makeReal(
+            "BHTHETAV",
+            "With per-particle velocities: an octree cell whose sources spread by more than "
+            "BHTHETAV * pi/2 in rapidity about their mean is opened instead of approximated, in "
+            "(0, 1] [BH only]",
+            0.25);
 
     // \todo does not work   registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -311,6 +318,9 @@ std::string FieldSolverCmd::getBHPrecision() const {
 std::string FieldSolverCmd::getBHRelativistic() const {
     return Attributes::getString(itsAttr[FIELDSOLVER::BHRELATIVISTIC]);
 }
+double FieldSolverCmd::getBHThetaV() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::BHTHETAV]);
+}
 void FieldSolverCmd::setBHTheta(const double theta) {
     Attributes::setReal(itsAttr[FIELDSOLVER::BHTHETA], theta);
 }
@@ -340,6 +350,9 @@ void FieldSolverCmd::setBHPrecision(const std::string& precision) {
 }
 void FieldSolverCmd::setBHRelativistic(const std::string& mode) {
     Attributes::setPredefinedString(itsAttr[FIELDSOLVER::BHRELATIVISTIC], mode);
+}
+void FieldSolverCmd::setBHThetaV(const double thetaV) {
+    Attributes::setReal(itsAttr[FIELDSOLVER::BHTHETAV], thetaV);
 }
 
 FieldSolverCmdType FieldSolverCmd::getFieldSolverCmdType() const {
@@ -392,7 +405,8 @@ Inform& FieldSolverCmd::printInfo(Inform& os) const {
            << "* BHBOXSLACK   " << getBHBoxSlack() << '\n'
            << "* BHSTATS      " << (getBHStatistics() ? "TRUE" : "FALSE") << '\n'
            << "* BHPRECISION  " << getBHPrecision() << '\n'
-           << "* BHRELATIVISTIC " << getBHRelativistic() << endl;
+           << "* BHRELATIVISTIC " << getBHRelativistic() << '\n'
+           << "* BHTHETAV     " << getBHThetaV() << endl;
     }
 
     if (getType() == "P3M") {

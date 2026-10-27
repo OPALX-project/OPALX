@@ -204,6 +204,10 @@ namespace opalx::spacecharge {
                         "BHDIRECT=TRUE needs a uniform BHSOFTENING > 0 or BHSOFTENINGREL > 0; "
                         "BHLEAFH=TRUE has no leaves without the octree.");
             }
+            if (!std::isfinite(config.thetaV) || !(config.thetaV > 0.0) || config.thetaV > 1.0) {
+                throw OpalException(
+                        "validateSpaceChargeConfig", "BHTHETAV must lie in the interval (0, 1].");
+            }
             if (config.bucketSizeFocus == 0
                 || config.bucketSizeFocus > std::numeric_limits<unsigned>::max()
                 || config.bucketSize > std::numeric_limits<unsigned>::max()) {

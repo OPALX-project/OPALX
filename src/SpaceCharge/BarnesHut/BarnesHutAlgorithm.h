@@ -35,6 +35,13 @@ namespace opalx::spacecharge {
      * gamma) and boosted to E and B, image charges with the opposite B sign. Image charges far
      * from the bunch in the rest frame are evaluated as one quadrupole.
      *
+     * With BarnesHutKinematics::Particle (BHRELATIVISTIC=PARTICLE, or BINS with MAXBINS > 1)
+     * every source contributes the field of a charge moving uniformly along the solve-frame z
+     * with its own velocity, E_j = k q_j gamma_j R / (rho^2 + gamma_j^2 zeta^2)^{3/2} and
+     * B_j = v_j x E_j / c^2, softened in the source's rest frame; the limit of energy binning for
+     * infinitely many bins. Image charges carry -q and the reversed velocity. The octree cells
+     * carry rapidity moments (ryoanji HeavisideQpole); far images are one such multipole.
+     *
      * Barnes-Hut owns the primary's decomposition: every solve hands all primary particles to
      * cstone, which redistributes them along its space-filling curve, and copies the owned set
      * back (R, P, dt, ID and the new E). Particle order and per-rank counts change; the global
@@ -69,6 +76,12 @@ namespace opalx::spacecharge {
             /// Second traversals (or direct sums) for the field of the image charges alone.
             std::size_t imagePasses = 0;
             std::size_t farImageSolves = 0;  ///< Solves with the images as one quadrupole.
+            /// Solves (tree or direct sum) with per-particle source velocities (PARTICLE).
+            std::size_t particleSolves = 0;
+            /// PARTICLE on several ranks: remote leaves applied as multipoles although they failed
+            /// the rapidity-scaled MAC (cstone's locally essential tree is not velocity-aware).
+            unsigned long long remoteMacFailures = 0;
+            double maxGamma = 1.0;  ///< Largest source gamma of the last per-particle solve.
             double gamma = 1.0;  ///< Mean gamma of the last rest-frame solve.
             double softening = 0.0;  ///< Uniform softening h of the last solve (BHSOFTENINGREL).
         };

@@ -124,15 +124,20 @@ namespace opalx::spacecharge {
      * - Static: electrostatic field of the solve-frame positions, B = 0 (unbinned CartesianPIC3D).
      * - Frame: one solve in the rest frame of the bunch (z stretched by the mean gamma), boosted
      *   to E and B (CartesianPIC3D with MAXBINS=1).
+     * - Particle: every source contributes the field of a point charge moving uniformly along z
+     *   with its own velocity, E = q gamma R / (rho^2 + gamma^2 zeta^2)^{3/2}, B = v x E / c^2, at
+     *   equal lab time; the limit of energy binning with infinitely many bins. The octree carries
+     *   rapidity moments (ryoanji HeavisideQpole); cells too wide in rapidity are opened.
      */
-    enum class BarnesHutKinematics { Static, Frame };
+    enum class BarnesHutKinematics { Static, Frame, Particle };
 
     /**
      * @brief Complete runtime configuration for the gridless Barnes-Hut solver (TYPE=BH).
      *
      * Open boundaries, whole bunch, electrostatic (gamma = 1, B = 0) like unbinned CartesianPIC3D;
      * with BarnesHutKinematics::Frame one Lorentz-boosted rest-frame solve like CartesianPIC3D with
-     * MAXBINS=1.
+     * MAXBINS=1, with BarnesHutKinematics::Particle the field of every source moving with its own
+     * velocity (no bins).
      * A Dirichlet plane is represented exactly by image charges (method of images).
      * The Cartesian @c grid is not used by the solve; it only sizes the inert PartBunch domain.
      */
@@ -158,9 +163,15 @@ namespace opalx::spacecharge {
         /// BHDIRECT: always evaluate the softened field by direct O(N^2) summation (reference
         /// runs); otherwise only bunches below 64 particles per rank use it.
         bool directSum = false;
-        /// Source velocities (BHRELATIVISTIC, AUTO follows BINS). With Frame the softening is a
-        /// rest-frame length.
+        /// Source velocities (BHRELATIVISTIC, AUTO follows BINS). The softening is a rest-frame
+        /// length in both relativistic modes.
         BarnesHutKinematics kinematics = BarnesHutKinematics::Static;
+        /// BHTHETAV (Particle only): a tree cell whose sources span more than BHTHETAV * pi / 2 in
+        /// rapidity about their mean is opened instead of evaluated as a multipole.
+        double thetaV = 0.25;
+        /// Testing only (not an input attribute): false puts all sources of a tree cell at the
+        /// cell's mean rapidity (no rapidity moments, no rapidity MAC).
+        bool velocityMoments = true;
         /// Grounded plane modelled by image charges (ZEROFACE_R0Z / SHIFTED_GREENS_FUNCTION).
         DirichletPlaneConfig dirichletPlane;
         std::size_t bucketSize      = 0;   ///< cstone global-tree bucket size; 0 = automatic.

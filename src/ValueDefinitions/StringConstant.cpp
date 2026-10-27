@@ -164,6 +164,7 @@ StringConstant::StringConstant()
 
     // FieldSolver / BHRELATIVISTIC (AUTO is created below)
     CREATE_STRINGCONSTANT("FRAME");
+    CREATE_STRINGCONSTANT("PARTICLE");
 
     // FieldSolver / INTERPL
     CREATE_STRINGCONSTANT("CONSTANT");

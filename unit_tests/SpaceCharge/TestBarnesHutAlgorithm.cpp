@@ -69,6 +69,8 @@ namespace opalx::spacecharge {
             double transverseMomentum   = 0.01;  ///< rms px, py (beta gamma)
             double longitudinalMomentum = 1.0;   ///< pz (beta gamma)
             double momentumSpread       = 0.0;   ///< relative rms spread of pz
+            /// pz += chirp * (z - center z) / sigma z: energy correlated with position (emission)
+            double chirp = 0.0;
         };
 
         Vector positionFor(const BunchSpec& spec, std::uint64_t k) {
@@ -90,9 +92,13 @@ namespace opalx::spacecharge {
         }
 
         Vector momentumFor(const BunchSpec& spec, std::uint64_t k) {
+            const double chirp =
+                    spec.chirp == 0.0
+                            ? 0.0
+                            : spec.chirp * (positionFor(spec, k)[2] - spec.center[2]) / spec.sigma[2];
             return Vector(
                     spec.transverseMomentum * normal(k, 21), spec.transverseMomentum * normal(k, 22),
-                    spec.longitudinalMomentum * (1.0 + spec.momentumSpread * normal(k, 23)));
+                    spec.longitudinalMomentum * (1.0 + spec.momentumSpread * normal(k, 23)) + chirp);
         }
 
         /** @brief Host copy of one particle, gathered from every rank. */
@@ -374,6 +380,109 @@ namespace opalx::spacecharge {
             return boostReference(particles, all, image);
         }
 
+        /**
+         * @brief Lab-frame reference for per-particle velocities: every source moves uniformly
+         * along z with beta_z = p_z / sqrt(1 + p^2) (gamma_z = 1 / sqrt(1 - beta_z^2)), field
+         * E = k q gamma_z R / max(rho^2 + gamma_z^2 zeta^2, (2h)^2)^{3/2} (softened in the source's
+         * rest frame), B = beta_z z x E / c. With @p planeZ every particle has a mirror image
+         * (z' = 2 planeZ - z, charge -q, velocity -beta_z).
+         */
+        RestFrameReference heavisideDirectSum(
+                const std::vector<Record>& particles, double charge, double softening,
+                std::optional<double> planeZ = std::nullopt) {
+            struct Source {
+                double r[3], q, gamma, beta;
+            };
+            std::vector<Source> sources;
+            for (const Record& r : particles) {
+                const double beta =
+                        r.p[2] / std::sqrt(1.0 + r.p[0] * r.p[0] + r.p[1] * r.p[1] + r.p[2] * r.p[2]);
+                const double gamma = 1.0 / std::sqrt(1.0 - beta * beta);
+                const double q     = charge * r.dt / kTimeStep;
+                sources.push_back({{r.r[0], r.r[1], r.r[2]}, q, gamma, beta});
+                if (planeZ.has_value()) {
+                    sources.push_back({{r.r[0], r.r[1], 2.0 * *planeZ - r.r[2]}, -q, gamma, -beta});
+                }
+            }
+            const double h2 = 4.0 * softening * softening;
+            RestFrameReference result;
+            result.e.assign(particles.size(), {0.0, 0.0, 0.0});
+            result.b.assign(particles.size(), {0.0, 0.0, 0.0});
+#pragma omp parallel for schedule(static)
+            for (std::size_t i = 0; i < particles.size(); ++i) {
+                double e[3] = {0.0, 0.0, 0.0}, b[2] = {0.0, 0.0};
+                for (const Source& src : sources) {
+                    const double dx[3] = {
+                            particles[i].r[0] - src.r[0], particles[i].r[1] - src.r[1],
+                            particles[i].r[2] - src.r[2]};
+                    const double d2 = std::max(
+                            dx[0] * dx[0] + dx[1] * dx[1] + src.gamma * src.gamma * dx[2] * dx[2], h2);
+                    const double w = kCoulomb * src.q * src.gamma / (d2 * std::sqrt(d2));
+                    for (unsigned d = 0; d < 3; ++d) {
+                        e[d] += w * dx[d];
+                    }
+                    // B = (beta / c) z x E
+                    b[0] -= src.beta * w * dx[1] / Physics::c;
+                    b[1] += src.beta * w * dx[0] / Physics::c;
+                }
+                result.e[i] = {e[0], e[1], e[2]};
+                result.b[i] = {b[0], b[1], 0.0};
+            }
+            return result;
+        }
+
+        /**
+         * @brief Reference of energy binning with exact bins: the sources of bin b = @p binOf[i]
+         * all move with the bin's mean momentum, their field is the softened Coulomb field with z
+         * stretched by the bin's gamma, boosted with its velocity (CartesianPIC3D per bin, without
+         * mesh). Bins are given per particle in the order of @p particles.
+         */
+        RestFrameReference binnedDirectSum(
+                const std::vector<Record>& particles, const std::vector<int>& binOf, int bins,
+                double charge, double softening) {
+            RestFrameReference result;
+            result.e.assign(particles.size(), {0.0, 0.0, 0.0});
+            result.b.assign(particles.size(), {0.0, 0.0, 0.0});
+            for (int bin = 0; bin < bins; ++bin) {
+                std::vector<Record> members;
+                for (std::size_t i = 0; i < particles.size(); ++i) {
+                    if (binOf[i] == bin) {
+                        members.push_back(particles[i]);
+                    }
+                }
+                if (members.empty()) {
+                    continue;
+                }
+                double v[3];
+                const double gamma = meanRestFrame(members, v);
+                std::vector<Record> targets = particles;
+                for (Record& r : targets) {
+                    r.r[2] *= gamma;
+                }
+                for (Record& r : members) {
+                    r.r[2] *= gamma;
+                }
+                const Fields rest  = softenedField(targets, members, charge, softening);
+                const double speed = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+                for (std::size_t i = 0; i < particles.size(); ++i) {
+                    // E = gamma E' - (gamma - 1)(E'.v^)v^, B = (gamma / c^2) v x E'
+                    double along = 0.0;
+                    for (unsigned d = 0; d < 3; ++d) {
+                        along += speed > 0.0 ? rest[i][d] * v[d] / speed : 0.0;
+                    }
+                    for (unsigned d = 0; d < 3; ++d) {
+                        const double unit = speed > 0.0 ? v[d] / speed : 0.0;
+                        result.e[i][d] += gamma * rest[i][d] - (gamma - 1.0) * along * unit;
+                    }
+                    const double scale = gamma / (Physics::c * Physics::c);
+                    result.b[i][0] += scale * (v[1] * rest[i][2] - v[2] * rest[i][1]);
+                    result.b[i][1] += scale * (v[2] * rest[i][0] - v[0] * rest[i][2]);
+                    result.b[i][2] += scale * (v[0] * rest[i][1] - v[1] * rest[i][0]);
+                }
+            }
+            return result;
+        }
+
         Fields fieldsOf(const std::vector<Record>& records, double (Record::*member)[3]) {
             Fields result(records.size());
             for (std::size_t i = 0; i < records.size(); ++i) {
@@ -508,6 +617,38 @@ namespace opalx::spacecharge {
                 BarnesHutConfig result = config(softening, theta);
                 result.kinematics      = BarnesHutKinematics::Frame;
                 return result;
+            }
+
+            /// Per-particle velocities; by default by direct summation (exact reference checks).
+            static BarnesHutConfig particleConfig(double softening = 2.0e-5, bool direct = true,
+                                                  double theta = 0.5) {
+                BarnesHutConfig result = config(softening, theta);
+                result.kinematics      = BarnesHutKinematics::Particle;
+                result.directSum       = direct;
+                return result;
+            }
+
+            /// gamma_z = 1 / sqrt(1 - beta_z^2) of every record, the gamma of its source field.
+            static std::vector<double> longitudinalGammas(const std::vector<Record>& records) {
+                std::vector<double> gammas;
+                for (const Record& r : records) {
+                    const double beta =
+                            r.p[2]
+                            / std::sqrt(1.0 + r.p[0] * r.p[0] + r.p[1] * r.p[1] + r.p[2] * r.p[2]);
+                    gammas.push_back(1.0 / std::sqrt(1.0 - beta * beta));
+                }
+                return gammas;
+            }
+
+            /// Chirped bunch like a beam after emission: gamma from about 1.1 to 3.6 head to tail.
+            static BunchSpec chirpedSpec(std::size_t count = 1500) {
+                BunchSpec spec;
+                spec.globalCount          = count;
+                spec.variableDt           = true;
+                spec.transverseMomentum   = 0.02;
+                spec.longitudinalMomentum = 2.0;
+                spec.chirp                = 0.5;
+                return spec;
             }
 
             /// Like expectConserved, but z may differ by the rounding of the rest-frame stretch.
@@ -1914,6 +2055,313 @@ namespace opalx::spacecharge {
                     EXPECT_LT(errors[m][0], 5.0e-2);
                     EXPECT_LT(errors[m][1], 5.0e-2);
                 }
+            }
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, ParticleKinematicsMatchesHeavisideDirectSum) {
+            // Every source moves with its own velocity (gamma ~ 1.1 to 3.6, chirped like a beam
+            // after emission): E and B against the lab-frame field of uniformly moving charges,
+            // without and with a grounded plane (images with -q and the reversed velocity).
+            const BunchSpec spec = chirpedSpec();
+            for (bool direct : {true, false}) {
+            for (bool withPlane : {false, true}) {
+                SCOPED_TRACE(direct);
+                SCOPED_TRACE(withPlane);
+                const double planeZ = spec.center[2] - 2.0 * spec.sigma[2];
+                auto values         = particleConfig(2.0e-5, direct);
+                if (withPlane) {
+                    values.dirichletPlane = {.kind = DirichletPlaneType::ShiftedGreen, .planeZ = planeZ};
+                }
+                Run run(values, spec);
+                const auto before = gatherAll(run.particles);
+                EXPECT_EQ(run.solve().backendSolves, 1u);
+                const auto after = gatherAll(run.particles);
+                expectConservedUpToStretch(before, after);
+                const auto reference = heavisideDirectSum(
+                        before, kCharge, 2.0e-5,
+                        withPlane ? std::optional<double>(planeZ) : std::nullopt);
+                const double errorE = rmsRelativeDifference(fieldsOf(after, &Record::e), reference.e);
+                const double errorB = rmsRelativeDifference(fieldsOf(after, &Record::b), reference.b);
+                const auto gammas   = longitudinalGammas(before);
+                const double maxGamma = *std::max_element(gammas.begin(), gammas.end());
+                if (ippl::Comm->rank() == 0) {
+                    std::printf("[BH] per-particle velocities (gamma %.2f..%.2f)%s, %s: rms relative "
+                                "error E=%.3e B=%.3e\n",
+                                *std::min_element(gammas.begin(), gammas.end()), maxGamma,
+                                withPlane ? " with images" : "", direct ? "direct" : "tree", errorE,
+                                errorB);
+                }
+                EXPECT_LT(errorE, direct ? 1.0e-10 : 1.0e-3);
+                EXPECT_LT(errorB, direct ? 1.0e-10 : 1.0e-3);
+                const auto& stats = run.algorithm->statistics();
+                EXPECT_EQ(stats.particleSolves, 1u);
+                EXPECT_EQ(stats.directSolves, direct ? 1u : 0u);
+                EXPECT_EQ(stats.solves, direct ? 0u : 1u);
+                EXPECT_EQ(stats.restFrameSolves, 0u);
+                EXPECT_EQ(stats.imagePasses, 0u);  // the images carry their own velocity
+                EXPECT_EQ(stats.farImageSolves, 0u);
+                EXPECT_EQ(stats.remoteMacFailures, 0u);
+                EXPECT_NEAR(stats.maxGamma, maxGamma, 1.0e-12 * maxGamma);
+            }
+            }
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, ParticleKinematicsAtCommonVelocityMatchesRestFrame) {
+            // All particles at gamma = 5: per-particle velocities reduce to the boosted rest-frame
+            // solve, including the reversed B of the image charges (second pass there, own
+            // velocity here).
+            BunchSpec spec;
+            spec.globalCount          = 1500;
+            spec.variableDt           = true;
+            spec.transverseMomentum   = 0.0;
+            spec.longitudinalMomentum = std::sqrt(24.0);
+            for (bool withPlane : {false, true}) {
+                SCOPED_TRACE(withPlane);
+                const double planeZ = spec.center[2] - 2.0 * spec.sigma[2];
+                auto frame          = restFrameConfig();
+                frame.directSum     = true;
+                auto particle       = particleConfig();
+                if (withPlane) {
+                    frame.dirichletPlane = {.kind = DirichletPlaneType::ShiftedGreen, .planeZ = planeZ};
+                    particle.dirichletPlane = frame.dirichletPlane;
+                }
+                Run a(frame, spec), b(particle, spec);
+                (void)a.solve();
+                (void)b.solve();
+                const auto ra = gatherAll(a.particles), rb = gatherAll(b.particles);
+                const double errorE = rmsRelativeDifference(fieldsOf(rb, &Record::e), fieldsOf(ra, &Record::e));
+                const double errorB = rmsRelativeDifference(fieldsOf(rb, &Record::b), fieldsOf(ra, &Record::b));
+                if (ippl::Comm->rank() == 0) {
+                    std::printf("[BH] per-particle vs rest frame at gamma 5%s: E=%.3e B=%.3e\n",
+                                withPlane ? " with images" : "", errorE, errorB);
+                }
+                EXPECT_LT(errorE, 1.0e-10);
+                EXPECT_LT(errorB, 1.0e-10);
+                EXPECT_EQ(a.algorithm->statistics().imagePasses, withPlane ? 1u : 0u);
+                EXPECT_EQ(b.algorithm->statistics().imagePasses, 0u);
+
+                // The tree with per-particle velocities against the same boosted reference.
+                auto tree = particleConfig(2.0e-5, false);
+                tree.dirichletPlane = particle.dirichletPlane;
+                Run c(tree, spec);
+                (void)c.solve();
+                const auto rc     = gatherAll(c.particles);
+                const double treeE = rmsRelativeDifference(fieldsOf(rc, &Record::e), fieldsOf(ra, &Record::e));
+                const double treeB = rmsRelativeDifference(fieldsOf(rc, &Record::b), fieldsOf(ra, &Record::b));
+                if (ippl::Comm->rank() == 0) {
+                    std::printf("[BH] per-particle tree vs rest frame at gamma 5%s: E=%.3e B=%.3e\n",
+                                withPlane ? " with images" : "", treeE, treeB);
+                }
+                EXPECT_LT(treeE, 1.0e-3);
+                EXPECT_LT(treeB, 1.0e-3);
+            }
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, ParticleKinematicsMatchesTwoBunchReference) {
+            // Two bunches 5 mm apart at gamma = 2 and 5 (no spread): the field is exactly that of
+            // two energy bins, each boosted from its own rest frame, at every particle of both.
+            BunchSpec spec;
+            spec.globalCount        = 1600;
+            spec.variableDt         = true;
+            spec.transverseMomentum = 0.0;
+            for (bool direct : {true, false}) {
+            SCOPED_TRACE(direct);
+            Run run(particleConfig(2.0e-5, direct), spec);
+            const std::uint64_t half = spec.globalCount / 2;
+            {
+                auto R  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), run.particles.R.getView());
+                auto P  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), run.particles.P.getView());
+                auto ID = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), run.particles.ID.getView());
+                for (std::size_t i = 0; i < run.particles.getLocalNum(); ++i) {
+                    const bool head = static_cast<std::uint64_t>(ID(i)) >= half;
+                    R(i)[2] += head ? 5.0e-3 : 0.0;
+                    P(i)    = Vector(0.0, 0.0, head ? std::sqrt(24.0) : std::sqrt(3.0));
+                }
+                Kokkos::deep_copy(run.particles.R.getView(), R);
+                Kokkos::deep_copy(run.particles.P.getView(), P);
+                run.particles.markMomentsDirty();
+            }
+            const auto before = gatherAll(run.particles);
+            (void)run.solve();
+            const auto after = gatherAll(run.particles);
+            std::vector<int> bin(before.size());
+            for (std::size_t i = 0; i < before.size(); ++i) {
+                bin[i] = static_cast<std::uint64_t>(before[i].id) >= half ? 1 : 0;
+            }
+            const auto reference = binnedDirectSum(before, bin, 2, kCharge, 2.0e-5);
+            const double errorE  = rmsRelativeDifference(fieldsOf(after, &Record::e), reference.e);
+            const double errorB  = rmsRelativeDifference(fieldsOf(after, &Record::b), reference.b);
+            if (ippl::Comm->rank() == 0) {
+                std::printf("[BH] two bunches gamma 2 and 5 vs two exact bins (%s): E=%.3e B=%.3e\n",
+                            direct ? "direct" : "tree", errorE, errorB);
+            }
+            EXPECT_LT(errorE, direct ? 1.0e-10 : 1.0e-3);
+            EXPECT_LT(errorB, direct ? 1.0e-10 : 1.0e-3);
+            }
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, EnergyBinningConvergesToParticleKinematics) {
+            // Energy binning (bins of equal count in gamma, each source at its bin's mean
+            // momentum, exact fields without mesh) approaches the per-particle field as the bins
+            // narrow; one bin is the rest-frame solve (BINS with MAXBINS=1).
+            const BunchSpec spec = chirpedSpec();
+            Run run(particleConfig(), spec);
+            const auto before = gatherAll(run.particles);
+            (void)run.solve();
+            const auto after  = gatherAll(run.particles);
+            const auto gammas = longitudinalGammas(before);
+            std::vector<std::size_t> order(before.size());
+            std::iota(order.begin(), order.end(), 0);
+            std::sort(order.begin(), order.end(),
+                      [&](std::size_t a, std::size_t b) { return gammas[a] < gammas[b]; });
+            const Fields e = fieldsOf(after, &Record::e), b = fieldsOf(after, &Record::b);
+            double previousE = 0.0, previousB = 0.0, firstE = 0.0;
+            for (int bins : {1, 2, 4, 8, 16}) {
+                std::vector<int> binOf(before.size());
+                for (std::size_t k = 0; k < order.size(); ++k) {
+                    binOf[order[k]] = static_cast<int>(k * bins / order.size());
+                }
+                const auto binned   = binnedDirectSum(before, binOf, bins, kCharge, 2.0e-5);
+                const double errorE = rmsRelativeDifference(binned.e, e);
+                const double errorB = rmsRelativeDifference(binned.b, b);
+                if (ippl::Comm->rank() == 0) {
+                    std::printf("[BH] %2d energy bins vs per-particle velocities: E=%.3e B=%.3e\n",
+                                bins, errorE, errorB);
+                }
+                if (bins == 1) {
+                    firstE = errorE;
+                    EXPECT_GT(errorE, 1.0e-2);  // the velocity spread must matter
+                } else {
+                    EXPECT_LT(errorE, previousE);
+                    EXPECT_LT(errorB, previousB);
+                }
+                previousE = errorE;
+                previousB = errorB;
+            }
+            EXPECT_LT(previousE, 0.1 * firstE);
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, ParticleKinematicsGroundedPlaneHasNoTangentialField) {
+            // A moving charge and its image (-q, reversed velocity, same gamma) give equal and
+            // opposite E_x, E_y on the plane, so particles placed on it see no tangential field.
+            BunchSpec spec      = chirpedSpec();
+            const double planeZ = spec.center[2] - 4.0 * spec.sigma[2];
+            auto values         = particleConfig();
+            values.dirichletPlane = {.kind = DirichletPlaneType::ShiftedGreen, .planeZ = planeZ};
+            Run run(values, spec);
+            {
+                auto R  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), run.particles.R.getView());
+                auto ID = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), run.particles.ID.getView());
+                for (std::size_t i = 0; i < run.particles.getLocalNum(); ++i) {
+                    if (ID(i) % 10 == 0) {
+                        R(i)[2] = planeZ;
+                    }
+                }
+                Kokkos::deep_copy(run.particles.R.getView(), R);
+                run.particles.markMomentsDirty();
+            }
+            (void)run.solve();
+            double tangential = 0.0, normal = 0.0;
+            std::size_t onPlane = 0;
+            for (const Record& r : gatherAll(run.particles)) {
+                if (r.r[2] != planeZ) {
+                    continue;
+                }
+                ++onPlane;
+                tangential += r.e[0] * r.e[0] + r.e[1] * r.e[1];
+                normal += r.e[2] * r.e[2];
+            }
+            ASSERT_EQ(onPlane, spec.globalCount / 10);
+            ASSERT_GT(normal, 0.0);
+            if (ippl::Comm->rank() == 0) {
+                std::printf("[BH] per-particle velocities, grounded plane: rms E_t / rms E_n = %.3e\n",
+                            std::sqrt(tangential / normal));
+            }
+            EXPECT_LT(std::sqrt(tangential / normal), 1.0e-9);
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, ParticleKinematicsTreeConvergesWithTheta) {
+            // Tree with rapidity moments against the per-particle direct sum: the error falls with
+            // theta like the electrostatic tree's.
+            const BunchSpec spec = chirpedSpec(4000);
+            double previous      = 1.0;
+            for (double theta : {0.7, 0.5, 0.3}) {
+                SCOPED_TRACE(theta);
+                Run run(particleConfig(2.0e-5, false, theta), spec);
+                const auto before = gatherAll(run.particles);
+                (void)run.solve();
+                const auto after     = gatherAll(run.particles);
+                const auto reference = heavisideDirectSum(before, kCharge, 2.0e-5);
+                const double errorE  = rmsRelativeDifference(fieldsOf(after, &Record::e), reference.e);
+                const double errorB  = rmsRelativeDifference(fieldsOf(after, &Record::b), reference.b);
+                if (ippl::Comm->rank() == 0) {
+                    std::printf("[BH] per-particle tree theta=%.1f: rms relative error E=%.3e "
+                                "B=%.3e\n",
+                                theta, errorE, errorB);
+                }
+                EXPECT_LT(errorE, previous);
+                EXPECT_LT(errorB, theta < 0.6 ? 1.0e-3 : 3.0e-3);
+                EXPECT_EQ(run.algorithm->statistics().remoteMacFailures, 0u);
+                previous = errorE;
+            }
+            EXPECT_LT(previous, 1.0e-4);
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, ParticleKinematicsNeedsRapidityMoments) {
+            // Without rapidity moments every cell is evaluated at its mean velocity (the "cell rest
+            // frame"); that error does not fall off with distance and dominates the tree error.
+            BunchSpec spec = chirpedSpec(4000);
+            spec.chirp     = 1.0;  // gamma ~ 1 to 5 head to tail
+            Run with(particleConfig(2.0e-5, false), spec);
+            auto values            = particleConfig(2.0e-5, false);
+            values.velocityMoments = false;
+            Run without(values, spec);
+            const auto before = gatherAll(with.particles);
+            (void)with.solve();
+            (void)without.solve();
+            const auto reference = heavisideDirectSum(before, kCharge, 2.0e-5);
+            const double errorWith =
+                    rmsRelativeDifference(fieldsOf(gatherAll(with.particles), &Record::e), reference.e);
+            const double errorWithout = rmsRelativeDifference(
+                    fieldsOf(gatherAll(without.particles), &Record::e), reference.e);
+            if (ippl::Comm->rank() == 0) {
+                std::printf("[BH] per-particle tree: rms relative error E=%.3e with rapidity moments, "
+                            "%.3e at the cells' mean velocity\n",
+                            errorWith, errorWithout);
+            }
+            EXPECT_LT(errorWith, 1.0e-3);
+            EXPECT_GT(errorWithout, 3.0 * errorWith);
+        }
+
+        TEST_F(BarnesHutAlgorithmTest, ParticleKinematicsFarImagesAreOneMultipole) {
+            // A plane 50 mm behind the bunch: the images (moving against their particles) are one
+            // multipole with rapidity moments; against the direct sum with explicit images. The
+            // spread (gamma ~ 2.0 to 2.6) passes BHTHETAV for the mirror bunch as a whole.
+            BunchSpec spec = chirpedSpec(4000);
+            spec.chirp     = 0.1;
+            const double planeZ  = spec.center[2] - 0.05;
+            for (bool direct : {true, false}) {
+                SCOPED_TRACE(direct);
+                auto values           = particleConfig(2.0e-5, direct);
+                values.dirichletPlane = {.kind = DirichletPlaneType::ShiftedGreen, .planeZ = planeZ};
+                Run run(values, spec);
+                const auto before = gatherAll(run.particles);
+                (void)run.solve();
+                const auto after      = gatherAll(run.particles);
+                const auto reference  = heavisideDirectSum(before, kCharge, 2.0e-5, planeZ);
+                const auto unmirrored = heavisideDirectSum(before, kCharge, 2.0e-5);
+                const double errorE = rmsRelativeDifference(fieldsOf(after, &Record::e), reference.e);
+                const double errorB = rmsRelativeDifference(fieldsOf(after, &Record::b), reference.b);
+                const double imageE = rmsRelativeDifference(unmirrored.e, reference.e);
+                if (ippl::Comm->rank() == 0) {
+                    std::printf("[BH] per-particle far images (%s): rms relative error E=%.3e B=%.3e "
+                                "(image share E=%.3e)\n",
+                                direct ? "direct" : "tree", errorE, errorB, imageE);
+                }
+                EXPECT_EQ(run.algorithm->statistics().farImageSolves, 1u);
+                EXPECT_GT(imageE, 1.0e-4);  // the plane must matter
+                EXPECT_LT(errorE, direct ? 1.0e-2 * imageE : 1.0e-3);
+                EXPECT_LT(errorB, direct ? 1.0e-2 * imageE : 1.0e-3);
             }
         }
 

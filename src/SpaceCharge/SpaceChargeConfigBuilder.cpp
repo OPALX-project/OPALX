@@ -286,14 +286,10 @@ namespace opalx::spacecharge {
                 const FieldSolverCmd& fieldSolver,
                 const std::vector<std::vector<EmissionSource*>>& emissionSources) {
             const char* where = "SpaceChargeConfigBuilder::build";
-            // One bin holding every particle is one rest-frame solve of the whole bunch.
+            // One bin holding every particle is one rest-frame solve of the whole bunch; more bins
+            // ask for the velocity spread, which Barnes-Hut resolves per particle instead.
             const std::optional<BinningConfig> binning =
                     buildBinningConfig(fieldSolver.getBinningCmd());
-            if (binning.has_value() && binning->maximumBins != 1) {
-                throw OpalException(
-                        where, "TYPE=BH supports BINS only with MAXBINS=1 (one rest-frame solve "
-                               "of the whole bunch); energy binning is not implemented.");
-            }
             const auto boundaries = convertBoundaryConditions(fieldSolver.constructBCHandler());
             if (!std::all_of(boundaries.begin(), boundaries.end(), [](auto boundary) {
                     return boundary == FieldBoundaryCondition::Open;
@@ -327,8 +323,15 @@ namespace opalx::spacecharge {
                                                                          : BarnesHutPrecision::Double;
             values.leafBasedSoftening              = fieldSolver.getBHLeafBasedSoftening();
             values.directSum                       = fieldSolver.getBHDirectSum();
-            if (fieldSolver.getBHRelativistic() == "FRAME" || binning.has_value()) {
+            values.thetaV                  = fieldSolver.getBHThetaV();
+            const std::string relativistic = fieldSolver.getBHRelativistic();
+            if (relativistic == "FRAME") {
                 values.kinematics = BarnesHutKinematics::Frame;
+            } else if (relativistic == "PARTICLE") {
+                values.kinematics = BarnesHutKinematics::Particle;
+            } else if (binning.has_value()) {
+                values.kinematics = binning->maximumBins == 1 ? BarnesHutKinematics::Frame
+                                                              : BarnesHutKinematics::Particle;
             }
             // ZEROFACE_R0Z and SHIFTED_GREENS_FUNCTION describe the same grounded plane; Barnes-Hut
             // models both with image charges.

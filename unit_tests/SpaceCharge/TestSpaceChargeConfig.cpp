@@ -425,8 +425,9 @@ namespace opalx::spacecharge {
         }
 
         TEST(SpaceChargeConfigBuilderTest, BuildsBarnesHutKinematicsFromBinsAndBHRELATIVISTIC) {
-            // AUTO follows BINS: none is electrostatic, one bin is one rest-frame solve; more bins
-            // would be energy binning, which TYPE=BH does not implement. FRAME overrides BINS.
+            // AUTO follows BINS: none is electrostatic, one bin is one rest-frame solve, more bins
+            // ask for the velocity spread, which TYPE=BH resolves per particle. FRAME and PARTICLE
+            // override BINS.
             TestableFieldSolverCmd command;
             command.setType("BH");
             command.setBHSoftening(1.0e-6);
@@ -439,11 +440,25 @@ namespace opalx::spacecharge {
             command.setBinsName("BH_ONE_BIN");
             EXPECT_EQ(kinematics(), BarnesHutKinematics::Frame);
             command.setBinsName("BH_TWO_BINS");
-            EXPECT_THROW((void)buildSpaceChargeConfig(command, {}), OpalException);
+            EXPECT_EQ(kinematics(), BarnesHutKinematics::Particle);
             command.setBHRelativistic("FRAME");
-            EXPECT_THROW((void)buildSpaceChargeConfig(command, {}), OpalException);
+            EXPECT_EQ(kinematics(), BarnesHutKinematics::Frame);
             command.setBinsName("NONE");
             EXPECT_EQ(kinematics(), BarnesHutKinematics::Frame);
+            command.setBHRelativistic("PARTICLE");
+            EXPECT_EQ(kinematics(), BarnesHutKinematics::Particle);
+            EXPECT_DOUBLE_EQ(
+                    std::get<BarnesHutConfig>(buildSpaceChargeConfig(command, {})).thetaV, 0.25);
+            command.setBHThetaV(0.5);
+            EXPECT_DOUBLE_EQ(
+                    std::get<BarnesHutConfig>(buildSpaceChargeConfig(command, {})).thetaV, 0.5);
+            command.setBHThetaV(1.5);
+            EXPECT_THROW((void)buildSpaceChargeConfig(command, {}), OpalException);
+            command.setBHThetaV(0.25);
+            // The octree supports leaf-based softening with per-particle velocities too.
+            command.setBHSoftening(0.0);
+            command.setBHLeafBasedSoftening(true);
+            EXPECT_NO_THROW((void)buildSpaceChargeConfig(command, {}));
             command.setBHRelativistic("AUTO");
             EXPECT_EQ(kinematics(), BarnesHutKinematics::Static);
         }

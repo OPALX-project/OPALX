@@ -12,6 +12,7 @@
 #include <Kokkos_Core.hpp>
 
 #include <array>
+#include <cmath>
 #include <functional>
 
 namespace opalx::spacecharge {
@@ -94,6 +95,24 @@ namespace opalx::spacecharge {
         const std::array<double, 3> meanMomentum{
                 global[0] / global[4], global[1] / global[4], global[2] / global[4]};
         return RestFrameBoost::fromMoments(meanMomentum, global[3] / global[4]);
+    }
+
+    /**
+     * @brief Rapidity w = atanh(beta_z) of the motion along the solve-frame z of a particle with
+     * normalized momentum @p p (beta gamma); sinh w = p_z / sqrt(1 + p_x^2 + p_y^2) avoids the
+     * cancellation of atanh near beta_z = 1.
+     */
+    KOKKOS_INLINE_FUNCTION double longitudinalRapidity(const ippl::Vector<double, 3>& p) {
+        return Kokkos::asinh(p[2] / Kokkos::sqrt(1.0 + p[0] * p[0] + p[1] * p[1]));
+    }
+
+    /**
+     * @brief Reference rapidity of a stretched solve frame (z scaled by @p boost.gamma): w_ref =
+     * acosh(gamma) with the sign of the mean motion along z.
+     */
+    inline double referenceRapidity(const RestFrameBoost& boost) {
+        const double magnitude = boost.gamma > 1.0 ? std::acosh(boost.gamma) : 0.0;
+        return boost.velocity[2] < 0.0 ? -magnitude : magnitude;
     }
 
 }  // namespace opalx::spacecharge
