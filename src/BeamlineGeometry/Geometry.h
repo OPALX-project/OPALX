@@ -69,6 +69,10 @@ public:
     ///@}
 
     GeometryKind kind() const { return kind_m; }
+    /// True for a body that turns the design orbit (sector or rectangular bend).
+    bool isBend() const { return kind_m == GeometryKind::SBend || kind_m == GeometryKind::RBend; }
+    /// True for a rectangular (straight box) bend body.
+    bool isRectangularBend() const { return kind_m == GeometryKind::RBend; }
 
     /// @name Lengths
     ///@{
@@ -95,6 +99,10 @@ public:
     void setEntranceAngle(double angle) { entranceAngle_m = angle; }
     double getExitAngle() const { return exitAngle_m; }
     void setExitAngle(double angle) { exitAngle_m = angle; }
+    /// Explicit rectangular pole-face angles: L is the normal face separation,
+    /// and E1 is the incoming orbit angle to the entrance normal.
+    void setPoleFaceAnglesEnabled(bool enabled) { poleFaceAngles_m = enabled; }
+    bool hasPoleFaceAngles() const { return poleFaceAngles_m; }
     /// Sample the local design path from entrance to exit.
     std::vector<Vector_t<double, 3>> getDesignPath(std::size_t minSamples = 32) const;
     ///@}
@@ -122,6 +130,7 @@ private:
     double angle_m         = 0.0;  ///< bend angle (SBend: h*len; RBend: full angle)
     double entranceAngle_m = 0.0;  ///< entrance pole-face angle
     double exitAngle_m     = 0.0;  ///< exit pole-face angle
+    bool poleFaceAngles_m  = false;
 };
 
 /**
@@ -187,10 +196,13 @@ namespace GeometryHelper {
             return Vector_t<double, 3>(exitLocalX, entry(1), bodyLength + exitLocalZ);
         }
 
-        // Inside the curved body: radial offset and arc length from the phase.
+        // Inside the curved body: radial offset and arc length from the phase. The distance to
+        // the centre of curvature grows toward +x for curvature > 0 and toward -x for
+        // curvature < 0, so multiply by the sign of the radius to keep x along local +x.
         const double radius = 1.0 / curvature;
+        const double sign   = (radius >= 0.0) ? 1.0 : -1.0;
         const double s      = referencePhase(entry, curvature) / curvature;
-        const double radial = Kokkos::hypot(entry(0) + radius, entry(2)) - Kokkos::abs(radius);
+        const double radial = sign * Kokkos::hypot(entry(0) + radius, entry(2)) - radius;
         return Vector_t<double, 3>(radial, entry(1), s);
     }
 

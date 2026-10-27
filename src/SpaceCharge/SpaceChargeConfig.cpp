@@ -89,17 +89,32 @@ namespace opalx::spacecharge {
                         "validateSpaceChargeConfig",
                         "The load-balancing threshold must not be negative.");
             }
-            validatePoissonSolverConfig(makePoissonSolverConfig(config));
-            if (config.backend == PoissonSolverType::P3M
-                && (config.binning.has_value() || config.dirichletPlane.enabled())) {
+            if (!(config.loadBalancingPairWeight >= 0.0 && config.loadBalancingPairWeight <= 1.0)) {
                 throw OpalException(
                         "validateSpaceChargeConfig",
-                        "P3M does not support binning or Dirichlet planes.");
+                        "LOADBALANCINGPAIRWEIGHT must be in the range [0, 1].");
             }
-            if (config.dirichletPlane.enabled() && config.backend != PoissonSolverType::Open) {
+            if (config.loadBalancingPairWeight > 0.0 && config.backend != PoissonSolverType::P3M) {
                 throw OpalException(
                         "validateSpaceChargeConfig",
-                        "Dirichlet planes require the OPEN Poisson backend.");
+                        "LOADBALANCINGPAIRWEIGHT above 0 weights ORB by P3M pair counts and "
+                        "requires FIELDSOLVER TYPE=P3M.");
+            }
+            validatePoissonSolverConfig(makePoissonSolverConfig(config));
+            const bool p3mShiftedPlane =
+                    config.backend == PoissonSolverType::P3M
+                    && config.dirichletPlane.kind == DirichletPlaneType::ShiftedGreen
+                    && std::all_of(
+                            config.boundaryConditions.begin(), config.boundaryConditions.end(),
+                            [](FieldBoundaryCondition boundary) {
+                                return boundary == FieldBoundaryCondition::Open;
+                            });
+            if (config.dirichletPlane.enabled() && config.backend != PoissonSolverType::Open
+                && !p3mShiftedPlane) {
+                throw OpalException(
+                        "validateSpaceChargeConfig",
+                        "Dirichlet planes require TYPE=OPEN, or TYPE=P3M with OPEN domain "
+                        "boundaries and SHIFTED_GREENS_FUNCTION.");
             }
             if (config.dirichletPlane.planeDumpFrequency != 0 && config.binning.has_value()) {
                 throw OpalException(
@@ -201,7 +216,8 @@ namespace opalx::spacecharge {
     }  // namespace
 
     PoissonSolverConfig makePoissonSolverConfig(const CartesianPIC3DConfig& config) {
-        return {config.backend, config.greenFunction, config.p3mCutoff, config.boundaryConditions};
+        return {config.backend, config.greenFunction, config.p3mCutoff, config.boundaryConditions,
+                config.p3mCutoffCells};
     }
 
     void validatePoissonSolverConfig(const PoissonSolverConfig& config) {
@@ -250,12 +266,16 @@ namespace opalx::spacecharge {
             && config.greenFunction != GreenFunctionType::Integrated) {
             throw OpalException("validateSpaceChargeConfig", "Unknown open Green function.");
         }
-        if (!std::isfinite(config.p3mCutoff)
-            || (config.type == PoissonSolverType::P3M ? config.p3mCutoff <= 0.0
-                                                      : config.p3mCutoff != 0.0)) {
+        const bool fixedCutoff = config.p3mCutoff != 0.0;
+        const bool meshCutoff  = config.p3mCutoffCells != 0.0;
+        if (!std::isfinite(config.p3mCutoff) || !std::isfinite(config.p3mCutoffCells)
+            || config.p3mCutoff < 0.0 || config.p3mCutoffCells < 0.0
+            || (config.type == PoissonSolverType::P3M ? fixedCutoff == meshCutoff
+                                                      : fixedCutoff || meshCutoff)) {
             throw OpalException(
                     "validateSpaceChargeConfig",
-                    "P3M requires a finite positive cutoff; other backends require no cutoff.");
+                    "P3M requires exactly one finite positive cutoff, RCUT in metres or "
+                    "RCUT_CELLS in mesh spacings; other backends require neither.");
         }
     }
 
@@ -293,8 +313,9 @@ namespace opalx::spacecharge {
                                     return boundary == FieldBoundaryCondition::Periodic;
                                 });
                         if (selected.backend == PoissonSolverType::P3M) {
-                            domain.layoutType    = ParticleLayoutType::SpatialOverlap;
-                            domain.overlapCutoff = selected.p3mCutoff;
+                            domain.layoutType         = ParticleLayoutType::SpatialOverlap;
+                            domain.overlapCutoff      = selected.p3mCutoff;
+                            domain.overlapCutoffCells = selected.p3mCutoffCells;
                         }
                     }
                 },

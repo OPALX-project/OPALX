@@ -4,6 +4,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/DriftRep.h"
+#include "BeamlineCore/MultipoleTRep.h"
 #include "BeamlineCore/RBendRep.h"
 #include "BeamlineCore/SBendRep.h"
 #include "BeamlineGeometry/Geometry.h"
@@ -17,8 +18,10 @@
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utility/Inform.h"
+#include "ValueDefinitions/RealVariable.h"
 
 #include <cmath>
+#include <tuple>
 
 extern Inform* gmsg;
 
@@ -275,6 +278,58 @@ TEST_F(OpalBeamlinePlacementTest, SequentialBendThenDriftChainWithoutGap) {
     EXPECT_NEAR(euclidean_norm(gapVector), bend->getGeometry().getChordLength(), 1e-9);
 }
 
+TEST_F(OpalBeamlinePlacementTest, CurvedMultipoleTIsFramedLikeAnSBend) {
+    // Placement frames a bend by its geometry, not by its element type, so a curved
+    // MULTIPOLET turns the reference path exactly as an SBEND of the same arc and angle does:
+    // its own entrance frame and the frame of the following element agree.
+    const double edge = 0.5, arc = 0.5, angle = 0.3;
+
+    const auto place = [&](const std::shared_ptr<ElementBase>& magnet) {
+        magnet->setElementPosition(edge);
+
+        auto drift = std::make_shared<DriftRep>("DRIFT_AFTER");
+        drift->getGeometry().setElementLength(1.0);
+        drift->setElementPosition(edge + arc);
+
+        auto bunch = makeBunch(0);
+        DummyBeamline beamlineForVisitor;
+        DefaultVisitor visitor(beamlineForVisitor, false, false);
+        auto beamline = std::make_shared<OpalBeamline>();
+        beamline->visit(*magnet, visitor, *bunch);
+        beamline->visit(*drift, visitor, *bunch);
+        beamline->prepareSections();
+
+        std::shared_ptr<ElementBase> placedMagnet, placedDrift;
+        for (const auto& comp : beamline->getElements()) {
+            if (comp->getType() == ElementType::DRIFT) {
+                placedDrift = comp;
+            } else {
+                placedMagnet = comp;
+            }
+        }
+        EXPECT_NE(placedMagnet, nullptr);
+        EXPECT_NE(placedDrift, nullptr);
+        return std::make_tuple(
+                beamline, placedMagnet->getCSTrafoGlobal2Local(),
+                placedDrift->getCSTrafoGlobal2Local());
+    };
+
+    auto bend                                            = std::make_shared<SBendRep>("BEND_REF");
+    bend->getGeometry()                                  = Geometry::makeSBend(arc, angle / arc);
+    const auto [bendBeamline, bendFrame, driftAfterBend] = place(bend);
+
+    auto magnet = std::make_shared<MultipoleTRep>("MULTIPOLET_UNDER_TEST");
+    magnet->setElementLength(arc);
+    magnet->setBendAngle(angle, false);
+    magnet->setTransProfile({-1.0});
+    magnet->setFringeField(arc / 2, 0.01, 0.01);
+    ASSERT_TRUE(magnet->getGeometry().isBend());
+    const auto [magnetBeamline, magnetFrame, driftAfterMagnet] = place(magnet);
+
+    expectTrafoNear(magnetFrame, bendFrame);
+    expectTrafoNear(driftAfterMagnet, driftAfterBend);
+}
+
 TEST_F(OpalBeamlinePlacementTest, ModeAStoresEntranceFrameVerbatim) {
     // Mode A (X/Y/Z/PHI/PSI/THETA) IS the element's geometrical ENTRANCE frame — the frame the
     // tracker and field kernels use, same as ELEMEDGE placement. It is stored verbatim (here the
@@ -380,13 +435,19 @@ TEST_F(OpalBeamlinePlacementTest, SBendRejectsPoleFaceAngleE1) {
     EXPECT_THROW(sbend.update(), OpalException);
 }
 
-TEST_F(OpalBeamlinePlacementTest, RBendRejectsPoleFaceAngleE2) {
+TEST_F(OpalBeamlinePlacementTest, RBendDerivesEntranceAngleFromE2) {
+    [[maybe_unused]] static auto* p0Owner = new RealVariable();
     OpalRBend rbend;
     Attributes::setReal(*rbend.findAttribute("L"), 0.5);
     Attributes::setReal(*rbend.findAttribute("ELEMEDGE"), 0.0);
     Attributes::setReal(*rbend.findAttribute("ANGLE"), 0.3);
     Attributes::setReal(*rbend.findAttribute("E2"), 0.05);
-    EXPECT_THROW(rbend.update(), OpalException);
+    ASSERT_NO_THROW(rbend.update());
+    auto& bend = dynamic_cast<RBend&>(*rbend.getElement());
+    EXPECT_FALSE(bend.hasFieldMap());
+    EXPECT_DOUBLE_EQ(bend.getDesignEnergy(), 0.0);
+    EXPECT_DOUBLE_EQ(bend.getGeometry().getEntranceAngle(), 0.25);
+    EXPECT_DOUBLE_EQ(bend.getGeometry().getExitAngle(), 0.05);
 }
 
 TEST_F(OpalBeamlinePlacementTest, RejectsMixedPlacementConventions) {

@@ -17,8 +17,9 @@ using Dist_t        = ippl::random::NormalDistribution<double, 3>;
  * @class Gaussian Distribution
  * @brief Generating particles following a Gaussian distribution.
  *
- * This function samples particle positions R and momenta P given following normal distributions
- * a normal distribution
+ * This sampler reproduces the phase-space generation of the GAUSS distribution
+ * of (old) OPAL, see Distribution::generateGaussZ and Distribution::adjustPhaseSpace
+ * there. Particle positions R and momenta P are drawn from
  * R ~ N ( [0, 0, 0     ], sdR)
  * P ~ N ( [0, 0, avrgpz], sdP)
  * where sdR = [SigmaR[0] 0         0
@@ -29,8 +30,29 @@ using Dist_t        = ippl::random::NormalDistribution<double, 3>;
                 0          SigmaP[1] 0
                 0          0         SigmaP[2]].
  *
- * Here, R is sampled in a bounded domains R \in [-CutoffR*SigmaR, CutoffR*SigmaR]^3
- * and corrected by translation to ensure mean = [0,0,0].
+ * The cutoffs are applied collectively by rejection sampling on the
+ * normalised (unit-sigma) coordinates, exactly as in OPAL:
+ *   - transverse position:  (x / CutoffR[0])^2 + (y / CutoffR[1])^2 <= 1 (ellipse)
+ *   - transverse momentum:  (px / CutoffP[0])^2 + (py / CutoffP[1])^2 <= 1 (ellipse)
+ *   - longitudinal:         |z| <= CutoffR[2] and |pz| <= CutoffP[2]
+ * Note that an independent per-axis truncation (a box) yields different
+ * rms values and emittances than the elliptical cut (see issue #165).
+ * All cutoffs must be positive; a very large value (e.g. the maximum double,
+ * used by Distribution for a zero input cutoff, as in OPAL) disables the cut.
+ *
+ * If fixMeanR is set (default), the sampled phase space is adjusted as in
+ * OPAL's adjustPhaseSpace: the means of x, y, z, px and py are shifted to
+ * exactly zero, and pz is shifted such that the mean of
+ *   pz + (px^2 + py^2) / (2 pz)
+ * (a Taylor expansion of |p| for small transverse momenta) equals avrgpz,
+ * i.e. the average beam energy is matched exactly.
+ *
+ * A zero spatial sigma (in metres) represents an exact point mass on that axis;
+ * the corresponding coordinate is identically zero. The same holds for a zero
+ * momentum sigma.
+ *
+ * Emission-source offsets R0/P0 are applied last and are not affected by the
+ * mean/energy correction.
  *
  * @param numberOfParticles The total number of particles to generate.
  * @param nr The number of grid points in each dimension (not used here).
@@ -56,13 +78,15 @@ public:
      * @param sigmaR Standard deviation for position distribution.
      * @param sigmaP Standard deviation for momentum distribution.
      * @param avrgpz Average momentum in the z-direction.
-     * @param cutoffR Cutoff multiplier for position distribution.
-     * @param fix_meanR Flag to exactly fix the mean position of particles after sampling.
+     * @param cutoffR Cutoff multiplier for position distribution (units of sigmaR).
+     * @param fix_meanR Flag to exactly fix the mean position/momentum and the average
+     *        energy of the particles after sampling (OPAL's adjustPhaseSpace).
+     * @param cutoffP Cutoff multiplier for momentum distribution (units of sigmaP).
      */
     Gaussian(
             std::shared_ptr<ParticleContainer_t> pc, const Vector_t<double, 3>& sigmaR,
             const Vector_t<double, 3>& sigmaP, double avrgpz, const Vector_t<double, 3>& cutoffR,
-            bool fix_meanR = true);
+            bool fix_meanR = true, const Vector_t<double, 3>& cutoffP = Vector_t<double, 3>(3.0));
     /**
      * @brief Generates particles with a Gaussian distribution.
      *
@@ -87,6 +111,8 @@ public:
 
     void setCutoffR(const Vector_t<double, 3>& cutoffR) { cutoffR_m = cutoffR; }
 
+    void setCutoffP(const Vector_t<double, 3>& cutoffP) { cutoffP_m = cutoffP; }
+
     void getParameters(
             Vector_t<double, 3>& sigmaR, Vector_t<double, 3>& sigmaP, double& avrgpz,
             Vector_t<double, 3>& cutoffR) const {
@@ -95,6 +121,8 @@ public:
         avrgpz  = avrgpz_m;
         cutoffR = cutoffR_m;
     }
+
+    Vector_t<double, 3> getCutoffP() const { return cutoffP_m; }
 
     void setFixMeanR(bool fixMeanR) { fixMeanR_m = fixMeanR; }
 
@@ -123,12 +151,14 @@ private:
     double avrgpz_m;
 
     /**
-     * @brief Cutoff multiplier for position distribution.
+     * @brief Cutoff multipliers for position and momentum distributions (units of sigma).
      */
     Vector_t<double, 3> cutoffR_m;
+    Vector_t<double, 3> cutoffP_m = 3.0;
 
     /**
-     * @brief Flag to exactly fix the mean position of particles after sampling.
+     * @brief Flag to exactly fix the mean position/momentum and the average energy
+     *        of particles after sampling (equivalent of OPAL's adjustPhaseSpace).
      */
     bool fixMeanR_m = true;
 };

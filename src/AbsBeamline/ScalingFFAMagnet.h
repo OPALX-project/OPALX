@@ -25,12 +25,16 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "AbsBeamline/ElementBase.h"
-#include "AbsBeamline/EndFieldModel/EndFieldModel.h"
-#include "BeamlineGeometry/Geometry.h"
-
 #ifndef ABSBEAMLINE_ScalingFFAMagnet_H
 #define ABSBEAMLINE_ScalingFFAMagnet_H
+
+#include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/EndFieldModel/AsymmetricEnge.h"
+#include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
+#include "AbsBeamline/EndFieldModel/Enge.h"
+#include "AbsBeamline/EndFieldModel/Tanh.h"
+#include "BeamlineGeometry/Geometry.h"
+#include "PartBunch/PartBunch.h"
 
 /** Sector bending magnet with an FFA-style field index and spiral end shape
  *
@@ -41,7 +45,29 @@
  *  to be done after parsing has finished. setupEndField() is called by e.g.
  *  ParallelCyclotronTracker just before the object is handed to OpalRing for
  *  placement.
+ *
+ *  Note about ScalingFFAMagnetConfig; GPU can't handle member data well so I
+ *  make a struct to hold member data which we hand off for the actual field
+ *  lookup.
  */
+
+struct ScalingFFAMagnetConfig {
+    static constexpr size_t MaxOrder         = 20;
+    static constexpr size_t CoefficientCount = (MaxOrder + 1) * (MaxOrder + 1);
+
+    size_t maxOrder_m         = 0;
+    double tanDelta_m         = 0.;
+    double k_m                = 0.;
+    double Bz_m               = 0.;
+    double r0_m               = 1.;
+    double rMin_m             = 0.;  // minimum radius
+    double rMax_m             = 0.;  // maximum radius
+    double phiStart_m         = 0.;  // offsets this element
+    double azimuthalExtent_m  = 0.;  // maximum distance used for field calculation
+    double verticalExtent_m   = 0.;  // maximum allowed distance from the midplane
+    const double fp_tolerance = 1e-18;
+    Kokkos::Array<double, CoefficientCount> dfCoefficients_m{};
+};
 
 class ScalingFFAMagnet : public ElementBase {
 public:
@@ -52,18 +78,14 @@ public:
     explicit ScalingFFAMagnet(const std::string& name);
 
     /** Destructor - deletes map */
-    ~ScalingFFAMagnet();
+    ~ScalingFFAMagnet() override = default;
 
     /** Inheritable copy constructor */
     ScalingFFAMagnet* clone() const override;
 
-    /** Calculate the field at the position of the ith particle
+    /** Calculate the field for particles in the container
      *
-     *  \param i index of the particle event override; field is calculated at this
-     *         position
-     *  \param t time at which the field is to be calculated
-     *  \param E calculated electric field - always 0 (no E-field)
-     *  \param B calculated magnetic field
+     *  \param pc the set of particles for which the field is calculated
      */
     void apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
@@ -79,6 +101,23 @@ public:
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
+    bool applyToReferenceParticle(
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override {
+        apply(R, P, t, E, B);
+        return false;
+    }
+    /** Calculate the field for particles in the container
+     *
+     *  \param pc the set of particles for which the field is calculated
+     *
+     *  This is a static function so that it can call the GPU
+     */
+    static void getFieldValue(
+            const ScalingFFAMagnetConfig& config,
+            const std::shared_ptr<endfieldmodel::EndFieldModel> endField,
+            const Kokkos::View<Vector_t<double, 3>*> R, const Kokkos::View<Vector_t<double, 3>*> B);
+
     /** Calculate the field at some arbitrary position in cartesian coordinates
      *
      *  \param R position in the local coordinate system of the bend, in
@@ -86,7 +125,10 @@ public:
      *  \param B calculated magnetic field defined like (Bx, By, Bz)
      *  \returns true if particle is outside the field map, else false
      */
-    bool getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const;
+    template <class EFM>
+    KOKKOS_INLINE_FUNCTION static void getFieldValue(
+            const ScalingFFAMagnetConfig& config, const EFM& endField, const Vector_t<double, 3>& R,
+            Vector_t<double, 3>& B);
 
     /** Calculate the field at some arbitrary position in cylindrical coordinates
      *
@@ -94,14 +136,53 @@ public:
      *           cylindrical polar coordinates defined like (r, y, phi)
      *  \param B calculated magnetic field defined like (Br, By, Bphi)
      *  \returns true if particle is outside the field map, else false
+     *
+     *  The function is templated because we can't determine at compile time what
+     *  is the output of a Kokkos subview (it depends on the number of threads).
+     *  See the code in getFieldValue(...)
      */
-    bool getFieldValueCylindrical(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const;
+    template <class C>
+    KOKKOS_INLINE_FUNCTION static void getFieldValueCylindrical(
+            const ScalingFFAMagnetConfig& config, const C& derivatives,
+            const Vector_t<double, 5>& Rcyl, Vector_t<double, 3>& B);
+
+    /** Calculate the field at some arbitrary position in cylindrical coordinates
+     *
+     *  \param R position in the local coordinate system of the bend, in
+     *           CHECK cartesian polar coordinates defined like (r, y, phi)
+     *  \param B CARTESIAN??? calculated magnetic field defined like (Br, By, Bphi)
+     *  \returns true if particle is outside the field map, else false
+     */
+    void getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const;
+
+    /** Transform to cylindrical coordinates
+     *
+     *  \param R position in cartesian coordinates
+     *  \param Rcyl value overwritten with the position in cylindrical coordinates
+     *         like [r, y, phi, rnorm, phiSpiral] where rnorm is the normalised
+     *         radius r/r0 and phiSpiral is the azimuthal coordinate in the
+     *         spiral coordinate system.
+     *
+     *  Note that 0,y,0 in cartesian coordinates is r0,y,0 in cylindrical; if r0
+     *  is positive a bend to the left is described i.e. anticlockwise
+     *  coordinates. If r0 is negative a bend to the right is described i.e.
+     *  clockwise coordinates.
+     */
+    void getCylindricalCoordinates(const Vector_t<double, 3>& R, Vector_t<double, 5>& Rcyl) const;
+
+    /** Transform to cartesian coordinates
+     *
+     *  \param Rcyl position in cylindrical coordinates [r, y, phi]
+     *  \param Rcart value overwritten with the position in cartesian coordinates
+     *         like [x, y, z].
+     *
+     *  See the note on the coordinate system above
+     */
+    void getCartesianCoordinates(const Vector_t<double, 3>& Rcyl, Vector_t<double, 3>& Rcart) const;
 
     /** Initialise the ScalingFFAMagnet
      *
      *  \param bunch the global bunch object
-     *  \param startField not used
-     *  \param endField not used
      */
     void initialise(PartBunch_t* bunch) override;
 
@@ -115,8 +196,22 @@ public:
     /** Finalise the ScalingFFAMagnet - sets bunch to nullptr */
     void finalise() override;
 
-    /** Not implemented */
-    void getFieldExtent(double& /*zBegin*/, double& /*zEnd*/) const override {}
+    /** calls finalise() */
+    void goOffline() override;
+
+    /** call initialise() */
+    void goOnline(const double& kineticEnergy) override;
+
+    /** Get the field extent
+     *
+     *  \param zBegin sets start z coordinate in the local coordinate system of
+     *         the bend. Azimuthal coordinate is azimuthalExtent-centreLength/2
+     *         at radius maxR
+     *  \param zEnd sets end z coordinate in the local coordinate system of
+     *         the bend. Azimuthal coordinate is azimuthalExtent+centreLength/2
+     *         at radius maxR
+     */
+    void getFieldExtent(double& zBegin, double& zEnd) const override;
 
     /** Return the cell geometry */
     Geometry& getGeometry() override;
@@ -127,108 +222,94 @@ public:
     /** Accept a beamline visitor */
     void accept(BeamlineVisitor& visitor) const override;
 
+    /** Return the field lookup configuration */
+    ScalingFFAMagnetConfig getConfig() const { return config_m; }
+
     /** Get tan delta - delta is the spiral angle */
-    double getTanDelta() const { return tanDelta_m; }
+    double getTanDelta() const { return config_m.tanDelta_m; }
 
     /** Set tan delta - delta is the spiral angle */
-    void setTanDelta(double tanDelta) { tanDelta_m = tanDelta; }
+    void setTanDelta(double tanDelta) { config_m.tanDelta_m = tanDelta; }
 
     /** Get the field index k */
-    double getFieldIndex() const { return k_m; }
+    double getFieldIndex() const { return config_m.k_m; }
 
     /** Set the field index k */
-    void setFieldIndex(double k) { k_m = k; }
+    void setFieldIndex(double k) const { config_m.k_m = k; }
 
     /** Get the dipole constant B_0 */
-    double getDipoleConstant() const { return Bz_m; }
+    double getDipoleConstant() const { return config_m.Bz_m; }
 
     /** Set the dipole constant B_0 */
-    void setDipoleConstant(double Bz) { Bz_m = Bz; }
+    void setDipoleConstant(double Bz) { config_m.Bz_m = Bz; }
 
     /** Get the radius constant R_0 */
-    double getR0() const { return r0_m; }
+    double getR0() const { return config_m.r0_m; }
 
     /** Set the radius constant R_0 */
-    void setR0(double r0) { r0_m = r0; }
-
-    /** Get the centre of the sector */
-    Vector_t<double, 3> getCentre() const { return centre_m; }
-
-    /** Set the centre of the sector */
-    void setCentre(Vector_t<double, 3> centre) { centre_m = centre; }
+    void setR0(double r0) { config_m.r0_m = r0; }
 
     /** Get the fringe field
      *
-     *  Returns the fringe field model; ScalingFFAMagnet retains ownership of the
-     *  returned memory.
+     *  Returns the fringe field model.
      */
-    endfieldmodel::EndFieldModel* getEndField() const { return endField_m; }
+    std::shared_ptr<endfieldmodel::EndFieldModel> getEndField() const { return efm_m; }
 
     /** Set the fringe field
      *
-     * - endField: the new fringe field; ScalingFFAMagnet takes ownership of the
-     *   memory associated with endField.
+     * - endField: the new fringe field.
      */
-    void setEndField(endfieldmodel::EndFieldModel* endField);
+    void setEndField(std::shared_ptr<endfieldmodel::EndFieldModel> endField);
 
     /** Get the maximum power of y modelled in the off-midplane expansion;
      */
-    size_t getMaxOrder() const { return maxOrder_m; }
+    size_t getMaxOrder() const { return config_m.maxOrder_m; }
 
     /** Set the maximum power of y modelled in the off-midplane expansion;
      */
-    void setMaxOrder(size_t maxOrder) { maxOrder_m = maxOrder; }
+    void setMaxOrder(size_t maxOrder);
 
     /** Get the offset of the magnet centre from the start
      */
-    double getPhiStart() const { return phiStart_m; }
+    double getPhiStart() const { return config_m.phiStart_m; }
 
     /** Set the offset of the magnet centre from the start
      */
-    void setPhiStart(double phiStart) { phiStart_m = phiStart; }
-
-    /** Get the offset of the magnet end from the start
-     */
-    double getPhiEnd() const { return phiEnd_m; }
-
-    /** Set the offset of the magnet end from the start
-     */
-    void setPhiEnd(double phiEnd) { phiEnd_m = phiEnd; }
+    void setPhiStart(double phiStart) { config_m.phiStart_m = phiStart; }
 
     /** Get the maximum radius
      */
-    double getRMin() const { return rMin_m; }
+    double getRMin() const { return config_m.rMin_m; }
 
     /** Set the maximum radius
      */
-    void setRMin(double rMin) { rMin_m = rMin; }
+    void setRMin(double rMin) { config_m.rMin_m = rMin; }
 
     /** Get the maximum radius
      */
-    double getRMax() const { return rMax_m; }
+    double getRMax() const { return config_m.rMax_m; }
 
     /** Set the maximum radius
      */
-    void setRMax(double rMax) { rMax_m = rMax; }
+    void setRMax(double rMax) { config_m.rMax_m = rMax; }
 
     /** Get the maximum azimuthal displacement from \psi=0
      */
-    double getAzimuthalExtent() const { return azimuthalExtent_m; }
+    double getAzimuthalExtent() const { return config_m.azimuthalExtent_m; }
 
     /** Set the maximum azimuthal displacement from \psi=0
      */
-    void setAzimuthalExtent(double azimuthalExtent) { azimuthalExtent_m = azimuthalExtent; }
+    void setAzimuthalExtent(double azimuthalExtent) {
+        config_m.azimuthalExtent_m = azimuthalExtent;
+    }
 
     /** Get the maximum vertical displacement from the midplane
      */
-    double getVerticalExtent() const { return verticalExtent_m; }
+    double getVerticalExtent() const { return config_m.verticalExtent_m; }
 
     /** Set the maximum vertical displacement from the midplane
      */
-    void setVerticalExtent(double verticalExtent) { verticalExtent_m = verticalExtent; }
-
-    /** Return the calculated df coefficients */
-    std::vector<std::vector<double> > getDfCoefficients() { return dfCoefficients_m; }
+    void setVerticalExtent(double verticalExtent) { config_m.verticalExtent_m = verticalExtent; }
 
     /** setupEndField does some end field and geometry set-up
      *
@@ -238,17 +319,25 @@ public:
      *
      *  sets PhiStart, PhiEnd, AzimuthalExtent and the end field model itself.
      */
-    void setupEndField();
+    void setupEndField() const;
 
     /** Set the end field name.
      *
      *  Called during parsing of the input file; OPAL looks for the endFieldName
      *  when setupEndField() is called.
      */
-    void setEndFieldName(std::string name) { endFieldName_m = name; }
+    void setEndFieldName(const std::string& name) { endFieldName_m = name; }
 
     /** Return the end field name. */
     std::string getEndFieldName() const { return endFieldName_m; }
+
+    ElementType getElementType() const { return ElementType::SCALINGFFAMAGNET; }
+    std::string getTypeString() const { return "SCALINGFFAMAGNET"; }
+    ElementType getType() const override { return ElementType::SCALINGFFAMAGNET; }
+
+    std::vector<std::vector<double> > getDfCoefficients() const;
+
+    bool isInside(const Vector_t<double, 3>& r) const override;
 
 private:
     /** Calculate the df coefficients, ready for field generation
@@ -258,28 +347,126 @@ private:
      */
     void calculateDfCoefficients();
 
+    void getZMin(double& zBegin) const;
+
+    void getZMax(double& zEnd) const;
+
+    KOKKOS_INLINE_FUNCTION static void getCylindricalCoordinates(
+            const ScalingFFAMagnetConfig& config, const Vector_t<double, 3> Ri,
+            Vector_t<double, 5>& Rcyli);
+
+    KOKKOS_INLINE_FUNCTION static void rotateBfield(
+            const ScalingFFAMagnetConfig& config, const Vector_t<double, 5>& Rcyli,
+            const Vector_t<double, 3>& Bcyli, Vector_t<double, 3>& Bi);
+
     /** Copy constructor */
     ScalingFFAMagnet(const ScalingFFAMagnet& right);
 
     ScalingFFAMagnet& operator=(const ScalingFFAMagnet& rhs);
-    Geometry planarArcGeometry_m{Geometry::makeSBend(1., 1.)};
-
-    size_t maxOrder_m        = 0;
-    double tanDelta_m        = 0.;
-    double k_m               = 0.;
-    double Bz_m              = 0.;
-    double r0_m              = 0.;
-    double rMin_m            = 0.;  // minimum radius
-    double rMax_m            = 0.;  // maximum radius
-    double phiStart_m        = 0.;  // offsets this element
-    double phiEnd_m          = 0.;  // used for placement of next element
-    double azimuthalExtent_m = 0.;  // maximum distance used for field calculation
-    double verticalExtent_m  = 0.;  // maximum allowed distance from the midplane
-    Vector_t<double, 3> centre_m;
-    endfieldmodel::EndFieldModel* endField_m = nullptr;
-    std::string endFieldName_m               = "";
-    const double fp_tolerance                = 1e-18;
-    std::vector<std::vector<double> > dfCoefficients_m;
+    mutable Geometry planarArcGeometry_m{Geometry::makeSBend(1., 1.)};
+    mutable ScalingFFAMagnetConfig config_m;
+    mutable std::shared_ptr<endfieldmodel::EndFieldModel> efm_m;
+    mutable std::string endFieldName_m;
+    mutable bool efmInitialised_m = false;
 };
+
+inline void ScalingFFAMagnet::getFieldValue(
+        const ScalingFFAMagnetConfig& config,
+        const std::shared_ptr<endfieldmodel::EndFieldModel> endField,
+        const Kokkos::View<Vector_t<double, 3>*> R, const Kokkos::View<Vector_t<double, 3>*> B) {
+    const size_t count = R.size();
+    Kokkos::View<Vector_t<double, 5>*> Rcyl("Rcyl", count);
+    Kokkos::View<Vector_t<double, 3>*> Bcyl("Bcyl", count);
+    Kokkos::View<double**> derivatives("derivatives", count, config.maxOrder_m + 2);
+    Kokkos::parallel_for(
+            "ScalingFFAMagnet::getCylindricalCoordinates()", count,
+            KOKKOS_LAMBDA(const size_t i) { getCylindricalCoordinates(config, R(i), Rcyl(i)); });
+    Kokkos::View<double*> phiSpiral("phiSpiral", count);
+    Kokkos::parallel_for(
+            "ScalingFFAMagnet::phiSpiral", count, KOKKOS_LAMBDA(const size_t i) {
+                phiSpiral(i) = Rcyl(i)[4];  // must be a way to get a subview
+            });
+    endField->function(phiSpiral, config.maxOrder_m + 1, derivatives);
+    Kokkos::parallel_for(
+            "ScalingFFAMagnet::getFieldValue()", count, KOKKOS_LAMBDA(const size_t i) {
+                auto derivatives_i = Kokkos::subview(derivatives, i, Kokkos::ALL);
+                getFieldValueCylindrical(config, derivatives_i, Rcyl(i), Bcyl(i));
+                // Add rather than assign: overlapping elements superpose their fields in B.
+                Vector_t<double, 3> Bi;
+                rotateBfield(config, Rcyl(i), Bcyl(i), Bi);
+                B(i) += Bi;
+            });
+}
+
+KOKKOS_INLINE_FUNCTION
+void ScalingFFAMagnet::getCylindricalCoordinates(
+        const ScalingFFAMagnetConfig& config, const Vector_t<double, 3> Ri,
+        Vector_t<double, 5>& Rcyli) {
+    Vector_t<double, 3> Rstart = Ri;
+    double r          = Kokkos::sqrt((Ri[0] + config.r0_m) * (Ri[0] + config.r0_m) + Ri[2] * Ri[2]);
+    double normRadius = Kokkos::abs(r / config.r0_m);
+    double g          = config.tanDelta_m * Kokkos::log(normRadius);
+    double phi = Kokkos::atan2(Ri[2], (Ri[0] + config.r0_m) * Kokkos::copysign(1.0, config.r0_m));
+    double phiSpiral = phi - g - config.phiStart_m;
+    Rcyli[0]         = r;
+    // angle between y-axis and position vector in anticlockwise direction
+    Rcyli[1] = Ri[1];
+    Rcyli[2] = phi;
+    Rcyli[3] = normRadius;
+    Rcyli[4] = phiSpiral;
+}
+
+KOKKOS_INLINE_FUNCTION
+void ScalingFFAMagnet::rotateBfield(
+        const ScalingFFAMagnetConfig& config, const Vector_t<double, 5>& Rcyli,
+        const Vector_t<double, 3>& Bcyli, Vector_t<double, 3>& Bi) {
+    double phi = Rcyli[2];
+    Bi[1]      = Bcyli[1];
+    Bi[0]      = Kokkos::copysign(1.0, config.r0_m)
+            * (Bcyli[0] * Kokkos::cos(phi) - Bcyli[2] * Kokkos::sin(phi));
+    Bi[2] = Bcyli[0] * Kokkos::sin(phi) + Bcyli[2] * Kokkos::cos(phi);
+}
+
+template <class C>
+KOKKOS_INLINE_FUNCTION void ScalingFFAMagnet::getFieldValueCylindrical(
+        const ScalingFFAMagnetConfig& config, const C& derivatives, const Vector_t<double, 5>& rCyl,
+        Vector_t<double, 3>& B) {
+    double r          = rCyl[0];
+    double z          = rCyl[1];
+    double normRadius = rCyl[3];
+    double phiSpiral  = rCyl[4];
+    B                 = {0.0, 0.0, 0.0};
+    if (r < config.rMin_m || r > config.rMax_m) {
+        return;
+    }
+    double h = Kokkos::pow(normRadius, config.k_m) * config.Bz_m;
+    if (phiSpiral < -config.azimuthalExtent_m || phiSpiral > config.azimuthalExtent_m) {
+        return;
+    }
+    if (z < -config.verticalExtent_m || z > config.verticalExtent_m) {
+        return;
+    }
+    for (size_t n = 0; n <= config.maxOrder_m; n += 2) {
+        double f2n = 0;
+        Vector_t<double, 3> deltaB({0., 0., 0.});
+        for (size_t i = 0; i <= n; ++i) {
+            f2n += config.dfCoefficients_m[n * (ScalingFFAMagnetConfig::MaxOrder + 1) + i]
+                   * derivatives(i);
+        }
+        deltaB[1] = f2n * h * Kokkos::pow(z / r, static_cast<int>(n));
+        if (config.maxOrder_m >= n + 1) {
+            double f2nplus1 = 0;
+            for (size_t i = 0; i <= n + 1; ++i) {
+                f2nplus1 += config.dfCoefficients_m
+                                    [(n + 1) * (ScalingFFAMagnetConfig::MaxOrder + 1) + i]
+                            * derivatives(i);
+            }
+            deltaB[0] = (f2n * (config.k_m - n) / (n + 1) - config.tanDelta_m * f2nplus1) * h
+                        * Kokkos::pow(z / r, static_cast<int>(n + 1));  // Br
+            deltaB[2] = f2nplus1 * h * Kokkos::pow(z / r, static_cast<int>(n + 1));
+        }
+        B += deltaB;
+    }
+}
 
 #endif

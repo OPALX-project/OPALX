@@ -78,6 +78,9 @@ public:
     void visitVerticalFFAMagnet(const VerticalFFAMagnet&) override {}
     void visitProbe(const Probe&) override {}
     void visitVariableRFCavity(const VariableRFCavity&) override {}
+    void visitEnge(const endfieldmodel::Enge&) override {}
+    void visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) override {}
+    void visitTanh(const endfieldmodel::Tanh&) override {}
 
     // Test helpers
 

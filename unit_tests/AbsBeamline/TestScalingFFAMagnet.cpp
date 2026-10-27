@@ -1,0 +1,608 @@
+//
+// Unit tests for class ScalingFFAMagnet
+//
+// Copyright (c) 2017-2026, Chris Rogers, STFC Rutherford Appleton Laboratory, Didcot, UK
+// All rights reserved.
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
+#include "AbsBeamline/EndFieldModel/Tanh.h"
+#include "AbsBeamline/ScalingFFAMagnet.h"
+#include "AbstractObjects/OpalData.h"
+#include "Physics/Physics.h"
+
+#include "gtest/gtest.h"
+
+#include <algorithm>
+#include <cmath>
+#include <fstream>
+#include <sstream>
+#include <vector>
+
+class ScalingFFAMagnetTest : public ::testing::Test {
+public:
+    ScalingFFAMagnetTest() : sector_m(nullptr), fout_m() {}
+
+    static void SetUpTestSuite() {
+        int argc    = 0;
+        char** argv = nullptr;
+        ippl::initialize(argc, argv);
+        OpalData::getInstance()->storeInputFn("unit_test.opal");
+        if (gmsg == nullptr) {
+            gmsg = new Inform(nullptr, -1);
+        }
+        Options::enableHDF5 = false;
+    }
+    static void TearDownTestSuite() {
+        if (gmsg != nullptr) {
+            delete gmsg;
+            gmsg = nullptr;
+        }
+        ippl::finalize();
+    }
+
+    void SetUp() {
+        sector_m = new ScalingFFAMagnet("test");
+        // characteristic length is R*dphi => 0.6545 m
+        std::shared_ptr<endfieldmodel::Tanh> tanh =
+                std::make_shared<endfieldmodel::Tanh>(psi0_m, psi0_m / 5., 20);
+        sector_m->setEndField(tanh);
+        sector_m->setTanDelta(std::tan(Physics::pi / 4.));
+        sector_m->setR0(r0_m);
+        sector_m->setRMin(0.);
+        sector_m->setRMax(r0_m * 2.);
+        sector_m->setDipoleConstant(1.);
+        sector_m->setFieldIndex(15);
+        sector_m->setMaxOrder(10);
+        sector_m->setPhiStart(psi0_m);
+        sector_m->setAzimuthalExtent(Physics::pi);
+        sector_m->setVerticalExtent(1.);  // 1 m
+        sector_m->initialise();
+    }
+
+    void TearDown() {
+        delete sector_m;
+        sector_m = nullptr;
+    }
+
+    ~ScalingFFAMagnetTest() {}
+
+    ScalingFFAMagnet* sector_m;
+    std::ofstream fout_m;
+    double r0_m           = 24;                                       // m
+    double magnetLength_m = 0.63;                                     // m
+    double psi0_m         = magnetLength_m * 2 * Physics::pi / r0_m;  // radians
+
+    Vector_t<double, 3> getB(Vector_t<double, 3> pos) {
+        Vector_t<double, 3> mom, B, E;
+        double t = 0.0;
+        sector_m->apply(pos, mom, t, E, B);
+        return B;
+    }
+
+    double getDBDu(int i, int j, Vector_t<double, 3> pos, double delta) {
+        Vector_t<double, 3> mom({0., 0., 0.});
+        Vector_t<double, 3> E({0., 0., 0.});
+        Vector_t<double, 3> BUpper({0., 0., 0.});
+        double t                     = 0;
+        double derivative            = 0;
+        Vector_t<double, 3> posUpper = pos;
+        posUpper[j] += delta;
+        sector_m->apply(posUpper, mom, t, E, BUpper);
+        Vector_t<double, 3> BLower({0., 0., 0.});
+        Vector_t<double, 3> posLower = pos;
+        posLower[j] -= delta;
+        sector_m->apply(posLower, mom, t, E, BLower);
+        derivative = (BUpper[i] - BLower[i]) / (posUpper[j] - posLower[j]);
+        return derivative;
+    }
+
+    double getDivBCart(Vector_t<double, 3> pos, Vector_t<double, 3> delta) {
+        Vector_t<double, 3> div_elements({0., 0., 0.});
+        // dB_x/dx ~ (B_x(x+dx) - B_x(x-dx))/2/dx
+        for (size_t i = 0; i < 3; ++i) {
+            div_elements[i] = getDBDu(i, i, pos, delta[i]);
+        }
+        return div_elements[0] + div_elements[1] + div_elements[2];
+    }
+
+    Vector_t<double, 3> getCurlBCart(Vector_t<double, 3> posCart, Vector_t<double, 3> delta) {
+        Vector_t<double, 3> curlElements({0., 0., 0.});
+        // dB_x/dx ~ (B_x(x+dx) - B_x(x-dx))/2/dx
+        curlElements[0] += getDBDu(2, 1, posCart, delta[1]);  // dBz/dy
+        curlElements[0] -= getDBDu(1, 2, posCart, delta[2]);  // dBy/dz
+        curlElements[1] += getDBDu(0, 2, posCart, delta[2]);  // dBx/dz
+        curlElements[1] -= getDBDu(2, 0, posCart, delta[0]);  // dBz/dx
+        curlElements[2] += getDBDu(1, 0, posCart, delta[0]);  // dBy/dx
+        curlElements[2] -= getDBDu(0, 1, posCart, delta[1]);  // dBx/dy
+        return curlElements;
+    }
+
+    bool printLine(
+            Vector_t<double, 3> posCyl, double aux, std::ofstream& fout, double maxwell_tolerance) {
+        double r   = posCyl[0];
+        double y   = posCyl[1];
+        double phi = posCyl[2];
+        double x   = r * (1 - std::cos(phi));
+        double z   = r * std::sin(phi);
+        Vector_t<double, 3> posCart({x, y, z});
+        Vector_t<double, 3> mom({0., 0., 0.});
+        Vector_t<double, 3> E({0., 0., 0.});
+        Vector_t<double, 3> B({0., 0., 0.});
+        Vector_t<double, 3> BCart({0., 0., 0.});
+        double t = 0;
+        sector_m->apply(posCart, mom, t, E, BCart);
+        double delta = y / 1000.;
+        if (delta > 1e-3 or delta < 1e-9) {
+            delta = 1e-3;
+        }
+        double divBCart = getDivBCart(posCart, Vector_t<double, 3>({delta, delta, delta}));
+        Vector_t<double, 3> curlBCart =
+                getCurlBCart(posCart, Vector_t<double, 3>({delta, delta, delta}));
+        std::stringstream ssout;
+        ssout << "order " << sector_m->getMaxOrder() << " (x,y,z)  " << x << "    " << y << "    "
+              << z << " (r,phi) " << r << "    " << phi << " B(x,y,z) " << BCart[0] << "    "
+              << BCart[1] << "    " << BCart[2] << " DivB_Cart: " << divBCart
+              << " CurlB_Cart: " << curlBCart << " Aux: " << aux;
+        bool passtest = divBCart < maxwell_tolerance;
+        for (size_t i = 0; i < 3; ++i) {
+            passtest &= curlBCart[i] < maxwell_tolerance;
+        }
+        if (!passtest) {
+            fout << ssout.str() << std::endl;
+            std::cout << ssout.str() << std::endl;
+        }
+        return passtest;
+    }
+
+private:
+};
+
+TEST_F(ScalingFFAMagnetTest, ConstructorTest) {
+    ScalingFFAMagnet* test = new ScalingFFAMagnet("test");
+    std::vector<int> data(15);
+    size_t i = 0;
+    test->setTanDelta(++i);
+    test->setFieldIndex(++i);
+    test->setDipoleConstant(++i);
+    test->setR0(++i);
+    double x                                  = ++i;
+    x                                         = ++i;
+    std::shared_ptr<endfieldmodel::Tanh> tanh = std::make_shared<endfieldmodel::Tanh>(x, x, i);
+    tanh->initialise();
+    test->setEndField(tanh);
+    test->setMaxOrder(++i);
+    test->setPhiStart(++i);
+    test->setRMin(++i);
+    test->setRMax(++i);
+    test->setAzimuthalExtent(++i);
+    test->setVerticalExtent(++i);
+
+    std::vector<ScalingFFAMagnet*> magnets(2);
+    magnets[0] = test;
+    magnets[1] = dynamic_cast<ScalingFFAMagnet*>(test->clone());
+    for (size_t j = 0; j < magnets.size(); ++j) {
+        i    = 0;
+        test = magnets[j];
+        EXPECT_NEAR(test->getTanDelta(), ++i, 1e-9);
+        EXPECT_EQ(test->getFieldIndex(), ++i);
+        EXPECT_NEAR(test->getDipoleConstant(), ++i, 1e-9);
+        EXPECT_NEAR(test->getR0(), ++i, 1e-9);
+        ++i;
+        EXPECT_NEAR(test->getEndField()->function(x, 0), tanh->function(x, 0), 1e-9);
+        if (j == 1) {
+            break;
+        }
+        ++i;
+        EXPECT_EQ(test->getMaxOrder(), ++i);
+        EXPECT_NEAR(test->getPhiStart(), ++i, 1e-9);
+        EXPECT_NEAR(test->getRMin(), ++i, 1e-9);
+        EXPECT_NEAR(test->getRMax(), ++i, 1e-9);
+        EXPECT_NEAR(test->getAzimuthalExtent(), ++i, 1e-9);
+        EXPECT_NEAR(test->getVerticalExtent(), ++i, 1e-9);
+    }
+
+    std::shared_ptr<endfieldmodel::Tanh> tanh2 =
+            std::make_shared<endfieldmodel::Tanh>(-10., -10., 10);
+    tanh2->initialise();
+    magnets[0]->setEndField(tanh2);
+    EXPECT_NEAR(magnets[0]->getEndField()->function(10., 0), tanh2->function(10., 0), 1e-9);
+    delete magnets[0];
+    delete magnets[1];
+}
+
+TEST_F(ScalingFFAMagnetTest, CylindricalCoordinatesTest) {
+    for (auto r0 : {10.0, -10.0}) {
+        sector_m->setR0(r0);
+        for (double i = -3.99; i < 3.99; i += 0.5) {
+            for (auto rtest : {r0 * 0.9, r0 * 1.0, r0 * 1.1}) {
+                double phi = i / 8.0 * 2 * M_PI;
+                Vector_t<double, 5> Rcyl;
+                // This describes an arc bending to the left for positive r and
+                // to the right for negative r
+                Vector_t<double, 3> R(
+                        {rtest * (std::cos(phi)) - r0, 0., std::abs(rtest) * std::sin(phi)});
+                sector_m->getCylindricalCoordinates(R, Rcyl);
+                EXPECT_NEAR(Rcyl[0], std::abs(rtest), 1e-6);
+                EXPECT_NEAR(Rcyl[2], phi, 1e-6);
+            }
+        }
+    }
+}
+
+TEST_F(ScalingFFAMagnetTest, PlacementTest) {
+    // test that when we are X0 from the centre, we get By = 0.5*B0
+    double centre_length =
+            dynamic_cast<endfieldmodel::Tanh*>(sector_m->getEndField().get())->getX0();
+    sector_m->getEndField()->initialise();
+    sector_m->getEndField()->print(std::cerr) << std::endl;
+    for (double r0 = -r0_m; r0 < 1.5 * r0_m; r0 += r0_m * 2) {
+        for (double phi_start = 0.; phi_start < psi0_m * 3.1; phi_start += psi0_m / 2.) {
+            sector_m->setR0(r0);
+            sector_m->setPhiStart(phi_start + centre_length);
+            for (double i = 0.; i < 1.01; i += 0.5) {
+                double phi = i * centre_length * 2 + phi_start;
+                Vector_t<double, 3> mom, E, B;
+                double t = 0;
+                Vector_t<double, 3> posCart(
+                        {r0 * (std::cos(phi) - 1), 0., std::abs(r0) * std::sin(phi)});
+                sector_m->apply(posCart, mom, t, E, B);
+                double byTest = 1 - std::abs(i - 0.5);  // 0.5, 1.0, 0.5
+                EXPECT_NEAR(B[1], byTest, 1e-3) << " for r0 " << r0_m << " phi_start " << phi_start
+                                                << " and phi test " << phi;
+            }
+        }
+    }
+}
+
+TEST_F(ScalingFFAMagnetTest, DFCoefficientsTest) {
+    sector_m->setTanDelta(0.0);
+    sector_m->setMaxOrder(5);
+    sector_m->setFieldIndex(5);
+    sector_m->initialise();
+    // hard coded - calculated by hand
+    double ref[5][5] = {
+            {1., -999., -999., -999., -999.},         // n = 0
+            {0., 1., -999., -999., -999.},            // n = 1
+            {-25. / 2., 0., -1. / 2., -999., -999.},  // n = 2
+            {0., -25. / 6., 0., -1. / 6., -999.},     // n = 3
+            {+25. / 2. * 3. / 4., 0., +1. / 2. * 3. / 4. + 25. / 6. / 4., 0.,
+             +1. / 6. / 4.},  // n = 4
+    };
+    std::vector<std::vector<double> > coeffs = sector_m->getDfCoefficients();
+    ASSERT_GE(coeffs.size(), (size_t)21);
+    for (size_t n = 0; n < 5; ++n) {
+        ASSERT_EQ(coeffs[n].size(), 21);
+        for (size_t i = 0; i < coeffs[n].size(); ++i) {
+            if (i <= n) {
+                EXPECT_NEAR(coeffs[n][i], ref[n][i], 1e-9) << " n: " << n << " i: " << i;
+            } else {
+                EXPECT_NEAR(coeffs[n][i], 0, 1e-9) << " n: " << n << " i: " << i;
+            }
+        }
+    }
+}
+
+TEST_F(ScalingFFAMagnetTest, DFCoefficientsTanDeltaTest) {
+    sector_m->setTanDelta(2.0);
+    sector_m->setMaxOrder(4);  // BUG - max order is 1 to high
+    sector_m->setFieldIndex(5);
+    sector_m->initialise();
+    // hard coded - calculated by hand
+    double ref[5][5] = {
+            {1., -999., -999., -999., -999.},                    // n = 0
+            {0., 1., -999., -999., -999.},                       // n = 1
+            {-25. / 2., 10. * 2. / 2., -5. / 2., -999., -999.},  // n = 2
+            {0., -25. / 6., +10. / 3., -5. / 6., -999.},         // n = 3
+            // i gave up at 4 - head exploding
+            {+25. / 2. * 3. / 4., -25. / 6. / 4. * 2. * 3. * 2. - 10. * 3 / 4., -999., -999.,
+             -999.},  // n = 4
+    };
+    std::vector<std::vector<double> > coeffs = sector_m->getDfCoefficients();
+    ASSERT_GE(coeffs.size(), (size_t)21);
+    for (size_t n = 0; n < 4; ++n) {
+        ASSERT_EQ(coeffs[n].size(), 21);
+        for (size_t i = 0; i < coeffs[n].size(); ++i) {
+            if (i <= n) {
+                EXPECT_NEAR(coeffs[n][i], ref[n][i], 1e-9) << " n: " << n << " i: " << i;
+            } else {
+                EXPECT_NEAR(coeffs[n][i], 0, 1e-9) << " n: " << n << " i: " << i;
+            }
+        }
+    }
+}
+
+TEST_F(ScalingFFAMagnetTest, TanhTest) {
+    double numericalDerivative = sector_m->getEndField()->function(-psi0_m, 0);
+    std::cout << "d(tanh(x))/dx\nn anal calc" << std::endl;
+    for (size_t order = 0; order < 5; ++order) {
+        double analyticalDerivative = sector_m->getEndField()->function(-psi0_m, order);
+        if (std::abs(numericalDerivative) + std::abs(analyticalDerivative) > 1e-3) {
+            EXPECT_NEAR(
+                    analyticalDerivative, numericalDerivative,
+                    std::abs(analyticalDerivative) * 1e-3);
+        }
+        std::cout << order << " " << analyticalDerivative << " " << numericalDerivative
+                  << std::endl;
+        numericalDerivative = sector_m->getEndField()->function(-psi0_m * 0.9999, order)
+                              - sector_m->getEndField()->function(-psi0_m * 1.0001, order);
+        numericalDerivative /= -psi0_m * 0.9999 + psi0_m * 1.0001;
+    }
+}
+
+TEST_F(ScalingFFAMagnetTest, BatchedTanhMatchesScalarEvaluation) {
+    constexpr size_t pointCount   = 3;
+    constexpr int derivativeCount = 6;
+    endfieldmodel::Tanh tanh(psi0_m, psi0_m / 5., derivativeCount - 1);
+    Kokkos::View<double*> points("tanh_points", pointCount);
+    Kokkos::View<double**> derivatives("tanh_derivatives", pointCount, derivativeCount);
+    auto pointsHost = Kokkos::create_mirror_view(points);
+    pointsHost(0)   = -psi0_m;
+    pointsHost(1)   = 0.;
+    pointsHost(2)   = psi0_m;
+    Kokkos::deep_copy(points, pointsHost);
+
+    tanh.function(points, derivativeCount - 1, derivatives);
+    auto derivativesHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), derivatives);
+    for (size_t point = 0; point < pointCount; ++point) {
+        for (int order = 0; order < derivativeCount; ++order) {
+            const double expected = tanh.function(pointsHost(point), order);
+            // Host GSL/libm and GPU Kokkos transcendental implementations differ
+            // slightly; cancellation in even derivatives amplifies that difference.
+            EXPECT_NEAR(
+                    derivativesHost(point, order), expected,
+                    std::max(5.e-9, std::abs(expected) * 1.e-11));
+        }
+    }
+}
+
+TEST_F(ScalingFFAMagnetTest, RejectsExpansionBeyondDeviceStorage) {
+    EXPECT_THROW(sector_m->setMaxOrder(ScalingFFAMagnetConfig::MaxOrder + 1), GeneralOpalException);
+}
+
+TEST_F(ScalingFFAMagnetTest, BTwoDTest) {
+    std::ofstream fout("/tmp/b_twod.out");
+    bool passtest = true;
+    for (double y = 0.; y < 0.025; y += 0.015) {
+        for (double r = r0_m; r < r0_m + 1; r += 0.2) {
+            for (double psi = -2. * psi0_m; psi < 4.00001 * psi0_m; psi += psi0_m / 5.) {
+                passtest &= printLine(Vector_t<double, 3>({r, y, psi}), 0., fout, 1e-1);
+            }
+        }
+    }
+    EXPECT_TRUE(passtest);
+}
+
+TEST_F(ScalingFFAMagnetTest, ConvergenceYTest) {
+    std::ofstream fout("/tmp/convergence_y.out");
+    bool passtest = true;
+    for (double y = 0.00001; y < 0.02; y *= 2.) {
+        passtest &= printLine(Vector_t<double, 3>({r0_m, y, 2. * psi0_m}), 0., fout, 1e-3);
+    }
+    for (double y = 0.051; y < 0.1; y += 0.002) {
+        passtest &= printLine(Vector_t<double, 3>({r0_m, y, 2. * psi0_m}), 0., fout, 1e-3);
+    }
+    EXPECT_TRUE(passtest);
+}
+
+TEST_F(ScalingFFAMagnetTest, ConvergenceOrderTest) {
+    for (double r0sign = -1.0; r0sign < 2.0; r0sign += 2.0) {
+        for (double y = 0.5; y > 0.2; y /= 10.) {  // 50 cm off midplane
+            std::cout << "order y     B   divB      |curlB|       curlB" << std::endl;
+            std::vector<double> divBVec(13);
+            std::vector<double> curlBVec(13);
+            double delta = y / 100.;
+            for (size_t i = 0; i < divBVec.size(); ++i) {
+                sector_m->setMaxOrder(i);
+                sector_m->initialise();
+                sector_m->setR0(r0sign * r0_m);
+                Vector_t<double, 3> pos(
+                        {r0sign * r0_m * (std::cos(2 * psi0_m) - 1), y,
+                         r0_m * std::sin(2 * psi0_m)});
+                double divB = getDivBCart(pos, Vector_t<double, 3>({delta, delta, delta}));
+                Vector_t<double, 3> curlB =
+                        getCurlBCart(pos, Vector_t<double, 3>({delta, delta, delta}));
+                Vector_t<double, 3> B = getB(pos);
+                double curlBMag =
+                        std::sqrt(curlB[0] * curlB[0] + curlB[1] * curlB[1] + curlB[2] * curlB[2]);
+                divB        = std::abs(divB);
+                divBVec[i]  = divB;
+                curlBVec[i] = curlBMag;
+                std::cout << i << "     " << y << "    " << B << " " << "     " << divB
+                          << "           " << curlBMag << " " << curlB << " " << std::endl;
+                if (i > 1 && i % 2 == 1) {
+                    EXPECT_LT(divBVec[i], divBVec[i - 2]) << " with i " << i << std::endl;
+                }
+                if (i > 1 && i % 2 == 0) {
+                    EXPECT_LT(curlBVec[i], curlBVec[i - 2]) << " with i " << i << std::endl;
+                }
+            }
+            std::cout << std::endl;
+        }
+    }
+    sector_m->setMaxOrder(10);
+}
+
+TEST_F(ScalingFFAMagnetTest, ConvergenceOrderHackedTest) {
+    double y         = 0.05;
+    bool cylindrical = false;
+    int maxOrder     = 10;
+    // nb: if tan delta is 0., convergence reached at i = 7
+    for (double td = 0.0; td < 1.1; td += 10.2) {  // 50 cm off midplane
+        std::cout << "order y     B     divB     |curlB|     curlB" << std::endl;
+
+        std::vector<double> divBVec(maxOrder);
+        std::vector<double> curlBVec(maxOrder);
+        double delta = y / 100.;
+        for (size_t i = 0; i < divBVec.size(); ++i) {
+            sector_m->setTanDelta(td);
+            sector_m->setR0(-3.0);
+            sector_m->setFieldIndex(4);
+            sector_m->setMaxOrder(i);
+            sector_m->initialise();
+            Vector_t<double, 3> B, pos, curlB;
+            double divB;
+            if (cylindrical) {
+                throw("ERROR");
+            } else {
+                pos = Vector_t<double, 3>(
+                        {3.0 * (std::cos(psi0_m * 2) - 1), y, 3.0 * std::sin(psi0_m * 2)});
+                sector_m->apply(pos, pos, divBVec[0], B, B);
+                divB  = getDivBCart(pos, Vector_t<double, 3>({delta, delta, delta}));
+                curlB = getCurlBCart(pos, Vector_t<double, 3>({delta, delta, delta}));
+            }
+            double curlBMag =
+                    std::sqrt(curlB[0] * curlB[0] + curlB[1] * curlB[1] + curlB[2] * curlB[2]);
+            divB        = std::abs(divB);
+            divBVec[i]  = divB;
+            curlBVec[i] = curlBMag;
+            std::cout << i << "     " << pos << "    " << y << "    " << B << "     " << divB
+                      << "           " << curlBMag << "          " << curlB << std::endl;
+
+            if (i > 1 && i % 2 == 1) {
+                EXPECT_LT(divBVec[i], divBVec[i - 2]) << " with i " << i << std::endl;
+            }
+            if (i > 1 && i % 2 == 0) {
+                EXPECT_LT(curlBVec[i], curlBVec[i - 2]) << " with i " << i << std::endl;
+            }
+        }
+        std::cout << std::endl;
+    }
+    sector_m->setMaxOrder(10);
+}
+
+TEST_F(ScalingFFAMagnetTest, ConvergenceEndLengthTest) {
+    std::ofstream fout("/tmp/convergence_endlength.out");
+    bool passtest = true;
+    for (double endLength = 1.; endLength < 10.1; endLength += 1.) {
+        std::shared_ptr<endfieldmodel::Tanh> tanh =
+                std::make_shared<endfieldmodel::Tanh>(psi0_m, psi0_m / endLength, 20);
+        sector_m->setEndField(tanh);
+        sector_m->initialise();
+        passtest &= printLine(
+                Vector_t<double, 3>({r0_m, 0.05, 2. * psi0_m}), psi0_m / endLength * r0_m, fout,
+                1e-3);
+    }
+    EXPECT_TRUE(passtest);
+}
+
+double magnitude(Vector_t<double, 3> x) { return x[0] * x[0] + x[1] * x[1] + x[2] * x[2]; }
+
+TEST_F(ScalingFFAMagnetTest, isInsideTest) {
+    Vector_t<double, 3> pos(
+            {r0_m * (std::cos(2. * psi0_m) - 1.), 0.09, r0_m * std::sin(2. * psi0_m)});
+    sector_m->setVerticalExtent(0.1);
+    EXPECT_TRUE(sector_m->isInside(pos));
+    pos[1] = -0.09;
+    EXPECT_TRUE(sector_m->isInside(pos));
+    pos[1] = -0.11;
+    EXPECT_FALSE(sector_m->isInside(pos));
+    pos[1] = 0.11;
+    EXPECT_FALSE(sector_m->isInside(pos));
+}
+
+TEST_F(ScalingFFAMagnetTest, VerticalBoundingBoxTest) {
+    sector_m->setVerticalExtent(0.1);
+    Vector_t<double, 3> mom, E, B;
+    double t = 0;
+    Vector_t<double, 3> pos(
+            {r0_m * (std::cos(2. * psi0_m) - 1.), 0.09, r0_m * std::sin(2. * psi0_m)});
+
+    B = 0.0;
+    sector_m->apply(pos, mom, t, E, B);
+    EXPECT_NE(magnitude(B), 0.0);
+    pos[1] = 0.11;
+    B      = 0.0;
+    sector_m->apply(pos, mom, t, E, B);
+    EXPECT_EQ(magnitude(B), 0.0);
+    pos[1] = -0.11;
+    B      = 0.0;
+    sector_m->apply(pos, mom, t, E, B);
+    EXPECT_EQ(magnitude(B), 0.0);
+    pos[1] = -0.09;
+    B      = 0.0;
+    sector_m->apply(pos, mom, t, E, B);
+    EXPECT_NE(magnitude(B), 0.0);
+}
+
+TEST_F(ScalingFFAMagnetTest, RadialBoundingBoxTest) {
+    sector_m->setRMin(r0_m - 0.1);
+    Vector_t<double, 3> mom, E, B;
+    double t  = 0;
+    double r1 = r0_m - 0.09;
+    Vector_t<double, 3> pos1({r1 * std::cos(psi0_m) - r0_m, 0.0, r1 * std::sin(psi0_m)});
+    B = 0.0;
+    sector_m->apply(pos1, mom, t, E, B);
+    EXPECT_NE(magnitude(B), 0.0);
+
+    double r2 = r0_m - 0.11;
+    Vector_t<double, 3> pos2({r2 * std::cos(psi0_m) - r0_m, 0.0, r2 * std::sin(psi0_m)});
+    B = 0.0;
+    sector_m->apply(pos2, mom, t, E, B);
+    EXPECT_EQ(magnitude(B), 0.0);
+
+    sector_m->setRMax(r0_m + 0.1);
+    double r3 = r0_m + 0.09;
+    Vector_t<double, 3> pos3({r3 * std::cos(psi0_m) - r0_m, 0.0, r3 * std::sin(psi0_m)});
+    B = 0.0;
+    sector_m->apply(pos3, mom, t, E, B);
+    EXPECT_NE(magnitude(B), 0.0);
+
+    double r4 = r0_m + 0.11;
+    Vector_t<double, 3> pos4({r4 * std::cos(psi0_m) - r0_m, 0.0, r4 * std::sin(psi0_m)});
+    B = 0.0;
+    sector_m->apply(pos4, mom, t, E, B);
+    EXPECT_EQ(magnitude(B), 0.0);
+}
+
+TEST_F(ScalingFFAMagnetTest, AzimuthalBoundingBoxTest) {
+    sector_m->setAzimuthalExtent(psi0_m * 0.5);
+    sector_m->setPhiStart(psi0_m * 3.);
+    Vector_t<double, 3> mom, E, B;
+    double t        = 0;
+    double phi[]    = {2.49 * psi0_m, 2.51 * psi0_m, 3.49 * psi0_m, 3.51 * psi0_m};
+    bool inBounds[] = {false, true, true, false};
+    for (size_t i = 0; i < 4; ++i) {
+        Vector_t<double, 3> pos({r0_m * (std::cos(phi[i]) - 1), 0, r0_m * std::sin(phi[i])});
+        B = 0.0;
+        sector_m->apply(pos, mom, t, E, B);
+        EXPECT_EQ(magnitude(B) != 0.0, inBounds[i]) << i << " " << pos;
+    }
+}
+
+TEST_F(ScalingFFAMagnetTest, ParticleFieldAddsToExistingField) {
+    // ParallelTracker applies overlapping elements one after another to the same B view, so the
+    // particle kernel must add its field, and leave B unchanged where this magnet has no field.
+    const Vector_t<double, 3> existing({0.1, -0.2, 0.3});
+    const Vector_t<double, 3> inside(
+            {r0_m * (std::cos(psi0_m) - 1), 0.01, r0_m * std::sin(psi0_m)});
+    const Vector_t<double, 3> outside(  // r = 3 r0 > rMax = 2 r0
+            {r0_m * (3. * std::cos(psi0_m) - 1), 0.01, 3. * r0_m * std::sin(psi0_m)});
+    Vector_t<double, 3> expected(0.0);
+    sector_m->getFieldValue(inside, expected);
+    ASSERT_GT(magnitude(expected), 0.1);
+
+    Kokkos::View<Vector_t<double, 3>*> R("R", 2), B("B", 2);
+    auto Rhost = Kokkos::create_mirror_view(R);
+    auto Bhost = Kokkos::create_mirror_view(B);
+    Rhost(0)   = inside;
+    Rhost(1)   = outside;
+    Bhost(0)   = existing;
+    Bhost(1)   = existing;
+    Kokkos::deep_copy(R, Rhost);
+    Kokkos::deep_copy(B, Bhost);
+    ScalingFFAMagnet::getFieldValue(sector_m->getConfig(), sector_m->getEndField(), R, B);
+    Kokkos::deep_copy(Bhost, B);
+    for (size_t d = 0; d < 3; ++d) {
+        EXPECT_NEAR(Bhost(0)[d], existing[d] + expected[d], 1e-12) << d;
+        EXPECT_EQ(Bhost(1)[d], existing[d]) << d;
+    }
+}

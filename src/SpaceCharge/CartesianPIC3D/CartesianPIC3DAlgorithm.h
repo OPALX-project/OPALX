@@ -126,6 +126,7 @@ namespace opalx::spacecharge {
         RelativisticFieldComposerType relativisticFieldComposer_m;
         std::vector<BinStatsRow> binStats_m;
         bool warnedPlaneDumpParallelUnsupported_m = false;
+        bool warnedRestFrameP3MResolution_m       = false;
     };
 
 }  // namespace opalx::spacecharge

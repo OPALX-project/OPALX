@@ -17,10 +17,11 @@
  *   Z = \int_{a}^{1} 2 x^2 (3 - 2x)\,dx,
  *   \quad a = x_{\min},
  * @f]
- * where @f$s = \mathrm{asymSign}@f$ is @f$+1@f$ for @f$\mu^-@f$ and @f$-1@f$ for
- * @f$\mu^+@f$. The energy marginal @f$f(x) = 2 x^2 (3 - 2x)@f$ is the
- * polarization-independent Michel spectrum and is covered elsewhere
- * (TestMuonDecay).
+ * where @f$s = \mathrm{asymSign}@f$ is @f$+1@f$ for @f$\mu^+@f$ and @f$-1@f$ for
+ * @f$\mu^-@f$: the positron from @f$\mu^+@f$ decay goes preferentially along the muon
+ * spin, the electron from @f$\mu^-@f$ decay against it. The energy marginal
+ * @f$f(x) = 2 x^2 (3 - 2x)@f$ is the polarization-independent Michel spectrum and is
+ * covered elsewhere (TestMuonDecay).
  *
  * References:
  *  - Particle Data Group review of muon decay parameters:
@@ -30,12 +31,12 @@
  *
  * Tests in this file:
  *  - **MuonDecaySpectrumTest::MuMinusAngularSpectrumMatchesPolarization** —
- *    drives the full pipeline with @f$\mu^-@f$ (asymmetry sign @f$s = +1@f$) and
+ *    drives the full pipeline with @f$\mu^-@f$ (asymmetry sign @f$s = -1@f$) and
  *    checks the daughter @f$\cos\theta@f$ histogram against the linear analytic
  *    form @f$p(c) \propto 1 + A c@f$ with the slope @f$A@f$ predicted by the
  *    integrals above.
  *  - **MuonDecaySpectrumTest::MuPlusAngularSpectrumMatchesPolarization** —
- *    same setup with @f$\mu^+@f$ (@f$s = -1@f$), checking that the slope
+ *    same setup with @f$\mu^+@f$ (@f$s = +1@f$), checking that the slope
  *    @f$A@f$ flips sign relative to @f$\mu^-@f$ — the V-A signature.
  *
  * Writes muon_angular_spectrum_mu_minus.csv and muon_angular_spectrum_mu_plus.csv
@@ -145,7 +146,7 @@ namespace {
         }
 
         /// Set the same polarization vector on every particle in the container.
-        void setUniformPolarization(std::shared_ptr<PC_t>& pc, const std::array<float, 3>& pol) {
+        void setUniformPolarization(std::shared_ptr<PC_t>& pc, const std::array<double, 3>& pol) {
             using spin_t        = typename PC_t::spin_vector_type;
             auto Pol_host       = pc->Pol.getHostMirror();
             const std::size_t n = pc->getLocalNum();
@@ -168,7 +169,7 @@ namespace {
             muons->setM(Physics::m_mu);
             electrons->setM(Physics::m_e);
             createParticlesAtRest(muons, nMuons);
-            setUniformPolarization(muons, {0.0f, 0.0f, static_cast<float>(polMag)});
+            setUniformPolarization(muons, {0.0, 0.0, polMag});
 
             Options::seed = 20260515;
             // Timestep chosen so all muons decay within one step; we test the angular
@@ -200,7 +201,7 @@ namespace {
             }
 
             const double xMin     = Physics::MuonDecay::minElectronX();
-            const double asymSign = (parentSign < 0) ? +1.0 : -1.0;
+            const double asymSign = (parentSign > 0) ? +1.0 : -1.0;
             const double A        = asymSign * polMag * integratedAsymmetry(xMin);
 
             const auto hist = opalx::test::makeHistogram(cosSamples, -1.0, 1.0, nBins);
@@ -218,6 +219,8 @@ namespace {
                       << " mean=" << meanCos << " (analytic=" << meanRef << ") area=" << area
                       << '\n';
 
+            // mu+ decay positrons go along the spin (+z), mu- decay electrons against it.
+            EXPECT_GT(parentSign * meanCos, 0.0);
             EXPECT_LT(l1, 0.10);
             EXPECT_NEAR(meanCos, meanRef, 0.01);
             EXPECT_NEAR(area, 1.0, 0.01);

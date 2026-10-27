@@ -15,11 +15,21 @@
 #include "Elements/PlacementResolver.h"
 
 #include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/RBend.h"
+#include "AbsBeamline/ScalingFFAMagnet.h"
 #include "Algorithms/Quaternion.hpp"
 #include "BeamlineGeometry/Geometry.h"
 #include "Utilities/OpalException.h"
 
 #include <cmath>
+
+namespace {
+    double placementPathLength(const ElementBase& element) {
+        if (const auto* bend = dynamic_cast<const RBend*>(&element))
+            return bend->getPlacementPathLength();
+        return element.getGeometry().getArcLength();
+    }
+}  // namespace
 
 /**
  * @brief Give every element its global -> local (lab -> entrance) transform.
@@ -96,9 +106,15 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
                 continue;  // already placed by Phase 1 (Mode A)
             }
 
-            // This pass only frames bends; every other element is placed in Phase 3.
-            if (element->getType() != ElementType::SBEND && element->getType() != ElementType::RBEND
-                && element->getType() != ElementType::RBEND3D) {
+            if (element->getType() == ElementType::SCALINGFFAMAGNET) {
+                auto ffa = std::dynamic_pointer_cast<ScalingFFAMagnet>(element);
+                resolveFFAElemEdge(ffa, endPriorPathLength, currentCoordTrafo);
+                continue;  // ffa element is now placed
+            }
+
+            // This pass only frames bends (any element whose geometry turns the orbit); every
+            // other element is placed in Phase 3.
+            if (!element->getGeometry().isBend()) {
                 continue;
             }
 
@@ -107,7 +123,7 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
             Vector_t<double, 3> beginThis3D(0, 0, beginThisPathLength - endPriorPathLength);
             double thisLength = element->getGeometry().getChordLength();
             double bendAngle  = element->getGeometry().getBendAngle();
-            double arcLength  = element->getGeometry().getArcLength();
+            double arcLength  = placementPathLength(*element);
 
             // Roll about z: tilts the bend plane (e.g. a vertical bend rolls the axis out of x-z).
             double rotationAngleAboutZ = element->getRotationAboutZ();
@@ -144,13 +160,18 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
             //  - RBEND/RBEND3D: a straight box, so its entrance face frame is the box frame — +z
             //    along the chord, half the bend angle off the incoming orbit tangent. It does NOT
             //    coincide with the orbit tangent. RBend::apply gates on the box z, uniform dipole.
-            // E1/E2 pole-face rotations are rejected at parse time, so there is no face tilt to
-            // add. Only this element's own frame is set here; the running frame handed to the next
-            // element (currentCoordTrafo) is advanced separately below.
-            const bool isRectangular = element->getType() == ElementType::RBEND
-                                       || element->getType() == ElementType::RBEND3D;
+            // An RBEND with explicit pole-face angles uses E1 for its face normal; its chord length
+            // already accounts for this rotation. Only this element's own frame is set here; the
+            // running frame handed to the next element (currentCoordTrafo) is advanced separately
+            // below.
+            const bool isRectangular   = element->getGeometry().isRectangularBend();
+            const double entranceAngle = element->getGeometry().hasPoleFaceAngles()
+                                                 ? element->getGeometry().getEntranceAngle()
+                                                 : 0.5 * bendAngle;
             const Quaternion_t entryFrameRotation =
-                    isRectangular ? halfRotationAboutAxis
+                    isRectangular ? Quaternion_t(
+                                            cos(0.5 * entranceAngle),
+                                            sin(0.5 * entranceAngle) * effectiveRotationAxis)
                                   : Quaternion_t(1.0, Vector_t<double, 3>(0, 0, 0));
 
             // Map prev-exit -> this entrance frame, and prev-exit -> this exit frame.
@@ -184,13 +205,11 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
         Vector_t<double, 3> beginThis3D(0, 0, beginThisPathLength - endPriorPathLength);
 
         Vector_t<double, 3> endThis3D;
-        if (element->getType() == ElementType::SBEND || element->getType() == ElementType::RBEND
-            || element->getType() == ElementType::RBEND3D) {
+        if (element->getGeometry().isBend()) {
             // Bend: its own frame is already set (Phase 2); here we only advance the running frame
             // across it so the following elements are placed correctly.
-            double thisLength = element->getGeometry().getChordLength();
-            double bendAngle  = element->getGeometry().getBendAngle();
-
+            double thisLength          = element->getGeometry().getChordLength();
+            double bendAngle           = element->getGeometry().getBendAngle();
             double rotationAngleAboutZ = element->getRotationAboutZ();
             Quaternion_t rotationAboutZ(
                     cos(0.5 * rotationAngleAboutZ),
@@ -205,7 +224,7 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
             Quaternion halfRotationAboutAxis(
                     cos(0.25 * bendAngle), sin(0.25 * bendAngle) * effectiveRotationAxis);
 
-            const double arcLength = element->getGeometry().getArcLength();
+            const double arcLength = placementPathLength(*element);
 
             // Exit point via the chord, then advance the running frame and path length (by arc).
             endThis3D =
@@ -229,4 +248,43 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
 
         element->fixPosition();
     }
+}
+
+void PlacementResolver::resolveFFAElemEdge(
+        std::shared_ptr<ScalingFFAMagnet> ffa, double& endPriorPathLength,
+        CoordinateSystemTrafo& currentCoordTrafo) {
+    if (!ffa) {
+        throw OpalException(
+                "FFA was not found during placement", "PlacementResolver::resolveFFAElemEdge");
+    }
+    double sPosition = ffa->getElementPosition();
+    double r0        = ffa->getR0();
+    double length    = ffa->getGeometry().getArcLength();
+    double phiStart  = sPosition / r0;
+    double phiEnd    = (sPosition + length) / r0;
+    ffa->setPhiStart(length / 2.0 / r0);
+
+    // The FFA is placed with respect to FFA centre
+    // if r0 is positive we bend to the left/anticlockwise (negative x direction)
+    // if r0 is negative we bend to the right/clockwise = positive x direction
+    ippl::Vector<double, 3> startPosition = {r0 * cos(phiStart) - r0, 0.0, r0 * sin(phiStart)};
+    matrix3x3_t rotation;
+    rotation(0, 0) = cos(phiStart);
+    rotation(2, 0) = -sin(phiStart);
+    rotation(1, 1) = 1.0;
+    rotation(0, 2) = sin(phiStart);
+    rotation(2, 2) = cos(phiStart);
+    ffa->setCSTrafoGlobal2Local(CoordinateSystemTrafo(startPosition, (Quaternion)rotation));
+
+    // Update the end position
+    ippl::Vector<double, 3> endPosition = {r0 * cos(phiEnd) - r0, 0.0, r0 * sin(phiEnd)};
+    matrix3x3_t rotationOut;
+    rotationOut(0, 0) = cos(phiEnd);
+    rotationOut(2, 0) = -sin(phiEnd);
+    rotationOut(1, 1) = 1.0;
+    rotationOut(0, 2) = sin(phiEnd);
+    rotationOut(2, 2) = cos(phiEnd);
+
+    endPriorPathLength = sPosition + length;
+    currentCoordTrafo  = CoordinateSystemTrafo(startPosition, (Quaternion)rotationOut);
 }

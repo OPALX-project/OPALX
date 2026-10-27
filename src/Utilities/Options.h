@@ -198,6 +198,10 @@ namespace Options {
     /// exceeds this threshold, load balancing will be triggered. Default is 0.05 (5%). This
     /// threshold is only tested every `repartFreq` steps.
     extern double loadBalancingThreshold;
+
+    /// Share of the ORB weight that follows the P3M pair count instead of the particle count, in
+    /// [0, 1]. Default is 0 (particle counts only).
+    extern double loadBalancingPairWeight;
 }  // namespace Options
 
 #endif  // OPAL_Options_HH

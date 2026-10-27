@@ -25,56 +25,80 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "AbsBeamline/ScalingFFAMagnet.h"
 #include <cmath>
+
 #include "AbsBeamline/BeamlineVisitor.h"
+#include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
+#include "AbsBeamline/ScalingFFAMagnet.h"
 #include "PartBunch/PartBunch.h"
-#include "Physics/Units.h"
+#include "Utilities/GeneralOpalException.h"
+
+extern Inform* gmsg;
+
 ScalingFFAMagnet::ScalingFFAMagnet(const std::string& name)
-    : ElementBase(name), planarArcGeometry_m(Geometry::makeSBend(1., 1.)), endField_m(nullptr) {}
+    : ElementBase(name), planarArcGeometry_m(Geometry::makeSBend(1., 1.)) {}
 
 ScalingFFAMagnet::ScalingFFAMagnet(const ScalingFFAMagnet& right)
     : ElementBase(right),
       planarArcGeometry_m(right.planarArcGeometry_m),
-      maxOrder_m(right.maxOrder_m),
-      tanDelta_m(right.tanDelta_m),
-      k_m(right.k_m),
-      Bz_m(right.Bz_m),
-      r0_m(right.r0_m),
-      rMin_m(right.rMin_m),
-      rMax_m(right.rMax_m),
-      phiStart_m(right.phiStart_m),
-      phiEnd_m(right.phiEnd_m),
-      azimuthalExtent_m(right.azimuthalExtent_m),
-      verticalExtent_m(right.verticalExtent_m),
-      centre_m(right.centre_m),
-      endField_m(nullptr),
+      config_m(right.config_m),
+      efm_m(right.efm_m),
       endFieldName_m(right.endFieldName_m),
-      dfCoefficients_m(right.dfCoefficients_m) {
-    endField_m     = right.endField_m->clone();
+      efmInitialised_m(right.efmInitialised_m) {
     RefPartBunch_m = right.RefPartBunch_m;
-    Bz_m           = right.Bz_m;
-    r0_m           = right.r0_m;
 }
 
-ScalingFFAMagnet::~ScalingFFAMagnet() { delete endField_m; }
-
 ScalingFFAMagnet* ScalingFFAMagnet::clone() const {
-    ScalingFFAMagnet* magnet = new ScalingFFAMagnet(*this);
-    magnet->initialise();
+    auto* magnet = new ScalingFFAMagnet(*this);
     return magnet;
 }
 
-void ScalingFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {}
+void ScalingFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+    // Kernel launch over all particles
+    getFieldValue(config_m, efm_m, pc->R.getView(), pc->B.getView());
+}
 
-void ScalingFFAMagnet::initialise() { calculateDfCoefficients(); }
+void ScalingFFAMagnet::getCylindricalCoordinates(
+        const Vector_t<double, 3>& R, Vector_t<double, 5>& Rcyl) const {
+    getCylindricalCoordinates(config_m, R, Rcyl);
+}
+
+void ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const {
+    Kokkos::View<Vector_t<double, 3>*> Rdevice("Rtmp", 1);
+    Kokkos::View<Vector_t<double, 3>*> Bdevice("Btmp", 1);
+    auto Rhost = Kokkos::create_mirror_view(Rdevice);
+    auto Bhost = Kokkos::create_mirror_view(Bdevice);
+    Rhost(0)   = R;
+    Bhost(0)   = Vector_t<double, 3>(0.0);  // the kernel accumulates; return this magnet only
+    Kokkos::deep_copy(Rdevice, Rhost);
+    Kokkos::deep_copy(Bdevice, Bhost);
+    getFieldValue(config_m, efm_m, Rdevice, Bdevice);
+    Kokkos::deep_copy(Bhost, Bdevice);
+    B = Bhost(0);
+}
+
+void ScalingFFAMagnet::initialise() {
+    calculateDfCoefficients();
+    setupEndField();
+    if (efm_m) {
+        efm_m->setMaximumDerivative(config_m.maxOrder_m);
+    }
+}
 
 void ScalingFFAMagnet::initialise(PartBunch_t* bunch) {
     RefPartBunch_m = bunch;
     initialise();
 }
 
-void ScalingFFAMagnet::finalise() { RefPartBunch_m = nullptr; }
+void ScalingFFAMagnet::finalise() {
+    efm_m->finalise();
+    RefPartBunch_m = nullptr;
+}
+
+void ScalingFFAMagnet::setEndField(std::shared_ptr<endfieldmodel::EndFieldModel> endField) {
+    efm_m            = endField;
+    efmInitialised_m = false;
+}
 
 Geometry& ScalingFFAMagnet::getGeometry() { return planarArcGeometry_m; }
 
@@ -82,70 +106,25 @@ const Geometry& ScalingFFAMagnet::getGeometry() const { return planarArcGeometry
 
 void ScalingFFAMagnet::accept(BeamlineVisitor& visitor) const {
     visitor.visitScalingFFAMagnet(*this);
+    setupEndField();
 }
 
-bool ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const {
-    Vector_t<double, 3> pos = R - centre_m;
-    double r                = std::sqrt(pos[0] * pos[0] + pos[2] * pos[2]);
-    double phi              = std::atan2(
-            pos[2], pos[0]);  // angle between y-axis and position vector in anticlockwise direction
-    Vector_t<double, 3> posCyl({r, pos[1], phi});
-    Vector_t<double, 3> bCyl({0., 0., 0.});  // br bz bphi
-    bool outOfBounds = getFieldValueCylindrical(posCyl, bCyl);
-    // this is cartesian coordinates
-    B[1] += bCyl[1];
-    B[0] += bCyl[0] * std::cos(phi) - bCyl[2] * std::sin(phi);
-    B[2] += bCyl[0] * std::sin(phi) + bCyl[2] * std::cos(phi);
-    return outOfBounds;
-}
-
-bool ScalingFFAMagnet::getFieldValueCylindrical(
-        const Vector_t<double, 3>& pos, Vector_t<double, 3>& B) const {
-    double r   = pos[0];
-    double z   = pos[1];
-    double phi = pos[2];
-    if (r < rMin_m || r > rMax_m) {
-        return true;
+bool ScalingFFAMagnet::isInside(const Vector_t<double, 3>& rCart) const {
+    Vector_t<double, 5> rCyl;
+    getCylindricalCoordinates(rCart, rCyl);
+    double r         = rCyl[0];
+    double z         = rCyl[1];
+    double phiSpiral = rCyl[4];
+    if (r < config_m.rMin_m || r > config_m.rMax_m) {
+        return false;
     }
-
-    double normRadius = r / r0_m;
-    double g          = tanDelta_m * std::log(normRadius);
-    double phiSpiral  = phi - g - phiStart_m;
-    double h          = std::pow(normRadius, k_m) * Bz_m;
-    if (phiSpiral < -azimuthalExtent_m || phiSpiral > azimuthalExtent_m) {
-        return true;
+    if (phiSpiral < -config_m.azimuthalExtent_m || phiSpiral > config_m.azimuthalExtent_m) {
+        return false;
     }
-    if (z < -verticalExtent_m || z > verticalExtent_m) {
-        return true;
+    if (z < -config_m.verticalExtent_m || z > config_m.verticalExtent_m) {
+        return false;
     }
-    // std::cerr << "ScalingFFAMagnet::getFieldValueCylindrical " << phiSpiral << " "
-    //           << endField_m->function(phiSpiral, 0) << " " << endField_m->getEndLength()
-    //           << " " << endField_m->getCentreLength()  << std::endl;
-    std::vector<double> fringeDerivatives(maxOrder_m + 1, 0.);
-    for (size_t i = 0; i < fringeDerivatives.size(); ++i) {
-        fringeDerivatives[i] = endField_m->function(phiSpiral, i);  // d^i_phi f
-    }
-    for (size_t n = 0; n < dfCoefficients_m.size(); n += 2) {
-        double f2n = 0;
-        Vector_t<double, 3> deltaB;
-        for (size_t i = 0; i < dfCoefficients_m[n].size(); ++i) {
-            f2n += dfCoefficients_m[n][i] * fringeDerivatives[i];
-        }
-        deltaB[1] = f2n * h * std::pow(z / r, n);  // Bz = sum(f_2n * h * (z/r)^2n
-        if (maxOrder_m >= n + 1) {
-            double f2nplus1 = 0;
-            for (size_t i = 0;
-                 i < dfCoefficients_m[n + 1].size() && n + 1 < dfCoefficients_m.size(); ++i) {
-                f2nplus1 += dfCoefficients_m[n + 1][i] * fringeDerivatives[i];
-            }
-            deltaB[0] = (f2n * (k_m - n) / (n + 1) - tanDelta_m * f2nplus1) * h
-                        * std::pow(z / r, n + 1);  // Br
-            deltaB[2] =
-                    f2nplus1 * h * std::pow(z / r, n + 1);  // Bphi = sum(f_2n+1 * h * (z/r)^2n+1
-        }
-        B += deltaB;
-    }
-    return false;
+    return true;
 }
 
 void ScalingFFAMagnet::apply(
@@ -155,62 +134,128 @@ void ScalingFFAMagnet::apply(
 }
 
 void ScalingFFAMagnet::calculateDfCoefficients() {
-    dfCoefficients_m    = std::vector<std::vector<double> >(maxOrder_m + 1);
-    dfCoefficients_m[0] = std::vector<double>(1, 1.);  // f_0 = 1.*0th derivative
-    for (size_t n = 0; n < maxOrder_m; n += 2) {       // n indexes the power in z
-        dfCoefficients_m[n + 1] = std::vector<double>(dfCoefficients_m[n].size() + 1, 0);
-        for (size_t i = 0; i < dfCoefficients_m[n].size(); ++i) {  // i indexes the derivative
-            dfCoefficients_m[n + 1][i + 1] = dfCoefficients_m[n][i] / (n + 1);
+    std::vector<std::vector<double> > dfVec =
+            std::vector<std::vector<double> >(config_m.maxOrder_m + 1);
+    dfVec[0] = std::vector<double>(1, 1.);                 // f_0 = 1.*0th derivative
+    for (size_t n = 0; n < config_m.maxOrder_m; n += 2) {  // n indexes the power in z
+        dfVec[n + 1] = std::vector<double>(dfVec[n].size() + 1, 0);
+        for (size_t i = 0; i < dfVec[n].size(); ++i) {  // i indexes the derivative
+            dfVec[n + 1][i + 1] = dfVec[n][i] / (n + 1);
         }
-        if (n + 1 == maxOrder_m) {
+        if (n + 1 == config_m.maxOrder_m) {
             break;
         }
-        dfCoefficients_m[n + 2] = std::vector<double>(dfCoefficients_m[n].size() + 2, 0);
-        for (size_t i = 0; i < dfCoefficients_m[n].size(); ++i) {  // i indexes the derivative
-            dfCoefficients_m[n + 2][i] =
-                    -(k_m - n) * (k_m - n) / (n + 1) * dfCoefficients_m[n][i] / (n + 2);
+        dfVec[n + 2] = std::vector<double>(dfVec[n].size() + 2, 0);
+        for (size_t i = 0; i < dfVec[n].size(); ++i) {  // i indexes the derivative
+            dfVec[n + 2][i] =
+                    -(config_m.k_m - n) * (config_m.k_m - n) / (n + 1) * dfVec[n][i] / (n + 2);
         }
-        for (size_t i = 0; i < dfCoefficients_m[n + 1].size(); ++i) {  // i indexes the derivative
-            dfCoefficients_m[n + 2][i] +=
-                    2 * (k_m - n) * tanDelta_m * dfCoefficients_m[n + 1][i] / (n + 2);
-            dfCoefficients_m[n + 2][i + 1] -=
-                    (1 + tanDelta_m * tanDelta_m) * dfCoefficients_m[n + 1][i] / (n + 2);
+        for (size_t i = 0; i < dfVec[n + 1].size(); ++i) {  // i indexes the derivative
+            dfVec[n + 2][i] +=
+                    2 * (config_m.k_m - n) * config_m.tanDelta_m * dfVec[n + 1][i] / (n + 2);
+            dfVec[n + 2][i + 1] -=
+                    (1 + config_m.tanDelta_m * config_m.tanDelta_m) * dfVec[n + 1][i] / (n + 2);
+        }
+    }
+    for (size_t i = 0; i < ScalingFFAMagnetConfig::CoefficientCount; ++i) {
+        config_m.dfCoefficients_m[i] = 0.;
+    }
+    for (size_t n = 0; n < dfVec.size(); ++n) {
+        for (size_t i = 0; i < dfVec[n].size(); ++i) {
+            config_m.dfCoefficients_m[n * (ScalingFFAMagnetConfig::MaxOrder + 1) + i] = dfVec[n][i];
         }
     }
 }
 
-void ScalingFFAMagnet::setEndField(endfieldmodel::EndFieldModel* endField) {
-    if (endField_m != nullptr) {
-        delete endField_m;
+void ScalingFFAMagnet::setMaxOrder(size_t maxOrder) {
+    if (maxOrder > ScalingFFAMagnetConfig::MaxOrder) {
+        throw GeneralOpalException(
+                "ScalingFFAMagnet::setMaxOrder",
+                "GPU-compatible field expansions are limited to order 20");
     }
-    endField_m = endField;
+    config_m.maxOrder_m = maxOrder;
 }
-
-extern Inform* gmsg;
 
 // Note this is tested in OpalScalingFFAMagnetTest.*
-void ScalingFFAMagnet::setupEndField() {
-    if (endFieldName_m == "") {  // no end field is defined
+void ScalingFFAMagnet::setupEndField() const {
+    if (efmInitialised_m) {
         return;
     }
-    std::shared_ptr<endfieldmodel::EndFieldModel> efm =
-            endfieldmodel::EndFieldModel::getEndFieldModel(endFieldName_m);
-    endfieldmodel::EndFieldModel* newEFM = efm->clone();
-    newEFM->rescale(Units::m2mm * 1.0 / getR0());
-    setEndField(newEFM);
+    if (endFieldName_m == "") {
+        if (!efm_m) {
+            throw GeneralOpalException(
+                    "ScalingFFAMagnet::setupEndField",
+                    "EndFieldName is blank but EndFieldModel not set");
+        }
+        return;
+    }
+    auto efmMan = endfieldmodel::EndFieldModelManager::getEFMManager();
+    auto efm    = efmMan->getEndFieldModel(endFieldName_m);
+    efm_m       = std::shared_ptr<endfieldmodel::EndFieldModel>(efm->clone());
+    efm_m->rescale(1.0 / std::abs(getR0()));  // efm_m is now in radians
+    efm_m->initialise();
+    config_m.phiStart_m = config_m.phiStart_m;
+    if (config_m.azimuthalExtent_m < 0.0) {
+        config_m.azimuthalExtent_m = efm_m->getEndLength() * 5. + efm_m->getCentreLength() * 0.5;
+    }
+    double sLength      = efm_m->getCentreLength() * config_m.r0_m;
+    planarArcGeometry_m = Geometry::makeSBend(sLength, 1 / config_m.r0_m);
+    efmInitialised_m    = true;
+}
 
-    double defaultExtent = (newEFM->getEndLength() * 4. + newEFM->getCentreLength());
-    if (phiStart_m < 0.0) {
-        setPhiStart(defaultExtent / 2.0);
-    } else {
-        setPhiStart(getPhiStart() + newEFM->getCentreLength() * 0.5);
+void ScalingFFAMagnet::getFieldExtent(double& zBegin, double& zEnd) const {
+    setupEndField();
+    getZMin(zBegin);
+    getZMax(zEnd);
+}
+
+void ScalingFFAMagnet::getZMin(double& zBegin) const {
+    double beginPhi = -config_m.azimuthalExtent_m + efm_m->getCentreLength() / 2.0;
+    if (beginPhi < -M_PI / 2) {
+        beginPhi = -M_PI / 2;
     }
-    if (phiEnd_m < 0.0) {
-        setPhiEnd(defaultExtent);
+    Vector_t<double, 3> cylBegin = {config_m.rMax_m, 0.0, beginPhi};
+    Vector_t<double, 3> cartBegin;
+    getCartesianCoordinates(cylBegin, cartBegin);
+    zBegin = cartBegin[2];
+}
+
+void ScalingFFAMagnet::getZMax(double& zEnd) const {
+    double endPhi = config_m.azimuthalExtent_m + efm_m->getCentreLength() / 2.0;
+    if (endPhi < -M_PI / 2) {
+        endPhi = M_PI / 2;
     }
-    if (azimuthalExtent_m < 0.0) {
-        setAzimuthalExtent(newEFM->getEndLength() * 5. + newEFM->getCentreLength() / 2.0);
+    Vector_t<double, 3> cylEnd = {config_m.rMax_m, 0.0, endPhi};
+    Vector_t<double, 3> cartEnd;
+    getCartesianCoordinates(cylEnd, cartEnd);
+    zEnd = cartEnd[2];
+}
+
+void ScalingFFAMagnet::getCartesianCoordinates(
+        const Vector_t<double, 3>& Rcyl, Vector_t<double, 3>& Rcart) const {
+    Rcart[0] = Rcyl[0] * std::cos(Rcyl[2]) - config_m.r0_m;
+    Rcart[1] = Rcyl[1];
+    Rcart[2] = Rcyl[0] * std::sin(Rcyl[2]);
+}
+
+std::vector<std::vector<double> > ScalingFFAMagnet::getDfCoefficients() const {
+    std::vector<std::vector<double> > dfCoefficients(config_m.MaxOrder + 1);
+    for (size_t n = 0; n < config_m.MaxOrder + 1; ++n) {
+        dfCoefficients[n] = std::vector<double>(config_m.MaxOrder + 1);
+        for (size_t i = 0; i < config_m.MaxOrder + 1; ++i) {
+            dfCoefficients[n][i] =
+                    config_m.dfCoefficients_m[n * (ScalingFFAMagnetConfig::MaxOrder + 1) + i];
+        }
     }
-    planarArcGeometry_m.setElementLength(r0_m * phiEnd_m);  // length = phi r
-    planarArcGeometry_m.setCurvature(1. / r0_m);
+    return dfCoefficients;
+}
+
+void ScalingFFAMagnet::goOnline(const double& kineticEnergy) {
+    ElementBase::goOnline(kineticEnergy);
+    initialise();
+}
+
+void ScalingFFAMagnet::goOffline() {
+    ElementBase::goOffline();
+    finalise();
 }

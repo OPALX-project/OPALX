@@ -34,6 +34,33 @@ namespace opalx::spacecharge {
     static_assert(std::is_trivially_copyable_v<FieldCompositionPolicy>);
 
     /**
+     * @brief Converts a rest-frame electric field to lab-frame E and B for one boost.
+     *
+     * The rest frame moves with @c velocity in Cartesian solve axes. The electric field
+     * perpendicular to it scales with gamma, the parallel one is unchanged, and
+     * B = sign * gamma / c^2 * v x E'.
+     */
+    struct LorentzBoost final {
+        using Vector = ippl::Vector<double, 3>;
+
+        Vector velocity{0.0};
+        Vector velocityUnit{0.0};
+        double gamma          = 1.0;
+        double gammaMinusOne  = 0.0;
+        double magneticFactor = 0.0;
+
+        [[nodiscard]] static LorentzBoost from(const FieldCompositionPolicy& policy);
+
+        KOKKOS_INLINE_FUNCTION void toLab(
+                const Vector& electricRest, Vector& electricLab, Vector& magneticLab) const {
+            const double electricDotVelocityUnit = electricRest.dot(velocityUnit);
+            electricLab =
+                    gamma * electricRest - gammaMinusOne * electricDotVelocityUnit * velocityUnit;
+            magneticLab = magneticFactor * cross(velocity, electricRest);
+        }
+    };
+
+    /**
      * @brief Converts and accumulates backend fields in Cartesian solve axes, then gathers them.
      *
      * Fields and particle data are borrowed; persistent scratch lives in

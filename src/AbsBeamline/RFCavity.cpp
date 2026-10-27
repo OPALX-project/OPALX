@@ -12,6 +12,7 @@
 #include "AbsBeamline/ElementBase.h"
 #include "Fields/Astra1DDynamic.h"
 #include "Fields/FM2DDynamic.h"
+#include "Fields/FM3DDynamic.h"
 #include "Fields/Fieldmap.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
@@ -32,6 +33,7 @@ extern Inform* gmsg;
 const BiMap<CavityType, std::string> RFCavity::bmCavityTypeString_s = []() {
     BiMap<CavityType, std::string> bimap;
     bimap.insert(CavityType::SW, "STANDING");
+    bimap.insert(CavityType::IDEAL, "IDEAL");
     bimap.insert(CavityType::SGSW, "SINGLEGAP");
     return bimap;
 }();
@@ -142,15 +144,34 @@ void RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     const double electricScale = scale * cosphi;
     const double magneticScale = -scale * sinphi;
 
+    if (isIdeal()) {
+        const auto R            = pc->R.getView();
+        const auto E            = pc->E.getView();
+        const auto length       = getGeometry().getElementLength();
+        const auto apertureType = aperture_m.first;
+        const auto ax           = aperture_m.second[0];
+        const auto ay           = aperture_m.second[1];
+        const double ez         = electricScale * Units::MVpm2Vpm;
+        Kokkos::parallel_for(
+                "RFCavity::ideal", pc->getLocalNum(), KOKKOS_LAMBDA(size_t i) {
+                    if (R(i)[2] >= 0.0 && R(i)[2] < length
+                        && ApertureHelper::isInsideAperture(R(i)[0], R(i)[1], apertureType, ax, ay))
+                        E(i)[2] += ez;
+                });
+        return;
+    }
+
     if (auto* dynamicFieldmap = dynamic_cast<FM2DDynamic*>(fieldmap_m)) {
         dynamicFieldmap->applyRFField(pc, electricScale, magneticScale, startField, endField);
+    } else if (auto* dynamic3DFieldmap = dynamic_cast<FM3DDynamic*>(fieldmap_m)) {
+        dynamic3DFieldmap->applyRFField(pc, electricScale, magneticScale, startField, endField);
     } else if (auto* astraFieldmap = dynamic_cast<Astra1DDynamic*>(fieldmap_m)) {
         astraFieldmap->applyRFField(pc, electricScale, magneticScale, startField, endField);
     } else {
         throw GeneralOpalException(
                 "RFCavity::apply",
-                "RFCavity particle application currently requires an FM2DDynamic or Astra1DDynamic "
-                "field map.");
+                "RFCavity particle application currently requires an FM2DDynamic, FM3DDynamic or "
+                "Astra1DDynamic field map.");
     }
 }
 
@@ -158,6 +179,12 @@ void RFCavity::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     if (isCyclotronGap()) return;
+    if (isIdeal()) {
+        if (isInside(R))
+            E[2] += (scale_m + scaleError_m) * Units::MVpm2Vpm
+                    * std::cos(frequency_m * t + phase_m + phaseError_m);
+        return;
+    }
     if (R(2) >= startField_m && R(2) < endField_m) {
         Vector_t<double, 3> tmpE({0.0, 0.0, 0.0}), tmpB({0.0, 0.0, 0.0});
 
@@ -173,6 +200,13 @@ bool RFCavity::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     if (isCyclotronGap()) return false;
+    if (isIdeal()) {
+        if (R[2] < 0.0 || R[2] >= getGeometry().getElementLength()) return false;
+        if (!ApertureHelper::isInsideAperture(R, aperture_m)) return true;
+        // Reference tracking deliberately excludes DVOLT and DLAG, as for mapped cavities.
+        E[2] += scale_m * Units::MVpm2Vpm * std::cos(frequency_m * t + phase_m);
+        return false;
+    }
     if (R(2) >= startField_m && R(2) < endField_m) {
         Vector_t<double, 3> tmpE({0.0, 0.0, 0.0}), tmpB({0.0, 0.0, 0.0});
 
@@ -185,7 +219,32 @@ bool RFCavity::applyToReferenceParticle(
     return false;
 }
 
+void RFCavity::validateIdeal() const {
+    if (!isIdeal()) return;
+    const double length = getGeometry().getElementLength();
+    if (!std::isfinite(length) || length <= 0.0)
+        throw GeneralOpalException("RFCavity::validateIdeal", "IDEAL requires finite L > 0 [m].");
+    if (!filename_m.empty())
+        throw GeneralOpalException("RFCavity::validateIdeal", "IDEAL does not accept FMAPFN.");
+    if (!phaseName_m.empty() || !amplitudeName_m.empty() || !frequencyName_m.empty())
+        throw GeneralOpalException(
+                "RFCavity::validateIdeal",
+                "IDEAL uses static RF parameters; use VARIABLE_RF_CAVITY for time dependence.");
+    if (!std::isfinite(scale_m) || !std::isfinite(scaleError_m) || !std::isfinite(phase_m)
+        || !std::isfinite(phaseError_m) || !std::isfinite(frequency_m) || frequency_m < 0.0)
+        throw GeneralOpalException(
+                "RFCavity::validateIdeal", "IDEAL requires finite RF parameters and FREQ >= 0.");
+}
+
 void RFCavity::initialise(PartBunch_t* bunch) {
+    if (isIdeal()) {
+        validateIdeal();
+        RefPartBunch_m = bunch;
+        fieldmap_m     = nullptr;
+        startField_m   = 0.0;
+        endField_m     = getGeometry().getElementLength();
+        return;
+    }
     if (isCyclotronGap()) {
         RefPartBunch_m = bunch;
         return;
@@ -269,7 +328,7 @@ void RFCavity::initialise(
 void RFCavity::finalise() {}
 
 void RFCavity::goOnline(const double&) {
-    if (isCyclotronGap()) {
+    if (isCyclotronGap() || isIdeal()) {
         online_m = true;
         return;
     }
@@ -279,7 +338,7 @@ void RFCavity::goOnline(const double&) {
 }
 
 void RFCavity::goOffline() {
-    if (isCyclotronGap()) {
+    if (isCyclotronGap() || isIdeal()) {
         online_m = false;
         return;
     }
@@ -487,8 +546,8 @@ double RFCavity::spline(double z, double* za) {
 }
 
 void RFCavity::getFieldExtent(double& zBegin, double& zEnd) const {
-    zBegin = startField_m;
-    zEnd   = endField_m;
+    zBegin = isIdeal() ? 0.0 : startField_m;
+    zEnd   = isIdeal() ? getGeometry().getElementLength() : endField_m;
 }
 
 ElementType RFCavity::getType() const { return ElementType::RFCAVITY; }
@@ -536,6 +595,7 @@ double RFCavity::getAutoPhaseEstimateFallback(double E0, double t0, double q, do
 
 double RFCavity::getAutoPhaseEstimate(
         const double& E0, const double& t0, const double& q, const double& mass) {
+    if (isIdeal()) return getAutoPhaseEstimateFallback(E0, t0, q, mass);
     std::vector<double> t, E, t2, E2;
     std::vector<double> F;
     std::vector<std::pair<double, double> > G;
@@ -720,6 +780,9 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(
 
 bool RFCavity::isInside(const Vector_t<double, 3>& r) const {
     if (isCyclotronGap()) return false;
+    if (isIdeal())
+        return r[2] >= 0.0 && r[2] < getGeometry().getElementLength()
+               && ApertureHelper::isInsideAperture(r, aperture_m);
     if (fieldmap_m != nullptr && ApertureHelper::isInsideAperture(r, aperture_m)) {
         return fieldmap_m->isInside(r);
     }

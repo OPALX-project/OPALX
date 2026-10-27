@@ -107,6 +107,7 @@ namespace {
         QM_MODE,
         AGGRESSIVE_STATE_SYNC,
         LOADBALANCINGTHRESHOLD,
+        LOADBALANCINGPAIRWEIGHT,
         SIZE
     };
 }  // namespace
@@ -417,6 +418,13 @@ Option::Option()
             "(5%). This threshold is only tested every `repartFreq` steps.",
             loadBalancingThreshold);
 
+    itsAttr[LOADBALANCINGPAIRWEIGHT] = Attributes::makeReal(
+            "LOADBALANCINGPAIRWEIGHT",
+            "Share of the ORB load-balancing weight that follows the P3M particle-particle pair "
+            "count; the rest follows the particle count. 0 balances particle counts only, 1 pair "
+            "counts only. Values above 0 require the P3M field solver. Default is 0.",
+            loadBalancingPairWeight);
+
     registerOwnership(AttributeHandler::STATEMENT);
 
     FileStream::setEcho(echo);
@@ -478,6 +486,7 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
             itsAttr[QM_MODE], useQMAttributes ? std::string("ATTRIBUTES") : std::string("SINGLE"));
     Attributes::setBool(itsAttr[AGGRESSIVE_STATE_SYNC], aggressiveStateSync);
     Attributes::setReal(itsAttr[LOADBALANCINGTHRESHOLD], loadBalancingThreshold);
+    Attributes::setReal(itsAttr[LOADBALANCINGPAIRWEIGHT], loadBalancingPairWeight);
 }
 
 Option::~Option() {}
@@ -552,6 +561,14 @@ void Option::execute() {
                 "Option::execute",
                 "LOADBALANCINGTHRESHOLD must be in the range [0, 1]. Current value: "
                         + std::to_string(loadBalancingThreshold));
+    }
+
+    loadBalancingPairWeight = Attributes::getReal(itsAttr[LOADBALANCINGPAIRWEIGHT]);
+    if (!(loadBalancingPairWeight >= 0.0 && loadBalancingPairWeight <= 1.0)) {
+        throw OpalException(
+                "Option::execute",
+                "LOADBALANCINGPAIRWEIGHT must be in the range [0, 1]. Current value: "
+                        + std::to_string(loadBalancingPairWeight));
     }
 
     /// note: rangen is used only for the random number generator in the OPAL language

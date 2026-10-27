@@ -9,6 +9,7 @@
 #include "Structure/DataSink.h"
 #include "Utilities/OpalException.h"
 
+#include <algorithm>
 #include <iomanip>
 #include <optional>
 #include <string>
@@ -70,7 +71,7 @@ namespace opalx::spacecharge {
         poissonSolver_m = makePoissonSolver(
                 makePoissonSolverConfig(config_m), makePoissonFieldBinding(*fieldStorage_m));
         if (config_m.backend == PoissonSolverType::P3M) {
-            shortRangeInteraction_m.emplace(config.p3mCutoff);
+            shortRangeInteraction_m.emplace();
         }
         // Plan the backend now; runtime diagnostic numbering begins with the first physical solve.
         poissonSolver_m->warmup();
@@ -298,6 +299,13 @@ namespace opalx::spacecharge {
 
         relativisticFieldComposer_m.gatherAccumulated(
                 particleMeshTransfer_m, primary_m->E, primary_m->B, primary_m->R, *fieldStorage_m);
+        // Add particle fields after the final gather so replacement gathering cannot erase them.
+        // The particle stage uses each source's own velocity instead of the bin rest frames and
+        // runs once for all bins. Image charges receive no short-range correction, as in the
+        // whole-bunch solve.
+        if (shortRangeInteraction_m.has_value()) {
+            P3MShortRangeInteraction::addMovingSourceField(*primary_m);
+        }
         if (config_m.binning->tablePrintFrequency > 0
             && step % static_cast<long long>(config_m.binning->tablePrintFrequency) == 0) {
             printBinStatsTable();
@@ -338,6 +346,34 @@ namespace opalx::spacecharge {
         stretchedSpacing[2] *= gamma;
 
         PoissonSolveRequest poissonRequest;
+        if (primary_m->hasP3MLayout()) {
+            // The mesh split follows the cutoff the domain updater gave the overlap layout.
+            const double cutoff      = primary_m->getP3MLayout().getCutoff();
+            poissonRequest.p3mCutoff = cutoff;
+            // The rest-frame solve keeps the lab cutoff, so a long gamma*hz can leave the mesh
+            // split coarser than alpha*h = 1. Report only a coarsening by at least a factor of
+            // two, so a small early boost does not use up the single report.
+            if (unit != nullptr && !warnedRestFrameP3MResolution_m && cutoff > 0.0) {
+                const double alpha = 2.0 / cutoff;
+                const double labLargest =
+                        std::max({originalSpacing[0], originalSpacing[1], originalSpacing[2]});
+                const double restLargest =
+                        std::max({stretchedSpacing[0], stretchedSpacing[1], stretchedSpacing[2]});
+                const double coarsening = restLargest / labLargest;
+                if (coarsening >= 2.0 && alpha * restLargest > 1.0) {
+                    warnedRestFrameP3MResolution_m = true;
+                    Inform warning("CartesianPIC3DAlgorithm::solvePass");
+                    warning << level1
+                            << "The bin rest-frame mesh spacing gamma*hz = " << stretchedSpacing[2]
+                            << " m is " << coarsening
+                            << " times the largest lab-frame spacing, giving alpha*h = "
+                            << alpha * restLargest << " for the P3M cutoff " << cutoff
+                            << " m; mesh accuracy is reduced. Increase NZ by about this factor "
+                            << "for a near-isotropic rest-frame mesh. Further occurrences are "
+                            << "not reported." << endl;
+                }
+            }
+        }
         if (policy.shiftedGreen) {
             const auto origin = mesh.getOrigin();
             const int longitudinalExtent =
@@ -362,6 +398,9 @@ namespace opalx::spacecharge {
           << ", suppressFieldDump=" << (policy.suppressFieldDump ? 1 : 0);
         if (poissonRequest.hasShiftedGreenFunction()) {
             m << ", plane=" << planeZ << ", shift_z=" << (*poissonRequest.greenFunctionShift)[2];
+        }
+        if (poissonRequest.p3mCutoff.has_value()) {
+            m << ", rcut=" << *poissonRequest.p3mCutoff;
         }
         m << endl;
 

@@ -53,8 +53,14 @@
  *    Pol must be unchanged.
  *  - **SpinTBMTPusherTest::PreservesMagnitudeOverManySteps** — drives 1000
  *    rotations under uniform @f$B_z@f$ and checks that @f$|\vec P|@f$ stays
- *    1 to float-storage precision, validating that the Rodrigues form does
+ *    1 to double precision, validating that the Rodrigues form does
  *    not let @f$|\vec P|@f$ drift across many steps.
+ *  - **SpinTBMTPusherTest::LargeStepKeepsExactAngle** — a muon at
+ *    @f$\gamma = 1.1@f$ moving along a uniform @f$B_z@f$, with one long step
+ *    (2.3 rad). The spin
+ *    must end at @f$(\cos\phi, \sin\phi, 0)@f$ with
+ *    @f$\phi = (1 + a_\mu)\,\omega_c\,\Delta t@f$ (the @f$\vec\beta\cdot\vec B@f$
+ *    term reduces @f$G + 1/\gamma@f$ to @f$(1 + G)/\gamma@f$ here).
  */
 
 #include <gtest/gtest.h>
@@ -110,7 +116,7 @@ TEST_F(SpinTBMTPusherTest, PrecessesAtCorrectFrequencyInStaticBz) {
     const Vector_t<double, 3> B{0.0, 0.0, 1.0};  // 1 T
     const double dt = 1.0e-12;                   // 1 ps
 
-    ippl::Vector<float, 3> Pol{1.0f, 0.0f, 0.0f};
+    ippl::Vector<double, 3> Pol{1.0, 0.0, 0.0};
 
     SpinTBMTPusher pusher;
     pusher.evolve(Pol, P, E, B, dt, mass_mu_eV, charge_mu, anom_mu);
@@ -127,10 +133,10 @@ TEST_F(SpinTBMTPusherTest, PrecessesAtCorrectFrequencyInStaticBz) {
     // |Pol| must remain 1.
     const double mag2 = static_cast<double>(Pol[0]) * Pol[0] + static_cast<double>(Pol[1]) * Pol[1]
                         + static_cast<double>(Pol[2]) * Pol[2];
-    EXPECT_NEAR(std::sqrt(mag2), 1.0, 1.0e-6);
+    EXPECT_NEAR(std::sqrt(mag2), 1.0, 1.0e-14);
 
     // z-component must remain 0 (rotation is about z).
-    EXPECT_NEAR(static_cast<double>(Pol[2]), 0.0, 1.0e-7);
+    EXPECT_NEAR(static_cast<double>(Pol[2]), 0.0, 1.0e-15);
 }
 
 TEST_F(SpinTBMTPusherTest, NoEvolutionWhenPolParallelToBAndNoE) {
@@ -140,14 +146,14 @@ TEST_F(SpinTBMTPusherTest, NoEvolutionWhenPolParallelToBAndNoE) {
     const Vector_t<double, 3> B{0.0, 0.0, 1.0};
     const double dt = 1.0e-9;
 
-    ippl::Vector<float, 3> Pol{0.0f, 0.0f, 1.0f};
+    ippl::Vector<double, 3> Pol{0.0, 0.0, 1.0};
 
     SpinTBMTPusher pusher;
     pusher.evolve(Pol, P, E, B, dt, mass_mu_eV, charge_mu, anom_mu);
 
     EXPECT_NEAR(static_cast<double>(Pol[0]), 0.0, 1.0e-12);
     EXPECT_NEAR(static_cast<double>(Pol[1]), 0.0, 1.0e-12);
-    EXPECT_NEAR(static_cast<double>(Pol[2]), 1.0, 1.0e-7);
+    EXPECT_NEAR(static_cast<double>(Pol[2]), 1.0, 1.0e-15);
 }
 
 TEST_F(SpinTBMTPusherTest, NoEvolutionWhenFieldsAreZero) {
@@ -156,14 +162,14 @@ TEST_F(SpinTBMTPusherTest, NoEvolutionWhenFieldsAreZero) {
     const Vector_t<double, 3> B{0.0, 0.0, 0.0};
     const double dt = 1.0e-9;
 
-    ippl::Vector<float, 3> Pol{1.0f, 0.0f, 0.0f};
+    ippl::Vector<double, 3> Pol{1.0, 0.0, 0.0};
 
     SpinTBMTPusher pusher;
     pusher.evolve(Pol, P, E, B, dt, mass_mu_eV, charge_mu, anom_mu);
 
-    EXPECT_FLOAT_EQ(Pol[0], 1.0f);
-    EXPECT_FLOAT_EQ(Pol[1], 0.0f);
-    EXPECT_FLOAT_EQ(Pol[2], 0.0f);
+    EXPECT_DOUBLE_EQ(Pol[0], 1.0);
+    EXPECT_DOUBLE_EQ(Pol[1], 0.0);
+    EXPECT_DOUBLE_EQ(Pol[2], 0.0);
 }
 
 TEST_F(SpinTBMTPusherTest, PreservesMagnitudeOverManySteps) {
@@ -172,12 +178,35 @@ TEST_F(SpinTBMTPusherTest, PreservesMagnitudeOverManySteps) {
     const Vector_t<double, 3> B{0.0, 0.0, 1.0};
     const double dt = 1.0e-12;
 
-    ippl::Vector<float, 3> Pol{1.0f, 0.0f, 0.0f};
+    ippl::Vector<double, 3> Pol{1.0, 0.0, 0.0};
     SpinTBMTPusher pusher;
     for (int i = 0; i < 1000; ++i) {
         pusher.evolve(Pol, P, E, B, dt, mass_mu_eV, charge_mu, anom_mu);
     }
     const double mag2 = static_cast<double>(Pol[0]) * Pol[0] + static_cast<double>(Pol[1]) * Pol[1]
                         + static_cast<double>(Pol[2]) * Pol[2];
-    EXPECT_NEAR(std::sqrt(mag2), 1.0, 1.0e-5);
+    EXPECT_NEAR(std::sqrt(mag2), 1.0, 1.0e-12);
+}
+
+TEST_F(SpinTBMTPusherTest, LargeStepKeepsExactAngle) {
+    // mu- at gamma = 1.1 moving along a uniform B_z: v || B, so
+    //   Omega = (|q|/m) (1 + G) / gamma * B, along +z for q < 0.
+    // dt = 3 ns gives phi = 2.3 rad. Rodrigues is exact for constant Omega, so one step must
+    // give exactly the rotation by phi.
+    const double gamma = 1.1;
+    const Vector_t<double, 3> P{0.0, 0.0, std::sqrt(gamma * gamma - 1.0)};
+    const Vector_t<double, 3> E{0.0, 0.0, 0.0};
+    const Vector_t<double, 3> B{0.0, 0.0, 1.0};
+    const double dt = 3.0e-9;
+
+    const double phi = (1.0 + anom_mu) * cyclotronFreq(1.0, gamma) * dt;
+    ASSERT_GT(phi, 2.0);
+
+    ippl::Vector<double, 3> Pol{1.0, 0.0, 0.0};
+    SpinTBMTPusher pusher;
+    pusher.evolve(Pol, P, E, B, dt, mass_mu_eV, charge_mu, anom_mu);
+
+    EXPECT_NEAR(Pol[0], std::cos(phi), 1.0e-12);
+    EXPECT_NEAR(Pol[1], std::sin(phi), 1.0e-12);
+    EXPECT_NEAR(Pol[2], 0.0, 1.0e-15);
 }

@@ -15,6 +15,7 @@
 //
 
 #include <csignal>
+#include <memory>
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/MultipoleT.h"
 #include "AbstractObjects/OpalData.h"
@@ -32,7 +33,7 @@ class TestMultipoleT : public testing::Test, public MultipoleT, public BeamlineV
 public:
     TestMultipoleT() : MultipoleT("Magnet") {}
 
-    class TestableFieldSolverCmd : public FieldSolverCmd {
+    class TestableFieldSolverCmd final : public FieldSolverCmd {
     public:
         void setType(const std::string& t) {
             Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::TYPE], t);
@@ -103,6 +104,9 @@ public:
     void visitVerticalFFAMagnet(const VerticalFFAMagnet&) override {}
     void visitProbe(const Probe&) override {}
     void visitVariableRFCavity(const VariableRFCavity&) override {}
+    void visitEnge(const endfieldmodel::Enge&) override {}
+    void visitAsymmetricEnge(const endfieldmodel::AsymmetricEnge&) override {}
+    void visitTanh(const endfieldmodel::Tanh&) override {}
 
     // Test helper functions
     double fieldAtT(const Vector_t<double, 3>& pos, const double t) {
@@ -192,6 +196,42 @@ TEST_F(TestMultipoleT, ConfigurationValidation) {
     EXPECT_THROW(fieldAtT({0.0, 0.0, 2.0}, 0.0), OpalException);
 }
 
+TEST_F(TestMultipoleT, DefaultFringeParametersOnReusedStorage) {
+    // Reuse storage containing a previous magnet's fringe settings, as can happen
+    // between fixtures. Default construction must not retain those settings.
+    alignas(MultipoleTConfig) unsigned char storage[sizeof(MultipoleTConfig)];
+    auto* config                = new (storage) MultipoleTConfig;
+    config->fringeS0_m          = 2.0;
+    config->fringeLambdaLeft_m  = 0.2;
+    config->fringeLambdaRight_m = 0.3;
+    std::destroy_at(config);
+    config = new (storage) MultipoleTConfig;
+    EXPECT_DOUBLE_EQ(config->fringeS0_m, 0.0);
+    EXPECT_DOUBLE_EQ(config->fringeLambdaLeft_m, 0.0);
+    EXPECT_DOUBLE_EQ(config->fringeLambdaRight_m, 0.0);
+    std::destroy_at(config);
+}
+
+TEST_F(TestMultipoleT, FieldExtentIncludesAsymmetricFringes) {
+    setElementLength(4.0);
+    setFringeField(2.0, 0.2, 0.3);
+    double begin = 0.0, end = 0.0;
+    getFieldExtent(begin, end);
+    EXPECT_DOUBLE_EQ(begin, -1.2);
+    EXPECT_DOUBLE_EQ(end, 5.8);
+
+    // Geometry and fringe contributions remain independent when L changes.
+    setElementLength(5.0);
+    getFieldExtent(begin, end);
+    EXPECT_DOUBLE_EQ(begin, -1.2);
+    EXPECT_DOUBLE_EQ(end, 6.8);
+
+    setFringeField(2.5, 0.0, 0.0);
+    getFieldExtent(begin, end);
+    EXPECT_DOUBLE_EQ(begin, 0.0);
+    EXPECT_DOUBLE_EQ(end, 5.0);
+}
+
 // Tests for the few remaining API functions are collected here
 TEST_F(TestMultipoleT, OddApis) {
     // The field-support interval follows the body length.
@@ -201,6 +241,7 @@ TEST_F(TestMultipoleT, OddApis) {
     EXPECT_NO_THROW(getFieldExtent(a, b));
     EXPECT_DOUBLE_EQ(a, 0.0);
     EXPECT_DOUBLE_EQ(b, 4.0);
+    EXPECT_EQ(getType(), ElementType::MULTIPOLET);
 }
 
 TEST_F(TestMultipoleT, ApplySingleParticleThrowsForMultiContainerBunch) {
@@ -218,8 +259,8 @@ TEST_F(TestMultipoleT, ApplySingleParticleThrowsForMultiContainerBunch) {
     Beam* testBeam      = Beam::find("UNNAMED_BEAM");
     ASSERT_NE(testBeam, nullptr);
     const auto bunch = std::make_shared<PartBunch_t>(
-            std::vector<double>{1.0e-9, 2.0e-9}, std::vector<double>{0.511e-3, 0.938},
-            std::vector<Beam*>{testBeam, testBeam}, std::vector<size_t>{1, 1}, 1.0, "LF2",
+            std::vector{1.0e-9, 2.0e-9}, std::vector{0.511e-3, 0.938},
+            std::vector{testBeam, testBeam}, std::vector<size_t>{1, 1}, 1.0, "LF2",
             opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});
     ASSERT_EQ(bunch->getNumParticleContainers(), 2u);
 

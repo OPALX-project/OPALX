@@ -39,6 +39,9 @@ public:
      *
      * @note When set, decayed particles spawn a daughter in @p daughterPC.
      *   When not set (default), decayed particles are marked for deletion.
+     * @note Daughters are written with the parent's bunch-frame coordinates. This is correct
+     *   because @p daughterPC uses the parent's reference particle and frame (TrackRun links
+     *   them, ParallelTracker keeps them equal).
      */
     void setDaughterContainer(
             std::shared_ptr<ParticleContainer<double, 3>> daughterPC, double daughterMassGeV);
@@ -60,7 +63,7 @@ public:
             const Kokkos::View<ippl::Vector<double, 3>*>& parentR,
             const Kokkos::View<ippl::Vector<double, 3>*>& parentP,
             const Kokkos::View<double*>& parentDt,
-            const Kokkos::View<ippl::Vector<float, 3>*>& parentPol) = 0;
+            const Kokkos::View<ippl::Vector<double, 3>*>& parentPol) = 0;
 
     /// Compact views of the kinematics of parents marked for decay.
     /// Pol is length-0 when the parent container does not track spin.
@@ -68,7 +71,7 @@ public:
         Kokkos::View<ippl::Vector<double, 3>*> R;
         Kokkos::View<ippl::Vector<double, 3>*> P;
         Kokkos::View<double*> dt;
-        Kokkos::View<ippl::Vector<float, 3>*> Pol;
+        Kokkos::View<ippl::Vector<double, 3>*> Pol;
     };
 
     /**
@@ -91,7 +94,7 @@ public:
             ippl::detail::size_type nLocal, ippl::detail::size_type localDestroyNum,
             Kokkos::View<bool*> decayed, Kokkos::View<ippl::Vector<double, 3>*> Rview,
             Kokkos::View<ippl::Vector<double, 3>*> Pview, Kokkos::View<double*> dtView,
-            Kokkos::View<ippl::Vector<float, 3>*> PolView);
+            Kokkos::View<ippl::Vector<double, 3>*> PolView);
 
 protected:
     /// Mean lifetime at rest [s].

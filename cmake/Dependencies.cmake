@@ -92,15 +92,15 @@ endif()
 # Disable compile time assert (used by IPPL)
 add_definitions (-DNOCTAssert)
 
-# Allow user to specify branch/tag, default to master. Numeric release versions such as
-# 3.2.0 are accepted as shorthand for IPPL-3.2.0.
+# Allow user to specify branch/tag, default to 3.4.0. Numeric release versions such as
+# 3.4.0 are accepted as shorthand for IPPL-3.4.0 and master refers to current IPPL master.
 # The Barnes-Hut solver needs the NBody module, which lives on the ippl-bh fork for now.
 if(OPALX_ENABLE_BH)
     set(_opalx_ippl_default_repository "https://github.com/tischwab0911/ippl-bh.git")
     set(_opalx_ippl_default_tag "opalx-bh")
 else()
     set(_opalx_ippl_default_repository "https://github.com/IPPL-framework/ippl.git")
-    set(_opalx_ippl_default_tag "master")
+    set(_opalx_ippl_default_tag "3.4.0")
 endif()
 set(IPPL_GIT_REPOSITORY "${_opalx_ippl_default_repository}" CACHE STRING "Git repository for IPPL")
 set(IPPL_GIT_TAG "${_opalx_ippl_default_tag}" CACHE STRING "Branch, tag, commit, or release version for IPPL")
@@ -122,11 +122,6 @@ else()
 endif()
 message(STATUS "IPPL repository: ${IPPL_GIT_REPOSITORY}")
 message(STATUS "IPPL shallow fetch: ${_opalx_ippl_git_shallow}")
-
-if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose build type" FORCE)
-endif()
-message(STATUS "Build type is: ${CMAKE_BUILD_TYPE}")
 
 FetchContent_Declare(
     IPPL

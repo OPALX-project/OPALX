@@ -6,10 +6,27 @@
 #include "SpaceCharge/CartesianPIC3D/RelativisticFieldComposer.h"
 #include "Physics/Physics.h"
 #include "SpaceCharge/CartesianPIC3D/FieldMirror.hpp"
-#include "SpaceCharge/RestFrame.h"
 #include "Utilities/OpalException.h"
 
 namespace opalx::spacecharge {
+
+    LorentzBoost LorentzBoost::from(const FieldCompositionPolicy& policy) {
+        LorentzBoost boost;
+        const double invGamma = (policy.gamma > 0.0) ? (1.0 / policy.gamma) : 0.0;
+        Vector meanMomentum(0.0);
+        for (unsigned dimension = 0; dimension < 3; ++dimension) {
+            meanMomentum[dimension] = policy.meanMomentum[dimension];
+        }
+
+        boost.velocity            = Physics::c * meanMomentum * invGamma;
+        const double velocityNorm = Kokkos::sqrt(boost.velocity.dot(boost.velocity));
+        boost.velocityUnit =
+                (velocityNorm > 0.0) ? Vector(boost.velocity / velocityNorm) : Vector(0.0);
+        boost.gamma          = policy.gamma;
+        boost.gammaMinusOne  = policy.gamma - 1.0;
+        boost.magneticFactor = policy.magneticSign * (policy.gamma / (Physics::c * Physics::c));
+        return boost;
+    }
 
     void RelativisticFieldComposer::clearAccumulation(FieldStorage& fieldStorage) const {
         fieldStorage.accumulatedElectricField() = 0.0;
@@ -18,8 +35,7 @@ namespace opalx::spacecharge {
 
     void RelativisticFieldComposer::accumulate(
             FieldStorage& fieldStorage, const Policy& policy) const {
-        const double bFieldSign    = policy.magneticSign;
-        const RestFrameBoost boost = RestFrameBoost::fromMoments(policy.meanMomentum, policy.gamma);
+        const LorentzBoost boost = LorentzBoost::from(policy);
 
         const VectorField& sourceField     = fieldStorage.electricField();
         VectorField& electricTotal         = fieldStorage.accumulatedElectricField();
@@ -35,8 +51,9 @@ namespace opalx::spacecharge {
                     sourceField.getFieldRangePolicy(),
                     KOKKOS_LAMBDA(const ippl::RangePolicy<3>::index_array_type& idx) {
                         const Vector electricPrime = apply(sourceView, idx);
-                        const Vector electricLab   = boost.electric(electricPrime);
-                        const Vector magneticLab   = boost.magnetic(electricPrime, bFieldSign);
+                        Vector electricLab;
+                        Vector magneticLab;
+                        boost.toLab(electricPrime, electricLab, magneticLab);
                         Vector accumulatedElectric = apply(electricTotalView, idx);
                         Vector accumulatedMagnetic = apply(magneticTotalView, idx);
                         accumulatedElectric += electricLab;
@@ -72,8 +89,9 @@ namespace opalx::spacecharge {
                         }
                     }
 
-                    const Vector electricLab = boost.electric(electricPrime);
-                    const Vector magneticLab = boost.magnetic(electricPrime, bFieldSign);
+                    Vector electricLab;
+                    Vector magneticLab;
+                    boost.toLab(electricPrime, electricLab, magneticLab);
                     Vector accumulatedElectric = apply(electricTotalView, idx);
                     Vector accumulatedMagnetic = apply(magneticTotalView, idx);
                     accumulatedElectric += electricLab;

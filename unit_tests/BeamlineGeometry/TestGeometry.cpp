@@ -211,6 +211,39 @@ TEST(GeometryHelperTest, ToBendArcCoordsInvertsTheDesignArc) {
     }
 }
 
+// For a negative curvature (SBEND with ANGLE < 0) the arc coordinate x must keep the sign of
+// the entrance-frame x: a point displaced by dx toward the local +x maps to +dx inside the
+// body, as it does upstream of the entrance and past the exit.
+TEST(GeometryHelperTest, ToBendArcCoordsKeepsXSignForNegativeCurvature) {
+    const double h  = -0.7;  // curvature
+    const double L  = 1.1;   // body (arc) length
+    const double dx = 0.02;
+
+    // Point at arc length s, displaced by dx along the local +x direction (cos(hs), 0, sin(hs)).
+    auto displaced = [&](double s) {
+        return Vector_t<double, 3>(
+                (1.0 / h + dx) * std::cos(h * s) - 1.0 / h, 0.0, (1.0 / h + dx) * std::sin(h * s));
+    };
+    for (const double s : {0.15, 0.6, 0.97 * L}) {
+        const Vector_t<double, 3> arc = GeometryHelper::toBendArcCoords(displaced(s), h, L);
+        EXPECT_NEAR(arc(0), dx, 1e-12) << "s = " << s;
+        EXPECT_NEAR(arc(2), s, 1e-12) << "s = " << s;
+    }
+
+    // Upstream of the entrance: x is the entrance-frame x.
+    const Vector_t<double, 3> upstream =
+            GeometryHelper::toBendArcCoords(Vector_t<double, 3>(dx, 0.0, -0.3), h, L);
+    EXPECT_NEAR(upstream(0), dx, 1e-15);
+
+    // Past the exit: x is measured in the exit frame, same sign as in the body.
+    const double t = 0.2;
+    const Vector_t<double, 3> pastExit =
+            displaced(L) + t * Vector_t<double, 3>(-std::sin(h * L), 0.0, std::cos(h * L));
+    const Vector_t<double, 3> arcPast = GeometryHelper::toBendArcCoords(pastExit, h, L);
+    EXPECT_NEAR(arcPast(0), dx, 1e-12);
+    EXPECT_NEAR(arcPast(2), L + t, 1e-12);
+}
+
 TEST(GeometryHelperTest, RotateArcFieldToEntryRotatesInPlaneOnly) {
     const double h = 0.7, L = 1.1, s = 0.6;
 
