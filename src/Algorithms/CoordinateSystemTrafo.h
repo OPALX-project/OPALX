@@ -93,6 +93,14 @@ public:
     /// Apply rotateFrom() to a Kokkos view of vectors such as momenta.
     template <typename ViewType>
     void rotateBunchFrom(ViewType Pview, size_t nLocal) const;
+
+    /// Apply transformTo() to the positions with index in [begin, end) only.
+    template <typename ViewType>
+    void transformBunchTo(ViewType Rview, size_t begin, size_t end) const;
+
+    /// Apply rotateTo() to the vectors with index in [begin, end) only.
+    template <typename ViewType>
+    void rotateBunchTo(ViewType Pview, size_t begin, size_t end) const;
     /* ========================================================================== */
     /* =============================== Operators ================================ */
     CoordinateSystemTrafo& operator=(const CoordinateSystemTrafo& right) = default;
@@ -214,6 +222,26 @@ inline void CoordinateSystemTrafo::rotateBunchFrom(ViewType Pview, size_t nLocal
     Kokkos::parallel_for(
             "rotateBunchFrom", nLocal,
             KOKKOS_LAMBDA(const size_t i) { Pview(i) = prod_vector_transpose(rot, Pview(i)); });
+}
+
+template <typename ViewType>
+inline void CoordinateSystemTrafo::transformBunchTo(ViewType Rview, size_t begin, size_t end) const {
+    matrix3x3_t rot             = rotationMatrix_m;
+    ippl::Vector<double, 3> ori = origin_m;
+    Kokkos::parallel_for(
+            "transformBunchTo(range)", Kokkos::RangePolicy<>(begin, end),
+            KOKKOS_LAMBDA(const size_t i) {
+                ippl::Vector<double, 3> delta = Rview(i) - ori;
+                Rview(i)                      = prod_vector(rot, delta);
+            });
+}
+
+template <typename ViewType>
+inline void CoordinateSystemTrafo::rotateBunchTo(ViewType Pview, size_t begin, size_t end) const {
+    matrix3x3_t rot = rotationMatrix_m;
+    Kokkos::parallel_for(
+            "rotateBunchTo(range)", Kokkos::RangePolicy<>(begin, end),
+            KOKKOS_LAMBDA(const size_t i) { Pview(i) = prod_vector(rot, Pview(i)); });
 }
 
 #endif

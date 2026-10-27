@@ -165,10 +165,10 @@ namespace opalx::spacecharge {
                     DomainCoordinateFrame::Beam, context, plan.activeDirichletPlane,
                     fixedDomain ? &*fixedState : nullptr, *fieldStorage_m, *poissonSolver_m);
 
-            solveInBeamFrame(context, plan, result);
+            const bool fieldsInTrackerAxes = solveInBeamFrame(context, plan, result);
 
             IpplTimings::startTimer(frameTimer_m);
-            leaveSolveFrame(context.stepState().frames, *primary_m);
+            leaveSolveFrame(context.stepState().frames, *primary_m, !fieldsInTrackerAxes);
             IpplTimings::stopTimer(frameTimer_m);
         } else {
             clearSelfFields(*primary_m);
@@ -185,7 +185,7 @@ namespace opalx::spacecharge {
         return result;
     }
 
-    void CartesianPIC3DAlgorithm::solveInBeamFrame(
+    bool CartesianPIC3DAlgorithm::solveInBeamFrame(
             const SpaceChargeSolveContext& context, const SolvePlan& plan,
             SpaceChargeSolveResult& result) {
         Inform m("CartesianPIC3DAlgorithm::solveInBeamFrame");
@@ -194,13 +194,13 @@ namespace opalx::spacecharge {
             m << level5 << "Skipping scatter/gather and space-charge computation for NONE solver."
               << endl;
             clearSelfFields(*primary_m);
-            return;
+            return true;
         }
 
         // The global count handles early-emission ranks that own no particles.
         if (primary_m->getTotalNum() <= 1) {
             clearSelfFields(*primary_m);
-            return;
+            return true;
         }
         // Deposition restores dt by dividing dt*Q by Q, so reject zero charge first.
         if (primary_m->getChargePerParticle() == 0.0) {
@@ -235,18 +235,23 @@ namespace opalx::spacecharge {
         }
 
         if (binned) {
-            solveBinned(context, plan, result);
-        } else {
-            solveWholeBunch(context, plan, result);
+            return solveBinned(context, plan, result);
         }
+        return solveWholeBunch(context, plan, result);
     }
 
-    void CartesianPIC3DAlgorithm::solveWholeBunch(
+    bool CartesianPIC3DAlgorithm::solveWholeBunch(
             const SpaceChargeSolveContext& context, const SolvePlan& plan,
             SpaceChargeSolveResult& result) {
         result.reportedBins = 1;
 
         const bool accumulatePasses = plan.passCount > 1;
+        // The P3M pair stage adds its field in solve axes after the gather, so that gather keeps
+        // solve axes and leaveSolveFrame() rotates E/B; otherwise the gather rotates them.
+        const bool rotateInGather = !shortRangeInteraction_m.has_value();
+        const matrix3x3_t toTrackerAxes =
+                rotateInGather ? context.stepState().frames.solveToTracker.getRotationMatrix()
+                               : matrix3x3_t();
         if (accumulatePasses) {
             relativisticFieldComposer_m.clearAccumulation(*fieldStorage_m);
         } else {
@@ -254,22 +259,27 @@ namespace opalx::spacecharge {
             primary_m->B = Vector_t<double, 3>(0.0);
         }
         for (std::size_t index = 0; index < plan.passCount; ++index) {
-            solvePass(context, plan, nullptr, plan.passes[index], result);
+            solvePass(context, plan, nullptr, plan.passes[index], result, accumulatePasses);
         }
+        IpplTimings::startTimer(gatherTimer_m);
         if (accumulatePasses) {
-            IpplTimings::startTimer(gatherTimer_m);
             relativisticFieldComposer_m.gatherAccumulated(
                     particleMeshTransfer_m, primary_m->E, primary_m->B, primary_m->R,
-                    *fieldStorage_m);
-            IpplTimings::stopTimer(gatherTimer_m);
+                    *fieldStorage_m, toTrackerAxes);
+        } else {
+            relativisticFieldComposer_m.gatherElectrostatic(
+                    particleMeshTransfer_m, primary_m->E, primary_m->R, *fieldStorage_m,
+                    toTrackerAxes);
         }
+        IpplTimings::stopTimer(gatherTimer_m);
         // Add particle fields after the final gather so replacement gathering cannot erase them.
         if (shortRangeInteraction_m.has_value()) {
             shortRangeInteraction_m->apply(*primary_m);
         }
+        return rotateInGather;
     }
 
-    void CartesianPIC3DAlgorithm::solveBinned(
+    bool CartesianPIC3DAlgorithm::solveBinned(
             const SpaceChargeSolveContext& context, const SolvePlan& plan,
             SpaceChargeSolveResult& result) {
         const long long step = static_cast<long long>(context.stepState().step);
@@ -347,16 +357,20 @@ namespace opalx::spacecharge {
             }
         }
 
-        // The mesh spacing is back to the lab-frame value here, as the gather requires.
+        // The mesh spacing is back to the lab-frame value here, as the gather requires. The
+        // gathers return E/B in tracker axes, so leaveSolveFrame() restores only R and P.
+        const matrix3x3_t toTrackerAxes =
+                context.stepState().frames.solveToTracker.getRotationMatrix();
         IpplTimings::startTimer(gatherTimer_m);
         if (!convertOnParticles) {
             relativisticFieldComposer_m.gatherAccumulated(
                     particleMeshTransfer_m, primary_m->E, primary_m->B, primary_m->R,
-                    *fieldStorage_m);
+                    *fieldStorage_m, toTrackerAxes);
         } else if (singleBinComposition.has_value()) {
             relativisticFieldComposer_m.gatherConverted(
                     particleMeshTransfer_m, primary_m->E, primary_m->B, primary_m->R,
-                    *fieldStorage_m, primary_m->getLocalNum(), *singleBinComposition);
+                    *fieldStorage_m, primary_m->getLocalNum(), *singleBinComposition,
+                    toTrackerAxes);
         } else {
             clearSelfFields(*primary_m);
         }
@@ -367,12 +381,14 @@ namespace opalx::spacecharge {
             relativisticFieldComposer_m.addParticleContribution(
                     shortRangeInteraction_m->computeRestFrameField(
                             *primary_m, particleRestFrame->gamma),
-                    primary_m->E, primary_m->B, primary_m->getLocalNum(), *particleRestFrame);
+                    primary_m->E, primary_m->B, primary_m->getLocalNum(), *particleRestFrame,
+                    toTrackerAxes);
         }
         if (config_m.binning->tablePrintFrequency > 0
             && step % static_cast<long long>(config_m.binning->tablePrintFrequency) == 0) {
             printBinStatsTable();
         }
+        return true;
     }
 
     void CartesianPIC3DAlgorithm::solvePass(
@@ -477,12 +493,7 @@ namespace opalx::spacecharge {
             dumpDirichletPlaneDiagnosticsIfRequested(context, "legacy", planeZ);
         }
 
-        if (unit == nullptr && plan.passCount == 1) {
-            IpplTimings::startTimer(gatherTimer_m);
-            relativisticFieldComposer_m.gatherElectrostatic(
-                    particleMeshTransfer_m, primary_m->E, primary_m->R, *fieldStorage_m);
-            IpplTimings::stopTimer(gatherTimer_m);
-        } else if (accumulateOnMesh) {
+        if (accumulateOnMesh) {
             RelativisticFieldComposerType::Policy compositionPolicy;
             if (unit != nullptr) {
                 compositionPolicy.meanMomentum = unit->meanMomentum;

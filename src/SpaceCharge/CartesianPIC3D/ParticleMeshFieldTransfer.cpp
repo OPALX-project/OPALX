@@ -35,7 +35,19 @@ namespace opalx::spacecharge {
         PositionAttribute& positions = particles.R;
         rho                          = 0.0;
 
-        if (depositKind == DepositKind::Primary || depositKind == DepositKind::PrimaryAndImage) {
+        // With one charge per container the weight is dt alone and the charge scales rho once,
+        // which saves the two passes that scale dt by Q and back. Image deposits flip the charge
+        // sign per particle, so they keep the scaled weights.
+        const bool sharedCharge =
+                depositKind == DepositKind::Primary
+                && particles.getQMStorageMode() == ParticleContainer::QMStorageMode::SingleValue;
+        double chargeFactor = 1.0;
+        if (sharedCharge) {
+            chargeFactor = particles.getChargePerParticle();
+            scatterCurrentWeights(particles, positions, rho, selection);
+        } else if (
+                depositKind == DepositKind::Primary
+                || depositKind == DepositKind::PrimaryAndImage) {
             scatterScaledTimeStep(particles, positions, rho, selection);
         }
 
@@ -44,7 +56,7 @@ namespace opalx::spacecharge {
             depositImage(particles, positions, rho, selection, imagePolicy);
         }
 
-        normalizeChargeDensity(fieldStorage, normalization);
+        normalizeChargeDensity(fieldStorage, normalization, chargeFactor);
     }
 
     void ParticleMeshFieldTransfer::gatherVector(
@@ -173,7 +185,8 @@ namespace opalx::spacecharge {
     }
 
     void ParticleMeshFieldTransfer::normalizeChargeDensity(
-            FieldStorage& fieldStorage, const ChargeNormalization& normalization) const {
+            FieldStorage& fieldStorage, const ChargeNormalization& normalization,
+            double chargeFactor) const {
         // Convert dt*Q to the backend charge convention using dt, bin gamma, and cell volume.
         // P3M uses volume normalization without a periodic neutralizing background.
         if (!std::isfinite(normalization.timeStep) || normalization.timeStep == 0.0
@@ -206,7 +219,7 @@ namespace opalx::spacecharge {
 
         normalizer *= normalization.gamma;
         ScalarField& rho = fieldStorage.chargeDensity();
-        rho              = rho * (normalization.couplingConstant / normalizer) + shift;
+        rho              = rho * (chargeFactor * normalization.couplingConstant / normalizer) + shift;
     }
 
 }  // namespace opalx::spacecharge

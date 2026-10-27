@@ -68,7 +68,10 @@ public:
      * @param pc Particle container in the element-local frame.
      * @return Number of particles newly marked on this rank.
      */
-    virtual size_t markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    using ElementBase::markOutsideAperture;
+    virtual size_t markOutsideAperture(
+            const std::shared_ptr<ParticleContainer_t>& pc,
+            const CoordinateSystemTrafo& refToLocal) override;
 
     /**
      * @brief Set the transverse size of the block.

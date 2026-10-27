@@ -226,15 +226,41 @@ public:
 
     void setupBCs(ippl::BC particleBC) { this->setParticleBC(particleBC); }
 
-    /// Apply coordinate transform to local particles: translate R, rotate P, E, B and Pol.
-    void transformBunch(const CoordinateSystemTrafo& trafo) {
+    /**
+     * @brief Apply a coordinate transform to the local particles: translate R, rotate P and Pol.
+     * @param includeFields Also rotate E and B. Callers whose fields are rewritten before the
+     * next read, or rotated elsewhere, skip these two passes over the container.
+     */
+    void transformBunch(const CoordinateSystemTrafo& trafo, bool includeFields = true) {
         const size_t nLoc = this->getLocalNum();
         trafo.transformBunchTo(this->R.getView(), nLoc);
         trafo.rotateBunchTo(this->P.getView(), nLoc);
-        trafo.rotateBunchTo(this->E.getView(), nLoc);
-        trafo.rotateBunchTo(this->B.getView(), nLoc);
+        if (includeFields) {
+            trafo.rotateBunchTo(this->E.getView(), nLoc);
+            trafo.rotateBunchTo(this->B.getView(), nLoc);
+        }
         if (spinEnabled_m) {
             trafo.rotateBunchTo(this->Pol.getView(), nLoc);
+        }
+        markMomentsDirty();
+    }
+
+    /**
+     * @brief Transform only the particles with index in [begin, localNum): translate R, rotate P
+     * and Pol.
+     *
+     * For particles just created in another frame, such as emission in the gun frame. Their E
+     * and B are still zero, so the fields need no rotation.
+     */
+    void transformParticleRange(const CoordinateSystemTrafo& trafo, size_t begin) {
+        const size_t end = this->getLocalNum();
+        if (begin >= end) {
+            return;
+        }
+        trafo.transformBunchTo(this->R.getView(), begin, end);
+        trafo.rotateBunchTo(this->P.getView(), begin, end);
+        if (spinEnabled_m) {
+            trafo.rotateBunchTo(this->Pol.getView(), begin, end);
         }
         markMomentsDirty();
     }
@@ -553,8 +579,12 @@ public:
     /// @brief Set local-to-lab coordinate transformation.
     void setToLabTrafo(const CoordinateSystemTrafo& toLabTrafo) { toLabTrafo_m = toLabTrafo; }
 
-    /// @brief Advance reference/lab transform state and map bunch accordingly.
-    void updateRefToLabCSTrafo(double bunchDT) {
+    /**
+     * @brief Advance reference/lab transform state and map bunch accordingly.
+     * @param rotateFields Rotate E and B with the frame. The fields of the completed step are
+     * replaced by the next solve, so only a dump that reads them needs this.
+     */
+    void updateRefToLabCSTrafo(double bunchDT, bool rotateFields = true) {
         Vector_t<double, 3> R = toLabTrafo_m.transformFrom(refPartR_m);
         Vector_t<double, 3> P = toLabTrafo_m.rotateFrom(refPartP_m);
 
@@ -563,7 +593,7 @@ public:
         sPos_m += ds;
 
         CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));
-        transformBunch(update);
+        transformBunch(update, rotateFields);
         toLabTrafo_m = toLabTrafo_m * update.inverted();
     }
 

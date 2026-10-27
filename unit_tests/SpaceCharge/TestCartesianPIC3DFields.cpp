@@ -301,7 +301,8 @@ namespace opalx::spacecharge {
             Kokkos::deep_copy(particles.B.getView(), Vector(0.0));
             RelativisticFieldComposer::VectorView restField("rest-frame field", count);
             Kokkos::deep_copy(restField, electricRest);
-            composer.addParticleContribution(restField, particles.E, particles.B, count, policy);
+            composer.addParticleContribution(
+                    restField, particles.E, particles.B, count, policy, matrix3x3_t());
             Kokkos::fence();
 
             const int ghost  = fields.electricField().getNghost();
@@ -332,7 +333,7 @@ namespace opalx::spacecharge {
             policy.sourceRule = FieldSourceRule::ShiftedGreenImageZ;
             EXPECT_THROW(
                     composer.addParticleContribution(
-                            restField, particles.E, particles.B, count, policy),
+                            restField, particles.E, particles.B, count, policy, matrix3x3_t()),
                     OpalException);
         }
 

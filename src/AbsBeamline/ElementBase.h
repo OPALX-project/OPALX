@@ -391,6 +391,15 @@ public:
     virtual void apply(const std::shared_ptr<ParticleContainer_t>& pc);
 
     /**
+     * @brief Whether apply(pc) needs the bunch in the element-local frame.
+     *
+     * ParallelTracker::computeExternalFields moves R, P, E and B of the whole bunch into the
+     * element frame and back for every element that returns true. Field-free elements such as
+     * DRIFT return false and skip that round trip.
+     */
+    virtual bool appliesFields() const { return true; }
+
+    /**
      * @brief Apply to particle with position R and momentum P
      *
      * Fields are only applied to particles inside the element's field bounds
@@ -425,8 +434,9 @@ public:
      * @brief Mark local particles inside the element's longitudinal window but
      * outside its transverse aperture in pc->InvalidMask.
      *
-     * Called by ParallelTracker::applyElementApertures with the bunch in the
-     * element-local frame. ORs into InvalidMask and never clears existing
+     * Called by ParallelTracker::applyElementApertures with the bunch in the reference frame;
+     * @p refToLocal maps each position into the element-local frame inside the kernel, so the
+     * container itself is not transformed. ORs into InvalidMask and never clears existing
      * marks; the tracker's end-of-step deletion flushes all marks. The
      * z-window is [startZ, startZ + L) from getGeometry().getStartZ() and
      * getGeometry().getElementLength(), since the aperture is a geometric property of the
@@ -435,7 +445,13 @@ public:
      *
      * @return local number of newly marked particles
      */
-    virtual size_t markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc);
+    virtual size_t markOutsideAperture(
+            const std::shared_ptr<ParticleContainer_t>& pc, const CoordinateSystemTrafo& refToLocal);
+
+    /// @brief markOutsideAperture() for a bunch that already is in the element-local frame.
+    size_t markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) {
+        return markOutsideAperture(pc, CoordinateSystemTrafo());
+    }
 
     // Design energy for elements such as RF-cavities
     virtual double getDesignEnergy() const;

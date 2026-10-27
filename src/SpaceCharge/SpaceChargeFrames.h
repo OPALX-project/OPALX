@@ -32,10 +32,15 @@ namespace opalx::spacecharge {
         particles.markMomentsDirty();
     }
 
-    /** @brief Restore R/P and rotate computed E/B to tracker axes; this is not a Lorentz boost. */
+    /**
+     * @brief Restore R/P to tracker axes; this is not a Lorentz boost.
+     * @param rotateFields Also rotate E/B. False when the solve already gathered them in tracker
+     * axes, which saves two passes over the container.
+     */
     inline void leaveSolveFrame(
-            const CoordinateFrameTransforms& frames, SpaceChargeParticleContainer& particles) {
-        particles.transformBunch(frames.solveToTracker);
+            const CoordinateFrameTransforms& frames, SpaceChargeParticleContainer& particles,
+            bool rotateFields = true) {
+        particles.transformBunch(frames.solveToTracker, rotateFields);
     }
 
 }  // namespace opalx::spacecharge

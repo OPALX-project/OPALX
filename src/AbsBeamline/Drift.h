@@ -56,6 +56,9 @@ public:
 
     virtual int getRequiredNumberOfTimeSteps() const override;
 
+    /// A drift carries no field, so the external-field pass skips its frame round trip.
+    bool appliesFields() const override { return false; }
+
 private:
     std::size_t nSlices_m;
 

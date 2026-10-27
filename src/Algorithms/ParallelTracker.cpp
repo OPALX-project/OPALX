@@ -790,10 +790,11 @@ void ParallelTracker::execute() {
             m << level5 << "Incremented bunch time to " << Util::getTimeString(itsBunch_m->getT())
               << "." << endl;
 
-            // Update reference particle
+            // Update reference particle. The fields of this step are replaced by the next solve,
+            // so they follow the frame only when phase-space dumps write them (EBDUMP).
             if (itsBunch_m->getT() > 0.0) {
                 IpplTimings::startTimer(referenceFrameTimer_m);
-                updateReference(pusher);
+                updateReference(pusher, Options::ebDump);
                 IpplTimings::stopTimer(referenceFrameTimer_m);
                 m << level4 << "Updated reference particle at step " << step << "." << endl;
             }
@@ -1105,7 +1106,7 @@ double ParallelTracker::advanceCyclotronGaps(
 /**
  * @copybrief ParallelTracker::timeIntegration1
  */
-void ParallelTracker::timeIntegration1(BorisPusher& pusher) {
+void ParallelTracker::timeIntegration1(BorisPusher& /*pusher*/) {
     if (hasCyclotronGaps()) return;  // Localized RF gap path owns both drifts.
     Inform m("ParallelTracker::timeIntegration1");
     IpplTimings::startTimer(timeIntegrationTimer1_m);
@@ -1118,7 +1119,7 @@ void ParallelTracker::timeIntegration1(BorisPusher& pusher) {
         if (!pc) {
             continue;
         }
-        pushParticles(pusher, *pc);
+        pushParticles(*pc);
     }
     IpplTimings::stopTimer(timeIntegrationTimer1_m);
     m << level4 << "Push particles done for all containers." << endl;
@@ -1191,7 +1192,7 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
             continue;
         }
         kickParticles(pusher, *pc);
-        pushParticles(pusher, *pc);
+        pushParticles(*pc);
         pc->dt = itsBunch_m->getdT();
     }
     m << level4 << "Kick/push particles done for all containers." << endl;
@@ -1279,7 +1280,8 @@ ParallelTracker::SpaceChargeEmissionProgress ParallelTracker::spaceChargeEmissio
  */
 void ParallelTracker::updateSpaceChargeFields() {
     IpplTimings::startTimer(spaceChargeTimer_m);
-    resetFields();
+    // The solve replaces the primary's E and B, so only the other containers are zeroed here.
+    resetFields(false);
     computeSpaceChargeFields();
     IpplTimings::stopTimer(spaceChargeTimer_m);
 }
@@ -1307,6 +1309,8 @@ void ParallelTracker::computeSpaceChargeFields() {
         m << level4
           << "Skipping space charge until more than MINBINEMITTED=" << Options::minBinEmitted
           << " particles are present (total=" << totalParticles << ")." << endl;
+        // No solve replaces the primary's fields this step, so clear them here.
+        resetFields(true);
         return;
     }
 
@@ -1359,13 +1363,21 @@ void ParallelTracker::computeExternalFields(
                 true, msg, "backward source-plane particles during external-field evaluation");
     }
 
-    forEachElementInBunchFrame(
+    forEachNearbyElement(
             oths,
             [this](const std::shared_ptr<ElementBase>& element,
-                   const std::shared_ptr<ParticleContainer_t>& pc) {
+                   const std::shared_ptr<ParticleContainer_t>& pc,
+                   const CoordinateSystemTrafo& refToLocal) {
                 // Trial steps must not append monitor records.
-                if (!spatialRing_m || element->getType() != ElementType::MONITOR)
-                    element->apply(pc);
+                if (spatialRing_m && element->getType() == ElementType::MONITOR) {
+                    return;
+                }
+                // Field-free elements such as drifts have nothing to apply, so they do not pay
+                // for the frame round trip either.
+                if (!element->appliesFields()) {
+                    return;
+                }
+                withBunchInElementFrame(pc, refToLocal, [&] { element->apply(pc); });
             },
             spatialRing_m);
 
@@ -1396,6 +1408,47 @@ void ParallelTracker::forEachElementInBunchFrame(
         const std::function<void(
                 const std::shared_ptr<ElementBase>&, const std::shared_ptr<ParticleContainer_t>&)>&
                 func,
+        bool spatialCandidates) {
+    forEachNearbyElement(
+            oths,
+            [this, &func](
+                    const std::shared_ptr<ElementBase>& element,
+                    const std::shared_ptr<ParticleContainer_t>& pc,
+                    const CoordinateSystemTrafo& refToLocal) {
+                withBunchInElementFrame(pc, refToLocal, [&] { func(element, pc); });
+            },
+            spatialCandidates);
+}
+
+/**
+ * @copybrief ParallelTracker::withBunchInElementFrame
+ */
+void ParallelTracker::withBunchInElementFrame(
+        const std::shared_ptr<ParticleContainer_t>& pc, const CoordinateSystemTrafo& refToLocal,
+        const std::function<void()>& work) {
+    const CoordinateSystemTrafo localToRef = refToLocal.inverted();
+
+    // Each round trip rewrites R, P, E and B of the whole container, so the frame
+    // changes can cost more than the element work between them.
+    IpplTimings::startTimer(elementFrameTimer_m);
+    pc->transformBunch(refToLocal);
+    IpplTimings::stopTimer(elementFrameTimer_m);
+
+    work();
+
+    IpplTimings::startTimer(elementFrameTimer_m);
+    pc->transformBunch(localToRef);
+    IpplTimings::stopTimer(elementFrameTimer_m);
+}
+
+/**
+ * @copybrief ParallelTracker::forEachNearbyElement
+ */
+void ParallelTracker::forEachNearbyElement(
+        const std::vector<std::shared_ptr<OrbitThreader>>& oths,
+        const std::function<void(
+                const std::shared_ptr<ElementBase>&, const std::shared_ptr<ParticleContainer_t>&,
+                const CoordinateSystemTrafo&)>& func,
         bool spatialCandidates) {
     const size_t nContainers = itsBunch_m->getNumParticleContainers();
     for (size_t ci = 0; ci < nContainers; ++ci) {
@@ -1467,32 +1520,20 @@ void ParallelTracker::forEachElementInBunchFrame(
 
         // Frame round trips do not commute exactly in floating point. For the
         // bare analytic-ring benchmark, use prepared occurrence order rather
-        // than allocation-dependent shared_ptr order. Include aperture/monitor
-        // callbacks: they also transform the live arrays. Other configurations
-        // retain their existing order, including cyclotron and charged tracking.
+        // than allocation-dependent shared_ptr order. Monitor callbacks transform
+        // the live arrays too; aperture checks no longer move the bunch. Other
+        // configurations retain their existing order, including cyclotron and
+        // charged tracking.
         const auto ordered =
                 spatialRing_m && bareTracking_m
                         ? device_external::orderedCandidates(itsOpalBeamline_m, elements)
                         : std::vector<std::shared_ptr<ElementBase>>(
                                   elements.begin(), elements.end());
         for (const auto& element : ordered) {
-            CoordinateSystemTrafo refToLocalCSTrafo =
+            const CoordinateSystemTrafo refToLocalCSTrafo =
                     (itsOpalBeamline_m.getMisalignment(element)
                      * (itsOpalBeamline_m.getCSTrafoLab2Local(element) * pc->getToLabTrafo()));
-
-            CoordinateSystemTrafo localToRefCSTrafo = refToLocalCSTrafo.inverted();
-
-            // Each round trip rewrites R, P, E and B of the whole container, so the frame
-            // changes can cost more than the element work between them.
-            IpplTimings::startTimer(elementFrameTimer_m);
-            pc->transformBunch(refToLocalCSTrafo);
-            IpplTimings::stopTimer(elementFrameTimer_m);
-
-            func(element, pc);
-
-            IpplTimings::startTimer(elementFrameTimer_m);
-            pc->transformBunch(localToRefCSTrafo);
-            IpplTimings::stopTimer(elementFrameTimer_m);
+            func(element, pc, refToLocalCSTrafo);
         }
     }
 }
@@ -1505,13 +1546,18 @@ size_t ParallelTracker::applyElementApertures(
     // The restricted sector/gap path checks its own field support during stepping.
     if (hasCyclotronGaps()) return 0;
     size_t localMarked = 0;
-    forEachElementInBunchFrame(
-            oths, [&localMarked](
-                          const std::shared_ptr<ElementBase>& element,
-                          const std::shared_ptr<ParticleContainer_t>& pc) {
+    // The aperture kernels map each position into the element frame themselves, so the bunch
+    // stays in the reference frame.
+    forEachNearbyElement(
+            oths,
+            [&localMarked](
+                    const std::shared_ptr<ElementBase>& element,
+                    const std::shared_ptr<ParticleContainer_t>& pc,
+                    const CoordinateSystemTrafo& refToLocal) {
                 // Marks are flushed by the single end-of-step deletion in execute().
-                localMarked += element->markOutsideAperture(pc);
-            });
+                localMarked += element->markOutsideAperture(pc, refToLocal);
+            },
+            false);
 
     size_t globalMarked = 0;
     ippl::Comm->allreduce(localMarked, globalMarked, 1, std::plus<size_t>());
@@ -1537,9 +1583,12 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
         // flag this as an error.
         const size_t extentBeforeEmission = pc->R.size();
 
-        CoordinateSystemTrafo refToGun =
+        // The samplers create particles in the gun frame and write only the new slots, so only
+        // those are mapped into the reference frame afterwards. Moving the whole bunch into the
+        // gun frame and back would cost eight passes over the container on every step.
+        const CoordinateSystemTrafo refToGun =
                 itsOpalBeamline_m.getCSTrafoLab2Local() * pc->getToLabTrafo();
-        pc->transformBunch(refToGun);
+        const size_t localBeforeEmission = pc->getLocalNum();
         if (ci < emittingSamplers_m.size()) {
             for (const auto& sampler : emittingSamplers_m[ci]) {
                 if (sampler) {
@@ -1547,7 +1596,7 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
                 }
             }
         }
-        pc->transformBunch(refToGun.inverted());
+        pc->transformParticleRange(refToGun.inverted(), localBeforeEmission);
 
         pc->setM(pc->getMassPerParticle());
         pc->setQ(pc->getChargePerParticle());
@@ -1813,9 +1862,9 @@ void ParallelTracker::prepareBoundaryStep(
 /**
  * @copybrief ParallelTracker::resetFields
  */
-void ParallelTracker::resetFields() {
+void ParallelTracker::resetFields(bool includePrimary) {
     const size_t n = itsBunch_m->getNumParticleContainers();
-    for (size_t i = 0; i < n; ++i) {
+    for (size_t i = includePrimary ? 0 : 1; i < n; ++i) {
         if (!itsBunch_m->isPcActive(i)) {
             continue;
         }
@@ -1829,32 +1878,23 @@ void ParallelTracker::resetFields() {
 }
 
 /**
- * @brief Boris position push in unitless coordinates (per-particle dt via pusher internals).
- * @param pusher Boris pusher.
- * @param pc     Non-null target particle container.
+ * @copybrief ParallelTracker::pushParticles
  */
-void ParallelTracker::pushParticles(
-        const BorisPusher& pusher, PartBunch_t::ParticleContainer_t& pc) {
-    // Per-particle dt is used so that newly emitted particles with fractional dt
-    // (sampled during emission) are pushed proportionally to their sub-timestep fraction.
-    pc.switchToUnitlessPositions();
+void ParallelTracker::pushParticles(PartBunch_t::ParticleContainer_t& pc) {
+    auto Rview         = pc.R.getView();
+    auto Pview         = pc.P.getView();
+    auto dtview        = pc.dt.getView();
+    const double halfC = 0.5 * Physics::c;
 
-    auto Rview = pc.R.getView();
-    auto Pview = pc.P.getView();
-    // auto dtview = pc.dt.getView();
-
+    // Half drift x_{n+1/2} = x_n + (dt_i / 2) v, the step BorisPusher::push takes on R / (c dt_i),
+    // without the two scaling passes over R. The per-particle dt lets newly emitted particles
+    // move by their fractional step; dt_i = 0 moves nothing.
     Kokkos::parallel_for(
             "pushParticles", pc.getLocalNum(), KOKKOS_LAMBDA(const size_t i) {
-                // Half drift: x_{n+1/2} = x_n + (dt/2) * v; unitless form via pusher.push(..., 0).
-                // TODO: verify sign convention for half-step push.
-                Vector_t<double, 3> x = Rview(i);
-                pusher.push(
-                        x, Pview(i),
-                        0);  // this 0 is "dt" that is not used with unitless positions!
-                Rview(i) = x;
+                const Vector_t<double, 3> p = Pview(i);
+                Rview(i) += (halfC * dtview(i) / Kokkos::sqrt(1.0 + p.dot(p))) * p;
             });
 
-    pc.switchOffUnitlessPositions();
     // TODO: pc->update() changes results on single rank; keep disabled until investigated.
     // itsBunch_m->getParticleContainer()->update();
     Kokkos::fence();
@@ -2095,10 +2135,10 @@ void ParallelTracker::printInitialContainerRefs(Inform& m) const {
 /**
  * @copybrief ParallelTracker::updateReference
  */
-void ParallelTracker::updateReference(const BorisPusher& pusher) {
+void ParallelTracker::updateReference(const BorisPusher& pusher, bool rotateFields) {
     Inform m("ParallelTracker::updateReference");
     updateReferenceParticles(pusher);
-    updateRefToLabCSTrafo();
+    updateRefToLabCSTrafo(rotateFields);
     m << level5 << "Updated reference particles." << endl;
 }
 
@@ -2147,7 +2187,7 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& /*pusher*/) {
 /**
  * @copybrief ParallelTracker::updateRefToLabCSTrafo
  */
-void ParallelTracker::updateRefToLabCSTrafo() {
+void ParallelTracker::updateRefToLabCSTrafo(bool rotateFields) {
     // Map the lab-frame reference position and momentum into the current bunch frame, then
     // move and turn the bunch frame onto them. Momentum is only rotated, not translated.
     const double bunchDT = itsBunch_m->getdT();
@@ -2158,7 +2198,7 @@ void ParallelTracker::updateRefToLabCSTrafo() {
         }
         auto pc = itsBunch_m->getParticleContainer(i);
         if (pc) {
-            pc->updateRefToLabCSTrafo(bunchDT);
+            pc->updateRefToLabCSTrafo(bunchDT, rotateFields);
         }
     }
 }

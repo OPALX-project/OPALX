@@ -92,16 +92,19 @@ namespace opalx::spacecharge {
         [[nodiscard]] SolvePlan makeSolvePlan(std::size_t step) const;
         [[nodiscard]] static PassProperties passProperties(
                 PassKind pass, double planeZ, bool binned);
-        void solveInBeamFrame(
+        /** @return Whether the primary E/B already use tracker axes, so that leaveSolveFrame()
+         * only restores R and P. */
+        [[nodiscard]] bool solveInBeamFrame(
                 const SpaceChargeSolveContext& context, const SolvePlan& plan,
                 SpaceChargeSolveResult& result);
-        void solveWholeBunch(
+        [[nodiscard]] bool solveWholeBunch(
                 const SpaceChargeSolveContext& context, const SolvePlan& plan,
                 SpaceChargeSolveResult& result);
-        void solveBinned(
+        [[nodiscard]] bool solveBinned(
                 const SpaceChargeSolveContext& context, const SolvePlan& plan,
                 SpaceChargeSolveResult& result);
-        /** @param accumulateOnMesh False leaves the rest-frame field for gatherConverted(). */
+        /** @param accumulateOnMesh False leaves the backend field on the mesh for the caller's
+         * gather. */
         void solvePass(
                 const SpaceChargeSolveContext& context, const SolvePlan& plan,
                 const ParticleBinType* unit, PassKind pass, SpaceChargeSolveResult& result,

@@ -6,6 +6,7 @@
 #ifndef OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_RELATIVISTIC_FIELD_COMPOSER_H
 #define OPALX_SPACE_CHARGE_CARTESIAN_PIC3D_RELATIVISTIC_FIELD_COMPOSER_H
 
+#include "Algorithms/Matrix.h"
 #include "SpaceCharge/CartesianPIC3D/CartesianPIC3DFieldStorage.h"
 #include "SpaceCharge/CartesianPIC3D/ParticleMeshFieldTransfer.h"
 
@@ -64,7 +65,11 @@ namespace opalx::spacecharge {
     /**
      * @brief Converts and accumulates backend fields in Cartesian solve axes, then gathers them.
      *
-     * Fields and particle data are borrowed; persistent scratch lives in
+     * Every gather takes the rotation from solve to tracker axes and returns particle fields in
+     * tracker axes: an unconverted gather rotates the mesh field in place first (mesh sized, so
+     * cheap), the per-particle conversion rotates inside its kernel. Both are exact because
+     * gathering and the Lorentz conversion are linear, and the particle fields never need a
+     * separate rotation pass. Fields and particle data are borrowed; persistent scratch lives in
      * CartesianPIC3DFieldStorage.
      */
     class RelativisticFieldComposer final {
@@ -100,16 +105,21 @@ namespace opalx::spacecharge {
          * Used for particle-particle contributions, which bypass the mesh accumulators and must
          * be added after the final gather. Only the Direct source rule applies.
          * @param electricRest Rest-frame electric field, valid on [0, @p localCount).
+         * @param toTrackerAxes Rotation applied to the converted fields before adding them.
          */
         void addParticleContribution(
                 const VectorView& electricRest, VectorAttribute& electricDestination,
-                VectorAttribute& magneticDestination, std::size_t localCount,
-                const Policy& policy) const;
+                VectorAttribute& magneticDestination, std::size_t localCount, const Policy& policy,
+                const matrix3x3_t& toTrackerAxes) const;
 
-        /** @brief Replace a particle electric field with gathered backend values. */
+        /**
+         * @brief Replace a particle electric field with gathered backend values.
+         * @note Rotates the backend field in place; the next solve rebuilds it anyway.
+         */
         void gatherElectrostatic(
                 ParticleMeshTransfer& particleMeshTransfer, VectorAttribute& destination,
-                const PositionAttribute& positions, FieldStorage& fieldStorage) const;
+                const PositionAttribute& positions, FieldStorage& fieldStorage,
+                const matrix3x3_t& toTrackerAxes) const;
 
         /**
          * @brief Replace particle E/B with one gathered rest-frame field, converted per particle.
@@ -121,12 +131,16 @@ namespace opalx::spacecharge {
         void gatherConverted(
                 ParticleMeshTransfer& particleMeshTransfer, VectorAttribute& electricDestination,
                 VectorAttribute& magneticDestination, const PositionAttribute& positions,
-                FieldStorage& fieldStorage, std::size_t localCount, const Policy& policy) const;
-        /** @brief Replace particle E/B with gathered accumulated fields. */
+                FieldStorage& fieldStorage, std::size_t localCount, const Policy& policy,
+                const matrix3x3_t& toTrackerAxes) const;
+        /**
+         * @brief Replace particle E/B with gathered accumulated fields.
+         * @note Rotates the accumulators in place; clearAccumulation() starts the next solve.
+         */
         void gatherAccumulated(
                 ParticleMeshTransfer& particleMeshTransfer, VectorAttribute& electricDestination,
                 VectorAttribute& magneticDestination, const PositionAttribute& positions,
-                FieldStorage& fieldStorage) const;
+                FieldStorage& fieldStorage, const matrix3x3_t& toTrackerAxes) const;
     };
 
 }  // namespace opalx::spacecharge

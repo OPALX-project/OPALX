@@ -115,7 +115,8 @@ bool SBend::applyToReferenceParticle(
     return false;
 }
 
-size_t SBend::markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) {
+size_t SBend::markOutsideAperture(
+        const std::shared_ptr<ParticleContainer_t>& pc, const CoordinateSystemTrafo& refToLocal) {
     if (!pc || !getFlagDeleteOnTransverseExit()) {
         return 0;
     }
@@ -135,6 +136,9 @@ size_t SBend::markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc
     const double zBegin = 0.0;
     const double zEnd   = bodyLength;
 
+    const matrix3x3_t rotation       = refToLocal.getRotationMatrix();
+    const Vector_t<double, 3> origin = refToLocal.getOrigin();
+
     auto Rview   = pc->R.getView();
     auto invalid = pc->InvalidMask.getView();
 
@@ -142,10 +146,12 @@ size_t SBend::markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc
     Kokkos::parallel_reduce(
             "SBend::markOutsideAperture", nLocal,
             KOKKOS_LAMBDA(const size_t i, size_t& count) {
+                const Vector_t<double, 3> delta = Rview(i) - origin;
+                const Vector_t<double, 3> local = prod_vector(rotation, delta);
                 // Convert (x,y,z) -> (x,y,arc s): the z-window and the aperture
                 // are measured relative to the design orbit, matching isInside.
                 const Vector_t<double, 3> arc =
-                        GeometryHelper::toBendArcCoords(Rview(i), curvature, bodyLength);
+                        GeometryHelper::toBendArcCoords(local, curvature, bodyLength);
 
                 const bool inZ = arc(2) >= zBegin && arc(2) < zEnd;
                 const bool hit =

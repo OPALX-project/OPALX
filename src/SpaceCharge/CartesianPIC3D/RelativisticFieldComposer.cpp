@@ -9,6 +9,22 @@
 #include "Utilities/OpalException.h"
 
 namespace opalx::spacecharge {
+    namespace {
+
+        /** @brief Rotate every vector of a mesh field in place, halo cells included. */
+        void rotateMeshField(
+                RelativisticFieldComposer::VectorField& field, const matrix3x3_t& toTrackerAxes) {
+            const matrix3x3_t rotation = toTrackerAxes;
+            auto view                  = field.getView();
+            ippl::parallel_for(
+                    "RelativisticFieldComposer::rotateMeshField", field.getFieldRangePolicy(),
+                    KOKKOS_LAMBDA(const ippl::RangePolicy<3>::index_array_type& idx) {
+                        const ippl::Vector<double, 3> value = apply(view, idx);
+                        apply(view, idx)                    = prod_vector(rotation, value);
+                    });
+        }
+
+    }  // namespace
 
     LorentzBoost LorentzBoost::from(const FieldCompositionPolicy& policy) {
         LorentzBoost boost;
@@ -103,8 +119,8 @@ namespace opalx::spacecharge {
 
     void RelativisticFieldComposer::addParticleContribution(
             const VectorView& electricRest, VectorAttribute& electricDestination,
-            VectorAttribute& magneticDestination, std::size_t localCount,
-            const Policy& policy) const {
+            VectorAttribute& magneticDestination, std::size_t localCount, const Policy& policy,
+            const matrix3x3_t& toTrackerAxes) const {
         if (policy.sourceRule != FieldSourceRule::Direct) {
             throw OpalException(
                     "RelativisticFieldComposer::addParticleContribution",
@@ -116,6 +132,7 @@ namespace opalx::spacecharge {
                     "The rest-frame particle field is shorter than the local particle count.");
         }
         const LorentzBoost boost            = LorentzBoost::from(policy);
+        const matrix3x3_t rotation          = toTrackerAxes;
         const VectorView::const_type source = electricRest;
         auto electricView                   = electricDestination.getView();
         auto magneticView                   = magneticDestination.getView();
@@ -126,14 +143,16 @@ namespace opalx::spacecharge {
                     Vector electricLab;
                     Vector magneticLab;
                     boost.toLab(source(index), electricLab, magneticLab);
-                    electricView(index) += electricLab;
-                    magneticView(index) += magneticLab;
+                    electricView(index) += prod_vector(rotation, electricLab);
+                    magneticView(index) += prod_vector(rotation, magneticLab);
                 });
     }
 
     void RelativisticFieldComposer::gatherElectrostatic(
             ParticleMeshTransfer& particleMeshTransfer, VectorAttribute& destination,
-            const PositionAttribute& positions, FieldStorage& fieldStorage) const {
+            const PositionAttribute& positions, FieldStorage& fieldStorage,
+            const matrix3x3_t& toTrackerAxes) const {
+        rotateMeshField(fieldStorage.electricField(), toTrackerAxes);
         particleMeshTransfer.gatherVector(
                 destination, fieldStorage.electricField(), positions,
                 ParticleMeshTransfer::GatherMode::Replace);
@@ -142,7 +161,8 @@ namespace opalx::spacecharge {
     void RelativisticFieldComposer::gatherConverted(
             ParticleMeshTransfer& particleMeshTransfer, VectorAttribute& electricDestination,
             VectorAttribute& magneticDestination, const PositionAttribute& positions,
-            FieldStorage& fieldStorage, std::size_t localCount, const Policy& policy) const {
+            FieldStorage& fieldStorage, std::size_t localCount, const Policy& policy,
+            const matrix3x3_t& toTrackerAxes) const {
         if (policy.sourceRule != FieldSourceRule::Direct) {
             throw OpalException(
                     "RelativisticFieldComposer::gatherConverted",
@@ -152,9 +172,10 @@ namespace opalx::spacecharge {
                 electricDestination, fieldStorage.electricField(), positions,
                 ParticleMeshTransfer::GatherMode::Replace);
 
-        const LorentzBoost boost = LorentzBoost::from(policy);
-        auto electricView        = electricDestination.getView();
-        auto magneticView        = magneticDestination.getView();
+        const LorentzBoost boost   = LorentzBoost::from(policy);
+        const matrix3x3_t rotation = toTrackerAxes;
+        auto electricView          = electricDestination.getView();
+        auto magneticView          = magneticDestination.getView();
         Kokkos::parallel_for(
                 "RelativisticFieldComposer::convertGathered",
                 Kokkos::RangePolicy<Kokkos::DefaultExecutionSpace>(0, localCount),
@@ -163,15 +184,17 @@ namespace opalx::spacecharge {
                     Vector electricLab;
                     Vector magneticLab;
                     boost.toLab(electricRest, electricLab, magneticLab);
-                    electricView(index) = electricLab;
-                    magneticView(index) = magneticLab;
+                    electricView(index) = prod_vector(rotation, electricLab);
+                    magneticView(index) = prod_vector(rotation, magneticLab);
                 });
     }
 
     void RelativisticFieldComposer::gatherAccumulated(
             ParticleMeshTransfer& particleMeshTransfer, VectorAttribute& electricDestination,
             VectorAttribute& magneticDestination, const PositionAttribute& positions,
-            FieldStorage& fieldStorage) const {
+            FieldStorage& fieldStorage, const matrix3x3_t& toTrackerAxes) const {
+        rotateMeshField(fieldStorage.accumulatedElectricField(), toTrackerAxes);
+        rotateMeshField(fieldStorage.accumulatedMagneticField(), toTrackerAxes);
         particleMeshTransfer.gatherVector(
                 electricDestination, fieldStorage.accumulatedElectricField(), positions,
                 ParticleMeshTransfer::GatherMode::Replace);

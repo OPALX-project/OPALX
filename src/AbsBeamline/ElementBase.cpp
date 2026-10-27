@@ -258,7 +258,8 @@ void ElementBase::apply(
     // bool overload performed here only produced the (unused) return value.
 }
 
-size_t ElementBase::markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) {
+size_t ElementBase::markOutsideAperture(
+        const std::shared_ptr<ParticleContainer_t>& pc, const CoordinateSystemTrafo& refToLocal) {
     if (!pc || !getFlagDeleteOnTransverseExit()) {
         return 0;
     }
@@ -281,6 +282,11 @@ size_t ElementBase::markOutsideAperture(const std::shared_ptr<ParticleContainer_
     const double xLimit     = aperture_m.second[0];
     const double yLimit     = aperture_m.second[1];
 
+    // Each position is mapped into the element frame here instead of transforming the whole
+    // container, which would rewrite R, P, E and B twice.
+    const matrix3x3_t rotation       = refToLocal.getRotationMatrix();
+    const Vector_t<double, 3> origin = refToLocal.getOrigin();
+
     auto Rview   = pc->R.getView();
     auto invalid = pc->InvalidMask.getView();
 
@@ -288,12 +294,14 @@ size_t ElementBase::markOutsideAperture(const std::shared_ptr<ParticleContainer_
     Kokkos::parallel_reduce(
             "ElementBase::markOutsideAperture", nLocal,
             KOKKOS_LAMBDA(const size_t i, size_t& count) {
+                const Vector_t<double, 3> delta = Rview(i) - origin;
+                const Vector_t<double, 3> r     = prod_vector(rotation, delta);
                 // z-window [zBegin, zEnd), matching isInside; z is measured in
                 // the element-local frame.
-                const bool inZ = Rview(i)[2] >= zBegin && Rview(i)[2] < zEnd;
+                const bool inZ = r[2] >= zBegin && r[2] < zEnd;
                 const bool hit = inZ
                                  && !ApertureHelper::isInsideAperture(
-                                         Rview(i)[0], Rview(i)[1], type, xLimit, yLimit);
+                                         r[0], r[1], type, xLimit, yLimit);
                 const bool newlyMarked = hit && !invalid(i);
                 invalid(i)             = invalid(i) || hit;
                 count += newlyMarked ? 1 : 0;

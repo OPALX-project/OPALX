@@ -148,8 +148,13 @@ namespace opalx::spacecharge {
                 ParticleContainer& particles, PositionAttribute& positions, ScalarField& rho,
                 const Selection& selection, const ImagePolicy& imagePolicy) const;
 
+        /**
+         * @param chargeFactor Charge already factored out of the deposited weights (one shared
+         * charge per container), applied once to the whole density.
+         */
         void normalizeChargeDensity(
-                FieldStorage& fieldStorage, const ChargeNormalization& normalization) const;
+                FieldStorage& fieldStorage, const ChargeNormalization& normalization,
+                double chargeFactor) const;
     };
 
 }  // namespace opalx::spacecharge

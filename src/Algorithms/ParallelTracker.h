@@ -340,11 +340,10 @@ public:
     void kickParticles(const BorisPusher& pusher, PartBunch_t::ParticleContainer_t& pc);
 
     /**
-     * @brief Boris position push (unitless positions) on one container.
-     * @param pusher Boris pusher instance.
-     * @param pc     Non-null particle container.
+     * @brief Half drift of one container in physical units with each particle's own dt.
+     * @param pc Non-null particle container.
      */
-    void pushParticles(const BorisPusher& pusher, PartBunch_t::ParticleContainer_t& pc);
+    void pushParticles(PartBunch_t::ParticleContainer_t& pc);
 
     /// @brief First half of the leapfrog step: push all active containers.
     void timeIntegration1(BorisPusher& pusher);
@@ -406,6 +405,24 @@ public:
                          const std::shared_ptr<ParticleContainer_t>&)>& func,
             bool spatialCandidates);
 
+    /**
+     * @brief Call func for each element intersecting each active container, with the transform
+     * from the reference frame into the element frame; the container itself is not moved.
+     * @param spatialCandidates Select candidates by lab-frame containment instead of the
+     * path-length index of the orbit threader.
+     */
+    void forEachNearbyElement(
+            const std::vector<std::shared_ptr<OrbitThreader>>& oths,
+            const std::function<void(
+                    const std::shared_ptr<ElementBase>&, const std::shared_ptr<ParticleContainer_t>&,
+                    const CoordinateSystemTrafo&)>& func,
+            bool spatialCandidates);
+
+    /// @brief Run work with the container moved into an element frame and back, timed.
+    void withBunchInElementFrame(
+            const std::shared_ptr<ParticleContainer_t>& pc, const CoordinateSystemTrafo& refToLocal,
+            const std::function<void()>& work);
+
     /// @brief Mark particles outside the transverse aperture of each nearby element.
     /// @param oths Per-container orbit threaders used for element queries.
     /// @return global number of newly marked particles (allreduced) - collective call.
@@ -422,8 +439,11 @@ public:
     /// @brief Apply global processes and return the global number of particles marked invalid.
     size_t applyGlobalProcesses(double dt);
 
-    /// @brief Zero E and B on all active particle containers.
-    void resetFields();
+    /**
+     * @brief Zero E and B on the active containers the space-charge solve leaves untouched.
+     * @param includePrimary Also zero the primary container, whose fields a solve replaces.
+     */
+    void resetFields(bool includePrimary);
 
     /// @brief Set bunch dt from StepSizeConfig and copy to all container dt views.
     void changeDT();
@@ -444,14 +464,18 @@ private:
             const;
     [[nodiscard]] SpaceChargeEmissionProgress spaceChargeEmissionProgress() const;
 
-    /// @brief Update reference trajectories and lab/reference coordinate transforms.
-    void updateReference(const BorisPusher& pusher);
+    /**
+     * @brief Update reference trajectories and lab/reference coordinate transforms.
+     * @param rotateFields Rotate E and B with the bunch frame; needed only when they are read
+     * before the next solve replaces them (phase-space dump with EBDUMP).
+     */
+    void updateReference(const BorisPusher& pusher, bool rotateFields);
 
     /// @brief Advance reference positions/momenta through the beamline for one step.
     void updateReferenceParticles(const BorisPusher& pusher);
 
     /// @brief Refresh each container's reference-to-lab transform from current state.
-    void updateRefToLabCSTrafo();
+    void updateRefToLabCSTrafo(bool rotateFields);
 
     /**
      * @brief Write phase space and/or statistics when flags request it.

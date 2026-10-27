@@ -43,7 +43,8 @@ void Box::getFieldExtent(double& zBegin, double& zEnd) const {
 
 ElementType Box::getType() const { return ElementType::BOX; }
 
-size_t Box::markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) {
+size_t Box::markOutsideAperture(
+        const std::shared_ptr<ParticleContainer_t>& pc, const CoordinateSystemTrafo& refToLocal) {
     if (!pc || !getFlagDeleteOnTransverseExit()) {
         return 0;
     }
@@ -60,6 +61,9 @@ size_t Box::markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) 
     const double xLimit = halfWidth_m;
     const double yLimit = halfHeight_m;
 
+    const matrix3x3_t rotation       = refToLocal.getRotationMatrix();
+    const Vector_t<double, 3> origin = refToLocal.getOrigin();
+
     auto Rview   = pc->R.getView();
     auto invalid = pc->InvalidMask.getView();
 
@@ -67,9 +71,10 @@ size_t Box::markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) 
     Kokkos::parallel_reduce(
             "Box::markOutsideAperture", nLocal,
             KOKKOS_LAMBDA(const size_t i, size_t& count) {
-                const bool hit = Rview(i)[2] >= zBegin && Rview(i)[2] < zEnd
-                                 && Kokkos::fabs(Rview(i)[0]) < xLimit
-                                 && Kokkos::fabs(Rview(i)[1]) < yLimit;
+                const Vector_t<double, 3> delta = Rview(i) - origin;
+                const Vector_t<double, 3> r     = prod_vector(rotation, delta);
+                const bool hit = r[2] >= zBegin && r[2] < zEnd && Kokkos::fabs(r[0]) < xLimit
+                                 && Kokkos::fabs(r[1]) < yLimit;
                 const bool newlyMarked = hit && !invalid(i);
                 invalid(i)             = invalid(i) || hit;
                 count += newlyMarked ? 1 : 0;
