@@ -153,7 +153,8 @@ namespace {
 
     TEST_F(MultiContainerPartBunchTest, TwoContainers_CountsAndDistinctPointers) {
         ASSERT_EQ(bunch->getNumParticleContainers(), 2u);
-        ASSERT_EQ(bunch->getParticleContainers().size(), 2u);
+        ASSERT_EQ(
+            bunch->getParticleContainers().size(), 2u);
 
         auto pc0 = bunch->getParticleContainer(0);
         auto pc1 = bunch->getParticleContainer(1);

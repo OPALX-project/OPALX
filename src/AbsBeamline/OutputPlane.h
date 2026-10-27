@@ -16,34 +16,29 @@
 #define CLASSIC_OutputPlane_HH
 
 #include "AbsBeamline/PluginElement.h"
-#include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/NullField.h"
-#include "Steppers/Steppers.h"
 #include "Steppers/RK4.h"
 
 #include <string>
-
-class Component;
 
 /** Class OutputPlane
  *  ------------------------------------------------------------------------
  *  Class OutputPlane defines an output plane, which enables output of tracking
  *  data at an arbitrary spatial plane. The crossing of the plane in a given time
  *  step is detected by (1) checking if the step is within c*dt of the plane and
- *  then (2) checking if an RK4 step crosses the plane. 
- * 
+ *  then (2) checking if an RK4 step crosses the plane.
+ *
  *  If the track crosses, then we estimate the position of the track either by
  *  doing a linear interpolation between the initial position and the position
  *  of the test step; OR we do an iterative RK4 step, reducing the RK4 step size
  *  each time until we find crossing position to some tolerance or the maximum
  *  number of iterations is reached.
- * 
+ *
  *  Additional features - we can recentre the plane on a particular track (for
- *  example, one might seek to make a plane perpendicular to a reference 
+ *  example, one might seek to make a plane perpendicular to a reference
  *  trajectory); we can limit the extent of the plane so only particles crossing
  *  within a certain distance are registered.
- * 
- *  BUG: if the "Global" Opal tracking is not RK4, then there is a small 
+ *
+ *  BUG: if the "Global" Opal tracking is not RK4, then there is a small
  *  possibility that the "Global" track and the OutputPlane step will be not
  *  perfectly aligned; tracks could register crossing twice or not crossing at
  *  all. An improved algorithm would be to use the "global" stepper or make some
@@ -74,19 +69,19 @@ public:
     void accept(BeamlineVisitor&) const override;
 
     /** Get the field map */
-    inline Component* getGlobalFieldMap() const;
+    inline ElementBase* getGlobalFieldMap() const;
     /** Set the field map */
-    inline void setGlobalFieldMap(Component* field);
+    inline void setGlobalFieldMap(ElementBase* field);
 
     /** Get the normal to the plane */
     inline Vector_t<double> getNormal() const;
     /** Set the normal to the plane */
-    inline void setNormal(Vector_t<double> normal);
+    inline void setNormal(const Vector_t<double>& normal);
 
     /** Get the centre of the plane */
     inline Vector_t<double> getCentre() const;
     /** Set the centre of the plane */
-    inline void setCentre(Vector_t<double> centre);
+    inline void setCentre(const Vector_t<double>& centre);
 
     /** Get the tolerance, used when finding intersection with the plane */
     inline double getTolerance() const;
@@ -112,7 +107,7 @@ public:
      */
     inline double getVerticalExtent() const;
     /** Set the vertical extent from the plane centre */
-    inline void setVerticalExtent(double z);
+    inline void setVerticalExtent(double height);
 
     /** Get the horizontal extent from the plane centre
      */
@@ -145,7 +140,7 @@ public:
      *  @li t: time of the initial particle [s]. Unchanged if no crossing is
      *         found, else filled with the estimated time of the particle at the
      *         plane crossing point.
-     *  @li R: position three-vector of the initial particle [m]. Unchanged if 
+     *  @li R: position three-vector of the initial particle [m]. Unchanged if
      *         no crossing is found, else filled with the estimated position of
      *         the particle at the plane crossing point.
      *  @li P: (gamma beta) three-vector of the initial particle [].
@@ -158,15 +153,15 @@ public:
      *  does not change sign, the particle is assumed to stay on the same side.
      *  Note that particles that step across the boundary and back again will
      *  not be registered as a crossing.
-     * 
+     *
      *  The intercept is found by iteratively doing RK4 steps. Successive step
-     *  sizes are found by linear interpolation based on the distance from the 
+     *  sizes are found by linear interpolation based on the distance from the
      *  plane and the time step. I could use the Steppers/RK4.h routines but
      *  these automatically update the global particle information and I don't
      *  want to do that, I just want a local stepping.
      *
-     *  If recentre_m is positive then centre_m is set to the position of 
-     *  the n^th crossing particle and normal_m is set to be parallel to the 
+     *  If recentre_m is positive then centre_m is set to the position of
+     *  the n^th crossing particle and normal_m is set to be parallel to the
      *  momentum vector. recentre_m is set to -1. The idea is to generate
      *  output planes in the coordinate system of some trajectory (e.g. for
      *  studying beam transport/transfer matrix). Normally this will be the
@@ -176,23 +171,25 @@ public:
      *  If radialExtent_m is > 0, crossings more than radialExtent_m from the
      *  centre are ignored. If horizontalExtent_m is > 0, crossings more than
      *  horizontalExtent_m from the centre, in global x-y plane, are ignored. If
-     *  verticalExtent_m is > 0, crossings more than verticalExtent_m in 
+     *  verticalExtent_m is > 0, crossings more than verticalExtent_m in
      *  direction parallel to global z axis, are ignored.
      *
      *  @returns True if the particle crosses the plane; else false.
      */
-    bool checkOne(const int index, const double tstep, double chargeToMass,
-                  double& t, Vector_t& R, Vector_t& P);
+    KOKKOS_FUNCTION static bool checkOne(int index, double tStep, double chargeToMass,
+                  double& t, Vector_t<double>& R, Vector_t<double>& P, Vector_t<double> centre,
+                  Vector_t<double> normal);
 
-    /** Returns empty field */
-    NullField& getField() override {return nullfield_m;}
-    /** Returns empty field */
-    const NullField& getField() const override {return nullfield_m;}
+    KOKKOS_FUNCTION static void doOne(size_t index,
+        Kokkos::View<ippl::Vector<double, 3>*> rView,
+        Kokkos::View<ippl::Vector<double, 3>*> pView,
+        Kokkos::View<double*> qView, Kokkos::View<double*> mView, Kokkos::View<bool*> invalidView,
+        double t, double tStep, bool singleQM, Kokkos::View<bool*> hitView);
 
     /** Returns empty geometry */
-    StraightGeometry& getGeometry() override {return geom_m;}
+    Geometry& getGeometry() override {return geom_m;}
     /** Returns empty geometry */
-    const StraightGeometry& getGeometry() const override {return geom_m;}
+    const Geometry& getGeometry() const override {return geom_m;}
     /** Make an RK4Step
      *  @li tstep: time step [s]
      *  @li chargeToMass: chargeToMass ratio [m^2/s^2/GV]
@@ -200,88 +197,88 @@ public:
      *  @li R: R [m]
      *  @li P: beta gamma [] - note dimensionless
      */
-    void RK4Step(const double& tstep,
+    KOKKOS_FUNCTION static void RK4Step(const double& tStep,
                  const double& chargeToMass,
                  const double& t,
-                 Vector_t& R,
-                 Vector_t& P) const;
+                 Vector_t<double>& R1,
+                 Vector_t<double>& P1);
 
     void operator=(const OutputPlane&) = delete;
-    
+
     //ElementBase::ElementType getType() const;
     ElementType getType() const override;
-    void recentre(Vector_t R, Vector_t P);
+    void recentre(Vector_t<double> R, Vector_t<double> P);
 
 
 private:
     /// Initialise peakfinder file
-    virtual void doInitialise(PartBunchBase<double, 3>* /*bunch*/) override;
+    void doInitialise(PartBunch_t* bunch) override;
 
     /// Record probe hits when bunch particles pass
-    inline bool doPreCheck(PartBunchBase<double, 3> *bunch) override;
+    inline bool doPreCheck(PartBunch_t *bunch) override;
 
     /// Record probe hits when bunch particles pass
-    virtual bool doCheck(PartBunchBase<double, 3> *bunch,
-                         const int turnnumber, 
-                         const double t, 
-                         const double tstep) override;
+    bool doCheck(PartBunch_t *bunch,
+                         int turnnumber,
+                         double t,
+                         double tstep) override;
     /// Hook for goOffline
-    virtual void doGoOffline() override;
-    void getDerivatives(const Vector_t& R,
-                        const Vector_t& P,
+    void doGoOffline() override;
+    KOKKOS_FUNCTION static void getDerivatives(const Vector_t<double>& R,
+                        const Vector_t<double>& P,
                         const double& t,
                         const double& chargeToMass,
-                        double* yp) const;
-    double distanceToPlane(Vector_t point) const;
-    void rk4Test(double tstep, double chargeToMass,
-                 double& t, Vector_t& R, Vector_t& P);
-    void interpolation(double& t, Vector_t& R, Vector_t& P);
-    bool getFieldsAtPoint(const Vector_t& R, const Vector_t& P, const double& t, Vector_t& Efield, Vector_t& Bfield);
-    
-    Component* field_m = nullptr; // field map - this is a borrowed pointer
-    Vector_t normal_m; // normal to the output plane
-    Vector_t centre_m; // centre of the output plane
+                        double* yp);
+    double distanceToPlane(Vector_t<double> point) const;
+    void rk4Test(double tStep, double chargeToMass,
+                 double& t, Vector_t<double>& R, Vector_t<double>& P) const;
+    void interpolation(double& t, Vector_t<double>& R, Vector_t<double>& P);
+    bool getFieldsAtPoint(const Vector_t<double>& R, const Vector_t<double>& P,
+        const double& t, Vector_t<double>& Efield, Vector_t<double>& Bfield);
+
+    ElementBase* field_m = nullptr; // field map - this is a borrowed pointer
+    Vector_t<double> normal_m; // normal to the output plane
+    Vector_t<double> centre_m; // centre of the output plane
     double radialExtent_m = -1.0; // maximum radial extent of the plane (circular)
     double verticalExtent_m = -1.0; // maximum vertical extent of the plane (rectangular)
     double horizontalExtent_m = -1.0; // maximum horizontal extent of the plane (rectangular)
     size_t maxIterations_m = 10; // maximum number of iterations when finding intercept
     double tolerance_m = 1e-9; // tolerance on distance from plane when finding intercept
-    NullField nullfield_m; // dummy variable for inheritance
-    StraightGeometry geom_m; // dummy variable for inheritance
+    Geometry geom_m; // dummy variable for inheritance
     algorithm algorithm_m; // sets interpolation or RK4
     int recentre_m = -1; // particle index for recentring
     int nHits_m = 0; // counter for number of hits on the plane
     int verbose_m = 0; // verbosity
 
-    typedef std::function<bool(const double&,
+    using function_t = std::function<bool(const double&,
                                const size_t&,
-                               Vector_t&,
-                               Vector_t&)> function_t;
+                               Vector_t<double>&,
+                               Vector_t<double>&)>;
     std::unique_ptr<Stepper<function_t> > stepper_m;
 };
 
-Component* OutputPlane::getGlobalFieldMap() const {
+ElementBase* OutputPlane::getGlobalFieldMap() const {
     return field_m;
 }
 
-void OutputPlane::setGlobalFieldMap(Component* field) {
+void OutputPlane::setGlobalFieldMap(ElementBase* field) {
     field_m = field;
 }
 
-Vector_t OutputPlane::getNormal() const {
+Vector_t<double> OutputPlane::getNormal() const {
     return normal_m;
 }
 
-void OutputPlane::setNormal(Vector_t normal) {
+void OutputPlane::setNormal(const Vector_t<double>& normal) {
     normal_m = normal;
     normal_m /= euclidean_norm(normal);
 }
 
-Vector_t OutputPlane::getCentre() const {
+Vector_t<double> OutputPlane::getCentre() const {
     return centre_m;
 }
 
-void OutputPlane::setCentre(Vector_t centre) {
+void OutputPlane::setCentre(const Vector_t<double>& centre) {
     centre_m = centre;
 }
 
@@ -289,7 +286,7 @@ double OutputPlane::getTolerance() const {
     return tolerance_m;
 }
 
-void OutputPlane::setTolerance(double tolerance) {
+void OutputPlane::setTolerance(const double tolerance) {
     tolerance_m = tolerance;
 }
 
@@ -297,7 +294,7 @@ size_t OutputPlane::getMaxIterations() const {
     return maxIterations_m;
 }
 
-void OutputPlane::setMaxIterations(size_t max) {
+void OutputPlane::setMaxIterations(const size_t max) {
     maxIterations_m = max;
 }
 
@@ -305,7 +302,7 @@ double OutputPlane::getHorizontalExtent() const {
     return horizontalExtent_m;
 }
 
-void OutputPlane::setHorizontalExtent(double width) {
+void OutputPlane::setHorizontalExtent(const double width) {
     horizontalExtent_m = width;
 }
 
@@ -313,35 +310,35 @@ double OutputPlane::getVerticalExtent() const {
     return verticalExtent_m;
 }
 
-void OutputPlane::setVerticalExtent(double width) {
-    verticalExtent_m = width;
+void OutputPlane::setVerticalExtent(const double height) {
+    verticalExtent_m = height;
 }
 
 double OutputPlane::getRadialExtent() const {
     return radialExtent_m;
 }
 
-void OutputPlane::setRadialExtent(double radius) {
-    radialExtent_m = radius;
+void OutputPlane::setRadialExtent(const double r) {
+    radialExtent_m = r;
 }
 
 int OutputPlane::getRecentre() const {
     return recentre_m;
 }
 
-void OutputPlane::setRecentre(int recentre) {
-    recentre_m = recentre;
+void OutputPlane::setRecentre(const int willRecentre) {
+    recentre_m = willRecentre;
 }
 
 OutputPlane::algorithm OutputPlane::getAlgorithm() const {
     return algorithm_m;
 }
 
-void OutputPlane::setAlgorithm(OutputPlane::algorithm alg) {
+void OutputPlane::setAlgorithm(const algorithm alg) {
     algorithm_m = alg;
 }
 
-bool OutputPlane::doPreCheck(PartBunchBase<double, 3>* /*bunch*/) {
+bool OutputPlane::doPreCheck(PartBunch_t* /*bunch*/) {
     return true;
 }
 
@@ -349,7 +346,7 @@ int OutputPlane::getVerboseLevel() const {
     return verbose_m;
 }
 
-void OutputPlane::setVerboseLevel(int verbose) {
+void OutputPlane::setVerboseLevel(const int verbose) {
     verbose_m = verbose;
 }
 
