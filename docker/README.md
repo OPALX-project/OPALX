@@ -3,9 +3,10 @@
 A CPU (OpenMP) build of OPALX in a container, for trying OPALX without
 installing compilers, MPI or any of its dependencies. All you need is Docker.
 
-The image runs on Linux, on Windows (WSL 2 or Docker Desktop) and on Intel
-Macs. On Apple Silicon Macs it runs under x86-64 emulation, which works but
-is slow. GPU builds are not provided yet.
+The image is built for x86-64 and ARM64, and Docker picks the one that matches
+your machine. It runs natively on Linux, on Windows (WSL 2 or Docker Desktop),
+on Intel and Apple Silicon Macs, and on ARM Linux machines. GPU builds are not
+provided yet.
 
 ## Run a simulation
 
@@ -51,8 +52,10 @@ From the repository root:
 docker build -f docker/Dockerfile -t opalx:cpu --build-arg GIT_SHA=$(git rev-parse HEAD) .
 ```
 
-The build downloads IPPL, Kokkos, Heffte, HDF5, H5hut and LAPACK, so it needs
-network access. Build arguments:
+The image is built for your machine's architecture; add `--platform linux/arm64`
+or `linux/amd64` for the other one (this needs QEMU emulation and is much
+slower). The build downloads IPPL, Kokkos, Heffte, HDF5, H5hut and LAPACK, so
+it needs network access. Build arguments:
 
 | Argument | Default | |
 |---|---|---|
@@ -71,7 +74,9 @@ docker/smoke-test.sh opalx:cpu regression-tests-x
 Other tests can be named after the checkout path, e.g.
 `docker/smoke-test.sh opalx:cpu regression-tests-x RFCavity`. Some of them
 currently miss their tolerances with any build, including the serial build
-CI uses, so only the default CI subset is a reliable check of an image.
+CI uses, so only the default CI subset is a reliable check of an image. ARM64
+results differ from x86-64 ones in the last digits, because ARM64 compilers
+fuse multiply-adds.
 
 ## Development environment
 
