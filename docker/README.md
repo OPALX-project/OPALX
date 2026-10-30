@@ -6,7 +6,8 @@ installing compilers, MPI or any of its dependencies. All you need is Docker.
 The image is built for x86-64 and ARM64, and Docker picks the one that matches
 your machine. It runs natively on Linux, on Windows (WSL 2 or Docker Desktop),
 on Intel and Apple Silicon Macs, and on ARM Linux machines. GPU builds are not
-provided yet.
+provided yet. [Step by step on a Mac](#step-by-step-on-a-mac) walks through
+installing Docker, building the image and running the tests.
 
 ## Run a simulation
 
@@ -67,12 +68,14 @@ it needs network access. Build arguments:
 To check an image with the smoke regression tests used in CI:
 
 ```bash
-git clone --depth=1 https://github.com/OPALX-project/regression-tests-x.git
-docker/smoke-test.sh opalx:cpu regression-tests-x
+git clone --depth=1 https://github.com/OPALX-project/regression-tests-x.git ../regression-tests-x
+docker/smoke-test.sh opalx:cpu ../regression-tests-x
 ```
 
-Other tests can be named after the checkout path, e.g.
-`docker/smoke-test.sh opalx:cpu regression-tests-x RFCavity`. Some of them
+The tests are cloned next to the repository rather than into it, so that they
+are not sent to the next image build. Other tests can be named after the
+checkout path, e.g.
+`docker/smoke-test.sh opalx:cpu ../regression-tests-x RFCavity`. Some of them
 currently miss their tolerances with any build, including the serial build
 CI uses, so only the default CI subset is a reliable check of an image. ARM64
 results differ from x86-64 ones in the last digits, because ARM64 compilers
@@ -92,10 +95,65 @@ Inside the container, the repository is at `/work`:
 
 ```bash
 cmake -S /work -B /work/build_openmp -DCMAKE_BUILD_TYPE=Release -DPLATFORMS=OPENMP -DOPALX_ENABLE_UNIT_TESTS=ON
-cmake --build /work/build_openmp -j
+cmake --build /work/build_openmp -j "$(nproc)"
 ctest --test-dir /work/build_openmp --output-on-failure
 ```
 
 Always run CMake inside the container: the build directory records container
 paths. Set `OPALX_WORK` to mount a different directory at `/work`, for
 example a parent directory that also holds build and run directories.
+
+## Step by step on a Mac
+
+These steps set up Docker on a Mac with Apple Silicon or an Intel chip, build
+the image and check it with the smoke tests. Run the commands in Terminal.
+
+1. Install [Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/),
+   with the Apple Silicon or Intel installer to match your Mac, and start it.
+   `docker version` then shows both a Client and a Server section.
+
+2. Install git and Python, unless `git --version` and `python3 --version`
+   already work:
+
+   ```bash
+   xcode-select --install
+   ```
+
+3. Get the OPALX source and build the image, which takes several minutes:
+
+   ```bash
+   git clone https://github.com/OPALX-project/OPALX.git
+   cd OPALX
+   docker build -f docker/Dockerfile -t opalx:cpu --build-arg GIT_SHA=$(git rev-parse HEAD) .
+   ```
+
+   If the build stops with `Killed` or exit code 137, it ran out of memory.
+   Docker Desktop gets half of the Mac's memory by default. Raise the limit
+   under *Settings → Resources → Advanced*, or add `--build-arg JOBS=4` to
+   compile fewer files at a time.
+
+   Instead of building the image, you can pull the published one with
+   `docker pull ghcr.io/opalx-project/opalx:cpu` and use that name in place of
+   `opalx:cpu` below. The source is still needed for the test scripts.
+
+4. Check that the image matches your Mac. This prints `aarch64` on Apple
+   Silicon and `x86_64` on Intel:
+
+   ```bash
+   docker run --rm --entrypoint uname opalx:cpu -m
+   ```
+
+   An `x86_64` image on Apple Silicon runs under emulation and is much
+   slower. That happens, for example, when `DOCKER_DEFAULT_PLATFORM` is set
+   to `linux/amd64`.
+
+5. Get the regression tests and run the smoke tests. The last line of the
+   output should read `All 3 tests passed`:
+
+   ```bash
+   git clone --depth=1 https://github.com/OPALX-project/regression-tests-x.git ../regression-tests-x
+   docker/smoke-test.sh opalx:cpu ../regression-tests-x
+   ```
+
+6. To run the unit tests as well, build the dev image and compile OPALX in it
+   as described in [Development environment](#development-environment).
