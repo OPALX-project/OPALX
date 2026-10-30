@@ -27,6 +27,7 @@
 #include <Kokkos_NumericTraits.hpp>
 #include <algorithm>
 #include <functional>
+#include <limits>
 #include <numeric>
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
@@ -64,6 +65,30 @@ namespace opalx::spacecharge {
                 Algorithm::doScatterToGrid<ScatterLongitudinally>(
                         n, r_m, p_m, ref_m, meanPs_m, dt_m, invalid_m, invDr_m, nGhost_m, lDom_m,
                         rho_m, origin_m, diagnostic_m);
+            }
+        };
+
+        /** @brief Reject open-path endpoint projection that would collapse source charge. */
+        struct CheckPathCoverageFunctor {
+            Algorithm::VectorView_t r_m;
+            Algorithm::VectorView_t p_m;
+            Algorithm::ReferenceView_t ref_m;
+            Algorithm::BooleanView_t invalid_m;
+            Algorithm::T length_m;
+            Algorithm::T tolerance_m;
+
+            KOKKOS_FUNCTION void operator()(const size_t n, size_t& outside) const {
+                if (invalid_m(n)) return;
+                Algorithm::Vector3D_t fsR, fsP, bUnit, nUnit, tUnit;
+                Algorithm::convertToFrenetSerret(n, r_m, p_m, ref_m, fsR, fsP, bUnit, nUnit, tUnit);
+                const Algorithm::Vector3D_t fromStart = r_m(n) - ref_m(0);
+                const auto before                     = fromStart.dot(tUnit);
+                const Algorithm::Vector3D_t fromEnd   = r_m(n) - ref_m(ref_m.extent(0) - 1);
+                const auto after                      = fromEnd.dot(tUnit);
+                if ((fsR[2] <= tolerance_m && before < -tolerance_m)
+                    || (fsR[2] >= length_m - tolerance_m && after > tolerance_m)) {
+                    ++outside;
+                }
             }
         };
 
@@ -193,13 +218,14 @@ namespace opalx::spacecharge {
             Algorithm::Vector3D_t origin_m;
             Algorithm::T gBy4PiEpsilon0_m;
             Algorithm::LineDensityView_t lineDensityGradient_m;
+            bool closedRing_m;
             DiagnosticPolicy diagnostic_m;
 
             KOKKOS_FUNCTION void operator()(const size_t n) const {
                 Algorithm::doGatherFromGrid<ScatterLongitudinally>(
                         n, r_m, p_m, ref_m, beamGamma_m, beamBeta_m, e_m, b_m, invalid_m, invDr_m,
                         nGhost_m, lDom_m, eField_m, origin_m, gBy4PiEpsilon0_m,
-                        lineDensityGradient_m, diagnostic_m);
+                        lineDensityGradient_m, closedRing_m, diagnostic_m);
             }
         };
     }  // namespace fft2d5_detail
@@ -251,6 +277,27 @@ namespace opalx::spacecharge {
                     throw OpalException(
                             "FFT2D5Algorithm::scatterToGrid",
                             "Per-particle charge is zero for an active FFT2D5 container.");
+                }
+                // A clamped projection would put particles beyond a finite path
+                // into its end slice. Fail before mutating the per-particle time steps.
+                if (!config_m.closedRing) {
+                    const auto length = referencePath_m->length();
+                    const auto tolerance =
+                            64 * std::numeric_limits<T>::epsilon() * std::max(T(1), length);
+                    size_t outside = 0;
+                    Kokkos::parallel_reduce(
+                            "FFT2D5::checkPathCoverage", pc->getLocalNum(),
+                            fft2d5_detail::CheckPathCoverageFunctor{
+                                    pc->R.getView(), pc->P.getView(), ref,
+                                    pc->InvalidMask.getView(), length, tolerance},
+                            outside);
+                    if (outside != 0) {
+                        throw OpalException(
+                                "FFT2D5Algorithm::scatterToGrid",
+                                "Open reference path does not cover " + std::to_string(outside)
+                                + " active particle(s). Extend REFPATHFNAME to cover the full "
+                                  "bunch throughout tracking; endpoint clamping would pile up charge.");
+                    }
                 }
                 pc->scaleDtByCharge();
                 const auto r       = pc->R.getView();
@@ -310,8 +357,8 @@ namespace opalx::spacecharge {
     // This is a Kokkos kernel that deposits the charge for a single particle into the
     // charge density grid.  The particle's coordinates are first translated into
     // the Frenet-Serret coordinate system using the previously loaded reference path.
-    // The particle is then boosted into the beam's reference frame before the charge
-    // is scattered using one of two CiC algorithms depending on the ScatterLongitudinally
+    // Momentum is transformed for diagnostics; positions and deposited line charge
+    // remain in the lab frame. Charge is scattered with a CiC algorithm selected by
     // template parameter.   When true, trilinear CiC is used.  When false, the particle
     // is assigned to a single z slice and bilinear CiC is used in that slice.
     template <bool ScatterLongitudinally, typename DiagnosticPolicy>
@@ -575,7 +622,7 @@ namespace opalx::spacecharge {
                                     true, DiagnosticPolicy, decltype(invDr)>{
                                     r, p, ref, gammaB, betaB, e, b, invalid, invDr, nGhost, lDom,
                                     eField, origin, gBy4PiEpsilon0, lineDensityGradient,
-                                    diagnostic});
+                                    config_m.closedRing, diagnostic});
                 } else {
                     Kokkos::parallel_for(
                             "Solver2d5::GatherFromGrid", pc->getLocalNum(),
@@ -583,7 +630,7 @@ namespace opalx::spacecharge {
                                     false, DiagnosticPolicy, decltype(invDr)>{
                                     r, p, ref, gammaB, betaB, e, b, invalid, invDr, nGhost, lDom,
                                     eField, origin, gBy4PiEpsilon0, lineDensityGradient,
-                                    diagnostic});
+                                    config_m.closedRing, diagnostic});
                 }
                 Kokkos::fence();
             }
@@ -597,7 +644,8 @@ namespace opalx::spacecharge {
             const VectorView_t& b, const BooleanView_t& invalid, const Vector3D_t invDr,
             const int nGhost, const ippl::NDIndex<3U> lDom, const VectorGridView3D_t eField,
             const Vector3D_t origin, const T gBy4PiEpsilon0,
-            const LineDensityView_t lineDensityGradient, DiagnosticPolicy diagnostic) {
+            const LineDensityView_t lineDensityGradient, const bool closedRing,
+            DiagnosticPolicy diagnostic) {
         if (!invalid(n)) {
             // Into Frenet-Serret coordinates
             Vector3D_t fsR, fsP, bUnit, nUnit, tUnit;
@@ -606,15 +654,31 @@ namespace opalx::spacecharge {
             // CiC Gather the boosted E field
             gatherFromEField<ScatterLongitudinally>(n, fsR, e, invDr, nGhost, lDom, eField, origin);
             diagnostic.gatherEField(n, e(n), b(n), invalid(n));
-            // Unboost from the beam frame
-            unboostFromBeamFrame(n, beamGamma, beamBeta, e, b);
+            // Complete the lab self-fields from the lab-density transverse solve
+            setTransverseLabMagneticField(n, beamBeta, e, b);
             diagnostic.deboostFromBeam(n, e(n), b(n), invalid(n));
             // Calculate the longitudinal E field in Frenet-Serret coordinates
-            const int index = (fsR.data_m[2] - origin.data_m[2]) * invDr.data_m[2] + 0.5;
-            T ldg{};
-            if (index >= 0 && index < static_cast<int>(lineDensityGradient.extent(0))) {
-                ldg = lineDensityGradient(index);
+            // Gradients live at cell centers (k+1/2)*dz, with no ghost offset.
+            // Use the same longitudinal shape as charge deposition. The old
+            // int(s/dz+1/2) shifted the force by half a cell and broke symmetry.
+            const T cell = (fsR[2] - origin[2]) * invDr[2] - 0.5;
+            int left     = static_cast<int>(Kokkos::floor(cell));
+            T fraction   = cell - left;
+            if constexpr (!ScatterLongitudinally) {
+                left     = static_cast<int>(Kokkos::floor(cell + 0.5));
+                fraction = 0;
             }
+            int right       = left + 1;
+            const int count = static_cast<int>(lineDensityGradient.extent(0));
+            if (closedRing) {
+                left  = (left % count + count) % count;
+                right = (right % count + count) % count;
+            } else {
+                left  = Kokkos::clamp(left, 0, count - 1);
+                right = Kokkos::clamp(right, 0, count - 1);
+            }
+            const T ldg = (1 - fraction) * lineDensityGradient(left)
+                          + fraction * lineDensityGradient(right);
             e(n).data_m[2] = -gBy4PiEpsilon0 * ldg / beamGamma / beamGamma;
             diagnostic.longitudinalField(n, e(n), b(n), invalid(n));
             // And finally back into lab coordinates
@@ -686,14 +750,15 @@ namespace opalx::spacecharge {
         Kokkos::atomic_add(&rho(x, y, z), whi[0] * whi[1] * charge);
     }
 
-    KOKKOS_INLINE_FUNCTION void FFT2D5Algorithm::unboostFromBeamFrame(
-            const size_t n, const T beamGamma, const T beamBeta, const VectorView_t& e,
-            const VectorView_t& b) {
-        // Transform the E field from the boosted beam frame into E and B fields
-        e(n).data_m[0] *= beamGamma;
-        e(n).data_m[1] *= beamGamma;
-        b(n).data_m[0] = beamBeta * e(n).data_m[1] / Physics::c;
-        b(n).data_m[1] = -beamBeta * e(n).data_m[0] / Physics::c;
+    KOKKOS_INLINE_FUNCTION void FFT2D5Algorithm::setTransverseLabMagneticField(
+            const size_t n, const T beamBeta, const VectorView_t& e, const VectorView_t& b) {
+        // The slice source uses laboratory positions and charge per laboratory
+        // length. Its transverse Poisson field is therefore already the lab E:
+        // the rest-density 1/gamma and the E-field boost gamma cancel. Applying
+        // another gamma here would overcount that transformation.
+        // B = beta * t_hat cross E / c, so v cross B cancels beta^2 of E.
+        b(n).data_m[0] = -beamBeta * e(n).data_m[1] / Physics::c;
+        b(n).data_m[1] = beamBeta * e(n).data_m[0] / Physics::c;
         b(n).data_m[2] = 0.0;
     }
 
