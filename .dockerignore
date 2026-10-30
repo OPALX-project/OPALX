@@ -1,0 +1,10 @@
+# Docker build context for docker/Dockerfile: only the source tree is needed
+.git
+build
+build_*
+**/CMakeCache.txt
+**/CMakeFiles
+src/OPALXrevision.h
+*.h5
+.idea
+.vscode
