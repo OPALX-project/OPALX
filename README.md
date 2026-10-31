@@ -1,24 +1,5 @@
 # OPALX
 
-## Quick start with Docker
-
-A CPU (OpenMP) build of OPALX is published as a Docker image for x86-64 and
-ARM64. It runs on Linux, on Windows with WSL 2, and on Intel and Apple Silicon
-Macs, with nothing to compile. With [Docker](https://docs.docker.com/get-started/get-docker/)
-installed, this runs one of the [regression tests](https://github.com/OPALX-project/regression-tests-x):
-
-```bash
-git clone --depth=1 https://github.com/OPALX-project/regression-tests-x.git
-cd regression-tests-x/RegressionTests/Drift-1-fromfile
-docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/data" ghcr.io/opalx-project/opalx:cpu Drift-1-fromfile.in --info 2
-```
-
-The results, such as `Drift-1-fromfile.stat`, are written next to the input
-file. To run your own input file, use the same command in its directory with
-its name. [docker/README.md](docker/README.md) covers MPI and OpenMP settings,
-image tags, building the image, a development container and a step-by-step
-guide for Macs.
-
 ## Continuous Integration
 
 [![CPU Serial](https://github.com/OPALX-project/OPALX/actions/workflows/cpu-serial.yml/badge.svg)](https://github.com/OPALX-project/OPALX/actions/workflows/cpu-serial.yml)
@@ -54,6 +35,25 @@ See [IPPL's formatting documentation](https://ippl-framework.github.io/Manual/se
   - `Drift-1-fromfile`
   - `Drift-4-multi-emit-open`
   - `FodoCell-fromfile`
+
+### Quick start with Docker
+
+A CPU (OpenMP) build of OPALX is published as a Docker image for x86-64 and
+ARM64. It runs on Linux, on Windows with WSL 2, and on Intel and Apple Silicon
+Macs, with nothing to compile. With [Docker](https://docs.docker.com/get-started/get-docker/)
+installed, this runs one of the [regression tests](https://github.com/OPALX-project/regression-tests-x):
+
+```bash
+git clone --depth=1 https://github.com/OPALX-project/regression-tests-x.git
+cd regression-tests-x/RegressionTests/Drift-1-fromfile
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/data" ghcr.io/opalx-project/opalx:cpu Drift-1-fromfile.in --info 2
+```
+
+The results, such as `Drift-1-fromfile.stat`, are written next to the input
+file. To run your own input file, use the same command in its directory with
+its name. [docker/README.md](docker/README.md) covers MPI and OpenMP settings,
+image tags, building the image, a development container and a step-by-step
+guide for Macs.
 
 
 ## Manual and Documentation
