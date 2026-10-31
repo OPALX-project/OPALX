@@ -44,6 +44,19 @@ On Windows PowerShell, leave out `--user` and use `-v "${PWD}:/data"`.
 | `1.0.0-cpu` | release `OPALX-1.0.0` |
 | `sha-<commit>-cpu` | a specific commit |
 
+## Licenses
+
+OPALX is licensed under the GNU General Public License, version 3 or later.
+The image also contains libraries under their own licenses: IPPL, Kokkos,
+Heffte, HDF5, H5hut and LAPACK are compiled into `opalx`, and Open MPI and the
+other runtime libraries come from Ubuntu packages. Their license texts are in
+the image, in `/usr/share/doc/opalx` for OPALX and the libraries compiled into
+it, and in `/usr/share/doc/<package>/copyright` for the Ubuntu packages:
+
+```bash
+docker run --rm ghcr.io/opalx-project/opalx:cpu cat /usr/share/doc/opalx/README
+```
+
 ## Build the image yourself
 
 From the repository root:
