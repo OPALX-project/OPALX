@@ -50,6 +50,10 @@ RUN echo "#define GIT_VERSION \"${GIT_SHA}\"" > /opt/opalx/src/src/OPALXrevision
       -DPLATFORMS=OPENMP \
  && cmake --build /opt/opalx/build -j "${JOBS:-$(nproc)}"
 
+# License texts of OPALX and of the libraries compiled into it
+RUN python3 /opt/opalx/src/docker/collect_licenses.py \
+      /opt/opalx/src /opt/opalx/build /opt/opalx/licenses "${GIT_SHA}"
+
 # ------------------------------------------------------------------------------
 # runtime
 # ------------------------------------------------------------------------------
@@ -60,7 +64,8 @@ ARG GIT_SHA=unknown
 LABEL org.opencontainers.image.title="OPALX" \
       org.opencontainers.image.description="OPALX, CPU (OpenMP) build" \
       org.opencontainers.image.source="https://github.com/OPALX-project/OPALX" \
-      org.opencontainers.image.revision="${GIT_SHA}"
+      org.opencontainers.image.revision="${GIT_SHA}" \
+      org.opencontainers.image.licenses="GPL-3.0-or-later"
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
@@ -68,6 +73,7 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /opt/opalx/build/src/opalx /usr/local/bin/opalx
+COPY --from=build /opt/opalx/licenses /usr/share/doc/opalx
 COPY --chmod=0755 docker/entrypoint.sh /usr/local/bin/opalx-entrypoint
 
 # Fail the image build if the executable needs a library that is not installed
