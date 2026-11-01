@@ -27,6 +27,7 @@
 #include "Track/Track.h"
 #include "Track/TrackParser.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/Options.h"
 
 namespace {
     // The attributes of class TrackCmd
@@ -180,6 +181,12 @@ Steppers::TimeIntegrator TrackCmd::getTimeIntegrator() {
 }
 
 void TrackCmd::execute() {
+    if (Options::parseOnly) {
+        TrackParser parser;
+        parser.runParseOnly();
+        return;
+    }
+
     // Find BeamSequence
     BeamSequence* theLineToTrack = BeamSequence::find(Attributes::getString(itsAttr[LINE]));
 
