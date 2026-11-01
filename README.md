@@ -150,6 +150,24 @@ For the release mode, use `Release` instead of `Debug` as the argument for `-DCM
   mirroring pass device buffers directly to MPI; field mirroring has no host-staging fallback.
 - All IPPL/Kokkos flags (FFT, solvers, tests, ALPINE, `Kokkos_ARCH_*`, etc.) are now set automatically.
 
+#### FFT2D5 transverse fields and reference paths
+
+`FFT2D5` deposits charge on a reference-path mesh using laboratory positions and
+line charge. The slice Poisson field is therefore the laboratory transverse
+electric field. The magnetic field follows `B = beta * t_hat cross E / c`, so a
+comoving particle's transverse self-force is reduced by `1/gamma^2`. The
+longitudinal `PIPEMODE` approximation is separate from this transverse solve. The
+longitudinal density derivative is sampled at cell centers with the same shape
+as charge deposition: linear interpolation for `SCATTERLONGITUDINALLY=TRUE`,
+otherwise one cell. Closed-ring interpolation wraps across the path boundary.
+
+For an open path, `REFPATHFNAME` must cover the full finite bunch throughout
+tracking, including particles behind the first reference-particle position.
+Particles beyond either path endpoint now cause an error before deposition;
+clamping them into an endpoint slice would concentrate charge artificially.
+If the generated design path is too short, provide an extended path explicitly.
+This coverage check does not change closed-ring wrapping.
+
 #### Further Options
 | Flag | Default | Description |
 |------|---------|-------------|
