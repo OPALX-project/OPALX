@@ -25,9 +25,8 @@ env:
 
 jobs:
   # ===== BUILD + SMOKE TESTS, ONE NATIVE RUNNER PER ARCHITECTURE =====
-  # Forks and pull requests only build and test. In the upstream repository,
-  # pushes to master and release tags also push each architecture's image
-  # untagged, for the publish job to tag together.
+  # Pull requests only build and test. Pushes to master and release tags also push
+  # each architecture's image untagged, for the publish job to tag together.
   build:
     name: Build & Test (${{ matrix.platform }})
     runs-on: ${{ matrix.runner }}
@@ -74,7 +73,7 @@ jobs:
         run: docker/smoke-test.sh opalx:test regression-tests-x
 
       - name: Log in to GitHub Container Registry
-        if: github.repository == 'OPALX-project/OPALX' && github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -84,7 +83,7 @@ jobs:
       # Reuses the layers of the build above, so this does not compile again
       - name: Push image by digest
         id: push
-        if: github.repository == 'OPALX-project/OPALX' && github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -96,7 +95,7 @@ jobs:
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
 
       - name: Save digest
-        if: github.repository == 'OPALX-project/OPALX' && github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request'
         env:
           DIGEST: ${{ steps.push.outputs.digest }}
           PLATFORM: ${{ matrix.platform }}
@@ -106,7 +105,7 @@ jobs:
           echo "PLATFORM_PAIR=${PLATFORM//\//-}" >> "$GITHUB_ENV"
 
       - name: Upload digest
-        if: github.repository == 'OPALX-project/OPALX' && github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: digests-${{ env.PLATFORM_PAIR }}
@@ -119,7 +118,7 @@ jobs:
   publish:
     name: Publish
     needs: build
-    if: github.repository == 'OPALX-project/OPALX' && github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
