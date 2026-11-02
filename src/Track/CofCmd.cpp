@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <limits>
 #include <sstream>
+#include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbstractObjects/BeamSequence.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/ClosedOrbitSolver.h"
@@ -115,7 +116,8 @@ namespace {
             if (type == ElementType::MONITOR) return;
             require(type == ElementType::DRIFT || type == ElementType::MARKER
                             || type == ElementType::MULTIPOLE || type == ElementType::SBEND
-                            || type == ElementType::RBEND || type == ElementType::CYCLOTRONSECTOR,
+                            || type == ElementType::RBEND || type == ElementType::CYCLOTRONSECTOR
+                            || type == ElementType::SCALINGFFAMAGNET,
                     "Unsupported element in static magnetic COF: " + element.getName());
             require(element.getBeamlineMembership().ownerName == owner
                             && element.getBeamlineTopology() == BeamlineTopology::RING,
@@ -202,6 +204,7 @@ namespace {
                     double nearest = std::numeric_limits<double>::infinity();
                     for (const auto& element : elements) {
                         if (element->getType() == ElementType::CYCLOTRONSECTOR
+                            || element->getType() == ElementType::SCALINGFFAMAGNET
                             || element->getGeometry().getElementLength() <= 0)
                             continue;
                         nearest = std::min(
@@ -210,6 +213,16 @@ namespace {
                                                                    element, ray.position)));
                     }
                     for (const auto& element : elements) {
+                        if (element->getType() == ElementType::SCALINGFFAMAGNET) {
+                            // Field lookup excludes rays outside radial/vertical limits.
+                            // Check those limits independently within this magnet's spiral
+                            // support, including overlapping fringes and zero-field arcs.
+                            const auto& magnet = dynamic_cast<const ScalingFFAMagnet&>(*element);
+                            require(!magnet.getConfig().outsideAperture(
+                                            lattice.transformToLocalCS(element, ray.position)),
+                                    "Aperture/material loss in " + element->getName());
+                            continue;
+                        }
                         if (element->getType() != ElementType::CYCLOTRONSECTOR) {
                             if (element->getGeometry().getElementLength() <= 0) continue;
                             const double distance = bodyDistance2(

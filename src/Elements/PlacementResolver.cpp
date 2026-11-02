@@ -87,6 +87,10 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
         // Mode-A X/Y/Z/PHI/PSI/THETA IS the element's geometrical ENTRANCE frame (the frame the
         // tracker and field kernels use), exactly like ELEMEDGE placement. Just compose it with
         // the lab frame; no body-centre-to-entrance correction is needed.
+        if (auto ffa = std::dynamic_pointer_cast<ScalingFFAMagnet>(element)) {
+            ffa->setupEndField();
+            ffa->setPhiStart(ffa->getEndField()->getCentreLength() / 2.0);
+        }
         CoordinateSystemTrafo toElement = element->getCSTrafoGlobal2Local();
         toElement *= labFrame;
         element->setCSTrafoGlobal2Local(toElement);
@@ -108,7 +112,7 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
 
             if (element->getType() == ElementType::SCALINGFFAMAGNET) {
                 auto ffa = std::dynamic_pointer_cast<ScalingFFAMagnet>(element);
-                resolveFFAElemEdge(ffa, endPriorPathLength, currentCoordTrafo);
+                resolveFFAElemEdge(ffa, endPriorPathLength, currentCoordTrafo, labFrame);
                 continue;  // ffa element is now placed
             }
 
@@ -199,6 +203,13 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
     for (; it != end; ++it) {
         std::shared_ptr<ElementBase> element = (*it);
         if (element->isPositioned()) continue;  // already placed by Phase 1 (Mode A)
+        if (auto ffa = std::dynamic_pointer_cast<ScalingFFAMagnet>(element)) {
+            // FFA ELEMEDGE is an absolute circular placement, including gaps;
+            // advance from its resolved exit, not a straight walk to its entrance.
+            resolveFFAElemEdge(ffa, endPriorPathLength, currentCoordTrafo, labFrame);
+            element->fixPosition();
+            continue;
+        }
 
         // Entrance offset from the previous element along the straight run.
         double beginThisPathLength = element->getElementPosition();
@@ -252,7 +263,7 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
 
 void PlacementResolver::resolveFFAElemEdge(
         std::shared_ptr<ScalingFFAMagnet> ffa, double& endPriorPathLength,
-        CoordinateSystemTrafo& currentCoordTrafo) {
+        CoordinateSystemTrafo& currentCoordTrafo, const CoordinateSystemTrafo& labFrame) {
     if (!ffa) {
         throw OpalException(
                 "FFA was not found during placement", "PlacementResolver::resolveFFAElemEdge");
@@ -262,7 +273,7 @@ void PlacementResolver::resolveFFAElemEdge(
     double length    = ffa->getGeometry().getArcLength();
     double phiStart  = sPosition / r0;
     double phiEnd    = (sPosition + length) / r0;
-    ffa->setPhiStart(length / 2.0 / r0);
+    ffa->setPhiStart(length / 2.0 / std::abs(r0));
 
     // The FFA is placed with respect to FFA centre
     // if r0 is positive we bend to the left/anticlockwise (negative x direction)
@@ -274,7 +285,8 @@ void PlacementResolver::resolveFFAElemEdge(
     rotation(1, 1) = 1.0;
     rotation(0, 2) = sin(phiStart);
     rotation(2, 2) = cos(phiStart);
-    ffa->setCSTrafoGlobal2Local(CoordinateSystemTrafo(startPosition, (Quaternion)rotation));
+    ffa->setCSTrafoGlobal2Local(
+            CoordinateSystemTrafo(startPosition, (Quaternion)rotation) * labFrame);
 
     // Update the end position
     ippl::Vector<double, 3> endPosition = {r0 * cos(phiEnd) - r0, 0.0, r0 * sin(phiEnd)};
@@ -286,5 +298,5 @@ void PlacementResolver::resolveFFAElemEdge(
     rotationOut(2, 2) = cos(phiEnd);
 
     endPriorPathLength = sPosition + length;
-    currentCoordTrafo  = CoordinateSystemTrafo(startPosition, (Quaternion)rotationOut);
+    currentCoordTrafo  = CoordinateSystemTrafo(endPosition, (Quaternion)rotationOut) * labFrame;
 }

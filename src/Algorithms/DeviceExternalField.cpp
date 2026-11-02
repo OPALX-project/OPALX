@@ -3,6 +3,7 @@
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/SBend.h"
+#include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbsBeamline/VariableRFCavity.h"
 #include "Elements/OpalBeamline.h"
 #include "Utilities/OpalException.h"
@@ -50,6 +51,7 @@ const char* device_external::Builder::unsupportedReason(const ElementBase& eleme
     };
     bool higher = false;
     switch (element.getType()) {
+        case ElementType::SCALINGFFAMAGNET:
         case ElementType::DRIFT:
         case ElementType::MARKER:
         case ElementType::MONITOR:
@@ -118,6 +120,13 @@ device_external::Lattice device_external::Builder::build(OpalBeamline& beamline)
                     out.bend.quadSkew     = magnet.getSkewComponent(1);
                     break;
                 }
+                case ElementType::SCALINGFFAMAGNET:
+                    out.kind = Element::ScalingFFA;
+                    out.ffa  = dynamic_cast<const ScalingFFAMagnet&>(*element).getConfig();
+                    // The production ring path evaluates the original batched Enge/Tanh
+                    // kernel. Do not silently use the simplified field oracle for FFAs.
+                    result.fieldOracleSupported = false;
+                    break;
                 case ElementType::SBEND:
                     out.kind = Element::SectorBend;
                     out.bend = dynamic_cast<const SBend&>(*element).makeFieldInputs();

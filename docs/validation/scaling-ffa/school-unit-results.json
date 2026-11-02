@@ -1,0 +1,74 @@
+[
+  {
+    "test": "TestScalingFFAMagnet",
+    "ranks": 1,
+    "exit_code": 0,
+    "tests_per_rank": 19
+  },
+  {
+    "test": "TestClosedOrbitSolver",
+    "ranks": 1,
+    "exit_code": 0,
+    "tests_per_rank": 11
+  },
+  {
+    "test": "TestClosedOrbitInitialState",
+    "ranks": 1,
+    "exit_code": 0,
+    "tests_per_rank": 4
+  },
+  {
+    "test": "TestOneTurnMap",
+    "ranks": 1,
+    "exit_code": 0,
+    "tests_per_rank": 7
+  },
+  {
+    "test": "TestOpalBeamlinePlacement",
+    "ranks": 1,
+    "exit_code": 0,
+    "tests_per_rank": 15
+  },
+  {
+    "test": "TestDeviceExternalField",
+    "ranks": 1,
+    "exit_code": 0,
+    "tests_per_rank": 11
+  },
+  {
+    "test": "TestScalingFFAMagnet",
+    "ranks": 2,
+    "exit_code": 0,
+    "tests_per_rank": 19
+  },
+  {
+    "test": "TestClosedOrbitSolver",
+    "ranks": 2,
+    "exit_code": 0,
+    "tests_per_rank": 11
+  },
+  {
+    "test": "TestClosedOrbitInitialState",
+    "ranks": 2,
+    "exit_code": 0,
+    "tests_per_rank": 4
+  },
+  {
+    "test": "TestOneTurnMap",
+    "ranks": 2,
+    "exit_code": 0,
+    "tests_per_rank": 7
+  },
+  {
+    "test": "TestOpalBeamlinePlacement",
+    "ranks": 2,
+    "exit_code": 0,
+    "tests_per_rank": 15
+  },
+  {
+    "test": "TestDeviceExternalField",
+    "ranks": 2,
+    "exit_code": 0,
+    "tests_per_rank": 11
+  }
+]

@@ -54,7 +54,8 @@ public:
      */
     static void resolveFFAElemEdge(
             std::shared_ptr<ScalingFFAMagnet> ffa, double& endPriorPathLength,
-            CoordinateSystemTrafo& currentCoordTrafo);
+            CoordinateSystemTrafo& currentCoordTrafo,
+            const CoordinateSystemTrafo& labFrame = CoordinateSystemTrafo());
 };
 
 #endif  // OPALX_PlacementResolver_HH

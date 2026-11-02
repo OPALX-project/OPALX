@@ -606,3 +606,28 @@ TEST_F(ScalingFFAMagnetTest, ParticleFieldAddsToExistingField) {
         EXPECT_EQ(Bhost(1)[d], existing[d]) << d;
     }
 }
+
+TEST_F(ScalingFFAMagnetTest, StaticOpticsApertureIsIndependentOfFieldSelection) {
+    for (double sign : {1., -1.}) {
+        sector_m->setR0(sign * r0_m);
+        sector_m->setRMin(r0_m - 0.1);
+        sector_m->setRMax(r0_m + 0.1);
+        sector_m->setVerticalExtent(0.01);
+        sector_m->setAzimuthalExtent(0.05);
+        const auto config = sector_m->getConfig();
+        const auto point  = [&](double r, double y, double offset) {
+            const double phi = config.phiStart_m + config.tanDelta_m * std::log(r / r0_m) + offset;
+            return Vector_t<double, 3>(sign * (r * std::cos(phi) - r0_m), y, r * std::sin(phi));
+        };
+        for (double r : {r0_m - 0.11, r0_m, r0_m + 0.11})
+            for (double y : {-0.011, 0., 0.011}) {
+                const auto insideWindow = point(r, y, 0);
+                const bool lost         = r < r0_m - 0.1 || r > r0_m + 0.1 || std::abs(y) > 0.01;
+                EXPECT_EQ(config.outsideAperture(insideWindow), lost);
+                EXPECT_EQ(config.contains(insideWindow), !lost);
+                // A different ring arm must not lose the ray through this aperture.
+                EXPECT_FALSE(config.outsideAperture(point(r, y, 0.06)));
+                EXPECT_FALSE(config.contains(point(r, y, 0.06)));
+            }
+    }
+}

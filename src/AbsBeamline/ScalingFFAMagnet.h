@@ -33,6 +33,7 @@
 #include "AbsBeamline/EndFieldModel/EndFieldModelManager.h"
 #include "AbsBeamline/EndFieldModel/Enge.h"
 #include "AbsBeamline/EndFieldModel/Tanh.h"
+#include "AbsBeamline/ScalingFFASupport.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "PartBunch/PartBunch.h"
 
@@ -51,20 +52,13 @@
  *  lookup.
  */
 
-struct ScalingFFAMagnetConfig {
+struct ScalingFFAMagnetConfig : ScalingFFASupport {
     static constexpr size_t MaxOrder         = 20;
     static constexpr size_t CoefficientCount = (MaxOrder + 1) * (MaxOrder + 1);
 
     size_t maxOrder_m         = 0;
-    double tanDelta_m         = 0.;
     double k_m                = 0.;
     double Bz_m               = 0.;
-    double r0_m               = 1.;
-    double rMin_m             = 0.;  // minimum radius
-    double rMax_m             = 0.;  // maximum radius
-    double phiStart_m         = 0.;  // offsets this element
-    double azimuthalExtent_m  = 0.;  // maximum distance used for field calculation
-    double verticalExtent_m   = 0.;  // maximum allowed distance from the midplane
     const double fp_tolerance = 1e-18;
     Kokkos::Array<double, CoefficientCount> dfCoefficients_m{};
 };

@@ -1,0 +1,238 @@
+{
+  "reference": {
+    "method": "independent SciPy DOP853 polar ODE, one-cell fixed point",
+    "radius_m": 4.392925555469583,
+    "radial_momentum_mc": 0.016280388878729936,
+    "x_m": -0.02707444453041674,
+    "y_m": 0,
+    "py_mc": 0,
+    "cell_residual": [
+      8.881784197001252e-16,
+      -1.7486012637846216e-15
+    ],
+    "full_turn_residual": [
+      1.0658141036401503e-14,
+      -3.2411573425150664e-14
+    ],
+    "rtol": 5e-12,
+    "atol": 5e-14
+  },
+  "runs": [
+    {
+      "case": "ffa-school-cof-legacy-displaced",
+      "dt_s": 1.0000000000000003e-10,
+      "integrator": "RK4",
+      "ranks": 1,
+      "finite_difference_steps": [
+        1e-05,
+        1.6044471664008753e-06,
+        1e-05,
+        1.6044471664008753e-06
+      ],
+      "coordinates": [
+        -0.027074444582494576,
+        0.016280388882719432,
+        4.256032152345088e-12,
+        -2.455244823512976e-13
+      ],
+      "residual": [
+        -6.886171147191256e-11,
+        -1.9041018761711825e-13,
+        -9.693189928121414e-12,
+        1.0077302534608932e-13
+      ],
+      "reference_error": [
+        -5.207783509986186e-11,
+        3.989496233369749e-12,
+        4.256032152345088e-12,
+        -2.455244823512976e-13
+      ],
+      "relative_energy_drift": -2.4785999883647655e-09,
+      "evaluations": 28,
+      "return_time_s": 5.901895192572558e-07,
+      "return_path_m": 28.029699356512012
+    },
+    {
+      "case": "ffa-school-cof-legacy-rk4",
+      "dt_s": 5.0000000000000015e-11,
+      "integrator": "RK4",
+      "ranks": 1,
+      "finite_difference_steps": [
+        1e-05,
+        1.6044471664008753e-06,
+        1e-05,
+        1.6044471664008753e-06
+      ],
+      "coordinates": [
+        -0.027074444530416998,
+        0.016280388878729995,
+        0.0,
+        0.0
+      ],
+      "residual": [
+        -1.4124940800330776e-11,
+        1.142731742564962e-13,
+        0.0,
+        0.0
+      ],
+      "reference_error": [
+        -2.5673907444456745e-16,
+        5.898059818321144e-17,
+        0.0,
+        0.0
+      ],
+      "relative_energy_drift": -1.588231815693093e-10,
+      "evaluations": 10,
+      "return_time_s": 5.901895189339805e-07,
+      "return_path_m": 28.029699355411406
+    },
+    {
+      "case": "ffa-school-cof-legacy-fine-v2",
+      "dt_s": 2.5000000000000007e-11,
+      "integrator": "RK4",
+      "ranks": 1,
+      "finite_difference_steps": [
+        5e-06,
+        8.022235832004377e-07,
+        5e-06,
+        8.022235832004377e-07
+      ],
+      "coordinates": [
+        -0.027074444530416998,
+        0.016280388878729995,
+        0.0,
+        0.0
+      ],
+      "residual": [
+        -1.0070277944862482e-12,
+        8.163608677946854e-15,
+        0.0,
+        0.0
+      ],
+      "reference_error": [
+        -2.5673907444456745e-16,
+        5.898059818321144e-17,
+        0.0,
+        0.0
+      ],
+      "relative_energy_drift": -1.0052319865394631e-11,
+      "evaluations": 10,
+      "return_time_s": 5.901895189135319e-07,
+      "return_path_m": 28.0296993553576
+    },
+    {
+      "case": "ffa-school-cof-legacy-dop853",
+      "dt_s": 1.0000000000000003e-10,
+      "integrator": "DOP853",
+      "ranks": 1,
+      "finite_difference_steps": [
+        1e-05,
+        1.6044471664008753e-06,
+        1e-05,
+        1.6044471664008753e-06
+      ],
+      "coordinates": [
+        -0.027074444530416998,
+        0.016280388878729995,
+        0.0,
+        0.0
+      ],
+      "residual": [
+        -3.2317898357447916e-14,
+        2.501471252358556e-15,
+        0.0,
+        0.0
+      ],
+      "reference_error": [
+        -2.5673907444456745e-16,
+        5.898059818321144e-17,
+        0.0,
+        0.0
+      ],
+      "relative_energy_drift": -1.7361519629351696e-14,
+      "evaluations": 10,
+      "return_time_s": 5.90189518912163e-07,
+      "return_path_m": 28.029699355354495
+    },
+    {
+      "case": "ffa-school-cof-legacy-track-2rank",
+      "dt_s": 1.0000000000000003e-10,
+      "integrator": "DOP853",
+      "ranks": 2,
+      "finite_difference_steps": [
+        1e-05,
+        1.6044471664008753e-06,
+        1e-05,
+        1.6044471664008753e-06
+      ],
+      "coordinates": [
+        -0.027074444530416998,
+        0.016280388878729995,
+        0.0,
+        0.0
+      ],
+      "residual": [
+        -3.2317898357447916e-14,
+        2.501471252358556e-15,
+        0.0,
+        0.0
+      ],
+      "reference_error": [
+        -2.5673907444456745e-16,
+        5.898059818321144e-17,
+        0.0,
+        0.0
+      ],
+      "relative_energy_drift": -1.7361519629351696e-14,
+      "evaluations": 10,
+      "return_time_s": 5.90189518912163e-07,
+      "return_path_m": 28.029699355354495,
+      "tracking": {
+        "complete_compared_turns": 2,
+        "particles": 8,
+        "max_return_x_error_m": 3.086327896001384e-06,
+        "max_return_px_error_mc": 2.7700474389616425e-07
+      }
+    },
+    {
+      "case": "ffa-school-cof-legacy-track-fine",
+      "dt_s": 1.0000000000000003e-10,
+      "integrator": "DOP853",
+      "ranks": 1,
+      "finite_difference_steps": [
+        1e-05,
+        1.6044471664008753e-06,
+        1e-05,
+        1.6044471664008753e-06
+      ],
+      "coordinates": [
+        -0.027074444530416998,
+        0.016280388878729995,
+        0.0,
+        0.0
+      ],
+      "residual": [
+        -3.2317898357447916e-14,
+        2.501471252358556e-15,
+        0.0,
+        0.0
+      ],
+      "reference_error": [
+        -2.5673907444456745e-16,
+        5.898059818321144e-17,
+        0.0,
+        0.0
+      ],
+      "relative_energy_drift": -1.7361519629351696e-14,
+      "evaluations": 10,
+      "return_time_s": 5.90189518912163e-07,
+      "return_path_m": 28.029699355354495,
+      "tracking": {
+        "complete_compared_turns": 2,
+        "particles": 8,
+        "max_return_x_error_m": 6.502675315017692e-07,
+        "max_return_px_error_mc": 6.049538559330103e-08
+      }
+    }
+  ]
+}

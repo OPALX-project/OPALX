@@ -110,21 +110,7 @@ void ScalingFFAMagnet::accept(BeamlineVisitor& visitor) const {
 }
 
 bool ScalingFFAMagnet::isInside(const Vector_t<double, 3>& rCart) const {
-    Vector_t<double, 5> rCyl;
-    getCylindricalCoordinates(rCart, rCyl);
-    double r         = rCyl[0];
-    double z         = rCyl[1];
-    double phiSpiral = rCyl[4];
-    if (r < config_m.rMin_m || r > config_m.rMax_m) {
-        return false;
-    }
-    if (phiSpiral < -config_m.azimuthalExtent_m || phiSpiral > config_m.azimuthalExtent_m) {
-        return false;
-    }
-    if (z < -config_m.verticalExtent_m || z > config_m.verticalExtent_m) {
-        return false;
-    }
-    return true;
+    return config_m.contains(rCart);
 }
 
 void ScalingFFAMagnet::apply(
@@ -194,11 +180,10 @@ void ScalingFFAMagnet::setupEndField() const {
     efm_m       = std::shared_ptr<endfieldmodel::EndFieldModel>(efm->clone());
     efm_m->rescale(1.0 / std::abs(getR0()));  // efm_m is now in radians
     efm_m->initialise();
-    config_m.phiStart_m = config_m.phiStart_m;
     if (config_m.azimuthalExtent_m < 0.0) {
         config_m.azimuthalExtent_m = efm_m->getEndLength() * 5. + efm_m->getCentreLength() * 0.5;
     }
-    double sLength      = efm_m->getCentreLength() * config_m.r0_m;
+    double sLength      = efm_m->getCentreLength() * std::abs(config_m.r0_m);
     planarArcGeometry_m = Geometry::makeSBend(sLength, 1 / config_m.r0_m);
     efmInitialised_m    = true;
 }
