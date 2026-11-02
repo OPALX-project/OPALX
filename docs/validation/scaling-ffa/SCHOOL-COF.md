@@ -169,6 +169,8 @@ The orbit figure is reproducible with:
 ```
 
 The figure overlays the independent polar orbit and the actual production Boris
-reference traversal, in full-ring and one-cell views. Native spectral tune
+reference traversal, in full-ring and one-cell views. The subsequent
+[production tune analysis](TUNES.md) follows small oscillations about this orbit
+and checks them against independent cell optics. Native spectral tune
 support, a public probe interface, the complete notebook conversion and
 space-charge validation remain separate work.

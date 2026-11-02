@@ -4,7 +4,8 @@ This milestone validates the FFA25 school cell's field/placement conventions and
 adds aligned scaling FFA magnets to OPALX's ordinary spatial ring tracking and
 explicit `RUN, TURNS=...` path. The subsequent COF extension and the 16-cell school
 closed orbit are documented in [SCHOOL-COF.md](SCHOOL-COF.md). The complete notebook
-port and built-in FFA spectral tunes remain separate work.
+port and built-in FFA spectral tunes remain separate work. Production tracking
+tunes and independent cell optics are documented in [TUNES.md](TUNES.md).
 
 ## Placement and fields
 
@@ -125,7 +126,8 @@ production transport. They do not establish numerical equivalence to old OPAL
 for the 12 MeV or fourfold school closed orbits and tunes. A controlled old-OPAL
 baseline is still needed. The independent full-ring oracle has zero field index
 and zero spiral angle; the nonzero school field index/spiral/off-plane behavior
-is covered by the single-cell tests, not a 50-turn school benchmark.
+is covered by the single-cell tests. Subsequent 50-turn school tracking and
+independent linear-optics tune checks are documented in [TUNES.md](TUNES.md).
 
 The existing ring restrictions on restart, emission and misalignment eligibility
 remain. No claim of new collective-field validation is made. FFA COF support has since been added and validated in [SCHOOL-COF.md](SCHOOL-COF.md).
