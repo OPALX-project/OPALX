@@ -233,4 +233,64 @@ namespace {
         EXPECT_NO_THROW(beam.execute());
     }
 
+    class BeamReferenceDirectionTest : public BeamPhotonTest {
+    protected:
+        void setReferenceDirection(Beam& beam, const std::vector<double>& dir) {
+            Attributes::setRealArray(*beam.findAttribute("REFDIRECTION"), dir);
+        }
+        void makeMuonBeam(Beam& beam) {
+            setParticle(beam, "MUON");
+            setPC(beam, 0.028);
+            setNALLOC(beam, 1.0);
+            setSources(beam, "src");
+        }
+    };
+
+    TEST_F(BeamReferenceDirectionTest, DefaultIsZ) {
+        Beam beam;
+        makeMuonBeam(beam);
+
+        EXPECT_NO_THROW(beam.execute());
+        EXPECT_FALSE(beam.hasReferenceDirection());
+        EXPECT_EQ(beam.getReferenceDirection(), (std::vector<double>{0.0, 0.0, 1.0}));
+    }
+
+    TEST_F(BeamReferenceDirectionTest, IsNormalised) {
+        Beam beam;
+        makeMuonBeam(beam);
+        setReferenceDirection(beam, {3.0, 0.0, 4.0});
+
+        EXPECT_NO_THROW(beam.execute());
+        const std::vector<double> dir = beam.getReferenceDirection();
+        ASSERT_EQ(dir.size(), 3u);
+        EXPECT_DOUBLE_EQ(dir[0], 0.6);
+        EXPECT_DOUBLE_EQ(dir[1], 0.0);
+        EXPECT_DOUBLE_EQ(dir[2], 0.8);
+    }
+
+    TEST_F(BeamReferenceDirectionTest, WrongLengthIsRejected) {
+        Beam beam;
+        makeMuonBeam(beam);
+        setReferenceDirection(beam, {0.0, 1.0});
+
+        EXPECT_THROW(beam.execute(), OpalException);
+    }
+
+    TEST_F(BeamReferenceDirectionTest, ZeroIsRejected) {
+        Beam beam;
+        makeMuonBeam(beam);
+        setReferenceDirection(beam, {0.0, 0.0, 0.0});
+
+        EXPECT_THROW(beam.execute(), OpalException);
+    }
+
+    TEST_F(BeamReferenceDirectionTest, NeedsEnergy) {
+        Beam beam;
+        setParticle(beam, "MUON");
+        setNALLOC(beam, 1.0);
+        setReferenceDirection(beam, {0.0, 0.0, 1.0});
+
+        EXPECT_THROW(beam.execute(), OpalException);
+    }
+
 }  // namespace
