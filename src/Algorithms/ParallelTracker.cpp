@@ -443,6 +443,12 @@ void ParallelTracker::execute() {
                                 + element->getName());
         }
     }
+    // Placement, misalignment and field-map extents are final here. The threaders check the
+    // element reaches along their reference orbits while they thread.
+    elementMapping_m = std::make_unique<GeneralElementMapping>(
+            itsOpalBeamline_m.getElementByType(ElementType::ANY), Options::elementMappingGrid,
+            Options::elementMappingReach);
+
     std::vector<std::shared_ptr<OrbitThreader>> oths(nContainers);
     bool designBeamAssigned = false;
     std::vector<std::unique_ptr<DirectedTurnCounter>> turnCounters(nContainers);
@@ -474,7 +480,7 @@ void ParallelTracker::execute() {
                 minTimeStep,
                 stepSizes_m,        // Step size configuration
                 itsOpalBeamline_m,  // OpalBeamline object
-                isDesignBeam, ringPeriod_m);
+                isDesignBeam, ringPeriod_m, elementMapping_m.get());
         oths[ci]->execute();
     }
     for (size_t ci = 0; ci < nContainers; ++ci) {
@@ -1411,17 +1417,15 @@ void ParallelTracker::forEachElementInBunchFrame(
             rmax = pc->getMaxR();
 
             // Empty or not-yet-initialized moment state can still produce non-finite bounds.
-            // Fall back to zero so the query uses pathLength_m as the centre with zero
-            // half-width.
-            if (!std::isfinite(rmin(2)) || !std::isfinite(rmax(2))) {
-                rmin = rmax = 0.0;
+            // Fall back to zero so the query is the point at the reference particle.
+            for (unsigned d = 0; d < 3; ++d) {
+                if (!std::isfinite(rmin(d)) || !std::isfinite(rmax(d))) {
+                    rmin = rmax = 0.0;
+                    break;
+                }
             }
         }
 
-        // Get elements at bunch position. The bunch's local-Z bounds are mapped to a path-length
-        // centre + half-width for the s-keyed IndexMap query. Short-bunch / straight-reference-path
-        // approximation: local-Z adds linearly to the path length s (exact only for a straight
-        // reference path).
         IndexMap::value_t elements;
         if (spatialCandidates) {
             // Conservative spatial candidate set for curved trajectories. The
@@ -1448,14 +1452,38 @@ void ParallelTracker::forEachElementInBunchFrame(
             for (const auto& element : all) {
                 if (host(j++)) elements.insert(element);
             }
-        } else
-            try {
-                const double centre = pc->get_sPos() + 0.5 * (rmax(2) + rmin(2));
-                elements            = oths[ci]->query(centre, rmax(2) - rmin(2));
-            } catch (IndexMap::OutOfBounds& e) {
+        } else {
+            // The threaded reference path still ends the line: the bunch is past it once the
+            // old path-length window [s - dz, s + dz] starts beyond the threaded range.
+            const double length = rmax(2) - rmin(2);
+            const double centre = pc->get_sPos() + 0.5 * (rmax(2) + rmin(2));
+            if (oths[ci]->isPastEnd(centre - length)) {
                 globalEOL_m = true;
                 continue;
             }
+            // The bunch box, padded along z by half its length on each side: the window the
+            // path-length lookup used, so no element it selected on a straight path is lost.
+            Vector_t<double, 3> lower = rmin, upper = rmax;
+            lower(2) -= 0.5 * length;
+            upper(2) += 0.5 * length;
+            elements = elementMapping_m->query(lower, upper, pc->getToLabTrafo());
+
+            // An element whose reach misses the reference is active only because the bunch
+            // reaches into it, as for an element of a neighbouring branch. It then acts on
+            // every particle of the container, so report it once.
+            for (const auto& element : elements) {
+                if (!elementMapping_m->coversTransversely(*element, pc->getRefPartR())
+                    && reportedBeyondReach_m.insert(element.get()).second) {
+                    Inform m("ParallelTracker");
+                    m << level1 << "* Element mapping: '" << element->getName()
+                      << "' acts on container " << ci
+                      << " although the reference particle is outside its transverse reach; "
+                         "the bunch reaches into it and all its particles see the element. If "
+                         "it belongs to another branch, lower its REACH or ELEMENTMAPPINGREACH."
+                      << endl;
+                }
+            }
+        }
 
         // Frame round trips do not commute exactly in floating point. For the
         // bare analytic-ring benchmark, use prepared occurrence order rather

@@ -41,6 +41,7 @@
 
 #include "Physics/Physics.h"
 
+#include "Algorithms/GeneralElementMapping.h"
 #include "Algorithms/IndexMap.h"
 #include "Algorithms/OrbitThreader.h"
 
@@ -71,6 +72,7 @@
 #include <functional>
 #include <list>
 #include <memory>
+#include <set>
 #include <tuple>
 #include <vector>
 
@@ -167,6 +169,11 @@ private:
     unsigned long long requestedTurns_m = 0;
     device_external::Lattice
             deviceRingFields_m;  ///< Geometry for device field selection and trial support checks.
+    /// Lab-frame element grid that selects the active elements from each container's bunch
+    /// box. Built once in execute(); geometry only, so it serves every species.
+    std::unique_ptr<GeneralElementMapping> elementMapping_m;
+    /// Elements already reported as active only through the bunch's width.
+    std::set<const ElementBase*> reportedBeyondReach_m;
     bool spatialRing_m =
             false;  ///< Select analytic ring fields by physical position, independent of retries.
     bool boundaryControlled_m = false;
