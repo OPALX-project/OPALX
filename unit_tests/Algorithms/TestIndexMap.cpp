@@ -199,3 +199,32 @@ TEST_F(IndexMapSDDSTest, SaveSDDSWritesOnlyFirstCrossingOfEachElement) {
         EXPECT_NEAR(sValues[i], expected[i], 1e-9) << "row " << i;
     }
 }
+
+// isPastEnd(s - ds) is true exactly when a non-periodic query(s, ds) throws OutOfBounds.
+TEST(IndexMapTest, IsPastEndMatchesOutOfBoundsQueries) {
+    auto drift = std::make_shared<DriftRep>("D");
+    IndexMap map;
+    EXPECT_FALSE(map.isPastEnd(5.0));  // an empty map never throws either
+
+    map.add(0.0, 1.0, IndexMap::value_t{drift});
+    map.add(1.0, 2.0, IndexMap::value_t{drift});
+    for (double s = -1.0; s < 4.0; s += 0.05) {
+        for (double ds : {0.0, 0.1, 0.5}) {
+            bool threw = false;
+            try {
+                map.query(s, ds);
+            } catch (const IndexMap::OutOfBounds&) {
+                threw = true;
+            }
+            EXPECT_EQ(map.isPastEnd(s - ds), threw) << "s=" << s << " ds=" << ds;
+        }
+    }
+}
+
+TEST(IndexMapTest, PeriodicMapIsNeverPastItsEnd) {
+    auto drift = std::make_shared<DriftRep>("D");
+    IndexMap map;
+    map.add(0.0, 2.0, IndexMap::value_t{drift});
+    map.setPeriod(0.0, 2.0);
+    EXPECT_FALSE(map.isPastEnd(7.3));
+}

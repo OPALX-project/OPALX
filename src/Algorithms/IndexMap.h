@@ -73,6 +73,11 @@ public:
     /// @throws OutOfBounds For negative ds or a nonperiodic query beyond the stored range.
     value_t query(key_t::first_type s, key_t::second_type ds);
 
+    /// Whether a path coordinate [m] lies beyond the recorded range, i.e. whether a
+    /// non-periodic query(s, ds) with s - ds = @p lower throws OutOfBounds. Always false for a
+    /// periodic or empty map.
+    bool isPastEnd(double lower) const;
+
     /// floor((s-origin)/period), with turn zero starting at origin and negative turns allowed.
     /// @throws OpalException If no period was configured.
     long long getTurnNumber(double s) const;

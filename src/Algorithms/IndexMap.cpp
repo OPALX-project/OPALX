@@ -114,6 +114,11 @@ IndexMap::value_t IndexMap::query(key_t::first_type s, key_t::second_type ds) {
     return elements;
 }
 
+bool IndexMap::isPastEnd(double lower) const {
+    return period_m == 0.0 && !mapRange2Element_m.empty()
+           && lower > mapRange2Element_m.rbegin()->first.end;
+}
+
 IndexMap::value_t IndexMap::queryRange(double lowerLimit, double upperLimit) {
     upperLimit = std::min(totalPathLength_m, upperLimit);
     value_t elementSet;
