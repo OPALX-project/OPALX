@@ -76,6 +76,7 @@ it needs network access. Build arguments:
 | `BUILD_TYPE` | `Release` | CMake build type |
 | `JOBS` | number of CPUs | parallel compile jobs; lower it if the build runs out of memory |
 | `GIT_SHA` | `unknown` | git revision reported by OPALX |
+| `OPALX_VERSION` | `unknown` | OPALX version in the image's `org.opencontainers.image.version` label |
 | `UBUNTU_VERSION` | `24.04` | base image |
 
 To check an image with the smoke regression tests used in CI:
