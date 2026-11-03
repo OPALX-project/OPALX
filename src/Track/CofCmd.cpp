@@ -7,13 +7,14 @@
 #include <fstream>
 #include <iomanip>
 #include <limits>
+#include <set>
 #include <sstream>
-#include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbstractObjects/BeamSequence.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/ClosedOrbitSolver.h"
 #include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/LinearMapEigenAnalysis.h"
+#include "Algorithms/PartData.h"
 #include "Attributes/Attributes.h"
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedElmPtr.h"
@@ -114,10 +115,12 @@ namespace {
             // A monitor is passive for scalar optics. Do not initialise its
             // diagnostic sink (which could overwrite a TRACK monitor file).
             if (type == ElementType::MONITOR) return;
-            require(type == ElementType::DRIFT || type == ElementType::MARKER
-                            || type == ElementType::MULTIPOLE || type == ElementType::SBEND
-                            || type == ElementType::RBEND || type == ElementType::CYCLOTRONSECTOR
-                            || type == ElementType::SCALINGFFAMAGNET,
+            static constexpr std::array acceptedTypes{
+                    ElementType::DRIFT,           ElementType::MARKER, ElementType::MULTIPOLE,
+                    ElementType::SBEND,           ElementType::RBEND,  ElementType::CYCLOTRONSECTOR,
+                    ElementType::SCALINGFFAMAGNET};
+            require(std::find(acceptedTypes.begin(), acceptedTypes.end(), type)
+                            != acceptedTypes.end(),
                     "Unsupported element in static magnetic COF: " + element.getName());
             require(element.getBeamlineMembership().ownerName == owner
                             && element.getBeamlineTopology() == BeamlineTopology::RING,
@@ -143,6 +146,266 @@ namespace {
         }
     };
 
+    // Aperture ownership is independent of field-candidate selection. Conventional
+    // bodies use the nearest finite centreline; circular FFA/cyclotron elements
+    // own their angular windows. Every selected element uses its native loss check.
+    void checkApertures(
+            OpalBeamline& lattice, const std::set<std::shared_ptr<ElementBase>>& elements,
+            const ExternalFieldRayTracker::State& ray) {
+        double nearest = std::numeric_limits<double>::infinity();
+        for (const auto& element : elements) {
+            if (element->getType() == ElementType::CYCLOTRONSECTOR
+                || element->getType() == ElementType::SCALINGFFAMAGNET
+                || element->getGeometry().getElementLength() <= 0)
+                continue;
+            nearest = std::min(
+                    nearest,
+                    bodyDistance2(*element, lattice.transformToLocalCS(element, ray.position)));
+        }
+        for (const auto& element : elements) {
+            if (element->getType() != ElementType::CYCLOTRONSECTOR
+                && element->getType() != ElementType::SCALINGFFAMAGNET) {
+                if (element->getGeometry().getElementLength() <= 0) continue;
+                const double distance =
+                        bodyDistance2(*element, lattice.transformToLocalCS(element, ray.position));
+                // Floating-point tie allowance in squared metres;
+                // not an aperture or Newton convergence tolerance.
+                if (distance > nearest
+                                       + 64 * std::numeric_limits<double>::epsilon()
+                                                 * std::max(1.0, nearest))
+                    continue;
+            }
+            require(!element->isReferenceParticleLost(
+                            lattice.transformToLocalCS(element, ray.position),
+                            lattice.rotateToLocalCS(element, ray.momentum), ray.time),
+                    "Aperture/material loss in " + element->getName());
+        }
+    }
+    void validateClosure(
+            OpalBeamline& lattice, const std::vector<std::shared_ptr<ElementBase>>& ordered,
+            const Controls& c, const std::string& name, const std::string& beamName,
+            std::ostringstream& out) {
+        const auto first = lattice.getNominalEntryTransform(ordered.front());
+        const auto last  = lattice.getNominalExitTransform(ordered.back());
+        const Vector_t<double, 3> zero(0.0);
+        const Vector_t<double, 3> positionDifference =
+                first.transformFrom(zero) - last.transformFrom(zero);
+        const double positionError = euclidean_norm(positionDifference);
+        double angleError          = 0;
+        for (unsigned d = 0; d < 3; ++d) {
+            Vector_t<double, 3> axis(0.0);
+            axis[d]      = 1;
+            const auto a = first.rotateFrom(axis), b = last.rotateFrom(axis);
+            const Vector_t<double, 3> axisCross = cross(a, b);
+            angleError = std::max(angleError, std::atan2(euclidean_norm(axisCross), dot(a, b)));
+        }
+        out << std::setprecision(17) << "COF ring=" << name << " beam=" << beamName
+            << "\nNominal closure position_m=" << positionError << " angle_rad=" << angleError
+            << '\n';
+        require(positionError <= c.geometryTolerance && angleError <= c.angleTolerance,
+                out.str() + "Nominal ring geometry does not close within GEOMTOL/ANGLETOL.");
+    }
+    void writeSolverReport(
+            std::ostream& out, const Controls& c, const RunSettings& s,
+            const ClosedOrbitSolver::Result& result) {
+        out << "Integrator=" << ExternalFieldRayTracker::integrationMethodName(c.integrator)
+            << " DT_s=" << c.tracking.dt << " p0_mc=" << c.tracking.momentum
+            << " MAXSTEPS=" << c.tracking.maxSteps << " MAXPATH_m=" << c.tracking.maxPath
+            << " T0_s=" << c.tracking.time << "\nXTOL_m=" << s.solver.positionTolerance
+            << " PTOL_mc=" << s.solver.momentumTolerance << " MAXIT=" << s.solver.maxIterations
+            << " DAMPING=" << s.solver.damping << "\nStatus=" << int(result.status) << ' '
+            << result.message << " evaluations=" << result.evaluations << '\n';
+        out << "FDSTEP=";
+        for (double v : s.solver.finiteDifferenceSteps)
+            out << v << ' ';
+        out << "\nSCALES=";
+        for (double v : s.solver.scales)
+            out << v << ' ';
+        out << '\n';
+        for (const auto& iteration : result.iterations) {
+            out << "iteration damping=" << iteration.damping
+                << " pivot_ratio=" << iteration.pivotRatio << " residual=";
+            for (double v : iteration.residual)
+                out << v << ' ';
+            out << " correction=";
+            for (double v : iteration.correction)
+                out << v << ' ';
+            out << '\n';
+        }
+        out << "Coordinates (x,px,y,py): ";
+        for (double v : result.coordinates)
+            out << v << ' ';
+        out << "\nResidual: ";
+        for (double v : result.residual)
+            out << v << ' ';
+        out << "\nMatrix:\n";
+        for (const auto& row : result.matrix) {
+            for (double v : row)
+                out << v << ' ';
+            out << '\n';
+        }
+    }
+    void setLaunchState(
+            ClosedOrbitInitialState& state, const Controls& c,
+            const ClosedOrbitSolver::Coordinates& u) {
+        state.position = c.section.transformFrom(Vector_t<double, 3>(u[0], u[2], 0));
+        state.momentum = c.section.rotateFrom(
+                Vector_t<double, 3>(
+                        u[1], u[3],
+                        std::sqrt(
+                                c.tracking.momentum * c.tracking.momentum - u[1] * u[1]
+                                - u[3] * u[3])));
+    }
+    std::string serializeResult(
+            const ClosedOrbitInitialState& state, const Controls& c,
+            const ClosedOrbitSolver::Result& result, const PartData& reference,
+            const LinearMapEigenAnalysis::Result& spectrum, const OneTurnMap::FullTunes& fullTunes,
+            double drift) {
+        std::ostringstream json;
+        json << std::setprecision(17) << "{\"converged\":true,\"dt_s\":" << c.tracking.dt
+             << ",\"energy_MeV\":" << (reference.getE() - reference.getM()) / 1e6
+             << ",\"coordinates\":[";
+        auto array = [&](const auto& values) {
+            bool comma = false;
+            for (double v : values) {
+                if (comma) json << ',';
+                json << v;
+                comma = true;
+            }
+        };
+        array(result.coordinates);
+        json << "],\"residual\":[";
+        array(result.residual);
+        json << "],\"matrix\":[";
+        for (unsigned i = 0; i < 4; ++i) {
+            if (i) json << ',';
+            json << '[';
+            array(result.matrix[i]);
+            json << ']';
+        }
+        json << "],\"eigenvalues\":[";
+        for (unsigned i = 0; i < 4; ++i) {
+            if (i) json << ',';
+            json << '[' << spectrum.eigenvalues[i].real() << ',' << spectrum.eigenvalues[i].imag()
+                 << ']';
+        }
+        const char* stability = "MARGINAL";
+        using Stability       = LinearMapEigenAnalysis::Stability;
+        if (spectrum.stability == Stability::Stable) stability = "STABLE";
+        if (spectrum.stability == Stability::Unstable) stability = "UNSTABLE";
+        if (spectrum.stability == Stability::NonUnitCircle) stability = "NON_UNIT_CIRCLE";
+        json << "],\"stability\":\"" << stability
+             << "\",\"near_integer\":" << (spectrum.nearInteger ? "true" : "false")
+             << ",\"fractional_modes\":[";
+        for (size_t i = 0; i < spectrum.modes.size(); ++i) {
+            if (i) json << ',';
+            const auto& mode = spectrum.modes[i];
+            json << "{\"tune\":";
+            if (mode.tune)
+                json << *mode.tune;
+            else
+                json << "null";
+            json << ",\"complement\":";
+            if (mode.complementaryTune)
+                json << *mode.complementaryTune;
+            else
+                json << "null";
+            json << '}';
+        }
+        json << "],\"full_tunes\":";
+        if (fullTunes.available)
+            json << "{\"horizontal\":" << fullTunes.tunes[0]
+                 << ",\"vertical\":" << fullTunes.tunes[1] << '}';
+        else
+            json << "null";
+        json << ",\"full_tunes_diagnostic\":" << std::quoted(fullTunes.diagnostic)
+             << ",\"phase_samples\":" << fullTunes.samples
+             << ",\"maximum_phase_step_rad\":" << fullTunes.maximumPhaseStep;
+        json << ",\"relative_energy_drift\":" << drift << ",\"time_s\":" << state.time
+             << ",\"position_m\":[";
+        array(state.position);
+        json << "],\"momentum_mc\":[";
+        array(state.momentum);
+        json << "],\"line\":" << std::quoted(state.line)
+             << ",\"species\":" << std::quoted(state.species) << ",\"mass_eV\":" << state.massEV
+             << ",\"charge_e\":" << state.chargeE << ",\"section_origin_m\":[";
+        array(c.section.transformFrom(Vector_t<double, 3>(0.0)));
+        json << "],\"section_rotation_wxyz\":[";
+        array(c.section.getRotation());
+        json << "]}\n";
+        return json.str();
+    }
+    OneTurnMap makeReturnMap(
+            OpalBeamline& lattice, ExternalFieldRayTracker& tracker, const Controls& c) {
+        const auto elements = lattice.getElements();
+        return OneTurnMap(
+                [&lattice, &tracker, elements](
+                        const auto& ray, double dt, std::vector<OneTurnMap::Step>* accepted) {
+                    checkApertures(lattice, elements, ray);
+                    std::vector<OneTurnMap::Step> local;
+                    auto* intervals = accepted ? accepted : &local;
+                    const auto end  = tracker.advance(ray, dt, intervals);
+                    for (const auto& interval : *intervals) {
+                        checkApertures(lattice, elements, interval.midpoint);
+                        checkApertures(lattice, elements, interval.end);
+                    }
+                    return end;
+                },
+                c.section, c.tracking);
+    }
+    std::string solveAndReport(
+            BeamSequence& sequence, Beam& beam, OpalBeamline& lattice,
+            const std::vector<std::shared_ptr<ElementBase>>& ordered, const Controls& c,
+            const RunSettings& s, ClosedOrbitInitialState& state) {
+        require(!ordered.empty(), "RING must contain magnetic/transport elements.");
+        std::ostringstream out;
+        validateClosure(lattice, ordered, c, sequence.getOpalName(), beam.getOpalName(), out);
+        if (!s.output.empty())
+            require(!std::filesystem::exists(s.output), "COF output exists: " + s.output);
+        ExternalFieldRayTracker tracker(lattice, beam.getReference(), c.integrator);
+        auto map          = makeReturnMap(lattice, tracker, c);
+        const auto result = ClosedOrbitSolver::solve(map, s.initial, s.solver);
+        writeSolverReport(out, c, s, result);
+        if (result.status != ClosedOrbitSolver::Status::Converged) {
+            throw OpalException("COF", out.str());
+        }
+        const auto returned   = map(result.coordinates);
+        const auto& reference = beam.getReference();
+        const double drift    = (std::sqrt(1 + dot(returned.ray.momentum, returned.ray.momentum))
+                              - reference.getGamma())
+                             / (reference.getGamma() - 1);
+        out << "Return time_s=" << returned.ray.time - c.tracking.time
+            << " path_m=" << returned.ray.pathLength << " relative_energy_drift=" << drift << '\n';
+        LinearMapEigenAnalysis::Settings ev;
+        ev.scales           = s.solver.scales;
+        const auto spectrum = LinearMapEigenAnalysis::analyze(result.matrix, ev);
+        LinearMapEigenAnalysis::writeReport(out, spectrum);
+        OneTurnMap::FullTunes fullTunes;
+        if (spectrum.stability == LinearMapEigenAnalysis::Stability::Stable)
+            fullTunes = map.fullTunes(
+                    result.coordinates, s.solver.finiteDifferenceSteps, result.matrix);
+        else
+            fullTunes.diagnostic = "One-turn eigenanalysis is not numerically stable.";
+        if (fullTunes.available)
+            out << "Full tunes (uncoupled planar): horizontal/radial=" << fullTunes.tunes[0]
+                << " vertical=" << fullTunes.tunes[1] << '\n';
+        else
+            out << "Full tunes unavailable: " << fullTunes.diagnostic << '\n';
+        out << "Phase samples=" << fullTunes.samples
+            << " maximum phase step_rad=" << fullTunes.maximumPhaseStep << '\n';
+        out << "Stability is a numerical matrix diagnostic; validate DT and FDSTEP "
+               "convergence.\n";
+        setLaunchState(state, c, result.coordinates);
+        state.json = serializeResult(state, c, result, reference, spectrum, fullTunes, drift);
+        if (!s.output.empty()) {
+            std::ofstream file(s.output);
+            file << state.json;
+            file.flush();
+            require(bool(file), "Error writing COF OUTPUT: " + s.output);
+        }
+        return out.str();
+    }
+
     // All ranks build the empty reference container once; scalar ray work and files
     // are rank-zero only. Broadcast diagnostic text before throwing on solver failure.
     ClosedOrbitInitialState calculate(
@@ -167,252 +430,7 @@ namespace {
         state.species = beam.getParticleName();
         std::string error, report;
         if (rank == 0) try {
-                require(!visitor.ordered.empty(), "RING must contain magnetic/transport elements.");
-                const auto first = lattice.getNominalEntryTransform(visitor.ordered.front());
-                const auto last  = lattice.getNominalExitTransform(visitor.ordered.back());
-                const Vector_t<double, 3> zero(0.0);
-                const Vector_t<double, 3> positionDifference =
-                        first.transformFrom(zero) - last.transformFrom(zero);
-                const double positionError = euclidean_norm(positionDifference);
-                double angleError          = 0;
-                for (unsigned d = 0; d < 3; ++d) {
-                    Vector_t<double, 3> axis(0.0);
-                    axis[d]      = 1;
-                    const auto a = first.rotateFrom(axis), b = last.rotateFrom(axis);
-                    const Vector_t<double, 3> axisCross = cross(a, b);
-                    angleError =
-                            std::max(angleError, std::atan2(euclidean_norm(axisCross), dot(a, b)));
-                }
-                std::ostringstream out;
-                out << std::setprecision(17) << "COF ring=" << sequence.getOpalName()
-                    << " beam=" << beam.getOpalName()
-                    << "\nNominal closure position_m=" << positionError
-                    << " angle_rad=" << angleError << '\n';
-                require(positionError <= c.geometryTolerance && angleError <= c.angleTolerance,
-                        out.str()
-                                + "Nominal ring geometry does not close within GEOMTOL/ANGLETOL.");
-                if (!s.output.empty())
-                    require(!std::filesystem::exists(s.output), "COF output exists: " + s.output);
-                ExternalFieldRayTracker tracker(lattice, beam.getReference(), c.integrator);
-                // Field selection excludes points outside apertures. Select the
-                // nearest finite conventional body independently of aperture,
-                // then ask its native loss predicate. Checking every body would
-                // falsely lose rays in the longitudinal slab of the opposite arm.
-                // Stateless selection is also valid for bisection and shadow rays.
-                const auto elements       = lattice.getElements();
-                const auto checkApertures = [&](const ExternalFieldRayTracker::State& ray) {
-                    double nearest = std::numeric_limits<double>::infinity();
-                    for (const auto& element : elements) {
-                        if (element->getType() == ElementType::CYCLOTRONSECTOR
-                            || element->getType() == ElementType::SCALINGFFAMAGNET
-                            || element->getGeometry().getElementLength() <= 0)
-                            continue;
-                        nearest = std::min(
-                                nearest, bodyDistance2(
-                                                 *element, lattice.transformToLocalCS(
-                                                                   element, ray.position)));
-                    }
-                    for (const auto& element : elements) {
-                        if (element->getType() == ElementType::SCALINGFFAMAGNET) {
-                            // Field lookup excludes rays outside radial/vertical limits.
-                            // Check those limits independently within this magnet's spiral
-                            // support, including overlapping fringes and zero-field arcs.
-                            const auto& magnet = dynamic_cast<const ScalingFFAMagnet&>(*element);
-                            require(!magnet.getConfig().outsideAperture(
-                                            lattice.transformToLocalCS(element, ray.position)),
-                                    "Aperture/material loss in " + element->getName());
-                            continue;
-                        }
-                        if (element->getType() != ElementType::CYCLOTRONSECTOR) {
-                            if (element->getGeometry().getElementLength() <= 0) continue;
-                            const double distance = bodyDistance2(
-                                    *element, lattice.transformToLocalCS(element, ray.position));
-                            // Floating-point tie allowance in squared metres;
-                            // not an aperture or Newton convergence tolerance.
-                            if (distance > nearest
-                                                   + 64 * std::numeric_limits<double>::epsilon()
-                                                             * std::max(1.0, nearest))
-                                continue;
-                        }
-                        Vector_t<double, 3> electric(0.0), magnetic(0.0);
-                        require(!element->applyToReferenceParticle(
-                                        lattice.transformToLocalCS(element, ray.position),
-                                        lattice.rotateToLocalCS(element, ray.momentum), ray.time,
-                                        electric, magnetic),
-                                "Aperture/material loss in " + element->getName());
-                    }
-                };
-                OneTurnMap map(
-                        [&](const auto& ray, double dt, std::vector<OneTurnMap::Step>* accepted) {
-                            checkApertures(ray);
-                            std::vector<OneTurnMap::Step> local;
-                            auto* intervals = accepted ? accepted : &local;
-                            const auto end  = tracker.advance(ray, dt, intervals);
-                            for (const auto& interval : *intervals) {
-                                checkApertures(interval.midpoint);
-                                checkApertures(interval.end);
-                            }
-                            return end;
-                        },
-                        c.section, c.tracking);
-                const auto result = ClosedOrbitSolver::solve(map, s.initial, s.solver);
-                out << "Integrator=" << ExternalFieldRayTracker::integrationMethodName(c.integrator)
-                    << " DT_s=" << c.tracking.dt << " p0_mc=" << c.tracking.momentum
-                    << " MAXSTEPS=" << c.tracking.maxSteps << " MAXPATH_m=" << c.tracking.maxPath
-                    << " T0_s=" << c.tracking.time << "\nXTOL_m=" << s.solver.positionTolerance
-                    << " PTOL_mc=" << s.solver.momentumTolerance
-                    << " MAXIT=" << s.solver.maxIterations << " DAMPING=" << s.solver.damping
-                    << "\nStatus=" << int(result.status) << ' ' << result.message
-                    << " evaluations=" << result.evaluations << '\n';
-                out << "FDSTEP=";
-                for (double v : s.solver.finiteDifferenceSteps)
-                    out << v << ' ';
-                out << "\nSCALES=";
-                for (double v : s.solver.scales)
-                    out << v << ' ';
-                out << '\n';
-                for (const auto& iteration : result.iterations) {
-                    out << "iteration damping=" << iteration.damping
-                        << " pivot_ratio=" << iteration.pivotRatio << " residual=";
-                    for (double v : iteration.residual)
-                        out << v << ' ';
-                    out << " correction=";
-                    for (double v : iteration.correction)
-                        out << v << ' ';
-                    out << '\n';
-                }
-                out << "Coordinates (x,px,y,py): ";
-                for (double v : result.coordinates)
-                    out << v << ' ';
-                out << "\nResidual: ";
-                for (double v : result.residual)
-                    out << v << ' ';
-                out << "\nMatrix:\n";
-                for (const auto& row : result.matrix) {
-                    for (double v : row)
-                        out << v << ' ';
-                    out << '\n';
-                }
-                if (result.status != ClosedOrbitSolver::Status::Converged) {
-                    throw OpalException("COF", out.str());
-                }
-                const auto returned   = map(result.coordinates);
-                const auto& reference = beam.getReference();
-                const double drift =
-                        (std::sqrt(1 + dot(returned.ray.momentum, returned.ray.momentum))
-                         - reference.getGamma())
-                        / (reference.getGamma() - 1);
-                out << "Return time_s=" << returned.ray.time - c.tracking.time
-                    << " path_m=" << returned.ray.pathLength << " relative_energy_drift=" << drift
-                    << '\n';
-                LinearMapEigenAnalysis::Settings ev;
-                ev.scales           = s.solver.scales;
-                const auto spectrum = LinearMapEigenAnalysis::analyze(result.matrix, ev);
-                LinearMapEigenAnalysis::writeReport(out, spectrum);
-                OneTurnMap::FullTunes fullTunes;
-                if (spectrum.stability == LinearMapEigenAnalysis::Stability::Stable)
-                    fullTunes = map.fullTunes(
-                            result.coordinates, s.solver.finiteDifferenceSteps, result.matrix);
-                else
-                    fullTunes.diagnostic = "One-turn eigenanalysis is not numerically stable.";
-                if (fullTunes.available)
-                    out << "Full tunes (uncoupled planar): horizontal/radial=" << fullTunes.tunes[0]
-                        << " vertical=" << fullTunes.tunes[1] << '\n';
-                else
-                    out << "Full tunes unavailable: " << fullTunes.diagnostic << '\n';
-                out << "Phase samples=" << fullTunes.samples
-                    << " maximum phase step_rad=" << fullTunes.maximumPhaseStep << '\n';
-                out << "Stability is a numerical matrix diagnostic; validate DT and FDSTEP "
-                       "convergence.\n";
-                std::ostringstream json;
-                json << std::setprecision(17) << "{\"converged\":true,\"dt_s\":" << c.tracking.dt
-                     << ",\"energy_MeV\":" << (reference.getE() - reference.getM()) / 1e6
-                     << ",\"coordinates\":[";
-                auto array = [&](const auto& values) {
-                    bool comma = false;
-                    for (double v : values) {
-                        if (comma) json << ',';
-                        json << v;
-                        comma = true;
-                    }
-                };
-                array(result.coordinates);
-                json << "],\"residual\":[";
-                array(result.residual);
-                json << "],\"matrix\":[";
-                for (unsigned i = 0; i < 4; ++i) {
-                    if (i) json << ',';
-                    json << '[';
-                    array(result.matrix[i]);
-                    json << ']';
-                }
-                json << "],\"eigenvalues\":[";
-                for (unsigned i = 0; i < 4; ++i) {
-                    if (i) json << ',';
-                    json << '[' << spectrum.eigenvalues[i].real() << ','
-                         << spectrum.eigenvalues[i].imag() << ']';
-                }
-                const char* stability = "MARGINAL";
-                using Stability       = LinearMapEigenAnalysis::Stability;
-                if (spectrum.stability == Stability::Stable) stability = "STABLE";
-                if (spectrum.stability == Stability::Unstable) stability = "UNSTABLE";
-                if (spectrum.stability == Stability::NonUnitCircle) stability = "NON_UNIT_CIRCLE";
-                json << "],\"stability\":\"" << stability
-                     << "\",\"near_integer\":" << (spectrum.nearInteger ? "true" : "false")
-                     << ",\"fractional_modes\":[";
-                for (size_t i = 0; i < spectrum.modes.size(); ++i) {
-                    if (i) json << ',';
-                    const auto& mode = spectrum.modes[i];
-                    json << "{\"tune\":";
-                    if (mode.tune)
-                        json << *mode.tune;
-                    else
-                        json << "null";
-                    json << ",\"complement\":";
-                    if (mode.complementaryTune)
-                        json << *mode.complementaryTune;
-                    else
-                        json << "null";
-                    json << '}';
-                }
-                const auto& u  = result.coordinates;
-                state.position = c.section.transformFrom(Vector_t<double, 3>(u[0], u[2], 0));
-                state.momentum = c.section.rotateFrom(
-                        Vector_t<double, 3>(
-                                u[1], u[3],
-                                std::sqrt(
-                                        c.tracking.momentum * c.tracking.momentum - u[1] * u[1]
-                                        - u[3] * u[3])));
-                json << "],\"full_tunes\":";
-                if (fullTunes.available)
-                    json << "{\"horizontal\":" << fullTunes.tunes[0]
-                         << ",\"vertical\":" << fullTunes.tunes[1] << '}';
-                else
-                    json << "null";
-                json << ",\"full_tunes_diagnostic\":" << std::quoted(fullTunes.diagnostic)
-                     << ",\"phase_samples\":" << fullTunes.samples
-                     << ",\"maximum_phase_step_rad\":" << fullTunes.maximumPhaseStep;
-                json << ",\"relative_energy_drift\":" << drift << ",\"time_s\":" << state.time
-                     << ",\"position_m\":[";
-                array(state.position);
-                json << "],\"momentum_mc\":[";
-                array(state.momentum);
-                json << "],\"line\":" << std::quoted(state.line)
-                     << ",\"species\":" << std::quoted(state.species)
-                     << ",\"mass_eV\":" << state.massEV << ",\"charge_e\":" << state.chargeE
-                     << ",\"section_origin_m\":[";
-                array(c.section.transformFrom(Vector_t<double, 3>(0.0)));
-                json << "],\"section_rotation_wxyz\":[";
-                array(c.section.getRotation());
-                json << "]}\n";
-                state.json = json.str();
-                if (!s.output.empty()) {
-                    std::ofstream file(s.output);
-                    file << state.json;
-                    file.flush();
-                    require(bool(file), "Error writing COF OUTPUT: " + s.output);
-                }
-                report = out.str();
+                report = solveAndReport(sequence, beam, lattice, visitor.ordered, c, s, state);
             } catch (const OpalException& ex) {
                 error = ex.what();
             } catch (const std::exception& ex) {

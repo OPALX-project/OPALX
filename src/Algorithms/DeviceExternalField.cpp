@@ -42,6 +42,10 @@ const char* device_external::Builder::unsupportedReason(const ElementBase& eleme
                        ? nullptr
                        : "Device RF boundary control requires finite positive dimensions: ";
     }
+    // This host-side whitelist validates the value-only GPU descriptor schema.
+    // Field evaluation itself remains polymorphic through the existing element
+    // kernels. Adding a descriptor capability hook to every host element is a
+    // broader interface change; do not replace device snapshots with host pointers.
     const auto higherBendComponents = [](const auto& magnet) {
         for (int n = 2; n < magnet.maxNormal_m; ++n)
             if (magnet.normalComponentsHost_m(n) != 0) return true;

@@ -233,6 +233,12 @@ TEST_F(ScalingFFAMagnetTest, CylindricalCoordinatesTest) {
                 sector_m->getCylindricalCoordinates(R, Rcyl);
                 EXPECT_NEAR(Rcyl[0], std::abs(rtest), 1e-6);
                 EXPECT_NEAR(Rcyl[2], phi, 1e-6);
+                EXPECT_NEAR(Rcyl[3], std::abs(rtest / r0), 1e-14);
+                EXPECT_NEAR(
+                        Rcyl[4],
+                        phi - sector_m->getTanDelta() * std::log(std::abs(rtest / r0))
+                                - sector_m->getPhiStart(),
+                        1e-14);
             }
         }
     }
@@ -630,4 +636,26 @@ TEST_F(ScalingFFAMagnetTest, StaticOpticsApertureIsIndependentOfFieldSelection) 
                 EXPECT_FALSE(config.contains(point(r, y, 0.06)));
             }
     }
+}
+
+TEST_F(ScalingFFAMagnetTest, ReferenceParticleReportsNativeApertureLossWithoutField) {
+    sector_m->setRMin(r0_m - .1);
+    sector_m->setRMax(r0_m + .1);
+    sector_m->setVerticalExtent(.05);
+    sector_m->setAzimuthalExtent(.2);
+    sector_m->setPhiStart(0.);
+    sector_m->setDipoleConstant(0.);
+    Vector_t<double, 3> electric(0.), magnetic(0.), momentum(0., 0., .1);
+    for (const auto& point : {Vector_t<double, 3>(.2, 0., 0.), Vector_t<double, 3>(0., .06, 0.)}) {
+        EXPECT_FALSE(sector_m->isInside(point));
+        EXPECT_TRUE(sector_m->isReferenceParticleLost(point, momentum, 0.));
+        EXPECT_TRUE(sector_m->applyToReferenceParticle(point, momentum, 0., electric, magnetic));
+    }
+    // An opposite ring arm is outside this element's angular ownership.
+    EXPECT_FALSE(sector_m->applyToReferenceParticle(
+            Vector_t<double, 3>(-2 * r0_m, .06, 0.), momentum, 0., electric, magnetic));
+    EXPECT_FALSE(sector_m->applyToReferenceParticle(
+            Vector_t<double, 3>(0., 0., 0.), momentum, 0., electric, magnetic));
+    EXPECT_DOUBLE_EQ(euclidean_norm(electric), 0.);
+    EXPECT_DOUBLE_EQ(euclidean_norm(magnetic), 0.);
 }

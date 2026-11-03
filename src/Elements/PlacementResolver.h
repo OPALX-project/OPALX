@@ -44,7 +44,7 @@ public:
      */
     static void resolve(ElementList& elements, const CoordinateSystemTrafo& labFrame);
     /**
-     * @brief Resolve the transform for an element placed on a circle
+     * @brief Resolve and fix the transform for an element placed on a circle
      * @param element: element to place in ffa mode; it is an error if ffa is empty
      * @param endPriorPathLength: update the s-position of the placement pointer
      * @param currentCoordTrafo: update the transformation of the placement point

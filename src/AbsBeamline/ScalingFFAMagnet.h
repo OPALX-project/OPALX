@@ -95,11 +95,22 @@ public:
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
+    /** Native scalar loss check, including zero-field elements. Angular ownership
+     * is independent of radial/vertical aperture containment, so an excluded
+     * field candidate cannot silently turn an aperture loss into free drift.
+     */
     bool applyToReferenceParticle(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override {
-        apply(R, P, t, E, B);
+        Vector_t<double, 5> cylindrical;
+        config_m.getCylindricalCoordinates(R, cylindrical);
+        if (config_m.outsideAperture(cylindrical)) return true;
+        if (config_m.contains(cylindrical)) apply(R, P, t, E, B);
         return false;
+    }
+    bool isReferenceParticleLost(
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>&, double) override {
+        return config_m.outsideAperture(R);
     }
     /** Calculate the field for particles in the container
      *
@@ -396,18 +407,7 @@ KOKKOS_INLINE_FUNCTION
 void ScalingFFAMagnet::getCylindricalCoordinates(
         const ScalingFFAMagnetConfig& config, const Vector_t<double, 3> Ri,
         Vector_t<double, 5>& Rcyli) {
-    Vector_t<double, 3> Rstart = Ri;
-    double r          = Kokkos::sqrt((Ri[0] + config.r0_m) * (Ri[0] + config.r0_m) + Ri[2] * Ri[2]);
-    double normRadius = Kokkos::abs(r / config.r0_m);
-    double g          = config.tanDelta_m * Kokkos::log(normRadius);
-    double phi = Kokkos::atan2(Ri[2], (Ri[0] + config.r0_m) * Kokkos::copysign(1.0, config.r0_m));
-    double phiSpiral = phi - g - config.phiStart_m;
-    Rcyli[0]         = r;
-    // angle between y-axis and position vector in anticlockwise direction
-    Rcyli[1] = Ri[1];
-    Rcyli[2] = phi;
-    Rcyli[3] = normRadius;
-    Rcyli[4] = phiSpiral;
+    config.getCylindricalCoordinates(Ri, Rcyli);
 }
 
 KOKKOS_INLINE_FUNCTION
