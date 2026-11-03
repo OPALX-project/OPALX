@@ -4,6 +4,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/ClosedOrbitSolver.h"
 #include "Algorithms/DefaultVisitor.h"
+#include "Algorithms/GeneralElementMapping.h"
 #include "Algorithms/LinearMapEigenAnalysis.h"
 #include "Algorithms/MapExitRoot.h"
 #include "Algorithms/OrbitThreader.h"
@@ -1621,6 +1622,74 @@ TEST(MapExitRoot, SkewedAndDiscontinuousResidualsConverge) {
         EXPECT_NEAR(root, discontinuous ? 0.317 : std::pow(0.01, 0.1), 1e-12);
         EXPECT_LE(calls, 98u);
     }
+}
+
+// An on-axis quadrupole next to an apertured quadrupole of a parallel branch at x = 0.3 m.
+TEST_F(OrbitThreaderTest, ReachCheckStopsWhenAParallelBranchWouldDeleteTheReference) {
+    const auto threadWith = [this](double branchReach, bool withMapping) {
+        auto bunch = makeBunch(0);
+        DummyBeamline line;
+        DefaultVisitor visitor(line, false, false);
+        OpalBeamline beamline;
+        auto here   = makePlacedQuadrupole("Q_HERE", 0.5, 0.0, 0.0);
+        auto branch = std::make_shared<MultipoleRep>("Q_BRANCH");
+        branch->getGeometry().setElementLength(0.5);
+        branch->setAperture(ApertureType::RECTANGULAR, {0.05, 0.05});
+        branch->setCSTrafoGlobal2Local(
+                CoordinateSystemTrafo(Vector_t<double, 3>(0.3, 0.0, 0.0), Quaternion()));
+        branch->fixPosition();
+        if (branchReach > 0.0) branch->setReach(branchReach);
+        beamline.visit(*here, visitor, *bunch);
+        beamline.visit(*branch, visitor, *bunch);
+        beamline.prepareSections();
+
+        const GeneralElementMapping mapping(
+                beamline.getElementByType(ElementType::ANY), {8, 8, 8}, 0.5);
+        StepSizeConfig steps;
+        steps.push_back(1.0e-11, 0.7, 512);
+        steps.resetIterator();
+        PartData reference(1.0, 9.382720813e8, 1.0e6);
+        OrbitThreader threader(
+                reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0,
+                0.0, 1.0e-11, steps, beamline, true, 0.0, withMapping ? &mapping : nullptr);
+        threader.execute();
+    };
+
+    EXPECT_THROW(threadWith(0.0, true), OpalException);
+    EXPECT_NO_THROW(threadWith(0.2, true));
+    EXPECT_NO_THROW(threadWith(0.0, false));
+}
+
+TEST_F(OrbitThreaderTest, ReachCheckReportsSupportBeyondTheReach) {
+    auto bunch = makeBunch(0);
+    DummyBeamline line;
+    DefaultVisitor visitor(line, false, false);
+    OpalBeamline beamline;
+    auto here = makePlacedQuadrupole("Q_HERE", 0.5, 0.0, 0.0);
+    auto far  = std::make_shared<MultipoleRep>("Q_FAR");
+    far->getGeometry().setElementLength(0.5);
+    far->setCSTrafoGlobal2Local(
+            CoordinateSystemTrafo(Vector_t<double, 3>(0.8, 0.0, 0.0), Quaternion()));
+    far->fixPosition();
+    beamline.visit(*here, visitor, *bunch);
+    beamline.visit(*far, visitor, *bunch);
+    beamline.prepareSections();
+
+    const GeneralElementMapping mapping(
+            beamline.getElementByType(ElementType::ANY), {8, 8, 8}, 0.5);
+    StepSizeConfig steps;
+    steps.push_back(1.0e-11, 0.7, 512);
+    steps.resetIterator();
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    OrbitThreader threader(
+            reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
+            1.0e-11, steps, beamline, true, 0.0, &mapping);
+    ASSERT_NO_THROW(threader.execute());
+
+    const auto outside = threader.getSupportOutsideReach();
+    ASSERT_EQ(outside.size(), 1u);
+    EXPECT_EQ(outside.front().element->getName(), "Q_FAR");
+    EXPECT_NEAR(outside.front().offset, 0.8, 1e-9);
 }
 
 TEST(MapExitRoot, SmallNegativeTimesAndNearEndpointRoots) {

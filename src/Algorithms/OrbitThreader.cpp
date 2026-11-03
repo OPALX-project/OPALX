@@ -66,7 +66,7 @@ namespace {
 OrbitThreader::OrbitThreader(
         const PartData& ref, const Vector_t<double, 3>& r, const Vector_t<double, 3>& p, double s,
         double maxDiffZBunch, double t, double dt, StepSizeConfig stepSizes, OpalBeamline& bl,
-        bool isDesignBeam, double period)
+        bool isDesignBeam, double period, const GeneralElementMapping* elementMapping)
     : r_m(r),
       p_m(p),
       pathLength_m(s),
@@ -78,6 +78,7 @@ OrbitThreader::OrbitThreader(
                       : stepSizes.getFinalSStop() + std::copysign(1.0, dt) * 2 * maxDiffZBunch),
       period_m(period),
       itsOpalBeamline_m(bl),
+      elementMapping_m(elementMapping),
       isDesignBeam_m(isDesignBeam),
       errorFlag_m(0),
       reference_m(ref),
@@ -314,6 +315,7 @@ void OrbitThreader::execute() {
         imap_m.saveSDDS(initialPathLength);
     }
     logger_m.close();
+    printSupportOutsideReach();
     outputTime.stop();
     if (ippl::Comm->rank() == 0) {
         std::ostringstream summary;
@@ -369,6 +371,7 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
             for (const auto& element : fields)
                 names += element->getName() + ", ";
             r_m = step.midpoint.position;
+            checkReach(step.midpoint.position, step.midpoint.pathLength);
             if (step.hitMaterial) {
                 errorFlag_m = HITMATERIAL;
                 return;
@@ -440,6 +443,41 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
         }
 
     } while (activeSet == itsOpalBeamline_m.getElements(nextR));
+}
+
+void OrbitThreader::checkReach(const Vector_t<double, 3>& position, const double pathLength) {
+    if (elementMapping_m == nullptr) return;
+    for (const auto& finding : elementMapping_m->checkReferencePoint(position, pathLength)) {
+        const auto [entry, inserted] =
+                supportOutsideReach_m.try_emplace(finding.element.get(), finding);
+        if (!inserted && finding.offset > entry->second.offset) entry->second = finding;
+    }
+}
+
+std::vector<GeneralElementMapping::SupportOutsideBox> OrbitThreader::getSupportOutsideReach()
+        const {
+    std::vector<GeneralElementMapping::SupportOutsideBox> outside;
+    for (const auto& [element, finding] : supportOutsideReach_m)
+        outside.push_back(finding);
+    std::sort(outside.begin(), outside.end(), [](const auto& a, const auto& b) {
+        return a.element->getName() < b.element->getName();
+    });
+    return outside;
+}
+
+void OrbitThreader::printSupportOutsideReach() const {
+    if (supportOutsideReach_m.empty() || ippl::Comm->rank() != 0) return;
+    std::ostringstream report;
+    report << "* Element mapping: the reference orbit passes through the field support of these "
+              "elements beyond their reach. The reference particle, which selects fields by "
+              "isInside(), still sees them; a bunch near it does not. For an element of another "
+              "branch, give it an APERTURE so that neither sees it; otherwise set its REACH to at "
+              "least the offset.\n";
+    for (const auto& finding : getSupportOutsideReach()) {
+        report << "*   " << finding.element->getName() << ": offset " << finding.offset
+               << " m, reach " << finding.reach << " m\n";
+    }
+    *gmsg << level1 << report.str() << endl;
 }
 
 bool OrbitThreader::reachedThreadingEnd() const {

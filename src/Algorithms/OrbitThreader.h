@@ -22,6 +22,7 @@
 #ifndef OPAL_ORBITTHREADER_H
 #define OPAL_ORBITTHREADER_H
 
+#include "Algorithms/GeneralElementMapping.h"
 #include "Algorithms/IndexMap.h"
 #include "Algorithms/LinearTransferMapBuilder.h"
 #include "Algorithms/StepSizeConfig.h"
@@ -77,11 +78,15 @@ public:
      * @param bl Placed runtime lattice; must outlive the threader.
      * @param isDesignBeam Whether this threader may update shared design diagnostics.
      * @param period Nominal circumference [m] for RING; nonpositive selects LINE behavior.
+     * @param elementMapping Element grid of the tracker, or null. When given, every accepted
+     * reference step is checked against the element reaches; see
+     * GeneralElementMapping::checkReferencePoint(). Must outlive the threader.
      */
     OrbitThreader(
             const PartData& ref, const Vector_t<double, 3>& r, const Vector_t<double, 3>& p,
             double s, double maxDiffZBunch, double t, double dT, StepSizeConfig stepSizes,
-            OpalBeamline& bl, bool isDesignBeam, double period = 0.0);
+            OpalBeamline& bl, bool isDesignBeam, double period = 0.0,
+            const GeneralElementMapping* elementMapping = nullptr);
 
     /**
      * @brief Run reference threading and, when enabled for the design beam, generate maps.
@@ -98,6 +103,10 @@ public:
     /// Support candidates around path coordinate step with half-width length, both [m].
     /// For RING the lookup wraps with the measured return period; see IndexMap::query().
     IndexMap::value_t query(IndexMap::key_t::first_type step, IndexMap::key_t::second_type length);
+
+    /// Whether the path coordinate @p lower [m] lies beyond the threaded range; see
+    /// IndexMap::isPastEnd(). Never true for RING.
+    bool isPastEnd(double lower) const { return imap_m.isPastEnd(lower); }
 
     /// First contiguous support crossing of this runtime occurrence, not all ring visits.
     IndexMap::key_t getRange(const IndexMap::value_t::value_type& element) const;
@@ -152,6 +161,10 @@ public:
         return r_m - ringOrigin_m.position;
     }
 
+    /// Elements whose field support the reference passed beyond their reach, each with its
+    /// largest offset, sorted by name. Empty without an element mapping.
+    std::vector<GeneralElementMapping::SupportOutsideBox> getSupportOutsideReach() const;
+
 private:
     /// position of reference particle in lab coordinates
     Vector_t<double, 3> r_m;
@@ -176,6 +189,8 @@ private:
     ValueRange<double> pathLengthRange_m;
 
     OpalBeamline& itsOpalBeamline_m;
+    const GeneralElementMapping* elementMapping_m;
+    std::map<const ElementBase*, GeneralElementMapping::SupportOutsideBox> supportOutsideReach_m;
     IndexMap imap_m;
 
     /// True for the single design beam (container 0's species): only this threader may
@@ -222,6 +237,8 @@ private:
 
     void trackBack();
     void integrate(const IndexMap::value_t& activeSet, double maxDrift = 10.0);
+    void checkReach(const Vector_t<double, 3>& position, double pathLength);
+    void printSupportOutsideReach() const;
     bool containsCavity(const IndexMap::value_t& activeSet);
     void autophaseCavities(
             const IndexMap::value_t& activeSet, const std::set<std::string>& visitedElements);
