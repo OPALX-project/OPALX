@@ -21,6 +21,7 @@
 #include "Ippl.h"
 
 #include "AbstractObjects/OpalData.h"
+#include "Algorithms/GeneralElementMapping.h"
 #include "Algorithms/LinearTransferMapBuilder.h"
 #include "Attributes/Attributes.h"
 #include "OpalParser/FileStream.h"
@@ -90,6 +91,8 @@ namespace {
         LINEARTRANSFERMAPRICHARDSON,
         LINEARTRANSFERMAPSTEPS,
         LINEARTRANSFERMAPINTEGRATOR,
+        ELEMENTMAPPINGGRID,
+        ELEMENTMAPPINGREACH,
         ASCIIDUMP,
         BOUNDPDESTROY,
         BEAMHALOBOUNDARY,
@@ -335,6 +338,20 @@ Option::Option()
             "Independent of Richardson differentiation; does not change particle TRACK.",
             {"BORIS", "LF2", "RK4", "DOP853"}, linearTransferMapIntegrator);
 
+    itsAttr[ELEMENTMAPPINGGRID] = Attributes::makeRealArray(
+            "ELEMENTMAPPINGGRID",
+            "Cells of the lab-frame grid that maps a bunch to its active elements, along x, y "
+            "and z: three positive integers, at most 2^24 cells in total. Default {8, 8, 8}.");
+    Attributes::setRealArray(
+            itsAttr[ELEMENTMAPPINGGRID],
+            std::vector<double>(elementMappingGrid.begin(), elementMappingGrid.end()));
+    itsAttr[ELEMENTMAPPINGREACH] = Attributes::makeReal(
+            "ELEMENTMAPPINGREACH",
+            "Minimum transverse half-width [m] of an element's box for the element mapping; "
+            "an element's REACH overrides it. Parallel branches must be separated by more than "
+            "the reach plus the bunch's transverse half-width, halo included. Default 0.5.",
+            elementMappingReach);
+
     itsAttr[ASCIIDUMP] = Attributes::makeBool(
             "ASCIIDUMP", "If true, some of the elements dump in ASCII instead of HDF5", asciidump);
 
@@ -463,6 +480,10 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
             std::vector<double>(linearTransferMapSteps.begin(), linearTransferMapSteps.end()));
     Attributes::setPredefinedString(
             itsAttr[LINEARTRANSFERMAPINTEGRATOR], linearTransferMapIntegrator);
+    Attributes::setRealArray(
+            itsAttr[ELEMENTMAPPINGGRID],
+            std::vector<double>(elementMappingGrid.begin(), elementMappingGrid.end()));
+    Attributes::setReal(itsAttr[ELEMENTMAPPINGREACH], elementMappingReach);
     Attributes::setBool(itsAttr[ASCIIDUMP], asciidump);
     Attributes::setReal(itsAttr[BOUNDPDESTROY], boundpDestroy);
     Attributes::setReal(itsAttr[BEAMHALOBOUNDARY], beamHaloBoundary);
@@ -503,6 +524,24 @@ void Option::execute() {
             Attributes::getString(itsAttr[LINEARTRANSFERMAPINTEGRATOR]));
     mapSettings.validate();
 
+    const auto grid = Attributes::getRealArray(itsAttr[ELEMENTMAPPINGGRID]);
+    std::array<unsigned, 3> mappingGrid{};
+    double mappingCells = 1.0;
+    bool validGrid      = grid.size() == 3;
+    for (std::size_t d = 0; validGrid && d < 3; ++d) {
+        validGrid = std::isfinite(grid[d]) && grid[d] >= 1.0 && std::floor(grid[d]) == grid[d];
+        mappingCells *= grid[d];
+        if (validGrid) mappingGrid[d] = static_cast<unsigned>(grid[d]);
+    }
+    if (!validGrid || mappingCells > GeneralElementMapping::maximumCells)
+        throw OpalException(
+                "Option::execute",
+                "ELEMENTMAPPINGGRID requires three positive integers with at most 2^24 cells "
+                "in total.");
+    const double mappingReach = Attributes::getReal(itsAttr[ELEMENTMAPPINGREACH]);
+    if (!std::isfinite(mappingReach) || mappingReach <= 0.0)
+        throw OpalException("Option::execute", "ELEMENTMAPPINGREACH must be a positive length.");
+
     // Store the option flags.
     echo           = Attributes::getBool(itsAttr[ECHO]);
     info           = Attributes::getBool(itsAttr[INFO]);
@@ -522,6 +561,8 @@ void Option::execute() {
     linearTransferMapSteps            = mapSettings.finiteDifferenceSteps;
     linearTransferMapIntegrator =
             ExternalFieldRayTracker::integrationMethodName(mapSettings.integrationMethod);
+    elementMappingGrid  = mappingGrid;
+    elementMappingReach = mappingReach;
 
     idealized             = Attributes::getBool(itsAttr[IDEALIZED]);
     asciidump             = Attributes::getBool(itsAttr[ASCIIDUMP]);

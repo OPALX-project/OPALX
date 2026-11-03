@@ -95,6 +95,9 @@ namespace Options {
     std::array<double, 6> linearTransferMapSteps{1.e-3, 1.e-3, 1.e-3, 1.e-3, 1.e-3, 1.e-3};
     std::string linearTransferMapIntegrator = "BORIS";
 
+    std::array<unsigned, 3> elementMappingGrid{8, 8, 8};
+    double elementMappingReach = 0.5;
+
     bool asciidump = false;
 
     double boundpDestroy = 10;

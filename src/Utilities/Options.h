@@ -156,6 +156,13 @@ namespace Options {
     /// RK4 or DOP853. Fixed nominal DT; does not select the production bunch integrator.
     extern std::string linearTransferMapIntegrator;
 
+    /// Cells of the lab-frame element grid along x, y and z (default 8 each); see
+    /// GeneralElementMapping.
+    extern std::array<unsigned, 3> elementMappingGrid;
+    /// Default minimum transverse half-width [m] of an element box (default 0.5); an element's
+    /// REACH attribute overrides it.
+    extern double elementMappingReach;
+
     extern bool asciidump;
 
     /// Governs how many sigmas away particles are deleted
