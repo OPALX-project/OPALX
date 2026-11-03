@@ -362,6 +362,13 @@ void ParallelTracker::execute() {
                 }
             }
 
+            // A file distribution with PC, ENERGY or GAMMA on BEAM takes that momentum along
+            // REFDIRECTION. The mean of a wide angular spread is much shorter than the particle
+            // momenta.
+            if (ci < beamReferenceMomenta_m.size() && beamReferenceMomenta_m[ci]) {
+                refP = *beamReferenceMomenta_m[ci];
+            }
+
             pc->getRefPartR() = beamlineToLab.transformTo(refR);
             pc->getRefPartP() = beamlineToLab.rotateTo(refP);
         }

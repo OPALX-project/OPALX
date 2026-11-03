@@ -21,8 +21,10 @@
 #include "Physics/Units.h"
 #include "Utilities/GeneralOpalException.h"
 
+#include <algorithm>
 #include <cmath>
 #include <fstream>
+#include <iterator>
 #include <map>
 #include <sstream>
 #include <string>
@@ -46,6 +48,7 @@ G4BL3DGrid::G4BL3DGrid(std::string aFilename)
       num_gridpx_m(0),
       num_gridpy_m(0),
       num_gridpz_m(0),
+      extendFlip_m{-1, -1, -1},
       fieldScale_m(1.0),
       efieldScale_m(1.0),
       hasEField_m(false) {
@@ -177,22 +180,52 @@ void G4BL3DGrid::readHeaderOnly() {
     xbegin_m = X0 * Units::mm2m;
     ybegin_m = Y0 * Units::mm2m;
     zbegin_m = Z0 * Units::mm2m;
-    xend_m   = xbegin_m + (num_gridpx_m - 1) * hx_m;
-    yend_m   = ybegin_m + (num_gridpy_m - 1) * hy_m;
-    zend_m   = zbegin_m + (num_gridpz_m - 1) * hz_m;
 
-    // The section after `grid` has to be `data`. Reject the alternatives by name so the
+    // Optional `extendX flip=...` lines, then `data`. Reject the alternatives by name so the
     // message says what is wrong rather than "unexpected line".
-    if (!nextLine(in, line)) {
-        throw GeneralOpalException(
-                "G4BL3DGrid::readHeaderOnly",
-                "Fieldmap '" + Filename_m + "' has no section after its 'grid' line");
+    extendFlip_m[0] = extendFlip_m[1] = extendFlip_m[2] = -1;
+    std::string section;
+    while (true) {
+        if (!nextLine(in, line)) {
+            throw GeneralOpalException(
+                    "G4BL3DGrid::readHeaderOnly",
+                    "Fieldmap '" + Filename_m + "' has no 'data' section after its 'grid' line");
+        }
+        section = firstToken(line);
+        if (section != "extendX" && section != "extendY" && section != "extendZ") {
+            break;
+        }
+        const std::map<std::string, std::string> pairs = keyValues(line);
+        int flip                                       = 0;
+        for (const auto& [key, value] : pairs) {
+            if (key != "flip") {
+                throw GeneralOpalException(
+                        "G4BL3DGrid::readHeaderOnly", "In fieldmap '" + Filename_m + "': '"
+                                                              + section + "' takes only flip=, not "
+                                                              + key + "=");
+            }
+            std::istringstream names(value);
+            std::string name;
+            while (std::getline(names, name, ',')) {
+                static const std::string components[] = {"Bx", "By", "Bz", "Ex", "Ey", "Ez"};
+                const auto* found = std::find(std::begin(components), std::end(components), name);
+                if (found == std::end(components)) {
+                    throw GeneralOpalException(
+                            "G4BL3DGrid::readHeaderOnly",
+                            "In fieldmap '" + Filename_m + "': '" + section + " flip=" + value
+                                    + "' names '" + name
+                                    + "', which is not one of Bx, By, Bz, Ex, Ey, Ez");
+                }
+                flip |= 1 << (found - std::begin(components));
+            }
+        }
+        extendFlip_m[section[6] - 'X'] = flip;
     }
-    const std::string section = firstToken(line);
     if (section != "data") {
         std::string reason;
         if (section.compare(0, 6, "extend") == 0) {
-            reason = "symmetry declarations ('" + section + "') are not supported";
+            reason = "'" + section + "' is not a G4beamline grid section; use extendX, "
+                     "extendY or extendZ";
         } else if (section == "points") {
             reason = "the 'points' section is not supported, only 'data'";
         } else {
@@ -201,6 +234,22 @@ void G4BL3DGrid::readHeaderOnly() {
         throw GeneralOpalException(
                 "G4BL3DGrid::readHeaderOnly", "In fieldmap '" + Filename_m + "': " + reason);
     }
+
+    // An extended axis also holds the mirror image of the file's points, so it starts n - 1
+    // points earlier and has 2n - 1 of them.
+    auto extend = [](int flip, double& begin, int& n, double h) {
+        if (flip >= 0) {
+            begin -= (n - 1) * h;
+            n = 2 * n - 1;
+        }
+    };
+    extend(extendFlip_m[0], xbegin_m, num_gridpx_m, hx_m);
+    extend(extendFlip_m[1], ybegin_m, num_gridpy_m, hy_m);
+    extend(extendFlip_m[2], zbegin_m, num_gridpz_m, hz_m);
+
+    xend_m = xbegin_m + (num_gridpx_m - 1) * hx_m;
+    yend_m = ybegin_m + (num_gridpy_m - 1) * hy_m;
+    zend_m = zbegin_m + (num_gridpz_m - 1) * hz_m;
 }
 
 void G4BL3DGrid::readMap() {
@@ -242,6 +291,15 @@ void G4BL3DGrid::readMap() {
     std::vector<bool> seen(size, false);
     size_t filled = 0;
 
+    // The file holds the points from the mirror point up. On an extended axis those start
+    // at index n - 1 of the stored grid (readHeaderOnly doubled the axis); the rest is
+    // filled in by mirroring after the rows are read.
+    const int nx = num_gridpx_m, ny = num_gridpy_m, nz = num_gridpz_m;
+    const int ox          = extendFlip_m[0] >= 0 ? (nx - 1) / 2 : 0;
+    const int oy          = extendFlip_m[1] >= 0 ? (ny - 1) / 2 : 0;
+    const int oz          = extendFlip_m[2] >= 0 ? (nz - 1) / 2 : 0;
+    const size_t fileSize = static_cast<size_t>(nx - ox) * (ny - oy) * (nz - oz);
+
     // Snapping a coordinate to its grid index. A quarter of a cell is generous for files
     // written with six digits and tight enough to catch a genuinely off-grid row.
     auto index1D = [](double value, double begin, double h, int n, const char* axis,
@@ -264,7 +322,7 @@ void G4BL3DGrid::readMap() {
         if (!label.empty() && (std::isalpha(static_cast<unsigned char>(label[0])) != 0)) {
             std::string reason;
             if (label.compare(0, 6, "extend") == 0) {
-                reason = "symmetry declarations ('" + label + "') are not supported";
+                reason = "'" + label + "' has to come before the 'data' line";
             } else {
                 reason = "unexpected line '" + line + "' inside the data block";
             }
@@ -316,11 +374,20 @@ void G4BL3DGrid::readMap() {
             hasEField_m       = true;
         }
 
-        const int ix = index1D(x * Units::mm2m, xbegin_m, hx_m, num_gridpx_m, "x", Filename_m, row);
-        const int iy = index1D(y * Units::mm2m, ybegin_m, hy_m, num_gridpy_m, "y", Filename_m, row);
-        const int iz = index1D(z * Units::mm2m, zbegin_m, hz_m, num_gridpz_m, "z", Filename_m, row);
+        const int ix =
+                ox
+                + index1D(
+                        x * Units::mm2m, xbegin_m + ox * hx_m, hx_m, nx - ox, "x", Filename_m, row);
+        const int iy =
+                oy
+                + index1D(
+                        y * Units::mm2m, ybegin_m + oy * hy_m, hy_m, ny - oy, "y", Filename_m, row);
+        const int iz =
+                oz
+                + index1D(
+                        z * Units::mm2m, zbegin_m + oz * hz_m, hz_m, nz - oz, "z", Filename_m, row);
 
-        const size_t index = (static_cast<size_t>(ix) * num_gridpy_m + iy) * num_gridpz_m + iz;
+        const size_t index = (static_cast<size_t>(ix) * ny + iy) * nz + iz;
         if (seen[index]) {
             throw GeneralOpalException(
                     "G4BL3DGrid::readMap",
@@ -342,11 +409,49 @@ void G4BL3DGrid::readMap() {
         }
     }
 
-    if (filled != size) {
+    if (filled != fileSize) {
         throw GeneralOpalException(
                 "G4BL3DGrid::readMap",
                 "Fieldmap '" + Filename_m + "' holds " + std::to_string(filled) + " of the "
-                        + std::to_string(size) + " grid points its 'grid' line declares");
+                        + std::to_string(fileSize) + " grid points its 'grid' line declares");
+    }
+
+    // Fill the mirrored half of every extended axis from the file's points. A point mirrored
+    // in two axes takes both flips, which cancel where they name the same component.
+    if (fileSize != size) {
+        auto mirror = [](int i, int o, int flip, int& flips) {
+            if (i >= o) {
+                return i;
+            }
+            flips ^= flip;
+            return 2 * o - i;
+        };
+        for (int ix = 0; ix < nx; ++ix) {
+            for (int iy = 0; iy < ny; ++iy) {
+                for (int iz = 0; iz < nz; ++iz) {
+                    int flips    = 0;
+                    const int sx = mirror(ix, ox, extendFlip_m[0], flips);
+                    const int sy = mirror(iy, oy, extendFlip_m[1], flips);
+                    const int sz = mirror(iz, oz, extendFlip_m[2], flips);
+                    if (sx == ix && sy == iy && sz == iz) {
+                        continue;
+                    }
+                    const size_t from = (static_cast<size_t>(sx) * ny + sy) * nz + sz;
+                    const size_t to   = (static_cast<size_t>(ix) * ny + iy) * nz + iz;
+                    auto sign         = [flips](int bit) {
+                        return (flips >> bit) & 1 ? -1.0 : 1.0;
+                    };
+                    Bx(to) = sign(0) * Bx(from);
+                    By(to) = sign(1) * By(from);
+                    Bz(to) = sign(2) * Bz(from);
+                    if (hasEField_m) {
+                        Ex(to) = sign(3) * Ex(from);
+                        Ey(to) = sign(4) * Ey(from);
+                        Ez(to) = sign(5) * Ez(from);
+                    }
+                }
+            }
+        }
     }
 
     FieldstrengthBx_m.modify<typename decltype(FieldstrengthBx_m)::host_mirror_space>();
