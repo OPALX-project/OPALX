@@ -5,6 +5,7 @@ set (_SRCS
     DefaultVisitor.cpp
     DistributionMoments.cpp
     Flagger.cpp
+    GeneralElementMapping.cpp
     IndexMap.cpp
     ExternalFieldRayTracker.cpp
     DeviceExternalField.cpp
@@ -36,6 +37,7 @@ set (HDRS
     DefaultVisitor.h
     DistributionMoments.h
     Flagger.h
+    GeneralElementMapping.h
     IndexMap.h
     ExternalFieldRayTracker.h
     DeviceExternalField.h
