@@ -52,6 +52,7 @@ public:
         DPSI,    // The rotation around s axis in rad.
         OUTFN,   // Output filename
         DELETEONTRANSVERSEEXIT,  // Flag whether particles should be deleted if exit transversally
+        REACH,                   // Minimum transverse half-width for the element mapping
         COMMON
     };
 
