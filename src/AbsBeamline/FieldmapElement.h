@@ -134,6 +134,10 @@ public:
      */
     virtual BoundingBox getBoundingBoxInLabCoords() const override;
 
+    /// Includes the map's transverse cross-section, where the map acts regardless of the
+    /// aperture; it need not be centred on the axis.
+    BoundingBox getLocalSupportBox(double reach) const override;
+
     /**
      * @brief A finite transverse support envelope for placement and visualisation.
      *
@@ -223,6 +227,13 @@ private:
 
     /// Half-width of the map's box in y [m], valid only when hasTransverseExtent_m.
     double halfWidthY_m;
+
+    /// Transverse bounds of the map's box [m], which need not be centred on the axis. Valid
+    /// only when hasTransverseExtent_m.
+    double mapXBegin_m = 0.0;
+    double mapXEnd_m   = 0.0;
+    double mapYBegin_m = 0.0;
+    double mapYEnd_m   = 0.0;
 };
 
 #endif  // OPALX_FieldmapElement_HH

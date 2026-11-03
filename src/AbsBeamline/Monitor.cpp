@@ -362,6 +362,14 @@ void Monitor::getFieldExtent(double& zBegin, double& zEnd) const {
     zEnd   = halfLength_s;
 }
 
+BoundingBox Monitor::getLocalSupportBox(const double reach) const {
+    const auto [halfX, halfY] = getSupportHalfWidths(reach);
+    const double halfLength   = 0.5 * getGeometry().getElementLength();
+    return BoundingBox::getBoundingBox(
+            {Vector_t<double, 3>({-halfX, -halfY, -halfLength}),
+             Vector_t<double, 3>({halfX, halfY, halfLength})});
+}
+
 /// \todo Check switch statements over ElementType and add a MONITOR case where needed.
 ElementType Monitor::getType() const { return ElementType::MONITOR; }
 

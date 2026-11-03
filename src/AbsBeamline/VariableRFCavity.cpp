@@ -146,6 +146,13 @@ bool VariableRFCavity::isInside(const Vector_t<double, 3>& r) const {
            && Kokkos::abs(r[0]) <= halfWidth_m && Kokkos::abs(r[1]) <= halfHeight_m;
 }
 
+BoundingBox VariableRFCavity::getLocalSupportBox(const double reach) const {
+    BoundingBox box = ElementBase::getLocalSupportBox(reach);
+    box.enlargeToContainPosition(Vector_t<double, 3>({-halfWidth_m, -halfHeight_m, 0.0}));
+    box.enlargeToContainPosition(Vector_t<double, 3>({halfWidth_m, halfHeight_m, 0.0}));
+    return box;
+}
+
 void VariableRFCavity::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }
 
 void VariableRFCavity::finalise() { RefPartBunch_m = nullptr; }

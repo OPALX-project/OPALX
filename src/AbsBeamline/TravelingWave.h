@@ -91,6 +91,10 @@ public:
 
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
 
+    /// Selection window of isInside(), which ends where the exit cell starts although
+    /// getFieldExtent() reaches endField_m, so a bunch sees the cells the reference sees.
+    BoundingBox getLocalSupportBox(double reach) const override;
+
 private:
     double scaleCore_m;
     double scaleCoreError_m;

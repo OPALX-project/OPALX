@@ -56,6 +56,9 @@ public:
 
     virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
+    /// Includes the block, which deletes particles inside it independently of the aperture.
+    BoundingBox getLocalSupportBox(double reach) const override;
+
     virtual int getRequiredNumberOfTimeSteps() const override;
 
     /**

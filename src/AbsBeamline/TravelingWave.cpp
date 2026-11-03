@@ -14,6 +14,8 @@
 #include "Physics/Units.h"
 #include "Utilities/GeneralOpalException.h"
 
+#include <algorithm>
+
 extern Inform* gmsg;
 
 TravelingWave::TravelingWave() : TravelingWave("") {}
@@ -441,4 +443,12 @@ double TravelingWave::getAutoPhaseEstimate(
 bool TravelingWave::isInside(const Vector_t<double, 3>& r) const {
     return (ApertureHelper::isInsideAperture(r, aperture_m) && r(2) >= -0.5 * periodLength_m
             && r(2) < startExitField_m);
+}
+
+BoundingBox TravelingWave::getLocalSupportBox(const double reach) const {
+    const auto [halfX, halfY] = getSupportHalfWidths(reach);
+    const double zBegin       = std::min(startField_m, -0.5 * periodLength_m);
+    return BoundingBox::getBoundingBox(
+            {Vector_t<double, 3>({-halfX, -halfY, zBegin}),
+             Vector_t<double, 3>({halfX, halfY, startExitField_m})});
 }

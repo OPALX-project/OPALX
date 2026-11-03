@@ -65,7 +65,11 @@ FieldmapElement::FieldmapElement(const FieldmapElement& right)
       endField_m(right.endField_m),
       hasTransverseExtent_m(right.hasTransverseExtent_m),
       halfWidthX_m(right.halfWidthX_m),
-      halfWidthY_m(right.halfWidthY_m) {}
+      halfWidthY_m(right.halfWidthY_m),
+      mapXBegin_m(right.mapXBegin_m),
+      mapXEnd_m(right.mapXEnd_m),
+      mapYBegin_m(right.mapYBegin_m),
+      mapYEnd_m(right.mapYEnd_m) {}
 
 FieldmapElement::FieldmapElement(const std::string& name)
     : ElementBase(name),
@@ -187,6 +191,10 @@ void FieldmapElement::initialise(PartBunch_t* bunch) {
         halfWidthX_m          = 0.5 * std::abs(xFinal - xIni);
         halfWidthY_m          = 0.5 * std::abs(yFinal - yIni);
         hasTransverseExtent_m = halfWidthX_m > 0.0 && halfWidthY_m > 0.0;
+        mapXBegin_m           = std::min(xIni, xFinal);
+        mapXEnd_m             = std::max(xIni, xFinal);
+        mapYBegin_m           = std::min(yIni, yFinal);
+        mapYEnd_m             = std::max(yIni, yFinal);
     } catch (...) {
         halfWidthX_m = 0.0;
         halfWidthY_m = 0.0;
@@ -255,6 +263,15 @@ BoundingBox FieldmapElement::getBoundingBoxInLabCoords() const {
     }
 
     return BoundingBox::getBoundingBox(corners);
+}
+
+BoundingBox FieldmapElement::getLocalSupportBox(const double reach) const {
+    BoundingBox box = ElementBase::getLocalSupportBox(reach);
+    if (hasTransverseExtent_m) {
+        box.enlargeToContainPosition(Vector_t<double, 3>({mapXBegin_m, mapYBegin_m, startField_m}));
+        box.enlargeToContainPosition(Vector_t<double, 3>({mapXEnd_m, mapYEnd_m, endField_m}));
+    }
+    return box;
 }
 
 bool FieldmapElement::getSupportEnvelope(double& horizontalRadius, double& verticalRadius) const {
