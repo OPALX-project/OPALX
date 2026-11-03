@@ -60,9 +60,12 @@ RUN python3 /opt/opalx/src/docker/collect_licenses.py \
 FROM ubuntu:${UBUNTU_VERSION} AS runtime
 
 ARG GIT_SHA=unknown
+# Without it, the version label would be the one inherited from the Ubuntu image
+ARG OPALX_VERSION=unknown
 
 LABEL org.opencontainers.image.title="OPALX" \
       org.opencontainers.image.description="OPALX, CPU (OpenMP) build" \
+      org.opencontainers.image.version="${OPALX_VERSION}" \
       org.opencontainers.image.source="https://github.com/OPALX-project/OPALX" \
       org.opencontainers.image.revision="${GIT_SHA}" \
       org.opencontainers.image.licenses="GPL-3.0-or-later"
