@@ -95,6 +95,9 @@ public:
     /// @return True if r is inside.
     bool isInside(const Vector_t<double, 3>& r) const override;
 
+    /// The arc band of getLocalSupportBox() in chord-aligned segments.
+    std::vector<SupportBox> getLocalSupportBoxes(double reach) const override;
+
     /// @brief Set the full vertical pole gap (GAP), scaling the Enge fringe profile.
     /// @param gap The full vertical pole gap.
     void setFullGap(double gap);

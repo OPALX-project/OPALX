@@ -196,6 +196,18 @@ bool SBend::isInsideArc(const Vector_t<double, 3>& arc) const {
     return arc(2) >= zBegin && arc(2) < zEnd;
 }
 
+std::vector<SupportBox> SBend::getLocalSupportBoxes(const double reach) const {
+    const Geometry& geometry = getGeometry();
+    if (geometry.getCurvature() == 0.0) return ElementBase::getLocalSupportBoxes(reach);
+    const auto [halfX, halfY] = getSupportHalfWidths(reach);
+    double zBegin             = 0.0;
+    double zEnd               = 0.0;
+    getFieldExtent(zBegin, zEnd);
+    return getArcSupportBoxes(
+            geometry.getCurvature(), geometry.getElementLength(), std::min(zBegin, 0.0),
+            std::max(zEnd, geometry.getElementLength()), halfX, halfY);
+}
+
 bool SBend::isInside(const Vector_t<double, 3>& r) const {
     // Selection/containment uses the arc-length s and the radial offset (not the
     // straight-frame z/x), so the bend stays selected as the orbit curves through it

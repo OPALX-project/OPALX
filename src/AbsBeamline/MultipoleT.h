@@ -221,6 +221,14 @@ public:
      *  the orbit curves through it, the same way SBend does.
      */
     bool isInside(const Vector_t<double, 3>& r) const override;
+
+    /// Joins the isInside() region with the kernel's own gate: |x| <= HAPERT/2 and
+    /// |y| <= VAPERT/2 in the frame turned by ROTATION and EANGLE (MultipoleTBase::rotateFrame).
+    BoundingBox getLocalSupportBox(double reach) const override;
+
+    /// Chord-aligned arc segments when curved without ROTATION or EANGLE, with each width the
+    /// larger of the isInside() band and the kernel gate; otherwise the single bounding box.
+    std::vector<SupportBox> getLocalSupportBoxes(double reach) const override;
     /** Mark every particle that leaves the aperture inside the body, in arc coordinates */
     size_t markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) override;
     /** Apply the field to the reference particle.

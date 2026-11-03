@@ -23,6 +23,9 @@
 #include "BeamlineGeometry/Geometry.h"
 #include "PartBunch/PartBunch.h"
 
+#include <algorithm>
+#include <cmath>
+
 MultipoleT::MultipoleT(const std::string& name) : ElementBase(name) { chooseImplementation(); }
 
 MultipoleT::MultipoleT(const MultipoleT& right)
@@ -169,6 +172,68 @@ Vector_t<double, 3> MultipoleT::bendCoords(const Vector_t<double, 3>& r) const {
     // measured directly. A straight MultipoleT has zero curvature and r comes back unchanged.
     return GeometryHelper::toBendArcCoords(
             r, getGeometry().getCurvature(), getGeometry().getElementLength());
+}
+
+BoundingBox MultipoleT::getLocalSupportBox(const double reach) const {
+    BoundingBox box = ElementBase::getLocalSupportBox(reach);
+
+    // Kernel gate in the magnet frame of MultipoleTBase::rotateFrame(). Without BBLENGTH the
+    // kernel has no z cut, so the selection extent bounds z as it did for the reference path.
+    const double length = getGeometry().getElementLength();
+    double zBegin       = 0.0;
+    double zEnd         = 0.0;
+    getFieldExtent(zBegin, zEnd);
+    if (config_m.boundingBoxLength_m != 0.0) {
+        zBegin = std::min(zBegin, 0.5 * (length - config_m.boundingBoxLength_m));
+        zEnd   = std::max(zEnd, 0.5 * (length + config_m.boundingBoxLength_m));
+    }
+    const double halfX     = 0.5 * config_m.horizontalAperture_m;
+    const double halfY     = 0.5 * config_m.verticalAperture_m;
+    const double curvature = getGeometry().getCurvature();
+    const BoundingBox kernel =
+            curvature != 0.0 ? getArcSupportBox(curvature, length, zBegin, zEnd, halfX, halfY)
+                             : BoundingBox::getBoundingBox(
+                                       {Vector_t<double, 3>({-halfX, -halfY, zBegin}),
+                                        Vector_t<double, 3>({halfX, halfY, zEnd})});
+
+    // Undo the EANGLE turn about y, then the ROTATION about z.
+    const double cosE         = std::cos(config_m.entranceAngle_m);
+    const double sinE         = std::sin(config_m.entranceAngle_m);
+    const double cosR         = std::cos(config_m.rotation_m);
+    const double sinR         = std::sin(config_m.rotation_m);
+    const auto [lower, upper] = kernel.getCorners();
+    for (const double x : {lower(0), upper(0)}) {
+        for (const double y : {lower(1), upper(1)}) {
+            for (const double z : {lower(2), upper(2)}) {
+                const double x1 = cosE * x - sinE * z;
+                const double z1 = sinE * x + cosE * z;
+                box.enlargeToContainPosition(
+                        Vector_t<double, 3>({cosR * x1 - sinR * y, sinR * x1 + cosR * y, z1}));
+            }
+        }
+    }
+    return box;
+}
+
+std::vector<SupportBox> MultipoleT::getLocalSupportBoxes(const double reach) const {
+    const double curvature = getGeometry().getCurvature();
+    if (curvature == 0.0 || config_m.rotation_m != 0.0 || config_m.entranceAngle_m != 0.0) {
+        return ElementBase::getLocalSupportBoxes(reach);
+    }
+    const double length = getGeometry().getElementLength();
+    double zBegin       = 0.0;
+    double zEnd         = 0.0;
+    getFieldExtent(zBegin, zEnd);
+    zBegin = std::min(zBegin, 0.0);
+    zEnd   = std::max(zEnd, length);
+    if (config_m.boundingBoxLength_m != 0.0) {
+        zBegin = std::min(zBegin, 0.5 * (length - config_m.boundingBoxLength_m));
+        zEnd   = std::max(zEnd, 0.5 * (length + config_m.boundingBoxLength_m));
+    }
+    const auto [halfX, halfY] = getSupportHalfWidths(reach);
+    return getArcSupportBoxes(
+            curvature, length, zBegin, zEnd, std::max(halfX, 0.5 * config_m.horizontalAperture_m),
+            std::max(halfY, 0.5 * config_m.verticalAperture_m));
 }
 
 bool MultipoleT::isInside(const Vector_t<double, 3>& r) const {
