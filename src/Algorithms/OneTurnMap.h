@@ -4,6 +4,7 @@
 
 #include <array>
 #include <functional>
+#include <string>
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/ExternalFieldRayTracker.h"
 
@@ -58,6 +59,21 @@ public:
     /// Eight independent returns at fixed energy and in the identical section.
     /// Steps have units (m, p/(mc), m, p/(mc)); all must be finite and positive.
     Matrix jacobian(const Coordinates&, const Coordinates& steps) const;
+
+    struct FullTunes {
+        bool available = false;
+        std::array<double, 2> tunes{};  ///< Horizontal/radial, vertical, including winding.
+        unsigned samples        = 0;
+        double maximumPhaseStep = 0;
+        std::string diagnostic;
+    };
+    /** Continuous phase of central-difference shadow rays in the reference's
+     * moving transverse frame. Only stable, uncoupled optics in the section's
+     * horizontal plane are supported. No integer is inferred from a matrix.
+     * Uses DT sampling; callers must check DT/FDSTEP convergence. Failures leave
+     * the closed orbit and fractional-mode diagnostics valid but no full tunes.
+     */
+    FullTunes fullTunes(const Coordinates&, const Coordinates& steps, const Matrix&) const;
 
 private:
     Advance advance_m;

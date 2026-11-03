@@ -309,6 +309,19 @@ namespace {
                 ev.scales           = s.solver.scales;
                 const auto spectrum = LinearMapEigenAnalysis::analyze(result.matrix, ev);
                 LinearMapEigenAnalysis::writeReport(out, spectrum);
+                OneTurnMap::FullTunes fullTunes;
+                if (spectrum.stability == LinearMapEigenAnalysis::Stability::Stable)
+                    fullTunes = map.fullTunes(
+                            result.coordinates, s.solver.finiteDifferenceSteps, result.matrix);
+                else
+                    fullTunes.diagnostic = "One-turn eigenanalysis is not numerically stable.";
+                if (fullTunes.available)
+                    out << "Full tunes (uncoupled planar): horizontal/radial=" << fullTunes.tunes[0]
+                        << " vertical=" << fullTunes.tunes[1] << '\n';
+                else
+                    out << "Full tunes unavailable: " << fullTunes.diagnostic << '\n';
+                out << "Phase samples=" << fullTunes.samples
+                    << " maximum phase step_rad=" << fullTunes.maximumPhaseStep << '\n';
                 out << "Stability is a numerical matrix diagnostic; validate DT and FDSTEP "
                        "convergence.\n";
                 std::ostringstream json;
@@ -370,7 +383,16 @@ namespace {
                                 std::sqrt(
                                         c.tracking.momentum * c.tracking.momentum - u[1] * u[1]
                                         - u[3] * u[3])));
-                json << "],\"relative_energy_drift\":" << drift << ",\"time_s\":" << state.time
+                json << "],\"full_tunes\":";
+                if (fullTunes.available)
+                    json << "{\"horizontal\":" << fullTunes.tunes[0]
+                         << ",\"vertical\":" << fullTunes.tunes[1] << '}';
+                else
+                    json << "null";
+                json << ",\"full_tunes_diagnostic\":" << std::quoted(fullTunes.diagnostic)
+                     << ",\"phase_samples\":" << fullTunes.samples
+                     << ",\"maximum_phase_step_rad\":" << fullTunes.maximumPhaseStep;
+                json << ",\"relative_energy_drift\":" << drift << ",\"time_s\":" << state.time
                      << ",\"position_m\":[";
                 array(state.position);
                 json << "],\"momentum_mc\":[";
