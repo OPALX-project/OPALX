@@ -97,6 +97,12 @@ public:
     /// Place the generated bunch in the solved orbit frame, preserving local spread.
     void setInitialOrbit(const ClosedOrbitInitialState& state) { initialOrbit_m = state; }
 
+    /// Reference momentum [beta*gamma] per container from BEAM for a file distribution;
+    /// an empty entry uses the bunch mean.
+    void setBeamReferenceMomenta(std::vector<std::optional<Vector_t<double, 3>>> momenta) {
+        beamReferenceMomenta_m = std::move(momenta);
+    }
+
     /// Select a separate serial two-ray spectral diagnostic instead of bunch tracking.
     void setSpectralTunes(std::vector<double> initial, SpectralTunes::Settings settings) {
         tuneInitial_m  = std::move(initial);
@@ -140,6 +146,8 @@ private:
     bool allowBoundaryControl_m =
             true;  ///< Restrict retries to bare, undiagnosed Cartesian solves.
     std::optional<ClosedOrbitInitialState> initialOrbit_m;
+    /// Per-container reference momentum [beta*gamma] set on BEAM; empty uses the bunch mean.
+    std::vector<std::optional<Vector_t<double, 3>>> beamReferenceMomenta_m;
     std::vector<double> tuneInitial_m;
     SpectralTunes::Settings tuneSettings_m;
     bool hasCyclotronGaps();

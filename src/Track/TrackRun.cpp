@@ -590,6 +590,7 @@ void TrackRun::execute() {
     // instead, so sampling it again would duplicate particles and consume random numbers.
     OpalData::getInstance()->setGlobalPhaseShift(0.0);
     std::vector<emittingSamplers_t> emittingSamplersList(particleContainers.size());
+    std::vector<std::optional<Vector_t<double, 3>>> beamReferenceMomenta(particleContainers.size());
     CheckpointFile::Metadata restartMetadata;
     if (isRestart) {
         restartMetadata = CheckpointFile::read(opal_m->getRestartFileName(), *bunch_m);
@@ -599,7 +600,7 @@ void TrackRun::execute() {
               << ", t = " << Util::getTimeString(restartMetadata.time) << "." << endl;
     } else {
         for (size_t i = 0; i < particleContainers.size(); ++i) {
-            setupDistributionsAndSamplers(
+            beamReferenceMomenta[i] = setupDistributionsAndSamplers(
                     emissionSourcesLists[i], beams[i], emittingSamplersList[i], i);
         }
     }
@@ -733,6 +734,8 @@ void TrackRun::execute() {
             StepSizeConfig::ResumePosition{
                     restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment},
             ringPeriod);
+    static_cast<ParallelTracker*>(itsTracker_m.get())
+            ->setBeamReferenceMomenta(std::move(beamReferenceMomenta));
     if (Track::block->initialOrbit) {
         if (beams.size() != 1 || isRestart || Attributes::getBool(itsAttr[TRACKRUN::SPECTRALTUNES]))
             throw OpalException(
