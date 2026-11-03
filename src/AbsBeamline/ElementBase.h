@@ -25,8 +25,11 @@
 #include "Utilities/GeneralOpalException.h"
 #include "VectorMath.h"
 
+#include <array>
+#include <cmath>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -141,6 +144,22 @@ namespace ApertureHelper {
     }
 
 }  // namespace ApertureHelper
+
+/// Oriented box: centre, orthonormal axes and half-extents along those axes [m].
+struct SupportBox {
+    Vector_t<double, 3> centre;
+    std::array<Vector_t<double, 3>, 3> axes;
+    Vector_t<double, 3> half;
+
+    /// Whether @p point lies in the box, enlarged by @p tolerance [m] on every side.
+    bool contains(const Vector_t<double, 3>& point, double tolerance = 0.0) const {
+        const Vector_t<double, 3> d = point - centre;
+        for (unsigned i = 0; i < 3; ++i) {
+            if (std::abs(dot(d, axes[i])) > half(i) + tolerance) return false;
+        }
+        return true;
+    }
+};
 
 /**
  * @class ElementBase
@@ -322,6 +341,39 @@ public:
     /// @brief Get the bounding box.
     /// @return The bounding box in lab coordinates.
     virtual BoundingBox getBoundingBoxInLabCoords() const;
+
+    /**
+     * @brief Local bounding box of the region where this element is taken to act.
+     *
+     * Each transverse half-width is max(aperture, @p reach), where an aperture of 1e5 m or
+     * more counts as none, and z joins getFieldExtent() with the body [startZ, startZ + L].
+     * Overrides add their own support where it differs (field maps, bend orbits, cavity
+     * widths, annular sectors) or narrow z to the selection window (TravelingWave, Monitor).
+     * Within the reach the box contains isInside(); kernels that act without a transverse
+     * limit act beyond it only on bunches that reach the box. A sector-bend geometry uses
+     * the arc chart of GeometryHelper::toBendArcCoords(). Valid after placement and
+     * initialise().
+     * @param reach Minimum transverse half-width [m]: the element's REACH or the global default.
+     * @return Box [m] in the local frame used by isInside() and apply().
+     */
+    virtual BoundingBox getLocalSupportBox(double reach) const;
+
+    /**
+     * @brief The same region as getLocalSupportBox() as one or more oriented boxes.
+     *
+     * GeneralElementMapping activates the element for a bunch whose box intersects one of
+     * them. A sector-bend arc is split into chord-aligned segments, so a straight line along
+     * the entrance tangent stays outside; every other element returns its bounding box.
+     * @param reach Minimum transverse half-width [m], as for getLocalSupportBox().
+     * @return Boxes [m] in the local frame used by isInside() and apply().
+     */
+    virtual std::vector<SupportBox> getLocalSupportBoxes(double reach) const;
+
+    /// @brief Set the per-element REACH [m] that overrides the global default.
+    void setReach(double reach);
+
+    /// @brief The per-element REACH [m]; empty when the global default applies.
+    std::optional<double> getReach() const;
 
     /* ===================== Coordinate system & placement ===================== */
 
@@ -510,6 +562,30 @@ public:
     bool getFlagDeleteOnTransverseExit() const;
 
 protected:
+    /// Transverse half-widths max(aperture, reach) [m]; an aperture of 1e5 m or more counts as
+    /// none.
+    std::pair<double, double> getSupportHalfWidths(double reach) const;
+
+    /**
+     * @brief Box enclosing a band around a sector arc in the chart of toBendArcCoords().
+     *
+     * The band is |x| <= halfX, |y| <= halfY in arc coordinates for arc length s in
+     * [sBegin, sEnd]: straight along the entrance tangent for s < 0, curved with
+     * @p curvature on [0, bodyLength], and straight along the exit tangent beyond.
+     */
+    static BoundingBox getArcSupportBox(
+            double curvature, double bodyLength, double sBegin, double sEnd, double halfX,
+            double halfY);
+
+    /// The band of getArcSupportBox() as oriented boxes: the straight pieces before and after
+    /// the body, and the body in segments of at most 0.1 rad, each enclosing its annular piece.
+    static std::vector<SupportBox> getArcSupportBoxes(
+            double curvature, double bodyLength, double sBegin, double sEnd, double halfX,
+            double halfY);
+
+    /// The axis-aligned box @p box as a SupportBox.
+    static SupportBox toSupportBox(const BoundingBox& box);
+
     // Sharable flag.
     // If this flag is true, the element is always shared.
     mutable bool shareFlag;
@@ -558,6 +634,7 @@ private:
     // --- Miscellaneous ---
     std::string outputfn_m; /**< The name of the outputfile*/
     bool deleteOnTransverseExit_m = true;
+    std::optional<double> reach_m;
 };
 
 // Inline functions.
@@ -647,5 +724,9 @@ inline void ElementBase::setFlagDeleteOnTransverseExit(bool flag) {
 }
 
 inline bool ElementBase::getFlagDeleteOnTransverseExit() const { return deleteOnTransverseExit_m; }
+
+inline void ElementBase::setReach(double reach) { reach_m = reach; }
+
+inline std::optional<double> ElementBase::getReach() const { return reach_m; }
 
 #endif  // OPALX_ElementBase_HH

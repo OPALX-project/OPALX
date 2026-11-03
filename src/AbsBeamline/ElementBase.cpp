@@ -18,6 +18,8 @@
 #include "Utilities/LogicalError.h"
 #include "Utility/Inform.h"
 
+#include <algorithm>
+#include <cmath>
 #include <filesystem>
 #include <iostream>
 #include <vector>
@@ -79,7 +81,8 @@ ElementBase::ElementBase(const ElementBase& right)
       elementPosition_m(right.elementPosition_m),
       elemedgeSet_m(right.elemedgeSet_m),
       outputfn_m(right.outputfn_m),
-      deleteOnTransverseExit_m(right.deleteOnTransverseExit_m) {}
+      deleteOnTransverseExit_m(right.deleteOnTransverseExit_m),
+      reach_m(right.reach_m) {}
 
 ElementBase::ElementBase(const std::string& name)
     : shareFlag(true),
@@ -240,6 +243,168 @@ BoundingBox ElementBase::getBoundingBoxInLabCoords() const {
     }
 
     return BoundingBox::getBoundingBox(corners);
+}
+
+std::pair<double, double> ElementBase::getSupportHalfWidths(const double reach) const {
+    // The default aperture is 1e6 m; such an element has no transverse limit of its own.
+    constexpr double unbounded = 1e5;
+    const auto halfWidth       = [reach](const double aperture) {
+        return std::abs(aperture) >= unbounded ? reach : std::max(std::abs(aperture), reach);
+    };
+    return {halfWidth(aperture_m.second[0]), halfWidth(aperture_m.second[1])};
+}
+
+BoundingBox ElementBase::getLocalSupportBox(const double reach) const {
+    const auto [halfX, halfY] = getSupportHalfWidths(reach);
+    const Geometry& geometry  = getGeometry();
+    double zBegin             = 0.0;
+    double zEnd               = 0.0;
+    getFieldExtent(zBegin, zEnd);
+    zBegin = std::min(zBegin, geometry.getStartZ());
+    zEnd   = std::max(zEnd, geometry.getStartZ() + geometry.getElementLength());
+
+    if (geometry.kind() == GeometryKind::SBend && geometry.getCurvature() != 0.0) {
+        return getArcSupportBox(
+                geometry.getCurvature(), geometry.getElementLength(), zBegin, zEnd, halfX, halfY);
+    }
+    return BoundingBox::getBoundingBox(
+            {Vector_t<double, 3>({-halfX, -halfY, zBegin}),
+             Vector_t<double, 3>({halfX, halfY, zEnd})});
+}
+
+std::vector<SupportBox> ElementBase::getLocalSupportBoxes(const double reach) const {
+    return {toSupportBox(getLocalSupportBox(reach))};
+}
+
+SupportBox ElementBase::toSupportBox(const BoundingBox& box) {
+    const auto [lower, upper] = box.getCorners();
+    SupportBox result;
+    result.centre = 0.5 * (lower + upper);
+    result.half   = 0.5 * (upper - lower);
+    for (unsigned i = 0; i < 3; ++i) {
+        result.axes[i]    = Vector_t<double, 3>(0.0);
+        result.axes[i](i) = 1.0;
+    }
+    return result;
+}
+
+std::vector<SupportBox> ElementBase::getArcSupportBoxes(
+        const double curvature, const double bodyLength, const double sBegin, const double sEnd,
+        const double halfX, const double halfY) {
+    const Vector_t<double, 3> vertical({0.0, 1.0, 0.0});
+    const auto normalAt = [curvature](const double s) {
+        return Vector_t<double, 3>({std::cos(curvature * s), 0.0, std::sin(curvature * s)});
+    };
+    const auto tangentAt = [curvature](const double s) {
+        return Vector_t<double, 3>({-std::sin(curvature * s), 0.0, std::cos(curvature * s)});
+    };
+    // The design orbit is p(s) = C + n(s) / h around the centre of curvature C = (-1/h, 0, 0).
+    const Vector_t<double, 3> centreOfCurvature({-1.0 / curvature, 0.0, 0.0});
+
+    std::vector<SupportBox> boxes;
+    const auto addStraight = [&](const Vector_t<double, 3>& start,
+                                 const Vector_t<double, 3>& normal,
+                                 const Vector_t<double, 3>& tangent, const double length) {
+        boxes.push_back(
+                {start + 0.5 * length * tangent,
+                 {normal, vertical, tangent},
+                 Vector_t<double, 3>({halfX, halfY, 0.5 * length})});
+    };
+
+    if (sBegin < 0.0) {
+        addStraight(
+                Vector_t<double, 3>({0.0, 0.0, sBegin}), Vector_t<double, 3>({1.0, 0.0, 0.0}),
+                Vector_t<double, 3>({0.0, 0.0, 1.0}), -sBegin);
+    }
+
+    const double first = std::clamp(sBegin, 0.0, bodyLength);
+    const double last  = std::clamp(sEnd, 0.0, bodyLength);
+    if (last > first) {
+        // A point of the band is C + a (cos(delta) n_m + sin(delta) t_m) with a = 1/h + x,
+        // |x| <= halfX, and |delta| <= half the segment angle around its middle direction n_m.
+        constexpr double maximumSegmentAngle = 0.1;
+        const int segments                   = std::clamp(
+                static_cast<int>(
+                        std::ceil(std::abs(curvature) * (last - first) / maximumSegmentAngle)),
+                1, 256);
+        const double aLow  = 1.0 / curvature - halfX;
+        const double aHigh = 1.0 / curvature + halfX;
+        for (int i = 0; i < segments; ++i) {
+            const double s0       = first + (last - first) * i / segments;
+            const double s1       = first + (last - first) * (i + 1) / segments;
+            const double middle   = 0.5 * (s0 + s1);
+            const double halfTurn = 0.5 * std::abs(curvature * (s1 - s0));
+            const double c        = std::cos(halfTurn);
+            const double along[4] = {aLow * c, aLow, aHigh * c, aHigh};
+            const double low      = *std::min_element(along, along + 4);
+            const double high     = *std::max_element(along, along + 4);
+            const double across   = std::max(std::abs(aLow), std::abs(aHigh)) * std::sin(halfTurn);
+            boxes.push_back(
+                    {centreOfCurvature + 0.5 * (low + high) * normalAt(middle),
+                     {normalAt(middle), vertical, tangentAt(middle)},
+                     Vector_t<double, 3>({0.5 * (high - low), halfY, across})});
+        }
+    }
+
+    if (sEnd > bodyLength) {
+        addStraight(
+                centreOfCurvature + normalAt(bodyLength) / curvature, normalAt(bodyLength),
+                tangentAt(bodyLength), sEnd - bodyLength);
+    }
+    return boxes;
+}
+
+BoundingBox ElementBase::getArcSupportBox(
+        const double curvature, const double bodyLength, const double sBegin, const double sEnd,
+        const double halfX, const double halfY) {
+    BoundingBox box;
+    const auto addSection = [&](const Vector_t<double, 3>& centre,
+                                const Vector_t<double, 3>& normal) {
+        for (const double x : {-halfX, halfX}) {
+            for (const double y : {-halfY, halfY}) {
+                box.enlargeToContainPosition(centre + x * normal + Vector_t<double, 3>({0, y, 0}));
+            }
+        }
+    };
+    const auto centreAt = [curvature](const double s) {
+        const double phi = curvature * s;
+        return Vector_t<double, 3>(
+                {(std::cos(phi) - 1.0) / curvature, 0.0, std::sin(phi) / curvature});
+    };
+    const auto normalAt = [curvature](const double s) {
+        const double phi = curvature * s;
+        return Vector_t<double, 3>({std::cos(phi), 0.0, std::sin(phi)});
+    };
+
+    // Upstream of the entrance the chart is the identity; the section at s = 0 closes it.
+    if (sBegin < 0.0) {
+        addSection(Vector_t<double, 3>({0.0, 0.0, sBegin}), Vector_t<double, 3>({1.0, 0.0, 0.0}));
+    }
+
+    // Sample the curved body finely enough that the band bulges by less than a micrometre per
+    // metre of radius between samples, then add that bulge as a margin.
+    const double first     = std::clamp(sBegin, 0.0, bodyLength);
+    const double last      = std::clamp(sEnd, 0.0, bodyLength);
+    const double turn      = std::abs(curvature * (last - first));
+    const int samples      = std::max(2, static_cast<int>(std::ceil(turn / 1e-3)) + 1);
+    const double stepAngle = turn / (samples - 1);
+    for (int i = 0; i < samples; ++i) {
+        const double s = first + (last - first) * i / (samples - 1);
+        addSection(centreAt(s), normalAt(s));
+    }
+
+    // Downstream of the exit the chart continues along the exit tangent.
+    if (sEnd > bodyLength) {
+        const double phi = curvature * bodyLength;
+        const Vector_t<double, 3> tangent({-std::sin(phi), 0.0, std::cos(phi)});
+        addSection(centreAt(bodyLength) + (sEnd - bodyLength) * tangent, normalAt(bodyLength));
+    }
+
+    const double bulge  = (1.0 / std::abs(curvature) + halfX) * (1.0 - std::cos(0.5 * stepAngle));
+    auto [lower, upper] = box.getCorners();
+    lower -= Vector_t<double, 3>({bulge, 0.0, bulge});
+    upper += Vector_t<double, 3>({bulge, 0.0, bulge});
+    return BoundingBox::getBoundingBox({lower, upper});
 }
 
 /* ============================== Field / physics interface ================== */
