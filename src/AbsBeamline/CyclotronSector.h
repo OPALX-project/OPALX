@@ -88,6 +88,8 @@ public:
     bool isInsideBody(const Vector_t<double, 3>& r) const override { return isInside(r); }
     /// Conservative lab-frame box of the complete annulus, used for orbit threading.
     BoundingBox getBoundingBoxInLabCoords() const override;
+    /// Box of the annular sector of isInside(); the aperture and @p reach do not apply.
+    BoundingBox getLocalSupportBox(double reach) const override;
     /** @brief Accumulate B [T] for local particles with R in the element frame [m].
      * Captures device views/parameters by value and launches a Kokkos kernel in
      * the default execution space. It leaves E unchanged, performs no MPI
