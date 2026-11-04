@@ -18,7 +18,10 @@
 #include "Utilities/Options.h"
 #include "gtest/gtest.h"
 
+#include <cstddef>
 #include <filesystem>
+#include <stdexcept>
+#include <vector>
 
 namespace {
     std::filesystem::path referenceElectronEnergyPath() {
@@ -232,7 +235,7 @@ TEST(TestLinearBreitWheelerSpectrum, ElectronJointSpectrumMatchesCainReference) 
     const int previousSeed = Options::seed;
     Options::seed          = 13579;
 
-    LinearBreitWheelerBenchmark::JointHistogramConfig config;
+    auto config = fastJointHistogramConfig();
     const auto opalx = LinearBreitWheelerBenchmark::sampleJointHistogram(
             config, LinearBreitWheelerBenchmark::FinalState::Electron, 250000);
     const auto cain =
@@ -259,7 +262,7 @@ TEST(TestLinearBreitWheelerSpectrum, PositronJointSpectrumMatchesCainReference) 
     const int previousSeed = Options::seed;
     Options::seed          = 13579;
 
-    LinearBreitWheelerBenchmark::JointHistogramConfig config;
+    auto config = fastJointHistogramConfig();
     const auto opalx = LinearBreitWheelerBenchmark::sampleJointHistogram(
             config, LinearBreitWheelerBenchmark::FinalState::Positron, 250000);
     const auto cain =
