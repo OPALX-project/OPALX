@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <cmath>
 #include <functional>
+#include <limits>
 #include <numeric>
 #include <utility>
 
@@ -109,6 +110,17 @@ namespace opalx::spacecharge {
         if (segmentGeometry_m.extent(0) != segments) {
             segmentGeometry_m = SegmentGeometryView_t("FFT2D5SegmentGeometry", segments);
         }
+        size_t leaves = 1;
+        while (leaves < segments) {
+            if (leaves > std::numeric_limits<size_t>::max() / 4)
+                throw OpalException(
+                        "FFT2D5Algorithm::preparePathGeometryAndProjections",
+                        "Reference path is too large for the bounds hierarchy.");
+            leaves *= 2;
+        }
+        if (segmentBounds_m.extent(0) != 2 * leaves)
+            segmentBounds_m = SegmentGeometryView_t("FFT2D5SegmentBounds", 2 * leaves);
+        const auto bounds   = segmentBounds_m;
         const auto geometry = segmentGeometry_m;
         // This short serial prefix preserves increasing segment summation order.
         Kokkos::parallel_for(
@@ -124,6 +136,24 @@ namespace opalx::spacecharge {
                         geometry(i, 5) = prefix;
                         prefix += length;
                     }
+                    // Heap leaves follow segment order; padded leaves have empty boxes.
+                    for (size_t i = 0; i < leaves; ++i) {
+                        for (unsigned d = 0; d < 3; ++d) {
+                            bounds(leaves + i, d) = i < segments
+                                                            ? Kokkos::min(ref(i)[d], ref(i + 1)[d])
+                                                            : Kokkos::Experimental::finite_max_v<T>;
+                            bounds(leaves + i, d + 3) =
+                                    i < segments ? Kokkos::max(ref(i)[d], ref(i + 1)[d])
+                                                 : -Kokkos::Experimental::finite_max_v<T>;
+                        }
+                    }
+                    for (size_t i = leaves - 1; i > 0; --i) {
+                        for (unsigned d = 0; d < 3; ++d) {
+                            bounds(i, d) = Kokkos::min(bounds(2 * i, d), bounds(2 * i + 1, d));
+                            bounds(i, d + 3) =
+                                    Kokkos::max(bounds(2 * i, d + 3), bounds(2 * i + 1, d + 3));
+                        }
+                    }
                 });
         Kokkos::fence();
         projectedPositions_m.resize(particles_m.size());
@@ -135,6 +165,7 @@ namespace opalx::spacecharge {
                 projectedPositions_m[container] = VectorView_t("FFT2D5ProjectedPositions", count);
                 projectedSegments_m[container] =
                         SegmentIndexView_t("FFT2D5ProjectedSegments", count);
+                Kokkos::deep_copy(projectedSegments_m[container], segments);
             }
             const auto positions = particles_m[container]->R.getView();
             const auto invalid   = particles_m[container]->InvalidMask.getView();
@@ -152,9 +183,10 @@ namespace opalx::spacecharge {
                         size_t best               = 0;
                         T bestFraction            = 0.0;
                         Vector3D_t closest(0.0);
-                        for (size_t i = 0; i < segments; ++i) {
+                        // The seed is only an upper bound, even after reordering/path changes.
+                        const auto evaluate = [&](size_t i) {
                             const T length2 = geometry(i, 3);
-                            if (length2 <= 0.0) continue;
+                            if (length2 <= 0.0) return;
                             const Vector3D_t direction(
                                     geometry(i, 0), geometry(i, 1), geometry(i, 2));
                             const Vector3D_t start = ref(i);
@@ -163,12 +195,62 @@ namespace opalx::spacecharge {
                             const Vector3D_t point      = start + fraction * direction;
                             const Vector3D_t difference = position - point;
                             const T distance2           = difference.dot(difference);
-                            if (distance2 < bestDistance2) {
+                            if (distance2 < bestDistance2
+                                || (distance2 == bestDistance2 && i < best)) {
                                 best          = i;
                                 bestFraction  = fraction;
                                 closest       = point;
                                 bestDistance2 = distance2;
                             }
+                        };
+                        evaluate(indices(n) < segments ? indices(n) : 0);
+                        // This scale bounds rounding in both the original segment arithmetic
+                        // and the box-distance calculation. Borderline/overflow cases descend.
+                        T scale = 0.0;
+                        for (unsigned d = 0; d < 3; ++d) {
+                            scale = Kokkos::max(scale, Kokkos::abs(position[d]));
+                            scale = Kokkos::max(scale, Kokkos::abs(bounds(1, d)));
+                            scale = Kokkos::max(scale, Kokkos::abs(bounds(1, d + 3)));
+                        }
+                        constexpr T epsilon = std::numeric_limits<T>::epsilon();
+                        const T roundoff =
+                                256 * epsilon * scale * scale + 256 * std::numeric_limits<T>::min();
+                        const auto lowerBound = [&](size_t node) {
+                            T distance2 = 0.0;
+                            for (unsigned d = 0; d < 3; ++d) {
+                                const T gap = Kokkos::max(
+                                        T(0), Kokkos::max(
+                                                      bounds(node, d) - position[d],
+                                                      position[d] - bounds(node, d + 3)));
+                                distance2 += gap * gap;
+                            }
+                            return distance2;
+                        };
+                        size_t stack[64];
+                        unsigned top  = 0;
+                        stack[top++]  = 1;
+                        bool fallback = false;
+                        while (top != 0) {
+                            const size_t node = stack[--top];
+                            if (lowerBound(node) > bestDistance2 + roundoff) continue;
+                            if (node >= leaves) {
+                                const size_t i = node - leaves;
+                                if (i < segments) evaluate(i);
+                            } else {
+                                if (top + 2 > 64) {
+                                    fallback = true;
+                                    break;
+                                }
+                                const size_t left = 2 * node, right = left + 1;
+                                // Visit nearer child first to tighten the upper bound quickly.
+                                const bool leftFirst = lowerBound(left) <= lowerBound(right);
+                                stack[top++]         = leftFirst ? right : left;
+                                stack[top++]         = leftFirst ? left : right;
+                            }
+                        }
+                        if (fallback) {
+                            for (size_t i = 0; i < segments; ++i)
+                                evaluate(i);
                         }
                         const Vector3D_t tangent =
                                 Vector3D_t(geometry(best, 0), geometry(best, 1), geometry(best, 2))

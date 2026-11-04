@@ -12,6 +12,16 @@ zero-length segments, corner ties, periodic-seam probes, invalid particles and
 changes of particle count, ordering and momentum. Standalone diagnostic stages
 recompute projections; cached entries are refreshed for every complete solve.
 
+The nearest-segment hierarchy is checked directly against an independent exhaustive
+scan: segment indices and all three cached coordinates must match exactly, with
+no numerical tolerance. Probes include self-intersections, repeated segments and
+vertices, corner/seam ties, adjacent floating-point coordinates, stale seeds after
+movement/reordering, allocation changes, large translations and very small/large
+coordinate scales (including subnormal squared lengths). Bounding-box pruning is
+conservative; neither the previous segment nor path-index proximity restricts the
+search. The existing field/density checks also compare the complete cached solve
+with the uncached conversion.
+
 `TestFFT2D5Numerics` checks the transverse slice solver against independent
 rectangular-cell logarithmic-potential quadrature and analytic Gaussian fields. It covers
 anisotropic cells, changes of length unit, boundary-cell self-force, potential

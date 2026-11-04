@@ -557,7 +557,14 @@ namespace opalx::spacecharge {
          */
         const LineDensityView_t& getLineDensityGradient() const { return lineDensityGradient_m; }
 
-    private:
+        /** @brief Current per-solve projection caches, exposed for numerical verification. */
+        const VectorView_t& getProjectedPositions(size_t container = 0) const {
+            return projectedPositions_m.at(container);
+        }
+        const SegmentIndexView_t& getProjectedSegments(size_t container = 0) const {
+            return projectedSegments_m.at(container);
+        }
+
         /**
          * @brief Prepare segment geometry and particle projections for one complete field solve.
          *
@@ -580,13 +587,31 @@ namespace opalx::spacecharge {
          * accumulates S_i in increasing segment order; zero-length segments contribute
          * zero length and remain excluded from the nearest-segment search.
          *
-         * For each non-invalid particle x, search all segments in their original order:
+         * For each non-invalid particle x, the unchanged segment projection is:
          * @f[
          * u_i = clamp((x-R_i)\cdot d_i / |d_i|^2,0,1),\qquad
          * q_i = R_i + u_i d_i.
          * @f]
-         * The first strictly closest segment is retained, preserving the existing tie
-         * rule. Store its index and local coordinates (x_perp,y_perp,s), with
+         * A balanced implicit binary hierarchy encloses contiguous segments in
+         * axis-aligned endpoint boxes. Its power-of-two leaves retain segment indices;
+         * padded leaves are empty. Rebuild all boxes in the geometry kernel, so frame
+         * or path changes cannot leave stale bounds. Search nearer boxes first, using
+         * the previous segment only as an initial upper bound (or segment zero for a
+         * new/invalid cache). Movement and reordering cannot restrict the search.
+         * Retain the smaller computed squared distance, breaking exact ties by the
+         * lowest segment index, independently of traversal/seed order.
+         *
+         * A box is rejected only if its computed squared lower distance exceeds the
+         * incumbent by 256*epsilon*L^2 + 256*min_normal, where L bounds absolute
+         * coordinates of both the particle and all path endpoints. This conservative
+         * allowance covers rounded segment directions, closest-point interpolation,
+         * box subtraction and squared-distance arithmetic in three dimensions under
+         * ordinary IEEE round-to-nearest arithmetic (no fast-math reassociation).
+         * It also protects subnormal distances. Borderline, overflow and unordered
+         * comparisons descend rather than prune. A 64-entry per-particle stack bounds
+         * traversal storage; exhaustion falls back to the complete segment scan.
+         * No nearest-neighbour approximation or geometry tolerance changes the winner.
+         * Store its index and local coordinates (x_perp,y_perp,s), with
          * @f$ s=S_i+u_i l_i @f$. The normal remains the existing (0,1,0), the tangent is
          * d_i/l_i and the binormal is normal cross tangent. This preserves the present
          * path/basis approximation; it introduces no smoothing or curvature correction.
@@ -605,10 +630,15 @@ namespace opalx::spacecharge {
          * including after frame changes, particle movement, reordering or count changes.
          * Reuse allocated views when their extents match; otherwise resize them before
          * launching the particle kernel. Storage is O(M + N): 48*M bytes for M segments
-         * and (3*sizeof(double)+sizeof(size_t))*N bytes for local particle caches.
+         * plus 48*(2*P) bytes for the bounds heap, where P is the least power of two
+         * not smaller than M, and (3*sizeof(double)+sizeof(size_t))*N bytes for caches.
          * Buffers of temporarily inactive containers may retain their previous allocation.
          * Views are shared read-only by OpenMP workers; no N-by-M distance matrix exists.
-         * The remaining exhaustive search costs O(M*N) work, performed once per solve.
+         * Building geometry/bounds costs O(M). The search typically rejects most
+         * segments, but overlapping boxes or conservative roundoff margins retain
+         * worst-case O(M*N) work. There is no assumption that path index is spatial
+         * distance. This preparation is an internal stage, also exposed to numerical
+         * tests just like scatterToGrid; callers must satisfy its frame preconditions.
          * Standalone scatterToGrid/gatherFromGrid diagnostic calls default to the uncached
          * conversion, so a later probe edit or exception cannot reuse a stale projection.
          *
@@ -621,12 +651,14 @@ namespace opalx::spacecharge {
          */
         void preparePathGeometryAndProjections(const SpaceChargeSolveContext& context);
 
+    private:
         FFT2D5Config config_m;
         std::vector<ParticleContainer*> particles_m;
         std::shared_ptr<const BunchStateHandler> bunchState_m;
         std::unique_ptr<ReferencePath> referencePath_m;
         ReferenceView_t solveReferencePath_m;
         SegmentGeometryView_t segmentGeometry_m;
+        SegmentGeometryView_t segmentBounds_m;
         std::vector<VectorView_t> projectedPositions_m;
         std::vector<SegmentIndexView_t> projectedSegments_m;
         std::unique_ptr<FFT2D5FieldStorage> fieldStorage_m;

@@ -11,8 +11,10 @@
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
+#include <limits>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace opalx::spacecharge {
     namespace {
@@ -416,6 +418,140 @@ namespace opalx::spacecharge {
             EXPECT_THROW(
                     static_cast<void>(solver.solve({activity, alignedStep(-0.5)})), OpalException);
             expectSourceRestored(positions, momentum);
+        }
+
+        TEST_F(FFT2D5AlgorithmTest, HierarchyMatchesExhaustiveSegmentAndCoordinatesExactly) {
+            const std::array<std::uint8_t, 1> activity{1};
+            SpaceChargeStepState step;
+            step.timeStep = 1e-12;
+            SpaceChargeSolveContext context(activity, step);
+            // Self-intersections, non-power-of-two leaf counts, repeated vertices,
+            // very large translations, tiny/large scales and equal-distance winners.
+            for (unsigned scenario = 0; scenario < 7; ++scenario) {
+                const double scale = scenario == 3   ? 1e-140
+                                     : scenario == 4 ? 1e140
+                                     : scenario == 6 ? 1e-160
+                                                     : 1.;
+                const Vector shift = scenario == 2 ? Vector(1e8, -1e8, 1e8) : Vector(0.);
+                std::vector<Vector> points;
+                if (scenario == 5) {
+                    points = {Vector(0, 0, 0), Vector(0, 0, 1), Vector(1, 0, 1), Vector(1, 0, 0),
+                              Vector(0, 0, 0), Vector(0, 0, 1), Vector(0, 0, 1), Vector(0, 0, 0)};
+                } else {
+                    const unsigned intervals = (scenario == 0 || scenario == 6) ? 1 : 257;
+                    for (unsigned i = 0; i <= intervals; ++i) {
+                        const double angle = 2 * Physics::pi * i / intervals;
+                        points.push_back(
+                                shift + scale * Vector(std::sin(angle), 0., std::sin(2 * angle)));
+                    }
+                    if (intervals == 1)
+                        points[1] = shift + scale * Vector(0, 0, 1);
+                    else
+                        points.insert(points.begin() + 80, points[79]);
+                }
+                {
+                    std::ofstream path(pathFile_m);
+                    path << std::setprecision(17) << "s rx ry rz px py pz ex ey ez bx by bz ke t\n";
+                    for (const auto& point : points)
+                        path << "0 " << point[0] << " " << point[1] << " " << point[2]
+                             << " 0 0 1 0 0 0 0 0 0 0 0\n";
+                }
+                std::array containers{particles_m.get()};
+                FFT2D5Algorithm solver(
+                        config(FFT2D5LongitudinalFieldMode::None), containers, bunchState_m);
+                solver.ensureInitialized();
+                for (unsigned repeat = 0; repeat < 3; ++repeat) {
+                    const size_t count = 2048 + 8 * scenario + (repeat == 2 ? 4 : 0);
+                    particles_m->createParticles(count - particles_m->getLocalNum());
+                    auto positions = particles_m->R.getHostMirror();
+                    auto invalid   = particles_m->InvalidMask.getHostMirror();
+                    for (size_t n = 0; n < count; ++n) {
+                        // Deterministic, broad probes; repeat changes/reorders the source.
+                        const size_t i = (n * 7919 + repeat * 104729) % 104729;
+                        positions(n)   = shift
+                                       + scale
+                                                 * Vector(
+                                                         2.4 * double(i % 997) / 996. - 1.2,
+                                                         0.1 * double(i % 89) / 88. - 0.05,
+                                                         2.4 * double(i % 991) / 990. - 1.2);
+                        invalid(n) = n + 1 == count;
+                    }
+                    positions(0)    = points[0];
+                    positions(1)    = points[1];
+                    positions(2)    = (points[0] + points[1]) * 0.5;
+                    positions(3)    = positions(2);
+                    positions(3)[0] = std::nextafter(
+                            positions(3)[0], std::numeric_limits<double>::infinity());
+                    Kokkos::deep_copy(particles_m->R.getView(), positions);
+                    Kokkos::deep_copy(particles_m->InvalidMask.getView(), invalid);
+                    solver.preparePathGeometryAndProjections(context);
+                    const auto r          = particles_m->R.getView();
+                    const auto mask       = particles_m->InvalidMask.getView();
+                    const auto ref        = solver.getReferencePath();
+                    const size_t segments = ref.extent(0) - 1;
+                    FFT2D5Algorithm::VectorView_t expected("exhaustiveCoordinates", count);
+                    FFT2D5Algorithm::SegmentIndexView_t winners("exhaustiveSegments", count);
+                    Kokkos::parallel_for(
+                            "exhaustiveProjectionOracle", count, KOKKOS_LAMBDA(size_t n) {
+                                if (mask(n)) {
+                                    winners(n)  = segments;
+                                    expected(n) = Vector(0.);
+                                    return;
+                                }
+                                double bestDistance = Kokkos::Experimental::finite_max_v<double>;
+                                size_t best         = 0;
+                                double fraction     = 0.;
+                                Vector closest(0.);
+                                for (size_t i = 0; i < segments; ++i) {
+                                    const Vector d       = ref(i + 1) - ref(i);
+                                    const double length2 = d.dot(d);
+                                    if (length2 <= 0.) continue;
+                                    const double u =
+                                            Kokkos::clamp(d.dot(r(n) - ref(i)) / length2, 0., 1.);
+                                    const Vector q          = ref(i) + u * d;
+                                    const Vector difference = r(n) - q;
+                                    const double distance   = difference.dot(difference);
+                                    if (distance < bestDistance) {
+                                        bestDistance = distance;
+                                        best         = i;
+                                        fraction     = u;
+                                        closest      = q;
+                                    }
+                                }
+                                double prefix = 0.;
+                                for (size_t i = 0; i < best; ++i) {
+                                    const Vector delta = ref(i + 1) - ref(i);
+                                    prefix += euclidean_norm(delta);
+                                }
+                                const Vector direction = ref(best + 1) - ref(best);
+                                const double length    = euclidean_norm(direction);
+                                const Vector tangent   = direction / length;
+                                const Vector normal(0., 1., 0.);
+                                const Vector binormal = ippl::cross(normal, tangent);
+                                const Vector offset   = r(n) - closest;
+                                expected(n) =
+                                        Vector(offset.dot(binormal), offset.dot(normal),
+                                               prefix + fraction * length);
+                                winners(n) = best;
+                            });
+                    auto actualR = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), solver.getProjectedPositions());
+                    auto actualI = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), solver.getProjectedSegments());
+                    auto oracleR =
+                            Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), expected);
+                    auto oracleI =
+                            Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), winners);
+                    for (size_t n = 0; n < count; ++n) {
+                        ASSERT_EQ(actualI(n), oracleI(n)) << scenario << " " << repeat << " " << n;
+                        for (unsigned d = 0; d < 3; ++d)
+                            ASSERT_EQ(actualR(n)[d], oracleR(n)[d])
+                                    << scenario << " " << repeat << " " << n << " " << d;
+                    }
+                    if (scenario == 5)
+                        EXPECT_EQ(actualI(2), 0u);  // Identical later segment loses the tie.
+                }
+            }
         }
 
         TEST_F(FFT2D5AlgorithmTest, PreparedProjectionsMatchUncachedStagesAfterSourceChanges) {
