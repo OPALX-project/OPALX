@@ -298,7 +298,13 @@ namespace opalx::spacecharge {
         grid.decomposition              = {decomposition[0], decomposition[1], decomposition[2]};
         grid.boundingBoxIncreasePercent = fieldSolver.getBoxIncr();
 
+        if (fieldSolver.hasFFT2D5Model() && solverType != FieldSolverCmdType::FFT2D5) {
+            throw OpalException("buildSpaceChargeConfig", "FFT2D5MODEL requires TYPE=FFT2D5.");
+        }
         if (solverType == FieldSolverCmdType::FFT2D5) {
+            if (fieldSolver.getFFT2D5Model() != "ORIGINAL") {
+                throw OpalException("buildSpaceChargeConfig", "Only FFT2D5MODEL=ORIGINAL is supported.");
+            }
             if (ippl::Comm->size() != 1) {
                 throw OpalException("buildSpaceChargeConfig", "FFT2D5 supports only one MPI rank.");
             }
