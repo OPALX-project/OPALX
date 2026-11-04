@@ -61,29 +61,48 @@ namespace opalx::spacecharge {
         }
         ensureInitialized();
 
+        // Design-path points are fixed in lab coordinates; particle arrays live in each
+        // container's moving reference frame. Use the primary container to define the
+        // common aligned solve frame, then map both the path and every container into it.
+        const auto labToSolve = context.stepState().frames.trackerToSolve
+                                * particles_m.front()->getToLabTrafo().inverted();
+        Kokkos::deep_copy(solveReferencePath_m, referencePath_m->deviceView());
+        labToSolve.transformBunchTo(solveReferencePath_m, solveReferencePath_m.extent(0));
+
         for (std::size_t index = 0; index < particles_m.size(); ++index) {
             if (context.trackingActive()[index] != 0) {
-                clearSelfFields(*particles_m[index]);
-                enterSolveFrame(context.stepState().frames, *particles_m[index]);
+                auto& particles           = *particles_m[index];
+                const auto trackerToSolve = labToSolve * particles.getToLabTrafo();
+                clearSelfFields(particles);
+                enterSolveFrame({trackerToSolve, trackerToSolve.inverted()}, particles);
             }
         }
+        const auto restoreFrames = [&] {
+            for (std::size_t index = 0; index < particles_m.size(); ++index) {
+                if (context.trackingActive()[index] == 0) {
+                    continue;
+                }
+                auto& particles           = *particles_m[index];
+                const auto trackerToSolve = labToSolve * particles.getToLabTrafo();
+                leaveSolveFrame({trackerToSolve, trackerToSolve.inverted()}, particles);
+                particles.markMomentsDirty();
+                particles.updateMoments();
+            }
+        };
+        try {
+            doRunSolver(context);
+        } catch (...) {
+            restoreFrames();
+            throw;
+        }
+        restoreFrames();
         SpaceChargeSolveResult result;
-        doRunSolver(context);
-        result.backendSolves = sliceCount();
-        for (std::size_t index = 0; index < particles_m.size(); ++index) {
-            if (context.trackingActive()[index] == 0) {
-                continue;
-            }
-            ParticleContainer& particles = *particles_m[index];
-            leaveSolveFrame(context.stepState().frames, particles);
-            particles.markMomentsDirty();
-            particles.updateMoments();
-        }
+        result.backendSolves = fieldStorage_m->backendSolves();
         return result;
     }
 
     std::size_t FFT2D5Algorithm::sliceCount() const {
-        return fieldStorage_m == nullptr ? 0 : fieldStorage_m->slices().size();
+        return fieldStorage_m == nullptr ? 0 : fieldStorage_m->meshSize()[2];
     }
 
     const ReferencePath::View& FFT2D5Algorithm::referencePathView() const {
@@ -102,11 +121,14 @@ namespace opalx::spacecharge {
         // Publish dependent storage together only after path loading and allocation succeed.
         referencePath_m =
                 std::make_unique<ReferencePath>(ReferencePath::load(config_m.referencePathFile));
+        solveReferencePath_m = ReferenceView_t(
+                "FFT2D5SolveReferencePath", referencePath_m->deviceView().extent(0));
+        Kokkos::deep_copy(solveReferencePath_m, referencePath_m->deviceView());
         fieldStorage_m = std::make_unique<FFT2D5FieldStorage>(config_m, referencePath_m->length());
         lineDensity_m  = LineDensityView_t(
-                "FFT2D5LineDensity", fieldStorage_m->slices().size() + LineDensityGhostCells);
+                "FFT2D5LineDensity", fieldStorage_m->meshSize()[2] + LineDensityGhostCells);
         lineDensityGradient_m =
-                LineDensityView_t("FFT2D5LineDensityGradient", fieldStorage_m->slices().size());
+                LineDensityView_t("FFT2D5LineDensityGradient", fieldStorage_m->meshSize()[2]);
     }
 
 }  // namespace opalx::spacecharge

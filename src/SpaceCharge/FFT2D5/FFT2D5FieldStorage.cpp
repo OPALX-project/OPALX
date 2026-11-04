@@ -96,28 +96,25 @@ namespace opalx::spacecharge {
         solverParameters_m.add("algorithm", OpenSolver2::HOCKNEY);
         solverParameters_m.add("output_type", OpenSolver2::SOL_AND_GRAD);
 
-        slices_m.resize(meshSize_m[2]);
-        for (Slice& slice : slices_m) {
-            slice.electricField = std::make_unique<VectorField2>(sliceMesh_m, sliceLayout_m);
-            slice.chargeDensity = std::make_unique<ScalarField2>(sliceMesh_m, sliceLayout_m);
+        workspace_m.electricField = std::make_unique<VectorField2>(sliceMesh_m, sliceLayout_m);
+        workspace_m.chargeDensity = std::make_unique<ScalarField2>(sliceMesh_m, sliceLayout_m);
 #if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
-            slice.solver = std::make_unique<OpenSolver2>(
-                    *slice.electricField, *slice.chargeDensity, solverParameters_m);
+        workspace_m.solver = std::make_unique<OpenSolver2>(
+                *workspace_m.electricField, *workspace_m.chargeDensity, solverParameters_m);
 #else
-            slice.solver2 = std::make_unique<FFT2D5Poisson>();
+        workspace_m.solver2 = std::make_unique<FFT2D5Poisson>();
 #endif
-        }
     }
 
     FFT2D5FieldStorage::~FFT2D5FieldStorage() = default;
 
-    void FFT2D5FieldStorage::solveSlice(std::size_t sliceIndex) const {
+    void FFT2D5FieldStorage::solveSlice() {
 #if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
-        slices_m.at(sliceIndex).solver->solve();
+        workspace_m.solver->solve();
 #else
-        auto& slice = slices_m[sliceIndex];
-        slice.solver2->solve(*slice.chargeDensity, *slice.electricField);
+        workspace_m.solver2->solve(*workspace_m.chargeDensity, *workspace_m.electricField);
 #endif
+        ++backendSolves_m;
     }
 
 }  // namespace opalx::spacecharge

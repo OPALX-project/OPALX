@@ -38,20 +38,21 @@ namespace opalx::spacecharge {
      * @details
      * The solver performs the following sequence of operations to account for space charge
      * in the electric and magnetic fields that particles feel.
-     * 1. Translate the particle cartesian coordinates into Frenet-Serret coordinates and
-     *    then boost into the beam reference frame.  The reference orbit can be provided from a file
-     * or acquired from the OrbitThreader.
+     * 1. Map the fixed laboratory reference path and the particles' moving reference
+     *    coordinates into one aligned spatial frame, then into Frenet-Serret coordinates.
+     *    The reference path is provided by a file or the OrbitThreader. Only diagnostic
+     *    momenta are boosted; source positions and line charge retain laboratory normalization.
      * 2. Do CiC scatter of charge into the 3D charge density grid.  This spreads the charge out
      * both transversely and (optionally) longitudinally which should be a help in reducing noise.
-     * 3. Copy the 3D charge density  grid into a stack of 2D grids along the S coordinate.
-     * 4. Perform the 2D Poisson solve on each of the 2D grids in the stack to determine the
-     *    X and Y electric field components.  Initially, the boundary conditions used will be open.
+     * 3. Copy each occupied transverse charge-density slice into one reusable 2D workspace.
+     * 4. Perform the 2D Poisson solve to determine the X and Y electric field components;
+     *    identically empty slices have zero field and need no FFT. Boundary conditions are open.
      * 5. Calculate the longitudinal S electric field component using the algorithm from PyHEADTAIL.
      *    This uses the local line density along the reference orbit and a geometry constant that
      *    encodes the effect of the beam pipe on the longitudinal component.
      * 6. Do CiC gather of fields for the particle positions.
-     * 7. Translate from the beam reference frame into the lab frame in Frenet-Serret coodinates and
-     *    then back into cartesian coordinates.
+     * 7. Rotate the local Frenet-Serret fields into the common Cartesian frame and restore
+     *    each container's moving reference coordinates and fields.
      */
     class FFT2D5Algorithm final : public SpaceChargeAlgorithm {
     public:
@@ -487,23 +488,19 @@ namespace opalx::spacecharge {
          * @return Returns the number of slices in the Frenet-Serret domain.
          * For use only by test cases.
          */
-        size_t getNumSlices() const { return fieldStorage_m->slices().size(); }
+        size_t getNumSlices() const { return fieldStorage_m->meshSize()[2]; }
 
         /**
          * @return Returns the mesh object for the Frenet-Serret domain.
          * For use only by test cases.
          */
-        Mesh2D_t* getSliceMesh() const {
-            return &fieldStorage_m->slices().front().chargeDensity->get_mesh();
-        }
+        Mesh2D_t* getSliceMesh() const { return &fieldStorage_m->sliceMesh(); }
 
         /**
          * @return Returns the slice layout object for the Frenet-Serret domain.
          * For use only by test cases.
          */
-        Layout2D_t* getSliceLayout() const {
-            return &fieldStorage_m->slices().front().chargeDensity->getLayout();
-        }
+        Layout2D_t* getSliceLayout() const { return &fieldStorage_m->sliceLayout(); }
 
         /**
          * @return Returns the reference path view for the Frenet-Serret domain.
@@ -540,6 +537,7 @@ namespace opalx::spacecharge {
         std::vector<ParticleContainer*> particles_m;
         std::shared_ptr<const BunchStateHandler> bunchState_m;
         std::unique_ptr<ReferencePath> referencePath_m;
+        ReferenceView_t solveReferencePath_m;
         std::unique_ptr<FFT2D5FieldStorage> fieldStorage_m;
         LineDensityView_t lineDensity_m;
         LineDensityView_t lineDensityGradient_m;

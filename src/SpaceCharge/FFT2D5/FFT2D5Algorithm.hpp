@@ -258,8 +258,8 @@ namespace opalx::spacecharge {
             const SpaceChargeSolveContext& context, DiagnosticPolicy diagnostic) {
         using Policy2D_t = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
         using Policy3D_t = Kokkos::MDRangePolicy<Kokkos::Rank<3>>;
-        if (referencePath_m->deviceView().extent(0) > 1) {
-            const auto ref     = referencePath_m->deviceView();
+        if (solveReferencePath_m.extent(0) > 1) {
+            const auto ref     = solveReferencePath_m;
             const auto invDr   = 1.0 / fieldStorage_m->spacing();
             const int nGhost   = fieldStorage_m->chargeDensity().getNghost();
             const auto lDom    = fieldStorage_m->chargeDensity().getLayout().getLocalNDIndex();
@@ -530,25 +530,51 @@ namespace opalx::spacecharge {
 
     template <typename DiagnosticPolicy>
     void FFT2D5Algorithm::solvePoissons(DiagnosticPolicy diagnostic) {
-        using Policy      = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
-        auto e3d          = fieldStorage_m->electricField().getView();
-        const auto nGhost = fieldStorage_m->electricField().getNghost();
-        // Copy the 3D charge density grid into the array of 2D grids, solve the 2D poisson on each,
-        // then copy the E field results into the 3D E field grid.
-        for (size_t z = 0; z < fieldStorage_m->slices().size(); ++z) {
-            const auto& s = fieldStorage_m->slices()[z];
+        using Policy         = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
+        auto e3d             = fieldStorage_m->electricField().getView();
+        const auto rho3d     = fieldStorage_m->chargeDensity().getView();
+        const auto nGhost    = fieldStorage_m->electricField().getNghost();
+        const auto numSlices = fieldStorage_m->meshSize()[2];
+        fieldStorage_m->resetBackendSolves();
+        // Empty slices have exactly zero transverse field. Clear the staging grid first, including
+        // slices that were occupied on the preceding step, so skipping them cannot retain a field.
+        Kokkos::deep_copy(e3d, Vector3D_t(0.0));
+        Kokkos::View<int*> occupiedSlices("FFT2D5OccupiedSlices", numSlices);
+        Kokkos::deep_copy(occupiedSlices, 0);
+        Kokkos::parallel_for(
+                "Solve2d5::solvePoissons::occupancy", Policy({0, 0}, {numSlices, rho3d.extent(0)}),
+                KOKKOS_LAMBDA(const size_t z, const size_t x) {
+                    for (size_t y = 0; y < rho3d.extent(1); ++y) {
+                        // Check nonzero density, rather than signed total charge: opposite charges
+                        // may have zero net charge while still producing a nonzero slice field.
+                        if (rho3d(x, y, z + nGhost) != T(0)) {
+                            Kokkos::atomic_max(&occupiedSlices(z), 1);
+                            break;
+                        }
+                    }
+                });
+        auto occupiedHost =
+                Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), occupiedSlices);
+        // All ranks must execute the same FFT calls, even if their local sources differ.
+        ippl::Comm->allreduce(occupiedHost.data(), numSlices, std::greater<int>());
+        // Copy each source into the same 2D workspace, solve, and copy the resulting field back.
+        // Independent slices need neither separate FFT plans nor separate solver buffers.
+        const auto& s = fieldStorage_m->workspace();
+        auto rho2d    = s.chargeDensity->getView();
+        for (size_t z = 0; z < numSlices; ++z) {
             // Do the 2D solve to get Ex and Ey
-            auto rho2d = s.chargeDensity->getView();
             Kokkos::deep_copy(
-                    rho2d, Kokkos::subview(
-                                   fieldStorage_m->chargeDensity().getView(), Kokkos::ALL(),
-                                   Kokkos::ALL(), z + nGhost));
+                    rho2d, Kokkos::subview(rho3d, Kokkos::ALL(), Kokkos::ALL(), z + nGhost));
+            if (occupiedHost(z) == 0) {
+                diagnostic.potential(rho2d, z + nGhost);
+                continue;
+            }
             // Scale by the coupling constant then solve
             Kokkos::parallel_for(
                     "Solve2d5::solvePoissons::coupling",
                     Policy({0, 0}, {rho2d.extent(0), rho2d.extent(1)}),
                     fft2d5_detail::PoissonCouplingFunctor{rho2d});
-            fieldStorage_m->solveSlice(z);
+            fieldStorage_m->solveSlice();
             Kokkos::fence();
             diagnostic.potential(rho2d, z + nGhost);
             auto e2d = s.electricField->getView();
@@ -580,7 +606,7 @@ namespace opalx::spacecharge {
     template <typename DiagnosticPolicy>
     void FFT2D5Algorithm::gatherFromGrid(
             const SpaceChargeSolveContext& context, DiagnosticPolicy diagnostic) {
-        if (referencePath_m->deviceView().extent(0) > 1) {
+        if (solveReferencePath_m.extent(0) > 1) {
             for (std::size_t container = 0; container < particles_m.size(); ++container) {
                 if (context.trackingActive()[container] == 0) {
                     continue;
@@ -588,7 +614,7 @@ namespace opalx::spacecharge {
                 auto* pc                       = particles_m[container];
                 const auto r                   = pc->R.getView();
                 const auto p                   = pc->P.getView();
-                const auto ref                 = referencePath_m->deviceView();
+                const auto ref                 = solveReferencePath_m;
                 const auto meanPs              = pc->getMeanP().data_m[2];
                 const auto e                   = pc->E.getView();
                 const auto b                   = pc->B.getView();

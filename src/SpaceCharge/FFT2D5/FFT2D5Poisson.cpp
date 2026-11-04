@@ -95,12 +95,10 @@ void FFT2D5Poisson::makeGreensFn() {
                 const size_t iy = j <= ny2 / 2 ? j : ny2 - j;
                 const double x  = ix * dr[0];
                 const double y  = iy * dr[1];
-                const double r  = Kokkos::sqrt(x * x + y * y);
-                if (r > 0.0) {
-                    greensFn(i + nGhost, j + nGhost) = -Kokkos::log(r) / (2.0 * M_PI);
-                } else {
-                    greensFn(i + nGhost, j + nGhost) = 0.0;
-                }
+                // Source density is piecewise constant on each rectangular cell.
+                // Integrating the logarithmic singularity also makes the self
+                // value scale correctly for narrow beams and anisotropic cells.
+                greensFn(i + nGhost, j + nGhost) = cellAveragedGreensFunction(x, y, dr[0], dr[1]);
             });
     Kokkos::fence();
     fft_m->transform(ippl::FORWARD, greensFn_m, greensFnTr_m);
@@ -148,11 +146,17 @@ void FFT2D5Poisson::extractPotential(ScalarField2_t& potential) {
     const auto nGhostDoubledPhi = doubledRho_m.getNghost();
     const auto phi              = potential.getView();
     const auto nGhostPhi        = potential.getNghost();
+    const auto nx2              = static_cast<int>(nx2_);
+    const auto ny2              = static_cast<int>(ny2_);
+    // The doubled convolution also contains the free-space potential just
+    // outside the physical domain. Preserve it in the halo so centered
+    // differences remain valid at the first and last physical cells.
     Kokkos::parallel_for(
-            "CopyPotential", Kokkos::MDRangePolicy({0, 0}, {nx2_ / 2, ny2_ / 2}),
-            KOKKOS_LAMBDA(const size_t i, const size_t j) {
-                phi(i + nGhostPhi, j + nGhostPhi) =
-                        doubledPhi(i + nGhostDoubledPhi, j + nGhostDoubledPhi);
+            "CopyPotential", Kokkos::MDRangePolicy({0, 0}, {phi.extent(0), phi.extent(1)}),
+            KOKKOS_LAMBDA(const int i, const int j) {
+                const int ix = (i - nGhostPhi + nx2) % nx2;
+                const int iy = (j - nGhostPhi + ny2) % ny2;
+                phi(i, j)    = doubledPhi(ix + nGhostDoubledPhi, iy + nGhostDoubledPhi);
             });
     Kokkos::fence();
 }
@@ -170,25 +174,9 @@ void FFT2D5Poisson::determineField(const ScalarField2_t& potential, VectorField2
         throw OpalException(
                 "FFT2D5Poisson::determineField", "Phi ghost cells must be greater than zero");
     }
-    if (nx <= 2 || ny <= 2) {
-        throw OpalException("FFT2D5Poisson::determineField", "Domain must be larger than 2x2");
+    if (nx == 0 || ny == 0) {
+        throw OpalException("FFT2D5Poisson::determineField", "Domain must contain physical cells");
     }
-    // Extrapolate the boundary cells into the ghost cells
-    Kokkos::parallel_for(
-            "CopyTopBottomBoundaries", nx, KOKKOS_LAMBDA(const size_t i) {
-                phi(i + nGhostPhi, nGhostPhi - 1) =
-                        2 * phi(i + nGhostPhi, nGhostPhi) - phi(i + nGhostPhi, 1 + nGhostPhi);
-                phi(i + nGhostPhi, ny + nGhostPhi) = 2 * phi(i + nGhostPhi, ny - 1 + nGhostPhi)
-                                                     - phi(i + nGhostPhi, ny - 2 + nGhostPhi);
-            });
-    Kokkos::parallel_for(
-            "CopyLeftRightBoundaries", ny, KOKKOS_LAMBDA(const size_t j) {
-                phi(nGhostPhi - 1, j + nGhostPhi) =
-                        2 * phi(nGhostPhi, j + nGhostPhi) - phi(1 + nGhostPhi, j + nGhostPhi);
-                phi(nx + nGhostPhi, j + nGhostPhi) = 2 * phi(nx - 1 + nGhostPhi, j + nGhostPhi)
-                                                     - phi(nx - 2 + nGhostPhi, j + nGhostPhi);
-            });
-    Kokkos::fence();
     // Now fields by central differences
     Kokkos::parallel_for(
             "CentralDifferences", Kokkos::MDRangePolicy({0, 0}, {nx, ny}),

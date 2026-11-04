@@ -15,7 +15,7 @@
 //
 /**
  * @file FFT2D5FieldStorage.h
- * @brief Owns persistent 3D staging fields and the FFT2D5 slice solver array.
+ * @brief Owns persistent 3D staging fields and one reusable FFT2D5 slice solver.
  */
 
 #ifndef OPALX_SPACE_CHARGE_FFT2D5_FIELD_STORAGE_H
@@ -27,25 +27,20 @@
 
 #include <cstddef>
 #include <memory>
-#include <vector>
 
-// Set the switch to true to select the IPPL 2D Poisson solver, false to select the
-// FFT2D5's 2D Poisson solver.
-// FFT2D5 has its own version which does not contain all the baggage the IPPL version
-// has and was thus easier to reason about during development.  It may also provide
-// the basis for the sine transform solver for the grounded boundary conditions in due
-// course.  The two versions produce results that are different by a few percent, most
-// likely due to the E field calculation (Fourier domain for IPPL, central differences
-// for FFT2D5).  The FFT2D5 version does have an extensive test case.
-#define OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER true
+// The native solver integrates the logarithmic Green function over each source
+// cell. IPPL's point-sampled 2D kernel has a spacing-independent self value,
+// which gives large errors for thin beams. Retain the alternative for comparison.
+#define OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER false
 
 namespace opalx::spacecharge {
 
     /**
-     * @brief Persistent fields and per-slice Poisson solvers for one FFT2D5 run.
+     * @brief Persistent fields and a reusable Poisson workspace for one FFT2D5 run.
      *
-     * The 3D fields stage deposition and gathering. Every transverse slice owns separate 2D IPPL
-     * fields because the Field API cannot use a Kokkos subview as its storage.
+     * The 3D fields stage deposition and gathering. Slices are solved sequentially, so they share
+     * one pair of 2D IPPL fields and one FFT plan. The Field API cannot use a Kokkos subview as
+     * its storage; each source slice is copied into this workspace before solving.
      */
     class FFT2D5FieldStorage final {
     public:
@@ -88,15 +83,16 @@ namespace opalx::spacecharge {
         [[nodiscard]] Layout3& layout() { return layout_m; }
         [[nodiscard]] ScalarField3& chargeDensity() { return chargeDensity_m; }
         [[nodiscard]] VectorField3& electricField() { return electricField_m; }
-        [[nodiscard]] std::vector<Slice>& slices() { return slices_m; }
+        [[nodiscard]] Slice& workspace() { return workspace_m; }
+        [[nodiscard]] std::size_t backendSolves() const { return backendSolves_m; }
+        void resetBackendSolves() { backendSolves_m = 0; }
 
         /**
          * @brief Solve a physical slice using its already scaled charge density.
-         * @param sliceIndex Zero-based slice index, excluding the 3D field's ghost cells.
          * @note Native solver construction, execution, and destruction are compiled together
          * to keep CUDA kernel stubs and their device registration in the same translation unit.
          */
-        void solveSlice(std::size_t sliceIndex) const;
+        void solveSlice();
 
     private:
         std::array<std::size_t, 3> meshSize_m;
@@ -112,7 +108,8 @@ namespace opalx::spacecharge {
         Mesh2 sliceMesh_m;
         Layout2 sliceLayout_m;
         ippl::ParameterList solverParameters_m;
-        std::vector<Slice> slices_m;
+        Slice workspace_m;
+        std::size_t backendSolves_m = 0;
     };
 
 }  // namespace opalx::spacecharge

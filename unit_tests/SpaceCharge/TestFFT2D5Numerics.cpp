@@ -18,7 +18,10 @@
 #include <algorithm>
 #include <cmath>
 #include <csignal>
+#include <cstdlib>
 #include <filesystem>
+#include <fstream>
+#include <iomanip>
 #include <memory>
 #include <random>
 #include <string>
@@ -40,6 +43,64 @@ namespace {
     using namespace opalx::spacecharge;
 
     constexpr bool VerboseTest = false;
+
+    double referenceCellPotential(double x, double y, double hx, double hy);
+
+    // Direct real-space convolution is independent of the production FFT and
+    // corner primitive. The deposited source is tested separately by CIC tests.
+    template <typename HostView>
+    double referenceGridPotential(
+            const HostView& source, size_t i, size_t j, size_t k, double hx, double hy) {
+        double result = 0.0;
+        for (size_t sx = 1; sx + 1 < source.extent(0); ++sx) {
+            for (size_t sy = 1; sy + 1 < source.extent(1); ++sy) {
+                if (source(sx, sy, k) != 0.0) {
+                    result += source(sx, sy, k) * hx * hy / Physics::epsilon_0
+                              * referenceCellPotential(
+                                      (static_cast<double>(i) - sx) * hx,
+                                      (static_cast<double>(j) - sy) * hy, hx, hy);
+                }
+            }
+        }
+        return result;
+    }
+
+    template <typename HostView>
+    std::array<double, 2> referenceGridField(
+            const HostView& source, size_t i, size_t j, size_t k, double hx, double hy) {
+        return {(referenceGridPotential(source, i - 1, j, k, hx, hy)
+                 - referenceGridPotential(source, i + 1, j, k, hx, hy))
+                        / (2 * hx),
+                (referenceGridPotential(source, i, j - 1, k, hx, hy)
+                 - referenceGridPotential(source, i, j + 1, k, hx, hy))
+                        / (2 * hy)};
+    }
+
+    double referenceTwoParticleForce() {
+        // In the 0.5-m slices the two unit-charge particles at x=+/-2 m
+        // each deposit line charge 1 C/m. Both transverse CIC shapes have
+        // four equal weights. Directly integrate each uniform source cell,
+        // central-difference its potential, then gather those four fields.
+        static const double force = [] {
+            double result = 0.0;
+            for (const double tx : {1.75, 2.25}) {
+                for (const double ty : {-0.25, 0.25}) {
+                    for (const double center : {-2.0, 2.0}) {
+                        for (const double sx : {center - 0.25, center + 0.25}) {
+                            for (const double sy : {-0.25, 0.25}) {
+                                result +=
+                                        (referenceCellPotential(tx - sx - 0.5, ty - sy, 0.5, 0.5)
+                                         - referenceCellPotential(tx - sx + 0.5, ty - sy, 0.5, 0.5))
+                                        / (16.0 * Physics::epsilon_0);
+                            }
+                        }
+                    }
+                }
+            }
+            return result;
+        }();
+        return force;
+    }
 
     class TestableFieldSolverCmd final : public FieldSolverCmd {
     public:
@@ -1153,6 +1214,10 @@ namespace {
         auto* solver = solver_m.get();
         createParticles({{0, 0, 3}}, {{0, 0, 0}});
         solver->scatterToGrid(context());
+#if !OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
+        const auto referenceSource = Kokkos::create_mirror_view_and_copy(
+                Kokkos::HostSpace(), solver->getRho()->getView());
+#endif
         const auto info = solver->createDiagnostic<Info>(Info::Kind::EField);
         solver->solvePoissons<Info>(*info);
 #if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
@@ -1162,12 +1227,82 @@ namespace {
                                      {4, 4, 6, -7214724490, -7214724490, 0},
                                      {4, 8, 6, -10565567441, 6311498630, 0}});
 #else
-        expectEField(
-                info->eFieldView_m, {{1, 1, 6, -3247760580, -3247760580, 0},
-                                     {2, 1, 6, -3173949541, -3967148560, 0},
-                                     {4, 4, 6, -6995720024, -6995720024, 0},
-                                     {4, 8, 6, -10571642669, 5851278346, 0}});
+        const auto field =
+                Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), info->eFieldView_m);
+        for (const auto& point :
+             std::array<std::array<size_t, 2>, 4>{{{1, 1}, {2, 1}, {4, 4}, {4, 8}}}) {
+            const auto expected =
+                    referenceGridField(referenceSource, point[0], point[1], 6, 0.5, 0.5);
+            EXPECT_NEAR(field(point[0], point[1], 6)[0], expected[0], 1e3);
+            EXPECT_NEAR(field(point[0], point[1], 6)[1], expected[1], 1e3);
+        }
 #endif
+    }
+
+    TEST_F(TestSolve2d5, SliceWorkspaceKeepsNeutralSourcesAndClearsVacatedSlices) {
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        fsCmd_m->setType("FFT2D5");
+        fsCmd_m->setNX(12);
+        fsCmd_m->setNY(12);
+        fsCmd_m->setNZ(12);
+        fsCmd_m->setPipeSizeX(6);
+        fsCmd_m->setPipeSizeY(6);
+        rebuildBunch();
+        const auto rho   = solver_m->getRho()->getView();
+        const auto field = solver_m->getEField()->getView();
+        auto source      = Kokkos::create_mirror_view(rho);
+        Kokkos::deep_copy(source, 0.0);
+        // This slice has zero signed total charge but a nonzero dipole field.
+        source(3, 3, 4) = 1.0;
+        source(8, 7, 4) = -1.0;
+        Kokkos::deep_copy(rho, source);
+        Kokkos::deep_copy(field, Vector_t<double, 3>(7.0));
+        solver_m->solvePoissons();
+        const auto first = Kokkos::create_mirror(field);
+        Kokkos::deep_copy(first, field);
+        double maximum = 0.0;
+        for (size_t x = 0; x < first.extent(0); ++x) {
+            for (size_t y = 0; y < first.extent(1); ++y) {
+                for (unsigned d = 0; d < 3; ++d) {
+                    maximum = std::max(maximum, std::abs(first(x, y, 4)[d]));
+                    EXPECT_DOUBLE_EQ(first(x, y, 9)[d], 0.0);
+                }
+            }
+        }
+        EXPECT_GT(maximum, 0.0);
+
+        // Move the same source to another slice; reusing the solver must leave no old field.
+        Kokkos::deep_copy(source, 0.0);
+        source(3, 3, 9) = 1.0;
+        source(8, 7, 9) = -1.0;
+        Kokkos::deep_copy(rho, source);
+        solver_m->solvePoissons();
+        const auto moved = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), field);
+        for (size_t x = 0; x < moved.extent(0); ++x) {
+            for (size_t y = 0; y < moved.extent(1); ++y) {
+                for (size_t z = 0; z < moved.extent(2); ++z) {
+                    for (unsigned d = 0; d < 3; ++d) {
+                        if (z == 9) {
+                            EXPECT_NEAR(moved(x, y, z)[d], first(x, y, 4)[d], maximum * 1.0e-13);
+                        } else {
+                            EXPECT_DOUBLE_EQ(moved(x, y, z)[d], 0.0);
+                        }
+                    }
+                }
+            }
+        }
+        Kokkos::deep_copy(rho, 0.0);
+        solver_m->solvePoissons();
+        const auto empty = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), field);
+        for (size_t x = 0; x < empty.extent(0); ++x) {
+            for (size_t y = 0; y < empty.extent(1); ++y) {
+                for (size_t z = 0; z < empty.extent(2); ++z) {
+                    for (unsigned d = 0; d < 3; ++d) {
+                        EXPECT_DOUBLE_EQ(empty(x, y, z)[d], 0.0);
+                    }
+                }
+            }
+        }
     }
 
     TEST_F(TestSolve2d5, ToFrenetSerretGather_Simple) {
@@ -1234,8 +1369,8 @@ namespace {
         expectParticleFields(0, e, b, {4493908875, 0, 0}, {0, 0, 0}, 1e3);
         expectParticleFields(1, e, b, {-4493908875, 0, 0}, {0, 0, 0}, 1e3);
 #else
-        expectParticleFields(0, e, b, {4516811045, 0, 0}, {0, 0, 0}, 1e3);
-        expectParticleFields(1, e, b, {-4516811045, 0, 0}, {0, 0, 0}, 1e3);
+        expectParticleFields(0, e, b, {referenceTwoParticleForce(), 0, 0}, {0, 0, 0}, 1e3);
+        expectParticleFields(1, e, b, {-referenceTwoParticleForce(), 0, 0}, {0, 0, 0}, 1e3);
 #endif
     }
 
@@ -1323,6 +1458,135 @@ namespace {
         EXPECT_NEAR(forceMoment / (slope * radiusSquared / 1.16), 1.0, 0.02);
     }
 
+    // Analytic grid density removes source-particle sampling noise. This checks
+    // the existing zeroth-order slice model on straight and circular paths;
+    // Qiang's O(sigma/R) curvature increment is recorded separately, not assumed
+    // to be present in the independent flat transverse solves.
+    TEST_F(TestSolve2d5, SmoothGaussianSlicesConvergeWithoutParticleNoise) {
+        constexpr double sigma = 1e-3, lambda = 1e-9, ps = 0.4;
+        constexpr double box = 12 * sigma, centerZ = 0.2, halfPath = 0.1;
+        constexpr int slices   = 4;
+        const double beta      = ps / std::sqrt(1 + ps * ps);
+        const double fieldUnit = lambda / (4 * Physics::pi * Physics::epsilon_0 * sigma);
+        std::ofstream csv;
+        if (const char* filename = std::getenv("OPALX_FFT2D5_FORCE_CSV")) {
+            csv.open(filename);
+            ASSERT_TRUE(csv.is_open());
+            csv << std::setprecision(17)
+                << "mesh,radius_m,x_over_sigma,Ex_V_per_m,By_T,force_per_charge_V_per_m,"
+                   "straight_Ex_V_per_m,qiang_delta_Ex_V_per_m\n";
+        }
+        // Differentiate the regularized increment in Qiang Eq. (98). A fixed
+        // Simpson quadrature suffices for this smooth one-dimensional integrand.
+        const auto curvatureCoefficient = [](const double x) {
+            constexpr int intervals = 1024;
+            double sum              = 0;
+            for (int j = 1; j <= intervals; ++j) {
+                const double w = static_cast<double>(j) / intervals;
+                const double a = -0.5 * x * x * w * w;
+                const double value =
+                        (1 - w * w) / w * std::expm1(a) - (1 - w * w) * x * x * w * std::exp(a);
+                sum += (j == intervals ? 1 : (j % 2 ? 4 : 2)) * value;
+            }
+            return sum / (3 * intervals);
+        };
+        for (const double radius : {0.0, 1.0, 10.0, 100.0}) {
+            double previousError = 1;
+            for (const int cells : {64, 128, 256, 512}) {
+                SCOPED_TRACE(testing::Message() << "mesh=" << cells << ", R=" << radius);
+                // The path is in laboratory coordinates; keep the midpoint
+                // tangent along +z so this benchmark isolates the local slice.
+                {
+                    std::filesystem::create_directories("data");
+                    std::ofstream path("data/unit_test_DesignPath.dat");
+                    path << std::setprecision(17) << "s rx ry rz px py pz ex ey ez bx by bz ke t\n";
+                    const int segments = radius == 0 ? 2 : 2000;
+                    for (int j = 0; j <= segments; ++j) {
+                        const double s     = -halfPath + 2 * halfPath * j / segments;
+                        const double theta = radius == 0 ? 0 : s / radius;
+                        const double x     = radius == 0 ? 0 : radius * (std::cos(theta) - 1);
+                        const double z     = centerZ + (radius == 0 ? s : radius * std::sin(theta));
+                        path << s + halfPath << ' ' << x << " 0 " << z
+                             << " 0 0 0 0 0 0 0 0 0 0 0\n";
+                    }
+                }
+                fsCmd_m->setType("FFT2D5");
+                fsCmd_m->setNX(cells);
+                fsCmd_m->setNY(cells);
+                fsCmd_m->setNZ(slices);
+                fsCmd_m->setPipeSizeX(box);
+                fsCmd_m->setPipeSizeY(box);
+                fsCmd_m->setPipeMode("NONE");
+                fsCmd_m->setScatterLongitudinally(true);
+                rebuildBunch();
+                std::vector<Point_t> probes, momenta;
+                for (int j = -12; j <= 12; ++j) {
+                    probes.emplace_back(j * 0.25 * sigma, 0.0, centerZ);
+                    momenta.emplace_back(0.0, 0.0, ps);
+                }
+                createParticles(probes, momenta);
+                auto* rho          = solver_m->getRho();
+                const auto density = rho->getHostMirror();
+                Kokkos::deep_copy(density, 0.0);
+                const int ng    = rho->getNghost();
+                const double dx = box / cells;
+                for (int i = 0; i < cells; ++i) {
+                    const double x = -box / 2 + (i + 0.5) * dx;
+                    for (int j = 0; j < cells; ++j) {
+                        const double y     = -box / 2 + (j + 0.5) * dx;
+                        const double value = lambda / (2 * Physics::pi * sigma * sigma)
+                                             * std::exp(-(x * x + y * y) / (2 * sigma * sigma));
+                        for (int k = 0; k < slices; ++k)
+                            density(ng + i, ng + j, ng + k) = value;
+                    }
+                }
+                Kokkos::deep_copy(rho->getView(), density);
+                pc_m->markMomentsDirty();
+                pc_m->updateMoments();
+                solver_m->solvePoissons();
+                solver_m->calculateLineDensity();
+                solver_m->gatherFromGrid(context());
+                const auto e =
+                        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc_m->E.getView());
+                const auto b =
+                        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc_m->B.getView());
+                double error2 = 0, reference2 = 0;
+                for (std::size_t i = 0; i < probes.size(); ++i) {
+                    const double x = probes[i][0] / sigma;
+                    const double reference =
+                            x == 0 ? 0 : 2 * fieldUnit * -std::expm1(-x * x / 2) / x;
+                    const double increment =
+                            radius == 0 ? 0 : fieldUnit * sigma / radius * curvatureCoefficient(x);
+                    const double force = e(i)[0] - beta * Physics::c * b(i)[1];
+                    if (std::abs(x) <= 2) {
+                        error2 += std::pow(e(i)[0] - reference, 2);
+                        reference2 += reference * reference;
+                    }
+                    // The two transverse kernels and probe locations have the
+                    // same normalization; no fitted scale is applied.
+                    EXPECT_NEAR(force, e(i)[0] / (1 + ps * ps), 1e-7 * fieldUnit);
+                    EXPECT_NEAR(e(i)[2], 0.0, 1e-3 * fieldUnit);
+                    if (csv)
+                        csv << cells << ',' << radius << ',' << x << ',' << e(i)[0] << ','
+                            << b(i)[1] << ',' << force << ',' << reference << ',' << increment
+                            << '\n';
+                }
+                const double error = std::sqrt(error2 / reference2);
+                std::cout << "SMOOTH_GAUSSIAN mesh=" << cells << " radius=" << radius
+                          << " relative_rms_error=" << error << std::endl;
+                // The logarithmic Green function, midpoint source sampling and
+                // linear gather give approximately second-order convergence.
+                // Measured errors at 64/128/256 cells are 6.92/1.86/0.50%;
+                // require a reduction below 0.35 per refinement and <0.2% at
+                // 512 cells. These are new-test convergence bounds; no existing
+                // snapshot or physics tolerance is relaxed.
+                if (cells > 64) EXPECT_LT(error, 0.35 * previousError);
+                if (cells == 512) EXPECT_LT(error, 0.002);
+                previousError = error;
+            }
+        }
+    }
+
     TEST_F(TestSolve2d5, OpenReferencePathRejectsEndpointPileup) {
         makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
@@ -1357,8 +1621,8 @@ namespace {
         expectParticleFields(0, e, b, {4493908875, 0, 0}, {0, 0, 0}, 1e3);
         expectParticleFields(1, e, b, {-4493908875, 0, 0}, {0, 0, 0}, 1e3);
 #else
-        expectParticleFields(0, e, b, {4516811045, 0, 0}, {0, 0, 0}, 1e3);
-        expectParticleFields(1, e, b, {-4516811045, 0, 0}, {0, 0, 0}, 1e3);
+        expectParticleFields(0, e, b, {referenceTwoParticleForce(), 0, 0}, {0, 0, 0}, 1e3);
+        expectParticleFields(1, e, b, {-referenceTwoParticleForce(), 0, 0}, {0, 0, 0}, 1e3);
 #endif
     }
 
@@ -1389,11 +1653,11 @@ namespace {
                 {0, -(4493908875.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
 #else
         expectParticleFields(
-                0, e, b, {4516811045, 0, 0}, {0, (4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0},
-                1e3, 1e-4);
+                0, e, b, {referenceTwoParticleForce(), 0, 0},
+                {0, (referenceTwoParticleForce() / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-4516811045, 0, 0},
-                {0, -(4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
+                1, e, b, {-referenceTwoParticleForce(), 0, 0},
+                {0, -(referenceTwoParticleForce() / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
 #endif
     }
 
@@ -1499,11 +1763,11 @@ namespace {
                 {0, -(4493908875.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
 #else
         expectParticleFields(
-                0, e, b, {4516811045, 0, 0.0},
-                {0, (4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
+                0, e, b, {referenceTwoParticleForce(), 0, 0.0},
+                {0, (referenceTwoParticleForce() / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-4516811045, 0, 0.0},
-                {0, -(4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
+                1, e, b, {-referenceTwoParticleForce(), 0, 0.0},
+                {0, -(referenceTwoParticleForce() / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
 #endif
     }
 
@@ -1535,11 +1799,11 @@ namespace {
                 {0, -(4493908875.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
 #else
         expectParticleFields(
-                0, e, b, {4516811045, 0, 0.0},
-                {0, (4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
+                0, e, b, {referenceTwoParticleForce(), 0, 0.0},
+                {0, (referenceTwoParticleForce() / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-4516811045, 0, 0.0},
-                {0, -(4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
+                1, e, b, {-referenceTwoParticleForce(), 0, 0.0},
+                {0, -(referenceTwoParticleForce() / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
 #endif
     }
 
@@ -1574,11 +1838,11 @@ namespace {
         expectParticleFields(2, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
 #else
         expectParticleFields(
-                0, e, b, {4516811045, 0, 0.0},
-                {0, (4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
+                0, e, b, {referenceTwoParticleForce(), 0, 0.0},
+                {0, (referenceTwoParticleForce() / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-4516811045, 0, 0.0},
-                {0, -(4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
+                1, e, b, {-referenceTwoParticleForce(), 0, 0.0},
+                {0, -(referenceTwoParticleForce() / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
         expectParticleFields(2, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
 #endif
     }
@@ -1671,11 +1935,13 @@ namespace {
         expectParticleFields(2, e, b, {0, 0, 28.580515699e9}, {0, 0, 0}, 1e6, 1e-4);
 #else
         expectParticleFields(
-                0, e, b, {4516811045, 0, -6.36 / (16 * Physics::pi * Physics::epsilon_0)},
-                {0, (4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e6, 1e-4);
+                0, e, b,
+                {referenceTwoParticleForce(), 0, -6.36 / (16 * Physics::pi * Physics::epsilon_0)},
+                {0, (referenceTwoParticleForce() / (std::sqrt(2.0) * Physics::c)), 0}, 1e6, 1e-4);
         expectParticleFields(
-                1, e, b, {-4516811045, 0, -6.36 / (16 * Physics::pi * Physics::epsilon_0)},
-                {0, -(4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e6, 1e-4);
+                1, e, b,
+                {-referenceTwoParticleForce(), 0, -6.36 / (16 * Physics::pi * Physics::epsilon_0)},
+                {0, -(referenceTwoParticleForce() / (std::sqrt(2.0) * Physics::c)), 0}, 1e6, 1e-4);
         expectParticleFields(2, e, b, {0, 0, 28.580515699e9}, {0, 0, 0}, 1e6, 1e-4);
 #endif
     }
@@ -1714,11 +1980,11 @@ namespace {
         expectParticleFields(2, e, b, {0, 0, 0}, {0, 0, 0}, 1e6, 1e-4);
 #else
         expectParticleFields(
-                0, e, b, {4516811045, 0, 0.0},
-                {0, (4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e6, 1e-4);
+                0, e, b, {referenceTwoParticleForce(), 0, 0.0},
+                {0, (referenceTwoParticleForce() / (std::sqrt(2.0) * Physics::c)), 0}, 1e6, 1e-4);
         expectParticleFields(
-                1, e, b, {-4516811045, 0, 0.0},
-                {0, -(4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e6, 1e-4);
+                1, e, b, {-referenceTwoParticleForce(), 0, 0.0},
+                {0, -(referenceTwoParticleForce() / (std::sqrt(2.0) * Physics::c)), 0}, 1e6, 1e-4);
         expectParticleFields(2, e, b, {0, 0, 0}, {0, 0, 0}, 1e6, 1e-4);
 #endif
     }
@@ -1753,11 +2019,11 @@ namespace {
                 {0, -(4493908875.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
 #else
         expectParticleFields(
-                0, e, b, {4516811045, 0, 0.0},
-                {0, (4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
+                0, e, b, {referenceTwoParticleForce(), 0, 0.0},
+                {0, (referenceTwoParticleForce() / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-4516811045, 0, 0.0},
-                {0, -(4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
+                1, e, b, {-referenceTwoParticleForce(), 0, 0.0},
+                {0, -(referenceTwoParticleForce() / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
 #endif
     }
 
@@ -1791,11 +2057,11 @@ namespace {
                 {0, -(4493908875.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
 #else
         expectParticleFields(
-                0, e, b, {4516811045, 0, 0.0},
-                {0, (4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
+                0, e, b, {referenceTwoParticleForce(), 0, 0.0},
+                {0, (referenceTwoParticleForce() / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-4516811045, 0, 0.0},
-                {0, -(4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
+                1, e, b, {-referenceTwoParticleForce(), 0, 0.0},
+                {0, -(referenceTwoParticleForce() / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
 #endif
     }
 
@@ -1872,20 +2138,24 @@ namespace {
         EXPECT_NEAR(bHost(2).data_m[1], 0, 1e-4);
         EXPECT_NEAR(bHost(2).data_m[2], 0, 1e-4);
 #else
-        EXPECT_NEAR(eHost(0).data_m[0], 4516811045, 1e6);
+        EXPECT_NEAR(eHost(0).data_m[0], referenceTwoParticleForce(), 1e6);
         EXPECT_NEAR(eHost(0).data_m[1], 0, 1e6);
         EXPECT_NEAR(eHost(0).data_m[2], -6.36 / (16 * Physics::pi * Physics::epsilon_0), 1e6);
-        EXPECT_NEAR(eHost(1).data_m[0], -4516811045, 1e6);
+        EXPECT_NEAR(eHost(1).data_m[0], -referenceTwoParticleForce(), 1e6);
         EXPECT_NEAR(eHost(1).data_m[1], 0, 1e6);
         EXPECT_NEAR(eHost(1).data_m[2], -6.36 / (16 * Physics::pi * Physics::epsilon_0), 1e6);
         EXPECT_NEAR(eHost(2).data_m[0], 0, 1e6);
         EXPECT_NEAR(eHost(2).data_m[1], 0, 1e6);
         EXPECT_NEAR(eHost(2).data_m[2], 28.580515699e9, 1e6);
         EXPECT_NEAR(bHost(0).data_m[0], 0, 1e-4);
-        EXPECT_NEAR(bHost(0).data_m[1], (4516811045.0 / (std::sqrt(2.0) * Physics::c)), 1e-4);
+        EXPECT_NEAR(
+                bHost(0).data_m[1], (referenceTwoParticleForce() / (std::sqrt(2.0) * Physics::c)),
+                1e-4);
         EXPECT_NEAR(bHost(0).data_m[2], 0, 1e-4);
         EXPECT_NEAR(bHost(1).data_m[0], 0, 1e-4);
-        EXPECT_NEAR(bHost(1).data_m[1], -(4516811045.0 / (std::sqrt(2.0) * Physics::c)), 1e-4);
+        EXPECT_NEAR(
+                bHost(1).data_m[1], -(referenceTwoParticleForce() / (std::sqrt(2.0) * Physics::c)),
+                1e-4);
         EXPECT_NEAR(bHost(1).data_m[2], 0, 1e-4);
         EXPECT_NEAR(bHost(2).data_m[0], 0, 1e-4);
         EXPECT_NEAR(bHost(2).data_m[1], 0, 1e-4);
@@ -1915,7 +2185,7 @@ namespace {
 
                 // Exercise the library entry before the direct stage calls in an isolated run.
                 const auto result = solver_m->solve(context());
-                EXPECT_EQ(result.backendSolves, 12u);
+                EXPECT_EQ(result.backendSolves, scatterLongitudinally ? 4u : 2u);
                 const auto apiE = Kokkos::create_mirror(pc_m->E.getView());
                 const auto apiB = Kokkos::create_mirror(pc_m->B.getView());
                 Kokkos::deep_copy(apiE, pc_m->E.getView());
@@ -2198,6 +2468,11 @@ namespace {
         rebuildBunch();
         auto* solver = solver_m.get();
         createParticles(kvR, kvP);
+#if !OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
+        solver->scatterToGrid(context());
+        const auto referenceSource = Kokkos::create_mirror_view_and_copy(
+                Kokkos::HostSpace(), solver->getRho()->getView());
+#endif
         const auto info = solver->createDiagnostic<Info>(Info::Kind::Potential);
         solver->doRunSolver<Info>(context(), *info);
         // Check the potential
@@ -2208,11 +2483,15 @@ namespace {
                                      {4, 6, 2, 954504662037936},
                                      {6, 7, 2, 948706293379785}}, 10.0);
 #else
-        expectPotential(               //i, j, k, phi
-                info->rhoView_m, {{5, 5, 2, 958298665305089},
-                                     {5, 6, 2, 941032164219868},
-                                     {4, 6, 2, 952163878215342},
-                                     {6, 7, 2, 944373262094347}}, 10.0);
+        const auto potential =
+                Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), info->rhoView_m);
+        for (const auto& point :
+             std::array<std::array<size_t, 2>, 4>{{{5, 5}, {5, 6}, {4, 6}, {6, 7}}}) {
+            const auto expected =
+                    referenceGridPotential(referenceSource, point[0], point[1], 2, 0.002, 0.002);
+            // Roundoff in a direct quadrature sum and FFT have different order.
+            EXPECT_NEAR(potential(point[0], point[1], 2), expected, std::abs(expected) * 1e-12);
+        }
 #endif
     }
 
@@ -2228,6 +2507,11 @@ namespace {
         rebuildBunch();
         auto* solver = solver_m.get();
         createParticles(kvR, kvP);
+#if !OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
+        solver->scatterToGrid(context());
+        const auto referenceSource = Kokkos::create_mirror_view_and_copy(
+                Kokkos::HostSpace(), solver->getRho()->getView());
+#endif
         const auto info = solver->createDiagnostic<Info>(Info::Kind::EField);
         solver->doRunSolver<Info>(context(), *info);
         // Check the electric field
@@ -2238,11 +2522,18 @@ namespace {
                                      {4, 6, 2, -5967249946832036.0, 12198160561896936.0,  0.0},
                                      {6, 7, 2, 12256750350007952.0, 20338717682993576.0,  0.0}});
 #else
-        expectEField(               //i, j, k, Ex,                  Ey,                   Ez
-                info->eFieldView_m, {{5, 5, 2, 9705590713980844.0, 50237049591750.0,   0.0},
-                                     {5, 6, 2, -2575537500134781.0, 5432574680440094.0,   0.0},
-                                     {4, 6, 2, -7704908191557375.0, 7462324259532344.0,  0.0},
-                                     {6, 7, 2, 6038921094378281.0, 9106068557928282.0,  0.0}});
+        const auto field =
+                Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), info->eFieldView_m);
+        for (const auto& point :
+             std::array<std::array<size_t, 2>, 4>{{{5, 5}, {5, 6}, {4, 6}, {6, 7}}}) {
+            const auto expected =
+                    referenceGridField(referenceSource, point[0], point[1], 2, 0.002, 0.002);
+            for (unsigned axis = 0; axis < 2; ++axis) {
+                EXPECT_NEAR(
+                        field(point[0], point[1], 2)[axis], expected[axis],
+                        std::max(1.0, std::abs(expected[axis])) * 1e-12);
+            }
+        }
 #endif
     }
 
@@ -2255,41 +2546,51 @@ namespace {
         Kokkos::deep_copy(chargeDensity.getView(), hostView);
     }
 
-    const std::array ExpectedGreens12x12{
-            0.0000,  0.0000,  -0.1103, -0.1748, -0.2206, -0.2561, -0.2853, -0.2561, -0.2206,
-            -0.1748, -0.1103, 0.0000,  0.0000,  -0.0552, -0.1281, -0.1832, -0.2255, -0.2600,
-            -0.2875, -0.2600, -0.2255, -0.1832, -0.1281, -0.0552, -0.1103, -0.1281, -0.1655,
-            -0.2032, -0.2386, -0.2685, -0.2933, -0.2685, -0.2386, -0.2032, -0.1655, -0.1281,
-            -0.1748, -0.1832, -0.2032, -0.2206, -0.2432, -0.2668, -0.2875, -0.2668, -0.2432,
-            -0.2206, -0.2032, -0.1832, -0.2206, -0.2255, -0.2386, -0.2432, -0.2758, -0.2933,
-            -0.3092, -0.2933, -0.2758, -0.2432, -0.2386, -0.2255, -0.2561, -0.2600, -0.2685,
-            -0.2668, -0.2933, -0.3127, -0.3300, -0.3127, -0.2933, -0.2668, -0.2685, -0.2600,
-            -0.2853, -0.2875, -0.2933, -0.2875, -0.3092, -0.3300, -0.3471, -0.3300, -0.3092,
-            -0.2875, -0.2933, -0.2875, -0.2561, -0.2600, -0.2685, -0.2668, -0.2933, -0.3127,
-            -0.3300, -0.3127, -0.2933, -0.2668, -0.2685, -0.2600, -0.2206, -0.2255, -0.2386,
-            -0.2432, -0.2758, -0.2933, -0.3092, -0.2933, -0.2758, -0.2432, -0.2386, -0.2255,
-            -0.1748, -0.1832, -0.2032, -0.2206, -0.2432, -0.2668, -0.2875, -0.2668, -0.2432,
-            -0.2206, -0.2032, -0.1832, -0.1103, -0.1281, -0.1655, -0.2032, -0.2386, -0.2685,
-            -0.2933, -0.2685, -0.2386, -0.2032, -0.1655, -0.1281, 0.0000,  -0.0552, -0.1281,
-            -0.1832, -0.2255, -0.2600, -0.2875, -0.2600, -0.2255, -0.1832, -0.1281, -0.0552};
-
-    const std::array ExpectedPotential6x6{
-            0.0000,  0.0000,  -0.1103, -0.1748, -0.2206, -0.2561, 0.0000,  -0.0552, -0.1281,
-            -0.1832, -0.2255, -0.2600, -0.1103, -0.1281, -0.1655, -0.2032, -0.2386, -0.2685,
-            -0.1748, -0.1832, -0.2032, -0.2206, -0.2432, -0.2668, -0.2206, -0.2255, -0.2386,
-            -0.2432, -0.2758, -0.2933, -0.2561, -0.2600, -0.2685, -0.2668, -0.2933, -0.3127};
-
-    const std::array ExpectedEx{-0.0000, 0.0551, 0.0874, 0.0551, 0.0406, 0.0355, 0.0552, 0.0640,
-                                0.0640,  0.0487, 0.0384, 0.0345, 0.0178, 0.0276, 0.0376, 0.0365,
-                                0.0327,  0.0299, 0.0084, 0.0142, 0.0187, 0.0200, 0.0231, 0.0236,
-                                0.0049,  0.0090, 0.0088, 0.0186, 0.0251, 0.0175, 0.0039, 0.0062,
-                                0.0034,  0.0124, 0.0229, 0.0194};
-
-    const std::array ExpectedEy{-0.0000, 0.0552, 0.0178, 0.0084, 0.0049, 0.0039, 0.0551, 0.0640,
-                                0.0276,  0.0142, 0.0090, 0.0062, 0.0874, 0.0640, 0.0376, 0.0187,
-                                0.0088,  0.0034, 0.0551, 0.0487, 0.0365, 0.0200, 0.0186, 0.0124,
-                                0.0406,  0.0384, 0.0327, 0.0231, 0.0251, 0.0229, 0.0355, 0.0345,
-                                0.0299,  0.0236, 0.0175, 0.0194};
+    // Independent host quadrature for the rectangular-cell potential. Unlike the
+    // production corner primitive, this directly integrates the smooth kernel
+    // for nonself grid displacements. The self integral is known in closed form.
+    double referenceCellPotential(double x, double y, double hx, double hy) {
+        if (x == 0.0 && y == 0.0) {
+            const double a          = hx / 2.0;
+            const double b          = hy / 2.0;
+            const double averageLog = std::log(std::hypot(a, b)) - 1.5
+                                      + a / (2 * b) * std::atan(b / a)
+                                      + b / (2 * a) * std::atan(a / b);
+            return -averageLog / (2 * Physics::pi);
+        }
+        static const auto quadrature = [] {
+            std::array<std::array<double, 2>, 32> values{};
+            for (unsigned i = 0; i < values.size(); ++i) {
+                double node       = std::cos(Physics::pi * (i + 0.75) / (values.size() + 0.5));
+                double derivative = 0.0;
+                for (unsigned iteration = 0; iteration < 20; ++iteration) {
+                    double p        = 1.0;
+                    double previous = 0.0;
+                    for (unsigned degree = 1; degree <= values.size(); ++degree) {
+                        const double old = p;
+                        p        = ((2 * degree - 1) * node * p - (degree - 1) * previous) / degree;
+                        previous = old;
+                    }
+                    derivative        = values.size() * (node * p - previous) / (node * node - 1);
+                    const double step = p / derivative;
+                    node -= step;
+                    if (std::abs(step) < 1e-15) {
+                        break;
+                    }
+                }
+                values[i] = {node, 2.0 / ((1 - node * node) * derivative * derivative)};
+            }
+            return values;
+        }();
+        double averageLog = 0.0;
+        for (const auto& u : quadrature) {
+            for (const auto& v : quadrature) {
+                averageLog += 0.25 * u[1] * v[1]
+                              * std::log(std::hypot(x + 0.5 * hx * u[0], y + 0.5 * hy * v[0]));
+            }
+        }
+        return -averageLog / (2 * Physics::pi);
+    }
 
     void verifyPoissonResults(
             const FFT2D5Poisson::ScalarField2_t& greensFn2,
@@ -2334,8 +2635,9 @@ namespace {
                         ::testing::Message()
                         << "i = " << i << ", j = " << j << ", index=" << (j * 12 + i));
                 ASSERT_NEAR(
-                        greens2Host(i + nGhost2, j + nGhost2), ExpectedGreens12x12[j * 12 + i],
-                        2e-2);
+                        greens2Host(i + nGhost2, j + nGhost2),
+                        referenceCellPotential(std::min(i, 12 - i), std::min(j, 12 - j), 1.0, 1.0),
+                        2e-13);
             }
         }
         // Check transform
@@ -2378,7 +2680,7 @@ namespace {
                         << "i = " << i << ", j = " << j << ", index=" << (j * 6 + i));
                 ASSERT_NEAR(
                         potentialHost(i + nGhostPotential, j + nGhostPotential),
-                        ExpectedPotential6x6[j * 6 + i], 2e-2);
+                        referenceCellPotential(i, j, 1.0, 1.0), 2e-13);
             }
         }
         // Now verify the E result
@@ -2387,8 +2689,21 @@ namespace {
                 SCOPED_TRACE(
                         ::testing::Message()
                         << "i = " << i << ", j = " << j << ", index=" << (j * 6 + i));
-                ASSERT_NEAR(eHost(i + nGhostE, j + nGhostE).data_m[0], ExpectedEx[j * 6 + i], 2e-2);
-                ASSERT_NEAR(eHost(i + nGhostE, j + nGhostE).data_m[1], ExpectedEy[j * 6 + i], 2e-2);
+                const auto expectedDerivative = [i, j](unsigned axis) {
+                    const auto potentialAt = [axis, i, j](int cell) {
+                        const double x =
+                                axis == 0 ? static_cast<double>(cell) : static_cast<double>(i);
+                        const double y =
+                                axis == 1 ? static_cast<double>(cell) : static_cast<double>(j);
+                        return referenceCellPotential(x, y, 1.0, 1.0);
+                    };
+                    const auto cell = static_cast<int>(axis == 0 ? i : j);
+                    return (potentialAt(cell - 1) - potentialAt(cell + 1)) / 2.0;
+                };
+                ASSERT_NEAR(
+                        eHost(i + nGhostE, j + nGhostE).data_m[0], expectedDerivative(0), 2e-13);
+                ASSERT_NEAR(
+                        eHost(i + nGhostE, j + nGhostE).data_m[1], expectedDerivative(1), 2e-13);
             }
         }
     }
@@ -2408,5 +2723,193 @@ namespace {
         // Verify the Green's function
         verifyPoissonResults(
                 poisson.getGreensFn(), poisson.getGreensFnTr(), poisson.getDoubledRho(), rho, e);
+    }
+
+    TEST_F(TestSolve2d5, IntegratedPoissonHasNoBoundaryCellSelfForce) {
+        const FFT2D5Poisson::NDIndex2_t domain{6, 8};
+        constexpr double dx = 0.3;
+        constexpr double dy = 0.1;
+        FFT2D5Poisson::Mesh2_t mesh{domain, {dx, dy}, {0, 0}};
+        FFT2D5Poisson::Layout2_t layout{MPI_COMM_WORLD, domain, {false, false}};
+        FFT2D5Poisson::ScalarField2_t rho{mesh, layout};
+        FFT2D5Poisson::VectorField2_t electric{mesh, layout};
+        FFT2D5Poisson poisson;
+        const auto ghost = rho.getNghost();
+        for (const auto& cell :
+             std::array<std::array<int, 2>, 5>{{{0, 0}, {5, 0}, {0, 7}, {5, 7}, {3, 4}}}) {
+            SCOPED_TRACE(::testing::Message() << "source cell=" << cell[0] << "," << cell[1]);
+            auto source = rho.getHostMirror();
+            Kokkos::deep_copy(source, 0.0);
+            source(cell[0] + ghost, cell[1] + ghost) = 1.0;
+            Kokkos::deep_copy(rho.getView(), source);
+            poisson.solve(rho, electric);
+            const auto field =
+                    Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), electric.getView());
+            const auto self = field(cell[0] + ghost, cell[1] + ghost);
+            EXPECT_NEAR(self[0], 0.0, 1e-13);
+            EXPECT_NEAR(self[1], 0.0, 1e-13);
+
+            // The nearest interior probe must see the same centered free-space
+            // field whether the source is in a corner or in the interior.
+            const int direction   = cell[0] == 5 ? -1 : 1;
+            const double expected = direction * dy / 2
+                                    * (referenceCellPotential(0, 0, dx, dy)
+                                       - referenceCellPotential(2 * dx, 0, dx, dy));
+            EXPECT_NEAR(field(cell[0] + direction + ghost, cell[1] + ghost)[0], expected, 1e-13);
+        }
+    }
+
+    TEST_F(TestSolve2d5, PoissonGradientUsesProvidedPotentialHalo) {
+        const FFT2D5Poisson::NDIndex2_t domain{6, 8};
+        constexpr double dx = 0.3;
+        constexpr double dy = 0.1;
+        FFT2D5Poisson::Mesh2_t mesh{domain, {dx, dy}, {0, 0}};
+        FFT2D5Poisson::Layout2_t layout{MPI_COMM_WORLD, domain, {false, false}};
+        FFT2D5Poisson::ScalarField2_t potential{mesh, layout};
+        FFT2D5Poisson::VectorField2_t electric{mesh, layout};
+        FFT2D5Poisson poisson;
+        poisson.initialiseViews(potential);
+        auto source      = potential.getHostMirror();
+        const auto ghost = potential.getNghost();
+        for (int i = 0; i < static_cast<int>(source.extent(0)); ++i) {
+            for (int j = 0; j < static_cast<int>(source.extent(1)); ++j) {
+                const double x = (i - ghost + 0.5) * dx;
+                const double y = (j - ghost + 0.5) * dy;
+                source(i, j)   = x * x + 3 * x * y + 2 * y * y;
+            }
+        }
+        Kokkos::deep_copy(potential.getView(), source);
+        poisson.determineField(potential, electric);
+        const auto field =
+                Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), electric.getView());
+        for (int i = 0; i < 6; ++i) {
+            for (int j = 0; j < 8; ++j) {
+                const double x = (i + 0.5) * dx;
+                const double y = (j + 0.5) * dy;
+                EXPECT_NEAR(field(i + ghost, j + ghost)[0], -(2 * x + 3 * y), 1e-12);
+                EXPECT_NEAR(field(i + ghost, j + ghost)[1], -(3 * x + 4 * y), 1e-12);
+            }
+        }
+    }
+
+    TEST_F(TestSolve2d5, IntegratedPoissonSupportsSmallTransverseGrids) {
+        for (const auto& dimensions :
+             std::array<std::array<unsigned, 2>, 4>{{{1, 1}, {1, 2}, {2, 1}, {2, 2}}}) {
+            SCOPED_TRACE(::testing::Message() << "grid=" << dimensions[0] << "x" << dimensions[1]);
+            const FFT2D5Poisson::NDIndex2_t domain{dimensions[0], dimensions[1]};
+            FFT2D5Poisson::Mesh2_t mesh{domain, {0.3, 0.1}, {0, 0}};
+            FFT2D5Poisson::Layout2_t layout{MPI_COMM_WORLD, domain, {false, false}};
+            FFT2D5Poisson::ScalarField2_t rho{mesh, layout};
+            FFT2D5Poisson::VectorField2_t electric{mesh, layout};
+            auto source      = rho.getHostMirror();
+            const auto ghost = rho.getNghost();
+            Kokkos::deep_copy(source, 0.0);
+            source(ghost, ghost) = 1.0;
+            Kokkos::deep_copy(rho.getView(), source);
+            FFT2D5Poisson poisson;
+            poisson.solve(rho, electric);
+            const auto field =
+                    Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), electric.getView());
+            EXPECT_NEAR(field(ghost, ghost)[0], 0.0, 1e-13);
+            EXPECT_NEAR(field(ghost, ghost)[1], 0.0, 1e-13);
+            for (unsigned i = 0; i < dimensions[0]; ++i) {
+                for (unsigned j = 0; j < dimensions[1]; ++j) {
+                    EXPECT_TRUE(std::isfinite(field(i + ghost, j + ghost)[0]));
+                    EXPECT_TRUE(std::isfinite(field(i + ghost, j + ghost)[1]));
+                }
+            }
+        }
+    }
+
+    TEST_F(TestSolve2d5, IntegratedLogKernelSelfAndAnisotropicCells) {
+        for (const auto& widths : std::array<std::array<double, 2>, 4>{
+                     {{1.0, 1.0}, {0.000375, 0.00009375}, {0.02, 0.001}, {0.001, 0.02}}}) {
+            const auto hx = widths[0];
+            const auto hy = widths[1];
+            EXPECT_NEAR(
+                    FFT2D5Poisson::cellAveragedGreensFunction(0, 0, hx, hy),
+                    referenceCellPotential(0, 0, hx, hy), 3e-15);
+            for (const auto& offset : std::array<std::array<double, 2>, 4>{
+                         {{2.0, 1.0}, {-2.0, 1.0}, {8.0, 0.0}, {10000.0, -3000.0}}}) {
+                const auto scale = std::max(hx, hy);
+                const auto x     = offset[0] * scale;
+                const auto y     = offset[1] * scale;
+                EXPECT_NEAR(
+                        FFT2D5Poisson::cellAveragedGreensFunction(x, y, hx, hy),
+                        referenceCellPotential(x, y, hx, hy), 3e-13);
+                EXPECT_NEAR(
+                        FFT2D5Poisson::cellAveragedGreensFunction(x, y, hx, hy),
+                        FFT2D5Poisson::cellAveragedGreensFunction(y, x, hy, hx), 3e-13);
+            }
+        }
+    }
+
+    TEST_F(TestSolve2d5, IntegratedLogKernelScaleChangesOnlyPotentialGauge) {
+        for (const auto& offset : std::array<std::array<double, 2>, 4>{
+                     {{0.0, 0.0}, {1.0, 0.0}, {2.0, 3.0}, {10000.0, 0.0}}}) {
+            const auto original =
+                    FFT2D5Poisson::cellAveragedGreensFunction(offset[0], offset[1], 0.5, 0.125);
+            for (const double scale : {1e-6, 1e-3, 10.0, 1e6}) {
+                EXPECT_NEAR(
+                        FFT2D5Poisson::cellAveragedGreensFunction(
+                                scale * offset[0], scale * offset[1], scale * 0.5, scale * 0.125),
+                        original - std::log(scale) / (2 * Physics::pi), 3e-14);
+            }
+        }
+    }
+
+    double gaussianPoissonForceError(unsigned nx, unsigned ny, double sigma) {
+        const FFT2D5Poisson::NDIndex2_t domain{nx, ny};
+        const double length = 12.0 * sigma;
+        const double dx     = length / nx;
+        const double dy     = length / ny;
+        FFT2D5Poisson::Mesh2_t mesh{domain, {dx, dy}, {-length / 2, -length / 2}};
+        FFT2D5Poisson::Layout2_t layout{MPI_COMM_WORLD, domain, {false, false}};
+        FFT2D5Poisson::ScalarField2_t rho{mesh, layout};
+        FFT2D5Poisson::VectorField2_t electric{mesh, layout};
+        auto source      = rho.getHostMirror();
+        const auto ghost = rho.getNghost();
+        Kokkos::deep_copy(source, 0.0);
+        for (unsigned i = 0; i < nx; ++i) {
+            for (unsigned j = 0; j < ny; ++j) {
+                const auto x                 = (i + 0.5) * dx - length / 2;
+                const auto y                 = (j + 0.5) * dy - length / 2;
+                source(i + ghost, j + ghost) = std::exp(-(x * x + y * y) / (2 * sigma * sigma))
+                                               / (2 * Physics::pi * sigma * sigma);
+            }
+        }
+        Kokkos::deep_copy(rho.getView(), source);
+        FFT2D5Poisson poisson;
+        poisson.solve(rho, electric);
+        auto field = electric.getHostMirror();
+        Kokkos::deep_copy(field, electric.getView());
+        double maxRelativeError = 0.0;
+        for (unsigned i = 0; i < nx; ++i) {
+            for (unsigned j = 0; j < ny; ++j) {
+                const auto x  = (i + 0.5) * dx - length / 2;
+                const auto y  = (j + 0.5) * dy - length / 2;
+                const auto r2 = x * x + y * y;
+                if (r2 < 0.04 * sigma * sigma || r2 > 6.25 * sigma * sigma) {
+                    continue;
+                }
+                // Gauss's law for a unit-charge round Gaussian, with epsilon=1.
+                const auto coefficient =
+                        -std::expm1(-r2 / (2 * sigma * sigma)) / (2 * Physics::pi * r2);
+                const auto ex    = coefficient * x;
+                const auto ey    = coefficient * y;
+                const auto value = field(i + ghost, j + ghost);
+                const auto error = std::hypot(value[0] - ex, value[1] - ey) / std::hypot(ex, ey);
+                maxRelativeError = std::max(maxRelativeError, error);
+            }
+        }
+        return maxRelativeError;
+    }
+
+    TEST_F(TestSolve2d5, IntegratedPoissonForceConvergesAndIsIndependentOfLengthUnit) {
+        const auto coarse = gaussianPoissonForceError(64, 128, 0.001);
+        const auto fine   = gaussianPoissonForceError(128, 256, 0.001);
+        EXPECT_LT(fine, 0.0035);
+        EXPECT_LT(fine, coarse / 3.5);
+        EXPECT_NEAR(fine, gaussianPoissonForceError(128, 256, 1.0), 2e-11);
     }
 }  // namespace

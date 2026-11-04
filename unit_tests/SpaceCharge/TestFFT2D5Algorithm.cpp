@@ -10,6 +10,7 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <memory>
 #include <string>
 
@@ -67,6 +68,121 @@ namespace opalx::spacecharge {
                 return values;
             }
 
+            using Vector                            = Vector_t<double, 3>;
+            static constexpr std::size_t sourceSize = 8;
+            using Vectors                           = std::array<Vector, sourceSize>;
+
+            static Vectors sourcePositions() {
+                return {
+                        {{-0.12, 0.03, 0.25},
+                         {0.08, -0.04, 0.25},
+                         {-0.06, -0.07, 0.40},
+                         {0.10, 0.05, 0.40},
+                         {-0.09, 0.06, 0.55},
+                         {0.07, -0.05, 0.55},
+                         {-0.04, -0.02, 0.70},
+                         {0.11, 0.04, 0.70}}};
+            }
+
+            void writePath(const CoordinateSystemTrafo& labRotation) const {
+                std::ofstream path(pathFile_m);
+                path << std::setprecision(17);
+                path << "s rx ry rz px py pz ex ey ez bx by bz ke t\n";
+                for (const double s : {0.0, 1.0}) {
+                    const Vector point = labRotation.transformTo(Vector(0.0, 0.0, s));
+                    path << s << " " << point[0] << " " << point[1] << " " << point[2]
+                         << " 0 0 1 0 0 0 0 0 0 0 0\n";
+                }
+            }
+
+            void setPhysicalSource(
+                    const Vectors& labPositions, const Vector& labMomentum,
+                    const CoordinateSystemTrafo& referenceToLab,
+                    ParticleContainer* container = nullptr) {
+                auto& particles = container == nullptr ? *particles_m : *container;
+                if (particles.getLocalNum() == 0) particles.createParticles(sourceSize);
+                particles.setQ(1.0e-12);
+                particles.setM(Physics::m_e);
+                particles.setToLabTrafo(referenceToLab);
+                auto positions = particles.R.getHostMirror();
+                auto momenta   = particles.P.getHostMirror();
+                for (std::size_t i = 0; i < sourceSize; ++i) {
+                    positions(i) = referenceToLab.transformFrom(labPositions[i]);
+                    momenta(i)   = referenceToLab.rotateFrom(labMomentum);
+                }
+                Kokkos::deep_copy(particles.R.getView(), positions);
+                Kokkos::deep_copy(particles.P.getView(), momenta);
+                Kokkos::deep_copy(particles.dt.getView(), 1.0e-12);
+                Kokkos::deep_copy(particles.InvalidMask.getView(), false);
+                particles.markMomentsDirty();
+                particles.updateMoments();
+            }
+
+            SpaceChargeStepState alignedStep(const double originZ) const {
+                SpaceChargeStepState step;
+                step.timeStep = 1.0e-12;
+                const CoordinateSystemTrafo trackerToSolve(
+                        Vector(0.0, 0.0, originZ),
+                        getQuaternion(particles_m->getMeanP(), Vector(0.0, 0.0, 1.0)));
+                step.frames = {trackerToSolve, trackerToSolve.inverted()};
+                return step;
+            }
+
+            Vectors physicalFields(
+                    const bool electric, ParticleContainer* container = nullptr) const {
+                const auto& particles = container == nullptr ? *particles_m : *container;
+                const auto fields     = Kokkos::create_mirror_view_and_copy(
+                        Kokkos::HostSpace(),
+                        electric ? particles.E.getView() : particles.B.getView());
+                Vectors result;
+                for (std::size_t i = 0; i < sourceSize; ++i) {
+                    result[i] = particles.getToLabTrafo().rotateTo(fields(i));
+                }
+                return result;
+            }
+
+            void expectDepositedCharge(
+                    const FFT2D5Algorithm& solver, const double sourceCopies = 1.0) const {
+                const auto* rho = solver.getRho();
+                const auto host =
+                        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), rho->getView());
+                const auto spacing = rho->get_mesh().getMeshSpacing();
+                const auto ng      = static_cast<std::size_t>(rho->getNghost());
+                double densitySum  = 0.0;
+                for (std::size_t i = ng; i < host.extent(0) - ng; ++i) {
+                    for (std::size_t j = ng; j < host.extent(1) - ng; ++j) {
+                        for (std::size_t k = ng; k < host.extent(2) - ng; ++k) {
+                            densitySum += host(i, j, k);
+                        }
+                    }
+                }
+                const double charge = densitySum * spacing[0] * spacing[1] * spacing[2];
+                const double expected =
+                        sourceCopies * sourceSize * particles_m->getChargePerParticle();
+                EXPECT_NEAR(charge, expected, std::abs(expected) * 1.0e-13);
+            }
+
+            void expectSourceRestored(
+                    const Vectors& labPositions, const Vector& labMomentum,
+                    ParticleContainer* container = nullptr) const {
+                const auto& particles = container == nullptr ? *particles_m : *container;
+                const auto positions  = Kokkos::create_mirror_view_and_copy(
+                        Kokkos::HostSpace(), particles.R.getView());
+                const auto momenta = Kokkos::create_mirror_view_and_copy(
+                        Kokkos::HostSpace(), particles.P.getView());
+                const auto timeSteps = Kokkos::create_mirror_view_and_copy(
+                        Kokkos::HostSpace(), particles.dt.getView());
+                for (std::size_t i = 0; i < sourceSize; ++i) {
+                    const Vector r = particles.getToLabTrafo().transformTo(positions(i));
+                    const Vector p = particles.getToLabTrafo().rotateTo(momenta(i));
+                    for (unsigned d = 0; d < 3; ++d) {
+                        EXPECT_NEAR(r[d], labPositions[i][d], 1.0e-13);
+                        EXPECT_NEAR(p[d], labMomentum[d], 1.0e-13);
+                    }
+                    EXPECT_NEAR(timeSteps(i), 1.0e-12, 1.0e-26);
+                }
+            }
+
             std::filesystem::path pathFile_m;
             std::unique_ptr<Mesh_t<3>> mesh_m;
             std::unique_ptr<FieldLayout_t<3>> layout_m;
@@ -76,7 +192,7 @@ namespace opalx::spacecharge {
             CoordinateSystemTrafo solveToTracker_m;
         };
 
-        TEST_F(FFT2D5AlgorithmTest, LazyInitializationBuildsPersistentSliceSolvers) {
+        TEST_F(FFT2D5AlgorithmTest, LazyInitializationSkipsEmptySlices) {
             std::array particles{particles_m.get()};
             FFT2D5Algorithm solver(
                     config(FFT2D5LongitudinalFieldMode::Open), particles, bunchState_m);
@@ -92,7 +208,7 @@ namespace opalx::spacecharge {
             EXPECT_TRUE(solver.initialized());
             EXPECT_EQ(solver.sliceCount(), 4u);
             EXPECT_EQ(solver.referencePathView().extent(0), 2u);
-            EXPECT_EQ(result.backendSolves, 4u);
+            EXPECT_EQ(result.backendSolves, 0u);
         }
 
         TEST_F(FFT2D5AlgorithmTest, RejectsFixedCartesianDomain) {
@@ -144,6 +260,162 @@ namespace opalx::spacecharge {
                 }
             }
             EXPECT_NEAR(particles_m->getMeanR()[2], 0.5, 1.0e-14);
+        }
+
+        TEST_F(FFT2D5AlgorithmTest, LabPathFieldsSurviveReferenceFrameChanges) {
+            const Vectors positions = sourcePositions();
+            const Vector momentum(0.0, 0.0, 0.4);
+            setPhysicalSource(positions, momentum, CoordinateSystemTrafo());
+            auto values          = config(FFT2D5LongitudinalFieldMode::Open);
+            values.grid.meshSize = {16, 16, 16};
+            std::array particles{particles_m.get()};
+            FFT2D5Algorithm solver(values, particles, bunchState_m);
+            const std::array<std::uint8_t, 1> activity{1};
+            ASSERT_NO_THROW(static_cast<void>(solver.solve({activity, alignedStep(0.0)})));
+            expectDepositedCharge(solver);
+            const Vectors expectedE = physicalFields(true);
+            const Vectors expectedB = physicalFields(false);
+            double electricNorm = 0.0, magneticNorm = 0.0, longitudinalNorm = 0.0;
+            for (std::size_t i = 0; i < sourceSize; ++i) {
+                electricNorm += expectedE[i].dot(expectedE[i]);
+                magneticNorm += expectedB[i].dot(expectedB[i]);
+                longitudinalNorm += expectedE[i][2] * expectedE[i][2];
+            }
+            ASSERT_GT(electricNorm, 0.0);
+            ASSERT_GT(magneticNorm, 0.0);
+            ASSERT_GT(longitudinalNorm, 0.0);
+
+            // The physical particles and lab path stay fixed; only their stored reference
+            // coordinates and the tracker's aligned solve frame change between calls.
+            for (const double angle : {0.0, 0.45, 1.1}) {
+                const CoordinateSystemTrafo referenceToLab(
+                        Vector(0.2, 0.0, -0.3),
+                        Quaternion(std::cos(angle / 2), 0.0, std::sin(angle / 2), 0.0));
+                setPhysicalSource(positions, momentum, referenceToLab);
+                ASSERT_NO_THROW(static_cast<void>(solver.solve({activity, alignedStep(-0.37)})));
+                expectSourceRestored(positions, momentum);
+                expectDepositedCharge(solver);
+                const Vectors actualE = physicalFields(true);
+                const Vectors actualB = physicalFields(false);
+                for (std::size_t i = 0; i < sourceSize; ++i) {
+                    for (unsigned d = 0; d < 3; ++d) {
+                        EXPECT_NEAR(actualE[i][d], expectedE[i][d], 1.0e-10);
+                        EXPECT_NEAR(actualB[i][d], expectedB[i][d], 1.0e-18);
+                    }
+                }
+            }
+        }
+
+        TEST_F(FFT2D5AlgorithmTest, RigidPlanarRotationPreservesLocalFields) {
+            const Vectors source = sourcePositions();
+            Vectors expectedE, expectedB;
+            const std::array<std::uint8_t, 1> activity{1};
+            for (const double degrees : {0.0, 45.0, 75.0}) {
+                SCOPED_TRACE(degrees);
+                const double angle = degrees * Physics::pi / 180;
+                const CoordinateSystemTrafo labRotation(
+                        Vector(0.0),
+                        Quaternion(std::cos(angle / 2), 0.0, std::sin(angle / 2), 0.0));
+                writePath(labRotation);
+                Vectors positions;
+                for (std::size_t i = 0; i < sourceSize; ++i) {
+                    positions[i] = labRotation.transformTo(source[i]);
+                }
+                const Vector momentum = labRotation.rotateTo(Vector(0.0, 0.0, 0.4));
+                const CoordinateSystemTrafo referenceToLab =
+                        labRotation * CoordinateSystemTrafo(Vector(0.0, 0.0, -0.5), Quaternion());
+                setPhysicalSource(positions, momentum, referenceToLab);
+                auto values          = config(FFT2D5LongitudinalFieldMode::Open);
+                values.grid.meshSize = {16, 16, 16};
+                std::array particles{particles_m.get()};
+                FFT2D5Algorithm solver(values, particles, bunchState_m);
+                ASSERT_NO_THROW(static_cast<void>(solver.solve({activity, alignedStep(-0.5)})));
+                expectSourceRestored(positions, momentum);
+                expectDepositedCharge(solver);
+                const Vectors actualE = physicalFields(true);
+                const Vectors actualB = physicalFields(false);
+                double fieldNorm      = 0.0;
+                for (std::size_t i = 0; i < sourceSize; ++i) {
+                    const Vector e = labRotation.rotateFrom(actualE[i]);
+                    const Vector b = labRotation.rotateFrom(actualB[i]);
+                    fieldNorm += e.dot(e);
+                    if (degrees == 0.0) {
+                        expectedE[i] = e;
+                        expectedB[i] = b;
+                    } else {
+                        for (unsigned d = 0; d < 3; ++d) {
+                            EXPECT_NEAR(e[d], expectedE[i][d], 1.0e-10);
+                            EXPECT_NEAR(b[d], expectedB[i][d], 1.0e-18);
+                        }
+                    }
+                }
+                EXPECT_GT(fieldNorm, 0.0);
+            }
+        }
+
+        TEST_F(FFT2D5AlgorithmTest, ActiveContainersShareLabPathAcrossReferencePoses) {
+            const Vectors positions = sourcePositions();
+            const Vector momentum(0.0, 0.0, 0.4);
+            auto values          = config(FFT2D5LongitudinalFieldMode::Open);
+            values.grid.meshSize = {16, 16, 16};
+            setPhysicalSource(positions, momentum, CoordinateSystemTrafo());
+            particles_m->setQ(2.0e-12);
+            Vectors expectedE, expectedB;
+            {
+                std::array particles{particles_m.get()};
+                FFT2D5Algorithm solver(values, particles, bunchState_m);
+                const std::array<std::uint8_t, 1> activity{1};
+                ASSERT_NO_THROW(static_cast<void>(solver.solve({activity, alignedStep(0.0)})));
+                expectDepositedCharge(solver);
+                expectedE = physicalFields(true);
+                expectedB = physicalFields(false);
+            }
+
+            // Split the same physical source charge across two containers whose particles
+            // are stored in different reference frames. The combined source is unchanged.
+            ParticleContainer secondary(*mesh_m, *layout_m);
+            secondary.setBunchStateHandler(bunchState_m);
+            setPhysicalSource(
+                    positions, momentum,
+                    CoordinateSystemTrafo(Vector(0.0, 0.0, -0.1), Quaternion()));
+            setPhysicalSource(
+                    positions, momentum,
+                    CoordinateSystemTrafo(
+                            Vector(0.2, 0.0, -0.4),
+                            Quaternion(std::cos(0.3), 0.0, std::sin(0.3), 0.0)),
+                    &secondary);
+            std::array particles{particles_m.get(), &secondary};
+            FFT2D5Algorithm solver(values, particles, bunchState_m);
+            const std::array<std::uint8_t, 2> activity{1, 1};
+            ASSERT_NO_THROW(static_cast<void>(solver.solve({activity, alignedStep(-0.4)})));
+            expectDepositedCharge(solver, 2.0);
+            for (auto* container : particles) {
+                expectSourceRestored(positions, momentum, container);
+                const Vectors actualE = physicalFields(true, container);
+                const Vectors actualB = physicalFields(false, container);
+                for (std::size_t i = 0; i < sourceSize; ++i) {
+                    for (unsigned d = 0; d < 3; ++d) {
+                        EXPECT_NEAR(actualE[i][d], expectedE[i][d], 1.0e-10);
+                        EXPECT_NEAR(actualB[i][d], expectedB[i][d], 1.0e-18);
+                    }
+                }
+            }
+        }
+
+        TEST_F(FFT2D5AlgorithmTest, CoverageFailureRestoresReferenceCoordinatesAndTimeSteps) {
+            Vectors positions = sourcePositions();
+            positions[0][2]   = 1.2;
+            const Vector momentum(0.0, 0.0, 0.4);
+            const CoordinateSystemTrafo referenceToLab(
+                    Vector(0.1, 0.0, -0.2), Quaternion(std::cos(0.3), 0.0, std::sin(0.3), 0.0));
+            setPhysicalSource(positions, momentum, referenceToLab);
+            std::array particles{particles_m.get()};
+            FFT2D5Algorithm solver(
+                    config(FFT2D5LongitudinalFieldMode::Open), particles, bunchState_m);
+            const std::array<std::uint8_t, 1> activity{1};
+            EXPECT_THROW(
+                    static_cast<void>(solver.solve({activity, alignedStep(-0.5)})), OpalException);
+            expectSourceRestored(positions, momentum);
         }
 
         TEST_F(FFT2D5AlgorithmTest, RepeatedSolveReplacesFieldsAndPreservesInactiveContainer) {

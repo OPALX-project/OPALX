@@ -31,6 +31,8 @@
 // clang-format off
 #include "Ippl.h"
 #include "FFT/FFT.h"
+#include <Kokkos_MathematicalConstants.hpp>
+#include <Kokkos_MathematicalFunctions.hpp>
 // clang-format on
 
 class FFT2D5Poisson {
@@ -49,6 +51,50 @@ public:
     FFT2D5Poisson();
     void solve(ScalarField2_t& chargeDensity, VectorField2_t& electricField);
 
+    /**
+     * @brief Free-space potential of a uniformly charged rectangular source cell.
+     *
+     * Returns the cell average of -log(r)/(2*pi), including its finite value at
+     * the origin. The convolution separately multiplies by the source-cell area.
+     * Positive hx and hy are required. The arbitrary reference length in log(r)
+     * changes only the potential gauge, never the electric field.
+     */
+    KOKKOS_INLINE_FUNCTION static double cellAveragedGreensFunction(
+            const double x, const double y, const double hx, const double hy) {
+        // Scale first so physical units do not enter cancellation of the four
+        // rectangle-corner primitives. Restore the logarithmic gauge afterward.
+        const double scale = hx > hy ? hx : hy;
+        const double u     = x / scale;
+        const double v     = y / scale;
+        const double a     = 0.5 * hx / scale;
+        const double b     = 0.5 * hy / scale;
+        double average;
+        if (u * u + v * v >= 64.0) {
+            // Away from the singularity, 4-point Gauss integration in each
+            // direction avoids subtraction of nearly equal corner primitives.
+            // At r >= 8*max(hx,hy), its log-kernel truncation error is < 1e-13.
+            constexpr double nodes[4] = {
+                    -0.8611363115940525752, -0.3399810435848562648, 0.3399810435848562648,
+                    0.8611363115940525752};
+            constexpr double weights[4] = {
+                    0.3478548451374538574, 0.6521451548625461426, 0.6521451548625461426,
+                    0.3478548451374538574};
+            average = 0.0;
+            for (unsigned i = 0; i < 4; ++i) {
+                for (unsigned j = 0; j < 4; ++j) {
+                    const double dx = u + a * nodes[i];
+                    const double dy = v + b * nodes[j];
+                    average += weights[i] * weights[j] * Kokkos::log(dx * dx + dy * dy) / 8.0;
+                }
+            }
+        } else {
+            average = (logPrimitive(u + a, v + b) - logPrimitive(u - a, v + b)
+                       - logPrimitive(u + a, v - b) + logPrimitive(u - a, v - b))
+                      / (4.0 * a * b);
+        }
+        return -(Kokkos::log(scale) + average) / (2.0 * Kokkos::numbers::pi_v<double>);
+    }
+
     // Accessors for unit tests
     const ScalarField2_t& getGreensFn() const { return greensFn_m; }
     const ComplexField2_t& getGreensFnTr() const { return greensFnTr_m; }
@@ -64,10 +110,27 @@ public:
     void makeGreensFn();
     void placeChargeDensity(const ScalarField2_t& chargeDensity);
     void performConvolution();
+    /// Copy the physical potential and its halo from the doubled free-space convolution.
     void extractPotential(ScalarField2_t& potential);
+    /// Centered gradient; potential must include a valid one-cell halo (as extractPotential does).
     void determineField(const ScalarField2_t& potential, VectorField2_t& electricField);
 
 private:
+    // Mixed primitive of log(sqrt(x*x+y*y)), extended continuously to the axes.
+    // Using atan2 on absolute coordinates preserves the odd symmetry in each
+    // coordinate without branch jumps across the source-cell singularity.
+    KOKKOS_INLINE_FUNCTION static double logPrimitive(const double x, const double y) {
+        const double a = Kokkos::abs(x);
+        const double b = Kokkos::abs(y);
+        if (a == 0.0 || b == 0.0) {
+            return 0.0;
+        }
+        const double value = 0.5 * a * b * Kokkos::log(a * a + b * b) - 1.5 * a * b
+                             + 0.5 * a * a * Kokkos::atan2(b, a)
+                             + 0.5 * b * b * Kokkos::atan2(a, b);
+        return (x < 0.0) != (y < 0.0) ? -value : value;
+    }
+
     size_t nx2_{};
     size_t ny2_{};
     Vector2_t dr_{};
