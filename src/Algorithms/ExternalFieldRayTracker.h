@@ -17,7 +17,7 @@ class PartData;
 class ElementBase;
 
 /**
- * @brief Host-side external-field integration shared by reference and transfer-map rays.
+ * @brief Host-side external-field integration of single reference rays.
  *
  * Positions are in metres, time and step size in seconds, and mechanical momentum is
  * \f$\mathbf u=\mathbf p/(mc)=\vec\beta\gamma\f$. Fields are in V/m and tesla;
@@ -125,15 +125,6 @@ public:
 
     /// Advance through support events; optionally record accepted substeps in time order.
     State advance(const State& initial, double dt, std::vector<Step>* accepted = nullptr) const;
-
-    /**
-     * @brief Locate a signed path target within a time interval by tracked bisection.
-     * Reintegrates each trial, including support subdivision; does not linearly
-     * interpolate position/time under acceleration. The target must be bracketed
-     * by initial and advance(initial, dt). Uses the same time-resolution floor as
-     * support localization, and throws for an unbracketed target.
-     */
-    State advanceToPathLength(const State& initial, double dt, double target) const;
 
 private:
     using ElementSet = std::set<std::shared_ptr<ElementBase>>;

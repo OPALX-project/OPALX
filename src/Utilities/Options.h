@@ -144,18 +144,6 @@ namespace Options {
     /// If true VTK files are written
     extern bool enableVTK;
 
-    /// Enable reference sampling, element map attachment and combined-map stdout diagnostics
-    /// during design-orbit threading (default false); secondary species do not overwrite them.
-    extern bool enableLinearTransferMaps;
-    /// Additional perturbation-size Richardson levels (0..4, default 0), not DT refinement.
-    extern unsigned linearTransferMapRichardsonLevels;
-    /// Starting amplitudes in (x,x',y,y',zeta,delta) coordinates, each defaulting to 1e-3.
-    /// Metres for x,y,zeta; dimensionless for slopes and relative momentum deviation delta.
-    extern std::array<double, 6> linearTransferMapSteps;
-    /// Ray integrator shared by map-enabled reference and perturbed rays: BORIS (default),
-    /// RK4 or DOP853. Fixed nominal DT; does not select the production bunch integrator.
-    extern std::string linearTransferMapIntegrator;
-
     /// Cells of the lab-frame element grid along x, y and z (default 8 each); see
     /// GeneralElementMapping.
     extern std::array<unsigned, 3> elementMappingGrid;

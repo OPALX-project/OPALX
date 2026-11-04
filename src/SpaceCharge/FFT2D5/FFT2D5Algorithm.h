@@ -40,7 +40,7 @@ namespace opalx::spacecharge {
      * in the electric and magnetic fields that particles feel.
      * 1. Translate the particle cartesian coordinates into Frenet-Serret coordinates and
      *    then boost into the beam reference frame.  The reference orbit can be provided from a file
-     * or acquired from the OrbitThreader.
+     * or taken from the <basename>_DesignPath.dat written by the ReferenceTracer.
      * 2. Do CiC scatter of charge into the 3D charge density grid.  This spreads the charge out
      * both transversely and (optionally) longitudinally which should be a help in reducing noise.
      * 3. Copy the 3D charge density  grid into a stack of 2D grids along the S coordinate.

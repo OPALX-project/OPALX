@@ -20,7 +20,7 @@
 
 #include "AbsBeamline/ElementBase.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
-#include "Algorithms/IndexMap.h"
+#include "Structure/BoundingBox.h"
 #include "Utilities/ElementList.h"
 
 #include <array>
@@ -53,7 +53,8 @@
  */
 class GeneralElementMapping {
 public:
-    using ElementSet = IndexMap::value_t;
+    /// Elements in the order of the element list passed to the constructor.
+    using ElementSet = std::vector<std::shared_ptr<ElementBase>>;
 
     /// Upper limit on Nx * Ny * Nz; the row offsets alone take 8 bytes per cell.
     static constexpr std::size_t maximumCells = std::size_t(1) << 24;
@@ -88,6 +89,18 @@ public:
     ElementSet query(
             const Vector_t<double, 3>& lower, const Vector_t<double, 3>& upper,
             const CoordinateSystemTrafo& toLab) const;
+
+    /**
+     * @brief Elements one of whose boxes contains a lab point.
+     *
+     * Only the elements listed in the point's cell are tested. The caller still applies the
+     * element's own isInside() test.
+     * @param position Lab position [m].
+     */
+    ElementSet elementsAt(const Vector_t<double, 3>& position) const;
+
+    /// Lab bounding box of all element boxes; empty without elements.
+    BoundingBox getLabBounds() const;
 
     /**
      * @brief Check every element's reach against one point of a reference orbit.

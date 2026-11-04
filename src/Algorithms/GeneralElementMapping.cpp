@@ -169,12 +169,34 @@ GeneralElementMapping::ElementSet GeneralElementMapping::query(
     for (const std::uint32_t e : candidates) {
         for (const SupportBox& box : entries_m[e].boxes) {
             if (intersect(bunch, box)) {
-                active.insert(entries_m[e].element);
+                active.push_back(entries_m[e].element);
                 break;
             }
         }
     }
     return active;
+}
+
+GeneralElementMapping::ElementSet GeneralElementMapping::elementsAt(
+        const Vector_t<double, 3>& position) const {
+    ElementSet found;
+    std::array<unsigned, 3> first{}, last{};
+    if (entries_m.empty() || !cellRange(position, position, first, last)) return found;
+
+    const std::size_t cell = flatIndex(first[0], first[1], first[2]);
+    for (std::size_t i = cellOffsets_m[cell]; i < cellOffsets_m[cell + 1]; ++i) {
+        const Entry& entry = entries_m[cellElements_m[i]];
+        if (contains(entry.boxes, position)) found.push_back(entry.element);
+    }
+    return found;
+}
+
+BoundingBox GeneralElementMapping::getLabBounds() const {
+    BoundingBox bounds;
+    if (entries_m.empty()) return bounds;
+    bounds.enlargeToContainPosition(meshLower_m);
+    bounds.enlargeToContainPosition(meshUpper_m);
+    return bounds;
 }
 
 std::vector<GeneralElementMapping::SupportOutsideBox> GeneralElementMapping::checkReferencePoint(

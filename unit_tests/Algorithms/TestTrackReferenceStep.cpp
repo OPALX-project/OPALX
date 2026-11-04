@@ -40,6 +40,11 @@ namespace {
         bool isInside(const Vector& r) const override {
             return r(2) >= 0 && r(2) < 0.003 && std::abs(r(0)) < 0.02;
         }
+        // The element grid selects candidates by this box; it must contain isInside().
+        BoundingBox getLocalSupportBox(double reach) const override {
+            return BoundingBox::getBoundingBox(
+                    {Vector(-reach, -reach, 0), Vector(reach, reach, 0.003)});
+        }
         bool applyToReferenceParticle(
                 const Vector&, const Vector&, const double&, Vector&, Vector& b) override {
             b(1) += 0.8;

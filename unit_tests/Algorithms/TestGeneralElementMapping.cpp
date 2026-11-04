@@ -10,6 +10,7 @@
 #include <gtest/gtest.h>
 
 #include <unistd.h>
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <filesystem>
@@ -258,7 +259,9 @@ TEST_F(GeneralElementMappingTest, GridAnswersEqualTheSingleCellAnswersAndMissNoO
                         const bool inside = p(0) > lower(0) && p(0) < upper(0) && p(1) > lower(1)
                                             && p(1) < upper(1) && p(2) > lower(2)
                                             && p(2) < upper(2);
-                        if (inside) EXPECT_EQ(expected.count(element), 1u) << element->getName();
+                        if (inside)
+                            EXPECT_EQ(std::count(expected.begin(), expected.end(), element), 1)
+                                    << element->getName();
                     }
                 }
             }

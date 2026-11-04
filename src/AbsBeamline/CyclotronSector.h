@@ -84,8 +84,6 @@ public:
     }
     /// True if an element-local position [m] lies within the annular field support.
     bool isInside(const Vector_t<double, 3>& r) const override;
-    /// Nominal body and field support coincide for this hard-edge sector.
-    bool isInsideBody(const Vector_t<double, 3>& r) const override { return isInside(r); }
     /// Conservative lab-frame box of the complete annulus, used for orbit threading.
     BoundingBox getBoundingBoxInLabCoords() const override;
     /// Box of the annular sector of isInside(); the aperture and @p reach do not apply.

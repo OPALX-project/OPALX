@@ -73,10 +73,6 @@ public:
         return cyclotronKick_m.apply(
                 cyclotronProfile_m->host, (x - gapMin_m) / (gapMax_m - gapMin_m), t, mass, p);
     }
-    /// Discrete gaps never contribute to continuous field lookup or apertures.
-    bool isInsideBody(const Vector_t<double, 3>& r) const override {
-        return !isCyclotronGap() && ElementBase::isInsideBody(r);
-    }
     /// Constructor with given name.
     explicit RFCavity(const std::string& name);
 

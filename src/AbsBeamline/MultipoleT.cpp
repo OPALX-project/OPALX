@@ -301,8 +301,7 @@ bool MultipoleT::applyToReferenceParticle(
     }
 
     // The reference particle has to see the same field as every other particle. Without this
-    // the orbit threader walks a straight line through a curved magnet, so the magnet never
-    // stops being the selected element and the threader never reaches the end of the line.
+    // the reference walks a straight line through a curved magnet and never leaves it.
     apply(R, P, t, E, B);
     return false;
 }

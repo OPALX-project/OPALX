@@ -142,7 +142,6 @@ TEST_F(CyclotronRFTest, GapCloneAndNoContinuousFieldContribution) {
     Vector_t<double, 3> r(1.5, 0, 0), p(0, 0, .4), e(2), b(3);
     clone->apply(r, p, 0, e, b);
     EXPECT_FALSE(clone->isInside(r));
-    EXPECT_FALSE(clone->isInsideBody(r));
     for (int i = 0; i < 3; ++i) {
         EXPECT_EQ(e[i], 2);
         EXPECT_EQ(b[i], 3);

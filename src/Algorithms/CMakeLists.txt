@@ -6,16 +6,14 @@ set (_SRCS
     DistributionMoments.cpp
     Flagger.cpp
     GeneralElementMapping.cpp
-    IndexMap.cpp
     ExternalFieldRayTracker.cpp
     DeviceExternalField.cpp
     PassiveRingProbe.cpp
     OneTurnMap.cpp
     ClosedOrbitSolver.cpp
     LinearMapEigenAnalysis.cpp
-    LinearTransferMapBuilder.cpp
     SpectralTunes.cpp
-    OrbitThreader.cpp
+    ReferenceTracer.cpp
     ParallelTracker.cpp
     TrackReferenceStep.cpp
     PartData.cpp
@@ -38,7 +36,6 @@ set (HDRS
     DistributionMoments.h
     Flagger.h
     GeneralElementMapping.h
-    IndexMap.h
     ExternalFieldRayTracker.h
     DeviceExternalField.h
     PassiveProbe.h
@@ -46,12 +43,9 @@ set (HDRS
     OneTurnMap.h
     ClosedOrbitSolver.h
     LinearMapEigenAnalysis.h
-    LinearTransferMapBuilder.h
     SpectralTunes.h
-    LinearTransferMap.h
-    OrbitThreader.h
-    OrbitThreaderDiagnostics.h
     ParallelTracker.h
+    ReferenceTracer.h
     ClosedOrbitInitialState.h
     TrackReferenceStep.h
     PartData.h

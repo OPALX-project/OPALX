@@ -219,11 +219,3 @@ void StepSizeConfig::printDirect(Inform& out) const {
             << std::setw(20) << std::get<2>(*it) << endl;
     }
 }
-
-ValueRange<double> StepSizeConfig::getPathLengthRange() const {
-    ValueRange<double> result;
-    for (const entry_t& entry : configurations_m) {
-        result.enlargeIfOutside(std::get<1>(entry));
-    }
-    return result;
-}

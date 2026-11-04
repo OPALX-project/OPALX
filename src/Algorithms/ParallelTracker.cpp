@@ -44,7 +44,7 @@
 
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/CavityAutophaser.h"
-#include "Algorithms/OrbitThreader.h"
+#include "Algorithms/ReferenceTracer.h"
 #include "BasicActions/Option.h"
 
 #include "Beamlines/Beamline.h"
@@ -110,7 +110,7 @@ ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
       PluginElemTimer_m(IpplTimings::getTimer("PluginElements")),
-      OrbThreader_m(IpplTimings::getTimer("OrbThreader")) {}
+      referencePassTimer_m(IpplTimings::getTimer("ReferencePass")) {}
 
 /**
  * @brief Construct tracker with bunch, data sink, z-segments, and optional emitters.
@@ -142,7 +142,7 @@ ParallelTracker::ParallelTracker(
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
-      OrbThreader_m(IpplTimings::getTimer("OrbThreader")) {
+      referencePassTimer_m(IpplTimings::getTimer("ReferencePass")) {
     for (unsigned int i = 0; i < sStop.size(); ++i) {
         stepSizes_m.push_back(dt[i], sStop[i], maxSteps[i]);
     }
@@ -400,8 +400,8 @@ void ParallelTracker::execute() {
     // Print reference particle information for all containers
     printInitialContainerRefs(m);
 
-    // Start timing for the OrbitThreader section
-    IpplTimings::startTimer(OrbThreader_m);
+    // Start timing for the reference pass
+    IpplTimings::startTimer(referencePassTimer_m);
 
     // Flags to control phase space and statistics dumping for the initial step
     bool const psDump0   = 0;
@@ -411,10 +411,8 @@ void ParallelTracker::execute() {
     writePhaseSpace(itsBunch_m->getGlobalTrackStep(), psDump0, statDump0);
     m << level2 << "Dump initial phase space done." << endl;
 
-    // Create one OrbitThreader per container, each threaded with its own reference orbit.
-    // The first container (container 0 in the normal case) is the design beam and runs
-    // the full pass (autophasing, design energy, geometry dumps); the rest build only
-    // their own map and reuse that shared element state, so the design beam threads first.
+    // The primary beam (the first container with a reference) traces its reference particle once
+    // through the lattice: autophasing, element-length and reach checks, design path output.
     const size_t nContainers = itsBunch_m->getNumParticleContainers();
     if (requestedTurns_m) {
         if (nContainers != 1)
@@ -443,13 +441,9 @@ void ParallelTracker::execute() {
                                 + element->getName());
         }
     }
-    // Placement, misalignment and field-map extents are final here. The threaders check the
-    // element reaches along their reference orbits while they thread.
-    elementMapping_m = std::make_unique<GeneralElementMapping>(
-            itsOpalBeamline_m.getElementByType(ElementType::ANY), Options::elementMappingGrid,
-            Options::elementMappingReach);
+    // Placement, misalignment and field-map extents are final here.
+    itsOpalBeamline_m.buildElementMapping();
 
-    std::vector<std::shared_ptr<OrbitThreader>> oths(nContainers);
     bool designBeamAssigned = false;
     std::vector<std::unique_ptr<DirectedTurnCounter>> turnCounters(nContainers);
     if (kineticEnergyStop_m > 0 && (!hasCyclotronGaps() || nContainers != 1))
@@ -458,10 +452,11 @@ void ParallelTracker::execute() {
     for (size_t ci = 0; ci < nContainers; ++ci) {
         const auto& pc = itsBunch_m->getParticleContainer(ci);
         if (!pc || !pc->getReference() || itsBunch_m->isFollower(ci)) {
-            continue;  // a decay daughter container uses its root's orbit, set below
+            continue;  // a decay daughter container follows its root's reference
         }
 
         const bool isDesignBeam = !designBeamAssigned;
+        designBeamAssigned      = true;
         if (kineticEnergyStop_m > 0
             && (std::sqrt(1 + dot(pc->getRefPartP(), pc->getRefPartP())) - 1)
                                * pc->getReference()->getM()
@@ -472,23 +467,17 @@ void ParallelTracker::execute() {
             turnCounters[ci] =
                     std::make_unique<DirectedTurnCounter>(pc->getRefPartR(), pc->getRefPartP());
         }
-        designBeamAssigned = true;
-        oths[ci]           = std::make_shared<OrbitThreader>(
-                *pc->getReference(), pc->getRefPartR(), pc->getRefPartP(), pc->get_sPos(),
-                -rmin(2),            // Negative minimum z bound
-                itsBunch_m->getT(),  // Current bunch time
-                minTimeStep,
-                stepSizes_m,        // Step size configuration
-                itsOpalBeamline_m,  // OpalBeamline object
-                isDesignBeam, ringPeriod_m, elementMapping_m.get());
-        oths[ci]->execute();
+        if (!isDesignBeam) continue;
+        ReferenceTracer tracer(
+                *pc->getReference(), itsOpalBeamline_m, stepSizes_m, minTimeStep, ringPeriod_m);
+        ReferenceTracer::RayState start;
+        start.position   = pc->getRefPartR();
+        start.momentum   = pc->getRefPartP();
+        start.time       = itsBunch_m->getT();
+        start.pathLength = pc->get_sPos();
+        tracer.execute(start, -rmin(2));
     }
-    for (size_t ci = 0; ci < nContainers; ++ci) {
-        if (itsBunch_m->isFollower(ci)) {
-            oths[ci] = oths[itsBunch_m->getPcRoot(ci)];
-        }
-    }
-    m << level4 << "Orbit threader execution done." << endl;
+    m << level4 << "Reference pass done." << endl;
     // Spatial field selection belongs to compatible ring geometry, not to TURNS
     // or to a solver's ability to repeat an uncommitted midpoint solve.
     // General field-map/RF paths retain their existing device element kernels.
@@ -568,17 +557,8 @@ void ParallelTracker::execute() {
           << endl;
     }
 
-    // Stop timing for the OrbitThreader section
-    IpplTimings::stopTimer(OrbThreader_m);
-
-    // Bounding box spanning every species' threaded orbit (duplicates re-add the same
-    // box, which is idempotent).
-    BoundingBox globalBoundingBox;
-    for (const auto& oth : oths) {
-        if (oth) {
-            globalBoundingBox.enlargeToContainBoundingBox(oth->getBoundingBox());
-        }
-    }
+    // Stop timing for the reference pass
+    IpplTimings::stopTimer(referencePassTimer_m);
 
     // Set the time view of the particle bunch
     setTime();
@@ -615,8 +595,8 @@ void ParallelTracker::execute() {
     // Handle any dump field requests
     DumpEMFields::writeFields(itsOpalBeamline_m.getElements());
 
-    // OrbitThreader and the other setup stages may cross diagnostic elements while constructing
-    // the reference map. Only crossings produced by the real tracking loop may write output.
+    // The reference pass and the other setup stages may cross diagnostic elements. Only
+    // crossings produced by the real tracking loop may write output.
     preparationState.finish();
 
     // Main tracking loop over step size configurations
@@ -705,7 +685,7 @@ void ParallelTracker::execute() {
             }
 
             if (boundaryControlled_m) {
-                prepareBoundaryStep(pusher, oths, *boundarySchedule);
+                prepareBoundaryStep(pusher, *boundarySchedule);
             } else {
                 // Historical OPAL evaluated the self-field at R_n and carried the gathered
                 // per-particle field through the first half drift. Keep this as an explicit
@@ -758,7 +738,7 @@ void ParallelTracker::execute() {
                 m << level5 << "Particle moments updated after emission." << endl;
 
                 // External field computation
-                computeExternalFields(oths);
+                computeExternalFields();
                 m << level4 << "External field computation done at step " << step << "." << endl;
             }
 
@@ -817,7 +797,7 @@ void ParallelTracker::execute() {
             }
 
             // Enforce the transverse aperture of every nearby element (collective call).
-            size_t nStepMarked = applyElementApertures(oths);
+            size_t nStepMarked = applyElementApertures();
             if (nStepMarked > 0) {
                 m << level2 << "Marked " << nStepMarked
                   << " particles outside a transverse aperture for deletion." << endl;
@@ -843,8 +823,6 @@ void ParallelTracker::execute() {
                         true, m,
                         "transverse aperture / " + std::to_string(sigmas) + "-sigma boundary");
             }
-
-            // if (hasEndOfLineReached(globalBoundingBox)) break;
 
             // Observe after acceptance and loss processing. These endpoint
             // records cannot feed back into fields, the pusher or its schedule.
@@ -1335,10 +1313,9 @@ void ParallelTracker::computeSpaceChargeFields() {
 /**
  * @copybrief ParallelTracker::computeExternalFields
  */
-void ParallelTracker::computeExternalFields(
-        const std::vector<std::shared_ptr<OrbitThreader>>& oths) {
-    // Event integration evaluates fields spatially at each substep, without the
-    // coasting threader's path-length index. No continuous RF impulse is added.
+void ParallelTracker::computeExternalFields() {
+    // Event integration evaluates fields spatially at each substep. No continuous RF impulse
+    // is added.
     if (hasCyclotronGaps()) return;
     IpplTimings::startTimer(fieldEvaluationTimer_m);
     Inform msg("ParallelTracker ", *gmsg);
@@ -1358,7 +1335,6 @@ void ParallelTracker::computeExternalFields(
     }
 
     forEachElementInBunchFrame(
-            oths,
             [this](const std::shared_ptr<ElementBase>& element,
                    const std::shared_ptr<ParticleContainer_t>& pc) {
                 // Trial steps must not append monitor records.
@@ -1370,7 +1346,7 @@ void ParallelTracker::computeExternalFields(
     if (spatialRing_m && !boundaryControlled_m) {
         // Monitors predict a crossing during dt; unlike field support, their
         // selection must include nearby planes outside the current midpoint.
-        forEachElementInBunchFrame(oths, [](const auto& element, const auto& pc) {
+        forEachElementInBunchFrame([](const auto& element, const auto& pc) {
             if (element->getType() == ElementType::MONITOR) element->apply(pc);
         });
     }
@@ -1382,15 +1358,13 @@ void ParallelTracker::computeExternalFields(
  * @copybrief ParallelTracker::forEachElementInBunchFrame
  */
 void ParallelTracker::forEachElementInBunchFrame(
-        const std::vector<std::shared_ptr<OrbitThreader>>& oths,
         const std::function<void(
                 const std::shared_ptr<ElementBase>&, const std::shared_ptr<ParticleContainer_t>&)>&
                 func) {
-    forEachElementInBunchFrame(oths, func, false);
+    forEachElementInBunchFrame(func, false);
 }
 
 void ParallelTracker::forEachElementInBunchFrame(
-        const std::vector<std::shared_ptr<OrbitThreader>>& oths,
         const std::function<void(
                 const std::shared_ptr<ElementBase>&, const std::shared_ptr<ParticleContainer_t>&)>&
                 func,
@@ -1404,8 +1378,10 @@ void ParallelTracker::forEachElementInBunchFrame(
         if (!pc) {
             continue;
         }
-        // Each container queries its own species' threaded orbit / IndexMap.
-        if (ci >= oths.size() || !oths[ci]) {
+        // A container without its own or its root's reference particle has no bunch frame.
+        const auto root = itsBunch_m->getParticleContainer(
+                itsBunch_m->isFollower(ci) ? itsBunch_m->getPcRoot(ci) : ci);
+        if (!root || !root->getReference()) {
             continue;
         }
 
@@ -1426,7 +1402,7 @@ void ParallelTracker::forEachElementInBunchFrame(
             }
         }
 
-        IndexMap::value_t elements;
+        GeneralElementMapping::ElementSet elements;
         if (spatialCandidates) {
             // Conservative spatial candidate set for curved trajectories. The
             // existing per-element device kernels apply their exact support test.
@@ -1448,54 +1424,30 @@ void ParallelTracker::forEachElementInBunchFrame(
             // only. Keep these flags local: this pointer-ordered element set
             // has no common index across MPI ranks. The timestep decision is
             // separately collective in boundaryCrossed().
+            std::set<std::shared_ptr<ElementBase>> selected;
             size_t j = 0;
             for (const auto& element : all) {
-                if (host(j++)) elements.insert(element);
+                if (host(j++)) selected.insert(element);
             }
+            // Frame round trips do not commute exactly in floating point. For the bare
+            // analytic-ring benchmark, use prepared occurrence order rather than
+            // allocation-dependent shared_ptr order.
+            elements =
+                    bareTracking_m
+                            ? device_external::orderedCandidates(itsOpalBeamline_m, selected)
+                            : GeneralElementMapping::ElementSet(selected.begin(), selected.end());
         } else {
-            // The threaded reference path still ends the line: the bunch is past it once the
-            // old path-length window [s - dz, s + dz] starts beyond the threaded range.
-            const double length = rmax(2) - rmin(2);
-            const double centre = pc->get_sPos() + 0.5 * (rmax(2) + rmin(2));
-            if (oths[ci]->isPastEnd(centre - length)) {
-                globalEOL_m = true;
-                continue;
-            }
-            // The bunch box, padded along z by half its length on each side: the window the
-            // path-length lookup used, so no element it selected on a straight path is lost.
+            // The bunch box, padded along z by half its length on each side, as the old
+            // path-length window [s - dz, s + dz] was. Elements come in lattice order.
+            const double length       = rmax(2) - rmin(2);
             Vector_t<double, 3> lower = rmin, upper = rmax;
             lower(2) -= 0.5 * length;
             upper(2) += 0.5 * length;
-            elements = elementMapping_m->query(lower, upper, pc->getToLabTrafo());
-
-            // An element whose reach misses the reference is active only because the bunch
-            // reaches into it, as for an element of a neighbouring branch. It then acts on
-            // every particle of the container, so report it once.
-            for (const auto& element : elements) {
-                if (!elementMapping_m->coversTransversely(*element, pc->getRefPartR())
-                    && reportedBeyondReach_m.insert(element.get()).second) {
-                    Inform m("ParallelTracker");
-                    m << level1 << "* Element mapping: '" << element->getName()
-                      << "' acts on container " << ci
-                      << " although the reference particle is outside its transverse reach; "
-                         "the bunch reaches into it and all its particles see the element. If "
-                         "it belongs to another branch, lower its REACH or ELEMENTMAPPINGREACH."
-                      << endl;
-                }
-            }
+            elements =
+                    itsOpalBeamline_m.getElementMapping().query(lower, upper, pc->getToLabTrafo());
         }
 
-        // Frame round trips do not commute exactly in floating point. For the
-        // bare analytic-ring benchmark, use prepared occurrence order rather
-        // than allocation-dependent shared_ptr order. Include aperture/monitor
-        // callbacks: they also transform the live arrays. Other configurations
-        // retain their existing order, including cyclotron and charged tracking.
-        const auto ordered =
-                spatialRing_m && bareTracking_m
-                        ? device_external::orderedCandidates(itsOpalBeamline_m, elements)
-                        : std::vector<std::shared_ptr<ElementBase>>(
-                                  elements.begin(), elements.end());
-        for (const auto& element : ordered) {
+        for (const auto& element : elements) {
             CoordinateSystemTrafo refToLocalCSTrafo =
                     (itsOpalBeamline_m.getMisalignment(element)
                      * (itsOpalBeamline_m.getCSTrafoLab2Local(element) * pc->getToLabTrafo()));
@@ -1514,18 +1466,16 @@ void ParallelTracker::forEachElementInBunchFrame(
 /**
  * @copybrief ParallelTracker::applyElementApertures
  */
-size_t ParallelTracker::applyElementApertures(
-        const std::vector<std::shared_ptr<OrbitThreader>>& oths) {
+size_t ParallelTracker::applyElementApertures() {
     // The restricted sector/gap path checks its own field support during stepping.
     if (hasCyclotronGaps()) return 0;
     size_t localMarked = 0;
-    forEachElementInBunchFrame(
-            oths, [&localMarked](
-                          const std::shared_ptr<ElementBase>& element,
-                          const std::shared_ptr<ParticleContainer_t>& pc) {
-                // Marks are flushed by the single end-of-step deletion in execute().
-                localMarked += element->markOutsideAperture(pc);
-            });
+    forEachElementInBunchFrame([&localMarked](
+                                       const std::shared_ptr<ElementBase>& element,
+                                       const std::shared_ptr<ParticleContainer_t>& pc) {
+        // Marks are flushed by the single end-of-step deletion in execute().
+        localMarked += element->markOutsideAperture(pc);
+    });
 
     size_t globalMarked = 0;
     ippl::Comm->allreduce(localMarked, globalMarked, 1, std::plus<size_t>());
@@ -1795,9 +1745,7 @@ void ParallelTracker::reverseTrialDrift(double dt) {
     pc->markMomentsDirty();
 }
 
-void ParallelTracker::prepareBoundaryStep(
-        BorisPusher& pusher, const std::vector<std::shared_ptr<OrbitThreader>>& oths,
-        boris_step::Control& schedule) {
+void ParallelTracker::prepareBoundaryStep(BorisPusher& pusher, boris_step::Control& schedule) {
     for (;;) {
         ++boundaryTrials_m;
         boundaryStepDt_m = schedule.step();
@@ -1817,11 +1765,11 @@ void ParallelTracker::prepareBoundaryStep(
             resetFields();
             computeSpaceChargeFields();
         }
-        computeExternalFields(oths);
+        computeExternalFields();
         const bool crossed = boundaryCrossed(boundaryStepDt_m);
         if (!schedule.canSplit() || !crossed) {
             // Commit passive diagnostics exactly once at the accepted midpoint.
-            forEachElementInBunchFrame(oths, [](const auto& element, const auto& pc) {
+            forEachElementInBunchFrame([](const auto& element, const auto& pc) {
                 if (element->getType() == ElementType::MONITOR) element->apply(pc);
             });
             return;
@@ -2368,19 +2316,6 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
     if (anyLogged || statDump) {
         writePhaseSpace(step, psDump, statDump);
     }
-}
-
-/**
- * @copybrief ParallelTracker::hasEndOfLineReached
- */
-bool ParallelTracker::hasEndOfLineReached(const BoundingBox& globalBoundingBox) {
-    // Old IPPL used OpBitwiseAndAssign() via reduce(); new IPPL needs allreduce
-    // so that all ranks receive the result (reduce sends only to root).
-    // In-place allreduce avoids the aliased-buffer error of MPI_Reduce.
-    ippl::Comm->allreduce(globalEOL_m, 1, std::logical_and<bool>());
-    globalEOL_m = globalEOL_m
-                  || globalBoundingBox.isOutside(itsBunch_m->getParticleContainer()->getRefPartR());
-    return globalEOL_m;
 }
 
 /**

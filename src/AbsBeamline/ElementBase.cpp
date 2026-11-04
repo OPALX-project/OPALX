@@ -26,16 +26,6 @@
 
 extern Inform* gmsg;
 
-bool ElementBase::isInsideBody(const Vector_t<double, 3>& r) const {
-    const auto& geometry = getGeometry();
-    const auto local     = geometry.kind() == GeometryKind::SBend
-                                   ? GeometryHelper::toBendArcCoords(
-                                         r, geometry.getCurvature(), geometry.getElementLength())
-                                   : r;
-    return local(2) >= 0.0 && local(2) < geometry.getElementLength()
-           && ApertureHelper::isInsideAperture(local, aperture_m);
-}
-
 const std::vector<double> ElementBase::defaultAperture_m = std::vector<double>({1e6, 1e6});
 
 const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
@@ -116,22 +106,6 @@ BeamlineTopology ElementBase::getBeamlineTopology() const { return beamlineMembe
 const std::string& ElementBase::getBeamlineOwnerName() const {
     return beamlineMembership_m.ownerName;
 }
-
-bool ElementBase::hasLinearTransferMaps() const { return !linearTransferMaps_m.empty(); }
-
-const std::vector<LinearTransferMap>& ElementBase::getLinearTransferMaps() const {
-    return linearTransferMaps_m;
-}
-
-void ElementBase::addLinearTransferMap(LinearTransferMap map) {
-    linearTransferMaps_m.push_back(std::move(map));
-}
-
-void ElementBase::clearLinearTransferMaps() { linearTransferMaps_m.clear(); }
-
-bool ElementBase::isOverlapping() const { return isOverlapping_m; }
-
-void ElementBase::setOverlapping(const bool overlapping) { isOverlapping_m = overlapping; }
 
 void ElementBase::setBeamlineMembership(BeamlineTopology topology, std::string ownerName) {
     if (topology == BeamlineTopology::RING && ownerName.empty()) {

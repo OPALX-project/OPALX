@@ -21,7 +21,6 @@
 #ifndef STEPSIZECONFIG_H
 #define STEPSIZECONFIG_H
 
-#include "Structure/ValueRange.h"
 #include "Utility/Inform.h"
 
 #include <list>
@@ -87,8 +86,6 @@ public:
 
     Inform& print(Inform& out) const;
     void printDirect(Inform& out) const;
-
-    ValueRange<double> getPathLengthRange() const;
 
 private:
     typedef std::tuple<double, double, unsigned long> entry_t;

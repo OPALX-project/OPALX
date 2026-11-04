@@ -7,7 +7,6 @@ set (_SRCS
   BinConfigWriter.cpp
   DirichletPlaneWriter.cpp
   DataSink.cpp
-  ElementPositionWriter.cpp
   FieldSolverCmd.cpp
   BinningCmd.cpp
   H5FileSpace.cpp
@@ -36,7 +35,6 @@ set (HDRS
     BinConfigWriter.h
     DirichletPlaneWriter.h
     DataSink.h
-    ElementPositionWriter.h
     FieldSolverCmd.h
     BinningCmd.h
     H5PartWrapperForPT.h
@@ -46,7 +44,6 @@ set (HDRS
     H5Writer.h
     MeshGenerator.h
     LBalWriter.h
-    LinearTransferMap.h
     LossDataSink.h
     StatBaseWriter.h
     StatWriter.h

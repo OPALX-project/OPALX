@@ -191,8 +191,8 @@ TEST_F(FieldmapElementTest, FieldIsTheMapTimesBScale) {
 }
 
 // Leaving the map transversely gives no field and is NOT a loss. Reporting it as one would
-// make OrbitThreader treat a benign miss as hitting material and add a metre to the path
-// length -- which is the bug Solenoid still has.
+// make the reference pass treat a benign miss as hitting material -- which is the bug Solenoid
+// still has.
 TEST_F(FieldmapElementTest, OutsideTheMapMeansNoFieldAndNoLoss) {
     const auto file = track(mapPath("_oob.g4blmap"));
     writeUniformCylinderMap(file, 0.0, 11, 100.0, 5, 10.0, 0.25);  // r up to 40 mm

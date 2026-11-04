@@ -283,7 +283,7 @@ void Multipole::apply(
  * @brief Applies the multipole field at reference particle
  * position R to E and B
  *
- * @note Host-only function for the orbitthreader
+ * @note Host-only function for the reference particle
  *
  * @param R Position
  * @param E Electric field reference
@@ -357,7 +357,7 @@ KOKKOS_INLINE_FUNCTION void Multipole::computeField(
 /**
  * @brief Computes the multipole field at position R (host version)
  *
- * @note Host-only function for the orbitthreader
+ * @note Host-only function for the reference particle
  *
  * @param R Position
  * @param E Electric field reference
@@ -389,18 +389,6 @@ void Multipole::getFieldExtent(double& zBegin, double& zEnd) const {
 ElementType Multipole::getType() const { return ElementType::MULTIPOLE; }
 
 // isInside() is inherited from ElementBase (field extent [0, L) + transverse aperture).
-
-bool Multipole::isFocusing(int component) const {
-    if (component < 0)
-        throw GeneralOpalException("Multipole::isFocusing", "component negative");
-    else if (static_cast<unsigned long>(component) >= NormalComponents.extent(0))
-        throw GeneralOpalException("Multipole::isFocusing", "component too big");
-
-    // Fix: Use getNormalComponent() to safely retrieve the value from GPU memory
-    return getNormalComponent(component) * std::pow(-1, component + 1)
-                   * RefPartBunch_m->getParticleContainer()->getChargePerParticle()
-           > 0.0;
-}
 
 /* ========================================================================== */
 /* =========================== Unused Functions ============================= */

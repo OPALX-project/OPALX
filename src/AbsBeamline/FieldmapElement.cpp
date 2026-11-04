@@ -124,7 +124,7 @@ bool FieldmapElement::applyToReferenceParticle(
 
     // A genuine aperture hit is the only thing that counts as a loss here. Leaving the map
     // transversely is not one: the particle just stops feeling a field. Reporting it as a
-    // loss would make OrbitThreader flag HITMATERIAL and add a metre to the path length.
+    // loss would stop the reference pass and the reference particle.
     if (R(2) >= startField_m && R(2) < endField_m
         && !ApertureHelper::isInsideAperture(R, aperture_m)) {
         return true;
@@ -233,12 +233,6 @@ ElementType FieldmapElement::getType() const { return ElementType::FIELDMAP; }
 void FieldmapElement::getFieldExtent(double& zBegin, double& zEnd) const {
     zBegin = startField_m;
     zEnd   = endField_m;
-}
-
-bool FieldmapElement::isInsideBody(const Vector_t<double, 3>& r) const {
-    const double zBegin = getGeometry().getStartZ();
-    return r(2) >= zBegin && r(2) < zBegin + getGeometry().getElementLength()
-           && ApertureHelper::isInsideAperture(r, aperture_m);
 }
 
 BoundingBox FieldmapElement::getBoundingBoxInLabCoords() const {
