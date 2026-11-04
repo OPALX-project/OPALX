@@ -4,6 +4,8 @@
 #include <cstdio>
 #include <fstream>
 #include <memory>
+#include <numeric>
+#include <vector>
 
 #include "Distribution/Distribution.h"
 #include "Distribution/FromFile.h"
@@ -45,12 +47,21 @@ protected:
     }
 
     void TearDown() override {
-        if (!tempFilename.empty()) {
+        ippl::Comm->barrier();
+        if (!tempFilename.empty() && ippl::Comm->rank() == 0) {
             std::remove(tempFilename.c_str());
         }
     }
 
     void writeSampleFile() {
+        // Rank 0 writes; the reader is collective and must see the complete file on every rank.
+        if (ippl::Comm->rank() == 0) {
+            writeSampleFileOnThisRank();
+        }
+        ippl::Comm->barrier();
+    }
+
+    void writeSampleFileOnThisRank() {
         // Strict format: N, then header, then data (comments/blanks skipped in data section)
         std::ofstream out(tempFilename);
         ASSERT_TRUE(out.is_open());
@@ -79,12 +90,15 @@ protected:
 
     void writeFileWithHeader(
             const std::string& headerLine, const std::string& dataLine, size_t numParticles = 1) {
-        std::ofstream out(tempFilename);
-        ASSERT_TRUE(out.is_open());
-        out << numParticles << "\n";
-        out << headerLine << "\n";
-        out << dataLine << "\n";
-        out.close();
+        if (ippl::Comm->rank() == 0) {
+            std::ofstream out(tempFilename);
+            ASSERT_TRUE(out.is_open());
+            out << numParticles << "\n";
+            out << headerLine << "\n";
+            out << dataLine << "\n";
+            out.close();
+        }
+        ippl::Comm->barrier();
     }
 
     std::shared_ptr<ParticleContainer<double, 3>> pc;
@@ -192,4 +206,60 @@ TEST_F(FromFileTest, ParseHeader_StandardOrderAndAlternateNames) {
         EXPECT_DOUBLE_EQ(Pview(0)[1], 5.0);
         EXPECT_DOUBLE_EQ(Pview(0)[2], 6.0);
     }
+}
+
+TEST_F(FromFileTest, EachRankParsesOnlyItsContiguousSlice) {
+    // Row i stores x = i and px = -2i, with comments, blank lines and CRLF endings mixed in,
+    // so the per-rank byte ranges rarely start at a line boundary.
+    constexpr size_t numRows = 103;
+    if (ippl::Comm->rank() == 0) {
+        std::ofstream out(tempFilename, std::ios::binary);
+        out << "# leading comment\n" << numRows << "\n\nx y z px py pz extra\n";
+        for (size_t i = 0; i < numRows; ++i) {
+            if (i % 7 == 0) {
+                out << "# comment before row " << i << "\n   \n";
+            }
+            out << i << " 0.5 -1.25e-3 " << -2.0 * i << " 0 7 99" << (i % 3 == 0 ? "\r\n" : "\n");
+        }
+    }
+    ippl::Comm->barrier();
+
+    FromFile sampler(pc, tempFilename);
+    pc->allocateParticles(numRows);
+    size_t requested = numRows;
+    sampler.generateParticles(requested, nr);
+    EXPECT_EQ(requested, numRows);
+
+    const size_t localN = pc->getLocalNum();
+    auto Rview          = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+    auto Pview          = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->P.getView());
+    std::vector<double> rows;
+    for (size_t k = 0; k < localN; ++k) {
+        rows.push_back(Rview(k)[0]);
+        EXPECT_DOUBLE_EQ(Rview(k)[1], 0.5);
+        EXPECT_DOUBLE_EQ(Rview(k)[2], -1.25e-3);
+        EXPECT_DOUBLE_EQ(Pview(k)[0], -2.0 * Rview(k)[0]);
+        EXPECT_DOUBLE_EQ(Pview(k)[2], 7.0);
+    }
+    std::sort(rows.begin(), rows.end());
+    for (size_t k = 1; k < rows.size(); ++k) {
+        EXPECT_DOUBLE_EQ(rows[k], rows[k - 1] + 1.0);  // one contiguous block per rank
+    }
+
+    unsigned long counts[2] = {localN, 0};
+    double sum              = std::accumulate(rows.begin(), rows.end(), 0.0);
+    double globalSum        = 0.0;
+    MPI_Allreduce(MPI_IN_PLACE, counts, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(&sum, &globalSum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    EXPECT_EQ(counts[0], numRows);
+    EXPECT_DOUBLE_EQ(globalSum, numRows * (numRows - 1) / 2.0);
+}
+
+TEST_F(FromFileTest, ThrowsWhenDataLinesDifferFromDeclaredCount) {
+    if (ippl::Comm->rank() == 0) {
+        std::ofstream out(tempFilename);
+        out << "4\nx y z px py pz\n1 2 3 4 5 6\n1 2 3 4 5 6\n# not a row\n1 2 3 4 5 6\n";
+    }
+    ippl::Comm->barrier();
+    EXPECT_THROW(FromFile(pc, tempFilename), OpalException);
 }

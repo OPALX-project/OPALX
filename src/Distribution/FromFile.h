@@ -6,6 +6,7 @@
 #ifndef OPALX_FROM_FILE_H
 #define OPALX_FROM_FILE_H
 
+#include <cstdint>
 #include <fstream>
 #include <memory>
 #include <sstream>
@@ -27,6 +28,14 @@
  * - Remaining lines: one data row per particle (6+ columns). Blank lines and
  *   lines starting with '#' are skipped. There must be exactly N data lines.
  * If the file does not follow this structure, an error is thrown.
+ *
+ * Reading is collective and never holds the whole file on one rank. The constructor reads
+ * the two header lines and splits the data bytes into one contiguous range per rank; each
+ * rank counts the data lines that start in its range, and an allgather of the counts gives
+ * every rank the global row index at each range start (and checks N). generateParticles()
+ * then parses only the rows of this rank's slice, starting at the range that holds its first
+ * row. The file is therefore read about twice in total, split over the ranks, and host and
+ * device memory scale with the local particle count.
  */
 class FromFile : public SamplingBase {
 public:
@@ -66,12 +75,17 @@ public:
 
 private:
     /**
-     * @brief Reads and parses the particle file. Format must be: N (particle count),
-     *        then header line (column names), then data lines. Comments ('#') and
-     *        blank lines are skipped. Throws if format is invalid.
-     * @param filename Path to the file to read.
+     * @brief Reads the particle count and column header, then counts the data lines of
+     *        this rank's byte range and gathers the counts of all ranks (collective).
+     * @throws OpalException if the header is invalid or the number of data lines differs
+     *         from the declared count (thrown on every rank).
      */
     void readFile(const std::string& filename);
+
+    /**
+     * @brief Parses data rows [first, first + count) of the file into a host view (count x 6).
+     */
+    Kokkos::View<double**, Kokkos::HostSpace> readRows(size_t first, size_t count) const;
 
     /**
      * @brief Parses the header line to get column indices. Header must contain
@@ -91,11 +105,16 @@ private:
     /// File path to read particle data from
     std::string filename_m;
 
-    /// Stored particle data: each element is a 6D phase space vector [x, y, z, px, py, pz]
-    std::vector<std::vector<double>> particleData_m;
-
     /// Number of particles in the file
     size_t numParticles_m;
+
+    /// Byte offset of the first byte after the header line
+    std::uint64_t dataOffset_m = 0;
+
+    /// Per rank: number of data lines starting in its byte range, and the offset of the
+    /// first line starting there (end of the range if none)
+    std::vector<std::uint64_t> rangeLineCounts_m;
+    std::vector<std::uint64_t> rangeFirstLine_m;
 
     /// Column indices mapping: [x_idx, y_idx, z_idx, px_idx, py_idx, pz_idx]
     std::vector<size_t> columnIndices_m;

@@ -2,10 +2,13 @@
 #include <Kokkos_Core.hpp>
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <filesystem>
-#include <fstream>
 #include <memory>
 #include <sstream>
+#include <string_view>
 #include "AbstractObjects/OpalData.h"
 #include "Distribution.h"
 #include "SamplingBase.hpp"
@@ -53,33 +56,119 @@ FromFile::FromFile(std::shared_ptr<ParticleContainer_t> pc, const std::string& f
     readFile(filename_m);
 }
 
+namespace {
+    /// Sequential reader of newline-terminated lines from a byte offset, in large chunks.
+    class LineReader {
+    public:
+        LineReader(const std::string& filename, std::uint64_t offset)
+            : file_m(std::fopen(filename.c_str(), "rb")), buffer_m(1 << 24), bufferStart_m(offset) {
+            if (file_m == nullptr || fseeko(file_m, static_cast<off_t>(offset), SEEK_SET) != 0) {
+                if (file_m != nullptr) {
+                    std::fclose(file_m);
+                }
+                throw OpalException(
+                        "FromFile::LineReader", "Couldn't open file '" + filename + "'.");
+            }
+        }
+
+        ~LineReader() { std::fclose(file_m); }
+
+        LineReader(const LineReader&)            = delete;
+        LineReader& operator=(const LineReader&) = delete;
+
+        /// The next line without its newline and the byte offset of its first character.
+        bool next(std::string_view& line, std::uint64_t& start) {
+            for (;;) {
+                const char* first = buffer_m.data() + begin_m;
+                const void* nl    = std::memchr(first, '\n', end_m - begin_m);
+                if (nl != nullptr || (eof_m && begin_m < end_m)) {
+                    const size_t length =
+                            nl != nullptr ? static_cast<const char*>(nl) - first : end_m - begin_m;
+                    line  = std::string_view(first, length);
+                    start = bufferStart_m + begin_m;
+                    begin_m += nl != nullptr ? length + 1 : length;
+                    return true;
+                }
+                if (eof_m) {
+                    return false;
+                }
+                refill();
+            }
+        }
+
+    private:
+        void refill() {
+            std::memmove(buffer_m.data(), buffer_m.data() + begin_m, end_m - begin_m);
+            bufferStart_m += begin_m;
+            end_m -= begin_m;
+            begin_m = 0;
+            if (end_m == buffer_m.size()) {
+                buffer_m.resize(2 * buffer_m.size());  // a line longer than the buffer
+            }
+            const size_t got = std::fread(buffer_m.data() + end_m, 1, buffer_m.size() - end_m, file_m);
+            end_m += got;
+            eof_m = got == 0;
+        }
+
+        std::FILE* file_m;
+        std::vector<char> buffer_m;
+        std::uint64_t bufferStart_m;
+        size_t begin_m = 0;
+        size_t end_m   = 0;
+        bool eof_m     = false;
+    };
+
+    /// Data lines are the lines that are neither blank nor comments ('#').
+    bool isDataLine(std::string_view line) {
+        const size_t first = line.find_first_not_of(" \t\r");
+        return first != std::string_view::npos && line[first] != '#';
+    }
+
+    std::string trimmed(std::string_view line) {
+        const size_t first = line.find_first_not_of(" \t\r");
+        if (first == std::string_view::npos) {
+            return {};
+        }
+        const size_t last = line.find_last_not_of(" \t\r");
+        return std::string(line.substr(first, last - first + 1));
+    }
+}  // namespace
+
 void FromFile::readFile(const std::string& filename) {
-    std::ifstream file(filename);
-    if (!file.is_open()) {
+    namespace fs = std::filesystem;
+    std::error_code ec;
+    const std::uint64_t fileSize = fs::file_size(filename, ec);
+    if (ec) {
         throw OpalException("FromFile::readFile", "Couldn't open file '" + filename + "'.");
     }
 
-    // Helper to read next non-empty, non-comment line; returns false if none left
-    auto nextLine = [&file](std::string& out) -> bool {
-        std::string line;
-        while (std::getline(file, line)) {
-            auto first = line.find_first_not_of(" \t\r\n");
-            if (first == std::string::npos) continue;
-            auto last = line.find_last_not_of(" \t\r\n");
-            line      = line.substr(first, last - first + 1);
-            if (line.empty() || line[0] == '#') continue;
-            out = line;
-            return true;
-        }
-        return false;
-    };
-
     // Required format: line 1 = particle count, line 2 = column names, then data lines
-    std::string line1;
-    if (!nextLine(line1)) {
-        throw OpalException("FromFile::readFile",
-                            "File '" + filename + "' is empty or has no valid lines. "
-                            "Expected format: first line = number of particles, second line = column names.");
+    std::string line1, headerLine;
+    {
+        LineReader reader(filename, 0);
+        std::string_view line;
+        std::uint64_t start = 0;
+        auto nextDataLine   = [&]() {
+            while (reader.next(line, start)) {
+                if (isDataLine(line)) {
+                    return true;
+                }
+            }
+            return false;
+        };
+        if (!nextDataLine()) {
+            throw OpalException("FromFile::readFile",
+                                "File '" + filename + "' is empty or has no valid lines. "
+                                "Expected format: first line = number of particles, second line = column names.");
+        }
+        line1 = trimmed(line);
+        if (!nextDataLine()) {
+            throw OpalException("FromFile::readFile",
+                                "Missing header line in '" + filename + "'. "
+                                "Expected format: N\\n column_names\\n data... (e.g. x px y py z pz).");
+        }
+        headerLine   = trimmed(line);
+        dataOffset_m = std::min<std::uint64_t>(start + line.size() + 1, fileSize);
     }
 
     // First line must be a single integer (particle count)
@@ -90,76 +179,116 @@ void FromFile::readFile(const std::string& filename) {
                             "First non-empty line in '" + filename + "' must be the number of particles (single integer). "
                             "Got: '" + line1 + "'. Expected format: N\\n column_names\\n data...");
     }
-    size_t expectedNumParticles = static_cast<size_t>(npart);
-
-    std::string headerLine;
-    if (!nextLine(headerLine)) {
-        throw OpalException("FromFile::readFile",
-                            "Missing header line in '" + filename + "'. "
-                            "Expected format: N\\n column_names\\n data... (e.g. x px y py z pz).");
-    }
-
+    numParticles_m  = static_cast<size_t>(npart);
     columnIndices_m = parseHeader(headerLine);
 
-    // Read data lines (comments and blank lines are skipped)
-    particleData_m.clear();
-    size_t lineNumber = 3;
-
-    std::string line;
-    while (std::getline(file, line)) {
-        auto first = line.find_first_not_of(" \t\r\n");
-        if (first == std::string::npos) {
-            ++lineNumber;
-            continue;
+    // Count the data lines starting in this rank's byte range. A line belongs to the range
+    // holding its first byte, so the line straddling the range start belongs to the left rank.
+    const int rank            = ippl::Comm->rank();
+    const int nranks          = std::max(1, ippl::Comm->size());
+    const std::uint64_t bytes = fileSize - dataOffset_m;
+    auto rangeBegin           = [&](int r) {
+        return dataOffset_m + static_cast<std::uint64_t>(
+                       static_cast<long double>(bytes) * r / nranks);
+    };
+    const std::uint64_t begin = rangeBegin(rank);
+    const std::uint64_t end   = rangeBegin(rank + 1);
+    std::uint64_t local[2]    = {0, end};
+    if (begin < end) {
+        LineReader reader(filename, begin == dataOffset_m ? begin : begin - 1);
+        std::string_view line;
+        std::uint64_t start = 0;
+        if (begin != dataOffset_m) {
+            reader.next(line, start);  // remainder of the line holding byte begin - 1
         }
-        auto last = line.find_last_not_of(" \t\r\n");
-        line      = line.substr(first, last - first + 1);
-        if (line.empty() || line[0] == '#') {
-            ++lineNumber;
-            continue;
+        bool first = true;
+        while (reader.next(line, start) && start < end) {
+            if (first) {
+                local[1] = start;
+                first    = false;
+            }
+            local[0] += isDataLine(line) ? 1 : 0;
         }
-
-        std::istringstream lineStream(line);
-        std::vector<double> values;
-        double value;
-        while (lineStream >> value)
-            values.push_back(value);
-
-        size_t maxColIdx = *std::max_element(columnIndices_m.begin(), columnIndices_m.end());
-        if (values.size() <= maxColIdx) {
-            throw OpalException(
-                    "FromFile::readFile",
-                    "Line " + std::to_string(lineNumber) + " in '" + filename
-                            + "' has fewer columns (" + std::to_string(values.size())
-                            + ") than required (index " + std::to_string(maxColIdx) + ").");
-        }
-
-        std::vector<double> phaseSpace(6);
-        phaseSpace[0] = values[columnIndices_m[0]];
-        phaseSpace[1] = values[columnIndices_m[1]];
-        phaseSpace[2] = values[columnIndices_m[2]];
-        phaseSpace[3] = values[columnIndices_m[3]];
-        phaseSpace[4] = values[columnIndices_m[4]];
-        phaseSpace[5] = values[columnIndices_m[5]];
-        particleData_m.push_back(phaseSpace);
-        ++lineNumber;
+    }
+    std::vector<std::uint64_t> gathered(2 * nranks);
+    MPI_Allgather(local, 2, MPI_UINT64_T, gathered.data(), 2, MPI_UINT64_T,
+                  ippl::Comm->getCommunicator());
+    rangeLineCounts_m.resize(nranks);
+    rangeFirstLine_m.resize(nranks);
+    std::uint64_t dataLines = 0;
+    for (int r = 0; r < nranks; ++r) {
+        rangeLineCounts_m[r] = gathered[2 * r];
+        rangeFirstLine_m[r]  = gathered[2 * r + 1];
+        dataLines += rangeLineCounts_m[r];
     }
 
-    file.close();
-    numParticles_m = particleData_m.size();
-
-    if (numParticles_m == 0) {
+    if (dataLines == 0) {
         throw OpalException(
                 "FromFile::readFile", "No valid particle data found in '" + filename + "'.");
     }
-
-    if (numParticles_m != expectedNumParticles) {
+    if (dataLines != numParticles_m) {
         throw OpalException(
-                "FromFile::readFile", "Number of data lines (" + std::to_string(numParticles_m)
+                "FromFile::readFile", "Number of data lines (" + std::to_string(dataLines)
                                               + ") does not match declared count ("
-                                              + std::to_string(expectedNumParticles) + ") in '"
+                                              + std::to_string(numParticles_m) + ") in '"
                                               + filename + "'.");
     }
+}
+
+Kokkos::View<double**, Kokkos::HostSpace> FromFile::readRows(size_t first, size_t count) const {
+    Kokkos::View<double**, Kokkos::HostSpace> rows("FromFile::rows", count, 6);
+    if (count == 0) {
+        return rows;
+    }
+
+    // The range holding data row `first`, and the number of data lines to skip inside it
+    size_t range        = 0;
+    std::uint64_t index = 0;
+    while (range < rangeLineCounts_m.size() && index + rangeLineCounts_m[range] <= first) {
+        index += rangeLineCounts_m[range++];
+    }
+    if (range == rangeLineCounts_m.size()) {
+        throw OpalException("FromFile::readRows", "Data row " + std::to_string(first)
+                                                          + " is beyond the end of '" + filename_m
+                                                          + "'.");
+    }
+
+    const size_t maxColIdx = *std::max_element(columnIndices_m.begin(), columnIndices_m.end());
+    std::vector<double> values(maxColIdx + 1);
+    LineReader reader(filename_m, rangeFirstLine_m[range]);
+    std::string_view line;
+    std::uint64_t start = 0;
+    size_t row          = 0;
+    while (row < count && reader.next(line, start)) {
+        if (!isDataLine(line) || index++ < first) {
+            continue;
+        }
+        // strtod skips newlines, so parse a terminated copy that cannot run into the next row
+        const std::string text(line);
+        const char* cursor = text.c_str();
+        for (size_t col = 0; col <= maxColIdx; ++col) {
+            char* next = nullptr;
+            values[col] = std::strtod(cursor, &next);
+            if (next == cursor) {
+                throw OpalException(
+                        "FromFile::readRows",
+                        "Data row " + std::to_string(first + row) + " in '" + filename_m
+                                + "' has fewer columns (" + std::to_string(col)
+                                + ") than required (index " + std::to_string(maxColIdx) + ").");
+            }
+            cursor = next;
+        }
+        for (int j = 0; j < 6; ++j) {
+            rows(row, j) = values[columnIndices_m[j]];
+        }
+        ++row;
+    }
+    if (row != count) {
+        throw OpalException("FromFile::readRows", "'" + filename_m + "' ended after "
+                                                          + std::to_string(first + row)
+                                                          + " data rows.");
+    }
+    return rows;
 }
 
 std::vector<size_t> FromFile::parseHeader(const std::string& headerLine) {
@@ -290,16 +419,8 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     view_type PviewFull = pc_m->P.getView();
     auto Pview = Kokkos::subview(PviewFull, std::make_pair(nlocalCurrent, nlocalCurrent + nlocal));
 
-    // Create Kokkos view for particle data (host accessible)
-    using HostView = Kokkos::View<double**, Kokkos::HostSpace>;
-    HostView hostParticleData("hostParticleData", totalParticles, 6);
-
-    // Copy data to host view
-    for (size_t i = 0; i < totalParticles && i < particleData_m.size(); ++i) {
-        for (int j = 0; j < 6; ++j) {
-            hostParticleData(i, j) = particleData_m[i][j];
-        }
-    }
+    // Parse only this rank's rows [startIdx, startIdx + nlocal)
+    auto hostParticleData = readRows(startIdx, nlocal);
 
     // Create device mirror with layout compatible for Host->Device deep_copy
     // (required when no common execution space, e.g. Host vs Cuda)
@@ -310,13 +431,12 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     // Copy particle data into the subview [0, nlocal).
     Kokkos::parallel_for(
             "FromFile::generateParticles", nlocal, KOKKOS_LAMBDA(const size_t k) {
-                const size_t dataIdx = startIdx + k;
-                Rview(k)[0]          = deviceParticleData(dataIdx, 0);  // x
-                Rview(k)[1]          = deviceParticleData(dataIdx, 1);  // y
-                Rview(k)[2]          = deviceParticleData(dataIdx, 2);  // z
-                Pview(k)[0]          = deviceParticleData(dataIdx, 3);  // px
-                Pview(k)[1]          = deviceParticleData(dataIdx, 4);  // py
-                Pview(k)[2]          = deviceParticleData(dataIdx, 5);  // pz
+                Rview(k)[0] = deviceParticleData(k, 0);  // x
+                Rview(k)[1] = deviceParticleData(k, 1);  // y
+                Rview(k)[2] = deviceParticleData(k, 2);  // z
+                Pview(k)[0] = deviceParticleData(k, 3);  // px
+                Pview(k)[1] = deviceParticleData(k, 4);  // py
+                Pview(k)[2] = deviceParticleData(k, 5);  // pz
             });
     Kokkos::fence();
 
