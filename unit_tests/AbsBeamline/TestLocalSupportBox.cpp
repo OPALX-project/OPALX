@@ -29,7 +29,6 @@
 #include "BeamlineCore/FieldmapElementRep.h"
 #include "BeamlineCore/MonitorRep.h"
 #include "BeamlineCore/MultipoleTRep.h"
-#include "BeamlineCore/RBendRep.h"
 #include "BeamlineCore/SBendRep.h"
 #include "BeamlineCore/VariableRFCavityRep.h"
 #include "Physics/Physics.h"
@@ -222,42 +221,6 @@ TEST_F(LocalSupportBoxTest, SectorBendBoxContainsArcBandAndFringes) {
         // the sub-micrometre margin for the arc sampling may.
         EXPECT_NEAR(box.getCorners().first[2], -0.2, 1e-6);
     }
-}
-
-TEST_F(LocalSupportBoxTest, RectangularBendWithoutPoleFacesIncludesSagitta) {
-    RBendRep bend("R");
-    bend.getGeometry() = Geometry::makeRBend(1.0, 0.6);
-    bend.setFullGap(0.04);
-
-    const double fringe       = 0.2;
-    const double sagitta      = 0.5 * std::tan(0.6 / 4.0);
-    const double needed       = reach + sagitta + fringe * std::tan(0.3);
-    const auto [lower, upper] = bend.getLocalSupportBox(reach).getCorners();
-    EXPECT_GE(upper[0], needed - 1e-12);
-    EXPECT_LE(lower[0], -needed + 1e-12);
-    EXPECT_DOUBLE_EQ(lower[2], -fringe);
-    EXPECT_DOUBLE_EQ(upper[2], 1.0 + fringe);
-}
-
-TEST_F(LocalSupportBoxTest, RectangularBendWithPoleFacesContainsDesignPath) {
-    RBendRep bend("R");
-    Geometry geometry = Geometry::makeRBend(1.0, 0.6);
-    geometry.setPoleFaceAnglesEnabled(true);
-    geometry.setEntranceAngle(0.3);
-    geometry.setExitAngle(0.3);
-    bend.getGeometry() = geometry;
-    bend.setFullGap(0.04);
-
-    const BoundingBox box = bend.getLocalSupportBox(reach);
-    for (const Vector& p : bend.getGeometry().getDesignPath()) {
-        for (double dx : {-reach, reach}) {
-            EXPECT_TRUE(contains(box, p + Vector({dx, 0.0, 0.0}), 1e-9)) << p;
-        }
-    }
-    // Upstream along the entrance tangent to the start of the fringe at z = -0.2.
-    const Vector upstream({-0.2 * std::tan(0.3), 0.0, -0.2});
-    EXPECT_TRUE(contains(box, upstream + Vector({-reach, 0.0, 0.0}), 1e-9));
-    EXPECT_TRUE(contains(box, upstream + Vector({reach, 0.0, 0.0}), 1e-9));
 }
 
 TEST_F(LocalSupportBoxTest, StraightMultipoleTUsesItsHalfApertures) {

@@ -138,52 +138,6 @@ double RBend::edgeAngleExit() const {
                                              : 0.5 * getGeometry().getBendAngle();
 }
 
-BoundingBox RBend::getLocalSupportBox(const double reach) const {
-    auto [halfX, halfY]      = getSupportHalfWidths(reach);
-    const Geometry& geometry = getGeometry();
-    const double length      = geometry.getElementLength();
-    double zBegin            = 0.0;
-    double zEnd              = 0.0;
-    getFieldExtent(zBegin, zEnd);
-    zBegin = std::min(zBegin, 0.0);
-    zEnd   = std::max(zEnd, length);
-
-    if (!geometry.hasPoleFaceAngles()) {
-        // The orbit runs on the chord at both faces, bulges by the sagitta in between and
-        // crosses the fringes at half the bend angle to the faces' normal.
-        const double angle  = std::abs(geometry.getBendAngle());
-        const double fringe = std::max(-zBegin, zEnd - length);
-        halfX += 0.5 * length * std::tan(0.25 * angle) + fringe * std::tan(0.5 * angle);
-        return BoundingBox::getBoundingBox(
-                {Vector_t<double, 3>({-halfX, -halfY, zBegin}),
-                 Vector_t<double, 3>({halfX, halfY, zEnd})});
-    }
-
-    BoundingBox box = BoundingBox::getBoundingBox(
-            {Vector_t<double, 3>({-halfX, -halfY, zBegin}),
-             Vector_t<double, 3>({halfX, halfY, zEnd})});
-    std::vector<Vector_t<double, 3>> path = geometry.getDesignPath();
-    // Continue the orbit along its entrance and exit tangents to the ends of the fringes. The
-    // orbit enters at the entrance angle to z and turns by the bend angle
-    // (Geometry::framePosition).
-    const auto extend = [](const Vector_t<double, 3>& point, const double direction,
-                           const double z) {
-        return Vector_t<double, 3>({point(0) + (z - point(2)) * std::tan(direction), point(1), z});
-    };
-    const double entrance           = geometry.getEntranceAngle();
-    const Vector_t<double, 3> first = path.front(), last = path.back();
-    path.push_back(extend(first, entrance, zBegin));
-    path.push_back(extend(last, entrance - geometry.getBendAngle(), zEnd));
-    for (const auto& point : path) {
-        for (const double x : {-halfX, halfX}) {
-            for (const double y : {-halfY, halfY}) {
-                box.enlargeToContainPosition(point + Vector_t<double, 3>({x, y, 0.0}));
-            }
-        }
-    }
-    return box;
-}
-
 BendFieldModel::FieldInputs RBend::makeFieldInputs() const {
     BendFieldModel::FieldInputs in{};
     if (profile_m.enabled) {

@@ -80,11 +80,6 @@ public:
     /// @param zEnd Where the field ends (larger than element length for fringe fields)
     void getFieldExtent(double& zBegin, double& zEnd) const override;
 
-    /// Field slab joined with the design orbit, which leaves the straight frame in the body.
-    /// Without pole-face angles the sampled design path is the chord, so the box adds the
-    /// orbit's sagitta and its drift at half the bend angle through the fringes.
-    BoundingBox getLocalSupportBox(double reach) const override;
-
     /// @brief Set the full vertical pole gap (GAP), scaling the Enge fringe profile.
     /// @param gap The full vertical pole gap.
     void setFullGap(double gap);
