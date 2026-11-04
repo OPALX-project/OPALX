@@ -593,32 +593,46 @@ namespace opalx::spacecharge {
                 Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), occupiedSlices);
         // All ranks must execute the same FFT calls, even if their local sources differ.
         ippl::Comm->allreduce(occupiedHost.data(), numSlices, std::greater<int>());
-        // Copy each source into the same 2D workspace, solve, and copy the resulting field back.
-        // Independent slices need neither separate FFT plans nor separate solver buffers.
-        const auto& s = fieldStorage_m->workspace();
-        auto rho2d    = s.chargeDensity->getView();
-        for (size_t z = 0; z < numSlices; ++z) {
-            // Do the 2D solve to get Ex and Ey
-            Kokkos::deep_copy(
-                    rho2d, Kokkos::subview(rho3d, Kokkos::ALL(), Kokkos::ALL(), z + nGhost));
-            if (occupiedHost(z) == 0) {
-                diagnostic.potential(rho2d, z + nGhost);
-                continue;
+        bool batched = false;
+        if constexpr (std::is_same_v<DiagnosticPolicy, NullDiagnostic>) {
+            if (fieldStorage_m->batchSize() > 0) {
+                std::vector<size_t> occupied;
+                for (size_t z = 0; z < numSlices; ++z)
+                    if (occupiedHost(z) != 0) occupied.push_back(z);
+                fieldStorage_m->solveBatchedSlices(occupied);
+                batched = true;
             }
-            // Scale by the coupling constant then solve
-            Kokkos::parallel_for(
-                    "Solve2d5::solvePoissons::coupling",
-                    Policy({0, 0}, {rho2d.extent(0), rho2d.extent(1)}),
-                    fft2d5_detail::PoissonCouplingFunctor{rho2d});
-            fieldStorage_m->solveSlice();
-            Kokkos::fence();
-            diagnostic.potential(rho2d, z + nGhost);
-            auto e2d = s.electricField->getView();
-            // Copy the 2D E field into the 3D E field grid
-            Kokkos::parallel_for(
-                    "Solve2d5::solvePoissons::copy", Policy({0, 0}, {e2d.extent(0), e2d.extent(1)}),
-                    fft2d5_detail::CopySliceFieldFunctor{e2d, e3d, z + nGhost});
-            Kokkos::fence();
+        }
+        // Diagnostic policies retain the serial path and per-slice potential callbacks.
+        if (!batched) {
+            // Copy each source into the same 2D workspace, solve, and copy the resulting field
+            // back. Independent slices need neither separate FFT plans nor separate solver buffers.
+            const auto& s = fieldStorage_m->workspace();
+            auto rho2d    = s.chargeDensity->getView();
+            for (size_t z = 0; z < numSlices; ++z) {
+                // Do the 2D solve to get Ex and Ey
+                Kokkos::deep_copy(
+                        rho2d, Kokkos::subview(rho3d, Kokkos::ALL(), Kokkos::ALL(), z + nGhost));
+                if (occupiedHost(z) == 0) {
+                    diagnostic.potential(rho2d, z + nGhost);
+                    continue;
+                }
+                // Scale by the coupling constant then solve
+                Kokkos::parallel_for(
+                        "Solve2d5::solvePoissons::coupling",
+                        Policy({0, 0}, {rho2d.extent(0), rho2d.extent(1)}),
+                        fft2d5_detail::PoissonCouplingFunctor{rho2d});
+                fieldStorage_m->solveSlice();
+                Kokkos::fence();
+                diagnostic.potential(rho2d, z + nGhost);
+                auto e2d = s.electricField->getView();
+                // Copy the 2D E field into the 3D E field grid
+                Kokkos::parallel_for(
+                        "Solve2d5::solvePoissons::copy",
+                        Policy({0, 0}, {e2d.extent(0), e2d.extent(1)}),
+                        fft2d5_detail::CopySliceFieldFunctor{e2d, e3d, z + nGhost});
+                Kokkos::fence();
+            }
         }
         // Set the ghost slices
         constexpr auto leftGhost = 0;
@@ -648,7 +662,7 @@ namespace opalx::spacecharge {
                 if (context.trackingActive()[container] == 0) {
                     continue;
                 }
-                auto* pc                       = particles_m[container];
+                auto* pc = particles_m[container];
                 const auto geometry =
                         usePreparedProjections ? segmentGeometry_m : SegmentGeometryView_t();
                 const auto projectedR =

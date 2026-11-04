@@ -1240,65 +1240,74 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, SliceWorkspaceKeepsNeutralSourcesAndClearsVacatedSlices) {
-        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
-        fsCmd_m->setType("FFT2D5");
-        fsCmd_m->setNX(12);
-        fsCmd_m->setNY(12);
-        fsCmd_m->setNZ(12);
-        fsCmd_m->setPipeSizeX(6);
-        fsCmd_m->setPipeSizeY(6);
-        rebuildBunch();
-        const auto rho   = solver_m->getRho()->getView();
-        const auto field = solver_m->getEField()->getView();
-        auto source      = Kokkos::create_mirror_view(rho);
-        Kokkos::deep_copy(source, 0.0);
-        // This slice has zero signed total charge but a nonzero dipole field.
-        source(3, 3, 4) = 1.0;
-        source(8, 7, 4) = -1.0;
-        Kokkos::deep_copy(rho, source);
-        Kokkos::deep_copy(field, Vector_t<double, 3>(7.0));
-        solver_m->solvePoissons();
-        const auto first = Kokkos::create_mirror(field);
-        Kokkos::deep_copy(first, field);
-        double maximum = 0.0;
-        for (size_t x = 0; x < first.extent(0); ++x) {
-            for (size_t y = 0; y < first.extent(1); ++y) {
-                for (unsigned d = 0; d < 3; ++d) {
-                    maximum = std::max(maximum, std::abs(first(x, y, 4)[d]));
-                    EXPECT_DOUBLE_EQ(first(x, y, 9)[d], 0.0);
+        for (int batch : {0, 8}) {
+            if (batch > 0
+                && !std::is_same_v<
+                        FFT2D5Poisson::ScalarField2_t::view_type::memory_space, Kokkos::HostSpace>)
+                continue;
+            makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+            fsCmd_m->setType("FFT2D5");
+            fsCmd_m->setNX(12);
+            fsCmd_m->setNY(12);
+            fsCmd_m->setNZ(12);
+            fsCmd_m->setPipeSizeX(6);
+            fsCmd_m->setPipeSizeY(6);
+            Options::fft2d5BatchSize = batch;
+            rebuildBunch();
+            Options::fft2d5BatchSize = 0;
+            const auto rho           = solver_m->getRho()->getView();
+            const auto field         = solver_m->getEField()->getView();
+            auto source              = Kokkos::create_mirror_view(rho);
+            Kokkos::deep_copy(source, 0.0);
+            // This slice has zero signed total charge but a nonzero dipole field.
+            source(3, 3, 4) = 1.0;
+            source(8, 7, 4) = -1.0;
+            Kokkos::deep_copy(rho, source);
+            Kokkos::deep_copy(field, Vector_t<double, 3>(7.0));
+            solver_m->solvePoissons();
+            const auto first = Kokkos::create_mirror(field);
+            Kokkos::deep_copy(first, field);
+            double maximum = 0.0;
+            for (size_t x = 0; x < first.extent(0); ++x) {
+                for (size_t y = 0; y < first.extent(1); ++y) {
+                    for (unsigned d = 0; d < 3; ++d) {
+                        maximum = std::max(maximum, std::abs(first(x, y, 4)[d]));
+                        EXPECT_DOUBLE_EQ(first(x, y, 9)[d], 0.0);
+                    }
                 }
             }
-        }
-        EXPECT_GT(maximum, 0.0);
+            EXPECT_GT(maximum, 0.0);
 
-        // Move the same source to another slice; reusing the solver must leave no old field.
-        Kokkos::deep_copy(source, 0.0);
-        source(3, 3, 9) = 1.0;
-        source(8, 7, 9) = -1.0;
-        Kokkos::deep_copy(rho, source);
-        solver_m->solvePoissons();
-        const auto moved = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), field);
-        for (size_t x = 0; x < moved.extent(0); ++x) {
-            for (size_t y = 0; y < moved.extent(1); ++y) {
-                for (size_t z = 0; z < moved.extent(2); ++z) {
-                    for (unsigned d = 0; d < 3; ++d) {
-                        if (z == 9) {
-                            EXPECT_NEAR(moved(x, y, z)[d], first(x, y, 4)[d], maximum * 1.0e-13);
-                        } else {
-                            EXPECT_DOUBLE_EQ(moved(x, y, z)[d], 0.0);
+            // Move the same source to another slice; reusing the solver must leave no old field.
+            Kokkos::deep_copy(source, 0.0);
+            source(3, 3, 9) = 1.0;
+            source(8, 7, 9) = -1.0;
+            Kokkos::deep_copy(rho, source);
+            solver_m->solvePoissons();
+            const auto moved = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), field);
+            for (size_t x = 0; x < moved.extent(0); ++x) {
+                for (size_t y = 0; y < moved.extent(1); ++y) {
+                    for (size_t z = 0; z < moved.extent(2); ++z) {
+                        for (unsigned d = 0; d < 3; ++d) {
+                            if (z == 9) {
+                                EXPECT_NEAR(
+                                        moved(x, y, z)[d], first(x, y, 4)[d], maximum * 1.0e-13);
+                            } else {
+                                EXPECT_DOUBLE_EQ(moved(x, y, z)[d], 0.0);
+                            }
                         }
                     }
                 }
             }
-        }
-        Kokkos::deep_copy(rho, 0.0);
-        solver_m->solvePoissons();
-        const auto empty = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), field);
-        for (size_t x = 0; x < empty.extent(0); ++x) {
-            for (size_t y = 0; y < empty.extent(1); ++y) {
-                for (size_t z = 0; z < empty.extent(2); ++z) {
-                    for (unsigned d = 0; d < 3; ++d) {
-                        EXPECT_DOUBLE_EQ(empty(x, y, z)[d], 0.0);
+            Kokkos::deep_copy(rho, 0.0);
+            solver_m->solvePoissons();
+            const auto empty = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), field);
+            for (size_t x = 0; x < empty.extent(0); ++x) {
+                for (size_t y = 0; y < empty.extent(1); ++y) {
+                    for (size_t z = 0; z < empty.extent(2); ++z) {
+                        for (unsigned d = 0; d < 3; ++d) {
+                            EXPECT_DOUBLE_EQ(empty(x, y, z)[d], 0.0);
+                        }
                     }
                 }
             }
@@ -2705,6 +2714,127 @@ namespace {
                 ASSERT_NEAR(
                         eHost(i + nGhostE, j + nGhostE).data_m[1], expectedDerivative(1), 2e-13);
             }
+        }
+    }
+
+    TEST_F(TestSolve2d5, BatchedSlicesMatchSerialPotentialHaloAndFields) {
+        if constexpr (!std::is_same_v<
+                              FFT2D5Poisson::ScalarField2_t::view_type::memory_space,
+                              Kokkos::HostSpace>)
+            GTEST_SKIP() << "Explicit batching currently supports host execution only";
+        FFT2D5Poisson batchSolver;
+        for (const auto shape : {std::array<int, 2>{6, 8}, std::array<int, 2>{8, 6}}) {
+            const double dx = shape[0] == 6 ? 0.3 : 0.17;
+            const double dy = shape[0] == 6 ? 0.1 : 0.29;
+            const ippl::NDIndex<3> domain3{shape[0], shape[1], 73};
+            FFT2D5Poisson::Mesh3_t mesh3(domain3, {dx, dy, 0.25}, {0., 0., 0.});
+            ippl::FieldLayout<3> layout3(MPI_COMM_WORLD, domain3, {false, false, false});
+            FFT2D5Poisson::ScalarField3_t density(mesh3, layout3), potential(mesh3, layout3);
+            FFT2D5Poisson::VectorField3_t field(mesh3, layout3);
+            const FFT2D5Poisson::NDIndex2_t domain2{shape[0], shape[1]};
+            FFT2D5Poisson::Mesh2_t mesh2(domain2, {dx, dy}, {0., 0.});
+            FFT2D5Poisson::Layout2_t layout2(MPI_COMM_WORLD, domain2, {false, false});
+            FFT2D5Poisson::ScalarField2_t slice(mesh2, layout2);
+            FFT2D5Poisson::VectorField2_t sliceField(mesh2, layout2);
+            FFT2D5Poisson serial;
+            batchSolver.initialiseViews(slice);
+            serial.initialiseViews(slice);
+            const auto bg = Kokkos::create_mirror_view_and_copy(
+                    Kokkos::HostSpace(), batchSolver.getGreensFnTr().getView());
+            const auto sg = Kokkos::create_mirror_view_and_copy(
+                    Kokkos::HostSpace(), serial.getGreensFnTr().getView());
+            ASSERT_EQ(bg.extent(0), sg.extent(0));
+            ASSERT_EQ(bg.extent(1), sg.extent(1));
+            for (size_t i = 0; i < bg.extent(0); ++i)
+                for (size_t j = 0; j < bg.extent(1); ++j)
+                    ASSERT_NEAR(Kokkos::abs(bg(i, j) - sg(i, j)), 0., 1e-13)
+                            << shape[0] << " " << i << " " << j;
+            const auto ghost = density.getNghost();
+            // 66 active slices exercise full batches and remainders for 8/32/64.
+            for (unsigned sourceCase = 0; sourceCase < 3; ++sourceCase) {
+                std::vector<size_t> active;
+                if (sourceCase == 0) {
+                    for (size_t z = 0; z < 73; ++z)
+                        if (z % 11 != 0) active.push_back(z);
+                } else if (sourceCase == 1)
+                    active = {2, 7, 72};
+                auto source = density.getHostMirror();
+                Kokkos::deep_copy(source, 0.);
+                auto expectedPhi = Kokkos::create_mirror(potential.getView());
+                Kokkos::deep_copy(expectedPhi, 0.);
+                auto expectedE = Kokkos::create_mirror(field.getView());
+                Kokkos::deep_copy(expectedE, FFT2D5Poisson::Vector3_t(0.));
+                for (size_t z : active) {
+                    auto rho = slice.getHostMirror();
+                    Kokkos::deep_copy(rho, 0.);
+                    for (int i = 0; i < shape[0]; ++i)
+                        for (int j = 0; j < shape[1]; ++j) {
+                            double value = (1. + 0.01 * z) * (0.3 + std::sin(0.7 * i + 0.9 * j));
+                            if (z == 2)
+                                value = (i == 0 && j == 0)                         ? 1.
+                                        : (i == shape[0] - 1 && j == shape[1] - 1) ? -1.
+                                                                                   : 0.;
+                            source(i + ghost, j + ghost, z + ghost) = value;
+                            rho(i + ghost, j + ghost)               = value * 1.7;
+                        }
+                    Kokkos::deep_copy(slice.getView(), rho);
+                    serial.solve(slice, sliceField);
+                    auto phi = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), slice.getView());
+                    auto electric = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), sliceField.getView());
+                    for (size_t i = 0; i < phi.extent(0); ++i)
+                        for (size_t j = 0; j < phi.extent(1); ++j) {
+                            expectedPhi(i, j, z + ghost) = phi(i, j);
+                            expectedE(i, j, z + ghost)   = FFT2D5Poisson::Vector3_t(
+                                    electric(i, j)[0], electric(i, j)[1], 0.);
+                        }
+                }
+                Kokkos::deep_copy(density.getView(), source);
+                auto originalSource = Kokkos::create_mirror(density.getView());
+                Kokkos::deep_copy(originalSource, density.getView());
+                for (int size : {1, 8, 32, 64}) {
+                    SCOPED_TRACE(
+                            ::testing::Message() << shape[0] << "x" << shape[1] << " batch=" << size
+                                                 << " source=" << sourceCase);
+                    Kokkos::deep_copy(field.getView(), FFT2D5Poisson::Vector3_t(123.));
+                    Kokkos::deep_copy(potential.getView(), 123.);
+                    batchSolver.solveBatched(density, field, active, size, 1.7, &potential);
+                    auto actualPhi = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), potential.getView());
+                    auto actualE = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), field.getView());
+                    auto actualRho = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), density.getView());
+                    double phiScale = 0., fieldScale = 0.;
+                    for (size_t i = 0; i < actualPhi.extent(0); ++i)
+                        for (size_t j = 0; j < actualPhi.extent(1); ++j)
+                            for (size_t z = 0; z < actualPhi.extent(2); ++z) {
+                                phiScale = std::max(phiScale, std::abs(expectedPhi(i, j, z)));
+                                for (unsigned d = 0; d < 3; ++d)
+                                    fieldScale =
+                                            std::max(fieldScale, std::abs(expectedE(i, j, z)[d]));
+                            }
+                    for (size_t i = 0; i < actualPhi.extent(0); ++i)
+                        for (size_t j = 0; j < actualPhi.extent(1); ++j)
+                            for (size_t z = 0; z < actualPhi.extent(2); ++z) {
+                                EXPECT_EQ(actualRho(i, j, z), originalSource(i, j, z));
+                                EXPECT_NEAR(
+                                        actualPhi(i, j, z), expectedPhi(i, j, z),
+                                        phiScale * 1e-12 + 1e-30);
+                                for (unsigned d = 0; d < 3; ++d)
+                                    EXPECT_NEAR(
+                                            actualE(i, j, z)[d], expectedE(i, j, z)[d],
+                                            fieldScale * 1e-12 + 1e-30);
+                            }
+                }
+            }
+            EXPECT_THROW(
+                    batchSolver.solveBatched(density, field, std::array<size_t, 1>{73}, 8),
+                    OpalException);
+            EXPECT_THROW(
+                    batchSolver.solveBatched(density, field, std::array<size_t, 1>{1}, 0),
+                    OpalException);
         }
     }
 

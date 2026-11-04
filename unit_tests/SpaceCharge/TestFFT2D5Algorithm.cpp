@@ -5,6 +5,7 @@
 #include "PartBunch/BunchStateHandler.h"
 #include "Physics/Physics.h"
 #include "SpaceCharge/FFT2D5/FFT2D5Algorithm.h"
+#include "Utilities/Options.h"
 
 #include <array>
 #include <cmath>
@@ -418,6 +419,53 @@ namespace opalx::spacecharge {
             EXPECT_THROW(
                     static_cast<void>(solver.solve({activity, alignedStep(-0.5)})), OpalException);
             expectSourceRestored(positions, momentum);
+        }
+
+        TEST_F(FFT2D5AlgorithmTest, ExplicitBatchSizesMatchSerialFullSolveAndBoundaryModes) {
+            if constexpr (!std::is_same_v<
+                                  FFT2D5Poisson::ScalarField2_t::view_type::memory_space,
+                                  Kokkos::HostSpace>)
+                GTEST_SKIP() << "Explicit batching currently supports host execution only";
+            setPhysicalSource(sourcePositions(), Vector(0., 0., 0.4), CoordinateSystemTrafo());
+            const std::array<std::uint8_t, 1> activity{1};
+            SpaceChargeStepState step = alignedStep(0.);
+            SpaceChargeSolveContext context(activity, step);
+            for (bool closed : {false, true}) {
+                auto settings          = config(FFT2D5LongitudinalFieldMode::Open);
+                settings.grid.meshSize = {16, 12, 11};
+                settings.closedRing    = closed;
+                std::array containers{particles_m.get()};
+                FFT2D5Algorithm serial(settings, containers, bunchState_m);
+                ASSERT_EQ(Options::fft2d5BatchSize, 0);
+                const auto reference = serial.solve(context);
+                auto expectedE       = Kokkos::create_mirror(particles_m->E.getView());
+                auto expectedB       = Kokkos::create_mirror(particles_m->B.getView());
+                Kokkos::deep_copy(expectedE, particles_m->E.getView());
+                Kokkos::deep_copy(expectedB, particles_m->B.getView());
+                for (int batch : {1, 8, 32, 64}) {
+                    Options::fft2d5BatchSize = batch;
+                    FFT2D5Algorithm solver(settings, containers, bunchState_m);
+                    solver.ensureInitialized();
+                    Options::fft2d5BatchSize = 0;
+                    const auto result        = solver.solve(context);
+                    EXPECT_EQ(result.backendSolves, reference.backendSolves);
+                    const auto actualE = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), particles_m->E.getView());
+                    const auto actualB = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), particles_m->B.getView());
+                    double scaleE = 0., scaleB = 0.;
+                    for (size_t n = 0; n < sourceSize; ++n)
+                        for (unsigned d = 0; d < 3; ++d) {
+                            scaleE = std::max(scaleE, std::abs(expectedE(n)[d]));
+                            scaleB = std::max(scaleB, std::abs(expectedB(n)[d]));
+                        }
+                    for (size_t n = 0; n < sourceSize; ++n)
+                        for (unsigned d = 0; d < 3; ++d) {
+                            EXPECT_NEAR(actualE(n)[d], expectedE(n)[d], scaleE * 1e-12 + 1e-30);
+                            EXPECT_NEAR(actualB(n)[d], expectedB(n)[d], scaleB * 1e-12 + 1e-30);
+                        }
+                }
+            }
         }
 
         TEST_F(FFT2D5AlgorithmTest, HierarchyMatchesExhaustiveSegmentAndCoordinatesExactly) {

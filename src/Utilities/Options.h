@@ -36,6 +36,9 @@ namespace Options {
     extern bool info;
     extern int infoLevel;
 
+    /// Explicit FFT2D5 slice batch size; zero retains the serial slice path.
+    extern int fft2d5BatchSize;
+
     /// Trace flag.
     //  If true, print CPU time before and after each command.
     extern bool mtrace;

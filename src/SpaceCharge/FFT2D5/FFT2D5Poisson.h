@@ -31,6 +31,8 @@
 // clang-format off
 #include "Ippl.h"
 #include "FFT/FFT.h"
+#include <span>
+#include "FFT/Backend/Heffte.h"
 #include <Kokkos_MathematicalConstants.hpp>
 #include <Kokkos_MathematicalFunctions.hpp>
 // clang-format on
@@ -95,6 +97,33 @@ public:
         return -(Kokkos::log(scale) + average) / (2.0 * Kokkos::numbers::pi_v<double>);
     }
 
+    using Mesh3_t        = ippl::UniformCartesian<double, 3>;
+    using ScalarField3_t = ippl::Field<double, 3, Mesh3_t, Cell>;
+    using VectorField3_t = ippl::Field<Vector3_t, 3, Mesh3_t, Cell>;
+
+    /**
+     * @brief Solve independent transverse slices in bounded batches using existing heFFTe R2C.
+     * @details Only x and y are transformed; slice indices are independent batch slots.
+     * Reuses the serial solver's cell-averaged Green spectrum, full forward/unscaled
+     * inverse normalization and source-cell-area scaling. The input density is unchanged.
+     * Coupling is applied while packing physical cells into zero-padded contiguous buffers.
+     * One batched Green multiplication and centered-gradient kernel replace per-slice
+     * staging. Negative transverse neighbours wrap into the doubled potential, preserving
+     * the free-space potential halo. No longitudinal FFT, interpolation or physics change.
+     * Persistent plans/buffers resize only for grid or batch-capacity changes; partial final
+     * batches use their actual count. Empty/non-selected slices and all field halos are
+     * cleared; the caller subsequently sets longitudinal field ghosts. Nonzero neutral
+     * slices must appear in occupied. Memory is O(batchSize*nx*ny), including workspace.
+     * The optional potential output includes its transverse halo for numerical verification.
+     * Native FFT arithmetic may remain sequential across slots; this is not MPI batching.
+     * @pre initialiseViews() has received a matching transverse workspace.
+     * @pre One MPI rank; unique occupied physical slice indices; matching source/output grids.
+     */
+    void solveBatched(
+            const ScalarField3_t& density, VectorField3_t& electric,
+            std::span<const size_t> occupied, int batchSize, double coupling = 1.,
+            ScalarField3_t* potential = nullptr);
+
     // Accessors for unit tests
     const ScalarField2_t& getGreensFn() const { return greensFn_m; }
     const ComplexField2_t& getGreensFnTr() const { return greensFnTr_m; }
@@ -130,6 +159,19 @@ private:
                              + 0.5 * b * b * Kokkos::atan2(a, b);
         return (x < 0.0) != (y < 0.0) ? -value : value;
     }
+
+    using MemSpace       = ScalarField2_t::view_type::memory_space;
+    using BatchBackend   = ippl::fft::HeffteR2C<double, 2, MemSpace>;
+    using BatchPlan      = BatchBackend::heffte_t;
+    using BatchWorkspace = BatchBackend::workspace_t;
+    using Complex        = Kokkos::complex<double>;
+    std::unique_ptr<BatchPlan> batchPlan_m;
+    BatchWorkspace batchWorkspace_m;
+    Kokkos::View<double*, MemSpace> batchReal_m;
+    Kokkos::View<Complex*, MemSpace> batchSpectrum_m, batchGreen_m;
+    Kokkos::View<size_t*, MemSpace> batchSlices_m;
+    size_t batchNx_m = 0, batchNy_m = 0;
+    int batchCapacity_m = 0;
 
     size_t nx2_{};
     size_t ny2_{};

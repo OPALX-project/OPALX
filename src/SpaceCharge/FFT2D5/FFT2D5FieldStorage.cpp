@@ -19,7 +19,9 @@
  */
 
 #include "SpaceCharge/FFT2D5/FFT2D5FieldStorage.h"
+#include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/Options.h"
 
 #include <array>
 
@@ -85,6 +87,17 @@ namespace opalx::spacecharge {
                     "The FFT2D5 reference-path length must be positive.");
         }
 
+        batchSize_m = Options::fft2d5BatchSize;
+        if (batchSize_m > 0) {
+            if constexpr (!std::is_same_v<
+                                  FFT2D5Poisson::ScalarField2_t::view_type::memory_space,
+                                  Kokkos::HostSpace>)
+                throw OpalException(
+                        "FFT2D5FieldStorage",
+                        "Explicit slice batching is currently validated for host execution only.");
+            *ippl::Info << "FFT2D5: --2D5BatchSize " << batchSize_m
+                        << " (independent transverse slices)" << endl;
+        }
         chargeDensity_m.initialize(mesh_m, layout_m);
         electricField_m.initialize(mesh_m, layout_m);
 
@@ -107,6 +120,18 @@ namespace opalx::spacecharge {
     }
 
     FFT2D5FieldStorage::~FFT2D5FieldStorage() = default;
+
+    void FFT2D5FieldStorage::solveBatchedSlices(std::span<const size_t> occupied) {
+#if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
+        throw OpalException(
+                "FFT2D5FieldStorage", "Batching requires the native OPALX slice solver.");
+#else
+        workspace_m.solver2->initialiseViews(*workspace_m.chargeDensity);
+        workspace_m.solver2->solveBatched(
+                chargeDensity_m, electricField_m, occupied, batchSize_m, 1 / Physics::epsilon_0);
+        backendSolves_m += occupied.size();
+#endif
+    }
 
     void FFT2D5FieldStorage::solveSlice() {
 #if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER

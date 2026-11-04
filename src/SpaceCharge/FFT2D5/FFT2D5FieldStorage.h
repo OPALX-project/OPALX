@@ -27,6 +27,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <span>
 
 // The native solver integrates the logarithmic Green function over each source
 // cell. IPPL's point-sampled 2D kernel has a spacing-independent self value,
@@ -38,9 +39,11 @@ namespace opalx::spacecharge {
     /**
      * @brief Persistent fields and a reusable Poisson workspace for one FFT2D5 run.
      *
-     * The 3D fields stage deposition and gathering. Slices are solved sequentially, so they share
-     * one pair of 2D IPPL fields and one FFT plan. The Field API cannot use a Kokkos subview as
-     * its storage; each source slice is copied into this workspace before solving.
+     * The 3D fields stage deposition and gathering. The default serial path shares one pair
+     * of 2D IPPL fields and one FFT plan. Explicit --2D5BatchSize enables bounded native
+     * heFFTe batches owned by the same OPALX solver; no longitudinal transform is performed.
+     * The Field API cannot borrow a Kokkos subview, so the serial path copies each slice;
+     * batching instead packs physical cells directly into contiguous FFT buffers.
      */
     class FFT2D5FieldStorage final {
     public:
@@ -93,6 +96,10 @@ namespace opalx::spacecharge {
          * to keep CUDA kernel stubs and their device registration in the same translation unit.
          */
         void solveSlice();
+        /// Explicit CLI opt-in; zero preserves the single-slice implementation.
+        [[nodiscard]] int batchSize() const { return batchSize_m; }
+        /// Solve the occupied physical slices together; counts mathematical slice solves.
+        void solveBatchedSlices(std::span<const size_t> occupied);
 
     private:
         std::array<std::size_t, 3> meshSize_m;
@@ -110,6 +117,7 @@ namespace opalx::spacecharge {
         ippl::ParameterList solverParameters_m;
         Slice workspace_m;
         std::size_t backendSolves_m = 0;
+        int batchSize_m             = 0;
     };
 
 }  // namespace opalx::spacecharge

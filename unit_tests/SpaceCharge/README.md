@@ -57,3 +57,19 @@ OMP_NUM_THREADS=1 OMP_PROC_BIND=false mpiexec -n 2 build-omp/unit_tests/SpaceCha
 Tracking inputs, published plots and the analytic ZeroSC comparison are stored
 in the separate `OPALX-project/opalx-documents` repository under
 `examples/2026/2d5-1`.
+
+### Optional OPALX-side slice batching
+
+`opalx case.in --2D5BatchSize 8` groups eight independent transverse slice
+transforms using the existing native heFFTe R2C batch API. The option requires
+a positive integer; without it the serial slice path remains active. It is a
+host-only, single-MPI-rank optimization and does not transform the longitudinal
+axis or make the FFT arithmetic itself OpenMP-parallel. No IPPL source changes
+are required. Inspection policies retain serial per-slice potential callbacks.
+
+The batch tests compare potential including its transverse halo, all field
+components, unchanged input charge and cleared empty/vacated slices with the
+serial solver for sizes 1, 8, 32 and 64. They cover neutral sources, incomplete
+batches, anisotropic rectangular grids, grid/spacing changes and the complete
+solve under both open and closed longitudinal boundary modes. CLI parsing,
+normalization and the same 100-step tracking pilot are checked separately.

@@ -55,9 +55,10 @@ void FFT2D5Poisson::initialiseViews(const ScalarField2_t& chargeDensity) {
     const auto nx2     = nx * 2;
     const auto ny2     = ny * 2;
     if (nx2_ != nx2 || ny2_ != ny2 || dr_[X] != dr[X] || dr_[Y] != dr[Y]) {
-        nx2_ = nx2;
-        ny2_ = ny2;
-        dr_  = dr;
+        const bool resizeFields = nx2_ != 0 && (nx2_ != nx2 || ny2_ != ny2);
+        nx2_                    = nx2;
+        ny2_                    = ny2;
+        dr_                     = dr;
         // Create the doubled mesh
         doubledDomain_m = {nx2, ny2};
         doubledMesh_m.initialize(doubledDomain_m, {dr[X], dr[Y]}, {0, 0});
@@ -72,6 +73,14 @@ void FFT2D5Poisson::initialiseViews(const ScalarField2_t& chargeDensity) {
         doubledRhoTr_m.initialize(complexMesh_m, complexLayout_m);
         greensFn_m.initialize(doubledMesh_m, doubledLayout_m);
         greensFnTr_m.initialize(complexMesh_m, complexLayout_m);
+        // Field::initialize is deliberately a no-op after first allocation.
+        // Reuse its existing updateLayout API when a later solve changes the grid.
+        if (resizeFields) {
+            doubledRho_m.updateLayout(doubledLayout_m);
+            doubledRhoTr_m.updateLayout(complexLayout_m);
+            greensFn_m.updateLayout(doubledLayout_m);
+            greensFnTr_m.updateLayout(complexLayout_m);
+        }
         // Create the FFT
         fft_m = std::make_unique<FFT_t>(doubledLayout_m, complexLayout_m, this->params_m);
         fft_m->warmup(doubledRho_m, doubledRhoTr_m);  // Really?
@@ -189,4 +198,121 @@ void FFT2D5Poisson::determineField(const ScalarField2_t& potential, VectorField2
                                                         * inv2dy;
             });
     Kokkos::fence();
+}
+
+void FFT2D5Poisson::solveBatched(
+        const ScalarField3_t& density, VectorField3_t& electric, std::span<const size_t> occupied,
+        int batchSize, double coupling, ScalarField3_t* potential) {
+    if (batchSize <= 0 || ippl::Comm->size() != 1)
+        throw OpalException(
+                "FFT2D5Poisson::solveBatched", "Positive batch size and one MPI rank required.");
+    const auto mesh = density.get_mesh();
+    const size_t nx = mesh.getGridsize(0), ny = mesh.getGridsize(1), nz = mesh.getGridsize(2);
+    const auto spacing = mesh.getMeshSpacing();
+    if (nx2_ != 2 * nx || ny2_ != 2 * ny || dr_[0] != spacing[0] || dr_[1] != spacing[1])
+        throw OpalException(
+                "FFT2D5Poisson::solveBatched",
+                "Initialize the matching transverse workspace before batching.");
+    for (size_t z : occupied)
+        if (z >= nz)
+            throw OpalException("FFT2D5Poisson::solveBatched", "Invalid physical slice index.");
+    const auto field = electric.getView();
+    Kokkos::deep_copy(field, Vector3_t(0.));
+    if (potential) Kokkos::deep_copy(potential->getView(), 0.);
+    if (occupied.empty()) return;
+    const int capacity = static_cast<int>(std::min(size_t(batchSize), nz));
+    const size_t nr = nx2_ * ny2_, ncx = nx2_ / 2 + 1, nc = ncx * ny2_;
+    if (!batchPlan_m || batchNx_m != nx2_ || batchNy_m != ny2_ || batchCapacity_m != capacity) {
+        const heffte::box3d<long long> inbox(
+                {0, 0, 0}, {static_cast<long long>(nx2_ - 1), static_cast<long long>(ny2_ - 1), 0});
+        const heffte::box3d<long long> outbox(
+                {0, 0, 0}, {static_cast<long long>(ncx - 1), static_cast<long long>(ny2_ - 1), 0});
+        batchPlan_m = std::make_unique<BatchPlan>(
+                inbox, outbox, 0, ippl::Comm->getCommunicator(),
+                ippl::fft::makeHeffteOptions<BatchBackend::backend_t>(params_m));
+        batchWorkspace_m = BatchWorkspace(batchPlan_m->size_workspace() * capacity);
+        batchReal_m      = decltype(batchReal_m)("FFT2D5BatchReal", nr * capacity);
+        batchSpectrum_m  = decltype(batchSpectrum_m)("FFT2D5BatchSpectrum", nc * capacity);
+        batchGreen_m     = decltype(batchGreen_m)("FFT2D5BatchGreen", nc);
+        batchNx_m        = nx2_;
+        batchNy_m        = ny2_;
+        batchCapacity_m  = capacity;
+    }
+    if (batchSlices_m.extent(0) < occupied.size())
+        batchSlices_m = decltype(batchSlices_m)("FFT2D5BatchSlices", occupied.size());
+    auto hostSlices = Kokkos::create_mirror_view(batchSlices_m);
+    for (size_t i = 0; i < occupied.size(); ++i)
+        hostSlices(i) = occupied[i];
+    Kokkos::deep_copy(batchSlices_m, hostSlices);
+    const auto green         = batchGreen_m;
+    const auto originalGreen = greensFnTr_m.getView();
+    const auto ng            = greensFnTr_m.getNghost();
+    // The native outbox is x-fastest, independent of the Field view's layout.
+    Kokkos::parallel_for(
+            "FFT2D5Batch::green", nc,
+            KOKKOS_LAMBDA(size_t p) { green(p) = originalGreen(p % ncx + ng, p / ncx + ng); });
+    const auto source   = density.getView();
+    const auto real     = batchReal_m;
+    const auto spectrum = batchSpectrum_m;
+    const auto slices   = batchSlices_m;
+    const auto ghost = density.getNghost(), eg = electric.getNghost();
+    const auto nx2 = nx2_, ny2 = ny2_;
+    const auto scaling  = nx2_ * ny2_ * dr_[0] * dr_[1];
+    const double inv2dx = 1. / (2 * dr_[0]), inv2dy = 1. / (2 * dr_[1]);
+    using Policy = Kokkos::MDRangePolicy<Kokkos::Rank<3>>;
+    for (size_t first = 0; first < occupied.size(); first += capacity) {
+        const int count = static_cast<int>(std::min(size_t(capacity), occupied.size() - first));
+        Kokkos::parallel_for(
+                "FFT2D5Batch::pack",
+                Policy({0, 0, 0},
+                       {count, static_cast<long long>(nx2), static_cast<long long>(ny2)}),
+                KOKKOS_LAMBDA(size_t b, size_t i, size_t j) {
+                    real(b * nr + i + nx2 * j) =
+                            (i < nx && j < ny)
+                                    ? source(i + ghost, j + ghost, slices(first + b) + ghost)
+                                              * coupling
+                                    : 0.;
+                });
+        Kokkos::fence();
+        batchPlan_m->forward(
+                count, real.data(), spectrum.data(), batchWorkspace_m.data(), heffte::scale::full);
+        Kokkos::fence();
+        Kokkos::parallel_for(
+                "FFT2D5Batch::applyGreen", size_t(count) * nc,
+                KOKKOS_LAMBDA(size_t p) { spectrum(p) *= green(p % nc) * scaling; });
+        Kokkos::fence();
+        batchPlan_m->backward(
+                count, spectrum.data(), real.data(), batchWorkspace_m.data(), heffte::scale::none);
+        Kokkos::fence();
+        Kokkos::parallel_for(
+                "FFT2D5Batch::field",
+                Policy({0, 0, 0}, {count, static_cast<long long>(nx), static_cast<long long>(ny)}),
+                KOKKOS_LAMBDA(size_t b, size_t i, size_t j) {
+                    const size_t base                             = b * nr;
+                    field(i + eg, j + eg, slices(first + b) + eg) = Vector3_t(
+                            -(real(base + (i + 1) % nx2 + nx2 * j)
+                              - real(base + (i + nx2 - 1) % nx2 + nx2 * j))
+                                    * inv2dx,
+                            -(real(base + i + nx2 * ((j + 1) % ny2))
+                              - real(base + i + nx2 * ((j + ny2 - 1) % ny2)))
+                                    * inv2dy,
+                            0.);
+                });
+        if (potential) {
+            const auto phi = potential->getView();
+            const auto pg  = potential->getNghost();
+            Kokkos::parallel_for(
+                    "FFT2D5Batch::potential",
+                    Policy({0, 0, 0}, {count, static_cast<long long>(phi.extent(0)),
+                                       static_cast<long long>(phi.extent(1))}),
+                    KOKKOS_LAMBDA(size_t b, size_t i, size_t j) {
+                        const size_t x = (static_cast<int>(i) - pg + static_cast<int>(nx2))
+                                         % static_cast<int>(nx2);
+                        const size_t y = (static_cast<int>(j) - pg + static_cast<int>(ny2))
+                                         % static_cast<int>(ny2);
+                        phi(i, j, slices(first + b) + pg) = real(b * nr + x + nx2 * y);
+                    });
+        }
+        Kokkos::fence();
+    }
 }
