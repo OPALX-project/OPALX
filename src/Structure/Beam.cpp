@@ -52,6 +52,8 @@ namespace {
         DAUGHTERBEAM,     // Name of the beam that receives decay daughter particles
         POLARIZATION,     // Initial polarization vector P (rest-frame, lab-frame axes)
         TUNEINITIAL,      // Spectral launch triples, independent of bunch distribution.
+        ZSTOP,            // Path length at which this beam stops being tracked
+        UNTILMAXSTEPS,    // Keep the run going for this beam until MAXSTEPS
         SIZE
     };
 }  // namespace
@@ -119,6 +121,19 @@ Beam::Beam()
             "For muons produced by an upstream decay (e.g. PionDecay) the per-particle "
             "value is overwritten by the decay, but POLARIZATION must still be set to "
             "enable the spin storage that receives it.");
+
+    itsAttr[ZSTOP] = Attributes::makeReal(
+            "ZSTOP",
+            "Path length [m] at which this beam stops: once its reference reaches it, the beam "
+            "is tracked until its last particle passes the plane through the reference normal to "
+            "its momentum. Only for beams listed after the first in TRACK BEAMS that start at the "
+            "start of the line; the first beam uses TRACK ZSTOP.");
+
+    itsAttr[UNTILMAXSTEPS] = Attributes::makeBool(
+            "UNTILMAXSTEPS",
+            "If true, the run continues for this beam until MAXSTEPS is used up, after the beams "
+            "with a ZSTOP are done. Not together with ZSTOP.",
+            false);
 
     // Set up default beam.
     Beam* defBeam    = clone("UNNAMED_BEAM");
@@ -289,6 +304,13 @@ std::vector<double> Beam::getPolarization() const {
     }
     return pol;
 }
+
+std::optional<double> Beam::getZStop() const {
+    if (!itsAttr[ZSTOP]) return std::nullopt;
+    return Attributes::getReal(itsAttr[ZSTOP]);
+}
+
+bool Beam::getUntilMaxSteps() const { return Attributes::getBool(itsAttr[UNTILMAXSTEPS]); }
 
 bool Beam::hasPolarization() const {
     return !Attributes::getRealArray(itsAttr[POLARIZATION]).empty();

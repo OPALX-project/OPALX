@@ -78,6 +78,10 @@ StepSizeConfig& StepSizeConfig::advanceToResumePosition(const ResumePosition& po
     return *this;
 }
 
+bool StepSizeConfig::isLastSegment() const {
+    return it_m != configurations_m.end() && std::next(it_m) == configurations_m.end();
+}
+
 std::size_t StepSizeConfig::getCurrentIndex() {
     return static_cast<std::size_t>(std::distance(configurations_m.begin(), it_m));
 }

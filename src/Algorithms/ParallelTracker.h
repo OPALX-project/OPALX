@@ -41,8 +41,8 @@
 
 #include "Physics/Physics.h"
 
+#include "Algorithms/BeamStop.h"
 #include "Algorithms/GeneralElementMapping.h"
-#include "Algorithms/StepSizeConfig.h"
 
 #include "AbsBeamline/Box.h"
 #include "AbsBeamline/Collimator.h"
@@ -130,6 +130,9 @@ public:
     void setSpaceChargeFieldUpdate(SpaceChargeFieldUpdate update) {
         spaceChargeFieldUpdate_m = update;
     }
+    /// Stop conditions of every beam, one per particle container; see BeamStop. On a restart
+    /// they include the planes and done flags restored from the checkpoint.
+    void setBeamStops(std::vector<BeamStop> stops) { beamStops_m = std::move(stops); }
     void visitCyclotronSector(const CyclotronSector& sector) override {
         itsOpalBeamline_m.visit(sector, *this, *itsBunch_m);
     }
@@ -182,10 +185,11 @@ private:
             spaceChargeSolver_m;  ///< Borrowed run-lifetime space-charge solver.
     opalx::spacecharge::DirichletPlaneConfig dirichletPlane_m;
     std::vector<std::uint8_t> spaceChargeContainerActivity_m;
-    OpalBeamline itsOpalBeamline_m;  ///< Cloned field elements and coordinate transforms.
-    bool globalEOL_m;                ///< End-of-line flag (reference particle hit an element).
-    double sStart_m;                 ///< Path-length start position for the track (m).
-    double ringPeriod_m;             ///< One-turn path length for RING, or zero for LINE.
+    OpalBeamline itsOpalBeamline_m;     ///< Cloned field elements and coordinate transforms.
+    bool referenceHitMaterial_m;        ///< A reference particle hit an element: the run ends.
+    std::vector<BeamStop> beamStops_m;  ///< Per container: ZSTOP plane and UNTILMAXSTEPS.
+    double sStart_m;                    ///< Path-length start position for the track (m).
+    double ringPeriod_m;                ///< One-turn path length for RING, or zero for LINE.
 
     /** Step-size segments: s-stop, dt, and steps per segment. */
     StepSizeConfig stepSizes_m;
@@ -462,6 +466,9 @@ private:
 
     /// @brief Set global bunch dt to dtCurrentTrack_m.
     void selectDT();
+
+    /// @brief Mark a beam done once every particle has passed its stop plane (collective call).
+    void updateBeamStops();
 
     /// @brief Delete particles marked invalid by the central per-container mask.
     size_t deleteInvalidParticles(bool activeOnly, Inform& m, const std::string& reason);

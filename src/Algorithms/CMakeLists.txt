@@ -29,6 +29,7 @@ set (_SRCS
 set (HDRS
     AbstractTimeDependence.h
     AbstractTracker.h
+    BeamStop.h
     CavityAutophaser.h
     CompensatedSum.h
     RungeKuttaTableau.h

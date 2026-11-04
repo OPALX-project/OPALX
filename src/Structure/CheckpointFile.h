@@ -8,7 +8,9 @@
 
 #include <cstddef>
 #include <string>
+#include <vector>
 
+#include "Algorithms/BeamStop.h"
 #include "OPALTypes.h"
 
 class CheckpointFile {
@@ -21,6 +23,9 @@ public:
         std::size_t numContainers   = 0;
         std::size_t stepSizeSegment = 0;  ///< Segment containing the next integration step.
         unsigned long long stepsCompletedInSegment = 0;
+        /// Per container: stop plane and done flag (zStop and untilMaxSteps come from the
+        /// input). Empty for checkpoints written before they were stored.
+        std::vector<BeamStop> beamStops;
     };
 
     /// Return the default checkpoint path for an OPAL input basename.
@@ -32,7 +37,8 @@ public:
      */
     static void write(
             const std::string& fileName, PartBunch_t& bunch, std::size_t stepSizeSegment,
-            unsigned long long stepsCompletedInSegment);
+            unsigned long long stepsCompletedInSegment,
+            const std::vector<BeamStop>& beamStops = {});
 
     /// Read metadata without changing a bunch.
     static Metadata inspect(const std::string& fileName);

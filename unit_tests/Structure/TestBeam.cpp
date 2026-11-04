@@ -233,4 +233,16 @@ namespace {
         EXPECT_NO_THROW(beam.execute());
     }
 
+    TEST_F(BeamPhotonTest, ZStopAndUntilMaxStepsAreUnsetByDefault) {
+        Beam beam;
+        EXPECT_FALSE(beam.getZStop().has_value());
+        EXPECT_FALSE(beam.getUntilMaxSteps());
+
+        Attributes::setReal(*beam.findAttribute("ZSTOP"), 12.5);
+        Attributes::setBool(*beam.findAttribute("UNTILMAXSTEPS"), true);
+        ASSERT_TRUE(beam.getZStop().has_value());
+        EXPECT_DOUBLE_EQ(*beam.getZStop(), 12.5);
+        EXPECT_TRUE(beam.getUntilMaxSteps());
+    }
+
 }  // namespace

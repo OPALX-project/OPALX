@@ -49,6 +49,9 @@ public:
 
     bool reachedEnd() const;
 
+    /// Whether the current segment is the last one.
+    bool isLastSegment() const;
+
     void clear();
 
     void reverseDirection();

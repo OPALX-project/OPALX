@@ -98,7 +98,7 @@ ParallelTracker::ParallelTracker(const Beamline& beamline, bool revBeam)
       dirichletPlane_m(),
       spaceChargeContainerActivity_m(),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
-      globalEOL_m(false),
+      referenceHitMaterial_m(false),
       sStart_m(0.0),
       ringPeriod_m(0.0),
       dtCurrentTrack_m(0.0),
@@ -130,7 +130,7 @@ ParallelTracker::ParallelTracker(
       dirichletPlane_m(std::move(dirichletPlane)),
       spaceChargeContainerActivity_m(),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
-      globalEOL_m(false),
+      referenceHitMaterial_m(false),
       sStart_m(sStart),
       ringPeriod_m(ringPeriod),
       dtCurrentTrack_m(0.0),
@@ -590,7 +590,17 @@ void ParallelTracker::execute() {
           << "* Max integration steps = " << stepSizes_m.getMaxSteps() << ", next step = " << step
           << endl;
 
-    globalEOL_m = false;
+    referenceHitMaterial_m = false;
+    beamStops_m.resize(itsBunch_m->getNumParticleContainers());
+    for (size_t i = 0; i < beamStops_m.size(); ++i) {
+        const BeamStop& stop = beamStops_m[i];
+        if (stop.zStop) {
+            *gmsg << level1 << "* Beam " << i << " stops when its last particle passes ZSTOP = "
+                  << Util::getLengthString(*stop.zStop) << "." << endl;
+        } else if (stop.untilMaxSteps) {
+            *gmsg << level1 << "* Beam " << i << " is tracked until MAXSTEPS." << endl;
+        }
+    }
     // wakeStatus_m       = false;
 
     stepSizes_m.printDirect(*gmsg);
@@ -605,6 +615,7 @@ void ParallelTracker::execute() {
     // Main tracking loop over step size configurations
     m << level5 << ">>>>>>>>>>>>>>>>>> Starting Tracking Loop >>>>>>>>>>>>>>>>>>" << endl;
     bool firstSegment = true;
+    bool stopRun      = false;
     while (!stepSizes_m.reachedEnd()) {
         step                                    = itsBunch_m->getGlobalTrackStep();
         const unsigned long long stepsInSegment = stepSizes_m.getNumSteps();
@@ -618,6 +629,10 @@ void ParallelTracker::execute() {
         }
         activateEmittingContainers(itsBunch_m->getT());
         firstSegment = false;
+        // Beams that passed their ZSTOP plane stay stopped.
+        for (size_t i = 0; i < beamStops_m.size(); ++i) {
+            if (beamStops_m[i].done) itsBunch_m->setPcAtSStop(i);
+        }
 
         // Inner loop over the number of steps for the current configuration
         m << level2 << "Starting track with dt = " << Util::getTimeString(dtCurrentTrack_m)
@@ -650,10 +665,6 @@ void ParallelTracker::execute() {
 
             // Particle R and mesh are in the reference frame for the whole step except during
             // solver-owned frame transformations inside computeSpaceChargeFields().
-
-            // Reset EOL flag each step: transient OutOfBounds (e.g. from invalid mesh
-            // bounds immediately after first emission) must not persist across steps.
-            globalEOL_m = false;
 
             if (requestedTurns_m && turnCounters.front()->count() == requestedTurns_m - 1) {
                 // Trial only the replicated reference on rank zero. Publish failures and
@@ -859,9 +870,11 @@ void ParallelTracker::execute() {
             if (!boundaryControlled_m || boundarySchedule->done()) ++stepsCompletedInSegment;
             m << level5 << "Track steps incremented." << endl;
 
-            // Check if active containers have reached the end of the current step size
-            // configuration (sStop), and if so prepare to switch to the next configuration on the
-            // next iteration.
+            // Rings stop by turns, EKINSTOP or path length. On a LINE the primary reference
+            // switches to the next DT segment at each ZSTOP entry before the last, and a beam with
+            // a ZSTOP stops once its last particle has passed its stop plane.
+            const bool line = ringPeriod_m <= 0.0 && !requestedTurns_m && kineticEnergyStop_m <= 0;
+            bool switchSegment = false;
             for (size_t i = 0; i < particleContainers.size(); ++i) {
                 const auto& pc = particleContainers[i];
                 if (!pc || !itsBunch_m->isPcActive(i)) {
@@ -884,19 +897,50 @@ void ParallelTracker::execute() {
                         || energyTargetReached_m) {
                         itsBunch_m->setPcAtSStop(i);
                     }
-                } else if (
-                        std::abs(stepSizes_m.getSStop() - pc->get_sPos())
+                } else if (!line) {
+                    if (std::abs(stepSizes_m.getSStop() - pc->get_sPos())
                         < 0.5 * driftPerTimeStep) {
-                    m << level2
-                      << "Approaching end of current step size configuration for container " << i
-                      << " (sStop = " << Util::getLengthString(stepSizes_m.getSStop())
-                      << ", path length = " << Util::getLengthString(pc->get_sPos()) << ")."
-                      << endl;
-                    itsBunch_m->setPcAtSStop(i);
+                        m << level2
+                          << "Approaching end of current step size configuration for container "
+                          << i << " (sStop = " << Util::getLengthString(stepSizes_m.getSStop())
+                          << ", path length = " << Util::getLengthString(pc->get_sPos()) << ")."
+                          << endl;
+                        itsBunch_m->setPcAtSStop(i);
+                    }
+                } else {
+                    if (i == 0 && !stepSizes_m.isLastSegment()
+                        && beam_stop::reached(
+                                pc->get_sPos(), stepSizes_m.getSStop(), driftPerTimeStep)) {
+                        m << level2 << "Primary reference reached sStop = "
+                          << Util::getLengthString(stepSizes_m.getSStop())
+                          << "; switching to the next DT segment." << endl;
+                        switchSegment = true;
+                    }
+                    if (i < beamStops_m.size() && !itsBunch_m->isFollower(i)) {
+                        BeamStop& stop = beamStops_m[i];
+                        if (stop.zStop && !stop.planeSet
+                            && beam_stop::reached(pc->get_sPos(), *stop.zStop, driftPerTimeStep)) {
+                            beam_stop::setPlane(
+                                    stop, pc->getRefPartR(), pc->getRefPartP(), pc->get_sPos());
+                            *gmsg << level1 << "* Beam " << i << ": reference reached ZSTOP = "
+                                  << Util::getLengthString(*stop.zStop)
+                                  << " at t = " << Util::getTimeString(itsBunch_m->getT())
+                                  << "; tracking until its last particle passes." << endl;
+                        }
+                    }
                 }
             }
-            const bool segmentComplete =
-                    !itsBunch_m->anyPcActive() || stepsCompletedInSegment == stepsInSegment;
+            if (line) updateBeamStops();
+
+            ippl::Comm->allreduce(referenceHitMaterial_m, 1, std::logical_or<bool>());
+            if (referenceHitMaterial_m) {
+                *gmsg << level1 << "* A reference particle hit an element; the run ends." << endl;
+            }
+            const bool runFinished =
+                    referenceHitMaterial_m || (line && beam_stop::runFinished(beamStops_m));
+            const bool segmentComplete = !itsBunch_m->anyPcActive()
+                                         || stepsCompletedInSegment == stepsInSegment
+                                         || switchSegment;
 
             if (Options::checkpointFreq > 0 && (!boundaryControlled_m || boundarySchedule->done())
                 && itsBunch_m->getGlobalTrackStep() % Options::checkpointFreq == 0) {
@@ -905,11 +949,18 @@ void ParallelTracker::execute() {
                         segmentComplete ? 0 : stepsCompletedInSegment;
                 const std::string checkpointPath =
                         CheckpointFile::defaultPath(OpalData::getInstance()->getInputBasename());
-                CheckpointFile::write(checkpointPath, *itsBunch_m, nextSegment, nextSegmentSteps);
+                CheckpointFile::write(
+                        checkpointPath, *itsBunch_m, nextSegment, nextSegmentSteps, beamStops_m);
                 m << level2 << "Wrote checkpoint '" << checkpointPath << "' after global step "
                   << itsBunch_m->getGlobalTrackStep() << "." << endl;
             }
 
+            if (runFinished) {
+                *gmsg << level1 << "* Every beam with a ZSTOP is done; the run ends." << endl;
+                stopRun = true;
+                break;
+            }
+            if (switchSegment) break;
             if (!itsBunch_m->anyPcActive()) {
                 m << level2
                   << "All active containers reached current sStop. Preparing to switch to "
@@ -918,12 +969,7 @@ void ParallelTracker::execute() {
             }
         }
 
-        // globalEOL_m is reset at the start of each step, so if it is still true
-        // here the last step genuinely ended with an out-of-bounds or reference
-        // particle hitting an element. Synchronize across ranks before deciding.
-        ippl::Comm->allreduce(globalEOL_m, 1, std::logical_and<bool>());
-
-        if (globalEOL_m) break;
+        if (stopRun) break;
         ++stepSizes_m;
         ++segmentIndex;
         stepsCompletedInSegment = 0;
@@ -1569,6 +1615,30 @@ size_t ParallelTracker::applyGlobalProcesses(double dt) {
     return nMarked;
 }
 
+void ParallelTracker::updateBeamStops() {
+    for (size_t i = 0; i < beamStops_m.size(); ++i) {
+        BeamStop& stop = beamStops_m[i];
+        if (!stop.planeSet || stop.done) continue;
+
+        // Particles are in the bunch frame: move the lab plane into it.
+        double minimum = std::numeric_limits<double>::max();
+        if (const auto pc = itsBunch_m->getParticleContainer(i)) {
+            const CoordinateSystemTrafo& toLab = pc->getToLabTrafo();
+            minimum                            = beam_stop::minDistanceToPlane(
+                    pc->R.getView(), pc->getLocalNum(), toLab.transformFrom(stop.planeOrigin),
+                    toLab.rotateFrom(stop.planeNormal));
+        }
+        ippl::Comm->allreduce(minimum, 1, std::less<double>());
+        if (minimum >= 0.0) {
+            stop.done = true;
+            itsBunch_m->setPcAtSStop(i);
+            *gmsg << level1 << "* Beam " << i << ": its last particle passed ZSTOP at t = "
+                  << Util::getTimeString(itsBunch_m->getT()) << "; it is no longer tracked."
+                  << endl;
+        }
+    }
+}
+
 size_t ParallelTracker::deleteInvalidParticles(
         bool activeOnly, Inform& m, const std::string& reason) {
     const size_t nContainers = itsBunch_m->getNumParticleContainers();
@@ -2117,7 +2187,7 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& /*pusher*/) {
         pc.getRefPartP() = end.momentum;
         if (end.hitMaterial) {
             *gmsg << level1 << "The reference particle hit an element" << endl;
-            globalEOL_m = true;
+            referenceHitMaterial_m = true;
         }
     }
 }
