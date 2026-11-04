@@ -101,6 +101,90 @@ namespace opalx::spacecharge {
         return result;
     }
 
+    void FFT2D5Algorithm::preparePathGeometryAndProjections(
+            const SpaceChargeSolveContext& context) {
+        const auto ref = solveReferencePath_m;
+        if (ref.extent(0) < 2) return;
+        const auto segments = ref.extent(0) - 1;
+        if (segmentGeometry_m.extent(0) != segments) {
+            segmentGeometry_m = SegmentGeometryView_t("FFT2D5SegmentGeometry", segments);
+        }
+        const auto geometry = segmentGeometry_m;
+        // This short serial prefix preserves increasing segment summation order.
+        Kokkos::parallel_for(
+                "FFT2D5::preparePathGeometry", 1, KOKKOS_LAMBDA(const size_t) {
+                    T prefix = 0.0;
+                    for (size_t i = 0; i < segments; ++i) {
+                        const Vector3D_t direction = ref(i + 1) - ref(i);
+                        const T length             = euclidean_norm(direction);
+                        for (unsigned d = 0; d < 3; ++d)
+                            geometry(i, d) = direction[d];
+                        geometry(i, 3) = direction.dot(direction);
+                        geometry(i, 4) = length;
+                        geometry(i, 5) = prefix;
+                        prefix += length;
+                    }
+                });
+        Kokkos::fence();
+        projectedPositions_m.resize(particles_m.size());
+        projectedSegments_m.resize(particles_m.size());
+        for (size_t container = 0; container < particles_m.size(); ++container) {
+            if (context.trackingActive()[container] == 0) continue;
+            const auto count = particles_m[container]->getLocalNum();
+            if (projectedPositions_m[container].extent(0) != count) {
+                projectedPositions_m[container] = VectorView_t("FFT2D5ProjectedPositions", count);
+                projectedSegments_m[container] =
+                        SegmentIndexView_t("FFT2D5ProjectedSegments", count);
+            }
+            const auto positions = particles_m[container]->R.getView();
+            const auto invalid   = particles_m[container]->InvalidMask.getView();
+            const auto projected = projectedPositions_m[container];
+            const auto indices   = projectedSegments_m[container];
+            Kokkos::parallel_for(
+                    "FFT2D5::prepareParticleProjections", count, KOKKOS_LAMBDA(const size_t n) {
+                        if (invalid(n)) {
+                            projected(n) = Vector3D_t(0.0);
+                            indices(n)   = segments;
+                            return;
+                        }
+                        const Vector3D_t position = positions(n);
+                        T bestDistance2           = Kokkos::Experimental::finite_max_v<T>;
+                        size_t best               = 0;
+                        T bestFraction            = 0.0;
+                        Vector3D_t closest(0.0);
+                        for (size_t i = 0; i < segments; ++i) {
+                            const T length2 = geometry(i, 3);
+                            if (length2 <= 0.0) continue;
+                            const Vector3D_t direction(
+                                    geometry(i, 0), geometry(i, 1), geometry(i, 2));
+                            const Vector3D_t start = ref(i);
+                            const T fraction       = Kokkos::clamp(
+                                    direction.dot(position - start) / length2, 0.0, 1.0);
+                            const Vector3D_t point      = start + fraction * direction;
+                            const Vector3D_t difference = position - point;
+                            const T distance2           = difference.dot(difference);
+                            if (distance2 < bestDistance2) {
+                                best          = i;
+                                bestFraction  = fraction;
+                                closest       = point;
+                                bestDistance2 = distance2;
+                            }
+                        }
+                        const Vector3D_t tangent =
+                                Vector3D_t(geometry(best, 0), geometry(best, 1), geometry(best, 2))
+                                / geometry(best, 4);
+                        const Vector3D_t normal(0.0, 1.0, 0.0);
+                        const Vector3D_t binormal = ippl::cross(normal, tangent);
+                        const Vector3D_t offset   = position - closest;
+                        projected(n)              = Vector3D_t(
+                                offset.dot(binormal), offset.dot(normal),
+                                geometry(best, 5) + bestFraction * geometry(best, 4));
+                        indices(n) = best;
+                    });
+        }
+        Kokkos::fence();
+    }
+
     std::size_t FFT2D5Algorithm::sliceCount() const {
         return fieldStorage_m == nullptr ? 0 : fieldStorage_m->meshSize()[2];
     }

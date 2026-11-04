@@ -51,6 +51,9 @@ namespace opalx::spacecharge {
             Algorithm::VectorView_t r_m;
             Algorithm::VectorView_t p_m;
             Algorithm::ReferenceView_t ref_m;
+            Algorithm::SegmentGeometryView_t geometry_m;
+            Algorithm::VectorView_t projectedR_m;
+            Algorithm::SegmentIndexView_t projectedSegment_m;
             Algorithm::T meanPs_m;
             Algorithm::ScalarView_t dt_m;
             Algorithm::BooleanView_t invalid_m;
@@ -64,7 +67,8 @@ namespace opalx::spacecharge {
             KOKKOS_FUNCTION void operator()(const size_t n) const {
                 Algorithm::doScatterToGrid<ScatterLongitudinally>(
                         n, r_m, p_m, ref_m, meanPs_m, dt_m, invalid_m, invDr_m, nGhost_m, lDom_m,
-                        rho_m, origin_m, diagnostic_m);
+                        rho_m, origin_m, diagnostic_m, geometry_m, projectedR_m,
+                        projectedSegment_m);
             }
         };
 
@@ -73,6 +77,9 @@ namespace opalx::spacecharge {
             Algorithm::VectorView_t r_m;
             Algorithm::VectorView_t p_m;
             Algorithm::ReferenceView_t ref_m;
+            Algorithm::SegmentGeometryView_t geometry_m;
+            Algorithm::VectorView_t projectedR_m;
+            Algorithm::SegmentIndexView_t projectedSegment_m;
             Algorithm::BooleanView_t invalid_m;
             Algorithm::T length_m;
             Algorithm::T tolerance_m;
@@ -80,7 +87,9 @@ namespace opalx::spacecharge {
             KOKKOS_FUNCTION void operator()(const size_t n, size_t& outside) const {
                 if (invalid_m(n)) return;
                 Algorithm::Vector3D_t fsR, fsP, bUnit, nUnit, tUnit;
-                Algorithm::convertToFrenetSerret(n, r_m, p_m, ref_m, fsR, fsP, bUnit, nUnit, tUnit);
+                Algorithm::convertToFrenetSerret(
+                        n, r_m, p_m, ref_m, fsR, fsP, bUnit, nUnit, tUnit, geometry_m, projectedR_m,
+                        projectedSegment_m);
                 const Algorithm::Vector3D_t fromStart = r_m(n) - ref_m(0);
                 const auto before                     = fromStart.dot(tUnit);
                 const Algorithm::Vector3D_t fromEnd   = r_m(n) - ref_m(ref_m.extent(0) - 1);
@@ -206,6 +215,9 @@ namespace opalx::spacecharge {
             Algorithm::VectorView_t r_m;
             Algorithm::VectorView_t p_m;
             Algorithm::ReferenceView_t ref_m;
+            Algorithm::SegmentGeometryView_t geometry_m;
+            Algorithm::VectorView_t projectedR_m;
+            Algorithm::SegmentIndexView_t projectedSegment_m;
             Algorithm::T beamGamma_m;
             Algorithm::T beamBeta_m;
             Algorithm::VectorView_t e_m;
@@ -225,7 +237,8 @@ namespace opalx::spacecharge {
                 Algorithm::doGatherFromGrid<ScatterLongitudinally>(
                         n, r_m, p_m, ref_m, beamGamma_m, beamBeta_m, e_m, b_m, invalid_m, invDr_m,
                         nGhost_m, lDom_m, eField_m, origin_m, gBy4PiEpsilon0_m,
-                        lineDensityGradient_m, closedRing_m, diagnostic_m);
+                        lineDensityGradient_m, closedRing_m, diagnostic_m, geometry_m, projectedR_m,
+                        projectedSegment_m);
             }
         };
     }  // namespace fft2d5_detail
@@ -233,10 +246,11 @@ namespace opalx::spacecharge {
     template <typename DiagnosticPolicy>
     void FFT2D5Algorithm::doRunSolver(
             const SpaceChargeSolveContext& context, DiagnosticPolicy diagnostic) {
-        scatterToGrid<DiagnosticPolicy>(context, diagnostic);
+        preparePathGeometryAndProjections(context);
+        scatterToGrid<DiagnosticPolicy>(context, diagnostic, true);
         solvePoissons<DiagnosticPolicy>(diagnostic);
         calculateLineDensity<DiagnosticPolicy>(diagnostic);
-        gatherFromGrid<DiagnosticPolicy>(context, diagnostic);
+        gatherFromGrid<DiagnosticPolicy>(context, diagnostic, true);
     }
 
     template <typename DiagnosticPolicy>
@@ -255,7 +269,8 @@ namespace opalx::spacecharge {
     // The periodic boundary conditions are handled when the ring is marked as closed.
     template <typename DiagnosticPolicy>
     void FFT2D5Algorithm::scatterToGrid(
-            const SpaceChargeSolveContext& context, DiagnosticPolicy diagnostic) {
+            const SpaceChargeSolveContext& context, DiagnosticPolicy diagnostic,
+            const bool usePreparedProjections) {
         using Policy2D_t = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
         using Policy3D_t = Kokkos::MDRangePolicy<Kokkos::Rank<3>>;
         if (solveReferencePath_m.extent(0) > 1) {
@@ -272,6 +287,13 @@ namespace opalx::spacecharge {
                     continue;
                 }
                 auto* pc = particles_m[container];
+                const auto geometry =
+                        usePreparedProjections ? segmentGeometry_m : SegmentGeometryView_t();
+                const auto projectedR =
+                        usePreparedProjections ? projectedPositions_m[container] : VectorView_t();
+                const auto projectedSegment = usePreparedProjections
+                                                      ? projectedSegments_m[container]
+                                                      : SegmentIndexView_t();
                 pc->updateMoments();
                 if (pc->getTotalNum() > 0 && pc->getChargePerParticle() == 0.0) {
                     throw OpalException(
@@ -288,8 +310,8 @@ namespace opalx::spacecharge {
                     Kokkos::parallel_reduce(
                             "FFT2D5::checkPathCoverage", pc->getLocalNum(),
                             fft2d5_detail::CheckPathCoverageFunctor{
-                                    pc->R.getView(), pc->P.getView(), ref,
-                                    pc->InvalidMask.getView(), length, tolerance},
+                                    pc->R.getView(), pc->P.getView(), ref, geometry, projectedR,
+                                    projectedSegment, pc->InvalidMask.getView(), length, tolerance},
                             outside);
                     if (outside != 0) {
                         throw OpalException(
@@ -310,15 +332,15 @@ namespace opalx::spacecharge {
                             "Solve2d5::scatterToGrid::scatter", pc->getLocalNum(),
                             fft2d5_detail::ScatterToGridFunctor<
                                     true, DiagnosticPolicy, decltype(invDr)>{
-                                    r, p, ref, meanPs, dt, invalid, invDr, nGhost, lDom, rhoView,
-                                    origin, diagnostic});
+                                    r, p, ref, geometry, projectedR, projectedSegment, meanPs, dt,
+                                    invalid, invDr, nGhost, lDom, rhoView, origin, diagnostic});
                 } else {
                     Kokkos::parallel_for(
                             "Solve2d5::scatterToGrid::scatter", pc->getLocalNum(),
                             fft2d5_detail::ScatterToGridFunctor<
                                     false, DiagnosticPolicy, decltype(invDr)>{
-                                    r, p, ref, meanPs, dt, invalid, invDr, nGhost, lDom, rhoView,
-                                    origin, diagnostic});
+                                    r, p, ref, geometry, projectedR, projectedSegment, meanPs, dt,
+                                    invalid, invDr, nGhost, lDom, rhoView, origin, diagnostic});
                 }
                 Kokkos::fence();
                 diagnostic.scatterCharge(rhoView);
@@ -367,11 +389,14 @@ namespace opalx::spacecharge {
             const ReferenceView_t& ref, const T meanPs, const ScalarView_t& dt,
             const BooleanView_t& invalid, const Vector3D_t invDr, const int nGhost,
             const ippl::NDIndex<3U> lDom, const ScalarGridView3D_t rho, const Vector3D_t origin,
-            DiagnosticPolicy diagnostic) {
+            DiagnosticPolicy diagnostic, const SegmentGeometryView_t& geometry,
+            const VectorView_t& projectedR, const SegmentIndexView_t& projectedSegment) {
         if (!invalid(n)) {
             // Into Frenet-Serret coordinates
             Vector3D_t fsR, fsP, bUnit, nUnit, tUnit;
-            convertToFrenetSerret(n, r, p, ref, fsR, fsP, bUnit, nUnit, tUnit);
+            convertToFrenetSerret(
+                    n, r, p, ref, fsR, fsP, bUnit, nUnit, tUnit, geometry, projectedR,
+                    projectedSegment);
             diagnostic.frenetSerretScatter(n, fsR, fsP, invalid(n));
             // Boost into the beam frame
             boostToBeamFrame(meanPs, fsP);
@@ -384,7 +409,18 @@ namespace opalx::spacecharge {
     KOKKOS_INLINE_FUNCTION void FFT2D5Algorithm::convertToFrenetSerret(
             const size_t n, const VectorView_t& r, const VectorView_t& p,
             const ReferenceView_t& ref, Vector3D_t& fsR, Vector3D_t& fsP, Vector3D_t& bUnit,
-            Vector3D_t& nUnit, Vector3D_t& tUnit) {
+            Vector3D_t& nUnit, Vector3D_t& tUnit, const SegmentGeometryView_t& geometry,
+            const VectorView_t& projectedR, const SegmentIndexView_t& projectedSegment) {
+        if (projectedR.extent(0) != 0) {
+            const auto segment = projectedSegment(n);
+            fsR                = projectedR(n);
+            tUnit = Vector3D_t(geometry(segment, 0), geometry(segment, 1), geometry(segment, 2))
+                    / geometry(segment, 4);
+            nUnit = {0, 1, 0};
+            bUnit = ippl::cross(nUnit, tUnit);
+            fsP   = Vector3D_t(p(n).dot(bUnit), p(n).dot(nUnit), p(n).dot(tUnit));
+            return;
+        }
         // Find the segment with the shortest normal to the point
         T bestDist2 = Kokkos::Experimental::finite_max_v<T>;
         size_t bestI{};
@@ -605,13 +641,21 @@ namespace opalx::spacecharge {
 
     template <typename DiagnosticPolicy>
     void FFT2D5Algorithm::gatherFromGrid(
-            const SpaceChargeSolveContext& context, DiagnosticPolicy diagnostic) {
+            const SpaceChargeSolveContext& context, DiagnosticPolicy diagnostic,
+            const bool usePreparedProjections) {
         if (solveReferencePath_m.extent(0) > 1) {
             for (std::size_t container = 0; container < particles_m.size(); ++container) {
                 if (context.trackingActive()[container] == 0) {
                     continue;
                 }
                 auto* pc                       = particles_m[container];
+                const auto geometry =
+                        usePreparedProjections ? segmentGeometry_m : SegmentGeometryView_t();
+                const auto projectedR =
+                        usePreparedProjections ? projectedPositions_m[container] : VectorView_t();
+                const auto projectedSegment    = usePreparedProjections
+                                                         ? projectedSegments_m[container]
+                                                         : SegmentIndexView_t();
                 const auto r                   = pc->R.getView();
                 const auto p                   = pc->P.getView();
                 const auto ref                 = solveReferencePath_m;
@@ -646,17 +690,51 @@ namespace opalx::spacecharge {
                             "Solver2d5::GatherFromGrid", pc->getLocalNum(),
                             fft2d5_detail::GatherFromGridFunctor<
                                     true, DiagnosticPolicy, decltype(invDr)>{
-                                    r, p, ref, gammaB, betaB, e, b, invalid, invDr, nGhost, lDom,
-                                    eField, origin, gBy4PiEpsilon0, lineDensityGradient,
-                                    config_m.closedRing, diagnostic});
+                                    r,
+                                    p,
+                                    ref,
+                                    geometry,
+                                    projectedR,
+                                    projectedSegment,
+                                    gammaB,
+                                    betaB,
+                                    e,
+                                    b,
+                                    invalid,
+                                    invDr,
+                                    nGhost,
+                                    lDom,
+                                    eField,
+                                    origin,
+                                    gBy4PiEpsilon0,
+                                    lineDensityGradient,
+                                    config_m.closedRing,
+                                    diagnostic});
                 } else {
                     Kokkos::parallel_for(
                             "Solver2d5::GatherFromGrid", pc->getLocalNum(),
                             fft2d5_detail::GatherFromGridFunctor<
                                     false, DiagnosticPolicy, decltype(invDr)>{
-                                    r, p, ref, gammaB, betaB, e, b, invalid, invDr, nGhost, lDom,
-                                    eField, origin, gBy4PiEpsilon0, lineDensityGradient,
-                                    config_m.closedRing, diagnostic});
+                                    r,
+                                    p,
+                                    ref,
+                                    geometry,
+                                    projectedR,
+                                    projectedSegment,
+                                    gammaB,
+                                    betaB,
+                                    e,
+                                    b,
+                                    invalid,
+                                    invDr,
+                                    nGhost,
+                                    lDom,
+                                    eField,
+                                    origin,
+                                    gBy4PiEpsilon0,
+                                    lineDensityGradient,
+                                    config_m.closedRing,
+                                    diagnostic});
                 }
                 Kokkos::fence();
             }
@@ -671,11 +749,14 @@ namespace opalx::spacecharge {
             const int nGhost, const ippl::NDIndex<3U> lDom, const VectorGridView3D_t eField,
             const Vector3D_t origin, const T gBy4PiEpsilon0,
             const LineDensityView_t lineDensityGradient, const bool closedRing,
-            DiagnosticPolicy diagnostic) {
+            DiagnosticPolicy diagnostic, const SegmentGeometryView_t& geometry,
+            const VectorView_t& projectedR, const SegmentIndexView_t& projectedSegment) {
         if (!invalid(n)) {
             // Into Frenet-Serret coordinates
             Vector3D_t fsR, fsP, bUnit, nUnit, tUnit;
-            convertToFrenetSerret(n, r, p, ref, fsR, fsP, bUnit, nUnit, tUnit);
+            convertToFrenetSerret(
+                    n, r, p, ref, fsR, fsP, bUnit, nUnit, tUnit, geometry, projectedR,
+                    projectedSegment);
             diagnostic.frenetSerretGather(n, fsR, fsP, invalid(n));
             // CiC Gather the boosted E field
             gatherFromEField<ScatterLongitudinally>(n, fsR, e, invDr, nGhost, lDom, eField, origin);

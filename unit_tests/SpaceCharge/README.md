@@ -5,6 +5,13 @@ physical fields when the moving reference frame changes. It also covers
 multiple active containers, repeated solves, inactive containers and restoration
 of coordinates and time steps after an open-path coverage error.
 
+The complete solve prepares path geometry and particle projections once. A
+focused comparison against the uncached diagnostic stages checks deposited
+density and all electric/magnetic field components on nonuniform paths, including
+zero-length segments, corner ties, periodic-seam probes, invalid particles and
+changes of particle count, ordering and momentum. Standalone diagnostic stages
+recompute projections; cached entries are refreshed for every complete solve.
+
 `TestFFT2D5Numerics` checks the transverse slice solver against independent
 rectangular-cell logarithmic-potential quadrature and analytic Gaussian fields. It covers
 anisotropic cells, changes of length unit, boundary-cell self-force, potential

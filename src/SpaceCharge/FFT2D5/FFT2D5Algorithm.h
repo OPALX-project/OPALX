@@ -72,6 +72,8 @@ namespace opalx::spacecharge {
         using BooleanView_t           = ParticleAttrib<bool>::view_type;
         using ReferenceView_t         = Kokkos::View<Vector3D_t*>;
         using LineDensityView_t       = Kokkos::View<T*>;
+        using SegmentGeometryView_t   = Kokkos::View<T* [6]>;
+        using SegmentIndexView_t      = Kokkos::View<size_t*>;
         using ScalarGridView3D_t      = Field<T, 3U>::view_type;
         using VectorGridView3D_t      = Field<Vector3D_t, 3U>::view_type;
         using ScalarGridView2D_t      = Field<T, 2U>::view_type;
@@ -165,6 +167,8 @@ namespace opalx::spacecharge {
 
         /**
          * @brief Deposits particle charge onto the 3D grid.
+         * @param usePreparedProjections Use the cache prepared by doRunSolver; standalone
+         *        diagnostic calls leave this false and calculate fresh projections.
          *
          * @tparam DiagnosticPolicy Diagnostic policy used to inspect the charge
          *                           deposition process. Defaults to NullDiagnostic.
@@ -173,7 +177,8 @@ namespace opalx::spacecharge {
          */
         template <typename DiagnosticPolicy = NullDiagnostic>
         void scatterToGrid(
-                const SpaceChargeSolveContext& context, DiagnosticPolicy diagnostic = {});
+                const SpaceChargeSolveContext& context, DiagnosticPolicy diagnostic = {},
+                bool usePreparedProjections = false);
 
         /**
          * @brief Solves the two-dimensional Poisson equations on the longitudinal slices.
@@ -198,6 +203,8 @@ namespace opalx::spacecharge {
 
         /**
          * @brief Interpolates the calculated electric field back to the particles.
+         * @param usePreparedProjections Use only the current doRunSolver preparation;
+         *        standalone probe/diagnostic calls default to fresh conversion.
          *
          * @tparam DiagnosticPolicy Diagnostic policy used to inspect the field
          *                           gathering process. Defaults to NullDiagnostic.
@@ -206,7 +213,8 @@ namespace opalx::spacecharge {
          */
         template <typename DiagnosticPolicy = NullDiagnostic>
         void gatherFromGrid(
-                const SpaceChargeSolveContext& context, DiagnosticPolicy diagnostic = {});
+                const SpaceChargeSolveContext& context, DiagnosticPolicy diagnostic = {},
+                bool usePreparedProjections = false);
 
         /**
          * @brief Creates a diagnostic policy for use by the solver unit tests.
@@ -256,16 +264,27 @@ namespace opalx::spacecharge {
          * @param rho Charge-density grid onto which particle charge is deposited.
          * @param origin Physical origin of the charge-density grid.
          * @param diagnostic Diagnostic policy used to record intermediate results.
+         * @param geometry Current solve-frame segment geometry for prepared conversion.
+         * @param projectedR Prepared local coordinates; empty uses the original conversion.
+         * @param projectedSegment Nearest-segment indices paired with projectedR.
          */
         template <bool ScatterLongitudinally, typename DiagnosticPolicy = NullDiagnostic>
         KOKKOS_FUNCTION static void doScatterToGrid(
                 size_t n, const VectorView_t& r, const VectorView_t& p, const ReferenceView_t& ref,
                 T meanPs, const ScalarView_t& dt, const BooleanView_t& invalid, Vector3D_t invDr,
                 int nGhost, ippl::NDIndex<3U> lDom, ScalarGridView3D_t rho, Vector3D_t origin,
-                DiagnosticPolicy diagnostic);
+                DiagnosticPolicy diagnostic, const SegmentGeometryView_t& geometry = {},
+                const VectorView_t& projectedR             = {},
+                const SegmentIndexView_t& projectedSegment = {});
 
         /**
          * @brief Kokkos function that converts from lab to Frenet-Serret coordinates.
+         * @details Empty projection views retain the original exhaustive conversion. With
+         * prepared views, reuse only position and segment selection; project the current
+         * momentum onto the same basis so diagnostic momentum values are never cached.
+         * @param geometry Current solve-frame segment geometry (optional cached mode).
+         * @param projectedR Prepared local particle coordinates (empty selects uncached mode).
+         * @param projectedSegment Prepared nearest-segment indices, paired with projectedR.
          *
          * @param n The particle number.
          * @param r Particle positions.
@@ -281,7 +300,9 @@ namespace opalx::spacecharge {
         KOKKOS_FUNCTION static void convertToFrenetSerret(
                 size_t n, const VectorView_t& r, const VectorView_t& p, const ReferenceView_t& ref,
                 Vector3D_t& fsR, Vector3D_t& fsP, Vector3D_t& bUnit, Vector3D_t& nUnit,
-                Vector3D_t& tUnit);
+                Vector3D_t& tUnit, const SegmentGeometryView_t& geometry = {},
+                const VectorView_t& projectedR             = {},
+                const SegmentIndexView_t& projectedSegment = {});
 
         /**
          * @brief Kokkos function that boosts coordinates into the beam reference frame.
@@ -343,6 +364,9 @@ namespace opalx::spacecharge {
          * @param lineDensityGradient The longitudinal line charge density gradient.
          * @param closedRing Whether interpolation wraps across the path endpoints.
          * @param diagnostic Diagnostic policy used to record intermediate results.
+         * @param geometry Current solve-frame segment geometry for prepared conversion.
+         * @param projectedR Prepared local coordinates; empty uses the original conversion.
+         * @param projectedSegment Nearest-segment indices paired with projectedR.
          */
         template <bool ScatterLongitudinally, typename DiagnosticPolicy = NullDiagnostic>
         KOKKOS_FUNCTION static void doGatherFromGrid(
@@ -350,8 +374,9 @@ namespace opalx::spacecharge {
                 T beamGamma, T beamBeta, const VectorView_t& e, const VectorView_t& b,
                 const BooleanView_t& invalid, Vector3D_t invDr, int nGhost, ippl::NDIndex<3U> lDom,
                 VectorGridView3D_t eField, Vector3D_t origin, T gBy4PiEpsilon0,
-                LineDensityView_t lineDensityGradient, bool closedRing,
-                DiagnosticPolicy diagnostic);
+                LineDensityView_t lineDensityGradient, bool closedRing, DiagnosticPolicy diagnostic,
+                const SegmentGeometryView_t& geometry = {}, const VectorView_t& projectedR = {},
+                const SegmentIndexView_t& projectedSegment = {});
 
         /**
          * @brief Kokkos function that gathers the boosted E field for a particle from
@@ -533,11 +558,77 @@ namespace opalx::spacecharge {
         const LineDensityView_t& getLineDensityGradient() const { return lineDensityGradient_m; }
 
     private:
+        /**
+         * @brief Prepare segment geometry and particle projections for one complete field solve.
+         *
+         * @details
+         * This single preparation call eliminates repeated path-only calculations and the
+         * second nearest-segment search during gather. It is called by doRunSolver after
+         * solve() has put the reference path and every active particle container into the
+         * same Cartesian solve frame, and before coverage checking or charge deposition.
+         * Two ordered device stages are required: one geometry kernel, followed by a
+         * projection kernel for each active container. Geometry must be complete before
+         * particles search it; no global inter-block barrier is assumed inside a kernel.
+         *
+         * For path points R_i, segment i stores six doubles:
+         * - columns 0..2: d_i = R_(i+1) - R_i;
+         * - column 3: d_i dot d_i;
+         * - column 4: l_i = |d_i|;
+         * - column 5: S_i = sum_(j<i) l_j, the arc length at the segment start.
+         * The squared length, rather than its reciprocal, retains the original division
+         * in the closest-point calculation. A short single-work-item geometry kernel
+         * accumulates S_i in increasing segment order; zero-length segments contribute
+         * zero length and remain excluded from the nearest-segment search.
+         *
+         * For each non-invalid particle x, search all segments in their original order:
+         * @f[
+         * u_i = clamp((x-R_i)\cdot d_i / |d_i|^2,0,1),\qquad
+         * q_i = R_i + u_i d_i.
+         * @f]
+         * The first strictly closest segment is retained, preserving the existing tie
+         * rule. Store its index and local coordinates (x_perp,y_perp,s), with
+         * @f$ s=S_i+u_i l_i @f$. The normal remains the existing (0,1,0), the tangent is
+         * d_i/l_i and the binormal is normal cross tangent. This preserves the present
+         * path/basis approximation; it introduces no smoothing or curvature correction.
+         * Pre-summing S_i changes floating-point association relative to adding preceding
+         * lengths to u_i*l_i for every particle; small rounding differences are expected.
+         *
+         * The resulting cache is read by open-path coverage checking, deposition and
+         * gather in this doRunSolver call. Those stages do not change particle positions,
+         * momenta, ordering or the solve frame. Momentum is deliberately not cached: its
+         * local components are recomputed by the conversion used for diagnostics. Invalid
+         * particles receive a sentinel segment index and are skipped by all consumers.
+         * Inactive containers are neither projected nor modified.
+         *
+         * @par Lifetime and storage
+         * Recompute geometry and every active particle projection on every complete solve,
+         * including after frame changes, particle movement, reordering or count changes.
+         * Reuse allocated views when their extents match; otherwise resize them before
+         * launching the particle kernel. Storage is O(M + N): 48*M bytes for M segments
+         * and (3*sizeof(double)+sizeof(size_t))*N bytes for local particle caches.
+         * Buffers of temporarily inactive containers may retain their previous allocation.
+         * Views are shared read-only by OpenMP workers; no N-by-M distance matrix exists.
+         * The remaining exhaustive search costs O(M*N) work, performed once per solve.
+         * Standalone scatterToGrid/gatherFromGrid diagnostic calls default to the uncached
+         * conversion, so a later probe edit or exception cannot reuse a stale projection.
+         *
+         * @param context Per-call container activity and tracker state.
+         * @pre The initialized path and particles use the same aligned solve frame.
+         * @pre Inspection-only diagnostic callbacks do not move or reorder particles
+         *      between preparation and the end of doRunSolver.
+         * @post Every active non-invalid particle has fresh local coordinates and a
+         *       nearest-segment index. No particle position, momentum, field or dt is changed.
+         */
+        void preparePathGeometryAndProjections(const SpaceChargeSolveContext& context);
+
         FFT2D5Config config_m;
         std::vector<ParticleContainer*> particles_m;
         std::shared_ptr<const BunchStateHandler> bunchState_m;
         std::unique_ptr<ReferencePath> referencePath_m;
         ReferenceView_t solveReferencePath_m;
+        SegmentGeometryView_t segmentGeometry_m;
+        std::vector<VectorView_t> projectedPositions_m;
+        std::vector<SegmentIndexView_t> projectedSegments_m;
         std::unique_ptr<FFT2D5FieldStorage> fieldStorage_m;
         LineDensityView_t lineDensity_m;
         LineDensityView_t lineDensityGradient_m;

@@ -418,6 +418,103 @@ namespace opalx::spacecharge {
             expectSourceRestored(positions, momentum);
         }
 
+        TEST_F(FFT2D5AlgorithmTest, PreparedProjectionsMatchUncachedStagesAfterSourceChanges) {
+            // Nonuniform segments, a repeated vertex and a closed seam exercise geometry
+            // and first-nearest selection. Both boundary modes use this same spatial path.
+            {
+                std::ofstream path(pathFile_m);
+                path << std::setprecision(17);
+                path << "s rx ry rz px py pz ex ey ez bx by bz ke t\n";
+                for (const auto& point : std::array<Vector, 8>{
+                             Vector(0, 0, 0), Vector(0, 0, 0.37), Vector(0, 0, 1), Vector(-1, 0, 1),
+                             Vector(-1, 0, 1), Vector(-1, 0, 0), Vector(-0.4, 0, 0),
+                             Vector(0, 0, 0)}) {
+                    path << "0 " << point[0] << " " << point[1] << " " << point[2]
+                         << " 0 0 1 0 0 0 0 0 0 0 0\n";
+                }
+            }
+            setPhysicalSource(sourcePositions(), Vector(0, 0, 0.4), CoordinateSystemTrafo());
+            const std::array<std::uint8_t, 1> activity{1};
+            SpaceChargeStepState step;
+            step.timeStep = 1.0e-12;
+            SpaceChargeSolveContext context(activity, step);
+            size_t iteration = 0;
+            for (const bool closed : {false, true}) {
+                auto values          = config(FFT2D5LongitudinalFieldMode::Open);
+                values.grid.meshSize = {16, 16, 32};
+                values.closedRing    = closed;
+                std::array containers{particles_m.get()};
+                FFT2D5Algorithm solver(values, containers, bunchState_m);
+                for (unsigned repeat = 0; repeat < 2; ++repeat, ++iteration) {
+                    const size_t count = sourceSize + 4 * iteration;
+                    if (particles_m->getLocalNum() < count) {
+                        particles_m->createParticles(count - particles_m->getLocalNum());
+                    }
+                    particles_m->setQ(1.0e-12);
+                    particles_m->setM(Physics::m_e);
+                    auto positions = particles_m->R.getHostMirror();
+                    auto momenta   = particles_m->P.getHostMirror();
+                    auto mask      = particles_m->InvalidMask.getHostMirror();
+                    for (size_t n = 0; n < count; ++n) {
+                        // Reordering, movement and momentum changes must refresh every solve.
+                        positions(n) = sourcePositions()[(n + iteration) % sourceSize];
+                        positions(n)[0] += 0.002 * iteration;
+                        momenta(n) = Vector(0.002 * iteration, 0.001 * n, 0.4);
+                        mask(n)    = n + 1 == count;
+                    }
+                    positions(0) = Vector(-0.1, 0.01, 0);    // Last segment near periodic seam.
+                    positions(1) = Vector(0, -0.01, 0.001);  // First segment near periodic seam.
+                    positions(2) = Vector(0, 0, 1);          // Equal-distance corner tie.
+                    Kokkos::deep_copy(particles_m->R.getView(), positions);
+                    Kokkos::deep_copy(particles_m->P.getView(), momenta);
+                    Kokkos::deep_copy(particles_m->InvalidMask.getView(), mask);
+                    Kokkos::deep_copy(particles_m->dt.getView(), step.timeStep);
+                    particles_m->markMomentsDirty();
+                    particles_m->updateMoments();
+                    ASSERT_NO_THROW(static_cast<void>(solver.solve(context)));
+                    // create_mirror always allocates; create_mirror_view could alias on CPU.
+                    auto expectedE   = Kokkos::create_mirror(particles_m->E.getView());
+                    auto expectedB   = Kokkos::create_mirror(particles_m->B.getView());
+                    auto expectedRho = Kokkos::create_mirror(solver.getRho()->getView());
+                    Kokkos::deep_copy(expectedE, particles_m->E.getView());
+                    Kokkos::deep_copy(expectedB, particles_m->B.getView());
+                    Kokkos::deep_copy(expectedRho, solver.getRho()->getView());
+                    solver.scatterToGrid(context);  // Uncached original conversion is the oracle.
+                    const auto actualRho = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), solver.getRho()->getView());
+                    double rhoScale = 0.0;
+                    for (size_t i = 0; i < actualRho.extent(0); ++i)
+                        for (size_t j = 0; j < actualRho.extent(1); ++j)
+                            for (size_t k = 0; k < actualRho.extent(2); ++k)
+                                rhoScale = std::max(rhoScale, std::abs(expectedRho(i, j, k)));
+                    for (size_t i = 0; i < actualRho.extent(0); ++i)
+                        for (size_t j = 0; j < actualRho.extent(1); ++j)
+                            for (size_t k = 0; k < actualRho.extent(2); ++k)
+                                EXPECT_NEAR(
+                                        actualRho(i, j, k), expectedRho(i, j, k),
+                                        rhoScale * 1e-12 + 1e-30);
+                    solver.solvePoissons();
+                    solver.calculateLineDensity();
+                    solver.gatherFromGrid(context);
+                    const auto actualE = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), particles_m->E.getView());
+                    const auto actualB = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), particles_m->B.getView());
+                    double eScale = 0.0, bScale = 0.0;
+                    for (size_t n = 0; n < count; ++n)
+                        for (unsigned d = 0; d < 3; ++d) {
+                            eScale = std::max(eScale, std::abs(expectedE(n)[d]));
+                            bScale = std::max(bScale, std::abs(expectedB(n)[d]));
+                        }
+                    for (size_t n = 0; n < count; ++n)
+                        for (unsigned d = 0; d < 3; ++d) {
+                            EXPECT_NEAR(actualE(n)[d], expectedE(n)[d], eScale * 1e-12 + 1e-25);
+                            EXPECT_NEAR(actualB(n)[d], expectedB(n)[d], bScale * 1e-12 + 1e-25);
+                        }
+                }
+            }
+        }
+
         TEST_F(FFT2D5AlgorithmTest, RepeatedSolveReplacesFieldsAndPreservesInactiveContainer) {
             particles_m->createParticles(2);
             particles_m->setQ(1.0e-15);
