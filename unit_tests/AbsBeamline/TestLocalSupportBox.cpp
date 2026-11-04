@@ -308,24 +308,25 @@ TEST_F(LocalSupportBoxTest, CurvedMultipoleTBoxContainsArcBand) {
     expectArcBandInside(magnet.getLocalSupportBox(reach), h, 1.0, reach, reach, -0.3, 1.3);
 }
 
-TEST_F(LocalSupportBoxTest, TravelingWaveStopsWhereSelectionStops) {
+TEST_F(LocalSupportBoxTest, TravelingWaveCoversItsWholeFieldWindow) {
+    // The particle kernel acts up to endField_m, past where isInside() stops (startExitField_m).
     BoxTravelingWave cavity;
     cavity.geometry_m.setElementLength(4.0);
-    cavity.setFieldWindow(-1.0, 3.0, 4.0, 2.0);
+    cavity.setFieldWindow(-1.0, 3.0, 4.5, 2.0);
 
     const auto [lower, upper] = cavity.getLocalSupportBox(reach).getCorners();
     EXPECT_DOUBLE_EQ(lower[2], -1.0);
-    EXPECT_DOUBLE_EQ(upper[2], 3.0);
+    EXPECT_DOUBLE_EQ(upper[2], 4.5);
     EXPECT_DOUBLE_EQ(upper[0], reach);
 }
 
-TEST_F(LocalSupportBoxTest, MonitorIsCentredOnItsPlane) {
+TEST_F(LocalSupportBoxTest, MonitorCoversItsPlaneAndItsBody) {
     MonitorRep monitor("M");
     monitor.getGeometry().setElementLength(0.1);
 
     const auto [lower, upper] = monitor.getLocalSupportBox(reach).getCorners();
     EXPECT_DOUBLE_EQ(lower[2], -0.05);
-    EXPECT_DOUBLE_EQ(upper[2], 0.05);
+    EXPECT_DOUBLE_EQ(upper[2], 0.1);
 }
 
 TEST_F(LocalSupportBoxTest, VariableRFCavityUsesHalfWidthAndHeight) {
@@ -369,9 +370,10 @@ TEST_F(LocalSupportBoxTest, FieldmapBoxCoversTheMapCrossSection) {
     element.setFieldMapFN(file);
     element.initialise(nullptr);
 
+    // Without an APERTURE the box is the map itself, wider than the reach.
     const auto [lower, upper] = element.getLocalSupportBox(reach).getCorners();
-    EXPECT_LE(lower[0], -0.8 + 1e-12);
-    EXPECT_GE(upper[0], 0.8 - 1e-12);
+    EXPECT_NEAR(lower[0], -0.8, 1e-12);
+    EXPECT_NEAR(upper[0], 0.8, 1e-12);
     EXPECT_NEAR(lower[2], 0.1, 1e-12);
     EXPECT_NEAR(upper[2], 0.6, 1e-12);
     std::filesystem::remove(file);

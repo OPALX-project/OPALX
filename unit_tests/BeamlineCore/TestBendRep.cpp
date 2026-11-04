@@ -285,6 +285,7 @@ TEST_F(BendRepTest, DeviceAndHostHardEdgeFieldsUseIdenticalSpatialSupport) {
                                            : static_cast<ElementBase&>(multipole);
         SCOPED_TRACE(element.getName());
         element.setAperture(ApertureType::RECTANGULAR, {1., 1.});
+        element.setReach(3.);  // the outside samples sit 2 m off axis, inside the element
         auto r = Kokkos::create_mirror_view(pc->R.getView());
         for (unsigned i = 0; i < count; ++i) {
             const double s = sampleS[i];

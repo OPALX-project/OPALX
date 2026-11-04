@@ -215,12 +215,8 @@ public:
                + MultipoleTBase::FringeReach * config_m.fringeLambdaRight_m;
     }
 
-    /** Return true if the point is inside the field support and the aperture.
-     *
-     *  Both are measured along the design arc, so a curved MultipoleT stays selected as
-     *  the orbit curves through it, the same way SBend does.
-     */
-    bool isInside(const Vector_t<double, 3>& r) const override;
+    /// HAPERT/VAPERT when ROTATION and EANGLE are zero; otherwise none.
+    std::optional<ApertureShape> getFieldRange() const override;
 
     /// Joins the isInside() region with the kernel's own gate: |x| <= HAPERT/2 and
     /// |y| <= VAPERT/2 in the frame turned by ROTATION and EANGLE (MultipoleTBase::rotateFrame).
@@ -229,8 +225,6 @@ public:
     /// Chord-aligned arc segments when curved without ROTATION or EANGLE, with each width the
     /// larger of the isInside() band and the kernel gate; otherwise the single bounding box.
     std::vector<SupportBox> getLocalSupportBoxes(double reach) const override;
-    /** Mark every particle that leaves the aperture inside the body, in arc coordinates */
-    size_t markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) override;
     /** Apply the field to the reference particle.
      *
      *  @return true if the particle is outside the aperture inside the field extent.

@@ -16,12 +16,14 @@
 #include "Channels/Channel.h"
 #include "PartBunch/PartBunch.h"
 #include "Utilities/LogicalError.h"
+#include "Utilities/Options.h"
 #include "Utility/Inform.h"
 
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
 #include <iostream>
+#include <sstream>
 #include <vector>
 
 extern Inform* gmsg;
@@ -219,23 +221,110 @@ BoundingBox ElementBase::getBoundingBoxInLabCoords() const {
     return BoundingBox::getBoundingBox(corners);
 }
 
+namespace {
+    /// An APERTURE half-width of this size or more counts as no aperture (the default is 1e6 m).
+    constexpr double unboundedAperture = 1e5;
+}  // namespace
+
+std::optional<ApertureShape> ElementBase::getFieldRange() const { return std::nullopt; }
+
+std::optional<ApertureShape> ElementBase::getFieldMapRange() const { return std::nullopt; }
+
+bool ElementBase::hasApertureSet() const {
+    return std::abs(aperture_m.second[0]) < unboundedAperture
+           || std::abs(aperture_m.second[1]) < unboundedAperture;
+}
+
+ElementRegions ElementBase::getRegions() const {
+    const Geometry& geometry = getGeometry();
+    const ElementType type   = getType();
+    // Sector bends and curved MULTIPOLET measure their windows along the design arc.
+    const bool arc = (type == ElementType::SBEND || type == ElementType::MULTIPOLET)
+                     && geometry.kind() == GeometryKind::SBend && geometry.getCurvature() != 0.0;
+
+    ElementRegions regions;
+    getFieldExtent(regions.fieldBegin, regions.fieldEnd);
+    regions.curvature  = arc ? geometry.getCurvature() : 0.0;
+    regions.bodyLength = geometry.getElementLength();
+    regions.bodyBegin  = arc ? 0.0 : geometry.getStartZ();
+    regions.bodyEnd    = regions.bodyBegin + geometry.getElementLength();
+
+    const double reach = reach_m.value_or(Options::elementMappingReach);
+    regions.reachX     = reach;
+    regions.reachY     = reach;
+
+    const double apertureX = std::abs(aperture_m.second[0]);
+    const double apertureY = std::abs(aperture_m.second[1]);
+    if (hasApertureSet()) {
+        // The APERTURE is the bore; the element is material out to its reach.
+        regions.aperture.type    = aperture_m.first;
+        regions.aperture.halfX   = apertureX < unboundedAperture ? apertureX : reach;
+        regions.aperture.halfY   = apertureY < unboundedAperture ? apertureY : reach;
+        regions.deletesParticles = true;
+    } else if (const auto mapRange = getFieldMapRange()) {
+        // A field map without APERTURE: its extent is the whole element and nothing is material.
+        regions.aperture = *mapRange;
+        regions.reachX   = std::abs(mapRange->centreX) + mapRange->halfX;
+        regions.reachY   = std::abs(mapRange->centreY) + mapRange->halfY;
+    } else if (const auto range = getFieldRange()) {
+        regions.aperture         = *range;
+        regions.deletesParticles = true;
+    } else {
+        // No aperture: the field acts over the whole reach and nothing is deleted.
+        regions.aperture.type  = ApertureType::RECTANGULAR;
+        regions.aperture.halfX = reach;
+        regions.aperture.halfY = reach;
+    }
+    return regions;
+}
+
+void ElementBase::checkRegions() const {
+    const ElementRegions regions = getRegions();
+    if (!regions.deletesParticles || regions.aperture.fitsInside(regions.reachX, regions.reachY))
+        return;
+
+    const auto& a = regions.aperture;
+    std::ostringstream message;
+    message << "Element '" << getName() << "': "
+            << (hasApertureSet() ? "its APERTURE"
+                                 : "the transverse range of its field (HAPERT/VAPERT or "
+                                   "WIDTH/HEIGHT), which is its aperture without an APERTURE,")
+            << " reaches |x| = " << std::abs(a.centreX) + a.halfX
+            << " m, |y| = " << std::abs(a.centreY) + a.halfY << " m, beyond its reach of "
+            << regions.reachX << " m. Set REACH on the element or raise OPTION "
+            << "ELEMENTMAPPINGREACH.";
+    throw GeneralOpalException("ElementBase::checkRegions", message.str());
+}
+
 std::pair<double, double> ElementBase::getSupportHalfWidths(const double reach) const {
-    // The default aperture is 1e6 m; such an element has no transverse limit of its own.
-    constexpr double unbounded = 1e5;
-    const auto halfWidth       = [reach](const double aperture) {
-        return std::abs(aperture) >= unbounded ? reach : std::max(std::abs(aperture), reach);
+    const auto halfWidth = [reach](const double aperture) {
+        return std::abs(aperture) >= unboundedAperture ? reach
+                                                       : std::max(std::abs(aperture), reach);
     };
     return {halfWidth(aperture_m.second[0]), halfWidth(aperture_m.second[1])};
 }
 
 BoundingBox ElementBase::getLocalSupportBox(const double reach) const {
-    const auto [halfX, halfY] = getSupportHalfWidths(reach);
-    const Geometry& geometry  = getGeometry();
-    double zBegin             = 0.0;
-    double zEnd               = 0.0;
+    const Geometry& geometry = getGeometry();
+    double zBegin            = 0.0;
+    double zEnd              = 0.0;
     getFieldExtent(zBegin, zEnd);
-    zBegin = std::min(zBegin, geometry.getStartZ());
-    zEnd   = std::max(zEnd, geometry.getStartZ() + geometry.getElementLength());
+
+    // A field map without APERTURE is just its map: the map's extent across, its field window
+    // along z.
+    if (!hasApertureSet()) {
+        if (const auto map = getFieldMapRange()) {
+            return BoundingBox::getBoundingBox(
+                    {Vector_t<double, 3>(
+                             {map->centreX - map->halfX, map->centreY - map->halfY, zBegin}),
+                     Vector_t<double, 3>(
+                             {map->centreX + map->halfX, map->centreY + map->halfY, zEnd})});
+        }
+    }
+
+    const auto [halfX, halfY] = getSupportHalfWidths(reach);
+    zBegin                    = std::min(zBegin, geometry.getStartZ());
+    zEnd                      = std::max(zEnd, geometry.getStartZ() + geometry.getElementLength());
 
     if (geometry.kind() == GeometryKind::SBend && geometry.getCurvature() != 0.0) {
         return getArcSupportBox(
@@ -407,33 +496,16 @@ size_t ElementBase::markOutsideAperture(const std::shared_ptr<ParticleContainer_
         return 0;
     }
 
-    // The aperture is a geometric property of the element body, so gate on the
-    // geometric extent [startZ, startZ + L] (element-local frame), consistent with
-    // applyToReferenceParticle() below. startZ is 0 except for FIELDMAP. The field-support
-    // window (getFieldExtent) can be narrower or offset from the body -- e.g. Solenoid
-    // returns its field-map range and Monitor a plane-centered window -- which
-    // would leave part of the body unchecked.
-    const double zBegin = getGeometry().getStartZ();
-    const double zEnd   = zBegin + getGeometry().getElementLength();
-
-    // Members copied to locals; the device kernel must not capture `this`.
-    const ApertureType type = aperture_m.first;
-    const double xLimit     = aperture_m.second[0];
-    const double yLimit     = aperture_m.second[1];
-
-    auto Rview   = pc->R.getView();
-    auto invalid = pc->InvalidMask.getView();
+    // Inside the body window and the reach, outside the aperture: the particle is in material.
+    const ElementRegions regions = getRegions();
+    auto Rview                   = pc->R.getView();
+    auto invalid                 = pc->InvalidMask.getView();
 
     size_t localMarked = 0;
     Kokkos::parallel_reduce(
             "ElementBase::markOutsideAperture", nLocal,
             KOKKOS_LAMBDA(const size_t i, size_t& count) {
-                // z-window [zBegin, zEnd), matching isInside; z is measured in
-                // the element-local frame.
-                const bool inZ = Rview(i)[2] >= zBegin && Rview(i)[2] < zEnd;
-                const bool hit = inZ
-                                 && !ApertureHelper::isInsideAperture(
-                                         Rview(i)[0], Rview(i)[1], type, xLimit, yLimit);
+                const bool hit         = regions.inLossRegion(Rview(i));
                 const bool newlyMarked = hit && !invalid(i);
                 invalid(i)             = invalid(i) || hit;
                 count += newlyMarked ? 1 : 0;
@@ -447,12 +519,6 @@ size_t ElementBase::markOutsideAperture(const std::shared_ptr<ParticleContainer_
 bool ElementBase::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
-    const double zBegin = getGeometry().getStartZ();
-    if (R(2) >= zBegin && R(2) < zBegin + getGeometry().getElementLength()) {
-        if (!ApertureHelper::isInsideAperture(R, aperture_m)) {
-            return true;
-        }
-    }
-    return false;
+    return getRegions().inLossRegion(R);
 }
 /* ========================================================================== */

@@ -119,14 +119,13 @@ public:
     /// @brief The longitudinal field-support interval, taken from the map.
     virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
 
+    /// Transverse range of the field map; none for an on-axis map.
+    std::optional<ApertureShape> getFieldMapRange() const override;
+
     /**
      * @brief Lab-frame bounding box, narrowed transversely to the map's own extent.
      */
     virtual BoundingBox getBoundingBoxInLabCoords() const override;
-
-    /// Includes the map's transverse cross-section, where the map acts regardless of the
-    /// aperture; it need not be centred on the axis.
-    BoundingBox getLocalSupportBox(double reach) const override;
 
     /**
      * @brief A finite transverse support envelope for placement and visualisation.

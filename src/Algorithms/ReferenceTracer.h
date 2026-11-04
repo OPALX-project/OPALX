@@ -24,7 +24,6 @@
 
 #include <cstddef>
 #include <fstream>
-#include <map>
 #include <memory>
 #include <set>
 #include <string>
@@ -41,8 +40,8 @@ class PartData;
  * - autophases each RFCAVITY and TRAVELINGWAVE when the reference first reaches it,
  * - checks that the DT of the current segment resolves each element it reaches
  *   (ElementBase::getRequiredNumberOfTimeSteps()),
- * - checks the element reaches against the reference
- * (GeneralElementMapping::checkReferencePoint()),
+ * - checks that no element would delete the reference
+ *   (GeneralElementMapping::checkReferencePoint()),
  * - writes <basename>_DesignPath.dat, which the FFT2D5 solver reads.
  *
  * A LINE pass ends when the reference is outside every element and either has left the lab box
@@ -90,8 +89,6 @@ private:
     void openDesignPath();
     void writeDesignPath(
             const ExternalFieldRayTracker::Step& step, const ElementSet& fields, double dt);
-    void checkReach(const Vector_t<double, 3>& position, double pathLength);
-    void printSupportOutsideReach() const;
     bool reachedEnd(const ElementSet& fields) const;
 
     const PartData& reference_m;
@@ -115,7 +112,6 @@ private:
 
     std::set<std::string> visitedElements_m;
     ElementSet previousFields_m;
-    std::map<const ElementBase*, GeneralElementMapping::SupportOutsideBox> supportOutsideReach_m;
 
     std::ofstream designPath_m;
     std::size_t designPathFrequency_m;

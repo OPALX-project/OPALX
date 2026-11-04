@@ -70,7 +70,7 @@ void Solenoid::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     Inform m("Solenoid::apply");
     m << level5 << "Solenoid::apply() called." << endl;
 
-    fieldmap_m->applyField(pc, scale_m + scaleError_m);
+    fieldmap_m->applyField(pc, scale_m + scaleError_m, 1.0, getRegions());
 }
 
 /**
@@ -85,7 +85,7 @@ void Solenoid::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
 void Solenoid::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
-    if (R(2) >= startField_m && R(2) < endField_m) {
+    if (R(2) >= startField_m && R(2) < endField_m && getRegions().inFieldRegion(R)) {
         Vector_t<double, 3> tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
 
         const bool outOfBounds = fieldmap_m->getFieldstrength(R, tmpE, tmpB);
@@ -111,11 +111,14 @@ void Solenoid::apply(
 bool Solenoid::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
+    const ElementRegions regions = getRegions();
+    if (!regions.inFieldRegion(R)) return regions.inLossRegion(R);
     if (R(2) >= startField_m && R(2) < endField_m) {
         Vector_t<double, 3> tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
 
+        // Outside the map data but inside the aperture is a field-free gap, not material.
         const bool outOfBounds = fieldmap_m->getFieldstrength(R, tmpE, tmpB);
-        if (outOfBounds) return true;
+        if (outOfBounds) return false;
 
         B += scale_m * tmpB;
     }
@@ -206,8 +209,12 @@ ElementType Solenoid::getType() const { return ElementType::SOLENOID; }
 /// @param r Position
 /// @returns true if inside, false otherwise
 bool Solenoid::isInside(const Vector_t<double, 3>& r) const {
-    return fieldmap_m != nullptr && ApertureHelper::isInsideAperture(r, aperture_m)
-           && fieldmap_m->isInside(r);
+    return fieldmap_m != nullptr && ElementBase::isInside(r) && fieldmap_m->isInside(r);
+}
+
+std::optional<ApertureShape> Solenoid::getFieldMapRange() const {
+    if (fieldmap_m == nullptr) return std::nullopt;
+    return fieldmap_m->getTransverseRange();
 }
 
 /// @brief Get the dimensions of the solenoid

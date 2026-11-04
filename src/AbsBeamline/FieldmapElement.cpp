@@ -91,13 +91,13 @@ void FieldmapElement::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     if (fieldmap_m == nullptr) {
         return;
     }
-    fieldmap_m->applyField(pc, bscale_m, escale_m);
+    fieldmap_m->applyField(pc, bscale_m, escale_m, getRegions());
 }
 
 void FieldmapElement::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    if (fieldmap_m == nullptr) {
+    if (fieldmap_m == nullptr || !getRegions().inFieldRegion(R)) {
         return;
     }
 
@@ -122,13 +122,10 @@ bool FieldmapElement::applyToReferenceParticle(
         return false;
     }
 
-    // A genuine aperture hit is the only thing that counts as a loss here. Leaving the map
-    // transversely is not one: the particle just stops feeling a field. Reporting it as a
-    // loss would stop the reference pass and the reference particle.
-    if (R(2) >= startField_m && R(2) < endField_m
-        && !ApertureHelper::isInsideAperture(R, aperture_m)) {
-        return true;
-    }
+    // Outside the aperture inside the body is material. Inside the aperture but outside the
+    // map data is a field-free gap: no field, and not a loss.
+    const ElementRegions regions = getRegions();
+    if (!regions.inFieldRegion(R)) return regions.inLossRegion(R);
 
     Vector_t<double, 3> tmpE(0.0), tmpB(0.0);
     if (fieldmap_m->getFieldstrength(R, tmpE, tmpB)) {
@@ -235,6 +232,11 @@ void FieldmapElement::getFieldExtent(double& zBegin, double& zEnd) const {
     zEnd   = endField_m;
 }
 
+std::optional<ApertureShape> FieldmapElement::getFieldMapRange() const {
+    if (fieldmap_m == nullptr) return std::nullopt;
+    return fieldmap_m->getTransverseRange();
+}
+
 BoundingBox FieldmapElement::getBoundingBoxInLabCoords() const {
     // Overridden only to narrow the box to the map's transverse extent. The z range is the
     // field window, which is the same as the geometry's [startZ, startZ + L].
@@ -257,15 +259,6 @@ BoundingBox FieldmapElement::getBoundingBoxInLabCoords() const {
     }
 
     return BoundingBox::getBoundingBox(corners);
-}
-
-BoundingBox FieldmapElement::getLocalSupportBox(const double reach) const {
-    BoundingBox box = ElementBase::getLocalSupportBox(reach);
-    if (hasTransverseExtent_m) {
-        box.enlargeToContainPosition(Vector_t<double, 3>({mapXBegin_m, mapYBegin_m, startField_m}));
-        box.enlargeToContainPosition(Vector_t<double, 3>({mapXEnd_m, mapYEnd_m, endField_m}));
-    }
-    return box;
 }
 
 bool FieldmapElement::getSupportEnvelope(double& horizontalRadius, double& verticalRadius) const {

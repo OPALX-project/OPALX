@@ -91,9 +91,8 @@ public:
 
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
 
-    /// Selection window of isInside(), which ends where the exit cell starts although
-    /// getFieldExtent() reaches endField_m, so a bunch sees the cells the reference sees.
-    BoundingBox getLocalSupportBox(double reach) const override;
+    /// Transverse range of the field map; none for an on-axis map.
+    std::optional<ApertureShape> getFieldMapRange() const override;
 
 private:
     double scaleCore_m;

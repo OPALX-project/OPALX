@@ -9,7 +9,6 @@
 
 #include <gtest/gtest.h>
 
-#include <unistd.h>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -22,7 +21,6 @@
 
 #include "Ippl.h"
 
-#include "AbsBeamline/CyclotronSector.h"
 #include "Algorithms/GeneralElementMapping.h"
 #include "Attributes/Attributes.h"
 #include "BasicActions/Option.h"
@@ -270,15 +268,13 @@ TEST_F(GeneralElementMappingTest, GridAnswersEqualTheSingleCellAnswersAndMissNoO
     EXPECT_GT(nonEmpty, 20);  // The random queries must exercise overlaps.
 }
 
-TEST_F(GeneralElementMappingTest, ReferenceFarOffAnUnaperturedElementIsReported) {
+TEST_F(GeneralElementMappingTest, ElementWithoutApertureNeverStopsTheReference) {
     const ElementList lattice = {makeDrift("D", 1.0, Vector(0.0))};
     const GeneralElementMapping mapping(lattice, {8, 8, 8}, reach);
 
-    EXPECT_TRUE(mapping.checkReferencePoint(Vector({0.3, 0.0, 0.5}), 0.5).empty());
-    const auto findings = mapping.checkReferencePoint(Vector({0.8, 0.0, 0.5}), 0.5);
-    ASSERT_EQ(findings.size(), 1u);
-    EXPECT_EQ(findings.front().element->getName(), "D");
-    EXPECT_NEAR(findings.front().offset, 0.8, 1e-12);
+    // Without an APERTURE the aperture is the reach box: nothing is material.
+    EXPECT_NO_THROW(mapping.checkReferencePoint(Vector({0.3, 0.0, 0.5}), 0.5));
+    EXPECT_NO_THROW(mapping.checkReferencePoint(Vector({0.8, 0.0, 0.5}), 0.5));
 }
 
 TEST_F(GeneralElementMappingTest, ReferenceThatWouldBeDeletedStopsTheRun) {
@@ -321,8 +317,7 @@ TEST_F(GeneralElementMappingTest, StraightLatticeOnAxisPassesTheChecks) {
     }
     const GeneralElementMapping mapping(lattice, {8, 8, 8}, reach);
     for (double z = -0.5; z < 4.5; z += 0.01) {
-        EXPECT_NO_THROW(
-                EXPECT_TRUE(mapping.checkReferencePoint(Vector({0.001, -0.002, z}), z).empty()));
+        EXPECT_NO_THROW(mapping.checkReferencePoint(Vector({0.001, -0.002, z}), z));
     }
 }
 
@@ -397,19 +392,19 @@ TEST_F(GeneralElementMappingTest, StraightBranchAlongABendTangentStaysOutsideThe
             std::set<std::string>{"B_BEND"});
 }
 
-TEST_F(GeneralElementMappingTest, ReachErrorSaysWhetherReachCanClearTheOrbit) {
-    // Within the default reach of the bend: lowering REACH clears it.
-    {
-        const GeneralElementMapping mapping(ElementList{makeBranchBend()}, {8, 8, 8}, reach);
-        try {
-            mapping.checkReferencePoint(Vector({0.0, 0.0, 0.5}), 0.5);
-            FAIL() << "expected the reach check to stop";
-        } catch (const OpalException& e) {
-            EXPECT_NE(e.what().find("set its REACH below"), std::string::npos) << e.what();
-        }
+TEST_F(GeneralElementMappingTest, ReachErrorSuggestsALowerReach) {
+    const GeneralElementMapping mapping(ElementList{makeBranchBend()}, {8, 8, 8}, reach);
+    try {
+        mapping.checkReferencePoint(Vector({0.0, 0.0, 0.5}), 0.5);
+        FAIL() << "expected the reach check to stop";
+    } catch (const OpalException& e) {
+        EXPECT_NE(e.what().find("set its REACH below"), std::string::npos) << e.what();
     }
-    // A MULTIPOLET whose field region (HAPERT = 2 m) covers the orbit outside its APERTURE:
-    // no REACH can clear it.
+}
+
+TEST_F(GeneralElementMappingTest, PointBeyondTheReachIsNeverDeleted) {
+    // A MULTIPOLET with a 2 m wide HAPERT but a 5 cm APERTURE: the APERTURE is the material
+    // boundary and the reach limits it, so 0.3 m off axis is lost but 0.7 m is not.
     auto magnet = std::make_shared<MultipoleTRep>("MT");
     magnet->setBendAngle(0.0, false);
     magnet->setElementLength(1.0);
@@ -420,54 +415,6 @@ TEST_F(GeneralElementMappingTest, ReachErrorSaysWhetherReachCanClearTheOrbit) {
     magnet->ElementBase::setAperture(ApertureType::RECTANGULAR, {0.05, 0.05});
     magnet->setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector(0.0), Quaternion(1, 0, 0, 0)));
     const GeneralElementMapping mapping(ElementList{magnet}, {8, 8, 8}, reach);
-    try {
-        mapping.checkReferencePoint(Vector({0.7, 0.0, 0.5}), 0.5);
-        FAIL() << "expected the reach check to stop";
-    } catch (const OpalException& e) {
-        EXPECT_NE(e.what().find("REACH cannot exclude"), std::string::npos) << e.what();
-    }
-}
-
-TEST_F(GeneralElementMappingTest, ReportsWhetherAPointLiesWithinAnElementsTransverseReach) {
-    const auto near = makeDrift("NEAR", 1.0, Vector(0.0));
-    const auto far  = makeDrift("FAR", 1.0, Vector({0.6, 0.0, 0.0}));
-    const GeneralElementMapping mapping(ElementList{near, far}, {8, 8, 8}, reach);
-
-    // Longitudinal position does not matter, only the transverse reach.
-    EXPECT_TRUE(mapping.coversTransversely(*near, Vector({0.1, 0.0, 5.0})));
-    EXPECT_FALSE(mapping.coversTransversely(*far, Vector({0.0, 0.0, 0.5})));
-    EXPECT_TRUE(mapping.coversTransversely(*far, Vector({0.2, 0.0, 0.5})));
-}
-
-TEST_F(GeneralElementMappingTest, SectorElementsHaveNoTransverseReachToMiss) {
-    // Synthetic PSI layout from TestCyclotronSector: r = 1.0 .. 1.4 m, one 45-degree sector.
-    const std::string file = (std::filesystem::temp_directory_path()
-                              / ("opalx-mapping-sector-" + std::to_string(getpid()) + ".map"))
-                                     .string();
-    {
-        std::ofstream out(file);
-        out << "1000 100 0 5.625\n";
-        for (int i = 0; i < 13; ++i)
-            out << "header ";
-        out << "5 8 a b c d e 2 a b c d 0.100000000E+01-0.100000000E+01 a b c d e f LREC= a b "
-               "c d e\n";
-        for (int i = 0; i < 5; ++i) {
-            if (i) out << "a b c d e f\n";
-            for (int channel = 0; channel < 4; ++channel)
-                for (int j = 0; j < 8; ++j)
-                    out << (channel == 0 ? 10 * (1 + 0.1 * i) : 0) << ' ';
-            out << '\n';
-        }
-    }
-    auto sector = std::make_shared<CyclotronSector>("SECTOR");
-    sector->configure(CyclotronSectorFieldMap::read(file), 8, -0.05, 0.05, 1, {});
-    sector->setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector(0.0), Quaternion(1, 0, 0, 0)));
-    const GeneralElementMapping mapping(ElementList{sector}, {8, 8, 8}, reach);
-
-    // Just past the sector's far edge at 60 degrees: outside its local x range, which is an
-    // angular coordinate here, not a transverse one.
-    const double theta = Physics::pi / 3.0;
-    EXPECT_TRUE(mapping.coversTransversely(
-            *sector, Vector({1.2 * std::cos(theta) - 1.2, 0.0, 1.2 * std::sin(theta)})));
-    std::filesystem::remove(file);
+    EXPECT_THROW(mapping.checkReferencePoint(Vector({0.3, 0.0, 0.5}), 0.5), OpalException);
+    EXPECT_NO_THROW(mapping.checkReferencePoint(Vector({0.7, 0.0, 0.5}), 0.5));
 }

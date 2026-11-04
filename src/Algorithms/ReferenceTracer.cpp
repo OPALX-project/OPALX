@@ -76,7 +76,6 @@ ReferenceTracer::RayState ReferenceTracer::execute(RayState start, const double 
     } while (!hitMaterial && !reachedEnd(fields) && forwardSteps < maxForwardSteps_m);
 
     designPath_m.close();
-    printSupportOutsideReach();
     *gmsg << level2 << "* Reference pass: path length " << startPathLength_m << " m to "
           << ray_m.pathLength << " m in " << forwardSteps << " steps of " << dt_m << " s"
           << (hitMaterial ? "; stopped where the reference hit an element." : ".") << endl;
@@ -111,7 +110,8 @@ bool ReferenceTracer::step(const double dt, ElementSet& fields) {
                 }
                 return false;
             });
-    checkReach(result.midpoint.position, result.midpoint.pathLength);
+    beamline_m.getElementMapping().checkReferencePoint(
+            result.midpoint.position, result.midpoint.pathLength);
     if (result.hitMaterial) return false;
 
     writeDesignPath(result, fields, dt);
@@ -251,33 +251,4 @@ void ReferenceTracer::writeDesignPath(
     cell(reference_m.getM() * (std::sqrt(dot(ray_m.momentum, ray_m.momentum) + 1) - 1)
          * Units::eV2MeV);
     cell(step.midpoint.time * Units::s2ns) << names << std::endl;
-}
-
-void ReferenceTracer::checkReach(const Vector_t<double, 3>& position, const double pathLength) {
-    for (const auto& finding :
-         beamline_m.getElementMapping().checkReferencePoint(position, pathLength)) {
-        const auto [entry, inserted] =
-                supportOutsideReach_m.try_emplace(finding.element.get(), finding);
-        if (!inserted && finding.offset > entry->second.offset) entry->second = finding;
-    }
-}
-
-void ReferenceTracer::printSupportOutsideReach() const {
-    if (supportOutsideReach_m.empty() || ippl::Comm->rank() != 0) return;
-    std::vector<GeneralElementMapping::SupportOutsideBox> outside;
-    for (const auto& [element, finding] : supportOutsideReach_m)
-        outside.push_back(finding);
-    std::sort(outside.begin(), outside.end(), [](const auto& a, const auto& b) {
-        return a.element->getName() < b.element->getName();
-    });
-    std::ostringstream report;
-    report << "* Element mapping: the reference orbit passes through the field support of these "
-              "elements beyond their reach. A bunch near the reference does not see them. For an "
-              "element of another branch, give it an APERTURE; otherwise set its REACH to at "
-              "least the offset.\n";
-    for (const auto& finding : outside) {
-        report << "*   " << finding.element->getName() << ": offset " << finding.offset
-               << " m, reach " << finding.reach << " m\n";
-    }
-    *gmsg << level1 << report.str() << endl;
 }

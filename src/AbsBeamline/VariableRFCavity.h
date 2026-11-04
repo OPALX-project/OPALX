@@ -122,6 +122,9 @@ public:
      */
     bool isInside(const Vector_t<double, 3>& r) const override;
 
+    /// The cavity's WIDTH and HEIGHT.
+    std::optional<ApertureShape> getFieldRange() const override;
+
     /// Includes the cavity's WIDTH and HEIGHT, which bound its field instead of the aperture.
     BoundingBox getLocalSupportBox(double reach) const override;
 

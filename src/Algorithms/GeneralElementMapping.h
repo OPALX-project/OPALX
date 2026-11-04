@@ -59,17 +59,6 @@ public:
     /// Upper limit on Nx * Ny * Nz; the row offsets alone take 8 bytes per cell.
     static constexpr std::size_t maximumCells = std::size_t(1) << 24;
 
-    /// A reference-orbit point inside an element's support (isInside) but outside its box.
-    struct SupportOutsideBox {
-        std::shared_ptr<ElementBase> element;
-        /// Largest transverse offset [m] of the point from the element axis, in the arc chart
-        /// for sector bends. A reach of at least this includes the point unless the element's
-        /// own extent (field map, bend orbit, cavity width) is what the box misses.
-        double offset;
-        /// Reach [m] the element's box was built with.
-        double reach;
-    };
-
     /**
      * @param elements Placed runtime elements. Placement, misalignment and field-map extents
      *                 must be final.
@@ -103,35 +92,17 @@ public:
     BoundingBox getLabBounds() const;
 
     /**
-     * @brief Check every element's reach against one point of a reference orbit.
+     * @brief Check that a particle on the reference orbit would not be deleted at this point.
      *
-     * Throws when the point lies inside an element's box and body window but outside its
-     * aperture while the element deletes particles there: a particle on the reference orbit
-     * would be deleted. Either the element belongs to another branch and its reach is too
-     * large, or the orbit hits the aperture.
-     *
-     * Returns the elements whose support contains the point but whose box does not, which a
-     * bunch on this orbit does not activate. An element without an aperture in another branch
-     * is expected here, so this is reported rather than thrown.
+     * Throws when the point lies in the loss region of an element that deletes particles
+     * (ElementRegions::inLossRegion(): inside its body window and reach, outside its aperture).
+     * Either the element belongs to another branch and its reach is too large, or the orbit
+     * hits the aperture.
      * @param position Reference position in the lab [m].
      * @param pathLength Reference path length [m], used in the error message.
      * @throws OpalException As described above.
      */
-    std::vector<SupportOutsideBox> checkReferencePoint(
-            const Vector_t<double, 3>& position, double pathLength) const;
-
-    /**
-     * @brief Whether @p position lies within the element's transverse reach.
-     *
-     * True if the point lies inside one of the element's boxes when their longitudinal extent
-     * is ignored. A bunch activates an element whose reach misses the reference only through
-     * its own width, as for an element of a neighbouring branch. Always true for
-     * CYCLOTRONSECTOR and SCALINGFFAMAGNET, whose boxes span radius and angle.
-     * @param element An element passed to the constructor.
-     * @param position Lab position [m].
-     * @throws OpalException If @p element is not mapped.
-     */
-    bool coversTransversely(const ElementBase& element, const Vector_t<double, 3>& position) const;
+    void checkReferencePoint(const Vector_t<double, 3>& position, double pathLength) const;
 
     /// Number of mapped elements.
     std::size_t size() const { return entries_m.size(); }
@@ -143,15 +114,6 @@ private:
         double reach;                        ///< Reach used for the boxes [m].
         std::vector<SupportBox> localBoxes;  ///< ElementBase::getLocalSupportBoxes().
         std::vector<SupportBox> boxes;       ///< The same boxes in the lab.
-
-        // Loss window of the element's markOutsideAperture(), for checkReferencePoint().
-        bool deletes;
-        double arcCurvature;  ///< Nonzero if the window is in the sector-bend arc chart.
-        double bodyBegin;
-        double bodyEnd;
-        ApertureType apertureType;
-        double apertureX;
-        double apertureY;
     };
 
     static SupportBox placeInLab(const SupportBox& local, const CoordinateSystemTrafo& labToLocal);

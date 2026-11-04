@@ -441,7 +441,10 @@ void ParallelTracker::execute() {
                                 + element->getName());
         }
     }
-    // Placement, misalignment and field-map extents are final here.
+    // Placement, misalignment and field-map extents are final here: each element's aperture must
+    // lie inside its reach before the grid is built from the reaches.
+    for (const auto& element : itsOpalBeamline_m.getElementByType(ElementType::ANY))
+        element->checkRegions();
     itsOpalBeamline_m.buildElementMapping();
 
     bool designBeamAssigned = false;

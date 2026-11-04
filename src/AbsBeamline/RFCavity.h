@@ -204,6 +204,9 @@ public:
 
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
 
+    /// Transverse range of the field map; none for IDEAL and SINGLEGAP.
+    std::optional<ApertureShape> getFieldMapRange() const override;
+
     void setAmplitudeModel(std::shared_ptr<AbstractTimeDependence> time_dep);
     void setAmplitudeModelName(std::string name);
     std::string getAmplitudeModelName();

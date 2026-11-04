@@ -426,6 +426,8 @@ TEST_F(TestMultipoleTStraight, DivCurl) {
     grabLongitudinalDivCurlLine(fieldLine, divLine, curlLine, 0, length * 1.5, {}, length, dr);
     // Analyse the results
     for (size_t i = 0; i < divLine.size(); ++i) {
+        // Past the field window (6 fringe lengths beyond the body) the element applies no field.
+        if (fieldLine[i] == 0.0) continue;
         const double divError = std::abs(divLine[i]) * dr / fieldLine[i];
         const double curlError =
                 std::hypot(curlLine[i][0], curlLine[i][1], curlLine[i][2]) * dr / fieldLine[i];

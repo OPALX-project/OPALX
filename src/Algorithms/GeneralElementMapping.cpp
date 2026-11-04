@@ -71,21 +71,6 @@ GeneralElementMapping::GeneralElementMapping(
         for (const SupportBox& local : entry.localBoxes)
             entry.boxes.push_back(placeInLab(local, entry.labToLocal));
 
-        // Same window as the element's markOutsideAperture(): sector bends and curved
-        // MULTIPOLET use the arc chart from 0, all others the straight body from startZ.
-        const Geometry& geometry = element->getGeometry();
-        const ElementType type   = element->getType();
-        const bool arc           = (type == ElementType::SBEND || type == ElementType::MULTIPOLET)
-                         && geometry.kind() == GeometryKind::SBend
-                         && geometry.getCurvature() != 0.0;
-        const auto aperture = element->getAperture();
-        entry.deletes       = element->getFlagDeleteOnTransverseExit() && type != ElementType::BOX;
-        entry.arcCurvature  = arc ? geometry.getCurvature() : 0.0;
-        entry.bodyBegin     = arc ? 0.0 : geometry.getStartZ();
-        entry.bodyEnd       = entry.bodyBegin + geometry.getElementLength();
-        entry.apertureType  = aperture.first;
-        entry.apertureX     = aperture.second[0];
-        entry.apertureY     = aperture.second[1];
         entryOf_m.emplace(element.get(), entries_m.size());
         entries_m.push_back(entry);
     }
@@ -199,76 +184,30 @@ BoundingBox GeneralElementMapping::getLabBounds() const {
     return bounds;
 }
 
-std::vector<GeneralElementMapping::SupportOutsideBox> GeneralElementMapping::checkReferencePoint(
+void GeneralElementMapping::checkReferencePoint(
         const Vector_t<double, 3>& position, const double pathLength) const {
-    std::vector<SupportOutsideBox> outside;
-    for (const Entry& entry : entries_m) {
-        const Vector_t<double, 3> local = entry.labToLocal.transformTo(position);
-        const Vector_t<double, 3> chart =
-                entry.arcCurvature != 0.0
-                        ? GeometryHelper::toBendArcCoords(
-                                  local, entry.arcCurvature, entry.bodyEnd - entry.bodyBegin)
-                        : local;
-        const double offset = std::max(std::abs(chart(0)), std::abs(chart(1)));
-
-        if (!contains(entry.localBoxes, local)) {
-            if (entry.element->isInside(local))
-                outside.push_back({entry.element, offset, entry.reach});
+    for (const auto& element : elementsAt(position)) {
+        // BOX deletes inside its block, which no reference orbit passes through.
+        if (!element->getFlagDeleteOnTransverseExit() || element->getType() == ElementType::BOX) {
             continue;
         }
+        const Entry& entry           = entries_m[entryOf_m.at(element.get())];
+        const ElementRegions regions = element->getRegions();
+        const Vector_t<double, 3> p  = regions.toArcCoords(entry.labToLocal.transformTo(position));
+        if (!regions.particleLostAt(p)) continue;
 
-        const bool inBody = chart(2) >= entry.bodyBegin && chart(2) < entry.bodyEnd;
-        if (entry.deletes && inBody
-            && !ApertureHelper::isInsideAperture(
-                    chart(0), chart(1), entry.apertureType, entry.apertureX, entry.apertureY)) {
-            // Whether the box would still contain the point with a vanishing reach.
-            const bool reachCanClear =
-                    !contains(entry.element->getLocalSupportBoxes(1e-9 * entry.reach), local);
-            std::ostringstream message;
-            message << "The reference orbit at s = " << pathLength << " m passes element '"
-                    << entry.element->getName() << "' at transverse position (" << chart(0) << ", "
-                    << chart(1) << ") m, inside its box (reach " << entry.reach
-                    << " m) but outside its aperture, so a particle on the reference orbit would "
-                       "be deleted. ";
-            if (reachCanClear) {
-                message << "If the element belongs to another branch, set its REACH below "
-                        << offset
-                        << " m or lower OPTION ELEMENTMAPPINGREACH. Otherwise the reference orbit "
-                           "hits the element's aperture.";
-            } else {
-                message << "REACH cannot exclude this point: the element's own extent (aperture "
-                           "box, field region or bend orbit) covers it. Either the reference orbit "
-                           "hits the element's aperture, or, for an element of another branch, "
-                           "set DELETEONTRANSVERSEEXIT=FALSE on it.";
-            }
-            throw OpalException("GeneralElementMapping::checkReferencePoint", message.str());
-        }
+        const double offset = std::max(std::abs(p(0)), std::abs(p(1)));
+        std::ostringstream message;
+        message << "The reference orbit at s = " << pathLength << " m passes element '"
+                << element->getName() << "' at transverse position (" << p(0) << ", " << p(1)
+                << ") m, inside its reach of " << regions.reachX
+                << " m but outside its aperture, so a particle on the reference orbit would be "
+                   "deleted. If the element belongs to another branch, set its REACH below "
+                << offset
+                << " m or lower OPTION ELEMENTMAPPINGREACH. Otherwise the reference orbit hits "
+                   "the element's aperture.";
+        throw OpalException("GeneralElementMapping::checkReferencePoint", message.str());
     }
-    return outside;
-}
-
-bool GeneralElementMapping::coversTransversely(
-        const ElementBase& element, const Vector_t<double, 3>& position) const {
-    const auto found = entryOf_m.find(&element);
-    if (found == entryOf_m.end()) {
-        throw OpalException(
-                "GeneralElementMapping::coversTransversely",
-                "Element '" + element.getName() + "' is not mapped.");
-    }
-    // Annular sectors have no transverse axis: their box spans radius and angle, and the
-    // reach does not apply to them.
-    if (element.getType() == ElementType::CYCLOTRONSECTOR
-        || element.getType() == ElementType::SCALINGFFAMAGNET)
-        return true;
-    const Entry& entry              = entries_m[found->second];
-    const Vector_t<double, 3> local = entry.labToLocal.transformTo(position);
-    for (const SupportBox& box : entry.localBoxes) {
-        const Vector_t<double, 3> d = local - box.centre;
-        if (std::abs(dot(d, box.axes[0])) <= box.half(0)
-            && std::abs(dot(d, box.axes[1])) <= box.half(1))
-            return true;
-    }
-    return false;
 }
 
 SupportBox GeneralElementMapping::placeInLab(

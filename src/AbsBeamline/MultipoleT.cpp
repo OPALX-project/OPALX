@@ -58,13 +58,14 @@ void MultipoleT::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     validateConfiguration();
     implementation_->getField(
             pc->R.getView(), pc->E.getView(), pc->B.getView(), getScaling(RefPartBunch_m->getT()),
-            pc->getLocalNum());
+            pc->getLocalNum(), getRegions());
 }
 
 void MultipoleT::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     validateConfiguration();
+    if (!getRegions().inFieldRegion(R)) return;
     implementation_->getField(R, E, B, getScaling(t));
 }
 
@@ -236,69 +237,21 @@ std::vector<SupportBox> MultipoleT::getLocalSupportBoxes(const double reach) con
             std::max(halfY, 0.5 * config_m.verticalAperture_m));
 }
 
-bool MultipoleT::isInside(const Vector_t<double, 3>& r) const {
-    const Vector_t<double, 3> arc = bendCoords(r);
-    double zBegin                 = 0.0;
-    double zEnd                   = 0.0;
-    getFieldExtent(zBegin, zEnd);
-    return arc(2) >= zBegin && arc(2) < zEnd && ApertureHelper::isInsideAperture(arc, aperture_m);
-}
-
-size_t MultipoleT::markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) {
-    if (!pc || !getFlagDeleteOnTransverseExit()) {
-        return 0;
-    }
-    const size_t nLocal = pc->getLocalNum();
-    if (nLocal == 0) {
-        return 0;
-    }
-
-    // Members copied to locals; the device kernel must not capture `this`.
-    const ApertureType type = aperture_m.first;
-    const double xLimit     = aperture_m.second[0];
-    const double yLimit     = aperture_m.second[1];
-    const double curvature  = getGeometry().getCurvature();
-    const double bodyLength = getGeometry().getElementLength();
-
-    auto Rview   = pc->R.getView();
-    auto invalid = pc->InvalidMask.getView();
-
-    size_t localMarked = 0;
-    Kokkos::parallel_reduce(
-            "MultipoleT::markOutsideAperture", nLocal,
-            KOKKOS_LAMBDA(const size_t i, size_t& count) {
-                // The aperture belongs to the body, so the window is the geometric body
-                // [0, L) in arc coordinates, not the wider field extent used by isInside().
-                const Vector_t<double, 3> arc =
-                        GeometryHelper::toBendArcCoords(Rview(i), curvature, bodyLength);
-
-                const bool inZ = arc(2) >= 0.0 && arc(2) < bodyLength;
-                const bool hit =
-                        inZ
-                        && !ApertureHelper::isInsideAperture(arc(0), arc(1), type, xLimit, yLimit);
-                const bool newlyMarked = hit && !invalid(i);
-                invalid(i)             = invalid(i) || hit;
-                count += newlyMarked ? 1 : 0;
-            },
-            localMarked);
-    Kokkos::fence();
-
-    return localMarked;
+std::optional<ApertureShape> MultipoleT::getFieldRange() const {
+    // A turned kernel gate is not an axis-aligned shape in the element frame; the kernel keeps
+    // its own gate then.
+    if (config_m.rotation_m != 0.0 || config_m.entranceAngle_m != 0.0) return std::nullopt;
+    ApertureShape range;
+    range.halfX = 0.5 * config_m.horizontalAperture_m;
+    range.halfY = 0.5 * config_m.verticalAperture_m;
+    return range;
 }
 
 bool MultipoleT::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    const Vector_t<double, 3> arc = bendCoords(R);
-    double zBegin                 = 0.0;
-    double zEnd                   = 0.0;
-    getFieldExtent(zBegin, zEnd);
-    if (arc(2) < zBegin || arc(2) >= zEnd) {
-        return false;
-    }
-    if (!ApertureHelper::isInsideAperture(arc, aperture_m)) {
-        return true;
-    }
+    const ElementRegions regions = getRegions();
+    if (!regions.inFieldRegion(R)) return regions.inLossRegion(R);
 
     // The reference particle has to see the same field as every other particle. Without this
     // the reference walks a straight line through a curved magnet and never leaves it.

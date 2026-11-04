@@ -16,6 +16,7 @@
 #define OPALX_ElementBase_HH
 
 #include "AbsBeamline/AttributeSet.h"
+#include "AbsBeamline/ElementRegions.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/Quaternion.hpp"
 #include "BeamlineGeometry/Geometry.h"
@@ -93,55 +94,6 @@ struct BeamlineMembership {
     /// Enclosing RING's name (required for RING), empty for LINE; stored by value.
     std::string ownerName;
 };
-
-enum class ApertureType : unsigned short { RECTANGULAR, ELLIPTICAL };
-
-/**
- * @brief Stateless, device-callable aperture functions.
- */
-namespace ApertureHelper {
-
-    /**
-     * @brief Transverse-aperture containment test.
-     *
-     * Limits are half-apertures; the boundary itself counts as outside. The
-     * aperture is constant along the element.
-     *
-     * @param x transverse horizontal position [m]
-     * @param y transverse vertical position [m]
-     * @param type aperture shape
-     * @param xLimit horizontal half-aperture [m]
-     * @param yLimit vertical half-aperture [m]
-     */
-    KOKKOS_INLINE_FUNCTION bool isInsideAperture(
-            const double x, const double y, const ApertureType type, const double xLimit,
-            const double yLimit) {
-        switch (type) {
-            case ApertureType::RECTANGULAR:
-                return (Kokkos::abs(x) < xLimit && Kokkos::abs(y) < yLimit);
-            case ApertureType::ELLIPTICAL: {
-                const double u = x / xLimit;
-                const double v = y / yLimit;
-                return (u * u + v * v < 1.0);
-            }
-            default:
-                return false;
-        }
-    }
-
-    /**
-     * @brief Host convenience overload
-     *
-     * @param r position in the element's coordinatesystem
-     * @param aperture vector of aperture coefficients (usually aperture_m)
-     */
-    inline bool isInsideAperture(
-            const Vector_t<double, 3>& r,
-            const std::pair<ApertureType, std::vector<double>>& aperture) {
-        return isInsideAperture(r[0], r[1], aperture.first, aperture.second[0], aperture.second[1]);
-    }
-
-}  // namespace ApertureHelper
 
 /// Oriented box: centre, orthonormal axes and half-extents along those axes [m].
 struct SupportBox {
@@ -275,10 +227,47 @@ public:
     /// @return The element geometry.
     virtual const Geometry& getGeometry() const = 0;
 
-    /// @brief Check if the point r is inside the S interval with a field.
-    /// @param r The point to test.
-    /// @return True if r is inside the field interval.
+    /// @brief Whether the element's field applies at r: getRegions().inFieldRegion(r).
+    /// @param r Position [m] in the element's local frame.
     virtual bool isInside(const Vector_t<double, 3>& r) const;
+
+    /**
+     * @brief Transverse range of the element's own field gate, if limited.
+     *
+     * MULTIPOLET returns its HAPERT/VAPERT gate and VARIABLE_RF_CAVITY its WIDTH/HEIGHT. Without
+     * an APERTURE this range is the aperture, and particles outside it within the reach are lost.
+     * @return Range in the local frame (arc coordinates for a sector bend); empty if unlimited.
+     */
+    virtual std::optional<ApertureShape> getFieldRange() const;
+
+    /**
+     * @brief Transverse range of the element's field map, if it has one with a transverse extent.
+     *
+     * Without an APERTURE this range is the element's body across and its aperture, so the field
+     * acts inside the map and nothing is deleted. The body along z is the field window.
+     * @return Range in the local frame; empty without a field map or for an on-axis (1D) map.
+     */
+    virtual std::optional<ApertureShape> getFieldMapRange() const;
+
+    /**
+     * @brief Where the element applies its field and where it deletes particles.
+     *
+     * Field window: getFieldExtent(). Body window: [startZ, startZ + L), from 0 in the arc
+     * coordinates of a sector bend. Reach: the element's REACH, else OPTION ELEMENTMAPPINGREACH,
+     * across both axes. Aperture, in this order:
+     * - the APERTURE (values of 1e5 m or more count as none); particles outside it are lost;
+     * - getFieldMapRange(); nothing is lost;
+     * - getFieldRange(); particles outside it are lost;
+     * - the reach box; nothing is lost.
+     */
+    ElementRegions getRegions() const;
+
+    /**
+     * @brief Check that an aperture that deletes particles lies inside the reach.
+     * @throws OpalException naming the element if the APERTURE, or the field range used in its
+     *         place, is wider than the reach.
+     */
+    void checkRegions() const;
 
     /// @brief Get the bounding box.
     /// @return The bounding box in lab coordinates.
@@ -289,12 +278,11 @@ public:
      *
      * Each transverse half-width is max(aperture, @p reach), where an aperture of 1e5 m or
      * more counts as none, and z joins getFieldExtent() with the body [startZ, startZ + L].
-     * Overrides add their own support where it differs (field maps, bend orbits, cavity
-     * widths, annular sectors) or narrow z to the selection window (TravelingWave, Monitor).
-     * Within the reach the box contains isInside(); kernels that act without a transverse
-     * limit act beyond it only on bunches that reach the box. A sector-bend geometry uses
-     * the arc chart of GeometryHelper::toBendArcCoords(). Valid after placement and
-     * initialise().
+     * A field map without APERTURE is its map instead: getFieldMapRange() across and
+     * getFieldExtent() along z. Overrides add their own support where it differs (bend orbits,
+     * cavity widths, annular sectors, the monitor plane). The box contains getRegions(): the
+     * field region and the loss region. A sector-bend geometry uses the arc chart of
+     * GeometryHelper::toBendArcCoords(). Valid after placement and initialise().
      * @param reach Minimum transverse half-width [m]: the element's REACH or the global default.
      * @return Box [m] in the local frame used by isInside() and apply().
      */
@@ -421,10 +409,9 @@ public:
      *
      * Called by ParallelTracker::applyElementApertures with the bunch in the
      * element-local frame. ORs into InvalidMask and never clears existing
-     * marks; the tracker's end-of-step deletion flushes all marks. The
-     * z-window is [startZ, startZ + L) from getGeometry().getStartZ() and
-     * getGeometry().getElementLength(), since the aperture is a geometric property of the
-     * element.
+     * marks; the tracker's end-of-step deletion flushes all marks. A particle is marked
+     * where getRegions().inLossRegion() holds: inside the body window and the reach, outside
+     * the aperture.
      * No-op when getFlagDeleteOnTransverseExit() is false.
      *
      * @return local number of newly marked particles
@@ -508,6 +495,9 @@ protected:
     /// none.
     std::pair<double, double> getSupportHalfWidths(double reach) const;
 
+    /// Whether an APERTURE was given: a half-width below 1e5 m.
+    bool hasApertureSet() const;
+
     /**
      * @brief Box enclosing a band around a sector arc in the chart of toBendArcCoords().
      *
@@ -586,14 +576,7 @@ inline std::string ElementBase::getTypeString() const { return getTypeString(get
 /* ================================ Geometry ================================= */
 
 inline bool ElementBase::isInside(const Vector_t<double, 3>& r) const {
-    // Selection uses the field-support extent (the longitudinal interval where the element's
-    // field model is non-zero), not the body length, so a particle in a fringe region beyond
-    // the body is still attributed to the element. getFieldExtent() is the single source for
-    // that interval, in the same local chart as r.
-    double zBegin = 0.0;
-    double zEnd   = 0.0;
-    getFieldExtent(zBegin, zEnd);
-    return r(2) >= zBegin && r(2) < zEnd && ApertureHelper::isInsideAperture(r, aperture_m);
+    return getRegions().inFieldRegion(r);
 }
 
 /* ===================== Coordinate system & placement ====================== */

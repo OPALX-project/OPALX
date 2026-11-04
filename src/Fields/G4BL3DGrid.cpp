@@ -376,7 +376,9 @@ void G4BL3DGrid::freeMap() {
     hasEField_m       = false;
 }
 
-void G4BL3DGrid::applyField(std::shared_ptr<ParticleContainer_t> pc, double scale, double escale) {
+void G4BL3DGrid::applyField(
+        std::shared_ptr<ParticleContainer_t> pc, double scale, double escale,
+        const ElementRegions& regions) {
     // Members copied to locals; the device kernel must not capture `this`.
     const double xbegin = xbegin_m, xend = xend_m;
     const double ybegin = ybegin_m, yend = yend_m;
@@ -394,6 +396,7 @@ void G4BL3DGrid::applyField(std::shared_ptr<ParticleContainer_t> pc, double scal
 
     Kokkos::parallel_for(
             "G4BL3DGrid::applyField", nLocal, KOKKOS_LAMBDA(const size_t i) {
+                if (!regions.inFieldRegion(Rview(i))) return;
                 const Vector_t<double, 3>& R = Rview(i);
                 if (R(0) >= xbegin && R(0) < xend && R(1) >= ybegin && R(1) < yend && R(2) >= zbegin
                     && R(2) < zend) {
@@ -419,6 +422,7 @@ void G4BL3DGrid::applyField(std::shared_ptr<ParticleContainer_t> pc, double scal
 
     Kokkos::parallel_for(
             "G4BL3DGrid::applyEField", nLocal, KOKKOS_LAMBDA(const size_t i) {
+                if (!regions.inFieldRegion(Rview(i))) return;
                 const Vector_t<double, 3>& R = Rview(i);
                 if (R(0) >= xbegin && R(0) < xend && R(1) >= ybegin && R(1) < yend && R(2) >= zbegin
                     && R(2) < zend) {
