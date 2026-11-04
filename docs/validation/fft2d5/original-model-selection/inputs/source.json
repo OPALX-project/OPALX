@@ -1,0 +1,44 @@
+{
+  "geometry": "bend",
+  "profile": "uniform",
+  "source_particles": 1048576,
+  "charge_C": 1e-11,
+  "macrocharge_C": 9.5367431640625e-18,
+  "full_length_m": 5.0,
+  "cross_section_radius_m": 0.02,
+  "nominal_rms_x_m": 0.01,
+  "nominal_rms_y_m": 0.01,
+  "bend_radius_m": 2.0,
+  "beta": 0.001,
+  "momentum_betagamma": 0.001000000500000375,
+  "ns": 64,
+  "nrad": 64,
+  "nphi": 256,
+  "material_mean_m": [
+    4.999999999999947e-05,
+    -4.171327072497722e-20,
+    0.0
+  ],
+  "material_std_m": [
+    0.009999874999218741,
+    0.01,
+    1.4433756729320566
+  ],
+  "material_raw_rms_m": [
+    0.01,
+    0.01,
+    1.4433756729320566
+  ],
+  "longitudinal_period_m": 12.566370614359172,
+  "sampling": "audited D4 phases; physical-volume J sampling in bend; no fitted rescaling",
+  "npz": "/Users/adelmann/git/OPALX-2D5/curved-study/straight-round-paper/tracking/sources/bend-uniform-n1048576.npz",
+  "npz_sha256": "4cf23b08e775af54ab1b4d0cd25d090793d36d0735c6c0bd332ddc1af3939c59",
+  "distribution": "/Users/adelmann/git/OPALX-2D5/curved-study/straight-round-paper/tracking/sources/bend-uniform-n1048576.dist",
+  "distribution_sha256": "c96c7ba5d152b8956155c297d7016c466d7be6835374632816956958de885329",
+  "generator": "/Users/adelmann/git/OPALX-2D5/curved-study/straight-round-paper/tracking/prepare_shared.py",
+  "generator_sha256": "afa593953661d3bf96260729cb9b14ca75785669ec73948521443e2e529b1f42",
+  "helper_sha256": {
+    "/Users/adelmann/git/OPALX-2D5/curved-study/straight-round-paper/opalx/run_straight_octets.py": "226bba4e492061077a72efccdd180c19c6a587a71781eb796a9f41af76fc9eda",
+    "/Users/adelmann/git/OPALX-2D5/curved-study/straight-round-paper/curved/opalx/source_geometry.py": "7d5c280bda720bb5d6f55acd16b32aebe640e260445c30ac9e63e7bb1fb72760"
+  }
+}
