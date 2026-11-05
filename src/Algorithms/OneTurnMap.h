@@ -70,7 +70,10 @@ public:
     /** Continuous phase of central-difference shadow rays in the reference's
      * moving transverse frame. Only stable, uncoupled optics in the section's
      * horizontal plane are supported. No integer is inferred from a matrix.
-     * Uses DT sampling; callers must check DT/FDSTEP convergence. Failures leave
+     * Fractional phases come from the supplied accurate matrix. Integer winding
+     * tries bounded nonuniform coarser steps and requires successive-grid agreement,
+     * with phase/endpoint guards and the original DT as fallback. Callers must
+     * still check DT/FDSTEP convergence. Failures leave
      * the closed orbit and fractional-mode diagnostics valid but no full tunes.
      */
     FullTunes fullTunes(const Coordinates&, const Coordinates& steps, const Matrix&) const;

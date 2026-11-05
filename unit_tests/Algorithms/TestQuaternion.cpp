@@ -6,6 +6,7 @@
 #include "Utilities/GeneralOpalException.h"
 
 #include <cmath>
+#include <cstdlib>
 #include <limits>
 
 class QuaternionTest : public ::testing::Test {
@@ -427,4 +428,16 @@ TEST_F(QuaternionTest, GetQuaternionRejectsZeroVector) {
     ippl::Vector<double, 3> ref(1.0, 0.0, 0.0);
 
     EXPECT_THROW(getQuaternion(zero, ref), GeneralOpalException);
+}
+
+TEST_F(QuaternionTest, ConstructionDoesNotModifyGlobalRandomSequence) {
+    std::srand(12345);
+    const int expected = std::rand();
+    std::srand(12345);
+    Quaternion identity;
+    Quaternion copy(identity);
+    Quaternion components(1, 0, 0, 0);
+    Quaternion vector(ippl::Vector<double, 3>(1, 2, 3));
+    Quaternion scalarVector(1, ippl::Vector<double, 3>(1, 2, 3));
+    EXPECT_EQ(std::rand(), expected);
 }

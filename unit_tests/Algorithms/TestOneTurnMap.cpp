@@ -205,7 +205,7 @@ TEST(OneTurnMap, FullTunesResolveIntegerAndConjugateBranch) {
         ASSERT_TRUE(full.available) << full.diagnostic;
         EXPECT_NEAR(full.tunes[0], tunes[0], 1e-8);
         EXPECT_NEAR(full.tunes[1], tunes[1], 1e-8);
-        EXPECT_GT(full.samples, 500u);
+        EXPECT_GE(full.samples, 256u);
         auto coupled  = matrix;
         coupled[0][2] = .01;
         EXPECT_FALSE(map.fullTunes(zero, h, coupled).available);
@@ -261,4 +261,74 @@ TEST(OneTurnMap, FullTunesRejectIntermediateCouplingEvenWhenReturnMapDecouples) 
     const auto full = map.fullTunes(zero, h, matrix);
     EXPECT_FALSE(full.available);
     EXPECT_NE(full.diagnostic.find("coupled transport"), std::string::npos) << full.diagnostic;
+}
+
+TEST(OneTurnMap, CoarserWindingRetainsAccurateFractionalTunes) {
+    auto s            = settings();
+    s.dt              = 2 * std::acos(-1.) / 8192;
+    s.maxSteps        = 16384;
+    unsigned advances = 0;
+    const auto exact  = harmonicRing(3.41, 2.72);
+    OneTurnMap map(
+            [&](const auto& ray, double dt, auto* accepted) {
+                ++advances;
+                return exact(ray, dt, accepted);
+            },
+            CoordinateSystemTrafo(), s);
+    const OneTurnMap::Coordinates zero{}, h{1e-5, 1e-5, 1e-5, 1e-5};
+    const auto matrix = map.jacobian(zero, h);
+    advances          = 0;
+    const auto full   = map.fullTunes(zero, h, matrix);
+    ASSERT_TRUE(full.available) << full.diagnostic;
+    EXPECT_NEAR(full.tunes[0], 3.41, 1e-8);
+    EXPECT_NEAR(full.tunes[1], 2.72, 1e-8);
+    EXPECT_LT(full.samples, 2048u);
+    EXPECT_LT(advances, 30000u);  // Original winding alone requires 9*8192 advances.
+}
+
+TEST(OneTurnMap, InaccurateCoarseWindingFallsBackWithoutChangingEndpointTune) {
+    auto s                = settings();
+    s.dt                  = 2 * std::acos(-1.) / 512;
+    s.maxSteps            = 1024;
+    const auto exact      = harmonicRing(3.41, 2.72);
+    const auto inaccurate = harmonicRing(3.44, 2.75);
+    bool triedCoarse      = false;
+    OneTurnMap map(
+            [&](const auto& ray, double dt, auto* accepted) {
+                if (dt > 1.01 * s.dt) {
+                    triedCoarse = true;
+                    return inaccurate(ray, dt, accepted);
+                }
+                return exact(ray, dt, accepted);
+            },
+            CoordinateSystemTrafo(), s);
+    const OneTurnMap::Coordinates zero{}, h{1e-5, 1e-5, 1e-5, 1e-5};
+    const auto matrix = map.jacobian(zero, h);
+    const auto full   = map.fullTunes(zero, h, matrix);
+    EXPECT_TRUE(triedCoarse);
+    ASSERT_TRUE(full.available) << full.diagnostic;
+    EXPECT_NEAR(full.tunes[0], 3.41, 1e-8);
+    EXPECT_NEAR(full.tunes[1], 2.72, 1e-8);
+    EXPECT_GT(full.samples, 500u);
+}
+
+TEST(OneTurnMap, CoarserWindingDoesNotAliasIntegerTunesOnNestedGrids) {
+    auto s     = settings();
+    s.dt       = 2 * std::acos(-1.) / 8192;
+    s.maxSteps = 16384;
+    const OneTurnMap::Coordinates zero{}, h{1e-5, 1e-5, 1e-5, 1e-5};
+    OneTurnMap map(harmonicRing(1024.41, 1024.72), CoordinateSystemTrafo(), s);
+    OneTurnMap::Matrix matrix{};
+    for (unsigned plane = 0; plane < 2; ++plane) {
+        const double q     = plane ? 1024.72 : 1024.41;
+        const double phase = 2 * std::acos(-1.) * q;
+        const unsigned i   = 2 * plane;
+        matrix[i][i] = matrix[i + 1][i + 1] = std::cos(phase);
+        matrix[i][i + 1]                    = std::sin(phase) / q;
+        matrix[i + 1][i]                    = -q * std::sin(phase);
+    }
+    const auto full = map.fullTunes(zero, h, matrix);
+    ASSERT_TRUE(full.available) << full.diagnostic;
+    EXPECT_NEAR(full.tunes[0], 1024.41, 1e-7);
+    EXPECT_NEAR(full.tunes[1], 1024.72, 1e-7);
 }

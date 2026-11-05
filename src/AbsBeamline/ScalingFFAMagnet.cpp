@@ -64,17 +64,19 @@ void ScalingFFAMagnet::getCylindricalCoordinates(
 }
 
 void ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const {
-    Kokkos::View<Vector_t<double, 3>*> Rdevice("Rtmp", 1);
-    Kokkos::View<Vector_t<double, 3>*> Bdevice("Btmp", 1);
-    auto Rhost = Kokkos::create_mirror_view(Rdevice);
-    auto Bhost = Kokkos::create_mirror_view(Bdevice);
-    Rhost(0)   = R;
-    Bhost(0)   = Vector_t<double, 3>(0.0);  // the kernel accumulates; return this magnet only
-    Kokkos::deep_copy(Rdevice, Rhost);
-    Kokkos::deep_copy(Bdevice, Bhost);
-    getFieldValue(config_m, efm_m, Rdevice, Bdevice);
-    Kokkos::deep_copy(Bhost, Bdevice);
-    B = Bhost(0);
+    // Scalar reference tracking uses the same cylindrical field polynomial as
+    // the particle kernel, with host storage rather than one-particle launches.
+    Vector_t<double, 5> cylindrical;
+    config_m.getCylindricalCoordinates(R, cylindrical);
+    B = Vector_t<double, 3>(0.0);
+    if (!config_m.contains(cylindrical) || config_m.Bz_m == 0) return;
+    double storage[ScalingFFAMagnetConfig::MaxOrder + 2]{};
+    efm_m->function(cylindrical[4], config_m.maxOrder_m + 1, storage);
+    Kokkos::View<double*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> derivatives(
+            storage, config_m.maxOrder_m + 2);
+    Vector_t<double, 3> field;
+    getFieldValueCylindrical(config_m, derivatives, cylindrical, field);
+    rotateBfield(config_m, cylindrical, field, B);
 }
 
 void ScalingFFAMagnet::initialise() {
@@ -120,8 +122,8 @@ void ScalingFFAMagnet::apply(
 }
 
 void ScalingFFAMagnet::calculateDfCoefficients() {
-    std::vector<std::vector<double> > dfVec =
-            std::vector<std::vector<double> >(config_m.maxOrder_m + 1);
+    std::vector<std::vector<double>> dfVec =
+            std::vector<std::vector<double>>(config_m.maxOrder_m + 1);
     dfVec[0] = std::vector<double>(1, 1.);                 // f_0 = 1.*0th derivative
     for (size_t n = 0; n < config_m.maxOrder_m; n += 2) {  // n indexes the power in z
         dfVec[n + 1] = std::vector<double>(dfVec[n].size() + 1, 0);
@@ -223,8 +225,8 @@ void ScalingFFAMagnet::getCartesianCoordinates(
     Rcart[2] = Rcyl[0] * std::sin(Rcyl[2]);
 }
 
-std::vector<std::vector<double> > ScalingFFAMagnet::getDfCoefficients() const {
-    std::vector<std::vector<double> > dfCoefficients(config_m.MaxOrder + 1);
+std::vector<std::vector<double>> ScalingFFAMagnet::getDfCoefficients() const {
+    std::vector<std::vector<double>> dfCoefficients(config_m.MaxOrder + 1);
     for (size_t n = 0; n < config_m.MaxOrder + 1; ++n) {
         dfCoefficients[n] = std::vector<double>(config_m.MaxOrder + 1);
         for (size_t i = 0; i < config_m.MaxOrder + 1; ++i) {

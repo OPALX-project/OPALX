@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
+#include "AbsBeamline/EndFieldModel/AsymmetricEnge.h"
 #include "AbsBeamline/EndFieldModel/Tanh.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbstractObjects/OpalData.h"
@@ -658,4 +659,44 @@ TEST_F(ScalingFFAMagnetTest, ReferenceParticleReportsNativeApertureLossWithoutFi
             Vector_t<double, 3>(0., 0., 0.), momentum, 0., electric, magnetic));
     EXPECT_DOUBLE_EQ(euclidean_norm(electric), 0.);
     EXPECT_DOUBLE_EQ(euclidean_norm(magnetic), 0.);
+}
+
+TEST_F(ScalingFFAMagnetTest, ScalarAndParticleFieldsAgreeInSpiralFringes) {
+    for (int model : {0, 1, 2}) {
+        if (model == 1) {
+            sector_m->setEndField(
+                    std::make_shared<endfieldmodel::AsymmetricEnge>(
+                            std::vector<double>{-1.3, 3.42, -1.2, .23}, psi0_m, psi0_m / 5,
+                            std::vector<double>{-.8, 2.9, -.9, .17}, psi0_m, psi0_m / 6));
+            sector_m->initialise();
+        } else if (model == 2) {
+            sector_m->setEndField(
+                    std::make_shared<endfieldmodel::Enge>(
+                            std::vector<double>{-1.3, 3.42, -1.2, .23}, psi0_m, psi0_m / 5));
+            sector_m->initialise();
+        }
+        for (double y : {0., .01, -.03}) {
+            Kokkos::View<Vector_t<double, 3>*> positions("comparison_positions", 5);
+            Kokkos::View<Vector_t<double, 3>*> fields("comparison_fields", 5);
+            auto host = Kokkos::create_mirror_view(positions);
+            for (size_t i = 0; i < 5; ++i) {
+                const double phi = (static_cast<double>(i) - 2) * psi0_m;
+                host(i) = Vector_t<double, 3>(r0_m * (std::cos(phi) - 1), y, r0_m * std::sin(phi));
+            }
+            Kokkos::deep_copy(positions, host);
+            Kokkos::deep_copy(fields, Vector_t<double, 3>(0.));
+            ScalingFFAMagnet::getFieldValue(
+                    sector_m->getConfig(), sector_m->getEndField(), positions, fields);
+            const auto expected = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), fields);
+            EXPECT_GT(std::abs(expected(2)(1)), .1);
+            for (size_t i = 0; i < 5; ++i) {
+                Vector_t<double, 3> actual;
+                sector_m->getFieldValue(host(i), actual);
+                for (unsigned j = 0; j < 3; ++j)
+                    EXPECT_NEAR(
+                            actual(j), expected(i)(j),
+                            1e-11 * std::max(1., std::abs(expected(i)(j))));
+            }
+        }
+    }
 }
