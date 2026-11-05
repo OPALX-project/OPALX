@@ -272,7 +272,11 @@ int main(int argc, char* argv[]) {
             const auto hasLaterInputArgument = [&](int first) {
                 for (int jj = first; jj < argc; ++jj) {
                     const std::string arg(argv[jj]);
-                    if (optionConsumesArgument(arg)) {
+                    if (arg == "--input") {
+                        if (jj + 1 >= argc) return false;
+                        const std::string next(argv[jj + 1]);
+                        return !next.empty() && next.front() != '-';
+                    } else if (optionConsumesArgument(arg)) {
                         ++jj;
                     } else if (arg == "--restart") {
                         continue;
