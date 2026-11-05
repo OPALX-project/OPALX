@@ -1486,14 +1486,13 @@ void ParallelTracker::forEachElementInBunchFrame(
                             ? device_external::orderedCandidates(itsOpalBeamline_m, selected)
                             : GeneralElementMapping::ElementSet(selected.begin(), selected.end());
         } else {
-            // The bunch box, padded along z by half its length on each side, as the old
-            // path-length window [s - dz, s + dz] was. Elements come in lattice order.
-            const double length       = rmax(2) - rmin(2);
-            Vector_t<double, 3> lower = rmin, upper = rmax;
-            lower(2) -= 0.5 * length;
-            upper(2) += 0.5 * length;
+            // The bunch box, extended forward by the distance one step can cover, c dt: a
+            // MONITOR records particles that cross its plane during the next step. Elements come
+            // in lattice order.
+            Vector_t<double, 3> upper = rmax;
+            upper(2) += Physics::c * itsBunch_m->getdT();
             elements =
-                    itsOpalBeamline_m.getElementMapping().query(lower, upper, pc->getToLabTrafo());
+                    itsOpalBeamline_m.getElementMapping().query(rmin, upper, pc->getToLabTrafo());
         }
 
         for (const auto& element : elements) {
