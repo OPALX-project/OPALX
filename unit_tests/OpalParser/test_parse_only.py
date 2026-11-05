@@ -31,7 +31,7 @@ class ParseOnlyTest(unittest.TestCase):
                 [*LAUNCHER, EXECUTABLE,
                  *(arguments or ['--parse-only', '--input', 'input.in'])],
                 cwd=work, env={**os.environ, 'HOME': str(home)},
-                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=30)
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=30)
             output = result.stdout
             self.assertEqual(result.returncode == 0, valid, output)
             self.assertEqual('Syntax validation succeeded' in output, valid, output)
