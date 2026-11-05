@@ -51,6 +51,7 @@ namespace {
         GLOBALPROCESSES,  // Global physics processes active for this beam
         DAUGHTERBEAM,     // Name of the beam that receives decay daughter particles
         POLARIZATION,     // Initial polarization vector P (rest-frame, lab-frame axes)
+        ORBITTHREADER,    // Construct an independent reference-orbit threader
         TUNEINITIAL,      // Spectral launch triples, independent of bunch distribution.
         REFDIRECTION,     // Direction of the reference momentum for file distributions
         SIZE
@@ -121,6 +122,11 @@ Beam::Beam()
             "value is overwritten by the decay, but POLARIZATION must still be set to "
             "enable the spin storage that receives it.");
 
+    itsAttr[ORBITTHREADER] = Attributes::makeBool(
+            "ORBITTHREADER",
+            "Temporary multi-beam control. If FALSE, this beam reuses the primary beam's "
+            "design-orbit element map instead of constructing an independent OrbitThreader.",
+            true);
     itsAttr[REFDIRECTION] = Attributes::makeRealArray(
             "REFDIRECTION",
             "Direction {dx, dy, dz} of the reference momentum in the beamline frame; OPALX "
@@ -381,6 +387,10 @@ bool Beam::isPhoton() const { return itsAttr[PARTICLE] && getParticleName() == p
 double Beam::getFrequency() const { return Attributes::getReal(itsAttr[BFREQ]); }
 
 bool Beam::hasExplicitEnergy() const { return itsAttr[GAMMA] || itsAttr[ENERGY] || itsAttr[PC]; }
+
+bool Beam::usesIndependentOrbitThreader() const {
+    return Attributes::getBool(itsAttr[ORBITTHREADER]);
+}
 
 bool Beam::hasEmissionSources() const { return itsAttr[SOURCES]; }
 

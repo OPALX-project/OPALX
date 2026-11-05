@@ -140,7 +140,7 @@ cmake .. \
     -DARCH=AMPERE80
 ```
 
-For the release mode, use `Release` instead of `Debug` as the argument for `-DCMAKE_BUILD_TYPE`. For other GPUs use the correct flag for their corresponding architecture. For example, for P100 or GTX 1080 with Pascal61 architecture on Merlin login node, use `-DARCH=PASCAL61` instead of `-DARCH=AMPERE80`. 
+For the release mode, use `Release` instead of `Debug` as the argument for `-DCMAKE_BUILD_TYPE`. For other GPUs use the correct flag for their corresponding architecture. For example, for P100 or GTX 1080 with Pascal61 architecture on Merlin login node, use `-DARCH=PASCAL61` instead of `-DARCH=AMPERE80`.
 
 #### Notes:
 
@@ -177,7 +177,6 @@ This coverage check does not change closed-ring wrapping.
 | `OPALX_USE_INSTALLED_GTEST` | OFF |  Disables the use of system-built GoogleTest dependency. |
 | `OPALX_ENABLE_UNIT_TESTS` | OFF | Disables building unit tests using GoogleTest. |
 | `OPALX_ENABLE_EXAMPLES` | OFF | Disables building the Example module. |
-| `OPALX_ENABLE_TESTS` | OFF | Disables building integration tests in the test/ directory. |
 | `OPALX_ENABLE_COVERAGE` | OFF | Disables code coverage instrumentation. |
 | `OPALX_ENABLE_HIP_PROFILER` | OFF | Enables the HIP Systems Profiler on HIP builds and adds the corresponding compile definition. |
 | `OPALX_ENABLE_NSYS_PROFILER` | OFF | Disables Nvidia Nsight Systems Profiler; requires CUDA platform and adds compile definition -DOPALX_ENABLE_NSYS_PROFILER. |

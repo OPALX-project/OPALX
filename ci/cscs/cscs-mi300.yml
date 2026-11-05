@@ -3,3 +3,8 @@ include:
   - local: "ci/cscs/rocm/build_rocm-6.3.yml"
   - local: "ci/cscs/rocm/run_rocm-6.3.yml"
   - local: "ci/cscs/rocm/regression_rocm-6.3.yml"
+
+# MI300/Cray MPICH IPC workaround, for all refs in this architecture pipeline.
+# See "MI300 GPU IPC workaround" in cscs-ci-cd.md for evidence and revalidation.
+variables:
+  MPICH_GPU_IPC_ENABLED: "0"

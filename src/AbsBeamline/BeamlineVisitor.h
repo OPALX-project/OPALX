@@ -46,6 +46,7 @@ class FlaggedElmPtr;
 class Box;
 class Collimator;
 class Drift;
+class BeamBeam;
 class FieldmapElement;
 class Laser;
 class Marker;
@@ -98,6 +99,11 @@ public:
 
     /// Apply the algorithm to a drift space.
     virtual void visitDrift(const Drift&) = 0;
+
+    /// Apply the algorithm to a beam-beam interaction element.
+    // Keep a default no-op so adding BeamBeam does not make existing specialized
+    // visitors abstract. Visitors that handle BeamBeam explicitly override this.
+    virtual void visitBeamBeam(const BeamBeam&) {}
 
     /// Apply the algorithm to a drift space.
     virtual void visitEnge(const endfieldmodel::Enge&) = 0;

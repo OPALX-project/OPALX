@@ -96,11 +96,24 @@ namespace opalx::spacecharge {
             bool subtractNeutralizingBackground = false;
         };
 
-        /** @brief Clear rho, deposit the selected charge source, and normalize it in place. */
+        /**
+         * @brief Clear rho, deposit the selected charge source, and normalize it in place.
+         * @param particles Source particles in Cartesian solve axes; R in metres, Q in coulombs.
+         * @param fieldStorage Destination mesh and rho, including deposition halos.
+         * @param depositKind Select primary and/or opposite-charge image deposition.
+         * @param selection Local source selection, consistently configured on all ranks.
+         * @param normalization Time-step and backend density convention for this pass.
+         * @param imagePolicy Optional opposite-charge image plane in solve axes.
+         * @param[out] depositedCharge Optional global signed charge [C] before normalization:
+         * sum of owned dt*Q grid weights divided by normalization.timeStep [s].
+         * Includes deposited images, but not a later field-space BeamBeam copy.
+         * The time step must be finite and nonzero. Supplying this output adds a collective
+         * reduction; all ranks must either supply it or pass nullptr together.
+         */
         void depositCharge(
                 ParticleContainer& particles, FieldStorage& fieldStorage, DepositKind depositKind,
                 const Selection& selection, const ChargeNormalization& normalization,
-                const ImagePolicy& imagePolicy) const;
+                const ImagePolicy& imagePolicy, double* depositedCharge = nullptr) const;
 
         /**
          * @brief Gather one vector field into an explicit writable particle destination.
