@@ -708,8 +708,8 @@ void ParallelTracker::execute() {
             if (boundaryControlled_m) {
                 prepareBoundaryStep(pusher, oths, *boundarySchedule);
             } else {
-                // Select one global and per-particle duration before the first half drift.
-                // A source completed by this step changes the duration on the next step.
+                // Select the timestep before the first half drift and retain it
+                // through the complete integration step, including final emission.
                 changeDT();
 
                 // Historical OPAL evaluated the self-field at R_n and carried the gathered
@@ -738,19 +738,11 @@ void ParallelTracker::execute() {
                       << "." << endl;
                 }
 
-                // Emission is placed BETWEEN space-charge and external-field evaluation
-                // to match the legacy OPAL ordering (ParallelTTracker): newly emitted
-                // particles experience external fields in their creation step.
-                // Existing particles already have the full step duration. Emission may
-                // assign a shorter duration to newborn particles; preserve it below.
-                // Emit particles from time-dependent (emitting) sources (R set in REFERENCE frame).
-                // New particles receive a fractional per-particle dt ∈ (0, dt) from the sampler.
+                // Emit particles in the reference frame with their own fractional timesteps.
+                // They experience external fields in their creation step.
                 emitFromEmissionSources(itsBunch_m->getT(), itsBunch_m->getdT());
                 m << level4 << "Emit particles from emission sources done at step " << step << "."
                   << endl;
-                // Keep the selected global duration through field evaluation, the second
-                // half drift, reference update and clock increment, including the final
-                // emission step. Reselect only before the next step's first half drift.
                 itsBunch_m->updateAllParticleMoments();
                 m << level5 << "Particle moments updated after emission." << endl;
 
