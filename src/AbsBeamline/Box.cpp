@@ -43,13 +43,6 @@ void Box::getFieldExtent(double& zBegin, double& zEnd) const {
 
 ElementType Box::getType() const { return ElementType::BOX; }
 
-BoundingBox Box::getLocalSupportBox(const double reach) const {
-    BoundingBox box = ElementBase::getLocalSupportBox(reach);
-    box.enlargeToContainPosition(Vector_t<double, 3>({-halfWidth_m, -halfHeight_m, 0.0}));
-    box.enlargeToContainPosition(Vector_t<double, 3>({halfWidth_m, halfHeight_m, 0.0}));
-    return box;
-}
-
 size_t Box::markOutsideAperture(const std::shared_ptr<ParticleContainer_t>& pc) {
     if (!pc || !getFlagDeleteOnTransverseExit()) {
         return 0;

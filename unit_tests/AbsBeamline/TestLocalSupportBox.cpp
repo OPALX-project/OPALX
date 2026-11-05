@@ -24,7 +24,6 @@
 #include "AbsBeamline/EndFieldModel/Tanh.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbstractObjects/OpalData.h"
-#include "BeamlineCore/BoxRep.h"
 #include "BeamlineCore/DriftRep.h"
 #include "BeamlineCore/FieldmapElementRep.h"
 #include "BeamlineCore/MonitorRep.h"
@@ -302,17 +301,6 @@ TEST_F(LocalSupportBoxTest, VariableRFCavityUsesHalfWidthAndHeight) {
     EXPECT_DOUBLE_EQ(upper[0], 0.8);
     EXPECT_DOUBLE_EQ(upper[1], reach);
     EXPECT_DOUBLE_EQ(upper[2], 1.0);
-}
-
-TEST_F(LocalSupportBoxTest, BoxElementUsesItsBlock) {
-    BoxRep block("BLOCK");
-    block.getGeometry().setElementLength(1.0);
-    block.setHalfSize(0.9, 0.1);
-
-    const auto [lower, upper] = block.getLocalSupportBox(reach).getCorners();
-    EXPECT_DOUBLE_EQ(upper[0], 0.9);
-    EXPECT_DOUBLE_EQ(lower[0], -0.9);
-    EXPECT_DOUBLE_EQ(upper[1], reach);
 }
 
 TEST_F(LocalSupportBoxTest, FieldmapBoxCoversTheMapCrossSection) {

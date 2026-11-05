@@ -30,11 +30,11 @@
  * piece of material such as a collimator jaw, which a particle can pass around.
  * Offset and rotation come from the usual element placement.
  *
- * @note The block size is kept apart from the common aperture (aperture_m).
- *       ElementBase::isInside only registers an element along the reference
- *       path if the reference particle is inside the aperture, and a block that
- *       sits beside the reference path must still be registered. So the
- *       aperture stays at the wide-open default.
+ * @note The block size is kept apart from the common aperture (aperture_m), which
+ *       stays at the wide-open default, so the shared ElementRegions rule deletes
+ *       nothing; markOutsideAperture() deletes inside the block. OpalBox sets the
+ *       reach to the larger half-size, so the element's box in the grid covers the
+ *       block.
  */
 class Box : public ElementBase {
 public:
@@ -55,9 +55,6 @@ public:
     virtual ElementType getType() const override;
 
     virtual void getFieldExtent(double& zBegin, double& zEnd) const override;
-
-    /// Includes the block, which deletes particles inside it independently of the aperture.
-    BoundingBox getLocalSupportBox(double reach) const override;
 
     virtual int getRequiredNumberOfTimeSteps() const override;
 
