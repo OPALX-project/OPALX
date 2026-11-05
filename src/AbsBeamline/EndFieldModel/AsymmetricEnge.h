@@ -163,7 +163,8 @@ namespace endfieldmodel {
         const size_t count = xView.extent(0);
         Kokkos::parallel_for(
                 "AsymmetricEnge::functionHost()", count, KOKKOS_LAMBDA(const size_t i) {
-                    Kokkos::View<double*> thisValues = Kokkos::subview(values, i, Kokkos::ALL);
+                    // A derivative row is strided with GPU LayoutLeft storage.
+                    auto thisValues = Kokkos::subview(values, i, Kokkos::ALL);
                     functionDevice(config, xView(i), n, thisValues);
                 });
     }
