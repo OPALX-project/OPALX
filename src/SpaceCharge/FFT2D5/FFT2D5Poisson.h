@@ -115,7 +115,14 @@ public:
      * cleared; the caller subsequently sets longitudinal field ghosts. Nonzero neutral
      * slices must appear in occupied. Memory is O(batchSize*nx*ny), including workspace.
      * The optional potential output includes its transverse halo for numerical verification.
-     * Native FFT arithmetic may remain sequential across slots; this is not MPI batching.
+     * Both host and CUDA fields retain buffers in their native memory space; heFFTe selects
+     * the matching FFT backend. Packing, Green multiplication and field extraction operate
+     * on all batch slots in device kernels on CUDA. Fences before/after heFFTe calls preserve
+     * ordering across Kokkos and the backend stream; no host staging of density or fields is
+     * performed. Only the occupied-slice index list is copied from the host once per solve.
+     * heFFTe can still execute native FFT stages sequentially across slots; the batch size
+     * bounds temporary memory and groups OPALX kernels, rather than promising a proportional
+     * reduction in FFT launches. This is not MPI batching.
      * @pre initialiseViews() has received a matching transverse workspace.
      * @pre One MPI rank; unique occupied physical slice indices; matching source/output grids.
      */

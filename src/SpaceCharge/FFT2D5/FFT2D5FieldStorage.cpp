@@ -89,12 +89,6 @@ namespace opalx::spacecharge {
 
         batchSize_m = Options::fft2d5BatchSize;
         if (batchSize_m > 0) {
-            if constexpr (!std::is_same_v<
-                                  FFT2D5Poisson::ScalarField2_t::view_type::memory_space,
-                                  Kokkos::HostSpace>)
-                throw OpalException(
-                        "FFT2D5FieldStorage",
-                        "Explicit slice batching is currently validated for host execution only.");
             *ippl::Info << "FFT2D5: --2D5BatchSize " << batchSize_m
                         << " (independent transverse slices)" << endl;
         }

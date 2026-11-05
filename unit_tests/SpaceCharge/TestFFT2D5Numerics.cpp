@@ -1241,10 +1241,6 @@ namespace {
 
     TEST_F(TestSolve2d5, SliceWorkspaceKeepsNeutralSourcesAndClearsVacatedSlices) {
         for (int batch : {0, 8}) {
-            if (batch > 0
-                && !std::is_same_v<
-                        FFT2D5Poisson::ScalarField2_t::view_type::memory_space, Kokkos::HostSpace>)
-                continue;
             makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
             fsCmd_m->setType("FFT2D5");
             fsCmd_m->setNX(12);
@@ -2718,10 +2714,6 @@ namespace {
     }
 
     TEST_F(TestSolve2d5, BatchedSlicesMatchSerialPotentialHaloAndFields) {
-        if constexpr (!std::is_same_v<
-                              FFT2D5Poisson::ScalarField2_t::view_type::memory_space,
-                              Kokkos::HostSpace>)
-            GTEST_SKIP() << "Explicit batching currently supports host execution only";
         FFT2D5Poisson batchSolver;
         for (const auto shape : {std::array<int, 2>{6, 8}, std::array<int, 2>{8, 6}}) {
             const double dx = shape[0] == 6 ? 0.3 : 0.17;

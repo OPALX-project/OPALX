@@ -20,6 +20,60 @@
 namespace opalx::spacecharge {
     namespace {
 
+        // NVCC extended lambdas need an enclosing function with public access;
+        // GoogleTest's generated TestBody is private. Keep this independent
+        // exhaustive oracle outside the fixture, with the same scoring and ties.
+        template <class PositionView, class MaskView, class ReferenceView>
+        void launchExhaustiveProjectionOracle(
+                PositionView r, MaskView mask, ReferenceView ref, size_t count,
+                FFT2D5Algorithm::VectorView_t expected,
+                FFT2D5Algorithm::SegmentIndexView_t winners) {
+            using Vector          = Vector_t<double, 3>;
+            const size_t segments = ref.extent(0) - 1;
+            Kokkos::parallel_for(
+                    "exhaustiveProjectionOracle", count, KOKKOS_LAMBDA(size_t n) {
+                        if (mask(n)) {
+                            winners(n)  = segments;
+                            expected(n) = Vector(0.);
+                            return;
+                        }
+                        double bestDistance = Kokkos::Experimental::finite_max_v<double>;
+                        size_t best         = 0;
+                        double fraction     = 0.;
+                        Vector closest(0.);
+                        for (size_t i = 0; i < segments; ++i) {
+                            const Vector d       = ref(i + 1) - ref(i);
+                            const double length2 = d.dot(d);
+                            if (length2 <= 0.) continue;
+                            const double u = Kokkos::clamp(d.dot(r(n) - ref(i)) / length2, 0., 1.);
+                            const Vector q = ref(i) + u * d;
+                            const Vector difference = r(n) - q;
+                            const double distance   = difference.dot(difference);
+                            if (distance < bestDistance) {
+                                bestDistance = distance;
+                                best         = i;
+                                fraction     = u;
+                                closest      = q;
+                            }
+                        }
+                        double prefix = 0.;
+                        for (size_t i = 0; i < best; ++i) {
+                            const Vector delta = ref(i + 1) - ref(i);
+                            prefix += euclidean_norm(delta);
+                        }
+                        const Vector direction = ref(best + 1) - ref(best);
+                        const double length    = euclidean_norm(direction);
+                        const Vector tangent   = direction / length;
+                        const Vector normal(0., 1., 0.);
+                        const Vector binormal = ippl::cross(normal, tangent);
+                        const Vector offset   = r(n) - closest;
+                        expected(n) =
+                                Vector(offset.dot(binormal), offset.dot(normal),
+                                       prefix + fraction * length);
+                        winners(n) = best;
+                    });
+        }
+
         class FFT2D5AlgorithmTest : public ::testing::Test {
         protected:
             using ParticleContainer = FFT2D5Algorithm::ParticleContainer;
@@ -422,10 +476,6 @@ namespace opalx::spacecharge {
         }
 
         TEST_F(FFT2D5AlgorithmTest, ExplicitBatchSizesMatchSerialFullSolveAndBoundaryModes) {
-            if constexpr (!std::is_same_v<
-                                  FFT2D5Poisson::ScalarField2_t::view_type::memory_space,
-                                  Kokkos::HostSpace>)
-                GTEST_SKIP() << "Explicit batching currently supports host execution only";
             setPhysicalSource(sourcePositions(), Vector(0., 0., 0.4), CoordinateSystemTrafo());
             const std::array<std::uint8_t, 1> activity{1};
             SpaceChargeStepState step = alignedStep(0.);
@@ -533,55 +583,12 @@ namespace opalx::spacecharge {
                     Kokkos::deep_copy(particles_m->R.getView(), positions);
                     Kokkos::deep_copy(particles_m->InvalidMask.getView(), invalid);
                     solver.preparePathGeometryAndProjections(context);
-                    const auto r          = particles_m->R.getView();
-                    const auto mask       = particles_m->InvalidMask.getView();
-                    const auto ref        = solver.getReferencePath();
-                    const size_t segments = ref.extent(0) - 1;
+                    const auto r    = particles_m->R.getView();
+                    const auto mask = particles_m->InvalidMask.getView();
+                    const auto ref  = solver.getReferencePath();
                     FFT2D5Algorithm::VectorView_t expected("exhaustiveCoordinates", count);
                     FFT2D5Algorithm::SegmentIndexView_t winners("exhaustiveSegments", count);
-                    Kokkos::parallel_for(
-                            "exhaustiveProjectionOracle", count, KOKKOS_LAMBDA(size_t n) {
-                                if (mask(n)) {
-                                    winners(n)  = segments;
-                                    expected(n) = Vector(0.);
-                                    return;
-                                }
-                                double bestDistance = Kokkos::Experimental::finite_max_v<double>;
-                                size_t best         = 0;
-                                double fraction     = 0.;
-                                Vector closest(0.);
-                                for (size_t i = 0; i < segments; ++i) {
-                                    const Vector d       = ref(i + 1) - ref(i);
-                                    const double length2 = d.dot(d);
-                                    if (length2 <= 0.) continue;
-                                    const double u =
-                                            Kokkos::clamp(d.dot(r(n) - ref(i)) / length2, 0., 1.);
-                                    const Vector q          = ref(i) + u * d;
-                                    const Vector difference = r(n) - q;
-                                    const double distance   = difference.dot(difference);
-                                    if (distance < bestDistance) {
-                                        bestDistance = distance;
-                                        best         = i;
-                                        fraction     = u;
-                                        closest      = q;
-                                    }
-                                }
-                                double prefix = 0.;
-                                for (size_t i = 0; i < best; ++i) {
-                                    const Vector delta = ref(i + 1) - ref(i);
-                                    prefix += euclidean_norm(delta);
-                                }
-                                const Vector direction = ref(best + 1) - ref(best);
-                                const double length    = euclidean_norm(direction);
-                                const Vector tangent   = direction / length;
-                                const Vector normal(0., 1., 0.);
-                                const Vector binormal = ippl::cross(normal, tangent);
-                                const Vector offset   = r(n) - closest;
-                                expected(n) =
-                                        Vector(offset.dot(binormal), offset.dot(normal),
-                                               prefix + fraction * length);
-                                winners(n) = best;
-                            });
+                    launchExhaustiveProjectionOracle(r, mask, ref, count, expected, winners);
                     auto actualR = Kokkos::create_mirror_view_and_copy(
                             Kokkos::HostSpace(), solver.getProjectedPositions());
                     auto actualI = Kokkos::create_mirror_view_and_copy(
