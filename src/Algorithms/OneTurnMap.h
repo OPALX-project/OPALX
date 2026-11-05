@@ -4,6 +4,7 @@
 
 #include <array>
 #include <functional>
+#include <limits>
 #include <string>
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/ExternalFieldRayTracker.h"
@@ -54,7 +55,10 @@ public:
     /// The tracker and its beamline/reference must outlive this service.
     OneTurnMap(const ExternalFieldRayTracker&, const CoordinateSystemTrafo&, const Settings&);
     /// Injection boundary for analytic tests or another validated shared stepper.
-    OneTurnMap(Advance, const CoordinateSystemTrafo&, const Settings&);
+    /// Supply its internal time-step cap to avoid unproductive winding retries.
+    OneTurnMap(
+            Advance, const CoordinateSystemTrafo&, const Settings&,
+            double maximumStep = std::numeric_limits<double>::max());
     Result operator()(const Coordinates&) const;
     /// Eight independent returns at fixed energy and in the identical section.
     /// Steps have units (m, p/(mc), m, p/(mc)); all must be finite and positive.
@@ -72,7 +76,9 @@ public:
      * horizontal plane are supported. No integer is inferred from a matrix.
      * Fractional phases come from the supplied accurate matrix. Integer winding
      * tries bounded nonuniform coarser steps and requires successive-grid agreement,
-     * with phase/endpoint guards and the original DT as fallback. Callers must
+     * with phase/endpoint guards and the original DT as fallback. Coarsening is
+     * skipped when the tracker's internal step cap prevents sufficient savings.
+     * Callers must
      * still check DT/FDSTEP convergence. Failures leave
      * the closed orbit and fractional-mode diagnostics valid but no full tunes.
      */
@@ -82,6 +88,7 @@ private:
     Advance advance_m;
     CoordinateSystemTrafo section_m;
     Settings settings_m;
+    double maximumStep_m;
     double distance(const State&) const;
     State locate(const State&, double duration) const;
 };

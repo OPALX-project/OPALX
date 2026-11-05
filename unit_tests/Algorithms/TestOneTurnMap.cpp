@@ -288,8 +288,8 @@ TEST(OneTurnMap, CoarserWindingRetainsAccurateFractionalTunes) {
 
 TEST(OneTurnMap, InaccurateCoarseWindingFallsBackWithoutChangingEndpointTune) {
     auto s                = settings();
-    s.dt                  = 2 * std::acos(-1.) / 512;
-    s.maxSteps            = 1024;
+    s.dt                  = 2 * std::acos(-1.) / 4096;
+    s.maxSteps            = 8192;
     const auto exact      = harmonicRing(3.41, 2.72);
     const auto inaccurate = harmonicRing(3.44, 2.75);
     bool triedCoarse      = false;
@@ -331,4 +331,27 @@ TEST(OneTurnMap, CoarserWindingDoesNotAliasIntegerTunesOnNestedGrids) {
     ASSERT_TRUE(full.available) << full.diagnostic;
     EXPECT_NEAR(full.tunes[0], 1024.41, 1e-7);
     EXPECT_NEAR(full.tunes[1], 1024.72, 1e-7);
+}
+
+TEST(OneTurnMap, InternalStepCapPreventsUnproductiveCoarseTraversals) {
+    auto s            = settings();
+    s.dt              = 2 * std::acos(-1.) / 4096;
+    s.maxSteps        = 8192;
+    unsigned advances = 0;
+    const auto exact  = harmonicRing(3.41, 2.72);
+    OneTurnMap map(
+            [&](const auto& ray, double dt, auto* accepted) {
+                ++advances;
+                return exact(ray, dt, accepted);
+            },
+            CoordinateSystemTrafo(), s, 2 * s.dt);
+    const OneTurnMap::Coordinates zero{}, h{1e-5, 1e-5, 1e-5, 1e-5};
+    const auto matrix = map.jacobian(zero, h);
+    advances          = 0;
+    const auto full   = map.fullTunes(zero, h, matrix);
+    ASSERT_TRUE(full.available) << full.diagnostic;
+    EXPECT_NEAR(full.tunes[0], 3.41, 1e-8);
+    EXPECT_NEAR(full.tunes[1], 2.72, 1e-8);
+    EXPECT_GE(full.samples, 4096u);
+    EXPECT_LT(advances, 41500u);
 }

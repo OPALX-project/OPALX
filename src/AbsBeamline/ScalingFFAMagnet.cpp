@@ -68,12 +68,20 @@ void ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<doub
     // the particle kernel, with host storage rather than one-particle launches.
     Vector_t<double, 5> cylindrical;
     config_m.getCylindricalCoordinates(R, cylindrical);
+    getFieldValueFromChart(cylindrical, B);
+}
+
+void ScalingFFAMagnet::getFieldValueFromChart(
+        const Vector_t<double, 5>& cylindrical, Vector_t<double, 3>& B) const {
     B = Vector_t<double, 3>(0.0);
     if (!config_m.contains(cylindrical) || config_m.Bz_m == 0) return;
-    double storage[ScalingFFAMagnetConfig::MaxOrder + 2]{};
-    efm_m->function(cylindrical[4], config_m.maxOrder_m + 1, storage);
+    double storage[ScalingFFAMagnetConfig::MaxOrder + 1]{};
+    // At y=0 every higher-order term vanishes exactly. Off plane, the
+    // polynomial uses derivatives only through maxOrder (never maxOrder+1).
+    const int derivativeOrder = cylindrical[1] == 0 ? 0 : static_cast<int>(config_m.maxOrder_m);
+    efm_m->function(cylindrical[4], derivativeOrder, storage);
     Kokkos::View<double*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> derivatives(
-            storage, config_m.maxOrder_m + 2);
+            storage, config_m.maxOrder_m + 1);
     Vector_t<double, 3> field;
     getFieldValueCylindrical(config_m, derivatives, cylindrical, field);
     rotateBfield(config_m, cylindrical, field, B);

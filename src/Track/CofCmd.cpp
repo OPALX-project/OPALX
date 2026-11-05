@@ -351,7 +351,7 @@ namespace {
                     }
                     return end;
                 },
-                c.section, c.tracking);
+                c.section, c.tracking, tracker.maximumTimeStep());
     }
     std::string solveAndReport(
             BeamSequence& sequence, Beam& beam, OpalBeamline& lattice,

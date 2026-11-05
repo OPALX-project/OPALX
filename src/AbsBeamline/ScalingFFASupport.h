@@ -57,6 +57,12 @@ struct ScalingFFASupport {
     }
 
     KOKKOS_INLINE_FUNCTION bool outsideAperture(const Vector_t<double, 3>& point) const {
+        const double x = point(0) + r0_m;
+        const double r = Kokkos::sqrt(x * x + point(2) * point(2));
+        if (!(r > 0)) return true;
+        // Angular ownership matters only when a radial/vertical limit is exceeded.
+        // Healthy rays need no logarithm or azimuth evaluation for this loss check.
+        if (r >= rMin_m && r <= rMax_m && Kokkos::abs(point(1)) <= verticalExtent_m) return false;
         Vector_t<double, 5> cylindrical;
         getCylindricalCoordinates(point, cylindrical);
         return outsideAperture(cylindrical);

@@ -100,12 +100,12 @@ public:
      * field candidate cannot silently turn an aperture loss into free drift.
      */
     bool applyToReferenceParticle(
-            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override {
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&,
+            Vector_t<double, 3>&, Vector_t<double, 3>& B) override {
         Vector_t<double, 5> cylindrical;
         config_m.getCylindricalCoordinates(R, cylindrical);
         if (config_m.outsideAperture(cylindrical)) return true;
-        if (config_m.contains(cylindrical)) apply(R, P, t, E, B);
+        if (config_m.contains(cylindrical)) getFieldValueFromChart(cylindrical, B);
         return false;
     }
     bool isReferenceParticleLost(
@@ -372,6 +372,9 @@ private:
     mutable ScalingFFAMagnetConfig config_m;
     mutable std::shared_ptr<endfieldmodel::EndFieldModel> efm_m;
     mutable std::string endFieldName_m;
+    void getFieldValueFromChart(
+            const Vector_t<double, 5>& cylindrical, Vector_t<double, 3>& B) const;
+
     mutable bool efmInitialised_m = false;
 };
 
@@ -382,7 +385,7 @@ inline void ScalingFFAMagnet::getFieldValue(
     const size_t count = R.size();
     Kokkos::View<Vector_t<double, 5>*> Rcyl("Rcyl", count);
     Kokkos::View<Vector_t<double, 3>*> Bcyl("Bcyl", count);
-    Kokkos::View<double**> derivatives("derivatives", count, config.maxOrder_m + 2);
+    Kokkos::View<double**> derivatives("derivatives", count, config.maxOrder_m + 1);
     Kokkos::parallel_for(
             "ScalingFFAMagnet::getCylindricalCoordinates()", count,
             KOKKOS_LAMBDA(const size_t i) { getCylindricalCoordinates(config, R(i), Rcyl(i)); });
@@ -391,7 +394,8 @@ inline void ScalingFFAMagnet::getFieldValue(
             "ScalingFFAMagnet::phiSpiral", count, KOKKOS_LAMBDA(const size_t i) {
                 phiSpiral(i) = Rcyl(i)[4];  // must be a way to get a subview
             });
-    endField->function(phiSpiral, config.maxOrder_m + 1, derivatives);
+    // The highest index read below is maxOrder, including odd transverse terms.
+    endField->function(phiSpiral, config.maxOrder_m, derivatives);
     Kokkos::parallel_for(
             "ScalingFFAMagnet::getFieldValue()", count, KOKKOS_LAMBDA(const size_t i) {
                 auto derivatives_i = Kokkos::subview(derivatives, i, Kokkos::ALL);
@@ -440,6 +444,12 @@ KOKKOS_INLINE_FUNCTION void ScalingFFAMagnet::getFieldValueCylindrical(
     if (z < -config.verticalExtent_m || z > config.verticalExtent_m) {
         return;
     }
+    if (z == 0) {
+        B[1] = (config.dfCoefficients_m[0] * derivatives(0)) * h;
+        return;
+    }
+    const double verticalRatio = z / r;
+    double verticalPower       = 1;
     for (size_t n = 0; n <= config.maxOrder_m; n += 2) {
         double f2n = 0;
         Vector_t<double, 3> deltaB({0., 0., 0.});
@@ -447,7 +457,7 @@ KOKKOS_INLINE_FUNCTION void ScalingFFAMagnet::getFieldValueCylindrical(
             f2n += config.dfCoefficients_m[n * (ScalingFFAMagnetConfig::MaxOrder + 1) + i]
                    * derivatives(i);
         }
-        deltaB[1] = f2n * h * Kokkos::pow(z / r, static_cast<int>(n));
+        deltaB[1] = f2n * h * verticalPower;
         if (config.maxOrder_m >= n + 1) {
             double f2nplus1 = 0;
             for (size_t i = 0; i <= n + 1; ++i) {
@@ -456,10 +466,11 @@ KOKKOS_INLINE_FUNCTION void ScalingFFAMagnet::getFieldValueCylindrical(
                             * derivatives(i);
             }
             deltaB[0] = (f2n * (config.k_m - n) / (n + 1) - config.tanDelta_m * f2nplus1) * h
-                        * Kokkos::pow(z / r, static_cast<int>(n + 1));  // Br
-            deltaB[2] = f2nplus1 * h * Kokkos::pow(z / r, static_cast<int>(n + 1));
+                        * (verticalPower * verticalRatio);  // Br
+            deltaB[2] = f2nplus1 * h * (verticalPower * verticalRatio);
         }
         B += deltaB;
+        verticalPower *= verticalRatio * verticalRatio;
     }
 }
 

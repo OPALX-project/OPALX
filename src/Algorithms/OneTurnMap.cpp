@@ -29,12 +29,17 @@ OneTurnMap::OneTurnMap(
               [&tracker](const State& ray, double dt, std::vector<Step>* accepted) {
                   return tracker.advance(ray, dt, accepted);
               },
-              section, settings) {}
+              section, settings, tracker.maximumTimeStep()) {}
 
 OneTurnMap::OneTurnMap(
-        Advance advance, const CoordinateSystemTrafo& section, const Settings& settings)
-    : advance_m(std::move(advance)), section_m(section), settings_m(settings) {
+        Advance advance, const CoordinateSystemTrafo& section, const Settings& settings,
+        double maximumStep)
+    : advance_m(std::move(advance)),
+      section_m(section),
+      settings_m(settings),
+      maximumStep_m(maximumStep) {
     require(bool(advance_m), "Missing ray stepper.");
+    require(std::isfinite(maximumStep_m) && maximumStep_m > 0, "Invalid internal step cap.");
     require(std::isfinite(settings.momentum) && settings.momentum > 0
                     && std::isfinite(settings.momentum * settings.momentum),
             "Invalid momentum.");
@@ -285,6 +290,9 @@ OneTurnMap::FullTunes OneTurnMap::fullTunes(
         // come from the accurate endpoint matrix. Bound coarsening and compare
         // successive traversals, retaining the original DT as the fallback.
         double phaseDt = std::max(settings_m.dt, std::min(16 * settings_m.dt, duration / 256));
+        // Require ample headroom to pay for two confirmation traversals.
+        // A large nominal DT already split by the tracker cannot provide that gain.
+        if (std::min(phaseDt, maximumStep_m) < 8 * settings_m.dt) phaseDt = settings_m.dt;
         FullTunes previous;
         for (;;) {
             try {
