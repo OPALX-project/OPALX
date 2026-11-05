@@ -67,10 +67,10 @@ namespace endfieldmodel {
         inline AsymmetricEnge* clone() const override;
 
         /** Print a human-readable description of the end field model */
-        std::ostream& print(std::ostream& out) const;
+        std::ostream& print(std::ostream& out) const override;
 
         /** Return the value of enge at some point x */
-        inline double function(double x, int n) const;
+        inline double function(double x, int n) const override;
 
         inline virtual void function(
                 const Kokkos::View<double*>& xView, const int n,

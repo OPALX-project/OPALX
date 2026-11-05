@@ -178,8 +178,8 @@ private:
     /**
      * @brief Flag to exactly fix the mean R and P of particles after sampling.
      */
-    bool fixMeanR_m;
-    bool fixMeanP_m;
+    bool fixMeanR_m = true;
+    bool fixMeanP_m = true;
 };
 
 #endif  // IPPL_MULTI_VARIATE_GAUSSIAN_H

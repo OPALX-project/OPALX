@@ -17,6 +17,7 @@
 // ------------------------------------------------------------------------
 
 #include "OpalParser/Macro.h"
+#include <algorithm>
 #include "AbstractObjects/Expressions.h"
 #include "OpalParser/Statement.h"
 #include "Utilities/ParseError.h"
@@ -49,31 +50,44 @@ void Macro::parseActuals(Statement& stat) {
     actuals.clear();
 
     if (!stat.delimiter(')')) {
-        int level = 1;
+        std::vector<char> closing{')'};
         std::vector<Token> act;
 
         while (true) {
+            if (stat.atEnd()) {
+                throw ParseError("Macro::parseActuals()", "MACRO argument list is not closed.");
+            }
             Token token = stat.getCurrent();
 
-            if (token.isDel(',')) {
-                // Comma at level=1 terminates an actual argument.
-                if (level == 1) {
-                    actuals.push_back(act);
-                    act.clear();
-                    continue;
+            if (token.isDel(',') && closing.size() == 1) {
+                if (act.empty()) {
+                    throw ParseError("Macro::parseActuals()", "Empty MACRO argument.");
                 }
+                actuals.push_back(act);
+                act.clear();
+                continue;
             } else if (token.isDel('(')) {
-                level++;
-            } else if (token.isDel(')')) {
-                // Closing parenthesis at level=1 terminates the actuals list.
-                if (--level == 0) {
+                closing.push_back(')');
+            } else if (token.isDel('[')) {
+                closing.push_back(']');
+            } else if (token.isDel('{')) {
+                closing.push_back('}');
+            } else if (token.isDel(')') || token.isDel(']') || token.isDel('}')) {
+                if (!token.isDel(closing.back())) {
+                    throw ParseError(
+                            "Macro::parseActuals()", "Mismatched MACRO argument delimiter.");
+                }
+                closing.pop_back();
+                if (closing.empty()) {
+                    if (act.empty()) {
+                        throw ParseError("Macro::parseActuals()", "Empty MACRO argument.");
+                    }
                     actuals.push_back(act);
-                    act.clear();
                     break;
                 }
             }
 
-            // In all other casses append token to current actual.
+            // Nested delimiters and their commas belong to the current argument.
             act.push_back(token);
         }
     }
@@ -85,6 +99,10 @@ void Macro::parseFormals(Statement& stat) {
     if (!stat.delimiter(')')) {
         do {
             std::string form = Expressions::parseString(stat, "Expected formal argument name.");
+            if (std::find(formals.begin(), formals.end(), form) != formals.end()) {
+                throw ParseError(
+                        "Macro::parseFormals()", "Duplicate MACRO formal argument: " + form);
+            }
             formals.push_back(form);
         } while (stat.delimiter(','));
 

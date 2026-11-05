@@ -36,6 +36,25 @@ See [IPPL's formatting documentation](https://ippl-framework.github.io/Manual/se
   - `Drift-4-multi-emit-open`
   - `FodoCell-fromfile`
 
+### Quick start with Docker
+
+A CPU (OpenMP) build of OPALX is published as a Docker image for x86-64 and
+ARM64. It runs on Linux, on Windows with WSL 2, and on Intel and Apple Silicon
+Macs, with nothing to compile. With [Docker](https://docs.docker.com/get-started/get-docker/)
+installed, this runs one of the [regression tests](https://github.com/OPALX-project/regression-tests-x):
+
+```bash
+git clone --depth=1 https://github.com/OPALX-project/regression-tests-x.git
+cd regression-tests-x/RegressionTests/Drift-1-fromfile
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/data" ghcr.io/opalx-project/opalx:cpu Drift-1-fromfile.in --info 2
+```
+
+The results, such as `Drift-1-fromfile.stat`, are written next to the input
+file. To run your own input file, use the same command in its directory with
+its name. [docker/README.md](docker/README.md) covers MPI and OpenMP settings,
+image tags, building the image, a development container and a step-by-step
+guide for Macs.
+
 
 ## Manual and Documentation
 
@@ -61,7 +80,7 @@ no separate LAPACK installation is needed. Select a non-default compiler with
 `-DCMAKE_Fortran_COMPILER=/path/to/compiler`.
 
 ```
-ippl/3.2.0
+ippl/3.4.0
 hdf5/1.10.8_slurm  
 H5hut/2.0.0rc6_slurm  
 gtest/1.13.0-1
@@ -131,6 +150,24 @@ For the release mode, use `Release` instead of `Debug` as the argument for `-DCM
   mirroring pass device buffers directly to MPI; field mirroring has no host-staging fallback.
 - All IPPL/Kokkos flags (FFT, solvers, tests, ALPINE, `Kokkos_ARCH_*`, etc.) are now set automatically.
 
+#### FFT2D5 transverse fields and reference paths
+
+`FFT2D5` deposits charge on a reference-path mesh using laboratory positions and
+line charge. The slice Poisson field is therefore the laboratory transverse
+electric field. The magnetic field follows `B = beta * t_hat cross E / c`, so a
+comoving particle's transverse self-force is reduced by `1/gamma^2`. The
+longitudinal `PIPEMODE` approximation is separate from this transverse solve. The
+longitudinal density derivative is sampled at cell centers with the same shape
+as charge deposition: linear interpolation for `SCATTERLONGITUDINALLY=TRUE`,
+otherwise one cell. Closed-ring interpolation wraps across the path boundary.
+
+For an open path, `REFPATHFNAME` must cover the full finite bunch throughout
+tracking, including particles behind the first reference-particle position.
+Particles beyond either path endpoint now cause an error before deposition;
+clamping them into an endpoint slice would concentrate charge artificially.
+If the generated design path is too short, provide an extended path explicitly.
+This coverage check does not change closed-ring wrapping.
+
 #### Further Options
 | Flag | Default | Description |
 |------|---------|-------------|
@@ -138,8 +175,6 @@ For the release mode, use `Release` instead of `Debug` as the argument for `-DCM
 | `OPALX_USE_INSTALLED_HDF5` | OFF | Disables the use of system-built HDF5 dependency. |
 | `OPALX_USE_INSTALLED_H5HUT` | OFF |  Disables the use of system-built H5hut dependency. |
 | `OPALX_USE_INSTALLED_GTEST` | OFF |  Disables the use of system-built GoogleTest dependency. |
-| `IPPL_ENABLE_ALPINE` | OFF | Disables Alpine features in IPPL by default; set IPPL_ENABLE_ALPINE to ON to enable. |
-| `IPPL_ENABLE_TEST` | OFF | Disables IPPL tests; corresponds to IPPL_ENABLE_TESTS OFF in IPPL default features. |
 | `OPALX_ENABLE_UNIT_TESTS` | OFF | Disables building unit tests using GoogleTest. |
 | `OPALX_ENABLE_EXAMPLES` | OFF | Disables building the Example module. |
 | `OPALX_ENABLE_COVERAGE` | OFF | Disables code coverage instrumentation. |
@@ -148,16 +183,21 @@ For the release mode, use `Release` instead of `Debug` as the argument for `-DCM
 | `OPALX_ENABLE_SANITIZER` | OFF | Disables sanitizer tools (e.g., AddressSanitizer). |
 | `OPALX_USE_ALTERNATIVE_VARIANT` | OFF | Disables modified variant implementation; required for CUDA 12.2 + GCC 12.3.0 compatibility. |
 | `OPALX_USE_STANDARD_FOLDERS` | OFF | Places generated binaries and libraries under the build tree `bin/` and `lib/` folders. |
-| `OPALX_SKIP_FAILING_TESTS` | OFF | Skips building and running tests that are currently marked as failing. |
 | `OPALX_ENABLE_SCRIPTS` | OFF | Disables generation of job script templates for benchmarks/tests. |
 | `OPALX_FIELD_DEBUG` | OFF | Disables FieldSolver field-dump debug code; emits field dumps during simulation when enabled. |
 | `OPALX_USE_KOKKOS_MATH_CONSTANTS` | ON | Sources `Physics.h` mathematical constants such as `pi`, `e`, and `log10e` from `Kokkos::numbers`; turn OFF to use literal fallback values. |
+
+IPPL options such as `IPPL_ENABLE_TESTS` and `IPPL_ENABLE_ALPINE` are not OPALX
+options: given on the command line or by a preset, they reach the IPPL build
+unchanged, and otherwise IPPL's defaults apply (both OFF). OPALX itself always sets
+`IPPL_ENABLE_FFT` and `IPPL_ENABLE_SOLVERS` to ON and `IPPL_PLATFORMS` to
+`OPALX_PLATFORMS`.
 
 Dependency version/ref options:
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `IPPL_GIT_TAG` | `master` | IPPL branch, tag, commit, or release version to fetch. Numeric release shorthand such as `3.2.0` is resolved to `IPPL-3.2.0`. |
+| `IPPL_GIT_TAG` | `3.4.0` | IPPL branch, tag, commit, or release version to fetch. Numeric release shorthand such as `3.4.0` is resolved to `IPPL-3.4.0` and `master` refers to the current IPPL master. |
 | `Kokkos_VERSION` | `5.2.0` | Kokkos version requested by IPPL. A plain version asks CMake to use an installed Kokkos of that version or newer; use `git.<tag>`, `git.<branch>`, or `git.<sha>` to request a source checkout ref. |
 | `Heffte_VERSION` | `2.4.0` | Heffte version requested by IPPL when FFT support is enabled. A plain version asks CMake to use an installed Heffte of that version or newer; use `git.<tag>`, `git.<branch>`, or `git.<sha>` to request a source checkout ref. |
 

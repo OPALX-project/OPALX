@@ -103,6 +103,13 @@ public:
     /// polarization source and as the switch that enables per-particle spin tracking.
     bool hasPolarization() const;
 
+    /// Return the normalised REFDIRECTION, the direction of the reference momentum of a file
+    /// distribution in the beamline frame. Default {0,0,1}. Validation is in execute().
+    std::vector<double> getReferenceDirection() const;
+
+    /// True if REFDIRECTION was explicitly set on this beam.
+    bool hasReferenceDirection() const;
+
     /// True if PC, ENERGY, or GAMMA was explicitly provided by the user.
     bool hasExplicitEnergy() const;
 
@@ -136,6 +143,9 @@ private:
 
     // Validate the POLARIZATION attribute (length, magnitude, muon-only).
     void validatePolarization() const;
+
+    // Validate the REFDIRECTION attribute (length 3, non-zero, needs PC/ENERGY/GAMMA).
+    void validateReferenceDirection() const;
 
     // The particle reference data.
     PartData reference;

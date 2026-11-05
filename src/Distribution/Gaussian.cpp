@@ -19,17 +19,19 @@ Gaussian::Gaussian(std::shared_ptr<ParticleContainer_t> pc, Distribution_t* opal
     setSigmaR(opalDist->getSigmaR());
     setAvrgpz(opalDist->getAvrgpz());
     setCutoffR(opalDist->getCutoffR());
+    setCutoffP(opalDist->getCutoffP());
 }
 
 Gaussian::Gaussian(
         std::shared_ptr<ParticleContainer_t> pc, const Vector_t<double, 3>& sigmaR,
         const Vector_t<double, 3>& sigmaP, double avrgpz, const Vector_t<double, 3>& cutoffR,
-        bool fixMeanR)
+        bool fixMeanR, const Vector_t<double, 3>& cutoffP)
     : SamplingBase(pc) {
     setSigmaR(sigmaR);
     setSigmaP(sigmaP);
     setAvrgpz(avrgpz);
     setCutoffR(cutoffR);
+    setCutoffP(cutoffP);
     setFixMeanR(fixMeanR);
 
     samperTimer_m = IpplTimings::getTimer("Sampling");
@@ -55,6 +57,10 @@ void Gaussian::initRandomPool() {
 /**
  * @brief Generates particles following a Gaussian distribution.
  *
+ * The algorithm follows OPAL's Distribution::generateGaussZ (rejection sampling
+ * with elliptical transverse cuts) and Distribution::adjustPhaseSpace (exact
+ * centering and average-energy matching).
+ *
  * @param numberOfParticles The total number of particles to generate.
  * @param nr The number of grid points in each dimension (not used here).
  */
@@ -70,28 +76,22 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     if (t0_m > 0.0 && !hasEmittedOnce_m) {  // YES this !hasEmittedOnce_m is correct!
         return;
     }
+
+    // The sampler expects strictly positive cutoffs (in units of sigma). "No cut" is
+    // expressed as a very large value, e.g. std::numeric_limits<double>::max(), which
+    // is what Distribution::setDistParametersGauss substitutes for a zero input cutoff.
+    for (unsigned d = 0; d < 3; ++d) {
+        if (!(cutoffR_m[d] > 0.0) || !(cutoffP_m[d] > 0.0)) {
+            throw OpalException(
+                    "Gaussian::generateParticles",
+                    "All position and momentum cutoffs (CUTOFFX, CUTOFFY, CUTOFFLONG, CUTOFFPX, "
+                    "CUTOFFPY, CUTOFFPZ) must be greater than zero.");
+        }
+    }
+
     auto rand_pool64 = randPool_m;
 
     IpplTimings::startTimer(samperTimer_m);
-
-    double mu[3], sd[3];
-
-    Vector_t<double, 3> rmin = -cutoffR_m;
-    Vector_t<double, 3> rmax = cutoffR_m;
-
-    for (int i = 0; i < 3; i++) {
-        mu[i]   = 0.0;
-        sd[i]   = sigmaR_m[i];
-        rmin(i) = (rmin(i) + mu[i]) * sigmaR_m[i];
-        rmax(i) = (rmax(i) + mu[i]) * sigmaR_m[i];
-    }
-
-    const double par[6] = {mu[0], sd[0], mu[1], sd[1], mu[2], sd[2]};
-
-    using Dist_t     = ippl::random::NormalDistribution<double, 3>;
-    using sampling_t = ippl::random::InverseTransformSampling<
-            double, 3, Kokkos::DefaultExecutionSpace, Dist_t>;
-    Dist_t dist(par);
 
     const int nranks = std::max(1, ippl::Comm->size());
     // Use computeLocalEmitCount to distribute particles across ranks or uniform fallback.
@@ -103,65 +103,112 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
                                               ? 1
                                               : 0));
 
-    sampling_t sampling(dist, rmax, rmin, rmax, rmin, nlocal);
-    nlocal = sampling.getLocalSamplesNum();
-
     const size_t nlocalCurrent = pc_m->getLocalNum();
     pc_m->createParticles(nlocal);
 
     view_type RviewFull = pc_m->R.getView();
+    view_type PviewFull = pc_m->P.getView();
     auto Rview = Kokkos::subview(RviewFull, std::make_pair(nlocalCurrent, nlocalCurrent + nlocal));
+    auto Pview = Kokkos::subview(PviewFull, std::make_pair(nlocalCurrent, nlocalCurrent + nlocal));
 
-    sampling.generate(Rview, rand_pool64);
+    // Rejection sampling in normalised (unit-sigma) coordinates, as in OPAL:
+    //   (x/cx)^2 + (y/cy)^2 <= 1,  (px/cpx)^2 + (py/cpy)^2 <= 1,  |z| <= cz,  |pz| <= cpz.
+    // A zero sigma collapses the corresponding coordinate to exactly zero (point mass).
+    const Vector_t<double, 3> sigmaR  = sigmaR_m;
+    const Vector_t<double, 3> sigmaP  = sigmaP_m;
+    const Vector_t<double, 3> cutoffR = cutoffR_m;
+    const Vector_t<double, 3> cutoffP = cutoffP_m;
+    const double avrgpz               = avrgpz_m;
+
+    Kokkos::parallel_for(
+            "Gaussian_rejection_sampling", nlocal, KOKKOS_LAMBDA(const size_t k) {
+                typename GeneratorPool::generator_type gen = rand_pool64.get_state();
+
+                double x = 0.0, y = 0.0, z = 0.0, px = 0.0, py = 0.0, pz = 0.0;
+                bool allow = false;
+                while (!allow) {
+                    x  = gen.normal(0.0, 1.0);
+                    px = gen.normal(0.0, 1.0);
+                    y  = gen.normal(0.0, 1.0);
+                    py = gen.normal(0.0, 1.0);
+                    z  = gen.normal(0.0, 1.0);
+                    pz = gen.normal(0.0, 1.0);
+
+                    const double rx  = x / cutoffR[0];
+                    const double ry  = y / cutoffR[1];
+                    const double rpx = px / cutoffP[0];
+                    const double rpy = py / cutoffP[1];
+
+                    const bool xAndYOk   = (rx * rx + ry * ry <= 1.0);
+                    const bool pxAndPyOk = (rpx * rpx + rpy * rpy <= 1.0);
+                    const bool zOk       = (Kokkos::fabs(z) <= cutoffR[2]);
+                    const bool pzOk      = (Kokkos::fabs(pz) <= cutoffP[2]);
+
+                    allow = (xAndYOk && pxAndPyOk && zOk && pzOk);
+                }
+
+                rand_pool64.free_state(gen);
+
+                Rview(k)[0] = x * sigmaR[0];
+                Rview(k)[1] = y * sigmaR[1];
+                Rview(k)[2] = z * sigmaR[2];
+                Pview(k)[0] = px * sigmaP[0];
+                Pview(k)[1] = py * sigmaP[1];
+                Pview(k)[2] = avrgpz + pz * sigmaP[2];
+            });
+    Kokkos::fence();
 
     if (fixMeanR_m) {
-        double meanR[3], loc_meanR[3];
-        for (int i = 0; i < 3; i++) {
-            meanR[i]     = 0.0;
-            loc_meanR[i] = 0.0;
-        }
+        // Equivalent of OPAL's Distribution::adjustPhaseSpace:
+        //  - shift x, y, z, px, py such that their means are exactly zero,
+        //  - shift pz by eps such that  mean( pz + (px^2 + py^2) / (2 pz) ) == avrgpz,
+        //    i.e. the mean of |p| (Taylor expanded for small transverse momenta)
+        //    matches the reference beam momentum exactly.
+        double loc_avrg[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        double avrg[6]     = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
         Kokkos::parallel_reduce(
-                "calc moments of particle distr.", nlocal,
-                KOKKOS_LAMBDA(const int k, double& cent0, double& cent1, double& cent2) {
-                    cent0 += Rview(k)[0];
-                    cent1 += Rview(k)[1];
-                    cent2 += Rview(k)[2];
+                "Gaussian_phase_space_moments", nlocal,
+                KOKKOS_LAMBDA(
+                        const size_t k, double& sx, double& sy, double& sz, double& spx,
+                        double& spy, double& sp) {
+                    sx += Rview(k)[0];
+                    sy += Rview(k)[1];
+                    sz += Rview(k)[2];
+                    spx += Pview(k)[0];
+                    spy += Pview(k)[1];
+                    const double px = Pview(k)[0];
+                    const double py = Pview(k)[1];
+                    const double pz = Pview(k)[2];
+                    // Taylor series of sqrt(px^2 + py^2 + pz^2) = pz * sqrt(1 + eps^2), eps << 1.
+                    // Guard pz == 0 (e.g. avrgpz == 0 with zero momentum spread).
+                    sp += (pz != 0.0) ? pz + (px * px + py * py) / (2.0 * pz) : pz;
                 },
-                Kokkos::Sum<double>(loc_meanR[0]), Kokkos::Sum<double>(loc_meanR[1]),
-                Kokkos::Sum<double>(loc_meanR[2]));
+                Kokkos::Sum<double>(loc_avrg[0]), Kokkos::Sum<double>(loc_avrg[1]),
+                Kokkos::Sum<double>(loc_avrg[2]), Kokkos::Sum<double>(loc_avrg[3]),
+                Kokkos::Sum<double>(loc_avrg[4]), Kokkos::Sum<double>(loc_avrg[5]));
         Kokkos::fence();
 
-        MPI_Allreduce(loc_meanR, meanR, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+        MPI_Allreduce(loc_avrg, avrg, 6, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
         ippl::Comm->barrier();
 
-        for (int i = 0; i < 3; i++) {
-            meanR[i] = meanR[i] / (1.0 * numberOfParticles);
+        for (int i = 0; i < 6; i++) {
+            avrg[i] = avrg[i] / (1.0 * numberOfParticles);
         }
 
+        const double eps = avrgpz - avrg[5];
+
         Kokkos::parallel_for(
-                nlocal, KOKKOS_LAMBDA(const int k) {
-                    Rview(k)[0] -= meanR[0];
-                    Rview(k)[1] -= meanR[1];
-                    Rview(k)[2] -= meanR[2];
+                "Gaussian_adjust_phase_space", nlocal, KOKKOS_LAMBDA(const size_t k) {
+                    Rview(k)[0] -= avrg[0];
+                    Rview(k)[1] -= avrg[1];
+                    Rview(k)[2] -= avrg[2];
+                    Pview(k)[0] -= avrg[3];
+                    Pview(k)[1] -= avrg[4];
+                    Pview(k)[2] += eps;
                 });
         Kokkos::fence();
     }
-
-    for (int i = 0; i < 3; i++) {
-        mu[i] = 0.0;
-        sd[i] = sigmaP_m[i];
-    }
-
-    view_type PviewFull = pc_m->P.getView();
-    auto Pview = Kokkos::subview(PviewFull, std::make_pair(nlocalCurrent, nlocalCurrent + nlocal));
-
-    Kokkos::parallel_for(nlocal, ippl::random::randn<double, 3>(Pview, rand_pool64, mu, sd));
-    Kokkos::fence();
-
-    double avrgpz = avrgpz_m;
-    Kokkos::parallel_for(nlocal, KOKKOS_LAMBDA(const size_t k) { Pview(k)[2] += avrgpz; });
-    Kokkos::fence();
 
     // Apply per-emission-source offsets after all mean-fixing/corrections.
     // EMISSIONSOURCE offsets are expected to translate the generated bunch
@@ -173,6 +220,7 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
                 Rview(k) += R0;
                 Pview(k) += P0;
             });
+    Kokkos::fence();
 
     fillPolarization(nlocalCurrent, nlocal);
 

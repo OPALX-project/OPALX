@@ -19,11 +19,14 @@
 #include "MultipoleT.h"
 
 MultipoleTCurvedConstRadius::MultipoleTCurvedConstRadius(MultipoleT* element)
-    : MultipoleTBase(element), planarArcGeometry_m(Geometry::makeSBend(1.0, 1.0)) {}
+    : MultipoleTBase(element),
+      planarArcGeometry_m(
+              Geometry::makeSBend(
+                      element->getLength(), element->getBendAngle() / element->getLength())) {}
 
 void MultipoleTCurvedConstRadius::initialise() {
-    planarArcGeometry_m.setElementLength(element_m->getLength());
-    planarArcGeometry_m.setCurvature(element_m->getBendAngle() / element_m->getLength());
+    planarArcGeometry_m = Geometry::makeSBend(
+            element_m->getLength(), element_m->getBendAngle() / element_m->getLength());
     generateTanhCoefficients(element_m->getMaxFOrder() * 2 + 1);
 }
 

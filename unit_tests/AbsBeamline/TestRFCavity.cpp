@@ -55,6 +55,17 @@
  *   Individual tests override only what they need.
  */
 #include <gtest/gtest.h>
+#include <limits>
+#include "AbsBeamline/VariableRFCavity.h"
+#include "AbstractObjects/OpalData.h"
+#include "Algorithms/CavityAutophaser.h"
+#include "Algorithms/PolynomialTimeDependence.h"
+#include "Attributes/Attributes.h"
+#include "Elements/OpalCavity.h"
+#include "PartBunch/PartBunch.h"
+#include "Physics/Units.h"
+#include "Structure/Beam.h"
+#include "Structure/DataSink.h"
 
 #include "AbsBeamline/ElementBase.h"
 #include "BeamlineCore/RFCavityRep.h"
@@ -471,4 +482,273 @@ TEST_F(RFCavityTest, FieldmapOutOfBounds) {
     EXPECT_DOUBLE_EQ(E(1), 0.0);
     EXPECT_DOUBLE_EQ(E(2), 0.0);
     EXPECT_TRUE(cav_->applyToReferenceParticle(R, P, 0.0, E, B));
+}
+
+// Ideal (map-free) RF cavity behavior.
+class IdealRFCavityTest : public testing::Test {
+protected:
+    static void SetUpTestSuite() {
+        int argc    = 0;
+        char** argv = nullptr;
+        ippl::initialize(argc, argv);
+        OpalData::getInstance()->storeInputFn("ideal_rf_test.opal");
+        gmsg                = new Inform(nullptr, -1);
+        Options::enableHDF5 = false;
+    }
+    static void TearDownTestSuite() {
+        delete gmsg;
+        gmsg = nullptr;
+        ippl::finalize();
+    }
+    void SetUp() override {
+        cavity.setCavityType("IDEAL");
+        cavity.getGeometry().setElementLength(0.2);
+        cavity.setAmplitudem(5.0);
+        cavity.setFrequencym(Physics::two_pi * 100.e6);
+        cavity.setPhasem(0.0);
+        cavity.setAperture(ApertureType::RECTANGULAR, {0.1, 0.05});
+        cavity.initialise(nullptr);
+    }
+    std::shared_ptr<PartBunch_t> makeBunch(size_t count) {
+        beam       = std::make_shared<Beam>();
+        auto bunch = std::make_shared<PartBunch_t>(
+                std::vector{1.0}, std::vector{1.0}, std::vector<Beam*>{Beam::find("UNNAMED_BEAM")},
+                std::vector<size_t>{count}, 1.0, "LF2",
+                opalx::spacecharge::CartesianDomainConfig3D{.periodicParticleBoundary = true});
+        bunch->getParticleContainer()->createParticles(count);
+        return bunch;
+    }
+    RFCavityRep cavity{"ideal"};
+    std::shared_ptr<Beam> beam;
+};
+
+TEST_F(IdealRFCavityTest, GradientPhaseAndVariableRFConvention) {
+    VariableRFCavity variable;
+    variable.setLength(0.2);
+    variable.setWidth(0.2);
+    variable.setHeight(0.1);
+    variable.setAmplitudeModel(std::make_shared<PolynomialTimeDependence>(std::vector{5.0}));
+    variable.setFrequencyModel(std::make_shared<PolynomialTimeDependence>(std::vector{100.0}));
+    variable.setPhaseModel(
+            std::make_shared<PolynomialTimeDependence>(std::vector{0.3 + Physics::pi / 2.}));
+    cavity.setPhasem(0.3);
+    for (double time : {0.0, 1.e-9, 2.5e-9, 5.e-9}) {
+        Vector_t<double, 3> e(0), b(0), v(0);
+        cavity.apply({0., 0., 0.1}, {}, time, e, b);
+        variable.apply({0., 0., 0.1}, {}, time, v, b);
+        EXPECT_NEAR(e[2], 5.e6 * std::cos(Physics::two_pi * 100.e6 * time + 0.3), 1.e-8);
+        EXPECT_NEAR(e[2], v[2], 1.e-8);
+        EXPECT_DOUBLE_EQ(e[0], 0.);
+        EXPECT_DOUBLE_EQ(e[1], 0.);
+        EXPECT_DOUBLE_EQ(b[2], 0.);
+    }
+    cavity.setPhasem(0.);
+    Vector_t<double, 3> e(0), b(0);
+    cavity.apply({0., 0., 0.1}, {}, 0., e, b);
+    EXPECT_DOUBLE_EQ(e[2] * 0.2, 1.e6);
+}
+
+TEST_F(IdealRFCavityTest, DeviceHostReferenceBoundariesAndMidpoint) {
+    const std::vector<Vector_t<double, 3>> positions{
+            {0., 0., -0.01}, {0., 0., 0.},    {0., 0., 0.1},    {0., 0., 0.2},
+            {0.1, 0., 0.1},  {0., 0.05, 0.1}, {0.09, 0.04, 0.1}};
+    const auto bunch = makeBunch(positions.size());
+    const auto pc    = bunch->getParticleContainer();
+    auto r           = Kokkos::create_mirror_view(pc->R.getView());
+    for (size_t i = 0; i < positions.size(); ++i)
+        r(i) = positions[i];
+    Kokkos::deep_copy(pc->R.getView(), r);
+    Kokkos::deep_copy(pc->E.getView(), Vector_t<double, 3>{1., 2., 3.});
+    Kokkos::deep_copy(pc->B.getView(), Vector_t<double, 3>{4., 5., 6.});
+    bunch->setT(1.e-9);
+    bunch->setdT(2.e-9);
+    cavity.initialise(bunch.get());
+    cavity.goOnline(0.);
+    cavity.apply(pc);
+    const auto fields   = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->E.getView());
+    const auto magnetic = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->B.getView());
+    for (size_t i = 0; i < positions.size(); ++i) {
+        Vector_t<double, 3> e{1., 2., 3.}, refE(e), b{4., 5., 6.}, refB(b);
+        cavity.apply(positions[i], {}, 2.e-9, e, b);
+        bool outside = cavity.applyToReferenceParticle(positions[i], {}, 2.e-9, refE, refB);
+        EXPECT_EQ(outside, i == 4 || i == 5);
+        const bool inside = i == 1 || i == 2 || i == 6;
+        EXPECT_EQ(cavity.isInside(positions[i]), inside);
+        EXPECT_NEAR(e[2], 3. + (inside ? 5.e6 * std::cos(0.4 * Physics::pi) : 0.), 1.e-8);
+        for (unsigned d = 0; d < 3; ++d) {
+            EXPECT_DOUBLE_EQ(fields(i)[d], e[d]);
+            EXPECT_DOUBLE_EQ(refE[d], e[d]);
+            EXPECT_DOUBLE_EQ(magnetic(i)[d], b[d]);
+            EXPECT_DOUBLE_EQ(refB[d], b[d]);
+        }
+    }
+    EXPECT_NO_THROW(cavity.goOffline());
+}
+
+TEST_F(IdealRFCavityTest, ReferenceExcludesErrorsAndClonePreservesMode) {
+    cavity.setAmplitudeError(1.0);
+    cavity.setPhaseError(Physics::pi);
+    std::unique_ptr<ElementBase> copy(cavity.clone());
+    auto* cloned = dynamic_cast<RFCavityRep*>(copy.get());
+    ASSERT_NE(cloned, nullptr);
+    EXPECT_TRUE(cloned->isIdeal());
+    Vector_t<double, 3> e(0), refE(0), b(0);
+    cloned->apply({0., 0., 0.1}, {}, 0., e, b);
+    cloned->applyToReferenceParticle({0., 0., 0.1}, {}, 0., refE, b);
+    EXPECT_DOUBLE_EQ(e[2], -6.e6);
+    EXPECT_DOUBLE_EQ(refE[2], 5.e6);
+}
+
+TEST_F(IdealRFCavityTest, InputValidationAndDefaultMode) {
+    OpalCavity input;
+    auto* rep = dynamic_cast<RFCavityRep*>(input.getElement());
+    ASSERT_NE(rep, nullptr);
+    EXPECT_NO_THROW(input.update());
+    EXPECT_FALSE(rep->isIdeal());
+    EXPECT_EQ(rep->getCavityType(), CavityType::SW);
+    Attributes::setPredefinedString(input.itsAttr[OpalCavity::TYPE], "IDEAL");
+    EXPECT_ANY_THROW(input.update());
+    Attributes::setReal(input.itsAttr[OpalCavity::LENGTH], 0.2);
+    Attributes::setReal(input.itsAttr[OpalCavity::VOLT], 1.);
+    Attributes::setReal(input.itsAttr[OpalCavity::FREQ], 100.);
+    EXPECT_NO_THROW(input.update());
+    EXPECT_TRUE(rep->isIdeal());
+    EXPECT_DOUBLE_EQ(rep->getFrequencym(), Physics::two_pi * 100.e6);
+    Attributes::setString(input.itsAttr[OpalCavity::FMAPFN], "unused.map");
+    EXPECT_ANY_THROW(input.update());
+    Attributes::setString(input.itsAttr[OpalCavity::FMAPFN], "");
+    Attributes::setString(input.itsAttr[OpalCavity::PHASE_MODEL], "phase");
+    EXPECT_ANY_THROW(input.update());
+    for (double length : {0., -1., std::numeric_limits<double>::infinity()}) {
+        cavity.getGeometry().setElementLength(length);
+        EXPECT_ANY_THROW(cavity.initialise(nullptr));
+    }
+}
+
+TEST_F(IdealRFCavityTest, AutophaseAndDCGradientTimesLength) {
+    const auto bunch = makeBunch(1);
+    cavity.initialise(bunch.get());
+    const auto ref       = bunch->getParticleContainer()->getReference();
+    const double mass    = ref->getM() * Units::eV2MeV;
+    const double kinetic = 10.;
+    const double p0      = std::sqrt(kinetic * (kinetic + 2. * mass)) / mass;
+    cavity.setFrequencym(0.);
+    const auto dc     = cavity.trackOnAxisParticle(p0, 0., 1.e-13, ref->getQ(), mass);
+    const double gain = (std::sqrt(1. + dc.first * dc.first) - 1.) * mass - kinetic;
+    EXPECT_NEAR(
+            gain, ref->getQ() * cavity.getAmplitudem() * cavity.getGeometry().getElementLength(),
+            5.e-4);
+    cavity.setFrequencym(Physics::two_pi * 100.e6);
+    cavity.setPhasem(0.37);
+    const double phase = cavity.getAutoPhaseEstimate(kinetic, 0., ref->getQ(), mass);
+    EXPECT_TRUE(std::isfinite(phase));
+    EXPECT_DOUBLE_EQ(cavity.getPhasem(), 0.37);
+    const auto energyAt = [&](double phi) {
+        cavity.setPhasem(phi);
+        const auto result = cavity.trackOnAxisParticle(p0, 0., 1.e-13, ref->getQ(), mass);
+        return (std::sqrt(1. + result.first * result.first) - 1.) * mass;
+    };
+    const double optimum = energyAt(phase);
+    EXPECT_GT(optimum, energyAt(phase + 0.2));
+    EXPECT_GT(optimum, energyAt(phase - 0.2));
+}
+
+TEST_F(IdealRFCavityTest, EllipticalApertureAndFiniteParameters) {
+    cavity.setAperture(ApertureType::ELLIPTICAL, {0.1, 0.05});
+    EXPECT_TRUE(cavity.isInside({0.05, 0.025, 0.1}));
+    EXPECT_FALSE(cavity.isInside({0.09, 0.04, 0.1}));
+    EXPECT_FALSE(cavity.isInside({0.1, 0., 0.1}));
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    cavity.setFrequencym(-1.);
+    EXPECT_ANY_THROW(cavity.validateIdeal());
+    cavity.setFrequencym(0.);
+    EXPECT_NO_THROW(cavity.validateIdeal());
+    cavity.setAmplitudem(nan);
+    EXPECT_ANY_THROW(cavity.validateIdeal());
+    cavity.setAmplitudem(1.);
+    cavity.setPhasem(nan);
+    EXPECT_ANY_THROW(cavity.validateIdeal());
+}
+
+TEST_F(IdealRFCavityTest, FullAutophaserRespectsVetoAndFindsCrest) {
+    const auto bunch = makeBunch(1);
+    auto rf          = std::make_shared<RFCavityRep>(cavity);
+    rf->getGeometry().setElementLength(0.002);
+    rf->setAmplitudem(50.0);
+    rf->initialise(bunch.get());
+    const auto ref       = bunch->getParticleContainer()->getReference();
+    const double mass    = ref->getM() * Units::eV2MeV;
+    const double kinetic = 10.;
+    const double p0      = std::sqrt(kinetic * (kinetic + 2. * mass)) / mass;
+    const Vector_t<double, 3> momentum{0., 0., p0};
+    rf->setPhasem(0.37);
+    rf->setAutophaseVeto(true);
+    CavityAutophaser fixed(*ref, rf);
+    EXPECT_DOUBLE_EQ(fixed.getPhaseAtMaxEnergy({0., 0., 0.}, momentum, 0., 1.e-13), 0.37);
+    EXPECT_DOUBLE_EQ(rf->getPhasem(), 0.37);
+    rf->setPhasem(0.);
+    rf->setAutophaseVeto(false);
+    CavityAutophaser automatic(*ref, rf);
+    const double phase = automatic.getPhaseAtMaxEnergy({0., 0., 0.}, momentum, 0., 1.e-13);
+    EXPECT_TRUE(std::isfinite(phase));
+    EXPECT_TRUE(rf->getAutophaseVeto());
+    EXPECT_DOUBLE_EQ(rf->getPhasem(), phase);
+    const auto energyAt = [&](double phi) {
+        rf->setPhasem(phi);
+        const auto result = rf->trackOnAxisParticle(p0, 0., 1.e-13, ref->getQ(), mass);
+        return (std::sqrt(1. + result.first * result.first) - 1.) * mass;
+    };
+    const double optimum = energyAt(phase);
+    EXPECT_GT(optimum, kinetic);
+    EXPECT_GT(optimum, energyAt(phase - 0.2));
+    EXPECT_GT(optimum, energyAt(phase + 0.2));
+}
+
+TEST_F(IdealRFCavityTest, FullAutophaserAdjustsGradientToDesignEnergy) {
+    const auto bunch = makeBunch(1);
+    auto rf          = std::make_shared<RFCavityRep>(cavity);
+    rf->getGeometry().setElementLength(0.002);
+    rf->setAmplitudem(0.);
+    rf->setDesignEnergy(10.2);
+    rf->setPhasem(0.);
+    rf->setAutophaseVeto(false);
+    rf->initialise(bunch.get());
+    const auto ref    = bunch->getParticleContainer()->getReference();
+    const double mass = ref->getM() * Units::eV2MeV;
+    const double p0   = std::sqrt(10. * (10. + 2. * mass)) / mass;
+    CavityAutophaser automatic(*ref, rf);
+    const double phase = automatic.getPhaseAtMaxEnergy({0., 0., 0.}, {0., 0., p0}, 0., 1.e-13);
+    EXPECT_TRUE(std::isfinite(phase));
+    EXPECT_GT(rf->getAmplitudem(), 50.0);
+    EXPECT_LT(rf->getAmplitudem(), 150.0);
+    const auto result        = rf->trackOnAxisParticle(p0, 0., 1.e-13, ref->getQ(), mass);
+    const double finalEnergy = (std::sqrt(1. + result.first * result.first) - 1.) * mass;
+    EXPECT_NEAR(finalEnergy, 10.2, 1.e-6);
+}
+
+TEST_F(IdealRFCavityTest, FieldAmplitudeIndependentOfLength) {
+    const auto bunch = makeBunch(1);
+    const auto pc    = bunch->getParticleContainer();
+    bunch->setT(-1.e-9);
+    bunch->setdT(2.e-9);  // The device midpoint is t=0.
+    Kokkos::deep_copy(pc->R.getView(), Vector_t<double, 3>{0., 0., 0.1});
+    for (double length : {0.2, 0.4}) {
+        cavity.getGeometry().setElementLength(length);
+        cavity.initialise(bunch.get());
+        double begin = -1., end = -1.;
+        cavity.getFieldExtent(begin, end);
+        EXPECT_DOUBLE_EQ(begin, 0.);
+        EXPECT_DOUBLE_EQ(end, length);
+        Vector_t<double, 3> hostE(0), refE(0), b(0);
+        cavity.apply({0., 0., 0.1}, {}, 0., hostE, b);
+        EXPECT_FALSE(cavity.applyToReferenceParticle({0., 0., 0.1}, {}, 0., refE, b));
+        Kokkos::deep_copy(pc->E.getView(), Vector_t<double, 3>(0));
+        cavity.apply(pc);
+        const auto fields =
+                Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->E.getView());
+        // VOLT=5 MV/m sets the field directly; length only sets spatial support.
+        EXPECT_DOUBLE_EQ(hostE[2], 5.e6);
+        EXPECT_DOUBLE_EQ(refE[2], 5.e6);
+        EXPECT_DOUBLE_EQ(fields(0)[2], 5.e6);
+    }
 }

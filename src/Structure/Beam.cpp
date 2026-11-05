@@ -21,17 +21,14 @@
 
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/OpalData.h"
+#include "Algorithms/PartData.h"
 #include "Attributes/Attributes.h"
-#include "Expressions/SAutomatic.h"
-#include "Expressions/SRefExpr.h"
 #include "Physics/ParticleProperties.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Options.h"
 
 #include <cmath>
-#include <iterator>
 
 using namespace Expressions;
 
@@ -56,6 +53,7 @@ namespace {
         POLARIZATION,     // Initial polarization vector P (rest-frame, lab-frame axes)
         ORBITTHREADER,    // Construct an independent reference-orbit threader
         TUNEINITIAL,      // Spectral launch triples, independent of bunch distribution.
+        REFDIRECTION,     // Direction of the reference momentum for file distributions
         SIZE
     };
 }  // namespace
@@ -129,6 +127,11 @@ Beam::Beam()
             "Temporary multi-beam control. If FALSE, this beam reuses the primary beam's "
             "design-orbit element map instead of constructing an independent OrbitThreader.",
             true);
+    itsAttr[REFDIRECTION] = Attributes::makeRealArray(
+            "REFDIRECTION",
+            "Direction {dx, dy, dz} of the reference momentum in the beamline frame; OPALX "
+            "normalises it. Only for FROMFILE and EMITTEDFROMFILE distributions, together with "
+            "PC, ENERGY or GAMMA, which give its length. Default {0, 0, 1}.");
 
     // Set up default beam.
     Beam* defBeam    = clone("UNNAMED_BEAM");
@@ -230,6 +233,27 @@ void Beam::execute() {
     }
 
     validatePolarization();
+    validateReferenceDirection();
+}
+
+void Beam::validateReferenceDirection() const {
+    if (!hasReferenceDirection()) {
+        return;
+    }
+    const std::vector<double> dir = Attributes::getRealArray(itsAttr[REFDIRECTION]);
+    if (dir.size() != 3) {
+        throw OpalException(
+                "Beam::execute()", "\"REFDIRECTION\" must be a length-3 vector {dx, dy, dz}.");
+    }
+    if (!(dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2] > 0.0)) {
+        throw OpalException("Beam::execute()", "\"REFDIRECTION\" must not be zero.");
+    }
+    if (!hasExplicitEnergy()) {
+        throw OpalException(
+                "Beam::execute()",
+                "\"REFDIRECTION\" needs \"PC\", \"ENERGY\" or \"GAMMA\" for the length of "
+                "the reference momentum.");
+    }
 }
 
 void Beam::validatePolarization() const {
@@ -304,6 +328,22 @@ bool Beam::hasPolarization() const {
     return !Attributes::getRealArray(itsAttr[POLARIZATION]).empty();
 }
 
+std::vector<double> Beam::getReferenceDirection() const {
+    if (!hasReferenceDirection()) {
+        return {0.0, 0.0, 1.0};
+    }
+    std::vector<double> dir = Attributes::getRealArray(itsAttr[REFDIRECTION]);
+    const double norm       = std::sqrt(dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]);
+    for (double& d : dir) {
+        d /= norm;
+    }
+    return dir;
+}
+
+bool Beam::hasReferenceDirection() const {
+    return !Attributes::getRealArray(itsAttr[REFDIRECTION]).empty();
+}
+
 Beam* Beam::find(const std::string& name) {
     Beam* beam = dynamic_cast<Beam*>(OpalData::getInstance()->find(name));
 
@@ -338,7 +378,7 @@ double Beam::getCharge() const { return Attributes::getReal(itsAttr[CHARGE]); }
 
 double Beam::getMass() const { return Attributes::getReal(itsAttr[MASS]); }
 
-double Beam::getMomentum() const { return reference.getP() / 1.e9; }
+double Beam::getMomentum() const { return reference.getP() * Units::eV2GeV; }
 
 std::string Beam::getParticleName() const { return Attributes::getString(itsAttr[PARTICLE]); }
 
@@ -432,8 +472,7 @@ void Beam::print(std::ostream& os) const {
        << "* PARTICLE    " << Attributes::getString(itsAttr[PARTICLE]) << '\n'
        << "* REST MASS   " << Attributes::getReal(itsAttr[MASS]) << " [GeV]\n"
        << "* CHARGE      " << (charge > 0 ? '+' : '-') << "e * " << std::abs(charge) << " \n"
-       << "* MOMENTUM    " << reference.getP() << " [eV/c]\n"
-       << "* MOMENTUM    " << Attributes::getReal(itsAttr[PC]) << " [GeV/c]\n"
+       << "* MOMENTUM    " << getMomentum() << " [GeV/c]\n"
        << "* BCHARGE     " << Attributes::getReal(itsAttr[BCHARGE]) << " [C]\n"
        << "* NALLOC      " << Attributes::getReal(itsAttr[NALLOC]) << '\n';
     os << "* ********************************************************************************** "

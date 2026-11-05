@@ -3,18 +3,20 @@
  * @brief Interface for general multipole.
  *
  * Class Multipole defines the abstract interface for magnetic multipoles.
- * The order n of multipole components runs from 1 to N and is dynamically
- * adjusted. It is connected with the number of poles by the following table:
+ * With normal(n) and skew(n) the stored components, the field is
+ * By + i Bx = sum over n of (normal(n) - i skew(n)) (x + i y)^n:
  *
- * | Order (n) | Name                |
- * |-----------|---------------------|
- * | 1         | dipole              |
- * | 2         | quadrupole          |
- * | 3         | sextupole           |
- * | 4         | octupole            |
- * | 5         | decapole            |
+ * | n | Name       |
+ * |---|------------|
+ * | 0 | dipole     |
+ * | 1 | quadrupole |
+ * | 2 | sextupole  |
+ * | 3 | octupole   |
+ * | 4 | decapole   |
  *
- * Units for multipole strengths are Teslas / m^(n-1).
+ * Orders up to n = MAX_MP_ORDER - 1 (decapole) are used. The setters store the given
+ * strength divided by n!, so normal(n) is in T/m^n. The MULTIPOLE input (OpalMultipole)
+ * does not allow a dipole, because the element is placed as a straight element.
  */
 
 #include "AbsBeamline/Multipole.h"
@@ -25,11 +27,6 @@
 // Unused Headers
 #include "Fields/Fieldmap.h"
 #include "Physics/Physics.h"
-
-// orders
-namespace {
-    enum { DIPOLE, QUADRUPOLE, SEXTUPOLE, OCTUPOLE, DECAPOLE };
-}
 
 // GPU factorial
 namespace {
@@ -94,7 +91,7 @@ Multipole::~Multipole() {}
 /* ========================================================================== */
 /* =========================== Multipole Expansion ========================== */
 
-// @note n=0 corresponds to the dipol, n=1 to the quadrupole, etc...
+// @note n = 0 is the dipole, n = 1 the quadrupole, up to n = 4 the decapole.
 
 /**
  * @brief Gets the n-th normal component of the multipole expansion
@@ -168,17 +165,10 @@ void Multipole::setNormalComponent(int n, double v, double vError) {
         Kokkos::resize(NormalComponentErrors, max_NormalComponent_m);
     }
 
-    double valComp, valErr;
-
-    // TODO: Check the physics here (copied from OPAL)
-    if (n == DIPOLE) {
-        valComp = (v + vError) / 2.0;
-        valErr  = valComp;
-    } else {
-        double fact = factorial(n);
-        valComp     = (v + vError) / fact;
-        valErr      = vError / fact;
-    }
+    // Store v / n!, the coefficient of (x + iy)^n in the field; for the dipole (n = 0) this is v.
+    const double fact    = factorial(n);
+    const double valComp = (v + vError) / fact;
+    const double valErr  = vError / fact;
 
     // Copy to Device
     auto sub_comp = Kokkos::subview(NormalComponents, n);
@@ -212,16 +202,10 @@ void Multipole::setSkewComponent(int n, double v, double vError) {
         Kokkos::resize(SkewComponentErrors, max_SkewComponent_m);
     }
 
-    double valComp, valErr;
-    // TODO: Check physics (copied from OPAL)
-    if (n == DIPOLE) {
-        valComp = (v + vError) / 2.0;
-        valErr  = valComp;
-    } else {
-        double fact = factorial(n);
-        valComp     = (v + vError) / fact;
-        valErr      = vError / fact;
-    }
+    // Store v / n!, the coefficient of (x + iy)^n in the field; for the dipole (n = 0) this is v.
+    const double fact    = factorial(n);
+    const double valComp = (v + vError) / fact;
+    const double valErr  = vError / fact;
 
     auto sub_comp = Kokkos::subview(SkewComponents, n);
     auto sub_err  = Kokkos::subview(SkewComponentErrors, n);
@@ -242,7 +226,6 @@ void Multipole::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     *gmsg << level3 << "Multipole::apply() called" << endl;
     // Get the views
     auto Rview          = pc->R.getView();
-    auto Eview          = pc->E.getView();
     auto Bview          = pc->B.getView();
     const size_t nLocal = pc->getLocalNum();
 
@@ -264,12 +247,10 @@ void Multipole::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
                 if (Rview(i)(2) >= 0 && Rview(i)(2) < elemLength
                     && ApertureHelper::isInsideAperture(
                             Rview(i)(0), Rview(i)(1), apertureType, apertureX, apertureY)) {
-                    Vector_t<double, 3> Ef(0.0), Bf(0.0);
-                    // Compute field at particle position
+                    Vector_t<double, 3> Bf(0.0);
                     computeField(
-                            Rview(i), Ef, Bf, normalComponents, skewComponents, maxNormal, maxSkew);
+                            Rview(i), Bf, normalComponents, skewComponents, maxNormal, maxSkew);
                     for (unsigned d = 0; d < 3; ++d) {
-                        Eview(i)(d) += Ef(d);
                         Bview(i)(d) += Bf(d);
                     }
                 }
@@ -350,89 +331,26 @@ bool Multipole::applyToReferenceParticle(
  */
 void Multipole::accept(BeamlineVisitor& visitor) const { visitor.visitMultipole(*this); }
 
-/**
- * @brief Computes the multipole field at position R
- *
- * @note NormalComponents and SkewComponents need to be passed in the arguments
- * because member views are not accessible inside Kokkos kernels.
- *
- * @note Only implements up to quadrupole for now
- *
- * @param R Position
- * @param E Electric field reference
- * @param B Magnetic field reference
- * @param NormalComponents Kokkos::View of normal components
- * @param SkewComponents Kokkos::View of skew components
- * @param max_NormalComponent Maximum normal component index
- * @param max_SkewComponent Maximum skew component index
- */
-KOKKOS_INLINE_FUNCTION
-void Multipole::computeField(
-        Vector_t<double, 3> R, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B,
-        const Kokkos::View<double*> NormalComponents, const Kokkos::View<double*> SkewComponents,
-        int max_NormalComponent, int max_SkewComponent) {
-    // Use primitive double arrays instead of Vector_t to avoid constructor/destructor calls on GPU
-    // stack
-    double Rn_x[MAX_MP_ORDER + 1];
-    double Rn_y[MAX_MP_ORDER + 1];
-    double fact[MAX_MP_ORDER + 1];
-
-    // --- NORMAL COMPONENTS ---
-    {
-        Rn_x[0] = 1.0;
-        Rn_y[0] = 1.0;  // Equivalent to Vector_t(1.0)
-        fact[0] = 1.0;
-
-        // Use local variable for loop bound to help optimizer
-        int count = (max_NormalComponent > MAX_MP_ORDER) ? MAX_MP_ORDER : max_NormalComponent;
-
-        for (int i = 0; i < count; ++i) {
-            // Access Kokkos::View directly (device memory)
-            double norm = NormalComponents(i);
-
-            switch (i) {
-                case DIPOLE:
-                    B(1) += norm;
-                    break;
-
-                case QUADRUPOLE:
-                    B(0) += norm * R(1);
-                    B(1) += norm * R(0);
-                    break;
-            }
-
-            Rn_x[i + 1] = Rn_x[i] * R(0);
-            Rn_y[i + 1] = Rn_y[i] * R(1);
-            fact[i + 1] = fact[i] / (double)(i + 1);
-        }
+template <class ViewType>
+KOKKOS_INLINE_FUNCTION void Multipole::computeField(
+        const Vector_t<double, 3>& R, Vector_t<double, 3>& B, const ViewType& normal,
+        const ViewType& skew, int maxNormal, int maxSkew) {
+    int count = (maxNormal > maxSkew) ? maxNormal : maxSkew;
+    if (count > MAX_MP_ORDER) {
+        count = MAX_MP_ORDER;
     }
 
-    // --- SKEW COMPONENTS ---
-    {
-        Rn_x[0] = 1.0;
-        Rn_y[0] = 1.0;
-        fact[0] = 1.0;
+    // re + i im = (x + iy)^n, starting at n = 0
+    double re = 1.0, im = 0.0;
+    for (int n = 0; n < count; ++n) {
+        const double kn = (n < maxNormal) ? normal(n) : 0.0;
+        const double ks = (n < maxSkew) ? skew(n) : 0.0;
+        B(0) += kn * im - ks * re;
+        B(1) += kn * re + ks * im;
 
-        int count = (max_SkewComponent > MAX_MP_ORDER) ? MAX_MP_ORDER : max_SkewComponent;
-
-        for (int i = 0; i < count; ++i) {
-            double skew = SkewComponents(i);
-
-            switch (i) {
-                case DIPOLE:
-                    B(0) -= skew;
-                    break;
-
-                case QUADRUPOLE:
-                    B(0) -= skew * R(0);
-                    B(1) += skew * R(1);
-                    break;
-            }
-
-            Rn_x[i + 1] = Rn_x[i] * R(0);
-            Rn_y[i + 1] = Rn_y[i] * R(1);
-            fact[i + 1] = fact[i] / (double)(i + 1);
-        }
+        const double nextRe = re * R(0) - im * R(1);
+        im                  = re * R(1) + im * R(0);
+        re                  = nextRe;
     }
 }
 
@@ -447,147 +365,9 @@ void Multipole::computeField(
  */
 void Multipole::computeFieldHost(
         const Vector_t<double, 3> R, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) const {
-    Vector_t<double, 3> Rn[MAX_MP_ORDER + 1];
-    double fact[MAX_MP_ORDER + 1];
-
-    auto NormalComponents_host = Kokkos::create_mirror_view(NormalComponents);
-    Kokkos::deep_copy(NormalComponents_host, NormalComponents);
-
-    auto SkewComponents_host = Kokkos::create_mirror_view(SkewComponents);
-    Kokkos::deep_copy(SkewComponents_host, SkewComponents);
-
-    // --- NORMAL COMPONENTS ---
-    {
-        Rn[0]   = Vector_t<double, 3>(1.0);
-        fact[0] = 1.0;
-
-        // Use local variable for loop bound to help optimizer
-        int count = (max_NormalComponent_m > MAX_MP_ORDER) ? MAX_MP_ORDER : max_NormalComponent_m;
-
-        for (int i = 0; i < count; ++i) {
-            // Access Kokkos::View directly (device memory)
-            double norm = NormalComponents_host(i);
-
-            switch (i) {
-                case DIPOLE:
-                    B(1) += norm;
-                    break;
-
-                case QUADRUPOLE:
-                    B(0) += norm * R(1);
-                    B(1) += norm * R(0);
-                    break;
-
-                case SEXTUPOLE:
-                    B(0) += 2 * norm * R(0) * R(1);
-                    B(1) += norm * (Rn[2](0) - Rn[2](1));
-                    break;
-
-                case OCTUPOLE:
-                    B(0) += norm * (3 * Rn[2](0) * Rn[1](1) - Rn[3](1));
-                    B(1) += norm * (Rn[3](0) - 3 * Rn[1](0) * Rn[2](1));
-                    break;
-
-                case DECAPOLE:
-                    B(0) += 4 * norm * (Rn[3](0) * Rn[1](1) - Rn[1](0) * Rn[3](1));
-                    B(1) += norm * (Rn[4](0) - 6 * Rn[2](0) * Rn[2](1) + Rn[4](1));
-                    break;
-
-                default: {
-                    double powMinusOne = 1.0;
-                    double Bx = 0.0, By = 0.0;
-                    for (int j = 1; j <= (i + 1) / 2; ++j) {
-                        Bx += powMinusOne * norm
-                              * (Rn[i - 2 * j + 1](0) * fact[i - 2 * j + 1] * Rn[2 * j - 1](1)
-                                 * fact[2 * j - 1]);
-                        By += powMinusOne * norm
-                              * (Rn[i - 2 * j + 2](0) * fact[i - 2 * j + 2] * Rn[2 * j - 2](1)
-                                 * fact[2 * j - 2]);
-                        powMinusOne *= -1.0;
-                    }
-
-                    if ((i + 1) / 2 == i / 2) {
-                        int j = (i + 2) / 2;
-                        By += powMinusOne * norm
-                              * (Rn[i - 2 * j + 2](0) * fact[i - 2 * j + 2] * Rn[2 * j - 2](1)
-                                 * fact[2 * j - 2]);
-                    }
-                    B(0) += Bx;
-                    B(1) += By;
-                }
-            }
-
-            Rn[i + 1](0) = Rn[i](0) * R(0);
-            Rn[i + 1](1) = Rn[i](1) * R(1);
-            fact[i + 1]  = fact[i] / (double)(i + 1);
-        }
-    }
-
-    // --- SKEW COMPONENTS ---
-    {
-        Rn[0]   = Vector_t<double, 3>(1.0);
-        fact[0] = 1.0;
-
-        int count = (max_SkewComponent_m > MAX_MP_ORDER) ? MAX_MP_ORDER : max_SkewComponent_m;
-
-        for (int i = 0; i < count; ++i) {
-            double skew = SkewComponents_host(i);
-
-            switch (i) {
-                case DIPOLE:
-                    B(0) -= skew;
-                    break;
-
-                case QUADRUPOLE:
-                    B(0) -= skew * R(0);
-                    B(1) += skew * R(1);
-                    break;
-
-                case SEXTUPOLE:
-                    B(0) -= skew * (Rn[2](0) - Rn[2](1));
-                    B(1) += 2 * skew * R(0) * R(1);
-                    break;
-
-                case OCTUPOLE:
-                    B(0) -= skew * (Rn[3](0) - 3 * Rn[1](0) * Rn[2](1));
-                    B(1) += skew * (3 * Rn[2](0) * Rn[1](1) - Rn[3](1));
-                    break;
-
-                case DECAPOLE:
-                    B(0) -= skew * (Rn[4](0) - 6 * Rn[2](0) * Rn[2](1) + Rn[4](1));
-                    B(1) += 4 * skew * (Rn[3](0) * Rn[1](1) - Rn[1](0) * Rn[3](1));
-                    break;
-
-                default: {
-                    double powMinusOne = 1.0;
-                    double Bx = 0.0, By = 0.0;
-                    for (int j = 1; j <= (i + 1) / 2; ++j) {
-                        Bx -= powMinusOne * skew
-                              * (Rn[i - 2 * j + 2](0) * fact[i - 2 * j + 2] * Rn[2 * j - 2](1)
-                                 * fact[2 * j - 2]);
-                        By += powMinusOne * skew
-                              * (Rn[i - 2 * j + 1](0) * fact[i - 2 * j + 1] * Rn[2 * j - 1](1)
-                                 * fact[2 * j - 1]);
-                        powMinusOne *= -1.0;
-                    }
-
-                    if ((i + 1) / 2 == i / 2) {
-                        int j = (i + 2) / 2;
-                        Bx -= powMinusOne * skew
-                              * (Rn[i - 2 * j + 2](0) * fact[i - 2 * j + 2] * Rn[2 * j - 2](1)
-                                 * fact[2 * j - 2]);
-                    }
-
-                    B(0) += Bx;
-                    B(1) += By;
-                }
-            }
-
-            Rn[i + 1](0) = Rn[i](0) * R(0);
-            Rn[i + 1](1) = Rn[i](1) * R(1);
-            fact[i + 1]  = fact[i] / (double)(i + 1);
-        }
-    }
+    const auto normal = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), NormalComponents);
+    const auto skew   = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), SkewComponents);
+    computeField(R, B, normal, skew, max_NormalComponent_m, max_SkewComponent_m);
 }
 /**
  * @brief Setup, multipole goes online

@@ -23,7 +23,10 @@ protected:
 
     static void TearDownTestSuite() { ippl::finalize(); }
 
-    void SetUp() override {
+    void SetUp() override { pc = makeContainer(false); }
+
+    /// Container on the test mesh; @p spin turns on the per-particle polarization Pol.
+    std::shared_ptr<ParticleContainer<double, 3>> makeContainer(bool spin) {
         nr                             = 32;
         ippl::Vector<double, 3> rmin   = -4.0;
         ippl::Vector<double, 3> rmax   = 4.0;
@@ -38,10 +41,11 @@ protected:
 
         Mesh_t<3> mesh(domain, hr, origin);
         FieldLayout_t<3> fl(MPI_COMM_WORLD, domain, decomp, this->isAllPeriodic_m);
-        pc = std::make_shared<ParticleContainer<double, 3>>(mesh, fl);
+        auto container = std::make_shared<ParticleContainer<double, 3>>(mesh, fl, spin);
 
         bunchStateHandler = std::make_shared<BunchStateHandler>();
-        pc->setBunchStateHandler(bunchStateHandler);
+        container->setBunchStateHandler(bunchStateHandler);
+        return container;
     }
 
     size_t globalLocalNum() const {
@@ -191,6 +195,34 @@ TEST_F(OpalFlatTopTest, UsesStoredBirthTimesForParticleDtAndZCorrection) {
 
     EXPECT_EQ(sampler.getNextGlobalIndex(), totalNew);
     EXPECT_EQ(globalLocalNum(), totalNew);
+}
+
+TEST_F(OpalFlatTopTest, EmittedParticlesGetBeamPolarization) {
+    pc                               = makeContainer(/*spin=*/true);
+    const Vector_t<double, 3> sigmaR = {0.5, 0.5, 0.0};
+    const Vector_t<double, 3> cutoff = {4.0, 4.0, 4.0};
+    OpalFlatTop sampler(
+            pc,
+            /*emitting=*/true,
+            /*sigmaTFall=*/1.0e-12,
+            /*sigmaTRise=*/1.0e-12, cutoff,
+            /*tPulseLengthFWHM=*/4.0e-12, sigmaR);
+    sampler.setEmissionOffsets(0.0, Vector_t<double, 3>{0.0, 0.0, 0.1}, 0.0, "NONE");
+    sampler.setBirthTimesForTest({1.0e-13, 4.0e-13, 9.0e-13});
+    sampler.setInitialPolarization({0.0, 0.0, 1.0});
+
+    const size_t nranks = static_cast<size_t>(std::max(1, ippl::Comm->size()));
+    pc->allocateParticles(3 / nranks + 2 * nranks + 8);
+    sampler.emitParticles(0.0, 5.0e-13);
+    sampler.emitParticles(5.0e-13, 5.0e-13);
+    ASSERT_EQ(globalLocalNum(), 3u);
+
+    auto pol = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->Pol.getView());
+    for (size_t i = 0; i < pc->getLocalNum(); ++i) {
+        EXPECT_DOUBLE_EQ(pol(i)[0], 0.0) << "particle " << i;
+        EXPECT_DOUBLE_EQ(pol(i)[1], 0.0) << "particle " << i;
+        EXPECT_DOUBLE_EQ(pol(i)[2], 1.0) << "particle " << i;
+    }
 }
 
 TEST_F(OpalFlatTopTest, ProvidesOldOpalInitialReferenceMomentum) {

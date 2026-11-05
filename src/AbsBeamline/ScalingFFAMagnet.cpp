@@ -69,7 +69,7 @@ void ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<doub
     auto Rhost = Kokkos::create_mirror_view(Rdevice);
     auto Bhost = Kokkos::create_mirror_view(Bdevice);
     Rhost(0)   = R;
-    Bhost(0)   = B;
+    Bhost(0)   = Vector_t<double, 3>(0.0);  // the kernel accumulates; return this magnet only
     Kokkos::deep_copy(Rdevice, Rhost);
     Kokkos::deep_copy(Bdevice, Bhost);
     getFieldValue(config_m, efm_m, Rdevice, Bdevice);

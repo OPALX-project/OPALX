@@ -42,7 +42,8 @@ namespace {
             Options::useQMAttributes = oldUseQMAttributes_m;
         }
 
-        std::shared_ptr<PC_t> makeContainer(ParticleType species = ParticleType::UNNAMED) {
+        std::shared_ptr<PC_t> makeContainer(
+                ParticleType species = ParticleType::UNNAMED, bool spin = false) {
             ippl::Vector<int, 3> nr        = 8;
             ippl::Vector<double, 3> rmin   = -4.0;
             ippl::Vector<double, 3> rmax   = 4.0;
@@ -57,7 +58,7 @@ namespace {
 
             Mesh_t<3> mesh(domain, hr, origin);
             FieldLayout_t<3> fl(MPI_COMM_WORLD, domain, decomp, true);
-            auto pc = std::make_shared<PC_t>(mesh, fl);
+            auto pc = std::make_shared<PC_t>(mesh, fl, spin);
             pc->Sp  = static_cast<short>(species);
             pc->setBunchStateHandler(std::make_shared<BunchStateHandler>());
             return pc;
@@ -433,6 +434,80 @@ namespace {
     // =====================================================================
     // Pion decay tests (2-body: pi -> mu + nu)
     // =====================================================================
+
+    /// Four-vector (t, x) of a frame that moves with velocity beta, seen from the frame it moves
+    /// in.
+    std::array<double, 4> boost(const std::array<double, 4>& v, const std::array<double, 3>& beta) {
+        const double b2 = beta[0] * beta[0] + beta[1] * beta[1] + beta[2] * beta[2];
+        const double g  = 1.0 / std::sqrt(1.0 - b2);
+        const double bx = beta[0] * v[1] + beta[1] * v[2] + beta[2] * v[3];
+        const double f  = (g - 1.0) * bx / b2 + g * v[0];
+        return {g * (v[0] + bx), v[1] + f * beta[0], v[2] + f * beta[1], v[3] + f * beta[2]};
+    }
+
+    // In the pion rest frame the muon from pi -> mu nu is fully helicity polarized: its spin
+    // 4-vector there is h (p*/m, (E*/m) n*), with n* its direction. Pol is the spin in the muon
+    // rest frame reached from the lab by one pure boost. Rebuild the spin 4-vector from P and Pol,
+    // take it back to the pion rest frame and compare. Pol = h n* (no Wigner rotation) fails here
+    // for a moving pion.
+    TEST_F(DecayTest, PionDecayMuonSpinIsHelicityInPionRestFrame) {
+        constexpr size_t nPart             = 256;
+        const std::array<double, 3> pionBg = {0.6, -0.8, 2.5};  // pion beta*gamma
+        auto pions                         = makeContainer();
+        auto muons                         = makeContainer(ParticleType::MUON, true);
+        pions->setM(Physics::m_pi);
+        muons->setM(Physics::m_mu);
+        pions->createParticles(nPart);
+        auto R_host = pions->R.getHostMirror();
+        auto P_host = pions->P.getHostMirror();
+        for (size_t i = 0; i < nPart; ++i) {
+            for (unsigned d = 0; d < 3; ++d) {
+                R_host(i)[d] = 0.0;
+                P_host(i)[d] = pionBg[d];
+            }
+        }
+        Kokkos::deep_copy(pions->R.getView(), R_host);
+        Kokkos::deep_copy(pions->P.getView(), P_host);
+
+        Options::seed = 4321;
+        PionDecay decay(1.0e-12, 0, Physics::m_pi, +1);  // pi+ -> mu+, helicity -1
+        decay.setDaughterContainer(muons, Physics::m_mu);
+        decay.apply(*pions, 1.0, 0, 0);
+        ASSERT_EQ(muons->getLocalNum(), nPart);
+
+        const double h     = -1.0;
+        const double m     = Physics::m_mu;
+        const double pStar = (Physics::m_pi * Physics::m_pi - m * m) / (2.0 * Physics::m_pi);
+        const double eStar = std::sqrt(pStar * pStar + m * m);
+        const double gPi   = std::sqrt(
+                1.0 + pionBg[0] * pionBg[0] + pionBg[1] * pionBg[1] + pionBg[2] * pionBg[2]);
+        const std::array<double, 3> toPionFrame = {
+                -pionBg[0] / gPi, -pionBg[1] / gPi, -pionBg[2] / gPi};
+
+        auto muP   = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), muons->P.getView());
+        auto muPol = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), muons->Pol.getView());
+        for (size_t i = 0; i < nPart; ++i) {
+            const auto& u    = muP(i);    // muon beta*gamma in the lab
+            const auto& s    = muPol(i);  // muon spin in its rest frame
+            const double gMu = std::sqrt(1.0 + u[0] * u[0] + u[1] * u[1] + u[2] * u[2]);
+            const double us  = u[0] * s[0] + u[1] * s[1] + u[2] * s[2];
+            EXPECT_NEAR(std::sqrt(s[0] * s[0] + s[1] * s[1] + s[2] * s[2]), 1.0, 1.0e-12);
+
+            const double k = us / (gMu + 1.0);
+            const auto spinStar =
+                    boost({us, s[0] + k * u[0], s[1] + k * u[1], s[2] + k * u[2]}, toPionFrame);
+            const auto uStar = boost({gMu, u[0], u[1], u[2]}, toPionFrame);
+            const double uStarMag =
+                    std::sqrt(uStar[1] * uStar[1] + uStar[2] * uStar[2] + uStar[3] * uStar[3]);
+            ASSERT_NEAR(uStarMag, pStar / m, 1.0e-10) << "muon " << i;
+
+            EXPECT_NEAR(spinStar[0], h * pStar / m, 1.0e-10) << "muon " << i;
+            for (unsigned d = 1; d < 4; ++d) {
+                EXPECT_NEAR(spinStar[d], h * (eStar / m) * uStar[d] / uStarMag, 1.0e-10)
+                        << "muon " << i << ", component " << d;
+            }
+        }
+    }
 
     TEST_F(DecayTest, PionDecayDaughterCountMatchesDestroyed) {
         auto pions = makeContainer();

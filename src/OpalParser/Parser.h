@@ -40,6 +40,7 @@ public:
 
     /// Read statements and parse.
     //  Read one statement at a time on token stream, parse it, and execute it.
+    //  Takes ownership of ts; callers must transfer a separately allocated stream.
     virtual void run(TokenStream* ts) const = 0;
 
 private:

@@ -58,6 +58,7 @@ public:
     /// Read given stream.
     //  Switch to given stream, then read, parse, and execute statements
     //  one at a time. Used for CALL statements and macros.
+    //  Takes ownership of the given stream, including on exceptions.
     virtual void run(TokenStream*) const;
 
     /// Set stop flag.

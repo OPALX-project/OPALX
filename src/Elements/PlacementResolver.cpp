@@ -112,9 +112,9 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
                 continue;  // ffa element is now placed
             }
 
-            // Rest of the method frames bends; every other element is placed in Phase 3.
-            if (element->getType() != ElementType::SBEND && element->getType() != ElementType::RBEND
-                && element->getType() != ElementType::RBEND3D) {
+            // This pass only frames bends (any element whose geometry turns the orbit); every
+            // other element is placed in Phase 3.
+            if (!element->getGeometry().isBend()) {
                 continue;
             }
 
@@ -164,8 +164,7 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
             // already accounts for this rotation. Only this element's own frame is set here; the
             // running frame handed to the next element (currentCoordTrafo) is advanced separately
             // below.
-            const bool isRectangular = element->getType() == ElementType::RBEND
-                                       || element->getType() == ElementType::RBEND3D;
+            const bool isRectangular   = element->getGeometry().isRectangularBend();
             const double entranceAngle = element->getGeometry().hasPoleFaceAngles()
                                                  ? element->getGeometry().getEntranceAngle()
                                                  : 0.5 * bendAngle;
@@ -206,9 +205,7 @@ void PlacementResolver::resolve(ElementList& elements, const CoordinateSystemTra
         Vector_t<double, 3> beginThis3D(0, 0, beginThisPathLength - endPriorPathLength);
 
         Vector_t<double, 3> endThis3D;
-        if (element->getType() == ElementType::SBEND || element->getType() == ElementType::RBEND
-            || element->getType() == ElementType::RBEND3D
-            || element->getType() == ElementType::SCALINGFFAMAGNET) {
+        if (element->getGeometry().isBend()) {
             // Bend: its own frame is already set (Phase 2); here we only advance the running frame
             // across it so the following elements are placed correctly.
             double thisLength          = element->getGeometry().getChordLength();

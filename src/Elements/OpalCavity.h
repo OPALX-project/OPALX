@@ -27,8 +27,8 @@ class OpalCavity : public OpalElement {
 public:
     /// The attributes of class OpalCavity.
     enum {
-        VOLT = COMMON,  // The peak voltage.
-        DVOLT,          // The peak voltage error.
+        VOLT = COMMON,  // Peak field [MV/m] for STANDING/IDEAL; voltage [MV] for SINGLEGAP.
+        DVOLT,          // The peak field error [MV/m].
         GEOMETRY,       // geometry of boundary
         FREQ,           // The RF frequency.
         LAG,            // The phase lag.

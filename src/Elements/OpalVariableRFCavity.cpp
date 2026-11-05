@@ -17,8 +17,8 @@
 //
 #include "Elements/OpalVariableRFCavity.h"
 
-#include "AbsBeamline/VariableRFCavity.h"
 #include "Attributes/Attributes.h"
+#include "BeamlineCore/VariableRFCavityRep.h"
 
 const std::string OpalVariableRFCavity::doc_string =
         std::string("The \"VARIABLE_RF_CAVITY\" element defines an RF cavity ")
@@ -66,7 +66,7 @@ OpalVariableRFCavity* OpalVariableRFCavity::clone() {
 void OpalVariableRFCavity::update() {
     OpalElement::update();
 
-    auto* cavity = dynamic_cast<VariableRFCavity*>(getElement());
+    auto* cavity = dynamic_cast<VariableRfCavityRep*>(getElement());
 
     const double length = Attributes::getReal(itsAttr[LENGTH]);
     cavity->setLength(length);

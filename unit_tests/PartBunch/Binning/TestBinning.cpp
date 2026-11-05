@@ -537,9 +537,11 @@ TEST_F(BinningTest, HistogramAssignmentOperator) {
     EXPECT_EQ(assigned.getNPartInBin(1), 13u);
 }
 
+// The functors hold the device View by value. DualView::view_device() returns a reference, so a
+// member typed with decltype(view_device()) would point to a host object, which a discrete GPU
+// cannot read (cudaErrorIllegalAddress on A100; GH200 and MI300A happen to tolerate it).
 struct FillPolicyHistogram1 {
-    using Histo_t = ParticleBinning::Histogram<size_type, bin_index_type, value_type, true>;
-    // Device functors must own the view, not a reference to the host-side handle.
+    using Histo_t   = ParticleBinning::Histogram<size_type, bin_index_type, value_type, true>;
     using view_type = Histo_t::dview_type;
     view_type dView;
 

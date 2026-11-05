@@ -3,7 +3,7 @@
 //
 //   This class parses the MACRO command.
 //   Encapsulate the buffer for the ``archetypes'' of all macros.
-//   The macro is stored as a MacroStream.  For execution, first the
+//   The macro is stored as tokens. For execution, first the
 //   parameters are replaced, then the resulting stream is sent to the parser.
 //
 // Copyright (c) 2008 - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
@@ -25,9 +25,9 @@
 
 #include "Utility/PAssert.h"
 
-#include <vector>
-#include "AbstractObjects/OpalData.h"
-#include "OpalParser/OpalParser.h"
+#include <memory>
+#include "OpalParser/MacroStream.h"
+#include "OpalParser/Parser.h"
 #include "OpalParser/Statement.h"
 #include "Utilities/ParseError.h"
 
@@ -35,17 +35,22 @@ MacroCmd::MacroCmd()
     : Macro(0u, "MACRO",
             "A \"MACRO\" command defines a subroutine:\n"
             "\t<name>(<arguments>):MACRO{<body>}"),
-      body(0) {}
+      body() {}
 
-MacroCmd::MacroCmd(const std::string& name, MacroCmd* parent) : Macro(name, parent), body() {
-    body = std::make_shared<MacroStream>(name);
-}
+MacroCmd::MacroCmd(const std::string& name, MacroCmd* parent) : Macro(name, parent), body() {}
 
 MacroCmd::~MacroCmd() {}
 
 void MacroCmd::execute() {
-    body->start();
-    itsParser->run(&*body);
+    if (!itsParser) {
+        throw ParseError("MacroCmd::execute()", "A MACRO template cannot be executed directly.");
+    }
+    auto stream = std::make_unique<MacroStream>(getOpalName());
+    for (Token token : body)
+        stream->append(token);
+    stream->start();
+    // Parser::run takes ownership; the stored tokens remain reusable.
+    itsParser->run(stream.release());
 }
 
 Object* MacroCmd::makeInstance(
@@ -58,12 +63,9 @@ Object* MacroCmd::makeInstance(
     }
 
     // Substitute the actual arguments.
-    MacroCmd* macro  = new MacroCmd(name, this);
+    auto macro       = std::make_unique<MacroCmd>(name, this);
     macro->itsParser = parser;
-    body->start();
-    Token token = body->readToken();
-
-    while (!token.isEOF()) {
+    for (const Token& token : body) {
         bool found = false;
 
         if (token.isWord()) {
@@ -71,25 +73,21 @@ Object* MacroCmd::makeInstance(
 
             for (std::vector<std::string>::size_type i = 0; i < formals.size(); i++) {
                 if (word == formals[i]) {
-                    std::vector<Token> act = actuals[i];
-                    for (Token t : act) {
-                        macro->body->append(t);
-                    }
+                    macro->body.insert(macro->body.end(), actuals[i].begin(), actuals[i].end());
                     found = true;
                     break;
                 }
             }
         }
 
-        if (!found) macro->body->append(token);
-        token = body->readToken();
+        if (!found) macro->body.push_back(token);
     }
 
-    return macro;
+    return macro.release();
 }
 
 Object* MacroCmd::makeTemplate(const std::string& name, TokenStream&, Statement& statement) {
-    MacroCmd* macro = new MacroCmd(name, this);
+    auto macro = std::make_unique<MacroCmd>(name, this);
     macro->parseFormals(statement);
 
     // Parse macro body->
@@ -111,12 +109,12 @@ Object* MacroCmd::makeTemplate(const std::string& name, TokenStream&, Statement&
                     if (--level == 0) break;
                 }
 
-                macro->body->append(token);
+                macro->body.push_back(token);
             }
         }
     } else {
         throw ParseError("MacroCmd::makeTemplate()", "Missing MACRO body, should be \"{...}\".");
     }
 
-    return macro;
+    return macro.release();
 }

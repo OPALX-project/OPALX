@@ -3,7 +3,6 @@
 #include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
-#include "Utilities/GSLFFT.h"
 #include "Utilities/GSLSpline.h"
 #include "Utilities/GeneralOpalException.h"
 #include "Utilities/Util.h"
@@ -130,12 +129,6 @@ void Astra1DDynamic::readMap() {
     gsl_spline* Ez_interpolant = gsl_spline_alloc(gsl_interp_cspline, num_gridpz_m);
     gsl_interp_accel* Ez_accel = gsl_interp_accel_alloc();
 
-    // Future optimization candidate:
-    // gsl_fft_real_wavetable* real =
-    //     gsl_fft_real_wavetable_alloc(2 * num_gridpz_m);
-    // gsl_fft_real_workspace* work =
-    //     gsl_fft_real_workspace_alloc(2 * num_gridpz_m);
-
     // Allocate Kokkos View (final data used on GPU)
     const int size = 2 * accuracy_m - 1;
     FourCoefs_m    = Kokkos::DualView<double*>("FourCoefs", size);
@@ -213,6 +206,14 @@ void Astra1DDynamic::readMap() {
     const double norm = normalize_m ? Ez_max : 1.0;
 
     // Compute Fourier coefficients explicitly from the mirrored periodic samples.
+    //
+    // The original OPAL code used gsl_fft_real_transform here. With the bundled
+    // Utilities/GSLFFT.h this used to give wrong coefficients, because M is
+    // usually not a power of two (e.g. 802 = 2 * 401) and the radix-2 FFT did
+    // not handle odd lengths (fixed in PR #629, see #408). With the fix, the
+    // FFT path yields the same coefficients and fields, but only the first
+    // accuracy_m harmonics are needed, so this truncated DFT is faster
+    // (0.35 ms vs 0.61 ms for the TravelingWave test map).
     const int M = 2 * num_gridpz_m;
 
     double a0 = 0.0;
@@ -239,17 +240,8 @@ void Astra1DDynamic::readMap() {
         coefs(n + 1) = -b_l / (norm * Units::Vpm2MVpm);
     }
 
-    // Future optimization candidate:
-    // gsl_fft_real_transform(RealValues, 1, 2 * num_gridpz_m, real, work);
-    // coefs(0) = RealValues[0] / (norm * Units::Vpm2MVpm * 2.0 * num_gridpz_m);
-    // for (int i = 1; i < size; ++i) {
-    //     coefs(i) = RealValues[i] / (norm * Units::Vpm2MVpm * num_gridpz_m);
-    // }
-
     gsl_spline_free(Ez_interpolant);
     gsl_interp_accel_free(Ez_accel);
-    // gsl_fft_real_workspace_free(work);
-    // gsl_fft_real_wavetable_free(real);
 
     delete[] zvals;
     delete[] RealValues;

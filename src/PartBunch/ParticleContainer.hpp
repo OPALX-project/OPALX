@@ -133,6 +133,16 @@ public:
         return QView_m;
     }
 
+    /// Charge view in [Cb] over the full attribute storage.
+    /// In `Attributes` mode it also covers the ghost particles that a spatial-overlap layout
+    /// stores after the local ones, where `getQView()` ends at the local count.
+    qm_view_type getQStorageView() const {
+        if (qmStorageMode_m == QMStorageMode::Attributes) {
+            return qm_view_type(QAttr.getView().data(), QAttr.size());
+        }
+        return QView_m;
+    }
+
     /// Mass view in [GeV].
     /// In `SingleValue` mode this is a rank-1 view of length 1.
     /// In `Attributes` mode this is the per-particle attribute view.
@@ -859,6 +869,15 @@ public:
                     eView(idx)          = Vector_t<double, Dim>(0.0);
                     bView(idx)          = Vector_t<double, Dim>(0.0);
                 });
+        // A reused slot still holds the spin of a deleted particle. Pol exists only with spin.
+        if (spinEnabled_m) {
+            auto polView = Pol.getView();
+            Kokkos::parallel_for(
+                    "ParticleContainer::createParticles::resetPol", numParticles,
+                    KOKKOS_LAMBDA(const size_type i) {
+                        polView(oldLocalNum + i) = spin_vector_type(0.0);
+                    });
+        }
         Kokkos::fence();
 
         // Pretty print numParticles, newCapacity and new totalNum + localNum after creation
