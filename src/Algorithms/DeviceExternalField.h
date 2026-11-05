@@ -107,9 +107,9 @@ namespace device_external {
 
     struct Lattice {
         Kokkos::View<const Element*> elements;
-        double maximumStep = std::numeric_limits<double>::max();
+        double maximumStep        = std::numeric_limits<double>::max();
         bool fieldOracleSupported = true;  ///< FFA fields use ordinary element kernels only.
-        bool magneticOnly  = true;  ///< The external-only test oracle cannot transport RF.
+        bool magneticOnly         = true;  ///< The external-only test oracle cannot transport RF.
 
         // Test oracle only: requires fieldOracleSupported. Production uses element kernels.
         KOKKOS_INLINE_FUNCTION Vector magnetic(const Vector& r) const {
