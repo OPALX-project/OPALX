@@ -101,6 +101,29 @@ namespace opalx::spacecharge {
             }
         };
 
+        /**
+         * @brief Mark slices containing any nonzero deposited charge, including neutral sources.
+         * @details This kernel is launched from a diagnostic-policy template instantiated in
+         * both the solver library and unit/diagnostic translation units. A named functor keeps
+         * its captured views in an ordinary public type instead of NVCC extended-lambda copy
+         * helpers whose per-translation-unit state can disagree after host linking.
+         */
+        struct OccupiedSlicesFunctor {
+            Algorithm::ScalarGridView3D_t rho_m;
+            Kokkos::View<int*> occupied_m;
+            int nGhost_m;
+
+            KOKKOS_FUNCTION void operator()(const size_t z, const size_t x) const {
+                for (size_t y = 0; y < rho_m.extent(1); ++y) {
+                    // Net charge can vanish while opposite charges still generate a field.
+                    if (rho_m(x, y, z + nGhost_m) != Algorithm::T(0)) {
+                        Kokkos::atomic_max(&occupied_m(z), 1);
+                        break;
+                    }
+                }
+            }
+        };
+
         /** @brief Fold deposited ghost charge into the opposite end of a closed ring. */
         struct ScatterBoundariesFunctor {
             Algorithm::ScalarGridView3D_t rhoView_m;
@@ -579,16 +602,7 @@ namespace opalx::spacecharge {
         Kokkos::deep_copy(occupiedSlices, 0);
         Kokkos::parallel_for(
                 "Solve2d5::solvePoissons::occupancy", Policy({0, 0}, {numSlices, rho3d.extent(0)}),
-                KOKKOS_LAMBDA(const size_t z, const size_t x) {
-                    for (size_t y = 0; y < rho3d.extent(1); ++y) {
-                        // Check nonzero density, rather than signed total charge: opposite charges
-                        // may have zero net charge while still producing a nonzero slice field.
-                        if (rho3d(x, y, z + nGhost) != T(0)) {
-                            Kokkos::atomic_max(&occupiedSlices(z), 1);
-                            break;
-                        }
-                    }
-                });
+                fft2d5_detail::OccupiedSlicesFunctor{rho3d, occupiedSlices, nGhost});
         auto occupiedHost =
                 Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), occupiedSlices);
         // All ranks must execute the same FFT calls, even if their local sources differ.
