@@ -198,7 +198,7 @@ TEST(OneTurnMap, FullTunesResolveIntegerAndConjugateBranch) {
     s.dt       = 2 * std::acos(-1.0) / 512;
     s.maxSteps = 1024;
     const OneTurnMap::Coordinates zero{}, h{1e-5, 1e-5, 1e-5, 1e-5};
-    for (const auto tunes : {std::array<double, 2>{3.41, 2.72}, {1.41, .72}}) {
+    for (const auto tunes : {std::array<double, 2>{3.41, 2.72}, std::array<double, 2>{1.41, .72}}) {
         OneTurnMap map(harmonicRing(tunes[0], tunes[1]), CoordinateSystemTrafo(), s);
         const auto matrix = map.jacobian(zero, h);
         const auto full   = map.fullTunes(zero, h, matrix);
