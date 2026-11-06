@@ -263,7 +263,7 @@ void FFT2D5Poisson::solveBatched(
                     ippl::fft::makeHeffteOptions<BatchBackend::backend_t>(params_m));
             batchXRows_m.clear();
             batchYRows_m.clear();
-            batchColumns_m = decltype(batchColumns_m)("FFT2D5BatchColumns", nc * capacity);
+            batchColumns_m    = decltype(batchColumns_m)("FFT2D5BatchColumns", nc * capacity);
             batchWorkspace_m  = BatchWorkspace(batchPlan_m->size_workspace() * capacity);
             batchReal_m       = decltype(batchReal_m)("FFT2D5BatchReal", nr * capacity);
             batchSpectrum_m   = decltype(batchSpectrum_m)("FFT2D5BatchSpectrum", nc * capacity);
@@ -328,11 +328,12 @@ void FFT2D5Poisson::solveBatched(
                     if (it->first != capacity) {
                         batchYRows_m.erase(it->first);
                         it = batchXRows_m.erase(it);
-                    } else ++it;
+                    } else
+                        ++it;
                 }
                 using Backend = BatchBackend::backend_t;
-                using Stream = typename heffte::backend::device_instance<
-                        typename heffte::backend::buffer_traits<Backend>::location>::stream_type;
+                using Stream  = typename heffte::backend::device_instance<
+                         typename heffte::backend::buffer_traits<Backend>::location>::stream_type;
 #ifdef KOKKOS_ENABLE_CUDA
                 Stream stream = Kokkos::DefaultExecutionSpace().cuda_stream();
 #else
@@ -346,7 +347,8 @@ void FFT2D5Poisson::solveBatched(
                                     static_cast<long long>(ncx * count - 1), 0});
                 auto x = heffte::make_executor_r2c<Backend>(stream, xRows, 0);
                 auto y = heffte::make_executor<Backend>(stream, yRows, 0);
-                const size_t workspace = std::max({size_t(1), x->workspace_size(), y->workspace_size()});
+                const size_t workspace =
+                        std::max({size_t(1), x->workspace_size(), y->workspace_size()});
                 if (batchRowScratch_m.extent(0) < workspace)
                     batchRowScratch_m = decltype(batchRowScratch_m)("FFT2D5RowScratch", workspace);
                 batchXRows_m.emplace(count, std::move(x));
@@ -357,9 +359,9 @@ void FFT2D5Poisson::solveBatched(
         auto& yRows = *batchYRows_m.at(count);
         // heFFTe's native complex ABI is shared with the Kokkos complex buffers.
         static_assert(sizeof(Complex) == sizeof(std::complex<double>));
-        auto* rowData = reinterpret_cast<std::complex<double>*>(spectrum.data());
+        auto* rowData    = reinterpret_cast<std::complex<double>*>(spectrum.data());
         auto* columnData = reinterpret_cast<std::complex<double>*>(columns.data());
-        auto* scratch = reinterpret_cast<std::complex<double>*>(batchRowScratch_m.data());
+        auto* scratch    = reinterpret_cast<std::complex<double>*>(batchRowScratch_m.data());
         timedPhase("2D5 Pack", [&] {
             Kokkos::parallel_for(
                     "FFT2D5Batch::pack",
@@ -377,8 +379,7 @@ void FFT2D5Poisson::solveBatched(
         timedPhase("2D5 FFT Rho", [&] {
             xRows.forward(real.data(), rowData, scratch);
             Kokkos::parallel_for(
-                    "FFT2D5Batch::columns", size_t(count) * nc,
-                    KOKKOS_LAMBDA(size_t p) {
+                    "FFT2D5Batch::columns", size_t(count) * nc, KOKKOS_LAMBDA(size_t p) {
                         const size_t b = p / nc, k = p % nc;
                         columns(b * nc + (k % ncx) * ny2 + k / ncx) = spectrum(p);
                     });
@@ -387,8 +388,7 @@ void FFT2D5Poisson::solveBatched(
         });
         timedPhase("2D5 Convolution", [&] {
             Kokkos::parallel_for(
-                    "FFT2D5Batch::applyGreen", size_t(count) * nc,
-                    KOKKOS_LAMBDA(size_t p) {
+                    "FFT2D5Batch::applyGreen", size_t(count) * nc, KOKKOS_LAMBDA(size_t p) {
                         const size_t k = p % nc;
                         columns(p) *= green(k / ny2 + ncx * (k % ny2)) * scaling;
                     });
@@ -397,8 +397,7 @@ void FFT2D5Poisson::solveBatched(
         timedPhase("2D5 FFT Back", [&] {
             yRows.backward(columnData, scratch);
             Kokkos::parallel_for(
-                    "FFT2D5Batch::rows", size_t(count) * nc,
-                    KOKKOS_LAMBDA(size_t p) {
+                    "FFT2D5Batch::rows", size_t(count) * nc, KOKKOS_LAMBDA(size_t p) {
                         const size_t b = p / nc, k = p % nc;
                         spectrum(p) = columns(b * nc + (k % ncx) * ny2 + k / ncx);
                     });

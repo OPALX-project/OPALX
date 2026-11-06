@@ -225,7 +225,7 @@ private:
     using Complex        = Kokkos::complex<double>;
     std::unique_ptr<BatchPlan> batchPlan_m;
     BatchWorkspace batchWorkspace_m;
-    using RowExecutor = heffte::one_dim_backend<BatchBackend::backend_t>::executor;
+    using RowExecutor     = heffte::one_dim_backend<BatchBackend::backend_t>::executor;
     using RealRowExecutor = heffte::one_dim_backend<BatchBackend::backend_t>::executor_r2c;
     // A full batch and its final remainder each have a native backend plan.
     std::map<int, std::unique_ptr<RealRowExecutor>> batchXRows_m;
