@@ -17,32 +17,36 @@ namespace {
     template <unsigned Stages>
     State rkAdvance(
             const State& initial, double h, const Fields& fields, const PartData& reference,
-            const external_field_rk::Tableau<Stages>& table, bool& hitMaterial) {
-        std::array<std::array<double, 7>, Stages> k{};
-        const auto combine = [&](const auto& weights, unsigned count, double fraction) {
-            State ray = initial;
+            const external_field_rk::Tableau<Stages>& table, bool& hitMaterial,
+            State* midpoint = nullptr) {
+        constexpr unsigned WorkStages = Stages == 12 ? 16 : Stages;
+        std::array<std::array<double, 7>, WorkStages> k{};
+        const auto sum = [&](const auto& weights, unsigned count) {
             std::array<double, 7> increment{}, correction{};
             for (unsigned j = 0; j < count; ++j)
                 for (unsigned d = 0; d < 7; ++d)
                     compensated::add(weights[j] * k[j][d], increment[d], correction[d]);
+            for (unsigned d = 0; d < 7; ++d)
+                increment[d] -= correction[d];
+            return increment;
+        };
+        const auto displace = [&](const auto& increment, double fraction) {
+            State ray = initial;
             for (unsigned d = 0; d < 3; ++d) {
-                compensated::add(
-                        increment[d] - correction[d], ray.position(d), ray.positionCorrection(d));
-                ray.momentum(d) += increment[d + 3] - correction[d + 3];
+                compensated::add(increment[d], ray.position(d), ray.positionCorrection(d));
+                ray.momentum(d) += increment[d + 3];
             }
-            compensated::add(
-                    increment[6] - correction[6], ray.pathLength, ray.pathLengthCorrection);
+            compensated::add(increment[6], ray.pathLength, ray.pathLengthCorrection);
             compensated::add(fraction * h, ray.time, ray.timeCorrection);
             return ray;
         };
-        const double force = h * reference.getQ() * Physics::c / reference.getM();
-        for (unsigned i = 0; i < Stages; ++i) {
-            const State ray = combine(table.a[i], i, table.c[i]);
+        const double force  = h * reference.getQ() * Physics::c / reference.getM();
+        const auto evaluate = [&](const State& ray, unsigned i) {
             Vector_t<double, 3> electric(0.0), magnetic(0.0);
             orbit_threader_diagnostics::count(&orbit_threader_diagnostics::Work::fieldSamples);
             if (fields(ray, electric, magnetic)) {
                 hitMaterial = true;
-                return ray;
+                return;
             }
             const double gamma                 = std::sqrt(1.0 + dot(ray.momentum, ray.momentum));
             const Vector_t<double, 3> velocity = (Physics::c / gamma) * ray.momentum;
@@ -52,8 +56,44 @@ namespace {
                 k[i][d + 3] = du(d);
             }
             k[i][6] = h * euclidean_norm(velocity);
+        };
+        for (unsigned i = 0; i < Stages; ++i) {
+            const State ray = displace(sum(table.a[i], i), table.c[i]);
+            evaluate(ray, i);
+            if (hitMaterial) return ray;
         }
-        return combine(table.b, Stages, 1.0);
+        const auto delta = sum(table.b, Stages);
+        const State end  = displace(delta, 1.0);
+        if constexpr (Stages == 12) {
+            if (midpoint) {
+                // Standard seventh-order DOP853 dense output: one endpoint RHS
+                // and three extra stages reuse the twelve endpoint stages.
+                evaluate(end, 12);
+                if (hitMaterial) return end;
+                for (unsigned i = 13; i < 16; ++i) {
+                    const State ray = displace(
+                            sum(external_field_rk::dop853DenseA[i - 13], i),
+                            external_field_rk::dop853DenseC[i - 13]);
+                    evaluate(ray, i);
+                    if (hitMaterial) return ray;
+                }
+                std::array<std::array<double, 7>, 7> f{};
+                f[0] = delta;
+                for (unsigned d = 0; d < 7; ++d) {
+                    f[1][d] = k[0][d] - delta[d];
+                    f[2][d] = 2 * delta[d] - (k[0][d] + k[12][d]);
+                }
+                for (unsigned i = 0; i < 4; ++i)
+                    f[3 + i] = sum(external_field_rk::dop853DenseD[i], 16);
+                std::array<double, 7> half{};
+                // At theta=1/2 both alternating Horner factors equal 1/2.
+                for (int i = 6; i >= 0; --i)
+                    for (unsigned d = 0; d < 7; ++d)
+                        half[d] = 0.5 * (half[d] + f[i][d]);
+                *midpoint = displace(half, 0.5);
+            }
+        }
+        return end;
     }
 }  // namespace
 
@@ -121,18 +161,18 @@ ExternalFieldRayTracker::Step ExternalFieldRayTracker::rungeKuttaStep(
     result.midpoint = result.end = initial;
     result.duration              = dt;
     if (dt == 0.0) return result;
-    const auto integrate = [&](double h) {
-        if (integrationMethod_m == IntegrationMethod::RK4)
-            return rkAdvance(
-                    initial, h, fields, reference_m, external_field_rk::rk4, result.hitMaterial);
-        return rkAdvance(
-                initial, h, fields, reference_m, external_field_rk::dop853, result.hitMaterial);
-    };
-    result.end = integrate(dt);
-    if (result.hitMaterial) return result;
-    // An independent half-duration solve supplies a same-order diagnostic midpoint.
-    // It is not composed into the endpoint: nominal DT retains its usual meaning.
-    result.midpoint = integrate(0.5 * dt);
+    if (integrationMethod_m == IntegrationMethod::DOP853) {
+        result.end = rkAdvance(
+                initial, dt, fields, reference_m, external_field_rk::dop853, result.hitMaterial,
+                &result.midpoint);
+    } else {
+        result.end = rkAdvance(
+                initial, dt, fields, reference_m, external_field_rk::rk4, result.hitMaterial);
+        if (result.hitMaterial) return result;
+        // Independent RK4 half solve; it is not composed into the endpoint.
+        result.midpoint = rkAdvance(
+                initial, 0.5 * dt, fields, reference_m, external_field_rk::rk4, result.hitMaterial);
+    }
     if (result.hitMaterial) return result;
     orbit_threader_diagnostics::count(&orbit_threader_diagnostics::Work::fieldSamples);
     result.hitMaterial = fields(result.midpoint, result.electric, result.magnetic);
