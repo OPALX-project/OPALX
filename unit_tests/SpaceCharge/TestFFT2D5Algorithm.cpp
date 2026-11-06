@@ -74,6 +74,49 @@ namespace opalx::spacecharge {
                     });
         }
 
+        // Preserve the previous serial device build as an independent exact oracle.
+        void launchSerialGeometryOracle(
+                FFT2D5Algorithm::ReferenceView_t ref,
+                FFT2D5Algorithm::SegmentGeometryView_t geometry,
+                FFT2D5Algorithm::SegmentGeometryView_t bounds) {
+            using T               = FFT2D5Algorithm::T;
+            using Vector3D_t      = FFT2D5Algorithm::Vector3D_t;
+            const size_t segments = ref.extent(0) - 1;
+            const size_t leaves   = bounds.extent(0) / 2;
+            Kokkos::parallel_for(
+                    "serialGeometryOracle", 1, KOKKOS_LAMBDA(size_t) {
+                        T prefix = 0.0;
+                        for (size_t i = 0; i < segments; ++i) {
+                            const Vector3D_t direction = ref(i + 1) - ref(i);
+                            const T length             = euclidean_norm(direction);
+                            for (unsigned d = 0; d < 3; ++d)
+                                geometry(i, d) = direction[d];
+                            geometry(i, 3) = direction.dot(direction);
+                            geometry(i, 4) = length;
+                            geometry(i, 5) = prefix;
+                            prefix += length;
+                        }
+                        // Heap leaves follow segment order; padded leaves have empty boxes.
+                        for (size_t i = 0; i < leaves; ++i) {
+                            for (unsigned d = 0; d < 3; ++d) {
+                                bounds(leaves + i, d) =
+                                        i < segments ? Kokkos::min(ref(i)[d], ref(i + 1)[d])
+                                                     : Kokkos::Experimental::finite_max_v<T>;
+                                bounds(leaves + i, d + 3) =
+                                        i < segments ? Kokkos::max(ref(i)[d], ref(i + 1)[d])
+                                                     : -Kokkos::Experimental::finite_max_v<T>;
+                            }
+                        }
+                        for (size_t i = leaves - 1; i > 0; --i) {
+                            for (unsigned d = 0; d < 3; ++d) {
+                                bounds(i, d) = Kokkos::min(bounds(2 * i, d), bounds(2 * i + 1, d));
+                                bounds(i, d + 3) =
+                                        Kokkos::max(bounds(2 * i, d + 3), bounds(2 * i + 1, d + 3));
+                            }
+                        }
+                    });
+        }
+
         class FFT2D5AlgorithmTest : public ::testing::Test {
         protected:
             using ParticleContainer = FFT2D5Algorithm::ParticleContainer;
@@ -571,7 +614,7 @@ namespace opalx::spacecharge {
             SpaceChargeSolveContext context(activity, step);
             // Self-intersections, non-power-of-two leaf counts, repeated vertices,
             // very large translations, tiny/large scales and equal-distance winners.
-            for (unsigned scenario = 0; scenario < 7; ++scenario) {
+            for (unsigned scenario = 0; scenario < 8; ++scenario) {
                 const double scale = scenario == 3   ? 1e-140
                                      : scenario == 4 ? 1e140
                                      : scenario == 6 ? 1e-160
@@ -582,7 +625,9 @@ namespace opalx::spacecharge {
                     points = {Vector(0, 0, 0), Vector(0, 0, 1), Vector(1, 0, 1), Vector(1, 0, 0),
                               Vector(0, 0, 0), Vector(0, 0, 1), Vector(0, 0, 1), Vector(0, 0, 0)};
                 } else {
-                    const unsigned intervals = (scenario == 0 || scenario == 6) ? 1 : 257;
+                    const unsigned intervals = (scenario == 0 || scenario == 6) ? 1
+                                               : scenario == 7                  ? 2606
+                                                                                : 257;
                     for (unsigned i = 0; i <= intervals; ++i) {
                         const double angle = 2 * Physics::pi * i / intervals;
                         points.push_back(
@@ -632,6 +677,29 @@ namespace opalx::spacecharge {
                     const auto r    = particles_m->R.getView();
                     const auto mask = particles_m->InvalidMask.getView();
                     const auto ref  = solver.getReferencePath();
+                    FFT2D5Algorithm::SegmentGeometryView_t serialGeometry(
+                            "serialGeometry", solver.getSegmentGeometry().extent(0));
+                    FFT2D5Algorithm::SegmentGeometryView_t serialBounds(
+                            "serialBounds", solver.getSegmentBounds().extent(0));
+                    launchSerialGeometryOracle(ref, serialGeometry, serialBounds);
+                    auto expectedGeometry = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), serialGeometry);
+                    auto expectedBounds =
+                            Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), serialBounds);
+                    auto actualGeometry = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), solver.getSegmentGeometry());
+                    auto actualBounds = Kokkos::create_mirror_view_and_copy(
+                            Kokkos::HostSpace(), solver.getSegmentBounds());
+                    for (size_t i = 0; i < serialGeometry.extent(0); ++i)
+                        for (unsigned d = 0; d < 6; ++d)
+                            ASSERT_EQ(actualGeometry(i, d), expectedGeometry(i, d))
+                                    << scenario << " " << repeat << " segment=" << i
+                                    << " col=" << d;
+                    // Heap index zero is unused and intentionally uninitialized.
+                    for (size_t i = 1; i < serialBounds.extent(0); ++i)
+                        for (unsigned d = 0; d < 6; ++d)
+                            ASSERT_EQ(actualBounds(i, d), expectedBounds(i, d))
+                                    << scenario << " " << repeat << " node=" << i << " col=" << d;
                     FFT2D5Algorithm::VectorView_t expected("exhaustiveCoordinates", count);
                     FFT2D5Algorithm::SegmentIndexView_t winners("exhaustiveSegments", count);
                     launchExhaustiveProjectionOracle(r, mask, ref, count, expected, winners);

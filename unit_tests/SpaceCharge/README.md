@@ -12,6 +12,11 @@ zero-length segments, corner ties, periodic-seam probes, invalid particles and
 changes of particle count, ordering and momentum. Standalone diagnostic stages
 recompute projections; cached entries are refreshed for every complete solve.
 
+The parallel segment/leaf build and team-parallel hierarchy are checked entry by
+entry against the previous serial device build: all six geometry columns and every
+used/padded bounding box must match exactly. Arc lengths retain the original
+increasing-index addition order; no parallel scan reassociates the sum.
+
 The nearest-segment hierarchy is checked directly against an independent exhaustive
 scan: segment indices and all three cached coordinates must match exactly, with
 no numerical tolerance. Probes include self-intersections, repeated segments and

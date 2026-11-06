@@ -548,6 +548,9 @@ namespace opalx::spacecharge {
          * For use only by test cases.
          */
         const ReferenceView_t& getReferencePath() const { return referencePathView(); }
+        /// Read-only handles for independent geometry and hierarchy validation.
+        const SegmentGeometryView_t& getSegmentGeometry() const { return segmentGeometry_m; }
+        const SegmentGeometryView_t& getSegmentBounds() const { return segmentBounds_m; }
 
         /**
          * @return Returns the 3D charge density view for the Frenet-Serret domain.
@@ -589,9 +592,10 @@ namespace opalx::spacecharge {
          * second nearest-segment search during gather. It is called by doRunSolver after
          * solve() has put the reference path and every active particle container into the
          * same Cartesian solve frame, and before coverage checking or charge deposition.
-         * Two ordered device stages are required: one geometry kernel, followed by a
-         * projection kernel for each active container. Geometry must be complete before
-         * particles search it; no global inter-block barrier is assumed inside a kernel.
+         * Two ordered preparation kernels precede the projection kernel for each active
+         * container: independent segments/leaves, then one team for prefix and hierarchy. Geometry
+         * must be complete before particles search it; no global inter-block barrier is assumed
+         * inside a kernel.
          *
          * For path points R_i, segment i stores six doubles:
          * - columns 0..2: d_i = R_(i+1) - R_i;
@@ -599,9 +603,9 @@ namespace opalx::spacecharge {
          * - column 4: l_i = |d_i|;
          * - column 5: S_i = sum_(j<i) l_j, the arc length at the segment start.
          * The squared length, rather than its reciprocal, retains the original division
-         * in the closest-point calculation. A short single-work-item geometry kernel
-         * accumulates S_i in increasing segment order; zero-length segments contribute
-         * zero length and remain excluded from the nearest-segment search.
+         * in the closest-point calculation. One team thread
+         * accumulates S_i in increasing segment order from the stored lengths; zero-length segments
+         * contribute zero length and remain excluded from the nearest-segment search.
          *
          * For each non-invalid particle x, the unchanged segment projection is:
          * @f[
@@ -610,7 +614,9 @@ namespace opalx::spacecharge {
          * @f]
          * A balanced implicit binary hierarchy encloses contiguous segments in
          * axis-aligned endpoint boxes. Its power-of-two leaves retain segment indices;
-         * padded leaves are empty. Rebuild all boxes in the geometry kernel, so frame
+         * padded leaves are empty. Team threads merge one level at a time, with a team
+         * barrier between levels. No inter-block barrier or parallel prefix scan is used.
+         * Rebuild all boxes each solve, so frame
          * or path changes cannot leave stale bounds. Search nearer boxes first, using
          * the previous segment only as an initial upper bound (or segment zero for a
          * new/invalid cache). Movement and reordering cannot restrict the search.
