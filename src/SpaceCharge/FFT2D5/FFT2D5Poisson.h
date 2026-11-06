@@ -32,10 +32,45 @@
 #include "Ippl.h"
 #include "FFT/FFT.h"
 #include <span>
+#include <map>
+#include <complex>
 #include "FFT/Backend/Heffte.h"
 #include <Kokkos_MathematicalConstants.hpp>
 #include <Kokkos_MathematicalFunctions.hpp>
 // clang-format on
+
+namespace opalx::spacecharge::fft2d5_detail {
+    /** Register the same names/order on every rank, including ranks with no occupied planes.
+     * IPPL prints timers with collectives; rank-dependent registration can deadlock printing. */
+    inline void registerTimers() {
+        for (const char* name :
+             {"2D5 Initialize",  "2D5 Warmup",   "2D5 Plan",     "2D5 Green Init",
+              "2D5 First Solve", "2D5 Solve",    "2D5 Geometry", "2D5 Migration",
+              "2D5 Scatter",     "2D5 Rho Halo", "2D5 Poisson",  "2D5 Line density",
+              "2D5 E Halo",      "2D5 Gather",   "2D5 Pack",     "2D5 FFT Rho",
+              "2D5 Convolution", "2D5 FFT Back", "2D5 Extract",  "2D5 Field"})
+            IpplTimings::getTimer(name);
+    }
+
+    /** Time completed device work, not asynchronous launch submission. No MPI barrier is
+     * introduced. Timers are inclusive: parent phases contain their named subphases.
+     * Stop on exceptions too, so a failed diagnostic call cannot contaminate later samples. */
+    template <class Work>
+    void timed(const char* name, Work&& work) {
+        const auto timer = IpplTimings::getTimer(name);
+        Kokkos::fence("FFT2D5 timing begin");
+        IpplTimings::startTimer(timer);
+        try {
+            work();
+        } catch (...) {
+            Kokkos::fence("FFT2D5 timing exception");
+            IpplTimings::stopTimer(timer);
+            throw;
+        }
+        Kokkos::fence("FFT2D5 timing end");
+        IpplTimings::stopTimer(timer);
+    }
+}  // namespace opalx::spacecharge::fft2d5_detail
 
 class FFT2D5Poisson {
 public:
@@ -104,8 +139,8 @@ public:
     /**
      * @brief Solve independent transverse slices in bounded batches using existing heFFTe R2C.
      * @details Only x and y are transformed; slice indices are independent batch slots.
-     * Reuses the serial solver's cell-averaged Green spectrum, full forward/unscaled
-     * inverse normalization and source-cell-area scaling. The input density is unchanged.
+     * Reuses the serial solver's normalized cell-averaged Green spectrum with unscaled
+     * source/inverse transforms and source-cell-area scaling. The input density is unchanged.
      * Coupling is applied while packing physical cells into zero-padded contiguous buffers.
      * One batched Green multiplication and centered-gradient kernel replace per-slice
      * staging. Negative transverse neighbours wrap into the doubled potential, preserving
@@ -120,16 +155,24 @@ public:
      * on all batch slots in device kernels on CUDA. Fences before/after heFFTe calls preserve
      * ordering across Kokkos and the backend stream; no host staging of density or fields is
      * performed. Only the occupied-slice index list is copied from the host once per solve.
-     * heFFTe can still execute native FFT stages sequentially across slots; the batch size
-     * bounds temporary memory and groups OPALX kernels, rather than promising a proportional
-     * reduction in FFT launches. This is not MPI batching.
-     * @pre initialiseViews() has received a matching transverse workspace.
-     * @pre One MPI rank; unique occupied physical slice indices; matching source/output grids.
+     * Existing heFFTe executor factories batch all x rows across the selected slices in
+     * one R2C operation. A device transpose makes every y column contiguous for one C2C
+     * operation; inverse transforms reverse these steps. This avoids the public plan's
+     * per-slice executor loop without changing IPPL or heFFTe. Actual-count plans are cached
+     * for the full batch and final remainder; geometry/capacity changes invalidate them.
+     * MPI ranks own disjoint z slabs and never transform z. The public MPI_COMM_SELF plan
+     * is retained solely to initialize the normalized Green spectrum on each rank.
+     * @pre On one rank, initialiseViews() has received a matching transverse workspace.
+     * @pre Unique occupied local slice indices; complete x-y planes and matching source/output
+     * grids.
      */
     void solveBatched(
             const ScalarField3_t& density, VectorField3_t& electric,
             std::span<const size_t> occupied, int batchSize, double coupling = 1.,
             ScalarField3_t* potential = nullptr);
+
+    /// Exclude zero-source warmup FFTs from physical phase counters; plans/Green remain timed.
+    void setWarmupTiming(bool value) { warmupTiming_m = value; }
 
     // Accessors for unit tests
     const ScalarField2_t& getGreensFn() const { return greensFn_m; }
@@ -152,6 +195,14 @@ public:
     void determineField(const ScalarField2_t& potential, VectorField2_t& electricField);
 
 private:
+    template <class Work>
+    void timedPhase(const char* name, Work&& work) {
+        if (warmupTiming_m)
+            work();
+        else
+            opalx::spacecharge::fft2d5_detail::timed(name, work);
+    }
+    bool warmupTiming_m = false;
     // Mixed primitive of log(sqrt(x*x+y*y)), extended continuously to the axes.
     // Using atan2 on absolute coordinates preserves the odd symmetry in each
     // coordinate without branch jumps across the source-cell singularity.
@@ -174,11 +225,18 @@ private:
     using Complex        = Kokkos::complex<double>;
     std::unique_ptr<BatchPlan> batchPlan_m;
     BatchWorkspace batchWorkspace_m;
+    using RowExecutor = heffte::one_dim_backend<BatchBackend::backend_t>::executor;
+    using RealRowExecutor = heffte::one_dim_backend<BatchBackend::backend_t>::executor_r2c;
+    // A full batch and its final remainder each have a native backend plan.
+    std::map<int, std::unique_ptr<RealRowExecutor>> batchXRows_m;
+    std::map<int, std::unique_ptr<RowExecutor>> batchYRows_m;
+    Kokkos::View<Complex*, MemSpace> batchColumns_m, batchRowScratch_m;
     Kokkos::View<double*, MemSpace> batchReal_m;
     Kokkos::View<Complex*, MemSpace> batchSpectrum_m, batchGreen_m;
     Kokkos::View<size_t*, MemSpace> batchSlices_m;
     size_t batchNx_m = 0, batchNy_m = 0;
-    int batchCapacity_m = 0;
+    int batchCapacity_m    = 0;
+    bool localGreenReady_m = false;
 
     size_t nx2_{};
     size_t ny2_{};

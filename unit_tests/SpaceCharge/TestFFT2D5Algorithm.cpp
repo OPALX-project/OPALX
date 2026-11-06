@@ -249,6 +249,52 @@ namespace opalx::spacecharge {
             CoordinateSystemTrafo solveToTracker_m;
         };
 
+        TEST_F(FFT2D5AlgorithmTest, WarmupAndFirstPhysicalSolveHaveSeparateTimers) {
+            const int previousBatch  = Options::fft2d5BatchSize;
+            Options::fft2d5BatchSize = 8;
+            const auto positions     = sourcePositions();
+            const Vector momentum(0., 0., .4);
+            setPhysicalSource(positions, momentum, CoordinateSystemTrafo());
+            std::array containers{particles_m.get()};
+            auto settings          = config(FFT2D5LongitudinalFieldMode::Open);
+            settings.grid.meshSize = {16, 16, 16};
+            FFT2D5Algorithm solver(settings, containers, bunchState_m);
+            const auto count = [](const char* name) {
+                return IpplTimings::getMeasurementCount(IpplTimings::getTimer(name));
+            };
+            const auto warmup = count("2D5 Warmup");
+            const auto first  = count("2D5 First Solve");
+            const auto steady = count("2D5 Solve");
+            const auto fft    = count("2D5 FFT Rho");
+            solver.ensureInitialized();
+            EXPECT_EQ(count("2D5 Warmup"), warmup + 1);
+            EXPECT_EQ(count("2D5 FFT Rho"), fft);
+            EXPECT_EQ(count("2D5 First Solve"), first);
+            const auto rho = Kokkos::create_mirror_view_and_copy(
+                    Kokkos::HostSpace(), solver.getRho()->getView());
+            for (size_t i = 0; i < rho.extent(0); ++i)
+                for (size_t j = 0; j < rho.extent(1); ++j)
+                    for (size_t k = 0; k < rho.extent(2); ++k)
+                        EXPECT_DOUBLE_EQ(rho(i, j, k), 0.);
+            expectSourceRestored(positions, momentum);
+            const std::array<std::uint8_t, 1> activity{1};
+            ASSERT_NO_THROW(static_cast<void>(solver.solve({activity, alignedStep(0.)})));
+            EXPECT_EQ(count("2D5 First Solve"), first + 1);
+            EXPECT_EQ(count("2D5 Solve"), steady);
+            EXPECT_GT(count("2D5 FFT Rho"), fft);
+            ASSERT_NO_THROW(static_cast<void>(solver.solve({activity, alignedStep(0.)})));
+            EXPECT_EQ(count("2D5 First Solve"), first + 1);
+            EXPECT_EQ(count("2D5 Solve"), steady + 1);
+            const auto physicalFFT = count("2D5 FFT Rho");
+            // Warming another instance must not erase earlier physical measurements.
+            FFT2D5Algorithm another(settings, containers, bunchState_m);
+            another.ensureInitialized();
+            EXPECT_EQ(count("2D5 FFT Rho"), physicalFFT);
+            EXPECT_EQ(count("2D5 Warmup"), warmup + 2);
+            expectSourceRestored(positions, momentum);
+            Options::fft2d5BatchSize = previousBatch;
+        }
+
         TEST_F(FFT2D5AlgorithmTest, LazyInitializationSkipsEmptySlices) {
             std::array particles{particles_m.get()};
             FFT2D5Algorithm solver(

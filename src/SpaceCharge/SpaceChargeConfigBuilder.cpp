@@ -303,10 +303,12 @@ namespace opalx::spacecharge {
         }
         if (solverType == FieldSolverCmdType::FFT2D5) {
             if (fieldSolver.getFFT2D5Model() != "ORIGINAL") {
-                throw OpalException("buildSpaceChargeConfig", "Only FFT2D5MODEL=ORIGINAL is supported.");
+                throw OpalException(
+                        "buildSpaceChargeConfig", "Only FFT2D5MODEL=ORIGINAL is supported.");
             }
-            if (ippl::Comm->size() != 1) {
-                throw OpalException("buildSpaceChargeConfig", "FFT2D5 supports only one MPI rank.");
+            if (ippl::Comm->size() > 1 && !grid.decomposition[2]) {
+                throw OpalException(
+                        "buildSpaceChargeConfig", "Multiple FFT2D5 ranks require PARFFTZ=TRUE.");
             }
             const auto binsName = fieldSolver.getBinsName();
             if (!binsName.empty() && binsName != "NONE") {

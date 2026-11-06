@@ -44,6 +44,14 @@ namespace opalx::spacecharge {
      *    momenta are boosted; source positions and line charge retain laboratory normalization.
      * 2. Do CiC scatter of charge into the 3D charge density grid.  This spreads the charge out
      * both transversely and (optionally) longitudinally which should be a help in reducing noise.
+     * With PARFFTZ, OPEN's spatial layout migrates particles by their projected s
+     * coordinate. Registered Cartesian scratch positions migrate with all attributes
+     * and are restored before any force calculation. Halo accumulation transfers CIC
+     * charge at slab interfaces (and the closed-ring seam); field halos serve gathering.
+     * Each rank owns complete transverse planes. Only the small line-density vector
+     * is globally reduced, before halo accumulation to count every deposited weight once.
+     * No longitudinal FFT or IPPL modification is used.
+     *
      * 3. Copy each occupied transverse charge-density slice into one reusable 2D workspace.
      * 4. Perform the 2D Poisson solve to determine the X and Y electric field components;
      *    identically empty slices have zero field and need no FFT. Boundary conditions are open.
@@ -643,15 +651,36 @@ namespace opalx::spacecharge {
          * conversion, so a later probe edit or exception cannot reuse a stale projection.
          *
          * @param context Per-call container activity and tracker state.
+         * @param rebuildGeometry False only after migration within the same solve;
+         *        reuse the unchanged path hierarchy and refresh particle projections.
          * @pre The initialized path and particles use the same aligned solve frame.
          * @pre Inspection-only diagnostic callbacks do not move or reorder particles
          *      between preparation and the end of doRunSolver.
          * @post Every active non-invalid particle has fresh local coordinates and a
          *       nearest-segment index. No particle position, momentum, field or dt is changed.
          */
-        void preparePathGeometryAndProjections(const SpaceChargeSolveContext& context);
+        void preparePathGeometryAndProjections(
+                const SpaceChargeSolveContext& context, bool rebuildGeometry = true);
+
+        /** @brief Reuse OPEN spatial migration with logical (u,v,s) ownership.
+         * Cartesian positions are saved in a registered particle attribute so IPPL
+         * migrates them, IDs, momenta and charges together. R is temporarily replaced
+         * by the prepared path projection, then restored exactly before any physics
+         * operation. Invalid particles remain invalid. All active ranks participate,
+         * including ranks with no local particles. Projection caches are rebuilt after
+         * migration because local particle order and count may change.
+         * @pre Particles and path are in the common solve frame; projections are current.
+         * @post Tracking coordinates are Cartesian, and each particle belongs to its s slab.
+         */
+        void migrateToSlabs(const SpaceChargeSolveContext& context);
+        /// Exchange slab halos while preserving open transverse boundaries.
+        void accumulateDensityHalos();
+        void fillFieldHalos();
 
     private:
+        // The first physical step is retained, but its cache/migration setup cost is
+        // reported separately from subsequent (steady-state) space-charge solves.
+        bool firstPhysicalSolve_m = true;
         FFT2D5Config config_m;
         std::vector<ParticleContainer*> particles_m;
         std::shared_ptr<const BunchStateHandler> bunchState_m;

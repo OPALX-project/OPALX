@@ -13,3 +13,8 @@ add_opalx_test(TestCartesianPIC3DAlgorithms USE_GTEST_MAIN RUN_SERIAL)
 add_opalx_test(TestCartesianPIC3DFields USE_GTEST_MAIN RUN_SERIAL)
 add_opalx_test(TestPoissonSolver USE_GTEST_MAIN RUN_SERIAL)
 add_opalx_test(TestP3MShortRangeParallel USE_GTEST_MAIN RUN_SERIAL)
+add_opalx_test(TestFFT2D5Parallel USE_GTEST_MAIN RUN_SERIAL)
+
+# Explicit, non-CTest microbenchmark: production opalx executable is not relinked.
+add_executable(BenchmarkFFT2D5Batch EXCLUDE_FROM_ALL BenchmarkFFT2D5Batch.cpp)
+target_link_libraries(BenchmarkFFT2D5Batch PRIVATE opalx)

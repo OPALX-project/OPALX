@@ -754,9 +754,9 @@ namespace {
         EXPECT_FALSE(decomposition[2]);
     }
 
-    TEST_F(TestSolve2d5, Configuration_ParallelLayoutRejected) {
+    TEST_F(TestSolve2d5, Configuration_TransverseParallelLayoutRejected) {
         fsCmd_m->setType("FFT2D5");
-        fsCmd_m->setParallelDimensions(false, false, true);
+        fsCmd_m->setParallelDimensions(true, false, false);
 
         EXPECT_NO_THROW(fsCmd_m->execute());
         EXPECT_THROW((void)buildSpaceChargeConfig(*fsCmd_m, {}), OpalException);
@@ -771,7 +771,7 @@ namespace {
         EXPECT_THROW((void)buildSpaceChargeConfig(*fsCmd_m, {}), OpalException);
     }
 
-    TEST_F(TestSolve2d5, Configuration_MultipleRanksRejected) {
+    TEST_F(TestSolve2d5, Configuration_MultipleRanksRequireZDecomposition) {
         if (ippl::Comm->size() == 1) {
             GTEST_SKIP() << "This validation requires multiple MPI ranks.";
         }
@@ -2785,7 +2785,9 @@ namespace {
                 Kokkos::deep_copy(density.getView(), source);
                 auto originalSource = Kokkos::create_mirror(density.getView());
                 Kokkos::deep_copy(originalSource, density.getView());
-                for (int size : {1, 8, 32, 64}) {
+                // Begin and end with capacity 64 so the next source reuses the
+                // full-batch plan while replacing its changing remainder plan.
+                for (int size : {64, 1, 8, 32, 64}) {
                     SCOPED_TRACE(
                             ::testing::Message() << shape[0] << "x" << shape[1] << " batch=" << size
                                                  << " source=" << sourceCase);

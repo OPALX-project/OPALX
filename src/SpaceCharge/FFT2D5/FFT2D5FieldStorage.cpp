@@ -24,6 +24,8 @@
 #include "Utilities/Options.h"
 
 #include <array>
+#include <numeric>
+#include <vector>
 
 namespace opalx::spacecharge {
     namespace {
@@ -77,10 +79,10 @@ namespace opalx::spacecharge {
           size_m(makeSize(config, pathLength)),
           domain_m(makeDomain3(meshSize_m)),
           mesh_m(domain_m, spacing_m, origin_m),
-          layout_m(MPI_COMM_WORLD, domain_m, std::array<bool, 3>{false, false, false}, true),
+          layout_m(MPI_COMM_WORLD, domain_m, config.grid.decomposition, config.closedRing),
           sliceDomain_m(makeDomain2(meshSize_m)),
           sliceMesh_m(sliceDomain_m, Vector2(spacing_m[0], spacing_m[1]), Vector2(0, 0)),
-          sliceLayout_m(MPI_COMM_WORLD, sliceDomain_m, std::array<bool, 2>{false, false}) {
+          sliceLayout_m(MPI_COMM_SELF, sliceDomain_m, std::array<bool, 2>{false, false}) {
         if (!(pathLength > 0.0)) {
             throw OpalException(
                     "FFT2D5FieldStorage::FFT2D5FieldStorage",
@@ -88,6 +90,7 @@ namespace opalx::spacecharge {
         }
 
         batchSize_m = Options::fft2d5BatchSize;
+        if (ippl::Comm->size() > 1 && batchSize_m == 0) batchSize_m = 1;
         if (batchSize_m > 0) {
             *ippl::Info << "FFT2D5: --2D5BatchSize " << batchSize_m
                         << " (independent transverse slices)" << endl;
@@ -115,14 +118,51 @@ namespace opalx::spacecharge {
 
     FFT2D5FieldStorage::~FFT2D5FieldStorage() = default;
 
-    void FFT2D5FieldStorage::solveBatchedSlices(std::span<const size_t> occupied) {
+    void FFT2D5FieldStorage::warmup() {
+        Kokkos::deep_copy(chargeDensity_m.getView(), 0.);
+        Kokkos::deep_copy(electricField_m.getView(), Vector3(0.));
+        Kokkos::deep_copy(workspace_m.chargeDensity->getView(), 0.);
+        Kokkos::deep_copy(workspace_m.electricField->getView(), Vector2(0.));
+#if !OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
+        workspace_m.solver2->setWarmupTiming(true);
+#endif
+        try {
+            if (batchSize_m > 0) {
+                const auto count = std::min(
+                        size_t(batchSize_m), size_t(layout_m.getLocalNDIndex()[2].length()));
+                std::vector<size_t> planes(count);
+                std::iota(planes.begin(), planes.end(), 0);
+                // Force a complete zero-source batch despite its empty occupancy.
+                solveBatchedSlices(planes);
+            } else {
+                solveSlice();
+            }
+        } catch (...) {
+#if !OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
+            workspace_m.solver2->setWarmupTiming(false);
+#endif
+            throw;
+        }
+#if !OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
+        workspace_m.solver2->setWarmupTiming(false);
+#endif
+        Kokkos::deep_copy(chargeDensity_m.getView(), 0.);
+        Kokkos::deep_copy(electricField_m.getView(), Vector3(0.));
+        Kokkos::fence();
+        resetBackendSolves();
+    }
+
+    void FFT2D5FieldStorage::solveBatchedSlices(
+            std::span<const size_t> occupied, ScalarField3* potential) {
 #if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
         throw OpalException(
                 "FFT2D5FieldStorage", "Batching requires the native OPALX slice solver.");
 #else
-        workspace_m.solver2->initialiseViews(*workspace_m.chargeDensity);
+        if (ippl::Comm->size() == 1)
+            workspace_m.solver2->initialiseViews(*workspace_m.chargeDensity);
         workspace_m.solver2->solveBatched(
-                chargeDensity_m, electricField_m, occupied, batchSize_m, 1 / Physics::epsilon_0);
+                chargeDensity_m, electricField_m, occupied, batchSize_m, 1 / Physics::epsilon_0,
+                potential);
         backendSolves_m += occupied.size();
 #endif
     }

@@ -71,6 +71,10 @@ namespace opalx::spacecharge {
 
         FFT2D5FieldStorage(const FFT2D5Config& config, double pathLength);
         ~FFT2D5FieldStorage();
+        /** Prepare plans, Green spectra and FFT execution on a zero source, without
+         * touching particles or counting a physical solve. Runtime FFT-phase samples
+         * exclude this work without resetting measurements from other instances. */
+        void warmup();
 
         FFT2D5FieldStorage(const FFT2D5FieldStorage&)            = delete;
         FFT2D5FieldStorage& operator=(const FFT2D5FieldStorage&) = delete;
@@ -81,6 +85,7 @@ namespace opalx::spacecharge {
         [[nodiscard]] const Vector3& origin() const { return origin_m; }
         [[nodiscard]] const Vector3& size() const { return size_m; }
         [[nodiscard]] const std::array<std::size_t, 3>& meshSize() const { return meshSize_m; }
+        [[nodiscard]] Mesh3& mesh() { return mesh_m; }
         [[nodiscard]] Mesh2& sliceMesh() { return sliceMesh_m; }
         [[nodiscard]] Layout2& sliceLayout() { return sliceLayout_m; }
         [[nodiscard]] Layout3& layout() { return layout_m; }
@@ -99,7 +104,8 @@ namespace opalx::spacecharge {
         /// Explicit CLI opt-in; zero preserves the single-slice implementation.
         [[nodiscard]] int batchSize() const { return batchSize_m; }
         /// Solve the occupied physical slices together; counts mathematical slice solves.
-        void solveBatchedSlices(std::span<const size_t> occupied);
+        void solveBatchedSlices(
+                std::span<const size_t> occupied, ScalarField3* potential = nullptr);
 
     private:
         std::array<std::size_t, 3> meshSize_m;
