@@ -54,6 +54,7 @@ namespace {
         TUNEINITIAL,      // Spectral launch triples, independent of bunch distribution.
         ZSTOP,            // Path length at which this beam stops being tracked
         UNTILMAXSTEPS,    // Keep the run going for this beam until MAXSTEPS
+        REFDIRECTION,     // Direction of the reference momentum for file distributions
         SIZE
     };
 }  // namespace
@@ -134,6 +135,12 @@ Beam::Beam()
             "If true, the run continues for this beam until MAXSTEPS is used up, after the beams "
             "with a ZSTOP are done. Not together with ZSTOP.",
             false);
+
+    itsAttr[REFDIRECTION] = Attributes::makeRealArray(
+            "REFDIRECTION",
+            "Direction {dx, dy, dz} of the reference momentum in the beamline frame; OPALX "
+            "normalises it. Only for FROMFILE and EMITTEDFROMFILE distributions, together with "
+            "PC, ENERGY or GAMMA, which give its length. Default {0, 0, 1}.");
 
     // Set up default beam.
     Beam* defBeam    = clone("UNNAMED_BEAM");
@@ -235,6 +242,27 @@ void Beam::execute() {
     }
 
     validatePolarization();
+    validateReferenceDirection();
+}
+
+void Beam::validateReferenceDirection() const {
+    if (!hasReferenceDirection()) {
+        return;
+    }
+    const std::vector<double> dir = Attributes::getRealArray(itsAttr[REFDIRECTION]);
+    if (dir.size() != 3) {
+        throw OpalException(
+                "Beam::execute()", "\"REFDIRECTION\" must be a length-3 vector {dx, dy, dz}.");
+    }
+    if (!(dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2] > 0.0)) {
+        throw OpalException("Beam::execute()", "\"REFDIRECTION\" must not be zero.");
+    }
+    if (!hasExplicitEnergy()) {
+        throw OpalException(
+                "Beam::execute()",
+                "\"REFDIRECTION\" needs \"PC\", \"ENERGY\" or \"GAMMA\" for the length of "
+                "the reference momentum.");
+    }
 }
 
 void Beam::validatePolarization() const {
@@ -314,6 +342,22 @@ bool Beam::getUntilMaxSteps() const { return Attributes::getBool(itsAttr[UNTILMA
 
 bool Beam::hasPolarization() const {
     return !Attributes::getRealArray(itsAttr[POLARIZATION]).empty();
+}
+
+std::vector<double> Beam::getReferenceDirection() const {
+    if (!hasReferenceDirection()) {
+        return {0.0, 0.0, 1.0};
+    }
+    std::vector<double> dir = Attributes::getRealArray(itsAttr[REFDIRECTION]);
+    const double norm       = std::sqrt(dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]);
+    for (double& d : dir) {
+        d /= norm;
+    }
+    return dir;
+}
+
+bool Beam::hasReferenceDirection() const {
+    return !Attributes::getRealArray(itsAttr[REFDIRECTION]).empty();
 }
 
 Beam* Beam::find(const std::string& name) {

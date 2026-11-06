@@ -30,6 +30,7 @@
 #include "Utilities/BiMap.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -109,7 +110,9 @@ private:
     /// Build samplers for all emission sources, perform initial sampling for t0 == 0
     /// sources, and populate emittingSamplers_m for time-dependent or delayed sources.
     /// Applied to particle container [index]
-    void setupDistributionsAndSamplers(
+    /// Returns the reference momentum [beta*gamma] set on BEAM for a file distribution
+    /// (PC, ENERGY or GAMMA along REFDIRECTION), or nothing to use the bunch mean.
+    std::optional<Vector_t<double, 3>> setupDistributionsAndSamplers(
             const std::vector<EmissionSource*>& sources, Beam* beam,
             emittingSamplers_t& emittingSamplers, size_t index = 0);
 

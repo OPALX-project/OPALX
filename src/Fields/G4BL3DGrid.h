@@ -56,6 +56,16 @@
  *       @b not normalize. Values are absolute Tesla, so the element's scale is a plain
  *       multiplier and a scale of 1 reproduces a bare `fieldmap` placement.
  *
+ * @note `extendX`, `extendY` and `extendZ` lines between `grid` and `data` mirror a half
+ *       map onto the other side of that axis, as G4beamline does. `flip=By,Ez` lists the
+ *       components whose sign changes on the mirrored half; two extended axes multiply
+ *       their flips. G4beamline mirrors about the first grid point of the axis (X0, Y0 or
+ *       Z0), and so does this reader. The mirrored half is stored, so an extended axis
+ *       holds 2n - 1 points. The two agree everywhere when every flipped component is zero
+ *       on the mirror plane, as it is in a real field. If the file has a non-zero value
+ *       there, G4beamline jumps by twice that value at the plane, while here the field
+ *       changes linearly across the first cell on the mirrored side.
+ *
  * @note The header is parsed by the constructor and the data only by readMap(). These files
  *       are large -- the muE4 ASR61 dipole is 830k rows and 56 MB -- so unlike the 2D reader
  *       this one does not parse twice.
@@ -177,7 +187,8 @@ private:
     void readMap() override;
     void freeMap() override;
 
-    /// @brief Parse the header: the optional `param` line and the `grid` line.
+    /// @brief Parse the header: the optional `param` line, the `grid` line and any
+    ///        `extend` lines.
     void readHeaderOnly();
 
     /// @brief Magnetic field components [T], indexed (ix * nY + iy) * nZ + iz.
@@ -204,10 +215,15 @@ private:
     double hy_m;
     double hz_m;
 
-    /// @brief Number of grid points.
+    /// @brief Number of grid points, after any `extend` line has doubled an axis.
     int num_gridpx_m;
     int num_gridpy_m;
     int num_gridpz_m;
+
+    /// @brief Per axis x, y, z: -1 if the file has no `extend` line for it, else the
+    ///        components whose sign flips on the mirrored half, as bits Bx=1, By=2, Bz=4,
+    ///        Ex=8, Ey=16, Ez=32 (the bits G4beamline uses).
+    int extendFlip_m[3];
 
     /// @brief Magnetic scale from the file's own `param` line, normB / current.
     double fieldScale_m;
