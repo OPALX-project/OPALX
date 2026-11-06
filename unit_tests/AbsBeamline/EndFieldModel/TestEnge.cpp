@@ -133,3 +133,18 @@ TEST_F(TestEnge, FunctionGpuTest) {
                   << std::endl;
     }
 }
+
+TEST_F(TestEnge, LinearPolynomialMatchesGeneralPolynomialThroughSixDerivatives) {
+    endfieldmodel::Enge linear({0.2, 3.91}, .157, .14);
+    endfieldmodel::Enge general({0.2, 3.91, 0.0}, .157, .14);
+    linear.setMaximumDerivative(6);
+    general.setMaximumDerivative(6);
+    linear.initialise();
+    general.initialise();
+    for (double x : {-1.0, -.25, 0.0, .17, 1.0}) {
+        for (int n = 0; n <= 6; ++n) {
+            SCOPED_TRACE(::testing::Message() << "x=" << x << " derivative=" << n);
+            EXPECT_DOUBLE_EQ(linear.function(x, n), general.function(x, n));
+        }
+    }
+}
