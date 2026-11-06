@@ -75,11 +75,8 @@ std::set<std::shared_ptr<ElementBase>> OpalBeamline::getElements(const Vector_t<
     orbit_threader_diagnostics::count(
             &orbit_threader_diagnostics::Work::elementTests, elements_m.size());
     std::set<std::shared_ptr<ElementBase>> elementSet;
-    ElementList::iterator it        = elements_m.begin();
-    const ElementList::iterator end = elements_m.end();
-    for (; it != end; ++it) {
-        std::shared_ptr<ElementBase> element = (*it);
-        Vector_t<double, 3> r                = getCSTrafoLab2Local(element).transformTo(x);
+    for (const auto& element : elements_m) {
+        const Vector_t<double, 3> r = getCSTrafoLab2Local(element).transformTo(x);
 
         if (element->isInside(r)) {
             elementSet.insert(element);
