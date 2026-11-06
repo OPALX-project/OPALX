@@ -708,6 +708,10 @@ void ParallelTracker::execute() {
             if (boundaryControlled_m) {
                 prepareBoundaryStep(pusher, oths, *boundarySchedule);
             } else {
+                // Select the timestep before the first half drift and retain it
+                // through the complete integration step, including final emission.
+                changeDT();
+
                 // Historical OPAL evaluated the self-field at R_n and carried the gathered
                 // per-particle field through the first half drift. Keep this as an explicit
                 // compatibility mode; the default evaluates the field at R_{n+1/2} below.
@@ -734,27 +738,11 @@ void ParallelTracker::execute() {
                       << "." << endl;
                 }
 
-                // Emission is placed BETWEEN space-charge and external-field evaluation
-                // to match the legacy OPAL ordering (ParallelTTracker): newly emitted
-                // particles experience external fields in their creation step.
-                selectDT();
-
-                // Reset per-particle dt for all existing particles BEFORE emission, so that
-                // newly emitted particles retain their fractional dt (sampled in
-                // generateUniformDisk).
-                setTime();
-                m << level5 << "Set time view of particle bunch to dt = "
-                  << Util::getTimeString(itsBunch_m->getdT()) << "." << endl;
-
-                // Emit particles from time-dependent (emitting) sources (R set in REFERENCE frame).
-                // New particles receive a fractional per-particle dt ∈ (0, dt) from the sampler.
+                // Emit particles in the reference frame with their own fractional timesteps.
+                // They experience external fields in their creation step.
                 emitFromEmissionSources(itsBunch_m->getT(), itsBunch_m->getdT());
                 m << level4 << "Emit particles from emission sources done at step " << step << "."
                   << endl;
-                // Old OPAL reselects the global dt after emission. On the final emission step this
-                // switches getdT() back to the track step before external fields, reference update,
-                // and time increment, while per-particle fractional dt values remain untouched.
-                selectDT();
                 itsBunch_m->updateAllParticleMoments();
                 m << level5 << "Particle moments updated after emission." << endl;
 
