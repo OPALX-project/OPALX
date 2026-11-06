@@ -200,6 +200,14 @@ namespace opalx::spacecharge {
 
         /**
          * @brief Calculates the longitudinal line-charge density and its gradient.
+         * @details A single team reduction processes all local transverse planes, including
+         * deposited source ghosts before charge-halo accumulation. One small host transfer
+         * supplies the existing ordered local-to-global accumulation and MPI profile sum.
+         * Local scratch slots remain distinct even when periodic ghosts wrap to the same
+         * global slice. Host scratch is independent on CPU backends, where a mirror view
+         * could alias the profile being cleared. Boundary conditions, cell-area scaling,
+         * longitudinal gradient and diagnostic callbacks are unchanged; no longitudinal FFT
+         * or IPPL modification is introduced. Scratch storage is O(global z slices).
          *
          * @tparam DiagnosticPolicy Diagnostic policy used to inspect the calculated
          *                           line density and its gradient. Defaults to

@@ -138,3 +138,20 @@ measures 64×64×256/512 with batch sizes 1, 8, 32 and 64 and writes
 heFFTe no-reorder option is tested only at batch size one because multi-batch
 numerical equivalence fails. This executable requires one MPI rank; it measures
 local Poisson work, not MPI exchange or full tracking.
+
+### Batched longitudinal density
+
+The longitudinal profile uses one team reduction over all local transverse planes,
+including deposited source ghosts, and one small host transfer. The existing
+ordered global-bin accumulation, MPI profile sum, boundary ghosts, cell-area
+scaling and centered gradient remain unchanged. Separate local scratch slots
+preserve multiple ghost contributions that wrap to one global bin; an independent
+host mirror prevents aliasing on CPU backends.
+
+`BatchedLineDensityMatchesHostSumsOnTinySlabs` compares density and gradient with
+independent host sums for signed nonuniform data, open/periodic boundaries,
+unchanged input and nonzero-to-empty reuse. Tiny two/three-slice cases exercise
+repeated global-bin mappings. This component test initializes storage directly:
+IPPL's full halo exchange does not support one-plane local slabs. The existing
+larger-grid distributed test separately checks all three fields against direct
+convolution. Numerical tolerances are unchanged.

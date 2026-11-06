@@ -226,5 +226,130 @@ namespace opalx::spacecharge {
             MPI_Barrier(MPI_COMM_WORLD);
             if (ippl::Comm->rank() == 0) std::filesystem::remove(path);
         }
+        TEST_F(FFT2D5ParallelTest, BatchedLineDensityMatchesHostSumsOnTinySlabs) {
+            try {
+                const auto path = std::filesystem::current_path() / "fft2d5-density-path.dat";
+                if (ippl::Comm->rank() == 0) {
+                    std::ofstream out(path);
+                    out << "s rx ry rz px py pz ex ey ez bx by bz ke t\n"
+                        << "0 0 0 0 0 0 1 0 0 0 0 0 0 0 0\n"
+                        << "1 0 0 1 0 0 1 0 0 0 0 0 0 0 0\n";
+                }
+                MPI_Barrier(MPI_COMM_WORLD);
+                const int ranks          = ippl::Comm->size();
+                const int previousBatch  = Options::fft2d5BatchSize;
+                Options::fft2d5BatchSize = 4;
+                for (bool closed : {false, true}) {
+                    for (int planes : {std::max(2, ranks), std::max(3, ranks + 1), 2 * ranks + 3}) {
+                        SCOPED_TRACE(
+                                ::testing::Message()
+                                << "planes=" << planes << " closed=" << closed);
+                        const ippl::NDIndex<3> domain{5, 7, planes};
+                        Mesh_t<3> mesh(domain, V(.2, 1. / 7, 1. / planes), V(-.5, -.5, 0));
+                        FieldLayout_t<3> layout(
+                                MPI_COMM_WORLD, domain, {false, false, true}, closed);
+                        auto state = std::make_shared<BunchStateHandler>();
+                        ::ParticleContainer<double> pc(mesh, layout);
+                        pc.setBunchStateHandler(state);
+                        pc.setQ(q);
+                        pc.setM(Physics::m_e);
+                        FFT2D5Config cfg;
+                        cfg.grid.meshSize      = {5, 7, size_t(planes)};
+                        cfg.grid.decomposition = {false, false, true};
+                        cfg.pipeSizeX = cfg.pipeSizeY = 1.;
+                        cfg.beamRadius                = .1;
+                        cfg.closedRing                = closed;
+                        cfg.longitudinalFieldMode     = FFT2D5LongitudinalFieldMode::Open;
+                        cfg.referencePathFile         = path.string();
+                        std::array containers{&pc};
+                        FFT2D5Algorithm solver(cfg, containers, state);
+                        // Initialize without full-solve halo exchange: IPPL's halo
+                        // exchange does not support one-plane local slabs. This test
+                        // fills the density directly and checks only its reduction.
+                        solver.ensureInitialized();
+                        auto* rho          = solver.getRho();
+                        const auto ldom    = rho->getLayout().getLocalNDIndex();
+                        const auto spacing = rho->get_mesh().getMeshSpacing();
+                        for (bool empty : {false, true}) {
+                            auto source = Kokkos::create_mirror(rho->getView());
+                            std::vector<double> expected(planes + 2, 0.);
+                            for (size_t k = 0; k < source.extent(2); ++k)
+                                for (size_t i = 0; i < source.extent(0); ++i)
+                                    for (size_t j = 0; j < source.extent(1); ++j)
+                                        source(i, j, k) =
+                                                empty ? 0.
+                                                      : .031
+                                                                        * (int((3 * i + 5 * j
+                                                                                + 7 * k
+                                                                                + ippl::Comm
+                                                                                          ->rank())
+                                                                               % 13)
+                                                                           - 6)
+                                                                + std::sin(
+                                                                        .13 * i - .27 * j + .37 * k)
+                                                                + .17
+                                                                          * ((int(k)
+                                                                              + ldom[2].first() - 1
+                                                                              + planes)
+                                                                             % planes);
+                            Kokkos::deep_copy(rho->getView(), source);
+                            const size_t begin = ranks > 1 ? 0 : 1;
+                            const size_t end   = ldom[2].length() + (ranks > 1 ? 2 : 1);
+                            for (size_t k = begin; k < end; ++k) {
+                                double sum = 0.;
+                                for (size_t i = 0; i < source.extent(0); ++i)
+                                    for (size_t j = 0; j < source.extent(1); ++j)
+                                        sum += source(i, j, k);
+                                int global = int(k) + ldom[2].first() - 1;
+                                if (closed) global = (global + planes) % planes;
+                                if (global >= 0 && global < planes) expected[global + 1] += sum;
+                            }
+                            std::vector<double> global(expected.size(), 0.);
+                            MPI_Allreduce(
+                                    expected.data(), global.data(), int(expected.size()),
+                                    MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                            if (closed) {
+                                global[0]          = global[planes];
+                                global[planes + 1] = global[1];
+                            }
+                            for (auto& value : global)
+                                value *= spacing[0] * spacing[1];
+                            solver.calculateLineDensity();
+                            auto density = Kokkos::create_mirror_view_and_copy(
+                                    Kokkos::HostSpace(), solver.getLineDensity());
+                            auto gradient = Kokkos::create_mirror_view_and_copy(
+                                    Kokkos::HostSpace(), solver.getLineDensityGradient());
+                            double densityScale = 0., gradientScale = 0.;
+                            for (double value : global)
+                                densityScale = std::max(densityScale, std::abs(value));
+                            for (int k = 0; k < planes; ++k)
+                                gradientScale = std::max(
+                                        gradientScale,
+                                        std::abs((global[k + 2] - global[k]) / (2 * spacing[2])));
+                            for (int k = 0; k < planes + 2; ++k)
+                                EXPECT_NEAR(density(k), global[k], densityScale * 1e-12 + 1e-25);
+                            for (int k = 0; k < planes; ++k)
+                                EXPECT_NEAR(
+                                        gradient(k), (global[k + 2] - global[k]) / (2 * spacing[2]),
+                                        gradientScale * 1e-12 + 1e-25);
+                            auto after = Kokkos::create_mirror_view_and_copy(
+                                    Kokkos::HostSpace(), rho->getView());
+                            for (size_t k = 0; k < source.extent(2); ++k)
+                                for (size_t i = 0; i < source.extent(0); ++i)
+                                    for (size_t j = 0; j < source.extent(1); ++j)
+                                        EXPECT_DOUBLE_EQ(after(i, j, k), source(i, j, k));
+                        }
+                    }
+                }
+                Options::fft2d5BatchSize = previousBatch;
+                MPI_Barrier(MPI_COMM_WORLD);
+                if (ippl::Comm->rank() == 0) std::filesystem::remove(path);
+            } catch (const OpalException& error) {
+                FAIL() << error.where() << ": " << error.what();
+            } catch (const IpplException& error) {
+                FAIL() << error.where() << ": " << error.what();
+            }
+        }
+
     }  // namespace
 }  // namespace opalx::spacecharge

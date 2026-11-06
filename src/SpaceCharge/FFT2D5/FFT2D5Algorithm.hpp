@@ -152,10 +152,40 @@ namespace opalx::spacecharge {
         struct SliceDensitySumFunctor {
             Algorithm::ScalarGridView3D_t rho3d_m;
             size_t k_m;
+            Algorithm::LineDensityView_t sums_m;
 
+            // Scalar form retained for independent single-slice diagnostic callers.
             KOKKOS_FUNCTION void operator()(
                     const size_t i, const size_t j, Algorithm::T& localSum) const {
                 localSum += rho3d_m(i, j, k_m);
+            }
+
+            /** One league entry per local z plane, including deposited source ghosts.
+             * Vector lanes traverse the faster transverse dimension; team threads cover
+             * rows. Each team writes a distinct local slot, never a wrapped global slot:
+             * tiny periodic grids can map both ghosts to the same global slice. */
+            KOKKOS_FUNCTION void operator()(const Kokkos::TeamPolicy<>::member_type& team) const {
+                const size_t k    = k_m + team.league_rank();
+                const bool xFast  = rho3d_m.stride(0) < rho3d_m.stride(1);
+                const size_t fast = rho3d_m.extent(xFast ? 0 : 1);
+                const size_t slow = rho3d_m.extent(xFast ? 1 : 0);
+                Algorithm::T sum{};
+                Kokkos::parallel_reduce(
+                        Kokkos::TeamThreadRange(team, slow),
+                        [&](const size_t row, Algorithm::T& rows) {
+                            Algorithm::T value{};
+                            Kokkos::parallel_reduce(
+                                    Kokkos::ThreadVectorRange(team, fast),
+                                    [&](const size_t col, Algorithm::T& cells) {
+                                        cells += rho3d_m(xFast ? col : row, xFast ? row : col, k);
+                                    },
+                                    value);
+                            rows += value;
+                        },
+                        sum);
+                Kokkos::single(Kokkos::PerTeam(team), [&] {
+                    sums_m(k) = sum;
+                });
             }
         };
 
@@ -556,22 +586,34 @@ namespace opalx::spacecharge {
     void FFT2D5Algorithm::calculateLineDensity(DiagnosticPolicy diagnostic) {
         opalx::spacecharge::fft2d5_detail::timed("2D5 Line density", [&] {
             if (config_m.longitudinalFieldMode != LongitudinalFieldMode::None) {
-                using Policy2D_t             = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
                 const auto rho3d             = fieldStorage_m->chargeDensity().getView();
                 const auto deviceLineDensity = lineDensity_m;
                 const auto hostLineDensity   = Kokkos::create_mirror_view(lineDensity_m);
                 const auto numSlices         = fieldStorage_m->meshSize()[2];
+                const auto localDomain       = fieldStorage_m->layout().getLocalNDIndex();
+                const bool distributed       = ippl::Comm->size() > 1;
+                const size_t begin           = distributed ? 0 : LineDensityFirstRealCell;
+                const size_t end = size_t(localDomain[2].length()) + (distributed ? 2 : 1);
+                // Reuse the profile as device scratch until the final global profile is
+                // assembled. One batched reduction and one small copy replace a synchronized
+                // scalar reduction/copy for every slice. Always allocate an independent host
+                // mirror: create_mirror_view may alias on HostSpace, and clearing the global
+                // profile below must not erase the local slice sums.
+                const auto hostSliceSums = Kokkos::create_mirror(deviceLineDensity);
+#ifdef KOKKOS_ENABLE_CUDA
+                constexpr int vectorLength = 32;
+#else
+                constexpr int vectorLength = 1;
+#endif
+                Kokkos::parallel_for(
+                        "FFT2D5::batchedSliceDensity",
+                        Kokkos::TeamPolicy<>(end - begin, Kokkos::AUTO, vectorLength),
+                        fft2d5_detail::SliceDensitySumFunctor{rho3d, begin, deviceLineDensity});
+                Kokkos::deep_copy(hostSliceSums, deviceLineDensity);
                 Kokkos::deep_copy(hostLineDensity, 0.);
-                const auto localDomain = fieldStorage_m->layout().getLocalNDIndex();
-                const bool distributed = ippl::Comm->size() > 1;
-                const size_t begin     = distributed ? 0 : LineDensityFirstRealCell;
-                const size_t end       = size_t(localDomain[2].length()) + (distributed ? 2 : 1);
                 for (size_t k = begin; k < end; ++k) {
-                    T sum{};
-                    Kokkos::parallel_reduce(
-                            Policy2D_t({0, 0}, {rho3d.extent(0), rho3d.extent(1)}),
-                            fft2d5_detail::SliceDensitySumFunctor{rho3d, k}, sum);
-                    int global = int(k) + localDomain[2].first() - LineDensityFirstRealCell;
+                    const T sum = hostSliceSums(k);
+                    int global  = int(k) + localDomain[2].first() - LineDensityFirstRealCell;
                     if (config_m.closedRing) global = (global + int(numSlices)) % int(numSlices);
                     if (global >= 0 && global < int(numSlices))
                         hostLineDensity(global + LineDensityFirstRealCell) += sum;
