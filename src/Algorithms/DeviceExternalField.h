@@ -9,6 +9,7 @@
 #include <vector>
 #include "AbsBeamline/BendFieldModel.h"
 #include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/ScalingFFASupport.h"
 #include "Algorithms/CompensatedSum.h"
 #include "Steppers/BorisPusher.h"
 
@@ -57,13 +58,14 @@ namespace device_external {
 
     /// No pointers to host elements or virtual calls in the device descriptor.
     struct Element {
-        enum Kind { Passive, Multipole, SectorBend, RectangularBend, UniformRF };
+        enum Kind { Passive, Multipole, SectorBend, RectangularBend, UniformRF, ScalingFFA };
         Kind kind = Passive;
         Rigid frame;
         double begin = 0, end = 0;
         ApertureType aperture = ApertureType::RECTANGULAR;
         double apertureX = 1e6, apertureY = 1e6;
         BendFieldModel::FieldInputs bend{};
+        ScalingFFASupport ffa{};
 
         KOKKOS_INLINE_FUNCTION Vector chart(const Vector& lab) const {
             const auto local = frame.pointTo(lab);
@@ -72,6 +74,7 @@ namespace device_external {
                            : local;
         }
         KOKKOS_INLINE_FUNCTION bool contains(const Vector& lab) const {
+            if (kind == ScalingFFA) return ffa.contains(frame.pointTo(lab));
             const auto r = chart(lab);
             // VariableRFCavity's WIDTH/HEIGHT include their transverse faces.
             // This is field support; generic aperture-loss ownership is separate.
@@ -104,9 +107,11 @@ namespace device_external {
 
     struct Lattice {
         Kokkos::View<const Element*> elements;
-        double maximumStep = std::numeric_limits<double>::max();
-        bool magneticOnly  = true;  ///< The external-only test oracle cannot transport RF.
+        double maximumStep        = std::numeric_limits<double>::max();
+        bool fieldOracleSupported = true;  ///< FFA fields use ordinary element kernels only.
+        bool magneticOnly         = true;  ///< The external-only test oracle cannot transport RF.
 
+        // Test oracle only: requires fieldOracleSupported. Production uses element kernels.
         KOKKOS_INLINE_FUNCTION Vector magnetic(const Vector& r) const {
             Vector b(0);
             for (size_t i = 0; i < elements.extent(0); ++i)
@@ -134,8 +139,8 @@ namespace device_external {
          */
         KOKKOS_INLINE_FUNCTION bool advance(
                 State& state, double dt, double mass, double charge) const {
-            if (!magneticOnly || !Kokkos::isfinite(dt) || dt == 0 || !Kokkos::isfinite(mass)
-                || mass <= 0 || !Kokkos::isfinite(charge))
+            if (!fieldOracleSupported || !magneticOnly || !Kokkos::isfinite(dt) || dt == 0
+                || !Kokkos::isfinite(mass) || mass <= 0 || !Kokkos::isfinite(charge))
                 return false;
             unsigned char pending[65];
             unsigned count = 1;
