@@ -229,10 +229,8 @@ void Multipole::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     auto Bview          = pc->B.getView();
     const size_t nLocal = pc->getLocalNum();
 
-    // Local variables that are copied into the kernel
-    double elemLength               = getGeometry().getElementLength();
-    const ApertureType apertureType = aperture_m.first;
-    const double apertureX = aperture_m.second[0], apertureY = aperture_m.second[1];
+    // Field window and aperture, shared with isInside() and the loss test.
+    const ElementRegions regions = getRegions();
 
     // Capture member variables by value for the kernel
     auto normalComponents = NormalComponents;
@@ -243,10 +241,7 @@ void Multipole::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     // Kernel launch over all particles
     Kokkos::parallel_for(
             "Multipole::apply()", nLocal, KOKKOS_LAMBDA(const size_t i) {
-                // Match isInside(): entrance-inclusive, exit-exclusive support.
-                if (Rview(i)(2) >= 0 && Rview(i)(2) < elemLength
-                    && ApertureHelper::isInsideAperture(
-                            Rview(i)(0), Rview(i)(1), apertureType, apertureX, apertureY)) {
+                if (regions.fieldAppliesAt(Rview(i))) {
                     Vector_t<double, 3> Bf(0.0);
                     computeField(
                             Rview(i), Bf, normalComponents, skewComponents, maxNormal, maxSkew);
@@ -269,11 +264,7 @@ void Multipole::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
 void Multipole::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    // Check bounds
-    if (R(2) < 0.0 || R(2) >= getGeometry().getElementLength()) return;
-    if (!ApertureHelper::isInsideAperture(R, aperture_m)) {
-        return;
-    }
+    if (!getRegions().fieldAppliesAt(R)) return;
 
     // Compute field
     computeFieldHost(R, E, B);
@@ -283,7 +274,7 @@ void Multipole::apply(
  * @brief Applies the multipole field at reference particle
  * position R to E and B
  *
- * @note Host-only function for the orbitthreader
+ * @note Host-only function for the reference particle
  *
  * @param R Position
  * @param E Electric field reference
@@ -293,11 +284,8 @@ void Multipole::apply(
 bool Multipole::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    // Check bounds
-    if (R(2) < 0.0 || R(2) >= getGeometry().getElementLength()) return false;
-    if (!ApertureHelper::isInsideAperture(R, aperture_m)) {
-        return true;
-    }
+    const ElementRegions regions = getRegions();
+    if (!regions.fieldAppliesAt(R)) return regions.particleLostAt(R);
 
     /*
     for (int i = 0; i < max_NormalComponent_m; ++i) {
@@ -357,7 +345,7 @@ KOKKOS_INLINE_FUNCTION void Multipole::computeField(
 /**
  * @brief Computes the multipole field at position R (host version)
  *
- * @note Host-only function for the orbitthreader
+ * @note Host-only function for the reference particle
  *
  * @param R Position
  * @param E Electric field reference
@@ -388,19 +376,7 @@ void Multipole::getFieldExtent(double& zBegin, double& zEnd) const {
 
 ElementType Multipole::getType() const { return ElementType::MULTIPOLE; }
 
-// isInside() is inherited from ElementBase (field extent [0, L) + transverse aperture).
-
-bool Multipole::isFocusing(int component) const {
-    if (component < 0)
-        throw GeneralOpalException("Multipole::isFocusing", "component negative");
-    else if (static_cast<unsigned long>(component) >= NormalComponents.extent(0))
-        throw GeneralOpalException("Multipole::isFocusing", "component too big");
-
-    // Fix: Use getNormalComponent() to safely retrieve the value from GPU memory
-    return getNormalComponent(component) * std::pow(-1, component + 1)
-                   * RefPartBunch_m->getParticleContainer()->getChargePerParticle()
-           > 0.0;
-}
+// isInside() is inherited from ElementBase: getRegions().inFieldRegion().
 
 /* ========================================================================== */
 /* =========================== Unused Functions ============================= */

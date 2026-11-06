@@ -162,6 +162,14 @@ TEST_F(FieldmapElementTest, BoxComesFromTheMap) {
     ASSERT_TRUE(element.getSupportEnvelope(h, v));
     EXPECT_NEAR(h, 0.040, 1e-12);
     EXPECT_NEAR(v, 0.040, 1e-12);
+
+    // Without an APERTURE the element's grid box is the map: r < 40 mm across, z = 100 .. 600
+    // mm along, not the 0.5 m reach.
+    const auto [lower, upper] = element.getLocalSupportBox(0.5).getCorners();
+    EXPECT_NEAR(lower[0], -0.040, 1e-12);
+    EXPECT_NEAR(upper[1], 0.040, 1e-12);
+    EXPECT_NEAR(lower[2], 0.100, 1e-12);
+    EXPECT_NEAR(upper[2], 0.600, 1e-12);
 }
 
 // The field is the map's field, and BSCALE is a plain multiplier on it -- not a normalised
@@ -190,9 +198,8 @@ TEST_F(FieldmapElementTest, FieldIsTheMapTimesBScale) {
     EXPECT_NEAR(B(2), 1.0, 1e-12);
 }
 
-// Leaving the map transversely gives no field and is NOT a loss. Reporting it as one would
-// make OrbitThreader treat a benign miss as hitting material and add a metre to the path
-// length -- which is the bug Solenoid still has.
+// Without an APERTURE the map is the whole element: past the map's radius there is no field and
+// no material, so the particle is not lost.
 TEST_F(FieldmapElementTest, OutsideTheMapMeansNoFieldAndNoLoss) {
     const auto file = track(mapPath("_oob.g4blmap"));
     writeUniformCylinderMap(file, 0.0, 11, 100.0, 5, 10.0, 0.25);  // r up to 40 mm
@@ -204,21 +211,45 @@ TEST_F(FieldmapElementTest, OutsideTheMapMeansNoFieldAndNoLoss) {
 
     const Vector_t<double, 3> P(0.0);
 
-    // Well inside the z range, but past the map's radius.
-    const Vector_t<double, 3> outside(0.5, 0.0, 0.5);
+    // Well inside the z range, past the map's radius.
+    const Vector_t<double, 3> outside(0.1, 0.0, 0.5);
     Vector_t<double, 3> E(0.0), B(0.0);
     element.apply(outside, P, 0.0, E, B);
     EXPECT_NEAR(B(2), 0.0, 1e-12);
-
-    B = 0.0;
+    EXPECT_FALSE(element.isInside(outside));
     EXPECT_FALSE(element.applyToReferenceParticle(outside, P, 0.0, E, B));
+    EXPECT_FALSE(element.getRegions().inLossRegion(outside));
     EXPECT_NEAR(B(2), 0.0, 1e-12);
 
-    // Inside, the same call does give the field and still reports no loss.
+    // Inside, the same call gives the field and reports no loss.
     const Vector_t<double, 3> inside(0.0, 0.0, 0.5);
     B = 0.0;
     EXPECT_FALSE(element.applyToReferenceParticle(inside, P, 0.0, E, B));
     EXPECT_NEAR(B(2), 0.25, 1e-12);
+}
+
+// An APERTURE wider than the map leaves a field-free gap between them: no field, no loss.
+TEST_F(FieldmapElementTest, MapNarrowerThanTheApertureLeavesAFieldFreeGap) {
+    const auto file = track(mapPath("_gap.g4blmap"));
+    writeUniformCylinderMap(file, 0.0, 11, 100.0, 5, 10.0, 0.25);  // r up to 40 mm
+
+    FieldmapElementRep element("FM_GAP");
+    element.setFieldMapFN(file);
+    element.setAperture(ApertureType::ELLIPTICAL, {0.2, 0.2});
+    element.initialise(nullptr);
+    Fieldmap::readMap(file);
+
+    const Vector_t<double, 3> P(0.0);
+    const Vector_t<double, 3> gap(0.1, 0.0, 0.5);
+    Vector_t<double, 3> E(0.0), B(0.0);
+    element.apply(gap, P, 0.0, E, B);
+    EXPECT_NEAR(B(2), 0.0, 1e-12);
+    EXPECT_FALSE(element.applyToReferenceParticle(gap, P, 0.0, E, B));
+    EXPECT_NEAR(B(2), 0.0, 1e-12);
+    EXPECT_FALSE(element.getRegions().inLossRegion(gap));
+
+    // Past the APERTURE it is material again.
+    EXPECT_TRUE(element.getRegions().inLossRegion(Vector_t<double, 3>(0.3, 0.0, 0.5)));
 }
 
 // A real aperture hit is still a loss, so the benign case above is not just "never true".

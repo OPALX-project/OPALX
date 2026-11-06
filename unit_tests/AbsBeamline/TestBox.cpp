@@ -151,9 +151,10 @@ namespace {
     TEST_F(BoxTest, ApertureStaysWideOpen) {
         // A block beside the reference path must still be registered by
         // ElementBase::isInside, which tests the reference particle against
-        // the aperture.
+        // the aperture. Without an APERTURE that is the whole reach.
         BoxRep box = makeBox(0.1, 0.01, 0.005);
-        EXPECT_TRUE(box.isInside(Vector_t<double, 3>({-0.5, 0.3, 0.05})));
+        EXPECT_TRUE(box.isInside(Vector_t<double, 3>({-0.4, 0.3, 0.05})));
+        EXPECT_FALSE(box.isInside(Vector_t<double, 3>({-0.6, 0.3, 0.05})));
     }
 
     // ================================================================

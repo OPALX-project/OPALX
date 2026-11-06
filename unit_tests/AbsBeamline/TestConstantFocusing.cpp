@@ -48,6 +48,7 @@ TEST_F(ConstantFocusingTest, UsesInitialSpaceChargeScaleAboutCentroid) {
 
     ConstantFocusingRep focusing("focus");
     focusing.getGeometry().setElementLength(6.0);
+    focusing.setReach(10.0);  // the particles sit metres off axis
     focusing.setRadius(2.0);
     focusing.setStrength(3.0);
     focusing.apply(pc);
@@ -82,6 +83,7 @@ TEST_F(ConstantFocusingTest, AppliesOnlyInsideLongitudinalElementExtent) {
 
     ConstantFocusingRep focusing("focus");
     focusing.getGeometry().setElementLength(1.0);
+    focusing.setReach(10.0);  // the particles sit metres off axis
     focusing.setRadius(1.0);
     focusing.setStrength(1.0);
     focusing.apply(pc);

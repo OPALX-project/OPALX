@@ -1,7 +1,9 @@
 #include "AbsBeamline/CyclotronSector.h"
 #include <cmath>
+#include <vector>
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "PartBunch/PartBunch.h"
+#include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
 
 namespace {
@@ -69,6 +71,28 @@ bool CyclotronSector::isInside(const Vector_t<double, 3>& p) const {
     return r >= map->rmin && r <= map->rmin + (map->nr - 1) * map->dr && theta >= 0 && theta < angle
            && p[1] >= vmin && p[1] <= vmax;
 }
+BoundingBox CyclotronSector::getLocalSupportBox(const double reach) const {
+    if (!map) return ElementBase::getLocalSupportBox(reach);
+    // x = r cos(theta) - Rm, z = r sin(theta): extremes lie at the radial limits, at the end
+    // angles, and at the axis directions inside [0, angle).
+    const double outer         = map->rmin + (map->nr - 1) * map->dr;
+    std::vector<double> angles = {0.0, angle};
+    for (const double axis : {0.5 * Physics::pi, Physics::pi, 1.5 * Physics::pi}) {
+        if (axis < angle) angles.push_back(axis);
+    }
+    BoundingBox box;
+    for (const double theta : angles) {
+        for (const double r : {map->rmin, outer}) {
+            for (const double y : {vmin, vmax}) {
+                box.enlargeToContainPosition(
+                        Vector_t<double, 3>(
+                                {r * std::cos(theta) - radius, y, r * std::sin(theta)}));
+            }
+        }
+    }
+    return box;
+}
+
 BoundingBox CyclotronSector::getBoundingBoxInLabCoords() const {
     // Conservative box of the entire annulus; valid for arbitrary Mode-A rotations.
     std::vector<Vector_t<double, 3>> corners;

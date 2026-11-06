@@ -1,8 +1,6 @@
 #include "AbsBeamline/Solenoid.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/DefaultVisitor.h"
-#include "Algorithms/IndexMap.h"
-#include "Algorithms/OrbitThreader.h"
 #include "Algorithms/PartData.h"
 #include "Algorithms/StepSizeConfig.h"
 #include "BeamlineCore/DriftRep.h"
@@ -51,16 +49,14 @@ protected:
     }
 
     void SetUp() override {
-        Options::enableLinearTransferMaps = false;
-        const auto* info                  = ::testing::UnitTest::GetInstance()->current_test_info();
-        testStem_                         = std::string("solenoid_") + info->name();
+        const auto* info = ::testing::UnitTest::GetInstance()->current_test_info();
+        testStem_        = std::string("solenoid_") + info->name();
         OpalData::getInstance()->storeInputFn(testStem_ + ".opal");
         OpalData::getInstance()->setOpenMode(OpalData::OpenMode::WRITE);
         cleanupOutputs();
     }
 
     void TearDown() override {
-        Options::enableLinearTransferMaps = false;
         Fieldmap::freeMap(fieldmapFile_.string());
         cleanupOutputs();
     }
@@ -133,7 +129,6 @@ protected:
     void cleanupOutputs() const {
         std::filesystem::remove(outputPath("_ElementPositions.txt"));
         std::filesystem::remove(outputPath("_ElementPositions.py"));
-        std::filesystem::remove(outputPath("_ElementPositions.sdds"));
         std::filesystem::remove(outputPath("_ElementPositions.vtk"));
         std::filesystem::remove(outputPath("_ElementPositions.html"));
         std::filesystem::remove(outputPath("_ElementPositions.gpl"));
@@ -292,80 +287,6 @@ TEST_F(SolenoidPlacementTest, LatticeExportsUseFieldMapEdgesAndSolenoidMeshType)
     EXPECT_NE(
             script.find("os.path.getmtime(script_file) > os.path.getmtime(vtk_file)"),
             std::string::npos);
-}
-
-TEST_F(SolenoidPlacementTest, LinearTransferMapUsesTabulatedFieldMap) {
-    const auto mapFile = writeXZFieldmap("solenoid_transfer.map", 0.0, 20.0, 21, 0.0, 3.0, 4, 0.1);
-
-    auto bunch = makeBunch(0);
-    DummyBeamline beamlineForVisitor;
-    DefaultVisitor visitor(beamlineForVisitor, false, false);
-
-    SolenoidRep solenoid("SOL_MAP");
-    solenoid.getGeometry().setElementLength(0.2);
-    solenoid.setFieldMapFN(mapFile.string());
-    solenoid.setCSTrafoGlobal2Local(CoordinateSystemTrafo(Vector_t<double, 3>(0.0), Quaternion()));
-    solenoid.fixPosition();
-
-    OpalBeamline beamline;
-    beamline.visit(solenoid, visitor, *bunch);
-    beamline.prepareSections();
-    beamline.activateElements();
-
-    StepSizeConfig stepSizes;
-    stepSizes.push_back(1.0e-11, 0.25, 128);
-    stepSizes.resetIterator();
-
-    Options::enableLinearTransferMaps = true;
-    PartData reference(1.0, 9.382720813e8, 1.0e6);
-    OrbitThreader threader(
-            reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
-            1.0e-11, stepSizes, beamline, /*isDesignBeam=*/true);
-    ASSERT_NO_THROW(threader.execute());
-
-    const auto elements = beamline.getElements();
-    ASSERT_EQ(elements.size(), 1u);
-    const auto& maps = (*elements.begin())->getLinearTransferMaps();
-    ASSERT_EQ(maps.size(), 1u);
-    EXPECT_NEAR(maps.front().exit.pathLength - maps.front().entrance.pathLength, 0.2, 2.0e-5);
-    double transverseCoupling = 0.0;
-    for (int row = 0; row < 4; ++row) {
-        for (int column = 0; column < 4; ++column) {
-            ASSERT_TRUE(std::isfinite(maps.front().matrix(row, column)));
-            if ((row < 2) != (column < 2)) {
-                transverseCoupling += std::abs(maps.front().matrix(row, column));
-            }
-        }
-    }
-    EXPECT_GT(transverseCoupling, 1.0e-8);
-}
-
-TEST_F(SolenoidPlacementTest, ElementPositionsSDDSMarksSolenoidColumn) {
-    auto solenoid = std::make_shared<SolenoidRep>("SOL1");
-
-    IndexMap map;
-    IndexMap::value_t elements;
-    elements.insert(solenoid);
-    map.add(1.0, 2.0, elements);
-    map.saveSDDS(0.0);
-
-    std::ifstream sdds(outputPath("_ElementPositions.sdds"));
-    ASSERT_TRUE(sdds.is_open());
-
-    std::string line;
-    bool foundSolenoidRow = false;
-    while (std::getline(sdds, line)) {
-        if (line.find("\"SOL1\"") == std::string::npos) {
-            continue;
-        }
-
-        const auto tokens = splitWhitespace(line);
-        ASSERT_GE(tokens.size(), 12u);
-        EXPECT_EQ(tokens[7], "1");
-        EXPECT_EQ(tokens[10], "0");
-        foundSolenoidRow = true;
-    }
-    EXPECT_TRUE(foundSolenoidRow);
 }
 
 TEST_F(SolenoidPlacementTest, SBendMeshesAsCurvedDipole) {

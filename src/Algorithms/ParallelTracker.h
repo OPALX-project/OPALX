@@ -41,8 +41,8 @@
 
 #include "Physics/Physics.h"
 
-#include "Algorithms/IndexMap.h"
-#include "Algorithms/OrbitThreader.h"
+#include "Algorithms/BeamStop.h"
+#include "Algorithms/GeneralElementMapping.h"
 
 #include "AbsBeamline/Box.h"
 #include "AbsBeamline/Collimator.h"
@@ -71,6 +71,7 @@
 #include <functional>
 #include <list>
 #include <memory>
+#include <set>
 #include <tuple>
 #include <vector>
 
@@ -135,6 +136,9 @@ public:
     void setSpaceChargeFieldUpdate(SpaceChargeFieldUpdate update) {
         spaceChargeFieldUpdate_m = update;
     }
+    /// Stop conditions of every beam, one per particle container; see BeamStop. On a restart
+    /// they include the planes and done flags restored from the checkpoint.
+    void setBeamStops(std::vector<BeamStop> stops) { beamStops_m = std::move(stops); }
     void visitCyclotronSector(const CyclotronSector& sector) override {
         itsOpalBeamline_m.visit(sector, *this, *itsBunch_m);
     }
@@ -154,7 +158,7 @@ private:
     /** Host-only event integration for the initial one-proton RF milestone.
      * R/P are in the tracking frame, t/dt in seconds. Splits Boris steps at
      * directed gap-plane roots and applies full kicks in time order. Field
-     * queries use spatial support, not the threader's nominal closed orbit.
+     * queries use spatial support, not a nominal closed orbit.
      * Assumes distinct gap planes and a single unpolarized median-plane proton.
      * The caller must choose dt small enough to bracket each crossing without
      * an intervening recrossing of the same plane. Particle E/B diagnostic views
@@ -189,10 +193,11 @@ private:
             spaceChargeSolver_m;  ///< Borrowed run-lifetime space-charge solver.
     opalx::spacecharge::DirichletPlaneConfig dirichletPlane_m;
     std::vector<std::uint8_t> spaceChargeContainerActivity_m;
-    OpalBeamline itsOpalBeamline_m;  ///< Cloned field elements and coordinate transforms.
-    bool globalEOL_m;                ///< End-of-line flag (e.g. orbit threader out of bounds).
-    double sStart_m;                 ///< Path-length start position for the track (m).
-    double ringPeriod_m;             ///< One-turn path length for RING, or zero for LINE.
+    OpalBeamline itsOpalBeamline_m;     ///< Cloned field elements and coordinate transforms.
+    bool referenceHitMaterial_m;        ///< A reference particle hit an element: the run ends.
+    std::vector<BeamStop> beamStops_m;  ///< Per container: ZSTOP plane and UNTILMAXSTEPS.
+    double sStart_m;                    ///< Path-length start position for the track (m).
+    double ringPeriod_m;                ///< One-turn path length for RING, or zero for LINE.
 
     /** Step-size segments: s-stop, dt, and steps per segment. */
     StepSizeConfig stepSizes_m;
@@ -212,7 +217,7 @@ private:
     IpplTimings::TimerRef fieldEvaluationTimer_m;
     IpplTimings::TimerRef WakeFieldTimer_m;
     IpplTimings::TimerRef PluginElemTimer_m;
-    IpplTimings::TimerRef OrbThreader_m;
+    IpplTimings::TimerRef referencePassTimer_m;
 
 public:
     /**
@@ -360,16 +365,12 @@ public:
     void computeSpaceChargeFields();
 
     /// @brief Apply external fields from elements intersecting each active container.
-    /// @param oths Per-container orbit threaders (one per distinct species; same-species
-    ///             containers share one) used for element queries.
-    void computeExternalFields(const std::vector<std::shared_ptr<OrbitThreader>>& oths);
+    void computeExternalFields();
 
     /// @brief Call func for each element intersecting each active container, with the
     ///        container transformed into the element-local frame.
-    /// @param oths Per-container orbit threaders used for element queries.
     /// @param func Called per (element, container) pair in the element-local frame.
     void forEachElementInBunchFrame(
-            const std::vector<std::shared_ptr<OrbitThreader>>& oths,
             const std::function<
                     void(const std::shared_ptr<ElementBase>&,
                          const std::shared_ptr<ParticleContainer_t>&)>& func);
@@ -387,23 +388,20 @@ public:
      * momentum kick, reference update, emission or loss is committed. Rejected
      * first drifts are reversed on the solver's current particle ownership.
      */
-    void prepareBoundaryStep(
-            BorisPusher&, const std::vector<std::shared_ptr<OrbitThreader>>&, boris_step::Control&);
+    void prepareBoundaryStep(BorisPusher&, boris_step::Control&);
     bool boundaryCrossed(double dt);
     void reverseTrialDrift(double dt);
 
     /// Internal candidate-selection policy; the public two-argument API is unchanged.
     void forEachElementInBunchFrame(
-            const std::vector<std::shared_ptr<OrbitThreader>>& oths,
             const std::function<
                     void(const std::shared_ptr<ElementBase>&,
                          const std::shared_ptr<ParticleContainer_t>&)>& func,
             bool spatialCandidates);
 
     /// @brief Mark particles outside the transverse aperture of each nearby element.
-    /// @param oths Per-container orbit threaders used for element queries.
     /// @return global number of newly marked particles (allreduced) - collective call.
-    size_t applyElementApertures(const std::vector<std::shared_ptr<OrbitThreader>>& oths);
+    size_t applyElementApertures();
 
     /// @brief Emit macroparticles from configured samplers per container.
     /// @param t  Bunch time (s).
@@ -477,11 +475,8 @@ private:
     /// @brief Set global bunch dt to dtCurrentTrack_m.
     void selectDT();
 
-    /**
-     * @brief Whether tracking should stop at end-of-line (global reduction).
-     * @param globalBoundingBox Spatial bounds from the orbit threader.
-     */
-    bool hasEndOfLineReached(const BoundingBox& globalBoundingBox);
+    /// @brief Mark a beam done once every particle has passed its stop plane (collective call).
+    void updateBeamStops();
 
     /// @brief Delete particles marked invalid by the central per-container mask.
     size_t deleteInvalidParticles(bool activeOnly, Inform& m, const std::string& reason);

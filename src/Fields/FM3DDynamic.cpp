@@ -185,13 +185,15 @@ void FM3DDynamic::requireLoaded() const {
     }
 }
 
-void FM3DDynamic::applyField(std::shared_ptr<ParticleContainer_t> particles, double, double) {
-    applyRFField(particles, 1.0, 1.0, zbegin_m, zend_m);
+void FM3DDynamic::applyField(
+        std::shared_ptr<ParticleContainer_t> particles, double, double,
+        const ElementRegions& regions) {
+    applyRFField(particles, 1.0, 1.0, zbegin_m, zend_m, regions);
 }
 
 void FM3DDynamic::applyRFField(
         std::shared_ptr<ParticleContainer_t> particles, double electricScale, double magneticScale,
-        double startField, double endField) {
+        double startField, double endField, const ElementRegions& regions) {
     requireLoaded();
     const double xBegin = xbegin_m, xEnd = xend_m;
     const double yBegin = ybegin_m, yEnd = yend_m;
@@ -212,6 +214,7 @@ void FM3DDynamic::applyRFField(
             "FM3DDynamic::applyRFField", particles->getLocalNum(),
             KOKKOS_LAMBDA(const std::size_t particle) {
                 const auto& position = positions(particle);
+                if (!regions.inFieldRegion(position)) return;
                 if (position(0) >= xBegin && position(0) < xEnd && position(1) >= yBegin
                     && position(1) < yEnd && position(2) >= zBegin && position(2) < zEnd
                     && position(2) >= startField && position(2) < endField) {

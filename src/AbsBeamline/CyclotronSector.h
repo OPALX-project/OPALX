@@ -84,10 +84,10 @@ public:
     }
     /// True if an element-local position [m] lies within the annular field support.
     bool isInside(const Vector_t<double, 3>& r) const override;
-    /// Nominal body and field support coincide for this hard-edge sector.
-    bool isInsideBody(const Vector_t<double, 3>& r) const override { return isInside(r); }
     /// Conservative lab-frame box of the complete annulus, used for orbit threading.
     BoundingBox getBoundingBoxInLabCoords() const override;
+    /// Box of the annular sector of isInside(); the aperture and @p reach do not apply.
+    BoundingBox getLocalSupportBox(double reach) const override;
     /** @brief Accumulate B [T] for local particles with R in the element frame [m].
      * Captures device views/parameters by value and launches a Kokkos kernel in
      * the default execution space. It leaves E unchanged, performs no MPI

@@ -118,6 +118,7 @@ namespace {
     }
 
     TEST_F(ConstantEFieldCavityTest, ApplyAtZLength) {
+        // The field window is [0, L): the exit belongs to the next element.
         Vector_t<double, 3> R = {0.0, 0.0, 1.0};
         Vector_t<double, 3> P = {0.0, 0.0, 1.0};
         Vector_t<double, 3> E = {0.0, 0.0, 0.0};
@@ -127,7 +128,7 @@ namespace {
 
         EXPECT_DOUBLE_EQ(E(0), 0.0);
         EXPECT_DOUBLE_EQ(E(1), 0.0);
-        EXPECT_DOUBLE_EQ(E(2), 10.0);
+        EXPECT_DOUBLE_EQ(E(2), 0.0);
     }
 
     TEST_F(ConstantEFieldCavityTest, ApplyAddsFullVector) {

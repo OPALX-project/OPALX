@@ -22,6 +22,7 @@
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_DualView.hpp>
+#include <cmath>
 
 #include <string>
 
@@ -150,6 +151,16 @@ public:
     /// @note Not implemented, throws.
     virtual void setFrequency(double freq) override;
 
+    /// The map is defined for xbegin <= x < xend, ybegin <= y < yend.
+    std::optional<ApertureShape> getTransverseRange() const override {
+        ApertureShape range;
+        range.centreX = 0.5 * (xbegin_m + xend_m);
+        range.centreY = 0.5 * (ybegin_m + yend_m);
+        range.halfX   = 0.5 * (xend_m - xbegin_m);
+        range.halfY   = 0.5 * (yend_m - ybegin_m);
+        return range;
+    }
+
     /**
      * @brief Is @p r inside the box the map covers?
      *
@@ -162,8 +173,8 @@ public:
     }
 
     void applyField(
-            std::shared_ptr<ParticleContainer_t> pc, double scale = 1.0,
-            double escale = 1.0) override;
+            std::shared_ptr<ParticleContainer_t> pc, double scale = 1.0, double escale = 1.0,
+            const ElementRegions& regions = ElementRegions()) override;
 
     /// @brief Did the file actually carry a non-zero electric field?
     bool hasEField() const { return hasEField_m; }

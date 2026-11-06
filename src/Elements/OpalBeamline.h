@@ -1,6 +1,6 @@
 //
 // Class OpalBeamline
-//   Runtime tracking elements, placement, field selection and transfer-map views.
+//   Runtime tracking elements, placement and field selection.
 //
 // Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
@@ -31,33 +31,17 @@
 #include "Utilities/ElementList.h"
 
 #include "Algorithms/CoordinateSystemTrafo.h"
+#include "Algorithms/GeneralElementMapping.h"
 
 #include "OPALTypes.h"
 
 class BoundaryGeometry;
 
 /**
- * @brief Borrowed view of one element-owned transfer-map copy.
+ * @brief Placed runtime lattice used for external-field queries.
  *
- * The shared element pointer keeps the occurrence alive, but does not stabilize its
- * map vector. Appending, clearing or recalculating maps can invalidate @c map.
- * For a shared-owner segment, @c element is one representative owner, not the full
- * owner set. Copy the LinearTransferMap value if it must survive recalculation.
- */
-struct ElementTransferMapRef {
-    /// Lifetime handle to the occurrence containing this particular map copy.
-    std::shared_ptr<const ElementBase> element;
-    /// Non-owning pointer into ElementBase::getLinearTransferMaps().
-    const LinearTransferMap* map{nullptr};
-};
-
-/**
- * @brief Placed runtime lattice used for external-field queries and map attachment.
- *
- * visit() clones concrete sequence occurrences into a flattened element list.
- * These clones retain logical BeamlineMembership, but start without calculated maps
- * or overlap flags. Nominal body ownership and field-support selection remain separate;
- * neither is inferred from that membership tag or from an element's name.
+ * visit() clones concrete sequence occurrences into a flattened element list. Element lookups
+ * by position go through one GeneralElementMapping built from the placed elements.
  */
 class OpalBeamline {
 public:
@@ -67,12 +51,20 @@ public:
 
     void activateElements();
     /// Select runtime elements whose isInside() support contains lab position x [m].
-    /// Includes aperture checks; selection does not imply a nonzero field or body ownership.
+    /// Includes aperture checks; selection does not imply a nonzero field. Candidates come
+    /// from the element grid once placement is final, otherwise every element is tested.
     std::set<std::shared_ptr<ElementBase>> getElements(const Vector_t<double, 3>& x);
 
-    /// Nominal body owners at lab position x [m], using ElementBase::isInsideBody().
-    /// Used for map attachment; never use this set to restrict fringe-field evaluation.
-    std::set<std::shared_ptr<ElementBase>> getBodyElements(const Vector_t<double, 3>& x) const;
+    /**
+     * @brief Build the element grid from the placed elements with the current OPTION values.
+     *
+     * Call once placement, misalignment and field-map extents are final. A later change of the
+     * element list discards the grid.
+     */
+    void buildElementMapping();
+
+    /// The element grid, built on first use.
+    const GeneralElementMapping& getElementMapping();
 
     /**
      * Get all elements in the beamline, regardless of their position.
@@ -85,6 +77,8 @@ public:
     Vector_t<double, 3> rotateTo(const Vector_t<double, 3>& r) const;
     Vector_t<double, 3> rotateFrom(const Vector_t<double, 3>& r) const;
 
+    /// Lab <-> element frame, misalignment included: the frame in which the tracker applies
+    /// the element to the bunch.
     Vector_t<double, 3> transformToLocalCS(
             const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const;
     Vector_t<double, 3> transformFromLocalCS(
@@ -126,23 +120,6 @@ public:
 
     ElementList getElementByType(ElementType);
 
-    /**
-     * @brief Return an ordered view of all element-owned linear transfer maps.
-     *
-     * The element remains the owner of each attached map copy. Results are ordered by entrance
-     * path length; a segment attached to several overlapping elements is returned only once.
-     * Unowned intervals are not included here, even if a neighbouring field tail is present.
-     * OrbitThreader composes the complete ordered segment list, including those intervals.
-     *
-     * Deduplication uses LinearTransferMap::segment, not names: IDs must belong to the
-     * same calculation. Unassigned IDs (max(size_t)) are not deduplicated. Ties in entrance
-     * path length are ordered by attachment ordinal and then element name.
-     * Returned pointers borrow map-vector storage; see ElementTransferMapRef for lifetime.
-     * To obtain the complete product, use OrbitThreader::getCombinedLinearTransferMap()
-     * rather than multiplying this possibly incomplete view.
-     */
-    std::vector<ElementTransferMapRef> getLinearTransferMapsInReferenceOrder() const;
-
     void swap(OpalBeamline& rhs);
     void merge(OpalBeamline& rhs);
 
@@ -163,6 +140,8 @@ private:
     ElementList elements_m;
     bool prepared_m;
     bool referencePathPlacementCompiled_m;
+    /// Element grid for lookups by position; empty until built.
+    std::shared_ptr<const GeneralElementMapping> elementMapping_m;
 
     CoordinateSystemTrafo coordTransformationTo_m;
 };
@@ -177,6 +156,7 @@ inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t&
     elements_m.push_back(elptr);
     prepared_m                       = false;
     referencePathPlacementCompiled_m = false;
+    elementMapping_m.reset();
 }
 
 template <>
@@ -206,22 +186,23 @@ inline CoordinateSystemTrafo OpalBeamline::getCSTrafoLab2Local(
 
 inline Vector_t<double, 3> OpalBeamline::transformToLocalCS(
         const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const {
-    return getCSTrafoLab2Local(comp).transformTo(r);
+    // Applied one after the other: composing the two frames costs far more per call.
+    return comp->getMisalignment().transformTo(comp->getCSTrafoGlobal2Local().transformTo(r));
 }
 
 inline Vector_t<double, 3> OpalBeamline::transformFromLocalCS(
         const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const {
-    return getCSTrafoLab2Local(comp).transformFrom(r);
+    return comp->getCSTrafoGlobal2Local().transformFrom(comp->getMisalignment().transformFrom(r));
 }
 
 inline Vector_t<double, 3> OpalBeamline::rotateToLocalCS(
         const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const {
-    return getCSTrafoLab2Local(comp).rotateTo(r);
+    return comp->getMisalignment().rotateTo(comp->getCSTrafoGlobal2Local().rotateTo(r));
 }
 
 inline Vector_t<double, 3> OpalBeamline::rotateFromLocalCS(
         const std::shared_ptr<ElementBase>& comp, const Vector_t<double, 3>& r) const {
-    return getCSTrafoLab2Local(comp).rotateFrom(r);
+    return comp->getCSTrafoGlobal2Local().rotateFrom(comp->getMisalignment().rotateFrom(r));
 }
 
 inline CoordinateSystemTrafo OpalBeamline::getCSTrafoLab2Local() const {

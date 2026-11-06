@@ -124,7 +124,8 @@ void VariableRFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     const auto halfWidth   = halfWidth_m;
     const auto halfHeight  = halfHeight_m;
     const auto length      = getGeometry().getElementLength();
-    // Kernel launch over all particles
+    // computeField() is the field test here: [0, L) and the inclusive WIDTH/HEIGHT that the
+    // device ring path (DeviceExternalField) also uses.
     Kokkos::parallel_for(
             "VariableRFCavity::computeField()", count, KOKKOS_LAMBDA(const size_t i) {
                 computeField(R(i), E(i), E0, integralF, phi, halfWidth, halfHeight, length);
@@ -144,6 +145,20 @@ bool VariableRFCavity::applyToReferenceParticle(
 bool VariableRFCavity::isInside(const Vector_t<double, 3>& r) const {
     return r[2] >= 0.0 && r[2] < getGeometry().getElementLength()
            && Kokkos::abs(r[0]) <= halfWidth_m && Kokkos::abs(r[1]) <= halfHeight_m;
+}
+
+std::optional<ApertureShape> VariableRFCavity::getFieldRange() const {
+    ApertureShape range;
+    range.halfX = halfWidth_m;
+    range.halfY = halfHeight_m;
+    return range;
+}
+
+BoundingBox VariableRFCavity::getLocalSupportBox(const double reach) const {
+    BoundingBox box = ElementBase::getLocalSupportBox(reach);
+    box.enlargeToContainPosition(Vector_t<double, 3>({-halfWidth_m, -halfHeight_m, 0.0}));
+    box.enlargeToContainPosition(Vector_t<double, 3>({halfWidth_m, halfHeight_m, 0.0}));
+    return box;
 }
 
 void VariableRFCavity::initialise(PartBunch_t* bunch) { RefPartBunch_m = bunch; }

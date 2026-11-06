@@ -362,6 +362,17 @@ void Monitor::getFieldExtent(double& zBegin, double& zEnd) const {
     zEnd   = halfLength_s;
 }
 
+BoundingBox Monitor::getLocalSupportBox(const double reach) const {
+    // The base box covers the body [0, L), where an APERTURE deletes particles; add the
+    // isInside() window |z| <= L/2 around the monitor plane.
+    BoundingBox box           = ElementBase::getLocalSupportBox(reach);
+    const auto [lower, upper] = box.getCorners();
+    const double halfLength   = 0.5 * getGeometry().getElementLength();
+    box.enlargeToContainPosition(Vector_t<double, 3>({lower(0), lower(1), -halfLength}));
+    box.enlargeToContainPosition(Vector_t<double, 3>({upper(0), upper(1), halfLength}));
+    return box;
+}
+
 /// \todo Check switch statements over ElementType and add a MONITOR case where needed.
 ElementType Monitor::getType() const { return ElementType::MONITOR; }
 
