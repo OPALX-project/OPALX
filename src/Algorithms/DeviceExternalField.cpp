@@ -5,6 +5,7 @@
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/RBend.h"
 #include "AbsBeamline/SBend.h"
+#include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbsBeamline/VariableRFCavity.h"
 #include "Elements/OpalBeamline.h"
 #include "Utilities/OpalException.h"
@@ -93,6 +94,10 @@ const char* device_external::Builder::unsupportedReason(const ElementBase& eleme
                        ? nullptr
                        : "Device RF boundary control requires finite positive dimensions: ";
     }
+    // This host-side whitelist validates the value-only GPU descriptor schema.
+    // Field evaluation itself remains polymorphic through the existing element
+    // kernels. Adding a descriptor capability hook to every host element is a
+    // broader interface change; do not replace device snapshots with host pointers.
     const auto higherBendComponents = [](const auto& magnet) {
         for (int n = 2; n < magnet.maxNormal_m; ++n)
             if (magnet.normalComponentsHost_m(n) != 0) return true;
@@ -102,6 +107,7 @@ const char* device_external::Builder::unsupportedReason(const ElementBase& eleme
     };
     bool higher = false;
     switch (element.getType()) {
+        case ElementType::SCALINGFFAMAGNET:
         case ElementType::DRIFT:
         case ElementType::MARKER:
         case ElementType::MONITOR:
@@ -170,6 +176,13 @@ device_external::Lattice device_external::Builder::build(OpalBeamline& beamline)
                     out.bend.quadSkew     = magnet.getSkewComponent(1);
                     break;
                 }
+                case ElementType::SCALINGFFAMAGNET:
+                    out.kind = Element::ScalingFFA;
+                    out.ffa  = dynamic_cast<const ScalingFFAMagnet&>(*element).getConfig();
+                    // The production ring path evaluates the original batched Enge/Tanh
+                    // kernel. Do not silently use the simplified field oracle for FFAs.
+                    result.fieldOracleSupported = false;
+                    break;
                 case ElementType::SBEND:
                     out.kind = Element::SectorBend;
                     out.bend = dynamic_cast<const SBend&>(*element).makeFieldInputs();

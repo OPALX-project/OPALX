@@ -33,11 +33,6 @@ function(add_opalx_test TEST_NAME)
   set(multiValueArgs LABELS ARGS MPI_ARGS SOURCES LAUNCH PROPERTIES)
   cmake_parse_arguments(TEST "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-  if("${TEST_NAME}" IN_LIST OPALX_DISABLED_TEST_LIST)
-    message(STATUS "Skipping disabled test: ${TEST_NAME}")
-    return()
-  endif()
-
   if(TEST_SOURCES)
     set(_sources ${TEST_SOURCES})
   else()

@@ -590,6 +590,7 @@ void TrackRun::execute() {
     // instead, so sampling it again would duplicate particles and consume random numbers.
     OpalData::getInstance()->setGlobalPhaseShift(0.0);
     std::vector<emittingSamplers_t> emittingSamplersList(particleContainers.size());
+    std::vector<std::optional<Vector_t<double, 3>>> beamReferenceMomenta(particleContainers.size());
     CheckpointFile::Metadata restartMetadata;
     if (isRestart) {
         restartMetadata = CheckpointFile::read(opal_m->getRestartFileName(), *bunch_m);
@@ -599,7 +600,7 @@ void TrackRun::execute() {
               << ", t = " << Util::getTimeString(restartMetadata.time) << "." << endl;
     } else {
         for (size_t i = 0; i < particleContainers.size(); ++i) {
-            setupDistributionsAndSamplers(
+            beamReferenceMomenta[i] = setupDistributionsAndSamplers(
                     emissionSourcesLists[i], beams[i], emittingSamplersList[i], i);
         }
     }
@@ -719,6 +720,8 @@ void TrackRun::execute() {
             StepSizeConfig::ResumePosition{
                     restartMetadata.stepSizeSegment, restartMetadata.stepsCompletedInSegment},
             ringPeriod);
+    static_cast<ParallelTracker*>(itsTracker_m.get())
+            ->setBeamReferenceMomenta(std::move(beamReferenceMomenta));
     if (Track::block->initialOrbit) {
         if (beams.size() != 1 || isRestart || Attributes::getBool(itsAttr[TRACKRUN::SPECTRALTUNES]))
             throw OpalException(
@@ -967,7 +970,7 @@ size_t TrackRun::computeTotalAllocationForBunch(
     return beamAllocSize;
 }
 
-void TrackRun::setupDistributionsAndSamplers(
+std::optional<Vector_t<double, 3>> TrackRun::setupDistributionsAndSamplers(
         const std::vector<EmissionSource*>& sources, Beam* beam,
         emittingSamplers_t& emittingSamplers, size_t index) {
     static IpplTimings::TimerRef samplingTime = IpplTimings::getTimer("samplingTime");
@@ -981,6 +984,7 @@ void TrackRun::setupDistributionsAndSamplers(
 
     emittingSamplers.clear();
     distrs_m.clear();
+    bool hasFileSource = false;
 
     for (EmissionSource* src : sources) {
         // Distribution objects are registry-owned; samplers only borrow them.
@@ -991,8 +995,8 @@ void TrackRun::setupDistributionsAndSamplers(
         opalDist->setDist();
         opalDist->setAvrgPz(avrgpz);
 
-        // File-based distributions carry absolute momenta - the BEAM's
-        // PC/ENERGY/GAMMA would be silently ignored, so forbid the combination.
+        // File-based distributions carry absolute momenta. PC/ENERGY/GAMMA on the BEAM is
+        // optional for them and only sets the reference momentum (see the return value).
         const bool usesFileMomentum = opalDist->getType() == DistributionType::FROMFILE
                                       || opalDist->getType() == DistributionType::EMITTEDFROMFILE;
         if (usesFileMomentum && Track::block->initialOrbit)
@@ -1001,15 +1005,7 @@ void TrackRun::setupDistributionsAndSamplers(
                     "FROMFILE/EMITTEDFROMFILE use absolute coordinates; use an orbit-local "
                     "generated distribution.");
         if (usesFileMomentum) {
-            if (beam->hasExplicitEnergy()) {
-                throw OpalException(
-                    "TrackRun::setupDistributionsAndSamplers()",
-                    opalDist->getTypeofDistribution() + " distribution \""
-                    + src->getDistributionName()
-                    + "\" cannot be combined with PC/ENERGY/GAMMA on the BEAM. "
-                      "Remove the energy attribute from the BEAM command - "
-                      "particle momenta are read from the file.");
-            }
+            hasFileSource = true;
         } else {
             if (!beam->hasExplicitEnergy()) {
                 throw OpalException(
@@ -1104,6 +1100,18 @@ void TrackRun::setupDistributionsAndSamplers(
 
     *gmsg << level2 << "* Particle sampling / sampler setup for all emission sources done." << endl;
     IpplTimings::stopTimer(samplingTime);
+
+    if (beam->hasReferenceDirection() && !hasFileSource) {
+        throw OpalException(
+                "TrackRun::setupDistributionsAndSamplers()",
+                "\"REFDIRECTION\" on beam \"" + beam->getOpalName()
+                        + "\" needs a FROMFILE or EMITTEDFROMFILE distribution.");
+    }
+    if (!hasFileSource || !beam->hasExplicitEnergy()) {
+        return std::nullopt;
+    }
+    const std::vector<double> dir = beam->getReferenceDirection();
+    return Vector_t<double, 3>(avrgpz * dir[0], avrgpz * dir[1], avrgpz * dir[2]);
 }
 
 Inform& TrackRun::print(Inform& os) const {

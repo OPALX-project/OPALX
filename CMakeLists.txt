@@ -17,7 +17,7 @@ set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 # ------------------------------------------------------------------------------
 project(
   OPALX
-  VERSION 0.9
+  VERSION 1.0.0
   LANGUAGES C CXX)
 
 # ------------------------------------------------------------------------------
@@ -96,7 +96,6 @@ include(CTest)
 include(Messages)
 include(CompilerOptions)
 include(Dependencies)
-include(FailingTests)
 
 # ------------------------------------------------------------------------------
 # Deprecated vars

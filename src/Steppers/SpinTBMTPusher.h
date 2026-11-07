@@ -1,8 +1,7 @@
 //
 // Class SpinTBMTPusher
 //   Thomas-BMT spin precession integrator using analytic Rodrigues rotation.
-//   Preserves |Pol| exactly per step; sub-steps when the per-step rotation
-//   angle exceeds a small-angle threshold.
+//   Preserves |Pol| exactly per step.
 //
 // Copyright (c) 2008 - 2026, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
@@ -29,10 +28,6 @@ class SpinTBMTPusher {
 public:
     KOKKOS_INLINE_FUNCTION SpinTBMTPusher() = default;
 
-    /// Sub-step threshold: maximum rotation angle (rad) per Rodrigues call.
-    /// Above this we split dt into uniform sub-steps to keep the rotation accurate.
-    static constexpr double maxAngle_m = 0.1;
-
     /// Per-particle Thomas-BMT update.
     ///
     /// Inputs (all along the same Cartesian axes as Pol, in OPALX conventions; the
@@ -41,7 +36,7 @@ public:
     ///   Ef, Bf  : electric and magnetic field at the particle position [V/m, T]
     ///   dt      : timestep [s]
     ///   mass    : rest energy [eV]  (m * c^2)
-    ///   charge  : particle charge [C]
+    ///   charge  : particle charge [proton charges]
     ///   anom    : magnetic moment anomaly G = (g - 2) / 2 [dimensionless]
     /// In/out:
     ///   Pol     : polarization 3-vector (rest-frame Pauli expectations along those axes,
@@ -82,25 +77,18 @@ public:
             return;
         }
 
-        // Sub-stepping for large rotations: split phi into N steps of size <= maxAngle_m.
-        // Rodrigues' formula is exact at any angle, but rounding and the
-        // assumption of constant Omega across the step degrade for large phi.
-        const int nSub       = static_cast<int>(Kokkos::ceil(phi / maxAngle_m));
-        const double dphi    = phi / static_cast<double>(nSub);
-        const double cosDphi = Kokkos::cos(dphi);
-        const double sinDphi = Kokkos::sin(dphi);
-
+        // One rotation by phi about Omega (Rodrigues, exact at any angle for this Omega):
+        //   S' = cos(phi) S + sin(phi) (axis x S) + (1 - cos(phi)) (axis . S) axis
+        const double cosPhi            = Kokkos::cos(phi);
+        const double sinPhi            = Kokkos::sin(phi);
         const Vector_t<double, 3> axis = Omega / omegaMag;
 
         Vector_t<double, 3> S{
                 static_cast<double>(Pol[0]), static_cast<double>(Pol[1]),
                 static_cast<double>(Pol[2])};
-        for (int i = 0; i < nSub; ++i) {
-            // Rodrigues: S' = cos(dphi) S + sin(dphi) (axis x S) + (1-cos(dphi))(axis.S) axis
-            const Vector_t<double, 3> axisCrossS = cross(axis, S);
-            const double axisDotS                = dot(axis, S);
-            S = cosDphi * S + sinDphi * axisCrossS + (1.0 - cosDphi) * axisDotS * axis;
-        }
+        const Vector_t<double, 3> axisCrossS = cross(axis, S);
+        const double axisDotS                = dot(axis, S);
+        S = cosPhi * S + sinPhi * axisCrossS + (1.0 - cosPhi) * axisDotS * axis;
 
         Pol[0] = S[0];
         Pol[1] = S[1];

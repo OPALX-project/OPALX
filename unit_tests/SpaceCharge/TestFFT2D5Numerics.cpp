@@ -1239,6 +1239,102 @@ namespace {
 #endif
     }
 
+    // Fixed laboratory charge and geometry must give the same transverse E at
+    // every beam speed. The self magnetic force must cancel beta^2 of E.
+    TEST_F(TestSolve2d5, TransverseLabDensityAndMagneticCancellation) {
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        fsCmd_m->setType("FFT2D5");
+        fsCmd_m->setNX(12);
+        fsCmd_m->setNY(12);
+        fsCmd_m->setNZ(12);
+        fsCmd_m->setPipeSizeX(6);
+        fsCmd_m->setPipeSizeY(6);
+        fsCmd_m->setPipeMode("NONE");
+        std::vector<Point_t> staticE;
+        for (const double ps : {0.0, 0.4, 1.0, -0.4}) {
+            SCOPED_TRACE(ps);
+            rebuildBunch();
+            createParticles({{2, 0, 3}, {-2, 0, 3}}, {{0, 0, ps}, {0, 0, ps}});
+            solver_m->doRunSolver(context());
+            const auto e =
+                    Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc_m->E.getView());
+            const auto b =
+                    Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc_m->B.getView());
+            const double gamma = std::sqrt(1.0 + ps * ps);
+            const double beta  = ps / gamma;
+            if (ps == 0.0) staticE = {e(0), e(1)};
+            for (std::size_t i = 0; i < 2; ++i) {
+                for (unsigned d = 0; d < 2; ++d) {
+                    EXPECT_NEAR(e(i)[d], staticE[i][d], 1e-10 * std::abs(staticE[i][0]));
+                }
+                EXPECT_NEAR(b(i)[0], -beta * e(i)[1] / Physics::c, 1e-10);
+                EXPECT_NEAR(b(i)[1], beta * e(i)[0] / Physics::c, 1e-10);
+                const double forceX = e(i)[0] - beta * Physics::c * b(i)[1];
+                EXPECT_NEAR(
+                        forceX, staticE[i][0] / (gamma * gamma), 1e-10 * std::abs(staticE[i][0]));
+            }
+        }
+    }
+
+    TEST_F(TestSolve2d5, UniformCylinderMatchesGaussLaw) {
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        fsCmd_m->setType("FFT2D5");
+        fsCmd_m->setNX(128);
+        fsCmd_m->setNY(128);
+        fsCmd_m->setNZ(12);
+        fsCmd_m->setPipeSizeX(2);
+        fsCmd_m->setPipeSizeY(2);
+        fsCmd_m->setPipeMode("NONE");
+        rebuildBunch();
+        constexpr double radius = 0.5;
+        constexpr int rings = 32, angles = 128, slices = 12;
+        std::vector<Point_t> positions, momenta;
+        for (int k = 0; k < slices; ++k) {
+            for (int j = 0; j < rings; ++j) {
+                const double r = radius * std::sqrt((j + 0.5) / rings);
+                for (int i = 0; i < angles; ++i) {
+                    const double phi = 2 * Physics::pi * (i + 0.5) / angles;
+                    positions.emplace_back(r * std::cos(phi), r * std::sin(phi), (k + 0.5) * 0.5);
+                    momenta.emplace_back(0.0, 0.0, 0.4);
+                }
+            }
+        }
+        createParticles(positions, momenta);
+        solver_m->doRunSolver(context());
+        const auto e = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc_m->E.getView());
+        const auto b = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc_m->B.getView());
+        const double lambda  = positions.size() * pc_m->getChargePerParticle() / 6.0;
+        const double slope   = lambda / (2 * Physics::pi * Physics::epsilon_0 * radius * radius);
+        const double beta    = 0.4 / std::sqrt(1.16);
+        double radiusSquared = 0, electricMoment = 0, forceMoment = 0;
+        for (std::size_t i = 0; i < positions.size(); ++i) {
+            const auto& r   = positions[i];
+            const double r2 = r[0] * r[0] + r[1] * r[1];
+            if (r[2] < 2 || r[2] > 4 || r2 > 0.16) continue;
+            radiusSquared += r2;
+            electricMoment += r[0] * e(i)[0] + r[1] * e(i)[1];
+            forceMoment += r[0] * (e(i)[0] - beta * Physics::c * b(i)[1])
+                           + r[1] * (e(i)[1] + beta * Physics::c * b(i)[0]);
+        }
+        ASSERT_GT(radiusSquared, 0);
+        // 2% allows CIC/finite-ring discretization at 32 cells per edge radius;
+        // it is well below the old 7.7% E and 42% Lorentz-force excesses.
+        EXPECT_NEAR(electricMoment / (slope * radiusSquared), 1.0, 0.02);
+        EXPECT_NEAR(forceMoment / (slope * radiusSquared / 1.16), 1.0, 0.02);
+    }
+
+    TEST_F(TestSolve2d5, OpenReferencePathRejectsEndpointPileup) {
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        fsCmd_m->setType("FFT2D5");
+        fsCmd_m->setClosedRing(false);
+        for (const double z : {-0.1, 6.1}) {
+            SCOPED_TRACE(z);
+            rebuildBunch();
+            createParticles({{0, 0, z}}, {{0, 0, 0.4}});
+            EXPECT_THROW(solver_m->scatterToGrid(context()), OpalException);
+        }
+    }
+
     TEST_F(TestSolve2d5, Deboost_TwoStationaryParticles) {
         makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
@@ -1285,12 +1381,92 @@ namespace {
         ASSERT_EQ(e.size(), 2);
         ASSERT_EQ(b.size(), 2);
 #if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
-        expectParticleFields(0, e, b, {6355346880, 0, 0}, {0, -14.990066, 0}, 1e3, 1e-4);
-        expectParticleFields(1, e, b, {-6355346880, 0, 0}, {0, 14.990066, 0}, 1e3, 1e-4);
+        expectParticleFields(
+                0, e, b, {4493908875, 0, 0}, {0, (4493908875.0 / (std::sqrt(2.0) * Physics::c)), 0},
+                1e3, 1e-4);
+        expectParticleFields(
+                1, e, b, {-4493908875, 0, 0},
+                {0, -(4493908875.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
 #else
-        expectParticleFields(0, e, b, {6387735439, 0, 0}, {0, -15.066459, 0}, 1e3, 1e-4);
-        expectParticleFields(1, e, b, {-6387735439, 0, 0}, {0, 15.066459, 0}, 1e3, 1e-4);
+        expectParticleFields(
+                0, e, b, {4516811045, 0, 0}, {0, (4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0},
+                1e3, 1e-4);
+        expectParticleFields(
+                1, e, b, {-4516811045, 0, 0},
+                {0, -(4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
 #endif
+    }
+
+    TEST_F(TestSolve2d5, ParabolicLineDensityHasCenteredLongitudinalForce) {
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        fsCmd_m->setType("FFT2D5");
+        fsCmd_m->setNX(4);
+        fsCmd_m->setNY(4);
+        fsCmd_m->setNZ(12);
+        fsCmd_m->setPipeSizeX(2);
+        fsCmd_m->setPipeSizeY(2);
+        fsCmd_m->setPipeMode("OPEN");
+        constexpr double lambda0 = 1e-9, halfLength = 3.0, dz = 0.5;
+        for (const bool scatter : {false, true}) {
+            fsCmd_m->setScatterLongitudinally(scatter);
+            for (const double ps : {0.0, 0.4, 1.0}) {
+                SCOPED_TRACE(testing::Message() << "CIC=" << scatter << ", ps=" << ps);
+                rebuildBunch();
+                const std::vector<Point_t> probes =
+                        scatter ? std::vector<Point_t>{{0, 0, 2.1}, {0, 0, 3}, {0, 0, 3.9}}
+                                : std::vector<Point_t>{
+                                          {0, 0, 2.25}, {0, 0, 2.75}, {0, 0, 3.25}, {0, 0, 3.75}};
+                createParticles(probes, std::vector<Point_t>(probes.size(), Point_t(0, 0, ps)));
+                auto* rho       = solver_m->getRho();
+                const auto host = rho->getHostMirror();
+                Kokkos::deep_copy(host, 0.0);
+                const int ng = rho->getNghost();
+                for (int k = 0; k < 12; ++k) {
+                    const double zeta   = (k + 0.5) * dz - halfLength;
+                    const double lambda = lambda0 * (1 - zeta * zeta / (halfLength * halfLength));
+                    // One transverse cell, dx=dy=0.5 m; integral rho dx dy=lambda.
+                    host(ng, ng, ng + k) = lambda / 0.25;
+                }
+                Kokkos::deep_copy(rho->getView(), host);
+                Kokkos::deep_copy(solver_m->getEField()->getView(), Point_t(0, 0, 0));
+                pc_m->markMomentsDirty();
+                pc_m->updateMoments();
+                solver_m->calculateLineDensity();
+                solver_m->gatherFromGrid(context());
+                const auto e =
+                        Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc_m->E.getView());
+                const double coefficient = 6.36 * lambda0
+                                           / (2 * Physics::pi * Physics::epsilon_0 * (1 + ps * ps)
+                                              * halfLength * halfLength);
+                double total = 0;
+                for (std::size_t i = 0; i < probes.size(); ++i) {
+                    EXPECT_NEAR(e(i)[2], coefficient * (probes[i][2] - halfLength), 1e-9);
+                    total += e(i)[2];
+                }
+                EXPECT_NEAR(total, 0.0, 1e-9);
+            }
+        }
+    }
+
+    TEST_F(TestSolve2d5, ClosedLongitudinalGatherWrapsCellCenters) {
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
+        fsCmd_m->setType("FFT2D5");
+        fsCmd_m->setNZ(12);
+        fsCmd_m->setClosedRing(true);
+        fsCmd_m->setScatterLongitudinally(true);
+        rebuildBunch();
+        createParticles({{0, 0, 0}, {0, 0, 6}}, {{0, 0, 0}, {0, 0, 0}});
+        const auto gradient = solver_m->getLineDensityGradient();
+        const auto host     = Kokkos::create_mirror_view(gradient);
+        for (std::size_t k = 0; k < host.extent(0); ++k)
+            host(k) = (k + 1) * 1e-9;
+        Kokkos::deep_copy(gradient, host);
+        Kokkos::deep_copy(solver_m->getEField()->getView(), Point_t(0, 0, 0));
+        solver_m->gatherFromGrid(context());
+        const auto e = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc_m->E.getView());
+        const double expected = -6.36 / (4 * Physics::pi * Physics::epsilon_0) * 6.5e-9;
+        EXPECT_NEAR(e(0)[2], expected, 1e-9);
+        EXPECT_NEAR(e(1)[2], expected, 1e-9);
     }
 
     TEST_F(TestSolve2d5, LongitudinalField_Simple) {
@@ -1316,14 +1492,18 @@ namespace {
         ASSERT_EQ(b.size(), 2);
 #if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
         expectParticleFields(
-                0, e, b, {6355346880, 0, 57.160829398e9}, {0, -14.990066, 0}, 1e3, 1e-4);
+                0, e, b, {4493908875, 0, 0.0},
+                {0, (4493908875.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-6355346880, 0, 57.160829398e9}, {0, 14.990066, 0}, 1e3, 1e-4);
+                1, e, b, {-4493908875, 0, 0.0},
+                {0, -(4493908875.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
 #else
         expectParticleFields(
-                0, e, b, {6387735439, 0, 57.160829398e9}, {0, -15.06645, 0}, 1e3, 1e-4);
+                0, e, b, {4516811045, 0, 0.0},
+                {0, (4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-6387735439, 0, 57.160829398e9}, {0, 15.06645, 0}, 1e3, 1e-4);
+                1, e, b, {-4516811045, 0, 0.0},
+                {0, -(4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
 #endif
     }
 
@@ -1348,14 +1528,18 @@ namespace {
         ASSERT_EQ(b.size(), 2);
 #if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
         expectParticleFields(
-                0, e, b, {6355346880, 0, 57.160829398e9}, {0, -14.990066, 0}, 1e3, 1e-4);
+                0, e, b, {4493908875, 0, 0.0},
+                {0, (4493908875.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-6355346880, 0, 57.160829398e9}, {0, 14.990066, 0}, 1e3, 1e-4);
+                1, e, b, {-4493908875, 0, 0.0},
+                {0, -(4493908875.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
 #else
         expectParticleFields(
-                0, e, b, {6387735439, 0, 57.160829398e9}, {0, -15.06645, 0}, 1e3, 1e-4);
+                0, e, b, {4516811045, 0, 0.0},
+                {0, (4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-6387735439, 0, 57.160829398e9}, {0, 15.06645, 0}, 1e3, 1e-4);
+                1, e, b, {-4516811045, 0, 0.0},
+                {0, -(4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
 #endif
     }
 
@@ -1382,15 +1566,19 @@ namespace {
         ASSERT_EQ(b.size(), 3);
 #if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
         expectParticleFields(
-                0, e, b, {6355346880, 0, 57.160829398e9}, {0, -14.990066, 0}, 1e3, 1e-4);
+                0, e, b, {4493908875, 0, 0.0},
+                {0, (4493908875.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-6355346880, 0, 57.160829398e9}, {0, 14.990066, 0}, 1e3, 1e-4);
+                1, e, b, {-4493908875, 0, 0.0},
+                {0, -(4493908875.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
         expectParticleFields(2, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
 #else
         expectParticleFields(
-                0, e, b, {6387735439, 0, 57.160829398e9}, {0, -15.06645, 0}, 1e3, 1e-4);
+                0, e, b, {4516811045, 0, 0.0},
+                {0, (4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-6387735439, 0, 57.160829398e9}, {0, 15.06645, 0}, 1e3, 1e-4);
+                1, e, b, {-4516811045, 0, 0.0},
+                {0, -(4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
         expectParticleFields(2, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
 #endif
     }
@@ -1444,24 +1632,9 @@ namespace {
     TEST_F(TestSolve2d5, LabFrameFields_SimpleOutOfBoundsZ) {
         makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 6}});
         fsCmd_m->setType("FFT2D5");
-        fsCmd_m->setNX(12);
-        fsCmd_m->setNY(12);
-        fsCmd_m->setNZ(12);
-        fsCmd_m->setPipeSizeX(6);
-        fsCmd_m->setPipeSizeY(6);
         rebuildBunch();
-        auto* solver = solver_m.get();
         createParticles({{0, 0, -1}, {0, 0, 7}}, {{0, 0, 1}, {0, 0, 1}});
-        solver->scatterToGrid(context());
-        solver->solvePoissons();
-        solver->calculateLineDensity();
-        const auto info = solver->createDiagnostic<Info>(Info::Kind::LabFrameFields);
-        solver->gatherFromGrid<Info>(context(), *info);
-        auto [e, b] = info->getParticleFields();
-        ASSERT_EQ(e.size(), 2);
-        ASSERT_EQ(b.size(), 2);
-        expectParticleFields(0, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
-        expectParticleFields(1, e, b, {0, 0, 0}, {0, 0, 0}, 1e3, 1e-4);
+        EXPECT_THROW(solver_m->scatterToGrid(context()), OpalException);
     }
 
     TEST_F(TestSolve2d5, LabFrameFields_ClosedRing) {
@@ -1490,15 +1663,19 @@ namespace {
         ASSERT_EQ(b.size(), 3);
 #if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
         expectParticleFields(
-                0, e, b, {6355346880, 0, 28.580515699e9}, {0, -14.990066, 0}, 1e6, 1e-4);
+                0, e, b, {4493908875, 0, -6.36 / (16 * Physics::pi * Physics::epsilon_0)},
+                {0, (4493908875.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e6, 1e-4);
         expectParticleFields(
-                1, e, b, {-6355346880, 0, 28.580515699e9}, {0, 14.990066, 0}, 1e6, 1e-4);
+                1, e, b, {-4493908875, 0, -6.36 / (16 * Physics::pi * Physics::epsilon_0)},
+                {0, -(4493908875.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e6, 1e-4);
         expectParticleFields(2, e, b, {0, 0, 28.580515699e9}, {0, 0, 0}, 1e6, 1e-4);
 #else
         expectParticleFields(
-                0, e, b, {6387735439, 0, 28.580515699e9}, {0, -15.06645, 0}, 1e6, 1e-4);
+                0, e, b, {4516811045, 0, -6.36 / (16 * Physics::pi * Physics::epsilon_0)},
+                {0, (4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e6, 1e-4);
         expectParticleFields(
-                1, e, b, {-6387735439, 0, 28.580515699e9}, {0, 15.06645, 0}, 1e6, 1e-4);
+                1, e, b, {-4516811045, 0, -6.36 / (16 * Physics::pi * Physics::epsilon_0)},
+                {0, -(4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e6, 1e-4);
         expectParticleFields(2, e, b, {0, 0, 28.580515699e9}, {0, 0, 0}, 1e6, 1e-4);
 #endif
     }
@@ -1529,15 +1706,19 @@ namespace {
         ASSERT_EQ(b.size(), 3);
 #if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
         expectParticleFields(
-                0, e, b, {6355346880, 0, 57.160829398e9}, {0, -14.990066, 0}, 1e6, 1e-4);
+                0, e, b, {4493908875, 0, 0.0},
+                {0, (4493908875.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e6, 1e-4);
         expectParticleFields(
-                1, e, b, {-6355346880, 0, 57.160829398e9}, {0, 14.990066, 0}, 1e6, 1e-4);
+                1, e, b, {-4493908875, 0, 0.0},
+                {0, -(4493908875.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e6, 1e-4);
         expectParticleFields(2, e, b, {0, 0, 0}, {0, 0, 0}, 1e6, 1e-4);
 #else
         expectParticleFields(
-                0, e, b, {6387735439, 0, 57.160829398e9}, {0, -15.06645, 0}, 1e6, 1e-4);
+                0, e, b, {4516811045, 0, 0.0},
+                {0, (4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e6, 1e-4);
         expectParticleFields(
-                1, e, b, {-6387735439, 0, 57.160829398e9}, {0, 15.06645, 0}, 1e6, 1e-4);
+                1, e, b, {-4516811045, 0, 0.0},
+                {0, -(4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e6, 1e-4);
         expectParticleFields(2, e, b, {0, 0, 0}, {0, 0, 0}, 1e6, 1e-4);
 #endif
     }
@@ -1565,14 +1746,18 @@ namespace {
         ASSERT_EQ(b.size(), 2);
 #if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
         expectParticleFields(
-                0, e, b, {6355346880, 0, 50.688114128e9}, {0, -14.990066, 0}, 1e3, 1e-4);
+                0, e, b, {4493908875, 0, 0.0},
+                {0, (4493908875.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-6355346880, 0, 50.688114128e9}, {0, 14.990066, 0}, 1e3, 1e-4);
+                1, e, b, {-4493908875, 0, 0.0},
+                {0, -(4493908875.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
 #else
         expectParticleFields(
-                0, e, b, {6387735439, 0, 50.688114128e9}, {0, -15.06645, 0}, 1e3, 1e-4);
+                0, e, b, {4516811045, 0, 0.0},
+                {0, (4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-6387735439, 0, 50.688114128e9}, {0, 15.06645, 0}, 1e3, 1e-4);
+                1, e, b, {-4516811045, 0, 0.0},
+                {0, -(4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
 #endif
     }
 
@@ -1599,14 +1784,18 @@ namespace {
         ASSERT_EQ(b.size(), 2);
 #if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
         expectParticleFields(
-                0, e, b, {6355346880, 0, 55.030260593e9}, {0, -14.990066, 0}, 1e3, 1e-4);
+                0, e, b, {4493908875, 0, 0.0},
+                {0, (4493908875.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-6355346880, 0, 55.030260593e9}, {0, 14.990066, 0}, 1e3, 1e-4);
+                1, e, b, {-4493908875, 0, 0.0},
+                {0, -(4493908875.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
 #else
         expectParticleFields(
-                0, e, b, {6387735439, 0, 55.030260593e9}, {0, -15.06645, 0}, 1e3, 1e-4);
+                0, e, b, {4516811045, 0, 0.0},
+                {0, (4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
         expectParticleFields(
-                1, e, b, {-6387735439, 0, 55.030260593e9}, {0, 15.06645, 0}, 1e3, 1e-4);
+                1, e, b, {-4516811045, 0, 0.0},
+                {0, -(4516811045.0 / (std::sqrt(2.0) * Physics::c)), 0}, 1e3, 1e-4);
 #endif
     }
 
@@ -1664,39 +1853,39 @@ namespace {
         Kokkos::deep_copy(eHost, pc.E.getView());
         Kokkos::deep_copy(bHost, pc.B.getView());
 #if OPALX_FFT2D5_ALGORITHM_USE_IPPL_2D_POISSON_SOLVER
-        EXPECT_NEAR(eHost(0).data_m[0], 6355346880, 1e6);
+        EXPECT_NEAR(eHost(0).data_m[0], 4493908875, 1e6);
         EXPECT_NEAR(eHost(0).data_m[1], 0, 1e6);
-        EXPECT_NEAR(eHost(0).data_m[2], 28.580515699e9, 1e6);
-        EXPECT_NEAR(eHost(1).data_m[0], -6355346880, 1e6);
+        EXPECT_NEAR(eHost(0).data_m[2], -6.36 / (16 * Physics::pi * Physics::epsilon_0), 1e6);
+        EXPECT_NEAR(eHost(1).data_m[0], -4493908875, 1e6);
         EXPECT_NEAR(eHost(1).data_m[1], 0, 1e6);
-        EXPECT_NEAR(eHost(1).data_m[2], 28.580515699e9, 1e6);
+        EXPECT_NEAR(eHost(1).data_m[2], -6.36 / (16 * Physics::pi * Physics::epsilon_0), 1e6);
         EXPECT_NEAR(eHost(2).data_m[0], 0, 1e6);
         EXPECT_NEAR(eHost(2).data_m[1], 0, 1e6);
         EXPECT_NEAR(eHost(2).data_m[2], 28.580515699e9, 1e6);
         EXPECT_NEAR(bHost(0).data_m[0], 0, 1e-4);
-        EXPECT_NEAR(bHost(0).data_m[1], -14.990066, 1e-4);
+        EXPECT_NEAR(bHost(0).data_m[1], (4493908875.0 / (std::sqrt(2.0) * Physics::c)), 1e-4);
         EXPECT_NEAR(bHost(0).data_m[2], 0, 1e-4);
         EXPECT_NEAR(bHost(1).data_m[0], 0, 1e-4);
-        EXPECT_NEAR(bHost(1).data_m[1], 14.990066, 1e-4);
+        EXPECT_NEAR(bHost(1).data_m[1], -(4493908875.0 / (std::sqrt(2.0) * Physics::c)), 1e-4);
         EXPECT_NEAR(bHost(1).data_m[2], 0, 1e-4);
         EXPECT_NEAR(bHost(2).data_m[0], 0, 1e-4);
         EXPECT_NEAR(bHost(2).data_m[1], 0, 1e-4);
         EXPECT_NEAR(bHost(2).data_m[2], 0, 1e-4);
 #else
-        EXPECT_NEAR(eHost(0).data_m[0], 6387735439, 1e6);
+        EXPECT_NEAR(eHost(0).data_m[0], 4516811045, 1e6);
         EXPECT_NEAR(eHost(0).data_m[1], 0, 1e6);
-        EXPECT_NEAR(eHost(0).data_m[2], 28.580515699e9, 1e6);
-        EXPECT_NEAR(eHost(1).data_m[0], -6387735439, 1e6);
+        EXPECT_NEAR(eHost(0).data_m[2], -6.36 / (16 * Physics::pi * Physics::epsilon_0), 1e6);
+        EXPECT_NEAR(eHost(1).data_m[0], -4516811045, 1e6);
         EXPECT_NEAR(eHost(1).data_m[1], 0, 1e6);
-        EXPECT_NEAR(eHost(1).data_m[2], 28.580515699e9, 1e6);
+        EXPECT_NEAR(eHost(1).data_m[2], -6.36 / (16 * Physics::pi * Physics::epsilon_0), 1e6);
         EXPECT_NEAR(eHost(2).data_m[0], 0, 1e6);
         EXPECT_NEAR(eHost(2).data_m[1], 0, 1e6);
         EXPECT_NEAR(eHost(2).data_m[2], 28.580515699e9, 1e6);
         EXPECT_NEAR(bHost(0).data_m[0], 0, 1e-4);
-        EXPECT_NEAR(bHost(0).data_m[1], -15.06645, 1e-4);
+        EXPECT_NEAR(bHost(0).data_m[1], (4516811045.0 / (std::sqrt(2.0) * Physics::c)), 1e-4);
         EXPECT_NEAR(bHost(0).data_m[2], 0, 1e-4);
         EXPECT_NEAR(bHost(1).data_m[0], 0, 1e-4);
-        EXPECT_NEAR(bHost(1).data_m[1], 15.06645, 1e-4);
+        EXPECT_NEAR(bHost(1).data_m[1], -(4516811045.0 / (std::sqrt(2.0) * Physics::c)), 1e-4);
         EXPECT_NEAR(bHost(1).data_m[2], 0, 1e-4);
         EXPECT_NEAR(bHost(2).data_m[0], 0, 1e-4);
         EXPECT_NEAR(bHost(2).data_m[1], 0, 1e-4);

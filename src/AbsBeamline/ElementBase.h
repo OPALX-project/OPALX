@@ -421,6 +421,16 @@ public:
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
+    /** Scalar aperture/material predicate for orbit optics, independent of field
+     * candidate selection. The default preserves the native reference callback;
+     * elements may override it to check loss without evaluating unused fields.
+     */
+    virtual bool isReferenceParticleLost(
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, double t) {
+        Vector_t<double, 3> electric(0.), magnetic(0.);
+        return applyToReferenceParticle(R, P, t, electric, magnetic);
+    }
+
     /**
      * @brief Mark local particles inside the element's longitudinal window but
      * outside its transverse aperture in pc->InvalidMask.

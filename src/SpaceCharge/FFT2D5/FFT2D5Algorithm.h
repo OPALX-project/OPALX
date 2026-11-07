@@ -340,6 +340,7 @@ namespace opalx::spacecharge {
          * @param origin Physical origin of the charge-density grid.
          * @param gBy4PiEpsilon0 Constant for the longitudinal field estimate.
          * @param lineDensityGradient The longitudinal line charge density gradient.
+         * @param closedRing Whether interpolation wraps across the path endpoints.
          * @param diagnostic Diagnostic policy used to record intermediate results.
          */
         template <bool ScatterLongitudinally, typename DiagnosticPolicy = NullDiagnostic>
@@ -348,7 +349,8 @@ namespace opalx::spacecharge {
                 T beamGamma, T beamBeta, const VectorView_t& e, const VectorView_t& b,
                 const BooleanView_t& invalid, Vector3D_t invDr, int nGhost, ippl::NDIndex<3U> lDom,
                 VectorGridView3D_t eField, Vector3D_t origin, T gBy4PiEpsilon0,
-                LineDensityView_t lineDensityGradient, DiagnosticPolicy diagnostic);
+                LineDensityView_t lineDensityGradient, bool closedRing,
+                DiagnosticPolicy diagnostic);
 
         /**
          * @brief Kokkos function that gathers the boosted E field for a particle from
@@ -375,17 +377,13 @@ namespace opalx::spacecharge {
                 const Vector3D_t& origin);
 
         /**
-         * @brief Kokkos function that unboosts a particle's e efield from the beam
-         * reference frame into th elab frame, modifying the e field and creating the b field.
+         * @brief Set B = beta * t_hat cross E / c in the local path basis.
          *
-         * @param n The particle number.
-         * @param beamGamma The relativistic gamma for the beam.
-         * @param beamBeta The relativistic beta for the beam.
-         * @param e Particle E fields.
-         * @param b Particle B fields.
+         * The transverse slice solve uses lab-frame line charge, so its E is
+         * already the lab electric field and must not receive another gamma.
          */
-        KOKKOS_FUNCTION static void unboostFromBeamFrame(
-                size_t n, T beamGamma, T beamBeta, const VectorView_t& e, const VectorView_t& b);
+        KOKKOS_FUNCTION static void setTransverseLabMagneticField(
+                size_t n, T beamBeta, const VectorView_t& e, const VectorView_t& b);
 
         /**
          * @brief Kokkos function that converts a particle's e and b fields from

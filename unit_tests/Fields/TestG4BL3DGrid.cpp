@@ -10,7 +10,8 @@
  * - normB and current from the param line
  * - Rows placed by their own coordinates: repeated, missing and off-grid rows are errors
  * - Rows in a shuffled order still land in the right place
- * - Rejection of extend* / points sections
+ * - extendX/Y/Z: the half map is mirrored with its sign flips, B and E; bad lines rejected
+ * - Rejection of points sections
  * - ZREVERSE rejected (cylinder maps only)
  * - getFieldDerivative / getFrequency / setFrequency throw
  * - Nine-column rows (x y z Bx By Bz Ex Ey Ez): accepted, and all-zero E allocates no storage
@@ -51,7 +52,8 @@ namespace {
     /// real files use -- unless `shuffle` is set.
     std::string writeGridMap(
             const std::string& path, const GridSpec& g, const FieldFn& field,
-            const std::string& paramLine = "param current=1.", bool shuffle = false) {
+            const std::string& paramLine = "param current=1.", bool shuffle = false,
+            const std::string& extendLines = "") {
         std::vector<std::string> rows;
         rows.reserve(static_cast<size_t>(g.nx) * g.ny * g.nz);
 
@@ -82,6 +84,7 @@ namespace {
         f << "grid X0=" << g.x0 << " Y0=" << g.y0 << " Z0=" << g.z0 << " nX=" << g.nx
           << " nY=" << g.ny << " nZ=" << g.nz << " dX=" << g.dx << " dY=" << g.dy << " dZ=" << g.dz
           << "\n";
+        f << extendLines;
         f << "data\n";
         for (const auto& row : rows) {
             f << row << "\n";
@@ -93,7 +96,8 @@ namespace {
     /// electric ones MV/m, which is what G4beamline writes.
     std::string writeGridMapWithE(
             const std::string& path, const GridSpec& g, const FieldFn& bfield,
-            const FieldFn& efield, const std::string& paramLine = "param current=1.") {
+            const FieldFn& efield, const std::string& paramLine = "param current=1.",
+            const std::string& extendLines = "") {
         std::ofstream f(path);
         if (!paramLine.empty()) {
             f << paramLine << "\n";
@@ -101,6 +105,7 @@ namespace {
         f << "grid X0=" << g.x0 << " Y0=" << g.y0 << " Z0=" << g.z0 << " nX=" << g.nx
           << " nY=" << g.ny << " nZ=" << g.nz << " dX=" << g.dx << " dY=" << g.dy << " dZ=" << g.dz
           << "\n";
+        f << extendLines;
         f << "data\n";
         for (int ix = 0; ix < g.nx; ++ix) {
             for (int iy = 0; iy < g.ny; ++iy) {
@@ -362,18 +367,85 @@ TEST_F(G4BL3DGridTest, MissingGridKeyIsRejected) {
     EXPECT_THROW(Fieldmap::getFieldmap(file, false, false), GeneralOpalException);
 }
 
-TEST_F(G4BL3DGridTest, ExtendSectionIsRejectedWithANamedReason) {
+// G4beamline reads a half map plus `extendX flip=...` lines and mirrors it about the
+// first grid point of that axis, flipping the listed components on the mirrored side. With
+// two extended axes the flips multiply. The field here has the symmetry the lines declare
+// (Bx odd in z, By odd in x and z), and every component is bilinear, so interpolation on
+// the mirrored map has to give the field itself, in all four x-z quadrants.
+TEST_F(G4BL3DGridTest, ExtendMirrorsTheHalfMapWithItsFlips) {
     const auto file = path();
-    {
-        std::ofstream f(file);
-        f << "grid X0=0 Y0=0 Z0=0 nX=2 nY=2 nZ=2 dX=1 dY=1 dZ=1\n";
-        f << "extendX factor=1.0\n";
+    GridSpec g;
+    g.x0                = 0.0;
+    const FieldFn field = [](double x, double y, double z) {
+        return Vector_t<double, 3>(0.01 * z, 0.001 * x * z, 0.3 + 0.003 * y);
+    };
+    writeGridMap(
+            file, g, field, "param current=1.", false, "extendX flip=By\nextendZ flip=Bx,By\n");
+    Fieldmap* map = load(file);
+
+    double x0 = 0, x1 = 0, y0 = 0, y1 = 0, z0 = 0, z1 = 0;
+    map->getFieldDimensions(x0, x1, y0, y1, z0, z1);
+    EXPECT_NEAR(x0, -0.020, 1e-12);
+    EXPECT_NEAR(x1, 0.020, 1e-12);
+    EXPECT_NEAR(y0, -0.020, 1e-12);  // y is not extended
+    EXPECT_NEAR(y1, 0.010, 1e-12);
+    EXPECT_NEAR(z0, -0.020, 1e-12);
+    EXPECT_NEAR(z1, 0.020, 1e-12);
+
+    for (const double xmm : {-17.0, -5.0, 3.0, 12.0}) {
+        for (const double zmm : {-11.0, -2.5, 1.5, 9.0}) {
+            Vector_t<double, 3> E(0.0), B(0.0);
+            ASSERT_FALSE(map->getFieldstrength(
+                    Vector_t<double, 3>(xmm * 1e-3, -0.015, zmm * 1e-3), E, B));
+            const auto expected = field(xmm, -15.0, zmm);
+            EXPECT_NEAR(B(0), expected(0), 1e-12) << "x = " << xmm << ", z = " << zmm;
+            EXPECT_NEAR(B(1), expected(1), 1e-12) << "x = " << xmm << ", z = " << zmm;
+            EXPECT_NEAR(B(2), expected(2), 1e-12) << "x = " << xmm << ", z = " << zmm;
+        }
     }
-    try {
-        Fieldmap::getFieldmap(file, false, false);
-        FAIL() << "expected a throw";
-    } catch (const GeneralOpalException& e) {
-        EXPECT_NE(std::string(e.what()).find("extend"), std::string::npos);
+}
+
+// The same for the electric columns: Ey odd in y, Ex and Ez even.
+TEST_F(G4BL3DGridTest, ExtendFlipsTheElectricFieldToo) {
+    const auto file = path();
+    GridSpec g;
+    g.y0 = 0.0;
+    writeGridMapWithE(
+            file, g,
+            [](double, double y, double) {
+                return Vector_t<double, 3>(0.01 * y, 0.2, 0.3);
+            },
+            [](double x, double y, double z) {
+                return Vector_t<double, 3>(0.001 * x, 0.002 * y, 1.0 + 0.003 * z);
+            },
+            "param current=1.", "extendY flip=Bx,Ey\n");
+    Fieldmap* map = load(file);
+
+    Vector_t<double, 3> E(0.0), B(0.0);
+    ASSERT_FALSE(map->getFieldstrength(Vector_t<double, 3>(-0.005, -0.012, 0.010), E, B));
+    EXPECT_NEAR(B(0), 0.01 * -12.0, 1e-12);
+    EXPECT_NEAR(B(1), 0.2, 1e-12);
+    EXPECT_NEAR(E(0), 0.001 * -5.0 * 1e6, 1e-6);
+    EXPECT_NEAR(E(1), 0.002 * -12.0 * 1e6, 1e-6);
+    EXPECT_NEAR(E(2), (1.0 + 0.003 * 10.0) * 1e6, 1e-6);
+}
+
+TEST_F(G4BL3DGridTest, BadExtendLinesAreRejectedWithANamedReason) {
+    for (const std::string extend : {"extendX factor=1.0", "extendX flip=Bq", "extendR flip=Bz"}) {
+        const auto file = path("_" + std::to_string(files_.size()) + ".g4blmap");
+        {
+            std::ofstream f(file);
+            f << "grid X0=0 Y0=0 Z0=0 nX=2 nY=2 nZ=2 dX=1 dY=1 dZ=1\n";
+            f << extend << "\n";
+            f << "data\n";
+        }
+        try {
+            Fieldmap::getFieldmap(file, false, false);
+            ADD_FAILURE() << "expected a throw for '" << extend << "'";
+        } catch (const GeneralOpalException& e) {
+            EXPECT_NE(std::string(e.what()).find(extend.substr(0, 7)), std::string::npos)
+                    << e.what();
+        }
     }
 }
 

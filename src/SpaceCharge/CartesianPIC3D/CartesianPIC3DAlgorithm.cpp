@@ -281,9 +281,6 @@ namespace opalx::spacecharge {
           << ", stype=" << poissonSolver_m->name() << endl;
 
         binStats_m.clear();
-        // Multi-bin P3M would need one rest-frame particle pass per bin with charges masked to
-        // that bin; ghost bin indices are stale after prepareBins and would need a halo refresh.
-        std::optional<FieldCompositionPolicy> particleRestFrame;
         while (const std::optional<ParticleBinType> unit =
                        particleBinTraversal_m->nextNonemptyBin()) {
             m << level4 << "binIndex=" << static_cast<int>(unit->ordinal)
@@ -295,16 +292,6 @@ namespace opalx::spacecharge {
                             static_cast<unsigned long long>(unit->globalParticleCount),
                             unit->gamma});
 
-            if (shortRangeInteraction_m.has_value()) {
-                if (particleRestFrame.has_value()) {
-                    throw OpalException(
-                            "CartesianPIC3DAlgorithm::solveBinned",
-                            "The P3M short-range correction supports a single bin only.");
-                }
-                particleRestFrame = FieldCompositionPolicy{
-                        .meanMomentum = unit->meanMomentum, .gamma = unit->gamma};
-            }
-
             for (std::size_t index = 0; index < plan.passCount; ++index) {
                 solvePass(context, plan, &*unit, plan.passes[index], result);
             }
@@ -313,12 +300,11 @@ namespace opalx::spacecharge {
         relativisticFieldComposer_m.gatherAccumulated(
                 particleMeshTransfer_m, primary_m->E, primary_m->B, primary_m->R, *fieldStorage_m);
         // Add particle fields after the final gather so replacement gathering cannot erase them.
-        // Image charges receive no short-range correction, as in the whole-bunch solve.
-        if (particleRestFrame.has_value()) {
-            relativisticFieldComposer_m.addParticleContribution(
-                    shortRangeInteraction_m->computeRestFrameField(
-                            *primary_m, particleRestFrame->gamma),
-                    primary_m->E, primary_m->B, primary_m->getLocalNum(), *particleRestFrame);
+        // The particle stage uses each source's own velocity instead of the bin rest frames and
+        // runs once for all bins. Image charges receive no short-range correction, as in the
+        // whole-bunch solve.
+        if (shortRangeInteraction_m.has_value()) {
+            P3MShortRangeInteraction::addMovingSourceField(*primary_m);
         }
         if (config_m.binning->tablePrintFrequency > 0
             && step % static_cast<long long>(config_m.binning->tablePrintFrequency) == 0) {

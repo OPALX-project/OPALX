@@ -12,8 +12,22 @@
 #   configure_cuda_architectures_from_kokkos_arch()
 #   # If ARCH=HOPPER90, sets CMAKE_CUDA_ARCHITECTURES=90
 #   # If ARCH=AMPERE80, sets CMAKE_CUDA_ARCHITECTURES=80
-#   # If ARCH=BDW (CPU only), skips CUDA configuration
+#   # If ARCH=BDW or AMD_GFX90A, stops with a backend mismatch error
 # -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# Function: opalx_arch_is_nvidia(<out-var>)
+#
+# Sets <out-var> to TRUE if ARCH names an NVIDIA GPU. Matching the generation
+# prefix instead of full names keeps future compute capabilities working.
+# -----------------------------------------------------------------------------
+function(opalx_arch_is_nvidia OUT_VAR)
+    set(_is_nvidia FALSE)
+    if(ARCH MATCHES "^(MAXWELL|PASCAL|VOLTA|TURING|AMPERE|ADA|HOPPER|BLACKWELL)[0-9]+$")
+        set(_is_nvidia TRUE)
+    endif()
+    set(${OUT_VAR} ${_is_nvidia} PARENT_SCOPE)
+endfunction()
 
 # -----------------------------------------------------------------------------
 # Function: configure_cuda_architectures_from_kokkos_arch
@@ -25,8 +39,8 @@
 # This function:
 #   - Checks if CUDA is enabled in OPALX_PLATFORMS
 #   - Extracts trailing digits from the ARCH value using regex
-#   - Sets CMAKE_CUDA_ARCHITECTURES if ARCH has a numeric suffix
-#   - Handles CPU-only architectures gracefully
+#   - Stops with an error if ARCH is not an NVIDIA GPU (AMD, Intel or CPU name)
+#   - Sets CMAKE_CUDA_ARCHITECTURES from the numeric suffix
 # -----------------------------------------------------------------------------
 function(configure_cuda_architectures_from_kokkos_arch)
     # Check if CUDA is enabled
@@ -49,6 +63,18 @@ function(configure_cuda_architectures_from_kokkos_arch)
     if(NOT ARCH)
         message(STATUS "ℹ️  ARCH is empty; CMAKE_CUDA_ARCHITECTURES will not be auto-configured")
         return()
+    endif()
+
+    # Guard against silently deriving a bogus compute capability from a
+    # non-NVIDIA architecture: AMD_GFX1152 with PLATFORMS=CUDA would set
+    # CMAKE_CUDA_ARCHITECTURES=1152 and a CPU name like ZEN3 would set 3.
+    opalx_arch_is_nvidia(_opalx_arch_is_nvidia)
+    if(NOT _opalx_arch_is_nvidia)
+        message(FATAL_ERROR
+            "❌ CUDA is enabled in OPALX_PLATFORMS, but ARCH=${ARCH} is not an NVIDIA GPU "
+            "architecture. Combining PLATFORMS=CUDA with an AMD, CPU, or Intel architecture "
+            "is a backend mismatch. Use an NVIDIA ARCH such as HOPPER90, AMPERE80, or "
+            "BLACKWELL120, or select a matching backend with -DPLATFORMS=HIP/OPENMP.")
     endif()
 
     # Extract trailing digits from ARCH using regex

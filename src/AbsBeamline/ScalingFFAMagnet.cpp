@@ -65,17 +65,27 @@ void ScalingFFAMagnet::getCylindricalCoordinates(
 }
 
 void ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<double, 3>& B) const {
-    Kokkos::View<Vector_t<double, 3>*> Rdevice("Rtmp", 1);
-    Kokkos::View<Vector_t<double, 3>*> Bdevice("Btmp", 1);
-    auto Rhost = Kokkos::create_mirror_view(Rdevice);
-    auto Bhost = Kokkos::create_mirror_view(Bdevice);
-    Rhost(0)   = R;
-    Bhost(0)   = B;
-    Kokkos::deep_copy(Rdevice, Rhost);
-    Kokkos::deep_copy(Bdevice, Bhost);
-    getFieldValue(config_m, efm_m, Rdevice, Bdevice);
-    Kokkos::deep_copy(Bhost, Bdevice);
-    B = Bhost(0);
+    // Scalar reference tracking uses the same cylindrical field polynomial as
+    // the particle kernel, with host storage rather than one-particle launches.
+    Vector_t<double, 5> cylindrical;
+    config_m.getCylindricalCoordinates(R, cylindrical);
+    getFieldValueFromChart(cylindrical, B);
+}
+
+void ScalingFFAMagnet::getFieldValueFromChart(
+        const Vector_t<double, 5>& cylindrical, Vector_t<double, 3>& B) const {
+    B = Vector_t<double, 3>(0.0);
+    if (!config_m.contains(cylindrical) || config_m.Bz_m == 0) return;
+    double storage[ScalingFFAMagnetConfig::MaxOrder + 1]{};
+    // At y=0 every higher-order term vanishes exactly. Off plane, the
+    // polynomial uses derivatives only through maxOrder (never maxOrder+1).
+    const int derivativeOrder = cylindrical[1] == 0 ? 0 : static_cast<int>(config_m.maxOrder_m);
+    efm_m->function(cylindrical[4], derivativeOrder, storage);
+    Kokkos::View<double*, Kokkos::HostSpace, Kokkos::MemoryTraits<Kokkos::Unmanaged>> derivatives(
+            storage, config_m.maxOrder_m + 1);
+    Vector_t<double, 3> field;
+    getFieldValueCylindrical(config_m, derivatives, cylindrical, field);
+    rotateBfield(config_m, cylindrical, field, B);
 }
 
 void ScalingFFAMagnet::initialise() {
@@ -111,21 +121,7 @@ void ScalingFFAMagnet::accept(BeamlineVisitor& visitor) const {
 }
 
 bool ScalingFFAMagnet::isInside(const Vector_t<double, 3>& rCart) const {
-    Vector_t<double, 5> rCyl;
-    getCylindricalCoordinates(rCart, rCyl);
-    double r         = rCyl[0];
-    double z         = rCyl[1];
-    double phiSpiral = rCyl[4];
-    if (r < config_m.rMin_m || r > config_m.rMax_m) {
-        return false;
-    }
-    if (phiSpiral < -config_m.azimuthalExtent_m || phiSpiral > config_m.azimuthalExtent_m) {
-        return false;
-    }
-    if (z < -config_m.verticalExtent_m || z > config_m.verticalExtent_m) {
-        return false;
-    }
-    return true;
+    return config_m.contains(rCart);
 }
 
 void ScalingFFAMagnet::apply(
@@ -137,8 +133,8 @@ void ScalingFFAMagnet::apply(
 }
 
 void ScalingFFAMagnet::calculateDfCoefficients() {
-    std::vector<std::vector<double> > dfVec =
-            std::vector<std::vector<double> >(config_m.maxOrder_m + 1);
+    std::vector<std::vector<double>> dfVec =
+            std::vector<std::vector<double>>(config_m.maxOrder_m + 1);
     dfVec[0] = std::vector<double>(1, 1.);                 // f_0 = 1.*0th derivative
     for (size_t n = 0; n < config_m.maxOrder_m; n += 2) {  // n indexes the power in z
         dfVec[n + 1] = std::vector<double>(dfVec[n].size() + 1, 0);
@@ -197,11 +193,10 @@ void ScalingFFAMagnet::setupEndField() const {
     efm_m       = std::shared_ptr<endfieldmodel::EndFieldModel>(efm->clone());
     efm_m->rescale(1.0 / std::abs(getR0()));  // efm_m is now in radians
     efm_m->initialise();
-    config_m.phiStart_m = config_m.phiStart_m;
     if (config_m.azimuthalExtent_m < 0.0) {
         config_m.azimuthalExtent_m = efm_m->getEndLength() * 5. + efm_m->getCentreLength() * 0.5;
     }
-    double sLength      = efm_m->getCentreLength() * config_m.r0_m;
+    double sLength      = efm_m->getCentreLength() * std::abs(config_m.r0_m);
     planarArcGeometry_m = Geometry::makeSBend(sLength, 1 / config_m.r0_m);
     efmInitialised_m    = true;
 }
@@ -241,8 +236,8 @@ void ScalingFFAMagnet::getCartesianCoordinates(
     Rcart[2] = Rcyl[0] * std::sin(Rcyl[2]);
 }
 
-std::vector<std::vector<double> > ScalingFFAMagnet::getDfCoefficients() const {
-    std::vector<std::vector<double> > dfCoefficients(config_m.MaxOrder + 1);
+std::vector<std::vector<double>> ScalingFFAMagnet::getDfCoefficients() const {
+    std::vector<std::vector<double>> dfCoefficients(config_m.MaxOrder + 1);
     for (size_t n = 0; n < config_m.MaxOrder + 1; ++n) {
         dfCoefficients[n] = std::vector<double>(config_m.MaxOrder + 1);
         for (size_t i = 0; i < config_m.MaxOrder + 1; ++i) {

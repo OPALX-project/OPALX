@@ -975,7 +975,7 @@ TEST_F(OrbitThreaderTest, RayTrackerResolvesThinSupportForEachMomentumAndReverse
             EXPECT_GT(work.elementFields, 0);
             EXPECT_EQ(work.elementTests, work.supportLookups);  // one lattice element
             EXPECT_EQ(work.trials, work.acceptedSteps + work.supportSplits);
-            const unsigned evaluationsPerTrial = method == "BORIS" ? 1 : method == "RK4" ? 9 : 25;
+            const unsigned evaluationsPerTrial = method == "BORIS" ? 1 : method == "RK4" ? 9 : 17;
             EXPECT_EQ(work.fieldSamples, evaluationsPerTrial * work.trials);
             ASSERT_GT(final.position(2), 0.0034);
             ASSERT_GT(steps.size(), 1);
@@ -1200,12 +1200,23 @@ TEST_F(OrbitThreaderTest, RungeKuttaZeroStepsMaterialHitsAndFieldInitialization)
         tracker.step(ray, 0.0, field);
         EXPECT_EQ(calls, 0u);
         tracker.step(ray, 1.e-11, field);
-        EXPECT_EQ(calls, method == "RK4" ? 9u : 25u);
+        EXPECT_EQ(calls, method == "RK4" ? 9u : 17u);
         EXPECT_TRUE(tracker.step(ray, 1.e-11,
                                  [](const auto&, auto&, auto&) {
                                      return true;
                                  })
                             .hitMaterial);
+        // Every sampled stage, including dense-output stages and midpoint,
+        // must propagate a material hit and stop further field evaluations.
+        const unsigned samples = method == "RK4" ? 9u : 17u;
+        for (unsigned hit = 1; hit <= samples; ++hit) {
+            calls             = 0;
+            const auto result = tracker.step(ray, 1.e-11, [&](const auto&, auto&, auto&) {
+                return ++calls == hit;
+            });
+            EXPECT_TRUE(result.hitMaterial);
+            EXPECT_EQ(calls, hit);
+        }
         EXPECT_THROW(
                 tracker.step(ray, std::numeric_limits<double>::quiet_NaN(), field), OpalException);
     }
@@ -1648,4 +1659,50 @@ TEST(MapExitRoot, EndpointsAndInvalidResiduals) {
     EXPECT_THROW(map_exit_detail::locate(0., 1., -1., 1., 1e-12, f), OpalException);
     EXPECT_THROW(map_exit_detail::locate(0., 1., 1., 2., 1e-12, f), OpalException);
     EXPECT_THROW(map_exit_detail::locate(0., 1., -1., 1., 0., f), OpalException);
+}
+
+TEST_F(OrbitThreaderTest, Dop853DenseMidpointAccuracyAndWork) {
+    OpalBeamline beamline;
+    PartData reference(1., 9.382720813e8, 1.e6);
+    ExternalFieldRayTracker tracker(
+            beamline, reference, ExternalFieldRayTracker::IntegrationMethod::DOP853);
+    constexpr double b = 10., transverse = .2, longitudinal = .1;
+    const double gamma = std::sqrt(1. + transverse * transverse + longitudinal * longitudinal);
+    const double omega =
+            reference.getQ() * Physics::c * Physics::c * b / (reference.getM() * gamma);
+    std::vector<double> errors;
+    for (double phase : {.8, .4}) {
+        unsigned evaluations = 0;
+        ExternalFieldRayTracker::State initial;
+        initial.momentum = {transverse, 0., longitudinal};
+        const auto step =
+                tracker.step(initial, phase / omega, [&](const auto&, auto&, auto& magnetic) {
+                    ++evaluations;
+                    magnetic(2) = b;
+                    return false;
+                });
+        EXPECT_EQ(evaluations, 17u);
+        EXPECT_FALSE(step.hitMaterial);
+        const double theta = .5 * phase, t = theta / omega;
+        const Vector_t<double, 3> exactP(
+                transverse * std::cos(theta), -transverse * std::sin(theta), longitudinal);
+        const Vector_t<double, 3> exactR(
+                Physics::c * transverse / (gamma * omega) * std::sin(theta),
+                Physics::c * transverse / (gamma * omega) * (std::cos(theta) - 1),
+                Physics::c * longitudinal / gamma * t);
+        const double path  = Physics::c * std::hypot(transverse, longitudinal) / gamma * t;
+        const double error = std::max(
+                {euclidean_norm(Vector_t<double, 3>(step.midpoint.momentum - exactP)),
+                 euclidean_norm(Vector_t<double, 3>(step.midpoint.position - exactR)),
+                 std::abs(step.midpoint.pathLength - path)});
+        errors.push_back(error);
+        std::cout << "DENSE_MIDPOINT phase=" << phase << " error=" << std::setprecision(17) << error
+                  << "\n";
+        EXPECT_NEAR(step.midpoint.time, t, 1e-23);
+        EXPECT_LT(error, 1e-6);
+    }
+    const double order = std::log2(errors[0] / errors[1]);
+    std::cout << "DENSE_MIDPOINT local order=" << order << "\n";
+    EXPECT_GT(order, 7.3);
+    EXPECT_LT(order, 8.7);
 }
