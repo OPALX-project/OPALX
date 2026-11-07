@@ -22,6 +22,8 @@
 #include <string>
 
 namespace Options {
+    bool parseOnly = false;
+
     // The global program options.
     bool echo = false;
 
