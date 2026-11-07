@@ -925,8 +925,8 @@ namespace opalx::spacecharge {
             scale = Kokkos::max(scale, Kokkos::abs(bounds(1, d)));
             scale = Kokkos::max(scale, Kokkos::abs(bounds(1, d + 3)));
         }
-        constexpr T epsilon = std::numeric_limits<T>::epsilon();
-        return 256 * epsilon * scale * scale + 256 * std::numeric_limits<T>::min();
+        constexpr T epsilon = Kokkos::Experimental::epsilon_v<T>;
+        return 256 * epsilon * scale * scale + 256 * Kokkos::Experimental::norm_min_v<T>;
     }
 
     KOKKOS_INLINE_FUNCTION FFT2D5Algorithm::T FFT2D5Algorithm::pathNodeDistance2(
